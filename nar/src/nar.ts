@@ -58,6 +58,9 @@ import { createEmbeddingCache } from './lm/system-one/embedding-cache.js';
 import { createManifold } from './lm/system-one/manifold.js';
 import { createDispatcher } from './lm/system-one/dispatcher.js';
 import { createGroundednessGate } from './lm/system-one/groundedness-gate.js';
+import { createLMServiceCortex, LMServiceCortex } from './lm/system-one/cortex-adapter.js';
+import { StubCortex } from './lm/system-one/dispatcher.js';
+import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
 import { ManifoldReflex } from './lm/system-one/manifold-reflex.js';
 import { EpsilonGreedyReflex } from './reflex/EpsilonGreedyReflex.js';
 
@@ -201,6 +204,31 @@ export class NAR extends BaseComponent {
       );
     }
 
+    // System One initialization (behind config flag; disabled by default)
+    // Must run before gateRegistry.initialize to provide perceptionConfig
+    this.initializeSystemOne();
+
+    // Initialize gate registry with System One perception config if enabled
+    const perceptionConfig = this.config.systemOne?.enabled
+      ? {
+          systemOne: {
+            enabled: true,
+            manifold: this._systemOneManifold!,
+            embeddingCache: this._systemOneEmbeddingCache!,
+            reasoningBudget: this.config.systemOne.reasoningBudget ?? {
+              maxCycles: 100,
+              maxDepth: 10,
+              maxMemoryOps: 1000,
+              maxLMCalls: 5,
+              consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+            },
+            provisionalCInitial: this.config.systemOne.provisional?.cInitial ?? 0.1,
+            provisionalDecayRate: this.config.systemOne.provisional?.decayRate ?? 0.3,
+            provisionalMaxTtlMs: this.config.systemOne.provisional?.maxTtlMs ?? 30_000,
+          },
+        }
+      : undefined;
+
     gateRegistry.initialize({
       initialBudget: {
         maxCycles: 1000,
@@ -210,6 +238,7 @@ export class NAR extends BaseComponent {
         consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
       },
       initialAutonomyMode: 'observe-only',
+      perceptionConfig,
     });
 
     this.io = new NARIO(this.memory, this.taskManager, this.config);
@@ -239,9 +268,6 @@ export class NAR extends BaseComponent {
       this.config.enableProactiveEnrichment
     );
     this._metricsCollector = metrics;
-
-    // System One initialization (behind config flag; disabled by default)
-    this.initializeSystemOne();
 
     this.initializeOptionalFeatures();
   }
@@ -916,6 +942,18 @@ export class NAR extends BaseComponent {
       );
     }
 
+    // Create cortex adapter if provider is not 'off'
+    let cortex: import('./lm/system-one/types.js').GenerativeCortex;
+    if (systemOneConfig.cortex?.provider && systemOneConfig.cortex.provider !== 'off' && this._lmService) {
+      cortex = createLMServiceCortex({
+        lmService: this._lmService,
+        grammar: 'narsese-term',
+        temperature: 0,
+      });
+    } else {
+      cortex = new StubCortex('off');
+    }
+
     // Create dispatcher with all four tiers (real manifold as Tier 1)
     this._systemOneDispatcher = createDispatcher(true, {
       embeddingCache: this._systemOneEmbeddingCache!,
@@ -925,7 +963,7 @@ export class NAR extends BaseComponent {
         decayRate: systemOneConfig.provisional?.decayRate ?? 0.3,
         maxTtlMs: systemOneConfig.provisional?.maxTtlMs ?? 30_000,
       },
-    });
+    }, cortex);
 
     // Create groundedness gate for egress filtering
     this._systemOneGroundednessGate = createGroundednessGate({
@@ -937,6 +975,7 @@ export class NAR extends BaseComponent {
     this.logger?.info('System One initialized', {
       manifold: this._systemOneManifold ? 'enabled' : 'disabled',
       dispatcher: this._systemOneDispatcher ? 'enabled' : 'disabled',
+      cortex: systemOneConfig.cortex?.provider ?? 'off',
     });
   }
 
@@ -969,6 +1008,19 @@ export class NAR extends BaseComponent {
     // Get System One dispatcher if available
     const systemOneDispatcher = this.getSystemOneDispatcher();
 
+    // Create System One rule adapter for translation rule
+    const systemOneAdapter = systemOneDispatcher
+      ? createSystemOneLMRuleAdapter({
+          dispatcher: systemOneDispatcher,
+          nar: {
+            getCycleCount: () => this.getCycleCount(),
+            getSystemOneEmbeddingCache: () => this.getSystemOneEmbeddingCache(),
+            getSystemOneManifold: () => this.getSystemOneManifold(),
+          },
+          logger: this.logger,
+        })
+      : null;
+
     for (const rule of lmRules) {
       if (structuredModel) rule.setStructuredModel(structuredModel);
       rule.setSystemEventBus(this.systemEventBus);
@@ -976,72 +1028,9 @@ export class NAR extends BaseComponent {
       rule.setNAR(this);
       rule.setToolDispatcher(toolDispatcher);
 
-      // For the translation rule, use System One proposeAndJudge when available
-      if (rule.id === 'lm-narsese-translation' && systemOneDispatcher) {
-        const originalApply = rule.apply.bind(rule);
-        // Wrap the apply method to use dispatcher for generate-then-judge
-        (rule as any).apply = async (
-          primary: Term,
-          secondary?: Term,
-          context?: Record<string, unknown>,
-          signal?: AbortSignal
-        ): Promise<Task[]> => {
-          // Use System One generate-then-judge for translation
-          const dispatcher = this.getSystemOneDispatcher();
-          if (!dispatcher) {
-            return originalApply(primary, secondary, context, signal);
-          }
-
-          try {
-            const contextStr = primary.toString();
-            const cognitiveContext = {
-              tickId: `cycle-${this.getCycleCount()}`,
-              topBeliefs: [contextStr],
-              topGoals: context?.activeGoals as string[] ?? [],
-              workingMemory: context?.recentDerivations as string[] ?? [],
-            };
-            const synthesisQuery = {
-              kind: 'synthesize' as const,
-              instruction: `Translate to Narsese: ${contextStr}`,
-              grammar: 'narsese-term',
-              maxCandidates: 3,
-            };
-            const judgmentQueries = [
-              { kind: 'classify' as const, instruction: 'Select best Narsese candidate', space: [], axis: 'teleological' as const, criticality: 'standard' as const },
-              { kind: 'evaluate' as const, instruction: 'Evaluate conflict with current beliefs', rubric: 'conflict' as const, axis: 'epistemic' as const, criticality: 'standard' as const },
-            ];
-            const budget: ReasoningBudget = {
-              maxCycles: 100,
-              maxDepth: 10,
-              maxMemoryOps: 1000,
-              maxLMCalls: 5,
-              consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-            };
-
-            const peaResult = await dispatcher.proposeAndJudge(cognitiveContext, synthesisQuery, judgmentQueries, budget);
-
-            // Convert admitted candidates to tasks
-            const tasks: Task[] = [];
-            for (const admitted of peaResult.admitted) {
-              const parsed = termParser.parse(admitted.candidate);
-              if (parsed) {
-                tasks.push(createTask(parsed, 'belief', admitted.truth, { priority: admitted.truth.c, durability: 0.8, quality: 0.9, cycles: 10, depth: 5 }));
-              }
-            }
-            for (const provisional of peaResult.provisional) {
-              const parsed = termParser.parse(provisional.candidate);
-              if (parsed) {
-                tasks.push(createTask(parsed, 'belief', provisional.provisional.confidence(Date.now()) > 0 ? Truth.create(0.5, provisional.provisional.confidence(Date.now())) : Truth.NEUTRAL, { priority: 0.1, durability: 0.5, quality: 0.5, cycles: 5, depth: 3 }));
-              }
-            }
-
-            this.logger?.debug('System One translation', { candidates: peaResult.candidates.length, admitted: tasks.length });
-            return tasks;
-          } catch (e) {
-            this.logger?.warn('System One translation failed, falling back to LM', { error: errMsg(e) });
-            return originalApply(primary, secondary, context, signal);
-          }
-        };
+      // For the translation rule, inject System One adapter when available
+      if (rule.id === 'lm-narsese-translation' && systemOneAdapter) {
+        rule.setSystemOneAdapter(systemOneAdapter);
       }
 
       this.processor.registerLMRule(rule);

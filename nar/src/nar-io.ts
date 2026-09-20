@@ -11,7 +11,15 @@ import type { Truth as TruthType } from './terms/truth.js';
 import type { TaskType } from './types';
 import { createBudget, type EventBus } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';
-import type { PerceptionGateOutput } from '@senars/kernel/schemas';
+import type { PerceptionGateInput, PerceptionGateOutput } from '@senars/kernel/schemas';
+import { seedTruth } from './lm/system-one/seed.js';
+import type { SourceQuality } from '@senars/kernel/schemas';
+
+function toTruth(t: TruthType | { frequency: number; confidence: number } | undefined): Truth {
+  if (!t) return Truth.NEUTRAL;
+  if ('f' in t && 'c' in t) return t as Truth;
+  return Truth.create(t.frequency, t.confidence);
+}
 
 interface SerializedNARState {
   concepts: Array<{ term: string; priority: number }>;
@@ -50,6 +58,62 @@ export class NARIO {
   }
 
   async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
+    const gate = gateRegistry.getPerceptionGate();
+    const systemOneEnabled = this.config.systemOne?.enabled ?? false;
+
+    // When System One is enabled, pass raw observation to gate before parsing
+    if (systemOneEnabled && typeof input === 'string') {
+      const result: PerceptionGateOutput = await gate.admit({
+        sourceId: 'nar-io',
+        rawObservation: input,
+        sensorConfidence: 1.0,
+        sourceQuality: 'GENERAL',
+        correlationId: crypto.randomUUID(),
+      });
+
+      if (!result.admitted || !result.task) {
+        this._eventBus?.emit('warning', {
+          message: result.rejectionReason ?? 'Perception gate rejected input',
+          term: input,
+        });
+        return;
+      }
+
+      // Adopt gate's calibrated truth and taskType
+      const calibratedTruth = toTruth(result.task.truth ?? (result.task.taskType === 'belief' ? Truth.TRUE : undefined));
+      const calibratedType = result.task.taskType as TaskType;
+
+      // Parse the term for memory storage
+      const parsedTerm = termParser.parse(result.task.term);
+      if (!parsedTerm) {
+        this._eventBus?.emit('warning', { message: 'Failed to parse admitted term', term: result.task.term });
+        return;
+      }
+
+      const budget = createBudget(calibratedTruth.f * calibratedTruth.c);
+      const wasNew = !this.memory.getConcept(parsedTerm);
+
+      this.memory.addTask(parsedTerm, calibratedType, calibratedTruth, budget);
+
+      if (wasNew && this._eventBus) {
+        this._eventBus.emit('concept:created', {
+          term: parsedTerm,
+          priority: budget.priority,
+        });
+        this._systemEventBus?.emit('nar:derivation', {
+          term: result.task.term,
+          confidence: calibratedTruth.f,
+          timestamp: Date.now(),
+        });
+      }
+
+      if (this.cognitiveParams?.attention.autoPrime ?? true) {
+        this.primeAttention(parsedTerm);
+      }
+      return;
+    }
+
+    // Legacy path (System One disabled or Term input)
     const { term: parsedTerm, truth: parsedTruth } =
       typeof input === 'string'
         ? termParser.parseWithTruth(input)
@@ -140,6 +204,55 @@ export class NARIO {
   }
 
   private async addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): Promise<void> {
+    const gate = gateRegistry.getPerceptionGate();
+    const systemOneEnabled = this.config.systemOne?.enabled ?? false;
+
+    // When System One is enabled, use the gate's admit method which returns calibrated truth/taskType
+    if (systemOneEnabled) {
+      const result: PerceptionGateOutput = await gate.admit({
+        sourceId: 'nar-io',
+        rawObservation: term.toString(),
+        sensorConfidence: truth.c ?? 0.5,
+        sourceQuality: 'GENERAL',
+        correlationId: crypto.randomUUID(),
+      });
+
+      if (!result.admitted || !result.task) {
+        this._eventBus?.emit('warning', {
+          message: result.rejectionReason ?? 'Perception gate rejected task',
+          term: term.toString(),
+        });
+        return;
+      }
+
+      // Adopt gate's calibrated truth and taskType
+      const calibratedTruth = toTruth(result.task.truth ?? truth);
+      const calibratedType = result.task.taskType as TaskType;
+
+      const budget = createBudget(calibratedTruth.f * calibratedTruth.c);
+      const wasNew = !this.memory.getConcept(term);
+
+      this.memory.addTask(term, calibratedType, calibratedTruth, budget);
+
+      if (wasNew && this._eventBus) {
+        this._eventBus.emit('concept:created', {
+          term,
+          priority: budget.priority,
+        });
+        this._systemEventBus?.emit('nar:derivation', {
+          term: term.toString(),
+          confidence: calibratedTruth.f,
+          timestamp: Date.now(),
+        });
+      }
+
+      if (this.cognitiveParams?.attention.autoPrime ?? true) {
+        this.primeAttention(term);
+      }
+      return;
+    }
+
+    // Legacy path (System One disabled)
     const budget = createBudget(truth.f * truth.c);
     const wasNew = !this.memory.getConcept(term);
 

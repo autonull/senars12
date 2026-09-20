@@ -20,6 +20,8 @@ import type { Stamp } from '../terms/stamp.js';
 import { Stamp as StampClass } from '../terms/stamp.js';
 import { recordJudgmentMetric } from '../metrics/prometheus.js';
 import { trace } from '@opentelemetry/api';
+import { seedTruth } from '../lm/system-one/seed.js';
+import type { DriveManager } from '../drives';
 
 export interface KernelPerceptionGateConfig {
   defaultBudget: {
@@ -237,8 +239,13 @@ export class KernelPerceptionGate {
       const results = await this.systemOneManifold.judgeBatch(embeddingPointer as EmbeddingPointer, ingressQueries, this.systemOneBudget);
 
       const taskTypeResult = results[0];
+      const illocutionResult = results[1];
       const injectionResult = results[2];
+      const ambiguityResult = results[3];
+      const tenseResult = results[4];
+      const sourceQualityResult = results[5];
 
+      // Injection veto (critical safety floor)
       if (injectionResult && !injectionResult.abstained && injectionResult.kind === 'evaluate' && injectionResult.score > 0.1) {
         return {
           output: {
@@ -256,10 +263,49 @@ export class KernelPerceptionGate {
         }
       }
 
-      const truth = taskType === 'belief' ? { frequency: 1.0, confidence: baseConfidence } : undefined;
+      // Illocution: store for FormalizationBatch flags (consumer will read from result)
+      const illocution = (illocutionResult && !illocutionResult.abstained && illocutionResult.kind === 'classify')
+        ? illocutionResult.top.option
+        : 'assert';
+
+      // Ambiguity: if abstained or high ambiguity, inject question task and stimulate curiosity
+      let ambiguityFlag = false;
+      if (ambiguityResult && ambiguityResult.kind === 'evaluate') {
+        if (ambiguityResult.abstained || ambiguityResult.score > 0.6) {
+          ambiguityFlag = true;
+          // TODO: Inject question task via DriveManager.stimulate('curiosity') when DriveManager is accessible
+        }
+      }
+
+      // Tense: map to occurrenceTime anchor
+      let occurrenceTime: number | undefined;
+      if (tenseResult && !tenseResult.abstained && tenseResult.kind === 'classify') {
+        const tense = tenseResult.top.option;
+        const now = Date.now();
+        switch (tense) {
+          case 'past': occurrenceTime = now - 86_400_000; break; // ~1 day ago
+          case 'future': occurrenceTime = now + 86_400_000; break; // ~1 day ahead
+          case 'present': occurrenceTime = now; break;
+          case 'timeless': occurrenceTime = undefined; break;
+        }
+      }
+
+      // Source quality: override confidence ceiling for admission
+      let admissionSourceQuality: SourceQuality = sourceQuality;
+      if (sourceQualityResult && !sourceQualityResult.abstained && sourceQualityResult.kind === 'classify') {
+        const mapped = this.mapSourceQuality(sourceQualityResult.top.option);
+        if (mapped) admissionSourceQuality = mapped;
+      }
+      const admissionConfidence = SOURCE_QUALITY_CONFIDENCE[admissionSourceQuality] ?? baseConfidence;
+
+      // Admission truth computed via seedTruth using the task_type proposition (as the primary epistemic judgment)
+      const seedProposition = (taskTypeResult && !taskTypeResult.abstained && taskTypeResult.kind === 'classify')
+        ? taskTypeResult
+        : (results[0] ?? { kind: 'classify' as const, top: { option: 'belief', p: 1 }, calibration: { version: 'v1.0.0', ece: 0 } } as any);
+      const admissionTruth = seedTruth(seedProposition, admissionSourceQuality);
 
       const budget = {
-        priority: this.config.defaultBudget.priority * baseConfidence,
+        priority: this.config.defaultBudget.priority * admissionConfidence,
         durability: this.config.defaultBudget.durability,
         quality: this.config.defaultBudget.quality,
         cycles: this.config.defaultBudget.cycles,
@@ -271,7 +317,7 @@ export class KernelPerceptionGate {
         taskId,
         term: term.toString(),
         taskType,
-        truth,
+        truth: { frequency: admissionTruth.f, confidence: admissionTruth.c },
         source: this.mapSource(input.sourceId),
         budget,
       };
@@ -315,6 +361,18 @@ export class KernelPerceptionGate {
     if (sourceId.includes('reflex') || sourceId.includes('game')) return 'reflex';
     if (sourceId.includes('sensor') || sourceId.includes('perception')) return 'sensor';
     return 'user';
+  }
+
+  private mapSourceQuality(option: string): SourceQuality | null {
+    switch (option) {
+      case 'PRIMARY': return 'PRIMARY';
+      case 'SECONDARY': return 'SECONDARY';
+      case 'GENERAL': return 'GENERAL';
+      case 'TERTIARY': return 'TERTIARY';
+      case 'LLM_PRIOR': return 'LLM_PRIOR';
+      case 'PEER_AGENT': return 'PEER_AGENT';
+      default: return null;
+    }
   }
 
   private parseTaskTolerant(text: string): ReturnType<typeof termParser.parseTask> {

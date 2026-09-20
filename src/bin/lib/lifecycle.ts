@@ -93,6 +93,7 @@ export async function createAgentFromEnv(
   const nar = SeNARSFactory.createDefault({
     providerRegistry: registry,
     lmService,
+    systemOne: appConfig.systemOne,
     ...narCoreOverrides(appConfig),
     ...options?.narConfig,
   });

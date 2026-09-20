@@ -77,6 +77,7 @@ export class LMRule {
       ): Promise<any>;
     } | undefined;
   };
+  private systemOneAdapter?: { translateToNarsese(input: string, context?: Record<string, unknown>): Promise<Task[]> };
   private readonly outputSchema?: ZodSchema;
   private readonly inputSchema?: ZodSchema;
   private readonly validateFn?: (output: unknown) => ValidationResult;
@@ -140,6 +141,10 @@ export class LMRule {
     this.toolDispatcher = dispatcher;
   }
 
+  setSystemOneAdapter(adapter: { translateToNarsese(input: string, context?: Record<string, unknown>): Promise<Task[]> }): void {
+    this.systemOneAdapter = adapter;
+  }
+
   canApply(primary: Term, secondary?: Term, context?: Record<string, unknown>): boolean {
     return !this.getSkipReason(primary, secondary, context);
   }
@@ -160,6 +165,34 @@ export class LMRule {
           timestamp: Date.now(),
         });
       return [];
+    }
+
+    // Use System One adapter for translation rule when available
+    if (this.id === 'lm-narsese-translation' && this.systemOneAdapter) {
+      try {
+        const tasks = await this.systemOneAdapter.translateToNarsese(primary.toString(), context);
+        if (tasks.length > 0) {
+          this.emitSystemEvent('system:lm.rule:applied', {
+            ruleId: this.id,
+            ruleName: this.name,
+            primaryTerm: primary.toString(),
+            secondaryTerm: secondary?.toString(),
+            tasksProduced: tasks.length,
+            durationMs: 0,
+            timestamp: Date.now(),
+            schema: 'system-one',
+          });
+          return tasks;
+        }
+      } catch (e) {
+        // Fall through to LM-based translation on adapter failure
+        this.emitEvent('lm.failure', {
+          ruleId: this.id,
+          error: `System One adapter failed: ${e}`,
+          duration: 0,
+          timestamp: Date.now(),
+        });
+      }
     }
 
     const startTime = Date.now();

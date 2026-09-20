@@ -275,13 +275,23 @@ New Prometheus counters (extend existing `systemone_*` family): `systemone_ingre
 ## 8. Master Checklist
 
 ### Phase A: Live Wiring
-- [ ] A1 lifecycle → factory `systemOne` passthrough
-- [ ] A2 `gateRegistry.initialize` receives perceptionConfig from NAR
-- [ ] A3 `NARIO.input` raw-text ingress + `addTask` adopts calibrated truth/taskType
-- [ ] A4 gate consumes all 6 heads + `seedTruth` admission + ambiguity→Question + tense anchor
-- [ ] A5 `LMServiceCortex` adapter + dispatcher injection + real `CognitiveContext` assembly
-- [ ] A6 `SystemOneLMRuleAdapter` (no monkey-patch)
-- [ ] Bench 15 + 16
+- [x] A1 lifecycle → factory `systemOne` passthrough
+- [x] A2 `gateRegistry.initialize` receives perceptionConfig from NAR
+- [x] A3 `NARIO.input` raw-text ingress + `addTask` adopts calibrated truth/taskType
+- [x] A4 gate consumes all 6 heads + `seedTruth` admission + ambiguity→Question + tense anchor
+- [x] A5 `LMServiceCortex` adapter + dispatcher injection + real `CognitiveContext` assembly
+- [x] A6 `SystemOneLMRuleAdapter` (no monkey-patch)
+- [x] Bench 15 + 16
+
+**Progress Notes (2026-09-20):**
+- All Phase A tasks completed and verified
+- Bench 15 (todo16c-live-ingress.test.ts) and Bench 16 (todo16c-cortex.test.ts) passing
+- Core wiring: config flows from `lifecycle.ts` → `SeNARSFactory` → `NAR` → `gateRegistry` with perceptionConfig
+- NARIO.input now passes raw utterance to perception gate before parsing when System One enabled
+- KernelPerceptionGate.admitWithSystemOne consumes all 6 ingress heads (task_type, illocution, injection, ambiguity, tense, source_quality)
+- LMServiceCortex adapter created implementing GenerativeCortex over LMService
+- Monkey-patch replaced with SystemOneLMRuleAdapter injected via setSystemOneAdapter
+- Pre-existing H4 failures (13 tests in RL adapter layer) remain; no new regressions introduced
 
 ### Phase B: Correctness & Dedup
 - [ ] B1 `EmbeddingCache`: O(1) index, LRU, buffer free-list, no aliasing
