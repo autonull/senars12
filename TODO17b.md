@@ -189,8 +189,12 @@ auth binds or refuses        doctor tells the truth      self-tools never lie
    - Result (Qwen3.5-9B Q6, `LM_PROVIDER=llamacpp-embedded LM_LLAMACPP_MODEL=…`, 3 episodes/game): **lm return +416.9** vs heuristic −375.6, random −171.8, manifold +3.1; lm best on snake (survives where baselines die), tictactoe (5/5 wins), gridworld (solves in 3 moves), bandit (near-optimal arm selection); 2nd on 2048. `pnpm arcade -- --render` shows every tick.
 
 **Still open (optional, non-blocking):**
-- Tetris LM arm: single-action LMReflex without the placement cascade scores 0 (heuristic wins tetris) — wiring `PlacementCascadeReflex` for the lm arm would make it competitive.
-- The rendered demo (`--render`) prints tick panels; the manifold arm's ticks are few in mixed runs (arm-coverage variance) — cosmetic.
+- Tetris LM arm: single-action LMReflex without the placement cascade scores 0 (heuristic wins tetris) — wire `PlacementCascadeReflex` into the lm arm (two-stage: batched coarse rank over placements, fine `reflex_value` on top-K; see the manifold arm's construction in `scripts/arcade.ts buildCognitiveArm` for the pattern). Would make the LM competitive on tetris.
+- **Manifold-vs-LM distillation flywheel (the real remaining work).** Current state: the manifold arm runs on *untrained* heads — it abstains on everything and falls back to its epsilon-greedy incumbent (beats random on bandit, ties tictactoe). The lm arm is the articulate but expensive teacher (~40–200 ms/tick); the manifold arm is the cheap, calibrated student. Close the loop:
+  1. Point the lm arm's played episodes at a `JudgmentDataset` via `LMReflexOptions.dataset` (the record path already exists — `LMReflex.learn` → `recordReflexOutcome`).
+  2. After the tournament, train a `reflex_value` head from dataset+vector sidecar (`loadTrainingData` → `trainHead` → `writeHeadArtifacts`), register it on the arcade manifold, and re-run the manifold arm — Bench 21 (`tests/nar/todo16c-rl-distill.test.ts`) proves the exact loop (trained head ≈ tabular-Q).
+  3. Acceptance: manifold arm ≥ lm arm return on bandit/gridworld at ~0 inference cost; the lm arm becomes a periodic refresher.
+  4. Optional: persist the arcade session (`--resume` already works) so training data accumulates across runs.
 
 **Follow-up fix (same session):** the **manifold arm never played** — `GameFocus.proposeStage` passed raw numeric `legalActions` to reflexes, and `ManifoldReflex` pushed its scored proposals with numeric actions, so `decision.actionExecuted === 0` was falsy and `actStage` silently skipped the game step (falsy-zero bug; actions are now string-normalized at both `proposeStage` and `ManifoldReflex.propose`). The arm went from 0 ticks to playing every game (+199 return; beats random on bandit, ties tictactoe). `pnpm run demo:arcade` runs the full tournament.
 
