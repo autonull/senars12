@@ -121,6 +121,29 @@ class RecordingReflex implements Reflex {
   learn(event: never): void {
     this.inner.learn(event);
   }
+  /** Forward the attend-stage prefetch so semantic reflexes (LMReflex) actually run. */
+  async prefetch(
+    stateId: string,
+    context: unknown,
+    legalActions: readonly string[],
+    manifold: unknown,
+    budget: ReasoningBudget,
+    observation?: unknown
+  ): Promise<void> {
+    const p = this.inner as {
+      prefetch?: (
+        stateId: string,
+        context: unknown,
+        legalActions: readonly string[],
+        manifold: unknown,
+        budget: ReasoningBudget,
+        observation?: unknown
+      ) => Promise<void>;
+    };
+    if (typeof p.prefetch === 'function') {
+      await p.prefetch(stateId, context, legalActions, manifold, budget, observation);
+    }
+  }
 }
 
 /** Cognitive arm construction — fail-closed per arm: skip with a note, never substitute. */
@@ -155,25 +178,50 @@ async function buildCognitiveArm(
         : new ManifoldReflex(incumbent);
     return { reflex, manifold, cache };
   }
-  // lm arm: real LM decisions under a GBNF action grammar
+  // lm arm: real LM decisions under a GBNF action grammar, judged by the
+  // manifold (tier 1) so candidates get calibrated ranking — the synth output
+  // alone is first-token-biased.
   if (!process.env.LM_LLAMACPP_MODEL)
     return { note: 'lm arm: LM_LLAMACPP_MODEL unset — skipped (fail-closed)' };
-  const [{ createLMService }, { createLMServiceCortex }, { createDispatcher }, { LMReflex }] =
-    await Promise.all([
-      import('../nar/src/lm/lm-service.js'),
-      import('../nar/src/lm/system-one/cortex-adapter.js'),
-      import('../nar/src/lm/system-one/dispatcher.js'),
-      import('../nar/src/lm/system-one/lm-reflex.js'),
-    ]);
-  const dispatcher = createDispatcher(true, {}, createLMServiceCortex({ lmService: createLMService() }));
+  const [
+    { createLMService },
+    { createLMServiceCortex },
+    { createDispatcher },
+    { LMReflex },
+    { createManifold },
+  ] = await Promise.all([
+    import('../nar/src/lm/lm-service.js'),
+    import('../nar/src/lm/system-one/cortex-adapter.js'),
+    import('../nar/src/lm/system-one/dispatcher.js'),
+    import('../nar/src/lm/system-one/lm-reflex.js'),
+    import('../nar/src/lm/system-one/manifold.js'),
+  ]);
+  const lmService = createLMService();
+  const manifold = createManifold(cache, { abstainThreshold: 0.05 });
+  const actionLegends: Partial<Record<GameName, string>> = {
+    snake: 'Actions: 0=up, 1=right, 2=down, 3=left. Goal: reach the apple (headR/appleR, headC/appleC converge). Never reverse into your own body.',
+  };
+  const promptTemplates: Partial<Record<GameName, string>> = {
+    tictactoe:
+      'You are X in tic-tac-toe. Cells 0-8 (0=top-left, 1=top-center, 2=top-right, 3=middle-left, 4=center, 5=middle-right, 6=bottom-left, 7=bottom-center, 8=bottom-right).\nBoard: {cell0} {cell1} {cell2} / {cell3} {cell4} {cell5} / {cell6} {cell7} {cell8} (0=empty, 1=X you, 2=O opponent).\n\nWhich empty cell should X take to win or block? Answer with only the cell number.',
+    gridworld:
+      'You control a robot on a grid. It is at row {row}, col {col}. The goal is at row {goalRow}, col {goalCol}. Moving up decreases row, right increases col, down increases row, left decreases col.\n\nWhich move (0=up, 1=right, 2=down, 3=left) brings the robot closest to the goal? Answer with only the number.',
+  };
+  const dispatcher = createDispatcher(
+    true,
+    { tier1Manifold: manifold, embeddingCache: cache },
+    createLMServiceCortex({ lmService })
+  );
   return {
     reflex: new LMReflex({
       fallback: new EpsilonGreedyReflex('lm-incumbent', { numArms: 10, epsilon: 0.1 }),
       dispatcher,
       embeddingCache: cache,
       budget: BUDGET,
+      actionLegend: actionLegends[gameName],
+      promptTemplate: promptTemplates[gameName],
     }),
-    manifold: undefined,
+    manifold,
     cache,
   };
 }
@@ -323,6 +371,11 @@ async function main(): Promise<void> {
         focus.markEpisodeEnd();
         completed[sessionKey(arm, gameName)] = e + 1;
         persistProgress(completed);
+        const reflexStats = built.reflex as { decisions?: number; failures?: number; served?: number };
+        if (typeof reflexStats.decisions === 'number')
+          notes.push(
+            `${arm}/${gameName} ep${e}: lm decisions=${reflexStats.decisions} served=${reflexStats.served ?? 'n/a'} fallback-serving failures=${reflexStats.failures}`
+          );
         if (cognitive) {
           const v = focus.getVetoStats();
           console.log(

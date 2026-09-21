@@ -38,7 +38,7 @@ export class LMServiceCortex implements GenerativeCortex {
     const maxCandidates = query.maxCandidates ?? 3;
     const grammar = query.grammar ?? this.#defaultGrammar;
 
-    const prompt = this.buildPrompt(context, query.instruction, maxCandidates);
+    const prompt = query.promptOverride ?? this.buildPrompt(context, query.instruction, maxCandidates);
 
     try {
       const text = await this.#lmService.generateText(prompt, {

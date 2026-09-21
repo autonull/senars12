@@ -36,6 +36,7 @@ import { BagStrategy, Reasoner } from './reason';
 import { EpsilonGreedyReflex } from './reflex/EpsilonGreedyReflex.js';
 import type { ActionProposal, LearningEvent, Reflex } from './reflex/Reflex.js';
 import { FocusBag } from './focus/FocusBag.js';
+import { createSelfMetaGame, type SelfMetaGameImpl } from './game/SelfMetaGame.js';
 import { GameFocus, type GameFocusOptions } from './focus/GameFocus.js';
 import { RLFPLearner } from './rlfp';
 import { RuleProcessor } from './rules';
@@ -490,6 +491,8 @@ export class NAR extends BaseComponent {
 
   private readonly attachedGames = new Map<string, { focus: GameFocus; bag: FocusBag }>();
   private gameFocusBag: FocusBag | null = null;
+  private metaGame: SelfMetaGameImpl | null = null;
+  private readonly metaGameFocuses = new Map<string, GameFocus>();
 
   /** Default FocusBag backing attachGame (created lazily, script-owned drive loops). */
   getFocusBag(): FocusBag {
@@ -525,6 +528,7 @@ export class NAR extends BaseComponent {
     if (options.lmReflex && this.isSystemOneEnabled()) this.attachLMReflex(focus);
     bag.add(focus.focus);
     this.attachedGames.set(id, { focus, bag });
+    this.metaGameFocuses.set(id, focus);
     return focus;
   }
 
@@ -535,11 +539,27 @@ export class NAR extends BaseComponent {
     entry.bag.remove(id);
     entry.focus.releaseScope();
     this.attachedGames.delete(id);
+    this.metaGameFocuses.delete(id);
     return true;
   }
 
   getAttachedGames(): string[] {
     return [...this.attachedGames.keys()];
+  }
+
+  /**
+   * Self-meta-game over the attached games (TODO17b D20): lazily created so
+   * focus step reports (via FocusSchedulerOptions.metaGame) route self-improvement
+   * proposals through the governance pipeline.
+   */
+  getSelfMetaGame(): SelfMetaGameImpl {
+    this.metaGame ??= createSelfMetaGame({
+      id: 'nar-self-meta-game',
+      observesFocuses: [...this.attachedGames.keys()],
+      focusBag: this.getFocusBag(),
+      gameFocuses: this.metaGameFocuses,
+    });
+    return this.metaGame;
   }
 
   /**

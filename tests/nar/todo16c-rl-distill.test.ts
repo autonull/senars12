@@ -38,13 +38,13 @@ function distanceToGoal(state: GridWorldState): number {
 }
 
 function stateDigest(state: GridWorldState): string {
-  return JSON.stringify({ row: state.row, col: state.col, distanceToGoal: distanceToGoal(state) });
+  return JSON.stringify({ row: state.row, col: state.col, goalRow: state.goalRow, goalCol: state.goalCol, distanceToGoal: distanceToGoal(state) });
 }
 
 function allCells(): GridWorldState[] {
   const cells: GridWorldState[] = [];
   for (let row = 0; row < ROWS; row++)
-    for (let col = 0; col < COLS; col++) cells.push({ row, col });
+    for (let col = 0; col < COLS; col++) cells.push({ row, col, goalRow: 3, goalCol: 3 });
   return cells;
 }
 

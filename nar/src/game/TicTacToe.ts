@@ -127,9 +127,11 @@ export class TicTacToeGame implements Game<TicTacToeState, TicTacToeAction> {
   }
 
   observe(): Perception {
+    const features: Record<string, number> = { openCells: this.state_.board.filter((v) => v === '.').length };
+    for (let i = 0; i < 9; i++) features[`cell${i}`] = this.state_.board[i] === 'X' ? 1 : this.state_.board[i] === 'O' ? 2 : 0;
     return {
       stateId: this.boardHash(),
-      features: { openCells: this.state_.board.filter((v) => v === '.').length },
+      features,
       confidence: 1,
       terminal: this.state_.terminal,
     };

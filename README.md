@@ -1608,7 +1608,7 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 | **MeTTa (tool)** | `MettaEngine` (tool executor only), `MettaCommandParser` (chat command parsing) | `@senars/metta/agent` |
 | **Focus-Game-Reflex Kernel** | `Bag`, `Focus`, `FocusBag`, `GameFocus`, `MetaFocus`, `PerceptionGate`, `ActionGate`, `RewardGate`, `Reflex`, `TabularQReflex`, `Negotiator`, `Game`, `MetaGame`, `SelfMetaGame` | `@senars/nar` (new architecture) |
 | **Games** | `SeededRNG`, `GridWorldGame`, `BanditGame`, `SnakeGame`, `TetrisGame`, `Game2048`, `TicTacToeGame` (+`minimax`), `renderGame` | `@senars/nar/game` |
-| **Arcade (TODO17)** | `FocusScheduler`, `LMReflex`, `actionGrammar`, `BrierHarness`, `createOpenSystemOneManifold`, `open-systemone` manifold provider | `@senars/nar/focus`, `@senars/nar/lm/system-one`, `@senars/nar/eval` |
+| **Arcade (TODO17)** | `FocusScheduler`, `LMReflex`, `actionGrammar`, `BrierHarness`, `createOpenSystemOneManifold`, `open-systemone` manifold provider | `@senars/nar/focus`, `@senars/nar/lm/system-one`, `@senars/nar/eval/*` |
 | **RL Library** | `QBeliefStore`, `RewardBeliefAdapter`, `BeliefPerceptionAdapter`, `GoalActionAdapter`, `RLParityHarness`, `ManifoldReflex`, `ManifoldUCBReflex`, `ManifoldRLAgent` | `@senars/nar/rl` |
 | **System One** | `HEAD_SPECS`, `createHeadById`, `ConfidenceRouter`, `truthProbability`, `compositeScore`, `judgeCascade`, `createWakeGate`, `createTraceGrader`, `SystemOneManifold`, `EmbeddingCache` | `@senars/nar/lm/system-one` |
 | **Tick Pipeline** | `createTickContext`, `runTick`, `createPipeline`, `DEFAULT_PIPELINE`, `createDefaultHooks`, `operationActionOf`, `fuseStreamReasoner`, `initOtel`, `instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent` | `@senars/nar/tick` |

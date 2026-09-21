@@ -51,6 +51,11 @@ export class MetaFocus extends Focus {
   getSelfMetaGame(): SelfMetaGameImpl {
     return this.selfMetaGame;
   }
+
+  /** Governance human-review queue depth (TODO17b D20 follow-up). */
+  getGovernanceQueues(): { validation: number; approval: number } {
+    return this.selfMetaGame.getGovernanceQueues();
+  }
 }
 
 export function createMetaFocus(options: MetaFocusOptions): MetaFocus {

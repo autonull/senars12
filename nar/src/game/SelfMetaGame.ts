@@ -98,6 +98,14 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
     }
   }
 
+  /** D20 follow-up (TODO17b): live depth of the governance human-review queues. */
+  getGovernanceQueues(): { validation: number; approval: number } {
+    return {
+      validation: this.proposalRouter.getAwaitingValidation().length,
+      approval: this.proposalRouter.getAwaitingApproval().length,
+    };
+  }
+
   static schedulerReward(report: FocusStepReport): number {
     if (report.tasksProcessed <= 0) return 0;
     return Math.max(-1, Math.min(1, (report.derivations / report.tasksProcessed - 0.5) * 2));

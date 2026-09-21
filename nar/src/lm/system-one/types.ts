@@ -79,6 +79,9 @@ export interface SynthesisQuery {
   instruction: string;
   grammar?: string;
   maxCandidates?: number;
+  /** Fully-formed natural-language prompt; bypasses the Top-Beliefs wrapper
+   *  (completion-style wrappers degrade small-model decision quality). */
+  promptOverride?: string;
 }
 
 export interface ResourceCost {

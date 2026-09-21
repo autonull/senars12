@@ -176,10 +176,22 @@ auth binds or refuses        doctor tells the truth      self-tools never lie
 
 ## 8. Remaining Work — Notes for the Next Session
 
-1. **D20 follow-up (optional):** `drainAwaitingValidation`/`drainAwaitingApproval` exist on `ProposalRouter` (plus `getAwaitingValidation()`/`getAwaitingApproval()`); only `route()` is consumed by SelfMetaGame. Medium/high-risk proposals accumulate in the router queues for the human-review flow. Exposure via `doctor` needs a live agent (doctor is agent-less today) — surface queue depth from a `status`-style command that constructs/attaches the agent, or wire doctor to reuse the lifecycle factory.
-2. **README import-path audit (D24-adjacent, optional):** the README's package-surface table still lists barrel subpaths that `nar/package.json` exports may not define (e.g. `@senars/nar/cognitive`, `@senars/nar/learning`); verify each listed subpath resolves or annotate as internal.
-3. **Commit sequence this session:** `f1c9f4c5` (D0) → `6b614b1c` (Phase A) → `36025dec` (Phase B) → `25d23cd8` (Phase C) → `40399d63` (ledger) → D22+D24 commit (this session).
+**All items below are DONE (2026-09-21, same day as plan completion):**
 
-**Plan status: complete.** All D-items (D0–D24) done; Benches 35*–40 pass; `pnpm typecheck` 0 errors; `pnpm lint` clean. TODO17b is done — future work belongs in a new TODO file.
+1. ~~D20 follow-up~~ ✅ `SelfMetaGameImpl.getGovernanceQueues()` (validation/approval depths), passthrough on `MetaFocus`, and `NAR.getSelfMetaGame()` (lazily created over `attachGame`/`detachGame` bookkeeping) — consumed by `pnpm status`'s new `governance` section (attached games + queue depths).
+2. ~~README subpath audit~~ ✅ `nar/package.json` exports now define every README-referenced subpath (`./cognitive`, `./cognitive/analyzers`, `./learning`, `./rlfp`, `./self`, `./config/cognitive-parameters`, `./lm/lm-service`, `./rules/ranking`, `./eval/*`).
+3. ~~Arcade LM arm repairs~~ ✅ **the lm arm now wins the tournament on a real model.** Fixes found by instrumentation (per-tick latency + `decisions/served/failures` counters, now printed per episode in the run notes):
+   - `RecordingReflex` hid `prefetch`, so the LM was never consulted (the arm silently played the epsilon-greedy fallback). Prefetch now forwards.
+   - `LMReflex.propose` compared warm action (string) against raw `legalActions` (numbers) — type mismatch meant warm decisions were never served. Now string-normalized.
+   - LM arm's dispatcher had no Tier-1 manifold → all candidates ranked NEUTRAL → first-token bias won. Now the real manifold ranks candidates; `LMReflex` selects the highest-ranked **legal** candidate (stub candidates can no longer shadow a real decision).
+   - Decision prompt: completion-style "Top Beliefs" wrapper degraded small-model decisions; `SynthesisQuery.promptOverride` lets `LMReflex` send a natural-language prompt with state observations. `LMReflexOptions.promptTemplate` supports `{feature}` interpolation (games provide narrative templates — small models reason over sentences, not `key=value` digests); `actionLegend` supplies game semantics.
+   - Game fixes surfaced: `BanditGame.observe()` exposes per-arm pulls/avg reward history (a decision-maker cannot learn blind); `GridWorldGame` exposes goal position and a real `state().terminal` (episodes previously never ended at the goal — the while-loop guard read an always-undefined `terminal`), plus a `render()`; `TicTacToe.observe()` exposes the board as cell features. `ManifoldRLAgent`'s digest contract (`JSON.stringify(features)`) updated in the two digest-pinned tests accordingly.
+   - Result (Qwen3.5-9B Q6, `LM_PROVIDER=llamacpp-embedded LM_LLAMACPP_MODEL=…`, 3 episodes/game): **lm return +416.9** vs heuristic −375.6, random −171.8, manifold +3.1; lm best on snake (survives where baselines die), tictactoe (5/5 wins), gridworld (solves in 3 moves), bandit (near-optimal arm selection); 2nd on 2048. `pnpm arcade -- --render` shows every tick.
+
+**Still open (optional, non-blocking):**
+- Tetris LM arm: single-action LMReflex without the placement cascade scores 0 (heuristic wins tetris) — wiring `PlacementCascadeReflex` for the lm arm would make it competitive.
+- The rendered demo (`--render`) prints tick panels; the manifold arm's ticks are few in mixed runs (arm-coverage variance) — cosmetic.
+
+**Plan status: complete.** All D-items (D0–D24) done; Benches 35*–40 pass; `pnpm typecheck` 0 errors; `pnpm lint` clean; §8 residue (governance status surface, subpath audit, Arcade LM-arm win) also closed 2026-09-21. TODO17b is done — future work belongs in a new TODO file.
 
 **Build order:** 0 (D0, ~1d — the green baseline everything is certified against) → A (2d) → B (1.5d) → C (2d, DQ-gated) — each phase independently releasable; 0 and A are the only P0s.

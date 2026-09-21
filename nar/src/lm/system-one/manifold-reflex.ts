@@ -34,7 +34,8 @@ export class ManifoldReflex implements Reflex<Perception, string> {
     sharedContext: EmbeddingPointer,
     legalActions: readonly string[],
     manifold: JudgmentManifold,
-    budget: ReasoningBudget
+    budget: ReasoningBudget,
+    _observation?: unknown
   ): Promise<void> {
     const queries = legalActions.map((action) => ({
       kind: 'evaluate' as const,

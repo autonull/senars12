@@ -88,6 +88,42 @@
       "types": "./src/memory/index.ts",
       "import": "./src/memory/index.ts"
     },
+    "./cognitive": {
+      "types": "./src/cognitive/index.ts",
+      "import": "./src/cognitive/index.ts"
+    },
+    "./cognitive/analyzers": {
+      "types": "./src/cognitive/analyzers/index.ts",
+      "import": "./src/cognitive/analyzers/index.ts"
+    },
+    "./learning": {
+      "types": "./src/learning/index.ts",
+      "import": "./src/learning/index.ts"
+    },
+    "./rlfp": {
+      "types": "./src/rlfp/index.ts",
+      "import": "./src/rlfp/index.ts"
+    },
+    "./self": {
+      "types": "./src/self/index.ts",
+      "import": "./src/self/index.ts"
+    },
+    "./config/cognitive-parameters": {
+      "types": "./src/config/cognitive-parameters.ts",
+      "import": "./src/config/cognitive-parameters.ts"
+    },
+    "./lm/lm-service": {
+      "types": "./src/lm/lm-service.ts",
+      "import": "./src/lm/lm-service.ts"
+    },
+    "./rules/ranking": {
+      "types": "./src/rules/ranking.ts",
+      "import": "./src/rules/ranking.ts"
+    },
+    "./eval/*": {
+      "types": "./src/eval/*.ts",
+      "import": "./src/eval/*.ts"
+    },
     "./memory/embedding": {
       "types": "./src/memory/embedding.ts",
       "import": "./src/memory/embedding.ts"

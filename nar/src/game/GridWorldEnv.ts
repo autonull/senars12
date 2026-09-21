@@ -13,6 +13,11 @@ export type GridAction = 0 | 1 | 2 | 3;
 export interface GridWorldState {
   row: number;
   col: number;
+  /** Goal position (part of the state so embeddings digest the full state). */
+  goalRow: number;
+  goalCol: number;
+  /** True when the agent stands on the goal (or the step cap was hit). */
+  terminal?: boolean;
 }
 
 export class GridWorldEnv {
@@ -20,8 +25,8 @@ export class GridWorldEnv {
   private readonly grid: string[][];
   readonly rows: number;
   readonly cols: number;
-  readonly startPos!: GridWorldState;
-  readonly goalPos!: GridWorldState;
+  readonly startPos!: Omit<GridWorldState, 'terminal'>;
+  readonly goalPos!: Omit<GridWorldState, 'goalRow' | 'goalCol' | 'terminal'> & { goalRow: number; goalCol: number };
   currentPos: GridWorldState;
   private stepCount = 0;
   readonly maxSteps: number;
@@ -44,22 +49,22 @@ export class GridWorldEnv {
         const cell = this.grid[r]?.[c] ?? ' ';
         if (cell === '#') this.walls.add(`${r},${c}`);
         else if (cell === 'S') {
-          this.startPos = { row: r, col: c };
+          this.startPos = { row: r, col: c, goalRow: 0, goalCol: 0 };
           startFound = true;
         } else if (cell === 'G') {
-          this.goalPos = { row: r, col: c };
+          this.goalPos = { row: r, col: c, goalRow: r, goalCol: c };
           goalFound = true;
         }
       }
     }
     if (!startFound || !goalFound) throw new Error('Grid must have S and G');
-    this.currentPos = { ...this.startPos };
+    this.currentPos = { ...this.startPos, goalRow: this.goalPos.row, goalCol: this.goalPos.col };
   }
 
   reset(): GridWorldState {
-    this.currentPos = { ...this.startPos };
+    this.currentPos = { ...this.startPos, goalRow: this.goalPos.row, goalCol: this.goalPos.col };
     this.stepCount = 0;
-    return this.currentPos;
+    return this.getState();
   }
 
   step(action: GridAction): { state: GridWorldState; reward: number; done: boolean } {
@@ -89,18 +94,22 @@ export class GridWorldEnv {
     }
 
     if (!this.walls.has(`${newRow},${newCol}`)) {
-      this.currentPos = { row: newRow, col: newCol };
+      this.currentPos = { row: newRow, col: newCol, goalRow: this.goalPos.row, goalCol: this.goalPos.col };
     }
 
     const done =
       this.currentPos.row === this.goalPos.row && this.currentPos.col === this.goalPos.col;
     const reward = done ? 1 : -0.01;
 
-    return { state: { ...this.currentPos }, reward, done: done || this.stepCount >= this.maxSteps };
+    return { state: this.getState(), reward, done: done || this.stepCount >= this.maxSteps };
   }
 
   getState(): GridWorldState {
-    return { ...this.currentPos };
+    return {
+      ...this.currentPos,
+      goalRow: this.goalPos.row,
+      goalCol: this.goalPos.col,
+    };
   }
 
   getSlipProbability(): number {

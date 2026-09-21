@@ -19,9 +19,12 @@ export class GridWorldGame implements Game<GridWorldState, GridAction> {
 
   observe(): Perception {
     const state = this.env.getState();
+    const goal = this.env.goalPos;
     const features: Record<string, number> = {
       row: state.row,
       col: state.col,
+      goalRow: goal.row,
+      goalCol: goal.col,
       distanceToGoal: this.getDistanceToGoal(state),
     };
 
@@ -69,7 +72,7 @@ export class GridWorldGame implements Game<GridWorldState, GridAction> {
 
   step(action: GridAction): GameOutcome {
     const result = this.env.step(action);
-    this.currentState = result.state;
+    this.currentState = { ...result.state, terminal: result.done };
     return {
       reward: result.reward,
       terminal: result.done,
@@ -98,6 +101,28 @@ export class GridWorldGame implements Game<GridWorldState, GridAction> {
     const state = this.env.getState();
     const goal = (this.env as any).goalPos;
     return state.row === goal.row && state.col === goal.col;
+  }
+
+  render(): string {
+    const { rows, cols, walls, goal } = {
+      rows: (this.env as any).rows as number,
+      cols: (this.env as any).cols as number,
+      walls: (this.env as any).walls as Set<string>,
+      goal: (this.env as any).goalPos as { row: number; col: number },
+    };
+    const pos = this.currentState;
+    const lines: string[] = [];
+    for (let r = 0; r < rows; r++) {
+      let line = '';
+      for (let c = 0; c < cols; c++) {
+        if (r === pos.row && c === pos.col) line += 'S';
+        else if (r === goal.row && c === goal.col) line += 'G';
+        else if (walls.has(`${r},${c}`)) line += '#';
+        else line += '.';
+      }
+      lines.push(line);
+    }
+    return lines.join('\n');
   }
 
   private getEnvInfo(): { rows: number; cols: number; walls: Set<string> } {

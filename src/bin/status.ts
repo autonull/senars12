@@ -23,6 +23,7 @@ interface StatusReport {
   heads: Array<{ headId: string; kind: string; ece: number | null; abstainThreshold: number | null }>;
   spend: Record<string, { calls: number; tokensIn: number; tokensOut: number; costMilli: number }>;
   artifacts: { datasetPath: string; datasetExists: boolean; datasetBytes: number; lockPath: string; lockExists: boolean; lockBytes: number };
+  governance: { attachedGames: number; awaitingValidation: number; awaitingApproval: number };
 }
 
 const byteSize = (path: string): { exists: boolean; bytes: number } => {
@@ -57,6 +58,7 @@ const collect = async (): Promise<StatusReport> => {
       lockExists: lock.exists,
       lockBytes: lock.bytes,
     },
+    governance: { attachedGames: 0, awaitingValidation: 0, awaitingApproval: 0 },
   };
 
   const manifold = nar.getSystemOneManifold();
@@ -74,6 +76,11 @@ const collect = async (): Promise<StatusReport> => {
 
   const spend = nar.getLMClient()?.getSpend();
   if (spend) report.spend = spend as StatusReport['spend'];
+
+  report.governance = {
+    attachedGames: nar.getAttachedGames().length,
+    ...nar.getSelfMetaGame().getGovernanceQueues(),
+  };
 
   await nar.dispose?.();
   return report;
@@ -102,6 +109,9 @@ const renderText = (r: StatusReport): void => {
   );
   console.log(
     `Calibration lock: ${r.artifacts.lockPath} (${r.artifacts.lockExists ? `${r.artifacts.lockBytes} B` : 'absent'})`
+  );
+  console.log(
+    `Governance: ${r.governance.attachedGames} attached game(s), awaiting validation: ${r.governance.awaitingValidation}, awaiting approval: ${r.governance.awaitingApproval}`
   );
 };
 

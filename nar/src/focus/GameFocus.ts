@@ -231,14 +231,16 @@ export class GameFocus {
           context: unknown,
           legalActions: string[],
           manifold: JudgmentManifold,
-          budget: ReasoningBudget
+          budget: ReasoningBudget,
+          observation?: Perception
         ) => Promise<void>
       )(
         observation.stateId,
         await embeddingCache.write(JSON.stringify(observation.features ?? observation.stateId)),
           legalActions,
           manifold,
-          budget
+          budget,
+          observation
         );
         this.prefetchCalls++;
       }
