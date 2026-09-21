@@ -20,7 +20,7 @@ const createSpec = (overrides: Partial<ReasoningGameOptions> = {}): ReasoningGam
   actions: [...DEFAULT_ACTIONS],
   rewards: [...DEFAULT_REWARDS],
   ...overrides,
-});
+} as ReasoningGameOptions);
 
 const playPolicy = (spec: ReasoningGameOptions, policy: (legal: string[]) => string, ticks: number) => {
   const game = createReasoningGame(spec, 7);
