@@ -8,6 +8,7 @@ import { createRPSGame } from './RPSGame.js';
 import { createSnakeGame } from './SnakeGame.js';
 import { createTetrisGame } from './TetrisGame.js';
 import { createTicTacToeGame } from './TicTacToe.js';
+import { createReasoningGame, REASONING_SPECS } from '../cognition/ReasoningGame.js';
 
 /** A named `Game` factory in the playable-games collection. */
 export interface GameSpec {
@@ -59,7 +60,8 @@ export class GameRegistry {
 
 /** The default arcade collection: every shipped game with its demo config. */
 export function createArcadeRegistry(): GameRegistry {
-  return new GameRegistry()
+  return registerReasoningGames(
+  new GameRegistry()
     .register({
       name: 'snake',
       description: 'Snake on a bounded grid eats apples (+1); body/wall hits end the episode.',
@@ -113,5 +115,21 @@ export function createArcadeRegistry(): GameRegistry {
       description: 'Repeated rock-paper-scissors vs a rotating deterministic opponent.',
       actionLegend: 'Actions: 0=rock, 1=paper, 2=scissors; +1 beats the opponent, 0 draw, −1 loss.',
       create: (seed) => createRPSGame({ seed }),
-    });
+    })
+);
 }
+
+/** R1: ReasoningGame domain presets, assembled from the cognition library. */
+export const registerReasoningGames = (registry: GameRegistry): GameRegistry => {
+  for (const spec of Object.values(REASONING_SPECS)) {
+    registry.register({
+      name: spec.id,
+      description: `ReasoningGame (${spec.id}): cognitive operations over an eval task suite.`,
+      actionLegend:
+        'Actions: cycle, revise, spawn_subgoal, clarify, consolidate, ask_lm, rest, settle, finish — tier-gated (ask_lm requires tier ≥ 2).',
+      create: (seed) => createReasoningGame(spec, seed),
+    });
+  }
+  return registry;
+};
+
