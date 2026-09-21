@@ -7,24 +7,71 @@
 
 ---
 
-## 1. ReasoningGame — the reasoning process as a playable `Game`
+## 1. ReasoningGame — reasoning as a parameterizable family of Games
 
-The Focus-Game-Reflex substrate already plays snake, tetris, bandit. Nothing in `Game<S, A>` says the environment must be external. Make **cognition itself the environment**:
+The Focus-Game-Reflex substrate already plays snake, tetris, bandit. Nothing in `Game<S, A>` says the environment must be external. Make **cognition itself the environment** — but not as a single hardcoded game: as a **family of parameterizable Reasoning Games** assembled from a shared component library, with strength levels matched to the application, and layered under the existing MetaGame/SelfMetaGame control scheme.
 
-- **`ReasoningGame implements Game<ReasoningState, CognitiveOperation>`**
-  - `observe()` → a `Perception` over the agent's own cognitive state: bag pressure, top task types (belief/goal/question mix), pending questions, derivation backlog, recent handover/veto rates, per-head health (from `pnpm status` internals). Features are numbers — exactly what the manifold digests.
-  - `legalActions(state)` → the **cognitive operations**: `cycle` (run a reasoning cycle), `ask_lm` (escalate to the Cortex), `clarify` (spawn a question task), `consolidate` (promote episodic→semantic), `revise`, `spawn_subgoal`, `rest` (idle tick). The set is closed, auditable, and every operation already routes through the kernel gates.
-  - `step(op)` → executes the operation against the real agent (via the existing Focus/NAR APIs) and returns a reward from **System One heads scoring the outcome**: groundedness of what was derived, feasibility/risk of what was dispatched, ambiguity reduction on spawned questions, task-settled fraction. Positive for settling tasks, negative for waste (LM spend without yield, re-derivation of settled tasks, vetoed dispatches).
-  - `terminal` → AIKR budget exhaustion (the `ReasoningBudget` the kernel already tracks) or all tasks settled.
-- **Why this is the right seam.** Every guardrail is already built: kernel gates authorize each operation (injection veto applies to *thinking moves*, not just game moves), the Negotiator can veto a wasteful operation via seeded rules, schema induction learns meta-rules from experience ("re-deriving settled tasks ⇒ bad_outcome"), and the Brier harness scores it like any other arm. No new trust boundary is created — ReasoningGame is a *consumer* of the existing substrate, not a bypass of it.
-- **The honest falsification set:**
-  1. ReasoningGame arm ≥ the default scheduler arm on a fixed eval task suite (bench: same seed, same tasks, compare settled-fraction and token spend).
-  2. Kernel gates fire on reasoning operations exactly as on game actions (fault-inject a `judgeBatch` throw → the reasoning move fails closed).
-  3. NAL veto prevents known-wasteful moves when the rule is seeded and fires **zero** vetoes when rule-free (the `todo17b-nal-arm` semantics, transplanted).
-  4. Schema induction promotes real meta-rules (e.g., "ask_lm on low-ambiguity tasks ⇒ bad_outcome") that survive across episodes.
-- **Deliberate scope guards.** No self-referential reward on the reward computation itself (the reward firewall still classifies reasoning rewards as `extrinsic`, `targetType: policy-weights`). The ReasoningGame observes *its own* focus; a `SelfMetaGame` observing the ReasoningGame is the level above and out of scope here (the RLFP domain split already separates `self-*` reward domains).
+### 1a. The shared component library (sensors · actions · rewards)
 
-**Build order.** D-1: `ReasoningGame` over a *fixed* eval task suite, with a `cycle`-only action set (proves the interface; the reward is groundedness/task-settled). D-2: full operation set + Negotiator veto + schema induction. D-3: arcade integration — `--games reasoning` so the tournament table compares arms *on reasoning*; the lm arm's decision prompts become "which cognitive operation next?".
+Three pluggable registries, defined once, consumed by *any* ReasoningGame instance **and** by the SelfMetaGame:
+
+- **Sensors — `CognitiveSensor`**: a named unit producing numeric features from live agent state. Seeds: `BagPressureSensor`, `TaskTypeMixSensor` (belief/goal/question fractions), `DerivationBacklogSensor`, `VetoHandoverRateSensor`, `HeadHealthSensor` (per-head ECE/abstain from `pnpm status` internals), `SpendSensor`, `GovernanceQueueSensor` (validation/approval depths). Composition: a game's `observe()` concatenates its configured sensor set — sensors never mutate state.
+- **Actions — `CognitiveOperation`**: a closed, auditable operation descriptor with `cost`, `tier`, and a bound executor against the real Focus/NAR APIs. Seeds: `cycle` (run a reasoning cycle), `revise`, `spawn_subgoal`, `clarify` (spawn a question task), `consolidate` (episodic→semantic promotion), `ask_lm` (escalate to the Cortex), `rest` (idle tick), and **parameterization ops** (`tune(<game-param>, value)` — see 1e). Every operation routes through the kernel gates exactly like a game action.
+- **Rewards — `CognitiveReward`**: a named outcome scorer built on System One heads over the *result* of a step. Seeds: `GroundednessReward` (quality of derived beliefs), `TaskSettledReward` (fraction of the backlog settled), `AmbiguityReductionReward`, `SpendEfficiencyReward` (penalize LM spend without yield), `VetoPenalty` (waste signals), `ConsolidationReward`. A game's reward is a weighted composition — weights are game parameters (1e), so domains tune what "productive thinking" means for them.
+
+**Contract each component honors:** pure w.r.t. truth (rewards may tune policy only — the reward firewall classifies them `extrinsic`, `targetType: policy-weights`), fail-closed (sensor failure ⇒ feature omitted + counted, never fabricated), and deterministic under seed where the underlying state is.
+
+### 1b. Game assembly — `ReasoningGameSpec`
+
+```ts
+interface ReasoningGameSpec {
+  id: string;                       // 'reasoning:conversation', 'reasoning:tool-use', …
+  sensors: SensorId[];              // subset of the library
+  actions: ActionId[];              // subset, filtered by tier
+  rewards: Partial<Record<RewardId, number>>; // weighted composition
+  tier: 0 | 1 | 2 | 3;              // strength level (1c)
+  params: ReasoningGameParams;      // difficulty, episode length, eval suite, reward-weight overrides
+}
+```
+
+`createReasoningGame(spec, agent)` assembles a plain `Game` — registered like any other in the game registry. **Different domains are different specs over the same library**: a conversation domain is clarify-heavy with SpendEfficiency dominant; a tool-use domain is dispatch-heavy with Groundedness dominant; a research domain is consolidate/spawn-subgoal-heavy with ConsolidationReward. The eval task suite per domain is a config (the same fixed suite the scheduler arm is scored on), so "arm ≥ scheduler" stays falsifiable per domain.
+
+### 1c. Strength tiers (the Cortex Ladder, made playable)
+
+The tier field gates which actions `legalActions()` offers and which sensors run, mapping directly onto the existing 4-tier thermodynamic ladder:
+
+- **Tier 0 — reflex**: cheap sensors only, `cycle`/`revise`/`rest`; zero LM cost. (Device profile.)
+- **Tier 1 — manifold**: + full sensor set, manifold-scored action selection (`reflex_value`/`feasibility`/`risk` over cognitive operations).
+- **Tier 2 — cortex**: + `ask_lm`/`clarify`/`consolidate` enabled; LM spend metered by `SpendEfficiencyReward`.
+- **Tier 3 — NAL-governed**: + Negotiator veto over operations and seeded meta-rules.
+
+Tier is *dynamic*: a game instance may escalate on demand (high ambiguity ⇒ tier bump for that step) within its `ReasoningBudget` — the ladder's confidence routing, expressed as action availability.
+
+### 1d. Versatile agents sharing components
+
+One agent stack — reflex + manifold + Negotiator — binds to any assembled ReasoningGame through `GameFocus`, so the whole arm ecosystem works unchanged: heuristic/random/manifold/lm/replica/**nal** arms all become reasoning policies, the Brier harness scores them like any game, and the distillation flywheel distills *policy over thinking operations*. Components (sensors, the action grammar, reward scorers) are shared across every game instance — one implementation, many specs.
+
+### 1e. The MetaGame / SelfMetaGame layering (scope discipline)
+
+Per the architecture's own semantics:
+
+- **`MetaGame` controls a specific Game and may be specialized for it.** One MetaGame instance is bound to one observed game; a `ReasoningMetaGame` specializes the base with knobs tailored to its game's parameter table — reward weights, difficulty, episode budget, even the sensor/action set size (spec deltas). Its `^focus_weight(focusId, w)` and `^knob_set(knob, v)` act on *that game's* focus and **game-local parameters**; each assembled game owns a parameter table the MetaGame's knobs address. Specialization is the pattern, not a generality hack: game-specific parameter sets come from the game's spec, not a universal knob list.
+- **`SelfMetaGame` controls system-wide ("self") parameters** — global focus-bag weights, engine knobs (`maxDerivationsPerStep`, decay rates, ranking), governance routing. It consumes the **same sensor library** for its `observe()` (`BagPressureSensor` over the whole bag, `HeadHealthSensor`, `GovernanceQueueSensor`) and the same reward scorers for its scheduler reward — one implementation, two scopes.
+- **Enforcement — parameter ownership.** A component action can only actuate parameters *owned by the scope offering it*: a ReasoningGame's `tune()` op addresses its own local table; system-wide knobs are reachable **only** through the SelfMetaGame. Enforced mechanically: operation strings carry their domain (`game:<id>:tune(...)` vs `self:knob_set(...)`), the kernel ActionGate authorizes against the operation's domain, and the `LearnerRegistry`'s `self-*` domain split (already fail-closed via `CrossDomainError`) blocks cross-scope leakage.
+
+### The honest falsification set
+
+1. Per domain: assembled ReasoningGame arm ≥ default scheduler arm on the fixed eval suite (same seed; settled-fraction + token spend).
+2. Kernel gates fire on reasoning operations exactly as on game actions (fault-inject `judgeBatch` throw ⇒ the reasoning move fails closed).
+3. **Tier gating**: a tier-0 spec never offers `ask_lm` even when the agent proposes it; escalation stays inside `ReasoningBudget`.
+4. **Scope enforcement**: an operation addressing a system-wide knob from within a ReasoningGame is rejected by the gate (`CrossDomainError` / authorization denial); the same op through the SelfMetaGame applies.
+5. NAL veto prevents known-wasteful moves when the rule is seeded and fires **zero** vetoes when rule-free (the `todo17b-nal-arm` semantics, transplanted).
+6. **Sensor parity**: SelfMetaGame and a ReasoningGame observing the same state read identical feature values from the shared sensors.
+7. Schema induction promotes real meta-rules (e.g., "ask_lm on low-ambiguity tasks ⇒ bad_outcome") that survive across episodes.
+
+**Deliberate scope guards.** No self-referential reward on the reward computation itself; the ReasoningGame observes *its own* focus. A SelfMetaGame observing *the ReasoningGame* (the third level) is the frontier item G1 below, not this plan.
+
+**Build order.** C-0: component registries + the seed sensors/actions/rewards + scope-enforced parameter tables (pure library; benches 3/4/6). C-1: first assembled spec — `reasoning:conversation`, tier 1, `cycle`-only (proves the interface; reward = TaskSettled + Groundedness; bench 1). C-2: tiers + parameterization ops + Negotiator veto + schema induction (benches 5/7). C-3: arcade integration — `--games reasoning:conversation` and a second domain, the tournament table compares arms *on reasoning*, the lm arm's decision prompts become "which cognitive operation next?".
 
 **What it buys.** A single vocabulary for the whole system: play the game = do the reasoning. The arcade summary becomes a cognitive-architecture benchmark; the distillation flywheel distills *policy over thinking operations*; and the "one manifold, many environments" claim gets tested where it matters most.
 
