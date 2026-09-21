@@ -1,7 +1,6 @@
 # TODO18.md — TODO19 Candidates & The ReasoningGame: Reasoning Is a Game
 
-**Version:** 1.0 (2026-09-21, post-TODO17b completion `f044088d`) · lineage: TODO17.md (System One arcade), TODO17b.md (integrity sweep — complete)
-**Status:** plan proposal — pick items, then execute with the TODO17b discipline (findings → falsifiable items → benches).
+**Version:** 1.1 (2026-09-21) · **Status: executed by TODO19.md** — this file is the proposal/rationale (§1 component library, §1.5 NARBuilder, §7 cut); the executable plan with phases, benches, and decision points lives in TODO19.md.
 
 **Premise.** The `Game` interface is the *only* environment seam, and System One now calibrates every judgment the agent makes. The obvious unification nobody has exploited yet: **reasoning itself is a Game.** The agent's cognition is an environment it acts in; inference operations are actions; System One scores the outcomes; the kernel gates govern every move. The rest of this file collects the follow-up candidates and works out the ReasoningGame first.
 
