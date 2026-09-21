@@ -10,6 +10,7 @@ export * from './calibration.js';
 export * from './manifold.js';
 export * from './action-transducer.js';
 export * from './policy.js';
+export * from './verify.js';
 export * from './manifold-reflex.js';
 export * from './cascade-reflex.js';
 export * from './wasi-runtime.js';

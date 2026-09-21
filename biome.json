@@ -46,7 +46,9 @@
       "!ui/spacegraphjs7",
       "!ui/src/stories/assets",
       "!ui/playwright-report",
-      "!ui/src/client/graph-test.html"
+      "!ui/src/client/graph-test.html",
+      "!.reports",
+      "!.reports/**"
     ]
   },
   "overrides": [

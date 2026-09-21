@@ -133,4 +133,29 @@ describe('Bench 44 — ReasoningGame Falsification', () => {
     expect(generateEvalTasks(spec, 11)).toEqual(generateEvalTasks(spec, 11));
     expect(generateEvalTasks(spec, 12)).not.toEqual(generateEvalTasks(spec, 11));
   });
+
+  it('R4.2 — fault-injected judgeBatch: reasoning ops fail closed, episode survives on the incumbent', async () => {
+    const { ManifoldReflex } = await import('../../nar/src/lm/system-one/manifold-reflex.js');
+    const { EpsilonGreedyReflex } = await import('../../nar/src/reflex/EpsilonGreedyReflex.js');
+    const faulted = {
+      judgeBatch: async () => {
+        throw new Error('manifold fault');
+      },
+    };
+    const game = createReasoningGame(createSpec(), 7);
+    const focus = new GameFocus({ focusId: 'reasoning-fault', game, cognitive: true });
+    focus.setReflexPrefetchContext({
+      manifold: faulted as never,
+      embeddingCache: { write: async () => ({ digest: 'x' }) } as never,
+      budget: { maxCycles: 10, maxDepth: 5, maxMemoryOps: 10, maxLMCalls: 5, consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 } },
+    });
+    focus.bindReflex(new ManifoldReflex(new EpsilonGreedyReflex('incumbent', { numArms: 4, epsilon: 0.3 })));
+    // The faulted judgeBatch must not throw out of the tick loop…
+    for (let t = 0; t < 15; t++) await expect(focus.step(10)).resolves.toBeDefined();
+    // …and the episode still progressed on the incumbent reflex (fail-closed ≠ frozen).
+    expect(game.state().cycle).toBeGreaterThan(0);
+    const panel = focus.getPanelLog();
+    expect(panel.length).toBeGreaterThan(0);
+    for (const entry of panel) expect(entry.decision.vetoedBy).toBeNull();
+  });
 });

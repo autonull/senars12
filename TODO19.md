@@ -108,7 +108,7 @@
 **Phase A:** C1 registries · C2 sensors · C3 actions · C4 rewards · C5 MetaGame collapse → [x] Bench 43 ✅ (`nar/src/cognition/`)
 **Phase B:** R1 specs · R2 tiers · R3 ReasoningMetaGame · R4 falsification set → [x] Bench 44 ✅ (R4.7 covered by L4)
 **Phase C:** L1 veto demotion · L2 MC-return LabelSource · L3 cross-game head · L4 SchemaStore → [x] Bench 45 ✅ (L3 kept per-game honestly — shared-head bake-off infrastructure deferred)
-**Phase D:** P1 NAL A/B ✅ · P2/P3 deferred · P4/P5 deferred · P6 fast/slow lanes ✅ · P7 deferred → [x] Bench 46 ✅
+**Phase D:** P1 NAL A/B ✅ · P2 SDE verify cascade + consensus fan-out budget knob ✅ (`nar/src/lm/system-one/verify.ts`) · P3 deferred · P4 arcade replay HTML report ✅ (`scripts/arcade-replay.ts`, `pnpm arcade:replay`) · P5 external-env example + builder third-profile smoke ✅ (`examples/external-env.ts`) · P6 fast/slow lanes ✅ · P7 deferred → [x] Bench 46 ✅
 
 ### Progress Notes (2026-09-21 — implementation session)
 
@@ -132,13 +132,31 @@
   real bake-off (train `reflex_value` with a `game` feature across registry games) is the main remaining lift.
 - **Remaining work:**
   - **L3 bake-off**: implement shared `reflex_value` (with `game` feature) training + held-out comparison.
-  - **P2/P3**: SDE verify-cascade helper + consensus fan-out budget knob; Tetris `PlacementCascadeReflex`.
-  - **P4**: arcade replay HTML report over `.reports/arcade.json`.
-  - **P5**: `examples/` external-env non-builtin game (builder third-profile smoke).
+  - **P3**: Tetris `PlacementCascadeReflex` into the lm arm (P2 landed separately — see below).
   - **P7**: WASI device head (gated behind the `device` profile flag).
-  - **R4.2 deep-dive**: fault-inject `judgeBatch` ⇒ reasoning ops fail-closed (partially covered by the
-    GameFocus veto path; a dedicated fault-injection bench would close it).
   - **SeNARSFactory retirement**: migrate remaining call sites to NARBuilder, then delete.
+- **Progress (second session, 2026-09-21):**
+  - **P2 landed** as `nar/src/lm/system-one/verify.ts`: `verifyCascade` (SDE-style — stage-1
+    `truthProbability` routes through `ConfidenceRouter` bands; stage-2 evidential verification only on
+    review/block; `act` never re-verified) + `fanoutWithinBudget`/`consensusFanout` (consensus k clamped to
+    remaining `maxLMCalls − consumed.llmCalls − charged`, floor 1 — exhaust degrades to a single judgment).
+    Benched in `tests/nar/todo19-verify.test.ts` (band routing, abstain short-circuit, budget clamping).
+  - **P4 landed** as `scripts/arcade-replay.ts` (`pnpm arcade:replay`): HTML over `.reports/arcade.json`
+    (default out `.reports/arcade-replay.html`); summary table + per-game per-arm action strips colored by
+    reward valence, handovers outlined. `.reports/**` added to biome `files.excludes` (generated artifacts
+    must not be linted). Doubles as the ReasoningGame demo surface — `reasoning:*` arms render if logged.
+  - **P5 landed** as `examples/external-env.ts`: non-builtin `ThermostatGame` (exported) registers into a
+    plain `GameRegistry` and plays through `GameFocus` with `TabularQReflex`; also asserts the
+    `device` profile builds LM-free via `NARBuilder.fromProfile('device').build()` (third-profile smoke).
+  - **R4.2 closed**: dedicated fault-injection bench appended to Bench 44 — faulted `judgeBatch` +
+    `ManifoldReflex` over `GameFocus.setReflexPrefetchContext`: prefetch failure leaves the table cold,
+    ticks resolve, the episode progresses on the incumbent fallback, no panel veto spam.
+- **Gotchas (P5):** the example's first reflexes deadlocked on action `"0"` — zero-value/zero-confidence
+  proposals all tie at `value×confidence = 0` and argmax keeps the first legal action; `EpsilonGreedyReflex`
+  never escapes (exploration only perturbs `value`, and `count` only grows for the action already chosen).
+  `TabularQReflex` (epsilon-shuffle exploration + visit-count confidence) escapes — use it for cold-start
+  examples. Also: `GameFocus` executes actions as strings; `Game.step` implementations typed for numbers
+  must `Number(action)` the argument.
 - **Gotchas discovered:**
   - Narsese terms reject hyphens — rule atoms must use underscores (`nal_ab`, not `nal-ab`).
   - `Bag.ts` task sampling uses unseeded `Math.random`; with `isolate: false` the module-load order
