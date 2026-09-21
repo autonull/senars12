@@ -43,7 +43,13 @@ export class LMReflex implements Reflex<Perception, string> {
   #promptTemplate?: string;
   #maxCandidates: number;
   #warm = new Map<string, { action: string; confidence: number }>();
+  /** stateId → embedding pointer, for recording distillation rows whose vectors
+   *  match what the manifold reads at runtime (bounded; evicts-all at cap). */
+  #statePointers = new Map<string, EmbeddingPointer>();
+  #statePointersCap = 2000;
   failures = 0;
+  /** Distillation rows recorded WITH an embedding (vector-joinable at training). */
+  embeddedRows = 0;
   decisions = 0;
   /** Warm decisions actually served at propose (diagnoses cold/missed hand-offs). */
   served = 0;
@@ -114,6 +120,10 @@ export class LMReflex implements Reflex<Perception, string> {
         this.#warm.set(stateId, { action: top.candidate, confidence: top.truth.f });
         this.decisions++;
       }
+      if (context) {
+        if (this.#statePointers.size >= this.#statePointersCap) this.#statePointers.clear();
+        this.#statePointers.set(stateId, context);
+      }
     } catch {
       this.failures++; // cold — fallback serves at propose
     }
@@ -135,12 +145,20 @@ export class LMReflex implements Reflex<Perception, string> {
 
   learn(event: LearningEvent): void {
     if (this.#dataset && (event.actionProposed || event.actionExecuted)) {
+      // Attribute the outcome to the state the action was DECIDED in (previous
+      // perception) — its embedding was prefetched this tick; the next state's
+      // is not, and reward belongs to the decision state anyway.
+      const decisionState = event.previousPerception ?? event.perception;
+      const stateId = decisionState?.stateId ?? 'unknown-state';
+      const pointer = this.#statePointers.get(stateId);
       recordReflexOutcome(this.#dataset, {
-        stateDigest: event.perception?.stateId ?? 'unknown-state',
+        stateDigest: stateId,
         action: event.actionExecuted ?? event.actionProposed,
         reward: event.reward,
         source: this.id,
+        embedding: pointer ? this.embeddingCache.read(pointer) : undefined,
       });
+      if (pointer && this.embeddingCache.read(pointer)) this.embeddedRows++;
     }
     this.#fallback.learn(event);
   }

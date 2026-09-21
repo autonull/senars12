@@ -29,7 +29,7 @@
     "parity:smoke": "tsx scripts/rl-parity.ts --env gridworld --baseline qlearning --mode both --seeds 1 --episodes 5 --steps 20",
     "test": "vitest run",
     "test:unit": "vitest run --exclude 'tests/e2e/**' --exclude 'tests/benchmark/**' --exclude 'tests/soak/**' --exclude 'tests/nar/todo16-slo.test.ts' --exclude 'tests/nar/rl/parity-restoration.test.ts'",
-    "test:load-sensitive": "vitest run tests/nar/todo16-slo.test.ts tests/nar/rl/parity-restoration.test.ts",
+    "test:load-sensitive": "vitest run tests/nar/todo16-slo.test.ts tests/nar/rl/parity-restoration.test.ts tests/nar/rl/parity/bandit-epsilon-greedy.test.ts",
     "test:micro-soak": "SOAK_SCALE=fast SENARS_SOAK_TEST=1 vitest run tests/soak/long-run.test.ts",
     "test:watch": "vitest",
     "test:integration": "vitest run --dir tests/integration",

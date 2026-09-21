@@ -52,6 +52,7 @@ const parseArgs = (): {
   cognitive: boolean;
   resume: boolean;
   sessionPath: string;
+  distill: boolean;
 } => {
   const get = (flag: string, fallback: string): string => {
     const i = process.argv.indexOf(flag);
@@ -71,6 +72,7 @@ const parseArgs = (): {
     resume: process.argv.includes('--resume'),
     sessionPath: get('--session', '.reports/arcade-session.json'),
     otel: process.argv.includes('--otel'),
+    distill: process.argv.includes('--distill'),
   };
 };
 
@@ -149,7 +151,8 @@ class RecordingReflex implements Reflex {
 /** Cognitive arm construction — fail-closed per arm: skip with a note, never substitute. */
 async function buildCognitiveArm(
   arm: 'manifold' | 'lm' | 'replica',
-  gameName: GameName
+  gameName: GameName,
+  dataset?: unknown
 ): Promise<{ reflex: Reflex; manifold: unknown; cache: unknown } | { note: string }> {
   const { createEmbeddingCache } = await import('../nar/src/lm/system-one/embedding-cache.js');
   const cache = createEmbeddingCache({});
@@ -170,13 +173,25 @@ async function buildCognitiveArm(
     // Tetris placement fan-out (W7): two-stage cascade — stage-1 coarse rank
     // over all placements in one batch, stage-2 fine `reflex_value` on top-K.
     const { ManifoldReflex } = await import('../nar/src/lm/system-one/manifold-reflex.js');
+    // Distilled student: a reflex_value head trained from previous lm-arm play
+    // (pnpm run demo:arcade -- --distill --arms lm) replaces the untrained stub.
+    const HEAD_DIR = '.reports/arcade-heads/reflex_value';
+    let headLoaded = false;
+    try {
+      const { loadHeadArtifacts } = await import('../nar/src/lm/system-one/train.js');
+      const trainedHead = await loadHeadArtifacts(HEAD_DIR);
+      (manifold as { registerHead: (h: unknown) => void }).registerHead(trainedHead);
+      headLoaded = true;
+    } catch {
+      // No distilled head yet — untrained stub serves (honest fallback).
+    }
     const reflex =
       gameName === 'tetris'
         ? new (
             await import('../nar/src/lm/system-one/cascade-reflex.js')
           ).PlacementCascadeReflex(incumbent)
         : new ManifoldReflex(incumbent);
-    return { reflex, manifold, cache };
+    return { reflex, manifold, cache, headLoaded };
   }
   // lm arm: real LM decisions under a GBNF action grammar, judged by the
   // manifold (tier 1) so candidates get calibrated ranking — the synth output
@@ -220,6 +235,7 @@ async function buildCognitiveArm(
       budget: BUDGET,
       actionLegend: actionLegends[gameName],
       promptTemplate: promptTemplates[gameName],
+      dataset: dataset as never,
     }),
     manifold,
     cache,
@@ -227,7 +243,7 @@ async function buildCognitiveArm(
 }
 
 async function main(): Promise<void> {
-  const { games, arms, episodes, seed, render, cognitive, resume, sessionPath, otel } = parseArgs();
+  const { games, arms, episodes, seed, render, cognitive, resume, sessionPath, otel, distill } = parseArgs();
   if (otel) {
     const { initOtel } = await import('../nar/src/otel/index.js');
     initOtel({ serviceName: 'senars-arcade', otlpEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT });
@@ -235,6 +251,17 @@ async function main(): Promise<void> {
   const harness = new BrierHarness();
   const notes: string[] = [];
   const rng = new SeededRNG(seed);
+
+  // Distillation flywheel: the lm arm records its decisions into a dataset;
+  // after play, a reflex_value head is trained and picked up by the manifold
+  // arm (the cheap student) on the next run.
+  let dataset: import('../nar/src/lm/system-one/distill.js').JudgmentDataset | undefined;
+  if (arms.includes('lm') && arms.includes('manifold') && distill) {
+    const { JudgmentDataset } = await import('../nar/src/lm/system-one/distill.js');
+    dataset = new JudgmentDataset();
+    dataset.setVectorSidecarPath('.reports/arcade-vectors');
+    notes.push('distill: lm arm records decisions → .reports/arcade-vectors');
+  }
 
   // G3 session resume: progress is persisted per (arm, game); a mismatched
   // config cannot resume (starts fresh with a note, never silently merged).
@@ -307,11 +334,12 @@ async function main(): Promise<void> {
       }
 
       // Cognitive arms: kernel-gated GameFocus play (A1 scheduler drive).
-      const built = await buildCognitiveArm(arm, gameName);
+      const built = await buildCognitiveArm(arm, gameName, dataset);
       if ('note' in built) {
         notes.push(`${gameName}: ${built.note}`);
         continue;
       }
+      if (built.headLoaded) notes.push(`${arm}/${gameName}: distilled reflex_value head active`);
       const recording = new RecordingReflex(`${arm}-recording`, built.reflex);
       for (let e = firstEpisode; e < episodes; e++) {
         const game = makeGames[gameName](seed + e);
@@ -383,6 +411,32 @@ async function main(): Promise<void> {
           );
         }
       }
+    }
+  }
+
+  // Train the distilled student head from this run's lm-arm play.
+  if (dataset && dataset.size > 0) {
+    const { mkdirSync, rmSync } = await import('node:fs');
+    const datasetPath = '.reports/arcade-dataset.jsonl';
+    const sidecarPath = '.reports/arcade-vectors';
+    const headDir = '.reports/arcade-heads/reflex_value';
+    await dataset.flush(datasetPath);
+    await dataset.flushVectors();
+    const rows = await (
+      await import('../nar/src/lm/system-one/train.js')
+    ).loadTrainingData({ datasetPath, sidecarPath, headId: 'reflex_value', averageDuplicates: true });
+    if (rows.length > 0) {
+      const model = (
+        await import('../nar/src/lm/system-one/train.js')
+      ).trainHead(rows, { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' }, { holdoutFraction: 0 });
+      rmSync(headDir, { recursive: true, force: true });
+      mkdirSync(headDir, { recursive: true });
+      const bundle = await (
+        await import('../nar/src/lm/system-one/train.js')
+      ).writeHeadArtifacts(model, headDir);
+      notes.push(
+        `distill: trained reflex_value head (${rows.length} rows, ${bundle.modelDigest.slice(0, 19)}…) → ${headDir}; the manifold arm picks it up on the next run`
+      );
     }
   }
 
