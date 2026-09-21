@@ -1,3 +1,78 @@
+# TODO18.md — TODO19 Candidates & The ReasoningGame: Reasoning Is a Game
+
+**Version:** 1.0 (2026-09-21, post-TODO17b completion `f044088d`) · lineage: TODO17.md (System One arcade), TODO17b.md (integrity sweep — complete)
+**Status:** plan proposal — pick items, then execute with the TODO17b discipline (findings → falsifiable items → benches).
+
+**Premise.** The `Game` interface is the *only* environment seam, and System One now calibrates every judgment the agent makes. The obvious unification nobody has exploited yet: **reasoning itself is a Game.** The agent's cognition is an environment it acts in; inference operations are actions; System One scores the outcomes; the kernel gates govern every move. The rest of this file collects the follow-up candidates and works out the ReasoningGame first.
+
+---
+
+## 1. ReasoningGame — the reasoning process as a playable `Game`
+
+The Focus-Game-Reflex substrate already plays snake, tetris, bandit. Nothing in `Game<S, A>` says the environment must be external. Make **cognition itself the environment**:
+
+- **`ReasoningGame implements Game<ReasoningState, CognitiveOperation>`**
+  - `observe()` → a `Perception` over the agent's own cognitive state: bag pressure, top task types (belief/goal/question mix), pending questions, derivation backlog, recent handover/veto rates, per-head health (from `pnpm status` internals). Features are numbers — exactly what the manifold digests.
+  - `legalActions(state)` → the **cognitive operations**: `cycle` (run a reasoning cycle), `ask_lm` (escalate to the Cortex), `clarify` (spawn a question task), `consolidate` (promote episodic→semantic), `revise`, `spawn_subgoal`, `rest` (idle tick). The set is closed, auditable, and every operation already routes through the kernel gates.
+  - `step(op)` → executes the operation against the real agent (via the existing Focus/NAR APIs) and returns a reward from **System One heads scoring the outcome**: groundedness of what was derived, feasibility/risk of what was dispatched, ambiguity reduction on spawned questions, task-settled fraction. Positive for settling tasks, negative for waste (LM spend without yield, re-derivation of settled tasks, vetoed dispatches).
+  - `terminal` → AIKR budget exhaustion (the `ReasoningBudget` the kernel already tracks) or all tasks settled.
+- **Why this is the right seam.** Every guardrail is already built: kernel gates authorize each operation (injection veto applies to *thinking moves*, not just game moves), the Negotiator can veto a wasteful operation via seeded rules, schema induction learns meta-rules from experience ("re-deriving settled tasks ⇒ bad_outcome"), and the Brier harness scores it like any other arm. No new trust boundary is created — ReasoningGame is a *consumer* of the existing substrate, not a bypass of it.
+- **The honest falsification set:**
+  1. ReasoningGame arm ≥ the default scheduler arm on a fixed eval task suite (bench: same seed, same tasks, compare settled-fraction and token spend).
+  2. Kernel gates fire on reasoning operations exactly as on game actions (fault-inject a `judgeBatch` throw → the reasoning move fails closed).
+  3. NAL veto prevents known-wasteful moves when the rule is seeded and fires **zero** vetoes when rule-free (the `todo17b-nal-arm` semantics, transplanted).
+  4. Schema induction promotes real meta-rules (e.g., "ask_lm on low-ambiguity tasks ⇒ bad_outcome") that survive across episodes.
+- **Deliberate scope guards.** No self-referential reward on the reward computation itself (the reward firewall still classifies reasoning rewards as `extrinsic`, `targetType: policy-weights`). The ReasoningGame observes *its own* focus; a `SelfMetaGame` observing the ReasoningGame is the level above and out of scope here (the RLFP domain split already separates `self-*` reward domains).
+
+**Build order.** D-1: `ReasoningGame` over a *fixed* eval task suite, with a `cycle`-only action set (proves the interface; the reward is groundedness/task-settled). D-2: full operation set + Negotiator veto + schema induction. D-3: arcade integration — `--games reasoning` so the tournament table compares arms *on reasoning*; the lm arm's decision prompts become "which cognitive operation next?".
+
+**What it buys.** A single vocabulary for the whole system: play the game = do the reasoning. The arcade summary becomes a cognitive-architecture benchmark; the distillation flywheel distills *policy over thinking operations*; and the "one manifold, many environments" claim gets tested where it matters most.
+
+---
+
+## 2. Close the loop on learning (small, high-leverage)
+
+- **V2 — Veto-demotion learning.** Epsilon-greedy re-proposes vetoed actions every tick (equal value estimates ⇒ deterministic first-element best); the veto fires every tick even when the fallback plays well. A reflex-side `learn()` that demotes actions with `LearningEvent.overriddenBy` set makes the veto a training signal, not friction. Falsification: veto rate per episode drops after the first episodes while return does not.
+- **V3 — MC-return distillation.** Immediate reward labels starve the reflex_value head on short-episode games (gridworld ~3 ticks, tictactoe ~5). Distill discounted MC returns (`JudgmentDataset` gains an `mcReturn` label path; `trainHead` averages duplicates). Falsification: Brier/ECE on held-out states improves; head moves on gridworld/tictactoe with the same episode count.
+- **V4 — Cross-game head.** One shared `reflex_value` head trained on a dataset spanning all 9 games, with a `game` feature. The first real test of "one manifold, many environments." Falsification: shared head ≥ per-game head on held-out seeds; if it loses, record why (feature scale differences) and keep per-game heads honestly.
+
+## 3. Make the nal arm a real researcher's tool
+
+- **N1 — Same-run A/B.** Per (game, episode): play paired episodes with and without seeded rules at the same seed; the summary table reports the veto's effect directly ("did the veto pay?") instead of requiring two runs.
+- **N2 — Persistent schema induction.** Promoted schemas currently die with the process. Sidecar them per (arm, game) in `.reports/` and re-seed at start — the agent keeps its lessons across runs. Falsification: a second run on the same game starts with the first run's promoted schema count and improves its return.
+- **N3 — Schema induction on rps.** The rotating opponent is learnable in principle. A run where induced rules exploit it ("after opponent rock → play paper" quality) is the cleanest demo of symbolic rule growth from experience. Falsification: agent return → 0.9+ win-rate-equivalent against the rotation once schemas are persistent (N2).
+
+## 4. System One: composition polish
+
+- **S1 — SDE-style extract→per-field-verify→retry helper** (already composable as a fan-out of `plausibility` queries; give it a dedicated API + bench).
+- **S2 — Consensus fan-out as a budget knob** (currently capped k≤3; tie to `maxLMCalls`).
+- **S3 — Tetris LM arm cascade** — wire `PlacementCascadeReflex` into the lm arm so the teacher is competitive on the last game where the heuristic wins.
+
+## 5. Substrate / ops
+
+- **O1 — External-environment example.** `examples/` demo of a non-builtin `Game` (e.g., HTTP-driven or stdin-driven) — proves the README's claim that `Game` is the only seam, with no new interface layer.
+- **O2 — Arcade replay report.** Tiny HTML page reading `.reports/arcade.json`: per-tick decisions, vetoes, handovers, Brier traces. Makes demos self-explanatory without running anything.
+- **O3 — Fast/slow test lanes.** Generalize the `test:load-sensitive` pattern: split the ~50s suite into a fast inner loop and a full CI lane.
+
+## 6. Bigger swings (ring-fenced from the old TODO18 vision below)
+
+- **G1 — Schema induction as substrate feature, not arcade option.** The same G2 machinery applied to the conversational agent: which tool outcomes were bad, which parsers failed — the agent learns its own domain rules. (This is the RLFP story made concrete; see §RLFP in README.)
+- **G2 — Self-play adversarial games.** RPS with a learnable opponent turns the arcade into a two-agent testbed — the Peer-Intent manifold idea (Horizon 2 below) gets a concrete falsification ground.
+- **G3 — WASI-bundled arcade heads.** The no-cloud device profile: distilled `reflex_value` running sandboxed with no LM at all (matches the Horizon-1 D5 item below).
+
+---
+
+## 7. Suggested cut for TODO19 (opinionated)
+
+1. **D-1/D-2 ReasoningGame** (the premise item — small D-1 first, falsify early).
+2. **V2 + V3** (veto-demotion + MC-return distillation — both cheap, both close open loops).
+3. **O1** (external-env example — validates the `Game`-only-seam claim).
+
+N1–N3 and S1–S3 fill in after the ReasoningGame shape is known; G1–G3 are the next file's frontier.
+
+---
+
+*Historical note: the original TODO18 vision content (Horizons 1–3: mechanistic probes, Hebbian fast-weights, sensory manifold, SSM cortex, peer-intent, WASI bundles, MCP expansion, RLFP maturation) is preserved below unchanged — it remains the long-horizon ring-fence and is not part of this plan's scope.*
 # TODO17.md
 
 ### **Horizon 1: The Immediate Tail (Stabilization & Usability)**
