@@ -594,7 +594,14 @@ export class LMService {
     }
   ): AsyncIterable<string> {
     const model = this.getModel(opts?.task ?? 'fast');
-    if (!model) return;
+    // D5: stream parity — no silent success when no model resolves.
+    if (!model) {
+      throw new LMUnavailableError(
+        'No model available for task: ' + (opts?.task ?? 'fast'),
+        this.provider as LMProviderName | undefined,
+        opts?.task
+      );
+    }
 
     // F6/X22: stream path shares the generate path's failure semantics.
     const provider = this.provider as LMProviderName | undefined;
@@ -607,31 +614,63 @@ export class LMService {
       );
     }
 
+    const cacheKey = buildCacheKey(prompt, { task: opts?.task ?? 'fast' });
+    const cached = this.getCached(cacheKey);
+    if (cached) {
+      this.recordCall(true, Date.now(), prompt.length + cached.length);
+      if (provider) recordProviderCall(provider, true, settings);
+      yield cached;
+      return;
+    }
+
     const start = Date.now();
     const task = opts?.task ?? 'fast';
     let out = 0;
-    try {
-      const result = streamText({
-        model,
-        prompt,
-        abortSignal: opts?.signal,
-      });
-      for await (const chunk of result.textStream) {
-        out += chunk.length;
-        yield chunk;
+    let yielded = false;
+    let lastError: unknown;
+    // D5: one silent retry only if the stream failed before any chunk was
+    // yielded (post-yield retries would duplicate output).
+    for (let attempt = 0; attempt < 2 && !yielded; attempt++) {
+      try {
+        const result = streamText({ model, prompt, abortSignal: opts?.signal });
+        for await (const chunk of result.textStream) {
+          yielded = true;
+          out += chunk.length;
+          yield chunk;
+        }
+        // D5: stream pays the same spend toll as generate.
+        const usage = await result.usage;
+        this.recordSpend(provider ?? 'unknown', task, usage?.inputTokens ?? 0, usage?.outputTokens ?? 0);
+        this.setCache(cacheKey, (await result.text) || '');
+        this.recordCall(true, start, prompt.length + out);
+        if (provider) recordProviderCall(provider, true, settings);
+        this.noteSuccess();
+        const decision = getLastRoutingDecision();
+        if (decision) {
+          logRoutingDecision({
+            ts: Date.now(),
+            task,
+            modelId: decision.modelId,
+            latencyMs: Date.now() - start,
+            success: true,
+            demoted: decision.reason === 'failover',
+            provider: provider ?? 'unknown',
+            chain: getModelChain(provider ?? getLmProvider(), task),
+          });
+        }
+        return;
+      } catch (e) {
+        lastError = e;
+        this.recordCall(false, start, prompt.length + out);
+        if (provider) recordProviderCall(provider, false, settings);
+        if (isTransportError(e)) {
+          this.noteFailure();
+          await this.reprobe();
+        }
+        if (yielded) throw e;
       }
-      this.recordCall(true, start, prompt.length + out);
-      if (provider) recordProviderCall(provider, true, settings);
-      this.noteSuccess();
-    } catch (e) {
-      this.recordCall(false, start, prompt.length + out);
-      if (provider) recordProviderCall(provider, false, settings);
-      if (isTransportError(e)) {
-        this.noteFailure();
-        await this.reprobe();
-      }
-      throw e;
     }
+    throw lastError;
   }
 
   /** One-shot re-probe of the active provider after transport failures. */

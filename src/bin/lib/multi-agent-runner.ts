@@ -45,8 +45,12 @@ export async function runMultiAgent(opts: MultiAgentRunnerOptions): Promise<void
   });
 
   wsConn.onMessage(async (msg: { text: string }) => {
-    const response = await agent.chat(msg.text);
-    wsConn.send('default', response).catch(() => {});
+    let response = '';
+    for await (const evt of agent.chat(msg.text)) {
+      if (evt.kind === 'text-delta') wsConn.send('default', evt.text).catch(() => {});
+      if (evt.kind === 'finish') response = evt.text;
+    }
+    if (response) wsConn.send('default', response).catch(() => {});
   });
   console.log('[WS] Server listening on ws://localhost:8766');
 
@@ -64,8 +68,9 @@ export async function runMultiAgent(opts: MultiAgentRunnerOptions): Promise<void
   });
 
   cliConn.onMessage(async (msg: { text: string }) => {
-    const response = await agent.chat(msg.text);
-    console.log(`[Agent] ${response}`);
+    for await (const evt of agent.chat(msg.text)) {
+      if (evt.kind === 'text-delta' || evt.kind === 'finish') console.log(`[Agent] ${evt.text}`);
+    }
   });
   console.log('[CLI] Ready for input\n');
 

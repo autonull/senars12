@@ -270,12 +270,12 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
     const { createTetrisGame } = await import('@senars/nar/game');
     const game = createTetrisGame({ seed: 21, width: 6, height: 8, pieceCap: 20 });
     const focus = new GameFocus({ focusId: 'schema-focus', game, schemaInduction: true });
-    const cycle: Reflex = {
+    let reflexI = 0;
+    const cycle = {
       id: 'cycle',
-      i: 0,
       propose(_s: unknown, legalActions: number[]) {
-        const action = String(legalActions[this.i++ % legalActions.length]);
-        return [{ action, value: 0.9, confidence: 0.9, source: this.id }];
+        const action = String(legalActions[reflexI++ % legalActions.length]);
+        return [{ action, value: 0.9, confidence: 0.9, source: 'cycle' }];
       },
       learn: () => {},
     } as unknown as Reflex;

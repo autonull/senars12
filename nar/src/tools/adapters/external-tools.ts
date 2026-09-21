@@ -2210,8 +2210,9 @@ export function createSelfTools(deps: SelfToolsDeps = {}) {
           return { success: false, error: 'NAR or RuleProcessor not available' };
         }
         try {
-          // In practice, this would parse the schema and create a RegisteredRule
-          // For now, we simulate the registration
+          // D6 honesty: schema-to-rule compilation is not implemented — no
+          // simulated success. Shadow validation still runs for the provided
+          // code, but nothing is registered into the RuleProcessor.
           const ruleId = `promoted_${schemaId}`;
 
           // If ruleCode provided, eval it (in shadow context)
@@ -2260,9 +2261,9 @@ export function createSelfTools(deps: SelfToolsDeps = {}) {
           }
 
           return {
-            success: true,
+            success: false,
+            error: `not-supported: schema-to-rule compilation (${ruleId}) is not implemented; rule was not registered`,
             ruleId,
-            message: 'Rule schema registered (implementation pending)',
           };
         } catch (error) {
           return { success: false, error: String(error) };
@@ -2314,12 +2315,13 @@ export function createSelfTools(deps: SelfToolsDeps = {}) {
 
             const diff = await shadowManager.getDiff(worktreePath);
 
-            // In production, would register with ToolManager
+            // D6 honesty: shadow-validated code is not compiled or registered
+            // with the ToolManager — report validation, not registration.
             return {
-              success: true,
+              success: false,
+              error: 'not-supported: shadow-validated tool code was not registered (compilation step not implemented)',
               toolName,
               diff,
-              message: 'Tool registered and validated',
               worktreeId: created ? wtId : existingId,
             };
           } finally {
@@ -2837,38 +2839,16 @@ export const ${capabilityId}_rule: RegisteredRule = {
           .default('auto'),
         worktreeId: z.string().optional().describe('Existing worktree ID to use'),
       }),
-      execute: async ({ seed, profile, worktreeId: existingId }) => {
+      execute: async ({ seed, profile }) => {
         if (!deps.nar) {
           return { success: false, error: 'NAR not available' };
         }
-        try {
-          let worktreePath: string;
-          let created = false;
-
-          if (existingId) {
-            worktreePath = shadowManager.getWorktreePath(existingId) || '';
-            if (!worktreePath) {
-              return { success: false, error: `Worktree not found: ${existingId}` };
-            }
-          } else {
-            worktreePath = await shadowManager.createWorktree(`${worktreeId}-scenario`);
-            created = true;
-          }
-
-          // Use the existing scenario generation logic
-          // For now, run a simple scenario in the shadow
-          const startTime = Date.now();
-          await deps.nar.run(100);
-          const duration = Date.now() - startTime;
-
-          if (created) {
-            await shadowManager.cleanupWorktree(`${worktreeId}-scenario`);
-          }
-
-          return { success: true, seed, profile, duration, message: 'Scenario executed in shadow' };
-        } catch (error) {
-          return { success: false, error: String(error) };
-        }
+        // D6 honesty: seeded/profiled scenario execution is not implemented —
+        // no simulated success with ignored seed/profile.
+        return {
+          success: false,
+          error: `not-supported: seeded/profiled scenario execution (seed=${seed}, profile=${profile}) is not implemented`,
+        };
       },
     }),
   };

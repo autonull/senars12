@@ -98,9 +98,18 @@ export class CLIConnection extends BaseConnection {
 
   protected override handleMessage = (message: IOMessage): void => {
     const handlers = this.messageHandlers.slice();
-    Promise.allSettled(handlers.map((h) => h(message))).catch((err) =>
-      this.logger.error(`Message handler error`, err as Error)
-    );
+    void Promise.allSettled(handlers.map((h) => h(message))).then((results) => {
+      // D10: settled rejections must never vanish silently — log + count.
+      for (const r of results) {
+        if (r.status === 'rejected') {
+          this.errorCount++;
+          this.logger.error(
+            'Message handler error',
+            r.reason instanceof Error ? r.reason : new Error(String(r.reason))
+          );
+        }
+      }
+    });
   };
 
   private async tryCommand(rest: string): Promise<boolean> {

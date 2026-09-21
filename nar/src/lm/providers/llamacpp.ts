@@ -23,18 +23,27 @@ const MODEL_PLACEHOLDER = 'local-model';
 
 let resolvedModel: Promise<string> | undefined;
 
-/** llama-server 400s on unknown model ids — resolve the loaded alias once and cache. */
+/** llama-server 400s on unknown model ids — resolve the loaded alias and cache successes only. */
 const resolveModelId = (origin: string): Promise<string> => {
-  resolvedModel ??= (async () => {
-    try {
-      const res = await fetch(`${origin}/v1/models`);
-      if (!res.ok) return MODEL_PLACEHOLDER;
-      const json = (await res.json()) as { data?: Array<{ id?: string }> };
-      return json.data?.[0]?.id ?? MODEL_PLACEHOLDER;
-    } catch {
-      return MODEL_PLACEHOLDER;
-    }
+  if (resolvedModel) return resolvedModel;
+  const attempt = (async () => {
+    const res = await fetch(`${origin}/v1/models`);
+    if (!res.ok) throw new Error(`model probe failed: HTTP ${res.status}`);
+    const json = (await res.json()) as { data?: Array<{ id?: string }> };
+    const id = json.data?.[0]?.id;
+    if (!id) throw new Error('model probe failed: empty model list');
+    return id;
   })();
+  // Memoize only successes: a probe before llama-server readiness must not
+  // cache the placeholder forever (D4 — permanent 400s → breaker trips).
+  resolvedModel = attempt.catch((error) => {
+    console.warn(`[llamacpp] ${error instanceof Error ? error.message : String(error)}; retrying on next request`);
+    return MODEL_PLACEHOLDER;
+  });
+  void resolvedModel.then(
+    (id) => { if (id === MODEL_PLACEHOLDER) resolvedModel = undefined; },
+    () => { resolvedModel = undefined; },
+  );
   return resolvedModel;
 };
 

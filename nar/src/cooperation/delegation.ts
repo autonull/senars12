@@ -27,6 +27,8 @@ export interface CognitiveTaskResult {
   /** Narsese terms with truth values. */
   resultNarsese: string[];
   success: boolean;
+  /** D10: cause detail on failure — success:boolean alone hides causes. */
+  error?: string;
 }
 
 export const createDelegation = (
@@ -51,12 +53,24 @@ export const handleDelegationMessage = async (
   raw: string,
   reply: (result: CognitiveTaskResult) => void
 ): Promise<void> => {
+  let msg: { type?: string; delegation?: CognitiveTaskDelegation };
   try {
-    const msg = JSON.parse(raw) as { type?: string; delegation?: CognitiveTaskDelegation };
-    if (msg.type !== 'cognitive-delegation' || !msg.delegation) return;
-    reply(await peer.executeTask(msg.delegation));
+    msg = JSON.parse(raw) as { type?: string; delegation?: CognitiveTaskDelegation };
   } catch {
-    /* malformed message: ignore */
+    return; // malformed message: ignore
+  }
+  if (msg.type !== 'cognitive-delegation' || !msg.delegation) return;
+  try {
+    reply(await peer.executeTask(msg.delegation));
+  } catch (error) {
+    // D10: a peer crash must produce a typed failure reply — a silent catch
+    // leaves the delegator waiting forever.
+    reply({
+      taskId: msg.delegation.taskId,
+      resultNarsese: [],
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 };
 
@@ -70,6 +84,8 @@ export interface JudgmentDelegationResult {
   /** Receiver must re-enter these at PEER_AGENT quality (mirrors Narsese path). */
   sourceQuality: 'PEER_AGENT';
   success: boolean;
+  /** D10: cause detail on failure. */
+  error?: string;
 }
 
 export const createJudgmentDelegation = (
@@ -102,7 +118,12 @@ export class JudgmentDelegationPeer implements DelegationPeer {
 
   async executeTask(delegation: CognitiveTaskDelegation): Promise<CognitiveTaskResult> {
     const result = await this.executeJudgment(delegation);
-    return { taskId: delegation.taskId, resultNarsese: [], success: result.success };
+    return {
+      taskId: delegation.taskId,
+      resultNarsese: [],
+      success: result.success,
+      error: result.error,
+    };
   }
 
   /** Full round-trip used by tests and direct transport wiring. */
@@ -120,8 +141,14 @@ export class JudgmentDelegationPeer implements DelegationPeer {
         this.#budget
       );
       return { taskId: delegation.taskId, propositions, sourceQuality: 'PEER_AGENT', success: true };
-    } catch {
-      return { taskId: delegation.taskId, propositions: [], sourceQuality: 'PEER_AGENT', success: false };
+    } catch (error) {
+      return {
+        taskId: delegation.taskId,
+        propositions: [],
+        sourceQuality: 'PEER_AGENT',
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 }

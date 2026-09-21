@@ -300,8 +300,27 @@ export class KernelPerceptionGate {
       this.#pushEvent(event);
 
       return { output: { admitted: true, task }, taskType };
-    } catch {
-      return { output: null };
+    } catch (error) {
+      // Fail-closed (D1): a System One fault must never bypass the injection
+      // veto via legacy admission — reject and emit ingress-error telemetry.
+      this.#pushEvent({
+        type: 'policy.violation',
+        engine: 'kernel',
+        timestamp: Date.now(),
+        correlationId,
+        payload: {
+          policyId: 'systemone-ingress',
+          violationType: 'epistemic-firewall',
+          detail: `systemone_ingress_error: ${error instanceof Error ? error.message : String(error)}`,
+          severity: 'block',
+        },
+      } as CognitiveEvent);
+      return {
+        output: {
+          admitted: false,
+          rejectionReason: 'System One ingress fault: admission rejected (fail-closed)',
+        },
+      };
     }
   }
 

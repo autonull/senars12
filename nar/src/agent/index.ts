@@ -365,7 +365,8 @@ function attachNarApi(
   agent.getThrottle = () => throttle;
   agent.getNAR = () => narEngine?.nar;
   agent.getEpisodicMemory = () => config.episodicMemory;
-  agent.getRecentDerivations = () => agent.getRecentDerivations();
+  const getRecentDerivations = agent.getRecentDerivations.bind(agent);
+  agent.getRecentDerivations = () => getRecentDerivations();
 }
 
 export type { Agent } from '@senars/core';

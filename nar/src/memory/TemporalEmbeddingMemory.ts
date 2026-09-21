@@ -121,13 +121,24 @@ export class TemporalEmbeddingMemory {
 
   private async loadIndex(): Promise<void> {
     const indexPath = join(this.episodesPath, 'index.json');
+    let content: string;
     try {
-      const content = await fs.readFile(indexPath, 'utf-8');
+      content = await fs.readFile(indexPath, 'utf-8');
+    } catch {
+      return; // fresh memory — no index yet
+    }
+    // D9: corrupt index is quarantined, never silently overwritten with empty state.
+    try {
       const data = JSON.parse(content) as Record<string, EpisodeMetadata>;
       for (const [id, metadata] of Object.entries(data)) {
         this.episodeIndex.set(id, metadata);
       }
-    } catch {}
+    } catch (error) {
+      await fs.rename(indexPath, `${indexPath}.corrupt`);
+      throw new Error(
+        `TemporalEmbeddingMemory: corrupt index quarantined as ${indexPath}.corrupt — ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   private async persistIndex(): Promise<void> {

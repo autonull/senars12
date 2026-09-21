@@ -110,7 +110,19 @@ export abstract class BaseConnection implements Connection {
     const origin = message.origin;
     const prev = this.queues.get(origin) ?? Promise.resolve();
     const handlers = this.messageHandlers.slice();
-    const next = prev.then(() => Promise.allSettled(handlers.map((h) => h(message))));
+    const next = prev.then(async () => {
+      const results = await Promise.allSettled(handlers.map((h) => h(message)));
+      // D10: settled rejections must never vanish silently — log + count.
+      for (const r of results) {
+        if (r.status === 'rejected') {
+          this.errorCount++;
+          this.logger.error(
+            `Message handler error for ${this.id}`,
+            r.reason instanceof Error ? r.reason : new Error(String(r.reason))
+          );
+        }
+      }
+    });
     this.queues.set(origin, next);
     next
       .catch((err) => this.logger.error(`Message handler error for ${this.id}`, err as Error))

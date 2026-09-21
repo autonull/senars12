@@ -151,10 +151,11 @@ export async function createAgentFromEnv(
           episodic: episodicMemory,
           lm: lmService,
           embeddings: createEmbeddingGenerator(),
-          promote: (content, provenance) => {
+          promote: async (content, provenance) => {
             logger.info(`Memory promoted with provenance: ${JSON.stringify(provenance)}`);
             const safeContent = content.replace(/["\\]/g, ' ').trim();
-            return void nar.believe(`(consolidated_memory --> "${safeContent}").`);
+            // D7: await — consolidation must report only beliefs that landed.
+            await nar.believe(`(consolidated_memory --> "${safeContent}").`);
           },
         },
         options

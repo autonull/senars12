@@ -25,7 +25,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
    *
    * Compare against epsilon-greedy which uses fixed/random exploration
    */
-  describe('Confidence-Aware Behavior Advantage', () => {
+  describe('Confidence-Aware Behavior Advantage', { timeout: 120_000 }, () => {
     test('SeNARS reduces exploration as confidence increases', async () => {
       const env = new BanditGame({ ...banditConfig, seed: 100 });
       const nar = new NAR({

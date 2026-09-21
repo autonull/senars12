@@ -21,6 +21,10 @@ export class EpisodicMemory implements UtilEpisodicMemory {
   };
   private currentFile: string | null = null;
   private currentEntries = 0;
+  private rolloverIndex = 0;
+  private currentDay: string | null = null;
+  /** D8: episodes dropped only if a rollover write itself fails. */
+  static droppedTotal = 0;
 
   constructor(
     config: Partial<{
@@ -71,6 +75,8 @@ export class EpisodicMemory implements UtilEpisodicMemory {
   async close(): Promise<void> {
     this.currentFile = null;
     this.currentEntries = 0;
+    this.rolloverIndex = 0;
+    this.currentDay = null;
   }
 
   // Internal methods (not part of the public interface)
@@ -131,7 +137,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
       for (const file of files) {
         if (!file.endsWith('.jsonl')) continue;
 
-        const dateMatch = file.match(/(\d{4}-\d{2}-\d{2})\.jsonl/);
+        const dateMatch = file.match(/(\d{4}-\d{2}-\d{2})(?:-\d+)?\.jsonl/);
         if (!dateMatch) continue;
 
         const dateStr = dateMatch[1];
@@ -154,6 +160,8 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     }
     this.currentFile = null;
     this.currentEntries = 0;
+    this.rolloverIndex = 0;
+    this.currentDay = null;
   }
 
   async recallRecent(limit = 5): Promise<Episode[]> {
@@ -171,8 +179,15 @@ export class EpisodicMemory implements UtilEpisodicMemory {
   }
 
   private async appendToCurrentFile(line: string): Promise<void> {
-    const today = new Date().toISOString().split('T')[0];
-    const targetFile = join(this.config.basePath, `${today}.jsonl`);
+    const today = new Date().toISOString().split('T')[0] as string;
+    if (today !== this.currentDay) {
+      this.currentDay = today;
+      this.rolloverIndex = 0;
+    }
+    // D8: at the per-file cap, roll over to `<date>-<n>.jsonl` instead of
+    // silently dropping the episode.
+    const fileName = (n: number) => (n === 0 ? `${today}.jsonl` : `${today}-${n}.jsonl`);
+    const targetFile = join(this.config.basePath, fileName(this.rolloverIndex));
 
     if (this.currentFile !== targetFile) {
       this.currentFile = targetFile;
@@ -188,10 +203,20 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     }
 
     if (this.currentEntries >= this.config.maxEntriesPerFile) {
-      return;
+      this.rolloverIndex++;
+      this.currentFile = null;
+      console.warn(
+        `[episodic] cap ${this.config.maxEntriesPerFile} reached for ${fileName(this.rolloverIndex - 1)}; rolling over`
+      );
+      return this.appendToCurrentFile(line);
     }
 
-    await fs.appendFile(targetFile, line + '\n');
-    this.currentEntries++;
+    try {
+      await fs.appendFile(targetFile, line + '\n');
+      this.currentEntries++;
+    } catch (error) {
+      EpisodicMemory.droppedTotal++;
+      throw error;
+    }
   }
 }
