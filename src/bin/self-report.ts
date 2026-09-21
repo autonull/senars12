@@ -6,7 +6,7 @@
  *        pnpm exec tsx src/bin/self-report.ts
  */
 
-import { SeNARSFactory } from '@senars/nar';
+import { NARBuilder } from '@senars/nar/agent/builder';
 import { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
 import { initializeMetaReasoning, registerMetaRules } from '@senars/nar/rules';
@@ -47,16 +47,18 @@ async function main() {
   const registry = createSeNARSRegistry();
   const lmService = createLMService();
 
-  const nar = SeNARSFactory.createDefault({
-    providerRegistry: registry,
-    lmService,
-    enableSelf: true,
-    enableRLFP: true,
-    enableTools: true,
-    enableLMRules: true,
-    maxConcepts: 1000,
-    persistState: false,
-  });
+  const nar = (
+    await new NARBuilder()
+      .withLM(lmService)
+      .withCapabilities({ self: { enabled: true }, rlfp: { enabled: true }, lmRules: { enabled: true } })
+      .withNarConfig({
+        providerRegistry: registry,
+        enableTools: true,
+        maxConcepts: 1000,
+        persistState: false,
+      })
+      .build()
+  ).nar;
 
   await initializeSelfConcept(nar);
   await initializeMetaReasoning(nar);

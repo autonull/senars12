@@ -19,6 +19,8 @@ export interface NARProfileSpec {
     rlfp?: boolean;
   };
   systemOneParams?: Partial<SystemOneConfig>;
+  /** P7: bundled sandboxed tier-0 head (zero-import WASM, digest-pinned). */
+  deviceHead?: { wasmPath: string; modelDigest: string; dimension: number };
 }
 
 export const NAR_PROFILES: Record<string, NARProfileSpec> = {

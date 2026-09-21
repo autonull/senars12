@@ -3,7 +3,8 @@
  */
 
 import { createInterface } from 'readline';
-import { containsSubterm, SeNARSFactory, termParser } from '../../nar/src';
+import { containsSubterm, createLMService, termParser, type NAR } from '../../nar/src';
+import { NARBuilder } from '../../nar/src/agent/builder.js';
 import { ingressQueries } from '../../nar/src/lm/system-one/head-specs.js';
 import { createLogger } from '../../nar/src/logger';
 import { errMsg } from '../../nar/src/utils';
@@ -12,7 +13,7 @@ import { DEFAULT_NAR_CONFIG } from '../config';
 const logger = createLogger({ scope: 'cli:narsese' });
 
 /** I3/X11: full 6-head judgment distribution for arbitrary text. */
-async function judge(nar: ReturnType<typeof SeNARSFactory.createDefault>, text: string): Promise<string> {
+async function judge(nar: NAR, text: string): Promise<string> {
   const cache = nar.getSystemOneEmbeddingCache();
   const manifold = nar.getSystemOneManifold();
   if (!cache || !manifold) return 'System One is not enabled — :judge requires a live manifold.';
@@ -34,7 +35,7 @@ async function judge(nar: ReturnType<typeof SeNARSFactory.createDefault>, text: 
 }
 
 async function main() {
-  const nar = SeNARSFactory.createDefault(DEFAULT_NAR_CONFIG);
+  const nar = (await new NARBuilder().withLM(createLMService()).withNarConfig(DEFAULT_NAR_CONFIG).build()).nar;
 
   logger.info(`SeNARS Narsese REPL mode started.`);
   logger.info(

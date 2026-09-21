@@ -77,6 +77,10 @@ const TEST_CONFIG: CoreConfig = {
   maxDerivationDepth: 20,
 };
 
+/**
+ * @deprecated TODO19 F1: `NARBuilder` (`nar/src/agent/builder.ts`) is the single
+ * assembly path. Retained only for tests/legacy call sites pending migration.
+ */
 export class SeNARSFactory {
   static createDefault(options: SeNARSOptions = {}): NAR {
     const registry = options.providerRegistry ?? createSeNARSRegistry();

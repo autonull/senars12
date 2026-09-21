@@ -6,6 +6,7 @@ import { wrapReflex, vetoAwareReflex, type AdapterReflex } from '../../nar/src/r
 import type { ActionProposal, LearningEvent, Reflex } from '../../nar/src/reflex/Reflex.js';
 import { JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
 import { mcReturns, recordMcReturnLabels } from '../../nar/src/lm/system-one/mc-return.js';
+import { actionFeatures, bakeOffSharedHead, type TrainingRow } from '../../nar/src/lm/system-one/train.js';
 import { induceEpisodeSchemas } from '../../nar/src/focus/schema-induction.js';
 import { SchemaStore } from '../../nar/src/focus/schema-store.js';
 
@@ -77,12 +78,90 @@ describe('Bench 45 — Learning Closure', () => {
     expect(mcReturns(ticks)).toEqual(returns);
   });
 
-  it('L3 — shared-vs-per-game decision is data-driven (per-game kept when shared loses)', () => {
-    const perGame = { conversation: 0.8, toolUse: 0.3 };
-    const shared = 0.5;
-    // policy: adopt the shared head only if it does not lose on any held-out domain
-    const adoptShared = Object.values(perGame).every((v) => shared >= v);
-    expect(adoptShared).toBe(false); // honest outcome: per-game heads stay the default
+  it('L3 — bake-off: shared game-featured head transfers when per-game data is scarce', () => {
+    const dim = 16;
+    const lcg = (seed: number): (() => number) => {
+      let s = seed >>> 0;
+      return () => {
+        s = (s + 0x6d2b79f5) >>> 0;
+        s = Math.imul(s ^ (s >>> 15), 1 | s);
+        return ((s ^ (s >>> 14)) >>> 0) / 4294967296;
+      };
+    };
+    const state = (seed: number): Float32Array => {
+      const e = new Float32Array(dim);
+      const r = lcg(seed);
+      for (let i = 0; i < dim; i++) e[i] = r() * 2 - 1;
+      return e;
+    };
+    // Shared action preference (transferable across games) + a modest game offset.
+    const actionPref: Record<string, number> = { cycle: 0.35, revise: 0.1, rest: -0.2, ask_lm: 0.25 };
+    const gameOffset: Record<string, number> = { conversation: 0.05, 'tool-use': -0.05, research: 0 };
+    const rows: TrainingRow[] = [];
+    let n = 0;
+    for (const game of Object.keys(gameOffset)) {
+      for (let i = 0; i < 14; i++) {
+        const action = Object.keys(actionPref)[n++ % 4]!;
+        const h = actionFeatures(action, dim);
+        const e = state(n * 7919);
+        let signal = 0;
+        for (let j = 0; j < dim; j++) signal += e[j]! * h[j]!;
+        rows.push({ embedding: e, action, game, target: Math.min(1, Math.max(0, 0.5 + signal * 0.3 + actionPref[action]! + gameOffset[game]!)) });
+      }
+    }
+    const meta = { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' };
+    const bakeOff = bakeOffSharedHead(rows, meta, { seed: 42, holdoutFraction: 0.25 });
+    expect(Object.keys(bakeOff.scores).sort()).toEqual(['conversation', 'research', 'tool-use']);
+    for (const [game, s] of Object.entries(bakeOff.scores)) {
+      expect(s.shared).toBeGreaterThanOrEqual(0);
+      expect(s.perGame).toBeGreaterThanOrEqual(0);
+      expect(bakeOff.perGame[game]).toBeDefined();
+    }
+    // Verdict is derived from the recorded scores, never asserted a priori.
+    const expectVerdict = Object.values(bakeOff.scores).every((s) => s.shared <= s.perGame) ? 'shared' : 'per-game';
+    expect(bakeOff.verdict).toBe(expectVerdict);
+  });
+
+  it('L3 — bake-off: conflicting game×state structure keeps per-game heads (honest loss)', () => {
+    const dim = 16;
+    const lcg = (seed: number): (() => number) => {
+      let s = seed >>> 0;
+      return () => {
+        s = (s + 0x6d2b79f5) >>> 0;
+        s = Math.imul(s ^ (s >>> 15), 1 | s);
+        return ((s ^ (s >>> 14)) >>> 0) / 4294967296;
+      };
+    };
+    const rows: TrainingRow[] = [];
+    let n = 0;
+    for (const game of ['conversation', 'tool-use']) {
+      // Target flips sign per game on the SAME state×action signal — the shared
+      // head's additive game block cannot represent state×game interactions.
+      const sign = game === 'conversation' ? 1 : -1;
+      for (let i = 0; i < 40; i++) {
+        const e = new Float32Array(dim);
+        const r = lcg(n * 104729);
+        for (let j = 0; j < dim; j++) e[j] = r() * 2 - 1;
+        n++;
+        const action = ['cycle', 'revise', 'rest', 'ask_lm'][i % 4]!;
+        const h = actionFeatures(action, dim);
+        let signal = 0;
+        for (let j = 0; j < dim; j++) signal += e[j]! * h[j]!;
+        rows.push({ embedding: e, action, game, target: Math.min(1, Math.max(0, 0.5 + sign * signal * 0.6)) });
+      }
+    }
+    const bakeOff = bakeOffSharedHead(rows, { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' }, { seed: 7, holdoutFraction: 0.25 });
+    expect(bakeOff.verdict).toBe('per-game');
+  });
+
+  it('L3 — bake-off rejects rows without a game tag and single-game pools', () => {
+    const e = new Float32Array(4);
+    expect(() => bakeOffSharedHead([{ embedding: e, action: 'a', target: 0.5 }], { headId: 'r', rubric: 'r', axis: 'x' })).toThrow();
+    const tagged = [
+      { embedding: e, action: 'a', target: 0.5, game: 'g1' },
+      { embedding: e, action: 'b', target: 0.4, game: 'g1' },
+    ];
+    expect(() => bakeOffSharedHead(tagged, { headId: 'r', rubric: 'r', axis: 'x' })).toThrow(/≥2 games/);
   });
 
   it('L4 — SchemaStore: second run starts with the first run schema count and improves', () => {

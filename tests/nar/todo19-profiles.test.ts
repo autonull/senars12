@@ -2,11 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { runNalAB } from '../../nar/src/focus/nal-ab.js';
 import { createArcadeRegistry, registerReasoningGames } from '../../nar/src/game/registry.js';
-import { NARBuilder, resolveProfile } from '../../nar/src/agent/builder.js';
+import { NARBuilder, BuilderError, resolveProfile } from '../../nar/src/agent/builder.js';
 import { createParameterTable, ParameterScopeError } from '../../nar/src/config/parameter-table.js';
 import type { Game } from '../../nar/src/game/Game.js';
 import type { Reflex, ActionProposal, LearningEvent } from '../../nar/src/reflex/Reflex.js';
 import { createGridWorldGame } from '../../nar/src/game/GridWorldGame.js';
+import { trainHead } from '../../nar/src/lm/system-one/train.js';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 /**
  * Bench 46 — Domain Deployment (TODO19 Phase D)
@@ -27,6 +31,36 @@ describe('Bench 46 — Domain Deployment', () => {
     expect(wired.describe().subsystems).not.toContain('lm');
     expect(wired.describe().subsystems).not.toContain('systemOne');
     await wired.agent.stop();
+  });
+
+  it('P7 — device head: sandboxed WASM bundle loads through the builder, digest-pinned', async () => {
+    const dim = 8;
+    const rows = Array.from({ length: 8 }, (_, i) => {
+      const embedding = new Float32Array(dim).map((_, j) => Math.sin(i + j));
+      return { embedding, action: 'cycle', target: i % 2 === 0 ? 0.9 : 0.1 };
+    });
+    const model = trainHead(rows, { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' }, { actionFeatureDim: 0, seed: 3 });
+    const dir = mkdtempSync(join(tmpdir(), 'device-head-'));
+    const { writeHeadBundle, loadHeadBundle } = await import('../../nar/src/lm/system-one/wasi-head-bundle.js');
+    const { wasmPath, modelDigest } = await writeHeadBundle(dir, { weights: model.weights, bias: model.bias });
+    const e = new Float32Array(dim).map((_, j) => Math.sin(2 + j));
+
+    const wired = await NARBuilder.fromProfile('device').withDeviceHead({ wasmPath, modelDigest, dimension: dim }).build();
+    expect(wired.describe().subsystems).toContain('deviceHead');
+    expect(wired.describe().subsystems).not.toContain('lm');
+    const head = await loadHeadBundle({ wasmPath, modelDigest, dimension: dim });    await expect(wired.deviceHead!.evaluate(e)).resolves.toBeCloseTo(await head.evaluate(e), 5);
+    await wired.agent.stop();
+
+    const mismatch = NARBuilder.fromProfile('device').withDeviceHead({
+      wasmPath,
+      modelDigest: 'sha256:' + '0'.repeat(64),
+      dimension: dim,
+    });
+    await expect(mismatch.build()).rejects.toBeInstanceOf(BuilderError);
+    // Dimension is bound at call time — a wrong-dimension embedding fails closed.
+    const wrongDim = await NARBuilder.fromProfile('device').withDeviceHead({ wasmPath, modelDigest, dimension: dim + 1 }).build();
+    await expect(wrongDim.deviceHead!.evaluate(e)).rejects.toThrow(/expects 9 inputs/);
+    await wrongDim.agent.stop();
   });
 
   it('two-domain one-process smoke: two profile-driven agents with isolated gates', async () => {

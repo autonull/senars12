@@ -107,8 +107,8 @@
 **Phase 0:** F1 NARBuilder · F2 gate registry · F3 profiles · F4 CapabilitySurface · F5 ParameterTable · F6 ReflexAdapter → [x] Benches 41, 42 ✅ (commit 69cf414)
 **Phase A:** C1 registries · C2 sensors · C3 actions · C4 rewards · C5 MetaGame collapse → [x] Bench 43 ✅ (`nar/src/cognition/`)
 **Phase B:** R1 specs · R2 tiers · R3 ReasoningMetaGame · R4 falsification set → [x] Bench 44 ✅ (R4.7 covered by L4)
-**Phase C:** L1 veto demotion · L2 MC-return LabelSource · L3 cross-game head · L4 SchemaStore → [x] Bench 45 ✅ (L3 kept per-game honestly — shared-head bake-off infrastructure deferred)
-**Phase D:** P1 NAL A/B ✅ · P2 SDE verify cascade + consensus fan-out budget knob ✅ (`nar/src/lm/system-one/verify.ts`) · P3 deferred · P4 arcade replay HTML report ✅ (`scripts/arcade-replay.ts`, `pnpm arcade:replay`) · P5 external-env example + builder third-profile smoke ✅ (`examples/external-env.ts`) · P6 fast/slow lanes ✅ · P7 deferred → [x] Bench 46 ✅
+**Phase C:** L1 veto demotion · L2 MC-return LabelSource · L3 cross-game head · L4 SchemaStore → [x] Bench 45 ✅ (L3 real bake-off landed — see session 3 notes)
+**Phase D:** P1 NAL A/B ✅ · P2 SDE verify cascade + consensus fan-out budget knob ✅ (`nar/src/lm/system-one/verify.ts`) · P3 landed (`nar/src/lm/system-one/cascade-reflex.ts`, wired at `scripts/arcade.ts:155`) · P4 arcade replay HTML report ✅ (`scripts/arcade-replay.ts`, `pnpm arcade:replay`) · P5 external-env example + builder third-profile smoke ✅ (`examples/external-env.ts`) · P6 fast/slow lanes ✅ · P7 landed (`withDeviceHead` builder step — see session 3 notes) → [x] Bench 46 ✅
 
 ### Progress Notes (2026-09-21 — implementation session)
 
@@ -131,10 +131,11 @@
   per-game heads stay the default unless a full held-out bake-off shows the shared head winning. Wiring the
   real bake-off (train `reflex_value` with a `game` feature across registry games) is the main remaining lift.
 - **Remaining work:**
-  - **L3 bake-off**: implement shared `reflex_value` (with `game` feature) training + held-out comparison.
-  - **P3**: Tetris `PlacementCascadeReflex` into the lm arm (P2 landed separately — see below).
-  - **P7**: WASI device head (gated behind the `device` profile flag).
-  - **SeNARSFactory retirement**: migrate remaining call sites to NARBuilder, then delete.
+  - ~~**L3 bake-off**~~ → **landed** (session 3, below).
+  - ~~**P3**~~ → already landed in `cascade-reflex.ts` + `scripts/arcade.ts` (session 3 audit).
+  - ~~**P7**~~ → **landed** (session 3, below).
+  - **SeNARSFactory deletion**: production call sites migrated to NARBuilder (session 3); the class
+    remains `@deprecated` for ~20 test files still importing it — migrate tests, then delete.
 - **Progress (second session, 2026-09-21):**
   - **P2 landed** as `nar/src/lm/system-one/verify.ts`: `verifyCascade` (SDE-style — stage-1
     `truthProbability` routes through `ConfidenceRouter` bands; stage-2 evidential verification only on
@@ -157,6 +158,40 @@
   `TabularQReflex` (epsilon-shuffle exploration + visit-count confidence) escapes — use it for cold-start
   examples. Also: `GameFocus` executes actions as strings; `Game.step` implementations typed for numbers
   must `Number(action)` the argument.
+- **Progress (third session, 2026-09-21):**
+  - **L3 landed for real** as `bakeOffSharedHead` in `nar/src/lm/system-one/train.ts`:
+    `TrainingRow.game?` + `gameFeatureDim` option (dense hashed game block appended after the
+    Hadamard action block, seed `0x85ebca6b`); `TrainedLinearHead.score(embedding, action, game?)`
+    and `evaluate` parse `game (\S+)` from the instruction. The bake-off splits each game's rows
+    deterministically (mulberry seed), trains shared (game-featured, pooled) vs per-game
+    (gameFeatureDim 0) arms, scores both on identical per-game holdouts, and adopts the shared head
+    only if it does not lose on any domain (`verdict: 'shared' | 'per-game'`). Bench 45's
+    data-policy placeholder replaced with three real tests: transfer regime (scarce per-game data ⇒
+    shared viable), honest-loss regime (game×state *interaction* — the additive game block cannot
+    represent it ⇒ per-game kept), and input validation. Naming: `SharedHeadBakeOff{Options,Result}`
+    — `BakeOffResult` was already taken by distill's head-promotion bake-off.
+  - **P7 landed** as `NARBuilder.withDeviceHead({ wasmPath, modelDigest, dimension })` +
+    `NARProfileSpec.deviceHead` data: the tier-0 head is the existing zero-import WASM bundle
+    (`wasi-head-bundle.ts`, TODO17 D5/X27), loaded at `build()` through the sandbox posture
+    (SHA256-pinned, fail-closed `BuilderError` on digest mismatch) and exposed as
+    `WiredNAR.deviceHead`. Dimension is bound at evaluate time (wrong-dim ⇒ throw), not at load.
+    Benched in Bench 46 (parity with direct `loadHeadBundle`, subsystem presence, digest-mismatch
+    rejection, dimension fail-closed). The `device` profile itself stays headless by default —
+    bundles are offline artifacts; profiles declare them as data when present.
+  - **SeNARSFactory call sites migrated** (`src/bin/status.ts`, `src/bin/self-report.ts`,
+    `src/cli/narsese-repl.ts` → `NARBuilder.withLM(...).withNarConfig(...)`); factory marked
+    `@deprecated` for tests/legacy. Note: builder build() also runs `createAgent` — fine for these
+    CLIs, but test sites needing a bare `new NAR(...)` can keep the factory until deletion.
+  - **P3 audit**: already implemented (`cascade-reflex.ts` `PlacementCascadeReflex` + stage-2
+    top-K fan-out, consumed at `scripts/arcade.ts:155`, benched in `todo17-games.test.ts`) — the
+    "deferred" checklist note was stale; nothing to build.
+  - Fixed a pre-existing typecheck error in `todo19-reasoning.test.ts` (`registry.create` returns
+    `Game`; the ReasoningGame assertion needed a cast).
+- **Gotchas (session 3):** don't name new exports `BakeOffResult`/`BakeOffOptions` in
+  `system-one/` — distill.ts already owns them; biome rejects assignment-in-expression (write LCGs
+  as statements); `wasi-head-bundle.js` imports failed as a *static* vitest import from a test that
+  also imports `train.js` (circular resolution) — the dynamic `await import(...)` pattern used by
+  `todo16c-train.test.ts` is the reliable one.
 - **Gotchas discovered:**
   - Narsese terms reject hyphens — rule atoms must use underscores (`nal_ab`, not `nal-ab`).
   - `Bag.ts` task sampling uses unseeded `Math.random`; with `isolate: false` the module-load order

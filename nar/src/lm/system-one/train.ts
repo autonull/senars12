@@ -32,6 +32,8 @@ export interface TrainingRow {
   embedding: Float32Array;
   action: string;
   target: number;
+  /** Registry game the row was played in — feeds the shared-head `game` feature (L3). */
+  game?: string;
 }
 
 export interface LoadTrainingDataOptions {
@@ -95,6 +97,8 @@ export async function loadTrainingData(options: LoadTrainingDataOptions): Promis
 export interface TrainingOptions {
   kind?: 'linear' | 'logistic';
   actionFeatureDim?: number;
+  /** Dense hashed `game` block appended to features (0 = per-game head; >0 = shared head). */
+  gameFeatureDim?: number;
   epochs?: number;
   lr?: number;
   l2?: number;
@@ -110,6 +114,7 @@ export interface TrainedHeadModel {
   kind: 'linear' | 'logistic';
   embeddingDim: number;
   actionFeatureDim: number;
+  gameFeatureDim: number;
   weights: Float32Array;
   bias: number;
   /** Standardization stats (features are z-scored before the linear pass). */
@@ -174,16 +179,26 @@ export function solveLinearSystem(A: number[][], b: number[]): number[] {
   return M.map((row, i) => (Math.abs(row[i]!) < 1e-12 ? 0 : row[n]! / row[i]!));
 }
 
-function buildFeatures(row: TrainingRow, actionFeatureDim: number): Float32Array {
-  if (actionFeatureDim === 0) return row.embedding;
-  // Hadamard conditioning: e ⊙ h(action) spans per-(state, action) directions,
-  // so state-dependent action preferences are representable (an appended action
-  // block only adds a shared per-action offset — insufficient for value heads).
-  const h = actionFeatures(row.action, row.embedding.length);
-  const features = new Float32Array(row.embedding.length);
-  for (let i = 0; i < features.length; i++) features[i] = row.embedding[i]! * h[i]!;
+function buildFeatures(row: TrainingRow, actionFeatureDim: number, gameFeatureDim = 0): Float32Array {
+  const dim = row.embedding.length + gameFeatureDim;
+  const features = new Float32Array(dim);
+  if (actionFeatureDim === 0) features.set(row.embedding);
+  else {
+    // Hadamard conditioning: e ⊙ h(action) spans per-(state, action) directions,
+    // so state-dependent action preferences are representable (an appended action
+    // block only adds a shared per-action offset — insufficient for value heads).
+    const h = actionFeatures(row.action, row.embedding.length);
+    for (let i = 0; i < row.embedding.length; i++) features[i] = row.embedding[i]! * h[i]!;
+  }
+  if (gameFeatureDim > 0 && row.game) {
+    const g = actionFeatures(row.game, gameFeatureDim, GAME_FEATURE_SEED);
+    features.set(g, row.embedding.length);
+  }
   return features;
 }
+
+/** Game-block seed distinct from the action seed so the two blocks never collide. */
+const GAME_FEATURE_SEED = 0x85ebca6b;
 
 export function trainHead(
   rows: readonly TrainingRow[],
@@ -192,6 +207,7 @@ export function trainHead(
 ): TrainedHeadModel {
   const kind = options.kind ?? 'linear';
   const actionFeatureDim = options.actionFeatureDim ?? 64;
+  const gameFeatureDim = options.gameFeatureDim ?? 0;
   const epochs = options.epochs ?? 600;
   const lr = options.lr ?? 0.05;
   const l2 = options.l2 ?? 1e-4;
@@ -201,8 +217,9 @@ export function trainHead(
 
   if (rows.length < 4) throw new Error(`Insufficient training rows: ${rows.length}`);
   const embeddingDim = rows[0]!.embedding.length;
-  // Hadamard conditioning keeps the feature space at the embedding dimension.
-  const dim = embeddingDim;
+  // Hadamard conditioning keeps the action-conditioned space at the embedding
+  // dimension; the game block (shared heads) appends gameFeatureDim hashed dims.
+  const dim = embeddingDim + gameFeatureDim;
 
   const shuffled = [...rows].sort(() => rng() - 0.5);
   const holdoutCount = Math.floor(shuffled.length * holdoutFraction);
@@ -213,11 +230,11 @@ export function trainHead(
   const mean = new Float32Array(dim);
   const std = new Float32Array(dim);
   for (const row of train) {
-    const f = buildFeatures(row, actionFeatureDim);
+    const f = buildFeatures(row, actionFeatureDim, gameFeatureDim);
     for (let i = 0; i < dim; i++) mean[i]! += f[i]! / train.length;
   }
   for (const row of train) {
-    const f = buildFeatures(row, actionFeatureDim);
+    const f = buildFeatures(row, actionFeatureDim, gameFeatureDim);
     for (let i = 0; i < dim; i++) std[i]! += (f[i]! - mean[i]!) ** 2 / train.length;
   }
   for (let i = 0; i < dim; i++) std[i] = Math.sqrt(std[i]!) || 1;
@@ -233,7 +250,7 @@ export function trainHead(
   const zhf = new Float32Array(dim);
 
   const predictZ = (row: TrainingRow, isHoldout: boolean): number => {
-    const f = buildFeatures(row, actionFeatureDim);
+    const f = buildFeatures(row, actionFeatureDim, gameFeatureDim);
     const buf = isHoldout ? zhf : zf;
     zscore(f, buf);
     let z = bias;
@@ -264,7 +281,7 @@ export function trainHead(
     const A: number[][] = Array.from({ length: d }, () => new Array<number>(d).fill(0));
     const b = new Array<number>(d).fill(0);
     for (const row of train) {
-      const f = buildFeatures(row, actionFeatureDim);
+      const f = buildFeatures(row, actionFeatureDim, gameFeatureDim);
       zscore(f, zf);
       for (let i = 0; i < d; i++) {
         const xi = i < dim ? zf[i]! : 1;
@@ -286,7 +303,7 @@ export function trainHead(
     grad.fill(0);
     let biasGrad = 0;
     for (const row of train) {
-      const f = buildFeatures(row, actionFeatureDim);
+      const f = buildFeatures(row, actionFeatureDim, gameFeatureDim);
       zscore(f, zf);
       const z = predictZ(row, false);
       const err = (kind === 'logistic' ? sigmoid(z) : z) - clamp01(row.target);
@@ -327,6 +344,7 @@ export function trainHead(
     kind,
     embeddingDim,
     actionFeatureDim,
+    gameFeatureDim,
     weights,
     bias,
     mean,
@@ -343,8 +361,71 @@ export function trainHead(
   };
 }
 
-function digestWeights(weights: Float32Array, bias: number): string {
-  const hash = createHash('sha256');
+// ─── L3 bake-off: shared (game-featured) vs per-game reflex_value heads ──────
+
+const brierOn = (score: (embedding: Float32Array, action: string, game?: string) => number, rows: readonly TrainingRow[]): number => {
+  if (rows.length === 0) return 0;
+  return rows.reduce((sum, row) => sum + (score(row.embedding, row.action, row.game) - clamp01(row.target)) ** 2, 0) / rows.length;
+};
+
+/** Inference head from a trained model — round-trips through the real artifact/scoring path. */
+const toHead = (model: TrainedHeadModel): TrainedLinearHead => TrainedLinearHead.fromBundle(exportArtifacts(model));
+
+export interface SharedHeadBakeOffOptions extends TrainingOptions {
+  /** Hashed game dims for the shared arm (per-game arm always trains at 0). */
+  gameFeatureDim?: number;
+}
+
+export interface SharedHeadBakeOffResult {
+  shared: TrainedHeadModel;
+  perGame: Record<string, TrainedHeadModel>;
+  /** Held-out Brier per domain on the *same* holdout rows for both arms. */
+  scores: Record<string, { shared: number; perGame: number }>;
+  /** Shared is adopted only if it does not lose on any domain (TODO19 L3 policy). */
+  verdict: 'shared' | 'per-game';
+}
+
+/**
+ * L3 (TODO19): train one shared `reflex_value` head across all registry games
+ * (with a dense hashed `game` feature block) against one head per game, and
+ * compare held-out Brier on identical per-game holdout splits. Deterministic.
+ */
+export function bakeOffSharedHead(rows: readonly TrainingRow[], meta: { headId: string; rubric: string; axis: string }, options: SharedHeadBakeOffOptions = {}): SharedHeadBakeOffResult {
+  const byGame = new Map<string, TrainingRow[]>();
+  for (const row of rows) {
+    if (!row.game) throw new Error('Bake-off rows must carry a `game` tag');
+    (byGame.get(row.game) ?? byGame.set(row.game, []).get(row.game)!).push(row);
+  }
+  if (byGame.size < 2) throw new Error(`Bake-off requires ≥2 games, got ${byGame.size}`);
+
+  const rng = mulberry(options.seed ?? 42);
+  const train = new Map<string, TrainingRow[]>();
+  const holdout = new Map<string, TrainingRow[]>();
+  for (const [game, gameRows] of byGame) {
+    const shuffled = [...gameRows].sort(() => rng() - 0.5);
+    const holdoutCount = Math.max(1, Math.floor(shuffled.length * (options.holdoutFraction ?? 0.2)));
+    holdout.set(game, shuffled.slice(0, holdoutCount));
+    train.set(game, shuffled.slice(holdoutCount));
+  }
+
+  const pooledTrain = [...train.values()].flat();
+  const shared = trainHead(pooledTrain, meta, { ...options, gameFeatureDim: options.gameFeatureDim ?? 8 });
+  const perGame: Record<string, TrainedHeadModel> = {};
+  const scores: SharedHeadBakeOffResult['scores'] = {};
+  let sharedWinsAll = true;
+  for (const [game, gameTrain] of train) {
+    perGame[game] = trainHead(gameTrain, meta, { ...options, gameFeatureDim: 0, seed: (options.seed ?? 42) ^ game.length });
+    const sharedHead = toHead(shared);
+    const gameHead = toHead(perGame[game]!);
+    const sharedBrier = brierOn((e, a) => sharedHead.score(e, a, game), holdout.get(game)!);
+    const perGameBrier = brierOn((e, a) => gameHead.score(e, a), holdout.get(game)!);
+    scores[game] = { shared: sharedBrier, perGame: perGameBrier };
+    if (sharedBrier > perGameBrier) sharedWinsAll = false;
+  }
+  return { shared, perGame, scores, verdict: sharedWinsAll ? 'shared' : 'per-game' };
+}
+
+function digestWeights(weights: Float32Array, bias: number): string {  const hash = createHash('sha256');
   hash.update(Buffer.from(weights.buffer, weights.byteOffset, weights.byteLength));
   const biasBuf = Buffer.alloc(4);
   biasBuf.writeFloatLE(bias);
@@ -367,6 +448,7 @@ export interface HeadArtifactConfig {
   kind: 'linear' | 'logistic';
   embeddingDim: number;
   actionFeatureDim: number;
+  gameFeatureDim: number;
   mean: number[];
   std: number[];
   encoder: { modelId: string; dimension: number };
@@ -390,6 +472,7 @@ export function exportArtifacts(model: TrainedHeadModel): HeadArtifactBundle {
     kind: model.kind,
     embeddingDim: model.embeddingDim,
     actionFeatureDim: model.actionFeatureDim,
+    gameFeatureDim: model.gameFeatureDim,
     mean: [...model.mean],
     std: [...model.std],
     encoder: model.encoder,
@@ -437,14 +520,19 @@ export class TrainedLinearHead implements JudgmentHead {
     return new TrainedLinearHead(bundle.config, bundle.weightsBytes, bundle.modelDigest);
   }
 
-  score(embedding: Float32Array, action: string): number {
-    const { mean, std } = this.#config;
+  score(embedding: Float32Array, action: string, game?: string): number {
+    const { mean, std, gameFeatureDim } = this.#config;
     const weights = this.#weights;
     const actionBlock = this.#config.actionFeatureDim > 0 ? actionFeatures(action, this.#config.embeddingDim) : null;
+    const gameBlock = gameFeatureDim > 0 && game ? actionFeatures(game, gameFeatureDim, GAME_FEATURE_SEED) : null;
     let z = this.#bias;
     for (let i = 0; i < this.#config.embeddingDim; i++) {
       const f = actionBlock ? embedding[i]! * actionBlock[i]! : embedding[i]!;
       z += weights[i]! * (f - mean[i]!) / std[i]!;
+    }
+    for (let i = 0; i < gameFeatureDim; i++) {
+      const j = this.#config.embeddingDim + i;
+      z += weights[j]! * ((gameBlock?.[i] ?? 0) - mean[j]!) / std[j]!;
     }
     const clamped = this.#config.kind === 'logistic' ? sigmoid(z) : clamp01(z);
     return clamped;
@@ -452,7 +540,8 @@ export class TrainedLinearHead implements JudgmentHead {
 
   async evaluate(embedding: Float32Array, query: JudgmentQuery) {
     const action = parseActionFromInstruction(query.instruction);
-    return { score: this.score(embedding, action), abstained: false };
+    const game = query.instruction.match(/game (\S+)/)?.[1];
+    return { score: this.score(embedding, action, game), abstained: false };
   }
 }
 

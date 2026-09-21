@@ -6,6 +6,8 @@ import type { GateRegistry } from '../kernel/GateRegistry.js';
 import { createGateRegistry } from '../kernel/GateRegistry.js';
 import type { CapabilityTier } from './profiles.js';
 import { resolveProfile } from './profiles.js';
+import type { LoadedHeadBundle } from '../lm/system-one/wasi-head-bundle.js';
+import { loadHeadBundle } from '../lm/system-one/wasi-head-bundle.js';
 export { NAR_PROFILES, resolveProfile } from './profiles.js';
 export type { CapabilityTier, NARProfileName, NARProfileSpec } from './profiles.js';
 
@@ -56,6 +58,8 @@ export interface WiredNAR {
   nar: NAR;
   gates: GateRegistry;
   lmService?: LMService;
+  /** P7: tier-0 sandboxed reflex-value head (zero-import WASM, digest-pinned). */
+  deviceHead?: LoadedHeadBundle;
   describe(): { steps: BuilderStepRecord[]; subsystems: string[] };
 }
 
@@ -80,6 +84,7 @@ export class NARBuilder {
   private promptBuilder?: PromptBuilder;
   private narConfigOverrides: Partial<NARConfig> = {};
   private trajectoryStorePath?: string;
+  private deviceHeadSpec?: { wasmPath: string; modelDigest: string; dimension: number };
   private steps: BuilderStepRecord[] = [];
 
   /** TODO19 F3: seed the builder from a named profile preset (profiles are data). */
@@ -92,6 +97,7 @@ export class NARBuilder {
       Object.entries(spec.capabilities ?? {}).map(([k, v]) => [k, { enabled: v }])
     ) as NARBuilder['capabilities'];
     if (Object.keys(caps).length > 0) b.withCapabilities(caps);
+    if (spec.deviceHead) b.withDeviceHead(spec.deviceHead);
     return b;
   }
 
@@ -190,6 +196,12 @@ export class NARBuilder {
     return this;
   }
 
+  /** P7: the tier-0 head, compiled to a zero-import WASM bundle and loaded sandboxed. */
+  withDeviceHead(spec: { wasmPath: string; modelDigest: string; dimension: number }): this {
+    this.deviceHeadSpec = spec;
+    return this.record('deviceHead', true, { wasmPath: spec.wasmPath });
+  }
+
   /** Validate the spec and assemble: NAR (kernel) + Agent (transport). */
   async build(): Promise<WiredNAR> {
     const systemOneEnabled = (this.systemOne?.tier ?? 0) > 0;
@@ -241,11 +253,21 @@ export class NARBuilder {
     const { createAgent } = await import('./index.js');
     const agent = (await createAgent(agentConfig)) as unknown as WiredNAR['agent'];
 
+    const deviceHead = this.deviceHeadSpec
+      ? await loadHeadBundle(this.deviceHeadSpec).catch((cause: unknown) => {
+          throw new BuilderError(
+            cause instanceof Error ? cause.message : 'sandboxed head load failed',
+            'deviceHead'
+          );
+        })
+      : undefined;
+
     return {
       agent,
       nar,
       gates,
       ...(this.lm ? { lmService: this.lm } : {}),
+      ...(deviceHead ? { deviceHead } : {}),
       describe: () => ({
         steps: [...this.steps],
         subsystems: [
@@ -257,6 +279,7 @@ export class NARBuilder {
           ...(this.cognitiveParams ? ['cognitiveParameters'] : []),
           ...(this.episodicMemory ? ['memory'] : []),
           ...(this.persistence ? ['persistence'] : []),
+          ...(this.deviceHeadSpec ? ['deviceHead'] : []),
         ],
       }),
     };

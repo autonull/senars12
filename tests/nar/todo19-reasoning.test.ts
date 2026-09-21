@@ -123,7 +123,7 @@ describe('Bench 44 — ReasoningGame Falsification', () => {
     const registry = registerReasoningGames(createArcadeRegistry());
     for (const name of ['reasoning:conversation', 'reasoning:tool-use', 'reasoning:research'])
       expect(registry.has(name)).toBe(true);
-    const game: ReasoningGame = registry.create('reasoning:research', 42);
+    const game = registry.create('reasoning:research', 42) as ReasoningGame;
     expect(game.id).toBe('reasoning:research');
     expect(game.legalActions(game.state()).length).toBeGreaterThan(0);
   });
