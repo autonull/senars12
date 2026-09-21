@@ -1,5 +1,11 @@
 // Global test utilities setup
 
+import { gateRegistry } from '../../nar/src/kernel/GateRegistry.js';
+
+// Per-file isolation: suites mutating the process-global gateRegistry
+// (autonomy modes / allowlists) must not leak state across test files.
+gateRegistry.reset();
+
 // Helper for registering benchmark results in tests
 const functionProfiles = {} as Record<
   string,

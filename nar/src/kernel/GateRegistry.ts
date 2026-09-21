@@ -103,3 +103,8 @@ export class GateRegistry {
 }
 
 export const gateRegistry = new GateRegistry();
+
+/** Resets the process-global registry singleton (test isolation: suites mutating autonomy/allowlists must not leak across files). */
+export function resetGateRegistry(): void {
+  gateRegistry.reset();
+}

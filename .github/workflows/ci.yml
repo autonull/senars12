@@ -27,7 +27,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm vitest run tests/nar/todo16-slo.test.ts
+      - run: pnpm test:load-sensitive
   systemone-benches:
     runs-on: ubuntu-latest
     steps:

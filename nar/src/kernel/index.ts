@@ -5,7 +5,7 @@ export {
   replayCognitiveState,
   replayTaskAdmissions,
 } from './EventLogPersistence.js';
-export { GateRegistry, gateRegistry } from './GateRegistry.js';
+export { GateRegistry, gateRegistry, resetGateRegistry } from './GateRegistry.js';
 export { KernelActionGate, NALVetoError } from './KernelActionGate.js';
 export { KernelBudgetGate } from './KernelBudgetGate.js';
 export { KernelPerceptionGate } from './KernelPerceptionGate.js';
