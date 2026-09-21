@@ -464,6 +464,8 @@ export class GameFocus {
       }
       const previousPerception = this.game.observe();
       const action = this.parseAction(t.decision.actionExecuted);
+      // Fallback-after-veto (nal arm): the trap was still vetoed — book it.
+      if (t.decision.vetoedBy) this.trackVeto(t);
       t.gameOutcome = this.game.step(action);
       const nextPerception = this.game.observe();
       this.syncScope();

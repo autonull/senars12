@@ -51,42 +51,42 @@ export class Negotiator {
       };
     }
 
-    for (const derivation of nalDerivations) {
-      if (derivation.action === bestReflex.action) {
-        // Veto if NAL derives this action leads to bad outcome (low frequency = trap)
-        if (derivation.truth.f < 0.3 && derivation.truth.c >= this.nalVetoThreshold) {
-          return {
-            action: bestReflex.action,
-            actionExecuted: null,
-            vetoedBy: `nal-${derivation.source}`,
-            confidence: derivation.truth.c,
-            source: 'nal',
-          };
-        }
-      }
-
-      if (this.isVetoingAction(derivation, bestReflex.action)) {
-        return {
-          action: bestReflex.action,
-          actionExecuted: null,
-          vetoedBy: `nal-${derivation.source}-veto`,
-          confidence: derivation.truth.c,
-          source: 'nal',
-        };
-      }
+    // Veto (Bench-15): NAL derives the best action leads to bad outcome (low
+    // frequency = trap). The veto blocks the trap action; if another legal
+    // proposal remains, the best one acts instead — the veto prevents the
+    // known trap without paralyzing the agent. Otherwise the tick yields.
+    const trap = nalDerivations.find((d) => this.isVetoingAction(d, bestReflex.action));
+    if (!trap) {
+      return {
+        action: bestReflex.action,
+        actionExecuted: bestReflex.action,
+        vetoedBy: null,
+        confidence: bestReflex.confidence,
+        source: 'reflex',
+      };
     }
-
+    const vetoedBy = `nal-${trap.source}`;
+    const fallback = reflexProposals
+      .filter((p) => !nalDerivations.some((d) => this.isVetoingAction(d, p.action)))
+      .reduce<ActionProposal | null>(
+        (best, p) => (!best || p.value * p.confidence > best.value * best.confidence ? p : best),
+        null
+      );
     return {
       action: bestReflex.action,
-      actionExecuted: bestReflex.action,
-      vetoedBy: null,
-      confidence: bestReflex.confidence,
-      source: 'reflex',
+      actionExecuted: fallback?.action ?? null,
+      vetoedBy,
+      confidence: fallback?.confidence ?? trap.truth.c,
+      source: 'nal',
     };
   }
 
   private isVetoingAction(derivation: NALDerivation, proposedAction: string): boolean {
-    return derivation.truth.f < 0.3 && derivation.truth.c >= this.nalVetoThreshold;
+    return (
+      derivation.action === proposedAction &&
+      derivation.truth.f < 0.3 &&
+      derivation.truth.c >= this.nalVetoThreshold
+    );
   }
 
   createLearningEvent(

@@ -9,6 +9,7 @@
  *   OPEN_REPLICA_ENDPOINT=... pnpm arcade -- --arms replica
  *   pnpm arcade -- --arms lm                 # real LM decisions (model-cached machines)
  *   pnpm arcade -- --arms lm --resume        # resume an interrupted tournament
+ *   pnpm arcade -- --arms nal                # NAL rules + kernel gates (cognitive mode)
  *                                            # (--session PATH, default .reports/arcade-session.json)
  */
 import { BrierHarness } from '../nar/src/eval/brier-harness.js';
@@ -41,7 +42,7 @@ import type { ActionProposal, Reflex } from '../nar/src/reflex/Reflex.js';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 
 type GameName = 'snake' | 'tetris' | '2048' | 'tictactoe' | 'gridworld' | 'bandit';
-type Arm = 'manifold' | 'lm' | 'replica' | 'heuristic' | 'random';
+type Arm = 'manifold' | 'lm' | 'replica' | 'heuristic' | 'random' | 'nal';
 
 const parseArgs = (): {
   games: GameName[];
@@ -76,10 +77,17 @@ const parseArgs = (): {
   };
 };
 
-/** E7: honest domain rules the Negotiator can veto against (per game). */
+/**
+ * E7: honest domain rules the Negotiator can veto against (per game). Only
+ * static traps are seeded — snake/2048/tetris/tictactoe traps are
+ * state-conditional (their legalActions already exclude illegal moves), so
+ * they run rule-free and grow their own via schema induction (G2) instead.
+ */
 const cognitiveRules: Partial<Record<GameName, Array<[string, string, { f: number; c: number }]>>> = {
   // GridWorld 'S..' starts on the top row: moving up (0) bumps the wall.
   gridworld: [['0', 'wall_bump', { f: 0.1, c: 0.95 }]],
+  // Bandit arm 0 is the known-worst arm (mean 0.2 vs 0.5/0.8): honest prior.
+  bandit: [['0', 'low_reward', { f: 0.1, c: 0.95 }]],
 };
 
 const makeGames: Record<GameName, (seed: number) => Game> = {
@@ -150,10 +158,19 @@ class RecordingReflex implements Reflex {
 
 /** Cognitive arm construction — fail-closed per arm: skip with a note, never substitute. */
 async function buildCognitiveArm(
-  arm: 'manifold' | 'lm' | 'replica',
+  arm: 'manifold' | 'lm' | 'replica' | 'nal',
   gameName: GameName,
   dataset?: unknown
 ): Promise<{ reflex: Reflex; manifold: unknown; cache: unknown } | { note: string }> {
+  // nal arm: NAL-rules + kernel gates over a plain epsilon-greedy reflex —
+  // the falsifiable question is whether the Negotiator's vetoes help, not
+  // whether the reflex is smart.
+  if (arm === 'nal')
+    return {
+      reflex: new EpsilonGreedyReflex('nal-incumbent', { numArms: 10, epsilon: 0.1 }),
+      manifold: undefined,
+      cache: undefined,
+    };
   const { createEmbeddingCache } = await import('../nar/src/lm/system-one/embedding-cache.js');
   const cache = createEmbeddingCache({});
   if (arm === 'manifold' || arm === 'replica') {
@@ -333,7 +350,11 @@ async function main(): Promise<void> {
         continue;
       }
 
-      // Cognitive arms: kernel-gated GameFocus play (A1 scheduler drive).
+      // Cognitive arms: kernel-gated GameFocus play (A1 scheduler drive). The
+      // nal arm forces cognitive mode regardless of --mode so it is always a
+      // comparable arm in the summary table; GameFocus's own G2 schema
+      // induction grows advisory rules from experience at episode end.
+      const armCognitive = cognitive || arm === 'nal';
       const built = await buildCognitiveArm(arm, gameName, dataset);
       if ('note' in built) {
         notes.push(`${gameName}: ${built.note}`);
@@ -341,18 +362,25 @@ async function main(): Promise<void> {
       }
       if (built.headLoaded) notes.push(`${arm}/${gameName}: distilled reflex_value head active`);
       const recording = new RecordingReflex(`${arm}-recording`, built.reflex);
+      let promotedCount = 0;
       for (let e = firstEpisode; e < episodes; e++) {
         const game = makeGames[gameName](seed + e);
-        const focus = new GameFocus({ focusId: `${arm}-${gameName}-${e}`, game, cognitive });
-        if (cognitive)
+        const focus = new GameFocus({
+          focusId: `${arm}-${gameName}-${e}`,
+          game,
+          cognitive: armCognitive,
+          schemaInduction: armCognitive,
+        });
+        if (armCognitive)
           for (const [action, consequence, truth] of cognitiveRules[gameName] ?? [])
             focus.seedRule(action, consequence, truth);
         focus.bindReflex(recording);
-        focus.setReflexPrefetchContext?.({
-          manifold: built.manifold as never,
-          embeddingCache: built.cache as never,
-          budget: BUDGET,
-        });
+        if (built.manifold)
+          focus.setReflexPrefetchContext?.({
+            manifold: built.manifold as never,
+            embeddingCache: built.cache as never,
+            budget: BUDGET,
+          });
         let steps = 0;
         while (!game.state().terminal && steps < 150) {
           recording.lastProposals = [];
@@ -389,7 +417,7 @@ async function main(): Promise<void> {
             console.log(`\n[${arm}/${gameName}] step ${steps} → ${top?.action ?? 'n/a'} (p=${top?.confidence?.toFixed(2) ?? '-'})`);
             console.log(renderGame(game));
           }
-          if (cognitive && panel) {
+          if (armCognitive && panel) {
             const d = panel.decision;
             console.log(
               `[panel] c${panel.cycle} proposals=[${panel.proposalActions.join(',')}] → ${d.action ?? '∅'} src=${d.source}${d.vetoedBy ? ` VETOED by ${d.vetoedBy}` : ''}${panel.handover ? ' HANDOVER' : ''} deriv=${panel.nalDerivations.length} w=${panel.focusWeight.toFixed(3)}`
@@ -404,7 +432,14 @@ async function main(): Promise<void> {
           notes.push(
             `${arm}/${gameName} ep${e}: lm decisions=${reflexStats.decisions} served=${reflexStats.served ?? 'n/a'} fallback-serving failures=${reflexStats.failures}`
           );
-        if (cognitive) {
+        if (armCognitive) {
+          const promoted = focus.getPromotedSchemas();
+          if (promoted.length > promotedCount) {
+            promotedCount = promoted.length;
+            notes.push(
+              `${arm}/${gameName} ep${e}: schema induction promoted ${promoted.map((s) => `${s.action}→${s.kind}`).join(',')}`
+            );
+          }
           const v = focus.getVetoStats();
           console.log(
             `[panel] episode ${e}: vetos=${v.totalVetos} rate=${v.vetoRate.toFixed(2)} justifications=${focus.getVetoJustifications().length}`
