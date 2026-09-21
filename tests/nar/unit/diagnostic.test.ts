@@ -204,14 +204,14 @@ describe('[Phase 1] Operation Operator Misuse', () => {
     expect(hasOperation).toBe(false);
   });
 
-  it('disabled operation rules return undefined', async () => {
-    const { NALExtendedRules, TermBuilder } = await import('../../../nar/src/index.js');
-    const { atom, inheritance } = TermBuilder;
-    expect(NALExtendedRules.operationExecution).toBeUndefined();
-    expect(NALExtendedRules.goalExecution).toBeUndefined();
-    expect(NALExtendedRules.strategyEffectiveness).toBeUndefined();
-    expect(NALExtendedRules.resourceAllocation).toBeUndefined();
-    expect(NALExtendedRules.utilityEstimation).toBeUndefined();
+  it('removed meta-rule stubs no longer exist in the export (TODO17b D18)', async () => {
+    const { NALExtendedRules } = await import('../../../nar/src/index.js');
+    const rules = NALExtendedRules as Record<string, unknown>;
+    expect(rules['operationExecution']).toBeUndefined();
+    expect(rules['goalExecution']).toBeUndefined();
+    expect(rules['strategyEffectiveness']).toBeUndefined();
+    expect(rules['resourceAllocation']).toBeUndefined();
+    expect(rules['utilityEstimation']).toBeUndefined();
   });
 });
 

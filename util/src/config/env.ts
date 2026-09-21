@@ -9,11 +9,6 @@ export const SENARS_ENV_MAP: Readonly<Record<string, string>> = {
   SENARS_LM_PROVIDER: 'capabilities.lm.provider',
   SENARS_LM_MODEL: 'capabilities.lm.model',
   SENARS_SENARS_ENABLED: 'capabilities.senars.enabled',
-  SENARS_REASONING_AUTO_TRIGGER: 'bot.reasoning.autoTrigger',
-  SENARS_REASONING_TRIGGER_THRESHOLD: 'bot.reasoning.triggerThreshold',
-  SENARS_STREAMING_ENABLED: 'bot.streaming.enabled',
-  SENARS_TUI_COLORS: 'bot.tui.colors',
-  SENARS_TUI_TYPING_INDICATOR: 'bot.tui.typingIndicator',
 } as const;
 
 export function parseEnvValue(value: string): unknown {

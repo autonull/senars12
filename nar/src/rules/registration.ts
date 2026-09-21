@@ -135,23 +135,11 @@ const NAL_RULES: RuleDef[] = [
     truth: 'deduction',
     priority: 0.85,
   }),
-  _rule('nal.compose', 'Composition rule', {
-    pattern: ['inheritance', 'inheritance'],
-    build: NALRules['compose'],
-    truth: 'deduction',
-    priority: 0.7,
-  }),
   _rule('nal.decompose', 'Decomposition rule', {
     pattern: ['conjunction', 'conjunction'],
     build: NALRules['decompose'],
     truth: 'deduction',
     priority: 0.8,
-  }),
-  _rule('nal.revision', 'Belief revision', {
-    pattern: ['inheritance', 'inheritance'],
-    build: NALRules['revision'],
-    truth: 'revision',
-    priority: 0.6,
   }),
   _rule('nal.analogy', 'Analogical reasoning', {
     pattern: ['inheritance', 'similarity'],
@@ -383,54 +371,6 @@ const NAL_EXTENDED_RULES: RuleDef[] = [
     build: NALExtendedRules['operationToPredictive'],
     truth: 'deduction',
     priority: 0.75,
-  }),
-  _rule('nal.operationExecution', 'Operation execution (meta)', {
-    pattern: ['operation', 'atom'],
-    build: NALExtendedRules['operationExecution'],
-    truth: 'deduction',
-    priority: 0.5,
-  }),
-  _rule('nal.goalExecution', 'Goal execution (meta)', {
-    pattern: ['operation', 'atom'],
-    build: NALExtendedRules['goalExecution'],
-    truth: 'deduction',
-    priority: 0.5,
-  }),
-  _rule('nal.strategyEffectiveness', 'Strategy effectiveness (meta)', {
-    pattern: ['inheritance', 'inheritance'],
-    build: NALExtendedRules['strategyEffectiveness'],
-    truth: 'deduction',
-    priority: 0.5,
-  }),
-  _rule('nal.resourceAllocation', 'Resource allocation (meta)', {
-    pattern: ['inheritance', 'inheritance'],
-    build: NALExtendedRules['resourceAllocation'],
-    truth: 'deduction',
-    priority: 0.5,
-  }),
-  _rule('nal.errorPatternDetection', 'Error pattern detection (meta)', {
-    pattern: ['inheritance', 'inheritance'],
-    build: NALExtendedRules['errorPatternDetection'],
-    truth: 'deduction',
-    priority: 0.5,
-  }),
-  _rule('nal.utilityEstimation', 'Utility estimation (meta)', {
-    pattern: ['inheritance', 'inheritance'],
-    build: NALExtendedRules['utilityEstimation'],
-    truth: 'deduction',
-    priority: 0.5,
-  }),
-  _rule('nal.metacognitiveRevision', 'Metacognitive revision (meta)', {
-    pattern: ['inheritance', 'inheritance'],
-    build: NALExtendedRules['metacognitiveRevision'],
-    truth: 'revision',
-    priority: 0.5,
-  }),
-  _rule('nal.selfModelConsistency', 'Self-model consistency (meta)', {
-    pattern: ['inheritance', 'inheritance'],
-    build: NALExtendedRules['selfModelConsistency'],
-    truth: 'deduction',
-    priority: 0.5,
   }),
 ];
 

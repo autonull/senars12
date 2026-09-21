@@ -19,7 +19,7 @@ export interface LlamaCppFetchOptions {
 }
 
 /** Placeholder model id; substituted with the server's loaded alias on first request. */
-const MODEL_PLACEHOLDER = 'local-model';
+export const MODEL_PLACEHOLDER = 'local-model';
 
 let resolvedModel: Promise<string> | undefined;
 

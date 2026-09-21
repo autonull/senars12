@@ -68,6 +68,7 @@ export function bindAgentToConnection(
         const result = await cmdRegistry.execute(name, args, {
           connection: conn,
           manager: undefined,
+          nar: (agent as { getNAR?: () => unknown }).getNAR?.(),
         });
         if (result === '__CLI_QUIT__') {
           await respond('Goodbye!');

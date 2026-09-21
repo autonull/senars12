@@ -7,14 +7,14 @@ describe('NAL8 Procedural Rules', () => {
   // DISABLED: BOT7 §1.1 — operationExecution produces ^ in inheritance predicates
   describe('operationExecution', () => {
     test('is disabled to prevent operation misuse', () => {
-      expect(NALExtendedRules.operationExecution).toBeUndefined();
+      expect((NALExtendedRules as Record<string, unknown>).operationExecution).toBeUndefined();
     });
   });
 
   // DISABLED: BOT7 §1.1 — goalExecution conflates goals with inheritance
   describe('goalExecution', () => {
     test('is disabled to prevent goal conflation', () => {
-      expect(NALExtendedRules.goalExecution).toBeUndefined();
+      expect((NALExtendedRules as Record<string, unknown>).goalExecution).toBeUndefined();
     });
   });
 

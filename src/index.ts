@@ -11,7 +11,7 @@ export type {
 export {
   ApiKeyManager,
   AuthManager,
-  authCommands,
+  createAuthCommands,
   BaseConnection,
   broadcastToSubscribers,
   CLIConnection,

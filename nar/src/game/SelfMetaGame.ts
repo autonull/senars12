@@ -4,6 +4,8 @@ import type { FocusBag } from '../focus/FocusBag.js';
 import type { GameFocus } from '../focus/GameFocus.js';
 import type { SelfRewardGate } from '../kernel/KernelRewardGate.js';
 import type { LearnerRegistry } from '../learning/domain-learners.js';
+import { ProposalRouter } from '../governance/pipeline.js';
+import { gateRegistry } from '../kernel/index.js';
 import type { SelfMetaGame } from './Game.js';
 import { MetaGame, type MetaGameConfig } from './MetaGame.js';
 
@@ -26,6 +28,8 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   private knobs: Map<string, number>;
   private knobConfigs: Map<string, KnobConfig>;
   private scheduler: { registry: LearnerRegistry; rewardGate: SelfRewardGate } | null = null;
+  /** D20 (TODO17b): the governance router that consumes self-improvement proposals. */
+  private readonly proposalRouter = new ProposalRouter();
 
   constructor(config: SelfMetaGameConfig) {
     super(config);
@@ -79,6 +83,19 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
     });
     if (!check.accepted) return;
     this.scheduler.registry.dispatch({ domain: 'self-scheduler', reward, focusId: report.focusId });
+    // D20 (TODO17b): route drained self-improvement proposals through the
+    // governance pipeline (RLFP domain split) instead of leaving them queued.
+    this.routeProposals();
+  }
+
+  /** Route queued proposals through ProposalRouter with real actuators. */
+  private routeProposals(): void {
+    for (const proposal of this.scheduler?.rewardGate.drain() ?? []) {
+      this.proposalRouter.route(proposal, gateRegistry.getActionGate().getAutonomyMode(), {
+        applyFocusWeight: (focusId, weight) => this.setFocusWeight(focusId, weight),
+        applyKnob: (knob, value) => this.setKnob(knob, value),
+      });
+    }
   }
 
   static schedulerReward(report: FocusStepReport): number {

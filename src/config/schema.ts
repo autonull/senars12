@@ -88,47 +88,9 @@ export const botProfileSchema = z.object({
   narrateTier: z.enum(['fast', 'quality', 'structured']).default(profileDefaults.narrateTier),
 });
 
-const reasoningDefaults = {
-  autoTrigger: true,
-  triggerThreshold: 0.5,
-  triggerCooldown: 3,
-  maxStepsPerTrigger: 5,
-  backgroundReasoning: true,
-  backgroundIntervalMs: 60_000,
-  lmDriven: true,
-};
-
-const streamingDefaults = {
-  enabled: true,
-  showReasoningSteps: true,
-  showToolCalls: true,
-};
-
 const conversationDefaults = {
   maxHistory: 20,
   summaryThreshold: 30,
-  maxArtifacts: 50,
-  pinnedBeliefLimit: 8,
-};
-
-const autonomyDefaults = {
-  incorporationLimit: 3,
-  incorporationWindowMs: 5 * 60 * 1000,
-};
-
-const policyDefaults = {
-  promptBudget: 2048,
-  recencyEpisodes: 20,
-  selfAnalysisEveryN: 10,
-  consolidationEveryN: 5,
-  consolidationDebounceMs: 2000,
-};
-
-const tuiDefaults = {
-  typingIndicator: true,
-  colors: true,
-  compactMode: false,
-  statusBar: true,
 };
 
 const lmRulesDefaults = {
@@ -239,8 +201,6 @@ export const connectionsSchema = z.object({
     .optional(),
 });
 
-const builtInDefaults = { builtIn: true };
-
 const senarsCapabilityDefaults = { enabled: true };
 
 const agentDefaults = {
@@ -273,17 +233,8 @@ const capabilitiesDefaults = {
 
 const botConfigDefaults = {
   skills: [],
-  reasoning: reasoningDefaults,
-  streaming: streamingDefaults,
   conversation: conversationDefaults,
-  directives: builtInDefaults,
-  nlParsers: builtInDefaults,
-  classifier: {},
   lmRules: lmRulesDefaults,
-  prompts: {},
-  tui: tuiDefaults,
-  autonomy: autonomyDefaults,
-  policy: policyDefaults,
 };
 
 export const botConfigSchema = z.object({
@@ -297,101 +248,18 @@ export const botConfigSchema = z.object({
       })
     )
     .default([]),
-  reasoning: z
-    .object({
-      autoTrigger: z.boolean().default(reasoningDefaults.autoTrigger),
-      triggerThreshold: z.number().min(0).max(1).default(reasoningDefaults.triggerThreshold),
-      triggerCooldown: z.number().int().min(0).default(reasoningDefaults.triggerCooldown),
-      maxStepsPerTrigger: z.number().int().positive().default(reasoningDefaults.maxStepsPerTrigger),
-      backgroundReasoning: z.boolean().default(reasoningDefaults.backgroundReasoning),
-      backgroundIntervalMs: z
-        .number()
-        .int()
-        .positive()
-        .default(reasoningDefaults.backgroundIntervalMs),
-      lmDriven: z.boolean().default(reasoningDefaults.lmDriven),
-    })
-    .default(reasoningDefaults),
-  streaming: z
-    .object({
-      enabled: z.boolean().default(streamingDefaults.enabled),
-      showReasoningSteps: z.boolean().default(streamingDefaults.showReasoningSteps),
-      showToolCalls: z.boolean().default(streamingDefaults.showToolCalls),
-    })
-    .default(streamingDefaults),
   conversation: z
     .object({
       maxHistory: z.number().int().positive().default(conversationDefaults.maxHistory),
       summaryThreshold: z.number().int().positive().default(conversationDefaults.summaryThreshold),
-      maxArtifacts: z.number().int().positive().default(conversationDefaults.maxArtifacts),
-      pinnedBeliefLimit: z
-        .number()
-        .int()
-        .positive()
-        .default(conversationDefaults.pinnedBeliefLimit),
     })
     .default(conversationDefaults),
-  directives: z
-    .object({ builtIn: z.boolean().default(builtInDefaults.builtIn) })
-    .default(builtInDefaults),
-  nlParsers: z
-    .object({ builtIn: z.boolean().default(builtInDefaults.builtIn) })
-    .default(builtInDefaults),
-  classifier: z
-    .object({
-      signals: z
-        .array(
-          z
-            .object({
-              type: z.string(),
-              pattern: z.string(),
-              intent: z.string(),
-              weight: z.number(),
-            })
-            .passthrough()
-        )
-        .optional(),
-      modeWeight: z.number().optional(),
-    })
-    .default({}),
   lmRules: z
     .object({
       enabled: z.boolean().default(lmRulesDefaults.enabled),
       rules: z.array(lmRuleSchema).default([]),
     })
     .default({ ...lmRulesDefaults, rules: [...lmRulesDefaults.rules] }),
-  prompts: z.object({}).default({}),
-  tui: z
-    .object({
-      typingIndicator: z.boolean().default(tuiDefaults.typingIndicator),
-      colors: z.boolean().default(tuiDefaults.colors),
-      compactMode: z.boolean().default(tuiDefaults.compactMode),
-      statusBar: z.boolean().default(tuiDefaults.statusBar),
-    })
-    .default(tuiDefaults),
-  autonomy: z
-    .object({
-      incorporationLimit: z.number().int().positive().default(autonomyDefaults.incorporationLimit),
-      incorporationWindowMs: z
-        .number()
-        .int()
-        .positive()
-        .default(autonomyDefaults.incorporationWindowMs),
-    })
-    .default(autonomyDefaults),
-  policy: z
-    .object({
-      promptBudget: z.number().int().positive().default(policyDefaults.promptBudget),
-      recencyEpisodes: z.number().int().positive().default(policyDefaults.recencyEpisodes),
-      selfAnalysisEveryN: z.number().int().positive().default(policyDefaults.selfAnalysisEveryN),
-      consolidationEveryN: z.number().int().positive().default(policyDefaults.consolidationEveryN),
-      consolidationDebounceMs: z
-        .number()
-        .int()
-        .positive()
-        .default(policyDefaults.consolidationDebounceMs),
-    })
-    .default(policyDefaults),
 });
 
 export const systemOneDefaults = {

@@ -14,6 +14,7 @@ import {
   CLIConnection,
   CommandRegistry,
   ConnectionManager,
+  createAuthCommands,
   createConnectionConfigsFromEnv,
   HTTPConnection,
   IRCConnection,
@@ -22,6 +23,16 @@ import {
 } from '@senars/io';
 import { resolveLMConfig } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
+import {
+  configCommands,
+  coreCommands,
+  episodesCommands,
+  lmCommands,
+  memoryCommands,
+  narCommands,
+  rlfpCommands,
+  selfCommands,
+} from '@senars/nar/commands';
 import { assertValidEnv } from '../utils/env-validate.js';
 import { readAuthConfig, readIRCConfig } from './lib/env-config.js';
 import { createAgentFromEnv, setupGracefulShutdown } from './lib/lifecycle.js';
@@ -45,6 +56,21 @@ async function main(): Promise<void> {
   }
 
   const commandRegistry = new CommandRegistry();
+  // D19 (TODO17b): the bot's /cmd routing is only real if the registry is
+  // populated — wire the nar command groups + honest auth command.
+  for (const cmd of [
+    ...coreCommands,
+    ...narCommands,
+    ...memoryCommands,
+    ...episodesCommands,
+    ...configCommands,
+    ...lmCommands,
+    ...rlfpCommands,
+    ...selfCommands,
+  ]) {
+    commandRegistry.register(cmd);
+  }
+  for (const cmd of createAuthCommands(auth)) commandRegistry.register(cmd);
 
   const cm = new ConnectionManager();
   cm.registerFactory({

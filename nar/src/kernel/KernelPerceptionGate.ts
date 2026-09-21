@@ -56,6 +56,13 @@ export class KernelPerceptionGate {
   private systemOneEmbeddingCache: EmbeddingCache | null = null;
   private systemOneBudget: ReasoningBudget | null = null;
   private systemOneProvisionalConfig: { cInitial: number; decayRate: number; maxTtlMs: number };
+  /** D23: optional DriveManager hook — ambiguity stimulates curiosity. */
+  private driveManager: { stimulate(driveId: string, amount: number): void } | null = null;
+
+  /** Wire the DriveManager so ambiguity-driven curiosity stimulation works. */
+  setDriveManager(dm: { stimulate(driveId: string, amount: number): void }): void {
+    this.driveManager = dm;
+  }
 
   constructor(config?: Partial<KernelPerceptionGateConfig>) {
     this.config = {
@@ -239,7 +246,9 @@ export class KernelPerceptionGate {
         const decision = AMBIGUITY_ROUTER.route(ambiguityResult);
         if (decision === 'abstain' || decision === 'act') {
           ambiguityFlag = true;
-          // TODO: Inject question task via DriveManager.stimulate('curiosity') when DriveManager is accessible
+          // D23 (TODO17b): ambiguity stimulates curiosity via the DriveManager
+          // hook (wired by the NAR at init) — closes the TODO16c A4 gap.
+          this.driveManager?.stimulate('curiosity', 1);
         }
       }
 

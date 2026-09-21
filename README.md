@@ -302,28 +302,19 @@ const projected = Truth.deduction(truth1, truth2); // Inference
 ### NAL Inference Rules
 
 <details>
-<summary><b>Complete NAL Rule Matrix (Core, Extended, Classical, Temporal, Meta-Cognitive)</b></summary>
-
-**Core NAL Rules:**
+<summary><b>Complete NAL Rule Matrix (registered rules — `nar/src/rules/registration.ts` is the source of truth)</b></summary>
 
 | Category | Rules |
 |----------|-------|
-| Core | `revision`, `choice`, `structural-syllogism` |
-| Logic | `deduction`, `induction`, `abduction`, `exemplification` |
-| Propositional | `negation-intro`, `negation-elim`, `conjunction-intro`, `disjunction-elim` |
-| Higher-Order | `higher-order-deduction`, `analogical` |
-| Comparison | `comparison`, `analogy` |
-
-**Extended Rules:**
-
-| Category | Rules |
-|----------|-------|
-| Classical | `modus-ponens`, `modus-tollens`, `hypothetical-syllogism`, `disjunctive-syllogism` |
-| Structural | `composition`, `decomposition`, `conversion` |
-| Temporal | `temporal-deduction`, `temporal-induction`, `sequence-to-implication` |
-| Procedural | `operation-execution`, `goal-achievement`, `procedure-composition` |
-| Meta-Cognitive | `error-pattern-detection`, `metacognitive-revision`, `resource-allocation`, `strategy-effectiveness`, `self-model-consistency`, `utility-estimation`, `goal-execution` |
-| Variable | `variable-substitution`, `variable-unification` |
+| Logic | `nal.deduction`, `nal.induction`, `nal.abduction`, `nal.exemplification`, `nal.higherOrderDeduction`, `nal.higherOrderAbduction`, `nal.higherOrderInduction` |
+| Syllogistic | `nal.similarity`, `nal.contrapositive`, `nal.analogy`, `nal.comparison`, `nal.extended.analogy`, `nal.extended.comparison`, `nal.contrapositionRule`, `nal.equivalence` |
+| Compositional | `nal.intersection`, `nal.union`, `nal.intersectionComposition`, `nal.unionComposition`, `nal.difference`, `nal.conjunctionIntro`, `nal.disjunctionIntro`, `nal.implicationIntro`, `nal.implicationElim`, `nal.equivalenceIntro`, `nal.equivalenceElim`, `nal.destruct`, `nal.decompose`, `nal.revisionWeak` |
+| Propositional | `nal.negationIntro`, `nal.negationElim`, `nal.modusPonens`, `nal.modusTollens`, `nal.disjunctiveSyllogism` |
+| Structural | `nal.structuralInheritance`, `nal.structuralReduction`, `nal.conversion`, `nal.instanceConversion`, `nal.instanceDeduction`, `nal.propertyConversion`, `nal.propertyInduction`, `nal.extended.exemplification` |
+| Temporal | `nal.sequenceIntroduction`, `nal.parallelIntroduction`, `nal.predictiveImplication`, `nal.temporalDeduction` |
+| Procedural | `nal.proceduralDecomposition`, `nal.proceduralChaining`, `nal.operationToPredictive` |
+| Variable | `nal.instantiation`, `nal.variableIntroduction`, `nal.variableDependency`, `nal.sameness` |
+| Meta-Cognitive | _none — stubs removed (TODO17b D18: unimplemented rules were never executable logic)_ |
 
 </details>
 

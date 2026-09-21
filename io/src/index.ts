@@ -16,7 +16,7 @@ export {
   resolveSessionKey,
 } from './bridge.js';
 /** Builtin auth commands. @public */
-export { authCommands } from './commands/auth.js';
+export { createAuthCommands } from './commands/auth.js';
 /** Builtin connection-management commands. @public */
 export { connectionCommands } from './commands/connection.js';
 export type { CommandContext, CommandDefinition, CommandHandler } from './commands/registry.js';

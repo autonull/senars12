@@ -54,8 +54,7 @@ const validateConfigVersion = (version: unknown): MigrationWarning | null => {
         toVersion: CURRENT_CONFIG_VERSION,
         message:
           `Config version "${version}" is outdated (current is ${CURRENT_CONFIG_VERSION}). ` +
-          `Run with --migrate to attempt automatic migration (stub). ` +
-          `See docs for migration guide.`,
+          `Update the config file manually.`,
       };
     }
     return {
@@ -87,9 +86,6 @@ export const loadConfig = async (path?: string): Promise<AppConfig> => {
   const warning = validateConfigVersion(raw.configVersion);
   if (warning) {
     console.warn(`[config] ${warning.message}`);
-    if (warning.fromVersion !== 'unknown (missing configVersion)' && warning.fromVersion < CURRENT_CONFIG_VERSION) {
-      console.warn('[config] Migration stub: run with SENARS_CONFIG_MIGRATE=1 to attempt migration (not implemented)');
-    }
   }
   const merged = { ...raw, ...readEnvOverrides() };
   // Ensure configVersion is set in the parsed result

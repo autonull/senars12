@@ -7,42 +7,42 @@ describe('NAL9 Self/Control Rules', () => {
   // DISABLED: BOT7 §1.1 — embeds operations in inheritance predicates
   describe('strategyEffectiveness', () => {
     test('is disabled to prevent operation misuse', () => {
-      expect(NALExtendedRules.strategyEffectiveness).toBeUndefined();
+      expect((NALExtendedRules as Record<string, unknown>).strategyEffectiveness).toBeUndefined();
     });
   });
 
   // DISABLED: BOT7 §1.1 — embeds operations in inheritance predicates
   describe('resourceAllocation', () => {
     test('is disabled to prevent operation misuse', () => {
-      expect(NALExtendedRules.resourceAllocation).toBeUndefined();
+      expect((NALExtendedRules as Record<string, unknown>).resourceAllocation).toBeUndefined();
     });
   });
 
   // DISABLED: BOT7 §1.1 — creates spurious predictive negations
   describe('errorPatternDetection', () => {
     test('is disabled to prevent spurious predictive negations', () => {
-      expect(NALExtendedRules.errorPatternDetection).toBeUndefined();
+      expect((NALExtendedRules as Record<string, unknown>).errorPatternDetection).toBeUndefined();
     });
   });
 
   // DISABLED: BOT7 §1.1 — embeds operations in inheritance predicates
   describe('utilityEstimation', () => {
     test('is disabled to prevent operation misuse', () => {
-      expect(NALExtendedRules.utilityEstimation).toBeUndefined();
+      expect((NALExtendedRules as Record<string, unknown>).utilityEstimation).toBeUndefined();
     });
   });
 
   // DISABLED: BOT7 §1.1 — produces operations as subject/predicate
   describe('metacognitiveRevision', () => {
     test('is disabled to prevent operation misuse', () => {
-      expect(NALExtendedRules.metacognitiveRevision).toBeUndefined();
+      expect((NALExtendedRules as Record<string, unknown>).metacognitiveRevision).toBeUndefined();
     });
   });
 
   // DISABLED: BOT7 §1.1 — produces operations inside similarity
   describe('selfModelConsistency', () => {
     test('is disabled to prevent operation misuse', () => {
-      expect(NALExtendedRules.selfModelConsistency).toBeUndefined();
+      expect((NALExtendedRules as Record<string, unknown>).selfModelConsistency).toBeUndefined();
     });
   });
 

@@ -8,10 +8,9 @@ import * as composition from './composition.js';
 import * as conversion from './conversion.js';
 import * as deductionExt from './deduction-ext.js';
 import * as equivalence from './equivalence.js';
-import * as meta from './meta/index.js';
+import * as temporal from './temporal.js';
 import * as procedural from './procedural.js';
 import * as structural from './structural.js';
-import * as temporal from './temporal.js';
 import * as variable from './variable.js';
 
 export const NALExtendedRules = {
@@ -25,5 +24,4 @@ export const NALExtendedRules = {
   ...temporal,
   ...procedural,
   ...comparisonExt,
-  ...meta,
 } satisfies Record<string, RuleFn>;

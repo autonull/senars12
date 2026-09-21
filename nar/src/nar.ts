@@ -237,6 +237,8 @@ export class NAR extends BaseComponent {
     );
     this.driveManager = new DriveManager(this as any);
     this.driveManager.setSystemEventBus(this.systemEventBus);
+    // D23 (TODO17b): ambiguity at ingress stimulates curiosity (A4 closure).
+    gateRegistry.getPerceptionGate().setDriveManager(this.driveManager);
     this.execution = new NARExecution(
       this.memory,
       this.taskManager,

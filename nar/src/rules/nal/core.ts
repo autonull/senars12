@@ -22,6 +22,3 @@ export const similarity: RuleFn = buildBinaryInhRule(
     return s && p ? TermBuilder.similarity(s, p) : undefined;
   }
 );
-
-export const compose = undefined as unknown as RuleFn;
-export const revision = undefined as unknown as RuleFn;
