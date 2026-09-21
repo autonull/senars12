@@ -77,6 +77,50 @@ Per the architecture's own semantics:
 
 ---
 
+## 1.5 NARBuilder — the assembly kernel that makes deployments declarative
+
+Before ReasoningGame C-0 can be cheap, the way NARs get *constructed* has to change. Today assembly is hand-wired: `createAgent` (nar/src/agent/index.ts:125) composes prompt builders, cortex, NAR, MeTTa, trajectory store, groundedness gate inline — and every entry point (bot-ai, mcp-server, multi-agent-runner, repl, arcade) re-does its own subset around it. Config is pass-through, not assembly-driving. Four refactors, one mechanism:
+
+### 1.5a `NARBuilder` — Factory/Builder for constructing NAR instances
+
+```
+NARBuilder.create()
+  .withLM(routingMatrix)            // provider routing, spend cap, retry policy
+  .withSystemOne({ tier, heads })   // tier-0..3, head subset, manifold provider
+  .withCapabilities(cap)            // self-improvement, lm-rules, schema induction, …
+  .withGates(createGateRegistry())  // per-instance kernel gates (see 1.5b)
+  .withParameters(table)            // seeded ParameterTable (see 1.5d)
+  .withPersistence(path)            // event log
+  .build(): WiredNAR
+```
+
+- The builder is the **only place wiring happens**; each `with*` step validates and records what it assembled (the builder emits the dependency graph — `wiredNAR.describe()` lists every component and what it consumed). Entry points shrink to "load a spec, build, run transport."
+- **`NARProfile` = named spec presets** (`conversation`, `tool-use`, `research`, `device`, `arcade`): the *data* the builder consumes. One mechanism, many presets — the ReasoningGame `ReasoningGameSpec` (§1b) is then just another preset's game section, not a parallel construction path.
+- Defaults stay honest: a builder step not called = subsystem absent (not stubbed), matching the disabled-path-byte-identical rule; `build()` fails loud on an inconsistent spec (tier-2 cortex without an LM ⇒ `BuilderError`).
+
+### 1.5b Per-instance gate registry
+
+`createGateRegistry()` replaces the process-global singleton; the builder injects it. This retires the D0 reset-helper hack *as a design* (tests keep the helper only where suites genuinely share registries) and — the real payoff — lets one process host multiple domain agents with isolated autonomy modes, allowlists, and veto state. Falsifiable: two agents, two registries, one process — flipping agent A's autonomy mode does not affect agent B's admissions.
+
+### 1.5c Unified `CapabilitySurface`
+
+Replace the ad-hoc toggles (`enableSelf`, `lmRules.enabled`, `systemOne.enabled`, `cognitive`, `manifold.provider`, per-game `schemaInduction`) with one declarative surface in the profile: every capability is `{ enabled, tier, params }`, uniformly validated, uniformly obeying the disabled-path rule. Capability diffs become reviewable config, not code archaeology.
+
+### 1.5d Unified `ParameterTable` with ownership
+
+Three parallel tables today (SelfMetaGame knobs, `CognitiveParameters`, the zod config schema). Converge to one: every parameter carries `{ scope: 'system' | 'game:<id>', min, max, owner }`; config seeds it, SelfMetaGame/MetaGame actuate through it (§1e scope discipline), and governance audits it as data. The per-game tables the MetaGame specializes against (§1e) fall out of this for free.
+
+### Acceptance
+
+- [ ] `pnpm bot`, `mcp-server`, `repl`, `arcade` all construct via `NARBuilder`; entry-point wiring diff ≈ 0 hand-assembled components
+- [ ] One-process smoke: two `NARBuilder` agents with different profiles (conversation tier-1, tool-use tier-3) run side-by-side; gate isolation bench proves no cross-contamination
+- [ ] Arcade gains `--profile device` (tier-0: no LM import at runtime — bundle-size/behavior asserted) and the default profile; arms unchanged
+- [ ] `BuilderError` on inconsistent specs (tier-2 without LM); disabled paths byte-identical per capability
+
+**Sequencing.** 1.5b and 1.5a first (they unblock everything else), then 1.5c/1.5d which become trivial once assembly is declarative. ReasoningGame C-0 then shrinks from "build registries" to "fill in spec presets."
+
+---
+
 ## 2. Close the loop on learning (small, high-leverage)
 
 - **V2 — Veto-demotion learning.** Epsilon-greedy re-proposes vetoed actions every tick (equal value estimates ⇒ deterministic first-element best); the veto fires every tick even when the fallback plays well. A reflex-side `learn()` that demotes actions with `LearningEvent.overriddenBy` set makes the veto a training signal, not friction. Falsification: veto rate per episode drops after the first episodes while return does not.
@@ -111,9 +155,10 @@ Per the architecture's own semantics:
 
 ## 7. Suggested cut for TODO19 (opinionated)
 
-1. **D-1/D-2 ReasoningGame** (the premise item — small D-1 first, falsify early).
-2. **V2 + V3** (veto-demotion + MC-return distillation — both cheap, both close open loops).
-3. **O1** (external-env example — validates the `Game`-only-seam claim).
+1. **§1.5 NARBuilder + per-instance gate registry** (the enabler — declarative assembly first; everything below composes through it).
+2. **C-0/C-1 ReasoningGame** (premise item — C-0 shrinks to spec presets once the builder exists; falsify early).
+3. **V2 + V3** (veto-demotion + MC-return distillation — both cheap, both close open loops).
+4. **O1** (external-env example — validates the `Game`-only-seam claim, and doubles as the builder's third-profile smoke).
 
 N1–N3 and S1–S3 fill in after the ReasoningGame shape is known; G1–G3 are the next file's frontier.
 
