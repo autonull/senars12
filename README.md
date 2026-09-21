@@ -21,6 +21,8 @@ pnpm chat          # Interactive REPL chat (turn-key conversational entry)
 pnpm status        # Live System One manifold health, head calibration, LM spend
 pnpm doctor        # Onboarding: credentials, ollama probe, effective LM/routing matrix
 pnpm bench:system-one            # System One on/off latency + token benchmark
+pnpm arcade -- --games snake,bandit --arms nal,manifold   # Multi-game System One demo (see §Arcade)
+pnpm run demo:arcade -- --distill  # Arcade tournament + teacher→student distillation flywheel
 pnpm exec tsx scripts/rl-manifold.ts          # Pure-RL demo on the Judgment Manifold (no NAL)
 pnpm exec tsx scripts/system-one-train.ts     # Train a head from the distillation dataset
 pnpm run test      # Test everything
@@ -582,10 +584,10 @@ Tier-2 candidates are generated under the `narsese-term` GBNF grammar and re-jud
 
 ### Heads, Digests & Calibration
 
-- **Declarative registry** — all 17 heads are generated from a single `HEAD_SPECS` table (`@senars/nar/lm/system-one`); per-head config and the ontology documentation derive from it.
+- **Declarative registry** — all 19 heads are generated from a single `HEAD_SPECS` table (`@senars/nar/lm/system-one`); per-head config and the ontology documentation derive from it. `plausibility` (Jev `Noul`) and `assertion` (safety floor) ship by default; classify heads judge over the **query's declared space** (a `candidate_select` ranking is judged in the candidate-selection space, never forced to `task_type`).
 - **Digest-pinned weights** — `ModelDigest = SHA256(encoderDigest ++ headWeightsDigest)`. Swapping the encoder without re-pinning fails closed (`DigestMismatchError`); trained heads load only through the sandboxed runtime (SHA256-verified, WASI bundles supported, zero-import deny-by-default).
 - **Honest calibration** — isotonic calibrators fit from real labels emit a `calibration-lock.json` with per-head abstain thresholds; until fitted, heads report `calibration.fitted: false` and mask/floor logic passes through rather than acting on untrained scores.
-- **Policy utilities** — `truthProbability()` (boolean evaluation, Jev `Noul` analog), `ConfidenceRouter` (act/review/block bands, monotonicity: a router may only restrict), `compositeScore`, `judgeCascade` (two-stage hierarchical judgment), wake gate.
+- **Policy utilities** — `truthProbability()` (boolean evaluation, Jev `Noul` analog), `ConfidenceRouter` (act/review/block bands, monotonicity: a router may only restrict), `compositeScore`, `judgeCascade` (two-stage hierarchical judgment), wake gate. Score semantics are probability-weighted: evaluate heads emit a per-level `legend` (triangular kernel over level anchors, normalized to 1) so weighted position ≈ calibrated scalar; sampled self-consistency measures stability under seeded per-run perturbation (single-shot judgments remain fully deterministic).
 
 ### Distillation Flywheel
 
@@ -600,7 +602,7 @@ play / reason ─▶ JudgmentDataset (hash-only JSONL + 384-d vector sidecar)
        bake-off parity gate → sandboxed runtime → governed head swap
 ```
 
-Label sources include corrections, derivation outcomes, approvals, shadow verdicts, human clarification pairs, agent-trace grades (groundedness/risk per cycle), and **RL outcomes** — rewards from play flow into the same dataset.
+Label sources include corrections, derivation outcomes, approvals, shadow verdicts, human clarification pairs, agent-trace grades (groundedness/risk per cycle), and **RL outcomes** — rewards from play flow into the same dataset. The loop closes end-to-end in the arcade: `pnpm run demo:arcade -- --distill` has the lm arm (teacher) record its decisions into `JudgmentDataset`, trains a `reflex_value` head after play, and the manifold arm (student, ~zero inference cost) picks it up on the next run — the distilled student matches its teacher's return and beats the heuristic baseline.
 
 ### RL Without NAL
 
@@ -612,7 +614,7 @@ The Judgment Manifold is a general decision API — proven by driving a reinforc
 
 ### Observability & UX
 
-- `pnpm status` — live manifold health, per-head ECE/abstain thresholds, circuit breakers, LM spend, dataset/lock paths (`--json` for machines)
+- `pnpm status` — live manifold health, per-head ECE/abstain thresholds, circuit breakers, LM spend, dataset/lock paths, and a governance section (attached self-meta-games + validation/approval queue depths) (`--json` for machines)
 - REPL — natural-language input routes through the ingress; `:judge <text>` prints the full per-head judgment distribution, `:health`/`:spend` for status shortcuts
 - `egress.gate.rejected` events — groundedness-gate rejections are user-visible, never silently swapped
 - Prometheus: `systemone_*` judgment/ingress/reflex counters, `lm_spend_tokens{provider}` / `lm_spend_cost_milli{provider}` with optional `LM_MAX_SPEND_USD` cap
@@ -622,7 +624,7 @@ Three runnable starters live in `examples/`: `systemone-ingress.ts`, `rl-gridwor
 
 ### Arcade — Multi-Game System One Demo (TODO17)
 
-`pnpm arcade` runs many games on one kernel-gated harness with selectable arms (`heuristic | random | manifold | lm | replica | nal`), every tick rendered, and every decision Brier-scored against realized outcomes into `.reports/arcade.{json,md}`. The collection lives in the **game registry** (`@senars/nar/game` → `createArcadeRegistry()`): each game is a plain `Game` implementation registered with a name, description, and action legend — snake, tetris, 2048, tictactoe, gridworld, bandit, catch, arithmetic, rps ship by default; adding one is implementing `Game` + one `GameSpec`. Arms are fail-closed (missing LM model / replica endpoint ⇒ explicit skip note). `--mode cognitive` seeds the game's rules as Narsese beliefs so the Negotiator's NAL veto shapes play, streams a per-tick thought-stream panel, and attaches a recorder-verifiable justification to every veto. `--resume` checkpoints tournament progress per (arm, game) so interrupted runs continue mid-flight. Parity targets (ECE ≤ 0.07 kev-ref, P50 ≤ 15 ms von-ref, arms ≥ random, one batched judgment per decision) are falsified by Benches 29–35 (`tests/nar/todo17-*.test.ts`). See `docs/arcade.md`.
+`pnpm arcade` runs many games on one kernel-gated harness with selectable arms (`heuristic | random | manifold | lm | replica | nal`), every tick rendered, and every decision Brier-scored against realized outcomes into `.reports/arcade.{json,md}`. The collection lives in the **game registry** (`@senars/nar/game` → `createArcadeRegistry()`): each game is a plain `Game` implementation registered with a name, description, and action legend — snake, tetris, 2048, tictactoe, gridworld, bandit, catch, arithmetic, rps ship by default; adding one is implementing `Game` + one `GameSpec`. Arms are fail-closed (missing LM model / replica endpoint ⇒ explicit skip note). `--mode cognitive` seeds the game's rules as Narsese beliefs so the Negotiator's NAL veto shapes play, streams a per-tick thought-stream panel, and attaches a recorder-verifiable justification to every veto. The `nal` arm runs cognitive mode regardless of `--mode` so it is always a comparable row in the summary: the Negotiator's veto **action-matches** (a bad-action derivation vetoes only that action) and falls back to the best non-vetoed proposal instead of stalling — a seeded trap rule prevents the trap; rule-free play is veto-free (falsified by `tests/nar/todo17b-nal-arm.test.ts`), and G2 schema induction grows advisory good/bad rules from episode experience. `pnpm run demo:arcade -- --distill` additionally runs the teacher→student distillation loop (lm arm teaches, manifold arm learns). `--resume` checkpoints tournament progress per (arm, game) so interrupted runs continue mid-flight. Parity targets (ECE ≤ 0.07 kev-ref, P50 ≤ 15 ms von-ref, arms ≥ random, one batched judgment per decision) are falsified by Benches 29–35 (`tests/nar/todo17-*.test.ts`). See `docs/arcade.md`.
 
 ---
 
@@ -817,7 +819,7 @@ const state = self.querySystemState();       // Full system snapshot
 
 ## SeNARS as a General-Purpose RL Agent
 
-SeNARS is not only a reasoning kernel — the same Focus-Game-Reflex substrate makes it a **general-purpose reinforcement learning agent**. Any environment exposing `observe()` / `step(action)` attaches as a `Game` — the **only** environment interface (no separate `Environment` layer; built-in games live in `@senars/nar/game`, see the export index) — and the agent learns to act through its native attention economy, bounded by AIKR like every other cognitive process.
+SeNARS is not only a reasoning kernel — the same Focus-Game-Reflex substrate makes it a **general-purpose reinforcement learning agent**. Any environment exposing `observe()` / `step(action)` attaches as a `Game` — the **only** environment interface (no separate `Environment` layer; built-in games live in `@senars/nar/game`, see the export index) — and the agent learns to act through its native attention economy, bounded by AIKR like every other cognitive process. The shipped collection is enumerated by the **game registry** (`createArcadeRegistry()`): snake, tetris, 2048, tictactoe, gridworld, bandit, catch, arithmetic, and rps — each a plain `Game` implementation with a seeded, deterministic episode; adding one is implementing `Game` + one `GameSpec`.
 
 **Non-symbolic RL as optional acceleration, not foundation.** The `Reflex` slot is a pluggable System-1 policy engine: tabular Q-learning, ε-greedy, and UCB are built in today; DQN, policy-gradient, or actor-critic backends drop in behind the same `propose(state)` / `learn(event)` interface. Symbolic and sub-symbolic learning are *complementary*: fast neural/heuristic proposals are arbitrated by the `Negotiator`, where NAL retains a veto over every action — so learned reflexes accelerate the agent without ever bypassing epistemic control.
 
