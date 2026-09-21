@@ -212,4 +212,9 @@ Audit of the System One layer against the Jev/TypeSafe System One pattern space 
 
 **Known remaining (optional):** SDE-style extract→per-field-verify→retry cascade is available as a *composition* of existing primitives (fan-out of `plausibility` queries over candidate fields) but has no dedicated helper; consensus fan-out is capped at k≤3.
 
+**Next: NAL as a first-class Arcade arm (candidate for a new TODO file; do not forget).** `--mode cognitive` already exists (NAL rule seeding → Negotiator veto → kernel authorize; veto visible in the panel, stats per episode), but:
+1. Rule coverage is thin — only gridworld has a seeded rule (`cognitiveRules` in `scripts/arcade.ts`); snake/tetris/2048/tictactoe/bandit run with none, so NAL is a no-op there. Seed honest domain rules for the remaining games.
+2. No NAL-vs-default comparison — add a `nal` arm (cognitive mode as a comparable arm in the summary table) and a falsification check: NAL veto must NOT reduce return when no faults exist, and must prevent known-trap actions when rules exist (TODO16c Bench-15 semantics, but as an arcade arm).
+3. Wire schema induction (`nar/src/focus/schema-induction.ts`) into arcade episodes so rules can grow from experience instead of only hand-authored seeds.
+
 **Build order:** 0 (D0, ~1d — the green baseline everything is certified against) → A (2d) → B (1.5d) → C (2d, DQ-gated) — each phase independently releasable; 0 and A are the only P0s.
