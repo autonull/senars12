@@ -10,7 +10,7 @@ import { TabularQReflex } from '@senars/nar/reflex/TabularQReflex.js';
 import { Negotiator } from '@senars/nar/reflex/Negotiator.js';
 import type { ActionProposal, LearningEvent } from '@senars/nar/reflex/Reflex.js';
 import type { NALDerivation } from '@senars/nar/reflex/Negotiator.js';
-import type { GridWorldState } from '@senars/nar/game/GridWorldEnv.js';
+import type { GridWorldState } from '@senars/nar/game/GridWorldGame.js';
 import type { Perception } from '@senars/nar/game';
 
 describe('Reflex↔NAR Sync (2D)', () => {

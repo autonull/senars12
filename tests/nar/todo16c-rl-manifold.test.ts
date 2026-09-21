@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import { describe, expect, it } from 'vitest';
-import type { GridWorldState } from '../../nar/src/game/GridWorldEnv.js';
+import type { GridWorldState } from '../../nar/src/game/GridWorldGame.js';
 import { GridWorldGame } from '../../nar/src/game/GridWorldGame.js';
 import { SeededRNG } from '../../nar/src/game/SeededRNG.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';

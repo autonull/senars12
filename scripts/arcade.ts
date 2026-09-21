@@ -9,8 +9,9 @@
  *   OPEN_REPLICA_ENDPOINT=... pnpm arcade -- --arms replica
  *   pnpm arcade -- --arms lm                 # real LM decisions (model-cached machines)
  *   pnpm arcade -- --arms lm --resume        # resume an interrupted tournament
- *   pnpm arcade -- --arms nal                # NAL rules + kernel gates (cognitive mode)
  *                                            # (--session PATH, default .reports/arcade-session.json)
+ * Games come from the arcade registry (nar/src/game/registry.ts) — a new game
+ * is a `Game` implementation + one GameSpec (name, description, actionLegend).
  */
 import { BrierHarness } from '../nar/src/eval/brier-harness.js';
 import {
@@ -24,12 +25,7 @@ import { startArcadeTickSpan } from '../nar/src/eval/arcade-trace.js';
 import { GameFocus } from '../nar/src/focus/GameFocus.js';
 import { renderGame } from '../nar/src/game/render.js';
 import {
-  createBanditGame,
-  createGame2048,
-  createGridWorldGame,
-  createSnakeGame,
-  createTetrisGame,
-  createTicTacToeGame,
+  createArcadeRegistry,
   SeededRNG,
   type Game,
 } from '../nar/src/game/index.js';
@@ -41,11 +37,12 @@ import { EpsilonGreedyReflex } from '../nar/src/reflex/EpsilonGreedyReflex.js';
 import type { ActionProposal, Reflex } from '../nar/src/reflex/Reflex.js';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 
-type GameName = 'snake' | 'tetris' | '2048' | 'tictactoe' | 'gridworld' | 'bandit';
 type Arm = 'manifold' | 'lm' | 'replica' | 'heuristic' | 'random' | 'nal';
 
+const gameRegistry = createArcadeRegistry();
+
 const parseArgs = (): {
-  games: GameName[];
+  games: string[];
   arms: Arm[];
   episodes: number;
   seed: number;
@@ -59,9 +56,9 @@ const parseArgs = (): {
     const i = process.argv.indexOf(flag);
     return i >= 0 ? (process.argv[i + 1] ?? fallback) : fallback;
   };
-  const games = get('--games', 'snake,tetris,2048,tictactoe,gridworld,bandit')
+  const games = get('--games', gameRegistry.names().join(','))
     .split(',')
-    .filter(Boolean) as GameName[];
+    .filter(Boolean);
   const arms = get('--arms', 'heuristic,random').split(',').filter(Boolean) as Arm[];
   return {
     games,
@@ -83,23 +80,14 @@ const parseArgs = (): {
  * state-conditional (their legalActions already exclude illegal moves), so
  * they run rule-free and grow their own via schema induction (G2) instead.
  */
-const cognitiveRules: Partial<Record<GameName, Array<[string, string, { f: number; c: number }]>>> = {
+const cognitiveRules: Partial<Record<string, Array<[string, string, { f: number; c: number }]>>> = {
   // GridWorld 'S..' starts on the top row: moving up (0) bumps the wall.
   gridworld: [['0', 'wall_bump', { f: 0.1, c: 0.95 }]],
   // Bandit arm 0 is the known-worst arm (mean 0.2 vs 0.5/0.8): honest prior.
   bandit: [['0', 'low_reward', { f: 0.1, c: 0.95 }]],
 };
 
-const makeGames: Record<GameName, (seed: number) => Game> = {
-  snake: (seed) => createSnakeGame({ seed, maxSteps: 120 }),
-  tetris: (seed) => createTetrisGame({ seed, width: 10, height: 10, pieceCap: 30 }),
-  '2048': (seed) => createGame2048({ seed }),
-  tictactoe: (seed) => createTicTacToeGame({ seed }),
-  gridworld: (seed) => createGridWorldGame({ id: 'grid', grid: ['S..', '..G'], seed }),
-  bandit: (seed) => createBanditGame({ seed, armMeans: [0.2, 0.5, 0.8] }),
-};
-
-const heuristics: Partial<Record<GameName, (game: Game) => string | number>> = {
+const heuristics: Partial<Record<string, (game: Game) => string | number>> = {
   snake: (g) => snakeHeuristicAction(g as never),
   tetris: (g) => tetrisHeuristicPlacement(g as never),
   '2048': (g) => game2048HeuristicAction(g as never),
@@ -159,7 +147,7 @@ class RecordingReflex implements Reflex {
 /** Cognitive arm construction — fail-closed per arm: skip with a note, never substitute. */
 async function buildCognitiveArm(
   arm: 'manifold' | 'lm' | 'replica' | 'nal',
-  gameName: GameName,
+  gameName: string,
   dataset?: unknown
 ): Promise<{ reflex: Reflex; manifold: unknown; cache: unknown } | { note: string }> {
   // nal arm: NAL-rules + kernel gates over a plain epsilon-greedy reflex —
@@ -230,10 +218,7 @@ async function buildCognitiveArm(
   ]);
   const lmService = createLMService();
   const manifold = createManifold(cache, { abstainThreshold: 0.05 });
-  const actionLegends: Partial<Record<GameName, string>> = {
-    snake: 'Actions: 0=up, 1=right, 2=down, 3=left. Goal: reach the apple (headR/appleR, headC/appleC converge). Never reverse into your own body.',
-  };
-  const promptTemplates: Partial<Record<GameName, string>> = {
+  const promptTemplates: Partial<Record<string, string>> = {
     tictactoe:
       'You are X in tic-tac-toe. Cells 0-8 (0=top-left, 1=top-center, 2=top-right, 3=middle-left, 4=center, 5=middle-right, 6=bottom-left, 7=bottom-center, 8=bottom-right).\nBoard: {cell0} {cell1} {cell2} / {cell3} {cell4} {cell5} / {cell6} {cell7} {cell8} (0=empty, 1=X you, 2=O opponent).\n\nWhich empty cell should X take to win or block? Answer with only the cell number.',
     gridworld:
@@ -250,7 +235,7 @@ async function buildCognitiveArm(
       dispatcher,
       embeddingCache: cache,
       budget: BUDGET,
-      actionLegend: actionLegends[gameName],
+      actionLegend: gameRegistry.get(gameName)?.actionLegend,
       promptTemplate: promptTemplates[gameName],
       dataset: dataset as never,
     }),
@@ -269,6 +254,12 @@ async function main(): Promise<void> {
   const notes: string[] = [];
   const rng = new SeededRNG(seed);
 
+  // Unknown game names are skipped with a note (fail loud, never silent).
+  const unknownGames = games.filter((g) => !gameRegistry.has(g));
+  const playableGames = games.filter((g) => gameRegistry.has(g));
+  if (unknownGames.length > 0)
+    notes.push(`unknown games skipped: ${unknownGames.join(',')} (available: ${gameRegistry.names().join(',')})`);
+
   // Distillation flywheel: the lm arm records its decisions into a dataset;
   // after play, a reflex_value head is trained and picked up by the manifold
   // arm (the cheap student) on the next run.
@@ -282,7 +273,7 @@ async function main(): Promise<void> {
 
   // G3 session resume: progress is persisted per (arm, game); a mismatched
   // config cannot resume (starts fresh with a note, never silently merged).
-  const run = { seed, games, arms, targetEpisodes: episodes };
+  const run = { seed, games: playableGames, arms, targetEpisodes: episodes };
   let completed: Record<string, number> = {};
   if (resume) {
     const saved = loadSession(sessionPath);
@@ -299,7 +290,7 @@ async function main(): Promise<void> {
   };
 
   for (const arm of arms) {
-    for (const gameName of games) {
+    for (const gameName of playableGames) {
       const firstEpisode = completed[sessionKey(arm, gameName)] ?? 0;
       if (firstEpisode >= episodes) continue;
       if (firstEpisode > 0) notes.push(`${arm}/${gameName}: resuming at episode ${firstEpisode}`);
@@ -311,7 +302,7 @@ async function main(): Promise<void> {
           continue;
         }
         for (let e = firstEpisode; e < episodes; e++) {
-          const game = makeGames[gameName](seed + e);
+          const game = gameRegistry.create(gameName, seed + e);
           let steps = 0;
           while (!game.state().terminal && steps < 150) {
             const legal = (game.legalActions(game.state()) as Array<string | number>).map(String);
@@ -364,7 +355,7 @@ async function main(): Promise<void> {
       const recording = new RecordingReflex(`${arm}-recording`, built.reflex);
       let promotedCount = 0;
       for (let e = firstEpisode; e < episodes; e++) {
-        const game = makeGames[gameName](seed + e);
+        const game = gameRegistry.create(gameName, seed + e);
         const focus = new GameFocus({
           focusId: `${arm}-${gameName}-${e}`,
           game,

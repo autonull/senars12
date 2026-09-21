@@ -145,7 +145,7 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
   });
 
   describe('GridWorldGame', () => {
-    it('should wrap GridWorldEnv as Game interface', () => {
+    it('implements the Game interface', () => {
       const game = createGridWorldGame({
         id: 'test-grid',
         grid: ['S..', '...', '..G'],
