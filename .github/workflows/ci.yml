@@ -47,3 +47,17 @@ jobs:
       - run: pnpm tsx examples/custom-head.ts
       # F3 mock leg: System One on/off latency + LM-call deltas → .reports/
       - run: pnpm bench:system-one
+
+  arcade-benches:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # TODO17 F1: benches 29–35 (offline legs) + the offline arcade smoke
+      - run: pnpm vitest run "tests/nar/todo17-*.test.ts"
+      - run: pnpm arcade -- --games snake,tictactoe --arms heuristic,random --episodes 2
