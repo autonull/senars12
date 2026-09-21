@@ -3,9 +3,15 @@ import { ConfidenceRouter } from '@senars/nar/lm/system-one/policy';
 import { GameFocus } from '@senars/nar/focus';
 import { createGridWorldGame, SeededRNG, type Game } from '@senars/nar/game';
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
-import { mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { verifyRecord } from '../../scripts/verify-derivation.js';
+import {
+  isResumable,
+  loadSession,
+  saveSession,
+  type ArcadeSession,
+} from '@senars/nar/eval/session-state';
 
 /** Fixed-confidence scripted reflex (review band lands at p=0.5). */
 class FixedConfidenceReflex implements Reflex {
@@ -153,6 +159,39 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
       const result = verifyRecord(record, { strict: true, epsilon: 1e-6 });
       expect(result.passed).toBe(true);
     }
+  });
+
+  it('G3 session state: roundtrip, corruption fail-open, config-mismatch rejects resume', () => {
+    const dir = '.reports/todo17-session-test';
+    rmSync(dir, { recursive: true, force: true });
+    const path = `${dir}/session.json`;
+    expect(loadSession(path)).toBeNull();
+
+    const session: ArcadeSession = {
+      version: 1,
+      seed: 7,
+      games: ['snake', 'tetris'],
+      arms: ['manifold', 'lm'],
+      targetEpisodes: 5,
+      completed: { 'manifold/snake': 2 },
+      bagWeights: { 'manifold-snake': 1.5 },
+    };
+    saveSession(path, session);
+    const loaded = loadSession(path)!;
+    expect(loaded.completed).toEqual({ 'manifold/snake': 2 });
+    expect(loaded.bagWeights).toEqual({ 'manifold-snake': 1.5 });
+    expect(isResumable(loaded, { seed: 7, games: ['snake', 'tetris'], arms: ['lm', 'manifold'], targetEpisodes: 5 })).toBe(true);
+
+    // config mismatch ⇒ not resumable (seed / games / arms / episodes)
+    expect(isResumable(loaded, { seed: 8, games: ['snake', 'tetris'], arms: ['lm', 'manifold'], targetEpisodes: 5 })).toBe(false);
+    expect(isResumable(loaded, { seed: 7, games: ['snake'], arms: ['lm', 'manifold'], targetEpisodes: 5 })).toBe(false);
+    expect(isResumable(loaded, { seed: 7, games: ['snake', 'tetris'], arms: ['lm'], targetEpisodes: 5 })).toBe(false);
+    expect(isResumable(loaded, { seed: 7, games: ['snake', 'tetris'], arms: ['lm', 'manifold'], targetEpisodes: 4 })).toBe(false);
+
+    // corruption ⇒ null (caller starts fresh with a note, never crashes)
+    writeFileSync(path, '{not json', 'utf-8');
+    expect(loadSession(path)).toBeNull();
+    rmSync(dir, { recursive: true, force: true });
   });
 
   it('report written to .reports/arcade.{json,md}', async () => {

@@ -73,6 +73,20 @@ weight), and every veto carries a recorder-verifiable justification record
 (`GameFocus.getVetoJustifications()` — passes the standalone derivation
 verifier). Non-cognitive runs are unchanged.
 
+## Session resume (G3)
+
+```bash
+pnpm arcade -- --arms lm --resume                        # resume interrupted tournament
+pnpm arcade -- --arms lm --resume --session my-session.json
+```
+
+Progress is persisted per `(arm, game)` after every episode
+(`.reports/arcade-session.json` by default). A resumed run skips completed
+episodes — episode seeds are deterministic (`seed + index`), so remaining
+trajectories are identical. A session whose seed/games/arms/episode-target
+differ from the current run is never merged — the run starts fresh with an
+explicit note.
+
 ## Tests
 
 `tests/nar/todo17-{scheduler,arbitration,games,lm-reflex,open-replica,arcade,parity}.test.ts`

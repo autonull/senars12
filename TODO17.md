@@ -381,6 +381,12 @@ Phases A–F implemented and committed (Benches 29–35 green; `pnpm typecheck`/
 
 **Remaining after v1.4:** G1 (stage refactor), G2/G3/G5, F4 — all optional growth items; no W-gaps or P0/P1 demo items outstanding.
 
+### 11.6 Progress Addendum (v1.5 — 2026-09-21, G3 session resume)
+
+G3 closed. **`nar/src/eval/session-state.ts`** (new): `ArcadeSession` (version, seed, games, arms, targetEpisodes, per-`arm/game` completed counts, optional `bagWeights` for scheduler-driven runs), `loadSession` (fail-open on missing/corrupt → caller starts fresh with a note), `saveSession`, `isResumable` (strict config match — a mismatched seed/games/arms/episode-target is never merged). **Arcade `--resume`** (`--session PATH`, default `.reports/arcade-session.json`): skips completed episodes per arm/game, persists progress after every episode, and notes resume state. Episode seeds are derived as `seed + episodeIndex`, so skipping completed episodes leaves remaining trajectories byte-identical (verified: partial resume replays only the missing episode). Bench 34 gained the session-state clause (roundtrip, corruption fail-open, config-mismatch rejection). `bagWeights` is populated by scheduler-driven consumers via `FocusBag.serialize()` — the arcade (no bag) leaves it unset.
+
+**Remaining after v1.5:** G1 (stage refactor), G2 (schema induction), G5 (OTel spans), F4 — optional growth items.
+
 ### 11.4 Progress Addendum (v1.3 — 2026-09-21, E7 cognitive mode)
 
 E7 implemented (the last P1 demo item). Bench 34 gained the cognitive-mode clause (all six clause groups green).

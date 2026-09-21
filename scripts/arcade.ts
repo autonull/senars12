@@ -8,8 +8,17 @@
  *   pnpm arcade -- --arms manifold           # local Judgment Manifold heads
  *   OPEN_REPLICA_ENDPOINT=... pnpm arcade -- --arms replica
  *   pnpm arcade -- --arms lm                 # real LM decisions (model-cached machines)
+ *   pnpm arcade -- --arms lm --resume        # resume an interrupted tournament
+ *                                            # (--session PATH, default .reports/arcade-session.json)
  */
 import { BrierHarness } from '../nar/src/eval/brier-harness.js';
+import {
+  isResumable,
+  loadSession,
+  saveSession,
+  sessionKey,
+  type ArcadeSession,
+} from '../nar/src/eval/session-state.js';
 import { GameFocus } from '../nar/src/focus/GameFocus.js';
 import { renderGame } from '../nar/src/game/render.js';
 import {
@@ -40,6 +49,8 @@ const parseArgs = (): {
   seed: number;
   render: boolean;
   cognitive: boolean;
+  resume: boolean;
+  sessionPath: string;
 } => {
   const get = (flag: string, fallback: string) =>
     process.argv[process.argv.indexOf(flag) + 1] ?? fallback;
@@ -54,6 +65,8 @@ const parseArgs = (): {
     seed: Number(get('--seed', '7')),
     render: process.argv.includes('--render'),
     cognitive: get('--mode', 'default') === 'cognitive',
+    resume: process.argv.includes('--resume'),
+    sessionPath: get('--session', '.reports/arcade-session.json'),
   };
 };
 
@@ -162,13 +175,34 @@ async function buildCognitiveArm(
 }
 
 async function main(): Promise<void> {
-  const { games, arms, episodes, seed, render, cognitive } = parseArgs();
+  const { games, arms, episodes, seed, render, cognitive, resume, sessionPath } = parseArgs();
   const harness = new BrierHarness();
   const notes: string[] = [];
   const rng = new SeededRNG(seed);
 
+  // G3 session resume: progress is persisted per (arm, game); a mismatched
+  // config cannot resume (starts fresh with a note, never silently merged).
+  const run = { seed, games, arms, targetEpisodes: episodes };
+  let completed: Record<string, number> = {};
+  if (resume) {
+    const saved = loadSession(sessionPath);
+    if (saved && isResumable(saved, run)) {
+      completed = saved.completed;
+      notes.push(`resumed session: ${sessionPath} (${Object.entries(completed).reduce((a, [, n]) => a + n, 0)} episodes already done)`);
+    } else {
+      notes.push(`--resume: no resumable session at ${sessionPath} (missing or config mismatch) — starting fresh`);
+    }
+  }
+  const persistProgress = (completed: Record<string, number>): void => {
+    if (!resume) return;
+    saveSession(sessionPath, { version: 1, ...run, completed });
+  };
+
   for (const arm of arms) {
     for (const gameName of games) {
+      const firstEpisode = completed[sessionKey(arm, gameName)] ?? 0;
+      if (firstEpisode >= episodes) continue;
+      if (firstEpisode > 0) notes.push(`${arm}/${gameName}: resuming at episode ${firstEpisode}`);
       // Pure arms: no kernel gates — direct game play (baseline controls).
       if (arm === 'heuristic' || arm === 'random') {
         const heuristic = heuristics[gameName];
@@ -176,7 +210,7 @@ async function main(): Promise<void> {
           notes.push(`heuristic arm on ${gameName}: no baseline — skipped`);
           continue;
         }
-        for (let e = 0; e < episodes; e++) {
+        for (let e = firstEpisode; e < episodes; e++) {
           const game = makeGames[gameName](seed + e);
           let steps = 0;
           while (!game.state().terminal && steps < 150) {
@@ -203,6 +237,8 @@ async function main(): Promise<void> {
               console.log(renderGame(game));
             }
           }
+          completed[sessionKey(arm, gameName)] = e + 1;
+          persistProgress(completed);
         }
         continue;
       }
@@ -214,7 +250,7 @@ async function main(): Promise<void> {
         continue;
       }
       const recording = new RecordingReflex(`${arm}-recording`, built.reflex);
-      for (let e = 0; e < episodes; e++) {
+      for (let e = firstEpisode; e < episodes; e++) {
         const game = makeGames[gameName](seed + e);
         const focus = new GameFocus({ focusId: `${arm}-${gameName}-${e}`, game, cognitive });
         if (cognitive)
@@ -264,6 +300,8 @@ async function main(): Promise<void> {
           }
         }
         focus.markEpisodeEnd();
+        completed[sessionKey(arm, gameName)] = e + 1;
+        persistProgress(completed);
         if (cognitive) {
           const v = focus.getVetoStats();
           console.log(
