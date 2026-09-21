@@ -11,6 +11,7 @@ import type { StampType, Term } from '../terms';
 import { Truth, type Truth as TruthType } from '../terms';
 import type { EventBus } from '../types';
 import { toError } from '../utils';
+import { pushBounded } from '../kernel/event-ring.js';
 import { META_AIKR_BOUNDS, shouldActivateMetaReasoning } from './meta-rules.js';
 import { DerivationRecorder } from './recorder.js';
 import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils.js';
@@ -435,7 +436,7 @@ export class RuleProcessor {
           for (const r of result) {
             this.recorder.record(lmRule.id, p1, effectiveP2, r);
           }
-          this.executionLog.push({
+          pushBounded(this.executionLog, {
             ruleName: lmRule.name,
             status: result.length > 0 ? 'fired' : 'timeout',
             durationMs: Date.now() - startTime,
@@ -445,7 +446,7 @@ export class RuleProcessor {
           return result;
         } catch (error) {
           this.handleRuleError(error, lmRule.id);
-          this.executionLog.push({
+          pushBounded(this.executionLog, {
             ruleName: lmRule.name,
             status: 'timeout',
             durationMs: Date.now() - startTime,

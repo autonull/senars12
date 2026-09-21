@@ -188,6 +188,24 @@ export class ProposalRouter {
   getAwaitingApproval(): ReadonlyArray<SelfImprovementProposal> {
     return this.awaitingApproval;
   }
+
+  /** D14: consume held validation proposals — nothing queues forever. Each is
+   *  re-routed (with the supplied validator/actuators) and removed from the queue. */
+  drainAwaitingValidation(
+    actuators: ProposalActuators = {},
+    validator?: SandboxValidator
+  ): Array<{ proposal: SelfImprovementProposal; route: ProposalRoute; applied: boolean; reason: string }> {
+    const held = this.awaitingValidation.splice(0);
+    return held.map((proposal) => ({
+      proposal,
+      ...this.route(proposal, 'low-risk-auto-merge', actuators, validator),
+    }));
+  }
+
+  /** D14: consume held approval proposals (callers apply their own human-review flow). */
+  drainAwaitingApproval(): SelfImprovementProposal[] {
+    return this.awaitingApproval.splice(0);
+  }
 }
 
 export class GovernancePolicyEngine {

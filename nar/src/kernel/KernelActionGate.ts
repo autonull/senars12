@@ -7,6 +7,7 @@ import type {
 } from '@senars/kernel/schemas';
 import { AutonomyModeChangedEventSchema, validateCognitiveEvent } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
+import { pushBounded } from './event-ring.js';
 
 const MODE_ORDER: AutonomyMode[] = [
   'observe-only',
@@ -93,7 +94,7 @@ export class KernelActionGate {
       correlationId,
       payload: { previousMode: prev, newMode, authorizedBy },
     });
-    this.autonomyLog.push(event);
+    pushBounded(this.autonomyLog, event);
     return { changed: true };
   }
 
@@ -182,7 +183,7 @@ export class KernelActionGate {
         },
       };
       validateCognitiveEvent(event);
-      this.eventLog.push(event);
+      pushBounded(this.eventLog, event);
 
       return {
         authorized: false,
@@ -207,7 +208,7 @@ export class KernelActionGate {
           },
         };
         validateCognitiveEvent(event);
-        this.eventLog.push(event);
+        pushBounded(this.eventLog, event);
 
         return {
           authorized: false,
@@ -230,7 +231,7 @@ export class KernelActionGate {
         },
       };
       validateCognitiveEvent(event);
-      this.eventLog.push(event);
+      pushBounded(this.eventLog, event);
 
       return {
         authorized: false,

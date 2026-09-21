@@ -220,7 +220,14 @@ export class LMService {
   }
 
   private setCache(key: string, value: string): void {
-    this.cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+    // D16: bounded memory without a timer — each write sweeps expired entries.
+    const now = Date.now();
+    if (this.cache.size > 0) {
+      for (const [k, entry] of this.cache) {
+        if (now > entry.expiresAt) this.cache.delete(k);
+      }
+    }
+    this.cache.set(key, { value, expiresAt: now + CACHE_TTL_MS });
   }
 
   private clearCache(key: string): void {

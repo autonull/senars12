@@ -13,6 +13,10 @@ export interface RewriteRule {
   match: (atom: MeTTaAtom) => MeTTaAtom | null;
 }
 
+/** D17: bounded saturation defaults. */
+const EGRAPH_SATURATE_MAX_STEPS = 1000;
+const EGRAPH_SATURATE_MAX_NODES = 10_000;
+
 export class EGraph {
   private eclasses: ImmMap<number, EClass> = ImmMap();
   private hashCons: ImmMap<string, number> = ImmMap();
@@ -39,10 +43,15 @@ export class EGraph {
     return id;
   }
 
-  saturate(rules: readonly RewriteRule[]): void {
+  saturate(rules: readonly RewriteRule[], budget?: { maxSteps?: number; maxNodes?: number }): void {
+    // D17: bounded saturation — pathological rule sets cannot run away.
+    const maxSteps = budget?.maxSteps ?? EGRAPH_SATURATE_MAX_STEPS;
+    const maxNodes = budget?.maxNodes ?? EGRAPH_SATURATE_MAX_NODES;
+    let steps = 0;
     let changed = true;
-    while (changed) {
+    while (changed && steps < maxSteps && this.eclasses.size < maxNodes) {
       changed = false;
+      steps++;
       for (const rule of rules) {
         if (this.applyRule(rule)) {
           changed = true;

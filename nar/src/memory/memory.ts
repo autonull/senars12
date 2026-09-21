@@ -74,6 +74,8 @@ export interface MemoryStatistics {
 }
 
 export class Memory {
+  /** D17: bounded revision log capacity. */
+  static readonly REVISION_LOG_CAP = 1000;
   readonly attentionModel: AttentionModel;
   private readonly concepts = new TermMap<Concept>();
   private readonly config: Required<MemoryConfig>;
@@ -457,7 +459,10 @@ export class Memory {
   private recordRevision(entry: RevisionEntry): void {
     const ts = Math.max(entry.timestamp, this.lastRevisionTs + 1);
     this.lastRevisionTs = ts;
+    // D17: bounded revision log (drop-oldest).
     this.revisionLog.push({ ...entry, timestamp: ts });
+    if (this.revisionLog.length > Memory.REVISION_LOG_CAP)
+      this.revisionLog.splice(0, this.revisionLog.length - Memory.REVISION_LOG_CAP);
   }
 
   private decayAll(): void {

@@ -186,7 +186,10 @@ export class IRCConnection extends BaseConnection {
   }
 
   private startQueueDrain(): void {
+    // D17: a reconnect must not leak the previous timer.
+    this.stopQueueDrain();
     this.queueTimer = setInterval(() => this.drainQueue(), this.ircConfig.floodProtectionDelay);
+    this.queueTimer.unref();
   }
 
   private stopQueueDrain(): void {

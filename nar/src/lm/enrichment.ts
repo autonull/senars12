@@ -91,6 +91,8 @@ export function parseEnrichmentResponse(
 }
 
 export class ProactiveEnricher {
+  /** D17: bounded results. */
+  static readonly RESULTS_CAP = 100;
   private readonly memory: Memory;
   private readonly lmService: LMService;
   private readonly config: EnricherConfig;
@@ -153,6 +155,8 @@ export class ProactiveEnricher {
         if (result.hypotheses.length > 0 || result.bridges.length > 0) {
           cycleResults.push(result);
           this.results.push(result);
+          // D17: bounded results (drop-oldest).
+          if (this.results.length > ProactiveEnricher.RESULTS_CAP) this.results.shift();
         }
       } catch (error) {
         // expected: LM call may fail due to network/provider issues — skip this concept

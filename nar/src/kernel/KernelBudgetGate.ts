@@ -8,6 +8,7 @@ import type {
 } from '@senars/kernel/schemas';
 import { validateCognitiveEvent, validateReasoningBudget } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
+import { pushBounded } from './event-ring.js';
 
 export interface KernelBudgetGateConfig {
   defaultBudget: ReasoningBudget;
@@ -101,7 +102,7 @@ export class KernelBudgetGate {
         },
       };
       validateCognitiveEvent(event);
-      this.eventLog.push(event);
+      pushBounded(this.eventLog, event);
 
       return {
         granted: false,

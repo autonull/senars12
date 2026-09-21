@@ -7,6 +7,7 @@ import type {
 } from '@senars/kernel/schemas';
 import { SelfImprovementProposalSchema, validateCognitiveEvent } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
+import { pushBounded } from './event-ring.js';
 
 export class EpistemicFirewallViolation extends Error {
   public readonly targetType: string;
@@ -62,7 +63,7 @@ export class KernelRewardGate {
         },
       };
       validateCognitiveEvent(event);
-      this.eventLog.push(event);
+      pushBounded(this.eventLog, event);
 
       return {
         accepted: false,

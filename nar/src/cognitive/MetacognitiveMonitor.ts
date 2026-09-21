@@ -58,6 +58,7 @@ export interface MetacognitiveMonitorConfig {
 
 interface EventBus {
   on(event: string, handler: (...args: unknown[]) => void): void;
+  off(event: string, handler: (...args: unknown[]) => void): void;
 }
 
 interface NARWithEventBus {
@@ -67,6 +68,9 @@ interface NARWithEventBus {
 
 export class MetacognitiveMonitor {
   private nar: NARWithEventBus | null;
+  /** D13: teardown state — interval handle + subscribed listeners. */
+  private monitorInterval: ReturnType<typeof setInterval> | undefined;
+  private registeredListeners: Array<[string, (...args: unknown[]) => void]> = [];
   private config: Required<MetacognitiveMonitorConfig>;
   private reasoningTrace: ReasoningStep[];
   private performanceHistory: PerformanceData[];
@@ -217,6 +221,18 @@ export class MetacognitiveMonitor {
     this.reasoningTrace = [];
     this.performanceHistory = [];
     this.performanceMonitors.clear();
+    // D13: full teardown — clear the interval, release listeners.
+    if (this.monitorInterval) {
+      clearInterval(this.monitorInterval);
+      this.monitorInterval = undefined;
+    }
+    const eventBus = this.nar?.eventBus;
+    if (eventBus) {
+      for (const [event, handler] of this.registeredListeners) {
+        eventBus.off(event, handler);
+      }
+      this.registeredListeners = [];
+    }
   }
 
   private setupMonitoring(): void {
@@ -224,7 +240,12 @@ export class MetacognitiveMonitor {
 
     const eventBus = this.nar.eventBus;
 
-    eventBus.on('task:processed', (task: unknown) => {
+    const subscribe = (event: string, handler: (...args: unknown[]) => void): void => {
+      eventBus.on(event, handler);
+      this.registeredListeners.push([event, handler]);
+    };
+
+    subscribe('task:processed', (task: unknown) => {
       this.recordReasoningStep({
         type: 'task_processed',
         task,
@@ -232,7 +253,7 @@ export class MetacognitiveMonitor {
       });
     });
 
-    eventBus.on('task:derived', (task: unknown) => {
+    subscribe('task:derived', (task: unknown) => {
       this.recordReasoningStep({
         type: 'task_derived',
         task,
@@ -240,7 +261,7 @@ export class MetacognitiveMonitor {
       });
     });
 
-    eventBus.on('rule:fired', (data: unknown) => {
+    subscribe('rule:fired', (data: unknown) => {
       const eventData = data as { ruleId?: string; result?: unknown };
       this.recordReasoningStep({
         type: 'rule_fired',
@@ -250,7 +271,7 @@ export class MetacognitiveMonitor {
       });
     });
 
-    eventBus.on('error', (error: unknown) => {
+    subscribe('error', (error: unknown) => {
       this.recordError({
         type: 'error',
         error,
@@ -262,7 +283,7 @@ export class MetacognitiveMonitor {
     let lastThroughputTime = Date.now();
     let processedCount = 0;
 
-    eventBus.on('task:processed', () => {
+    subscribe('task:processed', () => {
       processedCount++;
       const now = Date.now();
       if (now - lastThroughputTime > 1000) {
@@ -272,7 +293,8 @@ export class MetacognitiveMonitor {
       }
     });
 
-    setInterval(() => {
+    // D13: stored handle + unref — no unstoppable timers.
+    this.monitorInterval = setInterval(() => {
       const memoryUsage = process.memoryUsage ? process.memoryUsage().heapUsed : 0;
       this.analyzePerformance({
         throughput: lastThroughput,
@@ -280,6 +302,7 @@ export class MetacognitiveMonitor {
         timestamp: Date.now(),
       });
     }, 5000);
+    this.monitorInterval.unref();
   }
 
   private updatePerformanceMonitors(metrics: Partial<PerformanceData>): void {

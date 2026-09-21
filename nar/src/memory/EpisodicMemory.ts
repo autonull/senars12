@@ -183,6 +183,8 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     if (today !== this.currentDay) {
       this.currentDay = today;
       this.rolloverIndex = 0;
+      // D17: retention sweep piggybacked on the daily rollover.
+      void this.pruneOldEpisodes().catch(() => {});
     }
     // D8: at the per-file cap, roll over to `<date>-<n>.jsonl` instead of
     // silently dropping the episode.

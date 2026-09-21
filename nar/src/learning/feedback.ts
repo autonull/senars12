@@ -38,6 +38,8 @@ export interface ValidationResult {
 }
 
 export class FeedbackLearner {
+  /** D17: bounded correction memory. */
+  static readonly CORRECTIONS_CAP = 500;
   private corrections = new Map<string, CorrectionEntry>();
   private ruleStats = new Map<string, RuleStats>();
   private translationCache?: TranslationCache;
@@ -60,6 +62,18 @@ export class FeedbackLearner {
   onCorrection(originalNL: string, originalNarsese: string, correctedNarsese: string): void {
     const pattern = this.extractPattern(originalNL);
     const existing = this.corrections.get(pattern);
+    // D17: bounded corrections — evict the least-cited pattern at capacity.
+    if (!existing && this.corrections.size >= FeedbackLearner.CORRECTIONS_CAP) {
+      let evictKey: string | undefined;
+      let minCount = Number.POSITIVE_INFINITY;
+      for (const [k, v] of this.corrections) {
+        if (v.count < minCount) {
+          minCount = v.count;
+          evictKey = k;
+        }
+      }
+      if (evictKey !== undefined) this.corrections.delete(evictKey);
+    }
     this.corrections.set(pattern, {
       pattern,
       narsese: correctedNarsese,
