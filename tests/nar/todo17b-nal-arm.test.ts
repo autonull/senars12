@@ -9,7 +9,27 @@ import { induceEpisodeSchemas, type EpisodeTick } from '@senars/nar/focus/schema
 import { createBanditGame, createGridWorldGame, type Game } from '@senars/nar/game';
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
 import { Negotiator } from '@senars/nar/reflex';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+/**
+ * Bag sampling (`nar/src/bag/Bag.ts`) draws from unseeded Math.random, so the
+ * trap's veto timing depends on the global RNG stream — which module-load
+ * order (isolate:false) perturbs. Each test pins a deterministic LCG stream.
+ */
+let rngSpy: { mockRestore(): void } | null = null;
+const pinDeterministicRNG = (): void => {
+  if (rngSpy) return;
+  let state = 0x2f6e2b1;
+  rngSpy = vi.spyOn(Math, 'random').mockImplementation(() => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  });
+};
+
+afterEach(() => {
+  rngSpy?.mockRestore();
+  rngSpy = null;
+});
 
 /** Scripted reflex that always proposes one action at high confidence. */
 class FixedActionReflex implements Reflex {
@@ -25,6 +45,7 @@ class FixedActionReflex implements Reflex {
 }
 
 const playTicks = async (game: Game, seeded: boolean, ticks = 20): Promise<GameFocus> => {
+  pinDeterministicRNG();
   const focus = new GameFocus({ focusId: 'nal-arm', game, cognitive: true });
   if (seeded) focus.seedRule('0', 'wall_bump', { f: 0.1, c: 0.95 });
   focus.bindReflex(new FixedActionReflex('0'));

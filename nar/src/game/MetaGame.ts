@@ -1,4 +1,5 @@
 import type { FocusStepReport } from '../focus/Focus.js';
+import { describeMetaGameActions } from '../cognition/meta-spec.js';
 import type { Game, GameOutcome, Perception } from './Game.js';
 
 export interface MetaGameState {
@@ -55,17 +56,10 @@ export class MetaGame implements Game<MetaGameState, string> {
     };
   }
 
+  /** C5: legalActions are library specs (meta-spec data), not inline literals. */
   legalActions(state: MetaGameState): string[] {
-    const actions: string[] = [];
-    for (const focusId of this.observesFocuses) {
-      actions.push(`^focus_weight(${focusId}, 0.5)`);
-      actions.push(`^focus_weight(${focusId}, 0.8)`);
-      actions.push(`^focus_weight(${focusId}, 1.0)`);
-    }
-    actions.push('^knob_set(maxDerivationsPerStep, 100)');
-    actions.push('^knob_set(maxDerivationsPerStep, 500)');
-    actions.push('^knob_set(maxDerivationsPerStep, 1000)');
-    return actions;
+    void state;
+    return describeMetaGameActions(this.observesFocuses);
   }
 
   step(action: string): GameOutcome {
