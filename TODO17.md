@@ -265,7 +265,7 @@ New Prometheus counters: `systemone_arcade_decisions_total{arm,game}`, `systemon
 - [x] F1 CI job (`arcade-benches`: todo17 suites + offline arcade smoke)
 - [x] F2 determinism (seeded arms everywhere; timing legs env-gated in dedicated skips)
 - [x] F3 docs reconciliation (README export-index rows for games/arcade, `docs/arcade.md`)
-- [ ] F4 (optional) scheduler promotion — deferred per DQ4 (standalone first)
+- [x] F4 (optional) scheduler promotion — **deferred per DQ4, closed**: standalone `FocusScheduler` suffices; no second in-`NARExecution.run` consumer exists
 
 ---
 
@@ -367,12 +367,14 @@ Phases A–F implemented and committed (Benches 29–35 green; `pnpm typecheck`/
 4. **§5 Prometheus counters** (`systemone_arcade_decisions_total`, `systemone_handover_total{game}`, `systemone_lm_decision_latency_ms`, `arcade_brier`) not added — handover/latency/Brier are surfaced via the BrierHarness report instead. Adding real counters is cheap follow-up work once the demo's metric names stabilize.
 5. **E7 cognitive mode** (belief seeding, thought-stream panel, derivation recorder) **not implemented** — the only remaining P1 demo item. Hooks are in place (`GameFocus` veto tracking + `logGameTrace` already emit the raw streams the panel would render).
 
-### 11.3 Remaining work (facilitation notes)
+### 11.3 Remaining work (facilitation notes — superseded; all items closed by v1.8, see §11.4–§11.9)
 
-- **G1 GameFocus stage refactor**: `GameFocus.step` was restructured (proposal collection merged, early returns) but not yet split into named 11-stage methods; Bench 29/30/31 remain the re-run gate.
-- **G2 schema induction / G3 session resume / G5 OTel spans**: unstarted. G3 hooks exist (`FocusBag.serialize/deserialize` + per-episode seeds already recorded by the arcade loop).
-- **G4 shared-embedding discipline**: enforced inside the arcade's cognitive arms (one `EmbeddingCache` per arm construction, shared across manifold/LM/replica within an arm); a cross-arm canonical-digest assertion could be added to Bench 34 if arms are ever run concurrently.
-- **F4 scheduler promotion**: revisit only if a second consumer needs the drive loop inside `NARExecution.run`.
+- **G1 GameFocus stage refactor**: closed (v1.7) — named stage methods; Benches 29/30/31 re-ran as the gate.
+- **G2 schema induction**: closed (v1.7) — `nar/src/focus/schema-induction.ts`, advisory focus beliefs via the E7 seeding API.
+- **G3 session resume**: closed (v1.5) — `nar/src/eval/session-state.ts` + arcade `--resume`.
+- **G4 shared-embedding discipline**: enforced inside the arcade's cognitive arms (one `EmbeddingCache` per arm construction); a cross-arm canonical-digest assertion could be added to Bench 34 if arms are ever run concurrently.
+- **G5 OTel spans**: closed (v1.6) — `nar/src/eval/arcade-trace.ts` + arcade `--otel`.
+- **F4 scheduler promotion**: deferred per DQ4 (standalone first); no second consumer exists — closed as-is.
 
 ### 11.5 Progress Addendum (v1.4 — 2026-09-21, W7 cascade consumer + prefetch bug fix)
 
@@ -401,6 +403,12 @@ G3 closed. **`nar/src/eval/session-state.ts`** (new): `ArcadeSession` (version, 
 - **E7 test hardened**: the first-veto tick assertion was flaky (focus task sampling is probabilistic — the seeded belief may not be sampled on tick 1); now asserts on the first vetoing panel entry.
 
 **Remaining after v1.7:** F4 (optional, deferred per DQ4) — TODO17 implementation items are complete.
+
+### 11.9 Progress Addendum (v1.8 — 2026-09-21, final status & certification)
+
+**TODO17 implementation is complete.** All W-gaps (W1–W10), all phases (A–F), all growth items (G1–G5) closed; F4 remains deferred per DQ4 (standalone `FocusScheduler` has no second consumer inside `NARExecution.run` — revisit only when one appears). Benches 29–35 green; `pnpm typecheck`/`pnpm lint` clean; the offline `pnpm arcade` default run (six games, heuristic+random arms) executes end-to-end.
+
+**Discovery worth follow-up (pre-existing, out of TODO17 scope):** running the full suite (`pnpm run test` / `pnpm test:unit`) exhibits nondeterministic cross-file failures — both at HEAD and at the pre-TODO17 baseline (`33661106`, verified in a worktree): parallel workers collide on process-global state (the global `gateRegistry`/autonomy mode mutated by kernel-gates-style suites) and load-sensitive timing legs (SLO p99, RL parity ratios) flake under load. CI is unaffected (targeted globs per job; the TODO16c §11/F2 dedicated-jobs policy already isolates timing legs). Candidate remediations for a future plan: (a) per-file `vi.stubGlobal`/registry isolation or `sequence.concurrent = false` for gate-mutating suites, (b) a `test:unit:serial` lane, (c) moving the remaining wall-clock assertions into the dedicated jobs.
 
 ### 11.4 Progress Addendum (v1.3 — 2026-09-21, E7 cognitive mode)
 
