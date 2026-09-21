@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { ParameterScopeError, createParameterTable, type ParameterScope, type ParameterSpec, type ParameterTable } from '../config/parameter-table.js';
 import type { FocusStepReport } from '../focus/Focus.js';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { GameFocus } from '../focus/GameFocus.js';
@@ -25,8 +26,9 @@ export interface SelfMetaGameConfig extends MetaGameConfig {
 export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   private focusBag: FocusBag;
   private gameFocuses: Map<string, GameFocus>;
-  private knobs: Map<string, number>;
-  private knobConfigs: Map<string, KnobConfig>;
+  /** TODO19 F5: system-scoped ParameterTable (the knob store + actuators). */
+  private readonly parameterTable: ParameterTable;
+  private static readonly knobScope: ParameterScope = 'system';
   private scheduler: { registry: LearnerRegistry; rewardGate: SelfRewardGate } | null = null;
   /** D20 (TODO17b): the governance router that consumes self-improvement proposals. */
   private readonly proposalRouter = new ProposalRouter();
@@ -35,9 +37,10 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
     super(config);
     this.focusBag = config.focusBag;
     this.gameFocuses = config.gameFocuses;
-    this.knobs = new Map();
-    this.knobConfigs = new Map();
+    this.parameterTable = createParameterTable();
 
+    // TODO19 F5: knobs are ParameterTable entries (system scope, self-owned);
+    // the actuator closures replace the former `applyKnob` switch-case.
     const defaultKnobs: KnobConfig[] = [
       { name: 'maxDerivationsPerStep', min: 10, max: 2000, defaultValue: 100 },
       { name: 'taskDecayRate', min: 0.001, max: 0.1, defaultValue: 0.01 },
@@ -46,18 +49,37 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
       { name: 'rankingMaxAdmissions', min: 10, max: 1000, defaultValue: 100 },
       { name: 'rankingMinScore', min: 0, max: 0.5, defaultValue: 0 },
     ];
-
-    for (const knob of defaultKnobs) {
-      this.knobConfigs.set(knob.name, knob);
-      this.knobs.set(knob.name, knob.defaultValue);
-    }
-
-    if (config.knobs) {
-      for (const knob of config.knobs) {
-        this.knobConfigs.set(knob.name, knob);
-        this.knobs.set(knob.name, knob.defaultValue);
+    const actuatorFor = (name: string): ParameterSpec['actuate'] => {
+      switch (name) {
+        case 'taskDecayRate':
+          return (v) => {
+            for (const focus of this.focusBag.all()) focus.tasks.decayRateValue = v;
+          };
+        case 'conceptDecayRate':
+          return (v) => {
+            for (const focus of this.focusBag.all()) focus.memory.decayRateValue = v;
+          };
+        case 'focusDecayRate':
+          return (v) => {
+            this.focusBag.decayRateValue = v;
+          };
+        // maxDerivationsPerStep / ranking* are engine-side (CognitiveParameters);
+        // registered for tuning surface parity without side effects.
+        default:
+          return undefined;
       }
-    }
+    };
+    const allKnobs = [...defaultKnobs, ...(config.knobs ?? [])];
+    for (const knob of allKnobs)
+      this.parameterTable.register({
+        name: knob.name,
+        scope: 'system',
+        min: knob.min,
+        max: knob.max,
+        value: knob.defaultValue,
+        owner: 'self-meta-game',
+        actuate: actuatorFor(knob.name),
+      });
   }
 
   setFocusWeight(focusId: string, weight: number): void {
@@ -135,13 +157,13 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   }
 
   setKnob(knob: string, value: number): void {
-    const config = this.knobConfigs.get(knob);
-    if (!config) {
-      throw new Error(`Unknown knob: ${knob}`);
+    try {
+      this.parameterTable.set(SelfMetaGameImpl.knobScope, knob, value);
+    } catch (e) {
+      if (e instanceof ParameterScopeError)
+        throw new Error(e.message.startsWith('unknown parameter') ? `Unknown knob: ${knob}` : e.message);
+      throw e;
     }
-    const clampedValue = Math.max(config.min, Math.min(config.max, value));
-    this.knobs.set(knob, clampedValue);
-    this.applyKnob(knob, clampedValue);
   }
 
   disableReflex(focusId: string, reflexId: string): void {
@@ -154,36 +176,11 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   }
 
   getKnobValue(knob: string): number | undefined {
-    return this.knobs.get(knob);
+    return this.parameterTable.get(SelfMetaGameImpl.knobScope, knob);
   }
 
   getAllKnobs(): Map<string, number> {
-    return new Map(this.knobs);
-  }
-
-  private applyKnob(knob: string, value: number): void {
-    switch (knob) {
-      case 'maxDerivationsPerStep':
-        // This would be applied to the reasoning engine in a full implementation
-        break;
-      case 'taskDecayRate':
-        for (const focus of this.focusBag.all()) {
-          focus.tasks.decayRateValue = value;
-        }
-        break;
-      case 'conceptDecayRate':
-        for (const focus of this.focusBag.all()) {
-          focus.memory.decayRateValue = value;
-        }
-        break;
-      case 'focusDecayRate':
-        this.focusBag.decayRateValue = value;
-        break;
-      case 'rankingMaxAdmissions':
-      case 'rankingMinScore':
-        // These are applied via CognitiveParameters in the engine; SelfMetaGame exposes them for tuning
-        break;
-    }
+    return this.parameterTable.list(SelfMetaGameImpl.knobScope);
   }
 }
 

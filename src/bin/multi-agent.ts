@@ -5,7 +5,7 @@
  * `--testing` uses the deterministic testing factory (replaces multi-agent-demo).
  */
 
-import { SeNARSFactory } from '@senars/nar';
+import { NARBuilder } from '@senars/nar/agent/builder';
 import { runMultiAgent } from './lib/multi-agent-runner.js';
 
 const testing = process.argv.includes('--testing');
@@ -21,10 +21,16 @@ const banner = testing
 runMultiAgent({
   scope: testing ? 'multi-agent-testing' : 'multi-agent',
   banner,
-  createNAR: () =>
-    testing
-      ? SeNARSFactory.createForTesting({ core: { maxConcepts: 100 } })
-      : SeNARSFactory.createDefault({ core: { maxConcepts: 100 } }),
+  // TODO19 F1: single assembly path; testing trims the concept budget.
+  createWired: async () =>
+    NARBuilder.fromProfile('arcade')
+      .withNarConfig({
+        core: testing
+          ? { maxConcepts: 100, activationDecayRate: 0, consolidationInterval: 1000, cpuThrottleMs: 0, maxDerivationDepth: 20 }
+          : { maxConcepts: 100 },
+        enableLMRules: true,
+      })
+      .build(),
 }).catch((err) => {
   console.error('Demo failed', err);
   process.exit(1);

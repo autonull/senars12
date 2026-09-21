@@ -1,17 +1,16 @@
-import { v4 as uuidv4 } from 'uuid';
-import { mkdirSync, appendFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import type { DerivationRecord } from '@senars/kernel/schemas';
+import type { DerivationRecord, ReasoningBudget } from '@senars/kernel/schemas';
+import { v4 as uuidv4 } from 'uuid';
 import { PriorityBag } from '../bag/Bag.js';
 import type { Game, GameOutcome, Perception } from '../game/Game.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import { type GateRegistry, gateRegistry } from '../kernel/index.js';
+import type { ConfidenceRouter } from '../lm/system-one/policy.js';
 import type { EmbeddingCache, JudgmentManifold } from '../lm/system-one/types.js';
-import { gateRegistry } from '../kernel/index.js';
-import { type NALDerivation, NegotiationDecision, Negotiator } from '../reflex/Negotiator.js';
-import { ActionProposal, LearningEvent, type Reflex } from '../reflex/Reflex.js';
-import { ConfidenceRouter } from '../lm/system-one/policy.js';
+import { type NALDerivation, type NegotiationDecision, Negotiator } from '../reflex/Negotiator.js';
+import { type ActionProposal, LearningEvent, type Reflex } from '../reflex/Reflex.js';
+import { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding.js';
 import { Focus, type FocusOptions } from './Focus.js';
-import { actionRuleBelief, seedBelief, type SeededBelief } from './belief-seeding.js';
 import { induceEpisodeSchemas, type PromotedSchema } from './schema-induction.js';
 
 export interface GameFocusOptions {
@@ -29,6 +28,8 @@ export interface GameFocusOptions {
   cognitive?: boolean;
   /** G2: promote per-action reward patterns into advisory focus beliefs at episode end. */
   schemaInduction?: boolean;
+  /** TODO19 F2: per-instance gate registry (defaults to the process-global singleton). */
+  gateRegistry?: GateRegistry;
 }
 
 /** E7: per-tick cognition snapshot for the thought-stream panel. */
@@ -99,7 +100,10 @@ export class GameFocus {
   private episodeVetoCounts: number[] = [];
   private currentEpisodeVetos = 0;
 
+  private readonly gates: GateRegistry;
+
   constructor(options: GameFocusOptions) {
+    this.gates = options.gateRegistry ?? gateRegistry;
     this.game = options.game;
     this.handover = options.handover;
     this.cognitive = options.cognitive ?? false;
@@ -110,6 +114,7 @@ export class GameFocus {
       taskCapacity: options.focusOptions?.taskCapacity ?? 1000,
       conceptCapacity: options.focusOptions?.conceptCapacity ?? 500,
       weight: options.focusOptions?.weight ?? 1.0,
+      gateRegistry: this.gates,
     });
 
     this.negotiator = new Negotiator({ nalVetoThreshold: 0.8, reflexThreshold: -1 });
@@ -126,7 +131,7 @@ export class GameFocus {
 
   /** Refresh this focus's scoped autonomy + allowlist from the current legal actions. */
   private syncScope(): void {
-    const actionGate = gateRegistry.getActionGate();
+    const actionGate = this.gates.getActionGate();
     actionGate.removeScope(this.focus.id);
     actionGate.setScopeAutonomy(this.focus.id, 'sandbox-execute');
     for (const a of this.game.legalActions(this.game.state()))
@@ -135,8 +140,8 @@ export class GameFocus {
 
   /** Drop this focus's scoped gate entries (lifecycle hygiene, A4). */
   releaseScope(): void {
-    gateRegistry.getActionGate().removeScope(this.focus.id);
-    gateRegistry.getBudgetGate().releaseScope(this.focus.id);
+    this.gates.getActionGate().removeScope(this.focus.id);
+    this.gates.getBudgetGate().releaseScope(this.focus.id);
   }
 
   bindReflex(reflex: Reflex): void {
@@ -144,7 +149,12 @@ export class GameFocus {
   }
 
   /** E7: seed a rule belief `(action ==> consequence)` into the focus's task bag. */
-  seedRule(action: string, consequence: string, truth: { f: number; c: number }, priority?: number): void {
+  seedRule(
+    action: string,
+    consequence: string,
+    truth: { f: number; c: number },
+    priority?: number
+  ): void {
     seedBelief(this.focus, actionRuleBelief(action, consequence, truth, priority));
   }
 
@@ -227,16 +237,16 @@ export class GameFocus {
       if (typeof p.prefetch === 'function') {
         await (
           p.prefetch as (
-          stateId: string,
-          context: unknown,
-          legalActions: string[],
-          manifold: JudgmentManifold,
-          budget: ReasoningBudget,
-          observation?: Perception
-        ) => Promise<void>
-      )(
-        observation.stateId,
-        await embeddingCache.write(JSON.stringify(observation.features ?? observation.stateId)),
+            stateId: string,
+            context: unknown,
+            legalActions: string[],
+            manifold: JudgmentManifold,
+            budget: ReasoningBudget,
+            observation?: Perception
+          ) => Promise<void>
+        )(
+          observation.stateId,
+          await embeddingCache.write(JSON.stringify(observation.features ?? observation.stateId)),
           legalActions,
           manifold,
           budget,
@@ -278,16 +288,23 @@ export class GameFocus {
     focusWeightDelta: number;
   }): void {
     if (!this.gameTraceEnabled) return;
-    this.gameTraceBuffer.push(JSON.stringify({
-      ts: Date.now(),
-      ...entry,
-    }));
+    this.gameTraceBuffer.push(
+      JSON.stringify({
+        ts: Date.now(),
+        ...entry,
+      })
+    );
   }
 
   private flushGameTrace(): void {
-    if (!this.gameTraceEnabled || this.gameTraceBuffer.length === 0 || !this.gameTraceLogPath) return;
+    if (!this.gameTraceEnabled || this.gameTraceBuffer.length === 0 || !this.gameTraceLogPath)
+      return;
     try {
-      appendFileSync(this.gameTraceLogPath, this.gameTraceBuffer.splice(0).join('\n') + '\n', 'utf-8');
+      appendFileSync(
+        this.gameTraceLogPath,
+        this.gameTraceBuffer.splice(0).join('\n') + '\n',
+        'utf-8'
+      );
     } catch {
       // Silently fail
     }
@@ -320,7 +337,13 @@ export class GameFocus {
       proposalActions: [],
       nalDerivations: [],
       bestReflexProposal: null,
-      decision: { action: null, actionExecuted: null, vetoedBy: null, confidence: 0, source: 'none' },
+      decision: {
+        action: null,
+        actionExecuted: null,
+        vetoedBy: null,
+        confidence: 0,
+        source: 'none',
+      },
       legalActions: [],
       prevWeight: 0,
       deliveringReflexes: new Set(),
@@ -336,8 +359,8 @@ export class GameFocus {
   private beginTick(): { granted: true } | { granted: false; terminationReason: unknown } {
     // Game loops budget per step (the `step(budget)` contract), not per focus
     // lifetime — renew the scope so long-running training isn't starved.
-    gateRegistry.getBudgetGate().createScope(this.focus.id);
-    const budgetCheck = gateRegistry
+    this.gates.getBudgetGate().createScope(this.focus.id);
+    const budgetCheck = this.gates
       .getBudgetGate()
       .check({ operation: 'nal-step', estimatedCost: 1, scopeId: this.focus.id });
     return budgetCheck.granted
@@ -365,7 +388,10 @@ export class GameFocus {
         reflex,
         // String-normalized legal actions: numeric actions (bandit/gridworld)
         // must not reach reflexes typed for strings (and 0 must not be falsy).
-        proposals: reflex.propose(this.game.observe(), this.game.legalActions(this.game.state()).map(String)),
+        proposals: reflex.propose(
+          this.game.observe(),
+          this.game.legalActions(this.game.state()).map(String)
+        ),
       }))
       .filter((entry) => entry.proposals.length > 0);
     if (t.reflexProposals.length === 0) return false;
@@ -420,7 +446,12 @@ export class GameFocus {
         const legal = this.game.legalActions(this.game.state()).map(String);
         const baseline = this.handover.baseline(this.game, legal);
         if (baseline && legal.includes(baseline)) {
-          t.decision = { ...t.decision, action: baseline, actionExecuted: baseline, vetoedBy: null };
+          t.decision = {
+            ...t.decision,
+            action: baseline,
+            actionExecuted: baseline,
+            vetoedBy: null,
+          };
           this.handoverCount++;
           this.lastTickHandover = true;
         }
@@ -439,13 +470,11 @@ export class GameFocus {
   /** AUTHORIZE/ACT/VALIDATE: kernel gate → world mutation → reward firewall. */
   private actStage(t: TickState): void {
     if (t.decision.actionExecuted) {
-      const auth = gateRegistry
-        .getActionGate()
-        .authorize({
-          proposalId: uuidv4(),
-          operation: `game:${this.focus.id}:${t.decision.actionExecuted}`,
-          args: {},
-        });
+      const auth = this.gates.getActionGate().authorize({
+        proposalId: uuidv4(),
+        operation: `game:${this.focus.id}:${t.decision.actionExecuted}`,
+        args: {},
+      });
       if (!auth.authorized) {
         const learningEvent = this.negotiator.createLearningEvent(
           this.focus,
@@ -472,7 +501,7 @@ export class GameFocus {
       t.perceptionPair = { previousPerception, nextPerception };
 
       // REWARD: epistemic firewall — reward may only tune policy, never truth
-      const firewall = gateRegistry.getRewardGate().process({
+      const firewall = this.gates.getRewardGate().process({
         eventId: uuidv4(),
         rewardSignal: Math.max(-1, Math.min(1, t.gameOutcome.reward)),
         rewardType: 'extrinsic',
@@ -579,7 +608,11 @@ export class GameFocus {
       action: t.decision.action!,
       vetoReason: t.decision.vetoedBy ?? 'unknown',
       derivation: vetoDerivation
-        ? { action: vetoDerivation.action, truth: vetoDerivation.truth, source: vetoDerivation.source }
+        ? {
+            action: vetoDerivation.action,
+            truth: vetoDerivation.truth,
+            source: vetoDerivation.source,
+          }
         : { action: '', truth: { f: 0, c: 0 }, source: 'none' },
     });
     if (vetoDerivation)
@@ -669,7 +702,8 @@ export class GameFocus {
     }>;
   } {
     const totalEpisodes = this.episodeVetoCounts.length + (this.currentEpisodeVetos > 0 ? 1 : 0);
-    const totalVetosInEpisodes = this.episodeVetoCounts.reduce((a, b) => a + b, 0) + this.currentEpisodeVetos;
+    const totalVetosInEpisodes =
+      this.episodeVetoCounts.reduce((a, b) => a + b, 0) + this.currentEpisodeVetos;
     return {
       totalVetos: this.vetoCount,
       episodeVetoCounts: [...this.episodeVetoCounts, this.currentEpisodeVetos].filter((v) => v > 0),

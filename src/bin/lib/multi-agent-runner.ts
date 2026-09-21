@@ -5,14 +5,13 @@
 
 import { CLIConnection } from '@senars/io/connections/cli';
 import { WSConnection } from '@senars/io/connections/ws';
-import type { NAR } from '@senars/nar';
-import { createAgent } from '@senars/nar/agent';
 import { createLogger } from '@senars/nar/logger';
+import type { WiredNAR } from '@senars/nar/agent/builder';
 
 export interface MultiAgentRunnerOptions {
   scope: string;
   banner: string[];
-  createNAR: () => NAR;
+  createWired: () => Promise<WiredNAR>;
 }
 
 export async function runMultiAgent(opts: MultiAgentRunnerOptions): Promise<void> {
@@ -23,8 +22,8 @@ export async function runMultiAgent(opts: MultiAgentRunnerOptions): Promise<void
   }
 
   console.log('[NAR] Initializing...');
-  const nar = opts.createNAR();
-  const agent = await createAgent({ nar });
+  const wired = await opts.createWired();
+  const { agent } = wired;
 
   console.log('[NAR] Ready — NAR + MeTTa reasoning via one agent');
   await agent.start();

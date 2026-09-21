@@ -1,4 +1,4 @@
-import { gateRegistry } from '../kernel/GateRegistry.js';
+import { type GateRegistry, gateRegistry } from '../kernel/GateRegistry.js';
 import type { Memory } from '../memory';
 import type { Budget, Task } from '../types';
 
@@ -20,9 +20,11 @@ export interface TaskManagerConfig {
   maxRetries?: number;
   retryBackoffMs?: number;
   enablePriorityScheduling?: boolean;
+  /** TODO19 F2: per-instance gate registry (defaults to the process-global singleton). */
+  gateRegistry?: GateRegistry;
 }
 
-const DEFAULT_CONFIG: Required<TaskManagerConfig> = {
+const DEFAULT_CONFIG: Omit<Required<TaskManagerConfig>, 'gateRegistry'> = {
   defaultTimeout: 30000,
   maxRetries: 3,
   retryBackoffMs: 1000,
@@ -35,11 +37,13 @@ export class TaskManager {
   private failed = new Map<string, TaskWrapper>();
   private memory: Memory;
   private config: Required<TaskManagerConfig>;
+  private gates: GateRegistry;
   private timeouts = new Map<string, NodeJS.Timeout>();
 
   constructor(memory: Memory, config: TaskManagerConfig = {}) {
     this.memory = memory;
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.config = { ...DEFAULT_CONFIG, ...config } as Required<TaskManagerConfig>;
+    this.gates = config.gateRegistry ?? gateRegistry;
   }
 
   get size(): number {
@@ -105,7 +109,7 @@ export class TaskManager {
     for (const wrapper of items) {
       if (wrapper.lifecycle !== 'pending') continue;
 
-      if (!gateRegistry.getBudgetGate().check({ operation: 'memory-op', estimatedCost: 1 }).granted)
+      if (!this.gates.getBudgetGate().check({ operation: 'memory-op', estimatedCost: 1 }).granted)
         break;
 
       const taskId = wrapper.task.stamp.id;
@@ -118,7 +122,7 @@ export class TaskManager {
       wrapper.lifecycle = 'running';
       wrapper.startedAt = Date.now();
 
-      const gate = gateRegistry.getPerceptionGate();
+      const gate = this.gates.getPerceptionGate();
       const result = gate.admitTask(
         wrapper.task.term,
         wrapper.task.type,

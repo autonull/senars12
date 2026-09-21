@@ -4,9 +4,8 @@
 
 import { JsonlSessionManager } from '@senars/core/memory';
 import type { NARConfig } from '@senars/nar';
-import { SeNARSFactory } from '@senars/nar';
 import type { Agent } from '@senars/nar/agent';
-import { createAgent } from '@senars/nar/agent';
+import { NARBuilder } from '@senars/nar/agent/builder';
 import {
   configureLM,
   createConfiguredLMRules,
@@ -90,22 +89,6 @@ export async function createAgentFromEnv(
       offlineLadder: appConfig.routing.offlineLadder,
     });
   }
-  const nar = SeNARSFactory.createDefault({
-    providerRegistry: registry,
-    lmService,
-    systemOne: appConfig.systemOne,
-    ...narCoreOverrides(appConfig),
-    ...options?.narConfig,
-  });
-
-  // LM rules from config (`bot.lmRules.rules`) — presets by id, unknown ids logged.
-  if (appConfig.bot.lmRules.enabled && appConfig.bot.lmRules.rules.length > 0) {
-    const logger = createLogger({ scope: 'lifecycle' });
-    const { rules, unknownIds } = createConfiguredLMRules(lmService, appConfig.bot.lmRules.rules);
-    for (const rule of rules) nar.getProcessor().registerLMRule(rule);
-    for (const id of unknownIds) logger.warn(`Unknown LM rule id in config: ${id}`);
-  }
-
   const episodicCfg = readEpisodicConfig();
   const episodicMemory = new EpisodicMemory({
     enabled: true,
@@ -115,26 +98,38 @@ export async function createAgentFromEnv(
 
   const sessionManager = new JsonlSessionManager({ basePath: '.cache/sessions' });
 
-  const agent = await createAgent({
-    nar,
-    lmService,
-    episodicMemory,
-    sessionManager,
-    profile: {
+  const wired = await NARBuilder.fromProfile('tool-use')
+    .withLM(lmService)
+    .withNarConfig({
+      providerRegistry: registry,
+      ...narCoreOverrides(appConfig),
+      ...options?.narConfig,
+      ...(appConfig.systemOne ? { systemOne: appConfig.systemOne } : {}),
+    })
+    .withMemory(episodicMemory)
+    .withSessionManager(sessionManager)
+    .withProfile({
       name: appConfig.profile.name,
       personality: appConfig.profile.personality,
       narrateTier: appConfig.profile.narrateTier,
-    },
-    conversation: {
+    })
+    .withConversation({
       maxHistory: appConfig.bot.conversation.maxHistory,
       summaryThreshold: appConfig.bot.conversation.summaryThreshold,
-    },
-    trajectoryStorePath: appConfig.systemOne?.distillation?.trajectoryPath,
-    skills: appConfig.bot.skills,
-    engines: {
-      nar: appConfig.backends.nar.enabled,
-    },
-  });
+    })
+    .withTrajectoryStorePath(appConfig.systemOne?.distillation?.trajectoryPath)
+    .withSkills(appConfig.bot.skills)
+    .withEngines({ nar: appConfig.backends.nar.enabled })
+    .build();
+  const { nar, agent } = wired;
+
+  // LM rules from config (`bot.lmRules.rules`) — presets by id, unknown ids logged.
+  if (appConfig.bot.lmRules.enabled && appConfig.bot.lmRules.rules.length > 0) {
+    const logger = createLogger({ scope: 'lifecycle' });
+    const { rules, unknownIds } = createConfiguredLMRules(lmService, appConfig.bot.lmRules.rules);
+    for (const rule of rules) nar.getProcessor().registerLMRule(rule);
+    for (const id of unknownIds) logger.warn(`Unknown LM rule id in config: ${id}`);
+  }
 
   return {
     agent,

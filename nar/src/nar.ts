@@ -6,7 +6,10 @@ import type { CognitiveRegistry } from './cognitive';
 import { CognitiveController } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
 import { createBootstrapTasks, DriveManager } from './drives';
-import { gateRegistry } from './kernel/GateRegistry.js';
+import { FocusBag } from './focus/FocusBag.js';
+import { GameFocus, type GameFocusOptions } from './focus/GameFocus.js';
+import { createSelfMetaGame, type SelfMetaGameImpl } from './game/SelfMetaGame.js';
+import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js';
 import type { LMService, SeNARSRegistry } from './lm';
 import { getModelForTask, LMRules } from './lm';
 import { createLMServiceCortex, LMServiceCortex } from './lm/system-one/cortex-adapter.js';
@@ -15,8 +18,8 @@ import { JudgmentDataset } from './lm/system-one/distill.js';
 import { createEmbeddingCache } from './lm/system-one/embedding-cache.js';
 import { createGroundednessGate } from './lm/system-one/groundedness-gate.js';
 import { createHttpManifold } from './lm/system-one/http-manifold.js';
-import { createManifold } from './lm/system-one/manifold.js';
 import { LMReflex } from './lm/system-one/lm-reflex.js';
+import { createManifold } from './lm/system-one/manifold.js';
 import { ManifoldReflex } from './lm/system-one/manifold-reflex.js';
 import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
 import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
@@ -35,9 +38,6 @@ import { QueryAPI, ReasoningTrace } from './query';
 import { BagStrategy, Reasoner } from './reason';
 import { EpsilonGreedyReflex } from './reflex/EpsilonGreedyReflex.js';
 import type { ActionProposal, LearningEvent, Reflex } from './reflex/Reflex.js';
-import { FocusBag } from './focus/FocusBag.js';
-import { createSelfMetaGame, type SelfMetaGameImpl } from './game/SelfMetaGame.js';
-import { GameFocus, type GameFocusOptions } from './focus/GameFocus.js';
 import { RLFPLearner } from './rlfp';
 import { RuleProcessor } from './rules';
 import { ReasoningAboutReasoning } from './self';
@@ -116,6 +116,8 @@ export interface NARConfig extends CoreConfig {
   strategyRegistry?: CognitiveRegistry;
   adaptationInterval?: number;
   feedbackObserver?: ToolFeedbackObserver;
+  /** TODO19 F2: per-instance gate registry; defaults to a fresh isolated instance. */
+  gateRegistry?: GateRegistry;
 
   systemOne?: Partial<SystemOneConfig>;
 }
@@ -145,6 +147,8 @@ export class NAR extends BaseComponent {
   private _lmInitialized = false;
   private _toolsInitialized = false;
   private _constitution: Task[] = [];
+  /** TODO19 F2: per-instance kernel gates — isolated per NAR, injected or created. */
+  readonly gates: GateRegistry;
 
   // System One components
   private _systemOneEmbeddingCache?: EmbeddingCache;
@@ -162,12 +166,13 @@ export class NAR extends BaseComponent {
     super({ logger, metrics, eventBus });
 
     this.config = { ...this.validateConfig(config) };
+    this.gates = config.gateRegistry ?? createGateRegistry();
     this.memory = new Memory(this.config, { attentionModel: this.createAttentionModel(config) });
     this.processor = new RuleProcessor();
     this.processor.setConfig({ memory: this.memory, nar: this });
     this.processor.setEventBus(eventBus);
     this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);
-    this.taskManager = new TaskManager(this.memory);
+    this.taskManager = new TaskManager(this.memory, { gateRegistry: this.gates });
     this.query = new QueryAPI(this.memory);
     this.traceAPI = new ReasoningTrace(this.memory);
     this.tools = new ToolManager({ eventBus, feedbackObserver: config.feedbackObserver });
@@ -214,7 +219,7 @@ export class NAR extends BaseComponent {
         }
       : undefined;
 
-    gateRegistry.initialize({
+    this.gates.initialize({
       initialBudget: {
         maxCycles: 1000,
         maxDepth: 100,
@@ -236,7 +241,7 @@ export class NAR extends BaseComponent {
     this.driveManager = new DriveManager(this as any);
     this.driveManager.setSystemEventBus(this.systemEventBus);
     // D23 (TODO17b): ambiguity at ingress stimulates curiosity (A4 closure).
-    gateRegistry.getPerceptionGate().setDriveManager(this.driveManager);
+    this.gates.getPerceptionGate().setDriveManager(this.driveManager);
     this.execution = new NARExecution(
       this.memory,
       this.taskManager,
@@ -248,7 +253,9 @@ export class NAR extends BaseComponent {
       this.driveManager,
       this.systemEventBus,
       this.self,
-      async (goalTerm) => this.tools.executeToolGoal(goalTerm)
+      async (goalTerm) => this.tools.executeToolGoal(goalTerm),
+      undefined,
+      this.gates
     );
     this.lm = new NARLM(
       this.memory,
@@ -636,7 +643,9 @@ export class NAR extends BaseComponent {
       this.driveManager,
       this.systemEventBus,
       this.self,
-      async (goalTerm) => this.tools.executeToolGoal(goalTerm)
+      async (goalTerm) => this.tools.executeToolGoal(goalTerm),
+      undefined,
+      this.gates
     );
   }
 
@@ -645,7 +654,7 @@ export class NAR extends BaseComponent {
   }
 
   inputTask(task: Task): void {
-    const gate = gateRegistry.getPerceptionGate();
+    const gate = this.gates.getPerceptionGate();
     const result = gate.admitTask(task.term, task.type, task.truth, 'nar-api', task.stamp.id);
 
     if (!result.admitted) {

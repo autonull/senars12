@@ -1,6 +1,6 @@
 import type { CognitiveController } from './cognitive';
 import type { DriveManager } from './drives';
-import { gateRegistry } from './kernel/GateRegistry.js';
+import { type GateRegistry, gateRegistry } from './kernel/GateRegistry.js';
 import { createLogger } from './logger';
 import type { Memory } from './memory';
 import type { NARConfig } from './nar';
@@ -63,7 +63,8 @@ export class NARExecution {
       resetMetaBudget(): void;
       getMetaBudgetStatus(): { derivationsThisStep: number; currentDepth: number };
       recordMetaDerivation(depth: number): void;
-    }
+    },
+    private readonly gates?: GateRegistry
   ) {}
 
   /** Stimulate drives based on events — homeostatic regulation. Public so tool layer can report outcomes. */
@@ -200,7 +201,7 @@ export class NARExecution {
       let testPassed = false;
       let testFailed = false;
       let contradictionDetected = false;
-      const gate = gateRegistry.getPerceptionGate();
+      const gate = (this.gates ?? gateRegistry).getPerceptionGate();
       for (const task of rankDerivations(results, this.config.cognitiveParams?.inference.ranking)) {
         const result = gate.admitTask(
           task.term,
@@ -251,7 +252,9 @@ export class NARExecution {
       if (
         !this.cognitiveController &&
         this.rlfp &&
-        this._cycleCount % (this.rlfp.optimizeInterval ?? this.config.rlfp?.optimizeInterval ?? 100) === 0
+        this._cycleCount %
+          (this.rlfp.optimizeInterval ?? this.config.rlfp?.optimizeInterval ?? 100) ===
+          0
       ) {
         this.phaseTimer.begin('rlfp', 'optimize');
         this.rlfp.optimize();

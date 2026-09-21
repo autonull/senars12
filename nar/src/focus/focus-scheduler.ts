@@ -1,9 +1,9 @@
+import type { MetaGame } from '../game/MetaGame.js';
+import { SeededRNG } from '../game/SeededRNG.js';
+import type { SchedulerAdapter } from '../learning/domain-learners.js';
+import type { FocusStepReport } from './Focus.js';
 import type { FocusBag } from './FocusBag.js';
 import type { GameFocus } from './GameFocus.js';
-import type { FocusStepReport } from './Focus.js';
-import type { SchedulerAdapter } from '../learning/domain-learners.js';
-import { type MetaGame } from '../game/MetaGame.js';
-import { SeededRNG } from '../game/SeededRNG.js';
 
 export interface FocusSchedulerOptions {
   bag: FocusBag;

@@ -195,6 +195,10 @@
     "./stream/*": {
       "types": "./src/stream/*.ts",
       "import": "./src/stream/*.ts"
+    },
+    "./config/parameter-table": {
+      "types": "./src/config/cognitive-parameters.ts",
+      "import": "./src/config/cognitive-parameters.ts"
     }
   },
   "scripts": {

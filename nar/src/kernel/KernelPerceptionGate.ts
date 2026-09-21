@@ -1,3 +1,4 @@
+import { trace } from '@opentelemetry/api';
 import type {
   CognitiveEvent,
   FormalizationBatch,
@@ -8,23 +9,27 @@ import type {
   SourceQuality,
   TaskAdmittedEvent,
 } from '@senars/kernel/schemas';
-import { validateCognitiveEvent, SOURCE_QUALITY_CONFIDENCE } from '@senars/kernel/schemas';
+import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
+import type { DriveManager } from '../drives';
+import { ingressQueries as buildIngressQueries } from '../lm/system-one/head-specs.js';
+import { ConfidenceRouter } from '../lm/system-one/policy.js';
+import { createProvisionalStamp } from '../lm/system-one/provisional-stamp.js';
+import { seedTruth } from '../lm/system-one/seed.js';
+import { createGateTelemetrySinks, createTelemetryEmitter } from '../lm/system-one/telemetry.js';
+import type {
+  EmbeddingCache,
+  EmbeddingPointer,
+  JudgmentManifold,
+  JudgmentQuery,
+} from '../lm/system-one/types.js';
+import { recordJudgmentMetric } from '../metrics/prometheus.js';
+import { normalizeNarsese } from '../nl/normalize.js';
 import type { TaskTypeName, Term } from '../terms';
 import { TermBuilder, termParser } from '../terms';
-import { Truth } from '../terms/truth.js';
-import { normalizeNarsese } from '../nl/normalize.js';
-import type { EmbeddingCache, JudgmentManifold, JudgmentQuery, EmbeddingPointer } from '../lm/system-one/types.js';
-import { createProvisionalStamp } from '../lm/system-one/provisional-stamp.js';
 import type { Stamp } from '../terms/stamp.js';
 import { Stamp as StampClass } from '../terms/stamp.js';
-import { recordJudgmentMetric } from '../metrics/prometheus.js';
-import { trace } from '@opentelemetry/api';
-import { seedTruth } from '../lm/system-one/seed.js';
-import { ConfidenceRouter } from '../lm/system-one/policy.js';
-import type { DriveManager } from '../drives';
-import { createTelemetryEmitter, createGateTelemetrySinks } from '../lm/system-one/telemetry.js';
-import { ingressQueries as buildIngressQueries } from '../lm/system-one/head-specs.js';
+import { Truth } from '../terms/truth.js';
 
 /** E1: ambiguity flag threshold defined once, via the shared ConfidenceRouter. */
 const AMBIGUITY_ROUTER = new ConfidenceRouter({ act: 0.6, review: 0.6, block: 0 });
@@ -143,8 +148,20 @@ export class KernelPerceptionGate {
 
     let taskType = this.inferTaskType(input.rawObservation);
 
-    if (this.config.systemOne?.enabled && this.systemOneManifold && this.systemOneEmbeddingCache && this.systemOneBudget) {
-      const systemOneResult = await this.admitWithSystemOne(input, term, correlationId, sourceQuality, confidence, taskType);
+    if (
+      this.config.systemOne?.enabled &&
+      this.systemOneManifold &&
+      this.systemOneEmbeddingCache &&
+      this.systemOneBudget
+    ) {
+      const systemOneResult = await this.admitWithSystemOne(
+        input,
+        term,
+        correlationId,
+        sourceQuality,
+        confidence,
+        taskType
+      );
       if (systemOneResult) {
         if (systemOneResult.taskType) {
           taskType = systemOneResult.taskType;
@@ -201,13 +218,20 @@ export class KernelPerceptionGate {
       return { output: null };
     }
 
-    const rawObservation = typeof input.rawObservation === 'string' ? input.rawObservation : JSON.stringify(input.rawObservation);
+    const rawObservation =
+      typeof input.rawObservation === 'string'
+        ? input.rawObservation
+        : JSON.stringify(input.rawObservation);
     const embeddingPointer = await this.systemOneEmbeddingCache.write(rawObservation);
 
     const queries: JudgmentQuery[] = buildIngressQueries();
 
     try {
-      const results = await this.systemOneManifold.judgeBatch(embeddingPointer as EmbeddingPointer, queries, this.systemOneBudget);
+      const results = await this.systemOneManifold.judgeBatch(
+        embeddingPointer as EmbeddingPointer,
+        queries,
+        this.systemOneBudget
+      );
 
       const taskTypeResult = results[0];
       const illocutionResult = results[1];
@@ -217,7 +241,12 @@ export class KernelPerceptionGate {
       const sourceQualityResult = results[5];
 
       // Injection veto (critical safety floor)
-      if (injectionResult && !injectionResult.abstained && injectionResult.kind === 'evaluate' && injectionResult.score > 0.1) {
+      if (
+        injectionResult &&
+        !injectionResult.abstained &&
+        injectionResult.kind === 'evaluate' &&
+        injectionResult.score > 0.1
+      ) {
         return {
           output: {
             admitted: false,
@@ -235,9 +264,10 @@ export class KernelPerceptionGate {
       }
 
       // Illocution: store for FormalizationBatch flags (consumer will read from result)
-      const illocution = (illocutionResult && !illocutionResult.abstained && illocutionResult.kind === 'classify')
-        ? illocutionResult.top.option
-        : 'assert';
+      const illocution =
+        illocutionResult && !illocutionResult.abstained && illocutionResult.kind === 'classify'
+          ? illocutionResult.top.option
+          : 'assert';
 
       // Ambiguity: if abstained or high ambiguity, inject question task and stimulate curiosity
       // (E1: single threshold definition site via ConfidenceRouter — act band = flag threshold)
@@ -258,25 +288,44 @@ export class KernelPerceptionGate {
         const tense = tenseResult.top.option;
         const now = Date.now();
         switch (tense) {
-          case 'past': occurrenceTime = now - 86_400_000; break; // ~1 day ago
-          case 'future': occurrenceTime = now + 86_400_000; break; // ~1 day ahead
-          case 'present': occurrenceTime = now; break;
-          case 'timeless': occurrenceTime = undefined; break;
+          case 'past':
+            occurrenceTime = now - 86_400_000;
+            break; // ~1 day ago
+          case 'future':
+            occurrenceTime = now + 86_400_000;
+            break; // ~1 day ahead
+          case 'present':
+            occurrenceTime = now;
+            break;
+          case 'timeless':
+            occurrenceTime = undefined;
+            break;
         }
       }
 
       // Source quality: override confidence ceiling for admission
       let admissionSourceQuality: SourceQuality = sourceQuality;
-      if (sourceQualityResult && !sourceQualityResult.abstained && sourceQualityResult.kind === 'classify') {
+      if (
+        sourceQualityResult &&
+        !sourceQualityResult.abstained &&
+        sourceQualityResult.kind === 'classify'
+      ) {
         const mapped = this.mapSourceQuality(sourceQualityResult.top.option);
         if (mapped) admissionSourceQuality = mapped;
       }
-      const admissionConfidence = SOURCE_QUALITY_CONFIDENCE[admissionSourceQuality] ?? baseConfidence;
+      const admissionConfidence =
+        SOURCE_QUALITY_CONFIDENCE[admissionSourceQuality] ?? baseConfidence;
 
       // Admission truth computed via seedTruth using the task_type proposition (as the primary epistemic judgment)
-      const seedProposition = (taskTypeResult && !taskTypeResult.abstained && taskTypeResult.kind === 'classify')
-        ? taskTypeResult
-        : (results[0] ?? { kind: 'classify' as const, top: { option: 'belief', p: 1 }, calibration: { version: 'v1.0.0', ece: 0 } } as any);
+      const seedProposition =
+        taskTypeResult && !taskTypeResult.abstained && taskTypeResult.kind === 'classify'
+          ? taskTypeResult
+          : (results[0] ??
+            ({
+              kind: 'classify' as const,
+              top: { option: 'belief', p: 1 },
+              calibration: { version: 'v1.0.0', ece: 0 },
+            } as any));
       const admissionTruth = seedTruth(seedProposition, admissionSourceQuality);
 
       const budget = {
@@ -335,11 +384,16 @@ export class KernelPerceptionGate {
 
   private mapTaskType(option: string): TaskTypeName | null {
     switch (option) {
-      case 'belief': return 'belief';
-      case 'goal': return 'goal';
-      case 'question': return 'question';
-      case 'command': return 'command';
-      default: return null;
+      case 'belief':
+        return 'belief';
+      case 'goal':
+        return 'goal';
+      case 'question':
+        return 'question';
+      case 'command':
+        return 'command';
+      default:
+        return null;
     }
   }
 
@@ -359,13 +413,20 @@ export class KernelPerceptionGate {
 
   private mapSourceQuality(option: string): SourceQuality | null {
     switch (option) {
-      case 'PRIMARY': return 'PRIMARY';
-      case 'SECONDARY': return 'SECONDARY';
-      case 'GENERAL': return 'GENERAL';
-      case 'TERTIARY': return 'TERTIARY';
-      case 'LLM_PRIOR': return 'LLM_PRIOR';
-      case 'PEER_AGENT': return 'PEER_AGENT';
-      default: return null;
+      case 'PRIMARY':
+        return 'PRIMARY';
+      case 'SECONDARY':
+        return 'SECONDARY';
+      case 'GENERAL':
+        return 'GENERAL';
+      case 'TERTIARY':
+        return 'TERTIARY';
+      case 'LLM_PRIOR':
+        return 'LLM_PRIOR';
+      case 'PEER_AGENT':
+        return 'PEER_AGENT';
+      default:
+        return null;
     }
   }
 

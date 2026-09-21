@@ -13,29 +13,32 @@
  * Games come from the arcade registry (nar/src/game/registry.ts) — a new game
  * is a `Game` implementation + one GameSpec (name, description, actionLegend).
  */
+
+import type { ReasoningBudget } from '@senars/kernel/schemas';
+import { startArcadeTickSpan } from '../nar/src/eval/arcade-trace.js';
 import { BrierHarness } from '../nar/src/eval/brier-harness.js';
 import {
+  type ArcadeSession,
   isResumable,
   loadSession,
   saveSession,
   sessionKey,
-  type ArcadeSession,
 } from '../nar/src/eval/session-state.js';
-import { startArcadeTickSpan } from '../nar/src/eval/arcade-trace.js';
 import { GameFocus } from '../nar/src/focus/GameFocus.js';
+import { createArcadeRegistry, type Game, SeededRNG } from '../nar/src/game/index.js';
 import { renderGame } from '../nar/src/game/render.js';
 import {
-  createArcadeRegistry,
-  SeededRNG,
-  type Game,
-} from '../nar/src/game/index.js';
+  recordedProposals,
+  recordingReflex,
+  vetoAwareReflex,
+  wrapReflex,
+} from '../nar/src/reflex/adapters.js';
+import { EpsilonGreedyReflex } from '../nar/src/reflex/EpsilonGreedyReflex.js';
+import type { ActionProposal, Reflex } from '../nar/src/reflex/Reflex.js';
 import { game2048HeuristicAction } from '../tests/nar/rl/baselines/2048.js';
 import { snakeHeuristicAction } from '../tests/nar/rl/baselines/snake.js';
 import { tetrisHeuristicPlacement } from '../tests/nar/rl/baselines/tetris.js';
 import { ticTacToeHeuristicAction } from '../tests/nar/rl/baselines/tictactoe.js';
-import { EpsilonGreedyReflex } from '../nar/src/reflex/EpsilonGreedyReflex.js';
-import type { ActionProposal, Reflex } from '../nar/src/reflex/Reflex.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
 
 type Arm = 'manifold' | 'lm' | 'replica' | 'heuristic' | 'random' | 'nal';
 
@@ -56,9 +59,7 @@ const parseArgs = (): {
     const i = process.argv.indexOf(flag);
     return i >= 0 ? (process.argv[i + 1] ?? fallback) : fallback;
   };
-  const games = get('--games', gameRegistry.names().join(','))
-    .split(',')
-    .filter(Boolean);
+  const games = get('--games', gameRegistry.names().join(',')).split(',').filter(Boolean);
   const arms = get('--arms', 'heuristic,random').split(',').filter(Boolean) as Arm[];
   return {
     games,
@@ -102,48 +103,6 @@ const BUDGET: ReasoningBudget = {
   consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
 };
 
-/** Records the proposals served each tick so the harness can score confidence. */
-class RecordingReflex implements Reflex {
-  readonly id: string;
-  lastProposals: ActionProposal[] = [];
-  constructor(
-    id: string,
-    private readonly inner: Reflex
-  ) {
-    this.id = id;
-  }
-  propose(state: unknown, legalActions: unknown[]): ActionProposal[] {
-    this.lastProposals = this.inner.propose(state, legalActions as never);
-    return this.lastProposals;
-  }
-  learn(event: never): void {
-    this.inner.learn(event);
-  }
-  /** Forward the attend-stage prefetch so semantic reflexes (LMReflex) actually run. */
-  async prefetch(
-    stateId: string,
-    context: unknown,
-    legalActions: readonly string[],
-    manifold: unknown,
-    budget: ReasoningBudget,
-    observation?: unknown
-  ): Promise<void> {
-    const p = this.inner as {
-      prefetch?: (
-        stateId: string,
-        context: unknown,
-        legalActions: readonly string[],
-        manifold: unknown,
-        budget: ReasoningBudget,
-        observation?: unknown
-      ) => Promise<void>;
-    };
-    if (typeof p.prefetch === 'function') {
-      await p.prefetch(stateId, context, legalActions, manifold, budget, observation);
-    }
-  }
-}
-
 /** Cognitive arm construction — fail-closed per arm: skip with a note, never substitute. */
 async function buildCognitiveArm(
   arm: 'manifold' | 'lm' | 'replica' | 'nal',
@@ -168,7 +127,8 @@ async function buildCognitiveArm(
       manifold = createManifold(cache, { abstainThreshold: 0.05 });
     } else {
       const endpoint = process.env.OPEN_REPLICA_ENDPOINT;
-      if (!endpoint) return { note: 'replica arm: OPEN_REPLICA_ENDPOINT unset — skipped (fail-closed)' };
+      if (!endpoint)
+        return { note: 'replica arm: OPEN_REPLICA_ENDPOINT unset — skipped (fail-closed)' };
       const { createOpenSystemOneManifold } = await import(
         '../nar/src/lm/system-one/open-systemone-manifold.js'
       );
@@ -192,9 +152,9 @@ async function buildCognitiveArm(
     }
     const reflex =
       gameName === 'tetris'
-        ? new (
-            await import('../nar/src/lm/system-one/cascade-reflex.js')
-          ).PlacementCascadeReflex(incumbent)
+        ? new (await import('../nar/src/lm/system-one/cascade-reflex.js')).PlacementCascadeReflex(
+            incumbent
+          )
         : new ManifoldReflex(incumbent);
     return { reflex, manifold, cache, headLoaded };
   }
@@ -245,10 +205,14 @@ async function buildCognitiveArm(
 }
 
 async function main(): Promise<void> {
-  const { games, arms, episodes, seed, render, cognitive, resume, sessionPath, otel, distill } = parseArgs();
+  const { games, arms, episodes, seed, render, cognitive, resume, sessionPath, otel, distill } =
+    parseArgs();
   if (otel) {
     const { initOtel } = await import('../nar/src/otel/index.js');
-    initOtel({ serviceName: 'senars-arcade', otlpEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT });
+    initOtel({
+      serviceName: 'senars-arcade',
+      otlpEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    });
   }
   const harness = new BrierHarness();
   const notes: string[] = [];
@@ -258,7 +222,9 @@ async function main(): Promise<void> {
   const unknownGames = games.filter((g) => !gameRegistry.has(g));
   const playableGames = games.filter((g) => gameRegistry.has(g));
   if (unknownGames.length > 0)
-    notes.push(`unknown games skipped: ${unknownGames.join(',')} (available: ${gameRegistry.names().join(',')})`);
+    notes.push(
+      `unknown games skipped: ${unknownGames.join(',')} (available: ${gameRegistry.names().join(',')})`
+    );
 
   // Distillation flywheel: the lm arm records its decisions into a dataset;
   // after play, a reflex_value head is trained and picked up by the manifold
@@ -279,9 +245,13 @@ async function main(): Promise<void> {
     const saved = loadSession(sessionPath);
     if (saved && isResumable(saved, run)) {
       completed = saved.completed;
-      notes.push(`resumed session: ${sessionPath} (${Object.entries(completed).reduce((a, [, n]) => a + n, 0)} episodes already done)`);
+      notes.push(
+        `resumed session: ${sessionPath} (${Object.entries(completed).reduce((a, [, n]) => a + n, 0)} episodes already done)`
+      );
     } else {
-      notes.push(`--resume: no resumable session at ${sessionPath} (missing or config mismatch) — starting fresh`);
+      notes.push(
+        `--resume: no resumable session at ${sessionPath} (missing or config mismatch) — starting fresh`
+      );
     }
   }
   const persistProgress = (completed: Record<string, number>): void => {
@@ -308,7 +278,8 @@ async function main(): Promise<void> {
             const legal = (game.legalActions(game.state()) as Array<string | number>).map(String);
             if (legal.length === 0) break;
             const t0 = performance.now();
-            const action = arm === 'random' ? legal[rng.nextInt(legal.length)]! : String(heuristic!(game));
+            const action =
+              arm === 'random' ? legal[rng.nextInt(legal.length)]! : String(heuristic!(game));
             const latencyMs = performance.now() - t0;
             const outcome = game.step(action as never);
             steps++;
@@ -352,7 +323,7 @@ async function main(): Promise<void> {
         continue;
       }
       if (built.headLoaded) notes.push(`${arm}/${gameName}: distilled reflex_value head active`);
-      const recording = new RecordingReflex(`${arm}-recording`, built.reflex);
+      const recording = wrapReflex(built.reflex, vetoAwareReflex(), recordingReflex());
       let promotedCount = 0;
       for (let e = firstEpisode; e < episodes; e++) {
         const game = gameRegistry.create(gameName, seed + e);
@@ -374,14 +345,14 @@ async function main(): Promise<void> {
           });
         let steps = 0;
         while (!game.state().terminal && steps < 150) {
-          recording.lastProposals = [];
           const t0 = performance.now();
           const { gameOutcome } = await focus.step(10);
           const latencyMs = performance.now() - t0;
           steps++;
           if (!gameOutcome) continue;
-          const top = recording.lastProposals.reduce<ActionProposal | null>(
-            (best, p) => (!best || p.value * p.confidence > best.value * best.confidence ? p : best),
+          const top = recordedProposals(recording).reduce<ActionProposal | null>(
+            (best, p) =>
+              !best || p.value * p.confidence > best.value * best.confidence ? p : best,
             null
           );
           const panel = focus.getPanelLog().at(-1);
@@ -405,7 +376,9 @@ async function main(): Promise<void> {
             handover: focus.didLastTickHandover(),
           });
           if (render) {
-            console.log(`\n[${arm}/${gameName}] step ${steps} → ${top?.action ?? 'n/a'} (p=${top?.confidence?.toFixed(2) ?? '-'})`);
+            console.log(
+              `\n[${arm}/${gameName}] step ${steps} → ${top?.action ?? 'n/a'} (p=${top?.confidence?.toFixed(2) ?? '-'})`
+            );
             console.log(renderGame(game));
           }
           if (armCognitive && panel) {
@@ -418,7 +391,11 @@ async function main(): Promise<void> {
         focus.markEpisodeEnd();
         completed[sessionKey(arm, gameName)] = e + 1;
         persistProgress(completed);
-        const reflexStats = built.reflex as { decisions?: number; failures?: number; served?: number };
+        const reflexStats = built.reflex as {
+          decisions?: number;
+          failures?: number;
+          served?: number;
+        };
         if (typeof reflexStats.decisions === 'number')
           notes.push(
             `${arm}/${gameName} ep${e}: lm decisions=${reflexStats.decisions} served=${reflexStats.served ?? 'n/a'} fallback-serving failures=${reflexStats.failures}`
@@ -448,18 +425,24 @@ async function main(): Promise<void> {
     const headDir = '.reports/arcade-heads/reflex_value';
     await dataset.flush(datasetPath);
     await dataset.flushVectors();
-    const rows = await (
-      await import('../nar/src/lm/system-one/train.js')
-    ).loadTrainingData({ datasetPath, sidecarPath, headId: 'reflex_value', averageDuplicates: true });
+    const rows = await (await import('../nar/src/lm/system-one/train.js')).loadTrainingData({
+      datasetPath,
+      sidecarPath,
+      headId: 'reflex_value',
+      averageDuplicates: true,
+    });
     if (rows.length > 0) {
-      const model = (
-        await import('../nar/src/lm/system-one/train.js')
-      ).trainHead(rows, { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' }, { holdoutFraction: 0 });
+      const model = (await import('../nar/src/lm/system-one/train.js')).trainHead(
+        rows,
+        { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' },
+        { holdoutFraction: 0 }
+      );
       rmSync(headDir, { recursive: true, force: true });
       mkdirSync(headDir, { recursive: true });
-      const bundle = await (
-        await import('../nar/src/lm/system-one/train.js')
-      ).writeHeadArtifacts(model, headDir);
+      const bundle = await (await import('../nar/src/lm/system-one/train.js')).writeHeadArtifacts(
+        model,
+        headDir
+      );
       notes.push(
         `distill: trained reflex_value head (${rows.length} rows, ${bundle.modelDigest.slice(0, 19)}…) → ${headDir}; the manifold arm picks it up on the next run`
       );

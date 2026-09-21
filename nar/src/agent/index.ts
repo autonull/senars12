@@ -379,4 +379,8 @@ export {
   JsonlSessionManager,
 } from '@senars/core/memory';
 export { dispatchToolCalls, registerAgentTools } from '@senars/core/motor';
+export type { CapabilitySpec, CapabilitySurface, WiredNAR } from './builder.js';
+export { BuilderError, NARBuilder } from './builder.js';
+export type { NARProfileName, NARProfileSpec } from './profiles.js';
+export { NAR_PROFILES, resolveProfile } from './profiles.js';
 export type { ExtendedAgent };

@@ -37,10 +37,7 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
   private episodeCount: number = 0;
   private readonly qTable: Map<string, Map<string, QEntry>> = new Map();
 
-  constructor(
-    id: string,
-    options: TabularQReflexOptions = {}
-  ) {
+  constructor(id: string, options: TabularQReflexOptions = {}) {
     this.id = id;
     this.alpha = options.alpha ?? 0.1;
     this.gamma = options.gamma ?? 0.95;

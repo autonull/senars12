@@ -113,6 +113,11 @@ export class KernelActionGate {
     this.scopeModes.set(scopeId, mode);
   }
 
+  /** Scope autonomy mode (undefined when the scope is unknown to this gate). */
+  getScopeAutonomy(scopeId: string): AutonomyMode | undefined {
+    return this.scopeModes.get(scopeId);
+  }
+
   addScopedOperation(scopeId: string, operation: string): void {
     let ops = this.scopeOperations.get(scopeId);
     if (!ops) {

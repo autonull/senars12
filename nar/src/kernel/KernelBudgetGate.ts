@@ -60,7 +60,8 @@ export class KernelBudgetGate {
     };
   }
 
-  private resolveBudget(input: BudgetGateInput): ReasoningBudget {    if (input.budget) return input.budget;
+  private resolveBudget(input: BudgetGateInput): ReasoningBudget {
+    if (input.budget) return input.budget;
     if (!input.scopeId) return this.budget;
     let scoped = this.scopes.get(input.scopeId);
     if (!scoped) {

@@ -4,7 +4,7 @@ import type { Game, GameOutcome, Perception } from '../game/Game.js';
 import { ActionGate } from '../gates/ActionGate.js';
 import { PerceptionGate } from '../gates/PerceptionGate.js';
 import { RewardGate } from '../gates/RewardGate.js';
-import { gateRegistry } from '../kernel/index.js';
+import { type GateRegistry, gateRegistry } from '../kernel/index.js';
 import type { NALDerivation } from '../reflex/Negotiator.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../reflex/Reflex.js';
 import type { Term } from '../terms/index.js';
@@ -63,6 +63,8 @@ export interface FocusOptions {
   taskDecayRate?: number;
   conceptDecayRate?: number;
   weight?: number;
+  /** TODO19 F2: per-instance gate registry (defaults to the process-global singleton). */
+  gateRegistry?: GateRegistry;
 }
 
 export class Focus implements BagItem {
@@ -72,6 +74,7 @@ export class Focus implements BagItem {
   weight: number;
 
   private cycle = 0;
+  private gates: GateRegistry;
   private readonly perceptionGate: PerceptionGate;
   private readonly actionGate: ActionGate;
   private readonly rewardGate: RewardGate;
@@ -82,6 +85,7 @@ export class Focus implements BagItem {
   constructor(options: FocusOptions) {
     this.id = options.id;
     this.weight = options.weight ?? 1.0;
+    this.gates = options.gateRegistry ?? gateRegistry;
 
     this.tasks = new PriorityBag<FocusTask>({
       capacity: options.taskCapacity ?? 1000,
@@ -122,7 +126,7 @@ export class Focus implements BagItem {
     };
 
     if (
-      !gateRegistry
+      !this.gates
         .getBudgetGate()
         .check({ operation: 'nal-step', estimatedCost: 1, scopeId: this.id }).granted
     )
