@@ -197,4 +197,19 @@ auth binds or refuses        doctor tells the truth      self-tools never lie
 
 **Plan status: complete.** All D-items (D0–D24) done; Benches 35*–40 pass; `pnpm typecheck` 0 errors; `pnpm lint` clean; §8 residue (governance status surface, subpath audit, Arcade LM-arm win) also closed 2026-09-21. TODO17b is done — future work belongs in a new TODO file.
 
+---
+
+## 9. Addendum (2026-09-21, later session) — System One pattern completeness (open-source Jev-parity audit)
+
+Audit of the System One layer against the Jev/TypeSafe System One pattern space (Choice/Score/Noul primitives; fan-out, confidence-gated routing, composite scoring, intent routing, two-stage cascade, per-question calibration, self-consistency, abstain-first). Everything is implemented with open techniques only (GBNF-constrained decoding, isotonic calibration, linear distillation heads, NARS truth) — **no proprietary API integration**; the open `createOpenSystemOneManifold({endpoint})` (replica arm) remains the sanctioned path for any remote System One-shaped backend. A CLI demo exists: `pnpm run demo:arcade` (+ `--distill` flywheel, §8).
+
+**Gaps found and closed (all Bench-tested, `tests/nar/todo16c-jev.test.ts` + `todo16c-head-specs.test.ts`):**
+1. **`plausibility` head (Noul) shipped by default** — was in `RubricId` and queried by `truthProbability()` but had no `HEAD_SPECS` entry (production manifolds threw "No head registered"; only tests hand-registered). Added: evaluate, levels `['false','true']`, group synthesis.
+2. **`assertion` head (safety-floor rubric) shipped** — same dead-rubric situation; added with `criticality: 'high'`, levels `['unsupported','supported']`.
+3. **Classify routing fixed (Choice semantics)** — every classify query was hard-routed to the `task_type` head, leaving 6 registered classify heads unreachable and `candidate_select` ranking judged in the wrong space. `ClassifyQuery` now carries an optional `rubric`, `selectQuery` declares `candidate_select`, and heads judge over the **query's declared space** (live candidates), not the head's. Empty query space abstains honestly (`out-of-domain`).
+4. **Score semantics (probability-weighted legend)** — evaluate heads declared ordered `levels` but emitted only a scalar. `EvaluateProposition.legend` now carries per-level probability weights (triangular kernel over level anchors around the calibrated scalar; normalized to 1); manifold falls back to building it from `query.levels`. Weighted position ≈ scalar (asserted).
+5. **Sampled self-consistency made meaningful** — `manifold.consensus` salted per-run instructions (deterministic scorer previously made k runs identical → agreement trivially 1.0). Agreement now measures stability under seeded perturbation; single-shot judgments remain fully deterministic.
+
+**Known remaining (optional):** SDE-style extract→per-field-verify→retry cascade is available as a *composition* of existing primitives (fan-out of `plausibility` queries over candidate fields) but has no dedicated helper; consensus fan-out is capped at k≤3.
+
 **Build order:** 0 (D0, ~1d — the green baseline everything is certified against) → A (2d) → B (1.5d) → C (2d, DQ-gated) — each phase independently releasable; 0 and A are the only P0s.

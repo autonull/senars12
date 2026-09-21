@@ -2,7 +2,7 @@
  * Single declarative registry of the System One judgment-head ontology (G1/Bench 25).
  * This is the ONLY place head spaces/levels/instructions are written down.
  */
-import type { ClassifyQuery, CognitiveAxis, CriticalityLevel, JudgmentHead, JudgmentQuery, RubricId } from './types.js';
+import type { ClassifyQuery, CognitiveAxis, CriticalityLevel, EvaluateQuery, JudgmentHead, JudgmentQuery, RubricId } from './types.js';
 import { createIsotonicCalibrator } from './calibration.js';
 import { getScorer } from './scoring.js';
 import type { HeadFactoryOptions } from './heads/factory.js';
@@ -79,6 +79,17 @@ export const HEAD_SPECS = {
     space: ['candidate_1', 'candidate_2', 'candidate_3'],
     instruction: 'Select the best candidate', group: 'synthesis',
   },
+  plausibility: {
+    rubric: 'plausibility', axis: 'epistemic', kind: 'evaluate',
+    levels: ['false', 'true'],
+    instruction: 'Evaluate whether the statement is true', group: 'synthesis',
+  },
+  assertion: {
+    rubric: 'assertion', axis: 'epistemic', kind: 'evaluate',
+    levels: ['unsupported', 'supported'],
+    instruction: 'Evaluate whether the claim is supported by the evidence', criticality: 'high',
+    group: 'synthesis',
+  },
   conflict: {
     rubric: 'conflict', axis: 'epistemic', kind: 'evaluate',
     levels: ['support', 'neutral', 'conflict', 'strong-conflict'],
@@ -131,22 +142,50 @@ export function createHead(spec: HeadSpec, options: HeadFactoryOptions): Judgmen
     space: isClassify ? space : undefined,
     levels: isClassify ? undefined : spec.levels,
     evaluate: async (embedding: Float32Array, query: JudgmentQuery) => {
-      if (!enabled) {
-        return { score: 0, distribution: isClassify ? uniform : undefined, abstained: true, abstainReason: 'out-of-domain' };
+      // Choice semantics: the query may declare its own option space (e.g. a
+      // candidate-select over live candidates) — the head judges over that.
+      const options = isClassify ? ((query as ClassifyQuery).space ?? space) : [];
+      const legendLevels = spec.levels ?? (query as EvaluateQuery).levels;
+      if (!enabled || (isClassify && options.length === 0)) {
+        // Disabled, or a Choice with no options — nothing to judge.
+        return {
+          score: 0,
+          distribution: isClassify ? options.map((option) => ({ option, p: 1 / Math.max(1, options.length) })) : undefined,
+          abstained: true,
+          abstainReason: 'out-of-domain',
+        };
       }
       const calibratedScore = calibrator.calibrate(scorer(embedding, query));
       if (calibratedScore < abstainThreshold) {
-        return { score: calibratedScore, distribution: isClassify ? uniform : undefined, abstained: true, abstainReason: 'low-confidence' };
+        return {
+          score: calibratedScore,
+          distribution: isClassify ? options.map((option) => ({ option, p: 1 / Math.max(1, options.length) })) : undefined,
+          abstained: true,
+          abstainReason: 'low-confidence',
+        };
       }
       if (isClassify) {
-        const dominantIdx = Math.floor(calibratedScore * space.length) % space.length;
-        const distribution = space.map((option, i) => ({
+        const dominantIdx = Math.floor(calibratedScore * options.length) % options.length;
+        const distribution = options.map((option, i) => ({
           option,
-          p: i === dominantIdx ? calibratedScore : (1 - calibratedScore) / Math.max(1, space.length - 1),
+          p: i === dominantIdx ? calibratedScore : (1 - calibratedScore) / Math.max(1, options.length - 1),
         }));
         return { score: calibratedScore, distribution, abstained: false };
       }
-      return { score: calibratedScore, abstained: false };
+      // Score semantics: probability-weighted position over the ordered legend —
+      // triangular kernel around the calibrated scalar at the level anchors.
+      const legend =
+        legendLevels && legendLevels.length > 1
+          ? (() => {
+              const n = legendLevels.length;
+              const weights = legendLevels.map((_, i) =>
+                Math.max(0, 1 - Math.abs(calibratedScore - i / (n - 1)) * (n - 1))
+              );
+              const total = weights.reduce((a, b) => a + b, 0) || 1;
+              return { levels: legendLevels, weights: weights.map((w) => w / total) };
+            })()
+          : undefined;
+      return { score: calibratedScore, legend, abstained: false };
     },
   };
 }
@@ -177,5 +216,5 @@ export const ingressQueries = () => groupQueries('ingress');
 export const actionQueries = () => groupQueries('action');
 
 export function selectQuery(space: readonly string[], instruction: string): ClassifyQuery {
-  return { kind: 'classify', instruction, space, axis: 'teleological', criticality: 'standard' };
+  return { kind: 'classify', instruction, space, axis: 'teleological', rubric: 'candidate_select', criticality: 'standard' };
 }

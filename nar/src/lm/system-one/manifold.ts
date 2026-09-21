@@ -98,8 +98,21 @@ function makeProposition(
       kind: 'evaluate',
       axis: query.axis,
       score: result.score,
+      legend: result.legend ?? evaluateLegend(query, result.score),
     };
   }
+}
+
+/** Score legend fallback: build the probability-weighted position from the
+ *  query's declared levels when the head did not emit one. */
+function evaluateLegend(query: JudgmentQuery, score: number) {
+  if (query.kind !== 'evaluate') return undefined;
+  const levels = query.levels;
+  if (!levels || levels.length < 2) return undefined;
+  const n = levels.length;
+  const weights = levels.map((_, i) => Math.max(0, 1 - Math.abs(score - i / (n - 1)) * (n - 1)));
+  const total = weights.reduce((a: number, b) => a + b, 0) || 1;
+  return { levels, weights: weights.map((w) => w / total) };
 }
 
 export class SystemOneManifold implements JudgmentManifold {
@@ -153,7 +166,7 @@ export class SystemOneManifold implements JudgmentManifold {
     const results: JudgmentProposition[] = [];
 
     for (const query of queries) {
-      const rubric = query.kind === 'classify' ? 'task_type' : query.rubric;
+      const rubric = query.kind === 'classify' ? (query.rubric ?? 'task_type') : query.rubric;
       const head = this.#config.heads.get(rubric);
       if (!head) {
         throw new Error(`No head registered for query: ${query.kind} ${rubric}`);
@@ -226,8 +239,13 @@ export class SystemOneManifold implements JudgmentManifold {
     const fanout = Math.min(k, 3);
     const runs: JudgmentProposition[][] = [];
 
+    // Sampled self-consistency (open technique): heads are deterministic, so
+    // repeated judgments are salted per run index — agreement then measures
+    // stability under seeded perturbation rather than trivially reading 1.0.
     for (let i = 0; i < fanout; i++) {
-      const batch = await this.judgeBatch(sharedContext, [query], budget);
+      const runQuery =
+        i === 0 ? query : ({ ...query, instruction: query.instruction + '\u200b'.repeat(i) } as JudgmentQuery);
+      const batch = await this.judgeBatch(sharedContext, [runQuery], budget);
       runs.push(batch);
     }
 

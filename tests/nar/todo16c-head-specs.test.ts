@@ -34,8 +34,8 @@ const sampleQueries: JudgmentQuery[] = [
 ];
 
 describe('Bench 25 — Declarative Registry Equivalence', () => {
-  it('HEAD_SPECS covers all 17 heads with valid geometry', () => {
-    expect(Object.keys(HEAD_SPECS)).toHaveLength(17);
+  it('HEAD_SPECS covers all 19 heads with valid geometry', () => {
+    expect(Object.keys(HEAD_SPECS)).toHaveLength(19);
     for (const spec of Object.values(HEAD_SPECS) as readonly HeadSpec[]) {
       if (spec.kind === 'classify') {
         expect(spec.space?.length).toBeGreaterThan(0);
@@ -59,10 +59,13 @@ describe('Bench 25 — Declarative Registry Equivalence', () => {
       expect(head.axis).toBe(spec.axis);
       if (spec.kind === 'classify') {
         expect(head.space).toEqual(spec.space);
-        expect(result.distribution?.map((d) => d.option)).toEqual(spec.space);
+        // Choice semantics: the head judges over the QUERY's declared space.
+        expect(result.distribution?.map((d) => d.option)).toEqual((query as Extract<JudgmentQuery, { kind: 'classify' }>).space);
       } else {
         expect(head.levels).toEqual(spec.levels);
         expect(result.distribution).toBeUndefined();
+        expect(result.legend?.levels).toEqual(spec.levels);
+        expect(result.legend!.weights.reduce((a: number, b: number) => a + b, 0)).toBeCloseTo(1, 6);
       }
       // Deterministic: same inputs → same outputs.
       const again = await head.evaluate(emb, query);

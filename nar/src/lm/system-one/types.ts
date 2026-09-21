@@ -26,6 +26,7 @@ export interface JudgmentHead {
 export interface HeadResult {
   score: number;
   distribution?: readonly { option: string; p: number }[];
+  legend?: { levels: readonly string[]; weights: readonly number[] };
   abstained: boolean;
   abstainReason?: 'low-confidence' | 'out-of-domain' | 'timeout' | 'breaker-open';
 }
@@ -59,6 +60,9 @@ export interface ClassifyQuery {
   instruction: string;
   space: readonly string[];
   axis: CognitiveAxis;
+  /** Which classify head judges this query; defaults to `task_type` (Jev
+   *  Choice: the query declares its own option space). */
+  rubric?: RubricId;
   target?: string;
   criticality?: CriticalityLevel;
 }
@@ -121,6 +125,9 @@ export interface EvaluateProposition extends PropositionBase {
   kind: 'evaluate';
   axis: CognitiveAxis;
   score: number;
+  /** Jev-Score semantics (open technique): per-level probability weights over
+   *  the ordered rubric legend, probability-weighted around the scalar score. */
+  legend?: { levels: readonly string[]; weights: readonly number[] };
 }
 
 export type JudgmentProposition = ClassifyProposition | EvaluateProposition;

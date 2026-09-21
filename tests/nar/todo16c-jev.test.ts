@@ -208,4 +208,57 @@ describe('Jev Patterns (Bench 23)', () => {
     expect(below!.value).toBe(0.4);
     expect(below!.confidence).toBe(0.4);
   });
+
+  it('plausibility and assertion heads are registered by default (Noul coverage, no hand registration)', async () => {
+    const cache = createEmbeddingCache({ maxSize: 100, ttlMs: 60_000, generator: fakeGenerator() });
+    const manifold = createManifold(cache, { abstainThreshold: 0.05 });
+    const pointer = (await cache.write('ctx')) as never;
+    const noulQuery = truthProbability('is the sky blue?');
+    const assertionQuery = { kind: 'evaluate' as const, instruction: 'The passage supports the claim', rubric: 'assertion' as const, axis: 'epistemic' as const };
+    const props = await manifold.judgeBatch(pointer, [noulQuery, assertionQuery], budget);
+    expect(props).toHaveLength(2);
+    expect(props.every((p) => p && !p.abstained)).toBe(true);
+    const noulProp = props[0] as EvaluateProposition;
+    expect(noulProp.legend?.levels).toEqual(['false', 'true']);
+    expect(noulProp.legend!.weights).toHaveLength(2);
+  });
+
+  it('classify queries route by declared rubric and judge over the query space (Choice over live candidates)', async () => {
+    const cache = createEmbeddingCache({ maxSize: 100, ttlMs: 60_000, generator: fakeGenerator() });
+    const manifold = createManifold(cache, { abstainThreshold: 0.05 });
+    const pointer = (await cache.write('ctx')) as never;
+    const candidates = ['push_left', 'push_right', 'hold'];
+    const riskQuery = { kind: 'classify' as const, instruction: 'classify the risk', space: candidates, axis: 'teleological' as const, rubric: 'risk' as const };
+    const [prop] = await manifold.judgeBatch(pointer, [riskQuery], budget);
+    const classify = prop as ClassifyProposition;
+    expect(classify.kind).toBe('classify');
+    expect(classify.distribution.map((d) => d.option)).toEqual(candidates);
+    expect(classify.distribution.reduce((a: number, d) => a + d.p, 0)).toBeCloseTo(1, 6);
+  });
+
+  it('score semantics: evaluate propositions carry a probability-weighted legend over the ordered rubric', async () => {
+    const cache = createEmbeddingCache({ maxSize: 100, ttlMs: 60_000, generator: fakeGenerator() });
+    const manifold = createManifold(cache, { abstainThreshold: 0.05 });
+    const pointer = (await cache.write('ctx')) as never;
+    const q = { kind: 'evaluate' as const, instruction: 'Evaluate feasibility', rubric: 'feasibility' as const, axis: 'teleological' as const };
+    const [prop] = await manifold.judgeBatch(pointer, [q], budget);
+    const ev = prop as EvaluateProposition;
+    expect(ev.legend?.levels).toEqual(['impossible', 'unlikely', 'possible', 'likely', 'certain']);
+    const weights = ev.legend!.weights;
+    expect(weights.reduce((a: number, b: number) => a + b, 0)).toBeCloseTo(1, 6);
+    // weighted position ≈ score (both live in [0,1])
+    const position = weights.reduce((a: number, w: number, i: number) => a + w * (i / (weights.length - 1)), 0);
+    expect(Math.abs(position - ev.score)).toBeLessThan(0.5);
+  });
+
+  it('sampled self-consistency: consensus agreement is non-trivial under deterministic heads', async () => {
+    const cache = createEmbeddingCache({ maxSize: 100, ttlMs: 60_000, generator: fakeGenerator() });
+    const manifold = createManifold(cache, { abstainThreshold: 0.05 });
+    const pointer = (await cache.write('consensus ctx')) as never;
+    const query = { kind: 'evaluate' as const, instruction: 'Evaluate reflex value', rubric: 'reflex_value' as const, axis: 'teleological' as const };
+    const consensus = await manifold.consensus(pointer, query, 3, budget);
+    expect(consensus.independent).toBe(false);
+    expect(consensus.agreement).toBeGreaterThanOrEqual(0);
+    expect(consensus.agreement).toBeLessThanOrEqual(1);
+  });
 });
