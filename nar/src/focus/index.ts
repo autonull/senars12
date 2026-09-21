@@ -15,3 +15,4 @@ export { createGameFocus, GameFocus } from './GameFocus.js';
 export type { MetaFocusOptions } from './MetaFocus.js';
 export { createMetaFocus, MetaFocus } from './MetaFocus.js';
 export { induceEpisodeSchemas, type PromotedSchema } from './schema-induction.js';
+export { SchemaStore, type StoredSchema } from './schema-store.js';
