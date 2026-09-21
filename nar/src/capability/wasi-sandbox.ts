@@ -33,6 +33,10 @@ export function sanitizePreopens(paths: string[] = []): Record<string, string> {
   return preopens;
 }
 
+/**
+ * Rejects when `timeoutMs` elapses. The losing promise is not cancelled — it
+ * keeps running; use only where orphaned work is safe.
+ */
 export function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {

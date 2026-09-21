@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { JobManager } from '../../../src/api/job-manager.js';
+import { JobManager } from '../../../src/bin/lib/mcp/job-manager.js';
 
 describe('JobManager', () => {
   it('tracks a job through running to done with its result', async () => {

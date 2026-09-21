@@ -27,6 +27,12 @@ const LEGAL_TRANSITIONS: Record<AutonomyMode, AutonomyMode[]> = {
 
 export type AutonomyAuthority = 'system' | 'human' | 'external-governance';
 
+/**
+ * Typed NAL-veto error for callers that convert a gate veto result
+ * (`authorized: false` + `vetoReason`) into an exception. The gate itself
+ * reports vetoes via its typed result and a `policy.violation` event, never
+ * by throwing.
+ */
 export class NALVetoError extends Error {
   public readonly vetoReason: string;
   public readonly correlationId: string;

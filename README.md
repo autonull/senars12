@@ -219,22 +219,17 @@ The neuro-symbolic handoff (LLM → Narsese candidates → Kernel Gates → NAL 
 - **Universal AIKR queues** — Working, Episodic, and Semantic memory are all bounded `Bag<T>` priority queues
 - **Revision history** — per-concept truth-value evolution
 - **Embedding-based similarity** — semantic retrieval
-- **Temporal embedding memory** — time-aware recall
 - **Probabilistic sampling** — recall driven by AIKR budget and priority-weighted sampling
 - **Decoupled decay** — truth (`frequency`, `confidence`) decays only on temporal invalidation or contradiction; attention (`priority`) decays by LRU/access time
 - **Pressure-driven consolidation** — high `Bag` pressure triggers cognitive sleep and schema induction
 - **State persistence** — JSON snapshot layered over the event log
 
 ```typescript
-import { Memory, WorkingMemory, EpisodicMemory, Concept } from '@senars/nar';
+import { Memory, EpisodicMemory, Concept } from '@senars/nar';
 
 // Long-term concept memory with priority bags
 const memory = new Memory(config);
 const concept = memory.getConcept(term);
-
-// Working memory for active reasoning
-const wm = new WorkingMemory();
-wm.addFocus(term, priority);
 
 // Episodic memory for experience
 const episodic = new EpisodicMemory(config);
@@ -731,7 +726,6 @@ import { CognitiveParameters, DEFAULT_COGNITIVE_PARAMETERS, FAST_COGNITIVE_CONFI
 | **Attention** | `simple`, `spreading-activation`, `goal-relevance`, `composite` |
 
 **Optimization-Ready** — `PARAMETER_SPACE` defines min/max/default for every tunable, enabling:
-- Grid/random search via `CognitiveOptimizer`
 - RL-based policy optimization (RLFP)
 - Evolutionary parameter tuning
 
@@ -781,16 +775,6 @@ SimpleAttention | SpreadingActivation | GoalRelevanceAttention | CompositeAttent
 CuriosityDrive | CompetenceDrive | CoherenceDrive | SocialDrive
 ```
 
-**Self-Optimizer — Automated Hyperparameter Tuning:**
-
-```typescript
-import { CognitiveOptimizer, GridSampler, RandomSampler } from '@senars/nar/cognitive';
-
-const optimizer = new CognitiveOptimizer(parameterSpace, evaluator);
-const result = await optimizer.optimize(new GridSampler(), 100);
-// Finds optimal CognitiveParameters via grid/random/Bayesian search
-```
-
 **Cognitive Analyzers (8 specialized monitors):**
 
 | Analyzer | Purpose |
@@ -814,17 +798,6 @@ import { SchemaInductor, createSchemaInductor } from '@senars/nar/learning';
 const inductor = createSchemaInductor(memory, lmService);
 const schemas = await inductor.induceFromDerivations(derivations);
 // e.g. "(?A --> ?B) & (?B --> ?C) ==> (?A --> ?C)" [transitivity]
-```
-
-**Feedback Learning — Continuous Improvement:**
-
-```typescript
-import { FeedbackLearner, validateLMOutput } from '@senars/nar/learning';
-
-const learner = new FeedbackLearner();
-learner.onCorrection("cats are mammals", "(cat --> animal)", "(cat --> mammal)");
-learner.onDerivationOutcome(derivation, 'accepted');  // Tracks rule performance
-const adjustedPriority = learner.getAdjustedPriority(ruleId, basePriority);
 ```
 
 **Reasoning About Reasoning (Metacognitive Self-Analysis):**
@@ -1618,12 +1591,12 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 | **Terms** | `TermBuilder`, `termParser`, `Truth`, `Stamp` | `@senars/nar` |
 | **Rules** | `NALRules`, `NALExtendedRules`, `RuleProcessor`, `MetaRules` | `@senars/nar` |
 | **Agent (NAR)** | `createAgent`, `Agent`, `NAREngine` | `@senars/nar/agent` |
-| **Cognitive** | `CognitiveController`, `Observer`, `RLFPLearner` | `@senars/nar/cognitive` |
+| **Cognitive** | `CognitiveController`, `runCounterfactual`, `RLFPLearner` | `@senars/nar/cognitive` |
 | **Cognitive Params** | `CognitiveParameters`, `DEFAULT_COGNITIVE_PARAMETERS`, `FAST_COGNITIVE_CONFIG`, `LM_HEAVY_CONFIG` | `@senars/nar` (internal) |
 | **Strategies** | `SamplingStrategy`, `DerivationStrategy`, `AttentionModel` | `@senars/nar` (internal) |
 | **NL** | `NLUnderstandingService`, `NLGenerationService` | `@senars/nar/nl` |
 | **Tools** | `ToolManager`, `discoverTools`, `ExplainTool`, `SelfTools` | `@senars/nar/tools` |
-| **Learning** | `SchemaInductor`, `FeedbackLearner`, `validateLMOutput` | `@senars/nar/learning` |
+| **Learning** | `SchemaInductor` | `@senars/nar/learning` |
 | **Self-Reasoning** | `ReasoningAboutReasoning`, `SelfAnalyzer`, `MetacognitiveMonitor` | `@senars/nar/self` |
 | **Cognitive Analyzers** | `capabilities`, `performance`, `quality`, `reasoning-patterns`, ... | `@senars/nar/cognitive/analyzers` |
 | **Grounding** | `GroundingPipeline`, `SourceQuality` | `@senars/nar` (internal) |

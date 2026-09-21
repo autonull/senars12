@@ -27,7 +27,6 @@ import { createLogger } from './logger';
 import type { Concept } from './memory';
 import { Memory } from './memory';
 import { createEmbeddingGenerator } from './memory/embedding.js';
-import { WorkingMemory } from './memory/WorkingMemory.js';
 import { MetricsCollector } from './metrics';
 import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
@@ -123,7 +122,6 @@ export interface NARConfig extends CoreConfig {
 export class NAR extends BaseComponent {
   readonly id = 'nar';
   readonly memory: Memory;
-  readonly workingMemory: WorkingMemory;
   readonly taskManager: TaskManager;
   readonly reasoner: Reasoner;
   readonly query: QueryAPI;
@@ -172,7 +170,6 @@ export class NAR extends BaseComponent {
     this.query = new QueryAPI(this.memory);
     this.traceAPI = new ReasoningTrace(this.memory);
     this.tools = new ToolManager({ eventBus, feedbackObserver: config.feedbackObserver });
-    this.workingMemory = new WorkingMemory();
     this._lmService = this.config.lmService;
     this._registry = this.config.providerRegistry;
 

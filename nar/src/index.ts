@@ -10,10 +10,9 @@ export type {
 /** Main memory store. @public */
 /** Unified AIKR priority bag substrate. @public */
 export { PriorityBag } from './bag/index.js';
-export type { CognitiveAction, CognitiveState, ObserverReport } from './cognitive/index.js';
 // Cognitive
-/** Cognitive observer + counterfactual simulator. @public */
-export { Observer, runCounterfactual } from './cognitive/index.js';
+/** Counterfactual simulator. @public */
+export { runCounterfactual } from './cognitive/index.js';
 export type { SeNARSConfig, SeNARSOptions } from './factory.js';
 // Factory for creating NAR instances
 /** NAR factory + convenience constructors. @public */

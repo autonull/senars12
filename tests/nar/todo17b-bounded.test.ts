@@ -5,7 +5,6 @@ import { MetacognitiveMonitor } from '../../nar/src/cognitive/MetacognitiveMonit
 import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
 import { InMemorySessionManager } from '../../util/src/memory/in-memory-session-manager.js';
 import { EGraph } from '../../metta/src/engine/egraph.js';
-import { FeedbackLearner } from '../../nar/src/learning/feedback.js';
 import { Memory } from '../../nar/src/memory/memory.js';
 
 /**
@@ -144,12 +143,4 @@ describe('Bench 38 — Bounded Runtime', () => {
     ).not.toThrow();
   });
 
-  it('D17 — FeedbackLearner evicts least-cited corrections at cap', () => {
-    const learner = new FeedbackLearner();
-    for (let i = 0; i < 499; i++) learner.onCorrection(`unique phrase ${i}`, '', '(a --> b)');
-    for (let i = 0; i < 10; i++) learner.onCorrection('hot phrase', '', '(hot --> b)');
-    learner.onCorrection('overflow phrase', '', '(x --> y)');
-    const stats = learner.getStats();
-    expect(stats.corrections).toBeLessThanOrEqual(500);
-  });
 });

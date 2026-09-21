@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ExtendedAgent as Agent } from '@senars/nar/agent';
 import { getRoutingStatus } from '@senars/nar/lm';
-import type { NAR } from '../../nar/src';
+import type { NAR } from '../../../../nar/src';
 import type { JobManager } from './job-manager.js';
 import { formatBeliefsForMCP, stringifyMCP } from './mcp-response.js';
 

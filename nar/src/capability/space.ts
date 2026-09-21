@@ -115,6 +115,7 @@ export class CapabilitySpace {
           error: decision.feedback ?? 'rejected by approval',
         });
     }
+    // Typed errors are flattened to `error.message` strings in the result.
     try {
       const result = await this.sandbox(() => Promise.resolve(capability.execute(args)));
       return this.record(name, { success: true, result });

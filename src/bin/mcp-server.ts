@@ -10,11 +10,12 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createLogger } from '@senars/nar/logger';
-import { JobManager } from '../api/job-manager.js';
-import { registerMCPPrompts } from '../api/mcp-prompts.js';
-import { registerMCPResources } from '../api/mcp-resources.js';
-import { registerNARTools } from '../api/mcp-tools.js';
+import { JobManager } from './lib/mcp/job-manager.js';
+import { registerMCPPrompts } from './lib/mcp/mcp-prompts.js';
+import { registerMCPResources } from './lib/mcp/mcp-resources.js';
+import { registerNARTools } from './lib/mcp/mcp-tools.js';
 import { createAgentFromEnv } from './lib/lifecycle.js';
+import { HttpGuard, rejectWithStatus } from './lib/http-guards.js';
 
 const logger = createLogger({ scope: 'mcp' });
 
@@ -50,11 +51,16 @@ const installSignalShutdown = (onShutdown: () => Promise<void>): void => {
   process.on('SIGTERM', () => handler('SIGTERM'));
 };
 
-const startSse = (port: number): void => {
+const startSse = (port: number, guard: HttpGuard): void => {
   const sessions = new Map<string, SSEServerTransport>();
 
   const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? '/', `http://localhost:${port}`);
+    const rejected = guard.check(req, ['/mcp/sse']);
+    if (rejected) {
+      rejectWithStatus(res, rejected);
+      return;
+    }
     if (req.method === 'GET' && url.pathname === '/mcp/sse') {
       const transport = new SSEServerTransport('/mcp/messages', res);
       sessions.set(transport.sessionId, transport);
@@ -81,13 +87,18 @@ const startSse = (port: number): void => {
   installSignalShutdown(async () => httpServer.close());
 };
 
-const startHttp = (port: number): void => {
+const startHttp = (port: number, guard: HttpGuard): void => {
   const httpTransport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => `session-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   });
   void server.connect(httpTransport);
 
   const httpServer = createServer(async (req, res) => {
+    const rejected = guard.check(req);
+    if (rejected) {
+      rejectWithStatus(res, rejected);
+      return;
+    }
     if (req.url?.startsWith('/mcp')) {
       await httpTransport.handleRequest(req, res);
     } else {
@@ -126,11 +137,17 @@ async function initialize() {
       break;
     }
     case 'sse':
-      startSse(port);
+    case 'http': {
+      const mcpConfig = appConfig.connections?.mcp;
+      const apiKey = mcpConfig?.apiKeyEnv
+        ? process.env[mcpConfig.apiKeyEnv]
+        : mcpConfig?.apiKey;
+      const guard = new HttpGuard({ apiKey, rateLimitPerMinute: mcpConfig?.rateLimitPerMinute });
+      if (!apiKey) logger.info(`MCP API key (client x-api-key header): ${guard.activeKey}`);
+      if (transportType === 'sse') startSse(port, guard);
+      else startHttp(port, guard);
       break;
-    case 'http':
-      startHttp(port);
-      break;
+    }
     default:
       throw new Error(`Unknown transport: ${transportType}`);
   }

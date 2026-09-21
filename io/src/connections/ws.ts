@@ -103,6 +103,7 @@ export class WSConnection extends BaseConnection {
 
     ws.on('close', () => {
       clearInterval(client.heartbeat);
+      unsubscribeFromEvents(this.eventSubscriptions, client, [...client.subscriptions]);
       this.clients.delete(id);
       this.logger.info(`WebSocket client ${id} disconnected. Total: ${this.clients.size}`);
     });
@@ -110,6 +111,7 @@ export class WSConnection extends BaseConnection {
     ws.on('error', (err) => {
       this.logger.error(`WebSocket client ${id} error`, err);
       clearInterval(client.heartbeat);
+      unsubscribeFromEvents(this.eventSubscriptions, client, [...client.subscriptions]);
       this.clients.delete(id);
     });
 

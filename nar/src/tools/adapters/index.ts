@@ -1,5 +1,5 @@
 export type { NARSToolDeps, NARSToolsOptions } from './aisdk-adapter.js';
-export { createGeneralTools, createNARSTools, createWorkingMemoryTools } from './aisdk-adapter.js';
+export { createGeneralTools, createNARSTools } from './aisdk-adapter.js';
 export type {
   ApprovalManagerOptions,
   ApprovalRequest,

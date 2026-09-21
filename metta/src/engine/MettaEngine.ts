@@ -60,6 +60,9 @@ export class MettaEngine extends BaseEngine {
     const text = stimulus.text;
     if (!text.startsWith('metta:')) return [];
 
+    // Best-effort premise extraction: on any evaluation error the premises are
+    // silently absent ([]), never surfaced as a failure.
+
     try {
       const program = text.startsWith('metta:') ? text.slice(6) : text;
       const parsed = parseMeTTa(program);

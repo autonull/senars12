@@ -197,6 +197,12 @@ export const connectionsSchema = z.object({
     .object({
       /** Require approval for mutating tools (write_file); `SENARS_MCP_APPROVE=1` also enables. */
       approval: z.boolean().default(false),
+      /** API key required by the SSE/HTTP transports (`x-api-key` header); one is generated and logged when unset. */
+      apiKey: z.string().optional(),
+      /** Env var holding the API key (overrides `apiKey`). */
+      apiKeyEnv: z.string().optional(),
+      /** Per-key request cap per minute on the SSE/HTTP transports. */
+      rateLimitPerMinute: z.number().int().positive().default(30),
     })
     .optional(),
 });

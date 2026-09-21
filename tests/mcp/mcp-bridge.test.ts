@@ -9,8 +9,8 @@ import {
   registerNARRegistryTools,
   toolAnnotations,
   zodFromSchema,
-} from '../../src/api/mcp-bridge.js';
-import { registerNARTools } from '../../src/api/mcp-tools.js';
+} from '../../src/bin/lib/mcp/mcp-bridge.js';
+import { registerNARTools } from '../../src/bin/lib/mcp/mcp-tools.js';
 
 const makeTool = (overrides: Partial<Tool> = {}): Tool =>
   ({

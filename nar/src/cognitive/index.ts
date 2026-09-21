@@ -36,18 +36,4 @@ export type {
 } from '../strategies/types.js';
 export { CognitiveController } from './controller';
 export { runCounterfactual } from './counterfactual.js';
-export type { CognitiveAction, CognitiveState, ObserverReport } from './ObserverService.js';
-export { ObserverService as Observer } from './ObserverService.js';
-export type { OptimizationResult } from './optimizer';
-
-export {
-  applyParamValues,
-  COGNITIVE_PARAMETER_SPACE,
-  CognitiveOptimizer,
-  deserializeParams,
-  GridSampler,
-  ParamSampler,
-  RandomSampler,
-  serializeParams,
-} from './optimizer';
 export { CognitiveRegistry } from './registry';

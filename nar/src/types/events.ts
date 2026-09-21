@@ -1,6 +1,15 @@
-import type { CognitiveAction, CognitiveState } from '../cognitive';
 import type { Ambiguity, TaskBatch } from '../nl';
 import type { Term, Truth } from '../terms';
+
+/** Cognitive state of the NAR (emitted on `cognitive:state-change`). */
+export type CognitiveState = 'normal' | 'confused' | 'bored' | 'overloaded' | 'idle';
+/** Recommended cognitive action for a given state. */
+export type CognitiveAction =
+  | 'continue'
+  | 'resolve-conflicts'
+  | 'explore'
+  | 'consolidate'
+  | 'suspend';
 
 export interface EventMap {
   [key: string]: unknown;
