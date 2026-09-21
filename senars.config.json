@@ -16,7 +16,6 @@
     }
   },
   "lm": {
-    "provider": "transformers",
     "model": "onnx-community/Qwen2.5-1.5B-Instruct",
     "fastModel": "HuggingFaceTB/SmolLM2-360M-Instruct",
     "compactModel": "HuggingFaceTB/SmolLM2-360M-Instruct",

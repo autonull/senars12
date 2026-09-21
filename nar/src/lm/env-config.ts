@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import type { LMProviderName } from './providers.js';
 
 export type ResolvedProvider = LMProviderName;
@@ -100,6 +101,16 @@ const CLOUD_CREDENTIALS: readonly (readonly [LMProviderName, string])[] = [
 export const detectCloudProvider = (): LMProviderName | undefined =>
   CLOUD_CREDENTIALS.find(([, key]) => Boolean(process.env[key]))?.[0];
 
+/** Sync cheap check: an embedded-llama GGUF model is configured and present on disk. */
+export const embeddedLlamaConfigured = (): boolean => {
+  const p = process.env.LM_LLAMACPP_MODEL;
+  return Boolean(p && existsSync(p));
+};
+
+/** Speed-first local default: embedded llama.cpp when a GGUF is present, else transformers. */
+export const defaultLocalProvider = (): LMProviderName =>
+  embeddedLlamaConfigured() ? 'llamacpp-embedded' : 'transformers';
+
 const credentialEnvFor = (provider: LMProviderName): string | undefined =>
   CLOUD_CREDENTIALS.find(([p]) => p === provider)?.[1];
 
@@ -112,9 +123,9 @@ export type LMProfileName = (typeof LM_PROFILES)[number];
 const resolveProfileProvider = (profile: string): LMProviderName | undefined => {
   switch (profile) {
     case 'cloud-quality':
-      return detectCloudProvider() ?? 'transformers';
+      return detectCloudProvider() ?? defaultLocalProvider();
     case 'local-private':
-      return 'transformers';
+      return defaultLocalProvider();
     case 'ollama':
       return 'ollama';
     default:
@@ -132,7 +143,12 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
   const profile = env('LM_PROFILE') ?? file?.profile;
   const profileProvider =
     profile && profile !== 'production' ? resolveProfileProvider(profile) : undefined;
-  const rawProvider = (explicit ?? profileProvider ?? detectCloudProvider() ?? 'transformers')
+  const rawProvider = (
+    explicit ??
+    profileProvider ??
+    detectCloudProvider() ??
+    defaultLocalProvider()
+  )
     .toString()
     .toLowerCase();
   if (!isResolvedProvider(rawProvider)) {
@@ -153,20 +169,34 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
     ollamaHost: env('OLLAMA_HOST') ?? file?.ollamaHost,
     llamacppHost: env('LM_LLAMACPP_HOST') ?? file?.llamacppHost,
     llamacppModelPath: env('LM_LLAMACPP_MODEL') ?? file?.llamacppModelPath,
-    llamacppGpu: (env('LM_LLAMACPP_GPU') as 'auto' | 'cuda' | 'metal' | 'vulkan' | false) ?? file?.llamacppGpu,
-    llamacppGpuLayers: (env('LM_LLAMACPP_GPU_LAYERS') ? Number(env('LM_LLAMACPP_GPU_LAYERS')) : undefined) ?? file?.llamacppGpuLayers,
-    llamacppContextSize: env('LM_LLAMACPP_CTX') ? Number(env('LM_LLAMACPP_CTX')) : file?.llamacppContextSize,
-    llamacppBatchSize: env('LM_LLAMACPP_BATCH') ? Number(env('LM_LLAMACPP_BATCH')) : file?.llamacppBatchSize,
-    llamacppSequences: env('LM_LLAMACPP_SEQS') ? Number(env('LM_LLAMACPP_SEQS')) : file?.llamacppSequences,
-    llamacppFlashAttention: ['1', 'true'].includes(env('LM_LLAMACPP_FLASH_ATTN') ?? '') ?? file?.llamacppFlashAttention ?? true,
+    llamacppGpu:
+      (env('LM_LLAMACPP_GPU') as 'auto' | 'cuda' | 'metal' | 'vulkan' | false) ?? file?.llamacppGpu,
+    llamacppGpuLayers:
+      (env('LM_LLAMACPP_GPU_LAYERS') ? Number(env('LM_LLAMACPP_GPU_LAYERS')) : undefined) ??
+      file?.llamacppGpuLayers,
+    llamacppContextSize: env('LM_LLAMACPP_CTX')
+      ? Number(env('LM_LLAMACPP_CTX'))
+      : file?.llamacppContextSize,
+    llamacppBatchSize: env('LM_LLAMACPP_BATCH')
+      ? Number(env('LM_LLAMACPP_BATCH'))
+      : file?.llamacppBatchSize,
+    llamacppSequences: env('LM_LLAMACPP_SEQS')
+      ? Number(env('LM_LLAMACPP_SEQS'))
+      : file?.llamacppSequences,
+    llamacppFlashAttention:
+      ['1', 'true'].includes(env('LM_LLAMACPP_FLASH_ATTN') ?? '') ??
+      file?.llamacppFlashAttention ??
+      true,
     apiKeyEnv: file?.apiKeyEnv ?? cloudCredentialEnv,
     quantized: file?.quantized,
     cacheDir: file?.cacheDir,
     offline: ['1', 'true'].includes(env('LM_OFFLINE') ?? '') || file?.offline === true,
     dtype: (env('LM_DTYPE') as LMSettings['dtype'] | undefined) ?? file?.dtype,
-    qualityDtype: (env('LM_QUALITY_DTYPE') as LMSettings['qualityDtype'] | undefined) ?? file?.qualityDtype,
+    qualityDtype:
+      (env('LM_QUALITY_DTYPE') as LMSettings['qualityDtype'] | undefined) ?? file?.qualityDtype,
     fastDtype: (env('LM_FAST_DTYPE') as LMSettings['fastDtype'] | undefined) ?? file?.fastDtype,
-    disableThinking: ['1', 'true'].includes(env('LM_DISABLE_THINKING') ?? '') || file?.disableThinking === true,
+    disableThinking:
+      ['1', 'true'].includes(env('LM_DISABLE_THINKING') ?? '') || file?.disableThinking === true,
     circuitBreaker: file?.circuitBreaker,
   };
 };

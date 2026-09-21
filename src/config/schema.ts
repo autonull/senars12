@@ -57,7 +57,7 @@ export const narCoreSchema = z.object({
     .default(narCoreDefaults.maxDerivationsPerStep),
 });
 
-const lmDefaults = { enabled: true, provider: 'transformers' } as const;
+const lmDefaults = { enabled: true, provider: 'llamacpp-embedded' } as const;
 
 /** Extends the shared LM-settings schema with the capability-level `enabled` flag. */
 export const lmSchema = lmSettingsSchema.extend({

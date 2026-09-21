@@ -246,9 +246,26 @@ One seam: reasoning IS a game — and the tournament table knows it.
 ### Improvement Notes (non-binding; revisit at phase boundaries)
 
 - **GPU/TS training backends (considered 2026-09-21).** PyTorch-like options for the in-house trainer (`nar/src/lm/system-one/train.ts`): **TensorFlow.js** (`tfjs-node-gpu` CUDA binding; WebGPU backend for browser/device contexts) is the only mature TS-native *training* framework; **ONNX Runtime** is inference-first (training requires Python-exported models — doesn't help author loops in TS); raw **WebGPU compute shaders** are a zero-dependency middle path (hand-written matmul/SGD kernel, fits the WASI/device story, P7). Burn/Candle/MLX rejected (not TS). Current heads are linear/logistic over a frozen backbone — GPU is pure overhead at this scale. Only earn it if Phase C bake-offs demand MLP reward models or sequence-level value heads. If adopted: parameterize `train.ts` behind a `HeadTrainerBackend` interface (`in-house-sgd` default, optional tfjs backend), falsified by identical weights digests on small problems + wall-clock parity at current scale. Deliberately *not* a plan item: the backend abstraction is a second trainer if we never need it.
-- **transformers.js toolChoice limitation (observed 2026-09-21).** The AI SDK warns `toolChoice` is unsupported by transformers.js on every chat dispatch through the default LM provider (`src/config/schema.ts:60` defaults `provider: 'transformers'`). llama.cpp providers (`nar/src/lm/providers/llamacpp.ts`, `embedded-llamacpp.ts`) bypass the AI SDK path entirely. Candidate follow-up (pre-TODO19): default the LM provider to llama.cpp (embedded runtime fallback), or strip `toolChoice` from transformers.js provider options.
+- **transformers.js toolChoice limitation — RESOLVED (2026-09-21).** `localModel` (`nar/src/lm/providers.ts`)
+  now wraps the transformersJS model in a `wrapLanguageModel` middleware that strips `toolChoice`
+  (the AI SDK resolves an absent choice to `{type:'auto'}`, tripping the provider's unsupported-setting
+  warning; transformers parses tool calls from fenced JSON, so the hint is meaningless).
+- **Provider default flipped to llama.cpp (2026-09-21).** Speed-first: `lmDefaults.provider`
+  (`src/config/schema.ts`) and the env-config auto-detect fallbacks (`nar/src/lm/env-config.ts`,
+  `defaultLocalProvider()`) resolve to `llamacpp-embedded` when a GGUF is configured
+  (`LM_LLAMACPP_MODEL` set + file exists — sync `existsSync` check), else degrade to transformers.
+  `createSeNARSRegistry` gates the embedded slots on the same check so routing failover skips them
+  (absent GGUF ⇒ behavior identical to the old transformers default). `senars.config.json` no longer
+  pins `provider: 'transformers'` — the pin defeated the default. Evidence: 8 GB transformers cache,
+  minutes-long cold loads, and a native `Napi::Error` core dump in the e2e lane.
 - ~~**`@senars/nar/factory` subpath**~~ → **resolved** (session 4): the factory module was deleted
   (`nar-presets.ts` now holds the kernel presets); the undeclared subpath and its importers are gone.
-- **e2e bin-lifecycle lane.** `tests/e2e/bin-lifecycle.test.ts` times out at 15s when the transformers.js model cold-loads on this machine (load-sensitive lane candidate, ties into P6 fast/slow lanes); exclude from `pnpm test:unit` (already excluded via `tests/e2e/**`) and consider gating on `LM_PROVIDER=mock` until the provider default question above is settled.
+- **e2e bin-lifecycle lane — DEADLOCK (not cold-load; the session-3 hypothesis was wrong).**
+  `nar.run(1)` never returns inside `reasoner.step` (`nar/src/reason/reasoner.ts`) for the
+  NARBuilder-assembled NAR from `createAgentFromEnv` — **independent of LM provider** (mock and warm
+  transformers both hang; a bare `new NAR` with the same config runs fine). The delta lives in what
+  `createAgent`/builder wiring adds beyond the bare NAR. The lane stays excluded from `test:unit`;
+  `tests/e2e/bin-lifecycle.test.ts` now defaults `LM_PROVIDER ??= 'mock'` for when the deadlock is
+  fixed. Fixing the deadlock is the top follow-up.
 
 *Proposal rationale lives in TODO18.md (§1 component library, §1.5 NARBuilder); this file is the executable plan.*

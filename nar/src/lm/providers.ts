@@ -1,26 +1,32 @@
-import { existsSync, mkdirSync, appendFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { transformersJS } from '@browser-ai/transformers-js';
+import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import type { LMExecutionStats, LMTask } from '@senars/util';
-import { createProviderRegistry, customProvider, type LanguageModel } from 'ai';
+import {
+  createProviderRegistry,
+  customProvider,
+  type LanguageModel,
+  type LanguageModelMiddleware,
+  wrapLanguageModel,
+} from 'ai';
+import { recordCircuitBreakerState, recordLmProbe } from '../metrics/index.js';
+import { getTracer } from '../otel/index.js';
 import {
   builtinModels,
   defaultModelFor,
+  embeddedLlamaConfigured,
   type LMSettings,
   type LMSettingsInput,
   resolveLMSettings,
 } from './env-config.js';
 import { createMockLanguageModel } from './lm-service.js';
 import {
-  createLlamaCppFetch,
-  LLAMACPP_HOST_DEFAULT,
-  probeLlamaCpp,
-} from './providers/llamacpp.js';
-import { createEmbeddedLlamaCppLanguageModel, probeEmbeddedLlama } from './providers/embedded-llamacpp.js';
-import { trace, SpanStatusCode, SpanKind } from '@opentelemetry/api';
-import { getTracer } from '../otel/index.js';
-import { recordCircuitBreakerState, recordLmProbe } from '../metrics/index.js';
+  createEmbeddedLlamaCppLanguageModel,
+  probeEmbeddedLlama,
+} from './providers/embedded-llamacpp.js';
+import { createLlamaCppFetch, LLAMACPP_HOST_DEFAULT, probeLlamaCpp } from './providers/llamacpp.js';
 
 export type { LMTask } from '@senars/util';
 export type { LMSettings } from './env-config.js';
@@ -70,6 +76,16 @@ export const getLmProvider = (): LMProviderName => getLMSettings().provider;
 export const detectDevice = (): 'webgpu' | 'cpu' =>
   typeof navigator !== 'undefined' && 'gpu' in navigator ? 'webgpu' : 'cpu';
 
+/**
+ * TransformersJS parses tool calls from fenced JSON and cannot honor
+ * `toolChoice`; the AI SDK resolves an absent choice to `{type:'auto'}`,
+ * which trips the provider's unsupported-setting warning on every call.
+ * Stripping it keeps tools working (fence parsing) without the noise.
+ */
+const stripUnsupportedToolChoice = (): LanguageModelMiddleware => ({
+  transformParams: async ({ params }) => ({ ...params, toolChoice: undefined }),
+});
+
 /** Progress callback type for model download/initialization. */
 export type ModelDownloadProgressCallback = (progress: number) => void;
 
@@ -81,14 +97,18 @@ const localModel = (
   // H7: per-slot dtype (LM_QUALITY_DTYPE/LM_FAST_DTYPE) over global LM_DTYPE over quantized flag.
   const isQuality = model === settings.model || model === defaultModelFor(settings.provider);
   const dtype =
-    (isQuality ? (settings.qualityDtype ?? settings.dtype) : (settings.fastDtype ?? settings.dtype)) ??
-    (settings.quantized ? 'q4' : 'fp32');
-  return transformersJS(model, {
-    device: detectDevice(),
-    dtype,
-    ...(settings.cacheDir ? { cacheDir: settings.cacheDir } : {}),
-    ...(onProgress ? { initProgressCallback: onProgress } : {}),
-  } as Parameters<typeof transformersJS>[1]);
+    (isQuality
+      ? (settings.qualityDtype ?? settings.dtype)
+      : (settings.fastDtype ?? settings.dtype)) ?? (settings.quantized ? 'q4' : 'fp32');
+  return wrapLanguageModel({
+    model: transformersJS(model, {
+      device: detectDevice(),
+      dtype,
+      ...(settings.cacheDir ? { cacheDir: settings.cacheDir } : {}),
+      ...(onProgress ? { initProgressCallback: onProgress } : {}),
+    } as Parameters<typeof transformersJS>[1]),
+    middleware: stripUnsupportedToolChoice(),
+  });
 };
 
 const mockModel = (): LanguageModel => createMockLanguageModel() as unknown as LanguageModel;
@@ -136,7 +156,9 @@ export function createSeNARSRegistry(settings?: LMSettings) {
     typeof navigator !== 'undefined' &&
     'gpu' in navigator;
   const useLlamaCpp = provider === 'llamacpp';
-  const useEmbeddedLlamaCpp = provider === 'llamacpp-embedded';
+  // GGUF must be configured AND on disk — otherwise the slots are omitted so
+  // routing failover skips them (defaults degrade to builtin transformers).
+  const useEmbeddedLlamaCpp = provider === 'llamacpp-embedded' && embeddedLlamaConfigured();
 
   const ollama = createOpenAICompatible({
     name: 'ollama',
@@ -227,15 +249,28 @@ export function createSeNARSRegistry(settings?: LMSettings) {
     }),
     webllm: customProvider({
       languageModels: {
-        ...(useWebLLM && { quality: webllmQuality, fast: webllmFast, structured: webllmQuality, compact: webllmFast }),
+        ...(useWebLLM && {
+          quality: webllmQuality,
+          fast: webllmFast,
+          structured: webllmQuality,
+          compact: webllmFast,
+        }),
       },
       fallbackProvider: useWebLLM ? undefined : undefined,
     }),
     builtin: customProvider({
       languageModels: {
-        quality: localModel(offlineTier ?? modelOverride ?? builtinModels.quality, s, builtinProgressCallback),
+        quality: localModel(
+          offlineTier ?? modelOverride ?? builtinModels.quality,
+          s,
+          builtinProgressCallback
+        ),
         fast: localModel(builtinCompact, s, builtinProgressCallback),
-        structured: localModel(offlineTier ?? modelOverride ?? builtinModels.quality, s, builtinProgressCallback),
+        structured: localModel(
+          offlineTier ?? modelOverride ?? builtinModels.quality,
+          s,
+          builtinProgressCallback
+        ),
         compact: localModel(builtinCompact, s, builtinProgressCallback),
         mock: mockModel(),
       },
@@ -463,7 +498,9 @@ export function getModelForTask(
 ): LanguageModel {
   if (modelOverride) {
     // Unknown ids throw here — no silent failover (routing honesty rules).
-    const model = registry.languageModel(modelOverride as Parameters<SeNARSRegistry['languageModel']>[0]);
+    const model = registry.languageModel(
+      modelOverride as Parameters<SeNARSRegistry['languageModel']>[0]
+    );
     lastDecision = { task, modelId: modelOverride, reason: 'primary' };
     return model;
   }
@@ -521,7 +558,7 @@ export async function resolveActiveProvider(): Promise<LMProviderName> {
   }
   if (configured === 'mock') return 'mock';
   if (configured === 'webllm') {
-    return (typeof navigator !== 'undefined' && 'gpu' in navigator) ? 'webllm' : 'transformers';
+    return typeof navigator !== 'undefined' && 'gpu' in navigator ? 'webllm' : 'transformers';
   }
   if (configured === 'transformers') {
     if (hasCloudCredentials()) return 'openai-compatible';
@@ -531,7 +568,8 @@ export async function resolveActiveProvider(): Promise<LMProviderName> {
   }
   if (configured === 'ollama') return (await probeOllama()) ? 'ollama' : 'transformers';
   if (configured === 'llamacpp') return (await probeLlamaCpp()) ? 'llamacpp' : 'transformers';
-  if (configured === 'llamacpp-embedded') return (await probeEmbeddedLlama()) ? 'llamacpp-embedded' : 'transformers';
+  if (configured === 'llamacpp-embedded')
+    return (await probeEmbeddedLlama()) ? 'llamacpp-embedded' : 'transformers';
   return hasCloudCredentials() ? configured : (await probeOllama()) ? 'ollama' : 'transformers';
 }
 
@@ -628,7 +666,11 @@ export function getEffectiveCircuitConfig(
 
 const lmTracer = getTracer('senars.lm');
 
-function emitCircuitBreakerEvent(provider: LMProviderName, state: CircuitState, details: Record<string, unknown> = {}): void {
+function emitCircuitBreakerEvent(
+  provider: LMProviderName,
+  state: CircuitState,
+  details: Record<string, unknown> = {}
+): void {
   const span = trace.getActiveSpan();
   if (span) {
     span.addEvent('circuit.breaker.state_change', {
@@ -638,21 +680,17 @@ function emitCircuitBreakerEvent(provider: LMProviderName, state: CircuitState, 
     });
   }
   // Also create a dedicated span for the state change
-  lmTracer.startActiveSpan(
-    `lm.circuit_breaker.${state}`,
-    { kind: SpanKind.INTERNAL },
-    (span) => {
-      span.setAttribute('lm.provider', provider);
-      span.setAttribute('circuit.state', state);
-      Object.entries(details).forEach(([key, value]) => {
-        if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') {
-          span.setAttribute(key, value);
-        }
-      });
-      span.setStatus({ code: SpanStatusCode.OK });
-      span.end();
-    }
-  );
+  lmTracer.startActiveSpan(`lm.circuit_breaker.${state}`, { kind: SpanKind.INTERNAL }, (span) => {
+    span.setAttribute('lm.provider', provider);
+    span.setAttribute('circuit.state', state);
+    Object.entries(details).forEach(([key, value]) => {
+      if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') {
+        span.setAttribute(key, value);
+      }
+    });
+    span.setStatus({ code: SpanStatusCode.OK });
+    span.end();
+  });
   // Record Prometheus metric
   recordCircuitBreakerState(provider, state);
 }
@@ -727,15 +765,18 @@ export async function probeCloudProvider(settings?: LMSettings): Promise<boolean
   const key = cloudApiKey(s);
   if (!key) return false;
 
-  const baseUrl = s.baseUrl ?? (s.provider === 'anthropic' ? 'https://api.anthropic.com/v1' : 'https://api.openai.com/v1');
+  const baseUrl =
+    s.baseUrl ??
+    (s.provider === 'anthropic' ? 'https://api.anthropic.com/v1' : 'https://api.openai.com/v1');
   try {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), 5000);
     const res = await fetch(`${baseUrl}/models`, {
       signal: ctl.signal,
-      headers: s.provider === 'anthropic'
-        ? { 'x-api-key': key, 'anthropic-version': '2023-06-01' }
-        : { Authorization: `Bearer ${key}` },
+      headers:
+        s.provider === 'anthropic'
+          ? { 'x-api-key': key, 'anthropic-version': '2023-06-01' }
+          : { Authorization: `Bearer ${key}` },
     });
     clearTimeout(t);
     return res.ok;
@@ -749,7 +790,14 @@ let healthProbeInterval: ReturnType<typeof setInterval> | null = null;
 export function startHealthProbes(intervalMs = 60_000, settings?: LMSettings): void {
   if (healthProbeInterval) return;
   healthProbeInterval = setInterval(async () => {
-    const providers: LMProviderName[] = ['anthropic', 'openai', 'openai-compatible', 'ollama', 'webllm', 'llamacpp-embedded'];
+    const providers: LMProviderName[] = [
+      'anthropic',
+      'openai',
+      'openai-compatible',
+      'ollama',
+      'webllm',
+      'llamacpp-embedded',
+    ];
     for (const p of providers) {
       if (!canUseProvider(p, settings)) continue;
       let ok = false;
@@ -914,7 +962,11 @@ function flushRoutingLog(): void {
   try {
     mkdirSync(routingLogDir, { recursive: true });
     const path = getRoutingLogPath();
-    const lines = routingLogBuffer.splice(0).map((e) => JSON.stringify(e)).join('\n') + '\n';
+    const lines =
+      routingLogBuffer
+        .splice(0)
+        .map((e) => JSON.stringify(e))
+        .join('\n') + '\n';
     appendFileSync(path, lines, 'utf-8');
   } catch (e) {
     // Silently fail to avoid disrupting main flow
@@ -922,7 +974,10 @@ function flushRoutingLog(): void {
   }
 }
 
-export function enableRoutingTelemetry(options?: { logDir?: string; flushIntervalMs?: number }): void {
+export function enableRoutingTelemetry(options?: {
+  logDir?: string;
+  flushIntervalMs?: number;
+}): void {
   if (routingLogEnabled) return;
   routingLogEnabled = true;
   if (options?.logDir) routingLogDir = options.logDir;
@@ -930,7 +985,10 @@ export function enableRoutingTelemetry(options?: { logDir?: string; flushInterva
     // Re-create interval with new flush interval
     if (routingLogInterval) clearInterval(routingLogInterval);
   }
-  routingLogInterval = setInterval(flushRoutingLog, options?.flushIntervalMs ?? ROUTING_LOG_FLUSH_INTERVAL_MS);
+  routingLogInterval = setInterval(
+    flushRoutingLog,
+    options?.flushIntervalMs ?? ROUTING_LOG_FLUSH_INTERVAL_MS
+  );
   routingLogInterval.unref?.();
 }
 

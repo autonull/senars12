@@ -1,5 +1,12 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { type AgentFromEnvOptions, createAgentFromEnv } from '../../src/bin/lib/lifecycle';
+
+// The transformers.js provider cold-loads a model on this lane (15s timeout
+// risk); mock resolves instantly and echoes the prompt (the 'cat' assertion
+// holds). An explicit LM_PROVIDER env wins.
+beforeAll(() => {
+  process.env.LM_PROVIDER ??= 'mock';
+});
 
 interface BinSpec {
   name: string;
