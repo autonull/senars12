@@ -1508,6 +1508,8 @@ Each architectural claim — paraconsistency, bounded degradation, derivation so
 
 **System One falsification benches (15–28):** live ingress calibration, cortex ladder, cache correctness at scale, reflex activation, RL parity, manifold-driven RL (no NAL), distillation loop, calibration-from-labels, Jev policy patterns, training round-trip, head-specs equivalence, encoder digest binding, per-call model override, flow-level resource accounting — each implemented as a `tests/nar/todo16c-*.test.ts` suite enforced in the CI `systemone-benches` job.
 
+**TODO19 benches (41–46):** assembly integrity (NARBuilder — every entry point builds through the builder; `BuilderError` on inconsistent specs), gate isolation (per-instance `createGateRegistry()` — two agents in one process never share autonomy/allowlist/veto state), component contracts (sensors fail-closed, actions tier- and scope-gated through the `ParameterTable`, rewards firewall-classified), ReasoningGame falsification (assembled arm beats the naive scheduler, tier gating, NAL veto transplant), learning closure (veto-aware demotion, MC-return label source, persistent `SchemaStore`), domain deployment (`device` profile never imports the LM; fast/slow test lanes). See `TODO19.md`.
+
 ---
 
 ## Reference

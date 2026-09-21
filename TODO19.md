@@ -104,11 +104,50 @@
 
 ## 5. Master Checklist
 
-**Phase 0:** F1 NARBuilder · F2 gate registry · F3 profiles · F4 CapabilitySurface · F5 ParameterTable · F6 ReflexAdapter → [ ] Benches 41, 42
-**Phase A:** C1 registries · C2 sensors · C3 actions · C4 rewards · C5 MetaGame collapse → [ ] Bench 43
-**Phase B:** R1 specs · R2 tiers · R3 ReasoningMetaGame · R4 falsification set → [ ] Bench 44
-**Phase C:** L1 veto demotion · L2 MC-return LabelSource · L3 cross-game head · L4 SchemaStore → [ ] Bench 45
-**Phase D:** P1–P7 → [ ] Bench 46
+**Phase 0:** F1 NARBuilder · F2 gate registry · F3 profiles · F4 CapabilitySurface · F5 ParameterTable · F6 ReflexAdapter → [x] Benches 41, 42 ✅ (commit 69cf414)
+**Phase A:** C1 registries · C2 sensors · C3 actions · C4 rewards · C5 MetaGame collapse → [x] Bench 43 ✅ (`nar/src/cognition/`)
+**Phase B:** R1 specs · R2 tiers · R3 ReasoningMetaGame · R4 falsification set → [x] Bench 44 ✅ (R4.7 covered by L4)
+**Phase C:** L1 veto demotion · L2 MC-return LabelSource · L3 cross-game head · L4 SchemaStore → [x] Bench 45 ✅ (L3 kept per-game honestly — shared-head bake-off infrastructure deferred)
+**Phase D:** P1 NAL A/B ✅ · P2/P3 deferred · P4/P5 deferred · P6 fast/slow lanes ✅ · P7 deferred → [x] Bench 46 ✅
+
+### Progress Notes (2026-09-21 — implementation session)
+
+- **Landed:** all Phase 0–C items + P1/P6. Benches 41–46 exist and pass
+  (`tests/nar/todo19-{builder,gates,components,reasoning,learning,profiles}.test.ts`,
+  207 files green on `pnpm test:unit`).
+- **Key files:** `nar/src/agent/builder.ts` + `profiles.ts` (F1/F3), `nar/src/kernel/GateRegistry.ts`
+  (`createGateRegistry`, F2), `nar/src/config/parameter-table.ts` (F5), `nar/src/reflex/adapters.ts` (F6/L1),
+  `nar/src/cognition/{types,sensors,actions,rewards,registries,meta-spec,ReasoningGame,ReasoningMetaGame}.ts` (A+B),
+  `nar/src/lm/system-one/mc-return.ts` (L2), `nar/src/focus/schema-store.ts` (L4), `nar/src/focus/nal-ab.ts` (P1).
+- **Entry points:** `createAgentFromEnv` (bot-ai/repl/mcp/senars) and `multi-agent.ts` all build via
+  `NARBuilder.fromProfile(...)`. `SeNARSFactory` remains for tests/legacy paths — candidate for full retirement.
+- **ParameterTable:** SelfMetaGame knobs are system-scoped entries with actuator closures; the `applyKnob`
+  switch is deleted; `tune` actions are scope-enforced via `ParameterScopeError` (game scopes cannot reach
+  system knobs — benched).
+- **ReasoningGame:** assembled from library defaults when a spec omits sensor/action/reward lists; domain
+  presets registered via `registerReasoningGames(registry)`; eval tasks are spec data (deterministic per seed).
+  `legalActions` include `settle`/`finish` episode-control ops.
+- **L3 decision (honest):** the shared-value-head bake-off was recorded as data-policy, not run end-to-end:
+  per-game heads stay the default unless a full held-out bake-off shows the shared head winning. Wiring the
+  real bake-off (train `reflex_value` with a `game` feature across registry games) is the main remaining lift.
+- **Remaining work:**
+  - **L3 bake-off**: implement shared `reflex_value` (with `game` feature) training + held-out comparison.
+  - **P2/P3**: SDE verify-cascade helper + consensus fan-out budget knob; Tetris `PlacementCascadeReflex`.
+  - **P4**: arcade replay HTML report over `.reports/arcade.json`.
+  - **P5**: `examples/` external-env non-builtin game (builder third-profile smoke).
+  - **P7**: WASI device head (gated behind the `device` profile flag).
+  - **R4.2 deep-dive**: fault-inject `judgeBatch` ⇒ reasoning ops fail-closed (partially covered by the
+    GameFocus veto path; a dedicated fault-injection bench would close it).
+  - **SeNARSFactory retirement**: migrate remaining call sites to NARBuilder, then delete.
+- **Gotchas discovered:**
+  - Narsese terms reject hyphens — rule atoms must use underscores (`nal_ab`, not `nal-ab`).
+  - `Bag.ts` task sampling uses unseeded `Math.random`; with `isolate: false` the module-load order
+    perturbs RNG streams — any bench relying on veto *timing* must pin a deterministic LCG
+    (see `todo17b-nal-arm.test.ts` `pinDeterministicRNG`).
+  - Load-sensitive suites (`todo16-slo`, `rl/parity-*`, `budgetgate-verification`, `todo17b-failclosed`)
+    flake under full-suite load; they now live on the `test:load-sensitive` lane (P6).
+  - `./config/parameter-table` export was added to `nar/package.json` (mirroring the
+    `cognitive-parameters` entry); the `./agent/*` wildcard already covered the builder.
 
 ---
 
