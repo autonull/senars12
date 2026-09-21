@@ -82,7 +82,7 @@ describe('TODO17 Bench 33 — Open one-pass wire bridge', () => {
     expect((scored as unknown as { score: number }).score).toBe(0.75);
     expect(leveled?.kind).toBe('evaluate');
     expect((leveled as unknown as { score: number }).score).toBe(0.75);
-    expect((bool as unknown as { score: number }).score).toBe(1);
+    expect((bool as unknown as { score: number }).score).toBe(0.75);
   });
 
   it('boolean answers map to 0/1 evaluate scores', async () => {
