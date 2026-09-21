@@ -1,4 +1,4 @@
-import { SeNARSFactory } from '../../nar/src';
+import { createBotNAR } from '../../nar/src';
 import { LMResponseParser } from '../../nar/src/lm';
 
 describe('LMResponseParser', () => {
@@ -78,7 +78,7 @@ describe('LMResponseParser', () => {
 
 describe('LM integration', () => {
   test('NAR with mock LM can be created', async () => {
-    const nar = SeNARSFactory.createForBot({ maxConcepts: 100 });
+    const nar = createBotNAR({ maxConcepts: 100 });
     const stats = nar.getStatistics();
     expect(stats.totalConcepts).toBeGreaterThanOrEqual(0);
   });

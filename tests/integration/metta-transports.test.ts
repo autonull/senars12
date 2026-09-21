@@ -1,6 +1,6 @@
 import { CLIConnection } from '@senars/io/connections/cli';
 import { WSConnection } from '@senars/io/connections/ws';
-import { SeNARSFactory } from '@senars/nar';
+import { createTestNAR } from '@senars/nar';
 import { createAgent } from '@senars/nar/agent';
 import type { CognitiveEvent, ConnectionConfig, ConnectionDeps } from '@senars/util';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -23,7 +23,7 @@ describe('Core Agent + Transport Integration', () => {
   let agent: Awaited<ReturnType<typeof createAgent>>;
 
   beforeAll(async () => {
-    const nar = SeNARSFactory.createForTesting({ maxConcepts: 100 });
+    const nar = createTestNAR({ maxConcepts: 100 });
     agent = await createAgent({ nar });
   });
 

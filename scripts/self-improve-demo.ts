@@ -12,7 +12,7 @@
  * - Observability emission every N cycles
  */
 
-import { SeNARSFactory } from '../nar/src/index.js';
+import { createNAR } from '../nar/src/index.js';
 import { createSeNARSRegistry } from '../nar/src/lm/index.js';
 import { createLMService } from '../nar/src/lm/lm-service.js';
 import { createLogger } from '../nar/src/logger.js';
@@ -29,7 +29,7 @@ async function main() {
   const lmService = createLMService();
 
   // Create NAR with self-improvement features enabled
-  const nar = SeNARSFactory.createDefault({
+  const nar = createNAR({
     providerRegistry: registry,
     lmService,
     enableSelf: true,

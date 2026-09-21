@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SeNARSFactory } from '../../../nar/src';
+import { createTestNAR } from '../../../nar/src';
 import { createAgent } from '../../../nar/src/agent/index.js';
 import { createMockLMService } from '../../../nar/src/lm';
 
@@ -50,7 +50,7 @@ describe('Agent cognitive event listeners', () => {
   });
 
   it('start()/stop() lifecycle', async () => {
-    const nar = SeNARSFactory.createForTesting({ maxConcepts: 5 });
+    const nar = createTestNAR({ maxConcepts: 5 });
     const agent = await createAgent({ nar });
     await agent.start();
     expect(agent.health().status).toBe('healthy');

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NAR } from '@senars/nar';
-import { SeNARSFactory } from '@senars/nar/factory';
+import { createNAR } from '@senars/nar/factory';
 import type { LMService } from '@senars/nar/lm';
 import { Truth } from '@senars/nar/terms';
 
@@ -29,7 +29,7 @@ describe('Bench 15 — Live Ingress Calibration', () => {
     } as unknown as LMService;
 
     // NAR with System One enabled
-    nar = SeNARSFactory.createDefault({
+    nar = createNAR({
       lmService: mockLMService,
       systemOne: {
         enabled: true,
@@ -55,7 +55,7 @@ describe('Bench 15 — Live Ingress Calibration', () => {
     });
 
     // NAR with System One disabled (baseline)
-    narDisabled = SeNARSFactory.createDefault({
+    narDisabled = createNAR({
       lmService: mockLMService,
       systemOne: { enabled: false },
       maxConcepts: 1000,
@@ -138,7 +138,7 @@ describe('Bench 15 — Integration with createAgentFromEnv', () => {
     // This test verifies that the config flows through lifecycle.ts to the NAR
     // The actual integration test would require a config file with systemOne.enabled: true
     // For now, we verify the factory accepts and forwards the config
-    const factory = SeNARSFactory.createDefault({
+    const factory = createNAR({
       systemOne: { enabled: true },
       maxConcepts: 100,
     });

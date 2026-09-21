@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { NAR } from '../../../nar/src';
-import { SeNARSFactory } from '../../../nar/src';
+import { createTestNAR } from '../../../nar/src';
 import { createAgent } from '../../../nar/src/agent/index.js';
 import { createMockLMService } from '../../../nar/src/lm';
 import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
@@ -36,7 +36,7 @@ describe('Agent (v6 harness)', () => {
   let nar: NAR;
 
   beforeEach(() => {
-    nar = SeNARSFactory.createForTesting({ maxConcepts: 20 });
+    nar = createTestNAR({ maxConcepts: 20 });
   });
 
   afterEach(() => {

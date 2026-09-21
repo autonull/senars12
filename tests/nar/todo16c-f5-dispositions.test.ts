@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NAR } from '@senars/nar';
-import { SeNARSFactory } from '@senars/nar/factory';
+import { createNAR } from '@senars/nar/factory';
 import { admitTasks } from '@senars/nar/lm';
 import type { LMService } from '@senars/nar/lm';
 import { createSystemOneLMRuleAdapter } from '@senars/nar/lm/system-one/rule-adapter';
@@ -33,7 +33,7 @@ describe('F5 — §8 dispositions', () => {
       setProgressCallback: vi.fn(),
     } as unknown as LMService;
 
-    nar = SeNARSFactory.createDefault({
+    nar = createNAR({
       lmService: mockLMService,
       systemOne: {
         enabled: true,

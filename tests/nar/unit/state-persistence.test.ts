@@ -5,10 +5,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   BagStrategy,
   createBudget,
+  createNAR,
   DEFAULT_CONFIG,
   Memory,
   Reasoner,
-  SeNARSFactory,
   TaskManager,
   TermBuilder,
   Truth,
@@ -53,7 +53,7 @@ describe('NAR State Persistence', () => {
     const registry = createSeNARSRegistry();
     const lmService = createLMService();
 
-    const nar = SeNARSFactory.createDefault({
+    const nar = createNAR({
       providerRegistry: registry,
       lmService,
       persistState: true,
@@ -92,7 +92,7 @@ describe('NAR State Persistence', () => {
     expect(savedDrives.curiosity).toBeDefined();
 
     // Create new NAR instance and load state
-    const nar2 = SeNARSFactory.createDefault({
+    const nar2 = createNAR({
       providerRegistry: registry,
       lmService,
       persistState: true,
@@ -122,7 +122,7 @@ describe('NAR State Persistence', () => {
     const registry = createSeNARSRegistry();
     const lmService = createLMService();
 
-    const nar = SeNARSFactory.createDefault({
+    const nar = createNAR({
       providerRegistry: registry,
       lmService,
       persistState: true,
@@ -147,7 +147,7 @@ describe('NAR State Persistence', () => {
     expect(files).toContain('questions.json');
 
     // Create new NAR and load
-    const nar2 = SeNARSFactory.createDefault({
+    const nar2 = createNAR({
       providerRegistry: registry,
       lmService,
       persistState: true,

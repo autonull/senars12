@@ -23,7 +23,7 @@ import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, expect, it, vi } from 'vitest';
-import { SeNARSFactory } from '../../../nar/src';
+import { createTestNAR } from '../../../nar/src';
 import { createMockLMService } from '../../../nar/src/lm';
 import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
 
@@ -201,7 +201,7 @@ describe('createSessionBinder', () => {
 
 describe('createAgentDispatch', () => {
   it('calls chatWithHistory when session present', async () => {
-    const nar = SeNARSFactory.createForTesting({ maxConcepts: 10 });
+    const nar = createTestNAR({ maxConcepts: 10 });
     const ep = new EpisodicMemory({ enabled: true });
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
     const session = createSession('test:direct:alice');
@@ -256,7 +256,7 @@ describe('createAuthMiddleware', () => {
 
 describe('bindAgentToConnection end-to-end', () => {
   it('routes message → response, updates session', async () => {
-    const nar = SeNARSFactory.createForTesting({ maxConcepts: 10 });
+    const nar = createTestNAR({ maxConcepts: 10 });
     const ep = new EpisodicMemory({ enabled: true });
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
     const sessionManager = new InMemorySessionManager();
@@ -274,7 +274,7 @@ describe('bindAgentToConnection end-to-end', () => {
   });
 
   it('responds to /help through registry', async () => {
-    const nar = SeNARSFactory.createForTesting({ maxConcepts: 10 });
+    const nar = createTestNAR({ maxConcepts: 10 });
     const ep = new EpisodicMemory({ enabled: true });
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
     const sessionManager = new InMemorySessionManager();
@@ -424,7 +424,7 @@ describe('getOrCreate touches lastSeenAt', () => {
 
 describe('bindAgentToConnection: cleanup', () => {
   it('returns a cleanup function that removes the message handler', async () => {
-    const nar = SeNARSFactory.createForTesting({ maxConcepts: 5 });
+    const nar = createTestNAR({ maxConcepts: 5 });
     const agent = await createAgent({ nar, lmService: scriptedLM });
     const conn = makeConn();
     const sessionManager = new InMemorySessionManager();

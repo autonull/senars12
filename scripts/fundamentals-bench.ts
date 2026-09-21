@@ -11,7 +11,7 @@
  *   LM_PROVIDER=mock pnpm exec tsx scripts/fundamentals-bench.ts  # CI
  */
 
-import { SeNARSFactory, createNAR } from '@senars/nar';
+import { createNAR, createNAR } from '@senars/nar';
 import { createSeNARSRegistry } from '@senars/nar/lm';
 import { createLMService, createMockLMService } from '@senars/nar/lm/lm-service';
 import { createRule } from '@senars/nar/lm/rule-builders';
@@ -502,7 +502,7 @@ async function runScenario7(): Promise<boolean> {
   const curiosity = symbolicFallbacks['lm-curiosity-question'](server);
 
   // Real NAR cycle with all-fallback tasks: reasoning continues, no crash
-  const nar = SeNARSFactory.createDefault({
+  const nar = createNAR({
     lmService: undefined,
     enableLMRules: false,
     enableTools: false,
@@ -631,7 +631,7 @@ async function main() {
   logger.info(`✅ LM Service ready: provider=${lmService.provider}, model=${lmService.model}`);
 
   async function createFreshNAR() {
-    const nar = SeNARSFactory.createDefault({
+    const nar = createNAR({
       providerRegistry: registry,
       lmService,
       enableLMRules: config.enableLMRules,

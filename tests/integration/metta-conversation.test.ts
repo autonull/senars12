@@ -1,4 +1,4 @@
-import { SeNARSFactory } from '@senars/nar';
+import { createTestNAR } from '@senars/nar';
 import { createAgent } from '@senars/nar/agent';
 import type { CognitiveEvent } from '@senars/util';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -7,7 +7,7 @@ describe('Core Agent with MettaEngine - Conversational Scenarios', () => {
   let agent: Awaited<ReturnType<typeof createAgent>>;
 
   beforeAll(async () => {
-    const nar = SeNARSFactory.createForTesting({ maxConcepts: 100 });
+    const nar = createTestNAR({ maxConcepts: 100 });
     agent = await createAgent({ nar });
   });
 

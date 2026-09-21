@@ -17,7 +17,7 @@ import { spawnSync } from 'node:child_process';
 import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { SeNARSFactory } from '../../../nar/src/index.js';
+import { createNAR } from '../../../nar/src/index.js';
 import { createSeNARSRegistry } from '../../../nar/src/lm/index.js';
 import { createLMService } from '../../../nar/src/lm/lm-service.js';
 import { createLogger } from '../../../nar/src/logger.js';
@@ -144,7 +144,7 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
     const cognitiveRegistry = new CognitiveRegistry();
     cognitiveRegistry.initializeDefaults();
 
-    const nar = SeNARSFactory.createDefault({
+    const nar = createNAR({
       providerRegistry: registry,
       lmService,
       enableSelf: true,
@@ -229,7 +229,7 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
     const registry = createSeNARSRegistry();
     const lmService = createLMService();
 
-    const nar = SeNARSFactory.createDefault({
+    const nar = createNAR({
       providerRegistry: registry,
       lmService,
       enableSelf: true,
@@ -271,7 +271,7 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
     const registry = createSeNARSRegistry();
     const lmService = createLMService();
 
-    const nar = SeNARSFactory.createDefault({
+    const nar = createNAR({
       providerRegistry: registry,
       lmService,
       enableSelf: true,
@@ -323,7 +323,7 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
     const registry = createSeNARSRegistry();
     const lmService = createLMService();
 
-    const nar = SeNARSFactory.createDefault({
+    const nar = createNAR({
       providerRegistry: registry,
       lmService,
       enableSelf: true,
@@ -416,14 +416,14 @@ describe('Meta-Reasoning AIKR Bounds Enforcement', () => {
 
 describe('Homeostatic Drive Stimulation', () => {
   test('Drive stimulation events are connected', async () => {
-    const { SeNARSFactory } = await import('../../../nar/src/index.js');
+    const { createNAR } = await import('../../../nar/src/index.js');
     const { createSeNARSRegistry } = await import('../../../nar/src/lm/index.js');
     const { createLMService } = await import('../../../nar/src/lm/lm-service.js');
 
     // Test individual stimulations
     const registry = createSeNARSRegistry();
     const lmService = createLMService();
-    const nar = SeNARSFactory.createDefault({
+    const nar = createNAR({
       providerRegistry: registry,
       lmService,
       enableSelf: true,

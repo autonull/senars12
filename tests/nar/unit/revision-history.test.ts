@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createBudget, Memory, TermBuilder, Truth, termParser } from '../../../nar/src';
-import { SeNARSFactory } from '../../../nar/src/factory.js';
+import { createMinimalNAR } from '../../../nar/src/factory.js';
 
 describe('Pillar 1: revision history', () => {
   describe('Memory.getRevisionHistory', () => {
@@ -74,7 +74,7 @@ describe('Pillar 1: revision history', () => {
 
   describe('NAR.getRevisionHistory', () => {
     it('exposes revision history through the engine', async () => {
-      const nar = SeNARSFactory.createMinimal();
+      const nar = createMinimalNAR();
       await nar.believe('<bird --> animal>.');
       await nar.believe('<bird --> animal>. %0.3;0.8%');
 
@@ -88,7 +88,7 @@ describe('Pillar 1: revision history', () => {
     });
 
     it('latest revision entry matches the current concept belief', async () => {
-      const nar = SeNARSFactory.createMinimal();
+      const nar = createMinimalNAR();
       await nar.believe('<cat --> animal>.');
       await nar.believe('<cat --> animal>. %0.2;0.9%');
 

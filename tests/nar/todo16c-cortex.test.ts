@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NAR } from '@senars/nar';
-import { SeNARSFactory } from '@senars/nar/factory';
+import { createNAR } from '@senars/nar/factory';
 import type { LMService } from '@senars/nar/lm';
 import { createLMServiceCortex } from '@senars/nar/lm/system-one/cortex-adapter';
 import type { CognitiveContext, SynthesisQuery, ReasoningBudget } from '@senars/nar/lm/system-one/types';
@@ -27,7 +27,7 @@ describe('Bench 16 — Cortex Ladder', () => {
       setProgressCallback: vi.fn(),
     } as unknown as LMService;
 
-    nar = SeNARSFactory.createDefault({
+    nar = createNAR({
       lmService: mockLMService,
       systemOne: {
         enabled: true,
@@ -198,7 +198,7 @@ describe('Bench 16 — Cortex Ladder', () => {
       setProgressCallback: vi.fn(),
     } as unknown as LMService;
 
-    const failingNar = SeNARSFactory.createDefault({
+    const failingNar = createNAR({
       lmService: failingLMService,
       systemOne: {
         enabled: true,

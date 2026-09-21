@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { CognitiveRegistry } from '../../../nar/src/cognitive/registry.js';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '../../../nar/src/config/cognitive-parameters.js';
-import { SeNARSFactory } from '../../../nar/src/index.js';
+import { createNAR } from '../../../nar/src/index.js';
 import { createSeNARSRegistry } from '../../../nar/src/lm/index.js';
 import { createLMService } from '../../../nar/src/lm/lm-service.js';
+import type { NAR } from '../../../nar/src/nar.js';
 
 describe('CognitiveController accessors', () => {
-  let nar: ReturnType<typeof SeNARSFactory.createDefault>;
+  let nar: NAR;
 
   beforeEach(async () => {
     const registry = createSeNARSRegistry();
@@ -14,7 +15,7 @@ describe('CognitiveController accessors', () => {
     const cognitiveRegistry = new CognitiveRegistry();
     cognitiveRegistry.initializeDefaults();
 
-    nar = SeNARSFactory.createDefault({
+    nar = createNAR({
       providerRegistry: registry,
       lmService,
       enableSelf: true,

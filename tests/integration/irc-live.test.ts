@@ -7,7 +7,7 @@ import { bindAgentToConnection, CommandRegistry, IRCConnection } from '@senars/i
 import { createAgent } from '@senars/nar/agent';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { NAR } from '../../nar/src';
-import { SeNARSFactory } from '../../nar/src';
+import { createTestNAR } from '../../nar/src';
 import { createMockLMService } from '../../nar/src/lm';
 import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
 
@@ -108,7 +108,7 @@ describe('IRC live integration', () => {
       retentionDays: 1,
       maxEntriesPerFile: 100,
     });
-    nar = SeNARSFactory.createForTesting({ maxConcepts: 20 });
+    nar = createTestNAR({ maxConcepts: 20 });
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory });
     const sessionManager = new InMemorySessionManager();
     const commandRegistry = new CommandRegistry();

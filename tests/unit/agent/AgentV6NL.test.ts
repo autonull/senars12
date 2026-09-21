@@ -4,7 +4,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { NAR } from '../../../nar/src';
-import { SeNARSFactory } from '../../../nar/src';
+import { createTestNAR } from '../../../nar/src';
 import { createMockLMService } from '../../../nar/src/lm';
 import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
 
@@ -19,7 +19,7 @@ describe('Agent v6 — NL integration (real ModelRunner loop)', () => {
   let basePath: string;
 
   beforeEach(() => {
-    nar = SeNARSFactory.createForTesting({ maxConcepts: 50 });
+    nar = createTestNAR({ maxConcepts: 50 });
     ep = makeEpisodicMemory();
     basePath = (ep as unknown as { config: { basePath: string } }).config.basePath;
   });

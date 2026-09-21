@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import type { Memory } from '../../nar/src';
-import { BagStrategy, SeNARSFactory } from '../../nar/src';
+import { BagStrategy, createBotNAR } from '../../nar/src';
 import {
   backpressureAware,
   createPipeline,
@@ -10,7 +10,7 @@ import {
 } from '../../nar/src/stream';
 
 const createTestMemory = (): Memory => {
-  const nar = SeNARSFactory.createForBot({ maxConcepts: 50 });
+  const nar = createBotNAR({ maxConcepts: 50 });
   return nar.memory;
 };
 

@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, test } from 'vitest';
-import { type NAR, SeNARSFactory } from '../../../nar/src';
+import { createNAR, type NAR } from '../../../nar/src';
+import type { SeNARSOptions } from '../../../nar/src/factory.js';
 
 const created: NAR[] = [];
 
-async function makeNar(
-  options: Parameters<typeof SeNARSFactory.createDefault>[0] = {}
-): Promise<NAR> {
-  const nar = SeNARSFactory.createDefault({ enableLMRules: false, ...options });
+async function makeNar(options: SeNARSOptions = {}): Promise<NAR> {
+  const nar = createNAR({ enableLMRules: false, ...options });
   created.push(nar);
   await nar.start();
   return nar;
@@ -16,7 +15,7 @@ afterEach(async () => {
   while (created.length) await created.pop()?.stop();
 });
 
-describe('SeNARSFactory.createDefault', () => {
+describe('createNAR', () => {
   test('default does not enable optional subsystems', async () => {
     const nar = await makeNar();
     expect(nar.getSelfAnalyzer()).toBeUndefined();

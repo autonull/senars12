@@ -11,7 +11,7 @@
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { SeNARSFactory } from '../nar/src/factory.js';
+import { createNAR } from '../nar/src/factory.js';
 import { LMRuleFactory } from '../nar/src/lm/lm-rule-factory.js';
 import { createSystemOneLMRuleAdapter } from '../nar/src/lm/system-one/rule-adapter.js';
 import { termParser } from '../nar/src/terms/index.js';
@@ -61,7 +61,7 @@ interface LegResult {
 const PROVIDER = process.env.LM_PROVIDER ?? 'mock';
 
 async function runLeg(enabled: boolean): Promise<LegResult> {
-  const nar = SeNARSFactory.createDefault({
+  const nar = createNAR({
     systemOne: {
       enabled,
       // Real-provider legs enable the Cortex so token-reduction is measurable;

@@ -134,8 +134,8 @@
   - ~~**L3 bake-off**~~ → **landed** (session 3, below).
   - ~~**P3**~~ → already landed in `cascade-reflex.ts` + `scripts/arcade.ts` (session 3 audit).
   - ~~**P7**~~ → **landed** (session 3, below).
-  - **SeNARSFactory deletion**: production call sites migrated to NARBuilder (session 3); the class
-    remains `@deprecated` for ~20 test files still importing it — migrate tests, then delete.
+  - ~~**SeNARSFactory deletion**~~ → **landed** (session 4, below): call sites migrated, class deleted,
+    kernel-construction helpers retained as plain functions for tests/benches.
 - **Progress (second session, 2026-09-21):**
   - **P2 landed** as `nar/src/lm/system-one/verify.ts`: `verifyCascade` (SDE-style — stage-1
     `truthProbability` routes through `ConfidenceRouter` bands; stage-2 evidential verification only on
@@ -192,6 +192,20 @@
   as statements); `wasi-head-bundle.js` imports failed as a *static* vitest import from a test that
   also imports `train.js` (circular resolution) — the dynamic `await import(...)` pattern used by
   `todo16c-train.test.ts` is the reliable one.
+- **Progress (fourth session, 2026-09-21): SeNARSFactory retired.**
+  - `nar/src/factory.ts` rewritten as plain kernel-construction functions over `new NAR`:
+    `createNAR(options)` (default: LM rules on, isolated registry/event bus — same semantics as the old
+    `createDefault`), `createBotNAR({maxConcepts})`, `createMinimalNAR()`, `createTestNAR({maxConcepts,
+    lmService})` (decay off, small depth). The `SeNARSFactory` class, `fromConfig`, `createForCLI`,
+    and the `createWithStrategies`/`createCognitive*` variants are deleted (none had external callers).
+    `SeNARSConfig` type export dropped; `SeNARSOptions` kept (used by `factory.test.ts`).
+  - All ~20 test files, 4 scripts, and `examples/systemone-ingress.ts` migrated off the class; the only
+    remaining `SeNARSFactory` mention in code is the grep-guard assertion in `todo19-builder.test.ts:90`.
+    Full `pnpm test:unit` green (208 files, 1772 tests).
+  - Design note: bare-`NAR` construction for tests/benches is intentionally *not* routed through
+    `NARBuilder` — the builder's `build()` also assembles the Agent transport, which benches and kernel
+    unit tests neither need nor want. "One assembly path" applies to *agent* assembly; kernel
+    construction is a one-line `new NAR(config)` and lives as plain functions, not a class.
 - **Gotchas discovered:**
   - Narsese terms reject hyphens — rule atoms must use underscores (`nal_ab`, not `nal-ab`).
   - `Bag.ts` task sampling uses unseeded `Math.random`; with `isolate: false` the module-load order
@@ -231,6 +245,10 @@ One seam: reasoning IS a game — and the tournament table knows it.
 
 - **GPU/TS training backends (considered 2026-09-21).** PyTorch-like options for the in-house trainer (`nar/src/lm/system-one/train.ts`): **TensorFlow.js** (`tfjs-node-gpu` CUDA binding; WebGPU backend for browser/device contexts) is the only mature TS-native *training* framework; **ONNX Runtime** is inference-first (training requires Python-exported models — doesn't help author loops in TS); raw **WebGPU compute shaders** are a zero-dependency middle path (hand-written matmul/SGD kernel, fits the WASI/device story, P7). Burn/Candle/MLX rejected (not TS). Current heads are linear/logistic over a frozen backbone — GPU is pure overhead at this scale. Only earn it if Phase C bake-offs demand MLP reward models or sequence-level value heads. If adopted: parameterize `train.ts` behind a `HeadTrainerBackend` interface (`in-house-sgd` default, optional tfjs backend), falsified by identical weights digests on small problems + wall-clock parity at current scale. Deliberately *not* a plan item: the backend abstraction is a second trainer if we never need it.
 - **transformers.js toolChoice limitation (observed 2026-09-21).** The AI SDK warns `toolChoice` is unsupported by transformers.js on every chat dispatch through the default LM provider (`src/config/schema.ts:60` defaults `provider: 'transformers'`). llama.cpp providers (`nar/src/lm/providers/llamacpp.ts`, `embedded-llamacpp.ts`) bypass the AI SDK path entirely. Candidate follow-up (pre-TODO19): default the LM provider to llama.cpp (embedded runtime fallback), or strip `toolChoice` from transformers.js provider options.
+- **`@senars/nar/factory` subpath (observed 2026-09-21).** Several test files import
+  `@senars/nar/factory`, but the subpath is not declared in `nar/package.json` `exports` (resolution
+  apparently succeeds via toolchain fallback). Either declare `"./factory"` in the export map (it now
+  holds the kernel-construction helpers) or migrate those imports to `@senars/nar`.
 - **e2e bin-lifecycle lane.** `tests/e2e/bin-lifecycle.test.ts` times out at 15s when the transformers.js model cold-loads on this machine (load-sensitive lane candidate, ties into P6 fast/slow lanes); exclude from `pnpm test:unit` (already excluded via `tests/e2e/**`) and consider gating on `LM_PROVIDER=mock` until the provider default question above is settled.
 
 *Proposal rationale lives in TODO18.md (§1 component library, §1.5 NARBuilder); this file is the executable plan.*

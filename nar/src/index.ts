@@ -13,10 +13,9 @@ export { PriorityBag } from './bag/index.js';
 // Cognitive
 /** Counterfactual simulator. @public */
 export { runCounterfactual } from './cognitive/index.js';
-export type { SeNARSConfig, SeNARSOptions } from './factory.js';
 // Factory for creating NAR instances
 /** NAR factory + convenience constructors. @public */
-export { createMinimalNAR, createNAR, SeNARSFactory } from './factory.js';
+export { createBotNAR, createMinimalNAR, createNAR, createTestNAR } from './factory.js';
 // Imagination Engine (Cognitive Treadmill)
 /** Scenario generation, hidden-model oracle, cognitive treadmill. @public */
 export {

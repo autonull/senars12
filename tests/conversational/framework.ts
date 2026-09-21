@@ -1,6 +1,6 @@
 import { type CreateAgentConfig, createAgent } from '@senars/nar/agent';
 import type { NAR } from '../../nar/src';
-import { SeNARSFactory } from '../../nar/src';
+import { createTestNAR } from '../../nar/src';
 import type { LMService } from '../../nar/src/lm';
 import { errMsg } from '../../nar/src/utils';
 
@@ -107,7 +107,7 @@ export class ConversationalTestHarness {
   }
 
   async setup(): Promise<void> {
-    this.nar = SeNARSFactory.createForTesting({ lmService: this.lmService });
+    this.nar = createTestNAR({ lmService: this.lmService });
     await this.nar.initialize();
     await this.nar.start();
 
