@@ -87,24 +87,24 @@ describe('TODO17 Bench 30 — Arbitration & Gate Isolation', () => {
     const gate = gateRegistry.getActionGate();
     // Global mode and shared allowlist untouched by game construction
     expect(gate.getAutonomyMode()).toBe(beforeMode);
-    expect(gate.authorize({ proposalId: 'x', operation: '0' }).authorized).toBe(false);
+    expect(gate.authorize({ proposalId: 'x', args: {}, operation: '0' }).authorized).toBe(false);
 
     // Game A's legal action authorized within its own scope…
     const legalA = String(gameA.legalActions(gameA.state())[0]);
-    expect(gate.authorize({ proposalId: 'x', operation: `game:focus-a:${legalA}` }).authorized).toBe(
+    expect(gate.authorize({ proposalId: 'x', args: {}, operation: `game:focus-a:${legalA}` }).authorized).toBe(
       true
     );
     // …but not in game B's scope (no cross-game contamination)
-    expect(gate.authorize({ proposalId: 'x', operation: `game:focus-b:${legalA}` }).authorized).toBe(
+    expect(gate.authorize({ proposalId: 'x', args: {}, operation: `game:focus-b:${legalA}` }).authorized).toBe(
       false
     );
     // …and not as a bare global operation
-    expect(gate.authorize({ proposalId: 'x', operation: legalA }).authorized).toBe(false);
+    expect(gate.authorize({ proposalId: 'x', args: {}, operation: legalA }).authorized).toBe(false);
     // Game B's own action authorizes only in its own scope
-    expect(gate.authorize({ proposalId: 'x', operation: 'game:focus-b:warp' }).authorized).toBe(
+    expect(gate.authorize({ proposalId: 'x', args: {}, operation: 'game:focus-b:warp' }).authorized).toBe(
       true
     );
-    expect(gate.authorize({ proposalId: 'x', operation: 'game:focus-a:warp' }).authorized).toBe(
+    expect(gate.authorize({ proposalId: 'x', args: {}, operation: 'game:focus-a:warp' }).authorized).toBe(
       false
     );
   });
@@ -115,9 +115,9 @@ describe('TODO17 Bench 30 — Arbitration & Gate Isolation', () => {
     gate.setAutonomyMode('sandbox-execute');
     gate.addAllowedOperation('move');
 
-    expect(gate.authorize({ proposalId: 'x', operation: 'move' }).authorized).toBe(true);
-    expect(gate.authorize({ proposalId: 'x', operation: 'rm-rf' }).authorized).toBe(false);
+    expect(gate.authorize({ proposalId: 'x', args: {}, operation: 'move' }).authorized).toBe(true);
+    expect(gate.authorize({ proposalId: 'x', args: {}, operation: 'rm-rf' }).authorized).toBe(false);
     gate.setAutonomyMode('observe-only');
-    expect(gate.authorize({ proposalId: 'x', operation: 'move' }).authorized).toBe(false);
+    expect(gate.authorize({ proposalId: 'x', args: {}, operation: 'move' }).authorized).toBe(false);
   });
 });
