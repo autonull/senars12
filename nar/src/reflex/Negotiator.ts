@@ -6,6 +6,8 @@ export interface NALDerivation {
   action: string;
   truth: { f: number; c: number };
   source: string;
+  /** Serialized premise term the derivation was indexed from (belief seeding, E7). */
+  premise?: string;
 }
 
 export interface NegotiationDecision {

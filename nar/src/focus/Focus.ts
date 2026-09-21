@@ -9,8 +9,8 @@ import type { NALDerivation } from '../reflex/Negotiator.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../reflex/Reflex.js';
 import type { Term } from '../terms/index.js';
 import {
-  getArgs,
-  getPredicate,
+  getAntecedent,
+  getSubject,
   isAtomic,
   isImplication,
   isInheritance,
@@ -33,6 +33,8 @@ export interface FocusConcept extends BagItem {
   id: string;
   priority: number;
   term: Term;
+  /** Truth of the belief that created the concept (drives NAL derivation truth). */
+  truth?: { f: number; c: number };
   activation: number;
   totalTasks: number;
 }
@@ -204,6 +206,7 @@ export class Focus implements BagItem {
         id,
         priority,
         term,
+        truth,
         activation: priority,
         totalTasks: 1,
       };
@@ -259,38 +262,33 @@ export class Focus implements BagItem {
 
   private buildDerivationIndex(): Map<string, NALDerivation[]> {
     const index = new Map<string, NALDerivation[]>();
+    const record = (action: string, concept: FocusConcept): void => {
+      const derivations = index.get(action) ?? [];
+      derivations.push({
+        action,
+        truth: concept.truth ?? { f: concept.activation, c: Math.min(1, concept.priority) },
+        source: 'focus-memory',
+        premise: concept.term.toString(),
+      });
+      index.set(action, derivations);
+    };
+
     for (const concept of this.memory.all()) {
       const term = concept.term;
       if (!term || typeof term !== 'object') continue;
 
-      let matchedAction: string | null = null;
+      // Operation: `(^act, ...)` — the operator atom names the action.
       if (isOperation(term)) {
-        const op = getPredicate(term);
-        const args = getArgs(term);
-        const firstArg = args[0];
-        if (
-          op &&
-          isAtomic(op) &&
-          op.symbol.startsWith('^') &&
-          op.symbol.length > 1 &&
-          firstArg &&
-          firstArg.kind === 'atom' &&
-          'value' in firstArg &&
-          firstArg.value === op.symbol.slice(1)
-        ) {
-          matchedAction = op.symbol.slice(1);
-        }
+        const op = term.args?.[0];
+        if (op && isAtomic(op) && op.symbol.startsWith('^') && op.symbol.length > 1)
+          record(op.symbol.slice(1), concept);
+        continue;
       }
 
-      const isRelevantRelation = isImplication(term) || isInheritance(term);
-      if (matchedAction !== null && isRelevantRelation) {
-        const derivations = index.get(matchedAction) ?? [];
-        derivations.push({
-          action: matchedAction,
-          truth: { f: concept.activation, c: Math.min(1, concept.priority) },
-          source: 'focus-memory',
-        });
-        index.set(matchedAction, derivations);
+      // Implication/inheritance: the antecedent/subject atom names the action.
+      if (isImplication(term) || isInheritance(term)) {
+        const subject = getAntecedent(term) ?? getSubject(term);
+        if (subject && isAtomic(subject) && subject.symbol) record(subject.symbol, concept);
       }
     }
     return index;

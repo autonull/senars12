@@ -258,7 +258,7 @@ New Prometheus counters: `systemone_arcade_decisions_total{arm,game}`, `systemon
 - [x] Bench 33
 
 ### Phase E: Arcade & Parity
-- [x] E1 Brier harness (reuses `identityECE`/isotonic from calibration-fit — no third Brier impl)  E2 search handover (GameFocus option, act/review/block bands)  E3 `scripts/arcade.ts` + `pnpm arcade`  E4 parity claims asserted in Bench 35  E5 controls (shuffled/random in Bench 34; random+heuristic always rendered by arcade)  E6 docs (`docs/arcade.md` + README rows)  E7 **not implemented** (optional; see §11)
+- [x] E1 Brier harness (reuses `identityECE`/isotonic from calibration-fit — no third Brier impl)  E2 search handover (GameFocus option, act/review/block bands)  E3 `scripts/arcade.ts` + `pnpm arcade`  E4 parity claims asserted in Bench 35  E5 controls (shuffled/random in Bench 34; random+heuristic always rendered by arcade)  E6 docs (`docs/arcade.md` + README rows)  E7 cognitive mode (`--mode cognitive`: belief seeding, thought-stream panel, recorder-verified veto justifications — see §11.4)
 - [x] Bench 34 + 35
 
 ### Phase F: Hardening
@@ -369,9 +369,18 @@ Phases A–F implemented and committed (Benches 29–35 green; `pnpm typecheck`/
 
 ### 11.3 Remaining work (facilitation notes)
 
-- **E7 (optional demo mode)**: `--mode cognitive` would (a) inject Narsese rule beliefs via the existing focus task bag, (b) render per-tick panels from `logGameTrace` records + `getVetoStats()` (both already populated), (c) enable the derivation recorder. No new cognitive machinery needed. Acceptance clause lives in Bench 34 (veto justification over 200 seeded ticks).
 - **G1 GameFocus stage refactor**: `GameFocus.step` was restructured (proposal collection merged, early returns) but not yet split into named 11-stage methods; Bench 29/30/31 remain the re-run gate.
 - **G2 schema induction / G3 session resume / G5 OTel spans**: unstarted. G3 hooks exist (`FocusBag.serialize/deserialize` + per-episode seeds already recorded by the arcade loop).
 - **G4 shared-embedding discipline**: enforced inside the arcade's cognitive arms (one `EmbeddingCache` per arm construction, shared across manifold/LM/replica within an arm); a cross-arm canonical-digest assertion could be added to Bench 34 if arms are ever run concurrently.
 - **F4 scheduler promotion**: revisit only if a second consumer needs the drive loop inside `NARExecution.run`.
 - **Tetris `judgeCascade` consumer (W7)**: the game exposes the fan-out + cap; the cascade (stage-1 coarse rank over all placements → stage-2 fine `reflex_value` on top-K) should live in the arcade's tetris arm when the manifold arm is run on tetris — currently the manifold arm uses plain `ManifoldReflex` batching, which already satisfies one-batch-per-decision but not the two-stage cascade.
+
+### 11.4 Progress Addendum (v1.3 — 2026-09-21, E7 cognitive mode)
+
+E7 implemented (the last P1 demo item). Bench 34 gained the cognitive-mode clause (all six clause groups green).
+
+- **NAL veto path repaired**: `Focus.buildDerivationIndex` previously could never match (the operation branch required `getPredicate` on an operation term — always `undefined` — and demanded a term be both operation- and implication-kind, which is impossible). It now indexes (a) operation terms by their `^action` operator atom and (b) implication/inheritance terms by their antecedent/subject atom. Derivation truth comes from the concept's stored belief truth (`FocusConcept.truth`, newly persisted in `addConcept`) instead of activation — this is what makes seeded "bad action" beliefs veto-eligible (`f<0.3, c≥0.8`). Old callers see no change (derivation shape is additive: optional `premise` field).
+- **`nar/src/focus/belief-seeding.ts`** (new): `seedBelief(focus, {narsese, truth, priority})` parses Narsese into a `FocusTask` belief; `actionRuleBelief(action, consequence, truth)` builds `(<action> ==> <consequence>)` rules. `GameFocus.seedRule`/`seedBelief` delegate (E7 Self-Concept-Vocabulary pattern).
+- **`GameFocus` cognitive option**: `cognitive: true` enables (a) per-tick `TickPanelEntry` panel log (`getPanelLog()`: proposals, NAL derivations, negotiation decision, handover flag, reward, focus weight — covering executed, vetoed, handover, block, and abstain ticks) and (b) veto justification records (`getVetoJustifications()`): one-step `DerivationRecord` per veto (premises = the seeded rule term, ruleId `deduction`, conclusion truth = f²/c² of the premise) that passes the standalone verifier (`verifyRecord(record, {strict: true})`) — Bench 34 asserts every justification verifies.
+- **Arcade `--mode cognitive`**: seeds honest per-game domain rules (gridworld: `(0 ==> wall_bump)` f0.1 c0.95 — the start cell's top row), prints the `[panel]` thought-stream line per tick and veto/justification stats per episode; non-cognitive runs unchanged.
+- **Facilitation notes for follow-ups**: the veto path is generic — G2 schema induction can promote repeated veto patterns into beliefs via the same seeding API; `getVetoStats().vetoRate` is actually vetos-per-episode (value >1 possible) — rename or divide by episode length if it is ever surfaced in a report.

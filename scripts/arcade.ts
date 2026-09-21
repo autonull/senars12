@@ -33,7 +33,14 @@ import type { ReasoningBudget } from '@senars/kernel/schemas';
 type GameName = 'snake' | 'tetris' | '2048' | 'tictactoe' | 'gridworld' | 'bandit';
 type Arm = 'manifold' | 'lm' | 'replica' | 'heuristic' | 'random';
 
-const parseArgs = (): { games: GameName[]; arms: Arm[]; episodes: number; seed: number; render: boolean } => {
+const parseArgs = (): {
+  games: GameName[];
+  arms: Arm[];
+  episodes: number;
+  seed: number;
+  render: boolean;
+  cognitive: boolean;
+} => {
   const get = (flag: string, fallback: string) =>
     process.argv[process.argv.indexOf(flag) + 1] ?? fallback;
   const games = get('--games', 'snake,tetris,2048,tictactoe,gridworld,bandit')
@@ -46,7 +53,14 @@ const parseArgs = (): { games: GameName[]; arms: Arm[]; episodes: number; seed: 
     episodes: Number(get('--episodes', '3')),
     seed: Number(get('--seed', '7')),
     render: process.argv.includes('--render'),
+    cognitive: get('--mode', 'default') === 'cognitive',
   };
+};
+
+/** E7: honest domain rules the Negotiator can veto against (per game). */
+const cognitiveRules: Partial<Record<GameName, Array<[string, string, { f: number; c: number }]>>> = {
+  // GridWorld 'S..' starts on the top row: moving up (0) bumps the wall.
+  gridworld: [['0', 'wall_bump', { f: 0.1, c: 0.95 }]],
 };
 
 const makeGames: Record<GameName, (seed: number) => Game> = {
@@ -142,7 +156,7 @@ async function buildCognitiveArm(
 }
 
 async function main(): Promise<void> {
-  const { games, arms, episodes, seed, render } = parseArgs();
+  const { games, arms, episodes, seed, render, cognitive } = parseArgs();
   const harness = new BrierHarness();
   const notes: string[] = [];
   const rng = new SeededRNG(seed);
@@ -196,7 +210,10 @@ async function main(): Promise<void> {
       const recording = new RecordingReflex(`${arm}-recording`, built.reflex);
       for (let e = 0; e < episodes; e++) {
         const game = makeGames[gameName](seed + e);
-        const focus = new GameFocus({ focusId: `${arm}-${gameName}-${e}`, game });
+        const focus = new GameFocus({ focusId: `${arm}-${gameName}-${e}`, game, cognitive });
+        if (cognitive)
+          for (const [action, consequence, truth] of cognitiveRules[gameName] ?? [])
+            focus.seedRule(action, consequence, truth);
         focus.bindReflex(recording);
         focus.setReflexPrefetchContext?.({
           manifold: built.manifold as never,
@@ -230,8 +247,23 @@ async function main(): Promise<void> {
             console.log(`\n[${arm}/${gameName}] step ${steps} → ${top?.action ?? 'n/a'} (p=${top?.confidence?.toFixed(2) ?? '-'})`);
             console.log(renderGame(game));
           }
+          if (cognitive) {
+            const panel = focus.getPanelLog().at(-1);
+            if (panel) {
+              const d = panel.decision;
+              console.log(
+                `[panel] c${panel.cycle} proposals=[${panel.proposalActions.join(',')}] → ${d.action ?? '∅'} src=${d.source}${d.vetoedBy ? ` VETOED by ${d.vetoedBy}` : ''}${panel.handover ? ' HANDOVER' : ''} deriv=${panel.nalDerivations.length} w=${panel.focusWeight.toFixed(3)}`
+              );
+            }
+          }
         }
         focus.markEpisodeEnd();
+        if (cognitive) {
+          const v = focus.getVetoStats();
+          console.log(
+            `[panel] episode ${e}: vetos=${v.totalVetos} rate=${v.vetoRate.toFixed(2)} justifications=${focus.getVetoJustifications().length}`
+          );
+        }
       }
     }
   }

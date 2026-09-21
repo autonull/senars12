@@ -5,6 +5,7 @@ import { createGridWorldGame, SeededRNG, type Game } from '@senars/nar/game';
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
 import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { verifyRecord } from '../../scripts/verify-derivation.js';
 
 /** Fixed-confidence scripted reflex (review band lands at p=0.5). */
 class FixedConfidenceReflex implements Reflex {
@@ -122,6 +123,36 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
     focus3.bindReflex(new FixedConfidenceReflex(0.05));
     const result = await focus3.step(10);
     expect(result.gameOutcome).toBeNull();
+  });
+
+  it('E7 cognitive mode: belief seeding → NAL veto with recorder-verified justification + per-tick panel', async () => {
+    const game = createGridWorldGame({ id: 'cog-grid', grid: ['S..', '..G'], seed: 5 });
+    const focus = new GameFocus({ focusId: 'cog-focus', game, cognitive: true });
+    focus.bindReflex(new FixedConfidenceReflex(0.9));
+    // Domain rule: gridworld 'S..' starts on the top row — moving up (0) bumps the wall.
+    focus.seedRule('0', 'wall_bump', { f: 0.1, c: 0.95 });
+
+    const ticks = 200;
+    for (let t = 0; t < ticks; t++) await focus.step(10);
+
+    // Veto fires and is counted
+    const vetoStats = focus.getVetoStats();
+    expect(vetoStats.totalVetos).toBeGreaterThanOrEqual(1);
+    expect(vetoStats.vetoDetails[0]?.vetoReason).toBe('nal-focus-memory');
+
+    // Per-tick panel data emitted
+    const panel = focus.getPanelLog();
+    expect(panel.length).toBe(ticks);
+    expect(panel[0]!.decision.source).toBe('nal');
+    expect(panel[0]!.nalDerivations.length).toBeGreaterThan(0);
+
+    // Veto justification is a recorder-verifiable derivation record
+    const justifications = focus.getVetoJustifications();
+    expect(justifications.length).toBeGreaterThanOrEqual(1);
+    for (const record of justifications) {
+      const result = verifyRecord(record, { strict: true, epsilon: 1e-6 });
+      expect(result.passed).toBe(true);
+    }
   });
 
   it('report written to .reports/arcade.{json,md}', async () => {

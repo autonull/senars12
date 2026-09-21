@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { mkdirSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { DerivationRecord } from '@senars/kernel/schemas';
 import { PriorityBag } from '../bag/Bag.js';
 import type { Game, GameOutcome, Perception } from '../game/Game.js';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
@@ -10,6 +11,7 @@ import { type NALDerivation, NegotiationDecision, Negotiator } from '../reflex/N
 import { ActionProposal, LearningEvent, type Reflex } from '../reflex/Reflex.js';
 import { ConfidenceRouter } from '../lm/system-one/policy.js';
 import { Focus, type FocusOptions } from './Focus.js';
+import { actionRuleBelief, seedBelief, type SeededBelief } from './belief-seeding.js';
 
 export interface GameFocusOptions {
   focusId: string;
@@ -22,6 +24,20 @@ export interface GameFocusOptions {
     minBaselineConfidence?: number;
     baseline: (game: Game, legalActions: string[]) => string | null;
   };
+  /** E7 cognitive mode: per-tick thought-stream panel entries + veto justification records. */
+  cognitive?: boolean;
+}
+
+/** E7: per-tick cognition snapshot for the thought-stream panel. */
+export interface TickPanelEntry {
+  cycle: number;
+  proposalActions: string[];
+  nalDerivations: NALDerivation[];
+  decision: NegotiationDecision;
+  handover: boolean;
+  reward: number;
+  terminal: boolean;
+  focusWeight: number;
 }
 
 /** Components needed to prefetch semantic reflex judgments at the attend stage (C1). */
@@ -36,6 +52,9 @@ export class GameFocus {
   readonly game: Game;
   private readonly negotiator: Negotiator;
   private readonly handover: GameFocusOptions['handover'];
+  private readonly cognitive: boolean;
+  private panelLog: TickPanelEntry[] = [];
+  private vetoJustifications: DerivationRecord[] = [];
   private handoverCount = 0;
   private lastTickHandover = false;
   private cycle = 0;
@@ -55,6 +74,7 @@ export class GameFocus {
   constructor(options: GameFocusOptions) {
     this.game = options.game;
     this.handover = options.handover;
+    this.cognitive = options.cognitive ?? false;
 
     this.focus = new Focus({
       id: options.focusId,
@@ -92,6 +112,68 @@ export class GameFocus {
 
   bindReflex(reflex: Reflex): void {
     this.focus.bindReflex(reflex);
+  }
+
+  /** E7: seed a rule belief `(action ==> consequence)` into the focus's task bag. */
+  seedRule(action: string, consequence: string, truth: { f: number; c: number }, priority?: number): void {
+    seedBelief(this.focus, actionRuleBelief(action, consequence, truth, priority));
+  }
+
+  /** E7: seed a raw Narsese belief (Self-Concept-Vocabulary pattern). */
+  seedBelief(belief: SeededBelief): void {
+    seedBelief(this.focus, belief);
+  }
+
+  /** E7: per-tick cognition snapshots (cognitive mode only). */
+  getPanelLog(): readonly TickPanelEntry[] {
+    return this.panelLog;
+  }
+
+  /** E7: recorder-verifiable justification record for every NAL veto. */
+  getVetoJustifications(): readonly DerivationRecord[] {
+    return this.vetoJustifications;
+  }
+
+  private recordPanel(entry: TickPanelEntry): void {
+    if (this.cognitive) this.panelLog.push(entry);
+  }
+
+  /** E7: build a DerivationRecord for a veto from the matched NAL derivation. */
+  private buildVetoJustification(
+    cycle: number,
+    action: string,
+    derivation: NALDerivation
+  ): DerivationRecord {
+    const premise = derivation.premise ?? action;
+    const premiseTruth = { frequency: derivation.truth.f, confidence: derivation.truth.c };
+    const stepId = uuidv4();
+    const derived = {
+      frequency: premiseTruth.frequency * premiseTruth.frequency,
+      confidence: premiseTruth.confidence * premiseTruth.confidence,
+    };
+    return {
+      derivationId: uuidv4(),
+      taskId: uuidv4(),
+      goalTerm: `veto(${action})`,
+      steps: [
+        {
+          stepId,
+          ruleId: 'deduction',
+          ruleCategory: 'logic',
+          premises: [premise, premise],
+          conclusion: `veto(${action})`,
+          truth: derived,
+          premiseTruths: [premiseTruth, premiseTruth],
+          evidenceLineage: [],
+          independence: 'independent',
+        },
+      ],
+      finalTruth: derived,
+      totalCycles: 0,
+      maxDepthReached: 0,
+      timestamp: Date.now() + cycle,
+      engine: 'nar',
+    };
   }
 
   private reflexPrefetchContext: ReflexPrefetchContext | null = null;
@@ -260,11 +342,32 @@ export class GameFocus {
         const band = this.handover.router.route({ top: { p: resolved.confidence } });
         const reviewAction = this.handover.reviewAction ?? 'escalate-baseline';
         if (band === 'block') {
+          this.recordPanel({
+            cycle: this.cycle,
+            proposalActions: proposals.map((p) => p.action),
+            nalDerivations,
+            decision: resolved,
+            handover: false,
+            reward: 0,
+            terminal: false,
+            focusWeight: this.focus.weight,
+          });
           return { focusReport: { ...focusReport, cycle: this.cycle }, gameOutcome: null };
         }
         if (band === 'review' && reviewAction !== 'act') {
-          if (reviewAction === 'abstain')
+          if (reviewAction === 'abstain') {
+            this.recordPanel({
+              cycle: this.cycle,
+              proposalActions: proposals.map((p) => p.action),
+              nalDerivations,
+              decision: resolved,
+              handover: false,
+              reward: 0,
+              terminal: false,
+              focusWeight: this.focus.weight,
+            });
             return { focusReport: { ...focusReport, cycle: this.cycle }, gameOutcome: null };
+          }
           const legal = this.game.legalActions(this.game.state()).map(String);
           const baseline = this.handover.baseline(this.game, legal);
           if (baseline && legal.includes(baseline)) {
@@ -365,6 +468,10 @@ export class GameFocus {
             ? { action: vetoDerivation.action, truth: vetoDerivation.truth, source: vetoDerivation.source }
             : { action: '', truth: { f: 0, c: 0 }, source: 'none' },
         });
+        if (vetoDerivation)
+          this.vetoJustifications.push(
+            this.buildVetoJustification(this.cycle, resolved.action, vetoDerivation)
+          );
 
         const learningEvent = this.negotiator.createLearningEvent(this.focus, resolved, {
           reward: 0,
@@ -387,6 +494,16 @@ export class GameFocus {
         });
       }
 
+      this.recordPanel({
+        cycle: this.cycle,
+        proposalActions: proposals.map((p) => p.action),
+        nalDerivations,
+        decision: resolved,
+        handover: this.lastTickHandover,
+        reward: gameOutcome?.reward ?? 0,
+        terminal: gameOutcome?.terminal ?? false,
+        focusWeight: this.focus.weight,
+      });
       this.previousPerception = this.game.observe();
     }
 
@@ -454,6 +571,7 @@ export class GameFocus {
     this.vetoDetails = [];
     this.episodeVetoCounts = [];
     this.currentEpisodeVetos = 0;
+    this.vetoJustifications = [];
   }
 
   private parseAction(actionStr: string): any {

@@ -2,6 +2,8 @@ export type { Game, GameOutcome, MetaGame, Perception, SelfMetaGame } from '../g
 export type { ActionProposal, LearningEvent, Reflex } from '../reflex/Reflex.js';
 export type { FocusConcept, FocusOptions, FocusStepReport, FocusTask } from './Focus.js';
 export { Focus } from './Focus.js';
+export { actionRuleBelief, seedBelief, type SeededBelief } from './belief-seeding.js';
+export type { TickPanelEntry } from './GameFocus.js';
 export { createFocus, FocusBag } from './FocusBag.js';
 export { createGameFocus, GameFocus } from './GameFocus.js';
 export { createFocusScheduler, FocusScheduler, type FocusSchedulerOptions, type SchedulerTickResult } from './focus-scheduler.js';

@@ -58,6 +58,21 @@ Review-band decisions escalate to the game's heuristic baseline (minimax for
 TicTacToe) instead of acting; the block band yields the tick (AIKR). Counted
 per game and surfaced in the report.
 
+## Cognitive mode (E7)
+
+```bash
+pnpm arcade -- --games gridworld --arms manifold --mode cognitive
+```
+
+Opt-in mode where SeNARS reasoning is visible in gameplay: the game's domain
+rules are seeded as Narsese beliefs (`(<action> ==> <consequence>)`) so the
+Negotiator's NAL veto has domain content (e.g. gridworld `(0 ==> wall_bump)` —
+the start cell's top row), each tick prints a `[panel]` thought-stream line
+(proposals → decision, veto/handover markers, NAL derivation count, focus
+weight), and every veto carries a recorder-verifiable justification record
+(`GameFocus.getVetoJustifications()` — passes the standalone derivation
+verifier). Non-cognitive runs are unchanged.
+
 ## Tests
 
 `tests/nar/todo17-{scheduler,arbitration,games,lm-reflex,open-replica,arcade,parity}.test.ts`
