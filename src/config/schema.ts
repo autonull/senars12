@@ -434,6 +434,8 @@ export const systemOneDefaults = {
     riskFloor: 0.8,
     labelOutcomes: true,
   },
+  lmReflex: { grammarActions: true, maxCandidates: 3 },
+  handover: { reviewAction: 'escalate-baseline' as const, minBaselineConfidence: 0.5 },
 } as const;
 
 export const systemOneSchema = z.object({
@@ -441,7 +443,7 @@ export const systemOneSchema = z.object({
   manifold: z
     .object({
       provider: z
-        .enum(['off', 'wasi', 'webgpu', 'http', 'peer'])
+        .enum(['off', 'wasi', 'webgpu', 'http', 'peer', 'open-systemone'])
         .default(systemOneDefaults.manifold.provider),
       endpoint: z.string().optional(),
       timeoutMs: z.number().int().positive().optional(),
@@ -567,6 +569,24 @@ export const systemOneSchema = z.object({
       labelOutcomes: z.boolean().default(systemOneDefaults.rl.labelOutcomes),
     })
     .default(systemOneDefaults.rl),
+  lmReflex: z
+    .object({
+      grammarActions: z.boolean().default(systemOneDefaults.lmReflex.grammarActions),
+      maxCandidates: z.number().int().positive().default(systemOneDefaults.lmReflex.maxCandidates),
+    })
+    .default(systemOneDefaults.lmReflex),
+  handover: z
+    .object({
+      reviewAction: z
+        .enum(['escalate-baseline', 'abstain', 'act'])
+        .default(systemOneDefaults.handover.reviewAction),
+      minBaselineConfidence: z
+        .number()
+        .min(0)
+        .max(1)
+        .default(systemOneDefaults.handover.minBaselineConfidence),
+    })
+    .default(systemOneDefaults.handover),
 });
 
 const appConfigBase = z.object({

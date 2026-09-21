@@ -16,6 +16,7 @@ import { createEmbeddingCache } from './lm/system-one/embedding-cache.js';
 import { createGroundednessGate } from './lm/system-one/groundedness-gate.js';
 import { createHttpManifold } from './lm/system-one/http-manifold.js';
 import { createManifold } from './lm/system-one/manifold.js';
+import { LMReflex } from './lm/system-one/lm-reflex.js';
 import { ManifoldReflex } from './lm/system-one/manifold-reflex.js';
 import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
 import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
@@ -509,6 +510,8 @@ export class NAR extends BaseComponent {
       reflexes?: Reflex[];
       weight?: number;
       focusBag?: FocusBag;
+      /** Bind an LMReflex (real-LM per-tick decisions) in addition to the manifold arm. */
+      lmReflex?: boolean;
     } = {}
   ): GameFocus {
     const bag = options.focusBag ?? this.getFocusBag();
@@ -520,6 +523,7 @@ export class NAR extends BaseComponent {
     });
     for (const reflex of options.reflexes ?? []) focus.bindReflex(reflex);
     if (this.isSystemOneEnabled()) this.attachManifoldReflex(focus);
+    if (options.lmReflex && this.isSystemOneEnabled()) this.attachLMReflex(focus);
     bag.add(focus.focus);
     this.attachedGames.set(id, { focus, bag });
     return focus;
@@ -537,6 +541,48 @@ export class NAR extends BaseComponent {
 
   getAttachedGames(): string[] {
     return [...this.attachedGames.keys()];
+  }
+
+  /**
+   * Create and bind an LMReflex to a GameFocus (TODO17 C1): a real LM decides
+   * per tick under a GBNF action grammar; the manifold judges its candidates.
+   * Undefined when System One (dispatcher) is disabled.
+   */
+  attachLMReflex(
+    gameFocus: {
+      bindReflex: (reflex: Reflex) => void;
+      setReflexPrefetchContext?: (context: {
+        manifold: JudgmentManifold;
+        embeddingCache: EmbeddingCache;
+        budget: ReasoningBudget;
+      }) => void;
+    },
+    options: { maxCandidates?: number } = {}
+  ): Reflex | undefined {
+    const dispatcher = this._systemOneDispatcher;
+    const embeddingCache = this._systemOneEmbeddingCache;
+    const manifold = this._systemOneManifold;
+    if (!this.isSystemOneEnabled() || !dispatcher || !embeddingCache || !manifold) return undefined;
+
+    const incumbent = new EpsilonGreedyReflex('lm-incumbent', { numArms: 10, epsilon: 0.1 });
+    const lmReflex = new LMReflex({
+      fallback: incumbent,
+      dispatcher,
+      embeddingCache,
+      budget: this.config.systemOne?.reasoningBudget ?? {
+        maxCycles: 100,
+        maxDepth: 10,
+        maxMemoryOps: 1000,
+        maxLMCalls: 5,
+        consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+      },
+      dataset: this._systemOneDataset,
+      maxCandidates: options.maxCandidates ?? this.config.systemOne?.lmReflex?.maxCandidates ?? 3,
+    });
+    gameFocus.bindReflex(lmReflex);
+    gameFocus.setReflexPrefetchContext?.({ manifold, embeddingCache, budget: lmReflex.budget });
+    this.logger?.info('LMReflex attached to GameFocus');
+    return lmReflex;
   }
 
   getMetricsCollector(): MetricsCollector {
