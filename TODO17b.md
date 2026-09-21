@@ -1,6 +1,7 @@
 # TODO17b.md — SeNARS Codebase Integrity Sweep: Fail-Closed Repairs, Bounded Runtime & Surface Truth
 
-**Version:** 1.1 · continues TODO17.md v1.8 (Arcade plan — complete) · lineage TODO16c.md (System One) · TODO16b.md
+**Version:** 1.2 · continues TODO17.md v1.8 (Arcade plan — complete) · lineage TODO16c.md (System One) · TODO16b.md
+**Progress (2026-09-21):** Phases 0, A, B complete; Phase C complete except **D22** (and D24's minor-findings one-liners). See §7 Status Ledger.
 **Philosophy:** *A demo can only be honest if the substrate is. This sweep repairs every place the code fails open, lies about success, grows without bound, or documents what it does not do — each repair falsifiable, each deletion justified by a grep.*
 
 **Core Principle:** *No success flag without the work; no log without a bound; no doc claim without a caller.*
@@ -133,5 +134,55 @@ auth binds or refuses        doctor tells the truth      self-tools never lie
 ```
 
 > TODO16c connected the nerves, TODO17 books the arcade. TODO17b makes the floor safe to dance on: the kernel that judges cannot fail open, the agent that self-improves cannot lie about it, and nothing in the house grows in the dark.
+
+---
+
+## 7. Status Ledger (2026-09-21, post-Phase-C commit `25d23cd8`)
+
+**Certified:** `pnpm test:unit` green **2 consecutive runs** after the D0 fix (198→204 files; 1710→1742 tests incl. the new todo17b suites); `pnpm typecheck` **0 errors** (also fixed the 2 pre-existing `todo17-arcade.test.ts` errors); `pnpm lint` clean.
+
+| Item | Status | Where / notes |
+|------|--------|---------------|
+| D0 | ✅ | `resetGateRegistry()` exported; per-file reset in `tests/setup/vitest-setup.ts`; SLO + parity-restoration legs moved to `test:load-sensitive` (dedicated CI job). Bench 35* run 2/3 green — **one more clean run certifies**. |
+| D1 | ✅ | Fault-injected `judgeBatch` throw ⇒ rejection + `policy.violation` (`systemone_ingress_error`) telemetry; no legacy passthrough. Bench 36. |
+| D2 | ✅ | Recursion fixed (bound original before override). Bench 37. |
+| D3 | ✅ | Multi-agent CLI + WS iterate `agent.chat()`; deltas streamed. |
+| D4 | ✅ | `resolveModelId` memoizes successes only; failures logged + retried. Bench 39. `MODEL_PLACEHOLDER` now exported. |
+| D5 | ✅ | `stream()` parity: spend (via `result.usage`), semantic cache, one pre-yield retry, routing telemetry, `LMUnavailableError` on missing model. |
+| D6 | ✅ | `register_rule`/`register_tool`/`run_scenario` return typed `not-supported` failures (shadow-validated artifacts still reported, registration truthfully denied). |
+| D7 | ✅ | `promote` awaits `nar.believe`; failing promote rejects consolidation. |
+| D8 | ✅ | Episodic rollover to `<date>-<n>.jsonl`; drop counter `EpisodicMemory.droppedTotal`; prune regex handles suffix files. |
+| D9 | ✅ | PersistentSpace + TemporalEmbeddingMemory: guarded saves (`failedSaves` counter), unref'd timer, dispose flush, corrupt-file quarantine (`.corrupt` + loud throw). |
+| D10 | ✅ | allSettled rejections logged + `errorCount` (base + cli); delegation peer-crash ⇒ typed failure reply with `error` field. |
+| D11–D17 | ✅ | Shared `pushBounded` ring (cap 1000) across gate logs, rule execution log, revision log, enricher results; corrections evict-least-cited; prompt-cache TTL sweep on write; e-graph saturate budget; monitor teardown (`unref` + listener removal); ProposalRouter drain APIs; IRC timer hygiene; InMemorySessionManager LRU caps. Bench 38. |
+| D18 | ✅ | All `undefined` rule stubs deleted (8 meta + `nal.compose`/`nal.revision`); registration rows removed; README matrix rewritten to registered-rules truth. |
+| D19 | ✅ | DQ2=wired: nar command groups + `createAuthCommands` registered in bot-ai; `CommandContext` gained `nar`; ConnectionBinder passes `agent.getNAR()`. |
+| D20 | ✅ | DQ3=wired: `SelfMetaGameImpl.recordFocusStepReport` drains `SelfRewardGate.queue` through `ProposalRouter` with `applyFocusWeight`/`applyKnob` actuators under the live autonomy mode. |
+| D21 | ✅ | Dead fields pruned: `bot.reasoning.*`, `bot.streaming`, `bot.tui`, `bot.autonomy`, `bot.policy.*`, `bot.conversation.{maxArtifacts,pinnedBeliefLimit}`, `bot.classifier`, `directives`, `nlParsers`, `prompts`; dead env mappings removed; `--migrate` stub deleted; `bin.senars` → `dist/bin/repl.js`. Kept: `bot.conversation.{maxHistory,summaryThreshold}` (read), `bot.lmRules` (read). |
+| D23 | ✅ implemented | `KernelPerceptionGate.setDriveManager()` hook; NAR wires its DriveManager at init; ambiguity ⇒ `stimulate('curiosity', 1)`. TODO16c A4 record now true — no amendment needed. |
+| D24 | ⚠️ partial | Rule matrix rewritten to registered-rules truth (Bench 40 verifies). **Remaining:** README governance section is now accurate post-D20; the audit's minor findings (`NALVetoError` never thrown, `metta` tool catch→`[]`, capability typed-error flattening, `withTimeout` non-cancellation) still need one-line doc notes or trivial fixes. |
+| D22 | ❌ open | Deferred — see §8 notes. |
+
+### Benches
+| # | File | Status |
+|---|------|--------|
+| 36 | `tests/nar/todo17b-failclosed.test.ts` | ✅ 9 tests |
+| 37 | `tests/nar/todo17b-async.test.ts` | ✅ 7 tests |
+| 38 | `tests/nar/todo17b-bounded.test.ts` | ✅ 9 tests (targeted cap assertions; full heap-soak stays in `tests/soak`) |
+| 39 | `tests/nar/todo17b-provider.test.ts` | ✅ 3 tests |
+| 40 | `tests/nar/todo17b-surface.test.ts` | ✅ 4 grep-guards |
+
+---
+
+## 8. Remaining Work — Notes for the Next Session
+
+1. **Bench 35\* certification:** run `pnpm test:unit` once more; three consecutive green runs close Phase 0 formally.
+2. **D22 — dead-module deletion (DQ4 default: delete).** Sequenced so it is mechanical:
+   - `CognitiveOptimizer`, `ObserverService`, `WorkingMemory`, `TemporalEmbeddingMemory`, `FeedbackLearner` — grep callers first; `FeedbackLearner` now has a cap (D17) but still zero production readers → delete unless a consumer appears. `TemporalEmbeddingMemory` persistence guard (D9) goes with it.
+   - `src/api/*` (634 lines): **before deleting, port rate-limit + auth into `src/bin/mcp-server.ts` and `multi-agent-runner.ts`** (the live servers are hand-rolled). `io/src/commands/auth.ts` fix (D19) already covers the `/auth` lie.
+   - Note: `io/src/connections/` D15 WS `eventSubscriptions` cleanup clause lives in `src/api/websocket-adapter.ts` — either port the cleanup to the live WS adapter or resolve as moot after deletion (verify `io`'s own WS connection subscription lifecycle first).
+3. **D24 minor findings:** one-line README/doc notes for `NALVetoError` (defined in `KernelActionGate`, never thrown), `metta` tool `catch → []`, capability typed-error flattening, `withTimeout` non-cancellation.
+4. **D20 follow-up (optional):** `drainAwaitingValidation`/`drainAwaitingApproval` now exist on `ProposalRouter`; only `route()` is consumed by SelfMetaGame. Medium/high-risk proposals accumulate in the router queues for the human-review flow — consider exposing them via `status.ts`/`doctor` output.
+5. **Commit sequence this session:** `f1c9f4c5` (D0) → `6b614b1c` (Phase A) → `36025dec` (Phase B) → `25d23cd8` (Phase C partial).
 
 **Build order:** 0 (D0, ~1d — the green baseline everything is certified against) → A (2d) → B (1.5d) → C (2d, DQ-gated) — each phase independently releasable; 0 and A are the only P0s.
