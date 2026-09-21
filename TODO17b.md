@@ -192,6 +192,8 @@ auth binds or refuses        doctor tells the truth      self-tools never lie
 - Tetris LM arm: single-action LMReflex without the placement cascade scores 0 (heuristic wins tetris) — wiring `PlacementCascadeReflex` for the lm arm would make it competitive.
 - The rendered demo (`--render`) prints tick panels; the manifold arm's ticks are few in mixed runs (arm-coverage variance) — cosmetic.
 
+**Follow-up fix (same session):** the **manifold arm never played** — `GameFocus.proposeStage` passed raw numeric `legalActions` to reflexes, and `ManifoldReflex` pushed its scored proposals with numeric actions, so `decision.actionExecuted === 0` was falsy and `actStage` silently skipped the game step (falsy-zero bug; actions are now string-normalized at both `proposeStage` and `ManifoldReflex.propose`). The arm went from 0 ticks to playing every game (+199 return; beats random on bandit, ties tictactoe). `pnpm run demo:arcade` runs the full tournament.
+
 **Plan status: complete.** All D-items (D0–D24) done; Benches 35*–40 pass; `pnpm typecheck` 0 errors; `pnpm lint` clean; §8 residue (governance status surface, subpath audit, Arcade LM-arm win) also closed 2026-09-21. TODO17b is done — future work belongs in a new TODO file.
 
 **Build order:** 0 (D0, ~1d — the green baseline everything is certified against) → A (2d) → B (1.5d) → C (2d, DQ-gated) — each phase independently releasable; 0 and A are the only P0s.

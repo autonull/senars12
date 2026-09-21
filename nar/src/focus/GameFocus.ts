@@ -363,7 +363,9 @@ export class GameFocus {
     t.reflexProposals = this.focus.reflexes
       .map((reflex) => ({
         reflex,
-        proposals: reflex.propose(this.game.observe(), this.game.legalActions(this.game.state())),
+        // String-normalized legal actions: numeric actions (bandit/gridworld)
+        // must not reach reflexes typed for strings (and 0 must not be falsy).
+        proposals: reflex.propose(this.game.observe(), this.game.legalActions(this.game.state()).map(String)),
       }))
       .filter((entry) => entry.proposals.length > 0);
     if (t.reflexProposals.length === 0) return false;

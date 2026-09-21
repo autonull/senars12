@@ -74,9 +74,11 @@ export class ManifoldReflex implements Reflex<Perception, string> {
       const score = rows.get(String(action));
       const incumbent = byAction.get(String(action));
       if (score !== undefined) {
-        proposals.push({ action, value: score, confidence: score, source: this.id });
+        // String-normalized: numeric action 0 must not be falsy in the
+        // negotiation/act pipeline.
+        proposals.push({ action: String(action), value: score, confidence: score, source: this.id });
       } else if (incumbent) {
-        proposals.push(incumbent);
+        proposals.push({ ...incumbent, action: String(incumbent.action) });
       }
     }
     return proposals;
