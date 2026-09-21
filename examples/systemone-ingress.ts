@@ -2,7 +2,7 @@
  * System One ingress — natural language in, calibrated judgments out.
  * Run: `pnpm tsx examples/systemone-ingress.ts`
  */
-import { createNAR } from '../nar/src/factory.js';
+import { createNAR } from '../nar/src/nar-presets.js';
 
 const nar = createNAR({
   systemOne: { enabled: true },

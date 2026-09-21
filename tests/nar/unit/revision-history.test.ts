@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createBudget, Memory, TermBuilder, Truth, termParser } from '../../../nar/src';
-import { createMinimalNAR } from '../../../nar/src/factory.js';
+import { createMinimalNAR } from '../../../nar/src/nar-presets.js';
 
 describe('Pillar 1: revision history', () => {
   describe('Memory.getRevisionHistory', () => {

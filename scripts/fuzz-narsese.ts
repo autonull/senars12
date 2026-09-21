@@ -7,7 +7,7 @@
  * Or: pnpm exec tsx scripts/fuzz-narsese.ts [iterations] [--seed N]
  */
 
-import { createNAR } from '../nar/src/factory.js';
+import { createNAR } from '../nar/src/nar-presets.js';
 import { termParser } from '../nar/src/terms/parser-peggy.js';
 import { Truth } from '../nar/src/terms/truth.js';
 import type { Term } from '../nar/src/terms/types.js';

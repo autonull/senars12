@@ -17,7 +17,7 @@ import { spawnSync } from 'node:child_process';
 import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { createNAR } from '../../../nar/src/index.js';
+import { createNAR } from '../../../nar/src/nar-presets.js';
 import { createSeNARSRegistry } from '../../../nar/src/lm/index.js';
 import { createLMService } from '../../../nar/src/lm/lm-service.js';
 import { createLogger } from '../../../nar/src/logger.js';

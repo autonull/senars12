@@ -12,7 +12,7 @@
  * - Observability emission every N cycles
  */
 
-import { createNAR } from '../nar/src/index.js';
+import { createNAR } from '../nar/src/nar-presets.js';
 import { createSeNARSRegistry } from '../nar/src/lm/index.js';
 import { createLMService } from '../nar/src/lm/lm-service.js';
 import { createLogger } from '../nar/src/logger.js';

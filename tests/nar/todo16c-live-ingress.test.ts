@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NAR } from '@senars/nar';
-import { createNAR } from '@senars/nar/factory';
+import { createNAR } from '@senars/nar';
 import type { LMService } from '@senars/nar/lm';
 import { Truth } from '@senars/nar/terms';
 

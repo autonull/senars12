@@ -11,7 +11,7 @@
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createNAR } from '../nar/src/factory.js';
+import { createNAR } from '../nar/src/nar-presets.js';
 import { LMRuleFactory } from '../nar/src/lm/lm-rule-factory.js';
 import { createSystemOneLMRuleAdapter } from '../nar/src/lm/system-one/rule-adapter.js';
 import { termParser } from '../nar/src/terms/index.js';

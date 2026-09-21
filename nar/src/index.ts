@@ -13,9 +13,6 @@ export { PriorityBag } from './bag/index.js';
 // Cognitive
 /** Counterfactual simulator. @public */
 export { runCounterfactual } from './cognitive/index.js';
-// Factory for creating NAR instances
-/** NAR factory + convenience constructors. @public */
-export { createBotNAR, createMinimalNAR, createNAR, createTestNAR } from './factory.js';
 // Imagination Engine (Cognitive Treadmill)
 /** Scenario generation, hidden-model oracle, cognitive treadmill. @public */
 export {
@@ -51,6 +48,9 @@ export type { NARConfig, RLFPConfig } from './nar.js';
 // Main NAR class
 /** The NAR reasoning engine. @public */
 export { NAR } from './nar.js';
+// Factory for creating NAR instances
+/** Kernel construction presets (tests/benches). @public */
+export { createBotNAR, createMinimalNAR, createNAR, createTestNAR } from './nar-presets.js';
 // NL Translation
 /** Natural-language translation schemas. @public */
 export * from './nl/schemas.js';
