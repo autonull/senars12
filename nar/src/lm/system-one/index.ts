@@ -11,6 +11,7 @@ export * from './manifold.js';
 export * from './action-transducer.js';
 export * from './policy.js';
 export * from './manifold-reflex.js';
+export * from './cascade-reflex.js';
 export * from './wasi-runtime.js';
 export * from './http-endpoint.js';
 export * from './http-manifold.js';

@@ -108,7 +108,8 @@ class RecordingReflex implements Reflex {
 
 /** Cognitive arm construction — fail-closed per arm: skip with a note, never substitute. */
 async function buildCognitiveArm(
-  arm: 'manifold' | 'lm' | 'replica'
+  arm: 'manifold' | 'lm' | 'replica',
+  gameName: GameName
 ): Promise<{ reflex: Reflex; manifold: unknown; cache: unknown } | { note: string }> {
   const { createEmbeddingCache } = await import('../nar/src/lm/system-one/embedding-cache.js');
   const cache = createEmbeddingCache({});
@@ -125,12 +126,17 @@ async function buildCognitiveArm(
       );
       manifold = createOpenSystemOneManifold({ endpoint, embeddingCache: cache });
     }
+    const incumbent = new EpsilonGreedyReflex('incumbent', { numArms: 10, epsilon: 0.1 });
+    // Tetris placement fan-out (W7): two-stage cascade — stage-1 coarse rank
+    // over all placements in one batch, stage-2 fine `reflex_value` on top-K.
     const { ManifoldReflex } = await import('../nar/src/lm/system-one/manifold-reflex.js');
-    return {
-      reflex: new ManifoldReflex(new EpsilonGreedyReflex('incumbent', { numArms: 10, epsilon: 0.1 })),
-      manifold,
-      cache,
-    };
+    const reflex =
+      gameName === 'tetris'
+        ? new (
+            await import('../nar/src/lm/system-one/cascade-reflex.js')
+          ).PlacementCascadeReflex(incumbent)
+        : new ManifoldReflex(incumbent);
+    return { reflex, manifold, cache };
   }
   // lm arm: real LM decisions under a GBNF action grammar
   if (!process.env.LM_LLAMACPP_MODEL)
@@ -202,7 +208,7 @@ async function main(): Promise<void> {
       }
 
       // Cognitive arms: kernel-gated GameFocus play (A1 scheduler drive).
-      const built = await buildCognitiveArm(arm);
+      const built = await buildCognitiveArm(arm, gameName);
       if ('note' in built) {
         notes.push(`${gameName}: ${built.note}`);
         continue;

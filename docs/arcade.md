@@ -25,7 +25,7 @@ silently substituted.
 |---|---|---|
 | `heuristic` | per-game baselines (flood-fill snake, lines+holes tetris, corner-greedy 2048, minimax ttt) | always |
 | `random` | seeded random policy (the control the community taught us to never demo without) | always |
-| `manifold` | local Judgment Manifold heads via `ManifoldReflex` | always (deterministic heads) |
+| `manifold` | local Judgment Manifold heads via `ManifoldReflex`; tetris uses `PlacementCascadeReflex` (two-stage placement fan-out: one coarse batch over all placements, fine `reflex_value` on top-K) | always (deterministic heads) |
 | `lm` | `LMReflex` — GBNF-constrained LM proposals judged by the manifold | `LM_LLAMACPP_MODEL` set |
 | `replica` | `createOpenSystemOneManifold` — community `{state, questions}` wire | `OPEN_REPLICA_ENDPOINT` set |
 

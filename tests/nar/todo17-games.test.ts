@@ -8,6 +8,14 @@ import { game2048HeuristicAction } from './rl/baselines/2048.js';
 import { snakeHeuristicAction } from './rl/baselines/snake.js';
 import { tetrisHeuristicPlacement } from './rl/baselines/tetris.js';
 import { ticTacToeHeuristicAction } from './rl/baselines/tictactoe.js';
+import { EpsilonGreedyReflex } from '@senars/nar/reflex';
+import { GameFocus } from '@senars/nar/focus';
+import {
+  createEmbeddingCache,
+  createManifold,
+  PlacementCascadeReflex,
+  type SystemOneManifold,
+} from '@senars/nar/lm/system-one';
 import { describe, expect, it } from 'vitest';
 
 const EPISODES = 200;
@@ -150,5 +158,68 @@ describe('TODO17 Bench 31 — Game determinism & baselines', () => {
       g2.step(action);
       expect(g1.state()).toEqual(g2.state());
     }
+  });
+});
+
+describe('TODO17 W7 — Tetris placement cascade (judgeCascade consumer)', () => {
+  const budget = {
+    maxCycles: 100,
+    maxDepth: 10,
+    maxMemoryOps: 1000,
+    maxLMCalls: 50,
+    consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+  };
+
+  const countingManifold = () => {
+    const cache = createEmbeddingCache({});
+    const manifold = createManifold(cache, { abstainThreshold: 0.05 });
+    const batchSizes: number[] = [];
+    const counting = {
+      judgeBatch: async (
+        ctx: Parameters<typeof manifold.judgeBatch>[0],
+        queries: Parameters<typeof manifold.judgeBatch>[1],
+        b: typeof budget
+      ) => {
+        batchSizes.push(queries.length);
+        return manifold.judgeBatch(ctx, queries, b);
+      },
+    };
+    return { manifold: counting as unknown as SystemOneManifold, cache, batchSizes };
+  };
+
+  it('small action set ⇒ one batch (one-prefill parity preserved)', async () => {
+    const { manifold, cache, batchSizes } = countingManifold();
+    const reflex = new PlacementCascadeReflex(new EpsilonGreedyReflex('fb', { numArms: 4 }), {
+      topK: 4,
+    });
+    await reflex.prefetch('s1', await cache.write('ctx'), ['a0', 'a1', 'a2'], manifold, budget);
+    expect(batchSizes).toEqual([3]);
+    const proposals = reflex.propose({ stateId: 's1' } as never, ['a0', 'a1', 'a2']);
+    expect(proposals).toHaveLength(3);
+    expect(proposals[0]!.source).toBe('placement-cascade');
+  });
+
+  it('large action set ⇒ two-stage cascade; stage-2 confined to top-K', async () => {
+    const { manifold, cache, batchSizes } = countingManifold();
+    const reflex = new PlacementCascadeReflex(new EpsilonGreedyReflex('fb', { numArms: 4 }), {
+      topK: 4,
+    });
+    const actions = Array.from({ length: 10 }, (_, i) => `place:r0:c${i}`);
+    await reflex.prefetch('s2', await cache.write('ctx'), actions, manifold, budget);
+    expect(batchSizes).toEqual([10, 4]);
+    const proposals = reflex.propose({ stateId: 's2' } as never, actions);
+    expect(proposals.length).toBeGreaterThan(0);
+    expect(proposals.every((p) => actions.includes(String(p.action)))).toBe(true);
+  });
+
+  it('tetris + cascade reflex inside GameFocus plays legal placements', async () => {
+    const { manifold, cache } = countingManifold();
+    const game = createTetrisGame({ seed: 9, width: 10, height: 10, pieceCap: 5 });
+    const focus = new GameFocus({ focusId: 'tetris-cascade', game });
+    focus.bindReflex(new PlacementCascadeReflex(new EpsilonGreedyReflex('fb', { numArms: 10 })));
+    focus.setReflexPrefetchContext({ manifold, embeddingCache: cache, budget });
+    for (let t = 0; t < 30 && !game.state().terminal; t++) await focus.step(10);
+    // Pieces actually placed via kernel-gated cascade decisions (no stuck-at-zero)
+    expect(game.state().piecesPlaced).toBeGreaterThan(0);
   });
 });

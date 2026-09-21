@@ -334,7 +334,7 @@ Growth rollback: all five are additive (G1 is behavior-preserving — Bench 29/3
 | W4 no attach API | A4 | 29, 30 | both Phase-A suites |
 | W5 no real-LM reflex | C1–C5 | 32 | `todo17-lm-reflex.test.ts` |
 | W6 wire-shape interop | D1–D4 | 33 | `todo17-open-replica.test.ts` |
-| W7 cascade unused | B2 | 31, 35(d) | `todo17-games.test.ts`, `todo17-parity.test.ts` |
+| W7 cascade unused | B2, **v1.4 `PlacementCascadeReflex`** | 31, 35(d) | `todo17-games.test.ts`, `todo17-parity.test.ts` |
 | W8 dead review band | E2 | 34 | `todo17-arcade.test.ts` |
 | W9 no outcome calibration | E1 | 34, 35(a) | `todo17-arcade.test.ts`, `todo17-parity.test.ts` |
 | W10 two games only | B1–B6 | 31 | `todo17-games.test.ts` |
@@ -373,7 +373,13 @@ Phases A–F implemented and committed (Benches 29–35 green; `pnpm typecheck`/
 - **G2 schema induction / G3 session resume / G5 OTel spans**: unstarted. G3 hooks exist (`FocusBag.serialize/deserialize` + per-episode seeds already recorded by the arcade loop).
 - **G4 shared-embedding discipline**: enforced inside the arcade's cognitive arms (one `EmbeddingCache` per arm construction, shared across manifold/LM/replica within an arm); a cross-arm canonical-digest assertion could be added to Bench 34 if arms are ever run concurrently.
 - **F4 scheduler promotion**: revisit only if a second consumer needs the drive loop inside `NARExecution.run`.
-- **Tetris `judgeCascade` consumer (W7)**: the game exposes the fan-out + cap; the cascade (stage-1 coarse rank over all placements → stage-2 fine `reflex_value` on top-K) should live in the arcade's tetris arm when the manifold arm is run on tetris — currently the manifold arm uses plain `ManifoldReflex` batching, which already satisfies one-batch-per-decision but not the two-stage cascade.
+
+### 11.5 Progress Addendum (v1.4 — 2026-09-21, W7 cascade consumer + prefetch bug fix)
+
+- **W7 closed — `PlacementCascadeReflex`** (`nar/src/lm/system-one/cascade-reflex.ts`, the live `judgeCascade` consumer): stage-1 coarse-ranks the whole legal-action set in ONE batch (`feasibility`, one-prefill parity preserved — Bench 35d unaffected); stage-2 fine-scores only the top-K (`reflex_value`) when the set exceeds K (DQ2 cap-gate). Synchronous `propose` reads the consume-once prefetch table with incumbent fallback for uncovered actions (ManifoldReflex semantics). The arcade's tetris manifold arm uses it; other arms keep plain `ManifoldReflex`. Bench 31 gained the W7 clause: ≤K ⇒ one batch; >K ⇒ batches `[N, K]` with stage-2 confined to top-K; tetris + cascade inside a kernel-gated GameFocus actually places pieces.
+- **Latent prefetch bug fixed** (`GameFocus.prefetchForReflexes`): the embedding pointer passed to reflex prefetch was an un-awaited `Promise` (`embeddingCache.write(...)` is async), so every manifold/LM prefetch silently failed ("Embedding not found" swallowed by the cold-table catch) and cognitive arms were always running on their fallback reflex. Now awaited. Falsified in-situ: the arcade manifold arm now produces real manifold-driven ticks (previously 0 recorded ticks on veto-heavy runs were fallback-driven). Benches 29–35 re-run green after the fix.
+
+**Remaining after v1.4:** G1 (stage refactor), G2/G3/G5, F4 — all optional growth items; no W-gaps or P0/P1 demo items outstanding.
 
 ### 11.4 Progress Addendum (v1.3 — 2026-09-21, E7 cognitive mode)
 

@@ -198,15 +198,15 @@ export class GameFocus {
       if (typeof p.prefetch === 'function') {
         await (
           p.prefetch as (
-            stateId: string,
-            context: unknown,
-            legalActions: string[],
-            manifold: JudgmentManifold,
-            budget: ReasoningBudget
-          ) => Promise<void>
-        )(
-          observation.stateId,
-          embeddingCache.write(JSON.stringify(observation.features ?? observation.stateId)),
+          stateId: string,
+          context: unknown,
+          legalActions: string[],
+          manifold: JudgmentManifold,
+          budget: ReasoningBudget
+        ) => Promise<void>
+      )(
+        observation.stateId,
+        await embeddingCache.write(JSON.stringify(observation.features ?? observation.stateId)),
           legalActions,
           manifold,
           budget
