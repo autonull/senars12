@@ -4,6 +4,7 @@ export type { FocusConcept, FocusOptions, FocusStepReport, FocusTask } from './F
 export { Focus } from './Focus.js';
 export { actionRuleBelief, seedBelief, type SeededBelief } from './belief-seeding.js';
 export type { TickPanelEntry } from './GameFocus.js';
+export { induceEpisodeSchemas, type PromotedSchema } from './schema-induction.js';
 export { createFocus, FocusBag } from './FocusBag.js';
 export { createGameFocus, GameFocus } from './GameFocus.js';
 export { createFocusScheduler, FocusScheduler, type FocusSchedulerOptions, type SchedulerTickResult } from './focus-scheduler.js';

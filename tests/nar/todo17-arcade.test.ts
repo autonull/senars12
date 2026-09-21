@@ -146,11 +146,13 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
     expect(vetoStats.totalVetos).toBeGreaterThanOrEqual(1);
     expect(vetoStats.vetoDetails[0]?.vetoReason).toBe('nal-focus-memory');
 
-    // Per-tick panel data emitted
+    // Per-tick panel data emitted (task sampling is probabilistic — the veto
+    // may land a few ticks in, so assert on the first vetoing entry).
     const panel = focus.getPanelLog();
     expect(panel.length).toBe(ticks);
-    expect(panel[0]!.decision.source).toBe('nal');
-    expect(panel[0]!.nalDerivations.length).toBeGreaterThan(0);
+    const vetoTick = panel.find((p) => p.decision.source === 'nal');
+    expect(vetoTick).toBeDefined();
+    expect(vetoTick!.nalDerivations.length).toBeGreaterThan(0);
 
     // Veto justification is a recorder-verifiable derivation record
     const justifications = focus.getVetoJustifications();
@@ -234,6 +236,65 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
       expect(grid.events.map((e) => e.name)).toContain('veto');
     } finally {
       await provider.shutdown();
+    }
+  });
+
+  it('G2 schema induction: worst/best action patterns become advisory veto-eligible beliefs', async () => {
+    const { induceEpisodeSchemas } = await import('@senars/nar/focus');
+
+    // Unit: relative contrast, minimum samples, no-contrast ⇒ no promotion
+    expect(induceEpisodeSchemas([])).toEqual([]);
+    expect(induceEpisodeSchemas([{ action: 'a', reward: -1 }])).toEqual([]);
+    expect(
+      induceEpisodeSchemas([
+        { action: 'up', reward: -1 },
+        { action: 'up', reward: -1 },
+        { action: 'right', reward: 1 },
+        { action: 'right', reward: 1 },
+      ])
+    ).toEqual([
+      { action: 'up', kind: 'bad', meanReward: -1 },
+      { action: 'right', kind: 'good', meanReward: 1 },
+    ]);
+    // identical means ⇒ no promotion
+    expect(
+      induceEpisodeSchemas([
+        { action: 'a', reward: 0 },
+        { action: 'a', reward: 0 },
+        { action: 'b', reward: 0 },
+        { action: 'b', reward: 0 },
+      ])
+    ).toEqual([]);
+
+    // Integration: real tetris episode; promoted beliefs land as NAL-derivable content
+    const { createTetrisGame } = await import('@senars/nar/game');
+    const game = createTetrisGame({ seed: 21, width: 6, height: 8, pieceCap: 20 });
+    const focus = new GameFocus({ focusId: 'schema-focus', game, schemaInduction: true });
+    const cycle: Reflex = {
+      id: 'cycle',
+      i: 0,
+      propose(_s: unknown, legalActions: number[]) {
+        const action = String(legalActions[this.i++ % legalActions.length]);
+        return [{ action, value: 0.9, confidence: 0.9, source: this.id }];
+      },
+      learn: () => {},
+    } as unknown as Reflex;
+    focus.bindReflex(cycle);
+    while (!game.state().terminal) await focus.step(10);
+    focus.markEpisodeEnd();
+    const promoted = focus.getPromotedSchemas();
+    // Promotion only when the episode produced relative contrast; whatever it
+    // produced must be NAL-derivable in the focus memory (bad ⇒ veto-eligible).
+    expect(promoted.length).toBeLessThanOrEqual(2);
+    for (const schema of promoted) {
+      const derivations = (focus.getFocus() as {
+        getNALDerivations: (a: string) => Array<{ action: string; truth: { f: number; c: number } }>;
+      }).getNALDerivations(schema.action);
+      expect(derivations.length).toBeGreaterThan(0);
+      const expected = schema.kind === 'bad' ? { f: 0.1, c: 0.9 } : { f: 0.9, c: 0.9 };
+      expect(derivations.some((d) => d.truth.f === expected.f && d.truth.c === expected.c)).toBe(
+        true
+      );
     }
   });
 

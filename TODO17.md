@@ -394,6 +394,14 @@ G3 closed. **`nar/src/eval/session-state.ts`** (new): `ArcadeSession` (version, 
 
 **Remaining after v1.6:** G1 (stage refactor), G2 (schema induction), F4 — optional growth items.
 
+### 11.8 Progress Addendum (v1.7 — 2026-09-21, G1 stage refactor + G2 schema induction)
+
+- **G1 closed — `GameFocus.step` is now an orchestrator over named stage methods** aligned with the kernel's 11-stage micro-tick: `beginTick` (budget scope + `nal-step` check) → `perceiveStage` (Focus step admits observations) → `attendStage` (C1 reflex prefetch) → `proposeStage` (A2 best-of merge + goal conversion) → `negotiateStage` (NAL derivations, resolution, E2 handover; block/abstain yield the tick) → `actStage` (scoped authorize → world mutation → reward firewall/validate; veto bookkeeping) → `learnStage` (A2 fan-out, reward beliefs, game trace) → `endTick` (E7 panel + perception advance). Per-tick state is threaded via a private `TickState`. Behavior-preserving — the exact early-return semantics are preserved via `yielded`/`suppressPanel` flags; Benches 29–35 + focus-game-reflex suites re-run green.
+- **G2 closed — `nar/src/focus/schema-induction.ts`**: `induceEpisodeSchemas(history, {minSamples})` aggregates the episode's `(action, reward)` history and promotes the relative worst/best patterns (≥ `minSamples` samples, strict contrast). `GameFocus({schemaInduction: true})` records executed outcomes per tick and, at `markEpisodeEnd`, seeds each promoted pattern as an advisory belief — worst → `(<action> ==> bad_outcome)` f0.1 c0.9 (Negotiator veto-eligible), best → `(<action> ==> good_outcome)` f0.9 c0.9 — via the E7 seeding API (dedup per action/kind). Pure, deterministic, LM-free; promoted schemas are exposed via `getPromotedSchemas()` and land as NAL-derivable content in focus memory. Arcade cognitive mode note updated. Bench 34 gained the G2 clause (unit contrast/no-contrast cases + integration: promoted beliefs verifiable in `getNALDerivations`).
+- **E7 test hardened**: the first-veto tick assertion was flaky (focus task sampling is probabilistic — the seeded belief may not be sampled on tick 1); now asserts on the first vetoing panel entry.
+
+**Remaining after v1.7:** F4 (optional, deferred per DQ4) — TODO17 implementation items are complete.
+
 ### 11.4 Progress Addendum (v1.3 — 2026-09-21, E7 cognitive mode)
 
 E7 implemented (the last P1 demo item). Bench 34 gained the cognitive-mode clause (all six clause groups green).

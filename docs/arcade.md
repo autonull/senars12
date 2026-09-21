@@ -71,7 +71,9 @@ the start cell's top row), each tick prints a `[panel]` thought-stream line
 (proposals → decision, veto/handover markers, NAL derivation count, focus
 weight), and every veto carries a recorder-verifiable justification record
 (`GameFocus.getVetoJustifications()` — passes the standalone derivation
-verifier). Non-cognitive runs are unchanged.
+verifier). Episode end also runs schema induction (G2): the episode's
+worst/best action patterns are promoted into advisory focus beliefs the
+Negotiator weighs next episode. Non-cognitive runs are unchanged.
 
 ## Session resume (G3)
 
