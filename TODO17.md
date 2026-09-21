@@ -387,6 +387,13 @@ G3 closed. **`nar/src/eval/session-state.ts`** (new): `ArcadeSession` (version, 
 
 **Remaining after v1.5:** G1 (stage refactor), G2 (schema induction), G5 (OTel spans), F4 — optional growth items.
 
+### 11.7 Progress Addendum (v1.6 — 2026-09-21, G5 OTel spans + arcade CLI bug fixes)
+
+- **G5 closed — `nar/src/eval/arcade-trace.ts`** (new): `startArcadeTickSpan(arm, game, cycle)` returns a `finish(data)` handle; the arcade emits one `arcade.tick` span per tick (attributes `arcade.arm/game/cycle/action/latency_ms/reward`, `arcade.decision_source`) with `handover`/`veto` events from the panel decision. `--otel` wires `initOtel({serviceName:'senars-arcade', otlpEndpoint: OTEL_EXPORTER_OTLP_ENDPOINT})`; without a provider, spans are API no-ops. Bench 34 gained the G5 clause (real `NodeTracerProvider` + `InMemorySpanExporter` — spans, attributes, and events asserted).
+- **Arcade CLI bugs fixed (found while smoke-testing defaults)**: (1) `parseArgs.get()` never fell back — with a flag absent, `argv[idx+1]` where `idx=-1` returned `argv[0]`, so every default silently became garbage (`--episodes` → `NaN` ⇒ zero ticks; the earlier session runs never exercised defaults). (2) `makeGames.bandit` omitted the required `armMeans` (default game list crashed for random/cognitive arms). The full default `pnpm arcade` (six games, heuristic+random) now runs end-to-end.
+
+**Remaining after v1.6:** G1 (stage refactor), G2 (schema induction), F4 — optional growth items.
+
 ### 11.4 Progress Addendum (v1.3 — 2026-09-21, E7 cognitive mode)
 
 E7 implemented (the last P1 demo item). Bench 34 gained the cognitive-mode clause (all six clause groups green).

@@ -19,6 +19,7 @@ import {
   sessionKey,
   type ArcadeSession,
 } from '../nar/src/eval/session-state.js';
+import { startArcadeTickSpan } from '../nar/src/eval/arcade-trace.js';
 import { GameFocus } from '../nar/src/focus/GameFocus.js';
 import { renderGame } from '../nar/src/game/render.js';
 import {
@@ -52,8 +53,10 @@ const parseArgs = (): {
   resume: boolean;
   sessionPath: string;
 } => {
-  const get = (flag: string, fallback: string) =>
-    process.argv[process.argv.indexOf(flag) + 1] ?? fallback;
+  const get = (flag: string, fallback: string): string => {
+    const i = process.argv.indexOf(flag);
+    return i >= 0 ? (process.argv[i + 1] ?? fallback) : fallback;
+  };
   const games = get('--games', 'snake,tetris,2048,tictactoe,gridworld,bandit')
     .split(',')
     .filter(Boolean) as GameName[];
@@ -67,6 +70,7 @@ const parseArgs = (): {
     cognitive: get('--mode', 'default') === 'cognitive',
     resume: process.argv.includes('--resume'),
     sessionPath: get('--session', '.reports/arcade-session.json'),
+    otel: process.argv.includes('--otel'),
   };
 };
 
@@ -82,7 +86,7 @@ const makeGames: Record<GameName, (seed: number) => Game> = {
   '2048': (seed) => createGame2048({ seed }),
   tictactoe: (seed) => createTicTacToeGame({ seed }),
   gridworld: (seed) => createGridWorldGame({ id: 'grid', grid: ['S..', '..G'], seed }),
-  bandit: (seed) => createBanditGame({ seed }),
+  bandit: (seed) => createBanditGame({ seed, armMeans: [0.2, 0.5, 0.8] }),
 };
 
 const heuristics: Partial<Record<GameName, (game: Game) => string | number>> = {
@@ -175,7 +179,11 @@ async function buildCognitiveArm(
 }
 
 async function main(): Promise<void> {
-  const { games, arms, episodes, seed, render, cognitive, resume, sessionPath } = parseArgs();
+  const { games, arms, episodes, seed, render, cognitive, resume, sessionPath, otel } = parseArgs();
+  if (otel) {
+    const { initOtel } = await import('../nar/src/otel/index.js');
+    initOtel({ serviceName: 'senars-arcade', otlpEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT });
+  }
   const harness = new BrierHarness();
   const notes: string[] = [];
   const rng = new SeededRNG(seed);
@@ -221,6 +229,13 @@ async function main(): Promise<void> {
             const latencyMs = performance.now() - t0;
             const outcome = game.step(action as never);
             steps++;
+            startArcadeTickSpan(arm, gameName, steps).finish({
+              action,
+              latencyMs,
+              reward: outcome.reward,
+              terminal: outcome.terminal,
+              handover: false,
+            });
             harness.record({
               arm,
               game: gameName,
@@ -274,6 +289,15 @@ async function main(): Promise<void> {
             (best, p) => (!best || p.value * p.confidence > best.value * best.confidence ? p : best),
             null
           );
+          const panel = focus.getPanelLog().at(-1);
+          startArcadeTickSpan(arm, gameName, steps).finish({
+            action: top?.action,
+            latencyMs,
+            reward: gameOutcome.reward,
+            terminal: gameOutcome.terminal,
+            handover: focus.didLastTickHandover(),
+            decision: panel?.decision,
+          });
           harness.record({
             arm,
             game: gameName,
@@ -289,14 +313,11 @@ async function main(): Promise<void> {
             console.log(`\n[${arm}/${gameName}] step ${steps} → ${top?.action ?? 'n/a'} (p=${top?.confidence?.toFixed(2) ?? '-'})`);
             console.log(renderGame(game));
           }
-          if (cognitive) {
-            const panel = focus.getPanelLog().at(-1);
-            if (panel) {
-              const d = panel.decision;
-              console.log(
-                `[panel] c${panel.cycle} proposals=[${panel.proposalActions.join(',')}] → ${d.action ?? '∅'} src=${d.source}${d.vetoedBy ? ` VETOED by ${d.vetoedBy}` : ''}${panel.handover ? ' HANDOVER' : ''} deriv=${panel.nalDerivations.length} w=${panel.focusWeight.toFixed(3)}`
-              );
-            }
+          if (cognitive && panel) {
+            const d = panel.decision;
+            console.log(
+              `[panel] c${panel.cycle} proposals=[${panel.proposalActions.join(',')}] → ${d.action ?? '∅'} src=${d.source}${d.vetoedBy ? ` VETOED by ${d.vetoedBy}` : ''}${panel.handover ? ' HANDOVER' : ''} deriv=${panel.nalDerivations.length} w=${panel.focusWeight.toFixed(3)}`
+            );
           }
         }
         focus.markEpisodeEnd();

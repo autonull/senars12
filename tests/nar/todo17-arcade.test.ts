@@ -194,6 +194,49 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
+  it('G5 arcade OTel spans: tick spans recorded with arm/game attributes, veto + handover events', async () => {
+    const { NodeTracerProvider, InMemorySpanExporter, SimpleSpanProcessor } = await import(
+      '@opentelemetry/sdk-trace-node'
+    );
+    const exporter = new InMemorySpanExporter();
+    const provider = new NodeTracerProvider({ spanProcessors: [new SimpleSpanProcessor(exporter)] });
+    provider.register();
+    try {
+      const { startArcadeTickSpan } = await import('@senars/nar/eval/arcade-trace');
+      const span = startArcadeTickSpan('manifold', 'tetris', 3);
+      span.finish({
+        action: 'place:r0:c3',
+        latencyMs: 12,
+        reward: 1,
+        terminal: false,
+        handover: true,
+        decision: { action: 'place:r0:c3', vetoedBy: null, source: 'reflex' },
+      });
+      startArcadeTickSpan('manifold', 'gridworld', 5).finish({
+        action: '0',
+        latencyMs: 4,
+        reward: 0,
+        terminal: false,
+        handover: false,
+        decision: { action: '0', vetoedBy: 'nal-focus-memory', source: 'nal' },
+      });
+      await provider.forceFlush();
+      const spans = exporter.getFinishedSpans();
+      expect(spans.length).toBe(2);
+      const tetris = spans.find((s) => s.attributes['arcade.game'] === 'tetris')!;
+      expect(tetris.name).toBe('arcade.tick');
+      expect(tetris.attributes['arcade.arm']).toBe('manifold');
+      expect(tetris.attributes['arcade.action']).toBe('place:r0:c3');
+      expect(tetris.attributes['arcade.handover']).toBe(true);
+      expect(tetris.events.map((e) => e.name)).toContain('handover');
+      const grid = spans.find((s) => s.attributes['arcade.game'] === 'gridworld')!;
+      expect(grid.attributes['arcade.decision_source']).toBe('nal');
+      expect(grid.events.map((e) => e.name)).toContain('veto');
+    } finally {
+      await provider.shutdown();
+    }
+  });
+
   it('report written to .reports/arcade.{json,md}', async () => {
     const dir = '.reports/todo17-test';
     rmSync(dir, { recursive: true, force: true });

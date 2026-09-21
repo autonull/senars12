@@ -87,6 +87,17 @@ trajectories are identical. A session whose seed/games/arms/episode-target
 differ from the current run is never merged — the run starts fresh with an
 explicit note.
 
+## OTel spans (G5)
+
+```bash
+pnpm arcade -- --arms manifold --otel      # + OTEL_EXPORTER_OTLP_ENDPOINT for a collector
+```
+
+Every game tick emits an `arcade.tick` span (`arcade.arm`, `arcade.game`,
+`arcade.cycle`, action, latency, reward) with `handover`/`veto` events from
+the decision record — the demo becomes a distributed trace of cognition,
+watchable in any OTel UI. Without a tracer provider the spans are API no-ops.
+
 ## Tests
 
 `tests/nar/todo17-{scheduler,arbitration,games,lm-reflex,open-replica,arcade,parity}.test.ts`
