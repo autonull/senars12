@@ -634,6 +634,10 @@ The Judgment Manifold is a general decision API — proven by driving a reinforc
 
 Three runnable starters live in `examples/`: `systemone-ingress.ts`, `rl-gridworld.ts`, `custom-head.ts`.
 
+### Arcade — Multi-Game System One Demo (TODO17)
+
+`pnpm arcade` runs many games (snake, tetris, 2048, tictactoe, gridworld, bandit) on one kernel-gated harness with selectable arms (`heuristic | random | manifold | lm | replica`), every tick rendered, and every decision Brier-scored against realized outcomes into `.reports/arcade.{json,md}`. Arms are fail-closed (missing LM model / replica endpoint ⇒ explicit skip note). Parity targets (ECE ≤ 0.07 kev-ref, P50 ≤ 15 ms von-ref, arms ≥ random, one batched judgment per decision) are falsified by Benches 29–35 (`tests/nar/todo17-*.test.ts`). See `docs/arcade.md`.
+
 ---
 
 ## Execution & Control

@@ -87,7 +87,7 @@ function split(data: readonly LabeledDatum[], holdoutFraction: number, seed: num
 }
 
 /** Identity (unfitted) calibrator ECE — the honest baseline the fit must beat. */
-function identityECE(data: readonly LabeledDatum[]): number {
+export function identityECE(data: readonly { predicted: number; observed: number }[]): number {
   if (data.length === 0) return 0;
   return data.reduce((sum, d) => sum + Math.abs(d.predicted - d.observed), 0) / data.length;
 }

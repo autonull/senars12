@@ -8,12 +8,20 @@ import type { EmbeddingCache, JudgmentManifold } from '../lm/system-one/types.js
 import { gateRegistry } from '../kernel/index.js';
 import { type NALDerivation, NegotiationDecision, Negotiator } from '../reflex/Negotiator.js';
 import { ActionProposal, LearningEvent, type Reflex } from '../reflex/Reflex.js';
+import { ConfidenceRouter } from '../lm/system-one/policy.js';
 import { Focus, type FocusOptions } from './Focus.js';
 
 export interface GameFocusOptions {
   focusId: string;
   game: Game;
   focusOptions?: Partial<FocusOptions>;
+  /** E2: review-band escalation to the game's heuristic baseline (search handover). */
+  handover?: {
+    router: ConfidenceRouter;
+    reviewAction?: 'escalate-baseline' | 'abstain' | 'act';
+    minBaselineConfidence?: number;
+    baseline: (game: Game, legalActions: string[]) => string | null;
+  };
 }
 
 /** Components needed to prefetch semantic reflex judgments at the attend stage (C1). */
@@ -27,6 +35,9 @@ export class GameFocus {
   readonly focus: Focus;
   readonly game: Game;
   private readonly negotiator: Negotiator;
+  private readonly handover: GameFocusOptions['handover'];
+  private handoverCount = 0;
+  private lastTickHandover = false;
   private cycle = 0;
   private previousPerception: Perception | null = null;
 
@@ -43,6 +54,7 @@ export class GameFocus {
 
   constructor(options: GameFocusOptions) {
     this.game = options.game;
+    this.handover = options.handover;
 
     this.focus = new Focus({
       id: options.focusId,
@@ -239,25 +251,49 @@ export class GameFocus {
 
       const decision = this.negotiator.resolve(proposals, nalDerivations);
 
+      // HANDOVER (E2): review-band decisions escalate to the heuristic baseline
+      // (PlayJev handover pattern); block band yields the tick (AIKR), never a
+      // forced bad move.
+      this.lastTickHandover = false;
+      let resolved = decision;
+      if (this.handover && resolved.actionExecuted) {
+        const band = this.handover.router.route({ top: { p: resolved.confidence } });
+        const reviewAction = this.handover.reviewAction ?? 'escalate-baseline';
+        if (band === 'block') {
+          return { focusReport: { ...focusReport, cycle: this.cycle }, gameOutcome: null };
+        }
+        if (band === 'review' && reviewAction !== 'act') {
+          if (reviewAction === 'abstain')
+            return { focusReport: { ...focusReport, cycle: this.cycle }, gameOutcome: null };
+          const legal = this.game.legalActions(this.game.state()).map(String);
+          const baseline = this.handover.baseline(this.game, legal);
+          if (baseline && legal.includes(baseline)) {
+            resolved = { ...resolved, action: baseline, actionExecuted: baseline, vetoedBy: null };
+            this.handoverCount++;
+            this.lastTickHandover = true;
+          }
+        }
+      }
+
       // Get legal actions for logging
       const legalActions = this.game.legalActions(this.game.state());
       const prevWeight = this.focus.weight;
       const deliveringReflexes =
-        decision.action != null ? new Set(reflexProposals.map((entry) => entry.reflex)) : new Set<Reflex>();
+        resolved.action != null ? new Set(reflexProposals.map((entry) => entry.reflex)) : new Set<Reflex>();
 
       // EXECUTION: Kernel ActionGate authorizes before world mutation (scoped op)
-      if (decision.actionExecuted) {
+      if (resolved.actionExecuted) {
         const auth = gateRegistry
           .getActionGate()
           .authorize({
             proposalId: uuidv4(),
-            operation: `game:${this.focus.id}:${decision.actionExecuted}`,
+            operation: `game:${this.focus.id}:${resolved.actionExecuted}`,
             args: {},
           });
         if (!auth.authorized) {
           const learningEvent = this.negotiator.createLearningEvent(
             this.focus,
-            { ...decision, actionExecuted: null, vetoedBy: auth.vetoReason ?? 'kernel-gate' },
+            { ...resolved, actionExecuted: null, vetoedBy: auth.vetoReason ?? 'kernel-gate' },
             {
               reward: 0,
               terminal: false,
@@ -270,7 +306,7 @@ export class GameFocus {
           return { focusReport: { ...focusReport, cycle: this.cycle }, gameOutcome };
         }
         const previousPerception = this.game.observe();
-        const action = this.parseAction(decision.actionExecuted);
+        const action = this.parseAction(resolved.actionExecuted);
         gameOutcome = this.game.step(action);
         const nextPerception = this.game.observe();
         this.syncScope();
@@ -295,7 +331,7 @@ export class GameFocus {
         focusReport.gates.rewards += rewardBeliefs.length;
 
         // LEARNING: every reflex that proposed the executed action learns (A2 fan-out)
-        const learningEvent = this.negotiator.createLearningEvent(this.focus, decision, {
+        const learningEvent = this.negotiator.createLearningEvent(this.focus, resolved, {
           reward: gameOutcome.reward,
           terminal: gameOutcome.terminal,
           perception: nextPerception,
@@ -309,28 +345,28 @@ export class GameFocus {
           legalActions: legalActions as number[],
           reflexProposal: bestReflexProposal,
           nalDerivations,
-          negotiatedAction: decision,
+          negotiatedAction: resolved,
           reward: gameOutcome.reward,
           terminal: gameOutcome.terminal,
           focusWeightDelta: this.focus.weight - prevWeight,
         });
-      } else if (decision.action) {
+      } else if (resolved.action) {
         // Action was vetoed - proposing reflexes learn it was overridden
         this.vetoCount++;
         this.currentEpisodeVetos++;
         const vetoDerivation = nalDerivations.find(
-          (d) => d.action === decision.action && d.truth.f < 0.3 && d.truth.c >= 0.8
+          (d) => d.action === resolved.action && d.truth.f < 0.3 && d.truth.c >= 0.8
         ) ?? nalDerivations[0];
         this.vetoDetails.push({
           cycle: this.cycle,
-          action: decision.action,
-          vetoReason: decision.vetoedBy ?? 'unknown',
+          action: resolved.action,
+          vetoReason: resolved.vetoedBy ?? 'unknown',
           derivation: vetoDerivation
             ? { action: vetoDerivation.action, truth: vetoDerivation.truth, source: vetoDerivation.source }
             : { action: '', truth: { f: 0, c: 0 }, source: 'none' },
         });
 
-        const learningEvent = this.negotiator.createLearningEvent(this.focus, decision, {
+        const learningEvent = this.negotiator.createLearningEvent(this.focus, resolved, {
           reward: 0,
           terminal: false,
           perception: this.game.observe(),
@@ -344,7 +380,7 @@ export class GameFocus {
           legalActions: legalActions as number[],
           reflexProposal: bestReflexProposal,
           nalDerivations,
-          negotiatedAction: decision,
+          negotiatedAction: resolved,
           reward: 0,
           terminal: false,
           focusWeightDelta: this.focus.weight - prevWeight,
@@ -367,6 +403,15 @@ export class GameFocus {
 
   getCycle(): number {
     return this.cycle;
+  }
+
+  /** E2 handover telemetry. */
+  getHandoverCount(): number {
+    return this.handoverCount;
+  }
+
+  didLastTickHandover(): boolean {
+    return this.lastTickHandover;
   }
 
   /** Call at the end of each episode to track veto rate (2C). */
