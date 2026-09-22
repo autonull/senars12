@@ -172,9 +172,20 @@
     segfaulted llama teardown). Full `pnpm test:unit` green (208 files, 1772 tests);
     typecheck + lint clean (fixed a pre-existing duplicate-import lint error in
     `scripts/fundamentals-bench.ts` left by the session-4 factory migration).
-  - Notes for the next session: the llama GPU path is untested here (lane pins `GPU=false` —
-    CPU on a 0.8B is fast enough); `embedded-llamacpp.ts` header comment still references the
-    vitest-worker observation — the serialization is now justified by the shared context itself.
+  - Notes for the next session: ~~GPU path~~ → **probed (session 6, below)**; the
+    `embedded-llamacpp.ts` serialization comment is now justified by the shared context itself
+    (no vitest-worker reference remains).
+- **Progress (sixth session, 2026-09-22): GPU-path probe; plan closes.**
+  - Ran the bin-lifecycle lane with `LM_LLAMACPP_GPU=auto` (instead of the pinned `GPU=false`):
+    6/6 green, ~4.3 min — the GPU env plumbing (`LM_LLAMACPP_GPU` → `env-config.ts` →
+    `EmbeddedLlamaConfig.gpu` → `getLlama({gpu})`) is exercised end-to-end.
+  - Honest finding: `getLlama({gpu:'auto'}).gpu === false` on this box — the locally built
+    `node-llama-cpp` addon has **no CUDA/Vulkan backend**, so `auto` silently (and correctly)
+    degrades to CPU; the lane passes identically either way. CUDA offload itself remains
+    *unverified* until the addon is rebuilt against CUDA (`nvidia-smi` shows an RTX 3080, so the
+    hardware is present). Not pursued: rebuilding the native addon is outside plan scope and
+    CPU on a 0.8B Q4_0 is fast enough (~4 min for the full lane).
+  - No code changes this session — all Phase 0–D items and benches were already landed.
 - **Progress (second session, 2026-09-21):**
   - **P2 landed** as `nar/src/lm/system-one/verify.ts`: `verifyCascade` (SDE-style — stage-1
     `truthProbability` routes through `ConfidenceRouter` bands; stage-2 evidential verification only on
@@ -288,8 +299,10 @@ One seam: reasoning IS a game — and the tournament table knows it.
   exposes one context with N sequences but no safe cross-task dispatch; the single global call
   chain in `embedded-llamacpp.ts` is the honest model. If parallel generation is ever earned
   (arcade fan-out at scale), the seam is `createSequence`-per-task with per-sequence session
-  pools — not concurrent `promptWithMeta` on ad-hoc sequences. GPU acceleration is the cheaper
-  first lever (`LM_LLAMACPP_GPU`, untested here).
+  pools — not concurrent `promptWithMeta` on ad-hoc sequences. GPU acceleration: the env plumbing
+  is exercised (session 6 lane run with `LM_LLAMACPP_GPU=auto`), but the locally built
+  `node-llama-cpp` addon ships no CUDA/Vulkan backend (`getLlama({gpu:'auto'}).gpu === false`) —
+  real offload requires rebuilding the addon against CUDA before it can be benched.
 
 - **GPU/TS training backends (considered 2026-09-21).** PyTorch-like options for the in-house trainer (`nar/src/lm/system-one/train.ts`): **TensorFlow.js** (`tfjs-node-gpu` CUDA binding; WebGPU backend for browser/device contexts) is the only mature TS-native *training* framework; **ONNX Runtime** is inference-first (training requires Python-exported models — doesn't help author loops in TS); raw **WebGPU compute shaders** are a zero-dependency middle path (hand-written matmul/SGD kernel, fits the WASI/device story, P7). Burn/Candle/MLX rejected (not TS). Current heads are linear/logistic over a frozen backbone — GPU is pure overhead at this scale. Only earn it if Phase C bake-offs demand MLP reward models or sequence-level value heads. If adopted: parameterize `train.ts` behind a `HeadTrainerBackend` interface (`in-house-sgd` default, optional tfjs backend), falsified by identical weights digests on small problems + wall-clock parity at current scale. Deliberately *not* a plan item: the backend abstraction is a second trainer if we never need it.
 - **transformers.js toolChoice limitation — RESOLVED (2026-09-21).** `localModel` (`nar/src/lm/providers.ts`)
