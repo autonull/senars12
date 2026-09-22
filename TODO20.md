@@ -233,6 +233,8 @@ error-type sweep.
 ```
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
 Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj; X4 deferred to M5) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience)  M5 tool-reg (← X4 typed-bus lands here)  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62 (M1+M2+M3 assertions green; extend per-split)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  ← NEXT: M4
+
+NEXT SESSION ENTRY POINT: start at M4 (lm-service.ts, 947 LOC -> LMService/admission/routing/circuit-breaker/charge-flow + X5 single breaker under utils/resilience.ts). Read 5c/5d/5e/5f notes first — they carry the split workflow, biome-unsafe-fix gotchas, and provider-matrix changes M4 must respect (openai-compatible is keyless; probeOpenAICompatible replaced probeOllama; progressCallback field is ctor-assigned, do not let unsafe autofixes delete it). Consolidate extractTextFromPrompt/extractLastUserMessage into @senars/util while there.
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (epistemic firewall made structural)  → [ ] Bench 61b (grep: no lm/system-one in kernel/)
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (scope-narrowed: 2 catch-any left)  → [ ] Bench 64
