@@ -113,7 +113,12 @@ export class CognitiveController {
   }
 
   private adaptWithRLFP(): CognitiveParameters {
-    const adapted = structuredClone(this.currentParams);
+    // P4 (TODO20): clone only the strategies subtree — the only part adaptation
+    // mutates — instead of structuredClone-ing the full parameter graph.
+    const adapted = {
+      ...this.currentParams,
+      strategies: structuredClone(this.currentParams.strategies),
+    };
     if (this.rlfp && this.rlfp.preferences.length > 0) {
       adapted.strategies.lmRule.type = 'priority';
       adapted.strategies.derivation.type = 'focused';

@@ -37,10 +37,20 @@ export interface EmbeddingCacheConfig {
 }
 
 interface CacheEntry {
+  key: string;
   pointer: EmbeddingPointer;
   buffer: Float32Array;
   timestamp: number;
   accessCount: number;
+}
+
+/** P2 (TODO20): observability for cache effectiveness. */
+export interface EmbeddingCacheMetrics {
+  hits: number;
+  misses: number;
+  writes: number;
+  evictions: number;
+  size: number;
 }
 
 export class EmbeddingCache {
@@ -50,6 +60,8 @@ export class EmbeddingCache {
   #pointerIndex = new Map<EmbeddingPointer, CacheEntry>();
   #lru = new Map<string, CacheEntry>();
   #pointerCounter = 0;
+  #metrics = { hits: 0, misses: 0, writes: 0, evictions: 0 };
+  #nextExpirySweep = 0;
 
   constructor(config: Partial<EmbeddingCacheConfig> = {}) {
     this.#config = {
@@ -63,9 +75,11 @@ export class EmbeddingCache {
   async write(text: string): Promise<EmbeddingPointer> {
     const existing = this.#cache.get(text);
     if (existing) {
+      this.#metrics.hits++;
       this.#touchEntry(text, existing);
       return existing.pointer;
     }
+    this.#metrics.misses++;
 
     const embedding = await this.#generator.generate(text);
     if (this.#config.dimension !== undefined && embedding.length !== this.#config.dimension) {
@@ -78,8 +92,10 @@ export class EmbeddingCache {
 
     const pointer = ++this.#pointerCounter as EmbeddingPointer;
     const now = Date.now();
+    this.#metrics.writes++;
 
     const entry: CacheEntry = {
+      key: text,
       pointer,
       buffer,
       timestamp: now,
@@ -103,7 +119,9 @@ export class EmbeddingCache {
     const now = Date.now();
 
     const key = `\0raw:${pointer}`;
+    this.#metrics.writes++;
     const entry: CacheEntry = {
+      key,
       pointer,
       buffer,
       timestamp: now,
@@ -144,6 +162,8 @@ export class EmbeddingCache {
     this.#cache.clear();
     this.#pointerIndex.clear();
     this.#lru.clear();
+    this.#metrics = { hits: 0, misses: 0, writes: 0, evictions: 0 };
+    this.#nextExpirySweep = 0;
   }
 
   async warmup(texts: string[]): Promise<void> {
@@ -159,13 +179,10 @@ export class EmbeddingCache {
 
   #evictIfNeeded(): void {
     while (this.#cache.size > this.#config.maxSize) {
+      // LRU head: insertion-ordered Map; the entry stores its own key (O(1) eviction).
       const firstEntry = this.#lru.values().next().value;
       if (!firstEntry) break;
-
-      const keyToEvict = [...this.#lru.entries()].find(([_, e]) => e === firstEntry)?.[0];
-      if (!keyToEvict) break;
-
-      this.#evictEntry(keyToEvict);
+      this.#evictEntry(firstEntry.key);
     }
   }
 
@@ -175,16 +192,32 @@ export class EmbeddingCache {
       releaseBuffer(entry.buffer);
       this.#cache.delete(key);
       this.#pointerIndex.delete(entry.pointer);
+      this.#metrics.evictions++;
     }
     this.#lru.delete(key);
   }
 
   #expireStale(now: number): void {
+    // Amortized: a full scan per write is O(n) on the hot path; sweep at most
+    // once per ttlMs/4 window (stale entries are still evicted lazily by LRU).
+    if (now < this.#nextExpirySweep) return;
+    this.#nextExpirySweep = now + this.#config.ttlMs / 4;
     for (const [key, entry] of this.#cache) {
       if (now - entry.timestamp > this.#config.ttlMs) {
         this.#evictEntry(key);
       }
     }
+  }
+
+  /** P2 (TODO20): cache effectiveness metrics. */
+  metrics(): EmbeddingCacheMetrics {
+    return { ...this.#metrics, size: this.#cache.size };
+  }
+
+  /** Fraction of write() calls served from cache (0 when nothing was written yet). */
+  hitRate(): number {
+    const total = this.#metrics.hits + this.#metrics.misses;
+    return total === 0 ? 0 : this.#metrics.hits / total;
   }
 
   get generator(): TransformersEmbeddingGenerator | NonNullable<EmbeddingCacheConfig['generator']> {

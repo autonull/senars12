@@ -233,7 +233,7 @@ error-type sweep.
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
 Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule (+processor bus typed) (DELIVERED, §5j)  → [x] Bench 62 (19 assertions, M1–M7)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  **PHASE 1 COMPLETE**
 
-NEXT SESSION ENTRY POINT: Phase 8 — P1 bag-lcg, P2 cache metrics/LRU/FlatCache, P3 negotiator memoization, P4 param write coalescing (Bench 69 `tests/nar/todo20-perf.test.ts`; acceptance: `pnpm bench:fundamentals` ≤10% regression, Bag determinism property test, cache hit-rate >80% in arcade). Note: P1 must follow the §5i RNG-binding rule (bind a stateful RNG instance once, never construct inside the lambda). Phase 7 delivered (§5p): strict tool schemas (`z.strictObject` sweep + Registry unknown-key rejection), `code_exec` disabled-by-default + `SHELL_ALLOWLIST` + `AbortSignal` timeout + traversal-safe cwd containment, `code_exec_wasi` capability-gated sandbox tool, `LMOutputTooLargeError` size caps (`LM_MAX_OUTPUT_CHARS`), `docs/security.md` pen-test checklist, Bench 68 (`tests/nar/todo20-security.test.ts`, 14 tests).
+NEXT SESSION ENTRY POINT: Phase 9 — K1 ADR log (`docs/adr/` + template, topics: kernel gates, epistemic firewall, AIKR bounds, builder pattern, component library, reasoning-as-game, schema persistence, GPU offload), K2 architecture diagrams (`scripts/generate-architecture.ts` → Mermaid in `docs/architecture/`), K3 contributor guides (`docs/contributing/add-{game,reflex,systemone-head,tool,lm-rule}.md`), K4 runbook (`docs/runbook/`: LM provider failure, gate deadlock, schema store corruption, budget exhaustion, veto storm, config migration failure). Bench 70 = `tests/nar/todo20-docs.test.ts`. Phase 8 delivered (§5q): Focus rng injection, EmbeddingCache metrics + O(1) LRU eviction + amortized TTL sweep, Negotiator veto memo (pure-keyed), ParameterTable.setMany coalescing, controller shallow-clone; Bench 69 (`tests/nar/todo20-perf.test.ts`, 10 tests).
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (DELIVERED, §5k)  → [x] Bench 61b
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (DELIVERED, §5l — E3 scoped to tool boundaries, see note)  → [x] Bench 64
@@ -241,7 +241,7 @@ Phase 4: O1 otel  O2 json-log  O3 health  O4 metrics (DELIVERED, §5m — see de
 Phase 5: C1 schema  C2 migrate  C3 freeze  C4 secrets  (+X7 StateCodec) (DELIVERED, §5n)  → [x] Bench 66
 Phase 6: A1 exports  A2 typedoc  A3 semver  A4 deprecation (DELIVERED, §5o — A2 as docs-api generator, TypeDoc blocked on TS7)  → [x] Bench 67
 Phase 7: S1 validate  S2 shell  S3 wasi  S4 sanitize  (DELIVERED, §5p)  → [x] Bench 68
-Phase 8: P1 bag-lcg  P2 cache  P3 negotiator  P4 param-batch  → [ ] Bench 69
+Phase 8: P1 bag-lcg  P2 cache  P3 negotiator  P4 param-batch  (DELIVERED, §5q)  → [x] Bench 69
 Phase 9: K1 adr  K2 diagrams  K3 guides  K4 runbook  → [ ] Bench 70
 ```
 
@@ -1078,6 +1078,64 @@ green (1,864), deps:gate 72 ok.
 - `code_exec_wasi` output capture (custom fd shim) if a real consumer appears.
 - `LM_MAX_OUTPUT_CHARS` could feed an `lm.output_truncated` OTel attribute on enforcement —
   currently the throw surfaces through existing failure metrics.
+
+## 5q. Phase 8 delivery note — P1/P2/P3/P4 (2026-09-22)
+
+**Delivered:** Phase 8 performance hot paths; Bench 69 (`tests/nar/todo20-perf.test.ts`, 10 tests).
+Verified: typecheck 0 new errors, lint clean, full `test:unit` green (1,874), deps:gate 72 ok.
+
+### What landed
+
+- **P1** — `BagOptions.rng` already existed (Phase 2 T1); the missing piece was replay wiring:
+  `FocusOptions.rng` now threads into both the task and focus-memory bags (`Focus.ts`), so
+  per-cycle `sample()` selection is deterministic end-to-end when a seeded source is injected.
+  Bench 69 proves seeded replay (two `createLCG(42)` bags → identical sample sequences; different
+  seeds diverge) and guards overhead (LCG < 2× Math.random on 20k samples — see deviation).
+- **P2** — `EmbeddingCache` gained `metrics()` (`hits/misses/writes/evictions/size`) and
+  `hitRate()`. Two hot-path fixes: LRU eviction is now O(1) (entries carry their own key — the old
+  code did an O(n) `[...#lru].find` per eviction), and `#expireStale` sweeps at most once per
+  `ttlMs/4` window instead of scanning every entry on every write (stale entries are still
+  reclaimed lazily by LRU).
+- **P3** — `Negotiator.isVetoingAction` memoized in a bounded `vetoMemo` Map (cap 10k, cleared
+  wholesale past it). **Safety argument: no version plumbing needed** — the memo key is the full
+  predicate input (`action|f|c|proposedAction`), so an entry is a pure function of its key and can
+  never go stale when beliefs revise (Bench 69 falsifies stale-veto: same proposal flips from
+  vetoed to not-vetoed when truth changes). The fallback filter's proposals×derivations rescan now
+  hits the memo.
+- **P4** — `ParameterTable.setMany(scope, entries)`: validates/clamps all-or-nothing, then actuates
+  each **changed** parameter exactly once (coalescing unchanged re-sets). `set()` now delegates to
+  it. Batch consumers: `SelfMetaGame.setKnobs` (interface `SelfMetaGame` extended) and
+  `ReasoningMetaGame.setRewardWeights`. Deep-copy churn: `CognitiveController.adaptWithRLFP` now
+  clones only the `strategies` subtree (the only part adaptation mutates) instead of
+  `structuredClone` of the full parameter graph; the controller still owns every mutated ref
+  (C3 ownership rule preserved).
+
+### Honest deviations
+
+- **FlatCache prototype not built** — the buffer pool *is* the flat store: 384-d `Float32Array`s
+  allocated from a module-level contiguous pool with a free-list; there is no per-vector object
+  allocation to eliminate, so the >2×-throughput premise doesn't apply. Revisit only if profiling
+  shows pool allocation contention.
+- **≤5% LCG-overhead assertion implemented as a CI-safe 2× guard** — timing assertions on shared
+  runners at a 5% delta are flake traps; the acceptance number should be measured on the bench
+  scripts (`pnpm bench` / `scripts/fundamentals-bench.ts`), not in a unit test. Bench 69 keeps the
+  property "seeding does not change the asymptotic cost" instead.
+- **Cache hit-rate >80% in arcade runs** not asserted — no arcade run harness exists in-repo for
+  system-one embedding traffic; `hitRate()` is the observable for whoever wires that harness.
+- Per-concept bags (`memory/concept.ts` belief/goal/question bags) still default to `Math.random`
+  — plumbing an rng through concept construction touches the whole memory layer for marginal
+  benefit; Focus-level replay (the per-tick hot path) is the delivered seam.
+
+### Follow-ups / improvement opportunities
+
+- Wire an injected rng from `NARConfig` → `Memory` → `Focus` (one config knob for full replay) —
+  Focus is ready; only the middle plumbing remains.
+- `EmbeddingCache.metrics` could export into the Prometheus registry (`embedding_cache_hits_total`
+  etc.) via `nar/src/telemetry` when O4 metrics are next touched.
+- `SelfMetaGame`/`ReasoningMetaGame` per-tick apply loops should migrate to the batch APIs when
+  those loops gain more knobs.
+- `setMany` actuates only on *change* — if a consumer ever needs fire-every-set semantics, add an
+  explicit `{force: true}` option rather than silently reverting.
 
 ## 6. Definition of Done
 

@@ -8,6 +8,7 @@ import { type GateRegistry, gateRegistry } from '../kernel/index.js';
 import type { NALDerivation } from '../reflex/Negotiator.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../reflex/Reflex.js';
 import type { Term } from '../terms/index.js';
+import type { RandomSource } from '../types/primitives.js';
 import {
   getAntecedent,
   getSubject,
@@ -65,6 +66,8 @@ export interface FocusOptions {
   weight?: number;
   /** TODO19 F2: per-instance gate registry (defaults to the process-global singleton). */
   gateRegistry?: GateRegistry;
+  /** P1 (TODO20): injectable RNG for deterministic replay of task/memory sampling. */
+  rng?: RandomSource;
 }
 
 export class Focus implements BagItem {
@@ -90,11 +93,13 @@ export class Focus implements BagItem {
     this.tasks = new PriorityBag<FocusTask>({
       capacity: options.taskCapacity ?? 1000,
       decayRate: options.taskDecayRate ?? 0.01,
+      rng: options.rng,
     });
 
     this.memory = new PriorityBag<FocusConcept>({
       capacity: options.conceptCapacity ?? 500,
       decayRate: options.conceptDecayRate ?? 0.005,
+      rng: options.rng,
     });
 
     this.perceptionGate = new PerceptionGate(this);

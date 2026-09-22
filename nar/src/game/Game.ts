@@ -27,5 +27,7 @@ export interface MetaGame<S = unknown, A = unknown> extends Game<S, A> {
 export interface SelfMetaGame<S = unknown, A = unknown> extends MetaGame<S, A> {
   setFocusWeight(focusId: string, weight: number): void;
   setKnob(knob: string, value: number): void;
+  /** P4 (TODO20): batched knob application (coalesced actuation, single validation pass). */
+  setKnobs(knobs: Record<string, number>): void;
   disableReflex(focusId: string, reflexId: string): void;
 }

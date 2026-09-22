@@ -31,6 +31,14 @@ export class ReasoningMetaGame {
     return this.table.set(this.scope, `reward.${rewardId}`, weight);
   }
 
+  /** P4 (TODO20): batched weight application — single validation pass, coalesced actuation. */
+  setRewardWeights(weights: Record<string, number>): void {
+    this.table.setMany(
+      this.scope,
+      Object.entries(weights).map(([id, weight]) => [`reward.${id}`, weight] as [string, number])
+    );
+  }
+
   getRewardWeight(rewardId: string): number | undefined {
     return this.table.get(this.scope, `reward.${rewardId}`);
   }

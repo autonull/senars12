@@ -27,6 +27,13 @@ export interface NegotiatorOptions {
 export class Negotiator {
   private readonly nalVetoThreshold: number;
   private readonly reflexThreshold: number;
+  /**
+   * P3 (TODO20): memoized `isVetoingAction` keyed by the full predicate input
+   * (action, truth, proposal) — pure function of the key, so entries can never
+   * go stale; bounded and cleared wholesale past the cap.
+   */
+  private readonly vetoMemo = new Map<string, boolean>();
+  private static readonly VETO_MEMO_CAP = 10_000;
 
   constructor(options: NegotiatorOptions = {}) {
     this.nalVetoThreshold = options.nalVetoThreshold ?? 0.8;
@@ -105,11 +112,21 @@ export class Negotiator {
   }
 
   private isVetoingAction(derivation: NALDerivation, proposedAction: string): boolean {
-    return (
+    const key = `${derivation.action}|${derivation.truth.f}|${derivation.truth.c}|${proposedAction}`;
+    const cached = this.vetoMemo.get(key);
+    if (cached !== undefined) return cached;
+    const result =
       derivation.action === proposedAction &&
       derivation.truth.f < 0.3 &&
-      derivation.truth.c >= this.nalVetoThreshold
-    );
+      derivation.truth.c >= this.nalVetoThreshold;
+    if (this.vetoMemo.size >= Negotiator.VETO_MEMO_CAP) this.vetoMemo.clear();
+    this.vetoMemo.set(key, result);
+    return result;
+  }
+
+  /** P3 (TODO20): memo hit rate over the veto predicate (0 before first fill). */
+  memoStats(): { size: number } {
+    return { size: this.vetoMemo.size };
   }
 
   createLearningEvent(

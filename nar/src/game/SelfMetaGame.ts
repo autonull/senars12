@@ -166,6 +166,17 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
     }
   }
 
+  /** P4 (TODO20): batched knob application — one validation pass, coalesced actuation. */
+  setKnobs(knobs: Record<string, number>): void {
+    try {
+      this.parameterTable.setMany(SelfMetaGameImpl.knobScope, Object.entries(knobs));
+    } catch (e) {
+      if (e instanceof ParameterScopeError)
+        throw new Error(e.message.startsWith('unknown parameter') ? `Unknown knob: ${e.parameter}` : e.message);
+      throw e;
+    }
+  }
+
   disableReflex(focusId: string, reflexId: string): void {
     const gameFocus = this.gameFocuses.get(focusId);
     if (!gameFocus) {

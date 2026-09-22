@@ -49,20 +49,36 @@ export class ParameterTable {
 
   /** Set a parameter value; the caller's scope must match the parameter's scope. */
   set(callerScope: ParameterScope, name: string, value: number): number {
-    const spec = this.entries.get(this.key(callerScope, name));
-    if (!spec) {
-      const foreign = this.entries.get(this.key('system', name));
-      if (foreign && callerScope !== 'system')
-        throw new ParameterScopeError(
-          `scope "${callerScope}" cannot tune system parameter "${name}" (owner: ${foreign.owner})`,
-          callerScope,
-          name
-        );
-      throw new ParameterScopeError(`unknown parameter: ${name}`, callerScope, name);
+    return this.setMany(callerScope, [[name, value]])[0]!;
+  }
+
+  /**
+   * P4 (TODO20): batched write — validates and clamps all updates first (all-or-
+   * nothing on scope errors), then actuates each accepted parameter exactly once.
+   * Cuts per-write actuator churn when callers apply several knobs per tick.
+   */
+  setMany(callerScope: ParameterScope, updates: Array<[string, number]>): number[] {
+    const applied: Array<{ spec: ParameterSpec; value: number }> = [];
+    for (const [name, value] of updates) {
+      const spec = this.entries.get(this.key(callerScope, name));
+      if (!spec) {
+        const foreign = this.entries.get(this.key('system', name));
+        if (foreign && callerScope !== 'system')
+          throw new ParameterScopeError(
+            `scope "${callerScope}" cannot tune system parameter "${name}" (owner: ${foreign.owner})`,
+            callerScope,
+            name
+          );
+        throw new ParameterScopeError(`unknown parameter: ${name}`, callerScope, name);
+      }
+      applied.push({ spec, value: clamp(value, spec.min, spec.max) });
     }
-    spec.value = clamp(value, spec.min, spec.max);
-    spec.actuate?.(spec.value);
-    return spec.value;
+    return applied.map(({ spec, value }) => {
+      const changed = spec.value !== value;
+      spec.value = value;
+      if (changed) spec.actuate?.(spec.value);
+      return spec.value;
+    });
   }
 
   get(scope: ParameterScope, name: string): number | undefined {
