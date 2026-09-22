@@ -3,6 +3,7 @@ import { DEFAULT_CONFIG } from '../../nar/src/types/index.js';
 import { createMockLMService } from '../../nar/src/lm/lm-service.js';
 import { createSeNARSRegistry } from '../../nar/src/lm/providers.js';
 import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
+import { SystemOneIngressJudge } from '../../nar/src/lm/system-one/ingress-judge.js';
 import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import type { JudgmentResolvedEvent } from '@senars/kernel/schemas';
 import { validateCognitiveEvent } from '@senars/kernel/schemas';
@@ -47,7 +48,10 @@ const makeInjectionHead = (score: number) => ({
 const createGate = (manifold: any, cache: any, injectionScore: number) => {
   manifold.registerHead(makeInjectionHead(injectionScore));
   return new KernelPerceptionGate({
-    systemOne: { enabled: true, manifold, embeddingCache: cache, reasoningBudget: BUDGET },
+    systemOne: {
+      enabled: true,
+      judge: new SystemOneIngressJudge({ manifold, embeddingCache: cache, budget: BUDGET }),
+    },
   });
 };
 

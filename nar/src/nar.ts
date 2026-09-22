@@ -11,6 +11,7 @@ import type { LMService, SeNARSRegistry } from './lm';
 import { getModelForTask, LMRules } from './lm';
 import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
 import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
+import { SystemOneIngressJudge } from './lm/system-one/ingress-judge.js';
 import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
 import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-grader.js';
 import type { CognitiveDispatcher, JudgmentManifold } from './lm/system-one/types.js';
@@ -139,18 +140,17 @@ export class NAR extends BaseComponent {
       ? {
           systemOne: {
             enabled: true,
-            manifold: this.systemOne.manifold!,
-            embeddingCache: this.systemOne.embeddingCache!,
-            reasoningBudget: this.config.systemOne.reasoningBudget ?? {
-              maxCycles: 100,
-              maxDepth: 10,
-              maxMemoryOps: 1000,
-              maxLMCalls: 5,
-              consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-            },
-            provisionalCInitial: this.config.systemOne.provisional?.cInitial ?? 0.1,
-            provisionalDecayRate: this.config.systemOne.provisional?.decayRate ?? 0.3,
-            provisionalMaxTtlMs: this.config.systemOne.provisional?.maxTtlMs ?? 30_000,
+            judge: new SystemOneIngressJudge({
+              manifold: this.systemOne.manifold!,
+              embeddingCache: this.systemOne.embeddingCache!,
+              budget: this.config.systemOne.reasoningBudget ?? {
+                maxCycles: 100,
+                maxDepth: 10,
+                maxMemoryOps: 1000,
+                maxLMCalls: 5,
+                consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+              },
+            }),
           },
         }
       : undefined;

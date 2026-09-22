@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
+import { SystemOneIngressJudge } from '../../nar/src/lm/system-one/ingress-judge.js';
 import { PersistentSpace } from '../../metta/src/extensions/persistent-space.js';
 import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
 import { handleDelegationMessage, createDelegation } from '../../nar/src/cooperation/delegation.js';
@@ -26,10 +27,19 @@ describe('Bench 36 — Fail-Closed Integrity', () => {
       new KernelPerceptionGate({
         systemOne: {
           enabled: true,
-          manifold: manifold as never,
-          embeddingCache: {
-            write: async () => 0,
-          } as never,
+          judge: new SystemOneIngressJudge({
+            manifold: manifold as never,
+            embeddingCache: {
+              write: async () => 0,
+            } as never,
+            budget: {
+              maxCycles: 10,
+              maxDepth: 5,
+              maxMemoryOps: 100,
+              maxLMCalls: 2,
+              consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+            },
+          }),
         },
       });
 

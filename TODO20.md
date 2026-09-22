@@ -154,7 +154,7 @@ failure mode, or make a contract explicit).
 | # | Item | Evidence | Priority | Slot | Effort |
 |---|------|----------|----------|------|--------|
 | X1 | **nar imports app code** — package→app boundary violation (delivered §5b) | `nar/src/nar.ts:79`, `nar/src/agent/builder.ts:3`, `nar/src/agent/profiles.ts:1` all import `SystemOneConfig` from root `src/config/schema.js` | **High** | Before Phase 2 (trivial, unblocks packaging) | XS |
-| X2 | **Kernel layering inversion** — trusted gate embeds untrusted proposer internals | `KernelPerceptionGate.ts` imports 6 `lm/system-one` modules (`head-specs`, `policy`, `provisional-stamp`, `seed`, `telemetry`, `types`): the epistemic firewall is compiled against the machinery it is supposed to be filtering | **High** | Own item after Phase 2, feeds M2/M4 | L |
+| X2 | **Kernel layering inversion** — trusted gate embeds untrusted proposer internals (**delivered §5k**) | `KernelPerceptionGate.ts` imported 6 `lm/system-one` modules: the epistemic firewall was compiled against the machinery it is supposed to be filtering | **High** | ~~Own item after Phase 2~~ | L |
 | X3 | **Provider module-level mutable singletons** — parallel-unsafe, order-dependent (delivered §5b) | 11 module-level `let`/`Map` in `lm/providers.ts` (lines 55–955: `routing`, `demotions`, `circuitBreakers`, `healthProbeInterval`, `routingLog*`…) | **High** | Must land with/before Phase 2 T3 (`isolate:true` will surface these) | M |
 | X4 | **Untyped event bus usage** — generic `EventBus<T>` defeated at call sites (delivered §5h) | `EventBus.on/emit` are already `<K extends keyof T>` (`util/src/events/event-bus.ts:33,58`); 14 `as never` casts in `nar/src` (mostly `tools/tool-registry.ts`, `nar.ts`) bypass them | Medium | Fold into Phase 1 M5/M2 | S |
 | X5 | **Dual circuit-breaker implementations** | `nar/src/utils/circuit-breaker.ts` (generic) vs `lm/providers.ts` `ProviderHealth` machinery — independent state, semantics, and logging for the same concern | Medium | Fold into Phase 1 M4 → consolidate into `utils/resilience.ts` (per D03's original intent) | S |
@@ -233,9 +233,9 @@ error-type sweep.
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
 Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule (+processor bus typed) (DELIVERED, §5j)  → [x] Bench 62 (19 assertions, M1–M7)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  **PHASE 1 COMPLETE**
 
-NEXT SESSION ENTRY POINT: Phase 2.5 — X2 kernel IngressJudge (extract `IngressJudge` interface; `KernelPerceptionGate` keeps fail-closed plumbing only; all `lm/system-one` imports leave `nar/src/kernel/`). Acceptance: `grep -n "lm/system-one" nar/src/kernel/` → empty; ingress benches (15–28) unchanged; deps:gate ≤72. Read §5h (NarEventBus pattern, X4 scope ruling) and §5j (facade + typed-bus conventions) first. After X2: Phase 3 (E1 taxonomy, E2 Result, E3 zod-strict, E4 context — scope-narrowed per §1b note: only 2 `catch (e: any)` remain).
+NEXT SESSION ENTRY POINT: Phase 3 — E1 error taxonomy, E2 Result adoption (LM admission, tool execution, persistence, schema store, gate authorization), E3 Zod strict on external boundaries, E4 context enrichment (scope-narrowed per §1b: only 2 `catch (e: any)` remain — `lm/system-one/distill.ts:117`, `nar.ts:878`). Read §5k first (X2 IngressJudge pattern — interface in `kernel/ingress.ts`, impl in `lm/system-one/ingress-judge.ts`, injection via `perceptionConfig`). Bench 64 (`tests/nar/todo20-errors.test.ts`) is the acceptance bench.
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
-Phase 2.5: X2 kernel IngressJudge (epistemic firewall made structural)  → [ ] Bench 61b (grep: no lm/system-one in kernel/)
+Phase 2.5: X2 kernel IngressJudge (DELIVERED, §5k)  → [x] Bench 61b
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (scope-narrowed: 2 catch-any left)  → [ ] Bench 64
 Phase 4: O1 otel  O2 json-log  O3 health  O4 metrics  → [ ] Bench 65
 Phase 5: C1 schema  C2 migrate  C3 freeze  C4 secrets  (+X7 StateCodec)  → [ ] Bench 66
@@ -765,7 +765,58 @@ unification (§5f). Cycle count 74 → 72 across the phase (M3 deletions, M4 con
 Bench 62 is the per-split guard (19 assertions: LOC budgets, facade surfaces, cycle grep-guards,
 typed-bus and RandomSource sweeps). Next: Phase 2.5 X2 (IngressJudge), then Phase 3.
 
+## 5k. Phase 2.5 delivery note — X2 IngressJudge (2026-09-22)
+
+**Delivered:** X2 — the epistemic firewall is now structural. `KernelPerceptionGate.ts` has **zero**
+`lm/system-one` imports (grep-guarded by Bench 61b, `tests/nar/todo20-kernel-layering.test.ts`);
+the six system-one touches (ingress queries, `ConfidenceRouter`, `seedTruth`, telemetry
+emitter/sinks, manifold types, dead `createProvisionalStamp`) moved into
+`lm/system-one/ingress-judge.ts` (`SystemOneIngressJudge`). Verified: typecheck clean, lint
+clean, full `test:unit` green (1,811), deps:gate 72 ok; ingress/telemetry/fail-closed/enabled-path
+suites green unchanged.
+
+### Shape of the boundary
+
+- `kernel/ingress.ts` (leaf) — `IngressJudge { judge(req) → IngressVerdict; setEventSink?(push) }`,
+  `IngressJudgmentRequest { rawObservation, sourceQuality, baseConfidence, taskType }`,
+  `IngressVerdict { vetoReason?, taskType?, ambiguityFlag?, sourceQuality?, confidence, truth }`.
+  Contract: judge throws on internal fault → gate rejects fail-closed (D1 message + policy.violation
+  telemetry preserved byte-for-byte).
+- `KernelPerceptionGate` config: `systemOne: { enabled, judge? }` — manifold/embeddingCache/budget/
+  provisional fields removed. Gate wires `judge.setEventSink` in its ctor so judgment.resolved
+  telemetry still lands in the gate event log (todo16-telemetry behavior unchanged).
+- `nar.ts` builds the judge from `SystemOneRuntime` (manifold + cache + budget) and injects via
+  `gates.initialize({ perceptionConfig })`. `kernel/interfaces.ts` `PerceptionGateInitConfig`
+  updated to match.
+
+### Dead code found and removed
+
+The old gate computed `illocution` and `occurrenceTime` from the judge results and stored
+`systemOneProvisionalConfig` — **none had any consumer** (task payload never carried them;
+`createProvisionalStamp` was imported and never called; provisional config only ever reached the
+dispatcher via `SystemOneRuntime`, which is untouched). Dropped at the boundary, not migrated.
+
+### Test migration (mechanical, 3 files)
+
+`todo17b-failclosed` (D1), `todo16-enabled-path`, `todo16-telemetry` now construct
+`new SystemOneIngressJudge({ manifold, embeddingCache, budget })` and pass it as
+`systemOne.judge`. Rule of thumb for future kernel-boundary work: tests of the *plumbing* import
+the kernel; tests of the *judgment* import the judge.
+
+### Follow-ups / improvement opportunities
+
+- Bench 61b's fault-injection case duplicates `todo17b-failclosed` D1 — if D1 is ever relaxed,
+  both must move together (the grep-guard alone doesn't pin fail-closed semantics).
+- `IngressVerdict` could later carry `illocution`/`occurrenceTime` *with consumers* (e.g. task
+  payload enrichment) — do not re-add without a named consumer (§5a rule).
+- The `as never` casts in `SystemOneIngressJudge` ctor call sites are test-side fake manifolds —
+  the X4 bus-cast ruling does not apply; branded `EmbeddingPointer` cast lives in the judge now.
+- `ingress.ts` + `interfaces.ts` are both kernel leaves; if more judge-like boundaries appear
+  (egress groundedness is a candidate), consider one `kernel/boundaries/` folder before it accretes.
+
 ## 6. Definition of Done
+
+
 
 ```text
 Clean dependency graph        Explicit public API           Deterministic by default

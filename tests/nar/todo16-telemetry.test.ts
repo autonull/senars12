@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
+import { SystemOneIngressJudge } from '../../nar/src/lm/system-one/ingress-judge.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { validateCognitiveEvent } from '@senars/kernel/schemas';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
@@ -26,9 +27,7 @@ describe('System One — Telemetry Emission (R2)', () => {
     gate = new KernelPerceptionGate({
       systemOne: {
         enabled: true,
-        manifold,
-        embeddingCache: cache,
-        reasoningBudget: budget,
+        judge: new SystemOneIngressJudge({ manifold, embeddingCache: cache, budget }),
       },
     });
   });
@@ -54,7 +53,7 @@ describe('System One — Telemetry Emission (R2)', () => {
     // Debug: print all events
     console.log('All events:', events.map((e: any) => e.type));
     console.log('SystemOne enabled:', (gate as any).config.systemOne?.enabled);
-    console.log('Manifold:', (gate as any).systemOneManifold?.constructor?.name);
+    console.log('Manifold judge:', (gate as any).judge?.constructor?.name);
     
     // Expect one event per ingress query (6 total)
     expect(judgmentEvents.length).toBe(expectedIngressQueries);
@@ -120,9 +119,7 @@ describe('System One — Telemetry Emission (R2)', () => {
     const disabledGate = new KernelPerceptionGate({
       systemOne: {
         enabled: false,
-        manifold,
-        embeddingCache: cache,
-        reasoningBudget: budget,
+        judge: new SystemOneIngressJudge({ manifold, embeddingCache: cache, budget }),
       },
     });
 

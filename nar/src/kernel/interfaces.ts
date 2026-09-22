@@ -17,6 +17,7 @@ import type {
   SourceQuality,
 } from '@senars/kernel/schemas';
 import type { Term, TaskTypeName } from '../terms';
+import type { IngressJudge } from './ingress.js';
 
 /** Structural init configs — no concrete kernel-gate imports (keeps this module a leaf). */
 export interface PerceptionGateInitConfig {
@@ -29,12 +30,7 @@ export interface PerceptionGateInitConfig {
   };
   systemOne?: {
     enabled: boolean;
-    manifold?: unknown;
-    embeddingCache?: unknown;
-    reasoningBudget?: ReasoningBudget;
-    provisionalCInitial?: number;
-    provisionalDecayRate?: number;
-    provisionalMaxTtlMs?: number;
+    judge?: IngressJudge;
   };
 }
 

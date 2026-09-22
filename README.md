@@ -1419,15 +1419,14 @@ SeNARS is designed for **continuous, unattended operation** within defined auton
 
 ## Configuration Reference
 
-This section is the lookup reference for tuning and deployment; the system description above does not depend on it. For the full LM configuration semantics, see `docs/tech/lm-config.md`.
+This section is the lookup reference for tuning and deployment; the system description above does not depend on it.
 
 ### LM Profiles & Routing
 
 `LM_PROFILE` selects a preset: `auto` (default — cloud when credentials exist, else local),
 `cloud-quality`, `local-private` (transformers.js), `ollama` (deprecated alias → openai-compatible). Per-tier env overrides
 (`LM_FAST_MODEL` etc.) and an optional `routing` config block enable objective-driven
-multi-provider model selection with a self-upgrading offline failsafe ladder. See
-`docs/tech/lm-config.md` for the full provider × tier × credential matrix.
+multi-provider model selection with a self-upgrading offline failsafe ladder.
 
 LM profiles are the system's interface to external **System 1 proposers**: each profile selects which untrusted models translate, enrich, and formalize on the kernel's behalf.
 
@@ -1542,24 +1541,6 @@ tests/nar/
 ├── rlfp.test.ts       # RLFP integration
 ├── stream.test.ts     # Streaming execution
 ```
-
-### Key Documentation
-
-| Document | Description |
-|----------|-------------|
-| `docs/tech/functionality.md` | Complete cognitive architecture specification |
-| `docs/tech/neuro-symbolic.md` | Neuro-symbolic integration deep dive |
-| `docs/tech/reasoning.md` | Reasoning engine internals |
-| `docs/tech/deep-dive.md` | Implementation details |
-| `docs/tech/api-reference.md` | API reference |
-| `docs/intro/getting-started.md` | Getting started guide |
-| `docs/plan/mcp.md` | Model Context Protocol integration |
-| `docs/tech/lm-config.md` | Unified LM configuration (env matrix × config file × precedence, objective-driven routing) |
-| `docs/lm-ladder.md` | Model ladder: SmolLM → embedded GGUF → Ollama → cloud frontier; dtype/device matrix |
-| `docs/system-one-guide.md` | System One: enable, head reference, observability, distillation flywheel, troubleshooting |
-| `docs/plan/repl.md` | REPL usage |
-| `docs/plan/NEXT.md` | Strategic roadmap |
-| `docs/plan/HYBRID_REASONING.md` | Hybrid reasoning architecture |
 
 ### Extensibility & Ecosystem
 
