@@ -41,7 +41,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
       const { termParser, Truth } = await import('../../terms/index.js');
       const { createTask, createBudget } = await import('../../types');
       const parsed = termParser.parseTask(statement);
-      if (parsed && parsed.term) {
+      if (parsed?.term) {
         const task = createTask(
           parsed.term,
           type as 'belief' | 'goal',

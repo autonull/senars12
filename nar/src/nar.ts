@@ -56,7 +56,7 @@ import {
 } from './terms';
 import type { Tool, ToolResult } from './tools';
 import { discoverTools, ToolManager } from './tools';
-import { createSelfTools } from './tools/adapters/external-tools.js';
+import { createSelfTools } from './tools/adapters/self-tools.js';
 import {
   ConfigurationError,
   type CoreConfig,

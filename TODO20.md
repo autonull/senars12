@@ -232,7 +232,7 @@ error-type sweep.
 
 ```
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
-Phase 1: M1 tools  M2 nar (+X6 options-obj, X4 typed-bus)  M3 providers  M4 lm-service (+X5 resilience)  M5 tool-reg  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62   ← NEXT
+Phase 1: M1 tools (DELIVERED 2026-09-22, see §5c)  M2 nar (+X6 options-obj, X4 typed-bus)  M3 providers  M4 lm-service (+X5 resilience)  M5 tool-reg  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62 (authored, M1 assertions passing; extend per-split)   ← NEXT: M2
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (epistemic firewall made structural)  → [ ] Bench 61b (grep: no lm/system-one in kernel/)
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (scope-narrowed: 2 catch-any left)  → [ ] Bench 64
@@ -312,7 +312,7 @@ verification reliable. Bench 63 precedes Bench 62.
 
 | Metric | Baseline | Source |
 |--------|----------|--------|
-| Raw dependency cycles | **73** (was 74; lowered by Phase 2 X3) | `pnpm deps:gate` / dpdm JSON `circulars` |
+| Raw dependency cycles | **72** (was 73; lowered by Phase 1 M1 split) | `pnpm deps:gate` / dpdm JSON `circulars` |
 | Deduplicated cycle chains (human view) | 10 | `pnpm deps:check` stdout |
 
 ---
@@ -363,7 +363,7 @@ deferred until the next bench authoring pass (file-based separation is functiona
 
 1. **Math.random sweep (T1 acceptance stretch).** Still bare in: `memory/links/LinkBag.ts`, `nl/generation.ts`,
    `rlfp/{PolicyOptimizer,RewardModel}.ts`, `strategies/derivation/SampledDerivation.ts`,
-   `tools/{adapters/external-tools,tool-registry}.ts`, `rl/perception-action-adapters.ts` (M6 will touch it),
+   `tools/{adapters/self-tools,tool-registry}.ts`, `rl/perception-action-adapters.ts` (M6 will touch it),
    `rl/q-belief-store.ts`, `reflex/{TabularQReflex,EpsilonGreedyReflex}.ts`, `imagination/treadmill.ts`,
    `events/bridge.ts`, `lm/system-one/telemetry.ts`. Mechanical; do opportunistically during M4/M5/M6 splits.
 2. **Full 20× `pnpm test:unit` soak** for the formal Bench 63 acceptance (single full runs green; the 20× was
@@ -373,7 +373,55 @@ deferred until the next bench authoring pass (file-based separation is functiona
 4. **PEG grammar hygiene**: `kindMap` is duplicated across `AngleBracketStatement`/`ParenthesizedStatement`;
    consider hoisting to a shared rule during M2.
 
-### New improvement opportunities (from this phase)
+---
+
+## 5c. Phase 1 delivery note — M1 (2026-09-22)
+
+**Delivered:** M1 — `external-tools.ts` (2,855 LOC) decomposed into `tools/adapters/` modules; Bench 62 authored
+(`tests/nar/todo20-monoliths.test.ts`, M1 assertions green). `pnpm test:unit` full suite green (1,791 tests);
+`pnpm lint` clean; `pnpm typecheck` clean except the 10 pre-existing wasi/`__pb2` errors (verified identical on
+HEAD via stash before starting); `pnpm deps:gate` **improved 73 → 72** (ledger updated).
+
+### File map (all <400 LOC, verified by Bench 62)
+
+- One file per tool family: `web-search.ts`, `http-fetch.ts`, `code-exec.ts`, `filesystem.ts`,
+  `rag-query.ts`, `coverage-concept.ts`, `human-approval.ts`, `test-gen.ts`, `test-runner.ts`.
+  The plan's "11 files" undercounted — `self-tools` and `scenario-gen` each needed a second cut:
+- `codemod.ts` — `runCodemod` is now **exported** (self-tools consumes it; was file-private).
+- `shadow-worktree.ts` — `ShadowWorktreeManager` extracted from self-tools.
+- `self/context.ts` — `SelfToolsDeps` + `SelfToolsContext` (deps/shadowManager/worktreeId);
+  `self/{register-rule,register-tool,scaffold-capability,apply-fix,tune-knob,switch-strategy,shadow-run}.ts`
+  each export a `(ctx) => tool({...})` builder; `self-tools.ts` is a ~35-LOC composer.
+- `scenario-gen.ts` (types + `createScenarioGenTools`) + `scenario-execute.ts` (validators, spec
+  generation, `runScenario`, reward calc); `scenario-gen` re-exports the public scenario types so the
+  barrel surface is unchanged.
+- Dead code removed: `_resolveSemanticArgs` in self-tools was defined and never called anywhere.
+- Only consumer-visible change: `nar/src/nar.ts` imports `createSelfTools` from
+  `./tools/adapters/self-tools.js` (was `external-tools.js`). Barrel exports are byte-identical in
+  symbol set — note `createHTTPFetchTools` was *never* barrel-exported (§5a rule) and still isn't.
+
+### Lessons for the remaining splits (M2–M7)
+
+- `biome check --write --unsafe` removed a non-null assertion that typecheck then rejected — after any
+  unsafe autofix, re-run `pnpm typecheck` before trusting the diff.
+- The original monolith's private helpers (e.g. `runCodemod`) may need exporting when consumers land in
+  sibling files; prefer exporting a helper over duplicating it.
+- tsconfig has no `noUnusedLocals`; rely on biome `noUnusedImports`/`noUnusedVariables` + the barrel
+  guard to keep split files clean.
+- Extract-then-fix-imports workflow (split → prepend old import block → typecheck → prune unused) took
+  ~30 min for 2.9k LOC; budget similar per monolith.
+
+### M1 follow-ups / improvement opportunities
+
+- Bench 62 currently asserts only the M1 slice; extend it with per-split assertions (e.g. `nar.ts` facade
+  LOC, `providers/*` file list) as M2–M7 land.
+- The 8 `self/*` tool builders share a near-identical worktree acquire/validate/cleanup preamble —
+  a `withShadowWorktree(ctx, suffix, fn)` helper would cut ~80 LOC; deferred to avoid behavior drift in
+  this split.
+- `scenario-execute.ts` (388 LOC) is close to the 400 ceiling; the validators array is the next
+  extraction candidate if it grows.
+
+### New improvement opportunities (§5b, from the Phase 2 pass)
 
 - `serialize → parse` round-trip is now property-guarded — extend the generator to higher-order terms
   (variables, sets, images) when the grammar is next touched.
