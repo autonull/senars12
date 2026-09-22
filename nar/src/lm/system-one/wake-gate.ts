@@ -1,3 +1,5 @@
+import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { DistillationLabel, JudgmentDataset } from './distill.js';
 import { HEAD_SPECS, specToQuery } from './head-specs.js';
 import type {
   EmbeddingCache,
@@ -5,8 +7,6 @@ import type {
   EvaluateProposition,
   JudgmentManifold,
 } from './types.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
-import type { DistillationLabel, JudgmentDataset } from './distill.js';
 
 export type WakeDecision = 'wake' | 'not_yet' | 'unrelated';
 
@@ -68,7 +68,7 @@ export function createWakeGate(options: WakeGateOptions) {
     try {
       pointer = (await embeddingCache.write(sleepNote)) as EmbeddingPointer;
       const [prop] = await manifold.judgeBatch(pointer, [relevanceQuery], budget);
-      if (!prop || prop.kind !== 'evaluate') {
+      if (prop?.kind !== 'evaluate') {
         return { decision: 'wake', abstained: true, reason: 'no-relevance-proposition' };
       }
       const relevance = prop as EvaluateProposition;

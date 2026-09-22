@@ -42,14 +42,14 @@ interface CacheEntry {
 
 /** H6/X14: provider-specific remediation hints appended to LM failures. */
 const LADDER_HINTS: Partial<Record<string, string>> = {
-  ollama: "start the server ('ollama serve') or set LM_PROVIDER=mock",
+  'openai-compatible':
+    "start the OpenAI-compatible server ('ollama serve' for a local daemon) or set LM_PROVIDER=mock",
   'llamacpp-embedded': "fetch a GGUF model first ('pnpm exec tsx scripts/fetch-model.ts')",
   llamacpp: 'start llama-server or set LM_PROVIDER=mock',
   transformers: 'check the model cache dir / network for the model download',
   webllm: 'requires WebGPU (browser context only)',
   anthropic: 'set ANTHROPIC_API_KEY or fall back to a local provider',
   openai: 'set OPENAI_API_KEY or fall back to a local provider',
-  'openai-compatible': 'set LM_BASE_URL + credentials or fall back to a local provider',
   mock: 'LM_PROVIDER=mock is always available — check MockLMConfig',
 };
 
@@ -251,7 +251,7 @@ export class LMService implements ILMService {
     const configured = getLmProvider();
     const map: Partial<Record<string, LMProviderName>> = {
       'transformers-js': 'transformers',
-      ollama: 'ollama',
+      ollama: 'openai-compatible',
       llamacpp: 'llamacpp',
       mock: 'mock',
       webllm: 'webllm',

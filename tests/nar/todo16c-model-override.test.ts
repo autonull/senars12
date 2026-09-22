@@ -119,7 +119,7 @@ describe('Bench 27 — Per-Call Model Override', () => {
 
   it('H6 — LMUnavailableError carries provider-specific remediation hints', async () => {
     const { withHint } = await import('../../nar/src/lm/lm-service.js');
-    expect(withHint('unavailable', 'ollama')).toMatch(/ollama serve/);
+    expect(withHint('unavailable', 'openai-compatible')).toMatch(/ollama serve/);
     expect(withHint('unavailable', 'llamacpp-embedded')).toMatch(/fetch-model/);
     expect(withHint('unavailable', 'unknown-provider')).toBe('unavailable');
   });

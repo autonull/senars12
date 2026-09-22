@@ -2,7 +2,7 @@
  * Pure-NAL symbolic fallbacks for LM rules: zero LM dependency, safe on any model.
  * A fallback returning null skips the rule (no symbolic equivalent); [] degrades silently.
  */
-import { fromNarsese, Truth, type Term } from '../../terms';
+import { fromNarsese, type Term, Truth } from '../../terms';
 import { createBudget, createTask, type Task, type TaskType } from '../../types';
 
 export type SymbolicFallback = (

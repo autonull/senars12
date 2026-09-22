@@ -1,47 +1,31 @@
+import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
+import { Stamp } from '../../terms/stamp.js';
+import { Truth } from '../../terms/truth.js';
+import { validateBatchQueries } from './algebra.js';
+import { DeterministicManifold, Tier3SymbolicManifold } from './constant-manifold.js';
+import { selectQuery as buildSelectQuery } from './head-specs.js';
+import { compositeScore } from './policy.js';
+import { createProvisionalStamp } from './provisional-stamp.js';
+import { assertCostReported, chargeJudgment, resourceCostToLmCalls } from './resource-gate.js';
+import { seedTruth } from './seed.js';
 import type {
-  ReasoningBudget,
-} from '@senars/kernel/schemas';
-import { v4 as uuidv4 } from 'uuid';
-import type {
-  BackendId,
-  CalibrationVersion,
   ClassifyProposition,
-  ClassifyQuery,
-  CognitiveAxis,
   CognitiveContext,
   CognitiveDispatcher,
-  ConsensusResult,
   CortexHealth,
   EmbeddingCache,
   EmbeddingPointer,
   EvaluateProposition,
-  EvaluateQuery,
   GenerativeCortex,
   JudgmentManifold,
   JudgmentProposition,
   JudgmentQuery,
-  ManifoldHealth,
-  ModelDigest,
   PEAResult,
-  ProvisionalStamp,
-  QueryId,
-  ResourceCost,
   RubricId,
   SynthesisProposition,
   SynthesisQuery,
 } from './types.js';
-import { selectQuery as buildSelectQuery } from './head-specs.js';
-import { chargeJudgment, assertCostReported, resourceCostToLmCalls } from './resource-gate.js';
-import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
-import { Truth } from '../../terms/truth.js';
-import { Stamp } from '../../terms/stamp.js';
-import { AlgebraPurityError, validateBatchQueries } from './algebra.js';
-import { seedTruth, seedDesire } from './seed.js';
-import { createProvisionalStamp } from './provisional-stamp.js';
-import { compositeScore } from './policy.js';
-
-
-import { DeterministicManifold, Tier3SymbolicManifold } from './constant-manifold.js';
 
 export { DeterministicManifold, Tier3SymbolicManifold };
 
@@ -73,7 +57,6 @@ export class StubCortex implements GenerativeCortex {
     return { provider: this.#provider, breakerOpen: this.#provider === 'off' };
   }
 }
-
 
 /**
  * Four-tier judgment ladder:
@@ -209,7 +192,8 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
   #chargeBatch(gate: KernelBudgetGate | null, results: readonly JudgmentProposition[]): boolean {
     if (!gate) return true;
     const maxCost = results.reduce(
-      (best, r) => (r.cost && resourceCostToLmCalls(r.cost) > resourceCostToLmCalls(best) ? r.cost : best),
+      (best, r) =>
+        r.cost && resourceCostToLmCalls(r.cost) > resourceCostToLmCalls(best) ? r.cost : best,
       results[0]?.cost ?? { tokensIn: 0, tokensOut: 0, computeMs: 0, memoryMb: 0 }
     );
     return chargeJudgment(gate, this.#budgetScopeId, maxCost).granted;
@@ -261,8 +245,12 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
       }
     }
 
-    const selectQ = candidates.length ? buildSelectQuery(candidates, synthesisQuery.instruction) : undefined;
-    const queries: readonly JudgmentQuery[] = selectQ ? [selectQ, ...judgmentQueries] : judgmentQueries;
+    const selectQ = candidates.length
+      ? buildSelectQuery(candidates, synthesisQuery.instruction)
+      : undefined;
+    const queries: readonly JudgmentQuery[] = selectQ
+      ? [selectQ, ...judgmentQueries]
+      : judgmentQueries;
 
     const sharedContext = await this.#resolveContextPointer(context);
     let judgments: JudgmentProposition[];
@@ -280,7 +268,10 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     // Manifold-validated only (tier 1): Tier 0/3 fallbacks carry no calibrated authority,
     // so their output is admitted provisionally (§6.4).
     const selectUsable =
-      select && !select.abstained && select.kind === 'classify' && (select as ClassifyProposition).tier === 1;
+      select &&
+      !select.abstained &&
+      select.kind === 'classify' &&
+      (select as ClassifyProposition).tier === 1;
 
     // R5: Per-candidate embeddings — write each candidate to cache and evaluate individually
     // so ranking discriminates content, not just context.
@@ -293,12 +284,14 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
       }
       // Re-judge candidate_select with per-candidate embeddings; declared extra
       // ranking weights (E2) add per-candidate evaluate queries.
-      const extraRubrics = Object.keys(this.#rankingWeights).filter((k) => k !== 'candidate_select');
+      const extraRubrics = Object.keys(this.#rankingWeights).filter(
+        (k) => k !== 'candidate_select'
+      );
       const perCandidateQueries: JudgmentQuery[] = candidates.flatMap((c) => [
         {
           kind: 'classify' as const,
           instruction: `Evaluate candidate: ${c}`,
-          space: selectQ!.space,
+          space: selectQ?.space,
           axis: 'teleological' as const,
           criticality: 'standard' as const,
         },
@@ -362,7 +355,7 @@ export function createDispatcher(
   cortex?: GenerativeCortex
 ): CognitiveDispatcher {
   const tier0 = new DeterministicManifold();
-  const tier1 = enabled ? options.tier1Manifold ?? new DeterministicManifold() : null;
+  const tier1 = enabled ? (options.tier1Manifold ?? new DeterministicManifold()) : null;
   const tier3 = new Tier3SymbolicManifold();
   const cortexInstance = cortex ?? new StubCortex('off');
   return new SystemOneDispatcher(tier0, tier1, tier3, cortexInstance, enabled, options);

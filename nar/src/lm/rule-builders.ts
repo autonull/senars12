@@ -31,11 +31,7 @@ export interface LMRuleDefinition {
   grammar?: string;
   maxOutputTokens?: number;
   /** Pure-NAL symbolic fallback, invoked on LM failure (escalation → null). */
-  fallback?: (
-    primary: Term,
-    secondary?: Term,
-    context?: Record<string, unknown>
-  ) => Task[] | null;
+  fallback?: (primary: Term, secondary?: Term, context?: Record<string, unknown>) => Task[] | null;
 }
 
 export interface LMRuleFactoryConfig {

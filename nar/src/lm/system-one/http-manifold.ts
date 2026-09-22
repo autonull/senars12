@@ -9,7 +9,6 @@ import type {
   JudgmentQuery,
   ManifoldHealth,
   ModelDigest,
-  QueryId,
   ReasoningBudget,
 } from './types.js';
 
@@ -27,18 +26,25 @@ export const REMOTE_MANIFOLD_DIGEST = 'sha256:remote-manifold-client' as ModelDi
 export const REMOTE_MANIFOLD_BACKEND = 'http-remote' as BackendId;
 
 /** Structural validation of a proposition on the wire (kind-specific payloads). */
-const propositionBase = z.object({
-  axis: z.string(),
-  queryId: z.string(),
-  backendId: z.string(),
-  modelDigest: z.string(),
-  calibration: z.object({ version: z.string(), ece: z.number() }),
-  latencyMs: z.number(),
-  cost: z.object({ tokensIn: z.number(), tokensOut: z.number(), computeMs: z.number(), memoryMb: z.number() }),
-  tier: z.number(),
-  abstained: z.boolean(),
-  abstainReason: z.string().optional(),
-}).loose();
+const propositionBase = z
+  .object({
+    axis: z.string(),
+    queryId: z.string(),
+    backendId: z.string(),
+    modelDigest: z.string(),
+    calibration: z.object({ version: z.string(), ece: z.number() }),
+    latencyMs: z.number(),
+    cost: z.object({
+      tokensIn: z.number(),
+      tokensOut: z.number(),
+      computeMs: z.number(),
+      memoryMb: z.number(),
+    }),
+    tier: z.number(),
+    abstained: z.boolean(),
+    abstainReason: z.string().optional(),
+  })
+  .loose();
 
 const propositionSchema = z.discriminatedUnion('kind', [
   propositionBase.extend({

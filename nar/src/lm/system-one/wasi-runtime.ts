@@ -1,13 +1,13 @@
 import { createHash } from 'node:crypto';
 import { createWasiSandbox } from '../../capability/wasi-sandbox.js';
 import type {
+  ConsensusResult,
   EmbeddingPointer,
   JudgmentManifold,
   JudgmentProposition,
   JudgmentQuery,
   ManifoldHealth,
   ReasoningBudget,
-  ConsensusResult,
 } from './types.js';
 
 const HASH_PINNED = /^sha256:[0-9a-f]{64}$/;

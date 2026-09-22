@@ -44,7 +44,11 @@ export function truncateContext(
 
   const contextTokens = estimateTokens(context);
   if (contextTokens <= availableTokens) {
-    return { context: prefix + context, truncated: false, estimatedTokens: prefixTokens + contextTokens };
+    return {
+      context: prefix + context,
+      truncated: false,
+      estimatedTokens: prefixTokens + contextTokens,
+    };
   }
 
   const charsToKeep = availableTokens * 4;
@@ -109,5 +113,8 @@ export const DEFAULT_CONTEXT_BUDGETS = {
  * Creates a context budget for a specific LM task.
  */
 export function getContextBudget(task: string): ContextBudgetOptions {
-  return DEFAULT_CONTEXT_BUDGETS[task as keyof typeof DEFAULT_CONTEXT_BUDGETS] ?? DEFAULT_CONTEXT_BUDGETS.fast;
+  return (
+    DEFAULT_CONTEXT_BUDGETS[task as keyof typeof DEFAULT_CONTEXT_BUDGETS] ??
+    DEFAULT_CONTEXT_BUDGETS.fast
+  );
 }

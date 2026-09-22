@@ -49,15 +49,15 @@ describe('LM settings resolution', () => {
     });
   });
 
-  it('env overrides file config', () => {
+  it("env overrides file config ('ollama' is a deprecated alias for openai-compatible)", () => {
     process.env.LM_PROVIDER = 'ollama';
     process.env.LM_MODEL = 'llama3.1:8b';
     process.env.OLLAMA_HOST = 'http://localhost:1234';
     const s = resolveLMSettings({ provider: 'openai', model: 'gpt-4o-mini' });
     expect(s).toMatchObject({
-      provider: 'ollama',
+      provider: 'openai-compatible',
       model: 'llama3.1:8b',
-      ollamaHost: 'http://localhost:1234',
+      baseUrl: 'http://localhost:1234/v1',
     });
   });
 
@@ -100,7 +100,7 @@ describe('LM settings resolution', () => {
     process.env.LM_PROFILE = 'local-private';
     expect(resolveLMSettings().provider).toBe('transformers');
     process.env.LM_PROFILE = 'ollama';
-    expect(resolveLMSettings().provider).toBe('ollama');
+    expect(resolveLMSettings().provider).toBe('openai-compatible');
   });
 
   it('cloud-quality profile picks the first provider with credentials', () => {

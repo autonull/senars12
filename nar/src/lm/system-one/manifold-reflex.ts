@@ -1,8 +1,8 @@
-import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
-import type { Perception } from '../../game/Game.js';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
-import { recordReflexOutcome } from './reflex-label-source.js';
+import type { Perception } from '../../game/Game.js';
+import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
 import type { JudgmentDataset } from './distill.js';
+import { recordReflexOutcome } from './reflex-label-source.js';
 import type { EmbeddingPointer, JudgmentManifold } from './types.js';
 
 /** Optional distillation wiring (C4): record reflex decisions as training labels. */
@@ -76,7 +76,12 @@ export class ManifoldReflex implements Reflex<Perception, string> {
       if (score !== undefined) {
         // String-normalized: numeric action 0 must not be falsy in the
         // negotiation/act pipeline.
-        proposals.push({ action: String(action), value: score, confidence: score, source: this.id });
+        proposals.push({
+          action: String(action),
+          value: score,
+          confidence: score,
+          source: this.id,
+        });
       } else if (incumbent) {
         proposals.push({ ...incumbent, action: String(incumbent.action) });
       }

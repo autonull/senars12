@@ -1,10 +1,10 @@
 import {
-  getLlama,
-  resolveChatWrapper,
   type ChatWrapper,
+  getLlama,
   type Llama,
-  type LlamaModel,
   type LlamaContext,
+  type LlamaModel,
+  resolveChatWrapper,
 } from 'node-llama-cpp';
 
 let llamaP: Promise<Llama> | undefined;

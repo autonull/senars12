@@ -67,7 +67,11 @@ const f32bytes = (value: number): number[] => {
   return [...new Uint8Array(buf)];
 };
 
-const section = (id: number, payload: number[]): number[] => [id, ...leb(payload.length), ...payload];
+const section = (id: number, payload: number[]): number[] => [
+  id,
+  ...leb(payload.length),
+  ...payload,
+];
 
 /**
  * Emit a WASM module evaluating `clamp01(w·z + b)` where `z = (x−mean)/std`
@@ -78,7 +82,7 @@ export function emitHeadBundleWasm(bundle: HeadBundle): Uint8Array {
   const { weights, bias, mean, std } = bundle;
   const dim = weights.length;
   const wPtr = weightsPtr(dim);
-  const mPtr = meanPtr(dim);
+  const _mPtr = meanPtr(dim);
   const sPtr = stdPtr(dim);
   const bytes: number[] = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
 
@@ -100,15 +104,21 @@ export function emitHeadBundleWasm(bundle: HeadBundle): Uint8Array {
   for (let i = 0; i < dim; i++) {
     const invStd = 1 / (std?.[i] || 1);
     body.push(
-      0x41, ...sleb(4 * i),
-      0x2a, 0x02, 0x00,       // f32.load input x_i
-      0x43, ...f32bytes(mean?.[i] ?? 0),
-      0x93,                   // f32.sub
-      0x43, ...f32bytes(invStd),
-      0x94,                   // f32.mul
-      0x43, ...f32bytes(weights[i] ?? 0),
-      0x94,                   // f32.mul
-      0x92                    // f32.add
+      0x41,
+      ...sleb(4 * i),
+      0x2a,
+      0x02,
+      0x00, // f32.load input x_i
+      0x43,
+      ...f32bytes(mean?.[i] ?? 0),
+      0x93, // f32.sub
+      0x43,
+      ...f32bytes(invStd),
+      0x94, // f32.mul
+      0x43,
+      ...f32bytes(weights[i] ?? 0),
+      0x94, // f32.mul
+      0x92 // f32.add
     );
   }
   body.push(0x43, ...f32bytes(0), 0x97); // f32.max 0
@@ -194,7 +204,10 @@ export async function loadHeadBundle(options: {
         throw new Error(`Head bundle expects ${dimension} inputs, got ${embedding.length}`);
       }
       new Float32Array(memory.buffer, 0, dimension).set(embedding);
-      return await withTimeout(Promise.resolve(evalHead(0)), options.timeoutMs ?? DEFAULT_EVAL_TIMEOUT_MS);
+      return await withTimeout(
+        Promise.resolve(evalHead(0)),
+        options.timeoutMs ?? DEFAULT_EVAL_TIMEOUT_MS
+      );
     },
   };
 }

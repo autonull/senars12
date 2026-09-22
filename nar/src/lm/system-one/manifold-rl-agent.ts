@@ -1,13 +1,13 @@
-import type { Game, GameOutcome } from '../../game/Game.js';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { Game, GameOutcome } from '../../game/Game.js';
+import type { JudgmentDataset } from './distill.js';
+import { recordReflexOutcome } from './reflex-label-source.js';
 import type {
   EmbeddingCache,
   EmbeddingPointer,
   EvaluateProposition,
   JudgmentManifold,
 } from './types.js';
-import type { JudgmentDataset } from './distill.js';
-import { recordReflexOutcome } from './reflex-label-source.js';
 
 export interface ManifoldRLAgentOptions {
   cache: EmbeddingCache;
@@ -184,7 +184,7 @@ export class ManifoldRLAgent {
 
   /** Step the game with a manifold decision; records outcome labels (C4). */
   async step<S, A extends number | string>(game: Game<S, A>): Promise<ManifoldRLDecision<A>> {
-    const { action, values, feasible, risks, pointer, stateId, } = await this.decide(game);
+    const { action, values, feasible, risks, pointer, stateId } = await this.decide(game);
     const outcome = game.step(action);
 
     const stateVisits = this.#visits.get(stateId) ?? new Map<string, number>();

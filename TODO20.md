@@ -232,7 +232,7 @@ error-type sweep.
 
 ```
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
-Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj; X4 deferred to M5) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience)  M5 tool-reg (← X4 typed-bus lands here)  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62 (M1+M2+M3 assertions green; extend per-split)   ← NEXT: M4
+Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj; X4 deferred to M5) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience)  M5 tool-reg (← X4 typed-bus lands here)  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62 (M1+M2+M3 assertions green; extend per-split)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  ← NEXT: M4
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (epistemic firewall made structural)  → [ ] Bench 61b (grep: no lm/system-one in kernel/)
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (scope-narrowed: 2 catch-any left)  → [ ] Bench 64
@@ -528,6 +528,39 @@ Bench 62 grep-guards both edges so they cannot silently return.
   to the real content (per-provider creation lives inside `createSeNARSRegistry`, llamacpp/embedded
   already had their own files). Split followed cohesion instead — record the same deviation when
   doing M4–M7.
+
+---
+
+## 5f. Provider unification — `ollama` → `openai-compatible` (2026-09-22, user-directed)
+
+**Change:** the `ollama` provider is removed as a distinct lane; it was always
+`createOpenAICompatible` pointed at `localhost:11434`. Per A4's deprecation lifecycle, `ollama`
+survives as an **alias resolved at the settings boundary** (`LM_PROVIDER=ollama` and the `ollama`
+profile both resolve to `openai-compatible` with `baseUrl = OLLAMA_HOST ?? :11434/v1` and default
+model `llama3.2`). Nothing downstream sees `'ollama'` — grep-guarded by the type union.
+
+### What was removed / changed
+
+- `model-factory.ts`: the `local` registry lane (ollama slots) is gone; `openai-compatible` slots now
+  register **without requiring an API key** (local daemons are the primary use) and default to
+  `http://localhost:11434/v1` when no `baseUrl` is set. anthropic/openai keep the credential gate.
+- `chains.ts`: `ollama` key and all `local:*` failover rungs removed (cloud lanes fall back
+  cloud → builtin → mock).
+- `capabilities.ts`: `local:*` entries removed (`localCap` kept — builtin spreads it).
+- `health.ts`: `probeOllama` (ollama's `/api/tags`) replaced by **`probeOpenAICompatible`** — generic
+  `/models` probe, auth header only when a key exists. `resolveActiveProvider` and the health-probe
+  loop updated; `PROVIDER_CIRCUIT_DEFAULTS.ollama` folded into openai-compatible.
+- `doctor.ts`: keeps the standalone local-daemon probe (diagnostic), relabelled
+  "Ollama daemon (local OpenAI-compatible)"; `ollama` removed from the typed provider matrix.
+- `.env.example`, `README.md`, `docs/lm-ladder.md`, conversational harness updated.
+- `OLLAMA_MODEL`/`OLLAMA_HOST` env vars keep working through the alias.
+
+### Follow-ups
+- `senars.config.json` has `production.provider: "vercel"` — not a valid `LMProviderName`; it only
+  passes because file providers are `z.string()`. Tighten to the enum during Phase 5 C1.
+- The provider matrix now: transformers (builtin, default) · openai-compatible (any OpenAI-shaped
+  server incl. local daemons) · llamacpp · llamacpp-embedded · anthropic · openai · webllm (browser) ·
+  mock. All nine-lane capabilities preserved under eight lanes.
 
 ## 6. Definition of Done
 

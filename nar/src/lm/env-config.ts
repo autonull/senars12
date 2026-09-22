@@ -2,7 +2,6 @@ import { existsSync } from 'node:fs';
 
 export type LMProviderName =
   | 'transformers'
-  | 'ollama'
   | 'llamacpp'
   | 'llamacpp-embedded'
   | 'anthropic'
@@ -30,7 +29,7 @@ export interface LMSettings {
   provider: LMProviderName;
   /** Quality/frontier model id (per-provider default when omitted). */
   model?: string;
-  /** Named preset: auto | cloud-quality | local-private | ollama. */
+  /** Named preset: auto | cloud-quality | local-private | ollama (deprecated alias). */
   profile?: string;
   fastModel?: string;
   structuredModel?: string;
@@ -81,7 +80,6 @@ const TRANSFORMERS_DEFAULT_COMPACT = 'HuggingFaceTB/SmolLM2-360M-Instruct';
 
 const PROVIDERS: readonly ResolvedProvider[] = [
   'transformers',
-  'ollama',
   'llamacpp',
   'llamacpp-embedded',
   'mock',
@@ -121,7 +119,7 @@ export const embeddedLlamaConfigured = (): boolean => {
 export const defaultLocalProvider = (): LMProviderName =>
   embeddedLlamaConfigured() ? 'llamacpp-embedded' : 'transformers';
 
-const credentialEnvFor = (provider: LMProviderName): string | undefined =>
+const _credentialEnvFor = (provider: LMProviderName): string | undefined =>
   CLOUD_CREDENTIALS.find(([p]) => p === provider)?.[1];
 
 /**
@@ -137,7 +135,7 @@ const resolveProfileProvider = (profile: string): LMProviderName | undefined => 
     case 'local-private':
       return defaultLocalProvider();
     case 'ollama':
-      return 'ollama';
+      return 'openai-compatible';
     default:
       return undefined;
   }
@@ -161,22 +159,35 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
   )
     .toString()
     .toLowerCase();
-  if (!isResolvedProvider(rawProvider)) {
+  // A4 deprecation: 'ollama' is an alias for openai-compatible pointed at the
+  // local daemon. Resolved at the settings boundary; nothing downstream sees it.
+  const aliasedOllama = rawProvider === 'ollama' || profile === 'ollama';
+  const normalized = aliasedOllama && rawProvider === 'ollama' ? 'openai-compatible' : rawProvider;
+  if (!isResolvedProvider(normalized)) {
     throw new Error(
-      `Invalid LM provider "${rawProvider}". Must be one of: ${PROVIDERS.join(', ')}.`
+      `Invalid LM provider "${rawProvider}". Must be one of: ${PROVIDERS.join(', ')}.` +
+        (rawProvider === 'ollama' ? " ('ollama' is now LM_PROVIDER=openai-compatible)" : '')
     );
   }
-  const provider = rawProvider;
+  const provider = normalized as LMProviderName;
   const cloudCredentialEnv = CLOUD_CREDENTIALS.find(([p]) => p === provider)?.[1] ?? undefined;
   return {
     provider,
     profile: profile && profile !== 'production' ? profile : undefined,
-    model: env('LM_MODEL', 'SENARS_LM_MODEL') ?? file?.model,
     fastModel: env('LM_FAST_MODEL') ?? file?.fastModel,
     structuredModel: env('LM_STRUCTURED_MODEL') ?? file?.structuredModel,
     compactModel: env('LM_COMPACT_MODEL') ?? file?.compactModel,
-    baseUrl: env('LM_BASE_URL') ?? file?.baseUrl,
+    baseUrl:
+      env('LM_BASE_URL') ??
+      file?.baseUrl ??
+      (aliasedOllama
+        ? `${(env('OLLAMA_HOST') ?? file?.ollamaHost ?? 'http://localhost:11434').replace(/\/?$/, '')}/v1`
+        : undefined),
     ollamaHost: env('OLLAMA_HOST') ?? file?.ollamaHost,
+    model:
+      env('LM_MODEL', 'SENARS_LM_MODEL') ??
+      file?.model ??
+      (aliasedOllama ? (env('OLLAMA_MODEL') ?? 'llama3.2') : undefined),
     llamacppHost: env('LM_LLAMACPP_HOST') ?? file?.llamacppHost,
     llamacppModelPath: env('LM_LLAMACPP_MODEL') ?? file?.llamacppModelPath,
     llamacppGpu:
@@ -216,8 +227,6 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
 /** Default per-provider model when none is configured. */
 export const defaultModelFor = (provider: ResolvedProvider): string => {
   switch (provider) {
-    case 'ollama':
-      return env('OLLAMA_MODEL') ?? 'llama3.2';
     case 'llamacpp':
       return env('LM_MODEL') ?? 'local-model';
     case 'llamacpp-embedded':
@@ -240,12 +249,7 @@ export const defaultModelFor = (provider: ResolvedProvider): string => {
 export const resolveLMConfig = (file?: LMSettingsInput): ResolvedLMConfig => {
   const s = resolveLMSettings(file);
   const model = s.model ?? defaultModelFor(s.provider);
-  const host =
-    s.provider === 'ollama'
-      ? (s.ollamaHost ?? 'http://localhost:11434')
-      : s.provider === 'openai-compatible'
-        ? (s.baseUrl ?? '')
-        : undefined;
+  const host = s.provider === 'openai-compatible' ? (s.baseUrl ?? '') : undefined;
   return { provider: s.provider, model, host };
 };
 

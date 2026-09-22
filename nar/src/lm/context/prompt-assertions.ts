@@ -3,7 +3,7 @@
  * Ensures prompts stay within token budgets and contain required elements.
  */
 
-import { estimateTokens, type ContextBudgetOptions } from './context-budget.js';
+import { type ContextBudgetOptions, estimateTokens } from './context-budget.js';
 
 export interface PromptAssertionResult {
   ok: boolean;
@@ -44,10 +44,7 @@ export function assertPromptBudget(
 /**
  * Asserts that a prompt contains all required substrings.
  */
-export function assertPromptContains(
-  prompt: string,
-  required: string[]
-): PromptAssertionResult {
+export function assertPromptContains(prompt: string, required: string[]): PromptAssertionResult {
   const missing = required.filter((s) => !prompt.includes(s));
   if (missing.length > 0) {
     return {
@@ -76,7 +73,11 @@ export function assertInstructionBudget(
     return {
       ok: false,
       message: `Instruction portion exceeds ${maxInstructionTokens} tokens: ${tokens}`,
-      details: { instructionTokens: tokens, maxInstructionTokens, instructionLength: instruction.length },
+      details: {
+        instructionTokens: tokens,
+        maxInstructionTokens,
+        instructionLength: instruction.length,
+      },
     };
   }
   return {
@@ -100,7 +101,10 @@ export const DEFAULT_CONTEXT_BUDGETS = {
  * Gets the default context budget for a task.
  */
 export function getContextBudget(task: string): ContextBudgetOptions {
-  return DEFAULT_CONTEXT_BUDGETS[task as keyof typeof DEFAULT_CONTEXT_BUDGETS] ?? DEFAULT_CONTEXT_BUDGETS.fast;
+  return (
+    DEFAULT_CONTEXT_BUDGETS[task as keyof typeof DEFAULT_CONTEXT_BUDGETS] ??
+    DEFAULT_CONTEXT_BUDGETS.fast
+  );
 }
 
 /**

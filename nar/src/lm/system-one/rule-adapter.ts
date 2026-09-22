@@ -1,9 +1,8 @@
-import type { CognitiveDispatcher, EvaluateQuery, JudgmentProposition } from './types.js';
 import type { Term } from '../../terms';
-import { Truth } from '../../terms';
-import type { Task, Budget, TruthType } from '../../types';
+import { Truth, termParser } from '../../terms';
+import type { Budget, Task, TruthType } from '../../types';
 import { createTask, createTimestamp } from '../../types/core.js';
-import { termParser } from '../../terms';
+import type { CognitiveDispatcher, EvaluateQuery, JudgmentProposition } from './types.js';
 
 export interface SystemOneLMRuleAdapterConfig {
   dispatcher: CognitiveDispatcher;
@@ -62,13 +61,24 @@ export class SystemOneLMRuleAdapter {
 
       const budget = this.#budget();
 
-      const peaResult = await this.#dispatcher.proposeAndJudge(cognitiveContext, synthesisQuery, judgmentQueries, budget);
+      const peaResult = await this.#dispatcher.proposeAndJudge(
+        cognitiveContext,
+        synthesisQuery,
+        judgmentQueries,
+        budget
+      );
 
       const tasks: Task[] = [];
       for (const admitted of peaResult.admitted) {
         const parsed = termParser.parse(admitted.candidate);
         if (parsed) {
-          const taskBudget: Budget = { priority: admitted.truth.c, durability: 0.8, quality: 0.9, cycles: 10, depth: 5 };
+          const taskBudget: Budget = {
+            priority: admitted.truth.c,
+            durability: 0.8,
+            quality: 0.9,
+            cycles: 10,
+            depth: 5,
+          };
           tasks.push({
             term: parsed,
             type: 'belief',
@@ -81,7 +91,10 @@ export class SystemOneLMRuleAdapter {
         }
       }
 
-      this.#logger?.debug?.('System One translation', { candidates: peaResult.candidates.length, admitted: tasks.length });
+      this.#logger?.debug?.('System One translation', {
+        candidates: peaResult.candidates.length,
+        admitted: tasks.length,
+      });
       return tasks;
     } catch (e) {
       this.#logger?.warn?.('System One translation failed', { error: e });
@@ -106,7 +119,7 @@ export class SystemOneLMRuleAdapter {
    * no traces to score (caller degrades silently — the symbolic fallback for
    * this rule is removed).
    */
-  async metaReason(primary: Term, context?: Record<string, unknown>): Promise<Task[]> {
+  async metaReason(_primary: Term, context?: Record<string, unknown>): Promise<Task[]> {
     try {
       const traces = (context?.recentDerivations as string[]) ?? [];
       const manifold = this.#nar.getSystemOneManifold();
@@ -152,11 +165,20 @@ export class SystemOneLMRuleAdapter {
             term,
             'belief',
             Truth.create(Math.min(0.9, Math.max(0.5, 0.5 + score / 2)), 0.7),
-            { priority: Math.min(1, Math.max(0, score)), durability: 0.7, quality: 0.8, cycles: 10, depth: 5 }
+            {
+              priority: Math.min(1, Math.max(0, score)),
+              durability: 0.7,
+              quality: 0.8,
+              cycles: 10,
+              depth: 5,
+            }
           )
         );
       }
-      this.#logger?.debug?.('System One meta-reasoning', { traces: traces.length, guided: tasks.length });
+      this.#logger?.debug?.('System One meta-reasoning', {
+        traces: traces.length,
+        guided: tasks.length,
+      });
       return tasks;
     } catch (e) {
       this.#logger?.warn?.('System One meta-reasoning failed', { error: e });
@@ -216,8 +238,12 @@ export class SystemOneLMRuleAdapter {
       };
       const propositions = await manifold.judgeBatch(sharedContext, [query], this.#budget());
       const prop = propositions[0];
-      if (!prop || prop.kind !== 'evaluate') return null;
-      return { score: prop.score, fitted: prop.calibration.fitted === true, abstained: prop.abstained };
+      if (prop?.kind !== 'evaluate') return null;
+      return {
+        score: prop.score,
+        fitted: prop.calibration.fitted === true,
+        abstained: prop.abstained,
+      };
     } catch (e) {
       this.#logger?.warn?.('System One conflict evaluation failed', { error: e });
       return null;
@@ -242,8 +268,12 @@ export class SystemOneLMRuleAdapter {
       };
       const propositions = await manifold.judgeBatch(sharedContext, [query], this.#budget());
       const prop = propositions[0];
-      if (!prop || prop.kind !== 'evaluate') return null;
-      return { score: prop.score, fitted: prop.calibration.fitted === true, abstained: prop.abstained };
+      if (prop?.kind !== 'evaluate') return null;
+      return {
+        score: prop.score,
+        fitted: prop.calibration.fitted === true,
+        abstained: prop.abstained,
+      };
     } catch (e) {
       this.#logger?.warn?.('System One novelty evaluation failed', { error: e });
       return null;
@@ -251,6 +281,8 @@ export class SystemOneLMRuleAdapter {
   }
 }
 
-export function createSystemOneLMRuleAdapter(config: SystemOneLMRuleAdapterConfig): SystemOneLMRuleAdapter {
+export function createSystemOneLMRuleAdapter(
+  config: SystemOneLMRuleAdapterConfig
+): SystemOneLMRuleAdapter {
   return new SystemOneLMRuleAdapter(config);
 }

@@ -1,6 +1,6 @@
-import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
-import type { Perception } from '../../game/Game.js';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { Perception } from '../../game/Game.js';
+import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
 import type { EmbeddingPointer, JudgmentManifold, JudgmentQuery } from './types.js';
 
 /**

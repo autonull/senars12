@@ -95,7 +95,7 @@ export class JudgmentDataset {
     await fs.mkdir(dirname(path), { recursive: true });
     const jsonl = this.toJSONL();
     if (jsonl) {
-      await fs.appendFile(path, jsonl + '\n', 'utf-8');
+      await fs.appendFile(path, `${jsonl}\n`, 'utf-8');
     }
   }
 
@@ -147,7 +147,7 @@ export class JudgmentDataset {
     await fs.mkdir(dirname(datasetPath), { recursive: true });
     await fs.writeFile(
       datasetPath,
-      [...byId.values()].map((l) => JSON.stringify(l)).join('\n') + '\n',
+      `${[...byId.values()].map((l) => JSON.stringify(l)).join('\n')}\n`,
       'utf-8'
     );
 
@@ -217,11 +217,11 @@ const HASH_PINNED = /^sha256:[0-9a-f]{64}$/;
 
 /** Bench 10: promoted head matches incumbent accuracy on shadow bake-off within 2%. */
 export function runBakeOff(
-  incumbent: HeadCandidateSpec | undefined,
-  candidate: HeadCandidateSpec,
+  _incumbent: HeadCandidateSpec | undefined,
+  _candidate: HeadCandidateSpec,
   cases: readonly BakeOffCase[],
   parityTolerance = 0.02,
-  eceBound = 0.1,
+  _eceBound = 0.1,
   /** Governance option: accept strictly-better candidates beyond the tolerance window (reject only regressions). */
   acceptImprovements = false
 ): BakeOffResult {

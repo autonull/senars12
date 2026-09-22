@@ -135,40 +135,10 @@ Respond with JSON only:
       return false;
     }
   }
-
-  private parseRuleConfig(response: string, description: string): LMRuleConfig | null {
-    try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return null;
-
-      const obj = JSON.parse(jsonMatch[0]);
-      return {
-        id: obj.id || ulid(),
-        name: obj.name || 'Dynamic Rule',
-        description: obj.description || description,
-        priority: obj.priority ?? 0.8,
-        promptTemplate: obj.promptTemplate || `Reason about: {{primaryTerm}}`,
-        singlePremise: true,
-      };
-    } catch {
-      return {
-        id: ulid(),
-        name: 'Dynamic Rule',
-        description,
-        priority: 0.8,
-        promptTemplate: `Reason about: {{primaryTerm}}`,
-        singlePremise: true,
-      };
-    }
-  }
 }
 
 export class CompositeLMRule extends LMRule {
   private readonly componentRules: LMRule[] = [];
-
-  constructor(id: string, lm: LMService, config: LMRuleConfig) {
-    super(id, lm, config);
-  }
 
   addRule(rule: LMRule): void {
     this.componentRules.push(rule);

@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from 'uuid';
+import { validateBatchQueries } from './algebra.js';
 import type {
   BackendId,
   CalibrationVersion,
@@ -8,11 +10,9 @@ import type {
   JudgmentQuery,
   ManifoldHealth,
   ModelDigest,
-  ReasoningBudget,
   QueryId,
+  ReasoningBudget,
 } from './types.js';
-import { v4 as uuidv4 } from 'uuid';
-import { validateBatchQueries } from './algebra.js';
 
 interface ConstantManifoldConfig {
   tier: 0 | 3;
@@ -64,8 +64,12 @@ export class ConstantManifold implements JudgmentManifold {
   }
 
   #judge(query: JudgmentQuery): JudgmentProposition {
-    const { backendId, modelDigest, calibrationVersion, topP, ece, latencyMs, entropy, tier } = this.#config;
-    const base: Omit<JudgmentProposition, 'kind' | 'axis' | 'distribution' | 'top' | 'entropy' | 'score'> = {
+    const { backendId, modelDigest, calibrationVersion, topP, ece, latencyMs, entropy, tier } =
+      this.#config;
+    const base: Omit<
+      JudgmentProposition,
+      'kind' | 'axis' | 'distribution' | 'top' | 'entropy' | 'score'
+    > = {
       queryId: uuidv4() as QueryId,
       backendId,
       modelDigest,
@@ -82,7 +86,14 @@ export class ConstantManifold implements JudgmentManifold {
         option,
         p: i === 0 ? topP : topP === 1.0 ? 0.0 : (1 - topP) / Math.max(1, space.length - 1),
       }));
-      return { ...base, kind: 'classify', axis: query.axis, distribution: dist, top: { option: space[0] ?? 'unknown', p: topP }, entropy };
+      return {
+        ...base,
+        kind: 'classify',
+        axis: query.axis,
+        distribution: dist,
+        top: { option: space[0] ?? 'unknown', p: topP },
+        entropy,
+      };
     }
     return { ...base, kind: 'evaluate', axis: query.axis, score: 0.5 };
   }

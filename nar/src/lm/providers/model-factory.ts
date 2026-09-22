@@ -29,10 +29,6 @@ import { resolveOfflineTier } from './routing.js';
 import { getLMSettings } from './settings.js';
 import { detectDevice, getWebLLMRuntime } from './webllm.js';
 
-const OLLAMA_HOST_DEFAULT = 'http://localhost:11434';
-const OLLAMA_FAST_DEFAULT = 'llama3.2:3b';
-const OLLAMA_COMPACT_DEFAULT = 'phi3:3.8b';
-
 const stripUnsupportedToolChoice = (): LanguageModelMiddleware => ({
   transformParams: async ({ params }) => ({ ...params, toolChoice: undefined }),
 });
@@ -85,25 +81,14 @@ export const getBuiltinProgressCallback = (rt: ProviderRuntime = getProviderRunt
 
 export function createSeNARSRegistry(settings?: LMSettings) {
   const s = settings ?? getLMSettings();
-  const {
-    provider,
-    model: modelOverride,
-    fastModel,
-    structuredModel,
-    compactModel,
-    baseUrl,
-    ollamaHost,
-  } = s;
+  const { provider, model: modelOverride, fastModel, structuredModel, compactModel, baseUrl } = s;
 
   const hasCloudKey = Boolean(cloudApiKey(s));
+  // anthropic/openai need a credential to be usable; openai-compatible is the
+  // generic OpenAI-shaped lane (local daemons like ollama included — no key).
   const useCloud =
-    (provider === 'anthropic' || provider === 'openai' || provider === 'openai-compatible') &&
-    hasCloudKey;
-  const useLocal =
-    provider === 'ollama' ||
-    provider === 'anthropic' ||
-    provider === 'openai' ||
-    provider === 'openai-compatible';
+    provider === 'openai-compatible' ||
+    ((provider === 'anthropic' || provider === 'openai') && hasCloudKey);
   const useWebLLM =
     provider === 'webllm' &&
     typeof getWebLLMRuntime() !== 'undefined' &&
@@ -114,11 +99,6 @@ export function createSeNARSRegistry(settings?: LMSettings) {
   // routing failover skips them (defaults degrade to builtin transformers).
   const useEmbeddedLlamaCpp = provider === 'llamacpp-embedded' && embeddedLlamaConfigured();
 
-  const ollama = createOpenAICompatible({
-    name: 'ollama',
-    apiKey: 'ollama',
-    baseURL: `${(ollamaHost ?? OLLAMA_HOST_DEFAULT).replace(/\/v1\/?$/, '')}/v1`,
-  });
   const llamacpp = createOpenAICompatible({
     name: 'llamacpp',
     apiKey: 'none',
@@ -146,7 +126,11 @@ export function createSeNARSRegistry(settings?: LMSettings) {
     apiKey: cloudApiKey(s) ?? '',
     baseURL:
       baseUrl ??
-      (provider === 'anthropic' ? 'https://api.anthropic.com/v1' : 'https://api.openai.com/v1'),
+      (provider === 'anthropic'
+        ? 'https://api.anthropic.com/v1'
+        : provider === 'openai'
+          ? 'https://api.openai.com/v1'
+          : 'http://localhost:11434/v1'),
     ...(thinkingAwareFetch && { fetch: thinkingAwareFetch }),
   });
   const frontierId = modelOverride ?? defaultModelFor(provider);
@@ -170,16 +154,6 @@ export function createSeNARSRegistry(settings?: LMSettings) {
         }),
       },
       fallbackProvider: useCloud ? cloud : undefined,
-    }),
-    local: customProvider({
-      languageModels: {
-        ...(useLocal && {
-          quality: ollama(modelOverride ?? defaultModelFor('ollama')),
-          fast: ollama(fastModel ?? OLLAMA_FAST_DEFAULT),
-          compact: ollama(compactModel ?? OLLAMA_COMPACT_DEFAULT),
-        }),
-      },
-      fallbackProvider: useLocal ? ollama : undefined,
     }),
     llamacpp: customProvider({
       languageModels: {

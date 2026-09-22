@@ -1,11 +1,10 @@
-import type { Perception } from '../../game/Game.js';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
-import { recordReflexOutcome } from './reflex-label-source.js';
-import type { JudgmentDataset } from './distill.js';
-import type { CognitiveDispatcher, EmbeddingCache } from './types.js';
-import type { EmbeddingPointer } from './types.js';
 import { actionGrammar } from './action-grammar.js';
+import type { JudgmentDataset } from './distill.js';
+import { recordReflexOutcome } from './reflex-label-source.js';
+import type { CognitiveDispatcher, EmbeddingCache, EmbeddingPointer } from './types.js';
 
 export interface LMReflexOptions {
   /** Incumbent reflex served when the LM is cold, failed, or breaker-open (C2). */
@@ -99,15 +98,18 @@ export class LMReflex implements Reflex<Perception, string> {
           instruction: 'Choose the single best next action.',
           grammar: actionGrammar(legalActions),
           maxCandidates: this.#maxCandidates,
-          promptOverride:
-            this.#promptTemplate
-              ? this.#promptTemplate.replace(/\{(\w+)\}/g, (_, key) => String((observation?.features as Record<string, number> | undefined)?.[key] ?? `{${key}}`))
-              : [
-                  `Legal actions: ${legalActions.join(', ')}`,
-                  ...(this.#actionLegend ? [this.#actionLegend] : []),
-                  ...(stateDigest ? [`State observations: ${stateDigest}`] : []),
-                  'Which action maximizes expected reward? Answer with only the action.',
-                ].join('\n'),
+          promptOverride: this.#promptTemplate
+            ? this.#promptTemplate.replace(/\{(\w+)\}/g, (_, key) =>
+                String(
+                  (observation?.features as Record<string, number> | undefined)?.[key] ?? `{${key}}`
+                )
+              )
+            : [
+                `Legal actions: ${legalActions.join(', ')}`,
+                ...(this.#actionLegend ? [this.#actionLegend] : []),
+                ...(stateDigest ? [`State observations: ${stateDigest}`] : []),
+                'Which action maximizes expected reward? Answer with only the action.',
+              ].join('\n'),
         },
         judgmentQueries,
         this.budget
@@ -137,7 +139,12 @@ export class LMReflex implements Reflex<Perception, string> {
     if (warm && legal.includes(warm.action)) {
       this.served++;
       return [
-        { action: warm.action, value: 0.5 + warm.confidence / 2, confidence: Math.max(0.1, warm.confidence), source: this.id },
+        {
+          action: warm.action,
+          value: 0.5 + warm.confidence / 2,
+          confidence: Math.max(0.1, warm.confidence),
+          source: this.id,
+        },
       ];
     }
     return this.#fallback.propose(state, legalActions) as ActionProposal[];

@@ -1,15 +1,15 @@
 import { createHash } from 'node:crypto';
+import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { DistillationLabel, JudgmentDataset } from './distill.js';
 import { HEAD_SPECS, specToQuery } from './head-specs.js';
 import type {
-  JudgmentManifold,
-  JudgmentQuery,
-  JudgmentProposition,
   EmbeddingCache,
   EmbeddingPointer,
   EvaluateProposition,
+  JudgmentManifold,
+  JudgmentProposition,
+  JudgmentQuery,
 } from './types.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
-import type { JudgmentDataset, DistillationLabel } from './distill.js';
 
 /** A completed tool execution observed in the agent trace (E4 agent-trace grading). */
 export interface TracedToolCall {
@@ -78,7 +78,13 @@ const labelBand = (score: number, levels: readonly string[]): string => {
  * rubric, feeding the distillation flywheel.
  */
 export function createTraceGrader(options: TraceGraderOptions) {
-  const { manifold, embeddingCache, dataset, budget = DEFAULT_BUDGET, source = 'trace-grading' } = options;
+  const {
+    manifold,
+    embeddingCache,
+    dataset,
+    budget = DEFAULT_BUDGET,
+    source = 'trace-grading',
+  } = options;
   const groundednessQuery = specToQuery(HEAD_SPECS.groundedness);
   const riskQuery: JudgmentQuery = {
     kind: 'evaluate',
@@ -122,11 +128,14 @@ export function createTraceGrader(options: TraceGraderOptions) {
     }
 
     for (const [i, call] of trace.toolCalls.entries()) {
-      const callPointer = (await embeddingCache.write(`${call.command} ${call.success ? 'ok' : 'error'}`)) as EmbeddingPointer;
+      const callPointer = (await embeddingCache.write(
+        `${call.command} ${call.success ? 'ok' : 'error'}`
+      )) as EmbeddingPointer;
       const [risk] = await manifold.judgeBatch(callPointer, [riskQuery], budget);
       if (risk && risk.kind === 'evaluate') {
         const r = risk as EvaluateProposition;
-        if (!r.abstained) result.risks.push({ command: call.command, score: r.score, abstained: false });
+        if (!r.abstained)
+          result.risks.push({ command: call.command, score: r.score, abstained: false });
         record(
           HEAD_SPECS.risk.rubric,
           evidenceId('risk', `${call.command}::${i}`),

@@ -1,6 +1,11 @@
 import { z } from 'zod';
-import type { EmbeddingPointer, JudgmentManifold, JudgmentQuery, JudgmentProposition } from './types.js';
 import { seedTruth } from './seed.js';
+import type {
+  EmbeddingPointer,
+  JudgmentManifold,
+  JudgmentProposition,
+  JudgmentQuery,
+} from './types.js';
 
 /**
  * TypeSafe-compatible `/v1/systemone` endpoint (§10). Requests are
@@ -54,7 +59,11 @@ export async function handleSystemOneRequest(
 
   const pointer = await embed(parsed.contextEmbedding);
   try {
-    const propositions = await manifold.judgeBatch(pointer, parsed.queries as JudgmentQuery[], budget);
+    const propositions = await manifold.judgeBatch(
+      pointer,
+      parsed.queries as JudgmentQuery[],
+      budget
+    );
     return {
       status: 200,
       body: {

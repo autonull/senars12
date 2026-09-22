@@ -1,4 +1,4 @@
-import type { CalibrationVersion, JudgmentProposition, RubricId } from './types.js';
+import type { CalibrationVersion, RubricId } from './types.js';
 
 export interface CalibrationPoint {
   predicted: number;
@@ -38,7 +38,11 @@ export interface BackendHealth {
   lastDemotionCycle: number;
 }
 
-function poolAdjacentViolators(predicted: number[], observed: number[], weights: number[]): number[] {
+function poolAdjacentViolators(
+  predicted: number[],
+  observed: number[],
+  weights: number[]
+): number[] {
   const n = predicted.length;
   const blocks: { start: number; end: number; value: number; weight: number }[] = [];
 
@@ -84,7 +88,7 @@ export function createIsotonicCalibrator(
   const points: CalibrationPoint[] = [...initialPoints];
   let isotonicMap: number[] | null = null;
   let sortedPredicted: number[] | null = null;
-  let fitted = initialPoints.length > 0 && initialPoints.some(p => p.observed !== p.predicted);
+  let fitted = initialPoints.length > 0 && initialPoints.some((p) => p.observed !== p.predicted);
 
   function rebuild(): void {
     if (points.length < 2) {
@@ -129,7 +133,7 @@ export function createIsotonicCalibrator(
     },
 
     update(newPoints: CalibrationPoint[]): void {
-      const hasRealLabels = newPoints.some(p => p.observed !== p.predicted);
+      const hasRealLabels = newPoints.some((p) => p.observed !== p.predicted);
       if (hasRealLabels) {
         fitted = true;
       }
@@ -188,7 +192,9 @@ export class RollingECEMonitor {
     if (this.#samples.length === 0) return 0;
     const totalWeight = this.#samples.reduce((sum, s) => sum + (s.sampleCount ?? 0), 0);
     if (totalWeight === 0) return 0;
-    return this.#samples.reduce((sum, s) => sum + (s.ece ?? 0) * (s.sampleCount ?? 0), 0) / totalWeight;
+    return (
+      this.#samples.reduce((sum, s) => sum + (s.ece ?? 0) * (s.sampleCount ?? 0), 0) / totalWeight
+    );
   }
 
   getSampleCount(): number {
@@ -197,7 +203,10 @@ export class RollingECEMonitor {
   }
 
   isDriftDetected(): boolean {
-    return this.getSampleCount() >= this.#config.minSamples && this.getRollingECE() > this.#config.driftThreshold;
+    return (
+      this.getSampleCount() >= this.#config.minSamples &&
+      this.getRollingECE() > this.#config.driftThreshold
+    );
   }
 
   reset(): void {
@@ -233,7 +242,10 @@ export class DriftDemotionManager {
     });
   }
 
-  updateCycle(backendId: string, cycleNumber: number): { demoted: boolean; rollingECE: number } | null {
+  updateCycle(
+    backendId: string,
+    cycleNumber: number
+  ): { demoted: boolean; rollingECE: number } | null {
     const health = this.#backendHealth.get(backendId);
     if (!health) return null;
 
@@ -282,13 +294,13 @@ export class DriftDemotionManager {
 
   canRecover(backendId: string, cycleNumber: number): boolean {
     const health = this.#backendHealth.get(backendId);
-    if (!health || !health.isDemoted) return false;
+    if (!health?.isDemoted) return false;
     return cycleNumber - health.lastDemotionCycle >= this.#config.cooldownCycles;
   }
 
   attemptRecovery(backendId: string, cycleNumber: number): boolean {
     const health = this.#backendHealth.get(backendId);
-    if (!health || !health.isDemoted) return false;
+    if (!health?.isDemoted) return false;
     if (!this.canRecover(backendId, cycleNumber)) return false;
 
     let maxECE = 0;
@@ -351,6 +363,8 @@ export const ALL_RUBRICS: (RubricId | 'classify')[] = [
   'feasibility',
 ];
 
-export function createDefaultCalibrationSuite(version: CalibrationVersion): Map<string, IsotonicCalibrator> {
+export function createDefaultCalibrationSuite(
+  version: CalibrationVersion
+): Map<string, IsotonicCalibrator> {
   return createCalibrationSuite(version, ALL_RUBRICS);
 }

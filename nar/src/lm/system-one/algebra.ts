@@ -14,7 +14,9 @@ function isSynthesisQueryInternal(query: JudgmentQuery | SynthesisQuery): query 
   return (query as SynthesisQuery).kind === 'synthesize';
 }
 
-export function assertJudgmentQuery(query: JudgmentQuery | SynthesisQuery): asserts query is JudgmentQuery {
+export function assertJudgmentQuery(
+  query: JudgmentQuery | SynthesisQuery
+): asserts query is JudgmentQuery {
   if (isSynthesisQueryInternal(query)) {
     throw new AlgebraPurityError(
       'SynthesisQuery passed where JudgmentQuery required — algebra purity violation',
@@ -31,7 +33,9 @@ export function isSynthesisQuery(query: JudgmentQuery | SynthesisQuery): query i
   return isSynthesisQueryInternal(query);
 }
 
-export function validateBatchQueries(queries: readonly (JudgmentQuery | SynthesisQuery)[]): JudgmentQuery[] {
+export function validateBatchQueries(
+  queries: readonly (JudgmentQuery | SynthesisQuery)[]
+): JudgmentQuery[] {
   for (const q of queries) {
     assertJudgmentQuery(q);
   }

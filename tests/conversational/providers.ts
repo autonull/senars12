@@ -5,11 +5,11 @@ import {
   resolveLMSettings,
 } from '../../nar/src/lm';
 
-export type LMProvider = 'transformers' | 'ollama' | 'mock';
+export type LMProvider = 'transformers' | 'openai-compatible' | 'mock';
 
 export function resolveProvider(): LMProvider {
   const provider = resolveLMSettings({ provider: 'mock' }).provider;
-  return provider === 'ollama' || provider === 'transformers' ? provider : 'mock';
+  return provider === 'transformers' || provider === 'openai-compatible' ? provider : 'mock';
 }
 
 const PATTERNS: Array<[RegExp, string]> = [

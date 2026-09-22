@@ -230,7 +230,7 @@ Answer the question based on the available knowledge. If the answer cannot be de
     totalBridgesCreated: number;
   } {
     const totalHypotheses = this.results.reduce((sum, r) => sum + r.hypotheses.length, 0);
-    const totalBridges = this.results.reduce((sum, r) => r.bridges.length, 0);
+    const totalBridges = this.results.reduce((_sum, r) => r.bridges.length, 0);
 
     return {
       enrichmentCycles: this.enrichmentCycle,
@@ -245,10 +245,17 @@ Answer the question based on the available knowledge. If the answer cannot be de
     // spending LM budget on; unfitted/abstained heads leave the heuristic intact.
     if (this.systemOne) {
       const novelty = await this.systemOne.adapter.noveltyScore(term.toString());
-      if (novelty?.fitted && !novelty.abstained && novelty.score < (this.systemOne.minNovelty ?? 0.5)) {
-        this.logger.debug(`Skipping enrichment (novelty ${novelty.score.toFixed(2)} below threshold)`, {
-          term: term.toString(),
-        });
+      if (
+        novelty?.fitted &&
+        !novelty.abstained &&
+        novelty.score < (this.systemOne.minNovelty ?? 0.5)
+      ) {
+        this.logger.debug(
+          `Skipping enrichment (novelty ${novelty.score.toFixed(2)} below threshold)`,
+          {
+            term: term.toString(),
+          }
+        );
         return { concept: term, hypotheses: [], bridges: [], explanations: [] };
       }
     }

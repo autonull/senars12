@@ -1,13 +1,12 @@
+import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { LMService } from '../lm-service.js';
 import type {
+  CognitiveContext,
   CortexHealth,
   GenerativeCortex,
   SynthesisProposition,
   SynthesisQuery,
-  CognitiveContext,
-  ResourceCost,
 } from './types.js';
-import type { LMService } from '../lm-service.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
 
 export interface LMServiceCortexConfig {
   lmService: LMService;
@@ -38,7 +37,8 @@ export class LMServiceCortex implements GenerativeCortex {
     const maxCandidates = query.maxCandidates ?? 3;
     const grammar = query.grammar ?? this.#defaultGrammar;
 
-    const prompt = query.promptOverride ?? this.buildPrompt(context, query.instruction, maxCandidates);
+    const prompt =
+      query.promptOverride ?? this.buildPrompt(context, query.instruction, maxCandidates);
 
     try {
       const text = await this.#lmService.generateText(prompt, {
@@ -54,7 +54,7 @@ export class LMServiceCortex implements GenerativeCortex {
         candidates,
         cost: { tokensIn: 0, tokensOut: 0, computeMs: 0, memoryMb: 0 },
       };
-    } catch (error) {
+    } catch (_error) {
       const stubCandidates = Array.from({ length: maxCandidates }, (_, i) => `candidate_${i + 1}`);
       yield {
         kind: 'synthesize',
@@ -68,7 +68,11 @@ export class LMServiceCortex implements GenerativeCortex {
     return { provider: 'lm-service', breakerOpen: false };
   }
 
-  private buildPrompt(context: CognitiveContext, instruction: string, maxCandidates: number): string {
+  private buildPrompt(
+    context: CognitiveContext,
+    instruction: string,
+    maxCandidates: number
+  ): string {
     const beliefs = context.topBeliefs.slice(0, 5).join('\n');
     const goals = context.topGoals.slice(0, 3).join('\n');
     const wm = context.workingMemory.slice(0, 3).join('\n');
@@ -97,7 +101,10 @@ Generate up to ${maxCandidates} Narsese candidates. One per line, no extra text.
     for (const line of lines) {
       if (candidates.length >= maxCandidates) break;
       // Strip potential markdown code fences
-      const cleaned = line.replace(/^```\w*\n?/, '').replace(/\n?```$/, '').trim();
+      const cleaned = line
+        .replace(/^```\w*\n?/, '')
+        .replace(/\n?```$/, '')
+        .trim();
       if (cleaned) candidates.push(cleaned);
     }
 

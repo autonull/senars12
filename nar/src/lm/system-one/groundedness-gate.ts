@@ -1,4 +1,4 @@
-import type { JudgmentManifold, JudgmentQuery, EmbeddingCache, EmbeddingPointer } from './types.js';
+import type { EmbeddingCache, EmbeddingPointer, JudgmentManifold, JudgmentQuery } from './types.js';
 
 export interface GroundednessGateOptions {
   manifold: JudgmentManifold;
@@ -6,7 +6,9 @@ export interface GroundednessGateOptions {
   threshold?: number;
 }
 
-export function createGroundednessGate(options: GroundednessGateOptions): (narration: string) => Promise<boolean> {
+export function createGroundednessGate(
+  options: GroundednessGateOptions
+): (narration: string) => Promise<boolean> {
   const { manifold, embeddingCache, threshold = 0.7 } = options;
 
   return async (narration: string): Promise<boolean> => {

@@ -43,7 +43,10 @@ export interface ConfidenceBands {
 }
 
 /** Monotone band routing: p ≥ act → act; p ≥ review → review; else block. */
-export function routeConfidence(p: number, bands: ConfidenceBands): Exclude<BandDecision, 'abstain'> {
+export function routeConfidence(
+  p: number,
+  bands: ConfidenceBands
+): Exclude<BandDecision, 'abstain'> {
   if (p >= bands.act) return 'act';
   if (p >= bands.review) return 'review';
   return 'block';
@@ -51,7 +54,11 @@ export function routeConfidence(p: number, bands: ConfidenceBands): Exclude<Band
 
 /** True iff `candidate` can only restrict relative to `incumbent` (§6.3 monotonicity). */
 export function isRestrictive(candidate: ConfidenceBands, incumbent: ConfidenceBands): boolean {
-  return candidate.act >= incumbent.act && candidate.review >= incumbent.review && candidate.block >= incumbent.block;
+  return (
+    candidate.act >= incumbent.act &&
+    candidate.review >= incumbent.review &&
+    candidate.block >= incumbent.block
+  );
 }
 
 function bandOrdinal(d: BandDecision): number {
@@ -75,7 +82,9 @@ export class ConfidenceRouter {
     return new ConfidenceRouter({ act: threshold, review: 0, block: 0 });
   }
 
-  route(input: { abstained?: boolean; score?: number; top?: { p: number } } | number): BandDecision {
+  route(
+    input: { abstained?: boolean; score?: number; top?: { p: number } } | number
+  ): BandDecision {
     if (typeof input === 'number') return routeConfidence(input, this.bands);
     if (input.abstained) return 'abstain';
     return routeConfidence(input.top?.p ?? input.score ?? 0, this.bands);

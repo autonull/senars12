@@ -11,7 +11,7 @@ One dial (`LM_PROVIDER` + env) selects across a capability ladder. Every rung is
 | 2 | `transformers` | `onnx-community/Qwen2.5-1.5B-Instruct` (quality) · `HuggingFaceTB/SmolLM2-360M-Instruct` (compact) | Local CPU/WASM; first run downloads via `cacheDir` |
 | 3 | `llamacpp-embedded` | GGUF at `LM_LLAMACPP_MODEL` | GPU backends: `LM_LLAMACPP_GPU` (auto/cuda/metal/vulkan), layers, ctx, batch, seqs, flash-attn; verified 188.9 tok/s on GPU |
 | 4 | `llamacpp` | `LM_LLAMACPP_HOST` server | |
-| 5 | `ollama` | `llama3.2` (`OLLAMA_MODEL`) | |
+| 5 | `openai-compatible` (local daemon, e.g. ollama) | `llama3.2` (`OLLAMA_MODEL`) | |
 | 6 | `anthropic` / `openai` / `openai-compatible` | `claude-3-5-sonnet-latest` / `gpt-4o-mini` | Credentials via `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` |
 
 ## Environment matrix
@@ -24,7 +24,7 @@ One dial (`LM_PROVIDER` + env) selects across a capability ladder. Every rung is
 | `LM_QUALITY_DTYPE` / `LM_FAST_DTYPE` | Per-slot dtype (overrides `LM_DTYPE`) |
 | `LM_MAX_SPEND_USD` | Circuit-breaker spend cap (H3); trips ⇒ `LMUnavailableError` with remediation hint |
 | `LM_MODEL`, `LM_FAST_MODEL`, `LM_STRUCTURED_MODEL`, `LM_COMPACT_MODEL` | Per-slot model ids |
-| `LM_PROFILE` | `auto` \| `cloud-quality` \| `local-private` \| `ollama` presets |
+| `LM_PROFILE` | `auto` \| `cloud-quality` \| `local-private` \| `ollama` (deprecated alias) presets |
 
 ## Failure UX (H6)
 

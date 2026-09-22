@@ -1,5 +1,5 @@
 import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
-import type { ResourceCost, JudgmentProposition } from './types.js';
+import type { JudgmentProposition, ResourceCost } from './types.js';
 
 export interface JudgmentBudgetVerdict {
   granted: boolean;
@@ -8,7 +8,10 @@ export interface JudgmentBudgetVerdict {
 
 /** Map a proposition's ResourceCost to the budget gate's LM-call accounting. */
 export function resourceCostToLmCalls(cost: ResourceCost): number {
-  return Math.max(1, Math.ceil((cost.tokensIn + cost.tokensOut) / 100) + (cost.computeMs > 100 ? 1 : 0));
+  return Math.max(
+    1,
+    Math.ceil((cost.tokensIn + cost.tokensOut) / 100) + (cost.computeMs > 100 ? 1 : 0)
+  );
 }
 
 /** Bench 12: every proposition must report a ResourceCost before consuming budget. */

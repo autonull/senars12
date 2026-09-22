@@ -1,12 +1,31 @@
-import { v4 as uuidv4 } from 'uuid';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
+import { v4 as uuidv4 } from 'uuid';
+import { validateBatchQueries } from './algebra.js';
+import {
+  createDefaultCalibrationSuite,
+  type DriftDemotionConfig,
+  DriftDemotionManager,
+  type IsotonicCalibrator,
+  type RollingECEConfig,
+  RollingECEMonitor,
+} from './calibration.js';
+import {
+  applyCalibrationLock,
+  assertLockMatches,
+  type CalibrationLock,
+} from './calibration-fit.js';
+import {
+  createAllActionHeads,
+  createAllIngressHeads,
+  createAllMemoryHeads,
+  createAllSynthesisHeads,
+  type PerHeadConfig,
+} from './heads/index.js';
 import type {
   BackendId,
   CalibrationVersion,
   ClassifyProposition,
-  CognitiveAxis,
   ConsensusResult,
-  CriticalityLevel,
   EmbeddingCache,
   EmbeddingPointer,
   EvaluateProposition,
@@ -20,22 +39,6 @@ import type {
   ResourceCost,
   RubricId,
 } from './types.js';
-import { AlgebraPurityError, validateBatchQueries } from './algebra.js';
-import {
-  createIsotonicCalibrator,
-  RollingECEMonitor,
-  DriftDemotionManager,
-  createDefaultCalibrationSuite,
-  type IsotonicCalibrator,
-  type RollingECEConfig,
-  type DriftDemotionConfig,
-} from './calibration.js';
-import { createAllIngressHeads, createAllActionHeads, createAllSynthesisHeads, createAllMemoryHeads, type HeadFactoryOptions, type PerHeadConfig } from './heads/index.js';
-import { applyCalibrationLock, assertLockMatches, type CalibrationLock } from './calibration-fit.js';
-import { recordJudgmentMetric } from '../../metrics/prometheus.js';
-import type { JudgmentResolvedEvent, CognitiveEvent } from '@senars/kernel/schemas';
-
-
 
 export interface ManifoldConfig {
   backendId: BackendId;
@@ -63,7 +66,10 @@ function entropy(distribution: readonly { option: string; p: number }[]): number
   return h;
 }
 
-function topOption(distribution: readonly { option: string; p: number }[]): { option: string; p: number } {
+function topOption(distribution: readonly { option: string; p: number }[]): {
+  option: string;
+  p: number;
+} {
   let best = distribution[0]!;
   for (const d of distribution) {
     if (d.p > best.p) best = d;
@@ -74,16 +80,15 @@ function topOption(distribution: readonly { option: string; p: number }[]): { op
 function makeProposition(
   query: JudgmentQuery,
   result: HeadResult,
-  base: Omit<
-    JudgmentProposition,
-    'kind' | 'axis' | 'distribution' | 'top' | 'entropy' | 'score'
-  >
+  base: Omit<JudgmentProposition, 'kind' | 'axis' | 'distribution' | 'top' | 'entropy' | 'score'>
 ): JudgmentProposition {
   if (query.kind === 'classify') {
-    const dist = result.distribution ?? query.space.map((opt, i) => ({
-      option: opt,
-      p: i === 0 ? 1.0 : 0.0,
-    }));
+    const dist =
+      result.distribution ??
+      query.space.map((opt, i) => ({
+        option: opt,
+        p: i === 0 ? 1.0 : 0.0,
+      }));
     return {
       ...base,
       kind: 'classify',
@@ -147,7 +152,7 @@ export class SystemOneManifold implements JudgmentManifold {
   async judgeBatch(
     sharedContext: EmbeddingPointer,
     queries: readonly JudgmentQuery[],
-    budget: ReasoningBudget
+    _budget: ReasoningBudget
   ): Promise<JudgmentProposition[]> {
     const startTime = performance.now();
 
@@ -177,7 +182,7 @@ export class SystemOneManifold implements JudgmentManifold {
 
       try {
         headResult = await head.evaluate(contextEmbedding, query);
-      } catch (e) {
+      } catch (_e) {
         headResult = {
           score: 0.5,
           abstained: true,
@@ -194,12 +199,13 @@ export class SystemOneManifold implements JudgmentManifold {
         queryId: uuidv4() as any,
         backendId: this.#config.backendId,
         modelDigest: this.#config.modelDigest,
-        calibration: { 
-          version: this.#config.calibrationVersion, 
+        calibration: {
+          version: this.#config.calibrationVersion,
           ece: this.#rollingECEMonitor.getRollingECE(),
           fitted:
             head.fitted === true ||
-            (this.#calibrators.get(query.kind === 'classify' ? 'classify' : query.rubric)?.fitted ?? false),
+            (this.#calibrators.get(query.kind === 'classify' ? 'classify' : query.rubric)?.fitted ??
+              false),
         },
         latencyMs,
         cost: this.estimateCost(query, latencyMs),
@@ -244,12 +250,15 @@ export class SystemOneManifold implements JudgmentManifold {
     // stability under seeded perturbation rather than trivially reading 1.0.
     for (let i = 0; i < fanout; i++) {
       const runQuery =
-        i === 0 ? query : ({ ...query, instruction: query.instruction + '\u200b'.repeat(i) } as JudgmentQuery);
+        i === 0
+          ? query
+          : ({ ...query, instruction: query.instruction + '\u200b'.repeat(i) } as JudgmentQuery);
       const batch = await this.judgeBatch(sharedContext, [runQuery], budget);
       runs.push(batch);
     }
 
-    const first = runs[0]![0]!;
+    const first = runs[0]?.[0];
+    if (!first) throw new Error('manifold ensemble produced no verdict');
     let agreement = 1.0;
 
     if (first.kind === 'classify') {
@@ -341,7 +350,9 @@ export class SystemOneManifold implements JudgmentManifold {
     // Until then, they remain in unfitted state (fitted: false) and report ECE honestly.
 
     const totalSamples = results.length;
-    const avgECE = Array.from(this.#calibrators.values()).reduce((sum, c) => sum + c.getECE(), 0) / this.#calibrators.size;
+    const avgECE =
+      Array.from(this.#calibrators.values()).reduce((sum, c) => sum + c.getECE(), 0) /
+      this.#calibrators.size;
     this.#rollingECEMonitor.record(avgECE, totalSamples);
   }
 

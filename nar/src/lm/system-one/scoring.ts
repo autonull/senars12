@@ -31,7 +31,7 @@ export function computeDeterministicScore(
     .split('')
     .reduce((h, c) => ((h << 5) - h + c.charCodeAt(0) + opts.salt) | 0, 0);
 
-  const combined = Math.abs(hash + instructionHash) % 10000 / 10000;
+  const combined = (Math.abs(hash + instructionHash) % 10000) / 10000;
   return opts.minScore + combined * (opts.maxScore - opts.minScore);
 }
 

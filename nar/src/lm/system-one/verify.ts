@@ -3,6 +3,14 @@
  * Thin compositions over `judgeCascade`, `ConfidenceRouter`, and the manifold's
  * self-consistency `consensus` — no new machinery.
  */
+
+import {
+  type CascadeJudge,
+  type ConfidenceBands,
+  judgeCascade,
+  routeConfidence,
+  truthProbability,
+} from './policy.js';
 import type {
   EmbeddingPointer,
   EvaluateProposition,
@@ -11,7 +19,6 @@ import type {
   JudgmentQuery,
   ReasoningBudget,
 } from './types.js';
-import { judgeCascade, type CascadeJudge, routeConfidence, truthProbability, type ConfidenceBands } from './policy.js';
 
 export type VerifyDecision = 'act' | 'review' | 'block' | 'abstain';
 
@@ -45,16 +52,20 @@ export async function verifyCascade(
   budget: ReasoningBudget
 ): Promise<VerifyResult> {
   const stage1 = truthProbability(statement);
-  const result = await judgeCascade(judge, sharedContext, stage1, (first) => {
-    if (first.kind !== 'evaluate' || first.abstained) return undefined;
-    const p = (first as EvaluateProposition).score;
-    const decision = routeConfidence(p, bands);
-    return decision === 'act' ? undefined : verifyQuery(statement, p);
-  }, budget);
+  const result = await judgeCascade(
+    judge,
+    sharedContext,
+    stage1,
+    (first) => {
+      if (first.kind !== 'evaluate' || first.abstained) return undefined;
+      const p = (first as EvaluateProposition).score;
+      const decision = routeConfidence(p, bands);
+      return decision === 'act' ? undefined : verifyQuery(statement, p);
+    },
+    budget
+  );
   const prop = result.stage1 as EvaluateProposition;
-  const decision: VerifyDecision = prop.abstained
-    ? 'abstain'
-    : routeConfidence(prop.score, bands);
+  const decision: VerifyDecision = prop.abstained ? 'abstain' : routeConfidence(prop.score, bands);
   return { decision, p: prop.abstained ? undefined : prop.score, verification: result.stage2 };
 }
 

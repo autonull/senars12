@@ -33,7 +33,7 @@ const ALL_SCENARIOS: Scenario[] = [
 const PROVIDER_TIMEOUTS: Record<string, number> = {
   mock: 5_000,
   transformers: 120_000,
-  ollama: 60_000,
+  'openai-compatible': 60_000,
   anthropic: 30_000,
 };
 
@@ -69,7 +69,7 @@ function parseArgs(): RunnerArgs {
       console.log(`  --help, -h         Show this help`);
       console.log(`\nEnvironment:`);
       console.log(
-        `  LM_PROVIDER        Provider: mock|transformers|ollama|anthropic (default: mock)`
+        `  LM_PROVIDER        Provider: mock|transformers|openai-compatible|anthropic (default: mock)`
       );
       console.log(`  LM_MODEL           Model override`);
       console.log(`  OLLAMA_HOST        Ollama server URL`);

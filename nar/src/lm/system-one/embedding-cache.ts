@@ -5,7 +5,7 @@ const DIMENSION = 384;
 const POOL_SIZE = 8192;
 
 const bufferPool = new Array<Float32Array>(POOL_SIZE);
-let poolHead = 0;
+const poolHead = 0;
 const freeList: number[] = [];
 
 function allocateBuffer(): Float32Array {
@@ -49,7 +49,6 @@ export class EmbeddingCache {
   #cache = new Map<string, CacheEntry>();
   #pointerIndex = new Map<EmbeddingPointer, CacheEntry>();
   #lru = new Map<string, CacheEntry>();
-  #accessCounter = 0;
   #pointerCounter = 0;
 
   constructor(config: Partial<EmbeddingCacheConfig> = {}) {
@@ -77,7 +76,7 @@ export class EmbeddingCache {
     const buffer = allocateBuffer();
     buffer.set(embedding);
 
-    const pointer = (++this.#pointerCounter) as EmbeddingPointer;
+    const pointer = ++this.#pointerCounter as EmbeddingPointer;
     const now = Date.now();
 
     const entry: CacheEntry = {
@@ -100,7 +99,7 @@ export class EmbeddingCache {
   async writeRaw(embedding: readonly number[]): Promise<EmbeddingPointer> {
     const buffer = allocateBuffer();
     buffer.set(embedding.slice(0, buffer.length));
-    const pointer = (++this.#pointerCounter) as EmbeddingPointer;
+    const pointer = ++this.#pointerCounter as EmbeddingPointer;
     const now = Date.now();
 
     const key = `\0raw:${pointer}`;

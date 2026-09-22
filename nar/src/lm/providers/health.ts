@@ -12,15 +12,27 @@ import { probeLlamaCpp } from './llamacpp.js';
 import { cloudApiKey } from './model-factory.js';
 import { getLMSettings, getLmProvider } from './settings.js';
 
-export async function probeOllama(host?: string): Promise<boolean> {
-  const base = (host ?? getLMSettings().ollamaHost ?? 'http://localhost:11434').replace(
-    /\/v1\/?$/,
-    ''
-  );
+/** Probe an OpenAI-compatible endpoint (/models); auth header sent only when a key is available. */
+export async function probeOpenAICompatible(
+  settings?: LMSettings,
+  rt: ProviderRuntime = getProviderRuntime()
+): Promise<boolean> {
+  void rt;
+  const s = settings ?? getLMSettings();
+  const base = (s.baseUrl ?? 'http://localhost:11434/v1').replace(/\/?$/, '');
   try {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), 1500);
-    const res = await fetch(`${base}/api/tags`, { signal: ctl.signal });
+    const key = cloudApiKey(s);
+    const res = await fetch(`${base}/models`, {
+      signal: ctl.signal,
+      ...(key && {
+        headers:
+          s.provider === 'anthropic'
+            ? { 'x-api-key': key, 'anthropic-version': '2023-06-01' }
+            : { Authorization: `Bearer ${key}` },
+      }),
+    });
     clearTimeout(t);
     return res.ok;
   } catch {
@@ -32,7 +44,6 @@ const OFFLINE_SAFE_PROVIDERS: readonly LMProviderName[] = [
   'mock',
   'transformers',
   'webllm',
-  'ollama',
   'llamacpp',
   'llamacpp-embedded',
 ];
@@ -49,15 +60,16 @@ export async function resolveActiveProvider(): Promise<LMProviderName> {
   }
   if (configured === 'transformers') {
     if (hasCloudCredentials()) return 'openai-compatible';
-    if (await probeOllama()) return 'ollama';
+    if (await probeOpenAICompatible()) return 'openai-compatible';
     if (await probeEmbeddedLlama()) return 'llamacpp-embedded';
     return (await probeLlamaCpp()) ? 'llamacpp' : 'transformers';
   }
-  if (configured === 'ollama') return (await probeOllama()) ? 'ollama' : 'transformers';
   if (configured === 'llamacpp') return (await probeLlamaCpp()) ? 'llamacpp' : 'transformers';
   if (configured === 'llamacpp-embedded')
     return (await probeEmbeddedLlama()) ? 'llamacpp-embedded' : 'transformers';
-  return hasCloudCredentials() ? configured : (await probeOllama()) ? 'ollama' : 'transformers';
+  if (configured === 'openai-compatible')
+    return (await probeOpenAICompatible()) ? 'openai-compatible' : 'transformers';
+  return hasCloudCredentials() ? configured : 'transformers';
 }
 
 // ---- Health probe & circuit breaker for cloud providers ----
@@ -140,17 +152,17 @@ export function startHealthProbes(
       'anthropic',
       'openai',
       'openai-compatible',
-      'ollama',
       'webllm',
       'llamacpp-embedded',
     ];
     for (const p of providers) {
       if (!canUseProvider(p, settings, rt)) continue;
       let ok = false;
-      if (p === 'ollama') {
-        ok = await probeOllama(settings?.ollamaHost);
-      } else if (['anthropic', 'openai', 'openai-compatible'].includes(p)) {
-        ok = await probeCloudProvider(settings);
+      if (['anthropic', 'openai', 'openai-compatible'].includes(p)) {
+        ok =
+          p === 'openai-compatible'
+            ? await probeOpenAICompatible(settings)
+            : await probeCloudProvider(settings);
       } else if (p === 'webllm') {
         ok = typeof navigator !== 'undefined' && 'gpu' in navigator;
       } else if (p === 'llamacpp-embedded') {

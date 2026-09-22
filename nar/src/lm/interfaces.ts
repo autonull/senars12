@@ -1,6 +1,6 @@
+import type { LMExecutionStats, LMTask } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import type { ZodSchema } from 'zod';
-import type { LMExecutionStats, LMTask } from '@senars/util';
 import type { ProviderSpend } from './lm-service.js';
 import type { getCircuitBreaker } from './providers.js';
 
@@ -29,7 +29,10 @@ export interface ILMService {
     }
   ): Promise<string>;
 
-  tryGenerateText(prompt: string, opts?: Parameters<ILMService['generateText']>[1]): Promise<string | null>;
+  tryGenerateText(
+    prompt: string,
+    opts?: Parameters<ILMService['generateText']>[1]
+  ): Promise<string | null>;
 
   generateObject<T>(
     prompt: string,

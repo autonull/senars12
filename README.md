@@ -1424,7 +1424,7 @@ This section is the lookup reference for tuning and deployment; the system descr
 ### LM Profiles & Routing
 
 `LM_PROFILE` selects a preset: `auto` (default — cloud when credentials exist, else local),
-`cloud-quality`, `local-private` (transformers.js), `ollama`. Per-tier env overrides
+`cloud-quality`, `local-private` (transformers.js), `ollama` (deprecated alias → openai-compatible). Per-tier env overrides
 (`LM_FAST_MODEL` etc.) and an optional `routing` config block enable objective-driven
 multi-provider model selection with a self-upgrading offline failsafe ladder. See
 `docs/tech/lm-config.md` for the full provider × tier × credential matrix.
@@ -1469,7 +1469,7 @@ The Judgment Manifold's full config is zod-validated in a single schema (`src/co
 
 ```bash
 # LM Provider
-LM_PROVIDER=openai|anthropic|ollama|local
+LM_PROVIDER=openai|anthropic|openai-compatible|local
 LM_MODEL=gpt-4o|claude-3|...
 LM_API_KEY=...
 LM_OFFLINE=1          # skip all provider probes (offline hard-switch)

@@ -1,4 +1,4 @@
-import type { SourceQuality, ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget, SourceQuality } from '@senars/kernel/schemas';
 
 export type { ReasoningBudget, SourceQuality };
 
@@ -216,7 +216,11 @@ export interface PEAResult {
   candidates: readonly string[];
   judgments: readonly JudgmentProposition[];
   ranked: readonly { candidate: string; truth: import('../../terms/truth.js').Truth }[];
-  admitted: readonly { candidate: string; truth: import('../../terms/truth.js').Truth; stamp: import('../../terms/stamp.js').Stamp }[];
+  admitted: readonly {
+    candidate: string;
+    truth: import('../../terms/truth.js').Truth;
+    stamp: import('../../terms/stamp.js').Stamp;
+  }[];
   provisional: readonly { candidate: string; provisional: ProvisionalStamp }[];
 }
 

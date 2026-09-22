@@ -13,11 +13,11 @@ import type { LanguageModel } from 'ai';
 import { recordCircuitBreakerState } from '../metrics/index.js';
 import { getTracer } from '../otel/index.js';
 import {
-  resolveLMSettings,
   type CircuitBreakerConfig,
   type LMProviderName,
   type LMSettings,
   type LMSettingsInput,
+  resolveLMSettings,
 } from './env-config.js';
 
 export type { CircuitBreakerConfig, LMProviderName };
@@ -66,11 +66,12 @@ export interface RoutingDecision {
 }
 
 /** Sensible per-provider defaults. */
-export const PROVIDER_CIRCUIT_DEFAULTS: Partial<Record<LMProviderName, Partial<CircuitBreakerConfig>>> = {
+export const PROVIDER_CIRCUIT_DEFAULTS: Partial<
+  Record<LMProviderName, Partial<CircuitBreakerConfig>>
+> = {
   anthropic: { failureThreshold: 3, resetTimeoutMs: 60_000, successThreshold: 2 },
   openai: { failureThreshold: 3, resetTimeoutMs: 60_000, successThreshold: 2 },
   'openai-compatible': { failureThreshold: 5, resetTimeoutMs: 30_000, successThreshold: 2 },
-  ollama: { failureThreshold: 10, resetTimeoutMs: 15_000, successThreshold: 3 },
   llamacpp: { failureThreshold: 10, resetTimeoutMs: 15_000, successThreshold: 3 },
   'llamacpp-embedded': { failureThreshold: 10, resetTimeoutMs: 15_000, successThreshold: 3 },
   transformers: { failureThreshold: 20, resetTimeoutMs: 5_000, successThreshold: 5 },
@@ -341,11 +342,10 @@ export class ProviderRuntime {
       mkdirSync(this.routingLogDir, { recursive: true });
       const date = new Date().toISOString().split('T')[0];
       const path = join(this.routingLogDir, `routing-${date}.jsonl`);
-      const lines =
-        this.routingLogBuffer
-          .splice(0)
-          .map((e) => JSON.stringify(e))
-          .join('\n') + '\n';
+      const lines = `${this.routingLogBuffer
+        .splice(0)
+        .map((e) => JSON.stringify(e))
+        .join('\n')}\n`;
       appendFileSync(path, lines, 'utf-8');
     } catch (e) {
       // Silently fail to avoid disrupting main flow

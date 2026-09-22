@@ -1,3 +1,4 @@
+import { type OpenRequest, type OpenResponse, openResponseSchema } from './systemone-wire.js';
 import type {
   BackendId,
   ConsensusResult,
@@ -10,7 +11,6 @@ import type {
   ModelDigest,
   ReasoningBudget,
 } from './types.js';
-import { openResponseSchema, type OpenRequest, type OpenResponse } from './systemone-wire.js';
 
 export const OPEN_REPLICA_BACKEND = 'open-systemone' as BackendId;
 
@@ -37,7 +37,12 @@ export const toOpenQuestions = (queries: readonly JudgmentQuery[]): OpenRequest[
   queries.map((query, i) => {
     const id = `q${i}`;
     if (query.kind === 'classify')
-      return { id, type: 'choice' as const, options: [...query.space], instruction: query.instruction };
+      return {
+        id,
+        type: 'choice' as const,
+        options: [...query.space],
+        instruction: query.instruction,
+      };
     return {
       id,
       type: 'score' as const,
@@ -62,7 +67,8 @@ const buildProposition = (
     abstained: answer.abstained,
   };
   if (query.kind === 'classify') {
-    const distribution = answer.distribution ?? (answer.choice ? [{ option: answer.choice, p: 1 }] : []);
+    const distribution =
+      answer.distribution ?? (answer.choice ? [{ option: answer.choice, p: 1 }] : []);
     const top = distribution.reduce(
       (best, d) => (d.p > best.p ? d : best),
       distribution[0] ?? { option: '', p: 0 }

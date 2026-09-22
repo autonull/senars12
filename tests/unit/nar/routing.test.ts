@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 describe('pickModel (objective-driven candidate scoring)', () => {
-  const candidates = ['cloud:quality', 'local:quality', 'builtin:compact', 'builtin:mock'];
+  const candidates = ['cloud:quality', 'llamacpp:quality', 'builtin:compact', 'builtin:mock'];
 
   it('hard-filters offlineOnly candidates', () => {
     const ranked = pickModel(candidates, { offlineOnly: true });
@@ -28,7 +28,7 @@ describe('pickModel (objective-driven candidate scoring)', () => {
 
   it('hard-filters candidates exceeding maxLatencyMs', () => {
     const ranked = pickModel(
-      ['cloud:quality', 'local:quality', 'builtin:quality', 'builtin:compact'],
+      ['cloud:quality', 'builtin:quality', 'builtin:compact'],
       { maxLatencyMs: 6_000 }
     );
     const disqualified = ranked.filter((c) => !c.qualifies).map((c) => c.id);
@@ -47,9 +47,9 @@ describe('pickModel (objective-driven candidate scoring)', () => {
     const stats = {
       'cloud:quality': { successRate: 0 } as never,
     };
-    const [top] = pickModel(['cloud:quality', 'local:quality'], { quality: 'max' }, stats);
+    const [top] = pickModel(['cloud:quality', 'llamacpp:quality'], { quality: 'max' }, stats);
     if (!top) throw new Error('expected ranked candidates');
-    expect(top.id).toBe('local:quality');
+    expect(top.id).toBe('llamacpp:quality');
   });
 
   it('always returns a deterministic order', () => {
@@ -62,12 +62,12 @@ describe('pickModel (objective-driven candidate scoring)', () => {
 describe('getModelChain (routing from config)', () => {
   it('composes candidates + failsafe ladder and applies per-task constraints', () => {
     setRouting({
-      candidates: ['cloud:quality', 'local:quality', 'builtin:quality'],
+      candidates: ['cloud:quality', 'llamacpp:quality', 'builtin:quality'],
       objectives: { fast: { offlineOnly: true }, quality: { maxLatencyMs: 1_000 } },
     });
     expect(getModelChain('anthropic', 'quality')).toEqual([
       'cloud:quality',
-      'local:quality',
+      'llamacpp:quality',
       'builtin:compact',
       'builtin:mock',
     ]);
@@ -79,21 +79,21 @@ describe('getModelChain (routing from config)', () => {
   });
 
   it('offlineOnly objective strips non-builtin candidates per task', () => {
-    setRouting({ candidates: ['cloud:quality', 'local:quality'] });
+    setRouting({ candidates: ['cloud:quality', 'llamacpp:quality'] });
     expect(getModelChain('anthropic', 'quality')).toContain('cloud:quality');
     setRouting({
-      candidates: ['cloud:quality', 'local:quality'],
+      candidates: ['cloud:quality', 'llamacpp:quality'],
       objectives: { structured: { offlineOnly: true } },
     });
     expect(getModelChain('anthropic', 'structured')).toEqual(['builtin:compact', 'builtin:mock']);
   });
 
   it('demoted candidates sink to the back of the chain', () => {
-    setRouting({ candidates: ['cloud:quality', 'local:quality'] });
+    setRouting({ candidates: ['cloud:quality', 'llamacpp:quality'] });
     expect(getModelChain('anthropic', 'quality')[0]).toBe('cloud:quality');
     demoteModel('cloud:quality', 'test failure');
     expect(getModelChain('anthropic', 'quality')).toEqual([
-      'local:quality',
+      'llamacpp:quality',
       'cloud:quality',
       'builtin:compact',
       'builtin:mock',

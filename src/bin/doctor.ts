@@ -193,7 +193,7 @@ const main = async (): Promise<void> => {
 
   // Circuit breaker status
   try {
-    const providers: LMProviderName[] = ['anthropic', 'openai', 'openai-compatible', 'ollama', 'transformers', 'mock'];
+    const providers: LMProviderName[] = ['anthropic', 'openai', 'openai-compatible', 'transformers', 'mock'];
     for (const p of providers) {
       const cfg = getEffectiveCircuitConfig(p, settings);
       const breaker = getCircuitBreaker(p);
@@ -241,7 +241,7 @@ if (jsonOutput) {
     console.log(`\nLM Provider: ${output.lm.provider}`);
     console.log(`LM Model: ${output.lm.model}`);
     console.log(`Embedded llama.cpp: ${output.embeddedLlama.available ? '✓ ' + output.embeddedLlama.detail : '✗ ' + output.embeddedLlama.detail}`);
-    console.log(`Ollama: ${output.ollama}`);
+    console.log(`Ollama daemon (local OpenAI-compatible): ${output.ollama}`);
     console.log(`CPUs: ${output.cpus}`);
     console.log(`Config: ${output.config.valid ? 'valid' : 'invalid'}${output.config.error ? ` (${output.config.error})` : ''}`);
 

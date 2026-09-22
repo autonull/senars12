@@ -1,10 +1,8 @@
 export { admitTasks } from './admit.js';
 export type { ContextBeliefOptions } from './context.js';
 export { topBeliefTasks } from './context.js';
-export type { EnricherConfig, EnrichmentResult, EnricherSystemOneDeps } from './enrichment.js';
+export type { EnricherConfig, EnricherSystemOneDeps, EnrichmentResult } from './enrichment.js';
 export { createProactiveEnricher, ProactiveEnricher } from './enrichment.js';
-export type { ShadowCheckOptions, ShadowSystemOneDeps } from './shadow-validation.js';
-export { shadowValidator, ShadowValidator } from './shadow-validation.js';
 export type {
   LMProfileName,
   LMSettings,
@@ -28,6 +26,8 @@ export type {
   ValidationFeedback,
 } from './feedback.js';
 export { BidirectionalFeedbackLoop, createBidirectionalFeedbackLoop } from './feedback.js';
+export { type GrammarName, loadGrammar } from './grammars/index.js';
+export type { ILMService } from './interfaces.js';
 export type {
   LMContext,
   LMRuleConfigV2,
@@ -55,7 +55,13 @@ export {
   createMockLMService,
   LMService,
 } from './lm-service.js';
-export type { ILMService } from './interfaces.js';
+export { getProviderRuntime, type ProviderHealth, ProviderRuntime } from './provider-runtime.js';
+export {
+  createLlamaCppFetch,
+  LLAMACPP_HOST_DEFAULT,
+  probeLlamaCpp,
+  runWithGrammar,
+} from './providers/llamacpp.js';
 export type {
   CandidateScore,
   CircuitBreakerConfig,
@@ -73,6 +79,8 @@ export {
   configureLM,
   createSeNARSRegistry,
   demoteModel,
+  disableRoutingTelemetry,
+  enableRoutingTelemetry,
   getCircuitBreaker,
   getEffectiveCircuitConfig,
   getLMSettings,
@@ -85,26 +93,18 @@ export {
   getRoutingLogStatus,
   getRoutingStatus,
   hasCloudCredentials,
+  logRoutingDecision,
   MODEL_CAPABILITIES,
   pickBestModel,
   pickModel,
-  probeOllama,
+  probeOpenAICompatible,
   recordProviderCall,
   resetDemotions,
   resolveActiveProvider,
   resolveOfflineModel,
   resolveOfflineTier,
   setRouting,
-  enableRoutingTelemetry,
-  disableRoutingTelemetry,
-  logRoutingDecision,
 } from './providers.js';
-export { getProviderRuntime, ProviderRuntime, type ProviderHealth } from './provider-runtime.js';
+export type { ShadowCheckOptions, ShadowSystemOneDeps } from './shadow-validation.js';
+export { ShadowValidator, shadowValidator } from './shadow-validation.js';
 export { createLMStats, recordLMCall } from './stats.js';
-export { loadGrammar, type GrammarName } from './grammars/index.js';
-export {
-  createLlamaCppFetch,
-  LLAMACPP_HOST_DEFAULT,
-  probeLlamaCpp,
-  runWithGrammar,
-} from './providers/llamacpp.js';

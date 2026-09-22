@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration.js';
+import type { JudgmentDataset } from './distill.js';
 import type { CalibrationVersion, ModelDigest } from './types.js';
 import { DigestMismatchError } from './wasi-runtime.js';
-import type { JudgmentDataset } from './distill.js';
 
 // ─── Lock schema (jevcal pattern: fitted thresholds, digest-pinned) ──────────
 
@@ -31,9 +31,12 @@ interface LabeledDatum {
 }
 
 const OBSERVED_BY_LABEL: Record<string, number> = {
-  approved: 1, rejected: 0,
-  support: 1, conflict: 0,
-  accepted: 1, rejected_outcome: 0,
+  approved: 1,
+  rejected: 0,
+  support: 1,
+  conflict: 0,
+  accepted: 1,
+  rejected_outcome: 0,
 };
 
 /**
@@ -41,7 +44,10 @@ const OBSERVED_BY_LABEL: Record<string, number> = {
  * head's predicted `score` and a ground-truth `observed` (recorded at label
  * time) — the B6 self-supervised no-op never enters this path.
  */
-export function extractLabeledData(dataset: JudgmentDataset, headIds?: readonly string[]): LabeledDatum[] {
+export function extractLabeledData(
+  dataset: JudgmentDataset,
+  headIds?: readonly string[]
+): LabeledDatum[] {
   const wanted = headIds ? new Set(headIds) : null;
   const data: LabeledDatum[] = [];
   for (const label of dataset.all()) {
@@ -60,7 +66,10 @@ function observedFor(label: string): number | undefined {
 }
 
 /** Dataset rows that only carry a categorical label get their observed value derived. */
-export function extractLabeledDataWithDerivedOutcomes(dataset: JudgmentDataset, headIds?: readonly string[]): LabeledDatum[] {
+export function extractLabeledDataWithDerivedOutcomes(
+  dataset: JudgmentDataset,
+  headIds?: readonly string[]
+): LabeledDatum[] {
   const wanted = headIds ? new Set(headIds) : null;
   const data: LabeledDatum[] = [];
   for (const label of dataset.all()) {
@@ -93,7 +102,11 @@ export function identityECE(data: readonly { predicted: number; observed: number
 }
 
 /** Brier with abstain→0.5 fallback, used to select the per-head threshold. */
-function brierWithAbstain(data: readonly LabeledDatum[], calibrate: (s: number) => number, threshold: number): number {
+function brierWithAbstain(
+  data: readonly LabeledDatum[],
+  calibrate: (s: number) => number,
+  threshold: number
+): number {
   if (data.length === 0) return 0;
   let sum = 0;
   for (const d of data) {
@@ -142,12 +155,19 @@ export function fitCalibrationLock(
   let improved = true;
 
   for (const [headId, headData] of byHead) {
-    if (headData.length < minRows) { improved = false; continue; }
+    if (headData.length < minRows) {
+      improved = false;
+      continue;
+    }
     const { fit, holdout } = split(headData, holdoutFraction, options.seed ?? 7);
     const calibrator = createIsotonicCalibrator(version, headId as never);
-    calibrator.update(fit.map((d) => ({ predicted: d.predicted, observed: d.observed, weight: 1 })));
+    calibrator.update(
+      fit.map((d) => ({ predicted: d.predicted, observed: d.observed, weight: 1 }))
+    );
 
-    const fittedECE = identityECE(holdout.map((d) => ({ ...d, predicted: calibrator.calibrate(d.predicted) })));
+    const fittedECE = identityECE(
+      holdout.map((d) => ({ ...d, predicted: calibrator.calibrate(d.predicted) }))
+    );
     const baselineECE = identityECE(holdout);
     if (fittedECE >= baselineECE) improved = false;
 
@@ -166,7 +186,9 @@ export function fitCalibrationLock(
       abstainThreshold: threshold,
       ece: fittedECE,
       fitted: calibrator.fitted,
-      points: calibrator.getPoints().map((p) => ({ predicted: p.predicted, observed: p.observed, weight: p.weight })),
+      points: calibrator
+        .getPoints()
+        .map((p) => ({ predicted: p.predicted, observed: p.observed, weight: p.weight })),
     });
   }
 

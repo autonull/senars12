@@ -23,11 +23,6 @@ const CHAINS: Record<LMProviderName, Record<LMTask, SeNARSModelId[]>> = {
     fast: ['builtin:mock'],
     structured: ['builtin:mock'],
   },
-  ollama: {
-    quality: ['local:quality', 'builtin:quality', 'builtin:compact', 'builtin:mock'],
-    fast: ['local:fast', 'builtin:compact', 'builtin:mock'],
-    structured: ['local:quality', 'builtin:compact', 'builtin:mock'],
-  },
   llamacpp: {
     // Explicit provider: authoritative, no silent CPU fallback rungs.
     quality: ['llamacpp:quality'],
@@ -41,19 +36,19 @@ const CHAINS: Record<LMProviderName, Record<LMTask, SeNARSModelId[]>> = {
     structured: ['llamacpp-embedded:structured'],
   },
   anthropic: {
-    quality: ['cloud:quality', 'local:quality', 'builtin:quality', 'builtin:mock'],
-    fast: ['cloud:fast', 'local:fast', 'builtin:compact', 'builtin:mock'],
-    structured: ['cloud:structured', 'local:quality', 'builtin:compact', 'builtin:mock'],
+    quality: ['cloud:quality', 'builtin:quality', 'builtin:mock'],
+    fast: ['cloud:fast', 'builtin:compact', 'builtin:mock'],
+    structured: ['cloud:structured', 'builtin:compact', 'builtin:mock'],
   },
   openai: {
-    quality: ['cloud:quality', 'local:quality', 'builtin:quality', 'builtin:mock'],
-    fast: ['cloud:fast', 'local:fast', 'builtin:compact', 'builtin:mock'],
-    structured: ['cloud:structured', 'local:quality', 'builtin:compact', 'builtin:mock'],
+    quality: ['cloud:quality', 'builtin:quality', 'builtin:mock'],
+    fast: ['cloud:fast', 'builtin:compact', 'builtin:mock'],
+    structured: ['cloud:structured', 'builtin:compact', 'builtin:mock'],
   },
   'openai-compatible': {
-    quality: ['cloud:quality', 'local:quality', 'builtin:quality', 'builtin:mock'],
-    fast: ['cloud:fast', 'local:fast', 'builtin:compact', 'builtin:mock'],
-    structured: ['cloud:structured', 'local:quality', 'builtin:compact', 'builtin:mock'],
+    quality: ['cloud:quality', 'builtin:quality', 'builtin:mock'],
+    fast: ['cloud:fast', 'builtin:compact', 'builtin:mock'],
+    structured: ['cloud:structured', 'builtin:compact', 'builtin:mock'],
   },
   webllm: {
     quality: ['webllm:quality', 'builtin:quality', 'builtin:compact', 'builtin:mock'],

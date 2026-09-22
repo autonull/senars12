@@ -44,7 +44,7 @@ export {
   getCircuitBreaker,
   getEffectiveCircuitConfig,
   probeCloudProvider,
-  probeOllama,
+  probeOpenAICompatible,
   recordProviderCall,
   resetCircuitBreakers,
   resolveActiveProvider,
