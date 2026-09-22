@@ -11,7 +11,7 @@
  *   LM_PROVIDER=mock pnpm exec tsx scripts/fundamentals-bench.ts  # CI
  */
 
-import { createNAR, createNAR } from '@senars/nar';
+import { createNAR } from '@senars/nar';
 import { createSeNARSRegistry } from '@senars/nar/lm';
 import { createLMService, createMockLMService } from '@senars/nar/lm/lm-service';
 import { createRule } from '@senars/nar/lm/rule-builders';

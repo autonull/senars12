@@ -337,14 +337,27 @@ export function validateParameters(params: Partial<CognitiveParameters>): {
 /**
  * Merge partial parameters with defaults
  */
+/** Shallow-merge over defaults, copying mutable nested leaves — a knob writing
+ *  through a shared `ranking`/`ruleCategories` reference would otherwise mutate
+ *  the module default (isolate:false test pollution, F5 ParameterTable seeds). */
+function mergeNested<T extends object>(base: T, over: Partial<T> | undefined, nested: (keyof T)[]): T {
+  const out: T = { ...base, ...over };
+  for (const k of nested) {
+    const v = out[k];
+    if (v && typeof v === 'object' && !Array.isArray(v)) out[k] = { ...(v as object) } as never;
+  }
+  return out;
+}
+
 export function mergeParameters(partial: Partial<CognitiveParameters>): CognitiveParameters {
+  const d = DEFAULT_COGNITIVE_PARAMETERS;
   return {
-    priority: { ...DEFAULT_COGNITIVE_PARAMETERS.priority, ...partial.priority },
-    lm: { ...DEFAULT_COGNITIVE_PARAMETERS.lm, ...partial.lm },
-    attention: { ...DEFAULT_COGNITIVE_PARAMETERS.attention, ...partial.attention },
-    inference: { ...DEFAULT_COGNITIVE_PARAMETERS.inference, ...partial.inference },
-    modelRunner: { ...DEFAULT_COGNITIVE_PARAMETERS.modelRunner, ...partial.modelRunner },
-    memory: { ...DEFAULT_COGNITIVE_PARAMETERS.memory, ...partial.memory },
+    priority: { ...d.priority, ...partial.priority },
+    lm: mergeNested(d.lm, partial.lm, ['ruleCategories']),
+    attention: { ...d.attention, ...partial.attention },
+    inference: mergeNested(d.inference, partial.inference, ['ranking']),
+    modelRunner: { ...d.modelRunner, ...partial.modelRunner },
+    memory: { ...d.memory, ...partial.memory },
     strategies: {
       ...DEFAULT_COGNITIVE_PARAMETERS.strategies,
       ...partial.strategies,

@@ -34,6 +34,7 @@
     "test:watch": "vitest",
     "test:integration": "vitest run --dir tests/integration",
     "test:e2e:smoke": "VITEST_E2E=1 vitest run tests/e2e/agent-smoke.test.ts tests/e2e/metta-smoke.test.ts",
+    "test:e2e:bin": "LM_PROVIDER=llamacpp-embedded LM_LLAMACPP_MODEL=.models/Qwen3.5-0.8B-Q4_0.gguf LM_LLAMACPP_GPU=false VITEST_E2E=1 vitest run --pool=forks tests/e2e/bin-lifecycle.test.ts",
     "test:cognitive": "LM_PROVIDER=mock vitest run --dir tests/cognitive",
     "test:cognitive:real": "vitest run --dir tests/cognitive",
     "test:conversational": "NODE_NO_WARNINGS=1 tsx tests/conversational/runner.ts",

@@ -65,7 +65,7 @@ describe('System One — Provisional Stamps (Bench 5)', () => {
       new DeterministicManifold(),
       manifold,
       new DeterministicManifold(),
-      new StubCortex(),
+      new StubCortex('stub', false),
       true,
       { embeddingCache: cache }
     );
@@ -95,7 +95,7 @@ describe('System One — Provisional Stamps (Bench 5)', () => {
       new DeterministicManifold(),
       manifold,
       new DeterministicManifold(),
-      new StubCortex(),
+      new StubCortex('stub', false),
       true,
       { embeddingCache: cache }
     );
@@ -163,7 +163,7 @@ describe('System One — Provisional Stamps (Bench 5)', () => {
       new DeterministicManifold(),
       failingManifold,
       new DeterministicManifold(),
-      new StubCortex(),
+      new StubCortex('stub', false),
       true,
       { embeddingCache: cache }
     );

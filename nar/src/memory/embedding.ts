@@ -57,7 +57,19 @@ export class MockEmbeddingGenerator implements EmbeddingGenerator {
   }
 }
 
-export function createEmbeddingGenerator(useMock = false, config?: Partial<EmbeddingGeneratorConfig>): EmbeddingGenerator {
+/**
+ * Transformers (`MiniLM`) is the only real embedder and only ships with the
+ * transformers provider; any other posture (llamacpp-embedded, ollama, mock)
+ * degrades honestly to the deterministic generator rather than dragging a
+ * second heavy runtime into the process (onnxruntime crashes under vitest
+ * worker pools and cold loads cost minutes).
+ */
+export const isMockLM = (): boolean => getLMSettings().provider !== 'transformers';
+
+export function createEmbeddingGenerator(
+  useMock: boolean = isMockLM(),
+  config?: Partial<EmbeddingGeneratorConfig>
+): EmbeddingGenerator {
   if (useMock) return new MockEmbeddingGenerator(config?.dimension ?? DEFAULT_EMBEDDING_DIMENSION);
   return new TransformersEmbeddingGenerator(config?.modelId, config?.dimension);
 }

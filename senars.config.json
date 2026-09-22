@@ -36,14 +36,6 @@
         "quality": "max"
       }
     },
-    "candidates": [
-      "cloud:quality",
-      "cloud:fast",
-      "cloud:structured",
-      "builtin:quality",
-      "builtin:fast",
-      "builtin:compact"
-    ],
     "offlineLadder": [
       "HuggingFaceTB/SmolLM2-135M-Instruct",
       "HuggingFaceTB/SmolLM2-360M-Instruct",

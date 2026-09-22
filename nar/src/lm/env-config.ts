@@ -183,10 +183,12 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
     llamacppSequences: env('LM_LLAMACPP_SEQS')
       ? Number(env('LM_LLAMACPP_SEQS'))
       : file?.llamacppSequences,
+    // D7-adjacent: FA default true (KV-cache padding path without it is
+    // segv-prone on hybrid-attention models); an explicit env value wins.
     llamacppFlashAttention:
-      ['1', 'true'].includes(env('LM_LLAMACPP_FLASH_ATTN') ?? '') ??
-      file?.llamacppFlashAttention ??
-      true,
+      env('LM_LLAMACPP_FLASH_ATTN') !== undefined
+        ? ['1', 'true'].includes(env('LM_LLAMACPP_FLASH_ATTN') ?? '')
+        : (file?.llamacppFlashAttention ?? true),
     apiKeyEnv: file?.apiKeyEnv ?? cloudCredentialEnv,
     quantized: file?.quantized,
     cacheDir: file?.cacheDir,

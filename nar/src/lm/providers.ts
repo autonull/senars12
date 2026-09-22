@@ -465,6 +465,10 @@ const CHAINS: Record<LMProviderName, Record<LMTask, SeNARSModelId[]>> = {
 };
 
 export function getModelChain(provider: LMProviderName, task: LMTask): SeNARSModelId[] {
+  // Mock provider is the test/offline posture: configured routing candidates
+  // must not bypass it (a stale senars.config.json would otherwise route a
+  // mock lane onto builtin transformers models with minutes-long cold loads).
+  if (provider === 'mock') return CHAINS.mock[task];
   const c = routing?.candidates;
   if (c?.length) {
     const obj = routing?.objectives?.[task];

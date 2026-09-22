@@ -47,9 +47,12 @@ export { DeterministicManifold, Tier3SymbolicManifold };
 
 export class StubCortex implements GenerativeCortex {
   readonly #provider: string;
+  /** True when the stub is a placeholder (no generative backend behind it). */
+  readonly isPlaceholder: boolean;
 
-  constructor(provider: string = 'off') {
+  constructor(provider: string = 'off', isPlaceholder = provider === 'off') {
     this.#provider = provider;
+    this.isPlaceholder = isPlaceholder;
   }
 
   async *synthesize(
@@ -217,10 +220,15 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     query: SynthesisQuery,
     budget: ReasoningBudget
   ): AsyncGenerator<SynthesisProposition> {
+    // TODO19 honest-defaults: an absent cortex is absent — placeholder
+    // candidates must never reach proposeAndJudge's admission path (they
+    // would otherwise be committed to memory as beliefs). The disabled-
+    // dispatcher fallback below keeps the Bench-13 stub contract.
     if (!this.#enabled) {
       yield* this.#cortex.synthesize(context, query, budget);
       return;
     }
+    if (this.#cortex instanceof StubCortex && this.#cortex.isPlaceholder) return;
     try {
       yield* this.#cortex.synthesize(context, query, budget);
     } catch {

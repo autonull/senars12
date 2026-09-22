@@ -1018,7 +1018,7 @@ export class NAR extends BaseComponent {
       systemOneConfig.manifold && !('judgeBatch' in systemOneConfig.manifold)
         ? (systemOneConfig.manifold as SystemOneConfigSchema['manifold']).encoder
         : undefined;
-    const encoder = createEmbeddingGenerator(false, encoderConfig);
+    const encoder = createEmbeddingGenerator(undefined, encoderConfig);
     this._systemOneEmbeddingCache =
       systemOneConfig.embeddingCache ??
       createEmbeddingCache({

@@ -108,7 +108,7 @@
 **Phase A:** C1 registries · C2 sensors · C3 actions · C4 rewards · C5 MetaGame collapse → [x] Bench 43 ✅ (`nar/src/cognition/`)
 **Phase B:** R1 specs · R2 tiers · R3 ReasoningMetaGame · R4 falsification set → [x] Bench 44 ✅ (R4.7 covered by L4)
 **Phase C:** L1 veto demotion · L2 MC-return LabelSource · L3 cross-game head · L4 SchemaStore → [x] Bench 45 ✅ (L3 real bake-off landed — see session 3 notes)
-**Phase D:** P1 NAL A/B ✅ · P2 SDE verify cascade + consensus fan-out budget knob ✅ (`nar/src/lm/system-one/verify.ts`) · P3 landed (`nar/src/lm/system-one/cascade-reflex.ts`, wired at `scripts/arcade.ts:155`) · P4 arcade replay HTML report ✅ (`scripts/arcade-replay.ts`, `pnpm arcade:replay`) · P5 external-env example + builder third-profile smoke ✅ (`examples/external-env.ts`) · P6 fast/slow lanes ✅ · P7 landed (`withDeviceHead` builder step — see session 3 notes) → [x] Bench 46 ✅
+**Phase D:** P1 NAL A/B ✅ · P2 SDE verify cascade + consensus fan-out budget knob ✅ (`nar/src/lm/system-one/verify.ts`) · P3 landed (`nar/src/lm/system-one/cascade-reflex.ts`, wired at `scripts/arcade.ts:155`) · P4 arcade replay HTML report ✅ (`scripts/arcade-replay.ts`, `pnpm arcade:replay`) · P5 external-env example + builder third-profile smoke ✅ (`examples/external-env.ts`) · P6 fast/slow lanes ✅ · P7 landed (`withDeviceHead` builder step — see session 3 notes) · bin-lifecycle lane resolved on real llama.cpp (`pnpm test:e2e:bin`, session 5) → [x] Bench 46 ✅
 
 ### Progress Notes (2026-09-21 — implementation session)
 
@@ -135,7 +135,46 @@
   - ~~**P3**~~ → already landed in `cascade-reflex.ts` + `scripts/arcade.ts` (session 3 audit).
   - ~~**P7**~~ → **landed** (session 3, below).
   - ~~**SeNARSFactory deletion**~~ → **landed** (session 4, below): call sites migrated, class deleted,
-    kernel-construction helpers retained as plain functions for tests/benches.
+  kernel-construction helpers retained as plain functions for tests/benches.
+- **Progress (fifth session, 2026-09-22): bin-lifecycle lane resolved — reasoning on real llama.cpp.**
+  - The e2e "deadlock" was a chain of five defects, each masking the next; all landed:
+    1. **Stale config routing** — `senars.config.json` `routing.candidates` (cloud/builtin rungs)
+       overrode the provider chain, so `structured` LM rules routed to *builtin transformers*
+       (minutes-long cold loads, the `Napi::Error` teardown core dump). The stale `candidates`
+       block is deleted; `getModelChain` now short-circuits `mock` to the mock chain so a test
+       posture can never be defeated by config data.
+    2. **Embeddings ride the provider rails** — `createEmbeddingGenerator()` defaults via
+       `isMockLM()` (provider ≠ transformers ⇒ deterministic generator). onnxruntime no longer
+       loads in llamacpp/mock postures (it crashed vitest workers and doubled cold starts).
+    3. **Honest-defaults for synthesis (F5)** — an 'off' cortex is absent:
+       `SystemOneDispatcher.synthesize` yields nothing for the placeholder stub. Previously the
+       stub's `candidate_1..3` were manifold-ranked and *committed into memory as beliefs*
+       (`+ candidate_3.` responses). Bench-5 stub semantics preserved via
+       `new StubCortex('stub', false)` (explicit opt-in); disabled-dispatcher fallback keeps
+       the Bench-13 contract.
+    4. **Embedded llama serialization** — one llama context backs 4 task-model instances;
+       concurrent `promptWithMeta` calls (structured + fast simultaneously) raced the native
+       runtime → intermittent SIGSEGV 139 (children *and* vitest workers). Calls now serialize
+       through a single module-global chain (`embedded-llamacpp.ts`).
+    5. **`LM_LLAMACPP_FLASH_ATTN` parse bug** — `['1','true'].includes(env ?? '')` is
+       false-when-unset and `?? true` never fell through: FA was *always off*, forcing the
+       llama.cpp KV-cache padding path on hybrid-attention models. Now explicit env → file → true.
+  - **`mergeParameters` deep-copy bug (F5 follow-up)** — nested `inference.ranking` and
+    `lm.ruleCategories` were shared by reference with `DEFAULT_COGNITIVE_PARAMETERS`; knob
+    writes (RLFPLearner/ParameterTable) mutated the module default, polluting
+    `derivation-ranking.test` under `isolate:false`. `mergeParameters` now copies mutable
+    nested leaves (`mergeNested` helper).
+  - **Lane rewritten** (`tests/e2e/bin-lifecycle.test.ts` + `drivers/bin-lifecycle-driver.ts`):
+    each bin's lifecycle (healthy → Narsese chat → clean stop) runs in a dedicated child process
+    via `pnpm test:e2e:bin` — forks pool, `LM_PROVIDER=llamacpp-embedded`,
+    `LM_LLAMACPP_MODEL=.models/Qwen3.5-0.8B-Q4_0.gguf`, AIKR-bounded `maxRules: 3`. 6/6 green,
+    ~4 min. Driver exits naturally (no `process.exit(0)` — forced exit truncated stdout or
+    segfaulted llama teardown). Full `pnpm test:unit` green (208 files, 1772 tests);
+    typecheck + lint clean (fixed a pre-existing duplicate-import lint error in
+    `scripts/fundamentals-bench.ts` left by the session-4 factory migration).
+  - Notes for the next session: the llama GPU path is untested here (lane pins `GPU=false` —
+    CPU on a 0.8B is fast enough); `embedded-llamacpp.ts` header comment still references the
+    vitest-worker observation — the serialization is now justified by the shared context itself.
 - **Progress (second session, 2026-09-21):**
   - **P2 landed** as `nar/src/lm/system-one/verify.ts`: `verifyCascade` (SDE-style — stage-1
     `truthProbability` routes through `ConfidenceRouter` bands; stage-2 evidential verification only on
@@ -245,6 +284,13 @@ One seam: reasoning IS a game — and the tournament table knows it.
 
 ### Improvement Notes (non-binding; revisit at phase boundaries)
 
+- **Embedded llama concurrency — deliberately serialized (session 5).** The embedded runtime
+  exposes one context with N sequences but no safe cross-task dispatch; the single global call
+  chain in `embedded-llamacpp.ts` is the honest model. If parallel generation is ever earned
+  (arcade fan-out at scale), the seam is `createSequence`-per-task with per-sequence session
+  pools — not concurrent `promptWithMeta` on ad-hoc sequences. GPU acceleration is the cheaper
+  first lever (`LM_LLAMACPP_GPU`, untested here).
+
 - **GPU/TS training backends (considered 2026-09-21).** PyTorch-like options for the in-house trainer (`nar/src/lm/system-one/train.ts`): **TensorFlow.js** (`tfjs-node-gpu` CUDA binding; WebGPU backend for browser/device contexts) is the only mature TS-native *training* framework; **ONNX Runtime** is inference-first (training requires Python-exported models — doesn't help author loops in TS); raw **WebGPU compute shaders** are a zero-dependency middle path (hand-written matmul/SGD kernel, fits the WASI/device story, P7). Burn/Candle/MLX rejected (not TS). Current heads are linear/logistic over a frozen backbone — GPU is pure overhead at this scale. Only earn it if Phase C bake-offs demand MLP reward models or sequence-level value heads. If adopted: parameterize `train.ts` behind a `HeadTrainerBackend` interface (`in-house-sgd` default, optional tfjs backend), falsified by identical weights digests on small problems + wall-clock parity at current scale. Deliberately *not* a plan item: the backend abstraction is a second trainer if we never need it.
 - **transformers.js toolChoice limitation — RESOLVED (2026-09-21).** `localModel` (`nar/src/lm/providers.ts`)
   now wraps the transformersJS model in a `wrapLanguageModel` middleware that strips `toolChoice`
@@ -260,12 +306,11 @@ One seam: reasoning IS a game — and the tournament table knows it.
   minutes-long cold loads, and a native `Napi::Error` core dump in the e2e lane.
 - ~~**`@senars/nar/factory` subpath**~~ → **resolved** (session 4): the factory module was deleted
   (`nar-presets.ts` now holds the kernel presets); the undeclared subpath and its importers are gone.
-- **e2e bin-lifecycle lane — DEADLOCK (not cold-load; the session-3 hypothesis was wrong).**
-  `nar.run(1)` never returns inside `reasoner.step` (`nar/src/reason/reasoner.ts`) for the
-  NARBuilder-assembled NAR from `createAgentFromEnv` — **independent of LM provider** (mock and warm
-  transformers both hang; a bare `new NAR` with the same config runs fine). The delta lives in what
-  `createAgent`/builder wiring adds beyond the bare NAR. The lane stays excluded from `test:unit`;
-  `tests/e2e/bin-lifecycle.test.ts` now defaults `LM_PROVIDER ??= 'mock'` for when the deadlock is
-  fixed. Fixing the deadlock is the top follow-up.
+- ~~**e2e bin-lifecycle lane — DEADLOCK**~~ → **RESOLVED (session 5, above).** Root cause was not
+  cold-load: stale `senars.config.json` routing candidates routed LM rules to builtin
+  transformers, and the placeholder-stub synthesis + native race + FA parse bug layered on top.
+  The lane now runs real llama.cpp reasoning per-bin as child processes (`pnpm test:e2e:bin`),
+  and the reasoning path itself is verified end-to-end (`+ (cat --> mammal).` from a believe →
+  derive → echo cycle through the System One translation rule).
 
 *Proposal rationale lives in TODO18.md (§1 component library, §1.5 NARBuilder); this file is the executable plan.*

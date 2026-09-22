@@ -1,56 +1,57 @@
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { type AgentFromEnvOptions, createAgentFromEnv } from '../../src/bin/lib/lifecycle';
+import { execFile } from 'node:child_process';
+import { describe, expect, it } from 'vitest';
+import { fileURLToPath } from 'node:url';
 
-// The transformers.js provider cold-loads a model on this lane (15s timeout
-// risk); mock resolves instantly and echoes the prompt (the 'cat' assertion
-// holds). An explicit LM_PROVIDER env wins.
-beforeAll(() => {
-  process.env.LM_PROVIDER ??= 'mock';
-});
+// The lane runs one bin's lifecycle per child process (drivers/bin-lifecycle-driver.ts):
+// node-llama-cpp generation segfaults inside vitest workers, and a real child is the
+// honest shape for bin-lifecycle anyway. Default provider is the embedded llama.cpp
+// runtime over a local GGUF (LM_PROVIDER / LM_LLAMACPP_MODEL env wins).
+const root = fileURLToPath(new URL('../..', import.meta.url));
 
 interface BinSpec {
   name: string;
-  options?: AgentFromEnvOptions;
 }
 
 const bins: BinSpec[] = [
-  { name: 'senars', options: { narConfig: { maxConcepts: 100 } } },
+  { name: 'senars' },
   { name: 'repl' },
   { name: 'bot-ai' },
   { name: 'mcp-server' },
-  { name: 'multi-agent', options: { narConfig: { maxConcepts: 50 } } },
-  { name: 'multi-agent-demo', options: { narConfig: { maxConcepts: 50 } } },
+  { name: 'multi-agent' },
+  { name: 'multi-agent-demo' },
 ];
 
-describe('Bin lifecycle E2E (shared createAgentFromEnv substrate)', () => {
-  const created: Awaited<ReturnType<typeof createAgentFromEnv>>[] = [];
-
-  afterEach(async () => {
-    await Promise.all(created.map((c) => c.agent.stop().catch(() => {})));
-    created.length = 0;
+const runDriver = (bin: string): Promise<string> =>
+  new Promise((resolve, reject) => {
+    execFile(
+      process.execPath,
+      ['node_modules/tsx/dist/cli.mjs', 'tests/e2e/drivers/bin-lifecycle-driver.ts'],
+      {
+        cwd: root,
+        timeout: 300_000,
+        killSignal: 'SIGKILL',
+        env: {
+          ...process.env,
+          LANE_BIN: bin,
+          LM_PROVIDER: process.env.LM_PROVIDER ?? 'llamacpp-embedded',
+          LM_LLAMACPP_MODEL: process.env.LM_LLAMACPP_MODEL ?? '.models/Qwen3.5-0.8B-Q4_0.gguf',
+          EPISODIC_MEMORY_PATH: '.cache/e2e-episodes',
+        },
+      },
+      (error, stdout, stderr) => {
+        if (error) reject(new Error(`${stderr || stdout || error.message}`.slice(0, 400)));
+        else resolve(String(stdout));
+      }
+    );
   });
 
-  it.each(bins.map((b) => [b.name, b.options] as const))(
+describe('Bin lifecycle E2E (shared createAgentFromEnv substrate)', () => {
+  it.each(bins.map((b) => [b.name] as const))(
     'bin "%s" starts healthy, responds to Narsese, and shuts down',
-    async (_name, options) => {
-      process.env.EPISODIC_MEMORY_PATH = '.cache/e2e-episodes';
-      const ctx = await createAgentFromEnv(options ?? undefined);
-      created.push(ctx);
-
-      const health = ctx.agent.health();
-      expect(health.status).toBe('healthy');
-
-      const deltas: string[] = [];
-      const gen = ctx.agent.chat('<cat --> mammal>.');
-      for await (const ev of gen) {
-        if (ev.kind === 'text-delta' && ev.text) deltas.push(ev.text);
-      }
-      const response = deltas.join('');
-      expect(response.length).toBeGreaterThan(0);
-      expect(response).toContain('cat');
-
-      await ctx.agent.stop();
-      expect(ctx.agent.health().status).toBe('stuck');
-    }
+    async (bin) => {
+      const stdout = await runDriver(bin);
+      expect(stdout).toContain('ok:');
+    },
+    360_000
   );
 });

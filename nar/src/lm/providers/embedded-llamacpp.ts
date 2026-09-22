@@ -144,6 +144,12 @@ async function ensureRuntimeLoaded(): Promise<void> {
   });
 }
 
+/** Calls serialize process-wide: one shared llama context backs all task
+ *  model instances — concurrent generations contend for its sequences and
+ *  race the native runtime (intermittent SIGSEGV). A single chain also makes
+ *  per-call latency honest. */
+let callChain: Promise<unknown> = Promise.resolve();
+
 const finishReasonFor = (
   stop: 'customStopTrigger' | 'abort' | 'maxTokens' | 'eogToken' | 'stopGenerationTrigger' | 'functionCalls' | undefined
 ): LanguageModelV3GenerateResult['finishReason'] =>
@@ -154,7 +160,7 @@ const finishReasonFor = (
 export function createEmbeddedLlamaCppLanguageModel(
   task: 'quality' | 'fast' | 'structured' | 'compact'
 ): LanguageModel {
-  const run = async (
+  const runSerial = async (
     options: LanguageModelV3CallOptions,
     onDelta?: (text: string) => void
   ): Promise<{
@@ -225,6 +231,15 @@ export function createEmbeddedLlamaCppLanguageModel(
       grammar ? result.responseText || rawChunks : visibleText(result.response) || rawChunks
     ).trim();
     return { text, stopReason: result.stopReason, inputTokens, outputTokens };
+  };
+
+  const run = (
+    options: LanguageModelV3CallOptions,
+    onDelta?: (text: string) => void
+  ): ReturnType<typeof runSerial> => {
+    const pending = callChain.then(() => runSerial(options, onDelta));
+    callChain = pending.catch(() => {});
+    return pending;
   };
 
   const doGenerate: LanguageModelV3['doGenerate'] = async (
