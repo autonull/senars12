@@ -132,9 +132,16 @@ export class Registry implements ToolRegistry {
       }
     }
 
-    for (const [key, value] of Object.entries(args)) {
-      const prop = schema.properties?.[key];
-      if (prop) {
+    // Unknown-key rejection is schema-driven (S1): a tool that declares no
+    // properties is a documented passthrough; a tool that declares parameters
+    // rejects undeclared keys at the boundary.
+    const declared = schema.properties ?? {};
+    if (Object.keys(declared).length > 0) {
+      for (const [key, value] of Object.entries(args)) {
+        const prop = declared[key];
+        if (!prop) {
+          throw new ToolError(`Unknown parameter: ${key}`, { tool: schema.type, parameter: key });
+        }
         this.validateType(key, value, prop);
       }
     }

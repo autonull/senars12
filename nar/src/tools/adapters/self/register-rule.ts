@@ -7,7 +7,7 @@ export const registerRuleTool = ({ deps, shadowManager, worktreeId }: SelfToolsC
   tool({
     description:
       'Register a new inference rule in the NAR rule processor. Takes a schema ID and promotes it to an active rule. Supports worktree reuse.',
-    inputSchema: z.object({
+    inputSchema: z.strictObject({
       schemaId: z.string().describe('Schema identifier to promote (e.g., "schema_42")'),
       ruleCode: z
         .string()

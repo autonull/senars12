@@ -22,7 +22,8 @@ export type ErrorCode =
   | 'GATE_DENIED'
   | 'BUDGET_EXCEEDED'
   | 'DIGEST_MISMATCH'
-  | 'SCHEMA_INDUCTION';
+  | 'SCHEMA_INDUCTION'
+  | 'LM_OUTPUT_TOO_LARGE';
 
 export class SenarsError extends Error {
   constructor(

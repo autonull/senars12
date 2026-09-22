@@ -159,7 +159,7 @@ export function createTestRunnerTools(deps: TestRunnerDeps = {}) {
     run_tests: tool({
       description:
         'Run vitest tests in background and inject results into episodic memory. Returns test metrics for RLFP reward calculation.',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         testPath: z.string().optional().describe('Specific test file or directory to run'),
         includeCoverage: z.boolean().optional().default(false).describe('Include coverage data'),
         injectEpisodes: z

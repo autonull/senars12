@@ -20,7 +20,7 @@ export function createRagQueryTools(deps: RagQueryDeps) {
     rag_query: tool({
       description:
         'Semantic search over episodic memory. Embeds the query and returns the most relevant past episodes by meaning, not just keywords.',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         query: z.string().describe('The search query for semantic matching'),
         limit: z.number().min(1).max(20).optional().default(topK).describe('Number of results'),
         typeFilter: z

@@ -6,7 +6,7 @@ import type { SelfToolsContext } from './context.js';
 export const runTestsShadowTool = ({ shadowManager, worktreeId }: SelfToolsContext) =>
   tool({
     description: 'Run tests in a shadow worktree for validation without affecting main branch.',
-    inputSchema: z.object({
+    inputSchema: z.strictObject({
       testPath: z.string().optional().describe('Specific test file or directory'),
       worktreeId: z.string().optional().describe('Existing worktree ID to use'),
     }),
@@ -112,7 +112,7 @@ export const runTestsShadowTool = ({ shadowManager, worktreeId }: SelfToolsConte
 export const runScenarioShadowTool = ({ deps }: SelfToolsContext) =>
   tool({
     description: 'Run a cognitive scenario in a shadow worktree for validation.',
-    inputSchema: z.object({
+    inputSchema: z.strictObject({
       seed: z.string().describe('Scenario seed/intent'),
       profile: z
         .enum([

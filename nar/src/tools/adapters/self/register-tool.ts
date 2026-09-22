@@ -7,7 +7,7 @@ export const registerToolTool = ({ deps, shadowManager, worktreeId }: SelfToolsC
   tool({
     description:
       'Register a new tool in the ToolManager. Tool implementation is validated in shadow worktree. Supports worktree reuse.',
-    inputSchema: z.object({
+    inputSchema: z.strictObject({
       toolName: z.string().describe('Name of the tool to register'),
       toolCode: z.string().describe('Tool implementation as TypeScript code'),
       schema: z.record(z.string(), z.unknown()).describe('JSON Schema for tool input'),

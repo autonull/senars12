@@ -83,7 +83,7 @@ export function createHumanApprovalTool(manager: ApprovalManager) {
     human_approval: tool({
       description:
         'Request human approval before proceeding with an action. Pauses until a human approves or rejects.',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         request: z.string().describe('Clear description of what you want approval for'),
         context: z.string().optional().describe('Additional context to help the human decide'),
       }),

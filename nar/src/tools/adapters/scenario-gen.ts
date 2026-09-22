@@ -29,7 +29,7 @@ export function createScenarioGenTools(deps: ScenarioGenDeps = {}) {
     generate_scenarios: tool({
       description:
         'Generate and execute cognitive scenarios using NL→Narsese→MeTTa pipeline. Tests integrated reasoning under realistic conditions.',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         seed: z
           .string()
           .describe('High-level intent for scenario (e.g., "contradictory sensors under load")'),

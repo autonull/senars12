@@ -59,7 +59,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
   return {
     nar_believe: tool({
       description: 'Add a belief to NARS knowledge base in Narsese format',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         statement: z.string().describe('Narsese statement, e.g., "(cat --> animal)."'),
         truth: z
           .object({
@@ -93,7 +93,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
 
     nar_goal: tool({
       description: 'Add a goal to NARS in Narsese format. Goals drive procedural inference.',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         statement: z.string().describe('Narsese goal statement, e.g., "(call_mom)!"'),
       }),
       execute: async ({ statement }) => {
@@ -112,7 +112,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
 
     nar_query: tool({
       description: 'Query the NARS knowledge base for information about a term',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         term: z.string().describe('Term to query'),
         filter: z
           .object({
@@ -133,7 +133,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
 
     nar_question: tool({
       description: 'Ask a question to NARS and attempt to derive an answer',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         question: z.string().describe('Narsese question, e.g., "(cat --> ?)"'),
         steps: z.number().min(1).max(100).optional().default(10),
       }),
@@ -151,7 +151,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
 
     nar_reason: tool({
       description: 'Run NARS reasoning engine for N steps to derive new beliefs',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         steps: z.number().min(1).max(100).describe('Number of reasoning steps (1-100)'),
       }),
       execute: async ({ steps }) => {
@@ -166,7 +166,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
 
     nar_get_beliefs: tool({
       description: 'Get current beliefs from NARS memory',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         limit: z.number().min(1).max(100).optional().default(20),
         filter: z
           .object({
@@ -198,7 +198,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
 
     nar_get_questions: tool({
       description: 'Get pending questions from NARS that need answers',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         limit: z.number().optional().default(10),
       }),
       execute: async ({ limit = 10 }) => {
@@ -209,7 +209,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
 
     nar_get_attention: tool({
       description: 'Get current attention distribution in NARS memory',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         limit: z.number().optional().default(20),
       }),
       execute: async ({ limit = 20 }) => {
@@ -223,7 +223,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
 
     nar_get_goals: tool({
       description: 'Get current goals from NARS memory',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         limit: z.number().min(1).max(100).optional().default(10),
       }),
       execute: async ({ limit = 10 }) => {
@@ -241,7 +241,7 @@ export function createGeneralTools(deps: {
   return {
     calculate: tool({
       description: 'Perform mathematical calculation',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         expression: z.string().describe('Math expression, e.g., "2 + 2 * 3"'),
       }),
       execute: async ({ expression }) => {
@@ -265,7 +265,7 @@ export function createGeneralTools(deps: {
 
     get_recent_episodes: tool({
       description: 'Get recent episodes from episodic memory',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         limit: z.number().optional().default(10),
         type: z
           .enum(['input', 'response', 'belief_added', 'question', 'tool_call', 'error'])

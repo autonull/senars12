@@ -8,7 +8,7 @@ export function createHTTPFetchTools() {
     http_fetch: tool({
       description:
         'Make HTTP requests. Supports GET, POST, PUT, DELETE. Returns status, headers, and body.',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         url: z.string().describe('Full URL to fetch (http/https only)'),
         method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).optional().default('GET'),
         headers: z.record(z.string(), z.string()).optional().describe('Optional request headers'),

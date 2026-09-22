@@ -7,7 +7,7 @@ export const scaffoldCapabilityTool = ({ deps, shadowManager, worktreeId }: Self
   tool({
     description:
       'Scaffold a new capability from a template. Generates code in shadow worktree, runs tests, requires approval. Supports worktree reuse.',
-    inputSchema: z.object({
+    inputSchema: z.strictObject({
       capabilityId: z.string().describe('Capability identifier (e.g., "web_search")'),
       templateId: z.string().describe('Template to use (e.g., "tool_template", "rule_template")'),
       parameters: z.record(z.string(), z.unknown()).optional().describe('Template parameters'),
@@ -41,7 +41,7 @@ import { z } from 'zod';
 
 export const ${capabilityId} = tool({
   description: '${parameters.description ?? `Auto-generated ${capabilityId} tool`}',
-  inputSchema: z.object({
+  inputSchema: z.strictObject({
     ${
       Object.entries(parameters)
         .map(([k, v]) => `${k}: z.${typeof v === 'string' ? 'string()' : 'unknown()'}`)

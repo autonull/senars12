@@ -6,7 +6,7 @@ export const switchStrategyTool = ({ deps, shadowManager, worktreeId }: SelfTool
   tool({
     description:
       'Switch cognitive strategy (sampling, derivation, attention, etc.). Validates with test run. Supports worktree reuse.',
-    inputSchema: z.object({
+    inputSchema: z.strictObject({
       strategy: z
         .string()
         .describe('Strategy to switch to (e.g., "focused", "exhaustive", "anytime")'),

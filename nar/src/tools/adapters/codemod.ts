@@ -132,7 +132,7 @@ export function createCodemodTools(deps: CodemodDeps = {}) {
     codemod: tool({
       description:
         'Apply structural code modifications using ast-grep. Supports pattern-based search and replace with metavariables (e.g., $X, $V). Returns diff and list of affected files.',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         pattern: z.string().describe('AST pattern to match (e.g., "let $X: any = $V")'),
         replacement: z
           .string()

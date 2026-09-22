@@ -233,14 +233,14 @@ error-type sweep.
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
 Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule (+processor bus typed) (DELIVERED, §5j)  → [x] Bench 62 (19 assertions, M1–M7)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  **PHASE 1 COMPLETE**
 
-NEXT SESSION ENTRY POINT: Phase 7 — S1 validate, S2 shell, S3 wasi, S4 sanitize (tool sandboxing, allow-lists, input sanitization; E3 strict tool schemas already landed in Phase 3). Bench 68 is the acceptance bench. Phase 6 delivered (§5o): `scripts/exports-audit.ts` (consumer-aware gate, 48 speculative exports pruned from exports maps), `scripts/docs-api.ts` → docs/api/, semver + deprecation policy in AGENTS.md, Bench 67 (`tests/nar/todo20-exports.test.ts`). Phase 5 delivered (§5n): strict `appConfigSchema` + `LM_PROVIDER_NAMES` enum, `src/utils/config-migrate.ts` (auto-migrate + write-back in loader), `deepFreeze` on cognitive parameters (`@senars/util/utils/shared` — narrow-path import; the bare `@senars/util` root barrel creates an import cycle back into nar — do NOT import it from nar internals), StateCodec envelopes on StatePersister files + memory state, config:check secrets verification.
+NEXT SESSION ENTRY POINT: Phase 8 — P1 bag-lcg, P2 cache metrics/LRU/FlatCache, P3 negotiator memoization, P4 param write coalescing (Bench 69 `tests/nar/todo20-perf.test.ts`; acceptance: `pnpm bench:fundamentals` ≤10% regression, Bag determinism property test, cache hit-rate >80% in arcade). Note: P1 must follow the §5i RNG-binding rule (bind a stateful RNG instance once, never construct inside the lambda). Phase 7 delivered (§5p): strict tool schemas (`z.strictObject` sweep + Registry unknown-key rejection), `code_exec` disabled-by-default + `SHELL_ALLOWLIST` + `AbortSignal` timeout + traversal-safe cwd containment, `code_exec_wasi` capability-gated sandbox tool, `LMOutputTooLargeError` size caps (`LM_MAX_OUTPUT_CHARS`), `docs/security.md` pen-test checklist, Bench 68 (`tests/nar/todo20-security.test.ts`, 14 tests).
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (DELIVERED, §5k)  → [x] Bench 61b
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (DELIVERED, §5l — E3 scoped to tool boundaries, see note)  → [x] Bench 64
 Phase 4: O1 otel  O2 json-log  O3 health  O4 metrics (DELIVERED, §5m — see deviations: decision-level spans not GateRegistry.* spans; doctor not yet consuming health checks)  → [x] Bench 65
 Phase 5: C1 schema  C2 migrate  C3 freeze  C4 secrets  (+X7 StateCodec) (DELIVERED, §5n)  → [x] Bench 66
 Phase 6: A1 exports  A2 typedoc  A3 semver  A4 deprecation (DELIVERED, §5o — A2 as docs-api generator, TypeDoc blocked on TS7)  → [x] Bench 67
-Phase 7: S1 validate  S2 shell  S3 wasi  S4 sanitize  → [ ] Bench 68
+Phase 7: S1 validate  S2 shell  S3 wasi  S4 sanitize  (DELIVERED, §5p)  → [x] Bench 68
 Phase 8: P1 bag-lcg  P2 cache  P3 negotiator  P4 param-batch  → [ ] Bench 69
 Phase 9: K1 adr  K2 diagrams  K3 guides  K4 runbook  → [ ] Bench 70
 ```
@@ -1023,6 +1023,61 @@ Verified: typecheck clean, lint clean, full `test:unit` green (1,850), `exports:
 - The exports maps now contain only consumed subpaths — when adding a new export, add the entry
   *with* its first consumer in the same change, or `exports:audit` fails CI.
 - TypeDoc revisit when TS7-compatible release lands; typedoc.json in git history has the config shape.
+
+## 5p. Phase 7 delivery note — S1/S2/S3/S4 (2026-09-22)
+
+**Delivered:** Phase 7 security hardening; Bench 68 (`tests/nar/todo20-security.test.ts`, 14 tests);
+`docs/security.md` pen-test checklist. Verified: typecheck 0 new errors, lint clean, full `test:unit`
+green (1,864), deps:gate 72 ok.
+
+### What landed
+
+- **S1** — all 32 AI-SDK tool `inputSchema`s converted `z.object` → `z.strictObject` (Bench 68
+  grep-guards zero bare `inputSchema: z.object(` in `nar/src/tools/`). `Registry.validateArgs` now
+  rejects unknown parameters with `Unknown parameter: <key>` (`ToolError`). **Schema-driven scope
+  ruling**: rejection applies only when the tool declares non-empty `properties` — a tool with
+  `properties: {}` is a documented passthrough (13 test files / 31 sites register passthrough
+  mock tools; declaring params for all would be churn without a real boundary, and no production
+  tool registers empty properties). Revisit if a passthrough tool ever ships in `nar/src`.
+- **S2** — `code-exec.ts` rewritten: **disabled by default** (`createCodeExecTools()` → `{}`; opt-in
+  `enabled: true`, per DQ6 the allow-list defaults to empty and denies everything);
+  `SHELL_ALLOWLIST` env (comma-separated; exact-name or basename match); timeout via
+  `AbortSignal.timeout` passed to `spawn` (kernel kills the child — was `setTimeout`+SIGTERM);
+  cwd containment now uses `containsPath` (segment-aware — closes the `startsWith` sibling-dir
+  traversal bug); `shell: false` preserved. Helper `shellAllowlistFromEnv` is unit-tested.
+- **S3** — new `code_exec_wasi` tool: untrusted WASM through `createWasmModuleSandbox`
+  (`@wasmer/wasi` + MemFS, already a prod dep); no host FS/network unless granted via capability
+  tokens (`wasiAllowedPaths` → `sanitizePreopens`); `assertWasmPathContained` + `withTimeout`
+  (`SandboxTimeoutError`); unknown module fails closed. `node:vm` sandbox stays deprecated
+  (documented not-a-security-boundary).
+- **S4** — `nar/src/lm/service/sanitize.ts`: `enforceLMOutputSize` + `LMOutputTooLargeError`
+  (new `ErrorCode` `LM_OUTPUT_TOO_LARGE`), cap via `LM_MAX_OUTPUT_CHARS` (default 65,536).
+  Enforced in `LMService.generateText` (covers cache hits) and the streaming loop (throw past cap
+  mid-stream). `toolChoice` strip middleware documented (transformers.js never emits legacy
+  `function_call` wire format — source-commented). Narsese grammar validation before admission was
+  already structural (`LMResponseParser.valid` gate + kernel perception gate) — covered by Bench 68.
+
+### Honest deviations
+
+- **Wasmtime fuel/memory metering not available** through the `@wasmer` runtime — S3 limits are
+  wall-clock + MemFS isolation + explicit preopen grants. Revisit when the wasmtime Node binding
+  stabilizes (the root `wasmtime` dep is a v0.0.2 stub).
+- **WASI tool does not capture module stdout/stderr** — `@wasmer` MemFS output wiring is not
+  plumbed; the tool reports exit status/duration/errors. Capturing requires a custom stdout fd
+  shim; deferred until a consumer needs it (§5a rule).
+- **`createCodeExecTools` had zero consumers** before this change (only the barrel export), so the
+  disabled-by-default change breaks nothing; any future registration site must opt in explicitly.
+
+### Follow-ups / improvement opportunities
+
+- `aisdk-adapter.ts:249` and `mcp-tools.ts:109` evaluate arithmetic expressions via `Function()`
+  behind regex sanitizers — acceptable for constrained arithmetic, but a WASI math evaluator would
+  remove the eval seam entirely (candidate for a Phase 8/9 pass).
+- `Registry.validateArgs` passthrough ruling should be encoded in `tools/types.ts` `Schema` docs
+  (`additionalProperties` semantics) when that type is next touched.
+- `code_exec_wasi` output capture (custom fd shim) if a real consumer appears.
+- `LM_MAX_OUTPUT_CHARS` could feed an `lm.output_truncated` OTel attribute on enforcement —
+  currently the throw surfaces through existing failure metrics.
 
 ## 6. Definition of Done
 

@@ -13,7 +13,7 @@ export function createWebSearchTools(deps: WebSearchDeps = {}) {
   return {
     web_search: tool({
       description: 'Search the web for current information. Returns snippets and URLs.',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         query: z.string().describe('The search query'),
         count: z.number().min(1).max(20).optional().default(5).describe('Number of results (1-20)'),
       }),

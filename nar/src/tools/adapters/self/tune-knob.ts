@@ -6,7 +6,7 @@ export const tuneKnobTool = ({ deps, shadowManager, worktreeId }: SelfToolsConte
   tool({
     description:
       'Tune a cognitive knob via RLFP. Applies tuning update and validates with tests. Supports worktree reuse.',
-    inputSchema: z.object({
+    inputSchema: z.strictObject({
       knob: z.string().describe('Knob to tune (e.g., "maxDerivationsPerStep")'),
       value: z.number().describe('New value for the knob'),
       reason: z.string().optional().describe('Reason for tuning'),

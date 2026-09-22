@@ -6,7 +6,7 @@ export const applyFixTool = ({ deps, shadowManager, worktreeId }: SelfToolsConte
   tool({
     description:
       'Apply a semantic fix pattern to fix a test failure. Uses fix_pattern concepts mapped to codemod patterns. Executes in shadow worktree with test validation. Supports worktree reuse.',
-    inputSchema: z.object({
+    inputSchema: z.strictObject({
       fixPattern: z.string().describe('Fix pattern concept (e.g., "fix_pattern:null_check")'),
       targetFiles: z.array(z.string()).optional().describe('Specific files to apply fix to'),
       testName: z.string().optional().describe('Test that failed (for context)'),

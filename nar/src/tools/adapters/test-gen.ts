@@ -122,7 +122,7 @@ export function createTestGenTools(deps: TestGenDeps = {}) {
     generate_tests: tool({
       description:
         'Generate property-based tests from Zod schemas using fast-check. Creates test files in tests/generated/.',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         schemaName: z
           .enum(['ToolSpec', 'ConnectionConfig', 'AgentOptions'])
           .describe('Name of the schema to generate tests for'),

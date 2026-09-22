@@ -26,7 +26,7 @@ export function createFileSystemTools(deps: FileSystemDeps) {
   return {
     fs_read: tool({
       description: 'Read a file from the workspace. Returns file contents as text.',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         path: z.string().describe('File path relative to workspace root'),
       }),
       execute: async ({ path }) => {
@@ -50,7 +50,7 @@ export function createFileSystemTools(deps: FileSystemDeps) {
     fs_write: tool({
       description:
         'Write content to a file in the workspace. Creates parent directories if needed.',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         path: z.string().describe('File path relative to workspace root'),
         content: z.string().describe('Content to write'),
       }),

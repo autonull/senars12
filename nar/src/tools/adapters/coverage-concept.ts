@@ -116,7 +116,7 @@ export function createCoverageConceptTools(deps: CoverageConceptDeps = {}) {
     coverage_concepts: tool({
       description:
         'Run tests with coverage and inject low-coverage files as high-priority concepts into NAR memory. Files with coverage < threshold get priority = 1 - coverage.',
-      inputSchema: z.object({
+      inputSchema: z.strictObject({
         testPath: z.string().optional().describe('Specific test file or directory to run'),
         threshold: z
           .number()

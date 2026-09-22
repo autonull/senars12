@@ -24,6 +24,7 @@ import {
 import { createLMStats, recordLMCall } from '../stats.js';
 import { buildCacheKey, ResponseCache } from './cache.js';
 import { isTransportError, LMUnavailableError, withHint, withRetry } from './errors.js';
+import { enforceLMOutputSize, LMOutputTooLargeError, maxLMOutputChars } from './sanitize.js';
 import { type ProviderSpend, SpendLedger } from './spend.js';
 import { generateObjectViaText } from './structured.js';
 
@@ -137,7 +138,7 @@ export class LMService implements ILMService {
   ): Promise<string> {
     return withSpan('lm.generate_text', { 'lm.task': opts?.task ?? 'fast' }, async (span) => {
       const start = Date.now();
-      const text = await this.generateTextInner(prompt, opts);
+      const text = enforceLMOutputSize(await this.generateTextInner(prompt, opts));
       span.setAttributes({ 'lm.latency_ms': Date.now() - start, 'lm.output_chars': text.length });
       return text;
     });
@@ -390,6 +391,7 @@ export class LMService implements ILMService {
     let out = 0;
     let yielded = false;
     let lastError: unknown;
+    const outputLimit = maxLMOutputChars();
     // D5: one silent retry only if the stream failed before any chunk was
     // yielded (post-yield retries would duplicate output).
     for (let attempt = 0; attempt < 2 && !yielded; attempt++) {
@@ -398,6 +400,7 @@ export class LMService implements ILMService {
         for await (const chunk of result.textStream) {
           yielded = true;
           out += chunk.length;
+          if (out > outputLimit) throw new LMOutputTooLargeError(out, outputLimit);
           yield chunk;
         }
         // D5: stream pays the same spend toll as generate.

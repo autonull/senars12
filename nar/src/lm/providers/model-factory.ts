@@ -30,6 +30,10 @@ import { resolveOfflineTier } from './routing.js';
 import { getLMSettings } from './settings.js';
 import { detectDevice, getWebLLMRuntime } from './webllm.js';
 
+// S4 (TODO20): strip tool-calling directives local models cannot honor —
+// prevents spoofed function-call payloads from leaking into responses.
+// (`function_call` is legacy OpenAI wire format; the transformers.js provider
+// never emits it, so `toolChoice` is the only strip point needed here.)
 const stripUnsupportedToolChoice = (): LanguageModelMiddleware => ({
   transformParams: async ({ params }) => ({ ...params, toolChoice: undefined }),
 });
