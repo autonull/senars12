@@ -1,0 +1,315 @@
+graph TD
+  _["."]
+  agent["agent"]
+  bag["bag"]
+  capability["capability"]
+  cognition["cognition"]
+  cognitive["cognitive"]
+  cognitive_analyzers["cognitive/analyzers"]
+  commands["commands"]
+  config["config"]
+  cooperation["cooperation"]
+  drives["drives"]
+  engine["engine"]
+  errors["errors"]
+  eval["eval"]
+  events["events"]
+  focus["focus"]
+  game["game"]
+  gates["gates"]
+  governance["governance"]
+  health["health"]
+  imagination["imagination"]
+  kernel["kernel"]
+  learning["learning"]
+  lifecycle["lifecycle"]
+  lm["lm"]
+  lm_context["lm/context"]
+  lm_grammars["lm/grammars"]
+  lm_providers["lm/providers"]
+  lm_rule["lm/rule"]
+  lm_rule-selectors["lm/rule-selectors"]
+  lm_rule-templates["lm/rule-templates"]
+  lm_runtime["lm/runtime"]
+  lm_service["lm/service"]
+  lm_system-one["lm/system-one"]
+  lm_system-one_heads["lm/system-one/heads"]
+  logger["logger"]
+  memory["memory"]
+  memory_lifecycle["memory/lifecycle"]
+  memory_links["memory/links"]
+  memory_pressure["memory/pressure"]
+  memory_state["memory/state"]
+  metrics["metrics"]
+  nar["nar"]
+  nl["nl"]
+  nl_prompts["nl/prompts"]
+  otel["otel"]
+  query["query"]
+  reason["reason"]
+  reason_premise["reason/premise"]
+  reason_strategies["reason/strategies"]
+  reflex["reflex"]
+  rl["rl"]
+  rl_adapters["rl/adapters"]
+  rlfp["rlfp"]
+  rules["rules"]
+  rules_extended["rules/extended"]
+  rules_nal["rules/nal"]
+  schemas["schemas"]
+  self["self"]
+  state["state"]
+  strategies["strategies"]
+  strategies_attention["strategies/attention"]
+  strategies_derivation["strategies/derivation"]
+  strategies_lm-selectors["strategies/lm-selectors"]
+  strategies_sampling["strategies/sampling"]
+  stream["stream"]
+  task["task"]
+  telemetry["telemetry"]
+  terms["terms"]
+  tick["tick"]
+  tools["tools"]
+  tools_adapters["tools/adapters"]
+  tools_adapters_self["tools/adapters/self"]
+  types["types"]
+  utils["utils"]
+  _ --> bag
+  _ --> cognitive
+  _ --> config
+  _ --> errors
+  _ --> focus
+  _ --> game
+  _ --> imagination
+  _ --> kernel
+  _ --> lifecycle
+  _ --> lm
+  _ --> lm_system-one
+  _ --> memory
+  _ --> nar
+  _ --> nl
+  _ --> reason
+  _ --> reflex
+  _ --> rules
+  _ --> self
+  _ --> task
+  _ --> terms
+  _ --> tools_adapters
+  _ --> types
+  agent --> _
+  agent --> config
+  agent --> engine
+  agent --> kernel
+  agent --> lm
+  agent --> lm_system-one
+  agent --> otel
+  agent --> rlfp
+  bag --> types
+  cognition --> agent
+  cognition --> config
+  cognition --> focus
+  cognition --> game
+  cognition --> memory
+  cognitive --> _
+  cognitive --> cognitive_analyzers
+  cognitive --> logger
+  cognitive --> reason
+  cognitive --> strategies
+  cognitive_analyzers --> _
+  cognitive_analyzers --> cognitive
+  cognitive_analyzers --> lm
+  cognitive_analyzers --> lm_grammars
+  cognitive_analyzers --> terms
+  commands --> _
+  commands --> memory
+  commands --> self
+  config --> logger
+  cooperation --> lm_system-one
+  drives --> kernel
+  drives --> terms
+  drives --> types
+  engine --> _
+  engine --> events
+  engine --> types
+  eval --> lm_system-one
+  events --> types
+  focus --> bag
+  focus --> game
+  focus --> gates
+  focus --> kernel
+  focus --> learning
+  focus --> lm_system-one
+  focus --> otel
+  focus --> reflex
+  focus --> telemetry
+  focus --> terms
+  focus --> types
+  game --> cognition
+  game --> config
+  game --> focus
+  game --> governance
+  game --> kernel
+  game --> learning
+  gates --> focus
+  gates --> game
+  gates --> reflex
+  governance --> rlfp
+  health --> focus
+  health --> kernel
+  imagination --> _
+  imagination --> terms
+  imagination --> types
+  kernel --> memory
+  kernel --> nl
+  kernel --> telemetry
+  kernel --> terms
+  kernel --> types
+  learning --> focus
+  learning --> kernel
+  learning --> lm
+  learning --> reflex
+  learning --> types
+  lifecycle --> types
+  lm --> kernel
+  lm --> lm_grammars
+  lm --> lm_providers
+  lm --> lm_rule
+  lm --> lm_rule-selectors
+  lm --> lm_rule-templates
+  lm --> lm_service
+  lm --> lm_system-one
+  lm --> metrics
+  lm --> otel
+  lm --> types
+  lm_context --> terms
+  lm_providers --> lm
+  lm_providers --> lm_runtime
+  lm_providers --> metrics
+  lm_rule --> lm
+  lm_rule --> terms
+  lm_rule-selectors --> lm
+  lm_rule-selectors --> lm_rule-templates
+  lm_rule-templates --> lm
+  lm_rule-templates --> lm_rule-selectors
+  lm_service --> lm
+  lm_service --> lm_grammars
+  lm_service --> lm_providers
+  lm_service --> metrics
+  lm_service --> otel
+  lm_system-one --> capability
+  lm_system-one --> game
+  lm_system-one --> kernel
+  lm_system-one --> lm
+  lm_system-one --> lm_system-one_heads
+  lm_system-one --> memory
+  lm_system-one --> metrics
+  lm_system-one --> reflex
+  lm_system-one --> terms
+  lm_system-one --> types
+  lm_system-one_heads --> lm_system-one
+  logger --> _
+  memory --> _
+  memory --> bag
+  memory --> lm
+  memory --> memory_lifecycle
+  memory --> memory_pressure
+  memory --> memory_state
+  memory --> terms
+  memory --> utils
+  memory_lifecycle --> memory
+  memory_lifecycle --> terms
+  memory_links --> memory
+  memory_pressure --> memory
+  memory_state --> bag
+  memory_state --> memory
+  memory_state --> state
+  metrics --> types
+  nar --> focus
+  nar --> game
+  nar --> kernel
+  nar --> lm_system-one
+  nar --> memory
+  nar --> reflex
+  nar --> state
+  nar --> utils
+  nl --> _
+  nl --> lm
+  nl --> nl_prompts
+  nl --> terms
+  nl --> types
+  nl_prompts --> nl
+  otel --> tick
+  query --> logger
+  query --> metrics
+  query --> types
+  reason --> _
+  reason --> reason_premise
+  reason --> reason_strategies
+  reason --> terms
+  reason_premise --> reason
+  reason_premise --> reason_strategies
+  reason_strategies --> reason
+  reason_strategies --> reason_premise
+  reflex --> focus
+  reflex --> game
+  reflex --> otel
+  rl --> _
+  rl --> drives
+  rl --> game
+  rl --> rl_adapters
+  rl --> types
+  rl_adapters --> _
+  rl_adapters --> game
+  rl_adapters --> rl
+  rl_adapters --> types
+  rlfp --> config
+  rules --> _
+  rules --> kernel
+  rules --> lm
+  rules --> memory
+  rules --> rules_extended
+  rules --> rules_nal
+  rules --> terms
+  rules_extended --> rules
+  rules_extended --> rules_nal
+  rules_nal --> rules
+  schemas --> nl
+  self --> _
+  self --> cognitive
+  self --> imagination
+  strategies --> strategies_attention
+  strategies --> strategies_derivation
+  strategies --> strategies_lm-selectors
+  strategies --> strategies_sampling
+  strategies_attention --> strategies
+  strategies_derivation --> strategies
+  strategies_lm-selectors --> strategies
+  strategies_sampling --> strategies
+  stream --> kernel
+  stream --> terms
+  stream --> tick
+  stream --> types
+  task --> kernel
+  task --> types
+  telemetry --> metrics
+  telemetry --> otel
+  terms --> logger
+  terms --> types
+  tick --> otel
+  tick --> stream
+  tick --> terms
+  tick --> types
+  tools --> _
+  tools --> kernel
+  tools_adapters --> capability
+  tools_adapters --> memory
+  tools_adapters --> nl
+  tools_adapters --> tools_adapters_self
+  tools_adapters_self --> _
+  tools_adapters_self --> cognitive
+  tools_adapters_self --> rlfp
+  tools_adapters_self --> rules
+  tools_adapters_self --> tools
+  tools_adapters_self --> tools_adapters
+  types --> terms
+  types --> utils

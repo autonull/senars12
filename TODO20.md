@@ -233,7 +233,7 @@ error-type sweep.
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
 Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule (+processor bus typed) (DELIVERED, §5j)  → [x] Bench 62 (19 assertions, M1–M7)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  **PHASE 1 COMPLETE**
 
-NEXT SESSION ENTRY POINT: Phase 9 — K1 ADR log (`docs/adr/` + template, topics: kernel gates, epistemic firewall, AIKR bounds, builder pattern, component library, reasoning-as-game, schema persistence, GPU offload), K2 architecture diagrams (`scripts/generate-architecture.ts` → Mermaid in `docs/architecture/`), K3 contributor guides (`docs/contributing/add-{game,reflex,systemone-head,tool,lm-rule}.md`), K4 runbook (`docs/runbook/`: LM provider failure, gate deadlock, schema store corruption, budget exhaustion, veto storm, config migration failure). Bench 70 = `tests/nar/todo20-docs.test.ts`. Phase 8 delivered (§5q): Focus rng injection, EmbeddingCache metrics + O(1) LRU eviction + amortized TTL sweep, Negotiator veto memo (pure-keyed), ParameterTable.setMany coalescing, controller shallow-clone; Bench 69 (`tests/nar/todo20-perf.test.ts`, 10 tests).
+NEXT SESSION ENTRY POINT: **Plan complete (Phases 0–9 all delivered, 2026-09-22).** Bench 61–70 green; typecheck/lint/test:unit/deps:gate/exports:audit all clean. Follow-up work lives in the per-phase "Follow-ups" notes below — highest-leverage next items: (1) wire rng from `NARConfig` → `Memory` → `Focus` for one-knob full replay (§5q); (2) `EmbeddingCache.metrics` → Prometheus export (§5q); (3) replace the `Function()` arithmetic eval in `aisdk-adapter`/`mcp-tools` with a WASI math evaluator (§5p); (4) wasmtime fuel metering when the Node binding stabilizes (§5p); (5) X8 core/io cycles (strangler-fig, gated); (6) migrate per-tick knob apply loops to `setMany` batch APIs (§5q); (7) CI step diffing `pnpm docs:architecture` / `pnpm docs:api` output against committed docs (§5r). Phase 9 delivered (§5r): `docs/adr/` (template + 8 ADRs), `pnpm docs:architecture` → `docs/architecture/*.mmd`, 5 contributor guides, 6-incident runbook, Bench 70 (`tests/nar/todo20-docs.test.ts`, 9 tests).
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (DELIVERED, §5k)  → [x] Bench 61b
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (DELIVERED, §5l — E3 scoped to tool boundaries, see note)  → [x] Bench 64
@@ -242,7 +242,7 @@ Phase 5: C1 schema  C2 migrate  C3 freeze  C4 secrets  (+X7 StateCodec) (DELIVER
 Phase 6: A1 exports  A2 typedoc  A3 semver  A4 deprecation (DELIVERED, §5o — A2 as docs-api generator, TypeDoc blocked on TS7)  → [x] Bench 67
 Phase 7: S1 validate  S2 shell  S3 wasi  S4 sanitize  (DELIVERED, §5p)  → [x] Bench 68
 Phase 8: P1 bag-lcg  P2 cache  P3 negotiator  P4 param-batch  (DELIVERED, §5q)  → [x] Bench 69
-Phase 9: K1 adr  K2 diagrams  K3 guides  K4 runbook  → [ ] Bench 70
+Phase 9: K1 adr  K2 diagrams  K3 guides  K4 runbook  (DELIVERED, §5r)  → [x] Bench 70   **PLAN COMPLETE**
 ```
 
 ---
@@ -1136,6 +1136,50 @@ Verified: typecheck 0 new errors, lint clean, full `test:unit` green (1,874), de
   those loops gain more knobs.
 - `setMany` actuates only on *change* — if a consumer ever needs fire-every-set semantics, add an
   explicit `{force: true}` option rather than silently reverting.
+
+## 5r. Phase 9 delivery note — K1/K2/K3/K4 (2026-09-22) — PLAN COMPLETE
+
+**Delivered:** Phase 9 knowledge transfer; Bench 70 (`tests/nar/todo20-docs.test.ts`, 9 tests).
+Verified: typecheck 0 new errors, lint clean, full `test:unit` green (1,883), deps:gate 72 ok,
+`exports:audit` ok. **All ten phases (0–9, incl. 2.5) delivered; Bench 61–70 green.**
+
+### What landed
+
+- **K1** — `docs/adr/template.md` + 8 ADRs (`2026-09-22-{kernel-gates, epistemic-firewall,
+  aikr-bounds, builder-pattern, component-library, reasoning-as-game, schema-persistence,
+  gpu-offload}.md`). Each grounded in verified code (the subagent read every referenced file) with
+  a References section of real paths. GPU-offload is honestly scoped to WebLLM device/dtype
+  selection — that is what exists.
+- **K2** — `scripts/generate-architecture.ts` + `pnpm docs:architecture`: walks `nar/src` imports
+  (resolving relative `.js` → `.ts`, including `/index.ts` probes; unknown targets skipped), emits
+  two Mermaid graphs: `docs/architecture/nar-modules.mmd` (69 folder-level import-graph nodes) and
+  `kernel-boundaries.mmd` (kernel + root surface view). An `index` README marks them generated;
+  output is committed so drift is diffable. Bug fixed while authoring: a naive
+  `statSync(dir)` fallback for barrel imports mis-resolved missing files into phantom
+  `index.ts` paths — resolution now verifies `isFile()` on both probes.
+- **K3** — 5 guides in `docs/contributing/` (94–139 lines each): add-game, add-reflex,
+  add-systemone-head, add-tool (teaches `z.strictObject` per Phase 7), add-lm-rule. Each ends with
+  a Checklist + Tests-to-write section pointing at `tests/nar/` conventions.
+- **K4** — `docs/runbook/README.md` + 6 incident runbooks (lm-provider-failure, gate-deadlock,
+  schema-store-corruption, budget-exhaustion, veto-storm, config-migration-failure), each with
+  Symptom/Diagnosis/Remediation sections citing real files, metric names, and env vars.
+
+### Bench 70 obligations
+
+ADR log complete (8 topics + template, sections present, **file references existence-checked**),
+diagrams generate + are Mermaid-valid, guides exist/<200 lines/examples+checklists, runbook covers
+all six incidents with required sections. The reference-existence check is the doc-drift tripwire
+TODO19 retros asked for — any ADR citing a moved/renamed file fails CI.
+
+### Follow-ups / improvement opportunities
+
+- Add a CI step running `pnpm docs:architecture` + `pnpm docs:api` and diffing against committed
+  `docs/` (the generators exist; the drift gate is one workflow step).
+- K3 acceptance ("new contributor adds a Game in <30 min") is not machine-checkable — validate by
+  onboarding one real contributor and time-box the feedback into the guides.
+- The runbooks cite current metric names (`gate_decisions_total` etc.); if O4 metrics are renamed,
+  grep `docs/runbook` in the same change.
+- TypeDoc revisit (§5o) and the §5p/§5q follow-ups remain the open backlog.
 
 ## 6. Definition of Done
 
