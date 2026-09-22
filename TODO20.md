@@ -145,6 +145,41 @@
 
 ---
 
+## 1b. Additional Architectural Items (Rev 1.1 codebase review, 2026-09-22)
+
+Found during a targeted review of seams, boundaries, and state ownership. Each item lists
+verifiable evidence; all follow the §5a binding rules (must delete a real edge, close a
+failure mode, or make a contract explicit).
+
+| # | Item | Evidence | Priority | Slot | Effort |
+|---|------|----------|----------|------|--------|
+| X1 | **nar imports app code** — package→app boundary violation | `nar/src/nar.ts:79`, `nar/src/agent/builder.ts:3`, `nar/src/agent/profiles.ts:1` all import `SystemOneConfig` from root `src/config/schema.js` | **High** | Before Phase 2 (trivial, unblocks packaging) | XS |
+| X2 | **Kernel layering inversion** — trusted gate embeds untrusted proposer internals | `KernelPerceptionGate.ts` imports 6 `lm/system-one` modules (`head-specs`, `policy`, `provisional-stamp`, `seed`, `telemetry`, `types`): the epistemic firewall is compiled against the machinery it is supposed to be filtering | **High** | Own item after Phase 2, feeds M2/M4 | L |
+| X3 | **Provider module-level mutable singletons** — parallel-unsafe, order-dependent | 11 module-level `let`/`Map` in `lm/providers.ts` (lines 55–955: `routing`, `demotions`, `circuitBreakers`, `healthProbeInterval`, `routingLog*`…) | **High** | Must land with/before Phase 2 T3 (`isolate:true` will surface these) | M |
+| X4 | **Untyped event bus usage** — generic `EventBus<T>` defeated at call sites | `EventBus.on/emit` are already `<K extends keyof T>` (`util/src/events/event-bus.ts:33,58`); 14 `as never` casts in `nar/src` (mostly `tools/tool-registry.ts`, `nar.ts`) bypass them | Medium | Fold into Phase 1 M5/M2 | S |
+| X5 | **Dual circuit-breaker implementations** | `nar/src/utils/circuit-breaker.ts` (generic) vs `lm/providers.ts` `ProviderHealth` machinery — independent state, semantics, and logging for the same concern | Medium | Fold into Phase 1 M4 → consolidate into `utils/resilience.ts` (per D03's original intent) | S |
+| X6 | **Positional-arg constructor soup** | `NARExecution` constructor takes 13 positional params incl. a bare `undefined` slot (`nar-execution.ts:50-65`) | Medium | Fold into Phase 1 M2 (options object) | S |
+| X7 | **Serialization triple-path** — three hand-rolled state codecs | `nar.ts` `saveState`/`loadState` (ad-hoc JSON files), `memory/state/serialization.ts`, `kernel/EventLogPersistence.ts` — no shared codec, no schema pinning on the snapshot path | Medium | Phase 5 (persistence hardening, alongside C1/C2) | M |
+| X8 | **core↔io cycles** (5 non-nar cycles) | `Agent↔AgentBridge↔bridge/AgentBridge`, `io/bridge↔core/Agent`, `core/index↔cortex/createCortexFromLM` | Low (gated by `deps:gate`; no new cycles possible) | Phase 0 backlog, strangler-fig per Rev 1.1 rollback table | M |
+
+**Item detail:**
+
+- **X1** — Move `SystemOneConfigSchema` (type + zod schema) into `@senars/util/config` (or `nar/src/config`), have root `src/config/schema.ts` re-export. nar must never reach into `src/`; the dependency arrow points the wrong way for a library package. Acceptance: `grep -rn "from '\.\./\.\./src/" nar/src/` → empty; `pnpm deps:gate` unchanged.
+- **X2** — Extract an `IngressJudge` interface (judge batch in → typed verdicts out); `KernelPerceptionGate` keeps only fail-closed plumbing and consumes the judge via `perceptionConfig`. All `lm/system-one` imports leave the kernel folder. This is the highest-value item in the plan: it makes the *epistemic firewall* structurally real (kernel cannot see proposer internals) instead of conventionally real. Acceptance: `grep -n "lm/system-one" nar/src/kernel/` → empty; ingress benches (15–28) unchanged; deps:gate unchanged or lower.
+- **X3** — Introduce a `ProviderRuntime` instance holding routing/demotion/breaker/probe/log state; module-level default instance preserved for back-compat (`getProviderRuntime()`). Unblocks T3 `isolate:true`, enables hermetic provider tests. Acceptance: two NAR instances with different routing policies coexist in one process; `resetCircuitBreakers`-style globals replaced by scoped resets.
+- **X4** — Type the bus: `ToolManager` and `nar.ts` emitters use `NarEventBus` keyed on `NAREventMap`; delete `as never`. Mechanical but makes every event contract compiler-checked. Acceptance: `grep -rn "as never" nar/src/ | wc -l` → 0 without losing event coverage.
+- **X5** — One breaker abstraction under `utils/resilience.ts`; `providers.ts` health machinery wraps it. Two state machines for the same failure mode is a drift bug waiting to happen. Acceptance: single implementation file; provider circuit tests green.
+- **X6** — `NARExecutionOptions` object; call sites in `nar.ts` (2) updated. Acceptance: no positional `undefined` arguments at call sites.
+- **X7** — One `StateCodec` (schema-pinned, versioned) used by NAR snapshot, memory serialization, and event-log persistence consumers. Snapshot format gets a `version` field (prereq for C2 config migration's sibling: state migration). Acceptance: round-trip property test across all three paths; version mismatch fails loudly.
+- **X8** — Same interface-extraction discipline as D01/D02 applied to core/io. Low urgency *because* `deps:gate` now makes the freeze enforceable.
+
+**Phase 3 scope note (from this review):** only 2 `catch (e: any)` remain in the entire
+workspace (`lm/system-one/distill.ts:117`, `nar.ts:878`). E4's acceptance is nearly met
+already — Phase 3 effort should go to E2 (Result adoption) and E3 (Zod strict), not
+error-type sweep.
+
+---
+
 ## 2. Acceptance Benches (new files under `tests/nar/todo20-*.test.ts`)
 
 | # | Bench | File | Obligation |
@@ -195,12 +230,13 @@
 ## 5. Master Checklist
 
 ```
-Phase 2 (moved up): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 taxonomy  → [ ] Bench 63
-Phase 1: M1 tools  M2 nar  M3 providers  M4 lm-service  M5 tool-reg  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62
-Phase 0 (complete, revised — see §5a): D01-D05  → [x] Bench 61
-Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context  → [ ] Bench 64
+Phase 2 (moved up): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 taxonomy  (+X3 provider-runtime, X1 boundary)  → [ ] Bench 63
+Phase 1: M1 tools  M2 nar (+X6 options-obj, X4 typed-bus)  M3 providers  M4 lm-service (+X5 resilience)  M5 tool-reg  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62
+Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
+Phase 2.5: X2 kernel IngressJudge (epistemic firewall made structural)  → [ ] Bench 61b (grep: no lm/system-one in kernel/)
+Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (scope-narrowed: 2 catch-any left)  → [ ] Bench 64
 Phase 4: O1 otel  O2 json-log  O3 health  O4 metrics  → [ ] Bench 65
-Phase 5: C1 schema  C2 migrate  C3 freeze  C4 secrets  → [ ] Bench 66
+Phase 5: C1 schema  C2 migrate  C3 freeze  C4 secrets  (+X7 StateCodec)  → [ ] Bench 66
 Phase 6: A1 exports  A2 typedoc  A3 semver  A4 deprecation  → [ ] Bench 67
 Phase 7: S1 validate  S2 shell  S3 wasi  S4 sanitize  → [ ] Bench 68
 Phase 8: P1 bag-lcg  P2 cache  P3 negotiator  P4 param-batch  → [ ] Bench 69
