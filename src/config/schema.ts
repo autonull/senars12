@@ -1,15 +1,16 @@
 import {
   lmSettingsSchema,
   narCoreBounds,
+  type SystemOneConfig,
   systemOneDefaults,
   systemOneSchema,
-  type SystemOneConfig,
 } from '@senars/util/config';
 import { z } from 'zod';
+import { LM_PROVIDER_NAMES } from '../../nar/src/lm/env-config.js';
 
 // System One schema/defaults live in @senars/util/config (single definition —
 // also consumed by @senars/nar); re-exported here for the app config surface.
-export { systemOneDefaults, systemOneSchema, type SystemOneConfig };
+export { type SystemOneConfig, systemOneDefaults, systemOneSchema };
 
 const envBool = (key: string) =>
   z
@@ -178,7 +179,7 @@ export const backendsSchema = z
 /** Alternate LM settings selectable via LM_PROFILE=production. */
 export const productionSchema = z
   .object({
-    provider: z.string().optional(),
+    provider: z.enum(LM_PROVIDER_NAMES).optional(),
     model: z.string().optional(),
     baseUrl: z.string().optional(),
     apiKeyEnv: z.string().optional(),
@@ -278,10 +279,12 @@ export const botConfigSchema = z.object({
     .default({ ...lmRulesDefaults, rules: [...lmRulesDefaults.rules] }),
 });
 
-
 const appConfigBase = z.object({
   /** Semantic version of the config file — validated by the loader for migration. */
   configVersion: z.string().optional(),
+  /** Package metadata passthrough (mirrors senars.config.json's top-level name/version). */
+  name: z.string().optional(),
+  version: z.string().optional(),
   lm: lmSchema.optional(),
   /** Alternate LM settings, activated with LM_PROFILE=production. */
   production: productionSchema,
@@ -317,10 +320,13 @@ const appConfigBase = z.object({
   systemOne: systemOneSchema.optional(),
 });
 
+/** Strict: unknown top-level keys are a config error (typo protection). */
+const appConfigStrict = appConfigBase.strict();
+
 /** Map top-level `agent.name`/`agent.persona` onto the bot profile when set. */
 export type AppConfigBase = z.infer<typeof appConfigBase>;
 
-export const appConfigSchema = appConfigBase.transform((config) => {
+export const appConfigSchema = appConfigStrict.transform((config) => {
   config.profile.name = config.agent.name ?? config.profile.name;
   config.profile.personality = config.agent.persona ?? config.profile.personality;
   return config;

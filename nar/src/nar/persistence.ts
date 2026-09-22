@@ -8,7 +8,11 @@ import { Stamp, Truth, type TruthType, termParser } from '../terms';
 import type { Task, TaskType } from '../types';
 import { errMsg } from '../utils';
 import { err, ok, type Result } from '../utils/result.js';
+import { decodeState, encodeState } from '../state/codec.js';
 import type { NARConfig } from './config.js';
+
+/** Snapshot envelope version (StateCodec, TODO20 X7). */
+export const NAR_STATE_VERSION = 1;
 
 /** Deps for NAR state persistence (extracted from NAR — M2). */
 export interface StatePersisterDeps {
@@ -40,11 +44,11 @@ export class StatePersister {
     return path.resolve(base, filename);
   }
 
-  private async readJsonIfExists<T>(filename: string): Promise<Result<T | null, Error>> {
+  private async readStateFile<T>(filename: string, kind: string): Promise<Result<T | null, Error>> {
     const target = this.getStatePath(filename);
     try {
       const content = await fs.readFile(target, 'utf-8');
-      return ok(JSON.parse(content) as T);
+      return ok(decodeState<T>(content, kind, NAR_STATE_VERSION));
     } catch (e) {
       if ((e as NodeJS.ErrnoException)?.code === 'ENOENT') return ok(null);
       return err(SenarsError.wrap(e, { path: target, operation: 'readJsonIfExists' }));
@@ -88,19 +92,19 @@ export class StatePersister {
       const drives: Record<string, number> = {};
       for (const ds of driveStates) drives[ds.spec.id] = ds.currentIntensity;
 
-      const files: Array<[string, unknown]> = [
-        ['beliefs.json', query.getBeliefs().map((b) => this.serializeTask(b))],
-        ['goals.json', query.getGoals().map((g) => this.serializeTask(g))],
-        ['questions.json', query.getQuestions().map((q) => this.serializeTask(q))],
-        ['attention.json', attentionReport()],
-        ['drives.json', drives],
-        ['lm-rules.json', processor.serializeLMRules()],
+      const files: Array<[string, string, unknown]> = [
+        ['beliefs.json', 'nar.beliefs', query.getBeliefs().map((b) => this.serializeTask(b))],
+        ['goals.json', 'nar.goals', query.getGoals().map((g) => this.serializeTask(g))],
+        ['questions.json', 'nar.questions', query.getQuestions().map((q) => this.serializeTask(q))],
+        ['attention.json', 'nar.attention', attentionReport()],
+        ['drives.json', 'nar.drives', drives],
+        ['lm-rules.json', 'nar.lm-rules', processor.serializeLMRules()],
       ];
 
       await fs.mkdir(path.dirname(this.getStatePath(files[0]![0])), { recursive: true });
       await Promise.all(
-        files.map(([name, data]) =>
-          fs.writeFile(this.getStatePath(name), JSON.stringify(data, null, 2), 'utf-8')
+        files.map(([name, kind, data]) =>
+          fs.writeFile(this.getStatePath(name), encodeState(kind, NAR_STATE_VERSION, data), 'utf-8')
         )
       );
     } catch (e) {
@@ -118,7 +122,7 @@ export class StatePersister {
         ['questions.json', 'question'],
       ];
       for (const [name, type] of taskFiles) {
-        const result = await this.readJsonIfExists<any[]>(name);
+        const result = await this.readStateFile<any[]>(name, `nar.${name.slice(0, -'.json'.length)}`);
         if (!result.ok) {
           this.logger.warn('NAR state file unreadable', { file: name, error: errMsg(result.error) });
           continue;
@@ -135,7 +139,7 @@ export class StatePersister {
         }
       }
 
-      const drivesResult = await this.readJsonIfExists<Record<string, number>>('drives.json');
+      const drivesResult = await this.readStateFile<Record<string, number>>('drives.json', 'nar.drives');
       if (driveManager && drivesResult.ok && drivesResult.value) {
         for (const [driveId, value] of Object.entries(drivesResult.value)) {
           const currentIntensity = driveManager.getState(driveId)?.currentIntensity ?? 0;
@@ -143,7 +147,7 @@ export class StatePersister {
         }
       }
 
-      const lmRuleResult = await this.readJsonIfExists<{ rules: any[] }>('lm-rules.json');
+      const lmRuleResult = await this.readStateFile<{ rules: any[] }>('lm-rules.json', 'nar.lm-rules');
       if (lmRuleResult.ok && lmRuleResult.value) processor.deserializeLMRules(lmRuleResult.value);
 
       this.logger.info('NAR state loaded');

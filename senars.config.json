@@ -54,9 +54,10 @@
     "cpuThrottleMs": 10
   },
   "production": {
-    "provider": "vercel",
+    "provider": "openai-compatible",
+    "baseUrl": "https://ai.gateway.dev/v1",
     "model": "anthropic/claude-3.5-sonnet",
-    "apiKeyEnv": "ANTHROPIC_API_KEY"
+    "apiKeyEnv": "VERCEL_AI_GATEWAY_API_KEY"
   },
   "irc": {
     "server": "irc.libera.chat",

@@ -85,9 +85,11 @@ describe('NAR State Persistence', () => {
     expect(files).toContain('goals.json');
     expect(files).toContain('questions.json');
 
-    // Check drives.json content
-    const drivesContent = JSON.parse(await readFile(join(testStateDir, 'drives.json'), 'utf-8'));
-    const savedDrives = drivesContent;
+    // Check drives.json content (StateCodec envelope, TODO20 X7)
+    const drivesEnvelope = JSON.parse(await readFile(join(testStateDir, 'drives.json'), 'utf-8'));
+    expect(drivesEnvelope.format).toBe('senars.state');
+    expect(drivesEnvelope.kind).toBe('nar.drives');
+    const savedDrives = drivesEnvelope.payload;
     expect(savedDrives.competence).toBeDefined();
     expect(savedDrives.curiosity).toBeDefined();
 

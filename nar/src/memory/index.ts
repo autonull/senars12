@@ -38,6 +38,13 @@ export type {
   SerializedTask,
 } from './state/serialization.js';
 // State module
-export { deserialize, repair, serialize, validate } from './state/serialization.js';
+export {
+  decodeMemoryState,
+  deserialize,
+  encodeMemoryState,
+  repair,
+  serialize,
+  validate,
+} from './state/serialization.js';
 export type { ConceptStats } from './state/statistics.js';
 export { calculateConceptStats } from './state/statistics.js';

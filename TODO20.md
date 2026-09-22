@@ -233,12 +233,12 @@ error-type sweep.
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
 Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule (+processor bus typed) (DELIVERED, §5j)  → [x] Bench 62 (19 assertions, M1–M7)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  **PHASE 1 COMPLETE**
 
-NEXT SESSION ENTRY POINT: Phase 5 — C1 Zod config schema (`src/config/schema.ts`, unknown keys error, `config:validate` script; tighten `production.provider: "vercel"` to the LMProviderName enum per §5f), C2 config migration utility, C3 deep-freeze `DEFAULT_COGNITIVE_PARAMETERS`, C4 secrets hygiene + LM_MAX_SPEND_USD (hard cap already lives in `lm/service/spend.ts` `SpendLedger`), X7 StateCodec (one schema-pinned codec for NAR snapshot / memory serialization / EventLogPersistence). Bench 66 (`tests/nar/todo20-config.test.ts`) is the acceptance bench. Note: `@senars/util/config` already hosts system-one schemas (X1) — follow that placement pattern; `src/bin/config-validate.ts` exists as a prior art anchor.
+NEXT SESSION ENTRY POINT: Phase 6 — A1 explicit exports (grep-guard tool against actual consumers; deferred from D05, §5a), A2 TypeDoc, A3 semver policy, A4 deprecation lifecycle (A4 pattern already proven by §5f's ollama alias). Bench 67 is the acceptance bench. Phase 5 delivered (§5n): strict `appConfigSchema` + `LM_PROVIDER_NAMES` enum, `src/utils/config-migrate.ts` (auto-migrate + write-back in loader), `deepFreeze` on cognitive parameters (`@senars/util/utils/shared` — narrow-path import; the bare `@senars/util` root barrel creates an import cycle back into nar — do NOT import it from nar internals), StateCodec envelopes on StatePersister files + memory state, config:check secrets verification.
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (DELIVERED, §5k)  → [x] Bench 61b
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (DELIVERED, §5l — E3 scoped to tool boundaries, see note)  → [x] Bench 64
 Phase 4: O1 otel  O2 json-log  O3 health  O4 metrics (DELIVERED, §5m — see deviations: decision-level spans not GateRegistry.* spans; doctor not yet consuming health checks)  → [x] Bench 65
-Phase 5: C1 schema  C2 migrate  C3 freeze  C4 secrets  (+X7 StateCodec)  → [ ] Bench 66
+Phase 5: C1 schema  C2 migrate  C3 freeze  C4 secrets  (+X7 StateCodec) (DELIVERED, §5n)  → [x] Bench 66
 Phase 6: A1 exports  A2 typedoc  A3 semver  A4 deprecation  → [ ] Bench 67
 Phase 7: S1 validate  S2 shell  S3 wasi  S4 sanitize  → [ ] Bench 68
 Phase 8: P1 bag-lcg  P2 cache  P3 negotiator  P4 param-batch  → [ ] Bench 69
@@ -921,6 +921,63 @@ Verified: typecheck clean, lint clean, full `test:unit` green (1,833), deps:gate
   exposes one.
 - Gate veto reasons are free-form strings → high-cardinality `gate_vetoes_total{reason}`; consider
   normalizing reasons to enum codes if the series count grows.
+
+## 5n. Phase 5 delivery note — C1/C2/C3/C4 (+X7) (2026-09-22)
+
+**Delivered:** C1, C2, C3, C4, X7; Bench 66 (`tests/nar/todo20-config.test.ts`, 12 tests).
+Verified: typecheck clean, lint clean, full `test:unit` green (1,845), deps:gate 72 ok,
+`config:validate` + `config:check` run clean against the shipped config.
+
+### What landed
+
+- **C1** — `appConfigBase.strict()` (unknown top-level keys now a validation error); `name`/`version`
+  added as documented passthrough fields (the config file carries package metadata). `production.provider`
+  tightened to the provider enum via **`LM_PROVIDER_NAMES`** (new const tuple in `lm/env-config.ts`;
+  `LMProviderName` is now derived from it — single definition). `senars.config.json` migrated:
+  the invalid `"provider": "vercel"` → `openai-compatible` + `baseUrl: https://ai.gateway.dev/v1` +
+  `apiKeyEnv: VERCEL_AI_GATEWAY_API_KEY` (§5f follow-up closed).
+- **C2** — `src/utils/config-migrate.ts`: `MIGRATIONS` registry (v1→v2: flat `model`/`provider` folded
+  under `lm`), `migrateConfig` walks the major-version chain, `migrateConfigFile` does read+write-back.
+  `loadConfig` now auto-migrates on version mismatch, warns with the applied steps, and writes the
+  migrated file back (best-effort; read-only locations stay in-memory). Older-than-major no longer
+  blocks load — it migrates; newer-than-major still warns.
+- **C3** — `deepFreeze` added to `@senars/util` (`utils/shared.ts`, export path `@senars/util/utils/shared`).
+  `DEFAULT_COGNITIVE_PARAMETERS` + the three presets (FAST/LM_HEAVY/RESEARCH) frozen at module load.
+  Bench 66 asserts nested mutation throws in strict mode.
+  **Freeze immediately caught a real mutator**: `CognitiveController.setStrategy` mutated
+  `currentParams.strategies[key].type` in place; the controller now `structuredClone`s its params at
+  construction (it owns the graph). `mergeParameters` was already pure.
+- **C4** — `config:check` extended: per-provider required-secret map (`anthropic`→ANTHROPIC_API_KEY,
+  `openai`→OPENAI_API_KEY; missing → exit 1), hosted-endpoint warning for keyless `openai-compatible`,
+  `LM_MAX_SPEND_USD` cap visibility (hard cap enforcement already in `lm/service/spend.ts`), embedded
+  model-file existence check. `.env` already gitignored.
+- **X7** — `nar/src/state/codec.ts` (`encodeState`/`decodeState`): `{format: 'senars.state', kind,
+  version, payload}` envelope. StatePersister writes all six snapshot files envelope-wrapped
+  (`NAR_STATE_VERSION = 1`, kinds `nar.beliefs`…`nar.lm-rules`); reads accept envelope **or legacy
+  bare payload** (backward compatible), and fail loudly on kind or version mismatch.
+  Memory serialization gains `encodeMemoryState`/`decodeMemoryState` (same envelope, kind
+  `memory.state`, version `MEMORY_VERSION`); legacy bare dumps still load. Exported as
+  `@senars/nar/state/codec`.
+
+### Honest deviations
+
+- **EventLogPersistence not envelope-wrapped** — it is line-delimited JSONL validated per-line by
+  `CognitiveEventSchema` (schema-pinning with version semantics via the kernel schemas). An envelope
+  would break tail-append/line-replay; documented as the third codec path with equivalent pinning.
+- Strictness is **top-level only** — sub-objects stay lenient until a real typo incident justifies
+  recursively strict sections (breaking-change surface per section).
+
+### Follow-ups / improvement opportunities
+
+- `deepFreeze` on `DEFAULT_APP_CONFIG`/`DEFAULT_BOT_CONFIG` (src/config/defaults.ts) — same treatment,
+  but grep consumers for mutation first (CognitiveController lesson).
+- `migrateConfigFile` in config-migrate.ts is currently unused by the loader (loader has its own
+  inline read/migrate/write to preserve its error handling) — either route the loader through it or
+  prune at the next touch (§5a no-speculative rule).
+- Config version could move to `2.1` in a future migration to exercise the chain; only one link
+  exists today (v1→v2) so the chain logic is tested synthetically in Bench 66.
+- `readStateFile` legacy path means silent format drift is possible — consider logging a deprecation
+  warning when a legacy (unwrapped) file is read after the next version bump.
 
 ## 6. Definition of Done
 

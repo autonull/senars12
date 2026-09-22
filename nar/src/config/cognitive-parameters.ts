@@ -1,5 +1,6 @@
 import { createLogger } from '../logger/index.js';
 import { cognitiveBounds, getCognitiveBound } from '@senars/util/config';
+import { deepFreeze } from '@senars/util/utils/shared';
 
 const log = createLogger({ scope: 'cognitive-params' });
 
@@ -229,42 +230,42 @@ function buildDefaults(): CognitiveParameters {
   };
 }
 
-export const DEFAULT_COGNITIVE_PARAMETERS: CognitiveParameters = buildDefaults();
+export const DEFAULT_COGNITIVE_PARAMETERS: CognitiveParameters = deepFreeze(buildDefaults());
 
 /**
  * Fast inference configuration - minimal LM usage
  */
-export const FAST_COGNITIVE_CONFIG: CognitiveParameters = {
+export const FAST_COGNITIVE_CONFIG: CognitiveParameters = deepFreeze({
   ...DEFAULT_COGNITIVE_PARAMETERS,
   lm: {
     ...DEFAULT_COGNITIVE_PARAMETERS.lm,
     enabled: false,
   },
-};
+});
 
 /**
  * LM-heavy configuration - maximum enhancement
  */
-export const LM_HEAVY_CONFIG: CognitiveParameters = {
+export const LM_HEAVY_CONFIG: CognitiveParameters = deepFreeze({
   ...DEFAULT_COGNITIVE_PARAMETERS,
   lm: {
     ...DEFAULT_COGNITIVE_PARAMETERS.lm,
     maxRulesPerCycle: 13,
     callTimeoutMs: 8000,
   },
-};
+});
 
 /**
  * Research configuration - all tracing enabled
  */
-export const RESEARCH_COGNITIVE_CONFIG: CognitiveParameters = {
+export const RESEARCH_COGNITIVE_CONFIG: CognitiveParameters = deepFreeze({
   ...DEFAULT_COGNITIVE_PARAMETERS,
   inference: {
     ...DEFAULT_COGNITIVE_PARAMETERS.inference,
     enableTraceCollection: true,
     maxDerivationsPerStep: 100, // Limit for detailed analysis
   },
-};
+});
 
 /**
  * Parameter space for optimization

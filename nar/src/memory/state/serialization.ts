@@ -19,6 +19,7 @@ import {
   termParser,
 } from '../../terms';
 import { createBudget } from '../../types';
+import { decodeState, encodeState } from '../../state/codec.js';
 import type { Concept, ConceptTaskType, TaskData } from '../concept.js';
 import type { Memory } from '../memory.js';
 
@@ -48,6 +49,16 @@ export interface SerializedTask {
 }
 
 export const MEMORY_VERSION = 1;
+
+const MEMORY_STATE_KIND = 'memory.state';
+
+/** Schema-pinned, versioned persistence format for the memory dump (StateCodec, TODO20 X7). */
+export const encodeMemoryState = (memory: Memory): string =>
+  encodeState(MEMORY_STATE_KIND, MEMORY_VERSION, serialize(memory));
+
+/** Inverse of encodeMemoryState; accepts legacy bare SerializedMemory files. */
+export const decodeMemoryState = (text: string): SerializedMemory =>
+  decodeState<SerializedMemory>(text, MEMORY_STATE_KIND, MEMORY_VERSION);
 
 type TaskTypeName = 'belief' | 'goal' | 'question';
 

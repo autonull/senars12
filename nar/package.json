@@ -8,41 +8,105 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
-    "./schemas": {
-      "types": "./src/schemas/index.ts",
-      "import": "./src/schemas/index.ts"
+    "./agent": {
+      "types": "./src/agent/index.ts",
+      "import": "./src/agent/index.ts"
     },
-    "./rules": {
-      "types": "./src/rules/index.ts",
-      "import": "./src/rules/index.ts"
+    "./agent/*": {
+      "types": "./src/agent/*.ts",
+      "import": "./src/agent/*.ts"
     },
-    "./tools": {
-      "types": "./src/tools/index.ts",
-      "import": "./src/tools/index.ts"
+    "./bag": {
+      "types": "./src/bag/index.ts",
+      "import": "./src/bag/index.ts"
     },
-    "./tools/schemas": {
-      "types": "./src/tools/schemas.ts",
-      "import": "./src/tools/schemas.ts"
+    "./capability": {
+      "types": "./src/capability/index.ts",
+      "import": "./src/capability/index.ts"
     },
-    "./logger": {
-      "types": "./src/logger/index.ts",
-      "import": "./src/logger/index.ts"
+    "./cognitive": {
+      "types": "./src/cognitive/index.ts",
+      "import": "./src/cognitive/index.ts"
     },
-    "./utils": {
-      "types": "./src/utils/index.ts",
-      "import": "./src/utils/index.ts"
+    "./cognitive/analyzers": {
+      "types": "./src/cognitive/analyzers/index.ts",
+      "import": "./src/cognitive/analyzers/index.ts"
+    },
+    "./cognitive/corrections": {
+      "types": "./src/cognitive/analyzers/corrections.ts",
+      "import": "./src/cognitive/analyzers/corrections.ts"
     },
     "./commands": {
       "types": "./src/commands/index.ts",
       "import": "./src/commands/index.ts"
     },
+    "./config": {
+      "types": "./src/config/index.ts",
+      "import": "./src/config/index.ts"
+    },
+    "./config/cognitive-parameters": {
+      "types": "./src/config/cognitive-parameters.ts",
+      "import": "./src/config/cognitive-parameters.ts"
+    },
+    "./config/parameter-table": {
+      "types": "./src/config/cognitive-parameters.ts",
+      "import": "./src/config/cognitive-parameters.ts"
+    },
+    "./cooperation": {
+      "types": "./src/cooperation/delegation.ts",
+      "import": "./src/cooperation/delegation.ts"
+    },
+    "./engine": {
+      "types": "./src/engine/index.ts",
+      "import": "./src/engine/index.ts"
+    },
+    "./engine/*": {
+      "types": "./src/engine/*.ts",
+      "import": "./src/engine/*.ts"
+    },
+    "./eval/*": {
+      "types": "./src/eval/*.ts",
+      "import": "./src/eval/*.ts"
+    },
+    "./focus": {
+      "types": "./src/focus/index.ts",
+      "import": "./src/focus/index.ts"
+    },
+    "./game": {
+      "types": "./src/game/index.ts",
+      "import": "./src/game/index.ts"
+    },
+    "./gates": {
+      "types": "./src/gates/index.ts",
+      "import": "./src/gates/index.ts"
+    },
+    "./health": {
+      "types": "./src/health/index.ts",
+      "import": "./src/health/index.ts"
+    },
+    "./learning": {
+      "types": "./src/learning/index.ts",
+      "import": "./src/learning/index.ts"
+    },
     "./lm": {
       "types": "./src/lm/index.ts",
       "import": "./src/lm/index.ts"
     },
+    "./lm/context/trace-abstractor": {
+      "types": "./src/lm/context/trace-abstractor.ts",
+      "import": "./src/lm/context/trace-abstractor.ts"
+    },
     "./lm/grammars": {
       "types": "./src/lm/grammars/index.ts",
       "import": "./src/lm/grammars/index.ts"
+    },
+    "./lm/lm-service": {
+      "types": "./src/lm/lm-service.ts",
+      "import": "./src/lm/lm-service.ts"
+    },
+    "./lm/providers/llamacpp": {
+      "types": "./src/lm/providers/llamacpp.ts",
+      "import": "./src/lm/providers/llamacpp.ts"
     },
     "./lm/rule-builders": {
       "types": "./src/lm/rule-builders.ts",
@@ -56,137 +120,73 @@
       "types": "./src/lm/rule-templates/fallbacks.ts",
       "import": "./src/lm/rule-templates/fallbacks.ts"
     },
-    "./lm/system-one": {
-      "types": "./src/lm/system-one/index.ts",
-      "import": "./src/lm/system-one/index.ts"
-    },
-    "./cooperation": {
-      "types": "./src/cooperation/delegation.ts",
-      "import": "./src/cooperation/delegation.ts"
-    },
-    "./lm/context/trace-abstractor": {
-      "types": "./src/lm/context/trace-abstractor.ts",
-      "import": "./src/lm/context/trace-abstractor.ts"
-    },
     "./lm/shadow-validation": {
       "types": "./src/lm/shadow-validation.ts",
       "import": "./src/lm/shadow-validation.ts"
     },
-    "./cognitive/corrections": {
-      "types": "./src/cognitive/analyzers/corrections.ts",
-      "import": "./src/cognitive/analyzers/corrections.ts"
+    "./lm/system-one": {
+      "types": "./src/lm/system-one/index.ts",
+      "import": "./src/lm/system-one/index.ts"
     },
-    "./lm/providers/llamacpp": {
-      "types": "./src/lm/providers/llamacpp.ts",
-      "import": "./src/lm/providers/llamacpp.ts"
-    },
-    "./nl": {
-      "types": "./src/nl/index.ts",
-      "import": "./src/nl/index.ts"
+    "./logger": {
+      "types": "./src/logger/index.ts",
+      "import": "./src/logger/index.ts"
     },
     "./memory": {
       "types": "./src/memory/index.ts",
       "import": "./src/memory/index.ts"
     },
-    "./cognitive": {
-      "types": "./src/cognitive/index.ts",
-      "import": "./src/cognitive/index.ts"
-    },
-    "./cognitive/analyzers": {
-      "types": "./src/cognitive/analyzers/index.ts",
-      "import": "./src/cognitive/analyzers/index.ts"
-    },
-    "./learning": {
-      "types": "./src/learning/index.ts",
-      "import": "./src/learning/index.ts"
-    },
-    "./rlfp": {
-      "types": "./src/rlfp/index.ts",
-      "import": "./src/rlfp/index.ts"
-    },
-    "./self": {
-      "types": "./src/self/index.ts",
-      "import": "./src/self/index.ts"
-    },
-    "./config/cognitive-parameters": {
-      "types": "./src/config/cognitive-parameters.ts",
-      "import": "./src/config/cognitive-parameters.ts"
-    },
-    "./lm/lm-service": {
-      "types": "./src/lm/lm-service.ts",
-      "import": "./src/lm/lm-service.ts"
-    },
-    "./rules/ranking": {
-      "types": "./src/rules/ranking.ts",
-      "import": "./src/rules/ranking.ts"
-    },
-    "./eval/*": {
-      "types": "./src/eval/*.ts",
-      "import": "./src/eval/*.ts"
-    },
     "./memory/embedding": {
       "types": "./src/memory/embedding.ts",
       "import": "./src/memory/embedding.ts"
-    },
-    "./memory/retrieval-verified": {
-      "types": "./src/memory/retrieval-verified.ts",
-      "import": "./src/memory/retrieval-verified.ts"
     },
     "./memory/episodic": {
       "types": "./src/memory/EpisodicMemory.ts",
       "import": "./src/memory/EpisodicMemory.ts"
     },
-    "./agent": {
-      "types": "./src/agent/index.ts",
-      "import": "./src/agent/index.ts"
+    "./memory/retrieval-verified": {
+      "types": "./src/memory/retrieval-verified.ts",
+      "import": "./src/memory/retrieval-verified.ts"
     },
-    "./agent/*": {
-      "types": "./src/agent/*.ts",
-      "import": "./src/agent/*.ts"
-    },
-    "./engine": {
-      "types": "./src/engine/index.ts",
-      "import": "./src/engine/index.ts"
-    },
-    "./engine/*": {
-      "types": "./src/engine/*.ts",
-      "import": "./src/engine/*.ts"
-    },
-    "./bag": {
-      "types": "./src/bag/index.ts",
-      "import": "./src/bag/index.ts"
-    },
-    "./focus": {
-      "types": "./src/focus/index.ts",
-      "import": "./src/focus/index.ts"
-    },
-    "./gates": {
-      "types": "./src/gates/index.ts",
-      "import": "./src/gates/index.ts"
-    },
-    "./reflex": {
-      "types": "./src/reflex/index.ts",
-      "import": "./src/reflex/index.ts"
-    },
-    "./game": {
-      "types": "./src/game/index.ts",
-      "import": "./src/game/index.ts"
-    },
-    "./rl": {
-      "types": "./src/rl/index.ts",
-      "import": "./src/rl/index.ts"
-    },
-    "./tick": {
-      "types": "./src/tick/index.ts",
-      "import": "./src/tick/index.ts"
+    "./nl": {
+      "types": "./src/nl/index.ts",
+      "import": "./src/nl/index.ts"
     },
     "./otel": {
       "types": "./src/otel/index.ts",
       "import": "./src/otel/index.ts"
     },
-    "./capability": {
-      "types": "./src/capability/index.ts",
-      "import": "./src/capability/index.ts"
+    "./reflex": {
+      "types": "./src/reflex/index.ts",
+      "import": "./src/reflex/index.ts"
+    },
+    "./rl": {
+      "types": "./src/rl/index.ts",
+      "import": "./src/rl/index.ts"
+    },
+    "./rlfp": {
+      "types": "./src/rlfp/index.ts",
+      "import": "./src/rlfp/index.ts"
+    },
+    "./rules": {
+      "types": "./src/rules/index.ts",
+      "import": "./src/rules/index.ts"
+    },
+    "./rules/ranking": {
+      "types": "./src/rules/ranking.ts",
+      "import": "./src/rules/ranking.ts"
+    },
+    "./schemas": {
+      "types": "./src/schemas/index.ts",
+      "import": "./src/schemas/index.ts"
+    },
+    "./self": {
+      "types": "./src/self/index.ts",
+      "import": "./src/self/index.ts"
+    },
+    "./state/codec": {
+      "types": "./dist/state/codec.d.ts",
+      "import": "./dist/state/codec.js"
     },
     "./stream": {
       "types": "./src/stream/index.ts",
@@ -196,17 +196,21 @@
       "types": "./src/stream/*.ts",
       "import": "./src/stream/*.ts"
     },
-    "./config/parameter-table": {
-      "types": "./src/config/cognitive-parameters.ts",
-      "import": "./src/config/cognitive-parameters.ts"
+    "./tick": {
+      "types": "./src/tick/index.ts",
+      "import": "./src/tick/index.ts"
     },
-    "./config": {
-      "types": "./src/config/index.ts",
-      "import": "./src/config/index.ts"
+    "./tools": {
+      "types": "./src/tools/index.ts",
+      "import": "./src/tools/index.ts"
     },
-    "./health": {
-      "types": "./src/health/index.ts",
-      "import": "./src/health/index.ts"
+    "./tools/schemas": {
+      "types": "./src/tools/schemas.ts",
+      "import": "./src/tools/schemas.ts"
+    },
+    "./utils": {
+      "types": "./src/utils/index.ts",
+      "import": "./src/utils/index.ts"
     }
   },
   "scripts": {

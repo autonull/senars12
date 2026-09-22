@@ -28,7 +28,8 @@ export class CognitiveController {
     params: CognitiveParameters,
     adaptInterval = 50
   ) {
-    this.currentParams = params;
+    // Own the parameter graph: callers may pass frozen defaults (TODO20 C3).
+    this.currentParams = structuredClone(params);
     this.adaptInterval = adaptInterval;
     this.inferenceController = this.buildInferenceController(params);
   }

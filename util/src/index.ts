@@ -145,6 +145,7 @@ export {
   clamp01,
   compact,
   edgeKey,
+  deepFreeze,
   ensureArray,
   errMsg,
   extractTerm,

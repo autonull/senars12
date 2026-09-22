@@ -1,14 +1,17 @@
 import { existsSync } from 'node:fs';
 
-export type LMProviderName =
-  | 'transformers'
-  | 'llamacpp'
-  | 'llamacpp-embedded'
-  | 'anthropic'
-  | 'openai'
-  | 'openai-compatible'
-  | 'webllm'
-  | 'mock';
+export const LM_PROVIDER_NAMES = [
+  'transformers',
+  'llamacpp',
+  'llamacpp-embedded',
+  'anthropic',
+  'openai',
+  'openai-compatible',
+  'webllm',
+  'mock',
+] as const;
+
+export type LMProviderName = (typeof LM_PROVIDER_NAMES)[number];
 
 export type ResolvedProvider = LMProviderName;
 

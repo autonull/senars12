@@ -1,6 +1,11 @@
 import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
 import { readEnvOverrides } from '@senars/util/config';
+import {
+  CURRENT_CONFIG_VERSION,
+  type MigrationOutcome,
+  migrateConfig,
+} from '../utils/config-migrate.js';
 import type { AppConfig } from './schema.js';
 import { appConfigSchema } from './schema.js';
 
@@ -27,7 +32,6 @@ const deepMerge = <T>(defaults: T, overrides: Partial<T> | undefined): T => {
   return out as T;
 };
 
-const CURRENT_CONFIG_VERSION = '2.0';
 const KNOWN_CONFIG_MAJOR = 2;
 
 interface MigrationWarning {
@@ -47,16 +51,7 @@ const validateConfigVersion = (version: unknown): MigrationWarning | null => {
     };
   }
   const major = Number.parseInt(version.split('.')[0] ?? '', 10);
-  if (major !== KNOWN_CONFIG_MAJOR) {
-    if (major < KNOWN_CONFIG_MAJOR) {
-      return {
-        fromVersion: version,
-        toVersion: CURRENT_CONFIG_VERSION,
-        message:
-          `Config version "${version}" is outdated (current is ${CURRENT_CONFIG_VERSION}). ` +
-          `Update the config file manually.`,
-      };
-    }
+  if (major > KNOWN_CONFIG_MAJOR) {
     return {
       fromVersion: version,
       toVersion: CURRENT_CONFIG_VERSION,
@@ -69,12 +64,26 @@ const validateConfigVersion = (version: unknown): MigrationWarning | null => {
 };
 
 export const loadConfig = async (path?: string): Promise<AppConfig> => {
-  let raw: Record<string, unknown> = {};
+  let raw_config: Record<string, unknown> = {};
   const filePath = path ?? process.env.SENARS_CONFIG ?? 'senars.config.json';
+  let outcome: MigrationOutcome | null = null;
   try {
     const absolutePath = resolve(process.cwd(), filePath);
     const content = await fs.readFile(absolutePath, 'utf-8');
-    raw = JSON.parse(content);
+    const raw = JSON.parse(content) as Record<string, unknown>;
+    outcome = migrateConfig(raw);
+    if (outcome.applied.length > 0) {
+      console.warn(
+        `[config] migrated ${filePath}: ${outcome.applied.join(', ')} (now configVersion ${outcome.config.configVersion})`
+      );
+      // Best-effort write-back so the on-disk format stays current.
+      try {
+        await fs.writeFile(absolutePath, `${JSON.stringify(outcome.config, null, 2)}\n`, 'utf-8');
+      } catch {
+        // Read-only location: migration stays in-memory for this run.
+      }
+    }
+    raw_config = outcome.config;
   } catch (e) {
     const err = e as NodeJS.ErrnoException;
     if (err.code !== 'ENOENT') {
@@ -83,11 +92,11 @@ export const loadConfig = async (path?: string): Promise<AppConfig> => {
       );
     }
   }
-  const warning = validateConfigVersion(raw.configVersion);
+  const warning = validateConfigVersion(raw_config.configVersion);
   if (warning) {
     console.warn(`[config] ${warning.message}`);
   }
-  const merged = { ...raw, ...readEnvOverrides() };
+  const merged = { ...raw_config, ...readEnvOverrides() };
   // Ensure configVersion is set in the parsed result
   if (!merged.configVersion) {
     merged.configVersion = CURRENT_CONFIG_VERSION;
