@@ -126,6 +126,7 @@ export { KnowledgeManager } from './KnowledgeManager.js';
 /** Lifecycle base component. @public */
 export { BaseComponent } from './Lifecycle.js';
 export type { LogEntry, LoggerConfig, LogLevel } from './Logger.js';
+export { registerLogEnricher } from './Logger.js';
 /** Structured logger. @public */
 export { createLogger, defaultLogger, Logger } from './Logger.js';
 export type { BuiltinLens, LensSpec, ModulationSpec } from './lens-schema.js';

@@ -19,7 +19,7 @@ pnpm run dev       # Development mode (watch)
 pnpm run start     # Run once
 pnpm chat          # Interactive REPL chat (turn-key conversational entry)
 pnpm status        # Live System One manifold health, head calibration, LM spend
-pnpm doctor        # Onboarding: credentials, ollama probe, effective LM/routing matrix
+pnpm doctor        # Onboarding: credentials, lm api probe, effective LM/routing matrix
 pnpm bench:system-one            # System One on/off latency + token benchmark
 pnpm arcade -- --games snake,bandit --arms nal,manifold   # Multi-game System One demo (see §Arcade)
 pnpm run demo:arcade -- --distill  # Arcade tournament + teacher→student distillation flywheel
@@ -540,7 +540,7 @@ const answer = await nar.askNaturalLanguage("What is Whiskers?");
 `LM_PROVIDER=llamacpp` targets a native llama.cpp `llama-server` via plain `fetch`:
 GBNF `grammar` passthrough for constrained decoding, `chat_template_kwargs`
 injection for Qwen-family thinking modes, and automatic model-alias resolution
-from `/v1/models`. Auto-detect ladder: cloud key → Ollama → llama.cpp → transformers.
+from `/v1/models`. Auto-detect ladder: cloud key → openai-compatible → llama.cpp → transformers.
 
 ```bash
 LM_PROVIDER=llamacpp LM_LLAMACPP_HOST=http://localhost:8080 pnpm start
@@ -1424,7 +1424,7 @@ This section is the lookup reference for tuning and deployment; the system descr
 ### LM Profiles & Routing
 
 `LM_PROFILE` selects a preset: `auto` (default — cloud when credentials exist, else local),
-`cloud-quality`, `local-private` (transformers.js), `ollama` (deprecated alias → openai-compatible). Per-tier env overrides
+`cloud-quality`, `local-private` (transformers.js), `openai-compatible`. Per-tier env overrides
 (`LM_FAST_MODEL` etc.) and an optional `routing` config block enable objective-driven
 multi-provider model selection with a self-upgrading offline failsafe ladder.
 

@@ -1,5 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { recordSchemaPromotion } from '../telemetry/index.js';
+import { withSpan } from '../otel/index.js';
 import type { PromotedSchema } from './schema-induction.js';
 
 /**
@@ -27,7 +29,8 @@ export class SchemaStore {
     this.episode = Math.max(this.episode, episode);
     const stored = schemas.map((s) => ({ ...s, episode }));
     for (const s of stored) this.schemas.set(SchemaStore.key(scope, s), s);
-    return stored;
+    if (stored.length) recordSchemaPromotion(scope, stored.length);
+    return withSpan('schema_store.promote', { 'schema.scope': scope, 'schema.count': stored.length }, () => stored);
   }
 
   /** All schemas for a scope (action → kind + belief-grade mean reward). */

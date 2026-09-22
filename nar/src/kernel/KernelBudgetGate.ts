@@ -9,6 +9,7 @@ import type {
 import { validateCognitiveEvent, validateReasoningBudget } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { pushBounded } from './event-ring.js';
+import { recordGateDecision } from '../telemetry/index.js';
 
 export interface KernelBudgetGateConfig {
   defaultBudget: ReasoningBudget;
@@ -77,6 +78,12 @@ export class KernelBudgetGate {
   }
 
   check(input: BudgetGateInput): BudgetGateOutput {
+    const out = this.decideBudget(input);
+    recordGateDecision('budget', input.operation, out.granted, out.terminationReason);
+    return out;
+  }
+
+  private decideBudget(input: BudgetGateInput): BudgetGateOutput {
     const correlationId = input.correlationId ?? uuidv4();
     const operation = input.operation;
     const estimatedCost = input.estimatedCost ?? this.costTable[operation] ?? 1;

@@ -9,6 +9,7 @@ import type { CapabilityTier } from './profiles.js';
 import { resolveProfile } from './profiles.js';
 import type { LoadedHeadBundle } from '../lm/system-one/wasi-head-bundle.js';
 import { loadHeadBundle } from '../lm/system-one/wasi-head-bundle.js';
+import { withSpan } from '../otel/index.js';
 export { NAR_PROFILES, resolveProfile } from './profiles.js';
 export type { CapabilityTier, NARProfileName, NARProfileSpec } from './profiles.js';
 
@@ -205,6 +206,23 @@ export class NARBuilder {
 
   /** Validate the spec and assemble: NAR (kernel) + Agent (transport). */
   async build(): Promise<WiredNAR> {
+    return withSpan(
+      'nar.builder.build',
+      {
+        'builder.profile': this.profile?.name ?? 'default',
+        'builder.capabilities': Object.keys(this.capabilities).join(','),
+        'builder.system_one_tier': this.systemOne?.tier ?? 0,
+        'builder.gates_injected': this.gates !== undefined,
+      },
+      (span) =>
+        this.buildInner().then((wired) => {
+          span.setAttribute('builder.subsystems', wired.describe().subsystems.join(','));
+          return wired;
+        })
+    );
+  }
+
+  private async buildInner(): Promise<WiredNAR> {
     const systemOneEnabled = (this.systemOne?.tier ?? 0) > 0;
     const selfEnabled = this.capabilities.self?.enabled === true;
 

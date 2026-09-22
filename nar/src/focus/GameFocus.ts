@@ -12,6 +12,7 @@ import { type ActionProposal, LearningEvent, type Reflex } from '../reflex/Refle
 import { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding.js';
 import { Focus, type FocusOptions } from './Focus.js';
 import { induceEpisodeSchemas, type PromotedSchema } from './schema-induction.js';
+import { recordBagPressure, recordHandover } from '../telemetry/index.js';
 
 export interface GameFocusOptions {
   focusId: string;
@@ -428,6 +429,8 @@ export class GameFocus {
       p.value * p.confidence > best.value * best.confidence ? p : best
     );
     const decision = this.negotiator.resolve(t.proposals, t.nalDerivations);
+    recordBagPressure('focus.tasks', this.focus.tasks.pressure());
+    recordBagPressure('focus.memory', this.focus.memory.pressure());
 
     // HANDOVER (E2): review-band decisions escalate to the heuristic baseline
     // (PlayJev handover pattern); block band yields the tick (AIKR), never a
@@ -454,6 +457,7 @@ export class GameFocus {
           };
           this.handoverCount++;
           this.lastTickHandover = true;
+          recordHandover();
         }
       }
     }

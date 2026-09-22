@@ -7,6 +7,9 @@ export interface LogEntry {
   scope: string;
   context?: Record<string, unknown>;
   error?: Error;
+  /** Injected by the registered log enricher (see registerLogEnricher). */
+  traceId?: string;
+  spanId?: string;
 }
 
 export interface LoggerConfig {
@@ -33,6 +36,16 @@ export interface LoggerInterface {
 }
 
 const LOG_LEVELS: LogLevel[] = ['debug', 'info', 'warn', 'error'];
+
+/**
+ * O2 (TODO20): pluggable entry enricher — the OTel integration registers one that
+ * injects `traceId`/`spanId` from the active span. Core stays OTel-free.
+ */
+type LogEnricher = () => Record<string, unknown> | undefined;
+let logEnricher: LogEnricher | undefined;
+export const registerLogEnricher = (enrich?: LogEnricher): void => {
+  logEnricher = enrich;
+};
 
 export class Logger {
   private readonly config: LoggerConfig;
@@ -136,6 +149,7 @@ export class Logger {
       scope: this.config.scope,
       context,
       error,
+      ...logEnricher?.(),
     };
     this.emit(entry);
   }

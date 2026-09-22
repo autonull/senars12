@@ -189,6 +189,41 @@ export function updateSystemMetrics(uptimeSeconds: number, errors: number, warni
   systemWarningsTotal.inc(warnings);
 }
 
+// O4 (TODO20): gate decisions, vetoes, schema promotions, handovers, bag pressure
+export const gateDecisionsTotal = new Counter({
+  name: 'senars_gate_decisions_total',
+  help: 'Gate decisions by gate type and outcome',
+  labelNames: ['gate', 'decision'] as const,
+  registers: [prometheusRegistry],
+});
+
+export const gateVetoesTotal = new Counter({
+  name: 'senars_gate_vetoes_total',
+  help: 'Gate vetoes by gate type and reason',
+  labelNames: ['gate', 'reason'] as const,
+  registers: [prometheusRegistry],
+});
+
+export const schemaPromotionsTotal = new Counter({
+  name: 'senars_schema_promotions_total',
+  help: 'Schemas promoted into the schema store',
+  labelNames: ['scope'] as const,
+  registers: [prometheusRegistry],
+});
+
+export const handoversTotal = new Counter({
+  name: 'senars_handovers_total',
+  help: 'Review-band handovers to the heuristic baseline (GameFocus E2)',
+  registers: [prometheusRegistry],
+});
+
+export const bagPressure = new Gauge({
+  name: 'senars_bag_pressure',
+  help: 'Priority-bag pressure by bag name',
+  labelNames: ['bag'] as const,
+  registers: [prometheusRegistry],
+});
+
 // Export metrics in Prometheus format
 export async function getMetricsAsText(): Promise<string> {
   return prometheusRegistry.metrics();

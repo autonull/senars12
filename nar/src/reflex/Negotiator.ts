@@ -1,5 +1,6 @@
 import type { Focus } from '../focus/Focus.js';
 import type { Perception } from '../game/Game.js';
+import { withSpan } from '../otel/index.js';
 import type { ActionProposal, LearningEvent } from './Reflex.js';
 
 export interface NALDerivation {
@@ -33,6 +34,28 @@ export class Negotiator {
   }
 
   resolve(reflexProposals: ActionProposal[], nalDerivations: NALDerivation[]): NegotiationDecision {
+    return withSpan(
+      'negotiator.resolve',
+      {
+        'negotiator.proposals': reflexProposals.length,
+        'negotiator.derivations': nalDerivations.length,
+      },
+      (span) => {
+        const decision = this.decide(reflexProposals, nalDerivations);
+        span.setAttributes({
+          'negotiator.source': decision.source,
+          'negotiator.vetoed': decision.vetoedBy !== null,
+          ...(decision.vetoedBy ? { 'negotiator.veto_reason': decision.vetoedBy } : {}),
+        });
+        return decision;
+      }
+    );
+  }
+
+  private decide(
+    reflexProposals: ActionProposal[],
+    nalDerivations: NALDerivation[]
+  ): NegotiationDecision {
     if (reflexProposals.length === 0) {
       return { action: null, actionExecuted: null, vetoedBy: null, confidence: 0, source: 'none' };
     }

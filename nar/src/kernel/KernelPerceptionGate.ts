@@ -12,6 +12,7 @@ import type { IngressJudge, IngressVerdict } from './ingress.js';
 import { normalizeNarsese } from '../nl/normalize.js';
 import type { TaskTypeName, Term } from '../terms';
 import { termParser } from '../terms';
+import { recordGateDecision } from '../telemetry/index.js';
 
 export interface KernelPerceptionGateConfig {
   defaultBudget: {
@@ -274,6 +275,18 @@ export class KernelPerceptionGate {
     source = 'derivation',
     correlationId?: string
   ): PerceptionGateOutput {
+    const out = this.decideAdmission(term, taskType, truth, source, correlationId);
+    recordGateDecision('perception', 'admitTask', out.admitted, out.rejectionReason);
+    return out;
+  }
+
+  private decideAdmission(
+    term: Term,
+    taskType: TaskTypeName,
+    truth?: { frequency: number; confidence: number } | { f: number; c: number },
+    source = 'derivation',
+    correlationId?: string
+  ): PerceptionGateOutput {
     const cid = correlationId ?? uuidv4();
     const normalized = truth
       ? 'frequency' in truth
@@ -333,7 +346,7 @@ export class KernelPerceptionGate {
       const confidence =
         (candidate.truth?.confidence ?? candidate.confidence) *
         this.sourceQualityToConfidence(sourceQuality);
-      const out = this.admitTask(
+      const out = this.decideAdmission(
         parsed.term,
         candidate.taskType,
         candidate.truth

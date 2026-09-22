@@ -203,6 +203,10 @@
     "./config": {
       "types": "./src/config/index.ts",
       "import": "./src/config/index.ts"
+    },
+    "./health": {
+      "types": "./src/health/index.ts",
+      "import": "./src/health/index.ts"
     }
   },
   "scripts": {

@@ -119,6 +119,8 @@ export type {
 } from './types/transport.js';
 /** @public Truth value branded types. */
 export type { Confidence, Frequency } from './types/truth.js';
+/** @public Health-report types (O3, TODO20). */
+export type { HealthCheckResult, HealthReport } from './types/health.js';
 /** @public Truth value constructors. */
 export { toConfidence, toFrequency } from './types/truth.js';
 // Utils

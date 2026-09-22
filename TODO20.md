@@ -233,11 +233,11 @@ error-type sweep.
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
 Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule (+processor bus typed) (DELIVERED, §5j)  → [x] Bench 62 (19 assertions, M1–M7)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  **PHASE 1 COMPLETE**
 
-NEXT SESSION ENTRY POINT: Phase 4 — O1 OTel spans (`NARBuilder.build`, `GateRegistry.*`, `Negotiator.resolve`, `SchemaStore.*`, `LMService.admit`), O2 structured JSON logging with traceId via AsyncLocalStorage, O3 health/ready endpoints + `pnpm doctor` reuse, O4 metrics completeness audit. Read §5l first (E1 taxonomy lives in `nar/src/errors/index.ts` on `@senars/util/errors` base — `SenarsError.wrap` is a static there now). Bench 65 (`tests/nar/todo20-otel.test.ts`) is the acceptance bench. Note: Prometheus + OTel spans already exist in ProviderRuntime/LMRule paths — audit before adding new ones (O4 first).
+NEXT SESSION ENTRY POINT: Phase 5 — C1 Zod config schema (`src/config/schema.ts`, unknown keys error, `config:validate` script; tighten `production.provider: "vercel"` to the LMProviderName enum per §5f), C2 config migration utility, C3 deep-freeze `DEFAULT_COGNITIVE_PARAMETERS`, C4 secrets hygiene + LM_MAX_SPEND_USD (hard cap already lives in `lm/service/spend.ts` `SpendLedger`), X7 StateCodec (one schema-pinned codec for NAR snapshot / memory serialization / EventLogPersistence). Bench 66 (`tests/nar/todo20-config.test.ts`) is the acceptance bench. Note: `@senars/util/config` already hosts system-one schemas (X1) — follow that placement pattern; `src/bin/config-validate.ts` exists as a prior art anchor.
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (DELIVERED, §5k)  → [x] Bench 61b
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (DELIVERED, §5l — E3 scoped to tool boundaries, see note)  → [x] Bench 64
-Phase 4: O1 otel  O2 json-log  O3 health  O4 metrics  → [ ] Bench 65
+Phase 4: O1 otel  O2 json-log  O3 health  O4 metrics (DELIVERED, §5m — see deviations: decision-level spans not GateRegistry.* spans; doctor not yet consuming health checks)  → [x] Bench 65
 Phase 5: C1 schema  C2 migrate  C3 freeze  C4 secrets  (+X7 StateCodec)  → [ ] Bench 66
 Phase 6: A1 exports  A2 typedoc  A3 semver  A4 deprecation  → [ ] Bench 67
 Phase 7: S1 validate  S2 shell  S3 wasi  S4 sanitize  → [ ] Bench 68
@@ -860,8 +860,69 @@ Verified: typecheck clean, lint clean, full `test:unit` green (1,826), deps:gate
 - Bench 64's persistence case only covers the ENOENT path; a corruption-path case (invalid JSON →
   wrapped error) would tighten it.
 
-## 6. Definition of Done
+## 5m. Phase 4 delivery note — O1/O2/O3/O4 (2026-09-22)
 
+**Delivered:** O1, O2, O3, O4; Bench 65 (`tests/nar/todo20-otel.test.ts`, 7 tests).
+Verified: typecheck clean, lint clean, full `test:unit` green (1,833), deps:gate 72 ok.
+
+### Audit-first findings (per the entry-point note)
+
+- **Otel already had infrastructure**: `nar/src/otel/index.ts` (NodeTracerProvider + OTLP exporter,
+  cognitive-stage middleware spans in `tick/`), and `lm/provider-runtime.ts` already spans circuit-breaker
+  state changes + Prometheus counters for LM calls/spend/probes/circuit state, derivations, system-one
+  judgments, memory episodes, uptime/errors. The audit added only the genuinely missing metrics.
+- **`LMService.admit()` does not exist** (plan named it speculatively) — the closest admission seam is
+  the routing decision + call path; instrumented there instead.
+
+### What landed
+
+- **O1 spans** — new helpers in `otel/index.ts`: `withSpan(name, attrs, fn)` (sync+async, error recording)
+  and `decisionSpan(name, attrs)` (fire-and-forget for high-frequency verdicts). `OtelConfig.spanProcessors`
+  accepts extra processors (test seam). Instrumented: `NARBuilder.build` (`nar.builder.build`: profile,
+  capabilities, tier, gates, subsystems), per-gate decisions (see O4), `Negotiator.resolve`
+  (`negotiator.resolve`: proposals/derivations/source/vetoed), `SchemaStore.promote`
+  (`schema_store.promote`: scope/count), `LMService.generateText` (`lm.generate_text`: task, latency,
+  output size; provider/model/success set in `logRoutingDecision` so all five call paths feed one span).
+- **O2** — `core/src/Logger.ts` gained a pluggable **`registerLogEnricher`** (core stays OTel-free);
+  `initOtel` registers an enricher injecting `traceId`/`spanId` from the active span. Propagation works
+  via the AsyncLocalStorage context manager that `NodeTracerProvider.register()` installs by default
+  (verified for SDK v2.11 — no manual context-manager registration needed).
+- **O3** — `HealthReport`/`HealthCheckResult` types live in `@senars/util` (io cannot depend on nar);
+  `nar/src/health/index.ts` exports `runHealthChecks({ lmReachable, schemaStore, gates, eventLog })`
+  (exported as `@senars/nar/health`); `HTTPConnection` serves **`GET /health/ready`** (200/503 from
+  `deps.health`, optional; `/health` liveness unchanged). `ConnectionDeps.health?` added in
+  `util/src/types/transport.ts`.
+- **O4** — new Prometheus metrics + helpers in `metrics/prometheus.ts` wired via `nar/src/telemetry/index.ts`:
+  `gate_decisions_total{gate,decision}`, `gate_vetoes_total{gate,reason}`, `schema_promotions_total{scope}`,
+  `handovers_total`, `bag_pressure{bag}`. Gates instrumented **inside the kernel gate classes**
+  (`admitTask`/`check`/`authorize` bodies renamed to private `decide*` with thin recording wrappers) so every
+  consumer path is covered, not just nar.ts's. Handover counter wired at the GameFocus E2 handover;
+  bag pressure sampled per tick for the focus task/memory bags.
+
+### Honest deviations
+
+- **Decision-level spans, not `GateRegistry.*` spans.** GateRegistry is a passive registry (no operations);
+  spans/metrics are emitted at the gate decision points inside `KernelPerception/Budget/ActionGate` —
+  strictly more coverage than the plan's registry-level wording.
+- **Doctor does not consume `runHealthChecks` yet** — `pnpm doctor` runs config/LM probes without a wired
+  NAR, and the shared checks need NAR-scoped deps. Wire when doctor gains a `--deep` mode; acceptance
+  partially deferred.
+- **`pnpm status --json` traceId** not wired — status is a standalone report with no active span; traceId
+  appears in JSON logs under any active span. Entry-point span wrapping (REPL/bot/MCP) remains open.
+- **Token counts on the LM span** are delegated to the existing `recordCall`/spend metrics; the span carries
+  latency/output-size only.
+
+### Follow-ups / improvement opportunities
+
+- Wire `health` into app deps (`src/bin/bot-ai.ts` constructs connections with `{emit, logger}` — add
+  `health: () => runHealthChecks(...)` once the agent exposes nar-level deps).
+- Remaining `Math.random` sweep sites from §5b unchanged; Logger sampling still uses `Math.random` (core).
+- `bagPressure` covers focus bags only; concept/memory bags have no pressure() seam — add when memory
+  exposes one.
+- Gate veto reasons are free-form strings → high-cardinality `gate_vetoes_total{reason}`; consider
+  normalizing reasons to enum codes if the series count grows.
+
+## 6. Definition of Done
 
 
 

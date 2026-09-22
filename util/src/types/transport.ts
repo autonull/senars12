@@ -1,3 +1,5 @@
+import type { HealthReport } from './health.js';
+
 export type ConnectionState =
   | 'idle'
   | 'connecting'
@@ -80,6 +82,8 @@ export interface ConnectionDeps {
     };
   };
   readonly getSessionSpaceId?: (connectionId: string) => string | undefined;
+  /** O3 (TODO20): readiness probe consumed by the HTTP `/health/ready` endpoint. */
+  readonly health?: () => Promise<HealthReport> | HealthReport;
 }
 
 export interface TransportDeps extends ConnectionDeps {

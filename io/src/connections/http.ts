@@ -2,6 +2,7 @@ import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import { URL } from 'node:url';
 import { makeId } from '@senars/core/helpers';
 import { createLogger } from '@senars/core/logger';
+import type { HealthReport } from '@senars/util';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { ApiKeyManager, parseHttpBody, setCORSHeaders, startHttpServer } from '../utils/http.js';
 import { BaseConnection } from './base.js';
@@ -13,6 +14,7 @@ export class HTTPConnection extends BaseConnection {
   private readonly port: number;
   private apiKeys = new ApiKeyManager();
   private pendingRequests = new Map<string, (text: string) => void>();
+  private readonly health?: () => Promise<HealthReport> | HealthReport;
 
   constructor(config: ConnectionConfig, deps: ConnectionDeps) {
     super(config, deps);
@@ -20,6 +22,7 @@ export class HTTPConnection extends BaseConnection {
     this.port = (config.config.port as number) ?? 8080;
     const apiKey = config.config.apiKey as string;
     if (apiKey) this.apiKeys.add(apiKey);
+    this.health = deps.health;
   }
 
   override async connect(): Promise<void> {
@@ -80,6 +83,13 @@ export class HTTPConnection extends BaseConnection {
     if (url.pathname === '/health') {
       res.statusCode = 200;
       res.end(JSON.stringify({ status: 'ok', timestamp: Date.now() }));
+      return;
+    }
+
+    if (url.pathname === '/health/ready') {
+      const report = this.health ? await this.health() : { ready: true, checks: {} };
+      res.statusCode = report.ready ? 200 : 503;
+      res.end(JSON.stringify({ status: report.ready ? 'ready' : 'unready', ...report }));
       return;
     }
 

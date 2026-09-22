@@ -9,6 +9,7 @@ import { AutonomyModeChangedEventSchema, validateCognitiveEvent } from '@senars/
 import { SenarsError } from '@senars/util/errors';
 import { v4 as uuidv4 } from 'uuid';
 import { pushBounded } from './event-ring.js';
+import { recordGateDecision } from '../telemetry/index.js';
 
 const MODE_ORDER: AutonomyMode[] = [
   'observe-only',
@@ -174,6 +175,12 @@ export class KernelActionGate {
   }
 
   authorize(input: ActionGateInput): ActionGateOutput {
+    const out = this.decideAuthorization(input);
+    recordGateDecision('action', input.operation, out.authorized, out.vetoReason);
+    return out;
+  }
+
+  private decideAuthorization(input: ActionGateInput): ActionGateOutput {
     const correlationId = input.correlationId ?? uuidv4();
 
     // Scoped (game) operations authorize against their own scope — the global

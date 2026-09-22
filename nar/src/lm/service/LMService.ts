@@ -1,5 +1,7 @@
 import type { LMExecutionStats, LMTask } from '@senars/util';
 import { generateObject, generateText, type LanguageModel, streamText, zodSchema } from 'ai';
+import { trace } from '@opentelemetry/api';
+import { withSpan } from '../../otel/index.js';
 import type { ZodSchema } from 'zod';
 import { z } from 'zod';
 import type { GrammarName } from '../grammars/index.js';
@@ -130,6 +132,18 @@ export class LMService implements ILMService {
   }
 
   async generateText(
+    prompt: string,
+    opts?: Parameters<LMService['generateTextInner']>[1]
+  ): Promise<string> {
+    return withSpan('lm.generate_text', { 'lm.task': opts?.task ?? 'fast' }, async (span) => {
+      const start = Date.now();
+      const text = await this.generateTextInner(prompt, opts);
+      span.setAttributes({ 'lm.latency_ms': Date.now() - start, 'lm.output_chars': text.length });
+      return text;
+    });
+  }
+
+  private async generateTextInner(
     prompt: string,
     opts?: {
       task?: LMTask;
@@ -434,6 +448,12 @@ export class LMService implements ILMService {
     success: boolean,
     provider: LMProviderName | undefined
   ): void {
+    trace.getActiveSpan()?.setAttributes({
+      'lm.provider': provider ?? 'unknown',
+      'lm.model': this.runtime.lastDecision?.modelId ?? '',
+      'lm.success': success,
+      'lm.latency_ms': Date.now() - start,
+    });
     const decision = this.runtime.lastDecision;
     if (!decision) return;
     this.runtime.logRoutingDecision({
