@@ -28,3 +28,13 @@ export {
   replayIntoMemory,
   serializeReplayResult,
 } from './replay.js';
+
+export type {
+  IPerceptionGate,
+  IActionGate,
+  IRewardGate,
+  IBudgetGate,
+  IGateRegistry,
+  IEventLog,
+  IDriveManager,
+} from './interfaces.js';

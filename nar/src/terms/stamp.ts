@@ -1,6 +1,5 @@
 import { threadId } from 'node:worker_threads';
-import type { Timestamp } from '../types';
-import { DEPTH_MAX } from '../types';
+import { Timestamp, DEPTH_MAX } from '../types/primitives.js';
 
 const nowMicroseconds = (): Timestamp => (Date.now() * 1000) as Timestamp;
 

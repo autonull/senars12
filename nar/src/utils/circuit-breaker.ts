@@ -1,5 +1,5 @@
 import { createLogger } from '../logger';
-import { OperationError } from '../types';
+import { OperationError } from '@senars/util';
 
 const logger = createLogger({ scope: 'circuit-breaker' });
 

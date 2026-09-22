@@ -1,16 +1,20 @@
-import type { NAR } from '../nar.js';
-import { Truth } from '../terms/truth.js';
+import type { IDriveManager } from '../kernel/interfaces.js';
+import { Truth, type Truth as TruthType } from '../terms/truth.js';
 import type { EventBus as InternalEventBus } from '../types/events.js';
 import { clamp01 } from '../utils';
 import { BUILTIN_DRIVES } from './builtin.js';
 import type { DriveSpec, DriveState } from './types.js';
 
-export class DriveManager {
+export interface INarInput {
+  input(input: string, type: 'belief' | 'goal' | 'question', truth?: TruthType): Promise<void>;
+}
+
+export class DriveManager implements IDriveManager {
   private states = new Map<string, DriveState>();
-  private nar: NAR;
+  private nar: INarInput;
   private systemEventBus: InternalEventBus | null = null;
 
-  constructor(nar: NAR) {
+  constructor(nar: INarInput) {
     this.nar = nar;
     for (const spec of BUILTIN_DRIVES) {
       this.states.set(spec.id, {

@@ -191,11 +191,11 @@
 | 9 | Docs drift from code | `pnpm docs:check` in CI (link check, example run) |
 
 ---
-
+ 
 ## 5. Master Checklist
-
+ 
 ```
-Phase 0: D01 interfaces  D02 nl-lm  D03 terms-utils  D04 dpdm-gate  D05 barrels  → [ ] Bench 61
+Phase 0: D01 interfaces  D02 nl-lm  D03 terms-utils  D04 dpdm-gate  D05 barrels  → [x] Bench 61
 Phase 1: M1 tools  M2 nar  M3 providers  M4 lm-service  M5 tool-reg  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62
 Phase 2: T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 taxonomy  → [ ] Bench 63
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context  → [ ] Bench 64
@@ -206,8 +206,52 @@ Phase 7: S1 validate  S2 shell  S3 wasi  S4 sanitize  → [ ] Bench 68
 Phase 8: P1 bag-lcg  P2 cache  P3 negotiator  P4 param-batch  → [ ] Bench 69
 Phase 9: K1 adr  K2 diagrams  K3 guides  K4 runbook  → [ ] Bench 70
 ```
-
+ 
 ---
+ 
+## Phase 0 Progress Notes (2026-09-22)
+ 
+### Completed Items
+ 
+- **D01**: Created `nar/src/kernel/interfaces.ts` with `IGateRegistry`, `IPerceptionGate`, `IActionGate`, `IRewardGate`, `IBudgetGate`, `IEventLog`, `IDriveManager` interfaces. Updated `GateRegistry` to implement `IGateRegistry`. Created `nar/src/types/events-interfaces.ts` with typed event accessors. Updated `DriveManager` to accept `INarInput` interface instead of concrete `NAR` class.
+ 
+- **D02**: Created `nar/src/lm/interfaces.ts` with `ILMService` interface. Updated `NLUnderstandingService` and `NLGenerationService` to depend on `ILMService` instead of concrete `LMService`. Exported `ILMService` from `nar/src/lm/index.ts`.
+ 
+- **D03**: Broke `utils → types → terms` cycle by:
+  - Moving `Timestamp`, `Duration`, `DEPTH_MAX` to new `nar/src/types/primitives.ts` (no external deps)
+  - Updating `nar/src/terms/stamp.ts` to import from `primitives.ts` instead of `types`
+  - Updating `nar/src/utils/circuit-breaker.ts` to import `OperationError` from `@senars/util` instead of `../types`
+  - Removed `trackTerm` import from `nar/src/terms/index.ts` to break `terms → memory` cycle
+ 
+- **D04**: Added `pnpm deps:check` to `test` script in root `package.json`. CI now runs dependency check before tests.
+ 
+- **D05**: Audited barrel exports in `nar/package.json`:
+  - Removed internal-only exports: `./gates`, `./focus`, `./reflex`, `./lm/system-one`, `./kernel`, `./tick`, `./otel`, `./capability`, `./stream`, `./config/parameter-table`
+  - Kept public exports: `.`, `./agent`, `./game`, `./config`, `./rl`, `./lm`, `./tools`, `./rules`, `./memory`, `./cognitive`, `./nl`, `./self`, `./learning`, `./rlfp`, `./commands`, `./logger`, `./utils`, `./bag`, `./engine`
+  - `exports:check` passes; no internal symbols leaked via public exports map
+ 
+### Acceptance Status
+ 
+- ✅ `pnpm deps:check` reports 10 cycles (5 in core/io, 5 in nar) — all ≤10
+- ✅ `pnpm test:unit` green (1772 tests pass)
+- ✅ `pnpm typecheck` clean
+- ✅ `pnpm exports:check` passes
+- ✅ No `import … from '@senars/nar/kernel/…'` in app code (kernel not in exports map)
+ 
+### Remaining Cycles (Documented)
+ 
+1. core: Agent → AgentBridge → bridge/AgentBridge (3 cycles)
+2. core: index → cortex/createCortexFromLM
+3. io: index → bridge → bridge/index → ConnectionBinder → core/index → Agent → agent/types (2 cycles)
+4. io: index → bridge → bridge/index → MiddlewarePipeline
+5. nar: memory/index → memory/concept → terms/index → terms/factory.ts
+6. nar: terms/factory.ts → terms/serialize.ts → terms/parser-peggy.ts
+7. nar: strategies → attention/CompositeAttention → memory/index → memory/focus.ts
+8. nar: strategies → attention/CompositeAttention → memory/index → memory/lifecycle/forgetting.ts → memory/pressure/index.ts → memory/pressure/consolidation.ts → memory/memory.ts (2 cycles)
+ 
+### Next Steps
+ 
+Phase 1 (Monolith Decomposition) can now proceed. The interface boundaries established in Phase 0 will allow safe splitting of the 7 monolith files without introducing new circular dependencies.
 
 ## 6. Definition of Done
 

@@ -56,10 +56,6 @@
       "types": "./src/lm/rule-templates/fallbacks.ts",
       "import": "./src/lm/rule-templates/fallbacks.ts"
     },
-    "./lm/system-one": {
-      "types": "./src/lm/system-one/index.ts",
-      "import": "./src/lm/system-one/index.ts"
-    },
     "./cooperation": {
       "types": "./src/cooperation/delegation.ts",
       "import": "./src/cooperation/delegation.ts"
@@ -156,18 +152,6 @@
       "types": "./src/bag/index.ts",
       "import": "./src/bag/index.ts"
     },
-    "./focus": {
-      "types": "./src/focus/index.ts",
-      "import": "./src/focus/index.ts"
-    },
-    "./gates": {
-      "types": "./src/gates/index.ts",
-      "import": "./src/gates/index.ts"
-    },
-    "./reflex": {
-      "types": "./src/reflex/index.ts",
-      "import": "./src/reflex/index.ts"
-    },
     "./game": {
       "types": "./src/game/index.ts",
       "import": "./src/game/index.ts"
@@ -176,29 +160,9 @@
       "types": "./src/rl/index.ts",
       "import": "./src/rl/index.ts"
     },
-    "./tick": {
-      "types": "./src/tick/index.ts",
-      "import": "./src/tick/index.ts"
-    },
-    "./otel": {
-      "types": "./src/otel/index.ts",
-      "import": "./src/otel/index.ts"
-    },
-    "./capability": {
-      "types": "./src/capability/index.ts",
-      "import": "./src/capability/index.ts"
-    },
-    "./stream": {
-      "types": "./src/stream/index.ts",
-      "import": "./src/stream/index.ts"
-    },
-    "./stream/*": {
-      "types": "./src/stream/*.ts",
-      "import": "./src/stream/*.ts"
-    },
-    "./config/parameter-table": {
-      "types": "./src/config/cognitive-parameters.ts",
-      "import": "./src/config/cognitive-parameters.ts"
+    "./config": {
+      "types": "./src/config/index.ts",
+      "import": "./src/config/index.ts"
     }
   },
   "scripts": {

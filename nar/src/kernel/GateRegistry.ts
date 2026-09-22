@@ -3,12 +3,13 @@ import { KernelActionGate } from './KernelActionGate.js';
 import { KernelBudgetGate } from './KernelBudgetGate.js';
 import { KernelPerceptionGate } from './KernelPerceptionGate.js';
 import { KernelRewardGate } from './KernelRewardGate.js';
+import type { IGateRegistry, IPerceptionGate, IActionGate, IRewardGate, IBudgetGate } from './interfaces.js';
 
-export class GateRegistry {
-  private perceptionGate: KernelPerceptionGate;
-  private actionGate: KernelActionGate;
-  private rewardGate: KernelRewardGate;
-  private budgetGate: KernelBudgetGate;
+export class GateRegistry implements IGateRegistry {
+  private perceptionGate: IPerceptionGate;
+  private actionGate: IActionGate;
+  private rewardGate: IRewardGate;
+  private budgetGate: IBudgetGate;
   private initialized = false;
 
   constructor() {
@@ -18,19 +19,19 @@ export class GateRegistry {
     this.budgetGate = new KernelBudgetGate();
   }
 
-  getPerceptionGate(): KernelPerceptionGate {
+  getPerceptionGate(): IPerceptionGate {
     return this.perceptionGate;
   }
 
-  getActionGate(): KernelActionGate {
+  getActionGate(): IActionGate {
     return this.actionGate;
   }
 
-  getRewardGate(): KernelRewardGate {
+  getRewardGate(): IRewardGate {
     return this.rewardGate;
   }
 
-  getBudgetGate(): KernelBudgetGate {
+  getBudgetGate(): IBudgetGate {
     return this.budgetGate;
   }
 

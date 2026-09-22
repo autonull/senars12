@@ -6,6 +6,7 @@
 import type { Term } from '../terms';
 import { Stamp, Truth } from '../terms';
 import type { Truth as TruthType } from '../terms/truth.js';
+import { createTimestamp, DEPTH_MAX, type Timestamp } from './primitives.js';
 
 export type { Source, Stamp } from '../terms/stamp.js';
 export type { Truth as TruthType } from '../terms/truth.js';
@@ -15,11 +16,8 @@ export type { AtomicTerm, CompoundTerm, Term } from '../terms/types.js';
 // Core identity and hashing
 
 // Branded types for temporal and probabilistic reasoning safety
-export type Timestamp = number & { readonly __brand: unique symbol };
-export type Duration = number & { readonly __brand: unique symbol };
-
-export const createTimestamp = (ms?: number): Timestamp => (ms ?? Date.now()) as Timestamp;
-export const createDuration = (ms: number): Duration => ms as Duration;
+export type { Timestamp, Duration } from './primitives.js';
+export { createTimestamp, createDuration, DEPTH_MAX } from './primitives.js';
 
 export type Hash = number;
 export type TermSymbol = string;

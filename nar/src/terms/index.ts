@@ -9,9 +9,6 @@ export {
   OPERATORS,
 } from './types.js';
 
-// Utilities
-import { trackTerm } from '../memory';
-
 // Accessors
 export {
   containsSubterm,
@@ -74,4 +71,3 @@ export { calculateSimilarity, extractSymbols } from './utils.js';
 
 // Validation
 export { isInvalidTaskTerm, isTautology, validateTaskTerm } from './validation.js';
-export { trackTerm };

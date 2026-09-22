@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { ZodSchema } from 'zod';
 import type { SeNARSRegistry } from '../lm';
 import { getModelForTask } from '../lm';
-import type { LMService } from '../lm/lm-service.js';
+import type { ILMService } from '../lm/interfaces.js';
 import { errMsg } from '../utils';
 import type { TranslationCache, TranslationCacheEntry, TranslationResult } from './cache.js';
 import { type FirewallOptions, SymbolicFirewall } from './firewall.js';
@@ -58,7 +58,7 @@ export interface NLContext {
 }
 
 export class NLUnderstandingService {
-  private readonly lm: LMService | null;
+  private readonly lm: ILMService | null;
   private readonly model: LanguageModel | null;
   private structuredOnly: boolean;
   private readonly firewall: SymbolicFirewall;
@@ -66,12 +66,12 @@ export class NLUnderstandingService {
   private readonly cache: TranslationCache;
 
   constructor(
-    registry: SeNARSRegistry | LMService,
+    registry: SeNARSRegistry | ILMService,
     cache: TranslationCache,
     opts?: { structuredOnly?: boolean; firewall?: FirewallOptions | SymbolicFirewall }
   ) {
-    if (registry && typeof (registry as LMService).generateObject === 'function') {
-      this.lm = registry as LMService;
+    if (registry && typeof (registry as ILMService).generateObject === 'function') {
+      this.lm = registry as ILMService;
       this.model = null;
     } else {
       this.lm = null;

@@ -5,7 +5,7 @@ import type { AutonomyMode, JudgmentResolvedEvent } from '@senars/kernel/schemas
 import type { CognitiveRegistry } from './cognitive';
 import { CognitiveController } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
-import { createBootstrapTasks, DriveManager } from './drives';
+import { createBootstrapTasks, DriveManager, type INarInput } from './drives';
 import { FocusBag } from './focus/FocusBag.js';
 import { GameFocus, type GameFocusOptions } from './focus/GameFocus.js';
 import { createSelfMetaGame, type SelfMetaGameImpl } from './game/SelfMetaGame.js';
@@ -238,7 +238,9 @@ export class NAR extends BaseComponent {
     this._emitJudgmentResolved = createTelemetryEmitter(
       createNarTelemetrySinks(this.systemEventBus)
     );
-    this.driveManager = new DriveManager(this as any);
+    this.driveManager = new DriveManager({
+      input: (text, type, truth) => this.io.input(text, type, truth),
+    } as INarInput);
     this.driveManager.setSystemEventBus(this.systemEventBus);
     // D23 (TODO17b): ambiguity at ingress stimulates curiosity (A4 closure).
     this.gates.getPerceptionGate().setDriveManager(this.driveManager);

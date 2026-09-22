@@ -1,5 +1,35 @@
-import type { Ambiguity, TaskBatch } from '../nl';
 import type { Term, Truth } from '../terms';
+
+export interface Ambiguity {
+  type: 'parse' | 'intent' | 'term' | 'reference';
+  description: string;
+  options: string[];
+  confidence: number;
+}
+
+export interface Coreference {
+  pronoun: string;
+  antecedent: string;
+  confidence: number;
+}
+
+export interface TaskBatch {
+  beliefs: Array<{
+    narsese: string;
+    truth?: { f: number; c: number };
+    source: 'user' | 'inferred';
+    sourceText?: string;
+  }>;
+  questions: Array<{ narsese: string; context?: string; sourceText?: string }>;
+  goals: Array<{ narsese: string; priority?: number; sourceText?: string }>;
+  meta: {
+    detectedIntent: 'chat' | 'command' | 'reasoning' | 'learning';
+    ambiguities: Ambiguity[];
+    coreferences: Coreference[];
+    implicitContext: string[];
+    driveModulations?: Record<string, number>;
+  };
+}
 
 /** Cognitive state of the NAR (emitted on `cognitive:state-change`). */
 export type CognitiveState = 'normal' | 'confused' | 'bored' | 'overloaded' | 'idle';

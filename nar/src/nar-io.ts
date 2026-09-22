@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';
-import type { KernelPerceptionGate } from './kernel';
+import type { IPerceptionGate } from './kernel';
 import { gateRegistry } from './kernel/GateRegistry.js';
 import type { Memory } from './memory';
 import type { NARConfig } from './nar';
@@ -35,7 +35,7 @@ export class NARIO {
   private _eventBus: EventBus | null = null;
   private _systemEventBus: NarEventBus | null = null;
   private cognitiveParams?: CognitiveParameters;
-  private perceptionGate: KernelPerceptionGate;
+  private perceptionGate: IPerceptionGate;
 
   constructor(
     private readonly memory: Memory,

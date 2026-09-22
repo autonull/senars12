@@ -55,6 +55,7 @@ export {
   createMockLMService,
   LMService,
 } from './lm-service.js';
+export type { ILMService } from './interfaces.js';
 export type {
   CandidateScore,
   CircuitBreakerConfig,

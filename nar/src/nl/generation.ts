@@ -2,7 +2,7 @@ import type { LanguageModel } from 'ai';
 import { generateObject, zodSchema } from 'ai';
 import type { SeNARSRegistry } from '../lm';
 import { getModelForTask } from '../lm';
-import type { LMService } from '../lm/lm-service.js';
+import type { ILMService } from '../lm/interfaces.js';
 import { buildGenerationPrompt } from './prompts/generation-v1.js';
 import { GenerationOutputSchema } from './schemas.js';
 import { SingleFlight } from './singleflight.js';
@@ -61,13 +61,13 @@ function findKnowledgeGaps(beliefs: BeliefInfo[]): string[] {
 }
 
 export class NLGenerationService {
-  private readonly lm: LMService | null;
+  private readonly lm: ILMService | null;
   private readonly model: LanguageModel | null;
   private readonly flight = new SingleFlight();
 
-  constructor(registry: SeNARSRegistry | LMService) {
-    if (registry && typeof (registry as LMService).generateObject === 'function') {
-      this.lm = registry as LMService;
+  constructor(registry: SeNARSRegistry | ILMService) {
+    if (registry && typeof (registry as ILMService).generateObject === 'function') {
+      this.lm = registry as ILMService;
       this.model = null;
     } else {
       this.lm = null;
