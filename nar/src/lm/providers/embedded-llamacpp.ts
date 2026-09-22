@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
@@ -5,28 +6,27 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
-import { simulateReadableStream, MockLanguageModelV3 } from 'ai/test';
 import type { LanguageModel } from 'ai';
+import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import {
-  GeneralChatWrapper,
-  LlamaChatSession,
   type ChatModelResponse,
-  type LlamaChatResponseChunk,
-  type LlamaGrammar,
+  GeneralChatWrapper,
+  getLlama,
+  getLlamaGpuTypes,
   type Llama,
+  type LlamaChatResponseChunk,
+  LlamaChatSession,
+  type LlamaGrammar,
 } from 'node-llama-cpp';
 import {
-  getModel,
-  getContext,
-  getLlamaInstance,
   createSequence,
   getChatWrapper,
+  getContext,
+  getLlamaInstance,
   isLoaded,
 } from '../runtime/llama-runtime.js';
-import { getLMSettings } from '../providers.js';
 import { grammarScope } from './llamacpp.js';
-import { existsSync } from 'node:fs';
-import { getLlama, getLlamaGpuTypes } from 'node-llama-cpp';
+import { getLMSettings } from './settings.js';
 
 function extractTextFromPrompt(prompt: LanguageModelV3CallOptions['prompt']): string {
   if (!prompt || prompt.length === 0) return '';
@@ -151,7 +151,14 @@ async function ensureRuntimeLoaded(): Promise<void> {
 let callChain: Promise<unknown> = Promise.resolve();
 
 const finishReasonFor = (
-  stop: 'customStopTrigger' | 'abort' | 'maxTokens' | 'eogToken' | 'stopGenerationTrigger' | 'functionCalls' | undefined
+  stop:
+    | 'customStopTrigger'
+    | 'abort'
+    | 'maxTokens'
+    | 'eogToken'
+    | 'stopGenerationTrigger'
+    | 'functionCalls'
+    | undefined
 ): LanguageModelV3GenerateResult['finishReason'] =>
   stop === 'maxTokens'
     ? { unified: 'length', raw: 'max-tokens' }
@@ -170,7 +177,7 @@ export function createEmbeddedLlamaCppLanguageModel(
     outputTokens: number;
   }> => {
     await ensureRuntimeLoaded();
-    const context = await getContext();
+    const _context = await getContext();
     const sequence = await createSequence();
     const systemPrompt = extractSystemPrompt(options.prompt);
 
@@ -208,7 +215,12 @@ export function createEmbeddedLlamaCppLanguageModel(
         ...(onDelta || grammar
           ? {
               onResponseChunk(chunk: LlamaChatResponseChunk) {
-                if (!grammar && chunk.type === 'segment' && (chunk.segmentType === 'thought' || chunk.segmentType === 'comment')) return;
+                if (
+                  !grammar &&
+                  chunk.type === 'segment' &&
+                  (chunk.segmentType === 'thought' || chunk.segmentType === 'comment')
+                )
+                  return;
                 rawChunks += chunk.text;
                 onDelta?.(chunk.text);
               },
@@ -222,10 +234,17 @@ export function createEmbeddedLlamaCppLanguageModel(
     }
     if (process.env.LM_LLAMACPP_DEBUG) {
       const seg = (i: ChatModelResponse['response'][number]) =>
-        typeof i === 'string' ? `str(${i.length})` : `${i.type}:${'segmentType' in i ? i.segmentType : ''}(${('text' in i ? i.text : '').length})`;
-      console.error('[embedded-llamacpp] grammar:', grammar ? 'active' : 'none',
-        '| stopReason:', result.stopReason,
-        '| segments:', result.response.map(seg).join(' | '));
+        typeof i === 'string'
+          ? `str(${i.length})`
+          : `${i.type}:${'segmentType' in i ? i.segmentType : ''}(${('text' in i ? i.text : '').length})`;
+      console.error(
+        '[embedded-llamacpp] grammar:',
+        grammar ? 'active' : 'none',
+        '| stopReason:',
+        result.stopReason,
+        '| segments:',
+        result.response.map(seg).join(' | ')
+      );
     }
     const text = (
       grammar ? result.responseText || rawChunks : visibleText(result.response) || rawChunks

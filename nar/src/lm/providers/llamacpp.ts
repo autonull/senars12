@@ -37,12 +37,18 @@ const resolveModelId = (origin: string): Promise<string> => {
   // Memoize only successes: a probe before llama-server readiness must not
   // cache the placeholder forever (D4 — permanent 400s → breaker trips).
   resolvedModel = attempt.catch((error) => {
-    console.warn(`[llamacpp] ${error instanceof Error ? error.message : String(error)}; retrying on next request`);
+    console.warn(
+      `[llamacpp] ${error instanceof Error ? error.message : String(error)}; retrying on next request`
+    );
     return MODEL_PLACEHOLDER;
   });
   void resolvedModel.then(
-    (id) => { if (id === MODEL_PLACEHOLDER) resolvedModel = undefined; },
-    () => { resolvedModel = undefined; },
+    (id) => {
+      if (id === MODEL_PLACEHOLDER) resolvedModel = undefined;
+    },
+    () => {
+      resolvedModel = undefined;
+    }
   );
   return resolvedModel;
 };
@@ -67,7 +73,11 @@ export const createLlamaCppFetch =
       if (grammar) body.grammar = grammar;
       if (!body.model || body.model === MODEL_PLACEHOLDER) {
         const origin =
-          typeof input === 'string' ? new URL(input).origin : input instanceof URL ? input.origin : '';
+          typeof input === 'string'
+            ? new URL(input).origin
+            : input instanceof URL
+              ? input.origin
+              : '';
         if (origin) body.model = await resolveModelId(origin);
       }
       init = { ...init, body: JSON.stringify(body) };
@@ -79,7 +89,10 @@ export const createLlamaCppFetch =
 
 /** Probe llama-server's native /health endpoint. */
 export const probeLlamaCpp = async (host?: string): Promise<boolean> => {
-  const base = (host ?? process.env.LM_LLAMACPP_HOST ?? LLAMACPP_HOST_DEFAULT).replace(/\/v1\/?$/, '');
+  const base = (host ?? process.env.LM_LLAMACPP_HOST ?? LLAMACPP_HOST_DEFAULT).replace(
+    /\/v1\/?$/,
+    ''
+  );
   try {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), 1500);

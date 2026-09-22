@@ -232,7 +232,7 @@ error-type sweep.
 
 ```
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
-Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj; X4 deferred to M5) (DELIVERED, §5d)  M3 providers  M4 lm-service (+X5 resilience)  M5 tool-reg (← X4 typed-bus lands here)  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62 (M1+M2 assertions green; extend per-split)   ← NEXT: M3
+Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj; X4 deferred to M5) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience)  M5 tool-reg (← X4 typed-bus lands here)  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62 (M1+M2+M3 assertions green; extend per-split)   ← NEXT: M4
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (epistemic firewall made structural)  → [ ] Bench 61b (grep: no lm/system-one in kernel/)
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (scope-narrowed: 2 catch-any left)  → [ ] Bench 64
@@ -312,7 +312,7 @@ verification reliable. Bench 63 precedes Bench 62.
 
 | Metric | Baseline | Source |
 |--------|----------|--------|
-| Raw dependency cycles | **74** (M2 drift, no cycles touch `nar/src/nar/` — see §5d; was 72 after M1) | `pnpm deps:gate` / dpdm JSON `circulars` |
+| Raw dependency cycles | **72** (lowered by M3: two provider cycles deleted; gate BASELINE lowered to 72) | `pnpm deps:gate` / dpdm JSON `circulars` |
 | Deduplicated cycle chains (human view) | 10 | `pnpm deps:check` stdout |
 
 ---
@@ -481,6 +481,53 @@ into `nar/src/nar/`; public API unchanged (same class, same exports, `NARConfig`
   non-negotiable in review; any test relying on module-load order is now a bug by construction.
 
 ---
+
+---
+
+## 5e. Phase 1 delivery note — M3 (2026-09-22)
+
+**Delivered:** M3 — `providers.ts` (815 LOC) decomposed into `lm/providers/` modules, all <400 LOC;
+`providers.ts` is now a facade barrel whose export surface is **verified symbol-identical** to the
+original (script-checked against `git show HEAD:...`). **Two dependency cycles deleted: 74 → 72**;
+`deps-gate` BASELINE lowered to 72 in the same commit (per the script's own rule). Verified: typecheck
+0 new errors, lint clean, full `test:unit` green (1,795), Bench 62 extended to 8 assertions.
+
+### File map
+
+- `providers/settings.ts` (10) — `configureLM`/`getLMSettings`/`getLmProvider` (leaf).
+- `providers/webllm.ts` (22) — `configureWebLLM`/`getWebLLMRuntime`/`detectDevice`.
+- `providers/capabilities.ts` (~85) — `ModelCapability`, `MODEL_CAPABILITIES`, `latencyClassOf`.
+- `providers/routing.ts` (~170) — routing policy/demotions, R4 scoring (`pickModel`/`pickBestModel`),
+  offline ladder, routing-telemetry delegation.
+- `providers/chains.ts` (~140) — `CHAINS`, `getModelChain`, `getModelForTask`, `hasCloudCredentials`.
+- `providers/health.ts` (~185) — probes, circuit-breaker delegates, health-probe loop.
+- `providers/model-factory.ts` (~250) — `createSeNARSRegistry` (the factory), model constructors
+  (`localModel`/`mockModel`/`cloudApiKey`), builtin progress callback, **and `createMockLanguageModel`**
+  (moved here from `lm-service.ts` — see cycles below).
+
+### Cycle deletions (§5a binding rule satisfied — real edges gone)
+
+1. **lm-service ↔ providers**: `createMockLanguageModel` lived in `lm-service.ts` but the factory
+   needed it; `lm-service` also imports chains from `providers`. Moved the mock model into
+   `model-factory.ts` with a self-contained `extractTextFromPrompt` (no `extractLastUserMessage`
+   dependency); `lm-service` re-exports it so `lm/index.ts` consumers are unchanged.
+2. **embedded-llamacpp → providers barrel**: `getLMSettings` now imported directly from
+   `./settings.js` — the embedded provider no longer reaches through the facade that imports it.
+
+Bench 62 grep-guards both edges so they cannot silently return.
+
+### Gotchas for M4
+
+- `biome check --unsafe` also deleted the `private progressCallback` field in `lm-service.ts` as
+  "unused" (it's ctor/setter-assigned). Re-added. Same class of breakage as the non-null-assertion
+  removals in §5c — re-run typecheck after every unsafe fix.
+- The mock model's `extractTextFromPrompt` replacement extracts the last user text piece directly;
+  `extractLastUserMessage` in `lm-service.ts` remains for LMService's own paths — two similar helpers
+  now exist; consolidate into `@senars/util` during M4.
+- The plan's original M3 filenames (`factory/llamacpp/ollama/transformers/embedded/mock`) didn't map
+  to the real content (per-provider creation lives inside `createSeNARSRegistry`, llamacpp/embedded
+  already had their own files). Split followed cohesion instead — record the same deviation when
+  doing M4–M7.
 
 ## 6. Definition of Done
 

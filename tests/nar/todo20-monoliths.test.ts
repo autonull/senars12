@@ -68,3 +68,35 @@ describe('Bench 62: monolith split — M2 nar.ts', () => {
     expect(src).not.toMatch(/new NARExecution\(\s*[^)]*undefined/);
   });
 });
+
+describe('Bench 62: monolith split — M3 providers', () => {
+  const LM_DIR = join(import.meta.dirname, '../../nar/src/lm');
+  const loc = (p: string) => readFileSync(p, 'utf-8').split('\n').length;
+
+  it('providers facade + split modules are <400 LOC each', () => {
+    for (const f of [
+      'providers.ts',
+      'providers/settings.ts',
+      'providers/webllm.ts',
+      'providers/capabilities.ts',
+      'providers/chains.ts',
+      'providers/routing.ts',
+      'providers/health.ts',
+      'providers/model-factory.ts',
+    ]) {
+      const n = loc(join(LM_DIR, f));
+      expect(n, `${f} has ${n} LOC`).toBeLessThan(400);
+    }
+  });
+
+  it('provider cycles stay deleted (facade and factory must not import lm-service)', () => {
+    const barrel = readFileSync(join(LM_DIR, 'providers.ts'), 'utf-8');
+    const factory = readFileSync(join(LM_DIR, 'providers/model-factory.ts'), 'utf-8');
+    const chains = readFileSync(join(LM_DIR, 'providers/chains.ts'), 'utf-8');
+    expect(barrel).not.toContain("from './lm-service");
+    expect(factory).not.toContain("from '../lm-service");
+    expect(chains).not.toContain("from '../lm-service");
+    const embedded = readFileSync(join(LM_DIR, 'providers/embedded-llamacpp.ts'), 'utf-8');
+    expect(embedded).not.toContain("from '../providers.js'");
+  });
+});

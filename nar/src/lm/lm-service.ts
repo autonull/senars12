@@ -1,44 +1,39 @@
 import type {
   LanguageModelV3,
-  LanguageModelV3CallOptions,
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
-import type {
-  LMExecutionStats,
-  LMRuleConfig,
-  LMRuleStats,
-  LMTask,
-  MockLMConfig,
-} from '@senars/util';
+import type { LMExecutionStats, LMTask, MockLMConfig } from '@senars/util';
 import { generateObject, generateText, type LanguageModel, streamText, zodSchema } from 'ai';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import type { ZodSchema } from 'zod';
 import { z } from 'zod';
 import type { SeNARSRegistry } from './providers.js';
-import { loadGrammar, type GrammarName } from './grammars/index.js';
+
+export { createMockLanguageModel } from './providers/model-factory.js';
+
+import { type GrammarName, loadGrammar } from './grammars/index.js';
 import { runWithGrammar } from './providers/llamacpp.js';
 
 const NAMED_GRAMMARS: ReadonlySet<string> = new Set<string>(['narsese-term', 'single-word']);
+
 import { SenarsError } from '@senars/util/errors';
+import { recordLmSpend } from '../metrics/index.js';
+import { getProviderRuntime, type ProviderRuntime } from './provider-runtime.js';
 import {
   createSeNARSRegistry,
   getLMSettings,
   getLmProvider,
-  getModelForTask,
-  getModelChain,
   getModelCapability,
+  getModelChain,
+  getModelForTask,
+  type LMProviderName,
+  type ModelDownloadProgressCallback,
   resolveActiveProvider,
   setBuiltinProgressCallback,
-  type ModelDownloadProgressCallback,
-  type CircuitBreakerConfig,
-  type LMProviderName,
-  type RoutingTelemetryEntry,
 } from './providers.js';
-import { getProviderRuntime, type ProviderRuntime } from './provider-runtime.js';
 import { createLMStats, recordLMCall } from './stats.js';
-import { recordLmSpend } from '../metrics/index.js';
 
 interface CacheEntry {
   value: string;
@@ -108,13 +103,22 @@ const spendCapUsd = (): number | undefined => {
 function hashKey(input: string): string {
   let hash = 0;
   for (let i = 0; i < input.length; i++) {
-    hash = ((hash << 5) - hash) + input.charCodeAt(i);
+    hash = (hash << 5) - hash + input.charCodeAt(i);
     hash |= 0;
   }
   return hash.toString(36);
 }
 
-function buildCacheKey(prompt: string, options?: { task?: LMTask; temperature?: number; maxOutputTokens?: number; grammar?: string; model?: string }): string {
+function buildCacheKey(
+  prompt: string,
+  options?: {
+    task?: LMTask;
+    temperature?: number;
+    maxOutputTokens?: number;
+    grammar?: string;
+    model?: string;
+  }
+): string {
   const parts = [
     prompt,
     options?.task ?? 'fast',
@@ -131,7 +135,9 @@ function buildCacheKey(prompt: string, options?: { task?: LMTask; temperature?: 
  * raw GBNF passes through untouched. */
 const runInGrammarScope = <T>(grammar: string | undefined, fn: () => Promise<T>): Promise<T> => {
   if (!grammar) return fn();
-  const gbnf = NAMED_GRAMMARS.has(grammar as GrammarName) ? loadGrammar(grammar as GrammarName) : grammar;
+  const gbnf = NAMED_GRAMMARS.has(grammar as GrammarName)
+    ? loadGrammar(grammar as GrammarName)
+    : grammar;
   return runWithGrammar(gbnf, fn);
 };
 
@@ -265,7 +271,14 @@ export class LMService implements ILMService {
 
   getModel(task: LMTask, modelOverride?: string): LanguageModel | undefined {
     try {
-      return getModelForTask(this.registry, task, undefined, this.getModelStats(), modelOverride, this.runtime) as LanguageModel;
+      return getModelForTask(
+        this.registry,
+        task,
+        undefined,
+        this.getModelStats(),
+        modelOverride,
+        this.runtime
+      ) as LanguageModel;
     } catch {
       return undefined;
     }
@@ -286,12 +299,7 @@ export class LMService implements ILMService {
 
   /** H3: record usage tokens + capability-table cost against the provider; throws
    *  LMUnavailableError (with remediation) once LM_MAX_SPEND_USD is exceeded. */
-  private recordSpend(
-    provider: string,
-    task: LMTask,
-    tokensIn: number,
-    tokensOut: number
-  ): void {
+  private recordSpend(provider: string, task: LMTask, tokensIn: number, tokensOut: number): void {
     const entry = this.spend.get(provider) ?? { tokensIn: 0, tokensOut: 0, calls: 0, costMilli: 0 };
     entry.tokensIn += tokensIn;
     entry.tokensOut += tokensOut;
@@ -478,7 +486,11 @@ export class LMService implements ILMService {
     const provider = this.provider as LMProviderName | undefined;
     const settings = getLMSettings();
     if (provider && !this.runtime.canUseProvider(provider, settings)) {
-      throw new LMUnavailableError(`Circuit breaker open for provider: ${provider}`, provider, opts?.task);
+      throw new LMUnavailableError(
+        `Circuit breaker open for provider: ${provider}`,
+        provider,
+        opts?.task
+      );
     }
 
     const cacheKey = buildCacheKey(prompt, {
@@ -605,7 +617,7 @@ export class LMService implements ILMService {
     // D5: stream parity — no silent success when no model resolves.
     if (!model) {
       throw new LMUnavailableError(
-        'No model available for task: ' + (opts?.task ?? 'fast'),
+        `No model available for task: ${opts?.task ?? 'fast'}`,
         this.provider as LMProviderName | undefined,
         opts?.task
       );
@@ -648,7 +660,12 @@ export class LMService implements ILMService {
         }
         // D5: stream pays the same spend toll as generate.
         const usage = await result.usage;
-        this.recordSpend(provider ?? 'unknown', task, usage?.inputTokens ?? 0, usage?.outputTokens ?? 0);
+        this.recordSpend(
+          provider ?? 'unknown',
+          task,
+          usage?.inputTokens ?? 0,
+          usage?.outputTokens ?? 0
+        );
         this.setCache(cacheKey, (await result.text) || '');
         this.recordCall(true, start, prompt.length + out);
         if (provider) this.runtime.recordProviderCall(provider, true, settings);
@@ -868,69 +885,6 @@ class MockLMServiceImpl {
   getSpend(): Record<string, ProviderSpend> {
     return {};
   }
-}
-
-export function createMockLanguageModel(
-  generateTextFn?: (prompt: string) => string | Promise<string>
-): LanguageModelV3 {
-  const doGenerate: LanguageModelV3['doGenerate'] = async (options: LanguageModelV3CallOptions) => {
-    const key = extractTextFromPrompt(options.prompt);
-    let responseText = generateTextFn
-      ? await generateTextFn(key)
-      : `Mock response: ${key.slice(0, 50)}`;
-
-    if (options.responseFormat?.type === 'json') {
-      responseText = JSON.stringify({ result: 'mock', data: responseText.slice(0, 100) });
-    }
-
-    const result: LanguageModelV3GenerateResult = {
-      content: [{ type: 'text', text: responseText }],
-      finishReason: { unified: 'stop', raw: 'stop' },
-      usage: {
-        inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-        outputTokens: { total: responseText.length, text: responseText.length, reasoning: 0 },
-      },
-      warnings: [],
-    };
-    return result;
-  };
-  const doStream: LanguageModelV3['doStream'] = async (options: LanguageModelV3CallOptions) => {
-    const key = extractTextFromPrompt(options.prompt);
-    const responseText = generateTextFn
-      ? await generateTextFn(key)
-      : `Mock response: ${key.slice(0, 50)}`;
-    const chunks: LanguageModelV3StreamPart[] = [
-      { type: 'text-start', id: '0' },
-      { type: 'text-delta', id: '0', delta: responseText },
-      { type: 'text-end', id: '0' },
-      {
-        type: 'finish',
-        finishReason: { unified: 'stop', raw: 'stop' },
-        usage: {
-          inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-          outputTokens: {
-            total: responseText.length,
-            text: responseText.length,
-            reasoning: 0,
-          },
-        },
-      },
-    ];
-    const result: LanguageModelV3StreamResult = {
-      stream: simulateReadableStream({ chunks }),
-    };
-    return result;
-  };
-  return new MockLanguageModelV3({
-    provider: 'mock',
-    modelId: 'mock',
-    doGenerate,
-    doStream,
-  });
-}
-
-function extractTextFromPrompt(prompt: LanguageModelV3CallOptions['prompt']): string {
-  return extractLastUserMessage(prompt ?? []);
 }
 
 function extractLastUserMessage(messages: Array<{ role?: string; content: unknown }>): string {
