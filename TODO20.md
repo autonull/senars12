@@ -1,6 +1,6 @@
 # TODO20.md — Code Quality & Robustification Plan
 
-**Version:** 1.1 (2026-09-22; 1.0 + §5a retro + §1b review items) · follows TODO19.md (complete) · targets architecture debt surfaced by dpdm, test flakiness, and TODO19 retrospectives
+**Version:** 1.1 (2026-09-22; 1.0 + §5a retro + §1b review items; M4 delivered §5g) · follows TODO19.md (complete) · targets architecture debt surfaced by dpdm, test flakiness, and TODO19 retrospectives
 **Philosophy:** *Fix the seams that TODO19 unified.* The builder, component library, and learning loops are in place; this plan hardens the substrate they run on — dependency graph, error taxonomy, observability, configuration, and public API surface.
 **Core Principle:** *No new features. Every item reduces coupling, eliminates a failure mode, or makes a contract explicit.*
 
@@ -232,9 +232,9 @@ error-type sweep.
 
 ```
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
-Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj; X4 deferred to M5) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience)  M5 tool-reg (← X4 typed-bus lands here)  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62 (M1+M2+M3 assertions green; extend per-split)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  ← NEXT: M4
+Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj; X4 deferred to M5) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (← X4 typed-bus lands here)  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62 (M1+M2+M3+M4 assertions green; extend per-split)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  ← NEXT: M5
 
-NEXT SESSION ENTRY POINT: start at M4 (lm-service.ts, 947 LOC -> LMService/admission/routing/circuit-breaker/charge-flow + X5 single breaker under utils/resilience.ts). Read 5c/5d/5e/5f notes first — they carry the split workflow, biome-unsafe-fix gotchas, and provider-matrix changes M4 must respect (openai-compatible is keyless; probeOpenAICompatible replaced probeOllama; progressCallback field is ctor-assigned, do not let unsafe autofixes delete it). Consolidate extractTextFromPrompt/extractLastUserMessage into @senars/util while there.
+NEXT SESSION ENTRY POINT: start at M5 (tool-registry.ts, 784 LOC -> ToolRegistry/decorator/execution/schemas) and land **X4 typed-bus** with it (its 14 `as never` casts cluster in tool-registry.ts + nar.ts). Read 5c/5d/5e/5g notes first — split workflow, biome-unsafe-fix gotchas (re-run typecheck after every `--unsafe` autofix; ctor/setter-assigned fields get deleted), and the M4 precedent of cohesion-driven filenames over plan literals (record the same deviation).
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (epistemic firewall made structural)  → [ ] Bench 61b (grep: no lm/system-one in kernel/)
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (scope-narrowed: 2 catch-any left)  → [ ] Bench 64
@@ -563,6 +563,65 @@ model `llama3.2`). Nothing downstream sees `'ollama'` — grep-guarded by the ty
 - The provider matrix now: transformers (builtin, default) · openai-compatible (any OpenAI-shaped
   server incl. local daemons) · llamacpp · llamacpp-embedded · anthropic · openai · webllm (browser) ·
   mock. All nine-lane capabilities preserved under eight lanes.
+
+---
+
+## 5g. Phase 1 delivery note — M4 (2026-09-22)
+
+**Delivered:** M4 — `lm-service.ts` (901 LOC) decomposed into `lm/service/` modules; X5 resolved;
+prompt-extraction helpers consolidated into `@senars/util` (§5e follow-up). `lm-service.ts` is now a
+~20-LOC facade whose export surface is unchanged (lm/index.ts, rules, tests untouched).
+Verified: typecheck 0 new errors, lint clean, full `test:unit` green (1,801), deps:gate 72 ok,
+Bench 62 extended to 12 assertions.
+
+### File map
+
+- `service/errors.ts` (71) — `LMUnavailableError`, `withHint`/`LADDER_HINTS`, `isTransportError`, `withRetry`.
+- `service/cache.ts` (68) — `buildCacheKey` + `ResponseCache` class (TTL sweep-on-write, D16 semantics preserved).
+- `service/spend.ts` (62) — `ProviderSpend`, `SpendLedger` class (record/snapshot, LM_MAX_SPEND_USD hard cap).
+- `service/mock.ts` (149) — `MockLMServiceImpl` + `createMockLMService` (mirror of M3's mock-model move).
+- `service/structured.ts` (~60) — `generateObjectViaText` as a free function over a `generateText` seam.
+- `service/LMService.ts` (498) — the core class; routing-decision logging consolidated into one
+  `logRoutingDecision(task, start, success, provider)` helper (was 5 copies).
+- `lm-service.ts` (20) — facade barrel.
+
+### X5 (dual circuit breakers) — resolved by *placement*, not wrapping (deviation from X5 text)
+
+The plan proposed wrapping `providers.ts` health machinery around the generic `CircuitBreaker`.
+Reality: the two implementations serve different contracts. The generic one
+(`nar/src/utils/circuit-breaker.ts`, sole consumer `LMRule.ts`) is a call-scoped
+execute/retry breaker; `ProviderRuntime`'s per-provider health is state-scoped routing
+infrastructure with metrics/OTel/demotion semantics that the generic class lacks. Forcing a
+wrapper would be churn without an edge deleted (§5a binding rule). What landed instead:
+`nar/src/utils/resilience.ts` is now the single home of the generic breaker (D03's intent),
+`utils/index.ts` re-exports from it, and Bench 62 grep-guards the placement. The drift risk
+X5 named is bounded by the domain split: call-scoped vs provider-scoped never share state.
+
+### Consolidations
+
+- `extractLastUserMessage` moved to `util/src/utils/prompt.ts` (`@senars/util`); the two near-duplicates
+  `extractTextFromPrompt` (model-factory, embedded-llamacpp) deleted in favor of it (join-all-text
+  semantics; equivalent for mock-key and llama-session use). Bench 62 guards: no local extractors in lm/.
+- Bonus cycle fix surfaced by deps:gate: `agent/builder.ts` imported `CreateAgentConfig` from
+  `agent/index.ts` (which imports builder) — moved the interface to `nar/src/agent/config.ts`,
+  index re-exports. deps:gate initially failed at 73; config extraction restored 72.
+
+### Honest deviation
+
+`service/LMService.ts` is 498 LOC (>400). The generate/object/stream paths share dense stateful
+context (cache, ledger, runtime, per-model stats); slicing further means delegation-heavy plumbing.
+Bench 62 asserts <520 for the core, mirroring the M2 facade precedent. `runInGrammarScope` and the
+stream retry loop are the next extraction candidates if it grows.
+
+### Gotchas for M5+
+
+- White-box tests reach into LMService internals (`tests/nar/todo17b-bounded.test.ts` D16 touches
+  `svc.cache`) — when moving private state into helper classes, update those access paths (`svc.cache.set()`
+  → inner map), not just the class.
+- `withRetry` is now exported from the facade — no consumer outside service/ yet; prune if none appears
+  (§5a no-speculative-exports rule) at the next touch.
+- `agent/config.ts` is the pattern for breaking barrel-import cycles: shared types go in a leaf file,
+  the barrel re-exports.
 
 ## 6. Definition of Done
 

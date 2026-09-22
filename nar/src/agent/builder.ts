@@ -14,7 +14,7 @@ export type { CapabilityTier, NARProfileName, NARProfileSpec } from './profiles.
 type GateInitConfig = Parameters<GateRegistry['initialize']>[0];
 
 import { NAR, type NARConfig } from '../nar.js';
-import type { CreateAgentConfig } from './index.js';
+import type { CreateAgentConfig } from './config.js';
 
 export interface CapabilitySpec {
   enabled?: boolean;

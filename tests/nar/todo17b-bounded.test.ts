@@ -100,11 +100,12 @@ describe('Bench 38 — Bounded Runtime', () => {
     const { LMService } = await import('../../nar/src/lm/lm-service.js');
     const { createSeNARSRegistry } = await import('../../nar/src/lm/index.js');
     const svc = new LMService(createSeNARSRegistry());
-    const cache = (svc as unknown as { cache: Map<string, { expiresAt: number; value: string }> }).cache;
-    cache.set('stale', { value: 'v', expiresAt: Date.now() - 1000 });
-    (svc as unknown as { setCache(k: string, v: string): void }).setCache('fresh', 'x');
-    expect(cache.has('stale')).toBe(false);
-    expect(cache.has('fresh')).toBe(true);
+    const rc = (svc as unknown as { cache: { set(k: string, v: string): void } }).cache;
+    const map = (rc as unknown as { cache: Map<string, { expiresAt: number; value: string }> }).cache;
+    map.set('stale', { value: 'v', expiresAt: Date.now() - 1000 });
+    rc.set('fresh', 'x');
+    expect(map.has('stale')).toBe(false);
+    expect(map.has('fresh')).toBe(true);
   });
 
   it('D17 — Memory revision log is capped', () => {

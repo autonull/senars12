@@ -160,4 +160,5 @@ export {
 /** @public Throttle configuration type. */
 export type { ThrottleConfig } from './utils/throttle.js';
 /** @public Throttle utilities for stream/callback rate control. */
+export { extractLastUserMessage } from './utils/prompt.js';
 export { createThrottle, Throttle, throttleGenerator } from './utils/throttle.js';

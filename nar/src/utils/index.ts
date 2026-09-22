@@ -1,4 +1,4 @@
-export { CircuitBreaker } from './circuit-breaker.js';
+export { CircuitBreaker, type CircuitBreakerConfig } from './resilience.js';
 export { addToSet, getOrInsert, incrementCount, selectTopN } from './collections.js';
 export { computeHash, fnv1a, fnv1aCombine } from './hash.js';
 export {

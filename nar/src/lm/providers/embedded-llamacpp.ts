@@ -6,6 +6,7 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
+import { extractLastUserMessage } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import {
@@ -27,19 +28,6 @@ import {
 } from '../runtime/llama-runtime.js';
 import { grammarScope } from './llamacpp.js';
 import { getLMSettings } from './settings.js';
-
-function extractTextFromPrompt(prompt: LanguageModelV3CallOptions['prompt']): string {
-  if (!prompt || prompt.length === 0) return '';
-  const lastUser = [...prompt].reverse().find((m) => m.role === 'user');
-  if (!lastUser) return '';
-  const c = lastUser.content;
-  if (typeof c === 'string') return c;
-  if (Array.isArray(c))
-    return c
-      .map((p: { type?: string; text?: string }) => (p.type === 'text' ? p.text : ''))
-      .join('');
-  return '';
-}
 
 function extractSystemPrompt(prompt: LanguageModelV3CallOptions['prompt']): string | undefined {
   if (!prompt || prompt.length === 0) return undefined;
@@ -200,7 +188,7 @@ export function createEmbeddedLlamaCppLanguageModel(
     let outputTokens = 0;
     let result: Awaited<ReturnType<typeof session.promptWithMeta>>;
     try {
-      result = await session.promptWithMeta(extractTextFromPrompt(options.prompt), {
+      result = await session.promptWithMeta(extractLastUserMessage(options.prompt), {
         grammar,
         temperature,
         topK: options.topK ?? 40,

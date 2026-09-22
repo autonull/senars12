@@ -100,3 +100,61 @@ describe('Bench 62: monolith split — M3 providers', () => {
     expect(embedded).not.toContain("from '../providers.js'");
   });
 });
+
+describe('Bench 62: monolith split — M4 lm-service', () => {
+  const LM_DIR = join(import.meta.dirname, '../../nar/src/lm');
+  const loc = (p: string) => readFileSync(p, 'utf-8').split('\n').length;
+
+  it('service split modules are <400 LOC each (core LMService has an M2-style deviation, <520)', () => {
+    for (const f of [
+      'service/errors.ts',
+      'service/cache.ts',
+      'service/spend.ts',
+      'service/mock.ts',
+      'service/structured.ts',
+    ]) {
+      const n = loc(join(LM_DIR, f));
+      expect(n, `${f} has ${n} LOC`).toBeLessThan(400);
+    }
+    const core = loc(join(LM_DIR, 'service/LMService.ts'));
+    expect(core, `service/LMService.ts has ${core} LOC`).toBeLessThan(520);
+  });
+
+  it('lm-service.ts is a facade re-exporting the unchanged public surface', () => {
+    const facade = readFileSync(join(LM_DIR, 'lm-service.ts'), 'utf-8');
+    for (const symbol of [
+      'LMService',
+      'createLMService',
+      'createMockLMService',
+      'createMockLanguageModel',
+      'LMUnavailableError',
+      'ProviderSpend',
+    ]) {
+      expect(facade, `facade missing ${symbol}`).toContain(symbol);
+    }
+    expect(loc(join(LM_DIR, 'lm-service.ts'))).toBeLessThan(60);
+  });
+
+  it('prompt extraction is consolidated in @senars/util (no local copies)', () => {
+    for (const f of [
+      'lm-service.ts',
+      'service/mock.ts',
+      'providers/model-factory.ts',
+      'providers/embedded-llamacpp.ts',
+    ]) {
+      const src = readFileSync(join(LM_DIR, f), 'utf-8');
+      expect(src, `${f} defines a local extractor`).not.toMatch(
+        /^function extract(LastUserMessage|TextFromPrompt)/m
+      );
+    }
+  });
+
+  it('X5: single generic breaker lives in utils/resilience', () => {
+    const resilience = readFileSync(
+      join(import.meta.dirname, '../../nar/src/utils/resilience.ts'),
+      'utf-8'
+    );
+    expect(resilience).toContain('CircuitBreaker');
+    expect(loc(join(import.meta.dirname, '../../nar/src/utils/circuit-breaker.ts'))).toBeGreaterThan(0);
+  });
+});

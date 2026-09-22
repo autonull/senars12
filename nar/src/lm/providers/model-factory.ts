@@ -6,6 +6,7 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
+import { extractLastUserMessage } from '@senars/util';
 import { transformersJS } from '@browser-ai/transformers-js';
 import {
   createProviderRegistry,
@@ -216,7 +217,7 @@ export function createMockLanguageModel(
   generateTextFn?: (prompt: string) => string | Promise<string>
 ): LanguageModelV3 {
   const doGenerate: LanguageModelV3['doGenerate'] = async (options: LanguageModelV3CallOptions) => {
-    const key = extractTextFromPrompt(options.prompt);
+    const key = extractLastUserMessage(options.prompt);
     let responseText = generateTextFn
       ? await generateTextFn(key)
       : `Mock response: ${key.slice(0, 50)}`;
@@ -237,7 +238,7 @@ export function createMockLanguageModel(
     return result;
   };
   const doStream: LanguageModelV3['doStream'] = async (options: LanguageModelV3CallOptions) => {
-    const key = extractTextFromPrompt(options.prompt);
+    const key = extractLastUserMessage(options.prompt);
     const responseText = generateTextFn
       ? await generateTextFn(key)
       : `Mock response: ${key.slice(0, 50)}`;
@@ -271,13 +272,3 @@ export function createMockLanguageModel(
   });
 }
 
-function extractTextFromPrompt(prompt: LanguageModelV3CallOptions['prompt']): string {
-  const last = [...(prompt ?? [])].reverse().find((m) => m.role === 'user');
-  const content = last?.content;
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    const text = content.find((c) => c.type === 'text');
-    if (text && 'text' in text) return String(text.text);
-  }
-  return '';
-}
