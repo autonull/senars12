@@ -1,6 +1,6 @@
 import type { Agent, PromptBuilder } from '@senars/core';
 import type { EpisodicMemory, LMService } from '@senars/nar';
-import type { SystemOneConfig } from '../../../src/config/schema.js';
+import type { SystemOneConfig } from '@senars/util/config';
 import { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { GateRegistry } from '../kernel/GateRegistry.js';
 import { createGateRegistry } from '../kernel/GateRegistry.js';

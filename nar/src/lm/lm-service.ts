@@ -24,8 +24,6 @@ const NAMED_GRAMMARS: ReadonlySet<string> = new Set<string>(['narsese-term', 'si
 import { SenarsError } from '@senars/util/errors';
 import {
   createSeNARSRegistry,
-  demoteModel,
-  getLastRoutingDecision,
   getLMSettings,
   getLmProvider,
   getModelForTask,
@@ -34,15 +32,11 @@ import {
   resolveActiveProvider,
   setBuiltinProgressCallback,
   type ModelDownloadProgressCallback,
-  canUseProvider,
-  recordProviderCall,
-  getCircuitBreaker,
-  getAllCircuitBreakers,
   type CircuitBreakerConfig,
   type LMProviderName,
-  logRoutingDecision,
   type RoutingTelemetryEntry,
 } from './providers.js';
+import { getProviderRuntime, type ProviderRuntime } from './provider-runtime.js';
 import { createLMStats, recordLMCall } from './stats.js';
 import { recordLmSpend } from '../metrics/index.js';
 
@@ -195,10 +189,15 @@ export class LMService implements ILMService {
   /** H3: per-provider spend ledger (token totals from AI-SDK usage + capability table). */
   private spend = new Map<string, ProviderSpend>();
 
+  /** Scoped provider routing/breaker state — defaults to the process-wide instance. */
+  private readonly runtime: ProviderRuntime;
+
   constructor(
     private registry: SeNARSRegistry,
-    progressCallback?: ModelDownloadProgressCallback
+    progressCallback?: ModelDownloadProgressCallback,
+    providerRuntime?: ProviderRuntime
   ) {
+    this.runtime = providerRuntime ?? getProviderRuntime();
     this.progressCallback = progressCallback;
     if (progressCallback) {
       setBuiltinProgressCallback(progressCallback);
@@ -266,7 +265,7 @@ export class LMService implements ILMService {
 
   getModel(task: LMTask, modelOverride?: string): LanguageModel | undefined {
     try {
-      return getModelForTask(this.registry, task, undefined, this.getModelStats(), modelOverride) as LanguageModel;
+      return getModelForTask(this.registry, task, undefined, this.getModelStats(), modelOverride, this.runtime) as LanguageModel;
     } catch {
       return undefined;
     }
@@ -297,7 +296,7 @@ export class LMService implements ILMService {
     entry.tokensIn += tokensIn;
     entry.tokensOut += tokensOut;
     entry.calls += 1;
-    const cap = getModelCapability(getLastRoutingDecision()?.modelId ?? '')?.costPerMTok ?? 0;
+    const cap = getModelCapability(this.runtime.lastDecision?.modelId ?? '')?.costPerMTok ?? 0;
     const costMilli = ((tokensIn + tokensOut) / 1_000_000) * cap * 1000;
     entry.costMilli += costMilli;
     this.spend.set(provider, entry);
@@ -332,7 +331,7 @@ export class LMService implements ILMService {
 
     const provider = this.provider as LMProviderName | undefined;
     const settings = getLMSettings();
-    if (provider && !canUseProvider(provider, settings)) {
+    if (provider && !this.runtime.canUseProvider(provider, settings)) {
       throw new LMUnavailableError(
         withHint(`Circuit breaker open for provider: ${provider}`, provider),
         provider,
@@ -350,7 +349,7 @@ export class LMService implements ILMService {
     const cached = this.getCached(cacheKey);
     if (cached) {
       this.recordCall(true, Date.now(), prompt.length + cached.length);
-      if (provider) recordProviderCall(provider, true, settings);
+      if (provider) this.runtime.recordProviderCall(provider, true, settings);
       return cached;
     }
 
@@ -383,12 +382,12 @@ export class LMService implements ILMService {
       );
       this.setCache(cacheKey, text);
       this.recordCall(true, start, prompt.length + text.length);
-      if (provider) recordProviderCall(provider, true, settings);
+      if (provider) this.runtime.recordProviderCall(provider, true, settings);
       this.noteSuccess();
       // Log routing decision
-      const decision = getLastRoutingDecision();
+      const decision = this.runtime.lastDecision;
       if (decision) {
-        logRoutingDecision({
+        this.runtime.logRoutingDecision({
           ts: Date.now(),
           task,
           modelId: decision.modelId,
@@ -396,22 +395,22 @@ export class LMService implements ILMService {
           success: true,
           demoted: decision.reason === 'failover',
           provider: provider ?? 'unknown',
-          chain: getModelChain(provider ?? getLmProvider(), task),
+          chain: getModelChain(provider ?? getLmProvider(), task, this.runtime),
         });
       }
       return text;
     } catch (e) {
       this.clearCache(cacheKey);
       this.recordCall(false, start, prompt.length);
-      if (provider) recordProviderCall(provider, false, settings);
+      if (provider) this.runtime.recordProviderCall(provider, false, settings);
       if (isTransportError(e)) {
         this.noteFailure();
         await this.reprobe();
       }
       // Log routing decision on failure
-      const decision = getLastRoutingDecision();
+      const decision = this.runtime.lastDecision;
       if (decision) {
-        logRoutingDecision({
+        this.runtime.logRoutingDecision({
           ts: Date.now(),
           task,
           modelId: decision.modelId,
@@ -419,7 +418,7 @@ export class LMService implements ILMService {
           success: false,
           demoted: false,
           provider: provider ?? 'unknown',
-          chain: getModelChain(provider ?? getLmProvider(), task),
+          chain: getModelChain(provider ?? getLmProvider(), task, this.runtime),
         });
       }
       throw e;
@@ -478,7 +477,7 @@ export class LMService implements ILMService {
 
     const provider = this.provider as LMProviderName | undefined;
     const settings = getLMSettings();
-    if (provider && !canUseProvider(provider, settings)) {
+    if (provider && !this.runtime.canUseProvider(provider, settings)) {
       throw new LMUnavailableError(`Circuit breaker open for provider: ${provider}`, provider, opts?.task);
     }
 
@@ -492,7 +491,7 @@ export class LMService implements ILMService {
     const cached = this.getCached(cacheKey);
     if (cached) {
       this.recordCall(true, Date.now(), prompt.length + cached.length);
-      if (provider) recordProviderCall(provider, true, settings);
+      if (provider) this.runtime.recordProviderCall(provider, true, settings);
       return JSON.parse(cached) as T;
     }
 
@@ -522,11 +521,11 @@ export class LMService implements ILMService {
       const jsonStr = JSON.stringify(object);
       this.setCache(cacheKey, jsonStr);
       this.recordCall(true, start, prompt.length + jsonStr.length);
-      if (provider) recordProviderCall(provider, true, settings);
+      if (provider) this.runtime.recordProviderCall(provider, true, settings);
       // Log routing decision
-      const decision = getLastRoutingDecision();
+      const decision = this.runtime.lastDecision;
       if (decision) {
-        logRoutingDecision({
+        this.runtime.logRoutingDecision({
           ts: Date.now(),
           task,
           modelId: decision.modelId,
@@ -534,19 +533,19 @@ export class LMService implements ILMService {
           success: true,
           demoted: decision.reason === 'failover',
           provider: provider ?? 'unknown',
-          chain: getModelChain(provider ?? getLmProvider(), task),
+          chain: getModelChain(provider ?? getLmProvider(), task, this.runtime),
         });
       }
       return object;
     } catch (e) {
       this.clearCache(cacheKey);
       this.recordCall(false, start, prompt.length);
-      if (provider) recordProviderCall(provider, false, settings);
+      if (provider) this.runtime.recordProviderCall(provider, false, settings);
       if (isTransportError(e)) await this.reprobe();
       // Log routing decision on failure
-      const decision = getLastRoutingDecision();
+      const decision = this.runtime.lastDecision;
       if (decision) {
-        logRoutingDecision({
+        this.runtime.logRoutingDecision({
           ts: Date.now(),
           task,
           modelId: decision.modelId,
@@ -554,7 +553,7 @@ export class LMService implements ILMService {
           success: false,
           demoted: false,
           provider: provider ?? 'unknown',
-          chain: getModelChain(provider ?? getLmProvider(), task),
+          chain: getModelChain(provider ?? getLmProvider(), task, this.runtime),
         });
       }
       throw e;
@@ -615,7 +614,7 @@ export class LMService implements ILMService {
     // F6/X22: stream path shares the generate path's failure semantics.
     const provider = this.provider as LMProviderName | undefined;
     const settings = getLMSettings();
-    if (provider && !canUseProvider(provider, settings)) {
+    if (provider && !this.runtime.canUseProvider(provider, settings)) {
       throw new LMUnavailableError(
         withHint(`Circuit breaker open for provider: ${provider}`, provider),
         provider,
@@ -627,7 +626,7 @@ export class LMService implements ILMService {
     const cached = this.getCached(cacheKey);
     if (cached) {
       this.recordCall(true, Date.now(), prompt.length + cached.length);
-      if (provider) recordProviderCall(provider, true, settings);
+      if (provider) this.runtime.recordProviderCall(provider, true, settings);
       yield cached;
       return;
     }
@@ -652,11 +651,11 @@ export class LMService implements ILMService {
         this.recordSpend(provider ?? 'unknown', task, usage?.inputTokens ?? 0, usage?.outputTokens ?? 0);
         this.setCache(cacheKey, (await result.text) || '');
         this.recordCall(true, start, prompt.length + out);
-        if (provider) recordProviderCall(provider, true, settings);
+        if (provider) this.runtime.recordProviderCall(provider, true, settings);
         this.noteSuccess();
-        const decision = getLastRoutingDecision();
+        const decision = this.runtime.lastDecision;
         if (decision) {
-          logRoutingDecision({
+          this.runtime.logRoutingDecision({
             ts: Date.now(),
             task,
             modelId: decision.modelId,
@@ -664,14 +663,14 @@ export class LMService implements ILMService {
             success: true,
             demoted: decision.reason === 'failover',
             provider: provider ?? 'unknown',
-            chain: getModelChain(provider ?? getLmProvider(), task),
+            chain: getModelChain(provider ?? getLmProvider(), task, this.runtime),
           });
         }
         return;
       } catch (e) {
         lastError = e;
         this.recordCall(false, start, prompt.length + out);
-        if (provider) recordProviderCall(provider, false, settings);
+        if (provider) this.runtime.recordProviderCall(provider, false, settings);
         if (isTransportError(e)) {
           this.noteFailure();
           await this.reprobe();
@@ -698,7 +697,7 @@ export class LMService implements ILMService {
 
   private recordCall(success: boolean, start: number, tokens: number): void {
     recordLMCall(this.stats, success, Date.now() - start, tokens);
-    const id = getLastRoutingDecision()?.modelId;
+    const id = this.runtime.lastDecision?.modelId;
     if (!id) return;
     let m = this.perModel.get(id);
     if (!m) {
@@ -713,27 +712,27 @@ export class LMService implements ILMService {
   }
 
   private noteSuccess(): void {
-    const id = getLastRoutingDecision()?.modelId;
+    const id = this.runtime.lastDecision?.modelId;
     if (id) this.failures.delete(id);
   }
 
   private noteFailure(): void {
-    const id = getLastRoutingDecision()?.modelId;
+    const id = this.runtime.lastDecision?.modelId;
     if (!id) return;
     const n = (this.failures.get(id) ?? 0) + 1;
     this.failures.set(id, n);
-    if (n >= 2) demoteModel(id, `repeated transport failures (${n})`);
+    if (n >= 2) this.runtime.demoteModel(id, `repeated transport failures (${n})`);
   }
 
   /** Get circuit breaker status for all providers. */
-  getCircuitBreakerStatus(): Map<string, ReturnType<typeof getCircuitBreaker>> {
-    return getAllCircuitBreakers();
+  getCircuitBreakerStatus(): Map<string, ReturnType<ProviderRuntime['getCircuitBreaker']>> {
+    return this.runtime.getAllCircuitBreakers();
   }
 }
 
-export function createLMService(): LMService {
+export function createLMService(options?: { providerRuntime?: ProviderRuntime }): LMService {
   const registry = createSeNARSRegistry();
-  return new LMService(registry);
+  return new LMService(registry, undefined, options?.providerRuntime);
 }
 
 export function createMockLMService(config: MockLMConfig = {}): LMService {

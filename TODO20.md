@@ -153,9 +153,9 @@ failure mode, or make a contract explicit).
 
 | # | Item | Evidence | Priority | Slot | Effort |
 |---|------|----------|----------|------|--------|
-| X1 | **nar imports app code** — package→app boundary violation | `nar/src/nar.ts:79`, `nar/src/agent/builder.ts:3`, `nar/src/agent/profiles.ts:1` all import `SystemOneConfig` from root `src/config/schema.js` | **High** | Before Phase 2 (trivial, unblocks packaging) | XS |
+| X1 | **nar imports app code** — package→app boundary violation (delivered §5b) | `nar/src/nar.ts:79`, `nar/src/agent/builder.ts:3`, `nar/src/agent/profiles.ts:1` all import `SystemOneConfig` from root `src/config/schema.js` | **High** | Before Phase 2 (trivial, unblocks packaging) | XS |
 | X2 | **Kernel layering inversion** — trusted gate embeds untrusted proposer internals | `KernelPerceptionGate.ts` imports 6 `lm/system-one` modules (`head-specs`, `policy`, `provisional-stamp`, `seed`, `telemetry`, `types`): the epistemic firewall is compiled against the machinery it is supposed to be filtering | **High** | Own item after Phase 2, feeds M2/M4 | L |
-| X3 | **Provider module-level mutable singletons** — parallel-unsafe, order-dependent | 11 module-level `let`/`Map` in `lm/providers.ts` (lines 55–955: `routing`, `demotions`, `circuitBreakers`, `healthProbeInterval`, `routingLog*`…) | **High** | Must land with/before Phase 2 T3 (`isolate:true` will surface these) | M |
+| X3 | **Provider module-level mutable singletons** — parallel-unsafe, order-dependent (delivered §5b) | 11 module-level `let`/`Map` in `lm/providers.ts` (lines 55–955: `routing`, `demotions`, `circuitBreakers`, `healthProbeInterval`, `routingLog*`…) | **High** | Must land with/before Phase 2 T3 (`isolate:true` will surface these) | M |
 | X4 | **Untyped event bus usage** — generic `EventBus<T>` defeated at call sites | `EventBus.on/emit` are already `<K extends keyof T>` (`util/src/events/event-bus.ts:33,58`); 14 `as never` casts in `nar/src` (mostly `tools/tool-registry.ts`, `nar.ts`) bypass them | Medium | Fold into Phase 1 M5/M2 | S |
 | X5 | **Dual circuit-breaker implementations** | `nar/src/utils/circuit-breaker.ts` (generic) vs `lm/providers.ts` `ProviderHealth` machinery — independent state, semantics, and logging for the same concern | Medium | Fold into Phase 1 M4 → consolidate into `utils/resilience.ts` (per D03's original intent) | S |
 | X6 | **Positional-arg constructor soup** | `NARExecution` constructor takes 13 positional params incl. a bare `undefined` slot (`nar-execution.ts:50-65`) | Medium | Fold into Phase 1 M2 (options object) | S |
@@ -187,7 +187,7 @@ error-type sweep.
 | 61 | **Dependency Hygiene** | `tests/nar/todo20-deps.test.ts` | `pnpm deps:gate` green (raw cycles ≤ baseline; §5a ledger); no internal imports in app code |
 | 61b | **Kernel Layering** | `tests/nar/todo20-kernel-layering.test.ts` | `grep lm/system-one nar/src/kernel/` → empty; ingress benches (15–28) unchanged; `deps:gate` unchanged or lower |
 | 62 | **Monolith Split** | `tests/nar/todo20-monoliths.test.ts` | Each split file <400 LOC; barrel exports only public API; typecheck+lint+tests green |
-| 63 | **Determinism** | `tests/nar/todo20-determinism.test.ts` | 20× `test:unit` zero flakes; `Math.random` absent from src (grep); property tests pass |
+| 63 | **Determinism** | `tests/nar/todo20-determinism.test.ts` (delivered §5b) | seeded-RNG reproduction; RNG-free Negotiator; no bare `Math.random()` in T1 files; property tests pass; flaky file 0/20 reruns. Full 20× suite soak pending |
 | 64 | **Error Taxonomy** | `tests/nar/todo20-errors.test.ts` | Every throw is `SenarsError` subclass; `Result` returned on all fallible public fns; Zod strict on boundaries |
 | 65 | **Observability** | `tests/nar/todo20-otel.test.ts` | Spans emitted for 7 operations; traceId propagated; health endpoints return 200/503 correctly |
 | 66 | **Config Hardening** | `tests/nar/todo20-config.test.ts` | Schema validates env/file/defaults precedence; migration idempotent; defaults frozen |
@@ -231,8 +231,8 @@ error-type sweep.
 ## 5. Master Checklist
 
 ```
-Phase 2 (moved up): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 taxonomy  (+X3 provider-runtime, X1 boundary)  → [ ] Bench 63
-Phase 1: M1 tools  M2 nar (+X6 options-obj, X4 typed-bus)  M3 providers  M4 lm-service (+X5 resilience)  M5 tool-reg  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62
+Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
+Phase 1: M1 tools  M2 nar (+X6 options-obj, X4 typed-bus)  M3 providers  M4 lm-service (+X5 resilience)  M5 tool-reg  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62   ← NEXT
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (epistemic firewall made structural)  → [ ] Bench 61b (grep: no lm/system-one in kernel/)
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (scope-narrowed: 2 catch-any left)  → [ ] Bench 64
@@ -312,8 +312,75 @@ verification reliable. Bench 63 precedes Bench 62.
 
 | Metric | Baseline | Source |
 |--------|----------|--------|
-| Raw dependency cycles | 74 | `pnpm deps:gate` / dpdm JSON `circulars` |
+| Raw dependency cycles | **73** (was 74; lowered by Phase 2 X3) | `pnpm deps:gate` / dpdm JSON `circulars` |
 | Deduplicated cycle chains (human view) | 10 | `pnpm deps:check` stdout |
+
+---
+
+## 5b. Phase 2 delivery note (2026-09-22)
+
+**Delivered:** T1, T2, T3, T4 (all four new domains), X1, X3; Bench 63 (`tests/nar/todo20-determinism.test.ts`).
+**Partial:** T5 — the load-sensitive/PR CI split already exists (`test:unit` vs `test:load-sensitive` jobs in
+ci.yml, plus the dedicated `systemone-benches`/`arcade-benches` jobs); explicit `@tag` test-name taxonomy is
+deferred until the next bench authoring pass (file-based separation is functionally equivalent today).
+
+### What landed, and where it diverged from the plan text
+
+- **T1** — `RandomSource` type lives in `types/primitives.ts`; `BagOptions.rng` (default `Math.random`) feeds
+  `sample()` + `evict('Random')`; `SchemaInductionConfig.rng` for schema ids. **`Negotiator.ts` contains no
+  `Math.random` at all** (plan named it defensively) — veto resolution is pure; Bench 63 pins that with a grep.
+- **T2** — the inline `vi.spyOn` LCG in `todo17b-nal-arm.test.ts` moved to the shared `tests/helpers/rng.ts`
+  (`createLCG`/`pinDeterministicRNG`/`restoreRNG`/`withDeterministicRNG`). Falsified: 20 consecutive runs of the
+  previously flaky file, 0 failures. The other flake named in §5a (`property-based.test.ts`) runs green in-suite.
+- **T3** — `isolate: true` alone was insufficient: under the threads pool each worker re-imports
+  `onnxruntime-node` per test file and the N-API binding fails to self-register twice in one process (4 suites
+  died). **Pool switched to `forks`** — per-file processes, native modules load once, fully hermetic. Suite cost
+  ~39s (was ~37s). `todo16c-cache` Bench 17 broke its own 200 ms threshold because `expect()` sat inside the
+  10k-read hot loop; assertions hoisted out (miss-counter) — measurement now honest and cold-start-stable.
+- **T4** — `tests/nar/property/{narsese-roundtrip,truth-algebra,parameters,games}.test.ts`. **Found a real bug on
+  the first run**: the PEG parser rejected the serializer's own `(A & B)` / `(A | B)` infix output (it only knew
+  `&&`, `||`, `,`, and prefix `&`/`|`). Fixed in `narsese.peggy` (added `&`/`|` to `InfixOperator` + kindMaps),
+  regenerated `peggy-generated.cjs`; legacy syntaxes verified unchanged. fast-check gotchas for future authors:
+  float bounds must be f32-exact (`Math.fround`, and `fround(0.999)` rounds *up* past the true max — see
+  `f32Floor` in truth-algebra.test.ts); `Truth` fields are `f`/`c`; zero-confidence truth is degenerate (division
+  by zero weight in revision) and excluded from algebra laws.
+- **X1** — `systemOneDefaults`/`systemOneSchema`/`SystemOneConfig` moved to `@senars/util/config`
+  (`util/src/config/system-one.ts`); root `src/config/schema.ts` re-exports (single definition, §5a rule).
+  `nar/src/{nar,agent/builder,agent/profiles}.ts` now import from `@senars/util/config`.
+  Acceptance met: `grep -rn "from '\.\./\.\./src/" nar/src/` → empty; deps:gate unchanged (73).
+- **X3** — `nar/src/lm/provider-runtime.ts`: `ProviderRuntime` class owns routing policy, demotions, last
+  routing decision, circuit breakers (+ trip/half-open/close with OTel + Prometheus emission), health-probe
+  handle, and the routing telemetry log — plus the remaining providers.ts singletons (file settings, WebLLM
+  runtime, builtin progress callback). `getProviderRuntime()` backs the unchanged module-level API; every
+  provider function takes an optional trailing `runtime` param for scoping. `LMService` accepts a scoped
+  runtime (3rd ctor arg / `createLMService({ providerRuntime })`). Two instances with different routing
+  policies now coexist in one process (Bench 63 + routing tests falsify). **Type placement driven by cycle
+  avoidance**: `LMProviderName` + the canonical `CircuitBreakerConfig` live in `env-config.ts` (the leaf);
+  `WebLLMRuntime` in provider-runtime.ts; providers.ts re-exports all of them — no new cycles, raw count
+  dropped 74 → 73.
+
+### Remaining work / follow-ups
+
+1. **Math.random sweep (T1 acceptance stretch).** Still bare in: `memory/links/LinkBag.ts`, `nl/generation.ts`,
+   `rlfp/{PolicyOptimizer,RewardModel}.ts`, `strategies/derivation/SampledDerivation.ts`,
+   `tools/{adapters/external-tools,tool-registry}.ts`, `rl/perception-action-adapters.ts` (M6 will touch it),
+   `rl/q-belief-store.ts`, `reflex/{TabularQReflex,EpsilonGreedyReflex}.ts`, `imagination/treadmill.ts`,
+   `events/bridge.ts`, `lm/system-one/telemetry.ts`. Mechanical; do opportunistically during M4/M5/M6 splits.
+2. **Full 20× `pnpm test:unit` soak** for the formal Bench 63 acceptance (single full runs green; the 20× was
+   done on the known-flaky file only).
+3. **T5 tags**: adopt `@load-sensitive`/`@deterministic` name tags when benches are next authored; wire the
+   nightly job then.
+4. **PEG grammar hygiene**: `kindMap` is duplicated across `AngleBracketStatement`/`ParenthesizedStatement`;
+   consider hoisting to a shared rule during M2.
+
+### New improvement opportunities (from this phase)
+
+- `serialize → parse` round-trip is now property-guarded — extend the generator to higher-order terms
+  (variables, sets, images) when the grammar is next touched.
+- `provider-runtime.ts` is the natural seam for M4's resilience consolidation (X5): provider health machinery
+  already sits behind one class.
+- vitest `forks` pool removed a whole class of native-module and module-order flakes — keep `isolate: true`
+  non-negotiable in review; any test relying on module-load order is now a bug by construction.
 
 ---
 

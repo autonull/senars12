@@ -76,7 +76,7 @@ export interface RLFPConfig {
 
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
-import type { SystemOneConfig as SystemOneConfigSchema } from '../../src/config/schema.js';
+import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
 import type {
   CognitiveDispatcher,

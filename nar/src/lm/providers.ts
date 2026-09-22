@@ -1,8 +1,7 @@
-import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { transformersJS } from '@browser-ai/transformers-js';
-import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import type { LMExecutionStats, LMTask } from '@senars/util';
 import {
   createProviderRegistry,
@@ -11,15 +10,13 @@ import {
   type LanguageModelMiddleware,
   wrapLanguageModel,
 } from 'ai';
-import { recordCircuitBreakerState, recordLmProbe } from '../metrics/index.js';
-import { getTracer } from '../otel/index.js';
+import { recordLmProbe } from '../metrics/index.js';
 import {
   builtinModels,
   defaultModelFor,
   embeddedLlamaConfigured,
   type LMSettings,
   type LMSettingsInput,
-  resolveLMSettings,
 } from './env-config.js';
 import { createMockLanguageModel } from './lm-service.js';
 import {
@@ -35,40 +32,54 @@ const OLLAMA_HOST_DEFAULT = 'http://localhost:11434';
 const OLLAMA_FAST_DEFAULT = 'llama3.2:3b';
 const OLLAMA_COMPACT_DEFAULT = 'phi3:3.8b';
 
-export type LMProviderName =
-  | 'transformers'
-  | 'ollama'
-  | 'llamacpp'
-  | 'llamacpp-embedded'
-  | 'anthropic'
-  | 'openai'
-  | 'openai-compatible'
-  | 'webllm'
-  | 'mock';
+export type {
+  CircuitBreakerConfig,
+  CircuitState,
+  LMProviderName,
+  ProviderHealth,
+  ProviderRuntime,
+  QualityObjective,
+  RoutingDecision,
+  RoutingObjective,
+  RoutingPolicy,
+  RoutingTelemetryEntry,
+  WebLLMRuntime,
+} from './provider-runtime.js';
+export { getProviderRuntime, PROVIDER_CIRCUIT_DEFAULTS } from './provider-runtime.js';
+import {
+  getProviderRuntime,
+  type LMProviderName,
+  type ProviderHealth,
+  type ProviderRuntime,
+  type QualityObjective,
+  type RoutingDecision,
+  type RoutingObjective,
+  type RoutingPolicy,
+  type RoutingTelemetryEntry,
+  type WebLLMRuntime,
+} from './provider-runtime.js';
 
-/** Browser-side WebLLM runtime, injected by the UI layer (nar never imports browser code). */
-export interface WebLLMRuntime {
-  createModel: (modelKey: string, onProgress?: (progress: number) => void) => LanguageModel;
-  models: Record<string, { id: string; label?: string }>;
-}
-
-let webllmRuntime: WebLLMRuntime | undefined;
+// Settings/runtime-injection state lives on `ProviderRuntime`; the module
+// functions delegate to the process-wide default instance.
 
 /** UI layer installs the WebLLM runtime at startup (browser only). */
-export const configureWebLLM = (runtime: WebLLMRuntime | undefined): void => {
-  webllmRuntime = runtime;
+export const configureWebLLM = (
+  runtime: WebLLMRuntime | undefined,
+  rt: ProviderRuntime = getProviderRuntime()
+): void => {
+  rt.configureWebLLM(runtime);
 };
-export const getWebLLMRuntime = (): WebLLMRuntime | undefined => webllmRuntime;
-
-let activeFileSettings: LMSettingsInput | undefined;
+export const getWebLLMRuntime = (rt: ProviderRuntime = getProviderRuntime()) =>
+  rt.getWebLLMRuntime();
 
 /** Install file/config-derived settings (env still wins at read time). */
-export const configureLM = (settings: LMSettingsInput): void => {
-  activeFileSettings = settings;
+export const configureLM = (settings: LMSettingsInput, rt: ProviderRuntime = getProviderRuntime()): void => {
+  rt.configureLM(settings);
 };
 
 /** Active settings, lazily resolved from env (+ anything installed via configureLM). */
-export const getLMSettings = (): LMSettings => resolveLMSettings(activeFileSettings);
+export const getLMSettings = (rt: ProviderRuntime = getProviderRuntime()): LMSettings =>
+  rt.getLMSettings();
 
 export const getLmProvider = (): LMProviderName => getLMSettings().provider;
 
@@ -123,11 +134,14 @@ const cloudApiKey = (settings: LMSettings): string | undefined => {
   );
 };
 
-let builtinProgressCallback: ModelDownloadProgressCallback | undefined;
-
-export const setBuiltinProgressCallback = (cb: ModelDownloadProgressCallback | undefined): void => {
-  builtinProgressCallback = cb;
+export const setBuiltinProgressCallback = (
+  cb: ModelDownloadProgressCallback | undefined,
+  rt: ProviderRuntime = getProviderRuntime()
+): void => {
+  rt.setBuiltinProgressCallback(cb);
 };
+export const getBuiltinProgressCallback = (rt: ProviderRuntime = getProviderRuntime()) =>
+  rt.getBuiltinProgressCallback();
 
 export function createSeNARSRegistry(settings?: LMSettings) {
   const s = settings ?? getLMSettings();
@@ -152,7 +166,7 @@ export function createSeNARSRegistry(settings?: LMSettings) {
     provider === 'openai-compatible';
   const useWebLLM =
     provider === 'webllm' &&
-    typeof webllmRuntime !== 'undefined' &&
+    typeof getWebLLMRuntime() !== 'undefined' &&
     typeof navigator !== 'undefined' &&
     'gpu' in navigator;
   const useLlamaCpp = provider === 'llamacpp';
@@ -199,8 +213,9 @@ export function createSeNARSRegistry(settings?: LMSettings) {
   const builtinCompact = compactModel ?? builtinModels.compact;
   const offlineTier = resolveOfflineTier(s);
 
-  const webllmQuality = useWebLLM ? webllmRuntime!.createModel('llama-3.2-3b-instruct') : undefined;
-  const webllmFast = useWebLLM ? webllmRuntime!.createModel('phi-3.5-mini-instruct') : undefined;
+  const webllm = getWebLLMRuntime();
+  const webllmQuality = useWebLLM ? webllm!.createModel('llama-3.2-3b-instruct') : undefined;
+  const webllmFast = useWebLLM ? webllm!.createModel('phi-3.5-mini-instruct') : undefined;
 
   // Unavailable slots are omitted (not mocked) so registry.languageModel() throws
   // and routing failover skips them instead of silently admitting a placeholder.
@@ -263,15 +278,15 @@ export function createSeNARSRegistry(settings?: LMSettings) {
         quality: localModel(
           offlineTier ?? modelOverride ?? builtinModels.quality,
           s,
-          builtinProgressCallback
+          getBuiltinProgressCallback()
         ),
-        fast: localModel(builtinCompact, s, builtinProgressCallback),
+        fast: localModel(builtinCompact, s, getBuiltinProgressCallback()),
         structured: localModel(
           offlineTier ?? modelOverride ?? builtinModels.quality,
           s,
-          builtinProgressCallback
+          getBuiltinProgressCallback()
         ),
-        compact: localModel(builtinCompact, s, builtinProgressCallback),
+        compact: localModel(builtinCompact, s, getBuiltinProgressCallback()),
         mock: mockModel(),
       },
     }),
@@ -350,64 +365,32 @@ export const getModelCapability = (id: string): ModelCapability | undefined =>
   MODEL_CAPABILITIES[id];
 
 /**
- * Objective-driven routing override. Candidates are SeNARS model ids
- * (e.g. "cloud:quality"); the offline failsafe ladder is always appended.
- * Constraints (offlineOnly, maxLatencyMs) act as hard filters.
+ * Objective-driven routing override lives on `ProviderRuntime`
+ * (see provider-runtime.ts); the module functions below delegate to the
+ * process-wide default instance. Pass an explicit runtime for scoped state.
  */
-export interface RoutingPolicy {
-  candidates?: string[];
-  offlineOnly?: boolean;
-  maxLatencyMs?: number;
-  /** Per-task objectives; per-task constraints override the global ones. */
-  objectives?: Partial<Record<LMTask, RoutingObjective>>;
-  /** Offline failsafe ladder, smallest → most capable local model ids. */
-  offlineLadder?: string[];
-}
 
-export type QualityObjective = 'balanced' | 'high' | 'max';
-
-export interface RoutingObjective {
-  quality?: QualityObjective;
-  maxLatencyMs?: number;
-  offlineOnly?: boolean;
-}
-
-let routing: RoutingPolicy | null = null;
-
-export const setRouting = (policy: RoutingPolicy | null): void => {
-  routing = policy;
+export const setRouting = (policy: RoutingPolicy | null, rt: ProviderRuntime = getProviderRuntime()): void => {
+  rt.setRouting(policy);
 };
 
-export const getRouting = (): RoutingPolicy | null => routing;
+export const getRouting = (rt: ProviderRuntime = getProviderRuntime()): RoutingPolicy | null =>
+  rt.getRouting();
 
-/** Session-level demotions: a demoted model sinks to the back of the chain. */
-const demotions = new Map<string, { reason: string; at: number }>();
-
-export const demoteModel = (id: string, reason: string): void => {
-  demotions.set(id, { reason, at: Date.now() });
+export const demoteModel = (id: string, reason: string, rt: ProviderRuntime = getProviderRuntime()): void => {
+  rt.demoteModel(id, reason);
 };
-export const getDemotions = (): Map<string, { reason: string; at: number }> => demotions;
-export const resetDemotions = (): void => demotions.clear();
+export const getDemotions = (rt: ProviderRuntime = getProviderRuntime()) => rt.demotions;
+export const resetDemotions = (rt: ProviderRuntime = getProviderRuntime()): void => {
+  rt.resetDemotions();
+};
 
-export interface RoutingDecision {
-  task: LMTask;
-  modelId: string;
-  reason: 'primary' | 'failover';
-}
+export const getLastRoutingDecision = (
+  rt: ProviderRuntime = getProviderRuntime()
+): RoutingDecision | undefined => rt.lastDecision;
 
-let lastDecision: RoutingDecision | undefined;
-
-export const getLastRoutingDecision = (): RoutingDecision | undefined => lastDecision;
-
-export const getRoutingStatus = (): {
-  policy: RoutingPolicy | null;
-  demoted: Array<{ id: string; reason: string; at: number }>;
-  lastDecision: RoutingDecision | undefined;
-} => ({
-  policy: routing,
-  demoted: [...demotions].map(([id, d]) => ({ id, ...d })),
-  lastDecision,
-});
+export const getRoutingStatus = (rt: ProviderRuntime = getProviderRuntime()) =>
+  rt.getRoutingStatus();
 
 const latencyClassOf = (id: string): 'fast' | 'medium' | 'slow' => {
   const cap = MODEL_CAPABILITIES[id];
@@ -464,18 +447,25 @@ const CHAINS: Record<LMProviderName, Record<LMTask, SeNARSModelId[]>> = {
   },
 };
 
-export function getModelChain(provider: LMProviderName, task: LMTask): SeNARSModelId[] {
+export function getModelChain(
+  provider: LMProviderName,
+  task: LMTask,
+  rt: ProviderRuntime = getProviderRuntime()
+): SeNARSModelId[] {
   // Mock provider is the test/offline posture: configured routing candidates
   // must not bypass it (a stale senars.config.json would otherwise route a
   // mock lane onto builtin transformers models with minutes-long cold loads).
   if (provider === 'mock') return CHAINS.mock[task];
-  const c = routing?.candidates;
+  const policy = rt.routing;
+  const c = policy?.candidates;
   if (c?.length) {
-    const obj = routing?.objectives?.[task];
-    const offlineOnly = obj?.offlineOnly ?? routing?.offlineOnly;
-    const maxLatencyMs = obj?.maxLatencyMs ?? routing?.maxLatencyMs;
+    const obj = policy?.objectives?.[task];
+    const offlineOnly = obj?.offlineOnly ?? policy?.offlineOnly;
+    const maxLatencyMs = obj?.maxLatencyMs ?? policy?.maxLatencyMs;
     // demoted candidates sink to the back of the chain (session-level)
-    const ordered = [...c].sort((a, b) => Number(demotions.has(a)) - Number(demotions.has(b)));
+    const ordered = [...c].sort(
+      (a, b) => Number(rt.demotions.has(a)) - Number(rt.demotions.has(b))
+    );
     const seen = new Set<string>();
     const chain: string[] = [];
     for (const id of [...ordered, 'builtin:compact', 'builtin:mock']) {
@@ -498,24 +488,25 @@ export function getModelForTask(
   settings?: LMSettings,
   stats?: Record<string, LMExecutionStats>,
   /** H2/X16: explicit per-call model id (e.g. 'cloud:quality') — bypasses the chain. */
-  modelOverride?: string
+  modelOverride?: string,
+  rt: ProviderRuntime = getProviderRuntime()
 ): LanguageModel {
   if (modelOverride) {
     // Unknown ids throw here — no silent failover (routing honesty rules).
     const model = registry.languageModel(
       modelOverride as Parameters<SeNARSRegistry['languageModel']>[0]
     );
-    lastDecision = { task, modelId: modelOverride, reason: 'primary' };
+    rt.lastDecision = { task, modelId: modelOverride, reason: 'primary' };
     return model;
   }
-  const chain = getModelChain(settings?.provider ?? getLmProvider(), task);
+  const chain = getModelChain(settings?.provider ?? getLmProvider(), task, rt);
   // R4/R5: success-rate-aware reordering within the resolved chain (failsafe rungs stay
   // guaranteed by pickModel's deterministic tie-breaking and the appended ladder).
   const ordered = (stats ? pickModel(chain, {}, stats).map((c) => c.id) : chain) as SeNARSModelId[];
   for (const [i, id] of ordered.entries()) {
     try {
       const model = registry.languageModel(id);
-      lastDecision = { task, modelId: id, reason: i === 0 ? 'primary' : 'failover' };
+      rt.lastDecision = { task, modelId: id, reason: i === 0 ? 'primary' : 'failover' };
       return model;
     } catch {}
   }
@@ -578,190 +569,47 @@ export async function resolveActiveProvider(): Promise<LMProviderName> {
 }
 
 // ---- Health probe & circuit breaker for cloud providers ----
+// Breaker state lives on `ProviderRuntime`; the module functions delegate to
+// the process-wide default instance (pass an explicit runtime to scope state).
 
-export type CircuitState = 'closed' | 'open' | 'half-open';
-
-export interface CircuitBreakerConfig {
-  /** Failures before opening the circuit. */
-  failureThreshold: number;
-  /** Time in ms before attempting half-open. */
-  resetTimeoutMs: number;
-  /** Successful calls in half-open before closing. */
-  successThreshold: number;
+export function getCircuitBreaker(
+  provider: LMProviderName,
+  rt: ProviderRuntime = getProviderRuntime()
+): ProviderHealth {
+  return rt.getCircuitBreaker(provider);
 }
 
-const DEFAULT_CIRCUIT_CONFIG: CircuitBreakerConfig = {
-  failureThreshold: 5,
-  resetTimeoutMs: 30_000,
-  successThreshold: 2,
-};
-
-/** Sensible per-provider defaults. */
-const PROVIDER_CIRCUIT_DEFAULTS: Partial<Record<LMProviderName, Partial<CircuitBreakerConfig>>> = {
-  anthropic: { failureThreshold: 3, resetTimeoutMs: 60_000, successThreshold: 2 },
-  openai: { failureThreshold: 3, resetTimeoutMs: 60_000, successThreshold: 2 },
-  'openai-compatible': { failureThreshold: 5, resetTimeoutMs: 30_000, successThreshold: 2 },
-  ollama: { failureThreshold: 10, resetTimeoutMs: 15_000, successThreshold: 3 },
-  llamacpp: { failureThreshold: 10, resetTimeoutMs: 15_000, successThreshold: 3 },
-  'llamacpp-embedded': { failureThreshold: 10, resetTimeoutMs: 15_000, successThreshold: 3 },
-  transformers: { failureThreshold: 20, resetTimeoutMs: 5_000, successThreshold: 5 },
-  webllm: { failureThreshold: 20, resetTimeoutMs: 5_000, successThreshold: 5 },
-  mock: { failureThreshold: 100, resetTimeoutMs: 1_000, successThreshold: 10 },
-};
-
-export interface ProviderHealth {
-  provider: LMProviderName;
-  state: CircuitState;
-  consecutiveFailures: number;
-  consecutiveSuccesses: number;
-  lastFailure: number | null;
-  lastSuccess: number | null;
-  lastProbe: number | null;
-  probeResult: boolean | null;
-}
-
-const circuitBreakers = new Map<LMProviderName, ProviderHealth>();
-
-function getBreaker(provider: LMProviderName): ProviderHealth {
-  let b = circuitBreakers.get(provider);
-  if (!b) {
-    b = {
-      provider,
-      state: 'closed',
-      consecutiveFailures: 0,
-      consecutiveSuccesses: 0,
-      lastFailure: null,
-      lastSuccess: null,
-      lastProbe: null,
-      probeResult: null,
-    };
-    circuitBreakers.set(provider, b);
-  }
-  return b;
-}
-
-export function getCircuitBreaker(provider: LMProviderName): ProviderHealth {
-  return { ...getBreaker(provider) };
-}
-
-export function getAllCircuitBreakers(): Map<LMProviderName, ProviderHealth> {
-  return new Map(circuitBreakers);
+export function getAllCircuitBreakers(rt: ProviderRuntime = getProviderRuntime()) {
+  return rt.getAllCircuitBreakers();
 }
 
 /** Close all breakers and clear failure counts (test/bench isolation between independent scenarios). */
-export function resetCircuitBreakers(): void {
-  circuitBreakers.clear();
+export function resetCircuitBreakers(rt: ProviderRuntime = getProviderRuntime()): void {
+  rt.resetCircuitBreakers();
 }
 
-/** Get effective circuit breaker config for a provider (settings > provider defaults > global defaults). */
-export function getEffectiveCircuitConfig(
+/** Effective circuit breaker config for a provider (settings > provider defaults > global defaults). */
+export const getEffectiveCircuitConfig = (
   provider: LMProviderName,
-  settings?: LMSettings
-): CircuitBreakerConfig {
-  const s = settings ?? getLMSettings();
-  const fileCfg = s.circuitBreaker?.[provider];
-  const providerDefaults = PROVIDER_CIRCUIT_DEFAULTS[provider] ?? {};
-  return {
-    ...DEFAULT_CIRCUIT_CONFIG,
-    ...providerDefaults,
-    ...fileCfg,
-  };
-}
-
-const lmTracer = getTracer('senars.lm');
-
-function emitCircuitBreakerEvent(
-  provider: LMProviderName,
-  state: CircuitState,
-  details: Record<string, unknown> = {}
-): void {
-  const span = trace.getActiveSpan();
-  if (span) {
-    span.addEvent('circuit.breaker.state_change', {
-      'lm.provider': provider,
-      'circuit.state': state,
-      ...details,
-    });
-  }
-  // Also create a dedicated span for the state change
-  lmTracer.startActiveSpan(`lm.circuit_breaker.${state}`, { kind: SpanKind.INTERNAL }, (span) => {
-    span.setAttribute('lm.provider', provider);
-    span.setAttribute('circuit.state', state);
-    Object.entries(details).forEach(([key, value]) => {
-      if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') {
-        span.setAttribute(key, value);
-      }
-    });
-    span.setStatus({ code: SpanStatusCode.OK });
-    span.end();
-  });
-  // Record Prometheus metric
-  recordCircuitBreakerState(provider, state);
-}
-
-function tripBreaker(provider: LMProviderName): void {
-  const b = getBreaker(provider);
-  b.state = 'open';
-  b.lastFailure = Date.now();
-  emitCircuitBreakerEvent(provider, 'open', { reason: 'failure_threshold_exceeded' });
-}
-
-function halfOpenBreaker(provider: LMProviderName): void {
-  const b = getBreaker(provider);
-  b.state = 'half-open';
-  b.consecutiveSuccesses = 0;
-  emitCircuitBreakerEvent(provider, 'half-open', { reason: 'reset_timeout_elapsed' });
-}
-
-function closeBreaker(provider: LMProviderName): void {
-  const b = getBreaker(provider);
-  b.state = 'closed';
-  b.consecutiveFailures = 0;
-  b.consecutiveSuccesses = 0;
-  emitCircuitBreakerEvent(provider, 'closed', { reason: 'success_threshold_met' });
-}
+  settings?: LMSettings,
+  rt: ProviderRuntime = getProviderRuntime()
+) => rt.getEffectiveCircuitConfig(provider, settings);
 
 export function recordProviderCall(
   provider: LMProviderName,
   success: boolean,
-  settings?: LMSettings
+  settings?: LMSettings,
+  rt: ProviderRuntime = getProviderRuntime()
 ): void {
-  const cfg = getEffectiveCircuitConfig(provider, settings);
-  const b = getBreaker(provider);
-  const now = Date.now();
-
-  if (success) {
-    b.consecutiveSuccesses++;
-    b.consecutiveFailures = 0;
-    b.lastSuccess = now;
-    if (b.state === 'half-open' && b.consecutiveSuccesses >= cfg.successThreshold) {
-      closeBreaker(provider);
-    }
-  } else {
-    b.consecutiveFailures++;
-    b.consecutiveSuccesses = 0;
-    b.lastFailure = now;
-    if (b.state === 'closed' && b.consecutiveFailures >= cfg.failureThreshold) {
-      tripBreaker(provider);
-    } else if (b.state === 'half-open') {
-      tripBreaker(provider);
-    }
-  }
+  rt.recordProviderCall(provider, success, settings);
 }
 
-export function canUseProvider(provider: LMProviderName, settings?: LMSettings): boolean {
-  const cfg = getEffectiveCircuitConfig(provider, settings);
-  const b = getBreaker(provider);
-  if (b.state === 'closed') return true;
-  if (b.state === 'open') {
-    if (b.lastFailure && Date.now() - b.lastFailure >= cfg.resetTimeoutMs) {
-      halfOpenBreaker(provider);
-      return true;
-    }
-    return false;
-  }
-  // half-open: allow one call through
-  return true;
+export function canUseProvider(
+  provider: LMProviderName,
+  settings?: LMSettings,
+  rt: ProviderRuntime = getProviderRuntime()
+): boolean {
+  return rt.canUseProvider(provider, settings);
 }
 
 export async function probeCloudProvider(settings?: LMSettings): Promise<boolean> {
@@ -789,11 +637,13 @@ export async function probeCloudProvider(settings?: LMSettings): Promise<boolean
   }
 }
 
-let healthProbeInterval: ReturnType<typeof setInterval> | null = null;
-
-export function startHealthProbes(intervalMs = 60_000, settings?: LMSettings): void {
-  if (healthProbeInterval) return;
-  healthProbeInterval = setInterval(async () => {
+export function startHealthProbes(
+  intervalMs = 60_000,
+  settings?: LMSettings,
+  rt: ProviderRuntime = getProviderRuntime()
+): void {
+  if (rt.healthProbeInterval) return;
+  rt.healthProbeInterval = setInterval(async () => {
     const providers: LMProviderName[] = [
       'anthropic',
       'openai',
@@ -803,7 +653,7 @@ export function startHealthProbes(intervalMs = 60_000, settings?: LMSettings): v
       'llamacpp-embedded',
     ];
     for (const p of providers) {
-      if (!canUseProvider(p, settings)) continue;
+      if (!canUseProvider(p, settings, rt)) continue;
       let ok = false;
       if (p === 'ollama') {
         ok = await probeOllama(settings?.ollamaHost);
@@ -814,25 +664,26 @@ export function startHealthProbes(intervalMs = 60_000, settings?: LMSettings): v
       } else if (p === 'llamacpp-embedded') {
         ok = (await probeEmbeddedLlama()).available;
       }
-      const b = getBreaker(p);
+      const b = rt.breaker(p);
       b.lastProbe = Date.now();
       b.probeResult = ok;
       // Record Prometheus metric
       recordLmProbe(p, ok);
       if (ok && b.state === 'open') {
-        halfOpenBreaker(p);
+        b.state = 'half-open';
+        b.consecutiveSuccesses = 0;
       } else if (!ok && b.state !== 'open') {
-        recordProviderCall(p, false, settings);
+        recordProviderCall(p, false, settings, rt);
       }
     }
   }, intervalMs);
-  healthProbeInterval.unref?.();
+  rt.healthProbeInterval.unref?.();
 }
 
-export function stopHealthProbes(): void {
-  if (healthProbeInterval) {
-    clearInterval(healthProbeInterval);
-    healthProbeInterval = null;
+export function stopHealthProbes(rt: ProviderRuntime = getProviderRuntime()): void {
+  if (rt.healthProbeInterval) {
+    clearInterval(rt.healthProbeInterval);
+    rt.healthProbeInterval = null;
   }
 }
 
@@ -928,97 +779,37 @@ export const resolveOfflineModel = (
   ladder.filter((rung) => existsSync(join(cacheDir, cacheDirNameFor(rung)))).at(-1);
 
 /** LM_LOCAL_MODEL wins, else the largest cached offline-ladder rung, else undefined (config default). */
-export const resolveOfflineTier = (settings?: LMSettings): string | undefined => {
+export const resolveOfflineTier = (
+  settings?: LMSettings,
+  rt: ProviderRuntime = getProviderRuntime()
+): string | undefined => {
   const envModel = process.env.LM_LOCAL_MODEL;
   if (envModel) return envModel;
-  const ladder = getRouting()?.offlineLadder;
+  const ladder = rt.routing?.offlineLadder;
   if (!ladder?.length) return undefined;
   return resolveOfflineModel(ladder, settings?.cacheDir ?? OFFLINE_CACHE_DIR_DEFAULT);
 };
 
-// ---- Routing telemetry (1B) ----
+// ---- Routing telemetry (1B) — state on `ProviderRuntime`; delegates below ----
 
-export interface RoutingTelemetryEntry {
-  ts: number;
-  task: LMTask;
-  modelId: string;
-  latencyMs: number;
-  success: boolean;
-  demoted: boolean;
-  provider: string;
-  objective?: RoutingObjective;
-  chain?: string[];
+export function enableRoutingTelemetry(
+  options?: { logDir?: string; flushIntervalMs?: number },
+  rt: ProviderRuntime = getProviderRuntime()
+): void {
+  rt.enableRoutingTelemetry(options);
 }
 
-let routingLogEnabled = false;
-let routingLogDir = 'logs';
-let routingLogInterval: ReturnType<typeof setInterval> | null = null;
-const routingLogBuffer: RoutingTelemetryEntry[] = [];
-const ROUTING_LOG_FLUSH_INTERVAL_MS = 5000;
-
-function getRoutingLogPath(): string {
-  const date = new Date().toISOString().split('T')[0];
-  return join(routingLogDir, `routing-${date}.jsonl`);
+export function disableRoutingTelemetry(rt: ProviderRuntime = getProviderRuntime()): void {
+  rt.disableRoutingTelemetry();
 }
 
-function flushRoutingLog(): void {
-  if (routingLogBuffer.length === 0) return;
-  try {
-    mkdirSync(routingLogDir, { recursive: true });
-    const path = getRoutingLogPath();
-    const lines =
-      routingLogBuffer
-        .splice(0)
-        .map((e) => JSON.stringify(e))
-        .join('\n') + '\n';
-    appendFileSync(path, lines, 'utf-8');
-  } catch (e) {
-    // Silently fail to avoid disrupting main flow
-    console.error('[routing-telemetry] Flush failed:', e);
-  }
+export function logRoutingDecision(
+  entry: RoutingTelemetryEntry,
+  rt: ProviderRuntime = getProviderRuntime()
+): void {
+  rt.logRoutingDecision(entry);
 }
 
-export function enableRoutingTelemetry(options?: {
-  logDir?: string;
-  flushIntervalMs?: number;
-}): void {
-  if (routingLogEnabled) return;
-  routingLogEnabled = true;
-  if (options?.logDir) routingLogDir = options.logDir;
-  if (options?.flushIntervalMs) {
-    // Re-create interval with new flush interval
-    if (routingLogInterval) clearInterval(routingLogInterval);
-  }
-  routingLogInterval = setInterval(
-    flushRoutingLog,
-    options?.flushIntervalMs ?? ROUTING_LOG_FLUSH_INTERVAL_MS
-  );
-  routingLogInterval.unref?.();
-}
-
-export function disableRoutingTelemetry(): void {
-  if (!routingLogEnabled) return;
-  routingLogEnabled = false;
-  flushRoutingLog();
-  if (routingLogInterval) {
-    clearInterval(routingLogInterval);
-    routingLogInterval = null;
-  }
-}
-
-export function logRoutingDecision(entry: RoutingTelemetryEntry): void {
-  if (!routingLogEnabled) return;
-  routingLogBuffer.push(entry);
-  // Flush immediately on circuit breaker events
-  if (entry.demoted || !entry.success) {
-    flushRoutingLog();
-  }
-}
-
-export function getRoutingLogStatus(): { enabled: boolean; bufferSize: number; logPath: string } {
-  return {
-    enabled: routingLogEnabled,
-    bufferSize: routingLogBuffer.length,
-    logPath: getRoutingLogPath(),
-  };
+export function getRoutingLogStatus(rt: ProviderRuntime = getProviderRuntime()) {
+  return rt.getRoutingLogStatus();
 }

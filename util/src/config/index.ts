@@ -20,3 +20,4 @@ export {
   contextOptsSchema,
   validateAgentOptions,
 } from './validation.js';
+export { systemOneDefaults, systemOneSchema, type SystemOneConfig } from './system-one.js';

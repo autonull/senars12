@@ -74,18 +74,20 @@ describe('Bench 17 — Cache Correctness at Scale', () => {
       pointers.push(pointer);
     }
 
-    // Time multiple reads - should be fast (O(1))
+    // Hot loop measures reads only — assertions are hoisted out (expect()
+    // overhead inside the loop would dominate and make wall-clock flaky).
+    let misses = 0;
     const start = performance.now();
     for (let i = 0; i < 10000; i++) {
       const pointer = pointers[i % pointers.length] as EmbeddingPointer;
       const buffer = cache.read(pointer);
-      expect(buffer).toBeDefined();
-      expect(buffer!.length).toBe(DIMENSION);
+      if (!buffer || buffer.length !== DIMENSION) misses++;
     }
     const elapsed = performance.now() - start;
 
     // 10k reads should complete quickly (O(1) access)
     // Threshold is generous to account for test environment variability
+    expect(misses).toBe(0);
     expect(elapsed).toBeLessThan(200);
   });
 

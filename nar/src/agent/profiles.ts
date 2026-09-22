@@ -1,4 +1,4 @@
-import type { SystemOneConfig } from '../../../src/config/schema.js';
+import type { SystemOneConfig } from '@senars/util/config';
 
 /** Capability ladder tier: 0 reflex · 1 manifold · 2 cortex · 3 NAL-governed. */
 export type CapabilityTier = 0 | 1 | 2 | 3;

@@ -1,3 +1,5 @@
+import type { RandomSource } from '../types/primitives.js';
+
 export interface BagItem {
   id: string;
   priority: number;
@@ -7,6 +9,8 @@ export interface BagOptions {
   capacity: number;
   decayRate?: number;
   forgetRate?: number;
+  /** Injected randomness for sampling/eviction (default Math.random). */
+  rng?: RandomSource;
 }
 
 export type EvictStrategy = 'LRU' | 'LowestPriority' | 'Random';
@@ -47,6 +51,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   private readonly forgetRate: number;
   private heap: InternalEntry<T>[] = [];
   private totalPriority = 0;
+  private readonly rng: RandomSource;
 
   get decayRateValue(): number {
     return this.decayRate;
@@ -60,6 +65,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     this.capacity = options.capacity;
     this.decayRate = options.decayRate ?? 0.01;
     this.forgetRate = options.forgetRate ?? 0.001;
+    this.rng = options.rng ?? Math.random;
   }
 
   add(item: T): boolean {
@@ -95,7 +101,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       if (this.totalPriority <= 0) return this.heap[0]?.item;
     }
 
-    let r = Math.random() * this.totalPriority;
+    let r = this.rng() * this.totalPriority;
     for (let i = 0; i < this.heap.length; i++) {
       const e = this.heap[i];
       if (e) {
@@ -201,7 +207,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
         this.version++;
         break;
       case 'Random': {
-        const idx = Math.floor(Math.random() * this.heap.length);
+        const idx = Math.floor(this.rng() * this.heap.length);
         this.totalPriority -= this.heap[idx]!.item.priority;
         this.heap.splice(idx, 1);
         this.version++;

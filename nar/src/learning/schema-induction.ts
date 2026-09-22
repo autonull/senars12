@@ -10,6 +10,7 @@
 import type { LMService } from '../lm/lm-service.js';
 import { createLogger, type Logger } from '../logger';
 import type { Memory } from '../memory';
+import type { RandomSource } from '../types/primitives.js';
 import type { Term } from '../terms';
 import { containsSubterm, getSubject, Truth } from '../terms';
 import { createBudget, createTask, type Task } from '../types';
@@ -37,6 +38,8 @@ export interface SchemaInductionConfig {
   minConfidenceForInduction: number;
   maxSchemas: number;
   inductionIntervalMs: number;
+  /** Injected randomness for schema-id generation (default Math.random). */
+  rng?: RandomSource;
 }
 
 const DEFAULT_CONFIG: SchemaInductionConfig = {
@@ -54,11 +57,13 @@ export class SchemaInductor {
   private readonly logger: Logger;
   private schemas = new Map<string, SchemaPattern>();
   private lastInductionTime = 0;
+  private readonly rng: RandomSource;
 
   constructor(memory: Memory, lmClient: LMService, config: Partial<SchemaInductionConfig> = {}) {
     this.memory = memory;
     this.lmClient = lmClient;
     this.config = { ...DEFAULT_CONFIG, ...config };
+    this.rng = config.rng ?? Math.random;
     this.logger = createLogger({ scope: 'learning:schema-induction' });
   }
 
@@ -167,7 +172,7 @@ Respond with JSON:
     const parsed = this.parseSchemaResponse(response);
     if (!parsed) return null;
 
-    const id = `schema-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const id = `schema-${Date.now()}-${this.rng().toString(36).slice(2, 8)}`;
     const schema: SchemaPattern = {
       id,
       template: parsed.pattern,

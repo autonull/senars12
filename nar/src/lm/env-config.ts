@@ -1,5 +1,15 @@
 import { existsSync } from 'node:fs';
-import type { LMProviderName } from './providers.js';
+
+export type LMProviderName =
+  | 'transformers'
+  | 'ollama'
+  | 'llamacpp'
+  | 'llamacpp-embedded'
+  | 'anthropic'
+  | 'openai'
+  | 'openai-compatible'
+  | 'webllm'
+  | 'mock';
 
 export type ResolvedProvider = LMProviderName;
 

@@ -99,6 +99,7 @@ export {
   disableRoutingTelemetry,
   logRoutingDecision,
 } from './providers.js';
+export { getProviderRuntime, ProviderRuntime, type ProviderHealth } from './provider-runtime.js';
 export { createLMStats, recordLMCall } from './stats.js';
 export { loadGrammar, type GrammarName } from './grammars/index.js';
 export {

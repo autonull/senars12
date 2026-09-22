@@ -9,27 +9,8 @@ import { induceEpisodeSchemas, type EpisodeTick } from '@senars/nar/focus/schema
 import { createBanditGame, createGridWorldGame, type Game } from '@senars/nar/game';
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
 import { Negotiator } from '@senars/nar/reflex';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
-/**
- * Bag sampling (`nar/src/bag/Bag.ts`) draws from unseeded Math.random, so the
- * trap's veto timing depends on the global RNG stream — which module-load
- * order (isolate:false) perturbs. Each test pins a deterministic LCG stream.
- */
-let rngSpy: { mockRestore(): void } | null = null;
-const pinDeterministicRNG = (): void => {
-  if (rngSpy) return;
-  let state = 0x2f6e2b1;
-  rngSpy = vi.spyOn(Math, 'random').mockImplementation(() => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 4294967296;
-  });
-};
-
-afterEach(() => {
-  rngSpy?.mockRestore();
-  rngSpy = null;
-});
+import { describe, expect, it } from 'vitest';
+import { pinDeterministicRNG, restoreRNG } from '../helpers/rng.js';
 
 /** Scripted reflex that always proposes one action at high confidence. */
 class FixedActionReflex implements Reflex {
@@ -44,13 +25,18 @@ class FixedActionReflex implements Reflex {
   learn(_event: LearningEvent): void {}
 }
 
+/** Bag sampling is global-RNG-driven; each test pins a deterministic LCG stream. */
 const playTicks = async (game: Game, seeded: boolean, ticks = 20): Promise<GameFocus> => {
   pinDeterministicRNG();
-  const focus = new GameFocus({ focusId: 'nal-arm', game, cognitive: true });
-  if (seeded) focus.seedRule('0', 'wall_bump', { f: 0.1, c: 0.95 });
-  focus.bindReflex(new FixedActionReflex('0'));
-  for (let t = 0; t < ticks; t++) await focus.step(10);
-  return focus;
+  try {
+    const focus = new GameFocus({ focusId: 'nal-arm', game, cognitive: true });
+    if (seeded) focus.seedRule('0', 'wall_bump', { f: 0.1, c: 0.95 });
+    focus.bindReflex(new FixedActionReflex('0'));
+    for (let t = 0; t < ticks; t++) await focus.step(10);
+    return focus;
+  } finally {
+    restoreRNG();
+  }
 };
 
 /**
@@ -90,11 +76,16 @@ describe('TODO17b: NAL arcade arm falsification', () => {
 
   it('bandit arm-0 rule: worst arm is never executed under veto', async () => {
     const game = createBanditGame({ seed: 7, armMeans: [0.2, 0.5, 0.8], numArms: 3 });
-    const focus = new GameFocus({ focusId: 'nal-bandit', game, cognitive: true });
-    focus.seedRule('0', 'low_reward', { f: 0.1, c: 0.95 });
-    focus.bindReflex(new FixedActionReflex('0'));
-    for (let t = 0; t < 15; t++) await focus.step(10);
-    assertVetoed(focus, '0');
+    pinDeterministicRNG();
+    try {
+      const focus = new GameFocus({ focusId: 'nal-bandit', game, cognitive: true });
+      focus.seedRule('0', 'low_reward', { f: 0.1, c: 0.95 });
+      focus.bindReflex(new FixedActionReflex('0'));
+      for (let t = 0; t < 15; t++) await focus.step(10);
+      assertVetoed(focus, '0');
+    } finally {
+      restoreRNG();
+    }
   });
 
   it('a derivation about action A never vetoes proposal B (negotiator action match)', () => {
@@ -142,18 +133,23 @@ describe('TODO17b: NAL arcade arm falsification', () => {
     const schemas = induceEpisodeSchemas(history);
     expect(schemas).toContainEqual({ action: '0', kind: 'bad', meanReward: -1 });
     expect(schemas).toContainEqual({ action: '1', kind: 'good', meanReward: 1 });
-    const focus = new GameFocus({
-      focusId: 'nal-induced',
-      game: createGridWorldGame({ id: 'nal-induced-grid', grid: ['S..', '..G'], seed: 5 }),
-      cognitive: true,
-    });
-    for (const s of schemas)
-      focus.seedRule(s.action, s.kind === 'bad' ? 'bad_outcome' : 'good_outcome', {
-        f: Math.max(0, Math.min(1, s.meanReward)),
-        c: 0.9,
+    pinDeterministicRNG();
+    try {
+      const focus = new GameFocus({
+        focusId: 'nal-induced',
+        game: createGridWorldGame({ id: 'nal-induced-grid', grid: ['S..', '..G'], seed: 5 }),
+        cognitive: true,
       });
-    focus.bindReflex(new FixedActionReflex('0'));
-    for (let t = 0; t < 15; t++) await focus.step(10);
-    assertVetoed(focus, '0');
+      for (const s of schemas)
+        focus.seedRule(s.action, s.kind === 'bad' ? 'bad_outcome' : 'good_outcome', {
+          f: Math.max(0, Math.min(1, s.meanReward)),
+          c: 0.9,
+        });
+      focus.bindReflex(new FixedActionReflex('0'));
+      for (let t = 0; t < 15; t++) await focus.step(10);
+      assertVetoed(focus, '0');
+    } finally {
+      restoreRNG();
+    }
   });
 });

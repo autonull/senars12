@@ -23,10 +23,13 @@ export default defineConfig({
     testTimeout: 15000,
     teardownTimeout: 5000,
     coverage: { provider: 'v8', reporter: ['text', 'json', 'html'] },
-    pool: 'threads',
+    // Forks pool: per-file process isolation (TODO20 T3) — hermetic module state,
+    // and native modules (onnxruntime-node) load once per process.
+    pool: 'forks',
     maxConcurrency: 16,
-    // Share modules across test files in same worker (~4s faster per vitest)
-    isolate: false,
+    // Full module isolation per test file (TODO20 T3) — surfaces cross-file
+    // module-state coupling; provider runtime state is scoped per instance (X3).
+    isolate: true,
     // Cache transformed modules on disk; reuse across reruns/cold starts (slower transform phase)
     fsModuleCache: true,
   },
