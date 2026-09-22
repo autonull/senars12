@@ -28,10 +28,6 @@
       "types": "./src/cognitive/index.ts",
       "import": "./src/cognitive/index.ts"
     },
-    "./cognitive/analyzers": {
-      "types": "./src/cognitive/analyzers/index.ts",
-      "import": "./src/cognitive/analyzers/index.ts"
-    },
     "./cognitive/corrections": {
       "types": "./src/cognitive/analyzers/corrections.ts",
       "import": "./src/cognitive/analyzers/corrections.ts"
@@ -47,14 +43,6 @@
     "./config/cognitive-parameters": {
       "types": "./src/config/cognitive-parameters.ts",
       "import": "./src/config/cognitive-parameters.ts"
-    },
-    "./config/parameter-table": {
-      "types": "./src/config/cognitive-parameters.ts",
-      "import": "./src/config/cognitive-parameters.ts"
-    },
-    "./cooperation": {
-      "types": "./src/cooperation/delegation.ts",
-      "import": "./src/cooperation/delegation.ts"
     },
     "./engine": {
       "types": "./src/engine/index.ts",
@@ -75,10 +63,6 @@
     "./game": {
       "types": "./src/game/index.ts",
       "import": "./src/game/index.ts"
-    },
-    "./gates": {
-      "types": "./src/gates/index.ts",
-      "import": "./src/gates/index.ts"
     },
     "./health": {
       "types": "./src/health/index.ts",
@@ -160,10 +144,6 @@
       "types": "./src/reflex/index.ts",
       "import": "./src/reflex/index.ts"
     },
-    "./rl": {
-      "types": "./src/rl/index.ts",
-      "import": "./src/rl/index.ts"
-    },
     "./rlfp": {
       "types": "./src/rlfp/index.ts",
       "import": "./src/rlfp/index.ts"
@@ -172,21 +152,9 @@
       "types": "./src/rules/index.ts",
       "import": "./src/rules/index.ts"
     },
-    "./rules/ranking": {
-      "types": "./src/rules/ranking.ts",
-      "import": "./src/rules/ranking.ts"
-    },
-    "./schemas": {
-      "types": "./src/schemas/index.ts",
-      "import": "./src/schemas/index.ts"
-    },
     "./self": {
       "types": "./src/self/index.ts",
       "import": "./src/self/index.ts"
-    },
-    "./state/codec": {
-      "types": "./dist/state/codec.d.ts",
-      "import": "./dist/state/codec.js"
     },
     "./stream": {
       "types": "./src/stream/index.ts",
@@ -207,10 +175,6 @@
     "./tools/schemas": {
       "types": "./src/tools/schemas.ts",
       "import": "./src/tools/schemas.ts"
-    },
-    "./utils": {
-      "types": "./src/utils/index.ts",
-      "import": "./src/utils/index.ts"
     }
   },
   "scripts": {

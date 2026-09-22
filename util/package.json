@@ -32,29 +32,9 @@
       "types": "./src/memory/in-memory-session-manager.ts",
       "import": "./src/memory/in-memory-session-manager.ts"
     },
-    "./types/agent": {
-      "types": "./src/types/agent.ts",
-      "import": "./src/types/agent.ts"
-    },
     "./types/cognitive": {
       "types": "./src/types/cognitive.ts",
       "import": "./src/types/cognitive.ts"
-    },
-    "./types/engine": {
-      "types": "./src/types/engine.ts",
-      "import": "./src/types/engine.ts"
-    },
-    "./types/events": {
-      "types": "./src/types/events.ts",
-      "import": "./src/types/events.ts"
-    },
-    "./types/lifecycle": {
-      "types": "./src/types/lifecycle.ts",
-      "import": "./src/types/lifecycle.ts"
-    },
-    "./types/llm": {
-      "types": "./src/types/llm.ts",
-      "import": "./src/types/llm.ts"
     },
     "./types/memory": {
       "types": "./src/types/memory.ts",
@@ -64,17 +44,9 @@
       "types": "./src/types/transport.ts",
       "import": "./src/types/transport.ts"
     },
-    "./types/truth": {
-      "types": "./src/types/truth.ts",
-      "import": "./src/types/truth.ts"
-    },
     "./utils/assert": {
       "types": "./src/utils/assert.ts",
       "import": "./src/utils/assert.ts"
-    },
-    "./utils/id": {
-      "types": "./src/utils/id.ts",
-      "import": "./src/utils/id.ts"
     },
     "./utils/serialization": {
       "types": "./src/utils/serialization.ts",

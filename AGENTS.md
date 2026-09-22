@@ -36,3 +36,25 @@
   prefer composition over inheritance, maintain consistent class structure
 
 - Use `pnpm`, not `npm`
+
+## Versioning & Deprecation Policy (TODO20 A3/A4)
+
+**Semver (per `@senars/*` package):**
+- Breaking change (removed/renamed public export, changed signature): **major**
+- New public export (declared in `exports` map, consumed per `pnpm exports:audit`): **minor**
+- Internal refactor (no export-surface delta): **patch**
+
+**Export surface rules:**
+- `pnpm exports:audit` is the gate: every `exports` subpath needs an in-repo consumer
+  or a `PUBLIC_API` declaration in `scripts/exports-audit.ts`. No speculative exports.
+- `pnpm exports:check` additionally guards dangling export targets.
+- Internal code imports via relative paths, not package specifiers — the exports map
+  is the *declared public API*, not an internal shortcut.
+
+**Deprecation lifecycle:**
+1. Mark with a JSDoc `@deprecated since X.Y — <replacement>` tag (lints in editors, greppable).
+2. Keep the old path working for **2 minors**.
+3. Remove in the next major; the removal is the breaking change.
+- Case studies: `SeNARSFactory` deleted outright (TODO19 — pre-policy); `ollama` provider
+  retired via alias-to-`openai-compatible` at the settings boundary (§5f of TODO20);
+  `memory.derivationDepth` alias is the current live deprecation.

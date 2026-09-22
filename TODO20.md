@@ -233,13 +233,13 @@ error-type sweep.
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
 Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule (+processor bus typed) (DELIVERED, §5j)  → [x] Bench 62 (19 assertions, M1–M7)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  **PHASE 1 COMPLETE**
 
-NEXT SESSION ENTRY POINT: Phase 6 — A1 explicit exports (grep-guard tool against actual consumers; deferred from D05, §5a), A2 TypeDoc, A3 semver policy, A4 deprecation lifecycle (A4 pattern already proven by §5f's ollama alias). Bench 67 is the acceptance bench. Phase 5 delivered (§5n): strict `appConfigSchema` + `LM_PROVIDER_NAMES` enum, `src/utils/config-migrate.ts` (auto-migrate + write-back in loader), `deepFreeze` on cognitive parameters (`@senars/util/utils/shared` — narrow-path import; the bare `@senars/util` root barrel creates an import cycle back into nar — do NOT import it from nar internals), StateCodec envelopes on StatePersister files + memory state, config:check secrets verification.
+NEXT SESSION ENTRY POINT: Phase 7 — S1 validate, S2 shell, S3 wasi, S4 sanitize (tool sandboxing, allow-lists, input sanitization; E3 strict tool schemas already landed in Phase 3). Bench 68 is the acceptance bench. Phase 6 delivered (§5o): `scripts/exports-audit.ts` (consumer-aware gate, 48 speculative exports pruned from exports maps), `scripts/docs-api.ts` → docs/api/, semver + deprecation policy in AGENTS.md, Bench 67 (`tests/nar/todo20-exports.test.ts`). Phase 5 delivered (§5n): strict `appConfigSchema` + `LM_PROVIDER_NAMES` enum, `src/utils/config-migrate.ts` (auto-migrate + write-back in loader), `deepFreeze` on cognitive parameters (`@senars/util/utils/shared` — narrow-path import; the bare `@senars/util` root barrel creates an import cycle back into nar — do NOT import it from nar internals), StateCodec envelopes on StatePersister files + memory state, config:check secrets verification.
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (DELIVERED, §5k)  → [x] Bench 61b
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (DELIVERED, §5l — E3 scoped to tool boundaries, see note)  → [x] Bench 64
 Phase 4: O1 otel  O2 json-log  O3 health  O4 metrics (DELIVERED, §5m — see deviations: decision-level spans not GateRegistry.* spans; doctor not yet consuming health checks)  → [x] Bench 65
 Phase 5: C1 schema  C2 migrate  C3 freeze  C4 secrets  (+X7 StateCodec) (DELIVERED, §5n)  → [x] Bench 66
-Phase 6: A1 exports  A2 typedoc  A3 semver  A4 deprecation  → [ ] Bench 67
+Phase 6: A1 exports  A2 typedoc  A3 semver  A4 deprecation (DELIVERED, §5o — A2 as docs-api generator, TypeDoc blocked on TS7)  → [x] Bench 67
 Phase 7: S1 validate  S2 shell  S3 wasi  S4 sanitize  → [ ] Bench 68
 Phase 8: P1 bag-lcg  P2 cache  P3 negotiator  P4 param-batch  → [ ] Bench 69
 Phase 9: K1 adr  K2 diagrams  K3 guides  K4 runbook  → [ ] Bench 70
@@ -978,6 +978,51 @@ Verified: typecheck clean, lint clean, full `test:unit` green (1,845), deps:gate
   exists today (v1→v2) so the chain logic is tested synthetically in Bench 66.
 - `readStateFile` legacy path means silent format drift is possible — consider logging a deprecation
   warning when a legacy (unwrapped) file is read after the next version bump.
+
+## 5o. Phase 6 delivery note — A1/A2/A3/A4 (2026-09-22)
+
+**Delivered:** A1, A2 (deviation), A3, A4; Bench 67 (`tests/nar/todo20-exports.test.ts`, 5 tests).
+Verified: typecheck clean, lint clean, full `test:unit` green (1,850), `exports:audit` green,
+`docs:api` renders 5 package docs (962 symbols).
+
+### What landed
+
+- **A1** — `scripts/exports-audit.ts`: consumer-aware gate. Every `exports` subpath in each
+  `@senars/*` package must have an in-repo consumer importing that specifier (exact or path-prefix
+  match — `./lm/system-one` is consumed by `@senars/nar/lm/system-one/head-specs.js` too) or be in
+  the `PUBLIC_API` allowlist (package roots, declared in the script). Wired as `pnpm exports:audit`
+  into the ci.yml gates job. **Result: 48 speculative exports pruned** from the five package.json
+  exports maps (nar 9, util 7, core 14, io 12, metta 1) — including Phase 5's own unconsumed
+  `./state/codec` (the §5a no-speculative rule applies to new work too; codec is still reachable
+  via relative imports and re-enters the map when a package-specifier consumer appears).
+  **Two audit bugs found by dogfooding, both fixed:** (1) consumer dirs must include `nar/src` —
+  nar consumes util/core via package specifiers, and tsc (`moduleResolution: bundler`) resolves
+  through the exports map, so a wrong prune is a typecheck failure (caught: `@senars/util/utils/shared`,
+  `@senars/core/cognitive-event`); (2) subpath keys carry a leading `./` that must be stripped before
+  prefix matching. Rule: every prune is verified by typecheck + full unit run (vitest resolves via
+  the exports map, so a wrong prune breaks tests too).
+- **A2 (deviation)** — TypeDoc 0.28 is incompatible with the repo's TypeScript 7 (`SyntaxKind`
+  crash at module init). Installed `scripts/docs-api.ts` instead: dependency-light generator
+  rendering `docs/api/<pkg>.md` from the exports maps — per subpath, exported symbols + first JSDoc
+  summary line, one hop through re-export barrels. `pnpm docs:api`. Revisit TypeDoc when it gains
+  TS7 support; the exports map remains the doc source of truth.
+- **A3** — semver policy added to AGENTS.md (major=breaking, minor=new public export, patch=internal),
+  with the export-surface rules: `exports:audit` is the gate, `exports:check` guards dangling
+  targets, internal code imports relatively (exports map = declared public API, not an internal shortcut).
+- **A4** — deprecation lifecycle in AGENTS.md: JSDoc `@deprecated since X.Y — <replacement>` →
+  2 minors of parallel support → remove at next major. Live exemplar applied:
+  `memory.derivationDepth` in `src/config/schema.ts` now carries the tag (`since 2.1`).
+  Case studies recorded (SeNARSFactory TODO19 pre-policy; ollama alias §5f).
+
+### Follow-ups / improvement opportunities
+
+- Bench 67's CLI-parity test spawns `tsx scripts/exports-audit.ts` (subprocess) — it passed 3×/in-suite,
+  but if it ever flakes under parallel load, the programmatic `auditPackages` assertion is the
+  load-free primary; drop the CLI test rather than timing out CI.
+- `docs/api/` is committed; if it starts drifting, add a CI step diffing `pnpm docs:api` output.
+- The exports maps now contain only consumed subpaths — when adding a new export, add the entry
+  *with* its first consumer in the same change, or `exports:audit` fails CI.
+- TypeDoc revisit when TS7-compatible release lands; typedoc.json in git history has the config shape.
 
 ## 6. Definition of Done
 

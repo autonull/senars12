@@ -57,7 +57,9 @@
     "arcade": "tsx scripts/arcade.ts",
     "arcade:replay": "tsx scripts/arcade-replay.ts",
     "demo:arcade": "tsx scripts/arcade.ts --games snake,tetris,2048,tictactoe,gridworld,bandit --arms heuristic,random,manifold,lm --episodes 2 --seed 7",
-    "open-replica-fixture": "tsx scripts/open-replica-fixture-server.ts"
+    "open-replica-fixture": "tsx scripts/open-replica-fixture-server.ts",
+    "docs:api": "tsx scripts/docs-api.ts",
+    "exports:audit": "tsx scripts/exports-audit.ts"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.43",

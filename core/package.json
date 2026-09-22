@@ -12,53 +12,13 @@
       "types": "./src/eventlog/index.ts",
       "import": "./src/eventlog/index.ts"
     },
-    "./sqlite-eventlog": {
-      "types": "./src/eventlog/SqliteEventLog.ts",
-      "import": "./src/eventlog/SqliteEventLog.ts"
-    },
-    "./config": {
-      "types": "./src/config/Config.ts",
-      "import": "./src/config/Config.ts"
-    },
-    "./lifecycle": {
-      "types": "./src/Lifecycle.ts",
-      "import": "./src/Lifecycle.ts"
-    },
     "./cognitive-event": {
       "types": "./src/CognitiveEvent.ts",
       "import": "./src/CognitiveEvent.ts"
     },
-    "./transport": {
-      "types": "./src/Transport.ts",
-      "import": "./src/Transport.ts"
-    },
     "./protocol": {
       "types": "./src/protocol/index.ts",
       "import": "./src/protocol/index.ts"
-    },
-    "./model": {
-      "types": "./src/ModelRunner.ts",
-      "import": "./src/ModelRunner.ts"
-    },
-    "./chat": {
-      "types": "./src/ChatService.ts",
-      "import": "./src/ChatService.ts"
-    },
-    "./options": {
-      "types": "./src/Options.ts",
-      "import": "./src/Options.ts"
-    },
-    "./stats": {
-      "types": "./src/StatsManager.ts",
-      "import": "./src/StatsManager.ts"
-    },
-    "./knowledge": {
-      "types": "./src/KnowledgeManager.ts",
-      "import": "./src/KnowledgeManager.ts"
-    },
-    "./approval": {
-      "types": "./src/ApprovalService.ts",
-      "import": "./src/ApprovalService.ts"
     },
     "./logger": {
       "types": "./src/Logger.ts",
@@ -76,10 +36,6 @@
       "types": "./src/lens-schema.ts",
       "import": "./src/lens-schema.ts"
     },
-    "./constants": {
-      "types": "./src/constants.ts",
-      "import": "./src/constants.ts"
-    },
     "./agent": {
       "types": "./src/Agent.ts",
       "import": "./src/Agent.ts"
@@ -96,10 +52,6 @@
       "types": "./src/engine/BaseEngine.ts",
       "import": "./src/engine/BaseEngine.ts"
     },
-    "./agent-bridge": {
-      "types": "./src/bridge/AgentBridge.ts",
-      "import": "./src/bridge/AgentBridge.ts"
-    },
     "./bridge/chat-stream-handler": {
       "types": "./src/bridge/ChatStreamHandler.ts",
       "import": "./src/bridge/ChatStreamHandler.ts"
@@ -115,14 +67,6 @@
     "./cortex": {
       "types": "./src/cortex/index.ts",
       "import": "./src/cortex/index.ts"
-    },
-    "./plugin": {
-      "types": "./src/Plugin.ts",
-      "import": "./src/Plugin.ts"
-    },
-    "./policy": {
-      "types": "./src/PolicyEngine.ts",
-      "import": "./src/PolicyEngine.ts"
     }
   },
   "scripts": {

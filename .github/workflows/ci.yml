@@ -16,6 +16,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm deps:gate
+      # TODO20 A1: no export without a consumer (or PUBLIC_API declaration)
+      - run: pnpm exports:audit
       - run: pnpm test:unit
   systemone-slo:
     runs-on: ubuntu-latest

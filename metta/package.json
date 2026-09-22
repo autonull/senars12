@@ -8,10 +8,6 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
-    "./parser": {
-      "types": "./src/parser/runtime.ts",
-      "import": "./src/parser/runtime.ts"
-    },
     "./engine": {
       "types": "./src/engine/egraph.ts",
       "import": "./src/engine/egraph.ts"

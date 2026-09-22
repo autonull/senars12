@@ -128,7 +128,10 @@ const memoryDefaults = {} as const;
 
 export const memorySchema = z.object({
   maxConcepts: z.number().positive().max(10000).optional(),
-  /** Deprecated alias for inference.maxDerivationDepth. */
+  /**
+   * Deprecated alias for inference.maxDerivationDepth.
+   * @deprecated since 2.1 — use inference.maxDerivationDepth (removed after 2 minors — see AGENTS.md).
+   */
   derivationDepth: z.number().positive().optional(),
   bagSize: z.number().positive().optional(),
 });
