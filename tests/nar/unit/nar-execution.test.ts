@@ -50,7 +50,7 @@ describe('NARExecution', () => {
       maxDerivationsPerStep: 100,
     });
     rlfp = createMockRLFP();
-    execution = new NARExecution(memory, taskManager, reasoner, DEFAULT_CONFIG, rlfp);
+    execution = new NARExecution({ memory, taskManager, reasoner, config: DEFAULT_CONFIG, rlfp });
   });
 
   describe('run', () => {
@@ -88,7 +88,7 @@ describe('NARExecution', () => {
         maxDerivationDepth: 2,
         maxDerivationsPerStep: 100,
       });
-      const exec = new NARExecution(memory, taskManager, constrainedReasoner, DEFAULT_CONFIG);
+      const exec = new NARExecution({ memory, taskManager, reasoner: constrainedReasoner, config: DEFAULT_CONFIG });
 
       memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
 
@@ -99,7 +99,7 @@ describe('NARExecution', () => {
 
     test('respects cpuThrottleMs', async () => {
       const configWithThrottle = { ...DEFAULT_CONFIG, cpuThrottleMs: 50 };
-      const exec = new NARExecution(memory, taskManager, reasoner, configWithThrottle);
+      const exec = new NARExecution({ memory, taskManager, reasoner, config: configWithThrottle });
 
       memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
 
@@ -112,13 +112,13 @@ describe('NARExecution', () => {
 
     test('triggers rlFP.optimize() on interval', async () => {
       const configWithInterval = { ...DEFAULT_CONFIG, rlfp: { optimizeInterval: 1 } };
-      const execWithRLFP = new NARExecution(
+      const execWithRLFP = new NARExecution({
         memory,
         taskManager,
         reasoner,
-        configWithInterval as any,
-        rlfp
-      );
+        config: configWithInterval as any,
+        rlfp,
+      });
 
       memory.addTask(TermBuilder.atom('A'), 'belief', Truth.TRUE, createBudget(0.9));
       memory.addTask(TermBuilder.atom('B'), 'belief', Truth.TRUE, createBudget(0.9));
@@ -199,16 +199,14 @@ describe('NARExecution', () => {
           maxDerivationDepth: 10,
           maxDerivationsPerStep: 100,
         });
-        const exec = new NARExecution(
-          freshMemory,
-          freshTaskManager,
-          freshReasoner,
-          DEFAULT_CONFIG,
+        const exec = new NARExecution({
+          memory: freshMemory,
+          taskManager: freshTaskManager,
+          reasoner: freshReasoner,
+          config: DEFAULT_CONFIG,
           rlfp,
-          undefined,
-          undefined,
-          driveManager
-        );
+          driveManager,
+        });
 
         await exec.run(1); // After 1 cycle, meta-goal should be injected
 
@@ -238,16 +236,14 @@ describe('NARExecution', () => {
           maxDerivationDepth: 10,
           maxDerivationsPerStep: 100,
         });
-        const exec = new NARExecution(
-          freshMemory,
-          freshTaskManager,
-          freshReasoner,
-          DEFAULT_CONFIG,
+        const exec = new NARExecution({
+          memory: freshMemory,
+          taskManager: freshTaskManager,
+          reasoner: freshReasoner,
+          config: DEFAULT_CONFIG,
           rlfp,
-          undefined,
-          undefined,
-          driveManager
-        );
+          driveManager,
+        });
 
         await exec.run(1);
 
@@ -266,16 +262,14 @@ describe('NARExecution', () => {
       const driveManager = new DriveManager(fakeNar);
       // competence starts at target 0.8 — above threshold
 
-      const exec = new NARExecution(
+      const exec = new NARExecution({
         memory,
         taskManager,
         reasoner,
-        DEFAULT_CONFIG,
+        config: DEFAULT_CONFIG,
         rlfp,
-        undefined,
-        undefined,
-        driveManager
-      );
+        driveManager,
+      });
 
       await exec.run(1);
 
@@ -311,20 +305,14 @@ describe('NARExecution', () => {
         maxDerivationDepth: 10,
         maxDerivationsPerStep: 100,
       });
-      const exec = new NARExecution(
-        freshMemory,
-        freshTaskManager,
-        freshReasoner,
-        DEFAULT_CONFIG,
+      const exec = new NARExecution({
+        memory: freshMemory,
+        taskManager: freshTaskManager,
+        reasoner: freshReasoner,
+        config: DEFAULT_CONFIG,
         rlfp,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        async (goalTerm) => toolManager.executeToolGoal(goalTerm),
-        undefined
-      );
+        toolGoalExecutor: async (goalTerm) => toolManager.executeToolGoal(goalTerm),
+      });
 
       freshTaskManager.addTask(
         createTask(
@@ -370,20 +358,14 @@ describe('NARExecution', () => {
         maxDerivationDepth: 10,
         maxDerivationsPerStep: 100,
       });
-      const exec = new NARExecution(
-        freshMemory,
-        freshTaskManager,
-        freshReasoner,
-        DEFAULT_CONFIG,
+      const exec = new NARExecution({
+        memory: freshMemory,
+        taskManager: freshTaskManager,
+        reasoner: freshReasoner,
+        config: DEFAULT_CONFIG,
         rlfp,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        async (goalTerm) => toolManager.executeToolGoal(goalTerm),
-        undefined
-      );
+        toolGoalExecutor: async (goalTerm) => toolManager.executeToolGoal(goalTerm),
+      });
 
       freshTaskManager.addTask(
         createTask(TermBuilder.atom('regular_goal'), 'goal', Truth.NEUTRAL, createBudget(0.9))

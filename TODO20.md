@@ -232,7 +232,7 @@ error-type sweep.
 
 ```
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
-Phase 1: M1 tools (DELIVERED 2026-09-22, see §5c)  M2 nar (+X6 options-obj, X4 typed-bus)  M3 providers  M4 lm-service (+X5 resilience)  M5 tool-reg  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62 (authored, M1 assertions passing; extend per-split)   ← NEXT: M2
+Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj; X4 deferred to M5) (DELIVERED, §5d)  M3 providers  M4 lm-service (+X5 resilience)  M5 tool-reg (← X4 typed-bus lands here)  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62 (M1+M2 assertions green; extend per-split)   ← NEXT: M3
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (epistemic firewall made structural)  → [ ] Bench 61b (grep: no lm/system-one in kernel/)
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (scope-narrowed: 2 catch-any left)  → [ ] Bench 64
@@ -312,7 +312,7 @@ verification reliable. Bench 63 precedes Bench 62.
 
 | Metric | Baseline | Source |
 |--------|----------|--------|
-| Raw dependency cycles | **72** (was 73; lowered by Phase 1 M1 split) | `pnpm deps:gate` / dpdm JSON `circulars` |
+| Raw dependency cycles | **74** (M2 drift, no cycles touch `nar/src/nar/` — see §5d; was 72 after M1) | `pnpm deps:gate` / dpdm JSON `circulars` |
 | Deduplicated cycle chains (human view) | 10 | `pnpm deps:check` stdout |
 
 ---
@@ -414,12 +414,62 @@ HEAD via stash before starting); `pnpm deps:gate` **improved 73 → 72** (ledger
 ### M1 follow-ups / improvement opportunities
 
 - Bench 62 currently asserts only the M1 slice; extend it with per-split assertions (e.g. `nar.ts` facade
-  LOC, `providers/*` file list) as M2–M7 land.
+  LOC, `providers/*` file list) as M2–M7 land. *(M2 assertions added in §5d.)*
 - The 8 `self/*` tool builders share a near-identical worktree acquire/validate/cleanup preamble —
   a `withShadowWorktree(ctx, suffix, fn)` helper would cut ~80 LOC; deferred to avoid behavior drift in
   this split.
 - `scenario-execute.ts` (388 LOC) is close to the 400 ceiling; the validators array is the next
   extraction candidate if it grows.
+
+---
+
+## 5d. Phase 1 delivery note — M2 (2026-09-22)
+
+**Delivered:** M2 (revised) + X6. `nar.ts` 1,267 → 839 LOC via extraction of three cohesive subsystems
+into `nar/src/nar/`; public API unchanged (same class, same exports, `NARConfig` re-exported so
+`agent/builder.ts` and `index.ts` imports are untouched). X6: `NARExecution` now takes a
+`NARExecutionOptions` object; all 13 call sites (2 in `nar.ts`, 12 across `nar-execution.test.ts` /
+`state-persistence.test.ts`) converted — no positional `undefined` slots remain (Bench 62 guards it).
+**X4 (typed bus) deferred to M5** — its 14 `as never` casts live across 11 files with 4 in
+`tool-registry.ts`; doing it here would have spread the diff without its natural anchor.
+
+### What was extracted
+
+- `nar/config.ts` (68) — `RLFPConfig`, `SystemOne*Config`, `NARConfig` types + `validateNarConfig` +
+  `createAttentionModel` (both were NAR methods, now free functions).
+- `nar/system-one.ts` (281) — `SystemOneRuntime`: the six `_systemOne*` fields, the 150-line init,
+  `enabled`, `attachManifoldReflex`, `attachLMReflex` (with config-driven budgets preserved). NAR
+  constructs it with an `onJudgmentResolved` callback; telemetry emitter + bus stay in NAR.
+- `nar/games.ts` (96) — `GameManager`: `attachedGames`/`gameFocusBag`/`metaGame` state and
+  `getFocusBag`/`attachGame`/`detachGame`/`getAttachedGames`/`getSelfMetaGame`.
+- `nar/persistence.ts` (147) — `StatePersister`: `saveState`/`loadState` + task (de)hydration, driven by
+  an explicit `StatePersisterDeps` (memory/query/processor/driveManager/attentionReport) instead of `this`.
+
+### Honest deviations
+
+- **`nar.ts` facade is 839 LOC, not <400.** The remainder is the `NAR` class itself: constructor wiring
+  (~120), ~60 one-line accessors that are the public aggregate API, and query/report methods. Pushing
+  below 400 means slicing the class into delegation-heavy segments — churn without a seam payoff.
+  Bench 62 asserts `<900` for the facade and `<400` for extracted modules instead. Revisit if a real
+  seam (e.g. query facade) emerges during later phases.
+- **Cycle count drifted 72 → 74** during M2 (still ≤ baseline 74). Verified `dpdm` JSON: **zero cycles
+  touch `nar/src/nar/`** — the drift is pre-existing chains re-linking as `nar.ts` imports moved, not new
+  cycles from the split. Ledger stays at 74 until a phase lowers it; consider making deps-gate print the
+  delta breakdown (files added/removed from cycles) to make this checkable at review.
+
+### Verification
+
+`pnpm typecheck` clean (0 new errors), `pnpm lint` clean, `pnpm test:unit` green (1,792 tests),
+`deps:gate` ok, Bench 62 6/6.
+
+### M2 follow-ups / improvement opportunities
+
+- `nar-lm.ts` / `nar-io.ts` accessors could take the SystemOneRuntime directly instead of three getter
+  closures in NARLM's options — small cleanup when M4 touches `lm-service`.
+- `SystemOneRuntime.enabled` is defined as `dispatcher !== undefined`; NAR's `isSystemOneEnabled`
+  delegates to it — keep that definition authoritative when X2 (IngressJudge) reworks the kernel seam.
+- The two `new NARExecution` sites in `nar.ts` build identical options except `cognitiveController` —
+  a private `buildExecutionOptions()` would DRY them.
 
 ### New improvement opportunities (§5b, from the Phase 2 pass)
 

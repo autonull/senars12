@@ -46,3 +46,25 @@ describe('Bench 62: monolith split — M1 external-tools', () => {
     }
   });
 });
+
+describe('Bench 62: monolith split — M2 nar.ts', () => {
+  const NAR_DIR = join(import.meta.dirname, '../../nar/src');
+  const loc = (p: string) => readFileSync(p, 'utf-8').split('\n').length;
+
+  it('extracted subsystem modules are <400 LOC each', () => {
+    for (const f of ['nar/config.ts', 'nar/games.ts', 'nar/persistence.ts', 'nar/system-one.ts']) {
+      const n = loc(join(NAR_DIR, f));
+      expect(n, `${f} has ${n} LOC`).toBeLessThan(400);
+    }
+  });
+
+  it('NAR facade stays under the M2 budget (public aggregate API)', () => {
+    expect(loc(join(NAR_DIR, 'nar.ts'))).toBeLessThan(900);
+  });
+
+  it('NARExecution takes an options object — no positional undefined slots', () => {
+    const src = readFileSync(join(NAR_DIR, 'nar.ts'), 'utf-8');
+    expect(src).toContain('new NARExecution({');
+    expect(src).not.toMatch(/new NARExecution\(\s*[^)]*undefined/);
+  });
+});

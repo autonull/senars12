@@ -194,17 +194,14 @@ describe('NARExecution Observability Emission', () => {
     rlfp = createMockRLFP();
     eventBus = new EventBus();
     // Pass eventBus as the 9th parameter (systemEventBus)
-    execution = new NARExecution(
+    execution = new NARExecution({
       memory,
       taskManager,
       reasoner,
-      DEFAULT_CONFIG,
+      config: DEFAULT_CONFIG,
       rlfp,
-      undefined,
-      undefined,
-      undefined,
-      eventBus
-    );
+      systemEventBus: eventBus,
+    });
   });
 
   test('emits cognitive state summary every 10 cycles', async () => {

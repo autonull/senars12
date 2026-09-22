@@ -1,54 +1,41 @@
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
 import { BaseComponent } from '@senars/core';
-import type { AutonomyMode, JudgmentResolvedEvent } from '@senars/kernel/schemas';
-import type { CognitiveRegistry } from './cognitive';
+import type { ReasoningBudget } from '@senars/kernel/schemas';
 import { CognitiveController } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
-import { createBootstrapTasks, DriveManager, type INarInput } from './drives';
-import { FocusBag } from './focus/FocusBag.js';
-import { GameFocus, type GameFocusOptions } from './focus/GameFocus.js';
-import { createSelfMetaGame, type SelfMetaGameImpl } from './game/SelfMetaGame.js';
+import { createBootstrapTasks, DriveManager } from './drives';
+import type { FocusBag } from './focus/FocusBag.js';
+import type { GameFocus, GameFocusOptions } from './focus/GameFocus.js';
+import type { SelfMetaGameImpl } from './game/SelfMetaGame.js';
 import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js';
 import type { LMService, SeNARSRegistry } from './lm';
 import { getModelForTask, LMRules } from './lm';
-import { createLMServiceCortex, LMServiceCortex } from './lm/system-one/cortex-adapter.js';
-import { createDispatcher, StubCortex } from './lm/system-one/dispatcher.js';
-import { JudgmentDataset } from './lm/system-one/distill.js';
-import { createEmbeddingCache } from './lm/system-one/embedding-cache.js';
-import { createGroundednessGate } from './lm/system-one/groundedness-gate.js';
-import { createHttpManifold } from './lm/system-one/http-manifold.js';
-import { LMReflex } from './lm/system-one/lm-reflex.js';
-import { createManifold } from './lm/system-one/manifold.js';
-import { ManifoldReflex } from './lm/system-one/manifold-reflex.js';
+import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
 import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
 import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
 import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-grader.js';
-import { createTraceGrader } from './lm/system-one/trace-grader.js';
-import { composeModelDigest, encoderDigest } from './lm/system-one/wasi-runtime.js';
+import type { CognitiveDispatcher, JudgmentManifold } from './lm/system-one/types.js';
 import { createLogger } from './logger';
 import type { Concept } from './memory';
 import { Memory } from './memory';
-import { createEmbeddingGenerator } from './memory/embedding.js';
 import { MetricsCollector } from './metrics';
+import { createAttentionModel, type NARConfig, validateNarConfig } from './nar/config.js';
+import { GameManager } from './nar/games.js';
+import { StatePersister } from './nar/persistence.js';
+import { SystemOneRuntime } from './nar/system-one.js';
 import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';
 import { QueryAPI, ReasoningTrace } from './query';
 import { BagStrategy, Reasoner } from './reason';
-import { EpsilonGreedyReflex } from './reflex/EpsilonGreedyReflex.js';
-import type { ActionProposal, LearningEvent, Reflex } from './reflex/Reflex.js';
+import type { Reflex } from './reflex/Reflex.js';
 import { RLFPLearner } from './rlfp';
 import { RuleProcessor } from './rules';
 import { ReasoningAboutReasoning } from './self';
-import type { AttentionModel } from './strategies';
-import { SimpleAttention } from './strategies';
 import { TaskManager } from './task';
 import type { Term } from './terms';
 import {
   containsSubterm,
   getSubject,
-  Stamp,
   Truth,
   type TruthType,
   termParser,
@@ -59,8 +46,6 @@ import { discoverTools, ToolManager } from './tools';
 import { createSelfTools } from './tools/adapters/self-tools.js';
 import {
   ConfigurationError,
-  type CoreConfig,
-  createTask,
   DEFAULT_CONFIG,
   EventBus as NarEventBus,
   type Task,
@@ -70,57 +55,13 @@ import { errMsg } from './utils';
 
 export { MetricsCollector } from './metrics';
 
-export interface RLFPConfig {
-  optimizeInterval?: number;
-}
-
-import type { ReasoningBudget } from '@senars/kernel/schemas';
-import type { ToolFeedbackObserver } from '@senars/util/feedback';
-import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
-import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
-import type {
-  CognitiveDispatcher,
-  JudgmentManifold,
-  JudgmentQuery,
-  SynthesisQuery,
-} from './lm/system-one/types.js';
-
-/** File-validated System One config (zod-inferred, single source of truth — G6). */
-export type SystemOneFileConfig = SystemOneConfigSchema;
-
-/** Runtime config extending the file config with injected runtime objects. */
-export interface SystemOneRuntimeConfig extends Omit<SystemOneFileConfig, 'manifold'> {
-  manifold?: SystemOneFileConfig['manifold'] | JudgmentManifold;
-  embeddingCache?: EmbeddingCache;
-  reasoningBudget?: ReasoningBudget;
-}
-
-/** Back-compat alias for the runtime config. */
-export type SystemOneConfig = SystemOneRuntimeConfig;
-
-export interface NARConfig extends CoreConfig {
-  lmService?: LMService;
-  providerRegistry?: SeNARSRegistry;
-  enableLMRules?: boolean;
-  enableTools?: boolean;
-  enableSelf?: boolean;
-  enableRLFP?: boolean;
-  rlfp?: RLFPConfig;
-  enableBidirectionalFeedback?: boolean;
-  enableProactiveEnrichment?: boolean;
-  enableLMStreaming?: boolean;
-  persistState?: boolean;
-  statePath?: string;
-
-  cognitiveParams?: CognitiveParameters;
-  strategyRegistry?: CognitiveRegistry;
-  adaptationInterval?: number;
-  feedbackObserver?: ToolFeedbackObserver;
-  /** TODO19 F2: per-instance gate registry; defaults to a fresh isolated instance. */
-  gateRegistry?: GateRegistry;
-
-  systemOne?: Partial<SystemOneConfig>;
-}
+export type {
+  NARConfig,
+  RLFPConfig,
+  SystemOneConfig,
+  SystemOneFileConfig,
+  SystemOneRuntimeConfig,
+} from './nar/config.js';
 
 export class NAR extends BaseComponent {
   readonly id = 'nar';
@@ -150,13 +91,10 @@ export class NAR extends BaseComponent {
   /** TODO19 F2: per-instance kernel gates — isolated per NAR, injected or created. */
   readonly gates: GateRegistry;
 
-  // System One components
-  private _systemOneEmbeddingCache?: EmbeddingCache;
-  private _systemOneManifold?: JudgmentManifold;
-  private _systemOneDispatcher?: CognitiveDispatcher;
-  private _systemOneGroundednessGate?: (narration: string) => Promise<boolean>;
-  private _systemOneTraceGrader?: (trace: TraceGradeInput) => Promise<TraceGradeResult>;
-  private _systemOneDataset?: JudgmentDataset;
+  // Extracted subsystems (M2)
+  private readonly systemOne: SystemOneRuntime;
+  private readonly games: GameManager;
+  private readonly persister: StatePersister;
 
   constructor(config: NARConfig & { eventBus?: NarEventBus } = DEFAULT_CONFIG) {
     const eventBus = config.eventBus ?? new NarEventBus();
@@ -165,9 +103,9 @@ export class NAR extends BaseComponent {
 
     super({ logger, metrics, eventBus });
 
-    this.config = { ...this.validateConfig(config) };
+    this.config = { ...validateNarConfig(config) };
     this.gates = config.gateRegistry ?? createGateRegistry();
-    this.memory = new Memory(this.config, { attentionModel: this.createAttentionModel(config) });
+    this.memory = new Memory(this.config, { attentionModel: createAttentionModel(config) });
     this.processor = new RuleProcessor();
     this.processor.setConfig({ memory: this.memory, nar: this });
     this.processor.setEventBus(eventBus);
@@ -194,17 +132,21 @@ export class NAR extends BaseComponent {
       );
     }
 
-    // System One initialization (behind config flag; disabled by default)
-    // Must run before gateRegistry.initialize to provide perceptionConfig
-    this.initializeSystemOne();
+    // Extracted subsystems. System One must initialize before gateRegistry.initialize
+    // to provide perceptionConfig.
+    this.systemOne = new SystemOneRuntime(config, {
+      lmService: this._lmService,
+      onJudgmentResolved: (proposition, query) => this.emitJudgmentResolved(proposition, query),
+    });
+    this.games = new GameManager(this.systemOne);
 
     // Initialize gate registry with System One perception config if enabled
     const perceptionConfig = this.config.systemOne?.enabled
       ? {
           systemOne: {
             enabled: true,
-            manifold: this._systemOneManifold!,
-            embeddingCache: this._systemOneEmbeddingCache!,
+            manifold: this.systemOne.manifold!,
+            embeddingCache: this.systemOne.embeddingCache!,
             reasoningBudget: this.config.systemOne.reasoningBudget ?? {
               maxCycles: 100,
               maxDepth: 10,
@@ -242,23 +184,30 @@ export class NAR extends BaseComponent {
       input: (text, type, truth) => this.io.input(text, type, truth),
     });
     this.driveManager.setSystemEventBus(this.systemEventBus);
+    this.persister = new StatePersister({
+      config: this.config,
+      memory: this.memory,
+      processor: this.processor,
+      driveManager: this.driveManager,
+      attentionReport: () => this.attentionReport(),
+      query: this.query,
+    });
     // D23 (TODO17b): ambiguity at ingress stimulates curiosity (A4 closure).
     this.gates.getPerceptionGate().setDriveManager(this.driveManager);
-    this.execution = new NARExecution(
-      this.memory,
-      this.taskManager,
-      this.reasoner,
-      this.config,
-      this.rlfp,
-      this.rlfp?.policyOptimizerPublic,
-      this.cognitiveController,
-      this.driveManager,
-      this.systemEventBus,
-      this.self,
-      async (goalTerm) => this.tools.executeToolGoal(goalTerm),
-      undefined,
-      this.gates
-    );
+    this.execution = new NARExecution({
+      memory: this.memory,
+      taskManager: this.taskManager,
+      reasoner: this.reasoner,
+      config: this.config,
+      rlfp: this.rlfp,
+      policyOptimizer: this.rlfp?.policyOptimizerPublic,
+      cognitiveController: this.cognitiveController,
+      driveManager: this.driveManager,
+      systemEventBus: this.systemEventBus,
+      self: this.self,
+      toolGoalExecutor: async (goalTerm) => this.tools.executeToolGoal(goalTerm),
+      gates: this.gates,
+    });
     this.lm = new NARLM(
       this.memory,
       this._registry,
@@ -278,7 +227,7 @@ export class NAR extends BaseComponent {
 
   override async initialize(): Promise<void> {
     await super.initialize();
-    this.logger!.info('NAR initialized');
+    this.logger?.info('NAR initialized');
   }
 
   override async start(): Promise<void> {
@@ -286,26 +235,26 @@ export class NAR extends BaseComponent {
       await this.initialize();
     }
     await super.start();
-    await this.loadState();
+    await this.persister.load();
     this.self?.start();
     this.lm.getEnricher()?.start();
     await this.injectBootstrapGoals();
-    this.logger!.info('NAR started');
+    this.logger?.info('NAR started');
   }
 
   override async stop(): Promise<void> {
     this.self?.stop();
     this.stopLM();
-    await this.saveState();
+    await this.persister.save();
     await super.stop();
-    this.logger!.info('NAR stopped');
+    this.logger?.info('NAR stopped');
   }
 
   override async dispose(): Promise<void> {
     this.self?.shutdown();
     this.stopLM();
     await super.dispose();
-    this.logger!.info('NAR disposed');
+    this.logger?.info('NAR disposed');
   }
 
   /** Whether the kernel is in a running state. */
@@ -414,32 +363,32 @@ export class NAR extends BaseComponent {
 
   /** Get System One dispatcher (for proposeAndJudge, judge, synthesize). */
   getSystemOneDispatcher(): CognitiveDispatcher | undefined {
-    return this._systemOneDispatcher;
+    return this.systemOne.dispatcher;
   }
 
   /** Get System One manifold (for direct judgment access). */
   getSystemOneManifold(): JudgmentManifold | undefined {
-    return this._systemOneManifold;
+    return this.systemOne.manifold;
   }
 
   /** Get System One embedding cache (for zero-copy embeddings). */
   getSystemOneEmbeddingCache(): EmbeddingCache | undefined {
-    return this._systemOneEmbeddingCache;
+    return this.systemOne.embeddingCache;
   }
 
   /** Get System One groundedness gate (for egress filtering). */
   getSystemOneGroundednessGate(): ((narration: string) => Promise<boolean>) | undefined {
-    return this._systemOneGroundednessGate;
+    return this.systemOne.groundednessGate;
   }
 
   /** Get System One trace grader (E4 agent-trace grading; undefined when disabled). */
   getSystemOneTraceGrader(): ((trace: TraceGradeInput) => Promise<TraceGradeResult>) | undefined {
-    return this._systemOneTraceGrader;
+    return this.systemOne.traceGrader;
   }
 
   /** Check if System One is enabled and initialized. */
   isSystemOneEnabled(): boolean {
-    return this._systemOneDispatcher !== undefined;
+    return this.systemOne.enabled;
   }
 
   private _emitJudgmentResolved?: ReturnType<typeof createTelemetryEmitter>;
@@ -449,12 +398,6 @@ export class NAR extends BaseComponent {
     this._emitJudgmentResolved?.(proposition, query);
   }
 
-  /**
-   * Create and bind a ManifoldReflex to a GameFocus.
-   * This enables semantic reflex proposals from the Judgment Manifold
-   * instead of (or in addition to) the incumbent bandit/Q-learning reflexes.
-   * Returns the created reflex for external management, or undefined if System One is disabled.
-   */
   attachManifoldReflex(gameFocus: {
     bindReflex: (reflex: Reflex) => void;
     setReflexPrefetchContext?: (context: {
@@ -463,57 +406,13 @@ export class NAR extends BaseComponent {
       budget: ReasoningBudget;
     }) => void;
   }): Reflex | undefined {
-    if (!this.isSystemOneEnabled() || !this._systemOneManifold || !this._systemOneEmbeddingCache) {
-      return undefined;
-    }
-
-    // Create incumbent reflex as fallback
-    const incumbentReflex = new EpsilonGreedyReflex('incumbent', { numArms: 10, epsilon: 0.1 });
-
-    // Create ManifoldReflex with incumbent fallback
-    const manifoldReflex = new ManifoldReflex(incumbentReflex);
-
-    // Bind to the GameFocus
-    gameFocus.bindReflex(manifoldReflex);
-
-    // Prefetch at the attend stage of each GameFocus step (C1) — the async gap is
-    // absorbed before the synchronous propose contract.
-    const manifold = this._systemOneManifold;
-    const embeddingCache = this._systemOneEmbeddingCache;
-    if (manifold && embeddingCache) {
-      gameFocus.setReflexPrefetchContext?.({
-        manifold,
-        embeddingCache,
-        budget: this.config.systemOne?.reasoningBudget ?? {
-          maxCycles: 100,
-          maxDepth: 10,
-          maxMemoryOps: 1000,
-          maxLMCalls: 5,
-          consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-        },
-      });
-    }
-
-    this.logger?.info('ManifoldReflex attached to GameFocus');
-    return manifoldReflex;
+    return this.systemOne.attachManifoldReflex(gameFocus);
   }
 
-  private readonly attachedGames = new Map<string, { focus: GameFocus; bag: FocusBag }>();
-  private gameFocusBag: FocusBag | null = null;
-  private metaGame: SelfMetaGameImpl | null = null;
-  private readonly metaGameFocuses = new Map<string, GameFocus>();
-
-  /** Default FocusBag backing attachGame (created lazily, script-owned drive loops). */
   getFocusBag(): FocusBag {
-    this.gameFocusBag ??= new FocusBag({ capacity: 32 });
-    return this.gameFocusBag;
+    return this.games.getFocusBag();
   }
 
-  /**
-   * Register a game with the kernel (TODO17 A4): creates a scoped-gate GameFocus,
-   * binds the supplied reflexes (plus a ManifoldReflex when System One is enabled),
-   * wires the prefetch context, and inserts the focus into a FocusBag.
-   */
   attachGame(
     game: GameFocusOptions['game'],
     options: {
@@ -525,35 +424,16 @@ export class NAR extends BaseComponent {
       lmReflex?: boolean;
     } = {}
   ): GameFocus {
-    const bag = options.focusBag ?? this.getFocusBag();
-    const id = options.id ?? `game-${game.constructor.name}-${bag.getFocusWeights().size}`;
-    const focus = new GameFocus({
-      focusId: id,
-      game,
-      focusOptions: { weight: options.weight ?? 1.0 },
-    });
-    for (const reflex of options.reflexes ?? []) focus.bindReflex(reflex);
-    if (this.isSystemOneEnabled()) this.attachManifoldReflex(focus);
-    if (options.lmReflex && this.isSystemOneEnabled()) this.attachLMReflex(focus);
-    bag.add(focus.focus);
-    this.attachedGames.set(id, { focus, bag });
-    this.metaGameFocuses.set(id, focus);
-    return focus;
+    return this.games.attachGame(game, options);
   }
 
   /** Remove a game's focus from the bag and drop its scoped gates (no residue). */
   detachGame(id: string): boolean {
-    const entry = this.attachedGames.get(id);
-    if (!entry) return false;
-    entry.bag.remove(id);
-    entry.focus.releaseScope();
-    this.attachedGames.delete(id);
-    this.metaGameFocuses.delete(id);
-    return true;
+    return this.games.detachGame(id);
   }
 
   getAttachedGames(): string[] {
-    return [...this.attachedGames.keys()];
+    return this.games.getAttachedGames();
   }
 
   /**
@@ -562,13 +442,7 @@ export class NAR extends BaseComponent {
    * proposals through the governance pipeline.
    */
   getSelfMetaGame(): SelfMetaGameImpl {
-    this.metaGame ??= createSelfMetaGame({
-      id: 'nar-self-meta-game',
-      observesFocuses: [...this.attachedGames.keys()],
-      focusBag: this.getFocusBag(),
-      gameFocuses: this.metaGameFocuses,
-    });
-    return this.metaGame;
+    return this.games.getSelfMetaGame();
   }
 
   /**
@@ -587,30 +461,7 @@ export class NAR extends BaseComponent {
     },
     options: { maxCandidates?: number } = {}
   ): Reflex | undefined {
-    const dispatcher = this._systemOneDispatcher;
-    const embeddingCache = this._systemOneEmbeddingCache;
-    const manifold = this._systemOneManifold;
-    if (!this.isSystemOneEnabled() || !dispatcher || !embeddingCache || !manifold) return undefined;
-
-    const incumbent = new EpsilonGreedyReflex('lm-incumbent', { numArms: 10, epsilon: 0.1 });
-    const lmReflex = new LMReflex({
-      fallback: incumbent,
-      dispatcher,
-      embeddingCache,
-      budget: this.config.systemOne?.reasoningBudget ?? {
-        maxCycles: 100,
-        maxDepth: 10,
-        maxMemoryOps: 1000,
-        maxLMCalls: 5,
-        consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-      },
-      dataset: this._systemOneDataset,
-      maxCandidates: options.maxCandidates ?? this.config.systemOne?.lmReflex?.maxCandidates ?? 3,
-    });
-    gameFocus.bindReflex(lmReflex);
-    gameFocus.setReflexPrefetchContext?.({ manifold, embeddingCache, budget: lmReflex.budget });
-    this.logger?.info('LMReflex attached to GameFocus');
-    return lmReflex;
+    return this.systemOne.attachLMReflex(gameFocus, options);
   }
 
   getMetricsCollector(): MetricsCollector {
@@ -634,21 +485,20 @@ export class NAR extends BaseComponent {
       params,
       this.config.adaptationInterval
     );
-    this.execution = new NARExecution(
-      this.memory,
-      this.taskManager,
-      this.reasoner,
-      this.config,
-      this.rlfp,
-      this.rlfp?.policyOptimizerPublic,
-      this.cognitiveController,
-      this.driveManager,
-      this.systemEventBus,
-      this.self,
-      async (goalTerm) => this.tools.executeToolGoal(goalTerm),
-      undefined,
-      this.gates
-    );
+    this.execution = new NARExecution({
+      memory: this.memory,
+      taskManager: this.taskManager,
+      reasoner: this.reasoner,
+      config: this.config,
+      rlfp: this.rlfp,
+      policyOptimizer: this.rlfp?.policyOptimizerPublic,
+      cognitiveController: this.cognitiveController,
+      driveManager: this.driveManager,
+      systemEventBus: this.systemEventBus,
+      self: this.self,
+      toolGoalExecutor: async (goalTerm) => this.tools.executeToolGoal(goalTerm),
+      gates: this.gates,
+    });
   }
 
   setRLFP(rlfp: RLFPLearner): void {
@@ -735,7 +585,7 @@ export class NAR extends BaseComponent {
     const queryTerm = termParser.parse(cleaned);
     const subjectTerm = queryTerm ? getSubject(queryTerm) : undefined;
 
-    await this.io.input(cleaned + '?');
+    await this.io.input(`${cleaned}?`);
     await this.run(5);
 
     const beliefs = this.query.getBeliefs();
@@ -865,116 +715,6 @@ export class NAR extends BaseComponent {
     return this.lm.getFeedbackStats();
   }
 
-  private getStatePath(filename: string): string {
-    const base = this.config.statePath ?? '.cache/nar-state';
-    return path.resolve(base, filename);
-  }
-
-  private async readJsonIfExists<T>(filename: string): Promise<T | null> {
-    const target = this.getStatePath(filename);
-    try {
-      const content = await fs.readFile(target, 'utf-8');
-      return JSON.parse(content) as T;
-    } catch (e: any) {
-      if (e?.code !== 'ENOENT') throw e;
-      return null;
-    }
-  }
-
-  private serializeTask(task: Task) {
-    return {
-      term: task.term.toString(),
-      type: task.type,
-      truth: task.truth ? Truth.create(task.truth.f, task.truth.c) : undefined,
-      stamp: task.stamp,
-    };
-  }
-
-  private rehydrateTask(
-    record: { term: string; type?: TaskType; truth?: TruthType; stamp?: any },
-    type: TaskType
-  ) {
-    const punctuation =
-      (record.type ?? type) === 'belief' ? '.' : (record.type ?? type) === 'goal' ? '!' : '?';
-    const parsed = termParser.parse(`${record.term}${punctuation}`);
-    return (
-      parsed && {
-        term: parsed,
-        type: record.type ?? type,
-        truth: record.truth ?? Truth.NEUTRAL,
-        budget: { priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
-        stamp: record.stamp ?? Stamp.createInput(),
-        occurrenceTime: Date.now() as any,
-        derived: false,
-      }
-    );
-  }
-
-  private async saveState(): Promise<void> {
-    if (!this.config.persistState) return;
-    try {
-      const driveStates = this.driveManager?.getAllStates() ?? [];
-      const drives: Record<string, number> = {};
-      for (const ds of driveStates) drives[ds.spec.id] = ds.currentIntensity;
-
-      const files: Array<[string, unknown]> = [
-        ['beliefs.json', this.query.getBeliefs().map((b) => this.serializeTask(b))],
-        ['goals.json', this.query.getGoals().map((g) => this.serializeTask(g))],
-        ['questions.json', this.query.getQuestions().map((q) => this.serializeTask(q))],
-        ['attention.json', this.attentionReport()],
-        ['drives.json', drives],
-        ['lm-rules.json', this.processor.serializeLMRules()],
-      ];
-
-      await fs.mkdir(path.dirname(this.getStatePath(files[0]![0])), { recursive: true });
-      await Promise.all(
-        files.map(([name, data]) =>
-          fs.writeFile(this.getStatePath(name), JSON.stringify(data, null, 2), 'utf-8')
-        )
-      );
-    } catch (e) {
-      this.logger!.warn('NAR state save failed', { error: errMsg(e) });
-    }
-  }
-
-  private async loadState(): Promise<void> {
-    if (!this.config.persistState) return;
-    try {
-      const taskFiles: Array<[string, TaskType]> = [
-        ['beliefs.json', 'belief'],
-        ['goals.json', 'goal'],
-        ['questions.json', 'question'],
-      ];
-      for (const [name, type] of taskFiles) {
-        const records = await this.readJsonIfExists<any[]>(name);
-        if (!records) continue;
-        for (const record of records) {
-          try {
-            const task = this.rehydrateTask(record, type);
-            if (task) this.memory.addTask(task.term, task.type, task.truth, task.budget);
-          } catch (e) {
-            this.logger!.warn('Skipping unparseable persisted task', { error: errMsg(e) });
-          }
-        }
-      }
-
-      const drives = await this.readJsonIfExists<Record<string, number>>('drives.json');
-      if (this.driveManager && drives) {
-        for (const [driveId, value] of Object.entries(drives)) {
-          const currentIntensity = this.driveManager.getState(driveId)?.currentIntensity ?? 0;
-          this.driveManager.stimulate(driveId, Number(value) - currentIntensity);
-        }
-      }
-
-      const lmRuleState = await this.readJsonIfExists<{ rules: any[] }>('lm-rules.json');
-      if (lmRuleState) this.processor.deserializeLMRules(lmRuleState);
-
-      this.logger!.info('NAR state loaded');
-    } catch (e) {
-      this.logger!.warn('NAR state load failed', { error: errMsg(e) });
-    }
-  }
-
   private stopLM(): void {
     this.lm.getEnricher()?.stop();
   }
@@ -1000,173 +740,11 @@ export class NAR extends BaseComponent {
     }
   }
 
-  /** Initialize System One components behind config flag. Disabled by default for byte-identical baseline behavior. */
-  private initializeSystemOne(): void {
-    const systemOneConfig = this.config.systemOne;
-    if (!systemOneConfig?.enabled) {
-      return;
-    }
-
-    const reasoningBudget: ReasoningBudget = systemOneConfig.reasoningBudget ?? {
-      maxCycles: 100,
-      maxDepth: 10,
-      maxMemoryOps: 1000,
-      maxLMCalls: 5,
-      consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-    };
-
-    // Create embedding cache (zero-copy, pooled Float32Array)
-    const encoderConfig =
-      systemOneConfig.manifold && !('judgeBatch' in systemOneConfig.manifold)
-        ? (systemOneConfig.manifold as SystemOneConfigSchema['manifold']).encoder
-        : undefined;
-    const encoder = createEmbeddingGenerator(undefined, encoderConfig);
-    this._systemOneEmbeddingCache =
-      systemOneConfig.embeddingCache ??
-      createEmbeddingCache({
-        maxSize: 10000,
-        ttlMs: 300_000,
-        dimension: encoderConfig?.dimension ?? encoder.dimension,
-        generator: encoder,
-      });
-
-    // Create manifold with per-head config from systemOne config
-    let manifold: JudgmentManifold;
-    const manifoldFileConfig = systemOneConfig.manifold as
-      | SystemOneConfigSchema['manifold']
-      | undefined;
-    if (manifoldFileConfig?.provider === 'http' && manifoldFileConfig.endpoint) {
-      // D4: remote judge over the /v1/systemone wire shape; local cache still
-      // produces the context embedding; remote results are untrusted (LLM_PRIOR ceiling).
-      manifold = createHttpManifold({
-        endpoint: manifoldFileConfig.endpoint,
-        embeddingCache: this._systemOneEmbeddingCache!,
-        timeoutMs: manifoldFileConfig.timeoutMs,
-      });
-    } else if (systemOneConfig.manifold && 'judgeBatch' in systemOneConfig.manifold) {
-      // Pre-built manifold provided
-      manifold = systemOneConfig.manifold as JudgmentManifold;
-    } else {
-      const manifoldConfig = (systemOneConfig.manifold as SystemOneConfigSchema['manifold']) ?? {};
-      const perHeadConfig: Record<string, any> = {};
-      if (manifoldConfig.heads) {
-        for (const [key, headConfig] of Object.entries(manifoldConfig.heads)) {
-          perHeadConfig[key] = {
-            modelDigest: headConfig.modelDigest,
-            calibrationVersion: headConfig.calibrationVersion,
-            abstainThreshold: headConfig.abstainThreshold,
-            enabled: headConfig.enabled,
-          };
-        }
-      }
-
-      manifold = createManifold(this._systemOneEmbeddingCache!, {
-        backendId: 'encoder-wasm-s1' as any,
-        modelDigest: composeModelDigest(
-          encoderDigest(
-            encoderConfig?.modelId ?? 'Xenova/all-MiniLM-L6-v2',
-            encoderConfig?.dimension ?? 384
-          ),
-          'all-MiniLM-L6-v2-heads-v1'
-        ) as any,
-        calibrationVersion: 'v2.4.1' as any,
-        perHeadConfig,
-        maxBatchSize: 64,
-        maxLatencyMs: 33,
-        abstainThreshold: 0.3,
-      });
-    }
-
-    this._systemOneManifold = manifold;
-
-    // Emit judgment.resolved telemetry from the real Tier 1 manifold
-    if ('setPropositionCallback' in manifold) {
-      const m = manifold as {
-        setPropositionCallback: (cb: (proposition: any, query: any) => void) => void;
-        getPropositionCallback?: () => ((proposition: any, query: any) => void) | undefined;
-      };
-      const previous = m.getPropositionCallback?.();
-      m.setPropositionCallback((proposition, query) => {
-        previous?.(proposition, query);
-        this.emitJudgmentResolved(proposition, query);
-      });
-    }
-
-    // Create cortex adapter if provider is not 'off'
-    let cortex: import('./lm/system-one/types.js').GenerativeCortex;
-    if (
-      systemOneConfig.cortex?.provider &&
-      systemOneConfig.cortex.provider !== 'off' &&
-      this._lmService
-    ) {
-      cortex = createLMServiceCortex({
-        lmService: this._lmService,
-        grammar: 'narsese-term',
-        temperature: 0,
-        model: systemOneConfig.cortex?.model,
-      });
-    } else {
-      cortex = new StubCortex('off');
-    }
-
-    // Create dispatcher with all four tiers (real manifold as Tier 1)
-    this._systemOneDispatcher = createDispatcher(
-      true,
-      {
-        embeddingCache: this._systemOneEmbeddingCache!,
-        tier1Manifold: manifold,
-        provisional: {
-          cInitial: systemOneConfig.provisional?.cInitial ?? 0.1,
-          decayRate: systemOneConfig.provisional?.decayRate ?? 0.3,
-          maxTtlMs: systemOneConfig.provisional?.maxTtlMs ?? 30_000,
-        },
-      },
-      cortex
-    );
-
-    // Create groundedness gate for egress filtering
-    this._systemOneGroundednessGate = createGroundednessGate({
-      manifold: this._systemOneManifold!,
-      embeddingCache: this._systemOneEmbeddingCache!,
-      threshold: 0.7,
-    });
-
-    // E4: trace grader over the live manifold; dataset auto-flush (D3) when enabled
-    const datasetPath = systemOneConfig.distillation?.datasetPath;
-    if (datasetPath) {
-      this._systemOneDataset = new JudgmentDataset();
-      this._systemOneDataset.setVectorSidecarPath('.cache/systemone/vectors');
-      if (systemOneConfig.distillation?.autoFlush) {
-        this._systemOneDataset.startAutoFlush(datasetPath);
-      }
-    }
-    this._systemOneTraceGrader = createTraceGrader({
-      manifold: this._systemOneManifold!,
-      embeddingCache: this._systemOneEmbeddingCache!,
-      dataset: this._systemOneDataset,
-    });
-
-    this.logger?.info('System One initialized', {
-      manifold: this._systemOneManifold ? 'enabled' : 'disabled',
-      dispatcher: this._systemOneDispatcher ? 'enabled' : 'disabled',
-      cortex: systemOneConfig.cortex?.provider ?? 'off',
-    });
-  }
-
   private async injectBootstrapGoals(): Promise<void> {
     const tasks = createBootstrapTasks();
     for (const task of tasks) {
       await this.io.input(task.term, task.type, task.truth as any);
     }
-  }
-
-  private validateConfig(config: NARConfig): NARConfig {
-    if (config.maxConcepts <= 0) {
-      throw new ConfigurationError('maxConcepts must be positive', {
-        maxConcepts: config.maxConcepts,
-      });
-    }
-    return config;
   }
 
   private initializeLMRules(lmService: LMService): void {
@@ -1245,17 +823,11 @@ export class NAR extends BaseComponent {
           // ai-style tools carry no name — inject the registry key.
           this.tools.register({ ...(selfTool as object), name } as Tool);
         } catch (e) {
-          this.logger!.warn('Self-tool registration skipped', { name, error: errMsg(e) });
+          this.logger?.warn('Self-tool registration skipped', { name, error: errMsg(e) });
         }
       }
     }
     this._toolsInitialized = true;
-  }
-
-  private createAttentionModel(config: NARConfig): AttentionModel {
-    const type = config.cognitiveParams?.strategies.attention.type;
-    if (!type) return new SimpleAttention();
-    return config.strategyRegistry?.get('attention', type) ?? new SimpleAttention();
   }
 
   private contradicts(a: Term, b: Term): boolean {

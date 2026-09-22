@@ -39,6 +39,26 @@ const META_GOAL_BY_DRIVE: Record<string, { threshold: number; narsese: string }>
   curiosity: { threshold: 0.3, narsese: '^run_scenario_shadow(profile:induction)' },
 };
 
+export interface NARExecutionOptions {
+  memory: Memory;
+  taskManager: TaskManager;
+  reasoner: Reasoner;
+  config: NARConfig;
+  rlfp?: RLFPLearner;
+  policyOptimizer?: PolicyOptimizer;
+  cognitiveController?: CognitiveController;
+  driveManager?: DriveManager;
+  systemEventBus?: NarEventBus;
+  self?: ReasoningAboutReasoning;
+  toolGoalExecutor?: (goalTerm: Task['term']) => Promise<unknown>;
+  ruleProcessor?: {
+    resetMetaBudget(): void;
+    getMetaBudgetStatus(): { derivationsThisStep: number; currentDepth: number };
+    recordMetaDerivation(depth: number): void;
+  };
+  gates?: GateRegistry;
+}
+
 export class NARExecution {
   private _cycleCount = 0;
   private readonly phaseTimer = new PhaseTimer();
@@ -47,28 +67,42 @@ export class NARExecution {
   private _metaDerivationDepth = 0;
   private _rlfpRewardHistory: number[] = [];
 
-  constructor(
-    private readonly memory: Memory,
-    private readonly taskManager: TaskManager,
-    private readonly reasoner: Reasoner,
-    private readonly config: NARConfig,
-    private readonly rlfp?: RLFPLearner,
-    private readonly policyOptimizer?: PolicyOptimizer,
-    private readonly cognitiveController?: CognitiveController,
-    private readonly driveManager?: DriveManager,
-    private readonly systemEventBus?: NarEventBus,
-    private readonly self?: ReasoningAboutReasoning,
-    private readonly toolGoalExecutor?: (goalTerm: Task['term']) => Promise<unknown>,
-    private readonly ruleProcessor?: {
-      resetMetaBudget(): void;
-      getMetaBudgetStatus(): { derivationsThisStep: number; currentDepth: number };
-      recordMetaDerivation(depth: number): void;
-    },
-    private readonly gates?: GateRegistry
-  ) {}
+  constructor(options: NARExecutionOptions) {
+    this.memory = options.memory;
+    this.taskManager = options.taskManager;
+    this.reasoner = options.reasoner;
+    this.config = options.config;
+    this.rlfp = options.rlfp;
+    this.policyOptimizer = options.policyOptimizer;
+    this.cognitiveController = options.cognitiveController;
+    this.driveManager = options.driveManager;
+    this.systemEventBus = options.systemEventBus;
+    this.self = options.self;
+    this.toolGoalExecutor = options.toolGoalExecutor;
+    this.ruleProcessor = options.ruleProcessor;
+    this.gates = options.gates;
+  }
+
+  private readonly memory: Memory;
+  private readonly taskManager: TaskManager;
+  private readonly reasoner: Reasoner;
+  private readonly config: NARConfig;
+  private readonly rlfp?: RLFPLearner;
+  private readonly policyOptimizer?: PolicyOptimizer;
+  private readonly cognitiveController?: CognitiveController;
+  private readonly driveManager?: DriveManager;
+  private readonly systemEventBus?: NarEventBus;
+  private readonly self?: ReasoningAboutReasoning;
+  private readonly toolGoalExecutor?: (goalTerm: Task['term']) => Promise<unknown>;
+  private readonly ruleProcessor?: {
+    resetMetaBudget(): void;
+    getMetaBudgetStatus(): { derivationsThisStep: number; currentDepth: number };
+    recordMetaDerivation(depth: number): void;
+  };
+  private readonly gates?: GateRegistry;
 
   /** Stimulate drives based on events — homeostatic regulation. Public so tool layer can report outcomes. */
-  stimulateDrives(event: string, data?: Record<string, unknown>): void {
+  stimulateDrives(event: string, _data?: Record<string, unknown>): void {
     if (!this.driveManager) return;
 
     switch (event) {
@@ -406,8 +440,9 @@ export class NARExecution {
 
     const activeTerms = new Set(this.memory.getGoals?.().map((g) => g.term.toString()) ?? []);
     // Include pending tasks so we don't re-inject the same goal across cycles
-    if (this.taskManager.peekTask()) {
-      activeTerms.add(this.taskManager.peekTask()!.term.toString());
+    const peeked = this.taskManager.peekTask();
+    if (peeked) {
+      activeTerms.add(peeked.term.toString());
     }
 
     for (const state of this.driveManager.getAllStates()) {
@@ -435,7 +470,7 @@ export class NARExecution {
   private isToolGoal(term: Term): boolean {
     if (!isCompound(term) || term.kind !== 'inheritance') return false;
     const args = getTermArgs(term);
-    if (!args || args.length !== 2) return false;
+    if (args?.length !== 2) return false;
     const predicate = args[1];
     if (!predicate) return false;
     return isAtomic(predicate) && predicate.symbol.startsWith('^');
