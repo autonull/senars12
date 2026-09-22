@@ -1,6 +1,6 @@
 # TODO20.md — Code Quality & Robustification Plan
 
-**Version:** 1.0 (2026-09-22) · follows TODO19.md (complete) · targets architecture debt surfaced by dpdm, test flakiness, and TODO19 retrospectives
+**Version:** 1.1 (2026-09-22; 1.0 + §5a retro + §1b review items) · follows TODO19.md (complete) · targets architecture debt surfaced by dpdm, test flakiness, and TODO19 retrospectives
 **Philosophy:** *Fix the seams that TODO19 unified.* The builder, component library, and learning loops are in place; this plan hardens the substrate they run on — dependency graph, error taxonomy, observability, configuration, and public API surface.
 **Core Principle:** *No new features. Every item reduces coupling, eliminates a failure mode, or makes a contract explicit.*
 
@@ -10,11 +10,11 @@
 
 ### Phase 0 — Dependency Graph Hygiene (blocks modular testing, causes build brittleness)
 
-- **D01. Interface layer for kernel↔drives↔nar cycle** — create `nar/src/kernel/interfaces.ts` exporting `IGateRegistry`, `IBudgetGate`, `IPerceptionGate`, `IActionGate`, `IRewardGate`, `IEventLog`; `nar/src/types/events-interfaces.ts` for `CognitiveEvent` variants. `drives/manager.ts` and `nar.ts` depend *only* on interfaces. `kernel/index.ts` implements. | anchor `dpdm` cycles 201-230
+- **D01. Interface layer for kernel↔drives↔nar cycle** — create `nar/src/kernel/interfaces.ts` exporting `IGateRegistry`, `IBudgetGate`, `IPerceptionGate`, `IActionGate`, `IRewardGate`, `IEventLog`; `nar/src/types/events-interfaces.ts` for `CognitiveEvent` variants. `drives/manager.ts` and `nar.ts` depend *only* on interfaces. `kernel/index.ts` implements. | anchor `dpdm` cycles 201-230 · **Delivered (revised per §5a):** `IEventLog` dropped (no consumer), `events-interfaces.ts` deleted (duplicated kernel schemas); interface configs structural, no concrete imports.
 - **D02. Break `nl` → `lm` → `kernel` → `drives` → `nar` → `nl`** — `NLUnderstandingService` accepts `ILMService` (new interface in `lm/interfaces.ts`) instead of concrete `LMService`. `createLMService` returns implementation. `nl/understanding.ts` imports interface only. | anchor `dpdm` cycles 272-286
 - **D03. Break `terms` → `utils` → `types` → `nl` → `lm` → `kernel` → `nar` → `terms`** — `terms/accessors.ts`, `term-edges.ts`, `validation.ts` have zero external deps; ensure they stay leaf. Move `circuit-breaker.ts` out of `utils/index.ts` barrel (it pulls `types` → `nl` → `lm`…). Create `utils/resilience.ts` barrel for circuit-breaker, retry, timeout. | anchor `dpdm` cycles 232-266
-- **D04. `dpdm` gate in CI** — add `pnpm deps:check` to `test` script; fail on *new* cycles. Existing 200+ cycles documented in `docs/known-cycles.md` with justification (Phase 1-3 fixes will reduce). | anchor `.github/workflows/ci.yml`
-- **D05. Barrel audit** — every `index.ts` barrel exports only *public* API. Internal symbols moved to `internal/` subfolders or prefixed `_`. `nar/src/index.ts` is the single public entry; `nar/src/nar.ts`, `nar/src/agent/*`, `nar/src/game/*` are public; `kernel/*`, `focus/*`, `reflex/*`, `lm/system-one/*` are internal unless explicitly re-exported. | anchor `nar/package.json` exports
+- **D04. `dpdm` gate in CI** — add `pnpm deps:check` to `test` script; fail on *new* cycles. Existing 200+ cycles documented in `docs/known-cycles.md` with justification (Phase 1-3 fixes will reduce). | anchor `.github/workflows/ci.yml` · **Delivered (revised per §5a):** `pnpm deps:gate` (`scripts/deps-gate.ts`, raw-count baseline 74) wired into CI; `pnpm test` stays plain; `docs/known-cycles.md` superseded by the baseline ledger in §5a.
+- **D05. Barrel audit** — every `index.ts` barrel exports only *public* API. Internal symbols moved to `internal/` subfolders or prefixed `_`. `nar/src/index.ts` is the single public entry; `nar/src/nar.ts`, `nar/src/agent/*`, `nar/src/game/*` are public; `kernel/*`, `focus/*`, `reflex/*`, `lm/system-one/*` are internal unless explicitly re-exported. | anchor `nar/package.json` exports · **Delivered (revised per §5a):** bulk export pruning reverted (consumers exist); narrowing deferred to Phase 6 A1 with a consumer-aware grep-guard.
 
 **Acceptance.** `pnpm deps:gate` green (raw cycles ≤ baseline 74; lower baseline as cycles are removed); `pnpm test:unit` green; no `import … from '@senars/nar/kernel/…'` in app code (only via `nar` barrel).
 
@@ -184,7 +184,8 @@ error-type sweep.
 
 | # | Bench | File | Obligation |
 |---|-------|------|------------|
-| 61 | **Dependency Hygiene** | `tests/nar/todo20-deps.test.ts` | `dpdm` reports ≤10 cycles; all cycles documented; no internal imports in app code |
+| 61 | **Dependency Hygiene** | `tests/nar/todo20-deps.test.ts` | `pnpm deps:gate` green (raw cycles ≤ baseline; §5a ledger); no internal imports in app code |
+| 61b | **Kernel Layering** | `tests/nar/todo20-kernel-layering.test.ts` | `grep lm/system-one nar/src/kernel/` → empty; ingress benches (15–28) unchanged; `deps:gate` unchanged or lower |
 | 62 | **Monolith Split** | `tests/nar/todo20-monoliths.test.ts` | Each split file <400 LOC; barrel exports only public API; typecheck+lint+tests green |
 | 63 | **Determinism** | `tests/nar/todo20-determinism.test.ts` | 20× `test:unit` zero flakes; `Math.random` absent from src (grep); property tests pass |
 | 64 | **Error Taxonomy** | `tests/nar/todo20-errors.test.ts` | Every throw is `SenarsError` subclass; `Result` returned on all fallible public fns; Zod strict on boundaries |
@@ -314,6 +315,8 @@ verification reliable. Bench 63 precedes Bench 62.
 | Raw dependency cycles | 74 | `pnpm deps:gate` / dpdm JSON `circulars` |
 | Deduplicated cycle chains (human view) | 10 | `pnpm deps:check` stdout |
 
+---
+
 ## 6. Definition of Done
 
 ```text
@@ -339,9 +342,10 @@ allow-lists + sanitization    memoized hot paths            diagrams generated f
 ## 7. Leverage Notes
 
 **Highest-leverage single items:**
+- **X2** (kernel `IngressJudge`) — makes the epistemic firewall structurally real; the plan's highest-value item (§1b)
 - **D01/D02** (interface layers) — unblocks every subsequent refactor; pays compound interest on testability
 - **E1/E2** (error taxonomy + Result) — eliminates entire class of "silent failure" bugs; enables exhaustive error handling
-- **T1/T2** (RNG isolation) — fixes the *only* current flake; enables deterministic CI
+- **T1/T2** (RNG isolation) — fixes the known flake (also seen in `property-based.test.ts`, §5a); enables deterministic CI
 - **A1** (explicit exports) — draws the line between substrate and product; prevents architecture rot
 
 **Decomposition ledger (nothing split twice):**
