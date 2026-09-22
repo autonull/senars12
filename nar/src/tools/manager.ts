@@ -1,5 +1,6 @@
 import type { ToolFeedback, ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
+import { SenarsError } from '@senars/util/errors';
 import { createLogger } from '../logger';
 import type { Term } from '../terms';
 import type { EventBus, NAREventMap } from '../types';
@@ -252,7 +253,7 @@ export class ToolManager {
       this.feedbackObserver.recordCall(name, result, duration);
       this.emit('tool:error', { ...errorEvent, duration });
       this.addToHistory(errorEvent);
-      throw error;
+      throw SenarsError.wrap(error, { tool: name, operation: 'execute' }, 'TOOL_ERROR');
     }
   }
 

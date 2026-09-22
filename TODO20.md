@@ -233,10 +233,10 @@ error-type sweep.
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
 Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule (+processor bus typed) (DELIVERED, §5j)  → [x] Bench 62 (19 assertions, M1–M7)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  **PHASE 1 COMPLETE**
 
-NEXT SESSION ENTRY POINT: Phase 3 — E1 error taxonomy, E2 Result adoption (LM admission, tool execution, persistence, schema store, gate authorization), E3 Zod strict on external boundaries, E4 context enrichment (scope-narrowed per §1b: only 2 `catch (e: any)` remain — `lm/system-one/distill.ts:117`, `nar.ts:878`). Read §5k first (X2 IngressJudge pattern — interface in `kernel/ingress.ts`, impl in `lm/system-one/ingress-judge.ts`, injection via `perceptionConfig`). Bench 64 (`tests/nar/todo20-errors.test.ts`) is the acceptance bench.
+NEXT SESSION ENTRY POINT: Phase 4 — O1 OTel spans (`NARBuilder.build`, `GateRegistry.*`, `Negotiator.resolve`, `SchemaStore.*`, `LMService.admit`), O2 structured JSON logging with traceId via AsyncLocalStorage, O3 health/ready endpoints + `pnpm doctor` reuse, O4 metrics completeness audit. Read §5l first (E1 taxonomy lives in `nar/src/errors/index.ts` on `@senars/util/errors` base — `SenarsError.wrap` is a static there now). Bench 65 (`tests/nar/todo20-otel.test.ts`) is the acceptance bench. Note: Prometheus + OTel spans already exist in ProviderRuntime/LMRule paths — audit before adding new ones (O4 first).
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (DELIVERED, §5k)  → [x] Bench 61b
-Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (scope-narrowed: 2 catch-any left)  → [ ] Bench 64
+Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (DELIVERED, §5l — E3 scoped to tool boundaries, see note)  → [x] Bench 64
 Phase 4: O1 otel  O2 json-log  O3 health  O4 metrics  → [ ] Bench 65
 Phase 5: C1 schema  C2 migrate  C3 freeze  C4 secrets  (+X7 StateCodec)  → [ ] Bench 66
 Phase 6: A1 exports  A2 typedoc  A3 semver  A4 deprecation  → [ ] Bench 67
@@ -814,7 +814,55 @@ the kernel; tests of the *judgment* import the judge.
 - `ingress.ts` + `interfaces.ts` are both kernel leaves; if more judge-like boundaries appear
   (egress groundedness is a candidate), consider one `kernel/boundaries/` folder before it accretes.
 
+## 5l. Phase 3 delivery note — E1/E2/E3/E4 (2026-09-22)
+
+**Delivered:** E1 taxonomy, E2 `Result`, E3 (scoped), E4; Bench 64 (`tests/nar/todo20-errors.test.ts`).
+Verified: typecheck clean, lint clean, full `test:unit` green (1,826), deps:gate 72 ok.
+
+### What landed
+
+- **E1** — `nar/src/errors/index.ts` (public via nar barrel): `BuilderError {step}`,
+  `GateError {gate, reason, operation}` + per-gate subclasses (`Perception/Action/Budget/RewardGateError`),
+  `BoundaryValidationError {path, issues}` (+`fromZod`), `BudgetExceeded {scope, operation, limit, consumed}`,
+  `DigestMismatch {expected, actual, artifact}`, `SchemaInductionError {phase}`.
+  Base `SenarsError` (code + context + `toJSON`) already lived in `@senars/util/errors` — single
+  definition honored; new `ErrorCode` literals (`BUILDER_ERROR`, `GATE_DENIED`, `BUDGET_EXCEEDED`,
+  `DIGEST_MISMATCH`, `SCHEMA_INDUCTION`) and the **static `SenarsError.wrap(err, ctx, code?)`**
+  (E4 context enrichment, cause-chain preserving) were added there. `CrossDomainError` stays in
+  `learning/domain-learners.ts` (pre-existing; one definition).
+- **E2** — `nar/src/utils/result.ts` is the canonical `Result<T, E>` (`ok/err`, `isOk/isErr`,
+  `map/flatMap/getOrElse/unwrapOrThrow`, `attempt/attemptAsync`). The old `success/failure/`
+  `isSuccess/isFailure` shapes in `types/core.ts` had exactly one consumer (a unit test) — replaced
+  with a re-export from the canonical module; barrels (`types/index.ts`, `nar/src/index.ts`)
+  updated. Adoption kept low-churn per the Phase 3 rollback trigger: `StatePersister.readJsonIfExists`
+  now returns `Result<T | null, Error>` (ENOENT → `ok(null)`, IO faults → `SenarsError.wrap`); tool
+  execution rethrows `SenarsError.wrap(error, { tool, operation }, 'TOOL_ERROR')`.
+- **E1 rebase** — `agent/builder.ts` `BuilderError` and `kernel/KernelActionGate.ts` `NALVetoError`
+  now extend `SenarsError` (`BUILDER_ERROR` / `GATE_DENIED`) instead of bare `Error`; message
+  formats unchanged so existing tests are untouched.
+- **E3** — `ToolSpecSchema` + `ConnectionConfigSchema` are `.strict()` (unknown keys rejected).
+  **Deliberate scope cut:** `AgentOptionsSchema` parses programmatically-built option objects
+  (not an external boundary — strict would break internal call sites for no adversarial gain), and
+  app-config strictness is deferred to C1 (Phase 5) where the migration utility exists to absorb
+  unknown-key failures. LM response strictness belongs to per-rule schemas (S4-adjacent).
+- **E4** — both remaining `catch (e: any)` fixed (`nar/persistence.ts`, `lm/system-one/distill.ts`
+  — `unknown` narrowing on `code === 'ENOENT'`); Bench 64 grep-guards zero `catch (e: any)` in
+  `nar/src`.
+
+### Follow-ups / improvement opportunities
+
+- `unwrapOrThrow` migration of remaining `try/catch` sites (LM admission, schema store) is
+  incremental — adopt per-subsystem when touched; do not mass-refactor (rollback trigger).
+- `ErrorCode` union in `@senars/util/errors` is the single gate for new codes — keep it closed
+  (grep-able runbook codes).
+- `SenarsError.wrap` returns a *new* error (cause-chained); callers that rethrow inside `catch`
+  should use it instead of re-throwing raw unknowns.
+- Bench 64's persistence case only covers the ENOENT path; a corruption-path case (invalid JSON →
+  wrapped error) would tighten it.
+
 ## 6. Definition of Done
+
+
 
 
 

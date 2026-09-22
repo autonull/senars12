@@ -1,11 +1,13 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { SenarsError } from '@senars/util/errors';
 import type { DriveManager } from '../drives';
 import { createLogger } from '../logger';
 import type { Memory } from '../memory';
 import { Stamp, Truth, type TruthType, termParser } from '../terms';
 import type { Task, TaskType } from '../types';
 import { errMsg } from '../utils';
+import { err, ok, type Result } from '../utils/result.js';
 import type { NARConfig } from './config.js';
 
 /** Deps for NAR state persistence (extracted from NAR — M2). */
@@ -38,14 +40,14 @@ export class StatePersister {
     return path.resolve(base, filename);
   }
 
-  private async readJsonIfExists<T>(filename: string): Promise<T | null> {
+  private async readJsonIfExists<T>(filename: string): Promise<Result<T | null, Error>> {
     const target = this.getStatePath(filename);
     try {
       const content = await fs.readFile(target, 'utf-8');
-      return JSON.parse(content) as T;
-    } catch (e: any) {
-      if (e?.code !== 'ENOENT') throw e;
-      return null;
+      return ok(JSON.parse(content) as T);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException)?.code === 'ENOENT') return ok(null);
+      return err(SenarsError.wrap(e, { path: target, operation: 'readJsonIfExists' }));
     }
   }
 
@@ -116,7 +118,12 @@ export class StatePersister {
         ['questions.json', 'question'],
       ];
       for (const [name, type] of taskFiles) {
-        const records = await this.readJsonIfExists<any[]>(name);
+        const result = await this.readJsonIfExists<any[]>(name);
+        if (!result.ok) {
+          this.logger.warn('NAR state file unreadable', { file: name, error: errMsg(result.error) });
+          continue;
+        }
+        const records = result.value;
         if (!records) continue;
         for (const record of records) {
           try {
@@ -128,16 +135,16 @@ export class StatePersister {
         }
       }
 
-      const drives = await this.readJsonIfExists<Record<string, number>>('drives.json');
-      if (driveManager && drives) {
-        for (const [driveId, value] of Object.entries(drives)) {
+      const drivesResult = await this.readJsonIfExists<Record<string, number>>('drives.json');
+      if (driveManager && drivesResult.ok && drivesResult.value) {
+        for (const [driveId, value] of Object.entries(drivesResult.value)) {
           const currentIntensity = driveManager.getState(driveId)?.currentIntensity ?? 0;
           driveManager.stimulate(driveId, Number(value) - currentIntensity);
         }
       }
 
-      const lmRuleState = await this.readJsonIfExists<{ rules: any[] }>('lm-rules.json');
-      if (lmRuleState) processor.deserializeLMRules(lmRuleState);
+      const lmRuleResult = await this.readJsonIfExists<{ rules: any[] }>('lm-rules.json');
+      if (lmRuleResult.ok && lmRuleResult.value) processor.deserializeLMRules(lmRuleResult.value);
 
       this.logger.info('NAR state loaded');
     } catch (e) {

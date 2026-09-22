@@ -76,16 +76,22 @@ export const DEFAULT_CONFIG: CoreConfig = Object.freeze({
 export type Nullable<T> = T | null;
 export type Optional<T> = T | undefined;
 
-// Result types for operations
-export type Success<T> = { readonly success: true; readonly data: T };
-
-export type Failure = { readonly success: false; readonly error: Error };
-
-export type Result<T> = Success<T> | Failure;
-
-// Helper functions
-export const success = <T>(data: T): Success<T> => ({ success: true, data });
-export const failure = (error: Error): Failure => ({ success: false, error });
+// Result types for operations — E2: canonical definition lives in utils/result.ts
+export {
+  attempt,
+  attemptAsync,
+  err,
+  flatMap,
+  getOrElse,
+  isErr,
+  isOk,
+  map,
+  ok,
+  type Err,
+  type Ok,
+  type Result,
+  unwrapOrThrow,
+} from '../utils/result.js';
 
 // Create Budget object - optimized with defaults
 export const createBudget = (
@@ -193,11 +199,6 @@ export interface QueryOptions {
   termFilter?: TermFilter;
   truthFilter?: TruthFilter;
 }
-
-// Type guards
-export const isSuccess = <T>(result: Result<T>): result is Success<T> => result.success;
-
-export const isFailure = <T>(result: Result<T>): result is Failure => !result.success;
 
 // Internal: base stats interface for metrics aggregation
 export interface BaseStats {

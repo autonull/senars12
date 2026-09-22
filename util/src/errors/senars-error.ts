@@ -17,7 +17,12 @@ export type ErrorCode =
   | 'CONFIGURATION_ERROR'
   | 'LM_UNAVAILABLE'
   | 'SANDBOX_TIMEOUT'
-  | 'CROSS_DOMAIN';
+  | 'CROSS_DOMAIN'
+  | 'BUILDER_ERROR'
+  | 'GATE_DENIED'
+  | 'BUDGET_EXCEEDED'
+  | 'DIGEST_MISMATCH'
+  | 'SCHEMA_INDUCTION';
 
 export class SenarsError extends Error {
   constructor(
@@ -28,6 +33,23 @@ export class SenarsError extends Error {
   ) {
     super(message, options);
     this.name = 'SenarsError';
+  }
+
+  /** Enrich an unknown thrown value with operation context, preserving the cause (E4). */
+  static wrap(
+    error: unknown,
+    context: Record<string, unknown>,
+    code: ErrorCode = 'OPERATION_ERROR'
+  ): SenarsError {
+    if (error instanceof SenarsError) {
+      return new SenarsError(error.message, error.code, { ...error.context, ...context }, {
+        cause: error,
+      });
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    return new SenarsError(message, code, context, {
+      cause: error instanceof Error ? error : undefined,
+    });
   }
 
   /** Safe JSON serialization for MCP error responses. */

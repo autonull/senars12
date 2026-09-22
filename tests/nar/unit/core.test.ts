@@ -5,14 +5,17 @@ import {
   createBudget,
   createTask,
   DEFAULT_CONFIG,
-  failure,
-  isFailure,
-  isSuccess,
+  err,
+  isErr,
+  isOk,
   NARError,
+  ok,
   OperationError,
-  success,
   Truth,
+  unwrapOrThrow,
   ValidationError,
+  flatMap,
+  map,
 } from '@senars/nar';
 import type { ErrorCode } from '@senars/util/errors';
 
@@ -103,19 +106,19 @@ describe('Result types', () => {
     ${42}
     ${null}
     ${true}
-  `('success with value=$value', ({ value }) => {
-    test('creates success result', () => {
-      const result = success(value);
-      expect(result.success).toBe(true);
-      expect(result.data).toBe(value);
+  `('ok with value=$value', ({ value }) => {
+    test('creates ok result', () => {
+      const result = ok(value);
+      expect(result.ok).toBe(true);
+      expect(result.value).toBe(value);
       expect((result as { error?: undefined }).error).toBeUndefined();
     });
   });
 
-  test('success with object uses reference equality', () => {
+  test('ok with object uses reference equality', () => {
     const obj = { key: 'value' };
-    const result = success(obj);
-    expect(result.data).toBe(obj);
+    const result = ok(obj);
+    expect(result.value).toBe(obj);
   });
 
   describe.each`
@@ -123,24 +126,42 @@ describe('Result types', () => {
     ${new Error('test')}
     ${new TypeError('type error')}
     ${new SyntaxError('syntax error')}
-  `('failure with error', ({ error }) => {
-    test('creates failure result', () => {
-      const result = failure(error);
-      expect(result.success).toBe(false);
+  `('err with error', ({ error }) => {
+    test('creates err result', () => {
+      const result = err(error);
+      expect(result.ok).toBe(false);
       expect(result.error).toBe(error);
-      expect((result as { data?: undefined }).data).toBeUndefined();
+      expect((result as { value?: undefined }).value).toBeUndefined();
     });
   });
 
   test.each`
-    result                      | expected
-    ${success(1)}               | ${true}
-    ${failure(new Error())}     | ${false}
-    ${success('test')}          | ${true}
-    ${failure(new TypeError())} | ${false}
-  `('isSuccess/isFailure detection', ({ result, expected }) => {
-    expect(isSuccess(result)).toBe(expected);
-    expect(isFailure(result)).toBe(!expected);
+    result              | expected
+    ${ok(1)}            | ${true}
+    ${err(new Error())} | ${false}
+    ${ok('test')}       | ${true}
+    ${err(new TypeError())} | ${false}
+  `('isOk/isErr detection', ({ result, expected }) => {
+    expect(isOk(result)).toBe(expected);
+    expect(isErr(result)).toBe(!expected);
+  });
+
+  test('map transforms ok values and passes err through', () => {
+    expect(map(ok(1), (v: number) => v + 1)).toEqual(ok(2));
+    const e = err(new Error('nope'));
+    expect(map(e, (v: number) => v + 1)).toBe(e);
+  });
+
+  test('flatMap chains fallible operations', () => {
+    expect(flatMap(ok(2), (v: number) => ok(v * 2))).toEqual(ok(4));
+    const e = err(new Error('stop'));
+    expect(flatMap(ok(2), () => e)).toBe(e);
+  });
+
+  test('unwrapOrThrow throws the carried error', () => {
+    expect(unwrapOrThrow(ok(7))).toBe(7);
+    const e = new Error('boom');
+    expect(() => unwrapOrThrow(err(e))).toThrow(e);
   });
 });
 

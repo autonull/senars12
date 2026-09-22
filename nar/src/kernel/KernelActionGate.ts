@@ -6,6 +6,7 @@ import type {
   PolicyViolationEvent,
 } from '@senars/kernel/schemas';
 import { AutonomyModeChangedEventSchema, validateCognitiveEvent } from '@senars/kernel/schemas';
+import { SenarsError } from '@senars/util/errors';
 import { v4 as uuidv4 } from 'uuid';
 import { pushBounded } from './event-ring.js';
 
@@ -33,12 +34,12 @@ export type AutonomyAuthority = 'system' | 'human' | 'external-governance';
  * reports vetoes via its typed result and a `policy.violation` event, never
  * by throwing.
  */
-export class NALVetoError extends Error {
+export class NALVetoError extends SenarsError {
   public readonly vetoReason: string;
   public readonly correlationId: string;
 
   constructor(vetoReason: string, correlationId: string) {
-    super(`NAL veto: ${vetoReason}`);
+    super(`NAL veto: ${vetoReason}`, 'GATE_DENIED', { gate: 'action', vetoReason, correlationId });
     this.name = 'NALVetoError';
     this.vetoReason = vetoReason;
     this.correlationId = correlationId;

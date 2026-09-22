@@ -114,8 +114,8 @@ export class JudgmentDataset {
           // Skip malformed lines
         }
       }
-    } catch (e: any) {
-      if (e.code !== 'ENOENT') throw e;
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException)?.code !== 'ENOENT') throw e;
     }
     return dataset;
   }

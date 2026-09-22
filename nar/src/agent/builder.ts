@@ -1,6 +1,7 @@
 import type { Agent, PromptBuilder } from '@senars/core';
 import type { EpisodicMemory, LMService } from '@senars/nar';
 import type { SystemOneConfig } from '@senars/util/config';
+import { SenarsError } from '@senars/util/errors';
 import { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { GateRegistry } from '../kernel/GateRegistry.js';
 import { createGateRegistry } from '../kernel/GateRegistry.js';
@@ -41,13 +42,13 @@ export interface BuilderStepRecord {
   detail?: Record<string, unknown>;
 }
 
-/** Typed failure of an inconsistent assembly spec (TODO19 F1). */
-export class BuilderError extends Error {
+/** Typed failure of an inconsistent assembly spec (TODO19 F1; E1: SenarsError-based). */
+export class BuilderError extends SenarsError {
   constructor(
     message: string,
     readonly step: string
   ) {
-    super(`[${step}] ${message}`);
+    super(`[${step}] ${message}`, 'BUILDER_ERROR', { step });
     this.name = 'BuilderError';
   }
 }
