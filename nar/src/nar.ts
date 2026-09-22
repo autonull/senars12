@@ -240,7 +240,7 @@ export class NAR extends BaseComponent {
     );
     this.driveManager = new DriveManager({
       input: (text, type, truth) => this.io.input(text, type, truth),
-    } as INarInput);
+    });
     this.driveManager.setSystemEventBus(this.systemEventBus);
     // D23 (TODO17b): ambiguity at ingress stimulates curiosity (A4 closure).
     this.gates.getPerceptionGate().setDriveManager(this.driveManager);

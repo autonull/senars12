@@ -16,7 +16,7 @@
 - **D04. `dpdm` gate in CI** — add `pnpm deps:check` to `test` script; fail on *new* cycles. Existing 200+ cycles documented in `docs/known-cycles.md` with justification (Phase 1-3 fixes will reduce). | anchor `.github/workflows/ci.yml`
 - **D05. Barrel audit** — every `index.ts` barrel exports only *public* API. Internal symbols moved to `internal/` subfolders or prefixed `_`. `nar/src/index.ts` is the single public entry; `nar/src/nar.ts`, `nar/src/agent/*`, `nar/src/game/*` are public; `kernel/*`, `focus/*`, `reflex/*`, `lm/system-one/*` are internal unless explicitly re-exported. | anchor `nar/package.json` exports
 
-**Acceptance.** `pnpm deps:check` reports ≤10 cycles (all documented); `pnpm test:unit` green; no `import … from '@senars/nar/kernel/…'` in app code (only via `nar` barrel).
+**Acceptance.** `pnpm deps:gate` green (raw cycles ≤ baseline 74; lower baseline as cycles are removed); `pnpm test:unit` green; no `import … from '@senars/nar/kernel/…'` in app code (only via `nar` barrel).
 
 ---
 
@@ -191,13 +191,13 @@
 | 9 | Docs drift from code | `pnpm docs:check` in CI (link check, example run) |
 
 ---
- 
+
 ## 5. Master Checklist
- 
+
 ```
-Phase 0: D01 interfaces  D02 nl-lm  D03 terms-utils  D04 dpdm-gate  D05 barrels  → [x] Bench 61
+Phase 2 (moved up): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 taxonomy  → [ ] Bench 63
 Phase 1: M1 tools  M2 nar  M3 providers  M4 lm-service  M5 tool-reg  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62
-Phase 2: T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 taxonomy  → [ ] Bench 63
+Phase 0 (complete, revised — see §5a): D01-D05  → [x] Bench 61
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context  → [ ] Bench 64
 Phase 4: O1 otel  O2 json-log  O3 health  O4 metrics  → [ ] Bench 65
 Phase 5: C1 schema  C2 migrate  C3 freeze  C4 secrets  → [ ] Bench 66
@@ -206,52 +206,77 @@ Phase 7: S1 validate  S2 shell  S3 wasi  S4 sanitize  → [ ] Bench 68
 Phase 8: P1 bag-lcg  P2 cache  P3 negotiator  P4 param-batch  → [ ] Bench 69
 Phase 9: K1 adr  K2 diagrams  K3 guides  K4 runbook  → [ ] Bench 70
 ```
- 
+
 ---
- 
-## Phase 0 Progress Notes (2026-09-22)
- 
-### Completed Items
- 
-- **D01**: Created `nar/src/kernel/interfaces.ts` with `IGateRegistry`, `IPerceptionGate`, `IActionGate`, `IRewardGate`, `IBudgetGate`, `IEventLog`, `IDriveManager` interfaces. Updated `GateRegistry` to implement `IGateRegistry`. Created `nar/src/types/events-interfaces.ts` with typed event accessors. Updated `DriveManager` to accept `INarInput` interface instead of concrete `NAR` class.
- 
-- **D02**: Created `nar/src/lm/interfaces.ts` with `ILMService` interface. Updated `NLUnderstandingService` and `NLGenerationService` to depend on `ILMService` instead of concrete `LMService`. Exported `ILMService` from `nar/src/lm/index.ts`.
- 
-- **D03**: Broke `utils → types → terms` cycle by:
-  - Moving `Timestamp`, `Duration`, `DEPTH_MAX` to new `nar/src/types/primitives.ts` (no external deps)
-  - Updating `nar/src/terms/stamp.ts` to import from `primitives.ts` instead of `types`
-  - Updating `nar/src/utils/circuit-breaker.ts` to import `OperationError` from `@senars/util` instead of `../types`
-  - Removed `trackTerm` import from `nar/src/terms/index.ts` to break `terms → memory` cycle
- 
-- **D04**: Added `pnpm deps:check` to `test` script in root `package.json`. CI now runs dependency check before tests.
- 
-- **D05**: Audited barrel exports in `nar/package.json`:
-  - Removed internal-only exports: `./gates`, `./focus`, `./reflex`, `./lm/system-one`, `./kernel`, `./tick`, `./otel`, `./capability`, `./stream`, `./config/parameter-table`
-  - Kept public exports: `.`, `./agent`, `./game`, `./config`, `./rl`, `./lm`, `./tools`, `./rules`, `./memory`, `./cognitive`, `./nl`, `./self`, `./learning`, `./rlfp`, `./commands`, `./logger`, `./utils`, `./bag`, `./engine`
-  - `exports:check` passes; no internal symbols leaked via public exports map
- 
-### Acceptance Status
- 
-- ✅ `pnpm deps:check` reports 10 cycles (5 in core/io, 5 in nar) — all ≤10
-- ✅ `pnpm test:unit` green (1772 tests pass)
-- ✅ `pnpm typecheck` clean
-- ✅ `pnpm exports:check` passes
-- ✅ No `import … from '@senars/nar/kernel/…'` in app code (kernel not in exports map)
- 
-### Remaining Cycles (Documented)
- 
-1. core: Agent → AgentBridge → bridge/AgentBridge (3 cycles)
-2. core: index → cortex/createCortexFromLM
-3. io: index → bridge → bridge/index → ConnectionBinder → core/index → Agent → agent/types (2 cycles)
-4. io: index → bridge → bridge/index → MiddlewarePipeline
-5. nar: memory/index → memory/concept → terms/index → terms/factory.ts
-6. nar: terms/factory.ts → terms/serialize.ts → terms/parser-peggy.ts
-7. nar: strategies → attention/CompositeAttention → memory/index → memory/focus.ts
-8. nar: strategies → attention/CompositeAttention → memory/index → memory/lifecycle/forgetting.ts → memory/pressure/index.ts → memory/pressure/consolidation.ts → memory/memory.ts (2 cycles)
- 
-### Next Steps
- 
-Phase 1 (Monolith Decomposition) can now proceed. The interface boundaries established in Phase 0 will allow safe splitting of the 7 monolith files without introducing new circular dependencies.
+
+## 5a. Plan Revision 1.1 (2026-09-22) — lessons from the Phase 0 retro
+
+### What the Phase 0 retro found
+
+An honest self-review of the first Phase 0 pass found four real defects, all fixed in the
+follow-up commit:
+
+1. **D05 was a regression, not an audit.** Removing 10 export paths from `nar/package.json`
+   (`./lm/system-one`, `./reflex`, `./focus`, `./kernel`, `./tick/*`, `./capability`,
+   `./stream/*`, `./gates`, `./otel`, `./config/parameter-table`) broke real consumers:
+   `src/bin/status.ts` imports `@senars/nar/lm/system-one/head-specs.js`, and ~30 test
+   files import the removed paths. Nothing failed because vitest/tsx resolve via tsconfig
+   paths in-repo — the breakage would only surface for real package consumers.
+   **All removed exports restored.** Export narrowing is deferred to Phase 6 A1 where it
+   belongs, done with a grep-guard tool against actual consumers.
+2. **D04 was decorative.** `dpdm` exits 0 even with cycles, so `deps:check` in CI (and the
+   `deps:check &&` prefix added to `pnpm test`) gated nothing while slowing every run.
+   Replaced with `pnpm deps:gate` (`scripts/deps-gate.ts`): counts raw cycles from dpdm's
+   JSON report, fails only when the count exceeds the committed baseline (74 raw chains;
+   the CLI's deduplicated human-readable view shows 10). `pnpm test` reverted to plain
+   `vitest run`; CI's deps step now runs `deps:gate`.
+3. **Type duplication.** The first pass defined `TaskBatch`/`Ambiguity` in both
+   `types/events.ts` and `nl/understanding.ts`, added a speculative `events-interfaces.ts`
+   duplicating `@senars/kernel/schemas` event types, and left `DEPTH_MAX` defined in both
+   `types/depth.ts` and `types/primitives.ts`. All de-duplicated: single definitions,
+   dead files deleted, `nl` re-exports from `types/events`.
+4. **Cosmetic interfaces.** The first `kernel/interfaces.ts` type-imported the concrete
+   `Kernel*Gate` classes for config shapes (so it wasn't a leaf), and `ILMService` had no
+   runtime consumer of its own decoupling. Fixed: kernel interface configs are structural
+   (no concrete imports), and the interface surface was trimmed to what is actually
+   consumed (`IPerceptionGate` by `nar-io.ts`, `ILMService` by `nl/*`).
+
+### What genuinely holds from Phase 0
+
+- `types/primitives.ts` — `stamp.ts` no longer transitively pulls the whole `terms` graph.
+- `utils/circuit-breaker.ts` → `@senars/util` — cuts the utils→types edge for real.
+- `terms/index.ts` no longer imports the `memory` barrel (`trackTerm` re-export dropped;
+  zero consumers).
+- `types/events.ts` no longer imports the `nl` barrel — broke the
+  `types → nl → lm → kernel → drives → types` cycle for real.
+- Cycle count reduced (multiple deep chains shortened); raw count is baselined at 74.
+
+### Binding rules added for the rest of the plan
+
+- **Interfaces must delete a runtime import edge.** An interface whose only purpose is a
+  type alias in front of a concrete class is rejected at review. Acceptance for any
+  D-item: `dpdm` edge delta or grep proof that an import edge is gone.
+- **No speculative exports.** Nothing is exported from a barrel without a named consumer
+  (source file or documented public API).
+- **One definition per type.** Where two modules need the same shape, one owns it and the
+  other re-exports. Structural copies are drift bugs.
+- **Gates must gate.** Any CI check added by this plan must demonstrably fail on its
+  target violation (test by temporarily introducing the violation).
+
+### Phase reorder: Phase 2 now precedes Phase 1
+
+Justification: the flake (`todo17b-nal-arm.test.ts`, `property-based.test.ts`) was
+observed twice during this session's verification runs. Monolith splits (M1–M7) are the
+highest-churn items in the plan and need a trustworthy green baseline to verify against.
+Fixing determinism first (T1 RNG injection, T2 flake fix) makes every later phase's
+verification reliable. Bench 63 precedes Bench 62.
+
+### Baseline ledger (update when lowering)
+
+| Metric | Baseline | Source |
+|--------|----------|--------|
+| Raw dependency cycles | 74 | `pnpm deps:gate` / dpdm JSON `circulars` |
+| Deduplicated cycle chains (human view) | 10 | `pnpm deps:check` stdout |
 
 ## 6. Definition of Done
 

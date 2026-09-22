@@ -182,7 +182,7 @@ export type {
 import type { ILMService } from './interfaces.js';
 
 export class LMService implements ILMService {
-  readonly stats: LMExecutionStats = createLMStats();
+  private stats: LMExecutionStats = createLMStats();
   private reprobeDone = false;
   /** Consecutive transport failures per resolved model id → demotion (R5). */
   private failures = new Map<string, number>();

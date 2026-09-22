@@ -18,36 +18,9 @@ import { buildUnderstandingPrompt } from './prompts/understanding-v1.js';
 import { TaskBatchSchema } from './schemas.js';
 import { SingleFlight } from './singleflight.js';
 
-export interface Ambiguity {
-  type: 'parse' | 'intent' | 'term' | 'reference';
-  description: string;
-  options: string[];
-  confidence: number;
-}
-
-export interface Coreference {
-  pronoun: string;
-  antecedent: string;
-  confidence: number;
-}
-
-export interface TaskBatch {
-  beliefs: Array<{
-    narsese: string;
-    truth?: { f: number; c: number };
-    source: 'user' | 'inferred';
-    sourceText?: string;
-  }>;
-  questions: Array<{ narsese: string; context?: string; sourceText?: string }>;
-  goals: Array<{ narsese: string; priority?: number; sourceText?: string }>;
-  meta: {
-    detectedIntent: 'chat' | 'command' | 'reasoning' | 'learning';
-    ambiguities: Ambiguity[];
-    coreferences: Coreference[];
-    implicitContext: string[];
-    driveModulations?: Record<string, number>;
-  };
-}
+/** Canonical definitions live in types/events (EventMap depends on them); re-exported here for the nl surface. */
+export type { Ambiguity, Coreference, TaskBatch } from '../types/events.js';
+import type { TaskBatch } from '../types/events.js';
 
 export interface NLContext {
   beliefs?: string[];

@@ -35,6 +35,5 @@ export type {
   IRewardGate,
   IBudgetGate,
   IGateRegistry,
-  IEventLog,
   IDriveManager,
 } from './interfaces.js';

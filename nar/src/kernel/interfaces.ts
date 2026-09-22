@@ -14,19 +14,58 @@ import type {
   BudgetExhaustedEvent,
   AutonomyModeChangedEvent,
   FormalizationBatch,
-  TaskAdmittedEvent,
   SourceQuality,
 } from '@senars/kernel/schemas';
-import type { KernelPerceptionGate } from './KernelPerceptionGate.js';
-import type { KernelActionGate } from './KernelActionGate.js';
-import type { KernelRewardGate } from './KernelRewardGate.js';
-import type { KernelBudgetGate } from './KernelBudgetGate.js';
+import type { Term, TaskTypeName } from '../terms';
+
+/** Structural init configs — no concrete kernel-gate imports (keeps this module a leaf). */
+export interface PerceptionGateInitConfig {
+  defaultBudget?: {
+    priority: number;
+    durability: number;
+    quality: number;
+    cycles: number;
+    depth: number;
+  };
+  systemOne?: {
+    enabled: boolean;
+    manifold?: unknown;
+    embeddingCache?: unknown;
+    reasoningBudget?: ReasoningBudget;
+    provisionalCInitial?: number;
+    provisionalDecayRate?: number;
+    provisionalMaxTtlMs?: number;
+  };
+}
+
+export interface ActionGateInitConfig {
+  autonomyMode?: AutonomyMode;
+  allowedOperations?: ReadonlySet<string>;
+}
+
+export interface RewardGateInitConfig {
+  allowedTargets?: ReadonlySet<string>;
+}
+
+export interface BudgetGateInitConfig {
+  defaultBudget?: ReasoningBudget;
+  costTable?: Record<string, number>;
+}
+
+export interface GateInitConfig {
+  perceptionConfig?: PerceptionGateInitConfig;
+  actionConfig?: ActionGateInitConfig;
+  rewardConfig?: RewardGateInitConfig;
+  budgetConfig?: BudgetGateInitConfig;
+  initialBudget?: ReasoningBudget;
+  initialAutonomyMode?: AutonomyMode;
+}
 
 export interface IPerceptionGate {
   admit(input: PerceptionGateInput): Promise<PerceptionGateOutput>;
   admitTask(
-    term: import('../terms').Term,
-    taskType: import('../terms').TaskTypeName,
+    term: Term,
+    taskType: TaskTypeName,
     truth?: { frequency: number; confidence: number } | { f: number; c: number },
     source?: string,
     correlationId?: string
@@ -35,8 +74,8 @@ export interface IPerceptionGate {
     batch: FormalizationBatch,
     sourceQuality?: SourceQuality
   ): {
-    admitted: TaskAdmittedEvent['payload'][];
-    rejected: { candidateId: string; reason: string }[];
+    admitted: Array<Record<string, unknown>>;
+    rejected: Array<{ candidateId: string; reason: string }>;
   };
   getEventLog(): ReadonlyArray<CognitiveEvent>;
   clearEventLog(): void;
@@ -89,14 +128,7 @@ export interface IGateRegistry {
   getActionGate(): IActionGate;
   getRewardGate(): IRewardGate;
   getBudgetGate(): IBudgetGate;
-  initialize(config?: {
-    perceptionConfig?: ConstructorParameters<typeof KernelPerceptionGate>[0];
-    actionConfig?: ConstructorParameters<typeof KernelActionGate>[0];
-    rewardConfig?: ConstructorParameters<typeof KernelRewardGate>[0];
-    budgetConfig?: ConstructorParameters<typeof KernelBudgetGate>[0];
-    initialBudget?: ReasoningBudget;
-    initialAutonomyMode?: AutonomyMode;
-  }): void;
+  initialize(config?: GateInitConfig): void;
   isInitialized(): boolean;
   reset(): void;
   getAllEventLogs(): {
@@ -107,12 +139,6 @@ export interface IGateRegistry {
     budget: ReadonlyArray<BudgetExhaustedEvent>;
   };
   clearAllEventLogs(): void;
-}
-
-export interface IEventLog {
-  push(event: CognitiveEvent): void;
-  getEvents(): ReadonlyArray<CognitiveEvent>;
-  clear(): void;
 }
 
 export interface IDriveManager {
