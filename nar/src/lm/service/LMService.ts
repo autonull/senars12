@@ -3,9 +3,11 @@ import { generateObject, generateText, type LanguageModel, streamText, zodSchema
 import type { ZodSchema } from 'zod';
 import { z } from 'zod';
 import type { GrammarName } from '../grammars/index.js';
-import type { ILMService } from '../interfaces.js';
 import { loadGrammar } from '../grammars/index.js';
+import type { ILMService } from '../interfaces.js';
+import { getProviderRuntime, type ProviderRuntime } from '../provider-runtime.js';
 import { runWithGrammar } from '../providers/llamacpp.js';
+import type { SeNARSRegistry } from '../providers.js';
 import {
   createSeNARSRegistry,
   getLMSettings,
@@ -17,13 +19,11 @@ import {
   resolveActiveProvider,
   setBuiltinProgressCallback,
 } from '../providers.js';
-import type { SeNARSRegistry } from '../providers.js';
 import { createLMStats, recordLMCall } from '../stats.js';
-import { getProviderRuntime, type ProviderRuntime } from '../provider-runtime.js';
 import { buildCacheKey, ResponseCache } from './cache.js';
-import { generateObjectViaText } from './structured.js';
 import { isTransportError, LMUnavailableError, withHint, withRetry } from './errors.js';
-import { SpendLedger, type ProviderSpend } from './spend.js';
+import { type ProviderSpend, SpendLedger } from './spend.js';
+import { generateObjectViaText } from './structured.js';
 
 const NAMED_GRAMMARS: ReadonlySet<string> = new Set<string>(['narsese-term', 'single-word']);
 
@@ -448,12 +448,7 @@ export class LMService implements ILMService {
     });
   }
 
-  private recordSpend(
-    provider: string,
-    task: LMTask,
-    tokensIn: number,
-    tokensOut: number
-  ): void {
+  private recordSpend(provider: string, task: LMTask, tokensIn: number, tokensOut: number): void {
     this.ledger.record(provider, task, this.runtime.lastDecision?.modelId, tokensIn, tokensOut);
   }
 

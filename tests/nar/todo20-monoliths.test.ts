@@ -220,3 +220,23 @@ describe('Bench 62: monolith split — M6 perception-action adapters', () => {
     }
   });
 });
+
+describe('Bench 62: monolith split — M7 LMRule', () => {
+  const LM_DIR = join(import.meta.dirname, '../../nar/src/lm');
+  const loc = (p: string) => readFileSync(p, 'utf-8').split('\n').length;
+
+  it('rule split modules are <400 LOC each (class core has an M2-style deviation, <650)', () => {
+    expect(loc(join(LM_DIR, 'rule/types.ts'))).toBeLessThan(400);
+    expect(loc(join(LM_DIR, 'rule/types-v2.ts'))).toBeLessThan(400);
+    expect(loc(join(LM_DIR, 'rule/response-parser.ts'))).toBeLessThan(400);
+    expect(loc(join(LM_DIR, 'rule/LMRule.ts')), 'LMRule core over budget').toBeLessThan(650);
+  });
+
+  it('LMRule.ts is a facade re-exporting the unchanged public surface', () => {
+    const facade = readFileSync(join(LM_DIR, 'LMRule.ts'), 'utf-8');
+    for (const symbol of ['LMRule', 'LMResponseParser', 'LMContext', 'LMRuleConfigV2', 'ParsedLMResponse']) {
+      expect(facade, `facade missing ${symbol}`).toContain(symbol);
+    }
+    expect(facade).not.toContain('private circuitBreaker');
+  });
+});

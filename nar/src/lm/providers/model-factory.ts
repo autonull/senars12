@@ -6,8 +6,8 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
-import { extractLastUserMessage } from '@senars/util';
 import { transformersJS } from '@browser-ai/transformers-js';
+import { extractLastUserMessage } from '@senars/util';
 import {
   createProviderRegistry,
   customProvider,
@@ -271,4 +271,3 @@ export function createMockLanguageModel(
     doStream,
   });
 }
-

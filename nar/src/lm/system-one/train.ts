@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
+import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL_ID } from '../../memory/embedding.js';
 import type { CognitiveAxis, JudgmentHead, JudgmentQuery, RubricId } from './types.js';
 import { composeModelDigest, DigestMismatchError, encoderDigest } from './wasi-runtime.js';
-import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL_ID } from '../../memory/embedding.js';
 
 // ─── Feature construction ────────────────────────────────────────────────────
 
@@ -17,7 +17,7 @@ export function actionFeatures(action: string, dim: number, seed = 0x9e3779b9): 
     state = (state + 0x6d2b79f5) >>> 0;
     let t = Math.imul(state ^ (state >>> 15), 1 | state);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    features[i] = ((t ^ (t >>> 14)) >>> 0) / 4294967296 * 2 - 1;
+    features[i] = (((t ^ (t >>> 14)) >>> 0) / 4294967296) * 2 - 1;
   }
   return features;
 }
@@ -57,7 +57,10 @@ export async function loadTrainingData(options: LoadTrainingDataOptions): Promis
   const content = await fs.readFile(options.datasetPath, 'utf-8');
   const rows = content.trim().split('\n').filter(Boolean);
 
-  const grouped = new Map<string, { sum: number; count: number; action: string; vecRef?: string }>();
+  const grouped = new Map<
+    string,
+    { sum: number; count: number; action: string; vecRef?: string }
+  >();
   for (const line of rows) {
     let label: RawLabel;
     try {
@@ -83,7 +86,9 @@ export async function loadTrainingData(options: LoadTrainingDataOptions): Promis
   for (const { sum, count, action, vecRef } of grouped.values()) {
     try {
       const bytes = await fs.readFile(join(options.sidecarPath, `${vecRef}.f32`));
-      const embedding = new Float32Array(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+      const embedding = new Float32Array(
+        bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+      );
       trainingRows.push({ embedding, action, target: sum / count });
     } catch {
       // Sidecar vector missing (evicted) — row is untrainable, skip.
@@ -136,10 +141,15 @@ export function pearson(xs: readonly number[], ys: readonly number[]): number {
   if (n < 2) return 0;
   const mx = xs.reduce((a, b) => a + b, 0) / n;
   const my = ys.reduce((a, b) => a + b, 0) / n;
-  let sxy = 0, sxx = 0, syy = 0;
+  let sxy = 0,
+    sxx = 0,
+    syy = 0;
   for (let i = 0; i < n; i++) {
-    const dx = xs[i]! - mx, dy = ys[i]! - my;
-    sxy += dx * dy; sxx += dx * dx; syy += dy * dy;
+    const dx = xs[i]! - mx,
+      dy = ys[i]! - my;
+    sxy += dx * dy;
+    sxx += dx * dx;
+    syy += dy * dy;
   }
   return sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : 0;
 }
@@ -179,7 +189,11 @@ export function solveLinearSystem(A: number[][], b: number[]): number[] {
   return M.map((row, i) => (Math.abs(row[i]!) < 1e-12 ? 0 : row[n]! / row[i]!));
 }
 
-function buildFeatures(row: TrainingRow, actionFeatureDim: number, gameFeatureDim = 0): Float32Array {
+function buildFeatures(
+  row: TrainingRow,
+  actionFeatureDim: number,
+  gameFeatureDim = 0
+): Float32Array {
   const dim = row.embedding.length + gameFeatureDim;
   const features = new Float32Array(dim);
   if (actionFeatureDim === 0) features.set(row.embedding);
@@ -298,30 +312,30 @@ export function trainHead(
     bias = solution[dim] ?? 0;
     epoch = 1;
   } else {
-  for (; epoch < epochs; epoch++) {
-    // Batch-mean gradient step (per-sample GD diverges when lr·λmax > 2).
-    grad.fill(0);
-    let biasGrad = 0;
-    for (const row of train) {
-      const f = buildFeatures(row, actionFeatureDim, gameFeatureDim);
-      zscore(f, zf);
-      const z = predictZ(row, false);
-      const err = (kind === 'logistic' ? sigmoid(z) : z) - clamp01(row.target);
-      for (let i = 0; i < dim; i++) grad[i]! += (err * zf[i]! + l2 * weights[i]!) / train.length;
-      biasGrad += err / train.length;
-    }
-    for (let i = 0; i < dim; i++) weights[i] = weights[i]! - lr * grad[i]!;
-    bias -= lr * biasGrad;
+    for (; epoch < epochs; epoch++) {
+      // Batch-mean gradient step (per-sample GD diverges when lr·λmax > 2).
+      grad.fill(0);
+      let biasGrad = 0;
+      for (const row of train) {
+        const f = buildFeatures(row, actionFeatureDim, gameFeatureDim);
+        zscore(f, zf);
+        const z = predictZ(row, false);
+        const err = (kind === 'logistic' ? sigmoid(z) : z) - clamp01(row.target);
+        for (let i = 0; i < dim; i++) grad[i]! += (err * zf[i]! + l2 * weights[i]!) / train.length;
+        biasGrad += err / train.length;
+      }
+      for (let i = 0; i < dim; i++) weights[i] = weights[i]! - lr * grad[i]!;
+      bias -= lr * biasGrad;
 
-    const holdoutLoss = brier(holdout);
-    if (Number.isFinite(holdoutLoss) && holdoutLoss < bestHoldout - 1e-6) {
-      bestHoldout = holdoutLoss;
-      bestSnapshot = { weights: new Float32Array(weights), bias };
-      stale = 0;
-    } else if (++stale >= patience) {
-      break;
+      const holdoutLoss = brier(holdout);
+      if (Number.isFinite(holdoutLoss) && holdoutLoss < bestHoldout - 1e-6) {
+        bestHoldout = holdoutLoss;
+        bestSnapshot = { weights: new Float32Array(weights), bias };
+        stale = 0;
+      } else if (++stale >= patience) {
+        break;
+      }
     }
-  }
   }
 
   if (kind === 'linear') {
@@ -363,13 +377,22 @@ export function trainHead(
 
 // ─── L3 bake-off: shared (game-featured) vs per-game reflex_value heads ──────
 
-const brierOn = (score: (embedding: Float32Array, action: string, game?: string) => number, rows: readonly TrainingRow[]): number => {
+const brierOn = (
+  score: (embedding: Float32Array, action: string, game?: string) => number,
+  rows: readonly TrainingRow[]
+): number => {
   if (rows.length === 0) return 0;
-  return rows.reduce((sum, row) => sum + (score(row.embedding, row.action, row.game) - clamp01(row.target)) ** 2, 0) / rows.length;
+  return (
+    rows.reduce(
+      (sum, row) => sum + (score(row.embedding, row.action, row.game) - clamp01(row.target)) ** 2,
+      0
+    ) / rows.length
+  );
 };
 
 /** Inference head from a trained model — round-trips through the real artifact/scoring path. */
-const toHead = (model: TrainedHeadModel): TrainedLinearHead => TrainedLinearHead.fromBundle(exportArtifacts(model));
+const toHead = (model: TrainedHeadModel): TrainedLinearHead =>
+  TrainedLinearHead.fromBundle(exportArtifacts(model));
 
 export interface SharedHeadBakeOffOptions extends TrainingOptions {
   /** Hashed game dims for the shared arm (per-game arm always trains at 0). */
@@ -390,7 +413,11 @@ export interface SharedHeadBakeOffResult {
  * (with a dense hashed `game` feature block) against one head per game, and
  * compare held-out Brier on identical per-game holdout splits. Deterministic.
  */
-export function bakeOffSharedHead(rows: readonly TrainingRow[], meta: { headId: string; rubric: string; axis: string }, options: SharedHeadBakeOffOptions = {}): SharedHeadBakeOffResult {
+export function bakeOffSharedHead(
+  rows: readonly TrainingRow[],
+  meta: { headId: string; rubric: string; axis: string },
+  options: SharedHeadBakeOffOptions = {}
+): SharedHeadBakeOffResult {
   const byGame = new Map<string, TrainingRow[]>();
   for (const row of rows) {
     if (!row.game) throw new Error('Bake-off rows must carry a `game` tag');
@@ -403,18 +430,28 @@ export function bakeOffSharedHead(rows: readonly TrainingRow[], meta: { headId: 
   const holdout = new Map<string, TrainingRow[]>();
   for (const [game, gameRows] of byGame) {
     const shuffled = [...gameRows].sort(() => rng() - 0.5);
-    const holdoutCount = Math.max(1, Math.floor(shuffled.length * (options.holdoutFraction ?? 0.2)));
+    const holdoutCount = Math.max(
+      1,
+      Math.floor(shuffled.length * (options.holdoutFraction ?? 0.2))
+    );
     holdout.set(game, shuffled.slice(0, holdoutCount));
     train.set(game, shuffled.slice(holdoutCount));
   }
 
   const pooledTrain = [...train.values()].flat();
-  const shared = trainHead(pooledTrain, meta, { ...options, gameFeatureDim: options.gameFeatureDim ?? 8 });
+  const shared = trainHead(pooledTrain, meta, {
+    ...options,
+    gameFeatureDim: options.gameFeatureDim ?? 8,
+  });
   const perGame: Record<string, TrainedHeadModel> = {};
   const scores: SharedHeadBakeOffResult['scores'] = {};
   let sharedWinsAll = true;
   for (const [game, gameTrain] of train) {
-    perGame[game] = trainHead(gameTrain, meta, { ...options, gameFeatureDim: 0, seed: (options.seed ?? 42) ^ game.length });
+    perGame[game] = trainHead(gameTrain, meta, {
+      ...options,
+      gameFeatureDim: 0,
+      seed: (options.seed ?? 42) ^ game.length,
+    });
     const sharedHead = toHead(shared);
     const gameHead = toHead(perGame[game]!);
     const sharedBrier = brierOn((e, a) => sharedHead.score(e, a, game), holdout.get(game)!);
@@ -425,7 +462,8 @@ export function bakeOffSharedHead(rows: readonly TrainingRow[], meta: { headId: 
   return { shared, perGame, scores, verdict: sharedWinsAll ? 'shared' : 'per-game' };
 }
 
-function digestWeights(weights: Float32Array, bias: number): string {  const hash = createHash('sha256');
+function digestWeights(weights: Float32Array, bias: number): string {
+  const hash = createHash('sha256');
   hash.update(Buffer.from(weights.buffer, weights.byteOffset, weights.byteLength));
   const biasBuf = Buffer.alloc(4);
   biasBuf.writeFloatLE(bias);
@@ -463,7 +501,11 @@ export function exportArtifacts(model: TrainedHeadModel): HeadArtifactBundle {
   const modelDigest = composeModelDigest(encDigest, model.weightsDigest);
   const weightsBytes = Buffer.concat([
     Buffer.from(model.weights.buffer, model.weights.byteOffset, model.weights.byteLength),
-    (() => { const b = Buffer.alloc(4); b.writeFloatLE(model.bias); return b; })(),
+    (() => {
+      const b = Buffer.alloc(4);
+      b.writeFloatLE(model.bias);
+      return b;
+    })(),
   ]);
   const config: HeadArtifactConfig = {
     headId: model.headId,
@@ -484,7 +526,10 @@ export function exportArtifacts(model: TrainedHeadModel): HeadArtifactBundle {
   return { config, weightsBytes, modelDigest };
 }
 
-export async function writeHeadArtifacts(model: TrainedHeadModel, outDir: string): Promise<HeadArtifactBundle> {
+export async function writeHeadArtifacts(
+  model: TrainedHeadModel,
+  outDir: string
+): Promise<HeadArtifactBundle> {
   const bundle = exportArtifacts(model);
   await fs.mkdir(outDir, { recursive: true });
   await Promise.all([
@@ -511,7 +556,12 @@ export class TrainedLinearHead implements JudgmentHead {
     this.rubric = config.rubric as RubricId;
     this.axis = config.axis as CognitiveAxis;
     this.modelDigest = modelDigest;
-    const floats = new Float32Array(weightsBytes.buffer.slice(weightsBytes.byteOffset, weightsBytes.byteOffset + weightsBytes.byteLength - 4));
+    const floats = new Float32Array(
+      weightsBytes.buffer.slice(
+        weightsBytes.byteOffset,
+        weightsBytes.byteOffset + weightsBytes.byteLength - 4
+      )
+    );
     this.#weights = floats;
     this.#bias = weightsBytes.readFloatLE(weightsBytes.byteLength - 4);
   }
@@ -523,16 +573,18 @@ export class TrainedLinearHead implements JudgmentHead {
   score(embedding: Float32Array, action: string, game?: string): number {
     const { mean, std, gameFeatureDim } = this.#config;
     const weights = this.#weights;
-    const actionBlock = this.#config.actionFeatureDim > 0 ? actionFeatures(action, this.#config.embeddingDim) : null;
-    const gameBlock = gameFeatureDim > 0 && game ? actionFeatures(game, gameFeatureDim, GAME_FEATURE_SEED) : null;
+    const actionBlock =
+      this.#config.actionFeatureDim > 0 ? actionFeatures(action, this.#config.embeddingDim) : null;
+    const gameBlock =
+      gameFeatureDim > 0 && game ? actionFeatures(game, gameFeatureDim, GAME_FEATURE_SEED) : null;
     let z = this.#bias;
     for (let i = 0; i < this.#config.embeddingDim; i++) {
       const f = actionBlock ? embedding[i]! * actionBlock[i]! : embedding[i]!;
-      z += weights[i]! * (f - mean[i]!) / std[i]!;
+      z += (weights[i]! * (f - mean[i]!)) / std[i]!;
     }
     for (let i = 0; i < gameFeatureDim; i++) {
       const j = this.#config.embeddingDim + i;
-      z += weights[j]! * ((gameBlock?.[i] ?? 0) - mean[j]!) / std[j]!;
+      z += (weights[j]! * ((gameBlock?.[i] ?? 0) - mean[j]!)) / std[j]!;
     }
     const clamped = this.#config.kind === 'logistic' ? sigmoid(z) : clamp01(z);
     return clamped;
@@ -546,7 +598,10 @@ export class TrainedLinearHead implements JudgmentHead {
 }
 
 /** Load a trained head bundle, verifying the weights hash against the pinned digest. */
-export async function loadHeadArtifacts(outDir: string, pinnedDigest?: string): Promise<TrainedLinearHead> {
+export async function loadHeadArtifacts(
+  outDir: string,
+  pinnedDigest?: string
+): Promise<TrainedLinearHead> {
   const [configRaw, weightsBytes, digestFile] = await Promise.all([
     fs.readFile(join(outDir, 'config.json'), 'utf-8'),
     fs.readFile(join(outDir, 'weights.bin')),

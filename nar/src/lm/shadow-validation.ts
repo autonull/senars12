@@ -4,10 +4,11 @@
  * contradiction (same term, divergent frequency) is silently dropped and the
  * rule's symbolic fallback stands.
  */
-import type { Term, Truth } from '../terms';
+
 import type { JudgmentDataset } from '../lm/system-one/distill.js';
-import type { SystemOneLMRuleAdapter } from '../lm/system-one/rule-adapter.js';
 import { recordShadowVerdictLabel } from '../lm/system-one/label-sources.js';
+import type { SystemOneLMRuleAdapter } from '../lm/system-one/rule-adapter.js';
+import type { Term, Truth } from '../terms';
 
 export interface BeliefLike {
   term: Term;
@@ -83,7 +84,8 @@ export class ShadowValidator {
 
     const verdict = await this.#systemOne.adapter.conflictScore(candidate.term.toString());
     if (!verdict || verdict.abstained || !verdict.fitted) return frequencyVerdict;
-    const semanticConflict = verdict.score >= (this.#systemOne.conflictThreshold ?? DEFAULTS.conflictThreshold);
+    const semanticConflict =
+      verdict.score >= (this.#systemOne.conflictThreshold ?? DEFAULTS.conflictThreshold);
     if (this.#dataset) {
       recordShadowVerdictLabel(this.#dataset, {
         derivationId: candidate.term.toString(),

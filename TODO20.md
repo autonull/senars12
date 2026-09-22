@@ -30,9 +30,9 @@
 | **M4. `lm-service.ts`** | 946 | `lm/LMService.ts` (core), `lm/admission.ts`, `lm/routing.ts`, `lm/circuit-breaker.ts`, `lm/charge-flow.ts` + `lm/index.ts` |
 | **M5. `tool-registry.ts`** | 784 | `tools/ToolRegistry.ts`, `tools/decorator.ts`, `tools/execution.ts`, `tools/schemas.ts` + `tools/index.ts` |
 | **M6. `perception-action-adapters.ts`** | 763 | `rl/adapters/perception.ts`, `rl/adapters/action.ts`, `rl/adapters/agent.ts`, `rl/adapters/index.ts` (reward logic already lived in `rl/reward-belief-adapter.ts`; cohesion split per §5i) |
-| **M7. `LMRule.ts`** | 742 | `lm/LMRule.ts` (base), `lm/rule-builders.ts`, `lm/rule-selectors.ts`, `lm/dynamic-rule.ts` + `lm/index.ts` |
+| **M7. `LMRule.ts`** | 742 | `lm/rule/LMRule.ts` (class core), `lm/rule/response-parser.ts`, `lm/rule/{types,types-v2}.ts`, `lm/rule/index.ts` + `LMRule.ts` facade (rule-builders/rule-selectors/dynamic-rule already existed as separate files; cohesion split per §5j) |
 
-**Acceptance.** Each split file <400 LOC; `pnpm typecheck` + `pnpm lint` + `pnpm test:unit` green; no circular deps introduced (D04 gate).
+**Acceptance.** Each split file <400 LOC; `pnpm typecheck` + `pnpm lint` + `pnpm test:unit` green; no circular deps introduced (D04 gate). *(All seven delivered — see §5c/§5d/§5e/§5g/§5h/§5i/§5j; class-core deviations recorded per split.)*
 
 ---
 
@@ -231,9 +231,9 @@ error-type sweep.
 
 ```
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
-Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule  → [ ] Bench 62 (M1–M6 assertions green; extend per-split)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  ← NEXT: M7
+Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule (+processor bus typed) (DELIVERED, §5j)  → [x] Bench 62 (19 assertions, M1–M7)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  **PHASE 1 COMPLETE**
 
-NEXT SESSION ENTRY POINT: M7 (`lm/LMRule.ts`, 742 LOC → base + rule-builders + rule-selectors + dynamic-rule). Read §5i notes — the SeededRNG-as-RandomSource adapter bug (fresh-instance-per-call) and the DRY helpers added in M6 (`topPendingGoal`/`armIndexOf` shared across selectors) are the reusable patterns. §5h gotchas (white-box test access paths, no-speculative-exports) still apply.
+NEXT SESSION ENTRY POINT: Phase 2.5 — X2 kernel IngressJudge (extract `IngressJudge` interface; `KernelPerceptionGate` keeps fail-closed plumbing only; all `lm/system-one` imports leave `nar/src/kernel/`). Acceptance: `grep -n "lm/system-one" nar/src/kernel/` → empty; ingress benches (15–28) unchanged; deps:gate ≤72. Read §5h (NarEventBus pattern, X4 scope ruling) and §5j (facade + typed-bus conventions) first. After X2: Phase 3 (E1 taxonomy, E2 Result, E3 zod-strict, E4 context — scope-narrowed per §1b note: only 2 `catch (e: any)` remain).
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (epistemic firewall made structural)  → [ ] Bench 61b (grep: no lm/system-one in kernel/)
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (scope-narrowed: 2 catch-any left)  → [ ] Bench 64
@@ -718,6 +718,52 @@ The parity tests are the safety net that makes this refactor safe — run them b
 - White-box tests may reach into LMRule internals (§5g gotcha) — check `todo17b-*` tests first.
 - The `NativeActionSelector` interface is the seam if arcade benches ever need a non-seeded
   policy — no action needed, just noting the shape.
+
+## 5j. Phase 1 delivery note — M7 (2026-09-22) — PHASE 1 COMPLETE
+
+**Delivered:** M7 — `LMRule.ts` (742 LOC) decomposed into `lm/rule/` modules with `LMRule.ts` as a
+facade barrel (export surface unchanged: `lm/index.ts`, `dynamic-rule.ts`, `rule-builders.ts`,
+`lm-rule-factory.ts`, `enrichment.ts`, `rule-selectors/*` all import `./LMRule.js` untouched).
+Side fix: `RuleProcessor.eventBus` typed `NarEventBus` (was generic `EventBus`, failed to flow into
+the now-typed `LMRule.setEventBus` — X4 ripple, in scope). Verified: root typecheck 0 errors, lint
+clean, full `test:unit` green (1,808), deps:gate 72 ok, Bench 62 extended to 19 assertions.
+
+### File map
+
+- `rule/types.ts` (~18) — `LMContext`, `ValidationResult` (shared context shapes).
+- `rule/types-v2.ts` (~22) — `LMRuleConfigV2` (leaf; imports `LMRuleConfig` from `@senars/util` via
+  `lm-service` re-export).
+- `rule/response-parser.ts` (~110) — `LMResponseParser`, `ParsedLMResponse`, `StructuredLMOutput`
+  (pure functions, no LMRule dependency — inverse direction, so no cycle).
+- `rule/LMRule.ts` (~630) — the class core.
+- `LMRule.ts` (~12) — facade barrel.
+
+### Honest deviation
+
+`rule/LMRule.ts` is 628 LOC (>400). The class is one dense stateful unit (breaker + stats + bus
+plumbing + prompt/response pipelines); slicing the private method cluster into a helper would need
+~12 fields passed per call — churn without a seam payoff, same ruling as M2's facade and M4's core.
+Bench 62 asserts <650 for the core.
+
+### Plan deviation (recorded)
+
+The plan's M7 filenames (`base/rule-builders/rule-selectors/dynamic-rule`) didn't map to reality —
+`rule-builders.ts`, `rule-selectors/`, and `dynamic-rule.ts` already existed as separate modules
+consuming `LMRule.ts`. The monolith's actual extractable units were the parser and the type
+declarations. Split followed cohesion (same deviation as M3/M4/M6).
+
+### X4 ripple
+
+`RuleProcessor.setEventBus`/`registerLMRule` now require `NarEventBus`; `nar.ts` already passes one.
+This closes the last untyped-bus injection point in the rule pipeline.
+
+### Phase 1 wrap-up
+
+All seven monoliths decomposed: M1 tools (§5c), M2 nar (§5d), M3 providers (§5e), M4 lm-service
+(§5g), M5 tool-registry (§5h), M6 rl-adapters (§5i), M7 lm-rule (§5j) — plus M3.5 provider
+unification (§5f). Cycle count 74 → 72 across the phase (M3 deletions, M4 config extraction).
+Bench 62 is the per-split guard (19 assertions: LOC budgets, facade surfaces, cycle grep-guards,
+typed-bus and RandomSource sweeps). Next: Phase 2.5 X2 (IngressJudge), then Phase 3.
 
 ## 6. Definition of Done
 

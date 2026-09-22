@@ -2,6 +2,7 @@
  * Rule processor for applying inference rules
  */
 
+import { pushBounded } from '../kernel/event-ring.js';
 import type { LMRule } from '../lm';
 import type { LMRuleStats } from '../lm/lm-service.js';
 import type { Memory } from '../memory';
@@ -9,9 +10,8 @@ import type { NAR } from '../nar.js';
 import type { LMRuleSelector } from '../strategies';
 import type { StampType, Term } from '../terms';
 import { Truth, type Truth as TruthType } from '../terms';
-import type { EventBus } from '../types';
+import type { NarEventBus } from '../types';
 import { toError } from '../utils';
-import { pushBounded } from '../kernel/event-ring.js';
 import { META_AIKR_BOUNDS, shouldActivateMetaReasoning } from './meta-rules.js';
 import { DerivationRecorder } from './recorder.js';
 import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils.js';
@@ -50,7 +50,7 @@ interface MetaBudgetState {
 export class RuleProcessor {
   private readonly ruleIndex: RuleIndex;
   private readonly lmRules: LMRule[] = [];
-  private eventBus: EventBus | null = null;
+  private eventBus: NarEventBus | null = null;
   private resultBuffer: RuleResult[] = [];
   private memory?: Memory;
   private nar?: NAR;
@@ -87,7 +87,7 @@ export class RuleProcessor {
     return this.recorder;
   }
 
-  setEventBus(eventBus: EventBus): void {
+  setEventBus(eventBus: NarEventBus): void {
     this.eventBus = eventBus;
     this.lmRules.forEach((lmRule) => {
       lmRule.setEventBus(eventBus);
