@@ -113,8 +113,8 @@ export interface NAREventMap extends EventMap {
   'tool:result': {
     type: string;
     name: string;
-    args: any;
-    result: any;
+    args?: any;
+    result?: any;
     timestamp: number;
     duration: number;
     context?: any;
@@ -122,8 +122,8 @@ export interface NAREventMap extends EventMap {
   'tool:error': {
     type: string;
     name: string;
-    args: any;
-    result: any;
+    args?: any;
+    result?: any;
     timestamp: number;
     duration: number;
     context?: any;
@@ -184,4 +184,9 @@ export type EventUnsubscribe = () => void;
  * @deprecated Will be removed in next major version.
  * Use `import { EventBus } from '@senars/util'` instead.
  */
-export { EventBus } from '@senars/util/events';
+import { EventBus } from '@senars/util/events';
+
+export { EventBus };
+
+/** NAR's event bus, keyed on {@link NAREventMap} (X4: typed bus). */
+export class NarEventBus extends EventBus<NAREventMap> {}

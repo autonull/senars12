@@ -7,7 +7,7 @@ export interface TrajectoryStep {
   data?: unknown;
 }
 
-export interface TrajectoryEventMap {
+export interface TrajectoryEventMap extends Record<string, unknown> {
   llm_prompt: { messages: unknown };
   tool_call: { name: string; args: unknown };
   lm_response: { content: unknown };
@@ -18,7 +18,7 @@ export class ReasoningTrajectoryLogger {
   private trajectory: TrajectoryStep[] = [];
   private isLogging = false;
 
-  constructor(private eventBus: EventBus) {
+  constructor(private eventBus: EventBus<TrajectoryEventMap>) {
     this.setupEventListeners();
   }
 
@@ -52,7 +52,7 @@ export class ReasoningTrajectoryLogger {
   }
 
   private setupEventListeners(): void {
-    const events: Array<[keyof TrajectoryEventMap, string]> = [
+    const events: Array<[keyof TrajectoryEventMap & string, string]> = [
       ['llm_prompt', 'llm_prompt'],
       ['tool_call', 'tool_call'],
       ['lm_response', 'lm_response'],
@@ -60,7 +60,7 @@ export class ReasoningTrajectoryLogger {
     ];
 
     events.forEach(([event, type]) => {
-      this.eventBus.on(event as never, (data: any) => {
+      this.eventBus.on(event, (data) => {
         this.logStep(type, data);
       });
     });

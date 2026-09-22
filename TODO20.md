@@ -156,7 +156,7 @@ failure mode, or make a contract explicit).
 | X1 | **nar imports app code** — package→app boundary violation (delivered §5b) | `nar/src/nar.ts:79`, `nar/src/agent/builder.ts:3`, `nar/src/agent/profiles.ts:1` all import `SystemOneConfig` from root `src/config/schema.js` | **High** | Before Phase 2 (trivial, unblocks packaging) | XS |
 | X2 | **Kernel layering inversion** — trusted gate embeds untrusted proposer internals | `KernelPerceptionGate.ts` imports 6 `lm/system-one` modules (`head-specs`, `policy`, `provisional-stamp`, `seed`, `telemetry`, `types`): the epistemic firewall is compiled against the machinery it is supposed to be filtering | **High** | Own item after Phase 2, feeds M2/M4 | L |
 | X3 | **Provider module-level mutable singletons** — parallel-unsafe, order-dependent (delivered §5b) | 11 module-level `let`/`Map` in `lm/providers.ts` (lines 55–955: `routing`, `demotions`, `circuitBreakers`, `healthProbeInterval`, `routingLog*`…) | **High** | Must land with/before Phase 2 T3 (`isolate:true` will surface these) | M |
-| X4 | **Untyped event bus usage** — generic `EventBus<T>` defeated at call sites | `EventBus.on/emit` are already `<K extends keyof T>` (`util/src/events/event-bus.ts:33,58`); 14 `as never` casts in `nar/src` (mostly `tools/tool-registry.ts`, `nar.ts`) bypass them | Medium | Fold into Phase 1 M5/M2 | S |
+| X4 | **Untyped event bus usage** — generic `EventBus<T>` defeated at call sites (delivered §5h) | `EventBus.on/emit` are already `<K extends keyof T>` (`util/src/events/event-bus.ts:33,58`); 14 `as never` casts in `nar/src` (mostly `tools/tool-registry.ts`, `nar.ts`) bypass them | Medium | Fold into Phase 1 M5/M2 | S |
 | X5 | **Dual circuit-breaker implementations** | `nar/src/utils/circuit-breaker.ts` (generic) vs `lm/providers.ts` `ProviderHealth` machinery — independent state, semantics, and logging for the same concern | Medium | Fold into Phase 1 M4 → consolidate into `utils/resilience.ts` (per D03's original intent) | S |
 | X6 | **Positional-arg constructor soup** | `NARExecution` constructor takes 13 positional params incl. a bare `undefined` slot (`nar-execution.ts:50-65`) | Medium | Fold into Phase 1 M2 (options object) | S |
 | X7 | **Serialization triple-path** — three hand-rolled state codecs | `nar.ts` `saveState`/`loadState` (ad-hoc JSON files), `memory/state/serialization.ts`, `kernel/EventLogPersistence.ts` — no shared codec, no schema pinning on the snapshot path | Medium | Phase 5 (persistence hardening, alongside C1/C2) | M |
@@ -167,7 +167,7 @@ failure mode, or make a contract explicit).
 - **X1** — Move `SystemOneConfigSchema` (type + zod schema) into `@senars/util/config` (or `nar/src/config`), have root `src/config/schema.ts` re-export. nar must never reach into `src/`; the dependency arrow points the wrong way for a library package. Acceptance: `grep -rn "from '\.\./\.\./src/" nar/src/` → empty; `pnpm deps:gate` unchanged.
 - **X2** — Extract an `IngressJudge` interface (judge batch in → typed verdicts out); `KernelPerceptionGate` keeps only fail-closed plumbing and consumes the judge via `perceptionConfig`. All `lm/system-one` imports leave the kernel folder. This is the highest-value item in the plan: it makes the *epistemic firewall* structurally real (kernel cannot see proposer internals) instead of conventionally real. Acceptance: `grep -n "lm/system-one" nar/src/kernel/` → empty; ingress benches (15–28) unchanged; deps:gate unchanged or lower.
 - **X3** — Introduce a `ProviderRuntime` instance holding routing/demotion/breaker/probe/log state; module-level default instance preserved for back-compat (`getProviderRuntime()`). Unblocks T3 `isolate:true`, enables hermetic provider tests. Acceptance: two NAR instances with different routing policies coexist in one process; `resetCircuitBreakers`-style globals replaced by scoped resets.
-- **X4** — Type the bus: `ToolManager` and `nar.ts` emitters use `NarEventBus` keyed on `NAREventMap`; delete `as never`. Mechanical but makes every event contract compiler-checked. Acceptance: `grep -rn "as never" nar/src/ | wc -l` → 0 without losing event coverage.
+- **X4** — Type the bus: `ToolManager` and `nar.ts` emitters use `NarEventBus` keyed on `NAREventMap`; delete `as never`. Mechanical but makes every event contract compiler-checked. Acceptance (revised per §5h): zero `as never` casts adjacent to bus `on`/`emit` calls — the 7 surviving casts are branded-type/FFI/zod-schema workarounds unrelated to the bus.
 - **X5** — One breaker abstraction under `utils/resilience.ts`; `providers.ts` health machinery wraps it. Two state machines for the same failure mode is a drift bug waiting to happen. Acceptance: single implementation file; provider circuit tests green.
 - **X6** — `NARExecutionOptions` object; call sites in `nar.ts` (2) updated. Acceptance: no positional `undefined` arguments at call sites.
 - **X7** — One `StateCodec` (schema-pinned, versioned) used by NAR snapshot, memory serialization, and event-log persistence consumers. Snapshot format gets a `version` field (prereq for C2 config migration's sibling: state migration). Acceptance: round-trip property test across all three paths; version mismatch fails loudly.
@@ -186,8 +186,7 @@ error-type sweep.
 |---|-------|------|------------|
 | 61 | **Dependency Hygiene** | `tests/nar/todo20-deps.test.ts` | `pnpm deps:gate` green (raw cycles ≤ baseline; §5a ledger); no internal imports in app code |
 | 61b | **Kernel Layering** | `tests/nar/todo20-kernel-layering.test.ts` | `grep lm/system-one nar/src/kernel/` → empty; ingress benches (15–28) unchanged; `deps:gate` unchanged or lower |
-| 62 | **Monolith Split** | `tests/nar/todo20-monoliths.test.ts` | Each split file <400 LOC; barrel exports only public API; typecheck+lint+tests green |
-| 63 | **Determinism** | `tests/nar/todo20-determinism.test.ts` (delivered §5b) | seeded-RNG reproduction; RNG-free Negotiator; no bare `Math.random()` in T1 files; property tests pass; flaky file 0/20 reruns. Full 20× suite soak pending |
+| 62 | **Monolith Split** | `tests/nar/todo20-monoliths.test.ts` | Each split file <400 LOC; barrel exports only public API; typecheck+lint+tests green || 63 | **Determinism** | `tests/nar/todo20-determinism.test.ts` (delivered §5b) | seeded-RNG reproduction; RNG-free Negotiator; no bare `Math.random()` in T1 files; property tests pass; flaky file 0/20 reruns. Full 20× suite soak pending |
 | 64 | **Error Taxonomy** | `tests/nar/todo20-errors.test.ts` | Every throw is `SenarsError` subclass; `Result` returned on all fallible public fns; Zod strict on boundaries |
 | 65 | **Observability** | `tests/nar/todo20-otel.test.ts` | Spans emitted for 7 operations; traceId propagated; health endpoints return 200/503 correctly |
 | 66 | **Config Hardening** | `tests/nar/todo20-config.test.ts` | Schema validates env/file/defaults precedence; migration idempotent; defaults frozen |
@@ -232,9 +231,9 @@ error-type sweep.
 
 ```
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
-Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj; X4 deferred to M5) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (← X4 typed-bus lands here)  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62 (M1+M2+M3+M4 assertions green; extend per-split)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  ← NEXT: M5
+Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62 (M1–M5 assertions green; extend per-split)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  ← NEXT: M6
 
-NEXT SESSION ENTRY POINT: start at M5 (tool-registry.ts, 784 LOC -> ToolRegistry/decorator/execution/schemas) and land **X4 typed-bus** with it (its 14 `as never` casts cluster in tool-registry.ts + nar.ts). Read 5c/5d/5e/5g notes first — split workflow, biome-unsafe-fix gotchas (re-run typecheck after every `--unsafe` autofix; ctor/setter-assigned fields get deleted), and the M4 precedent of cohesion-driven filenames over plan literals (record the same deviation).
+NEXT SESSION ENTRY POINT: M6 (`rl/perception-action-adapters.ts`, 763 LOC → `rl/adapters/{perception,action,reward}.ts` + index). Opportunistically sweep `Math.random` → `RandomSource` in the files M6 touches (§5b follow-up list: `rl/perception-action-adapters.ts`, `rl/q-belief-store.ts` are in that family). Read §5h notes — especially the X4 scope ruling (bus casts vs branded-type/FFI casts) and the `NarEventBus` subclass pattern.
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (epistemic firewall made structural)  → [ ] Bench 61b (grep: no lm/system-one in kernel/)
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (scope-narrowed: 2 catch-any left)  → [ ] Bench 64
@@ -365,7 +364,7 @@ deferred until the next bench authoring pass (file-based separation is functiona
 
 1. **Math.random sweep (T1 acceptance stretch).** Still bare in: `memory/links/LinkBag.ts`, `nl/generation.ts`,
    `rlfp/{PolicyOptimizer,RewardModel}.ts`, `strategies/derivation/SampledDerivation.ts`,
-   `tools/{adapters/self-tools,tool-registry}.ts`, `rl/perception-action-adapters.ts` (M6 will touch it),
+   `tools/adapters/self-tools.ts`, `tools/manager.ts` (`resolveConflict('random')`), `rl/perception-action-adapters.ts` (M6 will touch it),
    `rl/q-belief-store.ts`, `reflex/{TabularQReflex,EpsilonGreedyReflex}.ts`, `imagination/treadmill.ts`,
    `events/bridge.ts`, `lm/system-one/telemetry.ts`. Mechanical; do opportunistically during M4/M5/M6 splits.
 2. **Full 20× `pnpm test:unit` soak** for the formal Bench 63 acceptance (single full runs green; the 20× was
@@ -622,6 +621,55 @@ stream retry loop are the next extraction candidates if it grows.
   (§5a no-speculative-exports rule) at the next touch.
 - `agent/config.ts` is the pattern for breaking barrel-import cycles: shared types go in a leaf file,
   the barrel re-exports.
+
+## 5h. Phase 1 delivery note — M5 (+X4) (2026-09-22)
+
+**Delivered:** M5 — `tool-registry.ts` (784 LOC) decomposed into four cohesive modules with
+`tool-registry.ts` as a facade barrel (export surface unchanged); **X4 typed bus landed** —
+`ToolManager` now takes `EventBus<NAREventMap>` and all bus `as never` defeats are gone.
+Verified: root `pnpm typecheck` 0 errors, lint clean, full `test:unit` green (1,803), deps:gate 72 ok,
+Bench 62 extended to 14 assertions.
+
+### File map
+
+- `tools/registry.ts` (~230) — `Registry` (storage + arg/result validation) + `ToolDescriptor` type.
+- `tools/manager.ts` (~340) — `ToolManager` (lifecycle, permissions, budgets, statistics, feedback,
+  history, typed emit/on).
+- `tools/goal.ts` (~190) — `executeToolGoal` + Narsese `^tool(args)` parsing, `extractArgsFromProduct`,
+  `termToValue`, `resolveSemanticArgs`; operates on a minimal `ToolExecutor` interface instead of the
+  whole manager (goal logic needs only `get`+`execute`).
+- `tools/core-adapter.ts` (~85) — `CoreToolRegistryAdapter` (core's `ToolRegistryDelegate` bridge).
+- `tool-registry.ts` (10) — facade barrel; consumers (`tools/index.ts`, tests) untouched.
+
+### X4 — what landed, and the honest scope ruling
+
+- **New leaf type**: `NarEventBus extends EventBus<NAREventMap>` lives in `nar/src/types/events.ts`
+  (next to the map it keys on) and re-exports through `types/index.ts`. `nar.ts`, `nar-presets.ts`,
+  `BaseComponent` now use it — the `EventBus as NarEventBus` aliasing pattern is deleted.
+- **`ToolManager` typed**: ctor/setter take `EventBus<NAREventMap>`; private `emit<K>()` and public
+  `on<K>()` are compiler-checked against `NAREventMap`. Zero casts in the four split modules.
+- **Side fixes pulled in by the type change** (each deleted a cast or a loose type):
+  `NAREventMap['tool:result'|'tool:error']` made optional-field-honest to match `ToolEvent`;
+  `ReasoningTrajectoryLogger` typed on its own `TrajectoryEventMap` (extends `Record<string, unknown>`
+  to satisfy the bus constraint); `ConsolidationOptions.type` tightened `string → EpisodeType`;
+  `ExtendedAgent.chat` opts tightened `unknown → ChatOptions` (from `@senars/core`).
+- **Scope ruling on the original "→ 0 casts" acceptance**: of the 14 casts, 4 were bus defeats in
+  tool-registry (deleted) + 1 in ReasoningTrajectoryLogger + 1 in agent/index (typed away). The 7
+  survivors are **not** bus casts: branded-type jumps (`createIsotonicCalibrator` rubric/version),
+  FFI option objects (transformers.js embedding, llamacpp grammar), `z.toJSONSchema`, a structurally
+  unavoidable `ParameterTable.set` never-return, and a merge-assign. Deleting them requires
+  reworking the branding/FFI seams, not the bus — out of X4's contract. Bench 62 now greps for
+  `as never` adjacent to bus `on`/`emit` instead of a raw count.
+
+### Notes for M6/M7
+
+- `ToolManager.on()` is now public typed API — consumers can subscribe with full inference; keep the
+  `NarEventBus` subclass as the canonical injection type everywhere (deprecate bare `EventBus`
+  injections opportunistically).
+- The plan's original M5 filenames (`ToolRegistry/decorator/execution/schemas`) didn't map to the
+  content — `decorator.ts` and `schemas.ts` already existed as separate files, and the registry/
+  execution logic is one cohesive validation unit. Split followed cohesion (same deviation as M3/M4).
+- `resolveConflict('random')` still uses `Math.random` (§5b sweep list should add `tools/manager.ts`).
 
 ## 6. Definition of Done
 

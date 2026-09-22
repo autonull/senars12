@@ -41,4 +41,4 @@ export {
   ValidationError,
 } from './core.js';
 export type { EventMap, EventReceiver, EventUnsubscribe, NAREventMap } from './events.js';
-export { EventBus } from './events.js';
+export { EventBus, NarEventBus } from './events.js';

@@ -44,13 +44,7 @@ import {
 import type { Tool, ToolResult } from './tools';
 import { discoverTools, ToolManager } from './tools';
 import { createSelfTools } from './tools/adapters/self-tools.js';
-import {
-  ConfigurationError,
-  DEFAULT_CONFIG,
-  EventBus as NarEventBus,
-  type Task,
-  type TaskType,
-} from './types';
+import { ConfigurationError, DEFAULT_CONFIG, NarEventBus, type Task, type TaskType } from './types';
 import { errMsg } from './utils';
 
 export { MetricsCollector } from './metrics';

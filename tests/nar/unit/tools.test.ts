@@ -1,5 +1,5 @@
 import { Registry, SleepTool, TimerTool, ToolManager } from '../../../nar/src/tools';
-import { EventBus } from '../../../nar/src/types';
+import { NarEventBus } from '../../../nar/src/types';
 
 describe('Tool Framework', () => {
   describe('Registry', () => {
@@ -102,7 +102,7 @@ describe('Tool Framework', () => {
     });
 
     it('should emit events on tool execution', async () => {
-      const eventBus = new EventBus();
+      const eventBus = new NarEventBus();
       const manager = new ToolManager({ eventBus });
       manager.register(new SleepTool());
 

@@ -158,3 +158,34 @@ describe('Bench 62: monolith split — M4 lm-service', () => {
     expect(loc(join(import.meta.dirname, '../../nar/src/utils/circuit-breaker.ts'))).toBeGreaterThan(0);
   });
 });
+
+describe('Bench 62: monolith split — M5 tool-registry (+X4 typed bus)', () => {
+  const TOOLS_DIR = join(import.meta.dirname, '../../nar/src/tools');
+  const loc = (p: string) => readFileSync(p, 'utf-8').split('\n').length;
+
+  it('split modules are <400 LOC each and the facade is a barrel', () => {
+    for (const f of ['registry.ts', 'manager.ts', 'goal.ts', 'core-adapter.ts']) {
+      expect(loc(join(TOOLS_DIR, f)), `${f} over 400 LOC`).toBeLessThan(400);
+    }
+    const facade = readFileSync(join(TOOLS_DIR, 'tool-registry.ts'), 'utf-8');
+    expect(facade).toContain('export {');
+    expect(facade).not.toContain('class ToolManager');
+  });
+
+  it('X4: ToolManager bus is typed on NAREventMap — no as never bus casts remain', () => {
+    for (const f of ['tool-registry.ts', 'manager.ts', 'goal.ts', 'core-adapter.ts']) {
+      const src = readFileSync(join(TOOLS_DIR, f), 'utf-8');
+      expect(src, `${f} still casts as never`).not.toContain('as never');
+    }
+    const manager = readFileSync(join(TOOLS_DIR, 'manager.ts'), 'utf-8');
+    expect(manager).toContain('EventBus<NAREventMap>');
+    // Remaining `as never` casts in nar/src are branded-type/FFI workarounds, not event-bus
+    // defeats — none may sit adjacent to bus calls (emit/on).
+    const offenders = listFiles(join(import.meta.dirname, '../../nar/src')).filter((f) =>
+      /as never[^\n]*(\bon\b|\bemit\b)|(\bon\b|\bemit\b)[^\n]*as never/.test(
+        readFileSync(f, 'utf-8')
+      )
+    );
+    expect(offenders, `bus casts remain in: ${offenders.join(', ')}`).toEqual([]);
+  });
+});

@@ -1,4 +1,4 @@
-import type { Episode } from '@senars/util';
+import type { Episode, EpisodeType } from '@senars/util';
 import type { LMService } from '../lm/lm-service.js';
 import type { EpisodicMemory } from './EpisodicMemory.js';
 import type { EmbeddingGenerator } from './embedding.js';
@@ -12,7 +12,7 @@ export interface ConsolidationOptions {
   /** Cosine similarity above which a candidate is considered a duplicate. */
   dedupeThreshold?: number;
   /** Only episodes of this type are considered. */
-  type?: string;
+  type?: EpisodeType;
 }
 
 export interface ConsolidationResult {
@@ -54,7 +54,7 @@ export const consolidateEpisodes = async (
   options?: Partial<ConsolidationOptions>
 ): Promise<ConsolidationResult> => {
   const { limit = 50, relevanceThreshold = 0.5, dedupeThreshold = 0.9, type } = options ?? {};
-  const episodes = await deps.episodic.getEpisodes({ limit, type: type as never });
+  const episodes = await deps.episodic.getEpisodes({ limit, type });
   if (episodes.length === 0) {
     return { considered: 0, relevant: 0, promoted: [], deduped: 0 };
   }

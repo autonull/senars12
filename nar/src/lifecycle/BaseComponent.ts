@@ -5,7 +5,7 @@ import type {
 } from '@senars/util';
 import { createLogger, type Logger as NarLogger } from '../logger';
 import { MetricsCollector } from '../metrics';
-import { EventBus as NarEventBus } from '../types/events.js';
+import { NarEventBus } from '../types/events.js';
 
 export type { ComponentContext, ComponentState };
 

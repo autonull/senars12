@@ -9,14 +9,14 @@ import type { LMService } from './lm/lm-service.js';
 import type { NARConfig, SystemOneConfig } from './nar.js';
 import { NAR } from './nar.js';
 import type { CoreConfig } from './types';
-import { DEFAULT_CONFIG, EventBus } from './types';
+import { DEFAULT_CONFIG, NarEventBus } from './types';
 
 export interface SeNARSOptions {
   core?: Partial<CoreConfig>;
   lmService?: LMService;
   providerRegistry?: SeNARSRegistry;
   enableLMRules?: boolean;
-  eventBus?: EventBus;
+  eventBus?: NarEventBus;
   // Feature flags / config forwarded to NARConfig
   enableTools?: boolean;
   enableSelf?: boolean;
@@ -66,8 +66,8 @@ export function createNAR(options: SeNARSOptions = {}): NAR {
     enableLMRules: options.enableLMRules ?? true,
     lmService: options.lmService ?? createLMService(),
     providerRegistry: options.providerRegistry ?? createSeNARSRegistry(),
-    eventBus: options.eventBus ?? new EventBus(),
-  } as NARConfig & { eventBus?: EventBus };
+    eventBus: options.eventBus ?? new NarEventBus(),
+  } as NARConfig & { eventBus?: NarEventBus };
   return new NAR(config);
 }
 

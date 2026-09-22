@@ -1,4 +1,9 @@
-import type { ChatStreamEvent, CortexSynthesizeRequest, PromptBuilder } from '@senars/core';
+import type {
+  ChatOptions,
+  ChatStreamEvent,
+  CortexSynthesizeRequest,
+  PromptBuilder,
+} from '@senars/core';
 import { Agent, InMemoryEventLog, SqliteEventLog } from '@senars/core';
 import { createCortexFromLM } from '@senars/core/cortex';
 import { isNarsese } from '@senars/core/helpers';
@@ -14,10 +19,11 @@ import { CoreToolRegistryAdapter } from '../tools';
 import { createCompactionPromptBuilder } from './compaction.js';
 
 import type { CreateAgentConfig } from './config.js';
+
 export type { CreateAgentConfig };
 
 interface NarAgentApi {
-  chat(text: string, opts?: unknown): AsyncGenerator<ChatStreamEvent, string>;
+  chat(text: string, opts?: ChatOptions): AsyncGenerator<ChatStreamEvent, string>;
 
   believe(text: string): Promise<void>;
 
@@ -259,7 +265,7 @@ function attachNarApi(
   const chatOverride = async function* (
     this: ExtendedAgent,
     text: string,
-    opts?: unknown
+    opts?: ChatOptions
   ): AsyncGenerator<ChatStreamEvent, string> {
     const trimmed = text.trim();
     if (!trimmed) return '';
@@ -286,7 +292,7 @@ function attachNarApi(
       return result;
     }
 
-    const originalResult = yield* originalChat(trimmed, opts as never);
+    const originalResult = yield* originalChat(trimmed, opts);
     return originalResult;
   };
   agent.chat = chatOverride.bind(agent);
