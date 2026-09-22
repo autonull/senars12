@@ -1,7 +1,7 @@
 import { type Term, Truth } from '../index.js';
 import type { NAR } from '../nar.js';
-import { atm, inh } from './terms.js';
 import { QBeliefStore } from './q-belief-store.js';
+import { atm, inh } from './terms.js';
 
 /**
  * Handles reward representation and value updates with TD learning support
@@ -36,7 +36,12 @@ export class RewardBeliefAdapter {
   }
 
   /** Process reward and update value beliefs (immediate reward only) */
-  async processReward(state: Term, action: Term, reward: number, confidence: number = 0.5): Promise<void> {
+  async processReward(
+    state: Term,
+    action: Term,
+    reward: number,
+    confidence: number = 0.5
+  ): Promise<void> {
     this.rewardHistory.push({ state, action, reward, timestamp: Date.now() });
     await this.qStore.updateValue(state, action, reward, confidence);
 

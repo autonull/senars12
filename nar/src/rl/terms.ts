@@ -1,8 +1,7 @@
-import { type AtomicTerm, type Term, TermBuilder, Truth } from '../index.js';
 import type { DriveManager } from '../drives/manager.js';
-import type { NAR } from '../nar.js';
 import { SeededRNG } from '../game/SeededRNG.js';
-
+import { type AtomicTerm, type Term, TermBuilder, Truth } from '../index.js';
+import type { NAR } from '../nar.js';
 
 /** Safe term builder that asserts non-null for valid RL term constructions */
 export function inh(subj: Term, pred: Term): Term {

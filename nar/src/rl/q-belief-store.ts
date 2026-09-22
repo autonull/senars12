@@ -1,6 +1,7 @@
-import { type Term, TermBuilder, Truth } from '../index.js';
 import type { DriveManager } from '../drives/manager.js';
+import { type Term, TermBuilder, Truth } from '../index.js';
 import type { NAR } from '../nar.js';
+import type { RandomSource } from '../types/primitives.js';
 import { atm, inh, prod } from './terms.js';
 
 /**
@@ -13,9 +14,11 @@ export class QBeliefStore {
   private readonly driveManager?: DriveManager;
   /** Per-state index of action terms with recorded values (X24). */
   private readonly stateActions = new Map<string, Map<string, Term>>();
+  private readonly rng: RandomSource;
 
-  constructor(nar: NAR) {
+  constructor(nar: NAR, rng: RandomSource = Math.random) {
     this.nar = nar;
+    this.rng = rng;
     this.driveManager = nar.getDriveManager?.();
   }
 
@@ -41,7 +44,12 @@ export class QBeliefStore {
   }
 
   /** Update value belief using Truth.revision with immediate reward */
-  async updateValue(state: Term, action: Term, reward: number, confidence: number = 0.5): Promise<void> {
+  async updateValue(
+    state: Term,
+    action: Term,
+    reward: number,
+    confidence: number = 0.5
+  ): Promise<void> {
     const product = prod(state, action);
     const valueTerm = inh(product, this.predictsRewardAtom);
 
@@ -59,7 +67,12 @@ export class QBeliefStore {
   }
 
   /** Update value belief using TD target (for temporal difference learning) */
-  async updateValueTD(state: Term, action: Term, tdTarget: number, confidence: number = 0.5): Promise<void> {
+  async updateValueTD(
+    state: Term,
+    action: Term,
+    tdTarget: number,
+    confidence: number = 0.5
+  ): Promise<void> {
     const product = prod(state, action);
     const valueTerm = inh(product, this.predictsRewardAtom);
 
@@ -135,7 +148,7 @@ export class QBeliefStore {
     // first-action ties bias the policy toward the earliest-recorded action
     // (all small rewards clamp to f=0 under Q-convex encoding), latching
     // exploration shut (F4 GridWorld parity root cause).
-    let bestAction: Term | null = null;
+    const bestAction: Term | null = null;
     let bestExpectation = -Infinity;
     let ties: Term[] = [];
 
@@ -152,7 +165,7 @@ export class QBeliefStore {
       }
     }
 
-    return ties.length > 0 ? (ties[Math.floor(Math.random() * ties.length)] ?? null) : null;
+    return ties.length > 0 ? (ties[Math.floor(this.rng() * ties.length)] ?? null) : null;
   }
 
   /** Get low-confidence actions for curiosity-driven exploration */

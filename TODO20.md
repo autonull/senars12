@@ -29,7 +29,7 @@
 | **M3. `providers.ts`** | 1,024 | `providers/factory.ts`, `providers/llamacpp.ts`, `providers/ollama.ts`, `providers/transformers.ts`, `providers/embedded-llamacpp.ts`, `providers/mock.ts` + `providers/index.ts` |
 | **M4. `lm-service.ts`** | 946 | `lm/LMService.ts` (core), `lm/admission.ts`, `lm/routing.ts`, `lm/circuit-breaker.ts`, `lm/charge-flow.ts` + `lm/index.ts` |
 | **M5. `tool-registry.ts`** | 784 | `tools/ToolRegistry.ts`, `tools/decorator.ts`, `tools/execution.ts`, `tools/schemas.ts` + `tools/index.ts` |
-| **M6. `perception-action-adapters.ts`** | 763 | `rl/adapters/perception.ts`, `rl/adapters/action.ts`, `rl/adapters/reward.ts`, `rl/adapters/index.ts` |
+| **M6. `perception-action-adapters.ts`** | 763 | `rl/adapters/perception.ts`, `rl/adapters/action.ts`, `rl/adapters/agent.ts`, `rl/adapters/index.ts` (reward logic already lived in `rl/reward-belief-adapter.ts`; cohesion split per §5i) |
 | **M7. `LMRule.ts`** | 742 | `lm/LMRule.ts` (base), `lm/rule-builders.ts`, `lm/rule-selectors.ts`, `lm/dynamic-rule.ts` + `lm/index.ts` |
 
 **Acceptance.** Each split file <400 LOC; `pnpm typecheck` + `pnpm lint` + `pnpm test:unit` green; no circular deps introduced (D04 gate).
@@ -231,9 +231,9 @@ error-type sweep.
 
 ```
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
-Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters  M7 lm-rule  → [ ] Bench 62 (M1–M5 assertions green; extend per-split)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  ← NEXT: M6
+Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule  → [ ] Bench 62 (M1–M6 assertions green; extend per-split)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  ← NEXT: M7
 
-NEXT SESSION ENTRY POINT: M6 (`rl/perception-action-adapters.ts`, 763 LOC → `rl/adapters/{perception,action,reward}.ts` + index). Opportunistically sweep `Math.random` → `RandomSource` in the files M6 touches (§5b follow-up list: `rl/perception-action-adapters.ts`, `rl/q-belief-store.ts` are in that family). Read §5h notes — especially the X4 scope ruling (bus casts vs branded-type/FFI casts) and the `NarEventBus` subclass pattern.
+NEXT SESSION ENTRY POINT: M7 (`lm/LMRule.ts`, 742 LOC → base + rule-builders + rule-selectors + dynamic-rule). Read §5i notes — the SeededRNG-as-RandomSource adapter bug (fresh-instance-per-call) and the DRY helpers added in M6 (`topPendingGoal`/`armIndexOf` shared across selectors) are the reusable patterns. §5h gotchas (white-box test access paths, no-speculative-exports) still apply.
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (epistemic firewall made structural)  → [ ] Bench 61b (grep: no lm/system-one in kernel/)
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (scope-narrowed: 2 catch-any left)  → [ ] Bench 64
@@ -364,8 +364,8 @@ deferred until the next bench authoring pass (file-based separation is functiona
 
 1. **Math.random sweep (T1 acceptance stretch).** Still bare in: `memory/links/LinkBag.ts`, `nl/generation.ts`,
    `rlfp/{PolicyOptimizer,RewardModel}.ts`, `strategies/derivation/SampledDerivation.ts`,
-   `tools/adapters/self-tools.ts`, `tools/manager.ts` (`resolveConflict('random')`), `rl/perception-action-adapters.ts` (M6 will touch it),
-   `rl/q-belief-store.ts`, `reflex/{TabularQReflex,EpsilonGreedyReflex}.ts`, `imagination/treadmill.ts`,
+   `tools/adapters/self-tools.ts`, `tools/manager.ts` (`resolveConflict('random')`),
+   `reflex/{TabularQReflex,EpsilonGreedyReflex}.ts`, `imagination/treadmill.ts`,
    `events/bridge.ts`, `lm/system-one/telemetry.ts`. Mechanical; do opportunistically during M4/M5/M6 splits.
 2. **Full 20× `pnpm test:unit` soak** for the formal Bench 63 acceptance (single full runs green; the 20× was
    done on the known-flaky file only).
@@ -670,6 +670,54 @@ Bench 62 extended to 14 assertions.
   content — `decorator.ts` and `schemas.ts` already existed as separate files, and the registry/
   execution logic is one cohesive validation unit. Split followed cohesion (same deviation as M3/M4).
 - `resolveConflict('random')` still uses `Math.random` (§5b sweep list should add `tools/manager.ts`).
+
+## 5i. Phase 1 delivery note — M6 (+T1 rl sweep) (2026-09-22)
+
+**Delivered:** M6 — `rl/perception-action-adapters.ts` (763 LOC) decomposed into `rl/adapters/`
+modules; T1 `Math.random` sweep completed for the whole `rl/` family. `rl/adapters.ts` facade and
+`rl/index.ts` unchanged (6 parity test files import `rl/adapters` untouched). Verified: root
+typecheck 0 errors, lint clean, full `test:unit` green (1,806), deps:gate 72 ok, Bench 62 extended
+to 17 assertions. RL parity suites re-run explicitly (parity-restoration 2×, parity/ + budgetgate).
+
+### File map
+
+- `adapters/perception.ts` (~90) — `BeliefPerceptionAdapter`, `RLObservation` (+config types).
+- `adapters/action.ts` (~330) — `GoalActionAdapter`, `NativeActionSelector`, and the three
+  selectors (`BanditSelector`, `GridWorldSelector`, `NonStationarySelector`).
+- `adapters/agent.ts` (~330) — `NativeSenarsAgent` + `BanditNativeAgent`/`GridWorldNativeAgent`/
+  `NonStationaryNativeAgent`; `gridStateId`/`armTools` helpers DRY the base-class boilerplate.
+- `adapters/index.ts` — barrel; `rl/adapters.ts` (facade) re-exports it alongside
+  `q-belief-store`/`reward-belief-adapter`/`parity-harness`.
+- **Plan deviation (recorded):** no `rl/adapters/reward.ts` — reward logic already lived in
+  `rl/reward-belief-adapter.ts` (127 LOC); duplicating it would violate one-definition-per-type.
+
+### T1 sweep (rl/ family closed)
+
+- Selectors take `rng?: RandomSource` (default `Math.random`) per the T1 convention;
+  `GridWorldSelector`'s `seed: number | RandomSource` keeps its existing positional signature.
+- `QBeliefStore(nar, rng?)` — `getBestAction` tie-breaking now injectable.
+- `rl/` now has **zero bare `Math.random`** outside injected defaults (Bench 62 grep-guards it).
+
+### Bug caught by the parity suites (lesson)
+
+The first `GridWorldSelector` rng adapter wrote `() => new SeededRNG(seed).next()` — a fresh
+instance per call, so the LCG state reset every draw and GridWorld parity collapsed (ratio
+-0.32 vs ≥0.7 threshold). Fix: create the instance once, close over it. **Rule: when adapting a
+stateful RNG to a `RandomSource` callback, bind the instance, never construct inside the lambda.**
+The parity tests are the safety net that makes this refactor safe — run them before claiming M6 done.
+
+### DRY additions in the split
+
+- `topPendingGoal(nar, pattern)` — replaces 3 copies of pending-goal scan + priority sort.
+- `armIndexOf(termStr)` — replaces 5 copies of the `pull_arm_(\d+)` parse.
+- `gridStateId(env)` / `armTools(n)` — replace 2× duplicated base-class helpers.
+
+### Notes for M7
+
+- Same facade pattern: keep `LMRule.ts` as re-export barrel; `lm/index.ts` consumers untouched.
+- White-box tests may reach into LMRule internals (§5g gotcha) — check `todo17b-*` tests first.
+- The `NativeActionSelector` interface is the seam if arcade benches ever need a non-seeded
+  policy — no action needed, just noting the shape.
 
 ## 6. Definition of Done
 

@@ -189,3 +189,34 @@ describe('Bench 62: monolith split — M5 tool-registry (+X4 typed bus)', () => 
     expect(offenders, `bus casts remain in: ${offenders.join(', ')}`).toEqual([]);
   });
 });
+
+describe('Bench 62: monolith split — M6 perception-action adapters', () => {
+  const RL_DIR = join(import.meta.dirname, '../../nar/src/rl');
+  const loc = (p: string) => readFileSync(p, 'utf-8').split('\n').length;
+
+  it('adapters split modules are <400 LOC each', () => {
+    for (const f of ['adapters/perception.ts', 'adapters/action.ts', 'adapters/agent.ts']) {
+      expect(loc(join(RL_DIR, f)), `${f} over 400 LOC`).toBeLessThan(400);
+    }
+  });
+
+  it('monolith is gone; facade routes through the adapters barrel', () => {
+    expect(readdirSync(RL_DIR).includes('perception-action-adapters.ts')).toBe(false);
+    const facade = readFileSync(join(RL_DIR, 'adapters.ts'), 'utf-8');
+    expect(facade).toContain("from './adapters/index.js'");
+  });
+
+  it('T1 sweep: selectors and q-store take RandomSource; no bare Math.random outside defaults', () => {
+    const action = readFileSync(join(RL_DIR, 'adapters/action.ts'), 'utf-8');
+    expect(action).toContain('rng: RandomSource');
+    const qStore = readFileSync(join(RL_DIR, 'q-belief-store.ts'), 'utf-8');
+    expect(qStore).toContain('rng: RandomSource');
+    for (const f of ['adapters/action.ts', 'adapters/perception.ts', 'adapters/agent.ts', 'q-belief-store.ts']) {
+      const src = readFileSync(join(RL_DIR, f), 'utf-8');
+      const bare = src.split('\n').filter(
+        (l) => l.includes('Math.random') && !l.includes('rng: RandomSource = Math.random')
+      );
+      expect(bare, `${f} has bare Math.random: ${bare.join('; ')}`).toEqual([]);
+    }
+  });
+});
