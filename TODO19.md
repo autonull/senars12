@@ -175,17 +175,15 @@
   - Notes for the next session: ~~GPU path~~ → **probed (session 6, below)**; the
     `embedded-llamacpp.ts` serialization comment is now justified by the shared context itself
     (no vitest-worker reference remains).
-- **Progress (sixth session, 2026-09-22): GPU-path probe; plan closes.**
-  - Ran the bin-lifecycle lane with `LM_LLAMACPP_GPU=auto` (instead of the pinned `GPU=false`):
-    6/6 green, ~4.3 min — the GPU env plumbing (`LM_LLAMACPP_GPU` → `env-config.ts` →
-    `EmbeddedLlamaConfig.gpu` → `getLlama({gpu})`) is exercised end-to-end.
-  - Honest finding: `getLlama({gpu:'auto'}).gpu === false` on this box — the locally built
-    `node-llama-cpp` addon has **no CUDA/Vulkan backend**, so `auto` silently (and correctly)
-    degrades to CPU; the lane passes identically either way. CUDA offload itself remains
-    *unverified* until the addon is rebuilt against CUDA (`nvidia-smi` shows an RTX 3080, so the
-    hardware is present). Not pursued: rebuilding the native addon is outside plan scope and
-    CPU on a 0.8B Q4_0 is fast enough (~4 min for the full lane).
-  - No code changes this session — all Phase 0–D items and benches were already landed.
+- **Progress (sixth session, 2026-09-22): GPU offload verified — plan closes.**
+  - Ran the bin-lifecycle lane with `LM_LLAMACPP_GPU=auto`: **6/6 green** — and on GPU:
+    `getLlama({gpu:'auto'})` resolves to **vulkan** (explicit `gpu:'cuda'` also loads; RTX 3080).
+    GPU offload is real, not a fallback.
+  - **Corrected finding (session 7):** the first probe (`getLlama({gpu:'auto'}).gpu === false`,
+    "no CUDA backend") was an *artifact of probing via `node --input-type=module -e`* — the
+    fork-based binding self-test fails in eval context and silently degrades to `gpu:false`.
+    Run from a real file, both the CUDA and Vulkan prebuilt addons load and pass the test.
+    Lesson: probe native-runtime capabilities from files, not `-e` evals.
 - **Progress (second session, 2026-09-21):**
   - **P2 landed** as `nar/src/lm/system-one/verify.ts`: `verifyCascade` (SDE-style — stage-1
     `truthProbability` routes through `ConfidenceRouter` bands; stage-2 evidential verification only on
@@ -299,10 +297,11 @@ One seam: reasoning IS a game — and the tournament table knows it.
   exposes one context with N sequences but no safe cross-task dispatch; the single global call
   chain in `embedded-llamacpp.ts` is the honest model. If parallel generation is ever earned
   (arcade fan-out at scale), the seam is `createSequence`-per-task with per-sequence session
-  pools — not concurrent `promptWithMeta` on ad-hoc sequences. GPU acceleration: the env plumbing
-  is exercised (session 6 lane run with `LM_LLAMACPP_GPU=auto`), but the locally built
-  `node-llama-cpp` addon ships no CUDA/Vulkan backend (`getLlama({gpu:'auto'}).gpu === false`) —
-  real offload requires rebuilding the addon against CUDA before it can be benched.
+  pools — not concurrent `promptWithMeta` on ad-hoc sequences. GPU acceleration: **verified
+  (session 7)** — the CUDA/Vulkan prebuilt addons both load; `LM_LLAMACPP_GPU=auto` resolves to
+  vulkan (cuda works when requested) and the bin-lifecycle lane is green with offload active.
+  Caveat: `getLlama` probe results from `node -e` eval contexts are unreliable (binding
+  self-test fork fails ⇒ silent `gpu:false`) — probe from real files.
 
 - **GPU/TS training backends (considered 2026-09-21).** PyTorch-like options for the in-house trainer (`nar/src/lm/system-one/train.ts`): **TensorFlow.js** (`tfjs-node-gpu` CUDA binding; WebGPU backend for browser/device contexts) is the only mature TS-native *training* framework; **ONNX Runtime** is inference-first (training requires Python-exported models — doesn't help author loops in TS); raw **WebGPU compute shaders** are a zero-dependency middle path (hand-written matmul/SGD kernel, fits the WASI/device story, P7). Burn/Candle/MLX rejected (not TS). Current heads are linear/logistic over a frozen backbone — GPU is pure overhead at this scale. Only earn it if Phase C bake-offs demand MLP reward models or sequence-level value heads. If adopted: parameterize `train.ts` behind a `HeadTrainerBackend` interface (`in-house-sgd` default, optional tfjs backend), falsified by identical weights digests on small problems + wall-clock parity at current scale. Deliberately *not* a plan item: the backend abstraction is a second trainer if we never need it.
 - **transformers.js toolChoice limitation — RESOLVED (2026-09-21).** `localModel` (`nar/src/lm/providers.ts`)
