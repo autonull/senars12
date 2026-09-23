@@ -1,5 +1,6 @@
 import type { Term } from '../../terms';
 import { termsEqual } from '../../terms';
+import type { RandomSource } from '../../types/primitives.js';
 import type { LinkEntry } from './types.js';
 
 export class LinkBag {
@@ -8,17 +9,20 @@ export class LinkBag {
   private priorityIndex: Map<string, number>;
   private accessTimes: Map<string, number>;
   private readonly onRemoved?: (entry: LinkEntry) => void;
+  private readonly rng: RandomSource;
 
   constructor(
     capacity: number,
     private readonly forgetPolicy: 'priority' | 'lru' | 'fifo' | 'random',
-    onRemoved?: (entry: LinkEntry) => void
+    onRemoved?: (entry: LinkEntry) => void,
+    rng?: RandomSource
   ) {
     this.capacity = capacity;
     this.items = new Map();
     this.priorityIndex = new Map();
     this.accessTimes = new Map();
     this.onRemoved = onRemoved;
+    this.rng = rng ?? Math.random;
   }
 
   get size(): number {
@@ -135,7 +139,7 @@ export class LinkBag {
 
     if (this.forgetPolicy === 'random') {
       const entries = Array.from(this.items.values());
-      const randomId = entries[Math.floor(Math.random() * entries.length)]?.id;
+      const randomId = entries[Math.floor(this.rng() * entries.length)]?.id;
       return randomId ?? undefined;
     }
 

@@ -224,6 +224,38 @@ export const bagPressure = new Gauge({
   registers: [prometheusRegistry],
 });
 
+export const embeddingCacheHitsTotal = new Counter({
+  name: 'senars_embedding_cache_hits_total',
+  help: 'System One embedding cache hits',
+  registers: [prometheusRegistry],
+});
+
+export const embeddingCacheMissesTotal = new Counter({
+  name: 'senars_embedding_cache_misses_total',
+  help: 'System One embedding cache misses',
+  registers: [prometheusRegistry],
+});
+
+export const embeddingCacheEvictionsTotal = new Counter({
+  name: 'senars_embedding_cache_evictions_total',
+  help: 'System One embedding cache LRU evictions',
+  registers: [prometheusRegistry],
+});
+
+export const embeddingCacheSize = new Gauge({
+  name: 'senars_embedding_cache_size',
+  help: 'Current System One embedding cache entry count',
+  registers: [prometheusRegistry],
+});
+
+/** P2/§5s: per-event cache telemetry (no object churn in the hot path). */
+export function recordEmbeddingCacheEvent(event: 'hit' | 'miss' | 'eviction', size: number): void {
+  if (event === 'hit') embeddingCacheHitsTotal.inc();
+  else if (event === 'miss') embeddingCacheMissesTotal.inc();
+  else embeddingCacheEvictionsTotal.inc();
+  embeddingCacheSize.set(size);
+}
+
 // Export metrics in Prometheus format
 export async function getMetricsAsText(): Promise<string> {
   return prometheusRegistry.metrics();

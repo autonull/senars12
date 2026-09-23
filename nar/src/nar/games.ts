@@ -5,6 +5,7 @@ import { createSelfMetaGame, type SelfMetaGameImpl } from '../game/SelfMetaGame.
 import type { EmbeddingCache } from '../lm/system-one/embedding-cache.js';
 import type { JudgmentManifold } from '../lm/system-one/types.js';
 import type { Reflex } from '../reflex/Reflex.js';
+import type { RandomSource } from '../types/primitives.js';
 import type { SystemOneRuntime } from './system-one.js';
 
 /**
@@ -17,11 +18,14 @@ export class GameManager {
   private metaGame: SelfMetaGameImpl | null = null;
   private readonly metaGameFocuses = new Map<string, GameFocus>();
 
-  constructor(private readonly systemOne: SystemOneRuntime) {}
+  constructor(
+    private readonly systemOne: SystemOneRuntime,
+    private readonly rng?: RandomSource
+  ) {}
 
   /** Default FocusBag backing attachGame (created lazily, script-owned drive loops). */
   getFocusBag(): FocusBag {
-    this.gameFocusBag ??= new FocusBag({ capacity: 32 });
+    this.gameFocusBag ??= new FocusBag({ capacity: 32, rng: this.rng });
     return this.gameFocusBag;
   }
 
@@ -46,7 +50,7 @@ export class GameManager {
     const focus = new GameFocus({
       focusId: id,
       game,
-      focusOptions: { weight: options.weight ?? 1.0 },
+      focusOptions: { weight: options.weight ?? 1.0, rng: this.rng },
     });
     for (const reflex of options.reflexes ?? []) focus.bindReflex(reflex);
     if (this.systemOne.enabled) this.systemOne.attachManifoldReflex(focus);

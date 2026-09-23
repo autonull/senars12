@@ -233,7 +233,7 @@ error-type sweep.
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
 Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule (+processor bus typed) (DELIVERED, §5j)  → [x] Bench 62 (19 assertions, M1–M7)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  **PHASE 1 COMPLETE**
 
-NEXT SESSION ENTRY POINT: **Plan complete (Phases 0–9 all delivered, 2026-09-22).** Bench 61–70 green; typecheck/lint/test:unit/deps:gate/exports:audit all clean. Follow-up work lives in the per-phase "Follow-ups" notes below — highest-leverage next items: (1) wire rng from `NARConfig` → `Memory` → `Focus` for one-knob full replay (§5q); (2) `EmbeddingCache.metrics` → Prometheus export (§5q); (3) replace the `Function()` arithmetic eval in `aisdk-adapter`/`mcp-tools` with a WASI math evaluator (§5p); (4) wasmtime fuel metering when the Node binding stabilizes (§5p); (5) X8 core/io cycles (strangler-fig, gated); (6) migrate per-tick knob apply loops to `setMany` batch APIs (§5q); (7) CI step diffing `pnpm docs:architecture` / `pnpm docs:api` output against committed docs (§5r). Phase 9 delivered (§5r): `docs/adr/` (template + 8 ADRs), `pnpm docs:architecture` → `docs/architecture/*.mmd`, 5 contributor guides, 6-incident runbook, Bench 70 (`tests/nar/todo20-docs.test.ts`, 9 tests).
+NEXT SESSION ENTRY POINT: **Plan complete (Phases 0–9 all delivered, 2026-09-22).** Bench 61–70 green; typecheck/lint/test:unit/deps:gate/exports:audit all clean. **Post-plan follow-up pass §5s delivered 2026-09-22:** (1) NARConfig.rng one-knob replay wiring ✓; (2) EmbeddingCache → Prometheus ✓; (3) T1 sweep sampling sites ✓ (ID-salt sites ruled out — see §5s); (4) DEFAULT_APP/BOT_CONFIG deepFreeze ✓; (5) CI docs-drift gate ✓. Remaining backlog: (a) `Function()` arithmetic eval in `aisdk-adapter`/`mcp-tools` → WASI math evaluator (§5p); (b) wasmtime fuel metering when the Node binding stabilizes (§5p); (c) X8 core/io cycles (strangler-fig, gated); (d) doctor `--deep` consuming `runHealthChecks` + entry-point OTel spans (§5m); (e) T5 `@load-sensitive`/`@deterministic` name tags at next bench authoring pass; (f) code_exec_wasi stdout capture (§5p); (g) TypeDoc revisit on TS7-compatible release (§5o); (h) sub-object config strictness when a real typo incident justifies it (§5n).
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (DELIVERED, §5k)  → [x] Bench 61b
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (DELIVERED, §5l — E3 scoped to tool boundaries, see note)  → [x] Bench 64
@@ -1180,6 +1180,51 @@ TODO19 retros asked for — any ADR citing a moved/renamed file fails CI.
 - The runbooks cite current metric names (`gate_decisions_total` etc.); if O4 metrics are renamed,
   grep `docs/runbook` in the same change.
 - TypeDoc revisit (§5o) and the §5p/§5q follow-ups remain the open backlog.
+
+## 5s. Post-plan follow-up pass (2026-09-22)
+
+**Delivered:** five highest-leverage backlog items from the entry-point list. Verified:
+typecheck clean (0 new errors; the 10 pre-existing wasi/`__pb2` errors unchanged), lint clean,
+full `test:unit` green (1,883), deps:gate 72 ok.
+
+### What landed
+
+- **One-knob deterministic replay** (`NARConfig.rng?: RandomSource`): `nar.ts` →
+  `GameManager(systemOne, rng)` → default `FocusBag` (new `FocusBagOptions.rng` → `PriorityBag`)
+  and every `attachGame` `GameFocus` (`focusOptions.rng` → task/memory bags). Focus-level seam was
+  already live (§5q P1); this closes the config→bag gap. Note: `Memory`'s internal
+  `memory/focus.ts` Focus is already deterministic (no sampling) — no plumbing needed there, so
+  the plan's "NARConfig → Memory → Focus" chain resolves at GameManager, not Memory.
+- **EmbeddingCache → Prometheus** (§5q follow-up): `metricsSink?: (event: 'hit'|'miss'|'eviction', size) => void`
+  on `EmbeddingCacheConfig` (per-event, no per-op object churn in the hot path), wired by
+  `SystemOneRuntime` to `recordEmbeddingCacheEvent` → new metrics `senars_embedding_cache_{hits_total,
+  misses_total, evictions_total, size}` in `metrics/prometheus.ts`. `EmbeddingCache.metrics()`
+  remains the pull API.
+- **T1 sweep closed (§5b list triaged).** Sampling sites converted to injectable `rng` (default
+  `Math.random`): `LinkBag` (random-forget victim), `PolicyOptimizer` + `RewardModel` (`config.rng`),
+  `SampledDerivation` (now Fisher–Yates — the old `sort(() => Math.random() - 0.5)` was also a biased
+  shuffle), `ToolManager` (`options.rng` for `resolveConflict('random')`), `TabularQReflex` +
+  `EpsilonGreedyReflex` (options `rng`), `CognitiveTreadmill` (`TreadmillConfig.rng`).
+  **Ruled out (uniqueness salts, not sampling):** `nl/generation.ts`, `tools/adapters/self-tools.ts`,
+  `events/bridge.ts`, `lm/system-one/telemetry.ts` — `Math.random()` in ID/correlation-id templates
+  has no behavioral consequence; injecting rng there is churn without an edge deleted (§5a rule).
+- **DEFAULT_APP_CONFIG / DEFAULT_BOT_CONFIG / DEFAULT_PROFILE deep-frozen** (`src/config/defaults.ts`,
+  `deepFreeze` from `@senars/util`); loader `deepMerge` copies — no consumer mutates. `makeDefaultBotConfig`
+  still returns fresh mutable instances (per-call parse).
+- **CI docs-drift gate** (§5r follow-up): `gates` job runs `pnpm docs:api` + `pnpm docs:architecture`
+  and `git diff --exit-code docs/api docs/architecture` — committed generated docs are now the
+  source of truth; regenerating with stale content fails CI.
+
+### Notes for the remaining backlog
+
+- `SampledDerivation` now takes `rng` in its ctor (was a bare `Math.random` sort-shuffle); any
+  strategy-registry construction site can pass a seeded source for deterministic derivation sampling.
+- The docs-drift gate requires `docs:architecture` output to be deterministic — it is (pure import
+  walk), but any new `nar/src` import edge changes `nar-modules.mmd`; regenerate in the same commit
+  as the code change (this pass itself regenerated it).
+- Bench 69's seeded-replay assertions still target `Focus`/`PriorityBag` directly; extending one case
+  to construct a NAR with `createLCG(42)` config would pin the new end-to-end wiring (deferred —
+  plumbing is compile-checked and GameManager path is covered by game suites).
 
 ## 6. Definition of Done
 

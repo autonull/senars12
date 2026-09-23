@@ -1,6 +1,7 @@
 import type { PreferenceData } from './PreferenceCollector.js';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import { extractTrajectoryFeatures } from './utils.js';
+import type { RandomSource } from '../types/primitives.js';
 
 export interface RewardFeatures {
   trajectoryLength: number;
@@ -19,11 +20,13 @@ export interface RewardModelConfig {
   errorPenalty?: number;
   concisenessWeight?: number;
   diversityWeight?: number;
+  /** §5s: injectable RNG for preference sampling. */
+  rng?: RandomSource;
 }
 
 export class RewardModel {
   private preferences: PreferenceData[] = [];
-  private readonly config: RewardModelConfig;
+  private readonly config: Omit<RewardModelConfig, 'rng'>;
   private featureWeights: Map<string, number> = new Map();
 
   constructor(config: RewardModelConfig = {}) {
@@ -34,7 +37,10 @@ export class RewardModel {
       concisenessWeight: config.concisenessWeight ?? 0.2,
       diversityWeight: config.diversityWeight ?? 0.2,
     };
+    this.rng = config.rng ?? Math.random;
   }
+
+  private readonly rng: RandomSource;
 
   addPreferences(prefs: PreferenceData | PreferenceData[]): void {
     const newPrefs = Array.isArray(prefs) ? prefs : [prefs];
@@ -110,7 +116,7 @@ export class RewardModel {
     let correctPredictions = 0;
 
     for (let i = 0; i < iterations; i++) {
-      const sample = this.preferences[Math.floor(Math.random() * this.preferences.length)];
+      const sample = this.preferences[Math.floor(this.rng() * this.preferences.length)];
       if (!sample) continue;
       const rewardA = this.computeReward(sample.trajectoryA);
       const rewardB = this.computeReward(sample.trajectoryB);
@@ -143,12 +149,12 @@ export class RewardModel {
     for (const [key, baseWeight] of Object.entries(this.config)) {
       if (baseWeight === undefined) continue;
 
-      this.config[key as keyof RewardModelConfig] = baseWeight + epsilon;
+      this.config[key as keyof Omit<RewardModelConfig, "rng">] = baseWeight + epsilon;
       const lossWithPerturbation = this.computeLoss(preferences);
       const gradient = (lossWithPerturbation - initialLoss) / epsilon;
       gradients.set(key, gradient);
 
-      this.config[key as keyof RewardModelConfig] = baseWeight - learningRate * gradient;
+      this.config[key as keyof Omit<RewardModelConfig, "rng">] = baseWeight - learningRate * gradient;
     }
 
     this.normalizeWeights();
@@ -222,7 +228,7 @@ export class RewardModel {
 
     if (sum > 0) {
       for (const [key, value] of weights) {
-        this.config[key as keyof RewardModelConfig] = value / sum;
+        this.config[key as keyof Omit<RewardModelConfig, "rng">] = value / sum;
       }
     }
   }

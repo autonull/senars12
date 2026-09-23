@@ -255,7 +255,7 @@ export class CognitiveTreadmill {
   }
 
   private rng(): number {
-    return Math.random();
+    return this.config.rng?.() ?? Math.random();
   }
 
   private sleep(ms: number): Promise<void> {

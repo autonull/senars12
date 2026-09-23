@@ -4,6 +4,7 @@ import { SenarsError } from '@senars/util/errors';
 import { createLogger } from '../logger';
 import type { Term } from '../terms';
 import type { EventBus, NAREventMap } from '../types';
+import type { RandomSource } from '../types/primitives.js';
 import { executeToolGoal } from './goal';
 import { Registry, type ToolDescriptor } from './registry';
 import type {
@@ -33,16 +34,20 @@ export class ToolManager {
   private readonly sandboxMode: boolean;
   private eventBus?: EventBus<NAREventMap>;
   private readonly feedbackObserver: ToolFeedbackObserver;
+  private readonly rng: RandomSource;
 
   constructor(options?: {
     sandboxMode?: boolean;
     allowedPermissions?: string[];
     eventBus?: EventBus<NAREventMap>;
     feedbackObserver?: ToolFeedbackObserver;
+    /** §5s: injectable RNG for `random` conflict resolution. */
+    rng?: RandomSource;
   }) {
     this.sandboxMode = options?.sandboxMode ?? false;
     this.eventBus = options?.eventBus;
     this.feedbackObserver = options?.feedbackObserver ?? new DefaultToolFeedbackObserver();
+    this.rng = options?.rng ?? Math.random;
     for (const p of options?.allowedPermissions ?? []) {
       this.allowedPermissions.add(p);
     }
@@ -154,7 +159,7 @@ export class ToolManager {
     }
 
     if (preference === 'random') {
-      return tools[Math.floor(Math.random() * tools.length)]!;
+      return tools[Math.floor(this.rng() * tools.length)]!;
     }
 
     return tools[0]!;

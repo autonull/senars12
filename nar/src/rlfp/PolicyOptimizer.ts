@@ -1,6 +1,7 @@
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import type { RewardModel } from './RewardModel.js';
 import { findCommonFeatures } from './utils.js';
+import type { RandomSource } from '../types/primitives.js';
 
 export interface PolicyConfig {
   explorationRate?: number;
@@ -8,6 +9,8 @@ export interface PolicyConfig {
   discountFactor?: number;
   maxIterations?: number;
   convergenceThreshold?: number;
+  /** §5s: injectable RNG for exploration sampling. */
+  rng?: RandomSource;
 }
 
 export interface PolicyUpdate {
@@ -35,7 +38,7 @@ export class PolicyOptimizer {
     strategyUsed: string;
   }> = [];
   private rewardModel: RewardModel;
-  private readonly config: Required<PolicyConfig>;
+  private readonly config: Omit<Required<PolicyConfig>, 'rng'>;
 
   constructor(rewardModel: RewardModel, config: PolicyConfig = {}) {
     this.rewardModel = rewardModel;
@@ -46,9 +49,12 @@ export class PolicyOptimizer {
       maxIterations: config.maxIterations ?? 1000,
       convergenceThreshold: config.convergenceThreshold ?? 0.001,
     };
+    this.rng = config.rng ?? Math.random;
   }
 
-  getConfig(): Required<PolicyConfig> {
+  private readonly rng: RandomSource;
+
+  getConfig(): Omit<Required<PolicyConfig>, 'rng'> {
     return this.config;
   }
 
@@ -78,9 +84,9 @@ export class PolicyOptimizer {
       return 'default';
     }
 
-    if (Math.random() < this.config.explorationRate) {
+    if (this.rng() < this.config.explorationRate) {
       const strategyArray = Array.from(this.strategies.keys());
-      return strategyArray[Math.floor(Math.random() * strategyArray.length)] ?? 'default';
+      return strategyArray[Math.floor(this.rng() * strategyArray.length)] ?? 'default';
     }
 
     let bestStrategy = 'default';

@@ -1,9 +1,12 @@
 import { PriorityBag } from '../bag/Bag.js';
+import type { RandomSource } from '../types/primitives.js';
 import { Focus, type FocusOptions } from './Focus.js';
 
 export interface FocusBagOptions {
   capacity: number;
   decayRate?: number;
+  /** TODO20 §5s: injectable RNG for deterministic focus selection. */
+  rng?: RandomSource;
 }
 
 export interface SerializedFocusBag {
@@ -17,6 +20,7 @@ export class FocusBag extends PriorityBag<Focus> {
     super({
       capacity: options.capacity,
       decayRate: options.decayRate ?? 0.005,
+      rng: options.rng,
     });
   }
 

@@ -1,4 +1,5 @@
 import type { Perception } from '../game/Game.js';
+import type { RandomSource } from '../types/primitives.js';
 import type { ActionProposal, LearningEvent, Reflex } from './Reflex.js';
 
 interface QEntry {
@@ -13,6 +14,8 @@ interface TabularQReflexOptions {
   confidenceScale?: number;
   epsilonDecay?: number;
   epsilonMin?: number;
+  /** §5s: injectable RNG for exploration. */
+  rng?: RandomSource;
 }
 
 export interface SerializedQTable {
@@ -45,7 +48,10 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
     this.confidenceScale = options.confidenceScale ?? 5;
     this.epsilonDecay = options.epsilonDecay ?? 0.99;
     this.epsilonMin = options.epsilonMin ?? 0.01;
+    this.rng = options.rng ?? Math.random;
   }
+
+  private readonly rng: RandomSource;
 
   propose(state: S, legalActions: A[]): ActionProposal[] {
     const stateKey = this.stateToKey(state);
@@ -70,10 +76,10 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
     }
 
     // Epsilon-greedy: with probability epsilon, randomize the order
-    if (Math.random() < this.epsilon) {
+    if (this.rng() < this.epsilon) {
       // Shuffle to simulate exploration
       for (let i = proposals.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(this.rng() * (i + 1));
         [proposals[i]!, proposals[j]!] = [proposals[j]!, proposals[i]!];
       }
     } else {

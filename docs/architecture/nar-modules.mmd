@@ -219,6 +219,7 @@ graph TD
   memory_lifecycle --> memory
   memory_lifecycle --> terms
   memory_links --> memory
+  memory_links --> types
   memory_pressure --> memory
   memory_state --> bag
   memory_state --> memory
@@ -229,8 +230,10 @@ graph TD
   nar --> kernel
   nar --> lm_system-one
   nar --> memory
+  nar --> metrics
   nar --> reflex
   nar --> state
+  nar --> types
   nar --> utils
   nl --> _
   nl --> lm
@@ -253,6 +256,7 @@ graph TD
   reflex --> focus
   reflex --> game
   reflex --> otel
+  reflex --> types
   rl --> _
   rl --> drives
   rl --> game
@@ -263,6 +267,7 @@ graph TD
   rl_adapters --> rl
   rl_adapters --> types
   rlfp --> config
+  rlfp --> types
   rules --> _
   rules --> kernel
   rules --> lm
@@ -283,6 +288,7 @@ graph TD
   strategies --> strategies_sampling
   strategies_attention --> strategies
   strategies_derivation --> strategies
+  strategies_derivation --> types
   strategies_lm-selectors --> strategies
   strategies_sampling --> strategies
   stream --> kernel
@@ -301,6 +307,7 @@ graph TD
   tick --> types
   tools --> _
   tools --> kernel
+  tools --> types
   tools_adapters --> capability
   tools_adapters --> memory
   tools_adapters --> nl

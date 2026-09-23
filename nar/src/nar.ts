@@ -133,7 +133,7 @@ export class NAR extends BaseComponent {
       lmService: this._lmService,
       onJudgmentResolved: (proposition, query) => this.emitJudgmentResolved(proposition, query),
     });
-    this.games = new GameManager(this.systemOne);
+    this.games = new GameManager(this.systemOne, config.rng);
 
     // Initialize gate registry with System One perception config if enabled
     const perceptionConfig = this.config.systemOne?.enabled

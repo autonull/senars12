@@ -44,6 +44,8 @@ export interface TreadmillConfig {
   burstSize: number;
   maxSteps: number;
   mixedEventRatio: { belief: number; goal: number; question: number };
+  /** §5s: injectable RNG for burst scheduling (deterministic stress replay). */
+  rng?: () => number;
 }
 
 export interface StressMetrics {

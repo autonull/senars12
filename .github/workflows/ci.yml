@@ -18,6 +18,11 @@ jobs:
       - run: pnpm deps:gate
       # TODO20 A1: no export without a consumer (or PUBLIC_API declaration)
       - run: pnpm exports:audit
+      # TODO20 §5s: generated docs must match committed output (drift gate)
+      - run: |
+          pnpm docs:api
+          pnpm docs:architecture
+          git diff --exit-code docs/api docs/architecture
       - run: pnpm test:unit
   systemone-slo:
     runs-on: ubuntu-latest

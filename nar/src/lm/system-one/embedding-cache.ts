@@ -34,6 +34,8 @@ export interface EmbeddingCacheConfig {
   /** H1/Bench 26: expected embedding width — wrong-dimension vectors are rejected here. */
   dimension?: number;
   generator?: { generate(text: string): Promise<number[]> };
+  /** §5s: per-event metrics sink (wired to Prometheus by SystemOneRuntime). */
+  metricsSink?: (event: 'hit' | 'miss' | 'eviction', size: number) => void;
 }
 
 interface CacheEntry {
@@ -62,6 +64,7 @@ export class EmbeddingCache {
   #pointerCounter = 0;
   #metrics = { hits: 0, misses: 0, writes: 0, evictions: 0 };
   #nextExpirySweep = 0;
+  readonly #metricsSink?: NonNullable<EmbeddingCacheConfig['metricsSink']>;
 
   constructor(config: Partial<EmbeddingCacheConfig> = {}) {
     this.#config = {
@@ -70,16 +73,23 @@ export class EmbeddingCache {
       dimension: config.dimension,
     };
     this.#generator = config.generator ?? new TransformersEmbeddingGenerator();
+    this.#metricsSink = config.metricsSink;
+  }
+
+  #emit(event: 'hit' | 'miss' | 'eviction'): void {
+    this.#metricsSink?.(event, this.#cache.size);
   }
 
   async write(text: string): Promise<EmbeddingPointer> {
     const existing = this.#cache.get(text);
     if (existing) {
       this.#metrics.hits++;
+      this.#emit('hit');
       this.#touchEntry(text, existing);
       return existing.pointer;
     }
     this.#metrics.misses++;
+    this.#emit('miss');
 
     const embedding = await this.#generator.generate(text);
     if (this.#config.dimension !== undefined && embedding.length !== this.#config.dimension) {
@@ -193,6 +203,7 @@ export class EmbeddingCache {
       this.#cache.delete(key);
       this.#pointerIndex.delete(entry.pointer);
       this.#metrics.evictions++;
+      this.#emit('eviction');
     }
     this.#lru.delete(key);
   }

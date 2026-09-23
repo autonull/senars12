@@ -1,3 +1,4 @@
+import type { RandomSource } from '../types/primitives.js';
 import type { ActionProposal, LearningEvent, Reflex } from './Reflex.js';
 
 interface QEntry {
@@ -13,12 +14,21 @@ export class EpsilonGreedyReflex implements Reflex<string, number> {
 
   constructor(
     id: string,
-    options: { numArms: number; epsilon?: number; initialValue?: number } = { numArms: 10 }
+    options: {
+      numArms: number;
+      epsilon?: number;
+      initialValue?: number;
+      /** §5s: injectable RNG for exploration. */
+      rng?: RandomSource;
+    } = { numArms: 10 }
   ) {
     this.id = id;
     this.numArms = options.numArms;
     this.epsilon = options.epsilon ?? 0.1;
+    this.rng = options.rng ?? Math.random;
   }
+
+  private readonly rng: RandomSource;
 
   propose(state: string, legalActions: number[]): ActionProposal[] {
     const qState = this.qTable.get(state) ?? this.initializeState();
@@ -34,8 +44,8 @@ export class EpsilonGreedyReflex implements Reflex<string, number> {
       let value = entry.value;
       const confidence = Math.min(1, entry.count / 10);
 
-      if (Math.random() < this.epsilon && entry.count < 5) {
-        value = Math.random();
+      if (this.rng() < this.epsilon && entry.count < 5) {
+        value = this.rng();
       }
 
       proposals.push({

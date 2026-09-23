@@ -8,6 +8,7 @@ import type { LMService, SeNARSRegistry } from '../lm';
 import type { EmbeddingCache } from '../lm/system-one/embedding-cache.js';
 import type { JudgmentManifold } from '../lm/system-one/types.js';
 import type { AttentionModel } from '../strategies';
+import type { RandomSource } from '../types/primitives.js';
 import { SimpleAttention } from '../strategies';
 import { ConfigurationError, type CoreConfig } from '../types';
 
@@ -50,6 +51,8 @@ export interface NARConfig extends CoreConfig {
   gateRegistry?: GateRegistry;
 
   systemOne?: Partial<SystemOneConfig>;
+  /** TODO20 §5s: injectable RNG — one knob for deterministic replay (threads to focus bags). */
+  rng?: RandomSource;
 }
 
 export function validateNarConfig(config: NARConfig): NARConfig {

@@ -5,6 +5,7 @@ import { createLMServiceCortex } from '../lm/system-one/cortex-adapter.js';
 import { createDispatcher, StubCortex } from '../lm/system-one/dispatcher.js';
 import { JudgmentDataset } from '../lm/system-one/distill.js';
 import { createEmbeddingCache, type EmbeddingCache } from '../lm/system-one/embedding-cache.js';
+import { recordEmbeddingCacheEvent } from '../metrics/prometheus.js';
 import { createGroundednessGate } from '../lm/system-one/groundedness-gate.js';
 import { createHttpManifold } from '../lm/system-one/http-manifold.js';
 import { LMReflex } from '../lm/system-one/lm-reflex.js';
@@ -63,6 +64,7 @@ export class SystemOneRuntime {
         ttlMs: 300_000,
         dimension: encoderConfig?.dimension ?? encoder.dimension,
         generator: encoder,
+        metricsSink: recordEmbeddingCacheEvent,
       });
     this.embeddingCache = embeddingCache;
 
