@@ -4,8 +4,8 @@
  *
  * CLI-only by default: no IRC/WS/HTTP/MCP unless ENABLE_*=true or started
  * at runtime via `.connect`. Replaces bot-ai.ts, repl.ts, status.ts,
- * doctor.ts, multi-agent.ts, tune.ts (`--status/--doctor/--tune/--arcade`
- * delegate to the original modules).
+ * doctor.ts, multi-agent.ts, tune.ts (`--status/--doctor/--tune/--arcade/
+ * --multiagent` delegate to `src/bin/lib/*` runners).
  */
 
 import { execFile } from 'node:child_process';
@@ -108,8 +108,10 @@ const gpuSummary = async (): Promise<string> => {
 };
 
 function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager): CLICommand[] {
-  const { agent, nar, sessionManager, episodicMemory, lmService, profile } = w;
-  let appConfig = w.appConfig;
+  const { agent, nar, sessionManager, episodicMemory, lmService } = w;
+  // loadConfig() returns a deeply frozen object — clone for runtime mutation.
+  let appConfig = structuredClone(w.appConfig);
+  const profile = appConfig.profile;
   const secretIds = new Set<string>();
   let webuiHandle: { close?: () => Promise<void> } | null = null;
   let tier: 'quality' | 'fast' | 'structured' = profile.narrateTier;
@@ -134,7 +136,7 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager):
 
   return [
     cmd('help', 'Show all commands (categorized)', () =>
-      `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable | Memory: .consolidate .memory-stats .memory-export .memory-import\nLM: .lm-config .lm-provider .lm-model .lm-rules .routing .circuit-breakers | SystemOne: .systemone .manifold .calibrate .distill .selftune\nDiag: .doctor .health .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload | .auth-list .auth-add .auth-remove`
+      `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable .skill-add .skill-remove .skill-edit | Memory: .consolidate .memory-stats .memory-export .memory-import .memory-clear\nLM: .lm-config .lm-provider .lm-model .lm-rules .lm-rule-enable .lm-rule-disable .routing .routing-set .routing-offline .circuit-breakers .circuit-reset | SystemOne: .systemone .manifold .calibrate .distill .selftune\nDiag: .doctor .health .benchmarks .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload .config-reset | .auth-list .auth-add .auth-remove`
     ),
     cmd('connect', 'Start a connection: irc|ws|http|mcp', async (args = '') => {
       const parts = args.trim().split(/\s+/).filter(Boolean);
@@ -175,10 +177,16 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager):
       } catch (e) { return `connect failed: ${errMsg(e)}`; }
     }),
     cmd('disconnect', 'Disconnect and remove a connection', async (args = '') => {
-      const id = args.trim().split(/\s+/)[0];
-      if (!id) return 'Usage: .disconnect <connection-id>';
-      try { await cm.removeConnection(id); return `Disconnected ${id}`; }
-      catch (e) { return `disconnect failed: ${errMsg(e)}`; }
+      const key = args.trim().split(/\s+/)[0]?.toLowerCase();
+      if (!key) return 'Usage: .disconnect <connection-id|irc|ws|http|mcp>';
+      try {
+        const direct = cm.getConnection(args.trim().split(/\s+/)[0] ?? '');
+        const id = direct?.id
+          ?? [...cm.getConnections()].find(([, c]) => c.type === key || c.type.replace('websocket', 'ws') === key)?.[0];
+        if (!id) return `Unknown connection: ${key}`;
+        await cm.removeConnection(id);
+        return `Disconnected ${id}`;
+      } catch (e) { return `disconnect failed: ${errMsg(e)}`; }
     }),
     cmd('connections', 'List connections or show one in detail', (args = '') => {
       const id = args.trim().split(/\s+/)[0];
@@ -195,9 +203,8 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager):
     cmd('profile', 'Show or set profile fields', (args = '') => {
       const [field, ...rest] = args.trim().split(/\s+/).filter(Boolean);
       if (!field) return `name=${profile.name} personality=${profile.personality?.slice(0, 80)} tier=${tier} join=${profile.joinMessage?.slice(0, 80) ?? '—'}`;
-      const value = rest.join(' ');
-      if (field === 'tier' && (value === 'quality' || value === 'fast' || value === 'structured')) { tier = value; return `Tier set to ${value}`; }
-      if (field in profile && value) { (profile as Record<string, unknown>)[field] = value; return `profile.${field} updated`; }
+      if (field === 'tier') return 'Use .tier quality|fast|structured to switch chat tier';
+      if (field in profile && rest.length) { (profile as Record<string, unknown>)[field] = rest.join(' '); return `profile.${field} updated`; }
       return 'Usage: .profile [name|personality|joinmsg|tier <value>]';
     }),
     cmd('skills', 'List skills', () => {
@@ -218,6 +225,30 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager):
       if (!s) return `Unknown skill: ${id}`;
       s.enabled = false; return `Disabled ${id} (persist with .config-save)`;
     }),
+    cmd('skill-add', 'Add a skill: <id> <description> <instructions>', (args = '') => {
+      const [id, ...rest] = args.trim().split(/\s+/).filter(Boolean);
+      if (!id || rest.length < 2) return 'Usage: .skill-add <id> <description> <instructions>';
+      const skills = (appConfig.bot.skills ?? []) as Array<Record<string, unknown>>;
+      if (skills.some((s) => s.id === id)) return `Skill exists: ${id}`;
+      skills.push({ id, description: rest.slice(0, -1).join(' '), instructions: rest[rest.length - 1], enabled: true });
+      return `Added ${id} (persist with .config-save)`;
+    }),
+    cmd('skill-remove', 'Remove a skill', (args = '') => {
+      const id = args.trim();
+      const skills = (appConfig.bot.skills ?? []) as Array<Record<string, unknown>>;
+      const i = skills.findIndex((s) => s.id === id || s.name === id);
+      if (i < 0) return `Unknown skill: ${id}`;
+      skills.splice(i, 1); return `Removed ${id} (persist with .config-save)`;
+    }),
+    cmd('skill-edit', 'Edit a skill field: <id> <field> <value>', (args = '') => {
+      const [id, field, ...rest] = args.trim().split(/\s+/).filter(Boolean);
+      if (!id || !field || !rest.length) return 'Usage: .skill-edit <id> <description|instructions|enabled> <value>';
+      const s = ((appConfig.bot.skills ?? []) as Array<Record<string, unknown>>).find((x) => x.id === id || x.name === id);
+      if (!s) return `Unknown skill: ${id}`;
+      if (!(field in s)) return `Unknown field: ${field}`;
+      s[field] = field === 'enabled' ? rest[0] !== 'false' : rest.join(' ');
+      return `Updated ${id}.${field} (persist with .config-save)`;
+    }),
     cmd('consolidate', 'Run memory consolidation', async (args = '') => {
       const [limit, relevance, dedupe] = args.trim().split(/\s+/).filter(Boolean).map(Number);
       try {
@@ -234,6 +265,11 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager):
       const byType = new Map<string, number>();
       for (const e of eps) byType.set(e.type, (byType.get(e.type) ?? 0) + 1);
       return `episodes=${eps.length} path=${episodicMemory.basePath}\n${[...byType].map(([t, n]) => `  ${t}: ${n}`).join('\n') || '  (empty)'}`;
+    }),
+    cmd('memory-clear', 'Clear episodic memory (requires --yes)', async (args = '') => {
+      if (!args.includes('--yes')) return 'Destructive. Re-run as .memory-clear --yes to confirm';
+      await episodicMemory.clear();
+      return 'Episodic memory cleared';
     }),
     cmd('memory-export', 'Export episodes to JSONL', async (args = '') => {
       const path = args.trim() || '.cache/episodes-export.jsonl';
@@ -281,12 +317,48 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager):
     cmd('lm-rules', 'List LM rules from config', () =>
       ((appConfig.bot.lmRules?.rules ?? []) as string[]).join(', ') || '(no lm rules configured)'
     ),
+    cmd('lm-rule-enable', 'Enable an LM rule id', (args = '') => {
+      const id = args.trim();
+      if (!id) return 'Usage: .lm-rule-enable <id>';
+      const rules = (appConfig.bot.lmRules?.rules ?? []) as string[];
+      if (!rules.includes(id)) rules.push(id);
+      return `Enabled ${id} (restart bot to register; persist with .config-save)`;
+    }),
+    cmd('lm-rule-disable', 'Disable an LM rule id', (args = '') => {
+      const id = args.trim();
+      if (!id) return 'Usage: .lm-rule-disable <id>';
+      const rules = (appConfig.bot.lmRules?.rules ?? []) as string[];
+      const i = rules.indexOf(id);
+      if (i < 0) return `Not configured: ${id}`;
+      rules.splice(i, 1);
+      return `Disabled ${id} (restart bot to deregister; persist with .config-save)`;
+    }),
     cmd('routing', 'Show routing matrix', async () => {
       try {
         const { getModelChain } = await import('@senars/nar/lm/providers.js');
         const cfg = resolveLMConfig();
         return (['quality', 'fast', 'structured'] as const).map((t) => `  ${t}: ${getModelChain(cfg.provider, t).join(' → ')}`).join('\n');
       } catch (e) { return `routing unavailable: ${errMsg(e)}`; }
+    }),
+    cmd('routing-set', 'Set routing candidates live: <model-id...>', async (args = '') => {
+      const candidates = args.trim().split(/\s+/).filter(Boolean);
+      if (!candidates.length) return 'Usage: .routing-set <model-id...>';
+      try {
+        const { getRouting, setRouting } = await import('@senars/nar/lm/providers.js');
+        setRouting({ ...(getRouting() ?? {}), candidates });
+        if (appConfig.routing) (appConfig.routing as Record<string, unknown>).candidates = candidates;
+        return `candidates=${candidates.join(',')} (persist with .config-save)`;
+      } catch (e) { return `routing-set failed: ${errMsg(e)}`; }
+    }),
+    cmd('routing-offline', 'Set offline failsafe ladder: <model-id...>', async (args = '') => {
+      const ladder = args.trim().split(/\s+/).filter(Boolean);
+      if (!ladder.length) return 'Usage: .routing-offline <model-id...>';
+      try {
+        const { getRouting, setRouting } = await import('@senars/nar/lm/providers.js');
+        setRouting({ ...(getRouting() ?? {}), offlineLadder: ladder });
+        if (appConfig.routing) (appConfig.routing as Record<string, unknown>).offlineLadder = ladder;
+        return `offline ladder=${ladder.join(' → ')} (persist with .config-save)`;
+      } catch (e) { return `routing-offline failed: ${errMsg(e)}`; }
     }),
     cmd('circuit-breakers', 'Show circuit breaker states', async () => {
       try {
@@ -296,6 +368,18 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager):
           .map((p) => { try { const b = getCircuitBreaker(p as never); getEffectiveCircuitConfig(p as never, s as never); return `  ${p}: ${b.state} fails=${b.consecutiveFailures}`; } catch { return `  ${p}: n/a`; } })
           .join('\n');
       } catch (e) { return `circuit info unavailable: ${errMsg(e)}`; }
+    }),
+    cmd('circuit-reset', 'Reset circuit breaker(s): <provider>|all', async (args = '') => {
+      const name = args.trim().toLowerCase();
+      if (!name) return 'Usage: .circuit-reset <provider>|all';
+      try {
+        const { getCircuitBreaker, resetCircuitBreakers } = await import('@senars/nar/lm/providers.js');
+        if (name === 'all') { resetCircuitBreakers(); return 'All circuit breakers reset'; }
+        const b = getCircuitBreaker(name as never) as { reset?: () => void };
+        if (typeof b.reset !== 'function') return `No resettable breaker: ${name}`;
+        b.reset();
+        return `Circuit breaker reset: ${name}`;
+      } catch (e) { return `circuit-reset failed: ${errMsg(e)}`; }
     }),
     cmd('systemone', 'System One status / on|off note', (args = '') => {
       const on = nar.isSystemOneEnabled?.() ?? false;
@@ -373,6 +457,13 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager):
       try { return Object.keys((nar as unknown as { gates?: object }).gates ?? {}).join(', ') || 'gates: n/a'; }
       catch (e) { return `gates unavailable: ${errMsg(e)}`; }
     }),
+    cmd('benchmarks', 'Micro-benchmark: time NAR inference cycles', async (args = '') => {
+      const cycles = Math.max(1, Math.min(200, Number(args.trim()) || 20));
+      const t0 = Date.now();
+      const derived = await nar.run(cycles);
+      const ms = Date.now() - t0;
+      return `${cycles} cycles in ${ms}ms (${(cycles / Math.max(ms, 1) * 1000).toFixed(0)} cyc/s), derivations=${derived}\nFull suites: pnpm bench`;
+    }),
     cmd('webui', 'Start/stop web UI', async (args = '') => {
       const [sub] = args.trim().split(/\s+/);
       if (sub === 'stop') {
@@ -421,6 +512,12 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager):
       appConfig = await loadConfig();
       return 'Config reloaded (LM/routing changes need restart)';
     }),
+    cmd('config-reset', 'Reset config to defaults (requires --yes)', async (args = '') => {
+      if (!args.includes('--yes')) return 'Destructive. Re-run as .config-reset --yes to confirm';
+      const { DEFAULT_APP_CONFIG } = await import('../config/index.js');
+      appConfig = structuredClone(DEFAULT_APP_CONFIG);
+      return 'Config reset to defaults (persist with .config-save; restart bot to apply)';
+    }),
     cmd('auth-list', 'List connections with auth secrets', () =>
       secretIds.size ? [...secretIds].map((id) => `  ${id}: secret set`).join('\n') : '(no auth secrets set)'
     ),
@@ -441,13 +538,14 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager):
 
 async function runNonInteractive(argv: string[]): Promise<boolean> {
   if (argv.includes('--help') || argv.includes('-h')) {
-    console.log('Usage: pnpm run bot [-- --status|--doctor|--tune|--arcade] [--json]\n\nNo flags: interactive CLI (senars> ). Connections are opt-in via .connect or ENABLE_IRC/WS/HTTP/MCP=true.');
+    console.log('Usage: pnpm run bot [-- --status|--doctor|--tune|--arcade|--multiagent] [--json]\n\nNo flags: interactive CLI (senars> ). Connections are opt-in via .connect or ENABLE_IRC/WS/HTTP/MCP=true.');
     return true;
   }
-  if (argv.includes('--status')) { await import('./status.js').then((m) => m.runStatus()); return true; }
-  if (argv.includes('--doctor')) { await import('./doctor.js'); return true; }
-  if (argv.includes('--tune')) { await import('./tune.js'); return true; }
+  if (argv.includes('--status')) { await import('./lib/status-report.js').then((m) => m.runStatus()); return true; }
+  if (argv.includes('--doctor')) { await import('./lib/doctor-report.js').then((m) => m.runDoctor()); return true; }
+  if (argv.includes('--tune')) { await import('./lib/tune-runner.js').then((m) => m.runTune()); return true; }
   if (argv.includes('--arcade')) { await import('../../scripts/arcade.js'); return true; }
+  if (argv.includes('--multiagent')) { await import('./lib/multi-agent-entry.js').then((m) => m.runMultiAgentEntry()); return true; }
   return false;
 }
 

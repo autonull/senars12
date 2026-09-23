@@ -9,11 +9,11 @@
  */
 
 import { existsSync, statSync } from 'node:fs';
-import { loadConfig } from '../config/index.js';
+import { loadConfig } from '../../config/index.js';
 import { createLMService } from '@senars/nar';
 import { NARBuilder } from '@senars/nar/agent/builder';
 import { HEAD_SPECS } from '@senars/nar/lm/system-one/head-specs.js';
-import { systemOneDefaults, systemOneSchema } from '../config/schema.js';
+import { systemOneDefaults, systemOneSchema } from '../../config/schema.js';
 import { createLogger } from '@senars/nar/logger';
 
 const logger = createLogger({ scope: 'status' });
@@ -126,7 +126,7 @@ export const runStatus = async (): Promise<StatusReport> => {
   return report;
 };
 
-if (process.argv[1]?.endsWith('status.ts')) {
+if (process.argv[1]?.endsWith('status-report.ts')) {
   runStatus().catch((e) => {
     logger.error('status failed', { error: e instanceof Error ? e.message : String(e) });
     process.exit(1);

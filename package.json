@@ -19,7 +19,7 @@
     "bot:ws": "ENABLE_WS=true pnpm run bot",
     "bot:http": "ENABLE_HTTP=true pnpm run bot",
     "bot:mcp": "ENABLE_MCP=true pnpm run bot",
-    "multi-agent": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/multi-agent.ts",
+    "multi-agent": "pnpm run bot -- --multiagent",
     "senars": "NODE_NO_WARNINGS=1 tsx src/bin/senars.ts",
     "tune": "pnpm run bot -- --tune",
     "config:check": "tsx --env-file=.env src/utils/config-check.ts",

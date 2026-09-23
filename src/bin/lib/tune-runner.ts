@@ -10,7 +10,7 @@ import { resolve } from 'node:path';
 import type { CognitiveParameters } from '@senars/nar/config/cognitive-parameters.js';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters.js';
 import { RLFPLearner } from '@senars/nar/rlfp';
-import { runEntrypoint } from './lib/fatal-error.js';
+import { runEntrypoint } from './fatal-error.js';
 
 interface TuneOptions {
   iterations: number;
@@ -278,4 +278,8 @@ async function main(): Promise<void> {
   console.log('\n✅ NAR Tune completed successfully!');
 }
 
-runEntrypoint(main);
+export const runTune = main;
+
+if (process.argv[1]?.endsWith('tune-runner.ts')) {
+  runEntrypoint(main);
+}

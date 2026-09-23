@@ -33,7 +33,7 @@ import {
 import { createLogger } from '@senars/nar/logger';
 import { createBotNAR } from '@senars/nar';
 import { runHealthChecks } from '@senars/nar/health';
-import { loadConfig } from '../config/index.js';
+import { loadConfig } from '../../config/index.js';
 import { getConsolidationWatchdogStatus } from '@senars/nar/memory/pressure/index.js';
 
 const logger = createLogger({ scope: 'doctor' });
@@ -319,7 +319,11 @@ if (jsonOutput) {
   }
 };
 
-main().catch((err) => {
-  createLogger({ scope: 'doctor' }).error('doctor failed', err as Error);
-  process.exit(1);
-});
+export const runDoctor = main;
+
+if (process.argv[1]?.endsWith('doctor-report.ts')) {
+  main().catch((err) => {
+    createLogger({ scope: 'doctor' }).error('doctor failed', err as Error);
+    process.exit(1);
+  });
+}

@@ -17,7 +17,7 @@ Rather than treating language models as standalone reasoning engines, SeNARS int
 pnpm install       # Install dependencies
 pnpm run dev       # Development mode (watch)
 pnpm run start     # Run once
-pnpm chat          # Interactive REPL chat (turn-key conversational entry)
+pnpm bot              # Unified CLI-first bot (REPL + all diagnostics; see §Bot)
 pnpm status        # Live System One manifold health, head calibration, LM spend
 pnpm doctor        # Onboarding: credentials, lm api probe, effective LM/routing matrix
 pnpm bench:system-one            # System One on/off latency + token benchmark
@@ -32,16 +32,28 @@ pnpm run lint      # Lint
 
 ### Bot
 
-The `pnpm bot` command starts a multi-transport agent that drives a single SeNARS agent through IRC, CLI, and WebSocket.
+`pnpm bot` starts the unified CLI-first agent: an interactive `senars> ` prompt with the full
+command set (NAR/memory/LM/System One/diagnostics) and **no network connections by default**.
 
 ```bash
 cp .env.example .env  # Fill in your LM provider credentials
-pnpm bot              # IRC + WS by default
+pnpm bot              # CLI only — type .help for commands, or just chat
 ```
 
-Default behavior: connects to `irc.libera.chat#senars` as `senars-bot` and starts a WebSocket server on `ws://localhost:8765`. IRC clients and WebSocket bots share the same agent instance.
+Attach transports at runtime from inside the CLI, or auto-connect at startup via env:
 
-To enable HTTP (REST): set `ENABLE_HTTP=true` in `.env`. See `docs/bot-api.md` for the bot-to-bot API and `docs/manual-test-irc.md` for a 9-step manual test protocol.
+```bash
+senars> .connect irc irc.libera.chat 6697 senars-bot #senars
+senars> .connect ws 8765
+senars> .connections   # list all with status
+senars> .disconnect ws # by id or by type (irc|ws|http|mcp)
+
+ENABLE_IRC=true pnpm bot   # or: pnpm bot:irc | bot:ws | bot:http | bot:mcp
+```
+
+`pnpm status`, `pnpm doctor`, `pnpm tune`, and `pnpm arcade` are aliases for
+`pnpm bot -- --status|--doctor|--tune|--arcade`. See `docs/bot-api.md` for the bot-to-bot API
+and `docs/manual-test-irc.md` for a 9-step manual test protocol.
 
 ### Self-Improvement Demo
 

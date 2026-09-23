@@ -23,22 +23,29 @@
 - Verified live: `tsc` clean, `biome` clean, piped-stdin boot/`.help`/`.connections`/`.quit`
   exit 0, `.connect ws` + `.connections` listing, `ENABLE_WS=true` auto-connect.
 
-**Deliberately deferred (improvement opportunities):**
-1. `status.ts`/`doctor.ts`/`tune.ts`/`multi-agent.ts` kept as delegated modules (`--status` etc.
-   dynamic-import them). Full deletion per §Phase 6 wants them inlined into `src/bin/lib/`
-   (status→`lib/status-report.ts`, doctor→`lib/doctor-report.ts` shared by `.doctor`).
-2. `src/cli/commands.ts` kept as the core-command builder imported by `bot.ts` (plan suggested
-   merging; the shared-builder shape is DRYer — `bot.ts` owns only the extra groups).
-3. `.disconnect <id>` by timestamped id is awkward — add stable ids or `.disconnect ws` (first
-   match by type). Same for `.connections <id>` detail (works, just needs the full id).
-4. `defaultLocalProvider()` still falls back to `transformers` (never-default would break
+**Done (follow-up 2026-09-23):**
+- All plan §5 commands now implemented: `skill-add/remove/edit`, `memory-clear --yes`,
+  `lm-rule-enable/disable`, `routing-set/routing-offline` (live via `setRouting` + mirrored to
+  `appConfig`), `circuit-reset <provider>|all`, `benchmarks [cycles]` (timed `nar.run`),
+  `config-reset --yes`. `.disconnect` accepts type shorthand (`ws`→websocket).
+- Fixed: `appConfig` is deep-frozen by the loader — `bot.ts` clones it at startup, else every
+  `config-set`/`skill-add`/rule toggle threw. `.profile tier` now defers to `.tier` (two tier
+  vars existed; chat tier is owned by the core command group).
+- `status/doctor/tune/multi-agent` entries moved to `src/bin/lib/` (`status-report`,
+  `doctor-report`, `tune-runner`, `multi-agent-entry`) with `argv[1]`-guarded runners;
+  `bot -- --status/--doctor/--tune/--arcade/--multiagent` call exported runners;
+  `pnpm multi-agent` preserved as a `bot` alias. `src/bin/` holds only `bot.ts` + unrelated bins.
+- README `Run` + `Bot` sections rewritten CLI-first.
+- Verified: `--status`/`--doctor --json`/`--tune --iterations 1` exit 0 via lib runners.
+
+**Remaining / notes:**
+1. `defaultLocalProvider()` still falls back to `transformers` (never-default would break
    `tests/cognitive/lm-config.test.ts` + `todo16c-model-override.test.ts`, which assert the
    transformers default). True removal needs those tests migrated to `mock` first.
-5. `.benchmarks` serves NAR stats only (no per-derivation costs wired); `.routing-set`,
-   `.lm-rule-enable/disable`, `.skill-edit`, `.memory-clear`, `.config-reset` from the plan
-   are not yet implemented — `.help` lists the implemented set (no phantom commands).
-6. `.webui stop` closes only UI handles started from this session; pre-existing servers unaffected.
-7. `README.md` Bot section still documents old auto-connect behavior — needs rewrite to CLI-first.
+2. Piped-stdin command handlers can interleave output (readline `line` events are async);
+   interactive TTY use is sequential. A command queue in `CLIConnection` would fix it properly.
+3. `.webui stop` closes only UI handles started from this session; pre-existing servers unaffected.
+4. `src/cli/commands.ts` kept as the core-command builder imported by `bot.ts` (DRYer than inlining).
 
 ## Problem Statement
 
