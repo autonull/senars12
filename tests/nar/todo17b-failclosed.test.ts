@@ -21,7 +21,7 @@ import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../../io/src/t
  * D10: allSettled rejections logged+counted; peer crash ⇒ typed failure reply.
  */
 
-describe('Bench 36 — Fail-Closed Integrity', () => {
+describe('Bench 36 — Fail-Closed Integrity @load-sensitive', () => {
   describe('D1 — System One ingress fails closed', () => {
     const makeGate = (manifold: unknown) =>
       new KernelPerceptionGate({

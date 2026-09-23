@@ -103,7 +103,7 @@ function computeSeedPassRate(result: ParityResult): number {
   return passingSeeds / result.seeds;
 }
 
-describe('RL Parity Restoration — Live Assertions (1C\')', { timeout: 180000 }, () => {
+describe('RL Parity Restoration — Live Assertions (1C\') @load-sensitive', { timeout: 180000 }, () => {
   beforeAll(async () => {
     console.log('Running RL parity experiments for all 3 environments (1E config: 3 seeds × 20 eps × 30 steps)...');
   });

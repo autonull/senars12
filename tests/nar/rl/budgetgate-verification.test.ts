@@ -66,7 +66,7 @@ async function runBaseline(
   return rewards.reduce((a, b) => a + b, 0) / rewards.length;
 }
 
-describe('BudgetGate Interaction Verification (2B)', { timeout: 60000 }, () => {
+describe('BudgetGate Interaction Verification (2B) @load-sensitive', { timeout: 60000 }, () => {
   let baselineAvg: number;
 
   beforeAll(async () => {

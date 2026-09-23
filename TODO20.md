@@ -186,7 +186,7 @@ error-type sweep.
 |---|-------|------|------------|
 | 61 | **Dependency Hygiene** | `tests/nar/todo20-deps.test.ts` | `pnpm deps:gate` green (raw cycles ≤ baseline; §5a ledger); no internal imports in app code |
 | 61b | **Kernel Layering** | `tests/nar/todo20-kernel-layering.test.ts` | `grep lm/system-one nar/src/kernel/` → empty; ingress benches (15–28) unchanged; `deps:gate` unchanged or lower |
-| 62 | **Monolith Split** | `tests/nar/todo20-monoliths.test.ts` | Each split file <400 LOC; barrel exports only public API; typecheck+lint+tests green || 63 | **Determinism** | `tests/nar/todo20-determinism.test.ts` (delivered §5b) | seeded-RNG reproduction; RNG-free Negotiator; no bare `Math.random()` in T1 files; property tests pass; flaky file 0/20 reruns. Full 20× suite soak pending |
+| 62 | **Monolith Split** | `tests/nar/todo20-monoliths.test.ts` | Each split file <400 LOC; barrel exports only public API; typecheck+lint+tests green || 63 | **Determinism** | `tests/nar/todo20-determinism.test.ts` (delivered §5b) | seeded-RNG reproduction; RNG-free Negotiator; no bare `Math.random()` in T1 files; property tests pass; flaky file 0/20 reruns. 20× full-suite soak complete (§5x) |
 | 64 | **Error Taxonomy** | `tests/nar/todo20-errors.test.ts` | Every throw is `SenarsError` subclass; `Result` returned on all fallible public fns; Zod strict on boundaries |
 | 65 | **Observability** | `tests/nar/todo20-otel.test.ts` | Spans emitted for 7 operations; traceId propagated; health endpoints return 200/503 correctly |
 | 66 | **Config Hardening** | `tests/nar/todo20-config.test.ts` | Schema validates env/file/defaults precedence; migration idempotent; defaults frozen |
@@ -233,7 +233,7 @@ error-type sweep.
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
 Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule (+processor bus typed) (DELIVERED, §5j)  → [x] Bench 62 (19 assertions, M1–M7)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  **PHASE 1 COMPLETE**
 
-NEXT SESSION ENTRY POINT: **Plan complete (Phases 0–9 all delivered, 2026-09-22).** Bench 61–70 green; typecheck/lint/test:unit/deps:gate/exports:audit all clean. **Post-plan follow-up pass §5s delivered 2026-09-22:** (1) NARConfig.rng one-knob replay wiring ✓; (2) EmbeddingCache → Prometheus ✓; (3) T1 sweep sampling sites ✓ (ID-salt sites ruled out — see §5s); (4) DEFAULT_APP/BOT_CONFIG deepFreeze ✓; (5) CI docs-drift gate ✓. **Backlog pass §5t delivered 2026-09-22:** (a) `Function()` arithmetic eval removed → `evaluateExpression` in `@senars/util/utils/eval` ✓; (d) doctor `--deep` consuming `runHealthChecks` + entry-point OTel spans via `runEntrypoint` ✓; (f) code_exec_wasi stdout capture ✓ — and it exposed + fixed a latent sandbox breakage (`MemFS.from_js` was the wrong API for `@wasmer/wasi` 1.2.2; §5t/§5u). **Backlog pass §5v delivered 2026-09-22:** (c) X8 core/io cycles — all five chains deleted, deps:gate baseline 72 → 67 ✓. **Backlog pass §5w delivered 2026-09-22:** PEG `INFIX_KINDS` dedup ✓; `loadConfig` routes through `migrateConfigFile` ✓ (§5n follow-up closed); §5g `withRetry` consumer check closed (LMService consumes it). Remaining backlog: (b) wasmtime fuel metering when the Node binding stabilizes (§5p); (e) T5 `@load-sensitive`/`@deterministic` name tags at next bench authoring pass; (g) TypeDoc revisit on TS7-compatible release (§5o); (h) sub-object config strictness when a real typo incident justifies it (§5n).
+NEXT SESSION ENTRY POINT: **Plan complete (Phases 0–9 all delivered, 2026-09-22).** Bench 61–70 green; typecheck/lint/test:unit/deps:gate/exports:audit all clean. **Post-plan follow-up pass §5s delivered 2026-09-22:** (1) NARConfig.rng one-knob replay wiring ✓; (2) EmbeddingCache → Prometheus ✓; (3) T1 sweep sampling sites ✓ (ID-salt sites ruled out — see §5s); (4) DEFAULT_APP/BOT_CONFIG deepFreeze ✓; (5) CI docs-drift gate ✓. **Backlog pass §5t delivered 2026-09-22:** (a) `Function()` arithmetic eval removed → `evaluateExpression` in `@senars/util/utils/eval` ✓; (d) doctor `--deep` consuming `runHealthChecks` + entry-point OTel spans via `runEntrypoint` ✓; (f) code_exec_wasi stdout capture ✓ — and it exposed + fixed a latent sandbox breakage (`MemFS.from_js` was the wrong API for `@wasmer/wasi` 1.2.2; §5t/§5u). **Backlog pass §5v delivered 2026-09-22:** (c) X8 core/io cycles — all five chains deleted, deps:gate baseline 72 → 67 ✓. **Backlog pass §5w delivered 2026-09-22:** PEG `INFIX_KINDS` dedup ✓; `loadConfig` routes through `migrateConfigFile` ✓ (§5n follow-up closed); §5g `withRetry` consumer check closed (LMService consumes it). **Backlog pass §5x delivered 2026-09-22:** (e) T5 `@load-sensitive` tags live and load-bearing (`-t` filter in `test:load-sensitive`) ✓; Bench 63 20× full-suite soak 0 failures ✓. Remaining backlog: (b) wasmtime fuel metering when the Node binding stabilizes (§5p); (e) T5 `@load-sensitive`/`@deterministic` name tags at next bench authoring pass; (g) TypeDoc revisit on TS7-compatible release (§5o); (h) sub-object config strictness when a real typo incident justifies it (§5n).
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (DELIVERED, §5k)  → [x] Bench 61b
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (DELIVERED, §5l — E3 scoped to tool boundaries, see note)  → [x] Bench 64
@@ -367,10 +367,8 @@ deferred until the next bench authoring pass (file-based separation is functiona
    `tools/adapters/self-tools.ts`, `tools/manager.ts` (`resolveConflict('random')`),
    `reflex/{TabularQReflex,EpsilonGreedyReflex}.ts`, `imagination/treadmill.ts`,
    `events/bridge.ts`, `lm/system-one/telemetry.ts`. Mechanical; do opportunistically during M4/M5/M6 splits.
-2. **Full 20× `pnpm test:unit` soak** for the formal Bench 63 acceptance (single full runs green; the 20× was
-   done on the known-flaky file only).
-3. **T5 tags**: adopt `@load-sensitive`/`@deterministic` name tags when benches are next authored; wire the
-   nightly job then.
+2. ~~Full 20× `pnpm test:unit` soak~~ — **done (§5x)**: 20/20 green.
+3. ~~T5 tags~~ — **done (§5x)**: `@load-sensitive` name tags are load-bearing.
 4. **PEG grammar hygiene**: `kindMap` is duplicated across `AngleBracketStatement`/`ParenthesizedStatement`;
    consider hoisting to a shared rule during M2.
 
@@ -1340,9 +1338,9 @@ full `test:unit` green (1,888), docs:api/docs:architecture regenerated with **ze
 
 ### Notes for remaining backlog
 
-- Only (b) wasmtime fuel metering (blocked upstream), (e) T5 bench-name tags (deferred to next
-  bench authoring), (g) TypeDoc (blocked on TS7), (h) sub-object config strictness
+- Only (b) wasmtime fuel metering (blocked upstream), (g) TypeDoc (blocked on TS7), (h) sub-object config strictness
   (incident-driven) remain — all intentionally parked; nothing structural is open.
+- If a sixth load-sensitive file ever joins `test:load-sensitive`, tag its describes or the `-t` filter zeroes the run.
 - The core/src/agent/types.ts `AgentOptions` is still a *separate* shape from util's
   `AgentOptions` (different fields, same name) — pre-existing duplication, not a cycle; if
   touched, follow the §5v BridgeOptions pattern (canonical in util, core refines).
@@ -1375,6 +1373,29 @@ deps:gate 67 ok, docs zero drift.
 - Only (b) wasmtime fuel metering (blocked upstream), (e) T5 bench-name tags (deferred to
   next bench authoring), (g) TypeDoc (blocked on TS7), (h) sub-object config strictness
   (incident-driven) remain — all intentionally parked; nothing structural is open.
+
+## 5x. Backlog pass 5 (2026-09-22) — T5 tags land load-bearing + Bench 63 soak closed
+
+**Delivered:** §5b remaining-work items 2 and 3. Verified: `test:load-sensitive` green (29/29
+tag-matched), full `test:unit` × 20 consecutive runs — 0 failures (Bench 63 formal acceptance).
+
+- **T5 tags (§5b item 3, pulled forward).** All five `test:load-sensitive` files carry an
+  `@load-sensitive` suffix on their top-level describes (todo16-slo, parity-restoration,
+  bandit-epsilon-greedy ×3 describes, budgetgate-verification, todo17b-failclosed).
+  `test:load-sensitive` now runs `vitest run … -t '@load-sensitive'` — the filter makes the
+  tag **load-bearing** per §5a ("gates must gate"): adding a file to the script without
+  tagging its tests matches zero tests and fails the job. File-based selection stays as the
+  second belt (unit excludes these files; CLI job runs them on every push — no separate
+  nightly needed; the plan's nightly `@load-sensitive` job is satisfied by the existing CI job).
+  `@deterministic` tags deliberately not introduced: CI already runs the full unit suite on
+  every PR, so a tag filtering a subset would gate nothing (§5a rule).
+- **20× soak (§5b item 2).** 20 consecutive `pnpm test:unit` runs, 0 failures — zero-flake
+  acceptance for Phase 2 is now formally met (previous evidence was 20× on the one flaky file).
+
+### Notes for remaining backlog
+
+- Only (b) wasmtime fuel metering (blocked upstream), (g) TypeDoc (blocked on TS7),
+  (h) sub-object config strictness (incident-driven) remain — all parked; nothing actionable.
 
 ## 6. Definition of Done
 

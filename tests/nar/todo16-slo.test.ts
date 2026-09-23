@@ -4,7 +4,7 @@ import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cach
 import { DeterministicManifold, Tier3SymbolicManifold } from '../../nar/src/lm/system-one/dispatcher.js';
 import type { ReasoningBudget, JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
 
-describe('System One — Per-Tier SLO Contract Tests (R9)', () => {
+describe('System One — Per-Tier SLO Contract Tests (R9) @load-sensitive', () => {
   const mockBudget: ReasoningBudget = {
     maxCycles: 100,
     maxDepth: 10,

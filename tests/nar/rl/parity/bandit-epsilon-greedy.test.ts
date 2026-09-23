@@ -10,7 +10,7 @@ import {
 import { EpsilonGreedy } from '../baselines/bandit';
 import { BanditGame } from '../../../../nar/src/game/BanditGame.js';
 
-describe('RL Parity - Bandit Epsilon-Greedy', () => {
+describe('RL Parity - Bandit Epsilon-Greedy @load-sensitive', () => {
   const banditConfig = {
     numArms: 3,
     armMeans: [0.2, 0.5, 0.8], // Arm 2 is optimal
@@ -192,7 +192,7 @@ describe('RL Parity - Bandit Epsilon-Greedy', () => {
   });
 });
 
-describe('RL Parity - Multi-Seed Validation', () => {
+describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
   const banditConfig = {
     numArms: 3,
     armMeans: [0.2, 0.5, 0.8],
@@ -391,7 +391,7 @@ describe('RL Parity - Multi-Seed Validation', () => {
   });
 });
 
-describe('QBeliefStore', () => {
+describe('QBeliefStore @load-sensitive', () => {
   test('stores and retrieves value beliefs in native form', async () => {
     const nar = new NAR({
       activationDecayRate: 0.01,
