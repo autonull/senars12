@@ -1,4 +1,5 @@
-import { LLMCortex, type ModelProvider, ModelRunner, type PromptBuilder } from '@senars/core';
+import { LLMCortex, type PromptBuilder } from './LLMCortex.js';
+import { type ModelProvider, ModelRunner } from '../ModelRunner.js';
 import type { LMService } from '@senars/util';
 
 /** LMService satisfies ModelProvider structurally (LMTask ≡ ModelTier) — one LM execution path. */

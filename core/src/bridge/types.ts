@@ -1,4 +1,15 @@
+import type { CognitiveEvent } from '../CognitiveEvent.js';
 import type { ChatMessage } from '../protocol/index.js';
+
+/** Structural event source satisfied by Agent (bridge must not import the agent it bridges). */
+export interface AgentEventSource {
+  on(event: string | '*', handler: (event: CognitiveEvent) => void): void;
+}
+
+/** Structural chat source satisfied by Agent (used by ChatStreamHandler). */
+export interface ChatStreamAgent {
+  chat?(text: string): AsyncIterable<{ kind: string; text?: string }>;
+}
 
 export interface BridgeDelta {
   type: 'cognitive.delta';

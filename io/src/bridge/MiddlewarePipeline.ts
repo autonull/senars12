@@ -1,4 +1,6 @@
-import type { AuthManager, CommandRegistry, MessageContext, MessageMiddleware } from '@senars/io';
+import type { AuthManager } from '../auth.js';
+import type { CommandRegistry } from '../commands/registry.js';
+import type { MessageContext, MessageMiddleware } from '../router.js';
 import type { Connection, IOMessage, Logger, SessionManager } from '@senars/util';
 
 function ctxAsRecord(ctx: MessageContext): Record<string, unknown> {

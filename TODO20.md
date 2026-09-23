@@ -160,7 +160,7 @@ failure mode, or make a contract explicit).
 | X5 | **Dual circuit-breaker implementations** | `nar/src/utils/circuit-breaker.ts` (generic) vs `lm/providers.ts` `ProviderHealth` machinery — independent state, semantics, and logging for the same concern | Medium | Fold into Phase 1 M4 → consolidate into `utils/resilience.ts` (per D03's original intent) | S |
 | X6 | **Positional-arg constructor soup** | `NARExecution` constructor takes 13 positional params incl. a bare `undefined` slot (`nar-execution.ts:50-65`) | Medium | Fold into Phase 1 M2 (options object) | S |
 | X7 | **Serialization triple-path** — three hand-rolled state codecs | `nar.ts` `saveState`/`loadState` (ad-hoc JSON files), `memory/state/serialization.ts`, `kernel/EventLogPersistence.ts` — no shared codec, no schema pinning on the snapshot path | Medium | Phase 5 (persistence hardening, alongside C1/C2) | M |
-| X8 | **core↔io cycles** (5 non-nar cycles) | `Agent↔AgentBridge↔bridge/AgentBridge`, `io/bridge↔core/Agent`, `core/index↔cortex/createCortexFromLM` | Low (gated by `deps:gate`; no new cycles possible) | Phase 0 backlog, strangler-fig per Rev 1.1 rollback table | M |
+| X8 | **core↔io cycles** (5 non-nar cycles) (**delivered §5v**) | `Agent↔AgentBridge↔bridge/AgentBridge`, `io/bridge↔core/Agent`, `core/index↔cortex/createCortexFromLM` | Low (gated by `deps:gate`; no new cycles possible) | ~~Phase 0 backlog~~ | M |
 
 **Item detail:**
 
@@ -171,7 +171,7 @@ failure mode, or make a contract explicit).
 - **X5** — One breaker abstraction under `utils/resilience.ts`; `providers.ts` health machinery wraps it. Two state machines for the same failure mode is a drift bug waiting to happen. Acceptance: single implementation file; provider circuit tests green.
 - **X6** — `NARExecutionOptions` object; call sites in `nar.ts` (2) updated. Acceptance: no positional `undefined` arguments at call sites.
 - **X7** — One `StateCodec` (schema-pinned, versioned) used by NAR snapshot, memory serialization, and event-log persistence consumers. Snapshot format gets a `version` field (prereq for C2 config migration's sibling: state migration). Acceptance: round-trip property test across all three paths; version mismatch fails loudly.
-- **X8** — Same interface-extraction discipline as D01/D02 applied to core/io. Low urgency *because* `deps:gate` now makes the freeze enforceable.
+- **X8** — Same interface-extraction discipline as D01/D02 applied to core/io. Low urgency *because* `deps:gate` now makes the freeze enforceable. **Delivered §5v (2026-09-22):** all five chains deleted (raw 72 → 67); fixes were self-package barrel imports, structural event-source types, and a `BridgeOptions` dedup onto util's canonical contract — see §5v.
 
 **Phase 3 scope note (from this review):** only 2 `catch (e: any)` remain in the entire
 workspace (`lm/system-one/distill.ts:117`, `nar.ts:878`). E4's acceptance is nearly met
@@ -233,7 +233,7 @@ error-type sweep.
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
 Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule (+processor bus typed) (DELIVERED, §5j)  → [x] Bench 62 (19 assertions, M1–M7)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  **PHASE 1 COMPLETE**
 
-NEXT SESSION ENTRY POINT: **Plan complete (Phases 0–9 all delivered, 2026-09-22).** Bench 61–70 green; typecheck/lint/test:unit/deps:gate/exports:audit all clean. **Post-plan follow-up pass §5s delivered 2026-09-22:** (1) NARConfig.rng one-knob replay wiring ✓; (2) EmbeddingCache → Prometheus ✓; (3) T1 sweep sampling sites ✓ (ID-salt sites ruled out — see §5s); (4) DEFAULT_APP/BOT_CONFIG deepFreeze ✓; (5) CI docs-drift gate ✓. **Backlog pass §5t delivered 2026-09-22:** (a) `Function()` arithmetic eval removed → `evaluateExpression` in `@senars/util/utils/eval` ✓; (d) doctor `--deep` consuming `runHealthChecks` + entry-point OTel spans via `runEntrypoint` ✓; (f) code_exec_wasi stdout capture ✓ — and it exposed + fixed a latent sandbox breakage (`MemFS.from_js` was the wrong API for `@wasmer/wasi` 1.2.2; §5t). Remaining backlog: (b) wasmtime fuel metering when the Node binding stabilizes (§5p); (c) X8 core/io cycles (strangler-fig, gated); (e) T5 `@load-sensitive`/`@deterministic` name tags at next bench authoring pass; (g) TypeDoc revisit on TS7-compatible release (§5o); (h) sub-object config strictness when a real typo incident justifies it (§5n).
+NEXT SESSION ENTRY POINT: **Plan complete (Phases 0–9 all delivered, 2026-09-22).** Bench 61–70 green; typecheck/lint/test:unit/deps:gate/exports:audit all clean. **Post-plan follow-up pass §5s delivered 2026-09-22:** (1) NARConfig.rng one-knob replay wiring ✓; (2) EmbeddingCache → Prometheus ✓; (3) T1 sweep sampling sites ✓ (ID-salt sites ruled out — see §5s); (4) DEFAULT_APP/BOT_CONFIG deepFreeze ✓; (5) CI docs-drift gate ✓. **Backlog pass §5t delivered 2026-09-22:** (a) `Function()` arithmetic eval removed → `evaluateExpression` in `@senars/util/utils/eval` ✓; (d) doctor `--deep` consuming `runHealthChecks` + entry-point OTel spans via `runEntrypoint` ✓; (f) code_exec_wasi stdout capture ✓ — and it exposed + fixed a latent sandbox breakage (`MemFS.from_js` was the wrong API for `@wasmer/wasi` 1.2.2; §5t/§5u). **Backlog pass §5v delivered 2026-09-22:** (c) X8 core/io cycles — all five chains deleted, deps:gate baseline 72 → 67 ✓. Remaining backlog: (b) wasmtime fuel metering when the Node binding stabilizes (§5p); (e) T5 `@load-sensitive`/`@deterministic` name tags at next bench authoring pass; (g) TypeDoc revisit on TS7-compatible release (§5o); (h) sub-object config strictness when a real typo incident justifies it (§5n).
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (DELIVERED, §5k)  → [x] Bench 61b
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (DELIVERED, §5l — E3 scoped to tool boundaries, see note)  → [x] Bench 64
@@ -313,7 +313,7 @@ verification reliable. Bench 63 precedes Bench 62.
 
 | Metric | Baseline | Source |
 |--------|----------|--------|
-| Raw dependency cycles | **72** (lowered by M3: two provider cycles deleted; gate BASELINE lowered to 72) | `pnpm deps:gate` / dpdm JSON `circulars` |
+| Raw dependency cycles | **67** (lowered by §5v X8: all five core/io chains deleted; gate BASELINE lowered to 67) | `pnpm deps:gate` / dpdm JSON `circulars` |
 | Deduplicated cycle chains (human view) | 10 | `pnpm deps:check` stdout |
 
 ---
@@ -1290,6 +1290,62 @@ clean, full `test:unit` green (1,888), deps:gate 72 ok.
 - (c) X8 core/io cycles remains the only structural item; (b)/(e)/(g)/(h) unchanged.
 - If WASI execution ever needs stdin, `WASI` has no stdin getter in 1.2.2 — would require a
   custom MemFS file at `/dev/stdin` before start (same pattern as stdout capture).
+
+## 5v. Backlog pass 3 (2026-09-22) — X8 core/io cycles deleted
+
+**Delivered:** backlog item (c) — the last structural item. All five core/io dependency chains
+deleted; `deps:gate` raw count **72 → 67**, BASELINE lowered in the same commit. Verified:
+typecheck clean (0 new errors; the 10 pre-existing wasi/`__pb2` errors unchanged), lint clean,
+full `test:unit` green (1,888), docs:api/docs:architecture regenerated with **zero drift**
+(the type surfaces were re-exports, so the generated docs didn't move).
+
+### The five chains, and what each fix actually was
+
+1. `core/index → cortex/createCortexFromLM → core/index` — `createCortexFromLM.ts` imported
+   `LLMCortex`/`ModelRunner` **from its own package barrel** (`@senars/core`). Fixed with relative
+   imports (`./LLMCortex.js`, `../ModelRunner.js`). Rule: *no package imports itself* — grep
+   `from '@senars/core'` / `from '@senars/io'` inside `core/src` / `io/src` → must be empty.
+2. `io/index → bridge/index → ConnectionBinder → io/index` — same disease
+   (`MessageContext`/`MessageMiddleware` from `@senars/io`); fixed → `../router.js`.
+3. `io/index → bridge/index → MiddlewarePipeline → io/index` — same
+   (`AuthManager`/`CommandRegistry`/`Message*` from `@senars/io`); fixed → `../auth.js`,
+   `../commands/registry.js`, `../router.js`.
+4. `Agent → AgentBridge(facade) → bridge/AgentBridge → Agent` — `bridge/AgentBridge.ts` and
+   `bridge/ChatStreamHandler.ts` type-imported `Agent` but only ever used `agent.on('*')` and
+   `agent.chat()`. Fixed with **structural seams in `core/src/bridge/types.ts`**:
+   `AgentEventSource { on(event, handler) }` and `ChatStreamAgent { chat?() }`. The public
+   `AgentBridge.agent` field is now `AgentEventSource` (no external consumers of the field
+   existed — grepped core/io/src/ui/tests). This is the X2 pattern applied one layer down:
+   the bridge cannot see the agent it bridges, only the event surface it needs.
+5. `io/index → ConnectionBinder → core/index → agent/types → io/index` — core's
+   `agent/types.ts` defined a **duplicate `BridgeOptions`** importing io's `AuthManager`/
+   `CommandRegistry` classes, while `util/src/types/agent.ts` already owns the canonical
+   structural contract (`BridgeAuthHandler`; one-definition rule predates this fix — the dup
+   just predated it). Core's copy now `extends UtilBridgeOptions` keeping only the core-owned
+   refinement (`episodicMemory?: EpisodicMemory` vs util's `unknown`, which `Agent.ts` assigns
+   into a typed field). The io import edge is gone; io keeps depending on core (correct
+   direction), core↔io is now a DAG.
+
+### Verification notes
+
+- The `AgentBridge` facade (`core/src/AgentBridge.ts`, deprecated) was left untouched — the
+  runtime edge `Agent → facade → bridge/AgentBridge` is one-directional once the type back-edge
+  died; the facade deprecation lifecycle (A4) handles its removal.
+- `aggregateChatResponse` keeps its exports-map subpath `@senars/core/bridge/chat-stream-handler`;
+  its parameter type widened structurally (Agent still satisfies it) — no consumer change.
+- No new tests written: Bench 61's `deps:gate` assertion covers the deleted chains (it now
+  runs against baseline 67), and the structural types are compile-checked. Adding a bespoke
+  "no self-package imports" bench would duplicate the gate — prefer extending `deps-gate.ts`
+  with that grep if self-imports regress.
+
+### Notes for remaining backlog
+
+- Only (b) wasmtime fuel metering (blocked upstream), (e) T5 bench-name tags (deferred to next
+  bench authoring), (g) TypeDoc (blocked on TS7), (h) sub-object config strictness
+  (incident-driven) remain — all intentionally parked; nothing structural is open.
+- The core/src/agent/types.ts `AgentOptions` is still a *separate* shape from util's
+  `AgentOptions` (different fields, same name) — pre-existing duplication, not a cycle; if
+  touched, follow the §5v BridgeOptions pattern (canonical in util, core refines).
 
 ## 6. Definition of Done
 

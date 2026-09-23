@@ -1,6 +1,6 @@
 import type { Agent } from '@senars/core';
 import { aggregateChatResponse } from '@senars/core/bridge/chat-stream-handler';
-import type { MessageContext, MessageMiddleware } from '@senars/io';
+import type { MessageContext, MessageMiddleware } from '../router.js';
 import type { BridgeOptions, Connection, IOMessage } from '@senars/util';
 import { InMemorySessionManager } from '@senars/util/memory';
 

@@ -1,14 +1,13 @@
-import type { Agent } from '../Agent.js';
 import type { CognitiveEvent } from '../CognitiveEvent.js';
-import type { BridgeEvent } from './types.js';
+import type { AgentEventSource, BridgeEvent } from './types.js';
 
 export type { BridgeDelta, BridgeEvent } from './types.js';
 
 export class AgentBridge {
-  readonly agent: Agent;
+  readonly agent: AgentEventSource;
   #listeners = new Set<(event: BridgeEvent) => void>();
 
-  constructor(agent: Agent) {
+  constructor(agent: AgentEventSource) {
     this.agent = agent;
     agent.on('*', (event) => {
       const projected = this.#project(event);

@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 /** Documented raw-cycle count at gate introduction (CLI prints 10 deduplicated chains). */
-const BASELINE = 72;
+const BASELINE = 67;
 
 const TARGETS = ['src/', 'core/src/', 'nar/src/', 'io/src/', 'metta/src/'];
 const outPath = join(mkdtempSync(join(tmpdir(), 'deps-')), 'deps.json');

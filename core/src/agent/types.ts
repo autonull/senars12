@@ -1,5 +1,9 @@
-import type { AuthManager, CommandRegistry } from '@senars/io';
-import type { EpisodicMemory, LMService, NAR } from '@senars/util';
+import type {
+  BridgeOptions as UtilBridgeOptions,
+  EpisodicMemory,
+  LMService,
+  NAR,
+} from '@senars/util';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import type { ChatOptions, ChatStreamEvent } from '../ChatService.js';
 /**
@@ -81,16 +85,10 @@ export interface AgentPresetResult {
 
 export type ValidatedAgentOptions = Required<Pick<AgentOptions, 'cortex'>> & AgentOptions;
 
-export interface BridgeOptions {
-  auth?: AuthManager;
-  commandRegistry?: CommandRegistry;
-  sessionManager?: SessionManager;
+/** Refines the canonical util contract with core-owned memory typing; the auth/commandRegistry
+ *  shape lives in util (`BridgeAuthHandler`) so core never imports io. */
+export interface BridgeOptions extends UtilBridgeOptions {
   episodicMemory?: EpisodicMemory;
-  generationService?: unknown;
-  understandingService?: unknown;
-  manager?: unknown;
-  enableNarseseHumanization?: boolean;
-  enableNarsTrace?: boolean;
 }
 
 export interface BridgeContext {
