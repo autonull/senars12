@@ -124,22 +124,33 @@ function createWasiTool(deps: Required<Pick<CodeExecDeps, 'wasiAllowedPaths' | '
         .describe('Timeout in ms'),
     }),
     execute: async ({ wasmPath, args = [], timeout = 30_000 }) => {
-      const { createWasmModuleSandbox, SandboxTimeoutError } = await import(
-        '../../capability/wasi-sandbox.js'
-      );
+      const { createWasmModuleSandbox } = await import('../../capability/wasi-sandbox.js');
       const startTime = Date.now();
       try {
-        // Module start happens inside the sandbox factory (WASI start on the
-        // instantiated module); MemFS output capture is not wired — see §5p deviation.
-        await createWasmModuleSandbox({
+        const result = await createWasmModuleSandbox({
           wasmPath,
           allowedPaths: deps.wasiAllowedPaths,
           args,
           timeoutMs: timeout,
         });
-        return { exitCode: 0, stdout: '', stderr: '', duration: Date.now() - startTime, truncated: false };
+        const truncate = (s: string): { text: string; truncated: boolean } => {
+          const clipped = Buffer.from(s, 'utf8').subarray(0, deps.maxOutputBytes);
+          return {
+            text: clipped.toString('utf8'),
+            truncated: Buffer.byteLength(s, 'utf8') > deps.maxOutputBytes,
+          };
+        };
+        const out = truncate(result.stdout);
+        const errOut = truncate(result.stderr);
+        return {
+          exitCode: result.exitCode,
+          stdout: out.text,
+          stderr: errOut.text,
+          truncated: out.truncated || errOut.truncated,
+          duration: Date.now() - startTime,
+        };
       } catch (err) {
-        const error = err instanceof SandboxTimeoutError ? `Sandbox timeout after ${timeout}ms` : String(err);
+        const error = String(err);
         return { ...deny(error), duration: Date.now() - startTime };
       }
     },

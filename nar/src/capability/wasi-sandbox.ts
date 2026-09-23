@@ -1,4 +1,3 @@
-import type { WasiConfig } from '@wasmer/wasi';
 import { SenarsError } from '@senars/util/errors';
 
 export class SandboxTimeoutError extends SenarsError {
@@ -72,31 +71,12 @@ export async function createWasiSandbox(
   options: WasiSandboxOptions = {}
 ): Promise<(fn: () => Promise<unknown>) => Promise<unknown>> {
   await ensureWasiInit();
-  const {
-    allowedPaths = [],
-    env = {},
-    args = [],
-    timeoutMs = DEFAULT_SANDBOX_TIMEOUT_MS,
-  } = options;
-
-  const WasmFs = (await import('@wasmer/wasmfs')).default;
-  const { WASI, MemFS } = await import('@wasmer/wasi');
-
-  const wasmFs = new WasmFs();
-  // biome-ignore lint/suspicious/noExplicitAny: @wasmer MemFS expects its own internal fs type
-  const memfs = MemFS.from_js(wasmFs.fs as any);
-  const wasiConfig: WasiConfig = {
-    args: ['wasi-sandbox', ...args],
-    env,
-    preopens: sanitizePreopens(allowedPaths),
-    fs: memfs,
-  };
-
-  const _wasi = new WASI(wasiConfig);
-
-  return async <T>(fn: () => Promise<T>): Promise<T> => {
-    return withTimeout(fn(), timeoutMs);
-  };
+  // Host-closure sandbox: enforcement is the wall-clock timeout. args/env/allowedPaths
+  // are capability declarations the closure is expected to honor (no WASI instance is
+  // created here — closures run on the host, unlike createWasmModuleSandbox).
+  void options;
+  return async <T>(fn: () => Promise<T>): Promise<T> =>
+    withTimeout(fn(), options.timeoutMs ?? DEFAULT_SANDBOX_TIMEOUT_MS) as Promise<T>;
 }
 
 export interface WasmModuleOptions {
@@ -108,47 +88,40 @@ export interface WasmModuleOptions {
   imports?: Record<string, unknown>;
 }
 
+export interface WasmRunResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
+
 export async function createWasmModuleSandbox(
   options: WasmModuleOptions
-): Promise<(fn: () => Promise<unknown>) => Promise<unknown>> {
+): Promise<WasmRunResult> {
   await ensureWasiInit();
-  const {
-    allowedPaths = [],
-    env = {},
-    args = ['wasm-sandbox'],
-    timeoutMs = DEFAULT_SANDBOX_TIMEOUT_MS,
-  } = options;
+  const { allowedPaths = [], env = {}, args = ['wasm-sandbox'] } = options;
   assertWasmPathContained(options.wasmPath, allowedPaths);
 
-  const WasmFs = (await import('@wasmer/wasmfs')).default;
+  const { readFile } = await import('node:fs/promises');
   const { WASI, MemFS } = await import('@wasmer/wasi');
 
-  const wasmFs = new WasmFs();
-  // biome-ignore lint/suspicious/noExplicitAny: @wasmer MemFS expects its own internal fs type
-  const memfs = MemFS.from_js(wasmFs.fs as any);
-  const wasiConfig: WasiConfig = {
-    args,
-    env,
-    preopens: sanitizePreopens(allowedPaths),
-    fs: memfs,
-  };
+  const memfs = new MemFS();
+  const preopens = sanitizePreopens(allowedPaths);
+  for (const dir of Object.values(preopens)) memfs.createDir(dir);
+  const wasi = new WASI({ args, env, preopens, fs: memfs });
 
-  const wasi = new WASI(wasiConfig);
-
-  const wasmBytes = (await wasmFs.fs.promises.readFile(
-    options.wasmPath
-  )) as unknown as BufferSource;
-  const module = await globalThis.WebAssembly.compile(wasmBytes);
+  const wasmBytes = await readFile(options.wasmPath);
+  const module = await globalThis.WebAssembly.compile(
+    wasmBytes as unknown as BufferSource
+  );
   const instance = await globalThis.WebAssembly.instantiate(module, {
     ...wasi.getImports(module),
     ...options.imports,
   } as WebAssembly.Imports);
 
-  wasi.start(instance);
-
-  return async <T>(fn: () => Promise<T>): Promise<T> => {
-    return withTimeout(fn(), timeoutMs);
-  };
+  // `start` is synchronous — the wall-clock timeout cannot preempt it; it bounds
+  // the surrounding awaits only (see SandboxTimeoutError doc).
+  const exitCode = wasi.start(instance);
+  return { exitCode, stdout: wasi.getStdoutString(), stderr: wasi.getStderrString() };
 }
 
 let vmDeprecationWarned = false;

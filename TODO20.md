@@ -233,7 +233,7 @@ error-type sweep.
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
 Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule (+processor bus typed) (DELIVERED, §5j)  → [x] Bench 62 (19 assertions, M1–M7)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  **PHASE 1 COMPLETE**
 
-NEXT SESSION ENTRY POINT: **Plan complete (Phases 0–9 all delivered, 2026-09-22).** Bench 61–70 green; typecheck/lint/test:unit/deps:gate/exports:audit all clean. **Post-plan follow-up pass §5s delivered 2026-09-22:** (1) NARConfig.rng one-knob replay wiring ✓; (2) EmbeddingCache → Prometheus ✓; (3) T1 sweep sampling sites ✓ (ID-salt sites ruled out — see §5s); (4) DEFAULT_APP/BOT_CONFIG deepFreeze ✓; (5) CI docs-drift gate ✓. **Backlog pass §5t delivered 2026-09-22:** (a) `Function()` arithmetic eval removed → `evaluateExpression` in `@senars/util/utils/eval` ✓; (d) doctor `--deep` consuming `runHealthChecks` + entry-point OTel spans via `runEntrypoint` ✓. Remaining backlog: (b) wasmtime fuel metering when the Node binding stabilizes (§5p); (c) X8 core/io cycles (strangler-fig, gated); (e) T5 `@load-sensitive`/`@deterministic` name tags at next bench authoring pass; (f) code_exec_wasi stdout capture (§5p); (g) TypeDoc revisit on TS7-compatible release (§5o); (h) sub-object config strictness when a real typo incident justifies it (§5n).
+NEXT SESSION ENTRY POINT: **Plan complete (Phases 0–9 all delivered, 2026-09-22).** Bench 61–70 green; typecheck/lint/test:unit/deps:gate/exports:audit all clean. **Post-plan follow-up pass §5s delivered 2026-09-22:** (1) NARConfig.rng one-knob replay wiring ✓; (2) EmbeddingCache → Prometheus ✓; (3) T1 sweep sampling sites ✓ (ID-salt sites ruled out — see §5s); (4) DEFAULT_APP/BOT_CONFIG deepFreeze ✓; (5) CI docs-drift gate ✓. **Backlog pass §5t delivered 2026-09-22:** (a) `Function()` arithmetic eval removed → `evaluateExpression` in `@senars/util/utils/eval` ✓; (d) doctor `--deep` consuming `runHealthChecks` + entry-point OTel spans via `runEntrypoint` ✓; (f) code_exec_wasi stdout capture ✓ — and it exposed + fixed a latent sandbox breakage (`MemFS.from_js` was the wrong API for `@wasmer/wasi` 1.2.2; §5t). Remaining backlog: (b) wasmtime fuel metering when the Node binding stabilizes (§5p); (c) X8 core/io cycles (strangler-fig, gated); (e) T5 `@load-sensitive`/`@deterministic` name tags at next bench authoring pass; (g) TypeDoc revisit on TS7-compatible release (§5o); (h) sub-object config strictness when a real typo incident justifies it (§5n).
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (DELIVERED, §5k)  → [x] Bench 61b
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (DELIVERED, §5l — E3 scoped to tool boundaries, see note)  → [x] Bench 64
@@ -1257,6 +1257,39 @@ green (1,886), deps:gate 72 ok, `exports:audit` ok, docs regenerated.
 - The `--deep` LM probe for keyed providers checks credentials, not a live API call (no spend
   on a diagnostic); extend to a real ping only if a runbook case needs it.
 - Remaining backlog items (b)/(c)/(e)/(f)/(g)/(h) unchanged from the entry-point list.
+
+## 5u. Backlog pass 2 (2026-09-22) — WASI stdout capture + latent sandbox fix
+
+**Delivered:** backlog item (f) plus the bug it uncovered. Verified: typecheck clean, lint
+clean, full `test:unit` green (1,888), deps:gate 72 ok.
+
+- **Latent breakage found and fixed.** `MemFS.from_js(wasmFs.fs)` (the @wasmer/wasi 0.x
+  pattern) **throws at runtime on `@wasmer/wasi` 1.2.2** — the Rust-compiled release takes
+  `new MemFS()` directly. Neither WASI path had ever been exercised end-to-end (Bench 68
+  only tested the fail-closed missing-module path), so this shipped broken. `wasmFs` never
+  had a role: wasm bytes are now read with `node:fs/promises` (containment already checked
+  by `assertWasmPathContained`), preopen dirs are created in the MemFS, and
+  `@wasmer/wasmfs` is dropped from nar's dependencies.
+- **Stdout/stderr capture** — no fd shim needed: `WASI.getStdoutString()/getStderrString()`
+  expose the buffers post-run. `createWasmModuleSandbox` now returns
+  `WasmRunResult { exitCode, stdout, stderr }` (it always ran eagerly; the returned runner
+  fn was dead API — removed). The `code_exec_wasi` tool reports real exit code, output
+  (byte-truncated to `maxOutputBytes`, `truncated` flag), and duration.
+- **`createWasiSandbox` simplified** — it constructed a WASI instance it never used (and
+  which was broken by the same `from_js` bug); it is a host-closure timeout wrapper. It now
+  wraps `withTimeout` only; args/env/allowedPaths remain accepted as capability
+  declarations the closure is expected to honor.
+- **Tests** — `tests/unit/nar/wasi-output-capture.test.ts`: an embedded hex WASM module
+  (wat2wasm output; imports `fd_write`, exports `_start`) proves stdout capture and exit
+  code 0, plus the allowedPaths fail-closed rejection. Gotcha for authors: `wasi.start`
+  requires an exported `_start` (a start *section* is not enough), and the iovec must
+  point at the string address — both were silent null-byte output on the first attempt.
+
+### Notes for remaining backlog
+
+- (c) X8 core/io cycles remains the only structural item; (b)/(e)/(g)/(h) unchanged.
+- If WASI execution ever needs stdin, `WASI` has no stdin getter in 1.2.2 — would require a
+  custom MemFS file at `/dev/stdin` before start (same pattern as stdout capture).
 
 ## 6. Definition of Done
 
