@@ -4,6 +4,7 @@
 
 "use strict";
 
+ const INFIX_KINDS = {'-->': 'inheritance', '<->': 'similarity', '==>': 'implication', '<=>': 'equivalence', '<~>': 'contrast', '=/>' : 'predictive', '=|': 'retrospective', '=/=': 'anti', '=': 'equality', '&&': 'conjunction', '||': 'disjunction', '&': 'conjunction', '|': 'disjunction', '&|': 'parallel', '&/': 'sequence'}; 
 class peg$SyntaxError extends SyntaxError {
   constructor(message, expected, found, location) {
     super(message);
@@ -350,12 +351,10 @@ function peg$parse(input, options) {
     return options.termFactory.tuple(components || []);
   }
   function peg$f19(subject, op, predicate) {
-    const kindMap = {'-->': 'inheritance', '<->': 'similarity', '==>': 'implication', '<=>': 'equivalence', '<~>': 'contrast', '=/>' : 'predictive', '=|': 'retrospective', '=/=': 'anti', '=': 'equality', '&&': 'conjunction', '||': 'disjunction', '&': 'conjunction', '|': 'disjunction', '&|': 'parallel', '&/': 'sequence'};
-    return options.termFactory.create(kindMap[op.trim()] ?? op.trim(), [subject, predicate]);
+    return options.termFactory.create(INFIX_KINDS[op.trim()] ?? op.trim(), [subject, predicate]);
   }
   function peg$f20(subject, op, predicate) {
-    const kindMap = {'-->': 'inheritance', '<->': 'similarity', '==>': 'implication', '<=>': 'equivalence', '<~>': 'contrast', '=/>' : 'predictive', '=|': 'retrospective', '=/=': 'anti', '=': 'equality', '&&': 'conjunction', '||': 'disjunction', '&': 'conjunction', '|': 'disjunction', '&|': 'parallel', '&/': 'sequence'};
-    return options.termFactory.create(kindMap[op.trim()] ?? op.trim(), [subject, predicate]);
+    return options.termFactory.create(INFIX_KINDS[op.trim()] ?? op.trim(), [subject, predicate]);
   }
   function peg$f21(op) {
     return op.endsWith(',') ? op.slice(0, -1) : op;

@@ -4,7 +4,7 @@ import { readEnvOverrides } from '@senars/util/config';
 import {
   CURRENT_CONFIG_VERSION,
   type MigrationOutcome,
-  migrateConfig,
+  migrateConfigFile,
 } from '../utils/config-migrate.js';
 import type { AppConfig } from './schema.js';
 import { appConfigSchema } from './schema.js';
@@ -69,19 +69,11 @@ export const loadConfig = async (path?: string): Promise<AppConfig> => {
   let outcome: MigrationOutcome | null = null;
   try {
     const absolutePath = resolve(process.cwd(), filePath);
-    const content = await fs.readFile(absolutePath, 'utf-8');
-    const raw = JSON.parse(content) as Record<string, unknown>;
-    outcome = migrateConfig(raw);
+    outcome = await migrateConfigFile(absolutePath, fs.readFile.bind(fs), fs.writeFile.bind(fs));
     if (outcome.applied.length > 0) {
       console.warn(
         `[config] migrated ${filePath}: ${outcome.applied.join(', ')} (now configVersion ${outcome.config.configVersion})`
       );
-      // Best-effort write-back so the on-disk format stays current.
-      try {
-        await fs.writeFile(absolutePath, `${JSON.stringify(outcome.config, null, 2)}\n`, 'utf-8');
-      } catch {
-        // Read-only location: migration stays in-memory for this run.
-      }
     }
     raw_config = outcome.config;
   } catch (e) {

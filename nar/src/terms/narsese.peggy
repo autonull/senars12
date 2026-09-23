@@ -1,6 +1,8 @@
 // Narsese Grammar for Peggy Parser - senars12 version
 // Based on proven senars11 parser design
 
+{{ const INFIX_KINDS = {'-->': 'inheritance', '<->': 'similarity', '==>': 'implication', '<=>': 'equivalence', '<~>': 'contrast', '=/>' : 'predictive', '=|': 'retrospective', '=/=': 'anti', '=': 'equality', '&&': 'conjunction', '||': 'disjunction', '&': 'conjunction', '|': 'disjunction', '&|': 'parallel', '&/': 'sequence'}; }}
+
 start = _ content:(Task / Term) _ { return content; }
 
 Task "task"
@@ -127,14 +129,12 @@ Statement
 
 AngleBracketStatement
   = "<" _ subject:Term _ op:InfixOperator _? _ predicate:Term _ ">" {
-      const kindMap = {'-->': 'inheritance', '<->': 'similarity', '==>': 'implication', '<=>': 'equivalence', '<~>': 'contrast', '=/>' : 'predictive', '=|': 'retrospective', '=/=': 'anti', '=': 'equality', '&&': 'conjunction', '||': 'disjunction', '&': 'conjunction', '|': 'disjunction', '&|': 'parallel', '&/': 'sequence'};
-      return options.termFactory.create(kindMap[op.trim()] ?? op.trim(), [subject, predicate]);
+      return options.termFactory.create(INFIX_KINDS[op.trim()] ?? op.trim(), [subject, predicate]);
     }
 
 ParenthesizedStatement
   = "(" _ subject:Term _ op:InfixOperator _? _ predicate:Term _ ")" {
-      const kindMap = {'-->': 'inheritance', '<->': 'similarity', '==>': 'implication', '<=>': 'equivalence', '<~>': 'contrast', '=/>' : 'predictive', '=|': 'retrospective', '=/=': 'anti', '=': 'equality', '&&': 'conjunction', '||': 'disjunction', '&': 'conjunction', '|': 'disjunction', '&|': 'parallel', '&/': 'sequence'};
-      return options.termFactory.create(kindMap[op.trim()] ?? op.trim(), [subject, predicate]);
+      return options.termFactory.create(INFIX_KINDS[op.trim()] ?? op.trim(), [subject, predicate]);
     }
 
 Operator

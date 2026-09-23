@@ -233,7 +233,7 @@ error-type sweep.
 Phase 2 (moved up — DELIVERED 2026-09-22, see §5b): T1 rng  T2 flake-fix  T3 isolate  T4 prop-tests  T5 partial  (+X3 provider-runtime ✓, X1 boundary ✓)  → [x] Bench 63
 Phase 1: M1 tools (DELIVERED, §5c)  M2 nar (+X6 options-obj) (DELIVERED, §5d)  M3 providers (DELIVERED, §5e)  M4 lm-service (+X5 resilience; extractors consolidated into @senars/util) (DELIVERED, §5g)  M5 tool-reg (+X4 typed-bus) (DELIVERED, §5h)  M6 rl-adapters (+T1 sweep rl/) (DELIVERED, §5i)  M7 lm-rule (+processor bus typed) (DELIVERED, §5j)  → [x] Bench 62 (19 assertions, M1–M7)   M3.5 provider unification ollama→openai-compatible (DELIVERED, §5f)  **PHASE 1 COMPLETE**
 
-NEXT SESSION ENTRY POINT: **Plan complete (Phases 0–9 all delivered, 2026-09-22).** Bench 61–70 green; typecheck/lint/test:unit/deps:gate/exports:audit all clean. **Post-plan follow-up pass §5s delivered 2026-09-22:** (1) NARConfig.rng one-knob replay wiring ✓; (2) EmbeddingCache → Prometheus ✓; (3) T1 sweep sampling sites ✓ (ID-salt sites ruled out — see §5s); (4) DEFAULT_APP/BOT_CONFIG deepFreeze ✓; (5) CI docs-drift gate ✓. **Backlog pass §5t delivered 2026-09-22:** (a) `Function()` arithmetic eval removed → `evaluateExpression` in `@senars/util/utils/eval` ✓; (d) doctor `--deep` consuming `runHealthChecks` + entry-point OTel spans via `runEntrypoint` ✓; (f) code_exec_wasi stdout capture ✓ — and it exposed + fixed a latent sandbox breakage (`MemFS.from_js` was the wrong API for `@wasmer/wasi` 1.2.2; §5t/§5u). **Backlog pass §5v delivered 2026-09-22:** (c) X8 core/io cycles — all five chains deleted, deps:gate baseline 72 → 67 ✓. Remaining backlog: (b) wasmtime fuel metering when the Node binding stabilizes (§5p); (e) T5 `@load-sensitive`/`@deterministic` name tags at next bench authoring pass; (g) TypeDoc revisit on TS7-compatible release (§5o); (h) sub-object config strictness when a real typo incident justifies it (§5n).
+NEXT SESSION ENTRY POINT: **Plan complete (Phases 0–9 all delivered, 2026-09-22).** Bench 61–70 green; typecheck/lint/test:unit/deps:gate/exports:audit all clean. **Post-plan follow-up pass §5s delivered 2026-09-22:** (1) NARConfig.rng one-knob replay wiring ✓; (2) EmbeddingCache → Prometheus ✓; (3) T1 sweep sampling sites ✓ (ID-salt sites ruled out — see §5s); (4) DEFAULT_APP/BOT_CONFIG deepFreeze ✓; (5) CI docs-drift gate ✓. **Backlog pass §5t delivered 2026-09-22:** (a) `Function()` arithmetic eval removed → `evaluateExpression` in `@senars/util/utils/eval` ✓; (d) doctor `--deep` consuming `runHealthChecks` + entry-point OTel spans via `runEntrypoint` ✓; (f) code_exec_wasi stdout capture ✓ — and it exposed + fixed a latent sandbox breakage (`MemFS.from_js` was the wrong API for `@wasmer/wasi` 1.2.2; §5t/§5u). **Backlog pass §5v delivered 2026-09-22:** (c) X8 core/io cycles — all five chains deleted, deps:gate baseline 72 → 67 ✓. **Backlog pass §5w delivered 2026-09-22:** PEG `INFIX_KINDS` dedup ✓; `loadConfig` routes through `migrateConfigFile` ✓ (§5n follow-up closed); §5g `withRetry` consumer check closed (LMService consumes it). Remaining backlog: (b) wasmtime fuel metering when the Node binding stabilizes (§5p); (e) T5 `@load-sensitive`/`@deterministic` name tags at next bench authoring pass; (g) TypeDoc revisit on TS7-compatible release (§5o); (h) sub-object config strictness when a real typo incident justifies it (§5n).
 Phase 0 (complete, revised — see §5a): D01-D05  (+X8 core/io backlog, gated)  → [x] Bench 61
 Phase 2.5: X2 kernel IngressJudge (DELIVERED, §5k)  → [x] Bench 61b
 Phase 3: E1 taxonomy  E2 Result  E3 zod-strict  E4 context (DELIVERED, §5l — E3 scoped to tool boundaries, see note)  → [x] Bench 64
@@ -1346,6 +1346,35 @@ full `test:unit` green (1,888), docs:api/docs:architecture regenerated with **ze
 - The core/src/agent/types.ts `AgentOptions` is still a *separate* shape from util's
   `AgentOptions` (different fields, same name) — pre-existing duplication, not a cycle; if
   touched, follow the §5v BridgeOptions pattern (canonical in util, core refines).
+
+## 5w. Backlog pass 4 (2026-09-22) — PEG kindMap dedup + loader routes through migrateConfigFile
+
+**Delivered:** §5b note 4 (PEG grammar hygiene) and the §5n follow-up (migrateConfigFile
+route-or-prune). Verified: typecheck clean, lint clean, full `test:unit` green (1,888),
+deps:gate 67 ok, docs zero drift.
+
+- **PEG `INFIX_KINDS` hoisted.** The kindMap literal was duplicated verbatim in the
+  `AngleBracketStatement` and `ParenthesizedStatement` actions; it now lives once in a
+  peggy top-level initializer (`{{ const INFIX_KINDS = {...}; }}`) referenced by both
+  actions. `peggy-generated.cjs` regenerated (`pnpm peggy --format commonjs
+  nar/src/terms/narsese.peggy -o nar/src/terms/peggy-generated.cjs` — no npm script exists;
+  consider adding one when the grammar is next touched). Narsese round-trip property tests
+  green unchanged.
+- **`loadConfig` routes through `migrateConfigFile`.** The loader's inline
+  parse→migrate→write-back block duplicated the utility; it now calls
+  `migrateConfigFile(absolutePath, fs.readFile.bind(fs), fs.writeFile.bind(fs))`. Behavior
+  preserved: migrateConfigFile's own best-effort write-back (read-only tolerated) matches the
+  deleted block, and ENOENT/JSON-parse errors still land in the loader's existing catch
+  (ENOENT silent, others warned). The §5n "prune at next touch" alternative is closed by the
+  better half: the utility has a real production consumer again.
+- **§5g `withRetry` consumer check closed** — LMService consumes it (generate + object paths);
+  facade re-export stays. No action.
+
+### Notes for remaining backlog
+
+- Only (b) wasmtime fuel metering (blocked upstream), (e) T5 bench-name tags (deferred to
+  next bench authoring), (g) TypeDoc (blocked on TS7), (h) sub-object config strictness
+  (incident-driven) remain — all intentionally parked; nothing structural is open.
 
 ## 6. Definition of Done
 
