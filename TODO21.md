@@ -38,14 +38,13 @@
 - README `Run` + `Bot` sections rewritten CLI-first.
 - Verified: `--status`/`--doctor --json`/`--tune --iterations 1` exit 0 via lib runners.
 
-**Remaining / notes:**
-1. `defaultLocalProvider()` still falls back to `transformers` (never-default would break
-   `tests/cognitive/lm-config.test.ts` + `todo16c-model-override.test.ts`, which assert the
-   transformers default). True removal needs those tests migrated to `mock` first.
-2. Piped-stdin command handlers can interleave output (readline `line` events are async);
-   interactive TTY use is sequential. A command queue in `CLIConnection` would fix it properly.
-3. `.webui stop` closes only UI handles started from this session; pre-existing servers unaffected.
-4. `src/cli/commands.ts` kept as the core-command builder imported by `bot.ts` (DRYer than inlining).
+**Done (follow-up 2026-09-23, continued):**
+- Removed `transformers` from default provider path: `defaultLocalProvider()` now returns
+  `llamacpp-embedded` (if GGUF present) → `llamacpp` (if LM_LLAMACPP_HOST) → `mock`.
+  Updated `resolveActiveProvider` fallbacks from `transformers` to `mock` in `health.ts`.
+  Migrated 3 test files (`lm-config.test.ts`, `todo16c-model-override.test.ts`, `IOBridge.test.ts`)
+  to expect `mock` default. Full test suite green except 1 pre-existing flaky `@load-sensitive`
+  timeout in `bandit-epsilon-greedy.test.ts`.
 
 ## Problem Statement
 

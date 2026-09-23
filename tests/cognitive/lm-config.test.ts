@@ -41,11 +41,11 @@ describe('LM settings resolution', () => {
     configureLM({ provider: 'transformers' });
   });
 
-  it('defaults to transformers', () => {
-    expect(resolveLMSettings()).toMatchObject({ provider: 'transformers' });
+  it('defaults to mock (transformers is explicit opt-in)', () => {
+    expect(resolveLMSettings()).toMatchObject({ provider: 'mock' });
     expect(resolveLMConfig()).toMatchObject({
-      provider: 'transformers',
-      model: 'onnx-community/Qwen2.5-1.5B-Instruct',
+      provider: 'mock',
+      model: 'mock',
     });
   });
 
@@ -98,14 +98,14 @@ describe('LM settings resolution', () => {
 
   it('LM_PROFILE presets resolve providers', () => {
     process.env.LM_PROFILE = 'local-private';
-    expect(resolveLMSettings().provider).toBe('transformers');
+    expect(resolveLMSettings().provider).toBe('mock');
     process.env.LM_PROFILE = 'ollama';
     expect(resolveLMSettings().provider).toBe('openai-compatible');
   });
 
   it('cloud-quality profile picks the first provider with credentials', () => {
     process.env.LM_PROFILE = 'cloud-quality';
-    expect(resolveLMSettings().provider).toBe('transformers'); // no credentials
+    expect(resolveLMSettings().provider).toBe('mock'); // no credentials
     process.env.ANTHROPIC_API_KEY = 'sk-test';
     const s = resolveLMSettings();
     expect(s.provider).toBe('anthropic');
@@ -117,7 +117,7 @@ describe('LM settings resolution', () => {
 
   it('auto-detection picks cloud when credentials exist, else local', () => {
     configureLM({});
-    expect(resolveLMSettings().provider).toBe('transformers');
+    expect(resolveLMSettings().provider).toBe('mock');
     process.env.OPENAI_API_KEY = 'sk-test';
     expect(resolveLMSettings()).toMatchObject({
       provider: 'openai',

@@ -42,7 +42,6 @@ export async function probeOpenAICompatible(
 
 const OFFLINE_SAFE_PROVIDERS: readonly LMProviderName[] = [
   'mock',
-  'transformers',
   'webllm',
   'llamacpp',
   'llamacpp-embedded',
@@ -52,7 +51,7 @@ export async function resolveActiveProvider(): Promise<LMProviderName> {
   const configured = getLmProvider();
   // H4/X17: hard offline switch — never probe; local/mock resolve immediately.
   if (getLMSettings().offline) {
-    return OFFLINE_SAFE_PROVIDERS.includes(configured) ? configured : 'transformers';
+    return OFFLINE_SAFE_PROVIDERS.includes(configured) ? configured : 'mock';
   }
   if (configured === 'mock') return 'mock';
   if (configured === 'webllm') {
@@ -62,14 +61,14 @@ export async function resolveActiveProvider(): Promise<LMProviderName> {
     if (hasCloudCredentials()) return 'openai-compatible';
     if (await probeOpenAICompatible()) return 'openai-compatible';
     if (await probeEmbeddedLlama()) return 'llamacpp-embedded';
-    return (await probeLlamaCpp()) ? 'llamacpp' : 'transformers';
+    return (await probeLlamaCpp()) ? 'llamacpp' : 'mock';
   }
-  if (configured === 'llamacpp') return (await probeLlamaCpp()) ? 'llamacpp' : 'transformers';
+  if (configured === 'llamacpp') return (await probeLlamaCpp()) ? 'llamacpp' : 'mock';
   if (configured === 'llamacpp-embedded')
-    return (await probeEmbeddedLlama()) ? 'llamacpp-embedded' : 'transformers';
+    return (await probeEmbeddedLlama()) ? 'llamacpp-embedded' : 'mock';
   if (configured === 'openai-compatible')
-    return (await probeOpenAICompatible()) ? 'openai-compatible' : 'transformers';
-  return hasCloudCredentials() ? configured : 'transformers';
+    return (await probeOpenAICompatible()) ? 'openai-compatible' : 'mock';
+  return hasCloudCredentials() ? configured : 'mock';
 }
 
 // ---- Health probe & circuit breaker for cloud providers ----

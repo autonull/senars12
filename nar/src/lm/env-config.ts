@@ -118,9 +118,14 @@ export const embeddedLlamaConfigured = (): boolean => {
   return Boolean(p && existsSync(p));
 };
 
-/** Speed-first local default: embedded llama.cpp when a GGUF is present, else transformers. */
-export const defaultLocalProvider = (): LMProviderName =>
-  embeddedLlamaConfigured() ? 'llamacpp-embedded' : 'transformers';
+/** Speed-first local default: embedded llama.cpp when a GGUF is present, else the
+ *  external llama-server when configured, else mock (symbolic fallbacks cover cognition).
+ *  transformers.js is explicit opt-in only (LM_PROVIDER=transformers) — never the default. */
+export const defaultLocalProvider = (): LMProviderName => {
+  if (embeddedLlamaConfigured()) return 'llamacpp-embedded';
+  if (process.env.LM_LLAMACPP_HOST) return 'llamacpp';
+  return 'mock';
+};
 
 const _credentialEnvFor = (provider: LMProviderName): string | undefined =>
   CLOUD_CREDENTIALS.find(([p]) => p === provider)?.[1];

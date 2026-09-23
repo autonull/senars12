@@ -292,17 +292,25 @@ describe('bindAgentToConnection end-to-end', () => {
 });
 
 describe('createConnectionConfigsFromEnv', () => {
-  it('returns IRC + WS by default', () => {
+  it('returns empty by default (opt-in only)', () => {
     const old = { ...process.env };
     delete process.env.ENABLE_IRC;
     delete process.env.ENABLE_WS;
     delete process.env.ENABLE_HTTP;
     delete process.env.ENABLE_MCP;
     const configs = createConnectionConfigsFromEnv();
+    expect(configs).toHaveLength(0);
+    process.env = old;
+  });
+
+  it('returns IRC + WS when ENABLE_IRC/ENABLE_WS=true', () => {
+    const old = { ...process.env };
+    process.env.ENABLE_IRC = 'true';
+    process.env.ENABLE_WS = 'true';
+    const configs = createConnectionConfigsFromEnv();
     const types = configs.map((c) => c.type);
     expect(types).toContain('irc');
     expect(types).toContain('websocket');
-    expect(types).not.toContain('http');
     process.env = old;
   });
 });

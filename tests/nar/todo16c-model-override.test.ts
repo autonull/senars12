@@ -90,7 +90,7 @@ describe('Bench 27 — Per-Call Model Override', () => {
   it('H4 — LM_OFFLINE=1 skips all probes: configured cloud resolves to local immediately', async () => {
     await withEnv({ LM_PROVIDER: 'anthropic', LM_OFFLINE: '1' }, async () => {
       const provider = await resolveActiveProvider();
-      expect(provider).toBe('transformers');
+      expect(provider).toBe('mock');
     });
     await withEnv({ LM_PROVIDER: 'mock', LM_OFFLINE: '1' }, async () => {
       expect(await resolveActiveProvider()).toBe('mock');
