@@ -21,7 +21,7 @@ const boundedLMParams: CognitiveParameters = {
 const optionsByBin: Record<string, { narConfig?: Record<string, unknown> }> = {
   senars: { narConfig: { maxConcepts: 100, cognitiveParams: boundedLMParams } },
   repl: { narConfig: { cognitiveParams: boundedLMParams } },
-  'bot-ai': { narConfig: { cognitiveParams: boundedLMParams } },
+  'bot': { narConfig: { cognitiveParams: boundedLMParams } },
   'mcp-server': { narConfig: { cognitiveParams: boundedLMParams } },
   'multi-agent': { narConfig: { maxConcepts: 50, cognitiveParams: boundedLMParams } },
   'multi-agent-demo': { narConfig: { maxConcepts: 50, cognitiveParams: boundedLMParams } },

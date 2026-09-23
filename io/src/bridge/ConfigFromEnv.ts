@@ -5,7 +5,7 @@ export function createConnectionConfigsFromEnv(): Array<{
 }> {
   const configs: Array<{ type: string; id: string; [key: string]: unknown }> = [];
 
-  if (process.env.ENABLE_IRC !== 'false') {
+  if (process.env.ENABLE_IRC === 'true') {
     configs.push({
       type: 'irc',
       id: 'irc-main',
@@ -21,7 +21,7 @@ export function createConnectionConfigsFromEnv(): Array<{
     });
   }
 
-  if (process.env.ENABLE_WS !== 'false') {
+  if (process.env.ENABLE_WS === 'true') {
     configs.push({
       type: 'websocket',
       id: 'ws-main',

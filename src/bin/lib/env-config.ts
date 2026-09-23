@@ -95,7 +95,7 @@ export function readIRCConfig(file?: IRCFileConfig): IRCConfig {
 
 export function readWSConfig(): WSConfig {
   return {
-    enabled: (process.env.ENABLE_WS ?? 'true') !== 'false',
+    enabled: (process.env.ENABLE_WS ?? 'false') === 'true',
     port: Number.parseInt((process.env.WS_PORT ?? process.env.SENARS_WS_PORT) || '8765', 10),
   };
 }

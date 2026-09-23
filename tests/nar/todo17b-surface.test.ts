@@ -51,8 +51,9 @@ describe('Bench 40 — Surface Truth', () => {
   });
 
   it('D19 — the bot populates its CommandRegistry at bind time', () => {
-    const botSrc = readFileSync(join(ROOT, 'src/bin/bot-ai.ts'), 'utf-8');
-    expect(botSrc.includes('commandRegistry.register(')).toBe(true);
+    const botSrc = readFileSync(join(ROOT, 'src/bin/bot.ts'), 'utf-8');
+    expect(botSrc.includes('new CommandRegistry()')).toBe(true);
+    expect(botSrc.includes('.register(')).toBe(true);
     expect(botSrc.includes('coreCommands')).toBe(true);
     expect(botSrc.includes('createAuthCommands')).toBe(true);
   });

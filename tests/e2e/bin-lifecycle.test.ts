@@ -15,7 +15,7 @@ interface BinSpec {
 const bins: BinSpec[] = [
   { name: 'senars' },
   { name: 'repl' },
-  { name: 'bot-ai' },
+  { name: 'bot' },
   { name: 'mcp-server' },
   { name: 'multi-agent' },
   { name: 'multi-agent-demo' },
