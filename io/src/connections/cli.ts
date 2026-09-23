@@ -20,6 +20,8 @@ export class CLIConnection extends BaseConnection {
   private rl: Interface | null = null;
   private readonly sendFn: (text: string) => void;
   private readonly commands: Map<string, CLICommand>;
+  private cmdQueue: Array<() => Promise<void>> = [];
+  private cmdRunning = false;
 
   constructor(config: ConnectionConfig, deps: ConnectionDeps) {
     super(config, deps);
@@ -58,11 +60,13 @@ export class CLIConnection extends BaseConnection {
       }
 
       if (trimmed.startsWith('.')) {
-        const handled = await this.tryCommand(trimmed.slice(1));
-        if (handled) {
-          this.rl?.prompt();
-          return;
-        }
+        const rest = trimmed.slice(1);
+        this.cmdQueue.push(async () => {
+          await this.tryCommand(rest);
+          this.processQueue();
+        });
+        if (!this.cmdRunning) this.processQueue();
+        return;
       }
 
       this.handleMessage(this.createMessage('local-user', trimmed));
@@ -112,24 +116,39 @@ export class CLIConnection extends BaseConnection {
     });
   };
 
-  private async tryCommand(rest: string): Promise<boolean> {
+  private async tryCommand(rest: string): Promise<void> {
     const parts = rest.split(/\s+/);
     const cmdName = parts[0] ?? '';
     const args = parts.slice(1).join(' ');
     const cmd = this.commands.get(cmdName);
-    if (!cmd) return false;
+    if (!cmd) {
+      this.sendFn(`Unknown command: ${cmdName}`);
+      return;
+    }
 
     try {
       const result = await cmd.execute(args);
       if (isQuit(result)) {
         this.sendFn('Goodbye!');
         await this.disconnect('quit');
-        return true;
+        return;
       }
       if (result) this.sendFn(result);
     } catch (err) {
       this.sendFn(`Error: ${errMsg(err)}`);
     }
-    return true;
+  }
+
+  private processQueue(): void {
+    if (this.cmdQueue.length === 0) {
+      this.cmdRunning = false;
+      this.rl?.prompt();
+      return;
+    }
+    this.cmdRunning = true;
+    const next = this.cmdQueue.shift()!;
+    next().catch(() => {
+      // Error already handled in tryCommand
+    });
   }
 }
