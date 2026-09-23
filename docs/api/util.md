@@ -264,6 +264,12 @@
 
 - `assertDefined`
 
+## `./utils/eval`
+
+- `ExpressionError` — Safe arithmetic expression evaluator — a non-eval replacement for `new Function()` math.
+
+- `evaluateExpression` — Evaluate an arithmetic expression; throws `ExpressionError` on malformed input.
+
 ## `./utils/serialization`
 
 - `Serializable`

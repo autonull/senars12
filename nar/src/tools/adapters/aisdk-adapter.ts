@@ -1,5 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import { evaluateExpression } from '@senars/util/utils/eval';
 import type { Term } from '../../terms';
 import { mentionsSymbol } from '../../terms';
 
@@ -246,13 +247,7 @@ export function createGeneralTools(deps: {
       }),
       execute: async ({ expression }) => {
         try {
-          const sanitized = expression.replace(/[^0-9+\-*/(). ]/g, '');
-          const result = Function(`"use strict";return (${sanitized})`)();
-          return {
-            expression,
-            result,
-            success: true,
-          };
+          return { expression, result: evaluateExpression(expression), success: true };
         } catch (error) {
           return {
             expression,

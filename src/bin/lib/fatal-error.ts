@@ -2,7 +2,9 @@
  * I5/X14: shared entrypoint error UX — remediation for known error classes,
  * never a bare stack trace for actionable failures.
  */
+import { basename } from 'node:path';
 import { ConfigurationError } from '@senars/util/errors';
+import { initOtel, shutdownOtel, withSpan } from '@senars/nar/otel';
 
 interface Remediation {
   match: (err: unknown) => boolean;
@@ -22,15 +24,19 @@ const REMEDIATIONS: Remediation[] = [
   },
 ];
 
-/** Run a bin entrypoint with remediation-aware fatal error handling. */
+/** Run a bin entrypoint inside an OTel span with remediation-aware fatal error handling. */
 export const runEntrypoint = (main: () => Promise<void>): void => {
-  main().catch((err: unknown) => {
-    const remediation = REMEDIATIONS.find((r) => r.match(err));
-    if (remediation) {
-      console.error(`\n${remediation.hint(err)}\n`);
-    } else {
-      console.error(err);
-    }
-    process.exit(1);
-  });
+  initOtel({ serviceName: `senars-${basename(process.argv[1] ?? 'entrypoint', '.ts')}` });
+  const name = `entrypoint.${basename(process.argv[1] ?? 'entrypoint', '.ts')}`;
+  withSpan(name, {}, () => main())
+    .catch((err: unknown) => {
+      const remediation = REMEDIATIONS.find((r) => r.match(err));
+      if (remediation) {
+        console.error(`\n${remediation.hint(err)}\n`);
+      } else {
+        console.error(err);
+      }
+      process.exit(1);
+    })
+    .finally(() => void shutdownOtel());
 };

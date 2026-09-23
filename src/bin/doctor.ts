@@ -8,6 +8,7 @@
  *   --degradation    Show graceful degradation posture
  *   --routing-log    Show routing telemetry summary
  *   --benchmarks     Show top-10 costly derivations
+ *   --deep           Run shared readiness checks against a bare kernel (LM/gates)
  */
 
 import { cpus } from 'node:os';
@@ -30,6 +31,8 @@ import {
   resolveLMSettings,
 } from '@senars/nar/lm/env-config.js';
 import { createLogger } from '@senars/nar/logger';
+import { createBotNAR } from '@senars/nar';
+import { runHealthChecks } from '@senars/nar/health';
 import { loadConfig } from '../config/index.js';
 import { getConsolidationWatchdogStatus } from '@senars/nar/memory/pressure/index.js';
 
@@ -40,6 +43,19 @@ interface Check {
   ok: boolean;
   detail: string;
 }
+
+const probeProviderReachable = async (): Promise<boolean> => {
+  const settings = resolveLMSettings();
+  if (settings.provider === 'transformers' || settings.provider === 'mock') return true;
+  if (settings.provider !== 'openai-compatible') return Boolean(process.env.LM_API_KEY ?? process.env.OPENAI_API_KEY ?? process.env.ANTHROPIC_API_KEY);
+  try {
+    const base = settings.baseUrl ?? 'http://localhost:11434/v1';
+    const res = await fetch(`${base.replace(/\/$/, '')}/models`, { signal: AbortSignal.timeout(3000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+};
 
 const checkCredentials = (): { key: string; present: boolean }[] =>
   ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'LM_API_KEY', 'TAVILY_API_KEY'].map((key) => ({
@@ -84,6 +100,7 @@ const jsonOutput = args.includes('--json');
 const showDegradation = args.includes('--degradation');
 const showRoutingLog = args.includes('--routing-log');
 const showBenchmarks = args.includes('--benchmarks');
+const deep = args.includes('--deep');
 
 interface DoctorOutput {
   lm: {
@@ -124,6 +141,7 @@ interface DoctorOutput {
   };
   routingLog?: { enabled: boolean; bufferSize: number; logPath: string };
   benchmarks?: unknown[];
+  deep?: { ready: boolean; checks: Record<string, { ok: boolean; detail: string }> };
 }
 
 const main = async (): Promise<void> => {
@@ -230,6 +248,25 @@ const main = async (): Promise<void> => {
   const watchdogStatus = getConsolidationWatchdogStatus();
   output.watchdog = { enabled: watchdogStatus.enabled, config: watchdogStatus.config };
 
+  // Deep health checks (O3): spin a bare kernel and run the shared readiness checks.
+  if (deep) {
+    const nar = createBotNAR();
+    try {
+      const report = await runHealthChecks({
+        gates: nar.gates,
+        lmReachable: probeProviderReachable,
+      });
+      output.deep = {
+        ready: report.ready,
+        checks: Object.fromEntries(
+          Object.entries(report.checks).map(([k, v]) => [k, { ok: v.ok, detail: v.detail }])
+        ),
+      };
+    } finally {
+      await nar.dispose();
+    }
+  }
+
   // Benchmarks placeholder
   if (showBenchmarks) {
     output.benchmarks = [];
@@ -271,6 +308,13 @@ if (jsonOutput) {
     if (showBenchmarks) {
       console.log('\n--- Benchmarks ---');
       console.log('(not yet implemented)');
+    }
+
+    if (output.deep) {
+      console.log(`\n--- Deep Health (${output.deep.ready ? 'READY' : 'NOT READY'}) ---`);
+      for (const [name, v] of Object.entries(output.deep.checks)) {
+        console.log(`  ${name}: ${v.ok ? '✓' : '✗'} ${v.detail}`);
+      }
     }
   }
 };

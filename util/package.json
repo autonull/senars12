@@ -48,6 +48,10 @@
       "types": "./src/utils/assert.ts",
       "import": "./src/utils/assert.ts"
     },
+    "./utils/eval": {
+      "types": "./src/utils/eval.ts",
+      "import": "./src/utils/eval.ts"
+    },
     "./utils/serialization": {
       "types": "./src/utils/serialization.ts",
       "import": "./src/utils/serialization.ts"
