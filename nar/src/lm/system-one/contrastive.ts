@@ -148,6 +148,26 @@ export class ContrastiveMemory {
     return added;
   }
 
+  /** Add pre-computed exemplar embeddings directly (for text-redacted sources
+   *  like the distillation dataset); returns stored count. */
+  addEmbeddings(
+    rubric: string,
+    exemplars: { positives?: readonly Float32Array[]; negatives?: readonly Float32Array[] }
+  ): number {
+    const bucket = this.#bucket(rubric);
+    let added = 0;
+    for (const emb of exemplars.positives ?? []) {
+      bucket.positives.push(emb);
+      added++;
+    }
+    for (const emb of exemplars.negatives ?? []) {
+      bucket.negatives.push(emb);
+      added++;
+    }
+    this.#enforceReplayMix(bucket);
+    return added;
+  }
+
   /** Fit InfoNCE scale/bias for a rubric from its stored exemplars (leave-one-out positives). */
   calibrate(
     rubric: string,

@@ -623,7 +623,12 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
       if (sub === 'dataset') {
         const dataset = (nar as any).systemOne?.dataset;
         if (!dataset) return 'Dataset not available (distillation not configured)';
-        return `Dataset: ${dataset.size} labels, vectors: ${(dataset as any).#vectors?.size ?? 0}`;
+        const bySource = new Map<string, number>();
+        for (const l of dataset.all() as ReadonlyArray<{ source: string }>) {
+          bySource.set(l.source, (bySource.get(l.source) ?? 0) + 1);
+        }
+        const breakdown = [...bySource].map(([s, n]) => `  ${s}: ${n}`).join('\n');
+        return `Dataset: ${dataset.size} labels\n${breakdown}`;
       }
       return 'Usage: .trace on|off|status|sample <0-1>|dataset';
     }),

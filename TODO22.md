@@ -37,6 +37,8 @@ Integrate System One (manifold, dispatcher, cortex, reflexes) into the Bot's **l
 - ~~Manifold benchmark enhanced-vs-baseline (AC #14)~~ ✅ **Done** — `scripts/manifold-bench.ts` (`pnpm bench:manifold`): baseline judgeBatch vs enhanced (+ calibrated InfoNCE scoring) over 100 candidates @dim=384; AC #14 gate (≤20ms/judgment) PASSES with large margin (~0.21ms enhanced, ~0.13ms contrastive overhead).
 - ~~Distillation auto-capture from successful conversations~~ ✅ **Done** — `collectChat()` accumulates the response text and, when trace grading samples a turn whose grade (groundedness score, or `contrastiveQuality` when abstained) ≥ 0.7, records a `DistillationLabel` (`rubric: 'groundedness'`, `source: 'conversation'`) + response embedding into `JudgmentDataset` via `computeEvidenceId(input, response)` for input-anchored identity. Best-effort: capture failures never disrupt chat. Rows auto-flush only when `systemOne.distillation.autoFlush` is enabled.
 
+**Follow-up sweep (2026-09-24, second pass):** `.trace dataset` now shows a per-`source` breakdown (conversation vs other); `ContrastiveMemory.addEmbeddings` accepts pre-computed exemplar embeddings (for text-redacted sources); `refreshSystemOneContrastive` folds accepted conversation-captured distillation rows (score ≥ 0.7) into the `groundedness` rubric as positive embeddings — closing the loop from auto-captured chat turns back to contrastive calibration.
+
 **TODO22 is now fully complete — no remaining work.** Natural follow-ons for TODO23: distill-loop training (`train.ts`) consuming the auto-captured rows; `.trace dataset` could distinguish conversation-captured rows by `source`.
 
 ---

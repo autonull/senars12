@@ -211,7 +211,8 @@ export class SystemOneRuntime {
 
   /**
    * CLM contrastive refresh: mine hard negatives from live NAR state
-   * (belief contradictions + episodic errors), seed the exemplar memory,
+   * (belief contradictions + episodic errors), fold in accepted rows from
+   * the distillation dataset as positives, seed the exemplar memory,
    * and refit InfoNCE calibrations. Idempotent; no-op when System One is
    * disabled or no belief source is supplied.
    */
@@ -222,6 +223,14 @@ export class SystemOneRuntime {
     if (!this.embeddingCache || !nar) return;
     const mined = await mineHardNegatives(nar as never, episodic, { limit: 64 });
     await seedContrastiveMemory(mined, this.contrastive, this.embeddingCache);
+    if (this.dataset) {
+      const positives = this.dataset
+        .all()
+        .filter((l) => l.source === 'conversation' && (l.score ?? 0) >= 0.7)
+        .map((l) => this.dataset!.getVector(l.evidenceId))
+        .filter((v): v is Float32Array => !!v);
+      if (positives.length > 0) this.contrastive.addEmbeddings('groundedness', { positives });
+    }
     this.contrastive.calibrateAll();
   }
 
