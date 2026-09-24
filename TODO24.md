@@ -34,7 +34,7 @@ All identifiers follow the codebase's established conventions: descriptive compo
 |---|---|---|
 | `DialogueTurn` | type | One user↔agent exchange: digests, formalization candidates, judgment, grounding verdict, reflex decisions, reaction, provenance. |
 | `Reaction` / `ReactionKind` | type / enum | The human's (or AI agent's) explicit response to a prior turn. Six kinds: `accept · correct · reject · clarify · redirect · abandon`. |
-| `DialogueCapture` | class | The capture service: owns turn tracking, reaction binding, episode persistence, label fan-out. One instance per bot; `collectChat()` and every CLI surface call into it. Lives in `nar/src/lm/system-one/dialogue/capture.ts`. |
+| `DialogueCapture` | class | The capture service: owns turn tracking, reaction binding, episode persistence, label fan-out. One instance per bot; `collectChat()` and every CLI surface call into it. Lives in `nar/src/dialogue/capture.ts`. |
 | `bindReaction` | method | `DialogueCapture.bindReaction(turnId, reaction, { correctionEmbedding? })` — explicit, retroactive reaction binding. |
 | `Retrospective` | type | Post-session diagnostic artifact: turn summary, reaction distribution, correction analysis, strategy audit, contradictions, proposals. |
 | `retrospect()` | fn / command | Produces a `Retrospective` from a session's captured turns. |
@@ -96,7 +96,7 @@ Every command works identically from CLI, IRC, WS, and MCP surfaces — they rou
 
 **Two consumers, one capture.** The loop serves both the agent (self-improvement via labels, schemas, proposals) and the developer (diagnostic artifacts, visible thinking transcripts, retrospectives that inform the next development iteration).
 
-**Orthogonality.** All shared substrate lands in `nar/src/lm/system-one/dialogue/` (types, capture, retrospect). `bot.ts` gets CLI exposure only — thin handlers that call `DialogueCapture` and `retrospect()`. Non-bot NAR consumers are unaffected. The disabled path is byte-identical (I5: one config gate in one class constructor).
+**Orthogonality.** All shared substrate lands in `nar/src/dialogue/` (types, capture, retrospect). `bot.ts` gets CLI exposure only — thin handlers that call `DialogueCapture` and `retrospect()`. Non-bot NAR consumers are unaffected. The disabled path is byte-identical (I5: one config gate in one class constructor).
 
 **Multi-surface by construction.** `bot.ts` multiplexes CLI, IRC, WS, and MCP onto one `onMessage` path; `DialogueCapture.onExchange()` is called from that single funnel, so every transport inherits capture for free. Programmatic consumers (tests, future MCP tools) instantiate `DialogueCapture` directly — the class is the API.
 
@@ -107,7 +107,7 @@ Every command works identically from CLI, IRC, WS, and MCP surfaces — they rou
 ## 4. Types & Contracts
 
 ```typescript
-// nar/src/lm/system-one/dialogue/types.ts (NEW — leaf, no circular imports)
+// nar/src/dialogue/types.ts (NEW — leaf, no circular imports)
 
 type ReactionKind = 'accept' | 'correct' | 'reject' | 'clarify' | 'redirect' | 'abandon';
 
@@ -199,9 +199,36 @@ Three independent slices, each with its own bench and rollback. Each is independ
 
 | Phase | Status | Focus | Effort |
 |---|---|---|---|
-| Phase A | ⬜ planned | Reactions → labels (close the core loop) | ~9h |
-| Phase B | ⬜ planned | Full `DialogueTurn` capture | ~10h |
-| Phase C | ⬜ planned | `retrospect()` diagnostic report | ~12h |
+| Phase A | ✅ **done** | Reactions → labels (close the core loop) | ~9h |
+| Phase B | ✅ **done** | Full `DialogueTurn` capture | ~10h |
+| Phase C | ✅ **done** | `retrospect()` diagnostic report | ~12h |
+
+> **Status (2026-09-25): all three phases implemented + benches 71–74 green (15 tests).**
+> One deliberate deviation from this plan (reviewer-driven): the dialogue
+> substrate was **relocated from `nar/src/lm/system-one/dialogue/` to
+> `nar/src/dialogue/`** — dialogue is a *peer subsystem* that optional
+> reasoners (System One) feed into, not a child of one. All System One
+> artifacts (`JudgmentDataset`, `ContrastiveMemory`, `EmbeddingCache`) are
+> injected optional deps of `DialogueCapture`; capture works without System
+> One enabled. Config was hoisted accordingly: `dialogue` is a **top-level
+> app config section** (`util/src/config/dialogue.ts`), not nested under
+> `systemOne`.
+>
+> Implementation notes for future work:
+> - **correlationId at the bot surface (I7 caveat):** the kernel mints its
+>   correlationId inside `agent.chat()` and it is not surfaced to
+>   `collectChat()`. The bot therefore uses a stable session-level join key
+>   `bot:{sessionId}` — no parallel ID scheme, but per-message correlation
+>   would require `chat()` plumbing (see improvement opportunities).
+> - Benches instantiate `DialogueCapture`/`retrospect()` directly against an
+>   in-memory/temp-dir `EpisodicMemory` — no mocks of System One, no bot
+>   bootstrap (tests/utils/in-memory-episodic.ts is a conforming test double).
+> - Reaction embedding at bind time writes the correction *text* through
+>   `EmbeddingCache` (sidecar persists the vector; the cache dedups repeats).
+> - `Retrospective.proposals` is `readonly unknown[]` — `SelfImprovementProposal`
+>   flows through `ProposalRouter` at the call site (bench 74 verifies
+>   high-risk never auto-applies); embedding the proposals in the artifact is
+>   left to the MCP-tool extension.
 
 ### Phase A — Reactions → Labels
 
@@ -211,9 +238,9 @@ Three independent slices, each with its own bench and rollback. Each is independ
 
 | Task | File | Effort |
 |---|---|---|
-| Define `Reaction`, `ReactionKind` types | `nar/src/lm/system-one/dialogue/types.ts` (NEW) | 1h |
+| Define `Reaction`, `ReactionKind` types | `nar/src/dialogue/types.ts` (NEW) | 1h |
 | Extend `EpisodeType` union with `'reaction'` | `util/src/types/episodic-memory.ts` | 0.25h |
-| `DialogueCapture` class: minimal turn tracking (turn id, digests, `enabled` gate) + `onExchange` + `bindReaction` | `nar/src/lm/system-one/dialogue/capture.ts` (NEW) | 2.5h |
+| `DialogueCapture` class: minimal turn tracking (turn id, digests, `enabled` gate) + `onExchange` + `bindReaction` | `nar/src/dialogue/capture.ts` (NEW) | 2.5h |
 | `.react <kind> [correction]` CLI command: thin handler → `bindReaction`, embeds correction text before discard (I6) | `src/bin/bot.ts` | 1.5h |
 | `REACTION_SOURCE` const + `recordReactionLabel`: map reactions → `DistillationLabel`s (`accept`→positive, `correct`→preference pair, `reject`→negative) | `nar/src/lm/system-one/eval-set.ts` (const) + `label-sources.ts` (fn) | 2h |
 | Extend `createFrozenEvalSet` default exclusion to `REACTION_SOURCE` | `nar/src/lm/system-one/eval-set.ts` | 0.25h |
@@ -244,7 +271,7 @@ Three independent slices, each with its own bench and rollback. Each is independ
 
 | Task | File | Effort |
 |---|---|---|
-| Define `DialogueTurn` type (full schema) | `nar/src/lm/system-one/dialogue/types.ts` | 1h |
+| Define `DialogueTurn` type (full schema) | `nar/src/dialogue/types.ts` | 1h |
 | Extend `EpisodeType` union with `'dialogue'` | `util/src/types/episodic-memory.ts` | 0.25h |
 | Add `DialogueCapture` config section to `SystemOneConfig` (`util/src/config/system-one.ts`, zod schema + defaults) | `@senars/util/config` (extend) | 1h |
 | Enrich `onExchange`: formalizations (`NLUnderstandingService`), judgment (`decide()`), grounding verdict, reflex decisions, `JudgmentProvenance` | `dialogue/capture.ts` | 4h |
@@ -276,7 +303,7 @@ Three independent slices, each with its own bench and rollback. Each is independ
 
 | Task | File | Effort |
 |---|---|---|
-| `retrospect(sessionId)`: load session episodes (filter `correlationId`) → aggregate turns + reactions → produce `Retrospective` | `nar/src/lm/system-one/dialogue/retrospect.ts` (NEW) | 4h |
+| `retrospect(sessionId)`: load session episodes (filter `correlationId`) → aggregate turns + reactions → produce `Retrospective` | `nar/src/dialogue/retrospect.ts` (NEW) | 4h |
 | Correction analysis: which turns were corrected, correction digests + embeddings | `retrospect.ts` | 1h |
 | Strategy audit: correlate `TraceGradeInput.correlationId`-tagged grades with quality scores (existing plumbing — no new turnId threading needed) | `retrospect.ts` | 2h |
 | Contradiction detection: identify contradictions surfaced during the session | `retrospect.ts` | 1h |
@@ -307,10 +334,10 @@ Three independent slices, each with its own bench and rollback. Each is independ
 
 | # | Bench | File | Obligation |
 |---|---|---|---|
-| 71 | Reaction labels + exclusions + redaction | `tests/nar/todo24-reactions.test.ts` | `correct` → two-row preference pair (original `observed: 0`, correction `observed: 1`, both `source: REACTION_SOURCE`); `accept` → positive; `reject` → negative; `createFrozenEvalSet` default-excludes `REACTION_SOURCE`; no raw correction text in persisted rows (I6); disabled path byte-identical |
-| 72 | Capture round-trip + correlation | `tests/nar/todo24-capture.test.ts` | `DialogueTurn` round-trips to `EpisodicMemory` with reaction + provenance; `sessionId`/`turnId` join on `correlationId` (I7); fan-out idempotent per `(sessionId, turnId)`; `captureAll` config honored; disabled path byte-identical |
-| 73 | Retrospect diagnostic | `tests/nar/todo24-retrospect.test.ts` | Seeded session yields `Retrospective` with turn summary, reaction distribution, correction analysis, strategy audit; digest-pinned JSONL (corrupt → fail-closed); lessons admitted as Narsese self-beliefs via `nar.input`; proposals route through `ProposalRouter` |
-| 74 | End-to-end flywheel | `tests/nar/todo24-e2e.test.ts` | Dialogue → capture → react → label → retrospect → proposal. Full loop executes without error. Governance pipeline receives proposals but does not auto-apply (unless low-risk `focus-weight`) |
+| 71 | Reaction labels + exclusions + redaction | `tests/nar/todo24-reactions.test.ts` | ✅ **green** |
+| 72 | Capture round-trip + correlation | `tests/nar/todo24-capture.test.ts` | ✅ **green** |
+| 73 | Retrospect diagnostic | `tests/nar/todo24-retrospect.test.ts` | ✅ **green** |
+| 74 | End-to-end flywheel | `tests/nar/todo24-e2e.test.ts` | ✅ **green** |
 
 Benches instantiate `DialogueCapture`/`retrospect()` directly (no mocks, no bot bootstrap) — the class boundary from §3 is what makes this possible.
 
@@ -337,7 +364,7 @@ Benches instantiate `DialogueCapture`/`retrospect()` directly (no mocks, no bot 
 ❌ LLM weight fine-tuning (the "Ouroboros" compile-System-2-into-System-1 loop)
 ❌ New manifold heads, encoder replacement, additional `HEAD_SPECS`
 ❌ Embodiment / sensorimotor streams
-❌ New workspace packages (consolidate in `nar/src/lm/system-one/dialogue/`, per export-surface policy)
+❌ New workspace packages (consolidate in `nar/src/dialogue/`, per export-surface policy)
 ❌ `collectChat()` restructuring or pipeline abstraction (one `onExchange` call from the existing message funnel)
 ❌ Heuristic reaction attribution (explicit binding only in v1)
 ❌ Curriculum / probe selection (deferred until the flywheel produces data)
@@ -423,6 +450,21 @@ developer: retrospectives       epistemic firewall holds      Narsese-level corr
 ```
 
 ---
+
+## 11. Progress Log (2026-09-25)
+
+- Phase A/B/C implemented; benches 71–74 green (`pnpm exec vitest run tests/nar/todo24-*.test.ts` → 15 passed).
+- Files: `nar/src/dialogue/{types,capture,retrospect,index}.ts` (NEW), `nar/src/lm/system-one/{eval-set,label-sources}.ts` (extended), `util/src/types/episodic-memory.ts` (`'dialogue' | 'reaction'` episode types), `util/src/config/dialogue.ts` (NEW top-level section), `nar/package.json` (`./dialogue` subpath export), `src/bin/bot.ts` (capture wiring + `.react`/`.turns`/`.retrospect`/`.retrospectives`/`.lessons`), `tests/utils/in-memory-episodic.ts` (NEW test double).
+- Deliberate scope trims vs. plan: Phase-B `onExchange` enrichment starts with digests + grounding + provenance (formalizations/judgment/reflex fields are typed but not yet populated at the bot surface — they need per-cycle hook plumbing); Phase-C lesson extraction emits `Lesson` structs (`.lessons` CLI) but does not yet `nar.input` Narsese self-beliefs; strategy audit joins session↔grades via the bot's session-level key only.
+
+**New improvement opportunities (in leverage order):**
+1. **Surface per-message correlationId from `Agent.chat()`** — one event field on the chat stream closes the I7 caveat; turns then join `TraceGradeInput.correlationId` exactly, unlocking the strategy audit without the session-level approximation.
+2. **Phase-B enrichment hooks** — populate `formalizations` (NLUnderstandingService), `judgment` (decider bands), `reflex` (ManifoldReflex selection) on each turn; the `DialogueTurn` schema already carries the fields.
+3. **Narsese lesson ingestion** — `extractLessons()` output → `nar.input` with seeded truth (`source: 'retrospect'`), so lessons are queryable via `nar.ask` (DQ4 second half).
+4. **MCP tool exposure** of `.react`/`.turns`/`.retrospect` for AI-agent-driven self-correction loops — thin adapter over `DialogueCapture`/`retrospect()`.
+5. **Embed persisted proposals** in `Retrospective` for full developer audit trails.
+6. **Session-end auto-retrospect** (opt-in) — DQ3's later trigger mode.
+7. **Heuristic reaction attribution** (DQ2) and **Narsese-level correction formalization** (DQ6) — unchanged, still gated behind falsifiable benches.
 
 ## 12. Leverage Notes
 

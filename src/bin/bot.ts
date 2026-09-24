@@ -27,6 +27,8 @@ import {
   WSConnection,
 } from '@senars/io';
 import type { Agent } from '@senars/nar/agent';
+import { DialogueCapture, extractLessons, loadRetrospectives, persistRetrospective, retrospect } from '@senars/nar/dialogue';
+import type { DialogueCapture as DialogueCaptureType } from '@senars/nar/dialogue';
 import { formatLMConfig, resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
 import { computeEvidenceId } from '@senars/nar/lm/system-one';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm/env-config.js';
@@ -118,7 +120,9 @@ async function collectChat(
   input: string,
   tier: 'quality' | 'fast' | 'structured',
   ground: GroundednessState,
-  trace: TraceState
+  trace: TraceState,
+  dialogue: DialogueCaptureType,
+  sessionId: string
 ): Promise<void> {
   const ctl = new AbortController();
   const onSigint = () => ctl.abort();
@@ -138,6 +142,13 @@ async function collectChat(
       } else if (evt.kind === 'tool-call') process.stdout.write(`\n[tool:${evt.toolName}]\n`);
       else if (evt.kind === 'error' || evt.kind === 'aborted') break;
     }
+    // TODO24 dialogue capture: fire-and-forget, best-effort (I5) — never
+    // disrupts chat. Join key is the bot session id (I7: no parallel ID scheme;
+    // the kernel mints its own correlationId inside agent.chat()).
+    const correlationId = `bot:${sessionId}`;
+    dialogue
+      .onExchange({ correlationId, utterance: input, response })
+      .catch(() => {});
     // Trace grader sampling + distillation auto-capture from successful conversations
     if (trace.enabled && trace.grader && Math.random() < trace.sampleRate) {
       const toolCalls: Array<{ command: string; success: boolean }> = [];
@@ -186,7 +197,7 @@ const gpuSummary = async (): Promise<string> => {
   }
 };
 
-function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, ground: GroundednessState, trace: TraceState, conversationGame: { focus: any; game: any } | null, routing: { auto: boolean; policy: 'conservative' | 'balanced' | 'aggressive' }, provisional: { enabled: boolean }): CLICommand[] {
+function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, ground: GroundednessState, trace: TraceState, conversationGame: { focus: any; game: any } | null, routing: { auto: boolean; policy: 'conservative' | 'balanced' | 'aggressive' }, provisional: { enabled: boolean }, dialogue: DialogueCaptureType): CLICommand[] {
   const { agent, nar, sessionManager, episodicMemory, lmService } = w;
   // loadConfig() returns a deeply frozen object — clone for runtime mutation.
   let appConfig = structuredClone(w.appConfig);
@@ -215,7 +226,7 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
 
   return [
     cmd('help', 'Show all commands (categorized)', () =>
-      `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable .skill-add .skill-remove .skill-edit | Memory: .consolidate .memory-stats .memory-export .memory-import .memory-clear\nLM: .lm-config .lm-provider .lm-model .lm-rules .lm-rule-enable .lm-rule-disable .routing .routing-set .routing-offline .circuit-breakers .circuit-reset | SystemOne: .systemone .manifold .calibrate .distill .selftune .decide .judge\nDiag: .doctor .health .benchmarks .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload .config-reset | .auth-list .auth-add .auth-remove`
+      `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable .skill-add .skill-remove .skill-edit | Memory: .consolidate .memory-stats .memory-export .memory-import .memory-clear\nLM: .lm-config .lm-provider .lm-model .lm-rules .lm-rule-enable .lm-rule-disable .routing .routing-set .routing-offline .circuit-breakers .circuit-reset | SystemOne: .systemone .manifold .calibrate .distill .selftune .decide .judge\nDiag: .doctor .health .benchmarks .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload .config-reset | .auth-list .auth-add .auth-remove\nDialogue: .react .turns .retrospect .retrospectives .lessons`
     ),
     cmd('connect', 'Start a connection: irc|ws|http|mcp', async (args = '') => {
       const parts = args.trim().split(/\s+/).filter(Boolean);
@@ -459,6 +470,58 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
         b.reset();
         return `Circuit breaker reset: ${name}`;
       } catch (e) { return `circuit-reset failed: ${errMsg(e)}`; }
+    }),
+    cmd('react', 'Bind a reaction to the last turn: accept|correct|reject|clarify|redirect|abandon [correction]', async (args = '') => {
+      const [kind, ...rest] = args.trim().split(/\s+/).filter(Boolean) as [string, ...string[]];
+      const turn = dialogue.latestTurn();
+      if (!turn) return 'No captured turn to react to (capture disabled or no exchange yet).';
+      if (!['accept', 'correct', 'reject', 'clarify', 'redirect', 'abandon'].includes(kind))
+        return 'Usage: .react accept|correct|reject|clarify|redirect|abandon [correction]';
+      const correction = kind === 'correct' ? rest.join(' ') : undefined;
+      if (kind === 'correct' && !correction) return 'Usage: .react correct <correction text>';
+      try {
+        await dialogue.bindReaction(turn.turnId, kind as any, correction);
+        return `Reaction ${kind} bound to ${turn.turnId}${kind === 'correct' ? ' (embedded + labeled, text discarded)' : ''}`;
+      } catch (e) { return `react failed: ${errMsg(e)}`; }
+    }),
+    cmd('turns', 'Show captured dialogue turns: [session-id] [n]', async (args = '') => {
+      const [sid, nRaw] = args.trim().split(/\s+/).filter(Boolean);
+      const n = Number(nRaw ?? 10) || 10;
+      if (!wired.episodicMemory) return 'Episodic memory not available.';
+      const episodes = await w.episodicMemory.getEpisodes({ type: 'dialogue', limit: 500 });
+      const target = sid ?? [...new Set(episodes.map((e) => (e.metadata as any).sessionId as string))].pop();
+      const rows = episodes
+        .filter((e) => (e.metadata as any).sessionId === target)
+        .slice(-n);
+      if (rows.length === 0) return target ? `No turns for session ${target}` : 'No captured turns.';
+      return rows.map((e) => {
+        const d = JSON.parse(e.content) as any;
+        return `  ${d.turnId} seq=${d.seq}${d.grounding ? ` ground=${d.grounding.score.toFixed(2)}` : ''} resp=${d.responseDigest?.slice(0, 19) ?? '—'}`;
+      }).join('\n');
+    }),
+    cmd('retrospect', 'Run a retrospective: [session-id]', async (args = '') => {
+      if (!w.episodicMemory) return 'Episodic memory not available.';
+      const sid = args.trim() || [...new Set(
+        (await w.episodicMemory.getEpisodes({ type: 'dialogue', limit: 500 }))
+          .map((e) => (e.metadata as any).sessionId as string)
+      )].pop();
+      if (!sid) return 'No captured sessions.';
+      const r = await retrospect(sid, w.episodicMemory);
+      await persistRetrospective(r);
+      return `Retrospective ${r.sessionId}: turns=${r.turnCount} reactions=${r.reactionCount} ` +
+        `corrections=${r.corrections.length} audit=${r.strategyAudit.length} digest=${r.digest.slice(0, 19)}`;
+    }),
+    cmd('retrospectives', 'List past retrospectives: [n]', async (args = '') => {
+      const n = Number(args.trim() || 10) || 10;
+      const rs = await loadRetrospectives(n);
+      if (rs.length === 0) return 'No retrospectives.';
+      return rs.map((r) => `  ${r.sessionId} turns=${r.turnCount} reactions=${r.reactionCount} digest=${r.digest.slice(0, 19)}`).join('\n');
+    }),
+    cmd('lessons', 'Show lessons extracted from retrospectives', async () => {
+      const rs = await loadRetrospectives(50);
+      const lessons = rs.flatMap((r) => extractLessons(r, { term: 'dialogue_performance', truth: { frequency: 0.9, confidence: 0.6 } }));
+      if (lessons.length === 0) return 'No lessons (require ≥2 supporting turns per retrospective).';
+      return lessons.map((l) => `  ${l.term} f=${l.truth.frequency} c=${l.truth.confidence} turns=${l.provenance.turnIds.length}`).join('\n');
     }),
     cmd('systemone', 'System One status / subcommands: heads|dispatcher|cortex|reflexes|eval-set', async (args = '') => {
       const on = nar.isSystemOneEnabled?.() ?? false;
@@ -1218,6 +1281,16 @@ async function main(): Promise<void> {
   // Provisional cache state (Phase 4)
   const provisional: { enabled: boolean } = { enabled: true };
 
+  // TODO24 Dialogue Flywheel: one instance per bot; every sink guarded by
+  // dialogue.enabled (I5 default false ⇒ byte-identical disabled path).
+  const dialogue = new DialogueCapture({
+    episodic: wired.episodicMemory,
+    dataset: (wired.nar as any).systemOne?.dataset,
+    embeddingCache: wired.nar.getSystemOneEmbeddingCache?.(),
+    contrastive: wired.nar.getSystemOneContrastive?.(),
+    config: wired.appConfig.dialogue,
+  });
+
   // Bot-only default profile: enable System One by default (opt-out via config)
   // This only affects the bot; non-Bot NAR consumers are unaffected.
   if (!wired.appConfig.systemOne?.enabled) {
@@ -1247,7 +1320,7 @@ async function main(): Promise<void> {
   const core = buildCommands(wired.nar, agent, wired.lmService, sessionManager,
     () => currentSession, (s) => { currentSession = s; },
     { get: () => tier, set: (t) => { tier = t; } });
-  const extra = buildExtraCommands(wired, cm, auth, ground, trace, conversationGame, routing, provisional);
+  const extra = buildExtraCommands(wired, cm, auth, ground, trace, conversationGame, routing, provisional, dialogue);
   const commands = [...core.filter((c) => c.name !== 'help'), ...extra];
 
   const cli = new CLIConnection(
@@ -1255,7 +1328,7 @@ async function main(): Promise<void> {
     { emit: () => undefined } as never
   );
   await cli.connect();
-  cli.onMessage(async (message) => { await collectChat(agent, message.text, tier, ground, trace); });
+  cli.onMessage(async (message) => { await collectChat(agent, message.text, tier, ground, trace, dialogue, currentSession.id ?? 'default'); });
   agent.mount(cli as never);
 
   cli.onStateChange((state) => {

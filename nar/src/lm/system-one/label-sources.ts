@@ -1,4 +1,6 @@
 import { computeEvidenceId, type JudgmentDataset } from './distill.js';
+import { REACTION_SOURCE } from './eval-set.js';
+import type { ReactionKind } from '../../dialogue/types.js';
 
 export interface CorrectionLabelInput {
   originalNL: string;
@@ -92,4 +94,66 @@ export function recordClarificationLabel(
     },
     input.embedding
   );
+}
+
+export interface ReactionLabelInput {
+  turnId: string;
+  kind: ReactionKind;
+  responseDigest: string;
+  correctionDigest?: string;
+  responseEmbedding?: Float32Array;
+  correctionEmbedding?: Float32Array;
+}
+
+/**
+ * TODO24: map explicit reactions → DistillationLabels (source: REACTION_SOURCE).
+ * `accept` → positive; `reject`/`abandon` → negative; `correct` → two-row
+ * embedding-level preference pair (original observed: 0, correction observed: 1).
+ * `clarify`/`redirect` produce metadata, not labels.
+ */
+export function recordReactionLabel(
+  dataset: JudgmentDataset,
+  input: ReactionLabelInput
+): number {
+  const { kind } = input;
+  if (kind === 'clarify' || kind === 'redirect') return 0;
+  if (kind === 'correct') {
+    if (!input.correctionEmbedding) return 0;
+    const pairId = computeEvidenceId(input.turnId, 'reaction-pair');
+    dataset.record(
+      {
+        evidenceId: computeEvidenceId(pairId, 'original'),
+        rubric: 'groundedness',
+        axis: 'epistemic',
+        label: 'corrected',
+        observed: 0,
+        source: REACTION_SOURCE,
+      },
+      input.responseEmbedding
+    );
+    dataset.record(
+      {
+        evidenceId: computeEvidenceId(pairId, 'correction'),
+        rubric: 'groundedness',
+        axis: 'epistemic',
+        label: 'corrected',
+        observed: 1,
+        source: REACTION_SOURCE,
+      },
+      input.correctionEmbedding
+    );
+    return 2;
+  }
+  dataset.record(
+    {
+      evidenceId: computeEvidenceId(input.turnId, `reaction:${kind}`),
+      rubric: 'groundedness',
+      axis: 'epistemic',
+      label: kind === 'accept' ? 'accepted' : kind === 'reject' ? 'rejected' : 'abandoned',
+      observed: kind === 'accept' ? 1 : 0,
+      source: REACTION_SOURCE,
+    },
+    input.responseEmbedding
+  );
+  return 1;
 }

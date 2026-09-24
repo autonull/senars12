@@ -21,3 +21,4 @@ export {
   validateAgentOptions,
 } from './validation.js';
 export { systemOneDefaults, systemOneSchema, type SystemOneConfig } from './system-one.js';
+export { dialogueDefaults, dialogueSchema, type DialogueConfig } from './dialogue.js';

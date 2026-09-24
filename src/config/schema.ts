@@ -1,4 +1,6 @@
 import {
+  dialogueDefaults,
+  dialogueSchema,
   lmSettingsSchema,
   narCoreBounds,
   type SystemOneConfig,
@@ -321,6 +323,7 @@ const appConfigBase = z.object({
   }),
   connections: connectionsSchema.default(() => ({})),
   systemOne: systemOneSchema.optional(),
+  dialogue: dialogueSchema.default({ ...dialogueDefaults }),
 });
 
 /** Strict: unknown top-level keys are a config error (typo protection). */

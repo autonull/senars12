@@ -13,6 +13,9 @@ import type { JudgmentDataset } from './distill.js';
 /** TODO22 auto-capture source — never eligible for the frozen set. */
 export const CONVERSATION_SOURCE = 'conversation';
 
+/** TODO24 dialogue-reaction source — never eligible for the frozen set (I1). */
+export const REACTION_SOURCE = 'reaction';
+
 export interface FrozenEvalRow {
   headId: string;
   predicted: number;
@@ -63,7 +66,7 @@ export function createFrozenEvalSet(
   dataset: JudgmentDataset,
   options: { excludeSources?: readonly string[] } = {}
 ): FrozenEvalSet {
-  const excluded = new Set(options.excludeSources ?? [CONVERSATION_SOURCE]);
+  const excluded = new Set(options.excludeSources ?? [CONVERSATION_SOURCE, REACTION_SOURCE]);
   const rows: FrozenEvalRow[] = dataset
     .all()
     .filter((l) => !excluded.has(l.source))

@@ -4,7 +4,9 @@ export type EpisodeType =
   | 'belief_added'
   | 'question'
   | 'tool_call'
-  | 'error';
+  | 'error'
+  | 'dialogue'
+  | 'reaction';
 
 export interface Episode {
   timestamp: number;

@@ -72,6 +72,10 @@
       "types": "./src/learning/index.ts",
       "import": "./src/learning/index.ts"
     },
+    "./dialogue": {
+      "types": "./src/dialogue/index.ts",
+      "import": "./src/dialogue/index.ts"
+    },
     "./lm": {
       "types": "./src/lm/index.ts",
       "import": "./src/lm/index.ts"
