@@ -248,7 +248,7 @@ export class SystemOneRuntime {
     if (this.dataset) {
       const positives = this.dataset
         .all()
-        .filter((l) => l.source === 'conversation' && (l.score ?? 0) >= 0.7)
+        .filter((l) => l.source === 'conversation' && l.domain !== 'ood' && (l.score ?? 0) >= 0.7)
         .map((l) => this.dataset!.getVector(l.evidenceId))
         .filter((v): v is Float32Array => !!v);
       if (positives.length > 0) this.contrastive.addEmbeddings('groundedness', { positives });

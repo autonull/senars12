@@ -339,6 +339,16 @@ Full nar suite: 179 files / 1594 tests passing.
 7. ✅ Existing bake-off / calibration / manifold tests pass unchanged; `parity:smoke` failure is pre-existing on clean HEAD (1-seed, unrelated)
 8. ✅ All new code in `nar/src/lm/system-one/` + CLI exposure only in bot.ts
 
+### Progress (2026-09-24, session 5 — OOD producer live)
+- **Conversation capture now tags OOD turns:** when the trace grader's groundedness head
+  abstains (quality came from cross-rubric contrastive), `captureDistillation` records
+  `domain: 'ood'` — those turns flow into the frozen-set OOD slice (`lock.ood`) instead of
+  in-domain evaluation. `refreshContrastive` excludes `domain: 'ood'` rows from groundedness
+  positives (out-of-scope turns must not seed the positive class).
+- `pnpm exports:audit` / `exports:check` verified clean after the TODO23 work.
+- **TODO23 is complete.** Future extension points: mark reflex-outcome rows OOD when the
+  reward is strongly negative (failure episodes); multi-seed rl-parity vs the opt-in decider.
+
 ---
 
 ## Appendix A: Corrections to the Original Analysis

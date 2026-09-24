@@ -85,7 +85,8 @@ const captureDistillation = async (
   trace: TraceState,
   input: string,
   response: string,
-  score: number
+  score: number,
+  domain?: 'in-domain' | 'ood'
 ): Promise<void> => {
   const { dataset, embeddingCache } = trace;
   if (!dataset || !embeddingCache || !response.trim()) return;
@@ -101,6 +102,9 @@ const captureDistillation = async (
         label: 'accepted',
         score,
         source: 'conversation',
+        // TODO23: groundedness-head abstain ⇒ out-of-domain turn — feeds the
+        // frozen-set OOD slice (lock.ood) rather than in-domain evaluation.
+        ...(domain ? { domain } : {}),
       },
       embedding
     );
@@ -141,7 +145,8 @@ async function collectChat(
         const grade = await trace.grader({ narration: response || input, toolCalls });
         const score = grade.groundedness?.abstained ? grade.contrastiveQuality : grade.groundedness?.score;
         if (score !== undefined && score >= DISTILL_CAPTURE_THRESHOLD) {
-          await captureDistillation(trace, input, response, score);
+          const domain = grade.groundedness?.abstained ? ('ood' as const) : ('in-domain' as const);
+          await captureDistillation(trace, input, response, score, domain);
         }
       } catch {
         // Ignore trace grading errors
