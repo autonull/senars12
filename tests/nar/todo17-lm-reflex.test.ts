@@ -96,6 +96,14 @@ describe('TODO17 Bench 32 — Real-LM Reflex', () => {
     expect(reflex.failures).toBe(0);
   });
 
+  it('lastDecision readout: legal set + served action (TODO24 Phase-B reflex enrichment)', async () => {
+    const reflex = lmReflexWith(stubDispatcher((legal) => [legal[2]!]));
+    expect(reflex.lastDecision).toBeUndefined(); // cold — nothing served yet
+    await reflex.prefetch('s0', 0 as never, ACTIONS);
+    reflex.propose({ stateId: 's0' } as Perception, ACTIONS);
+    expect(reflex.lastDecision).toEqual({ proposed: ACTIONS, selected: '2' });
+  });
+
   it('out-of-grammar LM candidate is rejected — fallback serves, no crash', async () => {
     const reflex = lmReflexWith(stubDispatcher(() => ['disarm-all-humans']));
     await reflex.prefetch('s0', 0 as never, ACTIONS);

@@ -29,6 +29,7 @@ import {
 import type { Agent } from '@senars/nar/agent';
 import { DialogueCapture, extractLessons, loadRetrospectives, persistRetrospective, retrospect } from '@senars/nar/dialogue';
 import type { DialogueCapture as DialogueCaptureType } from '@senars/nar/dialogue';
+import { NLUnderstandingService } from '@senars/nar/nl';
 import { formatLMConfig, resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
 import { computeEvidenceId } from '@senars/nar/lm/system-one';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm/env-config.js';
@@ -1287,18 +1288,42 @@ async function main(): Promise<void> {
 
   // TODO24 Dialogue Flywheel: one instance per bot; every sink guarded by
   // dialogue.enabled (I5 default false ⇒ byte-identical disabled path).
-  // Phase-B enrichment: decider bands + provenance per turn (best-effort).
+  // Phase-B enrichment: decider bands + provenance, LM formalizations, reflex
+  // readout — all best-effort with graceful degradation.
   const decider = wired.nar.getSystemOneDecider?.();
   const dialogueEmbeddingCache = wired.nar.getSystemOneEmbeddingCache?.();
+  // LM-bound formalization enrichment: a real LM call per turn, so gated on
+  // `dialogue.captureAll` — explicit opt-in to full-fidelity turns (cost gate).
+  const understanding =
+    wired.appConfig.dialogue?.captureAll === true
+      ? new NLUnderstandingService(wired.lmService, new Map(), { structuredOnly: true })
+      : undefined;
   const enrich =
-    decider && dialogueEmbeddingCache
+    decider || understanding
       ? async (input: { utterance: string }) => {
-          const result = await decider.decide({
-            context: input.utterance,
-            queries: [{ kind: 'evaluate', instruction: 'Evaluate groundedness of the dialogue turn', rubric: 'groundedness', axis: 'epistemic' }],
-            budget: { maxCycles: 10, maxDepth: 2, maxMemoryOps: 100, maxLMCalls: 0, consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 } },
-          });
-          return { judgment: { abstained: result.abstained, band: result.band }, provenance: result.provenance };
+          const [result, batch] = await Promise.all([
+            decider && dialogueEmbeddingCache
+              ? decider.decide({
+                  context: input.utterance,
+                  queries: [{ kind: 'evaluate', instruction: 'Evaluate groundedness of the dialogue turn', rubric: 'groundedness', axis: 'epistemic' }],
+                  budget: { maxCycles: 10, maxDepth: 2, maxMemoryOps: 100, maxLMCalls: 0, consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 } },
+                })
+              : null,
+            understanding?.understandCandidates(input.utterance).catch(() => null) ?? null,
+          ]);
+          const reflexes = conversationGame?.focus?.reflexes ?? [];
+          const reflexReadout = reflexes
+            .map((r: any) => r.lastDecision)
+            .find((d: any) => d !== undefined);
+          const vetoes =
+            reflexes.find((r: any) => r.id === 'lm-reflex')?.contrastiveVetoes ?? 0;
+          return {
+            ...(result
+              ? { judgment: { abstained: result.abstained, band: result.band }, provenance: result.provenance }
+              : {}),
+            ...(batch?.candidates?.length ? { formalizations: batch.candidates } : {}),
+            ...(reflexReadout ? { reflex: { ...reflexReadout, vetoes } } : {}),
+          };
         }
       : undefined;
   const dialogue = new DialogueCapture({

@@ -477,6 +477,10 @@ developer: retrospectives       epistemic firewall holds      Narsese-level corr
 
 - Enrichment pass: `DialogueCaptureDeps.enrich` (injectable per-turn enricher, best-effort, throw-degrades-to-base). Bot wires the System One decider to populate `judgment` (abstained/band) + full `JudgmentProvenance` per turn when System One is enabled. Remaining enrichment: `formalizations` (needs LM-backed NLUnderstandingService call per turn — cost-benefit gate) and `reflex` (needs ManifoldReflex selection readout, not currently exposed per message).
 
+- Enrichment close-out pass (2026-09-25): both remaining Phase-B fields are now populated at the bot surface —
+  - **`reflex`**: `LMReflex` and `ManifoldReflex` expose a `lastDecision` getter (`{ proposed, selected }`, set in `propose` only when the reflex itself serves — fallback serving leaves it undefined so the readout degrades honestly); the bot's enrich reads it off `conversationGame.focus.reflexes` and attaches `vetoes` from `LMReflex.contrastiveVetoes`. Attribution is last-cycle-at-response-time (best-effort; per-message threading would need kernel-cycle plumbing).
+  - **`formalizations`**: the bot constructs a shared `NLUnderstandingService` (`structuredOnly: true`, Map translation cache for dedup) **only when `dialogue.captureAll` is true** — that flag is the LM-cost gate, since `understandCandidates` is a real per-turn LM call. Enrichment composes decider + formalization + reflex readout in one `Promise.all` (best-effort; batch/decide failures degrade to the base turn).
+
 - Follow-up pass: per-message `correlationId` surfaced on `ChatStreamEvent.finish` (core/src/ChatService.ts, additive field) and consumed by `collectChat()` — turns now join the kernel's correlationId exactly (I7 closed). `.lessons` ingests lessons as Narsese self-beliefs via `nar.input` (seeded truth, best-effort).
 
 - Phase A/B/C implemented; benches 71–74 green (`pnpm exec vitest run tests/nar/todo24-*.test.ts` → 15 passed).
@@ -485,11 +489,15 @@ developer: retrospectives       epistemic firewall holds      Narsese-level corr
 
 **New improvement opportunities (in leverage order):**
 1. ~~**Surface per-message correlationId from `Agent.chat()`**~~ — ✅ **done** (`ChatStreamEvent.correlationId` on `finish`; `collectChat()` consumes it, falling back to `bot:{sessionId}` only if absent).
-2. ~~**Phase-B enrichment hooks**~~ — ✅ **done** (`DialogueCaptureDeps.enrich`: injectable per-turn enricher; bot wires the System One decider for judgment bands + `JudgmentProvenance`, best-effort with graceful degradation. Formalizations (NLUnderstandingService, LM-bound) and reflex selection still unwired — see notes below).
+2. ~~**Phase-B enrichment hooks**~~ — ✅ **done** (`DialogueCaptureDeps.enrich`: injectable per-turn enricher; bot wires the System One decider for judgment bands + `JudgmentProvenance`. **Close-out (2026-09-25): `formalizations` wired** (NLUnderstandingService, `captureAll`-gated LM cost) **and `reflex` wired** (`lastDecision` readout on LMReflex/ManifoldReflex + `contrastiveVetoes`); the reflex readout is last-cycle-per-response, not per-message — exact per-message attribution would need kernel-cycle plumbing and is only worth it if retrospectives show the coarse join misleads).
 3. ~~**Narsese lesson ingestion**~~ — ✅ **done** (`.lessons` ingests via `nar.input` with seeded truth, best-effort).
 5. ~~**Embed persisted proposals** in `Retrospective`~~ — ✅ **done** (`.retrospect` now mines contradiction terms from live beliefs and emits a low-risk `focus-weight` proposal when corrections dominate — payload only, governance at the `ProposalRouter` consumer, I3).
 6. ~~**Session-end auto-retrospect** (opt-in)~~ — ✅ **done** (`dialogue.autoRetrospect` config, default false; runs the shared runner in `setupGracefulShutdown`).
 7. **Heuristic reaction attribution** (DQ2) and **Narsese-level correction formalization** (DQ6) — unchanged, still gated behind falsifiable benches.
+
+**Notes for remaining work:**
+- All TODO24-scoped items are complete; only the DQ2/DQ6 gates remain, and each requires its falsifiable bench *first* (write the bench that would fail without the feature, then implement).
+- Pre-existing lint failures in `scripts/system-one-fit-thresholds.ts` (`noImplicitAnyLet` ×2, introduced by the TODO23 close-out) are unrelated to the flywheel — worth a drive-by fix in the next touch of that script.
 
 ## 12. Leverage Notes
 

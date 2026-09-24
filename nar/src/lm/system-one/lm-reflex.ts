@@ -62,6 +62,12 @@ export class LMReflex implements Reflex<Perception, string> {
   served = 0;
   /** Proposals rejected or demoted by contrastive verification (CLM telemetry). */
   contrastiveVetoes = 0;
+  /** TODO24 Phase-B readout: legal actions vs the action this reflex last served. */
+  #lastDecision?: { proposed: readonly string[]; selected: string };
+
+  get lastDecision(): { proposed: readonly string[]; selected: string } | undefined {
+    return this.#lastDecision;
+  }
 
   constructor(options: LMReflexOptions) {
     this.#fallback = options.fallback;
@@ -165,6 +171,7 @@ export class LMReflex implements Reflex<Perception, string> {
     const legal = legalActions.map(String);
     if (warm && legal.includes(warm.action)) {
       this.served++;
+      this.#lastDecision = { proposed: legal, selected: warm.action };
       return [
         {
           action: warm.action,

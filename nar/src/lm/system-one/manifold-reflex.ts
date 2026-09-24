@@ -39,6 +39,13 @@ export class ManifoldReflex implements Reflex<Perception, string> {
     this.#dataset = options?.dataset;
   }
 
+  /** TODO24 Phase-B readout: legal actions vs the action this reflex last served. */
+  #lastDecision?: { proposed: readonly string[]; selected: string };
+
+  get lastDecision(): { proposed: readonly string[]; selected: string } | undefined {
+    return this.#lastDecision;
+  }
+
   /** Called at the attend stage of the same cycle, before propose. */
   async prefetch(
     stateId: string,
@@ -105,6 +112,12 @@ export class ManifoldReflex implements Reflex<Perception, string> {
       } else if (incumbent) {
         proposals.push({ ...incumbent, action: String(incumbent.action) });
       }
+    }
+    if (proposals.length > 0) {
+      this.#lastDecision = {
+        proposed: legalActions.map(String),
+        selected: String(proposals[0]!.action),
+      };
     }
     return proposals;
   }
