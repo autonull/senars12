@@ -34,8 +34,8 @@ const dataset = await JudgmentDataset.load(values.dataset);
 // in the lock (`eval` block; OOD-marked rows form the `ood` slice) —
 // deployment can then verify fit-vs-frozen drift and OOD calibration.
 const frozen = values.evalSet ? await loadEvalSet(values.evalSet) : undefined;
-let frozenSetOption;
-let oodSetOption;
+let frozenSetOption: { digest: string; rows: typeof inDomain } | undefined;
+let oodSetOption: { digest: string; rows: typeof inDomain } | undefined;
 if (frozen) {
   const { inDomain, ood } = splitOod(frozen.rows);
   frozenSetOption = { digest: inDomain.length > 0 ? digestRows(inDomain) : frozen.digest, rows: inDomain };

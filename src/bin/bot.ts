@@ -27,7 +27,7 @@ import {
   WSConnection,
 } from '@senars/io';
 import type { Agent } from '@senars/nar/agent';
-import { DialogueCapture, extractLessons, loadRetrospectives, persistRetrospective, retrospect } from '@senars/nar/dialogue';
+import { DialogueCapture, RetrospectiveAdapter, extractLessons, loadRetrospectives, persistRetrospective, retrospect } from '@senars/nar/dialogue';
 import type { DialogueCapture as DialogueCaptureType } from '@senars/nar/dialogue';
 import { NLUnderstandingService } from '@senars/nar/nl';
 import { formatLMConfig, resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
@@ -1352,6 +1352,11 @@ async function main(): Promise<void> {
     logger.info(`Dialogue text retention enabled (I6 relaxation) → ${dialogue.config.textStorePath}`);
   }
 
+  // TODO25 Phase A: retrospective-driven strategy adaptation (clamped +
+  // digest one-shot + restorable; see nar/src/dialogue/consumers/adapt.ts).
+  const narController = wired.nar.getController?.();
+  const strategyAdapter = narController ? new RetrospectiveAdapter(narController as never) : undefined;
+
   // TODO24 §5 Phase C: shared retrospective runner — aggregates captured turns,
   // mines contradiction terms from live beliefs, and emits a low-risk
   // focus-weight proposal when corrections dominate (governance unchanged, I3:
@@ -1381,8 +1386,14 @@ async function main(): Promise<void> {
       proposals: sessionReactions.length >= 2 && corrections * 2 >= sessionReactions.length ? [proposal] : [],
     });
     await persistRetrospective(r);
+    // TODO25 Phase A: correction-dominated retrospectives switch reasoning
+    // strategies (N1 clamped: strategy-type switches only, digest one-shot
+    // N2, restorable via the adapter ledger).
+    const controller = wired.nar.getController?.();
+    const adapted = controller && strategyAdapter ? strategyAdapter.adaptFromRetrospective(r) : false;
     return `Retrospective ${r.sessionId}: turns=${r.turnCount} reactions=${r.reactionCount} ` +
-      `corrections=${r.corrections.length} proposals=${r.proposals.length} digest=${r.digest.slice(0, 19)}`;
+      `corrections=${r.corrections.length} proposals=${r.proposals.length} ` +
+      `adapted=${adapted ? 'derivation→focused,lm-rule→priority' : 'no'} digest=${r.digest.slice(0, 19)}`;
   };
 
   // Bot-only default profile: enable System One by default (opt-out via config)

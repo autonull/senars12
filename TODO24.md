@@ -509,6 +509,8 @@ developer: retrospectives       epistemic firewall holds      Narsese-level corr
 
 ## 12. Leverage Notes
 
+> **Follow-up plan:** TODO25.md (retrospective consumers — controller adaptation, re-consolidation, curriculum). Phase A of that plan landed 2026-09-25 (`RetrospectiveAdapter`, Bench 77); TODO24 itself is fully closed.
+
 Highest-leverage items, in order:
 
 1. **Phase A (`DialogueCapture` + `recordReactionLabel`)** — unlocks the single highest-value training signal currently being discarded (the human's explicit reaction), through the established `record*Label` contract in `label-sources.ts`. Every correction becomes a preference pair. Every rejection becomes a hard negative. ~9 hours to close the core loop.
