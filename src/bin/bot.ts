@@ -517,10 +517,14 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
       if (rs.length === 0) return 'No retrospectives.';
       return rs.map((r) => `  ${r.sessionId} turns=${r.turnCount} reactions=${r.reactionCount} digest=${r.digest.slice(0, 19)}`).join('\n');
     }),
-    cmd('lessons', 'Show lessons extracted from retrospectives', async () => {
+    cmd('lessons', 'Show lessons extracted from retrospectives + formalized corrections', async () => {
       const rs = await loadRetrospectives(50);
-      const lessons = rs.flatMap((r) => extractLessons(r, { term: 'dialogue_performance', truth: { frequency: 0.9, confidence: 0.6 } }));
-      if (lessons.length === 0) return 'No lessons (require ≥2 supporting turns per retrospective).';
+      const retrospectLessons = rs.flatMap((r) => extractLessons(r, { term: 'dialogue_performance', truth: { frequency: 0.9, confidence: 0.6 } }));
+      // DQ6: lessons from formalized corrections join here — same explicit
+      // ingestion path, never auto-applied (I2/I3).
+      const reactionLessons = dialogue.lessons;
+      const lessons = [...reactionLessons, ...retrospectLessons];
+      if (lessons.length === 0) return 'No lessons (require ≥2 supporting turns per retrospective, or formalized corrections).';
       // DQ4: ingest as Narsese self-beliefs (non-LLM path, seeded truth) so
       // they are queryable via .ask — best-effort, never blocks the listing.
       for (const l of lessons) {
@@ -1332,6 +1336,16 @@ async function main(): Promise<void> {
     embeddingCache: dialogueEmbeddingCache,
     contrastive: wired.nar.getSystemOneContrastive?.(),
     ...(enrich ? { enrich: enrich as never } : {}),
+    // DQ6: formalize corrections into Narsese lessons when the LM-bound
+    // understanding service is available (same captureAll cost gate).
+    ...(understanding
+      ? {
+          formalize: (text: string) =>
+            understanding
+              .understandCandidates(text)
+              .then((b) => (b?.candidates ?? []).map((c) => ({ narsese: c.narsese, confidence: c.confidence }))),
+        }
+      : {}),
     config: wired.appConfig.dialogue,
   });
   if (dialogue.textStore) {

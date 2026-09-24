@@ -338,6 +338,7 @@ Three independent slices, each with its own bench and rollback. Each is independ
 | 72 | Capture round-trip + correlation | `tests/nar/todo24-capture.test.ts` | ✅ **green** |
 | 73 | Retrospect diagnostic | `tests/nar/todo24-retrospect.test.ts` | ✅ **green** |
 | 74 | End-to-end flywheel | `tests/nar/todo24-e2e.test.ts` | ✅ **green** |
+| 75 | DQ6 Narsese-level correction formalization | `tests/nar/todo24-narsese-corrections.test.ts` | ✅ **green** |
 
 Benches instantiate `DialogueCapture`/`retrospect()` directly (no mocks, no bot bootstrap) — the class boundary from §3 is what makes this possible.
 
@@ -481,6 +482,8 @@ developer: retrospectives       epistemic firewall holds      Narsese-level corr
   - **`reflex`**: `LMReflex` and `ManifoldReflex` expose a `lastDecision` getter (`{ proposed, selected }`, set in `propose` only when the reflex itself serves — fallback serving leaves it undefined so the readout degrades honestly); the bot's enrich reads it off `conversationGame.focus.reflexes` and attaches `vetoes` from `LMReflex.contrastiveVetoes`. Attribution is last-cycle-at-response-time (best-effort; per-message threading would need kernel-cycle plumbing).
   - **`formalizations`**: the bot constructs a shared `NLUnderstandingService` (`structuredOnly: true`, Map translation cache for dedup) **only when `dialogue.captureAll` is true** — that flag is the LM-cost gate, since `understandCandidates` is a real per-turn LM call. Enrichment composes decider + formalization + reflex readout in one `Promise.all` (best-effort; batch/decide failures degrade to the base turn).
 
+- DQ6 close-out pass (2026-09-25, bench-first): `DialogueCaptureDeps.formalize` + bounded capture-side lessons (`source: 'reaction'`); `.lessons` merges them with retrospective lessons for explicit `nar.input` ingestion. Files: `nar/src/dialogue/{types,capture}.ts` (extended), `src/bin/bot.ts` (formalizer wiring + `.lessons` merge), `tests/nar/todo24-narsese-corrections.test.ts` (NEW, Bench 75).
+
 - Follow-up pass: per-message `correlationId` surfaced on `ChatStreamEvent.finish` (core/src/ChatService.ts, additive field) and consumed by `collectChat()` — turns now join the kernel's correlationId exactly (I7 closed). `.lessons` ingests lessons as Narsese self-beliefs via `nar.input` (seeded truth, best-effort).
 
 - Phase A/B/C implemented; benches 71–74 green (`pnpm exec vitest run tests/nar/todo24-*.test.ts` → 15 passed).
@@ -493,10 +496,12 @@ developer: retrospectives       epistemic firewall holds      Narsese-level corr
 3. ~~**Narsese lesson ingestion**~~ — ✅ **done** (`.lessons` ingests via `nar.input` with seeded truth, best-effort).
 5. ~~**Embed persisted proposals** in `Retrospective`~~ — ✅ **done** (`.retrospect` now mines contradiction terms from live beliefs and emits a low-risk `focus-weight` proposal when corrections dominate — payload only, governance at the `ProposalRouter` consumer, I3).
 6. ~~**Session-end auto-retrospect** (opt-in)~~ — ✅ **done** (`dialogue.autoRetrospect` config, default false; runs the shared runner in `setupGracefulShutdown`).
-7. **Heuristic reaction attribution** (DQ2) and **Narsese-level correction formalization** (DQ6) — unchanged, still gated behind falsifiable benches.
+7. ~~**Narsese-level correction formalization** (DQ6)~~ — ✅ **done** (bench-first, per the gate note: **Bench 75** `tests/nar/todo24-narsese-corrections.test.ts` falsifies. `DialogueCaptureDeps.formalize` maps correction text (available only at bind time, I6) → formalization candidates; `bindReaction('correct', …)` stores bounded `Lesson`s (`source: 'reaction'`, truth = formalization confidence floored at 0.5, provenance = the corrected turnId) exposed via `capture.lessons`. `.lessons` merges them with retrospective lessons under the same explicit `nar.input` ingestion — nothing auto-applies (I2/I3). Cost gate: shares the `dialogue.captureAll` gate with the enrich formalizer, so no LM call unless full-fidelity capture is opted in. **Heuristic reaction attribution** (DQ2) remains the only open gate — mis-attribution poisoning is structural, so it stays explicit-only until a bench can bound its error rate).
+8. **Strategy audit → `CognitiveController.adapt()`** and **retrospective-triggered re-consolidation** (feed lessons through `SchemaInductor` next session) — untouched extension points (§12); both need a consumer-side falsifiable bench, not more flywheel substrate.
 
 **Notes for remaining work:**
-- All TODO24-scoped items are complete; only the DQ2/DQ6 gates remain, and each requires its falsifiable bench *first* (write the bench that would fail without the feature, then implement).
+- Only DQ2 (heuristic reaction attribution) remains gated, and it requires its falsifiable bench *first* — a scripted session with ground-truth reactions bounding the heuristic's mis-attribution rate (accept only if precision ≥ ~0.95; below that the flywheel-poisoning risk stands).
+- DQ6 was closed bench-first (Bench 75): the falsifier asserts lessons only when a formalizer is wired, confidence-floored, idempotent, bounded, and never produced on the disabled path.
 - Pre-existing lint failures in `scripts/system-one-fit-thresholds.ts` (`noImplicitAnyLet` ×2, introduced by the TODO23 close-out) are unrelated to the flywheel — worth a drive-by fix in the next touch of that script.
 
 ## 12. Leverage Notes

@@ -4,12 +4,17 @@ import type { ContrastiveMemory } from '../lm/system-one/contrastive.js';
 import type { JudgmentDataset } from '../lm/system-one/distill.js';
 import type { EmbeddingCache } from '../lm/system-one/types.js';
 import { recordReactionLabel } from '../lm/system-one/label-sources.js';
-import type { DialogueTurn, Reaction, ReactionKind } from './types.js';
+import type { DialogueTurn, Lesson, Reaction, ReactionKind } from './types.js';
 import type { DialogueConfig } from '@senars/util/config';
 import { DialogueTextStore, type DialogueTextRecord } from './text-store.js';
 
 export const sha256 = (text: string): string =>
   `sha256:${createHash('sha256').update(text).digest('hex')}`;
+
+/** DQ6: candidates below this confidence never become lessons (seed-truth floor). */
+const LESSON_CONFIDENCE_FLOOR = 0.5;
+/** Bounded per AIKR. */
+const MAX_LESSONS = 100;
 
 /**
  * Injected, all-optional deps: dialogue is a peer subsystem that optional
@@ -23,6 +28,12 @@ export interface DialogueCaptureDeps {
   contrastive?: ContrastiveMemory;
   /** TODO24 Phase-B enrichment: populate judgment/provenance/reflex per turn (best-effort). */
   enrich?: (input: ExchangeInput, turn: DialogueTurn) => Promise<Partial<DialogueTurn>>;
+  /**
+   * DQ6: Narsese-level correction formalization — maps raw correction text
+   * (available only at bind time, I6) to formalization candidates. Optional;
+   * without it corrections stay embedding-level (the DQ6 default).
+   */
+  formalize?: (correctionText: string) => Promise<readonly { narsese: string; confidence: number }[]>;
   /** I6 relaxation sidecar — only written when retention === 'with-text'. */
   textStore?: DialogueTextStore;
   config?: Partial<DialogueConfig>;
@@ -54,6 +65,8 @@ export class DialogueCapture {
   #sessions = new Map<string, { first: string; seq: number }>();
   /** Bound turnIds, for idempotent fan-out (Bench 72). */
   #bound = new Set<string>();
+  /** DQ6 lessons from formalized corrections (bounded; ingested via .lessons, never auto-applied — I2/I3). */
+  #lessons: Lesson[] = [];
   #textStore: DialogueTextStore | undefined;
 
   constructor(deps: DialogueCaptureDeps = {}) {
@@ -84,6 +97,11 @@ export class DialogueCapture {
 
   get config(): DialogueConfig {
     return { ...this.#config };
+  }
+
+  /** DQ6: lessons extracted from formalized corrections (bounded). */
+  get lessons(): readonly Lesson[] {
+    return this.#lessons;
   }
 
   /** Capture one exchange; returns the turnId, or undefined when disabled/capped. */
@@ -179,6 +197,27 @@ export class DialogueCapture {
       ...(correctionText?.trim() ? { correctionDigest: sha256(correctionText) } : {}),
     };
     turn.reaction = reaction;
+
+    // DQ6: formalize the correction text into Narsese lessons — best-effort,
+    // only when a formalizer is wired. Lessons are stored for explicit
+    // ingestion (.lessons); nothing auto-applies (I2/I3).
+    if (this.#deps.formalize && correctionText?.trim()) {
+      try {
+        const candidates = await this.#deps.formalize(correctionText);
+        for (const c of candidates) {
+          if (!c.narsese?.trim() || c.confidence < LESSON_CONFIDENCE_FLOOR) continue;
+          if (this.#lessons.length >= MAX_LESSONS) break;
+          this.#lessons.push({
+            term: c.narsese,
+            truth: { frequency: 1, confidence: c.confidence },
+            source: 'reaction',
+            provenance: { turnIds: [turnId] },
+          });
+        }
+      } catch {
+        // formalization is optional — embedding-level path still runs
+      }
+    }
 
     // Embed at bind time, then discard (I6/DQ7: fresh per bind).
     const { embeddingCache, dataset, contrastive } = this.#deps;

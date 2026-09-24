@@ -79,7 +79,8 @@ export interface Lesson {
   /** Narsese self-belief term. */
   term: string;
   truth: { frequency: number; confidence: number };
-  source: 'retrospect';
+  /** 'retrospect' = session consolidation; 'reaction' = DQ6 formalized correction (bound at bindReaction). */
+  source: 'retrospect' | 'reaction';
   provenance: { turnIds: readonly string[] };
 }
 
