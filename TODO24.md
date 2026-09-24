@@ -453,6 +453,8 @@ developer: retrospectives       epistemic firewall holds      Narsese-level corr
 
 ## 11. Progress Log (2026-09-25)
 
+- MCP tool pass: `registerDialogueTools` (src/bin/lib/mcp/mcp-dialogue-tools.ts) exposes `dialogue_react`/`dialogue_turns`/`dialogue_retrospect` on the MCP server when `dialogue.enabled` — AI-agent clients can now drive the self-correction loop directly against the `DialogueCapture` class boundary.
+
 - Enrichment pass: `DialogueCaptureDeps.enrich` (injectable per-turn enricher, best-effort, throw-degrades-to-base). Bot wires the System One decider to populate `judgment` (abstained/band) + full `JudgmentProvenance` per turn when System One is enabled. Remaining enrichment: `formalizations` (needs LM-backed NLUnderstandingService call per turn — cost-benefit gate) and `reflex` (needs ManifoldReflex selection readout, not currently exposed per message).
 
 - Follow-up pass: per-message `correlationId` surfaced on `ChatStreamEvent.finish` (core/src/ChatService.ts, additive field) and consumed by `collectChat()` — turns now join the kernel's correlationId exactly (I7 closed). `.lessons` ingests lessons as Narsese self-beliefs via `nar.input` (seeded truth, best-effort).
@@ -465,7 +467,7 @@ developer: retrospectives       epistemic firewall holds      Narsese-level corr
 1. ~~**Surface per-message correlationId from `Agent.chat()`**~~ — ✅ **done** (`ChatStreamEvent.correlationId` on `finish`; `collectChat()` consumes it, falling back to `bot:{sessionId}` only if absent).
 2. ~~**Phase-B enrichment hooks**~~ — ✅ **done** (`DialogueCaptureDeps.enrich`: injectable per-turn enricher; bot wires the System One decider for judgment bands + `JudgmentProvenance`, best-effort with graceful degradation. Formalizations (NLUnderstandingService, LM-bound) and reflex selection still unwired — see notes below).
 3. ~~**Narsese lesson ingestion**~~ — ✅ **done** (`.lessons` ingests via `nar.input` with seeded truth, best-effort).
-4. **MCP tool exposure** of `.react`/`.turns`/`.retrospect` for AI-agent-driven self-correction loops — thin adapter over `DialogueCapture`/`retrospect()`.
+4. ~~**MCP tool exposure**~~ — ✅ **done** (`src/bin/lib/mcp/mcp-dialogue-tools.ts`: `dialogue_react`/`dialogue_turns`/`dialogue_retrospect`, registered in `mcp-server.ts` when `dialogue.enabled`).
 5. **Embed persisted proposals** in `Retrospective` for full developer audit trails — partially done (`proposals` option accepted; bot surface doesn't wire a proposal source yet).
 6. **Session-end auto-retrospect** (opt-in) — DQ3's later trigger mode.
 7. **Heuristic reaction attribution** (DQ2) and **Narsese-level correction formalization** (DQ6) — unchanged, still gated behind falsifiable benches.

@@ -14,6 +14,8 @@ import { JobManager } from './lib/mcp/job-manager.js';
 import { registerMCPPrompts } from './lib/mcp/mcp-prompts.js';
 import { registerMCPResources } from './lib/mcp/mcp-resources.js';
 import { registerNARTools } from './lib/mcp/mcp-tools.js';
+import { registerDialogueTools } from './lib/mcp/mcp-dialogue-tools.js';
+import { DialogueCapture } from '@senars/nar/dialogue';
 import { createAgentFromEnv } from './lib/lifecycle.js';
 import { HttpGuard, rejectWithStatus } from './lib/http-guards.js';
 
@@ -118,12 +120,26 @@ const startHttp = (port: number, guard: HttpGuard): void => {
 async function initialize() {
   // Single shared NAR/agent instance — MCP tools, resources and the agent
   // all operate on the same cognitive core.
-  const { nar, agent, appConfig } = await createAgentFromEnv();
+  const { nar, agent, appConfig, episodicMemory } = await createAgentFromEnv();
   const jobs = new JobManager();
 
   registerNARTools(server, nar, agent, { jobs, approval: appConfig.connections?.mcp?.approval });
   registerMCPResources(server, { nar, agent, jobs });
   registerMCPPrompts(server);
+
+  // TODO24: Dialogue Flywheel tools (react/turns/retrospect) when enabled.
+  if (appConfig.dialogue?.enabled) {
+    registerDialogueTools(server, {
+      dialogue: new DialogueCapture({
+        episodic: episodicMemory,
+        dataset: (nar as any).systemOne?.dataset,
+        embeddingCache: nar.getSystemOneEmbeddingCache?.(),
+        contrastive: nar.getSystemOneContrastive?.(),
+        config: appConfig.dialogue,
+      }),
+      episodic: episodicMemory,
+    });
+  }
 
   const transportType = getTransportType();
   const port = getHttpPort();
