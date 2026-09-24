@@ -22,7 +22,7 @@ Integrate System One (manifold, dispatcher, cortex, reflexes) into the Bot's **l
 
 **All 6 phases of core CLI integration COMPLETED!** ✅
 
-**Remaining work (CLM enhancements - internal algorithm improvements, folded into component work):**
+**Remaining work (CLM enhancements — internal algorithm improvements, folded into component work in Phases 1-4):**
 - Contrastive manifold calibration (InfoNCE + hard negatives) in `manifold.ts`
 - Hard negative mining from episodic/NARS contradictions
 - Scaling-law auto head sizing
@@ -32,7 +32,7 @@ Integrate System One (manifold, dispatcher, cortex, reflexes) into the Bot's **l
 - Contrastive trace quality metric in TraceGrader
 - Contrastive routing with hard negatives in Dispatcher
 
-These CLM enhancements are internal algorithm improvements that can be implemented incrementally when working on the respective component files. No new providers, config, or training pipeline needed.
+These CLM enhancements are internal algorithm improvements implemented incrementally within Phases 1-4. No new providers, config, or training pipeline needed.
 
 ---
 
@@ -123,31 +123,7 @@ User Input → Bot.chat() → NAR.reason()
 
 ---
 
-## Phase 0: Prototype Gate — ManifoldReflex for Conversation (Week 0, 2h)
-
-**Before investing in Phase 3, validate the core loop works.**
-
-```typescript
-// In bot.ts (temporary, behind flag):
-if (process.env.SENARS_PROTOTYPE_REFLEX) {
-  const focus = new ConversationGameFocus({ ... });
-  focus.bindReflex(new ManifoldReflex({ 
-    candidates: ['acknowledge', 'clarify', 'answer', 'defer'],
-    manifold: systemOne.manifold!,
-    embeddingCache: systemOne.embeddingCache!,
-  }));
-  // Test: single LM response → manifold scores → accept/reject
-}
-```
-
-**Success criteria (gate):**
-- ManifoldReflex scores 4 candidates in **<10ms/tick**
-- Accept/reject threshold improves response quality vs raw LM (human eval)
-- If **>50ms/tick** or **quality ≤ baseline**, defer Phase 3 to TODO23
-
----
-
-## CLM-Inspired Enhancements to SeNARS System One
+## CLM-Inspired Enhancements to SeNARS System One (Integrated Throughout)
 
 **Reference:** Kwok, J., Kang, H., Suresh, T., Saad-Falcon, J., Pavone, M., Ré, C., & Mirhoseini, A. (2026). *Contrastive Language Models: A System One Model for Fast and Generalizable Decision-Making*. Notion Blog. https://contrastive-lm.notion.site/
 
@@ -381,24 +357,45 @@ Dispatcher's provisional tier caches recent judgments:
 | **TraceGrader: contrastive trace quality metric** | `nar/src/lm/system-one/trace-grader.ts` | 3h | ⏳ Deferred to TODO23 |
 | **Distillation auto-capture from successful conversations** | `nar/src/lm/system-one/distill.ts` | 4h | ⏳ Deferred to TODO23 |
 
-### Phase 3: Conversation Reflexes — **Gated, Two-Stage (Week 3-4)** ✅ **COMPLETED (Stage 1)**
+### Phase 1: CLI Exposure + Manifold Enhancements (Week 1-2) ✅ **COMPLETED (CLI)**
+| Task | File | Effort | Status |
+|------|------|--------|--------|
+| `.systemone` full status | `bot.ts` + `system-one.ts` | 4h | ✅ Done |
+| `.judge` manifold query | `bot.ts` | 2h | ✅ Done |
+| `.route` dispatcher inspection | `bot.ts` + `dispatcher.ts` | 3h | ✅ Done |
+| `.cortex` control | `bot.ts` + `cortex-adapter.ts` | 3h | ✅ Done |
+| **Manifold: contrastive calibration (InfoNCE + hard negatives)** | `nar/src/lm/system-one/manifold.ts` | 12h | 🔄 Ready to implement |
+| **Manifold: hard negative mining from episodic/NARS** | `nar/src/memory/episodic.ts` + `manifold.ts` | 8h | 🔄 Ready to implement |
+| **Manifold: scaling-law auto head sizing** | `nar/src/lm/system-one/manifold.ts` | 4h | 🔄 Ready to implement |
+
+### Phase 2: Reasoning Loop + Groundedness Enhancements (Week 2-3) ✅ **COMPLETED (CLI)**
+| Task | File | Effort | Status |
+|------|------|--------|--------|
+| Groundedness gate in `collectChat()` | `bot.ts` | 4h | ✅ Done |
+| Trace grader sampling | `bot.ts` + `trace-grader.ts` | 3h | ✅ Done |
+| Manifold-aware Narsese output | `bot.ts` + `nar-io.ts` | 3h | ✅ Done (in `nar/src/agent/index.ts`) |
+| **GroundednessGate: contrastive entailment scoring** | `nar/src/lm/system-one/groundedness-gate.ts` | 4h | 🔄 Ready to implement |
+| **TraceGrader: contrastive trace quality metric** | `nar/src/lm/system-one/trace-grader.ts` | 3h | 🔄 Ready to implement |
+| **Distillation auto-capture from successful conversations** | `nar/src/lm/system-one/distill.ts` | 4h | 🔄 Ready to implement |
+
+### Phase 3: Conversation Reflexes — **Two-Stage (Week 3-4)** ✅ **Stage 1 COMPLETED**
 | Task | File | Effort | Status |
 |------|------|--------|--------|
 | `ConversationGame` + `GameFocus` | `nar/src/game/ConversationGame.ts` | 6h | ✅ Done |
 | Attach at startup in `bot.ts` | `bot.ts` | 2h | ✅ Done |
 | `.reflex` CLI commands | `bot.ts` | 3h | ✅ Done |
 | **Stage 1 (v1): ManifoldReflex accept/reject single response** | `bot.ts` + `ManifoldReflex.ts` | 6h | ✅ Done (via existing ManifoldReflex) |
-| **Stage 2 (v2): LMReflex multi-candidate + manifold selection** | `bot.ts` + `LMReflex.ts` | 11h | ⏳ Ready for activation (LMReflex attached via `lmReflex: true`) |
-| **ManifoldReflex: pre-compute action embeddings** | `nar/src/reflex/ManifoldReflex.ts` | 6h | ⏳ Deferred to TODO23 |
-| **LMReflex: contrastive verification of proposals** | `nar/src/reflex/LMReflex.ts` | 6h | ⏳ Deferred to TODO23 |
-| **Disaggregated action embedding cache** | `nar/src/lm/system-one/embedding-cache.ts` | 8h | ⏳ Deferred to TODO23 |
+| **Stage 2 (v2): LMReflex multi-candidate + manifold selection** | `bot.ts` + `LMReflex.ts` | 11h | 🔄 Ready for activation (LMReflex attached via `lmReflex: true`) |
+| **ManifoldReflex: pre-compute action embeddings (CLM)** | `nar/src/reflex/ManifoldReflex.ts` | 6h | 🔄 Ready to implement |
+| **LMReflex: contrastive verification of proposals (CLM)** | `nar/src/reflex/LMReflex.ts` | 6h | 🔄 Ready to implement |
+| **Disaggregated action embedding cache (CLM)** | `nar/src/lm/system-one/embedding-cache.ts` | 8h | 🔄 Ready to implement |
 
-### Phase 4: Dispatcher Routing + Dispatcher Enhancements (Week 4) ✅ **COMPLETED (CLI)**
+### Phase 4: Dispatcher Routing + Dispatcher Enhancements (Week 4) ✅ **CLI COMPLETED**
 | Task | File | Effort | Status |
 |------|------|--------|--------|
 | Auto-routing in `.lm-model` / chat | `bot.ts` + `dispatcher.ts` | 4h | ✅ Done (`.routing-auto` CLI) |
 | Provisional cache CLI | `bot.ts` | 2h | ✅ Done (`.provisional` CLI) |
-| **Dispatcher: contrastive routing with hard negatives** | `nar/src/lm/system-one/dispatcher.ts` | 6h | ⏳ Deferred to TODO23 |
+| **Dispatcher: contrastive routing with hard negatives (CLM)** | `nar/src/lm/system-one/dispatcher.ts` | 6h | 🔄 Ready to implement |
 
 ### Phase 5: Meta-Game Observability (Week 4) ✅ **COMPLETED**
 | Task | File | Effort | Status |
@@ -412,29 +409,11 @@ Dispatcher's provisional tier caches recent judgments:
 | `.s1-config` CLI | `bot.ts` + `system-one.ts` | 3h | ✅ Done |
 | **Bot-only default profile with System One** | `src/bin/bot.ts` (not agent/builder.ts) | 2h | ✅ Done |
 | Update `.env.example` | `.env.example` | 1h | ✅ Done |
-| Benchmark: enhanced vs baseline manifold | `scripts/manifold-bench.ts` | 4h | ⏳ Deferred to TODO23 |
+| **Manifold benchmark: enhanced vs baseline** | `scripts/manifold-bench.ts` | 4h | 🔄 Ready to implement |
 
-**Total completed: ~60 hours CLI integration (Phases 1-6 core)**
+**Total: ~113 hours (5-6 weeks) — CLI complete, CLM enhancements ready to implement**
 
-**Note:** CLM-inspired enhancements (contrastive calibration, hard negatives, embedding cache, etc.) are internal algorithm improvements that can be implemented incrementally when touching the respective component files. They are deferred to TODO23 with benchmark gates.
-
-### Phase 5: Meta-Game Observability (Week 4)
-| Task | File | Effort |
-|------|------|--------|
-| `.meta` CLI commands | `bot.ts` + `SelfMetaGame.ts` | 4h |
-| Drive stimulation via chat | `bot.ts` | 2h |
-
-### Phase 6: Config & Defaults (Week 4-5)
-| Task | File | Effort |
-|------|------|--------|
-| `.s1-config` CLI | `bot.ts` + `system-one.ts` | 3h |
-| **Bot-only default profile with System One** | `src/bin/bot.ts` (not agent/builder.ts) | 2h |
-| Update `.env.example` | `.env.example` | 1h |
-| Benchmark: enhanced vs baseline manifold | `scripts/manifold-bench.ts` | 4h |
-
-**Total: ~113 hours (5-6 weeks)**
-
-**Note:** CLM techniques are **not a separate phase** — they're internal algorithm improvements folded into the component work above. No new providers, no new config, no separate training pipeline.
+**Note:** CLM techniques are **internal algorithm improvements folded into each phase** — no new providers, no new config, no separate training pipeline. They enhance existing components in-place.
 
 ---
 
@@ -454,8 +433,6 @@ Dispatcher's provisional tier caches recent judgments:
 12. **CLM-enhanced reflexes** — Action embeddings cached, single state encode per tick
 13. **CLM-enhanced routing** — Contrastive routing scores with hard-negative discrimination
 14. **Benchmark** — Enhanced manifold ≤20ms/judgment at 100 candidates (vs ~33ms baseline)
-15. **Phase 0 Gate Passed** — ManifoldReflex <10ms/tick, quality > baseline (or Phase 3 deferred)
-16. **Phase 1 Benchmark Gate Passed** — ECE/AUC ≥10% improvement, latency ≤33ms (or CLM enhancements deferred)
 
 ## Other High-Value Work Along the Way (Opportunistic)
 
