@@ -453,6 +453,8 @@ developer: retrospectives       epistemic firewall holds      Narsese-level corr
 
 ## 11. Progress Log (2026-09-25)
 
+- Docs pass: README.md gains a "Dialogue Flywheel" subsection (under System One, after Distillation Flywheel) covering capture/redaction, reaction labels, provenance enrichment, retrospectives/lessons, MCP tools, and the config section reference.
+
 - Strategy-audit pass: `SystemOneRuntime` now records correlationId → trace quality per graded trace (`traceGradeHistory` map); `runSessionRetrospective` feeds it to `retrospect()`, so the audit's `meanQuality` reflects real trace grades joined by correlationId (I7 fully realized — no approximation).
 
 - Proposal + auto-retrospect pass: `.retrospect` now runs the shared `runSessionRetrospective` (contradiction mining via `mineHardNegatives`, correction-dominated sessions emit a low-risk `focus-weight` proposal persisted in the artifact); `dialogue.autoRetrospect` (default false, DQ3 opt-in) runs it on graceful shutdown.

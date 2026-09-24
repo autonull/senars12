@@ -616,6 +616,12 @@ play / reason ─▶ JudgmentDataset (hash-only JSONL + 384-d vector sidecar)
 
 Label sources include corrections, derivation outcomes, approvals, shadow verdicts, human clarification pairs, agent-trace grades (groundedness/risk per cycle), and **RL outcomes** — rewards from play flow into the same dataset. The loop closes end-to-end in the arcade: `pnpm run demo:arcade -- --distill` has the lm arm (teacher) record its decisions into `JudgmentDataset`, trains a `reflex_value` head after play, and the manifold arm (student, ~zero inference cost) picks it up on the next run — the distilled student matches its teacher's return and beats the heuristic baseline.
 
+### Dialogue Flywheel
+
+Conversations are simultaneously live inference, graded training events, and diagnostics — but corrections, rejections, and clarifications were previously discarded. The Dialogue Flywheel (`@senars/nar/dialogue`) closes that loop: every chat exchange is captured as a hash-only `DialogueTurn` (sha256 digests + embeddings, never raw text at rest), and explicit human reactions — bound retroactively via `.react accept|correct|reject|clarify|redirect|abandon [correction]` or `bindReaction()` — become distillation labels (`correct` → embedding-level preference pair, `accept` → positive, `reject`/`abandon` → negative, corrections also feed contrastive hard negatives). Reaction-sourced rows are excluded from the frozen eval set by construction, so the flywheel trains heads without corrupting the trustworthy-self-improvement guarantee. `DialogueCapture` is a peer subsystem that optional reasoners (System One) feed into — all System One artifacts are injected optional deps, capture works with System One off, and with `dialogue.enabled: false` (the default) the disabled path is byte-identical.
+
+Per-turn provenance is captured via an injectable enricher (System One's decider populates judgment bands + `JudgmentProvenance` when enabled); sessions join on the kernel-minted `correlationId` (surfaced on `ChatStreamEvent.finish`). `.turns`, `.retrospect`, `.retrospectives`, and `.lessons` (lessons are ingested as Narsese self-beliefs via `nar.input`) expose the substrate; `.retrospect` aggregates a digest-pinned `Retrospective` (turn summary, reaction distribution, correction analysis, strategy audit joined to real trace grades, contradiction mining, low-risk `focus-weight` proposals when corrections dominate — routed through governance, never auto-applied). `dialogue.autoRetrospect` opts into session-end runs; MCP clients get `dialogue_react`/`dialogue_turns`/`dialogue_retrospect` tools for AI-agent-driven self-correction. Benches 71–74 (`tests/nar/todo24-*.test.ts`) falsify the redaction, correlation, and governance claims.
+
 ### RL Without NAL
 
 The Judgment Manifold is a general decision API — proven by driving a reinforcement learner with it, NAL nowhere in the loop. `ManifoldRLAgent` (in `@senars/nar/rl`) issues one joint judgeBatch per decision — `reflex_value` (value) + `feasibility` (mask) + `risk` (floor) — and follows an ε-greedy or UCB policy over manifold scores; only `EmbeddingCache`, `JudgmentManifold`, and `JudgmentDataset` are involved. `scripts/rl-manifold.ts` runs the full demo (`systemOne.rl` config: `policy`, `epsilon`, `ucbC`, `feasibilityMask`, `riskFloor`, `labelOutcomes`).
@@ -1474,7 +1480,7 @@ interface NARConfig extends CoreConfig {
 
 ### SystemOneConfig
 
-The Judgment Manifold's full config is zod-validated in a single schema (`src/config/schema.ts`), organized into `cortex`, `ingress`, `manifold` (encoder model + provider), `rl`, and `distillation` sections, all gated by `systemOne.enabled`. See `docs/system-one-guide.md` for per-section semantics and `pnpm status` to inspect the effective values.
+The Judgment Manifold's full config is zod-validated in a single schema (`src/config/schema.ts`), organized into `cortex`, `ingress`, `manifold` (encoder model + provider), `rl`, and `distillation` sections, all gated by `systemOne.enabled`. See `docs/system-one-guide.md` for per-section semantics and `pnpm status` to inspect the effective values. The Dialogue Flywheel has its own top-level `dialogue` section (`enabled`, `captureAll`, `maxTurnsPerSession`, `autoRetrospect` — default off; see `util/src/config/dialogue.ts`).
 
 ### Environment Variables (`.env`)
 
