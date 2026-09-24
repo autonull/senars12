@@ -62,4 +62,25 @@ describe('TODO24 bench 72: capture round-trip + correlation', () => {
     for (let i = 0; i < 5; i++) captured += (await d.onExchange({ correlationId: 'fresh', utterance: 'u', response: 'r' })) ? 1 : 0;
     expect(captured).toBe(3);
   });
+
+  it('enrich hook populates judgment/provenance; failures degrade to the base turn', async () => {
+    const { ep } = await makeEpisodic();
+    const d = new DialogueCapture({
+      episodic: ep,
+      config: { enabled: true },
+      enrich: async () => ({
+        judgment: { abstained: false, band: 'act' },
+        provenance: { inputDigest: 'sha256:enriched', fitted: true, abstained: false, band: 'act', timestamp: 2 },
+      }),
+    });
+    await d.onExchange({ correlationId: 'e', utterance: 'u', response: 'r' });
+    expect(d.latestTurn()!.judgment).toEqual({ abstained: false, band: 'act' });
+    expect(d.getTurn(d.latestTurn()!.turnId)!.provenance!.inputDigest).toBe('sha256:enriched');
+
+    // Throwing enricher degrades to the base turn
+    const d2 = new DialogueCapture({ config: { enabled: true }, enrich: async () => { throw new Error('boom'); } });
+    const t = await d2.onExchange({ correlationId: 'c', utterance: 'u', response: 'r' });
+    expect(t).toBeDefined();
+    expect(d2.getTurn(t!)!.judgment).toBeUndefined();
+  });
 });

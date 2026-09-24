@@ -20,6 +20,8 @@ export interface DialogueCaptureDeps {
   embeddingCache?: EmbeddingCache;
   episodic?: EpisodicMemory;
   contrastive?: ContrastiveMemory;
+  /** TODO24 Phase-B enrichment: populate judgment/provenance/reflex per turn (best-effort). */
+  enrich?: (input: ExchangeInput, turn: DialogueTurn) => Promise<Partial<DialogueTurn>>;
   config?: Partial<DialogueConfig>;
 }
 
@@ -88,6 +90,14 @@ export class DialogueCapture {
       ...(input.reflex ? { reflex: input.reflex } : {}),
       ...(input.provenance ? { provenance: input.provenance } : {}),
     };
+    // Best-effort enrichment (Phase B): failures degrade to the base turn.
+    if (this.#deps.enrich) {
+      try {
+        Object.assign(turn, await this.#deps.enrich(input, turn));
+      } catch {
+        // enrichment is optional — never blocks capture
+      }
+    }
     this.#turns.set(turnId, turn);
 
     // Persist hash-only episode (event-sourced; reactions join at read time).

@@ -1290,11 +1290,26 @@ async function main(): Promise<void> {
 
   // TODO24 Dialogue Flywheel: one instance per bot; every sink guarded by
   // dialogue.enabled (I5 default false ⇒ byte-identical disabled path).
+  // Phase-B enrichment: decider bands + provenance per turn (best-effort).
+  const decider = wired.nar.getSystemOneDecider?.();
+  const dialogueEmbeddingCache = wired.nar.getSystemOneEmbeddingCache?.();
+  const enrich =
+    decider && dialogueEmbeddingCache
+      ? async (input: { utterance: string }) => {
+          const result = await decider.decide({
+            context: input.utterance,
+            queries: [{ kind: 'evaluate', instruction: 'Evaluate groundedness of the dialogue turn', rubric: 'groundedness', axis: 'epistemic' }],
+            budget: { maxCycles: 10, maxDepth: 2, maxMemoryOps: 100, maxLMCalls: 0, consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 } },
+          });
+          return { judgment: { abstained: result.abstained, band: result.band }, provenance: result.provenance };
+        }
+      : undefined;
   const dialogue = new DialogueCapture({
     episodic: wired.episodicMemory,
     dataset: (wired.nar as any).systemOne?.dataset,
-    embeddingCache: wired.nar.getSystemOneEmbeddingCache?.(),
+    embeddingCache: dialogueEmbeddingCache,
     contrastive: wired.nar.getSystemOneContrastive?.(),
+    ...(enrich ? { enrich: enrich as never } : {}),
     config: wired.appConfig.dialogue,
   });
 
