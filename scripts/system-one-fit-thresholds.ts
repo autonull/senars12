@@ -10,6 +10,7 @@
  */
 import { parseArgs } from 'node:util';
 import { JudgmentDataset } from '../nar/src/lm/system-one/distill.js';
+import { loadEvalSet } from '../nar/src/lm/system-one/eval-set.js';
 import { fitCalibrationLock, writeCalibrationLock } from '../nar/src/lm/system-one/calibration-fit.js';
 
 const { values } = parseArgs({
@@ -19,18 +20,25 @@ const { values } = parseArgs({
     modelDigest: { type: 'string' },
     head: { type: 'string', multiple: true },
     minRows: { type: 'string', default: '8' },
+    evalSet: { type: 'string' },
   },
 });
 
 if (!values.dataset || !values.out) {
-  console.error('Required: --dataset <jsonl> --out <lock.json> [--model-digest sha256:...]');
+  console.error('Required: --dataset <jsonl> --out <lock.json> [--model-digest sha256:...] [--eval-set eval-set.json]');
   process.exit(1);
 }
 
 const dataset = await JudgmentDataset.load(values.dataset);
+// TODO23 Phase 7: when a frozen eval set is supplied, its metrics are embedded
+// in the lock (`eval` block) — deployment can then verify fit-vs-frozen drift.
+const frozen = values.evalSet ? await loadEvalSet(values.evalSet) : undefined;
 const { lock, perHead, improved } = fitCalibrationLock(dataset, {
   headIds: values.head,
   minRows: Number(values.minRows),
+  ...(frozen
+    ? { frozenSet: { digest: frozen.digest, rows: frozen.rows } }
+    : {}),
 });
 if (values.modelDigest) lock.modelDigest = values.modelDigest as never;
 
@@ -39,4 +47,5 @@ console.log(`Fitted ${perHead.size} head(s) from ${dataset.size} labels; holdout
 for (const entry of lock.heads) {
   console.log(`  ${entry.headId}: ece=${entry.ece.toFixed(4)} abstainThreshold=${entry.abstainThreshold}`);
 }
+if (lock.eval) console.log(`  eval: brier=${lock.eval.brier.toFixed(4)} ece=${lock.eval.ece.toFixed(4)} n=${lock.eval.count}`);
 console.log(`Lock written to ${values.out}`);

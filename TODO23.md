@@ -242,21 +242,57 @@ src/bin/bot.ts (CLI exposure only: .decide, .systemone eval-set, .judge --explai
 1. **Phase 4 migration**: LMReflex `#verifiedRanking` + cortex candidate judging onto
    `choose()` (API already shipped; migration is behavior-preserving but touches parity-tested
    paths — run rl-parity after).
-2. **Phase 5**: head short-circuit at the query-composition layer (`skipped: true` field
-   already reserved on `HeadVerdict`); latency accounting per cascade level in
-   `.systemone dispatcher`.
-3. **Phase 6**: `ManifoldRLAgent` action selection via `choose()`; Negotiator verify-only.
-4. **Phase 7**: calibration lock `eval`/`ood` blocks populated from the frozen set
-   (`.calibrate` reads `.cache/systemone/eval-set.json`; `.systemone heads` eval/ood columns).
-5. **Phase 2 follow-up**: `.calibrate` promotion gate reads the frozen snapshot when present.
+2. **Phase 6 follow-up**: `Negotiator` semantics verify-only pass (no decider wired there yet);
+   rl-parity full multi-seed run.
+3. Phase 2 follow-up below if not already done.
 
 ### Notes for remaining work
-- `HeadVerdict.skipped` exists and is always `false` for now — Phase 5 sets it when omitting
-  queries whose outcome cannot change the router decision (short-circuit = omit from the
-  `judge()` call array; report the verdict with `skipped: true`).
+- `HeadVerdict.skipped` is set by the Phase 5 short-circuit; `skipped` verdicts are excluded
+  from the overall band/abstain computation.
 - Semver: `decide`/`choose`/eval-set are new in-repo consumers via relative imports; run
   `pnpm exports:audit` before promoting anything to the `@senars/nar` exports map.
 - `verify.ts` (existing) is unrelated to the decider; leave untouched.
+- `parity:smoke` (1 seed, deterministic) fails on clean HEAD too (SeNARS return −0.2 vs
+  Q-learning 0.7) — pre-existing, unrelated to TODO23; treat rl-parity as a longer-run gate.
+
+### Progress (2026-09-24, session 2 — Phases 5/6/7)
+
+**Phase 5 — Cost-aware short-circuit ✅**
+- `decide()` evaluates chunks sequentially; once a safety-floor head (`injection`/`assertion`
+  at `criticality ∈ {high, critical}`) scores ≥ 0.8 (declared `VETO_TRIGGER`), remaining
+  queries are omitted from the judge call and reported with `skipped: true` (never silently
+  absent). A safety-floor veto forces the verdict band to `block`. Skipped verdicts are
+  excluded from the overall band/abstain computation.
+- Per-level latency accounting: `SystemOneDispatcher.#tierLatency` + `latencyStats()`
+  (calls/judgments/meanMs per L0/L1), surfaced in `.systemone dispatcher`.
+
+**Phase 6 — RL onto the decision API ✅ (opt-in)**
+- `ManifoldRLAgentOptions.decider?` + `verificationFloor?`: when a Decider is supplied, the
+  eligible action set is finalized via `choose()` (contrastive penalties + vetoes layered on
+  head-driven feasibility/risk eligibility); a `choose()` abstain falls back to the incumbent
+  head-driven `#select`. Eligibility filter extracted to `#eligible()` (shared).
+- Default path (no decider) unchanged — `rl-parity` safe. **Note:** `parity:smoke` fails on
+  clean HEAD too (see notes above); full multi-seed rl-parity still pending.
+- `Negotiator` untouched (NAL veto authority preserved by construction — reflexes only
+  propose through `choose()`).
+
+**Phase 7 — Calibration artifact completeness ✅**
+- `CalibrationLock` extended with optional `eval`/`ood` blocks (`brier`, `ece`,
+  `datasetDigest`, `count`); `fitCalibrationLock` accepts `frozenSet`/`oodSet`.
+- `scripts/system-one-fit-thresholds.ts --eval-set <path>` loads the frozen snapshot
+  (fail-closed) and embeds its metrics in the lock.
+- `.systemone heads` prints `eval:`/`ood:` columns from the lock when present.
+
+**Tests added:** `tests/nar/todo23-phases56.test.ts` (short-circuit skip/veto/band, no
+short-circuit on non-safety heads, choose-override + abstain-fallback RL selection).
+Full nar suite: 179 files / 1594 tests passing.
+
+**Remaining after this session:**
+1. Phase 4 migration: LMReflex `#verifiedRanking` + cortex candidate judging onto `choose()`.
+2. Negotiator verify-only pass + full rl-parity multi-seed run.
+3. OOD slice labeling for `lock.ood` (needs an OOD marker on rows — e.g. a `domain` field or
+   an out-of-distribution label source).
+4. `.calibrate` could trigger the frozen-set fit flow end-to-end (script currently CLI-only).
 
 ---
 

@@ -22,6 +22,18 @@ export interface CalibrationLock {
   /** Digest of the manifold/head bundle this lock was fitted against. */
   modelDigest?: string;
   heads: CalibrationLockEntry[];
+  /** TODO23 Phase 7: metrics over the frozen eval set the fit was scored against. */
+  eval?: LockMetrics;
+  /** Optional out-of-domain slice metrics (deployment gate for OOD routing). */
+  ood?: LockMetrics;
+}
+
+export interface LockMetrics {
+  brier: number;
+  ece: number;
+  /** Digest of the frozen eval set (or OOD slice) the metrics were computed over. */
+  datasetDigest: string;
+  count: number;
 }
 
 interface LabeledDatum {
@@ -123,6 +135,10 @@ export interface FitCalibrationOptions {
   calibrationVersion?: CalibrationVersion;
   /** Refit points per head; heads with fewer usable rows stay unfitted. */
   minRows?: number;
+  /** TODO23 Phase 7: frozen eval set — its metrics land in `lock.eval`. */
+  frozenSet?: { digest: string; rows: readonly { predicted: number; observed: number }[] };
+  /** Out-of-domain slice of the frozen set — its metrics land in `lock.ood`. */
+  oodSet?: { digest: string; rows: readonly { predicted: number; observed: number }[] };
 }
 
 export interface FitCalibrationResult {
@@ -197,10 +213,24 @@ export function fitCalibrationLock(
       version,
       generatedAt: Date.now(),
       heads: entries,
+      ...(options.frozenSet && options.frozenSet.rows.length > 0
+        ? { eval: lockMetrics(options.frozenSet) }
+        : {}),
+      ...(options.oodSet && options.oodSet.rows.length > 0
+        ? { ood: lockMetrics(options.oodSet) }
+        : {}),
     },
     perHead,
     improved,
   };
+}
+
+function lockMetrics(set: {
+  digest: string;
+  rows: readonly { predicted: number; observed: number }[];
+}): LockMetrics {
+  const brier = set.rows.reduce((s, r) => s + (r.predicted - r.observed) ** 2, 0) / set.rows.length;
+  return { brier, ece: identityECE(set.rows), datasetDigest: set.digest, count: set.rows.length };
 }
 
 function createLockDigest(calibrator: IsotonicCalibrator, threshold: number): string {

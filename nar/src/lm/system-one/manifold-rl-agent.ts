@@ -1,5 +1,6 @@
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import type { Game, GameOutcome } from '../../game/Game.js';
+import type { Decider } from './decide.js';
 import type { JudgmentDataset } from './distill.js';
 import { recordReflexOutcome } from './reflex-label-source.js';
 import type {
@@ -24,6 +25,12 @@ export interface ManifoldRLAgentOptions {
   labelOutcomes?: boolean;
   /** Exploration RNG — injectable for deterministic tests (defaults to Math.random). */
   rng?: () => number;
+  /** TODO23 Phase 6: unified decision facade — final selection re-judged via
+   *  `choose()` (contrastive penalties + vetoes on top of head eligibility).
+   *  Optional; default path is unchanged. */
+  decider?: Decider;
+  /** Contrastive verification floor for decider-backed selection (0 = no vetoing). */
+  verificationFloor?: number;
 }
 
 export interface ManifoldRLDecision<A = number> {
@@ -52,6 +59,8 @@ export class ManifoldRLAgent {
   readonly #riskFloor: number;
   readonly #labelOutcomes: boolean;
   readonly #rng: () => number;
+  readonly #decider?: Decider;
+  readonly #verificationFloor: number;
   readonly #visits = new Map<string, Map<string, number>>();
   #totalVisits = 0;
 
@@ -67,6 +76,8 @@ export class ManifoldRLAgent {
     this.#riskFloor = options.riskFloor ?? 0.8;
     this.#labelOutcomes = options.labelOutcomes ?? true;
     this.#rng = options.rng ?? Math.random;
+    this.#decider = options.decider;
+    this.#verificationFloor = options.verificationFloor ?? 0;
   }
 
   /** One joint judgeBatch: reflex_value (per action) + feasibility (mask) + risk (floor). */
@@ -143,8 +154,47 @@ export class ManifoldRLAgent {
       }
     });
 
+    // Phase 6: when a Decider is supplied, the eligible set is finalized through
+    // the unified choose() API (contrastive penalties + verification vetoes);
+    // an abstain falls back to the incumbent head-driven selection.
+    if (this.#decider && valuesFitted) {
+      const viaChoose = await this.#selectViaChoose(stateDigest, this.#eligible(legalActions, feasible, risks));
+      if (viaChoose !== undefined) {
+        return { action: viaChoose, values, feasible, risks, pointer, stateId };
+      }
+    }
     const action = this.#select(legalActions, values, feasible, risks, stateId, valuesFitted);
     return { action, values, feasible, risks, pointer, stateId };
+  }
+
+  async #selectViaChoose<A extends number | string>(
+    stateDigest: string,
+    candidates: readonly A[]
+  ): Promise<A | undefined> {
+    if (candidates.length === 0) return undefined;
+    const result = await this.#decider!.choose({
+      context: stateDigest,
+      candidates: candidates.map(String),
+      budget: this.#budget,
+      verificationFloor: this.#verificationFloor,
+    });
+    if (result.selected === undefined) return undefined;
+    return candidates.find((a) => String(a) === result.selected);
+  }
+
+  /** Z2 eligibility: infeasible or over-risk actions are dropped; empty ⇒ all legal. */
+  #eligible<A extends number | string>(
+    legalActions: readonly A[],
+    feasible: Map<string, boolean>,
+    risks: Map<string, number>
+  ): A[] {
+    const eligible = legalActions.filter((a) => {
+      const key = String(a);
+      if (feasible.get(key) === false) return false;
+      const risk = risks.get(key);
+      return risk === undefined || risk <= this.#riskFloor;
+    });
+    return eligible.length > 0 ? [...eligible] : [...legalActions];
   }
 
   #select<A extends number | string>(
@@ -159,13 +209,7 @@ export class ManifoldRLAgent {
     if (!valuesFitted) {
       return legalActions[Math.floor(this.#rng() * legalActions.length)]!;
     }
-    const eligible = legalActions.filter((a) => {
-      const key = String(a);
-      if (feasible.get(key) === false) return false;
-      const risk = risks.get(key);
-      return risk === undefined || risk <= this.#riskFloor;
-    });
-    const candidates = eligible.length > 0 ? eligible : [...legalActions];
+    const candidates = this.#eligible(legalActions, feasible, risks);
 
     if (this.#rng() < this.#epsilon) {
       return candidates[Math.floor(this.#rng() * candidates.length)]!;

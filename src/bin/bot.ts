@@ -1030,7 +1030,7 @@ function formatSystemOneStatus(nar: Wired['nar'], conversationGame: { focus: any
   ].join('\n');
 }
 
-function formatSystemOneHeads(nar: Wired['nar']): string {
+async function formatSystemOneHeads(nar: Wired['nar']): Promise<string> {
   const manifold = nar.getSystemOneManifold?.() as any;
   if (!manifold) return 'Manifold: not available';
 
@@ -1048,6 +1048,20 @@ function formatSystemOneHeads(nar: Wired['nar']): string {
     const ece = cal?.getECE?.() ?? 0;
     const samples = cal?.getPoints?.()?.length ?? 0;
     lines.push(`  ${rubric}: fitted=${fitted} ECE=${ece.toFixed(4)} abstain=${abstain} samples=${samples}`);
+  }
+  // Phase 7: eval/ood metrics from the calibration lock (frozen-set fitted).
+  try {
+    const lockPath = '.cache/systemone/calibration-lock.json';
+    if (existsSync(lockPath)) {
+      const lock = JSON.parse(await readFile(lockPath, 'utf-8')) as {
+        eval?: { brier: number; ece: number; count: number; datasetDigest?: string };
+        ood?: { brier: number; ece: number; count: number; datasetDigest?: string };
+      };
+      if (lock.eval) lines.push(`  eval: brier=${lock.eval.brier.toFixed(4)} ece=${lock.eval.ece.toFixed(4)} n=${lock.eval.count} digest=${lock.eval.datasetDigest?.slice(0, 19) ?? '—'}`);
+      if (lock.ood) lines.push(`  ood: brier=${lock.ood.brier.toFixed(4)} ece=${lock.ood.ece.toFixed(4)} n=${lock.ood.count} digest=${lock.ood.datasetDigest?.slice(0, 19) ?? '—'}`);
+    }
+  } catch {
+    // Lock metrics are best-effort display
   }
   return lines.join('\n');
 }
@@ -1069,6 +1083,11 @@ function formatSystemOneDispatcher(nar: Wired['nar']): string {
     `  Tier 3 (Symbolic): always active`,
     `  Provisional Cache: cInitial=${provisional.cInitial ?? '—'} decayRate=${provisional.decayRate ?? '—'} maxTtlMs=${provisional.maxTtlMs ?? '—'}`,
   ];
+  // Phase 5: per-level latency accounting (L0 deterministic / L1 manifold).
+  const latency = (dispatcher.latencyStats?.() ?? {}) as Record<string, { calls: number; judgments: number; meanMs: number }>;
+  for (const [level, s] of Object.entries(latency)) {
+    lines.push(`  ${level}: calls=${s.calls} judgments=${s.judgments} mean=${s.meanMs.toFixed(2)}ms`);
+  }
   return lines.join('\n');
 }
 

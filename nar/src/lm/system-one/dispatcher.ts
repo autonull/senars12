@@ -125,7 +125,9 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     validateBatchQueries(queries);
 
     // Tier 0: Always runs first (deterministic checks)
+    const t0Start = performance.now();
     const tier0Results = await this.#tier0.judgeBatch(sharedContext, queries, budget);
+    this.#recordLatency(0, t0Start, tier0Results.length);
 
     // If System One is disabled or Tier 1 unavailable, return Tier 0 results
     if (!this.#enabled || !this.tier1) {
@@ -134,7 +136,9 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
 
     // Tier 1: Manifold (encoder heads)
     try {
+      const t1Start = performance.now();
       const tier1Results = await this.tier1.judgeBatch(sharedContext, queries, budget);
+      this.#recordLatency(1, t1Start, tier1Results.length);
       // Use Tier 1 results when available and confident
       const mapped = tier1Results.map((r, i) => {
         const tier0Result = tier0Results[i];
@@ -193,6 +197,26 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
         return r;
       });
     }
+  }
+
+  #tierLatency = new Map<0 | 1, { calls: number; totalMs: number; judgments: number }>();
+
+  /** Phase 5: per-level latency accounting (L0 deterministic / L1 manifold heads). */
+  #recordLatency(tier: 0 | 1, startMs: number, judgments: number): void {
+    const stats = this.#tierLatency.get(tier) ?? { calls: 0, totalMs: 0, judgments: 0 };
+    stats.calls++;
+    stats.totalMs += performance.now() - startMs;
+    stats.judgments += judgments;
+    this.#tierLatency.set(tier, stats);
+  }
+
+  latencyStats(): Record<string, { calls: number; totalMs: number; judgments: number; meanMs: number }> {
+    return Object.fromEntries(
+      [...this.#tierLatency.entries()].map(([tier, s]) => [
+        `L${tier}`,
+        { ...s, meanMs: s.calls > 0 ? s.totalMs / s.calls : 0 },
+      ])
+    );
   }
 
   #chargeBatch(gate: KernelBudgetGate | null, results: readonly JudgmentProposition[]): boolean {

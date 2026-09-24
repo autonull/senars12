@@ -151,41 +151,68 @@ function deriveProvenance(
   };
 }
 
+/** R6 safety floor: injection/assertion at high criticality must fail closed. */
+function isSafetyFloor(query: JudgmentQuery): boolean {
+  return (
+    query.kind === 'evaluate' &&
+    (query.rubric === 'injection' || query.rubric === 'assertion') &&
+    (query.criticality === 'high' || query.criticality === 'critical')
+  );
+}
+
 export function createDecider(deps: DecideDeps): Decider {
   const router = deps.router ?? new ConfidenceRouter(DEFAULT_BANDS);
   const chunkSize = Math.max(1, deps.maxBatchSize ?? 64);
 
   const decide = async (request: DecideRequest): Promise<DecideResult> => {
     const contextPointer = (await deps.embeddingCache.write(request.context)) as EmbeddingPointer;
+    // Phase 5 short-circuit at the query-composition layer: once a safety-floor
+    // head (injection/assertion, high/critical criticality) crosses the veto
+    // trigger, no remaining query can change the router decision (block) —
+    // they are omitted from the judge call and reported `skipped: true`.
+    const VETO_TRIGGER = 0.8;
     const propositions: JudgmentProposition[] = [];
-    for (let i = 0; i < request.queries.length; i += chunkSize) {
-      propositions.push(
-        ...(await deps.judge(contextPointer, request.queries.slice(i, i + chunkSize), request.budget))
-      );
+    let shortCircuited = false;
+    for (let i = 0; i < request.queries.length && !shortCircuited; i += chunkSize) {
+      const end = Math.min(i + chunkSize, request.queries.length);
+      const batch = await deps.judge(contextPointer, request.queries.slice(i, end), request.budget);
+      propositions.push(...batch);
+      shortCircuited = request.queries
+        .slice(i, end)
+        .some((q, j) => isSafetyFloor(q) && !batch[j]?.abstained && (batch[j] as { score: number }).score >= VETO_TRIGGER);
     }
-
     const embedding = deps.embeddingCache.read(contextPointer);
     const contrastive = contrastiveScore(deps.contrastive, embedding, request.contrastiveRubric);
 
     const verdicts: HeadVerdict[] = request.queries.map((query, i) => {
       const proposition = propositions[i];
+      const band = verdictBand(router, proposition);
+      const vetoed =
+        proposition !== undefined &&
+        !proposition.abstained &&
+        proposition.kind === 'evaluate' &&
+        isSafetyFloor(query) &&
+        proposition.score >= VETO_TRIGGER;
       return {
         query,
         proposition,
-        band: verdictBand(router, proposition),
+        band: vetoed ? 'block' : band,
         abstained: proposition?.abstained ?? true,
         abstainReason: proposition?.abstainReason ?? 'out-of-domain',
-        skipped: false,
+        skipped: proposition === undefined,
       };
     });
 
-    const nonAbstained = verdicts.filter((v) => !v.abstained);
-    const band = verdicts.reduce<BandDecision>(
+    const evaluated = verdicts.filter((v) => !v.skipped);
+    const nonAbstained = evaluated.filter((v) => !v.abstained);
+    const band = evaluated.reduce<BandDecision>(
       (mostRestrictive, v) => (ordinal(v.band) < ordinal(mostRestrictive) ? v.band : mostRestrictive),
       'act'
     );
     const abstained =
-      nonAbstained.length === 0 || (contrastive.score !== undefined && contrastive.score < 0.1);
+      evaluated.length === 0 ||
+      nonAbstained.length === 0 ||
+      (contrastive.score !== undefined && contrastive.score < 0.1);
     const abstainReason = nonAbstained.length === 0 ? 'all-heads-abstained' : 'out-of-domain';
 
     const entries = verdicts.flatMap(({ query, proposition }) => {
