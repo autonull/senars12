@@ -288,11 +288,33 @@ short-circuit on non-safety heads, choose-override + abstain-fallback RL selecti
 Full nar suite: 179 files / 1594 tests passing.
 
 **Remaining after this session:**
-1. Phase 4 migration: LMReflex `#verifiedRanking` + cortex candidate judging onto `choose()`.
-2. Negotiator verify-only pass + full rl-parity multi-seed run.
-3. OOD slice labeling for `lock.ood` (needs an OOD marker on rows — e.g. a `domain` field or
+1. ~~Phase 4 migration: LMReflex `#verifiedRanking` onto `choose()`~~ → done (session 3).
+2. OOD slice labeling for `lock.ood` (needs an OOD marker on rows — e.g. a `domain` field or
    an out-of-distribution label source).
-4. `.calibrate` could trigger the frozen-set fit flow end-to-end (script currently CLI-only).
+3. `.calibrate` could trigger the frozen-set fit flow end-to-end (script currently CLI-only).
+
+### Progress (2026-09-24, session 3 — Phase 4 + Negotiator verification)
+
+**Phase 4 — candidate consumers onto `choose()` ✅ (LMReflex migrated; cortex documented)**
+- `choose()` gained `preScored?: { option, p }[]`: when supplied, no `candidate_select` head
+  invocation occurs — contrastive penalties/vetoes are applied to the pre-scored ranking only
+  (uniform `p` ⇒ adjusted ordering = verification ordering; `choose()`'s distribution
+  preserves input order, so consumers must sort by `contrastive.penalties` themselves).
+- `LMReflex` now owns a `Decider` (built over `dispatcher.judge`); `#verifiedRanking`
+  routes through `decider.choose({ preScored, p: 1, verificationFloor: 0 })` and re-sorts by
+  `1 − penalty` with rank-stable ties — semantics identical to the legacy in-lined
+  contrastive sort (todo22-clm-wiring tests pass unchanged, veto telemetry preserved).
+- **Cortex candidate judging intentionally NOT migrated:** `proposeAndJudge`'s selectQ path
+  *is* the tiered judge path (tier-1-only admission + provisional fallback semantics live
+  there); `choose()` is layered above it, not a replacement. Documented as the durable seam.
+- **Negotiator verification ✅:** untouched; `todo17b-nal-arm` (NAL veto authority) 5/5.
+  Reflexes only propose through `choose()`/`proposeAndJudge`; NAL retains veto authority.
+
+**Remaining after session 3:**
+1. OOD slice labeling for `lock.ood`.
+2. `.calibrate` end-to-end frozen-fit wiring.
+3. Optional: sort `ChooseResult.distribution` by adjusted score when consumers want ranked
+   output directly (current input-order contract is intentional; documented here).
 
 ---
 

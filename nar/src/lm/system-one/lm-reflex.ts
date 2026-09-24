@@ -4,6 +4,7 @@ import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.
 import type { Truth } from '../../terms/truth.js';
 import { actionGrammar } from './action-grammar.js';
 import type { ContrastiveMemory } from './contrastive.js';
+import { createDecider, type Decider } from './decide.js';
 import type { JudgmentDataset } from './distill.js';
 import { recordReflexOutcome } from './reflex-label-source.js';
 import type { CognitiveDispatcher, EmbeddingCache, EmbeddingPointer } from './types.js';
@@ -46,6 +47,8 @@ export class LMReflex implements Reflex<Perception, string> {
   #promptTemplate?: string;
   #maxCandidates: number;
   #contrastive?: ContrastiveMemory;
+  /** TODO23 Phase 4: candidate verification routed through the unified choose() API. */
+  #decider: Decider;
   #warm = new Map<string, { action: string; confidence: number }>();
   /** stateId → embedding pointer, for recording distillation rows whose vectors
    *  match what the manifold reads at runtime (bounded; evicts-all at cap). */
@@ -70,6 +73,11 @@ export class LMReflex implements Reflex<Perception, string> {
     this.#promptTemplate = options.promptTemplate;
     this.#maxCandidates = options.maxCandidates ?? 3;
     this.#contrastive = options.contrastive;
+    this.#decider = createDecider({
+      judge: (pointer, queries, budget) => options.dispatcher.judge(pointer, queries, budget),
+      embeddingCache: options.embeddingCache,
+      contrastive: options.contrastive,
+    });
   }
 
   /** Attend-stage: LM proposes + manifold judges (the only await, C2). */
@@ -170,30 +178,28 @@ export class LMReflex implements Reflex<Perception, string> {
   }
 
   /**
-   * CLM contrastive verification: re-rank candidates by (rank, verification
-   * score) — candidates whose contrastive score (positive−negative similarity)
-   * falls below the incumbent's are demoted past it.
+   * CLM contrastive verification (Phase 4): re-rank candidates through the
+   * unified `choose()` API — pre-scored so no extra head invocation; the
+   * contrastive penalty reorders (positive−negative similarity), stable on
+   * ties so verification only demotes clear losers.
    */
   async #verifiedRanking(
     ranked: readonly { candidate: string; truth: Truth }[]
   ): Promise<{ candidate: string; truth: Truth }[]> {
-    const memory = this.#contrastive!;
-    const scored = await Promise.all(
-      ranked.map(async (entry) => {
-        try {
-          const pointer = await this.embeddingCache.write(entry.candidate);
-          const embedding = this.embeddingCache.read(pointer);
-          const score = embedding ? memory.score(embedding) : undefined;
-          return { candidate: entry.candidate, truth: entry.truth, verification: score ?? 1 };
-        } catch {
-          return { candidate: entry.candidate, truth: entry.truth, verification: 1 };
-        }
-      })
-    );
-    // Stable: original rank wins ties, so verification only demotes clear losers.
-    return scored.sort(
-      (a, b) => b.verification - a.verification || ranked.indexOf(a) - ranked.indexOf(b)
-    );
+    const result = await this.#decider.choose({
+      context: ranked.map((r) => r.candidate).join(', '),
+      candidates: ranked.map((r) => r.candidate),
+      budget: this.budget,
+      // Uniform weights + no floor: ordering must come from the contrastive
+      // penalty alone (penalty = 1 − cross-rubric score), rank-stable on ties.
+      preScored: ranked.map((r) => ({ option: r.candidate, p: 1 })),
+    });
+    const verification = (candidate: string): number =>
+      1 - (result.contrastive.penalties[candidate] ?? 0);
+    return ranked
+      .map((entry, index) => ({ entry, index, verification: verification(entry.candidate) }))
+      .sort((a, b) => b.verification - a.verification || a.index - b.index)
+      .map((s) => s.entry);
   }
 
   learn(event: LearningEvent): void {

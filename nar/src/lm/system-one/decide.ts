@@ -256,6 +256,7 @@ export function createDecider(deps: DecideDeps): Decider {
     }
 
     const contextPointer = (await deps.embeddingCache.write(request.context)) as EmbeddingPointer;
+    const preScored = request.preScored;
     const query: JudgmentQuery = {
       kind: 'classify',
       instruction: request.instruction ?? 'Select the best option.',
@@ -263,7 +264,9 @@ export function createDecider(deps: DecideDeps): Decider {
       axis: request.axis ?? 'teleological',
       rubric: request.rubric ?? 'candidate_select',
     };
-    const [proposition] = await deps.judge(contextPointer, [query], request.budget);
+    const [proposition] = preScored
+      ? []
+      : await deps.judge(contextPointer, [query], request.budget);
 
     // Per-candidate contrastive penalties (CLM hard-negative proximity).
     const penalties: Record<string, number> = {};
@@ -282,7 +285,8 @@ export function createDecider(deps: DecideDeps): Decider {
       }
     }
 
-    const distribution = adjustDistribution(proposition, penalties);
+    const base = preScored ?? (proposition?.kind === 'classify' ? proposition.distribution : undefined);
+    const distribution = adjustDistribution(base, penalties);
     const selected = distribution.find((d) => !vetoes.includes(d.option))?.option;
     const abstained = selected === undefined;
     const band = abstained ? 'abstain' : verdictBand(router, proposition);
@@ -314,18 +318,18 @@ function propositionScore(p: JudgmentProposition | undefined): number | undefine
 
 /** Contrastive-penalized, re-normalized distribution (vetoed candidates stay listed). */
 function adjustDistribution(
-  proposition: JudgmentProposition | undefined,
+  base: readonly { option: string; p: number }[] | undefined,
   penalties: Record<string, number>
 ): readonly { option: string; p: number }[] {
-  if (!proposition || proposition.kind !== 'classify' || proposition.abstained) return [];
-  const adjusted = proposition.distribution.map((d) => ({
+  if (!base || base.length === 0) return [];
+  const adjusted = base.map((d) => ({
     option: d.option,
     p: d.p * (1 - (penalties[d.option] ?? 0)),
   }));
   const total = adjusted.reduce((sum, d) => sum + d.p, 0);
   return total > 0
     ? adjusted.map((d) => ({ ...d, p: d.p / total }))
-    : proposition.distribution;
+    : base;
 }
 
 export interface ChooseRequest {
@@ -337,6 +341,10 @@ export interface ChooseRequest {
   axis?: 'epistemic' | 'teleological';
   /** Contrastive score below this vetoes a candidate (0 = no vetoing). */
   verificationFloor?: number;
+  /** Pre-scored ranking (e.g. an upstream judge's ordered candidates). When
+   *  supplied, `choose()` applies only contrastive penalties/vetoes — no
+   *  candidate_select head invocation. */
+  preScored?: readonly { option: string; p: number }[];
 }
 
 export interface ChooseResult {
