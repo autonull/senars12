@@ -17,6 +17,8 @@ export interface FrozenEvalRow {
   headId: string;
   predicted: number;
   observed: number;
+  /** Optional domain marker: OOD rows form the `lock.ood` slice (Phase 7). */
+  domain?: 'in-domain' | 'ood';
 }
 
 export interface FrozenEvalSet {
@@ -67,7 +69,12 @@ export function createFrozenEvalSet(
     .filter((l) => !excluded.has(l.source))
     .filter((l) => l.score !== undefined && l.observed !== undefined)
     .filter((l) => Number.isFinite(l.score!) && Number.isFinite(l.observed!))
-    .map((l) => ({ headId: l.rubric, predicted: l.score!, observed: l.observed! }));
+    .map((l) => ({
+      headId: l.rubric,
+      predicted: l.score!,
+      observed: l.observed!,
+      ...(l.domain ? { domain: l.domain } : {}),
+    }));
   return {
     version: 'eval-set-v1',
     createdAt: Date.now(),
@@ -75,6 +82,16 @@ export function createFrozenEvalSet(
     digest: digestRows(rows),
     rows,
   };
+}
+
+/** Split a frozen set into in-domain and OOD slices (Phase 7 lock metrics). */
+export function splitOod(
+  rows: readonly FrozenEvalRow[]
+): { inDomain: FrozenEvalRow[]; ood: FrozenEvalRow[] } {
+  const inDomain: FrozenEvalRow[] = [];
+  const ood: FrozenEvalRow[] = [];
+  for (const row of rows) (row.domain === 'ood' ? ood : inDomain).push(row);
+  return { inDomain, ood };
 }
 
 /** Brier + ECE over the frozen rows (per-row; head-level breakdown via `headMetrics`). */

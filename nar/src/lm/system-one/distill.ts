@@ -36,6 +36,8 @@ export interface DistillationLabel {
   source: string;
   /** H5/X18: which Cortex model produced the candidates this label judged. */
   cortexModelId?: string;
+  /** TODO23: domain marker — 'ood' rows form the frozen-set OOD slice. */
+  domain?: 'in-domain' | 'ood';
 }
 
 /** Append-only, redaction-per-retention: hashes + labels, never raw text. */

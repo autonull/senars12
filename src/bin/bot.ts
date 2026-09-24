@@ -640,13 +640,39 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
       try { return JSON.stringify(m.health?.() ?? {}, null, 2); }
       catch (e) { return `manifold error: ${errMsg(e)}`; }
     }),
-    cmd('calibrate', 'Calibration lock status: .calibrate [refresh]', async (args = '') => {
+    cmd('calibrate', 'Calibration lock status: .calibrate [refresh|refit]', async (args = '') => {
       if (args.trim().toLowerCase() === 'refresh') {
         if (!nar.isSystemOneEnabled?.()) return 'System One: disabled';
         await nar.refreshSystemOneContrastive(episodicMemory);
         const stats = nar.getSystemOneContrastive?.()?.stats() ?? {};
         const totals = Object.values(stats).reduce((a, s) => ({ p: a.p + s.positives, n: a.n + s.negatives }), { p: 0, n: 0 });
         return `Contrastive exemplars refreshed: ${totals.p}P/${totals.n}N across ${Object.keys(stats).length} rubric(s)`;
+      }
+      if (args.trim().toLowerCase() === 'refit') {
+        if (!nar.isSystemOneEnabled?.()) return 'System One: disabled';
+        try {
+          const { JudgmentDataset } = await import('@senars/nar/lm/system-one/distill.js');
+          const { digestRows, loadEvalSet, splitOod } = await import('@senars/nar/lm/system-one/eval-set.js');
+          const { fitCalibrationLock, writeCalibrationLock } = await import('@senars/nar/lm/system-one/calibration-fit.js');
+          const datasetPath = appConfig.systemOne?.distillation?.datasetPath ?? '.cache/systemone/dataset.jsonl';
+          const dataset = await JudgmentDataset.load(datasetPath);
+          let options: Record<string, unknown> = {};
+          try {
+            const frozen = await loadEvalSet('.cache/systemone/eval-set.json');
+            const { inDomain, ood } = splitOod(frozen.rows);
+            options = {
+              frozenSet: { digest: inDomain.length > 0 ? digestRows(inDomain) : frozen.digest, rows: inDomain },
+              ...(ood.length > 0 ? { oodSet: { digest: digestRows(ood), rows: ood } } : {}),
+            };
+          } catch {
+            // No frozen set — per-run holdout only (Phase 2 gap applies)
+          }
+          const { lock, perHead, improved } = fitCalibrationLock(dataset, options as never);
+          await writeCalibrationLock(lock, '.cache/systemone/calibration-lock.json');
+          return `Calibration lock refit: ${perHead.size} head(s), holdout ECE improved=${improved}, frozen-set metrics=${lock.eval ? 'embedded' : 'absent (run .systemone eval-set create)'}\nRestart required to apply the lock to the manifold.`;
+        } catch (e) {
+          return `refit failed: ${errMsg(e)}`;
+        }
       }
       const p = '.cache/systemone/calibration-lock.json';
       if (!existsSync(p)) return 'No calibration lock (heads unfitted — pass-through mode)';

@@ -248,6 +248,7 @@ export function createDecider(deps: DecideDeps): Decider {
       return {
         selected: undefined,
         distribution: [],
+        ranked: [],
         abstained: true,
         abstainReason: 'no-candidates',
         contrastive: { penalties: {}, vetoes: [] },
@@ -287,7 +288,9 @@ export function createDecider(deps: DecideDeps): Decider {
 
     const base = preScored ?? (proposition?.kind === 'classify' ? proposition.distribution : undefined);
     const distribution = adjustDistribution(base, penalties);
-    const selected = distribution.find((d) => !vetoes.includes(d.option))?.option;
+    // Ranked view: adjusted score descending (the selection order).
+    const ranked = [...distribution].sort((a, b) => b.p - a.p);
+    const selected = ranked.find((d) => !vetoes.includes(d.option))?.option;
     const abstained = selected === undefined;
     const band = abstained ? 'abstain' : verdictBand(router, proposition);
     const inputDigest = sha256(candidates.join('\n'));
@@ -298,6 +301,7 @@ export function createDecider(deps: DecideDeps): Decider {
     return {
       selected,
       distribution,
+      ranked,
       abstained,
       abstainReason: abstained ? (proposition?.abstained ? 'low-confidence' : 'verification-veto') : undefined,
       contrastive: { penalties, vetoes },
@@ -350,6 +354,8 @@ export interface ChooseRequest {
 export interface ChooseResult {
   selected?: string;
   distribution: readonly { option: string; p: number }[];
+  /** Distribution sorted by adjusted score descending (the selection order). */
+  ranked: readonly { option: string; p: number }[];
   abstained: boolean;
   abstainReason?: 'low-confidence' | 'verification-veto' | 'no-candidates';
   contrastive: { penalties: Record<string, number>; vetoes: readonly string[] };

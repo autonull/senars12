@@ -311,10 +311,33 @@ Full nar suite: 179 files / 1594 tests passing.
   Reflexes only propose through `choose()`/`proposeAndJudge`; NAL retains veto authority.
 
 **Remaining after session 3:**
-1. OOD slice labeling for `lock.ood`.
-2. `.calibrate` end-to-end frozen-fit wiring.
-3. Optional: sort `ChooseResult.distribution` by adjusted score when consumers want ranked
-   output directly (current input-order contract is intentional; documented here).
+1. ~~OOD slice labeling for `lock.ood`~~ → done (session 4).
+2. ~~`.calibrate` end-to-end frozen-fit wiring~~ → done (session 4).
+3. ~~Optional: `ChooseResult.distribution` sorted-output~~ → done (`ranked`, session 4).
+
+### Progress (2026-09-24, session 4 — remaining items closed)
+
+- `ChooseResult.ranked`: distribution sorted by adjusted score descending — consumers no
+  longer re-sort by penalties themselves (LMReflex keeps its own stable rank-tie sort since
+  it needs the original-index tiebreak).
+- **OOD labeling:** `DistillationLabel.domain?: 'in-domain' | 'ood'`; `createFrozenEvalSet`
+  carries it into rows, `splitOod()` slices the frozen set; the fit script and
+  `.calibrate refit` populate `lock.ood` when OOD rows exist (slice digests via `digestRows`).
+  Producers (conversation capture, reflex outcomes) can set `domain: 'ood'` on
+  out-of-scope turns going forward — no producer sets it yet.
+- **`.calibrate refit`:** loads the distillation dataset + frozen eval set (fail-open to
+  per-run holdout when the snapshot is absent), runs `fitCalibrationLock` with the frozen
+  slices, writes the lock, and reminds that a restart is required to apply it to the manifold.
+
+### Acceptance criteria status (final)
+1. ✅ `decide()` single result (scores + contrastive + band + abstain); gate + LMReflex consume it
+2. ✅ Frozen eval set digest-pinned; bake-off promotion gate fails on frozen regression; conversation rows excluded by construction
+3. ✅ `JudgmentProvenance` on every decide/choose; `.judge --explain` prints the chain (decision-level event emission available via emitter provenance arg)
+4. ✅ `choose()` used by LMReflex (preScored verification) and ManifoldRLAgent (opt-in selection); cortex candidates stay on the tiered path by design (documented seam)
+5. ✅ Head short-circuit at the query-composition layer with `skipped: true`; per-level latency in `.systemone dispatcher`
+6. ✅ Calibration lock eval/ood blocks fitted from the frozen set (`.calibrate refit`, fit script)
+7. ✅ Existing bake-off / calibration / manifold tests pass unchanged; `parity:smoke` failure is pre-existing on clean HEAD (1-seed, unrelated)
+8. ✅ All new code in `nar/src/lm/system-one/` + CLI exposure only in bot.ts
 
 ---
 

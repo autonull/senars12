@@ -9,6 +9,7 @@ import {
   EvalRegressionError,
   headMetrics,
   loadEvalSet,
+  splitOod,
   writeEvalSet,
   type FrozenEvalSet,
 } from '../../nar/src/lm/system-one/eval-set.js';
@@ -69,6 +70,19 @@ describe('frozen eval set', () => {
     expect(evalMetrics(rows).brier).toBeCloseTo(1 / 3, 5);
     expect(headMetrics(rows).a!.brier).toBe(0);
     expect(headMetrics(rows).b!.brier).toBe(1);
+  });
+
+  it('splits OOD-marked rows into their own slice; unmarked rows stay in-domain', () => {
+    const d = datasetWith([
+      { rubric: 'a', score: 0.9, observed: 1, source: 'label' },
+      { rubric: 'a', score: 0.2, observed: 0, source: 'label' },
+    ]);
+    d.record({ evidenceId: 'ood1', rubric: 'b', axis: 'epistemic', label: 'x', score: 0.5, observed: 1, source: 'label', domain: 'ood' });
+    const set = createFrozenEvalSet(d);
+    const { inDomain, ood } = splitOod(set.rows);
+    expect(inDomain).toHaveLength(2);
+    expect(ood).toHaveLength(1);
+    expect(ood[0]!.headId).toBe('b');
   });
 
   it('promotion gate throws on frozen-set regression', () => {

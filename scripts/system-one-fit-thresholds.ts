@@ -10,7 +10,7 @@
  */
 import { parseArgs } from 'node:util';
 import { JudgmentDataset } from '../nar/src/lm/system-one/distill.js';
-import { loadEvalSet } from '../nar/src/lm/system-one/eval-set.js';
+import { digestRows, loadEvalSet, splitOod } from '../nar/src/lm/system-one/eval-set.js';
 import { fitCalibrationLock, writeCalibrationLock } from '../nar/src/lm/system-one/calibration-fit.js';
 
 const { values } = parseArgs({
@@ -31,14 +31,21 @@ if (!values.dataset || !values.out) {
 
 const dataset = await JudgmentDataset.load(values.dataset);
 // TODO23 Phase 7: when a frozen eval set is supplied, its metrics are embedded
-// in the lock (`eval` block) — deployment can then verify fit-vs-frozen drift.
+// in the lock (`eval` block; OOD-marked rows form the `ood` slice) —
+// deployment can then verify fit-vs-frozen drift and OOD calibration.
 const frozen = values.evalSet ? await loadEvalSet(values.evalSet) : undefined;
+let frozenSetOption;
+let oodSetOption;
+if (frozen) {
+  const { inDomain, ood } = splitOod(frozen.rows);
+  frozenSetOption = { digest: inDomain.length > 0 ? digestRows(inDomain) : frozen.digest, rows: inDomain };
+  if (ood.length > 0) oodSetOption = { digest: digestRows(ood), rows: ood };
+}
 const { lock, perHead, improved } = fitCalibrationLock(dataset, {
   headIds: values.head,
   minRows: Number(values.minRows),
-  ...(frozen
-    ? { frozenSet: { digest: frozen.digest, rows: frozen.rows } }
-    : {}),
+  ...(frozenSetOption ? { frozenSet: frozenSetOption } : {}),
+  ...(oodSetOption ? { oodSet: oodSetOption } : {}),
 });
 if (values.modelDigest) lock.modelDigest = values.modelDigest as never;
 

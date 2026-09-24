@@ -182,6 +182,9 @@ describe('choose', () => {
     expect(result.distribution).toHaveLength(2);
     const sum = result.distribution.reduce((s, d) => s + d.p, 0);
     expect(sum).toBeCloseTo(1, 5);
+    // Ranked view is sorted by adjusted score descending (selection order).
+    expect(result.ranked[0]!.option).toBe(result.selected);
+    expect(result.ranked.every((d, i) => i === 0 || d.p <= result.ranked[i - 1]!.p)).toBe(true);
     // 'bad bet' is penalized toward zero; 'good move' wins.
     expect(result.selected).toBe('good move');
     expect(result.abstained).toBe(false);
