@@ -5,6 +5,17 @@ const logger = createLogger({ scope: 'env:validate' });
 const KNOWN_ENV_VARS = new Set([
   'LM_PROVIDER',
   'LM_MODEL',
+  'LM_FAST_MODEL',
+  'LM_STRUCTURED_MODEL',
+  'LM_BASE_URL',
+  'LM_API_KEY_ENV',
+  'LM_LLAMACPP_MODEL',
+  'LM_LLAMACPP_GPU',
+  'LM_LLAMACPP_GPU_LAYERS',
+  'LM_LLAMACPP_CTX',
+  'LM_LLAMACPP_BATCH',
+  'LM_LLAMACPP_SEQS',
+  'LM_LLAMACPP_FLASH_ATTN',
   'OLLAMA_HOST',
   'OLLAMA_MODEL',
   'EPISODIC_MEMORY_PATH',
@@ -43,6 +54,17 @@ const KNOWN_ENV_VARS = new Set([
   'NODE_ENV',
   'NODE_NO_WARNINGS',
   'NODE_OPTIONS',
+  'ANTHROPIC_API_KEY',
+  'OPENAI_API_KEY',
+  'LM_API_KEY',
+  'LM_OFFLINE',
+  'LM_PROFILE',
+  'BOT_CLI_ONLY',
+  'ENABLE_IRC',
+  'ENABLE_WS',
+  'ENABLE_HTTP',
+  'ENABLE_MCP',
+  'ENABLE_WEB_UI',
 ]);
 
 const NUMERIC_ENV_VARS: Record<string, (v: string) => number> = {
@@ -54,6 +76,10 @@ const NUMERIC_ENV_VARS: Record<string, (v: string) => number> = {
   SENARS_WS_PORT: (v) => Number.parseInt(v, 10),
   SENARS_HTTP_PORT: (v) => Number.parseInt(v, 10),
   SENARS_REASONING_TRIGGER_THRESHOLD: (v) => Number.parseFloat(v),
+  LM_LLAMACPP_GPU_LAYERS: (v) => Number.parseInt(v, 10),
+  LM_LLAMACPP_CTX: (v) => Number.parseInt(v, 10),
+  LM_LLAMACPP_BATCH: (v) => Number.parseInt(v, 10),
+  LM_LLAMACPP_SEQS: (v) => Number.parseInt(v, 10),
 };
 
 const BOOLEAN_ENV_VARS = new Set([
@@ -69,6 +95,14 @@ const BOOLEAN_ENV_VARS = new Set([
   'SENARS_STREAMING_ENABLED',
   'SENARS_TUI_COLORS',
   'SENARS_TUI_TYPING_INDICATOR',
+  'LM_LLAMACPP_FLASH_ATTN',
+  'LM_OFFLINE',
+  'BOT_CLI_ONLY',
+  'ENABLE_IRC',
+  'ENABLE_WS',
+  'ENABLE_HTTP',
+  'ENABLE_MCP',
+  'ENABLE_WEB_UI',
 ]);
 
 export interface ValidationResult {
