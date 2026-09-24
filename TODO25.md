@@ -50,7 +50,7 @@ TODO24's I1–I7 all carry forward unchanged. New:
 - Files: `nar/src/dialogue/consumers/curriculum.ts` (NEW), `nar/src/dialogue/index.ts` (re-export), `src/bin/bot.ts` (`.probes`), `tests/nar/todo25-curriculum.test.ts` (NEW, Bench 79).
 - Effort: ~1.5h actual.
 
-**All three phases done (2026-09-25); benches 77–79 green (12 tests).** Follow-on opportunities: surface the adaptation ledger (`.adaptations` CLI), per-message reflex attribution plumbing (only if retrospective telemetry shows the last-cycle join misleads), MCP exposure of `.probes`, lesson-derived curriculum probes.
+**All three phases done (2026-09-25); benches 77–79 green (12 tests).** Follow-on opportunities: ~~surface the adaptation ledger~~ (✅ done 2026-09-25 — `.adaptations [.restore]` CLI over `RetrospectiveAdapter.ledger`/`restore()`; display-only, no new bench), per-message reflex attribution plumbing (only if retrospective telemetry shows the last-cycle join misleads), MCP exposure of `.probes`, lesson-derived curriculum probes. README "Dialogue Flywheel" section documents the consumers + the `dialogue.attribution` knob.
 
 ---
 

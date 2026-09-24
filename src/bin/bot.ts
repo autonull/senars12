@@ -200,7 +200,7 @@ const gpuSummary = async (): Promise<string> => {
   }
 };
 
-function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, ground: GroundednessState, trace: TraceState, conversationGame: { focus: any; game: any } | null, routing: { auto: boolean; policy: 'conservative' | 'balanced' | 'aggressive' }, provisional: { enabled: boolean }, dialogue: DialogueCaptureType): CLICommand[] {
+function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, ground: GroundednessState, trace: TraceState, conversationGame: { focus: any; game: any } | null, routing: { auto: boolean; policy: 'conservative' | 'balanced' | 'aggressive' }, provisional: { enabled: boolean }, dialogue: DialogueCaptureType, strategyAdapter?: RetrospectiveAdapter): CLICommand[] {
   const { agent, nar, sessionManager, episodicMemory, lmService } = w;
   // loadConfig() returns a deeply frozen object — clone for runtime mutation.
   let appConfig = structuredClone(w.appConfig);
@@ -229,7 +229,7 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
 
   return [
     cmd('help', 'Show all commands (categorized)', () =>
-      `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable .skill-add .skill-remove .skill-edit | Memory: .consolidate .memory-stats .memory-export .memory-import .memory-clear\nLM: .lm-config .lm-provider .lm-model .lm-rules .lm-rule-enable .lm-rule-disable .routing .routing-set .routing-offline .circuit-breakers .circuit-reset | SystemOne: .systemone .manifold .calibrate .distill .selftune .decide .judge\nDiag: .doctor .health .benchmarks .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload .config-reset | .auth-list .auth-add .auth-remove\nDialogue: .react .turns .retrospect .retrospectives .lessons .reconsolidate .probes`
+      `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable .skill-add .skill-remove .skill-edit | Memory: .consolidate .memory-stats .memory-export .memory-import .memory-clear\nLM: .lm-config .lm-provider .lm-model .lm-rules .lm-rule-enable .lm-rule-disable .routing .routing-set .routing-offline .circuit-breakers .circuit-reset | SystemOne: .systemone .manifold .calibrate .distill .selftune .decide .judge\nDiag: .doctor .health .benchmarks .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload .config-reset | .auth-list .auth-add .auth-remove\nDialogue: .react .turns .retrospect .retrospectives .lessons .reconsolidate .probes .adaptations`
     ),
     cmd('connect', 'Start a connection: irc|ws|http|mcp', async (args = '') => {
       const parts = args.trim().split(/\s+/).filter(Boolean);
@@ -551,6 +551,17 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
       });
       if (probes.length === 0) return 'No probes yet (requires corrected or low-graded turns).';
       return probes.map((p) => `  ${p.kind} ${p.id} score=${p.score.toFixed(2)}`).join('\n');
+    }),
+    cmd('adaptations', 'Show retrospective-driven strategy adaptations: [.restore]', async (args = '') => {
+      if (!strategyAdapter) return 'Strategy adaptation unavailable (no kernel controller).';
+      if (args.trim() === 'restore') {
+        return strategyAdapter.restore() ? 'Restored pre-adaptation strategies.' : 'Nothing to restore.';
+      }
+      const ledger = strategyAdapter.ledger;
+      if (ledger.length === 0) return 'No adaptations yet (correction-dominated retrospectives drive them).';
+      return ledger
+        .map((a) => `  ${a.at ? new Date(a.at).toISOString() : ''} ${a.retrospectiveDigest.slice(0, 19)} ${Object.entries(a.to).map(([k, v]) => `${k}→${v}`).join(', ')}`)
+        .join('\n');
     }),
     cmd('systemone', 'System One status / subcommands: heads|dispatcher|cortex|reflexes|eval-set', async (args = '') => {
       const on = nar.isSystemOneEnabled?.() ?? false;
@@ -1445,7 +1456,7 @@ async function main(): Promise<void> {
   const core = buildCommands(wired.nar, agent, wired.lmService, sessionManager,
     () => currentSession, (s) => { currentSession = s; },
     { get: () => tier, set: (t) => { tier = t; } });
-  const extra = buildExtraCommands(wired, cm, auth, ground, trace, conversationGame, routing, provisional, dialogue);
+  const extra = buildExtraCommands(wired, cm, auth, ground, trace, conversationGame, routing, provisional, dialogue, strategyAdapter);
   const commands = [...core.filter((c) => c.name !== 'help'), ...extra];
 
   const cli = new CLIConnection(
