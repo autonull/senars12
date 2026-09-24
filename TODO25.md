@@ -44,11 +44,13 @@ TODO24's I1–I7 all carry forward unchanged. New:
 - Files: `nar/src/dialogue/consumers/reconsolidate.ts` (NEW), `nar/src/dialogue/{index,retrospect}.ts` (export + `digestPin` export), `src/bin/bot.ts` (`.reconsolidate` command), `tests/nar/todo25-reconsolidate.test.ts` (NEW, Bench 78).
 - Effort: ~2h actual.
 
-### Phase C — Curriculum / probe selection (unblocked: the flywheel now produces data)
+### Phase C — Curriculum / probe selection (unblocked: the flywheel now produces data) — ✅ **done (2026-09-25)**
 - `selectProbes(source = 'reaction' | 'trace' | 'lesson')` over graded data only (N3); exposed as `.probes` CLI + MCP tool.
-- Files: `nar/src/dialogue/consumers/curriculum.ts` (NEW).
-- Bench 79: frozen-set + raw-text exclusion; selection is deterministic given the same data.
-- Effort: ~6h.
+- **Status (2026-09-25): Bench 79 green, implemented, bot-wired (`.probes`).** `selectProbes` (`nar/src/dialogue/consumers/curriculum.ts`) selects over two graded sources — corrected turns (`type: 'reaction'` episodes, kind `correct`) and low trace-grade correlationIds — deterministic (score desc, digest tie-break), deduped with corrections winning, bounded (`limit`, default 16), ids-only (I6 asserted by Bench 79). Lesson-derived probes deferred: lessons are Narsese self-beliefs, not yet per-session graded; add a third source when `.lessons` telemetry exists. MCP exposure skipped this pass (one tool, low demand — add alongside the next MCP surface change).
+- Files: `nar/src/dialogue/consumers/curriculum.ts` (NEW), `nar/src/dialogue/index.ts` (re-export), `src/bin/bot.ts` (`.probes`), `tests/nar/todo25-curriculum.test.ts` (NEW, Bench 79).
+- Effort: ~1.5h actual.
+
+**All three phases done (2026-09-25); benches 77–79 green (12 tests).** Follow-on opportunities: surface the adaptation ledger (`.adaptations` CLI), per-message reflex attribution plumbing (only if retrospective telemetry shows the last-cycle join misleads), MCP exposure of `.probes`, lesson-derived curriculum probes.
 
 ---
 

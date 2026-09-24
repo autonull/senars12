@@ -229,7 +229,7 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
 
   return [
     cmd('help', 'Show all commands (categorized)', () =>
-      `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable .skill-add .skill-remove .skill-edit | Memory: .consolidate .memory-stats .memory-export .memory-import .memory-clear\nLM: .lm-config .lm-provider .lm-model .lm-rules .lm-rule-enable .lm-rule-disable .routing .routing-set .routing-offline .circuit-breakers .circuit-reset | SystemOne: .systemone .manifold .calibrate .distill .selftune .decide .judge\nDiag: .doctor .health .benchmarks .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload .config-reset | .auth-list .auth-add .auth-remove\nDialogue: .react .turns .retrospect .retrospectives .lessons .reconsolidate`
+      `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable .skill-add .skill-remove .skill-edit | Memory: .consolidate .memory-stats .memory-export .memory-import .memory-clear\nLM: .lm-config .lm-provider .lm-model .lm-rules .lm-rule-enable .lm-rule-disable .routing .routing-set .routing-offline .circuit-breakers .circuit-reset | SystemOne: .systemone .manifold .calibrate .distill .selftune .decide .judge\nDiag: .doctor .health .benchmarks .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload .config-reset | .auth-list .auth-add .auth-remove\nDialogue: .react .turns .retrospect .retrospectives .lessons .reconsolidate .probes`
     ),
     cmd('connect', 'Start a connection: irc|ws|http|mcp', async (args = '') => {
       const parts = args.trim().split(/\s+/).filter(Boolean);
@@ -542,6 +542,15 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
         throw new Error(`Reconsolidation failed (fail-closed): ${errMsg(e)}`);
       });
       return `Reconsolidated: ingested=${ingested} already-done=${skipped}`;
+    }),
+    cmd('probes', 'Show curriculum probes selected from flywheel-graded data (corrections + low grades)', async () => {
+      const { selectProbes } = await import('@senars/nar/dialogue');
+      const probes = await selectProbes({
+        reactions: () => wired.episodicMemory.getEpisodes({ type: 'reaction', limit: 1000 }),
+        grades: (wired.nar as any).systemOne?.traceGradeHistory ?? new Map(),
+      });
+      if (probes.length === 0) return 'No probes yet (requires corrected or low-graded turns).';
+      return probes.map((p) => `  ${p.kind} ${p.id} score=${p.score.toFixed(2)}`).join('\n');
     }),
     cmd('systemone', 'System One status / subcommands: heads|dispatcher|cortex|reflexes|eval-set', async (args = '') => {
       const on = nar.isSystemOneEnabled?.() ?? false;

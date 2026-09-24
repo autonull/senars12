@@ -4,3 +4,4 @@ export * from './retrospect.js';
 export * from './text-store.js';export * from './attribution.js';
 export * from './consumers/adapt.js';
 export * from './consumers/reconsolidate.js';
+export * from './consumers/curriculum.js';
