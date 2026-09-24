@@ -5,6 +5,8 @@ Integrate System One (manifold, dispatcher, cortex, reflexes) into the Bot's **l
 
 **Explicitly excluded:** Self-modification (governance pipeline), distributed networking.
 
+**New (CLM-Inspired Enhancements):** Apply Contrastive Language Model techniques (Kwok et al. 2026, *Contrastive Language Models: A System One Model for Fast and Generalizable Decision-Making*, https://contrastive-lm.notion.site/) to enhance SeNARS System One's existing inference, learning, and routing — **using existing SeNARS components**, not external CLM models.
+
 ---
 
 ## Current State (TODO21 Done)
@@ -25,7 +27,49 @@ Integrate System One (manifold, dispatcher, cortex, reflexes) into the Bot's **l
 
 ---
 
-## Architecture: Where System One Touches Bot Behavior
+## Architecture: Bot ↔ NAR Orthogonality
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        BOT LAYER (bot.ts)                           │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌───────────┐  │
+│  │ CLI Commands│  │Conversation │  │ Config Ops  │  │ Web/UI    │  │
+│  │ .systemone  │  │ GameFocus   │  │ .s1-config  │  │ .webui    │  │
+│  │ .judge      │  │ .reflex     │  │ .config-*   │  │ .arcade   │  │
+│  │ .route      │  │ .ground     │  │             │  │           │  │
+│  │ .meta       │  │ .trace      │  │             │  │           │  │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └─────┬─────┘  │
+└─────────┼────────────────┼────────────────┼───────────────┼────────┘
+          │                │                │               │
+          ▼                ▼                ▼               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      NAR LIBRARY (@senars/nar)                      │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ SystemOneRuntime (internal, shared by all NAR consumers)    │   │
+│  │   ├── Manifold (WASI/HTTP) — enhanced: contrastive calib   │   │
+│  │   ├── Dispatcher — enhanced: contrastive routing           │   │
+│  │   ├── Cortex (LLM-backed)                                   │   │
+│  │   ├── GroundednessGate — enhanced: contrastive entailment  │   │
+│  │   ├── TraceGrader — enhanced: contrastive trace quality    │   │
+│  │   └── Reflexes (ManifoldReflex, LMReflex) — enhanced:      │   │
+│  │        action embedding cache, contrastive verification    │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ GameManager → attaches reflexes to GameFocus instances     │   │
+│  │   ├── Arcade games (existing)                              │   │
+│  │   └── ConversationGameFocus (Bot-only, attached in bot.ts) │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ SelfMetaGame (observes all focuses, emits proposals)       │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Orthogonality Rules:**
+- **Bot-only:** CLI commands, ConversationGameFocus, bot.ts default profile
+- **Shared (NAR library):** All System One components, enhancements, reflexes, GameManager
+- **No leakage:** Bot config/defaults never modify shared NAR defaults
+- **Testable:** Non-Bot tests instantiate NAR with explicit config, unaffected by Bot defaults
 
 ```
 User Input → Bot.chat() → NAR.reason()
@@ -48,6 +92,74 @@ User Input → Bot.chat() → NAR.reason()
 2. **Agent.chat()** — LLM stream passes through groundedness gate
 3. **GameFocus** — reflexes attached per-game (arcade, future: conversation)
 4. **Self-Meta-Game** — observes all focuses, emits proposals
+
+---
+
+## Phase 0: Prototype Gate — ManifoldReflex for Conversation (Week 0, 2h)
+
+**Before investing in Phase 3, validate the core loop works.**
+
+```typescript
+// In bot.ts (temporary, behind flag):
+if (process.env.SENARS_PROTOTYPE_REFLEX) {
+  const focus = new ConversationGameFocus({ ... });
+  focus.bindReflex(new ManifoldReflex({ 
+    candidates: ['acknowledge', 'clarify', 'answer', 'defer'],
+    manifold: systemOne.manifold!,
+    embeddingCache: systemOne.embeddingCache!,
+  }));
+  // Test: single LM response → manifold scores → accept/reject
+}
+```
+
+**Success criteria (gate):**
+- ManifoldReflex scores 4 candidates in **<10ms/tick**
+- Accept/reject threshold improves response quality vs raw LM (human eval)
+- If **>50ms/tick** or **quality ≤ baseline**, defer Phase 3 to TODO23
+
+---
+
+## CLM-Inspired Enhancements to SeNARS System One
+
+**Reference:** Kwok, J., Kang, H., Suresh, T., Saad-Falcon, J., Pavone, M., Ré, C., & Mirhoseini, A. (2026). *Contrastive Language Models: A System One Model for Fast and Generalizable Decision-Making*. Notion Blog. https://contrastive-lm.notion.site/
+
+**Approach:** Apply CLM techniques to **enhance existing SeNARS System One components** — no external models, no ONNX export, no separate training pipeline. The SeNARS manifold, dispatcher, reflexes, and groundedness gate already provide the infrastructure; CLM techniques improve their speed, calibration, and generalization.
+
+### Key CLM Techniques Adapted to SeNARS
+
+| CLM Technique | SeNARS Application | Implementation |
+|---------------|-------------------|----------------|
+| **Bidirectional InfoNCE loss** | Manifold head calibration — train judgment heads to pull correct (state, judgment) pairs together, push incorrect apart | Add contrastive calibration step to `manifold.calibrate()` using episodic memory as positives, hard negatives from failed judgments |
+| **Disaggregated embeddings** | Cache action/response embeddings; only re-encode state per step | `EmbeddingCache` already exists — extend to cache candidate response embeddings for reflexes, routing |
+| **Hard negative mining** | Improve manifold discrimination via synthetic hard negatives | Generate hard negatives from NARS contradictions, failed derivations, LM hallucinations; add to manifold calibration data |
+| **Scaling laws for head sizing** | Auto-size manifold projection heads based on data budget | Use SeNARS `calibrationVersion` + `modelDigest` tracking; add head-size optimizer in `system-one.ts` |
+| **Replay (40/60 mix)** | Prevent catastrophic forgetting during online manifold updates | Episodic memory replay already exists — ensure manifold calibration includes replay from `.cache/episodes` |
+| **Zero-shot cosine scoring** | Fast fallback when manifold heads uncalibrated | Add cosine-similarity fallback in `ManifoldReflex` / `groundednessGate` when heads not ready |
+
+### Enhanced SeNARS Components (No New Providers)
+
+```
+Existing SeNARS → CLM-Enhanced
+─────────────────────────────────────────────────────────────────
+Manifold (WASI)       → Contrastive calibration + cached action embeddings
+Dispatcher            → Contrastive routing scores + hard-negative routing
+ManifoldReflex        → Pre-computed action embeddings, single state encode/tick
+LMReflex              → Contrastive verification of LM proposals (cheap)
+GroundednessGate      → Entailment head via contrastive scoring (faster)
+TraceGrader           → Contrastive trace quality metric
+```
+
+### Implementation: Enhance Existing Files
+
+| Component | File | CLM Technique Applied |
+|-----------|------|----------------------|
+| Manifold calibration | `nar/src/lm/system-one/manifold.ts` | Bidirectional InfoNCE + hard negatives |
+| Embedding cache | `nar/src/lm/system-one/embedding-cache.ts` | Disaggregated state/action caching |
+| ManifoldReflex | `nar/src/reflex/ManifoldReflex.ts` | Pre-compute action embeddings |
+| LMReflex | `nar/src/reflex/LMReflex.ts` | Contrastive verification of proposals |
+| GroundednessGate | `nar/src/lm/system-one/groundedness-gate.ts` | Contrastive entailment scoring |
+| Dispatcher | `nar/src/lm/system-one/dispatcher.ts` | Contrastive routing with hard negatives |
+| TraceGrader | `nar/src/lm/system-one/trace-grader.ts` | Contrastive trace quality metric |
 
 ---
 
@@ -132,7 +244,7 @@ robin --> fly?
 
 ---
 
-## Phase 3: Reflexes in Conversation (Not Just Games)
+## Phase 3: Reflexes in Conversation (Not Just Games) — **Gated by Phase 0**
 
 ### 3.1 Conversation as a GameFocus
 Create a persistent `ConversationGameFocus` attached at startup:
@@ -149,12 +261,21 @@ Create a persistent `ConversationGameFocus` attached at startup:
 .reflex arms <n>             # Number of candidate actions
 ```
 
-### 3.3 Reflex-Driven Response Selection
-Instead of raw LLM stream:
-1. LMReflex proposes N candidate responses (via GBNF grammar)
-2. Manifold scores each (entailment, groundedness, quality, safety)
-3. Highest-scoring response selected → streamed to user
-4. Trace logged → traceGrader → distillation
+### 3.3 Reflex-Driven Response Selection — **Two-Stage Delivery**
+
+**Stage 1 (v1, ~12h) — Accept/Reject Single Response:**
+1. LM generates single response (current stream)
+2. ManifoldReflex scores response (entailment, groundedness, quality, safety)
+3. If score ≥ threshold → stream to user; else → regenerate or defer
+4. **CLI:** `.reflex manifold on` enables this immediately
+
+**Stage 2 (v2, +11h) — Multi-Candidate Selection:**
+1. LMReflex proposes N candidates (via GBNF grammar: `acknowledge`, `clarify`, `answer`, `defer`, `tool_use`)
+2. ManifoldReflex scores each candidate
+3. Highest-scoring selected → streamed
+4. **CLI:** `.reflex lm on` enables v2 (requires v1 working)
+
+**Gate:** Stage 1 must pass Phase 0 criteria (<10ms/tick, quality > baseline) before Stage 2.
 
 ---
 
@@ -212,45 +333,92 @@ Dispatcher's provisional tier caches recent judgments:
 .s1-config reload            # Hot-reload (manifold/cortex need restart)
 ```
 
-### 6.2 Default Profile with System One
-Update `config/profiles.ts` or `NARBuilder.fromProfile('tool-use')`:
-- `systemOne.enabled: true`
-- `systemOne.manifold.provider: 'wasi'` (local) or `'http'` (remote)
-- `systemOne.cortex.provider: 'llamacpp-embedded'` (same as main LM)
-- `systemOne.lmReflex: true`
+### 6.2 Bot-Only Default Profile with System One
+**In `src/bin/bot.ts` only** — not in `agent/builder.ts` or shared profiles. Non-Bot NAR consumers (tests, `senars` bin, `repl`, library users) are unaffected.
+
+```typescript
+// In bot.ts main(), before createAgentFromEnv():
+const appConfig = await loadConfig();
+if (!appConfig.systemOne?.enabled) {
+  appConfig.systemOne = { enabled: true, manifold: { provider: 'wasi' }, cortex: { provider: 'llamacpp-embedded' }, lmReflex: true };
+}
+// ... pass to createAgentFromEnv()
+```
+
+This ensures:
+- **Bot users** get System One by default (opt-out via config)
+- **Non-Bot NAR users** keep current behavior (opt-in via config)
+- **Tests** control System One explicitly via test config
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: CLI Exposure (Week 1)
+### Phase 0: Prototype Gate — ManifoldReflex for Conversation (Week 0)
+| Task | File | Effort |
+|------|------|--------|
+| Prototype ManifoldReflex scoring 4 fixed candidates | `bot.ts` (temp flag) | 2h |
+| Benchmark: <10ms/tick, quality > baseline | `scripts/reflex-proto-bench.ts` | 1h |
+| **Gate decision:** proceed to Phase 3 v1 or defer | — | — |
+
+### Phase 1: CLI Exposure + Manifold Enhancements (Week 1-2)
 | Task | File | Effort |
 |------|------|--------|
 | `.systemone` full status | `bot.ts` + `system-one.ts` | 4h |
 | `.judge` manifold query | `bot.ts` | 2h |
 | `.route` dispatcher inspection | `bot.ts` + `dispatcher.ts` | 3h |
 | `.cortex` control | `bot.ts` + `cortex-adapter.ts` | 3h |
+| **Contrastive manifold calibration (InfoNCE + hard negatives)** | `nar/src/lm/system-one/manifold.ts` | 12h |
+| **Hard negative mining from episodic/NARS** | `nar/src/memory/episodic.ts` + `manifold.ts` | 8h |
+| **Scaling-law auto head sizing** | `nar/src/lm/system-one/manifold.ts` | 4h |
 
-### Phase 2: Reasoning Loop Integration (Week 2)
+**⚠️ Benchmark Gate (end of Phase 1):**
+Run `scripts/manifold-bench.ts` comparing baseline vs contrastive manifold:
+- **ECE (Expected Calibration Error)** must improve ≥10%
+- **Discrimination AUC** (positive vs negative judgment pairs) must improve ≥10%
+- **Latency** ≤33ms/judgment at 100 candidates (budget)
+- If **any metric fails**, revert to baseline calibration; defer CLM enhancements to TODO23
+
+**Contrastive Implementation Scope (exact):**
+- **Positives:** `(state_embedding, judgment_vector)` from:
+  - Episodic memory: successful derivations with high truth confidence
+  - Distillation dataset: teacher-forced trajectories (when available)
+  - Human-labeled: `.judge` CLI confirmations (future)
+- **Negatives (hard):** `(state_embedding, wrong_judgment)` from:
+  - NARS contradictions: `(A --> B)` & `(A --> [B]_not)` both high confidence
+  - Failed derivations: premises true, conclusion false (validated by LM)
+  - LM hallucinations: groundedness gate rejections with LM-generated alternatives
+- **Loss:** Bidirectional InfoNCE (state→judgment + judgment→state)
+- **Training:** Online, per calibration cycle; replay 40% episodic / 60% new
+
+### Phase 2: Reasoning Loop + Groundedness Enhancements (Week 2-3)
 | Task | File | Effort |
 |------|------|--------|
 | Groundedness gate in `collectChat()` | `bot.ts` | 4h |
 | Trace grader sampling | `bot.ts` + `trace-grader.ts` | 3h |
 | Manifold-aware Narsese output | `bot.ts` + `nar-io.ts` | 3h |
+| **GroundednessGate: contrastive entailment scoring** | `nar/src/lm/system-one/groundedness-gate.ts` | 4h |
+| **TraceGrader: contrastive trace quality metric** | `nar/src/lm/system-one/trace-grader.ts` | 3h |
+| **Distillation auto-capture from successful conversations** | `nar/src/lm/system-one/distill.ts` | 4h |
 
-### Phase 3: Conversation Reflexes (Week 3)
+### Phase 3: Conversation Reflexes — **Gated, Two-Stage (Week 3-4)**
 | Task | File | Effort |
 |------|------|--------|
 | `ConversationGame` + `GameFocus` | `nar/src/nar/games.ts` | 6h |
 | Attach at startup in `bot.ts` | `bot.ts` | 2h |
 | `.reflex` CLI commands | `bot.ts` | 3h |
-| Reflex-driven response selection | `bot.ts` + `LMReflex.ts` | 6h |
+| **Stage 1 (v1): ManifoldReflex accept/reject single response** | `bot.ts` + `ManifoldReflex.ts` | 6h |
+| **Stage 2 (v2): LMReflex multi-candidate + manifold selection** | `bot.ts` + `LMReflex.ts` | 11h |
+| **ManifoldReflex: pre-compute action embeddings** | `nar/src/reflex/ManifoldReflex.ts` | 6h |
+| **LMReflex: contrastive verification of proposals** | `nar/src/reflex/LMReflex.ts` | 6h |
+| **Disaggregated action embedding cache** | `nar/src/lm/system-one/embedding-cache.ts` | 8h |
 
-### Phase 4: Dispatcher Routing (Week 3-4)
+### Phase 4: Dispatcher Routing + Dispatcher Enhancements (Week 4)
 | Task | File | Effort |
 |------|------|--------|
 | Auto-routing in `.lm-model` / chat | `bot.ts` + `dispatcher.ts` | 4h |
 | Provisional cache CLI | `bot.ts` | 2h |
+| **Dispatcher: contrastive routing with hard negatives** | `nar/src/lm/system-one/dispatcher.ts` | 6h |
 
 ### Phase 5: Meta-Game Observability (Week 4)
 | Task | File | Effort |
@@ -258,14 +426,17 @@ Update `config/profiles.ts` or `NARBuilder.fromProfile('tool-use')`:
 | `.meta` CLI commands | `bot.ts` + `SelfMetaGame.ts` | 4h |
 | Drive stimulation via chat | `bot.ts` | 2h |
 
-### Phase 6: Config & Defaults (Week 4)
+### Phase 6: Config & Defaults (Week 4-5)
 | Task | File | Effort |
 |------|------|--------|
 | `.s1-config` CLI | `bot.ts` + `system-one.ts` | 3h |
-| Default profile with System One | `agent/builder.ts` | 2h |
+| **Bot-only default profile with System One** | `src/bin/bot.ts` (not agent/builder.ts) | 2h |
 | Update `.env.example` | `.env.example` | 1h |
+| Benchmark: enhanced vs baseline manifold | `scripts/manifold-bench.ts` | 4h |
 
-**Total: ~60 hours (4 weeks)**
+**Total: ~113 hours (5-6 weeks)**
+
+**Note:** CLM techniques are **not a separate phase** — they're internal algorithm improvements folded into the component work above. No new providers, no new config, no separate training pipeline.
 
 ---
 
@@ -280,7 +451,31 @@ Update `config/profiles.ts` or `NARBuilder.fromProfile('tool-use')`:
 7. **Chat with manifold-aware output** — NARS truth + manifold judgment shown
 8. **`.meta status`** — Shows self-meta-game state
 9. **`.s1-config save`** — Persists System One config
-10. **Default profile** — `systemOne.enabled=true` with sensible defaults
+10. **Bot-only default profile** — `systemOne.enabled=true` in `bot.ts` (opt-out via config); non-Bot NAR users unaffected
+11. **CLM-enhanced manifold** — Contrastive calibration active, hard negatives from episodic memory
+12. **CLM-enhanced reflexes** — Action embeddings cached, single state encode per tick
+13. **CLM-enhanced routing** — Contrastive routing scores with hard-negative discrimination
+14. **Benchmark** — Enhanced manifold ≤20ms/judgment at 100 candidates (vs ~33ms baseline)
+15. **Phase 0 Gate Passed** — ManifoldReflex <10ms/tick, quality > baseline (or Phase 3 deferred)
+16. **Phase 1 Benchmark Gate Passed** — ECE/AUC ≥10% improvement, latency ≤33ms (or CLM enhancements deferred)
+
+## Other High-Value Work Along the Way (Opportunistic)
+
+These are **not on the critical path** but add significant value with minimal extra effort when touching related files:
+
+| Work | Trigger | Effort | Value |
+|------|---------|--------|-------|
+| **Manifold health alerts** | Phase 1 (manifold.ts) | 2h | PagerDuty/Slack alerts when ECE > 0.15 or head uncalibrated > 1h |
+| **Distillation auto-capture** | Phase 2 (distill.ts) | 4h | Auto-save high-confidence conversation traces to distillation dataset |
+| **Reflex A/B testing framework** | Phase 3 (ManifoldReflex.ts) | 3h | Compare v1 vs v2 vs baseline response quality via `.reflex abtest on` |
+| **System One Prometheus metrics export** | Phase 1 (system-one.ts) | 2h | `/metrics` endpoint: manifold latency, head ECE, dispatcher tier distribution, reflex scores |
+| **Conversation trace logging** | Phase 3 (ConversationGameFocus) | 2h | `.trace conversation on` — full reflex→manifold→response trace per turn |
+| **Hard negative quality dashboard** | Phase 1 (manifold.ts) | 2h | `.systemone hard-negatives` — show mined negatives, sources, discrimination margins |
+| **Manifold head interpretability** | Phase 1 (manifold.ts) | 3h | `.judge --explain` — show which training examples most influenced judgment |
+| **Cost-aware routing policy** | Phase 4 (dispatcher.ts) | 3h | `.routing-auto policy cost-aware` — prefers cheaper tiers within quality budget |
+| **Reflex decision audit trail** | Phase 3 (GameFocus) | 2h | `.reflex history` — last N decisions with scores, chosen action, outcome |
+
+**Rule:** Only implement when already in the file for critical-path work. No separate tickets.
 
 ---
 
@@ -295,6 +490,8 @@ SENARS_SYSTEMONE_LMREFLEX_ENABLED=true
 SENARS_SYSTEMONE_GROUNDEDNESS_THRESHOLD=0.7
 SENARS_SYSTEMONE_TRACE_SAMPLING=0.1
 ```
+
+**CLM-inspired enhancements are internal defaults** — no extra env vars. If universally better, they become the default behavior in the enhanced components.
 
 ---
 
@@ -313,20 +510,40 @@ SENARS_SYSTEMONE_TRACE_SAMPLING=0.1
 ## Dependencies
 
 ```
-bot.ts (entry)
+bot.ts (entry) — BOT ONLY
+    ├── CLI Commands (.systemone, .judge, .route, .cortex, .ground, .trace, .reflex, .meta, .s1-config)
+    ├── ConversationGameFocus (attached at startup, Bot-only)
+    ├── Bot default profile (System One enabled by default, opt-out via config)
+    └── Web/UI/Arcade integration (.webui, .arcade)
+
+NAR Library (@senars/nar) — SHARED BY ALL CONSUMERS
     ├── SystemOneRuntime (nar/src/nar/system-one.ts)
-    │   ├── Manifold (createManifold / createHttpManifold)
-    │   ├── Dispatcher (createDispatcher)
+    │   ├── Manifold (createManifold / createHttpManifold) — enhanced: contrastive calibration
+    │   ├── Dispatcher (createDispatcher) — enhanced: contrastive routing
     │   ├── Cortex (createLMServiceCortex / StubCortex)
-    │   ├── GroundednessGate (createGroundednessGate)
-    │   ├── TraceGrader (createTraceGrader)
-    │   └── Reflexes (ManifoldReflex, LMReflex)
+    │   ├── GroundednessGate (createGroundednessGate) — enhanced: contrastive entailment
+    │   ├── TraceGrader (createTraceGrader) — enhanced: contrastive trace quality
+    │   └── Reflexes (ManifoldReflex, LMReflex) — enhanced: action embedding cache
     │
     ├── GameManager (nar/src/nar/games.ts)
-    │   └── ConversationGameFocus (NEW)
+    │   ├── Arcade games (existing)
+    │   └── ConversationGameFocus (attachable by any consumer, not Bot-specific)
     │
     └── SelfMetaGame (nar/src/game/SelfMetaGame.ts)
+
+CLM Techniques (internal, folded into components above):
+    ├── Bidirectional InfoNCE loss for manifold calibration
+    ├── Disaggregated state/action embedding cache
+    ├── Hard negative mining from episodic memory/NARS contradictions
+    ├── Scaling-law auto head sizing
+    └── Replay (40/60) for online calibration stability
 ```
+
+**Key orthogonality:**
+- Bot default profile set in `bot.ts` only — never in shared `agent/builder.ts` or profiles
+- Non-Bot NAR consumers (tests, `senars` bin, library users) instantiate NAR with explicit config
+- All System One enhancements benefit all NAR consumers automatically
+- No Bot-specific config leaks into shared NAR defaults
 
 ---
 
