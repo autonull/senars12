@@ -27,7 +27,7 @@ import {
   WSConnection,
 } from '@senars/io';
 import type { Agent } from '@senars/nar/agent';
-import { DialogueCapture, RetrospectiveAdapter, extractLessons, loadRetrospectives, persistRetrospective, retrospect } from '@senars/nar/dialogue';
+import { DialogueCapture, Reconsolidator, RetrospectiveAdapter, extractLessons, loadRetrospectives, persistRetrospective, retrospect } from '@senars/nar/dialogue';
 import type { DialogueCapture as DialogueCaptureType } from '@senars/nar/dialogue';
 import { NLUnderstandingService } from '@senars/nar/nl';
 import { formatLMConfig, resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
@@ -229,7 +229,7 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
 
   return [
     cmd('help', 'Show all commands (categorized)', () =>
-      `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable .skill-add .skill-remove .skill-edit | Memory: .consolidate .memory-stats .memory-export .memory-import .memory-clear\nLM: .lm-config .lm-provider .lm-model .lm-rules .lm-rule-enable .lm-rule-disable .routing .routing-set .routing-offline .circuit-breakers .circuit-reset | SystemOne: .systemone .manifold .calibrate .distill .selftune .decide .judge\nDiag: .doctor .health .benchmarks .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload .config-reset | .auth-list .auth-add .auth-remove\nDialogue: .react .turns .retrospect .retrospectives .lessons`
+      `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable .skill-add .skill-remove .skill-edit | Memory: .consolidate .memory-stats .memory-export .memory-import .memory-clear\nLM: .lm-config .lm-provider .lm-model .lm-rules .lm-rule-enable .lm-rule-disable .routing .routing-set .routing-offline .circuit-breakers .circuit-reset | SystemOne: .systemone .manifold .calibrate .distill .selftune .decide .judge\nDiag: .doctor .health .benchmarks .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload .config-reset | .auth-list .auth-add .auth-remove\nDialogue: .react .turns .retrospect .retrospectives .lessons .reconsolidate`
     ),
     cmd('connect', 'Start a connection: irc|ws|http|mcp', async (args = '') => {
       const parts = args.trim().split(/\s+/).filter(Boolean);
@@ -531,6 +531,17 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
         await nar.input(`<${l.term}>.`, 'belief', { f: l.truth.frequency, c: l.truth.confidence } as never).catch(() => {});
       }
       return lessons.map((l) => `  ${l.term} f=${l.truth.frequency} c=${l.truth.confidence} turns=${l.provenance.turnIds.length}`).join('\n');
+    }),
+    cmd('reconsolidate', 'Ingest retrospective lessons as self-beliefs (one-shot per digest, survives restarts)', async () => {
+      const reconsolidator = new Reconsolidator(
+        { load: (n: number) => loadRetrospectives(n) },
+        { input: (term, frequency, confidence) => nar.input(`<${term}>.`, 'belief', { f: frequency, c: confidence } as never).then(() => {}) },
+        { term: 'dialogue_performance', truth: { frequency: 0.9, confidence: 0.6 } }
+      );
+      const { ingested, skipped } = await reconsolidator.reconsolidate(50).catch((e) => {
+        throw new Error(`Reconsolidation failed (fail-closed): ${errMsg(e)}`);
+      });
+      return `Reconsolidated: ingested=${ingested} already-done=${skipped}`;
     }),
     cmd('systemone', 'System One status / subcommands: heads|dispatcher|cortex|reflexes|eval-set', async (args = '') => {
       const on = nar.isSystemOneEnabled?.() ?? false;

@@ -38,11 +38,11 @@ TODO24's I1–I7 all carry forward unchanged. New:
 - Bench 77: clamp respected, restore byte-identical, low-risk-only (anything else routes through `ProposalRouter`, I3).
 - Effort: ~3h actual.
 
-### Phase B — Retrospective-triggered re-consolidation
+### Phase B — Retrospective-triggered re-consolidation — ✅ **done (2026-09-25)**
 - On `.retrospect` (or opt-in `dialogue.autoRetrospect`), feed lessons + correction embeddings through `SchemaInductor`; digest-keyed one-shot (N2).
-- Files: `nar/src/dialogue/consumers/reconsolidate.ts` (NEW).
-- Bench 78: schemas induced once per digest; disabled path byte-identical.
-- Effort: ~5h.
+- **Status (2026-09-25): Bench 78 green, implemented, bot-wired.** Deliberate design delta from the sketch: `SchemaInductor.induceFromDerivations` needs derivation `Task[]` chains, which dialogue turns deliberately don't persist (I6 — digests/references only). So "re-consolidation" is implemented at its actually-meaningful level: `Reconsolidator` (`nar/src/dialogue/consumers/reconsolidate.ts`) ingests lessons from *persisted retrospectives* as Narsese self-beliefs via a structural sink (`nar.input` at the bot), one-shot per digest with a **persisted ledger** (`.cache/dialogue/reconsolidated.jsonl`) so the one-shot survives restarts — the "next session" semantics of the original sketch. Source loading reuses the fail-closed `loadRetrospectives` (a hand-fabricated retrospective with a wrong digest pin aborts — Bench 78 falsifies). `digestPin` is now exported from `retrospect.ts` for consumer/test reuse. SchemaInductor-based pattern induction stays a non-goal until derivation chains are captured on turns.
+- Files: `nar/src/dialogue/consumers/reconsolidate.ts` (NEW), `nar/src/dialogue/{index,retrospect}.ts` (export + `digestPin` export), `src/bin/bot.ts` (`.reconsolidate` command), `tests/nar/todo25-reconsolidate.test.ts` (NEW, Bench 78).
+- Effort: ~2h actual.
 
 ### Phase C — Curriculum / probe selection (unblocked: the flywheel now produces data)
 - `selectProbes(source = 'reaction' | 'trace' | 'lesson')` over graded data only (N3); exposed as `.probes` CLI + MCP tool.

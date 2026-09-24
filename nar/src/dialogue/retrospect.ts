@@ -47,7 +47,7 @@ const parseReaction = (e: Episode): SessionReaction | undefined => {
   }
 };
 
-const digestPin = (turnIds: readonly string[], distribution: Record<ReactionKind, number>): string => {
+export const digestPin = (turnIds: readonly string[], distribution: Record<ReactionKind, number>): string => {
   const canonical = [...turnIds].sort().join(',') + '|' + JSON.stringify(distribution);
   return `sha256:${createHash('sha256').update(canonical).digest('hex')}`;
 };
