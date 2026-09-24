@@ -51,6 +51,13 @@ Make the existing System One decision substrate **more compositional, causally m
 
 **Note:** ManifoldReflex keeps its direct path (per-tick latency budget); `decide()` is for non-per-tick composition.
 
+**Verified integration details:**
+- `judgeBatch(pointer, queries, budget)` **throws** if the context embedding pointer is not in `EmbeddingCache` — `decide()` must write the embedding before judging (single owner of the encode step).
+- `judgeBatch` enforces `maxBatchSize`; `choose()` must chunk or cap candidate sets rather than silently truncating.
+- `.judge` (`src/bin/bot.ts:468`) currently calls `manifold.judgeBatch` directly — after Phase 1 it routes through `decide()` so Phase 3 provenance is available for `--explain` for free.
+- Migrating `dispatcher.judge` call sites must preserve its tier-stats/telemetry accumulation (dispatcher wraps, doesn't replace, the manifold path).
+- Per AGENTS.md export policy: `decide()`/`choose()` land as internal (relative-import) APIs first; promote to the `exports` map only when a real in-repo consumer exists (`pnpm exports:audit` gate), else minor-bump is deferred.
+
 ## Phase 2 (P0): Frozen Evaluation Set
 
 **Problem.** `train.ts` already compares arms on **identical holdout rows** (held-out Brier bake-off, deterministic), but the holdout is re-derived per run — nothing prevents teacher-error data from migrating into training over distillation generations. The distillation dataset (`JudgmentDataset`) now auto-grows from conversations (TODO22), which makes this gap live.
@@ -98,7 +105,8 @@ Make the existing System One decision substrate **more compositional, causally m
 
 | Task | File | Effort |
 |------|------|--------|
-| Head-level short-circuit: skip heads whose inputs cannot change the router decision (e.g. injection=high → block, skip remainder) | `manifold.ts` + `decide.ts` | 8h |
+| Head-level short-circuit at the **query-composition layer**: `decide()` omits queries whose outcomes cannot change the router decision (e.g. injection=high → block, skip remainder). `judgeBatch` already takes a query array, so skipping = omitting — manifold internals untouched | `decide.ts` | 8h |
+| Short-circuited heads reported as `skipped: true` in the decide result (never silently absent) | `decide.ts` | 1h |
 | Cascade levels documented as: L0 deterministic → L1 cheap heads → L2 expensive heads → L3 LM cortex → L4 human/governance | `cascade-reflex.ts` docs + `dispatcher.ts` | 2h |
 | Latency accounting per level surfaced in `.systemone dispatcher` | `telemetry.ts` + `src/bin/bot.ts` | 3h |
 
@@ -136,7 +144,7 @@ Make the existing System One decision substrate **more compositional, causally m
 2. Frozen eval set digest-pinned; promotion gate fails on frozen-set regression; conversation-captured rows excluded by construction
 3. Every gated judgment emits a `JudgmentProvenance`; `.judge --explain` prints the full chain
 4. `choose()` used by LMReflex, cortex candidates, and `ManifoldRLAgent`; distribution + abstain semantics identical across them
-5. Head short-circuit reduces average `judgeBatch` head invocations measurably (`pnpm bench:manifold` gate ≤20ms/judgment still passes)
+5. Head short-circuit reduces average `judgeBatch` head invocations measurably (short-circuit at query-composition layer; `pnpm bench:manifold` gate ≤20ms/judgment still passes)
 6. Calibration lock contains eval/ood metrics fitted from the frozen set
 7. **No behavior regression:** existing bake-off, rl-parity, and manifold-bench scripts pass unchanged
 8. Orthogonality preserved: everything lands in `nar/src/lm/system-one/`; bot.ts gets CLI exposure only
