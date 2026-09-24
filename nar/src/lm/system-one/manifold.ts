@@ -1,6 +1,7 @@
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { validateBatchQueries } from './algebra.js';
+import { ContrastiveMemory, rubricOf } from './contrastive.js';
 import {
   createDefaultCalibrationSuite,
   type DriftDemotionConfig,
@@ -56,6 +57,8 @@ export interface ManifoldConfig {
   onProposition?: (proposition: JudgmentProposition, query: JudgmentQuery) => void;
   /** Digest-pinned calibration lock (D2): fitted calibrators + per-head abstain thresholds. */
   calibrationLock?: CalibrationLock;
+  /** CLM contrastive exemplar memory: zero-shot cosine fallback when heads are unfitted. */
+  contrastive?: ContrastiveMemory;
 }
 
 function entropy(distribution: readonly { option: string; p: number }[]): number {
@@ -127,9 +130,13 @@ export class SystemOneManifold implements JudgmentManifold {
   #driftDemotion: DriftDemotionManager;
   #cycleCounter = 0;
   #calibrators: Map<string, IsotonicCalibrator>;
+  #contrastive?: ContrastiveMemory;
+  /** Head-size recommendation (scaling laws): 0 when uncomputed. */
+  #suggestedHeadSize = 0;
 
   constructor(config: ManifoldConfig) {
     this.#config = config;
+    this.#contrastive = config.contrastive;
     this.#calibrators = createDefaultCalibrationSuite(config.calibrationVersion);
     if (config.calibrationLock) {
       assertLockMatches(config.calibrationLock, config.modelDigest);
@@ -171,23 +178,32 @@ export class SystemOneManifold implements JudgmentManifold {
     const results: JudgmentProposition[] = [];
 
     for (const query of queries) {
-      const rubric = query.kind === 'classify' ? (query.rubric ?? 'task_type') : query.rubric;
+      const rubric = rubricOf(query);
       const head = this.#config.heads.get(rubric);
-      if (!head) {
+      if (!head && !this.#contrastive?.has(rubric)) {
         throw new Error(`No head registered for query: ${query.kind} ${rubric}`);
       }
 
       const queryStart = performance.now();
       let headResult: HeadResult;
 
-      try {
-        headResult = await head.evaluate(contextEmbedding, query);
-      } catch (_e) {
-        headResult = {
-          score: 0.5,
-          abstained: true,
-          abstainReason: 'timeout',
-        };
+      if (head) {
+        try {
+          headResult = await head.evaluate(contextEmbedding, query);
+        } catch (_e) {
+          headResult = {
+            score: 0.5,
+            abstained: true,
+            abstainReason: 'timeout',
+          };
+        }
+      } else {
+        // Headless contrastive fallback (CLM zero-shot cosine scoring).
+        const score = this.#contrastive?.score(contextEmbedding, rubric);
+        headResult =
+          score === undefined
+            ? { score: 0.5, abstained: true, abstainReason: 'out-of-domain' }
+            : { score, abstained: false };
       }
 
       const latencyMs = Math.ceil(performance.now() - queryStart);
@@ -203,7 +219,7 @@ export class SystemOneManifold implements JudgmentManifold {
           version: this.#config.calibrationVersion,
           ece: this.#rollingECEMonitor.getRollingECE(),
           fitted:
-            head.fitted === true ||
+            head?.fitted === true ||
             (this.#calibrators.get(query.kind === 'classify' ? 'classify' : query.rubric)?.fitted ??
               false),
         },
@@ -378,6 +394,29 @@ export class SystemOneManifold implements JudgmentManifold {
   getPropositionCallback(): ManifoldConfig['onProposition'] {
     return this.#config.onProposition;
   }
+
+  getContrastiveMemory(): ContrastiveMemory | undefined {
+    return this.#contrastive;
+  }
+
+  /**
+   * CLM scaling-law head sizing (Kwok et al. 2026): optimal projection-head
+   * width grows as a power law in the labeled-data budget. With N labels and
+   * embedding dim D: width = clamp(D · (N/N₀)^0.18, 8, D) — N₀ = 64 labels at
+   * full width. Returns the recommended width and stores it for telemetry.
+   */
+  suggestHeadSize(labelCount: number, embeddingDim = 384): number {
+    if (labelCount <= 0) return 0;
+    const n0 = 64;
+    const raw = embeddingDim * Math.pow(labelCount / n0, 0.18);
+    const width = Math.round(Math.min(embeddingDim, Math.max(8, raw)));
+    this.#suggestedHeadSize = width;
+    return width;
+  }
+
+  getLastSuggestedHeadSize(): number {
+    return this.#suggestedHeadSize;
+  }
 }
 
 export function createManifold(
@@ -417,6 +456,7 @@ export function createManifold(
     driftDemotionConfig: config.driftDemotionConfig,
     onProposition: config.onProposition,
     calibrationLock: config.calibrationLock,
+    contrastive: config.contrastive,
   };
 
   return new SystemOneManifold(manifoldConfig);

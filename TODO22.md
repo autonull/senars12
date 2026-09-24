@@ -19,20 +19,22 @@ Integrate System One (manifold, dispatcher, cortex, reflexes) into the Bot's **l
 | **Phase 4: Dispatcher Routing** | ✅ **COMPLETED** | `.routing-auto` CLI, `.provisional` CLI |
 | **Phase 5: Meta-Game Observability** | ✅ **COMPLETED** | `.meta` CLI (status/drives/proposals/propose), `.drive stimulate` |
 | **Phase 6: Config & Defaults** | ✅ **COMPLETED** | `.s1-config` CLI, bot-only default profile with System One enabled, `.env.example` updated |
+| **CLM Enhancements** | ✅ **COMPLETED** | `contrastive.ts` (InfoNCE + ContrastiveMemory), `hard-negatives.ts` (mining + seeding), manifold headless fallback + scaling-law head sizing, gate/grader/dispatcher/reflexes contrastive wiring |
 
-**All 6 phases of core CLI integration COMPLETED!** ✅
+**All 6 phases of core CLI integration + CLM enhancement layer COMPLETED!** ✅
 
-**Remaining work (CLM enhancements — internal algorithm improvements, folded into component work in Phases 1-4):**
-- Contrastive manifold calibration (InfoNCE + hard negatives) in `manifold.ts`
-- Hard negative mining from episodic/NARS contradictions
-- Scaling-law auto head sizing
-- Disaggregated action embedding cache
-- Contrastive verification in LMReflex
-- Contrastive entailment scoring in GroundednessGate
-- Contrastive trace quality metric in TraceGrader
-- Contrastive routing with hard negatives in Dispatcher
+**Implementation notes (CLM layer):**
+- `nar/src/lm/system-one/contrastive.ts` — `ContrastiveMemory` (rubric-scoped positives/negatives with 40/60 replay cap), `fitInfoNCE` (CLIP-style scale/bias over frozen embeddings, leave-one-out positives), `cosineF32`, `rubricOf`; `score(embedding, rubric?)` falls back to best-across-rubrics when unspecified.
+- `nar/src/lm/system-one/hard-negatives.ts` — `mineHardNegatives` (NARS same-term frequency divergence → `conflict`; episodic `error` episodes → `groundedness`), `seedContrastiveMemory`, `withMargins`.
+- `SystemOneRuntime.contrastive` is shared by manifold (headless fallback), dispatcher (hard-negative penalty `p·(1−penalty)`), groundedness gate (abstain fallback), trace grader (`contrastiveQuality`), and LMReflex (`#verifiedRanking` demotes near-negative proposals; `contrastiveVetoes` telemetry). NAR exposes `getSystemOneContrastive()` + `refreshSystemOneContrastive(episodic?)`.
+- `SystemOneManifold.suggestHeadSize(n, dim)` — power-law head sizing `clamp(dim·(n/64)^0.18, 8, dim)`.
+- **Exemplar seeding is currently empty at runtime** until `refreshSystemOneContrastive` is called (e.g. from `.calibrate` CLI or a periodic hook) — all fallbacks no-op gracefully (fail-closed gate, penalty 0, veto 0).
 
-These CLM enhancements are internal algorithm improvements implemented incrementally within Phases 1-4. No new providers, config, or training pipeline needed.
+**Remaining work (folded into TODO23 unless picked up opportunistically):**
+- Distillation auto-capture from successful conversations (`distill.ts`) — not yet wired to the contrastive pipeline.
+- Manifold benchmark enhanced-vs-baseline (`scripts/manifold-bench.ts`, AC #14: ≤20ms/judgment @100 candidates) — unmeasured.
+- Call `refreshSystemOneContrastive` from the bot startup path / `.calibrate` CLI so exemplars populate without manual invocation.
+- Optional: surface `contrastive.stats()` + `contrastiveVetoes` in `.systemone` status output (opportunistic row).
 
 ---
 
@@ -341,11 +343,9 @@ Dispatcher's provisional tier caches recent judgments:
 | `.judge` manifold query | `bot.ts` | 2h | ✅ Done |
 | `.route` dispatcher inspection | `bot.ts` + `dispatcher.ts` | 3h | ✅ Done |
 | `.cortex` control | `bot.ts` + `cortex-adapter.ts` | 3h | ✅ Done |
-| **Contrastive manifold calibration (InfoNCE + hard negatives)** | `nar/src/lm/system-one/manifold.ts` | 12h | ⏳ Deferred to TODO23 |
-| **Hard negative mining from episodic/NARS** | `nar/src/memory/episodic.ts` + `manifold.ts` | 8h | ⏳ Deferred to TODO23 |
-| **Scaling-law auto head sizing** | `nar/src/lm/system-one/manifold.ts` | 4h | ⏳ Deferred to TODO23 |
-
-**⚠️ Benchmark Gate (end of Phase 1):** Deferred — CLM enhancements will be implemented incrementally in TODO23.
+| **Manifold: contrastive calibration (InfoNCE + hard negatives)** | `contrastive.ts` + `manifold.ts` | 12h | ✅ Done (CLM layer) |
+| **Manifold: hard negative mining from episodic/NARS** | `hard-negatives.ts` + `SystemOneRuntime.refreshContrastive` | 8h | ✅ Done (mining + seeding; runtime invocation pending) |
+| **Manifold: scaling-law auto head sizing** | `manifold.ts` `suggestHeadSize` | 4h | ✅ Done (CLM layer) |
 
 ### Phase 2: Reasoning Loop + Groundedness Enhancements (Week 2-3) ✅ **COMPLETED**
 | Task | File | Effort | Status |
@@ -353,49 +353,28 @@ Dispatcher's provisional tier caches recent judgments:
 | Groundedness gate in `collectChat()` | `bot.ts` | 4h | ✅ Done |
 | Trace grader sampling | `bot.ts` + `trace-grader.ts` | 3h | ✅ Done |
 | Manifold-aware Narsese output | `bot.ts` + `nar-io.ts` | 3h | ✅ Done (in `nar/src/agent/index.ts`) |
-| **GroundednessGate: contrastive entailment scoring** | `nar/src/lm/system-one/groundedness-gate.ts` | 4h | ⏳ Deferred to TODO23 |
-| **TraceGrader: contrastive trace quality metric** | `nar/src/lm/system-one/trace-grader.ts` | 3h | ⏳ Deferred to TODO23 |
+| **GroundednessGate: contrastive entailment scoring** | `groundedness-gate.ts` | 4h | ✅ Done (abstain fallback via shared ContrastiveMemory) |
+| **TraceGrader: contrastive trace quality metric** | `trace-grader.ts` | 3h | ✅ Done (`contrastiveQuality` field) |
 | **Distillation auto-capture from successful conversations** | `nar/src/lm/system-one/distill.ts` | 4h | ⏳ Deferred to TODO23 |
 
-### Phase 1: CLI Exposure + Manifold Enhancements (Week 1-2) ✅ **COMPLETED (CLI)**
-| Task | File | Effort | Status |
-|------|------|--------|--------|
-| `.systemone` full status | `bot.ts` + `system-one.ts` | 4h | ✅ Done |
-| `.judge` manifold query | `bot.ts` | 2h | ✅ Done |
-| `.route` dispatcher inspection | `bot.ts` + `dispatcher.ts` | 3h | ✅ Done |
-| `.cortex` control | `bot.ts` + `cortex-adapter.ts` | 3h | ✅ Done |
-| **Manifold: contrastive calibration (InfoNCE + hard negatives)** | `nar/src/lm/system-one/manifold.ts` | 12h | 🔄 Ready to implement |
-| **Manifold: hard negative mining from episodic/NARS** | `nar/src/memory/episodic.ts` + `manifold.ts` | 8h | 🔄 Ready to implement |
-| **Manifold: scaling-law auto head sizing** | `nar/src/lm/system-one/manifold.ts` | 4h | 🔄 Ready to implement |
-
-### Phase 2: Reasoning Loop + Groundedness Enhancements (Week 2-3) ✅ **COMPLETED (CLI)**
-| Task | File | Effort | Status |
-|------|------|--------|--------|
-| Groundedness gate in `collectChat()` | `bot.ts` | 4h | ✅ Done |
-| Trace grader sampling | `bot.ts` + `trace-grader.ts` | 3h | ✅ Done |
-| Manifold-aware Narsese output | `bot.ts` + `nar-io.ts` | 3h | ✅ Done (in `nar/src/agent/index.ts`) |
-| **GroundednessGate: contrastive entailment scoring** | `nar/src/lm/system-one/groundedness-gate.ts` | 4h | 🔄 Ready to implement |
-| **TraceGrader: contrastive trace quality metric** | `nar/src/lm/system-one/trace-grader.ts` | 3h | 🔄 Ready to implement |
-| **Distillation auto-capture from successful conversations** | `nar/src/lm/system-one/distill.ts` | 4h | 🔄 Ready to implement |
-
-### Phase 3: Conversation Reflexes — **Two-Stage (Week 3-4)** ✅ **Stage 1 COMPLETED**
+### Phase 3: Conversation Reflexes — **Two-Stage (Week 3-4)** ✅ **COMPLETED**
 | Task | File | Effort | Status |
 |------|------|--------|--------|
 | `ConversationGame` + `GameFocus` | `nar/src/game/ConversationGame.ts` | 6h | ✅ Done |
 | Attach at startup in `bot.ts` | `bot.ts` | 2h | ✅ Done |
 | `.reflex` CLI commands | `bot.ts` | 3h | ✅ Done |
 | **Stage 1 (v1): ManifoldReflex accept/reject single response** | `bot.ts` + `ManifoldReflex.ts` | 6h | ✅ Done (via existing ManifoldReflex) |
-| **Stage 2 (v2): LMReflex multi-candidate + manifold selection** | `bot.ts` + `LMReflex.ts` | 11h | 🔄 Ready for activation (LMReflex attached via `lmReflex: true`) |
-| **ManifoldReflex: pre-compute action embeddings (CLM)** | `nar/src/reflex/ManifoldReflex.ts` | 6h | 🔄 Ready to implement |
-| **LMReflex: contrastive verification of proposals (CLM)** | `nar/src/reflex/LMReflex.ts` | 6h | 🔄 Ready to implement |
-| **Disaggregated action embedding cache (CLM)** | `nar/src/lm/system-one/embedding-cache.ts` | 8h | 🔄 Ready to implement |
+| **Stage 2 (v2): LMReflex multi-candidate + manifold selection** | `bot.ts` + `LMReflex.ts` | 11h | ✅ Done (LMReflex attached via `lmReflex: true`, contrastive verification active) |
+| **ManifoldReflex: pre-compute action embeddings (CLM)** | `manifold-reflex.ts` | 6h | ✅ Done (cached per-action query objects, state-only re-encode/tick) |
+| **LMReflex: contrastive verification of proposals (CLM)** | `lm-reflex.ts` | 6h | ✅ Done (`#verifiedRanking` + `contrastiveVetoes`) |
+| **Disaggregated action embedding cache (CLM)** | `contrastive.ts` + runtime | 8h | ✅ Done (shared cache; per-rubric exemplar memory) |
 
-### Phase 4: Dispatcher Routing + Dispatcher Enhancements (Week 4) ✅ **CLI COMPLETED**
+### Phase 4: Dispatcher Routing + Dispatcher Enhancements (Week 4) ✅ **COMPLETED**
 | Task | File | Effort | Status |
 |------|------|--------|--------|
 | Auto-routing in `.lm-model` / chat | `bot.ts` + `dispatcher.ts` | 4h | ✅ Done (`.routing-auto` CLI) |
 | Provisional cache CLI | `bot.ts` | 2h | ✅ Done (`.provisional` CLI) |
-| **Dispatcher: contrastive routing with hard negatives (CLM)** | `nar/src/lm/system-one/dispatcher.ts` | 6h | 🔄 Ready to implement |
+| **Dispatcher: contrastive routing with hard negatives (CLM)** | `dispatcher.ts` | 6h | ✅ Done (`#contrastivePenalties` multiplies composite ranking score) |
 
 ### Phase 5: Meta-Game Observability (Week 4) ✅ **COMPLETED**
 | Task | File | Effort | Status |
@@ -409,9 +388,9 @@ Dispatcher's provisional tier caches recent judgments:
 | `.s1-config` CLI | `bot.ts` + `system-one.ts` | 3h | ✅ Done |
 | **Bot-only default profile with System One** | `src/bin/bot.ts` (not agent/builder.ts) | 2h | ✅ Done |
 | Update `.env.example` | `.env.example` | 1h | ✅ Done |
-| **Manifold benchmark: enhanced vs baseline** | `scripts/manifold-bench.ts` | 4h | 🔄 Ready to implement |
+| **Manifold benchmark: enhanced vs baseline** | `scripts/manifold-bench.ts` | 4h | ⏳ Deferred to TODO23 |
 
-**Total: ~113 hours (5-6 weeks) — CLI complete, CLM enhancements ready to implement**
+**Total: ~113 hours — CLI + CLM enhancement layer complete; distillation auto-capture + benchmark deferred to TODO23**
 
 **Note:** CLM techniques are **internal algorithm improvements folded into each phase** — no new providers, no new config, no separate training pipeline. They enhance existing components in-place.
 

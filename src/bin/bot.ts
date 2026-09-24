@@ -1068,12 +1068,6 @@ async function main(): Promise<void> {
   await cli.connect();
   cli.onMessage(async (message) => { await collectChat(agent, message.text, tier, ground, trace); });
   agent.mount(cli as never);
-        logger.info('ConversationGameFocus attached with reflexes');
-      }
-    } catch (e) {
-      logger.warn('Failed to attach ConversationGameFocus', { error: errMsg(e) });
-    }
-  }
 
   cli.onStateChange((state) => {
     if (state === 'disconnected') {

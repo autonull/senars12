@@ -1,7 +1,9 @@
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
+import type { Truth } from '../../terms/truth.js';
 import { actionGrammar } from './action-grammar.js';
+import type { ContrastiveMemory } from './contrastive.js';
 import type { JudgmentDataset } from './distill.js';
 import { recordReflexOutcome } from './reflex-label-source.js';
 import type { CognitiveDispatcher, EmbeddingCache, EmbeddingPointer } from './types.js';
@@ -21,6 +23,8 @@ export interface LMReflexOptions {
   promptTemplate?: string;
   /** Max GBNF-constrained candidates the LM may propose per decision (C1). */
   maxCandidates?: number;
+  /** CLM contrastive verification: proposals near stored hard negatives are demoted. */
+  contrastive?: ContrastiveMemory;
 }
 
 /**
@@ -41,6 +45,7 @@ export class LMReflex implements Reflex<Perception, string> {
   #actionLegend?: string;
   #promptTemplate?: string;
   #maxCandidates: number;
+  #contrastive?: ContrastiveMemory;
   #warm = new Map<string, { action: string; confidence: number }>();
   /** stateId → embedding pointer, for recording distillation rows whose vectors
    *  match what the manifold reads at runtime (bounded; evicts-all at cap). */
@@ -52,6 +57,8 @@ export class LMReflex implements Reflex<Perception, string> {
   decisions = 0;
   /** Warm decisions actually served at propose (diagnoses cold/missed hand-offs). */
   served = 0;
+  /** Proposals rejected or demoted by contrastive verification (CLM telemetry). */
+  contrastiveVetoes = 0;
 
   constructor(options: LMReflexOptions) {
     this.#fallback = options.fallback;
@@ -62,6 +69,7 @@ export class LMReflex implements Reflex<Perception, string> {
     this.#actionLegend = options.actionLegend;
     this.#promptTemplate = options.promptTemplate;
     this.#maxCandidates = options.maxCandidates ?? 3;
+    this.#contrastive = options.contrastive;
   }
 
   /** Attend-stage: LM proposes + manifold judges (the only await, C2). */
@@ -117,8 +125,19 @@ export class LMReflex implements Reflex<Perception, string> {
       void context;
       // Highest-ranked *legal* candidate: stub/illegal candidates (LM produced
       // fewer than maxCandidates) must never shadow a real decision.
-      const top = result.ranked.find((r) => legalActions.includes(r.candidate));
-      if (top && legalActions.includes(top.candidate)) {
+      let ranked = result.ranked.filter((r) => legalActions.includes(r.candidate));
+      // CLM contrastive verification: score legal candidates against stored
+      // hard negatives; the top proposal must clear the verification floor or
+      // the next-best verified candidate serves instead.
+      if (this.#contrastive && !this.#contrastive.isEmpty() && ranked.length > 0) {
+        ranked = await this.#verifiedRanking(ranked);
+        if (ranked[0]!.candidate !== result.ranked.find((r) => legalActions.includes(r.candidate))!.candidate) {
+          this.contrastiveVetoes++;
+        }
+      }
+
+      const top = ranked[0];
+      if (top) {
         this.#warm.set(stateId, { action: top.candidate, confidence: top.truth.f });
         this.decisions++;
       }
@@ -148,6 +167,33 @@ export class LMReflex implements Reflex<Perception, string> {
       ];
     }
     return this.#fallback.propose(state, legalActions) as ActionProposal[];
+  }
+
+  /**
+   * CLM contrastive verification: re-rank candidates by (rank, verification
+   * score) — candidates whose contrastive score (positive−negative similarity)
+   * falls below the incumbent's are demoted past it.
+   */
+  async #verifiedRanking(
+    ranked: readonly { candidate: string; truth: Truth }[]
+  ): Promise<{ candidate: string; truth: Truth }[]> {
+    const memory = this.#contrastive!;
+    const scored = await Promise.all(
+      ranked.map(async (entry) => {
+        try {
+          const pointer = await this.embeddingCache.write(entry.candidate);
+          const embedding = this.embeddingCache.read(pointer);
+          const score = embedding ? memory.score(embedding) : undefined;
+          return { candidate: entry.candidate, truth: entry.truth, verification: score ?? 1 };
+        } catch {
+          return { candidate: entry.candidate, truth: entry.truth, verification: 1 };
+        }
+      })
+    );
+    // Stable: original rank wins ties, so verification only demotes clear losers.
+    return scored.sort(
+      (a, b) => b.verification - a.verification || ranked.indexOf(a) - ranked.indexOf(b)
+    );
   }
 
   learn(event: LearningEvent): void {

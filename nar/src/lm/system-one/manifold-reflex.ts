@@ -22,6 +22,17 @@ export class ManifoldReflex implements Reflex<Perception, string> {
   #fallback: Reflex<unknown, unknown>;
   #prefetch = new Map<string, Map<string, number>>();
   #dataset?: JudgmentDataset;
+  /** CLM disaggregated embeddings: per-action query objects + embedding pointers,
+   *  reused across ticks (only the state is re-encoded per step). */
+  #actionQueries = new Map<string, {
+    query: {
+      kind: 'evaluate';
+      instruction: string;
+      rubric: 'reflex_value';
+      axis: 'teleological';
+    };
+    pointer?: EmbeddingPointer;
+  }>();
 
   constructor(fallback: Reflex<unknown, unknown>, options?: ManifoldReflexOptions) {
     this.#fallback = fallback;
@@ -37,12 +48,21 @@ export class ManifoldReflex implements Reflex<Perception, string> {
     budget: ReasoningBudget,
     _observation?: unknown
   ): Promise<void> {
-    const queries = legalActions.map((action) => ({
-      kind: 'evaluate' as const,
-      instruction: `Evaluate value of action ${action}`,
-      rubric: 'reflex_value' as const,
-      axis: 'teleological' as const,
-    }));
+    const queries = legalActions.map((action) => {
+      let cached = this.#actionQueries.get(action);
+      if (!cached) {
+        cached = {
+          query: {
+            kind: 'evaluate' as const,
+            instruction: `Evaluate value of action ${action}`,
+            rubric: 'reflex_value' as const,
+            axis: 'teleological' as const,
+          },
+        };
+        this.#actionQueries.set(action, cached);
+      }
+      return cached.query;
+    });
     try {
       const propositions = await manifold.judgeBatch(sharedContext, queries, budget);
       const rows = new Map<string, number>();

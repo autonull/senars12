@@ -2,11 +2,13 @@ import type { ReasoningBudget } from '@senars/kernel/schemas';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { LMService } from '../lm';
 import { createLMServiceCortex } from '../lm/system-one/cortex-adapter.js';
+import { ContrastiveMemory } from '../lm/system-one/contrastive.js';
 import { createDispatcher, StubCortex } from '../lm/system-one/dispatcher.js';
 import { JudgmentDataset } from '../lm/system-one/distill.js';
 import { createEmbeddingCache, type EmbeddingCache } from '../lm/system-one/embedding-cache.js';
 import { recordEmbeddingCacheEvent } from '../metrics/prometheus.js';
 import { createGroundednessGate } from '../lm/system-one/groundedness-gate.js';
+import { mineHardNegatives, seedContrastiveMemory } from '../lm/system-one/hard-negatives.js';
 import { createHttpManifold } from '../lm/system-one/http-manifold.js';
 import { LMReflex } from '../lm/system-one/lm-reflex.js';
 import { createManifold } from '../lm/system-one/manifold.js';
@@ -33,6 +35,8 @@ export class SystemOneRuntime {
   readonly groundednessGate?: (narration: string) => Promise<boolean>;
   readonly traceGrader?: (trace: TraceGradeInput) => Promise<TraceGradeResult>;
   readonly dataset?: JudgmentDataset;
+  /** CLM contrastive exemplar memory (zero-shot scoring + hard-negative routing). */
+  readonly contrastive = new ContrastiveMemory();
 
   private readonly config: NARConfig;
   private readonly logger: ReturnType<typeof createLogger>;
@@ -112,6 +116,7 @@ export class SystemOneRuntime {
         maxBatchSize: 64,
         maxLatencyMs: 33,
         abstainThreshold: 0.3,
+        contrastive: this.contrastive,
       });
     }
 
@@ -158,6 +163,7 @@ export class SystemOneRuntime {
           decayRate: systemOneConfig.provisional?.decayRate ?? 0.3,
           maxTtlMs: systemOneConfig.provisional?.maxTtlMs ?? 30_000,
         },
+        contrastive: this.contrastive,
       },
       cortex
     );
@@ -167,6 +173,7 @@ export class SystemOneRuntime {
       manifold,
       embeddingCache,
       threshold: 0.7,
+      contrastive: this.contrastive,
     });
 
     // E4: trace grader over the live manifold; dataset auto-flush (D3) when enabled
@@ -184,6 +191,7 @@ export class SystemOneRuntime {
       manifold,
       embeddingCache,
       dataset,
+      contrastive: this.contrastive,
     });
 
     logger.info('System One initialized', {
@@ -199,6 +207,22 @@ export class SystemOneRuntime {
 
   get enabled(): boolean {
     return this.dispatcher !== undefined;
+  }
+
+  /**
+   * CLM contrastive refresh: mine hard negatives from live NAR state
+   * (belief contradictions + episodic errors), seed the exemplar memory,
+   * and refit InfoNCE calibrations. Idempotent; no-op when System One is
+   * disabled or no belief source is supplied.
+   */
+  async refreshContrastive(
+    nar?: { getBeliefs: () => readonly unknown[] },
+    episodic?: import('../memory/EpisodicMemory.js').EpisodicMemory
+  ): Promise<void> {
+    if (!this.embeddingCache || !nar) return;
+    const mined = await mineHardNegatives(nar as never, episodic, { limit: 64 });
+    await seedContrastiveMemory(mined, this.contrastive, this.embeddingCache);
+    this.contrastive.calibrateAll();
   }
 
   /**
@@ -262,6 +286,7 @@ export class SystemOneRuntime {
       budget: this.s1Budget,
       dataset: this.dataset,
       maxCandidates: options.maxCandidates ?? this.config.systemOne?.lmReflex?.maxCandidates ?? 3,
+      contrastive: this.contrastive,
     });
     gameFocus.bindReflex(lmReflex);
     gameFocus.setReflexPrefetchContext?.({

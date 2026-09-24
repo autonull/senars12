@@ -381,6 +381,16 @@ export class NAR extends BaseComponent {
     return this.systemOne.traceGrader;
   }
 
+  /** CLM contrastive exemplar memory (zero-shot scoring; undefined when disabled). */
+  getSystemOneContrastive(): import('./lm/system-one/contrastive.js').ContrastiveMemory | undefined {
+    return this.systemOne.enabled ? this.systemOne.contrastive : undefined;
+  }
+
+  /** Refresh CLM contrastive exemplars from live state (hard negatives + calibration). */
+  refreshSystemOneContrastive(episodic?: import('./memory/EpisodicMemory.js').EpisodicMemory): Promise<void> {
+    return this.systemOne.refreshContrastive(this, episodic);
+  }
+
   /** Check if System One is enabled and initialized. */
   isSystemOneEnabled(): boolean {
     return this.systemOne.enabled;

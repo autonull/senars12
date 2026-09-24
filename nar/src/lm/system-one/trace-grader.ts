@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ContrastiveMemory } from './contrastive.js';
 import type { DistillationLabel, JudgmentDataset } from './distill.js';
 import { HEAD_SPECS, specToQuery } from './head-specs.js';
 import type {
@@ -39,6 +40,8 @@ export interface TraceRiskGrade {
 export interface TraceGradeResult {
   groundedness?: TraceGroundednessGrade;
   risks: TraceRiskGrade[];
+  /** CLM contrastive quality: in-domain-ness of the narration (0..1, undefined when no exemplars). */
+  contrastiveQuality?: number;
 }
 
 export interface TraceGraderOptions {
@@ -48,6 +51,8 @@ export interface TraceGraderOptions {
   dataset?: JudgmentDataset;
   budget?: ReasoningBudget;
   source?: string;
+  /** CLM contrastive memory: emits the zero-shot trace-quality metric. */
+  contrastive?: ContrastiveMemory;
 }
 
 const RISK_LEVELS: readonly string[] = HEAD_SPECS.risk.space ?? [];
@@ -84,6 +89,7 @@ export function createTraceGrader(options: TraceGraderOptions) {
     dataset,
     budget = DEFAULT_BUDGET,
     source = 'trace-grading',
+    contrastive,
   } = options;
   const groundednessQuery = specToQuery(HEAD_SPECS.groundedness);
   const riskQuery: JudgmentQuery = {
@@ -111,6 +117,13 @@ export function createTraceGrader(options: TraceGraderOptions) {
   return async (trace: TraceGradeInput): Promise<TraceGradeResult> => {
     const result: TraceGradeResult = { risks: [] };
     const narrationPointer = (await embeddingCache.write(trace.narration)) as EmbeddingPointer;
+
+    // CLM contrastive trace quality: zero-shot in-domain-ness of the narration.
+    const narrationEmbedding = embeddingCache.read(narrationPointer);
+    const contrastiveQuality = narrationEmbedding
+      ? contrastive?.score(narrationEmbedding, 'groundedness')
+      : undefined;
+    if (contrastiveQuality !== undefined) result.contrastiveQuality = contrastiveQuality;
 
     const [groundedness] = await manifold.judgeBatch(narrationPointer, [groundednessQuery], budget);
     if (groundedness && groundedness.kind === 'evaluate') {
