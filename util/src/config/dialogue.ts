@@ -10,6 +10,8 @@ export const dialogueDefaults = {
   enabled: false,
   captureAll: false,
   maxTurnsPerSession: 500,
+  /** Opt-in (DQ3): run a retrospective on session close. */
+  autoRetrospect: false,
 } as const;
 
 export const dialogueSchema = z.object({
@@ -18,6 +20,7 @@ export const dialogueSchema = z.object({
   captureAll: z.boolean().default(dialogueDefaults.captureAll),
   /** Bounded per AIKR. */
   maxTurnsPerSession: z.number().int().positive().default(dialogueDefaults.maxTurnsPerSession),
+  autoRetrospect: z.boolean().default(dialogueDefaults.autoRetrospect),
 });
 
 export type DialogueConfig = z.infer<typeof dialogueSchema>;

@@ -508,10 +508,7 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
           .map((e) => (e.metadata as any).sessionId as string)
       )].pop();
       if (!sid) return 'No captured sessions.';
-      const r = await retrospect(sid, w.episodicMemory);
-      await persistRetrospective(r);
-      return `Retrospective ${r.sessionId}: turns=${r.turnCount} reactions=${r.reactionCount} ` +
-        `corrections=${r.corrections.length} audit=${r.strategyAudit.length} digest=${r.digest.slice(0, 19)}`;
+      return runSessionRetrospective(sid);
     }),
     cmd('retrospectives', 'List past retrospectives: [n]', async (args = '') => {
       const n = Number(args.trim() || 10) || 10;
@@ -1313,6 +1310,36 @@ async function main(): Promise<void> {
     config: wired.appConfig.dialogue,
   });
 
+  // TODO24 §5 Phase C: shared retrospective runner — aggregates captured turns,
+  // mines contradiction terms from live beliefs, and emits a low-risk
+  // focus-weight proposal when corrections dominate (governance unchanged, I3:
+  // routed through ProposalRouter at the consumer, never auto-applied here).
+  const runSessionRetrospective = async (sessionId: string): Promise<string> => {
+    const { mineHardNegatives } = await import('@senars/nar/lm/system-one/hard-negatives.js');
+    const negatives = await mineHardNegatives(wired.nar, wired.episodicMemory, { limit: 16 }).catch(() => []);
+    const contradictionTerms = negatives.filter((n) => n.source === 'contradiction').map((n) => n.term);
+    // Corrections dominating reactions ⇒ propose a low-risk focus-weight tune
+    // (payload only; ProposalRouter governs — never auto-applied here, I3).
+    const reactionEpisodes = await wired.episodicMemory.getEpisodes({ type: 'reaction', limit: 500 });
+    const sessionReactions = reactionEpisodes.filter((e) => (e.metadata as any).sessionId === sessionId);
+    const corrections = sessionReactions.filter((e) => (e.metadata as any).kind === 'correct').length;
+    const proposal = {
+      proposalId: crypto.randomUUID(),
+      kind: 'focus-weight' as const,
+      riskTier: 'low' as const,
+      payload: { focusId: 'conversation', weight: 0.8 },
+      rewardDomain: 'external-reflex' as const,
+      correlationId: sessionId,
+    };
+    const r = await retrospect(sessionId, wired.episodicMemory, {
+      contradictionTerms,
+      proposals: sessionReactions.length >= 2 && corrections * 2 >= sessionReactions.length ? [proposal] : [],
+    });
+    await persistRetrospective(r);
+    return `Retrospective ${r.sessionId}: turns=${r.turnCount} reactions=${r.reactionCount} ` +
+      `corrections=${r.corrections.length} proposals=${r.proposals.length} digest=${r.digest.slice(0, 19)}`;
+  };
+
   // Bot-only default profile: enable System One by default (opt-out via config)
   // This only affects the bot; non-Bot NAR consumers are unaffected.
   if (!wired.appConfig.systemOne?.enabled) {
@@ -1404,6 +1431,12 @@ async function main(): Promise<void> {
 
   setupGracefulShutdown(async () => {
     logger.info('Shutting down...');
+    // TODO24 (DQ3, opt-in): auto-retrospect the session on close.
+    if (wired.appConfig.dialogue?.autoRetrospect) {
+      await runSessionRetrospective(currentSession.id ?? 'default').catch((e) =>
+        logger.warn('Auto-retrospect failed', { error: errMsg(e) })
+      );
+    }
     await sessionManager.snapshot();
     await sessionManager.close();
     await agent.stop();

@@ -54,7 +54,7 @@ export class DialogueCapture {
 
   constructor(deps: DialogueCaptureDeps = {}) {
     const { enabled = false, captureAll = false, maxTurnsPerSession = 500 } = deps.config ?? {};
-    this.#config = { enabled, captureAll, maxTurnsPerSession };
+    this.#config = { enabled, captureAll, maxTurnsPerSession, autoRetrospect: deps.config?.autoRetrospect === true };
     this.#deps = deps;
   }
 
