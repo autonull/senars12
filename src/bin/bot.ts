@@ -416,7 +416,7 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
       if (sub === 'dispatcher') return formatSystemOneDispatcher(nar);
       if (sub === 'cortex') return formatSystemOneCortex(nar);
       if (sub === 'reflexes') return formatSystemOneReflexes(nar);
-      return formatSystemOneStatus(nar);
+      return formatSystemOneStatus(nar, conversationGame);
     }),
     cmd('judge', 'Run manifold heads on a proposition: .judge <proposition> [--head <rubric>]', async (args = '') => {
       const manifold = nar.getSystemOneManifold?.();
@@ -526,7 +526,14 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
       try { return JSON.stringify(m.health?.() ?? {}, null, 2); }
       catch (e) { return `manifold error: ${errMsg(e)}`; }
     }),
-    cmd('calibrate', 'Calibration lock status', async () => {
+    cmd('calibrate', 'Calibration lock status: .calibrate [refresh]', async (args = '') => {
+      if (args.trim().toLowerCase() === 'refresh') {
+        if (!nar.isSystemOneEnabled?.()) return 'System One: disabled';
+        await nar.refreshSystemOneContrastive(episodicMemory);
+        const stats = nar.getSystemOneContrastive?.()?.stats() ?? {};
+        const totals = Object.values(stats).reduce((a, s) => ({ p: a.p + s.positives, n: a.n + s.negatives }), { p: 0, n: 0 });
+        return `Contrastive exemplars refreshed: ${totals.p}P/${totals.n}N across ${Object.keys(stats).length} rubric(s)`;
+      }
       const p = '.cache/systemone/calibration-lock.json';
       if (!existsSync(p)) return 'No calibration lock (heads unfitted — pass-through mode)';
       try {
@@ -874,7 +881,7 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
   ];
 }
 
-function formatSystemOneStatus(nar: Wired['nar']): string {
+function formatSystemOneStatus(nar: Wired['nar'], conversationGame: { focus: any } | null): string {
   const manifold = nar.getSystemOneManifold?.();
   const dispatcher = nar.getSystemOneDispatcher?.();
   const cortex = dispatcher ? (dispatcher as any).cortex : undefined;
@@ -886,6 +893,11 @@ function formatSystemOneStatus(nar: Wired['nar']): string {
   const cortexHealth = cortex?.health?.() ?? { provider: 'off', breakerOpen: true };
   const cacheMetrics = embeddingCache?.metrics?.() ?? { hits: 0, misses: 0, writes: 0, evictions: 0, size: 0 };
 
+  const contrastive = nar.getSystemOneContrastive?.();
+  const cStats = Object.entries(contrastive?.stats() ?? {});
+  const totals = cStats.reduce((a, [, s]) => ({ p: a.p + s.positives, n: a.n + s.negatives, c: a.c + (s.calibrated ? 1 : 0) }), { p: 0, n: 0, c: 0 });
+  const vetoes = (conversationGame?.focus?.reflexes ?? []).find((r: any) => r.id === 'lm-reflex')?.contrastiveVetoes ?? 0;
+
   return [
     'System One: enabled',
     `  Manifold: ${health.ready ? 'ready' : 'not ready'} (breaker: ${health.breakerOpen ? 'open' : 'closed'}, ECE: ${health.rollingEce.toFixed(4)}, queue: ${health.queueDepth})`,
@@ -894,6 +906,8 @@ function formatSystemOneStatus(nar: Wired['nar']): string {
     `  Groundedness Gate: ${groundednessGate ? 'enabled' : 'disabled'}`,
     `  Trace Grader: ${traceGrader ? 'enabled' : 'disabled'}`,
     `  Embedding Cache: ${cacheMetrics.size} entries, hit rate: ${(cacheMetrics.hits / (cacheMetrics.hits + cacheMetrics.misses || 1) * 100).toFixed(1)}%`,
+    `  Contrastive: ${totals.p}P/${totals.n}N across ${cStats.length} rubric(s), ${totals.c} calibrated (refresh: .calibrate refresh)`,
+    `  Contrastive Vetoes (LMReflex): ${vetoes}`,
   ].join('\n');
 }
 
@@ -1053,6 +1067,10 @@ async function main(): Promise<void> {
     } catch (e) {
       logger.warn('Failed to attach ConversationGameFocus', { error: errMsg(e) });
     }
+    // Seed CLM contrastive exemplars from live state (hard negatives + calibration).
+    wired.nar.refreshSystemOneContrastive?.(wired.episodicMemory).catch((e) =>
+      logger.warn('Contrastive refresh failed at startup', { error: errMsg(e) })
+    );
   }
 
   const core = buildCommands(wired.nar, agent, wired.lmService, sessionManager,

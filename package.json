@@ -57,6 +57,7 @@
     "web": "pnpm --dir ui dev",
     "build": "turbo run build",
     "bench:system-one": "tsx scripts/system-one-bench.ts",
+    "bench:manifold": "tsx scripts/manifold-bench.ts",
     "arcade": "pnpm run bot -- --arcade",
     "arcade:replay": "tsx scripts/arcade-replay.ts",
     "demo:arcade": "tsx scripts/arcade.ts --games snake,tetris,2048,tictactoe,gridworld,bandit --arms heuristic,random,manifold,lm --episodes 2 --seed 7",

@@ -22,6 +22,7 @@ Integrate System One (manifold, dispatcher, cortex, reflexes) into the Bot's **l
 | **CLM Enhancements** | ✅ **COMPLETED** | `contrastive.ts` (InfoNCE + ContrastiveMemory), `hard-negatives.ts` (mining + seeding), manifold headless fallback + scaling-law head sizing, gate/grader/dispatcher/reflexes contrastive wiring |
 
 **All 6 phases of core CLI integration + CLM enhancement layer COMPLETED!** ✅
+**Post-phase opportunistic sweep (2026-09-24): startup contrastive seeding, `.calibrate refresh`, `.systemone` contrastive stats, `pnpm bench:manifold` (AC #14 PASS). Only distillation auto-capture remains → TODO23.**
 
 **Implementation notes (CLM layer):**
 - `nar/src/lm/system-one/contrastive.ts` — `ContrastiveMemory` (rubric-scoped positives/negatives with 40/60 replay cap), `fitInfoNCE` (CLIP-style scale/bias over frozen embeddings, leave-one-out positives), `cosineF32`, `rubricOf`; `score(embedding, rubric?)` falls back to best-across-rubrics when unspecified.
@@ -31,10 +32,10 @@ Integrate System One (manifold, dispatcher, cortex, reflexes) into the Bot's **l
 - **Exemplar seeding is currently empty at runtime** until `refreshSystemOneContrastive` is called (e.g. from `.calibrate` CLI or a periodic hook) — all fallbacks no-op gracefully (fail-closed gate, penalty 0, veto 0).
 
 **Remaining work (folded into TODO23 unless picked up opportunistically):**
-- Distillation auto-capture from successful conversations (`distill.ts`) — not yet wired to the contrastive pipeline.
-- Manifold benchmark enhanced-vs-baseline (`scripts/manifold-bench.ts`, AC #14: ≤20ms/judgment @100 candidates) — unmeasured.
-- Call `refreshSystemOneContrastive` from the bot startup path / `.calibrate` CLI so exemplars populate without manual invocation.
-- Optional: surface `contrastive.stats()` + `contrastiveVetoes` in `.systemone` status output (opportunistic row).
+- ~~Call `refreshSystemOneContrastive` from the bot startup path / `.calibrate` CLI~~ ✅ **Done** — bot seeds contrastive exemplars fire-and-forget at startup (from episodic memory); `.calibrate refresh` re-mines + reseeds on demand and reports exemplar totals.
+- ~~Optional: surface `contrastive.stats()` + `contrastiveVetoes` in `.systemone` status output~~ ✅ **Done** — status shows `Contrastive: P/N across rubrics, calibrated` + `Contrastive Vetoes (LMReflex)` rows.
+- ~~Manifold benchmark enhanced-vs-baseline (AC #14)~~ ✅ **Done** — `scripts/manifold-bench.ts` (`pnpm bench:manifold`): baseline judgeBatch vs enhanced (+ calibrated InfoNCE scoring) over 100 candidates @dim=384; AC #14 gate (≤20ms/judgment) PASSES with large margin (~0.21ms enhanced, ~0.13ms contrastive overhead).
+- Distillation auto-capture from successful conversations (`distill.ts`) — still not wired to the contrastive pipeline. **TODO23:** in `collectChat()` trace-sampling path, when trace grade ≥ threshold, record `DistillationLabel` + state vector into `JudgmentDataset` (API: `dataset.record(label, embedding)`); reuse `computeEvidenceId` for input-anchored identity.
 
 ---
 
@@ -411,7 +412,7 @@ Dispatcher's provisional tier caches recent judgments:
 11. **CLM-enhanced manifold** — Contrastive calibration active, hard negatives from episodic memory
 12. **CLM-enhanced reflexes** — Action embeddings cached, single state encode per tick
 13. **CLM-enhanced routing** — Contrastive routing scores with hard-negative discrimination
-14. **Benchmark** — Enhanced manifold ≤20ms/judgment at 100 candidates (vs ~33ms baseline)
+14. **Benchmark** — Enhanced manifold ≤20ms/judgment at 100 candidates (vs ~33ms baseline) ✅ **Verified** (`pnpm bench:manifold`)
 
 ## Other High-Value Work Along the Way (Opportunistic)
 
