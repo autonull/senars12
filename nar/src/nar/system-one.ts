@@ -3,6 +3,7 @@ import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/conf
 import type { LMService } from '../lm';
 import { createLMServiceCortex } from '../lm/system-one/cortex-adapter.js';
 import { ContrastiveMemory } from '../lm/system-one/contrastive.js';
+import { createDecider, type Decider, type DecideRequest, type ChooseRequest, type DecideResult, type ChooseResult } from '../lm/system-one/decide.js';
 import { createDispatcher, StubCortex } from '../lm/system-one/dispatcher.js';
 import { JudgmentDataset } from '../lm/system-one/distill.js';
 import { createEmbeddingCache, type EmbeddingCache } from '../lm/system-one/embedding-cache.js';
@@ -32,6 +33,8 @@ export class SystemOneRuntime {
   readonly embeddingCache?: EmbeddingCache;
   readonly manifold?: JudgmentManifold;
   readonly dispatcher?: CognitiveDispatcher;
+  /** TODO23 unified decision facade (heads + contrastive + router), `decide`/`choose`. */
+  readonly decider?: Decider;
   readonly groundednessGate?: (narration: string) => Promise<boolean>;
   readonly traceGrader?: (trace: TraceGradeInput) => Promise<TraceGradeResult>;
   readonly dataset?: JudgmentDataset;
@@ -168,6 +171,15 @@ export class SystemOneRuntime {
       cortex
     );
 
+    // TODO23: unified decision facade — one typed entry point composing the
+    // tiered judge path, the CLM contrastive layer, and confidence routing.
+    this.decider = createDecider({
+      judge: (pointer, queries, budget) => this.dispatcher!.judge(pointer, queries, budget),
+      embeddingCache,
+      contrastive: this.contrastive,
+      maxBatchSize: 64,
+    });
+
     // Create groundedness gate for egress filtering
     this.groundednessGate = createGroundednessGate({
       manifold,
@@ -207,6 +219,16 @@ export class SystemOneRuntime {
 
   get enabled(): boolean {
     return this.dispatcher !== undefined;
+  }
+
+  /** Unified decision over heads + contrastive + router; undefined when disabled. */
+  async decide(request: DecideRequest): Promise<DecideResult | undefined> {
+    return this.decider?.decide(request);
+  }
+
+  /** Candidate-set decision (distribution + abstain + provenance); undefined when disabled. */
+  async choose(request: ChooseRequest): Promise<ChooseResult | undefined> {
+    return this.decider?.choose(request);
   }
 
   /**

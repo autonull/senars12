@@ -211,6 +211,12 @@ export interface BakeOffResult {
   withinParity: boolean;
   accepted: boolean;
   reason: string;
+  /** TODO23 Phase 2: frozen-set non-regression report (present when frozen cases supplied). */
+  frozen?: {
+    baselineBrier: number;
+    candidateBrier: number;
+    nonRegression: boolean;
+  };
 }
 
 const HASH_PINNED = /^sha256:[0-9a-f]{64}$/;
@@ -223,7 +229,9 @@ export function runBakeOff(
   parityTolerance = 0.02,
   _eceBound = 0.1,
   /** Governance option: accept strictly-better candidates beyond the tolerance window (reject only regressions). */
-  acceptImprovements = false
+  acceptImprovements = false,
+  /** TODO23 Phase 2: frozen eval-set cases — promotion requires non-regression here. */
+  frozen?: { cases: readonly BakeOffCase[]; tolerance?: number }
 ): BakeOffResult {
   const brier = (key: 'incumbent' | 'candidate') =>
     cases.length === 0
@@ -234,6 +242,30 @@ export function runBakeOff(
   const parityGap = Math.abs(candidateAccuracy - incumbentAccuracy);
   const withinParity = parityGap <= parityTolerance;
 
+  // Frozen-set non-regression gate: the candidate may never score worse than
+  // the incumbent on the digest-pinned snapshot beyond the tolerance window.
+  let frozenReport: BakeOffResult['frozen'];
+  if (frozen && frozen.cases.length > 0) {
+    const fb = (key: 'incumbent' | 'candidate') =>
+      frozen.cases.reduce((sum, c) => sum + (c[key] - c.truth) ** 2, 0) / frozen.cases.length;
+    const baselineBrier = fb('incumbent');
+    const candidateBrier = fb('candidate');
+    const tolerance = frozen.tolerance ?? parityTolerance;
+    const nonRegression = candidateBrier <= baselineBrier + tolerance;
+    frozenReport = { baselineBrier, candidateBrier, nonRegression };
+    if (!nonRegression) {
+      return {
+        incumbentAccuracy,
+        candidateAccuracy,
+        parityGap,
+        withinParity,
+        accepted: false,
+        reason: `Frozen-set regression: candidate Brier ${candidateBrier.toFixed(4)} > baseline ${baselineBrier.toFixed(4)} + tolerance ${tolerance}`,
+        frozen: frozenReport,
+      };
+    }
+  }
+
   if (!withinParity && !(acceptImprovements && candidateAccuracy > incumbentAccuracy)) {
     return {
       incumbentAccuracy,
@@ -242,6 +274,7 @@ export function runBakeOff(
       withinParity,
       accepted: false,
       reason: `Parity gap ${parityGap.toFixed(4)} exceeds tolerance ${parityTolerance}`,
+      frozen: frozenReport,
     };
   }
   return {
@@ -251,6 +284,7 @@ export function runBakeOff(
     withinParity,
     accepted: true,
     reason: `Parity gap ${parityGap.toFixed(4)} within tolerance; candidate accuracy ${candidateAccuracy.toFixed(4)}`,
+    frozen: frozenReport,
   };
 }
 

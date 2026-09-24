@@ -182,6 +182,84 @@ src/bin/bot.ts (CLI exposure only: .decide, .systemone eval-set, .judge --explai
 
 ---
 
+## Progress (2026-09-24)
+
+### Phase 1 — Unified Decision API ✅
+- `nar/src/lm/system-one/decide.ts` (NEW): `createDecider()` returns a `Decider` with
+  `decide()` (heads + contrastive + router + composite + provenance in one result) and
+  `choose()` (Phase 4 candidate-set API, implemented ahead of schedule since it shares the machinery).
+  - Chunks queries by `maxBatchSize` (never silently truncates); writes the context embedding
+    once (single owner of the encode step — satisfies the `judgeBatch` pointer precondition).
+  - Contrastive scoring is rubric-scoped via `DecideRequest.contrastiveRubric`, else cross-rubric.
+  - `choose()` applies CLM hard-negative penalties, re-normalizes the distribution, honors
+    `verificationFloor` vetoes, and pins a candidate-set digest in provenance.
+- `JudgmentProvenance` lives in `decide.ts` (not `types.ts` — it needs `BandDecision` from
+  policy.ts; types.ts stays dependency-free).
+- `SystemOneRuntime.decider` + `decide()`/`choose()` convenience methods;
+  `nar.getSystemOneDecider()` getter. Decider's `judge` dep is `dispatcher.judge` — tier0/3
+  fallbacks and BudgetGate charging are preserved (dispatcher wraps, not replaced).
+- **Migrated to `decide()`:** `groundedness-gate.ts` (rebuilt over a local decider; contrastive
+  fallback now flows through the result instead of a second manual call site).
+- **NOT migrated (deferred):** `dispatcher.ts` call sites (circular by construction — decider
+  composes dispatcher.judge); `lm-reflex.ts` (its verifiedRanking path → Phase 4 `choose()`
+  migration); ManifoldReflex keeps its direct per-tick path as planned.
+- CLI: `.decide <input> [--rubrics a,b,c]`; `.judge` now routes through `decider.decide()` and
+  accepts `--explain` (prints the provenance chain). `.help` updated.
+- Tests: `tests/nar/todo23-decide.test.ts` (8 tests: band monotone-restrict, abstain reasons,
+  contrastive penalty, chunking, composite, choose penalties/veto/no-candidates).
+
+### Phase 2 — Frozen Evaluation Set ✅
+- `nar/src/lm/system-one/eval-set.ts` (NEW): `createFrozenEvalSet` (excludes
+  `source === 'conversation'` rows **by construction** — TODO22 auto-capture can never enter),
+  `writeEvalSet`, `loadEvalSet` (**fail-closed** `DigestMismatchError` on row tampering),
+  `evalMetrics`/`headMetrics` (Brier + `identityECE`), `assertFrozenNonRegression` gate
+  (`EvalRegressionError`).
+- `runBakeOff` (distill.ts) gained an optional trailing `frozen?: { cases, tolerance }` param
+  (non-breaking): reports `frozen: { baselineBrier, candidateBrier, nonRegression }` and
+  **rejects the candidate on frozen-set regression** regardless of shadow parity.
+- CLI: `.systemone eval-set create|show|regenerate` (snapshot at `.cache/systemone/eval-set.json`;
+  regenerate is explicit). Live dataset path comes from `systemOne.distillation.datasetPath`.
+- Tests: `tests/nar/todo23-eval-set.test.ts` (5 tests).
+- **Remaining:** training entry points (`loadTrainingData`/`.calibrate` flow) don't yet *read*
+  the frozen set for their heldout; the gate exists and the bake-off honors it — wire
+  `.calibrate` to fail when a frozen snapshot exists and shows regression.
+
+### Phase 3 — Judgment Provenance ✅ (schema + surfacing; event emission partial)
+- `JudgmentProvenance` struct on every `DecideResult`/`ChooseResult`:
+  `modelDigest`, `calibrationDigest`, `inputDigest` (sha256 of context text / candidate set),
+  `contrastiveDigest?`, `fitted`, `abstained`, `band`, `timestamp`.
+- `judgment.resolved` schema (kernel/src/schemas.ts) extended with optional
+  `modelDigest | calibrationDigest | inputDigest | decisionBand`; `createTelemetryEmitter`
+  sets `modelDigest` from every proposition and accepts a decision-level provenance third arg;
+  `nar.emitJudgmentResolved` threads it.
+- `.judge --explain` prints the full chain (model/calibration/input digests, fitted, timestamp).
+- **Remaining:** per-proposition events emitted from the manifold callback predate the decision
+  (no inputDigest); decision-level `inputDigest`/`decisionBand` reach the event log only when a
+  consumer passes provenance into the emitter. Gate admission sites should pass
+  `result.provenance` at their next touch point.
+
+### Deferred to next session (in priority order)
+1. **Phase 4 migration**: LMReflex `#verifiedRanking` + cortex candidate judging onto
+   `choose()` (API already shipped; migration is behavior-preserving but touches parity-tested
+   paths — run rl-parity after).
+2. **Phase 5**: head short-circuit at the query-composition layer (`skipped: true` field
+   already reserved on `HeadVerdict`); latency accounting per cascade level in
+   `.systemone dispatcher`.
+3. **Phase 6**: `ManifoldRLAgent` action selection via `choose()`; Negotiator verify-only.
+4. **Phase 7**: calibration lock `eval`/`ood` blocks populated from the frozen set
+   (`.calibrate` reads `.cache/systemone/eval-set.json`; `.systemone heads` eval/ood columns).
+5. **Phase 2 follow-up**: `.calibrate` promotion gate reads the frozen snapshot when present.
+
+### Notes for remaining work
+- `HeadVerdict.skipped` exists and is always `false` for now — Phase 5 sets it when omitting
+  queries whose outcome cannot change the router decision (short-circuit = omit from the
+  `judge()` call array; report the verdict with `skipped: true`).
+- Semver: `decide`/`choose`/eval-set are new in-repo consumers via relative imports; run
+  `pnpm exports:audit` before promoting anything to the `@senars/nar` exports map.
+- `verify.ts` (existing) is unrelated to the decider; leave untouched.
+
+---
+
 ## Appendix A: Corrections to the Original Analysis
 
 The original essay was grounded in README/docs only and predated TODO22. Verified corrections:

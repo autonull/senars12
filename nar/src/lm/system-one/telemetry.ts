@@ -33,7 +33,8 @@ export function createTelemetryEmitter(sinks: TelemetrySinks = {}) {
 
   return function emitJudgmentResolved(
     proposition: JudgmentProposition,
-    _query: JudgmentQuery
+    _query: JudgmentQuery,
+    provenance?: { inputDigest?: string; calibrationDigest?: string; decisionBand?: 'act' | 'review' | 'block' | 'abstain' }
   ): void {
     try {
       if (emitEvent) {
@@ -53,6 +54,10 @@ export function createTelemetryEmitter(sinks: TelemetrySinks = {}) {
             abstained: proposition.abstained,
             stampType: proposition.abstained ? 'provisional' : 'standard',
             calibrationVersion: proposition.calibration.version,
+            modelDigest: proposition.modelDigest,
+            calibrationDigest: provenance?.calibrationDigest,
+            inputDigest: provenance?.inputDigest,
+            decisionBand: provenance?.decisionBand,
             cost: proposition.cost,
           },
         };

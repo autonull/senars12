@@ -371,6 +371,11 @@ export class NAR extends BaseComponent {
     return this.systemOne.embeddingCache;
   }
 
+  /** Get the unified decision facade (TODO23): decide/choose with provenance. */
+  getSystemOneDecider(): import('./lm/system-one/decide.js').Decider | undefined {
+    return this.systemOne.decider;
+  }
+
   /** Get System One groundedness gate (for egress filtering). */
   getSystemOneGroundednessGate(): ((narration: string) => Promise<boolean>) | undefined {
     return this.systemOne.groundednessGate;
@@ -396,11 +401,15 @@ export class NAR extends BaseComponent {
     return this.systemOne.enabled;
   }
 
-  private _emitJudgmentResolved?: ReturnType<typeof createTelemetryEmitter>;
+  private _emitJudgmentResolved?: (
+    proposition: any,
+    query?: any,
+    provenance?: { inputDigest?: string; calibrationDigest?: string; decisionBand?: 'act' | 'review' | 'block' | 'abstain' }
+  ) => void;
 
   /** Emit a judgment.resolved kernel event + Prometheus metric for a resolved proposition. */
-  private emitJudgmentResolved(proposition: any, query?: any): void {
-    this._emitJudgmentResolved?.(proposition, query);
+  private emitJudgmentResolved(proposition: any, query?: any, provenance?: { inputDigest?: string; calibrationDigest?: string; decisionBand?: 'act' | 'review' | 'block' | 'abstain' }): void {
+    this._emitJudgmentResolved?.(proposition, query, provenance);
   }
 
   attachManifoldReflex(gameFocus: {

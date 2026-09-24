@@ -210,7 +210,7 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
 
   return [
     cmd('help', 'Show all commands (categorized)', () =>
-      `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable .skill-add .skill-remove .skill-edit | Memory: .consolidate .memory-stats .memory-export .memory-import .memory-clear\nLM: .lm-config .lm-provider .lm-model .lm-rules .lm-rule-enable .lm-rule-disable .routing .routing-set .routing-offline .circuit-breakers .circuit-reset | SystemOne: .systemone .manifold .calibrate .distill .selftune\nDiag: .doctor .health .benchmarks .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload .config-reset | .auth-list .auth-add .auth-remove`
+      `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable .skill-add .skill-remove .skill-edit | Memory: .consolidate .memory-stats .memory-export .memory-import .memory-clear\nLM: .lm-config .lm-provider .lm-model .lm-rules .lm-rule-enable .lm-rule-disable .routing .routing-set .routing-offline .circuit-breakers .circuit-reset | SystemOne: .systemone .manifold .calibrate .distill .selftune .decide .judge\nDiag: .doctor .health .benchmarks .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload .config-reset | .auth-list .auth-add .auth-remove`
     ),
     cmd('connect', 'Start a connection: irc|ws|http|mcp', async (args = '') => {
       const parts = args.trim().split(/\s+/).filter(Boolean);
@@ -455,7 +455,7 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
         return `Circuit breaker reset: ${name}`;
       } catch (e) { return `circuit-reset failed: ${errMsg(e)}`; }
     }),
-    cmd('systemone', 'System One status / subcommands: heads|dispatcher|cortex|reflexes', (args = '') => {
+    cmd('systemone', 'System One status / subcommands: heads|dispatcher|cortex|reflexes|eval-set', async (args = '') => {
       const on = nar.isSystemOneEnabled?.() ?? false;
       if (!on) return 'System One: disabled (enable via config systemOne.enabled + restart)';
       const sub = args.trim().toLowerCase();
@@ -463,12 +463,36 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
       if (sub === 'dispatcher') return formatSystemOneDispatcher(nar);
       if (sub === 'cortex') return formatSystemOneCortex(nar);
       if (sub === 'reflexes') return formatSystemOneReflexes(nar);
+      if (sub.startsWith('eval-set')) {
+        const [action] = sub.split(/\s+/).slice(1);
+        const { createFrozenEvalSet, evalMetrics, headMetrics, loadEvalSet, writeEvalSet } = await import('@senars/nar/lm/system-one/eval-set.js');
+        const { JudgmentDataset } = await import('@senars/nar/lm/system-one/distill.js');
+        const path = '.cache/systemone/eval-set.json';
+        if (action === 'create' || action === 'regenerate') {
+          const dataset = await JudgmentDataset.load(appConfig.systemOne?.distillation?.datasetPath ?? '.cache/systemone/dataset.jsonl');
+          const set = createFrozenEvalSet(dataset);
+          await writeEvalSet(set, path);
+          const m = evalMetrics(set.rows);
+          return `Eval set frozen: ${set.rows.length} rows (conversation-captured excluded) → ${path}\ndigest=${set.digest}\nbrier=${m.brier.toFixed(4)} ece=${m.ece.toFixed(4)}`;
+        }
+        if (action === 'show') {
+          try {
+            const set = await loadEvalSet(path);
+            const heads = headMetrics(set.rows);
+            const lines = [`Eval set: ${set.rows.length} rows, digest=${set.digest}`, `frozen at ${new Date(set.createdAt).toISOString()}`];
+            for (const [head, m] of Object.entries(heads)) lines.push(`  ${head}: n=${m.count} brier=${m.brier.toFixed(4)} ece=${m.ece.toFixed(4)}`);
+            return lines.join('\n');
+          } catch (e) {
+            return `eval-set load failed (run .systemone eval-set create): ${errMsg(e)}`;
+          }
+        }
+        return 'Usage: .systemone eval-set create|show|regenerate (regenerate is explicit + logged)';
+      }
       return formatSystemOneStatus(nar, conversationGame);
     }),
-    cmd('judge', 'Run manifold heads on a proposition: .judge <proposition> [--head <rubric>]', async (args = '') => {
-      const manifold = nar.getSystemOneManifold?.();
-      const embeddingCache = nar.getSystemOneEmbeddingCache?.();
-      if (!manifold || !embeddingCache) return 'System One manifold not available';
+    cmd('judge', 'Run manifold heads on a proposition: .judge <proposition> [--head <rubric>] [--explain]', async (args = '') => {
+      const decider = nar.getSystemOneDecider?.();
+      if (!decider) return 'System One decider not available';
 
       const parts = args.trim().split(/\s+/);
       const headFlag = parts.indexOf('--head');
@@ -477,11 +501,11 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
         headRubric = parts[headFlag + 1];
         parts.splice(headFlag, 2);
       }
-      const proposition = parts.join(' ');
-      if (!proposition) return 'Usage: .judge <proposition> [--head <rubric>]';
+      const explain = parts.includes('--explain');
+      const proposition = parts.filter((p) => p !== '--explain').join(' ');
+      if (!proposition) return 'Usage: .judge <proposition> [--head <rubric>] [--explain]';
 
       const budget = { maxCycles: 100, maxDepth: 10, maxMemoryOps: 1000, maxLMCalls: 5, consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 } };
-      const pointer = await embeddingCache.write(proposition);
       const queries = headRubric
         ? [{ kind: 'evaluate' as const, instruction: `Evaluate ${headRubric}`, rubric: headRubric as any, axis: 'epistemic' as const }]
         : [
@@ -491,13 +515,56 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
             { kind: 'evaluate' as const, instruction: 'Evaluate safety', rubric: 'assertion' as any, axis: 'epistemic' as const },
           ];
       try {
-        const results = await manifold.judgeBatch(pointer as any, queries, budget);
-        return results.map((r) => {
-          if (r.kind === 'evaluate') return `${r.axis}/${r.rubric}: score=${r.score.toFixed(3)} abstained=${r.abstained} latency=${r.latencyMs}ms`;
-          return `${r.axis}/${r.rubric}: top=${r.top.option} p=${r.top.p.toFixed(3)} entropy=${r.entropy.toFixed(3)} latency=${r.latencyMs}ms`;
-        }).join('\n');
+        const result = await decider.decide({ context: proposition, queries, budget });
+        const lines = result.verdicts.map((v) => {
+          const r = v.proposition;
+          if (!r || r.kind === 'classify') {
+            const top = r && r.kind === 'classify' ? r.top : undefined;
+            return `${v.query.rubric}: top=${top?.option ?? '—'} p=${top?.p.toFixed(3) ?? '—'} abstained=${v.abstained} band=${v.band}${v.skipped ? ' skipped' : ''}`;
+          }
+          return `${r.rubric}: score=${r.score.toFixed(3)} abstained=${r.abstained} latency=${r.latencyMs}ms band=${v.band}${v.skipped ? ' skipped' : ''}`;
+        });
+        lines.push(`band=${result.band} composite=${result.composite?.score.toFixed(3) ?? '—'} contrastive=${result.contrastive.score?.toFixed(3) ?? '—'}`);
+        if (explain) {
+          const p = result.provenance;
+          lines.push(
+            `provenance: model=${p.modelDigest ?? '—'} calibration=${p.calibrationDigest ?? '—'} input=${p.inputDigest.slice(0, 12)} fitted=${p.fitted} abstained=${p.abstained} at=${new Date(p.timestamp).toISOString()}`
+          );
+        }
+        return lines.join('\n');
       } catch (e) {
         return `judge failed: ${errMsg(e)}`;
+      }
+    }),
+    cmd('decide', 'Unified decision (heads + contrastive + router): .decide <input> [--rubrics a,b,c]', async (args = '') => {
+      const decider = nar.getSystemOneDecider?.();
+      if (!decider) return 'System One decider not available';
+      const parts = args.trim().split(/\s+/);
+      const rubricFlag = parts.indexOf('--rubrics');
+      let rubrics: string[] | undefined;
+      if (rubricFlag >= 0 && parts[rubricFlag + 1]) {
+        rubrics = parts[rubricFlag + 1]!.split(',').map((r) => r.trim());
+        parts.splice(rubricFlag, 2);
+      }
+      const input = parts.join(' ');
+      if (!input) return 'Usage: .decide <input> [--rubrics a,b,c]';
+      const all = ['relevance', 'groundedness', 'injection', 'ambiguity', 'plausibility'];
+      const budget = { maxCycles: 100, maxDepth: 10, maxMemoryOps: 1000, maxLMCalls: 5, consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 } };
+      const queries = (rubrics ?? all).map((rubric) => ({
+        kind: 'evaluate' as const,
+        instruction: `Evaluate ${rubric}`,
+        rubric: rubric as any,
+        axis: 'epistemic' as const,
+      }));
+      try {
+        const result = await decider.decide({ context: input, queries, budget });
+        const lines = result.verdicts.map((v) => `  ${v.query.rubric}: ${(v.proposition as any)?.score?.toFixed(3) ?? '—'} band=${v.band} abstained=${v.abstained}${v.skipped ? ' skipped' : ''}`);
+        lines.push(`  band=${result.band} composite=${result.composite?.score.toFixed(3) ?? '—'} contrastive=${result.contrastive.score?.toFixed(3) ?? '—'} penalty=${result.contrastive.penalty?.toFixed(3) ?? '—'}`);
+        const p = result.provenance;
+        lines.push(`  provenance: model=${p.modelDigest ?? '—'} calibration=${p.calibrationDigest ?? '—'} input=${p.inputDigest.slice(0, 12)} at=${new Date(p.timestamp).toISOString()}`);
+        return `Decision for: "${input}"\n${lines.join('\n')}`;
+      } catch (e) {
+        return `decide failed: ${errMsg(e)}`;
       }
     }),
     cmd('route', 'Show dispatcher routing decision for a task: .route <task> [--verbose]', async (args = '') => {
