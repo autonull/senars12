@@ -7,6 +7,7 @@ import type { JudgmentManifold } from '../lm/system-one/types.js';
 import type { Reflex } from '../reflex/Reflex.js';
 import type { RandomSource } from '../types/primitives.js';
 import type { SystemOneRuntime } from './system-one.js';
+import { ConversationGame, type ConversationState, type ConversationAction } from '../game/ConversationGame.js';
 
 /**
  * Game/attachment registry (extracted from NAR — M2): owns attached GameFocus
@@ -89,6 +90,36 @@ export class GameManager {
       gameFocuses: this.metaGameFocuses,
     });
     return this.metaGame;
+  }
+
+  /**
+   * Attach a ConversationGameFocus for the bot's conversation loop.
+   * Returns the created focus and the ConversationGame instance.
+   */
+  attachConversationGame(
+    options: {
+      id?: string;
+      reflexes?: Reflex[];
+      weight?: number;
+      focusBag?: FocusBag;
+      lmReflex?: boolean;
+    } = {}
+  ): { focus: GameFocus; game: ConversationGame } {
+    const bag = options.focusBag ?? this.getFocusBag();
+    const id = options.id ?? 'conversation';
+    const game = new ConversationGame();
+    const focus = new GameFocus({
+      focusId: id,
+      game,
+      focusOptions: { weight: options.weight ?? 1.0, rng: this.rng },
+    });
+    for (const reflex of options.reflexes ?? []) focus.bindReflex(reflex);
+    if (this.systemOne.enabled) this.systemOne.attachManifoldReflex(focus);
+    if (options.lmReflex && this.systemOne.enabled) this.systemOne.attachLMReflex(focus);
+    bag.add(focus.focus);
+    this.attachedGames.set(id, { focus, bag });
+    this.metaGameFocuses.set(id, focus);
+    return { focus, game };
   }
 }
 

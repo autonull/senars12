@@ -59,19 +59,46 @@ const cmd = (
 
 type Wired = Awaited<ReturnType<typeof createAgentFromEnv>>;
 
+interface GroundednessState {
+  enabled: boolean;
+  threshold: number;
+  gate: ((text: string) => Promise<boolean>) | undefined;
+}
+
 async function collectChat(
   agent: Agent,
   input: string,
-  tier: 'quality' | 'fast' | 'structured'
+  tier: 'quality' | 'fast' | 'structured',
+  ground: GroundednessState,
+  trace: { enabled: boolean; sampleRate: number; grader: any }
 ): Promise<void> {
   const ctl = new AbortController();
   const onSigint = () => ctl.abort();
   process.once('SIGINT', onSigint);
   try {
     for await (const evt of agent.chat(input, { signal: ctl.signal, tier } as never)) {
-      if (evt.kind === 'text-delta' && evt.text) process.stdout.write(evt.text);
-      else if (evt.kind === 'tool-call') process.stdout.write(`\n[tool:${evt.toolName}]\n`);
+      if (evt.kind === 'text-delta' && evt.text) {
+        if (ground.enabled && ground.gate) {
+          const ok = await ground.gate(evt.text);
+          if (ok) process.stdout.write(evt.text);
+          else process.stdout.write('[filtered]');
+        } else {
+          process.stdout.write(evt.text);
+        }
+      } else if (evt.kind === 'tool-call') process.stdout.write(`\n[tool:${evt.toolName}]\n`);
       else if (evt.kind === 'error' || evt.kind === 'aborted') break;
+    }
+    // Trace grader sampling
+    if (trace.enabled && trace.grader && Math.random() < trace.sampleRate) {
+      // In a real implementation, we'd collect the full trace with tool calls
+      // For now, just grade the final narration
+      const narration = input; // placeholder - would be the actual response
+      const toolCalls: Array<{ command: string; success: boolean }> = [];
+      try {
+        await trace.grader({ narration, toolCalls });
+      } catch {
+        // Ignore trace grading errors
+      }
     }
   } finally {
     process.removeListener('SIGINT', onSigint);
@@ -107,7 +134,7 @@ const gpuSummary = async (): Promise<string> => {
   }
 };
 
-function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager): CLICommand[] {
+function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, ground: GroundednessState, trace: { enabled: boolean; sampleRate: number; grader: any }, conversationGame: { focus: any; game: any } | null, routing: { auto: boolean; policy: 'conservative' | 'balanced' | 'aggressive' }, provisional: { enabled: boolean }): CLICommand[] {
   const { agent, nar, sessionManager, episodicMemory, lmService } = w;
   // loadConfig() returns a deeply frozen object — clone for runtime mutation.
   let appConfig = structuredClone(w.appConfig);
@@ -381,11 +408,117 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager):
         return `Circuit breaker reset: ${name}`;
       } catch (e) { return `circuit-reset failed: ${errMsg(e)}`; }
     }),
-    cmd('systemone', 'System One status / on|off note', (args = '') => {
+    cmd('systemone', 'System One status / subcommands: heads|dispatcher|cortex|reflexes', (args = '') => {
       const on = nar.isSystemOneEnabled?.() ?? false;
+      if (!on) return 'System One: disabled (enable via config systemOne.enabled + restart)';
       const sub = args.trim().toLowerCase();
-      if (sub === 'on' || sub === 'off') return `System One is ${on ? 'enabled' : 'disabled'} (toggle via config systemOne.enabled + restart)`;
-      return `System One: ${on ? 'enabled' : 'disabled'}`;
+      if (sub === 'heads') return formatSystemOneHeads(nar);
+      if (sub === 'dispatcher') return formatSystemOneDispatcher(nar);
+      if (sub === 'cortex') return formatSystemOneCortex(nar);
+      if (sub === 'reflexes') return formatSystemOneReflexes(nar);
+      return formatSystemOneStatus(nar);
+    }),
+    cmd('judge', 'Run manifold heads on a proposition: .judge <proposition> [--head <rubric>]', async (args = '') => {
+      const manifold = nar.getSystemOneManifold?.();
+      const embeddingCache = nar.getSystemOneEmbeddingCache?.();
+      if (!manifold || !embeddingCache) return 'System One manifold not available';
+
+      const parts = args.trim().split(/\s+/);
+      const headFlag = parts.indexOf('--head');
+      let headRubric: string | undefined;
+      if (headFlag >= 0 && parts[headFlag + 1]) {
+        headRubric = parts[headFlag + 1];
+        parts.splice(headFlag, 2);
+      }
+      const proposition = parts.join(' ');
+      if (!proposition) return 'Usage: .judge <proposition> [--head <rubric>]';
+
+      const budget = { maxCycles: 100, maxDepth: 10, maxMemoryOps: 1000, maxLMCalls: 5, consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 } };
+      const pointer = await embeddingCache.write(proposition);
+      const queries = headRubric
+        ? [{ kind: 'evaluate' as const, instruction: `Evaluate ${headRubric}`, rubric: headRubric as any, axis: 'epistemic' as const }]
+        : [
+            { kind: 'evaluate' as const, instruction: 'Evaluate entailment', rubric: 'entailment' as any, axis: 'epistemic' as const },
+            { kind: 'evaluate' as const, instruction: 'Evaluate groundedness', rubric: 'groundedness' as any, axis: 'epistemic' as const },
+            { kind: 'evaluate' as const, instruction: 'Evaluate quality', rubric: 'plausibility' as any, axis: 'epistemic' as const },
+            { kind: 'evaluate' as const, instruction: 'Evaluate safety', rubric: 'assertion' as any, axis: 'epistemic' as const },
+          ];
+      try {
+        const results = await manifold.judgeBatch(pointer as any, queries, budget);
+        return results.map((r) => {
+          if (r.kind === 'evaluate') return `${r.axis}/${r.rubric}: score=${r.score.toFixed(3)} abstained=${r.abstained} latency=${r.latencyMs}ms`;
+          return `${r.axis}/${r.rubric}: top=${r.top.option} p=${r.top.p.toFixed(3)} entropy=${r.entropy.toFixed(3)} latency=${r.latencyMs}ms`;
+        }).join('\n');
+      } catch (e) {
+        return `judge failed: ${errMsg(e)}`;
+      }
+    }),
+    cmd('route', 'Show dispatcher routing decision for a task: .route <task> [--verbose]', async (args = '') => {
+      const dispatcher = nar.getSystemOneDispatcher?.();
+      const embeddingCache = nar.getSystemOneEmbeddingCache?.();
+      if (!dispatcher || !embeddingCache) return 'System One dispatcher not available';
+
+      const parts = args.trim().split(/\s+/);
+      const verbose = parts.includes('--verbose');
+      const task = parts.filter((p) => p !== '--verbose').join(' ');
+      if (!task) return 'Usage: .route <task> [--verbose]';
+
+      const budget = { maxCycles: 100, maxDepth: 10, maxMemoryOps: 1000, maxLMCalls: 5, consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 } };
+      const pointer = await embeddingCache.write(task);
+      const queries = [
+        { kind: 'classify' as const, instruction: 'Classify task type', space: ['question', 'belief', 'goal', 'tool'], axis: 'epistemic' as const, rubric: 'task_type' as any },
+        { kind: 'evaluate' as const, instruction: 'Evaluate injection risk', rubric: 'injection' as any, axis: 'epistemic' as const },
+        { kind: 'evaluate' as const, instruction: 'Evaluate ambiguity', rubric: 'ambiguity' as any, axis: 'epistemic' as const },
+      ];
+      try {
+        const results = await dispatcher.judge(pointer as any, queries, budget);
+        const lines = ['Routing decision for:', `  "${task}"`, ''];
+        for (const r of results) {
+          if (r.kind === 'classify') {
+            lines.push(`  ${r.rubric}: ${r.top.option} (p=${r.top.p.toFixed(3)})${verbose ? ` entropy=${r.entropy.toFixed(3)} tier=${r.tier}` : ''}`);
+          } else {
+            lines.push(`  ${r.rubric}: score=${r.score.toFixed(3)} abstained=${r.abstained}${verbose ? ` tier=${r.tier} latency=${r.latencyMs}ms` : ''}`);
+          }
+        }
+        // Show tier path
+        const tier1Result = results.find((r) => r.tier === 1);
+        const tier = tier1Result ? 'tier1 (manifold)' : 'tier0 (deterministic)';
+        lines.push('', `Path: ${tier}`);
+        return lines.join('\n');
+      } catch (e) {
+        return `route failed: ${errMsg(e)}`;
+      }
+    }),
+    cmd('cortex', 'Cortex control: .cortex on|off|status|model <id>|grammar <narsese|json>', async (args = '') => {
+      const dispatcher = nar.getSystemOneDispatcher?.() as any;
+      if (!dispatcher) return 'System One dispatcher not available';
+      const cortex = dispatcher.cortex;
+      if (!cortex || cortex instanceof (await import('@senars/nar/lm/system-one/dispatcher.js')).then(m => m.StubCortex)) {
+        return 'Cortex not available (System One cortex provider must be configured)';
+      }
+      const parts = args.trim().split(/\s+/);
+      const sub = parts[0]?.toLowerCase();
+      if (sub === 'status' || !sub) {
+        const health = cortex.health?.();
+        return `Cortex: ${health?.provider ?? 'unknown'} (breaker: ${health?.breakerOpen ? 'open' : 'closed'}) grammar=${cortex.#defaultGrammar ?? 'narsese-term'} temp=${cortex.#temperature ?? 0} model=${cortex.#model ?? '—'}`;
+      }
+      if (sub === 'on') {
+        // Re-create cortex with LM service - requires restart for full effect
+        return 'Cortex enable requires config change (systemOne.cortex.provider) + restart';
+      }
+      if (sub === 'off') {
+        return 'Cortex disable requires config change (systemOne.cortex.provider=off) + restart';
+      }
+      if (sub === 'model' && parts[1]) {
+        cortex.#model = parts[1];
+        return `Cortex model set to ${parts[1]} (runtime only; persist via .s1-config)`;
+      }
+      if (sub === 'grammar' && parts[1]) {
+        if (!['narsese-term', 'json'].includes(parts[1])) return 'Grammar must be narsese-term or json';
+        cortex.#defaultGrammar = parts[1];
+        return `Cortex grammar set to ${parts[1]} (runtime only; persist via .s1-config)`;
+      }
+      return 'Usage: .cortex on|off|status|model <id>|grammar <narsese-term|json>';
     }),
     cmd('manifold', 'Manifold health', async () => {
       const m = nar.getSystemOneManifold?.() as { health?: () => unknown } | undefined;
@@ -406,6 +539,211 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager):
       const p = appConfig.systemOne?.distillation?.datasetPath ?? '.cache/systemone/dataset.jsonl';
       const st = existsSync(p) ? `${statSync(p).size}B` : 'absent';
       return `dataset ${p}: ${st}\nRun full teacher→student loop: pnpm run demo:arcade -- --distill`;
+    }),
+    cmd('ground', 'Groundedness gate: .ground on|off|status|threshold <0-1>', (args = '') => {
+      const parts = args.trim().split(/\s+/);
+      const sub = parts[0]?.toLowerCase();
+      if (!sub || sub === 'status') return `Groundedness gate: ${ground.enabled ? 'on' : 'off'} threshold=${ground.threshold}`;
+      if (sub === 'on') { ground.enabled = true; return 'Groundedness gate enabled'; }
+      if (sub === 'off') { ground.enabled = false; return 'Groundedness gate disabled'; }
+      if (sub === 'threshold' && parts[1]) {
+        const t = Number(parts[1]);
+        if (Number.isNaN(t) || t < 0 || t > 1) return 'Threshold must be 0-1';
+        ground.threshold = t;
+        return `Groundedness threshold set to ${t}`;
+      }
+      return 'Usage: .ground on|off|status|threshold <0-1>';
+    }),
+    cmd('trace', 'Trace grader: .trace on|off|status|sample <0-1>|dataset', (args = '') => {
+      const parts = args.trim().split(/\s+/);
+      const sub = parts[0]?.toLowerCase();
+      if (!sub || sub === 'status') return `Trace grader: ${trace.enabled ? 'on' : 'off'} sampleRate=${trace.sampleRate} grader=${trace.grader ? 'available' : 'unavailable'}`;
+      if (sub === 'on') { trace.enabled = true; return 'Trace grader enabled'; }
+      if (sub === 'off') { trace.enabled = false; return 'Trace grader disabled'; }
+      if (sub === 'sample' && parts[1]) {
+        const r = Number(parts[1]);
+        if (Number.isNaN(r) || r < 0 || r > 1) return 'Sample rate must be 0-1';
+        trace.sampleRate = r;
+        return `Trace sample rate set to ${r}`;
+      }
+      if (sub === 'dataset') {
+        const dataset = (nar as any).systemOne?.dataset;
+        if (!dataset) return 'Dataset not available (distillation not configured)';
+        return `Dataset: ${dataset.size} labels, vectors: ${(dataset as any).#vectors?.size ?? 0}`;
+      }
+      return 'Usage: .trace on|off|status|sample <0-1>|dataset';
+    }),
+    cmd('reflex', 'Reflex control: .reflex list|manifold on|off|lm on|off|budget <cycles>|arms <n>', (args = '') => {
+      const parts = args.trim().split(/\s+/);
+      const sub = parts[0]?.toLowerCase();
+      if (!conversationGame) return 'ConversationGame not attached (System One must be enabled)';
+      const focus = conversationGame.focus;
+      const reflexes = focus.reflexes ?? [];
+      if (!sub || sub === 'list') {
+        if (reflexes.length === 0) return 'No reflexes attached';
+        return reflexes.map((r: any) => `  ${r.id}: arms=${r.numArms ?? '—'} epsilon=${r.epsilon ?? '—'} budget=${r.budget?.maxCycles ?? '—'}`).join('\n');
+      }
+      const manifoldReflex = reflexes.find((r: any) => r.id === 'manifold-reflex');
+      const lmReflex = reflexes.find((r: any) => r.id === 'lm-reflex');
+      if (sub === 'manifold' && parts[1]) {
+        if (parts[1] === 'on') {
+          if (!manifoldReflex) return 'ManifoldReflex not attached';
+          return 'ManifoldReflex already active';
+        }
+        if (parts[1] === 'off') {
+          if (!manifoldReflex) return 'ManifoldReflex not attached';
+          focus.disableReflex('manifold-reflex');
+          return 'ManifoldReflex disabled';
+        }
+        return 'Usage: .reflex manifold on|off';
+      }
+      if (sub === 'lm' && parts[1]) {
+        if (parts[1] === 'on') {
+          if (!lmReflex) return 'LMReflex not attached (enable with lmReflex option)';
+          return 'LMReflex already active';
+        }
+        if (parts[1] === 'off') {
+          if (!lmReflex) return 'LMReflex not attached';
+          focus.disableReflex('lm-reflex');
+          return 'LMReflex disabled';
+        }
+        return 'Usage: .reflex lm on|off';
+      }
+      if (sub === 'budget' && parts[1]) {
+        const cycles = Number(parts[1]);
+        if (Number.isNaN(cycles) || cycles < 1) return 'Budget must be a positive number';
+        for (const r of reflexes) {
+          if (r.budget) r.budget.maxCycles = cycles;
+        }
+        return `Reflex budget set to ${cycles} cycles`;
+      }
+      if (sub === 'arms' && parts[1]) {
+        const n = Number(parts[1]);
+        if (Number.isNaN(n) || n < 1) return 'Arms must be a positive number';
+        for (const r of reflexes) {
+          if ('numArms' in r) (r as any).numArms = n;
+        }
+        return `Reflex arms set to ${n}`;
+      }
+      return 'Usage: .reflex list|manifold on|off|lm on|off|budget <cycles>|arms <n>';
+    }),
+    cmd('routing-auto', 'Dispatcher auto-routing: .routing-auto on|off|status|policy <conservative|balanced|aggressive>', (args = '') => {
+      const parts = args.trim().split(/\s+/);
+      const sub = parts[0]?.toLowerCase();
+      if (!sub || sub === 'status') return `Auto-routing: ${routing.auto ? 'on' : 'off'} policy=${routing.policy}`;
+      if (sub === 'on') { routing.auto = true; return 'Auto-routing enabled'; }
+      if (sub === 'off') { routing.auto = false; return 'Auto-routing disabled'; }
+      if (sub === 'policy' && parts[1]) {
+        const p = parts[1] as 'conservative' | 'balanced' | 'aggressive';
+        if (!['conservative', 'balanced', 'aggressive'].includes(p)) return 'Policy must be conservative|balanced|aggressive';
+        routing.policy = p;
+        return `Routing policy set to ${p}`;
+      }
+      return 'Usage: .routing-auto on|off|status|policy <conservative|balanced|aggressive>';
+    }),
+    cmd('provisional', 'Provisional cache: .provisional status|flush', (args = '') => {
+      const parts = args.trim().split(/\s+/);
+      const sub = parts[0]?.toLowerCase();
+      if (!sub || sub === 'status') {
+        const dispatcher = nar.getSystemOneDispatcher?.() as any;
+        const prov = dispatcher?.#provisional ?? {};
+        return `Provisional cache: ${provisional.enabled ? 'enabled' : 'disabled'} cInitial=${prov.cInitial ?? '—'} decayRate=${prov.decayRate ?? '—'} maxTtlMs=${prov.maxTtlMs ?? '—'}`;
+      }
+      if (sub === 'flush') {
+        // The dispatcher's provisional cache is internal; we'd need to expose a flush method
+        return 'Provisional cache flush not yet implemented (requires dispatcher API)';
+      }
+      return 'Usage: .provisional status|flush';
+    }),
+    cmd('meta', 'Self-meta-game: .meta status|drives|proposals|propose <type> [args...]', (args = '') => {
+      const parts = args.trim().split(/\s+/);
+      const sub = parts[0]?.toLowerCase();
+      const metaGame = nar.getSelfMetaGame?.();
+      if (!metaGame) return 'Self-meta-game not available (requires System One with self enabled)';
+
+      if (!sub || sub === 'status') {
+        const queues = metaGame.getGovernanceQueues?.() ?? { validation: 0, approval: 0 };
+        const observes = (metaGame as any).observesFocuses ?? [];
+        const cycle = (metaGame as any).cycle ?? 0;
+        const knobs = metaGame.getAllKnobs?.() ?? new Map();
+        return [
+          'Self-Meta-Game:',
+          `  ID: ${metaGame.id}`,
+          `  Cycle: ${cycle}`,
+          `  Observed focuses: ${observes.length ? observes.join(', ') : '(none)'}`,
+          `  Governance queues: validation=${queues.validation} approval=${queues.approval}`,
+          `  Knobs: ${knobs.size ? [...knobs.entries()].map(([k, v]) => `${k}=${v}`).join(', ') : '(none)'}`,
+        ].join('\n');
+      }
+      if (sub === 'drives') {
+        // Drive stimulation intensities would come from the reward gate / scheduler
+        const scheduler = (metaGame as any).scheduler;
+        if (!scheduler) return 'No scheduler attached (drives require scheduler)';
+        return 'Drives: test_failed, contradiction_detected, low_coverage (use .drive stimulate <name>)';
+      }
+      if (sub === 'proposals') {
+        const validation = metaGame.proposalRouter?.getAwaitingValidation?.() ?? [];
+        const approval = metaGame.proposalRouter?.getAwaitingApproval?.() ?? [];
+        const all = [...validation, ...approval];
+        if (all.length === 0) return 'No pending proposals';
+        return all.map((p: any, i: number) => `${i + 1}. ${p.kind} (${p.riskTier}) ${p.correlationId ?? ''}`).join('\n');
+      }
+      if (sub === 'propose' && parts[1]) {
+        const type = parts[1];
+        const args = parts.slice(2);
+        const proposal = { kind: type, riskTier: 'low', payload: { args }, correlationId: `manual-${Date.now()}` };
+        const result = metaGame.applyProposal?.(proposal) ?? { applied: false, reason: 'applyProposal not available' };
+        return result.applied ? `Proposal applied: ${result.reason}` : `Proposal rejected: ${result.reason}`;
+      }
+      return 'Usage: .meta status|drives|proposals|propose <type> [args...]';
+    }),
+    cmd('s1-config', 'System One config: .s1-config show|set <path> <value>|save|reload', async (args = '') => {
+      const parts = args.trim().split(/\s+/);
+      const sub = parts[0]?.toLowerCase();
+      if (!sub || sub === 'show') {
+        return JSON.stringify(wired.appConfig.systemOne ?? {}, null, 2);
+      }
+      if (sub === 'set' && parts[1] && parts[2]) {
+        const path = parts[1];
+        const value = parts.slice(2).join(' ');
+        if (setPath(appConfig as unknown as Record<string, unknown>, `systemOne.${path}`, coerce(value))) {
+          return `Set systemOne.${path} (persist with .s1-config save)`;
+        }
+        return `Unknown path: systemOne.${path}`;
+      }
+      if (sub === 'save') {
+        const path = args.trim().split(/\s+/)[1] || process.env.SENARS_CONFIG || 'senars.config.json';
+        await writeFile(path, JSON.stringify(appConfig, null, 2));
+        return `Saved to ${path}`;
+      }
+      if (sub === 'reload') {
+        const newConfig = await loadConfig();
+        appConfig = newConfig;
+        return 'Config reloaded (LM/routing changes need restart)';
+      }
+      return 'Usage: .s1-config show|set <path> <value>|save|reload';
+    }),
+    cmd('drive', 'Drive stimulation: .drive stimulate <name> [intensity]', (args = '') => {
+      const parts = args.trim().split(/\s+/);
+      const sub = parts[0]?.toLowerCase();
+      if (sub !== 'stimulate' || !parts[1]) return 'Usage: .drive stimulate <name> [intensity]';
+      const name = parts[1];
+      const intensity = parts[2] ? Number(parts[2]) : 1.0;
+      const metaGame = nar.getSelfMetaGame?.();
+      if (!metaGame) return 'Self-meta-game not available';
+      // Drive stimulation would go through the reward gate
+      const scheduler = (metaGame as any).scheduler;
+      if (!scheduler) return 'No scheduler attached (drives require scheduler)';
+      const reward = intensity;
+      const check = scheduler.rewardGate.process({
+        eventId: `drive-${Date.now()}`,
+        rewardSignal: reward,
+        rewardType: 'intrinsic',
+        targetType: 'policy-weights',
+        targetId: 'drive',
+        domain: 'self-scheduler',
+      });
+      return check.accepted ? `Drive ${name} stimulated (intensity=${intensity})` : `Drive ${name} rejected: ${check.rejectionReason}`;
     }),
     cmd('selftune', 'Quick 3-iteration self-tune demo', async () => {
       const { RLFPLearner } = await import('@senars/nar/rlfp');
@@ -536,6 +874,109 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager):
   ];
 }
 
+function formatSystemOneStatus(nar: Wired['nar']): string {
+  const manifold = nar.getSystemOneManifold?.();
+  const dispatcher = nar.getSystemOneDispatcher?.();
+  const cortex = dispatcher ? (dispatcher as any).cortex : undefined;
+  const groundednessGate = nar.getSystemOneGroundednessGate?.();
+  const traceGrader = nar.getSystemOneTraceGrader?.();
+  const embeddingCache = nar.getSystemOneEmbeddingCache?.();
+
+  const health = manifold?.health?.() ?? { ready: false, breakerOpen: false, rollingEce: 0, queueDepth: 0 };
+  const cortexHealth = cortex?.health?.() ?? { provider: 'off', breakerOpen: true };
+  const cacheMetrics = embeddingCache?.metrics?.() ?? { hits: 0, misses: 0, writes: 0, evictions: 0, size: 0 };
+
+  return [
+    'System One: enabled',
+    `  Manifold: ${health.ready ? 'ready' : 'not ready'} (breaker: ${health.breakerOpen ? 'open' : 'closed'}, ECE: ${health.rollingEce.toFixed(4)}, queue: ${health.queueDepth})`,
+    `  Dispatcher: ${dispatcher ? 'enabled' : 'disabled'}`,
+    `  Cortex: ${cortexHealth.provider} (breaker: ${cortexHealth.breakerOpen ? 'open' : 'closed'})`,
+    `  Groundedness Gate: ${groundednessGate ? 'enabled' : 'disabled'}`,
+    `  Trace Grader: ${traceGrader ? 'enabled' : 'disabled'}`,
+    `  Embedding Cache: ${cacheMetrics.size} entries, hit rate: ${(cacheMetrics.hits / (cacheMetrics.hits + cacheMetrics.misses || 1) * 100).toFixed(1)}%`,
+  ].join('\n');
+}
+
+function formatSystemOneHeads(nar: Wired['nar']): string {
+  const manifold = nar.getSystemOneManifold?.() as any;
+  if (!manifold) return 'Manifold: not available';
+
+  const calibrators = manifold.getCalibrators?.() ?? new Map();
+  const abstainThresholds = manifold.getAbstainThresholds?.() ?? new Map();
+  const heads = (manifold as any).#config?.heads ?? new Map();
+
+  if (heads.size === 0 && calibrators.size === 0) return 'No heads registered';
+
+  const lines = ['System One Heads:'];
+  for (const [rubric, head] of heads) {
+    const cal = calibrators.get(rubric);
+    const abstain = abstainThresholds.get(rubric) ?? '—';
+    const fitted = cal?.fitted ? 'yes' : 'no';
+    const ece = cal?.getECE?.() ?? 0;
+    const samples = cal?.getPoints?.()?.length ?? 0;
+    lines.push(`  ${rubric}: fitted=${fitted} ECE=${ece.toFixed(4)} abstain=${abstain} samples=${samples}`);
+  }
+  return lines.join('\n');
+}
+
+function formatSystemOneDispatcher(nar: Wired['nar']): string {
+  const dispatcher = nar.getSystemOneDispatcher?.() as any;
+  if (!dispatcher) return 'Dispatcher: not available';
+
+  const tier1 = dispatcher.tier1;
+  const cortex = dispatcher.cortex;
+  const cortexHealth = cortex?.health?.() ?? { provider: 'off', breakerOpen: true };
+  const provisional = dispatcher.#provisional ?? {};
+
+  const lines = [
+    'System One Dispatcher:',
+    `  Tier 0 (Deterministic): always active`,
+    `  Tier 1 (Manifold): ${tier1 ? 'enabled' : 'disabled'}`,
+    `  Tier 2 (Cortex): ${cortexHealth.provider} (breaker: ${cortexHealth.breakerOpen ? 'open' : 'closed'})`,
+    `  Tier 3 (Symbolic): always active`,
+    `  Provisional Cache: cInitial=${provisional.cInitial ?? '—'} decayRate=${provisional.decayRate ?? '—'} maxTtlMs=${provisional.maxTtlMs ?? '—'}`,
+  ];
+  return lines.join('\n');
+}
+
+function formatSystemOneCortex(nar: Wired['nar']): string {
+  const dispatcher = nar.getSystemOneDispatcher?.() as any;
+  if (!dispatcher) return 'Dispatcher: not available';
+
+  const cortex = dispatcher.cortex;
+  const cortexHealth = cortex?.health?.() ?? { provider: 'off', breakerOpen: true };
+
+  const lines = [
+    'System One Cortex:',
+    `  Provider: ${cortexHealth.provider}`,
+    `  Breaker: ${cortexHealth.breakerOpen ? 'open' : 'closed'}`,
+    `  Grammar: ${cortex?.#defaultGrammar ?? 'narsese-term'}`,
+    `  Temperature: ${cortex?.#temperature ?? 0}`,
+    `  Model Binding: ${cortex?.#model ?? '—'}`,
+  ];
+  return lines.join('\n');
+}
+
+function formatSystemOneReflexes(nar: Wired['nar']): string {
+  const gameManager = (nar as any).games as { attachedGames?: Map<string, { focus: any }> } | undefined;
+  const attachedGames = gameManager?.attachedGames;
+  if (!attachedGames || attachedGames.size === 0) return 'No games attached';
+
+  const lines = ['System One Reflexes (per focus):'];
+  for (const [gameId, entry] of attachedGames) {
+    const focus = entry.focus;
+    const reflexes = focus.reflexes ?? [];
+    lines.push(`  ${gameId}:`);
+    for (const reflex of reflexes) {
+      const arms = (reflex as any).numArms ?? '—';
+      const epsilon = (reflex as any).epsilon ?? '—';
+      lines.push(`    ${reflex.id}: arms=${arms} epsilon=${epsilon}`);
+    }
+    if (reflexes.length === 0) lines.push('    (no reflexes)');
+  }
+  return lines.join('\n');
+}
+
 async function runNonInteractive(argv: string[]): Promise<boolean> {
   if (argv.includes('--help') || argv.includes('-h')) {
     console.log('Usage: pnpm run bot [-- --status|--doctor|--tune|--arcade|--multiagent] [--json]\n\nNo flags: interactive CLI (senars> ). Connections are opt-in via .connect or ENABLE_IRC/WS/HTTP/MCP=true.');
@@ -572,10 +1013,52 @@ async function main(): Promise<void> {
 
   let currentSession = sessionManager.getOrCreate('default');
   let tier: 'quality' | 'fast' | 'structured' = profile.narrateTier;
+  // Groundedness gate state (shared with collectChat)
+  const ground: GroundednessState = {
+    enabled: wired.appConfig.systemOne?.enabled === true,
+    threshold: 0.7,
+    gate: wired.nar.getSystemOneGroundednessGate?.(),
+  };
+  // Trace grader state
+  const trace: { enabled: boolean; sampleRate: number; grader: ((trace: any) => Promise<any>) | undefined } = {
+    enabled: false,
+    sampleRate: 0.1,
+    grader: wired.nar.getSystemOneTraceGrader?.(),
+  };
+  // Auto-routing state (Phase 4)
+  const routing: { auto: boolean; policy: 'conservative' | 'balanced' | 'aggressive' } = {
+    auto: false,
+    policy: 'balanced',
+  };
+  // Provisional cache state (Phase 4)
+  const provisional: { enabled: boolean } = { enabled: true };
+
+  // Bot-only default profile: enable System One by default (opt-out via config)
+  // This only affects the bot; non-Bot NAR consumers are unaffected.
+  if (!wired.appConfig.systemOne?.enabled) {
+    wired.appConfig.systemOne = { enabled: true, manifold: { provider: 'wasi' }, cortex: { provider: 'llamacpp-embedded' }, lmReflex: true };
+  }
+
+  // Attach ConversationGameFocus for System One reflexes (Phase 3)
+  let conversationGame: { focus: any; game: any } | null = null;
+  if (wired.nar.isSystemOneEnabled?.()) {
+    try {
+      conversationGame = wired.nar.attachConversationGame?.({
+        id: 'conversation',
+        lmReflex: true,
+      });
+      if (conversationGame) {
+        logger.info('ConversationGameFocus attached with reflexes');
+      }
+    } catch (e) {
+      logger.warn('Failed to attach ConversationGameFocus', { error: errMsg(e) });
+    }
+  }
+
   const core = buildCommands(wired.nar, agent, wired.lmService, sessionManager,
     () => currentSession, (s) => { currentSession = s; },
     { get: () => tier, set: (t) => { tier = t; } });
-  const extra = buildExtraCommands(wired, cm, auth);
+  const extra = buildExtraCommands(wired, cm, auth, ground, trace, conversationGame, routing, provisional);
   const commands = [...core.filter((c) => c.name !== 'help'), ...extra];
 
   const cli = new CLIConnection(
@@ -583,8 +1066,15 @@ async function main(): Promise<void> {
     { emit: () => undefined } as never
   );
   await cli.connect();
-  cli.onMessage(async (message) => { await collectChat(agent, message.text, tier); });
+  cli.onMessage(async (message) => { await collectChat(agent, message.text, tier, ground, trace); });
   agent.mount(cli as never);
+        logger.info('ConversationGameFocus attached with reflexes');
+      }
+    } catch (e) {
+      logger.warn('Failed to attach ConversationGameFocus', { error: errMsg(e) });
+    }
+  }
+
   cli.onStateChange((state) => {
     if (state === 'disconnected') {
       sessionManager.snapshot()

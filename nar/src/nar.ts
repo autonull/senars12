@@ -23,6 +23,7 @@ import { createAttentionModel, type NARConfig, validateNarConfig } from './nar/c
 import { GameManager } from './nar/games.js';
 import { StatePersister } from './nar/persistence.js';
 import { SystemOneRuntime } from './nar/system-one.js';
+import { ConversationGame } from './game/ConversationGame.js';
 import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';
@@ -428,6 +429,22 @@ export class NAR extends BaseComponent {
 
   getAttachedGames(): string[] {
     return this.games.getAttachedGames();
+  }
+
+  /**
+   * Attach a ConversationGameFocus for the bot's conversation loop.
+   * Returns the focus and the ConversationGame instance.
+   */
+  attachConversationGame(
+    options: {
+      id?: string;
+      reflexes?: Reflex[];
+      weight?: number;
+      focusBag?: FocusBag;
+      lmReflex?: boolean;
+    } = {}
+  ): { focus: GameFocus; game: ConversationGame } {
+    return this.games.attachConversationGame(options);
   }
 
   /**

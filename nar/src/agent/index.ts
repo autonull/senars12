@@ -275,7 +275,36 @@ function attachNarApi(
       if (trimmed.endsWith('?') || trimmed.endsWith('？')) {
         await narEngine.nar.question(trimmed);
         await narEngine.nar.run(5);
-        result = `Question queued: ${trimmed}`;
+        // Get NARS answer
+        const answer = await narEngine.nar.ask(trimmed);
+        const narsTruth = answer?.answer ? `NARS: ${answer.answer} f=${answer.confidence.toFixed(2)}` : 'No answer yet';
+        // Get manifold judgment if System One is enabled
+        let manifoldJudgment = '';
+        if (narEngine.nar.isSystemOneEnabled?.()) {
+          const manifold = narEngine.nar.getSystemOneManifold?.();
+          const embeddingCache = narEngine.nar.getSystemOneEmbeddingCache?.();
+          if (manifold && embeddingCache) {
+            try {
+              const budget = { maxCycles: 100, maxDepth: 10, maxMemoryOps: 1000, maxLMCalls: 5, consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 } };
+              const pointer = await embeddingCache.write(trimmed);
+              const queries = [
+                { kind: 'evaluate' as const, instruction: 'Evaluate entailment', rubric: 'entailment' as any, axis: 'epistemic' as const },
+                { kind: 'evaluate' as const, instruction: 'Evaluate groundedness', rubric: 'groundedness' as any, axis: 'epistemic' as const },
+                { kind: 'evaluate' as const, instruction: 'Evaluate quality', rubric: 'plausibility' as any, axis: 'epistemic' as const },
+              ];
+              const results = await manifold.judgeBatch(pointer as any, queries, budget);
+              manifoldJudgment = results.map((r, i) => {
+                const q = queries[i];
+                const rubric = q && 'rubric' in q ? q.rubric : 'unknown';
+                if (r.kind === 'evaluate') return `${rubric}=${r.score.toFixed(2)}`;
+                return `${rubric}=abstained`;
+              }).join(' ');
+            } catch {
+              manifoldJudgment = 'manifold error';
+            }
+          }
+        }
+        result = `${narsTruth}${manifoldJudgment ? `\nManifold: ${manifoldJudgment}` : ''}`;
       } else if (trimmed.endsWith('!')) {
         await narEngine.nar.goal(trimmed);
         await narEngine.nar.run(3);
