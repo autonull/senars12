@@ -52,6 +52,21 @@ describe('TODO25 Bench 79 — selectProbes', () => {
     for (const p of probes) expect(Object.keys(p).sort()).toEqual(['id', 'kind', 'score']);
   });
 
+  it('lesson-derived probes: confidence-scored, digest-pinned ids, below-threshold dropped', async () => {
+    const probes = await selectProbes(
+      {
+        reactions: async () => [],
+        grades: () => new Map(),
+        lessons: async () => [
+          { digest: 'sha256:r1', term: '<a --> b>', confidence: 0.8 },
+          { digest: 'sha256:r1', term: '<c --> d>', confidence: 0.3 }, // below threshold
+        ],
+      },
+      { limit: 10 }
+    );
+    expect(probes).toEqual([{ id: 'lesson:sha256:r1#0', kind: 'lesson', score: 0.8 }]);
+  });
+
   it('empty data ⇒ empty selection', async () => {
     expect(await selectProbes(source([], {}))).toEqual([]);
   });

@@ -3,6 +3,7 @@ import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
 import type { JudgmentDataset } from './distill.js';
 import { recordReflexOutcome } from './reflex-label-source.js';
+import { DecisionLog } from './reflex-readout.js';
 import type { EmbeddingPointer, JudgmentManifold } from './types.js';
 
 /** Optional distillation wiring (C4): record reflex decisions as training labels. */
@@ -39,11 +40,17 @@ export class ManifoldReflex implements Reflex<Perception, string> {
     this.#dataset = options?.dataset;
   }
 
-  /** TODO24 Phase-B readout: legal actions vs the action this reflex last served. */
-  #lastDecision?: { proposed: readonly string[]; selected: string };
+  /** TODO24 Phase-B readout: bounded decision log for per-message attribution. */
+  #decisions = new DecisionLog();
 
   get lastDecision(): { proposed: readonly string[]; selected: string } | undefined {
-    return this.#lastDecision;
+    const d = this.#decisions.last;
+    return d ? { proposed: d.proposed, selected: d.selected } : undefined;
+  }
+
+  /** Decisions served within [at, ∞) — per-message join via wall-clock span. */
+  decisionsSince(at: number): readonly { proposed: readonly string[]; selected: string; at: number }[] {
+    return this.#decisions.since(at);
   }
 
   /** Called at the attend stage of the same cycle, before propose. */
@@ -114,10 +121,10 @@ export class ManifoldReflex implements Reflex<Perception, string> {
       }
     }
     if (proposals.length > 0) {
-      this.#lastDecision = {
-        proposed: legalActions.map(String),
-        selected: String(proposals[0]!.action),
-      };
+      this.#decisions.record(
+        legalActions.map(String),
+        String(proposals[0]!.action)
+      );
     }
     return proposals;
   }

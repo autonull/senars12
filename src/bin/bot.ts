@@ -128,6 +128,7 @@ async function collectChat(
   const ctl = new AbortController();
   const onSigint = () => ctl.abort();
   process.once('SIGINT', onSigint);
+  const startedAt = Date.now();
   try {
     let response = '';
     let chatCorrelationId: string | undefined;
@@ -150,7 +151,7 @@ async function collectChat(
     // disrupts chat. Join key is the per-message correlationId minted inside
     // agent.chat() (I7: no parallel ID scheme).
     dialogue
-      .onExchange({ correlationId: chatCorrelationId ?? `bot:${sessionId}`, utterance: input, response })
+      .onExchange({ correlationId: chatCorrelationId ?? `bot:${sessionId}`, utterance: input, response, at: startedAt })
       .catch(() => {});
     // Trace grader sampling + distillation auto-capture from successful conversations
     if (trace.enabled && trace.grader && Math.random() < trace.sampleRate) {
@@ -229,7 +230,7 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
 
   return [
     cmd('help', 'Show all commands (categorized)', () =>
-      `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable .skill-add .skill-remove .skill-edit | Memory: .consolidate .memory-stats .memory-export .memory-import .memory-clear\nLM: .lm-config .lm-provider .lm-model .lm-rules .lm-rule-enable .lm-rule-disable .routing .routing-set .routing-offline .circuit-breakers .circuit-reset | SystemOne: .systemone .manifold .calibrate .distill .selftune .decide .judge\nDiag: .doctor .health .benchmarks .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload .config-reset | .auth-list .auth-add .auth-remove\nDialogue: .react .turns .retrospect .retrospectives .lessons .reconsolidate .probes .adaptations`
+      `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable .skill-add .skill-remove .skill-edit | Memory: .consolidate .memory-stats .memory-export .memory-import .memory-clear\nLM: .lm-config .lm-provider .lm-model .lm-rules .lm-rule-enable .lm-rule-disable .routing .routing-set .routing-offline .circuit-breakers .circuit-reset | SystemOne: .systemone .manifold .calibrate .distill .selftune .decide .judge\nDiag: .doctor .health .benchmarks .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload .config-reset | .auth-list .auth-add .auth-remove\nDialogue: .react .turns .retrospect .retrospectives .lessons .reconsolidate .probes .adaptations .schemas-induce`
     ),
     cmd('connect', 'Start a connection: irc|ws|http|mcp', async (args = '') => {
       const parts = args.trim().split(/\s+/).filter(Boolean);
@@ -562,6 +563,17 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
       return ledger
         .map((a) => `  ${a.at ? new Date(a.at).toISOString() : ''} ${a.retrospectiveDigest.slice(0, 19)} ${Object.entries(a.to).map(([k, v]) => `${k}→${v}`).join(', ')}`)
         .join('\n');
+    }),
+    cmd('schemas-induce', 'Induce schemas from captured derivation chains (LM-backed)', async () => {
+      const chains = wired.nar.getDerivationChains(64);
+      if (chains.length === 0) return 'No derivation chains captured yet (chains accrue as the kernel reasons).';
+      const { SchemaInductor } = await import('@senars/nar/learning');
+      const inductor = new SchemaInductor(wired.nar.memory, wired.lmService, { inductionIntervalMs: 0 });
+      const results = await inductor.induceFromDerivations(chains.flat() as never).catch((e) => {
+        throw new Error(`Schema induction failed: ${errMsg(e)}`);
+      });
+      if (results.length === 0) return `No schemas induced from ${chains.length} chains (below confidence/steps bar).`;
+      return results.map((r) => `  ${r.schema.template} conf=${r.confidence.toFixed(2)} instances=${r.instances.length}`).join('\n');
     }),
     cmd('systemone', 'System One status / subcommands: heads|dispatcher|cortex|reflexes|eval-set', async (args = '') => {
       const on = nar.isSystemOneEnabled?.() ?? false;
@@ -1335,7 +1347,7 @@ async function main(): Promise<void> {
       : undefined;
   const enrich =
     decider || understanding
-      ? async (input: { utterance: string }) => {
+      ? async (input: { utterance: string; at?: number }) => {
           const [result, batch] = await Promise.all([
             decider && dialogueEmbeddingCache
               ? decider.decide({
@@ -1347,9 +1359,14 @@ async function main(): Promise<void> {
             understanding?.understandCandidates(input.utterance).catch(() => null) ?? null,
           ]);
           const reflexes = conversationGame?.focus?.reflexes ?? [];
-          const reflexReadout = reflexes
-            .map((r: any) => r.lastDecision)
-            .find((d: any) => d !== undefined);
+          // Per-message attribution (I7): join reflex decisions by the
+          // message's wall-clock span — the kernel mints correlationIds
+          // inside agent.chat(), so the span is the honest join available
+          // without threading ids through the Focus cycle. Vetoes stay
+          // cumulative (the reflexes only expose a running counter).
+          const since = input.at ?? 0;
+          const windowed = reflexes.flatMap((r: any) => r.decisionsSince?.(since) ?? []);
+          const selected = windowed.at(-1)?.selected;
           const vetoes =
             reflexes.find((r: any) => r.id === 'lm-reflex')?.contrastiveVetoes ?? 0;
           return {
@@ -1357,7 +1374,9 @@ async function main(): Promise<void> {
               ? { judgment: { abstained: result.abstained, band: result.band }, provenance: result.provenance }
               : {}),
             ...(batch?.candidates?.length ? { formalizations: batch.candidates } : {}),
-            ...(reflexReadout ? { reflex: { ...reflexReadout, vetoes } } : {}),
+            ...(windowed.length && selected
+              ? { reflex: { proposed: [...new Set(windowed.flatMap((d: any) => d.proposed))], selected, vetoes } }
+              : {}),
           };
         }
       : undefined;

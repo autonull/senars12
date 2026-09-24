@@ -44,6 +44,8 @@ export interface ExchangeInput {
   correlationId: string;
   utterance: string;
   response: string;
+  /** Wall-clock start of the exchange — the per-message join span for reflex decisions (I7). */
+  at?: number;
   grounding?: { admitted: boolean; score: number };
   judgment?: { abstained: boolean; band: string };
   reflex?: { proposed: readonly string[]; selected: string; vetoes: number };

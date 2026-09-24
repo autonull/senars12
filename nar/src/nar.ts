@@ -47,6 +47,9 @@ import type { Tool, ToolResult } from './tools';
 import { discoverTools, ToolManager } from './tools';
 import { createSelfTools } from './tools/adapters/self-tools.js';
 import { ConfigurationError, DEFAULT_CONFIG, NarEventBus, type Task, type TaskType } from './types';
+
+/** Bounded derivation-chain ring per AIKR (no I/O on the hot path). */
+const DERIVATION_RING_CAP = 256;
 import { errMsg } from './utils';
 
 export { MetricsCollector } from './metrics';
@@ -70,6 +73,8 @@ export class NAR extends BaseComponent {
   self?: ReasoningAboutReasoning;
   rlfp?: RLFPLearner;
   cognitiveController?: CognitiveController;
+  /** TODO25 follow-on: bounded derivation-chain ring, fuel for SchemaInductor. */
+  #derivationChains: Task[][] = [];
   driveManager?: DriveManager;
   private readonly systemEventBus: NarEventBus;
 
@@ -124,7 +129,8 @@ export class NAR extends BaseComponent {
         metrics,
         this.rlfp,
         config.cognitiveParams,
-        config.adaptationInterval
+        config.adaptationInterval,
+        (chain) => this.#recordDerivationChain(chain)
       );
     }
 
@@ -348,6 +354,17 @@ export class NAR extends BaseComponent {
     return this.cognitiveController;
   }
 
+  /** Record one derivation chain (bounded ring; called from the CognitiveController sink). */
+  #recordDerivationChain(chain: readonly Task[]): void {
+    this.#derivationChains.push([...chain]);
+    if (this.#derivationChains.length > DERIVATION_RING_CAP) this.#derivationChains.shift();
+  }
+
+  /** Latest derivation chains (bounded ring) — SchemaInductor fuel (TODO25). */
+  getDerivationChains(limit = 64): readonly (readonly Task[])[] {
+    return this.#derivationChains.slice(-limit);
+  }
+
   getDriveManager(): DriveManager | undefined {
     return this.driveManager;
   }
@@ -513,7 +530,8 @@ export class NAR extends BaseComponent {
       this._metricsCollector,
       this.rlfp,
       params,
-      this.config.adaptationInterval
+      this.config.adaptationInterval,
+      (chain) => this.#recordDerivationChain(chain)
     );
     this.execution = new NARExecution({
       memory: this.memory,

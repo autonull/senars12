@@ -104,6 +104,17 @@ describe('TODO17 Bench 32 — Real-LM Reflex', () => {
     expect(reflex.lastDecision).toEqual({ proposed: ACTIONS, selected: '2' });
   });
 
+  it('decisionsSince: per-message attribution via wall-clock window', async () => {
+    const reflex = lmReflexWith(stubDispatcher((legal) => [legal[0]!]));
+    const early = Date.now() - 10_000;
+    await reflex.prefetch('s0', 0 as never, ACTIONS);
+    reflex.propose({ stateId: 's0' } as Perception, ACTIONS); // recorded "now"
+    // A message that started before the decision includes it…
+    expect(reflex.decisionsSince(early).map((d) => d.selected)).toEqual(['0']);
+    // …a later message window excludes it.
+    expect(reflex.decisionsSince(Date.now() + 1)).toEqual([]);
+  });
+
   it('out-of-grammar LM candidate is rejected — fallback serves, no crash', async () => {
     const reflex = lmReflexWith(stubDispatcher(() => ['disarm-all-humans']));
     await reflex.prefetch('s0', 0 as never, ACTIONS);

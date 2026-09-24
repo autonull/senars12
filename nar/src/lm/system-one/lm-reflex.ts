@@ -7,6 +7,7 @@ import type { ContrastiveMemory } from './contrastive.js';
 import { createDecider, type Decider } from './decide.js';
 import type { JudgmentDataset } from './distill.js';
 import { recordReflexOutcome } from './reflex-label-source.js';
+import { DecisionLog } from './reflex-readout.js';
 import type { CognitiveDispatcher, EmbeddingCache, EmbeddingPointer } from './types.js';
 
 export interface LMReflexOptions {
@@ -62,11 +63,17 @@ export class LMReflex implements Reflex<Perception, string> {
   served = 0;
   /** Proposals rejected or demoted by contrastive verification (CLM telemetry). */
   contrastiveVetoes = 0;
-  /** TODO24 Phase-B readout: legal actions vs the action this reflex last served. */
-  #lastDecision?: { proposed: readonly string[]; selected: string };
+  /** TODO24 Phase-B readout: bounded decision log for per-message attribution. */
+  #decisions = new DecisionLog();
 
   get lastDecision(): { proposed: readonly string[]; selected: string } | undefined {
-    return this.#lastDecision;
+    const d = this.#decisions.last;
+    return d ? { proposed: d.proposed, selected: d.selected } : undefined;
+  }
+
+  /** Decisions served within [at, ∞) — per-message join via wall-clock span. */
+  decisionsSince(at: number): readonly { proposed: readonly string[]; selected: string; at: number }[] {
+    return this.#decisions.since(at);
   }
 
   constructor(options: LMReflexOptions) {
@@ -171,7 +178,7 @@ export class LMReflex implements Reflex<Perception, string> {
     const legal = legalActions.map(String);
     if (warm && legal.includes(warm.action)) {
       this.served++;
-      this.#lastDecision = { proposed: legal, selected: warm.action };
+      this.#decisions.record(legal, warm.action);
       return [
         {
           action: warm.action,

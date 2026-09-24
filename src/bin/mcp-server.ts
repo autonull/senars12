@@ -138,6 +138,7 @@ async function initialize() {
         config: appConfig.dialogue,
       }),
       episodic: episodicMemory,
+      traceGrades: (nar as any).systemOne?.traceGradeHistory,
     });
   }
 

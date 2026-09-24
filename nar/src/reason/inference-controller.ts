@@ -23,6 +23,8 @@ export interface InferenceConfig {
   singlePremiseLMRules: boolean;
   maxLMRulesPerStep: number;
   enableLMRules: boolean;
+  /** Optional derivation-chain sink (TODO25 follow-on: SchemaInductor fuel). */
+  onDerivation?: (chain: readonly Task[]) => void;
 }
 
 export class InferenceController {
@@ -90,6 +92,7 @@ export class InferenceController {
         ctx
       )) {
         results.push(derived);
+        this.config.onDerivation?.([task, ...secondaries, derived]);
         this.derivationCount++;
         if (this.derivationCount >= this.config.maxDerivationsPerStep) break;
       }

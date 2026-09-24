@@ -2,6 +2,7 @@ import type { CognitiveParameters } from '../config/cognitive-parameters';
 import type { Memory } from '../memory';
 import type { MetricsCollector } from '../metrics';
 import type { Strategy } from '../reason';
+import type { Task } from '../types';
 import { InferenceController } from '../reason/inference-controller';
 import type { RLFPLearner } from '../rlfp';
 import type { RuleProcessor } from '../rules';
@@ -26,7 +27,8 @@ export class CognitiveController {
     private readonly metrics: MetricsCollector,
     private readonly rlfp: RLFPLearner | undefined,
     params: CognitiveParameters,
-    adaptInterval = 50
+    adaptInterval = 50,
+    private readonly onDerivation?: (chain: readonly Task[]) => void
   ) {
     // Own the parameter graph: callers may pass frozen defaults (TODO20 C3).
     this.currentParams = structuredClone(params);
@@ -90,6 +92,7 @@ export class CognitiveController {
       singlePremiseLMRules: params.lm.singlePremiseEnabled ?? true,
       maxLMRulesPerStep: params.strategies.lmRule.maxRules,
       enableLMRules: params.lm.enabled ?? true,
+      ...(this.onDerivation ? { onDerivation: this.onDerivation } : {}),
     };
 
     if (this.inferenceController) {

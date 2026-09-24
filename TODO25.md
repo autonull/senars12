@@ -52,6 +52,17 @@ TODO24's I1–I7 all carry forward unchanged. New:
 
 **All three phases done (2026-09-25); benches 77–79 green (12 tests).** Follow-on opportunities: ~~surface the adaptation ledger~~ (✅ done 2026-09-25 — `.adaptations [.restore]` CLI over `RetrospectiveAdapter.ledger`/`restore()`; display-only, no new bench), per-message reflex attribution plumbing (only if retrospective telemetry shows the last-cycle join misleads), MCP exposure of `.probes`, lesson-derived curriculum probes. README "Dialogue Flywheel" section documents the consumers + the `dialogue.attribution` knob.
 
+
+## 7. Close-Out Pass (2026-09-25) — all deferrable items implemented
+
+| Deferred item | Status | Implementation |
+|---|---|---|
+| Per-message reflex attribution | ✅ **done** | The kernel mints correlationIds inside `agent.chat()`, so exact id-threading through the Focus cycle would be a deep change with loose semantics (cycles are global). Instead: bounded `DecisionLog` (`nar/src/lm/system-one/reflex-readout.ts`) on `LMReflex`/`ManifoldReflex` (keeps `lastDecision`, adds `decisionsSince(at)`); `ExchangeInput.at` (wall-clock start of the exchange) is the per-message join span; the bot enrich aggregates decisions in the window (`proposed` = union, `selected` = last). Vetoes remain cumulative — the reflexes only expose a running counter. Falsified by the `decisionsSince` window test (todo17). |
+| MCP exposure of `.probes` | ✅ **done** | `dialogue_probes` tool in `src/bin/lib/mcp/mcp-dialogue-tools.ts` (`traceGrades` injected from `systemOne.traceGradeHistory`), readOnly + idempotent. |
+| Lesson-derived curriculum probes | ✅ **done** | `CurriculumSource.lessons?` (digest + Narsese term + confidence); `selectProbes` adds `kind: 'lesson'` probes scored by lesson confidence, threshold-filtered, digest-pinned ids (`lesson:<digest>#<i>`). Bench 79 extended. |
+| Derivation-chain capture → `SchemaInductor` | ✅ **done** | Zero-cost-when-unset `InferenceConfig.onDerivation` sink in `InferenceController.step` (`[primary, ...secondaries, derived]`), threaded through `CognitiveController`, bounded 256-chain ring in `NAR` (`getDerivationChains()` — no I/O on the hot path). `.schemas-induce` CLI feeds the ring into a real `SchemaInductor` (bot Memory + LMService, interval 0). Bench 80 falsifies: sink semantics, inert default, and a full chain→schema induction round-trip with a deterministic LM double. |
+
+**Benches 77–80 green (15 tests).** Remaining genuinely-blocked items (data/design, not deferral): Narsese-level *cross-session* schema persistence (the ring is in-memory; persisting chains as episodes is a kernel storage decision), and the Ouroboros fine-tuning loop (explicitly out of scope everywhere).
 ---
 
 ## 4. Out of Scope
