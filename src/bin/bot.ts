@@ -129,6 +129,7 @@ async function collectChat(
   process.once('SIGINT', onSigint);
   try {
     let response = '';
+    let chatCorrelationId: string | undefined;
     for await (const evt of agent.chat(input, { signal: ctl.signal, tier } as never)) {
       if (evt.kind === 'text-delta' && evt.text) {
         response += evt.text;
@@ -140,14 +141,15 @@ async function collectChat(
           process.stdout.write(evt.text);
         }
       } else if (evt.kind === 'tool-call') process.stdout.write(`\n[tool:${evt.toolName}]\n`);
-      else if (evt.kind === 'error' || evt.kind === 'aborted') break;
+      else if (evt.kind === 'finish' && 'correlationId' in evt && evt.correlationId) {
+        chatCorrelationId = evt.correlationId;
+      } else if (evt.kind === 'error' || evt.kind === 'aborted') break;
     }
     // TODO24 dialogue capture: fire-and-forget, best-effort (I5) — never
-    // disrupts chat. Join key is the bot session id (I7: no parallel ID scheme;
-    // the kernel mints its own correlationId inside agent.chat()).
-    const correlationId = `bot:${sessionId}`;
+    // disrupts chat. Join key is the per-message correlationId minted inside
+    // agent.chat() (I7: no parallel ID scheme).
     dialogue
-      .onExchange({ correlationId, utterance: input, response })
+      .onExchange({ correlationId: chatCorrelationId ?? `bot:${sessionId}`, utterance: input, response })
       .catch(() => {});
     // Trace grader sampling + distillation auto-capture from successful conversations
     if (trace.enabled && trace.grader && Math.random() < trace.sampleRate) {
@@ -521,6 +523,11 @@ function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, 
       const rs = await loadRetrospectives(50);
       const lessons = rs.flatMap((r) => extractLessons(r, { term: 'dialogue_performance', truth: { frequency: 0.9, confidence: 0.6 } }));
       if (lessons.length === 0) return 'No lessons (require ≥2 supporting turns per retrospective).';
+      // DQ4: ingest as Narsese self-beliefs (non-LLM path, seeded truth) so
+      // they are queryable via .ask — best-effort, never blocks the listing.
+      for (const l of lessons) {
+        await nar.input(`<${l.term}>.`, 'belief', { f: l.truth.frequency, c: l.truth.confidence } as never).catch(() => {});
+      }
       return lessons.map((l) => `  ${l.term} f=${l.truth.frequency} c=${l.truth.confidence} turns=${l.provenance.turnIds.length}`).join('\n');
     }),
     cmd('systemone', 'System One status / subcommands: heads|dispatcher|cortex|reflexes|eval-set', async (args = '') => {

@@ -453,16 +453,18 @@ developer: retrospectives       epistemic firewall holds      Narsese-level corr
 
 ## 11. Progress Log (2026-09-25)
 
+- Follow-up pass: per-message `correlationId` surfaced on `ChatStreamEvent.finish` (core/src/ChatService.ts, additive field) and consumed by `collectChat()` — turns now join the kernel's correlationId exactly (I7 closed). `.lessons` ingests lessons as Narsese self-beliefs via `nar.input` (seeded truth, best-effort).
+
 - Phase A/B/C implemented; benches 71–74 green (`pnpm exec vitest run tests/nar/todo24-*.test.ts` → 15 passed).
 - Files: `nar/src/dialogue/{types,capture,retrospect,index}.ts` (NEW), `nar/src/lm/system-one/{eval-set,label-sources}.ts` (extended), `util/src/types/episodic-memory.ts` (`'dialogue' | 'reaction'` episode types), `util/src/config/dialogue.ts` (NEW top-level section), `nar/package.json` (`./dialogue` subpath export), `src/bin/bot.ts` (capture wiring + `.react`/`.turns`/`.retrospect`/`.retrospectives`/`.lessons`), `tests/utils/in-memory-episodic.ts` (NEW test double).
 - Deliberate scope trims vs. plan: Phase-B `onExchange` enrichment starts with digests + grounding + provenance (formalizations/judgment/reflex fields are typed but not yet populated at the bot surface — they need per-cycle hook plumbing); Phase-C lesson extraction emits `Lesson` structs (`.lessons` CLI) but does not yet `nar.input` Narsese self-beliefs; strategy audit joins session↔grades via the bot's session-level key only.
 
 **New improvement opportunities (in leverage order):**
-1. **Surface per-message correlationId from `Agent.chat()`** — one event field on the chat stream closes the I7 caveat; turns then join `TraceGradeInput.correlationId` exactly, unlocking the strategy audit without the session-level approximation.
+1. ~~**Surface per-message correlationId from `Agent.chat()`**~~ — ✅ **done** (`ChatStreamEvent.correlationId` on `finish`; `collectChat()` consumes it, falling back to `bot:{sessionId}` only if absent).
 2. **Phase-B enrichment hooks** — populate `formalizations` (NLUnderstandingService), `judgment` (decider bands), `reflex` (ManifoldReflex selection) on each turn; the `DialogueTurn` schema already carries the fields.
-3. **Narsese lesson ingestion** — `extractLessons()` output → `nar.input` with seeded truth (`source: 'retrospect'`), so lessons are queryable via `nar.ask` (DQ4 second half).
+3. ~~**Narsese lesson ingestion**~~ — ✅ **done** (`.lessons` ingests via `nar.input` with seeded truth, best-effort).
 4. **MCP tool exposure** of `.react`/`.turns`/`.retrospect` for AI-agent-driven self-correction loops — thin adapter over `DialogueCapture`/`retrospect()`.
-5. **Embed persisted proposals** in `Retrospective` for full developer audit trails.
+5. **Embed persisted proposals** in `Retrospective` for full developer audit trails — partially done (`proposals` option accepted; bot surface doesn't wire a proposal source yet).
 6. **Session-end auto-retrospect** (opt-in) — DQ3's later trigger mode.
 7. **Heuristic reaction attribution** (DQ2) and **Narsese-level correction formalization** (DQ6) — unchanged, still gated behind falsifiable benches.
 

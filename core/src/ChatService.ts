@@ -41,6 +41,8 @@ export interface ChatStreamEvent {
   readonly toolArgs?: unknown;
   readonly toolResult?: unknown;
   readonly error?: string;
+  /** TODO24 I7: the correlationId minted for this message (on `finish`), joining turns ↔ trace grades ↔ episodes. */
+  readonly correlationId?: string;
 }
 
 export function createChatService<TCtx extends ChatContext>(deps: ChatServiceDeps<TCtx>) {
@@ -88,7 +90,7 @@ export function createChatService<TCtx extends ChatContext>(deps: ChatServiceDep
           }
         }
 
-        yield { kind: 'finish', text: finalText };
+        yield { kind: 'finish', text: finalText, correlationId };
 
         deps.onEvent({
           engine: ctx.engine,
