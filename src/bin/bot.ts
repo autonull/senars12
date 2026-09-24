@@ -1309,6 +1309,9 @@ async function main(): Promise<void> {
     ...(enrich ? { enrich: enrich as never } : {}),
     config: wired.appConfig.dialogue,
   });
+  if (dialogue.textStore) {
+    logger.info(`Dialogue text retention enabled (I6 relaxation) → ${dialogue.config.textStorePath}`);
+  }
 
   // TODO24 §5 Phase C: shared retrospective runner — aggregates captured turns,
   // mines contradiction terms from live beliefs, and emits a low-risk

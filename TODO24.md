@@ -453,6 +453,20 @@ developer: retrospectives       epistemic firewall holds      Narsese-level corr
 
 ## 11. Progress Log (2026-09-25)
 
+### Assumption audit (challenged post-implementation)
+
+| # | Assumption | Verdict | Action |
+|---|---|---|---|
+| A1 | I6 (hash-only) is absolute | **Challenged** — legitimate needs exist (debugging retrospectives, NL-understanding training data, donated transcripts) | ✅ `dialogue.retention: 'hash-only' \| 'with-text'` (default hash-only). Raw text goes to a **dedicated sidecar** (`DialogueTextStore`, `.cache/dialogue/text/`, turnId-keyed, purgeable); labels, frozen eval sets, and retrospectives stay hash-only regardless. `bindReaction` upserts the correction into the exchange's sidecar record. Bench 71 scoped: redaction asserted for the default mode; new falsifier asserts sidecar-only-when-opted-in and text-free labels even in text mode |
+| A2 | `retrospect()` scans all episodes per session | Accepted for now | Documented: O(all episodes) is fine for retention-bounded local stores; if volume grows, index episode metadata by correlationId (getEpisodes filter) |
+| A3 | DQ2 explicit-only reactions | **Held** | Mis-attribution poisoning is structural; heuristic adjacency stays gated behind a falsifiable bench. Unchanged |
+| A4 | DQ7 fresh-embed-per-bind | Held, with note | The `embeddingCache` dedup makes repeat corrections cheap; no stale-neighborhood risk. Unchanged |
+| A5 | Correction embedding keyed by digest | Fine | Response embedding derives from the response digest (stable across binds), correction from fresh text |
+| A6 | Per-turn capture always persists episodes (even without reactions) | Held | Event-sourced replay wants the full log; `captureAll` gates *label* sampling, not the event log. Storage bounded by hash-only payloads + maxTurnsPerSession + 30-day prune |
+| A7 | Corrections dominate ⇒ one global focus-weight proposal | Adequate | Threshold (≥2 reactions, ≥50% corrections) is arbitrary but explicit and falsifiable; per-turn attribution would need DQ2 first |
+| A8 | Trace-grade history is last-wins per correlationId | Fine for sessions | The audit averages over turns sharing the session prefix; aggregation is intentionally coarse — exact per-message joins already work |
+
+- I6-relaxation pass: `dialogue.retention` config + `DialogueTextStore` sidecar (`nar/src/dialogue/text-store.ts`); `DialogueCapture` constructs it only on opt-in; bot logs when text retention is active.
 - Docs pass: README.md gains a "Dialogue Flywheel" subsection (under System One, after Distillation Flywheel) covering capture/redaction, reaction labels, provenance enrichment, retrospectives/lessons, MCP tools, and the config section reference.
 
 - Strategy-audit pass: `SystemOneRuntime` now records correlationId → trace quality per graded trace (`traceGradeHistory` map); `runSessionRetrospective` feeds it to `retrospect()`, so the audit's `meanQuality` reflects real trace grades joined by correlationId (I7 fully realized — no approximation).

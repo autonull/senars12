@@ -73,6 +73,46 @@ describe('TODO24 bench 71: reaction labels + exclusions + redaction', () => {
     expect(REACTION_KINDS).toHaveLength(6);
   });
 
+  it('text retention off by default; opting in writes only the sidecar (I6 scoping)', async () => {
+    const { DialogueTextStore } = await import('../../nar/src/dialogue/text-store.js');
+    const { mkdtemp } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const textDir = join(await mkdtemp(join(tmpdir(), 'todo24-text-')), 'text');
+
+    // Default: hash-only — no sidecar, no raw text anywhere.
+    const dataset0 = new JudgmentDataset();
+    const d0 = new DialogueCapture({ dataset: dataset0, config: { enabled: true } });
+    expect(d0.textStore).toBeUndefined();
+    const t0 = await d0.onExchange({ correlationId: 's', utterance: 'PLAIN-TEXT', response: 'r' });
+    expect(JSON.stringify(d0.getTurn(t0!))).not.toContain('PLAIN-TEXT');
+
+    // Opt-in: sidecar gets the raw text; labels stay hash-only.
+    const dataset = new JudgmentDataset();
+    const d = new DialogueCapture({
+      dataset,
+      embeddingCache: cache(),
+      config: { enabled: true, retention: 'with-text', textStorePath: textDir },
+    });
+    expect(d.textStore).toBeDefined();
+    const turnId = await d.onExchange({ correlationId: 's', utterance: 'hello there', response: 'hi friend' });
+    await d.bindReaction(turnId!, 'correct', 'the actual fix');
+    const records = await d.textStore!.read();
+    expect(records).toHaveLength(1);
+    expect(records[0]!.utterance).toBe('hello there');
+    expect(records[0]!.response).toBe('hi friend');
+    expect(records[0]!.correction).toBe('the actual fix');
+    // Labels + turn remain hash-only even in text mode.
+    expect(JSON.stringify(dataset.all())).not.toContain('the actual fix');
+    expect(JSON.stringify(d.getTurn(turnId!))).not.toContain('hello there');
+    // get() joins by turnId; purge removes everything.
+    expect((await d.textStore!.get(turnId!))!.correction).toBe('the actual fix');
+    expect(new DialogueTextStore(textDir)).toBeDefined();
+    await d.textStore!.purge();
+    expect(await d.textStore!.read()).toHaveLength(0);
+    void DialogueTextStore;
+  });
+
   it('disabled path is byte-identical: no capture, no labels, no episodes', async () => {
     const dataset = new JudgmentDataset();
     const episodic = new InMemoryEpisodicMemory();

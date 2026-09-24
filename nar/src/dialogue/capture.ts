@@ -6,6 +6,7 @@ import type { EmbeddingCache } from '../lm/system-one/types.js';
 import { recordReactionLabel } from '../lm/system-one/label-sources.js';
 import type { DialogueTurn, Reaction, ReactionKind } from './types.js';
 import type { DialogueConfig } from '@senars/util/config';
+import { DialogueTextStore, type DialogueTextRecord } from './text-store.js';
 
 export const sha256 = (text: string): string =>
   `sha256:${createHash('sha256').update(text).digest('hex')}`;
@@ -22,6 +23,8 @@ export interface DialogueCaptureDeps {
   contrastive?: ContrastiveMemory;
   /** TODO24 Phase-B enrichment: populate judgment/provenance/reflex per turn (best-effort). */
   enrich?: (input: ExchangeInput, turn: DialogueTurn) => Promise<Partial<DialogueTurn>>;
+  /** I6 relaxation sidecar — only written when retention === 'with-text'. */
+  textStore?: DialogueTextStore;
   config?: Partial<DialogueConfig>;
 }
 
@@ -51,15 +54,32 @@ export class DialogueCapture {
   #sessions = new Map<string, { first: string; seq: number }>();
   /** Bound turnIds, for idempotent fan-out (Bench 72). */
   #bound = new Set<string>();
+  #textStore: DialogueTextStore | undefined;
 
   constructor(deps: DialogueCaptureDeps = {}) {
     const { enabled = false, captureAll = false, maxTurnsPerSession = 500 } = deps.config ?? {};
-    this.#config = { enabled, captureAll, maxTurnsPerSession, autoRetrospect: deps.config?.autoRetrospect === true };
+    this.#config = {
+      enabled,
+      captureAll,
+      maxTurnsPerSession,
+      autoRetrospect: deps.config?.autoRetrospect === true,
+      retention: deps.config?.retention ?? 'hash-only',
+      textStorePath: deps.config?.textStorePath ?? './.cache/dialogue/text',
+    };
     this.#deps = deps;
+    // Lazily constructed when retention is opted in; deps.textStore wins.
+    this.#textStore =
+      deps.textStore ??
+      (this.#config.retention === 'with-text' ? new DialogueTextStore(this.#config.textStorePath) : undefined);
   }
 
   get enabled(): boolean {
     return this.#config.enabled;
+  }
+
+  /** Raw-text sidecar — undefined unless retention === 'with-text'. */
+  get textStore(): DialogueTextStore | undefined {
+    return this.#textStore;
   }
 
   get config(): DialogueConfig {
@@ -115,6 +135,18 @@ export class DialogueCapture {
         { correlationId: input.correlationId, sessionId: turn.sessionId, turnId }
       )
       .catch(() => {});
+    // I6 relaxation: raw text goes to the dedicated sidecar only.
+    if (this.#textStore && (input.utterance.trim() || input.response.trim())) {
+      await this.#textStore
+        .upsert({
+          turnId,
+          sessionId: turn.sessionId,
+          at: Date.now(),
+          ...(input.utterance.trim() ? { utterance: input.utterance } : {}),
+          ...(input.response.trim() ? { response: input.response } : {}),
+        })
+        .catch(() => {});
+    }
     return turnId;
   }
 
@@ -190,5 +222,15 @@ export class DialogueCapture {
         { correlationId: turn.sessionId, sessionId: turn.sessionId, turnId, kind }
       )
       .catch(() => {});
+    // Sidecar: attach the correction text to the existing exchange record.
+    if (this.#textStore && correctionText?.trim()) {
+      const existing = await this.#textStore.get(turnId).catch(() => undefined);
+      await this.#textStore
+        .upsert({
+          ...(existing ?? { turnId, sessionId: turn.sessionId, at: Date.now() }),
+          correction: correctionText,
+        })
+        .catch(() => {});
+    }
   }
 }
