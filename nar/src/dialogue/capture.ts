@@ -5,6 +5,7 @@ import type { JudgmentDataset } from '../lm/system-one/distill.js';
 import type { EmbeddingCache } from '../lm/system-one/types.js';
 import { recordReactionLabel } from '../lm/system-one/label-sources.js';
 import type { DialogueTurn, Lesson, Reaction, ReactionKind } from './types.js';
+import { inferReactionFromUtterance } from './attribution.js';
 import type { DialogueConfig } from '@senars/util/config';
 import { DialogueTextStore, type DialogueTextRecord } from './text-store.js';
 
@@ -78,6 +79,7 @@ export class DialogueCapture {
       autoRetrospect: deps.config?.autoRetrospect === true,
       retention: deps.config?.retention ?? 'hash-only',
       textStorePath: deps.config?.textStorePath ?? './.cache/dialogue/text',
+      attribution: deps.config?.attribution ?? 'explicit',
     };
     this.#deps = deps;
     // Lazily constructed when retention is opted in; deps.textStore wins.
@@ -107,6 +109,19 @@ export class DialogueCapture {
   /** Capture one exchange; returns the turnId, or undefined when disabled/capped. */
   async onExchange(input: ExchangeInput): Promise<string | undefined> {
     if (!this.#config.enabled) return undefined;
+
+    // DQ2 heuristic attribution (opt-in 'cues'): the new utterance cues a
+    // reaction to the immediately preceding turn. Explicit binding always
+    // wins (#bound guard); conservative cues only, never a synthetic turn.
+    if (this.#config.attribution === 'cues') {
+      const prior = this.latestTurn();
+      if (prior && !prior.reaction && !this.#bound.has(prior.turnId)) {
+        const kind = inferReactionFromUtterance(input.utterance);
+        if (kind) {
+          await this.bindReaction(prior.turnId, kind, kind === 'correct' ? input.utterance : undefined);
+        }
+      }
+    }
 
     const session = this.#sessions.get(input.correlationId) ?? {
       first: input.correlationId,

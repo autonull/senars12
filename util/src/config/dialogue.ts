@@ -16,6 +16,9 @@ export const dialogueDefaults = {
   retention: 'hash-only' as const,
   /** Sidecar dir for raw text when retention === 'with-text'. */
   textStorePath: './.cache/dialogue/text',
+  /** DQ2: reaction attribution — 'explicit' (default, .react only) vs 'cues'
+   *  (heuristic from the next utterance, gated by Bench 76). */
+  attribution: 'explicit' as const,
 } as const;
 
 export const dialogueSchema = z.object({
@@ -29,6 +32,7 @@ export const dialogueSchema = z.object({
    *  retrospectives stay hash-only regardless. */
   retention: z.enum(['hash-only', 'with-text']).default(dialogueDefaults.retention),
   textStorePath: z.string().default(dialogueDefaults.textStorePath),
+  attribution: z.enum(['explicit', 'cues']).default(dialogueDefaults.attribution),
 });
 
 export type DialogueConfig = z.infer<typeof dialogueSchema>;
