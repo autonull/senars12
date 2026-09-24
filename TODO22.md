@@ -22,7 +22,7 @@ Integrate System One (manifold, dispatcher, cortex, reflexes) into the Bot's **l
 | **CLM Enhancements** | ✅ **COMPLETED** | `contrastive.ts` (InfoNCE + ContrastiveMemory), `hard-negatives.ts` (mining + seeding), manifold headless fallback + scaling-law head sizing, gate/grader/dispatcher/reflexes contrastive wiring |
 
 **All 6 phases of core CLI integration + CLM enhancement layer COMPLETED!** ✅
-**Post-phase opportunistic sweep (2026-09-24): startup contrastive seeding, `.calibrate refresh`, `.systemone` contrastive stats, `pnpm bench:manifold` (AC #14 PASS). Only distillation auto-capture remains → TODO23.**
+**Post-phase opportunistic sweep (2026-09-24): startup contrastive seeding, `.calibrate refresh`, `.systemone` contrastive stats, `pnpm bench:manifold` (AC #14 PASS), distillation auto-capture from successful conversations. TODO22 fully complete.**
 
 **Implementation notes (CLM layer):**
 - `nar/src/lm/system-one/contrastive.ts` — `ContrastiveMemory` (rubric-scoped positives/negatives with 40/60 replay cap), `fitInfoNCE` (CLIP-style scale/bias over frozen embeddings, leave-one-out positives), `cosineF32`, `rubricOf`; `score(embedding, rubric?)` falls back to best-across-rubrics when unspecified.
@@ -35,7 +35,9 @@ Integrate System One (manifold, dispatcher, cortex, reflexes) into the Bot's **l
 - ~~Call `refreshSystemOneContrastive` from the bot startup path / `.calibrate` CLI~~ ✅ **Done** — bot seeds contrastive exemplars fire-and-forget at startup (from episodic memory); `.calibrate refresh` re-mines + reseeds on demand and reports exemplar totals.
 - ~~Optional: surface `contrastive.stats()` + `contrastiveVetoes` in `.systemone` status output~~ ✅ **Done** — status shows `Contrastive: P/N across rubrics, calibrated` + `Contrastive Vetoes (LMReflex)` rows.
 - ~~Manifold benchmark enhanced-vs-baseline (AC #14)~~ ✅ **Done** — `scripts/manifold-bench.ts` (`pnpm bench:manifold`): baseline judgeBatch vs enhanced (+ calibrated InfoNCE scoring) over 100 candidates @dim=384; AC #14 gate (≤20ms/judgment) PASSES with large margin (~0.21ms enhanced, ~0.13ms contrastive overhead).
-- Distillation auto-capture from successful conversations (`distill.ts`) — still not wired to the contrastive pipeline. **TODO23:** in `collectChat()` trace-sampling path, when trace grade ≥ threshold, record `DistillationLabel` + state vector into `JudgmentDataset` (API: `dataset.record(label, embedding)`); reuse `computeEvidenceId` for input-anchored identity.
+- ~~Distillation auto-capture from successful conversations~~ ✅ **Done** — `collectChat()` accumulates the response text and, when trace grading samples a turn whose grade (groundedness score, or `contrastiveQuality` when abstained) ≥ 0.7, records a `DistillationLabel` (`rubric: 'groundedness'`, `source: 'conversation'`) + response embedding into `JudgmentDataset` via `computeEvidenceId(input, response)` for input-anchored identity. Best-effort: capture failures never disrupt chat. Rows auto-flush only when `systemOne.distillation.autoFlush` is enabled.
+
+**TODO22 is now fully complete — no remaining work.** Natural follow-ons for TODO23: distill-loop training (`train.ts`) consuming the auto-captured rows; `.trace dataset` could distinguish conversation-captured rows by `source`.
 
 ---
 
@@ -356,7 +358,7 @@ Dispatcher's provisional tier caches recent judgments:
 | Manifold-aware Narsese output | `bot.ts` + `nar-io.ts` | 3h | ✅ Done (in `nar/src/agent/index.ts`) |
 | **GroundednessGate: contrastive entailment scoring** | `groundedness-gate.ts` | 4h | ✅ Done (abstain fallback via shared ContrastiveMemory) |
 | **TraceGrader: contrastive trace quality metric** | `trace-grader.ts` | 3h | ✅ Done (`contrastiveQuality` field) |
-| **Distillation auto-capture from successful conversations** | `nar/src/lm/system-one/distill.ts` | 4h | ⏳ Deferred to TODO23 |
+| **Distillation auto-capture from successful conversations** | `nar/src/lm/system-one/distill.ts` | 4h | ✅ Done (bot `collectChat()` records graded turns into `JudgmentDataset`) |
 
 ### Phase 3: Conversation Reflexes — **Two-Stage (Week 3-4)** ✅ **COMPLETED**
 | Task | File | Effort | Status |

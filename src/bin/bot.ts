@@ -28,6 +28,7 @@ import {
 } from '@senars/io';
 import type { Agent } from '@senars/nar/agent';
 import { formatLMConfig, resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
+import { computeEvidenceId } from '@senars/nar/lm/system-one';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm/env-config.js';
 import { createLogger } from '@senars/nar/logger';
 import {
@@ -65,19 +66,64 @@ interface GroundednessState {
   gate: ((text: string) => Promise<boolean>) | undefined;
 }
 
+/** Min grade score for a conversation to be auto-captured into the distillation dataset. */
+const DISTILL_CAPTURE_THRESHOLD = 0.7;
+
+interface TraceState {
+  enabled: boolean;
+  sampleRate: number;
+  grader: ((trace: any) => Promise<any>) | undefined;
+  dataset?: { record: (label: unknown, embedding?: Float32Array) => void } | undefined;
+  embeddingCache?: {
+    write: (text: string) => Promise<unknown>;
+    read: (pointer: unknown) => Float32Array | undefined;
+  } | undefined;
+}
+
+/** Auto-capture a high-quality graded conversation into the distillation dataset. */
+const captureDistillation = async (
+  trace: TraceState,
+  input: string,
+  response: string,
+  score: number
+): Promise<void> => {
+  const { dataset, embeddingCache } = trace;
+  if (!dataset || !embeddingCache || !response.trim()) return;
+  try {
+    const evidenceId = computeEvidenceId(input, response);
+    const pointer = await embeddingCache.write(response);
+    const embedding = embeddingCache.read(pointer);
+    dataset.record(
+      {
+        evidenceId,
+        rubric: 'groundedness',
+        axis: 'epistemic',
+        label: 'accepted',
+        score,
+        source: 'conversation',
+      },
+      embedding
+    );
+  } catch {
+    // Distillation capture is best-effort; never disrupt chat
+  }
+};
+
 async function collectChat(
   agent: Agent,
   input: string,
   tier: 'quality' | 'fast' | 'structured',
   ground: GroundednessState,
-  trace: { enabled: boolean; sampleRate: number; grader: any }
+  trace: TraceState
 ): Promise<void> {
   const ctl = new AbortController();
   const onSigint = () => ctl.abort();
   process.once('SIGINT', onSigint);
   try {
+    let response = '';
     for await (const evt of agent.chat(input, { signal: ctl.signal, tier } as never)) {
       if (evt.kind === 'text-delta' && evt.text) {
+        response += evt.text;
         if (ground.enabled && ground.gate) {
           const ok = await ground.gate(evt.text);
           if (ok) process.stdout.write(evt.text);
@@ -88,14 +134,15 @@ async function collectChat(
       } else if (evt.kind === 'tool-call') process.stdout.write(`\n[tool:${evt.toolName}]\n`);
       else if (evt.kind === 'error' || evt.kind === 'aborted') break;
     }
-    // Trace grader sampling
+    // Trace grader sampling + distillation auto-capture from successful conversations
     if (trace.enabled && trace.grader && Math.random() < trace.sampleRate) {
-      // In a real implementation, we'd collect the full trace with tool calls
-      // For now, just grade the final narration
-      const narration = input; // placeholder - would be the actual response
       const toolCalls: Array<{ command: string; success: boolean }> = [];
       try {
-        await trace.grader({ narration, toolCalls });
+        const grade = await trace.grader({ narration: response || input, toolCalls });
+        const score = grade.groundedness?.abstained ? grade.contrastiveQuality : grade.groundedness?.score;
+        if (score !== undefined && score >= DISTILL_CAPTURE_THRESHOLD) {
+          await captureDistillation(trace, input, response, score);
+        }
       } catch {
         // Ignore trace grading errors
       }
@@ -134,7 +181,7 @@ const gpuSummary = async (): Promise<string> => {
   }
 };
 
-function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, ground: GroundednessState, trace: { enabled: boolean; sampleRate: number; grader: any }, conversationGame: { focus: any; game: any } | null, routing: { auto: boolean; policy: 'conservative' | 'balanced' | 'aggressive' }, provisional: { enabled: boolean }): CLICommand[] {
+function buildExtraCommands(w: Wired, cm: ConnectionManager, auth: AuthManager, ground: GroundednessState, trace: TraceState, conversationGame: { focus: any; game: any } | null, routing: { auto: boolean; policy: 'conservative' | 'balanced' | 'aggressive' }, provisional: { enabled: boolean }): CLICommand[] {
   const { agent, nar, sessionManager, episodicMemory, lmService } = w;
   // loadConfig() returns a deeply frozen object — clone for runtime mutation.
   let appConfig = structuredClone(w.appConfig);
@@ -1034,10 +1081,12 @@ async function main(): Promise<void> {
     gate: wired.nar.getSystemOneGroundednessGate?.(),
   };
   // Trace grader state
-  const trace: { enabled: boolean; sampleRate: number; grader: ((trace: any) => Promise<any>) | undefined } = {
+  const trace: TraceState = {
     enabled: false,
     sampleRate: 0.1,
     grader: wired.nar.getSystemOneTraceGrader?.(),
+    dataset: (wired.nar as any).systemOne?.dataset,
+    embeddingCache: wired.nar.getSystemOneEmbeddingCache?.(),
   };
   // Auto-routing state (Phase 4)
   const routing: { auto: boolean; policy: 'conservative' | 'balanced' | 'aggressive' } = {
