@@ -1332,6 +1332,9 @@ async function main(): Promise<void> {
       correlationId: sessionId,
     };
     const r = await retrospect(sessionId, wired.episodicMemory, {
+      // I7 payoff: trace grades keyed by the correlationId the kernel minted —
+      // each message's turnId shares that prefix, so joins are exact.
+      traceGrades: (wired.nar as any).systemOne?.traceGradeHistory,
       contradictionTerms,
       proposals: sessionReactions.length >= 2 && corrections * 2 >= sessionReactions.length ? [proposal] : [],
     });

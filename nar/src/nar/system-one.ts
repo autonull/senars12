@@ -37,6 +37,8 @@ export class SystemOneRuntime {
   readonly decider?: Decider;
   readonly groundednessGate?: (narration: string) => Promise<boolean>;
   readonly traceGrader?: (trace: TraceGradeInput) => Promise<TraceGradeResult>;
+  /** TODO24: correlationId → last trace quality, for retrospect strategy audit. */
+  readonly traceGradeHistory = new Map<string, number>();
   readonly dataset?: JudgmentDataset;
   /** CLM contrastive exemplar memory (zero-shot scoring + hard-negative routing). */
   readonly contrastive = new ContrastiveMemory();
@@ -205,6 +207,16 @@ export class SystemOneRuntime {
       dataset,
       contrastive: this.contrastive,
     });
+    // TODO24: record correlationId → quality per graded trace (strategy audit).
+    const traceGrader = this.traceGrader;
+    this.traceGrader = async (trace) => {
+      const result = await traceGrader(trace);
+      const quality = result.groundedness?.abstained ? result.contrastiveQuality : result.groundedness?.score;
+      if (trace.correlationId && quality !== undefined) {
+        this.traceGradeHistory.set(trace.correlationId, quality);
+      }
+      return result;
+    };
 
     logger.info('System One initialized', {
       manifold: this.manifold ? 'enabled' : 'disabled',

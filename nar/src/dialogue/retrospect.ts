@@ -112,7 +112,6 @@ export async function retrospect(
         },
       ]
     : [];
-
   const retrospective: Retrospective = {
     version: 'retrospective-v1',
     sessionId,
