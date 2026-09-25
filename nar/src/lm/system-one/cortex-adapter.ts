@@ -18,15 +18,26 @@ export interface LMServiceCortexConfig {
 
 export class LMServiceCortex implements GenerativeCortex {
   readonly #lmService: LMService;
-  readonly #defaultGrammar: string;
+  #defaultGrammar: string;
   readonly #temperature: number;
-  readonly #model?: string;
+  #model?: string;
 
   constructor(config: LMServiceCortexConfig) {
     this.#lmService = config.lmService;
     this.#defaultGrammar = config.grammar ?? 'narsese-term';
     this.#temperature = config.temperature ?? 0;
     this.#model = config.model;
+  }
+
+  /** Diagnostic introspection (Phase F, audit M4) — replaces private-name `?.` chains. */
+  describe(): { grammar: string; temperature: number; model?: string } {
+    return { grammar: this.#defaultGrammar, temperature: this.#temperature, model: this.#model };
+  }
+
+  /** Runtime tuning for the `.cortex model|grammar` CLI commands (audit M4). */
+  setRuntimeTuning(tuning: { grammar?: string; model?: string }): void {
+    if (tuning.grammar !== undefined) this.#defaultGrammar = tuning.grammar;
+    if (tuning.model !== undefined) this.#model = tuning.model;
   }
 
   async *synthesize(

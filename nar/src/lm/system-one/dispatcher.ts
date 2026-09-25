@@ -117,6 +117,26 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     this.#contrastive = options.contrastive ?? null;
   }
 
+  /**
+   * Diagnostic introspection (Phase F, audit M4): the CLI status surface needs
+   * private-config facts (provisional cache, cortex identity) without the
+   * invalid `?.#field` chains bot.ts previously reached through.
+   */
+  describe(): {
+    enabled: boolean;
+    provisional: { cInitial: number; decayRate: number; maxTtlMs: number };
+    cortexProvider: string;
+    cortexBreakerOpen: boolean;
+  } {
+    const health = this.#cortex.health?.();
+    return {
+      enabled: this.#enabled,
+      provisional: { ...this.#provisional },
+      cortexProvider: health?.provider ?? 'off',
+      cortexBreakerOpen: health?.breakerOpen ?? true,
+    };
+  }
+
   async judge(
     sharedContext: EmbeddingPointer,
     queries: readonly JudgmentQuery[],

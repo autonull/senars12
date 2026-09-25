@@ -49,6 +49,7 @@ import {
   RetrospectiveAdapter,
   retrospect,
 } from '@senars/nar/dialogue';
+import { providerKey } from '@senars/nar/kernel/reputation-keys.js';
 import { DEFAULT_REPUTATION_PATH, SourceReputation } from '@senars/nar/kernel/source-reputation';
 import { episodeQualitySurface, MemoryQuery } from '@senars/nar/query/memory-query.js';
 import { formatLMConfig, resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
@@ -234,7 +235,7 @@ function buildExtraCommands(
   const embeddingCache = nar.getSystemOneEmbeddingCache?.();
   const memoryQuery = new MemoryQuery({
     memory: nar.memory,
-    episodicMemory,
+    episodic: episodicMemory,
     embed: embeddingCache
       ? async (text) => {
           const pointer = await embeddingCache.write(text).catch(() => undefined);
@@ -1167,18 +1168,16 @@ function buildExtraCommands(
         const dispatcher = nar.getSystemOneDispatcher?.() as any;
         if (!dispatcher) return 'System One dispatcher not available';
         const cortex = dispatcher.cortex;
-        if (
-          !cortex ||
-          cortex instanceof
-            (await import('@senars/nar/lm/system-one/dispatcher.js')).then((m) => m.StubCortex)
-        ) {
+        const { StubCortex } = await import('@senars/nar/lm/system-one/dispatcher.js');
+        if (!cortex || cortex instanceof StubCortex) {
           return 'Cortex not available (System One cortex provider must be configured)';
         }
         const parts = args.trim().split(/\s+/);
         const sub = parts[0]?.toLowerCase();
         if (sub === 'status' || !sub) {
           const health = cortex.health?.();
-          return `Cortex: ${health?.provider ?? 'unknown'} (breaker: ${health?.breakerOpen ? 'open' : 'closed'}) grammar=${cortex.#defaultGrammar ?? 'narsese-term'} temp=${cortex.#temperature ?? 0} model=${cortex.#model ?? '—'}`;
+          const cfg = cortex.describe?.();
+          return `Cortex: ${health?.provider ?? 'unknown'} (breaker: ${health?.breakerOpen ? 'open' : 'closed'}) grammar=${cfg?.grammar ?? 'narsese-term'} temp=${cfg?.temperature ?? 0} model=${cfg?.model ?? '—'}`;
         }
         if (sub === 'on') {
           // Re-create cortex with LM service - requires restart for full effect
@@ -1188,13 +1187,13 @@ function buildExtraCommands(
           return 'Cortex disable requires config change (systemOne.cortex.provider=off) + restart';
         }
         if (sub === 'model' && parts[1]) {
-          cortex.#model = parts[1];
+          cortex.setRuntimeTuning({ model: parts[1] });
           return `Cortex model set to ${parts[1]} (runtime only; persist via .s1-config)`;
         }
         if (sub === 'grammar' && parts[1]) {
           if (!['narsese-term', 'json'].includes(parts[1]))
             return 'Grammar must be narsese-term or json';
-          cortex.#defaultGrammar = parts[1];
+          cortex.setRuntimeTuning({ grammar: parts[1] });
           return `Cortex grammar set to ${parts[1]} (runtime only; persist via .s1-config)`;
         }
         return 'Usage: .cortex on|off|status|model <id>|grammar <narsese-term|json>';
@@ -1419,8 +1418,8 @@ function buildExtraCommands(
       const sub = parts[0]?.toLowerCase();
       if (!sub || sub === 'status') {
         const dispatcher = nar.getSystemOneDispatcher?.() as any;
-        const prov = dispatcher?.#provisional ?? {};
-        return `Provisional cache: ${provisional.enabled ? 'enabled' : 'disabled'} cInitial=${prov.cInitial ?? '—'} decayRate=${prov.decayRate ?? '—'} maxTtlMs=${prov.maxTtlMs ?? '—'}`;
+        const prov = dispatcher?.describe?.().provisional;
+        return `Provisional cache: ${provisional.enabled ? 'enabled' : 'disabled'} cInitial=${prov?.cInitial ?? '—'} decayRate=${prov?.decayRate ?? '—'} maxTtlMs=${prov?.maxTtlMs ?? '—'}`;
       }
       if (sub === 'flush') {
         // The dispatcher's provisional cache is internal; we'd need to expose a flush method
@@ -1459,15 +1458,12 @@ function buildExtraCommands(
           return 'Drives: test_failed, contradiction_detected, low_coverage (use .drive stimulate <name>)';
         }
         if (sub === 'proposals') {
-          const validation = metaGame.proposalRouter?.getAwaitingValidation?.() ?? [];
-          const approval = metaGame.proposalRouter?.getAwaitingApproval?.() ?? [];
-          const all = [...validation, ...approval];
-          if (all.length === 0) return 'No pending proposals';
-          return all
-            .map(
-              (p: any, i: number) => `${i + 1}. ${p.kind} (${p.riskTier}) ${p.correlationId ?? ''}`
-            )
-            .join('\n');
+          // Phase F (audit M4): proposalRouter is private — the queue depths
+          // already surface via getGovernanceQueues.
+          const queues = metaGame.getGovernanceQueues?.() ?? { validation: 0, approval: 0 };
+          const total = queues.validation + queues.approval;
+          if (total === 0) return 'No pending proposals';
+          return `${total} pending proposal(s): validation=${queues.validation} approval=${queues.approval}`;
         }
         if (sub === 'propose' && parts[1]) {
           const type = parts[1];
@@ -1820,7 +1816,7 @@ async function formatSystemOneHeads(nar: Wired['nar']): Promise<string> {
 
   const calibrators = manifold.getCalibrators?.() ?? new Map();
   const abstainThresholds = manifold.getAbstainThresholds?.() ?? new Map();
-  const heads = (manifold as any).#config?.heads ?? new Map();
+  const heads = manifold.getHeads?.() ?? (manifold as { heads?: Map<string, unknown> }).heads ?? new Map();
 
   if (heads.size === 0 && calibrators.size === 0) return 'No heads registered';
 
@@ -1863,9 +1859,11 @@ function formatSystemOneDispatcher(nar: Wired['nar']): string {
   if (!dispatcher) return 'Dispatcher: not available';
 
   const tier1 = dispatcher.tier1;
-  const cortex = dispatcher.cortex;
-  const cortexHealth = cortex?.health?.() ?? { provider: 'off', breakerOpen: true };
-  const provisional = dispatcher.#provisional ?? {};
+  const dispatcherInfo = dispatcher.describe?.();
+  const provisional = dispatcherInfo?.provisional ?? {};
+  const cortexHealth = dispatcherInfo
+    ? { provider: dispatcherInfo.cortexProvider, breakerOpen: dispatcherInfo.cortexBreakerOpen }
+    : { provider: 'off', breakerOpen: true };
 
   const lines = [
     'System One Dispatcher:',
@@ -1894,14 +1892,17 @@ function formatSystemOneCortex(nar: Wired['nar']): string {
 
   const cortex = dispatcher.cortex;
   const cortexHealth = cortex?.health?.() ?? { provider: 'off', breakerOpen: true };
+  const cortexConfig = cortex?.describe?.() as
+    | { grammar: string; temperature: number; model?: string }
+    | undefined;
 
   const lines = [
     'System One Cortex:',
     `  Provider: ${cortexHealth.provider}`,
     `  Breaker: ${cortexHealth.breakerOpen ? 'open' : 'closed'}`,
-    `  Grammar: ${cortex?.#defaultGrammar ?? 'narsese-term'}`,
-    `  Temperature: ${cortex?.#temperature ?? 0}`,
-    `  Model Binding: ${cortex?.#model ?? '—'}`,
+    `  Grammar: ${cortexConfig?.grammar ?? 'narsese-term'}`,
+    `  Temperature: ${cortexConfig?.temperature ?? 0}`,
+    `  Model Binding: ${cortexConfig?.model ?? '—'}`,
   ];
   return lines.join('\n');
 }
@@ -1998,14 +1999,26 @@ async function main(): Promise<void> {
   let tier: 'quality' | 'fast' | 'structured' = profile.narrateTier;
   // Groundedness gate state (shared with collectChat). Phase E: egress-gate
   // verdicts are verification signals for the LM narration channel.
+  // Phase F (audit M2): record under the fine provider:<name> key the ingress
+  // judge reads — legacy llm-narration key kept alongside during transition.
   const systemOneGate = wired.nar.getSystemOneGroundednessGate?.();
+  const narrationKeys = (): string[] => {
+    let provider: string | undefined;
+    try {
+      provider = resolveLMSettings().provider;
+    } catch {
+      provider = undefined;
+    }
+    return provider ? ['llm-narration', providerKey(provider)] : ['llm-narration'];
+  };
   const ground: GroundednessState = {
     enabled: wired.appConfig.systemOne?.enabled === true,
     threshold: 0.7,
     gate: systemOneGate
       ? async (text: string) => {
           const ok = await systemOneGate(text);
-          sourceReputation.record('llm-narration', ok ? 'confirmed' : 'contradicted');
+          for (const key of narrationKeys())
+            sourceReputation.record(key, ok ? 'confirmed' : 'contradicted');
           return ok;
         }
       : undefined,
@@ -2099,6 +2112,16 @@ async function main(): Promise<void> {
     dataset: (wired.nar as any).systemOne?.dataset,
     embeddingCache: dialogueEmbeddingCache,
     contrastive: wired.nar.getSystemOneContrastive?.(),
+    // Phase F (audit M3): episodes join the reputation table by channel —
+    // narration-source provider key, resolved live (provider switches apply).
+    sourceKey: () => {
+      try {
+        const p = resolveLMSettings().provider;
+        return p ? providerKey(p) ?? 'user' : 'user';
+      } catch {
+        return 'user';
+      }
+    },
     ...(enrich ? { enrich: enrich as never } : {}),
     // DQ6: formalize corrections into Narsese lessons when the LM-bound
     // understanding service is available (same captureAll cost gate).

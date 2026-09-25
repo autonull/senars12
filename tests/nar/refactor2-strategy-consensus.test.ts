@@ -330,13 +330,36 @@ describe('Bench 90 — consensus', () => {
       })
     ).toEqual({});
 
-    const offEngine = new MettaProposer(() => null);
+    const offEngine = new MettaProposer(() => null, {
+      toExpression: (action) => `assert:${action}`,
+    });
     expect(
       offEngine.propose({
         reflexProposals: [{ action: 'a', value: 1, confidence: 1, source: 'r' }],
         nalDerivations: [],
       })
     ).toEqual({});
+  });
+
+  it('zero-option-style construction cannot silently abstain: toExpression is required (audit M1)', () => {
+    // The MeTTa stdlib has no `eval` op — a generic `(= (eval <action>) True)`
+    // template evaluates False for every action. The old optional
+    // `toExpression` defaulted to exactly that, so a zero-config proposer
+    // abstained forever. The parameter is now required.
+    const evaluate = mettaEvaluate(createMeTTa());
+    // Fact-table source: actions grounded by real engine algebra vote; others skip.
+    const factSource = (action: string): string | undefined =>
+      action === 'two-plus-two' ? '(= 4 4)' : undefined;
+    const proposer = new MettaProposer(evaluate, { toExpression: factSource });
+    const out = proposer.propose({
+      reflexProposals: [
+        { action: 'two-plus-two', value: 0.5, confidence: 0.5, source: 'reflex' },
+        { action: 'unknown-action', value: 0.9, confidence: 0.9, source: 'reflex' },
+      ],
+      nalDerivations: [],
+    });
+    expect(out.reflex).toHaveLength(1);
+    expect(out.reflex?.[0]).toMatchObject({ action: 'two-plus-two', confidence: 1.0 });
   });
 
   it('proposer merge: the MeTTa-backed contribution dominates arbitration', () => {
@@ -534,5 +557,31 @@ describe('Bench 90 — curriculum reputation feed', () => {
     );
     const legacy = await selectProbes({ reactions: async () => reactions, grades: () => new Map() });
     expect(withOption).toEqual(legacy);
+  });
+
+  it('audit M2/M3 join: a degraded provider’s corrections rank first when keys match end-to-end', async () => {
+    // Producers (M2) write provider:<name> keys; episodes (M3) carry the same
+    // keys; the curriculum reads them — one degraded provider surfaces first.
+    const rep = new SourceReputation({ floor: 0.2 });
+    rep.record('provider:flaky-lm', 'contradicted');
+    rep.record('provider:flaky-lm', 'contradicted');
+    rep.record('provider:flaky-lm', 'contradicted');
+    const reactions = [
+      episode('flaky-turn-1', 'provider:flaky-lm'),
+      episode('solid-turn', 'provider:solid-lm'),
+      episode('flaky-turn-2', 'provider:flaky-lm'),
+      episode('user-turn', 'user'),
+    ];
+    const probes = await selectProbes(
+      { reactions: async () => reactions, grades: () => new Map() },
+      { sourceReputation: { multiplier: (key) => rep.multiplier(key) } }
+    );
+    expect(probes[0]!.id).toBe('flaky-turn-1');
+    expect(probes[1]!.id).toBe('flaky-turn-2');
+    // Stable secondary order within the same (degraded) key: digest tie-break.
+    const solidIdx = probes.findIndex((p) => p.id === 'solid-turn');
+    const userIdx = probes.findIndex((p) => p.id === 'user-turn');
+    expect(solidIdx).toBeGreaterThan(1);
+    expect(userIdx).toBeGreaterThan(1);
   });
 });

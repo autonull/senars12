@@ -11,14 +11,17 @@ import type { ActionProposal, LearningEvent } from './Reflex.js';
 
 export type MettaEvaluator = (expression: string) => boolean | null;
 
-const defaultToExpression = (action: string): string => `(= (eval ${action}) True)`;
+export type MettaFactSource = (action: string) => string | undefined;
 
 export interface MettaProposerOptions {
   /**
-   * Given an action id, return a MeTTa expression asserting the action is
-   * sound (e.g. `(= (eval <action>) True)`), or undefined to skip the vote.
+   * Required: maps an action id to the MeTTa expression asserting it is sound
+   * (e.g. a fact-table lookup returning `(= (sound move-north) True)`), or
+   * undefined to skip the vote. There is deliberately no default — the MeTTa
+   * stdlib has no `eval` op, so a generic template would abstain forever
+   * (audit M1, TODO2 §10a).
    */
-  toExpression?: (action: string) => string | undefined;
+  toExpression: MettaFactSource;
   /** Confidence for MeTTa-backed contributions (default 1.0 — exact algebra). */
   confidence?: number;
   /** Cap on contributions per resolve (AIKR bound). */
@@ -27,13 +30,13 @@ export interface MettaProposerOptions {
 
 export class MettaProposer implements IProposer {
   readonly #evaluate: MettaEvaluator;
-  readonly #toExpression: (action: string) => string | undefined;
+  readonly #toExpression: MettaFactSource;
   readonly #confidence: number;
   readonly #maxProposals: number;
 
-  constructor(evaluate: MettaEvaluator, options: MettaProposerOptions = {}) {
+  constructor(evaluate: MettaEvaluator, options: MettaProposerOptions) {
     this.#evaluate = evaluate;
-    this.#toExpression = options.toExpression ?? defaultToExpression;
+    this.#toExpression = options.toExpression;
     this.#confidence = options.confidence ?? 1.0;
     this.#maxProposals = options.maxProposals ?? 4;
   }

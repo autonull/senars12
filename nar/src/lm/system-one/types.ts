@@ -210,6 +210,14 @@ export interface CognitiveDispatcher {
     judgmentQueries: readonly JudgmentQuery[],
     budget: ReasoningBudget
   ): Promise<PEAResult>;
+
+  /** Diagnostic introspection (Phase F, audit M4) — optional surface for CLI status. */
+  describe?(): {
+    enabled: boolean;
+    provisional: { cInitial: number; decayRate: number; maxTtlMs: number };
+    cortexProvider: string;
+    cortexBreakerOpen: boolean;
+  };
 }
 
 export interface PEAResult {

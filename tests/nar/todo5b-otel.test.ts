@@ -1,6 +1,6 @@
 import {
-  createPipeline,
   createTickContext,
+  createTickPipeline as createPipeline,
   DEFAULT_PIPELINE,
   initOtel,
   instrumentPipeline,

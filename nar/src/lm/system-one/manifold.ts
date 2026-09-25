@@ -307,6 +307,11 @@ export class SystemOneManifold implements JudgmentManifold {
     return this.#calibrators;
   }
 
+  /** Registered judgment heads (Phase F, audit M4 — replaces private-name reach-in). */
+  getHeads(): ReadonlyMap<string, JudgmentHead> {
+    return this.#config.heads;
+  }
+
   getDriftDemotionManager(): DriftDemotionManager {
     return this.#driftDemotion;
   }

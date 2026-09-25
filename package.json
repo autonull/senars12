@@ -51,6 +51,7 @@
     "bench:fundamentals:mock": "LM_PROVIDER=mock tsx scripts/fundamentals-bench.ts",
     "bench:fundamentals:ollama": "LM_PROVIDER=ollama tsx scripts/fundamentals-bench.ts",
     "typecheck": "tsc --noEmit",
+    "typecheck:bin": "tsc --noEmit -p tsconfig.bin.json",
     "self-tune-demo": "tsx scripts/self-tune-demo.ts",
     "fuzz": "tsx scripts/fuzz-narsese.ts",
     "fuzz:ci": "tsx scripts/fuzz-narsese.ts 10000",

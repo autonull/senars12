@@ -37,6 +37,12 @@ export interface DialogueCaptureDeps {
   formalize?: (correctionText: string) => Promise<readonly { narsese: string; confidence: number }[]>;
   /** I6 relaxation sidecar — only written when retention === 'with-text'. */
   textStore?: DialogueTextStore;
+  /**
+   * Phase F (audit M3): reputation join key for episodes this capture writes
+   * (dialogue turns + reactions). Resolution is deferred to write time so
+   * provider switches take effect live. Default stays 'user'.
+   */
+  sourceKey?: () => string;
   config?: Partial<DialogueConfig>;
 }
 
@@ -167,7 +173,13 @@ export class DialogueCapture {
           responseDigest: turn.responseDigest,
           grounding: turn.grounding,
         }),
-        { correlationId: input.correlationId, sessionId: turn.sessionId, turnId, context: [turnId] }
+        {
+          correlationId: input.correlationId,
+          sessionId: turn.sessionId,
+          turnId,
+          context: [turnId],
+          sourceKey: this.#deps.sourceKey?.() ?? 'user',
+        }
       )
       .catch(() => {});
     // I6 relaxation: raw text goes to the dedicated sidecar only.
@@ -281,9 +293,9 @@ export class DialogueCapture {
           turnId,
           kind,
           causes: [turnId],
-          // Phase E (REFACTOR.todo2): reputation join key for the probe
-          // curriculum — user-channel reactions (matches the `.react` site).
-          sourceKey: 'user',
+          // Phase E/F (REFACTOR.todo2): reputation join key for the probe
+          // curriculum — resolvable per channel (default 'user').
+          sourceKey: this.#deps.sourceKey?.() ?? 'user',
         }
       )
       .catch(() => {});
