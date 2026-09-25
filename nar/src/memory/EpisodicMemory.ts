@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import type { Episode, EpisodeFilter, EpisodeType, EpisodicMemory as UtilEpisodicMemory } from '@senars/util';
 import { ulid } from 'ulid';
+import { SystemClock, type Clock } from '../clock.js';
 import { CausalIndex } from './CausalIndex.js';
 
 export type { EpisodicMemoryConfig } from '@senars/util';
@@ -36,6 +37,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     retentionDays: number;
     maxEntriesPerFile: number;
   };
+  readonly #clock: Clock;
   private currentFile: string | null = null;
   private currentEntries = 0;
   private rolloverIndex = 0;
@@ -55,9 +57,13 @@ export class EpisodicMemory implements UtilEpisodicMemory {
       basePath: string;
       retentionDays: number;
       maxEntriesPerFile: number;
+      /** Injected time source (C8); defaults to `SystemClock`. */
+      clock: Clock;
     }> = {}
   ) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    const { clock, ...rest } = config;
+    this.config = { ...DEFAULT_CONFIG, ...rest };
+    this.#clock = clock ?? SystemClock;
   }
 
   get basePath(): string {
@@ -74,7 +80,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     // Phase D: reserved causal keys lift onto the Episode; everything else stays in metadata.
     const { id: causalId, causes, consequences, context, ...meta } = metadata;
     const episode: Episode = {
-      timestamp: Date.now(),
+      timestamp: this.#clock.now(),
       type,
       content,
       metadata: meta,
@@ -256,7 +262,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
 
   async pruneOldEpisodes(): Promise<void> {
     const basePath = this.config.basePath;
-    const cutoff = Date.now() - this.config.retentionDays * 24 * 60 * 60 * 1000;
+    const cutoff = this.#clock.now() - this.config.retentionDays * 24 * 60 * 60 * 1000;
 
     try {
       const files = await fs.readdir(basePath);

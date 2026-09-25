@@ -30,6 +30,15 @@ import { createAttentionModel, type NARConfig, validateNarConfig } from './nar/c
 import { GameManager } from './nar/games.js';
 import { StatePersister } from './nar/persistence.js';
 import { SystemOneRuntime } from './nar/system-one.js';
+import {
+  askNaturalLanguage,
+  consolidateLearning,
+  contradicts,
+  getModelWithFallback,
+  injectBootstrapGoals,
+  initializeLMRules,
+  initializeTools,
+} from './nar/facade.js';
 import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';
@@ -491,31 +500,7 @@ export class NAR extends BaseComponent {
    * promotion only under pressure. Call from any periodic cycle point.
    */
   async consolidateLearning(options: { budget?: number } = {}): Promise<void> {
-    const inductor = this.#schemaInductor;
-    if (inductor) {
-      inductor.decayChains();
-      await inductor.induceIfPressured(options).catch(() => {});
-    }
-    const contrastive = this.systemOne.enabled ? this.systemOne.contrastive : undefined;
-    if (contrastive) {
-      contrastive.decay();
-      await contrastive.maintainIfPressured(options).catch(() => {});
-    }
-    const consolidator = this.#episodeConsolidator;
-    if (consolidator) {
-      consolidator.decay();
-      await consolidator.consolidateIfPressured(options).catch(() => {});
-    }
-    const mining = this.#miningBag;
-    if (mining) {
-      mining.decay();
-      const drained = await mining.drainIfPressured(options).catch(() => []);
-      const contrastive = this.systemOne.enabled ? this.systemOne.contrastive : undefined;
-      const cache = this.systemOne.embeddingCache;
-      if (drained.length > 0 && contrastive && cache) {
-        await seedContrastiveMemory(drained, contrastive, cache).catch(() => {});
-      }
-    }
+    return consolidateLearning(this, options);
   }
 
   /** Phase D (REFACTOR.todo2): the bounded mining bag, when config opts in. */
@@ -756,32 +741,7 @@ export class NAR extends BaseComponent {
   }
 
   async askNaturalLanguage(question: string): Promise<string> {
-    const lm = this._lmService;
-    if (!lm) return 'LM client not configured';
-
-    const translatePrompt = `Convert this natural language question to Narsese query format. Only output the Narsese, nothing else. Question: "${question}"`;
-    const narsese = await lm.generateText(translatePrompt);
-    const cleaned = narsese.trim().replace(/^<|>$/g, '').trim();
-    const queryTerm = termParser.parse(cleaned);
-    const subjectTerm = queryTerm ? getSubject(queryTerm) : undefined;
-
-    await this.io.input(`${cleaned}?`);
-    await this.run(5);
-
-    const beliefs = this.query.getBeliefs();
-    const relevant = subjectTerm
-      ? beliefs.filter((b) => containsSubterm(b.term, subjectTerm))
-      : queryTerm
-        ? beliefs.filter((b) => containsSubterm(b.term, queryTerm))
-        : beliefs;
-
-    if (relevant.length === 0) return "I don't have enough knowledge to answer that.";
-
-    const best = relevant[0]!;
-    const result = `${best.term.toString()} ${Truth.format(best.truth)}`;
-    const explainPrompt = `Convert this Narsese result to a natural language answer. Narsese: ${result} Question: "${question}" Only output the answer, nothing else.`;
-
-    return lm.generateText(explainPrompt);
+    return askNaturalLanguage(this, question);
   }
 
   getBeliefs(filter?: Record<string, unknown>): Task[] {
@@ -900,12 +860,7 @@ export class NAR extends BaseComponent {
   }
 
   private getModelWithFallback(prefix: string) {
-    if (!this._registry) return undefined;
-    try {
-      return (this._registry as any).languageModel(`local:${prefix}`);
-    } catch {
-      return (this._registry as any).languageModel('builtin:compact');
-    }
+    return getModelWithFallback(this, prefix);
   }
 
   private initializeOptionalFeatures(): void {
@@ -921,99 +876,23 @@ export class NAR extends BaseComponent {
   }
 
   private async injectBootstrapGoals(): Promise<void> {
-    const tasks = createBootstrapTasks();
-    for (const task of tasks) {
-      await this.io.input(task.term, task.type, task.truth as any);
-    }
+    return injectBootstrapGoals(this);
   }
 
   private initializeLMRules(lmService: LMService): void {
-    const lmRules = LMRules.createAll(lmService as any);
-    const structuredModel = this._registry
-      ? getModelForTask(this._registry, 'structured')
-      : undefined;
-
-    const toolDispatcher = async (tool: string, args: Record<string, unknown>) => {
-      return this.executeTool(tool, args);
-    };
-
-    // Get System One dispatcher if available
-    const systemOneDispatcher = this.getSystemOneDispatcher();
-
-    // Create System One rule adapter for translation rule
-    /** §8 dispositions served by the System One rule adapter (F5). */
-    const SYSTEM_ONE_DISPOSITION_RULES = new Set([
-      'lm-narsese-translation',
-      'lm-meta-reasoning',
-      'lm-uncertainty-calibration',
-    ]);
-
-    const systemOneAdapter = systemOneDispatcher
-      ? createSystemOneLMRuleAdapter({
-          dispatcher: systemOneDispatcher,
-          nar: {
-            getCycleCount: () => this.getCycleCount(),
-            getSystemOneEmbeddingCache: () => this.getSystemOneEmbeddingCache(),
-            getSystemOneManifold: () => this.getSystemOneManifold(),
-          },
-          logger: this.logger,
-        })
-      : null;
-
-    for (const rule of lmRules) {
-      if (structuredModel) rule.setStructuredModel(structuredModel);
-      rule.setSystemEventBus(this.systemEventBus);
-      rule.setEventBus(this.systemEventBus);
-      rule.setNAR(this);
-      rule.setToolDispatcher(toolDispatcher);
-
-      // §8 dispositions with a System One adapter (F5): translation REPLACE
-      // via proposeAndJudge, meta-reasoning + uncertainty-calibration REPLACE
-      // via manifold scoring/calibrators.
-      if (systemOneAdapter && SYSTEM_ONE_DISPOSITION_RULES.has(rule.id)) {
-        rule.setSystemOneAdapter(systemOneAdapter);
-      }
-
-      this.processor.registerLMRule(rule);
-    }
+    initializeLMRules(
+      this,
+      LMRules.createAll(lmService as never),
+      this._registry ? getModelForTask(this._registry, 'structured') : undefined
+    );
     this._lmInitialized = true;
   }
 
   private initializeTools(): void {
-    if (this._toolsInitialized) return;
-
-    const toolDeps = { memory: this.memory, nar: this } as Record<string, unknown>;
-    const tools = discoverTools(toolDeps);
-    for (const tool of tools) {
-      this.tools.register(tool);
-    }
-
-    // Self-improvement tools (goal→tool dispatch target) — registered when self-reasoning is enabled.
-    if (this.config.enableSelf) {
-      const selfTools = createSelfTools({
-        workspaceRoot: process.cwd(),
-        nar: this,
-        rlfpLearner: this.rlfp,
-        cognitiveController: this.cognitiveController,
-        toolManager: this.tools,
-        ruleProcessor: this.processor,
-      });
-      for (const [name, selfTool] of Object.entries(selfTools)) {
-        try {
-          // ai-style tools carry no name — inject the registry key.
-          this.tools.register({ ...(selfTool as object), name } as Tool);
-        } catch (e) {
-          this.logger?.warn('Self-tool registration skipped', { name, error: errMsg(e) });
-        }
-      }
-    }
-    this._toolsInitialized = true;
+    initializeTools(this);
   }
 
   private contradicts(a: Term, b: Term): boolean {
-    if (termsEqual(a, b)) return true;
-    const [aArg] = a.kind === 'negation' ? a.args : [];
-    const [bArg] = b.kind === 'negation' ? b.args : [];
-    return (!!aArg && termsEqual(aArg, b)) || (!!bArg && termsEqual(bArg, a));
+    return contradicts(a, b);
   }
 }

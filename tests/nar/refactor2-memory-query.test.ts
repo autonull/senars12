@@ -1,3 +1,4 @@
+import { fixedClock } from '@senars/nar/clock.js';
 import { Memory } from '@senars/nar/memory';
 import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
 import {
@@ -39,8 +40,11 @@ const makeMemory = (): Memory => {
   return mem;
 };
 
+/** Pinned time (C8): removes Date.now() millisecond-boundary flakes. */
+const PINNED = 1_700_000_000_000;
+
 const makeEpisodes = async (): Promise<EpisodicMemory> => {
-  const mem = new EpisodicMemory({ basePath: await tmpBase() });
+  const mem = new EpisodicMemory({ basePath: await tmpBase(), clock: fixedClock(PINNED) });
   await mem.log('dialogue', 'cat saga', { correlationId: 'c1', sessionId: 's1', id: 'ep-cat' });
   await mem.log('input', 'dog walk', { correlationId: 'c1', sessionId: 's1', id: 'ep-dog' });
   await mem.log('error', 'unrelated failure', { correlationId: 'c2', sessionId: 's2', id: 'ep-err' });
@@ -50,7 +54,7 @@ const makeEpisodes = async (): Promise<EpisodicMemory> => {
 describe('Bench 88 — MemoryQuery fan-out + ranking', () => {
   it('merges concept and episodic legs, ranked by weighted relevance', async () => {
     const episodic = await makeEpisodes();
-    const q = new MemoryQuery({ memory: makeMemory(), episodic, weights: { concept: 2 } });
+    const q = new MemoryQuery({ memory: makeMemory(), episodic, weights: { concept: 2 }, clock: fixedClock(PINNED) });
     const results = await q.search({ concept: 'cat', limit: 10 });
     const sources = new Set(results.map((r) => r.source));
     expect(sources.has('concept')).toBe(true);
@@ -70,6 +74,7 @@ describe('Bench 88 — MemoryQuery fan-out + ranking', () => {
       episodic,
       embed,
       weights: { concept: 1, episodic: 0.5, semantic: 2 },
+      clock: fixedClock(PINNED),
     });
     const anchor = embed('cat saga pet');
     const results = await q.search({ embedding: anchor, limit: 10 });
@@ -87,7 +92,7 @@ describe('Bench 88 — MemoryQuery fan-out + ranking', () => {
 
   it('ranking order is stable (no RNG anywhere in the path)', async () => {
     const episodic = await makeEpisodes();
-    const q = new MemoryQuery({ memory: makeMemory(), episodic, embed });
+    const q = new MemoryQuery({ memory: makeMemory(), episodic, embed, clock: fixedClock(PINNED) });
     const a = await q.search({ concept: 'cat', embedding: embed('cat'), limit: 10 });
     const b = await q.search({ concept: 'cat', embedding: embed('cat'), limit: 10 });
     expect(a.map((r) => r.score)).toEqual(b.map((r) => r.score));
@@ -105,7 +110,7 @@ describe('Bench 88 — MemoryQuery fan-out + ranking', () => {
 
   it('limit bounds results; minPriority filters', async () => {
     const episodic = await makeEpisodes();
-    const q = new MemoryQuery({ memory: makeMemory(), episodic });
+    const q = new MemoryQuery({ memory: makeMemory(), episodic, clock: fixedClock(PINNED) });
     expect(await q.search({ concept: 'cat', limit: 2 })).toHaveLength(2);
     expect(await q.search({ concept: 'cat', limit: 0 })).toHaveLength(0);
     const high = await q.search({ concept: 'cat', minPriority: 0.8, limit: 10 });
@@ -118,10 +123,9 @@ describe('Bench 88 — MemoryQuery fan-out + ranking', () => {
     const episodic = await makeEpisodes();
     const before = [...memory.listConcepts()].map((c) => [c.term.toString(), c.priority]);
     const beforeEpisodes = await episodic.getEpisodes({ limit: 100 });
-    const q = new MemoryQuery({ memory, episodic, embed });
+    const q = new MemoryQuery({ memory, episodic, embed, clock: fixedClock(PINNED) });
     await q.search({ concept: 'cat', embedding: embed('cat'), limit: 10 });
-    const now = Date.now();
-    await q.search({ timeRange: [now - 60_000, now + 60_000], limit: 10 });
+    await q.search({ timeRange: [PINNED - 60_000, PINNED + 60_000], limit: 10 });
     const after = [...memory.listConcepts()].map((c) => [c.term.toString(), c.priority]);
     expect(after).toEqual(before);
     const afterEpisodes = await episodic.getEpisodes({ limit: 100 });
@@ -130,10 +134,10 @@ describe('Bench 88 — MemoryQuery fan-out + ranking', () => {
 
   it('timeRange + episodeType filters compose', async () => {
     const episodic = await makeEpisodes();
-    const q = new MemoryQuery({ memory: makeMemory(), episodic });
+    const q = new MemoryQuery({ memory: makeMemory(), episodic, clock: fixedClock(PINNED) });
     const errs = await q.search({ episodeType: 'error', limit: 10 });
     expect(errs.map((r) => r.episode?.id)).toEqual(['ep-err']);
-    const future = await q.search({ timeRange: [Date.now() + 60_000, Date.now() + 120_000], limit: 10 });
+    const future = await q.search({ timeRange: [PINNED + 60_000, PINNED + 120_000], limit: 10 });
     expect(future).toHaveLength(0);
   });
 });
@@ -141,7 +145,7 @@ describe('Bench 88 — MemoryQuery fan-out + ranking', () => {
 describe('Bench 88 — consumers', () => {
   it('retrospect() consumes MemoryQuery for session context', async () => {
     const episodic = await makeEpisodes();
-    const q = new MemoryQuery({ memory: makeMemory(), episodic });
+    const q = new MemoryQuery({ memory: makeMemory(), episodic, clock: fixedClock(PINNED) });
     await episodic.log('dialogue', JSON.stringify({ turnId: 'c1:1', sessionId: 's1', seq: 1 }), {
       correlationId: 'c1',
       sessionId: 's1',
