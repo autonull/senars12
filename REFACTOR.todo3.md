@@ -115,4 +115,38 @@ All invariants from TODO1 (I1–I7, N1–N3, C1–C5) and TODO2 (C2', C6, C7) ho
 ---
 
 ## 8. Progress
-(To be filled as phases land)
+
+### ✅ Phase A — landed (commit ab5f2b8e, bench 91)
+- `nar/src/nar/facade.ts` (NEW): extracted `initializeLMRules`/`initializeTools`/`consolidateLearning`/`askNaturalLanguage`/`injectBootstrapGoals`/`getModelWithFallback`/`contradicts` as functions operating through NAR's public accessors (no private reach-in). `nar.ts` 1019 → 889 LOC (< 900 budget). **Deviation from plan:** facade keeps the `NAR` class API unchanged (no wrapper class) — wrapping would break ~23 root-import consumers; C9 (surface never grows) holds, nothing was exported.
+- `nar/src/clock.ts` (NEW): `Clock`/`SystemClock`/`fixedClock`; injected into `MemoryQuery` (`options.clock`) and `EpisodicMemory` (`config.clock`). `tests/nar/refactor2-memory-query.test.ts` now pins time — ranking-order flake eliminated at root.
+- **Deviation from plan:** deps:gate baseline is **70**, not 68. Clean tree is 68, but the facade split itself adds +2 raw-chain variants (facade re-enters the pre-existing lm/tools cycles through its own imports — verified by diffing dpdm output before/after). Rationale documented in `scripts/deps-gate.ts`. Breaking the rule-builders→rule-templates chain was not attempted (deeper refactor, low value).
+- Gates: `typecheck`/`lint`/`exports:audit`/`deps:gate` green; full nar+unit+integration suite 2051 passed. NOTE: `nar` package-local `tsc` has 10 pre-existing errors (WASI ambient lib + `__pb2.ts`) — root `pnpm typecheck` is the gate.
+
+### ✅ Phase B — landed (commit 80f087bf, bench 92)
+- `DialogueCapture` dialogue episodes now write `id: turnId`, so reaction `causes: [turnId]` resolves against a real episode (full turn→reaction causal traversal).
+- `MemoryQuery` episode leg: `recency × salience × (1 + causalConnections)` — `causalConnections`/`episodeSalience` exported from `episode-consolidator.ts` and shared with `admit()` (single prior definition).
+- `SelfMetaGame.drainBudget` reads `proposals.budget` via `GameManager` (default 4 unchanged).
+- `tests/nar/refactor3-episode-graph.test.ts` (bench 92): causal traversal, formula parity, config budget.
+
+### ✅ Phase C — landed (commit ad2ed311, bench 93)
+- `ContradictionEvent` in `NAREventMap` (`types/events.ts`); `NegotiatorOptions.eventBus?` — Negotiator emits on MeTTa-vs-NAL divergence (metta-source proposal + opposing NAL derivation, no supporting one). Inert without a bus (C10).
+- Consumer: `GameManager` wires `contradiction` → `SelfMetaGame.handleContradiction` (negative scheduler reward + `contradictionCount`). `nar-execution.ts` substring sniff now also emits the typed event (`source: 'nal'`).
+- `GameFocusOptions.proposers?/eventBus?` → `Negotiator`; pass-through in `GameManager.attachGame`/`attachConversationGame` and `nar.attachGame`/`attachConversationGame`.
+- **bot.ts live wiring**: `createMeTTa()` + `Effect.runSync` evaluator feeds `MettaProposer`; fact source (`toExpression`) abstains until a soundness table exists — that table is the remaining integrator seam (see Open work).
+- MeTTa `eqOp` deep equality: local `normalize()` pre-reduces arith/cmp/unary-math subterms; `(= (+ 2 2) 4)` → True.
+- `NegotiationDecision.arbitration: 'nal-veto' | 'weighted-quorum'` stamped by both strategies (tick panel surfaces it via `TickPanelEntry.decision`). One existing test updated (`refactor1-macro-pipeline` decision fixture).
+- `tests/nar/refactor3-consensus-proof.test.ts` (bench 93): deep equality, arbitration stamp, divergence emission, inert-without-bus.
+- NOTE: `typecheck:bin` has **83** pre-existing errors (plan said 18 — stale count), none introduced; counted identically before/after Phase C.
+
+### ⏳ Phase D — not started
+Suggestions/notes for the next session:
+- **ThreadScope**: `ContrastiveMemory` global — check `nar/src/lm/system-one/contrastive.js` + `KernelPerceptionGate`/`ingressJudge` reputation reads; scope by explicit `correlationId` passing through `CycleHost` (no AsyncLocalStorage).
+- **CriticReflex**: `NAR.getProofStream()` yields `readonly Task[]` chains (from `ProofStreamRing`); detect conf < 0.3 / circular subterm (`containsSubterm` on premises) / depth-without-progress; emit `^doubt` goal via `nar.taskManager`. Keep threshold configurable (default 0.3) and gate emission rate.
+- **`.timeline`**: `SqliteEventLog.query` exists in io; add command in `buildExtraCommands` (bot.ts) pattern like `.retro`.
+- **Stage graph**: `createMacroPipeline` lives in core (`DEFAULT_MACRO_PIPELINE` imported in bot.ts); conditional edges keyed on bag pressure — default must stay behavior-identical (C7).
+- **bot.ts strictness**: 83 errors (see above) — mostly private-field reach-ins from bot into nar internals; prefer adding narrow public accessors on NAR over `@ts-expect-error` spam.
+
+### New improvement opportunities (post TODO3 candidates)
+- Break `rule-builders → rule-templates` chain properly (goal-rules imports `../../nl` → context-assembler → nar.ts) to return deps:gate baseline to ~pre-facade count.
+- `NAREventMap.contradiction` from MeTTa side once a soundness fact table lands in bot (mettaProposer.toExpression seam).
+- `SelfMetaGame.handleContradiction` could route a governance proposal (not just scheduler reward) once a resolution strategy exists.
