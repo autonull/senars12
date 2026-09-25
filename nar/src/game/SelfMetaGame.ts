@@ -31,6 +31,8 @@ export interface SelfMetaGameConfig extends MetaGameConfig {
   knobs?: KnobConfig[];
   /** Phase D (REFACTOR.todo2): bounded proposal bag — priority-ordered routing under pressure. */
   proposalBag?: ProposalBag;
+  /** Phase B (REFACTOR.todo3): bag-drain budget (was hardcoded 4; `proposals.budget`). */
+  drainBudget?: number;
 }
 
 export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
@@ -44,12 +46,14 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   private readonly proposalRouter = new ProposalRouter();
   /** Phase D (REFACTOR.todo2): bounded proposal bag — absent ⇒ arrival-order routing. */
   private readonly proposalBag?: ProposalBag;
+  private readonly drainBudget: number;
 
   constructor(config: SelfMetaGameConfig) {
     super(config);
     this.focusBag = config.focusBag;
     this.gameFocuses = config.gameFocuses;
     this.proposalBag = config.proposalBag;
+    this.drainBudget = config.drainBudget ?? 4;
     this.parameterTable = createParameterTable();
 
     // TODO19 F5: knobs are ParameterTable entries (system scope, self-owned);
@@ -137,7 +141,7 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
       void this.proposalBag
         .drainIfPressured(
           (proposal) => this.proposalRouter.route(proposal, gateRegistry.getActionGate().getAutonomyMode(), actuators),
-          { budget: 4 }
+          { budget: this.drainBudget }
         )
         .catch(() => {});
       return;

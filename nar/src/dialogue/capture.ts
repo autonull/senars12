@@ -174,9 +174,12 @@ export class DialogueCapture {
           grounding: turn.grounding,
         }),
         {
+          // REFACTOR.todo3 Phase B: `id` mirrors turnId so the reaction's
+          // `causes: [turnId]` resolves — full turn→reaction causal chain.
           correlationId: input.correlationId,
           sessionId: turn.sessionId,
           turnId,
+          id: turnId,
           context: [turnId],
           sourceKey: this.#deps.sourceKey?.() ?? 'user',
         }

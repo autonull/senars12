@@ -38,6 +38,16 @@ const SALIENCE: Record<EpisodeType, number> = {
   tool_call: 0.4,
 };
 
+/** Causal fan-in/out degree (Phase B, REFACTOR.todo3): shared ranking prior. */
+export const causalConnections = (episode: Episode): number =>
+  (episode.causes?.length ?? 0) + (episode.consequences?.length ?? 0) + (episode.context?.length ?? 0);
+
+/** Type-level salience (Phase B, REFACTOR.todo3): shared ranking prior. */
+export const episodeSalience = (episode: Episode): number => {
+  const kind = (episode.metadata as { kind?: unknown } | undefined)?.kind;
+  return episode.type === 'reaction' && kind === 'correct' ? SALIENCE.reaction * 1.25 : SALIENCE[episode.type];
+};
+
 export interface EpisodeConsolidatorOptions {
   /** Bag capacity (AIKR bound; default 256). */
   capacity?: number;
@@ -120,14 +130,9 @@ export class EpisodeConsolidator {
 
   /** Stage 1 — admit (bag enforces capacity + priority eviction). */
   admit(episode: Episode): boolean {
-    const connections =
-      (episode.causes?.length ?? 0) + (episode.consequences?.length ?? 0) + (episode.context?.length ?? 0);
-    const kind = (episode.metadata as { kind?: unknown } | undefined)?.kind;
-    const salience =
-      episode.type === 'reaction' && kind === 'correct' ? SALIENCE.reaction * 1.25 : SALIENCE[episode.type];
     return this.#bag.add({
       id: episode.id ?? `${episode.timestamp}:${episode.content.slice(0, 32)}`,
-      priority: salience * (1 + connections),
+      priority: episodeSalience(episode) * (1 + causalConnections(episode)),
       episode,
     });
   }

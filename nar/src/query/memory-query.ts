@@ -7,6 +7,7 @@
  * nothing (C2').
  */
 import { SystemClock, type Clock } from '../clock.js';
+import { causalConnections, episodeSalience } from '../memory/episode-consolidator.js';
 import type { Concept } from '../memory/index.js';
 import type { Episode } from '@senars/util';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
@@ -147,7 +148,10 @@ export class MemoryQuery {
         limit: conceptBudget,
       });
       for (const episode of episodes) {
-        const recencyScore = recency(episode.timestamp, now);
+        // Phase B (REFACTOR.todo3): unified ranking prior — recency × salience
+        // × (1 + causal connections), matching EpisodeConsolidator.admit.
+        const recencyScore =
+          recency(episode.timestamp, now) * episodeSalience(episode) * (1 + causalConnections(episode));
         if (filter.minPriority !== undefined && recencyScore < filter.minPriority) continue;
         const semantic = anchor ? await this.#similarity(anchor, episode.content) : undefined;
         if (semantic !== undefined && semantic < threshold) continue;

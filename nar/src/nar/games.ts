@@ -97,7 +97,10 @@ export class GameManager {
       // Phase D (REFACTOR.todo2): bounded proposal bag (opt-in) — priority-ordered
       // governance routing; default (absent) preserves arrival-order routing.
       ...(this.proposals
-        ? { proposalBag: new ProposalBag({ capacity: this.proposals.capacity, budget: this.proposals.budget }) }
+        ? {
+            proposalBag: new ProposalBag({ capacity: this.proposals.capacity, budget: this.proposals.budget }),
+            drainBudget: this.proposals.budget,
+          }
         : {}),
     });
     return this.metaGame;
