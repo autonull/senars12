@@ -10,7 +10,7 @@ import {
   TranslationSchema,
   UncertaintySchema,
   VariableGroundingSchema,
-} from '../../nl';
+} from './schemas.js';
 /**
  * Belief-oriented LM rule definitions.
  */

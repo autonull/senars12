@@ -1,4 +1,4 @@
-import { GoalDecompositionSchema } from '../../nl';
+import { GoalDecompositionSchema } from './schemas.js';
 /**
  * Goal-oriented LM rule definitions.
  */

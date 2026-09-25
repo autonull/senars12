@@ -15,7 +15,7 @@ describe('retrieval-verified memory consolidation', () => {
 
   it('promotes relevant episodes and dedupes accounting consistently', async () => {
     const episodic = new EpisodicMemory({ basePath: dir, enabled: true });
-    const interaction = 'interaction' as unknown as EpisodeType;
+    const interaction = 'dialogue' as EpisodeType;
     await episodic.log(interaction, 'The user prefers concise answers.');
     await episodic.log(interaction, 'The API key rotation happens monthly.');
     await episodic.log(interaction, 'asdkjh qwerty filler noise');

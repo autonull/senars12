@@ -1,4 +1,4 @@
-import { QuestionGenerationSchema } from '../../nl';
+import { QuestionGenerationSchema } from './schemas.js';
 /**
  * Question-oriented LM rule definitions (curiosity-driven).
  */

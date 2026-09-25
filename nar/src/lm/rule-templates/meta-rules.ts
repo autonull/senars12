@@ -4,7 +4,7 @@ import {
   HypothesisSchema,
   SchemaInductionSchema,
   TemporalCausalSchema,
-} from '../../nl';
+} from './schemas.js';
 /**
  * V2 preset LM rule definitions (merged from rule-factory-v2.ts).
  */

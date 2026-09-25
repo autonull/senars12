@@ -198,25 +198,35 @@ Closes the loop: the budget becomes mechanical rather than aspirational.
 - **Not carried forward from the critique**: the README rewrite (out of scope by request), the soak run and its demand-signal gating (benches are the evidence standard), the bandit parity fix (verified green), the five-way arbitration collapse (already two seams), the `createPipeline` collision (already fixed in todo2 F), and `GroundingPipeline` (already deleted in `09ffbe1b`). The critique's MeTTa audit is also not carried forward: the full surface is retained by decision (§5), and the zero-consumer finding is recorded in §1 so it stays visible without being actioned.
 
 ## 8. Progress
-  
-  _Phase A complete (2026-09-25). Phase B in progress — Ledger<T> primitive landed; ParameterLedger, SourceReputation, EpisodicMemory migrated._
-  
-  | Phase | Scope | Deletions declared | Bench | Status |
-  |---|---|---|---:|---|
-  | A | Middleware primitive + stage graph + `ThreadScope` | 1 dispatch loop, 1 type decl, 1 guard | 95 | ✅ |
-  | B | `Ledger<T>` across ~12 sites + cycle break | ~11 persistence impls, 1 sidecar format | 96 | 🔄 |
-  | C | 83 `typecheck:bin` errors + `CriticReflex` + `.timeline` | 83 errors, private reach-ins | 97 | ⬜ |
-  | D | 2 unbounded accumulators bounded + `AIKRProcessor` boilerplate collapsed + judgment leaks | 3 options copies, 2 inlined types, delegation twins, 2 unbounded stores | 98 | ⬜ |
-  | E | Complexity budget gate | — (instrument, C11-exempt) | 99 | ⬜ |
-  
+   
+  _Phase A complete (2026-09-25). Phase B in progress — Ledger<T> primitive landed; 11/11 sites migrated; rule-builders → rule-templates cycle broken._
+   
+| Phase | Scope | Deletions declared | Bench | Status |
+|---|---|---|---:|---|
+| A | Middleware primitive + stage graph + `ThreadScope` | 1 dispatch loop, 1 type decl, 1 guard | 95 | ✅ |
+| B | `Ledger<T>` across 11 sites + cycle break | ~11 persistence impls, 1 sidecar format | 96 | 🔄 (11/11 migrated, cycle break complete) |
+| C | 83 `typecheck:bin` errors + `CriticReflex` + `.timeline` | 83 errors, private reach-ins | 97 | ⬜ |
+| D | 2 unbounded accumulators bounded + `AIKRProcessor` boilerplate collapsed + judgment leaks | 3 options copies, 2 inlined types, delegation twins, 2 unbounded stores | 98 | ⬜ |
+| E | Complexity budget gate | — (instrument, C11-exempt) | 99 | ⬜ |
+   
   **Phase B progress (2026-09-25):**
   - `io/src/ledger.ts` — generic `Ledger<T>` primitive created with JSONL backing, daily rollover, per-file cap, retention sweep, hot cache, compaction; added `fixedFile` option for backward compat
   - `io/src/index.ts` — exports added for `Ledger`, `createLedger`, `BaseLedgerEntrySchema`, types
   - `nar/src/config/parameter-ledger.ts` — migrated to `Ledger<T>`; maintains sync query API for backward compat; adds async `queryAsync`/`loadAll` for new consumers
   - `nar/src/kernel/source-reputation.ts` — migrated to `Ledger<T>`; maintains exact same public API
   - `nar/src/memory/EpisodicMemory.ts` — migrated to `Ledger<T>`; exports `EpisodeSchema` for test reuse; preserves indexes, causal tracking, rollover/cap/retention behavior
+  - `core/src/memory/SessionManager.ts` — migrated to `Ledger<T>` with fixedFile mode; fixed file path bug; maintains exact same public API
+  - `nar/src/dialogue/text-store.ts` — migrated to `Ledger<T>` with fixedFile mode; maintains exact same public API
+  - `nar/src/dialogue/retrospect.ts` — migrated to `Ledger<T>` with fixedFile mode; maintains exact same public API
+  - `nar/src/dialogue/consumers/reconsolidate.ts` — migrated to `Ledger<T>` with fixedFile mode; maintains exact same public API
+  - `nar/src/rlfp/RLFPLearner.ts` — migrated training data to `Ledger<T>` with daily rollover; added `trainingDataPath` config
+  - `nar/src/focus/GameFocus.ts` — migrated game-trace to `Ledger<T>` with fixedFile mode; lazy initialization
+  - `nar/src/lm/provider-runtime.ts` — migrated routing telemetry to `Ledger<T>` with fixedFile mode; lazy initialization
+  - `nar/src/memory/pressure/consolidation.ts` — migrated watchdog log to `Ledger<T>` with fixedFile mode; lazy initialization
   - `tests/nar/refactor4-ledger.test.ts` — Bench 96 created; 11 tests pass (primitive basics, rollover/cap/retention parity, compact, sidecar separation, improvedOnly view, deps:gate cycle break, EpisodicMemory parity)
   - `tests/nar/refactor1-parameter-ledger.test.ts` — updated to use async `improvedOnly`; all 7 tests pass
   - `tests/nar/todo17b-failclosed.test.ts` — EpisodicMemory rollover/cap tests pass (9 tests)
   - `tests/nar/todo24-*.test.ts` — Dialogue capture/retrospect/e2e tests pass (10 tests)
-  - **Deletions achieved this session**: none yet (migrations preserve API); next sites: `SessionManager`, `DialogueTurn`/`text-store`, `retrospectives`, `reconsolidated`, `JudgmentDataset` sidecar, `RLFPLearner` training data, `GameFocus` game-trace, `provider-runtime` routing, `memory-watchdog`
+  - **Cycle break (2026-09-25)**: `nar/src/lm/rule-templates/schemas.ts` created with all schemas used by rule-templates; `goal-rules.ts`, `belief-rules.ts`, `question-rules.ts`, `meta-rules.ts` updated to import from local `schemas.ts` instead of `../../nl`; `deps:gate` raw chains reduced from 187 → 176 (baseline 70; remaining cycles are pre-existing architectural cycles in strategies/rules/terms)
+  - **Deletions achieved this session**: none yet (migrations preserve API per C12); next sites: `JudgmentDataset` sidecar collapse (Phase D/E)
+  - **Known issue**: `deps:gate` shows 176 cycles (baseline 70) — remaining cycles are pre-existing architectural cycles (strategies → rules → nal → terms → memory → strategies) not targeted by this phase's scope

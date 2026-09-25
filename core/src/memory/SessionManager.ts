@@ -1,4 +1,5 @@
-import { promises as fs } from 'node:fs';
+import { Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery } from '@senars/io';
+import { z } from 'zod';
 import { join } from 'node:path';
 import { abortSession, createSession, InMemorySessionManager } from '@senars/util/memory';
 import type { ConversationSession, SessionManager } from '@senars/util/types/memory';
@@ -13,12 +14,29 @@ export interface JsonlSessionManagerConfig {
   basePath: string;
 }
 
+const SessionRecordSchema = BaseLedgerEntrySchema.extend({
+  key: z.string(),
+  history: z.array(z.object({
+    role: z.enum(['user', 'agent', 'system']),
+    content: z.string(),
+    timestamp: z.number(),
+  })),
+  createdAt: z.number(),
+  lastSeenAt: z.number(),
+  metadata: z.record(z.string(), z.unknown()),
+});
+
+export type SessionLedgerEntry = z.infer<typeof SessionRecordSchema>;
+
 export class JsonlSessionManager implements SessionManager {
+  readonly #ledger: Ledger<SessionLedgerEntry>;
   #sessions = new Map<string, ConversationSession>();
-  readonly #basePath: string;
 
   constructor(config: JsonlSessionManagerConfig) {
-    this.#basePath = config.basePath;
+    const fixedFile = join(config.basePath, 'sessions.jsonl');
+    this.#ledger = createLedger<SessionLedgerEntry>(config.basePath, SessionRecordSchema, {
+      rollover: { fixedFile },
+    });
   }
 
   getOrCreate(key: string): ConversationSession {
@@ -37,38 +55,37 @@ export class JsonlSessionManager implements SessionManager {
   }
 
   async restore(): Promise<void> {
-    try {
-      const entries = await fs.readdir(this.#basePath);
-      for (const entry of entries) {
-        if (!entry.endsWith('.jsonl')) continue;
-        const key = entry.slice(0, -6);
-        const content = await fs.readFile(join(this.#basePath, entry), 'utf-8');
-        const lines = content.trim().split('\n').filter(Boolean);
-        const history: ConversationSession['history'] = lines.map((l) => JSON.parse(l));
-        this.#sessions.set(key, {
-          id: `sess-${key}`,
-          key,
-          history,
-          createdAt: Date.now(),
-          lastSeenAt: Date.now(),
-          metadata: {},
-        });
-      }
-    } catch {
-      // directory doesn't exist yet
+    const entries = await this.#ledger.query({});
+    for (const entry of entries) {
+      const key = entry.key;
+      const session: ConversationSession = {
+        id: `sess-${key}`,
+        key,
+        history: entry.history,
+        createdAt: entry.createdAt,
+        lastSeenAt: entry.lastSeenAt,
+        metadata: entry.metadata,
+      };
+      this.#sessions.set(key, session);
     }
   }
 
   async snapshot(): Promise<void> {
-    await fs.mkdir(this.#basePath, { recursive: true });
     for (const [key, session] of this.#sessions) {
-      const lines = session.history.map((h) => JSON.stringify(h)).join('\n');
-      await fs.writeFile(join(this.#basePath, `${key}.jsonl`), lines, 'utf-8');
+      this.#ledger.append({
+        at: session.lastSeenAt,
+        key,
+        history: session.history,
+        createdAt: session.createdAt,
+        lastSeenAt: session.lastSeenAt,
+        metadata: session.metadata,
+      });
     }
   }
 
   async close(): Promise<void> {
     await this.snapshot();
     this.#sessions.clear();
+    this.#ledger.close();
   }
 }
