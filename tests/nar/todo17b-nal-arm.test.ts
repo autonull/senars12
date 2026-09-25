@@ -5,7 +5,7 @@
  * an unseeded veto that reduces return is a regression, not a safety net.
  */
 import { GameFocus } from '@senars/nar/focus';
-import { induceEpisodeSchemas, type EpisodeTick } from '@senars/nar/focus/schema-induction';
+import { induceEpisodeSchemas, type EpisodeTick } from '@senars/nar/focus/episode-schemas';
 import { createBanditGame, createGridWorldGame, type Game } from '@senars/nar/game';
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
 import { Negotiator } from '@senars/nar/reflex';

@@ -7,7 +7,7 @@ import type { ActionProposal, LearningEvent, Reflex } from '../../nar/src/reflex
 import { JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
 import { mcReturns, recordMcReturnLabels } from '../../nar/src/lm/system-one/mc-return.js';
 import { actionFeatures, bakeOffSharedHead, type TrainingRow } from '../../nar/src/lm/system-one/train.js';
-import { induceEpisodeSchemas } from '../../nar/src/focus/schema-induction.js';
+import { induceEpisodeSchemas } from '../../nar/src/focus/episode-schemas.js';
 import { SchemaStore } from '../../nar/src/focus/schema-store.js';
 
 /**

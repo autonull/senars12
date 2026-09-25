@@ -9,6 +9,7 @@ import type { GameFocus, GameFocusOptions } from './focus/GameFocus.js';
 import type { ConversationGame } from './game/ConversationGame.js';
 import type { SelfMetaGameImpl } from './game/SelfMetaGame.js';
 import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js';
+import { SchemaInductor } from './learning/schema-induction.js';
 import type { LMService, SeNARSRegistry } from './lm';
 import { getModelForTask, LMRules } from './lm';
 import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
@@ -78,6 +79,7 @@ export class NAR extends BaseComponent {
   cognitiveController?: CognitiveController;
   /** TODO25 follow-on: bounded derivation-chain ring, fuel for SchemaInductor; Phase D live ProofStream source. */
   #proofRing = new ProofStreamRing<readonly Task[]>(DERIVATION_RING_CAP);
+  #schemaInductor?: SchemaInductor;
   driveManager?: DriveManager;
   private readonly systemEventBus: NarEventBus;
 
@@ -359,7 +361,20 @@ export class NAR extends BaseComponent {
 
   /** Record one derivation chain (bounded ring; called from the CognitiveController sink). */
   #recordDerivationChain(chain: readonly Task[]): void {
-    this.#proofRing.push([...chain]);
+    const copy = [...chain];
+    this.#proofRing.push(copy);
+    // Phase C (REFACTOR.todo1): continuous SchemaInductor admission (AIKR-bounded).
+    if (this.#schemaInductor) this.#schemaInductor.onDerivation(copy);
+  }
+
+  /** Lazily-owned SchemaInductor (Phase C); undefined without an LM service. */
+  getSchemaInductor(): import('./learning/schema-induction.js').SchemaInductor | undefined {
+    if (!this.#schemaInductor && this._lmService) {
+      this.#schemaInductor = new SchemaInductor(this.memory, this._lmService, {
+        rng: this.config.rng,
+      });
+    }
+    return this.#schemaInductor;
   }
 
   /** Latest derivation chains (bounded ring) — SchemaInductor fuel (TODO25). */
@@ -428,6 +443,24 @@ export class NAR extends BaseComponent {
     episodic?: import('./memory/EpisodicMemory.js').EpisodicMemory
   ): Promise<void> {
     return this.systemOne.refreshContrastive(this, episodic);
+  }
+
+  /**
+   * Phase C (REFACTOR.todo1): AIKR-bounded maintenance of the learning
+   * processes — decay stale accumulation, then drain induction and exemplar
+   * promotion only under pressure. Call from any periodic cycle point.
+   */
+  async consolidateLearning(options: { budget?: number } = {}): Promise<void> {
+    const inductor = this.#schemaInductor;
+    if (inductor) {
+      inductor.decayChains();
+      await inductor.induceIfPressured(options).catch(() => {});
+    }
+    const contrastive = this.systemOne.enabled ? this.systemOne.contrastive : undefined;
+    if (contrastive) {
+      contrastive.decay();
+      await contrastive.maintainIfPressured(options).catch(() => {});
+    }
   }
 
   /** Check if System One is enabled and initialized. */

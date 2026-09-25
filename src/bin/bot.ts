@@ -851,11 +851,17 @@ function buildExtraCommands(
         const chains = wired.nar.getDerivationChains(64);
         if (chains.length === 0)
           return 'No derivation chains captured yet (chains accrue as the kernel reasons).';
-        const { SchemaInductor } = await import('@senars/nar/learning');
-        const inductor = new SchemaInductor(wired.nar.memory, wired.lmService, {
-          inductionIntervalMs: 0,
-        });
-        const results = await inductor.induceFromDerivations(chains.flat() as never).catch((e) => {
+        // Phase C (REFACTOR.todo1): the NAR-owned inductor is continuously fed
+        // by the derivation sink; the CLI force-drains its bag.
+        const inductor =
+          wired.nar.getSchemaInductor() ??
+          new (await import('@senars/nar/learning')).SchemaInductor(
+            wired.nar.memory,
+            wired.lmService,
+            { inductionIntervalMs: 0 }
+          );
+        for (const chain of chains) inductor.onDerivation(chain as never);
+        const results = await inductor.induceNow({ budget: 8 }).catch((e) => {
           throw new Error(`Schema induction failed: ${errMsg(e)}`);
         });
         if (results.length === 0)

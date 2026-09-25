@@ -7,14 +7,17 @@
  * - Store as higher-order concepts with variables
  * - LM proposes, NARS validates, both adopt
  */
+
+import { type BagItem, PriorityBag } from '../bag/Bag.js';
 import type { LMService } from '../lm/lm-service.js';
 import { createLogger, type Logger } from '../logger';
 import type { Memory } from '../memory';
-import type { RandomSource } from '../types/primitives.js';
 import type { Term } from '../terms';
 import { containsSubterm, getSubject, Truth } from '../terms';
 import { createBudget, createTask, type Task } from '../types';
+import type { RandomSource } from '../types/primitives.js';
 import { clamp01, errMsg } from '../utils';
+import { AIKRProcessor, PrioritySampling } from './aikr-processor.js';
 
 export interface SchemaPattern {
   id: string;
@@ -30,6 +33,12 @@ export interface InductionResult {
   schema: SchemaPattern;
   instances: string[];
   confidence: number;
+}
+
+/** Bag item for a derivation chain awaiting induction (Phase C). */
+export interface DerivationChainItem extends BagItem {
+  chain: Task[];
+  signature: string;
 }
 
 export interface SchemaInductionConfig {
@@ -58,6 +67,10 @@ export class SchemaInductor {
   private schemas = new Map<string, SchemaPattern>();
   private lastInductionTime = 0;
   private readonly rng: RandomSource;
+  /** Phase C (REFACTOR.todo1): AIKR-bounded chain accumulation + processing. */
+  readonly #chainBag = new PriorityBag<DerivationChainItem>({ capacity: 256 });
+  readonly #processor: AIKRProcessor<DerivationChainItem, InductionResult>;
+  readonly #seenSignatures = new Set<string>();
 
   constructor(memory: Memory, lmClient: LMService, config: Partial<SchemaInductionConfig> = {}) {
     this.memory = memory;
@@ -65,6 +78,99 @@ export class SchemaInductor {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.rng = config.rng ?? Math.random;
     this.logger = createLogger({ scope: 'learning:schema-induction' });
+    this.#processor = new AIKRProcessor<DerivationChainItem, InductionResult>({
+      bag: this.#chainBag,
+      samplingStrategy: new PrioritySampling(1.0),
+      pressureThreshold: 0.7,
+      rng: this.rng,
+      process: (items, signal) => this.#induceChains(items, signal),
+    });
+  }
+
+  /** Phase C: continuous admission from the derivation-chain sink (novelty × length). */
+  onDerivation(chain: readonly Task[]): void {
+    if (!this.config.enableSchemaInduction || chain.length === 0) return;
+    const signature = chain.map((t) => t.term.toString()).join('→');
+    if (this.#seenSignatures.has(signature)) return;
+    this.#seenSignatures.add(signature);
+    if (this.#seenSignatures.size > 4096) this.#seenSignatures.clear();
+    this.#processor.admit({
+      id: signature,
+      priority: chain.length,
+      chain: [...chain],
+      signature,
+    });
+  }
+
+  /** Micro-tick-compatible induction: inert below pressure 0.7, interruptible. */
+  async induceIfPressured(
+    options: { budget?: number; signal?: AbortSignal } = {}
+  ): Promise<InductionResult[]> {
+    return this.#processor.processIfPressured(options);
+  }
+
+  /** Explicit drain (CLI `.schemas-induce`): ignores the pressure gate. */
+  async induceNow(
+    options: { budget?: number; signal?: AbortSignal } = {}
+  ): Promise<InductionResult[]> {
+    return this.#processor.process(options);
+  }
+
+  /** Phase C: decay stale chains (call per cycle). */
+  decayChains(rate?: number): void {
+    this.#processor.decay(rate);
+  }
+
+  get chainPressure(): number {
+    return this.#processor.pressure();
+  }
+
+  async #induceChains(
+    items: DerivationChainItem[],
+    signal?: AbortSignal
+  ): Promise<InductionResult[]> {
+    const results: InductionResult[] = [];
+    for (const item of items) {
+      if (signal?.aborted) break;
+      try {
+        const induced = await this.induceSchema(item.chain);
+        if (induced) {
+          results.push(induced);
+          continue;
+        }
+        // LM returned nothing parseable → symbolic structural induction.
+        const symbolic = this.#symbolicInduction(item.chain);
+        if (symbolic) results.push(symbolic);
+      } catch {
+        // LM unavailable/failed → symbolic structural induction fallback.
+        const symbolic = this.#symbolicInduction(item.chain);
+        if (symbolic) results.push(symbolic);
+      }
+    }
+    return results;
+  }
+
+  /** Deterministic structural induction — no LM: abstract chain terms into variables. */
+  #symbolicInduction(chain: Task[]): InductionResult | null {
+    if (chain.length < this.config.minDerivationSteps) return null;
+    const variables = chain.map((_, i) => `?V${i + 1}`);
+    const template = chain.map((t, i) => `${variables[i]}:${t.term.toString()}`).join(' → ');
+    const confidences = chain.map((t) => (t.truth ? t.truth.f * t.truth.c : 0));
+    const confidence = clamp01(Math.min(...confidences));
+    if (confidence < this.config.minConfidenceForInduction) return null;
+    const id = `schema-sym-${Date.now()}-${this.rng().toString(36).slice(2, 8)}`;
+    const schema: SchemaPattern = {
+      id,
+      template,
+      variables,
+      examples: [chain.map((t) => t.term.toString()).join(' → ')],
+      confidence,
+      usageCount: 0,
+      lastUsed: Date.now(),
+    };
+    this.schemas.set(id, schema);
+    this.enforceMaxSchemas();
+    return { schema, instances: chain.map((t) => t.term.toString()), confidence };
   }
 
   async induceFromDerivations(derivations: Task[]): Promise<InductionResult[]> {

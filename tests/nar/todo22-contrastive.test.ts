@@ -73,7 +73,9 @@ describe('contrastive core', () => {
     const memory = new ContrastiveMemory({ maxPerRubric: 5, positiveShare: 0.6 });
     const positives = ['sunny meadow', 'sunny meadow walks', 'sunny meadow breeze', 'sunny meadow birds'];
     const negatives = ['dark storm', 'dark storm thunder'];
-    expect(await memory.add('groundedness', { positives, negatives }, cache)).toBe(6);
+    // Phase C (REFACTOR.todo1): admission is priority-gated — the 4th positive
+    // (tie priority, bag full) is rejected, so 5 exemplars are admitted.
+    expect(await memory.add('groundedness', { positives, negatives }, cache)).toBe(5);
 
     const stats = memory.stats().groundedness!;
     expect(stats.positives).toBe(3); // 5 * 0.6 → 3

@@ -1,8 +1,8 @@
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { recordSchemaPromotion } from '../telemetry/index.js';
 import { withSpan } from '../otel/index.js';
-import type { PromotedSchema } from './schema-induction.js';
+import { recordSchemaPromotion } from '../telemetry/index.js';
+import type { PromotedSchema } from './episode-schemas.js';
 
 /**
  * L4: persistent schema induction (unifies N2 + G1) — one sidecar store of
@@ -30,12 +30,18 @@ export class SchemaStore {
     const stored = schemas.map((s) => ({ ...s, episode }));
     for (const s of stored) this.schemas.set(SchemaStore.key(scope, s), s);
     if (stored.length) recordSchemaPromotion(scope, stored.length);
-    return withSpan('schema_store.promote', { 'schema.scope': scope, 'schema.count': stored.length }, () => stored);
+    return withSpan(
+      'schema_store.promote',
+      { 'schema.scope': scope, 'schema.count': stored.length },
+      () => stored
+    );
   }
 
   /** All schemas for a scope (action → kind + belief-grade mean reward). */
   forScope(scope: string): StoredSchema[] {
-    return [...this.schemas.entries()].filter(([k]) => k.startsWith(`${scope}::`)).map(([, v]) => v);
+    return [...this.schemas.entries()]
+      .filter(([k]) => k.startsWith(`${scope}::`))
+      .map(([, v]) => v);
   }
 
   size(): number {

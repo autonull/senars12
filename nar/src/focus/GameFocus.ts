@@ -9,10 +9,10 @@ import type { ConfidenceRouter } from '../lm/system-one/policy.js';
 import type { EmbeddingCache, JudgmentManifold } from '../lm/system-one/types.js';
 import { type NALDerivation, type NegotiationDecision, Negotiator } from '../reflex/Negotiator.js';
 import { type ActionProposal, LearningEvent, type Reflex } from '../reflex/Reflex.js';
-import { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding.js';
-import { Focus, type FocusOptions } from './Focus.js';
-import { induceEpisodeSchemas, type PromotedSchema } from './schema-induction.js';
 import { recordBagPressure, recordHandover } from '../telemetry/index.js';
+import { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding.js';
+import { induceEpisodeSchemas, type PromotedSchema } from './episode-schemas.js';
+import { Focus, type FocusOptions } from './Focus.js';
 
 export interface GameFocusOptions {
   focusId: string;

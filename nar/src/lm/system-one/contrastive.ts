@@ -1,3 +1,5 @@
+import { type BagItem, PriorityBag } from '../../bag/Bag.js';
+import { AIKRProcessor, PrioritySampling } from '../../learning/aikr-processor.js';
 import type { EmbeddingCache, JudgmentQuery } from './types.js';
 
 /** Domain-level rubric shared by all contrastive consumers (gate, grader, routing). */
@@ -99,9 +101,18 @@ export interface RubricExemplarStats {
   calibrated: boolean;
 }
 
-interface ExemplarBucket {
-  positives: Float32Array[];
-  negatives: Float32Array[];
+/** Bag item for a stored exemplar (Phase C — AIKR-bounded self-maintenance). */
+export interface ExemplarItem extends BagItem {
+  kind: 'pos' | 'neg';
+  embedding: Float32Array;
+}
+
+interface RubricState {
+  pos: PriorityBag<ExemplarItem>;
+  neg: PriorityBag<ExemplarItem>;
+  /** Pending high-confidence judgments awaiting AIKR-bounded promotion. */
+  pending: PriorityBag<ExemplarItem>;
+  maintainer: import('../../learning/aikr-processor.js').AIKRProcessor<ExemplarItem, number>;
 }
 
 /**
@@ -113,7 +124,8 @@ export class ContrastiveMemory {
   readonly #maxPerRubric: number;
   readonly #positiveShare: number;
   readonly #zeroShotScale: number;
-  #buckets = new Map<string, ExemplarBucket>();
+  /** Phase C: per-rubric exemplar bags (priority eviction, decay, 40/60 caps). */
+  readonly #rubrics = new Map<string, RubricState>();
   #calibrations = new Map<string, InfoNCECalibration>();
 
   constructor(config: ContrastiveMemoryConfig = {}) {
@@ -128,23 +140,15 @@ export class ContrastiveMemory {
     exemplars: { positives?: readonly string[]; negatives?: readonly string[] },
     cache: EmbeddingCache
   ): Promise<number> {
-    const bucket = this.#bucket(rubric);
     let added = 0;
     for (const text of exemplars.positives ?? []) {
       const emb = await this.#embed(text, cache);
-      if (emb) {
-        bucket.positives.push(emb);
-        added++;
-      }
+      if (emb && this.#admit(rubric, { kind: 'pos', embedding: emb })) added++;
     }
     for (const text of exemplars.negatives ?? []) {
       const emb = await this.#embed(text, cache);
-      if (emb) {
-        bucket.negatives.push(emb);
-        added++;
-      }
+      if (emb && this.#admit(rubric, { kind: 'neg', embedding: emb })) added++;
     }
-    this.#enforceReplayMix(bucket);
     return added;
   }
 
@@ -154,17 +158,13 @@ export class ContrastiveMemory {
     rubric: string,
     exemplars: { positives?: readonly Float32Array[]; negatives?: readonly Float32Array[] }
   ): number {
-    const bucket = this.#bucket(rubric);
     let added = 0;
     for (const emb of exemplars.positives ?? []) {
-      bucket.positives.push(emb);
-      added++;
+      if (this.#admit(rubric, { kind: 'pos', embedding: emb })) added++;
     }
     for (const emb of exemplars.negatives ?? []) {
-      bucket.negatives.push(emb);
-      added++;
+      if (this.#admit(rubric, { kind: 'neg', embedding: emb })) added++;
     }
-    this.#enforceReplayMix(bucket);
     return added;
   }
 
@@ -173,29 +173,30 @@ export class ContrastiveMemory {
     rubric: string,
     options: { epochs?: number; lr?: number } = {}
   ): InfoNCECalibration | undefined {
-    const bucket = this.#buckets.get(rubric);
-    if (!bucket || bucket.positives.length < 2 || bucket.negatives.length === 0) return undefined;
+    const positives = this.#positives(rubric);
+    const negatives = this.#negatives(rubric);
+    if (positives.length < 2 || negatives.length === 0) return undefined;
 
     // Leave-one-out mean positive: each positive is judged against the rest of
     // its own class, so memorizable singletons cannot trivially win.
-    const dim = bucket.positives[0]!.length;
+    const dim = positives[0]!.length;
     const meanPositive = (skip: number): Float32Array => {
       const acc = new Float32Array(dim);
       let count = 0;
-      for (const [i, p] of bucket.positives.entries()) {
+      for (const [i, p] of positives.entries()) {
         if (i === skip) continue;
         for (let d = 0; d < dim; d++) acc[d]! += p[d]!;
         count++;
       }
-      if (count === 0) return bucket.positives[skip]!;
+      if (count === 0) return positives[skip]!;
       for (let d = 0; d < dim; d++) acc[d] = acc[d]! / count;
       return acc;
     };
 
-    const pairs = bucket.positives.map((query, i) => ({
+    const pairs = positives.map((query, i) => ({
       query,
       positive: meanPositive(i),
-      negatives: bucket.negatives,
+      negatives,
     }));
     const calibration = fitInfoNCE(pairs, options);
     this.#calibrations.set(rubric, calibration);
@@ -204,7 +205,7 @@ export class ContrastiveMemory {
 
   /** Calibrate every rubric that has both classes; returns fitted rubric ids. */
   calibrateAll(options: { epochs?: number; lr?: number } = {}): string[] {
-    return [...this.#buckets.keys()].filter((rubric) => !!this.calibrate(rubric, options));
+    return [...this.#rubrics.keys()].filter((rubric) => !!this.calibrate(rubric, options));
   }
 
   /**
@@ -216,21 +217,18 @@ export class ContrastiveMemory {
   score(embedding: Float32Array, rubric?: string): number | undefined {
     if (rubric === undefined) {
       let best: number | undefined;
-      for (const r of this.#buckets.keys()) {
+      for (const r of this.#rubrics.keys()) {
         const s = this.score(embedding, r);
         if (s !== undefined && (best === undefined || s > best)) best = s;
       }
       return best;
     }
-    const bucket = this.#buckets.get(rubric);
-    if (!bucket) return undefined;
-    const hasPositives = bucket.positives.length > 0;
-    if (!hasPositives && bucket.negatives.length === 0) return undefined;
+    const positives = this.#positives(rubric);
+    const negatives = this.#negatives(rubric);
+    if (positives.length === 0 && negatives.length === 0) return undefined;
 
-    const maxPos = hasPositives
-      ? bucket.positives.reduce((best, p) => Math.max(best, cosineF32(embedding, p)), -1)
-      : 0;
-    const maxNeg = bucket.negatives.reduce((best, n) => Math.max(best, cosineF32(embedding, n)), -1);
+    const maxPos = positives.reduce((best, p) => Math.max(best, cosineF32(embedding, p)), -1);
+    const maxNeg = negatives.reduce((best, n) => Math.max(best, cosineF32(embedding, n)), -1);
     const calibration = this.#calibrations.get(rubric);
     const scale = calibration?.scale ?? this.#zeroShotScale;
     const bias = calibration?.bias ?? 0;
@@ -241,13 +239,9 @@ export class ContrastiveMemory {
   routingScore(embedding: Float32Array): number | undefined {
     let best = -1;
     let seen = 0;
-    for (const bucket of this.#buckets.values()) {
-      for (const p of bucket.positives) {
-        best = Math.max(best, cosineF32(embedding, p));
-        seen++;
-      }
-      for (const n of bucket.negatives) {
-        best = Math.max(best, cosineF32(embedding, n));
+    for (const rubric of this.#rubrics.keys()) {
+      for (const emb of [...this.#positives(rubric), ...this.#negatives(rubric)]) {
+        best = Math.max(best, cosineF32(embedding, emb));
         seen++;
       }
     }
@@ -255,23 +249,21 @@ export class ContrastiveMemory {
   }
 
   has(rubric = DOMAIN_RUBRIC): boolean {
-    const bucket = this.#buckets.get(rubric);
-    return !!bucket && (bucket.positives.length > 0 || bucket.negatives.length > 0);
+    const state = this.#rubrics.get(rubric);
+    return !!state && (state.pos.size() > 0 || state.neg.size() > 0);
   }
 
   isEmpty(): boolean {
-    return [...this.#buckets.values()].every(
-      (b) => b.positives.length === 0 && b.negatives.length === 0
-    );
+    return [...this.#rubrics.values()].every((s) => s.pos.size() === 0 && s.neg.size() === 0);
   }
 
   stats(): Record<string, RubricExemplarStats> {
     return Object.fromEntries(
-      [...this.#buckets.entries()].map(([rubric, b]) => [
+      [...this.#rubrics.entries()].map(([rubric, s]) => [
         rubric,
         {
-          positives: b.positives.length,
-          negatives: b.negatives.length,
+          positives: s.pos.size(),
+          negatives: s.neg.size(),
           calibrated: this.#calibrations.has(rubric),
         },
       ])
@@ -279,17 +271,124 @@ export class ContrastiveMemory {
   }
 
   clear(): void {
-    this.#buckets.clear();
+    this.#rubrics.clear();
     this.#calibrations.clear();
   }
 
-  #bucket(rubric: string): ExemplarBucket {
-    let bucket = this.#buckets.get(rubric);
-    if (!bucket) {
-      bucket = { positives: [], negatives: [] };
-      this.#buckets.set(rubric, bucket);
+  /**
+   * Phase C: per-cycle decay — stale exemplar priority erodes; items below the
+   * forget floor drop out, keeping the pool fresh (flywheel maintenance).
+   */
+  decay(rate?: number): void {
+    for (const state of this.#rubrics.values()) {
+      state.pos.decay(rate);
+      state.neg.decay(rate);
+      state.pending.decay(rate);
     }
-    return bucket;
+  }
+
+  /**
+   * Phase C: judgment auto-admission — a high-confidence decision is admitted
+   * to the exemplar pool when it improves discrimination margin (flywheel:
+   * judgments → exemplars → better calibrated judgments).
+   */
+  observeJudgment(
+    rubric: string,
+    embedding: Float32Array,
+    judgment: { label: 'pos' | 'neg'; confidence: number },
+    options: { admitThreshold?: number } = {}
+  ): boolean {
+    if (judgment.confidence < (options.admitThreshold ?? 0.8)) return false;
+    const positives = this.#positives(rubric);
+    const negatives = this.#negatives(rubric);
+    const maxPos = positives.reduce((best, p) => Math.max(best, cosineF32(embedding, p)), -1);
+    const maxNeg = negatives.reduce((best, n) => Math.max(best, cosineF32(embedding, n)), -1);
+    const margin = Math.max(0, maxPos - maxNeg);
+    const state = this.#rubricState(rubric);
+    return state.maintainer.admit({
+      id: `${judgment.label}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      priority: margin * judgment.confidence,
+      kind: judgment.label,
+      embedding,
+    });
+  }
+
+  /** Promote pending judgments into the exemplar pool when pressure allows. */
+  async maintainIfPressured(options: { budget?: number } = {}): Promise<number> {
+    let promoted = 0;
+    for (const state of this.#rubrics.values()) {
+      const counts = await state.maintainer.processIfPressured(options);
+      promoted += counts.reduce((a, b) => a + b, 0);
+    }
+    return promoted;
+  }
+
+  #rubricState(rubric: string): RubricState {
+    let state = this.#rubrics.get(rubric);
+    if (!state) {
+      const posCap = Math.max(1, Math.round(this.#maxPerRubric * this.#positiveShare));
+      const negCap = Math.max(1, this.#maxPerRubric - posCap);
+      const pos = new PriorityBag<ExemplarItem>({ capacity: posCap });
+      const neg = new PriorityBag<ExemplarItem>({ capacity: negCap });
+      const pending = new PriorityBag<ExemplarItem>({ capacity: 64 });
+      // Phase C: the second AIKRProcessor instantiation — pending judgments
+      // promote into the exemplar bags under pressure (flywheel closure).
+      const maintainer = new AIKRProcessor<ExemplarItem, number>({
+        bag: pending,
+        samplingStrategy: new PrioritySampling(1.0),
+        pressureThreshold: 0.7,
+        process: (items) => {
+          let promoted = 0;
+          for (const item of items) {
+            if ((item.kind === 'pos' ? pos : neg).add(item)) promoted++;
+          }
+          return [promoted];
+        },
+      });
+      state = { pos, neg, pending, maintainer };
+      this.#rubrics.set(rubric, state);
+    }
+    return state;
+  }
+
+  /** Margin-weighted admission into the priority bag (capacity-evicting). */
+  #admit(
+    rubric: string,
+    exemplar: { kind: 'pos' | 'neg'; embedding: Float32Array },
+    priority?: number
+  ): boolean {
+    const state = this.#rubricState(rubric);
+    const margin = (() => {
+      const others = exemplar.kind === 'pos' ? this.#negatives(rubric) : this.#positives(rubric);
+      if (others.length === 0) return 1;
+      const maxCos = others.reduce(
+        (best, o) => Math.max(best, cosineF32(exemplar.embedding, o)),
+        -1
+      );
+      return 1 - maxCos; // discrimination vs the opposing class
+    })();
+    const item: ExemplarItem = {
+      id: `${exemplar.kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      priority: Math.max(1e-6, priority ?? margin),
+      kind: exemplar.kind,
+      embedding: exemplar.embedding,
+    };
+    const bag = exemplar.kind === 'pos' ? state.pos : state.neg;
+    const admitted = bag.add(item);
+    if (admitted) state.maintainer?.admit(item);
+    return admitted;
+  }
+
+  #positives(rubric: string): Float32Array[] {
+    const state = this.#rubrics.get(rubric);
+    if (!state) return [];
+    return [...state.pos.all()].map((e) => e.embedding);
+  }
+
+  #negatives(rubric: string): Float32Array[] {
+    const state = this.#rubrics.get(rubric);
+    if (!state) return [];
+    return [...state.neg.all()].map((e) => e.embedding);
   }
 
   async #embed(text: string, cache: EmbeddingCache): Promise<Float32Array | undefined> {
@@ -300,14 +399,6 @@ export class ContrastiveMemory {
     } catch {
       return undefined;
     }
-  }
-
-  /** FIFO-capped buckets: positives hold the 60% replay share, negatives 40%. */
-  #enforceReplayMix(bucket: ExemplarBucket): void {
-    const posCap = Math.max(1, Math.round(this.#maxPerRubric * this.#positiveShare));
-    const negCap = Math.max(1, this.#maxPerRubric - posCap);
-    while (bucket.positives.length > posCap) bucket.positives.shift();
-    while (bucket.negatives.length > negCap) bucket.negatives.shift();
   }
 }
 
