@@ -70,16 +70,15 @@ export async function retrospect(
     minReactions?: number;
   } = {}
 ): Promise<Retrospective> {
-  // Note: O(all episodes) — getEpisodes has no correlationId filter. Fine for
-  // local retention-bounded stores (30-day prune); if episode volume grows,
-  // this becomes the index-episode-metadata optimization.
-  const episodes = await episodic.getEpisodes({ type: 'dialogue', limit: 10_000 });
+  // Phase D (REFACTOR.todo1): indexed path — O(matches) via the sessionId
+  // metadata index instead of O(all episodes).
+  const episodes = await episodic.getEpisodes({ type: 'dialogue', sessionId, limit: 10_000 });
   const turns = episodes
     .map(parseTurn)
     .filter((t): t is SessionTurn => t !== undefined && t.sessionId === sessionId)
     .sort((a, b) => a.seq - b.seq);
 
-  const reactionEpisodes = await episodic.getEpisodes({ type: 'reaction', limit: 10_000 });
+  const reactionEpisodes = await episodic.getEpisodes({ type: 'reaction', sessionId, limit: 10_000 });
   const reactions = reactionEpisodes
     .map(parseReaction)
     .filter((r): r is SessionReaction => r !== undefined && turns.some((t) => t.turnId === r.turnId));

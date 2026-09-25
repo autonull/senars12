@@ -1,6 +1,6 @@
 import { ulid } from 'ulid';
 import { AbstractEventLog } from './AbstractEventLog.js';
-import type { CognitiveEvent, EventLogConfig } from './EventLog.js';
+import type { CognitiveEvent, EventLogConfig, EventLogQuery } from './EventLog.js';
 import { EventLogError } from './EventLog.js';
 
 export class InMemoryEventLog extends AbstractEventLog {
@@ -26,6 +26,22 @@ export class InMemoryEventLog extends AbstractEventLog {
 
   generateId(): string {
     return ulid();
+  }
+
+  async query(query: EventLogQuery): Promise<CognitiveEvent[]> {
+    let matches = this.#events.filter((e) => {
+      if (query.correlationId && e.correlationId !== query.correlationId) return false;
+      if (query.types && !query.types.includes(e.type)) return false;
+      if (query.timeRange) {
+        const [start, end] = query.timeRange;
+        if (e.timestamp < start || e.timestamp > end) return false;
+      }
+      return true;
+    });
+    if (query.limit !== undefined && matches.length > query.limit) {
+      matches = matches.slice(-query.limit);
+    }
+    return matches;
   }
 
   async getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]> {

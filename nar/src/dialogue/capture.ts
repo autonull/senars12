@@ -167,7 +167,7 @@ export class DialogueCapture {
           responseDigest: turn.responseDigest,
           grounding: turn.grounding,
         }),
-        { correlationId: input.correlationId, sessionId: turn.sessionId, turnId }
+        { correlationId: input.correlationId, sessionId: turn.sessionId, turnId, context: [turnId] }
       )
       .catch(() => {});
     // I6 relaxation: raw text goes to the dedicated sidecar only.
@@ -275,7 +275,7 @@ export class DialogueCapture {
           correctionDigest: reaction.correctionDigest,
           hasCorrectionEmbedding: correctionEmbedding !== undefined,
         }),
-        { correlationId: turn.sessionId, sessionId: turn.sessionId, turnId, kind }
+        { correlationId: turn.sessionId, sessionId: turn.sessionId, turnId, kind, causes: [turnId] }
       )
       .catch(() => {});
     // Sidecar: attach the correction text to the existing exchange record.

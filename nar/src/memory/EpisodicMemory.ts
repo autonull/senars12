@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import type { Episode, EpisodeType, EpisodicMemory as UtilEpisodicMemory } from '@senars/util';
+import { ulid } from 'ulid';
 
 export type { EpisodicMemoryConfig } from '@senars/util';
 export type { Episode, EpisodeType };
@@ -25,6 +26,8 @@ export class EpisodicMemory implements UtilEpisodicMemory {
   private currentDay: string | null = null;
   /** D8: episodes dropped only if a rollover write itself fails. */
   static droppedTotal = 0;
+  /** Phase D (REFACTOR.todo1): lazy metadata index — sessionId/correlationId filters without O(all) scans. */
+  #index: Map<string, Episode[]> | null = null;
 
   constructor(
     config: Partial<{
@@ -48,12 +51,21 @@ export class EpisodicMemory implements UtilEpisodicMemory {
   ): Promise<void> {
     if (!this.config.enabled) return;
 
+    // Phase D: reserved causal keys lift onto the Episode; everything else stays in metadata.
+    const { id: causalId, causes, consequences, context, ...meta } = metadata;
     const episode: Episode = {
       timestamp: Date.now(),
       type,
       content,
-      metadata,
+      metadata: meta,
+      id: typeof causalId === 'string' ? causalId : ulid(),
+      ...(Array.isArray(causes) ? { causes: causes as string[] } : {}),
+      ...(Array.isArray(consequences) ? { consequences: consequences as string[] } : {}),
+      ...(Array.isArray(context) ? { context: context as string[] } : {}),
     };
+
+    this.#index?.get(`cid:${meta.correlationId}`)?.push(episode);
+    this.#index?.get(`sid:${meta.sessionId}`)?.push(episode);
 
     await this.appendToCurrentFile(JSON.stringify(episode));
   }
@@ -81,6 +93,83 @@ export class EpisodicMemory implements UtilEpisodicMemory {
 
   // Internal methods (not part of the public interface)
   async getEpisodes(options?: {
+    timeRange?: [number, number];
+    type?: EpisodeType;
+    limit?: number;
+    sessionId?: string;
+    correlationId?: string;
+  }): Promise<Episode[]> {
+    if (options?.sessionId || options?.correlationId) {
+      const indexed = await this.#queryIndexed(options);
+      if (indexed) return indexed;
+    }
+    return this.#scanEpisodes(options);
+  }
+
+  /** Phase D: indexed path — O(matches) after a one-time index build. */
+  async #queryIndexed(options: {
+    timeRange?: [number, number];
+    type?: EpisodeType;
+    limit?: number;
+    sessionId?: string;
+    correlationId?: string;
+  }): Promise<Episode[] | null> {
+    try {
+      if (!this.#index) await this.#buildIndex();
+    } catch {
+      return null; // fall back to the scan path
+    }
+    const index = this.#index;
+    if (!index) return null;
+    const sources: Episode[][] = [];
+    if (options.correlationId) sources.push(index.get(`cid:${options.correlationId}`) ?? []);
+    if (options.sessionId) sources.push(index.get(`sid:${options.sessionId}`) ?? []);
+    const candidates = sources.length === 1 ? sources[0]! : [...new Set(sources.flat())]; // conjunction of provided keys
+    let matches = candidates.filter((e) => {
+      if (options.type && e.type !== options.type) return false;
+      if (options.timeRange) {
+        const [start, end] = options.timeRange;
+        if (e.timestamp < start || e.timestamp > end) return false;
+      }
+      return true;
+    });
+    if (options.limit !== undefined && matches.length > options.limit) {
+      matches = matches.slice(-options.limit); // most recent wins, matching scan semantics
+    }
+    return matches;
+  }
+
+  /** One-time pass over all files, bucketing episodes by sessionId/correlationId. */
+  async #buildIndex(): Promise<void> {
+    const index = new Map<string, Episode[]>();
+    const files = (await fs.readdir(this.config.basePath)).filter((f) => f.endsWith('.jsonl'));
+    for (const file of files) {
+      const content = await fs.readFile(join(this.config.basePath, file), 'utf-8');
+      for (const line of content.split('\n')) {
+        if (!line.trim()) continue;
+        try {
+          const episode = JSON.parse(line) as Episode;
+          const cid = (episode.metadata as { correlationId?: unknown } | undefined)?.correlationId;
+          const sid = (episode.metadata as { sessionId?: unknown } | undefined)?.sessionId;
+          if (typeof cid === 'string') {
+            const bucket = index.get(`cid:${cid}`) ?? [];
+            bucket.push(episode);
+            index.set(`cid:${cid}`, bucket);
+          }
+          if (typeof sid === 'string') {
+            const bucket = index.get(`sid:${sid}`) ?? [];
+            bucket.push(episode);
+            index.set(`sid:${sid}`, bucket);
+          }
+        } catch {
+          // Skip malformed entries
+        }
+      }
+    }
+    this.#index = index;
+  }
+
+  async #scanEpisodes(options?: {
     timeRange?: [number, number];
     type?: EpisodeType;
     limit?: number;
@@ -162,6 +251,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     this.currentEntries = 0;
     this.rolloverIndex = 0;
     this.currentDay = null;
+    this.#index = null;
   }
 
   async recallRecent(limit = 5): Promise<Episode[]> {

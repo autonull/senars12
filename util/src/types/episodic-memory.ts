@@ -13,6 +13,12 @@ export interface Episode {
   type: EpisodeType;
   content: string;
   metadata: Record<string, unknown>;
+  /** Causal-graph fields (REFACTOR.todo1 Phase D) — optional, JSONL-tolerant. */
+  id?: string;
+  /** Upstream episode/turn references (e.g. reaction → dialogue turnId). */
+  causes?: string[];
+  consequences?: string[];
+  context?: string[];
 }
 
 export interface EpisodicMemoryConfig {

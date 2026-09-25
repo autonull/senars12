@@ -2,6 +2,14 @@ export type { CognitiveEvent } from '../CognitiveEvent.js';
 
 import type { CognitiveEvent } from '../CognitiveEvent.js';
 
+/** Phase D (REFACTOR.todo1): indexed event-log query. All fields optional. */
+export interface EventLogQuery {
+  correlationId?: string;
+  types?: string[];
+  timeRange?: [number, number];
+  limit?: number;
+}
+
 export interface EventLog {
   append(event: Omit<CognitiveEvent, 'id' | 'timestamp'>): Promise<CognitiveEvent>;
 
@@ -10,6 +18,9 @@ export interface EventLog {
     fromId?: string;
     types?: string[];
   }): AsyncIterable<CognitiveEvent>;
+
+  /** Optional indexed query — implementations without an index may omit it. */
+  query?(query: EventLogQuery): Promise<CognitiveEvent[]>;
 
   getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]>;
 

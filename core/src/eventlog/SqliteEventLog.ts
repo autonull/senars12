@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { monotonicFactory } from 'ulid';
 import { AbstractEventLog } from './AbstractEventLog.js';
-import type { CognitiveEvent, EventLogConfig } from './EventLog.js';
+import type { CognitiveEvent, EventLogConfig, EventLogQuery } from './EventLog.js';
 import { EventLogError } from './EventLog.js';
 
 const ulid = monotonicFactory();
@@ -49,6 +49,33 @@ export class SqliteEventLog extends AbstractEventLog {
 
   generateId(): string {
     return ulid();
+  }
+
+  async query(query: EventLogQuery): Promise<CognitiveEvent[]> {
+    const clauses: string[] = [];
+    const params: (string | number)[] = [];
+    if (query.correlationId) {
+      clauses.push('correlation_id = ?');
+      params.push(query.correlationId);
+    }
+    if (query.types?.length) {
+      clauses.push(`type IN (${query.types.map(() => '?').join(',')})`);
+      params.push(...query.types);
+    }
+    if (query.timeRange) {
+      const [start, end] = query.timeRange;
+      clauses.push('timestamp >= ? AND timestamp <= ?');
+      params.push(start, end);
+    }
+    const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+    // Limit keeps the most recent events (matching InMemoryEventLog semantics).
+    const order =
+      query.limit !== undefined
+        ? ` ORDER BY id DESC LIMIT ${Math.floor(query.limit)}`
+        : ' ORDER BY id';
+    const rows = this.#db.prepare(`SELECT * FROM events ${where}${order}`).all(...params) as Row[];
+    const events = rows.map((row) => this.#rowToEvent(row));
+    return query.limit !== undefined ? events.reverse() : events;
   }
 
   async getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]> {

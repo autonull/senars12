@@ -170,3 +170,68 @@ export class DerivationRecorder {
     this.completed.length = 0;
   }
 }
+
+/**
+ * Phase D (REFACTOR.todo1): bounded ring + push-based live subscription.
+ * Zero-cost when nobody subscribes; each `stream()` call is an independent
+ * consumer (tee) that replays the current ring before going live.
+ */
+export class ProofStreamRing<T> {
+  readonly #items: T[] = [];
+  readonly #listeners = new Set<(item: T) => void>();
+
+  constructor(private readonly capacity: number) {}
+
+  push(item: T): void {
+    this.#items.push(item);
+    while (this.#items.length > this.capacity) this.#items.shift();
+    for (const listener of this.#listeners) listener(item);
+  }
+
+  snapshot(limit = this.capacity): readonly T[] {
+    return this.#items.slice(-limit);
+  }
+
+  /** Live view: ring snapshot first, then pushed items; `return`/abort unsubscribes. */
+  stream(signal?: AbortSignal): AsyncIterable<T> {
+    const queue: T[] = this.#items.slice();
+    let wake: (() => void) | null = null;
+    let live = true;
+    const listener = (item: T): void => {
+      queue.push(item);
+      const w = wake;
+      wake = null;
+      w?.();
+    };
+    this.#listeners.add(listener);
+    const unsubscribe = (): void => {
+      if (!live) return;
+      live = false;
+      this.#listeners.delete(listener);
+      const w = wake;
+      wake = null;
+      w?.();
+    };
+    signal?.addEventListener('abort', unsubscribe, { once: true });
+    return {
+      [Symbol.asyncIterator]() {
+        return {
+          next: async (): Promise<IteratorResult<T>> => {
+            for (;;) {
+              const item = queue.shift();
+              if (item !== undefined) return { done: false, value: item };
+              if (!live) return { done: true, value: undefined };
+              await new Promise<void>((resolve) => {
+                wake = resolve;
+              });
+            }
+          },
+          return: async (): Promise<IteratorResult<T>> => {
+            unsubscribe();
+            return { done: true, value: undefined };
+          },
+        };
+      },
+    };
+  }
+}

@@ -32,6 +32,7 @@ import { BagStrategy, Reasoner } from './reason';
 import type { Reflex } from './reflex/Reflex.js';
 import { RLFPLearner } from './rlfp';
 import { RuleProcessor } from './rules';
+import { ProofStreamRing } from './rules/recorder.js';
 import { ReasoningAboutReasoning } from './self';
 import { TaskManager } from './task';
 import type { Term } from './terms';
@@ -73,8 +74,8 @@ export class NAR extends BaseComponent {
   self?: ReasoningAboutReasoning;
   rlfp?: RLFPLearner;
   cognitiveController?: CognitiveController;
-  /** TODO25 follow-on: bounded derivation-chain ring, fuel for SchemaInductor. */
-  #derivationChains: Task[][] = [];
+  /** TODO25 follow-on: bounded derivation-chain ring, fuel for SchemaInductor; Phase D live ProofStream source. */
+  #proofRing = new ProofStreamRing<readonly Task[]>(DERIVATION_RING_CAP);
   driveManager?: DriveManager;
   private readonly systemEventBus: NarEventBus;
 
@@ -356,13 +357,17 @@ export class NAR extends BaseComponent {
 
   /** Record one derivation chain (bounded ring; called from the CognitiveController sink). */
   #recordDerivationChain(chain: readonly Task[]): void {
-    this.#derivationChains.push([...chain]);
-    if (this.#derivationChains.length > DERIVATION_RING_CAP) this.#derivationChains.shift();
+    this.#proofRing.push([...chain]);
   }
 
   /** Latest derivation chains (bounded ring) — SchemaInductor fuel (TODO25). */
   getDerivationChains(limit = 64): readonly (readonly Task[])[] {
-    return this.#derivationChains.slice(-limit);
+    return this.#proofRing.snapshot(limit);
+  }
+
+  /** Phase D (REFACTOR.todo1): live ProofStream over the bounded derivation ring. */
+  getProofStream(signal?: AbortSignal): AsyncIterable<readonly Task[]> {
+    return this.#proofRing.stream(signal);
   }
 
   getDriveManager(): DriveManager | undefined {
