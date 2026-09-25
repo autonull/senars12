@@ -37,3 +37,6 @@ export type {
   IGateRegistry,
   IDriveManager,
 } from './interfaces.js';
+
+export { ThreadScope, threadScope } from './thread-scope.js';
+export type { ThreadScopeState } from './thread-scope.js';

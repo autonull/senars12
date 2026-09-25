@@ -30,6 +30,7 @@ import { recordEmbeddingCacheEvent } from '../metrics/prometheus.js';
 import { EpsilonGreedyReflex } from '../reflex/EpsilonGreedyReflex.js';
 import type { Reflex } from '../reflex/Reflex.js';
 import type { NARConfig } from './config.js';
+import { threadScope } from '../kernel/thread-scope.js';
 
 /**
  * System One runtime (extracted from NAR — M2): owns the Tier-1 manifold,
@@ -42,20 +43,26 @@ export class SystemOneRuntime {
   readonly dispatcher?: CognitiveDispatcher;
   /** TODO23 unified decision facade (heads + contrastive + router), `decide`/`choose`. */
   readonly decider?: Decider;
-  readonly groundednessGate?: (narration: string) => Promise<boolean>;
+  readonly groundednessGate?: (narration: string, correlationId: string) => Promise<boolean | { grounded: boolean; score?: number }>;
   readonly traceGrader?: (trace: TraceGradeInput) => Promise<TraceGradeResult>;
   /** TODO24: correlationId → last trace quality, for retrospect strategy audit. */
   readonly traceGradeHistory = new Map<string, number>();
   readonly dataset?: JudgmentDataset;
-  /** CLM contrastive exemplar memory — lazy (Phase E): no allocation when System One is disabled. */
-  #contrastiveInstance?: ContrastiveMemory;
-  get contrastive(): ContrastiveMemory {
-    this.#contrastiveInstance ??= new ContrastiveMemory();
-    return this.#contrastiveInstance;
-  }
 
   private readonly config: NARConfig;
   private readonly logger: ReturnType<typeof createLogger>;
+
+  /**
+   * Get a per-correlationId ContrastiveMemory instance.
+   * Uses ThreadScope for isolation; single-correlationId path is byte-identical.
+   */
+  getContrastive(correlationId: string): ContrastiveMemory {
+    const scope = threadScope.get(correlationId);
+    if (!scope.contrastiveMemory) {
+      scope.contrastiveMemory = new ContrastiveMemory();
+    }
+    return scope.contrastiveMemory as ContrastiveMemory;
+  }
 
   constructor(
     config: NARConfig,
@@ -87,6 +94,10 @@ export class SystemOneRuntime {
         metricsSink: recordEmbeddingCacheEvent,
       });
     this.embeddingCache = embeddingCache;
+
+    // Use default correlationId for manifold/dispatcher/decider-level contrastive
+    // (single-correlationId path byte-identical)
+    const defaultContrastive = this.getContrastive('default');
 
     // Create manifold with per-head config from systemOne config
     let manifold: JudgmentManifold;
@@ -132,7 +143,7 @@ export class SystemOneRuntime {
         maxBatchSize: 64,
         maxLatencyMs: 33,
         abstainThreshold: 0.3,
-        contrastive: this.contrastive,
+        contrastive: defaultContrastive,
       });
     }
 
@@ -179,7 +190,7 @@ export class SystemOneRuntime {
           decayRate: systemOneConfig.provisional?.decayRate ?? 0.3,
           maxTtlMs: systemOneConfig.provisional?.maxTtlMs ?? 30_000,
         },
-        contrastive: this.contrastive,
+        contrastive: defaultContrastive,
       },
       cortex
     );
@@ -189,16 +200,16 @@ export class SystemOneRuntime {
     this.decider = createDecider({
       judge: (pointer, queries, budget) => this.dispatcher!.judge(pointer, queries, budget),
       embeddingCache,
-      contrastive: this.contrastive,
+      contrastive: defaultContrastive,
       maxBatchSize: 64,
     });
 
-    // Create groundedness gate for egress filtering
+    // Create groundedness gate for egress filtering (per-correlationId contrastive)
     this.groundednessGate = createGroundednessGate({
       manifold,
       embeddingCache,
       threshold: 0.7,
-      contrastive: this.contrastive,
+      getContrastive: (cid) => this.getContrastive(cid),
     });
 
     // E4: trace grader over the live manifold; dataset auto-flush (D3) when enabled
@@ -216,7 +227,7 @@ export class SystemOneRuntime {
       manifold,
       embeddingCache,
       dataset,
-      contrastive: this.contrastive,
+      getContrastive: (cid) => this.getContrastive(cid),
     });
     // TODO24: record correlationId → quality per graded trace (strategy audit).
     const traceGrader = this.traceGrader;
@@ -262,23 +273,25 @@ export class SystemOneRuntime {
    * the distillation dataset as positives, seed the exemplar memory,
    * and refit InfoNCE calibrations. Idempotent; no-op when System One is
    * disabled or no belief source is supplied.
+   * Uses 'default' correlationId for maintenance operations.
    */
   async refreshContrastive(
     nar?: { getBeliefs: () => readonly unknown[] },
     episodic?: import('../memory/EpisodicMemory.js').EpisodicMemory
   ): Promise<void> {
     if (!this.embeddingCache || !nar) return;
+    const contrastive = this.getContrastive('default');
     const mined = await mineHardNegatives(nar as never, episodic, { limit: 64 });
-    await seedContrastiveMemory(mined, this.contrastive, this.embeddingCache);
+    await seedContrastiveMemory(mined, contrastive, this.embeddingCache);
     if (this.dataset) {
       const positives = this.dataset
         .all()
         .filter((l) => l.source === 'conversation' && l.domain !== 'ood' && (l.score ?? 0) >= 0.7)
         .map((l) => this.dataset!.getVector(l.evidenceId))
         .filter((v): v is Float32Array => !!v);
-      if (positives.length > 0) this.contrastive.addEmbeddings('groundedness', { positives });
+      if (positives.length > 0) contrastive.addEmbeddings('groundedness', { positives });
     }
-    this.contrastive.calibrateAll();
+    contrastive.calibrateAll();
   }
 
   /**
@@ -342,7 +355,7 @@ export class SystemOneRuntime {
       budget: this.s1Budget,
       dataset: this.dataset,
       maxCandidates: options.maxCandidates ?? this.config.systemOne?.lmReflex?.maxCandidates ?? 3,
-      contrastive: this.contrastive,
+      contrastive: this.getContrastive('default'),
     });
     gameFocus.bindReflex(lmReflex);
     gameFocus.setReflexPrefetchContext?.({

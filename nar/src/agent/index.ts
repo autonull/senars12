@@ -17,6 +17,7 @@ import { NAREngine } from '../engine/NAREngine.js';
 import { TrajectoryStore } from '../rlfp/trajectory-store.js';
 import { CoreToolRegistryAdapter } from '../tools';
 import { createCompactionPromptBuilder } from './compaction.js';
+import type { ThreadScope } from '../kernel/thread-scope.js';
 
 import type { CreateAgentConfig } from './config.js';
 
@@ -209,6 +210,7 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
     narrateTier: config.profile?.narrateTier,
     consolidateLearning: (options) => narInstance.consolidateLearning(options),
     consolidation: config.consolidation,
+    threadScope: config.threadScope,
   });
 
   const narEngine = new NAREngine(narInstance, agent.emitCognitive.bind(agent));
@@ -229,7 +231,7 @@ let delegationDepth = 0;
  */
 const createDelegateRunner =
   (
-    base: Pick<CreateAgentConfig, 'nar' | 'lmService' | 'episodicMemory' | 'profile'>
+    base: Pick<CreateAgentConfig, 'nar' | 'lmService' | 'episodicMemory' | 'profile' | 'threadScope'>
   ): ((prompt: string) => Promise<string>) =>
   async (prompt: string) => {
     if (delegationDepth >= MAX_DELEGATION_DEPTH) {
@@ -240,6 +242,7 @@ const createDelegateRunner =
       lmService: base.lmService,
       episodicMemory: base.episodicMemory,
       profile: base.profile,
+      threadScope: base.threadScope,
     });
     delegationDepth++;
     try {

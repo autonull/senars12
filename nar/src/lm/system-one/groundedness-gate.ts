@@ -1,12 +1,13 @@
 import { createDecider, type Decider } from './decide.js';
 import type { EmbeddingCache, JudgmentManifold, JudgmentQuery } from './types.js';
+import type { ContrastiveMemory } from './contrastive.js';
 
 export interface GroundednessGateOptions {
   manifold: JudgmentManifold;
   embeddingCache: EmbeddingCache;
   threshold?: number;
-  /** CLM contrastive memory: zero-shot cosine entailment when the manifold head abstains/missing. */
-  contrastive?: import('./contrastive.js').ContrastiveMemory;
+  /** CLM contrastive memory factory: returns per-correlationId contrastive memory for isolation. */
+  getContrastive?: (correlationId: string) => ContrastiveMemory;
 }
 
 const S1_BUDGET = {
@@ -32,16 +33,17 @@ const GROUNDEDNESS_QUERY: JudgmentQuery = {
  */
 export function createGroundednessGate(
   options: GroundednessGateOptions
-): (narration: string) => Promise<boolean> {
-  const { manifold, embeddingCache, threshold = 0.7, contrastive } = options;
-  const decider: Decider = createDecider({
-    judge: (pointer, queries, budget) => manifold.judgeBatch(pointer, queries, budget),
-    embeddingCache,
-    contrastive,
-  });
+): (narration: string, correlationId: string) => Promise<boolean | { grounded: boolean; score?: number }> {
+  const { manifold, embeddingCache, threshold = 0.7, getContrastive } = options;
 
-  return async (narration: string): Promise<boolean> => {
+  return async (narration: string, correlationId: string): Promise<boolean | { grounded: boolean; score?: number }> => {
     try {
+      const contrastive = getContrastive?.(correlationId);
+      const decider: Decider = createDecider({
+        judge: (pointer, queries, budget) => manifold.judgeBatch(pointer, queries, budget),
+        embeddingCache,
+        contrastive,
+      });
       const result = await decider.decide({
         context: narration,
         queries: [GROUNDEDNESS_QUERY],
@@ -50,15 +52,15 @@ export function createGroundednessGate(
       });
       const proposition = result.verdicts[0]?.proposition;
       if (proposition && !proposition.abstained && proposition.kind === 'evaluate') {
-        return proposition.score >= threshold;
+        return { grounded: proposition.score >= threshold, score: proposition.score };
       }
       // CLM contrastive fallback: abstained head ⇒ zero-shot entailment score.
       if (result.contrastive.score !== undefined) {
-        return result.contrastive.score >= threshold;
+        return { grounded: result.contrastive.score >= threshold, score: result.contrastive.score };
       }
-      return false;
+      return { grounded: false, score: 0 };
     } catch {
-      return false;
+      return { grounded: false, score: 0 };
     }
   };
 }

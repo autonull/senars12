@@ -5,6 +5,7 @@ import type {
   BridgeOptions as UtilBridgeOptions,
 } from '@senars/util';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
+import type { ThreadScope } from '@senars/nar/kernel';
 import type { ChatOptions, ChatStreamEvent } from '../ChatService.js';
 /**
  * Agent public type definitions.
@@ -45,8 +46,8 @@ export interface AgentOptions {
   sessionManager?: PersistableSessionManager;
   /** Shared feedback observer for unified tool statistics. */
   feedbackObserver?: ToolFeedbackObserver;
-  /** System One egress gate: returns true when a narration draft is grounded enough to emit. */
-  groundednessGate?: (narration: string) => Promise<boolean>;
+  /** System One egress gate: returns true (or `{grounded, score}`) when a narration draft is grounded enough to emit. */
+  groundednessGate?: (narration: string, correlationId: string) => Promise<boolean | { grounded: boolean; score?: number }>;
   /** E4 agent-trace grading: grades the completed cycle's narration + executed tools into the distillation dataset. */
   traceGrader?: (trace: {
     narration: string;
@@ -61,6 +62,8 @@ export interface AgentOptions {
   consolidateLearning?: (options: { budget?: number }) => Promise<void>;
   /** Consolidation config: enabled by default, optional per-invocation budget. */
   consolidation?: { enabled?: boolean; budget?: number };
+  /** Phase A (REFACTOR.todo4): per-correlationId scope for ContrastiveMemory isolation. */
+  threadScope?: ThreadScope;
 }
 
 export interface ParsedCommand {

@@ -1,4 +1,5 @@
 import type { EpisodicMemory } from '@senars/util';
+import type { ThreadScope } from '@senars/nar/kernel';
 import { AgentBridge } from './AgentBridge.js';
 import { ApprovalService } from './ApprovalService.js';
 import { type CycleHost, runCycle, runCycleStream } from './agent/phases.js';
@@ -44,13 +45,17 @@ export class Agent {
   readonly cortex?: LLMCortex;
   readonly episodicMemory?: EpisodicMemory;
   readonly sessionManager?: PersistableSessionManager;
+  readonly threadScope?: ThreadScope;
 
   #cognitiveListeners = new Set<(e: CognitiveEvent) => void>();
   #transports = new Map<string, Connection>();
   #transportHandlers = new Map<string, (msg: { text: string }) => Promise<void>>();
   #skills = new Map<string, SkillDefinition>();
   #commandParser?: (text: string) => ParsedCommand[];
-  #groundednessGate?: (narration: string) => Promise<boolean>;
+  #groundednessGate?: (
+    narration: string,
+    correlationId: string
+  ) => Promise<boolean | { grounded: boolean; score?: number }>;
   #traceGrader?: (trace: {
     narration: string;
     toolCalls: readonly { command: string; success: boolean }[];
@@ -83,6 +88,7 @@ export class Agent {
     this.#macroPipeline = opts.macroPipeline;
     this.#consolidateLearning = opts.consolidateLearning;
     this.#consolidation = opts.consolidation;
+    this.threadScope = opts.threadScope;
 
     this.memory.connectLog(this.log);
     this.memory.connectEngines(this.engines);
@@ -272,6 +278,7 @@ export class Agent {
       macroPipeline: this.#macroPipeline,
       consolidateLearning: this.#consolidateLearning,
       consolidation: this.#consolidation,
+      threadScope: this.threadScope,
       emit: (e) => this.#emitCognitive(e),
       getLastResponse: () => this.#lastResponse,
       setLastResponse: (v) => {

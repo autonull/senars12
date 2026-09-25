@@ -140,6 +140,10 @@ export {
   type ToolFeedbackObserver,
 } from './feedback/ToolFeedbackObserver.js';
 
+/** @public Unified middleware primitive (REFACTOR.todo4 Phase A). */
+export { dispatch, passthrough } from './middleware.js';
+export type { Middleware } from './middleware.js';
+
 /** @public Shared utility functions (deduplicated across packages). */
 export {
   clamp,

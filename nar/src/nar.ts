@@ -471,7 +471,10 @@ export class NAR extends BaseComponent {
   }
 
   /** Get System One groundedness gate (for egress filtering). */
-  getSystemOneGroundednessGate(): ((narration: string) => Promise<boolean>) | undefined {
+  getSystemOneGroundednessGate(): ((
+    narration: string,
+    correlationId: string
+  ) => Promise<boolean | { grounded: boolean; score?: number }>) | undefined {
     return this.systemOne.groundednessGate;
   }
 
@@ -481,10 +484,10 @@ export class NAR extends BaseComponent {
   }
 
   /** CLM contrastive exemplar memory (zero-shot scoring; undefined when disabled). */
-  getSystemOneContrastive():
+  getSystemOneContrastive(correlationId = 'default'):
     | import('./lm/system-one/contrastive.js').ContrastiveMemory
     | undefined {
-    return this.systemOne.enabled ? this.systemOne.contrastive : undefined;
+    return this.systemOne.enabled ? this.systemOne.getContrastive(correlationId) : undefined;
   }
 
   /** Refresh CLM contrastive exemplars from live state (hard negatives + calibration). */

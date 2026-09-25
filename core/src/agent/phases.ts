@@ -119,7 +119,7 @@ const narrateStreaming = async (ctx: MacroContext): Promise<void> => {
     }
     if (!state.narrativeText) state.narrativeText = host.getLastResponse();
     else if (host.groundednessGate) {
-      const verdict = gateVerdict(await host.groundednessGate(state.narrativeText));
+      const verdict = gateVerdict(await host.groundednessGate(state.narrativeText, stimulus.correlationId));
       state.egress = verdict;
       if (!verdict.grounded) {
         reportEgressRejection(host, stimulus.correlationId, verdict.score);

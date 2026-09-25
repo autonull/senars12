@@ -5,6 +5,7 @@ import { SenarsError } from '@senars/util/errors';
 import { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { GateRegistry } from '../kernel/GateRegistry.js';
 import { createGateRegistry } from '../kernel/GateRegistry.js';
+import type { ThreadScope } from '../kernel/thread-scope.js';
 import type { CapabilityTier } from './profiles.js';
 import { resolveProfile } from './profiles.js';
 import type { LoadedHeadBundle } from '../lm/system-one/wasi-head-bundle.js';
@@ -88,6 +89,7 @@ export class NARBuilder {
   private trajectoryStorePath?: string;
   private consolidation?: CreateAgentConfig['consolidation'];
   private deviceHeadSpec?: { wasmPath: string; modelDigest: string; dimension: number };
+  private threadScope?: ThreadScope;
   private steps: BuilderStepRecord[] = [];
 
   /** TODO19 F3: seed the builder from a named profile preset (profiles are data). */
@@ -205,6 +207,12 @@ export class NARBuilder {
     return this.record('consolidation', consolidation?.enabled !== false);
   }
 
+  /** Phase A (REFACTOR.todo4): per-correlationId scope for ContrastiveMemory isolation. */
+  withThreadScope(threadScope: ThreadScope): this {
+    this.threadScope = threadScope;
+    return this.record('threadScope', true);
+  }
+
   /** P7: the tier-0 head, compiled to a zero-import WASM bundle and loaded sandboxed. */
   withDeviceHead(spec: { wasmPath: string; modelDigest: string; dimension: number }): this {
     this.deviceHeadSpec = spec;
@@ -275,6 +283,7 @@ export class NARBuilder {
       ...(this.promptBuilder ? { promptBuilder: this.promptBuilder } : {}),
       ...(this.trajectoryStorePath ? { trajectoryStorePath: this.trajectoryStorePath } : {}),
       ...(this.consolidation ? { consolidation: this.consolidation } : {}),
+      ...(this.threadScope ? { threadScope: this.threadScope } : {}),
     };
 
     const { createAgent } = await import('./index.js');

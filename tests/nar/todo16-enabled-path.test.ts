@@ -194,8 +194,10 @@ describe('System One Full Enabled Path Integration', () => {
     nar = await createSystemOneNAR();
     const gate = nar.getSystemOneGroundednessGate();
     expect(gate).toBeDefined();
-    expect(typeof (await gate!('The sky is blue.'))).toBe('boolean');
-    expect(typeof (await gate!('The moon is made of green cheese.'))).toBe('boolean');
+    const result1 = await gate!('The sky is blue.', 'test-correlation');
+    const result2 = await gate!('The moon is made of green cheese.', 'test-correlation');
+    expect(typeof result1.grounded).toBe('boolean');
+    expect(typeof result2.grounded).toBe('boolean');
     expect(judgmentEvents.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -317,7 +319,8 @@ describe('System One Full Enabled Path Integration', () => {
     expect(pea.candidates.length).toBeGreaterThan(0);
 
     // 3. Groundedness egress
-    expect(typeof (await gate('narration draft'))).toBe('boolean');
+    const egressResult = await gate('narration draft', 'test-correlation');
+    expect(typeof egressResult.grounded).toBe('boolean');
 
     // 4. Telemetry: bus events + metrics both populated
     expect(judgmentEvents.length).toBeGreaterThan(0);

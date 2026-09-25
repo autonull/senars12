@@ -1,4 +1,6 @@
 import type { EpisodicMemory } from '@senars/util';
+import { dispatch, type Middleware } from '@senars/util';
+import type { ThreadScope } from '@senars/nar/kernel';
 import type { ChatOptions, ChatStreamEvent } from '../ChatService.js';
 import type { CognitiveEvent } from '../CognitiveEvent.js';
 import type { LLMCortex } from '../cortex/LLMCortex.js';
@@ -34,7 +36,8 @@ export interface CycleHost {
   readonly commandParser?: (text: string) => { command: string; args: string[]; raw: string }[];
   /** System One egress gate (§7.4): returns true (or `{grounded, score}`) when the narration is grounded enough to emit. */
   readonly groundednessGate?: (
-    narration: string
+    narration: string,
+    correlationId: string
   ) => Promise<boolean | { grounded: boolean; score?: number }>;
   /** E4: grades the completed cycle (narration + executed tools) into the distillation dataset. */
   readonly traceGrader?: (trace: {
@@ -52,6 +55,8 @@ export interface CycleHost {
   readonly consolidateLearning?: (options: { budget?: number }) => Promise<void>;
   /** Consolidation config: default enabled, optional per-invocation budget. */
   readonly consolidation?: { enabled?: boolean; budget?: number };
+  /** Phase A (REFACTOR.todo4): per-correlationId scope for ContrastiveMemory isolation. */
+  readonly threadScope?: ThreadScope;
 
   emit(event: CognitiveEvent): void;
 
@@ -80,7 +85,7 @@ export interface MacroContext {
   readonly state: MacroCycleState;
 }
 
-export type MacroPhase = (ctx: MacroContext, next: () => Promise<void>) => Promise<void>;
+export type MacroPhase = Middleware<MacroContext>;
 
 /** Minimal async queue joining middleware-dispatched narration to the consumer generator. */
 export class AsyncQueue<T> {
@@ -118,18 +123,12 @@ export class AsyncQueue<T> {
   }
 }
 
-/** Onion dispatch — same shape as `runTick` in `nar/src/tick/tick.ts`. */
+/** Onion dispatch — delegated to shared primitive in `@senars/util`. */
 export const dispatchMacro = async (
   phases: readonly MacroPhase[],
   ctx: MacroContext
 ): Promise<void> => {
-  let index = -1;
-  const dispatch = async (i: number): Promise<void> => {
-    if (i <= index) throw new Error('next() called multiple times');
-    index = i;
-    await phases[i]?.(ctx, () => dispatch(i + 1));
-  };
-  await dispatch(0);
+  await dispatch(phases, ctx);
 };
 
 export const createMacroContext = (

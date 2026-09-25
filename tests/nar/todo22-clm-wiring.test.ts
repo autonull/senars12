@@ -100,15 +100,20 @@ describe('TODO22 CLM — groundedness gate contrastive fallback', () => {
     const memory = await memoryWithExemplars();
     // abstainThreshold 1.0 ⇒ every head abstains ⇒ gate falls back to contrastive.
     const manifold = createManifold(cache, { abstainThreshold: 1.0, contrastive: memory });
-    const gate = createGroundednessGate({ manifold, embeddingCache: cache, threshold: 0.4, contrastive: memory });
-    expect(await gate('sunny meadow day')).toBe(true);
-    expect(await gate('dark storm thunder night')).toBe(false);
+    const gate = createGroundednessGate({
+      manifold,
+      embeddingCache: cache,
+      threshold: 0.4,
+      getContrastive: () => memory,
+    });
+    expect((await gate('sunny meadow day', 'test')).grounded).toBe(true);
+    expect((await gate('dark storm thunder night', 'test')).grounded).toBe(false);
   });
 
   it('fails closed when neither head nor contrastive is available', async () => {
     const manifold = createManifold(cache, { abstainThreshold: 1.0 });
     const gate = createGroundednessGate({ manifold, embeddingCache: cache, threshold: 0.7 });
-    expect(await gate('sunny meadow day')).toBe(false);
+    expect((await gate('sunny meadow day', 'test')).grounded).toBe(false);
   });
 });
 
@@ -116,7 +121,11 @@ describe('TODO22 CLM — trace grader contrastive quality', () => {
   it('emits contrastiveQuality for graded narrations', async () => {
     const memory = await memoryWithExemplars();
     const manifold = createManifold(cache, { contrastive: memory });
-    const grader = createTraceGrader({ manifold, embeddingCache: cache, contrastive: memory });
+    const grader = createTraceGrader({
+      manifold,
+      embeddingCache: cache,
+      getContrastive: () => memory,
+    });
     const result = await grader({ narration: 'sunny meadow day', toolCalls: [] });
     expect(result.contrastiveQuality).toBeDefined();
     expect(result.contrastiveQuality!).toBeGreaterThan(0.4);

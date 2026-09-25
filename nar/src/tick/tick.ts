@@ -1,4 +1,5 @@
 import type { Budget, Task, Term, TruthType } from '../types/core.js';
+import { dispatch, type Middleware, passthrough } from '@senars/util';
 
 export interface AIKRBudget {
   cycles: number;
@@ -34,7 +35,7 @@ export interface TickContext {
   state: TickState;
 }
 
-export type TickMiddleware = (ctx: TickContext, next: () => Promise<void>) => Promise<void>;
+export type TickMiddleware = Middleware<TickContext>;
 
 const emit = (ctx: TickContext, stage: string, detail?: string): void => {
   ctx.events.push({ tickId: ctx.tickId, stage, detail, at: Date.now() });
@@ -55,13 +56,6 @@ export interface TickHooks {
   learn?: TickHook;
   consolidate?: TickHook;
 }
-
-const passthrough =
-  (stage: string): TickMiddleware =>
-  async (ctx, next) => {
-    emit(ctx, stage);
-    await next();
-  };
 
 export const createTickPipeline = (hooks: TickHooks = {}): TickMiddleware[] => {
   const stage =
@@ -92,17 +86,21 @@ export const createTickPipeline = (hooks: TickHooks = {}): TickMiddleware[] => {
  */
 export const createPipeline: typeof createTickPipeline = createTickPipeline;
 
-export const perceiveMiddleware = passthrough('perceive');
-export const recallMiddleware = passthrough('recall');
-export const attendMiddleware = passthrough('attend');
-export const reasonMiddleware = passthrough('reason');
-export const proposeMiddleware = passthrough('propose');
-export const negotiateMiddleware = passthrough('negotiate');
-export const authorizeMiddleware = passthrough('authorize');
-export const actMiddleware = passthrough('act');
-export const validateMiddleware = passthrough('validate');
-export const learnMiddleware = passthrough('learn');
-export const consolidateMiddleware = passthrough('consolidate');
+const emitTick = (ctx: TickContext, stage: string): void => {
+  emit(ctx, stage);
+};
+
+export const perceiveMiddleware = passthrough('perceive', emitTick);
+export const recallMiddleware = passthrough('recall', emitTick);
+export const attendMiddleware = passthrough('attend', emitTick);
+export const reasonMiddleware = passthrough('reason', emitTick);
+export const proposeMiddleware = passthrough('propose', emitTick);
+export const negotiateMiddleware = passthrough('negotiate', emitTick);
+export const authorizeMiddleware = passthrough('authorize', emitTick);
+export const actMiddleware = passthrough('act', emitTick);
+export const validateMiddleware = passthrough('validate', emitTick);
+export const learnMiddleware = passthrough('learn', emitTick);
+export const consolidateMiddleware = passthrough('consolidate', emitTick);
 
 export const DEFAULT_PIPELINE: TickMiddleware[] = [
   perceiveMiddleware,
@@ -141,13 +139,7 @@ export async function runTick(
   ctx: TickContext,
   pipeline: TickMiddleware[] = DEFAULT_PIPELINE
 ): Promise<TickContext> {
-  let index = -1;
-  const dispatch = async (i: number): Promise<void> => {
-    if (i <= index) throw new Error('next() called multiple times');
-    index = i;
-    await pipeline[i]?.(ctx, () => dispatch(i + 1));
-  };
-  await dispatch(0);
+  await dispatch(pipeline, ctx);
   return ctx;
 }
 

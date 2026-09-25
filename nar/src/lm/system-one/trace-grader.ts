@@ -51,8 +51,8 @@ export interface TraceGraderOptions {
   dataset?: JudgmentDataset;
   budget?: ReasoningBudget;
   source?: string;
-  /** CLM contrastive memory: emits the zero-shot trace-quality metric. */
-  contrastive?: ContrastiveMemory;
+  /** CLM contrastive memory factory: returns per-correlationId contrastive memory for isolation. */
+  getContrastive?: (correlationId: string) => ContrastiveMemory;
 }
 
 const RISK_LEVELS: readonly string[] = HEAD_SPECS.risk.space ?? [];
@@ -89,7 +89,7 @@ export function createTraceGrader(options: TraceGraderOptions) {
     dataset,
     budget = DEFAULT_BUDGET,
     source = 'trace-grading',
-    contrastive,
+    getContrastive,
   } = options;
   const groundednessQuery = specToQuery(HEAD_SPECS.groundedness);
   const riskQuery: JudgmentQuery = {
@@ -120,6 +120,8 @@ export function createTraceGrader(options: TraceGraderOptions) {
 
     // CLM contrastive trace quality: zero-shot in-domain-ness of the narration.
     const narrationEmbedding = embeddingCache.read(narrationPointer);
+    const correlationId = trace.correlationId ?? 'default';
+    const contrastive = getContrastive?.(correlationId);
     const contrastiveQuality = narrationEmbedding
       ? contrastive?.score(narrationEmbedding, 'groundedness')
       : undefined;

@@ -20,6 +20,7 @@ import {
   type ConsolidationResult,
   consolidateEpisodes,
 } from '@senars/nar/memory/retrieval-verified';
+import { threadScope } from '@senars/nar/kernel';
 import { type AppConfig, loadConfig } from '../../config/index.js';
 import { readEpisodicConfig } from './env-config.js';
 
@@ -120,6 +121,7 @@ export async function createAgentFromEnv(
     .withTrajectoryStorePath(appConfig.systemOne?.distillation?.trajectoryPath)
     .withSkills(appConfig.bot.skills)
     .withEngines({ nar: appConfig.backends.nar.enabled })
+    .withThreadScope(threadScope)
     .build();
   const { nar, agent } = wired;
 

@@ -1,6 +1,7 @@
 import type { PromptBuilder } from '@senars/core';
 import type { PersistableSessionManager } from '@senars/core/memory';
 import type { EpisodicMemory, LMService, NAR } from '@senars/nar';
+import type { ThreadScope } from '../kernel/thread-scope.js';
 
 export interface CreateAgentConfig {
   nar?: NAR;
@@ -28,4 +29,6 @@ export interface CreateAgentConfig {
   /** Phase A (REFACTOR.todo2): macro-cycle learning consolidation (`consolidation` config block). */
   consolidation?: { enabled?: boolean; budget?: number };
   sessionManager?: PersistableSessionManager;
+  /** Phase A (REFACTOR.todo4): per-correlationId scope for ContrastiveMemory isolation. */
+  threadScope?: ThreadScope;
 }
