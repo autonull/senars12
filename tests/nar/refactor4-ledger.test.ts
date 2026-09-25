@@ -16,6 +16,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
+import { EpisodeSchema } from '@senars/nar/memory/EpisodicMemory.js';
 
 describe('Bench 96 — Ledger<T> primitive', () => {
   const dirs: string[] = [];
@@ -160,36 +161,8 @@ describe('Bench 96 — Ledger<T> primitive', () => {
 
   describe('EpisodicMemory parity (load-bearing rollover/cap/retention)', () => {
     it('round-trips append/query identically to bespoke implementation', async () => {
-      // This test will be expanded when EpisodicMemory is migrated
-      // For now, verify the ledger can handle EpisodicMemory-shaped entries
-      interface EpisodicEntry {
-    at: number;
-    correlationId?: string;
-    sessionId?: string;
-    type: string;
-    content: string;
-    metadata: Record<string, unknown>;
-    id: string;
-    causes?: string[];
-    consequences?: string[];
-    context?: string[];
-  }
-
-  const dir = await tmpBase();
-  const schema = z.object({
-    at: z.number(),
-    correlationId: z.string().optional(),
-    sessionId: z.string().optional(),
-    type: z.string(),
-    content: z.string(),
-    metadata: z.record(z.unknown()),
-    id: z.string(),
-    causes: z.array(z.string()).optional(),
-    consequences: z.array(z.string()).optional(),
-    context: z.array(z.string()).optional(),
-  });
-
-  const ledger = createLedger(dir, schema, {
+      const dir = await tmpBase();
+      const ledger = createLedger(dir, EpisodeSchema, {
         rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
       });
 

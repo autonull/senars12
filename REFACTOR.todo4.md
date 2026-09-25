@@ -198,22 +198,25 @@ Closes the loop: the budget becomes mechanical rather than aspirational.
 - **Not carried forward from the critique**: the README rewrite (out of scope by request), the soak run and its demand-signal gating (benches are the evidence standard), the bandit parity fix (verified green), the five-way arbitration collapse (already two seams), the `createPipeline` collision (already fixed in todo2 F), and `GroundingPipeline` (already deleted in `09ffbe1b`). The critique's MeTTa audit is also not carried forward: the full surface is retained by decision (§5), and the zero-consumer finding is recorded in §1 so it stays visible without being actioned.
 
 ## 8. Progress
- 
- _Phase A complete (2026-09-25). Phase B in progress — Ledger<T> primitive landed; ParameterLedger & SourceReputation migrated._
- 
- | Phase | Scope | Deletions declared | Bench | Status |
- |---|---|---|---:|---|
- | A | Middleware primitive + stage graph + `ThreadScope` | 1 dispatch loop, 1 type decl, 1 guard | 95 | ✅ |
- | B | `Ledger<T>` across ~12 sites + cycle break | ~11 persistence impls, 1 sidecar format | 96 | 🔄 |
- | C | 83 `typecheck:bin` errors + `CriticReflex` + `.timeline` | 83 errors, private reach-ins | 97 | ⬜ |
- | D | 2 unbounded accumulators bounded + `AIKRProcessor` boilerplate collapsed + judgment leaks | 3 options copies, 2 inlined types, delegation twins, 2 unbounded stores | 98 | ⬜ |
- | E | Complexity budget gate | — (instrument, C11-exempt) | 99 | ⬜ |
- 
- **Phase B progress (2026-09-25):**
- - `io/src/ledger.ts` — generic `Ledger<T>` primitive created with JSONL backing, daily rollover, per-file cap, retention sweep, hot cache, compaction
- - `io/src/index.ts` — exports added for `Ledger`, `createLedger`, `BaseLedgerEntrySchema`, types
- - `nar/src/config/parameter-ledger.ts` — migrated to `Ledger<T>`; maintains sync query API for backward compat; adds async `queryAsync`/`loadAll` for new consumers
- - `nar/src/kernel/source-reputation.ts` — migrated to `Ledger<T>`; maintains exact same public API
- - `tests/nar/refactor4-ledger.test.ts` — Bench 96 created; 11 tests pass (primitive basics, rollover/cap/retention parity, compact, sidecar separation, improvedOnly view, deps:gate cycle break)
- - `tests/nar/refactor1-parameter-ledger.test.ts` — updated to use async `improvedOnly`; all 7 tests pass
- - **Deletions achieved this session**: none yet (migrations preserve API); next sites: `EpisodicMemory`, `SessionManager`, `DialogueTurn`/`text-store`, `retrospectives`, `reconsolidated`, `JudgmentDataset` sidecar, `RLFPLearner` training data, `GameFocus` game-trace, `provider-runtime` routing, `memory-watchdog`
+  
+  _Phase A complete (2026-09-25). Phase B in progress — Ledger<T> primitive landed; ParameterLedger, SourceReputation, EpisodicMemory migrated._
+  
+  | Phase | Scope | Deletions declared | Bench | Status |
+  |---|---|---|---:|---|
+  | A | Middleware primitive + stage graph + `ThreadScope` | 1 dispatch loop, 1 type decl, 1 guard | 95 | ✅ |
+  | B | `Ledger<T>` across ~12 sites + cycle break | ~11 persistence impls, 1 sidecar format | 96 | 🔄 |
+  | C | 83 `typecheck:bin` errors + `CriticReflex` + `.timeline` | 83 errors, private reach-ins | 97 | ⬜ |
+  | D | 2 unbounded accumulators bounded + `AIKRProcessor` boilerplate collapsed + judgment leaks | 3 options copies, 2 inlined types, delegation twins, 2 unbounded stores | 98 | ⬜ |
+  | E | Complexity budget gate | — (instrument, C11-exempt) | 99 | ⬜ |
+  
+  **Phase B progress (2026-09-25):**
+  - `io/src/ledger.ts` — generic `Ledger<T>` primitive created with JSONL backing, daily rollover, per-file cap, retention sweep, hot cache, compaction; added `fixedFile` option for backward compat
+  - `io/src/index.ts` — exports added for `Ledger`, `createLedger`, `BaseLedgerEntrySchema`, types
+  - `nar/src/config/parameter-ledger.ts` — migrated to `Ledger<T>`; maintains sync query API for backward compat; adds async `queryAsync`/`loadAll` for new consumers
+  - `nar/src/kernel/source-reputation.ts` — migrated to `Ledger<T>`; maintains exact same public API
+  - `nar/src/memory/EpisodicMemory.ts` — migrated to `Ledger<T>`; exports `EpisodeSchema` for test reuse; preserves indexes, causal tracking, rollover/cap/retention behavior
+  - `tests/nar/refactor4-ledger.test.ts` — Bench 96 created; 11 tests pass (primitive basics, rollover/cap/retention parity, compact, sidecar separation, improvedOnly view, deps:gate cycle break, EpisodicMemory parity)
+  - `tests/nar/refactor1-parameter-ledger.test.ts` — updated to use async `improvedOnly`; all 7 tests pass
+  - `tests/nar/todo17b-failclosed.test.ts` — EpisodicMemory rollover/cap tests pass (9 tests)
+  - `tests/nar/todo24-*.test.ts` — Dialogue capture/retrospect/e2e tests pass (10 tests)
+  - **Deletions achieved this session**: none yet (migrations preserve API); next sites: `SessionManager`, `DialogueTurn`/`text-store`, `retrospectives`, `reconsolidated`, `JudgmentDataset` sidecar, `RLFPLearner` training data, `GameFocus` game-trace, `provider-runtime` routing, `memory-watchdog`

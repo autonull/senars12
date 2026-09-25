@@ -51,35 +51,42 @@ export class SourceReputation {
   constructor(options: SourceReputationOptions = {}) {
     this.#floor = options.floor ?? 0.5;
     this.#decayGate = options.contradictionsBeforeDecay ?? 2;
-    const basePath = options.path
-      ? require('node:path').dirname(options.path)
-      : DEFAULT_REPUTATION_PATH;
-    this.#ledger = createLedger<ReputationDeltaEntry>(basePath, ReputationDeltaSchema, {
-      rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
-    });
-    this.#load();
+    if (options.path) {
+      // Fixed file mode for backward compatibility with tests
+      this.#ledger = createLedger<ReputationDeltaEntry>('', ReputationDeltaSchema, {
+        rollover: { fixedFile: options.path },
+      });
+      this.#loadSync(options.path);
+    } else {
+      this.#ledger = createLedger<ReputationDeltaEntry>(DEFAULT_REPUTATION_PATH, ReputationDeltaSchema, {
+        rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
+      });
+      // Async load for rollover mode - fire and forget
+      this.#ledger.query({}).then((entries) => {
+        for (const r of entries) {
+          const entry = this.#entries.get(r.key) ?? { confirmed: 0, contradicted: 0 };
+          entry.confirmed += r.delta.confirmed ?? 0;
+          entry.contradicted += r.delta.contradicted ?? 0;
+          this.#entries.set(r.key, entry);
+        }
+      }).catch(() => {});
+    }
   }
 
-  #load(): void {
-    const basePath = this.#ledger.getBasePath();
+  #loadSync(fixedFilePath: string): void {
     const fs = require('node:fs');
-    const path = require('node:path');
     try {
-      const files = fs.readdirSync(basePath);
-      for (const file of files) {
-        if (!file.endsWith('.jsonl')) continue;
-        const content = fs.readFileSync(path.join(basePath, file), 'utf-8');
-        for (const line of content.split('\n')) {
-          if (!line.trim()) continue;
-          try {
-            const r = JSON.parse(line) as ReputationDeltaEntry;
-            const entry = this.#entries.get(r.key) ?? { confirmed: 0, contradicted: 0 };
-            entry.confirmed += r.delta.confirmed ?? 0;
-            entry.contradicted += r.delta.contradicted ?? 0;
-            this.#entries.set(r.key, entry);
-          } catch {
-            /* skip malformed lines */
-          }
+      const content = fs.readFileSync(fixedFilePath, 'utf-8');
+      for (const line of content.split('\n')) {
+        if (!line.trim()) continue;
+        try {
+          const r = JSON.parse(line) as ReputationDeltaEntry;
+          const entry = this.#entries.get(r.key) ?? { confirmed: 0, contradicted: 0 };
+          entry.confirmed += r.delta.confirmed ?? 0;
+          entry.contradicted += r.delta.contradicted ?? 0;
+          this.#entries.set(r.key, entry);
+        } catch {
+          /* skip malformed lines */
         }
       }
     } catch {

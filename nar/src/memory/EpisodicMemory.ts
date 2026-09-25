@@ -1,6 +1,6 @@
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
-import type { Episode, EpisodeFilter, EpisodeType, EpisodicMemory as UtilEpisodicMemory } from '@senars/util';
+import { z } from 'zod';
+import { Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery } from '@senars/io';
+import type { Episode, EpisodeType, EpisodeFilter, EpisodicMemoryConfig, EpisodicMemory as UtilEpisodicMemory } from '@senars/util';
 import { ulid } from 'ulid';
 import { SystemClock, type Clock } from '../clock.js';
 import { CausalIndex } from './CausalIndex.js';
@@ -15,7 +15,22 @@ const DEFAULT_CONFIG = {
   maxEntriesPerFile: 10000,
 } as const;
 
-/** Shared predicate for every query path (scan parity reference + indexed post-filter). */
+/**
+ * Episode schema for Ledger-backed EpisodicMemory.
+ * Exported for test reuse and external ledger construction.
+ */
+export const EpisodeSchema = BaseLedgerEntrySchema.extend({
+  type: z.enum(['input', 'response', 'belief_added', 'question', 'tool_call', 'error', 'dialogue', 'reaction']),
+  content: z.string(),
+  metadata: z.record(z.string(), z.unknown()),
+  id: z.string().optional(),
+  causes: z.array(z.string()).optional(),
+  consequences: z.array(z.string()).optional(),
+  context: z.array(z.string()).optional(),
+});
+
+export type LedgerEpisode = z.infer<typeof EpisodeSchema>;
+
 const matchesFilter = (e: Episode, options: EpisodeFilter): boolean => {
   const meta = e.metadata as { correlationId?: unknown; sessionId?: unknown } | undefined;
   if (options.correlationId && meta?.correlationId !== options.correlationId) return false;
@@ -31,24 +46,21 @@ const matchesFilter = (e: Episode, options: EpisodeFilter): boolean => {
 };
 
 export class EpisodicMemory implements UtilEpisodicMemory {
-  private readonly config: {
+  readonly #ledger: Ledger<LedgerEpisode>;
+  readonly #config: {
     enabled: boolean;
     basePath: string;
     retentionDays: number;
     maxEntriesPerFile: number;
   };
   readonly #clock: Clock;
-  private currentFile: string | null = null;
-  private currentEntries = 0;
-  private rolloverIndex = 0;
-  private currentDay: string | null = null;
-  /** D8: episodes dropped only if a rollover write itself fails. */
+  /** Phase D: episodes dropped only if a rollover write itself fails. */
   static droppedTotal = 0;
-  /** Phase D (REFACTOR.todo1): lazy metadata index — sessionId/correlationId filters without O(all) scans. */
+  /** Phase D: lazy metadata index — sessionId/correlationId filters without O(all) scans. */
   #index: Map<string, Episode[]> | null = null;
-  /** Phase A (REFACTOR.todo2): lazy causal edge index — causedBy/leadingTo without O(all) scans. */
+  /** Phase A: lazy causal edge index — causedBy/leadingTo without O(all) scans. */
   #causal: CausalIndex | null = null;
-  /** Phase B (REFACTOR.todo2): optional admit sink — invoked after each successful append (best-effort). */
+  /** Phase B: optional admit sink — invoked after each successful append (best-effort). */
   onLogged?: (episode: Episode) => void;
 
   constructor(
@@ -62,12 +74,29 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     }> = {}
   ) {
     const { clock, ...rest } = config;
-    this.config = { ...DEFAULT_CONFIG, ...rest };
+    this.#config = { ...DEFAULT_CONFIG, ...rest };
     this.#clock = clock ?? SystemClock;
+
+    this.#ledger = createLedger<LedgerEpisode>(this.#config.basePath, EpisodeSchema, {
+      rollover: {
+        daily: true,
+        maxEntriesPerFile: this.#config.maxEntriesPerFile,
+        retentionDays: this.#config.retentionDays,
+      },
+      onWrite: (entry) => {
+        if (this.onLogged) {
+          try {
+            this.onLogged(entry as unknown as Episode);
+          } catch {
+            /* admit sink is best-effort; never fails the append */
+          }
+        }
+      },
+    });
   }
 
   get basePath(): string {
-    return this.config.basePath;
+    return this.#config.basePath;
   }
 
   async log(
@@ -75,7 +104,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     content: string,
     metadata: Record<string, unknown> = {}
   ): Promise<void> {
-    if (!this.config.enabled) return;
+    if (!this.#config.enabled) return;
 
     // Phase D: reserved causal keys lift onto the Episode; everything else stays in metadata.
     const { id: causalId, causes, consequences, context, ...meta } = metadata;
@@ -94,14 +123,20 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     this.#index?.get(`sid:${meta.sessionId}`)?.push(episode);
     this.#causal?.add(episode);
 
-    await this.appendToCurrentFile(JSON.stringify(episode));
-    if (this.onLogged) {
-      try {
-        this.onLogged(episode);
-      } catch {
-        /* admit sink is best-effort; never fails the append */
-      }
-    }
+    const ledgerEntry: LedgerEpisode = {
+      at: episode.timestamp,
+      correlationId: meta.correlationId as string | undefined,
+      sessionId: meta.sessionId as string | undefined,
+      type: episode.type,
+      content: episode.content,
+      metadata: episode.metadata,
+      id: episode.id,
+      causes: episode.causes,
+      consequences: episode.consequences,
+      context: episode.context,
+    };
+
+    this.#ledger.append(ledgerEntry);
   }
 
   async getRecent(limit = 5): Promise<Episode[]> {
@@ -119,10 +154,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
   }
 
   async close(): Promise<void> {
-    this.currentFile = null;
-    this.currentEntries = 0;
-    this.rolloverIndex = 0;
-    this.currentDay = null;
+    this.#ledger.close();
   }
 
   // Internal methods (not part of the public interface)
@@ -180,24 +212,37 @@ export class EpisodicMemory implements UtilEpisodicMemory {
 
   /** One-pass read of every persisted episode — both index builds share the traversal. */
   async #readAllEpisodes(visit: (episode: Episode) => void): Promise<void> {
-    const files = (await fs.readdir(this.config.basePath)).filter((f) => f.endsWith('.jsonl'));
-    for (const file of files) {
-      const content = await fs.readFile(join(this.config.basePath, file), 'utf-8');
-      for (const line of content.split('\n')) {
-        if (!line.trim()) continue;
-        try {
-          visit(JSON.parse(line) as Episode);
-        } catch {
-          // Skip malformed entries
-        }
-      }
+    const entries = await this.#ledger.query({});
+    for (const entry of entries) {
+      const episode: Episode = {
+        timestamp: entry.at,
+        type: entry.type,
+        content: entry.content,
+        metadata: entry.metadata,
+        id: entry.id,
+        causes: entry.causes,
+        consequences: entry.consequences,
+        context: entry.context,
+      };
+      visit(episode);
     }
   }
 
   /** One-time pass over all files, bucketing episodes by sessionId/correlationId. */
   async #buildIndex(): Promise<void> {
     const index = new Map<string, Episode[]>();
-    await this.#readAllEpisodes((episode) => {
+    const entries = await this.#ledger.query({});
+    for (const entry of entries) {
+      const episode: Episode = {
+        timestamp: entry.at,
+        type: entry.type,
+        content: entry.content,
+        metadata: entry.metadata,
+        id: entry.id,
+        causes: entry.causes,
+        consequences: entry.consequences,
+        context: entry.context,
+      };
       const meta = episode.metadata as { correlationId?: unknown; sessionId?: unknown } | undefined;
       if (typeof meta?.correlationId === 'string') {
         const bucket = index.get(`cid:${meta.correlationId}`) ?? [];
@@ -209,91 +254,73 @@ export class EpisodicMemory implements UtilEpisodicMemory {
         bucket.push(episode);
         index.set(`sid:${meta.sessionId}`, bucket);
       }
-    });
+    }
     this.#index = index;
   }
 
   /** Phase A: one-time pass bucketing episodes by causal edges. */
   async #buildCausalIndex(): Promise<void> {
     const causal = new CausalIndex();
-    await this.#readAllEpisodes((episode) => causal.add(episode));
+    const entries = await this.#ledger.query({});
+    for (const entry of entries) {
+      const episode: Episode = {
+        timestamp: entry.at,
+        type: entry.type,
+        content: entry.content,
+        metadata: entry.metadata,
+        id: entry.id,
+        causes: entry.causes,
+        consequences: entry.consequences,
+        context: entry.context,
+      };
+      causal.add(episode);
+    }
     this.#causal = causal;
   }
 
+  /** Fallback scan via ledger query. */
   async #scanEpisodes(options?: EpisodeFilter): Promise<Episode[]> {
-    const episodes: Episode[] = [];
-    const basePath = this.config.basePath;
-    const filter = options ?? {};
-
-    try {
-      const files = await fs.readdir(basePath);
-      const dateFiles = files
-        .filter((f) => f.endsWith('.jsonl'))
-        .sort()
-        .reverse();
-
-      for (const file of dateFiles) {
-        if (episodes.length >= (filter.limit ?? Number.POSITIVE_INFINITY)) break;
-
-        const filePath = join(basePath, file);
-        const content = await fs.readFile(filePath, 'utf-8');
-        const lines = content.split('\n').filter((line) => line.trim());
-
-        for (let i = lines.length - 1; i >= 0; i--) {
-          const line = lines[i];
-          if (!line) continue;
-          try {
-            const episode = JSON.parse(line) as Episode;
-            if (!matchesFilter(episode, filter)) continue;
-
-            episodes.push(episode);
-            if (episodes.length >= (filter.limit ?? Number.POSITIVE_INFINITY)) break;
-          } catch {
-            // Skip malformed entries
-          }
-        }
-      }
-    } catch {
-      // Directory may not exist yet
+    const filter: LedgerQuery = {};
+    if (options?.correlationId) filter.correlationId = options.correlationId;
+    if (options?.sessionId) filter.sessionId = options.sessionId;
+    if (options?.timeRange) {
+      filter.since = options.timeRange[0];
+      filter.until = options.timeRange[1];
     }
+    if (options?.limit) filter.limit = options.limit;
+
+    const entries = await this.#ledger.query(filter);
+    const episodes: Episode[] = [];
+
+    for (const entry of entries) {
+      const episode: Episode = {
+        timestamp: entry.at,
+        type: entry.type,
+        content: entry.content,
+        metadata: entry.metadata,
+        id: entry.id,
+        causes: entry.causes,
+        consequences: entry.consequences,
+        context: entry.context,
+      };
+
+      if (!matchesFilter(episode, options ?? {})) continue;
+      episodes.push(episode);
+    }
+
+    // Sort by timestamp descending (most recent first)
+    episodes.sort((a, b) => b.timestamp - a.timestamp);
 
     return episodes;
   }
 
   async pruneOldEpisodes(): Promise<void> {
-    const basePath = this.config.basePath;
-    const cutoff = this.#clock.now() - this.config.retentionDays * 24 * 60 * 60 * 1000;
-
-    try {
-      const files = await fs.readdir(basePath);
-      for (const file of files) {
-        if (!file.endsWith('.jsonl')) continue;
-
-        const dateMatch = file.match(/(\d{4}-\d{2}-\d{2})(?:-\d+)?\.jsonl/);
-        if (!dateMatch) continue;
-
-        const dateStr = dateMatch[1];
-        if (!dateStr) continue;
-        const fileDate = new Date(dateStr).getTime();
-        if (fileDate < cutoff) {
-          await fs.unlink(join(basePath, file));
-        }
-      }
-    } catch {
-      // Directory may not exist
-    }
+    await this.#ledger.runRetentionSweep();
   }
 
   async clear(): Promise<void> {
-    try {
-      await fs.rm(this.config.basePath, { recursive: true, force: true });
-    } catch {
-      // Directory may not exist
-    }
-    this.currentFile = null;
-    this.currentEntries = 0;
-    this.rolloverIndex = 0;
-    this.currentDay = null;
+    this.#ledger.close();
+    await this.#ledger.compact(() => ''); // This will clear by rewriting with empty data
     this.#index = null;
     this.#causal = null;
   }
@@ -310,49 +337,5 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     return recent
       .map((e) => `[${new Date(e.timestamp).toLocaleTimeString()}] ${e.type}: ${e.content}`)
       .join('\n');
-  }
-
-  private async appendToCurrentFile(line: string): Promise<void> {
-    const today = new Date().toISOString().split('T')[0] as string;
-    if (today !== this.currentDay) {
-      this.currentDay = today;
-      this.rolloverIndex = 0;
-      // D17: retention sweep piggybacked on the daily rollover.
-      void this.pruneOldEpisodes().catch(() => {});
-    }
-    // D8: at the per-file cap, roll over to `<date>-<n>.jsonl` instead of
-    // silently dropping the episode.
-    const fileName = (n: number) => (n === 0 ? `${today}.jsonl` : `${today}-${n}.jsonl`);
-    const targetFile = join(this.config.basePath, fileName(this.rolloverIndex));
-
-    if (this.currentFile !== targetFile) {
-      this.currentFile = targetFile;
-      this.currentEntries = 0;
-
-      try {
-        await fs.access(targetFile);
-        const content = await fs.readFile(targetFile, 'utf-8');
-        this.currentEntries = content.split('\n').filter((l) => l.trim()).length;
-      } catch {
-        await fs.mkdir(this.config.basePath, { recursive: true });
-      }
-    }
-
-    if (this.currentEntries >= this.config.maxEntriesPerFile) {
-      this.rolloverIndex++;
-      this.currentFile = null;
-      console.warn(
-        `[episodic] cap ${this.config.maxEntriesPerFile} reached for ${fileName(this.rolloverIndex - 1)}; rolling over`
-      );
-      return this.appendToCurrentFile(line);
-    }
-
-    try {
-      await fs.appendFile(targetFile, line + '\n');
-      this.currentEntries++;
-    } catch (error) {
-      EpisodicMemory.droppedTotal++;
-      throw error;
-    }
   }
 }

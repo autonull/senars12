@@ -35,6 +35,8 @@ export interface RolloverPolicy {
   retentionDays: number;
   /** Custom path template. Default: `<basePath>/<date>[-<n>].jsonl`. */
   pathTemplate: (date: string, index: number) => string;
+  /** If set, writes to a single fixed file instead of daily rollover. Disables rollover/retention. */
+  fixedFile?: string;
 }
 
 /** Factory options for rollover policy (all optional, defaults applied). */
@@ -47,6 +49,8 @@ export interface RolloverPolicyOptions {
   retentionDays?: number;
   /** Custom path template. Default: `<basePath>/<date>[-<n>].jsonl`. */
   pathTemplate?: (date: string, index: number) => string;
+  /** If set, writes to a single fixed file instead of daily rollover. Disables rollover/retention. */
+  fixedFile?: string;
 }
 
 /**
@@ -114,25 +118,29 @@ export class Ledger<T extends BaseLedgerEntry> {
 
   constructor(config: LedgerConfig<T>) {
     const rollover = config.rollover ?? {};
+    const fixedFile = rollover.fixedFile;
     this.#config = {
       basePath: config.basePath,
       schema: config.schema,
       rollover: {
-        daily: rollover.daily ?? true,
-        maxEntriesPerFile: rollover.maxEntriesPerFile ?? 10_000,
-        retentionDays: rollover.retentionDays ?? 30,
+        daily: fixedFile ? false : (rollover.daily ?? true),
+        maxEntriesPerFile: fixedFile ? Number.MAX_SAFE_INTEGER : (rollover.maxEntriesPerFile ?? 10_000),
+        retentionDays: fixedFile ? 0 : (rollover.retentionDays ?? 30),
         pathTemplate:
           rollover.pathTemplate ??
           ((date, index) => (index === 0 ? `${date}.jsonl` : `${date}-${index}.jsonl`)),
+        fixedFile,
       },
       hotRetentionMs: config.hotRetentionMs ?? 5 * 60 * 1000,
       onWrite: config.onWrite ?? (() => {}),
       onRead: config.onRead ?? (() => {}),
     };
 
-    // Start hot cache eviction timer
-    this.#hotCacheTimer = setInterval(() => this.#evictHotCache(), this.#config.hotRetentionMs);
-    this.#hotCacheTimer.unref?.();
+    // Start hot cache eviction timer (skip if fixedFile mode)
+    if (!fixedFile) {
+      this.#hotCacheTimer = setInterval(() => this.#evictHotCache(), this.#config.hotRetentionMs);
+      this.#hotCacheTimer.unref?.();
+    }
   }
 
   /** Append an entry to the ledger (validates via schema, writes to JSONL). */
@@ -153,19 +161,29 @@ export class Ledger<T extends BaseLedgerEntry> {
       return cacheMatches.slice(0, limit);
     }
 
-    // Fallback: scan disk (newest files first)
+    const { fixedFile } = this.#config.rollover;
+
+    // Fallback: scan disk
     const diskMatches: T[] = [];
     try {
-      const files = await fs.readdir(this.#config.basePath);
-      const dateFiles = files
-        .filter((f) => f.endsWith('.jsonl'))
-        .sort()
-        .reverse();
+      let filesToScan: string[];
+      if (fixedFile) {
+        // Fixed file mode: read only the fixed file
+        filesToScan = [fixedFile];
+      } else {
+        // Rollover mode: scan directory for date files (newest first)
+        const files = await fs.readdir(this.#config.basePath);
+        filesToScan = files
+          .filter((f) => f.endsWith('.jsonl'))
+          .sort()
+          .reverse();
+      }
 
-      for (const file of dateFiles) {
+      for (const file of filesToScan) {
         if (diskMatches.length >= (limit ?? Number.POSITIVE_INFINITY)) break;
 
-        const content = await fs.readFile(join(this.#config.basePath, file), 'utf-8');
+        const filePath = fixedFile ? file : join(this.#config.basePath, file);
+        const content = await fs.readFile(filePath, 'utf-8');
         const lines = content.split('\n').filter(Boolean);
 
         for (let i = lines.length - 1; i >= 0; i--) {
@@ -184,7 +202,7 @@ export class Ledger<T extends BaseLedgerEntry> {
         }
       }
     } catch {
-      // Directory may not exist yet
+      // Directory may not exist yet / file may not exist
     }
 
     // Merge: hot cache entries are newer, so they win on dedupe by (correlationId, at)
@@ -221,7 +239,21 @@ export class Ledger<T extends BaseLedgerEntry> {
       byKey.set(key, entry);
     }
 
-    // Rewrite all files
+    const { fixedFile } = this.#config.rollover;
+
+    if (fixedFile) {
+      // Fixed file mode: rewrite the single file
+      const lines = [...byKey.values()].map((e) => JSON.stringify(e)).join('\n') + '\n';
+      await fs.writeFile(fixedFile, lines, 'utf-8');
+
+      // Reset hot cache
+      this.#hotCache.length = 0;
+      this.#hotCache.push(...byKey.values());
+
+      return { kept: byKey.size, dropped };
+    }
+
+    // Rollover mode: rewrite all files
     await fs.rm(this.#config.basePath, { recursive: true, force: true }).catch(() => {});
     await fs.mkdir(this.#config.basePath, { recursive: true });
 
@@ -281,6 +313,21 @@ export class Ledger<T extends BaseLedgerEntry> {
   }
 
   #writeToFile(entry: T): void {
+    const { fixedFile } = this.#config.rollover;
+
+    if (fixedFile) {
+      // Fixed file mode: write directly to the specified file
+      const targetFile = fixedFile;
+      try {
+        mkdirSync(dirname(targetFile), { recursive: true });
+        appendFileSync(targetFile, JSON.stringify(entry) + '\n', 'utf-8');
+      } catch (error) {
+        throw new Error(`Ledger write failed: ${(error as Error).message}`);
+      }
+      return;
+    }
+
+    // Rollover mode (original logic)
     const today = new Date().toISOString().split('T')[0]!;
 
     // Daily rollover
