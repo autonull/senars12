@@ -4,9 +4,12 @@
  * source-quality ceiling only — never a Truth value. Accumulates from
  * verification signals only (egress-gate rejections, `.react` corrections,
  * peer shadow-validation failures).
+ *
+ * REFACTOR.todo4 Phase B: now backed by the generic `Ledger<T>` primitive from `@senars/io`.
  */
-import { appendFileSync, mkdirSync, readFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+
+import { z } from 'zod';
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
 import { clamp01 } from '../utils';
 
 export interface ReputationEntry {
@@ -17,41 +20,66 @@ export interface ReputationEntry {
 export interface SourceReputationOptions {
   /** Multiplier floor (default 0.5). */
   floor?: number;
-  /** JSONL persistence sink (append-only, ledger-style). */
+  /** JSONL persistence sink directory (append-only, ledger-style). */
   path?: string;
   /** Contradictions needed before the multiplier starts dropping (default 2). */
   contradictionsBeforeDecay?: number;
 }
 
-export const DEFAULT_REPUTATION_PATH = '.cache/parameters/source-reputation.jsonl';
+const ReputationDeltaSchema = BaseLedgerEntrySchema.extend({
+  key: z.string(),
+  delta: z.object({
+    confirmed: z.number().optional(),
+    contradicted: z.number().optional(),
+  }),
+});
 
+export type ReputationDeltaEntry = z.infer<typeof ReputationDeltaSchema>;
+
+export const DEFAULT_REPUTATION_PATH = '.cache/parameters/source-reputation';
+
+/**
+ * SourceReputation — now backed by the generic `Ledger<T>` primitive.
+ * Maintains the exact same public API for existing consumers.
+ */
 export class SourceReputation {
+  readonly #ledger: Ledger<ReputationDeltaEntry>;
   readonly #entries = new Map<string, ReputationEntry>();
   readonly #floor: number;
   readonly #decayGate: number;
-  readonly #path?: string;
 
   constructor(options: SourceReputationOptions = {}) {
     this.#floor = options.floor ?? 0.5;
     this.#decayGate = options.contradictionsBeforeDecay ?? 2;
-    this.#path = options.path;
+    const basePath = options.path
+      ? require('node:path').dirname(options.path)
+      : DEFAULT_REPUTATION_PATH;
+    this.#ledger = createLedger<ReputationDeltaEntry>(basePath, ReputationDeltaSchema, {
+      rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
+    });
     this.#load();
   }
 
   #load(): void {
-    if (!this.#path) return;
+    const basePath = this.#ledger.getBasePath();
+    const fs = require('node:fs');
+    const path = require('node:path');
     try {
-      const content = readFileSync(this.#path, 'utf-8');
-      for (const line of content.split('\n')) {
-        if (!line.trim()) continue;
-        try {
-          const r = JSON.parse(line) as { key: string; delta: Partial<ReputationEntry> };
-          const entry = this.#entries.get(r.key) ?? { confirmed: 0, contradicted: 0 };
-          entry.confirmed += r.delta.confirmed ?? 0;
-          entry.contradicted += r.delta.contradicted ?? 0;
-          this.#entries.set(r.key, entry);
-        } catch {
-          /* skip malformed lines */
+      const files = fs.readdirSync(basePath);
+      for (const file of files) {
+        if (!file.endsWith('.jsonl')) continue;
+        const content = fs.readFileSync(path.join(basePath, file), 'utf-8');
+        for (const line of content.split('\n')) {
+          if (!line.trim()) continue;
+          try {
+            const r = JSON.parse(line) as ReputationDeltaEntry;
+            const entry = this.#entries.get(r.key) ?? { confirmed: 0, contradicted: 0 };
+            entry.confirmed += r.delta.confirmed ?? 0;
+            entry.contradicted += r.delta.contradicted ?? 0;
+            this.#entries.set(r.key, entry);
+          } catch {
+            /* skip malformed lines */
+          }
         }
       }
     } catch {
@@ -59,26 +87,20 @@ export class SourceReputation {
     }
   }
 
-  #persist(key: string, delta: ReputationEntry): void {
-    if (!this.#path) return;
-    try {
-      mkdirSync(dirname(this.#path), { recursive: true });
-      appendFileSync(this.#path, `${JSON.stringify({ key, delta, at: Date.now() })}\n`);
-    } catch {
-      /* best-effort */
-    }
-  }
-
   record(key: string, outcome: 'confirmed' | 'contradicted'): void {
     const entry = this.#entries.get(key) ?? { confirmed: 0, contradicted: 0 };
     entry[outcome]++;
     this.#entries.set(key, entry);
-    this.#persist(
+
+    const delta = outcome === 'confirmed'
+      ? { confirmed: 1, contradicted: 0 }
+      : { confirmed: 0, contradicted: 1 };
+
+    this.#ledger.append({
+      at: Date.now(),
       key,
-      outcome === 'confirmed'
-        ? { confirmed: 1, contradicted: 0 }
-        : { confirmed: 0, contradicted: 1 }
-    );
+      delta,
+    });
   }
 
   /** Clamped trust multiplier: 1.0 default, decays with contradictions, never below floor. */

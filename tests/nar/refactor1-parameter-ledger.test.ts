@@ -71,7 +71,9 @@ describe('Bench 82 — parameter ledger', () => {
       newValue: 0.04,
       at: 1,
     });
-    const content = await readFile(join(dir, 'ledger.jsonl'), 'utf-8');
+    // New ledger uses date-sharded files in the directory
+    const today = new Date().toISOString().split('T')[0];
+    const content = await readFile(join(dir, `${today}.jsonl`), 'utf-8');
     expect(JSON.parse(content)).toMatchObject({ parameter: 'decayRate', newValue: 0.04 });
   });
 
@@ -118,7 +120,7 @@ describe('Bench 82 — parameter ledger', () => {
       { at: at - 30_000, quality: 0.2 },
       { at: at + 30_000, quality: 0.9 },
     ]);
-    const improved = link.improvedOnly({ windowMs: 60_000 });
+    const improved = await link.improvedOnly({ windowMs: 60_000 });
     expect(improved.length).toBeGreaterThan(0);
     expect(improved.every((i) => i.improved)).toBe(true);
   });

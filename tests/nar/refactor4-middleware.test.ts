@@ -15,7 +15,8 @@ import { ThreadScope } from '@senars/nar/kernel/thread-scope.js';
 import { runTick, createTickPipeline, createTickContext, type TickContext } from '@senars/nar/tick/tick.js';
 import { createMacroContext, type MacroContext, type CycleHost } from '@senars/core/agent/pipeline.js';
 import { runCycleStream } from '@senars/core/agent/phases.js';
-import { createEventLog, type CognitiveStimulus } from '@senars/core';
+import type { MacroPhase } from '@senars/core/agent/pipeline.js';
+import type { CognitiveStimulus } from '@senars/core';
 import { InMemoryEventLog } from '@senars/core/eventlog/InMemoryEventLog.js';
 import { MemoryService } from '@senars/core/memory/MemoryService.js';
 import { PolicyEngine } from '@senars/core/PolicyEngine.js';
@@ -37,7 +38,7 @@ describe('Bench 95 — Middleware unification + ThreadScope', () => {
 
     it('throws on double next() call at same index', async () => {
       const chain: Middleware<{}>[] = [
-        async (ctx, next) => {
+        async (ctx, next: () => Promise<void>) => {
           await next();
           await next(); // double call
         },
@@ -47,7 +48,7 @@ describe('Bench 95 — Middleware unification + ThreadScope', () => {
 
     it('throws on next() called with lower or equal index', async () => {
       const chain: Middleware<{}>[] = [
-        async (ctx, next) => {
+        async (ctx, next: () => Promise<void>) => {
           await next();
           await next();
         },
@@ -156,25 +157,25 @@ describe('Bench 95 — Middleware unification + ThreadScope', () => {
         source: 'test',
       };
       const ctx = createMacroContext(host, stimulus);
-      const phases = [
-        async (c: MacroContext, next) => {
+      const phases: MacroPhase[] = [
+        async (c: MacroContext, next: () => Promise<void>) => {
           c.state.derivations.push({ term: '<test --> ok>.' } as any);
           await next();
         },
-        async (c: MacroContext, next) => {
+        async (c: MacroContext, next: () => Promise<void>) => {
           c.state.narrativeText = 'Hello there!';
           await next();
         },
-        async (c: MacroContext, next) => {
+        async (c: MacroContext, next: () => Promise<void>) => {
           await next();
         },
-        async (c: MacroContext, next) => {
+        async (c: MacroContext, next: () => Promise<void>) => {
           await next();
         },
-        async (c: MacroContext, next) => {
+        async (c: MacroContext, next: () => Promise<void>) => {
           await next();
         },
-        async (c: MacroContext, next) => {
+        async (c: MacroContext, next: () => Promise<void>) => {
           await next();
         },
       ];
@@ -295,26 +296,26 @@ describe('Bench 95 — Middleware unification + ThreadScope', () => {
         source: 'test',
       };
 
-      const phases = [
-        async (c: MacroContext, next) => {
+      const phases: MacroPhase[] = [
+        async (c: MacroContext, next: () => Promise<void>) => {
           c.state.derivations.push({ term: '<a --> b>.' } as any);
           await next();
         },
-        async (c: MacroContext, next) => {
+        async (c: MacroContext, next: () => Promise<void>) => {
           c.stream.push({ kind: 'text-delta', text: 'Hello ' } as ChatStreamEvent);
           c.stream.push({ kind: 'text-delta', text: 'World!' } as ChatStreamEvent);
           await next();
         },
-        async (c: MacroContext, next) => {
+        async (c: MacroContext, next: () => Promise<void>) => {
           await next();
         },
-        async (c: MacroContext, next) => {
+        async (c: MacroContext, next: () => Promise<void>) => {
           await next();
         },
-        async (c: MacroContext, next) => {
+        async (c: MacroContext, next: () => Promise<void>) => {
           await next();
         },
-        async (c: MacroContext, next) => {
+        async (c: MacroContext, next: () => Promise<void>) => {
           await next();
         },
       ];
@@ -326,8 +327,8 @@ describe('Bench 95 — Middleware unification + ThreadScope', () => {
       }
 
       expect(events.length).toBe(2);
-      expect(events[0].text).toBe('Hello ');
-      expect(events[1].text).toBe('World!');
+      expect(events[0]!.text).toBe('Hello ');
+      expect(events[1]!.text).toBe('World!');
     });
   });
 });

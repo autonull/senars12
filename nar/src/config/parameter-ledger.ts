@@ -6,7 +6,12 @@
  *
  * Ledger-off default (C1): nothing is attached or persisted unless a host
  * wires `ParameterLedger` into the writers (NAR.setParameterLedger, bot).
+ *
+ * REFACTOR.todo4 Phase B: now backed by the generic `Ledger<T>` primitive from `@senars/io`.
  */
+
+import { z } from 'zod';
+import { Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery } from '@senars/io';
 
 export interface ParameterRecord {
   /** Subsystem that performed the write (e.g. 'self-meta-game', 'rlfp'). */
@@ -22,41 +27,55 @@ export interface ParameterRecord {
 }
 
 export interface ParameterLedgerOptions {
-  /** Append-only JSONL sink; omitted ⇒ in-memory only. */
+  /** Append-only JSONL sink directory; omitted ⇒ in-memory only. */
   path?: string;
 }
 
-import { appendFileSync, mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+const ParameterRecordSchema = BaseLedgerEntrySchema.extend({
+  writer: z.string(),
+  scope: z.string(),
+  parameter: z.string(),
+  oldValue: z.union([z.number(), z.string()]),
+  newValue: z.union([z.number(), z.string()]),
+  trigger: z.string().optional(),
+});
 
-export const DEFAULT_LEDGER_PATH = '.cache/parameters/ledger.jsonl';
+export type ParameterLedgerEntry = z.infer<typeof ParameterRecordSchema>;
 
+export const DEFAULT_LEDGER_PATH = '.cache/parameters';
+
+/**
+ * ParameterLedger — now backed by the generic `Ledger<T>` primitive from `@senars/io`.
+ * Maintains the exact same public API for existing consumers.
+ * Sync query methods read from an in-memory cache (hot + explicitly loaded entries).
+ */
 export class ParameterLedger {
-  readonly #records: ParameterRecord[] = [];
-  readonly #path?: string;
+  readonly #ledger: Ledger<ParameterLedgerEntry>;
+  readonly #syncCache: ParameterLedgerEntry[] = [];
 
   constructor(options: ParameterLedgerOptions = {}) {
-    this.#path = options.path;
+    const basePath = options.path ? require('node:path').dirname(options.path) : DEFAULT_LEDGER_PATH;
+    this.#ledger = createLedger<ParameterLedgerEntry>(basePath, ParameterRecordSchema, {
+      rollover: {
+        daily: true,
+        maxEntriesPerFile: 10_000,
+        retentionDays: 30,
+      },
+    });
   }
 
   get size(): number {
-    return this.#records.length;
+    return this.#syncCache.length;
   }
 
   record(entry: ParameterRecord): void {
-    const r: ParameterRecord = { ...entry, at: entry.at ?? Date.now() };
-    this.#records.push(r);
-    if (!this.#path) return;
-    try {
-      mkdirSync(dirname(this.#path), { recursive: true });
-      appendFileSync(this.#path, `${JSON.stringify(r)}\n`);
-    } catch {
-      /* persistence is best-effort; the in-memory record stands */
-    }
+    const fullEntry = { ...entry, at: entry.at ?? Date.now() } as ParameterLedgerEntry;
+    this.#ledger.append(fullEntry);
+    this.#syncCache.push(fullEntry);
   }
 
   query(filter: { parameter?: string; writer?: string } = {}): readonly ParameterRecord[] {
-    return this.#records.filter(
+    return this.#syncCache.filter(
       (r) =>
         (!filter.parameter || r.parameter === filter.parameter) &&
         (!filter.writer || r.writer === filter.writer)
@@ -66,8 +85,25 @@ export class ParameterLedger {
   /** Latest record per parameter (writer-agnostic). */
   latest(): ReadonlyMap<string, ParameterRecord> {
     const out = new Map<string, ParameterRecord>();
-    for (const r of this.#records) out.set(r.parameter, r);
+    for (const r of this.#syncCache) out.set(r.parameter, r);
     return out;
+  }
+
+  /** Load all persisted entries into the sync cache (for full-query parity). */
+  async loadAll(): Promise<void> {
+    const entries = await this.#ledger.query({});
+    this.#syncCache.length = 0;
+    this.#syncCache.push(...entries);
+  }
+
+  /** Async query with full disk scan (for new consumers). */
+  async queryAsync(filter: LedgerQuery = {}): Promise<readonly ParameterLedgerEntry[]> {
+    return this.#ledger.query(filter);
+  }
+
+  /** Get the underlying ledger for advanced operations (compact, rotate, etc.). */
+  get ledger(): Ledger<ParameterLedgerEntry> {
+    return this.#ledger;
   }
 }
 
@@ -97,7 +133,7 @@ export class OutcomeLinker {
     private readonly outcomes: () => readonly OutcomeSample[]
   ) {}
 
-  correlate(options: { parameter?: string; windowMs?: number } = {}): ParameterImprovement[] {
+  async correlate(options: { parameter?: string; windowMs?: number } = {}): Promise<ParameterImprovement[]> {
     const windowMs = options.windowMs ?? 60_000;
     const samples = this.outcomes();
     const mean = (from: number, to: number): number | null => {
@@ -105,8 +141,12 @@ export class OutcomeLinker {
       if (inWindow.length === 0) return null;
       return inWindow.reduce((a, b) => a + b, 0) / inWindow.length;
     };
+    const entries = await this.ledger.queryAsync({});
+    const filtered = options.parameter
+      ? entries.filter((r) => r.parameter === options.parameter)
+      : entries;
     const out: ParameterImprovement[] = [];
-    for (const r of this.ledger.query({ parameter: options.parameter })) {
+    for (const r of filtered) {
       const before = mean(r.at - windowMs, r.at);
       const after = mean(r.at, r.at + windowMs);
       if (before === null || after === null) continue;
@@ -124,7 +164,7 @@ export class OutcomeLinker {
   }
 
   /** Evidence-gated view (N1): only changes followed by quality improvement. */
-  improvedOnly(options: { parameter?: string; windowMs?: number } = {}): ParameterImprovement[] {
-    return this.correlate(options).filter((i) => i.improved);
+  async improvedOnly(options: { parameter?: string; windowMs?: number } = {}): Promise<ParameterImprovement[]> {
+    return (await this.correlate(options)).filter((i) => i.improved);
   }
 }
