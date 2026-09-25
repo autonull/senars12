@@ -134,3 +134,51 @@ TODO20–25 invariants carry forward (I1–I7, N1–N3). New:
 - `GroundingPipeline` deletion is pre-policy-class (never exported, zero consumers) but README must be corrected in the same change.
 - **Phase ordering flexibility**: A→B→C→D→E is logical but D and E are independently landable. C depends on A's pressure-hook location in `nar.ts` consolidate.
 - **Sampling optimization note**: Current `PriorityBag.sample()` is O(n) linear scan (n ≤ 256); `decay()` mutates all weights every cycle, so CDF/histogram rebuild would cost O(n) anyway. For future scale: `FenwickBag` (Binary Indexed Tree) gives O(log n) `sample` + `updatePriority` with lazy multiplier for bulk `decay` — behind same `Bag<T>` interface. Not needed now.
+
+---
+
+## 8. Progress — ALL PHASES LANDED (2026-09-24)
+
+Benches 81–85 implemented as `tests/nar/refactor1-*.test.ts`; all green, plus full `tests/unit` (230) and benchmark suites. One commit per phase.
+
+### Phase A — macro-cycle middleware onion ✅
+- `core/src/agent/pipeline.ts` (NEW): `MacroPhase` onion (`dispatchMacro`, same guard as `runTick`), `AsyncQueue` joining middleware-dispatched narration to `runCycleStream`, `createCapturePhase`/`createReflectPhase` factories.
+- `phases.ts`: `DEFAULT_MACRO_PIPELINE` (8 phases: perceive → recall → reason → narrate → consolidate → act → record → announce) reproduces the old `runCycleStream` step-for-step (Bench 81 parity trace). `runCycle`/`runCycleStream` keep their names (compat; existing `tests/unit/core/agent-phases.test.ts` passes unchanged).
+- `AgentOptions.macroPipeline` + `Agent.setMacroPipeline()`; bot installs `[..., DEFAULT_MACRO_PIPELINE, createCapturePhase(...)]`, replacing the fire-and-forget `collectChat` hook (capture joins on the cycle's correlationId; `at` = stimulus.timestamp).
+- Negotiator: `IProposer`/`NegotiationInput`/`ProposerContribution`; **deviation**: default `proposers = []` (not `[reflex, nal]`) — reflex/NAL data still arrive as `resolve()` arguments, so adapters would be dead code today; `resolve()` merges proposer contributions then applies the unchanged NAL-veto arbitration; `Negotiator.learn()` fans out.
+- `createPipeline` → `createTickPipeline` with `@deprecated` alias (2-minor lifecycle); stream/`createPipeline` (different module) untouched.
+
+### Phase B — parameter & outcome ledger ✅
+- `nar/src/config/parameter-ledger.ts`: `ParameterLedger` (append-only JSONL, sync writes, in-memory query), `OutcomeLinker` (before/after quality windows, `improvedOnly`).
+- Writers: `ParameterTable.attachLedger` (exactly-once per *changed* param; all-or-nothing `setMany` failure records nothing), `RLFPLearner` (`ledger` config option or `attachLedger`), `RetrospectiveAdapter` (`ledger` option, strategy switches recorded with the retrospective digest as trigger).
+- `NAR.setParameterLedger()` wires rlfp + self-meta-game table. `retrospect()` gains `ledgerEntries?` → `StrategyAuditEntry.parameterChanges`; bot feeds the session-window slice.
+- Bot: shared ledger at `.cache/parameters/ledger.jsonl` + `.parameters [improved]` command (improved series uses dialogue-reaction quality as the outcome surface: accept=1, clarify/redirect=0.5, negative=0).
+
+### Phase C — AIKRProcessor ✅
+- `nar/src/learning/aikr-processor.ts`: `AIKRProcessor<TIn,TOut>` (six-stage; **aborted batch is not consumed** — unprocessed items stay for a later pass) + `PrioritySampling` (softmax T, default), `PowerLawSampling` (α via log-space softmax), `FairnessSampling` (aging boost; per-item age counters), `TopKSampling` (truncate-then-softmax), `PriorityProportional` (exact legacy parity).
+- SchemaInductor: chain bag (cap 256, priority = novelty×length, novelty gate via bounded signature set), `onDerivation` fed from `NAR.#recordDerivationChain`, `induceIfPressured` (inert <0.7) + `induceNow` (CLI drain), **LM null-response *and* exception both fall back** to symbolic structural induction (`?V` templates, confidence = min chain conf).
+- ContrastiveMemory: per-rubric exemplar `PriorityBag`s (pos/neg caps = 40/60 of maxPerRubric; priority eviction replaces FIFO), `observeJudgment` auto-admission gate (threshold 0.8, priority = margin×confidence) into a per-rubric **pending bag + AIKR maintainer** that promotes under pressure, `decay()` per cycle. *Behavior delta (intentional):* `add()` returns the admitted count (priority-gated) — one TODO22 assertion updated (6→5); kept exemplars under ties are first-come (FIFO trim kept last-come; no test depended on which).
+- `focus/schema-induction.ts` → `focus/episode-schemas.ts` (patch rename; exports unchanged). `NAR.consolidateLearning()` = periodic hook (decay + pressure-gated drain); **note**: it is exported but no per-cycle call site is wired yet — call it from a cycle point (e.g. System One refresh path or the kernel controller) when telemetry shows pressure.
+- `getSchemaInductor()` (undefined without LM); `.schemas-induce` drains the NAR-owned inductor.
+
+### Phase D — indexed timeline + ProofStream + causal episodes ✅
+- `EpisodicMemory.getEpisodes({sessionId?, correlationId?})`: lazy one-pass metadata index (invalidated by `clear()`, updated on `log`); most-recent-`limit` semantics. `retrospect()` consumes the indexed path.
+- `Episode` gains optional `id` (**ULID assigned at write**), `causes`/`consequences`/`context` — reserved metadata keys (`id/causes/consequences/context`) are lifted onto the Episode and stripped from metadata; DialogueCapture writes `causes:[turnId]` on reactions, `context:[turnId]` on turns.
+- `EventLog.query?({correlationId,types,timeRange,limit})` on Sqlite (indexed SQL) + InMemory; limit keeps the most recent N (both implementations).
+- `ProofStreamRing<T>` (recorder.ts) backs the derivation ring; `NAR.getProofStream(signal?)` = ring snapshot replay + live push, tee per subscription, abort/unsubscribe clean. *Note*: the ring holds `Task[]` chains, so the stream type is `AsyncIterable<readonly Task[]>` (plan's naming table said `DerivationRecord` — the recorder's `DerivationRecord`s remain a separate CLI/retrospect surface).
+
+### Phase E — source reputation ✅
+- `nar/src/kernel/source-reputation.ts`: `confirmed/contradicted` per key → clamped multiplier (gate ≥2 contradictions, floor 0.5, neutral 1.0), JSONL reload on construction; firewall-tested (frequency untouched).
+- Consumed at `KernelPerceptionGate.admit` (per `sourceId`) and `seedTruth` (via `SystemOneIngressJudge` lazy `reputation`/`sourceKey` config). `GateRegistry.setReputation`; `NAR.setSourceReputation/getSourceReputation`.
+- Bot: egress-gate verdicts → `llm-narration` key; `.react` → `user` key; reputation table appended to the System One status block. selectProbes/retrospective source-audit integration deferred (see below).
+- `nar/src/grounding.ts` deleted (never exported, zero consumers); README corrected.
+- `SystemOneRuntime.contrastive` lazy getter — no allocation when System One disabled.
+
+### New improvement opportunities
+1. **Wire `consolidateLearning()` into a real cycle point** — currently only reachable manually; the kernel controller's end-of-step is the natural home (Residual from Phase C).
+2. **Finer reputation keys** — ingress judge uses a single `'system-one'` key; peer-agent grounding (when it lands) should key by peer id / URL domain, and feed `selectProbes` curriculum (Phase E's deferred slice).
+3. **Outcome surfaces for `OutcomeLinker`** — reaction-quality proxy today; swap in `traceGradeHistory` timestamps (currently correlationId→quality, no time) or arcade Brier series for sharper `improvedOnly` evidence.
+4. **`FenwickBag`** (§7 note) still open; only worth it if bag caps grow past ~1k.
+5. **MeTTa proposer** — `IProposer` seam ready; a MeTTa voter adapter is now a small consumer.
+6. **Deprecation sweep** — `createPipeline` alias removal due after 2 minors; `refreshSystemOneContrastive` no-op conversion (plan) was **not** needed (it still mines hard negatives; only construction went lazy).
+7. Deferred REFACTOR.md items (§1/§2/§7/§8/§10/§13) remain deferred — re-evaluate §8/§1 once `improvedOnly` series accumulate.
