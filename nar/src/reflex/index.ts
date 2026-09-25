@@ -1,4 +1,8 @@
 export type { Game, GameOutcome, MetaGame, Perception, SelfMetaGame } from '../game/Game.js';
+export type { ArbitrationStrategy } from './weighted-quorum.js';
+export { NalVetoArbitration, WeightedQuorum } from './weighted-quorum.js';
+export type { MettaEvaluator, MettaProposerOptions } from './metta-proposer.js';
+export { MettaProposer } from './metta-proposer.js';
 export {
   forwardingReflex,
   type PrefetchingReflex,

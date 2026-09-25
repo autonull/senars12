@@ -8,12 +8,13 @@
  */
 import type { ParameterLedger } from '../../config/parameter-ledger.js';
 import type { StrategyType } from '../../strategies/index.js';
+import type { StrategyExpression } from '../../reason/strategy-algebra.js';
 import type { Retrospective } from '../types.js';
 
 /** Structural surface of `CognitiveController` this consumer needs. */
 export interface StrategyController {
   getStrategy(type: StrategyType): string | undefined;
-  setStrategy(type: StrategyType, name: string): void;
+  setStrategy(type: StrategyType, name: string | StrategyExpression): void;
 }
 
 export interface AdaptationRecord {

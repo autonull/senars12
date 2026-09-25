@@ -12,6 +12,11 @@ import type {
   SamplingStrategy,
   StrategyType,
 } from '../strategies';
+import {
+  composeStrategy,
+  describeStrategyExpression,
+  type StrategyExpression,
+} from '../reason/strategy-algebra';
 import type { CognitiveRegistry } from './registry';
 
 export class CognitiveController {
@@ -62,11 +67,42 @@ export class CognitiveController {
     }
   }
 
-  setStrategy(type: StrategyType, name: string): void {
+  setStrategy(type: StrategyType, name: string | StrategyExpression): void {
     const key: keyof typeof this.currentParams.strategies =
       type === 'lm-rule' ? 'lmRule' : (type as keyof typeof this.currentParams.strategies);
-    this.currentParams.strategies[key].type = name;
+    const resolved =
+      typeof name === 'string'
+        ? name
+        : this.#composeAndRegister(type, describeStrategyExpression(name), name);
+    this.currentParams.strategies[key].type = resolved;
     this.buildInferenceController(this.currentParams);
+  }
+
+  /**
+   * Phase E (REFACTOR.todo2 §8): execute a composed `StrategyExpression`.
+   * Deterministic label ⇒ idempotent registration (first compose wins, C7).
+   */
+  setStrategyExpression(type: StrategyType, expression: StrategyExpression): void {
+    const key: keyof typeof this.currentParams.strategies =
+      type === 'lm-rule' ? 'lmRule' : (type as keyof typeof this.currentParams.strategies);
+    const name = describeStrategyExpression(expression);
+    this.currentParams.strategies[key].type = this.#composeAndRegister(type, name, expression);
+    this.buildInferenceController(this.currentParams);
+  }
+
+  #composeAndRegister(
+    type: StrategyType,
+    name: string,
+    expression: StrategyExpression
+  ): string {
+    const composed = `composed:${name}`;
+    if (this.registry.has(type, composed)) return composed;
+    this.registry.register(
+      type,
+      composed,
+      composeStrategy(expression, (primitive) => this.registry.get<DerivationStrategy>(type, primitive))
+    );
+    return composed;
   }
 
   private buildInferenceController(params: CognitiveParameters): InferenceController {

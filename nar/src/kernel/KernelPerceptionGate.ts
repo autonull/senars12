@@ -9,6 +9,7 @@ import type {
 import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { normalizeNarsese } from '../nl/normalize.js';
+import { domainKey } from './reputation-keys.js';
 import { recordGateDecision } from '../telemetry/index.js';
 import type { TaskTypeName, Term } from '../terms';
 import { termParser } from '../terms';
@@ -87,10 +88,13 @@ export class KernelPerceptionGate {
     const sourceQuality = input.sourceQuality;
     // Phase E: reputation multiplier lowers the trust ceiling for sources with
     // a contradiction-dominated track record; default (no record) is neutral.
+    // Phase E (REFACTOR.todo2): URL-bearing source ids key by `domain:<host>`;
+    // plain ids keep their exact id (legacy fallback, R6).
+    const reputationKey = domainKey(input.sourceId) ?? input.sourceId;
     const reputationCeiling = this.config.reputation
       ? this.config.reputation.effectiveCeiling(
           this.sourceQualityToConfidence(sourceQuality),
-          input.sourceId
+          reputationKey
         )
       : this.sourceQualityToConfidence(sourceQuality);
     const confidence = reputationCeiling * input.sensorConfidence;

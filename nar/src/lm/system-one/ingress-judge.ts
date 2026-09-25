@@ -1,6 +1,7 @@
 import type { SourceQuality } from '@senars/kernel/schemas';
 import { SOURCE_QUALITY_CONFIDENCE } from '@senars/kernel/schemas';
 import type { IngressJudge, IngressJudgmentRequest, IngressVerdict } from '../../kernel/ingress.js';
+import { providerKey } from '../../kernel/reputation-keys.js';
 import type { TaskTypeName } from '../../terms';
 import { ingressQueries } from './head-specs.js';
 import { type ConfidenceBands, ConfidenceRouter } from './policy.js';
@@ -31,6 +32,12 @@ export interface SystemOneIngressJudgeConfig {
   reputation?: () => { effectiveCeiling(base: number, key: string): number } | undefined;
   /** Reputation key for this judge's admissions (default 'system-one'). */
   sourceKey?: string;
+  /**
+   * Phase E (REFACTOR.todo2): finer reputation key — `provider:<name>` for the
+   * active LM channel. Preferred over `sourceKey` when derivable; the legacy
+   * key stands as fallback (R6 parity).
+   */
+  provider?: () => string | undefined;
 }
 
 /**
@@ -47,6 +54,7 @@ export class SystemOneIngressJudge implements IngressJudge {
     | { effectiveCeiling(base: number, key: string): number }
     | undefined;
   private readonly sourceKey?: string;
+  private readonly provider?: () => string | undefined;
   private emitJudgmentResolved: ReturnType<typeof createTelemetryEmitter>;
 
   constructor(config: SystemOneIngressJudgeConfig) {
@@ -58,6 +66,7 @@ export class SystemOneIngressJudge implements IngressJudge {
       : AMBIGUITY_ROUTER;
     this.reputation = config.reputation;
     this.sourceKey = config.sourceKey;
+    this.provider = config.provider;
 
     // Register telemetry callback on the manifold if available.
     // Chains after any existing callback (e.g., NAR's bus emitter) instead of overwriting it.
@@ -144,11 +153,13 @@ export class SystemOneIngressJudge implements IngressJudge {
             top: { option: 'belief', p: 1 },
             calibration: { version: 'v1.0.0', ece: 0 },
           } as JudgmentProposition));
+    // Phase E (REFACTOR.todo2): prefer the finer provider:<name> key; the
+    // legacy single key ('system-one') remains the fallback (Bench 90 R6).
     const admissionTruth = seedTruth(
       seedProposition,
       admissionSourceQuality,
       this.reputation?.(),
-      this.sourceKey ?? 'system-one'
+      providerKey(this.provider?.()) ?? this.sourceKey ?? 'system-one'
     );
 
     return {

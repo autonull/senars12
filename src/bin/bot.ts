@@ -697,7 +697,7 @@ function buildExtraCommands(
     cmd('turns', 'Show captured dialogue turns: [session-id] [n]', async (args = '') => {
       const [sid, nRaw] = args.trim().split(/\s+/).filter(Boolean);
       const n = Number(nRaw ?? 10) || 10;
-      if (!wired.episodicMemory) return 'Episodic memory not available.';
+      if (!episodicMemory) return 'Episodic memory not available.';
       const episodes = await w.episodicMemory.getEpisodes({ type: 'dialogue', limit: 500 });
       const target =
         sid ?? [...new Set(episodes.map((e) => (e.metadata as any).sessionId as string))].pop();
@@ -846,10 +846,14 @@ function buildExtraCommands(
       'Show curriculum probes selected from flywheel-graded data (corrections + low grades)',
       async () => {
         const { selectProbes } = await import('@senars/nar/dialogue');
-        const probes = await selectProbes({
-          reactions: () => wired.episodicMemory.getEpisodes({ type: 'reaction', limit: 1000 }),
-          grades: (wired.nar as any).systemOne?.traceGradeHistory ?? new Map(),
-        });
+        const probes = await selectProbes(
+          {
+            reactions: () => episodicMemory.getEpisodes({ type: 'reaction', limit: 1000 }),
+            grades: (nar as any).systemOne?.traceGradeHistory ?? new Map(),
+          },
+          // Phase E: the curriculum trains on the least-reliable sources first.
+          { sourceReputation: { multiplier: (key) => nar.getSourceReputation?.()?.multiplier(key) ?? 1 } }
+        );
         if (probes.length === 0) return 'No probes yet (requires corrected or low-graded turns).';
         return probes.map((p) => `  ${p.kind} ${p.id} score=${p.score.toFixed(2)}`).join('\n');
       }
@@ -883,16 +887,16 @@ function buildExtraCommands(
       'schemas-induce',
       'Induce schemas from captured derivation chains (LM-backed)',
       async () => {
-        const chains = wired.nar.getDerivationChains(64);
+        const chains = nar.getDerivationChains(64);
         if (chains.length === 0)
           return 'No derivation chains captured yet (chains accrue as the kernel reasons).';
         // Phase C (REFACTOR.todo1): the NAR-owned inductor is continuously fed
         // by the derivation sink; the CLI force-drains its bag.
         const inductor =
-          wired.nar.getSchemaInductor() ??
+          nar.getSchemaInductor() ??
           new (await import('@senars/nar/learning')).SchemaInductor(
-            wired.nar.memory,
-            wired.lmService,
+            nar.memory,
+            lmService,
             { inductionIntervalMs: 0 }
           );
         for (const chain of chains) inductor.onDerivation(chain as never);
@@ -1492,7 +1496,7 @@ function buildExtraCommands(
         const parts = args.trim().split(/\s+/);
         const sub = parts[0]?.toLowerCase();
         if (!sub || sub === 'show') {
-          return JSON.stringify(wired.appConfig.systemOne ?? {}, null, 2);
+          return JSON.stringify(appConfig.systemOne ?? {}, null, 2);
         }
         if (sub === 'set' && parts[1] && parts[2]) {
           const path = parts[1];

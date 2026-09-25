@@ -188,6 +188,8 @@ export class NAR extends BaseComponent {
                 maxLMCalls: 5,
                 consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
               },
+              reputation: () => this.#sourceReputation,
+              provider: () => this._lmService?.provider,
             }),
           },
         }

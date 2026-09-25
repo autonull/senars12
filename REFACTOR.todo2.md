@@ -117,9 +117,9 @@ I1–I7, N1–N3, C1–C5 from TODO20–25 and TODO1 carry unchanged. Reinforcem
 
 ---
 
-## 8. Progress (2026-09-24)
+## 8. Progress (2026-09-24; Phase E added 2026-09-25)
 
-**Phases A–D landed** (benches 86–89 green: 42 tests across 4 `refactor2-*` files; full refactor1+2 sweep, nar/core units, todo19/22/24/25 suites, typecheck, lint, and `pnpm exports:check`/`exports:audit` all green). **Phase E not started** — see §10 for remaining-work notes.
+**Phases A–E all landed** (benches 86–90 green: 66 tests across 5 `refactor2-*` files; typecheck, lint, `exports:check`/`exports:audit` green; deps:gate cycle-set identical to clean tree — see §9 for the pre-existing baseline drift). **REFACTOR.todo2 is complete.**
 
 ### Phase A — residual machinery + causal traversal ✓ (Bench 86, `tests/nar/refactor2-residual-causal.test.ts`, 10 tests)
 - `CausalIndex` at `nar/src/memory/CausalIndex.ts` (NEW, **internal** — consumed by `EpisodicMemory`, deliberately not in the exports map). `EpisodeFilter` type added to `util/src/types/episodic-memory.ts` (public type export; consumer: nar).
@@ -138,6 +138,14 @@ I1–I7, N1–N3, C1–C5 from TODO20–25 and TODO1 carry unchanged. Reinforcem
 - Consumers wired: bot `.recall <term> [n]`, bot `parameters improved` (sharper surface via MemoryQuery; proxy preserved), `retrospect({memoryQuery})` → `Retrospective.sessionContext`.
 - **Not wired**: `SchemaInductor` novelty context (needs NAR-side threading — deferred, see §10). ⚠️ `MemoryIndex.getByTemporal` iterates 1-second buckets — never pass epoch-anchored `timeRange` starts (bench 88 uses realistic windows).
 
+### Phase E — strategy composition + consensus/reputation ✓ (Bench 90, `tests/nar/refactor2-strategy-consensus.test.ts`, 24 tests)
+- `composeStrategy` at `nar/src/reason/strategy-algebra.ts` (NEW, deep-path import — no exports-map subpath, in-repo consumers only). Combinators: `sequence`, `parallel` (first-result-wins, losers cancelled via `gen.return`), `conditional`, `loop` (default 2, hard cap 64, early-exit on empty body), `timeout` (deadline race — NOT signal-based; `AbortSignal.timeout` doesn't interrupt a pending `gen.next()`, so the winner is a `Promise.race` against a resolved deadline with `unref`'d timer — falls back on timeout, respects parent abort). Structurally typed (`CompositionStrategy/Run/Context`): the module imports ONLY `types/core.js` (leaf) — importing `strategies/types.js` (in the strategies→lm→nar SCC) re-launched cycles through the controller; `unknown` processor param is sound-contravariant, no casts.
+- Controller wiring: `setStrategyExpression(type, expr)` + `setStrategy` widened to `string | StrategyExpression`; composites register as `composed:<deterministic-label>` (`describeStrategyExpression` → `seq(focused,anytime)` etc.), idempotent via `registry.has` guard. Plain names byte-identical (C7, asserted). `adapt.ts` `StrategyController` interface widened — `RetrospectiveAdapter` can now emit expressions, unchanged otherwise.
+- Arbitration: `nar/src/reflex/weighted-quorum.ts` — `ArbitrationStrategy` interface; `NalVetoArbitration` = the extracted inline `decide()` (byte-identical incl. Bench-15 veto memo; `Negotiator.memoStats` delegates via `memoSize()` for the TODO20 P3 perf bench); `WeightedQuorum` (opt-in via `NegotiatorOptions.arbitration`): NAL votes weight (f≥0.5 adds c; f<0.3 with c≥vetoThreshold subtracts), top quorum score ≥ floor acts. `NegotiationDecision`/`NALDerivation` extracted to leaf `negotiation-types.ts` (breaking the Focus→Negotiator→quorum chain multiplier; raw-cycle count unchanged).
+- `MettaProposer` at `nar/src/reflex/metta-proposer.ts`: sync evaluator seam (`(expr) => boolean | null`) — nar has no `@senars/metta` dep; canonical wiring is `createMeTTa()` + `Effect.runSync(engine.evaluate(parseMeTTa(expr)))` (verified working). Confidence-1.0 votes on engine agreement; abstains on False/null (never vetoes). ⚠️ MeTTa `=` is **structural-shallow** (args not pre-reduced: `(= (+ 2 2) 4)` → False; only ground pairs like `(= 4 4)` evaluate True) — proposers must compare pre-reduced forms. `WeightedQuorum`/`MettaProposer` exported from `@senars/nar/reflex`.
+- Reputation keys: `nar/src/kernel/reputation-keys.ts` (`domainKey` extracts first URL host from a sourceId; `providerKey`); ingress judge prefers `providerKey(config.provider)` over legacy key (NAR wires `provider: () => this._lmService?.provider`); perception gate keys URL-bearing sourceIds `domain:<host> ?? raw id`; both fallbacks legacy-parity (R6, asserted). `selectProbes` gained `sourceReputation` feed: corrections from low-multiplier keys float to the probe head (capped 2× base), neutral ordering without the option; reaction episodes now carry `metadata.sourceKey: 'user'` for the join; bot `.probes` wired.
+- **Pre-existing bug found & fixed during Phase E**: `buildExtraCommands` (bot.ts) referenced `wired.*` at 8 call sites where only the destructured `w` fields (`nar`, `episodicMemory`, `lmService`, `appConfig`) are in scope — `.turns`/`.probes`/`.schemas-induce`/`.system-one show` would throw ReferenceError at runtime (masked: `src/bin/**` is excluded from the main tsconfig, so tsc never saw bot.ts). All now use the destructure. TS18030 warnings (private-name `?.` chains, 4 sites) are pre-existing and still open.
+
 ### Phase D — proposal & mining bags ✓ (Bench 89, `tests/nar/refactor2-proposal-mining-bags.test.ts`, 9 tests)
 - `ProposalBag` at `nar/src/meta/proposal-bag.ts`: priority = KIND_IMPACT × RISK_INVERSE × `alignmentOf` (optional drive hook, default 1). Supersede: same `kind:payload-target` scope halves elder priority (evicts/decays out first). Selection is deterministic greedy (priority desc, id tiebreak) — no RNG in the decision path. `drain(route)` / `drainIfPressured(route)` call the **caller-supplied** routing fn — `ProposalRouter` itself untouched.
 - Wiring: NARConfig `proposals:{bounded,capacity,budget}` (default **off** — C1/C6 arrival-order parity) → `GameManager` → `SelfMetaGameConfig.proposalBag` → `routeProposals()` branches (bag: admit all, drain-by-priority; default: unchanged loop).
@@ -153,12 +161,38 @@ I1–I7, N1–N3, C1–C5 from TODO20–25 and TODO1 carry unchanged. Reinforcem
 ---
 
 ## 9. Deferral evidence (per §7 tracking duty)
-- §1 JudgmentPipeline / §2 CognitiveThread / §7 focus tree / §10 LM rule graph / §13 capability ontology: no new consumer telemetry surfaced during A–D; deferral verdicts unchanged.
+- §1 JudgmentPipeline / §2 CognitiveThread / §7 focus tree / §10 LM rule graph / §13 capability ontology: no new consumer telemetry surfaced during A–E; deferral verdicts unchanged.
 - FenwickBag: bag caps in A–D stay ≤ 256/128/64 — O(n) scan fine.
+- **Pre-existing issues observed during A–E (not introduced by this plan; each fails on a clean tree):**
+  - `tests/nar/todo20-monoliths.test.ts` M2 budget: `nar.ts` at ~1020 lines > 900 (drifted past the budget in TODO1/TODO2 commits). Split NAR accessors into a facade module or raise the budget explicitly.
+  - `tests/nar/refactor2-memory-query.test.ts` "ranking order is stable" flakes intermittently (~1/3 runs): recency scoring spans a `Date.now()` millisecond boundary between store writes. Fix: inject a clock or pin timestamps in the fixture.
+  - `pnpm deps:gate` runs at 68 raw cycles vs BASELINE 67 (+1: `rule-builders → rule-templates/{meta,goal,question}-rules`), identical with or without Phase E — the baseline needs +1 or the listed chains need breaking.
 
 ---
 
-## 10. Remaining-work notes — Phase E (not started)
+## 10. Follow-up opportunities (all phases; none blocking)
+
+From A–D (recorded earlier):
+1. **Dialogue turn episode ids**: capture.ts logs `context: [turnId]` but not `id: turnId` — causal chains currently span only turn→reaction. Setting `id: turnId` at capture would make the whole graph addressable by `causedBy`/`leadingTo` (small capture.ts change; consider with Phase E or a follow-up bench).
+2. **Consolidator grouping**: signature is `type|correlationId`; structural grouping (shared causes/context overlap) is the natural next fidelity step.
+3. **MemoryQuery**: episode leg scores recency only — a salience prior (type × causal connections, same formula as Phase B) would unify ranking semantics across legs.
+4. **ConsolidationHook app-config**: surface `consolidation:{enabled,budget}` in `senars.config.json` schema when next touching `src/config`.
+5. **SelfMetaGame drain budget**: bag-drain path hardcodes budget 4; could read `proposals.budget` from config (already plumbed to the bag).
+
+From Phase E:
+6. **Expression plumbing for RetrospectiveAdapter**: the adapter's `SWITCHES` still emits plain names; a retrospective could carry a `StrategyExpression` (e.g. `timeout(200,focused)`) once retrospectives record per-strategy latency. `setStrategy(type, expr)` already accepts it — only the emission side is missing.
+7. **MettaProposer live wiring**: `attachGame`/`attachConversationGame` accept no `proposers` option yet — injection point is `new Negotiator({...})` at `GameFocus.ts:121` (add a `proposers?: IProposer[]` pass-through in `GameFocusOptions`/`attachGame` options). The evaluator must be injected from the agent layer (`createMeTTa` + `Effect.runSync`), not from nar.
+8. **MeTTa deep equality**: the engine's `=` is structural-shallow (`(= (+ 2 2) 4)` → False). If proposers need evaluated algebra, extend the stdlib op to pre-reduce args (metta/src/stdlib/index.ts `eqOp`), or compose `(= <reduced> True)` forms at the call site.
+9. **WeightedQuorum telemetry**: quorum decisions currently indistinguishable from reflex ones in tick panels (`source: 'reflex'`); a `decision.arbitration` tag would sharpen retrospectives.
+10. **bot.ts tsconfig exclusion**: `src/bin/**` is outside the main tsconfig (the 4 TS18030 private-name `?.` chains at :1422/:1902-1904 are invisible to `pnpm typecheck`). Either include it with those chains rewritten to non-chained private access, or add a scoped check script.
+11. **MettaProposer learn()**: currently a no-op; MeTTa spaces could absorb verified learning events (assert-then-check) once a use case demonstrates demand.
+
+## 11. Original Phase E planning notes (completed — kept for provenance; deviations below)
+- Plan said `nar/src/reasoning/strategy-algebra.ts` — that dir didn't exist; landed at `nar/src/reason/strategy-algebra.ts` (alongside the live derivation code).
+- Plan said combinators "wrap `AbortSignal`" — timeout needed a deadline race instead (`AbortSignal.timeout` doesn't interrupt a pending `gen.next()`); parent-abort still honored.
+- Plan said "MeTTa/NAL disagreement ⇒ `Contradiction` event to `SelfMetaGame`" — not implemented: `NAREventMap` has no contradiction event and SelfMetaGame has no contradiction intake; `MettaProposer` never disagrees (abstains rather than opposes), so there is no disagreement signal to route. Realizing this needs a new event type + consumer — deferred to follow-up #7 territory rather than shipped half-wired.
+- Plan said "check `nar/src/reflex/Negotiator.ts` (+`metta-proposer.ts`)" — correct; `WeightedQuorum` additionally required extracting `NalVetoArbitration` (not in plan) to keep the default byte-identical while making arbitration pluggable.
+
 - **Files**: `nar/src/reasoning/strategy-algebra.ts` (NEW), `nar/src/dialogue/consumers/adapt.ts`, `nar/src/cognitive/controller.ts`, `nar/src/reflex/Negotiator.ts` (+ `metta-proposer.ts`), `nar/src/kernel/source-reputation.ts` + `KernelPerceptionGate.ts`/`seed.ts`, `nar/src/dialogue/consumers/curriculum.ts`; `tests/nar/refactor2-strategy-consensus.test.ts` (**Bench 90**).
 - **composeStrategy**: primitives = existing named strategies (registry lookup path is `CognitiveController` — verify how `RetrospectiveAdapter.adaptFromRetrospective` writes strategy names into `parameters.strategies` and intercept *there*; plain-name config must stay byte-identical, C7). Combinators each wrap `AbortSignal`; parallel takes first result; timeout falls back on abort.
 - **MettaProposer**: TODO1 Phase A landed the `IProposer` seam with `proposers = []` default — locate the seam (grep `IProposer` / `proposers`) and confirm the consultation point before writing the class. Confidence 1.0 on exact algebra, abstain otherwise; `WeightedQuorum` arbitration opt-in (default stays NAL veto); MeTTa/NAL disagreement ⇒ `Contradiction` event to `SelfMetaGame`.

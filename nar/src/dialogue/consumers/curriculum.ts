@@ -31,6 +31,16 @@ export interface ProbeSelection {
   limit?: number;
   /** Trace grades below this are probed (default 0.5). */
   lowGradeThreshold?: number;
+  /**
+   * Phase E (REFACTOR.todo2 §14 tail): reputation feed — sources with these
+   * keys get a probe-score boost (multiplied by `lowReputationBoost`), so the
+   * curriculum trains on the least-reliable channels first.
+   */
+  sourceReputation?: {
+    multiplier(key: string): number;
+    /** Score boost for low-reputation sources (default 0.5 — additive headroom, capped). */
+    lowReputationBoost?: number;
+  };
 }
 
 const CORRECTION_SCORE = 1;
@@ -41,12 +51,18 @@ export const selectProbes = async (
 ): Promise<Probe[]> => {
   const limit = options.limit ?? 16;
   const threshold = options.lowGradeThreshold ?? 0.5;
+  const reputation = options.sourceReputation;
+  const boost = reputation?.lowReputationBoost ?? 0.5;
   const probes: Probe[] = [];
 
   for (const e of await source.reactions()) {
-    const meta = e.metadata as { turnId?: string; kind?: string };
+    const meta = e.metadata as { turnId?: string; kind?: string; sourceKey?: string };
     if (meta.kind === 'correct' && meta.turnId) {
-      probes.push({ id: meta.turnId, kind: 'correction', score: CORRECTION_SCORE });
+      // Phase E: low-reputation sources float to the probe head (capped at 2× base).
+      const sourceKey = meta.sourceKey;
+      const multiplier = reputation && sourceKey ? reputation.multiplier(sourceKey) : 1;
+      const score = Math.min(CORRECTION_SCORE * 2, CORRECTION_SCORE + (1 - multiplier) * boost * 2);
+      probes.push({ id: meta.turnId, kind: 'correction', score });
     }
   }
   for (const [correlationId, score] of source.grades()) {

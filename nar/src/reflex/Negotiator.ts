@@ -2,28 +2,19 @@ import type { Focus } from '../focus/Focus.js';
 import type { Perception } from '../game/Game.js';
 import { withSpan } from '../otel/index.js';
 import type { ActionProposal, LearningEvent } from './Reflex.js';
+import type { NALDerivation, NegotiationDecision } from './negotiation-types.js';
+import { NalVetoArbitration, type ArbitrationStrategy } from './weighted-quorum.js';
 
-export interface NALDerivation {
-  action: string;
-  truth: { f: number; c: number };
-  source: string;
-  /** Serialized premise term the derivation was indexed from (belief seeding, E7). */
-  premise?: string;
-}
-
-export interface NegotiationDecision {
-  action: string | null;
-  actionExecuted: string | null;
-  vetoedBy: string | null;
-  confidence: number;
-  source: 'reflex' | 'nal' | 'none';
-}
+export type { ArbitrationStrategy } from './weighted-quorum.js';
+export type { NALDerivation, NegotiationDecision } from './negotiation-types.js';
 
 export interface NegotiatorOptions {
   nalVetoThreshold?: number;
   reflexThreshold?: number;
-  /** Additional proposal sources (e.g. a future MeTTa voter) merged ahead of arbitration. */
+  /** Additional proposal sources (e.g. a MeTTa voter) merged ahead of arbitration. */
   proposers?: IProposer[];
+  /** Phase E (REFACTOR.todo2 §3): opt-in arbitration (default: NAL veto — Bench-15 parity). */
+  arbitration?: ArbitrationStrategy;
 }
 
 /** Proposal inputs a proposer may consult (REFACTOR.todo1 Phase A, §3 Negotiator generalization). */
@@ -43,21 +34,19 @@ export interface IProposer {
 }
 
 export class Negotiator {
-  private readonly nalVetoThreshold: number;
   private readonly reflexThreshold: number;
   private readonly proposers: IProposer[];
-  /**
-   * P3 (TODO20): memoized `isVetoingAction` keyed by the full predicate input
-   * (action, truth, proposal) — pure function of the key, so entries can never
-   * go stale; bounded and cleared wholesale past the cap.
-   */
-  private readonly vetoMemo = new Map<string, boolean>();
-  private static readonly VETO_MEMO_CAP = 10_000;
+  private readonly arbitration: ArbitrationStrategy;
 
   constructor(options: NegotiatorOptions = {}) {
-    this.nalVetoThreshold = options.nalVetoThreshold ?? 0.8;
     this.reflexThreshold = options.reflexThreshold ?? 0.3;
     this.proposers = options.proposers ?? [];
+    this.arbitration =
+      options.arbitration ??
+      new NalVetoArbitration({
+        nalVetoThreshold: options.nalVetoThreshold,
+        reflexThreshold: options.reflexThreshold,
+      });
   }
 
   /** Registered proposers (empty by default — zero behavior change). */
@@ -68,6 +57,11 @@ export class Negotiator {
   /** Fan a learning event out to all proposers (no-op with none registered). */
   learn(event: LearningEvent): void {
     for (const p of this.proposers) p.learn(event);
+  }
+
+  /** P3 (TODO20): veto-memo hit-rate surface (size only; 0 with custom arbitration). */
+  memoStats(): { size: number } {
+    return { size: this.arbitration instanceof NalVetoArbitration ? this.arbitration.memoSize() : 0 };
   }
 
   resolve(reflexProposals: ActionProposal[], nalDerivations: NALDerivation[]): NegotiationDecision {
@@ -86,7 +80,7 @@ export class Negotiator {
           if (c.reflex) mergedReflex.push(...c.reflex);
           if (c.nal) mergedNal.push(...c.nal);
         }
-        const decision = this.decide(mergedReflex, mergedNal);
+        const decision = this.arbitration.decide(mergedReflex, mergedNal);
         span.setAttributes({
           'negotiator.source': decision.source,
           'negotiator.vetoed': decision.vetoedBy !== null,
@@ -95,76 +89,6 @@ export class Negotiator {
         return decision;
       }
     );
-  }
-
-  private decide(
-    reflexProposals: ActionProposal[],
-    nalDerivations: NALDerivation[]
-  ): NegotiationDecision {
-    if (reflexProposals.length === 0) {
-      return { action: null, actionExecuted: null, vetoedBy: null, confidence: 0, source: 'none' };
-    }
-
-    const bestReflex = reflexProposals.reduce((best, p) =>
-      p.value * p.confidence > best.value * best.confidence ? p : best
-    );
-
-    if (bestReflex.value * bestReflex.confidence < this.reflexThreshold) {
-      return {
-        action: null,
-        actionExecuted: null,
-        vetoedBy: 'below-threshold',
-        confidence: 0,
-        source: 'none',
-      };
-    }
-
-    // Veto (Bench-15): NAL derives the best action leads to bad outcome (low
-    // frequency = trap). The veto blocks the trap action; if another legal
-    // proposal remains, the best one acts instead — the veto prevents the
-    // known trap without paralyzing the agent. Otherwise the tick yields.
-    const trap = nalDerivations.find((d) => this.isVetoingAction(d, bestReflex.action));
-    if (!trap) {
-      return {
-        action: bestReflex.action,
-        actionExecuted: bestReflex.action,
-        vetoedBy: null,
-        confidence: bestReflex.confidence,
-        source: 'reflex',
-      };
-    }
-    const vetoedBy = `nal-${trap.source}`;
-    const fallback = reflexProposals
-      .filter((p) => !nalDerivations.some((d) => this.isVetoingAction(d, p.action)))
-      .reduce<ActionProposal | null>(
-        (best, p) => (!best || p.value * p.confidence > best.value * best.confidence ? p : best),
-        null
-      );
-    return {
-      action: bestReflex.action,
-      actionExecuted: fallback?.action ?? null,
-      vetoedBy,
-      confidence: fallback?.confidence ?? trap.truth.c,
-      source: 'nal',
-    };
-  }
-
-  private isVetoingAction(derivation: NALDerivation, proposedAction: string): boolean {
-    const key = `${derivation.action}|${derivation.truth.f}|${derivation.truth.c}|${proposedAction}`;
-    const cached = this.vetoMemo.get(key);
-    if (cached !== undefined) return cached;
-    const result =
-      derivation.action === proposedAction &&
-      derivation.truth.f < 0.3 &&
-      derivation.truth.c >= this.nalVetoThreshold;
-    if (this.vetoMemo.size >= Negotiator.VETO_MEMO_CAP) this.vetoMemo.clear();
-    this.vetoMemo.set(key, result);
-    return result;
-  }
-
-  /** P3 (TODO20): memo hit rate over the veto predicate (0 before first fill). */
-  memoStats(): { size: number } {
-    return { size: this.vetoMemo.size };
   }
 
   createLearningEvent(

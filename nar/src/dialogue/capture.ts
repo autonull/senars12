@@ -275,7 +275,16 @@ export class DialogueCapture {
           correctionDigest: reaction.correctionDigest,
           hasCorrectionEmbedding: correctionEmbedding !== undefined,
         }),
-        { correlationId: turn.sessionId, sessionId: turn.sessionId, turnId, kind, causes: [turnId] }
+        {
+          correlationId: turn.sessionId,
+          sessionId: turn.sessionId,
+          turnId,
+          kind,
+          causes: [turnId],
+          // Phase E (REFACTOR.todo2): reputation join key for the probe
+          // curriculum — user-channel reactions (matches the `.react` site).
+          sourceKey: 'user',
+        }
       )
       .catch(() => {});
     // Sidecar: attach the correction text to the existing exchange record.
