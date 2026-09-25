@@ -1,12 +1,19 @@
 import { v4 as uuidv4 } from 'uuid';
-import { ParameterScopeError, createParameterTable, type ParameterScope, type ParameterSpec, type ParameterTable } from '../config/parameter-table.js';
+import type { ParameterLedger } from '../config/parameter-ledger.js';
+import {
+  createParameterTable,
+  type ParameterScope,
+  ParameterScopeError,
+  type ParameterSpec,
+  type ParameterTable,
+} from '../config/parameter-table.js';
 import type { FocusStepReport } from '../focus/Focus.js';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { GameFocus } from '../focus/GameFocus.js';
-import type { SelfRewardGate } from '../kernel/KernelRewardGate.js';
-import type { LearnerRegistry } from '../learning/domain-learners.js';
 import { ProposalRouter } from '../governance/pipeline.js';
 import { gateRegistry } from '../kernel/index.js';
+import type { SelfRewardGate } from '../kernel/KernelRewardGate.js';
+import type { LearnerRegistry } from '../learning/domain-learners.js';
 import type { SelfMetaGame } from './Game.js';
 import { MetaGame, type MetaGameConfig } from './MetaGame.js';
 
@@ -161,7 +168,9 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
       this.parameterTable.set(SelfMetaGameImpl.knobScope, knob, value);
     } catch (e) {
       if (e instanceof ParameterScopeError)
-        throw new Error(e.message.startsWith('unknown parameter') ? `Unknown knob: ${knob}` : e.message);
+        throw new Error(
+          e.message.startsWith('unknown parameter') ? `Unknown knob: ${knob}` : e.message
+        );
       throw e;
     }
   }
@@ -172,7 +181,9 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
       this.parameterTable.setMany(SelfMetaGameImpl.knobScope, Object.entries(knobs));
     } catch (e) {
       if (e instanceof ParameterScopeError)
-        throw new Error(e.message.startsWith('unknown parameter') ? `Unknown knob: ${e.parameter}` : e.message);
+        throw new Error(
+          e.message.startsWith('unknown parameter') ? `Unknown knob: ${e.parameter}` : e.message
+        );
       throw e;
     }
   }
@@ -192,6 +203,11 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
 
   getAllKnobs(): Map<string, number> {
     return this.parameterTable.list(SelfMetaGameImpl.knobScope);
+  }
+
+  /** Phase B (REFACTOR.todo1): observe knob writes in the parameter ledger. */
+  attachParameterLedger(ledger: ParameterLedger, writer = 'self-meta-game'): void {
+    this.parameterTable.attachLedger(ledger, writer);
   }
 }
 

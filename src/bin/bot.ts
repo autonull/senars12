@@ -53,6 +53,7 @@ import { LM_PROVIDER_NAMES } from '@senars/nar/lm/env-config.js';
 import { computeEvidenceId } from '@senars/nar/lm/system-one';
 import { createLogger } from '@senars/nar/logger';
 import { NLUnderstandingService } from '@senars/nar/nl';
+import { DEFAULT_LEDGER_PATH, OutcomeLinker, ParameterLedger } from '@senars/nar/config';
 import { buildCommands } from '../cli/commands.js';
 import { loadConfig } from '../config/index.js';
 import { assertValidEnv } from '../utils/env-validate.js';
@@ -222,7 +223,8 @@ function buildExtraCommands(
   routing: { auto: boolean; policy: 'conservative' | 'balanced' | 'aggressive' },
   provisional: { enabled: boolean },
   dialogue: DialogueCaptureType,
-  strategyAdapter?: RetrospectiveAdapter
+  strategyAdapter?: RetrospectiveAdapter,
+  parameterLedger?: ParameterLedger
 ): CLICommand[] {
   const { agent, nar, sessionManager, episodicMemory, lmService } = w;
   // loadConfig() returns a deeply frozen object — clone for runtime mutation.
@@ -683,6 +685,47 @@ function buildExtraCommands(
         })
         .join('\n');
     }),
+    cmd(
+      'parameters',
+      'Show the parameter change ledger: [improved]',
+      async (args = '') => {
+        if (!parameterLedger) return 'Parameter ledger not attached.';
+        if (!w.episodicMemory) return 'Episodic memory not available.';
+        if (args.trim() === 'improved') {
+          // Outcome surfaces: dialogue reactions (accept=1, neutral=0.5, negative=0).
+          const reactions = await w.episodicMemory.getEpisodes({ type: 'reaction', limit: 500 });
+          const quality: Record<string, number> = {
+            accept: 1,
+            clarify: 0.5,
+            redirect: 0.5,
+            correct: 0,
+            reject: 0,
+            abandon: 0,
+          };
+          const samples = reactions.map((e) => ({
+            at: e.timestamp,
+            quality: quality[(e.metadata as any).kind as string] ?? 0.5,
+          }));
+          const link = new OutcomeLinker(parameterLedger, () => samples);
+          const improved = link.improvedOnly({ windowMs: 120_000 });
+          if (improved.length === 0) return 'No improvement-evidenced parameter changes.';
+          return improved
+            .map(
+              (i) =>
+                `  ${i.parameter} ${i.oldValue}→${i.newValue} quality ${i.before.toFixed(2)}→${i.after.toFixed(2)}`
+            )
+            .join('\n');
+        }
+        const records = parameterLedger.query().slice(-20);
+        if (records.length === 0) return 'No parameter changes recorded.';
+        return records
+          .map(
+            (r) =>
+              `  [${new Date(r.at).toLocaleTimeString()}] ${r.writer}/${r.scope} ${r.parameter} ${r.oldValue}→${r.newValue}${r.trigger ? ` (${r.trigger.slice(0, 12)})` : ''}`
+          )
+          .join('\n');
+      }
+    ),
     cmd('retrospect', 'Run a retrospective: [session-id]', async (args = '') => {
       if (!w.episodicMemory) return 'Episodic memory not available.';
       const sid =
@@ -2025,9 +2068,13 @@ async function main(): Promise<void> {
 
   // TODO25 Phase A: retrospective-driven strategy adaptation (clamped +
   // digest one-shot + restorable; see nar/src/dialogue/consumers/adapt.ts).
+  // Phase B (REFACTOR.todo1): shared parameter ledger (C2 — observe, never
+  // decide) wired into every writer; off until this attach point.
+  const parameterLedger = new ParameterLedger({ path: DEFAULT_LEDGER_PATH });
+  wired.nar.setParameterLedger(parameterLedger);
   const narController = wired.nar.getController?.();
   const strategyAdapter = narController
-    ? new RetrospectiveAdapter(narController as never)
+    ? new RetrospectiveAdapter(narController as never, { ledger: parameterLedger })
     : undefined;
 
   // TODO24 §5 Phase C: shared retrospective runner — aggregates captured turns,
@@ -2066,6 +2113,14 @@ async function main(): Promise<void> {
       // I7 payoff: trace grades keyed by the correlationId the kernel minted —
       // each message's turnId shares that prefix, so joins are exact.
       traceGrades: (wired.nar as any).systemOne?.traceGradeHistory,
+      // Phase B: which parameter writes preceded this session's quality shifts.
+      ledgerEntries: parameterLedger
+        .query()
+        .filter(
+          (r) =>
+            sessionReactions.length === 0 ||
+            r.at >= Math.min(...sessionReactions.map((e) => e.timestamp))
+        ),
       contradictionTerms,
       proposals:
         sessionReactions.length >= 2 && corrections * 2 >= sessionReactions.length
@@ -2143,7 +2198,8 @@ async function main(): Promise<void> {
     routing,
     provisional,
     dialogue,
-    strategyAdapter
+    strategyAdapter,
+    parameterLedger
   );
   const commands = [...core.filter((c) => c.name !== 'help'), ...extra];
 

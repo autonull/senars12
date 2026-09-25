@@ -1,5 +1,6 @@
 import { appendFileSync } from 'node:fs';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
+import type { ParameterLedger } from '../config/parameter-ledger.js';
 import { createLogger } from '../logger';
 import { OperationError } from '../types';
 import { clamp } from '../utils';
@@ -40,11 +41,19 @@ export interface RLFPLearnerConfig {
   policyOptimizer?: PolicyOptimizer;
   trajectoryLogger?: any;
   currentParams?: CognitiveParameters;
+  /** Phase B (REFACTOR.todo1): observe tuning writes in the parameter ledger. */
+  ledger?: ParameterLedger;
 }
 
 export class RLFPLearner {
   readonly optimizeInterval: number;
   readonly currentParams: CognitiveParameters;
+  private ledger?: ParameterLedger;
+
+  /** Phase B (REFACTOR.todo1): attach after construction (ledger-off default). */
+  attachLedger(ledger: ParameterLedger): void {
+    this.ledger = ledger;
+  }
   private outputFile = 'rlfp_training_data.jsonl';
   private readonly logger = createLogger({ scope: 'rlfp' });
   private readonly rewardModel: RewardModel;
@@ -54,6 +63,7 @@ export class RLFPLearner {
 
   constructor(config: RLFPLearnerConfig = {}) {
     this.optimizeInterval = config.optimizeInterval ?? 100;
+    this.ledger = config.ledger;
     this.rewardModel = config.rewardModel ?? new RewardModel();
     this.policyOptimizer = new PolicyOptimizer(this.rewardModel);
     this._preferenceCollector = config.preferenceCollector ?? new PreferenceCollector();
@@ -188,7 +198,19 @@ export class RLFPLearner {
   applyTuningUpdate(knob: string, newValue: number): void {
     const k = this.knobs[knob];
     if (k) {
+      const oldValue = k.get();
       k.set(newValue);
+      if (oldValue !== k.get()) {
+        this.ledger?.record({
+          writer: 'rlfp',
+          scope: 'rlfp',
+          parameter: knob,
+          oldValue,
+          newValue: k.get(),
+          at: Date.now(),
+          trigger: 'rlfp-tuning',
+        });
+      }
     }
   }
 

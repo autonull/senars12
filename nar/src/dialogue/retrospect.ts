@@ -2,9 +2,15 @@ import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import type { Episode } from '@senars/util';
-import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import { DigestMismatchError } from '../lm/system-one/wasi-runtime.js';
-import { emptyReactionDistribution, type CorrectionAnalysis, type Lesson, type ReactionKind, type Retrospective } from './types.js';
+import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
+import {
+  type CorrectionAnalysis,
+  emptyReactionDistribution,
+  type Lesson,
+  type ReactionKind,
+  type Retrospective,
+} from './types.js';
 
 const RETROSPECTIVE_DIR = '.cache/retrospectives';
 /** Minimum viable session for a full analysis (below ⇒ skeleton report). */
@@ -47,7 +53,10 @@ const parseReaction = (e: Episode): SessionReaction | undefined => {
   }
 };
 
-export const digestPin = (turnIds: readonly string[], distribution: Record<ReactionKind, number>): string => {
+export const digestPin = (
+  turnIds: readonly string[],
+  distribution: Record<ReactionKind, number>
+): string => {
   const canonical = [...turnIds].sort().join(',') + '|' + JSON.stringify(distribution);
   return `sha256:${createHash('sha256').update(canonical).digest('hex')}`;
 };
@@ -66,6 +75,14 @@ export async function retrospect(
     traceGrades?: ReadonlyMap<string, number>;
     contradictionTerms?: readonly string[];
     proposals?: readonly unknown[];
+    /** Phase B: parameter-ledger changes to enrich the strategy audit with. */
+    ledgerEntries?: readonly {
+      parameter: string;
+      oldValue: number | string;
+      newValue: number | string;
+      at: number;
+      trigger?: string;
+    }[];
     minTurns?: number;
     minReactions?: number;
   } = {}
@@ -78,10 +95,16 @@ export async function retrospect(
     .filter((t): t is SessionTurn => t !== undefined && t.sessionId === sessionId)
     .sort((a, b) => a.seq - b.seq);
 
-  const reactionEpisodes = await episodic.getEpisodes({ type: 'reaction', sessionId, limit: 10_000 });
+  const reactionEpisodes = await episodic.getEpisodes({
+    type: 'reaction',
+    sessionId,
+    limit: 10_000,
+  });
   const reactions = reactionEpisodes
     .map(parseReaction)
-    .filter((r): r is SessionReaction => r !== undefined && turns.some((t) => t.turnId === r.turnId));
+    .filter(
+      (r): r is SessionReaction => r !== undefined && turns.some((t) => t.turnId === r.turnId)
+    );
 
   const reactionDistribution = emptyReactionDistribution();
   for (const r of reactions) reactionDistribution[r.kind]!++;
@@ -109,8 +132,15 @@ export async function retrospect(
           strategy: 'dialogue',
           gradedTurns: turns.length,
           meanQuality:
-            turns.reduce((acc, t) => acc + (options.traceGrades?.get(t.turnId.split(':')[0]!) ?? 0), 0) /
-            Math.max(turns.length, 1),
+            turns.reduce(
+              (acc, t) => acc + (options.traceGrades?.get(t.turnId.split(':')[0]!) ?? 0),
+              0
+            ) / Math.max(turns.length, 1),
+          // Phase B: enrich with ledger changes inside the session window
+          // (which parameter/strategy writes preceded quality shifts).
+          ...(options.ledgerEntries?.length
+            ? { parameterChanges: options.ledgerEntries.slice() }
+            : {}),
         },
       ]
     : [];
@@ -133,7 +163,10 @@ export async function retrospect(
 }
 
 /** Digest-pinned JSONL persistence; load is fail-closed (cf. FrozenEvalSet). */
-export async function persistRetrospective(r: Retrospective, dir = RETROSPECTIVE_DIR): Promise<void> {
+export async function persistRetrospective(
+  r: Retrospective,
+  dir = RETROSPECTIVE_DIR
+): Promise<void> {
   await fs.mkdir(dir, { recursive: true });
   await fs.appendFile(join(dir, 'retrospectives.jsonl'), JSON.stringify(r) + '\n');
 }
@@ -152,8 +185,7 @@ export async function loadRetrospectives(
   for (const line of content.split('\n').filter(Boolean).slice(-n)) {
     const r = JSON.parse(line) as Retrospective;
     const expected = digestPin(r.provenance.turnIds, r.reactionDistribution);
-    if (r.digest !== expected)
-      throw new DigestMismatchError(expected, `corrupt: ${r.sessionId}`);
+    if (r.digest !== expected) throw new DigestMismatchError(expected, `corrupt: ${r.sessionId}`);
     out.push(r);
   }
   return out;
@@ -168,11 +200,7 @@ export function extractLessons(
   seed: { term: string; truth: { frequency: number; confidence: number } }
 ): Lesson[] {
   const supporting = r.reactionDistribution['accept'] ?? 0;
-  if (
-    supporting < 2 ||
-    !seed.term.trim() ||
-    seed.truth.confidence < LESSON_CONFIDENCE_FLOOR
-  )
+  if (supporting < 2 || !seed.term.trim() || seed.truth.confidence < LESSON_CONFIDENCE_FLOOR)
     return [];
   return [
     {

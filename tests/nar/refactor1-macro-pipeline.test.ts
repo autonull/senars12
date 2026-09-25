@@ -21,7 +21,7 @@ const makeHost = (overrides: Partial<ScriptedHost> = {}): ScriptedHost => {
     emitted,
     executeCalls,
     log: {
-      append: async (e) => {
+      append: async (e: { type: string }) => {
         trace.push(`log:${e.type}`);
         return { ...e, id: 'cid-1', timestamp: 0 };
       },
@@ -60,12 +60,12 @@ const makeHost = (overrides: Partial<ScriptedHost> = {}): ScriptedHost => {
     },
     commandParser: (text: string) =>
       text.includes('!do') ? [{ command: 'do', args: [], raw: text }] : [],
-    emit: (e) => {
+    emit: (e: CognitiveEvent) => {
       trace.push(`emit:${e.type}`);
       emitted.push(e);
     },
     getLastResponse: () => '',
-    setLastResponse: (v) => trace.push(`lastResponse:${v}`),
+    setLastResponse: (v: string) => trace.push(`lastResponse:${v}`),
     ...overrides,
   } as unknown as ScriptedHost;
   return host;
@@ -215,7 +215,7 @@ describe('Bench 81 — custom macro pipelines', () => {
 });
 
 describe('Bench 81 — Negotiator proposers', () => {
-  const trap: ActionProposal = { action: 'trap', value: 1, confidence: 0.9 };
+  const trap: ActionProposal = { action: 'trap', value: 1, confidence: 0.9, source: 'reflex' };
 
   it('default proposers are empty and decisions are unchanged', () => {
     const n = new Negotiator();

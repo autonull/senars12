@@ -6,6 +6,7 @@
  * parameter mutation), one switch set per retrospective digest (N2), full
  * snapshot/restore, append-only ledger for the audit trail.
  */
+import type { ParameterLedger } from '../../config/parameter-ledger.js';
 import type { StrategyType } from '../../strategies/index.js';
 import type { Retrospective } from '../types.js';
 
@@ -27,6 +28,8 @@ export interface AdaptationOptions {
   minNegative?: number;
   /** Fraction of reactions that must be negative (default 0.5). */
   negativeShare?: number;
+  /** Phase B: observe strategy switches in the parameter ledger (C2). */
+  ledger?: ParameterLedger;
 }
 
 const SWITCHES = [
@@ -65,6 +68,15 @@ export class RetrospectiveAdapter {
       from[type] = this.controller.getStrategy(type);
       this.controller.setStrategy(type, name);
       to[type] = name;
+      this.options.ledger?.record({
+        writer: 'retrospective-adapter',
+        scope: 'strategy',
+        parameter: `strategy:${type}`,
+        oldValue: from[type] ?? '',
+        newValue: name,
+        at: Date.now(),
+        trigger: r.digest,
+      });
     }
     this.#ledger.push({ retrospectiveDigest: r.digest, from, to, at: Date.now() });
     return true;

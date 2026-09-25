@@ -56,6 +56,14 @@ export interface StrategyAuditEntry {
   strategy: string;
   gradedTurns: number;
   meanQuality: number;
+  /** Phase B (REFACTOR.todo1): parameter/strategy changes in the session window. */
+  parameterChanges?: Array<{
+    parameter: string;
+    oldValue: number | string;
+    newValue: number | string;
+    at: number;
+    trigger?: string;
+  }>;
 }
 
 export interface Retrospective {

@@ -8,6 +8,8 @@
  * C3/Phase-B benches).
  */
 
+import type { ParameterLedger, ParameterRecord } from './parameter-ledger.js';
+
 export type ParameterScope = 'system' | `game:${string}`;
 
 export interface ParameterSpec {
@@ -39,6 +41,28 @@ const clamp = (v: number, min: number, max: number): number => Math.max(min, Mat
 export class ParameterTable {
   private readonly entries = new Map<string, ParameterSpec>();
   private readonly key = (scope: ParameterScope, name: string) => `${scope}::${name}`;
+  private ledger?: ParameterLedger;
+  private ledgerWriter = 'parameter-table';
+
+  /** Phase B (REFACTOR.todo1): observe accepted writes into the shared ledger. */
+  attachLedger(ledger: ParameterLedger, writer = 'parameter-table'): void {
+    this.ledger = ledger;
+    this.ledgerWriter = writer;
+  }
+
+  #recordChange(spec: ParameterSpec, name: string, oldValue: number, newValue: number): void {
+    if (!this.ledger || oldValue === newValue) return;
+    const record: ParameterRecord = {
+      writer: this.ledgerWriter,
+      scope: spec.scope,
+      parameter: name,
+      oldValue,
+      newValue,
+      at: Date.now(),
+      trigger: 'setMany',
+    };
+    this.ledger.record(record);
+  }
 
   register(spec: ParameterSpec): void {
     const key = this.key(spec.scope, spec.name);
@@ -74,9 +98,13 @@ export class ParameterTable {
       applied.push({ spec, value: clamp(value, spec.min, spec.max) });
     }
     return applied.map(({ spec, value }) => {
-      const changed = spec.value !== value;
+      const oldValue = spec.value;
+      const changed = oldValue !== value;
       spec.value = value;
-      if (changed) spec.actuate?.(spec.value);
+      if (changed) {
+        spec.actuate?.(spec.value);
+        this.#recordChange(spec, spec.name, oldValue, value);
+      }
       return spec.value;
     });
   }

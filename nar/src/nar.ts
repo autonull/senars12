@@ -2,16 +2,18 @@ import { BaseComponent } from '@senars/core';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import { CognitiveController } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
+import type { ParameterLedger } from './config/parameter-ledger.js';
 import { createBootstrapTasks, DriveManager } from './drives';
 import type { FocusBag } from './focus/FocusBag.js';
 import type { GameFocus, GameFocusOptions } from './focus/GameFocus.js';
+import type { ConversationGame } from './game/ConversationGame.js';
 import type { SelfMetaGameImpl } from './game/SelfMetaGame.js';
 import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js';
 import type { LMService, SeNARSRegistry } from './lm';
 import { getModelForTask, LMRules } from './lm';
 import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
-import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
 import { SystemOneIngressJudge } from './lm/system-one/ingress-judge.js';
+import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
 import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
 import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-grader.js';
 import type { CognitiveDispatcher, JudgmentManifold } from './lm/system-one/types.js';
@@ -23,7 +25,6 @@ import { createAttentionModel, type NARConfig, validateNarConfig } from './nar/c
 import { GameManager } from './nar/games.js';
 import { StatePersister } from './nar/persistence.js';
 import { SystemOneRuntime } from './nar/system-one.js';
-import { ConversationGame } from './game/ConversationGame.js';
 import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';
@@ -51,6 +52,7 @@ import { ConfigurationError, DEFAULT_CONFIG, NarEventBus, type Task, type TaskTy
 
 /** Bounded derivation-chain ring per AIKR (no I/O on the hot path). */
 const DERIVATION_RING_CAP = 256;
+
 import { errMsg } from './utils';
 
 export { MetricsCollector } from './metrics';
@@ -370,6 +372,12 @@ export class NAR extends BaseComponent {
     return this.#proofRing.stream(signal);
   }
 
+  /** Phase B (REFACTOR.todo1): wire the shared parameter ledger into every writer NAR owns. */
+  setParameterLedger(ledger: ParameterLedger): void {
+    this.rlfp?.attachLedger(ledger);
+    this.games.getSelfMetaGame().attachParameterLedger(ledger, 'self-meta-game');
+  }
+
   getDriveManager(): DriveManager | undefined {
     return this.driveManager;
   }
@@ -409,12 +417,16 @@ export class NAR extends BaseComponent {
   }
 
   /** CLM contrastive exemplar memory (zero-shot scoring; undefined when disabled). */
-  getSystemOneContrastive(): import('./lm/system-one/contrastive.js').ContrastiveMemory | undefined {
+  getSystemOneContrastive():
+    | import('./lm/system-one/contrastive.js').ContrastiveMemory
+    | undefined {
     return this.systemOne.enabled ? this.systemOne.contrastive : undefined;
   }
 
   /** Refresh CLM contrastive exemplars from live state (hard negatives + calibration). */
-  refreshSystemOneContrastive(episodic?: import('./memory/EpisodicMemory.js').EpisodicMemory): Promise<void> {
+  refreshSystemOneContrastive(
+    episodic?: import('./memory/EpisodicMemory.js').EpisodicMemory
+  ): Promise<void> {
     return this.systemOne.refreshContrastive(this, episodic);
   }
 
@@ -426,11 +438,23 @@ export class NAR extends BaseComponent {
   private _emitJudgmentResolved?: (
     proposition: any,
     query?: any,
-    provenance?: { inputDigest?: string; calibrationDigest?: string; decisionBand?: 'act' | 'review' | 'block' | 'abstain' }
+    provenance?: {
+      inputDigest?: string;
+      calibrationDigest?: string;
+      decisionBand?: 'act' | 'review' | 'block' | 'abstain';
+    }
   ) => void;
 
   /** Emit a judgment.resolved kernel event + Prometheus metric for a resolved proposition. */
-  private emitJudgmentResolved(proposition: any, query?: any, provenance?: { inputDigest?: string; calibrationDigest?: string; decisionBand?: 'act' | 'review' | 'block' | 'abstain' }): void {
+  private emitJudgmentResolved(
+    proposition: any,
+    query?: any,
+    provenance?: {
+      inputDigest?: string;
+      calibrationDigest?: string;
+      decisionBand?: 'act' | 'review' | 'block' | 'abstain';
+    }
+  ): void {
     this._emitJudgmentResolved?.(proposition, query, provenance);
   }
 
