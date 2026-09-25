@@ -26,6 +26,7 @@ import {
 } from '../nar/src/eval/session-state.js';
 import { GameFocus } from '../nar/src/focus/GameFocus.js';
 import { createArcadeRegistry, type Game, SeededRNG } from '../nar/src/game/index.js';
+import type { Game as GameInterface } from '../nar/src/game/Game.js';
 import { renderGame } from '../nar/src/game/render.js';
 import {
   recordedProposals,
@@ -53,6 +54,7 @@ const parseArgs = (): {
   cognitive: boolean;
   resume: boolean;
   sessionPath: string;
+  otel: boolean;
   distill: boolean;
 } => {
   const get = (flag: string, fallback: string): string => {
@@ -108,7 +110,7 @@ async function buildCognitiveArm(
   arm: 'manifold' | 'lm' | 'replica' | 'nal',
   gameName: string,
   dataset?: unknown
-): Promise<{ reflex: Reflex; manifold: unknown; cache: unknown } | { note: string }> {
+): Promise<{ reflex: Reflex; manifold: unknown; cache: unknown; headLoaded: boolean } | { note: string }> {
   // nal arm: NAL-rules + kernel gates over a plain epsilon-greedy reflex —
   // the falsifiable question is whether the Negotiator's vetoes help, not
   // whether the reflex is smart.
@@ -117,6 +119,7 @@ async function buildCognitiveArm(
       reflex: new EpsilonGreedyReflex('nal-incumbent', { numArms: 10, epsilon: 0.1 }),
       manifold: undefined,
       cache: undefined,
+      headLoaded: false,
     };
   const { createEmbeddingCache } = await import('../nar/src/lm/system-one/embedding-cache.js');
   const cache = createEmbeddingCache({});
@@ -201,6 +204,7 @@ async function buildCognitiveArm(
     }),
     manifold,
     cache,
+    headLoaded: false,
   };
 }
 
@@ -272,9 +276,12 @@ async function main(): Promise<void> {
           continue;
         }
         for (let e = firstEpisode; e < episodes; e++) {
-          const game = gameRegistry.create(gameName, seed + e);
+          const game = gameRegistry.create(gameName, seed + e) as GameInterface<unknown, string | number>;
           let steps = 0;
-          while (!game.state().terminal && steps < 150) {
+          while (true) {
+            const perception = game.observe();
+            if (perception.terminal) break;
+            if (steps >= 150) break;
             const legal = (game.legalActions(game.state()) as Array<string | number>).map(String);
             if (legal.length === 0) break;
             const t0 = performance.now();
@@ -326,7 +333,7 @@ async function main(): Promise<void> {
       const recording = wrapReflex(built.reflex, vetoAwareReflex(), recordingReflex());
       let promotedCount = 0;
       for (let e = firstEpisode; e < episodes; e++) {
-        const game = gameRegistry.create(gameName, seed + e);
+        const game = gameRegistry.create(gameName, seed + e) as GameInterface<unknown, string | number>;
         const focus = new GameFocus({
           focusId: `${arm}-${gameName}-${e}`,
           game,
@@ -344,7 +351,10 @@ async function main(): Promise<void> {
             budget: BUDGET,
           });
         let steps = 0;
-        while (!game.state().terminal && steps < 150) {
+        while (true) {
+          const perception = game.observe();
+          if (perception.terminal) break;
+          if (steps >= 150) break;
           const t0 = performance.now();
           const { gameOutcome } = await focus.step(10);
           const latencyMs = performance.now() - t0;

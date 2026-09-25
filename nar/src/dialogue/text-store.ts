@@ -1,5 +1,5 @@
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
+import { Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery } from '@senars/io';
+import { z } from 'zod';
 
 export interface DialogueTextRecord {
   turnId: string;
@@ -15,52 +15,60 @@ export interface DialogueTextRecord {
  * I6 relaxation sidecar (TODO24): raw exchange text for opted-in sessions.
  * Strictly separate from the hash-only episode/label/retrospective stores —
  * labels, frozen eval sets, and retrospectives never touch raw text, whatever
- * the retention mode. Append-only JSONL keyed by turnId; delete the directory
- * to purge.
+ * the retention mode. Backed by the generic `Ledger<T>` primitive from `@senars/io`.
  */
 export class DialogueTextStore {
-  readonly #path: string;
+  readonly #ledger: Ledger<DialogueTextLedgerEntry>;
 
   constructor(path: string) {
-    this.#path = path;
+    this.#ledger = createLedger<DialogueTextLedgerEntry>('', DialogueTextRecordSchema, {
+      rollover: { fixedFile: path },
+    });
   }
 
   async append(record: DialogueTextRecord): Promise<void> {
-    await fs.mkdir(this.#path, { recursive: true });
-    await fs.appendFile(this.#file(), JSON.stringify(record) + '\n');
+    const fullEntry = { ...record, at: record.at ?? Date.now() } as DialogueTextLedgerEntry;
+    this.#ledger.append(fullEntry);
   }
 
   /** Upsert by turnId: appends a record, replacing any prior one for that turn. */
   async upsert(record: DialogueTextRecord): Promise<void> {
-    const all = (await this.read()).filter((r) => r.turnId !== record.turnId);
-    all.push(record);
-    await fs.mkdir(this.#path, { recursive: true });
-    await fs.writeFile(this.#file(), all.map((r) => JSON.stringify(r)).join('\n') + '\n');
+    // Append the new record (will be last for this turnId)
+    this.#ledger.append({ ...record, at: record.at ?? Date.now() } as DialogueTextLedgerEntry);
+    // Compact by turnId: keeps the last entry per turnId (the one we just appended)
+    await this.#ledger.compact((e) => e.turnId);
   }
 
   /** Read all records (oldest first). */
   async read(): Promise<DialogueTextRecord[]> {
-    let content: string;
-    try {
-      content = await fs.readFile(this.#file(), 'utf-8');
-    } catch {
-      return [];
-    }
-    return content
-      .split('\n')
-      .filter(Boolean)
-      .map((line) => JSON.parse(line) as DialogueTextRecord);
+    const entries = await this.#ledger.query({});
+    return entries.map((e) => ({
+      turnId: e.turnId,
+      sessionId: e.sessionId,
+      at: e.at,
+      utterance: e.utterance,
+      response: e.response,
+      correction: e.correction,
+    }));
   }
 
   async get(turnId: string): Promise<DialogueTextRecord | undefined> {
-    return (await this.read()).find((r) => r.turnId === turnId);
+    const entries = await this.#ledger.query({});
+    return entries.find((e) => e.turnId === turnId) as DialogueTextRecord | undefined;
   }
 
   async purge(): Promise<void> {
-    await fs.rm(this.#path, { recursive: true, force: true }).catch(() => {});
-  }
-
-  #file(): string {
-    return join(this.#path, 'dialogue-text.jsonl');
+    this.#ledger.clear();
+    this.#ledger.close();
   }
 }
+
+const DialogueTextRecordSchema = BaseLedgerEntrySchema.extend({
+  turnId: z.string(),
+  sessionId: z.string(),
+  utterance: z.string().optional(),
+  response: z.string().optional(),
+  correction: z.string().optional(),
+});
+
+export type DialogueTextLedgerEntry = z.infer<typeof DialogueTextRecordSchema>;

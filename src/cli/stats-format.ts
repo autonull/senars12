@@ -4,7 +4,7 @@
  */
 
 import type { NAR } from '@senars/nar';
-import type { Agent } from '@senars/nar/agent';
+import type { BinAgentApi as Agent } from '@senars/nar/agent';
 import { limitList } from '@senars/util';
 import type { LMHandle, LMStats } from './commands.js';
 

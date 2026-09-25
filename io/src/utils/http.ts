@@ -80,21 +80,25 @@ export const startWSServer = (
 };
 
 export class ApiKeyManager {
-  private keys = new Set<string>();
+  private _keys = new Set<string>();
 
   get size(): number {
-    return this.keys.size;
+    return this._keys.size;
   }
 
   add(key: string): void {
-    this.keys.add(key);
+    this._keys.add(key);
   }
 
   remove(key: string): void {
-    this.keys.delete(key);
+    this._keys.delete(key);
   }
 
   has(key: string): boolean {
-    return this.keys.has(key);
+    return this._keys.has(key);
+  }
+
+  keys(): IterableIterator<string> {
+    return this._keys.keys();
   }
 }

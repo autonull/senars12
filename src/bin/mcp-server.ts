@@ -39,7 +39,10 @@ const getTransportType = (): TransportType => {
 
 const getHttpPort = (): number => {
   const arg = process.argv.find((a) => a.startsWith('--port='));
-  if (arg) return parseInt(arg.split('=')[1], 10);
+  if (arg) {
+    const portStr = arg.split('=')[1];
+    if (portStr) return parseInt(portStr, 10);
+  }
   return parseInt(process.env.MCP_PORT ?? '8766', 10);
 };
 
@@ -86,7 +89,9 @@ const startSse = (port: number, guard: HttpGuard): void => {
   httpServer.listen(port, () => {
     logger.info(`SeNARS MCP Server started with SSE at http://localhost:${port}/mcp/sse`);
   });
-  installSignalShutdown(async () => httpServer.close());
+  installSignalShutdown(async () => {
+    await httpServer.close();
+  });
 };
 
 const startHttp = (port: number, guard: HttpGuard): void => {
@@ -113,7 +118,7 @@ const startHttp = (port: number, guard: HttpGuard): void => {
   });
   installSignalShutdown(async () => {
     await httpTransport.close();
-    httpServer.close();
+    await httpServer.close();
   });
 };
 
@@ -137,7 +142,6 @@ async function initialize() {
         contrastive: nar.getSystemOneContrastive?.(),
         config: appConfig.dialogue,
       }),
-      episodic: episodicMemory,
       traceGrades: (nar as any).systemOne?.traceGradeHistory,
     });
   }

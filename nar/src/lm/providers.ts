@@ -83,4 +83,6 @@ export {
   setRouting,
 } from './providers/routing.js';
 export { configureLM, getLMSettings, getLmProvider } from './providers/settings.js';
+export { formatLMConfig } from './env-config.js';
+export { probeLlamaCpp } from './providers/llamacpp.js';
 export { configureWebLLM, detectDevice, getWebLLMRuntime } from './providers/webllm.js';

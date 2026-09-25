@@ -5,7 +5,8 @@
  * fresh instance gives a NAR/LMService its own routing + failure state so
  * parallel instances coexist in one process.
  */
-import { appendFileSync, mkdirSync } from 'node:fs';
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
+import { z } from 'zod';
 import { join } from 'node:path';
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import type { LMTask } from '@senars/util';
@@ -102,6 +103,19 @@ export interface RoutingTelemetryEntry {
   chain?: string[];
 }
 
+const RoutingTelemetryEntrySchema = BaseLedgerEntrySchema.extend({
+  task: z.string(),
+  modelId: z.string(),
+  latencyMs: z.number(),
+  success: z.boolean(),
+  demoted: z.boolean(),
+  provider: z.string(),
+  objective: z.unknown().optional(),
+  chain: z.array(z.string()).optional(),
+});
+
+type RoutingTelemetryLedgerEntry = z.infer<typeof RoutingTelemetryEntrySchema>;
+
 const ROUTING_LOG_FLUSH_INTERVAL_MS = 5000;
 
 const lmTracer = getTracer('senars.lm');
@@ -118,8 +132,8 @@ export class ProviderRuntime {
   private fileSettings: LMSettingsInput | undefined;
   private webllmRuntime: WebLLMRuntime | undefined;
   private builtinProgressCallback: ((progress: number) => void) | undefined;
+  readonly #routingLedger: Ledger<RoutingTelemetryLedgerEntry> | null = null;
 
-  readonly routingLogBuffer: RoutingTelemetryEntry[] = [];
   routingLogEnabled = false;
   routingLogDir = 'logs';
   routingLogInterval: ReturnType<typeof setInterval> | null = null;
@@ -301,6 +315,20 @@ export class ProviderRuntime {
     if (options?.flushIntervalMs && this.routingLogInterval) {
       clearInterval(this.routingLogInterval);
     }
+    // Initialize ledger
+    try {
+      const { mkdirSync } = require('node:fs');
+      mkdirSync(this.routingLogDir, { recursive: true });
+      const date = new Date().toISOString().split('T')[0];
+      const logPath = join(this.routingLogDir, `routing-${date}.jsonl`);
+      (this as any).#routingLedger = createLedger<RoutingTelemetryLedgerEntry>(
+        this.routingLogDir,
+        RoutingTelemetryEntrySchema,
+        { rollover: { fixedFile: logPath } }
+      );
+    } catch {
+      // Silently fail
+    }
     this.routingLogInterval = setInterval(
       () => this.flushRoutingLog(),
       options?.flushIntervalMs ?? ROUTING_LOG_FLUSH_INTERVAL_MS
@@ -320,7 +348,10 @@ export class ProviderRuntime {
 
   logRoutingDecision(entry: RoutingTelemetryEntry): void {
     if (!this.routingLogEnabled) return;
-    this.routingLogBuffer.push(entry);
+    const ledger = (this as any).#routingLedger as Ledger<RoutingTelemetryLedgerEntry> | null;
+    if (ledger) {
+      ledger.append({ ...entry, at: entry.ts } as RoutingTelemetryLedgerEntry);
+    }
     // Flush immediately on circuit breaker events
     if (entry.demoted || !entry.success) {
       this.flushRoutingLog();
@@ -329,28 +360,17 @@ export class ProviderRuntime {
 
   getRoutingLogStatus(): { enabled: boolean; bufferSize: number; logPath: string } {
     const date = new Date().toISOString().split('T')[0];
+    const ledger = (this as any).#routingLedger as Ledger<RoutingTelemetryLedgerEntry> | null;
     return {
       enabled: this.routingLogEnabled,
-      bufferSize: this.routingLogBuffer.length,
+      bufferSize: ledger?.getHotCacheSize() ?? 0,
       logPath: join(this.routingLogDir, `routing-${date}.jsonl`),
     };
   }
 
   private flushRoutingLog(): void {
-    if (this.routingLogBuffer.length === 0) return;
-    try {
-      mkdirSync(this.routingLogDir, { recursive: true });
-      const date = new Date().toISOString().split('T')[0];
-      const path = join(this.routingLogDir, `routing-${date}.jsonl`);
-      const lines = `${this.routingLogBuffer
-        .splice(0)
-        .map((e) => JSON.stringify(e))
-        .join('\n')}\n`;
-      appendFileSync(path, lines, 'utf-8');
-    } catch (e) {
-      // Silently fail to avoid disrupting main flow
-      console.error('[routing-telemetry] Flush failed:', e);
-    }
+    // Ledger handles flushing automatically on append for fixedFile mode
+    // This method is kept for API compatibility
   }
 }
 

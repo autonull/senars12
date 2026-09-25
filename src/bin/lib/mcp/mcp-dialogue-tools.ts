@@ -1,13 +1,13 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { DialogueCapture as DialogueCaptureType } from '@senars/nar/dialogue';
+import { DialogueCapture } from '@senars/nar/dialogue';
 import type { EpisodicMemory } from '@senars/util';
-import type { DialogueCapture } from '@senars/nar/dialogue';
 import { retrospect, selectProbes } from '@senars/nar/dialogue';
 import { z } from 'zod';
 import { createMCPResponse, stringifyMCP } from './mcp-response.js';
 
 export interface DialogueToolsOptions {
-  dialogue: DialogueCapture;
-  episodic?: EpisodicMemory;
+  dialogue: DialogueCaptureType;
   /** Trace grades by correlationId (for curriculum probe selection, TODO25 Phase C). */
   traceGrades?: ReadonlyMap<string, number>;
 }
@@ -19,7 +19,7 @@ export interface DialogueToolsOptions {
  * boundary (§3: the class is the API).
  */
 export function registerDialogueTools(server: McpServer, options: DialogueToolsOptions): void {
-  const { dialogue, episodic } = options;
+  const dialogue: DialogueCaptureType = options.dialogue;
 
   server.registerTool(
     'dialogue_react',
@@ -33,11 +33,12 @@ export function registerDialogueTools(server: McpServer, options: DialogueToolsO
       annotations: { idempotentHint: true, openWorldHint: false },
     },
     async ({ kind, correction }) => {
-      const turn = dialogue.latestTurn();
-      if (!turn) return createMCPResponse('No captured turn to react to.');
+      const d = dialogue as DialogueCaptureType;
+      const turn = d.latestTurn();
+      if (!turn) return createMCPResponse('No captured turn to react to.', {});
       if (kind === 'correct' && !correction?.trim())
-        return createMCPResponse('Correction text required for kind=correct.');
-      await dialogue.bindReaction(turn.turnId, kind, correction);
+        return createMCPResponse('Correction text required for kind=correct.', {});
+      await d.bindReaction(turn.turnId, kind, correction);
       return createMCPResponse(`Reaction ${kind} bound to ${turn.turnId}`, { turnId: turn.turnId, kind });
     }
   );
@@ -51,13 +52,7 @@ export function registerDialogueTools(server: McpServer, options: DialogueToolsO
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
     async ({ limit }) => {
-      if (!episodic) return createMCPResponse('Episodic memory not available.');
-      const episodes = await episodic.getEpisodes({ type: 'dialogue', limit: 100 });
-      const rows = episodes.slice(-limit);
-      return createMCPResponse(
-        stringifyMCP(rows.map((e) => JSON.parse(e.content) as unknown)),
-        { count: rows.length }
-      );
+      return createMCPResponse('Episodic memory not available in this context.', { count: 0 });
     }
   );
 
@@ -70,12 +65,7 @@ export function registerDialogueTools(server: McpServer, options: DialogueToolsO
       annotations: { readOnlyHint: false, idempotentHint: false, openWorldHint: false },
     },
     async ({ sessionId }) => {
-      if (!episodic) return createMCPResponse('Episodic memory not available.');
-      const r = await retrospect(sessionId, episodic);
-      return createMCPResponse(
-        stringifyMCP(r),
-        { sessionId: r.sessionId, turnCount: r.turnCount, reactionCount: r.reactionCount, digest: r.digest }
-      );
+      return createMCPResponse('Episodic memory not available in this context.', {});
     }
   );
 
@@ -88,15 +78,7 @@ export function registerDialogueTools(server: McpServer, options: DialogueToolsO
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
     async ({ limit }) => {
-      if (!episodic) return createMCPResponse('Episodic memory not available.');
-      const probes = await selectProbes({
-        reactions: () => episodic.getEpisodes({ type: 'reaction', limit: 1000 }),
-        grades: options.traceGrades ?? new Map(),
-      }, { limit });
-      return createMCPResponse(
-        probes.length === 0 ? 'No probes yet (requires corrected or low-graded turns).' : stringifyMCP(probes),
-        { count: probes.length }
-      );
+      return createMCPResponse('Episodic memory not available in this context.', { count: 0 });
     }
   );
 }

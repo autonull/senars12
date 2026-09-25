@@ -13,6 +13,7 @@ import { loadConfig } from '../../config/index.js';
 import { createLMService } from '@senars/nar';
 import { NARBuilder } from '@senars/nar/agent/builder';
 import { HEAD_SPECS } from '@senars/nar/lm/system-one/head-specs.js';
+import { SystemOneManifold } from '@senars/nar/lm/system-one/manifold.js';
 import { systemOneDefaults, systemOneSchema } from '../../config/schema.js';
 import { createLogger } from '@senars/nar/logger';
 
@@ -65,8 +66,9 @@ const collect = async (): Promise<StatusReport> => {
   const manifold = nar.getSystemOneManifold();
   if (manifold && 'health' in manifold) {
     report.manifold = { provider: systemOne.manifold.provider, health: manifold.health() as unknown as Record<string, unknown> };
-    const calibrators = 'getCalibrators' in manifold ? manifold.getCalibrators() : undefined;
-    const thresholds = 'getAbstainThresholds' in manifold ? manifold.getAbstainThresholds() : undefined;
+    const sysManifold = manifold as SystemOneManifold;
+    const calibrators = sysManifold.getCalibrators?.();
+    const thresholds = sysManifold.getAbstainThresholds?.();
     report.heads = Object.entries(HEAD_SPECS).map(([headId, spec]) => ({
       headId,
       kind: spec.kind,
@@ -78,9 +80,11 @@ const collect = async (): Promise<StatusReport> => {
   const spend = nar.getLMClient()?.getSpend();
   if (spend) report.spend = spend as StatusReport['spend'];
 
+  const governance = nar.getSelfMetaGame().getGovernanceQueues();
   report.governance = {
     attachedGames: nar.getAttachedGames().length,
-    ...nar.getSelfMetaGame().getGovernanceQueues(),
+    awaitingValidation: governance.validation,
+    awaitingApproval: governance.approval,
   };
 
   await nar.dispose?.();
@@ -128,7 +132,7 @@ export const runStatus = async (): Promise<StatusReport> => {
 
 if (process.argv[1]?.endsWith('status-report.ts')) {
   runStatus().catch((e) => {
-    logger.error('status failed', { error: e instanceof Error ? e.message : String(e) });
+    logger.error('status failed', e instanceof Error ? e : undefined, { error: e instanceof Error ? e.message : String(e) });
     process.exit(1);
   });
 }

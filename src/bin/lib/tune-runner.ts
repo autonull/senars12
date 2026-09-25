@@ -166,13 +166,14 @@ function mutateParams(params: CognitiveParameters): void {
   const knob = knobs[Math.floor(Math.random() * knobs.length)]!;
   const keys = knob.path.split('.');
   if (keys.length === 0) return;
-  let current: unknown = params;
+  let current: Record<string, unknown> = params as unknown as Record<string, unknown>;
   for (let i = 0; i < keys.length - 1; i++) {
     const k = keys[i]!;
-    if (!current[k] || typeof current[k] !== 'object') {
+    const val = current[k];
+    if (!val || typeof val !== 'object') {
       return;
     }
-    current = current[k];
+    current = val as Record<string, unknown>;
   }
   const key = keys[keys.length - 1]!;
   const currentValue = Number(current[key] ?? 0);

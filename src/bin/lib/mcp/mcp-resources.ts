@@ -169,11 +169,8 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
       mimeType: 'application/json',
     },
     async () => {
-      const ruleProcessor = nar.getRuleProcessor?.();
-      const lmRules = nar.getLMRules?.();
-
-      const ruleStats = ruleProcessor?.getRuleStats?.() ?? [];
-      const lmRuleStats = lmRules?.map((r: { getStats: () => unknown }) => r.getStats()) ?? [];
+      const ruleProcessor = nar.getProcessor();
+      const lmRuleStats = ruleProcessor.getLmRuleStats();
 
       // Aggregate top costly derivations
       const costlyDerivations: Array<{
@@ -187,18 +184,16 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
 
       // Add LMRule stats with cost data
       for (const lmStat of lmRuleStats) {
-        if (lmStat && typeof lmStat === 'object' && 'stats' in lmStat) {
-          const stats = (lmStat as { stats: { totalCalls: number; successfulCalls: number; totalTokens: number; totalDurationMs: number; avgDurationMs: number } }).stats;
-          if (stats && stats.totalCalls > 0) {
-            costlyDerivations.push({
-              rule: (lmStat as { id: string; name: string }).id,
-              cpuMs: stats.totalDurationMs,
-              lmCalls: stats.totalCalls,
-              lmTokens: stats.totalTokens,
-              count: stats.successfulCalls,
-              avgCpuMs: stats.avgDurationMs,
-            });
-          }
+        const stats = lmStat.stats;
+        if (stats && stats.totalCalls > 0) {
+          costlyDerivations.push({
+            rule: lmStat.id,
+            cpuMs: stats.totalDuration,
+            lmCalls: stats.totalCalls,
+            lmTokens: stats.totalTokens,
+            count: stats.successfulCalls,
+            avgCpuMs: stats.averageDuration,
+          });
         }
       }
 
@@ -209,7 +204,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
         history: [],
         costlyDerivations: costlyDerivations.slice(0, 10),
         totals: {
-          totalDerivations: ruleStats.reduce((sum: number, r: { executions: number }) => sum + (r.executions ?? 0), 0),
+          totalDerivations: costlyDerivations.reduce((sum, d) => sum + d.count, 0),
           totalCpuMs: costlyDerivations.reduce((sum, d) => sum + d.cpuMs, 0),
           totalLmCalls: costlyDerivations.reduce((sum, d) => sum + d.lmCalls, 0),
           totalLmTokens: costlyDerivations.reduce((sum, d) => sum + d.lmTokens, 0),
@@ -468,14 +463,26 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
       mimeType: 'application/json',
     },
     async (_uri, { key }) => {
-      const value = agent?.knowGet?.(key);
-      if (value !== undefined) {
+      const keyStr = Array.isArray(key) ? key[0] : key;
+      if (!keyStr) {
         return {
           contents: [
             {
               uri: `knowledge://${key}`,
               mimeType: 'application/json',
-              text: stringifyMCP({ key, value }),
+              text: `Unknown knowledge key: ${key}`,
+            },
+          ],
+        };
+      }
+      const value = agent?.knowGet?.(keyStr);
+      if (value !== undefined) {
+        return {
+          contents: [
+            {
+              uri: `knowledge://${keyStr}`,
+              mimeType: 'application/json',
+              text: stringifyMCP({ key: keyStr, value }),
             },
           ],
         };
@@ -483,9 +490,9 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
       return {
         contents: [
           {
-            uri: `knowledge://${key}`,
+            uri: `knowledge://${keyStr}`,
             mimeType: 'application/json',
-            text: `Unknown knowledge key: ${key}`,
+            text: `Unknown knowledge key: ${keyStr}`,
           },
         ],
       };
@@ -501,8 +508,10 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
       mimeType: 'application/json',
     },
     async () => {
-      const episodes = (await nar.getEpisodicMemory?.().getEpisodes({ limit: 10_000 })) ?? [];
-      const retrieval = [...(nar.tools.getAllStatistics?.().values() ?? [])].reduce(
+      const episodic = await agent?.getEpisodicMemory?.();
+      const episodes = episodic ? await episodic.getEpisodes({ limit: 10_000 }) : [];
+      const statsMap = nar.tools.getAllStatistics?.() ?? new Map();
+      const retrieval = [...statsMap.values()].reduce(
         (acc: { calls: number; ok: number }, s) => ({
           calls: acc.calls + s.totalCalls,
           ok: acc.ok + s.successfulCalls,

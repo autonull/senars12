@@ -46,6 +46,8 @@ export interface EpisodicMemory {
 
   getRecent(limit?: number): Promise<Episode[]>;
 
+  getEpisodes(filter?: EpisodeFilter): Promise<Episode[]>;
+
   search(query: string, limit?: number): Promise<Episode[]>;
 
   close(): Promise<void>;

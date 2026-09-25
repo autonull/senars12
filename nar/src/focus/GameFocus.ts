@@ -1,4 +1,5 @@
-import { appendFileSync, mkdirSync } from 'node:fs';
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
+import { z } from 'zod';
 import { join } from 'node:path';
 import type { DerivationRecord, ReasoningBudget } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
@@ -14,6 +15,19 @@ import { recordBagPressure, recordHandover } from '../telemetry/index.js';
 import { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding.js';
 import { induceEpisodeSchemas, type PromotedSchema } from './episode-schemas.js';
 import { Focus, type FocusOptions } from './Focus.js';
+
+const GameTraceEntrySchema = BaseLedgerEntrySchema.extend({
+  cycle: z.number(),
+  legalActions: z.array(z.number()),
+  reflexProposal: z.unknown().nullable(),
+  nalDerivations: z.array(z.unknown()),
+  negotiatedAction: z.unknown(),
+  reward: z.number(),
+  terminal: z.boolean(),
+  focusWeightDelta: z.number(),
+});
+
+type GameTraceLedgerEntry = z.infer<typeof GameTraceEntrySchema>;
 
 export interface GameFocusOptions {
   focusId: string;
@@ -136,7 +150,42 @@ export class GameFocus {
     // autonomy mode and shared allowlist are untouched (A3 scoped gates).
     this.syncScope();
 
+    // Initialize game trace ledger if enabled
+    if (this.gameTraceEnabled) {
+      try {
+        const logDir = 'logs';
+        const { mkdirSync } = require('node:fs');
+        mkdirSync(logDir, { recursive: true });
+        const date = new Date().toISOString().split('T')[0];
+        const logPath = join(logDir, `game-trace-${date}.jsonl`);
+        (this as any).#gameTraceLedger = createLedger<GameTraceLedgerEntry>(
+          logDir,
+          GameTraceEntrySchema,
+          { rollover: { fixedFile: logPath } }
+        );
+      } catch {
+        this.gameTraceEnabled = false;
+      }
+    }
+
     this.initGameTrace();
+  }
+
+  private logGameTrace(entry: {
+    cycle: number;
+    legalActions: number[];
+    reflexProposal: ActionProposal | null;
+    nalDerivations: NALDerivation[];
+    negotiatedAction: NegotiationDecision;
+    reward: number;
+    terminal: boolean;
+    focusWeightDelta: number;
+  }): void {
+    if (!this.gameTraceEnabled) return;
+    const ledger = (this as any).#gameTraceLedger as Ledger<GameTraceLedgerEntry> | null;
+    if (ledger) {
+      ledger.append({ ...entry, at: Date.now() } as GameTraceLedgerEntry);
+    }
   }
 
   /** Refresh this focus's scoped autonomy + allowlist from the current legal actions. */
@@ -268,56 +317,11 @@ export class GameFocus {
   }
 
   private gameTraceEnabled = process.env.SENARS_GAME_TRACE === '1';
-  private gameTraceLogPath: string | null = null;
-  private gameTraceBuffer: string[] = [];
-  private gameTraceFlushInterval: ReturnType<typeof setInterval> | null = null;
+  readonly #gameTraceLedger: Ledger<GameTraceLedgerEntry> | null = null;
 
   private initGameTrace(): void {
     if (!this.gameTraceEnabled) return;
-    try {
-      const logDir = 'logs';
-      mkdirSync(logDir, { recursive: true });
-      const date = new Date().toISOString().split('T')[0];
-      this.gameTraceLogPath = join(logDir, `game-trace-${date}.jsonl`);
-      this.gameTraceFlushInterval = setInterval(() => this.flushGameTrace(), 5000);
-      this.gameTraceFlushInterval.unref?.();
-    } catch {
-      // Silently disable if setup fails
-      this.gameTraceEnabled = false;
-    }
-  }
-
-  private logGameTrace(entry: {
-    cycle: number;
-    legalActions: number[];
-    reflexProposal: ActionProposal | null;
-    nalDerivations: NALDerivation[];
-    negotiatedAction: NegotiationDecision;
-    reward: number;
-    terminal: boolean;
-    focusWeightDelta: number;
-  }): void {
-    if (!this.gameTraceEnabled) return;
-    this.gameTraceBuffer.push(
-      JSON.stringify({
-        ts: Date.now(),
-        ...entry,
-      })
-    );
-  }
-
-  private flushGameTrace(): void {
-    if (!this.gameTraceEnabled || this.gameTraceBuffer.length === 0 || !this.gameTraceLogPath)
-      return;
-    try {
-      appendFileSync(
-        this.gameTraceLogPath,
-        this.gameTraceBuffer.splice(0).join('\n') + '\n',
-        'utf-8'
-      );
-    } catch {
-      // Silently fail
-    }
+    // Ledger is initialized in constructor
   }
 
   async step(budget: number): Promise<{

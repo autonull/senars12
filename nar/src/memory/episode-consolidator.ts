@@ -24,6 +24,8 @@ export interface ConsolidationResult {
   summary: Episode;
   /** Raw episode ids merged into this summary. */
   merged: string[];
+  /** Number of episodes scanned during consolidation. */
+  scanned: number;
 }
 
 /** Per-type importance: corrections/reactions outweigh routine traffic. */
@@ -211,7 +213,7 @@ export class EpisodeConsolidator {
         causes,
       };
       await this.#emit?.(summary);
-      results.push({ summary, merged: ids });
+      results.push({ summary, merged: ids, scanned: items.length });
     }
     return results;
   }

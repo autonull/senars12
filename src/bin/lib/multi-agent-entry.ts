@@ -26,9 +26,11 @@ export const runMultiAgentEntry = async (): Promise<void> => {
     createWired: async () =>
       NARBuilder.fromProfile('arcade')
         .withNarConfig({
-          core: testing
-            ? { maxConcepts: 100, activationDecayRate: 0, consolidationInterval: 1000, cpuThrottleMs: 0, maxDerivationDepth: 20 }
-            : { maxConcepts: 100 },
+          maxConcepts: testing ? 100 : 100,
+          activationDecayRate: testing ? 0 : undefined,
+          consolidationInterval: testing ? 1000 : undefined,
+          cpuThrottleMs: testing ? 0 : undefined,
+          maxDerivationDepth: testing ? 20 : undefined,
           enableLMRules: true,
         })
         .build(),

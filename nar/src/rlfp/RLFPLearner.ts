@@ -1,4 +1,5 @@
-import { appendFileSync } from 'node:fs';
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
+import { z } from 'zod';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { ParameterLedger } from '../config/parameter-ledger.js';
 import { createLogger } from '../logger';
@@ -33,6 +34,16 @@ export interface TrainingEntry {
   full_rejected_trajectory: TrajectoryStep[];
 }
 
+const TrainingEntrySchema = BaseLedgerEntrySchema.extend({
+  prompt: z.unknown(),
+  chosen: z.string(),
+  rejected: z.string(),
+  full_chosen_trajectory: z.array(z.unknown()),
+  full_rejected_trajectory: z.array(z.unknown()),
+});
+
+type TrainingLedgerEntry = z.infer<typeof TrainingEntrySchema>;
+
 export interface RLFPLearnerConfig {
   /** Cycles between optimize() invocations (F7/X28: RLFPConfig flows through construction). */
   optimizeInterval?: number;
@@ -43,6 +54,8 @@ export interface RLFPLearnerConfig {
   currentParams?: CognitiveParameters;
   /** Phase B (REFACTOR.todo1): observe tuning writes in the parameter ledger. */
   ledger?: ParameterLedger;
+  /** Path for training data ledger (REFACTOR.todo4 Phase B). */
+  trainingDataPath?: string;
 }
 
 export class RLFPLearner {
@@ -60,6 +73,7 @@ export class RLFPLearner {
   private readonly policyOptimizer: PolicyOptimizer;
   private readonly _preferenceCollector: PreferenceCollector;
   private readonly knobs: Record<string, TunableKnob>;
+  readonly #trainingLedger: Ledger<TrainingLedgerEntry>;
 
   constructor(config: RLFPLearnerConfig = {}) {
     this.optimizeInterval = config.optimizeInterval ?? 100;
@@ -120,6 +134,11 @@ export class RLFPLearner {
       },
     };
     this.knobs = createKnobSet(this.currentParams);
+    this.#trainingLedger = createLedger<TrainingLedgerEntry>(
+      config.trainingDataPath ?? '.cache/rlfp/training',
+      TrainingEntrySchema,
+      { rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 } }
+    );
   }
 
   private _trajectoryCount = 0;
@@ -382,7 +401,7 @@ export class RLFPLearner {
 
   private appendToFile(entry: TrainingEntry): void {
     try {
-      appendFileSync(this.outputFile, JSON.stringify(entry) + '\n');
+      this.#trainingLedger.append({ ...entry, at: entry.timestamp } as TrainingLedgerEntry);
     } catch (error) {
       throw new OperationError(`RLFPLearner write error: ${(error as Error).message}`, {
         file: this.outputFile,

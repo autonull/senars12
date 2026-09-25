@@ -28,7 +28,7 @@ interface NarAgentApi {
 
   believe(text: string): Promise<void>;
 
-  recall(query?: string, limit?: number): Promise<Array<{ content: string }>>;
+  recall(query?: string, limit?: number): Promise<Array<{ content: string; type?: string }>>;
 
   know(key: string, value: string): void;
 
@@ -45,9 +45,21 @@ interface NarAgentApi {
   getEpisodicMemory(): EpisodicMemory | undefined;
 
   getRecentDerivations(): unknown;
+
+  // Bin layer extensions (narrow public accessors per REFACTOR.todo4 Phase C)
+  start(): Promise<void>;
+
+  stop(): Promise<void>;
+
+  setMacroPipeline(phases: unknown[]): void;
+
+  mount(transport: unknown): Promise<void>;
 }
 
 type ExtendedAgent = Agent & NarAgentApi;
+
+/** Minimal agent API for bin layer consumers (excludes core internals). */
+export type BinAgentApi = NarAgentApi;
 
 type PromptReq = CortexSynthesizeRequest & { workingMemory: unknown[] };
 

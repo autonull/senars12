@@ -1,4 +1,4 @@
-import type { Agent } from '@senars/core';
+import type { BinAgentApi as Agent } from '@senars/nar/agent';
 import type { CLICommand } from '@senars/io/connections/cli';
 import { QUIT_SENTINEL } from '@senars/io/connections/cli';
 import type { NAR } from '@senars/nar';
@@ -78,14 +78,14 @@ export function buildCommands(
     cmd('concepts', 'Show active concepts', () => formatConcepts(nar)),
     cmd('attention', 'Attention focus report', () => formatAttention(nar)),
     cmd('episodes', 'List recent episodes', async (args) => {
-      const limit = Number.parseInt(args) || 10;
+      const limit = Number.parseInt(args ?? '') || 10;
       const episodes = await agent.recall(undefined, limit);
       const lines = [`\n--- ${episodes.length} Recent Episode(s) ---`];
       for (const e of episodes) lines.push(`  [${e.type}] ${truncate(e.content)}`);
       return lines.join('\n');
     }),
     cmd('know', 'Get/set/list knowledge', (args) => {
-      const parts = args.trim().split(/\s+/);
+      const parts = (args ?? '').trim().split(/\s+/);
       if (!parts[0]) {
         const entries = agent.knowList();
         if (!entries.length) return '\n  (empty)';
@@ -103,7 +103,7 @@ export function buildCommands(
       return `Stored: ${key}`;
     }),
     cmd('recall', 'Search episodic memory', async (args) => {
-      const episodes = await agent.recall(args.trim() || undefined);
+      const episodes = await agent.recall((args ?? '').trim() || undefined);
       const lines = [`\n--- ${episodes.length} Episode(s) ---`];
       for (const e of episodes) lines.push(`  [${e.type}] ${truncate(e.content)}`);
       return lines.join('\n');
@@ -113,20 +113,20 @@ export function buildCommands(
       return `\n--- ${sessions} Session(s) ---`;
     }),
     cmd('session', 'Switch or create session', async (args) => {
-      const key = args.trim() || 'default';
+      const key = (args ?? '').trim() || 'default';
       const session = sessionManager.getOrCreate(key);
       setSession(session);
       return `Switched to session: ${key} (${session.history.length} messages)`;
     }),
     cmd('throttle', 'Get/set reasoning throttle', (args) => {
-      const n = Number.parseInt(args);
+      const n = Number.parseInt(args ?? '');
       if (Number.isNaN(n)) return `Throttle: ${agent.getThrottle()}%`;
       agent.setThrottle(n);
       return `Throttle set to ${agent.getThrottle()}%`;
     }),
     cmd('tier', 'Get/set model tier', (args) => {
       if (!tierCtl) return 'Tier control unavailable in this context';
-      const raw = args.trim().toLowerCase();
+      const raw = (args ?? '').trim().toLowerCase();
       if (!raw) return `Tier: ${tierCtl.get()}`;
       const alias: Record<string, ChatTier> = {
         q: 'quality',

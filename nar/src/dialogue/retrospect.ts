@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { promises as fs } from 'node:fs';
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
+import { z } from 'zod';
 import { join } from 'node:path';
 import type { Episode } from '@senars/util';
 import { DigestMismatchError } from '../lm/system-one/wasi-runtime.js';
@@ -14,6 +15,30 @@ import {
 } from './types.js';
 
 const RETROSPECTIVE_DIR = '.cache/retrospectives';
+
+const RetrospectiveSchema = BaseLedgerEntrySchema.extend({
+  version: z.string(),
+  sessionId: z.string(),
+  turnCount: z.number(),
+  reactionCount: z.number(),
+  reactionDistribution: z.record(z.string(), z.number()),
+  corrections: z.array(z.unknown()),
+  contradictions: z.array(z.string()),
+  strategyAudit: z.array(z.unknown()),
+  proposals: z.array(z.unknown()),
+  causalChains: z.array(z.unknown()).optional(),
+  sessionContext: z.array(z.string()).optional(),
+  provenance: z.object({ turnIds: z.array(z.string()) }),
+  digest: z.string(),
+});
+
+type RetrospectiveLedgerEntry = z.infer<typeof RetrospectiveSchema>;
+
+function getRetrospectiveLedger(dir = RETROSPECTIVE_DIR): Ledger<RetrospectiveLedgerEntry> {
+  return createLedger<RetrospectiveLedgerEntry>(dir, RetrospectiveSchema, {
+    rollover: { fixedFile: join(dir, 'retrospectives.jsonl') },
+  });
+}
 /** Minimum viable session for a full analysis (below ⇒ skeleton report). */
 const MIN_TURNS = 10;
 const MIN_REACTIONS = 2;
@@ -210,23 +235,20 @@ export async function persistRetrospective(
   r: Retrospective,
   dir = RETROSPECTIVE_DIR
 ): Promise<void> {
-  await fs.mkdir(dir, { recursive: true });
-  await fs.appendFile(join(dir, 'retrospectives.jsonl'), JSON.stringify(r) + '\n');
+  const ledger = getRetrospectiveLedger(dir);
+  ledger.append(r as RetrospectiveLedgerEntry);
 }
 
 export async function loadRetrospectives(
   n = 10,
   dir = RETROSPECTIVE_DIR
 ): Promise<Retrospective[]> {
-  let content: string;
-  try {
-    content = await fs.readFile(join(dir, 'retrospectives.jsonl'), 'utf-8');
-  } catch {
-    return [];
-  }
+  const ledger = getRetrospectiveLedger(dir);
+  const entries = await ledger.query({ limit: n });
   const out: Retrospective[] = [];
-  for (const line of content.split('\n').filter(Boolean).slice(-n)) {
-    const r = JSON.parse(line) as Retrospective;
+  // Take the newest n entries (first n since query returns newest first)
+  for (const entry of entries.slice(0, n)) {
+    const r = entry as unknown as Retrospective;
     const expected = digestPin(r.provenance.turnIds, r.reactionDistribution);
     if (r.digest !== expected) throw new DigestMismatchError(expected, `corrupt: ${r.sessionId}`);
     out.push(r);

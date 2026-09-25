@@ -86,7 +86,7 @@ export interface LedgerConfig<T extends BaseLedgerEntry> {
 export interface CreateLedgerOptions<T extends BaseLedgerEntry> {
   /** Rotation/rollover policy (all fields optional, defaults applied). */
   rollover?: RolloverPolicyOptions;
-  /** In-memory retention window for hot queries (ms). Default: 5 minutes. */
+  /** In-memory retention window for hot queries (ms). Default: 5 minutes. Set to 0 to disable hot cache. */
   hotRetentionMs?: number;
   /** Optional pre-write hook (e.g., for sidecar updates like JudgmentDataset vectors). */
   onWrite?: (entry: T) => void | Promise<void>;
@@ -119,6 +119,7 @@ export class Ledger<T extends BaseLedgerEntry> {
   constructor(config: LedgerConfig<T>) {
     const rollover = config.rollover ?? {};
     const fixedFile = rollover.fixedFile;
+    const hotRetentionMs = config.hotRetentionMs ?? 5 * 60 * 1000;
     this.#config = {
       basePath: config.basePath,
       schema: config.schema,
@@ -131,13 +132,13 @@ export class Ledger<T extends BaseLedgerEntry> {
           ((date, index) => (index === 0 ? `${date}.jsonl` : `${date}-${index}.jsonl`)),
         fixedFile,
       },
-      hotRetentionMs: config.hotRetentionMs ?? 5 * 60 * 1000,
+      hotRetentionMs,
       onWrite: config.onWrite ?? (() => {}),
       onRead: config.onRead ?? (() => {}),
     };
 
-    // Start hot cache eviction timer (skip if fixedFile mode)
-    if (!fixedFile) {
+    // Start hot cache eviction timer (skip if fixedFile mode or hot cache disabled)
+    if (!fixedFile && hotRetentionMs > 0) {
       this.#hotCacheTimer = setInterval(() => this.#evictHotCache(), this.#config.hotRetentionMs);
       this.#hotCacheTimer.unref?.();
     }
@@ -146,7 +147,11 @@ export class Ledger<T extends BaseLedgerEntry> {
   /** Append an entry to the ledger (validates via schema, writes to JSONL). */
   append(entry: T): void {
     const validated = this.#config.schema.parse({ ...entry, at: entry.at ?? Date.now() });
-    this.#hotCache.push(validated);
+    // For fixedFile mode, don't use hot cache - always read from disk for consistency
+    const { fixedFile } = this.#config.rollover;
+    if (!fixedFile) {
+      this.#hotCache.push(validated);
+    }
     this.#writeToFile(validated);
     this.#config.onWrite(validated);
   }
@@ -154,14 +159,13 @@ export class Ledger<T extends BaseLedgerEntry> {
   /** Query entries with optional filters. Checks hot cache first, then falls back to disk scan. */
   async query(filter: LedgerQuery = {}): Promise<T[]> {
     const { correlationId, sessionId, since, until, limit } = filter;
+    const { fixedFile } = this.#config.rollover;
 
-    // Fast path: hot cache
-    const cacheMatches = this.#hotCache.filter((e) => this.#matchesFilter(e, filter));
+    // Fast path: hot cache (only for rollover mode, not fixedFile)
+    const cacheMatches = fixedFile ? [] : this.#hotCache.filter((e) => this.#matchesFilter(e, filter));
     if (cacheMatches.length >= (limit ?? Number.POSITIVE_INFINITY)) {
       return cacheMatches.slice(0, limit);
     }
-
-    const { fixedFile } = this.#config.rollover;
 
     // Fallback: scan disk
     const diskMatches: T[] = [];
@@ -295,6 +299,25 @@ export class Ledger<T extends BaseLedgerEntry> {
       clearInterval(this.#hotCacheTimer);
       this.#hotCacheTimer = null;
     }
+  }
+
+  /** Clear all entries (hot cache and file). */
+  clear(): void {
+    this.#hotCache.length = 0;
+    const { fixedFile } = this.#config.rollover;
+    if (fixedFile) {
+      try {
+        const { writeFileSync } = require('node:fs');
+        writeFileSync(fixedFile, '', 'utf-8');
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  /** Invalidate hot cache (force next query to read from disk). */
+  invalidateHotCache(): void {
+    this.#hotCache.length = 0;
   }
 
   /** Run the retention sweep manually (deletes files older than retentionDays). */

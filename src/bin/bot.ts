@@ -11,6 +11,7 @@
 import { execFile } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { Effect } from 'effect';
 import { createCapturePhase, DEFAULT_MACRO_PIPELINE } from '@senars/core/agent/phases';
 import {
@@ -28,7 +29,7 @@ import {
   MCPConnection,
   WSConnection,
 } from '@senars/io';
-import type { Agent } from '@senars/nar/agent';
+import type { BinAgentApi as Agent } from '@senars/nar/agent';
 import {
   configCommands,
   coreCommands,
@@ -59,6 +60,8 @@ import { computeEvidenceId } from '@senars/nar/lm/system-one';
 import { MettaProposer } from '@senars/nar/reflex/metta-proposer.js';
 import { createLogger } from '@senars/nar/logger';
 import { NLUnderstandingService } from '@senars/nar/nl';
+import { TranslationCache } from '@senars/nar/nl/cache.js';
+import type { EmbeddingCache } from '@senars/nar/lm/system-one/types.js';
 import { createMeTTa, parseMeTTa } from '@senars/metta';
 import { buildCommands } from '../cli/commands.js';
 import { loadConfig } from '../config/index.js';
@@ -82,7 +85,7 @@ type Wired = Awaited<ReturnType<typeof createAgentFromEnv>>;
 interface GroundednessState {
   enabled: boolean;
   threshold: number;
-  gate: ((text: string) => Promise<boolean>) | undefined;
+  gate: ((text: string) => Promise<boolean | { grounded: boolean; score?: number }>) | undefined;
 }
 
 /** Min grade score for a conversation to be auto-captured into the distillation dataset. */
@@ -93,12 +96,7 @@ interface TraceState {
   sampleRate: number;
   grader: ((trace: any) => Promise<any>) | undefined;
   dataset?: { record: (label: unknown, embedding?: Float32Array) => void } | undefined;
-  embeddingCache?:
-    | {
-        write: (text: string) => Promise<unknown>;
-        read: (pointer: unknown) => Float32Array | undefined;
-      }
-    | undefined;
+  embeddingCache?: EmbeddingCache | undefined;
 }
 
 /** Auto-capture a high-quality graded conversation into the distillation dataset. */
@@ -210,14 +208,15 @@ const gpuSummary = async (): Promise<string> => {
   try {
     const { getLlamaGpuTypes } = await import('node-llama-cpp');
     const types = await getLlamaGpuTypes('supported');
-    const avail = (types as Array<{ name?: string; available?: boolean }>)
-      .filter((t) => t.available)
-      .map((t) => t.name ?? String(t));
+    const avail = (types as string[]).filter((t) => t === 'cuda' || t === 'metal' || t === 'vulkan');
     return avail.length ? avail.join(',') : 'cpu';
   } catch {
     return 'unknown';
   }
 };
+
+// Forward declaration for runSessionRetrospective (defined later in the file)
+let runSessionRetrospective: (sessionId: string, memoryQuery: import('@senars/nar/query/memory-query.js').MemoryQuery) => Promise<string>;
 
 function buildExtraCommands(
   w: Wired,
@@ -277,7 +276,7 @@ function buildExtraCommands(
     ])
       registry.register(c);
     bindAgentToConnection(
-      agent,
+      agent as any,
       conn as never,
       {
         auth,
@@ -485,7 +484,7 @@ function buildExtraCommands(
           ...(Number.isFinite(relevance) ? { relevanceThreshold: relevance } : {}),
           ...(Number.isFinite(dedupe) ? { dedupeThreshold: dedupe } : {}),
         });
-        return `Consolidated: promoted=${r.promoted} deduped=${r.deduped ?? 0} scanned=${r.scanned ?? 0}`;
+        return `Consolidated: promoted=${r.promoted.length} deduped=${r.deduped ?? 0} scanned=${r.considered ?? 0}`;
       } catch (e) {
         return `consolidate failed: ${errMsg(e)}`;
       }
@@ -563,20 +562,20 @@ function buildExtraCommands(
       'lm-rules',
       'List LM rules from config',
       () =>
-        ((appConfig.bot.lmRules?.rules ?? []) as string[]).join(', ') || '(no lm rules configured)'
+        (appConfig.bot.lmRules?.rules ?? []).map((r) => r.id).join(', ') || '(no lm rules configured)'
     ),
     cmd('lm-rule-enable', 'Enable an LM rule id', (args = '') => {
       const id = args.trim();
       if (!id) return 'Usage: .lm-rule-enable <id>';
-      const rules = (appConfig.bot.lmRules?.rules ?? []) as string[];
-      if (!rules.includes(id)) rules.push(id);
+      const rules = appConfig.bot.lmRules?.rules ?? [];
+      if (!rules.some((r) => r.id === id)) rules.push({ id, enabled: true });
       return `Enabled ${id} (restart bot to register; persist with .config-save)`;
     }),
     cmd('lm-rule-disable', 'Disable an LM rule id', (args = '') => {
       const id = args.trim();
       if (!id) return 'Usage: .lm-rule-disable <id>';
-      const rules = (appConfig.bot.lmRules?.rules ?? []) as string[];
-      const i = rules.indexOf(id);
+      const rules = appConfig.bot.lmRules?.rules ?? [];
+      const i = rules.findIndex((r) => r.id === id);
       if (i < 0) return `Not configured: ${id}`;
       rules.splice(i, 1);
       return `Disabled ${id} (restart bot to deregister; persist with .config-save)`;
@@ -729,7 +728,7 @@ function buildExtraCommands(
         const turnEpisodes = turnResults.map((r) => r.episode!).filter(Boolean);
         const samples = episodeQualitySurface([...turnEpisodes, ...reactions]);
         const link = new OutcomeLinker(parameterLedger, () => samples);
-        const improved = link.improvedOnly({ windowMs: 120_000 });
+        const improved = await link.improvedOnly({ windowMs: 120_000 });
         if (improved.length === 0) return 'No improvement-evidenced parameter changes.';
         return improved
           .map(
@@ -777,7 +776,7 @@ function buildExtraCommands(
           ),
         ].pop();
       if (!sid) return 'No captured sessions.';
-      return runSessionRetrospective(sid);
+      return runSessionRetrospective(sid, memoryQuery);
     }),
     cmd('retrospectives', 'List past retrospectives: [n]', async (args = '') => {
       const n = Number(args.trim() || 10) || 10;
@@ -1033,7 +1032,7 @@ function buildExtraCommands(
               const top = r && r.kind === 'classify' ? r.top : undefined;
               return `${v.query.rubric}: top=${top?.option ?? '—'} p=${top?.p.toFixed(3) ?? '—'} abstained=${v.abstained} band=${v.band}${v.skipped ? ' skipped' : ''}`;
             }
-            return `${r.rubric}: score=${r.score.toFixed(3)} abstained=${r.abstained} latency=${r.latencyMs}ms band=${v.band}${v.skipped ? ' skipped' : ''}`;
+            return `${v.query.rubric}: score=${r.score.toFixed(3)} abstained=${r.abstained} latency=${r.latencyMs}ms band=${v.band}${v.skipped ? ' skipped' : ''}`;
           });
           lines.push(
             `band=${result.band} composite=${result.composite?.score.toFixed(3) ?? '—'} contrastive=${result.contrastive.score?.toFixed(3) ?? '—'}`
@@ -1143,14 +1142,18 @@ function buildExtraCommands(
         try {
           const results = await dispatcher.judge(pointer as any, queries, budget);
           const lines = ['Routing decision for:', `  "${task}"`, ''];
-          for (const r of results) {
+          for (let i = 0; i < results.length; i++) {
+            const r = results[i]!;
+            const q = queries[i]!;
             if (r.kind === 'classify') {
+              const cp = r as { kind: 'classify'; top: { option: string; p: number }; entropy: number; tier: number };
               lines.push(
-                `  ${r.rubric}: ${r.top.option} (p=${r.top.p.toFixed(3)})${verbose ? ` entropy=${r.entropy.toFixed(3)} tier=${r.tier}` : ''}`
+                `  ${q.rubric}: ${cp.top.option} (p=${cp.top.p.toFixed(3)})${verbose ? ` entropy=${cp.entropy.toFixed(3)} tier=${cp.tier}` : ''}`
               );
             } else {
+              const ep = r as { kind: 'evaluate'; score: number; abstained: boolean; tier: number; latencyMs: number };
               lines.push(
-                `  ${r.rubric}: score=${r.score.toFixed(3)} abstained=${r.abstained}${verbose ? ` tier=${r.tier} latency=${r.latencyMs}ms` : ''}`
+                `  ${q.rubric}: score=${ep.score.toFixed(3)} abstained=${ep.abstained}${verbose ? ` tier=${ep.tier} latency=${ep.latencyMs}ms` : ''}`
               );
             }
           }
@@ -2012,14 +2015,16 @@ async function main(): Promise<void> {
     } catch {
       provider = undefined;
     }
-    return provider ? ['llm-narration', providerKey(provider)] : ['llm-narration'];
+    const key = providerKey(provider);
+    return key ? ['llm-narration', key] : ['llm-narration'];
   };
   const ground: GroundednessState = {
     enabled: wired.appConfig.systemOne?.enabled === true,
     threshold: 0.7,
     gate: systemOneGate
       ? async (text: string) => {
-          const ok = await systemOneGate(text);
+          const correlationId = randomUUID();
+          const ok = await systemOneGate(text, correlationId);
           for (const key of narrationKeys())
             sourceReputation.record(key, ok ? 'confirmed' : 'contradicted');
           return ok;
@@ -2052,7 +2057,7 @@ async function main(): Promise<void> {
   // `dialogue.captureAll` — explicit opt-in to full-fidelity turns (cost gate).
   const understanding =
     wired.appConfig.dialogue?.captureAll === true
-      ? new NLUnderstandingService(wired.lmService, new Map(), { structuredOnly: true })
+      ? new NLUnderstandingService(wired.lmService, new TranslationCache(), { structuredOnly: true })
       : undefined;
   const enrich =
     decider || understanding
@@ -2110,7 +2115,7 @@ async function main(): Promise<void> {
           };
         }
       : undefined;
-  const dialogue = new DialogueCapture({
+const dialogue = new DialogueCapture({
     episodic: wired.episodicMemory,
     dataset: (wired.nar as any).systemOne?.dataset,
     embeddingCache: dialogueEmbeddingCache,
@@ -2140,11 +2145,18 @@ async function main(): Promise<void> {
       : {}),
     config: wired.appConfig.dialogue,
   });
-  if (dialogue.textStore) {
-    logger.info(
-      `Dialogue text retention enabled (I6 relaxation) → ${dialogue.config.textStorePath}`
-    );
-  }
+
+  // MemoryQuery for cross-memory operations (auto-retrospect, etc.)
+  const memoryQuery = new MemoryQuery({
+    memory: wired.nar.memory,
+    episodic: wired.episodicMemory,
+    embed: dialogueEmbeddingCache
+      ? async (text) => {
+          const pointer = await dialogueEmbeddingCache.write(text).catch(() => undefined);
+          return pointer ? dialogueEmbeddingCache.read(pointer) : undefined;
+        }
+      : undefined,
+  });
 
   // REFACTOR.todo1 Phase A: promote dialogue capture from the per-message
   // fire-and-forget hook to a Capture phase appended to the macro pipeline —
@@ -2175,7 +2187,10 @@ async function main(): Promise<void> {
   // mines contradiction terms from live beliefs, and emits a low-risk
   // focus-weight proposal when corrections dominate (governance unchanged, I3:
   // routed through ProposalRouter at the consumer, never auto-applied here).
-  const runSessionRetrospective = async (sessionId: string): Promise<string> => {
+  runSessionRetrospective = async (
+    sessionId: string,
+    memoryQuery: import('@senars/nar/query/memory-query.js').MemoryQuery
+  ): Promise<string> => {
     const { mineHardNegatives } = await import('@senars/nar/lm/system-one/hard-negatives.js');
     const negatives = await mineHardNegatives(wired.nar, wired.episodicMemory, {
       limit: 16,
@@ -2185,7 +2200,7 @@ async function main(): Promise<void> {
     }).catch(() => []);
     const contradictionTerms = negatives
       .filter((n) => n.source === 'contradiction')
-      .map((n) => n.term);
+      .map((n) => n.text);
     // Corrections dominating reactions ⇒ propose a low-risk focus-weight tune
     // (payload only; ProposalRouter governs — never auto-applied here, I3).
     const reactionEpisodes = await wired.episodicMemory.getEpisodes({
@@ -2199,7 +2214,7 @@ async function main(): Promise<void> {
       (e) => (e.metadata as any).kind === 'correct'
     ).length;
     const proposal = {
-      proposalId: crypto.randomUUID(),
+      proposalId: randomUUID(),
       kind: 'focus-weight' as const,
       riskTier: 'low' as const,
       payload: { focusId: 'conversation', weight: 0.8 },
@@ -2243,11 +2258,13 @@ async function main(): Promise<void> {
   // Bot-only default profile: enable System One by default (opt-out via config)
   // This only affects the bot; non-Bot NAR consumers are unaffected.
   if (!wired.appConfig.systemOne?.enabled) {
+    const { systemOneDefaults } = await import('@senars/util/config');
     wired.appConfig.systemOne = {
+      ...systemOneDefaults,
       enabled: true,
-      manifold: { provider: 'wasi' },
-      cortex: { provider: 'llamacpp-embedded' },
-      lmReflex: true,
+      manifold: { ...systemOneDefaults.manifold, provider: 'wasi' },
+      cortex: { ...systemOneDefaults.cortex, provider: 'llamacpp-embedded' },
+      lmReflex: { ...systemOneDefaults.lmReflex, grammarActions: true, maxCandidates: 3 },
     };
   }
 
@@ -2356,15 +2373,15 @@ async function main(): Promise<void> {
 
   const autoConnect = process.env.BOT_CLI_ONLY === 'true' ? [] : createConnectionConfigsFromEnv();
   for (const cfg of autoConnect) {
-    if (cfg.type === 'irc' || cfg.type === 'websocket') {
-      (cfg as { config: Record<string, unknown> }).config.greeting ??= profile.joinMessage;
+    if ((cfg.type === 'irc' || cfg.type === 'websocket') && 'config' in cfg) {
+      (cfg.config as Record<string, unknown>).greeting ??= profile.joinMessage;
     }
   }
   const ircExtra = readIRCConfig(wired.appConfig.irc);
   const ircAuto = autoConnect.find((c) => c.type === 'irc');
-  if (ircAuto) {
-    const c = ircAuto as { config: Record<string, unknown> };
-    Object.assign(c.config, {
+  if (ircAuto && 'config' in ircAuto) {
+    const cfg = ircAuto as { config: Record<string, unknown>; type: string; id: string; [key: string]: unknown };
+    Object.assign(cfg.config, {
       server: ircExtra.server,
       port: ircExtra.port,
       nick: ircExtra.nick,
@@ -2378,7 +2395,7 @@ async function main(): Promise<void> {
         { emit: () => undefined, logger }
       );
       bindAgentToConnection(
-        agent,
+        agent as any,
         conn as never,
         {
           auth,
@@ -2406,7 +2423,7 @@ async function main(): Promise<void> {
     logger.info('Shutting down...');
     // TODO24 (DQ3, opt-in): auto-retrospect the session on close.
     if (wired.appConfig.dialogue?.autoRetrospect) {
-      await runSessionRetrospective(currentSession.id ?? 'default').catch((e) =>
+      await runSessionRetrospective(currentSession.id ?? 'default', memoryQuery).catch((e) =>
         logger.warn('Auto-retrospect failed', { error: errMsg(e) })
       );
     }

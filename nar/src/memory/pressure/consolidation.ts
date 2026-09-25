@@ -1,7 +1,8 @@
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
+import { z } from 'zod';
 import { termsEqual } from '../../terms';
 import type { Concept } from '../concept.js';
 import type { Memory } from '../memory.js';
-import { mkdirSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 export interface ConsolidationConfig {
@@ -199,6 +200,20 @@ const DEFAULT_WATCHDOG_CONFIG: ConsolidationWatchdogConfig = {
   logDir: 'logs',
 };
 
+const WatchdogSnapshotSchema = BaseLedgerEntrySchema.extend({
+  cycle: z.number(),
+  conceptCount: z.number(),
+  totalTasks: z.number(),
+  dedupRatio: z.number(),
+  promotedCount: z.number(),
+  archivedCount: z.number(),
+  forgottenCount: z.number(),
+  memoryPressure: z.number(),
+  alerts: z.array(z.string()),
+});
+
+type WatchdogSnapshotLedgerEntry = z.infer<typeof WatchdogSnapshotSchema>;
+
 export interface WatchdogSnapshot {
   ts: number;
   cycle: number;
@@ -217,21 +232,26 @@ let watchdogInterval: ReturnType<typeof setInterval> | null = null;
 let lastPromotedTime: number | null = null;
 let promotedCount = 0;
 let cycleCount = 0;
+let watchdogLedger: Ledger<WatchdogSnapshotLedgerEntry> | null = null;
 
-function getWatchdogLogPath(): string {
-  const date = new Date().toISOString().split('T')[0];
-  return join(DEFAULT_WATCHDOG_CONFIG.logDir, `memory-watchdog-${date}.jsonl`);
-}
-
-function flushWatchdogLog(entry: WatchdogSnapshot): void {
-  try {
-    mkdirSync(DEFAULT_WATCHDOG_CONFIG.logDir, { recursive: true });
-    const path = getWatchdogLogPath();
-    appendFileSync(path, JSON.stringify(entry) + '\n', 'utf-8');
-  } catch (e) {
-    // Silently fail
-    console.error('[memory-watchdog] Flush failed:', e);
+function getWatchdogLedger(): Ledger<WatchdogSnapshotLedgerEntry> | null {
+  if (!watchdogLedger && watchdogEnabled) {
+    try {
+      const { mkdirSync } = require('node:fs');
+      const logDir = DEFAULT_WATCHDOG_CONFIG.logDir;
+      mkdirSync(logDir, { recursive: true });
+      const date = new Date().toISOString().split('T')[0];
+      const logPath = join(logDir, `memory-watchdog-${date}.jsonl`);
+      watchdogLedger = createLedger<WatchdogSnapshotLedgerEntry>(
+        logDir,
+        WatchdogSnapshotSchema,
+        { rollover: { fixedFile: logPath } }
+      );
+    } catch {
+      // Silently fail
+    }
   }
+  return watchdogLedger;
 }
 
 export function enableConsolidationWatchdog(config?: Partial<ConsolidationWatchdogConfig>): void {
@@ -292,7 +312,10 @@ export function recordConsolidationWatchdogCycle(memory: Memory, consolidation: 
     alerts,
   };
 
-  flushWatchdogLog(snapshot);
+  const ledger = getWatchdogLedger();
+  if (ledger) {
+    ledger.append({ ...snapshot, at: snapshot.ts } as WatchdogSnapshotLedgerEntry);
+  }
 
   if (alerts.length > 0) {
     console.warn('[memory-watchdog] Alerts:', alerts.join('; '));

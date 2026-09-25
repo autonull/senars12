@@ -70,7 +70,7 @@ const probeOllama = async (host: string): Promise<string> => {
     });
     if (!res.ok) return `unreachable (${res.status})`;
     const data = (await res.json()) as { models?: Array<{ name?: string }> };
-    return `online, models: ${data.models?.map((m) => m.model).join(', ') || 'none'}`;
+    return `online, models: ${data.models?.map((m) => m.name).join(', ') || 'none'}`;
   } catch {
     return 'unreachable (is ollama running?)';
   }
@@ -86,9 +86,10 @@ const probeEmbeddedLlama = async (): Promise<{ available: boolean; detail: strin
     const gpuTypes = await getLlamaGpuTypes('supported');
     const llama = await getLlama({ gpu: 'auto' });
     await llama.dispose();
+    const available = gpuTypes.filter((t) => t === 'cuda' || t === 'metal' || t === 'vulkan');
     return {
       available: true,
-      detail: `Model found, GPU backends: ${gpuTypes.filter((t) => t.available).map((t) => t.name).join(', ') || 'CPU only'}`,
+      detail: `Model found, GPU backends: ${available.length ? available.join(', ') : 'CPU only'}`,
     };
   } catch (e) {
     return { available: false, detail: `Load failed: ${(e as Error).message}` };
@@ -246,7 +247,7 @@ const main = async (): Promise<void> => {
 
   // Watchdog status
   const watchdogStatus = getConsolidationWatchdogStatus();
-  output.watchdog = { enabled: watchdogStatus.enabled, config: watchdogStatus.config };
+  output.watchdog = { enabled: watchdogStatus.enabled, config: watchdogStatus.config as unknown as Record<string, unknown> };
 
   // Deep health checks (O3): spin a bare kernel and run the shared readiness checks.
   if (deep) {
@@ -259,7 +260,7 @@ const main = async (): Promise<void> => {
       output.deep = {
         ready: report.ready,
         checks: Object.fromEntries(
-          Object.entries(report.checks).map(([k, v]) => [k, { ok: v.ok, detail: v.detail }])
+          Object.entries(report.checks).map(([k, v]) => [k, { ok: v.ok, detail: v.detail ?? '' }])
         ),
       };
     } finally {

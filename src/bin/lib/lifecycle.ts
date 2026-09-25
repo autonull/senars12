@@ -3,8 +3,10 @@
  */
 
 import { JsonlSessionManager } from '@senars/core/memory';
+import { isNarsese } from '@senars/core/helpers';
 import type { NARConfig } from '@senars/nar';
-import type { Agent } from '@senars/nar/agent';
+import type { Agent as CoreAgent } from '@senars/core';
+import type { ExtendedAgent } from '@senars/nar/agent';
 import { NARBuilder } from '@senars/nar/agent/builder';
 import {
   configureLM,
@@ -33,7 +35,7 @@ export interface AgentFromEnvOptions {
 }
 
 export interface AgentFromEnvResult {
-  agent: Agent;
+  agent: ExtendedAgent;
   nar: import('@senars/nar').NAR;
   sessionManager: JsonlSessionManager;
   episodicMemory: EpisodicMemory;
@@ -123,7 +125,44 @@ export async function createAgentFromEnv(
     .withEngines({ nar: appConfig.backends.nar.enabled })
     .withThreadScope(threadScope)
     .build();
-  const { nar, agent } = wired;
+  const { nar, agent: coreAgent } = wired;
+
+  // Extend the base Agent with NarAgentApi methods
+  const knowStore = new Map<string, string>();
+  let throttle = 0;
+
+  // Add NarAgentApi methods to the core agent
+  coreAgent.believe = async (text: string) => {
+    if (isNarsese(text) && nar) {
+      await nar.believe(text);
+      await nar.run(3);
+    }
+  };
+  coreAgent.recall = async (query?: string, limit?: number) => {
+    if (!episodicMemory) return [];
+    const episodes = await episodicMemory.getEpisodes({ limit: limit ?? 50 });
+    return episodes.filter(
+      (e) => !query || e.content.toLowerCase().includes(query.toLowerCase())
+    );
+  };
+  coreAgent.know = (key: string, value: string) => {
+    knowStore.set(key, value);
+  };
+  coreAgent.knowGet = (key: string) => knowStore.get(key);
+  coreAgent.knowList = () => [...knowStore.entries()].map(([k, v]) => ({ key: k, value: v }));
+  coreAgent.setThrottle = (n: number) => {
+    throttle = Math.min(100, Math.max(0, n));
+  };
+  coreAgent.getThrottle = () => throttle;
+  coreAgent.getNAR = () => nar;
+  coreAgent.getEpisodicMemory = () => episodicMemory;
+  coreAgent.getRecentDerivations = () => [];
+  coreAgent.setMacroPipeline = (phases: import('@senars/core/agent/phases').MacroPhase[]) => {
+    coreAgent.setMacroPipeline?.(phases);
+  };
+  coreAgent.mount = async (transport: import('@senars/util/types/transport').Connection) => {
+    await (coreAgent.mount as (t: import('@senars/util/types/transport').Connection) => Promise<void>)?.(transport);
+  };
 
   // LM rules from config (`bot.lmRules.rules`) — presets by id, unknown ids logged.
   if (appConfig.bot.lmRules.enabled && appConfig.bot.lmRules.rules.length > 0) {
@@ -134,7 +173,7 @@ export async function createAgentFromEnv(
   }
 
   return {
-    agent,
+    agent: coreAgent as unknown as ExtendedAgent,
     nar,
     sessionManager,
     episodicMemory,
@@ -165,7 +204,7 @@ export interface RunAgentOptions {
   onShutdown?: () => Promise<void>;
 }
 
-export async function runAgent(agent: Agent, options?: RunAgentOptions): Promise<void> {
+export async function runAgent(agent: ExtendedAgent, options?: RunAgentOptions): Promise<void> {
   const logger = createLogger({ scope: 'lifecycle' });
 
   await agent.start();

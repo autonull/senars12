@@ -62,7 +62,7 @@ async function main() {
 
   await initializeSelfConcept(nar);
   await initializeMetaReasoning(nar);
-  registerMetaRules(nar.getProcessor().ruleIndex);
+  registerMetaRules();
 
   await nar.start();
 
@@ -184,12 +184,14 @@ async function main() {
   console.log('\n🏆 TOP 5 BELIEFS (by priority)');
   console.log('─'.repeat(50));
   const topBeliefs = beliefs
-    .sort((a, b) => (b.concept?.priority ?? 0) - (a.concept?.priority ?? 0))
+    .map((b) => ({ belief: b, concept: nar.getConcept(b.term) }))
+    .filter((bc): bc is { belief: typeof beliefs[0]; concept: NonNullable<typeof bc.concept> } => bc.concept !== undefined)
+    .sort((a, b) => b.concept.priority - a.concept.priority)
     .slice(0, 5);
-  for (const b of topBeliefs) {
-    const truth = b.truth ? `:${b.truth.f.toFixed(2)}:${b.truth.c.toFixed(2)}` : '';
-    const pri = b.concept?.priority?.toFixed(2) ?? '?';
-    console.log(`  [${pri}] ${b.term.toString()}${truth}`);
+  for (const bc of topBeliefs) {
+    const { belief, concept } = bc;
+    const truth = belief.truth ? `:${belief.truth.f.toFixed(2)}:${belief.truth.c.toFixed(2)}` : '';
+    console.log(`  [${concept.priority.toFixed(2)}] ${belief.term.toString()}${truth}`);
   }
 
   // Contradictions

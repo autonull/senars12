@@ -3,9 +3,11 @@
  * persisted retrospectives are ingested as Narsese self-beliefs exactly once
  * per retrospective digest — a persisted ledger makes the one-shot survive
  * restarts. Source loading is fail-closed (digest-pinned, cf. TODO24 Phase C).
+ *
+ * REFACTOR.todo4 Phase B: now backed by the generic `Ledger<T>` primitive.
  */
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
+import { z } from 'zod';
 import type { Retrospective } from '../types.js';
 import { extractLessons } from '../retrospect.js';
 
@@ -23,7 +25,14 @@ export interface LessonSeed {
   truth: { frequency: number; confidence: number };
 }
 
+const ReconsolidatedEntrySchema = BaseLedgerEntrySchema.extend({
+  digest: z.string(),
+});
+
+type ReconsolidatedLedgerEntry = z.infer<typeof ReconsolidatedEntrySchema>;
+
 export class Reconsolidator {
+  readonly #ledger: Ledger<ReconsolidatedLedgerEntry>;
   /** N2: digests already consolidated (persisted, survives restarts). */
   #done = new Set<string>();
 
@@ -31,18 +40,17 @@ export class Reconsolidator {
     private readonly source: RetrospectiveSource,
     private readonly sink: ReconsolidationSink,
     private readonly seed: LessonSeed,
-    private readonly ledgerPath = './.cache/dialogue/reconsolidated.jsonl'
-  ) {}
+    ledgerPath = './.cache/dialogue/reconsolidated.jsonl'
+  ) {
+    this.#ledger = createLedger<ReconsolidatedLedgerEntry>('', ReconsolidatedEntrySchema, {
+      rollover: { fixedFile: ledgerPath },
+    });
+  }
 
   /** Load the digest ledger; missing/corrupt lines are skipped (best-effort). */
   async load(): Promise<void> {
-    let content: string;
-    try {
-      content = await fs.readFile(this.ledgerPath, 'utf-8');
-    } catch {
-      return;
-    }
-    for (const digest of content.split('\n').filter(Boolean)) this.#done.add(digest);
+    const entries = await this.#ledger.query({});
+    for (const entry of entries) this.#done.add(entry.digest);
   }
 
   /**
@@ -54,22 +62,21 @@ export class Reconsolidator {
     const retrospectives = await this.source.load(n);
     let ingested = 0;
     let skipped = 0;
-    const fresh: string[] = [];
+    const fresh: ReconsolidatedLedgerEntry[] = [];
     for (const r of retrospectives) {
       if (this.#done.has(r.digest)) {
         skipped++;
         continue;
       }
       this.#done.add(r.digest);
-      fresh.push(r.digest);
+      fresh.push({ at: Date.now(), digest: r.digest });
       for (const lesson of extractLessons(r, this.seed)) {
         await this.sink.input(lesson.term, lesson.truth.frequency, lesson.truth.confidence);
         ingested++;
       }
     }
     if (fresh.length > 0) {
-      await fs.mkdir(join(this.ledgerPath, '..'), { recursive: true });
-      await fs.appendFile(this.ledgerPath, fresh.join('\n') + '\n');
+      for (const entry of fresh) this.#ledger.append(entry);
     }
     return { ingested, skipped };
   }

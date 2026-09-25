@@ -46,8 +46,8 @@ export async function runMultiAgent(opts: MultiAgentRunnerOptions): Promise<void
   wsConn.onMessage(async (msg: { text: string }) => {
     let response = '';
     for await (const evt of agent.chat(msg.text)) {
-      if (evt.kind === 'text-delta') wsConn.send('default', evt.text).catch(() => {});
-      if (evt.kind === 'finish') response = evt.text;
+      if (evt.kind === 'text-delta' && evt.text) wsConn.send('default', evt.text).catch(() => {});
+      if (evt.kind === 'finish') response = evt.text ?? '';
     }
     if (response) wsConn.send('default', response).catch(() => {});
   });
@@ -68,7 +68,7 @@ export async function runMultiAgent(opts: MultiAgentRunnerOptions): Promise<void
 
   cliConn.onMessage(async (msg: { text: string }) => {
     for await (const evt of agent.chat(msg.text)) {
-      if (evt.kind === 'text-delta' || evt.kind === 'finish') console.log(`[Agent] ${evt.text}`);
+      if ((evt.kind === 'text-delta' || evt.kind === 'finish') && evt.text) console.log(`[Agent] ${evt.text}`);
     }
   });
   console.log('[CLI] Ready for input\n');
