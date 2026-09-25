@@ -80,6 +80,7 @@ export class NAR extends BaseComponent {
   /** TODO25 follow-on: bounded derivation-chain ring, fuel for SchemaInductor; Phase D live ProofStream source. */
   #proofRing = new ProofStreamRing<readonly Task[]>(DERIVATION_RING_CAP);
   #schemaInductor?: SchemaInductor;
+  #sourceReputation?: import('./kernel/source-reputation.js').SourceReputation;
   driveManager?: DriveManager;
   private readonly systemEventBus: NarEventBus;
 
@@ -178,6 +179,8 @@ export class NAR extends BaseComponent {
       initialAutonomyMode: 'observe-only',
       perceptionConfig,
     });
+    // Phase E: reputation consulted lazily at admission/seeding time (C1 default-neutral).
+    if (this.#sourceReputation) this.gates.setReputation(this.#sourceReputation);
 
     this.io = new NARIO(this.memory, this.taskManager, this.config);
     this.io.setEventBus(eventBus);
@@ -391,6 +394,16 @@ export class NAR extends BaseComponent {
   setParameterLedger(ledger: ParameterLedger): void {
     this.rlfp?.attachLedger(ledger);
     this.games.getSelfMetaGame().attachParameterLedger(ledger, 'self-meta-game');
+  }
+
+  /** Phase E (REFACTOR.todo1): attach the source-reputation track record (trust ceiling). */
+  setSourceReputation(reputation: import('./kernel/source-reputation.js').SourceReputation): void {
+    this.#sourceReputation = reputation;
+    this.gates.setReputation(reputation);
+  }
+
+  getSourceReputation(): import('./kernel/source-reputation.js').SourceReputation | undefined {
+    return this.#sourceReputation;
   }
 
   getDriveManager(): DriveManager | undefined {

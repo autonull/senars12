@@ -11,12 +11,16 @@ export function calibrateAuthority(rollingEce: number): number {
   return 0.5;
 }
 
-/** Epistemic: seeds belief-side Truth. Ceiling = kernel source-quality table. */
+/** Epistemic: seeds belief-side Truth. Ceiling = kernel source-quality table, optionally
+ *  lowered by the source's reputation track record (Phase E — trust-not-truth, C2). */
 export function seedTruth(
   p: JudgmentProposition,
-  sourceQuality: SourceQuality = 'LLM_PRIOR'
+  sourceQuality: SourceQuality = 'LLM_PRIOR',
+  reputation?: { effectiveCeiling(base: number, key: string): number },
+  sourceKey?: string
 ): Truth {
-  const ceiling = SOURCE_QUALITY_CONFIDENCE[sourceQuality];
+  const base = SOURCE_QUALITY_CONFIDENCE[sourceQuality];
+  const ceiling = reputation && sourceKey ? reputation.effectiveCeiling(base, sourceKey) : base;
   const authority = calibrateAuthority(p.calibration.ece);
   const f = p.kind === 'evaluate' ? p.score : p.top.p;
   return Truth.create(f, Math.min(authority, ceiling, Truth.MAX_CONFIDENCE));

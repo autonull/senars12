@@ -1,9 +1,15 @@
 import type { AutonomyMode, ReasoningBudget } from '@senars/kernel/schemas';
+import type {
+  IActionGate,
+  IBudgetGate,
+  IGateRegistry,
+  IPerceptionGate,
+  IRewardGate,
+} from './interfaces.js';
 import { KernelActionGate } from './KernelActionGate.js';
 import { KernelBudgetGate } from './KernelBudgetGate.js';
 import { KernelPerceptionGate } from './KernelPerceptionGate.js';
 import { KernelRewardGate } from './KernelRewardGate.js';
-import type { IGateRegistry, IPerceptionGate, IActionGate, IRewardGate, IBudgetGate } from './interfaces.js';
 
 export class GateRegistry implements IGateRegistry {
   private perceptionGate: IPerceptionGate;
@@ -17,6 +23,11 @@ export class GateRegistry implements IGateRegistry {
     this.actionGate = new KernelActionGate();
     this.rewardGate = new KernelRewardGate();
     this.budgetGate = new KernelBudgetGate();
+  }
+
+  /** Phase E (REFACTOR.todo1): attach source reputation to the perception gate. */
+  setReputation(reputation: import('./source-reputation.js').SourceReputation): void {
+    (this.perceptionGate as KernelPerceptionGate).setReputation(reputation);
   }
 
   getPerceptionGate(): IPerceptionGate {

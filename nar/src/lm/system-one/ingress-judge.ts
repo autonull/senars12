@@ -1,9 +1,10 @@
-import { SOURCE_QUALITY_CONFIDENCE } from '@senars/kernel/schemas';
 import type { SourceQuality } from '@senars/kernel/schemas';
+import { SOURCE_QUALITY_CONFIDENCE } from '@senars/kernel/schemas';
 import type { IngressJudge, IngressJudgmentRequest, IngressVerdict } from '../../kernel/ingress.js';
 import type { TaskTypeName } from '../../terms';
 import { ingressQueries } from './head-specs.js';
-import { ConfidenceRouter, type ConfidenceBands } from './policy.js';
+import { type ConfidenceBands, ConfidenceRouter } from './policy.js';
+import { seedTruth } from './seed.js';
 import { createGateTelemetrySinks, createTelemetryEmitter } from './telemetry.js';
 import type {
   EmbeddingCache,
@@ -11,7 +12,6 @@ import type {
   JudgmentManifold,
   JudgmentProposition,
 } from './types.js';
-import { seedTruth } from './seed.js';
 
 /** E1: ambiguity flag threshold defined once, via the shared ConfidenceRouter. */
 const AMBIGUITY_ROUTER = new ConfidenceRouter({ act: 0.6, review: 0.6, block: 0 });
@@ -27,6 +27,10 @@ export interface SystemOneIngressJudgeConfig {
     consumed: { cycles: number; depth: number; memoryOps: number; llmCalls: number };
   };
   ambiguityBands?: ConfidenceBands;
+  /** Phase E (REFACTOR.todo1): lazy source-reputation lookup (trust-not-truth ceiling). */
+  reputation?: () => { effectiveCeiling(base: number, key: string): number } | undefined;
+  /** Reputation key for this judge's admissions (default 'system-one'). */
+  sourceKey?: string;
 }
 
 /**
@@ -39,6 +43,10 @@ export class SystemOneIngressJudge implements IngressJudge {
   private readonly embeddingCache: EmbeddingCache;
   private readonly budget: SystemOneIngressJudgeConfig['budget'];
   private readonly ambiguityRouter: ConfidenceRouter;
+  private readonly reputation?: () =>
+    | { effectiveCeiling(base: number, key: string): number }
+    | undefined;
+  private readonly sourceKey?: string;
   private emitJudgmentResolved: ReturnType<typeof createTelemetryEmitter>;
 
   constructor(config: SystemOneIngressJudgeConfig) {
@@ -48,6 +56,8 @@ export class SystemOneIngressJudge implements IngressJudge {
     this.ambiguityRouter = config.ambiguityBands
       ? new ConfidenceRouter(config.ambiguityBands)
       : AMBIGUITY_ROUTER;
+    this.reputation = config.reputation;
+    this.sourceKey = config.sourceKey;
 
     // Register telemetry callback on the manifold if available.
     // Chains after any existing callback (e.g., NAR's bus emitter) instead of overwriting it.
@@ -134,7 +144,12 @@ export class SystemOneIngressJudge implements IngressJudge {
             top: { option: 'belief', p: 1 },
             calibration: { version: 'v1.0.0', ece: 0 },
           } as JudgmentProposition));
-    const admissionTruth = seedTruth(seedProposition, admissionSourceQuality);
+    const admissionTruth = seedTruth(
+      seedProposition,
+      admissionSourceQuality,
+      this.reputation?.(),
+      this.sourceKey ?? 'system-one'
+    );
 
     return {
       taskType,

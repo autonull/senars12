@@ -8,11 +8,12 @@ import type {
 } from '@senars/kernel/schemas';
 import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
-import type { IngressJudge, IngressVerdict } from './ingress.js';
 import { normalizeNarsese } from '../nl/normalize.js';
+import { recordGateDecision } from '../telemetry/index.js';
 import type { TaskTypeName, Term } from '../terms';
 import { termParser } from '../terms';
-import { recordGateDecision } from '../telemetry/index.js';
+import type { IngressJudge, IngressVerdict } from './ingress.js';
+import type { SourceReputation } from './source-reputation.js';
 
 export interface KernelPerceptionGateConfig {
   defaultBudget: {
@@ -27,6 +28,8 @@ export interface KernelPerceptionGateConfig {
     /** X2 (TODO20): injected ingress judge — kernel never imports proposer internals. */
     judge?: IngressJudge;
   };
+  /** Phase E (REFACTOR.todo1): optional source-reputation ceiling (trust-not-truth). */
+  reputation?: SourceReputation;
 }
 
 export class KernelPerceptionGate {
@@ -40,6 +43,11 @@ export class KernelPerceptionGate {
   /** Wire the DriveManager so ambiguity-driven curiosity stimulation works. */
   setDriveManager(dm: { stimulate(driveId: string, amount: number): void }): void {
     this.driveManager = dm;
+  }
+
+  /** Phase E: attach source reputation (trust ceiling multiplier) post-construction. */
+  setReputation(reputation: SourceReputation): void {
+    this.config.reputation = reputation;
   }
 
   constructor(config?: Partial<KernelPerceptionGateConfig>) {
@@ -77,7 +85,15 @@ export class KernelPerceptionGate {
     const correlationId = input.correlationId ?? uuidv4();
 
     const sourceQuality = input.sourceQuality;
-    const confidence = this.sourceQualityToConfidence(sourceQuality) * input.sensorConfidence;
+    // Phase E: reputation multiplier lowers the trust ceiling for sources with
+    // a contradiction-dominated track record; default (no record) is neutral.
+    const reputationCeiling = this.config.reputation
+      ? this.config.reputation.effectiveCeiling(
+          this.sourceQualityToConfidence(sourceQuality),
+          input.sourceId
+        )
+      : this.sourceQualityToConfidence(sourceQuality);
+    const confidence = reputationCeiling * input.sensorConfidence;
 
     const term = this.rawObservationToTerm(input.rawObservation);
     if (!term) {
@@ -87,7 +103,7 @@ export class KernelPerceptionGate {
       };
     }
 
-    let taskType = this.inferTaskType(input.rawObservation);
+    const taskType = this.inferTaskType(input.rawObservation);
 
     if (this.config.systemOne?.enabled && this.judge) {
       const judged = await this.admitViaJudge(

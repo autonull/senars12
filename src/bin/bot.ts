@@ -38,6 +38,7 @@ import {
   rlfpCommands,
   selfCommands,
 } from '@senars/nar/commands';
+import { DEFAULT_LEDGER_PATH, OutcomeLinker, ParameterLedger } from '@senars/nar/config';
 import type { DialogueCapture as DialogueCaptureType } from '@senars/nar/dialogue';
 import {
   DialogueCapture,
@@ -48,12 +49,12 @@ import {
   RetrospectiveAdapter,
   retrospect,
 } from '@senars/nar/dialogue';
+import { DEFAULT_REPUTATION_PATH, SourceReputation } from '@senars/nar/kernel/source-reputation';
 import { formatLMConfig, resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm/env-config.js';
 import { computeEvidenceId } from '@senars/nar/lm/system-one';
 import { createLogger } from '@senars/nar/logger';
 import { NLUnderstandingService } from '@senars/nar/nl';
-import { DEFAULT_LEDGER_PATH, OutcomeLinker, ParameterLedger } from '@senars/nar/config';
 import { buildCommands } from '../cli/commands.js';
 import { loadConfig } from '../config/index.js';
 import { assertValidEnv } from '../utils/env-validate.js';
@@ -662,6 +663,17 @@ function buildExtraCommands(
         if (kind === 'correct' && !correction) return 'Usage: .react correct <correction text>';
         try {
           await dialogue.bindReaction(turn.turnId, kind as any, correction);
+          // Phase E: reactions are verification signals for the user channel.
+          w.nar
+            .getSourceReputation?.()
+            ?.record(
+              'user',
+              kind === 'accept'
+                ? 'confirmed'
+                : kind === 'clarify' || kind === 'redirect'
+                  ? 'confirmed'
+                  : 'contradicted'
+            );
           return `Reaction ${kind} bound to ${turn.turnId}${kind === 'correct' ? ' (embedded + labeled, text discarded)' : ''}`;
         } catch (e) {
           return `react failed: ${errMsg(e)}`;
@@ -685,47 +697,43 @@ function buildExtraCommands(
         })
         .join('\n');
     }),
-    cmd(
-      'parameters',
-      'Show the parameter change ledger: [improved]',
-      async (args = '') => {
-        if (!parameterLedger) return 'Parameter ledger not attached.';
-        if (!w.episodicMemory) return 'Episodic memory not available.';
-        if (args.trim() === 'improved') {
-          // Outcome surfaces: dialogue reactions (accept=1, neutral=0.5, negative=0).
-          const reactions = await w.episodicMemory.getEpisodes({ type: 'reaction', limit: 500 });
-          const quality: Record<string, number> = {
-            accept: 1,
-            clarify: 0.5,
-            redirect: 0.5,
-            correct: 0,
-            reject: 0,
-            abandon: 0,
-          };
-          const samples = reactions.map((e) => ({
-            at: e.timestamp,
-            quality: quality[(e.metadata as any).kind as string] ?? 0.5,
-          }));
-          const link = new OutcomeLinker(parameterLedger, () => samples);
-          const improved = link.improvedOnly({ windowMs: 120_000 });
-          if (improved.length === 0) return 'No improvement-evidenced parameter changes.';
-          return improved
-            .map(
-              (i) =>
-                `  ${i.parameter} ${i.oldValue}→${i.newValue} quality ${i.before.toFixed(2)}→${i.after.toFixed(2)}`
-            )
-            .join('\n');
-        }
-        const records = parameterLedger.query().slice(-20);
-        if (records.length === 0) return 'No parameter changes recorded.';
-        return records
+    cmd('parameters', 'Show the parameter change ledger: [improved]', async (args = '') => {
+      if (!parameterLedger) return 'Parameter ledger not attached.';
+      if (!w.episodicMemory) return 'Episodic memory not available.';
+      if (args.trim() === 'improved') {
+        // Outcome surfaces: dialogue reactions (accept=1, neutral=0.5, negative=0).
+        const reactions = await w.episodicMemory.getEpisodes({ type: 'reaction', limit: 500 });
+        const quality: Record<string, number> = {
+          accept: 1,
+          clarify: 0.5,
+          redirect: 0.5,
+          correct: 0,
+          reject: 0,
+          abandon: 0,
+        };
+        const samples = reactions.map((e) => ({
+          at: e.timestamp,
+          quality: quality[(e.metadata as any).kind as string] ?? 0.5,
+        }));
+        const link = new OutcomeLinker(parameterLedger, () => samples);
+        const improved = link.improvedOnly({ windowMs: 120_000 });
+        if (improved.length === 0) return 'No improvement-evidenced parameter changes.';
+        return improved
           .map(
-            (r) =>
-              `  [${new Date(r.at).toLocaleTimeString()}] ${r.writer}/${r.scope} ${r.parameter} ${r.oldValue}→${r.newValue}${r.trigger ? ` (${r.trigger.slice(0, 12)})` : ''}`
+            (i) =>
+              `  ${i.parameter} ${i.oldValue}→${i.newValue} quality ${i.before.toFixed(2)}→${i.after.toFixed(2)}`
           )
           .join('\n');
       }
-    ),
+      const records = parameterLedger.query().slice(-20);
+      if (records.length === 0) return 'No parameter changes recorded.';
+      return records
+        .map(
+          (r) =>
+            `  [${new Date(r.at).toLocaleTimeString()}] ${r.writer}/${r.scope} ${r.parameter} ${r.oldValue}→${r.newValue}${r.trigger ? ` (${r.trigger.slice(0, 12)})` : ''}`
+        )
+        .join('\n');
+    }),
     cmd('retrospect', 'Run a retrospective: [session-id]', async (args = '') => {
       if (!w.episodicMemory) return 'Episodic memory not available.';
       const sid =
@@ -1761,6 +1769,17 @@ function formatSystemOneStatus(nar: Wired['nar'], conversationGame: { focus: any
     `  Embedding Cache: ${cacheMetrics.size} entries, hit rate: ${((cacheMetrics.hits / (cacheMetrics.hits + cacheMetrics.misses || 1)) * 100).toFixed(1)}%`,
     `  Contrastive: ${totals.p}P/${totals.n}N across ${cStats.length} rubric(s), ${totals.c} calibrated (refresh: .calibrate refresh)`,
     `  Contrastive Vetoes (LMReflex): ${vetoes}`,
+    ...(() => {
+      const rep = nar.getSourceReputation?.();
+      if (!rep || rep.size === 0) return [];
+      return [
+        '  Source Reputation:',
+        ...[...rep.table()].map(
+          ([key, e]) =>
+            `    ${key}: ✓${e.confirmed}/✗${e.contradicted} ceiling ×${e.multiplier.toFixed(2)}`
+        ),
+      ];
+    })(),
   ].join('\n');
 }
 
@@ -1946,11 +1965,19 @@ async function main(): Promise<void> {
 
   let currentSession = sessionManager.getOrCreate('default');
   let tier: 'quality' | 'fast' | 'structured' = profile.narrateTier;
-  // Groundedness gate state (shared with collectChat)
+  // Groundedness gate state (shared with collectChat). Phase E: egress-gate
+  // verdicts are verification signals for the LM narration channel.
+  const systemOneGate = wired.nar.getSystemOneGroundednessGate?.();
   const ground: GroundednessState = {
     enabled: wired.appConfig.systemOne?.enabled === true,
     threshold: 0.7,
-    gate: wired.nar.getSystemOneGroundednessGate?.(),
+    gate: systemOneGate
+      ? async (text: string) => {
+          const ok = await systemOneGate(text);
+          sourceReputation.record('llm-narration', ok ? 'confirmed' : 'contradicted');
+          return ok;
+        }
+      : undefined,
   };
   // Trace grader state
   const trace: TraceState = {
@@ -2078,6 +2105,10 @@ async function main(): Promise<void> {
   // decide) wired into every writer; off until this attach point.
   const parameterLedger = new ParameterLedger({ path: DEFAULT_LEDGER_PATH });
   wired.nar.setParameterLedger(parameterLedger);
+  // Phase E: source reputation (trust-not-truth ceiling) — fed by verification
+  // signals only: egress-gate verdicts and `.react` corrections.
+  const sourceReputation = new SourceReputation({ path: DEFAULT_REPUTATION_PATH });
+  wired.nar.setSourceReputation(sourceReputation);
   const narController = wired.nar.getController?.();
   const strategyAdapter = narController
     ? new RetrospectiveAdapter(narController as never, { ledger: parameterLedger })

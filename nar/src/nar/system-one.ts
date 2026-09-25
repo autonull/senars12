@@ -1,13 +1,19 @@
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { LMService } from '../lm';
-import { createLMServiceCortex } from '../lm/system-one/cortex-adapter.js';
 import { ContrastiveMemory } from '../lm/system-one/contrastive.js';
-import { createDecider, type Decider, type DecideRequest, type ChooseRequest, type DecideResult, type ChooseResult } from '../lm/system-one/decide.js';
+import { createLMServiceCortex } from '../lm/system-one/cortex-adapter.js';
+import {
+  type ChooseRequest,
+  type ChooseResult,
+  createDecider,
+  type DecideRequest,
+  type DecideResult,
+  type Decider,
+} from '../lm/system-one/decide.js';
 import { createDispatcher, StubCortex } from '../lm/system-one/dispatcher.js';
 import { JudgmentDataset } from '../lm/system-one/distill.js';
 import { createEmbeddingCache, type EmbeddingCache } from '../lm/system-one/embedding-cache.js';
-import { recordEmbeddingCacheEvent } from '../metrics/prometheus.js';
 import { createGroundednessGate } from '../lm/system-one/groundedness-gate.js';
 import { mineHardNegatives, seedContrastiveMemory } from '../lm/system-one/hard-negatives.js';
 import { createHttpManifold } from '../lm/system-one/http-manifold.js';
@@ -20,6 +26,7 @@ import type { CognitiveDispatcher, JudgmentManifold } from '../lm/system-one/typ
 import { composeModelDigest, encoderDigest } from '../lm/system-one/wasi-runtime.js';
 import { createLogger } from '../logger';
 import { createEmbeddingGenerator } from '../memory/embedding.js';
+import { recordEmbeddingCacheEvent } from '../metrics/prometheus.js';
 import { EpsilonGreedyReflex } from '../reflex/EpsilonGreedyReflex.js';
 import type { Reflex } from '../reflex/Reflex.js';
 import type { NARConfig } from './config.js';
@@ -40,8 +47,12 @@ export class SystemOneRuntime {
   /** TODO24: correlationId → last trace quality, for retrospect strategy audit. */
   readonly traceGradeHistory = new Map<string, number>();
   readonly dataset?: JudgmentDataset;
-  /** CLM contrastive exemplar memory (zero-shot scoring + hard-negative routing). */
-  readonly contrastive = new ContrastiveMemory();
+  /** CLM contrastive exemplar memory — lazy (Phase E): no allocation when System One is disabled. */
+  #contrastiveInstance?: ContrastiveMemory;
+  get contrastive(): ContrastiveMemory {
+    this.#contrastiveInstance ??= new ContrastiveMemory();
+    return this.#contrastiveInstance;
+  }
 
   private readonly config: NARConfig;
   private readonly logger: ReturnType<typeof createLogger>;
@@ -211,7 +222,9 @@ export class SystemOneRuntime {
     const traceGrader = this.traceGrader;
     this.traceGrader = async (trace) => {
       const result = await traceGrader(trace);
-      const quality = result.groundedness?.abstained ? result.contrastiveQuality : result.groundedness?.score;
+      const quality = result.groundedness?.abstained
+        ? result.contrastiveQuality
+        : result.groundedness?.score;
       if (trace.correlationId && quality !== undefined) {
         this.traceGradeHistory.set(trace.correlationId, quality);
       }
