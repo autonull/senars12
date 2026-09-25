@@ -1,55 +1,25 @@
-import type { EpisodicMemory } from '@senars/util';
 import type { ChatStreamEvent } from '../ChatService.js';
-import type { CognitiveEvent } from '../CognitiveEvent.js';
-import type { LLMCortex } from '../cortex/LLMCortex.js'; /**
- * Agent reasoning cycle phases, extracted from Agent.cycle for modularity.
- * Behavior is identical to the original inline implementation.
+/**
+ * Agent reasoning cycle as a `MacroPhase` middleware pipeline (REFACTOR.todo1
+ * Phase A): `DEFAULT_MACRO_PIPELINE` reproduces the original `runCycleStream`
+ * step sequence exactly; narration streams through the phase chain via
+ * `MacroContext.stream`.
  */
-import type {
-  CognitiveStimulus,
-  Context,
-  Derivation,
-  Engine,
-  ToolResult,
-} from '../engine/Engine.js';
-import type { EventLog } from '../eventlog/EventLog.js';
-import type { MemoryService } from '../memory/MemoryService.js';
-import type { ToolRegistry } from '../motor/ToolRegistry.js';
-import { motorToToolSet } from '../motor/toToolSet.js';
-import type { PolicyEngine } from '../PolicyEngine.js';
+import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
+import {
+  type CycleHost,
+  createMacroContext,
+  dispatchMacro,
+  type MacroContext,
+  type MacroPhase,
+  motorTools,
+} from './pipeline.js';
 
-export interface CycleHost {
-  readonly log: EventLog;
-  readonly memory: MemoryService;
-  readonly engines: Map<string, Engine>;
-  readonly policy: PolicyEngine;
-  readonly motor: ToolRegistry;
-  readonly cortex?: LLMCortex;
-  readonly episodicMemory?: EpisodicMemory;
-  readonly commandParser?: (text: string) => { command: string; args: string[]; raw: string }[];
-  /** System One egress gate (§7.4): returns true (or `{grounded, score}`) when the narration is grounded enough to emit. */
-  readonly groundednessGate?: (
-    narration: string
-  ) => Promise<boolean | { grounded: boolean; score?: number }>;
-  /** E4: grades the completed cycle (narration + executed tools) into the distillation dataset. */
-  readonly traceGrader?: (trace: {
-    narration: string;
-    toolCalls: readonly { command: string; success: boolean }[];
-    correlationId: string;
-    /** E4 follow-up (b): egress-gate verdict — groundedness ground truth (reject ⇒ observed 0). */
-    egress?: { grounded: boolean; score?: number };
-  }) => Promise<unknown>;
-  /** H2: default narration tier when the caller passes none. */
-  readonly narrateTier?: 'quality' | 'fast' | 'structured';
+export type { CycleHost, MacroContext, MacroPhase } from './pipeline.js';
+export { createCapturePhase, createReflectPhase } from './pipeline.js';
 
-  emit(event: CognitiveEvent): void;
+const EMPTY_CONTEXT: Context = { working: [], episodic: [], semantic: [] };
 
-  getLastResponse(): string;
-
-  setLastResponse(value: string): void;
-}
-
-/** I4/X13: egress-gate rejections are observable — never a silent narration swap. */
 const gateVerdict = (
   v: boolean | { grounded: boolean; score?: number }
 ): { grounded: boolean; score?: number } => (typeof v === 'boolean' ? { grounded: v } : v);
@@ -77,7 +47,7 @@ const perceive = (host: CycleHost, stimulus: CognitiveStimulus): void => {
 const recall = async (
   host: CycleHost,
   stimulus: CognitiveStimulus
-): Promise<{ cid: CognitiveEvent; context: Context }> => {
+): Promise<{ cid: { id?: string }; context: Context }> => {
   const cid = await host.log.append({
     engine: 'nar',
     type: 'input.user',
@@ -110,38 +80,64 @@ const reason = async (
   return derivations;
 };
 
-const narrate = async (
-  host: CycleHost,
-  stimulus: CognitiveStimulus,
-  context: Context,
-  derivations: Derivation[]
-): Promise<{ text: string; egress?: { grounded: boolean; score?: number } }> => {
-  let narrativeText = '';
-  let egress: { grounded: boolean; score?: number } | undefined;
-  if (host.cortex) {
-    const narrative = await host.cortex.synthesize({
-      stimulus,
-      context,
-      derivations,
-      tools: motorToToolSet(host.motor),
-      tier: host.narrateTier,
-    });
-    narrativeText = narrative.text;
-    if (host.groundednessGate) {
-      const verdict = gateVerdict(await host.groundednessGate(narrativeText));
-      egress = verdict;
+/** Fail-safe template verbalization when the egress gate rejects or abstains. */
+const verbalizeDerivations = (derivations: Derivation[]): string =>
+  derivations.length > 0
+    ? `Derivations: ${derivations.map((d) => d.term).join('; ')}`
+    : 'No grounded derivations available.';
+
+const narrateStreaming = async (ctx: MacroContext): Promise<void> => {
+  const { host, stimulus, state, stream, opts } = ctx;
+  const tier = opts?.tier ?? host.narrateTier;
+  const cortex = host.cortex;
+  if (cortex) {
+    const s =
+      typeof cortex.synthesizeStream === 'function'
+        ? cortex.synthesizeStream(
+            {
+              stimulus,
+              context: state.context ?? EMPTY_CONTEXT,
+              derivations: state.derivations,
+              tools: motorTools(host),
+              tier,
+            },
+            opts?.signal
+          )
+        : (async function* () {
+            const res = await cortex.synthesize({
+              stimulus,
+              context: state.context ?? EMPTY_CONTEXT,
+              derivations: state.derivations,
+              tools: motorTools(host),
+              tier,
+            });
+            yield { kind: 'text-delta', text: res.text } as ChatStreamEvent;
+          })();
+    for await (const evt of s) {
+      stream.push(evt);
+      if (evt.kind === 'text-delta' && evt.text) state.narrativeText += evt.text;
+    }
+    if (!state.narrativeText) state.narrativeText = host.getLastResponse();
+    else if (host.groundednessGate) {
+      const verdict = gateVerdict(await host.groundednessGate(state.narrativeText));
+      state.egress = verdict;
       if (!verdict.grounded) {
         reportEgressRejection(host, stimulus.correlationId, verdict.score);
-        narrativeText = verbalizeDerivations(derivations);
+        stream.push({
+          kind: 'text-delta',
+          text: `[egress gate rejected narration${verdict.score !== undefined ? ` (score ${verdict.score.toFixed(2)})` : ''} — falling back to grounded verbalization]`,
+        } as ChatStreamEvent);
+        state.narrativeText = verbalizeDerivations(state.derivations);
       }
+    } else {
+      host.memory.append({
+        type: 'narrative',
+        payload: state.narrativeText,
+        correlationId: stimulus.correlationId,
+      });
     }
-    host.memory.append({
-      type: 'narrative',
-      payload: narrativeText,
-      correlationId: stimulus.correlationId,
-    });
   } else {
-    for (const d of derivations) {
+    for (const d of state.derivations) {
       host.memory.append({
         type: 'derivation',
         payload: d,
@@ -149,22 +145,12 @@ const narrate = async (
       });
     }
   }
-  return { text: narrativeText, egress };
 };
 
-/** Fail-safe template verbalization when the egress gate rejects or abstains. */
-const verbalizeDerivations = (derivations: Derivation[]): string =>
-  derivations.length > 0
-    ? `Derivations: ${derivations.map((d) => d.term).join('; ')}`
-    : 'No grounded derivations available.';
-
-const consolidateMemory = async (
-  host: CycleHost,
-  stimulus: CognitiveStimulus,
-  narrativeText: string
-): Promise<void> => {
-  if (host.episodicMemory && narrativeText) {
-    await host.episodicMemory.log('response', narrativeText, {
+const consolidateMemory = async (ctx: MacroContext): Promise<void> => {
+  const { host, stimulus, state } = ctx;
+  if (host.episodicMemory && state.narrativeText) {
+    await host.episodicMemory.log('response', state.narrativeText, {
       correlationId: stimulus.correlationId,
     });
   }
@@ -175,15 +161,11 @@ const consolidateMemory = async (
   }
 };
 
-const act = async (
-  host: CycleHost,
-  stimulus: CognitiveStimulus,
-  cidId: string,
-  narrativeText: string
-): Promise<Array<{ command: string; result: ToolResult }>> => {
+const act = async (ctx: MacroContext): Promise<Array<{ command: string; result: ToolResult }>> => {
+  const { host, stimulus, state } = ctx;
   const toolResults: Array<{ command: string; result: ToolResult }> = [];
-  if (host.commandParser && narrativeText) {
-    const commands = host.commandParser(narrativeText);
+  if (host.commandParser && state.narrativeText) {
+    const commands = host.commandParser(state.narrativeText);
     for (const cmd of commands) {
       if (cmd.command === 'send') {
         host.setLastResponse(cmd.args[0] ?? '');
@@ -213,7 +195,7 @@ const act = async (
         type: 'tool.request',
         payload: { toolName: cmd.command, args: { args: cmd.args }, timeoutMs: 30000 },
         correlationId: stimulus.correlationId,
-        causationId: cidId,
+        causationId: state.cid?.id ?? '',
       });
       for (const engine of host.engines.values()) {
         try {
@@ -227,80 +209,10 @@ const act = async (
   return toolResults;
 };
 
-export const runCycle = async (host: CycleHost, stimulus: CognitiveStimulus): Promise<string> => {
-  const stream = runCycleStream(host, stimulus);
-  let next = await stream.next();
-  while (!next.done) next = await stream.next();
-  return next.value;
-};
-
-export async function* runCycleStream(
-  host: CycleHost,
-  stimulus: CognitiveStimulus,
-  opts?: { signal?: AbortSignal; tier?: 'quality' | 'fast' | 'structured' }
-): AsyncGenerator<ChatStreamEvent, string> {
-  host.setLastResponse('');
-
-  perceive(host, stimulus);
-  const { cid, context } = await recall(host, stimulus);
-
-  const derivations = await reason(host, stimulus, context);
-  let narrativeText = '';
-  let egressVerdict: { grounded: boolean; score?: number } | undefined;
-  const tier = opts?.tier ?? host.narrateTier;
-  const cortex = host.cortex;
-  if (cortex) {
-    const stream =
-      typeof cortex.synthesizeStream === 'function'
-        ? cortex.synthesizeStream(
-            { stimulus, context, derivations, tools: motorToToolSet(host.motor), tier },
-            opts?.signal
-          )
-        : (async function* () {
-            const res = await cortex.synthesize({
-              stimulus,
-              context,
-              derivations,
-              tools: motorToToolSet(host.motor),
-              tier,
-            });
-            yield { kind: 'text-delta', text: res.text } as ChatStreamEvent;
-          })();
-    for await (const evt of stream) {
-      yield evt;
-      if (evt.kind === 'text-delta' && evt.text) narrativeText += evt.text;
-    }
-    if (!narrativeText) narrativeText = host.getLastResponse();
-    else if (host.groundednessGate) {
-      const verdict = gateVerdict(await host.groundednessGate(narrativeText));
-      egressVerdict = verdict;
-      if (!verdict.grounded) {
-        reportEgressRejection(host, stimulus.correlationId, verdict.score);
-        yield {
-          kind: 'text-delta',
-          text: `[egress gate rejected narration${verdict.score !== undefined ? ` (score ${verdict.score.toFixed(2)})` : ''} — falling back to grounded verbalization]`,
-        } as ChatStreamEvent;
-        narrativeText = verbalizeDerivations(derivations);
-      }
-    } else {
-      host.memory.append({
-        type: 'narrative',
-        payload: narrativeText,
-        correlationId: stimulus.correlationId,
-      });
-    }
-  } else {
-    const narrated = await narrate(host, stimulus, context, derivations);
-    narrativeText = narrated.text;
-    egressVerdict = narrated.egress;
-  }
-
-  await consolidateMemory(host, stimulus, narrativeText);
-
-  const toolResults = await act(host, stimulus, cid.id ?? '', narrativeText);
-
-  await host.memory.consolidate(cid.id ?? '');
-  for (const tr of toolResults) {
+const record = async (ctx: MacroContext): Promise<void> => {
+  const { host, stimulus, state } = ctx;
+  await host.memory.consolidate(state.cid?.id ?? '');
+  for (const tr of state.toolResults) {
     host.memory.append({
       type: 'tool_result',
       payload: tr,
@@ -308,20 +220,26 @@ export async function* runCycleStream(
     });
   }
 
-  if (host.traceGrader && narrativeText) {
+  if (host.traceGrader && state.narrativeText) {
     try {
       await host.traceGrader({
-        narration: narrativeText,
-        toolCalls: toolResults.map((tr) => ({ command: tr.command, success: tr.result.success })),
+        narration: state.narrativeText,
+        toolCalls: state.toolResults.map((tr) => ({
+          command: tr.command,
+          success: tr.result.success,
+        })),
         correlationId: stimulus.correlationId,
-        egress: egressVerdict,
+        egress: state.egress,
       });
     } catch {
       /* grading is best-effort; never blocks the cycle */
     }
   }
+};
 
-  for (const d of derivations) {
+const announce = (ctx: MacroContext): void => {
+  const { host, stimulus, state } = ctx;
+  for (const d of state.derivations) {
     host.emit({
       engine: 'nar',
       type: 'derivation.made',
@@ -330,7 +248,7 @@ export async function* runCycleStream(
       payload: { rule: '', premises: [], conclusion: d.term },
     });
   }
-  for (const tr of toolResults) {
+  for (const tr of state.toolResults) {
     host.emit({
       engine: 'nar',
       type: 'skill.executed',
@@ -344,6 +262,91 @@ export async function* runCycleStream(
       },
     });
   }
+};
 
-  return host.getLastResponse() || narrativeText;
+const perceivePhase: MacroPhase = async (ctx, next) => {
+  perceive(ctx.host, ctx.stimulus);
+  await next();
+};
+
+const recallPhase: MacroPhase = async (ctx, next) => {
+  const { cid, context } = await recall(ctx.host, ctx.stimulus);
+  ctx.state.cid = cid;
+  ctx.state.context = context;
+  await next();
+};
+
+const reasonPhase: MacroPhase = async (ctx, next) => {
+  ctx.state.derivations = await reason(ctx.host, ctx.stimulus, ctx.state.context ?? EMPTY_CONTEXT);
+  await next();
+};
+
+const narratePhase: MacroPhase = async (ctx, next) => {
+  await narrateStreaming(ctx);
+  await next();
+};
+
+const consolidatePhase: MacroPhase = async (ctx, next) => {
+  await consolidateMemory(ctx);
+  await next();
+};
+
+const actPhase: MacroPhase = async (ctx, next) => {
+  ctx.state.toolResults = await act(ctx);
+  await next();
+};
+
+const recordPhase: MacroPhase = async (ctx, next) => {
+  await record(ctx);
+  await next();
+};
+
+const announcePhase: MacroPhase = async (ctx, next) => {
+  announce(ctx);
+  await next();
+};
+
+export const DEFAULT_MACRO_PIPELINE: MacroPhase[] = [
+  perceivePhase,
+  recallPhase,
+  reasonPhase,
+  narratePhase,
+  consolidatePhase,
+  actPhase,
+  recordPhase,
+  announcePhase,
+];
+
+export const runCycle = async (
+  host: CycleHost,
+  stimulus: CognitiveStimulus,
+  phases: readonly MacroPhase[] = host.macroPipeline ?? DEFAULT_MACRO_PIPELINE
+): Promise<string> => {
+  const stream = runCycleStream(host, stimulus, { pipeline: phases });
+  let next = await stream.next();
+  while (!next.done) next = await stream.next();
+  return next.value;
+};
+
+export async function* runCycleStream(
+  host: CycleHost,
+  stimulus: CognitiveStimulus,
+  opts?: {
+    signal?: AbortSignal;
+    tier?: 'quality' | 'fast' | 'structured';
+    pipeline?: readonly MacroPhase[];
+  }
+): AsyncGenerator<ChatStreamEvent, string> {
+  host.setLastResponse('');
+  const ctx = createMacroContext(host, stimulus, opts);
+  const running = (async () => {
+    try {
+      await dispatchMacro(opts?.pipeline ?? host.macroPipeline ?? DEFAULT_MACRO_PIPELINE, ctx);
+    } finally {
+      ctx.stream.close();
+    }
+  })();
+  yield* ctx.stream.drain();
+  await running;
+  return host.getLastResponse() || ctx.state.narrativeText;
 }

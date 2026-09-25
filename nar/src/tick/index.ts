@@ -32,4 +32,10 @@ export type {
   TickState,
   ToolOutcome,
 } from './tick.js';
-export { createPipeline, createTickContext, DEFAULT_PIPELINE, runTick } from './tick.js';
+export {
+  createPipeline,
+  createTickContext,
+  createTickPipeline,
+  DEFAULT_PIPELINE,
+  runTick,
+} from './tick.js';

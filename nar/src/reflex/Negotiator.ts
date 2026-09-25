@@ -22,11 +22,30 @@ export interface NegotiationDecision {
 export interface NegotiatorOptions {
   nalVetoThreshold?: number;
   reflexThreshold?: number;
+  /** Additional proposal sources (e.g. a future MeTTa voter) merged ahead of arbitration. */
+  proposers?: IProposer[];
+}
+
+/** Proposal inputs a proposer may consult (REFACTOR.todo1 Phase A, §3 Negotiator generalization). */
+export interface NegotiationInput {
+  readonly reflexProposals: readonly ActionProposal[];
+  readonly nalDerivations: readonly NALDerivation[];
+}
+
+export interface ProposerContribution {
+  readonly reflex?: readonly ActionProposal[];
+  readonly nal?: readonly NALDerivation[];
+}
+
+export interface IProposer {
+  propose(input: NegotiationInput): ProposerContribution;
+  learn(event: LearningEvent): void;
 }
 
 export class Negotiator {
   private readonly nalVetoThreshold: number;
   private readonly reflexThreshold: number;
+  private readonly proposers: IProposer[];
   /**
    * P3 (TODO20): memoized `isVetoingAction` keyed by the full predicate input
    * (action, truth, proposal) — pure function of the key, so entries can never
@@ -38,6 +57,17 @@ export class Negotiator {
   constructor(options: NegotiatorOptions = {}) {
     this.nalVetoThreshold = options.nalVetoThreshold ?? 0.8;
     this.reflexThreshold = options.reflexThreshold ?? 0.3;
+    this.proposers = options.proposers ?? [];
+  }
+
+  /** Registered proposers (empty by default — zero behavior change). */
+  get registeredProposers(): readonly IProposer[] {
+    return this.proposers;
+  }
+
+  /** Fan a learning event out to all proposers (no-op with none registered). */
+  learn(event: LearningEvent): void {
+    for (const p of this.proposers) p.learn(event);
   }
 
   resolve(reflexProposals: ActionProposal[], nalDerivations: NALDerivation[]): NegotiationDecision {
@@ -48,7 +78,15 @@ export class Negotiator {
         'negotiator.derivations': nalDerivations.length,
       },
       (span) => {
-        const decision = this.decide(reflexProposals, nalDerivations);
+        const input: NegotiationInput = { reflexProposals, nalDerivations };
+        const mergedReflex: ActionProposal[] = [...reflexProposals];
+        const mergedNal: NALDerivation[] = [...nalDerivations];
+        for (const proposer of this.proposers) {
+          const c = proposer.propose(input);
+          if (c.reflex) mergedReflex.push(...c.reflex);
+          if (c.nal) mergedNal.push(...c.nal);
+        }
+        const decision = this.decide(mergedReflex, mergedNal);
         span.setAttributes({
           'negotiator.source': decision.source,
           'negotiator.vetoed': decision.vetoedBy !== null,

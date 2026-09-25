@@ -2,6 +2,7 @@ import type { EpisodicMemory } from '@senars/util';
 import { AgentBridge } from './AgentBridge.js';
 import { ApprovalService } from './ApprovalService.js';
 import { type CycleHost, runCycle, runCycleStream } from './agent/phases.js';
+import type { MacroPhase } from './agent/pipeline.js';
 import type { AgentOptions, HealthStatus, ParsedCommand, SkillDefinition } from './agent/types.js';
 import type { ChatOptions, ChatStreamEvent } from './ChatService.js';
 import type { CognitiveEvent as _CE, CognitiveEvent } from './CognitiveEvent.js';
@@ -57,6 +58,7 @@ export class Agent {
     egress?: { grounded: boolean; score?: number };
   }) => Promise<unknown>;
   #narrateTier?: 'quality' | 'fast' | 'structured';
+  #macroPipeline?: MacroPhase[];
   #started = false;
   #cycleCount = 0;
   #lastCycleTime = 0;
@@ -76,6 +78,7 @@ export class Agent {
     this.#groundednessGate = opts.groundednessGate;
     this.#traceGrader = opts.traceGrader;
     this.#narrateTier = opts.narrateTier;
+    this.#macroPipeline = opts.macroPipeline;
 
     this.memory.connectLog(this.log);
     this.memory.connectEngines(this.engines);
@@ -262,6 +265,7 @@ export class Agent {
       groundednessGate: this.#groundednessGate,
       traceGrader: this.#traceGrader,
       narrateTier: this.#narrateTier,
+      macroPipeline: this.#macroPipeline,
       emit: (e) => this.#emitCognitive(e),
       getLastResponse: () => this.#lastResponse,
       setLastResponse: (v) => {
@@ -278,5 +282,10 @@ export class Agent {
         /* ignore listener errors */
       }
     }
+  }
+
+  /** Phase A (REFACTOR.todo1): install a custom macro pipeline (e.g. dialogue Capture phase). */
+  setMacroPipeline(phases: MacroPhase[]): void {
+    this.#macroPipeline = phases;
   }
 }

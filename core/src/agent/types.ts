@@ -1,8 +1,8 @@
 import type {
-  BridgeOptions as UtilBridgeOptions,
   EpisodicMemory,
   LMService,
   NAR,
+  BridgeOptions as UtilBridgeOptions,
 } from '@senars/util';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import type { ChatOptions, ChatStreamEvent } from '../ChatService.js';
@@ -27,6 +27,7 @@ import type {
 import type { PinStore } from '../motor/builtin-tools.js';
 import type { AgentCapabilities } from '../protocol/index.js';
 import type { Connection } from '../Transport.js';
+import type { MacroPhase } from './pipeline.js';
 
 export type { CognitiveStimulus, Context, Derivation, ToolResult };
 
@@ -54,6 +55,8 @@ export interface AgentOptions {
   }) => Promise<unknown>;
   /** H2: default narration tier for chat cycles when the caller passes none. */
   narrateTier?: 'quality' | 'fast' | 'structured';
+  /** Phase A (REFACTOR.todo1): custom macro-cycle phases; default `DEFAULT_MACRO_PIPELINE`. */
+  macroPipeline?: MacroPhase[];
 }
 
 export interface ParsedCommand {

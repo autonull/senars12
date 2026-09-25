@@ -63,7 +63,7 @@ const passthrough =
     await next();
   };
 
-export const createPipeline = (hooks: TickHooks = {}): TickMiddleware[] => {
+export const createTickPipeline = (hooks: TickHooks = {}): TickMiddleware[] => {
   const stage =
     (name: keyof TickHooks): TickMiddleware =>
     async (ctx, next) => {
@@ -85,6 +85,12 @@ export const createPipeline = (hooks: TickHooks = {}): TickMiddleware[] => {
     stage('consolidate'),
   ];
 };
+
+/**
+ * @deprecated since 1.x — use `createTickPipeline`.
+ * Kept per the 2-minor deprecation lifecycle (REFACTOR.todo1 Phase A).
+ */
+export const createPipeline: typeof createTickPipeline = createTickPipeline;
 
 export const perceiveMiddleware = passthrough('perceive');
 export const recallMiddleware = passthrough('recall');
