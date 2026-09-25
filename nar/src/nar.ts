@@ -1,5 +1,6 @@
 import { BaseComponent } from '@senars/core';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { Episode } from '@senars/util';
 import { CognitiveController } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
 import type { ParameterLedger } from './config/parameter-ledger.js';
@@ -15,12 +16,15 @@ import { getModelForTask, LMRules } from './lm';
 import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
 import { SystemOneIngressJudge } from './lm/system-one/ingress-judge.js';
 import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
+import { seedContrastiveMemory } from './lm/system-one/hard-negatives.js';
 import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
 import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-grader.js';
 import type { CognitiveDispatcher, JudgmentManifold } from './lm/system-one/types.js';
 import { createLogger } from './logger';
 import type { Concept } from './memory';
 import { Memory } from './memory';
+import { EpisodeConsolidator } from './memory/episode-consolidator.js';
+import { MiningBag } from './lm/system-one/hard-negatives.js';
 import { MetricsCollector } from './metrics';
 import { createAttentionModel, type NARConfig, validateNarConfig } from './nar/config.js';
 import { GameManager } from './nar/games.js';
@@ -80,6 +84,10 @@ export class NAR extends BaseComponent {
   /** TODO25 follow-on: bounded derivation-chain ring, fuel for SchemaInductor; Phase D live ProofStream source. */
   #proofRing = new ProofStreamRing<readonly Task[]>(DERIVATION_RING_CAP);
   #schemaInductor?: SchemaInductor;
+  /** Phase B (REFACTOR.todo2): episodic consolidation process — created only when config opts in. */
+  #episodeConsolidator?: EpisodeConsolidator;
+  /** Phase D (REFACTOR.todo2): bounded hard-negative mining bag — created only when config opts in. */
+  #miningBag?: MiningBag;
   #sourceReputation?: import('./kernel/source-reputation.js').SourceReputation;
   driveManager?: DriveManager;
   private readonly systemEventBus: NarEventBus;
@@ -127,6 +135,23 @@ export class NAR extends BaseComponent {
     if (this.config.enableRLFP)
       this.rlfp = new RLFPLearner({ optimizeInterval: this.config.rlfp?.optimizeInterval });
 
+    if (this.config.episodeConsolidation?.enabled) {
+      const cfg = this.config.episodeConsolidation;
+      this.#episodeConsolidator = new EpisodeConsolidator({
+        capacity: cfg.capacity,
+        budget: cfg.budget,
+      });
+    }
+
+    if (this.config.hardNegativeMining?.bounded) {
+      const cfg = this.config.hardNegativeMining;
+      this.#miningBag = new MiningBag({
+        capacity: cfg.capacity,
+        budget: cfg.budget,
+        marginFloor: cfg.marginFloor,
+      });
+    }
+
     if (config.cognitiveParams && config.strategyRegistry) {
       this.cognitiveController = new CognitiveController(
         config.strategyRegistry,
@@ -146,7 +171,7 @@ export class NAR extends BaseComponent {
       lmService: this._lmService,
       onJudgmentResolved: (proposition, query) => this.emitJudgmentResolved(proposition, query),
     });
-    this.games = new GameManager(this.systemOne, config.rng);
+    this.games = new GameManager(this.systemOne, config.rng, config.proposals);
 
     // Initialize gate registry with System One perception config if enabled
     const perceptionConfig = this.config.systemOne?.enabled
@@ -474,6 +499,36 @@ export class NAR extends BaseComponent {
       contrastive.decay();
       await contrastive.maintainIfPressured(options).catch(() => {});
     }
+    const consolidator = this.#episodeConsolidator;
+    if (consolidator) {
+      consolidator.decay();
+      await consolidator.consolidateIfPressured(options).catch(() => {});
+    }
+    const mining = this.#miningBag;
+    if (mining) {
+      mining.decay();
+      const drained = await mining.drainIfPressured(options).catch(() => []);
+      const contrastive = this.systemOne.enabled ? this.systemOne.contrastive : undefined;
+      const cache = this.systemOne.embeddingCache;
+      if (drained.length > 0 && contrastive && cache) {
+        await seedContrastiveMemory(drained, contrastive, cache).catch(() => {});
+      }
+    }
+  }
+
+  /** Phase D (REFACTOR.todo2): the bounded mining bag, when config opts in. */
+  getMiningBag(): MiningBag | undefined {
+    return this.#miningBag;
+  }
+
+  /** Phase B (REFACTOR.todo2): the episodic consolidation process, when enabled in config. */
+  getEpisodeConsolidator(): EpisodeConsolidator | undefined {
+    return this.#episodeConsolidator;
+  }
+
+  /** Phase B: wire the summary sink post-construction (integrator owns persistence). */
+  attachEpisodeConsolidatorSink(emit: (episode: Episode) => Promise<void> | void): void {
+    this.#episodeConsolidator?.setSink(emit);
   }
 
   /** Check if System One is enabled and initialized. */

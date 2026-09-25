@@ -53,6 +53,12 @@ export interface NARConfig extends CoreConfig {
   systemOne?: Partial<SystemOneConfig>;
   /** TODO20 §5s: injectable RNG — one knob for deterministic replay (threads to focus bags). */
   rng?: RandomSource;
+  /** Phase B (REFACTOR.todo2): episodic consolidation as an AIKR process (inert until admit/emit sinks are wired). */
+  episodeConsolidation?: { enabled?: boolean; capacity?: number; budget?: number };
+  /** Phase D (REFACTOR.todo2): bounded proposal bag for self-improvement routing (default off ⇒ arrival order). */
+  proposals?: { bounded?: boolean; capacity?: number; budget?: number };
+  /** Phase D (REFACTOR.todo2): bounded hard-negative mining bag (default off ⇒ direct mining). */
+  hardNegativeMining?: { bounded?: boolean; capacity?: number; budget?: number; marginFloor?: number };
 }
 
 export function validateNarConfig(config: NARConfig): NARConfig {

@@ -28,6 +28,19 @@ export interface EpisodicMemoryConfig {
   maxEntriesPerFile: number;
 }
 
+/** Episode query filter (REFACTOR.todo2 Phase A: causal traversal over edge fields). */
+export interface EpisodeFilter {
+  timeRange?: [number, number];
+  type?: EpisodeType;
+  limit?: number;
+  sessionId?: string;
+  correlationId?: string;
+  /** Episodes whose `causes` contains the given episode id. */
+  causedBy?: string;
+  /** Episodes whose `consequences` contains the given episode id. */
+  leadingTo?: string;
+}
+
 export interface EpisodicMemory {
   log(type: EpisodeType, content: string, metadata?: Record<string, unknown>): Promise<void>;
 

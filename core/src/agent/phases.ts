@@ -220,6 +220,16 @@ const record = async (ctx: MacroContext): Promise<void> => {
     });
   }
 
+  // Phase A (REFACTOR.todo2): drain the learning bags (decay + pressure-gated
+  // induction/exemplar maintenance) each cycle — best-effort, never blocks.
+  if (host.consolidateLearning && host.consolidation?.enabled !== false) {
+    try {
+      await host.consolidateLearning({ budget: host.consolidation?.budget });
+    } catch {
+      /* consolidation is best-effort; never blocks the cycle */
+    }
+  }
+
   if (host.traceGrader && state.narrativeText) {
     try {
       await host.traceGrader({

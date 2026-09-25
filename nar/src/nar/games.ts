@@ -2,6 +2,8 @@ import type { ReasoningBudget } from '@senars/kernel/schemas';
 import { FocusBag } from '../focus/FocusBag.js';
 import { GameFocus, type GameFocusOptions } from '../focus/GameFocus.js';
 import { createSelfMetaGame, type SelfMetaGameImpl } from '../game/SelfMetaGame.js';
+import { ProposalBag } from '../meta/proposal-bag.js';
+import type { NARConfig } from './config.js';
 import type { EmbeddingCache } from '../lm/system-one/embedding-cache.js';
 import type { JudgmentManifold } from '../lm/system-one/types.js';
 import type { Reflex } from '../reflex/Reflex.js';
@@ -18,11 +20,15 @@ export class GameManager {
   private gameFocusBag: FocusBag | null = null;
   private metaGame: SelfMetaGameImpl | null = null;
   private readonly metaGameFocuses = new Map<string, GameFocus>();
+  private readonly proposals?: NARConfig['proposals'];
 
   constructor(
     private readonly systemOne: SystemOneRuntime,
-    private readonly rng?: RandomSource
-  ) {}
+    private readonly rng?: RandomSource,
+    proposals?: NARConfig['proposals']
+  ) {
+    this.proposals = proposals?.bounded ? proposals : undefined;
+  }
 
   /** Default FocusBag backing attachGame (created lazily, script-owned drive loops). */
   getFocusBag(): FocusBag {
@@ -88,6 +94,11 @@ export class GameManager {
       observesFocuses: [...this.attachedGames.keys()],
       focusBag: this.getFocusBag(),
       gameFocuses: this.metaGameFocuses,
+      // Phase D (REFACTOR.todo2): bounded proposal bag (opt-in) — priority-ordered
+      // governance routing; default (absent) preserves arrival-order routing.
+      ...(this.proposals
+        ? { proposalBag: new ProposalBag({ capacity: this.proposals.capacity, budget: this.proposals.budget }) }
+        : {}),
     });
     return this.metaGame;
   }

@@ -114,3 +114,53 @@ I1–I7, N1–N3, C1–C5 from TODO20–25 and TODO1 carry unchanged. Reinforcem
 - Locate-verify before editing: `hard-negatives.ts` at `nar/src/lm/system-one/hard-negatives.ts`, `ProposalRouter` at `nar/src/governance/pipeline.ts`, `selectProbes` at `nar/src/dialogue/consumers/curriculum.ts` (TODO1 had similar naming drift).
 - Versioning: new exports = minor (each has an in-repo consumer); no renames planned; no deprecations introduced (the one open one — `createTickPipeline` alias — is on its 2-minor clock).
 - After Phase E, `REFACTOR.md` items §3, §5, §6, §8, §9, §11, §12, §14, §15, §20, §22 + the AIKR pattern (5 of 8 targets: SchemaInductor, ContrastiveMemory, Memory Consolidation, Self-Improvement Proposals, Hard Negative Mining) are fully adopted; §1/§2/§7/§10/§13 remain deferred pending telemetry — write the deferral evidence into this file's progress section as phases land.
+
+---
+
+## 8. Progress (2026-09-24)
+
+**Phases A–D landed** (benches 86–89 green: 42 tests across 4 `refactor2-*` files; full refactor1+2 sweep, nar/core units, todo19/22/24/25 suites, typecheck, lint, and `pnpm exports:check`/`exports:audit` all green). **Phase E not started** — see §10 for remaining-work notes.
+
+### Phase A — residual machinery + causal traversal ✓ (Bench 86, `tests/nar/refactor2-residual-causal.test.ts`, 10 tests)
+- `CausalIndex` at `nar/src/memory/CausalIndex.ts` (NEW, **internal** — consumed by `EpisodicMemory`, deliberately not in the exports map). `EpisodeFilter` type added to `util/src/types/episodic-memory.ts` (public type export; consumer: nar).
+- `getEpisodes({causedBy, leadingTo})` via lazy one-pass causal index; same invalidation/update pattern as the Phase D metadata index. `#readAllEpisodes(visit)` shared by both index builds (dedup of the file scan). One shared `matchesFilter` predicate now honors sessionId/correlationId on **all** paths — fixes the preexisting quirk where the scan fallback silently ignored session filters.
+- `Retrospective.causalChains` (optional): reaction `causes` edges rendered upstream-first, chronological; digest unchanged (pin covers turnIds + distribution only).
+- `ConsolidationHook`: `CycleHost.consolidateLearning?` + `consolidation?: {enabled?, budget?}` (default **on**); `record()` calls it best-effort after `memory.consolidate`. Wired in `createAgent` (→ `nar.consolidateLearning`) + `NARBuilder.withConsolidation`. **Deliberate deferral**: no `senars.config.json` plumbing (CreateAgentConfig-level only); opt-out via builder/API.
+
+### Phase B — Memory Consolidation as AIKR process ✓ (Bench 87, `tests/nar/refactor2-episode-consolidator.test.ts`, 14 tests)
+- `EpisodeConsolidator` at `nar/src/memory/episode-consolidator.ts`. Priority = salience (type-based; `reaction`+kind `correct` ×1.25) × (1 + causal connections). Selection admits **only same-signature groups** (`type|correlationId`) — singletons are retained until peers arrive or decay away (draining them would lose evidence silently).
+- LM path optional (`summarizeWithLM`); null/exception ⇒ symbolic fallback (`symbolicSummary`, deterministic, bounded). Summary id = `consolidation:<sha256(sorted ids)[:16]>` — deterministic; summary `causes` = sorted merged ids **and** ride in `metadata` (reserved-key lift through `log(type, content, metadata)` keeps the persisted episode intact).
+- Append-only invariant: raw episodes never deleted; `causes` preserve provenance. Admit sink: `EpisodicMemory.onLogged` (best-effort). NAR config `episodeConsolidation:{enabled,capacity,budget}` (default **off** — C6); `attachEpisodeConsolidatorSink` wires persistence; drained in `consolidateLearning`.
+
+### Phase C — cross-memory query facade ✓ (Bench 88, `tests/nar/refactor2-memory-query.test.ts`, 9 tests)
+- `MemoryQuery` at `nar/src/query/memory-query.ts` — read-only (C2'); legs: `Memory.findConcepts`/`queryByTimeRange` + `EpisodicMemory` indexed path; optional `embed` fn for semantic scoring (cosine, `similarityThreshold`); merged ranking (weighted priority/recency + similarity), id-tiebroken, `limit`-bounded. No exports-map subpath (deep-path import per the `source-reputation` precedent; in-repo consumers only).
+- `episodeQualitySurface` helper: dialogue-turn groundedness joined with reaction-kind quality (the old reaction proxy is the exact fallback subset).
+- Consumers wired: bot `.recall <term> [n]`, bot `parameters improved` (sharper surface via MemoryQuery; proxy preserved), `retrospect({memoryQuery})` → `Retrospective.sessionContext`.
+- **Not wired**: `SchemaInductor` novelty context (needs NAR-side threading — deferred, see §10). ⚠️ `MemoryIndex.getByTemporal` iterates 1-second buckets — never pass epoch-anchored `timeRange` starts (bench 88 uses realistic windows).
+
+### Phase D — proposal & mining bags ✓ (Bench 89, `tests/nar/refactor2-proposal-mining-bags.test.ts`, 9 tests)
+- `ProposalBag` at `nar/src/meta/proposal-bag.ts`: priority = KIND_IMPACT × RISK_INVERSE × `alignmentOf` (optional drive hook, default 1). Supersede: same `kind:payload-target` scope halves elder priority (evicts/decays out first). Selection is deterministic greedy (priority desc, id tiebreak) — no RNG in the decision path. `drain(route)` / `drainIfPressured(route)` call the **caller-supplied** routing fn — `ProposalRouter` itself untouched.
+- Wiring: NARConfig `proposals:{bounded,capacity,budget}` (default **off** — C1/C6 arrival-order parity) → `GameManager` → `SelfMetaGameConfig.proposalBag` → `routeProposals()` branches (bag: admit all, drain-by-priority; default: unchanged loop).
+- `MiningBag` in `hard-negatives.ts`: priority = margin × rubricRelevance (conflict 1.0, groundedness 0.8; default margin 0.5); `marginFloor` filters at selection. `mineHardNegatives(..., {into})` accumulates. NAR config `hardNegativeMining:{bounded,capacity,budget,marginFloor}` + `getMiningBag()`; `consolidateLearning` decays + drains and seeds `ContrastiveMemory` via `seedContrastiveMemory` when System One is on. Bot retrospectives feed `into`.
+
+### New improvement opportunities (from A–D)
+1. **Dialogue turn episode ids**: capture.ts logs `context: [turnId]` but not `id: turnId` — causal chains currently span only turn→reaction. Setting `id: turnId` at capture would make the whole graph addressable by `causedBy`/`leadingTo` (small capture.ts change; consider with Phase E or a follow-up bench).
+2. **Consolidator grouping**: signature is `type|correlationId`; structural grouping (shared causes/context overlap) is the natural next fidelity step.
+3. **MemoryQuery**: episode leg scores recency only — a salience prior (type × causal connections, same formula as Phase B) would unify ranking semantics across legs.
+4. **ConsolidationHook app-config**: surface `consolidation:{enabled,budget}` in `senars.config.json` schema when next touching `src/config`.
+5. **SelfMetaGame drain budget**: bag-drain path hardcodes budget 4; could read `proposals.budget` from config (already plumbed to the bag).
+
+---
+
+## 9. Deferral evidence (per §7 tracking duty)
+- §1 JudgmentPipeline / §2 CognitiveThread / §7 focus tree / §10 LM rule graph / §13 capability ontology: no new consumer telemetry surfaced during A–D; deferral verdicts unchanged.
+- FenwickBag: bag caps in A–D stay ≤ 256/128/64 — O(n) scan fine.
+
+---
+
+## 10. Remaining-work notes — Phase E (not started)
+- **Files**: `nar/src/reasoning/strategy-algebra.ts` (NEW), `nar/src/dialogue/consumers/adapt.ts`, `nar/src/cognitive/controller.ts`, `nar/src/reflex/Negotiator.ts` (+ `metta-proposer.ts`), `nar/src/kernel/source-reputation.ts` + `KernelPerceptionGate.ts`/`seed.ts`, `nar/src/dialogue/consumers/curriculum.ts`; `tests/nar/refactor2-strategy-consensus.test.ts` (**Bench 90**).
+- **composeStrategy**: primitives = existing named strategies (registry lookup path is `CognitiveController` — verify how `RetrospectiveAdapter.adaptFromRetrospective` writes strategy names into `parameters.strategies` and intercept *there*; plain-name config must stay byte-identical, C7). Combinators each wrap `AbortSignal`; parallel takes first result; timeout falls back on abort.
+- **MettaProposer**: TODO1 Phase A landed the `IProposer` seam with `proposers = []` default — locate the seam (grep `IProposer` / `proposers`) and confirm the consultation point before writing the class. Confidence 1.0 on exact algebra, abstain otherwise; `WeightedQuorum` arbitration opt-in (default stays NAL veto); MeTTa/NAL disagreement ⇒ `Contradiction` event to `SelfMetaGame`.
+- **Reputation keys**: `SystemOneIngressJudge` currently keys `'system-one'` (single key); `provider:<name>` / `domain:<host>` granularity with **legacy-key fallback when no finer key is derivable** (Bench 90 asserts fallback parity — risk table R6). `.react` keeps `user`. `selectProbes` (curriculum.ts) prefers low-reputation keys; persisted key format in `source-reputation.jsonl` must stay append-compatible.
+- Effort estimate ~2.5d; independently landable (depends only on TODO1, already landed).

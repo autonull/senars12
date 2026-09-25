@@ -5,6 +5,7 @@ import type { Episode } from '@senars/util';
 import { DigestMismatchError } from '../lm/system-one/wasi-runtime.js';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import {
+  type CausalChainEdge,
   type CorrectionAnalysis,
   emptyReactionDistribution,
   type Lesson,
@@ -33,6 +34,9 @@ export interface SessionReaction {
   kind: ReactionKind;
   at: number;
   correctionDigest?: string;
+  /** Phase A (REFACTOR.todo2): episode identity + cited causes for the causal-chain summary. */
+  id?: string;
+  causes?: readonly string[];
 }
 
 const parseTurn = (e: Episode): SessionTurn | undefined => {
@@ -47,7 +51,14 @@ const parseTurn = (e: Episode): SessionTurn | undefined => {
 const parseReaction = (e: Episode): SessionReaction | undefined => {
   try {
     const d = JSON.parse(e.content) as SessionReaction;
-    return d.turnId && d.kind ? { ...d, at: e.timestamp } : undefined;
+    return d.turnId && d.kind
+      ? {
+          ...d,
+          at: e.timestamp,
+          ...(e.id ? { id: e.id } : {}),
+          ...(Array.isArray(e.causes) ? { causes: e.causes } : {}),
+        }
+      : undefined;
   } catch {
     return undefined;
   }
@@ -85,6 +96,8 @@ export async function retrospect(
     }[];
     minTurns?: number;
     minReactions?: number;
+    /** Phase C (REFACTOR.todo2): cross-memory context lookup around the session window. */
+    memoryQuery?: import('../query/memory-query.js').MemoryQuery;
   } = {}
 ): Promise<Retrospective> {
   // Phase D (REFACTOR.todo1): indexed path — O(matches) via the sessionId
@@ -109,6 +122,16 @@ export async function retrospect(
   const reactionDistribution = emptyReactionDistribution();
   for (const r of reactions) reactionDistribution[r.kind]!++;
 
+  // Phase A (REFACTOR.todo2): causal-chain summary from the `causes` edges
+  // TODO1 Phase D writes on reaction episodes — upstream-first, chronological.
+  const causalChains: CausalChainEdge[] = reactions
+    .slice()
+    .sort((a, b) => a.at - b.at)
+    .flatMap((r) =>
+      (r.causes ?? []).map((from) => ({ from, to: r.id ?? '', kind: r.kind, at: r.at }))
+    )
+    .filter((e) => e.to !== '');
+
   const corrections: CorrectionAnalysis[] = [];
   for (const t of turns) {
     const r = reactions.find((r) => r.turnId === t.turnId && r.kind === 'correct');
@@ -124,6 +147,24 @@ export async function retrospect(
   const minTurns = options.minTurns ?? MIN_TURNS;
   const minReactions = options.minReactions ?? MIN_REACTIONS;
   const full = turns.length >= minTurns && reactions.length >= minReactions;
+
+  // Phase C (REFACTOR.todo2): richer session context — ranked cross-memory
+  // results around the session window (semantic activations of the period).
+  let sessionContext: string[] | undefined;
+  if (options.memoryQuery && episodes.length > 0) {
+    let start = Number.POSITIVE_INFINITY;
+    let end = Number.NEGATIVE_INFINITY;
+    for (const e of episodes) {
+      if (e.timestamp < start) start = e.timestamp;
+      if (e.timestamp > end) end = e.timestamp;
+    }
+    const results = await options.memoryQuery
+      .search({ timeRange: [start, end], limit: 5 })
+      .catch(() => []);
+    sessionContext = results.map((r) =>
+      r.source === 'episode' ? `episode:${r.episode?.id ?? ''}` : `concept:${r.concept?.term.toString() ?? ''}`
+    );
+  }
 
   // Strategy audit (I7 payoff): join turn session ↔ grades by correlationId.
   const strategyAudit = full
@@ -155,6 +196,8 @@ export async function retrospect(
     contradictions: full ? [...(options.contradictionTerms ?? [])] : [],
     strategyAudit,
     proposals: options.proposals ?? [],
+    ...(causalChains.length > 0 ? { causalChains } : {}),
+    ...(sessionContext && sessionContext.length > 0 ? { sessionContext } : {}),
     provenance: { turnIds: turns.map((t) => t.turnId) },
     digest: '',
   };

@@ -207,6 +207,8 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
     groundednessGate,
     traceGrader,
     narrateTier: config.profile?.narrateTier,
+    consolidateLearning: (options) => narInstance.consolidateLearning(options),
+    consolidation: config.consolidation,
   });
 
   const narEngine = new NAREngine(narInstance, agent.emitCognitive.bind(agent));

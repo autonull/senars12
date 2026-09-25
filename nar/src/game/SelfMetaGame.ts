@@ -14,6 +14,7 @@ import { ProposalRouter } from '../governance/pipeline.js';
 import { gateRegistry } from '../kernel/index.js';
 import type { SelfRewardGate } from '../kernel/KernelRewardGate.js';
 import type { LearnerRegistry } from '../learning/domain-learners.js';
+import { ProposalBag } from '../meta/proposal-bag.js';
 import type { SelfMetaGame } from './Game.js';
 import { MetaGame, type MetaGameConfig } from './MetaGame.js';
 
@@ -28,6 +29,8 @@ export interface SelfMetaGameConfig extends MetaGameConfig {
   focusBag: FocusBag;
   gameFocuses: Map<string, GameFocus>;
   knobs?: KnobConfig[];
+  /** Phase D (REFACTOR.todo2): bounded proposal bag — priority-ordered routing under pressure. */
+  proposalBag?: ProposalBag;
 }
 
 export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
@@ -39,11 +42,14 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   private scheduler: { registry: LearnerRegistry; rewardGate: SelfRewardGate } | null = null;
   /** D20 (TODO17b): the governance router that consumes self-improvement proposals. */
   private readonly proposalRouter = new ProposalRouter();
+  /** Phase D (REFACTOR.todo2): bounded proposal bag — absent ⇒ arrival-order routing. */
+  private readonly proposalBag?: ProposalBag;
 
   constructor(config: SelfMetaGameConfig) {
     super(config);
     this.focusBag = config.focusBag;
     this.gameFocuses = config.gameFocuses;
+    this.proposalBag = config.proposalBag;
     this.parameterTable = createParameterTable();
 
     // TODO19 F5: knobs are ParameterTable entries (system scope, self-owned);
@@ -119,11 +125,25 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
 
   /** Route queued proposals through ProposalRouter with real actuators. */
   private routeProposals(): void {
-    for (const proposal of this.scheduler?.rewardGate.drain() ?? []) {
-      this.proposalRouter.route(proposal, gateRegistry.getActionGate().getAutonomyMode(), {
-        applyFocusWeight: (focusId, weight) => this.setFocusWeight(focusId, weight),
-        applyKnob: (knob, value) => this.setKnob(knob, value),
-      });
+    const drained = this.scheduler?.rewardGate.drain() ?? [];
+    const actuators = {
+      applyFocusWeight: (focusId: string, weight: number) => this.setFocusWeight(focusId, weight),
+      applyKnob: (knob: string, value: number) => this.setKnob(knob, value),
+    };
+    // Phase D (REFACTOR.todo2): opt-in bounded bag drains by priority under
+    // pressure; the default path routes in arrival order (parity preserved).
+    if (this.proposalBag) {
+      for (const proposal of drained) this.proposalBag.admit(proposal);
+      void this.proposalBag
+        .drainIfPressured(
+          (proposal) => this.proposalRouter.route(proposal, gateRegistry.getActionGate().getAutonomyMode(), actuators),
+          { budget: 4 }
+        )
+        .catch(() => {});
+      return;
+    }
+    for (const proposal of drained) {
+      this.proposalRouter.route(proposal, gateRegistry.getActionGate().getAutonomyMode(), actuators);
     }
   }
 

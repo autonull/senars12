@@ -86,6 +86,7 @@ export class NARBuilder {
   private promptBuilder?: PromptBuilder;
   private narConfigOverrides: Partial<NARConfig> = {};
   private trajectoryStorePath?: string;
+  private consolidation?: CreateAgentConfig['consolidation'];
   private deviceHeadSpec?: { wasmPath: string; modelDigest: string; dimension: number };
   private steps: BuilderStepRecord[] = [];
 
@@ -198,6 +199,12 @@ export class NARBuilder {
     return this;
   }
 
+  /** Phase A (REFACTOR.todo2): macro-cycle learning consolidation config. */
+  withConsolidation(consolidation: CreateAgentConfig['consolidation']): this {
+    this.consolidation = consolidation;
+    return this.record('consolidation', consolidation?.enabled !== false);
+  }
+
   /** P7: the tier-0 head, compiled to a zero-import WASM bundle and loaded sandboxed. */
   withDeviceHead(spec: { wasmPath: string; modelDigest: string; dimension: number }): this {
     this.deviceHeadSpec = spec;
@@ -267,6 +274,7 @@ export class NARBuilder {
       ...(this.engines ? { engines: this.engines } : {}),
       ...(this.promptBuilder ? { promptBuilder: this.promptBuilder } : {}),
       ...(this.trajectoryStorePath ? { trajectoryStorePath: this.trajectoryStorePath } : {}),
+      ...(this.consolidation ? { consolidation: this.consolidation } : {}),
     };
 
     const { createAgent } = await import('./index.js');

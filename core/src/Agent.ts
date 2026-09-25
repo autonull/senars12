@@ -59,6 +59,8 @@ export class Agent {
   }) => Promise<unknown>;
   #narrateTier?: 'quality' | 'fast' | 'structured';
   #macroPipeline?: MacroPhase[];
+  #consolidateLearning?: (options: { budget?: number }) => Promise<void>;
+  #consolidation?: { enabled?: boolean; budget?: number };
   #started = false;
   #cycleCount = 0;
   #lastCycleTime = 0;
@@ -79,6 +81,8 @@ export class Agent {
     this.#traceGrader = opts.traceGrader;
     this.#narrateTier = opts.narrateTier;
     this.#macroPipeline = opts.macroPipeline;
+    this.#consolidateLearning = opts.consolidateLearning;
+    this.#consolidation = opts.consolidation;
 
     this.memory.connectLog(this.log);
     this.memory.connectEngines(this.engines);
@@ -266,6 +270,8 @@ export class Agent {
       traceGrader: this.#traceGrader,
       narrateTier: this.#narrateTier,
       macroPipeline: this.#macroPipeline,
+      consolidateLearning: this.#consolidateLearning,
+      consolidation: this.#consolidation,
       emit: (e) => this.#emitCognitive(e),
       getLastResponse: () => this.#lastResponse,
       setLastResponse: (v) => {

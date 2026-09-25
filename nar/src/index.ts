@@ -42,6 +42,16 @@ export type { Episode, EpisodeType, EpisodicMemoryConfig } from './memory/Episod
 // Episodic Memory
 /** Episodic memory store. @public */
 export { EpisodicMemory } from './memory/EpisodicMemory.js';
+// Phase B (REFACTOR.todo2): episodic memory consolidation as an AIKR process
+export type { ConsolidationResult, EpisodeConsolidatorOptions } from './memory/episode-consolidator.js';
+/** Episodic memory consolidation process (AIKR bag pattern; consumer: NAR + integrators). @public */
+export { EpisodeConsolidator, symbolicSummary } from './memory/episode-consolidator.js';
+// Phase D (REFACTOR.todo2): bounded AIKR bags for proposals + hard-negative mining
+export type { ProposalBagOptions, ProposalCandidate } from './meta/proposal-bag.js';
+/** Bounded self-improvement proposal bag (AIKR bag pattern; consumer: SelfMetaGame). @public */
+export { ProposalBag } from './meta/proposal-bag.js';
+/** Bounded hard-negative mining bag (AIKR bag pattern; consumer: NAR). @public */
+export { MiningBag } from './lm/system-one/hard-negatives.js';
 export type { ConceptTaskType, MemoryConfig } from './memory/index.js';
 export { Concept, Memory } from './memory/index.js';
 export type { NARConfig, RLFPConfig } from './nar.js';

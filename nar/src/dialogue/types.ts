@@ -66,6 +66,16 @@ export interface StrategyAuditEntry {
   }>;
 }
 
+/** Causal edge rendered from episode `causes`/`consequences` (REFACTOR.todo2 Phase A). */
+export interface CausalChainEdge {
+  /** Upstream episode/turn id the reaction cites as its cause. */
+  from: string;
+  /** The reacting episode's id (downstream). */
+  to: string;
+  kind: ReactionKind;
+  at: number;
+}
+
 export interface Retrospective {
   version: 'retrospective-v1';
   sessionId: string;
@@ -77,6 +87,10 @@ export interface Retrospective {
   contradictions: string[];
   strategyAudit: StrategyAuditEntry[];
   proposals: readonly unknown[];
+  /** Phase A (REFACTOR.todo2): causes edges of the session's reactions, upstream-first, chronological. */
+  causalChains?: readonly CausalChainEdge[];
+  /** Phase C (REFACTOR.todo2): cross-memory context around the session window (MemoryQuery consumer). */
+  sessionContext?: readonly string[];
   /** Which turns were consolidated (I4). */
   provenance: { turnIds: readonly string[] };
   /** Digest pin over consolidated turn ids + distributions (fail-closed on load). */

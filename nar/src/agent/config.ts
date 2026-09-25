@@ -25,5 +25,7 @@ export interface CreateAgentConfig {
   conversation?: { maxHistory?: number; summaryThreshold?: number };
   /** E4 follow-up (a): JSONL path persisting per-cycle trajectories for implicit preference pairing. */
   trajectoryStorePath?: string;
+  /** Phase A (REFACTOR.todo2): macro-cycle learning consolidation (`consolidation` config block). */
+  consolidation?: { enabled?: boolean; budget?: number };
   sessionManager?: PersistableSessionManager;
 }

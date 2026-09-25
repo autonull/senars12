@@ -48,6 +48,10 @@ export interface CycleHost {
   readonly narrateTier?: 'quality' | 'fast' | 'structured';
   /** Phase A: custom macro-cycle phase list; default is `DEFAULT_MACRO_PIPELINE`. */
   readonly macroPipeline?: readonly MacroPhase[];
+  /** Phase A (REFACTOR.todo2): end-of-cycle learning consolidation — pressure-gated, inert below threshold. */
+  readonly consolidateLearning?: (options: { budget?: number }) => Promise<void>;
+  /** Consolidation config: default enabled, optional per-invocation budget. */
+  readonly consolidation?: { enabled?: boolean; budget?: number };
 
   emit(event: CognitiveEvent): void;
 

@@ -50,6 +50,7 @@ import {
   retrospect,
 } from '@senars/nar/dialogue';
 import { DEFAULT_REPUTATION_PATH, SourceReputation } from '@senars/nar/kernel/source-reputation';
+import { episodeQualitySurface, MemoryQuery } from '@senars/nar/query/memory-query.js';
 import { formatLMConfig, resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm/env-config.js';
 import { computeEvidenceId } from '@senars/nar/lm/system-one';
@@ -228,6 +229,19 @@ function buildExtraCommands(
   parameterLedger?: ParameterLedger
 ): CLICommand[] {
   const { agent, nar, sessionManager, episodicMemory, lmService } = w;
+  // Phase C (REFACTOR.todo2): cross-memory query facade — concept + episodic
+  // legs; the semantic leg wires System One's encoder cache when available.
+  const embeddingCache = nar.getSystemOneEmbeddingCache?.();
+  const memoryQuery = new MemoryQuery({
+    memory: nar.memory,
+    episodicMemory,
+    embed: embeddingCache
+      ? async (text) => {
+          const pointer = await embeddingCache.write(text).catch(() => undefined);
+          return pointer ? embeddingCache.read(pointer) : undefined;
+        }
+      : undefined,
+  });
   // loadConfig() returns a deeply frozen object — clone for runtime mutation.
   let appConfig = structuredClone(w.appConfig);
   const profile = appConfig.profile;
@@ -701,20 +715,15 @@ function buildExtraCommands(
       if (!parameterLedger) return 'Parameter ledger not attached.';
       if (!w.episodicMemory) return 'Episodic memory not available.';
       if (args.trim() === 'improved') {
-        // Outcome surfaces: dialogue reactions (accept=1, neutral=0.5, negative=0).
-        const reactions = await w.episodicMemory.getEpisodes({ type: 'reaction', limit: 500 });
-        const quality: Record<string, number> = {
-          accept: 1,
-          clarify: 0.5,
-          redirect: 0.5,
-          correct: 0,
-          reject: 0,
-          abandon: 0,
-        };
-        const samples = reactions.map((e) => ({
-          at: e.timestamp,
-          quality: quality[(e.metadata as any).kind as string] ?? 0.5,
-        }));
+        // Phase C (REFACTOR.todo2): sharper outcome surface — quality signals
+        // by concept/time (turn groundedness joined with reaction quality via
+        // MemoryQuery); reaction-only proxy preserved as the fallback floor.
+        const [turnResults, reactions] = await Promise.all([
+          memoryQuery.search({ episodeType: 'dialogue', limit: 500 }).catch(() => []),
+          episodicMemory.getEpisodes({ type: 'reaction', limit: 500 }),
+        ]);
+        const turnEpisodes = turnResults.map((r) => r.episode!).filter(Boolean);
+        const samples = episodeQualitySurface([...turnEpisodes, ...reactions]);
         const link = new OutcomeLinker(parameterLedger, () => samples);
         const improved = link.improvedOnly({ windowMs: 120_000 });
         if (improved.length === 0) return 'No improvement-evidenced parameter changes.';
@@ -732,6 +741,24 @@ function buildExtraCommands(
           (r) =>
             `  [${new Date(r.at).toLocaleTimeString()}] ${r.writer}/${r.scope} ${r.parameter} ${r.oldValue}→${r.newValue}${r.trigger ? ` (${r.trigger.slice(0, 12)})` : ''}`
         )
+        .join('\n');
+    }),
+    cmd('recall', 'Cross-memory recall: <term> [n]', async (args = '') => {
+      const [term, nRaw] = args.trim().split(/\s+/).filter(Boolean);
+      if (!term) return 'Usage: .recall <term> [n]';
+      const results = await memoryQuery
+        .search({ concept: term, limit: Number(nRaw ?? 8) || 8 })
+        .catch((e) => {
+          throw new Error(`recall failed: ${errMsg(e)}`);
+        });
+      if (results.length === 0) return `No memory results for “${term}”.`;
+      return results
+        .map((r) => {
+          const score = r.score.toFixed(3);
+          return r.source === 'episode'
+            ? `  [ep] ${score} ${r.episode?.type}:${String(r.episode?.content).slice(0, 60)}`
+            : `  [concept] ${score} ${r.concept?.term.toString().slice(0, 60)}`;
+        })
         .join('\n');
     }),
     cmd('retrospect', 'Run a retrospective: [session-id]', async (args = '') => {
@@ -2120,9 +2147,12 @@ async function main(): Promise<void> {
   // routed through ProposalRouter at the consumer, never auto-applied here).
   const runSessionRetrospective = async (sessionId: string): Promise<string> => {
     const { mineHardNegatives } = await import('@senars/nar/lm/system-one/hard-negatives.js');
-    const negatives = await mineHardNegatives(wired.nar, wired.episodicMemory, { limit: 16 }).catch(
-      () => []
-    );
+    const negatives = await mineHardNegatives(wired.nar, wired.episodicMemory, {
+      limit: 16,
+      // Phase D (REFACTOR.todo2): mined candidates accumulate in the bounded
+      // bag when the kernel opted in (priority-ordered contrastive seeding).
+      ...(wired.nar.getMiningBag?.() ? { into: wired.nar.getMiningBag() } : {}),
+    }).catch(() => []);
     const contradictionTerms = negatives
       .filter((n) => n.source === 'contradiction')
       .map((n) => n.term);
@@ -2158,6 +2188,8 @@ async function main(): Promise<void> {
             sessionReactions.length === 0 ||
             r.at >= Math.min(...sessionReactions.map((e) => e.timestamp))
         ),
+      // Phase C (REFACTOR.todo2): cross-memory session context around the window.
+      memoryQuery,
       contradictionTerms,
       proposals:
         sessionReactions.length >= 2 && corrections * 2 >= sessionReactions.length

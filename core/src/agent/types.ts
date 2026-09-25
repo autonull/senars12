@@ -57,6 +57,10 @@ export interface AgentOptions {
   narrateTier?: 'quality' | 'fast' | 'structured';
   /** Phase A (REFACTOR.todo1): custom macro-cycle phases; default `DEFAULT_MACRO_PIPELINE`. */
   macroPipeline?: MacroPhase[];
+  /** Phase A (REFACTOR.todo2): end-of-cycle learning consolidation (pressure-gated, inert below threshold). */
+  consolidateLearning?: (options: { budget?: number }) => Promise<void>;
+  /** Consolidation config: enabled by default, optional per-invocation budget. */
+  consolidation?: { enabled?: boolean; budget?: number };
 }
 
 export interface ParsedCommand {

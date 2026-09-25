@@ -71,6 +71,7 @@ export type { Engine, EngineId } from './types/engine.js';
 /** @public Episodic memory contracts. */
 export type {
   Episode,
+  EpisodeFilter,
   EpisodeType,
   EpisodicMemory,
   EpisodicMemoryConfig,
