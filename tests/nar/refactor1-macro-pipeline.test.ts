@@ -227,6 +227,7 @@ describe('Bench 81 — Negotiator proposers', () => {
       vetoedBy: null,
       confidence: 0.9,
       source: 'reflex',
+      arbitration: 'nal-veto',
     });
   });
 

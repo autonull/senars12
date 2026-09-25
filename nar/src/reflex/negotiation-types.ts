@@ -18,4 +18,6 @@ export interface NegotiationDecision {
   vetoedBy: string | null;
   confidence: number;
   source: 'reflex' | 'nal' | 'none';
+  /** Phase C (REFACTOR.todo3): which strategy produced this decision (telemetry). */
+  arbitration: 'nal-veto' | 'weighted-quorum';
 }

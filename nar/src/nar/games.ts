@@ -3,6 +3,7 @@ import { FocusBag } from '../focus/FocusBag.js';
 import { GameFocus, type GameFocusOptions } from '../focus/GameFocus.js';
 import { createSelfMetaGame, type SelfMetaGameImpl } from '../game/SelfMetaGame.js';
 import { ProposalBag } from '../meta/proposal-bag.js';
+import type { NarEventBus } from '../types/events.js';
 import type { NARConfig } from './config.js';
 import type { EmbeddingCache } from '../lm/system-one/embedding-cache.js';
 import type { JudgmentManifold } from '../lm/system-one/types.js';
@@ -21,13 +22,17 @@ export class GameManager {
   private metaGame: SelfMetaGameImpl | null = null;
   private readonly metaGameFocuses = new Map<string, GameFocus>();
   private readonly proposals?: NARConfig['proposals'];
+  private readonly eventBus?: NarEventBus;
+  private contradictionWired = false;
 
   constructor(
     private readonly systemOne: SystemOneRuntime,
     private readonly rng?: RandomSource,
-    proposals?: NARConfig['proposals']
+    proposals?: NARConfig['proposals'],
+    eventBus?: NarEventBus
   ) {
     this.proposals = proposals?.bounded ? proposals : undefined;
+    this.eventBus = eventBus;
   }
 
   /** Default FocusBag backing attachGame (created lazily, script-owned drive loops). */
@@ -50,6 +55,9 @@ export class GameManager {
       focusBag?: FocusBag;
       /** Bind an LMReflex (real-LM per-tick decisions) in addition to the manifold arm. */
       lmReflex?: boolean;
+      /** Phase C (REFACTOR.todo3): extra proposers (e.g. MettaProposer) + contradiction bus. */
+      proposers?: GameFocusOptions['proposers'];
+      eventBus?: GameFocusOptions['eventBus'];
     } = {}
   ): GameFocus {
     const bag = options.focusBag ?? this.getFocusBag();
@@ -58,6 +66,8 @@ export class GameManager {
       focusId: id,
       game,
       focusOptions: { weight: options.weight ?? 1.0, rng: this.rng },
+      ...(options.proposers ? { proposers: options.proposers } : {}),
+      ...(options.eventBus ? { eventBus: options.eventBus } : {}),
     });
     for (const reflex of options.reflexes ?? []) focus.bindReflex(reflex);
     if (this.systemOne.enabled) this.systemOne.attachManifoldReflex(focus);
@@ -103,6 +113,12 @@ export class GameManager {
           }
         : {}),
     });
+    // Phase C (REFACTOR.todo3 §10a M5): typed contradiction intake — MeTTa/NAL
+    // disagreement drives the meta-game resolution loop (wired once, C10).
+    if (this.eventBus && !this.contradictionWired) {
+      this.contradictionWired = true;
+      this.eventBus.on('contradiction', (event) => this.metaGame?.handleContradiction(event));
+    }
     return this.metaGame;
   }
 
@@ -117,6 +133,9 @@ export class GameManager {
       weight?: number;
       focusBag?: FocusBag;
       lmReflex?: boolean;
+      /** Phase C (REFACTOR.todo3): extra proposers (e.g. MettaProposer) + contradiction bus. */
+      proposers?: GameFocusOptions['proposers'];
+      eventBus?: GameFocusOptions['eventBus'];
     } = {}
   ): { focus: GameFocus; game: ConversationGame } {
     const bag = options.focusBag ?? this.getFocusBag();
@@ -126,6 +145,8 @@ export class GameManager {
       focusId: id,
       game,
       focusOptions: { weight: options.weight ?? 1.0, rng: this.rng },
+      ...(options.proposers ? { proposers: options.proposers } : {}),
+      ...(options.eventBus ? { eventBus: options.eventBus } : {}),
     });
     for (const reflex of options.reflexes ?? []) focus.bindReflex(reflex);
     if (this.systemOne.enabled) this.systemOne.attachManifoldReflex(focus);

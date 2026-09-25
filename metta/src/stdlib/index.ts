@@ -34,7 +34,58 @@ const divOp = arithOp('/', (a, b) => (b !== 0 ? a / b : Number.NaN));
 const modOp = arithOp('%', (a, b) => a % b);
 const powOp = arithOp('^', (a, b) => a ** b);
 
-const eqOp = defineOp('=', (a: MeTTaAtom, b: MeTTaAtom) => sym(equals(a, b) ? 'True' : 'False'));
+/**
+ * Phase C (REFACTOR.todo3): pre-reduce arithmetic/logic subterms before the
+ * structural compare, so `(= (+ 2 2) 4)` reduces to True (REFACTOR.todo2 §10.8).
+ */
+const ARITH: Record<string, (a: number, b: number) => number> = {
+  '+': (a, b) => a + b,
+  '-': (a, b) => a - b,
+  '*': (a, b) => a * b,
+  '/': (a, b) => (b !== 0 ? a / b : Number.NaN),
+  '%': (a, b) => a % b,
+  '^': (a, b) => a ** b,
+};
+
+const CMP: Record<string, (a: number, b: number) => boolean> = {
+  '!=': (a, b) => a !== b,
+  '<': (a, b) => a < b,
+  '>': (a, b) => a > b,
+  '<=': (a, b) => a <= b,
+  '>=': (a, b) => a >= b,
+};
+
+const MATH1: Record<string, (x: number) => number> = {
+  sin: Math.sin,
+  cos: Math.cos,
+  sqrt: Math.sqrt,
+  abs: Math.abs,
+  floor: Math.floor,
+  ceil: Math.ceil,
+};
+
+const normalize = (a: MeTTaAtom): MeTTaAtom => {
+  if (a.kind !== 4) return a;
+  const e = a as ExpressionAtom;
+  if (e.operator.kind !== 0) return a;
+  const name = e.operator.value;
+  const args = e.args.map(normalize);
+  if (name in ARITH || name in CMP) {
+    const x = toNumber(args[0] ?? sym('undefined'));
+    const y = toNumber(args[1] ?? sym('undefined'));
+    if (x !== null && y !== null)
+      return name in ARITH ? num(ARITH[name]!(x, y)) : sym(CMP[name]!(x, y) ? 'True' : 'False');
+  }
+  if (name in MATH1) {
+    const x = toNumber(args[0] ?? sym('undefined'));
+    if (x !== null) return num(MATH1[name]!(x));
+  }
+  return expr(e.operator, ...args);
+};
+
+const eqOp = defineOp('=', (a: MeTTaAtom, b: MeTTaAtom) =>
+  sym(equals(normalize(a), normalize(b)) ? 'True' : 'False')
+);
 const neOp = cmpOp('!=', (a, b) => a !== b);
 const ltOp = cmpOp('<', (a, b) => a < b);
 const gtOp = cmpOp('>', (a, b) => a > b);

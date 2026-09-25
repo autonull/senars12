@@ -45,7 +45,20 @@ export interface EventMap {
   [key: string]: unknown;
 }
 
+/**
+ * Phase C (REFACTOR.todo3 §10a M5): typed MeTTa/NAL disagreement — feeds the
+ * SelfMetaGame resolution loop (replaces substring-only signal paths).
+ */
+export interface ContradictionEvent {
+  source: 'metta' | 'nal';
+  term: Term;
+  mettaVote: boolean;
+  nalVote: boolean;
+  at: number;
+}
+
 export interface NAREventMap extends EventMap {
+  contradiction: ContradictionEvent;
   'rule:applied': {
     ruleId: string;
     premises: [Term, Term];

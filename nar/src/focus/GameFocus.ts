@@ -7,8 +7,9 @@ import type { Game, GameOutcome, Perception } from '../game/Game.js';
 import { type GateRegistry, gateRegistry } from '../kernel/index.js';
 import type { ConfidenceRouter } from '../lm/system-one/policy.js';
 import type { EmbeddingCache, JudgmentManifold } from '../lm/system-one/types.js';
-import { type NALDerivation, type NegotiationDecision, Negotiator } from '../reflex/Negotiator.js';
+import { type NALDerivation, type NegotiationDecision, Negotiator, type IProposer } from '../reflex/Negotiator.js';
 import { type ActionProposal, LearningEvent, type Reflex } from '../reflex/Reflex.js';
+import type { NarEventBus } from '../types/events.js';
 import { recordBagPressure, recordHandover } from '../telemetry/index.js';
 import { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding.js';
 import { induceEpisodeSchemas, type PromotedSchema } from './episode-schemas.js';
@@ -31,6 +32,9 @@ export interface GameFocusOptions {
   schemaInduction?: boolean;
   /** TODO19 F2: per-instance gate registry (defaults to the process-global singleton). */
   gateRegistry?: GateRegistry;
+  /** Phase C (REFACTOR.todo3): extra negotiation proposers (e.g. MettaProposer) + bus for contradiction events. */
+  proposers?: IProposer[];
+  eventBus?: NarEventBus;
 }
 
 /** E7: per-tick cognition snapshot for the thought-stream panel. */
@@ -118,7 +122,12 @@ export class GameFocus {
       gateRegistry: this.gates,
     });
 
-    this.negotiator = new Negotiator({ nalVetoThreshold: 0.8, reflexThreshold: -1 });
+    this.negotiator = new Negotiator({
+      nalVetoThreshold: 0.8,
+      reflexThreshold: -1,
+      ...(options.proposers ? { proposers: options.proposers } : {}),
+      ...(options.eventBus ? { eventBus: options.eventBus } : {}),
+    });
 
     this.focus.bindGame(this.game);
 
@@ -344,6 +353,7 @@ export class GameFocus {
         vetoedBy: null,
         confidence: 0,
         source: 'none',
+        arbitration: 'nal-veto',
       },
       legalActions: [],
       prevWeight: 0,

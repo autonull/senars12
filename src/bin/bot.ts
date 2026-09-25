@@ -11,6 +11,7 @@
 import { execFile } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { Effect } from 'effect';
 import { createCapturePhase, DEFAULT_MACRO_PIPELINE } from '@senars/core/agent/phases';
 import {
   AuthManager,
@@ -55,8 +56,10 @@ import { episodeQualitySurface, MemoryQuery } from '@senars/nar/query/memory-que
 import { formatLMConfig, resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm/env-config.js';
 import { computeEvidenceId } from '@senars/nar/lm/system-one';
+import { MettaProposer } from '@senars/nar/reflex/metta-proposer.js';
 import { createLogger } from '@senars/nar/logger';
 import { NLUnderstandingService } from '@senars/nar/nl';
+import { createMeTTa, parseMeTTa } from '@senars/metta';
 import { buildCommands } from '../cli/commands.js';
 import { loadConfig } from '../config/index.js';
 import { assertValidEnv } from '../utils/env-validate.js';
@@ -2248,6 +2251,20 @@ async function main(): Promise<void> {
     };
   }
 
+  // Phase C (REFACTOR.todo3): MettaProposer live wiring — the agent layer
+  // injects the createMeTTa() + Effect.runSync evaluator; the fact source
+  // (soundness table) stays the integrator seam and abstains until populated.
+  const mettaRuntime = createMeTTa();
+  const evaluateMetta = (expression: string): boolean | null => {
+    try {
+      const atom = Effect.runSync(mettaRuntime.evaluate(parseMeTTa(expression)));
+      return atom.kind === 0 ? (atom.value === 'True' ? true : atom.value === 'False' ? false : null) : null;
+    } catch {
+      return null;
+    }
+  };
+  const mettaProposer = new MettaProposer(evaluateMetta, { toExpression: () => undefined });
+
   // Attach ConversationGameFocus for System One reflexes (Phase 3)
   let conversationGame: { focus: any; game: any } | null = null;
   if (wired.nar.isSystemOneEnabled?.()) {
@@ -2255,6 +2272,7 @@ async function main(): Promise<void> {
       conversationGame = wired.nar.attachConversationGame?.({
         id: 'conversation',
         lmReflex: true,
+        proposers: [mettaProposer],
       });
       if (conversationGame) {
         logger.info('ConversationGameFocus attached with reflexes');

@@ -12,6 +12,7 @@ import type { FocusBag } from '../focus/FocusBag.js';
 import type { GameFocus } from '../focus/GameFocus.js';
 import { ProposalRouter } from '../governance/pipeline.js';
 import { gateRegistry } from '../kernel/index.js';
+import type { ContradictionEvent } from '../types/events.js';
 import type { SelfRewardGate } from '../kernel/KernelRewardGate.js';
 import type { LearnerRegistry } from '../learning/domain-learners.js';
 import { ProposalBag } from '../meta/proposal-bag.js';
@@ -44,6 +45,8 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   private scheduler: { registry: LearnerRegistry; rewardGate: SelfRewardGate } | null = null;
   /** D20 (TODO17b): the governance router that consumes self-improvement proposals. */
   private readonly proposalRouter = new ProposalRouter();
+  /** Phase C (REFACTOR.todo3 §10a M5): typed contradiction intake counter. */
+  #contradictions = 0;
   /** Phase D (REFACTOR.todo2): bounded proposal bag — absent ⇒ arrival-order routing. */
   private readonly proposalBag?: ProposalBag;
   private readonly drainBudget: number;
@@ -149,6 +152,25 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
     for (const proposal of drained) {
       this.proposalRouter.route(proposal, gateRegistry.getActionGate().getAutonomyMode(), actuators);
     }
+  }
+
+  /**
+   * Phase C (REFACTOR.todo3 §10a M5): typed MeTTa/NAL disagreement intake.
+   * The meta-game resolution strategy: penalize the disagreeing term's policy
+   * signal and count the event (replaces the nar-execution substring-only path).
+   */
+  handleContradiction(event: ContradictionEvent): void {
+    this.#contradictions++;
+    this.scheduler?.registry.dispatch({
+      domain: 'self-scheduler',
+      reward: -1,
+      focusId: event.term.toString(),
+    });
+  }
+
+  /** Phase C (REFACTOR.todo3): contradiction intake telemetry. */
+  get contradictionCount(): number {
+    return this.#contradictions;
   }
 
   /** D20 follow-up (TODO17b): live depth of the governance human-review queues. */

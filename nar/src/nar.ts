@@ -180,7 +180,6 @@ export class NAR extends BaseComponent {
       lmService: this._lmService,
       onJudgmentResolved: (proposition, query) => this.emitJudgmentResolved(proposition, query),
     });
-    this.games = new GameManager(this.systemOne, config.rng, config.proposals);
 
     // Initialize gate registry with System One perception config if enabled
     const perceptionConfig = this.config.systemOne?.enabled
@@ -222,6 +221,7 @@ export class NAR extends BaseComponent {
     this.io.setEventBus(eventBus);
     this.systemEventBus = new NarEventBus();
     this.io.setSystemEventBus(this.systemEventBus);
+    this.games = new GameManager(this.systemOne, config.rng, config.proposals, this.systemEventBus);
     this._emitJudgmentResolved = createTelemetryEmitter(
       createNarTelemetrySinks(this.systemEventBus)
     );
@@ -494,11 +494,7 @@ export class NAR extends BaseComponent {
     return this.systemOne.refreshContrastive(this, episodic);
   }
 
-  /**
-   * Phase C (REFACTOR.todo1): AIKR-bounded maintenance of the learning
-   * processes — decay stale accumulation, then drain induction and exemplar
-   * promotion only under pressure. Call from any periodic cycle point.
-   */
+  /** Phase C (REFACTOR.todo1): AIKR-bounded learning maintenance (decay + pressure-gated drain). */
   async consolidateLearning(options: { budget?: number } = {}): Promise<void> {
     return consolidateLearning(this, options);
   }
@@ -570,6 +566,9 @@ export class NAR extends BaseComponent {
       focusBag?: FocusBag;
       /** Bind an LMReflex (real-LM per-tick decisions) in addition to the manifold arm. */
       lmReflex?: boolean;
+      /** Phase C (REFACTOR.todo3): extra proposers (e.g. MettaProposer) + contradiction bus. */
+      proposers?: GameFocusOptions['proposers'];
+      eventBus?: GameFocusOptions['eventBus'];
     } = {}
   ): GameFocus {
     return this.games.attachGame(game, options);
@@ -584,10 +583,7 @@ export class NAR extends BaseComponent {
     return this.games.getAttachedGames();
   }
 
-  /**
-   * Attach a ConversationGameFocus for the bot's conversation loop.
-   * Returns the focus and the ConversationGame instance.
-   */
+  /** Attach a ConversationGameFocus for the bot's conversation loop. */
   attachConversationGame(
     options: {
       id?: string;
@@ -595,25 +591,20 @@ export class NAR extends BaseComponent {
       weight?: number;
       focusBag?: FocusBag;
       lmReflex?: boolean;
+      /** Phase C (REFACTOR.todo3): extra proposers (e.g. MettaProposer) + contradiction bus. */
+      proposers?: GameFocusOptions['proposers'];
+      eventBus?: GameFocusOptions['eventBus'];
     } = {}
   ): { focus: GameFocus; game: ConversationGame } {
     return this.games.attachConversationGame(options);
   }
 
-  /**
-   * Self-meta-game over the attached games (TODO17b D20): lazily created so
-   * focus step reports (via FocusSchedulerOptions.metaGame) route self-improvement
-   * proposals through the governance pipeline.
-   */
+  /** Self-meta-game (TODO17b D20): lazy — focus step reports route improvement proposals. */
   getSelfMetaGame(): SelfMetaGameImpl {
     return this.games.getSelfMetaGame();
   }
 
-  /**
-   * Create and bind an LMReflex to a GameFocus (TODO17 C1): a real LM decides
-   * per tick under a GBNF action grammar; the manifold judges its candidates.
-   * Undefined when System One (dispatcher) is disabled.
-   */
+  /** Bind an LMReflex (TODO17 C1): undefined when the System One dispatcher is disabled. */
   attachLMReflex(
     gameFocus: {
       bindReflex: (reflex: Reflex) => void;

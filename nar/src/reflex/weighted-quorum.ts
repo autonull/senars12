@@ -13,12 +13,13 @@ export interface ArbitrationStrategy {
   ): NegotiationDecision;
 }
 
-const none = (): NegotiationDecision => ({
+const none = (arbitration: NegotiationDecision['arbitration']): NegotiationDecision => ({
   action: null,
   actionExecuted: null,
   vetoedBy: null,
   confidence: 0,
   source: 'none',
+  arbitration,
 });
 
 const bestOf = (proposals: readonly ActionProposal[]): ActionProposal | null =>
@@ -48,11 +49,11 @@ export class NalVetoArbitration implements ArbitrationStrategy {
     reflexProposals: readonly ActionProposal[],
     nalDerivations: readonly NALDerivation[]
   ): NegotiationDecision {
-    if (reflexProposals.length === 0) return none();
+    if (reflexProposals.length === 0) return none('nal-veto');
 
     const bestReflex = bestOf(reflexProposals)!;
     if (bestReflex.value * bestReflex.confidence < this.#reflexThreshold) {
-      return { ...none(), vetoedBy: 'below-threshold' };
+      return { ...none('nal-veto'), vetoedBy: 'below-threshold' };
     }
 
     // Veto (Bench-15): NAL derives the best action leads to bad outcome (low
@@ -67,6 +68,7 @@ export class NalVetoArbitration implements ArbitrationStrategy {
         vetoedBy: null,
         confidence: bestReflex.confidence,
         source: 'reflex',
+        arbitration: 'nal-veto',
       };
     }
     const fallback = reflexProposals
@@ -81,6 +83,7 @@ export class NalVetoArbitration implements ArbitrationStrategy {
       vetoedBy: `nal-${trap.source}`,
       confidence: fallback?.confidence ?? trap.truth.c,
       source: 'nal',
+      arbitration: 'nal-veto',
     };
   }
 
@@ -126,7 +129,7 @@ export class WeightedQuorum implements ArbitrationStrategy {
     reflexProposals: readonly ActionProposal[],
     nalDerivations: readonly NALDerivation[]
   ): NegotiationDecision {
-    if (reflexProposals.length === 0) return none();
+    if (reflexProposals.length === 0) return none('weighted-quorum');
 
     const quorum = new Map<string, number>();
     for (const p of reflexProposals) {
@@ -142,15 +145,16 @@ export class WeightedQuorum implements ArbitrationStrategy {
     const winner = [...quorum.entries()]
       .filter(([action, score]) => score >= this.#floor)
       .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0];
-    if (!winner) return none();
+    if (!winner) return none('weighted-quorum');
     const best = bestOf(reflexProposals.filter((p) => p.action === winner[0]));
-    if (!best || best.value * best.confidence < this.#reflexThreshold) return none();
+    if (!best || best.value * best.confidence < this.#reflexThreshold) return none('weighted-quorum');
     return {
       action: winner[0],
       actionExecuted: winner[0],
       vetoedBy: null,
       confidence: best.confidence,
       source: 'reflex',
+      arbitration: 'weighted-quorum',
     };
   }
 }

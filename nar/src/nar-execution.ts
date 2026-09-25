@@ -272,6 +272,15 @@ export class NARExecution {
           }
           if (termStr.includes('contradiction') || termStr.includes('conflict')) {
             contradictionDetected = true;
+            // Phase C (REFACTOR.todo3 §10a M5): typed event alongside the drive
+            // stimulation — SelfMetaGame subscribes for resolution intake.
+            this.systemEventBus.emit('contradiction', {
+              source: 'nal',
+              term: task.term,
+              mettaVote: false,
+              nalVote: true,
+              at: Date.now(),
+            });
           }
         }
       }
