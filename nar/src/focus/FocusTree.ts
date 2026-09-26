@@ -1,6 +1,7 @@
 /**
  * FocusTree — hierarchy over FocusScheduler/FocusBag with BudgetSlice inheritance.
- * Single-root tree must be behaviorally identical to flat scheduling (parity bench).
+ * Multi-root tree supports independent subtrees with isolated budget slices.
+ * Single-root default maintains behavioral parity with flat scheduling.
  * Per-branch rollups feed domain learner + metaGame.
  */
 
@@ -20,7 +21,7 @@ export interface FocusTreeNode {
   readonly parent: FocusTreeNode | null;
   readonly children: FocusTreeNode[];
   readonly budget: BudgetSlice;
-  readonly weight: number;
+  weight: number;
   scheduler?: FocusScheduler;
 }
 
@@ -51,7 +52,7 @@ export interface FocusTreeRollup {
 }
 
 export class FocusTree {
-  private readonly root: FocusTreeNode;
+  private readonly roots: FocusTreeNode[] = [];
   private readonly hz: number;
   private readonly deadlineMs: number;
   private readonly rng: SeededRNG;
@@ -72,7 +73,7 @@ export class FocusTree {
     const rootFocus = options.rootFocus;
     const rootBudget = options.rootBudget;
 
-    this.root = {
+    const root: FocusTreeNode = {
       id: rootFocus.id,
       focus: this.createFocus(rootFocus),
       parent: null,
@@ -80,7 +81,23 @@ export class FocusTree {
       budget: rootBudget,
       weight: rootFocus.weight ?? 1.0,
     };
-    this.nodeMap.set(this.root.id, this.root);
+    this.roots.push(root);
+    this.nodeMap.set(root.id, root);
+  }
+
+  /** Add an independent root focus with its own budget slice. */
+  addRoot(rootFocus: FocusOptions, rootBudget: BudgetSlice): FocusTreeNode {
+    const root: FocusTreeNode = {
+      id: rootFocus.id,
+      focus: this.createFocus(rootFocus),
+      parent: null,
+      children: [],
+      budget: rootBudget,
+      weight: rootFocus.weight ?? 1.0,
+    };
+    this.roots.push(root);
+    this.nodeMap.set(root.id, root);
+    return root;
   }
 
   private createFocus(options: FocusOptions): Focus {
@@ -156,7 +173,7 @@ export class FocusTree {
     return depth;
   }
 
-  /** Execute one tick: sample a leaf node and step it. */
+  /** Execute one tick: sample a leaf node across all roots and step it. */
   async tick(): Promise<{ nodeId: string; report: FocusStepReport | null; yielded: boolean } | null> {
     const leaf = this.sampleLeaf();
     if (!leaf) return null;
@@ -191,7 +208,7 @@ export class FocusTree {
     return { nodeId: leaf.id, report: stepped.report, yielded };
   }
 
-  /** Weighted sample a leaf node. */
+  /** Weighted sample a leaf node across all roots. */
   private sampleLeaf(): FocusTreeNode | null {
     const leaves = this.getLeaves();
     if (leaves.length === 0) return null;
@@ -217,7 +234,7 @@ export class FocusTree {
         for (const child of node.children) collect(child);
       }
     };
-    collect(this.root);
+    for (const root of this.roots) collect(root);
     return leaves;
   }
 
@@ -258,9 +275,9 @@ export class FocusTree {
     };
   }
 
-  /** Get root rollup (entire tree). */
-  getRootRollup(): FocusTreeRollup {
-    return this.buildRollup(this.root);
+  /** Get rollup for all roots (entire forest). */
+  getRootRollup(): FocusTreeRollup[] {
+    return this.roots.map((root) => this.buildRollup(root));
   }
 
   /** Get all nodes for inspection. */

@@ -186,6 +186,14 @@ export function remainingDepth(budget: BudgetSlice): number {
   return Math.max(0, budget.totalDepth - budget.consumed.depth);
 }
 
+export function remainingMemoryOps(budget: BudgetSlice): number {
+  return Math.max(0, budget.totalMemoryOps - budget.consumed.memoryOps);
+}
+
+export function remainingLMCalls(budget: BudgetSlice): number {
+  return Math.max(0, budget.totalLMCalls - budget.consumed.llmCalls);
+}
+
 export function toAIKRBudget(budget: BudgetSlice): AIKRBudget {
   return {
     cycles: remainingCycles(budget),
