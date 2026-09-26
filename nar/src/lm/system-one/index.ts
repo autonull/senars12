@@ -17,10 +17,11 @@ export {
   type EmbeddingCacheConfig,
 } from './embedding-cache.js';
 export * from './groundedness-gate.js';
-export { SystemOneIngressJudge } from './ingress-judge.js';
 export * from './heads/index.js';
 export * from './http-endpoint.js';
 export * from './http-manifold.js';
+export { SystemOneIngressJudge } from './ingress-judge.js';
+export * from './judgment-pipeline.js';
 export * from './label-sources.js';
 export * from './lm-reflex.js';
 export * from './manifold.js';

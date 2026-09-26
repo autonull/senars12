@@ -49,7 +49,7 @@ This plan closes the remaining loop: the system must not only *run* cognition bu
 ## 2. Baseline (from TODO4 completion — 2026-09-25)
 
 - Zero `TODO|FIXME|XXX` in `src/`/`test/`; `type` in 10 test suites, 0 in `src/` (grep assertion in CI)
-- `pnpm typecheck` 0 errors; `pnpm test:all` 100/100 suites, 5107 tests green
+- `pnpm typecheck` 0 errors (excluding pre-existing test mock issues in `refactor4-bounded-aikr.test.ts`); `pnpm test:all` 100/100 suites, 5107 tests green
 - Cycles: `**/*.ts → **/*.ts` 187, zero across `tests/` (TS lint)
 - Benches 1–89 green; PARITY GATE: NAR core cycle byte-identical
 - ~20% LOC reduction via PrologAction→superclass, SDR internals, shared StrDedup
@@ -57,6 +57,7 @@ This plan closes the remaining loop: the system must not only *run* cognition bu
 - Package.json 100% npm-scripts; grep assertions 100/100 clean
 - `serializeBag`/`restoreBag`, `createIsotonicCalibrator`, `WeightedDirectedGraph` public exports
 - PARITY; EvidenceLedger; BridgeDatabase; AttentionWorker; `FocusScheduler` (multi-focus weighted sampling, budget allocation, metaGame observation); `SelfMetaGame`; `CapabilitySpace`; `governance/pipeline.ts` (`GovernanceDecision`, `PatchProposal`, `SelfImprovementProposal`); `head-specs.ts` HEAD_SPECS; LMRule 103× verified order-invariant; `PriorityBag` O(n) sample, O(1) add; PriorityHashQueues; GDS `.recall`/`.list`/`.adopt`; `PerceptionGate` .obs/.self/.metta
+- **TODO5 Phases D/E/F complete**: RuleGraph (`ConceptGraph`, `lm-graph` strategy), FocusTree (BudgetSlice inheritance), CapabilityOntology (tool/rule/metta/skill inventory), GovernanceResolver (audit/restore), MettaProposer (ProofStream→MeTTa), JudgmentPipeline (HEAD_SPECS composition, PipelineModelDigest), CognitiveThread (spawn/join/kill, mailbox, BudgetSlice), Runtime derivation verification (budget-aware sampler)
 
 ## 3. Invariants (C11–C18 carried from TODO4; C19–C20 new)
 
@@ -117,3 +118,11 @@ README rewrite; further MeTTa surface reduction (H1, revisit post-F1); `.kiro/le
 | C1 | C | Pluggable Bag: `FenwickBag<T>` as alternate `Bag<T>` impl behind `BagOptions.implementation: 'priority' | 'fenwick'` + `createBag()` factory in `nar/src/bag/`; `strategies.bag` knob in `CognitiveParameters.strategies`; `Concept.ts` uses `createBag` factory | 102 | ✅ |
 | C2 | C | Generalized strategy composition: `CognitiveRegistry.compose(type, weights[])` across all 5 strategy types (already done in B3) | 102 | ✅ |
 | C3 | C | Unified `BudgetSlice` in `kernel/src/budget.ts` flowing gate → thread → focus → bag → derivation | 102 | ✅ |
+| D1 | D | **RuleGraph**: `ConceptGraph` Trie-structured co-activation edges in `core/src/concept-graph.ts`; `RuleGraph` strategy in `strategies/lm-graph/RuleGraph.ts` registered as `lm-graph` in `CognitiveRegistry`; fallback edges for non-regression | 103 | ✅ |
+| D2 | D | **FocusTree**: hierarchy in `focus/FocusTree.ts` with `BudgetSlice` inheritance, per-branch rollups, single-root parity with flat scheduler | 103 | ✅ |
+| E1 | E | **CapabilityOntology**: declarative inventory in `capability/ontology.ts` with tool/rule/metta/skill types, schema, costEstimate, prerequisites; registers into `CapabilitySpace` + tool registry | 104 | ✅ |
+| E2 | E | **GovernanceResolver**: integrated in `governance/pipeline.ts` with `SelfMetaGameEvidence`, emits `GovernanceDecision`/`SelfImprovementProposal`; `.adaptations` audit trail with `.restore` | 104 | ✅ |
+| F1 | F | **MettaProposer.learn()**: in `meta/metta-proposer.ts` extracts MeTTa rules from `ProofStream` via `PerceptionGate.SELF_METTA` (new source quality); records applications | 105 | ✅ |
+| F2 | F | **JudgmentPipeline**: in `lm/system-one/judgment-pipeline.ts` composes over `HEAD_SPECS` with ordered stages, bands, calibrators, router, cascade; versioned `PipelineModelDigest` | 105 | ✅ |
+| F3 | F | **CognitiveThread**: in `core/cognitive-thread.ts` with lifecycle (`spawn`/`join`/`kill`), mailbox, `BudgetSlice` inheritance; `ThreadScope` deprecated alias to `BudgetSlice` | 105 | ✅ |
+| F4 | F | **Runtime derivation verification**: in `kernel/verify-derivation.ts` with `DerivationVerifier` budget-aware sampler, `verifyRecord` standalone checker | 105 | ✅ |

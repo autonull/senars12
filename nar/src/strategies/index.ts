@@ -1,5 +1,6 @@
 export * from './attention/index.js';
 export * from './derivation/index.js';
+export * from './lm-graph/RuleGraph.js';
 export * from './lm-selectors/index.js';
 export * from './sampling/index.js';
 

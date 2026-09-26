@@ -438,6 +438,7 @@ export const SourceQualitySchema = z.enum([
   'TERTIARY',
   'LLM_PRIOR',
   'PEER_AGENT',
+  'SELF_METTA',
 ]);
 export type SourceQuality = z.infer<typeof SourceQualitySchema>;
 
@@ -452,6 +453,7 @@ export const SOURCE_QUALITY_CONFIDENCE: Readonly<Record<SourceQuality, number>> 
   TERTIARY: 0.4,
   LLM_PRIOR: 0.5,
   PEER_AGENT: 0.6,
+  SELF_METTA: 0.7,
 } as const;
 
 export const GameDomainSchema = z.enum(['external', 'self']);

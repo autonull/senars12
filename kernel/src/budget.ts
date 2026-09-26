@@ -13,7 +13,7 @@ export interface BudgetSlice {
   readonly totalLMCalls: number;
   readonly wallclockDeadlineMs?: number;
   readonly abortSignal?: AbortSignal;
-  readonly terminationReason?: TerminationReason;
+  terminationReason?: TerminationReason;
   consumed: ConsumedBudget;
 }
 
@@ -155,7 +155,7 @@ export function mergeConsumption(parent: BudgetSlice, child: BudgetSlice): void 
 }
 
 export function isExhausted(budget: BudgetSlice): boolean {
-  return (
+  return Boolean(
     budget.terminationReason !== undefined ||
     budget.consumed.cycles >= budget.totalCycles ||
     budget.consumed.depth >= budget.totalDepth ||

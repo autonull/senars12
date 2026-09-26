@@ -1,0 +1,2 @@
+export { ProposalBag, type ProposalBagOptions, proposalScope } from './proposal-bag.js';
+export { MettaProposer, createMettaProposer, type MettaRule, type ProofStreamEntry, type MettaProposerOptions } from './metta-proposer.js';

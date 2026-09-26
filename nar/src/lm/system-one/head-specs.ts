@@ -16,6 +16,9 @@ import type {
   RubricId,
 } from './types.js';
 
+export type { HeadFactoryOptions } from './heads/factory.js';
+export type { JudgmentQuery, ClassifyQuery, EvaluateQuery, EmbeddingCache, CalibrationVersion } from './types.js';
+
 export interface HeadSpec {
   readonly rubric: RubricId;
   readonly axis: CognitiveAxis;

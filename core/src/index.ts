@@ -129,6 +129,8 @@ export type { LogEntry, LoggerConfig, LogLevel } from './Logger.js';
 export { registerLogEnricher } from './Logger.js';
 /** Structured logger. @public */
 export { createLogger, defaultLogger, Logger } from './Logger.js';
+export { CognitiveThread, ThreadPool, createCognitiveThread, createRootBudget, type CognitiveThreadOptions, type ThreadMessage, type ThreadStatus, type ThreadScope } from './cognitive-thread.js';
+export { ConceptGraph, type ConceptGraphOptions, type CoActivationEdge } from './concept-graph.js';
 export type { BuiltinLens, LensSpec, ModulationSpec } from './lens-schema.js';
 export {
   BUILTIN_LENS_IDS,
