@@ -33,9 +33,8 @@ export class JsonlSessionManager implements SessionManager {
   #sessions = new Map<string, ConversationSession>();
 
   constructor(config: JsonlSessionManagerConfig) {
-    const fixedFile = join(config.basePath, 'sessions.jsonl');
     this.#ledger = createLedger<SessionLedgerEntry>(config.basePath, SessionRecordSchema, {
-      rollover: { fixedFile },
+      rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
     });
   }
 

@@ -21,8 +21,8 @@ export class DialogueTextStore {
   readonly #ledger: Ledger<DialogueTextLedgerEntry>;
 
   constructor(path: string) {
-    this.#ledger = createLedger<DialogueTextLedgerEntry>('', DialogueTextRecordSchema, {
-      rollover: { fixedFile: path },
+    this.#ledger = createLedger<DialogueTextLedgerEntry>(path, DialogueTextRecordSchema, {
+      rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
     });
   }
 
@@ -58,7 +58,7 @@ export class DialogueTextStore {
   }
 
   async purge(): Promise<void> {
-    this.#ledger.clear();
+    await this.#ledger.clear();
     this.#ledger.close();
   }
 }

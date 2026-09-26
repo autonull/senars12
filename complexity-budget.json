@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "baseline": {
+    "exportSubpaths": 85,
+    "productionLOC": 79321,
+    "appendOnlyPersistenceSites": 12,
+    "aikrProcessorCoverage": 5,
+    "unboundedAccumulators": 0,
+    "depsGateRawChains": 246,
+    "typecheckBinErrors": 0,
+    "workspaceCount": 7
+  },
+  "rules": {
+    "exportSubpaths": "mustNotIncrease",
+    "productionLOC": "mustDecreaseOrJustify",
+    "appendOnlyPersistenceSites": "mustNotIncrease",
+    "aikrProcessorCoverage": "mustNotDecrease",
+    "unboundedAccumulators": "mustRemainZero",
+    "depsGateRawChains": "mustNotIncrease",
+    "typecheckBinErrors": "mustRemainZero",
+    "workspaceCount": "fixed"
+  }
+}

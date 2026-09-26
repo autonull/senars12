@@ -75,6 +75,11 @@ describe('TODO24 bench 73: retrospect diagnostic', () => {
   });
 
   it('persists digest-pinned JSONL; corrupted artifact fails closed', async () => {
+    const { promises: fs } = await import('node:fs');
+    const { readdir } = await import('node:fs/promises');
+    // Clean up first to ensure only one file
+    await fs.rm('.cache/retrospectives', { recursive: true, force: true }).catch(() => {});
+    
     const ep = await makeEpisodic();
     await seedSession(ep, 'sess-2');
     const r = await retrospect('sess-2', ep);
@@ -85,11 +90,17 @@ describe('TODO24 bench 73: retrospect diagnostic', () => {
     await persistRetrospective({ ...r, sessionId: 'tampered' });
     const all = await loadRetrospectives();
     expect(all[all.length - 1]!.sessionId).toBe('tampered');
-    // Tamper with the digest pin of the last row.
-    const { promises: fs } = await import('node:fs');
-    const path = join('.cache/retrospectives', 'retrospectives.jsonl');
-    const content = await fs.readFile(path, 'utf-8');
-    await fs.writeFile(path, content.replace(/"digest":"sha256:[a-f0-9]+"/, '"digest":"sha256:0000"'));
+    // Tamper with the digest pin by overwriting the file with a corrupt entry.
+    const files = await readdir('.cache/retrospectives');
+    const jsonlFiles = files.filter((f) => f.endsWith('.jsonl')).sort().reverse();
+    const path = join('.cache/retrospectives', jsonlFiles[0]!);
+    // Write a corrupt entry (wrong digest) as the only line
+    const corruptEntry = JSON.stringify({
+      ...r,
+      sessionId: 'corrupt-test',
+      digest: 'sha256:0000000000000000000000000000000000000000000000000000000000000000',
+    });
+    await fs.writeFile(path, corruptEntry + '\n', 'utf-8');
     await expect(loadRetrospectives()).rejects.toThrow(DigestMismatchError);
     await fs.rm('.cache/retrospectives', { recursive: true, force: true });
   });

@@ -240,12 +240,10 @@ function getWatchdogLedger(): Ledger<WatchdogSnapshotLedgerEntry> | null {
       const { mkdirSync } = require('node:fs');
       const logDir = DEFAULT_WATCHDOG_CONFIG.logDir;
       mkdirSync(logDir, { recursive: true });
-      const date = new Date().toISOString().split('T')[0];
-      const logPath = join(logDir, `memory-watchdog-${date}.jsonl`);
       watchdogLedger = createLedger<WatchdogSnapshotLedgerEntry>(
         logDir,
         WatchdogSnapshotSchema,
-        { rollover: { fixedFile: logPath } }
+        { rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 } }
       );
     } catch {
       // Silently fail

@@ -156,12 +156,10 @@ export class GameFocus {
         const logDir = 'logs';
         const { mkdirSync } = require('node:fs');
         mkdirSync(logDir, { recursive: true });
-        const date = new Date().toISOString().split('T')[0];
-        const logPath = join(logDir, `game-trace-${date}.jsonl`);
         (this as any).#gameTraceLedger = createLedger<GameTraceLedgerEntry>(
           logDir,
           GameTraceEntrySchema,
-          { rollover: { fixedFile: logPath } }
+          { rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 } }
         );
       } catch {
         this.gameTraceEnabled = false;

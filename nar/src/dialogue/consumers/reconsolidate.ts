@@ -40,10 +40,10 @@ export class Reconsolidator {
     private readonly source: RetrospectiveSource,
     private readonly sink: ReconsolidationSink,
     private readonly seed: LessonSeed,
-    ledgerPath = './.cache/dialogue/reconsolidated.jsonl'
+    ledgerPath = './.cache/dialogue/reconsolidated'
   ) {
-    this.#ledger = createLedger<ReconsolidatedLedgerEntry>('', ReconsolidatedEntrySchema, {
-      rollover: { fixedFile: ledgerPath },
+    this.#ledger = createLedger<ReconsolidatedLedgerEntry>(ledgerPath, ReconsolidatedEntrySchema, {
+      rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
     });
   }
 

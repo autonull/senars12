@@ -319,12 +319,10 @@ export class ProviderRuntime {
     try {
       const { mkdirSync } = require('node:fs');
       mkdirSync(this.routingLogDir, { recursive: true });
-      const date = new Date().toISOString().split('T')[0];
-      const logPath = join(this.routingLogDir, `routing-${date}.jsonl`);
       (this as any).#routingLedger = createLedger<RoutingTelemetryLedgerEntry>(
         this.routingLogDir,
         RoutingTelemetryEntrySchema,
-        { rollover: { fixedFile: logPath } }
+        { rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 } }
       );
     } catch {
       // Silently fail
@@ -369,7 +367,7 @@ export class ProviderRuntime {
   }
 
   private flushRoutingLog(): void {
-    // Ledger handles flushing automatically on append for fixedFile mode
+    // Ledger handles flushing automatically on append
     // This method is kept for API compatibility
   }
 }

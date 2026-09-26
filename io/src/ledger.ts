@@ -4,7 +4,7 @@
  * ParameterLedger is the in-tree prototype; this generalizes its shape.
  */
 
-import { appendFileSync, mkdirSync, readFileSync, promises as fs } from 'node:fs';
+import { appendFileSync, mkdirSync, readFileSync, unlinkSync, statSync, promises as fs } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { z } from 'zod';
 
@@ -35,8 +35,6 @@ export interface RolloverPolicy {
   retentionDays: number;
   /** Custom path template. Default: `<basePath>/<date>[-<n>].jsonl`. */
   pathTemplate: (date: string, index: number) => string;
-  /** If set, writes to a single fixed file instead of daily rollover. Disables rollover/retention. */
-  fixedFile?: string;
 }
 
 /** Factory options for rollover policy (all optional, defaults applied). */
@@ -49,8 +47,6 @@ export interface RolloverPolicyOptions {
   retentionDays?: number;
   /** Custom path template. Default: `<basePath>/<date>[-<n>].jsonl`. */
   pathTemplate?: (date: string, index: number) => string;
-  /** If set, writes to a single fixed file instead of daily rollover. Disables rollover/retention. */
-  fixedFile?: string;
 }
 
 /**
@@ -118,27 +114,25 @@ export class Ledger<T extends BaseLedgerEntry> {
 
   constructor(config: LedgerConfig<T>) {
     const rollover = config.rollover ?? {};
-    const fixedFile = rollover.fixedFile;
     const hotRetentionMs = config.hotRetentionMs ?? 5 * 60 * 1000;
     this.#config = {
       basePath: config.basePath,
       schema: config.schema,
       rollover: {
-        daily: fixedFile ? false : (rollover.daily ?? true),
-        maxEntriesPerFile: fixedFile ? Number.MAX_SAFE_INTEGER : (rollover.maxEntriesPerFile ?? 10_000),
-        retentionDays: fixedFile ? 0 : (rollover.retentionDays ?? 30),
+        daily: rollover.daily ?? true,
+        maxEntriesPerFile: rollover.maxEntriesPerFile ?? 10_000,
+        retentionDays: rollover.retentionDays ?? 30,
         pathTemplate:
           rollover.pathTemplate ??
           ((date, index) => (index === 0 ? `${date}.jsonl` : `${date}-${index}.jsonl`)),
-        fixedFile,
       },
       hotRetentionMs,
       onWrite: config.onWrite ?? (() => {}),
       onRead: config.onRead ?? (() => {}),
     };
 
-    // Start hot cache eviction timer (skip if fixedFile mode or hot cache disabled)
-    if (!fixedFile && hotRetentionMs > 0) {
+    // Start hot cache eviction timer (if hot cache enabled)
+    if (hotRetentionMs > 0) {
       this.#hotCacheTimer = setInterval(() => this.#evictHotCache(), this.#config.hotRetentionMs);
       this.#hotCacheTimer.unref?.();
     }
@@ -147,11 +141,7 @@ export class Ledger<T extends BaseLedgerEntry> {
   /** Append an entry to the ledger (validates via schema, writes to JSONL). */
   append(entry: T): void {
     const validated = this.#config.schema.parse({ ...entry, at: entry.at ?? Date.now() });
-    // For fixedFile mode, don't use hot cache - always read from disk for consistency
-    const { fixedFile } = this.#config.rollover;
-    if (!fixedFile) {
-      this.#hotCache.push(validated);
-    }
+    this.#hotCache.push(validated);
     this.#writeToFile(validated);
     this.#config.onWrite(validated);
   }
@@ -159,10 +149,9 @@ export class Ledger<T extends BaseLedgerEntry> {
   /** Query entries with optional filters. Checks hot cache first, then falls back to disk scan. */
   async query(filter: LedgerQuery = {}): Promise<T[]> {
     const { correlationId, sessionId, since, until, limit } = filter;
-    const { fixedFile } = this.#config.rollover;
 
-    // Fast path: hot cache (only for rollover mode, not fixedFile)
-    const cacheMatches = fixedFile ? [] : this.#hotCache.filter((e) => this.#matchesFilter(e, filter));
+    // Fast path: hot cache
+    const cacheMatches = this.#hotCache.filter((e) => this.#matchesFilter(e, filter));
     if (cacheMatches.length >= (limit ?? Number.POSITIVE_INFINITY)) {
       return cacheMatches.slice(0, limit);
     }
@@ -170,23 +159,17 @@ export class Ledger<T extends BaseLedgerEntry> {
     // Fallback: scan disk
     const diskMatches: T[] = [];
     try {
-      let filesToScan: string[];
-      if (fixedFile) {
-        // Fixed file mode: read only the fixed file
-        filesToScan = [fixedFile];
-      } else {
-        // Rollover mode: scan directory for date files (newest first)
-        const files = await fs.readdir(this.#config.basePath);
-        filesToScan = files
-          .filter((f) => f.endsWith('.jsonl'))
-          .sort()
-          .reverse();
-      }
+      // Rollover mode: scan directory for date files (newest first)
+      const files = await fs.readdir(this.#config.basePath);
+      const filesToScan = files
+        .filter((f) => f.endsWith('.jsonl'))
+        .sort()
+        .reverse();
 
       for (const file of filesToScan) {
         if (diskMatches.length >= (limit ?? Number.POSITIVE_INFINITY)) break;
 
-        const filePath = fixedFile ? file : join(this.#config.basePath, file);
+        const filePath = join(this.#config.basePath, file);
         const content = await fs.readFile(filePath, 'utf-8');
         const lines = content.split('\n').filter(Boolean);
 
@@ -243,20 +226,6 @@ export class Ledger<T extends BaseLedgerEntry> {
       byKey.set(key, entry);
     }
 
-    const { fixedFile } = this.#config.rollover;
-
-    if (fixedFile) {
-      // Fixed file mode: rewrite the single file
-      const lines = [...byKey.values()].map((e) => JSON.stringify(e)).join('\n') + '\n';
-      await fs.writeFile(fixedFile, lines, 'utf-8');
-
-      // Reset hot cache
-      this.#hotCache.length = 0;
-      this.#hotCache.push(...byKey.values());
-
-      return { kept: byKey.size, dropped };
-    }
-
     // Rollover mode: rewrite all files
     await fs.rm(this.#config.basePath, { recursive: true, force: true }).catch(() => {});
     await fs.mkdir(this.#config.basePath, { recursive: true });
@@ -301,18 +270,11 @@ export class Ledger<T extends BaseLedgerEntry> {
     }
   }
 
-  /** Clear all entries (hot cache and file). */
-  clear(): void {
+  /** Clear all entries (hot cache and files). */
+  async clear(): Promise<void> {
     this.#hotCache.length = 0;
-    const { fixedFile } = this.#config.rollover;
-    if (fixedFile) {
-      try {
-        const { writeFileSync } = require('node:fs');
-        writeFileSync(fixedFile, '', 'utf-8');
-      } catch {
-        // ignore
-      }
-    }
+    // In rollover mode, we clear by removing all files in the basePath
+    await fs.rm(this.#config.basePath, { recursive: true, force: true }).catch(() => {});
   }
 
   /** Invalidate hot cache (force next query to read from disk). */
@@ -336,20 +298,6 @@ export class Ledger<T extends BaseLedgerEntry> {
   }
 
   #writeToFile(entry: T): void {
-    const { fixedFile } = this.#config.rollover;
-
-    if (fixedFile) {
-      // Fixed file mode: write directly to the specified file
-      const targetFile = fixedFile;
-      try {
-        mkdirSync(dirname(targetFile), { recursive: true });
-        appendFileSync(targetFile, JSON.stringify(entry) + '\n', 'utf-8');
-      } catch (error) {
-        throw new Error(`Ledger write failed: ${(error as Error).message}`);
-      }
-      return;
-    }
-
     // Rollover mode (original logic)
     const today = new Date().toISOString().split('T')[0]!;
 
@@ -369,11 +317,17 @@ export class Ledger<T extends BaseLedgerEntry> {
     if (this.#currentFile !== targetFile) {
       this.#currentFile = targetFile;
       this.#currentEntries = 0;
-      // Ensure directory exists
+      // Ensure directory exists (handle case where path exists as a file)
       try {
-        mkdirSync(this.#config.basePath, { recursive: true });
+        const stat = statSync(this.#config.basePath);
+        if (!stat.isDirectory()) {
+          // Path exists as a file - remove it and create directory
+          unlinkSync(this.#config.basePath);
+          mkdirSync(this.#config.basePath, { recursive: true });
+        }
       } catch {
-        // ignore
+        // Directory doesn't exist or other error - create it
+        mkdirSync(this.#config.basePath, { recursive: true });
       }
     }
 

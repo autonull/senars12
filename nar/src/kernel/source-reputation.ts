@@ -57,49 +57,22 @@ export class SourceReputation {
     this.#floor = options.floor ?? 0.5;
     this.#decayGate = options.contradictionsBeforeDecay ?? 2;
     this.#capacity = options.capacity ?? DEFAULT_REPUTATION_CAPACITY;
-    if (options.path) {
-      // Fixed file mode for backward compatibility with tests
-      this.#ledger = createLedger<ReputationDeltaEntry>('', ReputationDeltaSchema, {
-        rollover: { fixedFile: options.path },
-      });
-      this.#loadSync(options.path);
-    } else {
-      this.#ledger = createLedger<ReputationDeltaEntry>(DEFAULT_REPUTATION_PATH, ReputationDeltaSchema, {
-        rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
-      });
-      // Async load for rollover mode - fire and forget
-      this.#ledger.query({}).then((entries) => {
-        for (const r of entries) {
-          const entry = this.#entries.get(r.key) ?? { confirmed: 0, contradicted: 0 };
-          entry.confirmed += r.delta.confirmed ?? 0;
-          entry.contradicted += r.delta.contradicted ?? 0;
-          this.#entries.set(r.key, entry);
-          this.#touch(r.key);
-        }
-      }).catch(() => {});
-    }
-  }
-
-  #loadSync(fixedFilePath: string): void {
-    const fs = require('node:fs');
-    try {
-      const content = fs.readFileSync(fixedFilePath, 'utf-8');
-      for (const line of content.split('\n')) {
-        if (!line.trim()) continue;
-        try {
-          const r = JSON.parse(line) as ReputationDeltaEntry;
-          const entry = this.#entries.get(r.key) ?? { confirmed: 0, contradicted: 0 };
-          entry.confirmed += r.delta.confirmed ?? 0;
-          entry.contradicted += r.delta.contradicted ?? 0;
-          this.#entries.set(r.key, entry);
-          this.#touch(r.key);
-        } catch {
-          /* skip malformed lines */
-        }
+    
+    const path = options.path ?? DEFAULT_REPUTATION_PATH;
+    this.#ledger = createLedger<ReputationDeltaEntry>(path, ReputationDeltaSchema, {
+      rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
+    });
+    
+    // Async load for rollover mode - fire and forget
+    this.#ledger.query({}).then((entries) => {
+      for (const r of entries) {
+        const entry = this.#entries.get(r.key) ?? { confirmed: 0, contradicted: 0 };
+        entry.confirmed += r.delta.confirmed ?? 0;
+        entry.contradicted += r.delta.contradicted ?? 0;
+        this.#entries.set(r.key, entry);
+        this.#touch(r.key);
       }
-    } catch {
-      /* no ledger yet */
-    }
+    }).catch(() => {});
   }
 
   /** LRU touch — moves key to most-recently-used position. */
