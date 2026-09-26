@@ -18,12 +18,14 @@ import {
   type StrategyExpression,
 } from '../reason/strategy-algebra';
 import type { CognitiveRegistry } from './registry';
+import { registerRuleGraph, RuleGraph } from '../strategies/lm-graph/RuleGraph.js';
 
 export class CognitiveController {
   private currentParams: CognitiveParameters;
   private readonly inferenceController: InferenceController;
   private cycleCount = 0;
   private readonly adaptInterval: number;
+  private onDerivationCallback?: (chain: readonly Task[]) => void;
 
   constructor(
     private readonly registry: CognitiveRegistry,
@@ -33,11 +35,12 @@ export class CognitiveController {
     private readonly rlfp: RLFPLearner | undefined,
     params: CognitiveParameters,
     adaptInterval = 50,
-    private readonly onDerivation?: (chain: readonly Task[]) => void
+    onDerivation?: (chain: readonly Task[]) => void
   ) {
     // Own the parameter graph: callers may pass frozen defaults (TODO20 C3).
     this.currentParams = structuredClone(params);
     this.adaptInterval = adaptInterval;
+    this.onDerivationCallback = onDerivation;
     this.inferenceController = this.buildInferenceController(params);
   }
 
@@ -115,9 +118,29 @@ export class CognitiveController {
       'derivation',
       params.strategies.derivation.type
     );
-    const lmSelector = this.registry.get<LMRuleSelector>('lm-rule', params.strategies.lmRule.type);
+    
+    // Register RuleGraph if selected (opt-in via config)
+    const lmRuleType = params.strategies.lmRule.type;
+    let lmSelector: LMRuleSelector;
+    let ruleGraph: RuleGraph | null = null;
+    
+    if (lmRuleType === 'lm-graph') {
+      if (!this.registry.has('lm-rule', 'lm-graph')) {
+        ruleGraph = registerRuleGraph(this.registry);
+      } else {
+        ruleGraph = this.registry.get<RuleGraph>('lm-rule', 'lm-graph');
+      }
+      lmSelector = ruleGraph;
+    } else {
+      lmSelector = this.registry.get<LMRuleSelector>('lm-rule', lmRuleType);
+    }
 
     this.processor.setLMSelector(lmSelector, params.strategies.lmRule.maxRules);
+
+    // Wire RuleGraph callbacks if using lm-graph
+    if (ruleGraph) {
+      this.#wireRuleGraphCallbacks(ruleGraph);
+    }
 
     const inferenceConfig = {
       maxDerivationsPerStep: params.inference.maxDerivationsPerStep,
@@ -128,7 +151,7 @@ export class CognitiveController {
       singlePremiseLMRules: params.lm.singlePremiseEnabled ?? true,
       maxLMRulesPerStep: params.strategies.lmRule.maxRules,
       enableLMRules: params.lm.enabled ?? true,
-      ...(this.onDerivation ? { onDerivation: this.onDerivation } : {}),
+      ...(this.onDerivationCallback ? { onDerivation: this.onDerivationCallback } : {}),
     };
 
     if (this.inferenceController) {
@@ -149,6 +172,38 @@ export class CognitiveController {
       derivationStrategy,
       inferenceConfig
     );
+  }
+
+  #wireRuleGraphCallbacks(ruleGraph: RuleGraph): void {
+    // Wire recordPerformance from rule outcomes - check execution log on each adapt
+    const originalAdapt = this.adapt.bind(this);
+    this.adapt = () => {
+      // Record performance from execution log
+      const log = this.processor.getLMRuleExecutionLog();
+      for (const entry of log) {
+        ruleGraph.recordPerformance(entry.ruleName, entry.status === 'fired', entry.durationMs);
+      }
+      this.processor.clearLMRuleExecutionLog();
+      
+      // Wire tick() from cycle
+      ruleGraph.tick();
+      
+      originalAdapt();
+    };
+
+    // Wire learnFromDerivation from derivation path
+    const originalOnDerivation = this.onDerivationCallback;
+    this.onDerivationCallback = (chain: readonly Task[]) => {
+      if (chain.length >= 2) {
+        const primary = chain[0];
+        const derived = chain[chain.length - 1];
+        if (primary && derived) {
+          // Use primary term as focus, derived term as rule term
+          ruleGraph.learnFromDerivation(primary.term, derived.term);
+        }
+      }
+      originalOnDerivation?.(chain);
+    };
   }
 
   private adaptWithRLFP(): CognitiveParameters {

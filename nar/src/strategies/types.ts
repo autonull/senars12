@@ -2,6 +2,7 @@ import type { LMRule } from '../lm';
 import type { Concept, Memory } from '../memory';
 import type { RuleProcessor } from '../rules';
 import type { Task } from '../types';
+import type { Term } from '../terms';
 
 // ── Shared ───────────────────────────────────
 export interface ComponentMetadata {
@@ -55,6 +56,7 @@ export interface LMRuleSelectionContext {
   rotationIndex?: number;
   conceptPriority: number;
   premiseCount: 1 | 2;
+  focusTerm?: Term;
 }
 
 export interface LMRuleSelector {

@@ -10,6 +10,17 @@ import { CognitiveRegistry } from '../../cognitive/registry.js';
 import type { LMRule } from '../../lm/LMRule.js';
 import type { Term } from '../../terms/index.js';
 
+/** Shared ConceptGraph instance for co-activation graph (used by RuleGraph, premise sources, and scorers). */
+let sharedConceptGraph: ConceptGraph | null = null;
+
+export function getSharedConceptGraph(): ConceptGraph | null {
+  return sharedConceptGraph;
+}
+
+export function setSharedConceptGraph(graph: ConceptGraph): void {
+  sharedConceptGraph = graph;
+}
+
 export interface RuleGraphOptions {
   maxNodes?: number;
   maxEdgesPerNode?: number;
@@ -38,6 +49,7 @@ export class RuleGraph implements LMRuleSelector {
       maxEdgesPerNode: options.maxEdgesPerNode ?? 30,
       decayRate: options.decayRate ?? 0.002,
     });
+    setSharedConceptGraph(this.graph);
     this.fallbackWeight = options.fallbackWeight ?? 0.3;
   }
 
@@ -59,8 +71,8 @@ export class RuleGraph implements LMRuleSelector {
   select(rules: LMRule[], context: LMRuleSelectionContext): LMRule[] {
     if (rules.length === 0) return [];
 
-    // Use conceptPriority as a heuristic for focus term selection
-    const focusTerm = this.extractFocusTerm(context, rules);
+    // Use focusTerm from context if provided, otherwise extract via heuristic
+    const focusTerm = context.focusTerm ?? this.extractFocusTerm(context, rules);
     if (!focusTerm) return this.fallbackSelect(rules);
 
     const coActivations = this.graph.getCoActivations(focusTerm, 20);
@@ -95,11 +107,9 @@ export class RuleGraph implements LMRuleSelector {
   }
 
   private fallbackSelect(rules: LMRule[]): LMRule[] {
-    // Return top priority rules as fallback
-    return rules
-      .filter((r) => (r as any).priority !== undefined)
-      .sort((a, b) => ((b as any).priority ?? 0) - ((a as any).priority ?? 0))
-      .slice(0, Math.max(1, Math.floor(rules.length * 0.3)));
+    // Return top-N rules by registration order (no priority field on LM rules)
+    const limit = Math.max(1, Math.floor(rules.length * 0.3));
+    return rules.slice(0, limit);
   }
 
   private extractFocusTerm(_context: LMRuleSelectionContext, rules: LMRule[]): Term | null {

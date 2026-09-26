@@ -4,6 +4,7 @@ import { createSecondaryTask } from '../../types';
 import { extractSymbols, termsEqual, Stamp } from '../../terms';
 import { getSubject, getPredicate } from '../../terms';
 import type { Term } from '../../terms';
+import { getSharedConceptGraph } from '../lm-graph/RuleGraph.js';
 
 export type PremiseSource = (task: Task, memory: Memory, n?: number) => Concept[];
 
@@ -29,6 +30,17 @@ export const PREMISE_SOURCES = {
     const args = task.term.kind === 'conjunction' ? task.term.args : [];
     return args.map((arg) => memory.getConcept(arg)).filter((c): c is Concept => !!c);
   },
+  graph: (task: Task, _memory: Memory): Concept[] => {
+    const graph = getSharedConceptGraph();
+    if (!graph) return [];
+    const coActivations = graph.getCoActivations(task.term, 20);
+    const concepts: Concept[] = [];
+    for (const edge of coActivations) {
+      const concept = _memory.getConcept(edge.targetTerm);
+      if (concept) concepts.push(concept);
+    }
+    return concepts;
+  },
 } as const;
 
 function getLinkStrength(memory: Memory, primary: Term, target: Term): number {
@@ -45,6 +57,13 @@ export const PREMISE_SCORERS = {
 export const PREMISE_SCORERS_CURRIED = {
   linkWeight: (memory: Memory) => (task: Task, concept: Concept): number =>
     getLinkStrength(memory, task.term, concept.term),
+  edgeWeight: (_memory: Memory) => (task: Task, concept: Concept): number => {
+    const graph = getSharedConceptGraph();
+    if (!graph) return 0;
+    const coActivations = graph.getCoActivations(task.term, 20);
+    const edge = coActivations.find((e) => termsEqual(e.targetTerm, concept.term));
+    return edge?.weight ?? 0;
+  },
 } as const;
 
 export const PREMISE_FILTERS = {

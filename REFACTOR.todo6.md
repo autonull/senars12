@@ -258,7 +258,7 @@ README rewrite; MeTTa surface reduction (H1); `.kiro/legacy-code` deletion (H2);
 |-------|-------|-----------|-------|-----------|
 | **A** | Bag correctness (A1–A3) + knob wiring (A4) + test debt (A5) + premise primitives (A6) + windowed-roulette (A7) | `nar/bag/*`, `nar/memory/concept.ts`, `nar/memory/memory.ts`, `config/cognitive-parameters.ts`, `tests/nar/refactor4-bounded-aikr.test.ts`, `strategies/premise/primitives.ts`, `strategies/premise/sample.ts`, `strategies/premise/selection-strategies.ts`, `strategies/premise/index.ts`, `reason/strategies/index.ts`, `cognitive/registry.ts`, `strategies/sampling/WindowedRoulette.ts` | 106 | Post-removal fidelity holds; LRU evict preserves sorted invariant; same-seed determinism with injected clock; `bag.type='fenwick'` yields FenwickBag concepts; `pnpm typecheck` 0 errors overall; `default-formation` parity byte-identical; registered `term-link` consults LinkManager; `semantic` selectable; dead imports gone; windowed-roulette deterministic + diversity delta vs priority |
 | **B** | Bag evidence (B1–B3) + BudgetSlice telemetry (B4) | `nar/bag/*`, `tests/nar/bag-fidelity.test.ts`, `tests/benchmark/bag-perf.test.ts`, `kernel/budget.ts`, `bin/status.ts`, `docs/adr/006-fenwickbag-default.md` | 107 | TV-distance ≤ 0.02 @ 50k; seed-parity sequences; round-trip property; p99 at 1k/10k/100k × 2 mixes; ADR-006 decision recorded; budget tree in status |
-| **C** | RuleGraph unlock (C1–C5) | `strategies/types.ts`, `strategies/lm-graph/RuleGraph.ts`, `cognitive/registry.ts`, rule-processor outcome path, `strategies/premise/primitives.ts`, `tests/nar/rulegraph-wiring.test.ts`, `docs/adr/007-rulegraph-adoption.md` | 108 | `lm-graph` selectable; selection tracks performance; empty selection impossible; co-activations on real terms; `graph` source returns memory-backed beliefs; default path byte-identical |
+| **C** | RuleGraph unlock (C1–C5) | `strategies/types.ts`, `strategies/lm-graph/RuleGraph.ts`, `cognitive/controller.ts`, `agent/builder.ts`, `rules/processor.ts`, `strategies/premise/primitives.ts`, `tests/nar/rulegraph-wiring.test.ts` | 108 | `focusTerm` in context; selector uses it; `registerRuleGraph` called; `recordPerformance` from log; `learnFromDerivation` from chain; `tick()` in adapt; `fallbackSelect` returns top-N; `graph` source + `edgeWeight` scorer; shared ConceptGraph; bench verifies all |
 | **D** | Parallel cognition (D1–D4) | `focus/FocusTree.ts`, `core/cognitive-thread.ts`, `kernel/budget.ts`, `tests/nar/focustree-parity.test.ts` | 109 | Single-root parity; rollups non-empty; Σ(child) ≤ parent; join returns unconsumed; send fails on exhausted slice; ThreadScope alias parity |
 | **E** | Self-model consumers (E1–E4) | `meta/metta-proposer.ts`, `nar/games.ts`, `focus/GameFocus.ts`, `governance/pipeline.ts`, `learning/schema-induction.ts`, `capability/ontology.ts`, `lm/system-one/judgment-pipeline.ts`, `docs/adr/008-judgment-pipeline.md` | 110 | ProofMettaProposer contributions in negotiation; schema adoption via resolver with `.adaptations`/`.restore`; ontology provenance + registration; pipeline decision recorded |
 | **F** | Production (F1–F3) | `nar/tick/*`, `kernel/budget.ts`, `scripts/replay.ts`, `.github/workflows/soak.yml` | 111 | Budget/pressure/backpressure spans present; `pnpm replay --verify` hash-match; soak:24h green |
@@ -282,9 +282,14 @@ Order: **A → B → C** strict (C19 needs correct+proven bags; C's benches need
  | B1 | B | FenwickBag fidelity + parity suite: TV-distance ≤ 0.02 @ 50k, χ², post-removal fidelity, seed parity, decay uniformity, evict invariants, serialize round-trip | 107 | ✅ |
  | B2 | B | Bag perf bench: sample/add throughput @ N=1k (insert-heavy & sample-heavy mixes, pure sample, pure add) | 107 | ✅ |
  | B3 | B | ADR-006 FenwickBag default decision: keep PriorityBag default (FenwickBag add/evict 250–3000× slower, sample only 1.6× faster) | 107 | ✅ |
- | B4 | B | BudgetSlice observability: `budget:slice:created/consumed/exhausted/merged` events on NarEventBus; `formatBudgetSliceTree`/`collectBudgetSlices` in kernel; `--budget` flag in `senars status` | 107 | ✅ |
- 
- ---
+| B4 | B | BudgetSlice observability: `budget:slice:created/consumed/exhausted/merged` events on NarEventBus; `formatBudgetSliceTree`/`collectBudgetSlices` in kernel; `--budget` flag in `senars status` | 107 | ✅ |
+| C1 | C | RuleGraph context unlock: `focusTerm` in `LMRuleSelectionContext`; `RuleGraph.select` uses context focusTerm; `extractFocusTerm` fallback only | 108 | ✅ |
+| C2 | C | RuleGraph lm-rule wiring: `registerRuleGraph` in builder; `recordPerformance` from execution log; `learnFromDerivation` from derivation chain; `tick()` in `adapt()` | 108 | ✅ |
+| C3 | C | RuleGraph fail-closed fallback: `fallbackSelect` returns top-N by registration order; never empty | 108 | ✅ |
+| C4 | C | RuleGraph dual-role premise registration: `graph` source + `edgeWeight` scorer in primitives; shared ConceptGraph | 108 | ✅ |
+| C5 | C | RuleGraph falsifying bench: `tests/nar/rulegraph-wiring.test.ts` — non-empty selection; performance shifts distro; real-term co-activations; graph premise works; default path parity | 108 | ✅ |
+
+---
 
 ## 10. Architecture Decision Records (to create during execution)
 
@@ -298,7 +303,7 @@ Order: **A → B → C** strict (C19 needs correct+proven bags; C's benches need
 
 ---
 
-*Phase B complete — ready for Phase C kickoff*
+*Phase C complete — ready for Phase D kickoff*
 
 ---
 

@@ -11,6 +11,7 @@ import { resolveProfile } from './profiles.js';
 import type { LoadedHeadBundle } from '../lm/system-one/wasi-head-bundle.js';
 import { loadHeadBundle } from '../lm/system-one/wasi-head-bundle.js';
 import { withSpan } from '../otel/index.js';
+import { CognitiveRegistry } from '../cognitive/registry.js';
 export { NAR_PROFILES, resolveProfile } from './profiles.js';
 export type { CapabilityTier, NARProfileName, NARProfileSpec } from './profiles.js';
 
@@ -90,6 +91,7 @@ export class NARBuilder {
   private consolidation?: CreateAgentConfig['consolidation'];
   private deviceHeadSpec?: { wasmPath: string; modelDigest: string; dimension: number };
   private threadScope?: ThreadScope;
+  private strategyRegistry?: CognitiveRegistry;
   private steps: BuilderStepRecord[] = [];
 
   /** TODO19 F3: seed the builder from a named profile preset (profiles are data). */
@@ -265,6 +267,11 @@ export class NARBuilder {
           ? { systemOne: this.systemOne?.params }
           : {}),
     } as NARConfig;
+
+    // Create and initialize strategy registry if cognitive params are provided
+    const strategyRegistry = new CognitiveRegistry();
+    strategyRegistry.initializeDefaults();
+    narConfig.strategyRegistry = strategyRegistry;
 
     const gates = this.gates ?? createGateRegistry();
     gates.initialize(this.gateConfig);

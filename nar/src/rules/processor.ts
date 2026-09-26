@@ -411,6 +411,7 @@ export class RuleProcessor {
           conceptPriority: maxPriority,
           rotationIndex: this.lmRotationIndex,
           premiseCount: isSinglePremise ? 1 : 2,
+          focusTerm: p1.term,
         })
       : this.lmRules;
 
