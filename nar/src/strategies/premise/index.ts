@@ -6,6 +6,8 @@
 // Premise formation utilities
 export { samplePremises } from './sample.js';
 export type { PremiseFilter, TruthPredicate, SampleConfig } from './sample.js';
+export type { ExtendedSampleConfig } from './sample.js';
+export { samplePremisesFromConfig } from './sample.js';
 
 // Deprecated: PremiseSelector interface (use Strategy from ../types.js instead)
 /** @deprecated Use Strategy from '../types.js' instead. */
@@ -17,16 +19,17 @@ export { AnalogySelector, DecompositionSelector, TermMatchingSelector } from './
 export {
   AdaptiveStrategy,
   AnalogicalStrategy,
+  BagStrategy,
   CompositeStrategy,
   DefaultFormationStrategy,
   DecompositionStrategy,
+  ExhaustiveStrategy,
   GoalDrivenStrategy,
   PrologResolutionStrategy,
-  PrologStrategy,
   ResolutionStrategy,
+  SampledStrategy,
+  SemanticStrategy,
   SwitchingStrategy,
-  TaskMatchStrategy,
   TermLinkStrategy,
 } from './selection-strategies';
-export { BagStrategy, ExhaustiveStrategy } from '../../reason/strategy';
 export type { Strategy } from '../types';

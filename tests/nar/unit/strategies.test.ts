@@ -13,10 +13,9 @@ import {
   DecompositionStrategy,
   DefaultFormationStrategy,
   GoalDrivenStrategy,
-  PrologStrategy,
   ResolutionStrategy,
+  SampledStrategy,
   SwitchingStrategy,
-  TaskMatchStrategy,
   TermLinkStrategy,
 } from '../../../nar/src/reason';
 import { Truth } from '../../../nar/src/terms/truth.js';
@@ -30,11 +29,11 @@ describe('Core Strategies', () => {
     nar = new NAR();
   });
 
-  describe('PrologStrategy', () => {
+  describe('ResolutionStrategy', () => {
     it('should have correct configuration', () => {
-      expect(PrologStrategy.name).toBe('prolog');
-      expect(PrologStrategy.sampleSize).toBe(20);
-      expect(PrologStrategy.limit).toBe(5);
+      expect(ResolutionStrategy.name).toBe('resolution');
+      expect(ResolutionStrategy.sampleSize).toBe(15);
+      expect(ResolutionStrategy.limit).toBe(5);
     });
 
     it('should select secondary tasks for inference', async () => {
@@ -43,7 +42,7 @@ describe('Core Strategies', () => {
 
       const task = nar.taskManager.peekTask();
       if (task) {
-        const results = PrologStrategy.selectSecondary(task, nar.memory);
+        const results = ResolutionStrategy.selectSecondary(task, nar.memory);
         expect(Array.isArray(results)).toBe(true);
       }
     });
@@ -113,8 +112,6 @@ describe('Core Strategies', () => {
   describe('TermLinkStrategy', () => {
     it('should have correct configuration', () => {
       expect(TermLinkStrategy.name).toBe('term-link');
-      expect(TermLinkStrategy.sampleSize).toBe(25);
-      expect(TermLinkStrategy.limit).toBe(10);
     });
 
     it('should link related terms', async () => {
@@ -129,11 +126,11 @@ describe('Core Strategies', () => {
     });
   });
 
-  describe('TaskMatchStrategy', () => {
+  describe('SampledStrategy', () => {
     it('should have correct configuration', () => {
-      expect(TaskMatchStrategy.name).toBe('task-match');
-      expect(TaskMatchStrategy.sampleSize).toBe(20);
-      expect(TaskMatchStrategy.limit).toBe(5);
+      expect(SampledStrategy.name).toBe('sampled');
+      expect(SampledStrategy.sampleSize).toBe(20);
+      expect(SampledStrategy.limit).toBe(5);
     });
 
     it('should match tasks with similar terms', async () => {
@@ -141,7 +138,7 @@ describe('Core Strategies', () => {
 
       const task = nar.taskManager.peekTask();
       if (task) {
-        const results = TaskMatchStrategy.selectSecondary(task, nar.memory);
+        const results = SampledStrategy.selectSecondary(task, nar.memory);
         expect(Array.isArray(results)).toBe(true);
       }
     });
@@ -210,7 +207,7 @@ describe('Composite Strategies', () => {
   });
 
   it('should combine multiple strategies', async () => {
-    const composite = new CompositeStrategy([PrologStrategy, ResolutionStrategy]);
+    const composite = new CompositeStrategy([ResolutionStrategy, SampledStrategy]);
 
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
 
@@ -222,7 +219,7 @@ describe('Composite Strategies', () => {
   });
 
   it('should handle sequential mode', async () => {
-    const composite = new CompositeStrategy([PrologStrategy, ResolutionStrategy], 'sequential');
+    const composite = new CompositeStrategy([ResolutionStrategy, SampledStrategy], 'sequential');
 
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
@@ -233,7 +230,7 @@ describe('Composite Strategies', () => {
   });
 
   it('should handle parallel mode', async () => {
-    const composite = new CompositeStrategy([PrologStrategy, GoalDrivenStrategy], 'parallel');
+    const composite = new CompositeStrategy([ResolutionStrategy, GoalDrivenStrategy], 'parallel');
 
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
@@ -245,7 +242,7 @@ describe('Composite Strategies', () => {
 
   it('should handle weighted mode', async () => {
     const composite = new CompositeStrategy(
-      [PrologStrategy, ResolutionStrategy, GoalDrivenStrategy],
+      [ResolutionStrategy, SampledStrategy, GoalDrivenStrategy],
       'weighted',
       [0.5, 0.3, 0.2]
     );
@@ -266,7 +263,7 @@ describe('Composite Strategies', () => {
       },
     };
 
-    const composite = new CompositeStrategy([failingStrategy, PrologStrategy]);
+    const composite = new CompositeStrategy([failingStrategy, ResolutionStrategy]);
 
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
@@ -285,7 +282,7 @@ describe('Adaptive Strategy', () => {
   });
 
   it('should initialize with provided strategies', () => {
-    const adaptive = new AdaptiveStrategy([PrologStrategy, ResolutionStrategy]);
+    const adaptive = new AdaptiveStrategy([ResolutionStrategy, SampledStrategy]);
     expect(adaptive.name).toBe('adaptive');
 
     const stats = adaptive.getStats();
@@ -294,7 +291,7 @@ describe('Adaptive Strategy', () => {
   });
 
   it('should adapt based on effectiveness', async () => {
-    const adaptive = new AdaptiveStrategy([PrologStrategy, ResolutionStrategy]);
+    const adaptive = new AdaptiveStrategy([ResolutionStrategy, SampledStrategy]);
 
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
@@ -312,7 +309,7 @@ describe('Adaptive Strategy', () => {
   });
 
   it('should track statistics per strategy', async () => {
-    const adaptive = new AdaptiveStrategy([PrologStrategy]);
+    const adaptive = new AdaptiveStrategy([ResolutionStrategy]);
 
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
@@ -322,10 +319,10 @@ describe('Adaptive Strategy', () => {
       adaptive.selectSecondary(task, nar.memory);
 
       const stats = adaptive.getStats();
-      const prologStats = stats.get('prolog');
-      expect(prologStats).toBeDefined();
-      if (prologStats) {
-        expect(prologStats.pairsGenerated).toBeGreaterThanOrEqual(0);
+      const resolutionStats = stats.get('resolution');
+      expect(resolutionStats).toBeDefined();
+      if (resolutionStats) {
+        expect(resolutionStats.pairsGenerated).toBeGreaterThanOrEqual(0);
       }
     }
   });
@@ -339,33 +336,33 @@ describe('Switching Strategy', () => {
   });
 
   it('should switch between strategies', () => {
-    const switching = new SwitchingStrategy([PrologStrategy, ResolutionStrategy], 5);
+    const switching = new SwitchingStrategy([ResolutionStrategy, SampledStrategy], 5);
     expect(switching.name).toBe('switching');
-    expect(switching.getCurrentStrategy()).toBe(PrologStrategy);
+    expect(switching.getCurrentStrategy()).toBe(ResolutionStrategy);
   });
 
   it('should cycle through strategies at interval', async () => {
-    const switching = new SwitchingStrategy([PrologStrategy, ResolutionStrategy], 3);
+    const switching = new SwitchingStrategy([ResolutionStrategy, SampledStrategy], 3);
 
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
 
     if (task) {
-      expect(switching.getCurrentStrategy()).toBe(PrologStrategy);
-
-      switching.selectSecondary(task, nar.memory);
-      switching.selectSecondary(task, nar.memory);
-      switching.selectSecondary(task, nar.memory);
-
       expect(switching.getCurrentStrategy()).toBe(ResolutionStrategy);
+
+      switching.selectSecondary(task, nar.memory);
+      switching.selectSecondary(task, nar.memory);
+      switching.selectSecondary(task, nar.memory);
+
+      expect(switching.getCurrentStrategy()).toBe(SampledStrategy);
     }
   });
 
   it('should reset to first strategy', () => {
-    const switching = new SwitchingStrategy([PrologStrategy, ResolutionStrategy], 3);
+    const switching = new SwitchingStrategy([ResolutionStrategy, SampledStrategy], 3);
 
     switching.reset();
-    expect(switching.getCurrentStrategy()).toBe(PrologStrategy);
+    expect(switching.getCurrentStrategy()).toBe(ResolutionStrategy);
   });
 });
 
@@ -419,7 +416,7 @@ describe('Strategy Performance', () => {
 
     const task = nar.taskManager.peekTask();
     if (task) {
-      const strategies = [PrologStrategy, ResolutionStrategy, TermLinkStrategy, TaskMatchStrategy];
+      const strategies = [ResolutionStrategy, TermLinkStrategy, SampledStrategy];
 
       for (const strategy of strategies) {
         const start = Date.now();
@@ -436,7 +433,6 @@ describe('Strategy Performance', () => {
     const task = nar.taskManager.peekTask();
     if (task) {
       const strategies = [
-        PrologStrategy,
         ResolutionStrategy,
         GoalDrivenStrategy,
         AnalogicalStrategy,

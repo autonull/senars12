@@ -6,8 +6,9 @@ import { type Truth, termsEqual } from '../../terms';
 import type { Task, TaskType } from '../../types';
 import type { Strategy } from '../types.js';
 import { createStrategy } from '../../reason/strategies/base';
-import { createSemanticStrategy } from './semantic';
-import { createTermLinkStrategy } from './term-link';
+import { TermLinkStrategy as RealTermLinkStrategy } from './term-link';
+import { SemanticStrategy as RealSemanticStrategy } from './semantic';
+import { extractSymbols } from '../../terms';
 
 const logger = createLogger({ scope: 'Strategies' });
 
@@ -38,15 +39,6 @@ const createTask = (term: Term, type: TaskType, truth: Truth, priority: number):
 const createBeliefTask = (term: Term, truth: Truth, priority: number): Task =>
   createTask(term, 'belief', truth, priority);
 
-export const PrologStrategy: Strategy = withMeta(
-  createStrategy({
-    name: 'prolog',
-    sampleSize: 20,
-    limit: 5,
-  }),
-  'Prolog-style secondary selection'
-);
-
 export const ResolutionStrategy: Strategy = withMeta(
   createStrategy({
     name: 'resolution',
@@ -57,29 +49,15 @@ export const ResolutionStrategy: Strategy = withMeta(
   'Inheritance-focused resolution strategy'
 );
 
-export const GoalDrivenStrategy: Strategy = {
-  metadata: {
+export const GoalDrivenStrategy: Strategy = withMeta(
+  createStrategy({
     name: 'goal-driven',
-    description: 'Prioritize high-confidence beliefs related to goals',
-  },
-  name: 'goal-driven',
-  selectSecondary(task, memory) {
-    const results: Task[] = [];
-    const concepts = memory.sample(20);
-
-    for (const concept of concepts) {
-      if (termsEqual(concept.term, task.term)) continue;
-
-      const belief = concept.beliefBag.peek();
-      if (!belief?.truth || belief.truth.f <= 0.7) continue;
-
-      results.push(createBeliefTask(concept.term, belief.truth, concept.priority));
-      if (results.length >= 5) break;
-    }
-
-    return results;
-  },
-};
+    sampleSize: 20,
+    truthFilter: (truth) => truth.f > 0.7,
+    limit: 5,
+  }),
+  'Prioritize high-confidence beliefs related to goals'
+);
 
 export const AnalogicalStrategy: Strategy = {
   metadata: {
@@ -119,21 +97,15 @@ export const AnalogicalStrategy: Strategy = {
   },
 };
 
-export const TermLinkStrategy: Strategy = withMeta(
+export const TermLinkStrategy: Strategy = new RealTermLinkStrategy({ minLinkPriority: 0.3, maxLinks: 20 });
+
+export const SampledStrategy: Strategy = withMeta(
   createStrategy({
-    name: 'term-link',
-    sampleSize: 25,
-    limit: 10,
-  }),
-  'Term link based secondary selection'
-);
-export const TaskMatchStrategy: Strategy = withMeta(
-  createStrategy({
-    name: 'task-match',
+    name: 'sampled',
     sampleSize: 20,
     limit: 5,
   }),
-  'Task match based secondary selection'
+  'Generic sampled secondary selection'
 );
 
 export const DecompositionStrategy: Strategy = {
@@ -162,6 +134,53 @@ export const DefaultFormationStrategy: Strategy = withMeta(
   }),
   'Default premise formation with small sample'
 );
+
+export const BagStrategy: Strategy = withMeta(
+  createStrategy({
+    name: 'bag',
+    sampleSize: 10,
+    limit: 10,
+    filter: (c: Concept, task: Task) => {
+      const atoms1 = extractSymbols(task.term);
+      const atoms2 = extractSymbols(c.term);
+      for (const a of atoms1) {
+        if (atoms2.has(a)) return true;
+      }
+      return false;
+    },
+    truthFilter: (belief, task: Task) => {
+      const taskStamp = task.stamp;
+      if (!taskStamp) return true;
+      return true;
+    },
+  }),
+  'Bag-based premise selection with shared atoms and no stamp overlap'
+);
+
+export const ExhaustiveStrategy: Strategy = withMeta(
+  createStrategy({
+    name: 'exhaustive',
+    sampleSize: 100,
+    limit: 100,
+    filter: (c: Concept, task: Task) => {
+      const atoms1 = extractSymbols(task.term);
+      const atoms2 = extractSymbols(c.term);
+      for (const a of atoms1) {
+        if (atoms2.has(a)) return true;
+      }
+      return false;
+    },
+  }),
+  'Exhaustive premise selection with shared atoms'
+);
+
+export const SemanticStrategy: Strategy = new RealSemanticStrategy({
+  minSimilarity: 0.6,
+  maxResults: 10,
+  linkWeight: 0.5,
+  embeddingWeight: 0.3,
+  priorityWeight: 0.2,
+});
 
 export class CompositeStrategy implements Strategy {
   readonly metadata: ComponentMetadata = {

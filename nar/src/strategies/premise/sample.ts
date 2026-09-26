@@ -1,7 +1,9 @@
 import type { Concept, Memory } from '../../memory';
-import { extractSymbols, termsEqual } from '../../terms';
+import { extractSymbols, termsEqual, Stamp } from '../../terms';
 import type { Task } from '../../types';
 import { createSecondaryTask } from '../../types';
+import { samplePremisesFromConfig } from './primitives.js';
+import type { SampleConfig as ExtendedSampleConfig } from './primitives.js';
 
 const hasSharedAtoms = (term1: Task['term'], term2: Task['term']): boolean => {
   const atoms1 = extractSymbols(term1);
@@ -22,6 +24,10 @@ export interface SampleConfig {
   filter?: PremiseFilter;
   truthFilter?: TruthPredicate;
   skipSameTerm?: boolean;
+  source?: 'bag' | 'links' | 'taskArgs';
+  scorer?: 'priority' | 'linkWeight' | { linear: { link: number; embed: number; pri: number } };
+  filters?: ('sharedAtoms' | 'noStampOverlap' | 'inheritanceOnly' | 'highConfidence')[];
+  minScore?: number;
 }
 
 const DEFAULT_CONFIG: Omit<SampleConfig, 'filter' | 'truthFilter'> & {
@@ -40,22 +46,17 @@ export function samplePremises(
   task: Task,
   config: Partial<SampleConfig> = {}
 ): Task[] {
-  const merged = { ...DEFAULT_CONFIG, ...config };
-  const results: Task[] = [];
-  const concepts = memory.sample(merged.sampleSize);
-
-  for (const concept of concepts) {
-    if (merged.skipSameTerm && termsEqual(concept.term, task.term)) continue;
-    if (!hasSharedAtoms(concept.term, task.term)) continue;
-    if (merged.filter && !merged.filter(concept, task)) continue;
-
-    const belief = concept.beliefBag.peek();
-    if (!belief?.truth) continue;
-    if (merged.truthFilter && !merged.truthFilter(belief.truth)) continue;
-
-    results.push(createSecondaryTask(concept.term, concept.priority, belief.truth));
-    if (results.length >= merged.limit) break;
-  }
-
-  return results;
+  const extendedConfig: ExtendedSampleConfig = {
+    source: config.source ?? 'bag',
+    scorer: config.scorer ?? 'priority',
+    filters: config.filters ?? ['sharedAtoms'],
+    minScore: config.minScore ?? 0,
+    sampleSize: config.sampleSize ?? DEFAULT_CONFIG.sampleSize,
+    limit: config.limit ?? DEFAULT_CONFIG.limit,
+    skipSameTerm: config.skipSameTerm ?? DEFAULT_CONFIG.skipSameTerm,
+  };
+  return samplePremisesFromConfig(memory, task, extendedConfig);
 }
+
+export type { SampleConfig as ExtendedSampleConfig } from './primitives.js';
+export { samplePremisesFromConfig } from './primitives.js';

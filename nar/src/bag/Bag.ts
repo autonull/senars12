@@ -17,6 +17,8 @@ export interface BagOptions {
   rng?: RandomSource;
   /** Bag implementation to use (default 'priority'). */
   implementation?: BagImplementation;
+  /** Injected clock for createdAt/lastAccessedAt (default Date.now). */
+  clock?: () => number;
 }
 
 export type EvictStrategy = 'LRU' | 'LowestPriority' | 'Random';
@@ -62,6 +64,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   private heap: InternalEntry<T>[] = [];
   private totalPriority = 0;
   private readonly rng: RandomSource;
+  private readonly clock: () => number;
 
   get decayRateValue(): number {
     return this.decayRate;
@@ -76,12 +79,13 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     this.decayRate = options.decayRate ?? 0.01;
     this.forgetRate = options.forgetRate ?? 0.001;
     this.rng = options.rng ?? Math.random;
+    this.clock = options.clock ?? Date.now;
   }
 
   add(item: T): boolean {
     if (this.capacity === 0) return false;
 
-    const now = Date.now();
+    const now = this.clock();
     const entry: InternalEntry<T> = {
       item,
       createdAt: now,
@@ -117,7 +121,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       if (e) {
         r -= e.item.priority;
         if (r <= 0) {
-          e.lastAccessedAt = Date.now();
+          e.lastAccessedAt = this.clock();
           return e.item;
         }
       }
@@ -210,12 +214,20 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
         this.heap.pop();
         this.version++;
         break;
-      case 'LRU':
-        this.heap.sort((a, b) => b.lastAccessedAt - a.lastAccessedAt);
-        this.totalPriority -= this.heap[this.heap.length - 1]!.item.priority;
-        this.heap.pop();
+      case 'LRU': {
+        let lruIdx = 0;
+        let lruTime = this.heap[0]!.lastAccessedAt;
+        for (let i = 1; i < this.heap.length; i++) {
+          if (this.heap[i]!.lastAccessedAt < lruTime) {
+            lruTime = this.heap[i]!.lastAccessedAt;
+            lruIdx = i;
+          }
+        }
+        this.totalPriority -= this.heap[lruIdx]!.item.priority;
+        this.heap.splice(lruIdx, 1);
         this.version++;
         break;
+      }
       case 'Random': {
         const idx = Math.floor(this.rng() * this.heap.length);
         this.totalPriority -= this.heap[idx]!.item.priority;

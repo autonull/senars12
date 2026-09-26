@@ -57,6 +57,8 @@ export interface EpisodeConsolidatorOptions extends AikrBagOptions {
   emit?: (summary: Episode) => Promise<void> | void;
   /** Optional LM summarizer; null/exception ⇒ symbolic fallback. */
   summarizeWithLM?: (group: readonly Episode[]) => Promise<string>;
+  /** Injected clock for deterministic timestamps (default Date.now). */
+  clock?: () => number;
 }
 
 /**
@@ -96,6 +98,7 @@ export class EpisodeConsolidator {
       capacity: options.capacity ?? 256,
       forgetRate: options.forgetRate,
       rng: options.rng,
+      clock: options.clock,
     });
     this.#processor = new AIKRProcessor<EpisodeCandidate, ConsolidationResult>({
       bag: this.#bag,

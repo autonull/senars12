@@ -22,15 +22,24 @@ import { PlacementCascadeReflex } from '@senars/nar/lm/system-one/cascade-reflex
 import { createHash } from 'node:crypto';
 import type { JudgmentProvenance } from '@senars/nar/lm/system-one/decide.js';
 import type { Term, Truth } from '@senars/nar/terms';
-import { atom, inh, Truth as TruthClass, prod } from '@senars/nar/terms';
+import { atom, Truth as TruthClass, TermBuilder } from '@senars/nar/terms';
 import type { Memory } from '@senars/nar/memory';
 import type { NAR } from '@senars/nar/nar.js';
 import type { GateRegistry } from '@senars/nar/kernel/index.js';
 import type { Task } from '@senars/nar/types';
 import { gateRegistry } from '@senars/nar/kernel/index.js';
+import { EpisodeConsolidatorOptions } from '@senars/nar';
+import { ProposalBagOptions } from '@senars/nar/meta';
+import { MiningBagOptions } from '@senars/nar/lm/system-one/hard-negatives.js';
+import { SchemaInductionConfig } from '@senars/nar/learning';
+import type { ModelDigest, BackendId, QueryId, CalibrationVersion } from '@senars/nar/lm/system-one/types.js';
+
+const MODEL_DIGEST = 'model-sha256' as ModelDigest;
+const BACKEND_ID = 'b1' as BackendId;
+const CALIBRATION_VERSION = 'v1' as CalibrationVersion;
 
 // Mock Memory for testing
-class MockMemory implements Partial<Memory> {
+class MockMemory {
   private concepts = new Map<string, { beliefs: Array<{ term: Term; truth?: Truth }> }>();
 
   listConcepts() {
@@ -45,7 +54,7 @@ class MockMemory implements Partial<Memory> {
 }
 
 // Mock NAR for QBeliefStore
-class MockNAR implements Partial<NAR> {
+class MockNAR {
   private concepts = new Map<string, { getBeliefs: () => Array<{ truth: Truth }> }>();
   private driveManager: { getState: (id: string) => { currentIntensity: number } | undefined } = {
     getState: () => undefined,
@@ -254,23 +263,40 @@ describe('Bench 98 — Phase D: Bounded accumulators + AIKRProcessor consolidati
   });
 
   describe('verifyCascade: returns JudgmentProvenance', () => {
+    const makeEvaluateProp = (overrides: Partial<{
+      score: number;
+      modelDigest: ModelDigest;
+      queryId: QueryId;
+      calibration: { version: CalibrationVersion; fitted: boolean; ece: number };
+      tier: 0 | 1 | 2 | 3;
+    }> = {}) => ({
+      kind: 'evaluate' as const,
+      axis: 'epistemic' as const,
+      score: overrides.score ?? 0.85,
+      abstained: false,
+      calibration: overrides.calibration ?? { version: CALIBRATION_VERSION, fitted: true, ece: 0.05 },
+      modelDigest: overrides.modelDigest ?? MODEL_DIGEST,
+      queryId: (overrides.queryId ?? 'q1') as QueryId,
+      backendId: BACKEND_ID,
+      latencyMs: 10,
+      cost: { tokensIn: 100, tokensOut: 50, computeMs: 5, memoryMb: 1 },
+      tier: (overrides.tier ?? 0) as 0 | 1 | 2 | 3,
+    });
+
     it('returns VerifyResult with provenance matching Decider format', async () => {
-      // Create a mock CascadeJudge that returns a simple proposition
       const mockJudge = {
-        judgeBatch: async () => [
-          {
-            kind: 'evaluate' as const,
-            score: 0.85,
-            abstained: false,
-            calibration: { version: 'v1', fitted: true },
-            modelDigest: 'model-sha256',
-          },
-        ],
+        judgeBatch: async () => [makeEvaluateProp()],
       };
 
       const sharedContext = 123 as any; // EmbeddingPointer
       const bands = { act: 0.8, review: 0.5, block: 0 };
-      const budget = { maxLMCalls: 10, maxCycles: 100, maxDepth: 10, maxMemoryOps: 1000 };
+      const budget = {
+        maxLMCalls: 10,
+        maxCycles: 100,
+        maxDepth: 10,
+        maxMemoryOps: 1000,
+        consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+      };
 
       const result = await verifyCascade(mockJudge, sharedContext, 'test statement', bands, budget);
 
@@ -293,28 +319,22 @@ describe('Bench 98 — Phase D: Bounded accumulators + AIKRProcessor consolidati
           callCount++;
           if (callCount === 1) {
             // Stage 1
-            return [{
-              kind: 'evaluate' as const,
-              score: 0.6,
-              abstained: false,
-              calibration: { version: 'v1', fitted: true },
-              modelDigest: 'model-sha256',
-            }];
+            return [makeEvaluateProp({ score: 0.6 })];
           }
           // Stage 2
-          return [{
-            kind: 'evaluate' as const,
-            score: 0.9,
-            abstained: false,
-            calibration: { version: 'v2', fitted: true },
-            modelDigest: 'model-sha256',
-          }];
+          return [makeEvaluateProp({ score: 0.9, queryId: 'q2' as QueryId, calibration: { version: 'v2' as CalibrationVersion, fitted: true, ece: 0.05 } })];
         },
       };
 
       const sharedContext = 123 as any;
       const bands = { act: 0.8, review: 0.5, block: 0 };
-      const budget = { maxLMCalls: 10, maxCycles: 100, maxDepth: 10, maxMemoryOps: 1000 };
+      const budget = {
+        maxLMCalls: 10,
+        maxCycles: 100,
+        maxDepth: 10,
+        maxMemoryOps: 1000,
+        consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+      };
 
       const result = await verifyCascade(mockJudge, sharedContext, 'uncertain statement', bands, budget);
 
@@ -332,10 +352,16 @@ describe('Bench 98 — Phase D: Bounded accumulators + AIKRProcessor consolidati
         judgeBatch: async (_ctx: any, queries: any[]) => {
           return queries.map(() => ({
             kind: 'evaluate' as const,
+            axis: 'epistemic' as const,
             score: 0.7,
             abstained: false,
-            calibration: { version: 'v1', fitted: true },
-            modelDigest: 'model-sha256',
+            calibration: { version: CALIBRATION_VERSION, fitted: true, ece: 0.05 },
+            modelDigest: MODEL_DIGEST,
+            queryId: 'q1' as QueryId,
+            backendId: BACKEND_ID,
+            latencyMs: 10,
+            cost: { tokensIn: 100, tokensOut: 50, computeMs: 5, memoryMb: 1 },
+            tier: 0,
           }));
         },
       };
@@ -348,7 +374,13 @@ describe('Bench 98 — Phase D: Bounded accumulators + AIKRProcessor consolidati
       };
 
       const reflex = new PlacementCascadeReflex(mockFallback as any, { topK: 2 });
-      const budget = { maxLMCalls: 10, maxCycles: 100, maxDepth: 10, maxMemoryOps: 1000 };
+      const budget = {
+        maxLMCalls: 10,
+        maxCycles: 100,
+        maxDepth: 10,
+        maxMemoryOps: 1000,
+        consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+      };
 
       await reflex.prefetch('state1', 123 as any, ['action1', 'action2', 'action3'], mockManifold as any, budget);
 
@@ -366,10 +398,7 @@ describe('Bench 98 — Phase D: Bounded accumulators + AIKRProcessor consolidati
   });
 
   describe('Integration: AikrBagOptions used across all five sites', () => {
-    it('EpisodeConsolidatorOptions extends AikrBagOptions', async () => {
-      // This is a compile-time check - if it compiles, the interface is compatible
-      // We verify by importing and constructing
-      const { EpisodeConsolidatorOptions } = await import('@senars/nar/memory/episode-consolidator.js');
+    it('EpisodeConsolidatorOptions extends AikrBagOptions', () => {
       const opts: EpisodeConsolidatorOptions = {
         capacity: 256,
         pressureThreshold: 0.7,
@@ -381,8 +410,7 @@ describe('Bench 98 — Phase D: Bounded accumulators + AIKRProcessor consolidati
       expect(opts.maxMerged).toBe(6);
     });
 
-    it('ProposalBagOptions extends AikrBagOptions', async () => {
-      const { ProposalBagOptions } = await import('@senars/nar/meta/proposal-bag.js');
+    it('ProposalBagOptions extends AikrBagOptions', () => {
       const opts: ProposalBagOptions = {
         capacity: 64,
         pressureThreshold: 0.4,
@@ -394,8 +422,7 @@ describe('Bench 98 — Phase D: Bounded accumulators + AIKRProcessor consolidati
       expect(opts.alignmentOf).toBeDefined();
     });
 
-    it('MiningBagOptions extends AikrBagOptions', async () => {
-      const { MiningBagOptions } = await import('@senars/nar/lm/system-one/hard-negatives.js');
+    it('MiningBagOptions extends AikrBagOptions', () => {
       const opts: MiningBagOptions = {
         capacity: 128,
         pressureThreshold: 0.5,
@@ -407,8 +434,7 @@ describe('Bench 98 — Phase D: Bounded accumulators + AIKRProcessor consolidati
       expect(opts.marginFloor).toBe(0);
     });
 
-    it('SchemaInductionConfig extends AikrBagOptions', async () => {
-      const { SchemaInductionConfig } = await import('@senars/nar/learning/schema-induction.js');
+    it('SchemaInductionConfig extends AikrBagOptions', () => {
       const opts: SchemaInductionConfig = {
         enableSchemaInduction: true,
         minDerivationSteps: 3,

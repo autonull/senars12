@@ -33,6 +33,7 @@ export interface MemoryConfig {
   semanticLinkCapacity?: number;
   linkForgetPolicy?: 'priority' | 'lru' | 'fifo' | 'random';
   linkDecayRate?: number;
+  bagImplementation?: 'priority' | 'fenwick';
 }
 
 const DEFAULT_CONFIG: Required<MemoryConfig> = {
@@ -51,6 +52,7 @@ const DEFAULT_CONFIG: Required<MemoryConfig> = {
   semanticLinkCapacity: 500,
   linkForgetPolicy: 'priority',
   linkDecayRate: 0.001,
+  bagImplementation: 'priority',
 };
 
 export interface RevisionEntry {
@@ -224,7 +226,10 @@ export class Memory {
 
     if (this.concepts.size >= this.config.maxConcepts) this.applyForgetting();
 
-    const concept = new Concept(term, { onRevision: (entry) => this.recordRevision(entry) });
+    const concept = new Concept(term, {
+      onRevision: (entry) => this.recordRevision(entry),
+      bagImplementation: this.config.bagImplementation,
+    });
     this.concepts.set(term, concept);
 
     if (this.config.enableIndexing) this.index.index(concept, this.lastTimestamp);
@@ -265,6 +270,22 @@ export class Memory {
   sample(limit: number): Concept[] {
     this.decayAll();
     return selectTopN(this.concepts.values(), limit, (c) => this.scorer.scoreForRetrieval(c));
+  }
+
+  /**
+   * Sample a random contiguous window of concepts from the priority-sorted array.
+   * Used by windowed-roulette sampling strategy for positional-local diversity.
+   */
+  sampleWindow(windowSize: number, rng: () => number = Math.random): Concept[] {
+    this.decayAll();
+    const allConcepts = Array.from(this.concepts.values())
+      .sort((a, b) => this.scorer.scoreForRetrieval(b) - this.scorer.scoreForRetrieval(a));
+    
+    if (allConcepts.length <= windowSize) return allConcepts;
+    
+    const maxStart = allConcepts.length - windowSize;
+    const start = Math.floor(rng() * (maxStart + 1));
+    return allConcepts.slice(start, start + windowSize);
   }
 
   consolidate(opts?: {

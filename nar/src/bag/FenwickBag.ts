@@ -13,6 +13,7 @@ export class FenwickBag<T extends BagItem> implements Bag<T> {
   private decayRate: number;
   private readonly forgetRate: number;
   private readonly rng: RandomSource;
+  private readonly clock: () => number;
   private _entries: FenwickEntry<T>[] = [];
   private tree: number[] = [];
   private totalPriority = 0;
@@ -31,6 +32,7 @@ export class FenwickBag<T extends BagItem> implements Bag<T> {
     this.decayRate = options.decayRate ?? 0.01;
     this.forgetRate = options.forgetRate ?? 0.001;
     this.rng = options.rng ?? Math.random;
+    this.clock = options.clock ?? Date.now;
   }
 
   private addToTree(index: number, value: number): void {
@@ -82,7 +84,7 @@ export class FenwickBag<T extends BagItem> implements Bag<T> {
   add(item: T): boolean {
     if (this.capacity === 0) return false;
 
-    const now = Date.now();
+    const now = this.clock();
     const entry: FenwickEntry<T> = {
       item,
       createdAt: now,
@@ -120,10 +122,18 @@ export class FenwickBag<T extends BagItem> implements Bag<T> {
 
     const r = this.rng() * this.totalPriority;
     const idx = this.findByPrefixSum(r);
-    if (idx >= this._entries.length) return this._entries[0]?.item;
+    if (idx >= this._entries.length) {
+      // Out of range — rebuild and retry once to avoid stale tree corruption
+      this.rebuildTree();
+      const retryIdx = this.findByPrefixSum(r);
+      if (retryIdx >= this._entries.length) return this._entries[0]?.item;
+      const retryEntry = this._entries[retryIdx]!;
+      retryEntry.lastAccessedAt = this.clock();
+      return retryEntry.item;
+    }
 
     const entry = this._entries[idx]!;
-    entry.lastAccessedAt = Date.now();
+    entry.lastAccessedAt = this.clock();
     return entry.item;
   }
 
@@ -136,10 +146,9 @@ export class FenwickBag<T extends BagItem> implements Bag<T> {
     }
     if (idx >= 0) {
       const priority = this._entries[idx]!.item.priority;
-      this.addToTree(idx, -priority);
       this.totalPriority -= priority;
       this._entries.splice(idx, 1);
-      this.tree.pop();
+      this.rebuildTree();
       this.updateIdMap();
       this.version++;
       return true;
@@ -183,15 +192,16 @@ export class FenwickBag<T extends BagItem> implements Bag<T> {
     for (let i = this._entries.length - 1; i >= 0; i--) {
       if (predicate(this._entries[i]!.item)) {
         const priority = this._entries[i]!.item.priority;
-        this.addToTree(i, -priority);
         this.totalPriority -= priority;
         this._entries.splice(i, 1);
         removed++;
       }
     }
-    this.tree = this.tree.slice(0, this._entries.length + 1);
-    this.updateIdMap();
-    if (removed > 0) this.version++;
+    if (removed > 0) {
+      this.rebuildTree();
+      this.updateIdMap();
+      this.version++;
+    }
     return removed;
   }
 
@@ -221,7 +231,6 @@ export class FenwickBag<T extends BagItem> implements Bag<T> {
     switch (strategy) {
       case 'LowestPriority': {
         const idx = this._entries.length - 1;
-        this.addToTree(idx, -this._entries[idx]!.item.priority);
         this.totalPriority -= this._entries[idx]!.item.priority;
         this._entries.pop();
         this.tree.pop();
@@ -230,22 +239,25 @@ export class FenwickBag<T extends BagItem> implements Bag<T> {
         break;
       }
       case 'LRU': {
-        this._entries.sort((a, b) => b.lastAccessedAt - a.lastAccessedAt);
-        const idx = this._entries.length - 1;
-        this.addToTree(idx, -this._entries[idx]!.item.priority);
-        this.totalPriority -= this._entries[idx]!.item.priority;
-        this._entries.pop();
-        this.tree.pop();
+        let lruIdx = 0;
+        let lruTime = this._entries[0]!.lastAccessedAt;
+        for (let i = 1; i < this._entries.length; i++) {
+          if (this._entries[i]!.lastAccessedAt < lruTime) {
+            lruTime = this._entries[i]!.lastAccessedAt;
+            lruIdx = i;
+          }
+        }
+        this.totalPriority -= this._entries[lruIdx]!.item.priority;
+        this._entries.splice(lruIdx, 1);
+        this.rebuildTree();
         this.updateIdMap();
         this.version++;
         break;
       }
       case 'Random': {
         const idx = Math.floor(this.rng() * this._entries.length);
-        this.addToTree(idx, -this._entries[idx]!.item.priority);
         this.totalPriority -= this._entries[idx]!.item.priority;
         this._entries.splice(idx, 1);
-        this.tree.pop();
         this.rebuildTree();
         this.updateIdMap();
         this.version++;

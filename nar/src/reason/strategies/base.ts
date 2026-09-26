@@ -7,7 +7,7 @@ interface StrategyConfig {
   name: string;
   sampleSize: number;
   filter?: (concept: Concept, task: Task) => boolean;
-  truthFilter?: (truth: { f: number; c: number }) => boolean;
+  truthFilter?: (truth: { f: number; c: number }, task: Task) => boolean;
   limit?: number;
 }
 
@@ -22,7 +22,7 @@ export const createStrategy = (config: StrategyConfig): Strategy => {
         sampleSize,
         limit,
         filter,
-        truthFilter,
+        truthFilter: truthFilter ? (truth) => truthFilter(truth, task) : undefined,
       });
     },
   } as Strategy & { sampleSize: number; limit: number };

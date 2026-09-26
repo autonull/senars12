@@ -10,15 +10,16 @@ export { createStrategy } from './strategies/base';
 export {
   AdaptiveStrategy,
   AnalogicalStrategy,
+  BagStrategy,
   CompositeStrategy,
   DecompositionStrategy,
   DefaultFormationStrategy,
+  ExhaustiveStrategy,
   GoalDrivenStrategy,
-  PrologStrategy,
   ResolutionStrategy,
+  SampledStrategy,
+  SemanticStrategy,
   SwitchingStrategy,
-  TaskMatchStrategy,
   TermLinkStrategy,
 } from '../strategies/premise/selection-strategies';
 export type { Strategy } from './strategy';
-export { BagStrategy, ExhaustiveStrategy } from './strategy';

@@ -129,7 +129,13 @@ export class NAR extends BaseComponent {
 
     this.config = { ...validateNarConfig(config) };
     this.gates = config.gateRegistry ?? createGateRegistry();
-    this.memory = new Memory(this.config, { attentionModel: createAttentionModel(config) });
+    this.memory = new Memory(
+      {
+        ...this.config,
+        bagImplementation: this.config.cognitiveParams?.strategies?.bag?.type ?? 'priority',
+      },
+      { attentionModel: createAttentionModel(config) }
+    );
     this.processor = new RuleProcessor();
     this.processor.setConfig({ memory: this.memory, nar: this });
     this.processor.setEventBus(eventBus);
