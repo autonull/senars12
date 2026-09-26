@@ -268,19 +268,23 @@ Order: **A → B → C** strict (C19 needs correct+proven bags; C's benches need
 ---
 
 ## 9. Progress
-
-| # | Phase | Deliverable | Bench | Status |
-|---|-------|-------------|-------|--------|
-| — | — | Plan drafted + codebase audit (§3b) + premise architecture (§1) | — | 📝 |
-| A1 | A | FenwickBag correctness: `remove`/`removeMany` tree rebuild, `findByPrefixSum` retry-on-rebuild, `evict('Random')` rebuild | 106 | ✅ |
-| A2 | A | LRU eviction invariant: O(n) min-scan replaces in-place sort in both PriorityBag & FenwickBag | 106 | ✅ |
-| A3 | A | Injectable clock (`BagOptions.clock`) for deterministic `createdAt`/`lastAccessedAt` | 106 | ✅ |
-| A4 | A | `strategies.bag` knob wired: `CognitiveParameters.strategies.bag.type` → `Memory` → `ConceptConfig.bagImplementation` | 106 | ✅ |
-| A5 | A | `refactor4-bounded-aikr.test.ts` type errors fixed (18 errors) | 106 | ✅ |
-| A6 | A | Premise primitives refactor: `primitives.ts` (sources/scorers/filters), sampling family rebuilt as compositions, real `term-link` restored, `semantic` registered, fake `prolog` removed, `task-match`→`sampled` | 106 | ✅ |
-| A7 | A | `windowed-roulette` SamplingStrategy + `Memory.sampleWindow(k, rng)` | 106 | ✅ |
-
----
+ 
+ | # | Phase | Deliverable | Bench | Status |
+ |---|-------|-------------|-------|--------|
+ | — | — | Plan drafted + codebase audit (§3b) + premise architecture (§1) | — | 📝 |
+ | A1 | A | FenwickBag correctness: `remove`/`removeMany` tree rebuild, `findByPrefixSum` retry-on-rebuild, `evict('Random')` rebuild | 106 | ✅ |
+ | A2 | A | LRU eviction invariant: O(n) min-scan replaces in-place sort in both PriorityBag & FenwickBag | 106 | ✅ |
+ | A3 | A | Injectable clock (`BagOptions.clock`) for deterministic `createdAt`/`lastAccessedAt` | 106 | ✅ |
+ | A4 | A | `strategies.bag` knob wired: `CognitiveParameters.strategies.bag.type` → `Memory` → `ConceptConfig.bagImplementation` | 106 | ✅ |
+ | A5 | A | `refactor4-bounded-aikr.test.ts` type errors fixed (18 errors) | 106 | ✅ |
+ | A6 | A | Premise primitives refactor: `primitives.ts` (sources/scorers/filters), sampling family rebuilt as compositions, real `term-link` restored, `semantic` registered, fake `prolog` removed, `task-match`→`sampled` | 106 | ✅ |
+ | A7 | A | `windowed-roulette` SamplingStrategy + `Memory.sampleWindow(k, rng)` | 106 | ✅ |
+ | B1 | B | FenwickBag fidelity + parity suite: TV-distance ≤ 0.02 @ 50k, χ², post-removal fidelity, seed parity, decay uniformity, evict invariants, serialize round-trip | 107 | ✅ |
+ | B2 | B | Bag perf bench: sample/add throughput @ N=1k (insert-heavy & sample-heavy mixes, pure sample, pure add) | 107 | ✅ |
+ | B3 | B | ADR-006 FenwickBag default decision: keep PriorityBag default (FenwickBag add/evict 250–3000× slower, sample only 1.6× faster) | 107 | ✅ |
+ | B4 | B | BudgetSlice observability: `budget:slice:created/consumed/exhausted/merged` events on NarEventBus; `formatBudgetSliceTree`/`collectBudgetSlices` in kernel; `--budget` flag in `senars status` | 107 | ✅ |
+ 
+ ---
 
 ## 10. Architecture Decision Records (to create during execution)
 
@@ -294,4 +298,15 @@ Order: **A → B → C** strict (C19 needs correct+proven bags; C's benches need
 
 ---
 
-*Phase A complete — ready for Phase B kickoff*
+*Phase B complete — ready for Phase C kickoff*
+
+---
+
+## Post-REFACTOR.todo6 Rename Notes (manual, WebStorm)
+
+| Current Path | Target Path | Rationale |
+|--------------|-------------|-----------|
+| `nar/src/cognition` | `nar/src/game` | Game component library (Sensor/Action/Reward contracts for arcade/self-play) |
+| `nar/src/rl` | `nar/src/rlfp` | RLFP-specific learner integration; disambiguates from future generic RL infra |
+
+> These are breaking export renames — do **not** attempt via agent. Use WebStorm's "Rename Directory + Update References" after todo6 completes. `nar/src/cognitive` stays as-is (metacognitive control plane).

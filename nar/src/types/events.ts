@@ -41,6 +41,33 @@ export type CognitiveAction =
   | 'consolidate'
   | 'suspend';
 
+/** Budget slice termination reasons. */
+export type TerminationReason =
+  | 'cycle-budget'
+  | 'depth-budget'
+  | 'llm-budget'
+  | 'memory-budget'
+  | 'deadline'
+  | 'backpressure'
+  | 'aborted'
+  | 'completed';
+
+/** Budget slice consumed resources. */
+export interface ConsumedBudget {
+  cycles: number;
+  depth: number;
+  memoryOps: number;
+  llmCalls: number;
+}
+
+/** Budget slice total resources. */
+export interface BudgetSliceTotal {
+  totalCycles: number;
+  totalDepth: number;
+  totalMemoryOps: number;
+  totalLMCalls: number;
+}
+
 export interface EventMap {
   [key: string]: unknown;
 }
@@ -188,6 +215,34 @@ export interface NAREventMap extends EventMap {
   'system:lm.rule:circuit:open': { ruleId: string; ruleName: string; timestamp: number };
   'system:lm.rule:circuit:half-open': { ruleId: string; ruleName: string; timestamp: number };
   'system:lm.rule:circuit:closed': { ruleId: string; ruleName: string; timestamp: number };
+  // Budget slice events (B4)
+  'budget:slice:created': {
+    sliceId: string;
+    parentId: string | undefined;
+    totalCycles: number;
+    totalDepth: number;
+    totalMemoryOps: number;
+    totalLMCalls: number;
+  };
+  'budget:slice:consumed': {
+    sliceId: string;
+    resource: 'cycles' | 'depth' | 'memoryOps' | 'llmCalls';
+    amount: number;
+    consumed: number;
+    total: number;
+    pressure: number;
+  };
+  'budget:slice:exhausted': {
+    sliceId: string;
+    reason: TerminationReason;
+    consumed: ConsumedBudget;
+    total: BudgetSliceTotal;
+  };
+  'budget:slice:merged': {
+    parentId: string;
+    childId: string;
+    consumed: ConsumedBudget;
+  };
 }
 
 export type EventReceiver<T> = (params: T) => void;

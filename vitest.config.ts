@@ -15,7 +15,6 @@ export default defineConfig({
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
-      '**/benchmark/**',
       // E2E needs live transports; run via `pnpm test:e2e:*` (sets VITEST_E2E=1)
       ...(process.env.VITEST_E2E ? [] : ['**/tests/e2e/**']),
     ],

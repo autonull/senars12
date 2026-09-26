@@ -1,0 +1,173 @@
+import { PriorityBag, FenwickBag, type Bag } from '@senars/nar/bag';
+import { describe, it, expect } from 'vitest';
+
+interface TestItem {
+  id: string;
+  priority: number;
+}
+
+function makeItem(id: string, priority: number): TestItem {
+  return { id, priority };
+}
+
+function createPriorityBag(): Bag<TestItem> {
+  return new PriorityBag<TestItem>({
+    capacity: 100000,
+    decayRate: 0.01,
+    forgetRate: 0.001,
+    rng: () => Math.random(),
+    clock: Date.now,
+  });
+}
+
+function createFenwickBag(): Bag<TestItem> {
+  return new FenwickBag<TestItem>({
+    capacity: 100000,
+    decayRate: 0.01,
+    forgetRate: 0.001,
+    rng: () => Math.random(),
+    clock: Date.now,
+  });
+}
+
+function timeOperation(fn: (i: number) => void, iterations: number): { totalMs: number; perOpNs: number; p99Ns: number } {
+  const times: number[] = [];
+  for (let i = 0; i < Math.min(10, iterations); i++) fn(i);
+  const start = performance.now();
+  for (let i = 0; i < iterations; i++) {
+    const opStart = performance.now();
+    fn(i);
+    times.push((performance.now() - opStart) * 1_000_000);
+  }
+  const totalMs = performance.now() - start;
+  times.sort((a, b) => a - b);
+  const p99Idx = Math.floor(times.length * 0.99);
+  return {
+    totalMs,
+    perOpNs: (totalMs * 1_000_000) / iterations,
+    p99Ns: times[p99Idx] ?? 0,
+  };
+}
+
+describe('Bag performance benchmarks', () => {
+  const sizes = [1000]; // Minimal for CI
+  const implementations = [
+    { name: 'PriorityBag', create: createPriorityBag },
+    { name: 'FenwickBag', create: createFenwickBag },
+  ];
+
+  describe('Insert-heavy mix (60% add, 30% sample, 10% evict)', () => {
+    for (const size of sizes) {
+      for (const impl of implementations) {
+        it(`${impl.name} N=${size} insert-heavy`, () => {
+          const bag = impl.create();
+          const operations = 500;
+
+          // Pre-fill
+          for (let i = 0; i < size; i++) {
+            bag.add(makeItem(`init${i}`, Math.random()));
+          }
+
+          const addTime = timeOperation(() => {
+            bag.add(makeItem(`add${Math.random()}`, Math.random()));
+          }, Math.floor(operations * 0.6));
+
+          const sampleTime = timeOperation(() => {
+            bag.sample();
+          }, Math.floor(operations * 0.3));
+
+          const evictTime = timeOperation(() => {
+            bag.evict('Random');
+          }, Math.floor(operations * 0.1));
+
+          console.log(
+            `${impl.name} N=${size} insert-heavy: ` +
+            `add=${addTime.perOpNs.toFixed(0)}ns p99=${addTime.p99Ns.toFixed(0)}ns, ` +
+            `sample=${sampleTime.perOpNs.toFixed(0)}ns p99=${sampleTime.p99Ns.toFixed(0)}ns, ` +
+            `evict=${evictTime.perOpNs.toFixed(0)}ns p99=${evictTime.p99Ns.toFixed(0)}ns`
+          );
+
+          expect(addTime.perOpNs).toBeLessThan(10_000_000);
+          expect(sampleTime.perOpNs).toBeLessThan(100_000);
+        });
+      }
+    }
+  });
+
+  describe('Sample-heavy mix (20% add, 70% sample, 10% evict)', () => {
+    for (const size of sizes) {
+      for (const impl of implementations) {
+        it(`${impl.name} N=${size} sample-heavy`, () => {
+          const bag = impl.create();
+          const operations = 500;
+
+          for (let i = 0; i < size; i++) {
+            bag.add(makeItem(`init${i}`, Math.random()));
+          }
+
+          const addTime = timeOperation(() => {
+            bag.add(makeItem(`add${Math.random()}`, Math.random()));
+          }, Math.floor(operations * 0.2));
+
+          const sampleTime = timeOperation(() => {
+            bag.sample();
+          }, Math.floor(operations * 0.7));
+
+          const evictTime = timeOperation(() => {
+            bag.evict('Random');
+          }, Math.floor(operations * 0.1));
+
+          console.log(
+            `${impl.name} N=${size} sample-heavy: ` +
+            `add=${addTime.perOpNs.toFixed(0)}ns p99=${addTime.p99Ns.toFixed(0)}ns, ` +
+            `sample=${sampleTime.perOpNs.toFixed(0)}ns p99=${sampleTime.p99Ns.toFixed(0)}ns, ` +
+            `evict=${evictTime.perOpNs.toFixed(0)}ns p99=${evictTime.p99Ns.toFixed(0)}ns`
+          );
+
+          expect(addTime.perOpNs).toBeLessThan(10_000_000);
+          expect(sampleTime.perOpNs).toBeLessThan(100_000);
+        });
+      }
+    }
+  });
+
+  describe('Pure sample throughput', () => {
+    for (const size of sizes) {
+      for (const impl of implementations) {
+        it(`${impl.name} N=${size} pure sample throughput`, () => {
+          const bag = impl.create();
+          for (let i = 0; i < size; i++) {
+            bag.add(makeItem(`item${i}`, Math.random()));
+          }
+
+          const iterations = 1000;
+          const time = timeOperation(() => bag.sample(), iterations);
+
+          console.log(`${impl.name} N=${size} pure sample: ${time.perOpNs.toFixed(0)}ns/op p99=${time.p99Ns.toFixed(0)}ns`);
+
+          expect(time.perOpNs).toBeLessThan(50_000);
+        });
+      }
+    }
+  });
+
+  describe('Pure add throughput', () => {
+    for (const size of sizes) {
+      for (const impl of implementations) {
+        it(`${impl.name} N=${size} pure add throughput`, () => {
+          const bag = impl.create();
+          for (let i = 0; i < size - 100; i++) {
+            bag.add(makeItem(`init${i}`, Math.random()));
+          }
+
+          const iterations = 100;
+          const time = timeOperation((i) => bag.add(makeItem(`add${i}`, Math.random())), iterations);
+
+          console.log(`${impl.name} N=${size} pure add: ${time.perOpNs.toFixed(0)}ns/op p99=${time.p99Ns.toFixed(0)}ns`);
+
+          expect(time.perOpNs).toBeLessThan(10_000_000);
+        });
+      }
+    }
+  });
+});

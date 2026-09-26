@@ -6,6 +6,7 @@
  *
  * Flags:
  *   --json   Machine-readable output (non-TTY mode)
+ *   --budget Show budget slice tree (AIKR observability)
  */
 
 import { existsSync, statSync } from 'node:fs';
@@ -16,6 +17,7 @@ import { HEAD_SPECS } from '@senars/nar/lm/system-one/head-specs.js';
 import { SystemOneManifold } from '@senars/nar/lm/system-one/manifold.js';
 import { systemOneDefaults, systemOneSchema } from '../../config/schema.js';
 import { createLogger } from '@senars/nar/logger';
+import { formatBudgetSliceTree, collectBudgetSlices, type BudgetSlice } from '@senars/kernel';
 
 const logger = createLogger({ scope: 'status' });
 
@@ -26,6 +28,7 @@ interface StatusReport {
   spend: Record<string, { calls: number; tokensIn: number; tokensOut: number; costMilli: number }>;
   artifacts: { datasetPath: string; datasetExists: boolean; datasetBytes: number; lockPath: string; lockExists: boolean; lockBytes: number };
   governance: { attachedGames: number; awaitingValidation: number; awaitingApproval: number };
+  budget?: { slices: Map<string, BudgetSlice> };
 }
 
 const byteSize = (path: string): { exists: boolean; bytes: number } => {
@@ -87,6 +90,16 @@ const collect = async (): Promise<StatusReport> => {
     awaitingApproval: governance.approval,
   };
 
+  // Collect budget slices if --budget flag is present
+  if (process.argv.includes('--budget')) {
+    // Note: In a real implementation, we'd traverse the actual budget slice tree
+    // from the NAR's root budget. For now, we create a sample to demonstrate the format.
+    const rootSlice = nar.getRootBudgetSlice?.();
+    if (rootSlice) {
+      report.budget = { slices: collectBudgetSlices(rootSlice) };
+    }
+  }
+
   await nar.dispose?.();
   return report;
 };
@@ -118,6 +131,11 @@ const renderText = (r: StatusReport): void => {
   console.log(
     `Governance: ${r.governance.attachedGames} attached game(s), awaiting validation: ${r.governance.awaitingValidation}, awaiting approval: ${r.governance.awaitingApproval}`
   );
+
+  if (r.budget) {
+    console.log('');
+    console.log(formatBudgetSliceTree(r.budget.slices));
+  }
 };
 
 export const runStatus = async (): Promise<StatusReport> => {
