@@ -1,4 +1,5 @@
 import type { GameOutcome, Perception } from '../game/Game.js';
+import type { JudgmentProvenance } from '../lm/system-one/decide.js';
 
 export interface ActionProposal {
   action: string;
@@ -6,6 +7,8 @@ export interface ActionProposal {
   value: number;
   confidence: number;
   source: string;
+  /** Optional provenance for cascade judgments (auditability). */
+  provenance?: JudgmentProvenance;
 }
 
 export interface LearningEvent {

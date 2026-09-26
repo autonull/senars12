@@ -3,7 +3,7 @@ import type { Episode } from '@senars/util';
 import type { NAR } from '../../nar.js';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import { PriorityBag } from '../../bag/Bag.js';
-import { AIKRProcessor, type ProcessOptions } from '../../learning/aikr-processor.js';
+import { AIKRProcessor, type ProcessOptions, type AikrBagOptions } from '../../learning/aikr-processor.js';
 import { cosineF32 } from './contrastive.js';
 import type { ContrastiveMemory } from './contrastive.js';
 import type { EmbeddingCache } from './types.js';
@@ -111,15 +111,7 @@ export interface HardNegativeCandidate {
   negative: MinedNegative;
 }
 
-export interface MiningBagOptions {
-  /** Bag capacity (AIKR bound; default 128). */
-  capacity?: number;
-  /** Pressure threshold below which draining is inert (default 0.5). */
-  pressureThreshold?: number;
-  /** Priority floor for decayed candidates (bag forgetRate). */
-  forgetRate?: number;
-  /** Candidates per drain (default 8). */
-  budget?: number;
+export interface MiningBagOptions extends AikrBagOptions {
   /** Drop candidates below this margin at drain time (default 0 — keep all). */
   marginFloor?: number;
 }

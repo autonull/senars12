@@ -17,7 +17,7 @@ import { containsSubterm, getSubject, Truth } from '../terms';
 import { createBudget, createTask, type Task } from '../types';
 import type { RandomSource } from '../types/primitives.js';
 import { clamp01, errMsg } from '../utils';
-import { AIKRProcessor, PrioritySampling } from './aikr-processor.js';
+import { AIKRProcessor, PrioritySampling, type ProcessOptions, type AikrBagOptions } from './aikr-processor.js';
 
 export interface SchemaPattern {
   id: string;
@@ -41,14 +41,12 @@ export interface DerivationChainItem extends BagItem {
   signature: string;
 }
 
-export interface SchemaInductionConfig {
+export interface SchemaInductionConfig extends AikrBagOptions {
   enableSchemaInduction: boolean;
   minDerivationSteps: number;
   minConfidenceForInduction: number;
   maxSchemas: number;
   inductionIntervalMs: number;
-  /** Injected randomness for schema-id generation (default Math.random). */
-  rng?: RandomSource;
 }
 
 const DEFAULT_CONFIG: SchemaInductionConfig = {
@@ -57,6 +55,8 @@ const DEFAULT_CONFIG: SchemaInductionConfig = {
   minConfidenceForInduction: 0.6,
   maxSchemas: 50,
   inductionIntervalMs: 300_000,
+  capacity: 256,
+  pressureThreshold: 0.7,
 };
 
 export class SchemaInductor {
@@ -78,10 +78,15 @@ export class SchemaInductor {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.rng = config.rng ?? Math.random;
     this.logger = createLogger({ scope: 'learning:schema-induction' });
+    this.#chainBag = new PriorityBag<DerivationChainItem>({
+      capacity: this.config.capacity ?? 256,
+      forgetRate: this.config.forgetRate,
+      rng: this.rng,
+    });
     this.#processor = new AIKRProcessor<DerivationChainItem, InductionResult>({
       bag: this.#chainBag,
       samplingStrategy: new PrioritySampling(1.0),
-      pressureThreshold: 0.7,
+      pressureThreshold: this.config.pressureThreshold ?? 0.7,
       rng: this.rng,
       process: (items, signal) => this.#induceChains(items, signal),
     });
@@ -104,14 +109,14 @@ export class SchemaInductor {
 
   /** Micro-tick-compatible induction: inert below pressure 0.7, interruptible. */
   async induceIfPressured(
-    options: { budget?: number; signal?: AbortSignal } = {}
+    options: ProcessOptions = {}
   ): Promise<InductionResult[]> {
     return this.#processor.processIfPressured(options);
   }
 
   /** Explicit drain (CLI `.schemas-induce`): ignores the pressure gate. */
   async induceNow(
-    options: { budget?: number; signal?: AbortSignal } = {}
+    options: ProcessOptions = {}
   ): Promise<InductionResult[]> {
     return this.#processor.process(options);
   }

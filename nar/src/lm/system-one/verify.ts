@@ -19,6 +19,8 @@ import type {
   JudgmentQuery,
   ReasoningBudget,
 } from './types.js';
+import { createHash } from 'node:crypto';
+import type { JudgmentProvenance } from './decide.js';
 
 export type VerifyDecision = 'act' | 'review' | 'block' | 'abstain';
 
@@ -28,6 +30,36 @@ export interface VerifyResult {
   p: number | undefined;
   /** Stage-2 verification proposition — present only when the router escalated. */
   verification?: JudgmentProposition;
+  /** Provenance matching Decider's JudgmentProvenance for auditability. */
+  provenance: JudgmentProvenance;
+}
+
+function sha256(text: string): string {
+  return createHash('sha256').update(text).digest('hex');
+}
+
+/** Derive provenance from judgeCascade result, matching Decider's format. */
+function deriveVerifyProvenance(
+  stage1: JudgmentProposition,
+  stage2: JudgmentProposition | undefined,
+  inputDigest: string,
+  decision: VerifyDecision,
+  abstained: boolean
+): JudgmentProvenance {
+  const first = stage2 ?? stage1;
+  const calibrationDigest = first?.calibration?.version
+    ? sha256(`${first.modelDigest}:${first.calibration.version}`)
+    : undefined;
+  return {
+    modelDigest: first?.modelDigest,
+    calibrationDigest,
+    inputDigest,
+    contrastiveDigest: undefined,
+    fitted: (stage1?.calibration?.fitted === true) || (stage2?.calibration?.fitted === true),
+    abstained,
+    band: decision === 'abstain' ? 'abstain' : decision,
+    timestamp: Date.now(),
+  };
 }
 
 /** Stage-2 query space derived from stage-1 uncertainty: evidential support, not plausibility. */
@@ -52,6 +84,7 @@ export async function verifyCascade(
   budget: ReasoningBudget
 ): Promise<VerifyResult> {
   const stage1 = truthProbability(statement);
+  const inputDigest = sha256(statement);
   const result = await judgeCascade(
     judge,
     sharedContext,
@@ -66,7 +99,12 @@ export async function verifyCascade(
   );
   const prop = result.stage1 as EvaluateProposition;
   const decision: VerifyDecision = prop.abstained ? 'abstain' : routeConfidence(prop.score, bands);
-  return { decision, p: prop.abstained ? undefined : prop.score, verification: result.stage2 };
+  return {
+    decision,
+    p: prop.abstained ? undefined : prop.score,
+    verification: result.stage2,
+    provenance: deriveVerifyProvenance(result.stage1, result.stage2, inputDigest, decision, prop.abstained),
+  };
 }
 
 export interface ConsensusJudge {

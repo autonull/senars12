@@ -3,7 +3,6 @@ import { type Term, TermBuilder, Truth } from '../../index.js';
 import type { NAR } from '../../nar.js';
 import type { RandomSource } from '../../types/primitives.js';
 import type { QBeliefStore } from '../q-belief-store.js';
-import { atm, inh, prod } from '../terms.js';
 
 /**
  * Converts RL actions to NAR goals (native AST form)
@@ -34,22 +33,26 @@ export class GoalActionAdapter {
 
   /** Build a native AST goal term for an action: Inheritance(Product(args...), Atom('^action')) */
   buildGoalTerm(action: RLAction): Term {
-    const opAtom = atm(`^${action.name}`);
+    const opAtom = TermBuilder.atom(`^${action.name}`);
 
     if (action.args && Object.keys(action.args).length > 0) {
       const argTerms: Term[] = [];
       for (const [key, value] of Object.entries(action.args)) {
-        const keyTerm = atm(key);
-        const valueTerm = atm(String(value));
-        const compactInh = inh(valueTerm, keyTerm);
-        argTerms.push(compactInh);
+        const keyTerm = TermBuilder.atom(key);
+        const valueTerm = TermBuilder.atom(String(value));
+        const compactInh = TermBuilder.inheritance(valueTerm, keyTerm);
+        if (compactInh) argTerms.push(compactInh);
       }
-      const product = argTerms.length === 1 ? argTerms[0]! : prod(...argTerms);
-      return inh(product, opAtom);
+      const product = argTerms.length === 1 ? argTerms[0]! : TermBuilder.product(...argTerms);
+      const result = TermBuilder.inheritance(product, opAtom);
+      if (!result) throw new Error(`Invalid inheritance: ${product} --> ${opAtom}`);
+      return result;
     }
 
-    const emptyProduct = atm('true');
-    return inh(emptyProduct, opAtom);
+    const emptyProduct = TermBuilder.atom('true');
+    const result = TermBuilder.inheritance(emptyProduct, opAtom);
+    if (!result) throw new Error(`Invalid inheritance: ${emptyProduct} --> ${opAtom}`);
+    return result;
   }
 
   /** Propose an action as a goal to NAR */

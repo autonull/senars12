@@ -15,6 +15,20 @@ export interface SamplingStrategy<T extends BagItem> {
   select(items: T[], budget: number, rng: RandomSource): T[];
 }
 
+/** Shared options for AIKR-bounded bags (capacity, pressure, decay, budget). */
+export interface AikrBagOptions {
+  /** Bag capacity (AIKR bound). */
+  capacity?: number;
+  /** Pressure threshold below which processing is inert (default 0.7). */
+  pressureThreshold?: number;
+  /** Priority floor below which decayed items are forgotten (bag forgetRate). */
+  forgetRate?: number;
+  /** Default items examined per pass (default 4). */
+  budget?: number;
+  /** Injected randomness for sampling (default Math.random). */
+  rng?: RandomSource;
+}
+
 const softmaxWeights = <T>(
   items: T[],
   scoreOf: (item: T) => number

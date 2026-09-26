@@ -8,7 +8,7 @@
  */
 import type { SelfImprovementProposal } from '@senars/kernel/schemas';
 import { PriorityBag } from '../bag/Bag.js';
-import { AIKRProcessor, type ProcessOptions } from '../learning/aikr-processor.js';
+import { AIKRProcessor, type ProcessOptions, type AikrBagOptions } from '../learning/aikr-processor.js';
 import type { RandomSource } from '../types/primitives.js';
 
 export interface ProposalCandidate {
@@ -56,17 +56,7 @@ const greedySelection = <T extends { priority: number; id: string }>(
     .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id))
     .slice(0, Math.max(budget, 0));
 
-export interface ProposalBagOptions {
-  /** Bag capacity (AIKR bound; default 64). */
-  capacity?: number;
-  /** Pressure threshold below which draining is inert (default 0.4 — arrivals are sparse). */
-  pressureThreshold?: number;
-  /** Priority floor for decayed-out proposals (bag forgetRate). */
-  forgetRate?: number;
-  /** Proposals routed per drain (default 4). */
-  budget?: number;
-  /** Injected randomness for bag sampling (selection itself is deterministic). */
-  rng?: RandomSource;
+export interface ProposalBagOptions extends AikrBagOptions {
   /** Optional drive-alignment multiplier (default neutral 1). */
   alignmentOf?: (proposal: SelfImprovementProposal) => number;
 }

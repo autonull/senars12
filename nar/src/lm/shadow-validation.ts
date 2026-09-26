@@ -31,6 +31,18 @@ export interface ShadowSystemOneDeps {
   conflictThreshold?: number;
 }
 
+/** Result of shadow validation with details for decision-path recording. */
+export interface ShadowValidationResult {
+  /** Whether the candidate passes validation (no conflict). */
+  valid: boolean;
+  /** Type of conflict that caused rejection. */
+  conflictType?: 'frequency' | 'semantic';
+  /** Frequency delta if frequency conflict. */
+  frequencyDelta?: number;
+  /** Semantic conflict score if semantic conflict. */
+  semanticScore?: number;
+}
+
 const DEFAULTS = {
   maxFrequencyDelta: 0.3,
   cycles: 3,
@@ -52,14 +64,24 @@ export class ShadowValidator {
   }
 
   /** True when the candidate introduces no contradiction with existing beliefs. */
-  validate(candidate: BeliefLike, beliefs: readonly BeliefLike[]): boolean {
-    if (!candidate.truth) return true;
+  validate(candidate: BeliefLike, beliefs: readonly BeliefLike[]): ShadowValidationResult {
+    if (!candidate.truth) return { valid: true };
     const hasConflict = beliefs.some(
       (b) =>
         b.truth &&
         b.term.toString() === candidate.term.toString() &&
         Math.abs(b.truth.f - candidate.truth!.f) > this.maxFrequencyDelta
     );
+
+    let frequencyDelta: number | undefined;
+    if (hasConflict) {
+      const existingBelief = beliefs.find(
+        (b) => b.truth && b.term.toString() === candidate.term.toString()
+      );
+      if (existingBelief?.truth) {
+        frequencyDelta = Math.abs(existingBelief.truth.f - candidate.truth!.f);
+      }
+    }
 
     // R7: Record shadow verdict label for distillation
     if (this.#dataset) {
@@ -69,7 +91,11 @@ export class ShadowValidator {
       });
     }
 
-    return !hasConflict;
+    return {
+      valid: !hasConflict,
+      conflictType: hasConflict ? 'frequency' : undefined,
+      frequencyDelta,
+    };
   }
 
   /**
@@ -78,12 +104,12 @@ export class ShadowValidator {
    * (Z2 convention — hash scorers are not load-bearing); abstain or unfitted
    * heads fall back to the frequency check. Records the combined verdict.
    */
-  async validateWithHead(candidate: BeliefLike, beliefs: readonly BeliefLike[]): Promise<boolean> {
-    const frequencyVerdict = this.validate(candidate, beliefs);
-    if (!this.#systemOne || !frequencyVerdict) return frequencyVerdict;
+  async validateWithHead(candidate: BeliefLike, beliefs: readonly BeliefLike[]): Promise<ShadowValidationResult> {
+    const frequencyResult = this.validate(candidate, beliefs);
+    if (!this.#systemOne || !frequencyResult.valid) return frequencyResult;
 
     const verdict = await this.#systemOne.adapter.conflictScore(candidate.term.toString());
-    if (!verdict || verdict.abstained || !verdict.fitted) return frequencyVerdict;
+    if (!verdict || verdict.abstained || !verdict.fitted) return frequencyResult;
     const semanticConflict =
       verdict.score >= (this.#systemOne.conflictThreshold ?? DEFAULTS.conflictThreshold);
     if (this.#dataset) {
@@ -92,12 +118,16 @@ export class ShadowValidator {
         verdict: semanticConflict ? 'conflict' : 'support',
       });
     }
-    return !semanticConflict;
+    return {
+      valid: !semanticConflict,
+      conflictType: semanticConflict ? 'semantic' : undefined,
+      semanticScore: semanticConflict ? verdict.score : undefined,
+    };
   }
 
   /** Filter a task list, keeping only shadow-valid candidates. */
   validateAll(candidates: readonly BeliefLike[], beliefs: readonly BeliefLike[]): BeliefLike[] {
-    return candidates.filter((t) => this.validate(t, beliefs));
+    return candidates.filter((t) => this.validate(t, beliefs).valid);
   }
 
   /** Set the distillation dataset for label recording (for singleton instance). */

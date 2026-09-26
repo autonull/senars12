@@ -19,7 +19,24 @@ const cache = <T extends Term>(term: T, key: string): T => {
   return term;
 };
 
+// Valid atom character class from the Narsese grammar (narsese.peggy)
+// Regular atoms: [^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+
+// The colon ':' is allowed only in namespaced atoms (handled by parser via ColonedAtom)
+// This regex matches any character that is INVALID in a regular atom
+// Excluded chars: (){}[]<>.,!%?;:@ \t\n\r=&/|>- (note: + is ALLOWED)
+const INVALID_ATOM_CHARS = /[(){}[\].<>.,!%?;:@ \t\n\r=&/|>-]/;
+
 const createAtom = (symbol: string): AtomicTerm => {
+  if (symbol.includes(':')) {
+    throw new Error(`Atomic term symbol cannot contain ':' (Narsese compact inheritance shorthand). Use '_' instead, or use the parser for namespaced terms like 'ns:term'.`);
+  }
+  if (INVALID_ATOM_CHARS.test(symbol)) {
+    const badChar = symbol.match(INVALID_ATOM_CHARS)?.[0];
+    throw new Error(
+      `Atomic term symbol cannot contain '${badChar}' (reserved in Narsese grammar). ` +
+      `Use '_' instead.`
+    );
+  }
   const key = `atom:${symbol}`;
   const cached = termCache.get(key);
   if (cached) return cached as AtomicTerm;

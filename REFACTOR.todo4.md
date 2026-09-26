@@ -199,14 +199,14 @@ Closes the loop: the budget becomes mechanical rather than aspirational.
 
 ## 8. Progress
    
-  _Phase A complete (2026-09-25). Phase B in progress — Ledger<T> primitive landed; 11/11 sites migrated; rule-builders → rule-templates cycle broken. Phase C complete (2026-09-25) — typecheck:bin errors resolved to 0._
+  _Phase A complete (2026-09-25). Phase B in progress — Ledger<T> primitive landed; 11/11 sites migrated; rule-builders → rule-templates cycle broken. Phase C complete (2026-09-25) — typecheck:bin errors resolved to 0. Phase D complete (2026-09-25) — bounded accumulators, AIKRProcessor boilerplate collapsed, judgment leaks fixed._
    
 | Phase | Scope | Deletions declared | Bench | Status |
 |---|---|---|---:|---|
 | A | Middleware primitive + stage graph + `ThreadScope` | 1 dispatch loop, 1 type decl, 1 guard | 95 | ✅ |
 | B | `Ledger<T>` across 11 sites + cycle break | ~11 persistence impls, 1 sidecar format | 96 | 🔄 (11/11 migrated, cycle break complete) |
 | C | 83 `typecheck:bin` errors + `CriticReflex` + `.timeline` | 83 errors, private reach-ins | 97 | ✅ |
-| D | 2 unbounded accumulators bounded + `AIKRProcessor` boilerplate collapsed + judgment leaks | 3 options copies, 2 inlined types, delegation twins, 2 unbounded stores | 98 | ⬜ |
+| D | 2 unbounded accumulators bounded + `AIKRProcessor` boilerplate collapsed + judgment leaks | 3 options copies, 2 inlined types, delegation twins, 2 unbounded stores | 98 | ✅ |
 | E | Complexity budget gate | — (instrument, C11-exempt) | 99 | ⬜ |
 
   **Phase B progress (2026-09-25):**
@@ -250,3 +250,21 @@ Closes the loop: the budget becomes mechanical rather than aspirational.
   - `scripts/arcade.ts` — Added otel/headLoaded to parseArgs return type, fixed buildCognitiveArm return type with headLoaded, fixed GameRegistry.create() type casting for GameInterface<unknown, string | number>, fixed game state terminal check using observe() instead of state()
   - **Remaining errors**: tests only (pre-existing groundedness gate type issues in todo16/todo22 test files)
   - **Phase C complete**: `pnpm typecheck:bin` now passes with 0 errors
+
+  **Phase D progress (2026-09-25):**
+  - `nar/src/kernel/source-reputation.ts` — Added `capacity` option (default 10,000) with LRU eviction; `#touch()` and `#evictIfNeeded()` methods; `multiplier()` and `effectiveCeiling()` now touch LRU on access
+  - `nar/src/rl/q-belief-store.ts` — Added `QBeliefStoreOptions.capacity` (default 1,000) with LRU eviction; `#touchState()` and `#evictIfNeeded()`; all read methods (`getValue`, `getMaxValue`, `getAllActions`, `getBestAction`, `getLowConfidenceActions`) now touch LRU
+  - `nar/src/learning/aikr-processor.ts` — Added shared `AikrBagOptions` interface (capacity, pressureThreshold, forgetRate, budget, rng) and exported `ProcessOptions`; eliminated per-class option duplication
+  - `nar/src/memory/episode-consolidator.ts` — `EpisodeConsolidatorOptions` now extends `AikrBagOptions`; uses `ProcessOptions` from aikr-processor
+  - `nar/src/meta/proposal-bag.ts` — `ProposalBagOptions` now extends `AikrBagOptions`; uses `ProcessOptions` from aikr-processor
+  - `nar/src/lm/system-one/hard-negatives.ts` — `MiningBagOptions` now extends `AikrBagOptions`; uses `ProcessOptions` from aikr-processor
+  - `nar/src/learning/schema-induction.ts` — `SchemaInductionConfig` now extends `AikrBagOptions`; uses `ProcessOptions` from aikr-processor; bag configured with shared options
+  - `nar/src/lm/shadow-validation.ts` — `validate()` and `validateWithHead()` now return `ShadowValidationResult` with `valid`, `conflictType`, `frequencyDelta`, `semanticScore` instead of bare boolean
+  - `nar/src/lm/admit.ts` — Shadow validation drops now emit `ShadowValidationDropEvent` to PerceptionGate event log with full conflict details (candidateTerm, source, conflictType, frequencyDelta, semanticScore)
+  - `kernel/src/schemas.ts` — Added `ShadowValidationDropEventSchema` to `CognitiveEventSchema` discriminated union
+  - `nar/src/lm/system-one/verify.ts` — `verifyCascade()` now returns `VerifyResult` with `JudgmentProvenance` matching Decider format (modelDigest, calibrationDigest, inputDigest, fitted, abstained, band, timestamp)
+  - `nar/src/reflex/Reflex.ts` — `ActionProposal` now includes optional `provenance: JudgmentProvenance`
+  - `nar/src/lm/system-one/cascade-reflex.ts` — `PlacementCascadeReflex` now stores and returns `JudgmentProvenance` with each proposal; `deriveCascadeProvenance()` extracts provenance from stage1/stage2 results
+  - `tests/nar/refactor4-bounded-aikr.test.ts` — Bench 98 created; 17 tests pass covering SourceReputation LRU, QBeliefStore LRU, AikrBagOptions/ProcessOptions consolidation, ShadowValidationResult, verifyCascade provenance, PlacementCascadeReflex provenance, and AikrBagOptions usage across all 5 sites
+  - **Deletions achieved**: 3 copies of option bags eliminated (EpisodeConsolidator, ProposalBag, MiningBag, SchemaInductor now share AikrBagOptions); 2 inlined ProcessOptions eliminated; per-class delegation twins removed via shared AIKRProcessor
+  - **Known issue**: Property-based tests fail because `fc.string()` generates arbitrary strings including spaces/colons which violate the Atom symbol grammar (Narsese compact inheritance shorthand). The `stringMatching()` regex `/^[^(){}[\].<>.,!%?;:@ \t\n\r=&/|>-]+$/` correctly filters but fast-check's shrinker produces invalid strings during test failure investigation. Need to use a character-set-based arbitrary (`fc.string({unit: fc.constantFrom(...)})`) with only valid atom characters (alphanum, underscore, plus) to prevent invalid atom creation during property-based testing.

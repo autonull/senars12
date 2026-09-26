@@ -1,7 +1,6 @@
-import { type Term, Truth } from '../index.js';
+import { type Term, Truth, TermBuilder } from '../index.js';
 import type { NAR } from '../nar.js';
 import { QBeliefStore } from './q-belief-store.js';
-import { atm, inh } from './terms.js';
 
 /**
  * Handles reward representation and value updates with TD learning support
@@ -46,7 +45,11 @@ export class RewardBeliefAdapter {
     await this.qStore.updateValue(state, action, reward, confidence);
 
     const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
-    const rewardTerm = inh(atm(`reward:${rewardLevel}`), atm('achieved'));
+    const rewardTerm = TermBuilder.inheritance(
+      TermBuilder.atom(`reward:${rewardLevel}`),
+      TermBuilder.atom('achieved')
+    );
+    if (!rewardTerm) throw new Error(`Invalid inheritance: reward:${rewardLevel} --> achieved`);
     await this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
   }
 
@@ -82,7 +85,11 @@ export class RewardBeliefAdapter {
     );
 
     const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
-    const rewardTerm = inh(atm(`reward:${rewardLevel}`), atm('achieved'));
+    const rewardTerm = TermBuilder.inheritance(
+      TermBuilder.atom(`reward:${rewardLevel}`),
+      TermBuilder.atom('achieved')
+    );
+    if (!rewardTerm) throw new Error(`Invalid inheritance: reward:${rewardLevel} --> achieved`);
     await this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
   }
 
@@ -112,14 +119,18 @@ export class RewardBeliefAdapter {
     await this.qStore.updateValueTD(state, action, tdTarget, this.config.tdConfidence);
 
     const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
-    const rewardTerm = inh(atm(`reward:${rewardLevel}`), atm('achieved'));
+    const rewardTerm = TermBuilder.inheritance(
+      TermBuilder.atom(`reward:${rewardLevel}`),
+      TermBuilder.atom('achieved')
+    );
+    if (!rewardTerm) throw new Error(`Invalid inheritance: reward:${rewardLevel} --> achieved`);
     await this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
   }
 
   /** Create terminal satisfaction signal (goal term for nar.goal()) */
   createSatisfactionSignal(reward: number): Term {
     const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
-    return atm(`reward:${rewardLevel}`);
+    return TermBuilder.atom(`reward:${rewardLevel}`);
   }
 
   getQStore(): QBeliefStore {

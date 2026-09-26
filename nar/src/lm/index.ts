@@ -105,6 +105,6 @@ export {
   resolveOfflineTier,
   setRouting,
 } from './providers.js';
-export type { ShadowCheckOptions, ShadowSystemOneDeps } from './shadow-validation.js';
+export type { ShadowCheckOptions, ShadowSystemOneDeps, ShadowValidationResult } from './shadow-validation.js';
 export { ShadowValidator, shadowValidator } from './shadow-validation.js';
 export { createLMStats, recordLMCall } from './stats.js';

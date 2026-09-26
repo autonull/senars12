@@ -8,7 +8,7 @@
  */
 import { createHash } from 'node:crypto';
 import type { Episode, EpisodeType } from '@senars/util';
-import { AIKRProcessor, type ProcessOptions } from '../learning/aikr-processor.js';
+import { AIKRProcessor, type ProcessOptions, type AikrBagOptions } from '../learning/aikr-processor.js';
 import { PriorityBag } from '../bag/Bag.js';
 import type { RandomSource } from '../types/primitives.js';
 
@@ -50,19 +50,9 @@ export const episodeSalience = (episode: Episode): number => {
   return episode.type === 'reaction' && kind === 'correct' ? SALIENCE.reaction * 1.25 : SALIENCE[episode.type];
 };
 
-export interface EpisodeConsolidatorOptions {
-  /** Bag capacity (AIKR bound; default 256). */
-  capacity?: number;
-  /** Pressure threshold below which consolidation is inert (default 0.7). */
-  pressureThreshold?: number;
-  /** Priority floor below which decayed candidates are forgotten (bag forgetRate). */
-  forgetRate?: number;
+export interface EpisodeConsolidatorOptions extends AikrBagOptions {
   /** Max episodes merged per summary (default 6). */
   maxMerged?: number;
-  /** Default items examined per pass (default 8). */
-  budget?: number;
-  /** Injected randomness for sampling (default Math.random; symbolic path is deterministic regardless). */
-  rng?: RandomSource;
   /** Summary sink — typically `episodic.log('belief_added', …)`. Absent ⇒ results returned only. */
   emit?: (summary: Episode) => Promise<void> | void;
   /** Optional LM summarizer; null/exception ⇒ symbolic fallback. */

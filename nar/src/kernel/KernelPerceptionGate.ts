@@ -5,6 +5,7 @@ import type {
   PerceptionGateOutput,
   SourceQuality,
   TaskAdmittedEvent,
+  ShadowValidationDropEvent,
 } from '@senars/kernel/schemas';
 import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
@@ -80,6 +81,11 @@ export class KernelPerceptionGate {
     this.eventLog.push(event);
     if (this.eventLog.length > KernelPerceptionGate.EVENT_LOG_CAPACITY)
       this.eventLog.splice(0, this.eventLog.length - KernelPerceptionGate.EVENT_LOG_CAPACITY);
+  }
+
+  /** Emit a shadow validation drop event to the gate's event log. */
+  emitShadowValidationDrop(event: ShadowValidationDropEvent): void {
+    this.#pushEvent(event as CognitiveEvent);
   }
 
   async admit(input: PerceptionGateInput): Promise<PerceptionGateOutput> {

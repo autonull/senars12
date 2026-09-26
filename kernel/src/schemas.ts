@@ -223,6 +223,17 @@ export const EgressGateRejectedEventSchema = CognitiveEventBaseSchema.extend({
   }),
 });
 
+export const ShadowValidationDropEventSchema = CognitiveEventBaseSchema.extend({
+  type: z.literal('shadow.validation.dropped'),
+  payload: z.object({
+    candidateTerm: z.string(),
+    source: z.enum(['llm', 'bridge-llm']),
+    conflictType: z.enum(['frequency', 'semantic']),
+    frequencyDelta: z.number().optional(),
+    semanticScore: z.number().optional(),
+  }),
+});
+
 export const CognitiveEventSchema = z.discriminatedUnion('type', [
   TaskAdmittedEventSchema,
   DerivationAcceptedEventSchema,
@@ -234,10 +245,12 @@ export const CognitiveEventSchema = z.discriminatedUnion('type', [
   SelfModProposalEventSchema,
   JudgmentResolvedEventSchema,
   EgressGateRejectedEventSchema,
+  ShadowValidationDropEventSchema,
 ]);
 
 export type CognitiveEvent = z.infer<typeof CognitiveEventSchema>;
 export type EgressGateRejectedEvent = z.infer<typeof EgressGateRejectedEventSchema>;
+export type ShadowValidationDropEvent = z.infer<typeof ShadowValidationDropEventSchema>;
 export type TaskAdmittedEvent = z.infer<typeof TaskAdmittedEventSchema>;
 export type DerivationAcceptedEvent = z.infer<typeof DerivationAcceptedEventSchema>;
 export type BeliefRevisedEvent = z.infer<typeof BeliefRevisedEventSchema>;

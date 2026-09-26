@@ -24,6 +24,8 @@ export interface SourceReputationOptions {
   path?: string;
   /** Contradictions needed before the multiplier starts dropping (default 2). */
   contradictionsBeforeDecay?: number;
+  /** Maximum entries in memory (AIKR bound; default 10000). LRU eviction applies. */
+  capacity?: number;
 }
 
 const ReputationDeltaSchema = BaseLedgerEntrySchema.extend({
@@ -37,6 +39,7 @@ const ReputationDeltaSchema = BaseLedgerEntrySchema.extend({
 export type ReputationDeltaEntry = z.infer<typeof ReputationDeltaSchema>;
 
 export const DEFAULT_REPUTATION_PATH = '.cache/parameters/source-reputation';
+export const DEFAULT_REPUTATION_CAPACITY = 10_000;
 
 /**
  * SourceReputation — now backed by the generic `Ledger<T>` primitive.
@@ -45,12 +48,15 @@ export const DEFAULT_REPUTATION_PATH = '.cache/parameters/source-reputation';
 export class SourceReputation {
   readonly #ledger: Ledger<ReputationDeltaEntry>;
   readonly #entries = new Map<string, ReputationEntry>();
+  readonly #accessOrder = new Set<string>(); // LRU: least recently used at start
   readonly #floor: number;
   readonly #decayGate: number;
+  readonly #capacity: number;
 
   constructor(options: SourceReputationOptions = {}) {
     this.#floor = options.floor ?? 0.5;
     this.#decayGate = options.contradictionsBeforeDecay ?? 2;
+    this.#capacity = options.capacity ?? DEFAULT_REPUTATION_CAPACITY;
     if (options.path) {
       // Fixed file mode for backward compatibility with tests
       this.#ledger = createLedger<ReputationDeltaEntry>('', ReputationDeltaSchema, {
@@ -68,6 +74,7 @@ export class SourceReputation {
           entry.confirmed += r.delta.confirmed ?? 0;
           entry.contradicted += r.delta.contradicted ?? 0;
           this.#entries.set(r.key, entry);
+          this.#touch(r.key);
         }
       }).catch(() => {});
     }
@@ -85,6 +92,7 @@ export class SourceReputation {
           entry.confirmed += r.delta.confirmed ?? 0;
           entry.contradicted += r.delta.contradicted ?? 0;
           this.#entries.set(r.key, entry);
+          this.#touch(r.key);
         } catch {
           /* skip malformed lines */
         }
@@ -94,10 +102,31 @@ export class SourceReputation {
     }
   }
 
+  /** LRU touch — moves key to most-recently-used position. */
+  #touch(key: string): void {
+    this.#accessOrder.delete(key);
+    this.#accessOrder.add(key);
+    this.#evictIfNeeded();
+  }
+
+  /** Evict LRU entries if over capacity. */
+  #evictIfNeeded(): void {
+    while (this.#entries.size > this.#capacity && this.#accessOrder.size > 0) {
+      const lru = this.#accessOrder.values().next().value;
+      if (lru) {
+        this.#accessOrder.delete(lru);
+        this.#entries.delete(lru);
+      } else {
+        break;
+      }
+    }
+  }
+
   record(key: string, outcome: 'confirmed' | 'contradicted'): void {
     const entry = this.#entries.get(key) ?? { confirmed: 0, contradicted: 0 };
     entry[outcome]++;
     this.#entries.set(key, entry);
+    this.#touch(key);
 
     const delta = outcome === 'confirmed'
       ? { confirmed: 1, contradicted: 0 }
@@ -114,6 +143,7 @@ export class SourceReputation {
   multiplier(key: string): number {
     const entry = this.#entries.get(key);
     if (!entry) return 1;
+    this.#touch(key);
     if (entry.contradicted < this.#decayGate) return 1;
     const share = entry.contradicted / Math.max(entry.confirmed + entry.contradicted, 1);
     return Math.max(this.#floor, clamp01(1 - share));
@@ -121,6 +151,9 @@ export class SourceReputation {
 
   /** `effectiveCeiling = baseQuality × multiplier` (clamped to [0, 1]). */
   effectiveCeiling(baseQuality: number, key: string): number {
+    const entry = this.#entries.get(key);
+    if (!entry) return clamp01(baseQuality);
+    this.#touch(key);
     return clamp01(baseQuality * this.multiplier(key));
   }
 
@@ -136,5 +169,10 @@ export class SourceReputation {
 
   get size(): number {
     return this.#entries.size;
+  }
+
+  /** Current capacity bound (for diagnostics/tests). */
+  get capacity(): number {
+    return this.#capacity;
   }
 }

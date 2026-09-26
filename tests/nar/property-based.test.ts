@@ -9,11 +9,21 @@ import {
   termsEqual,
 } from '../../nar/src/terms';
 
+// Valid atom name arbitrary matching Narsese grammar: [^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+
+// Excludes: (){}[]<>.,!%?;:@ \t\n\r=&/|>-  (note: + is ALLOWED, - is NOT)
+const validAtomName = fc.string({
+  minLength: 1,
+  maxLength: 20,
+  unit: fc.constantFrom(
+    ...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+'.split('')
+  ),
+});
+
 describe('Property-Based Tests', () => {
   describe('Term Invariants', () => {
     it('atomic terms have consistent hashes', () => {
       fc.assert(
-        fc.property(fc.string(), (name) => {
+        fc.property(validAtomName, (name) => {
           const term1 = TermBuilder.atom(name);
           const term2 = TermBuilder.atom(name);
           expect(termsEqual(term1, term2)).toBe(true);
@@ -24,7 +34,7 @@ describe('Property-Based Tests', () => {
 
     it('conjunction is commutative for hashing', () => {
       fc.assert(
-        fc.property(fc.string(), fc.string(), (a, b) => {
+        fc.property(validAtomName, validAtomName, (a, b) => {
           const termA = TermBuilder.atom(a);
           const termB = TermBuilder.atom(b);
           const conj1 = TermBuilder.conjunction(termA, termB);
@@ -36,7 +46,7 @@ describe('Property-Based Tests', () => {
 
     it('disjunction is commutative for hashing', () => {
       fc.assert(
-        fc.property(fc.string(), fc.string(), (a, b) => {
+        fc.property(validAtomName, validAtomName, (a, b) => {
           const termA = TermBuilder.atom(a);
           const termB = TermBuilder.atom(b);
           const disj1 = TermBuilder.disjunction(termA, termB);
@@ -48,7 +58,7 @@ describe('Property-Based Tests', () => {
 
     it('inheritance is NOT commutative', () => {
       fc.assert(
-        fc.property(fc.string(), fc.string(), (a, b) => {
+        fc.property(validAtomName, validAtomName, (a, b) => {
           if (a === b) return;
           const termA = TermBuilder.atom(a);
           const termB = TermBuilder.atom(b);
@@ -61,7 +71,7 @@ describe('Property-Based Tests', () => {
 
     it('terms are structurally shared', () => {
       fc.assert(
-        fc.property(fc.string(), (name) => {
+        fc.property(validAtomName, (name) => {
           const term1 = TermBuilder.atom(name);
           const term2 = TermBuilder.atom(name);
           expect(term1).toBe(term2);
@@ -170,7 +180,7 @@ describe('Property-Based Tests', () => {
   describe('Normalization Invariants', () => {
     it('normalize(normalize(t)) produces same hash as normalize(t)', () => {
       fc.assert(
-        fc.property(fc.string(), (name) => {
+        fc.property(validAtomName, (name) => {
           const term = TermBuilder.atom(name);
           const norm1 = normalize(term);
           const norm2 = normalize(norm1);
@@ -181,7 +191,7 @@ describe('Property-Based Tests', () => {
 
     it('normalize is idempotent for conjunctions', () => {
       fc.assert(
-        fc.property(fc.string(), fc.string(), (a, b) => {
+        fc.property(validAtomName, validAtomName, (a, b) => {
           const t1 = TermBuilder.atom(a);
           const t2 = TermBuilder.atom(b);
           const conj = TermBuilder.conjunction(t1, t2);
@@ -231,7 +241,7 @@ describe('Property-Based Tests', () => {
   describe('Rule Idempotence', () => {
     it('atom terms never mutate on normalization', () => {
       fc.assert(
-        fc.property(fc.string(), (name) => {
+        fc.property(validAtomName, (name) => {
           const atom = TermBuilder.atom(name);
 
           normalize(atom);

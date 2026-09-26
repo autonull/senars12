@@ -15,6 +15,7 @@ import type {
   AutonomyModeChangedEvent,
   FormalizationBatch,
   SourceQuality,
+  ShadowValidationDropEvent,
 } from '@senars/kernel/schemas';
 import type { Term, TaskTypeName } from '../terms';
 import type { IngressJudge } from './ingress.js';
@@ -73,6 +74,8 @@ export interface IPerceptionGate {
     admitted: Array<Record<string, unknown>>;
     rejected: Array<{ candidateId: string; reason: string }>;
   };
+  /** Emit a shadow validation drop event to the gate's event log. */
+  emitShadowValidationDrop(event: ShadowValidationDropEvent): void;
   getEventLog(): ReadonlyArray<CognitiveEvent>;
   clearEventLog(): void;
   setDriveManager(dm: { stimulate(driveId: string, amount: number): void }): void;
