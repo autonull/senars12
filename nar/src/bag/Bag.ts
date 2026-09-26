@@ -1,9 +1,13 @@
 import type { RandomSource } from '../types/primitives.js';
 
+export type { RandomSource } from '../types/primitives.js';
+
 export interface BagItem {
   id: string;
   priority: number;
 }
+
+export type BagImplementation = 'priority' | 'fenwick';
 
 export interface BagOptions {
   capacity: number;
@@ -11,6 +15,8 @@ export interface BagOptions {
   forgetRate?: number;
   /** Injected randomness for sampling/eviction (default Math.random). */
   rng?: RandomSource;
+  /** Bag implementation to use (default 'priority'). */
+  implementation?: BagImplementation;
 }
 
 export type EvictStrategy = 'LRU' | 'LowestPriority' | 'Random';
@@ -35,6 +41,10 @@ export interface Bag<T extends BagItem> {
   forEach(fn: (item: T) => void): void;
   all(): IterableIterator<T>;
   entries(): IterableIterator<[T, number]>;
+  version: number;
+  clear(): void;
+  peek(): T | undefined;
+  toArray(): T[];
 }
 
 interface InternalEntry<T extends BagItem> {
@@ -257,5 +267,18 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
 
   toArray(): T[] {
     return this.heap.map((e) => e.item);
+  }
+}
+
+import { FenwickBag } from './FenwickBag.js';
+
+/** Factory to create a Bag instance based on the implementation option. */
+export function createBag<T extends BagItem>(options: BagOptions): Bag<T> {
+  switch (options.implementation ?? 'priority') {
+    case 'fenwick':
+      return new FenwickBag<T>(options);
+    case 'priority':
+    default:
+      return new PriorityBag<T>(options);
   }
 }

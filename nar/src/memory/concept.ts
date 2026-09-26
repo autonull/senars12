@@ -1,4 +1,4 @@
-import { PriorityBag } from '../bag/Bag.js';
+import { createBag, type Bag, type BagOptions } from '../bag/Bag.js';
 import { LINK } from '../constants.js';
 import type { Term, Truth } from '../terms';
 import { extractSymbols, type Stamp, TermMap, TermSet, termsEqual } from '../terms';
@@ -24,6 +24,7 @@ export interface ConceptConfig {
   maxGoals?: number;
   maxQuestions?: number;
   onRevision?: RevisionCallback;
+  bagImplementation?: BagOptions['implementation'];
 }
 
 export interface TaskData {
@@ -53,9 +54,9 @@ export interface ConceptMergeResult {
 
 export class Concept {
   readonly term: Term;
-  readonly beliefBag: PriorityBag<TaskData>;
-  readonly goalBag: PriorityBag<TaskData>;
-  readonly questionBag: PriorityBag<TaskData>;
+  readonly beliefBag: Bag<TaskData>;
+  readonly goalBag: Bag<TaskData>;
+  readonly questionBag: Bag<TaskData>;
   readonly createdAt: number;
   lastAccessedAt: number;
   private activation = 0;
@@ -68,9 +69,13 @@ export class Concept {
 
   constructor(term: Term, config: ConceptConfig = {}) {
     this.term = term;
-    this.beliefBag = new PriorityBag<TaskData>({ capacity: config.maxBeliefs ?? 100 });
-    this.goalBag = new PriorityBag<TaskData>({ capacity: config.maxGoals ?? 50 });
-    this.questionBag = new PriorityBag<TaskData>({ capacity: config.maxQuestions ?? 20 });
+    const baseOptions: BagOptions = {
+      capacity: 100,
+      implementation: config.bagImplementation ?? 'priority',
+    };
+    this.beliefBag = createBag<TaskData>({ ...baseOptions, capacity: config.maxBeliefs ?? 100 });
+    this.goalBag = createBag<TaskData>({ ...baseOptions, capacity: config.maxGoals ?? 50 });
+    this.questionBag = createBag<TaskData>({ ...baseOptions, capacity: config.maxQuestions ?? 20 });
     this.createdAt = Date.now();
     this.lastAccessedAt = Date.now();
     this.lastDecayTime = Date.now();

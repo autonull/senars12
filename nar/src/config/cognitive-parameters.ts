@@ -43,6 +43,7 @@ export interface CognitiveParameters {
     derivation: { type: string; config?: Record<string, unknown> };
     lmRule: { type: string; maxRules: number; config?: Record<string, unknown> };
     attention: { type: string; config?: Record<string, unknown> };
+    bag: { type: 'priority' | 'fenwick'; config?: Record<string, unknown> };
   };
 }
 
@@ -226,6 +227,7 @@ function buildDefaults(): CognitiveParameters {
       derivation: { type: 'default' },
       lmRule: { type: 'priority', maxRules: 5 },
       attention: { type: 'simple' },
+      bag: { type: 'priority' },
     },
   };
 }
@@ -379,6 +381,7 @@ export function mergeParameters(partial: Partial<CognitiveParameters>): Cognitiv
         ...DEFAULT_COGNITIVE_PARAMETERS.strategies.attention,
         ...partial.strategies?.attention,
       },
+      bag: { ...DEFAULT_COGNITIVE_PARAMETERS.strategies.bag, ...partial.strategies?.bag },
     },
   };
 }

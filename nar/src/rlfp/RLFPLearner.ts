@@ -131,6 +131,7 @@ export class RLFPLearner {
         derivation: { type: 'default' },
         lmRule: { type: 'priority', maxRules: 5 },
         attention: { type: 'simple' },
+        bag: { type: 'priority' },
       },
     };
     this.knobs = createKnobSet(this.currentParams);

@@ -114,3 +114,6 @@ README rewrite; further MeTTa surface reduction (H1, revisit post-F1); `.kiro/le
 | B2 | B | Premise-strategy one-home: created `strategies/premise/`, moved `reason/premise/*` (formation, sample, index) + selection strategies there; `reason/` keeps reasoner, strategy-algebra, inference-controller | 101 | ✅ |
 | B3 | B | Strategy-algebra unification: generalized `CognitiveRegistry.compose(type, weights[])` for all 5 strategy types using `PriorityBag` for weighted sampling | 101 | ✅ |
 | B4 | B | Genuine `PrologResolutionStrategy`: SLD resolution with unification, Horn clause backward chaining, occurs-check, depth-bounded search in `strategies/premise/prolog-resolution.ts`; registered as `premise` strategy `prolog-resolution` | 101 | ✅ |
+| C1 | C | Pluggable Bag: `FenwickBag<T>` as alternate `Bag<T>` impl behind `BagOptions.implementation: 'priority' | 'fenwick'` + `createBag()` factory in `nar/src/bag/`; `strategies.bag` knob in `CognitiveParameters.strategies`; `Concept.ts` uses `createBag` factory | 102 | ✅ |
+| C2 | C | Generalized strategy composition: `CognitiveRegistry.compose(type, weights[])` across all 5 strategy types (already done in B3) | 102 | ✅ |
+| C3 | C | Unified `BudgetSlice` in `kernel/src/budget.ts` flowing gate → thread → focus → bag → derivation | 102 | ✅ |
