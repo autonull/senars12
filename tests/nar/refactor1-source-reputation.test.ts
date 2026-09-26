@@ -76,14 +76,23 @@ describe('Bench 85 — source reputation', () => {
 
   it('persists an append-only JSONL ledger and reloads it', async () => {
     const dir = await tmpBase();
-    const path = join(dir, 'source-reputation.jsonl');
+    const path = join(dir, 'source-reputation');
     const rep = new SourceReputation({ path });
     rep.record('peer-d', 'contradicted');
+    await new Promise(r => setTimeout(r, 10));
     rep.record('peer-d', 'contradicted');
+    await new Promise(r => setTimeout(r, 10));
     rep.record('peer-d', 'confirmed');
-    const content = await readFile(path, 'utf-8');
+    // Ledger writes to daily files in the directory
+    const { readdirSync, readFileSync } = await import('node:fs');
+    const files = readdirSync(path);
+    expect(files.some(f => f.endsWith('.jsonl'))).toBe(true);
+    const content = readFileSync(join(path, files.find(f => f.endsWith('.jsonl'))!), 'utf-8');
     expect(content.trim().split('\n')).toHaveLength(3);
+    // Wait for async load to complete
+    await new Promise(r => setTimeout(r, 50));
     const reloaded = new SourceReputation({ path });
+    await new Promise(r => setTimeout(r, 50));
     expect(reloaded.table().get('peer-d')).toMatchObject({
       confirmed: 1,
       contradicted: 2,

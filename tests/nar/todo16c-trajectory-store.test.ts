@@ -77,46 +77,36 @@ describe('E4 follow-up (a): TrajectoryStore pairs graded cycles into implicit pr
   });
 });
 
-describe('D3 follow-up: dataset compaction dedupes rows and prunes orphaned vectors', () => {
-  it('keeps last row per evidenceId and prunes sidecar files without a live row', async () => {
+describe('D3 follow-up: dataset compaction dedupes rows (inline vectors)', () => {
+  it('keeps last row per evidenceId', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'dataset-compact-'));
     try {
       const datasetPath = join(dir, 'dataset.jsonl');
-      const sidecarPath = join(dir, 'vectors');
-      const row = (evidenceId: string, score: number, vecRef?: string): DistillationLabel => ({
+      const vector = Buffer.from(new Float32Array([1, 2]).buffer).toString('base64');
+      const row = (evidenceId: string, score: number, vector?: string): DistillationLabel => ({
         evidenceId,
         rubric: 'risk',
         axis: 'teleological',
         label: 'medium',
         score,
         source: 'test',
-        ...(vecRef ? { vecRef } : {}),
+        ...(vector ? { vector } : {}),
       });
       writeFileSync(
         datasetPath,
-        [row('a', 0.1, 'a'), row('a', 0.2), row('b', 0.3, 'b'), 'malformed', row('b', 0.4)]
+        [row('a', 0.1, vector), row('a', 0.2), row('b', 0.3, vector), 'malformed', row('b', 0.4, vector)]
           .map((r) => (typeof r === 'string' ? r : JSON.stringify(r)))
           .join('\n') + '\n',
         'utf-8'
       );
-      const { mkdirSync } = await import('node:fs');
-      mkdirSync(sidecarPath, { recursive: true });
-      writeFileSync(join(sidecarPath, 'a.f32'), Buffer.from(new Float32Array([1, 2]).buffer));
-      writeFileSync(join(sidecarPath, 'b.f32'), Buffer.from(new Float32Array([3]).buffer));
-      writeFileSync(join(sidecarPath, 'orphan.f32'), Buffer.from(new Float32Array([4]).buffer));
 
-      const result = await JudgmentDataset.compact(datasetPath, sidecarPath);
+      const result = await JudgmentDataset.compact(datasetPath);
       expect(result.kept).toBe(2);
       expect(result.dropped).toBe(3); // duplicate 'a', duplicate 'b', malformed
-      expect(result.vectorsDropped).toBe(1);
-      expect(result.vectorsKept).toBe(2);
 
       const lines = readFileSync(datasetPath, 'utf-8').trim().split('\n');
       const scores = lines.map((l) => JSON.parse(l) as { evidenceId: string; score: number });
       expect(scores.map((s) => `${s.evidenceId}:${s.score}`)).toEqual(['a:0.2', 'b:0.4']);
-      expect(readFileSync(join(sidecarPath, 'a.f32'))).toBeDefined();
-      expect(readFileSync(join(sidecarPath, 'b.f32'))).toBeDefined();
-      expect(() => readFileSync(join(sidecarPath, 'orphan.f32'))).toThrow();
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

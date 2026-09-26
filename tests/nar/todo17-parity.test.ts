@@ -19,6 +19,9 @@ import { snakeHeuristicAction } from './rl/baselines/snake.js';
 import { ticTacToeHeuristicAction } from './rl/baselines/tictactoe.js';
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
 import type { JudgmentManifold, JudgmentQuery, ReasoningBudget } from '@senars/nar/lm/system-one/types';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const EPISODES = 100;
@@ -73,7 +76,8 @@ describe('TODO17 Bench 35 — SOTA parity table', () => {
     // In-suite training fixture: 2000 synthetic reflex_value rows from a
     // slightly noisy but honest scorer (the real flywheel dataset on
     // model-cached machines), through the TODO16c D1 pipeline.
-    const dataset = new JudgmentDataset();
+    const tmp = mkdtempSync(join(tmpdir(), 's1-parity-'));
+    const dataset = new JudgmentDataset(tmp);
     const rng = new SeededRNG(5);
     for (let i = 0; i < 2000; i++) {
       const observed = rng.next() < 0.5 ? 1 : 0;

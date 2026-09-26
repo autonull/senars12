@@ -18,9 +18,8 @@ import { join } from 'node:path';
 import type { JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
 
 /** Synthetic labeled fixtures: risk head where observed outcomes follow a learnable pattern. */
-function buildLabeledDataset(rows: number, sidecarPath: string): JudgmentDataset {
-  const dataset = new JudgmentDataset();
-  dataset.setVectorSidecarPath(sidecarPath);
+function buildLabeledDataset(rows: number, basePath: string): JudgmentDataset {
+  const dataset = new JudgmentDataset(basePath);
   let s = 999;
   const rand = () => {
     s = (s + 0x6d2b79f5) >>> 0;
@@ -35,7 +34,7 @@ function buildLabeledDataset(rows: number, sidecarPath: string): JudgmentDataset
     const embedding = new Float32Array(384);
     for (let j = 0; j < 384; j++) embedding[j] = (j % 4 === action ? 1 : 0) + rand() * 0.05;
     recordApprovalLabel(dataset, {
-      action: `op-${action}:${i}`,
+      action: `op-${action}_${i}`,
       approved: observed > 0.5,
       predicted: observed,
       embedding,
@@ -45,17 +44,14 @@ function buildLabeledDataset(rows: number, sidecarPath: string): JudgmentDataset
 }
 
 describe('Training Round-Trip (Bench 24)', () => {
-  it('JSONL+sidecar → artifacts (config.json, weights.bin, MODEL_DIGEST) → digest-verified load → beats incumbent Brier', async () => {
+  it('JSONL (inline vectors) → artifacts (config.json, weights.bin, MODEL_DIGEST) → digest-verified load → beats incumbent Brier', async () => {
     const tmp = mkdtempSync(join(tmpdir(), 's1-train-'));
     const datasetPath = join(tmp, 'dataset.jsonl');
-    const sidecarPath = join(tmp, 'vectors');
     const outDir = join(tmp, 'heads', 'risk');
 
-    const dataset = buildLabeledDataset(500, sidecarPath);
+    const dataset = buildLabeledDataset(500, tmp);
     await dataset.flush(datasetPath);
-    await dataset.flushVectors();
-
-    const rows = await loadTrainingData({ datasetPath, sidecarPath, headId: 'risk' });
+    const rows = await loadTrainingData({ datasetPath, headId: 'risk' });
     expect(rows.length).toBeGreaterThan(100);
     const model = trainHead(
       rows.map((r) => ({ ...r, action: r.action.split(':')[0]! })),
@@ -111,11 +107,9 @@ describe('Training Round-Trip (Bench 24)', () => {
   it('D5: trained head compiles to a WASI bundle — sandbox-loaded eval matches the trained model, digest mismatch fails closed', async () => {
     const tmp = mkdtempSync(join(tmpdir(), 's1-wasi-'));
     const datasetPath = join(tmp, 'dataset.jsonl');
-    const sidecarPath = join(tmp, 'vectors');
-    const dataset = buildLabeledDataset(300, sidecarPath);
+    const dataset = buildLabeledDataset(300, tmp);
     await dataset.flush(datasetPath);
-    await dataset.flushVectors();
-    const rows = await loadTrainingData({ datasetPath, sidecarPath, headId: 'risk' });
+    const rows = await loadTrainingData({ datasetPath, headId: 'risk' });
     const model = trainHead(
       rows.map((r) => ({ ...r, action: r.action.split(':')[0]! })),
       { headId: 'risk', rubric: 'risk', axis: 'teleological' },
@@ -159,7 +153,8 @@ describe('Training Round-Trip (Bench 24)', () => {
   }, 120_000);
 
   it('D3 label sources (approval, clarification) record embeddings and observed outcomes', async () => {
-    const dataset = new JudgmentDataset();
+    const tmp = mkdtempSync(join(tmpdir(), 's1-label-'));
+    const dataset = new JudgmentDataset(tmp);
     recordApprovalLabel(dataset, { action: 'delete', approved: false, predicted: 0.2 });
     recordClarificationLabel(dataset, { question: 'q', answer: 'a' });
     expect(dataset.size).toBe(2);
@@ -169,7 +164,6 @@ describe('Training Round-Trip (Bench 24)', () => {
     expect(clarification!.source).toBe('human-clarification');
 
     // Auto-flush writes appended labels to disk (D3)
-    const tmp = mkdtempSync(join(tmpdir(), 's1-autoflush-'));
     const path = join(tmp, 'auto.jsonl');
     const stop = dataset.startAutoFlush(path, 20);
     await new Promise((r) => setTimeout(r, 80));

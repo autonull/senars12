@@ -85,12 +85,13 @@ export class JudgmentDataset {
 
   /** Record a label with optional inline vector (base64-encoded). */
   record(label: DistillationLabel, embedding?: Float32Array): void {
-    this.#labels.push(label);
+    const vectorB64 = embedding ? encodeVector(embedding) : label.vector;
+    const labelWithVector = vectorB64 ? { ...label, vector: vectorB64 } : label;
+    this.#labels.push(labelWithVector);
     if (embedding) this.#vectors.set(label.evidenceId, embedding);
     const entry: DistillationLabelEntry = {
-      ...label,
+      ...labelWithVector,
       at: Date.now(),
-      vector: embedding ? encodeVector(embedding) : label.vector,
     };
     this.#ledger.append(entry);
   }
@@ -115,7 +116,13 @@ export class JudgmentDataset {
   }
 
   toJSONL(): string {
-    return this.#labels.map((l) => JSON.stringify(l)).join('\n');
+    return this.#labels
+      .map((l) => {
+        const vector = this.#vectors.get(l.evidenceId);
+        const labelWithVector = vector ? { ...l, vector: encodeVector(vector) } : l;
+        return JSON.stringify(labelWithVector);
+      })
+      .join('\n');
   }
 
   /** Append the dataset to a JSONL file (creates directory if needed). */

@@ -61,7 +61,8 @@ describe('Bench 45 — Learning Closure', () => {
   });
 
   it('L2 — McReturnLabelSource folds discounted returns into the JudgmentDataset', () => {
-    const dataset = new JudgmentDataset();
+    const tmp = mkdtempSync(join(tmpdir(), 's1-mc-return-'));
+    const dataset = new JudgmentDataset(tmp);
     const ticks = [
       { action: 'clarify', reward: 0.2 },
       { action: 'ask_lm', reward: 0.5 },

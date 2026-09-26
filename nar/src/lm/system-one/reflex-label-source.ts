@@ -15,15 +15,15 @@ export interface ReflexOutcomeInput {
  * Redaction-per-retention — only the state-digest hash is stored, never raw text.
  */
 export function recordReflexOutcome(dataset: JudgmentDataset, input: ReflexOutcomeInput): void {
-  const stateVectorKey = computeEvidenceId(input.stateDigest, 'state');
-  dataset.record({
-    evidenceId: computeEvidenceId(input.stateDigest, `reflex:${input.action}`),
-    rubric: 'reflex_value',
-    axis: 'teleological',
-    label: input.action,
-    score: input.reward,
-    vector: input.embedding ? undefined : undefined, // Vector stored separately via recordVector
-    source: input.source,
-  });
-  if (input.embedding) dataset.recordVector(stateVectorKey, input.embedding);
+  dataset.record(
+    {
+      evidenceId: computeEvidenceId(input.stateDigest, `reflex:${input.action}`),
+      rubric: 'reflex_value',
+      axis: 'teleological',
+      label: input.action,
+      score: input.reward,
+      source: input.source,
+    },
+    input.embedding
+  );
 }

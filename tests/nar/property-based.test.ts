@@ -8,15 +8,13 @@ import {
   Truth,
   termsEqual,
 } from '../../nar/src/terms';
+import { VALID_ATOM_CHARS } from '../../nar/src/terms/valid-atom.js';
 
-// Valid atom name arbitrary matching Narsese grammar: [^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+
-// Excludes: (){}[]<>.,!%?;:@ \t\n\r=&/|>-  (note: + is ALLOWED, - is NOT)
+// Valid atom name arbitrary matching Narsese grammar: alphanumerics and underscore only
 const validAtomName = fc.string({
   minLength: 1,
   maxLength: 20,
-  unit: fc.constantFrom(
-    ...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+'.split('')
-  ),
+  unit: fc.constantFrom(...VALID_ATOM_CHARS.split('')),
 });
 
 describe('Property-Based Tests', () => {
@@ -204,7 +202,7 @@ describe('Property-Based Tests', () => {
 
     it('serializeTerm(parse(s)) round-trips for valid Narsese atoms', () => {
       fc.assert(
-        fc.property(fc.string({ minLength: 1, maxLength: 20 }), (name) => {
+        fc.property(validAtomName, (name) => {
           const parsed = TermBuilder.atom(name);
           const serialized = serializeTerm(parsed);
           expect(serialized).toBe(name);

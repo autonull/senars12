@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { DigestMismatchError } from '../../nar/src/lm/system-one/wasi-runtime.js';
 import { JudgmentDataset, runBakeOff, type BakeOffCase } from '../../nar/src/lm/system-one/distill.js';
 import {
@@ -17,7 +20,8 @@ import {
 const datasetWith = (
   rows: { rubric: string; score?: number; observed?: number; source: string }[]
 ): JudgmentDataset => {
-  const d = new JudgmentDataset();
+  const tmp = mkdtempSync(join(tmpdir(), 's1-eval-'));
+  const d = new JudgmentDataset(tmp);
   for (const [i, r] of rows.entries()) {
     d.record({ evidenceId: `e${i}`, rubric: r.rubric, axis: 'epistemic', label: 'x', score: r.score, observed: r.observed, source: r.source });
   }

@@ -27,6 +27,9 @@ const nal = (action: string, f: number, c = 0.9): NALDerivation[] => [
   { action, truth: { f, c }, source: 'test' },
 ];
 
+// Use valid atom symbols (no '-' allowed in regular atoms)
+const ACT_A = 'act_a';
+
 describe('Bench 93 — consensus completion & ProofStream consumer (REFACTOR.todo3 Phase C)', () => {
   it('MeTTa `=` is deep: pre-reduced arithmetic/logic before structural compare', () => {
     expect(evaluate('(= (+ 2 2) 4)')).toBe(true);
@@ -49,29 +52,29 @@ describe('Bench 93 — consensus completion & ProofStream consumer (REFACTOR.tod
     const events: ContradictionEvent[] = [];
     bus.on('contradiction', (e) => events.push(e));
     const metta = new MettaProposer(evaluate, {
-      toExpression: (action) => (action === 'act-a' ? '(= (+ 2 2) 4)' : undefined),
+      toExpression: (action) => (action === ACT_A ? '(= (+ 2 2) 4)' : undefined),
     });
     const negotiator = new Negotiator({ proposers: [metta], eventBus: bus });
-    // MeTTa endorses act-a; NAL opposes (f < 0.5) ⇒ disagreement event.
-    const decision = negotiator.resolve(reflex('act-a', 1, 0.9), nal('act-a', 0.1));
-    expect(decision.action).toBe('act-a');
+    // MeTTa endorses act_a; NAL opposes (f < 0.5) ⇒ disagreement event.
+    const decision = negotiator.resolve(reflex(ACT_A, 1, 0.9), nal(ACT_A, 0.1));
+    expect(decision.action).toBe(ACT_A);
     expect(events).toHaveLength(1);
     expect(events[0]!.source).toBe('metta');
     expect(events[0]!.mettaVote).toBe(true);
     expect(events[0]!.nalVote).toBe(false);
     // NAL supporting (f ≥ 0.5) ⇒ no contradiction.
-    negotiator.resolve(reflex('act-a', 1, 0.9), nal('act-a', 0.8));
+    negotiator.resolve(reflex(ACT_A, 1, 0.9), nal(ACT_A, 0.8));
     expect(events).toHaveLength(1);
     // No NAL derivations at all ⇒ nothing to disagree with.
-    negotiator.resolve(reflex('act-a', 1, 0.9), []);
+    negotiator.resolve(reflex(ACT_A, 1, 0.9), []);
     expect(events).toHaveLength(1);
   });
 
   it('contradiction events are inert without a bus (C10)', () => {
     const metta = new MettaProposer(evaluate, {
-      toExpression: (action) => (action === 'act-a' ? '(= (+ 2 2) 4)' : undefined),
+      toExpression: (action) => (action === ACT_A ? '(= (+ 2 2) 4)' : undefined),
     });
     const negotiator = new Negotiator({ proposers: [metta] });
-    expect(() => negotiator.resolve(reflex('act-a'), nal('act-a', 0.1))).not.toThrow();
+    expect(() => negotiator.resolve(reflex(ACT_A), nal(ACT_A, 0.1))).not.toThrow();
   });
 });

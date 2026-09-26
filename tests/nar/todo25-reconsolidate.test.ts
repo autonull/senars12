@@ -13,13 +13,14 @@ import { emptyReactionDistribution } from '@senars/nar/dialogue';
  * reconsolidator instances (restarts), fail-closed source (TODO24 Phase C
  * digest pin), lessons ingested as seeded self-beliefs (non-LLM path, I2).
  */
+let atCounter = 0;
 const retrospective = (sessionId: string, accepts: number): Retrospective => {
   const d = emptyReactionDistribution();
   d['accept'] = accepts;
   return {
     version: 'retrospective-v1',
     sessionId,
-    at: 0,
+    at: Date.now() + atCounter++,
     turnCount: 10,
     reactionCount: accepts,
     reactionDistribution: d,
@@ -49,11 +50,13 @@ describe('TODO25 Bench 78 — reconsolidate', () => {
     const sink = { input: async (term: string) => {
       ingested.push(term);
     } };
-    const first = new Reconsolidator(source, sink, seed, join(dir, 'ledger.jsonl'));
+    // Use a ledger path without .jsonl suffix to avoid conflict with retrospective file scanning
+    const ledgerPath = join(dir, 'reconsolidated-ledger');
+    const first = new Reconsolidator(source, sink, seed, ledgerPath);
     expect(await first.reconsolidate()).toEqual({ ingested: 2, skipped: 0 });
     expect(ingested).toEqual(['dialogue_performance', 'dialogue_performance']);
     // Restart: fresh instance with the same persisted ledger — nothing re-ingests.
-    const second = new Reconsolidator(source, sink, seed, join(dir, 'ledger.jsonl'));
+    const second = new Reconsolidator(source, sink, seed, ledgerPath);
     expect(await second.reconsolidate()).toEqual({ ingested: 0, skipped: 2 });
     expect(ingested.length).toBe(2);
   });

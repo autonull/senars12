@@ -23,7 +23,8 @@ const makeEpisodic = async (): Promise<EpisodicMemory> =>
 describe('TODO24 bench 74: end-to-end flywheel', () => {
   it('dialogue → capture → react → label → retrospect → proposal, governance intact', async () => {
     const ep = await makeEpisodic();
-    const dataset = new JudgmentDataset();
+    const tmp = await mkdtemp(join(tmpdir(), 's1-e2e-'));
+    const dataset = new JudgmentDataset(tmp);
     const d = new DialogueCapture({
       dataset,
       episodic: ep,

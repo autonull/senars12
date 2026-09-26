@@ -35,6 +35,7 @@ export class Reconsolidator {
   readonly #ledger: Ledger<ReconsolidatedLedgerEntry>;
   /** N2: digests already consolidated (persisted, survives restarts). */
   #done = new Set<string>();
+  #atCounter = 0;
 
   constructor(
     private readonly source: RetrospectiveSource,
@@ -63,13 +64,14 @@ export class Reconsolidator {
     let ingested = 0;
     let skipped = 0;
     const fresh: ReconsolidatedLedgerEntry[] = [];
+    const baseAt = Date.now();
     for (const r of retrospectives) {
       if (this.#done.has(r.digest)) {
         skipped++;
         continue;
       }
       this.#done.add(r.digest);
-      fresh.push({ at: Date.now(), digest: r.digest });
+      fresh.push({ at: baseAt + this.#atCounter++, digest: r.digest });
       for (const lesson of extractLessons(r, this.seed)) {
         await this.sink.input(lesson.term, lesson.truth.frequency, lesson.truth.confidence);
         ingested++;

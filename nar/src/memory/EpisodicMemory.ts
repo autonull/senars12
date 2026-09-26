@@ -319,8 +319,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
   }
 
   async clear(): Promise<void> {
-    this.#ledger.close();
-    await this.#ledger.compact(() => ''); // This will clear by rewriting with empty data
+    await this.#ledger.clear();
     this.#index = null;
     this.#causal = null;
   }
