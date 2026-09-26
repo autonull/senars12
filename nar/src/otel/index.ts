@@ -181,6 +181,140 @@ export function emitSpanEvent(
   }
 }
 
+/** F1: BudgetSlice operation span events. */
+export function emitBudgetSliceCreated(attributes: {
+  sliceId: string;
+  parentId?: string;
+  totalCycles: number;
+  totalDepth: number;
+  totalMemoryOps: number;
+  totalLMCalls: number;
+}): void {
+  const span = trace.getActiveSpan();
+  if (span) {
+    span.addEvent('budget.slice.created', {
+      'budget.slice.id': attributes.sliceId,
+      'budget.slice.parent_id': attributes.parentId ?? '',
+      'budget.slice.total_cycles': attributes.totalCycles,
+      'budget.slice.total_depth': attributes.totalDepth,
+      'budget.slice.total_memory_ops': attributes.totalMemoryOps,
+      'budget.slice.total_llm_calls': attributes.totalLMCalls,
+    });
+  }
+}
+
+export function emitBudgetSliceConsumed(attributes: {
+  sliceId: string;
+  resource: 'cycles' | 'depth' | 'memoryOps' | 'llmCalls';
+  amount: number;
+  consumed: number;
+  total: number;
+  pressure: number;
+}): void {
+  const span = trace.getActiveSpan();
+  if (span) {
+    span.addEvent('budget.slice.consumed', {
+      'budget.slice.id': attributes.sliceId,
+      'budget.slice.resource': attributes.resource,
+      'budget.slice.amount': attributes.amount,
+      'budget.slice.consumed': attributes.consumed,
+      'budget.slice.total': attributes.total,
+      'budget.slice.pressure': attributes.pressure,
+    });
+  }
+}
+
+export function emitBudgetSliceExhausted(attributes: {
+  sliceId: string;
+  reason: string;
+  consumed: Record<string, number>;
+  total: Record<string, number>;
+}): void {
+  const span = trace.getActiveSpan();
+  if (span) {
+    span.addEvent('budget.slice.exhausted', {
+      'budget.slice.id': attributes.sliceId,
+      'budget.slice.reason': attributes.reason,
+      'budget.slice.consumed.cycles': attributes.consumed.cycles ?? 0,
+      'budget.slice.consumed.depth': attributes.consumed.depth ?? 0,
+      'budget.slice.consumed.memory_ops': attributes.consumed.memoryOps ?? 0,
+      'budget.slice.consumed.llm_calls': attributes.consumed.llmCalls ?? 0,
+      'budget.slice.total.cycles': attributes.total.totalCycles ?? 0,
+      'budget.slice.total.depth': attributes.total.totalDepth ?? 0,
+      'budget.slice.total.memory_ops': attributes.total.totalMemoryOps ?? 0,
+      'budget.slice.total.llm_calls': attributes.total.totalLMCalls ?? 0,
+    });
+  }
+}
+
+export function emitBudgetSliceMerged(attributes: {
+  parentId: string;
+  childId: string;
+  consumed: Record<string, number>;
+}): void {
+  const span = trace.getActiveSpan();
+  if (span) {
+    span.addEvent('budget.slice.merged', {
+      'budget.slice.parent_id': attributes.parentId,
+      'budget.slice.child_id': attributes.childId,
+      'budget.slice.consumed.cycles': attributes.consumed.cycles ?? 0,
+      'budget.slice.consumed.depth': attributes.consumed.depth ?? 0,
+      'budget.slice.consumed.memory_ops': attributes.consumed.memoryOps ?? 0,
+      'budget.slice.consumed.llm_calls': attributes.consumed.llmCalls ?? 0,
+    });
+  }
+}
+
+/** F1: Bag pressure transition span event. */
+export function emitBagPressureTransition(attributes: {
+  bagId: string;
+  pressure: number;
+  capacity: number;
+  size: number;
+  transition: 'normal' | 'high' | 'critical';
+}): void {
+  const span = trace.getActiveSpan();
+  if (span) {
+    span.addEvent('bag.pressure.transition', attributes);
+  }
+}
+
+/** F1: Backpressure decision span event. */
+export function emitBackpressureDecision(attributes: {
+  threadId: string;
+  allowed: boolean;
+  reason: 'budget-exhausted' | 'mailbox-full' | 'ok';
+  budgetRemaining: number;
+  mailboxSize: number;
+  mailboxCapacity: number;
+}): void {
+  const span = trace.getActiveSpan();
+  if (span) {
+    span.addEvent('thread.backpressure', attributes);
+  }
+}
+
+/** F1: Strategy selection span event. */
+export function emitStrategySelection(attributes: {
+  strategyType: 'sampling' | 'premise' | 'derivation' | 'lm-rule' | 'attention';
+  strategyName: string;
+  context?: Record<string, string | number | boolean>;
+}): void {
+  const span = trace.getActiveSpan();
+  if (span) {
+    const flatAttrs: Record<string, string | number | boolean> = {
+      'strategy.type': attributes.strategyType,
+      'strategy.name': attributes.strategyName,
+    };
+    if (attributes.context) {
+      for (const [key, value] of Object.entries(attributes.context)) {
+        flatAttrs[`strategy.context.${key}`] = value;
+      }
+    }
+    span.addEvent('strategy.selection', flatAttrs);
+  }
+}
+
 export function recordCognitiveEvents(ctx: TickContext): void {
   const span = trace.getActiveSpan();
   if (!span || !ctx.events.length) return;

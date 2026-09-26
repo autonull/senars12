@@ -10,6 +10,7 @@ import type { JudgmentManifold } from '../lm/system-one/types.js';
 import type { Reflex } from '../reflex/Reflex.js';
 import type { RandomSource } from '../types/primitives.js';
 import type { SystemOneRuntime } from './system-one.js';
+import { ProofMettaProposer } from '../meta/index.js';
 import { ConversationGame, type ConversationState, type ConversationAction } from '../game/ConversationGame.js';
 
 /**
@@ -24,15 +25,18 @@ export class GameManager {
   private readonly proposals?: NARConfig['proposals'];
   private readonly eventBus?: NarEventBus;
   private contradictionWired = false;
+  private readonly proofMettaProposer?: ProofMettaProposer;
 
   constructor(
     private readonly systemOne: SystemOneRuntime,
     private readonly rng?: RandomSource,
     proposals?: NARConfig['proposals'],
-    eventBus?: NarEventBus
+    eventBus?: NarEventBus,
+    proofMettaProposer?: ProofMettaProposer
   ) {
     this.proposals = proposals?.bounded ? proposals : undefined;
     this.eventBus = eventBus;
+    this.proofMettaProposer = proofMettaProposer;
   }
 
   /** Default FocusBag backing attachGame (created lazily, script-owned drive loops). */
@@ -55,18 +59,24 @@ export class GameManager {
       focusBag?: FocusBag;
       /** Bind an LMReflex (real-LM per-tick decisions) in addition to the manifold arm. */
       lmReflex?: boolean;
-      /** Phase C (REFACTOR.todo3): extra proposers (e.g. MettaProposer) + contradiction bus. */
+      /** Phase C (REFACTOR.todo3): extra proposers (e.g. ProofMettaProposer) + contradiction bus. */
       proposers?: GameFocusOptions['proposers'];
       eventBus?: GameFocusOptions['eventBus'];
     } = {}
   ): GameFocus {
     const bag = options.focusBag ?? this.getFocusBag();
     const id = options.id ?? `game-${game.constructor.name}-${bag.getFocusWeights().size}`;
+    
+    // Merge ProofMettaProposer with any user-provided proposers
+    const mergedProposers = this.proofMettaProposer
+      ? [this.proofMettaProposer, ...(options.proposers ?? [])]
+      : options.proposers;
+
     const focus = new GameFocus({
       focusId: id,
       game,
       focusOptions: { weight: options.weight ?? 1.0, rng: this.rng },
-      ...(options.proposers ? { proposers: options.proposers } : {}),
+      ...(mergedProposers ? { proposers: mergedProposers } : {}),
       ...(options.eventBus ? { eventBus: options.eventBus } : {}),
     });
     for (const reflex of options.reflexes ?? []) focus.bindReflex(reflex);
@@ -133,7 +143,7 @@ export class GameManager {
       weight?: number;
       focusBag?: FocusBag;
       lmReflex?: boolean;
-      /** Phase C (REFACTOR.todo3): extra proposers (e.g. MettaProposer) + contradiction bus. */
+      /** Phase C (REFACTOR.todo3): extra proposers (e.g. ProofMettaProposer) + contradiction bus. */
       proposers?: GameFocusOptions['proposers'];
       eventBus?: GameFocusOptions['eventBus'];
     } = {}
@@ -141,11 +151,17 @@ export class GameManager {
     const bag = options.focusBag ?? this.getFocusBag();
     const id = options.id ?? 'conversation';
     const game = new ConversationGame();
+    
+    // Merge ProofMettaProposer with any user-provided proposers
+    const mergedProposers = this.proofMettaProposer
+      ? [this.proofMettaProposer, ...(options.proposers ?? [])]
+      : options.proposers;
+
     const focus = new GameFocus({
       focusId: id,
       game,
       focusOptions: { weight: options.weight ?? 1.0, rng: this.rng },
-      ...(options.proposers ? { proposers: options.proposers } : {}),
+      ...(mergedProposers ? { proposers: mergedProposers } : {}),
       ...(options.eventBus ? { eventBus: options.eventBus } : {}),
     });
     for (const reflex of options.reflexes ?? []) focus.bindReflex(reflex);

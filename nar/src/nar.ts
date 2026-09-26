@@ -11,6 +11,8 @@ import type { ConversationGame } from './game/ConversationGame.js';
 import type { SelfMetaGameImpl } from './game/SelfMetaGame.js';
 import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js';
 import { SchemaInductor } from './learning/schema-induction.js';
+import { GovernanceResolver } from './governance/pipeline.js';
+import type { SelfMetaGameEvidence } from './governance/pipeline.js';
 import type { LMService, SeNARSRegistry } from './lm';
 import { getModelForTask, LMRules } from './lm';
 import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
@@ -61,7 +63,7 @@ import {
 } from './terms';
 import type { Tool, ToolResult } from './tools';
 import { discoverTools, ToolManager } from './tools';
-import { createSelfTools } from './tools/adapters/self-tools.js';
+import { ProofMettaProposer, type ProofMettaProposerOptions } from './meta/index.js';
 import { ConfigurationError, DEFAULT_CONFIG, NarEventBus, type Task, type TaskType } from './types';
 
 /** Bounded derivation-chain ring per AIKR (no I/O on the hot path). */
@@ -98,6 +100,10 @@ export class NAR extends BaseComponent {
   /** Phase D (REFACTOR.todo2): bounded hard-negative mining bag — created only when config opts in. */
   #miningBag?: MiningBag;
   #sourceReputation?: import('./kernel/source-reputation.js').SourceReputation;
+  /** Phase E: ProofMettaProposer for learning MeTTa rules from proof stream. */
+  #proofMettaProposer?: ProofMettaProposer;
+  /** Phase E: GovernanceResolver for self-improvement proposals (schema promotion, etc.). */
+  #governanceResolver?: GovernanceResolver;
   driveManager?: DriveManager;
   private readonly systemEventBus: NarEventBus;
 
@@ -167,6 +173,15 @@ export class NAR extends BaseComponent {
       });
     }
 
+    if (this.config.proofMettaProposer?.enabled) {
+      const cfg = this.config.proofMettaProposer;
+      this.#proofMettaProposer = new ProofMettaProposer({
+        maxRules: cfg.maxRules,
+        minConfidence: cfg.minConfidence,
+        patternMinSupport: cfg.patternMinSupport,
+      });
+    }
+
     if (config.cognitiveParams && config.strategyRegistry) {
       this.cognitiveController = new CognitiveController(
         config.strategyRegistry,
@@ -227,7 +242,7 @@ export class NAR extends BaseComponent {
     this.io.setEventBus(eventBus);
     this.systemEventBus = new NarEventBus();
     this.io.setSystemEventBus(this.systemEventBus);
-    this.games = new GameManager(this.systemOne, config.rng, config.proposals, this.systemEventBus);
+    this.games = new GameManager(this.systemOne, config.rng, config.proposals, this.systemEventBus, this.#proofMettaProposer);
     this._emitJudgmentResolved = createTelemetryEmitter(
       createNarTelemetrySinks(this.systemEventBus)
     );
@@ -448,6 +463,20 @@ export class NAR extends BaseComponent {
     return this.#sourceReputation;
   }
 
+  /** Phase E: ProofMettaProposer for learning MeTTa rules from proof stream. */
+  getProofMettaProposer(): ProofMettaProposer | undefined {
+    return this.#proofMettaProposer;
+  }
+
+  /** Phase E: GovernanceResolver for self-improvement proposals (schema promotion, etc.). */
+  getGovernanceResolver(): GovernanceResolver {
+    if (!this.#governanceResolver) {
+      const metaGame = this.games.getSelfMetaGame();
+      this.#governanceResolver = new GovernanceResolver(metaGame);
+    }
+    return this.#governanceResolver;
+  }
+
   getDriveManager(): DriveManager | undefined {
     return this.driveManager;
   }
@@ -469,6 +498,11 @@ export class NAR extends BaseComponent {
   /** Get System One embedding cache (for zero-copy embeddings). */
   getSystemOneEmbeddingCache(): EmbeddingCache | undefined {
     return this.systemOne.embeddingCache;
+  }
+
+  /** Phase E: Get JudgmentPipeline for comprehensive manifold evaluation (ADR-008). */
+  getSystemOneJudgmentPipeline(): import('./lm/system-one/judgment-pipeline.js').JudgmentPipeline | undefined {
+    return this.systemOne.judgmentPipeline;
   }
 
   /** Get the unified decision facade (TODO23): decide/choose with provenance. */

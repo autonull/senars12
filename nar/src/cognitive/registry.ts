@@ -45,6 +45,7 @@ import {
 } from '../strategies';
 import { ConfigurationError } from '../types';
 import { PriorityBag } from '../bag/Bag';
+import { emitStrategySelection } from '../tick';
 
 type StrategyImpl =
   | SamplingStrategy
@@ -167,6 +168,10 @@ export class CognitiveRegistry implements StrategyRegistry {
     if (!impl) {
       throw new ConfigurationError(`No ${type} strategy named '${name}'`, { type, name });
     }
+    emitStrategySelection({
+      strategyType: type,
+      strategyName: name,
+    });
     return impl as unknown as T;
   }
 

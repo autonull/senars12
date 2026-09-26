@@ -1,12 +1,16 @@
 /**
- * MettaProposer — learns MeTTa rules from ProofStream via PerceptionGate.SELF_METTA.
+ * ProofMettaProposer — learns MeTTa rules from ProofStream via PerceptionGate.SELF_METTA.
  * Refactorer inlines them via the `metta` tool.
  * Closes the MeTTa↔NAL arbiter loop on system's own proofs.
+ * Renamed from MettaProposer to avoid collision with reflex/metta-proposer.ts (C13).
+ * Implements IProposer for use in Negotiator.
  */
 
 import type { DerivationRecord } from '@senars/kernel/schemas';
 import type { Term } from '../terms/index.js';
 import { serializeTerm } from '../terms/index.js';
+import type { IProposer, NegotiationInput, ProposerContribution } from '../reflex/Negotiator.js';
+import type { ActionProposal, LearningEvent } from '../reflex/Reflex.js';
 
 export interface MettaRule {
   readonly id: string;
@@ -22,28 +26,36 @@ export interface ProofStreamEntry {
   readonly timestamp: number;
 }
 
-export interface MettaProposerOptions {
+export interface ProofMettaProposerOptions {
   maxRules?: number;
   minConfidence?: number;
   patternMinSupport?: number;
+  /** Optional MeTTa evaluator for IProposer.propose — evaluates if learned rules support an action. */
+  mettaEvaluator?: (expression: string) => boolean | null;
+  /** Optional function to map an action to a MeTTa expression for evaluation. */
+  actionToExpression?: (action: string) => string | undefined;
 }
 
-export class MettaProposer {
+export class ProofMettaProposer implements IProposer {
   private readonly rules = new Map<string, MettaRule>();
   private readonly proofStream: ProofStreamEntry[] = [];
   private readonly maxRules: number;
   private readonly minConfidence: number;
   private readonly patternMinSupport: number;
+  private readonly mettaEvaluator?: (expression: string) => boolean | null;
+  private readonly actionToExpression?: (action: string) => string | undefined;
   private ruleCounter = 0;
 
-  constructor(options: MettaProposerOptions = {}) {
+  constructor(options: ProofMettaProposerOptions = {}) {
     this.maxRules = options.maxRules ?? 100;
     this.minConfidence = options.minConfidence ?? 0.7;
     this.patternMinSupport = options.patternMinSupport ?? 3;
+    this.mettaEvaluator = options.mettaEvaluator;
+    this.actionToExpression = options.actionToExpression;
   }
 
   /** Learn MeTTa rules from a proof stream (derivation records). */
-  learn(proofStream: ProofStreamEntry[]): MettaRule[] {
+  learnFromProofStream(proofStream: ProofStreamEntry[]): MettaRule[] {
     for (const entry of proofStream) {
       this.proofStream.push(entry);
       this.extractPatterns(entry.derivation);
@@ -179,8 +191,31 @@ export class MettaProposer {
       avgConfidence: rules.length > 0 ? rules.reduce((sum, r) => sum + r.confidence, 0) / rules.length : 0,
     };
   }
+
+  /** IProposer.propose: evaluate reflex proposals against learned MeTTa rules. */
+  propose(input: NegotiationInput): ProposerContribution {
+    if (!this.mettaEvaluator || !this.actionToExpression || input.reflexProposals.length === 0) {
+      return {};
+    }
+    const reflex: ActionProposal[] = [];
+    for (const p of input.reflexProposals) {
+      const expr = this.actionToExpression(p.action);
+      if (expr === undefined) continue;
+      const verdict = this.mettaEvaluator(expr);
+      if (verdict === true) {
+        reflex.push({ ...p, confidence: 1.0, source: 'proof-metta' });
+      }
+    }
+    return reflex.length > 0 ? { reflex } : {};
+  }
+
+  /** IProposer.learn: accept learning events (no-op for ProofMettaProposer; learns from derivations via learnFromDerivation). */
+  learn(_event: LearningEvent): void {
+    // ProofMettaProposer learns from derivation records, not reflex learning events.
+    // Derivation learning happens via learnFromDerivation() called from consolidateLearning.
+  }
 }
 
-export function createMettaProposer(options?: MettaProposerOptions): MettaProposer {
-  return new MettaProposer(options);
+export function createProofMettaProposer(options?: ProofMettaProposerOptions): ProofMettaProposer {
+  return new ProofMettaProposer(options);
 }

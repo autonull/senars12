@@ -59,6 +59,8 @@ export interface NARConfig extends CoreConfig {
   proposals?: { bounded?: boolean; capacity?: number; budget?: number };
   /** Phase D (REFACTOR.todo2): bounded hard-negative mining bag (default off ⇒ direct mining). */
   hardNegativeMining?: { bounded?: boolean; capacity?: number; budget?: number; marginFloor?: number };
+  /** Phase E: ProofMettaProposer as a negotiation proposer (learns from proof stream). */
+  proofMettaProposer?: { enabled?: boolean; maxRules?: number; minConfidence?: number; patternMinSupport?: number };
 }
 
 export function validateNarConfig(config: NARConfig): NARConfig {

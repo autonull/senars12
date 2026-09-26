@@ -64,6 +64,8 @@ export interface WiredNAR {
   lmService?: LMService;
   /** P7: tier-0 sandboxed reflex-value head (zero-import WASM, digest-pinned). */
   deviceHead?: LoadedHeadBundle;
+  /** Phase E: CapabilityOntology for tool/rule/skill inventory with provenance. */
+  capabilityOntology?: import('../capability/ontology.js').CapabilityOntology;
   describe(): { steps: BuilderStepRecord[]; subsystems: string[] };
 }
 
@@ -92,6 +94,7 @@ export class NARBuilder {
   private deviceHeadSpec?: { wasmPath: string; modelDigest: string; dimension: number };
   private threadScope?: ThreadScope;
   private strategyRegistry?: CognitiveRegistry;
+  private capabilityOntologyEnabled = false;
   private steps: BuilderStepRecord[] = [];
 
   /** TODO19 F3: seed the builder from a named profile preset (profiles are data). */
@@ -221,6 +224,12 @@ export class NARBuilder {
     return this.record('deviceHead', true, { wasmPath: spec.wasmPath });
   }
 
+  /** Phase E: enable CapabilityOntology — registers tools, rules, skills into CapabilitySpace. */
+  withCapabilityOntology(enabled = true): this {
+    this.capabilityOntologyEnabled = enabled;
+    return this.record('capabilityOntology', enabled);
+  }
+
   /** Validate the spec and assemble: NAR (kernel) + Agent (transport). */
   async build(): Promise<WiredNAR> {
     return withSpan(
@@ -305,12 +314,27 @@ export class NARBuilder {
         })
       : undefined;
 
+    // Phase E: CapabilityOntology — register tools into CapabilitySpace
+    let capabilityOntology: import('../capability/ontology.js').CapabilityOntology | undefined;
+    if (this.capabilityOntologyEnabled) {
+      const { createCapabilityOntology } = await import('../capability/ontology.js');
+      capabilityOntology = createCapabilityOntology();
+      // Register all tools from NAR's ToolManager
+      const tools = nar.listTools();
+      for (const tool of tools) {
+        capabilityOntology.registerTool(tool);
+      }
+      // Register built-in MeTTa skill if available
+      // (The metta tool is registered as a tool above)
+    }
+
     return {
       agent,
       nar,
       gates,
       ...(this.lm ? { lmService: this.lm } : {}),
       ...(deviceHead ? { deviceHead } : {}),
+      ...(capabilityOntology ? { capabilityOntology } : {}),
       describe: () => ({
         steps: [...this.steps],
         subsystems: [
@@ -323,6 +347,7 @@ export class NARBuilder {
           ...(this.episodicMemory ? ['memory'] : []),
           ...(this.persistence ? ['persistence'] : []),
           ...(this.deviceHeadSpec ? ['deviceHead'] : []),
+          ...(this.capabilityOntologyEnabled ? ['capabilityOntology'] : []),
         ],
       }),
     };

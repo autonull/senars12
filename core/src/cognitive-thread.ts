@@ -7,6 +7,7 @@
 import { BudgetSlice, type BudgetSliceOptions, createBudgetSlice, sliceBudget, mergeConsumption, isExhausted, consumeCycles, remainingCycles, remainingDepth, remainingMemoryOps, remainingLMCalls } from '@senars/kernel/budget';
 import type { Term } from '@senars/nar/terms';
 import type { Task } from '@senars/nar';
+import { emitBackpressureDecision } from '@senars/nar/tick';
 
 export type ThreadStatus = 'created' | 'running' | 'waiting' | 'completed' | 'killed' | 'error';
 
@@ -153,10 +154,26 @@ export class CognitiveThread {
   send(message: Omit<ThreadMessage, 'id' | 'timestamp'>): boolean {
     // Check budget before enqueueing
     if (isExhausted(this.budget)) {
+      emitBackpressureDecision({
+        threadId: this.id,
+        allowed: false,
+        reason: 'budget-exhausted',
+        budgetRemaining: remainingCycles(this.budget),
+        mailboxSize: this.mailbox.size(),
+        mailboxCapacity: this.mailbox.capacity,
+      });
       return false;
     }
     // Consume 1 cycle for message handling overhead
     if (!consumeCycles(this.budget, 1)) {
+      emitBackpressureDecision({
+        threadId: this.id,
+        allowed: false,
+        reason: 'budget-exhausted',
+        budgetRemaining: remainingCycles(this.budget),
+        mailboxSize: this.mailbox.size(),
+        mailboxCapacity: this.mailbox.capacity,
+      });
       return false;
     }
 
@@ -165,7 +182,27 @@ export class CognitiveThread {
       id: crypto.randomUUID(),
       timestamp: Date.now(),
     };
-    return this.mailbox.enqueue(fullMessage);
+    const enqueued = this.mailbox.enqueue(fullMessage);
+    if (!enqueued) {
+      emitBackpressureDecision({
+        threadId: this.id,
+        allowed: false,
+        reason: 'mailbox-full',
+        budgetRemaining: remainingCycles(this.budget),
+        mailboxSize: this.mailbox.size(),
+        mailboxCapacity: this.mailbox.capacity,
+      });
+    } else {
+      emitBackpressureDecision({
+        threadId: this.id,
+        allowed: true,
+        reason: 'ok',
+        budgetRemaining: remainingCycles(this.budget),
+        mailboxSize: this.mailbox.size(),
+        mailboxCapacity: this.mailbox.capacity,
+      });
+    }
+    return enqueued;
   }
 
   /** Receive a message from the mailbox. */

@@ -1,0 +1,145 @@
+name: Soak Stability Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      scale:
+        description: 'Soak scale (fast or full)'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - fast
+          - full
+      duration_hours:
+        description: 'Duration in hours (full mode only)'
+        required: false
+        default: '24'
+        type: string
+
+jobs:
+  soak:
+    name: Soak Test (${{ github.event.inputs.scale || 'full' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ github.event.inputs.scale == 'fast' && 10 || (github.event.inputs.duration_hours * 60 + 30) }}
+    env:
+      SOAK_SCALE: ${{ github.event.inputs.scale || 'full' }}
+      SOAK_DURATION_MS: ${{ github.event.inputs.scale == 'fast' && 60000 || (github.event.inputs.duration_hours * 3600000) }}
+      SENARS_SOAK_TEST: '1'
+      NODE_ENV: 'test'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Run soak test
+        run: |
+          pnpm vitest run tests/soak/long-run.test.ts \
+            --reporter=verbose \
+            --test-timeout=${{ github.event.inputs.scale == 'fast' && 120000 || (github.event.inputs.duration_hours * 3600000 + 60000) }}
+        env:
+          SOAK_SCALE: ${{ github.event.inputs.scale || 'full' }}
+          SOAK_DURATION_MS: ${{ github.event.inputs.scale == 'fast' && 60000 || (github.event.inputs.duration_hours * 3600000) }}
+          SENARS_SOAK_TEST: '1'
+
+      - name: Upload soak artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: soak-results-${{ github.event.inputs.scale || 'full' }}-${{ github.run_id }}
+          path: |
+            .cache/events/*.jsonl
+            .reports/*.json
+          retention-days: 30
+
+  soak-analysis:
+    name: Soak Results Analysis
+    needs: soak
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download soak artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: soak-results-${{ github.event.inputs.scale || 'full' }}-${{ github.run_id }}
+          path: ./soak-artifacts
+
+      - name: Analyze results
+        run: |
+          echo "=== Soak Test Results ==="
+          if [ -d "./soak-artifacts" ]; then
+            ls -la ./soak-artifacts/
+            # Check for vitest output
+            if [ -f "./soak-artifacts/vitest-report.json" ]; then
+              cat ./soak-artifacts/vitest-report.json | jq '.testResults[0].assertionResults[] | select(.status=="failed") | {title: .title, failureMessages: .failureMessages}' || echo "No failures found"
+            fi
+          else
+            echo "No artifacts found"
+          fi
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let comment = '## Soak Test Results\n\n';
+            
+            // Try to read test results from artifacts
+            const artifactsPath = './soak-artifacts';
+            if (fs.existsSync(artifactsPath)) {
+              const files = fs.readdirSync(artifactsPath);
+              for (const file of files) {
+                if (file.endsWith('.json')) {
+                  try {
+                    const content = JSON.parse(fs.readFileSync(`${artifactsPath}/${file}`, 'utf8'));
+                    if (content.testResults) {
+                      const failed = content.testResults[0]?.assertionResults?.filter((r: any) => r.status === 'failed') || [];
+                      const passed = content.testResults[0]?.assertionResults?.filter((r: any) => r.status === 'passed') || [];
+                      
+                      comment += `**Scale:** ${{ github.event.inputs.scale || 'full' }}\n`;
+                      comment += `**Duration:** ${{ github.event.inputs.duration_hours || 24 }}h\n\n`;
+                      comment += `✅ Passed: ${passed.length}\n`;
+                      comment += `❌ Failed: ${failed.length}\n\n`;
+                      
+                      if (failed.length > 0) {
+                        comment += '### Failures:\n';
+                        for (const f of failed.slice(0, 5)) {
+                          comment += `- ${f.title}: ${f.failureMessages?.[0]?.substring(0, 200) || 'Unknown error'}\n`;
+                        }
+                      }
+                    }
+                  } catch (e) {
+                    comment += `Could not parse ${file}: ${e}\n`;
+                  }
+                }
+              }
+            } else {
+              comment += 'No artifacts available for analysis.\n';
+            }
+            
+            comment += '\n---\n*Generated by Soak Stability Gate*';
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

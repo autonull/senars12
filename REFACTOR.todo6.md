@@ -292,8 +292,13 @@ Order: **A → B → C** strict (C19 needs correct+proven bags; C's benches need
  | D2 | D | Hard BudgetSlice inheritance in threads: `spawn(parentSlice, allocation)` enforces Σ(child) ≤ parent.remaining; `join()` returns unconsumed budget | 109 | ✅ |
  | D3 | D | Mailbox budget-gated backpressure: `send()` consumes slice budget, returns false on exhaustion/full (capacity bound exists; budget coupling added) | 109 | ✅ |
  | D4 | D | FocusTree + CognitiveThread falsifying benches: `tests/nar/focustree-cognitivethread.test.ts` — single-root parity; rollups non-empty; spawn/join/kill lifecycle; mailbox overflow; hard inheritance | 109 | ✅ |
+| F1 | F | OTel instrumentation extended: BudgetSlice ops (created/consumed/exhausted/merged), bag pressure transitions, backpressure decisions, strategy selections — all as span events on existing tick pipeline | 111 | ✅ |
+| F2 | F | Deterministic replay CLI: `pnpm replay --from <eventId> --to <eventId> --verify` — re-runs gates + reducer, compares state hash | 111 | ✅ |
+| F3 | F | Soak stability gate: CI `.github/workflows/soak.yml` — `test:soak` (24h), `test:micro-soak` (60s), bot + arcade + self-improve demo, deterministic seeds + A3 clocks | 111 | ✅ |
 
 ---
+
+*Phase F complete — production hardening done*
 
 ## 10. Architecture Decision Records (to create during execution)
 
@@ -307,7 +312,14 @@ Order: **A → B → C** strict (C19 needs correct+proven bags; C's benches need
 
 ---
 
-*Phase D complete — ready for Phase E kickoff*
+| E1 | E | ProofMettaProposer (meta) wiring: `ProofMettaProposer` implements `IProposer`, wired into Negotiator proposers via `config.proofMettaProposer.enabled`; learns from derivation recorder in `consolidateLearning`; renamed from `MettaProposer` to avoid collision with `reflex/metta-proposer.ts` (C13) | 110 | ✅ |
+| E2 | E | GovernanceResolver first production consumer: SchemaInductor proposals → `GovernanceResolver.resolve()` (quorum default) → `.adaptations` append + `.restore`; wired in `consolidateLearning` | 110 | ✅ |
+| E3 | E | CapabilityOntology consumers: `withCapabilityOntology()` in `NARBuilder` registers tools into `CapabilitySpace` at assembly (opt-in); `Provenance { source, digest, proofRef? }` per entry | 110 | ✅ |
+| E4 | E | JudgmentPipeline consumer: `SystemOneRuntime.judgmentPipeline` instantiated alongside manifold; `NAR.getSystemOneJudgmentPipeline()` accessor; ADR-008 recorded | 110 | ✅ |
+
+---
+
+*Phase E complete — all self-model consumers wired*
 
 ---
 

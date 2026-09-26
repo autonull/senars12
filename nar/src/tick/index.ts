@@ -1,6 +1,13 @@
 export type { CognitiveStage, OtelConfig } from '../otel/index.js';
 export {
   emitSpanEvent,
+  emitBudgetSliceCreated,
+  emitBudgetSliceConsumed,
+  emitBudgetSliceExhausted,
+  emitBudgetSliceMerged,
+  emitBagPressureTransition,
+  emitBackpressureDecision,
+  emitStrategySelection,
   getTracer,
   initOtel,
   instrumentPipeline,

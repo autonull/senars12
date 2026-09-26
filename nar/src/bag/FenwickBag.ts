@@ -1,5 +1,6 @@
 import type { Bag, BagItem, BagOptions, EvictStrategy, AIKRBudget } from './Bag.js';
 import type { RandomSource } from '../types/primitives.js';
+import { emitBagPressureTransition } from '../tick';
 
 interface FenwickEntry<T extends BagItem> {
   item: T;
@@ -18,6 +19,8 @@ export class FenwickBag<T extends BagItem> implements Bag<T> {
   private tree: number[] = [];
   private totalPriority = 0;
   private idToIndex = new Map<string, number>();
+  private readonly id: string;
+  private lastPressureLevel: 'normal' | 'high' | 'critical' = 'normal';
 
   get decayRateValue(): number {
     return this.decayRate;
@@ -33,6 +36,7 @@ export class FenwickBag<T extends BagItem> implements Bag<T> {
     this.forgetRate = options.forgetRate ?? 0.001;
     this.rng = options.rng ?? Math.random;
     this.clock = options.clock ?? Date.now;
+    this.id = options.id ?? `bag-${Math.random().toString(36).slice(2)}`;
   }
 
   private addToTree(index: number, value: number): void {
@@ -223,7 +227,25 @@ export class FenwickBag<T extends BagItem> implements Bag<T> {
   }
 
   pressure(): number {
-    return this.capacity === 0 ? 1 : Math.min(1, this._entries.length / this.capacity);
+    const pressure = this.capacity === 0 ? 1 : Math.min(1, this._entries.length / this.capacity);
+    this.checkPressureTransition(pressure);
+    return pressure;
+  }
+
+  private checkPressureTransition(pressure: number): void {
+    let level: 'normal' | 'high' | 'critical' = 'normal';
+    if (pressure >= 0.9) level = 'critical';
+    else if (pressure >= 0.7) level = 'high';
+    if (level !== this.lastPressureLevel) {
+      this.lastPressureLevel = level;
+      emitBagPressureTransition({
+        bagId: this.id,
+        pressure,
+        capacity: this.capacity,
+        size: this._entries.length,
+        transition: level,
+      });
+    }
   }
 
   evict(strategy: EvictStrategy = 'LowestPriority'): void {

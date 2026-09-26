@@ -19,6 +19,8 @@ import { createSelfTools } from '../tools/adapters/self-tools.js';
 import type { Tool } from '../tools';
 import { errMsg } from '../utils';
 import type { NAR } from '../nar.js';
+import type { SelfImprovementProposal, AutonomyMode } from '@senars/kernel/schemas';
+import { v4 as uuidv4 } from 'uuid';
 
 const initialized = new WeakSet<NAR>();
 const toolsInitialized = new WeakSet<NAR>();
@@ -138,7 +140,27 @@ export const consolidateLearning = async (
   const inductor = nar.getSchemaInductor();
   if (inductor) {
     inductor.decayChains();
-    await inductor.induceIfPressured(options).catch(() => {});
+    const results = await inductor.induceIfPressured(options).catch(() => []);
+    // Phase E: submit schema promotions to GovernanceResolver
+    if (results.length > 0) {
+      const resolver = nar.getGovernanceResolver();
+      const mode = nar.gates.getActionGate().getAutonomyMode();
+      for (const result of results) {
+        const proposal: SelfImprovementProposal = {
+          proposalId: uuidv4(),
+          kind: 'schema-promotion',
+          riskTier: 'low',
+          payload: {
+            schemaId: result.schema.id,
+            template: result.schema.template,
+            variables: result.schema.variables,
+            confidence: result.confidence,
+          },
+          rewardDomain: 'self-explanation-rank',
+        };
+        resolver.resolve(proposal, mode);
+      }
+    }
   }
   const contrastive = nar.getSystemOneContrastive();
   if (contrastive) {
@@ -157,6 +179,15 @@ export const consolidateLearning = async (
     const cache = nar.getSystemOneEmbeddingCache();
     if (drained.length > 0 && contrastive && cache) {
       await seedContrastiveMemory(drained, contrastive, cache).catch(() => {});
+    }
+  }
+  // Phase E: feed ProofMettaProposer from derivation recorder
+  const proofMettaProposer = nar.getProofMettaProposer();
+  if (proofMettaProposer) {
+    const recorder = nar.getProcessor().getRecorder();
+    const records = recorder.drain();
+    if (records.length > 0) {
+      proofMettaProposer.learnFromProofStream(records.map((r) => ({ derivation: r, timestamp: Date.now() })));
     }
   }
 };

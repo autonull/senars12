@@ -6,12 +6,19 @@
 
 import { CapabilitySpace, type CapabilityDef } from './space.js';
 import type { ToolSpec } from '@senars/core/motor';
+import type { Tool as NarTool, Schema as NarSchema } from '../tools/types.js';
 
 export type CapabilityType = 'tool' | 'rule' | 'metta' | 'skill';
 
 export interface CapabilitySchema {
   readonly input: Record<string, { type: string; required?: boolean; description?: string }>;
   readonly output: { type: string; description?: string };
+}
+
+export interface Provenance {
+  readonly source: 'builtin' | 'learned' | 'delegated' | 'scaffolded';
+  readonly digest: string; // SHA256 of capability definition
+  readonly proofRef?: string; // reference to derivation/adaptation record
 }
 
 export interface CapabilityOntologyEntry {
@@ -24,6 +31,7 @@ export interface CapabilityOntologyEntry {
   readonly prerequisites: readonly string[]; // other capability IDs that must be available
   readonly risk: 'low' | 'medium' | 'high';
   readonly version: string;
+  readonly provenance: Provenance;
   readonly execute: (args: Record<string, unknown>) => unknown | Promise<unknown>;
 }
 
@@ -72,28 +80,31 @@ export class CapabilityOntology {
     this.space.register(capabilityDef);
   }
 
-  /** Register a tool as a capability. */
-  registerTool(tool: ToolSpec, costEstimate = 100, prerequisites: string[] = []): void {
+  /** Register a tool as a capability (accepts NAR's Tool with Schema). */
+  registerTool(tool: NarTool, costEstimate = 100, prerequisites: string[] = []): void {
+    // Convert NAR's Schema to the flat format expected by CapabilitySchema.input
+    const inputSchema = tool.parameters
+      ? Object.fromEntries(
+          Object.entries(tool.parameters.properties).map(([k, v]) => [
+            k,
+            { type: v.type, required: tool.parameters.required?.includes(k) ?? false, description: v.description },
+          ])
+        )
+      : {};
     this.register({
       id: `tool:${tool.name}`,
       type: 'tool',
       name: tool.name,
       description: tool.description,
       schema: {
-        input: tool.parameters
-          ? Object.fromEntries(
-              Object.entries(tool.parameters).map(([k, v]) => [
-                k,
-                { type: (v as any).type ?? 'string', required: false, description: (v as any).description },
-              ])
-            )
-          : {},
+        input: inputSchema,
         output: { type: 'any', description: 'Tool execution result' },
       },
       costEstimate,
       prerequisites,
       risk: 'low',
       version: '1.0.0',
+      provenance: { source: 'builtin', digest: this.computeDigest(tool.name, 'tool'), proofRef: undefined },
       execute: tool.execute as (args: Record<string, unknown>) => unknown | Promise<unknown>,
     });
   }
@@ -110,6 +121,7 @@ export class CapabilityOntology {
       prerequisites,
       risk: 'medium',
       version: '1.0.0',
+      provenance: { source: 'builtin', digest: this.computeDigest(id, 'metta'), proofRef: undefined },
       execute,
     });
   }
@@ -126,6 +138,7 @@ export class CapabilityOntology {
       prerequisites,
       risk: 'low',
       version: '1.0.0',
+      provenance: { source: 'builtin', digest: this.computeDigest(id, 'rule'), proofRef: undefined },
       execute,
     });
   }
@@ -142,6 +155,7 @@ export class CapabilityOntology {
       prerequisites,
       risk: 'medium',
       version: '1.0.0',
+      provenance: { source: 'builtin', digest: this.computeDigest(id, 'skill'), proofRef: undefined },
       execute,
     });
   }
@@ -200,6 +214,12 @@ export class CapabilityOntology {
   getProbes(): CapabilityOntologyEntry[] {
     // In practice, this would filter by retrospective grades
     return this.getAll().filter((c) => c.type === 'skill' || c.type === 'rule');
+  }
+
+  /** Compute a SHA256 digest for provenance. */
+  private computeDigest(name: string, type: string): string {
+    const crypto = require('node:crypto');
+    return crypto.createHash('sha256').update(`${type}:${name}:${Date.now()}`).digest('hex').slice(0, 16);
   }
 }
 

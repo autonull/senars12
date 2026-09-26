@@ -4,6 +4,7 @@
  */
 import type { AIKRBudget } from '@senars/nar/bag';
 import type { NarEventBus, TerminationReason, ConsumedBudget, BudgetSliceTotal } from '@senars/nar/types/events';
+import { emitBudgetSliceCreated, emitBudgetSliceConsumed, emitBudgetSliceExhausted, emitBudgetSliceMerged } from '@senars/nar/tick';
 
 export type { ConsumedBudget, TerminationReason, BudgetSliceTotal };
 
@@ -51,6 +52,14 @@ export function createBudgetSlice(options: BudgetSliceOptions, eventBus?: NarEve
     totalMemoryOps: slice.totalMemoryOps,
     totalLMCalls: slice.totalLMCalls,
   });
+  emitBudgetSliceCreated({
+    sliceId: slice.id,
+    parentId: slice.parentId,
+    totalCycles: slice.totalCycles,
+    totalDepth: slice.totalDepth,
+    totalMemoryOps: slice.totalMemoryOps,
+    totalLMCalls: slice.totalLMCalls,
+  });
   return slice;
 }
 
@@ -79,6 +88,14 @@ export function sliceBudget(
     totalMemoryOps: slice.totalMemoryOps,
     totalLMCalls: slice.totalLMCalls,
   });
+  emitBudgetSliceCreated({
+    sliceId: slice.id,
+    parentId: slice.parentId,
+    totalCycles: slice.totalCycles,
+    totalDepth: slice.totalDepth,
+    totalMemoryOps: slice.totalMemoryOps,
+    totalLMCalls: slice.totalLMCalls,
+  });
   return slice;
 }
 
@@ -96,12 +113,26 @@ function emitConsumed(budget: BudgetSlice, resource: 'cycles' | 'depth' | 'memor
     total,
     pressure,
   });
+  emitBudgetSliceConsumed({
+    sliceId: budget.id,
+    resource,
+    amount,
+    consumed,
+    total,
+    pressure,
+  });
 }
 
 export function consumeCycles(budget: BudgetSlice, cycles: number, eventBus?: NarEventBus): boolean {
   if (budget.consumed.cycles + cycles > budget.totalCycles) {
     budget.terminationReason = 'cycle-budget';
     eventBus?.emit('budget:slice:exhausted', {
+      sliceId: budget.id,
+      reason: 'cycle-budget',
+      consumed: { ...budget.consumed },
+      total: { totalCycles: budget.totalCycles, totalDepth: budget.totalDepth, totalMemoryOps: budget.totalMemoryOps, totalLMCalls: budget.totalLMCalls },
+    });
+    emitBudgetSliceExhausted({
       sliceId: budget.id,
       reason: 'cycle-budget',
       consumed: { ...budget.consumed },
@@ -123,6 +154,12 @@ export function consumeDepth(budget: BudgetSlice, depth: number, eventBus?: NarE
       consumed: { ...budget.consumed },
       total: { totalCycles: budget.totalCycles, totalDepth: budget.totalDepth, totalMemoryOps: budget.totalMemoryOps, totalLMCalls: budget.totalLMCalls },
     });
+    emitBudgetSliceExhausted({
+      sliceId: budget.id,
+      reason: 'depth-budget',
+      consumed: { ...budget.consumed },
+      total: { totalCycles: budget.totalCycles, totalDepth: budget.totalDepth, totalMemoryOps: budget.totalMemoryOps, totalLMCalls: budget.totalLMCalls },
+    });
     return false;
   }
   budget.consumed.depth += depth;
@@ -139,6 +176,12 @@ export function consumeMemoryOps(budget: BudgetSlice, ops: number, eventBus?: Na
       consumed: { ...budget.consumed },
       total: { totalCycles: budget.totalCycles, totalDepth: budget.totalDepth, totalMemoryOps: budget.totalMemoryOps, totalLMCalls: budget.totalLMCalls },
     });
+    emitBudgetSliceExhausted({
+      sliceId: budget.id,
+      reason: 'memory-budget',
+      consumed: { ...budget.consumed },
+      total: { totalCycles: budget.totalCycles, totalDepth: budget.totalDepth, totalMemoryOps: budget.totalMemoryOps, totalLMCalls: budget.totalLMCalls },
+    });
     return false;
   }
   budget.consumed.memoryOps += ops;
@@ -150,6 +193,12 @@ export function consumeLMCalls(budget: BudgetSlice, calls: number, eventBus?: Na
   if (budget.consumed.llmCalls + calls > budget.totalLMCalls) {
     budget.terminationReason = 'llm-budget';
     eventBus?.emit('budget:slice:exhausted', {
+      sliceId: budget.id,
+      reason: 'llm-budget',
+      consumed: { ...budget.consumed },
+      total: { totalCycles: budget.totalCycles, totalDepth: budget.totalDepth, totalMemoryOps: budget.totalMemoryOps, totalLMCalls: budget.totalLMCalls },
+    });
+    emitBudgetSliceExhausted({
       sliceId: budget.id,
       reason: 'llm-budget',
       consumed: { ...budget.consumed },
@@ -210,6 +259,11 @@ export function mergeConsumption(parent: BudgetSlice, child: BudgetSlice, eventB
     parent.terminationReason = child.terminationReason;
   }
   eventBus?.emit('budget:slice:merged', {
+    parentId: parent.id,
+    childId: child.id,
+    consumed: { ...child.consumed },
+  });
+  emitBudgetSliceMerged({
     parentId: parent.id,
     childId: child.id,
     consumed: { ...child.consumed },

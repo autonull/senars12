@@ -20,6 +20,7 @@ import { createHttpManifold } from '../lm/system-one/http-manifold.js';
 import { LMReflex } from '../lm/system-one/lm-reflex.js';
 import { createManifold } from '../lm/system-one/manifold.js';
 import { ManifoldReflex } from '../lm/system-one/manifold-reflex.js';
+import { createJudgmentPipeline, type JudgmentPipeline, type PipelineSpec } from '../lm/system-one/judgment-pipeline.js';
 import type { TraceGradeInput, TraceGradeResult } from '../lm/system-one/trace-grader.js';
 import { createTraceGrader } from '../lm/system-one/trace-grader.js';
 import type { CognitiveDispatcher, JudgmentManifold } from '../lm/system-one/types.js';
@@ -48,6 +49,8 @@ export class SystemOneRuntime {
   /** TODO24: correlationId → last trace quality, for retrospect strategy audit. */
   readonly traceGradeHistory = new Map<string, number>();
   readonly dataset?: JudgmentDataset;
+  /** Phase E: JudgmentPipeline for comprehensive manifold evaluation (ADR-008). */
+  readonly judgmentPipeline?: JudgmentPipeline;
 
   private readonly config: NARConfig;
   private readonly logger: ReturnType<typeof createLogger>;
@@ -148,6 +151,10 @@ export class SystemOneRuntime {
     }
 
     this.manifold = manifold;
+
+    // Phase E: Create JudgmentPipeline for comprehensive evaluation (ADR-008)
+    // Uses the same heads as the manifold but with full pipeline composition
+    this.judgmentPipeline = createJudgmentPipeline();
 
     // Emit judgment.resolved telemetry from the real Tier 1 manifold
     if ('setPropositionCallback' in manifold) {
