@@ -43,7 +43,7 @@ export class SystemOneRuntime {
   readonly dispatcher?: CognitiveDispatcher;
   /** TODO23 unified decision facade (heads + contrastive + router), `decide`/`choose`. */
   readonly decider?: Decider;
-  readonly groundednessGate?: (narration: string, correlationId: string) => Promise<boolean | { grounded: boolean; score?: number }>;
+  readonly groundednessGate?: (narration: string, correlationId: string) => Promise<{ grounded: boolean; score?: number }>;
   readonly traceGrader?: (trace: TraceGradeInput) => Promise<TraceGradeResult>;
   /** TODO24: correlationId → last trace quality, for retrospect strategy audit. */
   readonly traceGradeHistory = new Map<string, number>();
@@ -216,8 +216,8 @@ export class SystemOneRuntime {
     const datasetPath = systemOneConfig.distillation?.datasetPath;
     let dataset: JudgmentDataset | undefined;
     if (datasetPath) {
-      dataset = new JudgmentDataset();
-      dataset.setVectorSidecarPath('.cache/systemone/vectors');
+      const basePath = '.cache/systemone/dataset';
+      dataset = new JudgmentDataset(basePath);
       if (systemOneConfig.distillation?.autoFlush) {
         dataset.startAutoFlush(datasetPath);
       }

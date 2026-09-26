@@ -474,7 +474,7 @@ export class NAR extends BaseComponent {
   getSystemOneGroundednessGate(): ((
     narration: string,
     correlationId: string
-  ) => Promise<boolean | { grounded: boolean; score?: number }>) | undefined {
+  ) => Promise<{ grounded: boolean; score?: number }>) | undefined {
     return this.systemOne.groundednessGate;
   }
 

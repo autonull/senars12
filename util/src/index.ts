@@ -170,3 +170,19 @@ export type { ThrottleConfig } from './utils/throttle.js';
 /** @public Throttle utilities for stream/callback rate control. */
 export { extractLastUserMessage } from './utils/prompt.js';
 export { createThrottle, Throttle, throttleGenerator } from './utils/throttle.js';
+
+/** @public Property-test generators (REFACTOR.todo5 A1). */
+export {
+  atomSymbol,
+  atomTerm,
+  compoundTerm,
+  narseseTerm,
+  narseseString,
+  bagOptions,
+  priorityBag,
+  bagState,
+  serializationRoundTrip,
+  bagSerializationRoundTrip,
+  taskBagSerializationRoundTrip,
+  type TestBagItem,
+} from './test-arbitraries.js';

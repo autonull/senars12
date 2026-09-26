@@ -33,10 +33,10 @@ const GROUNDEDNESS_QUERY: JudgmentQuery = {
  */
 export function createGroundednessGate(
   options: GroundednessGateOptions
-): (narration: string, correlationId: string) => Promise<boolean | { grounded: boolean; score?: number }> {
+): (narration: string, correlationId: string) => Promise<{ grounded: boolean; score?: number }> {
   const { manifold, embeddingCache, threshold = 0.7, getContrastive } = options;
 
-  return async (narration: string, correlationId: string): Promise<boolean | { grounded: boolean; score?: number }> => {
+  return async (narration: string, correlationId: string): Promise<{ grounded: boolean; score?: number }> => {
     try {
       const contrastive = getContrastive?.(correlationId);
       const decider: Decider = createDecider({

@@ -5,7 +5,7 @@ export interface ReflexOutcomeInput {
   action: string;
   reward: number;
   source: string;
-  /** Optional 384-d state embedding for the Z1 vector sidecar (redaction-safe). */
+  /** Optional 384-d state embedding for inline vector storage (redaction-safe). */
   embedding?: Float32Array;
 }
 
@@ -22,7 +22,7 @@ export function recordReflexOutcome(dataset: JudgmentDataset, input: ReflexOutco
     axis: 'teleological',
     label: input.action,
     score: input.reward,
-    vecRef: stateVectorKey,
+    vector: input.embedding ? undefined : undefined, // Vector stored separately via recordVector
     source: input.source,
   });
   if (input.embedding) dataset.recordVector(stateVectorKey, input.embedding);

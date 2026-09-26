@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { Truth, type Truth as TruthType } from '../../terms/truth.js';
 import { seedTruth } from './seed.js';
 import type { JudgmentProposition } from './types.js';
+import { Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery } from '@senars/io';
+import { z } from 'zod';
 
 /** Input-anchored evidence identity: same utterance ⇒ same evidence, regardless of re-judging. */
 export function computeEvidenceId(utteranceId: string, sourceSpan: string): string {
@@ -23,6 +25,16 @@ export function promoteProvisional(
   return current ? Truth.revision(current, incomingTruth) : incomingTruth;
 }
 
+/** Vector encoded as base64 for inline storage in JSONL. */
+function encodeVector(vec: Float32Array): string {
+  return Buffer.from(vec.buffer, vec.byteOffset, vec.byteLength).toString('base64');
+}
+
+function decodeVector(b64: string): Float32Array {
+  const buf = Buffer.from(b64, 'base64');
+  return new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4);
+}
+
 export interface DistillationLabel {
   evidenceId: string;
   rubric: string;
@@ -31,8 +43,8 @@ export interface DistillationLabel {
   score?: number;
   /** Ground-truth outcome recorded at label time (D2 calibration input). */
   observed?: number;
-  /** Vector-sidecar key this row joins to (Z1: usually the state vector, not the action row). */
-  vecRef?: string;
+  /** Inline vector data (base64-encoded 384-d Float32Array). Replaces vecRef sidecar. */
+  vector?: string;
   source: string;
   /** H5/X18: which Cortex model produced the candidates this label judged. */
   cortexModelId?: string;
@@ -40,44 +52,60 @@ export interface DistillationLabel {
   domain?: 'in-domain' | 'ood';
 }
 
-/** Append-only, redaction-per-retention: hashes + labels, never raw text. */
+/** Ledger entry schema for distillation labels with inline vectors. */
+const DistillationLabelEntrySchema = BaseLedgerEntrySchema.extend({
+  evidenceId: z.string(),
+  rubric: z.string(),
+  axis: z.string(),
+  label: z.string(),
+  score: z.number().optional(),
+  observed: z.number().optional(),
+  vector: z.string().optional(),
+  source: z.string(),
+  cortexModelId: z.string().optional(),
+  domain: z.enum(['in-domain', 'ood']).optional(),
+});
+
+export type DistillationLabelEntry = z.infer<typeof DistillationLabelEntrySchema>;
+
+/** Append-only, redaction-per-retention: hashes + labels + inline vectors, never raw text. */
 export class JudgmentDataset {
+  readonly #ledger: Ledger<DistillationLabelEntry>;
+  readonly #basePath: string;
   #labels: DistillationLabel[] = [];
   #vectors = new Map<string, Float32Array>();
-  #vectorSidecarPath?: string;
 
-  /** Configure the binary vector sidecar directory (Z1). */
-  setVectorSidecarPath(path: string): void {
-    this.#vectorSidecarPath = path;
+  constructor(basePath: string, options: { rollover?: any } = {}) {
+    this.#basePath = basePath;
+    this.#ledger = createLedger<DistillationLabelEntry>(basePath, DistillationLabelEntrySchema, {
+      rollover: options.rollover ?? { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
+      hotRetentionMs: 5 * 60 * 1000,
+    });
   }
 
+  /** Record a label with optional inline vector (base64-encoded). */
   record(label: DistillationLabel, embedding?: Float32Array): void {
     this.#labels.push(label);
     if (embedding) this.#vectors.set(label.evidenceId, embedding);
+    const entry: DistillationLabelEntry = {
+      ...label,
+      at: Date.now(),
+      vector: embedding ? encodeVector(embedding) : label.vector,
+    };
+    this.#ledger.append(entry);
   }
 
-  /** Record a raw state embedding keyed by evidenceId (Z1 vector sidecar). */
+  /** Record a raw state embedding keyed by evidenceId (inline vector storage). */
   recordVector(evidenceId: string, embedding: Float32Array): void {
     this.#vectors.set(evidenceId, embedding);
   }
 
+  /** Get the vector for a given evidenceId (synchronous, from in-memory index). */
   getVector(evidenceId: string): Float32Array | undefined {
     return this.#vectors.get(evidenceId);
   }
 
-  /** Flush recorded vectors to the sidecar directory as `<evidenceId>.f32`. */
-  async flushVectors(): Promise<number> {
-    if (this.#vectors.size === 0 || !this.#vectorSidecarPath) return 0;
-    const { promises: fs } = await import('node:fs');
-    const { join } = await import('node:path');
-    await fs.mkdir(this.#vectorSidecarPath, { recursive: true });
-    for (const [evidenceId, vec] of this.#vectors) {
-      const bytes = Buffer.from(vec.buffer, vec.byteOffset, vec.byteLength);
-      await fs.writeFile(join(this.#vectorSidecarPath, `${evidenceId}.f32`), bytes);
-    }
-    return this.#vectors.size;
-  }
-
+  /** Get all labels (synchronous, from in-memory index). */
   all(): readonly DistillationLabel[] {
     return this.#labels;
   }
@@ -102,9 +130,10 @@ export class JudgmentDataset {
   }
 
   /** Load a JSONL file and replace the current dataset. */
-  static async load(path: string): Promise<JudgmentDataset> {
+  static async load(path: string, basePath?: string): Promise<JudgmentDataset> {
     const { promises: fs } = await import('node:fs');
-    const dataset = new JudgmentDataset();
+    const datasetBasePath = basePath ?? (path.replace(/\/[^/]+$/, '') || '.');
+    const dataset = new JudgmentDataset(datasetBasePath);
     try {
       const content = await fs.readFile(path, 'utf-8');
       const lines = content.trim().split('\n').filter(Boolean);
@@ -112,6 +141,11 @@ export class JudgmentDataset {
         try {
           const label = JSON.parse(line) as DistillationLabel;
           dataset.record(label);
+          // If vector is present in the label, decode and store it
+          if (label.vector) {
+            const buf = Buffer.from(label.vector, 'base64');
+            dataset.#vectors.set(label.evidenceId, new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4));
+          }
         } catch {
           // Skip malformed lines
         }
@@ -123,16 +157,12 @@ export class JudgmentDataset {
   }
 
   /**
-   * D3 follow-up: compaction for the append-only auto-flush dataset — dedupe
-   * rows by evidenceId (last wins) and prune sidecar `<evidenceId>.f32` files
-   * whose row rotated out. Returns `{kept, dropped, vectorsKept, vectorsDropped}`.
+   * Compaction for the append-only dataset — dedupe rows by evidenceId (last wins).
+   * Returns `{kept, dropped}`.
    */
-  static async compact(
-    datasetPath: string,
-    sidecarPath?: string
-  ): Promise<{ kept: number; dropped: number; vectorsKept: number; vectorsDropped: number }> {
+  static async compact(datasetPath: string): Promise<{ kept: number; dropped: number }> {
     const { promises: fs } = await import('node:fs');
-    const { join, dirname } = await import('node:path');
+    const { dirname } = await import('node:path');
     const content = await fs.readFile(datasetPath, 'utf-8');
     const byId = new Map<string, DistillationLabel>();
     let dropped = 0;
@@ -152,28 +182,10 @@ export class JudgmentDataset {
       `${[...byId.values()].map((l) => JSON.stringify(l)).join('\n')}\n`,
       'utf-8'
     );
-
-    let vectorsKept = 0;
-    let vectorsDropped = 0;
-    if (sidecarPath) {
-      const live = new Set<string>();
-      for (const label of byId.values()) if (label.vecRef) live.add(label.vecRef);
-      const entries = await fs.readdir(sidecarPath).catch(() => [] as string[]);
-      for (const entry of entries) {
-        if (!entry.endsWith('.f32')) continue;
-        const id = entry.slice(0, -'.f32'.length);
-        if (live.has(id) || byId.has(id)) {
-          vectorsKept++;
-        } else {
-          await fs.rm(join(sidecarPath, entry));
-          vectorsDropped++;
-        }
-      }
-    }
-    return { kept: byId.size, dropped, vectorsKept, vectorsDropped };
+    return { kept: byId.size, dropped };
   }
 
-  /** Periodic append of recorded labels to `path` (D3 auto-flush). Returns a stop function. */
+  /** Periodic append of recorded labels to `path` (auto-flush). Returns a stop function. */
   startAutoFlush(path: string, intervalMs = 30_000): () => void {
     const timer = setInterval(() => {
       void this.flush(path).catch(() => {
@@ -182,6 +194,11 @@ export class JudgmentDataset {
     }, intervalMs);
     timer.unref?.();
     return () => clearInterval(timer);
+  }
+
+  /** Close the ledger (stop timers, flush). */
+  close(): void {
+    this.#ledger.close();
   }
 }
 
