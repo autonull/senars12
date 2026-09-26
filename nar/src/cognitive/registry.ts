@@ -11,7 +11,8 @@ import {
   ResolutionStrategy,
   TaskMatchStrategy,
   TermLinkStrategy,
-} from '../reason';
+  PrologResolutionStrategy,
+} from '../strategies/premise';
 import type {
   AttentionModel,
   ComponentMetadata,
@@ -42,6 +43,7 @@ import {
   TopNSampling,
 } from '../strategies';
 import { ConfigurationError } from '../types';
+import { PriorityBag } from '../bag/Bag';
 
 type StrategyImpl =
   | SamplingStrategy
@@ -50,6 +52,98 @@ type StrategyImpl =
   | LMRuleSelector
   | AttentionModel;
 type StrategyMap = Map<string, StrategyImpl>;
+
+interface StrategyItem<T> {
+  id: string;
+  priority: number;
+  strategy: T;
+}
+
+function createCompositeBag<T>(items: StrategyItem<T>[]): PriorityBag<StrategyItem<T>> {
+  const bag = new PriorityBag<StrategyItem<T>>({ capacity: items.length });
+  for (const item of items) bag.add(item);
+  return bag;
+}
+
+/** Composite SamplingStrategy using bag sampling. */
+class CompositeSampling implements SamplingStrategy {
+  readonly metadata: ComponentMetadata = { name: 'composite-sampling', description: 'Bag-weighted composite sampling' };
+  readonly name = 'composite-sampling';
+  private readonly bag: PriorityBag<StrategyItem<SamplingStrategy>>;
+
+  constructor(strategies: SamplingStrategy[], weights: number[]) {
+    this.bag = createCompositeBag(
+      strategies.map((s, i) => ({ id: s.metadata?.name ?? `sampling-${i}`, priority: weights[i] ?? 1, strategy: s }))
+    );
+  }
+
+  sample(memory: any, count: number): any[] {
+    const item = this.bag.sample();
+    return item?.strategy.sample(memory, count) ?? [];
+  }
+}
+
+/** Composite LMRuleSelector using bag sampling. */
+class CompositeLMRuleSelector implements LMRuleSelector {
+  readonly metadata: ComponentMetadata = { name: 'composite-lm-rule', description: 'Bag-weighted composite LM rule selector' };
+  readonly name = 'composite-lm-rule';
+  private readonly bag: PriorityBag<StrategyItem<LMRuleSelector>>;
+
+  constructor(strategies: LMRuleSelector[], weights: number[]) {
+    this.bag = createCompositeBag(
+      strategies.map((s, i) => ({ id: s.metadata?.name ?? `lm-rule-${i}`, priority: weights[i] ?? 1, strategy: s }))
+    );
+  }
+
+  select(rules: any[], context: any): any[] {
+    const item = this.bag.sample();
+    return item?.strategy.select(rules, context) ?? [];
+  }
+}
+
+/** Composite AttentionModel using bag sampling. */
+class CompositeAttentionModel implements AttentionModel {
+  readonly metadata: ComponentMetadata = { name: 'composite-attention', description: 'Bag-weighted composite attention model' };
+  readonly name = 'composite-attention';
+  private readonly bag: PriorityBag<StrategyItem<AttentionModel>>;
+
+  constructor(strategies: AttentionModel[], weights: number[]) {
+    this.bag = createCompositeBag(
+      strategies.map((s, i) => ({ id: s.metadata?.name ?? `attention-${i}`, priority: weights[i] ?? 1, strategy: s }))
+    );
+  }
+
+  prime(concept: any, context: any): number {
+    const item = this.bag.sample();
+    return item?.strategy.prime(concept, context) ?? 0;
+  }
+  decay(concept: any, cyclesElapsed: number, baseDecayRate: number): number {
+    const item = this.bag.sample();
+    return item?.strategy.decay(concept, cyclesElapsed, baseDecayRate) ?? baseDecayRate;
+  }
+  tick(memory: any, cycleCount: number): void {
+    const item = this.bag.sample();
+    item?.strategy.tick(memory, cycleCount);
+  }
+}
+
+/** Composite DerivationStrategy using bag sampling. */
+class CompositeDerivationStrategy implements DerivationStrategy {
+  readonly metadata: ComponentMetadata = { name: 'composite-derivation', description: 'Bag-weighted composite derivation strategy' };
+  readonly name = 'composite-derivation';
+  private readonly bag: PriorityBag<StrategyItem<DerivationStrategy>>;
+
+  constructor(strategies: DerivationStrategy[], weights: number[]) {
+    this.bag = createCompositeBag(
+      strategies.map((s, i) => ({ id: s.metadata?.name ?? `derivation-${i}`, priority: weights[i] ?? 1, strategy: s }))
+    );
+  }
+
+  async *derive(primary: any, secondaries: any[], processor: any, context: any): AsyncGenerator<any> {
+    const item = this.bag.sample();
+    if (item) yield* item.strategy.derive(primary, secondaries, processor, context);
+  }
+}
 
 export class CognitiveRegistry implements StrategyRegistry {
   private readonly stores: Record<StrategyType, StrategyMap> = {
@@ -72,7 +166,7 @@ export class CognitiveRegistry implements StrategyRegistry {
     if (!impl) {
       throw new ConfigurationError(`No ${type} strategy named '${name}'`, { type, name });
     }
-    return impl as T;
+    return impl as unknown as T;
   }
 
   list(type: StrategyType): ComponentMetadata[] {
@@ -115,6 +209,7 @@ export class CognitiveRegistry implements StrategyRegistry {
       ['premise', 'task-match', TaskMatchStrategy],
       ['premise', 'decomposition', DecompositionStrategy],
       ['premise', 'exhaustive', ExhaustiveStrategy],
+      ['premise', 'prolog-resolution', new PrologResolutionStrategy()],
       ['derivation', 'default', new DefaultDerivation()],
       ['derivation', 'anytime', new AnytimeDerivation()],
       ['derivation', 'focused', new FocusedDerivation()],
@@ -132,12 +227,31 @@ export class CognitiveRegistry implements StrategyRegistry {
   }
 
   composePremise(names: Array<{ name: string; weight: number }>): Strategy {
-    const strategies = names.map((n) => this.get<Strategy>('premise', n.name));
-    return new CompositeStrategy(
-      strategies,
-      'weighted',
-      names.map((n) => n.weight)
-    );
+    return this.compose('premise', names);
+  }
+
+  compose<T extends StrategyImpl>(type: StrategyType, names: Array<{ name: string; weight: number }>): T {
+    const strategies = names.map((n) => this.get<T>(type, n.name));
+    const weights = names.map((n) => n.weight);
+
+    switch (type) {
+      case 'sampling':
+        return new CompositeSampling(strategies as SamplingStrategy[], weights) as unknown as T;
+      case 'premise':
+        return new CompositeStrategy(
+          strategies as Strategy[],
+          'weighted',
+          weights
+        ) as unknown as T;
+      case 'derivation':
+        return new CompositeDerivationStrategy(strategies as DerivationStrategy[], weights) as unknown as T;
+      case 'lm-rule':
+        return new CompositeLMRuleSelector(strategies as LMRuleSelector[], weights) as unknown as T;
+      case 'attention':
+        return new CompositeAttentionModel(strategies as AttentionModel[], weights) as unknown as T;
+      default:
+        throw new ConfigurationError(`Unknown strategy type: ${type}`);
+    }
   }
 
   createAdaptive(names: string[]): Strategy {

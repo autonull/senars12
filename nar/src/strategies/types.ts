@@ -127,5 +127,10 @@ export interface StrategyRegistry {
 
   composePremise(strategies: Array<{ name: string; weight: number }>): Strategy;
 
+  compose<T extends SamplingStrategy | Strategy | DerivationStrategy | LMRuleSelector | AttentionModel>(
+    type: StrategyType,
+    strategies: Array<{ name: string; weight: number }>
+  ): T;
+
   createAdaptive(strategies: string[]): Strategy;
 }

@@ -110,3 +110,7 @@ README rewrite; further MeTTa surface reduction (H1, revisit post-F1); `.kiro/le
 | A1 | A | Property-test generators: `fc.atomSymbol()`, `fc.bagState()`, `fc.serializationRoundTrip()` in `util/src/test-arbitraries.ts` | 100 | ✅ |
 | A2 | A | JudgmentDataset sidecar collapse: inline 384-d vectors into `Ledger<T>` entries; removed `setVectorSidecarPath`, `flushVectors`, `recordVector`, `vecRef`; `record` now stores vectors inline as base64 | 100 | ✅ |
 | A3 | A | Test-only `type` fixes: groundedness gate return type changed from `boolean \| { grounded: boolean; score? }` to `{ grounded: boolean; score? }` in `groundedness-gate.ts`, `nar/system-one.ts`, `nar.ts` | 100 | ✅ |
+| B1 | B | Kernel contracts: `TermView`, `RuleDescriptor`, `DerivationRecord` in `kernel/src/` | 101 | ✅ |
+| B2 | B | Premise-strategy one-home: created `strategies/premise/`, moved `reason/premise/*` (formation, sample, index) + selection strategies there; `reason/` keeps reasoner, strategy-algebra, inference-controller | 101 | ✅ |
+| B3 | B | Strategy-algebra unification: generalized `CognitiveRegistry.compose(type, weights[])` for all 5 strategy types using `PriorityBag` for weighted sampling | 101 | ✅ |
+| B4 | B | Genuine `PrologResolutionStrategy`: SLD resolution with unification, Horn clause backward chaining, occurs-check, depth-bounded search in `strategies/premise/prolog-resolution.ts`; registered as `premise` strategy `prolog-resolution` | 101 | ✅ |

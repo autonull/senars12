@@ -1,6 +1,6 @@
 import type { Concept } from '../../memory';
 import type { Task } from '../../types';
-import { samplePremises } from '../premise/sample.js';
+import { samplePremises } from '../../strategies/premise/sample';
 import type { Strategy } from '../strategy.js';
 
 interface StrategyConfig {
