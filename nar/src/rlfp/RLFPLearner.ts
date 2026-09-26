@@ -2,7 +2,7 @@ import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
 import { z } from 'zod';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { ParameterLedger } from '../config/parameter-ledger.js';
-import { createLogger } from '../logger';
+import { createLogger } from '@senars/core/logger';
 import { OperationError } from '../types';
 import { clamp } from '../utils';
 import { createKnobSet, type TunableKnob } from './knobs.js';

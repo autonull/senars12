@@ -3,7 +3,7 @@
  * ThreadScope deprecated alias. Single-thread run byte-identical; enables parallel threads later.
  */
 
-import { BudgetSlice, type BudgetSliceOptions, createBudgetSlice, sliceBudget, mergeConsumption, isExhausted, consumeCycles } from '@senars/kernel/budget.js';
+import { BudgetSlice, type BudgetSliceOptions, createBudgetSlice, sliceBudget, mergeConsumption, isExhausted, consumeCycles } from '@senars/kernel/budget';
 import type { Term } from '@senars/nar/terms';
 import type { Task } from '@senars/nar/types';
 

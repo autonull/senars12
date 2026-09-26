@@ -4,7 +4,7 @@ import {
   type MonitorState,
   SelfAnalyzerService as SelfAnalyzer,
 } from '../cognitive/SelfAnalyzerService.js';
-import { createLogger } from '../logger';
+import { createLogger } from '@senars/core/logger';
 import type { NAR } from '../nar.js';
 
 export interface GapReport {

@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { SenarsError } from '@senars/util/errors';
 import type { DriveManager } from '../drives';
-import { createLogger } from '../logger';
+import { createLogger } from '@senars/core/logger';
 import type { Memory } from '../memory';
 import { Stamp, Truth, type TruthType, termParser } from '../terms';
 import type { Task, TaskType } from '../types';

@@ -1,4 +1,4 @@
-import { createLogger } from '../logger';
+import { createLogger } from '@senars/core/logger';
 import { OperationError } from '@senars/util';
 
 const logger = createLogger({ scope: 'circuit-breaker' });

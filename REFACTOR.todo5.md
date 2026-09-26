@@ -126,3 +126,18 @@ README rewrite; further MeTTa surface reduction (H1, revisit post-F1); `.kiro/le
 | F2 | F | **JudgmentPipeline**: in `lm/system-one/judgment-pipeline.ts` composes over `HEAD_SPECS` with ordered stages, bands, calibrators, router, cascade; versioned `PipelineModelDigest` | 105 | ✅ |
 | F3 | F | **CognitiveThread**: in `core/cognitive-thread.ts` with lifecycle (`spawn`/`join`/`kill`), mailbox, `BudgetSlice` inheritance; `ThreadScope` deprecated alias to `BudgetSlice` | 105 | ✅ |
 | F4 | F | **Runtime derivation verification**: in `kernel/verify-derivation.ts` with `DerivationVerifier` budget-aware sampler, `verifyRecord` standalone checker | 105 | ✅ |
+
+## 9. Fixes Applied (2026-09-26)
+
+The following implementation fixes were applied to unblock test execution (all plan items were already complete but tests couldn't run due to import/export issues):
+
+| Fix | Files Changed | Issue |
+|-----|---------------|-------|
+| `createLogger` import path fixes | 20+ files in `nar/src/**` | Relative imports `../logger` resolved incorrectly under vitest fork isolation; changed to `@senars/core/logger` |
+| Kernel package exports | `kernel/package.json` | Missing exports for `./budget`, `./term-view`, `./rule-descriptor`, `./derivation-record`, `./verify-derivation` |
+| Core package exports | `core/package.json` | Missing export for `./concept-graph` (required by `RuleGraph` strategy) |
+| Nar package exports | `nar/package.json` | Missing export for `./terms` (required by `core/concept-graph.ts`) |
+| Import extension cleanup | `nar/src/focus/FocusTree.ts`, `core/src/cognitive-thread.ts` | `.js` extensions in package import specifiers (`@senars/kernel/budget.js`) not allowed with exports map |
+| Circular dependency break | `util/src/index.ts` | Removed re-export of `test-arbitraries` (imports `@senars/nar`) from util main entry; util → nar → core → util cycle |
+
+All unit tests that were blocked by these issues now pass (e.g., `tests/unit/util/assert.test.ts`, `tests/nar/unit/utils.test.ts`, `tests/unit/nar/RetrievalVerifiedMemory.test.ts`).

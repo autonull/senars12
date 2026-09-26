@@ -1,4 +1,4 @@
-import { createLogger } from '../../logger';
+import { createLogger } from '@senars/core/logger';
 import type { Concept, Memory } from '../../memory';
 import type { ComponentMetadata } from '../types.js';
 import type { Term } from '../../terms';

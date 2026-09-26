@@ -168,6 +168,10 @@
       "types": "./src/stream/*.ts",
       "import": "./src/stream/*.ts"
     },
+    "./terms": {
+      "types": "./src/terms/index.ts",
+      "import": "./src/terms/index.ts"
+    },
     "./tick": {
       "types": "./src/tick/index.ts",
       "import": "./src/tick/index.ts"

@@ -1,7 +1,7 @@
 import type { ToolFeedback, ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
 import { SenarsError } from '@senars/util/errors';
-import { createLogger } from '../logger';
+import { createLogger } from '@senars/core/logger';
 import type { Term } from '../terms';
 import type { EventBus, NAREventMap } from '../types';
 import type { RandomSource } from '../types/primitives.js';

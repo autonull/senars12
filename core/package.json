@@ -67,6 +67,10 @@
     "./cortex": {
       "types": "./src/cortex/index.ts",
       "import": "./src/cortex/index.ts"
+    },
+    "./concept-graph": {
+      "types": "./src/concept-graph.ts",
+      "import": "./src/concept-graph.ts"
     }
   },
   "scripts": {

@@ -4,7 +4,7 @@
  * Fallback edges guarantee non-regression when LM rules fail.
  */
 
-import { ConceptGraph, type CoActivationEdge } from '@senars/core/concept-graph.js';
+import { ConceptGraph, type CoActivationEdge } from '@senars/core/concept-graph';
 import type { LMRuleSelector, ComponentMetadata, LMRuleSelectionContext } from '../types.js';
 import { CognitiveRegistry } from '../../cognitive/registry.js';
 import type { LMRule } from '../../lm/LMRule.js';

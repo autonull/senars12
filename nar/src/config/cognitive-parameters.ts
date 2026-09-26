@@ -1,4 +1,4 @@
-import { createLogger } from '../logger/index.js';
+import { createLogger } from '@senars/core/logger';
 import { cognitiveBounds, getCognitiveBound } from '@senars/util/config';
 import { deepFreeze } from '@senars/util/utils/shared';
 

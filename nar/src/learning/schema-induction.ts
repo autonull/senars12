@@ -10,7 +10,7 @@
 
 import { type BagItem, PriorityBag } from '../bag/Bag.js';
 import type { LMService } from '../lm/lm-service.js';
-import { createLogger, type Logger } from '../logger';
+import { createLogger, type Logger } from '@senars/core/logger';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { containsSubterm, getSubject, Truth } from '../terms';

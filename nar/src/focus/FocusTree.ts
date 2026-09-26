@@ -4,7 +4,7 @@
  * Per-branch rollups feed domain learner + metaGame.
  */
 
-import { BudgetSlice, type ConsumedBudget, createBudgetSlice, sliceBudget, mergeConsumption, isExhausted } from '@senars/kernel/budget.js';
+import { BudgetSlice, type ConsumedBudget, createBudgetSlice, sliceBudget, mergeConsumption, isExhausted } from '@senars/kernel/budget';
 import type { Focus, FocusOptions, FocusStepReport } from '../focus/Focus.js';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';

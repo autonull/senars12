@@ -1,4 +1,4 @@
-import { createLogger } from '../logger/index.js';
+import { createLogger } from '@senars/core/logger';
 import { OPERATORS } from './operators.js';
 import { termParser } from './parser-peggy.js';
 import type { Term } from './types.js';

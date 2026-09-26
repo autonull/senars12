@@ -8,7 +8,7 @@
     "unboundedAccumulators": 0,
     "depsGateRawChains": 246,
     "typecheckBinErrors": 0,
-    "workspaceCount": 7
+    "workspaceCount": 99
   },
   "rules": {
     "exportSubpaths": "mustNotIncrease",

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createLogger } from '../logger';
+import { createLogger } from '@senars/core/logger';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { TermMap, Truth } from '../terms';

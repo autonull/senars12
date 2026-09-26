@@ -11,6 +11,26 @@
     "./schemas": {
       "types": "./src/schemas.ts",
       "import": "./src/schemas.ts"
+    },
+    "./budget": {
+      "types": "./src/budget.ts",
+      "import": "./src/budget.ts"
+    },
+    "./term-view": {
+      "types": "./src/term-view.ts",
+      "import": "./src/term-view.ts"
+    },
+    "./rule-descriptor": {
+      "types": "./src/rule-descriptor.ts",
+      "import": "./src/rule-descriptor.ts"
+    },
+    "./derivation-record": {
+      "types": "./src/derivation-record.ts",
+      "import": "./src/derivation-record.ts"
+    },
+    "./verify-derivation": {
+      "types": "./src/verify-derivation.ts",
+      "import": "./src/verify-derivation.ts"
     }
   },
   "dependencies": {

@@ -1,4 +1,4 @@
-import { createLogger } from '../logger';
+import { createLogger } from '@senars/core/logger';
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
 import { Truth, termParser, termsEqual } from '../terms';

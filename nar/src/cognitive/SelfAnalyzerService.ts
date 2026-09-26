@@ -1,4 +1,4 @@
-import { createLogger } from '../logger/index.js';
+import { createLogger } from '@senars/core/logger';
 import type { MetricsCollector, NAR } from '../nar.js';
 import { SelfOptimizer } from '../self/SelfOptimizer';
 import { errMsg } from '../utils';

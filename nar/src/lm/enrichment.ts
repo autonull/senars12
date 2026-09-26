@@ -1,4 +1,4 @@
-import { createLogger, type Logger } from '../logger';
+import { createLogger, type Logger } from '@senars/core/logger';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { Truth } from '../terms';

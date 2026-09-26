@@ -24,7 +24,7 @@ import type { TraceGradeInput, TraceGradeResult } from '../lm/system-one/trace-g
 import { createTraceGrader } from '../lm/system-one/trace-grader.js';
 import type { CognitiveDispatcher, JudgmentManifold } from '../lm/system-one/types.js';
 import { composeModelDigest, encoderDigest } from '../lm/system-one/wasi-runtime.js';
-import { createLogger } from '../logger';
+import { createLogger } from '@senars/core/logger';
 import { createEmbeddingGenerator } from '../memory/embedding.js';
 import { recordEmbeddingCacheEvent } from '../metrics/prometheus.js';
 import { EpsilonGreedyReflex } from '../reflex/EpsilonGreedyReflex.js';

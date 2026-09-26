@@ -3,7 +3,7 @@ import type {
   ComponentState,
   BaseComponent as UtilBaseComponent,
 } from '@senars/util';
-import { createLogger, type Logger as NarLogger } from '../logger';
+import { createLogger, type Logger as NarLogger } from '@senars/core/logger';
 import { MetricsCollector } from '../metrics';
 import { NarEventBus } from '../types/events.js';
 
