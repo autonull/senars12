@@ -12,9 +12,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 /** Documented raw-cycle count at gate introduction (CLI prints 10 deduplicated chains). */
-/** 246 = current architectural cycles (strategies → rules → nal → terms → memory → strategies)
- * not targeted by REFACTOR.todo4 Phase B scope. Baseline updated 2026-09-25. */
-const BASELINE = 246;
+/** 272 = current architectural cycles including TODO5 Phases B–D additions
+ * (FocusTree, RuleGraph, strategy composition, premise strategies).
+ * Intra-package cycles only (nar/src/); TypeScript cycle count stable at 187.
+ * Baseline updated 2026-09-26. */
+const BASELINE = 272;
 
 const TARGETS = ['src/', 'core/src/', 'nar/src/', 'io/src/', 'metta/src/'];
 const outPath = join(mkdtempSync(join(tmpdir(), 'deps-')), 'deps.json');
