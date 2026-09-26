@@ -37,7 +37,7 @@ describe('No-Bypass Contract', () => {
   test('Baseline receives observations only through declared interface (nar.getBeliefs, nar.queryTerm)', async () => {
     const stateTerm = TermBuilder.inheritance(
       TermBuilder.atom('self'),
-      TermBuilder.atom('state:s_3_4')
+      TermBuilder.atom('state_s_3_4')
     )!;
     await nar.believe(stateTerm, Truth.create(1.0, 0.95));
 
@@ -57,7 +57,7 @@ describe('No-Bypass Contract', () => {
   test('State cannot be read directly by policy (no direct memory access)', async () => {
     const stateTerm = TermBuilder.inheritance(
       TermBuilder.atom('self'),
-      TermBuilder.atom('state:s_3_4')
+      TermBuilder.atom('state_s_3_4')
     )!;
     await nar.believe(stateTerm, Truth.create(1.0, 0.95));
 
@@ -73,7 +73,7 @@ describe('No-Bypass Contract', () => {
   test('Environment steps only through operation execution (goal dispatch)', async () => {
     // No goals yet - environment should NOT be accessed
     await nar.believe(
-      TermBuilder.inheritance(TermBuilder.atom('self'), TermBuilder.atom('state:s_1_1'))!,
+      TermBuilder.inheritance(TermBuilder.atom('self'), TermBuilder.atom('state_s_1_1'))!,
       Truth.TRUE
     );
     await nar.run(3);
@@ -98,7 +98,7 @@ describe('No-Bypass Contract', () => {
     // The sanctioned path is nar.goal() -> taskManager -> nar.run() -> dispatchToolGoals() -> executeToolGoal()
     // We verify that WITHOUT a goal, no environment action occurs.
     await nar.believe(
-      TermBuilder.inheritance(TermBuilder.atom('self'), TermBuilder.atom('state:s_1_1'))!,
+      TermBuilder.inheritance(TermBuilder.atom('self'), TermBuilder.atom('state_s_1_1'))!,
       Truth.TRUE
     );
     await nar.run(5);
@@ -116,11 +116,11 @@ describe('No-Bypass Contract', () => {
     // All action selection must go through SeNARS goal mechanism.
     // Perception alone produces no goals.
     await nar.believe(
-      TermBuilder.inheritance(TermBuilder.atom('self'), TermBuilder.atom('state:s_1_1'))!,
+      TermBuilder.inheritance(TermBuilder.atom('self'), TermBuilder.atom('state_s_1_1'))!,
       Truth.TRUE
     );
     await nar.believe(
-      TermBuilder.inheritance(TermBuilder.atom('self'), TermBuilder.atom('state:s_1_2'))!,
+      TermBuilder.inheritance(TermBuilder.atom('self'), TermBuilder.atom('state_s_1_2'))!,
       Truth.TRUE
     );
     await nar.run(5);

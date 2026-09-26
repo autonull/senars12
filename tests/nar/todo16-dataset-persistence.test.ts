@@ -6,10 +6,16 @@ import { tmpdir } from 'node:os';
 
 describe('JudgmentDataset — File Persistence (R8)', () => {
   const testFile = join(tmpdir(), 'test-judgment-dataset.jsonl');
+  const testBasePath = join(tmpdir(), 'test-judgment-dataset-base');
 
   beforeEach(async () => {
     try {
       await fs.unlink(testFile);
+    } catch {
+      // Ignore
+    }
+    try {
+      await fs.rm(testBasePath, { recursive: true, force: true });
     } catch {
       // Ignore
     }
@@ -21,10 +27,15 @@ describe('JudgmentDataset — File Persistence (R8)', () => {
     } catch {
       // Ignore
     }
+    try {
+      await fs.rm(testBasePath, { recursive: true, force: true });
+    } catch {
+      // Ignore
+    }
   });
 
   it('flush writes labels to JSONL file', async () => {
-    const dataset = new JudgmentDataset();
+    const dataset = new JudgmentDataset(testBasePath);
     dataset.record({
       evidenceId: 'abc123',
       rubric: 'task_type',
@@ -78,7 +89,7 @@ describe('JudgmentDataset — File Persistence (R8)', () => {
   });
 
   it('round-trip: record → flush → load preserves labels identically', async () => {
-    const original = new JudgmentDataset();
+    const original = new JudgmentDataset(testBasePath);
     original.record({
       evidenceId: 'round-trip-1',
       rubric: 'task_type',
@@ -107,7 +118,7 @@ describe('JudgmentDataset — File Persistence (R8)', () => {
   });
 
   it('file contains no raw utterance text (only hashes + labels)', async () => {
-    const dataset = new JudgmentDataset();
+    const dataset = new JudgmentDataset(testBasePath);
     dataset.record({
       evidenceId: 'sha256:abcdef123456', // hash only
       rubric: 'task_type',

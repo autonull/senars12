@@ -22,15 +22,20 @@ const cache = <T extends Term>(term: T, key: string): T => {
 // Valid atom character class from the Narsese grammar (narsese.peggy)
 // Regular atoms: [^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+
 // The colon ':' is allowed only in namespaced atoms (handled by parser via ColonedAtom)
+// Variables start with ? $ # * % (handled by parser via Variable rule)
 // This regex matches any character that is INVALID in a regular atom
-// Excluded chars: (){}[]<>.,!%?;:@ \t\n\r=&/|>- (note: + is ALLOWED)
-const INVALID_ATOM_CHARS = /[(){}[\].<>.,!%?;:@ \t\n\r=&/|>-]/;
+// Excluded chars: (){}[]<>.,!%;:@ \t\n\r=&/|>- (note: + is ALLOWED, ? $ # * % allowed at start for variables)
+const INVALID_ATOM_CHARS = /[(){}[\].<>.,!%;:@ \t\n\r=&/|>-]/;
 
 const createAtom = (symbol: string): AtomicTerm => {
   if (symbol.includes(':')) {
     throw new Error(`Atomic term symbol cannot contain ':' (Narsese compact inheritance shorthand). Use '_' instead, or use the parser for namespaced terms like 'ns:term'.`);
   }
-  if (INVALID_ATOM_CHARS.test(symbol)) {
+  // Allow variable symbols starting with ? $ # * %
+  const isVariableSymbol = /^[?$#*%]/.test(symbol);
+  // Allow quoted atoms (wrapped in ") which can contain spaces and other chars
+  const isQuotedAtom = symbol.startsWith('"') && symbol.endsWith('"');
+  if (!isVariableSymbol && !isQuotedAtom && INVALID_ATOM_CHARS.test(symbol)) {
     const badChar = symbol.match(INVALID_ATOM_CHARS)?.[0];
     throw new Error(
       `Atomic term symbol cannot contain '${badChar}' (reserved in Narsese grammar). ` +
@@ -44,7 +49,7 @@ const createAtom = (symbol: string): AtomicTerm => {
     Object.freeze({
       kind: 'atom' as const,
       symbol,
-      isVariable: symbol.startsWith('$'),
+      isVariable: /^[?$#*%]/.test(symbol),
       toString() {
         return symbol;
       },

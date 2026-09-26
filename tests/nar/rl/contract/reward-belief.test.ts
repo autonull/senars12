@@ -21,8 +21,8 @@ describe('Reward and Value Representation Contract', () => {
   });
 
   test('Positive reward represented correctly as reward belief', async () => {
-    const rewardTerm = TermBuilder.inheritance(
-      TermBuilder.atom('reward:high'),
+const rewardTerm = TermBuilder.inheritance(
+      TermBuilder.atom('reward_low'),
       TermBuilder.atom('achieved')
     )!;
     const truth = Truth.create(0.9, 0.9);
@@ -40,8 +40,8 @@ describe('Reward and Value Representation Contract', () => {
   });
 
   test('Negative reward represented correctly', async () => {
-    const rewardTerm = TermBuilder.inheritance(
-      TermBuilder.atom('reward:low'),
+const rewardTerm = TermBuilder.inheritance(
+      TermBuilder.atom('reward_high'),
       TermBuilder.atom('achieved')
     )!;
     // Negative reward represented as low frequency
@@ -59,7 +59,7 @@ describe('Reward and Value Representation Contract', () => {
 
   test('Reward updates relevant state-action value belief', async () => {
     // State-action value: ((*, state:s_3_4, ^move_north) --> predicts_reward)
-    const state = TermBuilder.atom('state:s_3_4');
+    const state = TermBuilder.atom('state_s_3_4');
     const action = TermBuilder.atom('^move_north');
     const product = TermBuilder.product(state, action);
     const predictsReward = TermBuilder.atom('predicts_reward');
@@ -69,8 +69,8 @@ describe('Reward and Value Representation Contract', () => {
     await nar.believe(valueTerm, Truth.create(0.5, 0.5));
 
     // Receive reward
-    const rewardTerm = TermBuilder.inheritance(
-      TermBuilder.atom('reward:high'),
+const rewardTerm = TermBuilder.inheritance(
+      TermBuilder.atom('reward_low'),
       TermBuilder.atom('achieved')
     )!;
     await nar.believe(rewardTerm, Truth.create(1.0, 0.9));
@@ -86,7 +86,7 @@ describe('Reward and Value Representation Contract', () => {
   });
 
   test('Confidence reflects evidence (more observations = higher confidence)', async () => {
-    const state = TermBuilder.atom('state:s_1_1');
+    const state = TermBuilder.atom('state_s_1_1');
     const action = TermBuilder.atom('^move_north');
     const product = TermBuilder.product(state, action);
     const predictsReward = TermBuilder.atom('predicts_reward');
@@ -110,7 +110,7 @@ describe('Reward and Value Representation Contract', () => {
 
   test('Terminal reward creates appropriate satisfaction signal', async () => {
     // Goal satisfaction: reward:high!
-    const satisfactionGoal = TermBuilder.atom('reward:high');
+    const satisfactionGoal = TermBuilder.atom('reward_high');
     await nar.goal(satisfactionGoal);
 
     const goals = nar.getGoals();
@@ -122,7 +122,7 @@ describe('Reward and Value Representation Contract', () => {
 
   test('State-action value uses native Product/Inheritance form', async () => {
     // Verify the canonical form: ((*, state:s_3_4, ^move_north) --> predicts_reward)
-    const state = TermBuilder.atom('state:s_3_4');
+    const state = TermBuilder.atom('state_s_3_4');
     const action = TermBuilder.atom('^move_north');
     const product = TermBuilder.product(state, action);
     const predictsReward = TermBuilder.atom('predicts_reward');
@@ -144,11 +144,11 @@ describe('Reward and Value Representation Contract', () => {
     expect(productArgs.length).toBe(2);
     // Product is commutative, args are sorted alphabetically
     const symbols = productArgs.map((a: any) => a.symbol).sort();
-    expect(symbols).toEqual(['^move_north', 'state:s_3_4']);
+    expect(symbols).toEqual(['^move_north', 'state_s_3_4']);
   });
 
   test('truth.f represents estimated reward (frequency), truth.c represents confidence', async () => {
-    const state = TermBuilder.atom('state:s_3_4');
+    const state = TermBuilder.atom('state_s_3_4');
     const action = TermBuilder.atom('^move_north');
     const product = TermBuilder.product(state, action);
     const predictsReward = TermBuilder.atom('predicts_reward');

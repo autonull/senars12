@@ -38,7 +38,8 @@ export class BeliefPerceptionAdapter {
   /** Convert an RL observation to belief tasks and input them to NAR */
   async perceive(observation: RLObservation): Promise<void> {
     // State observation: (self --> state:s_X_Y)
-    const stateTerm = TermBuilder.atom(observation.stateId);
+    const sanitizedStateId = observation.stateId.replace(/:/g, '_');
+    const stateTerm = TermBuilder.atom(sanitizedStateId);
     const selfTerm = TermBuilder.atom('self');
     const stateInheritance = TermBuilder.inheritance(selfTerm, stateTerm);
     if (!stateInheritance) throw new Error(`Invalid inheritance: ${selfTerm} --> ${stateTerm}`);
@@ -47,7 +48,7 @@ export class BeliefPerceptionAdapter {
     // Feature observations
     if (observation.features) {
       for (const [feature, value] of Object.entries(observation.features)) {
-        const featureTerm = TermBuilder.atom(`feature:${feature}`);
+        const featureTerm = TermBuilder.atom(`feature_${feature}`);
         const valueTerm = TermBuilder.atom(value > 0 ? 'present' : 'absent');
         const featureInheritance = TermBuilder.inheritance(featureTerm, valueTerm);
         if (!featureInheritance) throw new Error(`Invalid inheritance: ${featureTerm} --> ${valueTerm}`);
@@ -63,7 +64,7 @@ export class BeliefPerceptionAdapter {
       const rewardLevel =
         observation.reward > 0 ? 'high' : observation.reward < 0 ? 'low' : 'neutral';
       const rewardTerm = TermBuilder.inheritance(
-        TermBuilder.atom(`reward:${rewardLevel}`),
+        TermBuilder.atom(`reward_${rewardLevel}`),
         TermBuilder.atom('achieved')
       );
       if (!rewardTerm) throw new Error(`Invalid inheritance: reward:${rewardLevel} --> achieved`);
@@ -74,7 +75,7 @@ export class BeliefPerceptionAdapter {
     // Terminal state observation
     if (observation.terminal) {
       const terminalTerm = TermBuilder.inheritance(
-        TermBuilder.atom('state:terminal'),
+        TermBuilder.atom('state_terminal'),
         TermBuilder.atom('reached')
       );
       if (!terminalTerm) throw new Error(`Invalid inheritance: state:terminal --> reached`);
@@ -87,7 +88,8 @@ export class BeliefPerceptionAdapter {
     const baseConfidence = this.config.sensorConfidence;
     const noisyConfidence = Math.max(0.1, baseConfidence - noiseLevel * this.rng.next());
 
-    const stateTerm = TermBuilder.atom(observation.stateId);
+    const sanitizedStateId = observation.stateId.replace(/:/g, '_');
+    const stateTerm = TermBuilder.atom(sanitizedStateId);
     const selfTerm = TermBuilder.atom('self');
     const stateInheritance = TermBuilder.inheritance(selfTerm, stateTerm);
     if (!stateInheritance) throw new Error(`Invalid inheritance: ${selfTerm} --> ${stateTerm}`);

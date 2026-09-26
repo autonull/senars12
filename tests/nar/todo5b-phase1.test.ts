@@ -113,7 +113,7 @@ describe('TODO5b Phase 1', () => {
 
   it('default bindings: negotiate veto, policy deny, tool act', async () => {
     const goalTerm = TermBuilder.inheritance(
-      TermBuilder.compound('product', [atom('fix_pattern:null_check')]),
+      TermBuilder.compound('product', [atom('fix_pattern_null_check')]),
       atom('^apply_fix')
     )!;
     const goal = createTask(goalTerm, 'goal', t(1, 0.9), createBudget(0.9));

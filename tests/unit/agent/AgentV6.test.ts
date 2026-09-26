@@ -16,9 +16,9 @@ const scriptedLM = createMockLMService({
   },
 });
 
-function makeEpisodicMemory(): EpisodicMemory {
+function makeEpisodicMemory(): { ep: EpisodicMemory; basePath: string } {
   const basePath = mkdtempSync(join(tmpdir(), 'episodic-'));
-  return new EpisodicMemory({ enabled: true, basePath, retentionDays: 1, maxEntriesPerFile: 100 });
+  return { ep: new EpisodicMemory({ enabled: true, basePath, retentionDays: 1, maxEntriesPerFile: 100 }), basePath };
 }
 
 async function collectChat(
@@ -46,38 +46,38 @@ describe('Agent (v6 harness)', () => {
   // ── Parse gate ──────────────────────────────────────────
 
   it('feeds Narsese belief directly to NAR without LM', async () => {
-    const ep = makeEpisodicMemory();
+    const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
     const text = await collectChat(agent, '(cat --> animal).');
     expect(text).toContain('(cat --> animal)');
     expect(nar.getBeliefs().length).toBeGreaterThan(0);
-    rmSync(ep.basePath, { recursive: true, force: true });
+    rmSync(basePath, { recursive: true, force: true });
   });
 
   it('parses goal (!) correctly', async () => {
-    const ep = makeEpisodicMemory();
+    const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
     const text = await collectChat(agent, '(call_mom)!');
     expect(text).toContain('+ (call_mom)!');
     expect(nar.getGoals().length).toBeGreaterThan(0);
-    rmSync(ep.basePath, { recursive: true, force: true });
+    rmSync(basePath, { recursive: true, force: true });
   });
 
   it('parses question (?) and checks existing beliefs', async () => {
-    const ep = makeEpisodicMemory();
+    const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
     await nar.input('(cat --> animal).');
     const text = await collectChat(agent, '(cat --> ?)?');
     expect(text).toMatch(/cat/);
-    rmSync(ep.basePath, { recursive: true, force: true });
+    rmSync(basePath, { recursive: true, force: true });
   });
 
   it('rejects invalid Narsese and falls back to LM', async () => {
-    const ep = makeEpisodicMemory();
+    const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
     const text = await collectChat(agent, 'hello world');
     expect(text).toBe('Hi there!');
-    rmSync(ep.basePath, { recursive: true, force: true });
+    rmSync(basePath, { recursive: true, force: true });
   });
 
   // ── recall ──────────────────────────────────────────────
@@ -89,14 +89,14 @@ describe('Agent (v6 harness)', () => {
   });
 
   it('recall() searches episodic memory after chat', async () => {
-    const ep = makeEpisodicMemory();
+    const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
     await collectChat(agent, 'hello there friend');
     await new Promise((r) => setTimeout(r, 50));
     const episodes = await agent.recall('hello');
     expect(episodes.length).toBeGreaterThan(0);
     expect(episodes.some((e) => e.content.includes('hello'))).toBe(true);
-    rmSync(ep.basePath, { recursive: true, force: true });
+    rmSync(basePath, { recursive: true, force: true });
   });
 
   // ── Throttle ────────────────────────────────────────────
@@ -154,11 +154,11 @@ describe('Agent (v6 harness)', () => {
   // ── believe ─────────────────────────────────────────────
 
   it('believe() parses Narsese and feeds NAR', async () => {
-    const ep = makeEpisodicMemory();
+    const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, episodicMemory: ep });
     await agent.believe('(cat --> animal).');
     expect(nar.getBeliefs().length).toBeGreaterThan(0);
-    rmSync(ep.basePath, { recursive: true, force: true });
+    rmSync(basePath, { recursive: true, force: true });
   });
 
   // ── accessors ───────────────────────────────────────────
@@ -169,9 +169,9 @@ describe('Agent (v6 harness)', () => {
   });
 
   it('getEpisodicMemory() returns the memory instance', async () => {
-    const ep = makeEpisodicMemory();
+    const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, episodicMemory: ep });
     expect(agent.getEpisodicMemory()).toBe(ep);
-    rmSync(ep.basePath, { recursive: true, force: true });
+    rmSync(basePath, { recursive: true, force: true });
   });
 });

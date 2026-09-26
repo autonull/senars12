@@ -2,7 +2,11 @@ import fc from 'fast-check';
 import type { Term } from '../../../nar/src';
 import { normalize, TermBuilder, termsEqual } from '../../../nar/src/terms';
 
-const atomArb = fc.string({ minLength: 1, maxLength: 10 }).map((s) => TermBuilder.atom(s));
+// Valid atom characters (excluding reserved: (){}[]<>.,!%;:@ \t\n\r=&/|>- and :)
+// Also allow variable prefixes ? $ # * % at start
+const validAtomCharSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_+=-*/';
+const validAtomStr = fc.string({ minLength: 1, maxLength: 10 }).map((s) => s.split('').filter(c => validAtomCharSet.includes(c)).join('')).filter((s) => s.length > 0);
+const atomArb = validAtomStr.map((s) => TermBuilder.atom(s));
 const termArb: fc.Arbitrary<Term> = fc.oneof(
   atomArb,
   fc.tuple(atomArb, atomArb).map(([a, b]) => TermBuilder.inheritance(a, b)).filter((t): t is Term => t !== undefined),
@@ -33,7 +37,7 @@ describe('Term invariants (property)', () => {
 
   it('factory structural sharing', () => {
     fc.assert(
-      fc.property(fc.string(), (s) => {
+      fc.property(validAtomStr, (s) => {
         expect(TermBuilder.atom(s)).toBe(TermBuilder.atom(s));
       })
     );

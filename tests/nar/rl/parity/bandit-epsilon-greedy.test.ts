@@ -73,7 +73,7 @@ describe('RL Parity - Bandit Epsilon-Greedy @load-sensitive', () => {
         adapterAgent.update(actionIdx, reward);
 
         // Process reward through NAR
-        const stateTerm = TermBuilder.atom(`state:${actionIdx}`);
+        const stateTerm = TermBuilder.atom(`state_${actionIdx}`);
         const actionTerm = TermBuilder.atom(`^pull_arm_${actionIdx}`);
         await rewardAdapter.processReward(stateTerm, actionTerm, reward);
 
@@ -251,7 +251,7 @@ describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
           await nar.tools.executeToolGoal(goalTerm);
           const { reward, terminal } = env2.step(actionIdx);
           adapterAgent.update(actionIdx, reward);
-          const stateTerm = TermBuilder.atom(`state:${actionIdx}`);
+          const stateTerm = TermBuilder.atom(`state_${actionIdx}`);
           const actionTerm = TermBuilder.atom(`^pull_arm_${actionIdx}`);
           await rewardAdapter.processReward(stateTerm, actionTerm, reward);
           episodeReward += reward;
@@ -408,7 +408,7 @@ describe('QBeliefStore @load-sensitive', () => {
     });
 
     const qStore = new QBeliefStore(nar);
-    const state = TermBuilder.atom('state:s1');
+    const state = TermBuilder.atom('state_s1');
     const action = TermBuilder.atom('^move_north');
 
     // Initially no value
@@ -447,7 +447,7 @@ describe('QBeliefStore @load-sensitive', () => {
     });
 
     const qStore = new QBeliefStore(nar);
-    const state = TermBuilder.atom('state:s1');
+    const state = TermBuilder.atom('state_s1');
     const actions = [
       TermBuilder.atom('^move_north'),
       TermBuilder.atom('^move_south'),
@@ -479,7 +479,7 @@ describe('QBeliefStore @load-sensitive', () => {
     });
 
     const qStore = new QBeliefStore(nar);
-    const state = TermBuilder.atom('state:s1');
+    const state = TermBuilder.atom('state_s1');
     const actions = [
       TermBuilder.atom('^action_a'), // High confidence
       TermBuilder.atom('^action_b'), // Low confidence

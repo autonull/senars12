@@ -46,10 +46,10 @@ export class RewardBeliefAdapter {
 
     const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
     const rewardTerm = TermBuilder.inheritance(
-      TermBuilder.atom(`reward:${rewardLevel}`),
+      TermBuilder.atom(`reward_${rewardLevel}`),
       TermBuilder.atom('achieved')
     );
-    if (!rewardTerm) throw new Error(`Invalid inheritance: reward:${rewardLevel} --> achieved`);
+    if (!rewardTerm) throw new Error(`Invalid inheritance: reward_${rewardLevel} --> achieved`);
     await this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
   }
 
@@ -86,10 +86,10 @@ export class RewardBeliefAdapter {
 
     const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
     const rewardTerm = TermBuilder.inheritance(
-      TermBuilder.atom(`reward:${rewardLevel}`),
+      TermBuilder.atom(`reward_${rewardLevel}`),
       TermBuilder.atom('achieved')
     );
-    if (!rewardTerm) throw new Error(`Invalid inheritance: reward:${rewardLevel} --> achieved`);
+    if (!rewardTerm) throw new Error(`Invalid inheritance: reward_${rewardLevel} --> achieved`);
     await this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
   }
 
@@ -120,17 +120,17 @@ export class RewardBeliefAdapter {
 
     const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
     const rewardTerm = TermBuilder.inheritance(
-      TermBuilder.atom(`reward:${rewardLevel}`),
+      TermBuilder.atom(`reward_${rewardLevel}`),
       TermBuilder.atom('achieved')
     );
-    if (!rewardTerm) throw new Error(`Invalid inheritance: reward:${rewardLevel} --> achieved`);
+    if (!rewardTerm) throw new Error(`Invalid inheritance: reward_${rewardLevel} --> achieved`);
     await this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
   }
 
   /** Create terminal satisfaction signal (goal term for nar.goal()) */
   createSatisfactionSignal(reward: number): Term {
     const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
-    return TermBuilder.atom(`reward:${rewardLevel}`);
+    return TermBuilder.atom(`reward_${rewardLevel}`);
   }
 
   getQStore(): QBeliefStore {

@@ -135,7 +135,7 @@ describe('Goal/Action Contract', () => {
     // Add many beliefs that would generate many derivations
     for (let i = 0; i < 20; i++) {
       await constrainedNar.believe(
-        TermBuilder.inheritance(TermBuilder.atom(`fact:${i}`), TermBuilder.atom('true'))!,
+        TermBuilder.inheritance(TermBuilder.atom(`fact_${i}`), TermBuilder.atom('true'))!,
         Truth.TRUE
       );
     }
@@ -148,7 +148,7 @@ describe('Goal/Action Contract', () => {
   test('No environment step occurs without goal dispatch', async () => {
     // Add some beliefs but no tool goals
     await nar.believe(
-      TermBuilder.inheritance(TermBuilder.atom('self'), TermBuilder.atom('state:s_1_1'))!,
+      TermBuilder.inheritance(TermBuilder.atom('self'), TermBuilder.atom('state_s_1_1'))!,
       Truth.TRUE
     );
     await nar.run(5);
@@ -163,11 +163,11 @@ describe('Goal/Action Contract', () => {
   test('Observation alone never causes an action', async () => {
     // Perception only - no goals
     await nar.believe(
-      TermBuilder.inheritance(TermBuilder.atom('self'), TermBuilder.atom('state:s_3_4'))!,
+      TermBuilder.inheritance(TermBuilder.atom('self'), TermBuilder.atom('state_s_3_4'))!,
       Truth.create(1.0, 0.95)
     );
     await nar.believe(
-      TermBuilder.inheritance(TermBuilder.atom('feature:wall_north'), TermBuilder.atom('present'))!,
+      TermBuilder.inheritance(TermBuilder.atom('feature_wall_north'), TermBuilder.atom('present'))!,
       Truth.create(1.0, 0.9)
     );
 

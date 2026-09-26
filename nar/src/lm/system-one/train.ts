@@ -38,7 +38,6 @@ export interface TrainingRow {
 
 export interface LoadTrainingDataOptions {
   datasetPath: string;
-  sidecarPath: string;
   headId: string;
   /** Fold duplicate (state, action) rows into their mean target (MC-return noise reduction). */
   averageDuplicates?: boolean;
@@ -50,7 +49,7 @@ interface RawLabel {
   label: string;
   score?: number;
   observed?: number;
-  vecRef?: string;
+  vector?: string;
 }
 
 export async function loadTrainingData(options: LoadTrainingDataOptions): Promise<TrainingRow[]> {
@@ -59,7 +58,7 @@ export async function loadTrainingData(options: LoadTrainingDataOptions): Promis
 
   const grouped = new Map<
     string,
-    { sum: number; count: number; action: string; vecRef?: string }
+    { sum: number; count: number; action: string; vector?: string }
   >();
   for (const line of rows) {
     let label: RawLabel;
@@ -70,28 +69,25 @@ export async function loadTrainingData(options: LoadTrainingDataOptions): Promis
     }
     if (label.rubric !== options.headId) continue;
     const target = label.observed ?? label.score;
-    const vecRef = label.vecRef ?? label.evidenceId;
-    if (target === undefined || !Number.isFinite(target) || !vecRef) continue;
+    if (target === undefined || !Number.isFinite(target) || !label.vector) continue;
     const key = `${label.evidenceId}`;
     const existing = grouped.get(key);
     if (existing && options.averageDuplicates !== false) {
       existing.sum += target;
       existing.count++;
     } else if (!existing) {
-      grouped.set(key, { sum: target, count: 1, action: label.label, vecRef });
+      grouped.set(key, { sum: target, count: 1, action: label.label, vector: label.vector });
     }
   }
 
   const trainingRows: TrainingRow[] = [];
-  for (const { sum, count, action, vecRef } of grouped.values()) {
+  for (const { sum, count, action, vector } of grouped.values()) {
     try {
-      const bytes = await fs.readFile(join(options.sidecarPath, `${vecRef}.f32`));
-      const embedding = new Float32Array(
-        bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
-      );
+      const buf = Buffer.from(vector!, 'base64');
+      const embedding = new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4);
       trainingRows.push({ embedding, action, target: sum / count });
     } catch {
-      // Sidecar vector missing (evicted) — row is untrainable, skip.
+      // Inline vector missing/corrupt — row is untrainable, skip.
     }
   }
   return trainingRows;

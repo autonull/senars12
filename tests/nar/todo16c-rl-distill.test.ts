@@ -64,8 +64,8 @@ function randomEpisode(game: GridWorldGame, maxSteps = 30): number {
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 /** Play the tabular-Q baseline, recording (state, action, MC-return) labels with state embeddings. */
-async function collectDistillationDataset(cache: EmbeddingCache, episodes: number) {
-  const dataset = new JudgmentDataset();
+async function collectDistillationDataset(cache: EmbeddingCache, episodes: number, basePath: string) {
+  const dataset = new JudgmentDataset(basePath);
   const outcomeMeans = new Map<string, number>();
   const outcomeSums = new Map<string, { sum: number; count: number }>();
   const game = new GridWorldGame({ grid, seed: 1 });
@@ -110,22 +110,18 @@ describe('Reflex-Value Distillation Loop (Bench 21)', () => {
   it('play → dataset → trained digest-pinned head → beats random & untrained; value correlation with tabular Q', async () => {
     const tmp = mkdtempSync(join(tmpdir(), 's1-distill-'));
     const datasetPath = join(tmp, 'dataset.jsonl');
-    const sidecarPath = join(tmp, 'vectors');
     const headDir = join(tmp, 'heads', 'reflex_value');
 
     const cache = new EmbeddingCache({ maxSize: 1000, ttlMs: 600_000 });
     await cache.warmup(allCells().map(stateDigest));
 
-    // 1. Play episodes → dataset (hash-only labels + vector sidecar)
-    const { dataset, outcomeMeans } = await collectDistillationDataset(cache, 300);
-    dataset.setVectorSidecarPath(sidecarPath);
+    // 1. Play episodes → dataset (hash-only labels + inline vectors)
+    const { dataset, outcomeMeans } = await collectDistillationDataset(cache, 300, tmp);
     expect(dataset.size).toBeGreaterThan(500);
     await dataset.flush(datasetPath);
-    await dataset.flushVectors();
-    expect(readdirSync(sidecarPath).length).toBeGreaterThan(0);
 
-    // 2. Train the reflex_value head from the sidecar+JSONL join
-    const rows = await loadTrainingData({ datasetPath, sidecarPath, headId: 'reflex_value' });
+    // 2. Train the reflex_value head from the inline vector JSONL
+    const rows = await loadTrainingData({ datasetPath, headId: 'reflex_value' });
     expect(rows.length).toBeGreaterThan(0);
     const model = trainHead(rows, { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' }, { holdoutFraction: 0 });
 

@@ -17,7 +17,7 @@ import { join } from 'node:path';
 
 /** Synthetic miscalibrated head: predicted systematically inflated by 0.25 over a noisy truth. */
 function miscalibratedDataset(rows: number): JudgmentDataset {
-  const dataset = new JudgmentDataset();
+  const dataset = new JudgmentDataset(join(tmpdir(), `test-calib-${rows}`));
   let s = 12345;
   const rand = () => {
     s = (s + 0x6d2b79f5) >>> 0;

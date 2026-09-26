@@ -254,7 +254,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       const perception = new BeliefPerceptionAdapter(nar, { sensorConfidence: 0.9 });
       const rewardAdapter = new RewardBeliefAdapter(nar);
 
-      const stateTerm = TermBuilder.atom('state:test');
+      const stateTerm = TermBuilder.atom('state_test');
       const actionTerm = TermBuilder.atom('^test_action');
 
       // First observation: high reward
@@ -292,7 +292,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
       // Direct belief input with contradiction
       const term = TermBuilder.inheritance(
-        TermBuilder.product(TermBuilder.atom('state:test'), TermBuilder.atom('^action')),
+        TermBuilder.product(TermBuilder.atom('state_test'), TermBuilder.atom('^action')),
         TermBuilder.atom('predicts_reward')
       )!;
 
@@ -425,7 +425,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
         },
       });
 
-      const state = TermBuilder.atom('state:s1');
+      const state = TermBuilder.atom('state_s1');
       const action = TermBuilder.atom('^test_action');
 
       // Create value belief
@@ -684,7 +684,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       const rewardAdapter = new RewardBeliefAdapter(nar);
       const qStore = rewardAdapter.getQStore();
 
-      const state = TermBuilder.atom('state:important');
+      const state = TermBuilder.atom('state_important');
       const action = TermBuilder.atom('^important_action');
       const otherAction = TermBuilder.atom('^other_action');
 
@@ -695,7 +695,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
       // Create many low-priority concepts to fill memory
       for (let i = 0; i < 40; i++) {
-        const s = TermBuilder.atom(`state:fill_${i}`);
+        const s = TermBuilder.atom(`state_fill_${i}`);
         const a = TermBuilder.atom(`^action_${i}`);
         await qStore.updateValue(s, a, 0.1, 0.2);
       }
@@ -728,12 +728,12 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       const rewardAdapter = new RewardBeliefAdapter(nar);
       const qStore = rewardAdapter.getQStore();
 
-      const state = TermBuilder.atom('state:test');
+      const state = TermBuilder.atom('state_test');
       const action = TermBuilder.atom('^action');
 
       // Add concepts until pressure
       for (let i = 0; i < 150; i++) {
-        const s = TermBuilder.atom(`state:${i}`);
+        const s = TermBuilder.atom(`state_${i}`);
         const a = TermBuilder.atom(`^action_${i}`);
         await qStore.updateValue(s, a, Math.random(), 0.5);
       }
@@ -820,24 +820,24 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
         execute: async () => ({ success: true, content: null }),
       });
 
-      const stateTerm = TermBuilder.atom('state:grid_0_0');
+      const stateTerm = TermBuilder.atom('state_grid_0_0');
       const actions = [TermBuilder.atom('^move_north'), TermBuilder.atom('^move_east')];
 
       // Run several episodes to build derivation history
       for (let ep = 0; ep < 5; ep++) {
-        await perception.perceive({ stateId: 'state:grid_0_0', reward: 0 });
+        await perception.perceive({ stateId: 'state_grid_0_0', reward: 0 });
         await nar.run(3);
 
         const goalTerm = actionAdapter.buildGoalTerm({ name: 'move_north' });
         await nar.tools.executeToolGoal(goalTerm);
         await rewardAdapter.processReward(stateTerm, actions[0]!, 1.0);
 
-        await perception.perceive({ stateId: 'state:grid_0_1', reward: 0 });
+        await perception.perceive({ stateId: 'state_grid_0_1', reward: 0 });
         await nar.run(3);
 
         const goalTerm2 = actionAdapter.buildGoalTerm({ name: 'move_east' });
         await nar.tools.executeToolGoal(goalTerm2);
-        await rewardAdapter.processReward(TermBuilder.atom('state:grid_0_1'), actions[1]!, 1.0);
+        await rewardAdapter.processReward(TermBuilder.atom('state_grid_0_1'), actions[1]!, 1.0);
       }
 
       // Derivation history should exist

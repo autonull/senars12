@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import {
   runBakeOff,
   buildHeadSwapProposal,
@@ -90,7 +92,7 @@ describe('System One — Distillation Parity (Bench 10)', () => {
   });
 
   it('dataset stays redaction-per-retention across the flywheel', () => {
-    const dataset = new JudgmentDataset();
+    const dataset = new JudgmentDataset(join(tmpdir(), 'test-parity-base'));
     dataset.record({
       evidenceId: 'sha256:deadbeef',
       rubric: 'groundedness',

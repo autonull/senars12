@@ -133,13 +133,13 @@ describe('System One RL Harness — no NAR in the loop (Bench 20)', () => {
     expect(avg(untrainedRewards)).toBeGreaterThanOrEqual(avg(randomRewards) - 0.1);
   }, 120_000);
 
-  it('reward labels are recorded hash-only with a vector sidecar', async () => {
+  it('reward labels are recorded hash-only with inline vectors', async () => {
     const cache = new EmbeddingCache({ maxSize: 100, ttlMs: 600_000 });
     await cache.warmup(['x']);
     const manifold = createManifold(cache, { abstainThreshold: 0.05 });
-    const dataset = new (await import('../../nar/src/lm/system-one/distill.js')).JudgmentDataset();
-    const sidecar = mkdtempSync(join(tmpdir(), 's1-vectors-'));
-    dataset.setVectorSidecarPath(sidecar);
+    const tmp = mkdtempSync(join(tmpdir(), 's1-vectors-'));
+    const { JudgmentDataset } = await import('../../nar/src/lm/system-one/distill.js');
+    const dataset = new JudgmentDataset(tmp);
 
     const agent = new ManifoldRLAgent({ cache, manifold, budget, dataset, epsilon: 0.2 });
     await agent.runEpisode(new GridWorldGame({ grid, seed: 3 }), 10);
@@ -151,15 +151,9 @@ describe('System One RL Harness — no NAR in the loop (Bench 20)', () => {
       expect(label.source).toBe('manifold-rl-agent');
       expect(label.label).toMatch(/^\d+$/); // action id, not raw text
       expect(JSON.stringify(label)).not.toContain('S...');
+      // Vectors are now stored inline as base64
+      expect(label.vector).toBeDefined();
     }
-
-    const flushed = await dataset.flushVectors();
-    expect(flushed).toBeGreaterThan(0);
-    const files = readdirSync(sidecar);
-    expect(files.length).toBeGreaterThan(0);
-    const bytes = readFileSync(join(sidecar, files[0]!));
-    expect(bytes.byteLength % 4).toBe(0);
-    expect(bytes.byteLength / 4).toBe(384);
 
     // direct label-source adapter also works
     const before = dataset.size;

@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { computeEvidenceId, promoteProvisional, JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
 import { seedTruth } from '../../nar/src/lm/system-one/seed.js';
 import { Truth } from '../../nar/src/terms/truth.js';
@@ -55,7 +57,7 @@ describe('System One — Evidence Laundering Prevention (Bench 7)', () => {
   });
 
   it('judgment dataset stores only hashes and labels, never raw text', () => {
-    const dataset = new JudgmentDataset();
+    const dataset = new JudgmentDataset(join(tmpdir(), 'test-evidence-base'));
     const evidenceId = computeEvidenceId('secret utterance text', 'span-0');
     dataset.record({
       evidenceId,

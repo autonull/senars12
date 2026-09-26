@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import {
   createTraceGrader,
 } from '../../nar/src/lm/system-one/trace-grader.js';
@@ -81,7 +83,7 @@ describe('E4 trace grading (agent-trace observability)', () => {
       fitted: true,
       evaluate: async () => ({ score: 0.3, abstained: false }),
     });
-    const dataset = new JudgmentDataset();
+    const dataset = new JudgmentDataset(join(tmpdir(), 'test-trace-grading-1'));
     const grader = createTraceGrader({ manifold, embeddingCache: cache, dataset, source: 'test' });
 
     const raw = 'secret utterance about dinosaurs';
@@ -126,7 +128,7 @@ describe('E4 follow-up (b): egress verdict is the groundedness ground truth', ()
       fitted: true,
       evaluate: async () => ({ score: 0.5, abstained: false }),
     });
-    const dataset = new JudgmentDataset();
+    const dataset = new JudgmentDataset(join(tmpdir(), 'test-trace-grading-2'));
     const grader = createTraceGrader({ manifold, embeddingCache: cache, dataset, source: 'test' });
 
     await grader({ narration: 'rejected narration', toolCalls: [], egress: { grounded: false, score: 0.3 } });

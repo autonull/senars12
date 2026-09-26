@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
 import {
   recordCorrectionLabel,
@@ -9,7 +11,7 @@ import {
 
 describe('System One — Label Source Adapters (§9.1 flywheel wiring)', () => {
   it('approval and shadow-verdict adapters record teleological/epistemic labels', () => {
-    const dataset = new JudgmentDataset();
+    const dataset = new JudgmentDataset(join(tmpdir(), 'test-label-base-1'));
     recordApprovalLabel(dataset, { action: 'delete_file', approved: false });
     recordShadowVerdictLabel(dataset, { derivationId: 'd1', verdict: 'conflict' });
 
@@ -22,7 +24,7 @@ describe('System One — Label Source Adapters (§9.1 flywheel wiring)', () => {
   });
 
   it('same-source events on different evidence anchor to distinct ids', () => {
-    const dataset = new JudgmentDataset();
+    const dataset = new JudgmentDataset(join(tmpdir(), 'test-label-base-2'));
     recordCorrectionLabel(dataset, { originalNL: 'one sentence', correctedNarsese: 'x' });
     recordCorrectionLabel(dataset, { originalNL: 'another sentence', correctedNarsese: 'y' });
     const [a, b] = dataset.all();

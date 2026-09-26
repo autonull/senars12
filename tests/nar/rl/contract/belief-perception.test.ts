@@ -23,7 +23,7 @@ describe('Belief/Perception Contract', () => {
   test('Observation becomes belief task via nar.believe()', async () => {
     const term = TermBuilder.inheritance(
       TermBuilder.atom('self'),
-      TermBuilder.atom('state:s_3_4')
+      TermBuilder.atom('state_s_3_4')
     )!;
     const truth = Truth.create(1.0, 0.95);
 
@@ -38,7 +38,7 @@ describe('Belief/Perception Contract', () => {
 
   test('Observation becomes belief task via nar.input(type: belief)', async () => {
     const term = TermBuilder.inheritance(
-      TermBuilder.atom('feature:wall_north'),
+      TermBuilder.atom('feature_wall_north'),
       TermBuilder.atom('present')
     )!;
     const truth = Truth.create(1.0, 0.9);
@@ -54,11 +54,11 @@ describe('Belief/Perception Contract', () => {
 
   test('truth.c represents sensor reliability', async () => {
     const highConfidenceTerm = TermBuilder.inheritance(
-      TermBuilder.atom('feature:wall_north'),
+      TermBuilder.atom('feature_wall_north'),
       TermBuilder.atom('present')
     )!;
     const lowConfidenceTerm = TermBuilder.inheritance(
-      TermBuilder.atom('feature:wall_south'),
+      TermBuilder.atom('feature_wall_south'),
       TermBuilder.atom('present')
     )!;
 
@@ -80,7 +80,7 @@ describe('Belief/Perception Contract', () => {
 
   test('Repeated consistent observations invoke Truth.revision', async () => {
     const term = TermBuilder.inheritance(
-      TermBuilder.atom('state:s_1_1'),
+      TermBuilder.atom('state_s_1_1'),
       TermBuilder.atom('observed')
     )!;
     const truth1 = Truth.create(0.8, 0.7);
@@ -104,11 +104,11 @@ describe('Belief/Perception Contract', () => {
 
   test('Contradictory observations are detectable', async () => {
     const termPresent = TermBuilder.inheritance(
-      TermBuilder.atom('feature:wall_north'),
+      TermBuilder.atom('feature_wall_north'),
       TermBuilder.atom('present')
     )!;
     const termAbsent = TermBuilder.inheritance(
-      TermBuilder.atom('feature:wall_north'),
+      TermBuilder.atom('feature_wall_north'),
       TermBuilder.atom('absent')
     )!;
 
@@ -125,7 +125,7 @@ describe('Belief/Perception Contract', () => {
 
   test('Temporal/source stamps preserved with source: INPUT', async () => {
     const term = TermBuilder.inheritance(
-      TermBuilder.atom('state:s_3_4'),
+      TermBuilder.atom('state_s_3_4'),
       TermBuilder.atom('observed')
     )!;
     const truth = Truth.create(1.0, 0.95);
@@ -145,7 +145,7 @@ describe('Belief/Perception Contract', () => {
   test('Beliefs queryable through nar.getBeliefs()', async () => {
     const term = TermBuilder.inheritance(
       TermBuilder.atom('self'),
-      TermBuilder.atom('state:s_3_4')
+      TermBuilder.atom('state_s_3_4')
     )!;
     await nar.believe(term, Truth.create(1.0, 0.95));
 
@@ -157,7 +157,7 @@ describe('Belief/Perception Contract', () => {
   test('Beliefs queryable through nar.queryTerm()', async () => {
     const term = TermBuilder.inheritance(
       TermBuilder.atom('self'),
-      TermBuilder.atom('state:s_3_4')
+      TermBuilder.atom('state_s_3_4')
     )!;
     await nar.believe(term, Truth.create(1.0, 0.95));
 
@@ -170,7 +170,7 @@ describe('Belief/Perception Contract', () => {
   test('Beliefs queryable through nar.getConcept()', async () => {
     const term = TermBuilder.inheritance(
       TermBuilder.atom('self'),
-      TermBuilder.atom('state:s_3_4')
+      TermBuilder.atom('state_s_3_4')
     )!;
     await nar.believe(term, Truth.create(1.0, 0.95));
 
@@ -182,7 +182,7 @@ describe('Belief/Perception Contract', () => {
   test('Perception alone cannot execute action (no ^tool goals from perception)', async () => {
     const stateTerm = TermBuilder.inheritance(
       TermBuilder.atom('self'),
-      TermBuilder.atom('state:s_3_4')
+      TermBuilder.atom('state_s_3_4')
     )!;
     await nar.believe(stateTerm, Truth.create(1.0, 0.95));
 
@@ -206,11 +206,11 @@ describe('Belief/Perception Contract', () => {
   test('Observation ingestion has no hidden policy side effect', async () => {
     const term1 = TermBuilder.inheritance(
       TermBuilder.atom('self'),
-      TermBuilder.atom('state:s_1_1')
+      TermBuilder.atom('state_s_1_1')
     )!;
     const term2 = TermBuilder.inheritance(
       TermBuilder.atom('self'),
-      TermBuilder.atom('state:s_1_2')
+      TermBuilder.atom('state_s_1_2')
     )!;
 
     await nar.believe(term1, Truth.create(1.0, 0.95));

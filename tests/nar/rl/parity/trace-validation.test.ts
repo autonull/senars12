@@ -277,7 +277,7 @@ describe('RL Parity - Trace Validation', () => {
     const rewardAdapter = new RewardBeliefAdapter(nar);
     const qStore = rewardAdapter.getQStore();
 
-    const state = TermBuilder.atom('state:s1');
+    const state = TermBuilder.atom('state_s1');
     const action = TermBuilder.atom('^move_north');
 
     // Process reward

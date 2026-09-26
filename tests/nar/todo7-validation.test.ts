@@ -66,7 +66,7 @@ describe('TODO7 validation benchmarks', () => {
   });
 
   it('4. contradiction resilience: rival beliefs coexist with distinct truth', () => {
-    const term = TermBuilder.inheritance(atom('sensor-A'), atom('online'))!;
+    const term = TermBuilder.inheritance(atom('sensor_A'), atom('online'))!;
     const negated = TermBuilder.negation(term);
     const concept = new Concept(term);
     expect(

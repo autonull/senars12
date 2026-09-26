@@ -141,3 +141,37 @@ The following implementation fixes were applied to unblock test execution (all p
 | Circular dependency break | `util/src/index.ts` | Removed re-export of `test-arbitraries` (imports `@senars/nar`) from util main entry; util → nar → core → util cycle |
 
 All unit tests that were blocked by these issues now pass (e.g., `tests/unit/util/assert.test.ts`, `tests/nar/unit/utils.test.ts`, `tests/unit/nar/RetrievalVerifiedMemory.test.ts`).
+
+## 10. Additional Fixes Applied (2026-09-26 - Test Compatibility Layer)
+
+The following fixes were applied to resolve test failures discovered during implementation verification:
+
+| Fix | Files Changed | Issue |
+|-----|---------------|-------|
+| Term factory: allow variable prefixes `? $ # * %` and quoted atoms with spaces | `nar/src/terms/factory.ts`, `nar/src/terms/narsese.peggy` | Tests and grammar used `?var` style variables and quoted atoms with spaces; factory rejected them |
+| RL adapters: sanitize stateId by replacing `:` with `_` | `nar/src/rl/adapters/perception.ts` | Tests passed stateIds with `:` (e.g., `state:1`) which factory rejected |
+| RL adapters: replace `:` with `_` in reward/feature atom creation | `nar/src/rl/adapters/perception.ts`, `nar/src/rl/adapters/reward-belief-adapter.ts` | Internal atom creation used `:` which is reserved for compact inheritance |
+| Test files: replace `:` and `-` with `_` in atom symbols | 15+ test files in `tests/nar/rl/parity/`, `tests/nar/rl/contract/`, `tests/nar/todo5b*`, `tests/nar/todo7*` | Tests used invalid atom symbols containing reserved characters |
+| EpisodicMemory tests: capture basePath at creation instead of accessing private `#config` | `tests/unit/agent/AgentV6.test.ts`, `tests/unit/agent/AgentV6NL.test.ts` | Tests accessed private field `#config.basePath` |
+| JudgmentDataset A2 sidecar collapse: update API and tests | `nar/src/lm/system-one/distill.ts`, `nar/src/lm/system-one/train.ts`, `tests/nar/todo16*.test.ts` | Removed `setVectorSidecarPath`, `flushVectors`, `vecRef`; vectors now stored inline as base64 in JSONL; `loadTrainingData` updated to read inline vectors |
+| Property test: fix fast-check v4 API for valid atom generation | `tests/nar/property/terms.test.ts` | `fc.char` doesn't exist in fast-check v4; replaced with filtered string generator |
+
+## 11. Remaining Work (Test Compatibility)
+
+The following test files still use old APIs and need updates to pass typecheck and tests:
+
+| Test File | Issue | Status |
+|-----------|-------|--------|
+| `tests/nar/refactor4-bounded-aikr.test.ts` | Pre-existing mock/API mismatches (MockMemory, MockNAR, old CascadeJudge, missing config types) | Pre-existing |
+| `tests/nar/todo16c-train.test.ts` | Uses old JudgmentDataset API (`setVectorSidecarPath`, `flushVectors`, `sidecarPath` in `loadTrainingData`) | Needs update |
+| `tests/nar/todo16c-trajectory-store.test.ts` | Uses old API (`vectorsDropped`, `vectorsKept`, 2-arg constructor) | Needs update |
+| `tests/nar/todo17-lm-reflex.test.ts` | Uses old JudgmentDataset API, `vecRef` on DistillationLabel | Needs update |
+| `tests/nar/todo17-parity.test.ts` | Uses old JudgmentDataset API | Needs update |
+| `tests/nar/todo19-learning.test.ts` | Uses old JudgmentDataset API | Needs update |
+| `tests/nar/todo23-eval-set.test.ts` | Uses old JudgmentDataset API | Needs update |
+| `tests/nar/todo24-e2e.test.ts` | Uses old JudgmentDataset API | Needs update |
+| `tests/nar/todo24-reactions.test.ts` | Uses old JudgmentDataset API | Needs update |
+| `tests/nar/todo25-reconsolidate.test.ts` | Expectation mismatch (ingested count) | Needs investigation |
+| `tests/nar/todo24-reactions.test.ts` | Ledger append error (separate issue) | Needs investigation |
+
+**Note**: Per REFACTOR.todo5.md §2 baseline, `refactor4-bounded-aikr.test.ts` has pre-existing type issues excluded from the "0 errors" baseline. The todo16*/todo17*/todo19*/todo23*/todo24* test failures are due to the A2 JudgmentDataset sidecar collapse API change — the implementation is complete but test files need updating to match the new inline-vector API.

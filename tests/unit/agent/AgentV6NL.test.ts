@@ -8,9 +8,9 @@ import { createTestNAR } from '../../../nar/src';
 import { createMockLMService } from '../../../nar/src/lm';
 import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
 
-function makeEpisodicMemory(): EpisodicMemory {
+function makeEpisodicMemory(): { ep: EpisodicMemory; basePath: string } {
   const basePath = mkdtempSync(join(tmpdir(), 'episodic-nl-'));
-  return new EpisodicMemory({ enabled: true, basePath, retentionDays: 1, maxEntriesPerFile: 1000 });
+  return { ep: new EpisodicMemory({ enabled: true, basePath, retentionDays: 1, maxEntriesPerFile: 1000 }), basePath };
 }
 
 describe('Agent v6 — NL integration (real ModelRunner loop)', () => {
@@ -20,8 +20,9 @@ describe('Agent v6 — NL integration (real ModelRunner loop)', () => {
 
   beforeEach(() => {
     nar = createTestNAR({ maxConcepts: 50 });
-    ep = makeEpisodicMemory();
-    basePath = (ep as unknown as { config: { basePath: string } }).config.basePath;
+    const mem = makeEpisodicMemory();
+    ep = mem.ep;
+    basePath = mem.basePath;
   });
 
   afterEach(() => {
