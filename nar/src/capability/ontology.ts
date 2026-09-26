@@ -5,7 +5,7 @@
  */
 
 import { CapabilitySpace, type CapabilityDef } from './space.js';
-import type { ToolSpec } from '@senars/core/motor/ToolRegistry.js';
+import type { ToolSpec } from '@senars/core/motor';
 
 export type CapabilityType = 'tool' | 'rule' | 'metta' | 'skill';
 

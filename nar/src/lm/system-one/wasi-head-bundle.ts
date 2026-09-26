@@ -189,7 +189,7 @@ export async function loadHeadBundle(options: {
   const loaded = `sha256:${createHash('sha256').update(wasm).digest('hex')}`;
   if (loaded !== modelDigest) throw new DigestMismatchError(modelDigest, loaded);
 
-  const module = await globalThis.WebAssembly.compile(wasm as unknown as BufferSource);
+  const module = await globalThis.WebAssembly.compile(wasm);
   if (WebAssembly.Module.imports(module).length > 0) {
     throw new Error('Head bundle must be a zero-import module (deny-by-default sandbox)');
   }

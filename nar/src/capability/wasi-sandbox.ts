@@ -110,9 +110,7 @@ export async function createWasmModuleSandbox(
   const wasi = new WASI({ args, env, preopens, fs: memfs });
 
   const wasmBytes = await readFile(options.wasmPath);
-  const module = await globalThis.WebAssembly.compile(
-    wasmBytes as unknown as BufferSource
-  );
+  const module = await globalThis.WebAssembly.compile(wasmBytes);
   const instance = await globalThis.WebAssembly.instantiate(module, {
     ...wasi.getImports(module),
     ...options.imports,

@@ -4,7 +4,7 @@
  * Closes the MeTTa↔NAL arbiter loop on system's own proofs.
  */
 
-import type { DerivationRecord } from '@senars/kernel/schemas.js';
+import type { DerivationRecord } from '@senars/kernel/schemas';
 import type { Term } from '../terms/index.js';
 import { serializeTerm } from '../terms/index.js';
 
@@ -90,7 +90,7 @@ export class MettaProposer {
   private generalizeStep(step: DerivationRecord['steps'][0]): string | null {
     // Simple pattern extraction: look for variable-binding patterns
     // In practice, this would do proper anti-unification
-    const premises = step.premises.map((p) => this.abstractTerm(p)).join(' ');
+    const premises = step.premises.map((p: string) => this.abstractTerm(p)).join(' ');
     const conclusion = this.abstractTerm(step.conclusion);
     
     if (premises && conclusion) {

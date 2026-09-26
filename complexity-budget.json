@@ -6,7 +6,7 @@
     "appendOnlyPersistenceSites": 12,
     "aikrProcessorCoverage": 5,
     "unboundedAccumulators": 0,
-    "depsGateRawChains": 270,
+    "depsGateRawChains": 10,
     "typecheckBinErrors": 999,
     "workspaceCount": 7
   },

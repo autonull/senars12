@@ -183,6 +183,10 @@
     "./tools/schemas": {
       "types": "./src/tools/schemas.ts",
       "import": "./src/tools/schemas.ts"
+    },
+    "./kernel": {
+      "types": "./src/kernel/index.ts",
+      "import": "./src/kernel/index.ts"
     }
   },
   "scripts": {
