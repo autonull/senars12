@@ -37,12 +37,24 @@
       "import": "./src/lens-schema.ts"
     },
     "./agent": {
-      "types": "./src/Agent.ts",
-      "import": "./src/Agent.ts"
+      "types": "./src/agent/index.ts",
+      "import": "./src/agent/index.ts"
+    },
+    "./agent/*": {
+      "types": "./src/agent/*.ts",
+      "import": "./src/agent/*.ts"
     },
     "./agent/phases": {
       "types": "./src/agent/phases.ts",
       "import": "./src/agent/phases.ts"
+    },
+    "./agent/pipeline": {
+      "types": "./src/agent/pipeline.ts",
+      "import": "./src/agent/pipeline.ts"
+    },
+    "./agent/types": {
+      "types": "./src/agent/types.ts",
+      "import": "./src/agent/types.ts"
     },
     "./engine": {
       "types": "./src/engine/Engine.ts",
@@ -71,6 +83,10 @@
     "./concept-graph": {
       "types": "./src/concept-graph.ts",
       "import": "./src/concept-graph.ts"
+    },
+    "./cognitive-thread": {
+      "types": "./src/cognitive-thread.ts",
+      "import": "./src/cognitive-thread.ts"
     }
   },
   "scripts": {

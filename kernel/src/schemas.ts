@@ -475,6 +475,8 @@ export const SelfImprovementProposalSchema = z.object({
     'schema-promotion',
     'patch-apply',
     'test-generate',
+    'schema-evolution',
+    'metta-rule-adoption',
   ]),
   riskTier: z.enum(['low', 'medium', 'high']),
   payload: z.record(z.string(), z.unknown()),

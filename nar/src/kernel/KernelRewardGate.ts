@@ -114,6 +114,8 @@ const PROPOSAL_RISK: Record<SelfImprovementProposal['kind'], SelfImprovementProp
     'schema-promotion': 'medium',
     'test-generate': 'medium',
     'patch-apply': 'high',
+    'schema-evolution': 'low',
+    'metta-rule-adoption': 'low',
   };
 
 export class SelfRewardGate extends KernelRewardGate {

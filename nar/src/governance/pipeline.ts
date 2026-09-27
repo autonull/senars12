@@ -70,6 +70,8 @@ export interface SelfMetaGameEvidence {
   readonly governanceQueues: { validation: number; approval: number };
   readonly knobValues: Map<string, number>;
   readonly proposalBagPressure?: number;
+  /** Chain of adaptation IDs that led to this decision */
+  readonly derivationChain?: readonly string[];
 }
 
 /** Adaptation record for audit trail. */
@@ -81,6 +83,8 @@ export interface AdaptationRecord {
   readonly evidence: SelfMetaGameEvidence;
   readonly applied: boolean;
   readonly restoredFrom?: string; // adaptationId if this is a restore
+  /** Derivation chain from parent adaptations */
+  readonly derivationChain?: readonly string[];
 }
 
 /** Governance resolver integrating SelfMetaGame evidence with proposal routing. */
@@ -91,6 +95,7 @@ export class GovernanceResolver {
   private readonly validator: SandboxValidator;
   private readonly adaptations: AdaptationRecord[] = [];
   private readonly metaGame?: SelfMetaGameImpl;
+  private derivationChain: readonly string[] = []; // Chain of adaptation IDs leading to current proposal
 
   constructor(metaGame?: SelfMetaGameImpl) {
     this.router = new ProposalRouter();
@@ -112,17 +117,37 @@ export class GovernanceResolver {
     const routing = this.router.route(proposal, mode, actuators, this.validator);
 
     const adaptationId = uuidv4();
+    
+    // Build derivation chain: parent chain + this adaptation
+    const newDerivationChain = [...this.derivationChain, adaptationId];
+    
     const adaptation: AdaptationRecord = {
       adaptationId,
       timestamp: Date.now(),
       proposal,
       decision,
-      evidence,
+      evidence: { ...evidence, derivationChain: newDerivationChain },
       applied: routing.applied,
+      derivationChain: newDerivationChain,
     };
     this.adaptations.push(adaptation);
 
+    // On auto-apply, update the derivation chain for future proposals
+    if (routing.applied && routing.route === 'auto-apply') {
+      this.derivationChain = newDerivationChain;
+    }
+
     return { decision, route: routing.route, applied: routing.applied, reason: routing.reason, adaptationId };
+  }
+
+  /** Get the current derivation chain. */
+  getDerivationChain(): readonly string[] {
+    return this.derivationChain;
+  }
+
+  /** Set the derivation chain (e.g., on restore). */
+  setDerivationChain(chain: readonly string[]): void {
+    this.derivationChain = [...chain];
   }
 
   /** Assess risk of a self-improvement proposal. */
@@ -184,8 +209,11 @@ export class GovernanceResolver {
       evidence: original.evidence,
       applied: true,
       restoredFrom: adaptationId,
+      derivationChain: [...(original.derivationChain ?? []), uuidv4()],
     };
     this.adaptations.push(restoreAdaptation);
+    // Update derivation chain to reflect the restore
+    this.derivationChain = restoreAdaptation.derivationChain ?? [];
     return restoreAdaptation;
   }
 
@@ -214,6 +242,7 @@ export type ProposalRoute = 'auto-apply' | 'sandbox-validate' | 'human-approval'
 export interface ProposalActuators {
   applyFocusWeight?: (focusId: string, weight: number) => void;
   applyKnob?: (knob: string, value: number) => void;
+  applySchemaPatch?: (patch: { schemaId: string; mettaProgram: string; sourceDerivationIds: string[] }) => void;
 }
 
 export interface ValidationVerdict {
@@ -319,6 +348,42 @@ export class ProposalRouter {
         route: 'auto-apply',
         applied: false,
         reason: 'No actuator registered for strategy-switch; held as approved-pending',
+      };
+    }
+    // Phase E: Governance-gated schema evolution
+    if (
+      kind === 'schema-evolution' &&
+      actuators.applySchemaPatch &&
+      typeof payload['schemaId'] === 'string' &&
+      typeof payload['mettaProgram'] === 'string' &&
+      Array.isArray(payload['sourceDerivationIds'])
+    ) {
+      actuators.applySchemaPatch({
+        schemaId: payload['schemaId'] as string,
+        mettaProgram: payload['mettaProgram'] as string,
+        sourceDerivationIds: payload['sourceDerivationIds'] as string[],
+      });
+      return { route: 'auto-apply', applied: true, reason: 'Schema evolution patch auto-applied' };
+    }
+    // Phase E: Metta↔NAL arbiter loop closure
+    if (
+      kind === 'metta-rule-adoption' &&
+      actuators.applySchemaPatch &&
+      typeof payload['mettaProgram'] === 'string' &&
+      Array.isArray(payload['sourceDerivationIds'])
+    ) {
+      actuators.applySchemaPatch({
+        schemaId: `metta-rule-${Date.now()}`,
+        mettaProgram: payload['mettaProgram'] as string,
+        sourceDerivationIds: payload['sourceDerivationIds'] as string[],
+      });
+      return { route: 'auto-apply', applied: true, reason: 'MeTTa rule adoption auto-applied' };
+    }
+    if (kind === 'schema-promotion') {
+      return {
+        route: 'auto-apply',
+        applied: false,
+        reason: 'Schema promotion recorded; requires manual adoption',
       };
     }
     this.awaitingApproval.push(proposal);

@@ -26,6 +26,8 @@ const KIND_IMPACT: Record<SelfImprovementProposal['kind'], number> = {
   'knob-tune': 0.6,
   'focus-weight': 0.5,
   'test-generate': 0.4,
+  'schema-evolution': 0.7,
+  'metta-rule-adoption': 0.7,
 };
 
 const RISK_INVERSE: Record<SelfImprovementProposal['riskTier'], number> = {

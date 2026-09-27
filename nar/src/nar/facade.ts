@@ -189,6 +189,49 @@ export const consolidateLearning = async (
     if (records.length > 0) {
       proofMettaProposer.learnFromProofStream(records.map((r) => ({ derivation: r, timestamp: Date.now() })));
     }
+    
+    // Phase E: Metta↔NAL arbiter loop closure — export learned MeTTa rules,
+    // rewrite via metta tool, adopt via GovernanceResolver auto-apply
+    const mettaRules = proofMettaProposer.getRules();
+    if (mettaRules.length > 0) {
+      const mettaProgram = proofMettaProposer.exportAsMetta();
+      if (mettaProgram.trim()) {
+        // Use metta tool to rewrite/validate the learned rules
+        const mettaTool = nar.tools.get('metta');
+        if (mettaTool) {
+          try {
+            const rewriteResult = await mettaTool.execute({ program: mettaProgram });
+            if (rewriteResult && typeof rewriteResult === 'object' && 'output' in rewriteResult) {
+              const rewrittenRules = String(rewriteResult.output);
+              // Submit to GovernanceResolver for auto-apply (low-risk)
+              const resolver = nar.getGovernanceResolver();
+              const mode = nar.gates.getActionGate().getAutonomyMode();
+              const proposal: SelfImprovementProposal = {
+                proposalId: uuidv4(),
+                kind: 'metta-rule-adoption',
+                riskTier: 'low',
+                payload: {
+                  mettaProgram: rewrittenRules,
+                  sourceDerivationIds: mettaRules.map((r) => r.sourceDerivation),
+                },
+                rewardDomain: 'self-patch-score',
+              };
+              const result = resolver.resolve(proposal, mode, {
+                applyFocusWeight: () => {},
+                applyKnob: () => {},
+              });
+              if (result.applied) {
+                proofMettaProposer.getRules().forEach((r) => {
+                  proofMettaProposer.recordApplication(r.id);
+                });
+              }
+            }
+          } catch {
+            // Metta tool failed — symbolic fallback (rules stay in proposer only)
+          }
+        }
+      }
+    }
   }
 };
 

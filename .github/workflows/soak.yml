@@ -16,15 +16,23 @@ on:
         required: false
         default: '24'
         type: string
+  schedule:
+    - cron: '0 3 * * 0'   # weekly full soak (Sunday 03:00 UTC)
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'nar/src/**'
+      - 'core/src/**'
+      - 'tests/soak/**'
 
 jobs:
   soak:
-    name: Soak Test (${{ github.event.inputs.scale || 'full' }})
+    name: Soak Test (${{ github.event_name == 'pull_request' && 'fast' || github.event.inputs.scale || 'full' }})
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ github.event.inputs.scale == 'fast' && 10 || (github.event.inputs.duration_hours * 60 + 30) }}
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 10 || (github.event.inputs.scale == 'fast' && 10 || (github.event.inputs.duration_hours * 60 + 30)) }}
     env:
-      SOAK_SCALE: ${{ github.event.inputs.scale || 'full' }}
-      SOAK_DURATION_MS: ${{ github.event.inputs.scale == 'fast' && 60000 || (github.event.inputs.duration_hours * 3600000) }}
+      SOAK_SCALE: ${{ github.event_name == 'pull_request' && 'fast' || github.event.inputs.scale || 'full' }}
+      SOAK_DURATION_MS: ${{ github.event_name == 'pull_request' && 60000 || (github.event.inputs.scale == 'fast' && 60000 || (github.event.inputs.duration_hours * 3600000)) }}
       SENARS_SOAK_TEST: '1'
       NODE_ENV: 'test'
     steps:
@@ -50,17 +58,17 @@ jobs:
         run: |
           pnpm vitest run tests/soak/long-run.test.ts \
             --reporter=verbose \
-            --test-timeout=${{ github.event.inputs.scale == 'fast' && 120000 || (github.event.inputs.duration_hours * 3600000 + 60000) }}
+            --test-timeout=${{ github.event_name == 'pull_request' && 120000 || (github.event.inputs.scale == 'fast' && 120000 || (github.event.inputs.duration_hours * 3600000 + 60000)) }}
         env:
-          SOAK_SCALE: ${{ github.event.inputs.scale || 'full' }}
-          SOAK_DURATION_MS: ${{ github.event.inputs.scale == 'fast' && 60000 || (github.event.inputs.duration_hours * 3600000) }}
+          SOAK_SCALE: ${{ github.event_name == 'pull_request' && 'fast' || github.event.inputs.scale || 'full' }}
+          SOAK_DURATION_MS: ${{ github.event_name == 'pull_request' && 60000 || (github.event.inputs.scale == 'fast' && 60000 || (github.event.inputs.duration_hours * 3600000)) }}
           SENARS_SOAK_TEST: '1'
 
       - name: Upload soak artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: soak-results-${{ github.event.inputs.scale || 'full' }}-${{ github.run_id }}
+          name: soak-results-${{ github.event_name == 'pull_request' && 'fast' || github.event.inputs.scale || 'full' }}-${{ github.run_id }}
           path: |
             .cache/events/*.jsonl
             .reports/*.json
@@ -78,7 +86,7 @@ jobs:
       - name: Download soak artifacts
         uses: actions/download-artifact@v4
         with:
-          name: soak-results-${{ github.event.inputs.scale || 'full' }}-${{ github.run_id }}
+          name: soak-results-${{ github.event_name == 'pull_request' && 'fast' || github.event.inputs.scale || 'full' }}-${{ github.run_id }}
           path: ./soak-artifacts
 
       - name: Analyze results
@@ -114,8 +122,8 @@ jobs:
                       const failed = content.testResults[0]?.assertionResults?.filter((r: any) => r.status === 'failed') || [];
                       const passed = content.testResults[0]?.assertionResults?.filter((r: any) => r.status === 'passed') || [];
                       
-                      comment += `**Scale:** ${{ github.event.inputs.scale || 'full' }}\n`;
-                      comment += `**Duration:** ${{ github.event.inputs.duration_hours || 24 }}h\n\n`;
+                      comment += `**Scale:** ${{ github.event_name == 'pull_request' && 'fast' || github.event.inputs.scale || 'full' }}\n`;
+                      comment += `**Duration:** ${{ github.event_name == 'pull_request' && '60s' || github.event.inputs.duration_hours || 24 }}h\n\n`;
                       comment += `✅ Passed: ${passed.length}\n`;
                       comment += `❌ Failed: ${failed.length}\n\n`;
                       

@@ -19,6 +19,10 @@ export interface Provenance {
   readonly source: 'builtin' | 'learned' | 'delegated' | 'scaffolded';
   readonly digest: string; // SHA256 of capability definition
   readonly proofRef?: string; // reference to derivation/adaptation record
+  /** NEW: chain of adaptations that produced this capability */
+  readonly derivationChain?: readonly string[]; // adaptationIds from GovernanceResolver
+  /** NEW: parent capability from which this was derived */
+  readonly parentId?: string;
 }
 
 export interface CapabilityOntologyEntry {
@@ -65,6 +69,24 @@ export class CapabilityOntology {
       }
     }
 
+    // Validate provenance chain integrity (no orphan adaptations)
+    if (entry.provenance.derivationChain) {
+      for (const adaptationId of entry.provenance.derivationChain) {
+        // In a full implementation, this would check against a governance ledger
+        // For now, we accept any non-empty string as a valid adaptation reference
+        if (!adaptationId || typeof adaptationId !== 'string') {
+          throw new Error(`Invalid adaptationId in derivationChain for capability '${entry.id}'`);
+        }
+      }
+    }
+
+    // Validate parentId if present
+    if (entry.provenance.parentId) {
+      if (!this.entries.has(entry.provenance.parentId)) {
+        throw new Error(`Parent capability '${entry.provenance.parentId}' not found for capability '${entry.id}'`);
+      }
+    }
+
     this.entries.set(entry.id, entry);
     const typeSet = this.typeIndex.get(entry.type) ?? new Set();
     typeSet.add(entry.id);
@@ -81,7 +103,12 @@ export class CapabilityOntology {
   }
 
   /** Register a tool as a capability (accepts NAR's Tool with Schema). */
-  registerTool(tool: NarTool, costEstimate = 100, prerequisites: string[] = []): void {
+  registerTool(
+    tool: NarTool,
+    costEstimate = 100,
+    prerequisites: string[] = [],
+    provenanceOverrides?: Partial<Provenance>
+  ): void {
     // Convert NAR's Schema to the flat format expected by CapabilitySchema.input
     const inputSchema = tool.parameters
       ? Object.fromEntries(
@@ -104,13 +131,27 @@ export class CapabilityOntology {
       prerequisites,
       risk: 'low',
       version: '1.0.0',
-      provenance: { source: 'builtin', digest: this.computeDigest(tool.name, 'tool'), proofRef: undefined },
+      provenance: {
+        source: 'builtin',
+        digest: this.computeDigest(tool.name, 'tool'),
+        proofRef: undefined,
+        derivationChain: provenanceOverrides?.derivationChain,
+        parentId: provenanceOverrides?.parentId,
+      },
       execute: tool.execute as (args: Record<string, unknown>) => unknown | Promise<unknown>,
     });
   }
 
   /** Register a MeTTa skill as a capability. */
-  registerMettaSkill(id: string, name: string, schema: CapabilitySchema, execute: (args: Record<string, unknown>) => unknown | Promise<unknown>, costEstimate = 500, prerequisites: string[] = []): void {
+  registerMettaSkill(
+    id: string,
+    name: string,
+    schema: CapabilitySchema,
+    execute: (args: Record<string, unknown>) => unknown | Promise<unknown>,
+    costEstimate = 500,
+    prerequisites: string[] = [],
+    provenanceOverrides?: Partial<Provenance>
+  ): void {
     this.register({
       id: `metta:${id}`,
       type: 'metta',
@@ -121,13 +162,27 @@ export class CapabilityOntology {
       prerequisites,
       risk: 'medium',
       version: '1.0.0',
-      provenance: { source: 'builtin', digest: this.computeDigest(id, 'metta'), proofRef: undefined },
+      provenance: {
+        source: 'builtin',
+        digest: this.computeDigest(id, 'metta'),
+        proofRef: undefined,
+        derivationChain: provenanceOverrides?.derivationChain,
+        parentId: provenanceOverrides?.parentId,
+      },
       execute,
     });
   }
 
   /** Register a reasoning rule as a capability. */
-  registerRule(id: string, name: string, schema: CapabilitySchema, execute: (args: Record<string, unknown>) => unknown | Promise<unknown>, costEstimate = 50, prerequisites: string[] = []): void {
+  registerRule(
+    id: string,
+    name: string,
+    schema: CapabilitySchema,
+    execute: (args: Record<string, unknown>) => unknown | Promise<unknown>,
+    costEstimate = 50,
+    prerequisites: string[] = [],
+    provenanceOverrides?: Partial<Provenance>
+  ): void {
     this.register({
       id: `rule:${id}`,
       type: 'rule',
@@ -138,13 +193,27 @@ export class CapabilityOntology {
       prerequisites,
       risk: 'low',
       version: '1.0.0',
-      provenance: { source: 'builtin', digest: this.computeDigest(id, 'rule'), proofRef: undefined },
+      provenance: {
+        source: 'builtin',
+        digest: this.computeDigest(id, 'rule'),
+        proofRef: undefined,
+        derivationChain: provenanceOverrides?.derivationChain,
+        parentId: provenanceOverrides?.parentId,
+      },
       execute,
     });
   }
 
   /** Register a cognitive skill as a capability. */
-  registerSkill(id: string, name: string, schema: CapabilitySchema, execute: (args: Record<string, unknown>) => unknown | Promise<unknown>, costEstimate = 200, prerequisites: string[] = []): void {
+  registerSkill(
+    id: string,
+    name: string,
+    schema: CapabilitySchema,
+    execute: (args: Record<string, unknown>) => unknown | Promise<unknown>,
+    costEstimate = 200,
+    prerequisites: string[] = [],
+    provenanceOverrides?: Partial<Provenance>
+  ): void {
     this.register({
       id: `skill:${id}`,
       type: 'skill',
@@ -155,7 +224,47 @@ export class CapabilityOntology {
       prerequisites,
       risk: 'medium',
       version: '1.0.0',
-      provenance: { source: 'builtin', digest: this.computeDigest(id, 'skill'), proofRef: undefined },
+      provenance: {
+        source: 'builtin',
+        digest: this.computeDigest(id, 'skill'),
+        proofRef: undefined,
+        derivationChain: provenanceOverrides?.derivationChain,
+        parentId: provenanceOverrides?.parentId,
+      },
+      execute,
+    });
+  }
+
+  /** Register a learned capability with full provenance chain. */
+  registerLearned(
+    id: string,
+    type: CapabilityType,
+    name: string,
+    schema: CapabilitySchema,
+    execute: (args: Record<string, unknown>) => unknown | Promise<unknown>,
+    costEstimate: number,
+    prerequisites: string[],
+    risk: 'low' | 'medium' | 'high',
+    derivationChain: readonly string[],
+    parentId: string | undefined,
+    proofRef: string | undefined
+  ): void {
+    this.register({
+      id,
+      type,
+      name,
+      schema,
+      costEstimate,
+      prerequisites,
+      risk,
+      version: '1.0.0',
+      provenance: {
+        source: 'learned',
+        digest: this.computeDigest(id, type),
+        proofRef,
+        derivationChain,
+        parentId,
+      },
       execute,
     });
   }

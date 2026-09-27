@@ -10,9 +10,9 @@ function makeItem(id: string, priority: number): TestItem {
   return { id, priority };
 }
 
-function createPriorityBag(): Bag<TestItem> {
+function createPriorityBag(capacity = 100000): Bag<TestItem> {
   return new PriorityBag<TestItem>({
-    capacity: 100000,
+    capacity,
     decayRate: 0.01,
     forgetRate: 0.001,
     rng: () => Math.random(),
@@ -20,9 +20,9 @@ function createPriorityBag(): Bag<TestItem> {
   });
 }
 
-function createFenwickBag(): Bag<TestItem> {
+function createFenwickBag(capacity = 100000): Bag<TestItem> {
   return new FenwickBag<TestItem>({
-    capacity: 100000,
+    capacity,
     decayRate: 0.01,
     forgetRate: 0.001,
     rng: () => Math.random(),
@@ -49,22 +49,39 @@ function timeOperation(fn: (i: number) => void, iterations: number): { totalMs: 
   };
 }
 
+function getOpsForSize(size: number): number {
+  if (size >= 100000) return 50;
+  if (size >= 10000) return 100;
+  return 500;
+}
+
+function getPrefillSize(size: number): number {
+  if (size >= 100000) return 10000;
+  if (size >= 10000) return 5000;
+  return size;
+}
+
 describe('Bag performance benchmarks', () => {
-  const sizes = [1000]; // Minimal for CI
+  // PriorityBag is the primary implementation; test it at all scales
+  const prioritySizes = [1000, 10000, 100000];
+  // FenwickBag is too slow at scale; only test at 1k for CI validation
+  const fenwickSizes = [1000];
+  
   const implementations = [
-    { name: 'PriorityBag', create: createPriorityBag },
-    { name: 'FenwickBag', create: createFenwickBag },
+    { name: 'PriorityBag', create: createPriorityBag, sizes: prioritySizes },
+    { name: 'FenwickBag', create: createFenwickBag, sizes: fenwickSizes },
   ];
 
   describe('Insert-heavy mix (60% add, 30% sample, 10% evict)', () => {
-    for (const size of sizes) {
-      for (const impl of implementations) {
+    for (const impl of implementations) {
+      for (const size of impl.sizes) {
         it(`${impl.name} N=${size} insert-heavy`, () => {
-          const bag = impl.create();
-          const operations = 500;
+          const bag = impl.create(size);
+          const operations = getOpsForSize(size);
+          const prefillSize = getPrefillSize(size);
 
           // Pre-fill
-          for (let i = 0; i < size; i++) {
+          for (let i = 0; i < prefillSize; i++) {
             bag.add(makeItem(`init${i}`, Math.random()));
           }
 
@@ -95,13 +112,14 @@ describe('Bag performance benchmarks', () => {
   });
 
   describe('Sample-heavy mix (20% add, 70% sample, 10% evict)', () => {
-    for (const size of sizes) {
-      for (const impl of implementations) {
+    for (const impl of implementations) {
+      for (const size of impl.sizes) {
         it(`${impl.name} N=${size} sample-heavy`, () => {
-          const bag = impl.create();
-          const operations = 500;
+          const bag = impl.create(size);
+          const operations = getOpsForSize(size);
+          const prefillSize = getPrefillSize(size);
 
-          for (let i = 0; i < size; i++) {
+          for (let i = 0; i < prefillSize; i++) {
             bag.add(makeItem(`init${i}`, Math.random()));
           }
 
@@ -132,15 +150,16 @@ describe('Bag performance benchmarks', () => {
   });
 
   describe('Pure sample throughput', () => {
-    for (const size of sizes) {
-      for (const impl of implementations) {
+    for (const impl of implementations) {
+      for (const size of impl.sizes) {
         it(`${impl.name} N=${size} pure sample throughput`, () => {
-          const bag = impl.create();
-          for (let i = 0; i < size; i++) {
+          const bag = impl.create(size);
+          const prefillSize = getPrefillSize(size);
+          for (let i = 0; i < prefillSize; i++) {
             bag.add(makeItem(`item${i}`, Math.random()));
           }
 
-          const iterations = 1000;
+          const iterations = getOpsForSize(size);
           const time = timeOperation(() => bag.sample(), iterations);
 
           console.log(`${impl.name} N=${size} pure sample: ${time.perOpNs.toFixed(0)}ns/op p99=${time.p99Ns.toFixed(0)}ns`);
@@ -152,15 +171,16 @@ describe('Bag performance benchmarks', () => {
   });
 
   describe('Pure add throughput', () => {
-    for (const size of sizes) {
-      for (const impl of implementations) {
+    for (const impl of implementations) {
+      for (const size of impl.sizes) {
         it(`${impl.name} N=${size} pure add throughput`, () => {
-          const bag = impl.create();
-          for (let i = 0; i < size - 100; i++) {
+          const bag = impl.create(size);
+          const prefillSize = Math.max(0, getPrefillSize(size) - 100);
+          for (let i = 0; i < prefillSize; i++) {
             bag.add(makeItem(`init${i}`, Math.random()));
           }
 
-          const iterations = 100;
+          const iterations = getOpsForSize(size);
           const time = timeOperation((i) => bag.add(makeItem(`add${i}`, Math.random())), iterations);
 
           console.log(`${impl.name} N=${size} pure add: ${time.perOpNs.toFixed(0)}ns/op p99=${time.p99Ns.toFixed(0)}ns`);

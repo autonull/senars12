@@ -24,8 +24,11 @@ import { join } from 'node:path';
  *  3. + 4. `io/bridge/ConnectionBinder.ts -> @senars/core` barrel -> `Agent` / `SessionManager`
  *     — `Agent` is exported only from the core root. Needs a deep subpath export (minor
  *     semver) before the barrel import can be narrowed.
- * Baseline updated 2026-09-26 (TODO6 close-out). */
-const BASELINE = 276;
+ * 
+ * With `--transform` flag (TODO7 D3), type-only edges (1) are excluded.
+ * Remaining cycles: 2 & 3/4 = 25.
+ * Baseline updated 2026-09-26 (TODO7 Phase D — dpdm --transform). */
+const BASELINE = 25;
 
 const TARGETS = ['src/', 'core/src/', 'nar/src/', 'io/src/', 'metta/src/'];
 const outPath = join(mkdtempSync(join(tmpdir(), 'deps-')), 'deps.json');
@@ -33,7 +36,7 @@ const outPath = join(mkdtempSync(join(tmpdir(), 'deps-')), 'deps.json');
 try {
   execFileSync(
     'pnpm',
-    ['dlx', 'dpdm', '--circular', '--warning', 'false', '--skip-dynamic-imports', 'tree', '-o', outPath, ...TARGETS],
+    ['dlx', 'dpdm', '--circular', '--warning', 'false', '--skip-dynamic-imports', 'circular', '--transform', 'tree', '-o', outPath, ...TARGETS],
     { stdio: ['ignore', 'ignore', 'inherit'] }
   );
   const { circulars } = JSON.parse(readFileSync(outPath, 'utf-8')) as { circulars: string[][] };
