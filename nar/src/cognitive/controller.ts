@@ -175,6 +175,7 @@ export class CognitiveController {
       singlePremiseLMRules: params.lm.singlePremiseEnabled ?? true,
       maxLMRulesPerStep: params.strategies.lmRule.maxRules,
       enableLMRules: params.lm.enabled ?? true,
+      sampleSize: params.inference.maxDerivationsPerStep ?? 100,
       onDerivation: (chain: readonly Task[]) => {
         for (const cb of this.onDerivationCallbacks) cb(chain);
       },
