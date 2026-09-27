@@ -13,7 +13,7 @@ export interface SampleConfig {
   filter?: PremiseFilter;
   truthFilter?: TruthPredicate;
   skipSameTerm?: boolean;
-  source?: 'bag' | 'links' | 'taskArgs' | 'graph';
+  source?: 'bag' | 'concepts' | 'links' | 'taskArgs' | 'graph';
   scorer?: 'priority' | 'linkWeight' | 'edgeWeight' | { linear: { link: number; embed: number; pri: number } };
   filters?: FilterSpec[];
   minScore?: number;

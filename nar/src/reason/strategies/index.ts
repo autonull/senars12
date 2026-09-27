@@ -6,12 +6,11 @@ import { type Truth, termsEqual } from '../../terms';
 import type { Task, TaskType } from '../../types';
 import type { Strategy } from '../strategy.js';
 import { createStrategy } from './base.js';
-import { createSemanticStrategy } from './semantic.js';
 import { createTermLinkStrategy } from './term-link.js';
 
 const logger = createLogger({ scope: 'Strategies' });
 
-export { createSemanticStrategy, createStrategy, createTermLinkStrategy };
+export { createStrategy, createTermLinkStrategy };
 
 const withMeta = <T extends Strategy>(strategy: T, description: string): T => {
   (strategy as unknown as { metadata: ComponentMetadata }).metadata = {

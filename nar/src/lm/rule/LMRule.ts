@@ -25,6 +25,7 @@ export class LMRule {
   readonly priority: number;
   readonly sync = false as const;
   readonly taskType: TaskType;
+  readonly condition: Term; // NEW: real term for RuleGraph matching
 
   private enabled: boolean;
   private readonly lm: LMService | null;
@@ -70,6 +71,8 @@ export class LMRule {
     this.category = config.category ?? 'general';
     this.priority = config.priority ?? 1.0;
     this.taskType = v2.taskType ?? 'belief';
+    // NEW: condition term for RuleGraph matching — synthesize from name for backward compat
+    this.condition = v2.condition ?? ({ kind: 'atom', symbol: this.name } as Term);
     this.enabled = config.enabled ?? true;
     this.lm = lm;
     this.v2Config = v2;

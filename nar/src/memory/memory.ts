@@ -13,6 +13,7 @@ import type { MemoryHealth } from './health.js';
 import type { ForgettingPolicy } from './lifecycle';
 import { Archive, Forgetting } from './lifecycle';
 import { LinkManager } from './links';
+import { EmbeddingLayer } from './links/EmbeddingLayer.js';
 import { MemoryIndex } from './memory-index.js';
 import { MemoryConsolidation, MemoryScorer, recordConsolidationWatchdogCycle } from './pressure';
 import { calculateConceptStats } from './state';
@@ -129,6 +130,18 @@ export class Memory {
       forgetPolicy: config.linkForgetPolicy ?? LINK.FORGET_POLICY,
       globalDecayRate: config.linkDecayRate ?? LINK.DECAY_RATE,
     });
+
+    // Register EmbeddingLayer for semantic similarity
+    const embeddingLayer = new EmbeddingLayer({
+      capacity: config.semanticLinkCapacity ?? LINK.SEMANTIC_LAYER_CAPACITY,
+      similarityThreshold: 0.6,
+      maxLinksPerConcept: 20,
+    });
+    this.linkManager.setLayer('embedding', embeddingLayer);
+  }
+
+  getEmbeddingIndex(): EmbeddingLayer | undefined {
+    return this.linkManager.getLayer('embedding') as EmbeddingLayer | undefined;
   }
 
   get size(): number {
@@ -233,6 +246,15 @@ export class Memory {
     this.concepts.set(term, concept);
 
     if (this.config.enableIndexing) this.index.index(concept, this.lastTimestamp);
+    
+    // Index concept in embedding layer for semantic similarity
+    const embeddingIndex = this.getEmbeddingIndex();
+    if (embeddingIndex) {
+      embeddingIndex.indexConcept(term).catch(() => {
+        // Fire-and-forget; embedding index failures are non-fatal
+      });
+    }
+    
     this.updateFocus(concept);
     return concept;
   }

@@ -5,6 +5,7 @@ import { extractSymbols, termsEqual, Stamp } from '../../terms';
 import { getSubject, getPredicate } from '../../terms';
 import type { Term } from '../../terms';
 import { getSharedConceptGraph } from '../lm-graph/RuleGraph.js';
+import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';
 
 export type PremiseSource = (task: Task, memory: Memory, n?: number) => Concept[];
 
@@ -14,6 +15,7 @@ export type PremiseFilter = (task: Task, concept: Concept) => boolean;
 
 export const PREMISE_SOURCES = {
   bag: (task: Task, memory: Memory, n = 10): Concept[] => memory.sample(n),
+  concepts: (task: Task, memory: Memory): Concept[] => memory.listConcepts(),
   links: (task: Task, memory: Memory): Concept[] => {
     const linkManager = memory.getLinkManager();
     const termLinks = linkManager.getLayer('term');
@@ -107,10 +109,9 @@ export const PREMISE_SCORERS_EXTENDED = {
   linear: (weights: { link: number; embed: number; pri: number }) =>
     (memory: Memory) => (task: Task, concept: Concept): number => {
       const linkStrength = getLinkStrength(memory, task.term, concept.term);
-      const embeddingSim = 0;
-      return (
-        weights.link * linkStrength + weights.embed * embeddingSim + weights.pri * concept.priority
-      );
+      const embeddingIndex = memory.getEmbeddingIndex?.();
+      const embeddingSim = embeddingIndex?.similarity?.(task.term.toString(), concept.term.toString()) ?? 0;
+      return weights.link * linkStrength + weights.embed * embeddingSim + weights.pri * concept.priority;
     },
 } as const;
 

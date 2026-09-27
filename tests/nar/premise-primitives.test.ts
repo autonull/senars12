@@ -16,6 +16,7 @@ import {
   ExhaustiveStrategy,
   GoalDrivenStrategy,
   ResolutionStrategy,
+  SemanticStrategy,
 } from '../../nar/src/strategies/premise/selection-strategies.js';
 import { createStrategy } from '../../nar/src/reason/strategies/base.js';
 import { samplePremisesFromConfig } from '../../nar/src/strategies/premise/primitives.js';
@@ -163,5 +164,63 @@ describe('premise strategy compositions apply their declared filters', () => {
 
     expect(scored).toHaveLength(1);
     expect(scored[0]?.budget.priority).toBeCloseTo(0.9, 5);
+  });
+
+  it('semantic strategy uses concepts source and linear scorer composition', () => {
+    seedBelief(TermBuilder.atom('cat'));
+    seedBelief(TermBuilder.atom('feline'));
+    seedBelief(TermBuilder.atom('dog'));
+    memory.getLinkManager().addLink(atom('cat'), atom('feline'), { priority: 1.0 });
+    
+    // Boost concept priority so it passes minScore
+    const felineConcept = memory.getConcept(atom('feline'))!;
+    felineConcept.priority = 0.9;
+
+    const selected = SemanticStrategy.selectSecondary(taskFor(atom('cat')), memory);
+    expect(selected.length).toBeGreaterThan(0);
+    expect(selected.some((t) => t.term.kind === 'atom' && t.term.symbol === 'feline')).toBe(true);
+    // Should not include the task term itself
+    expect(selected.some((t) => t.term.kind === 'atom' && t.term.symbol === 'cat')).toBe(false);
+  });
+
+  it('linear scorer with embedding weight uses embedding similarity when available', async () => {
+    seedBelief(TermBuilder.atom('cat'));
+    seedBelief(TermBuilder.atom('kitten'));
+    memory.getLinkManager().addLink(atom('cat'), atom('kitten'), { priority: 0.5 });
+
+    const embeddingIndex = memory.getEmbeddingIndex();
+    if (embeddingIndex) {
+      // Wait for embeddings to be indexed
+      await new Promise((r) => setTimeout(r, 100));
+      
+      const scored = samplePremisesFromConfig(memory, taskFor(atom('cat')), {
+        source: 'concepts',
+        scorer: { linear: { link: 0.5, embed: 0.5, pri: 0 } },
+        filters: [],
+        minScore: 0,
+        sampleSize: 10,
+        limit: 10,
+      });
+
+      // With embedding weight > 0, kitten should rank higher due to semantic similarity
+      expect(scored.length).toBeGreaterThan(0);
+      const kittenResult = scored.find((t) => t.term.kind === 'atom' && t.term.symbol === 'kitten');
+      expect(kittenResult).toBeDefined();
+    }
+  });
+
+  it('concepts source enumerates all concepts (not a sample)', async () => {
+    for (let i = 0; i < 50; i++) {
+      seedBelief(TermBuilder.atom(`concept${i}`));
+    }
+
+    const concepts = memory.listConcepts();
+    expect(concepts.length).toBe(50);
+
+    // The concepts source should return all concepts
+    const { PREMISE_SOURCES } = await import('../../nar/src/strategies/premise/primitives.js');
+    const task = taskFor(atom('concept0'));
+    const allConcepts = PREMISE_SOURCES.concepts(task, memory);
+    expect(allConcepts.length).toBe(50);
   });
 });

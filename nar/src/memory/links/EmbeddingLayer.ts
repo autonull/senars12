@@ -77,6 +77,24 @@ export class EmbeddingLayer extends Layer {
     }
   }
 
+  similarity(termA: string, termB: string): number {
+    const embeddingA = this.termEmbeddings.get(termA);
+    const embeddingB = this.termEmbeddings.get(termB);
+    if (!embeddingA || !embeddingB) return 0;
+    return this.cosineSimilarity(embeddingA, embeddingB);
+  }
+
+  async similarityAsync(termA: string, termB: string): Promise<number> {
+    try {
+      const embeddingA = this.termEmbeddings.get(termA) ?? (await this.embeddingGenerator.generate(termA));
+      const embeddingB = this.termEmbeddings.get(termB) ?? (await this.embeddingGenerator.generate(termB));
+      if (!embeddingA || !embeddingB) return 0;
+      return this.cosineSimilarity(embeddingA, embeddingB);
+    } catch {
+      return 0;
+    }
+  }
+
   override getLinksByTerm(term: Term): LinkEntry[] {
     const results: LinkEntry[] = [];
     this.bag.forEachLink((link) => {

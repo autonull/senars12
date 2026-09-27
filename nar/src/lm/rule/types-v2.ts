@@ -2,6 +2,7 @@ import type { ZodSchema } from 'zod';
 import type { TaskType } from '../../types';
 import type { LMRuleConfig } from '../lm-service.js';
 import type { LMContext, ValidationResult } from './types.js';
+import type { Term } from '../../terms';
 
 export interface LMRuleConfigV2<In = unknown, Out = unknown>
   extends Omit<LMRuleConfig, 'promptTemplate'> {
@@ -14,4 +15,5 @@ export interface LMRuleConfigV2<In = unknown, Out = unknown>
   schema?: ZodSchema;
   enableTools?: boolean;
   constitutionAware?: boolean;
+  condition?: Term; // NEW: explicit term for RuleGraph co-activation matching
 }

@@ -1,6 +1,7 @@
 import type { Term } from '../../terms';
 import { Layer } from './Layer.js';
 import { TermLayer } from './TermLayer.js';
+import { EmbeddingLayer } from './EmbeddingLayer.js';
 import type {
   LinkEntry,
   LinkManagerConfig as LinkManagerConfigType,
@@ -61,6 +62,10 @@ export class LinkManager {
     this.layers.set(name, layer);
     this.capacityByLayer.set(name, capacity);
     return layer;
+  }
+
+  setLayer(name: string, layer: Layer): void {
+    this.layers.set(name, layer);
   }
 
   addLink(

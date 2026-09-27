@@ -9,6 +9,7 @@ import type { LMRuleSelector, ComponentMetadata, LMRuleSelectionContext } from '
 import { CognitiveRegistry } from '../../cognitive/registry.js';
 import type { LMRule } from '../../lm/LMRule.js';
 import type { Term } from '../../terms/index.js';
+import { termsEqual } from '../../terms';
 
 /** Shared ConceptGraph instance for co-activation graph (used by RuleGraph, premise sources, and scorers). */
 let sharedConceptGraph: ConceptGraph | null = null;
@@ -96,11 +97,10 @@ export class RuleGraph implements LMRuleSelector {
     scoredRules.sort((a, b) => b.score - a.score);
     const selected = scoredRules.slice(0, Math.max(1, Math.floor(rules.length * 0.5))).map((s) => s.rule);
 
-    // Activate focus term and selected rule terms for future co-activation learning
+    // Activate focus term and selected rule condition terms for future co-activation learning
     this.graph.activate(focusTerm);
     for (const rule of selected) {
-      // LMRule doesn't have condition, use primary term as proxy
-      this.graph.activate(focusTerm, { kind: 'atom', symbol: rule.name } as Term);
+      this.graph.activate(focusTerm, rule.condition);
     }
 
     return selected.length > 0 ? selected : this.fallbackSelect(rules);
@@ -113,15 +113,15 @@ export class RuleGraph implements LMRuleSelector {
   }
 
   private extractFocusTerm(_context: LMRuleSelectionContext, rules: LMRule[]): Term | null {
-    // Simple heuristic: use the highest priority rule's name as focus
+    // Simple heuristic: use the highest priority rule's condition term as focus
     if (rules.length === 0) return null;
     const firstRule = rules[0];
     if (!firstRule) return null;
-    return { kind: 'atom', symbol: firstRule.name } as Term;
+    return firstRule.condition;
   }
 
   private ruleMatchesEdge(rule: LMRule, edge: CoActivationEdge): boolean {
-    return rule.name === edge.targetTerm.symbol;
+    return termsEqual(rule.condition, edge.targetTerm);
   }
 
   /** Update graph with new co-activation from successful derivation. */

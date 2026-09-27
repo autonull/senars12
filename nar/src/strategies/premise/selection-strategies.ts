@@ -7,7 +7,6 @@ import type { Task, TaskType } from '../../types';
 import type { Strategy } from '../types.js';
 import { createStrategy } from '../../reason/strategies/base';
 import { TermLinkStrategy as RealTermLinkStrategy } from './term-link';
-import { SemanticStrategy as RealSemanticStrategy } from './semantic';
 
 const logger = createLogger({ scope: 'Strategies' });
 
@@ -127,13 +126,18 @@ export const ExhaustiveStrategy: Strategy = withMeta(
   'Exhaustive premise selection with shared atoms'
 );
 
-export const SemanticStrategy: Strategy = new RealSemanticStrategy({
-  minSimilarity: 0.6,
-  maxResults: 10,
-  linkWeight: 0.5,
-  embeddingWeight: 0.3,
-  priorityWeight: 0.2,
-});
+export const SemanticStrategy: Strategy = withMeta(
+  createStrategy({
+    name: 'semantic',
+    source: 'concepts',
+    scorer: { linear: { link: 0.5, embed: 0.3, pri: 0.2 } },
+    minScore: 0.6,
+    limit: 10,
+    sampleSize: 100, // Large sampleSize to capture all concepts (source ignores this)
+    filters: [], // No default sharedAtoms filter - semantic similarity doesn't require shared atoms
+  }),
+  'Semantic similarity via linear(link, embed, priority)'
+);
 
 export class CompositeStrategy implements Strategy {
   readonly metadata: ComponentMetadata = {

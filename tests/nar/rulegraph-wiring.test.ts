@@ -42,6 +42,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     mockLMRule = {
       id: 'test-lm-rule',
       name: 'Test LM Rule',
+      condition: TermBuilder.atom('test_lm_rule'), // NEW: condition term for RuleGraph matching
       priority: 1.0,
       sync: false,
       apply: vi.fn(() => Promise.resolve([])),
@@ -86,6 +87,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     const rule1: LMRule = {
       id: 'rule-1',
       name: 'Rule 1',
+      condition: TermBuilder.atom('rule_1'), // NEW: condition term for RuleGraph matching
       priority: 1.0,
       sync: false,
       apply: vi.fn(() => Promise.resolve([{ term: TermBuilder.atom('A'), truth: Truth.create(0.8, 0.9), stamp: makeInput('A').stamp, priority: 0.5, taskType: 'belief' }])),
@@ -99,6 +101,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     const rule2: LMRule = {
       id: 'rule-2',
       name: 'Rule 2',
+      condition: TermBuilder.atom('rule_2'), // NEW: condition term for RuleGraph matching
       priority: 1.0,
       sync: false,
       apply: vi.fn(() => Promise.resolve([])),
