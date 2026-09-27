@@ -1,12 +1,8 @@
 import type { Agent } from '@senars/core/agent';
 import { aggregateChatResponse } from '@senars/core/bridge/chat-stream-handler';
-import type { MessageContext, MessageMiddleware } from '../router.js';
+import { ctxAsRecord, type MessageContext, type MessageMiddleware } from '../router.js';
 import type { BridgeOptions, Connection, IOMessage } from '@senars/util';
 import { InMemorySessionManager } from '@senars/util/memory';
-
-function ctxAsRecord(ctx: MessageContext): Record<string, unknown> {
-  return ctx as unknown as Record<string, unknown>;
-}
 
 function msgAsRecord(msg: IOMessage): Record<string, unknown> {
   return msg as unknown as Record<string, unknown>;

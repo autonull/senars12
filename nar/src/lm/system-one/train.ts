@@ -1,3 +1,4 @@
+import { clamp01 } from '@senars/util';
 import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
@@ -161,7 +162,6 @@ function mulberry(seed: number): () => number {
 }
 
 const sigmoid = (z: number) => 1 / (1 + Math.exp(-z));
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 /** Gaussian elimination with partial pivoting (A square, nonsingular). */
 export function solveLinearSystem(A: number[][], b: number[]): number[] {

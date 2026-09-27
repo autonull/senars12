@@ -1,4 +1,4 @@
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
 import { z } from 'zod';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { ParameterLedger } from '../config/parameter-ledger.js';

@@ -13,6 +13,7 @@ import { existsSync, statSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { Effect } from 'effect';
+import { errMsg } from '@senars/util';
 import { createCapturePhase, DEFAULT_MACRO_PIPELINE } from '@senars/core/agent/phases';
 import {
   AuthManager,
@@ -56,7 +57,7 @@ import { DEFAULT_REPUTATION_PATH, SourceReputation } from '@senars/nar/kernel/so
 import { episodeQualitySurface, MemoryQuery } from '@senars/nar/query/memory-query.js';
 import { formatLMConfig, resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm/env-config.js';
-import { computeEvidenceId } from '@senars/nar/lm/system-one';
+import { computeEvidenceId, createSystemOneBudget } from '@senars/nar/lm/system-one';
 import { MettaProposer } from '@senars/nar/reflex/metta-proposer.js';
 import { createLogger } from '@senars/nar/logger';
 import { NLUnderstandingService } from '@senars/nar/nl';
@@ -73,7 +74,6 @@ import { createAgentFromEnv, setupGracefulShutdown } from './lib/lifecycle.js';
 assertValidEnv();
 
 const logger = createLogger({ scope: 'bot' });
-const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 const cmd = (
   name: string,
   description: string,
@@ -982,13 +982,7 @@ function buildExtraCommands(
         const proposition = parts.filter((p) => p !== '--explain').join(' ');
         if (!proposition) return 'Usage: .judge <proposition> [--head <rubric>] [--explain]';
 
-        const budget = {
-          maxCycles: 100,
-          maxDepth: 10,
-          maxMemoryOps: 1000,
-          maxLMCalls: 5,
-          consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-        };
+        const budget = createSystemOneBudget();
         const queries = headRubric
           ? [
               {
@@ -1065,13 +1059,7 @@ function buildExtraCommands(
         const input = parts.join(' ');
         if (!input) return 'Usage: .decide <input> [--rubrics a,b,c]';
         const all = ['relevance', 'groundedness', 'injection', 'ambiguity', 'plausibility'];
-        const budget = {
-          maxCycles: 100,
-          maxDepth: 10,
-          maxMemoryOps: 1000,
-          maxLMCalls: 5,
-          consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-        };
+        const budget = createSystemOneBudget();
         const queries = (rubrics ?? all).map((rubric) => ({
           kind: 'evaluate' as const,
           instruction: `Evaluate ${rubric}`,
@@ -1110,13 +1098,7 @@ function buildExtraCommands(
         const task = parts.filter((p) => p !== '--verbose').join(' ');
         if (!task) return 'Usage: .route <task> [--verbose]';
 
-        const budget = {
-          maxCycles: 100,
-          maxDepth: 10,
-          maxMemoryOps: 1000,
-          maxLMCalls: 5,
-          consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-        };
+        const budget = createSystemOneBudget();
         const pointer = await embeddingCache.write(task);
         const queries = [
           {

@@ -5,10 +5,10 @@ import type {
   AutonomyModeChangedEvent,
   PolicyViolationEvent,
 } from '@senars/kernel/schemas';
-import { AutonomyModeChangedEventSchema, validateCognitiveEvent } from '@senars/kernel/schemas';
+import { AutonomyModeChangedEventSchema } from '@senars/kernel/schemas';
 import { SenarsError } from '@senars/util/errors';
 import { v4 as uuidv4 } from 'uuid';
-import { pushBounded } from './event-ring.js';
+import { pushBounded, recordPolicyViolation } from './event-ring.js';
 import { recordGateDecision } from '../telemetry/index.js';
 
 const MODE_ORDER: AutonomyMode[] = [
@@ -189,21 +189,12 @@ export class KernelActionGate {
     if (scoped) return this.authorizeScoped(scoped.scopeId, scoped.action, correlationId);
 
     if (this.autonomyMode === 'observe-only' || this.autonomyMode === 'propose-only') {
-      const event: PolicyViolationEvent = {
-        type: 'policy.violation',
-        engine: 'kernel',
-        timestamp: Date.now(),
+      recordPolicyViolation(this.eventLog, {
+        policyId: 'autonomy-mode',
+        violationType: 'unauthorized-tool',
+        detail: `Action not permitted in ${this.autonomyMode} mode`,
         correlationId,
-        payload: {
-          policyId: 'autonomy-mode',
-          violationType: 'unauthorized-tool',
-          detail: `Action not permitted in ${this.autonomyMode} mode`,
-          severity: 'block',
-        },
-      };
-      validateCognitiveEvent(event);
-      pushBounded(this.eventLog, event);
-
+      });
       return {
         authorized: false,
         vetoReason: `Autonomy mode ${this.autonomyMode} does not permit tool execution`,
@@ -214,21 +205,12 @@ export class KernelActionGate {
     if (input.nalDerivationId && this.nalDerivations.has(input.nalDerivationId)) {
       const derivation = this.nalDerivations.get(input.nalDerivationId)!;
       if (derivation.veto) {
-        const event: PolicyViolationEvent = {
-          type: 'policy.violation',
-          engine: 'kernel',
-          timestamp: Date.now(),
-          correlationId,
-          payload: {
-            policyId: 'nal-veto',
-            violationType: 'unauthorized-tool',
-            detail: `NAL derivation ${input.nalDerivationId} vetoes action: ${derivation.conclusion}`,
-            severity: 'block',
-          },
-        };
-        validateCognitiveEvent(event);
-        pushBounded(this.eventLog, event);
-
+        recordPolicyViolation(this.eventLog, {
+        policyId: 'nal-veto',
+        violationType: 'unauthorized-tool',
+        detail: `NAL derivation ${input.nalDerivationId} vetoes action: ${derivation.conclusion}`,
+        correlationId,
+      });
         return {
           authorized: false,
           vetoReason: `NAL veto: ${derivation.conclusion}`,
@@ -237,21 +219,12 @@ export class KernelActionGate {
     }
 
     if (!this.allowedOperations.has(input.operation)) {
-      const event: PolicyViolationEvent = {
-        type: 'policy.violation',
-        engine: 'kernel',
-        timestamp: Date.now(),
+      recordPolicyViolation(this.eventLog, {
+        policyId: 'allowed-operations',
+        violationType: 'unauthorized-tool',
+        detail: `Operation '${input.operation}' not in allowed operations list`,
         correlationId,
-        payload: {
-          policyId: 'allowed-operations',
-          violationType: 'unauthorized-tool',
-          detail: `Operation '${input.operation}' not in allowed operations list`,
-          severity: 'block',
-        },
-      };
-      validateCognitiveEvent(event);
-      pushBounded(this.eventLog, event);
-
+      });
       return {
         authorized: false,
         vetoReason: `Operation '${input.operation}' not permitted`,

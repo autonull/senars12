@@ -1,4 +1,5 @@
 import type { Focus, FocusTask } from '../focus/Focus.js';
+import { createBudget } from '../types/core.js';
 import type { ActionProposal } from '../reflex/Reflex.js';
 
 export class ActionGate {
@@ -15,13 +16,7 @@ export class ActionGate {
         term: this.actionToTerm(proposal),
         type: 'goal',
         truth: { f: proposal.value, c: proposal.confidence },
-        budget: {
-          priority: proposal.value * proposal.confidence,
-          durability: 0.8,
-          quality: 0.9,
-          cycles: 0,
-          depth: 0,
-        },
+        budget: createBudget(proposal.value * proposal.confidence),
         stamp: `reflex-${proposal.source}-${now}`,
         derived: false,
       };

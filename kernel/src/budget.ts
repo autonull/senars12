@@ -3,10 +3,13 @@
  * AIKRBudget/ThreadScope become views onto this shared slice.
  */
 import type { AIKRBudget } from '@senars/nar/bag';
-import type { NarEventBus, TerminationReason, ConsumedBudget, BudgetSliceTotal } from '@senars/nar/types/events';
+import type { NarEventBus, ConsumedBudget, BudgetSliceTotal } from '@senars/nar/types/events';
 import { emitBudgetSliceCreated, emitBudgetSliceConsumed, emitBudgetSliceExhausted, emitBudgetSliceMerged } from '@senars/nar/tick';
+import type { TerminationReason } from './schemas.js';
 
-export type { ConsumedBudget, TerminationReason, BudgetSliceTotal };
+export type { ConsumedBudget, BudgetSliceTotal };
+/** @deprecated since 1.0 — re-export the kernel's own `TerminationReason` from `./schemas.js`. */
+export type { TerminationReason };
 
 export interface BudgetSlice {
   readonly id: string;

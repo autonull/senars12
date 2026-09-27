@@ -1,13 +1,13 @@
 {
-  "version": 1,
+  "version": 2,
   "baseline": {
-    "exportSubpaths": 92,
-    "productionLOC": 1000,
+    "exportSubpaths": 98,
+    "productionLOC": 73705,
     "appendOnlyPersistenceSites": 12,
     "aikrProcessorCoverage": 5,
-    "unboundedAccumulators": -1,
-    "depsGateRawChains": 10,
-    "typecheckBinErrors": 999,
+    "unboundedAccumulators": 0,
+    "depsGateRawChains": 277,
+    "typecheckBinErrors": 0,
     "workspaceCount": 7
   },
   "rules": {

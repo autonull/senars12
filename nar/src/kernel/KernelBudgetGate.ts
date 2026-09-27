@@ -24,6 +24,48 @@ const DEFAULT_COST_TABLE: Record<string, number> = {
   'systemone-judgment': 5,
 };
 
+/** Which budget dimension an operation spends, and how exhaustion is reported. Single source for
+ *  consumption, remaining/limit reads, budget type, and termination reason. */
+interface OperationSpec {
+  readonly consumedKey: keyof ReasoningBudget['consumed'];
+  readonly maxKey: 'maxCycles' | 'maxDepth' | 'maxMemoryOps' | 'maxLMCalls';
+  readonly budgetType: BudgetExhaustedEvent['payload']['budgetType'];
+  readonly exhaustedReason: TerminationReason;
+}
+
+const OPERATION_SPECS: Record<string, OperationSpec> = {
+  'nal-step': {
+    consumedKey: 'cycles',
+    maxKey: 'maxCycles',
+    budgetType: 'cycles',
+    exhaustedReason: 'cycle-budget',
+  },
+  'lm-call': {
+    consumedKey: 'llmCalls',
+    maxKey: 'maxLMCalls',
+    budgetType: 'llm',
+    exhaustedReason: 'llm-budget',
+  },
+  'memory-op': {
+    consumedKey: 'memoryOps',
+    maxKey: 'maxMemoryOps',
+    budgetType: 'memory',
+    exhaustedReason: 'memory-budget',
+  },
+  'derivation-depth': {
+    consumedKey: 'depth',
+    maxKey: 'maxDepth',
+    budgetType: 'depth',
+    exhaustedReason: 'depth-budget',
+  },
+  'systemone-judgment': {
+    consumedKey: 'llmCalls',
+    maxKey: 'maxLMCalls',
+    budgetType: 'llm',
+    exhaustedReason: 'llm-budget',
+  },
+};
+
 export class KernelBudgetGate {
   private budget: ReasoningBudget;
   private scopes = new Map<string, ReasoningBudget>();
@@ -120,15 +162,7 @@ export class KernelBudgetGate {
       };
     }
 
-    budget.consumed[
-      operation === 'nal-step'
-        ? 'cycles'
-        : operation === 'lm-call' || operation === 'systemone-judgment'
-          ? 'llmCalls'
-          : operation === 'memory-op'
-            ? 'memoryOps'
-            : 'depth'
-    ] += estimatedCost;
+    budget.consumed[OPERATION_SPECS[operation]?.consumedKey ?? 'depth'] += estimatedCost;
 
     budget.terminationReason = undefined;
 
@@ -136,71 +170,25 @@ export class KernelBudgetGate {
   }
 
   private getRemaining(budget: ReasoningBudget, operation: string, estimatedCost: number): number {
-    switch (operation) {
-      case 'nal-step':
-        return budget.maxCycles - budget.consumed.cycles;
-      case 'lm-call':
-        return budget.maxLMCalls - budget.consumed.llmCalls;
-      case 'memory-op':
-        return budget.maxMemoryOps - budget.consumed.memoryOps;
-      case 'derivation-depth':
-        return budget.maxDepth - budget.consumed.depth;
-      case 'systemone-judgment':
-        return budget.maxLMCalls - budget.consumed.llmCalls;
-      default:
-        return Infinity;
-    }
+    const spec = OPERATION_SPECS[operation];
+    return spec ? budget[spec.maxKey] - budget.consumed[spec.consumedKey] : Infinity;
   }
 
   private getLimit(budget: ReasoningBudget, operation: string): number {
-    switch (operation) {
-      case 'nal-step':
-        return budget.maxCycles;
-      case 'lm-call':
-        return budget.maxLMCalls;
-      case 'memory-op':
-        return budget.maxMemoryOps;
-      case 'derivation-depth':
-        return budget.maxDepth;
-      case 'systemone-judgment':
-        return budget.maxLMCalls;
-      default:
-        return 0;
-    }
+    const spec = OPERATION_SPECS[operation];
+    return spec ? budget[spec.maxKey] : 0;
   }
 
   private toBudgetType(operation: string): BudgetExhaustedEvent['payload']['budgetType'] {
-    switch (operation) {
-      case 'nal-step':
-        return 'cycles';
-      case 'lm-call':
-        return 'llm';
-      case 'memory-op':
-        return 'memory';
-      case 'derivation-depth':
-        return 'depth';
-      case 'systemone-judgment':
-        return 'llm';
-      default:
-        return 'cycles';
-    }
+    return OPERATION_SPECS[operation]?.budgetType ?? 'cycles';
   }
 
   private getTerminationReason(budget: ReasoningBudget, operation: string): TerminationReason {
-    switch (operation) {
-      case 'nal-step':
-        return budget.consumed.cycles >= budget.maxCycles ? 'cycle-budget' : 'backpressure';
-      case 'lm-call':
-        return budget.consumed.llmCalls >= budget.maxLMCalls ? 'llm-budget' : 'backpressure';
-      case 'memory-op':
-        return budget.consumed.memoryOps >= budget.maxMemoryOps ? 'memory-budget' : 'backpressure';
-      case 'derivation-depth':
-        return budget.consumed.depth >= budget.maxDepth ? 'depth-budget' : 'backpressure';
-      case 'systemone-judgment':
-        return budget.consumed.llmCalls >= budget.maxLMCalls ? 'llm-budget' : 'backpressure';
-      default:
-        return 'backpressure';
-    }
+    const spec = OPERATION_SPECS[operation];
+    if (!spec) return 'backpressure';
+    return budget.consumed[spec.consumedKey] >= budget[spec.maxKey]
+      ? spec.exhaustedReason
+      : 'backpressure';
   }
 
   getBudget(): Readonly<ReasoningBudget> {

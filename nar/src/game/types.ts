@@ -78,4 +78,4 @@ export const failClosed = (id: string, e: unknown): SensorReading => ({
   confidence: 0,
 });
 
-export const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
+export { clamp01 } from '@senars/util';

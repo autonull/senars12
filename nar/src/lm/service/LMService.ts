@@ -104,6 +104,20 @@ export class LMService implements ILMService {
     return this.hasModel();
   }
 
+  /** Resolve the active provider, failing fast when its circuit breaker is open. */
+  private providerFor(task?: LMTask) {
+    const provider = this.provider as LMProviderName | undefined;
+    const settings = getLMSettings();
+    if (provider && !this.runtime.canUseProvider(provider, settings)) {
+      throw new LMUnavailableError(
+        withHint(`Circuit breaker open for provider: ${provider}`, provider),
+        provider,
+        task
+      );
+    }
+    return { provider, settings };
+  }
+
   getModel(task: LMTask, modelOverride?: string): LanguageModel | undefined {
     try {
       return getModelForTask(
@@ -160,15 +174,7 @@ export class LMService implements ILMService {
     const model = this.getModel(opts?.task ?? 'fast', opts?.model);
     if (!model) throw new Error('No model available');
 
-    const provider = this.provider as LMProviderName | undefined;
-    const settings = getLMSettings();
-    if (provider && !this.runtime.canUseProvider(provider, settings)) {
-      throw new LMUnavailableError(
-        withHint(`Circuit breaker open for provider: ${provider}`, provider),
-        provider,
-        opts?.task
-      );
-    }
+    const { provider, settings } = this.providerFor(opts?.task);
 
     const cacheKey = buildCacheKey(prompt, {
       task: opts?.task,
@@ -367,15 +373,7 @@ export class LMService implements ILMService {
     }
 
     // F6/X22: stream path shares the generate path's failure semantics.
-    const provider = this.provider as LMProviderName | undefined;
-    const settings = getLMSettings();
-    if (provider && !this.runtime.canUseProvider(provider, settings)) {
-      throw new LMUnavailableError(
-        withHint(`Circuit breaker open for provider: ${provider}`, provider),
-        provider,
-        opts?.task
-      );
-    }
+    const { provider, settings } = this.providerFor(opts?.task);
 
     const cacheKey = buildCacheKey(prompt, { task: opts?.task ?? 'fast' });
     const cached = this.cache.get(cacheKey);

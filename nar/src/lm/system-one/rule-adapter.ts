@@ -1,8 +1,9 @@
 import type { Term } from '../../terms';
 import { Truth, termParser } from '../../terms';
 import type { Budget, Task, TruthType } from '../../types';
-import { createTask, createTimestamp } from '../../types/core.js';
+import { createBudget, createTask, createTimestamp } from '../../types/core.js';
 import type { CognitiveDispatcher, EvaluateQuery, JudgmentProposition } from './types.js';
+import { createSystemOneBudget } from './types.js';
 
 export interface SystemOneLMRuleAdapterConfig {
   dispatcher: CognitiveDispatcher;
@@ -72,13 +73,7 @@ export class SystemOneLMRuleAdapter {
       for (const admitted of peaResult.admitted) {
         const parsed = termParser.parse(admitted.candidate);
         if (parsed) {
-          const taskBudget: Budget = {
-            priority: admitted.truth.c,
-            durability: 0.8,
-            quality: 0.9,
-            cycles: 10,
-            depth: 5,
-          };
+          const taskBudget: Budget = createBudget(admitted.truth.c, 0.8, 0.9, 10, 5);
           tasks.push({
             term: parsed,
             type: 'belief',
@@ -103,13 +98,7 @@ export class SystemOneLMRuleAdapter {
   }
 
   #budget(): import('@senars/kernel/schemas').ReasoningBudget {
-    return {
-      maxCycles: 100,
-      maxDepth: 10,
-      maxMemoryOps: 1000,
-      maxLMCalls: 5,
-      consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-    };
+    return createSystemOneBudget();
   }
 
   /**
@@ -220,22 +209,17 @@ export class SystemOneLMRuleAdapter {
     }
   }
 
-  /** F5: conflict-head verdict on a candidate derivation (ShadowValidator consumer). */
-  async conflictScore(
-    candidateTerm: string
+  /** Score one term against a single evaluate-head. F5 heads differ only in their query spec. */
+  async #headScore(
+    term: string,
+    query: EvaluateQuery,
+    failureLabel: string
   ): Promise<{ score: number; fitted: boolean; abstained: boolean } | null> {
     try {
       const manifold = this.#nar.getSystemOneManifold();
       const cache = this.#nar.getSystemOneEmbeddingCache();
       if (!manifold || !cache) return null;
-      const sharedContext = await cache.write(candidateTerm);
-      const query: EvaluateQuery = {
-        kind: 'evaluate',
-        instruction: 'Evaluate conflict of candidate with current beliefs',
-        rubric: 'conflict',
-        axis: 'epistemic',
-        criticality: 'standard',
-      };
+      const sharedContext = await cache.write(term);
       const propositions = await manifold.judgeBatch(sharedContext, [query], this.#budget());
       const prop = propositions[0];
       if (prop?.kind !== 'evaluate') return null;
@@ -245,39 +229,43 @@ export class SystemOneLMRuleAdapter {
         abstained: prop.abstained,
       };
     } catch (e) {
-      this.#logger?.warn?.('System One conflict evaluation failed', { error: e });
+      this.#logger?.warn?.(failureLabel, { error: e });
       return null;
     }
+  }
+
+  /** F5: conflict-head verdict on a candidate derivation (ShadowValidator consumer). */
+  async conflictScore(
+    candidateTerm: string
+  ): Promise<{ score: number; fitted: boolean; abstained: boolean } | null> {
+    return this.#headScore(
+      candidateTerm,
+      {
+        kind: 'evaluate',
+        instruction: 'Evaluate conflict of candidate with current beliefs',
+        rubric: 'conflict',
+        axis: 'epistemic',
+        criticality: 'standard',
+      },
+      'System One conflict evaluation failed'
+    );
   }
 
   /** F5: novelty-head score for a concept (ProactiveEnricher budget gate). */
   async noveltyScore(
     conceptTerm: string
   ): Promise<{ score: number; fitted: boolean; abstained: boolean } | null> {
-    try {
-      const manifold = this.#nar.getSystemOneManifold();
-      const cache = this.#nar.getSystemOneEmbeddingCache();
-      if (!manifold || !cache) return null;
-      const sharedContext = await cache.write(conceptTerm);
-      const query: EvaluateQuery = {
+    return this.#headScore(
+      conceptTerm,
+      {
         kind: 'evaluate',
         instruction: 'Evaluate novelty of concept',
         rubric: 'novelty',
         axis: 'epistemic',
         criticality: 'low',
-      };
-      const propositions = await manifold.judgeBatch(sharedContext, [query], this.#budget());
-      const prop = propositions[0];
-      if (prop?.kind !== 'evaluate') return null;
-      return {
-        score: prop.score,
-        fitted: prop.calibration.fitted === true,
-        abstained: prop.abstained,
-      };
-    } catch (e) {
-      this.#logger?.warn?.('System One novelty evaluation failed', { error: e });
-      return null;
-    }
+      },
+      'System One novelty evaluation failed'
+    );
   }
 }
 

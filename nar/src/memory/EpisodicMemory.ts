@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery } from '@senars/io';
+import {Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery} from '@senars/io/ledger';
 import type { Episode, EpisodeType, EpisodeFilter, EpisodicMemoryConfig, EpisodicMemory as UtilEpisodicMemory } from '@senars/util';
 import { ulid } from 'ulid';
 import { SystemClock, type Clock } from '../clock.js';

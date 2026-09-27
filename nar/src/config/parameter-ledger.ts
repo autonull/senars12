@@ -11,7 +11,7 @@
  */
 
 import { z } from 'zod';
-import { Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery } from '@senars/io';
+import {Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery} from '@senars/io/ledger';
 
 export interface ParameterRecord {
   /** Subsystem that performed the write (e.g. 'self-meta-game', 'rlfp'). */

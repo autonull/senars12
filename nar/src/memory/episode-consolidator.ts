@@ -177,9 +177,15 @@ export class EpisodeConsolidator {
     for (const bucket of byKey.values()) {
       if (bucket.length < 2) continue; // nothing to compress — retained via selection
       if (signal?.aborted) break;
+      // Total order: `timestamp` alone ties for every episode admitted within the same
+      // millisecond, letting clock granularity leak into the summary content. Tiebreak on id.
       const merged = bucket
         .slice()
-        .sort((a, b) => a.episode.timestamp - b.episode.timestamp)
+        .sort(
+          (a, b) =>
+            a.episode.timestamp - b.episode.timestamp ||
+            (a.episode.id ?? a.id).localeCompare(b.episode.id ?? b.id)
+        )
         .slice(0, this.#maxMerged);
       const ids = merged.map((c) => c.episode.id ?? c.id);
       const causes = [...ids].sort();

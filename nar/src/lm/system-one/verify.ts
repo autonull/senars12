@@ -19,7 +19,7 @@ import type {
   JudgmentQuery,
   ReasoningBudget,
 } from './types.js';
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../../utils/hash.js';
 import type { JudgmentProvenance } from './decide.js';
 
 export type VerifyDecision = 'act' | 'review' | 'block' | 'abstain';
@@ -34,9 +34,6 @@ export interface VerifyResult {
   provenance: JudgmentProvenance;
 }
 
-function sha256(text: string): string {
-  return createHash('sha256').update(text).digest('hex');
-}
 
 /** Derive provenance from judgeCascade result, matching Decider's format. */
 function deriveVerifyProvenance(
@@ -48,7 +45,7 @@ function deriveVerifyProvenance(
 ): JudgmentProvenance {
   const first = stage2 ?? stage1;
   const calibrationDigest = first?.calibration?.version
-    ? sha256(`${first.modelDigest}:${first.calibration.version}`)
+    ? sha256Hex(`${first.modelDigest}:${first.calibration.version}`)
     : undefined;
   return {
     modelDigest: first?.modelDigest,
@@ -84,7 +81,7 @@ export async function verifyCascade(
   budget: ReasoningBudget
 ): Promise<VerifyResult> {
   const stage1 = truthProbability(statement);
-  const inputDigest = sha256(statement);
+  const inputDigest = sha256Hex(statement);
   const result = await judgeCascade(
     judge,
     sharedContext,

@@ -7,6 +7,7 @@ import type {
   EvaluateProposition,
   JudgmentManifold,
 } from './types.js';
+import { createSystemOneBudget } from './types.js';
 
 export type WakeDecision = 'wake' | 'not_yet' | 'unrelated';
 
@@ -31,13 +32,7 @@ export interface WakeGateOptions {
   source?: string;
 }
 
-const DEFAULT_BUDGET: ReasoningBudget = {
-  maxCycles: 100,
-  maxDepth: 10,
-  maxMemoryOps: 1000,
-  maxLMCalls: 5,
-  consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-};
+const DEFAULT_BUDGET: ReasoningBudget = createSystemOneBudget();
 
 const relevanceQuery = specToQuery(HEAD_SPECS.relevance);
 

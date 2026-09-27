@@ -5,9 +5,9 @@ import type {
   RewardGateOutput,
   SelfImprovementProposal,
 } from '@senars/kernel/schemas';
-import { SelfImprovementProposalSchema, validateCognitiveEvent } from '@senars/kernel/schemas';
+import { SelfImprovementProposalSchema } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
-import { pushBounded } from './event-ring.js';
+import { recordPolicyViolation } from './event-ring.js';
 
 export class EpistemicFirewallViolation extends Error {
   public readonly targetType: string;
@@ -50,20 +50,12 @@ export class KernelRewardGate {
         correlationId
       );
 
-      const event: PolicyViolationEvent = {
-        type: 'policy.violation',
-        engine: 'kernel',
-        timestamp: Date.now(),
+      recordPolicyViolation(this.eventLog, {
+        policyId: 'epistemic-firewall',
+        violationType: 'epistemic-firewall',
+        detail: violation.message,
         correlationId,
-        payload: {
-          policyId: 'epistemic-firewall',
-          violationType: 'epistemic-firewall',
-          detail: violation.message,
-          severity: 'block',
-        },
-      };
-      validateCognitiveEvent(event);
-      pushBounded(this.eventLog, event);
+      });
 
       return {
         accepted: false,

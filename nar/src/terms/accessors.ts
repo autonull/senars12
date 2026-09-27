@@ -60,15 +60,17 @@ export const getArgs = (term: Term): readonly Term[] =>
   term.kind === 'atom' ? [] : (term.args ?? []);
 export const sameKind = (a: Term, b: Term): boolean => a.kind === b.kind;
 
-export const termsEqual = (a: Term, b: Term): boolean => {
+/** Structural term equality. `undefined` is accepted so optional-arg probes need no guard. */
+export const termsEqual = (a: Term | undefined, b: Term | undefined): boolean => {
   if (a === b) return true;
+  if (!a || !b) return false;
   if (a.kind !== b.kind) return false;
   if (a.kind === 'atom') return a.symbol === b.symbol;
   const aArgs = a.args ?? [];
   const bArgs = b.args ?? [];
   if (aArgs.length !== bArgs.length) return false;
   for (let i = 0; i < aArgs.length; i++) {
-    if (!termsEqual(aArgs[i]!, bArgs[i]!)) return false;
+    if (!termsEqual(aArgs[i], bArgs[i])) return false;
   }
   return true;
 };

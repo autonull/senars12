@@ -14,6 +14,14 @@ export type MessageMiddleware = (
   next: () => Promise<void>
 ) => Promise<void>;
 
+/**
+ * `MessageContext` is declared `readonly` for consumer safety but is a
+ * long-lived per-message scratchpad: middleware attaches `session` and
+ * friends to it. Single acknowledged widening point for the bridge.
+ */
+export const ctxAsRecord = (ctx: MessageContext): Record<string, unknown> =>
+  ctx as unknown as Record<string, unknown>;
+
 export class MessageRouter {
   private middleware: MessageMiddleware[] = [];
 

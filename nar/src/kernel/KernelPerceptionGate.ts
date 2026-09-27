@@ -10,6 +10,7 @@ import type {
 import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { normalizeNarsese } from '../nl/normalize.js';
+import { pushBounded, recordPolicyViolation } from './event-ring.js';
 import { domainKey } from './reputation-keys.js';
 import { recordGateDecision } from '../telemetry/index.js';
 import type { TaskTypeName, Term } from '../terms';
@@ -36,7 +37,6 @@ export interface KernelPerceptionGateConfig {
 
 export class KernelPerceptionGate {
   private eventLog: CognitiveEvent[] = [];
-  private static readonly EVENT_LOG_CAPACITY = 1000;
   private config: KernelPerceptionGateConfig;
   private judge: IngressJudge | null = null;
   /** D23: optional DriveManager hook — ambiguity stimulates curiosity. */
@@ -78,9 +78,7 @@ export class KernelPerceptionGate {
   }
 
   #pushEvent(event: CognitiveEvent): void {
-    this.eventLog.push(event);
-    if (this.eventLog.length > KernelPerceptionGate.EVENT_LOG_CAPACITY)
-      this.eventLog.splice(0, this.eventLog.length - KernelPerceptionGate.EVENT_LOG_CAPACITY);
+    pushBounded(this.eventLog, event);
   }
 
   /** Emit a shadow validation drop event to the gate's event log. */
@@ -185,18 +183,12 @@ export class KernelPerceptionGate {
     } catch (error) {
       // Fail-closed (D1): a System One fault must never bypass the injection
       // veto via legacy admission — reject and emit ingress-error telemetry.
-      this.#pushEvent({
-        type: 'policy.violation',
-        engine: 'kernel',
-        timestamp: Date.now(),
+      recordPolicyViolation(this.eventLog, {
+        policyId: 'systemone-ingress',
+        violationType: 'epistemic-firewall',
+        detail: `systemone_ingress_error: ${error instanceof Error ? error.message : String(error)}`,
         correlationId,
-        payload: {
-          policyId: 'systemone-ingress',
-          violationType: 'epistemic-firewall',
-          detail: `systemone_ingress_error: ${error instanceof Error ? error.message : String(error)}`,
-          severity: 'block',
-        },
-      } as CognitiveEvent);
+      });
       return {
         admitted: false,
         rejectionReason: 'System One ingress fault: admission rejected (fail-closed)',

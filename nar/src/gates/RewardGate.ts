@@ -1,4 +1,5 @@
 import type { Focus, FocusTask } from '../focus/Focus.js';
+import { createBudget } from '../types/core.js';
 import type { GameOutcome } from '../game/Game.js';
 
 export class RewardGate {
@@ -14,13 +15,7 @@ export class RewardGate {
       term: this.rewardToTerm(outcome.reward),
       type: 'belief',
       truth: { f: outcome.reward >= 0 ? 1.0 : 0.0, c: Math.min(1, Math.abs(outcome.reward) + 0.1) },
-      budget: {
-        priority: Math.abs(outcome.reward),
-        durability: 0.8,
-        quality: 0.9,
-        cycles: 0,
-        depth: 0,
-      },
+      budget: createBudget(Math.abs(outcome.reward)),
       stamp: `reward-${now}`,
       derived: false,
     };
@@ -33,7 +28,7 @@ export class RewardGate {
         term: { kind: 'atom', value: 'terminal' } as any,
         type: 'belief',
         truth: { f: 1.0, c: 0.9 },
-        budget: { priority: 0.9, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
+        budget: createBudget(0.9),
         stamp: `reward-${now}`,
         derived: false,
       };

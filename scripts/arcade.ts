@@ -236,9 +236,8 @@ async function main(): Promise<void> {
   let dataset: import('../nar/src/lm/system-one/distill.js').JudgmentDataset | undefined;
   if (arms.includes('lm') && arms.includes('manifold') && distill) {
     const { JudgmentDataset } = await import('../nar/src/lm/system-one/distill.js');
-    dataset = new JudgmentDataset();
-    dataset.setVectorSidecarPath('.reports/arcade-vectors');
-    notes.push('distill: lm arm records decisions → .reports/arcade-vectors');
+    dataset = new JudgmentDataset('.reports/arcade-dataset');
+    notes.push('distill: lm arm records decisions → .reports/arcade-dataset.jsonl');
   }
 
   // G3 session resume: progress is persisted per (arm, game); a mismatched
@@ -431,13 +430,10 @@ async function main(): Promise<void> {
   if (dataset && dataset.size > 0) {
     const { mkdirSync, rmSync } = await import('node:fs');
     const datasetPath = '.reports/arcade-dataset.jsonl';
-    const sidecarPath = '.reports/arcade-vectors';
     const headDir = '.reports/arcade-heads/reflex_value';
     await dataset.flush(datasetPath);
-    await dataset.flushVectors();
     const rows = await (await import('../nar/src/lm/system-one/train.js')).loadTrainingData({
       datasetPath,
-      sidecarPath,
       headId: 'reflex_value',
       averageDuplicates: true,
     });

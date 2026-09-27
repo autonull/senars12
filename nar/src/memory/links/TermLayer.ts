@@ -87,12 +87,9 @@ export class TermLayer extends Layer {
     return added ? entry : null;
   }
 
-  removeByTerms(source: Term, target: Term, type: LinkType = 'term-link'): boolean {
-    const id = createLinkId(source, target, type);
-    const entry = this.links.get(id);
-    if (!entry) return false;
-
-    this.links.delete(id);
+  /** Drop a link from the map, the per-type index (pruning empty buckets), and the bag. */
+  private deleteLink(id: string, type: LinkType): boolean {
+    if (!this.links.delete(id)) return false;
     const typeSet = this.typeIndex.get(type);
     if (typeSet) {
       typeSet.delete(id);
@@ -100,25 +97,15 @@ export class TermLayer extends Layer {
         this.typeIndex.delete(type);
       }
     }
-
     return this.bag.remove(id);
   }
 
+  removeByTerms(source: Term, target: Term, type: LinkType = 'term-link'): boolean {
+    return this.deleteLink(createLinkId(source, target, type), type);
+  }
+
   override remove(sourceHash: number, targetHash: number, type: LinkType = 'term-link'): boolean {
-    const id = `${sourceHash}_${targetHash}_${type}`;
-    const entry = this.links.get(id);
-    if (!entry) return false;
-
-    this.links.delete(id);
-    const typeSet = this.typeIndex.get(type);
-    if (typeSet) {
-      typeSet.delete(id);
-      if (typeSet.size === 0) {
-        this.typeIndex.delete(type);
-      }
-    }
-
-    return this.bag.remove(id);
+    return this.deleteLink(`${sourceHash}_${targetHash}_${type}`, type);
   }
 
   override get(

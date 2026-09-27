@@ -8,6 +8,8 @@
  * C3/Phase-B benches).
  */
 
+import { clamp } from '@senars/util';
+
 import type { ParameterLedger, ParameterRecord } from './parameter-ledger.js';
 
 export type ParameterScope = 'system' | `game:${string}`;
@@ -35,8 +37,6 @@ export class ParameterScopeError extends Error {
     this.parameter = name;
   }
 }
-
-const clamp = (v: number, min: number, max: number): number => Math.max(min, Math.min(max, v));
 
 export class ParameterTable {
   private readonly entries = new Map<string, ParameterSpec>();

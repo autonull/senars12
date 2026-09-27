@@ -182,7 +182,7 @@ export async function* derive(
       term: concept.term,
       type: 'belief',
       truth: belief.truth,
-      budget: { priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
+      budget: createBudget(concept.priority),
       stamp: belief.stamp,
       occurrenceTime: createTimestamp(0),
       derived: false,

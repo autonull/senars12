@@ -166,7 +166,7 @@ async function runReplay(opts: ReplayCliOptions): Promise<void> {
       console.log('✅ VERIFICATION PASSED');
       process.exit(0);
     } else {
-      logger.error('VERIFICATION FAILED: State hash mismatch', { expected: snapshot.stateHash, actual });
+      logger.error('VERIFICATION FAILED: State hash mismatch', undefined, { expected: snapshot.stateHash, actual });
       console.log('❌ VERIFICATION FAILED');
       console.log(`Expected: ${snapshot.stateHash}`);
       console.log(`Actual:   ${actual}`);

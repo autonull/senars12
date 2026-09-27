@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Truth, type Truth as TruthType } from '../../terms/truth.js';
 import { seedTruth } from './seed.js';
 import type { JudgmentProposition } from './types.js';
-import { Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery } from '@senars/io';
+import {Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery} from '@senars/io/ledger';
 import { z } from 'zod';
 
 /** Input-anchored evidence identity: same utterance ⇒ same evidence, regardless of re-judging. */

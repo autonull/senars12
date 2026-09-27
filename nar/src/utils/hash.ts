@@ -2,6 +2,12 @@
  * Hash utilities for term hashing and identification
  */
 
+import { createHash } from 'node:crypto';
+
+/** SHA-256 hex digest — the single hashing entry point for digests and provenance keys. */
+export const sha256Hex = (text: string): string =>
+  createHash('sha256').update(text).digest('hex');
+
 /**
  * FNV-1a 32-bit hash function
  */

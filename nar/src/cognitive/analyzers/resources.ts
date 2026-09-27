@@ -4,12 +4,7 @@
 import type { Concept } from '../../memory';
 import type { MetricsCollector, NAR } from '../../nar.js';
 import type { ResourceUsage } from '../types.js';
-
-const calcAvg = (values: number[]): number =>
-  values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
-
-const getMemory = () =>
-  typeof process.memoryUsage === 'function' ? process.memoryUsage() : ({} as NodeJS.MemoryUsage);
+import { calcAvg, getMemory } from './constants.js';
 
 export const getResourceAnalysis = (
   nar: NAR | null,

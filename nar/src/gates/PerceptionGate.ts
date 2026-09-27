@@ -1,4 +1,5 @@
 import type { Focus, FocusTask } from '../focus/Focus.js';
+import { createBudget } from '../types/core.js';
 import type { Perception } from '../game/Game.js';
 
 export class PerceptionGate {
@@ -14,13 +15,7 @@ export class PerceptionGate {
       term: this.stateIdToTerm(perception.stateId),
       type: 'belief',
       truth: { f: 1.0, c: perception.confidence ?? 0.9 },
-      budget: {
-        priority: perception.confidence ?? 0.9,
-        durability: 0.8,
-        quality: 0.9,
-        cycles: 0,
-        depth: 0,
-      },
+      budget: createBudget(perception.confidence ?? 0.9),
       stamp: `perception-${now}`,
       derived: false,
     };
@@ -34,13 +29,7 @@ export class PerceptionGate {
           term: this.featureToTerm(feature, value),
           type: 'belief',
           truth: { f: Math.min(1, Math.abs(Number(value))), c: perception.confidence ?? 0.5 },
-          budget: {
-            priority: Math.abs(Number(value)),
-            durability: 0.8,
-            quality: 0.9,
-            cycles: 0,
-            depth: 0,
-          },
+          budget: createBudget(Math.abs(Number(value))),
           stamp: `perception-${now}`,
           derived: false,
         };

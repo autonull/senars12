@@ -3,7 +3,7 @@ import type { Concept } from '../memory';
 import type { Term } from '../terms';
 import { Truth, termParser, termsEqual } from '../terms';
 import type { Stamp, Task, TaskType, TermFilter } from '../types';
-import { createTimestamp } from '../types';
+import { createBudget, createTimestamp } from '../types';
 
 const logger = createLogger({ scope: 'QueryAPI' });
 
@@ -130,7 +130,7 @@ export class QueryAPI {
       term,
       type: 'belief',
       truth: belief.truth ? Truth.create(belief.truth.f, belief.truth.c) : Truth.NEUTRAL,
-      budget: { priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
+      budget: createBudget(priority),
       stamp:
         belief.stamp ??
         ({
@@ -194,13 +194,7 @@ export class QueryAPI {
           truth: item.truth,
           budget:
             typeof item.budget === 'number'
-              ? {
-                  priority: item.budget,
-                  durability: 0.8,
-                  quality: 0.9,
-                  cycles: 0,
-                  depth: 0,
-                }
+              ? createBudget(item.budget)
               : item.budget,
           stamp: item.stamp ?? {
             id: '',

@@ -4,12 +4,7 @@
 import type { MetricsCollector } from '../../metrics';
 import type { NAR } from '../../nar.js';
 import type { PerformancePatterns } from '../types.js';
-
-const calcAvg = (values: number[]): number =>
-  values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
-
-const getMemory = () =>
-  typeof process.memoryUsage === 'function' ? process.memoryUsage() : ({} as NodeJS.MemoryUsage);
+import { calcAvg, getMemory } from './constants.js';
 
 export const analyzePerformancePatterns = (
   metrics: MetricsCollector | null

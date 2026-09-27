@@ -1,11 +1,8 @@
 import type { AuthManager } from '../auth.js';
 import type { CommandRegistry } from '../commands/registry.js';
-import type { MessageContext, MessageMiddleware } from '../router.js';
+import { ctxAsRecord, type MessageContext, type MessageMiddleware } from '../router.js';
+import { resolveSessionKey } from './ConnectionBinder.js';
 import type { Connection, IOMessage, Logger, SessionManager } from '@senars/util';
-
-function ctxAsRecord(ctx: MessageContext): Record<string, unknown> {
-  return ctx as unknown as Record<string, unknown>;
-}
 
 export function createAuthMiddleware(auth: AuthManager): MessageMiddleware {
   return async (msg: IOMessage, ctx: MessageContext, next: () => Promise<void>) => {
@@ -55,7 +52,6 @@ export function createCommandInterceptor(registry: CommandRegistry): MessageMidd
 
 export function createSessionBinder(mgr: SessionManager): MessageMiddleware {
   return async (msg: IOMessage, ctx: MessageContext, next: () => Promise<void>) => {
-    const resolveSessionKey = (m: IOMessage): string => m.origin;
     const key = resolveSessionKey(msg);
     ctxAsRecord(ctx).session = mgr.getOrCreate(key);
     await next();

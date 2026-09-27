@@ -63,7 +63,6 @@ export const op = termGuard('operation');
 export const inst = termGuard('instance');
 export const prop = termGuard('property');
 
-export const getArgs = (term: Term): readonly Term[] => term.args ?? [];
 export const getArg = (term: Term, index: number): Term | undefined => term.args?.[index];
 
 export const builders = {

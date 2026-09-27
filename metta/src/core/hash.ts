@@ -11,11 +11,14 @@ import type {
 const FNV_OFFSET = 2166136261;
 const FNV_PRIME = 16777619;
 
+/** 32-bit multiply. Without this the accumulator escapes 2^53 and silently loses precision. */
+const mul32 = (a: number, b: number): number => Math.imul(a, b);
+
 function fnv1a(data: string): number {
   let hash = FNV_OFFSET;
   for (let i = 0; i < data.length; i++) {
     hash ^= data.charCodeAt(i);
-    hash *= FNV_PRIME;
+    hash = mul32(hash, FNV_PRIME);
   }
   return hash >>> 0;
 }
@@ -34,7 +37,7 @@ export function hashAtom(atom: MeTTaAtom): number {
       const expr = atom as ExpressionAtom;
       let h = hashAtom(expr.operator);
       for (const arg of expr.args) {
-        h = (h ^ hashAtom(arg)) * FNV_PRIME;
+        h = mul32(h ^ hashAtom(arg), FNV_PRIME);
       }
       return h >>> 0;
     }
@@ -42,7 +45,7 @@ export function hashAtom(atom: MeTTaAtom): number {
       const grounded = atom as GroundedAtom;
       let h = fnv1a(`grounded:${grounded.op}`);
       for (const arg of grounded.args) {
-        h = (h ^ hashAtom(arg)) * FNV_PRIME;
+        h = mul32(h ^ hashAtom(arg), FNV_PRIME);
       }
       return h >>> 0;
     }

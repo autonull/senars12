@@ -57,6 +57,38 @@ export class NARIO {
     this._systemEventBus = bus;
   }
 
+  /**
+   * Persist a gate-admitted task and announce first sightings.
+   * `label` is the surface the gate admitted (may be the raw utterance, pre-normalization),
+   * so the `nar:derivation` event keeps the caller-visible string.
+   */
+  private commitAdmitted(opts: {
+    term: Term;
+    label: string;
+    type: TaskType;
+    truth: Truth;
+    prime: boolean;
+  }): void {
+    const { term, label, type, truth, prime } = opts;
+    const budget = createBudget(truth.f * truth.c);
+    const wasNew = !this.memory.getConcept(term);
+
+    this.memory.addTask(term, type, truth, budget);
+
+    if (wasNew && this._eventBus) {
+      this._eventBus.emit('concept:created', { term, priority: budget.priority });
+      this._systemEventBus?.emit('nar:derivation', {
+        term: label,
+        confidence: truth.f,
+        timestamp: Date.now(),
+      });
+    }
+
+    if (prime && (this.cognitiveParams?.attention.autoPrime ?? true)) {
+      this.primeAttention(term);
+    }
+  }
+
   async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
     const gate = gateRegistry.getPerceptionGate();
     const systemOneEnabled = this.config.systemOne?.enabled ?? false;
@@ -91,26 +123,13 @@ export class NARIO {
         return;
       }
 
-      const budget = createBudget(calibratedTruth.f * calibratedTruth.c);
-      const wasNew = !this.memory.getConcept(parsedTerm);
-
-      this.memory.addTask(parsedTerm, calibratedType, calibratedTruth, budget);
-
-      if (wasNew && this._eventBus) {
-        this._eventBus.emit('concept:created', {
-          term: parsedTerm,
-          priority: budget.priority,
-        });
-        this._systemEventBus?.emit('nar:derivation', {
-          term: result.task.term,
-          confidence: calibratedTruth.f,
-          timestamp: Date.now(),
-        });
-      }
-
-      if (this.cognitiveParams?.attention.autoPrime ?? true) {
-        this.primeAttention(parsedTerm);
-      }
+      this.commitAdmitted({
+        term: parsedTerm,
+        label: result.task.term,
+        type: calibratedType,
+        truth: calibratedTruth,
+        prime: true,
+      });
       return;
     }
 
@@ -231,26 +250,13 @@ export class NARIO {
       const calibratedTruth = toTruth(result.task.truth ?? truth);
       const calibratedType = result.task.taskType as TaskType;
 
-      const budget = createBudget(calibratedTruth.f * calibratedTruth.c);
-      const wasNew = !this.memory.getConcept(term);
-
-      this.memory.addTask(term, calibratedType, calibratedTruth, budget);
-
-      if (wasNew && this._eventBus) {
-        this._eventBus.emit('concept:created', {
-          term,
-          priority: budget.priority,
-        });
-        this._systemEventBus?.emit('nar:derivation', {
-          term: term.toString(),
-          confidence: calibratedTruth.f,
-          timestamp: Date.now(),
-        });
-      }
-
-      if (this.cognitiveParams?.attention.autoPrime ?? true) {
-        this.primeAttention(term);
-      }
+      this.commitAdmitted({
+        term,
+        label: term.toString(),
+        type: calibratedType,
+        truth: calibratedTruth,
+        prime: true,
+      });
       return;
     }
 

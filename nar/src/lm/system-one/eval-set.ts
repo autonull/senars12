@@ -6,7 +6,7 @@
  */
 import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
-import { identityECE } from './calibration-fit.js';
+import { identityECE, meanBrier } from './calibration-fit.js';
 import { DigestMismatchError } from './wasi-runtime.js';
 import type { JudgmentDataset } from './distill.js';
 
@@ -100,7 +100,7 @@ export function splitOod(
 /** Brier + ECE over the frozen rows (per-row; head-level breakdown via `headMetrics`). */
 export function evalMetrics(rows: readonly FrozenEvalRow[]): EvalMetrics {
   if (rows.length === 0) return { brier: 0, ece: 0, count: 0 };
-  const brier = rows.reduce((s, r) => s + (r.predicted - r.observed) ** 2, 0) / rows.length;
+  const brier = meanBrier(rows);
   return { brier, ece: identityECE(rows), count: rows.length };
 }
 

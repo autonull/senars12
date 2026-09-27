@@ -164,10 +164,9 @@ function countTypecheckBinErrors(): number {
     });
     return 0;
   } catch (e: any) {
-    // Count TS2339 errors from stderr
-    const stderr = e.stderr?.toString() || '';
-    const matches = stderr.match(/TS2339/g);
-    return matches?.length ?? 999;
+    // tsc reports diagnostics on stdout, not stderr; count every `error TS` line.
+    const out = `${e.stdout?.toString() ?? ''}\n${e.stderr?.toString() ?? ''}`;
+    return (out.match(/error TS\d+/g) ?? []).length;
   }
 }
 

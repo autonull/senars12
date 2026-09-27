@@ -1,4 +1,4 @@
-import { Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery } from '@senars/io';
+import {Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery} from '@senars/io/ledger';
 import { z } from 'zod';
 import { join } from 'node:path';
 import { abortSession, createSession, InMemorySessionManager } from '@senars/util/memory';

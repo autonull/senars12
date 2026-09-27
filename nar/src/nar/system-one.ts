@@ -32,6 +32,7 @@ import { EpsilonGreedyReflex } from '../reflex/EpsilonGreedyReflex.js';
 import type { Reflex } from '../reflex/Reflex.js';
 import type { NARConfig } from './config.js';
 import { threadScope } from '../kernel/thread-scope.js';
+import { createSystemOneBudget } from '../lm/system-one/types.js';
 
 /**
  * System One runtime (extracted from NAR — M2): owns the Tier-1 manifold,
@@ -375,10 +376,4 @@ export class SystemOneRuntime {
   }
 }
 
-const DEFAULT_S1_BUDGET: ReasoningBudget = {
-  maxCycles: 100,
-  maxDepth: 10,
-  maxMemoryOps: 1000,
-  maxLMCalls: 5,
-  consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-};
+const DEFAULT_S1_BUDGET: ReasoningBudget = createSystemOneBudget();

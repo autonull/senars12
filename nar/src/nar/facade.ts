@@ -7,7 +7,9 @@
  */
 import { createBootstrapTasks } from '../drives';
 import { getModelForTask } from '../lm/providers/chains.js';
-import { LMRules } from '../lm/rule-selectors/factory.js';import type { LMService } from '../lm';
+import { LMRules } from '../lm/rule-selectors/factory.js';
+import type { LMService } from '../lm';
+import type { MeTTaRuntime } from '@senars/metta';
 import type { LanguageModel } from 'ai';
 import type { LMRule } from '../lm/rule/LMRule.js';
 import { seedContrastiveMemory } from '../lm/system-one/hard-negatives.js';
@@ -108,18 +110,9 @@ export const initializeTools = (nar: NAR): void => {
 
   // Metta tool — delegates to MeTTa runtime for exact computation
   // Lazy-load MeTTa runtime to avoid circular deps
-  let mettaRuntime: { evaluate: (program: string) => Promise<string> } | undefined;
-  const getMettaRuntime = async () => {
-    if (!mettaRuntime) {
-      const { createMeTTa } = await import('@senars/metta');
-      const runtime = createMeTTa();
-      mettaRuntime = {
-        evaluate: async (program: string) => {
-          const result = await runtime.evaluate(program);
-          return String(result);
-        },
-      };
-    }
+  let mettaRuntime: MeTTaRuntime | undefined;
+  const getMettaRuntime = async (): Promise<MeTTaRuntime> => {
+    mettaRuntime ??= (await import('@senars/metta')).createMeTTa();
     return mettaRuntime;
   };
 

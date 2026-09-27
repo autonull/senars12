@@ -20,6 +20,7 @@ import { createCompactionPromptBuilder } from './compaction.js';
 import type { ThreadScope } from '../kernel/thread-scope.js';
 
 import type { CreateAgentConfig } from './config.js';
+import { createSystemOneBudget } from '../lm/system-one/types.js';
 
 export type { CreateAgentConfig };
 
@@ -302,7 +303,7 @@ function attachNarApi(
           const embeddingCache = narEngine.nar.getSystemOneEmbeddingCache?.();
           if (manifold && embeddingCache) {
             try {
-              const budget = { maxCycles: 100, maxDepth: 10, maxMemoryOps: 1000, maxLMCalls: 5, consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 } };
+              const budget = createSystemOneBudget();
               const pointer = await embeddingCache.write(trimmed);
               const queries = [
                 { kind: 'evaluate' as const, instruction: 'Evaluate entailment', rubric: 'entailment' as any, axis: 'epistemic' as const },

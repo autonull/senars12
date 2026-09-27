@@ -1,4 +1,4 @@
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
 import { z } from 'zod';
 import { termsEqual } from '../../terms';
 import type { Concept } from '../concept.js';

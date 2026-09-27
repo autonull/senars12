@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
 import { z } from 'zod';
 import { join } from 'node:path';
 import type { Episode } from '@senars/util';

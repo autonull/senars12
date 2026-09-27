@@ -92,9 +92,8 @@ const collect = async (): Promise<StatusReport> => {
 
   // Collect budget slices if --budget flag is present
   if (process.argv.includes('--budget')) {
-    // Note: In a real implementation, we'd traverse the actual budget slice tree
-    // from the NAR's root budget. For now, we create a sample to demonstrate the format.
-    const rootSlice = nar.getRootBudgetSlice?.();
+    // Optional capability: absent unless a root budget slice is exposed on the NAR.
+    const rootSlice = (nar as { getRootBudgetSlice?: () => BudgetSlice }).getRootBudgetSlice?.();
     if (rootSlice) {
       report.budget = { slices: collectBudgetSlices(rootSlice) };
     }

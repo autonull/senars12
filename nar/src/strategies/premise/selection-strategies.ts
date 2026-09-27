@@ -7,6 +7,7 @@ import type { Task, TaskType } from '../../types';
 import type { Strategy } from '../types.js';
 import { createStrategy } from '../../reason/strategies/base';
 import { TermLinkStrategy as RealTermLinkStrategy } from './term-link';
+import { createBudget } from '../../types/core.js';
 
 const logger = createLogger({ scope: 'Strategies' });
 
@@ -22,7 +23,7 @@ const createTask = (term: Term, type: TaskType, truth: Truth, priority: number):
   term,
   type,
   truth,
-  budget: { priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
+  budget: createBudget(priority),
   stamp: Object.freeze({
     id: '',
     creationTime: 0 as any,

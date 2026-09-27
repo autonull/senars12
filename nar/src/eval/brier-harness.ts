@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { identityECE } from '../lm/system-one/calibration-fit.js';
+import { identityECE, meanBrier } from '../lm/system-one/calibration-fit.js';
 import { createIsotonicCalibrator } from '../lm/system-one/calibration.js';
 
 export interface ArcadeTickRecord {
@@ -58,9 +58,7 @@ export class BrierHarness {
 
   /** Per-arm Brier score: mean (predicted − observed)². */
   brierByArm(arm: string): number {
-    const rows = this.byArm(arm);
-    if (rows.length === 0) return 0;
-    return rows.reduce((sum, r) => sum + (r.predicted - r.observed) ** 2, 0) / rows.length;
+    return meanBrier(this.byArm(arm));
   }
 
   /** Per-arm isotonic-calibrated ECE on realized outcomes (isotonic fit in-suite). */

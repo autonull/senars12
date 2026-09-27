@@ -6,6 +6,7 @@ import { createLogger } from '@senars/core/logger';
 import type { Memory } from '../memory';
 import { Stamp, Truth, type TruthType, termParser } from '../terms';
 import type { Task, TaskType } from '../types';
+import { createBudget } from '../types/core.js';
 import { errMsg } from '../utils';
 import { err, ok, type Result } from '../utils/result.js';
 import { decodeState, encodeState } from '../state/codec.js';
@@ -76,7 +77,7 @@ export class StatePersister {
         term: parsed,
         type: record.type ?? type,
         truth: record.truth ?? Truth.NEUTRAL,
-        budget: { priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
+        budget: createBudget(0.5),
         stamp: record.stamp ?? Stamp.createInput(),
         occurrenceTime: Date.now() as any,
         derived: false,

@@ -5,7 +5,7 @@
  * fresh instance gives a NAR/LMService its own routing + failure state so
  * parallel instances coexist in one process.
  */
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
 import { z } from 'zod';
 import { join } from 'node:path';
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';

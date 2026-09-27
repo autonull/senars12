@@ -4,14 +4,15 @@
  * contrastive layer. A thin facade — all inference logic lives in the
  * manifold heads, contrastive memory, and policy utilities it composes.
  */
-import { createHash } from 'node:crypto';
-import { rubricOf, type ContrastiveMemory } from './contrastive.js';
+import { sha256Hex } from '../../utils/hash.js';
+import { type ContrastiveMemory, rubricOf } from './contrastive.js';
 import {
-  compositeScore,
-  ConfidenceRouter,
   type BandDecision,
+  bandOrdinal,
   type CompositeScore,
   type ConfidenceBands,
+  ConfidenceRouter,
+  compositeScore,
 } from './policy.js';
 import type {
   EmbeddingCache,
@@ -112,13 +113,6 @@ function verdictBand(
     : router.route({ abstained: proposition.abstained, score: proposition.score });
 }
 
-const BAND_ORDINAL: Record<Exclude<BandDecision, 'abstain'>, number> = { block: 0, review: 1, act: 2 };
-const ordinal = (b: BandDecision) => (b === 'abstain' ? -1 : BAND_ORDINAL[b]);
-
-function sha256(text: string): string {
-  return createHash('sha256').update(text).digest('hex');
-}
-
 function contrastiveScore(
   contrastive: ContrastiveMemory | undefined,
   embedding: Float32Array | undefined,
@@ -141,7 +135,7 @@ function deriveProvenance(
     modelDigest: overrides.modelDigest ?? first?.modelDigest,
     calibrationDigest:
       overrides.calibrationDigest ??
-      (first ? sha256(`${first.modelDigest}:${first.calibration.version}`) : undefined),
+      (first ? sha256Hex(`${first.modelDigest}:${first.calibration.version}`) : undefined),
     inputDigest,
     contrastiveDigest: overrides.contrastiveDigest,
     fitted: propositions.some((p) => p.calibration.fitted),
@@ -179,7 +173,12 @@ export function createDecider(deps: DecideDeps): Decider {
       propositions.push(...batch);
       shortCircuited = request.queries
         .slice(i, end)
-        .some((q, j) => isSafetyFloor(q) && !batch[j]?.abstained && (batch[j] as { score: number }).score >= VETO_TRIGGER);
+        .some(
+          (q, j) =>
+            isSafetyFloor(q) &&
+            !batch[j]?.abstained &&
+            (batch[j] as { score: number }).score >= VETO_TRIGGER
+        );
     }
     const embedding = deps.embeddingCache.read(contextPointer);
     const contrastive = contrastiveScore(deps.contrastive, embedding, request.contrastiveRubric);
@@ -206,7 +205,8 @@ export function createDecider(deps: DecideDeps): Decider {
     const evaluated = verdicts.filter((v) => !v.skipped);
     const nonAbstained = evaluated.filter((v) => !v.abstained);
     const band = evaluated.reduce<BandDecision>(
-      (mostRestrictive, v) => (ordinal(v.band) < ordinal(mostRestrictive) ? v.band : mostRestrictive),
+      (mostRestrictive, v) =>
+        bandOrdinal(v.band) < bandOrdinal(mostRestrictive) ? v.band : mostRestrictive,
       'act'
     );
     const abstained =
@@ -221,7 +221,10 @@ export function createDecider(deps: DecideDeps): Decider {
     });
     const composite =
       request.weights && entries.length > 0
-        ? compositeScore(entries.map((e) => ({ ...e, abstained: e.p === undefined })), request.weights)
+        ? compositeScore(
+            entries.map((e) => ({ ...e, abstained: e.p === undefined })),
+            request.weights
+          )
         : undefined;
 
     return {
@@ -232,13 +235,7 @@ export function createDecider(deps: DecideDeps): Decider {
       band,
       abstained,
       abstainReason: abstained ? abstainReason : undefined,
-      provenance: deriveProvenance(
-        propositions,
-        sha256(request.context),
-        band,
-        abstained,
-        deps
-      ),
+      provenance: deriveProvenance(propositions, sha256Hex(request.context), band, abstained, deps),
     };
   };
 
@@ -252,7 +249,7 @@ export function createDecider(deps: DecideDeps): Decider {
         abstained: true,
         abstainReason: 'no-candidates',
         contrastive: { penalties: {}, vetoes: [] },
-        provenance: deriveProvenance([], sha256(''), 'abstain', true, deps),
+        provenance: deriveProvenance([], sha256Hex(''), 'abstain', true, deps),
       };
     }
 
@@ -286,14 +283,15 @@ export function createDecider(deps: DecideDeps): Decider {
       }
     }
 
-    const base = preScored ?? (proposition?.kind === 'classify' ? proposition.distribution : undefined);
+    const base =
+      preScored ?? (proposition?.kind === 'classify' ? proposition.distribution : undefined);
     const distribution = adjustDistribution(base, penalties);
     // Ranked view: adjusted score descending (the selection order).
     const ranked = [...distribution].sort((a, b) => b.p - a.p);
     const selected = ranked.find((d) => !vetoes.includes(d.option))?.option;
     const abstained = selected === undefined;
     const band = abstained ? 'abstain' : verdictBand(router, proposition);
-    const inputDigest = sha256(candidates.join('\n'));
+    const inputDigest = sha256Hex(candidates.join('\n'));
     const provenance = {
       ...deriveProvenance(proposition ? [proposition] : [], inputDigest, band, abstained, deps),
       inputDigest,
@@ -303,7 +301,11 @@ export function createDecider(deps: DecideDeps): Decider {
       distribution,
       ranked,
       abstained,
-      abstainReason: abstained ? (proposition?.abstained ? 'low-confidence' : 'verification-veto') : undefined,
+      abstainReason: abstained
+        ? proposition?.abstained
+          ? 'low-confidence'
+          : 'verification-veto'
+        : undefined,
       contrastive: { penalties, vetoes },
       provenance,
     };
@@ -331,9 +333,7 @@ function adjustDistribution(
     p: d.p * (1 - (penalties[d.option] ?? 0)),
   }));
   const total = adjusted.reduce((sum, d) => sum + d.p, 0);
-  return total > 0
-    ? adjusted.map((d) => ({ ...d, p: d.p / total }))
-    : base;
+  return total > 0 ? adjusted.map((d) => ({ ...d, p: d.p / total })) : base;
 }
 
 export interface ChooseRequest {
@@ -361,4 +361,3 @@ export interface ChooseResult {
   contrastive: { penalties: Record<string, number>; vetoes: readonly string[] };
   provenance: JudgmentProvenance;
 }
-

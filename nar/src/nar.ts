@@ -70,6 +70,7 @@ import { ConfigurationError, DEFAULT_CONFIG, NarEventBus, type Task, type TaskTy
 const DERIVATION_RING_CAP = 256;
 
 import { errMsg } from './utils';
+import { createSystemOneBudget } from './lm/system-one/types.js';
 
 export { MetricsCollector } from './metrics';
 
@@ -210,13 +211,7 @@ export class NAR extends BaseComponent {
             judge: new SystemOneIngressJudge({
               manifold: this.systemOne.manifold!,
               embeddingCache: this.systemOne.embeddingCache!,
-              budget: this.config.systemOne.reasoningBudget ?? {
-                maxCycles: 100,
-                maxDepth: 10,
-                maxMemoryOps: 1000,
-                maxLMCalls: 5,
-                consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-              },
+              budget: this.config.systemOne.reasoningBudget ?? createSystemOneBudget(),
               reputation: () => this.#sourceReputation,
               provider: () => this._lmService?.provider,
             }),

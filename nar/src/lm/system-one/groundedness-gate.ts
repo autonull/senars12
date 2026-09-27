@@ -1,6 +1,7 @@
 import { createDecider, type Decider } from './decide.js';
 import type { EmbeddingCache, JudgmentManifold, JudgmentQuery } from './types.js';
 import type { ContrastiveMemory } from './contrastive.js';
+import { createSystemOneBudget } from './types.js';
 
 export interface GroundednessGateOptions {
   manifold: JudgmentManifold;
@@ -10,13 +11,7 @@ export interface GroundednessGateOptions {
   getContrastive?: (correlationId: string) => ContrastiveMemory;
 }
 
-const S1_BUDGET = {
-  maxCycles: 100,
-  maxDepth: 10,
-  maxMemoryOps: 1000,
-  maxLMCalls: 5,
-  consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-};
+const S1_BUDGET = createSystemOneBudget();
 
 const GROUNDEDNESS_QUERY: JudgmentQuery = {
   kind: 'evaluate',

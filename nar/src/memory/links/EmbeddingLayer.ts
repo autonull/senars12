@@ -64,7 +64,7 @@ export class EmbeddingLayer extends Layer {
       const results: Array<{ term: string; similarity: number }> = [];
 
       for (const [term, embedding] of this.termEmbeddings) {
-        const similarity = this.cosineSimilarity(queryEmbedding, embedding);
+        const similarity = cosineSimilarity(queryEmbedding, embedding);
         if (similarity > 0) {
           results.push({ term, similarity });
         }
@@ -81,7 +81,7 @@ export class EmbeddingLayer extends Layer {
     const embeddingA = this.termEmbeddings.get(termA);
     const embeddingB = this.termEmbeddings.get(termB);
     if (!embeddingA || !embeddingB) return 0;
-    return this.cosineSimilarity(embeddingA, embeddingB);
+    return cosineSimilarity(embeddingA, embeddingB);
   }
 
   async similarityAsync(termA: string, termB: string): Promise<number> {
@@ -89,7 +89,7 @@ export class EmbeddingLayer extends Layer {
       const embeddingA = this.termEmbeddings.get(termA) ?? (await this.embeddingGenerator.generate(termA));
       const embeddingB = this.termEmbeddings.get(termB) ?? (await this.embeddingGenerator.generate(termB));
       if (!embeddingA || !embeddingB) return 0;
-      return this.cosineSimilarity(embeddingA, embeddingB);
+      return cosineSimilarity(embeddingA, embeddingB);
     } catch {
       return 0;
     }
@@ -160,19 +160,4 @@ export class EmbeddingLayer extends Layer {
     }));
   }
 
-  private cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length) return 0;
-    let dot = 0,
-      normA = 0,
-      normB = 0;
-    for (let i = 0; i < a.length; i++) {
-      const ai = a[i] ?? 0;
-      const bi = b[i] ?? 0;
-      dot += ai * bi;
-      normA += ai * ai;
-      normB += bi * bi;
-    }
-    if (normA === 0 || normB === 0) return 0;
-    return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-  }
 }

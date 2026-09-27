@@ -113,6 +113,12 @@ export function identityECE(data: readonly { predicted: number; observed: number
   return data.reduce((sum, d) => sum + Math.abs(d.predicted - d.observed), 0) / data.length;
 }
 
+/** Mean squared calibration error over predicted/observed pairs. Sits beside {@link identityECE}. */
+export function meanBrier(data: readonly { predicted: number; observed: number }[]): number {
+  if (data.length === 0) return 0;
+  return data.reduce((sum, d) => sum + (d.predicted - d.observed) ** 2, 0) / data.length;
+}
+
 /** Brier with abstain→0.5 fallback, used to select the per-head threshold. */
 function brierWithAbstain(
   data: readonly LabeledDatum[],

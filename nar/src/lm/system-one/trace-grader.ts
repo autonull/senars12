@@ -11,6 +11,7 @@ import type {
   JudgmentProposition,
   JudgmentQuery,
 } from './types.js';
+import { createSystemOneBudget } from './types.js';
 
 /** A completed tool execution observed in the agent trace (E4 agent-trace grading). */
 export interface TracedToolCall {
@@ -57,13 +58,7 @@ export interface TraceGraderOptions {
 
 const RISK_LEVELS: readonly string[] = HEAD_SPECS.risk.space ?? [];
 
-const DEFAULT_BUDGET: ReasoningBudget = {
-  maxCycles: 100,
-  maxDepth: 10,
-  maxMemoryOps: 1000,
-  maxLMCalls: 5,
-  consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-};
+const DEFAULT_BUDGET: ReasoningBudget = createSystemOneBudget();
 
 const evidenceId = (kind: string, text: string): string =>
   createHash('sha256').update(`trace::${kind}::${text}`).digest('hex');

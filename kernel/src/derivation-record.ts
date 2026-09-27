@@ -2,6 +2,11 @@
  * Kernel Contracts — DerivationRecord
  * TypeScript types derived from Zod schemas for standalone verification.
  * Breaks cycles: rules/recorder.ts → @senars/kernel/schemas
+ *
+ * @deprecated since 1.0 — use `@senars/kernel/verify-derivation` instead. This module performs a
+ * structural presence check only; `verify-derivation` additionally recomputes the truth algebra,
+ * validates substitution, checks lineage DAG, and verifies the independence flag. Reach for this
+ * only if you specifically need the cheap shape-only pass.
  */
 import type { DerivationRecord, DerivationStep, TruthValue } from './schemas.js';
 
@@ -17,6 +22,7 @@ export interface VerifyOptions {
   readonly epsilon: number;
 }
 
+/** @deprecated since 1.0 — use `verifyRecord` from `@senars/kernel/verify-derivation`. */
 export function verifyRecord(
   record: DerivationRecord,
   options: VerifyOptions
@@ -31,36 +37,43 @@ export function verifyRecord(
     if (!record.finalTruth) errors.push('Missing finalTruth');
   }
 
-  for (let i = 0; i < record.steps.length; i++) {
-    const step = record.steps[i];
-    if (options.strict) {
-      if (!step.stepId) errors.push(`Step ${i}: missing stepId`);
-      if (!step.ruleId) errors.push(`Step ${i}: missing ruleId`);
-      if (!step.premises || step.premises.length !== 2) {
-        errors.push(`Step ${i}: expected 2 premises, got ${step.premises?.length ?? 0}`);
-      }
-      if (!step.conclusion) errors.push(`Step ${i}: missing conclusion`);
-      if (!step.truth) errors.push(`Step ${i}: missing truth`);
+  for (const [i, step] of record.steps.entries()) {
+    if (!step) {
+      errors.push(`Step ${i}: missing step`);
+      continue;
     }
+    if (options.strict) checkStepPresence(errors, i, step);
 
-    if (step.premiseTruths && step.premiseTruths.length !== step.premises.length) {
+    const premises = step.premises?.length ?? 0;
+    const premiseTruths = step.premiseTruths;
+    if (premiseTruths && premiseTruths.length !== premises) {
       errors.push(
-        `Step ${i}: premiseTruths length (${step.premiseTruths.length}) !== premises length (${step.premises.length})`
+        `Step ${i}: premiseTruths length (${premiseTruths.length}) !== premises length (${premises})`
       );
     }
 
-    if (step.premiseTruths) {
-      for (let j = 0; j < step.premiseTruths.length; j++) {
-        const pt = step.premiseTruths[j];
-        if (pt.f < 0 || pt.f > 1 || pt.c < 0 || pt.c > 1) {
-          errors.push(`Step ${i}, premise ${j}: truth values out of range`);
-        }
+    for (const [j, pt] of (premiseTruths ?? []).entries()) {
+      if (
+        pt &&
+        (pt.frequency < 0 ||
+          pt.frequency > 1 ||
+          pt.confidence < 0 ||
+          pt.confidence > 1)
+      ) {
+        errors.push(`Step ${i}, premise ${j}: truth values out range`);
       }
     }
   }
 
-  return {
-    ok: errors.length === 0,
-    errors,
-  };
+  return { ok: errors.length === 0, errors };
+}
+
+function checkStepPresence(errors: string[], i: number, step: DerivationStep): void {
+  if (!step.stepId) errors.push(`Step ${i}: missing stepId`);
+  if (!step.ruleId) errors.push(`Step ${i}: missing ruleId`);
+  if (!step.premises || step.premises.length !== 2) {
+    errors.push(`Step ${i}: expected 2 premises, got ${step.premises?.length ?? 0}`);
+  }
+  if (!step.conclusion) errors.push(`Step ${i}: missing conclusion`);
+  if (!step.truth) errors.push(`Step ${i}: missing truth`);
 }

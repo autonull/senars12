@@ -2,7 +2,7 @@ import type { ReasoningBudget } from '@senars/kernel/schemas';
 import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
 import type { EmbeddingPointer, JudgmentManifold, JudgmentQuery, JudgmentProposition } from './types.js';
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '../../utils/hash.js';
 import type { JudgmentProvenance } from './decide.js';
 
 /**
@@ -31,9 +31,6 @@ const FINE_QUERY = (action: string): JudgmentQuery => ({
   axis: 'teleological',
 });
 
-function sha256(text: string): string {
-  return createHash('sha256').update(text).digest('hex');
-}
 
 function deriveCascadeProvenance(
   stage1: JudgmentProposition | undefined,
@@ -44,7 +41,7 @@ function deriveCascadeProvenance(
 ): JudgmentProvenance {
   const first = stage2 ?? stage1;
   const calibrationDigest = first?.calibration?.version
-    ? sha256(`${first.modelDigest}:${first.calibration.version}`)
+    ? sha256Hex(`${first.modelDigest}:${first.calibration.version}`)
     : undefined;
   return {
     modelDigest: first?.modelDigest,
@@ -101,7 +98,7 @@ export class PlacementCascadeReflex implements Reflex<Perception, string> {
         const rows = new Map<string, PrefetchEntry>();
         for (const r of ranked) {
           const prop = coarse[legalActions.indexOf(r.action)];
-          const provenance = deriveCascadeProvenance(prop, undefined, sha256(r.action), 'act', !prop || prop.abstained);
+          const provenance = deriveCascadeProvenance(prop, undefined, sha256Hex(r.action), 'act', !prop || prop.abstained);
           rows.set(r.action, { score: r.p, provenance });
         }
         this.#prefetch.set(stateId, rows);
@@ -120,7 +117,7 @@ export class PlacementCascadeReflex implements Reflex<Perception, string> {
         const p = fine[i];
         if (p && !p.abstained && p.kind === 'evaluate') {
           const coarseProp = coarse[legalActions.indexOf(action)];
-          const provenance = deriveCascadeProvenance(coarseProp, p, sha256(action), 'act', false);
+          const provenance = deriveCascadeProvenance(coarseProp, p, sha256Hex(action), 'act', false);
           rows.set(action, { score: p.score, provenance });
         }
       });

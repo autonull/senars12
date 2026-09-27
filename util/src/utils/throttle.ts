@@ -1,4 +1,4 @@
-const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+import { sleep } from './shared.js';
 
 export interface ThrottleConfig {
   intervalMs: number;

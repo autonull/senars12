@@ -28,13 +28,11 @@ export interface VerifyOptions {
   readonly sampleRate?: number; // 0-1, fraction of steps to verify
 }
 
-export interface VerifyRecordOptions {
-  readonly strict: boolean;
-  readonly epsilon: number;
-}
+/** @deprecated since 1.0 — `verifyRecord` now takes the superset {@link VerifyOptions}. */
+export type VerifyRecordOptions = VerifyOptions;
 
 /** Standalone derivation verifier — no NAR engine dependencies. */
-export function verifyRecord(record: DerivationRecord, options: VerifyRecordOptions): VerificationResult {
+export function verifyRecord(record: DerivationRecord, options: VerifyOptions): VerificationResult {
   const { strict, epsilon } = options;
   const errors: string[] = [];
   const stepResults: StepVerificationResult[] = [];
@@ -176,10 +174,10 @@ function verifyStep(step: DerivationStep, strict: boolean, epsilon: number): Ste
 }
 
 /** Simple truth algebra computation for verification. */
-function computeInferredTruth(ruleCategory: string, premiseTruths: TruthValue[]): TruthValue | null {
+function computeInferredTruth(ruleCategory: string, premiseTruths: TruthValue[]): TruthValue | undefined {
   // Simplified truth inference based on rule category
   // Real implementation would use the actual NAL truth functions
-  if (premiseTruths.length === 0) return null;
+  if (premiseTruths.length === 0) return undefined;
 
   const avgFreq = premiseTruths.reduce((sum, t) => sum + t.frequency, 0) / premiseTruths.length;
   const avgConf = premiseTruths.reduce((sum, t) => sum + t.confidence, 0) / premiseTruths.length;
@@ -245,7 +243,7 @@ export class DerivationVerifier {
 
     // Sample: only verify a fraction of records
     if (Math.random() > (this.options.sampleRate ?? 0.1)) {
-      return null;
+      return null; // Not sampled
     }
 
     this.budget.verificationsThisCycle++;

@@ -95,14 +95,12 @@ describe('Bench 99 — complexity budget gate', () => {
     expect(result.stdout).toContain('FAIL');
   });
 
-  it('fails when typecheck:bin errors > 0', { timeout: 60000 }, () => {
-    const budget = JSON.parse(originalBudget);
-    budget.baseline.typecheckBinErrors = 0; // target is 0
-    // Current state has 999 errors, so gate should fail this metric
-    const result = runGate(JSON.stringify(budget, null, 2));
-    expect(result.code).toBe(1);
+  it('holds typecheck:bin at zero — the bin/CLI surface typechecks clean', { timeout: 60000 }, () => {
+    // The rule is an absolute `=== 0` check that ignores the baseline, so it cannot be induced
+    // from the config. Assert the real invariant instead: reintroducing a bin type error fails here.
+    const result = runGate(originalBudget);
     expect(result.stdout).toContain('typecheck:bin errors');
-    expect(result.stdout).toContain('FAIL');
+    expect(result.stdout).toMatch(/typecheck:bin errors\s*│\s*0\s*│\s*0\s*│\s*PASS/);
   });
 
   it('fails when workspace count changes', { timeout: 60000 }, () => {
@@ -116,7 +114,7 @@ describe('Bench 99 — complexity budget gate', () => {
 
   it('emits parseable table output', { timeout: 60000 }, () => {
     const result = runGate(originalBudget);
-    // Gate fails overall due to typecheck:bin errors, but table should still be emitted
+    // Table structure is asserted independently of the overall gate verdict
     expect(result.stdout).toContain('┌');
     expect(result.stdout).toContain('│ Metric');
     expect(result.stdout).toContain('└');

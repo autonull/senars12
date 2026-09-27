@@ -9,7 +9,7 @@
  */
 
 import { z } from 'zod';
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
 import { clamp01 } from '../utils';
 
 export interface ReputationEntry {

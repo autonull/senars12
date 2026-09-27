@@ -71,6 +71,7 @@ import type { SourceReputation } from './kernel/source-reputation.js';
 const DERIVATION_RING_CAP = 256;
 
 import { errMsg } from './utils';
+import { createSystemOneBudget } from './lm/system-one/types.js';
 
 /**
  * NAR Assembly - ordered construction phases for NAR subsystems.
@@ -235,13 +236,7 @@ function assembleGates(
           judge: new SystemOneIngressJudge({
             manifold: systemOne.manifold!,
             embeddingCache: systemOne.embeddingCache!,
-            budget: config.systemOne.reasoningBudget ?? {
-              maxCycles: 100,
-              maxDepth: 10,
-              maxMemoryOps: 1000,
-              maxLMCalls: 5,
-              consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-            },
+            budget: config.systemOne.reasoningBudget ?? createSystemOneBudget(),
             reputation: () => sourceReputation,
             provider: () => lmService?.provider,
           }),

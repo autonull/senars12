@@ -61,7 +61,8 @@ export function isRestrictive(candidate: ConfidenceBands, incumbent: ConfidenceB
   );
 }
 
-function bandOrdinal(d: BandDecision): number {
+/** Ordinal position of a band; `abstain` sorts below `block` so abstain is always most restrictive. */
+export function bandOrdinal(d: BandDecision): number {
   return d === 'abstain' ? -1 : BAND_ORDER[d];
 }
 

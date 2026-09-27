@@ -242,3 +242,20 @@ export interface ProvisionalStamp {
 
   confidence(now: number): number;
 }
+
+/** Defaults for a System One judgment pass: one judge, no derivation fan-out. */
+export const SYSTEM_ONE_BUDGET_DEFAULTS = {
+  maxCycles: 100,
+  maxDepth: 10,
+  maxMemoryOps: 1000,
+  maxLMCalls: 5,
+} as const satisfies Omit<ReasoningBudget, 'consumed'>;
+
+/**
+ * Fresh System One budget. A factory, not a shared constant: budget consumers
+ * mutate `consumed` in place, so every call site must own its own object.
+ */
+export const createSystemOneBudget = (): ReasoningBudget => ({
+  ...SYSTEM_ONE_BUDGET_DEFAULTS,
+  consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+});

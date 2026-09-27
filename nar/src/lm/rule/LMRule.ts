@@ -11,6 +11,7 @@ import { createLMStats, recordLMCall } from '../stats.js';
 import { LMResponseParser } from './response-parser.js';
 import type { LMContext, ValidationResult } from './types.js';
 import type { LMRuleConfigV2 } from './types-v2.js';
+import { createBudget } from '../../types/core.js';
 
 export type { ParsedLMResponse, StructuredLMOutput } from './response-parser.js';
 export { LMResponseParser } from './response-parser.js';
@@ -598,13 +599,7 @@ export class LMRule {
             this.taskType,
             parsed.truth,
             parsed.confidence != null
-              ? {
-                  priority: parsed.confidence,
-                  durability: 0.8,
-                  quality: 0.9,
-                  cycles: 0,
-                  depth: 0,
-                }
+              ? createBudget(parsed.confidence)
               : undefined
           ),
           primary
