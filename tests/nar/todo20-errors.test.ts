@@ -26,7 +26,7 @@ import {
   unwrapOrThrow,
 } from '../../nar/src/utils/result.js';
 import { ConnectionConfigSchema, ToolSpecSchema } from '../../nar/src/tools/schemas.js';
-import { StatePersister } from '../../nar/src/nar/persistence.js';
+import { StatePersister } from '../../nar/src/facade/persistence.js';
 
 /** Bench 64 — Error Taxonomy & Result (TODO20 Phase 3). */
 

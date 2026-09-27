@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, test } from 'vitest';
-import { NAR, TermBuilder, Truth } from '../../../../nar/src';
+import { DEFAULT_CONFIG, NAR, TermBuilder, Truth } from '../../../../nar/src';
 
 describe('Reward and Value Representation Contract', () => {
   let nar: NAR;
 
   beforeEach(() => {
     nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,

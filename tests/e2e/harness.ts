@@ -2,11 +2,11 @@ import { SeededRNG } from '@senars/nar/game/SeededRNG.js';
 import { Clock, SystemClock, fixedClock } from '@senars/nar/clock.js';
 import { NarEventBus } from '@senars/nar/types/events.js';
 import type { Task } from '@senars/nar/types/core.js';
+import { Truth } from '@senars/nar/index.js';
 import { NAR } from '@senars/nar/nar.js';
-import type { NARConfig } from '@senars/nar/nar/config.js';
-import type { CognitiveParameters } from '@senars/nar/config/cognitive-parameters.js';
-import { CognitiveRegistry } from '@senars/nar/cognitive/registry.js';
+import type { NARConfig } from '@senars/nar/facade/config.js';
 import type { StrategyRegistry } from '@senars/nar/strategies/types.js';
+import { e2eNARConfig } from './fixtures.js';
 
 export interface ScenarioSpec {
   name: string;
@@ -117,57 +117,11 @@ export class ScenarioHarness {
   }
 
   private buildNARConfig(): NARConfig {
-    const baseConfig: NARConfig = {
-      maxConcepts: 1000,
-      activationDecayRate: 0.01,
-      consolidationInterval: 10,
-      cpuThrottleMs: 0,
-      maxDerivationDepth: 10,
-      maxDerivationsPerStep: 1000,
-      rng: () => this.rng.next(),
-      enableLMRules: false,
-      enableTools: false,
-      enableSelf: false,
-      enableRLFP: false,
-      cognitiveParams: this.createDefaultCognitiveParams(),
-      strategyRegistry: (() => { const r = new CognitiveRegistry(); r.initializeDefaults(); return r; })(),
-    };
-
-    return { ...baseConfig, ...this.spec?.config };
-  }
-
-  private createDefaultCognitiveParams(): CognitiveParameters {
-    return {
-      strategies: {
-        sampling: { type: 'priority', params: {} },
-        premise: { type: 'default-formation', params: {} },
-        derivation: { type: 'default', params: {} },
-        lmRule: { type: 'priority', params: {}, maxRules: 10 },
-        attention: { type: 'simple', params: {} },
-      },
-      inference: {
-        maxDerivationsPerStep: 100,
-        maxDerivationDepth: 10,
-        enableCircularDetection: true,
-        enableTraceCollection: false,
-        cpuThrottleMs: 0,
-      },
-      lm: {
-        enabled: false,
-        singlePremiseEnabled: true,
-      },
-      adaptation: {
-        enabled: false,
-        interval: 50,
-      },
-    };
+    return e2eNARConfig({ eventBus: this.eventBus, rng: () => this.rng.next(), ...this.spec?.config });
   }
 
   async run(): Promise<ScenarioResult> {
-    const config = this.buildNARConfig();
-    config.eventBus = this.eventBus;
-
-    this.nar = new NAR(config);
+    this.nar = new NAR(this.buildNARConfig());
     await this.nar.initialize();
     await this.nar.start();
 
@@ -192,7 +146,7 @@ export class ScenarioHarness {
     switch (step.type) {
       case 'input': {
         const { text, taskType = 'belief', truth } = step;
-        await this.nar!.input(text, taskType, truth);
+        await this.nar!.input(text, taskType, truth && Truth.create(truth.f, truth.c));
         break;
       }
       case 'run': {

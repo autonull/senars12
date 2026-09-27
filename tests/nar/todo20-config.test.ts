@@ -10,7 +10,7 @@ import {
   MEMORY_VERSION,
   validate,
 } from '../../nar/src/memory/state/serialization.js';
-import { NAR_STATE_VERSION, StatePersister } from '../../nar/src/nar/persistence.js';
+import { NAR_STATE_VERSION, StatePersister } from '../../nar/src/facade/persistence.js';
 import { decodeState, encodeState } from '../../nar/src/state/codec.js';
 import { appConfigSchema } from '../../src/config/schema.js';
 import { MIGRATIONS, migrateConfig, migrateConfigFile } from '../../src/utils/config-migrate.js';

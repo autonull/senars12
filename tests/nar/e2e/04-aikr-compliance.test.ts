@@ -1,4 +1,4 @@
-import { TermBuilder, Truth } from '../../../nar/src';
+import { DEFAULT_CONFIG, TermBuilder, Truth } from '../../../nar/src';
 /**
  * Resource Bounds & AIKR Compliance Tests
  */
@@ -10,6 +10,7 @@ describe('AIKR Compliance', () => {
 
   beforeEach(() => {
     nar = new NAR({
+      ...DEFAULT_CONFIG,
       maxConcepts: 100,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
@@ -129,6 +130,7 @@ describe('AIKR Compliance', () => {
   describe('Resource Bounds Enforcement', () => {
     it('derivation depth hard cap', async () => {
       const nar2 = new NAR({
+      ...DEFAULT_CONFIG,
         maxConcepts: 100,
         maxDerivationDepth: 10,
         enableLMRules: false,
@@ -157,6 +159,7 @@ describe('AIKR Compliance', () => {
 
     it('concept count bounded by maxConcepts', async () => {
       const nar2 = new NAR({
+      ...DEFAULT_CONFIG,
         maxConcepts: 100,
         enableLMRules: false,
       } as NARConfig);
@@ -171,6 +174,7 @@ describe('AIKR Compliance', () => {
 
     it('interruptibility via AbortSignal', async () => {
       const nar2 = new NAR({
+      ...DEFAULT_CONFIG,
         maxConcepts: 1000,
         enableLMRules: false,
       } as NARConfig);
@@ -193,6 +197,7 @@ describe('AIKR Compliance', () => {
 
     it('no memory leak under sustained load', async () => {
       const nar2 = new NAR({
+      ...DEFAULT_CONFIG,
         maxConcepts: 100,
         enableLMRules: false,
       } as NARConfig);

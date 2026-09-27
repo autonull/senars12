@@ -52,7 +52,7 @@ describe('Bench 62: monolith split — M2 nar.ts', () => {
   const loc = (p: string) => readFileSync(p, 'utf-8').split('\n').length;
 
   it('extracted subsystem modules are <400 LOC each', () => {
-    for (const f of ['nar/config.ts', 'nar/games.ts', 'nar/persistence.ts', 'nar/system-one.ts']) {
+    for (const f of ['facade/config.ts', 'facade/games.ts', 'facade/index.ts', 'facade/persistence.ts', 'facade/system-one.ts']) {
       const n = loc(join(NAR_DIR, f));
       expect(n, `${f} has ${n} LOC`).toBeLessThan(400);
     }

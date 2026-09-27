@@ -28,10 +28,10 @@ import { Memory } from './memory';
 import { EpisodeConsolidator } from './memory/episode-consolidator.js';
 import { MiningBag } from './lm/system-one/hard-negatives.js';
 import { MetricsCollector } from './metrics';
-import { createAttentionModel, type NARConfig, validateNarConfig } from './nar/config.js';
-import { GameManager } from './nar/games.js';
-import { StatePersister } from './nar/persistence.js';
-import { SystemOneRuntime } from './nar/system-one.js';
+import { createAttentionModel, type NARConfig, validateNarConfig } from './facade/config.js';
+import { GameManager } from './facade/games.js';
+import { StatePersister } from './facade/persistence.js';
+import { SystemOneRuntime } from './facade/system-one.js';
 import {
   askNaturalLanguage,
   consolidateLearning,
@@ -40,7 +40,7 @@ import {
   injectBootstrapGoals,
   initializeLMRules,
   initializeTools,
-} from './nar/facade.js';
+} from './facade/index.js';
 import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';
@@ -364,7 +364,7 @@ function assemblePersistenceAndDrives(
  * Main assembly function - builds all NAR subsystems in order.
  */
 export function assembleNAR(
-  config: NARConfig & { eventBus?: NarEventBus } = DEFAULT_CONFIG
+  config: NARConfig = DEFAULT_CONFIG
 ): NARAssemblyResult {
   const eventBus = config.eventBus ?? new NarEventBus();
   const logger = createLogger({ scope: 'NAR' });
@@ -523,4 +523,4 @@ export function assembleNAR(
   };
 }
 
-export type { NARConfig } from './nar/config.js';
+export type { NARConfig } from './facade/config.js';

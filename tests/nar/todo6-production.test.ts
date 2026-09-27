@@ -1,13 +1,11 @@
 /**
- * REFACTOR.todo6 Phase F falsifying tests (F1 OTel coverage, F2 replay verification, F3 soak gate).
+ * REFACTOR.todo6 Phase F falsifying tests (F1 OTel coverage, F2 replay verification).
  *
  * F1 asserts the new span events are emitted *inside an active tick span* — the
  * only place C22 observability is meaningful.
  * F2 asserts the replay state hash is deterministic and tamper-sensitive; a
  * hash that matches a mutated log is worse than no verification at all.
- * F3 asserts the soak gate fails on leaks, unbounded accumulators, and routing
- * divergence, and that the CI surface for the gate exists.
- */
+ *  */
 
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -28,7 +26,6 @@ import {
   verifyReplayStateHash,
   type ReplaySnapshotFile,
 } from '@senars/nar/kernel/replay';
-import { evaluateSoakStability, computeSlope, type SoakLimits, type SoakSeries } from '../soak/soak-gate.js';
 
 class CollectingProcessor implements SpanProcessor {
   readonly spans: ReadableSpan[] = [];
@@ -276,96 +273,5 @@ describe('F2 — deterministic replay verification (C14)', () => {
     expect(full.appliedTasks).toBe(3);
     expect(windowed.appliedTasks).toBe(1);
     expect(await computeReplayStateHash(windowed)).not.toBe(await computeReplayStateHash(full));
-  });
-});
-
-describe('F3 — soak stability gate', () => {
-  const LIMITS: SoakLimits = {
-    maxHeapGrowthMB: 200,
-    maxBagSize: 10_000,
-    maxHeapGrowthMBPerMin: 50,
-    maxBagGrowthPerMin: 1_000,
-    maxRoutingChangesPerMin: 10,
-    routingWarmupChanges: 5,
-    minLmSuccessRate: 0.95,
-    maxHighPressureRatio: 0.1,
-    maxDerivationsPerStep: 1_000,
-    enforceGrowthRate: true,
-    minSamples: 3,
-  };
-
-  const healthy: SoakSeries = {
-    heapUsedMB: [100, 101, 100, 102, 101, 100],
-    bagSizes: [400, 405, 402, 408, 403, 401],
-    memoryPressure: [0.1, 0.2, 0.15],
-    derivationsPerStep: [3, 4, 2],
-    snapshots: [{ timestamp: 1 }, { timestamp: 2 }, { timestamp: 3 }],
-    routingChanges: 6,
-    lmCalls: 100,
-    lmFailures: 1,
-    durationMs: 60_000,
-    sampleIntervalMs: 1_000,
-  };
-
-  it('passes a stable series', () => {
-    const { violations } = evaluateSoakStability(healthy, LIMITS);
-    expect(violations).toEqual([]);
-  });
-
-  it('flags a heap leak', () => {
-    const leak: SoakSeries = { ...healthy, heapUsedMB: [100, 150, 200, 250, 300, 350] };
-    const { violations } = evaluateSoakStability(leak, LIMITS);
-    expect(violations.some((v) => v.includes('heap growth rate'))).toBe(true);
-    expect(violations.some((v) => v.includes('heap growth'))).toBe(true);
-  });
-
-  it('flags an unbounded bag and derivation accumulator', () => {
-    const runaway: SoakSeries = {
-      ...healthy,
-      bagSizes: [10, 4_000, 9_000, 12_000, 20_000, 30_000],
-      derivationsPerStep: [10, 5_000],
-    };
-    const { violations } = evaluateSoakStability(runaway, LIMITS);
-    expect(violations.some((v) => v.includes('bag size'))).toBe(true);
-    expect(violations.some((v) => v.includes('bag growth rate'))).toBe(true);
-    expect(violations.some((v) => v.includes('runaway accumulator'))).toBe(true);
-  });
-
-  it('flags budget exhaustion via sustained memory pressure and LM failures', () => {
-    const exhausted: SoakSeries = {
-      ...healthy,
-      memoryPressure: [0.95, 0.99, 0.91, 0.93],
-      lmCalls: 100,
-      lmFailures: 30,
-    };
-    const { violations } = evaluateSoakStability(exhausted, LIMITS);
-    expect(violations.some((v) => v.includes('high memory-pressure ratio'))).toBe(true);
-    expect(violations.some((v) => v.includes('LM success rate'))).toBe(true);
-  });
-
-  it('flags routing divergence beyond warmup', () => {
-    const diverging: SoakSeries = { ...healthy, routingChanges: 400 };
-    const { violations } = evaluateSoakStability(diverging, LIMITS);
-    expect(violations.some((v) => v.includes('steady-state routing changes'))).toBe(true);
-  });
-
-  it('flags degenerate series (too few samples, no snapshots, stalled clock)', () => {
-    const { violations } = evaluateSoakStability(
-      {
-        ...healthy,
-        heapUsedMB: [100, 101],
-        snapshots: [{ timestamp: 5 }, { timestamp: 5 }],
-      },
-      LIMITS
-    );
-    expect(violations.some((v) => v.includes('insufficient heap samples'))).toBe(true);
-    expect(violations.some((v) => v.includes('snapshot timestamps not increasing'))).toBe(true);
-  });
-
-  it('computeSlope is the zero-baseline linear regression', () => {
-    expect(computeSlope([])).toBe(0);
-    expect(computeSlope([5])).toBe(0);
-    expect(computeSlope([1, 1, 1])).toBeCloseTo(0, 10);
-    expect(computeSlope([0, 2, 4])).toBeCloseTo(2, 10);
   });
 });

@@ -26,7 +26,7 @@ const controllerWith = (
     { sample: () => [{ term: '<sparrow --> bird>', priority: 0.5, beliefBag: { peek: () => ({ truth: { f: 0.9, c: 0.9 } }) } } as unknown as Concept] } as never,
     { selectSecondary: () => [] } as never,
     { derive: derivation } as never,
-    { maxDerivationsPerStep: 10, maxDerivationDepth: 5, enableCircularDetection: true, enableTraceCollection: false, cpuThrottleMs: 0, singlePremiseLMRules: true, maxLMRulesPerStep: 1, enableLMRules: false, ...(onDerivation ? { onDerivation } : {}) }
+    { maxDerivationsPerStep: 10, maxDerivationDepth: 5, sampleSize: 10, enableCircularDetection: true, enableTraceCollection: false, cpuThrottleMs: 0, singlePremiseLMRules: true, maxLMRulesPerStep: 1, enableLMRules: false, ...(onDerivation ? { onDerivation } : {}) }
   );
 
 describe('TODO25 Bench 80 — derivation-chain capture', () => {

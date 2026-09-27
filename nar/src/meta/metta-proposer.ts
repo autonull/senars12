@@ -16,6 +16,8 @@ import type { ActionProposal, LearningEvent } from '../reflex/Reflex.js';
 export interface MettaRule {
   readonly id: string;
   readonly pattern: string; // MeTTa pattern like (= (add $x 0) $x)
+  /** Abstracted NAL rule category this pattern was generalized from (e.g. `inheritance`). */
+  readonly ruleCategory: string;
   readonly sourceDerivation: string; // derivationId that produced this rule
   readonly confidence: number;
   readonly createdAt: number;
@@ -106,7 +108,7 @@ export class ProofMettaProposer implements IProposer {
     for (const [patternKey, info] of this.patternCounts) {
       if (info.count >= this.patternMinSupport && info.confidence >= this.minConfidence && !this.rules.has(patternKey)) {
         const mettaPattern = this.patternToMetta(info.pattern);
-        this.addRule(patternKey, mettaPattern, info.confidence, derivation.derivationId, info.examples);
+        this.addRule(patternKey, info.pattern, mettaPattern, info.confidence, derivation.derivationId, info.examples);
       }
     }
   }
@@ -172,6 +174,8 @@ export class ProofMettaProposer implements IProposer {
     if (ruleId.includes('revision')) return 'revision';
     if (ruleId.includes('conversion')) return 'conversion';
     if (ruleId.includes('similarity')) return 'similarity';
+    if (ruleId.includes('inheritance')) return 'inheritance';
+    if (ruleId.includes('structural')) return 'structural';
     return 'rule';
   }
 
@@ -187,7 +191,7 @@ export class ProofMettaProposer implements IProposer {
     return ` (= (${premiseStrs}) ${serializeTerm(pattern.conclusion)} )`;
   }
 
-  private addRule(patternKey: string, mettaPattern: string, confidence: number, sourceDerivation: string, examples: string[]): void {
+  private addRule(patternKey: string, pattern: GeneralizedPattern, mettaPattern: string, confidence: number, sourceDerivation: string, examples: string[]): void {
     if (this.rules.size >= this.maxRules) {
       this.pruneWeakest();
     }
@@ -196,6 +200,7 @@ export class ProofMettaProposer implements IProposer {
     const rule: MettaRule = {
       id,
       pattern: mettaPattern,
+      ruleCategory: pattern.ruleId,
       sourceDerivation,
       confidence,
       createdAt: Date.now(),

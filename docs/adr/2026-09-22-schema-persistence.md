@@ -29,7 +29,7 @@ All persisted state passes through `StateCodec` (`nar/src/state/codec.ts`):
   decode — legacy content is recognized by the absence of `format` and
   accepted with the caller's expected kind/version.
 
-`nar/src/nar/persistence.ts` pins the current logical version as
+`nar/src/facade/persistence.ts` pins the current logical version as
 `NAR_STATE_VERSION = 1` and encodes/decodes all NAR state through the codec.
 Gate/event logs additionally have a documented third path: JSONL append via
 `replay.ts` (`appendFileSync` of one JSON object per line), used for
@@ -51,6 +51,6 @@ append-only event streams and `replayCognitiveState` snapshots
 ## References
 
 - `nar/src/state/codec.ts`
-- `nar/src/nar/persistence.ts`
+- `nar/src/facade/persistence.ts`
 - `nar/src/kernel/replay.ts`
 - `nar/src/kernel/EventLogPersistence.ts`

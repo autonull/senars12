@@ -22,7 +22,7 @@ import {
   type NativeSenarsAgent,
   NonStationaryNativeAgent,
   RewardBeliefAdapter,
-} from '../nar/src/rl/adapters.js';
+} from '../nar/src/rl/index.js';
 import { EpsilonGreedy, UCB1 } from '../tests/nar/rl/baselines/bandit.js';
 import { QLearning, SARSA } from '../tests/nar/rl/baselines/gridworld.js';
 import { BanditGame } from '../nar/src/game/BanditGame.js';

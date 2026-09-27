@@ -1,5 +1,4 @@
-import type { AutonomyMode } from '@senars/kernel/schemas';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { AutonomyMode, ReasoningBudget } from '@senars/kernel/schemas';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import type { CognitiveRegistry } from '../cognitive';
@@ -9,6 +8,7 @@ import type { LMService, SeNARSRegistry } from '../lm';
 import type { EmbeddingCache } from '../lm/system-one/embedding-cache.js';
 import type { JudgmentManifold } from '../lm/system-one/types.js';
 import type { AttentionModel } from '../strategies';
+import type { NarEventBus } from '../types/events.js';
 import type { RandomSource } from '../types/primitives.js';
 import { SimpleAttention } from '../strategies';
 import { ConfigurationError, type CoreConfig } from '../types';
@@ -64,6 +64,8 @@ export interface NARConfig extends CoreConfig {
   proofMettaProposer?: { enabled?: boolean; maxRules?: number; minConfidence?: number; patternMinSupport?: number };
   /** Initial autonomy mode for the action gate (default: 'observe-only'). */
   initialAutonomyMode?: AutonomyMode;
+  /** Injectable event bus; defaults to a fresh `NarEventBus`. */
+  eventBus?: NarEventBus;
   /** Disable embedding layer for semantic similarity (saves resources when no embedding model). */
   enableEmbeddingLayer?: boolean;
 }

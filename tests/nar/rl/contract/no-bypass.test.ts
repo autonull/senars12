@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'vitest';
-import { createBudget, createTask, NAR, TermBuilder, Truth, termParser } from '../../../../nar/src';
+import { DEFAULT_CONFIG, NAR, TermBuilder, Truth, createBudget, createTask, termParser } from '../../../../nar/src';
 
 describe('No-Bypass Contract', () => {
   let nar: NAR;
@@ -9,6 +9,7 @@ describe('No-Bypass Contract', () => {
     environmentAccessed = false;
 
     nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,

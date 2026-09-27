@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { createBudget, createTask, TermBuilder, Truth } from '../../../../nar/src';
+import { DEFAULT_CONFIG, TermBuilder, Truth, createBudget, createTask } from '../../../../nar/src';
 import { NAR } from '../../../../nar/src/nar';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
-} from '../../../../nar/src/rl/adapters';
+} from '../../../../nar/src/rl/index.js';
 import { BanditGame } from '../../../../nar/src/game/BanditGame.js';
 
 describe('RL Parity - Cognitive Advantage Experiments', () => {
@@ -29,6 +29,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
     test('SeNARS reduces exploration as confidence increases', async () => {
       const env = new BanditGame({ ...banditConfig, seed: 100 });
       const nar = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -129,6 +130,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
     test('confidence calibration: low confidence predictions are less trusted', async () => {
       const env = new BanditGame({ ...banditConfig, seed: 200 });
       const nar = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -195,6 +197,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       // This test demonstrates that sensor confidence affects observation beliefs
       // not value beliefs (which are updated from rewards)
       const nar1 = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -238,6 +241,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
   describe('Contradiction Handling Advantage', () => {
     test('contradictory observations create detectable conflict', async () => {
       const nar = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -277,6 +281,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
     test('conflict detection through truth value semantics', async () => {
       const nar = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -326,6 +331,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
     test('full causal chain from observation to action is traceable', async () => {
       const env = new BanditGame({ ...banditConfig, seed: 400 });
       const nar = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -397,6 +403,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
     test('explanation includes causal path: belief -> value -> goal -> execution', async () => {
       const nar = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -474,6 +481,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       });
 
       const nar = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -567,6 +575,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       });
 
       const nar = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -668,6 +677,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
   describe('Memory-Pressure Graceful Degradation Advantage', () => {
     test('high-priority concepts retained under memory pressure', async () => {
       const nar = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -712,6 +722,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
     test('memory statistics reflect pressure accurately', async () => {
       const nar = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -759,6 +770,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
   describe('Schema Induction Advantage', () => {
     test('schema inductor can be instantiated and used', async () => {
       const nar = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -789,6 +801,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
     test('derivation chains can be recorded for schema induction', async () => {
       const nar = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,

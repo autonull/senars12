@@ -7,9 +7,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { NAR } from '@senars/nar';
+import { DEFAULT_CONFIG, NAR } from '@senars/nar';
 import { GridWorldGame } from '../../../nar/src/game/GridWorldGame.js';
-import { GridWorldNativeAgent } from '../../../nar/src/rl/adapters';
+import { GridWorldNativeAgent } from '../../../nar/src/rl/index.js';
 import { QLearning } from './baselines/gridworld.js';
 
 const baseGridConfig = {
@@ -24,6 +24,7 @@ async function runWithCyclesPerStep(
 ): Promise<number> {
   const env = new GridWorldGame({ ...baseGridConfig, seed });
   const nar = new NAR({
+      ...DEFAULT_CONFIG,
     enableLMRules: false,
     enableTools: true,
     enableSelf: false,

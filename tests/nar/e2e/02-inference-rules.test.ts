@@ -1,4 +1,4 @@
-import { TermBuilder, Truth } from '../../../nar/src';
+import { DEFAULT_CONFIG, TermBuilder, Truth } from '../../../nar/src';
 /**
  * Inference Rules Tests - Deduction, Induction, Abduction
  */
@@ -9,6 +9,7 @@ describe('Inference Rules', () => {
 
   beforeEach(() => {
     nar = new NAR({
+      ...DEFAULT_CONFIG,
       maxConcepts: 100,
       activationDecayRate: 0.01,
       consolidationInterval: 5,

@@ -36,7 +36,7 @@ export interface HeadSpec {
    evaluate heads return a triangular-kernel `legend` over the ordered
    `levels`.
 
-`nar/src/nar/system-one.ts` (`SystemOneRuntime`) builds the heads per group at
+`nar/src/facade/system-one.ts` (`SystemOneRuntime`) builds the heads per group at
 startup via the factory (`nar/src/lm/system-one/heads/factory.ts`), honoring
 per-head overrides (`calibrationVersion`, `abstainThreshold`, `enabled`) from
 config; `head-specs.ts` is the consumer that instantiates them.

@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'vitest';
-import { TermBuilder } from '../../../../nar/src';
+import { DEFAULT_CONFIG, TermBuilder } from '../../../../nar/src';
 import { NAR } from '../../../../nar/src/nar';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   QBeliefStore,
   RewardBeliefAdapter,
-} from '../../../../nar/src/rl/adapters';
+} from '../../../../nar/src/rl/index.js';
 import { EpsilonGreedy } from '../baselines/bandit';
 import { BanditGame } from '../../../../nar/src/game/BanditGame.js';
 
@@ -32,6 +32,7 @@ describe('RL Parity - Bandit Epsilon-Greedy @load-sensitive', () => {
     // Adapter-wrapped baseline (simulating same behavior through NAR interface)
     const env2 = new BanditGame(banditConfig);
     const nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
@@ -95,6 +96,7 @@ describe('RL Parity - Bandit Epsilon-Greedy @load-sensitive', () => {
   test('Level 2: Native SeNARS value learning approximates epsilon-greedy', async () => {
     const env = new BanditGame(banditConfig);
     const nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
@@ -221,6 +223,7 @@ describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
       // Adapter-wrapped with same seed
       const env2 = new BanditGame({ ...banditConfig, seed });
       const nar = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -283,6 +286,7 @@ describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
     for (let seed = 0; seed < numSeeds; seed++) {
       const env = new BanditGame({ ...banditConfig, seed });
       const nar = new NAR({
+      ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -394,6 +398,7 @@ describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
 describe('QBeliefStore @load-sensitive', () => {
   test('stores and retrieves value beliefs in native form', async () => {
     const nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
@@ -433,6 +438,7 @@ describe('QBeliefStore @load-sensitive', () => {
 
   test('computes best action from values', async () => {
     const nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
@@ -465,6 +471,7 @@ describe('QBeliefStore @load-sensitive', () => {
 
   test('identifies low-confidence actions for curiosity-driven exploration', async () => {
     const nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
@@ -504,6 +511,7 @@ describe('QBeliefStore @load-sensitive', () => {
 
   test('curiosity drive integration', async () => {
     const nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,

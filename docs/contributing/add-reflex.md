@@ -84,7 +84,7 @@ export class CountReflex implements Reflex<string, string> {
 - **Per-focus:** `gameFocus.bindReflex(reflex)` — pushes onto
   `Focus.reflexes` (`nar/src/focus/Focus.ts`). Or pass them in
   `GameManager.attachGame(game, { reflexes: [...] })`
-  (`nar/src/nar/games.ts`).
+  (`nar/src/facade/games.ts`).
 - **Disable at runtime:** `Focus.disableReflex(reflexId)` filters the reflex
   out; the meta-game reaches it across focuses via
   `SelfMetaGame.disableReflex(focusId, reflexId)` (`nar/src/game/SelfMetaGame.ts`).

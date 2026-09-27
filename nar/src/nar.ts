@@ -28,10 +28,10 @@ import { Memory } from './memory';
 import { EpisodeConsolidator } from './memory/episode-consolidator.js';
 import { MiningBag } from './lm/system-one/hard-negatives.js';
 import { MetricsCollector } from './metrics';
-import { createAttentionModel, type NARConfig, validateNarConfig } from './nar/config.js';
-import { GameManager } from './nar/games.js';
-import { StatePersister } from './nar/persistence.js';
-import { SystemOneRuntime } from './nar/system-one.js';
+import { createAttentionModel, type NARConfig, validateNarConfig } from './facade/config.js';
+import { GameManager } from './facade/games.js';
+import { StatePersister } from './facade/persistence.js';
+import { SystemOneRuntime } from './facade/system-one.js';
 import {
   askNaturalLanguage,
   consolidateLearning,
@@ -40,7 +40,7 @@ import {
   injectBootstrapGoals,
   initializeLMRules,
   initializeTools,
-} from './nar/facade.js';
+} from './facade/index.js';
 import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';
@@ -80,7 +80,7 @@ export type {
   SystemOneConfig,
   SystemOneFileConfig,
   SystemOneRuntimeConfig,
-} from './nar/config.js';
+} from './facade/config.js';
 
 export class NAR extends BaseComponent {
   readonly id = 'nar';
@@ -127,7 +127,7 @@ export class NAR extends BaseComponent {
   private readonly games: GameManager;
   private readonly persister: StatePersister;
 
-  constructor(config: NARConfig & { eventBus?: NarEventBus } = DEFAULT_CONFIG) {
+  constructor(config: NARConfig = DEFAULT_CONFIG) {
     const eventBus = config.eventBus ?? new NarEventBus();
     const logger = createLogger({ scope: 'NAR' });
     const metrics = new MetricsCollector();

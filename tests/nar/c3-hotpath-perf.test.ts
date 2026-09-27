@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll } from 'vitest';
-import { Memory, PriorityBag } from '../../nar/src/memory';
+import { Memory } from '../../nar/src/memory';
 import { atom, TermBuilder, Stamp, Truth, type Term, type TruthType } from '../../nar/src';
 import { LinkManager } from '../../nar/src/memory/links';
 import { ConceptGraph } from '@senars/core/concept-graph';
@@ -7,7 +7,6 @@ import { rankDerivations } from '../../nar/src/rules/ranking.js';
 import { InferenceController } from '../../nar/src/reason/inference-controller.js';
 import { RuleProcessor } from '../../nar/src/rules/processor.js';
 import { BagStrategy } from '../../nar/src/reason/strategy.js';
-import { createDerivationContext } from '../../nar/src/reason/inference-utils.js';
 import { SamplingStrategy, DerivationStrategy, Strategy } from '../../nar/src/strategies/types.js';
 import type { Task } from '../../nar/src/types/core.js';
 import { createBudgetSlice, consumeCycles, type BudgetSlice } from '@senars/kernel/budget';
@@ -159,7 +158,6 @@ describe('C3 Hot-path benchmarks (bench 119+)', () => {
         maxConcepts: 10000,
         activationDecayRate: 0.01,
         consolidationInterval: 100,
-        cpuThrottleMs: 0,
       });
       
       processor = new RuleProcessor();
@@ -172,10 +170,12 @@ describe('C3 Hot-path benchmarks (bench 119+)', () => {
       }
       
       mockSamplingStrategy = {
-        sample: (mem, n) => mem.listConcepts().sort((a,b) => b.priority - a.priority).slice(0, n),
+        metadata: { name: 'priority-sorted', version: '1', description: 'Highest-priority concepts' },
+        sample: (mem, n) => mem.listConcepts().sort((a, b) => b.priority - a.priority).slice(0, n),
       };
-      
+
       mockStrategy = {
+        name: 'no-secondary',
         selectSecondary: () => [],
       };
       
@@ -234,7 +234,7 @@ describe('C3 Hot-path benchmarks (bench 119+)', () => {
     });
 
     test('getLinkPriority + getCoActivations per concept (simulated scoring)', () => {
-      const source = terms[0];
+      const source = terms[0]!;
       const targetTerms = terms.slice(2, 102); // 100 targets
       
       const perOp = time('LinkPriority + CoActivations (100 targets)', 1000, () => {

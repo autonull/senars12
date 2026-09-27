@@ -1,4 +1,4 @@
-import { TermBuilder, Truth } from '../../../nar/src';
+import { DEFAULT_CONFIG, TermBuilder, Truth } from '../../../nar/src';
 /**
  * Event System & Error Handling Tests
  */
@@ -9,6 +9,7 @@ describe('Event System', () => {
 
   beforeEach(() => {
     nar = new NAR({
+      ...DEFAULT_CONFIG,
       maxConcepts: 100,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
@@ -102,6 +103,7 @@ describe('Error Handling', () => {
 
   beforeEach(() => {
     nar = new NAR({
+      ...DEFAULT_CONFIG,
       maxConcepts: 100,
       activationDecayRate: 0.01,
       consolidationInterval: 5,

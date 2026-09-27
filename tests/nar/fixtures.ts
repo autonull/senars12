@@ -1,7 +1,7 @@
 /**
  * Test fixtures - Shared test utilities
  */
-import { NAR } from '@senars/nar';
+import { DEFAULT_CONFIG, NAR } from '@senars/nar';
 
 export const E2E_CONFIG = {
   maxConcepts: 100,
@@ -14,4 +14,5 @@ export const E2E_CONFIG = {
 } as const;
 
 export const createTestNAR = (overrides?: Partial<typeof E2E_CONFIG>) =>
-  new NAR({ ...E2E_CONFIG, ...overrides });
+  new NAR({
+      ...DEFAULT_CONFIG, ...E2E_CONFIG, ...overrides });

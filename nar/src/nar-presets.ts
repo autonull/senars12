@@ -67,7 +67,7 @@ export function createNAR(options: SeNARSOptions = {}): NAR {
     lmService: options.lmService ?? createLMService(),
     providerRegistry: options.providerRegistry ?? createSeNARSRegistry(),
     eventBus: options.eventBus ?? new NarEventBus(),
-  } as NARConfig & { eventBus?: NarEventBus };
+  } as NARConfig;
   return new NAR(config);
 }
 

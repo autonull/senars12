@@ -229,7 +229,7 @@ describe('E1 — ProofMettaProposer contributes to the Negotiator', () => {
     const lenient = new ProofMettaProposer({ patternMinSupport: 1, minConfidence: 0.5 });
     const learned = lenient.learnFromDerivation(derivation('inheritance', 0.9));
     expect(learned.length).toBeGreaterThan(0);
-    expect(learned[0]?.pattern).toContain('inheritance');
+    expect(learned[0]?.ruleCategory).toBe('inheritance');
   });
 });
 

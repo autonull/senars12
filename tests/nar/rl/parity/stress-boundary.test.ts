@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { TermBuilder } from '../../../../nar/src';
+import { DEFAULT_CONFIG, TermBuilder } from '../../../../nar/src';
 import { NAR } from '../../../../nar/src/nar';
 import type { Term } from '../../../../nar/src/terms/index.js';
 import {
@@ -7,7 +7,7 @@ import {
   GoalActionAdapter,
   type QBeliefStore,
   RewardBeliefAdapter,
-} from '../../../../nar/src/rl/adapters';
+} from '../../../../nar/src/rl/index.js';
 import { BanditGame } from '../../../../nar/src/game/BanditGame.js';
 
 const NUM_ARMS = 3;
@@ -34,6 +34,7 @@ function createStressHarness(opts: {
 }): StressHarness {
   const env = new BanditGame({ numArms: NUM_ARMS, armMeans: [0.2, 0.5, 0.8], seed: opts.seed });
   const nar = new NAR({
+      ...DEFAULT_CONFIG,
     activationDecayRate: 0.01,
     consolidationInterval: 5,
     cpuThrottleMs: 0,

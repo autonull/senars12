@@ -81,7 +81,7 @@ export class FlipGame implements Game<number, 0 | 1> {
 }
 ```
 
-## Attaching — `nar/src/nar/games.ts`
+## Attaching — `nar/src/facade/games.ts`
 
 `GameManager.attachGame(game, options)` creates a scoped-gate `GameFocus`
 (`nar/src/focus/GameFocus.ts`), binds your reflexes, auto-binds a

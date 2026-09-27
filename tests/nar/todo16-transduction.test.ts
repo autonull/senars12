@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { DEFAULT_CONFIG } from '../../nar/src';
 import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
 import { ManifoldReflex } from '../../nar/src/lm/system-one/manifold-reflex.js';
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
@@ -44,6 +45,7 @@ const makeProposition = (
 describe('System One — Teleological Transduction (Bench 11)', () => {
   it('p > τ produces an authorized ^op(...) goal reaching dispatchToolGoals', async () => {
     const nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,

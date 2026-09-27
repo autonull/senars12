@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { TermBuilder } from '../../../../nar/src';
+import { DEFAULT_CONFIG, TermBuilder } from '../../../../nar/src';
 import { NAR } from '../../../../nar/src/nar';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
-} from '../../../../nar/src/rl/adapters';
+} from '../../../../nar/src/rl/index.js';
 import { QLearning } from '../baselines/gridworld';
 import { GridWorldGame } from '../../../../nar/src/game/GridWorldGame.js';
 
@@ -51,6 +51,7 @@ describe('RL Parity - GridWorld Q-Learning', () => {
   test('Level 2: Native SeNARS can learn GridWorld values (smoke test)', async () => {
     const env = new GridWorldGame(gridConfig);
     const nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,

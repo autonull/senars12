@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { createTask, TermBuilder, Truth } from '../../../../nar/src';
+import { DEFAULT_CONFIG, TermBuilder, Truth, createTask } from '../../../../nar/src';
 import { NAR } from '../../../../nar/src/nar';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
-} from '../../../../nar/src/rl/adapters';
+} from '../../../../nar/src/rl/index.js';
 import { BanditGame } from '../../../../nar/src/game/BanditGame.js';
 
 describe('RL Parity - Trace Validation', () => {
@@ -18,6 +18,7 @@ describe('RL Parity - Trace Validation', () => {
   test('causal chain: belief → value belief → goal → tool → reward → revision', async () => {
     const env = new BanditGame(banditConfig);
     const nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
@@ -152,6 +153,7 @@ describe('RL Parity - Trace Validation', () => {
   test('trace shows observation belief feeding into value learning', async () => {
     const env = new BanditGame(banditConfig);
     const nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
@@ -221,6 +223,7 @@ describe('RL Parity - Trace Validation', () => {
 
   test('goal dispatch via inputTask is traceable', async () => {
     const nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
@@ -261,6 +264,7 @@ describe('RL Parity - Trace Validation', () => {
 
   test('reward belief updates are traceable', async () => {
     const nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
@@ -311,6 +315,7 @@ describe('RL Parity - Trace Validation', () => {
   test('no hidden causal path: all actions go through goal dispatch', async () => {
     const env = new BanditGame(banditConfig);
     const nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,

@@ -1,4 +1,4 @@
-import { TermBuilder, Truth, termsEqual } from '../../../nar/src';
+import { DEFAULT_CONFIG, TermBuilder, Truth, termsEqual } from '../../../nar/src';
 /**
  * Term System Tests - Canonicalization, Hashing, and Structural Sharing
  */
@@ -9,6 +9,7 @@ describe('Term System', () => {
 
   beforeEach(() => {
     nar = new NAR({
+      ...DEFAULT_CONFIG,
       maxConcepts: 100,
       activationDecayRate: 0.01,
       consolidationInterval: 5,

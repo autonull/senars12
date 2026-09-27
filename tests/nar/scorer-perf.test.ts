@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { Memory, PriorityBag } from '../../nar/src/memory';
+import { Memory } from '../../nar/src/memory';
 import { atom, TermBuilder, Stamp, Truth, type Term } from '../../nar/src';
 import { LinkManager } from '../../nar/src/memory/links';
 import { ConceptGraph } from '@senars/core/concept-graph';
@@ -28,8 +28,8 @@ describe('Scorer index performance benchmarks (bench 118)', () => {
       linkManager.addLink(source, target, { priority: 0.5 });
     }
     
-    const source = terms[0];
-    const target = terms[1];
+    const source = terms[0]!;
+    const target = terms[1]!;
     
     const perOp = time('LinkManager.getLinkPriority', 100000, () => {
       linkManager.getLinkPriority(source, target);
@@ -51,7 +51,7 @@ describe('Scorer index performance benchmarks (bench 118)', () => {
       linkManager.addLink(source, target, { priority: 0.5 });
     }
     
-    const source = terms[0];
+    const source = terms[0]!;
     
     const perOp = time('LinkManager.getLinks (O(n))', 10000, () => {
       linkManager.getLinks(source, { minPriority: 0 });
@@ -73,7 +73,7 @@ describe('Scorer index performance benchmarks (bench 118)', () => {
       graph.activate(source, target);
     }
     
-    const focusTerm = terms[0];
+    const focusTerm = terms[0]!;
     
     const perOp = time('ConceptGraph.getCoActivations (single call)', 10000, () => {
       graph.getCoActivations(focusTerm, 20);
@@ -95,7 +95,7 @@ describe('Scorer index performance benchmarks (bench 118)', () => {
       graph.activate(source, target);
     }
     
-    const focusTerm = terms[0];
+    const focusTerm = terms[0]!;
     const targetTerms = terms.slice(2, 22);
     
     // OLD WAY: call getCoActivations per concept (quadratic)

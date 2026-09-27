@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, test } from 'vitest';
-import { createBudget, createTask, NAR, TermBuilder, Truth, termParser } from '../../../../nar/src';
+import { DEFAULT_CONFIG, NAR, TermBuilder, Truth, createBudget, createTask, termParser } from '../../../../nar/src';
 
 describe('Goal/Action Contract', () => {
   let nar: NAR;
 
   beforeEach(() => {
     nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
@@ -119,6 +120,7 @@ describe('Goal/Action Contract', () => {
 
   test('AIKR limits respected (maxDerivationsPerStep, maxDerivationDepth)', async () => {
     const constrainedNar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,

@@ -13,7 +13,7 @@
 ## Diagnosis
 
 ```sh
-# Locate state dir files (StatePersister, nar/src/nar/persistence.ts)
+# Locate state dir files (StatePersister, nar/src/facade/persistence.ts)
 # beliefs.json goals.json questions.json attention.json drives.json lm-rules.json
 ls -la <state-dir>
 

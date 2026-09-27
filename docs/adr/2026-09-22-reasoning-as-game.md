@@ -57,5 +57,6 @@ into the `rlfp/` test suite.
 - `nar/src/game/registry.ts`
 - `nar/src/focus/GameFocus.ts`
 - `nar/src/reflex/Negotiator.ts`
-- `nar/src/rlfp/` (RL parity consolidated here per B7)
+- `nar/src/rlfp/`
+- `nar/src/rl/` (gate-contract RL adapters: perception/action/agent, Q-belief store, parity harness)
 - `nar/src/kernel/KernelActionGate.ts`

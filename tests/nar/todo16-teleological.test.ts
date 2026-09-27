@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { DEFAULT_CONFIG } from '../../nar/src';
 import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
@@ -87,6 +88,7 @@ describe('System One — Teleological Purity (Bench 3)', () => {
 
   it('transduced Desire enters the NAR as type goal, never as belief', async () => {
     const nar = new NAR({
+      ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,

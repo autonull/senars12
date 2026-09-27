@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createReasoningGame, generateEvalTasks, ReasoningGame, type ReasoningGameOptions } from '../../nar/src/cognition/ReasoningGame.js';
-import { ReasoningMetaGame } from '../../nar/src/cognition/ReasoningMetaGame.js';
-import { REASONING_SPECS } from '../../nar/src/cognition/ReasoningGame.js';
-import { DEFAULT_ACTIONS, DEFAULT_REWARDS } from '../../nar/src/cognition/index.js';
+import { createReasoningGame, generateEvalTasks, ReasoningGame, type ReasoningGameOptions } from '../../nar/src/game/ReasoningGame.js';
+import { ReasoningMetaGame } from '../../nar/src/game/ReasoningMetaGame.js';
+import { REASONING_SPECS } from '../../nar/src/game/ReasoningGame.js';
+import { DEFAULT_ACTIONS, DEFAULT_REWARDS } from '../../nar/src/game/index.js';
 import { ParameterScopeError } from '../../nar/src/config/parameter-table.js';
 import { GameFocus } from '../../nar/src/focus/GameFocus.js';
 import { createArcadeRegistry, registerReasoningGames } from '../../nar/src/game/registry.js';
