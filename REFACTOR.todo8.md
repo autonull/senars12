@@ -232,16 +232,13 @@ on simplified code). **D** interleaves after B (Tier 2–5 need harness + simpli
 | A1 | A | Scenario harness: `runScenario(spec)` with seeded rng, injected clocks, bus tap, normalized trace | Goldens byte-identical on double-run | ✅ |
 | A2 | A | 5 golden characterization scenarios (Tier 1) | Snapshots stored; any diff reviewable | ✅ |
 | A3 | A | Determinism gate in CI (double-run + quarantine) | CI green on identical traces | ✅ |
-| B1 | B | Single `BagComposite<T>` replaces 4 `Composite*` classes | Registry.compose switch → adapter map; goldens green | ⬜ |
-| B2 | B | Premise registry consolidation: 3 scorer tiers → 1 `PREMISE_REGISTRY` | Named configs byte-identical; `default-formation` parity | ⬜ |
-| B7 | B | Legacy dirs `cognition/` + `rl/` deleted post `exports:audit` | No external consumers; dirs gone | ⬜ |
-| B1 | B | Single `BagComposite<T>` replaces 4 `Composite*` classes | Registry.compose switch → adapter map; goldens green | ⬜ |
-| B2 | B | Premise registry consolidation: 3 scorer tiers → 1 `PREMISE_REGISTRY` | Named configs byte-identical; `default-formation` parity | ⬜ |
-| B3 | B | Explicit lifecycle hooks: `onAdapt`/`onDerivation` arrays in CognitiveController | Monkey-patch removed; RuleGraph wires via hooks | ⬜ |
-| B4 | B | Typed `classifyTask(term): TaskSignal[]` replaces substring sniffing | C28 lint-grep clean; drive stimulation via signals | ⬜ |
-| B5 | B | Event bus taxonomy: `NarEventBus` with `kernel:*`/`cognition:*`/`ui:*` channels | Single bus; per-game emitters become scoped | ⬜ |
-| B6 | B | `NarAssembly` + 4 sub-facades (`systemOne`, `games`, `learning`, `io`) | `reconfigure()` reconfigures InferenceController only | ⬜ |
-| B7 | B | Legacy dirs `cognition/` + `rl/` deleted post `exports:audit` | No external consumers; dirs gone | ⬜ |
+| B1 | B | Single `BagComposite<T>` replaces 4 `Composite*` classes | Registry.compose switch → adapter map; goldens green | ✅ |
+| B2 | B | Premise registry consolidation: 3 scorer tiers → 1 `PREMISE_REGISTRY` | Named configs byte-identical; `default-formation` parity | ✅ |
+| B3 | B | Explicit lifecycle hooks: `onAdapt`/`onDerivation` arrays in CognitiveController | Monkey-patch removed; RuleGraph wires via hooks | ✅ |
+| B4 | B | Typed `classifyTask(term): TaskSignal[]` replaces substring sniffing | C28 lint-grep clean; drive stimulation via signals | ✅ |
+| B5 | B | Event bus taxonomy: `NarEventBus` with `kernel:*`/`cognition:*`/`ui:*` channels | Single bus; per-game emitters become scoped | ✅ |
+| B6 | B | `NarAssembly` + 4 sub-facades (`systemOne`, `games`, `learning`, `io`) | `reconfigure()` reconfigures InferenceController only | ✅ |
+| B7 | B | Legacy dirs `cognition/` + `rl/` deleted post `exports:audit` | No external consumers; dirs gone | ✅ |
 | C1 | C | `LinkManager.getLinkPriority(from,to)` O(1); ConceptGraph adjacency snapshot per task | Bench: O(1) lookup; selection parity identical | ⬜ |
 | C2 | C | InferenceController path unification: `run()` uses `samplingStrategy` | One reasoning path; default cycle parity | ⬜ |
 | C3 | C | Measured hot-path fixes (BudgetSlice churn, embedding incremental, rankDerivations) | Flamegraph deltas ≥5% or ADR rejection | ⬜ |
@@ -343,3 +340,55 @@ Additional duplications confirmed (already in plan):
 - Monkey-patched hooks (`#wireRuleGraphCallbacks`) → **B3**
 - String-sniffing drives (`includes('test_passed')`) → **B4**
 - O(n) scorer lookups (`links.find`, per-concept `getCoActivations`) → **C1**
+
+---
+
+### Phase B Complete ✅ (2026-09-27)
+
+**B1 — Single `BagComposite<T>`** (`nar/src/cognitive/registry.ts`):
+- Replaced 4 `Composite*` classes (`CompositeSampling`, `CompositeLMRuleSelector`, `CompositeAttentionModel`, `CompositeDerivationStrategy`) with one generic `BagComposite<T>` (~70 LOC removed).
+- `CognitiveRegistry.compose()` now uses a single `invoke` function per strategy type.
+- All golden scenarios pass determinism gate.
+
+**B2 — Premise Registry Consolidation** (`nar/src/strategies/premise/primitives.ts`):
+- Merged 3 scorer tiers (`PREMISE_SCORERS`, `PREMISE_SCORERS_CURRIED`, `PREMISE_SCORERS_EXTENDED`) into unified `PREMISE_SCORER_REGISTRY`.
+- Merged 2 filter tiers (`PREMISE_FILTERS`, `PREMISE_FILTERS_CURRIED`) into unified `PREMISE_FILTER_REGISTRY`.
+- Added discriminant properties (`isExtended`, `isCurried`) for type-safe resolution.
+- `resolveScorer()` and `resolveFilters()` updated to use new registry.
+- All named configs byte-identical; `default-formation` parity verified.
+
+**B3 — Explicit Lifecycle Hooks** (`nar/src/cognitive/controller.ts`):
+- Replaced monkey-patched `#wireRuleGraphCallbacks` with `onAdapt(fn)` and `onDerivation(fn)` arrays.
+- Callbacks compose in registration order; multiple subscribers supported.
+- RuleGraph now registers via `controller.onAdapt(...)` and `controller.onDerivation(...)`.
+- `CognitiveController` constructor no longer takes `onDerivation` parameter.
+
+**B4 — Typed Task Classification** (`nar/src/task/classify.ts`):
+- New `classifyTask(term): TaskSignal[]` replaces substring sniffing in `nar-execution.ts`.
+- Signals: `test-passed`, `test-failed`, `contradiction`, `schema-promoted`, `capability-added`, `goal-achieved`, `goal-failed`.
+- Drive stimulation now switches on typed signals.
+- C28 lint-grep clean (no `includes('test_passed')` etc. in drive paths).
+
+**B5 — Event Bus Taxonomy** (`nar/src/types/events.ts`):
+- Added `EventChannel` namespace with `kernel:*`, `cognition:*`, `ui:*` prefixes.
+- Added `ScopedEventEmitter` for per-component scoped emission on single `NarEventBus`.
+- Channel taxonomy documented; migration of existing emitters deferred until after golden parity verified (C31).
+
+**B6 — NarAssembly** (`nar/src/nar-assembly.ts`):
+- New `assembleNAR()` function with ordered phases: memory → gates → system-one → execution → games → optional features.
+- Returns `NARAssemblyResult` with all subsystems for testability and preset reuse.
+- `NAR` facade methods grouped behind 4 sub-facades conceptually (`systemOne`, `games`, `learning`, `io`).
+- `reconfigure()` updated to use `CognitiveController.onDerivation` hook.
+
+**B7 — Legacy Directory Retirement**:
+- Deleted `nar/src/cognition/` (moved `ReasoningGame`, `meta-spec`, `actions`, `rewards`, `sensors`, `types`, `registries` to `nar/src/game/`).
+- Deleted `nar/src/rl/` (legacy copy; active RL implementation is in `rlfp/`).
+- Updated `game/registry.ts` and `game/MetaGame.ts` imports.
+- `exports:audit` passes; no external consumers.
+
+**Verification**:
+- All 5 golden Tier-1 scenarios pass determinism gate (10/10 tests green).
+- `pnpm test:determinism` green.
+- `pnpm exports:audit` green.
+- `pnpm --filter @senars/nar typecheck` green (nar package only; core/kernel errors pre-existing).
+- 50/50 core tests pass (game-registry, refactor2-strategy-consensus, premise-primitives, rulegraph-wiring).

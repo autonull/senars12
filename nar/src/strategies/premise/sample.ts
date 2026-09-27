@@ -14,7 +14,7 @@ export interface SampleConfig {
   truthFilter?: TruthPredicate;
   skipSameTerm?: boolean;
   source?: 'bag' | 'concepts' | 'links' | 'taskArgs' | 'graph';
-  scorer?: 'priority' | 'linkWeight' | 'edgeWeight' | { linear: { link: number; embed: number; pri: number } };
+  scorer?: 'priority' | 'linkWeight' | 'edgeWeight' | 'linear' | { linear: { link: number; embed: number; pri: number } };
   filters?: FilterSpec[];
   minScore?: number;
 }

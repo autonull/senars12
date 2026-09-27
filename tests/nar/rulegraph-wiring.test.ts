@@ -209,11 +209,11 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     graph!.activate(termA, termB);
     graph!.activate(termA, termB); // Second activation increases weight
 
-    const { PREMISE_SCORERS_CURRIED } = await import('../../nar/src/strategies/premise/primitives.js');
-    const task = { term: termA } as any;
-    const scorer = PREMISE_SCORERS_CURRIED.edgeWeight(memory);
+    const { PREMISE_SCORER_REGISTRY, resolveScorer } = await import('../../nar/src/strategies/premise/primitives.js');
+    const scorer = resolveScorer(memory, 'edgeWeight');
     
-    const score = scorer(task, conceptB);
+    const task = { term: termA } as any;
+    const score = scorer?.(task, conceptB);
     expect(score).toBeGreaterThan(0);
   });
 

@@ -190,9 +190,9 @@ export class NAR extends BaseComponent {
         metrics,
         this.rlfp,
         config.cognitiveParams,
-        config.adaptationInterval,
-        (chain) => this.#recordDerivationChain(chain)
+        config.adaptationInterval
       );
+      this.cognitiveController.onDerivation((chain) => this.#recordDerivationChain(chain));
     }
 
     // Extracted subsystems. System One must initialize before gateRegistry.initialize
@@ -681,9 +681,9 @@ export class NAR extends BaseComponent {
       this._metricsCollector,
       this.rlfp,
       params,
-      this.config.adaptationInterval,
-      (chain) => this.#recordDerivationChain(chain)
+      this.config.adaptationInterval
     );
+    this.cognitiveController.onDerivation((chain) => this.#recordDerivationChain(chain));
     this.execution = new NARExecution({
       memory: this.memory,
       taskManager: this.taskManager,

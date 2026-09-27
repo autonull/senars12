@@ -11,6 +11,7 @@ import { rankDerivations } from './rules/ranking.js';
 import type { ReasoningAboutReasoning } from './self';
 import { createPipeline, MemoryPremiseSource } from './stream';
 import type { TaskManager } from './task';
+import { classifyTask, type TaskSignal } from './task';
 import { getTermArgs, isAtomic, isCompound, type Term, termParser } from './terms';
 import { Truth } from './terms/truth.js';
 import { PhaseTimer } from './trace';
@@ -262,25 +263,31 @@ export class NARExecution {
             confidence,
             timestamp: Date.now(),
           });
-          // Detect test results and contradictions
-          const termStr = task.term.toString();
-          if (termStr.includes('test_passed') || termStr.includes('test.passed')) {
-            testPassed = true;
-          }
-          if (termStr.includes('test_failed') || termStr.includes('test.failed')) {
-            testFailed = true;
-          }
-          if (termStr.includes('contradiction') || termStr.includes('conflict')) {
-            contradictionDetected = true;
-            // Phase C (REFACTOR.todo3 §10a M5): typed event alongside the drive
-            // stimulation — SelfMetaGame subscribes for resolution intake.
-            this.systemEventBus.emit('contradiction', {
-              source: 'nal',
-              term: task.term,
-              mettaVote: false,
-              nalVote: true,
-              at: Date.now(),
-            });
+          // Detect test results and contradictions via typed classification
+          const signals = classifyTask(task.term);
+          for (const signal of signals) {
+            switch (signal) {
+              case 'test-passed':
+                testPassed = true;
+                break;
+              case 'test-failed':
+                testFailed = true;
+                break;
+              case 'contradiction':
+                contradictionDetected = true;
+                // Phase C (REFACTOR.todo3 §10a M5): typed event alongside the drive
+                // stimulation — SelfMetaGame subscribes for resolution intake.
+                this.systemEventBus.emit('contradiction', {
+                  source: 'nal',
+                  term: task.term,
+                  mettaVote: false,
+                  nalVote: true,
+                  at: Date.now(),
+                });
+                break;
+              // Other signals (schema-promoted, capability-added, goal-achieved, goal-failed)
+              // are classified but not yet acted upon; they can drive future homeostatic responses.
+            }
           }
         }
       }

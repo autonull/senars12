@@ -25,7 +25,8 @@ export class CognitiveController {
   private readonly inferenceController: InferenceController;
   private cycleCount = 0;
   private readonly adaptInterval: number;
-  private onDerivationCallback?: (chain: readonly Task[]) => void;
+  private readonly onAdaptCallbacks: Array<() => void> = [];
+  private readonly onDerivationCallbacks: Array<(chain: readonly Task[]) => void> = [];
 
   constructor(
     private readonly registry: CognitiveRegistry,
@@ -34,13 +35,11 @@ export class CognitiveController {
     private readonly metrics: MetricsCollector,
     private readonly rlfp: RLFPLearner | undefined,
     params: CognitiveParameters,
-    adaptInterval = 50,
-    onDerivation?: (chain: readonly Task[]) => void
+    adaptInterval = 50
   ) {
     // Own the parameter graph: callers may pass frozen defaults (TODO20 C3).
     this.currentParams = structuredClone(params);
     this.adaptInterval = adaptInterval;
-    this.onDerivationCallback = onDerivation;
     this.inferenceController = this.buildInferenceController(params);
   }
 
@@ -52,6 +51,24 @@ export class CognitiveController {
     return this.registry;
   }
 
+  /** Register a callback to be called on each adapt cycle */
+  onAdapt(fn: () => void): () => void {
+    this.onAdaptCallbacks.push(fn);
+    return () => {
+      const idx = this.onAdaptCallbacks.indexOf(fn);
+      if (idx >= 0) this.onAdaptCallbacks.splice(idx, 1);
+    };
+  }
+
+  /** Register a callback to be called on each derivation chain */
+  onDerivation(fn: (chain: readonly Task[]) => void): () => void {
+    this.onDerivationCallbacks.push(fn);
+    return () => {
+      const idx = this.onDerivationCallbacks.indexOf(fn);
+      if (idx >= 0) this.onDerivationCallbacks.splice(idx, 1);
+    };
+  }
+
   /** Get the current strategy name for a strategy type, or undefined if unset */
   getStrategy(type: StrategyType): string | undefined {
     const key: keyof typeof this.currentParams.strategies =
@@ -61,13 +78,20 @@ export class CognitiveController {
 
   adapt(): void {
     this.cycleCount++;
-    if (this.cycleCount % this.adaptInterval !== 0 || !this.rlfp) return;
+    if (this.cycleCount % this.adaptInterval !== 0 || !this.rlfp) {
+      // Still fire onAdapt callbacks even if RLFP doesn't run
+      for (const cb of this.onAdaptCallbacks) cb();
+      return;
+    }
 
     const newParams = this.adaptWithRLFP();
     if (JSON.stringify(newParams.strategies) !== JSON.stringify(this.currentParams.strategies)) {
       this.currentParams = newParams;
       this.buildInferenceController(newParams);
     }
+
+    // Fire onAdapt callbacks after potential reconfiguration
+    for (const cb of this.onAdaptCallbacks) cb();
   }
 
   setStrategy(type: StrategyType, name: string | StrategyExpression): void {
@@ -137,7 +161,7 @@ export class CognitiveController {
 
     this.processor.setLMSelector(lmSelector, params.strategies.lmRule.maxRules);
 
-    // Wire RuleGraph callbacks if using lm-graph
+    // Wire RuleGraph callbacks via explicit lifecycle hooks if using lm-graph
     if (ruleGraph) {
       this.#wireRuleGraphCallbacks(ruleGraph);
     }
@@ -151,7 +175,9 @@ export class CognitiveController {
       singlePremiseLMRules: params.lm.singlePremiseEnabled ?? true,
       maxLMRulesPerStep: params.strategies.lmRule.maxRules,
       enableLMRules: params.lm.enabled ?? true,
-      ...(this.onDerivationCallback ? { onDerivation: this.onDerivationCallback } : {}),
+      onDerivation: (chain: readonly Task[]) => {
+        for (const cb of this.onDerivationCallbacks) cb(chain);
+      },
     };
 
     if (this.inferenceController) {
@@ -175,9 +201,8 @@ export class CognitiveController {
   }
 
   #wireRuleGraphCallbacks(ruleGraph: RuleGraph): void {
-    // Wire recordPerformance from rule outcomes - check execution log on each adapt
-    const originalAdapt = this.adapt.bind(this);
-    this.adapt = () => {
+    // Register adapt callback for RuleGraph performance recording and ticking
+    this.onAdapt(() => {
       // Record performance from execution log
       const log = this.processor.getLMRuleExecutionLog();
       for (const entry of log) {
@@ -187,13 +212,10 @@ export class CognitiveController {
       
       // Wire tick() from cycle
       ruleGraph.tick();
-      
-      originalAdapt();
-    };
+    });
 
-    // Wire learnFromDerivation from derivation path
-    const originalOnDerivation = this.onDerivationCallback;
-    this.onDerivationCallback = (chain: readonly Task[]) => {
+    // Register derivation callback for RuleGraph learning
+    this.onDerivation((chain: readonly Task[]) => {
       if (chain.length >= 2) {
         const primary = chain[0];
         const derived = chain[chain.length - 1];
@@ -202,8 +224,7 @@ export class CognitiveController {
           ruleGraph.learnFromDerivation(primary.term, derived.term);
         }
       }
-      originalOnDerivation?.(chain);
-    };
+    });
   }
 
   private adaptWithRLFP(): CognitiveParameters {

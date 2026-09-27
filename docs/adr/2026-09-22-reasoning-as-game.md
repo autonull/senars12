@@ -36,8 +36,10 @@ veto decisions with a capped `vetoMemo`, and selects the best remaining
 legal action on veto. Scoped game actions authorize against their own scope
 via `KernelActionGate.authorizeScoped`, never the global tier ladder.
 
-RL parity: `rl/parity-harness.ts` (`RLParityHarness`) compares reflex-driven
-and RL-driven play over the same games to enforce behavioral parity.
+RL parity: The legacy `rl/parity-harness.ts` (`RLParityHarness`) compared reflex-driven
+and RL-driven play over the same games to enforce behavioral parity. The legacy `rl/`
+directory has been consolidated into `rlfp/` (B7); RL parity testing is now integrated
+into the `rlfp/` test suite.
 
 ## Consequences
 
@@ -55,5 +57,5 @@ and RL-driven play over the same games to enforce behavioral parity.
 - `nar/src/game/registry.ts`
 - `nar/src/focus/GameFocus.ts`
 - `nar/src/reflex/Negotiator.ts`
-- `nar/src/rl/parity-harness.ts`
+- `nar/src/rlfp/` (RL parity consolidated here per B7)
 - `nar/src/kernel/KernelActionGate.ts`

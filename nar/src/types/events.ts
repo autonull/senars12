@@ -1,5 +1,28 @@
 import type { Term, Truth } from '../terms';
 
+/**
+ * Event channel taxonomy (B5).
+ * All events are emitted on a single NarEventBus but logically grouped by channel prefix.
+ * - kernel:*  — system-level: budget, memory, cycle, LM calls, concept lifecycle
+ * - cognition:* — reasoning: derivations, drives, self-monitoring, LM rules
+ * - ui:*      — user-facing: NL, conversation, tools, agent process
+ * 
+ * Existing event names are retained for parity; migration to prefixed names
+ * will happen after golden scenarios are verified (C31).
+ */
+export const EventChannel = {
+  kernel: 'kernel',
+  cognition: 'cognition',
+  ui: 'ui',
+} as const;
+
+export type ChannelPrefix = (typeof EventChannel)[keyof typeof EventChannel];
+
+/** Helper to create a channel-scoped event name. */
+export function channelEvent(prefix: ChannelPrefix, name: string): string {
+  return `${prefix}:${name}`;
+}
+
 export interface Ambiguity {
   type: 'parse' | 'intent' | 'term' | 'reference';
   description: string;
@@ -258,3 +281,23 @@ export { EventBus };
 
 /** NAR's event bus, keyed on {@link NAREventMap} (X4: typed bus). */
 export class NarEventBus extends EventBus<NAREventMap> {}
+
+/** Scoped emitter for a specific channel (e.g., per-game, per-component). */
+export class ScopedEventEmitter {
+  constructor(
+    private readonly bus: NarEventBus,
+    private readonly prefix: string
+  ) {}
+
+  emit<K extends string & keyof NAREventMap>(eventName: K, params: NAREventMap[K]): void {
+    this.bus.emit(`${this.prefix}:${eventName}` as K, params);
+  }
+
+  on<K extends string & keyof NAREventMap>(eventName: K, fn: (params: NAREventMap[K]) => void): () => void {
+    return this.bus.on(`${this.prefix}:${eventName}` as K, fn);
+  }
+
+  once<K extends string & keyof NAREventMap>(eventName: K, fn: (params: NAREventMap[K]) => void): () => void {
+    return this.bus.once(`${this.prefix}:${eventName}` as K, fn);
+  }
+}

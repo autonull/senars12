@@ -8,7 +8,7 @@ import { createRPSGame } from './RPSGame.js';
 import { createSnakeGame } from './SnakeGame.js';
 import { createTetrisGame } from './TetrisGame.js';
 import { createTicTacToeGame } from './TicTacToe.js';
-import { createReasoningGame, REASONING_SPECS } from '../cognition/ReasoningGame.js';
+import { createReasoningGame, REASONING_SPECS } from './ReasoningGame.js';
 
 /** A named `Game` factory in the playable-games collection. */
 export interface GameSpec {

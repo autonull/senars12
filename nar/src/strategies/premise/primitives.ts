@@ -11,7 +11,11 @@ export type PremiseSource = (task: Task, memory: Memory, n?: number) => Concept[
 
 export type PremiseScorer = (task: Task, concept: Concept) => number;
 
+export type PremiseScorerFactory = (memory: Memory) => PremiseScorer;
+
 export type PremiseFilter = (task: Task, concept: Concept) => boolean;
+
+export type PremiseFilterFactory = (...args: unknown[]) => PremiseFilter;
 
 export const PREMISE_SOURCES = {
   bag: (task: Task, memory: Memory, n = 10): Concept[] => memory.sample(n),
@@ -52,74 +56,129 @@ function getLinkStrength(memory: Memory, primary: Term, target: Term): number {
   return match ? match.priority : 0;
 }
 
-export const PREMISE_SCORERS = {
-  priority: (_task: Task, concept: Concept): number => concept.priority,
-} as const;
+/**
+ * Unified premise scorer registry.
+ * Replaces PREMISE_SCORERS, PREMISE_SCORERS_CURRIED, PREMISE_SCORERS_EXTENDED.
+ * Each entry is either a direct PremiseScorer or a PremiseScorerFactory(memory) => PremiseScorer.
+ */
+interface ScorerEntry {
+  create: (memory: Memory) => PremiseScorer;
+  isExtended?: false;
+}
 
-export const PREMISE_SCORERS_CURRIED = {
-  linkWeight: (memory: Memory) => (task: Task, concept: Concept): number =>
-    getLinkStrength(memory, task.term, concept.term),
-  edgeWeight: (_memory: Memory) => (task: Task, concept: Concept): number => {
-    const graph = getSharedConceptGraph();
-    if (!graph) return 0;
-    const coActivations = graph.getCoActivations(task.term, 20);
-    const edge = coActivations.find((e) => termsEqual(e.targetTerm, concept.term));
-    return edge?.weight ?? 0;
-  },
-} as const;
+interface ExtendedScorerEntry {
+  create: (memory: Memory, weights: { link: number; embed: number; pri: number }) => (memory: Memory) => PremiseScorer;
+  isExtended: true;
+}
 
-export const PREMISE_FILTERS = {
-  sharedAtoms: (task: Task, concept: Concept): boolean => {
-    const atoms1 = extractSymbols(task.term);
-    const atoms2 = extractSymbols(concept.term);
-    for (const a of atoms1) {
-      if (atoms2.has(a)) return true;
-    }
-    return false;
-  },
-  noStampOverlap: (task: Task, concept: Concept): boolean => {
-    const belief = concept.beliefBag.peek();
-    if (!belief?.stamp) return true;
-    const taskStamp = task.stamp;
-    if (!taskStamp) return true;
-    return !Stamp.overlaps(belief.stamp, taskStamp);
-  },
-  inheritanceOnly: (_task: Task, concept: Concept): boolean => concept.term.kind === 'inheritance',
-  inheritanceOverlap: (task: Task, concept: Concept): boolean => {
-    if (task.term.kind !== 'inheritance' || concept.term.kind !== 'inheritance') return true;
-    const [taskSub, taskPred] = task.term.args ?? [];
-    const [conceptSub, conceptPred] = concept.term.args ?? [];
-    return (
-      (taskSub !== undefined && conceptSub !== undefined && termsEqual(taskSub, conceptSub)) ||
-      (taskSub !== undefined && conceptPred !== undefined && termsEqual(taskSub, conceptPred)) ||
-      (taskPred !== undefined && conceptSub !== undefined && termsEqual(taskPred, conceptSub)) ||
-      (taskPred !== undefined && conceptPred !== undefined && termsEqual(taskPred, conceptPred))
-    );
-  },
-} as const;
+type ScorerRegistryEntry = ScorerEntry | ExtendedScorerEntry;
 
-export const PREMISE_FILTERS_CURRIED = {
-  highConfidence: (threshold: number) => (task: Task, concept: Concept): boolean => {
-    const belief = concept.beliefBag.peek();
-    return (belief?.truth?.f ?? 0) > threshold;
-  },
-} as const;
-
-export const PREMISE_SCORERS_EXTENDED = {
-  linear: (weights: { link: number; embed: number; pri: number }) =>
-    (memory: Memory) => (task: Task, concept: Concept): number => {
-      const linkStrength = getLinkStrength(memory, task.term, concept.term);
-      const embeddingIndex = memory.getEmbeddingIndex?.();
-      const embeddingSim = embeddingIndex?.similarity?.(task.term.toString(), concept.term.toString()) ?? 0;
-      return weights.link * linkStrength + weights.embed * embeddingSim + weights.pri * concept.priority;
+function createScorerRegistry() {
+  const registry = {
+    // Simple scorers (no memory dependency)
+    priority: {
+      create: (_memory: Memory): PremiseScorer => (_task: Task, concept: Concept) => concept.priority,
+      isExtended: false as const,
     },
-} as const;
+    // Curried scorers (need memory)
+    linkWeight: {
+      create: (memory: Memory): PremiseScorer => (task: Task, concept: Concept) =>
+        getLinkStrength(memory, task.term, concept.term),
+      isExtended: false as const,
+    },
+    edgeWeight: {
+      create: (memory: Memory): PremiseScorer => (task: Task, concept: Concept) => {
+        const graph = getSharedConceptGraph();
+        if (!graph) return 0;
+        const coActivations = graph.getCoActivations(task.term, 20);
+        const edge = coActivations.find((e) => termsEqual(e.targetTerm, concept.term));
+        return edge?.weight ?? 0;
+      },
+      isExtended: false as const,
+    },
+    // Extended scorers (parameterized factories)
+    linear: {
+      create: (
+        _memory: Memory,
+        weights: { link: number; embed: number; pri: number }
+      ): (memory: Memory) => PremiseScorer => {
+        return (memory: Memory) => (task: Task, concept: Concept): number => {
+          const linkStrength = getLinkStrength(memory, task.term, concept.term);
+          const embeddingIndex = memory.getEmbeddingIndex?.();
+          const embeddingSim =
+            embeddingIndex?.similarity?.(task.term.toString(), concept.term.toString()) ?? 0;
+          return weights.link * linkStrength + weights.embed * embeddingSim + weights.pri * concept.priority;
+        };
+      },
+      isExtended: true as const,
+    },
+  } as const;
+  return registry;
+}
 
-export type ScorerName = keyof typeof PREMISE_SCORERS | keyof typeof PREMISE_SCORERS_CURRIED;
+export const PREMISE_SCORER_REGISTRY = createScorerRegistry();
 
-export type FilterName = keyof typeof PREMISE_FILTERS | keyof typeof PREMISE_FILTERS_CURRIED;
+function createFilterRegistry() {
+  const registry = {
+    sharedAtoms: {
+      create: (): PremiseFilter => (task: Task, concept: Concept): boolean => {
+        const atoms1 = extractSymbols(task.term);
+        const atoms2 = extractSymbols(concept.term);
+        for (const a of atoms1) {
+          if (atoms2.has(a)) return true;
+        }
+        return false;
+      },
+      isCurried: false as const,
+    },
+    noStampOverlap: {
+      create: (): PremiseFilter => (task: Task, concept: Concept): boolean => {
+        const belief = concept.beliefBag.peek();
+        if (!belief?.stamp) return true;
+        const taskStamp = task.stamp;
+        if (!taskStamp) return true;
+        return !Stamp.overlaps(belief.stamp, taskStamp);
+      },
+      isCurried: false as const,
+    },
+    inheritanceOnly: {
+      create: (): PremiseFilter => (_task: Task, concept: Concept): boolean =>
+        concept.term.kind === 'inheritance',
+      isCurried: false as const,
+    },
+    inheritanceOverlap: {
+      create: (): PremiseFilter => (task: Task, concept: Concept): boolean => {
+        if (task.term.kind !== 'inheritance' || concept.term.kind !== 'inheritance') return true;
+        const [taskSub, taskPred] = task.term.args ?? [];
+        const [conceptSub, conceptPred] = concept.term.args ?? [];
+        return (
+          (taskSub !== undefined && conceptSub !== undefined && termsEqual(taskSub, conceptSub)) ||
+          (taskSub !== undefined && conceptPred !== undefined && termsEqual(taskSub, conceptPred)) ||
+          (taskPred !== undefined && conceptSub !== undefined && termsEqual(taskPred, conceptSub)) ||
+          (taskPred !== undefined && conceptPred !== undefined && termsEqual(taskPred, conceptPred))
+        );
+      },
+      isCurried: false as const,
+    },
+    // Curried filter with parameter
+    highConfidence: {
+      create: (threshold: number): PremiseFilter => (task: Task, concept: Concept): boolean => {
+        const belief = concept.beliefBag.peek();
+        return (belief?.truth?.f ?? 0) > threshold;
+      },
+      isCurried: true as const,
+    },
+  } as const;
+  return registry;
+}
 
-/** A filter name, or a parameterized curried filter. */
+export const PREMISE_FILTER_REGISTRY = createFilterRegistry();
+
+export type ScorerName = keyof typeof PREMISE_SCORER_REGISTRY;
+
+export type FilterName = keyof typeof PREMISE_FILTER_REGISTRY;
+
+/** A filter name, or a parameterized curried filter spec. */
 export type FilterSpec = FilterName | { highConfidence: number };
 
 export interface SampleConfig {
@@ -151,41 +210,42 @@ const DEFAULT_SAMPLE_CONFIG: Omit<SampleConfig, 'source' | 'scorer' | 'filters' 
   skipSameTerm: true,
 };
 
-function resolveScorer(memory: Memory, scorer: SampleConfig['scorer']): PremiseScorer | undefined {
-  if (!scorer) return undefined;
-  if (typeof scorer === 'string') {
-    if (scorer in PREMISE_SCORERS) {
-      return PREMISE_SCORERS[scorer as keyof typeof PREMISE_SCORERS];
-    }
-    if (scorer in PREMISE_SCORERS_CURRIED) {
-      return PREMISE_SCORERS_CURRIED[scorer as keyof typeof PREMISE_SCORERS_CURRIED](memory);
-    }
-    return undefined;
-  }
-  if ('linear' in scorer) {
-    return PREMISE_SCORERS_EXTENDED.linear(scorer.linear)(memory);
-  }
-  return undefined;
-}
-
-/** Bare curried-filter names need a threshold; parameterized specs carry their own. */
-const CURRIED_FILTER_DEFAULTS: Partial<Record<FilterName, number>> = { highConfidence: 0.7 };
+const HIGH_CONFIDENCE_DEFAULT = 0.7;
 
 function resolveFilters(filters: FilterSpec[]): PremiseFilter[] {
   return filters.map((spec) => {
     if (typeof spec === 'object') {
-      return PREMISE_FILTERS_CURRIED.highConfidence(spec.highConfidence);
+      const entry = PREMISE_FILTER_REGISTRY.highConfidence;
+      return entry.create(spec.highConfidence);
     }
-    if (spec in PREMISE_FILTERS) {
-      return PREMISE_FILTERS[spec as keyof typeof PREMISE_FILTERS];
-    }
-    if (spec in PREMISE_FILTERS_CURRIED) {
-      return PREMISE_FILTERS_CURRIED[spec as keyof typeof PREMISE_FILTERS_CURRIED](
-        CURRIED_FILTER_DEFAULTS[spec] ?? 0
-      );
-    }
+    const entry = PREMISE_FILTER_REGISTRY[spec as keyof typeof PREMISE_FILTER_REGISTRY];
+    if (entry && !entry.isCurried) return entry.create();
     return () => true;
   });
+}
+
+export function resolveScorer(
+  memory: Memory,
+  scorer: SampleConfig['scorer']
+): PremiseScorer | undefined {
+  if (!scorer) return undefined;
+  if (typeof scorer === 'string') {
+    const entry = PREMISE_SCORER_REGISTRY[scorer as keyof typeof PREMISE_SCORER_REGISTRY];
+    if (entry && !entry.isExtended) {
+      return entry.create(memory);
+    }
+    return undefined;
+  }
+  if ('linear' in scorer) {
+    const entry = PREMISE_SCORER_REGISTRY.linear;
+    if (entry && entry.isExtended) {
+      // linear.create returns (memory) => PremiseScorer factory, call it with memory
+      const factory = entry.create(memory, scorer.linear);
+      return factory(memory);
+    }
+    return undefined;
+  }
+  return undefined;
 }
 
 export function samplePremisesFromConfig(

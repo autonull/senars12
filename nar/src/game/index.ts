@@ -24,3 +24,13 @@ export { createArcadeRegistry, GameRegistry, UnknownGameError } from './registry
 export { createMetaGame, MetaGame as MetaGameClass } from './MetaGame.js';
 export type { KnobConfig, SelfMetaGameConfig } from './SelfMetaGame.js';
 export { createSelfMetaGame, SelfMetaGameImpl } from './SelfMetaGame.js';
+
+// ReasoningGame exports (from former cognition/)
+export { createReasoningGame, REASONING_SPECS, ReasoningGame } from './ReasoningGame.js';
+export type { ReasoningGameSpec, ReasoningGameOptions, ReasoningTask, ReasoningState } from './ReasoningGame.js';
+export { describeMetaGameActions, FOCUS_WEIGHT_STEPS, KNOB_SET_VALUES } from './meta-spec.js';
+export * from './actions.js';
+export * from './rewards.js';
+export * from './sensors.js';
+export * from './registries.js';
+export * from './types.js';

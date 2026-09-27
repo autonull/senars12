@@ -7,3 +7,5 @@ export type { InputProcessorConfig } from './input.js';
 export { InputProcessor, inputProcessor } from './input.js';
 // Task management
 export { TaskManager } from './manager.js';
+// Task classification
+export { classifyTask, classifyTaskSignals, type TaskSignal } from './classify.js';
