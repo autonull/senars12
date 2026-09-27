@@ -64,6 +64,8 @@ export interface NARConfig extends CoreConfig {
   proofMettaProposer?: { enabled?: boolean; maxRules?: number; minConfidence?: number; patternMinSupport?: number };
   /** Initial autonomy mode for the action gate (default: 'observe-only'). */
   initialAutonomyMode?: AutonomyMode;
+  /** Disable embedding layer for semantic similarity (saves resources when no embedding model). */
+  enableEmbeddingLayer?: boolean;
 }
 
 export function validateNarConfig(config: NARConfig): NARConfig {

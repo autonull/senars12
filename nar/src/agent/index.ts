@@ -413,3 +413,11 @@ export { BuilderError, NARBuilder } from './builder.js';
 export type { NARProfileName, NARProfileSpec } from './profiles.js';
 export { NAR_PROFILES, resolveProfile } from './profiles.js';
 export type { ExtendedAgent };
+
+export {
+  createCognitiveAgent,
+  type CognitiveAgent,
+  type CognitiveAgentConfig,
+  type CognitiveAgentPreset,
+  type AnswerEnvelope,
+} from './cognitive-agent.js';

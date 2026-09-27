@@ -26,6 +26,7 @@ export interface MemoryConfig {
   archiveMaxConcepts?: number;
   enableIndexing?: boolean;
   enableArchive?: boolean;
+  enableEmbeddingLayer?: boolean;
   forgettingPolicy?: ForgettingPolicy;
   healthCheckInterval?: number;
   enablePressureDetection?: boolean;
@@ -45,6 +46,7 @@ const DEFAULT_CONFIG: Required<MemoryConfig> = {
   archiveMaxConcepts: 1000,
   enableIndexing: true,
   enableArchive: true,
+  enableEmbeddingLayer: true,
   forgettingPolicy: 'fifo',
   healthCheckInterval: 1000,
   enablePressureDetection: true,
@@ -131,13 +133,15 @@ export class Memory {
       globalDecayRate: config.linkDecayRate ?? LINK.DECAY_RATE,
     });
 
-    // Register EmbeddingLayer for semantic similarity
-    const embeddingLayer = new EmbeddingLayer({
-      capacity: config.semanticLinkCapacity ?? LINK.SEMANTIC_LAYER_CAPACITY,
-      similarityThreshold: 0.6,
-      maxLinksPerConcept: 20,
-    });
-    this.linkManager.setLayer('embedding', embeddingLayer);
+    // Register EmbeddingLayer for semantic similarity (optional)
+    if (config.enableEmbeddingLayer) {
+      const embeddingLayer = new EmbeddingLayer({
+        capacity: config.semanticLinkCapacity ?? LINK.SEMANTIC_LAYER_CAPACITY,
+        similarityThreshold: 0.6,
+        maxLinksPerConcept: 20,
+      });
+      this.linkManager.setLayer('embedding', embeddingLayer);
+    }
   }
 
   getEmbeddingIndex(): EmbeddingLayer | undefined {
