@@ -4,12 +4,14 @@
  *
  * Usage:
  *   pnpm replay --from <ordinal> --to <ordinal> --verify
+ *   pnpm replay --from-id <uuid> --to-id <uuid> --verify
  *   pnpm replay --from 0 --to 1000 --output replay-snapshot.json
  *   pnpm replay --verify --snapshot replay-snapshot.json
  *
  * Replays gate events and derivation records into a fresh Memory,
  * optionally verifying the final state hash matches a recorded snapshot.
- * Gate events carry no `id`, so --from/--to address event ordinals in the log.
+ * Gate events carry `id` (UUID), so --from-id/--to-id address event identities.
+ * --from/--to address log ordinals (fallback for old logs without IDs).
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -33,6 +35,8 @@ const logger = createLogger({ scope: 'replay' });
 interface ReplayCliOptions {
   from?: number;
   to?: number;
+  fromId?: string;
+  toId?: string;
   verify?: boolean;
   snapshot?: string;
   output?: string;
@@ -61,6 +65,10 @@ function parseArgs(argv: string[]): ReplayCliOptions {
       opts.from = parseOrdinal(argv[++i], '--from');
     } else if (arg === '--to' || arg === '-t') {
       opts.to = parseOrdinal(argv[++i], '--to');
+    } else if (arg === '--from-id') {
+      opts.fromId = argv[++i];
+    } else if (arg === '--to-id') {
+      opts.toId = argv[++i];
     } else if (arg === '--verify' || arg === '-v') {
       opts.verify = true;
     } else if (arg === '--snapshot' || arg === '-s') {
@@ -85,10 +93,13 @@ SeNARS Deterministic Replay CLI
 
 Usage:
   pnpm replay --from <ordinal> --to <ordinal> [options]
+  pnpm replay --from-id <uuid> --to-id <uuid> [options]
 
 Options:
   -f, --from <ordinal>       Starting gate-event ordinal (inclusive), or "0" for beginning
   -t, --to <ordinal>         Ending gate-event ordinal (inclusive) or "end" for all
+      --from-id <uuid>       Starting gate-event ID (UUID) — preferred over ordinals
+      --to-id <uuid>         Ending gate-event ID (UUID) — preferred over ordinals
   -v, --verify                 Verify final state hash against snapshot
   -s, --snapshot <path>        Path to snapshot file for verification
   -o, --output <path>          Output path for snapshot (default: stdout)
@@ -98,6 +109,7 @@ Options:
 
 Examples:
   pnpm replay --from 0 --to 1000 --verify
+  pnpm replay --from-id 0192f0c... --to-id 0192f1a... --verify
   pnpm replay --from 0 --to end --output snapshot.json
   pnpm replay --verify --snapshot snapshot.json
 `);
@@ -113,20 +125,22 @@ async function runReplay(opts: ReplayCliOptions): Promise<void> {
     process.exit(1);
   }
 
-  logger.info('Starting replay', { from: opts.from, to: opts.to, gateEventsPath });
+  const rangeInfo = opts.fromId ? { fromId: opts.fromId, toId: opts.toId } : { from: opts.from, to: opts.to };
+  logger.info('Starting replay', { ...rangeInfo, gateEventsPath });
 
   const replayOpts: FullReplayOptions = {
     gateEventsPath,
     derivationRecordsPath: existsSync(derivationRecordsPath) ? derivationRecordsPath : undefined,
     memoryConfig: opts.memoryConfig as FullReplayOptions['memoryConfig'],
     range: { from: opts.from, to: opts.to },
+    idRange: opts.fromId ? { from: opts.fromId, to: opts.toId } : undefined,
   };
 
   const result = await replayIntoMemory(replayOpts);
-  const stateHash = computeReplayStateHash(result);
+  const stateHash = await computeReplayStateHash(result);
 
   logger.info('Replay completed', {
-    range: { from: opts.from ?? 0, to: opts.to ?? 'end' },
+    ...rangeInfo,
     appliedTasks: result.appliedTasks,
     appliedRevisions: result.appliedRevisions,
     appliedDerivations: result.appliedDerivations,
@@ -146,7 +160,7 @@ async function runReplay(opts: ReplayCliOptions): Promise<void> {
       process.exit(1);
     }
     const snapshot = JSON.parse(readFileSync(opts.snapshot, 'utf8')) as ReplaySnapshotFile;
-    const { valid, actual } = verifyReplayStateHash(result, snapshot.stateHash);
+    const { valid, actual } = await verifyReplayStateHash(result, snapshot.stateHash);
     if (valid) {
       logger.info('VERIFICATION PASSED: State hash matches snapshot');
       console.log('✅ VERIFICATION PASSED');

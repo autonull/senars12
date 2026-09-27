@@ -169,15 +169,62 @@ describe('F1 — OTel span events on the tick pipeline (C22)', () => {
 });
 
 describe('F2 — deterministic replay verification (C14)', () => {
-  const gateEventsPath = (dir: string): string => {
+  let gateEventsFile: string;
+
+  beforeEach(() => {
+    const dir = mkdtempSync(join(tmpdir(), 'senars-replay-'));
     const events = [1, 2, 3].map((n) =>
       validateCognitiveEvent({
         type: 'task.admitted',
         engine: 'nar',
-        timestamp: Date.now(),
-        correlationId: uuidv4(),
+        timestamp: 1000 + n, // Fixed timestamps for determinism
+        correlationId: `00000000-0000-4000-8000-00000000000${n}`,
         payload: {
-          taskId: uuidv4(),
+          taskId: `00000000-0000-4000-8000-00000000001${n}`,
+          term: `(cat --> animal_${n})`,
+          taskType: 'belief',
+          truth: { frequency: 1, confidence: 0.9 },
+          source: 'user',
+          budget: { priority: 0.5, durability: 0.5, quality: 0.9, cycles: 10, depth: 5 },
+        },
+      })
+    );
+    gateEventsFile = join(dir, 'gate-events.jsonl');
+    writeFileSync(gateEventsFile, `${events.map((e) => JSON.stringify(e)).join('\n')}\n`);
+  });
+
+  const snapshotOf = async (dir: string, name: string): Promise<ReplaySnapshotFile> => {
+    const path = join(dir, name);
+    const result = await replayIntoMemory({ gateEventsPath: gateEventsFile });
+    await serializeReplayResult(result, path);
+    return JSON.parse(readFileSync(path, 'utf8')) as ReplaySnapshotFile;
+  };
+
+  it('produces a stable hash and writes it into the snapshot', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'senars-replay-'));
+
+    const result = await replayIntoMemory({ gateEventsPath: gateEventsFile });
+    const hash = await computeReplayStateHash(result);
+    
+    // Serialize the SAME result to snapshot
+    const path = join(dir, 'snapshot.json');
+    await serializeReplayResult(result, path);
+    const snapshot = JSON.parse(readFileSync(path, 'utf8')) as ReplaySnapshotFile;
+    expect(snapshot.stateHash).toBe(hash);
+    expect((await verifyReplayStateHash(result, snapshot.stateHash)).valid).toBe(true);
+    expect(result.appliedTasks).toBe(3);
+  });
+
+  it('detects a mutated event log', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'senars-replay-'));
+    const events = [1, 2, 3].map((n) =>
+      validateCognitiveEvent({
+        type: 'task.admitted',
+        engine: 'nar',
+        timestamp: 1000 + n,
+        correlationId: `00000000-0000-4000-8000-00000000000${n}`,
+        payload: {
+          taskId: `00000000-0000-4000-8000-00000000001${n}`,
           term: `(cat --> animal_${n})`,
           taskType: 'belief',
           truth: { frequency: 1, confidence: 0.9 },
@@ -188,34 +235,9 @@ describe('F2 — deterministic replay verification (C14)', () => {
     );
     const path = join(dir, 'gate-events.jsonl');
     writeFileSync(path, `${events.map((e) => JSON.stringify(e)).join('\n')}\n`);
-    return path;
-  };
 
-  const snapshotOf = async (dir: string, name: string): Promise<ReplaySnapshotFile> => {
-    const path = join(dir, name);
-    const result = await replayIntoMemory({ gateEventsPath: gateEventsPath(dir) });
-    await serializeReplayResult(result, path);
-    return JSON.parse(readFileSync(path, 'utf8')) as ReplaySnapshotFile;
-  };
-
-  it('produces a stable hash and writes it into the snapshot', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'senars-replay-'));
-
-    const a = await replayIntoMemory({ gateEventsPath: gateEventsPath(dir) });
-    const b = await replayIntoMemory({ gateEventsPath: gateEventsPath(dir) });
-    expect(computeReplayStateHash(a)).toBe(computeReplayStateHash(b));
-    expect(a.appliedTasks).toBe(3);
-
-    const snapshot = await snapshotOf(dir, 'snapshot.json');
-    expect(snapshot.stateHash).toBe(computeReplayStateHash(a));
-    expect(verifyReplayStateHash(a, snapshot.stateHash).valid).toBe(true);
-  });
-
-  it('detects a mutated event log', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'senars-replay-'));
-    const path = gateEventsPath(dir);
     const baseline = await replayIntoMemory({ gateEventsPath: path });
-    const hash = computeReplayStateHash(baseline);
+    const hash = await computeReplayStateHash(baseline);
 
     const lines = readFileSync(path, 'utf8').trim().split('\n');
     const mutated = lines.map((line, i) =>
@@ -224,19 +246,36 @@ describe('F2 — deterministic replay verification (C14)', () => {
     writeFileSync(path, `${mutated.join('\n')}\n`);
 
     const after = await replayIntoMemory({ gateEventsPath: path });
-    expect(verifyReplayStateHash(after, hash).valid).toBe(false);
+    expect((await verifyReplayStateHash(after, hash)).valid).toBe(false);
   });
 
   it('honors the --from/--to ordinal window', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'senars-replay-'));
-    const path = gateEventsPath(dir);
+    const events = [1, 2, 3].map((n) =>
+      validateCognitiveEvent({
+        type: 'task.admitted',
+        engine: 'nar',
+        timestamp: 1000 + n,
+        correlationId: `00000000-0000-4000-8000-00000000000${n}`,
+        payload: {
+          taskId: `00000000-0000-4000-8000-00000000001${n}`,
+          term: `(cat --> animal_${n})`,
+          taskType: 'belief',
+          truth: { frequency: 1, confidence: 0.9 },
+          source: 'user',
+          budget: { priority: 0.5, durability: 0.5, quality: 0.9, cycles: 10, depth: 5 },
+        },
+      })
+    );
+    const path = join(dir, 'gate-events.jsonl');
+    writeFileSync(path, `${events.map((e) => JSON.stringify(e)).join('\n')}\n`);
 
     const full = await replayIntoMemory({ gateEventsPath: path });
     const windowed = await replayIntoMemory({ gateEventsPath: path, range: { from: 1, to: 1 } });
 
     expect(full.appliedTasks).toBe(3);
     expect(windowed.appliedTasks).toBe(1);
-    expect(computeReplayStateHash(windowed)).not.toBe(computeReplayStateHash(full));
+    expect(await computeReplayStateHash(windowed)).not.toBe(await computeReplayStateHash(full));
   });
 });
 

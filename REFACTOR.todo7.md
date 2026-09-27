@@ -157,8 +157,8 @@ on:
       - 'core/src/**'
       - 'tests/soak/**'
 ```
-- PR/micro-soak: `SOAK_SCALE=fast` (60s)
-- Weekly: `SOAK_SCALE=full` (24h)
+- **PR/micro-soak only**: `SOAK_SCALE=fast` (60s max) — **no 24h full soak in CI**
+- Weekly full soak runs manually/scheduled separately
 - Both upload artifacts + comment on PR
 
 ### 4.4 Falsifiers
