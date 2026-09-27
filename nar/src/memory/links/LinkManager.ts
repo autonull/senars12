@@ -128,6 +128,14 @@ export class LinkManager {
     }
   }
 
+  getLinkPriority(sourceTerm: Term, targetTerm: Term, layerName = 'term'): number {
+    const layer = this.getLayer(layerName);
+    if (layer instanceof TermLayer) {
+      return layer.getLinkPriority(sourceTerm, targetTerm);
+    }
+    return 0;
+  }
+
   applyDecay(decayRate?: number): void {
     const rate = decayRate ?? this.config.globalDecayRate;
     for (const layer of this.layers.values()) {

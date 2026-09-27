@@ -60,6 +60,7 @@ export interface CoreConfig {
   readonly cpuThrottleMs: number;
   readonly maxDerivationDepth: number;
   readonly maxDerivationsPerStep: number;
+  readonly sampleSize: number;
 }
 
 // Default configuration values
@@ -70,6 +71,7 @@ export const DEFAULT_CONFIG: CoreConfig = Object.freeze({
   cpuThrottleMs: 10,
   maxDerivationDepth: 10,
   maxDerivationsPerStep: 1000,
+  sampleSize: 100,
 });
 
 // Utility types

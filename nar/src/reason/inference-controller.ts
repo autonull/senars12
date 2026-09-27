@@ -23,6 +23,8 @@ export interface InferenceConfig {
   singlePremiseLMRules: boolean;
   maxLMRulesPerStep: number;
   enableLMRules: boolean;
+  /** Number of concepts to sample per cycle (used by both step() and run()). */
+  sampleSize: number;
   /** Optional derivation-chain sink (TODO25 follow-on: SchemaInductor fuel). */
   onDerivation?: (chain: readonly Task[]) => void;
 }
@@ -61,7 +63,7 @@ export class InferenceController {
     this.lmRulesFiredCount = 0;
     this.syncRulesFiredCount = 0;
 
-    const concepts = this.samplingStrategy.sample(this.memory, 100);
+    const concepts = this.samplingStrategy.sample(this.memory, this.config.sampleSize);
 
     for (const concept of concepts) {
       if (signal?.aborted || Date.now() > endTime || results.length >= maxResults) break;
@@ -107,10 +109,17 @@ export class InferenceController {
     this.lmRulesFiredCount = 0;
     this.syncRulesFiredCount = 0;
 
-    const concepts = this.memory.sample(100);
+    const concepts = this.samplingStrategy.sample(this.memory, this.config.sampleSize);
 
     for (const concept of concepts) {
       if (signal?.aborted || resultCount >= maxResults) break;
+
+      const boost = this.memory.attentionModel.prime(concept, {
+        concept,
+        cycleCount: Date.now(),
+        memory: this.memory,
+      });
+      if (boost !== 0) concept.priority = Math.min(1, concept.priority + boost);
 
       const task = createBeliefTask(concept);
       if (!task) continue;

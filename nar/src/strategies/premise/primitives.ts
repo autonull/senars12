@@ -51,9 +51,7 @@ export const PREMISE_SOURCES = {
 
 function getLinkStrength(memory: Memory, primary: Term, target: Term): number {
   const linkManager = memory.getLinkManager();
-  const links = linkManager.getLinks(primary, { minPriority: 0 });
-  const match = links.find((l) => termsEqual(l.targetTerm, target));
-  return match ? match.priority : 0;
+  return linkManager.getLinkPriority(primary, target);
 }
 
 /**
@@ -264,10 +262,29 @@ export function samplePremisesFromConfig(
   const scorerFn = resolveScorer(memory, merged.scorer);
   if (!scorerFn) return results;
 
+  // Pre-compute co-activations once if using edgeWeight scorer
+  let coActivationMap: Map<string, number> | null = null;
+  const isEdgeWeightScorer = typeof merged.scorer === 'string' && merged.scorer === 'edgeWeight';
+  if (isEdgeWeightScorer) {
+    const graph = getSharedConceptGraph();
+    if (graph) {
+      const coActivations = graph.getCoActivations(task.term, 20);
+      coActivationMap = new Map(coActivations.map((e) => [e.targetTerm.toString(), e.weight]));
+    }
+  }
+
   const filterFns = resolveFilters(merged.filters);
 
   const scored = concepts
-    .map((c) => ({ concept: c, score: scorerFn(task, c) }))
+    .map((c) => {
+      let score: number;
+      if (isEdgeWeightScorer && coActivationMap) {
+        score = coActivationMap.get(c.term.toString()) ?? 0;
+      } else {
+        score = scorerFn(task, c);
+      }
+      return { concept: c, score };
+    })
     .filter(({ score }) => score >= merged.minScore)
     .filter(({ concept }) => {
       if (merged.skipSameTerm && termsEqual(concept.term, task.term)) return false;

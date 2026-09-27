@@ -145,7 +145,7 @@ export class NAR extends BaseComponent {
     this.processor = new RuleProcessor();
     this.processor.setConfig({ memory: this.memory, nar: this });
     this.processor.setEventBus(eventBus);
-    this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);
+    this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, { ...this.config, sampleSize: this.config.sampleSize });
     this.taskManager = new TaskManager(this.memory, { gateRegistry: this.gates });
     this.query = new QueryAPI(this.memory);
     this.traceAPI = new ReasoningTrace(this.memory);

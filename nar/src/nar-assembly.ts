@@ -126,7 +126,7 @@ function assembleCore(config: NARConfig, eventBus: NarEventBus, logger: ReturnTy
   const processor = new RuleProcessor();
   processor.setConfig({ memory, nar: null as any }); // nar set later
   processor.setEventBus(eventBus);
-  const reasoner = new Reasoner(memory, processor, BagStrategy, config);
+  const reasoner = new Reasoner(memory, processor, BagStrategy, { ...config, sampleSize: config.sampleSize });
   const taskManager = new TaskManager(memory, { gateRegistry: gates });
   const query = new QueryAPI(memory);
   const traceAPI = new ReasoningTrace(memory);

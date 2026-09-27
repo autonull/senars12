@@ -10,6 +10,7 @@ export interface ReasonerConfig
   enableCircularDetection?: boolean;
   enableTraceCollection?: boolean;
   singlePremiseLMRules?: boolean;
+  sampleSize?: number;
 }
 
 export interface ReasoningTrace {
@@ -40,6 +41,7 @@ export class Reasoner {
       singlePremiseLMRules: config.singlePremiseLMRules ?? true,
       maxLMRulesPerStep: 13,
       enableLMRules: true,
+      sampleSize: config.sampleSize ?? 100,
     };
     this.inferenceController = new InferenceController(
       memory,

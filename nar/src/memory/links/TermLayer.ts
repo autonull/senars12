@@ -183,6 +183,12 @@ export class TermLayer extends Layer {
     }
   }
 
+  getLinkPriority(source: Term, target: Term, type: LinkType = 'term-link'): number {
+    const id = createLinkId(source, target, type);
+    const entry = this.links.get(id);
+    return entry?.priority ?? 0;
+  }
+
   serialize(): SerializedLayer {
     const links: LinkEntry[] = [];
     for (const entry of this.links.values()) {

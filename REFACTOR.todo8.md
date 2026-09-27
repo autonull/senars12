@@ -239,8 +239,8 @@ on simplified code). **D** interleaves after B (Tier 2–5 need harness + simpli
 | B5 | B | Event bus taxonomy: `NarEventBus` with `kernel:*`/`cognition:*`/`ui:*` channels | Single bus; per-game emitters become scoped | ✅ |
 | B6 | B | `NarAssembly` + 4 sub-facades (`systemOne`, `games`, `learning`, `io`) | `reconfigure()` reconfigures InferenceController only | ✅ |
 | B7 | B | Legacy dirs `cognition/` + `rl/` deleted post `exports:audit` | No external consumers; dirs gone | ✅ |
-| C1 | C | `LinkManager.getLinkPriority(from,to)` O(1); ConceptGraph adjacency snapshot per task | Bench: O(1) lookup; selection parity identical | ⬜ |
-| C2 | C | InferenceController path unification: `run()` uses `samplingStrategy` | One reasoning path; default cycle parity | ⬜ |
+| C1 | C | `LinkManager.getLinkPriority(from,to)` O(1); ConceptGraph adjacency snapshot per task | Bench: O(1) lookup; selection parity identical | ✅ |
+| C2 | C | InferenceController path unification: `run()` uses `samplingStrategy` | One reasoning path; default cycle parity | ✅ |
 | C3 | C | Measured hot-path fixes (BudgetSlice churn, embedding incremental, rankDerivations) | Flamegraph deltas ≥5% or ADR rejection | ⬜ |
 | D1 | D | Tier 2: self-improvement loop end-to-end (derivation → MeTTa → governance → capability fires) | Learned rule changes selection in later cycle | ⬜ |
 | D2 | D | Tier 3: multi-root FocusTree + CognitiveThreads in-loop | Σ(child)≤parent; no lost derivations vs baseline | ⬜ |
@@ -392,3 +392,29 @@ Additional duplications confirmed (already in plan):
 - `pnpm exports:audit` green.
 - `pnpm --filter @senars/nar typecheck` green (nar package only; core/kernel errors pre-existing).
 - 50/50 core tests pass (game-registry, refactor2-strategy-consensus, premise-primitives, rulegraph-wiring).
+
+### Phase C Progress (2026-09-27)
+
+**C1 — Scorer Lookup Indexes** (`nar/src/memory/links/TermLayer.ts`, `nar/src/memory/links/LinkManager.ts`, `nar/src/strategies/premise/primitives.ts`):
+- Added `TermLayer.getLinkPriority(source, target, type)` — O(1) map lookup via `createLinkId` key.
+- Added `LinkManager.getLinkPriority(sourceTerm, targetTerm, layerName)` — delegates to TermLayer.
+- Rewrote `getLinkStrength()` in `primitives.ts` to use `LinkManager.getLinkPriority()` — eliminates `links.find()` O(n) scan.
+- Optimized `edgeWeight` scorer in `samplePremisesFromConfig()` to pre-compute `ConceptGraph.getCoActivations()` once per task and use a `Map` for O(1) lookups instead of calling `getCoActivations()` per concept (quadratic → linear).
+- Created benchmark `tests/nar/scorer-perf.test.ts` (bench 118) verifying:
+  - `LinkManager.getLinkPriority`: 0.38ns/op vs `getLinks`: 122.88ns/op (323× speedup)
+  - `ConceptGraph` single call + map: 1.65ns/op vs per-concept calls: 9.70ns/op (5.9× speedup)
+
+**C2 — InferenceController Path Unification** (`nar/src/reason/inference-controller.ts`, `nar/src/reason/reasoner.ts`, `nar/src/types/core.ts`, `nar/src/nar-assembly.ts`, `nar/src/nar.ts`):
+- Added `sampleSize` to `CoreConfig` and `InferenceConfig` (default 100).
+- Updated `InferenceController.step()` to use `config.sampleSize` instead of hardcoded 100.
+- Updated `InferenceController.run()` to use `samplingStrategy.sample(memory, config.sampleSize)` instead of `memory.sample(100)` — both paths now use the same sampling strategy.
+- Updated `Reasoner`, `nar-assembly.ts`, and `nar.ts` to pass `sampleSize` through config.
+- Golden scenarios pass determinism gate — parity verified (C31).
+
+**C3 — Measured Hot-Path Fixes**: Pending (profiling needed).
+
+**Verification**:
+- All 5 golden Tier-1 scenarios pass determinism gate (10/10 tests green).
+- `pnpm test:determinism` green.
+- `pnpm vitest run tests/nar/unit/` — 580/580 tests pass.
+- Bench 118 (scorer index perf) passes with documented speedups.
