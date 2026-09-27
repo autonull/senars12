@@ -1,3 +1,4 @@
+import type { AutonomyMode } from '@senars/kernel/schemas';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
@@ -61,6 +62,8 @@ export interface NARConfig extends CoreConfig {
   hardNegativeMining?: { bounded?: boolean; capacity?: number; budget?: number; marginFloor?: number };
   /** Phase E: ProofMettaProposer as a negotiation proposer (learns from proof stream). */
   proofMettaProposer?: { enabled?: boolean; maxRules?: number; minConfidence?: number; patternMinSupport?: number };
+  /** Initial autonomy mode for the action gate (default: 'observe-only'). */
+  initialAutonomyMode?: AutonomyMode;
 }
 
 export function validateNarConfig(config: NARConfig): NARConfig {

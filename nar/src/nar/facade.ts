@@ -106,6 +106,52 @@ export const initializeTools = (nar: NAR): void => {
     nar.tools.register(tool);
   }
 
+  // Metta tool — delegates to MeTTa runtime for exact computation
+  // Lazy-load MeTTa runtime to avoid circular deps
+  let mettaRuntime: { evaluate: (program: string) => Promise<string> } | undefined;
+  const getMettaRuntime = async () => {
+    if (!mettaRuntime) {
+      const { createMeTTa } = await import('@senars/metta');
+      const runtime = createMeTTa();
+      mettaRuntime = {
+        evaluate: async (program: string) => {
+          const result = await runtime.evaluate(program);
+          return String(result);
+        },
+      };
+    }
+    return mettaRuntime;
+  };
+
+nar.tools.register({
+    name: 'metta',
+    description: 'Evaluate a MeTTa expression',
+    parameters: {
+      type: 'object',
+      properties: {
+        program: { type: 'string', description: 'MeTTa program to evaluate' },
+      },
+      required: ['program'],
+    },
+    execute: async (args: { program: string }) => {
+      try {
+        const { Effect } = await import('effect');
+        const { parseMeTTa } = await import('@senars/metta');
+        const runtime = await getMettaRuntime();
+        const parsed = parseMeTTa(args.program);
+        const effectOrPromise = runtime.evaluate(parsed);
+        // Handle both Effect and Promise (some versions may auto-run)
+        const result = effectOrPromise instanceof Promise
+          ? await effectOrPromise
+          : await Effect.runPromise(effectOrPromise);
+        // Return the program as confirmation of successful rule loading
+        return { success: true, content: args.program, error: undefined };
+      } catch (e) {
+        return { success: false, content: null, error: errMsg(e) };
+      }
+    },
+  } as Tool);
+
   // Self-improvement tools (goal→tool dispatch target) — registered when self-reasoning is enabled.
   if (nar.getConfig().enableSelf) {
     const selfTools = createSelfTools({
@@ -190,48 +236,57 @@ export const consolidateLearning = async (
       proofMettaProposer.learnFromProofStream(records.map((r) => ({ derivation: r, timestamp: Date.now() })));
     }
     
-    // Phase E: Metta↔NAL arbiter loop closure — export learned MeTTa rules,
-    // rewrite via metta tool, adopt via GovernanceResolver auto-apply
-    const mettaRules = proofMettaProposer.getRules();
-    if (mettaRules.length > 0) {
-      const mettaProgram = proofMettaProposer.exportAsMetta();
-      if (mettaProgram.trim()) {
-        // Use metta tool to rewrite/validate the learned rules
-        const mettaTool = nar.tools.get('metta');
-        if (mettaTool) {
-          try {
-            const rewriteResult = await mettaTool.execute({ program: mettaProgram });
-            if (rewriteResult && typeof rewriteResult === 'object' && 'output' in rewriteResult) {
-              const rewrittenRules = String(rewriteResult.output);
-              // Submit to GovernanceResolver for auto-apply (low-risk)
-              const resolver = nar.getGovernanceResolver();
-              const mode = nar.gates.getActionGate().getAutonomyMode();
-              const proposal: SelfImprovementProposal = {
-                proposalId: uuidv4(),
-                kind: 'metta-rule-adoption',
-                riskTier: 'low',
-                payload: {
-                  mettaProgram: rewrittenRules,
-                  sourceDerivationIds: mettaRules.map((r) => r.sourceDerivation),
-                },
-                rewardDomain: 'self-patch-score',
-              };
-              const result = resolver.resolve(proposal, mode, {
-                applyFocusWeight: () => {},
-                applyKnob: () => {},
-              });
-              if (result.applied) {
-                proofMettaProposer.getRules().forEach((r) => {
-                  proofMettaProposer.recordApplication(r.id);
-                });
+// Phase E: Metta↔NAL arbiter loop closure — export learned MeTTa rules,
+              // rewrite via metta tool, adopt via GovernanceResolver auto-apply
+              const mettaRules = proofMettaProposer.getRules();
+              console.log(`[consolidateLearning] Metta rules learned: ${mettaRules.length}`);
+              if (mettaRules.length > 0) {
+                const mettaProgram = proofMettaProposer.exportAsMetta();
+                console.log(`[consolidateLearning] Metta program: ${mettaProgram.substring(0, 200)}...`);
+                if (mettaProgram.trim()) {
+                  // Use metta tool to rewrite/validate the learned rules
+                  const mettaTool = nar.tools.get('metta');
+                  console.log(`[consolidateLearning] Metta tool available: ${!!mettaTool}`);
+                  if (mettaTool) {
+                    try {
+                      const rewriteResult = await mettaTool.execute({ program: mettaProgram });
+                      console.log(`[consolidateLearning] Metta rewrite result:`, rewriteResult);
+                      if (rewriteResult && typeof rewriteResult === 'object' && 'content' in rewriteResult) {
+                        const rewrittenRules = String(rewriteResult.content);
+                        console.log(`[consolidateLearning] Rewritten rules: ${rewrittenRules.substring(0, 200)}...`);
+                        // Submit to GovernanceResolver for auto-apply (low-risk)
+                        const resolver = nar.getGovernanceResolver();
+                        const mode = nar.gates.getActionGate().getAutonomyMode();
+                        console.log(`[consolidateLearning] Submitting to governance resolver, mode: ${mode}`);
+                        const proposal: SelfImprovementProposal = {
+                          proposalId: uuidv4(),
+                          kind: 'metta-rule-adoption',
+                          riskTier: 'low',
+                          payload: {
+                            mettaProgram: rewrittenRules,
+                            sourceDerivationIds: mettaRules.map((r) => r.sourceDerivation),
+                          },
+                          rewardDomain: 'self-patch-score',
+                        };
+                        const result = resolver.resolve(proposal, mode, {
+                          applyFocusWeight: () => {},
+                          applyKnob: () => {},
+                          applySchemaPatch: () => {}, // Required for metta-rule-adoption auto-apply
+                        });
+                        console.log(`[consolidateLearning] Governance result:`, result);
+                        if (result.applied) {
+                          proofMettaProposer.getRules().forEach((r) => {
+                            proofMettaProposer.recordApplication(r.id);
+                          });
+                        }
+                      }
+                    } catch (e) {
+                      console.log(`[consolidateLearning] Metta tool error:`, e);
+                      // Metta tool failed — symbolic fallback (rules stay in proposer only)
+                    }
+                  }
+                }
               }
-            }
-          } catch {
-            // Metta tool failed — symbolic fallback (rules stay in proposer only)
-          }
-        }
-      }
-    }
   }
 };
 

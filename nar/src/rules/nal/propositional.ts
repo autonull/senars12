@@ -12,7 +12,7 @@ export const conjunctionIntro: RuleFn = ([i1, i2]: [Term, Term]): Term | undefin
     s2 = getSubject(i2),
     p2 = getPredicate(i2);
   if (!s1 || !p1 || !s2 || !p2 || !termsEqual(s1, s2)) return undefined;
-  return TermBuilder.conjunction(p1, p2);
+  return TermBuilder.inheritance(s1, TermBuilder.conjunction(p1, p2));
 };
 
 export const disjunctionIntro: RuleFn = ([a1, a2]: [Term, Term]): Term | undefined =>

@@ -205,6 +205,7 @@ describe('D1 — Self-Improvement Loop E2E', () => {
         minConfidence: 0.5,
         patternMinSupport: 2,
       },
+      initialAutonomyMode: 'low-risk-auto-merge',
       cognitiveParams: {
         strategies: {
           sampling: { type: 'priority', params: {} },
@@ -251,33 +252,39 @@ describe('D1 — Self-Improvement Loop E2E', () => {
       
       // Check recorder after first phase
       const recorder = nar2.getProcessor().getRecorder();
-      const records1 = recorder.drain();
-      console.error(`Recorder records after phase 1: ${records1.length}`);
-      for (const r of records1.slice(0, 2)) {
-        console.error(`  Record: ${r.derivationId}, steps: ${r.steps.length}`);
-        for (const s of r.steps.slice(0, 2)) {
-          console.error(`    Step: ${s.ruleId}, ${s.premises.join(', ')} => ${s.conclusion}`);
-        }
-      }
+      console.error(`Recorder pending records: ${recorder.pending()}`);
+      // Don't drain here - let consolidateLearning do it
       
       // Consolidate learning - this should extract MeTTa patterns from the deductions
       await nar2.consolidateLearning({ budget: 10 });
       
       // Check learned rules
       const proposer = nar2.getProofMettaProposer();
+      
+      // Debug: check internal state
+      const patternCounts = (proposer as any).patternCounts;
+      console.log(`Pattern counts size: ${patternCounts.size}`);
+      for (const [key, info] of patternCounts) {
+        console.log(`  Pattern: ${key}, count: ${info.count}, conf: ${info.confidence}`);
+      }
+      
       const rules = proposer!.getRules();
       console.log(`Phase 2: Learned ${rules.length} rules`);
       for (const rule of rules) {
         console.log(`  ${rule.pattern} (support: ${rule.applications}, conf: ${rule.confidence.toFixed(2)})`);
       }
       
+      // Debug: check governance resolver
+      const resolver = nar2.getGovernanceResolver();
+      console.log(`Governance adaptations before consolidateLearning: ${resolver.getAdaptations().length}`);
+      console.log(`Autonomy mode: ${nar2.gates.getActionGate().getAutonomyMode()}`);
+      
       // The key assertion: we should have learned at least one rule
       // (patternMinSupport=2 means patterns appearing 2+ times become rules)
       expect(rules.length).toBeGreaterThan(0);
       
       // Verify governance recorded the adaptation
-      const resolver = nar2.getGovernanceResolver();
-      const adaptations = resolver!.getAdaptations();
+      const adaptations = resolver.getAdaptations();
       expect(adaptations.length).toBeGreaterThan(0);
       
       // Check if any adaptation was auto-applied

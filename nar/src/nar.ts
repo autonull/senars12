@@ -232,7 +232,7 @@ export class NAR extends BaseComponent {
         maxLMCalls: 50,
         consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
       },
-      initialAutonomyMode: 'observe-only',
+      initialAutonomyMode: this.config.initialAutonomyMode ?? 'observe-only',
       perceptionConfig,
     });
     // Phase E: reputation consulted lazily at admission/seeding time (C1 default-neutral).

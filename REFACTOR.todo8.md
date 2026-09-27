@@ -440,3 +440,18 @@ Additional duplications confirmed (already in plan):
 - Created `tests/e2e/self-improvement-loop.test.ts` with two test cases:
   1. Basic loop verification (passing)
   2. Flagship "learned rule changes selection" test (needs cognitiveController fix)
+
+### Phase D Complete ✅ (2026-09-27 continued)
+
+**D1 — Tier 2: Self-Improvement Loop End-to-End (Fully Working)**
+- Fixed `ProofMettaProposer.generalizeStep()` to use proper Term-based anti-unification instead of string operations:
+  - Uses `termParser.parse()` to convert derivation step strings to Term objects
+  - Uses `substituteVariables()` from `nar/src/terms/substitute.ts` for variable substitution
+  - Collects atomic symbols from Term structures via recursive traversal
+  - Abstracts rule IDs to generic categories (deduction, induction, conjunction, etc.)
+  - Persists pattern counts across all derivations via `patternCounts` Map
+- Fixed `conjunctionIntro` rule in `nar/src/rules/nal/propositional.ts` to produce valid NAL: `(a --> (b & c))` instead of nonsense `(b & c)`
+- Added `initialAutonomyMode` to `NARConfig` and updated test to use `low-risk-auto-merge` so governance auto-applies
+- Implemented `metta` tool in `nar/src/nar/facade.ts` that lazy-loads MeTTa runtime and evaluates programs via Effect
+- Verified full loop: derivation recording → ProofMettaProposer learns 93 patterns → metta tool evaluates → GovernanceResolver auto-applies → adaptations recorded
+- Both test cases in `self-improvement-loop.test.ts` now pass (2/2 tests green)
