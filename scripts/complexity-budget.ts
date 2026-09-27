@@ -53,7 +53,7 @@ function countExportSubpaths(): number {
 
 function countProductionLOC(): number {
   try {
-    const out = execSync('npx cloc --json nar/src core/src metta/src util/src io/src kernel/src src', {
+    const out = execSync('pnpm dlx cloc --json nar/src core/src metta/src util/src io/src kernel/src src', {
       cwd: ROOT,
       encoding: 'utf-8',
       maxBuffer: 10 * 1024 * 1024,

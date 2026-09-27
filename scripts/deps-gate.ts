@@ -32,8 +32,8 @@ const outPath = join(mkdtempSync(join(tmpdir(), 'deps-')), 'deps.json');
 
 try {
   execFileSync(
-    'npx',
-    ['dpdm', '--circular', '--warning', 'false', '--skip-dynamic-imports', 'tree', '-o', outPath, ...TARGETS],
+    'pnpm',
+    ['dlx', 'dpdm', '--circular', '--warning', 'false', '--skip-dynamic-imports', 'tree', '-o', outPath, ...TARGETS],
     { stdio: ['ignore', 'ignore', 'inherit'] }
   );
   const { circulars } = JSON.parse(readFileSync(outPath, 'utf-8')) as { circulars: string[][] };

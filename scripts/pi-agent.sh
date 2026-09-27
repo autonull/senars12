@@ -13,7 +13,7 @@ MCP_ADAPTER_PATH="$PI_AGENT_DIR/npm/node_modules/pi-mcp-adapter/package.json"
 
 if [[ ! -f "$MCP_ADAPTER_PATH" ]]; then
     echo "Installing pi-mcp-adapter..."
-    npx pi install npm:pi-mcp-adapter
+    pnpm dlx pi install npm:pi-mcp-adapter
 else
     echo "pi-mcp-adapter already installed"
 fi
@@ -24,4 +24,4 @@ pnpm build
 
 # Run Pi with SeNARS MCP
 echo "Starting Pi agent with SeNARS MCP..."
-exec npx pi "$@"
+exec pnpm dlx pi "$@"

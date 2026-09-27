@@ -200,19 +200,21 @@ const DEFAULT_WATCHDOG_CONFIG: ConsolidationWatchdogConfig = {
   logDir: 'logs',
 };
 
-const WatchdogSnapshotSchema = BaseLedgerEntrySchema.extend({
-  cycle: z.number(),
-  conceptCount: z.number(),
-  totalTasks: z.number(),
-  dedupRatio: z.number(),
-  promotedCount: z.number(),
-  archivedCount: z.number(),
-  forgottenCount: z.number(),
-  memoryPressure: z.number(),
-  alerts: z.array(z.string()),
-});
+function getWatchdogSnapshotSchema() {
+  return BaseLedgerEntrySchema.extend({
+    cycle: z.number(),
+    conceptCount: z.number(),
+    totalTasks: z.number(),
+    dedupRatio: z.number(),
+    promotedCount: z.number(),
+    archivedCount: z.number(),
+    forgottenCount: z.number(),
+    memoryPressure: z.number(),
+    alerts: z.array(z.string()),
+  });
+}
 
-type WatchdogSnapshotLedgerEntry = z.infer<typeof WatchdogSnapshotSchema>;
+type WatchdogSnapshotLedgerEntry = z.infer<ReturnType<typeof getWatchdogSnapshotSchema>>;
 
 export interface WatchdogSnapshot {
   ts: number;
@@ -242,7 +244,7 @@ function getWatchdogLedger(): Ledger<WatchdogSnapshotLedgerEntry> | null {
       mkdirSync(logDir, { recursive: true });
       watchdogLedger = createLedger<WatchdogSnapshotLedgerEntry>(
         logDir,
-        WatchdogSnapshotSchema,
+        getWatchdogSnapshotSchema(),
         { rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 } }
       );
     } catch {

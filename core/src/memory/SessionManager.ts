@@ -14,26 +14,28 @@ export interface JsonlSessionManagerConfig {
   basePath: string;
 }
 
-const SessionRecordSchema = BaseLedgerEntrySchema.extend({
-  key: z.string(),
-  history: z.array(z.object({
-    role: z.enum(['user', 'agent', 'system']),
-    content: z.string(),
-    timestamp: z.number(),
-  })),
-  createdAt: z.number(),
-  lastSeenAt: z.number(),
-  metadata: z.record(z.string(), z.unknown()),
-});
+function getSessionRecordSchema() {
+  return BaseLedgerEntrySchema.extend({
+    key: z.string(),
+    history: z.array(z.object({
+      role: z.enum(['user', 'agent', 'system']),
+      content: z.string(),
+      timestamp: z.number(),
+    })),
+    createdAt: z.number(),
+    lastSeenAt: z.number(),
+    metadata: z.record(z.string(), z.unknown()),
+  });
+}
 
-export type SessionLedgerEntry = z.infer<typeof SessionRecordSchema>;
+export type SessionLedgerEntry = z.infer<ReturnType<typeof getSessionRecordSchema>>;
 
 export class JsonlSessionManager implements SessionManager {
   readonly #ledger: Ledger<SessionLedgerEntry>;
   #sessions = new Map<string, ConversationSession>();
 
   constructor(config: JsonlSessionManagerConfig) {
-    this.#ledger = createLedger<SessionLedgerEntry>(config.basePath, SessionRecordSchema, {
+    this.#ledger = createLedger<SessionLedgerEntry>(config.basePath, getSessionRecordSchema(), {
       rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
     });
   }

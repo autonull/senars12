@@ -29,7 +29,7 @@
     "mcp": "NODE_NO_WARNINGS=1 tsx src/bin/mcp-server.ts",
     "mcptest": "NODE_NO_WARNINGS=1 tsx tests/mcp/integration-test.ts",
     "pi": "bash scripts/pi-agent.sh",
-    "pi:install": "npx pi install npm:pi-mcp-adapter",
+    "pi:install": "pnpm dlx pi install npm:pi-mcp-adapter",
     "parity:smoke": "tsx scripts/rl-parity.ts --env gridworld --baseline qlearning --mode both --seeds 1 --episodes 5 --steps 20",
     "test": "vitest run",
     "test:unit": "vitest run --exclude 'tests/e2e/**' --exclude 'tests/benchmark/**' --exclude 'tests/soak/**' --exclude 'tests/nar/todo16-slo.test.ts' --exclude 'tests/nar/rl/parity-restoration.test.ts' --exclude 'tests/nar/rl/parity/bandit-epsilon-greedy.test.ts' --exclude 'tests/nar/todo17b-failclosed.test.ts' --exclude 'tests/nar/rl/budgetgate-verification.test.ts'",
