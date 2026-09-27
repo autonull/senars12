@@ -6,7 +6,7 @@ import { calculateSimilarity, mentionsSymbol, Stamp, TermMap, TermSet, Truth } f
 import { atom } from '../terms/factory.js';
 import type { Budget, Task } from '../types';
 import { NEUTRAL_BUDGET } from '../types';
-import { selectTopN } from '../utils/collections.js';
+import { BoundedRing, selectTopN } from '../utils/collections.js';
 import { Concept, type ConceptMergeResult, type ConceptTaskType } from './concept.js';
 import { Focus } from './focus.js';
 import type { MemoryHealth } from './health.js';
@@ -91,7 +91,7 @@ export class Memory {
   private readonly consolidation: MemoryConsolidation;
   private readonly forgetting: Forgetting;
   private readonly linkManager: LinkManager;
-  private readonly revisionLog: RevisionEntry[] = [];
+  private readonly revisionLog = new BoundedRing<RevisionEntry>(Memory.REVISION_LOG_CAP);
   private lastRevisionTs = 0;
   private cyclesSinceConsolidation = 0;
   private lastTimestamp = Date.now();
@@ -508,8 +508,6 @@ export class Memory {
     this.lastRevisionTs = ts;
     // D17: bounded revision log (drop-oldest).
     this.revisionLog.push({ ...entry, timestamp: ts });
-    if (this.revisionLog.length > Memory.REVISION_LOG_CAP)
-      this.revisionLog.splice(0, this.revisionLog.length - Memory.REVISION_LOG_CAP);
   }
 
   private decayAll(): void {

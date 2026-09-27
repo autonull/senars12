@@ -114,9 +114,9 @@ describe('Bench 38 — Bounded Runtime', () => {
     for (let i = 0; i < 1010; i++) {
       record({ term: '(a --> b)', type: 'revision', timestamp: i, truth: { f: 1, c: 0.9 } });
     }
-    const log = (memory as unknown as { revisionLog: unknown[] }).revisionLog;
-    expect(log.length).toBeLessThanOrEqual(1000);
-    expect(log.length).toBeGreaterThan(0);
+    const log = (memory as unknown as { revisionLog: { size: number } }).revisionLog;
+    expect(log.size).toBeLessThanOrEqual(1000);
+    expect(log.size).toBeGreaterThan(0);
   });
 
   it('D17 — e-graph saturate() respects the step/node budget', () => {

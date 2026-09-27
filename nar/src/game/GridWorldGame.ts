@@ -1,4 +1,5 @@
 import type { Game, GameOutcome, Perception } from './Game.js';
+import { renderGrid } from './render.js';
 import { SeededRNG } from './SeededRNG.js';
 
 export interface GridWorldConfig {
@@ -129,18 +130,15 @@ export class GridWorldGame implements Game<GridWorldState, GridAction> {
   }
 
   render(): string {
-    const lines: string[] = [];
-    for (let r = 0; r < this.rows; r++) {
-      let line = '';
-      for (let c = 0; c < this.cols; c++) {
-        if (r === this.currentPos.row && c === this.currentPos.col) line += 'S';
-        else if (r === this.goalPos.row && c === this.goalPos.col) line += 'G';
-        else if (this.walls.has(`${r},${c}`)) line += '#';
-        else line += '.';
-      }
-      lines.push(line);
-    }
-    return lines.join('\n');
+    return renderGrid(this.rows, this.cols, (r, c) =>
+      r === this.currentPos.row && c === this.currentPos.col
+        ? 'S'
+        : r === this.goalPos.row && c === this.goalPos.col
+          ? 'G'
+          : this.walls.has(`${r},${c}`)
+            ? '#'
+            : '.'
+    );
   }
 
   private isTerminal(): boolean {

@@ -1,5 +1,6 @@
 import type { DerivationRecord, DerivationStep, TruthValue } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
+import { BoundedRing } from '../utils/collections.js';
 import type { RuleInput, RuleResult } from './processor.js';
 
 type Independence = DerivationStep['independence'];
@@ -177,24 +178,25 @@ export class DerivationRecorder {
  * consumer (tee) that replays the current ring before going live.
  */
 export class ProofStreamRing<T> {
-  readonly #items: T[] = [];
+  readonly #items: BoundedRing<T>;
   readonly #listeners = new Set<(item: T) => void>();
 
-  constructor(private readonly capacity: number) {}
+  constructor(private readonly capacity: number) {
+    this.#items = new BoundedRing(capacity);
+  }
 
   push(item: T): void {
     this.#items.push(item);
-    while (this.#items.length > this.capacity) this.#items.shift();
     for (const listener of this.#listeners) listener(item);
   }
 
   snapshot(limit = this.capacity): readonly T[] {
-    return this.#items.slice(-limit);
+    return this.#items.tail(limit);
   }
 
   /** Live view: ring snapshot first, then pushed items; `return`/abort unsubscribes. */
   stream(signal?: AbortSignal): AsyncIterable<T> {
-    const queue: T[] = this.#items.slice();
+    const queue: T[] = this.#items.toArray();
     let wake: (() => void) | null = null;
     let live = true;
     const listener = (item: T): void => {

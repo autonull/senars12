@@ -17,6 +17,7 @@ import { Truth } from './terms/truth.js';
 import { PhaseTimer } from './trace';
 import type { Task } from './types';
 import { createTask } from './types';
+import { BoundedRing } from './utils/collections.js';
 import type { EventBus as NarEventBus } from './types/events.js';
 import { errMsg } from './utils';
 
@@ -66,7 +67,7 @@ export class NARExecution {
   private readonly logger = createLogger({ scope: 'nar:execution' });
   private _metaDerivationsThisStep = 0;
   private _metaDerivationDepth = 0;
-  private _rlfpRewardHistory: number[] = [];
+  private readonly _rlfpRewardHistory = new BoundedRing<number>(100);
 
   constructor(options: NARExecutionOptions) {
     this.memory = options.memory;
@@ -150,9 +151,6 @@ export class NARExecution {
   /** Record RLFP reward for averaging */
   recordRLFPReward(reward: number): void {
     this._rlfpRewardHistory.push(reward);
-    if (this._rlfpRewardHistory.length > 100) {
-      this._rlfpRewardHistory.shift();
-    }
   }
 
   /** Track meta-derivation budget */
@@ -415,8 +413,8 @@ export class NARExecution {
 
     // Average RLFP reward
     const rlfpRewardAvg =
-      this._rlfpRewardHistory.length > 0
-        ? this._rlfpRewardHistory.reduce((a, b) => a + b, 0) / this._rlfpRewardHistory.length
+      this._rlfpRewardHistory.size > 0
+        ? this._rlfpRewardHistory.reduce((a, b) => a + b, 0) / this._rlfpRewardHistory.size
         : 0;
 
     const summary: CognitiveStateSummary = {

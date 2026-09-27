@@ -4,6 +4,7 @@ import type { Term } from '../terms';
 import { Truth } from '../terms';
 import { createBudget, createTask, type Task } from '../types';
 import { errMsg } from '../utils';
+import { BoundedRing } from '../utils/collections.js';
 import { admitTasks } from './admit.js';
 import { topBeliefTasks } from './context.js';
 import { LMResponseParser } from './LMRule.js';
@@ -100,7 +101,7 @@ export class ProactiveEnricher {
   private readonly systemOne?: EnricherSystemOneDeps;
   private enrichmentTimer?: NodeJS.Timeout;
   private enrichmentCycle = 0;
-  private results: EnrichmentResult[] = [];
+  private readonly results = new BoundedRing<EnrichmentResult>(ProactiveEnricher.RESULTS_CAP);
 
   constructor(
     memory: Memory,
@@ -154,9 +155,8 @@ export class ProactiveEnricher {
         const result = await this.enrichConcept(conceptData.term);
         if (result.hypotheses.length > 0 || result.bridges.length > 0) {
           cycleResults.push(result);
-          this.results.push(result);
           // D17: bounded results (drop-oldest).
-          if (this.results.length > ProactiveEnricher.RESULTS_CAP) this.results.shift();
+          this.results.push(result);
         }
       } catch (error) {
         // expected: LM call may fail due to network/provider issues — skip this concept
@@ -216,11 +216,11 @@ Answer the question based on the available knowledge. If the answer cannot be de
   }
 
   getEnrichmentHistory(): EnrichmentResult[] {
-    return this.results;
+    return this.results.toArray();
   }
 
   clearHistory(): void {
-    this.results = [];
+    this.results.clear();
   }
 
   getStats(): {
@@ -230,11 +230,11 @@ Answer the question based on the available knowledge. If the answer cannot be de
     totalBridgesCreated: number;
   } {
     const totalHypotheses = this.results.reduce((sum, r) => sum + r.hypotheses.length, 0);
-    const totalBridges = this.results.reduce((_sum, r) => r.bridges.length, 0);
+    const totalBridges = this.results.reduce((sum, r) => sum + r.bridges.length, 0);
 
     return {
       enrichmentCycles: this.enrichmentCycle,
-      totalConceptsEnriched: this.results.length,
+      totalConceptsEnriched: this.results.size,
       totalHypothesesGenerated: totalHypotheses,
       totalBridgesCreated: totalBridges,
     };

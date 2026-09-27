@@ -13,9 +13,16 @@ export interface Space extends Disposable {
   query(pattern: MeTTaAtom): Generator<MeTTaAtom>;
 }
 
-export class InMemorySpace implements Space {
+/**
+ * Linear-scan space over an atom array: the shared substrate for every `Space`
+ * implementation. Subclasses override {@link onAdd} for write side effects
+ * (persistence, auto-save) rather than reimplementing `add`/`remove`/`query`.
+ */
+export abstract class ArraySpace implements Space {
+  abstract [Symbol.dispose](): void;
+
   readonly id: string;
-  private readonly _atoms: MeTTaAtom[] = [];
+  protected readonly _atoms: MeTTaAtom[] = [];
 
   constructor(id = 'default') {
     this.id = id;
@@ -29,8 +36,12 @@ export class InMemorySpace implements Space {
     return this._atoms;
   }
 
+  /** Write side effect hook, called after an atom is appended. */
+  protected onAdd(_atom: MeTTaAtom): void {}
+
   add(atom: MeTTaAtom): void {
     this._atoms.push(atom);
+    this.onAdd(atom);
   }
 
   remove(atom: MeTTaAtom): boolean {
@@ -47,7 +58,9 @@ export class InMemorySpace implements Space {
       }
     }
   }
+}
 
+export class InMemorySpace extends ArraySpace {
   [Symbol.dispose](): void {
     this._atoms.length = 0;
   }

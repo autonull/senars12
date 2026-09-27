@@ -1,4 +1,5 @@
 import type { Game, GameOutcome, Perception } from './Game.js';
+import { renderGrid } from './render.js';
 import { SeededRNG } from './SeededRNG.js';
 
 export interface CatchGameConfig {
@@ -78,17 +79,13 @@ export class CatchGame implements Game<CatchState, 0 | 1 | 2> {
   }
 
   render(): string {
-    const lines: string[] = [];
-    for (let r = 0; r < this.rows; r++) {
-      let line = '';
-      for (let c = 0; c < this.cols; c++) {
-        if (r === this.targetR && c === this.targetC) line += 'o';
-        else if (r === this.rows - 1 && c === this.paddleC) line += 'A';
-        else line += '.';
-      }
-      lines.push(line);
-    }
-    return lines.join('\n');
+    return renderGrid(this.rows, this.cols, (r, c) =>
+      r === this.targetR && c === this.targetC
+        ? 'o'
+        : r === this.rows - 1 && c === this.paddleC
+          ? 'A'
+          : '.'
+    );
   }
 
   private spawnTarget(): void {

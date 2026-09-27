@@ -2,6 +2,7 @@ import type { ToolFeedback, ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
 import { SenarsError } from '@senars/util/errors';
 import { createLogger } from '@senars/core/logger';
+import { BoundedRing } from '../utils/collections.js';
 import type { Term } from '../terms';
 import type { EventBus, NAREventMap } from '../types';
 import type { RandomSource } from '../types/primitives.js';
@@ -24,13 +25,15 @@ const logger = createLogger({ scope: 'ToolManager' });
 type LifecycleState = 'initialized' | 'running' | 'stopped' | 'disposed';
 
 export class ToolManager {
+  /** Bounded execution-history ring (drop-oldest). */
+  static readonly MAX_HISTORY = 100;
+
   private readonly registry = new Registry();
-  private executionHistory: ToolEvent[] = [];
+  private readonly executionHistory = new BoundedRing<ToolEvent>(ToolManager.MAX_HISTORY);
   private readonly statistics = new Map<string, ToolStatistics>();
   private readonly allowedPermissions = new Set<string>();
   private readonly toolDescriptors = new Map<string, ToolDescriptor>();
   private readonly lifecycleState = new Map<string, LifecycleState>();
-  private readonly maxHistory = 100;
   private readonly sandboxMode: boolean;
   private eventBus?: EventBus<NAREventMap>;
   private readonly feedbackObserver: ToolFeedbackObserver;
@@ -299,11 +302,11 @@ export class ToolManager {
   }
 
   getHistory(limit = 10): ToolEvent[] {
-    return this.executionHistory.slice(-limit);
+    return this.executionHistory.tail(limit);
   }
 
   clearHistory(): void {
-    this.executionHistory = [];
+    this.executionHistory.clear();
   }
 
   executeToolGoal(goalTerm: Term, context?: ToolContext): Promise<ToolResult> {
@@ -349,8 +352,5 @@ export class ToolManager {
 
   private addToHistory(event: ToolEvent): void {
     this.executionHistory.push(event);
-    if (this.executionHistory.length > this.maxHistory) {
-      this.executionHistory.shift();
-    }
   }
 }

@@ -1,5 +1,4 @@
-import { matches } from '../core/pattern-match.js';
-import type { Space } from '../core/space.js';
+import { ArraySpace } from '../core/space.js';
 import type { MeTTaAtom } from '../types/ast.js';
 
 export interface PersistedSpaceData {
@@ -14,23 +13,13 @@ export interface PersistentSpaceOptions {
   readonly saveInterval?: number;
 }
 
-export class PersistentSpace implements Space {
-  readonly id: string;
-  private readonly _atoms: MeTTaAtom[] = [];
+export class PersistentSpace extends ArraySpace {
   private readonly opts: PersistentSpaceOptions;
   private saveTimer: ReturnType<typeof setInterval> | undefined;
 
   constructor(id: string, opts: PersistentSpaceOptions) {
-    this.id = id;
+    super(id);
     this.opts = { autoSave: true, saveInterval: 5000, ...opts };
-  }
-
-  get size(): number {
-    return this._atoms.length;
-  }
-
-  get atoms(): ReadonlyArray<MeTTaAtom> {
-    return this._atoms;
   }
 
   async load(): Promise<void> {
@@ -57,8 +46,7 @@ export class PersistentSpace implements Space {
     }
   }
 
-  add(atom: MeTTaAtom): void {
-    this._atoms.push(atom);
+  protected override onAdd(_atom: MeTTaAtom): void {
     if (this.opts.autoSave && !this.saveTimer) {
       // D9: guarded save + unref — a persist failure must neither crash the
       // process nor hold the event loop open.
@@ -69,21 +57,6 @@ export class PersistentSpace implements Space {
         });
       }, this.opts.saveInterval);
       this.saveTimer.unref();
-    }
-  }
-
-  remove(atom: MeTTaAtom): boolean {
-    const index = this._atoms.indexOf(atom as never);
-    if (index === -1) return false;
-    this._atoms.splice(index, 1);
-    return true;
-  }
-
-  *query(pattern: MeTTaAtom): Generator<MeTTaAtom> {
-    for (const atom of this._atoms) {
-      if (matches(atom, pattern)) {
-        yield atom;
-      }
     }
   }
 

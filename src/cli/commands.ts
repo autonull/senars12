@@ -12,7 +12,8 @@ import {
   formatConcepts,
 } from './stats-format.js';
 
-const cmd = (
+/** CLI command constructor — the single factory for the `.name`/description/execute shape. */
+export const cmd = (
   name: string,
   description: string,
   execute: (args?: string) => string | Promise<string>
