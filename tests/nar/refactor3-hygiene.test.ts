@@ -54,8 +54,8 @@ describe('Bench 91 — test hygiene & monolith paydown (REFACTOR.todo3 Phase A)'
     expect(fixedClock(42).now()).toBe(42);
   });
 
-  it('deps:gate baseline documents current architectural cycles (276)', () => {
+  it('deps:gate baseline documents current architectural cycles (25)', () => {
     const gate = readFileSync(join(import.meta.dirname, '../../scripts/deps-gate.ts'), 'utf-8');
-    expect(gate).toContain('const BASELINE = 276');
+    expect(gate).toContain('const BASELINE = 25');
   });
 });

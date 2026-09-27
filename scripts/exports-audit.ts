@@ -43,7 +43,7 @@ const PUBLIC_API: Record<string, string[]> = {
   // The root barrel is the package's public API by definition.
   nar: ['.'],
   util: ['.'],
-  core: ['.'],
+  core: ['.', './agent', './agent/*', './memory', './cognitive-thread', './agent/pipeline', './agent/types'],
   io: ['.'],
   metta: ['.'],
 };
