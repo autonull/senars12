@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../utils/hash.js';
 import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
 import { z } from 'zod';
 import { join } from 'node:path';
@@ -94,7 +94,7 @@ export const digestPin = (
   distribution: Record<ReactionKind, number>
 ): string => {
   const canonical = [...turnIds].sort().join(',') + '|' + JSON.stringify(distribution);
-  return `sha256:${createHash('sha256').update(canonical).digest('hex')}`;
+  return sha256Prefixed(canonical);
 };
 
 /**

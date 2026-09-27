@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../../utils/hash.js';
 import type { Episode } from '@senars/util';
 import type { NAR } from '../../nar.js';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
@@ -29,7 +29,7 @@ export interface MineHardNegativesOptions {
 
 /** Stable hash identity for mined negatives (joins the Z1 sidecar convention). */
 export const hardNegativeId = (text: string): string =>
-  createHash('sha256').update(`hard-neg::${text}`).digest('hex').slice(0, 16);
+  shortSha256Hex(`hard-neg::${text}`);
 
 /**
  * Hard-negative mining (CLM) from existing SeNARS signals:

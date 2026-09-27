@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../utils/hash.js';
 import type { Episode, EpisodicMemory, EpisodeType } from '@senars/util';
 import type { ContrastiveMemory } from '../lm/system-one/contrastive.js';
 import type { JudgmentDataset } from '../lm/system-one/distill.js';
@@ -9,8 +9,7 @@ import { inferReactionFromUtterance } from './attribution.js';
 import type { DialogueConfig } from '@senars/util/config';
 import { DialogueTextStore, type DialogueTextRecord } from './text-store.js';
 
-export const sha256 = (text: string): string =>
-  `sha256:${createHash('sha256').update(text).digest('hex')}`;
+export const sha256 = sha256Prefixed;
 
 /** DQ6: candidates below this confidence never become lessons (seed-truth floor). */
 const LESSON_CONFIDENCE_FLOOR = 0.5;

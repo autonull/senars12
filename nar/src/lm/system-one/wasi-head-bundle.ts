@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../../utils/hash.js';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { assertWasmPathContained, withTimeout } from '../../capability/wasi-sandbox.js';
@@ -152,7 +152,7 @@ export async function writeHeadBundle(
   bundle: HeadBundle
 ): Promise<HeadBundleArtifacts> {
   const wasm = emitHeadBundleWasm(bundle);
-  const modelDigest = `sha256:${createHash('sha256').update(wasm).digest('hex')}`;
+  const modelDigest = sha256Prefixed(wasm);
   await fs.mkdir(dir, { recursive: true });
   const wasmPath = join(dir, 'head.wasm');
   await fs.writeFile(wasmPath, wasm);
@@ -186,7 +186,7 @@ export async function loadHeadBundle(options: {
   const { wasmPath, modelDigest, dimension } = options;
   assertWasmPathContained(wasmPath, options.allowedPaths ?? []);
   const wasm = new Uint8Array(await fs.readFile(wasmPath));
-  const loaded = `sha256:${createHash('sha256').update(wasm).digest('hex')}`;
+  const loaded = sha256Prefixed(wasm);
   if (loaded !== modelDigest) throw new DigestMismatchError(modelDigest, loaded);
 
   const module = await globalThis.WebAssembly.compile(wasm);

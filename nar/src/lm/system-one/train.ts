@@ -1,5 +1,6 @@
 import { clamp01 } from '@senars/util';
 import { createHash } from 'node:crypto';
+import { sha256Prefixed } from '../../utils/hash.js';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL_ID } from '../../memory/embedding.js';
@@ -605,7 +606,7 @@ export async function loadHeadArtifacts(
   ]);
   const config = JSON.parse(configRaw) as HeadArtifactConfig;
   const modelDigest = digestFile.trim();
-  const actual = `sha256:${createHash('sha256').update(weightsBytes).digest('hex')}`;
+  const actual = sha256Prefixed(weightsBytes);
   if (actual !== config.weightsDigest) {
     throw new DigestMismatchError(config.weightsDigest, actual);
   }

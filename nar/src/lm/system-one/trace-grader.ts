@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../../utils/hash.js';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import type { ContrastiveMemory } from './contrastive.js';
 import type { DistillationLabel, JudgmentDataset } from './distill.js';
@@ -61,7 +61,7 @@ const RISK_LEVELS: readonly string[] = HEAD_SPECS.risk.space ?? [];
 const DEFAULT_BUDGET: ReasoningBudget = createSystemOneBudget();
 
 const evidenceId = (kind: string, text: string): string =>
-  createHash('sha256').update(`trace::${kind}::${text}`).digest('hex');
+  sha256Hex(`trace::${kind}::${text}`);
 
 const labelBand = (score: number, levels: readonly string[]): string => {
   if (!levels.length) return score.toFixed(2);

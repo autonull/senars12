@@ -6,7 +6,7 @@
  * emitted through the wired sink — append-only, raw episodes are never
  * deleted (I6-style: the summary is an index, not a replacement).
  */
-import { createHash } from 'node:crypto';
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../utils/hash.js';
 import type { Episode, EpisodeType } from '@senars/util';
 import { AIKRProcessor, type ProcessOptions, type AikrBagOptions } from '../learning/aikr-processor.js';
 import { PriorityBag } from '../bag/Bag.js';
@@ -207,7 +207,7 @@ export class EpisodeConsolidator {
               }
             : {}),
         },
-        id: `consolidation:${createHash('sha256').update([...ids].sort().join(',')).digest('hex').slice(0, 16)}`,
+        id: `consolidation:${shortSha256Hex([...ids].sort().join(','))}`,
         // The summary indexes the merged set (provenance), it never replaces it.
         causes,
       };

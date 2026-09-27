@@ -1,7 +1,7 @@
 import type { CognitiveController } from './cognitive';
 import type { DriveManager } from './drives';
 import { type GateRegistry, gateRegistry } from './kernel/GateRegistry.js';
-import { createLogger } from './logger';
+import { createLogger } from './logger/index.js';
 import type { Memory } from './memory';
 import type { NARConfig } from './nar';
 import type { Reasoner } from './reason';

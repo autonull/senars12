@@ -1,4 +1,4 @@
-import { trackTerm } from '../memory';
+import { trackTerm } from '../memory/lifecycle/gc.js';
 import { COMMUTATIVE_OPS, OPERATORS } from './operators.js';
 import { serializeTerm } from './serialize.js';
 import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from './types.js';

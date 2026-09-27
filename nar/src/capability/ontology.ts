@@ -7,6 +7,7 @@
 import { CapabilitySpace, type CapabilityDef } from './space.js';
 import type { ToolSpec } from '@senars/core/motor';
 import type { Tool as NarTool, Schema as NarSchema } from '../tools/types.js';
+import { shortSha256Hex } from '../utils/hash.js';
 
 export type CapabilityType = 'tool' | 'rule' | 'metta' | 'skill';
 
@@ -327,8 +328,7 @@ export class CapabilityOntology {
 
   /** Compute a SHA256 digest for provenance. */
   private computeDigest(name: string, type: string): string {
-    const crypto = require('node:crypto');
-    return crypto.createHash('sha256').update(`${type}:${name}:${Date.now()}`).digest('hex').slice(0, 16);
+    return shortSha256Hex(`${type}:${name}:${Date.now()}`);
   }
 }
 

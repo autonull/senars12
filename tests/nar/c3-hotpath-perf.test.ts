@@ -180,8 +180,9 @@ describe('C3 Hot-path benchmarks (bench 119+)', () => {
       };
       
       mockDerivationStrategy = {
-        derive: async function* () { if (false) yield null as any; },
-      } as DerivationStrategy;
+        metadata: { name: 'empty', version: '1' },
+        derive: async function* () {},
+      } as unknown as DerivationStrategy;
       
       controller = new InferenceController(
         memory,

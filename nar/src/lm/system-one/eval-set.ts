@@ -4,7 +4,7 @@
  * migrate into training across distillation generations. Conversation-captured
  * rows (TODO22 auto-capture) are excluded by construction.
  */
-import { createHash } from 'node:crypto';
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../../utils/hash.js';
 import { promises as fs } from 'node:fs';
 import { identityECE, meanBrier } from './calibration-fit.js';
 import { DigestMismatchError } from './wasi-runtime.js';
@@ -54,7 +54,7 @@ export function digestRows(rows: readonly FrozenEvalRow[]): string {
     .map((r) => `${r.headId}|${r.predicted.toFixed(6)}|${r.observed.toFixed(6)}`)
     .sort()
     .join('\n');
-  return `sha256:${createHash('sha256').update(canonical).digest('hex')}`;
+  return sha256Prefixed(canonical);
 }
 
 /**

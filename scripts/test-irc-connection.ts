@@ -7,7 +7,7 @@
 
 import type { ConnectionConfig, ConnectionDeps } from '@senars/io';
 import { IRCConnection } from '@senars/io';
-import { createLogger } from '../nar/src/logger';
+import { createLogger } from '../nar/src/logger/index.js';
 
 const logger = createLogger({ scope: 'test:irc' });
 

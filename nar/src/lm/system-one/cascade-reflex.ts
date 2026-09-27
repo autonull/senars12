@@ -3,7 +3,8 @@ import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
 import type { EmbeddingPointer, JudgmentManifold, JudgmentQuery, JudgmentProposition } from './types.js';
 import { sha256Hex } from '../../utils/hash.js';
-import type { JudgmentProvenance } from './decide.js';
+import type { BandDecision } from './policy.js';
+import { isFitted, provenanceFrom, type JudgmentProvenance } from './decide.js';
 
 /**
  * Two-stage placement fan-out (W7 / DQ2 — the first live `judgeCascade`
@@ -36,23 +37,12 @@ function deriveCascadeProvenance(
   stage1: JudgmentProposition | undefined,
   stage2: JudgmentProposition | undefined,
   inputDigest: string,
-  decision: 'act' | 'review' | 'block' | 'abstain',
+  decision: BandDecision,
   abstained: boolean
 ): JudgmentProvenance {
-  const first = stage2 ?? stage1;
-  const calibrationDigest = first?.calibration?.version
-    ? sha256Hex(`${first.modelDigest}:${first.calibration.version}`)
-    : undefined;
-  return {
-    modelDigest: first?.modelDigest,
-    calibrationDigest,
-    inputDigest,
-    contrastiveDigest: undefined,
-    fitted: (stage1?.calibration?.fitted === true) || (stage2?.calibration?.fitted === true),
-    abstained,
-    band: decision,
-    timestamp: Date.now(),
-  };
+  return provenanceFrom(stage2 ?? stage1, inputDigest, decision, abstained, {
+    fitted: isFitted(stage1) || isFitted(stage2),
+  });
 }
 
 interface PrefetchEntry {

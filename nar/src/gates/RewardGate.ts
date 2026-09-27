@@ -1,48 +1,40 @@
-import type { Focus, FocusTask } from '../focus/Focus.js';
-import { createBudget } from '../types/core.js';
 import type { GameOutcome } from '../game/Game.js';
+import type { Focus, FocusTask } from '../focus/Focus.js';
+import { focusTask, rewardTerm, stateTerm } from './tasks.js';
 
 export class RewardGate {
   constructor(private readonly focus: Focus) {}
 
   toBeliefs(outcome: GameOutcome): FocusTask[] {
-    const beliefs: FocusTask[] = [];
     const now = Date.now();
+    const magnitude = Math.min(1, Math.abs(outcome.reward) + 0.1);
 
-    const rewardBelief: FocusTask = {
-      id: `reward-${outcome.reward >= 0 ? 'pos' : 'neg'}-${now}`,
-      priority: Math.min(1, Math.abs(outcome.reward) + 0.1),
-      term: this.rewardToTerm(outcome.reward),
-      type: 'belief',
-      truth: { f: outcome.reward >= 0 ? 1.0 : 0.0, c: Math.min(1, Math.abs(outcome.reward) + 0.1) },
-      budget: createBudget(Math.abs(outcome.reward)),
-      stamp: `reward-${now}`,
-      derived: false,
-    };
-    beliefs.push(rewardBelief);
+    const beliefs: FocusTask[] = [
+      focusTask({
+        id: `reward-${outcome.reward >= 0 ? 'pos' : 'neg'}-${now}`,
+        term: rewardTerm(outcome.reward),
+        type: 'belief',
+        priority: magnitude,
+        f: outcome.reward >= 0 ? 1.0 : 0.0,
+        c: magnitude,
+        stamp: `reward-${now}`,
+      }),
+    ];
 
     if (outcome.terminal) {
-      const terminalBelief: FocusTask = {
-        id: `terminal-${now}`,
-        priority: 0.9,
-        term: { kind: 'atom', value: 'terminal' } as any,
-        type: 'belief',
-        truth: { f: 1.0, c: 0.9 },
-        budget: createBudget(0.9),
-        stamp: `reward-${now}`,
-        derived: false,
-      };
-      beliefs.push(terminalBelief);
+      beliefs.push(
+        focusTask({
+          id: `terminal-${now}`,
+          term: stateTerm('terminal'),
+          type: 'belief',
+          priority: 0.9,
+          f: 1.0,
+          c: 0.9,
+          stamp: `reward-${now}`,
+        })
+      );
     }
 
     return beliefs;
-  }
-
-  private rewardToTerm(reward: number): any {
-    return {
-      kind: 'compound',
-      operator: 'reward',
-      args: [{ kind: 'atom', value: reward >= 0 ? 'positive' : 'negative' }],
-    };
   }
 }

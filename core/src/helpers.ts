@@ -1,8 +1,4 @@
 /**
- * Asserts a condition is truthy, throwing an error with the given message if not.
- * Use for pre/post-condition checks instead of inline `if (!x) throw`.
- */
-/**
  * Shared utility functions (deduplicated across packages).
  * Re-exported from @senars/util for consistent APIs across packages.
  */

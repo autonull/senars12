@@ -1,57 +1,42 @@
-import type { Focus, FocusTask } from '../focus/Focus.js';
-import { createBudget } from '../types/core.js';
 import type { Perception } from '../game/Game.js';
+import type { Focus, FocusTask } from '../focus/Focus.js';
+import { featureTerm, focusTask, stateTerm } from './tasks.js';
 
 export class PerceptionGate {
   constructor(private readonly focus: Focus) {}
 
   toBeliefs(perception: Perception): FocusTask[] {
-    const beliefs: FocusTask[] = [];
     const now = Date.now();
+    const confidence = perception.confidence ?? 0.9;
 
-    const stateBelief: FocusTask = {
-      id: `percept-state-${perception.stateId}-${now}`,
-      priority: perception.confidence ?? 0.9,
-      term: this.stateIdToTerm(perception.stateId),
-      type: 'belief',
-      truth: { f: 1.0, c: perception.confidence ?? 0.9 },
-      budget: createBudget(perception.confidence ?? 0.9),
-      stamp: `perception-${now}`,
-      derived: false,
-    };
-    beliefs.push(stateBelief);
+    const beliefs: FocusTask[] = [
+      focusTask({
+        id: `percept-state-${perception.stateId}-${now}`,
+        term: stateTerm(perception.stateId),
+        type: 'belief',
+        priority: confidence,
+        f: 1.0,
+        c: confidence,
+        stamp: `perception-${now}`,
+      }),
+    ];
 
-    if (perception.features) {
-      for (const [feature, value] of Object.entries(perception.features)) {
-        const featureBelief: FocusTask = {
+    for (const [feature, value] of Object.entries(perception.features ?? {})) {
+      const magnitude = Math.abs(Number(value));
+      beliefs.push(
+        focusTask({
           id: `percept-feature-${feature}-${now}`,
-          priority: Math.abs(value) * (perception.confidence ?? 0.5),
-          term: this.featureToTerm(feature, value),
+          term: featureTerm(feature, Number(value)),
           type: 'belief',
-          truth: { f: Math.min(1, Math.abs(Number(value))), c: perception.confidence ?? 0.5 },
-          budget: createBudget(Math.abs(Number(value))),
+          priority: magnitude * (perception.confidence ?? 0.5),
+          budgetPriority: magnitude,
+          f: Math.min(1, magnitude),
+          c: perception.confidence ?? 0.5,
           stamp: `perception-${now}`,
-          derived: false,
-        };
-        beliefs.push(featureBelief);
-      }
+        })
+      );
     }
 
     return beliefs;
-  }
-
-  private stateIdToTerm(stateId: string): any {
-    return { kind: 'atom', value: stateId } as any;
-  }
-
-  private featureToTerm(feature: string, value: number): any {
-    return {
-      kind: 'compound',
-      operator: 'feature',
-      args: [
-        { kind: 'atom', value: feature },
-        { kind: 'atom', value: String(value) },
-      ],
-    };
   }
 }

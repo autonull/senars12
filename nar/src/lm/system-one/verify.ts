@@ -20,7 +20,7 @@ import type {
   ReasoningBudget,
 } from './types.js';
 import { sha256Hex } from '../../utils/hash.js';
-import type { JudgmentProvenance } from './decide.js';
+import { isFitted, provenanceFrom, type JudgmentProvenance } from './decide.js';
 
 export type VerifyDecision = 'act' | 'review' | 'block' | 'abstain';
 
@@ -35,28 +35,17 @@ export interface VerifyResult {
 }
 
 
-/** Derive provenance from judgeCascade result, matching Decider's format. */
+/** Derive provenance from judgeCascade result via the shared constructor. */
 function deriveVerifyProvenance(
-  stage1: JudgmentProposition,
+  stage1: JudgmentProposition | undefined,
   stage2: JudgmentProposition | undefined,
   inputDigest: string,
   decision: VerifyDecision,
   abstained: boolean
 ): JudgmentProvenance {
-  const first = stage2 ?? stage1;
-  const calibrationDigest = first?.calibration?.version
-    ? sha256Hex(`${first.modelDigest}:${first.calibration.version}`)
-    : undefined;
-  return {
-    modelDigest: first?.modelDigest,
-    calibrationDigest,
-    inputDigest,
-    contrastiveDigest: undefined,
-    fitted: (stage1?.calibration?.fitted === true) || (stage2?.calibration?.fitted === true),
-    abstained,
-    band: decision === 'abstain' ? 'abstain' : decision,
-    timestamp: Date.now(),
-  };
+  return provenanceFrom(stage2 ?? stage1, inputDigest, decision === 'abstain' ? 'abstain' : decision, abstained, {
+    fitted: isFitted(stage1) || isFitted(stage2),
+  });
 }
 
 /** Stage-2 query space derived from stage-1 uncertainty: evidential support, not plausibility. */

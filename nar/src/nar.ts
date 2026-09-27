@@ -22,7 +22,7 @@ import { seedContrastiveMemory } from './lm/system-one/hard-negatives.js';
 import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
 import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-grader.js';
 import type { CognitiveDispatcher, JudgmentManifold } from './lm/system-one/types.js';
-import { createLogger } from './logger';
+import { createLogger } from './logger/index.js';
 import type { Concept } from './memory';
 import { Memory } from './memory';
 import { EpisodeConsolidator } from './memory/episode-consolidator.js';

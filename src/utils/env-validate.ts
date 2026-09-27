@@ -1,4 +1,4 @@
-import { createLogger } from '../../nar/src/logger';
+import { createLogger } from '../../nar/src/logger/index.js';
 
 const logger = createLogger({ scope: 'env:validate' });
 

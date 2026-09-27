@@ -5,7 +5,7 @@
  */
 
 import { HEAD_SPECS, HeadSpec, HeadId, HeadGroup, createHead, type HeadFactoryOptions, type JudgmentQuery, type EmbeddingCache, type CalibrationVersion } from './head-specs.js';
-import { createHash } from 'node:crypto';
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../../utils/hash.js';
 
 export interface PipelineStage {
   readonly group: HeadGroup;
@@ -198,13 +198,13 @@ export class JudgmentPipeline {
   private computeModelDigest(): PipelineModelDigest {
     const encoderDigest = 'encoder-v1';
     const headWeights = this.spec.stages.flatMap((s) => s.heads).join(',');
-    const headWeightsDigest = createHash('sha256').update(headWeights).digest('hex').slice(0, 16);
+    const headWeightsDigest = shortSha256Hex(headWeights);
     const specStr = JSON.stringify({
       stages: this.spec.stages,
       router: this.spec.router,
       version: this.spec.version,
     });
-    const specHash = createHash('sha256').update(specStr).digest('hex').slice(0, 16);
+    const specHash = shortSha256Hex(specStr);
 
     return {
       encoderDigest,

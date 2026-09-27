@@ -123,26 +123,51 @@ function contrastiveScore(
   return score === undefined ? {} : { score, penalty: 1 - score };
 }
 
+export interface ProvenanceOverrides {
+  modelDigest?: string;
+  calibrationDigest?: string;
+  contrastiveDigest?: string;
+  fitted?: boolean;
+}
+
+export const isFitted = (p: JudgmentProposition | undefined): boolean =>
+  p?.calibration?.fitted === true;
+
+/** Digest pinning a proposition's calibration to its model — absent when unfitted. */
+export const calibrationDigestOf = (p: JudgmentProposition | undefined): string | undefined =>
+  p?.calibration?.version ? sha256Hex(`${p.modelDigest}:${p.calibration.version}`) : undefined;
+
+/** The single provenance constructor: every judgment path pins the same digest identity. */
+export function provenanceFrom(
+  proposition: JudgmentProposition | undefined,
+  inputDigest: string,
+  band: BandDecision,
+  abstained: boolean,
+  overrides: ProvenanceOverrides = {}
+): JudgmentProvenance {
+  return {
+    modelDigest: overrides.modelDigest ?? proposition?.modelDigest,
+    calibrationDigest: overrides.calibrationDigest ?? calibrationDigestOf(proposition),
+    inputDigest,
+    contrastiveDigest: overrides.contrastiveDigest,
+    fitted: overrides.fitted ?? proposition?.calibration.fitted === true,
+    abstained,
+    band,
+    timestamp: Date.now(),
+  };
+}
+
 function deriveProvenance(
   propositions: readonly JudgmentProposition[],
   inputDigest: string,
   band: BandDecision,
   abstained: boolean,
-  overrides: { modelDigest?: string; calibrationDigest?: string; contrastiveDigest?: string } = {}
+  overrides: ProvenanceOverrides = {}
 ): JudgmentProvenance {
-  const first = propositions[0];
-  return {
-    modelDigest: overrides.modelDigest ?? first?.modelDigest,
-    calibrationDigest:
-      overrides.calibrationDigest ??
-      (first ? sha256Hex(`${first.modelDigest}:${first.calibration.version}`) : undefined),
-    inputDigest,
-    contrastiveDigest: overrides.contrastiveDigest,
-    fitted: propositions.some((p) => p.calibration.fitted),
-    abstained,
-    band,
-    timestamp: Date.now(),
-  };
+  return provenanceFrom(propositions[0], inputDigest, band, abstained, {
+    ...overrides,
+    fitted: overrides.fitted ?? propositions.some((p) => p.calibration.fitted),
+  });
 }
 
 /** R6 safety floor: injection/assertion at high criticality must fail closed. */

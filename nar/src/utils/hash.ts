@@ -4,9 +4,18 @@
 
 import { createHash } from 'node:crypto';
 
+export type DigestInput = string | Uint8Array;
+
 /** SHA-256 hex digest — the single hashing entry point for digests and provenance keys. */
-export const sha256Hex = (text: string): string =>
-  createHash('sha256').update(text).digest('hex');
+export const sha256Hex = (data: DigestInput): string =>
+  createHash('sha256').update(data).digest('hex');
+
+/** Algorithm-pinned digest form (`sha256:<hex>`) used by ModelDigest, lock files, and dialogue digests. */
+export const sha256Prefixed = (data: DigestInput): string => `sha256:${sha256Hex(data)}`;
+
+/** Truncated digest for compact identity keys (sidecars, consolidation ids). */
+export const shortSha256Hex = (data: DigestInput, length = 16): string =>
+  sha256Hex(data).slice(0, length);
 
 /**
  * FNV-1a 32-bit hash function

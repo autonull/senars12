@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { formatLMConfig, resolveLMConfig } from '../../nar/src/lm/env-config.js';
-import { createLogger } from '../../nar/src/logger';
+import { createLogger } from '../../nar/src/logger/index.js';
 
 const logger = createLogger({ scope: 'config:check' });
 

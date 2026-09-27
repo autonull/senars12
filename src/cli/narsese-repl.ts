@@ -6,7 +6,7 @@ import { createInterface } from 'readline';
 import { containsSubterm, createLMService, termParser, type NAR } from '../../nar/src';
 import { NARBuilder } from '../../nar/src/agent/builder.js';
 import { ingressQueries } from '../../nar/src/lm/system-one/head-specs.js';
-import { createLogger } from '../../nar/src/logger';
+import { createLogger } from '../../nar/src/logger/index.js';
 import { errMsg } from '../../nar/src/utils';
 import { DEFAULT_NAR_CONFIG } from '../config';
 

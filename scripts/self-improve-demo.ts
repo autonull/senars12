@@ -15,7 +15,7 @@
 import { createNAR } from '../nar/src/nar-presets.js';
 import { createSeNARSRegistry } from '../nar/src/lm/index.js';
 import { createLMService } from '../nar/src/lm/lm-service.js';
-import { createLogger } from '../nar/src/logger.js';
+import { createLogger } from '../nar/src/logger/index.js';
 import { META_REASONING_BELIEFS, registerMetaRules } from '../nar/src/rules/meta-rules.js';
 import { initializeSelfConcept, SELF_CONCEPT_BELIEFS } from '../nar/src/tools/self-concept.js';
 

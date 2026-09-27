@@ -1,5 +1,5 @@
 import type { SeNARSRegistry } from '../../lm';
-import { createLogger } from '../../logger';
+import { createLogger } from '../../logger/index.js';
 import { NLUnderstandingService } from '../../nl/understanding.js';
 
 // --- generate_scenarios ---

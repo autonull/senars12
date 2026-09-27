@@ -1,15 +1,24 @@
-import { createHash } from 'node:crypto';
+import { promises as fs } from 'node:fs';
+import { dirname } from 'node:path';
+
+import {
+  BaseLedgerEntrySchema,
+  Ledger,
+  createLedger,
+  type RolloverPolicyOptions,
+} from '@senars/io/ledger';
 import type { SelfImprovementProposal } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
+
 import { Truth, type Truth as TruthType } from '../../terms/truth.js';
+import { sha256Hex } from '../../utils/hash.js';
 import { seedTruth } from './seed.js';
 import type { JudgmentProposition } from './types.js';
-import {Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery} from '@senars/io/ledger';
-import { z } from 'zod';
 
 /** Input-anchored evidence identity: same utterance ⇒ same evidence, regardless of re-judging. */
 export function computeEvidenceId(utteranceId: string, sourceSpan: string): string {
-  return createHash('sha256').update(`${utteranceId}::${sourceSpan}`).digest('hex');
+  return sha256Hex(`${utteranceId}::${sourceSpan}`);
 }
 
 /**
@@ -33,6 +42,39 @@ function encodeVector(vec: Float32Array): string {
 function decodeVector(b64: string): Float32Array {
   const buf = Buffer.from(b64, 'base64');
   return new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4);
+}
+
+/** Stream a JSONL dataset file, flagging unreadable lines instead of aborting the load. */
+async function* readRows(path: string): AsyncGenerator<DistillationLabel | undefined> {
+  let content: string;
+  try {
+    content = await fs.readFile(path, 'utf-8');
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException)?.code === 'ENOENT') return;
+    throw e;
+  }
+  for (const line of content.split('\n')) {
+    if (!line.trim()) continue;
+    try {
+      yield JSON.parse(line) as DistillationLabel;
+    } catch {
+      yield undefined;
+    }
+  }
+}
+
+async function ensureDir(path: string): Promise<void> {
+  await fs.mkdir(dirname(path), { recursive: true });
+}
+
+async function writeRows(path: string, content: string): Promise<void> {
+  await ensureDir(path);
+  await fs.writeFile(path, content, 'utf-8');
+}
+
+async function appendRows(path: string, content: string): Promise<void> {
+  await ensureDir(path);
+  await fs.appendFile(path, content, 'utf-8');
 }
 
 export interface DistillationLabel {
@@ -75,7 +117,7 @@ export class JudgmentDataset {
   #labels: DistillationLabel[] = [];
   #vectors = new Map<string, Float32Array>();
 
-  constructor(basePath: string, options: { rollover?: any } = {}) {
+  constructor(basePath: string, options: { rollover?: RolloverPolicyOptions } = {}) {
     this.#basePath = basePath;
     this.#ledger = createLedger<DistillationLabelEntry>(basePath, DistillationLabelEntrySchema, {
       rollover: options.rollover ?? { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
@@ -127,38 +169,17 @@ export class JudgmentDataset {
 
   /** Append the dataset to a JSONL file (creates directory if needed). */
   async flush(path: string): Promise<void> {
-    const { promises: fs } = await import('node:fs');
-    const { dirname } = await import('node:path');
-    await fs.mkdir(dirname(path), { recursive: true });
     const jsonl = this.toJSONL();
-    if (jsonl) {
-      await fs.appendFile(path, `${jsonl}\n`, 'utf-8');
-    }
+    if (jsonl) await appendRows(path, `${jsonl}\n`);
   }
 
   /** Load a JSONL file and replace the current dataset. */
   static async load(path: string, basePath?: string): Promise<JudgmentDataset> {
-    const { promises: fs } = await import('node:fs');
-    const datasetBasePath = basePath ?? (path.replace(/\/[^/]+$/, '') || '.');
-    const dataset = new JudgmentDataset(datasetBasePath);
-    try {
-      const content = await fs.readFile(path, 'utf-8');
-      const lines = content.trim().split('\n').filter(Boolean);
-      for (const line of lines) {
-        try {
-          const label = JSON.parse(line) as DistillationLabel;
-          dataset.record(label);
-          // If vector is present in the label, decode and store it
-          if (label.vector) {
-            const buf = Buffer.from(label.vector, 'base64');
-            dataset.#vectors.set(label.evidenceId, new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4));
-          }
-        } catch {
-          // Skip malformed lines
-        }
-      }
-    } catch (e) {
-      if ((e as NodeJS.ErrnoException)?.code !== 'ENOENT') throw e;
+    const dataset = new JudgmentDataset(basePath ?? (path.replace(/\/[^/]+$/, '') || '.'));
+    for await (const label of readRows(path)) {
+      if (!label) continue;
+      dataset.record(label);
+      if (label.vector) dataset.#vectors.set(label.evidenceId, decodeVector(label.vector));
     }
     return dataset;
   }
@@ -168,27 +189,13 @@ export class JudgmentDataset {
    * Returns `{kept, dropped}`.
    */
   static async compact(datasetPath: string): Promise<{ kept: number; dropped: number }> {
-    const { promises: fs } = await import('node:fs');
-    const { dirname } = await import('node:path');
-    const content = await fs.readFile(datasetPath, 'utf-8');
     const byId = new Map<string, DistillationLabel>();
     let dropped = 0;
-    for (const line of content.split('\n')) {
-      if (!line.trim()) continue;
-      try {
-        const label = JSON.parse(line) as DistillationLabel;
-        if (byId.has(label.evidenceId)) dropped++;
-        byId.set(label.evidenceId, label);
-      } catch {
-        dropped++;
-      }
+    for await (const label of readRows(datasetPath)) {
+      if (!label || byId.has(label.evidenceId)) dropped++;
+      if (label) byId.set(label.evidenceId, label);
     }
-    await fs.mkdir(dirname(datasetPath), { recursive: true });
-    await fs.writeFile(
-      datasetPath,
-      `${[...byId.values()].map((l) => JSON.stringify(l)).join('\n')}\n`,
-      'utf-8'
-    );
+    await writeRows(datasetPath, `${[...byId.values()].map((l) => JSON.stringify(l)).join('\n')}\n`);
     return { kept: byId.size, dropped };
   }
 

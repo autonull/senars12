@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../../utils/hash.js';
 import { createWasiSandbox } from '../../capability/wasi-sandbox.js';
 import type {
   ConsensusResult,
@@ -35,12 +35,12 @@ export function verifyModelDigest(loaded: string, pinned: string): void {
  * without re-pinning heads produces a different digest and fails closed.
  */
 export function composeModelDigest(encoderId: string, headWeightsDigest: string): string {
-  return `sha256:${createHash('sha256').update(`${encoderId}++${headWeightsDigest}`).digest('hex')}`;
+  return sha256Prefixed(`${encoderId}++${headWeightsDigest}`);
 }
 
 /** Derive the encoder component digest from the configured encoder identity. */
 export function encoderDigest(modelId: string, dimension: number): string {
-  return `sha256:${createHash('sha256').update(`${modelId}@${dimension}`).digest('hex')}`;
+  return sha256Prefixed(`${modelId}@${dimension}`);
 }
 
 export type HeadRuntimeProvider = 'wasi' | 'webgpu' | 'http' | 'peer' | 'off';
