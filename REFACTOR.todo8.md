@@ -234,6 +234,9 @@ on simplified code). **D** interleaves after B (Tier 2–5 need harness + simpli
 | A3 | A | Determinism gate in CI (double-run + quarantine) | CI green on identical traces | ✅ |
 | B1 | B | Single `BagComposite<T>` replaces 4 `Composite*` classes | Registry.compose switch → adapter map; goldens green | ⬜ |
 | B2 | B | Premise registry consolidation: 3 scorer tiers → 1 `PREMISE_REGISTRY` | Named configs byte-identical; `default-formation` parity | ⬜ |
+| B7 | B | Legacy dirs `cognition/` + `rl/` deleted post `exports:audit` | No external consumers; dirs gone | ⬜ |
+| B1 | B | Single `BagComposite<T>` replaces 4 `Composite*` classes | Registry.compose switch → adapter map; goldens green | ⬜ |
+| B2 | B | Premise registry consolidation: 3 scorer tiers → 1 `PREMISE_REGISTRY` | Named configs byte-identical; `default-formation` parity | ⬜ |
 | B3 | B | Explicit lifecycle hooks: `onAdapt`/`onDerivation` arrays in CognitiveController | Monkey-patch removed; RuleGraph wires via hooks | ⬜ |
 | B4 | B | Typed `classifyTask(term): TaskSignal[]` replaces substring sniffing | C28 lint-grep clean; drive stimulation via signals | ⬜ |
 | B5 | B | Event bus taxonomy: `NarEventBus` with `kernel:*`/`cognition:*`/`ui:*` channels | Single bus; per-game emitters become scoped | ⬜ |
@@ -321,3 +324,22 @@ on simplified code). **D** interleaves after B (Tier 2–5 need harness + simpli
   - Quarantine protocol test for flake identification
   - Added `pnpm test:determinism` script for CI integration
   - All 5 scenarios pass determinism gate (10/10 tests green)
+
+### Duplication Audit Complete (2026-09-27)
+Confirmed plan's duplication targets are correct and complete:
+
+| Target | Location | Pattern | Status |
+|--------|----------|---------|--------|
+| **B1** 4 bag-weighted composites | `registry.ts:71–148` | Identical `createCompositeBag` + `PriorityBag` + `sample()`; differ only in invoked method | Ready |
+| **B2** 3 scorer tiers | `primitives.ts:55–116` | `PREMISE_SCORERS` / `_CURRIED` / `_EXTENDED`; `resolveFilters` special-cases `highConfidence` | Ready |
+| **B7** Legacy dirs | `cognition/` vs `game/`, `rl/` vs `rlfp/` | Renames done as copies; `game/registry.ts` still imports from `cognition/` | Ready |
+
+Other "Composite*" classes (`CompositeStrategy`, `CompositeAttention`, `CompositePremiseSource`, `CompositeLMRule`, `CompositeDerivation`) are **different patterns for different interfaces** — not the same bag-weighted duplication. Consolidating them would be a design change, not dedup.
+
+Additional duplications confirmed (already in plan):
+- `memory.sample(100)` hardcoded in 4+ sites → **C2**
+- Multiple ad-hoc event buses → **B5**
+- NAR god object (932 lines) → **B6**
+- Monkey-patched hooks (`#wireRuleGraphCallbacks`) → **B3**
+- String-sniffing drives (`includes('test_passed')`) → **B4**
+- O(n) scorer lookups (`links.find`, per-concept `getCoActivations`) → **C1**
