@@ -1,9 +1,49 @@
 import type { CognitiveEvent, EventLog } from './EventLog.js';
+import { EventLogError } from './EventLog.js';
+
+export interface EventLogLimits {
+  maxEvents: number;
+  maxEventSize: number;
+}
+
+const DEFAULT_LIMITS: EventLogLimits = { maxEvents: 100_000, maxEventSize: 1024 * 1024 };
 
 export abstract class AbstractEventLog implements EventLog {
   #subscribers = new Set<Subscription>();
   #snapshots = new Map<string, Map<number, unknown>>();
   #closed = false;
+  protected readonly limits: EventLogLimits;
+
+  constructor(limits: Partial<EventLogLimits> = {}) {
+    this.limits = { ...DEFAULT_LIMITS, ...limits };
+  }
+
+  /** Shared append preconditions: closed log, oversized event, or full store. */
+  protected assertAppendable(fullEvent: CognitiveEvent, isFull: boolean): void {
+    if (this.#closed) {
+      throw new EventLogError('UNAVAILABLE', 'Event log is closed');
+    }
+
+    const eventSize = JSON.stringify(fullEvent).length;
+    if (eventSize > this.limits.maxEventSize) {
+      throw new EventLogError(
+        'INVALID_EVENT',
+        `Event size ${eventSize} exceeds max ${this.limits.maxEventSize}`
+      );
+    }
+
+    if (isFull) {
+      throw new EventLogError('FULL', `Event log full (${this.limits.maxEvents} events)`);
+    }
+  }
+
+  protected markClosed(): void {
+    this.#closed = true;
+  }
+
+  async close(): Promise<void> {
+    this.markClosed();
+  }
 
   abstract get size(): number;
 
@@ -13,7 +53,6 @@ export abstract class AbstractEventLog implements EventLog {
 
   abstract getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]>;
 
-  abstract close(): Promise<void>;
 
   async append(event: Omit<CognitiveEvent, 'id' | 'timestamp'>): Promise<CognitiveEvent> {
     if (this.#closed) {

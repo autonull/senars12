@@ -2,7 +2,6 @@ import Database from 'better-sqlite3';
 import { monotonicFactory } from 'ulid';
 import { AbstractEventLog } from './AbstractEventLog.js';
 import type { CognitiveEvent, EventLogConfig, EventLogQuery } from './EventLog.js';
-import { EventLogError } from './EventLog.js';
 
 const ulid = monotonicFactory();
 
@@ -22,15 +21,10 @@ interface Row {
 export class SqliteEventLog extends AbstractEventLog {
   #db: Database.Database;
   #config: Required<SqliteEventLogConfig>;
-  #closed = false;
 
   constructor(config: SqliteEventLogConfig) {
-    super();
-    this.#config = {
-      maxEvents: config.maxEvents ?? 100_000,
-      maxEventSize: config.maxEventSize ?? 1024 * 1024,
-      path: config.path,
-    };
+    super(config);
+    this.#config = { ...config, maxEvents: this.limits.maxEvents, maxEventSize: this.limits.maxEventSize };
     this.#db = new Database(this.#config.path);
     this.#db.pragma('journal_mode = WAL');
     this.#db.pragma('synchronous = NORMAL');
@@ -88,28 +82,14 @@ export class SqliteEventLog extends AbstractEventLog {
     return (rows as Row[]).map((row) => this.#rowToEvent(row));
   }
 
-  async close(): Promise<void> {
-    this.#closed = true;
+  override async close(): Promise<void> {
+    this.markClosed();
     this.#db.close();
   }
 
   protected async doAppend(fullEvent: CognitiveEvent): Promise<void> {
-    if (this.#closed) {
-      throw new EventLogError('UNAVAILABLE', 'Event log is closed');
-    }
-
-    const eventSize = JSON.stringify(fullEvent).length;
-    if (eventSize > this.#config.maxEventSize) {
-      throw new EventLogError(
-        'INVALID_EVENT',
-        `Event size ${eventSize} exceeds max ${this.#config.maxEventSize}`
-      );
-    }
-
-    const count = this.#db.prepare('SELECT COUNT(*) as c FROM events').get() as { c: number };
-    if (count.c >= this.#config.maxEvents) {
-      throw new EventLogError('FULL', `Event log full (${this.#config.maxEvents} events)`);
-    }
+    const { c: count } = this.#db.prepare('SELECT COUNT(*) as c FROM events').get() as { c: number };
+    this.assertAppendable(fullEvent, count >= this.limits.maxEvents);
 
     this.#db
       .prepare(

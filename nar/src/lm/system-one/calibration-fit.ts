@@ -1,11 +1,15 @@
-import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
+import { sha256HexParts } from '../../utils/hash.js';
+import { identityECE, meanBrier } from './metrics.js';
+import { mulberry32 } from '../../utils/random.js';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration.js';
 import type { JudgmentDataset } from './distill.js';
 import type { CalibrationVersion, ModelDigest } from './types.js';
 import { DigestMismatchError } from './wasi-runtime.js';
 
 // ─── Lock schema (jevcal pattern: fitted thresholds, digest-pinned) ──────────
+
+export { identityECE, meanBrier, meanBrierOf } from './metrics.js';
 
 export interface CalibrationLockEntry {
   headId: string;
@@ -95,28 +99,10 @@ export function extractLabeledDataWithDerivedOutcomes(
 }
 
 function split(data: readonly LabeledDatum[], holdoutFraction: number, seed: number) {
-  let s = seed >>> 0;
-  const rand = () => {
-    s = (s + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+  const rand = mulberry32(seed);
   const shuffled = [...data].sort(() => rand() - 0.5);
   const cut = Math.max(1, Math.floor(shuffled.length * holdoutFraction));
   return { holdout: shuffled.slice(0, cut), fit: shuffled.slice(cut) };
-}
-
-/** Identity (unfitted) calibrator ECE — the honest baseline the fit must beat. */
-export function identityECE(data: readonly { predicted: number; observed: number }[]): number {
-  if (data.length === 0) return 0;
-  return data.reduce((sum, d) => sum + Math.abs(d.predicted - d.observed), 0) / data.length;
-}
-
-/** Mean squared calibration error over predicted/observed pairs. Sits beside {@link identityECE}. */
-export function meanBrier(data: readonly { predicted: number; observed: number }[]): number {
-  if (data.length === 0) return 0;
-  return data.reduce((sum, d) => sum + (d.predicted - d.observed) ** 2, 0) / data.length;
 }
 
 /** Brier with abstain→0.5 fallback, used to select the per-head threshold. */
@@ -235,18 +221,18 @@ function lockMetrics(set: {
   digest: string;
   rows: readonly { predicted: number; observed: number }[];
 }): LockMetrics {
-  const brier = set.rows.reduce((s, r) => s + (r.predicted - r.observed) ** 2, 0) / set.rows.length;
+  const brier = meanBrier(set.rows);
   return { brier, ece: identityECE(set.rows), datasetDigest: set.digest, count: set.rows.length };
 }
 
 function createLockDigest(calibrator: IsotonicCalibrator, threshold: number): string {
   // Lightweight content digest over the sorted calibration curve + threshold.
-  const hash = createHash('sha256');
-  for (const p of [...calibrator.getPoints()].sort((a, b) => a.predicted - b.predicted)) {
-    hash.update(`${p.predicted}:${p.observed}:${p.weight};`);
-  }
-  hash.update(`threshold=${threshold}`);
-  return hash.digest('hex');
+  return sha256HexParts([
+    ...[...calibrator.getPoints()]
+      .sort((a, b) => a.predicted - b.predicted)
+      .map((p) => `${p.predicted}:${p.observed}:${p.weight};`),
+    `threshold=${threshold}`,
+  ]);
 }
 
 export async function writeCalibrationLock(lock: CalibrationLock, path: string): Promise<void> {

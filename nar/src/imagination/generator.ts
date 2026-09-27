@@ -3,6 +3,7 @@ import { Truth } from '../terms/truth.js';
 import type { Task } from '../types/core.js';
 import { createBudget, createTask } from '../types/core.js';
 import { createOracleFromScenario, HiddenModelOracle } from './oracle.js';
+import { mulberry32 } from '../utils/random.js';
 import type { GeneratorConfig, HiddenRule, Scenario, ScenarioProfile } from './types.js';
 
 export class ScenarioGenerator {
@@ -164,15 +165,6 @@ export function generateMultipleScenarios(count: number, baseConfig: GeneratorCo
   );
 }
 
-function mulberry32(a: number): () => number {
-  return () => {
-    a += 0x6d2b79f5;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 export function createInductionScenario(seed: number, eventCount = 100): Scenario {
   return generateScenario({

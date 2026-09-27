@@ -1,9 +1,10 @@
-import { clamp01 } from '@senars/util';
-import { createHash } from 'node:crypto';
-import { sha256Prefixed } from '../../utils/hash.js';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
+import { clamp01 } from '@senars/util';
 import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL_ID } from '../../memory/embedding.js';
+import { sha256HexParts, sha256Prefixed } from '../../utils/hash.js';
+import { mulberry32 } from '../../utils/random.js';
+import { meanBrierOf } from './metrics.js';
 import type { CognitiveAxis, JudgmentHead, JudgmentQuery, RubricId } from './types.js';
 import { composeModelDigest, DigestMismatchError, encoderDigest } from './wasi-runtime.js';
 
@@ -152,16 +153,6 @@ export function pearson(xs: readonly number[], ys: readonly number[]): number {
   return sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : 0;
 }
 
-function mulberry(seed: number): () => number {
-  let s = seed >>> 0;
-  return () => {
-    s = (s + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 const sigmoid = (z: number) => 1 / (1 + Math.exp(-z));
 
 /** Gaussian elimination with partial pivoting (A square, nonsingular). */
@@ -224,7 +215,7 @@ export function trainHead(
   const l2 = options.l2 ?? 1e-4;
   const holdoutFraction = options.holdoutFraction ?? 0.2;
   const patience = options.patience ?? 50;
-  const rng = mulberry(options.seed ?? 42);
+  const rng = mulberry32(options.seed ?? 42);
 
   if (rows.length < 4) throw new Error(`Insufficient training rows: ${rows.length}`);
   const embeddingDim = rows[0]!.embedding.length;
@@ -271,15 +262,12 @@ export function trainHead(
   const predict = (row: TrainingRow, isHoldout = false): number =>
     kind === 'logistic' ? sigmoid(predictZ(row, isHoldout)) : clamp01(predictZ(row, isHoldout));
 
-  const brier = (set: readonly TrainingRow[]) => {
-    if (set.length === 0) return 0;
-    let sum = 0;
-    for (const row of set) {
-      const p = predict(row, set === holdout);
-      sum += (p - clamp01(row.target)) ** 2;
-    }
-    return sum / set.length;
-  };
+  const brier = (set: readonly TrainingRow[]) =>
+    meanBrierOf(
+      set,
+      (row) => predict(row, set === holdout),
+      (row) => clamp01(row.target)
+    );
 
   let bestHoldout = Infinity;
   let bestSnapshot = { weights: new Float32Array(weights), bias };
@@ -377,15 +365,12 @@ export function trainHead(
 const brierOn = (
   score: (embedding: Float32Array, action: string, game?: string) => number,
   rows: readonly TrainingRow[]
-): number => {
-  if (rows.length === 0) return 0;
-  return (
-    rows.reduce(
-      (sum, row) => sum + (score(row.embedding, row.action, row.game) - clamp01(row.target)) ** 2,
-      0
-    ) / rows.length
+): number =>
+  meanBrierOf(
+    rows,
+    (row) => score(row.embedding, row.action, row.game),
+    (row) => clamp01(row.target)
   );
-};
 
 /** Inference head from a trained model — round-trips through the real artifact/scoring path. */
 const toHead = (model: TrainedHeadModel): TrainedLinearHead =>
@@ -422,7 +407,7 @@ export function bakeOffSharedHead(
   }
   if (byGame.size < 2) throw new Error(`Bake-off requires ≥2 games, got ${byGame.size}`);
 
-  const rng = mulberry(options.seed ?? 42);
+  const rng = mulberry32(options.seed ?? 42);
   const train = new Map<string, TrainingRow[]>();
   const holdout = new Map<string, TrainingRow[]>();
   for (const [game, gameRows] of byGame) {
@@ -460,12 +445,11 @@ export function bakeOffSharedHead(
 }
 
 function digestWeights(weights: Float32Array, bias: number): string {
-  const hash = createHash('sha256');
-  hash.update(Buffer.from(weights.buffer, weights.byteOffset, weights.byteLength));
   const biasBuf = Buffer.alloc(4);
   biasBuf.writeFloatLE(bias);
-  hash.update(biasBuf);
-  return `sha256:${hash.digest('hex')}`;
+  return sha256Prefixed(
+    Buffer.concat([Buffer.from(weights.buffer, weights.byteOffset, weights.byteLength), biasBuf])
+  );
 }
 
 // ─── Artifacts (docs/system-one-distillation-runner.md contract) ─────────────

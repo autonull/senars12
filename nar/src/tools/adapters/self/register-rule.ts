@@ -1,10 +1,11 @@
 import { dirname, resolve } from 'node:path';
 import { tool } from 'ai';
 import { z } from 'zod';
-import type { SelfToolsContext } from './context.js';
+import { type SelfToolsContext, withShadowWorktree } from './context.js';
 
-export const registerRuleTool = ({ deps, shadowManager, worktreeId }: SelfToolsContext) =>
-  tool({
+export const registerRuleTool = (ctx: SelfToolsContext) => {
+  const { deps, shadowManager } = ctx;
+  return tool({
     description:
       'Register a new inference rule in the NAR rule processor. Takes a schema ID and promotes it to an active rule. Supports worktree reuse.',
     inputSchema: z.strictObject({
@@ -19,64 +20,50 @@ export const registerRuleTool = ({ deps, shadowManager, worktreeId }: SelfToolsC
       if (!deps.nar || !deps.ruleProcessor) {
         return { success: false, error: 'NAR or RuleProcessor not available' };
       }
-      try {
-        // D6 honesty: schema-to-rule compilation is not implemented — no
-        // simulated success. Shadow validation still runs for the provided
-        // code, but nothing is registered into the RuleProcessor.
-        const ruleId = `promoted_${schemaId}`;
+      // D6 honesty: schema-to-rule compilation is not implemented — no
+      // simulated success. Shadow validation still runs for the provided
+      // code, but nothing is registered into the RuleProcessor.
+      const ruleId = `promoted_${schemaId}`;
 
-        // If ruleCode provided, eval it (in shadow context)
-        if (ruleCode) {
-          // Safety: only allow in shadow worktree
-          let worktreePath: string;
-          let created = false;
-          const wtId = existingId || `${worktreeId}-rule`;
-
-          if (existingId) {
-            worktreePath = shadowManager.getWorktreePath(existingId) || '';
-            if (!worktreePath) {
-              return { success: false, error: `Worktree not found: ${existingId}` };
-            }
-          } else {
-            worktreePath = await shadowManager.createWorktree(wtId);
-            created = true;
-          }
-
-          try {
-            const ruleFile = resolve(worktreePath, `rules/${ruleId}.ts`);
+      // If ruleCode provided, eval it (in shadow context only)
+      if (ruleCode) {
+        const outcome = await withShadowWorktree(
+          ctx,
+          'rule',
+          existingId,
+          async ({ path, id, isNew }) => {
+            const ruleFile = resolve(path, `rules/${ruleId}.ts`);
             const { mkdir, writeFile } = await import('node:fs/promises');
             await mkdir(dirname(ruleFile), { recursive: true });
             await writeFile(ruleFile, ruleCode, 'utf-8');
 
             // Run tests to validate
-            const testResult = await shadowManager.runTestsInWorktree(worktreePath);
+            const testResult = await shadowManager.runTestsInWorktree(path);
             if (!testResult.success) {
               return { success: false, error: 'Rule validation failed', testResult };
             }
 
-            const diff = await shadowManager.getDiff(worktreePath);
+            const diff = await shadowManager.getDiff(path);
 
             return {
               success: true,
               ruleId,
               diff,
               message: 'Rule registered and validated',
-              worktreeId: created ? wtId : existingId,
+              worktreeId: isNew ? id : existingId,
             };
-          } finally {
-            if (created) {
-              await shadowManager.cleanupWorktree(wtId);
-            }
           }
-        }
+        );
 
-        return {
-          success: false,
-          error: `not-supported: schema-to-rule compilation (${ruleId}) is not implemented; rule was not registered`,
-          ruleId,
-        };
-      } catch (error) {
-        return { success: false, error: String(error) };
+        if (outcome.ok) return outcome.value;
+        return { success: false, error: outcome.error };
       }
+
+      return {
+        success: false,
+        error: `not-supported: schema-to-rule compilation (${ruleId}) is not implemented; rule was not registered`,
+        ruleId,
+      };
     },
   });
+};

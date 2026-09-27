@@ -31,3 +31,18 @@ export class DecisionLog {
     return this.#entries.filter((d) => d.at >= at);
   }
 }
+
+/** Decision-log readouts every recording reflex exposes (TODO24 attribution). */
+export abstract class DecisionReadout {
+  protected readonly decisionLog = new DecisionLog();
+
+  get lastDecision(): { proposed: readonly string[]; selected: string } | undefined {
+    const d = this.decisionLog.last;
+    return d ? { proposed: d.proposed, selected: d.selected } : undefined;
+  }
+
+  /** Decisions served within [at, ∞) — per-message join via wall-clock span. */
+  decisionsSince(at: number): readonly ReflexDecision[] {
+    return this.decisionLog.since(at);
+  }
+}

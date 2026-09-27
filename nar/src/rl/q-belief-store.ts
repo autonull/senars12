@@ -15,6 +15,16 @@ export interface QBeliefStoreOptions {
 export const DEFAULT_QBELIEF_CAPACITY = 1000;
 
 /**
+ * Decode a stored value belief back to the Q expectation it encodes.
+ *
+ * `updateValueQLearning` writes `f = (E - 0.5) / c + 0.5`, so the inverse is
+ * `E = c * (f - 0.5) + 0.5`. Every read path must go through this — the previous
+ * mix of `f * c` (greedy policy) and the correct decode (max-value, blending)
+ * ranked the same table under two different orderings.
+ */
+export const decodeQExpectation = ({ f, c }: { f: number; c: number }): number => c * (f - 0.5) + 0.5;
+
+/**
  * Stores state-action value beliefs in NAR memory using native Product/Inheritance form
  * ((*, state, ^action) --> predicts_reward) %f;c%
  */
@@ -80,83 +90,71 @@ export class QBeliefStore {
     return { f: belief.truth.f, c: belief.truth.c };
   }
 
+  /** Value-belief term for a (state, action) pair, or null if unbuildable. */
+  #valueTerm(state: Term, action: Term): Term | null {
+    const product = TermBuilder.product(state, action);
+    return TermBuilder.inheritance(product, this.predictsRewardAtom) ?? null;
+  }
+
+  /** Revise the stored value belief with `evidence` as new evidence. */
+  async #reviseValue(state: Term, action: Term, evidence: Truth): Promise<void> {
+    const valueTerm = this.#valueTerm(state, action);
+    if (!valueTerm) return;
+    this.indexValueBelief(state, action);
+
+    const current = this.getValue(state, action);
+    await this.nar.believe(
+      valueTerm,
+      current ? Truth.revision(Truth.create(current.f, current.c), evidence) : evidence
+    );
+  }
+
+  /** Write a value belief by assignment, encoding expectation `expectation`. */
+  async #writeValue(state: Term, action: Term, expectation: number, confidence: number): Promise<void> {
+    const valueTerm = this.#valueTerm(state, action);
+    if (!valueTerm) return;
+    this.indexValueBelief(state, action);
+
+    const clamped = Math.max(0, Math.min(1, expectation));
+    const frequency = Math.max(0, Math.min(1, (clamped - 0.5) / confidence + 0.5));
+    await this.nar.believe(valueTerm, Truth.create(frequency, confidence));
+  }
+
   /** Update value belief using Truth.revision with immediate reward */
-  async updateValue(
+  updateValue(
     state: Term,
     action: Term,
     reward: number,
     confidence: number = 0.5
   ): Promise<void> {
-    const product = TermBuilder.product(state, action);
-    const valueTerm = TermBuilder.inheritance(product, this.predictsRewardAtom);
-    if (!valueTerm) return;
-
-    const evidenceTruth = Truth.create(reward, confidence);
-    this.indexValueBelief(state, action);
-
-    const current = this.getValue(state, action);
-    if (current) {
-      const currentTruth = Truth.create(current.f, current.c);
-      const revised = Truth.revision(currentTruth, evidenceTruth);
-      await this.nar.believe(valueTerm, revised);
-    } else {
-      await this.nar.believe(valueTerm, evidenceTruth);
-    }
+    return this.#reviseValue(state, action, Truth.create(reward, confidence));
   }
 
   /** Update value belief using TD target (for temporal difference learning) */
-  async updateValueTD(
+  updateValueTD(
     state: Term,
     action: Term,
     tdTarget: number,
     confidence: number = 0.5
   ): Promise<void> {
-    const product = TermBuilder.product(state, action);
-    const valueTerm = TermBuilder.inheritance(product, this.predictsRewardAtom);
-    if (!valueTerm) return;
-
-    const evidenceTruth = Truth.create(tdTarget, confidence);
-    this.indexValueBelief(state, action);
-
-    const current = this.getValue(state, action);
-    if (current) {
-      const currentTruth = Truth.create(current.f, current.c);
-      const revised = Truth.revision(currentTruth, evidenceTruth);
-      await this.nar.believe(valueTerm, revised);
-    } else {
-      await this.nar.believe(valueTerm, evidenceTruth);
-    }
+    return this.#reviseValue(state, action, Truth.create(tdTarget, confidence));
   }
 
   /** Update value belief using Q-learning style convex combination (proper TD learning) */
-  async updateValueQLearning(
+  updateValueQLearning(
     state: Term,
     action: Term,
     tdTarget: number,
     alpha: number = 0.1,
     confidence: number = 0.9
   ): Promise<void> {
-    const product = TermBuilder.product(state, action);
-    const valueTerm = TermBuilder.inheritance(product, this.predictsRewardAtom);
-    if (!valueTerm) return;
-    this.indexValueBelief(state, action);
-
     const current = this.getValue(state, action);
-    let newExpectation: number;
-
-    if (current) {
-      const currentExpectation = current.c * (current.f - 0.5) + 0.5;
-      newExpectation = (1 - alpha) * currentExpectation + alpha * tdTarget;
-    } else {
-      newExpectation = tdTarget;
-    }
-
-    newExpectation = Math.max(0, Math.min(1, newExpectation));
-    const newFrequency = (newExpectation - 0.5) / confidence + 0.5;
-    const clampedFrequency = Math.max(0, Math.min(1, newFrequency));
-
-    const newTruth = Truth.create(clampedFrequency, confidence);
-    await this.nar.believe(valueTerm, newTruth);
+    return this.#writeValue(
+      state,
+      action,
+      current ? (1 - alpha) * decodeQExpectation(current) + alpha * tdTarget : tdTarget,
+      confidence
+    );
   }
 
   /** Get max Q-value for a state across available actions */
@@ -167,7 +165,7 @@ export class QBeliefStore {
     for (const action of availableActions) {
       const value = this.getValue(state, action);
       if (value) {
-        const expectation = value.c * (value.f - 0.5) + 0.5;
+        const expectation = decodeQExpectation(value);
         if (expectation > maxValue) maxValue = expectation;
       }
     }
@@ -186,14 +184,14 @@ export class QBeliefStore {
     return results;
   }
 
-  /** Get best action for a state based on expected value (f * c) */
+  /** Get best action for a state by highest decoded Q-expectation. */
   getBestAction(state: Term, availableActions: Term[]): Term | null {
     const stateKey = state.toString();
     this.#touchState(stateKey);
     // Random tie-break among maximal-expectation actions — deterministic
     // first-action ties bias the policy toward the earliest-recorded action
-    // (all small rewards clamp to f=0 under Q-convex encoding), latching
-    // exploration shut (F4 GridWorld parity root cause).
+    // (all small rewards clamp near f=0.5 under the Q-convex encoding),
+    // latching exploration shut (F4 GridWorld parity root cause).
     const bestAction: Term | null = null;
     let bestExpectation = -Infinity;
     let ties: Term[] = [];
@@ -201,7 +199,7 @@ export class QBeliefStore {
     for (const action of availableActions) {
       const value = this.getValue(state, action);
       if (value) {
-        const expectation = value.f * value.c;
+        const expectation = decodeQExpectation(value);
         if (expectation > bestExpectation + 1e-9) {
           bestExpectation = expectation;
           ties = [action];

@@ -1,6 +1,6 @@
-import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import type { AutonomyMode, CognitiveEvent, TaskAdmittedEvent } from '@senars/kernel/schemas';
 import { CognitiveEventSchema } from '@senars/kernel/schemas';
+import { appendJsonl, readJsonl } from '../utils/jsonl.js';
 import type { GateRegistry } from './GateRegistry.js';
 
 export function persistGateLogs(registry: GateRegistry, path: string): { appended: number } {
@@ -12,27 +12,15 @@ export function persistGateLogs(registry: GateRegistry, path: string): { appende
     ...logs.reward,
     ...logs.budget,
   ].sort((a, b) => a.timestamp - b.timestamp);
-  if (events.length === 0) return { appended: 0 };
-  appendFileSync(path, events.map((e) => JSON.stringify(e)).join('\n') + '\n');
-  return { appended: events.length };
+  return { appended: appendJsonl(path, events) };
 }
 
 export function loadGateEvents(path: string): { events: CognitiveEvent[]; invalid: number } {
-  if (!existsSync(path)) return { events: [], invalid: 0 };
-  const events: CognitiveEvent[] = [];
-  let invalid = 0;
-  for (const line of readFileSync(path, 'utf8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    try {
-      const parsed = CognitiveEventSchema.safeParse(JSON.parse(trimmed));
-      if (parsed.success) events.push(parsed.data);
-      else invalid++;
-    } catch {
-      invalid++;
-    }
-  }
-  return { events, invalid };
+  const { rows, invalid } = readJsonl(path, (value) => {
+    const parsed = CognitiveEventSchema.safeParse(value);
+    return parsed.success ? parsed.data : null;
+  });
+  return { events: rows, invalid };
 }
 
 export function replayTaskAdmissions(

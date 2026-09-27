@@ -14,19 +14,24 @@ const ROOT = process.cwd();
 
 describe('Bench 99 — complexity budget gate', () => {
   let originalBudget: string;
+  let scratchDir: string;
 
   beforeEach(() => {
     originalBudget = readFileSync(join(ROOT, 'complexity-budget.json'), 'utf-8');
+    // The gate runs against a scratch budget file: mutating the checked-in one
+    // races other vitest workers and can leave the tree dirty when a run dies.
+    scratchDir = mkdtempSync(join(tmpdir(), 'budget-'));
   });
 
   afterEach(() => {
-    writeFileSync(join(ROOT, 'complexity-budget.json'), originalBudget);
+    rmSync(scratchDir, { recursive: true, force: true });
   });
 
   const runGate = (budgetJson: string): { code: number; stdout: string; stderr: string } => {
-    writeFileSync(join(ROOT, 'complexity-budget.json'), budgetJson);
+    const budgetPath = join(scratchDir, 'complexity-budget.json');
+    writeFileSync(budgetPath, budgetJson);
     try {
-      const out = execFileSync('tsx', ['scripts/complexity-budget.ts'], {
+      const out = execFileSync('tsx', ['scripts/complexity-budget.ts', '--budget', budgetPath], {
         cwd: ROOT,
         encoding: 'utf-8',
         maxBuffer: 10 * 1024 * 1024,

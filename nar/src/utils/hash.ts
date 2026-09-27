@@ -10,6 +10,13 @@ export type DigestInput = string | Uint8Array;
 export const sha256Hex = (data: DigestInput): string =>
   createHash('sha256').update(data).digest('hex');
 
+/** Streaming SHA-256 hex digest over an ordered list of parts (no intermediate concat). */
+export const sha256HexParts = (parts: readonly DigestInput[]): string => {
+  const hash = createHash('sha256');
+  for (const part of parts) hash.update(part);
+  return hash.digest('hex');
+};
+
 /** Algorithm-pinned digest form (`sha256:<hex>`) used by ModelDigest, lock files, and dialogue digests. */
 export const sha256Prefixed = (data: DigestInput): string => `sha256:${sha256Hex(data)}`;
 

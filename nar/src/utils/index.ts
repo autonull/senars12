@@ -1,6 +1,8 @@
 export { CircuitBreaker, type CircuitBreakerConfig } from './resilience.js';
 export { addToSet, getOrInsert, incrementCount, selectTopN } from './collections.js';
-export { computeHash, fnv1a, fnv1aCombine, sha256Hex, sha256Prefixed, shortSha256Hex, type DigestInput } from './hash.js';
+export { computeHash, fnv1a, fnv1aCombine, sha256Hex, sha256HexParts, sha256Prefixed, shortSha256Hex, type DigestInput } from './hash.js';
+export { mulberry32 } from './random.js';
+export { appendJsonl, readJsonl, type JsonlLoadResult } from './jsonl.js';
 export {
   clamp,
   clamp01,

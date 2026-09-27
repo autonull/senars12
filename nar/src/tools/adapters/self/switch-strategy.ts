@@ -1,9 +1,10 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import type { SelfToolsContext } from './context.js';
+import { type SelfToolsContext, withShadowWorktree } from './context.js';
 
-export const switchStrategyTool = ({ deps, shadowManager, worktreeId }: SelfToolsContext) =>
-  tool({
+export const switchStrategyTool = (ctx: SelfToolsContext) => {
+  const { deps, shadowManager } = ctx;
+  return tool({
     description:
       'Switch cognitive strategy (sampling, derivation, attention, etc.). Validates with test run. Supports worktree reuse.',
     inputSchema: z.strictObject({
@@ -17,7 +18,8 @@ export const switchStrategyTool = ({ deps, shadowManager, worktreeId }: SelfTool
       worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
     }),
     execute: async ({ strategy, strategyType, reason, worktreeId: existingId }) => {
-      if (!deps.cognitiveController || !deps.nar) {
+      const { cognitiveController: controller, nar } = deps;
+      if (!controller || !nar) {
         return { success: false, error: 'CognitiveController or NAR not available' };
       }
 
@@ -25,64 +27,50 @@ export const switchStrategyTool = ({ deps, shadowManager, worktreeId }: SelfTool
         strategyType === 'lmRule'
           ? 'lm-rule'
           : (strategyType as 'sampling' | 'derivation' | 'attention' | 'premise');
-      const registry = deps.cognitiveController.getRegistry();
+      const registry = controller.getRegistry();
       if (!registry.has(strategyTypeKey, strategy)) {
         return { success: false, error: `Strategy not found: ${strategy} (${strategyType})` };
       }
 
       // Save previous strategy for rollback
-      const previousStrategy = deps.cognitiveController.getStrategy(strategyTypeKey);
+      const previousStrategy = controller.getStrategy(strategyTypeKey);
 
       // Apply strategy
-      deps.cognitiveController.setStrategy(strategyTypeKey, strategy);
+      controller.setStrategy(strategyTypeKey, strategy);
 
-      let worktreePath: string;
-      let created = false;
-      const wtId = existingId || `${worktreeId}-strategy`;
+      const revert = () => {
+        if (previousStrategy) controller.setStrategy(strategyTypeKey, previousStrategy);
+      };
 
-      try {
-        if (existingId) {
-          worktreePath = shadowManager.getWorktreePath(existingId) || '';
-          if (!worktreePath) {
-            return { success: false, error: `Worktree not found: ${existingId}` };
+      const outcome = await withShadowWorktree(
+        ctx,
+        'strategy',
+        existingId,
+        async ({ path, id, isNew }) => {
+          // Validate with quick test run
+          const testResult = await shadowManager.runTestsInWorktree(path);
+
+          if (!testResult.success) {
+            revert();
+            return { success: false, error: 'Strategy switch broke tests', testResult };
           }
-        } else {
-          worktreePath = await shadowManager.createWorktree(wtId);
-          created = true;
-        }
 
-        // Validate with quick test run
-        const testResult = await shadowManager.runTestsInWorktree(worktreePath);
+          // Stimulate competence drive
+          nar.getExecution?.()?.stimulateDrives?.('knob_tuned');
 
-        if (!testResult.success) {
-          // Rollback: revert to previous strategy
-          if (previousStrategy) {
-            deps.cognitiveController.setStrategy(strategyTypeKey, previousStrategy);
-          }
-          return { success: false, error: 'Strategy switch broke tests', testResult };
-        }
+          return {
+            success: true,
+            strategy,
+            strategyType,
+            testResult,
+            message: 'Strategy switched and validated',
+            worktreeId: isNew ? id : existingId,
+          };
+        },
+        revert
+      );
 
-        // Stimulate competence drive
-        deps.nar.getExecution?.()?.stimulateDrives?.('knob_tuned');
-
-        return {
-          success: true,
-          strategy,
-          strategyType,
-          testResult,
-          message: 'Strategy switched and validated',
-          worktreeId: created ? wtId : existingId,
-        };
-      } catch (error) {
-        // Rollback on error
-        if (previousStrategy) {
-          deps.cognitiveController.setStrategy(strategyTypeKey, previousStrategy);
-        }
-        return { success: false, error: String(error) };
-      } finally {
-        if (created) {
-          await shadowManager.cleanupWorktree(wtId);
-        }
-      }
+      return outcome.ok ? outcome.value : { success: false, error: outcome.error };
     },
   });
+};

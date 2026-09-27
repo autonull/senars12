@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { identityECE, meanBrier } from '../lm/system-one/calibration-fit.js';
+import { identityECE, meanBrier } from '../lm/system-one/metrics.js';
 import { createIsotonicCalibrator } from '../lm/system-one/calibration.js';
 
 export interface ArcadeTickRecord {

@@ -1,10 +1,11 @@
 import { dirname, resolve } from 'node:path';
 import { tool } from 'ai';
 import { z } from 'zod';
-import type { SelfToolsContext } from './context.js';
+import { type SelfToolsContext, withShadowWorktree } from './context.js';
 
-export const scaffoldCapabilityTool = ({ deps, shadowManager, worktreeId }: SelfToolsContext) =>
-  tool({
+export const scaffoldCapabilityTool = (ctx: SelfToolsContext) => {
+  const { deps, shadowManager } = ctx;
+  return tool({
     description:
       'Scaffold a new capability from a template. Generates code in shadow worktree, runs tests, requires approval. Supports worktree reuse.',
     inputSchema: z.strictObject({
@@ -18,24 +19,14 @@ export const scaffoldCapabilityTool = ({ deps, shadowManager, worktreeId }: Self
         return { success: false, error: 'NAR not available' };
       }
 
-      let worktreePath: string;
-      let created = false;
-      const wtId = existingId || `${worktreeId}-scaffold`;
-
-      if (existingId) {
-        worktreePath = shadowManager.getWorktreePath(existingId) || '';
-        if (!worktreePath) {
-          return { success: false, error: `Worktree not found: ${existingId}` };
-        }
-      } else {
-        worktreePath = await shadowManager.createWorktree(wtId);
-        created = true;
-      }
-
-      try {
-        // Template implementations
-        const templates: Record<string, string> = {
-          tool_template: `
+      const outcome = await withShadowWorktree(
+        ctx,
+        'scaffold',
+        existingId,
+        async ({ path, id, isNew }) => {
+          // Template implementations
+          const templates: Record<string, string> = {
+            tool_template: `
 import { tool } from 'ai';
 import { z } from 'zod';
 
@@ -53,7 +44,7 @@ export const ${capabilityId} = tool({
     return { result: 'not implemented', args };
   },
 });`,
-          rule_template: `
+            rule_template: `
 import { TermBuilder, variable, atom } from '@senars/nar/terms';
 import { Truth } from '@senars/nar/terms';
 import type { RegisteredRule } from '@senars/nar/rules';
@@ -69,49 +60,47 @@ export const ${capabilityId}_rule: RegisteredRule = {
   priority: 0.5,
   truthFn: () => Truth.create(0.7, 0.8),
 };`,
-        };
+          };
 
-        const template = templates[templateId] || templates.tool_template;
-        const { mkdir, writeFile } = await import('node:fs/promises');
-        const ext = templateId.includes('rule') ? '.ts' : '.ts';
-        const capFile = resolve(worktreePath, `capabilities/${capabilityId}${ext}`);
-        await mkdir(dirname(capFile), { recursive: true });
-        await writeFile(capFile, template ?? '', 'utf-8');
+          const template = templates[templateId] || templates.tool_template;
+          const { mkdir, writeFile } = await import('node:fs/promises');
+          const ext = templateId.includes('rule') ? '.ts' : '.ts';
+          const capFile = resolve(path, `capabilities/${capabilityId}${ext}`);
+          await mkdir(dirname(capFile), { recursive: true });
+          await writeFile(capFile, template ?? '', 'utf-8');
 
-        const testResult = await shadowManager.runTestsInWorktree(worktreePath);
-        if (!testResult.success) {
-          return { success: false, error: 'Capability validation failed', testResult };
-        }
-
-        const diff = await shadowManager.getDiff(worktreePath);
-
-        // Request approval if manager available
-        if (deps.approvalManager) {
-          const req = deps.approvalManager.createRequest(`Add capability: ${capabilityId}`, {
-            diff,
-            templateId,
-            parameters,
-          });
-          const approval = await req.result;
-          if (!approval.approved) {
-            return { success: false, error: 'Approval denied', reason: approval.reason };
+          const testResult = await shadowManager.runTestsInWorktree(path);
+          if (!testResult.success) {
+            return { success: false, error: 'Capability validation failed', testResult };
           }
-        }
 
-        await shadowManager.mergeWorktree(wtId);
-        return {
-          success: true,
-          capabilityId,
-          diff,
-          message: 'Capability scaffolded and merged',
-          worktreeId: created ? wtId : existingId,
-        };
-      } catch (error) {
-        return { success: false, error: String(error) };
-      } finally {
-        if (created) {
-          await shadowManager.cleanupWorktree(wtId);
+          const diff = await shadowManager.getDiff(path);
+
+          // Request approval if manager available
+          if (deps.approvalManager) {
+            const req = deps.approvalManager.createRequest(`Add capability: ${capabilityId}`, {
+              diff,
+              templateId,
+              parameters,
+            });
+            const approval = await req.result;
+            if (!approval.approved) {
+              return { success: false, error: 'Approval denied', reason: approval.reason };
+            }
+          }
+
+          await shadowManager.mergeWorktree(id);
+          return {
+            success: true,
+            capabilityId,
+            diff,
+            message: 'Capability scaffolded and merged',
+            worktreeId: isNew ? id : existingId,
+          };
         }
-      }
+      );
+
+      return outcome.ok ? outcome.value : { success: false, error: outcome.error };
     },
   });
+};

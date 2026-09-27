@@ -7,6 +7,7 @@ import type {
   ToolResult,
 } from '@senars/core/engine';
 import { BaseEngine } from '@senars/core/engine/base';
+import { isNarsese } from '@senars/util';
 import { MAPPED_NAR_EVENTS, narEventToCognitive } from '../events/bridge.js';
 import { NAR } from '../nar.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
@@ -36,9 +37,9 @@ export class NAREngine extends BaseEngine {
       '[NAREngine.reason] Input:',
       JSON.stringify(text),
       'isNarsese:',
-      this.#isNarsese(text)
+      isNarsese(text)
     );
-    if (!this.#isNarsese(text)) return [];
+    if (!isNarsese(text)) return [];
 
     console.log('[NAREngine.reason] Processing Narsese...');
     // Strip tense/truth markers before parsing: "statement. :|:" or "statement. :!:"
@@ -132,29 +133,5 @@ export class NAREngine extends BaseEngine {
       eventBus.on(eventKey as string, handler);
       systemEventBus.on(eventKey as string, handler);
     }
-  }
-
-  #isNarsese(text: string): boolean {
-    const trimmed = text.trim();
-    if (!trimmed) return false;
-    if (
-      trimmed.startsWith('(') ||
-      trimmed.startsWith('<') ||
-      trimmed.startsWith('{') ||
-      trimmed.startsWith('[')
-    )
-      return true;
-    if (
-      trimmed.includes('-->') ||
-      trimmed.includes('<->') ||
-      trimmed.includes('==>') ||
-      trimmed.includes('<=>')
-    )
-      return true;
-    if (trimmed.endsWith('.') || trimmed.endsWith('!') || trimmed.endsWith('?')) {
-      const body = trimmed.slice(0, -1).trim();
-      if (body.startsWith('(') || body.startsWith('<')) return true;
-    }
-    return false;
   }
 }

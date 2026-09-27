@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type {
   AutonomyMode,
   CognitiveEvent,
@@ -25,6 +25,7 @@ import {
 } from './EventLogPersistence.js';
 import type { GateRegistry } from './GateRegistry.js';
 import { serialize as serializeMemory } from '../memory/state/serialization.js';
+import { appendJsonl, readJsonl } from '../utils/jsonl.js';
 
 function makeDerivedStamp(id: string): Stamp {
   return {
@@ -301,28 +302,16 @@ export function persistDerivationRecords(
   records: DerivationRecord[],
   path: string
 ): { appended: number } {
-  if (records.length === 0) return { appended: 0 };
-  appendFileSync(path, records.map((r) => JSON.stringify(r)).join('\n') + '\n');
-  return { appended: records.length };
+  return { appended: appendJsonl(path, records) };
 }
 
 export function loadDerivationRecords(path: string): {
   records: DerivationRecord[];
   invalid: number;
 } {
-  if (!existsSync(path)) return { records: [], invalid: 0 };
-  const records: DerivationRecord[] = [];
-  let invalid = 0;
-  for (const line of readFileSync(path, 'utf8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    try {
-      const parsed = DerivationRecordSchema.safeParse(JSON.parse(trimmed));
-      if (parsed.success) records.push(parsed.data);
-      else invalid++;
-    } catch {
-      invalid++;
-    }
-  }
-  return { records, invalid };
+  const { rows, invalid } = readJsonl(path, (value) => {
+    const parsed = DerivationRecordSchema.safeParse(value);
+    return parsed.success ? parsed.data : null;
+  });
+  return { records: rows, invalid };
 }

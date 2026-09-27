@@ -35,7 +35,8 @@ interface BudgetConfig {
 }
 
 function loadBudget(): BudgetConfig {
-  const path = join(ROOT, 'complexity-budget.json');
+  const flag = process.argv.indexOf('--budget');
+  const path = flag >= 0 ? process.argv[flag + 1] : join(ROOT, 'complexity-budget.json');
   return JSON.parse(readFileSync(path, 'utf-8')) as BudgetConfig;
 }
 

@@ -13,6 +13,7 @@ import { z } from 'zod';
 
 import { Truth, type Truth as TruthType } from '../../terms/truth.js';
 import { sha256Hex } from '../../utils/hash.js';
+import { meanBrierOf } from './metrics.js';
 import { seedTruth } from './seed.js';
 import type { JudgmentProposition } from './types.js';
 
@@ -267,9 +268,11 @@ export function runBakeOff(
   frozen?: { cases: readonly BakeOffCase[]; tolerance?: number }
 ): BakeOffResult {
   const brier = (key: 'incumbent' | 'candidate') =>
-    cases.length === 0
-      ? 0
-      : cases.reduce((sum, c) => sum + (c[key] - c.truth) ** 2, 0) / cases.length;
+    meanBrierOf(
+      cases,
+      (c) => c[key],
+      (c) => c.truth
+    );
   const incumbentAccuracy = 1 - brier('incumbent');
   const candidateAccuracy = 1 - brier('candidate');
   const parityGap = Math.abs(candidateAccuracy - incumbentAccuracy);
@@ -280,7 +283,11 @@ export function runBakeOff(
   let frozenReport: BakeOffResult['frozen'];
   if (frozen && frozen.cases.length > 0) {
     const fb = (key: 'incumbent' | 'candidate') =>
-      frozen.cases.reduce((sum, c) => sum + (c[key] - c.truth) ** 2, 0) / frozen.cases.length;
+      meanBrierOf(
+        frozen.cases,
+        (c) => c[key],
+        (c) => c.truth
+      );
     const baselineBrier = fb('incumbent');
     const candidateBrier = fb('candidate');
     const tolerance = frozen.tolerance ?? parityTolerance;
