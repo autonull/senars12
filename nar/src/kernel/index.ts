@@ -21,12 +21,16 @@ export {
   SelfRewardGate,
 } from './KernelRewardGate.js';
 export {
+  computeReplayStateHash,
   type FullReplayOptions,
   loadDerivationRecords,
   persistDerivationRecords,
   type ReplayResult,
+  type ReplaySnapshotFile,
+  type ReplaySnapshotStats,
   replayIntoMemory,
   serializeReplayResult,
+  verifyReplayStateHash,
 } from './replay.js';
 
 export type {

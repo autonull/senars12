@@ -60,6 +60,6 @@ export const ExhaustiveStrategy: Strategy = {
 export {
   AdaptiveStrategy,
   CompositeStrategy,
-  createStrategy,
   SwitchingStrategy,
-} from './strategies/index.js';
+} from '../strategies/premise/selection-strategies';
+export { createStrategy } from './strategies/base.js';

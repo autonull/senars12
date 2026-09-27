@@ -2,13 +2,12 @@ import { createLogger } from '@senars/core/logger';
 import type { Concept, Memory } from '../../memory';
 import type { ComponentMetadata } from '../types.js';
 import type { Term } from '../../terms';
-import { type Truth, termsEqual } from '../../terms';
+import type { Truth } from '../../terms';
 import type { Task, TaskType } from '../../types';
 import type { Strategy } from '../types.js';
 import { createStrategy } from '../../reason/strategies/base';
 import { TermLinkStrategy as RealTermLinkStrategy } from './term-link';
 import { SemanticStrategy as RealSemanticStrategy } from './semantic';
-import { extractSymbols } from '../../terms';
 
 const logger = createLogger({ scope: 'Strategies' });
 
@@ -43,7 +42,7 @@ export const ResolutionStrategy: Strategy = withMeta(
   createStrategy({
     name: 'resolution',
     sampleSize: 15,
-    filter: (c: Concept) => c.term.kind === 'inheritance',
+    filters: ['inheritanceOnly'],
     limit: 5,
   }),
   'Inheritance-focused resolution strategy'
@@ -53,49 +52,21 @@ export const GoalDrivenStrategy: Strategy = withMeta(
   createStrategy({
     name: 'goal-driven',
     sampleSize: 20,
-    truthFilter: (truth) => truth.f > 0.7,
+    filters: [{ highConfidence: 0.7 }],
     limit: 5,
   }),
   'Prioritize high-confidence beliefs related to goals'
 );
 
-export const AnalogicalStrategy: Strategy = {
-  metadata: {
+export const AnalogicalStrategy: Strategy = withMeta(
+  createStrategy({
     name: 'analogical',
-    description: 'Match inheritance terms with overlapping subject/predicate',
-  },
-  name: 'analogical',
-  selectSecondary(task, memory) {
-    const results: Task[] = [];
-    const concepts = memory.sample(15);
-
-    for (const concept of concepts) {
-      if (termsEqual(concept.term, task.term) || concept.term.kind !== 'inheritance') continue;
-
-      const belief = concept.beliefBag.peek();
-      if (!belief?.truth) continue;
-
-      const taskTerm = task.term;
-      if (taskTerm.kind === 'inheritance' && concept.term.kind === 'inheritance') {
-        const [taskSub, taskPred] = taskTerm.args || [];
-        const [conceptSub, conceptPred] = concept.term.args || [];
-
-        const hasOverlap =
-          (taskSub && conceptSub && termsEqual(taskSub, conceptSub)) ||
-          (taskSub && conceptPred && termsEqual(taskSub, conceptPred)) ||
-          (taskPred && conceptSub && termsEqual(taskPred, conceptSub)) ||
-          (taskPred && conceptPred && termsEqual(taskPred, conceptPred));
-
-        if (!hasOverlap) continue;
-      }
-
-      results.push(createBeliefTask(concept.term, belief.truth, concept.priority));
-      if (results.length >= 3) break;
-    }
-
-    return results;
-  },
-};
+    sampleSize: 15,
+    filters: ['inheritanceOnly', 'inheritanceOverlap'],
+    limit: 3,
+  }),
+  'Match inheritance terms with overlapping subject/predicate'
+);
 
 export const TermLinkStrategy: Strategy = new RealTermLinkStrategy({ minLinkPriority: 0.3, maxLinks: 20 });
 
@@ -130,6 +101,7 @@ export const DefaultFormationStrategy: Strategy = withMeta(
   createStrategy({
     name: 'default-formation',
     sampleSize: 10,
+    filters: ['sharedAtoms'],
     limit: 5,
   }),
   'Default premise formation with small sample'
@@ -140,19 +112,7 @@ export const BagStrategy: Strategy = withMeta(
     name: 'bag',
     sampleSize: 10,
     limit: 10,
-    filter: (c: Concept, task: Task) => {
-      const atoms1 = extractSymbols(task.term);
-      const atoms2 = extractSymbols(c.term);
-      for (const a of atoms1) {
-        if (atoms2.has(a)) return true;
-      }
-      return false;
-    },
-    truthFilter: (belief, task: Task) => {
-      const taskStamp = task.stamp;
-      if (!taskStamp) return true;
-      return true;
-    },
+    filters: ['sharedAtoms', 'noStampOverlap'],
   }),
   'Bag-based premise selection with shared atoms and no stamp overlap'
 );
@@ -162,14 +122,7 @@ export const ExhaustiveStrategy: Strategy = withMeta(
     name: 'exhaustive',
     sampleSize: 100,
     limit: 100,
-    filter: (c: Concept, task: Task) => {
-      const atoms1 = extractSymbols(task.term);
-      const atoms2 = extractSymbols(c.term);
-      for (const a of atoms1) {
-        if (atoms2.has(a)) return true;
-      }
-      return false;
-    },
+    filters: ['sharedAtoms'],
   }),
   'Exhaustive premise selection with shared atoms'
 );

@@ -10,9 +10,10 @@
  * Run micro-soak via: pnpm test:micro-soak (excluded from default test:unit)
  */
 
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createAgentFromEnv } from '../../src/bin/lib/lifecycle.js';
 import { createLogger } from '@senars/nar/logger';
+import { evaluateSoakStability, type SoakLimits } from './soak-gate.js';
 
 const logger = createLogger({ scope: 'soak-test' });
 
@@ -26,15 +27,25 @@ const SOAK_DURATION_MS = IS_FAST ? 60_000 : parseInt(process.env.SOAK_DURATION_M
 const SNAPSHOT_INTERVAL_MS = IS_FAST ? 5_000 : parseInt(process.env.SOAK_SNAPSHOT_INTERVAL_MS ?? '300000', 10);
 const MEMORY_SAMPLE_INTERVAL_MS = IS_FAST ? 1_000 : parseInt(process.env.SOAK_MEMORY_SAMPLE_MS ?? '60000', 10);
 
-// Thresholds
-const MAX_HEAP_GROWTH_MB = parseInt(process.env.SOAK_MAX_HEAP_GROWTH_MB ?? '200', 10);
-const MAX_BAG_SIZE = parseInt(process.env.SOAK_MAX_BAG_SIZE ?? '10000', 10);
-const MAX_ROUTING_CHANGES_PER_MIN = parseInt(process.env.SOAK_MAX_ROUTING_CHANGES ?? '10', 10);
+const envInt = (name: string, fallback: number): number => {
+  const raw = process.env[name];
+  const parsed = raw === undefined ? Number.NaN : parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
 
-// Fast-mode growth-rate thresholds (bytes/cycle slope)
-// These make short runs statistically meaningful by checking slope vs baseline
-const FAST_MAX_HEAP_GROWTH_RATE_MB_PER_MIN = parseInt(process.env.FAST_SOAK_MAX_HEAP_GROWTH_RATE ?? '50', 10); // MB/min
-const FAST_MAX_BAG_GROWTH_RATE_PER_MIN = parseInt(process.env.FAST_SOAK_MAX_BAG_GROWTH_RATE ?? '1000', 10); // items/min
+const LIMITS: SoakLimits = {
+  maxHeapGrowthMB: envInt('SOAK_MAX_HEAP_GROWTH_MB', 200),
+  maxBagSize: envInt('SOAK_MAX_BAG_SIZE', 10000),
+  maxHeapGrowthMBPerMin: envInt('FAST_SOAK_MAX_HEAP_GROWTH_RATE', 50),
+  maxBagGrowthPerMin: envInt('FAST_SOAK_MAX_BAG_GROWTH_RATE', 1000),
+  maxRoutingChangesPerMin: envInt('SOAK_MAX_ROUTING_CHANGES', 10),
+  routingWarmupChanges: 5,
+  minLmSuccessRate: 0.95,
+  maxHighPressureRatio: 0.1,
+  maxDerivationsPerStep: 1000,
+  enforceGrowthRate: IS_FAST,
+  minSamples: 3,
+};
 
 interface SoakMetrics {
   heapUsedMB: number[];
@@ -153,21 +164,6 @@ async function takeSnapshot(nar: any, lmService: any): Promise<void> {
   }
 }
 
-// Linear regression slope (y = mx + b) for growth-rate detection
-function computeSlope(samples: number[]): number {
-  if (samples.length < 2) return 0;
-  const n = samples.length;
-  const xSum = (n * (n - 1)) / 2; // 0 + 1 + 2 + ... + (n-1)
-  const ySum = samples.reduce((a, b) => a + b, 0);
-  const xySum = samples.reduce((sum, y, i) => sum + i * y, 0);
-  const x2Sum = samples.reduce((sum, _, i) => sum + i * i, 0);
-  
-  const denominator = n * x2Sum - xSum * xSum;
-  if (denominator === 0) return 0;
-  
-  return (n * xySum - xSum * ySum) / denominator;
-}
-
 describe('Soak Test — Long-running stability', { timeout: SOAK_DURATION_MS + 60000 }, () => {
   let agent: any;
   let nar: any;
@@ -262,122 +258,24 @@ describe('Soak Test — Long-running stability', { timeout: SOAK_DURATION_MS + 6
       checkDone();
     });
 
-    // Run assertions
-    const heapSamples = metrics.heapUsedMB;
-    expect(heapSamples.length).toBeGreaterThan(2);
+    const { violations, stats } = evaluateSoakStability(
+      {
+        heapUsedMB: metrics.heapUsedMB,
+        bagSizes: metrics.bagSizes,
+        memoryPressure: metrics.memoryPressure,
+        derivationsPerStep: metrics.derivationsPerStep,
+        snapshots: metrics.snapshots,
+        routingChanges: routingChangeCount,
+        lmCalls: metrics.lmCalls,
+        lmFailures: metrics.lmFailures,
+        durationMs: SOAK_DURATION_MS,
+        sampleIntervalMs: MEMORY_SAMPLE_INTERVAL_MS,
+      },
+      LIMITS
+    );
 
-    const bagSamples = metrics.bagSizes;
-    expect(bagSamples.length).toBeGreaterThan(2);
-
-    if (IS_FAST) {
-      // Fast mode: growth-rate assertions (slope-based, statistically meaningful for short runs)
-      const durationMin = SOAK_DURATION_MS / 60000;
-      
-      const heapSlope = computeSlope(heapSamples); // MB per sample
-      const heapGrowthRate = heapSlope * (60000 / MEMORY_SAMPLE_INTERVAL_MS); // MB/min
-      
-      const bagSlope = computeSlope(bagSamples); // items per sample
-      const bagGrowthRate = bagSlope * (60000 / MEMORY_SAMPLE_INTERVAL_MS); // items/min
-
-      logger.info('Fast-mode growth-rate analysis', {
-        durationMin,
-        heapSlope,
-        heapGrowthRate,
-        heapGrowthRateLimit: FAST_MAX_HEAP_GROWTH_RATE_MB_PER_MIN,
-        bagSlope,
-        bagGrowthRate,
-        bagGrowthRateLimit: FAST_MAX_BAG_GROWTH_RATE_PER_MIN,
-        sampleCount: heapSamples.length,
-      });
-
-      // Growth rate should be within limits
-      expect(heapGrowthRate).toBeLessThanOrEqual(FAST_MAX_HEAP_GROWTH_RATE_MB_PER_MIN);
-      expect(bagGrowthRate).toBeLessThanOrEqual(FAST_MAX_BAG_GROWTH_RATE_PER_MIN);
-
-      // Also check absolute bounds as safety net
-      const initialHeap = heapSamples.at(0) ?? 0;
-      const maxHeap = Math.max(...heapSamples);
-      const growth = maxHeap - initialHeap;
-      expect(growth).toBeLessThanOrEqual(MAX_HEAP_GROWTH_MB);
-
-      const maxBag = Math.max(...bagSamples);
-      expect(maxBag).toBeLessThanOrEqual(MAX_BAG_SIZE);
-    } else {
-      // Full mode: absolute threshold assertions (original behavior)
-      const initialHeap = heapSamples.at(0) ?? 0;
-      const maxHeap = Math.max(...heapSamples);
-      const growth = maxHeap - initialHeap;
-
-      logger.info('Heap analysis', { initialHeap, maxHeap, growth, limit: MAX_HEAP_GROWTH_MB });
-      expect(growth).toBeLessThanOrEqual(MAX_HEAP_GROWTH_MB);
-
-      const maxBag = Math.max(...bagSamples);
-      logger.info('Bag analysis', { maxBag, limit: MAX_BAG_SIZE });
-      expect(maxBag).toBeLessThanOrEqual(MAX_BAG_SIZE);
-    }
-
-    // Routing changes should be minimal after warmup
-    const warmupChanges = Math.min(routingChangeCount, 5);
-    const steadyStateChanges = routingChangeCount - warmupChanges;
-
-    const maxAllowedRoutingChanges = IS_FAST 
-      ? MAX_ROUTING_CHANGES_PER_MIN * (SOAK_DURATION_MS / 60000)
-      : MAX_ROUTING_CHANGES_PER_MIN * (SOAK_DURATION_MS / 60000);
-
-    logger.info('Routing analysis', {
-      totalChanges: routingChangeCount,
-      steadyStateChanges,
-      limit: maxAllowedRoutingChanges,
-    });
-
-    expect(steadyStateChanges).toBeLessThanOrEqual(maxAllowedRoutingChanges);
-
-    if (metrics.lmCalls > 0) {
-      const successRate = 1 - metrics.lmFailures / metrics.lmCalls;
-      logger.info('LM call stats', {
-        calls: metrics.lmCalls,
-        failures: metrics.lmFailures,
-        successRate,
-      });
-      expect(successRate).toBeGreaterThanOrEqual(0.95);
-    }
-
-    const derivations = metrics.derivationsPerStep.filter((d) => d > 0);
-    if (derivations.length > 0) {
-      const avg = derivations.reduce((a, b) => a + b, 0) / derivations.length;
-      const max = Math.max(...derivations);
-      logger.info('Derivations per step', { avg, max, samples: derivations.length });
-      expect(max).toBeLessThanOrEqual(1000);
-    }
-
-    const pressure = metrics.memoryPressure.filter((p) => p > 0);
-    if (pressure.length > 0) {
-      const highPressureCount = pressure.filter((p) => p > 0.8).length;
-      const highPressureRatio = highPressureCount / pressure.length;
-      logger.info('Memory pressure', {
-        samples: pressure.length,
-        highPressureRatio,
-      });
-      expect(highPressureRatio).toBeLessThan(0.1);
-    }
-
-    expect(metrics.snapshots.length).toBeGreaterThan(0);
-
-    // Verify snapshots have increasing timestamps
-    for (let i = 1; i < metrics.snapshots.length; i++) {
-      const current = metrics.snapshots[i];
-      const previous = metrics.snapshots[i - 1];
-      if (current && previous) {
-        expect(current.timestamp).toBeGreaterThan(previous.timestamp);
-      }
-    }
-
-    // Verify heap in snapshots matches samples
-    const lastSnapshot = metrics.snapshots.at(-1);
-    const lastHeapSample = metrics.heapUsedMB.at(-1);
-    if (lastSnapshot && lastHeapSample !== undefined) {
-      expect(Math.abs(lastSnapshot.heapUsedMB - lastHeapSample)).toBeLessThanOrEqual(50);
-    }
+    logger.info('Soak stability analysis', { scale: SOAK_SCALE, violations, ...stats });
+    expect(violations).toEqual([]);
   });
 });
 

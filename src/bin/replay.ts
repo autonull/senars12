@@ -3,21 +3,27 @@
  * `senars replay` — deterministic event log replay with verification.
  *
  * Usage:
- *   pnpm replay --from <eventId> --to <eventId> --verify
+ *   pnpm replay --from <ordinal> --to <ordinal> --verify
  *   pnpm replay --from 0 --to 1000 --output replay-snapshot.json
  *   pnpm replay --verify --snapshot replay-snapshot.json
  *
  * Replays gate events and derivation records into a fresh Memory,
  * optionally verifying the final state hash matches a recorded snapshot.
+ * Gate events carry no `id`, so --from/--to address event ordinals in the log.
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { createLogger } from '@senars/core/logger';
-import { Memory } from '@senars/nar/memory';
-import { replayIntoMemory, serializeReplayResult, type FullReplayOptions, type ReplayResult } from '@senars/nar/kernel/replay';
-import { createHash } from 'node:crypto';
+import {
+  computeReplayStateHash,
+  replayIntoMemory,
+  serializeReplayResult,
+  verifyReplayStateHash,
+  type FullReplayOptions,
+  type ReplaySnapshotFile,
+} from '@senars/nar/kernel/replay';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,8 +31,8 @@ const __dirname = dirname(__filename);
 const logger = createLogger({ scope: 'replay' });
 
 interface ReplayCliOptions {
-  from?: string;
-  to?: string;
+  from?: number;
+  to?: number;
   verify?: boolean;
   snapshot?: string;
   output?: string;
@@ -35,14 +41,26 @@ interface ReplayCliOptions {
   memoryConfig?: Record<string, unknown>;
 }
 
+const ORDINAL = /^\d+$/;
+
+function parseOrdinal(raw: string | undefined, flag: string): number | undefined {
+  if (raw === undefined) return undefined;
+  if (raw === 'end' || raw === 'last') return undefined;
+  if (!ORDINAL.test(raw)) {
+    logger.error(`Invalid ${flag} ordinal: ${raw} (expected a non-negative integer or "end")`);
+    process.exit(1);
+  }
+  return Number(raw);
+}
+
 function parseArgs(argv: string[]): ReplayCliOptions {
   const opts: ReplayCliOptions = {};
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--from' || arg === '-f') {
-      opts.from = argv[++i];
+      opts.from = parseOrdinal(argv[++i], '--from');
     } else if (arg === '--to' || arg === '-t') {
-      opts.to = argv[++i];
+      opts.to = parseOrdinal(argv[++i], '--to');
     } else if (arg === '--verify' || arg === '-v') {
       opts.verify = true;
     } else if (arg === '--snapshot' || arg === '-s') {
@@ -66,11 +84,11 @@ function printUsage(): void {
 SeNARS Deterministic Replay CLI
 
 Usage:
-  pnpm replay --from <eventId> --to <eventId> [options]
+  pnpm replay --from <ordinal> --to <ordinal> [options]
 
 Options:
-  -f, --from <eventId>         Starting event ID (inclusive) or "0" for beginning
-  -t, --to <eventId>           Ending event ID (inclusive) or "end" for all
+  -f, --from <ordinal>       Starting gate-event ordinal (inclusive), or "0" for beginning
+  -t, --to <ordinal>         Ending gate-event ordinal (inclusive) or "end" for all
   -v, --verify                 Verify final state hash against snapshot
   -s, --snapshot <path>        Path to snapshot file for verification
   -o, --output <path>          Output path for snapshot (default: stdout)
@@ -83,20 +101,6 @@ Examples:
   pnpm replay --from 0 --to end --output snapshot.json
   pnpm replay --verify --snapshot snapshot.json
 `);
-}
-
-function computeStateHash(result: ReplayResult): string {
-  const hash = createHash('sha256');
-  hash.update(JSON.stringify({
-    appliedTasks: result.appliedTasks,
-    appliedRevisions: result.appliedRevisions,
-    appliedDerivations: result.appliedDerivations,
-    appliedActivations: result.appliedActivations,
-    skipped: result.skipped,
-    errors: result.errors,
-    gateSnapshot: result.gateSnapshot,
-  }));
-  return hash.digest('hex');
 }
 
 async function runReplay(opts: ReplayCliOptions): Promise<void> {
@@ -115,12 +119,14 @@ async function runReplay(opts: ReplayCliOptions): Promise<void> {
     gateEventsPath,
     derivationRecordsPath: existsSync(derivationRecordsPath) ? derivationRecordsPath : undefined,
     memoryConfig: opts.memoryConfig as FullReplayOptions['memoryConfig'],
+    range: { from: opts.from, to: opts.to },
   };
 
   const result = await replayIntoMemory(replayOpts);
-  const stateHash = computeStateHash(result);
+  const stateHash = computeReplayStateHash(result);
 
   logger.info('Replay completed', {
+    range: { from: opts.from ?? 0, to: opts.to ?? 'end' },
     appliedTasks: result.appliedTasks,
     appliedRevisions: result.appliedRevisions,
     appliedDerivations: result.appliedDerivations,
@@ -139,24 +145,24 @@ async function runReplay(opts: ReplayCliOptions): Promise<void> {
       logger.error(`Snapshot file not found: ${opts.snapshot}`);
       process.exit(1);
     }
-    const snapshot = JSON.parse(readFileSync(opts.snapshot, 'utf8'));
-    const expectedHash = snapshot.stateHash;
-    if (stateHash === expectedHash) {
+    const snapshot = JSON.parse(readFileSync(opts.snapshot, 'utf8')) as ReplaySnapshotFile;
+    const { valid, actual } = verifyReplayStateHash(result, snapshot.stateHash);
+    if (valid) {
       logger.info('VERIFICATION PASSED: State hash matches snapshot');
       console.log('✅ VERIFICATION PASSED');
       process.exit(0);
     } else {
-      logger.error('VERIFICATION FAILED: State hash mismatch', { expected: expectedHash, actual: stateHash });
+      logger.error('VERIFICATION FAILED: State hash mismatch', { expected: snapshot.stateHash, actual });
       console.log('❌ VERIFICATION FAILED');
-      console.log(`Expected: ${expectedHash}`);
-      console.log(`Actual:   ${stateHash}`);
+      console.log(`Expected: ${snapshot.stateHash}`);
+      console.log(`Actual:   ${actual}`);
       process.exit(1);
     }
   }
 
   if (opts.output) {
     await serializeReplayResult(result, opts.output);
-    logger.info(`Snapshot written to ${opts.output}`);
+    logger.info('Snapshot written', { path: opts.output, stateHash });
   } else {
     // Print summary to stdout
     console.log(`Replay Summary:`);

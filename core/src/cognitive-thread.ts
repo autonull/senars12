@@ -6,7 +6,7 @@
 
 import { BudgetSlice, type BudgetSliceOptions, createBudgetSlice, sliceBudget, mergeConsumption, isExhausted, consumeCycles, remainingCycles, remainingDepth, remainingMemoryOps, remainingLMCalls } from '@senars/kernel/budget';
 import type { Term } from '@senars/nar/terms';
-import type { Task } from '@senars/nar';
+import type { Task } from '@senars/nar/types';
 import { emitBackpressureDecision } from '@senars/nar/tick';
 
 export type ThreadStatus = 'created' | 'running' | 'waiting' | 'completed' | 'killed' | 'error';

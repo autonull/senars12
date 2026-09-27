@@ -1,24 +1,32 @@
 import type { Concept } from '../../memory';
 import type { Task } from '../../types';
 import { samplePremises } from '../../strategies/premise/sample';
+import type { FilterSpec, SampleConfig } from '../../strategies/premise/primitives';
 import type { Strategy } from '../strategy.js';
 
-interface StrategyConfig {
+type StrategyConfig = Pick<
+  SampleConfig,
+  'source' | 'scorer' | 'filters' | 'minScore' | 'skipSameTerm'
+> & {
   name: string;
   sampleSize: number;
-  filter?: (concept: Concept, task: Task) => boolean;
-  truthFilter?: (truth: { f: number; c: number }, task: Task) => boolean;
   limit?: number;
-}
+  /** One-off concept predicate, composed with `filters`. */
+  filter?: (concept: Concept, task: Task) => boolean;
+  /** One-off truth predicate, composed with the pipeline. */
+  truthFilter?: (truth: { f: number; c: number }, task: Task) => boolean;
+};
 
+/** Named premise strategies are compositions of the source/scorer/filter primitives. */
 export const createStrategy = (config: StrategyConfig): Strategy => {
-  const { name, sampleSize, filter, truthFilter, limit = 5 } = config;
+  const { name, sampleSize, limit = 5, filter, truthFilter, ...primitives } = config;
   return {
     name,
     sampleSize,
     limit,
     selectSecondary(task, memory) {
       return samplePremises(memory, task, {
+        ...primitives,
         sampleSize,
         limit,
         filter,
@@ -27,3 +35,5 @@ export const createStrategy = (config: StrategyConfig): Strategy => {
     },
   } as Strategy & { sampleSize: number; limit: number };
 };
+
+export type { StrategyConfig, FilterSpec };

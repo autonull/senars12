@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type {
   AutonomyMode,
@@ -37,6 +38,8 @@ export interface FullReplayOptions {
   gateEventsPath: string;
   derivationRecordsPath?: string;
   memoryConfig?: ConstructorParameters<typeof Memory>[0];
+  /** Inclusive ordinal window over the gate-event log (no `id` field exists on CognitiveEvent). */
+  range?: { from?: number; to?: number };
 }
 
 export interface ReplayResult {
@@ -62,12 +65,15 @@ function stampFromEvent(event: TaskAdmittedEvent): Stamp {
 }
 
 export async function replayIntoMemory(options: FullReplayOptions): Promise<ReplayResult> {
-  const { gateEventsPath, derivationRecordsPath, memoryConfig } = options;
+  const { gateEventsPath, derivationRecordsPath, memoryConfig, range } = options;
 
-  const { events: gateEvents, invalid: gateInvalid } = loadGateEvents(gateEventsPath);
+  const { events: allGateEvents, invalid: gateInvalid } = loadGateEvents(gateEventsPath);
   if (gateInvalid > 0) {
     console.warn(`[replay] ${gateInvalid} invalid gate events skipped`);
   }
+
+  const from = Math.max(0, range?.from ?? 0);
+  const gateEvents = range?.to === undefined ? allGateEvents.slice(from) : allGateEvents.slice(from, range.to + 1);
 
   const derivationRecords: DerivationRecord[] = [];
   if (derivationRecordsPath && existsSync(derivationRecordsPath)) {
@@ -195,22 +201,74 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
   };
 }
 
+const HASHED_FIELDS = [
+  'appliedTasks',
+  'appliedRevisions',
+  'appliedDerivations',
+  'appliedActivations',
+  'skipped',
+  'errors',
+  'gateSnapshot',
+] as const satisfies readonly (keyof ReplayResult)[];
+
+/** Deterministic content hash of a replay outcome — the C14 replay verification token. */
+export function computeReplayStateHash(result: ReplayResult): string {
+  const hash = createHash('sha256');
+  hash.update(
+    JSON.stringify(
+      Object.fromEntries(HASHED_FIELDS.map((field) => [field, result[field]])) as Record<
+        string,
+        unknown
+      >
+    )
+  );
+  return hash.digest('hex');
+}
+
+export function verifyReplayStateHash(
+  result: ReplayResult,
+  expectedHash: string
+): { valid: boolean; actual: string } {
+  const actual = computeReplayStateHash(result);
+  return { valid: actual === expectedHash, actual };
+}
+
+export interface ReplaySnapshotStats {
+  appliedTasks: number;
+  appliedRevisions: number;
+  appliedDerivations: number;
+  appliedActivations: number;
+  skipped: number;
+  errors: string[];
+}
+
+export interface ReplaySnapshotFile {
+  version: number;
+  timestamp: number;
+  stateHash: string;
+  gateSnapshot: ReplayResult['gateSnapshot'];
+  memory: unknown;
+  stats: ReplaySnapshotStats;
+}
+
 export async function serializeReplayResult(
   result: ReplayResult,
   outputPath: string
 ): Promise<void> {
-  const snapshot = {
+  const { gateSnapshot, memory, appliedTasks, appliedRevisions, appliedDerivations, appliedActivations, skipped, errors } = result;
+  const snapshot: ReplaySnapshotFile = {
     version: 1,
     timestamp: Date.now(),
-    gateSnapshot: result.gateSnapshot,
-    memory: await serializeMemoryForReplay(result.memory),
+    stateHash: computeReplayStateHash(result),
+    gateSnapshot,
+    memory: await serializeMemoryForReplay(memory),
     stats: {
-      appliedTasks: result.appliedTasks,
-      appliedRevisions: result.appliedRevisions,
-      appliedDerivations: result.appliedDerivations,
-      appliedActivations: result.appliedActivations,
-      skipped: result.skipped,
-      errors: result.errors,
+      appliedTasks,
+      appliedRevisions,
+      appliedDerivations,
+      appliedActivations,
+      skipped,
+      errors,
     },
   };
   writeFileSync(outputPath, JSON.stringify(snapshot, null, 2));

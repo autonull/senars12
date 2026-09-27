@@ -83,6 +83,17 @@ export const PREMISE_FILTERS = {
     return !Stamp.overlaps(belief.stamp, taskStamp);
   },
   inheritanceOnly: (_task: Task, concept: Concept): boolean => concept.term.kind === 'inheritance',
+  inheritanceOverlap: (task: Task, concept: Concept): boolean => {
+    if (task.term.kind !== 'inheritance' || concept.term.kind !== 'inheritance') return true;
+    const [taskSub, taskPred] = task.term.args ?? [];
+    const [conceptSub, conceptPred] = concept.term.args ?? [];
+    return (
+      (taskSub !== undefined && conceptSub !== undefined && termsEqual(taskSub, conceptSub)) ||
+      (taskSub !== undefined && conceptPred !== undefined && termsEqual(taskSub, conceptPred)) ||
+      (taskPred !== undefined && conceptSub !== undefined && termsEqual(taskPred, conceptSub)) ||
+      (taskPred !== undefined && conceptPred !== undefined && termsEqual(taskPred, conceptPred))
+    );
+  },
 } as const;
 
 export const PREMISE_FILTERS_CURRIED = {
@@ -107,20 +118,27 @@ export type ScorerName = keyof typeof PREMISE_SCORERS | keyof typeof PREMISE_SCO
 
 export type FilterName = keyof typeof PREMISE_FILTERS | keyof typeof PREMISE_FILTERS_CURRIED;
 
+/** A filter name, or a parameterized curried filter. */
+export type FilterSpec = FilterName | { highConfidence: number };
+
 export interface SampleConfig {
   source?: keyof typeof PREMISE_SOURCES;
   scorer?: ScorerName | { linear: { link: number; embed: number; pri: number } };
-  filters?: FilterName[];
+  filters?: FilterSpec[];
   minScore?: number;
   sampleSize: number;
   limit: number;
   skipSameTerm?: boolean;
+  /** Escape hatch for one-off predicates; composed with `filters`, never replaces them. */
+  where?: (task: Task, concept: Concept) => boolean;
+  /** Escape hatch for truth-value predicates. */
+  whereTruth?: (task: Task, truth: { f: number; c: number }) => boolean;
 }
 
 const DEFAULT_SAMPLE_CONFIG: Omit<SampleConfig, 'source' | 'scorer' | 'filters' | 'minScore'> & {
   source: keyof typeof PREMISE_SOURCES;
   scorer: ScorerName;
-  filters: FilterName[];
+  filters: FilterSpec[];
   minScore: number;
 } = {
   source: 'bag',
@@ -149,19 +167,22 @@ function resolveScorer(memory: Memory, scorer: SampleConfig['scorer']): PremiseS
   return undefined;
 }
 
-function resolveFilters(filters: FilterName[]): PremiseFilter[] {
-  return filters.map((f) => {
-    if (f in PREMISE_FILTERS) {
-      return PREMISE_FILTERS[f as keyof typeof PREMISE_FILTERS];
+/** Bare curried-filter names need a threshold; parameterized specs carry their own. */
+const CURRIED_FILTER_DEFAULTS: Partial<Record<FilterName, number>> = { highConfidence: 0.7 };
+
+function resolveFilters(filters: FilterSpec[]): PremiseFilter[] {
+  return filters.map((spec) => {
+    if (typeof spec === 'object') {
+      return PREMISE_FILTERS_CURRIED.highConfidence(spec.highConfidence);
     }
-    if (f in PREMISE_FILTERS_CURRIED) {
-      // For curried filters, we need to provide the threshold
-      // For highConfidence, the default threshold is 0.7
-      if (f === 'highConfidence') {
-        return PREMISE_FILTERS_CURRIED.highConfidence(0.7);
-      }
+    if (spec in PREMISE_FILTERS) {
+      return PREMISE_FILTERS[spec as keyof typeof PREMISE_FILTERS];
     }
-    // Default to a pass-through filter
+    if (spec in PREMISE_FILTERS_CURRIED) {
+      return PREMISE_FILTERS_CURRIED[spec as keyof typeof PREMISE_FILTERS_CURRIED](
+        CURRIED_FILTER_DEFAULTS[spec] ?? 0
+      );
+    }
     return () => true;
   });
 }
@@ -189,6 +210,7 @@ export function samplePremisesFromConfig(
     .filter(({ score }) => score >= merged.minScore)
     .filter(({ concept }) => {
       if (merged.skipSameTerm && termsEqual(concept.term, task.term)) return false;
+      if (merged.where && !merged.where(task, concept)) return false;
       for (const filter of filterFns) {
         if (!filter(task, concept)) return false;
       }
@@ -199,6 +221,7 @@ export function samplePremisesFromConfig(
   for (const { concept } of scored) {
     const belief = concept.beliefBag.peek();
     if (!belief?.truth) continue;
+    if (merged.whereTruth && !merged.whereTruth(task, belief.truth)) continue;
     results.push(createSecondaryTask(concept.term, concept.priority, belief.truth));
     if (results.length >= merged.limit) break;
   }

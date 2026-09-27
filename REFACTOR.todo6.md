@@ -268,58 +268,106 @@ Order: **A → B → C** strict (C19 needs correct+proven bags; C's benches need
 ---
 
 ## 9. Progress
- 
- | # | Phase | Deliverable | Bench | Status |
- |---|-------|-------------|-------|--------|
- | — | — | Plan drafted + codebase audit (§3b) + premise architecture (§1) | — | 📝 |
- | A1 | A | FenwickBag correctness: `remove`/`removeMany` tree rebuild, `findByPrefixSum` retry-on-rebuild, `evict('Random')` rebuild | 106 | ✅ |
- | A2 | A | LRU eviction invariant: O(n) min-scan replaces in-place sort in both PriorityBag & FenwickBag | 106 | ✅ |
- | A3 | A | Injectable clock (`BagOptions.clock`) for deterministic `createdAt`/`lastAccessedAt` | 106 | ✅ |
- | A4 | A | `strategies.bag` knob wired: `CognitiveParameters.strategies.bag.type` → `Memory` → `ConceptConfig.bagImplementation` | 106 | ✅ |
- | A5 | A | `refactor4-bounded-aikr.test.ts` type errors fixed (18 errors) | 106 | ✅ |
- | A6 | A | Premise primitives refactor: `primitives.ts` (sources/scorers/filters), sampling family rebuilt as compositions, real `term-link` restored, `semantic` registered, fake `prolog` removed, `task-match`→`sampled` | 106 | ✅ |
- | A7 | A | `windowed-roulette` SamplingStrategy + `Memory.sampleWindow(k, rng)` | 106 | ✅ |
- | B1 | B | FenwickBag fidelity + parity suite: TV-distance ≤ 0.02 @ 50k, χ², post-removal fidelity, seed parity, decay uniformity, evict invariants, serialize round-trip | 107 | ✅ |
- | B2 | B | Bag perf bench: sample/add throughput @ N=1k (insert-heavy & sample-heavy mixes, pure sample, pure add) | 107 | ✅ |
- | B3 | B | ADR-006 FenwickBag default decision: keep PriorityBag default (FenwickBag add/evict 250–3000× slower, sample only 1.6× faster) | 107 | ✅ |
- | B4 | B | BudgetSlice observability: `budget:slice:created/consumed/exhausted/merged` events on NarEventBus; `formatBudgetSliceTree`/`collectBudgetSlices` in kernel; `--budget` flag in `senars status` | 107 | ✅ |
- | C1 | C | RuleGraph context unlock: `focusTerm` in `LMRuleSelectionContext`; `RuleGraph.select` uses context focusTerm; `extractFocusTerm` fallback only | 108 | ✅ |
- | C2 | C | RuleGraph lm-rule wiring: `registerRuleGraph` in builder; `recordPerformance` from execution log; `learnFromDerivation` from derivation chain; `tick()` in `adapt()` | 108 | ✅ |
- | C3 | C | RuleGraph fail-closed fallback: `fallbackSelect` returns top-N by registration order; never empty | 108 | ✅ |
- | C4 | C | RuleGraph dual-role premise registration: `graph` source + `edgeWeight` scorer in primitives; shared ConceptGraph | 108 | ✅ |
- | C5 | C | RuleGraph falsifying bench: `tests/nar/rulegraph-wiring.test.ts` — non-empty selection; performance shifts distro; real-term co-activations; graph premise works; default path parity | 108 | ✅ |
- | D1 | D | Multi-root FocusTree: `addRoot(focusId, budgetSlice)` → independent subtrees, isolated slices; single-root default parity | 109 | ✅ |
- | D2 | D | Hard BudgetSlice inheritance in threads: `spawn(parentSlice, allocation)` enforces Σ(child) ≤ parent.remaining; `join()` returns unconsumed budget | 109 | ✅ |
- | D3 | D | Mailbox budget-gated backpressure: `send()` consumes slice budget, returns false on exhaustion/full (capacity bound exists; budget coupling added) | 109 | ✅ |
- | D4 | D | FocusTree + CognitiveThread falsifying benches: `tests/nar/focustree-cognitivethread.test.ts` — single-root parity; rollups non-empty; spawn/join/kill lifecycle; mailbox overflow; hard inheritance | 109 | ✅ |
-| F1 | F | OTel instrumentation extended: BudgetSlice ops (created/consumed/exhausted/merged), bag pressure transitions, backpressure decisions, strategy selections — all as span events on existing tick pipeline | 111 | ✅ |
-| F2 | F | Deterministic replay CLI: `pnpm replay --from <eventId> --to <eventId> --verify` — re-runs gates + reducer, compares state hash | 111 | ✅ |
-| F3 | F | Soak stability gate: CI `.github/workflows/soak.yml` — `test:soak` (24h), `test:micro-soak` (60s), bot + arcade + self-improve demo, deterministic seeds + A3 clocks | 111 | ✅ |
+
+All 27 ADOPT items shipped. Every item has ≥1 falsifying test and ≥1 wired consumer (C24).
+
+| # | Phase | Deliverable | Falsifier | Status |
+|---|-------|-------------|-----------|--------|
+| — | — | Plan drafted + codebase audit (§3b) + premise architecture (§1) | — | 📝 |
+| A1 | A | FenwickBag correctness: `remove`/`removeMany` tree rebuild, `findByPrefixSum` retry-on-rebuild, `evict('Random')` rebuild | `tests/nar/bag-fidelity.test.ts` | ✅ |
+| A2 | A | LRU eviction invariant: O(n) min-scan replaces in-place sort in both bags | `tests/nar/bag-fidelity.test.ts` | ✅ |
+| A3 | A | Injectable clock (`BagOptions.clock`) for deterministic `createdAt`/`lastAccessedAt` | `tests/nar/todo6-capability.test.ts` (eviction order), `tests/nar/bag-fidelity.test.ts` (seed parity) | ✅ |
+| A4 | A | `strategies.bag` knob wired: `CognitiveParameters.strategies.bag.type` → `Memory` → `ConceptConfig.bagImplementation` | `tests/nar/todo6-capability.test.ts` | ✅ |
+| A5 | A | `refactor4-bounded-aikr.test.ts` type errors fixed (18) → `pnpm typecheck` 0 errors repo-wide | `pnpm typecheck` | ✅ |
+| A6 | A | Premise primitives: `primitives.ts` (sources/scorers/filters), family rebuilt as compositions, real `term-link` restored, `semantic` registered, `prolog` removed, `task-match`→`sampled`, dead `reason/strategies` + `reason/premise` duplicates deleted | `tests/nar/premise-primitives.test.ts`, `tests/nar/rulegraph-wiring.test.ts` | ✅ |
+| A7 | A | `windowed-roulette` SamplingStrategy + `Memory.sampleWindow(k, rng)` | `tests/nar/todo6-capability.test.ts` (seeded determinism + diversity vs `memory.sample`) | ✅ |
+| B1 | B | Bag fidelity + parity: TV ≤ 0.02 @ 50k, χ², post-removal fidelity, seed parity, decay uniformity, evict invariants, serialize round-trip | `tests/nar/bag-fidelity.test.ts` | ✅ |
+| B2 | B | Bag perf: sample/add throughput, 2 mixes × both impls | `tests/benchmark/bag-perf.test.ts` | ✅ |
+| B3 | B | ADR-006 — keep `PriorityBag` default (FenwickBag add/evict 250–3000× slower, sample only 1.6× faster) | ADR-006 | ✅ |
+| B4 | B | BudgetSlice observability: `budget:slice:*` events on NarEventBus; `collectBudgetSlices`/`formatBudgetSliceTree`; `senars status --budget` | `tests/nar/todo6-production.test.ts` | ✅ |
+| C1 | C | RuleGraph context unlock: `focusTerm` on `LMRuleSelectionContext`, consumed by `RuleGraph.select` | `tests/nar/rulegraph-wiring.test.ts` | ✅ |
+| C2 | C | RuleGraph wiring: `registerRuleGraph` + `recordPerformance` (execution log) + `learnFromDerivation` (derivation chain) + `tick()` per adapt | `tests/nar/rulegraph-wiring.test.ts` | ✅ |
+| C3 | C | Fail-closed fallback: `fallbackSelect` returns top-N by registration order, never empty | `tests/nar/rulegraph-wiring.test.ts` | ✅ |
+| C4 | C | Dual-role premise registration: `graph` source + `edgeWeight` scorer on the shared ConceptGraph | `tests/nar/rulegraph-wiring.test.ts` | ✅ |
+| C5 | C | RuleGraph falsifying bench — non-empty selection, performance shifts distro, real-term co-activations, premise walk, default-path parity | `tests/nar/rulegraph-wiring.test.ts` | ✅ |
+| D1 | D | Multi-root FocusTree: `addRoot` → independent subtrees, isolated slices; single-root parity | `tests/nar/focustree-cognitivethread.test.ts` | ✅ |
+| D2 | D | Hard BudgetSlice inheritance: `spawn` enforces Σ(child) ≤ parent.remaining; `join()` returns unconsumed | `tests/nar/focustree-cognitivethread.test.ts` | ✅ |
+| D3 | D | Mailbox budget-gated backpressure: `send()` consumes budget, `false` on exhaustion/full | `tests/nar/focustree-cognitivethread.test.ts` | ✅ |
+| D4 | D | FocusTree + CognitiveThread falsifying benches — single-root parity, rollups, spawn/join/kill, mailbox overflow | `tests/nar/focustree-cognitivethread.test.ts` | ✅ |
+| E1 | E | `ProofMettaProposer` (meta) → `IProposer` in the Negotiator behind `config.proofMettaProposer.enabled`; learns in `consolidateLearning`; renamed to clear the C13 collision | `tests/nar/todo6-capability.test.ts` (proposal contribution + support/confidence thresholds) | ✅ |
+| E2 | E | GovernanceResolver first consumer: SchemaInductor proposals → quorum resolve → `.adaptations` + `.restore` | `tests/nar/todo6-capability.test.ts` (audit trail, mode gating, sandbox range, restore) | ✅ |
+| E3 | E | CapabilityOntology consumers: `withCapabilityOntology()` in NARBuilder; `Provenance { source, digest, proofRef? }` | `tests/nar/todo6-capability.test.ts` (provenance, duplicate/prerequisite refusal, CapabilitySpace projection) | ✅ |
+| E4 | E | JudgmentPipeline consumer: `SystemOneRuntime.judgmentPipeline` + `NAR.getSystemOneJudgmentPipeline()`; ADR-008 recorded | ADR-008 (plan-sanctioned non-test gate: "wire **or** record explicit HOLD") | ✅ |
+| F1 | F | OTel extended: budget slice ops, bag pressure transitions, backpressure decisions, strategy selections — span events on the existing tick pipeline | `tests/nar/todo6-production.test.ts` | ✅ |
+| F2 | F | Replay CLI `pnpm replay --from/--to/--verify`; shared `computeReplayStateHash`/`verifyReplayStateHash`; `--from/--to` actually applied (ordinal window) | `tests/nar/todo6-production.test.ts` | ✅ |
+| F3 | F | Soak gate: `.github/workflows/soak.yml` + `test:soak`/`test:micro-soak`; threshold logic extracted to the pure, unit-tested `tests/soak/soak-gate.ts` | `tests/nar/todo6-production.test.ts` | ✅ |
+
+### 9a. Close-out pass (2026-09-26) — gaps found and closed
+
+A final audit against §3b + C24 found five gaps the phase commits left open:
+
+| Gap | Fix |
+|-----|-----|
+| **A6 shipped a C17 silent-degradation regression.** The rebuilt `samplePremises` forwarded only `source`/`scorer`/`filters`/`minScore` and **dropped `filter`/`truthFilter`**, so `resolution`, `goal-driven`, and `bag` silently ran as plain `default-formation` under honest names. A dead pre-refactor copy at `nar/src/reason/premise/sample.ts` (correct, zero importers) is why it hid. | Legacy predicates restored as `where`/`whereTruth` escape hatches that *compose with* the declared filters; named family re-expressed as §1.3 compositions; `tests/nar/premise-primitives.test.ts` asserts each filter actually applies |
+| **F2's `--verify` could never pass.** `serializeReplayResult` never wrote `stateHash`, so `--output` → `--verify --snapshot` always mismatched; `--from`/`--to` were parsed, logged, and ignored. | `stateHash` written into the snapshot; range applied in `replayIntoMemory` (`FullReplayOptions.range`); hash logic moved out of the CLI into `computeReplayStateHash`/`verifyReplayStateHash` so the test and the CLI share one definition |
+| **F1/F2/F3 had no falsifying test** (C24). OTel events, replay verification, and the soak gate were all unfalsified. | `tests/nar/todo6-production.test.ts` (14 tests) + `tests/soak/soak-gate.ts`; the soak harness's ~200 lines of inline threshold math now delegate to the pure evaluator, which is unit-tested against synthetic leak/runaway/divergence series |
+| **A3/A4/A7 and E1–E3 shipped with no falsifying test** — a config knob, a sampler, and three self-model components were wired but unverified (C24). | `tests/nar/todo6-capability.test.ts` (23 tests): clock→eviction order, `bagImplementation` selection, windowed-roulette determinism + diversity, proposer contribution, resolver audit/restore, ontology provenance |
+| **ADR-007 + ADR-010 missing**; deps:gate was left failing at 278 > 272 with no record. | Both ADRs written; deps:gate net **−2** (276) by narrowing `core/src/cognitive-thread.ts` off the `@senars/nar` barrel, with the 4 accepted cycles and their breaking seams documented in `scripts/deps-gate.ts` |
+
+**Verification at close-out:** `pnpm typecheck` 0 errors · `pnpm test:unit` 2259 passed / 5 skipped
+(2234 → 2259: +9 premise compositions, +23 close-out capability, +14 production; −21 net after the
+hygiene/dup consolidation) · `pnpm exports:check` all 6 packages ok · `pnpm deps:gate` 276 ≤ 276 ·
+`pnpm lint` clean · `pnpm replay --verify` round-trip exercised end-to-end (snapshot → verify pass →
+tampered verify exit 1 → `--from/--to` window yields a different hash).
 
 ---
 
-*Phase F complete — production hardening done*
+## 10. Architecture Decision Records
 
-## 10. Architecture Decision Records (to create during execution)
-
-| ADR | Trigger | Location |
-|-----|---------|----------|
-| ADR-006 | FenwickBag default decision (B3) — fidelity + perf tables, either outcome | `docs/adr/006-fenwickbag-default.md` |
-| ADR-007 | RuleGraph adopt-or-retire (C1–C5) — record retirement if wiring shows no benefit | `docs/adr/007-rulegraph-adoption.md` |
-| ADR-008 | JudgmentPipeline consumer decision (E4) | `docs/adr/008-judgment-pipeline.md` |
-| ADR-009 | Multi-root FocusTree semantics (D1) | `docs/adr/009-multiroot-focustree.md` |
-| ADR-010 | Premise primitives taxonomy (A6) — sources/scorers/filters/budget, wrapper-retirement record | `docs/adr/010-premise-primitives.md` |
+| ADR | Trigger | Status |
+|-----|---------|--------|
+| [ADR-006](docs/adr/006-fenwickbag-default.md) | FenwickBag default decision (B3) | Accepted — keep `PriorityBag` |
+| [ADR-007](docs/adr/007-rulegraph-adoption.md) | RuleGraph adopt-or-retire (C1–C5) | Accepted — adopt, opt-in |
+| [ADR-008](docs/adr/008-judgment-pipeline.md) | JudgmentPipeline consumer decision (E4) | Accepted |
+| [ADR-009](docs/adr/009-multiroot-focustree.md) | Multi-root FocusTree semantics (D1) | Accepted |
+| [ADR-010](docs/adr/010-premise-primitives.md) | Premise primitives taxonomy (A6) | Accepted |
 
 ---
 
-| E1 | E | ProofMettaProposer (meta) wiring: `ProofMettaProposer` implements `IProposer`, wired into Negotiator proposers via `config.proofMettaProposer.enabled`; learns from derivation recorder in `consolidateLearning`; renamed from `MettaProposer` to avoid collision with `reflex/metta-proposer.ts` (C13) | 110 | ✅ |
-| E2 | E | GovernanceResolver first production consumer: SchemaInductor proposals → `GovernanceResolver.resolve()` (quorum default) → `.adaptations` append + `.restore`; wired in `consolidateLearning` | 110 | ✅ |
-| E3 | E | CapabilityOntology consumers: `withCapabilityOntology()` in `NARBuilder` registers tools into `CapabilitySpace` at assembly (opt-in); `Provenance { source, digest, proofRef? }` per entry | 110 | ✅ |
-| E4 | E | JudgmentPipeline consumer: `SystemOneRuntime.judgmentPipeline` instantiated alongside manifold; `NAR.getSystemOneJudgmentPipeline()` accessor; ADR-008 recorded | 110 | ✅ |
+## 11. New improvement opportunities (surfaced during execution)
+
+Ordered by leverage. None are regressions; all are recorded debt with a named seam.
+
+| # | Opportunity | Why it matters | Seam |
+|---|-------------|----------------|------|
+| N1 | **`PREMISE_SCORERS_EXTENDED.linear` has no registered consumer.** Plan §1.3 specified `semantic` as a composition over a `concepts` source; no such source was added, so `semantic` stays a bespoke class and `linear` is tested-but-unused capability. | The last orphan in the primitives taxonomy (C24) | Add a `concepts` source to `PREMISE_SOURCES` (enumerate-all, not a sample), then re-express `SemanticStrategy` as `concepts` + `linear{0.5,0.3,0.2}` + `minScore 0.6` |
+| N2 | **`linear`'s embedding term is `0`.** `embeddingSim` is hardcoded to 0, so the `embed` weight is reserved rather than honored. | Silent quality loss dressed as a weighted scorer | Wire `memory.getEmbeddingIndex()` (or equivalent) into `linear`; the `SemanticStrategy` class already proves the lookup |
+| N3 | **4 accepted dependency cycles remain.** Two are type-only edges dpdm counts without `--transform`; two are core-barrel edges needing a deep export. | C21 budget, documented in `scripts/deps-gate.ts` | `--transform` for dpdm; a `./agent` subpath export (minor semver) so `io/bridge/ConnectionBinder` stops importing the `@senars/core` barrel |
+| N4 | **RuleGraph rule-side nodes are still rule-name atoms.** `select()` activates `{kind:'atom', symbol: rule.name}` while `learnFromDerivation` writes real derived terms, so those edges never match a rule (ADR-007, Known limitation). | Half the co-activation loop is inert | Give `LMRule` a condition term; `ruleMatchesEdge` compares real terms |
+| N5 | **`decomposition` and `prolog-resolution` remain bespoke** — correctly, but they bypass the primitives pipeline, so any future filter must be re-implemented for them. | Taxonomy leak | Leave bespoke; when a third bespoke strategy appears, decide whether the pipeline needs an escape hatch for search-shaped strategies |
+| N6 | **Replay verification covers stats + gate snapshot, not Memory contents.** `computeReplayStateHash` hashes the counts and `gateSnapshot`; a memory state divergence that preserves counts is invisible. | The hash is the C14 verification token | Hash `serializeMemoryForReplay(memory)` (canonicalized) instead of, or in addition to, the counters |
+| N7 | **Soak CI is `workflow_dispatch` only** — no scheduled or PR-triggered micro-soak, so drift is found at 24h scale, not 60s. | The gate is only as good as its trigger | Add a `schedule` + `pull_request` trigger on the `fast` scale; keep the 24h run manual |
+| N8 | **`--from`/`--to` address log ordinals, not event ids.** `CognitiveEvent` has no `id` field, so replay ranges are positional and shift if the log is rewritten. | Range semantics are positional, not identity | Add a monotonic `id` to `CognitiveEvent`; then ranges are identity-addressed and `--from 42` survives a compacted log |
+| N9 | **B2 benches run at N=1k only.** ADR-006's decision rule was written for "10k+"; the numbers that justified keeping `PriorityBag` were measured below the scale the rule names. | The decision rests on extrapolated evidence | Extend `tests/benchmark/bag-perf.test.ts` to N ∈ {10k, 100k} (the plan's own matrix) before anyone revisits C19 |
 
 ---
 
-*Phase E complete — all self-model consumers wired*
+## 12. Notes for remaining work
+
+- **C11 parity holds by construction.** The default premise strategy is `default-formation`; the
+  A6 close-out only changed non-default compositions (`resolution`, `goal-driven`, `bag`,
+  `analogical`). Re-verify with the parity bench if any of those four becomes a default.
+- **The two `bag` semantics to remember**: `PREMISE_SOURCES.bag` is a *sample*;
+  `SemanticStrategy` enumerates. Any move of `semantic` onto a source (N1) must not silently
+  turn an O(n) sweep into an O(sample) one — a different answer, not a faster one.
+- **Soak harness contract**: `tests/soak/long-run.test.ts` samples, `tests/soak/soak-gate.ts`
+  decides. Add thresholds to `SoakLimits`, never to the harness. `LIMITS` reads every knob
+  from env with a numeric fallback — keep that property.
+- **`pnpm replay` is the only place replay hashing is defined** (`computeReplayStateHash`).
+  Do not reintroduce a second hash implementation in a bin script.
+- **`Memory.sampleWindow(k, rng)` is the seam A7 needs** for any future positional sampler;
+  `windowed-roulette` is registered as a `SamplingStrategy`, not a third `Bag` (TODO5 §4 cap).
+- **Post-rename notes below are manual and out of agent scope.**
 
 ---
 

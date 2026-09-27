@@ -1,18 +1,7 @@
 import type { Concept, Memory } from '../../memory';
-import { extractSymbols, termsEqual, Stamp } from '../../terms';
 import type { Task } from '../../types';
-import { createSecondaryTask } from '../../types';
 import { samplePremisesFromConfig } from './primitives.js';
-import type { SampleConfig as ExtendedSampleConfig } from './primitives.js';
-
-const hasSharedAtoms = (term1: Task['term'], term2: Task['term']): boolean => {
-  const atoms1 = extractSymbols(term1);
-  const atoms2 = extractSymbols(term2);
-  for (const a of atoms1) {
-    if (atoms2.has(a)) return true;
-  }
-  return false;
-};
+import type { FilterSpec, SampleConfig as ExtendedSampleConfig } from './primitives.js';
 
 export type PremiseFilter = (concept: Concept, task: Task) => boolean;
 
@@ -24,9 +13,9 @@ export interface SampleConfig {
   filter?: PremiseFilter;
   truthFilter?: TruthPredicate;
   skipSameTerm?: boolean;
-  source?: 'bag' | 'links' | 'taskArgs';
-  scorer?: 'priority' | 'linkWeight' | { linear: { link: number; embed: number; pri: number } };
-  filters?: ('sharedAtoms' | 'noStampOverlap' | 'inheritanceOnly' | 'highConfidence')[];
+  source?: 'bag' | 'links' | 'taskArgs' | 'graph';
+  scorer?: 'priority' | 'linkWeight' | 'edgeWeight' | { linear: { link: number; embed: number; pri: number } };
+  filters?: FilterSpec[];
   minScore?: number;
 }
 
@@ -46,14 +35,17 @@ export function samplePremises(
   task: Task,
   config: Partial<SampleConfig> = {}
 ): Task[] {
+  const { filter, truthFilter, ...composed } = config;
   const extendedConfig: ExtendedSampleConfig = {
-    source: config.source ?? 'bag',
-    scorer: config.scorer ?? 'priority',
-    filters: config.filters ?? ['sharedAtoms'],
-    minScore: config.minScore ?? 0,
-    sampleSize: config.sampleSize ?? DEFAULT_CONFIG.sampleSize,
-    limit: config.limit ?? DEFAULT_CONFIG.limit,
-    skipSameTerm: config.skipSameTerm ?? DEFAULT_CONFIG.skipSameTerm,
+    source: composed.source ?? 'bag',
+    scorer: composed.scorer ?? 'priority',
+    filters: composed.filters ?? ['sharedAtoms'],
+    minScore: composed.minScore ?? 0,
+    sampleSize: composed.sampleSize ?? DEFAULT_CONFIG.sampleSize,
+    limit: composed.limit ?? DEFAULT_CONFIG.limit,
+    skipSameTerm: composed.skipSameTerm ?? DEFAULT_CONFIG.skipSameTerm,
+    where: filter ? (_task, concept) => filter(concept, _task) : undefined,
+    whereTruth: truthFilter ? (_task, truth) => truthFilter(truth) : undefined,
   };
   return samplePremisesFromConfig(memory, task, extendedConfig);
 }
