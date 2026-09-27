@@ -242,7 +242,7 @@ on simplified code). **D** interleaves after B (Tier 2–5 need harness + simpli
 | C1 | C | `LinkManager.getLinkPriority(from,to)` O(1); ConceptGraph adjacency snapshot per task | Bench: O(1) lookup; selection parity identical | ✅ |
 | C2 | C | InferenceController path unification: `run()` uses `samplingStrategy` | One reasoning path; default cycle parity | ✅ |
 | C3 | C | Measured hot-path fixes (BudgetSlice churn, embedding incremental, rankDerivations) | Flamegraph deltas ≥5% or ADR rejection | ✅ |
-| D1 | D | Tier 2: self-improvement loop end-to-end (derivation → MeTTa → governance → capability fires) | Learned rule changes selection in later cycle | ✅ |
+| D1 | D | Tier 2: self-improvement loop end-to-end (derivation → MeTTa → governance → capability fires) | Learned rule changes selection in later cycle | ✅* |
 | D2 | D | Tier 3: multi-root FocusTree + CognitiveThreads in-loop | Σ(child)≤parent; no lost derivations vs baseline | ⬜ |
 | D3 | D | Tier 4: chaos (LM outage, gate storm, memory pressure) | Degradation ladder verified; no silent loss | ⬜ |
 | D4 | D | Tier 5: replay parity (checkpoint → verify hash incl. memory) | State hash matches; compacted-log variant | ⬜ |
@@ -261,6 +261,8 @@ on simplified code). **D** interleaves after B (Tier 2–5 need harness + simpli
 | F6 | F | ConceptGraph ledger-backed persistence; RuleGraph hydrates on init | Restart → immediate co-activation use | ⬜ |
 | F7 | F | MeTTa grammar validation at `ProofMettaProposer.addRule` | Malformed rejected + logged | ⬜ |
 | F8 | F | `scripts/generate-api.ts` → `docs/api/`; `exports:check` ↔ docs consistency | Generated docs match actual exports | ⬜ |
+
+* D1 uses ProofMettaProposer (Phase E/F) as the learning path — works but is premature. Primary loop closure should be RLFP/RuleGraph → Governance, established alongside core infrastructure (D2–D5, E1–E2).
 
 ---
 
@@ -441,17 +443,14 @@ Additional duplications confirmed (already in plan):
   1. Basic loop verification (passing)
   2. Flagship "learned rule changes selection" test (needs cognitiveController fix)
 
-### Phase D Complete ✅ (2026-09-27 continued)
+### Phase D Progress (2026-09-27 continued)
 
-**D1 — Tier 2: Self-Improvement Loop End-to-End (Fully Working)**
-- Fixed `ProofMettaProposer.generalizeStep()` to use proper Term-based anti-unification instead of string operations:
-  - Uses `termParser.parse()` to convert derivation step strings to Term objects
-  - Uses `substituteVariables()` from `nar/src/terms/substitute.ts` for variable substitution
-  - Collects atomic symbols from Term structures via recursive traversal
-  - Abstracts rule IDs to generic categories (deduction, induction, conjunction, etc.)
-  - Persists pattern counts across all derivations via `patternCounts` Map
-- Fixed `conjunctionIntro` rule in `nar/src/rules/nal/propositional.ts` to produce valid NAL: `(a --> (b & c))` instead of nonsense `(b & c)`
-- Added `initialAutonomyMode` to `NARConfig` and updated test to use `low-risk-auto-merge` so governance auto-applies
-- Implemented `metta` tool in `nar/src/nar/facade.ts` that lazy-loads MeTTa runtime and evaluates programs via Effect
-- Verified full loop: derivation recording → ProofMettaProposer learns 93 patterns → metta tool evaluates → GovernanceResolver auto-applies → adaptations recorded
-- Both test cases in `self-improvement-loop.test.ts` now pass (2/2 tests green)
+**D1 — Tier 2: Self-Improvement Loop End-to-End (Working but Premature)**
+- Created E2E test verifying the full self-improvement loop: derivation recording → ProofMettaProposer pattern extraction → MeTTa rule generation → GovernanceResolver auto-apply
+- Fixed `ProofMettaProposer.generalizeStep()` to use proper Term-based anti-unification instead of string operations
+- Fixed `conjunctionIntro` rule to produce valid NAL: `(a --> (b & c))`
+- Added `initialAutonomyMode` to `NARConfig`; test uses `low-risk-auto-merge` for governance auto-apply
+- Implemented `metta` tool with lazy-loaded MeTTa runtime
+- Both test cases pass (2/2 tests green)
+
+**Note**: This implementation uses ProofMettaProposer (Phase E/F feature) to close the loop. The more fundamental self-improvement path — RLFP-driven strategy adaptation via `CognitiveController.adapt()` + `RuleGraph.learnFromDerivation()` → `GovernanceResolver` — should be the primary path. ProofMettaProposer is a MeTTa compilation pipeline that's premature at this stage; core infrastructure (parallel cognition, replay parity, session lifecycle, agent API) should be established first. Keeping the test as a characterization of the MeTTa path, but the main loop closure should shift to the RLFP/RuleGraph path in subsequent work.
