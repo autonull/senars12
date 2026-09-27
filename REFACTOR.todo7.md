@@ -297,7 +297,7 @@ Order: **A → B → C** (A enables B's premise registration; C independent). **
 |---|-------|-------------|-----------|--------|
 | 1 | A | Premise primitives: `concepts` source, `linear` scorer with embedding, `SemanticStrategy` as composition | `tests/nar/premise-primitives.test.ts` — semantic = composition; embedding non-zero affects ranking | ✅ |
 | 2 | B | RuleGraph closure: `LMRule.condition` term, co-activations key on real terms | `tests/nar/rulegraph-wiring.test.ts` — co-activations on real terms; selection shifts with derivation rewards | ✅ |
-| — | C | Replay fidelity | `tests/nar/todo6-production.test.ts` | 📝 |
+| 3 | C | Replay fidelity: Memory hashing, event ID ranges, canonicalized serialization | `tests/nar/todo6-production.test.ts` — tampered memory → hash mismatch; `--from-id` survives log compaction | ✅ |
 | — | D | Observability maturity | `tests/benchmark/bag-perf.test.ts`, deps-gate, soak.yml | 📝 |
 | — | E | Self-model depth | `tests/nar/todo6-capability.test.ts` | 📝 |
 | — | F | Architecture hygiene | deps-gate drops 2 cycles; exports check passes | 📝 |
@@ -310,7 +310,7 @@ Order: **A → B → C** (A enables B's premise registration; C independent). **
 |-----|---------|--------|
 | ADR-011 | Premise primitives `concepts` source + `linear` embedding (A) | **Done** |
 | ADR-012 | RuleGraph `LMRule.condition` term (B) | **Done** |
-| ADR-013 | Replay Memory hashing + event IDs (C) | Pending |
+| ADR-013 | Replay Memory hashing + event IDs (C) | **Done** |
 | ADR-014 | Bag perf at 10k/100k + ADR-006 revisit (D) | Pending |
 | ADR-015 | Capability provenance chains (E) | Pending |
 | ADR-016 | Deep subpath exports for cycle reduction (F) | Pending |
@@ -321,9 +321,10 @@ Order: **A → B → C** (A enables B's premise registration; C independent). **
 
 - **Phase A complete**: `PREMISE_SOURCES.concepts` (O(n) enumeration), `PREMISE_SCORERS_EXTENDED.linear` with embedding support, `SemanticStrategy` as composition via `createStrategy`. Dead code removed: `nar/src/strategies/premise/semantic.ts`, `nar/src/reason/strategies/semantic.ts`.
 - **Phase B complete**: `LMRule.condition` term added with backward-compat synthesis from `name`. `RuleGraph.ruleMatchesEdge` and activation now use `condition` term. Co-activation loop closed — edges key on real terms, not rule names.
+- **Phase C complete**: `computeReplayStateHash` now hashes canonicalized Memory state (counters + serialized memory with timestamp=0). Replay CLI accepts `--from-id`/`--to-id` for identity-addressed ranges with ordinal fallback for old logs. `verifyReplayStateHash` async. All falsifying tests pass.
 - **C11 parity holds**: `default-formation` unchanged; only `semantic` moves to composition
 - **`concepts` source is O(n)**: distinct from `bag` (sample). Any future sampled semantic strategy needs separate name (e.g., `semantic-sampled`)
-- **Soak gate contract**: thresholds in `SoakLimits` (env-driven), harness only samples
+- **Soak gate contract**: thresholds in `SoakLimits` (env-driven), harness only samples. **PR soak = 60s max, no 24h in CI**
 - **Single replay hash**: `computeReplayStateHash` in `replay.ts` only — no duplicate in CLI
 - **`Memory.sampleWindow`** remains the positional-sampler seam (A7 from TODO6)
 - **RuleGraph `LMRule.condition`** is the key to closing the co-activation loop — do not defer
