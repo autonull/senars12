@@ -1,4 +1,4 @@
-import { SeededRNG } from '@senars/nar/game/SeededRNG.js';
+import { SeededRNG } from '@senars/nar/utils/random';
 import { Clock, SystemClock, fixedClock } from '@senars/nar/clock.js';
 import { NarEventBus } from '@senars/nar/types/events.js';
 import type { Task } from '@senars/nar/types/core.js';

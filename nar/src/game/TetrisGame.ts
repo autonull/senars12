@@ -1,5 +1,5 @@
 import type { Game, GameOutcome, Perception } from './Game.js';
-import { SeededRNG } from './SeededRNG.js';
+import { SeededRNG } from '../utils/random.js';
 import { shuffleInPlace } from '../utils/random.js';
 
 /** Placement action: 'place:r<rotation>:c<column>' (hard drop). */

@@ -11,7 +11,7 @@ export type { Move2048, Game2048State, Game2048Config } from './Game2048.js';
 export { createGame2048, Game2048 } from './Game2048.js';
 export type { GridAction, GridWorldConfig, GridWorldState } from './GridWorldGame.js';
 export { createGridWorldGame, GridWorldGame } from './GridWorldGame.js';
-export { SeededRNG } from './SeededRNG.js';
+export { SeededRNG } from '../utils/random.js';
 export type { Cell, Direction, SnakeGameConfig, SnakeState } from './SnakeGame.js';
 export { createSnakeGame, SnakeGame } from './SnakeGame.js';
 export type { TicTacToeAction, TicTacToeConfig, TicTacToeState, Player as TicTacToePlayer } from './TicTacToe.js';

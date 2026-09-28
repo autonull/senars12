@@ -48,22 +48,7 @@ export function createBudgetSlice(options: BudgetSliceOptions, eventBus?: NarEve
     abortSignal: options.abortSignal,
     consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
   };
-  eventBus?.emit('budget:slice:created', {
-    sliceId: slice.id,
-    parentId: slice.parentId,
-    totalCycles: slice.totalCycles,
-    totalDepth: slice.totalDepth,
-    totalMemoryOps: slice.totalMemoryOps,
-    totalLMCalls: slice.totalLMCalls,
-  });
-  emitBudgetSliceCreated({
-    sliceId: slice.id,
-    parentId: slice.parentId,
-    totalCycles: slice.totalCycles,
-    totalDepth: slice.totalDepth,
-    totalMemoryOps: slice.totalMemoryOps,
-    totalLMCalls: slice.totalLMCalls,
-  });
+  announceSlice(slice, eventBus);
   return slice;
 }
 
@@ -84,22 +69,7 @@ export function sliceBudget(
     abortSignal: parent.abortSignal,
     consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
   };
-  eventBus?.emit('budget:slice:created', {
-    sliceId: slice.id,
-    parentId: slice.parentId,
-    totalCycles: slice.totalCycles,
-    totalDepth: slice.totalDepth,
-    totalMemoryOps: slice.totalMemoryOps,
-    totalLMCalls: slice.totalLMCalls,
-  });
-  emitBudgetSliceCreated({
-    sliceId: slice.id,
-    parentId: slice.parentId,
-    totalCycles: slice.totalCycles,
-    totalDepth: slice.totalDepth,
-    totalMemoryOps: slice.totalMemoryOps,
-    totalLMCalls: slice.totalLMCalls,
-  });
+  announceSlice(slice, eventBus);
   return slice;
 }
 
@@ -115,6 +85,25 @@ const RESOURCES = {
 >;
 
 type BudgetResource = keyof typeof RESOURCES;
+
+const ALL_RESOURCES = Object.keys(RESOURCES) as BudgetResource[];
+
+/** A partial budget request across the four AIKR dimensions. */
+export type BudgetAllocation = Partial<ConsumedBudget>;
+
+/** Both slice constructors announce a new slice through this one payload builder. */
+const announceSlice = (slice: BudgetSlice, eventBus?: NarEventBus) => {
+  const payload = {
+    sliceId: slice.id,
+    parentId: slice.parentId,
+    totalCycles: slice.totalCycles,
+    totalDepth: slice.totalDepth,
+    totalMemoryOps: slice.totalMemoryOps,
+    totalLMCalls: slice.totalLMCalls,
+  };
+  eventBus?.emit('budget:slice:created', payload);
+  emitBudgetSliceCreated(payload);
+};
 
 const totalsOf = (budget: BudgetSlice): { -readonly [K in keyof BudgetSliceTotal]: number } => ({
   totalCycles: budget.totalCycles,
@@ -216,6 +205,43 @@ export const remainingAll = (budget: BudgetSlice): ConsumedBudget => ({
   llmCalls: remainingLMCalls(budget),
 });
 
+/**
+ * Resolve a requested child allocation against the parent's unconsumed capacity
+ * — the hard Σ(child) ≤ parent.remaining inheritance bound. `fallback` supplies
+ * the per-dimension default for dimensions the caller left unset, so spawn
+ * policies (proportional share, all-remaining) stay a one-liner.
+ */
+export function resolveAllocation(
+  budget: BudgetSlice,
+  requested: BudgetAllocation = {},
+  fallback: (remaining: ConsumedBudget) => BudgetAllocation = () => ({})
+): Required<ConsumedBudget> {
+  const remaining = remainingAll(budget);
+  const defaults = fallback(remaining);
+  const resolved = {} as Required<ConsumedBudget>;
+  for (const resource of ALL_RESOURCES) {
+    resolved[resource] = Math.min(requested[resource] ?? defaults[resource] ?? 0, remaining[resource]);
+  }
+  return resolved;
+}
+
+/**
+ * Charge a resolved allocation against a parent slice across all four
+ * dimensions through the single `consume` accounting path, so the exhaustion
+ * check and `budget:slice:consumed` event fire per dimension. Mutating
+ * `budget.consumed` directly bypasses both.
+ */
+export function chargeAllocation(
+  budget: BudgetSlice,
+  allocation: BudgetAllocation,
+  eventBus?: NarEventBus
+): void {
+  for (const resource of ALL_RESOURCES) {
+    const amount = allocation[resource] ?? 0;
+    if (amount > 0) consume(budget, resource, amount, eventBus);
+  }
+}
+
 export function toAIKRBudget(budget: BudgetSlice): AIKRBudget {
   return {
     cycles: remainingCycles(budget),
@@ -223,11 +249,20 @@ export function toAIKRBudget(budget: BudgetSlice): AIKRBudget {
   };
 }
 
+/**
+ * Fold a child's consumed totals into a parent's. `depth` is a high-water mark
+ * rather than a cumulative spend, so it merges by maximum; the rest are
+ * additive. The single consumed-field merge for budget trees.
+ */
+export function mergeConsumed(parent: ConsumedBudget, child: ConsumedBudget): void {
+  for (const resource of ALL_RESOURCES) {
+    parent[resource] =
+      resource === 'depth' ? Math.max(parent[resource], child[resource]) : parent[resource] + child[resource];
+  }
+}
+
 export function mergeConsumption(parent: BudgetSlice, child: BudgetSlice, eventBus?: NarEventBus): void {
-  parent.consumed.cycles += child.consumed.cycles;
-  parent.consumed.depth = Math.max(parent.consumed.depth, child.consumed.depth);
-  parent.consumed.memoryOps += child.consumed.memoryOps;
-  parent.consumed.llmCalls += child.consumed.llmCalls;
+  mergeConsumed(parent.consumed, child.consumed);
   if (child.terminationReason && !parent.terminationReason) {
     parent.terminationReason = child.terminationReason;
   }
@@ -242,8 +277,6 @@ export function mergeConsumption(parent: BudgetSlice, child: BudgetSlice, eventB
     consumed: { ...child.consumed },
   });
 }
-
-const ALL_RESOURCES = Object.keys(RESOURCES) as BudgetResource[];
 
 export function isExhausted(budget: BudgetSlice): boolean {
   return (

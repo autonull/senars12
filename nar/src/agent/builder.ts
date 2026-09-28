@@ -1,7 +1,7 @@
 import type { Agent, PromptBuilder } from '@senars/core';
 import type { EpisodicMemory, LMService } from '@senars/nar';
 import type { SystemOneConfig } from '@senars/util/config';
-import { SenarsError } from '@senars/util/errors';
+import { BuilderError } from '../errors/index.js';
 import { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { GateRegistry } from '../kernel/GateRegistry.js';
 import { createGateRegistry } from '../kernel/GateRegistry.js';
@@ -45,16 +45,10 @@ export interface BuilderStepRecord {
   detail?: Record<string, unknown>;
 }
 
-/** Typed failure of an inconsistent assembly spec (TODO19 F1; E1: SenarsError-based). */
-export class BuilderError extends SenarsError {
-  constructor(
-    message: string,
-    readonly step: string
-  ) {
-    super(`[${step}] ${message}`, 'BUILDER_ERROR', { step });
-    this.name = 'BuilderError';
-  }
-}
+/** Typed failure of an inconsistent assembly spec (TODO19 F1). Re-exported so
+ *  builder callers keep one import path; the class itself is declared once in
+ *  the kernel error taxonomy, where `step` is a typed field and context entry. */
+export { BuilderError };
 
 /** The assembled artifact: agent + NAR + the gates instance that scopes it. */
 export interface WiredNAR {

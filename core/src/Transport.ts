@@ -2,8 +2,9 @@
  * Re-export of the canonical transport contracts owned by `@senars/util`. Kept
  * as a module path for existing internal imports; declarations live in one place.
  *
- * `ConnectionError` stays declared here: it carries transport-specific detail
- * (`connectionId`, `recoverable`) that the generic `SenarsError` lacks.
+ * `ConnectionError` is the util class too: transport detail (`connectionId`,
+ * `code`, `recoverable`) rides in its typed context, so a transport failure is
+ * catchable as either the class or the `CONNECTION_ERROR` code.
  */
 export type {
   Connection,
@@ -17,16 +18,4 @@ export type {
   TransportDeps,
 } from '@senars/util/types/transport';
 
-export class ConnectionError extends Error {
-  override name = 'ConnectionError';
-
-  constructor(
-    message: string,
-    readonly connectionId: string,
-    readonly code: string,
-    readonly recoverable: boolean,
-    override readonly cause?: Error
-  ) {
-    super(message);
-  }
-}
+export { ConnectionError } from '@senars/util/errors';

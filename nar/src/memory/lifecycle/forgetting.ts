@@ -1,4 +1,4 @@
-import { mean, minBy } from '@senars/util';
+import { maxBy, mean, minBy } from '@senars/util';
 
 import type { Concept } from '../concept.js';
 import type { MemoryScorer } from '../pressure';
@@ -168,24 +168,15 @@ export class Forgetting {
 
   private selectByForgettingCurve(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
     if (concepts.length === 0) return undefined;
-    // Ebbinghaus curve: retrievability = e^(-t / S)
-    // Here we select the item with the lowest retrievability to forget.
-    // t = elapsed time in seconds, S = memory strength (scorer.score(c) scaled)
-    let victim: Concept | undefined;
-    let lowestRetrievability = Number.POSITIVE_INFINITY;
+    // Ebbinghaus curve: retrievability = e^(-t / S). Forget the lowest.
+    // t = elapsed seconds, floored so the exponent never divides by zero;
+    // S = memory strength, floored and scaled to 1-100.
     const now = Date.now();
-
-    for (const c of concepts) {
-      const t = Math.max(0.1, (now - this.getLastAccess(c)) / 1000); // minimum 0.1s to avoid division by zero later if inverted
-      const s = Math.max(0.01, scorer.scoreForForgetting(c) * 100); // scale strength to 1-100 range
-      const retrievability = Math.exp(-t / s);
-
-      if (retrievability < lowestRetrievability) {
-        lowestRetrievability = retrievability;
-        victim = c;
-      }
-    }
-    return victim;
+    return minBy(concepts, (c) => {
+      const t = Math.max(0.1, (now - this.getLastAccess(c)) / 1000);
+      const s = Math.max(0.01, scorer.scoreForForgetting(c) * 100);
+      return Math.exp(-t / s);
+    });
   }
 
   private selectByAge(concepts: Concept[]): Concept | undefined {
@@ -199,13 +190,10 @@ export class Forgetting {
 
   private selectByComposite(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
     const policy = this.policy as { type: 'composite'; weights: { priority: number; age: number } };
-    const calcScore = (c: Concept) =>
-      scorer.score(c) * policy.weights.priority +
-      (Date.now() - this.getLastAccess(c)) * policy.weights.age;
-    let worst: Concept | undefined;
-    for (const c of concepts) {
-      if (!worst || calcScore(c) > calcScore(worst)) worst = c;
-    }
-    return worst;
+    const now = Date.now();
+    return maxBy(
+      concepts,
+      (c) => scorer.score(c) * policy.weights.priority + (now - this.getLastAccess(c)) * policy.weights.age
+    );
   }
 }

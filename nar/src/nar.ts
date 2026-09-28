@@ -29,7 +29,7 @@ import { EpisodeConsolidator } from './memory/episode-consolidator.js';
 import { MiningBag } from './lm/system-one/hard-negatives.js';
 import { MetricsCollector } from './metrics';
 import { createAttentionModel, type NARConfig, validateNarConfig } from './facade/config.js';
-import { GameManager } from './facade/games.js';
+import { type GameAttachOptions, GameManager } from './facade/games.js';
 import { StatePersister } from './facade/persistence.js';
 import { SystemOneRuntime } from './facade/system-one.js';
 import {
@@ -586,20 +586,7 @@ export class NAR extends BaseComponent {
     return this.games.getFocusBag();
   }
 
-  attachGame(
-    game: GameFocusOptions['game'],
-    options: {
-      id?: string;
-      reflexes?: Reflex[];
-      weight?: number;
-      focusBag?: FocusBag;
-      /** Bind an LMReflex (real-LM per-tick decisions) in addition to the manifold arm. */
-      lmReflex?: boolean;
-      /** Phase C (REFACTOR.todo3): extra proposers (e.g. MettaProposer) + contradiction bus. */
-      proposers?: GameFocusOptions['proposers'];
-      eventBus?: GameFocusOptions['eventBus'];
-    } = {}
-  ): GameFocus {
+  attachGame(game: GameFocusOptions['game'], options: GameAttachOptions = {}): GameFocus {
     return this.games.attachGame(game, options);
   }
 
@@ -613,18 +600,7 @@ export class NAR extends BaseComponent {
   }
 
   /** Attach a ConversationGameFocus for the bot's conversation loop. */
-  attachConversationGame(
-    options: {
-      id?: string;
-      reflexes?: Reflex[];
-      weight?: number;
-      focusBag?: FocusBag;
-      lmReflex?: boolean;
-      /** Phase C (REFACTOR.todo3): extra proposers (e.g. MettaProposer) + contradiction bus. */
-      proposers?: GameFocusOptions['proposers'];
-      eventBus?: GameFocusOptions['eventBus'];
-    } = {}
-  ): { focus: GameFocus; game: ConversationGame } {
+  attachConversationGame(options: GameAttachOptions = {}): { focus: GameFocus; game: ConversationGame } {
     return this.games.attachConversationGame(options);
   }
 

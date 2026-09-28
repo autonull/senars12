@@ -1,3 +1,4 @@
+import { getOrInsert } from '@senars/util';
 import { PushQueue } from '@senars/util/events';
 import type { CognitiveEvent, EventLog } from './EventLog.js';
 import { EventLogError } from './EventLog.js';
@@ -112,9 +113,7 @@ export abstract class AbstractEventLog implements EventLog {
   }
 
   saveSnapshot<T>(projectionName: string, version: number, data: T): Promise<void> {
-    const map = this.#snapshots.get(projectionName) ?? new Map();
-    map.set(version, data);
-    this.#snapshots.set(projectionName, map);
+    getOrInsert(this.#snapshots, projectionName, () => new Map()).set(version, data);
     return Promise.resolve();
   }
 

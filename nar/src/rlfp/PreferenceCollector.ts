@@ -1,3 +1,4 @@
+import { writeJsonFile } from '@senars/util';
 import { promises as fs } from 'node:fs';
 import { OperationError } from '../types';
 import { clamp01 } from '../utils';
@@ -92,7 +93,7 @@ export class PreferenceCollector {
   }
 
   async savePreferences(path: string): Promise<void> {
-    await fs.writeFile(path, JSON.stringify(this.preferences, null, 2));
+    await writeJsonFile(path, this.preferences);
   }
 
   getPreferences(): PreferenceData[] {

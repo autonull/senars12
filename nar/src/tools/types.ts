@@ -107,16 +107,6 @@ export interface ToolEvent {
   context?: ToolContext;
 }
 
-export interface ToolStatistics {
-  name: string;
-  totalCalls: number;
-  successfulCalls: number;
-  failedCalls: number;
-  totalDuration: number;
-  averageDuration: number;
-  lastCalled?: number;
-}
-
 export const createToolEvent = (
   type: ToolEvent['type'],
   name: string,

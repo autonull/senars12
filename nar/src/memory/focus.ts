@@ -35,6 +35,8 @@ export class Focus {
 
   addToFocus(concept: Concept): void {
     if (this.concepts.size >= this.config.maxConcepts && !this.concepts.has(concept.term)) {
+      // Single zero-allocation pass: TermMap is a structural-sharing collection,
+      // so minBy would materialise an entry array on every capacity overflow.
       let lowestKey: Term | undefined;
       let lowestPriority = Infinity;
       for (const [key, entry] of this.concepts) {
@@ -43,11 +45,8 @@ export class Focus {
           lowestKey = key;
         }
       }
-      if (lowestKey !== undefined && lowestPriority < concept.priority) {
-        this.concepts.delete(lowestKey);
-      } else {
-        return;
-      }
+      if (lowestKey === undefined || lowestPriority >= concept.priority) return;
+      this.concepts.delete(lowestKey);
     }
     this.concepts.set(concept.term, { concept, priority: concept.priority });
   }

@@ -7,7 +7,7 @@
  */
 import { GameFocus } from '../nar/src/focus/GameFocus.js';
 import { GameRegistry } from '../nar/src/game/registry.js';
-import { SeededRNG } from '../nar/src/game/SeededRNG.js';
+import { SeededRNG } from '../nar/src/utils/random.js';
 import type { Game, GameOutcome, Perception } from '../nar/src/game/Game.js';
 import { TabularQReflex } from '../nar/src/reflex/TabularQReflex.js';
 import { NARBuilder } from '../nar/src/agent/builder.js';

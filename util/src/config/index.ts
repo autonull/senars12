@@ -17,6 +17,8 @@ export {
   envCsv,
   envFirst,
   envInt,
+  envNum,
+  envPositive,
   envStr,
   envStrOr,
   isTruthy,

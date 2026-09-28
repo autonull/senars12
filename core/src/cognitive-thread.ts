@@ -5,9 +5,7 @@
  */
 
 
-import { BudgetSlice, type BudgetSliceOptions, createBudgetSlice, sliceBudget, mergeConsumption, isExhausted, consumeCycles, remainingCycles, remainingAll } from '@senars/kernel/budget';
-import type { Term } from '@senars/nar/terms';
-import type { Task } from '@senars/nar/types';
+import { BudgetSlice, type BudgetSliceOptions, createBudgetSlice, sliceBudget, isExhausted, consumeCycles, chargeAllocation, remainingAll, remainingCycles, resolveAllocation, type BudgetAllocation } from '@senars/kernel/budget';
 import { emitBackpressureDecision } from '@senars/nar/tick';
 import { makeId, toError } from '@senars/util';
 
@@ -21,14 +19,7 @@ export interface ThreadMessage {
   readonly correlationId?: string;
 }
 
-export interface BudgetAllocation {
-  cycles?: number;
-  depth?: number;
-  memoryOps?: number;
-  llmCalls?: number;
-}
-
-type ResolvedBudgetAllocation = Required<BudgetAllocation>;
+export type { BudgetAllocation };
 
 export interface CognitiveThreadOptions {
   readonly id: string;
@@ -107,33 +98,14 @@ export class CognitiveThread {
 
   /** Spawn a child thread with hard budget inheritance: Σ(child) ≤ parent.remaining. */
   spawn(childId: string, allocation?: BudgetAllocation): SpawnResult {
-    // Calculate available budget
-    const {
-      cycles: availableCycles,
-      depth: availableDepth,
-      memoryOps: availableMemoryOps,
-      llmCalls: availableLMCalls,
-    } = remainingAll(this.budget);
-
-    // Default allocation: proportional share of remaining budget
-    const childAllocation: ResolvedBudgetAllocation = {
-      cycles: allocation?.cycles ?? Math.floor(availableCycles / (this.children.size + 2)),
-      depth: allocation?.depth ?? availableDepth,
-      memoryOps: allocation?.memoryOps ?? Math.floor(availableMemoryOps / (this.children.size + 2)),
-      llmCalls: allocation?.llmCalls ?? Math.floor(availableLMCalls / (this.children.size + 2)),
-    };
-
-    // Enforce hard limit: child allocation cannot exceed parent remaining
-    childAllocation.cycles = Math.min(childAllocation.cycles, availableCycles);
-    childAllocation.depth = Math.min(childAllocation.depth, availableDepth);
-    childAllocation.memoryOps = Math.min(childAllocation.memoryOps, availableMemoryOps);
-    childAllocation.llmCalls = Math.min(childAllocation.llmCalls, availableLMCalls);
-
-    // Consume the allocated budget from parent (hard inheritance)
-    if (childAllocation.cycles > 0) consumeCycles(this.budget, childAllocation.cycles);
-    if (childAllocation.depth > 0) this.budget.consumed.depth += childAllocation.depth;
-    if (childAllocation.memoryOps > 0) this.budget.consumed.memoryOps += childAllocation.memoryOps;
-    if (childAllocation.llmCalls > 0) this.budget.consumed.llmCalls += childAllocation.llmCalls;
+    const shares = this.children.size + 2;
+    const childAllocation = resolveAllocation(this.budget, allocation, (remaining) => ({
+      cycles: Math.floor(remaining.cycles / shares),
+      depth: remaining.depth,
+      memoryOps: Math.floor(remaining.memoryOps / shares),
+      llmCalls: Math.floor(remaining.llmCalls / shares),
+    }));
+    chargeAllocation(this.budget, childAllocation);
 
     const child = new CognitiveThread({
       id: childId,
@@ -143,15 +115,7 @@ export class CognitiveThread {
     });
     this.children.add(child.id);
 
-    // Return child thread and remaining budget after spawn
-    const remainingBudget: BudgetAllocation = {
-      cycles: availableCycles - childAllocation.cycles,
-      depth: availableDepth - childAllocation.depth,
-      memoryOps: availableMemoryOps - childAllocation.memoryOps,
-      llmCalls: availableLMCalls - childAllocation.llmCalls,
-    };
-
-    return { thread: child, remainingBudget };
+    return { thread: child, remainingBudget: remainingAll(this.budget) };
   }
 
   /** Send a message to this thread's mailbox with budget-gated backpressure. */
@@ -323,33 +287,8 @@ export class ThreadPool {
     if (this.threads.size >= this.maxThreads) return null;
     if (this.threads.has(id)) return null;
 
-    // Calculate available budget from root
-    const {
-      cycles: availableCycles,
-      depth: availableDepth,
-      memoryOps: availableMemoryOps,
-      llmCalls: availableLMCalls,
-    } = remainingAll(this.rootBudget);
-
-    // Default allocation
-    const childAllocation: ResolvedBudgetAllocation = {
-      cycles: allocation?.cycles ?? availableCycles,
-      depth: allocation?.depth ?? availableDepth,
-      memoryOps: allocation?.memoryOps ?? availableMemoryOps,
-      llmCalls: allocation?.llmCalls ?? availableLMCalls,
-    };
-
-    // Enforce hard limit
-    childAllocation.cycles = Math.min(childAllocation.cycles, availableCycles);
-    childAllocation.depth = Math.min(childAllocation.depth, availableDepth);
-    childAllocation.memoryOps = Math.min(childAllocation.memoryOps, availableMemoryOps);
-    childAllocation.llmCalls = Math.min(childAllocation.llmCalls, availableLMCalls);
-
-    // Consume from root budget (hard inheritance)
-    if (childAllocation.cycles > 0) consumeCycles(this.rootBudget, childAllocation.cycles);
-    if (childAllocation.depth > 0) this.rootBudget.consumed.depth += childAllocation.depth;
-    if (childAllocation.memoryOps > 0) this.rootBudget.consumed.memoryOps += childAllocation.memoryOps;
-    if (childAllocation.llmCalls > 0) this.rootBudget.consumed.llmCalls += childAllocation.llmCalls;
+    const childAllocation = resolveAllocation(this.rootBudget, allocation, (remaining) => remaining);
+    chargeAllocation(this.rootBudget, childAllocation);
 
     const thread = new CognitiveThread({
       id,
@@ -357,16 +296,9 @@ export class ThreadPool {
       budgetAllocation: childAllocation,
       mailboxCapacity: 50,
     });
-    this.threads.set(thread.id, thread);
+    this.threads.set(id, thread);
 
-    const remainingBudget: ResolvedBudgetAllocation = {
-      cycles: availableCycles - childAllocation.cycles,
-      depth: availableDepth - childAllocation.depth,
-      memoryOps: availableMemoryOps - childAllocation.memoryOps,
-      llmCalls: availableLMCalls - childAllocation.llmCalls,
-    };
-
-    return { thread, remainingBudget };
+    return { thread, remainingBudget: remainingAll(this.rootBudget) };
   }
 
   /** Get a thread by ID. */

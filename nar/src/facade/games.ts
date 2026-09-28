@@ -17,6 +17,18 @@ import { ConversationGame, type ConversationState, type ConversationAction } fro
  * Game/attachment registry (extracted from NAR — M2): owns attached GameFocus
  * instances, the default FocusBag, and the self-meta-game.
  */
+export interface GameAttachOptions {
+  id?: string;
+  reflexes?: Reflex[];
+  weight?: number;
+  focusBag?: FocusBag;
+  /** Bind an LMReflex (real-LM per-tick decisions) in addition to the manifold arm. */
+  lmReflex?: boolean;
+  /** Phase C (REFACTOR.todo3): extra proposers (e.g. ProofMettaProposer) + contradiction bus. */
+  proposers?: GameFocusOptions['proposers'];
+  eventBus?: GameFocusOptions['eventBus'];
+}
+
 export class GameManager {
   private readonly attachedGames = new Map<string, { focus: GameFocus; bag: FocusBag }>();
   private gameFocusBag: FocusBag | null = null;
@@ -52,40 +64,9 @@ export class GameManager {
    */
   attachGame(
     game: GameFocusOptions['game'],
-    options: {
-      id?: string;
-      reflexes?: Reflex[];
-      weight?: number;
-      focusBag?: FocusBag;
-      /** Bind an LMReflex (real-LM per-tick decisions) in addition to the manifold arm. */
-      lmReflex?: boolean;
-      /** Phase C (REFACTOR.todo3): extra proposers (e.g. ProofMettaProposer) + contradiction bus. */
-      proposers?: GameFocusOptions['proposers'];
-      eventBus?: GameFocusOptions['eventBus'];
-    } = {}
+    options: GameAttachOptions = {}
   ): GameFocus {
-    const bag = options.focusBag ?? this.getFocusBag();
-    const id = options.id ?? `game-${game.constructor.name}-${bag.getFocusWeights().size}`;
-    
-    // Merge ProofMettaProposer with any user-provided proposers
-    const mergedProposers = this.proofMettaProposer
-      ? [this.proofMettaProposer, ...(options.proposers ?? [])]
-      : options.proposers;
-
-    const focus = new GameFocus({
-      focusId: id,
-      game,
-      focusOptions: { weight: options.weight ?? 1.0, rng: this.rng },
-      ...(mergedProposers ? { proposers: mergedProposers } : {}),
-      ...(options.eventBus ? { eventBus: options.eventBus } : {}),
-    });
-    for (const reflex of options.reflexes ?? []) focus.bindReflex(reflex);
-    if (this.systemOne.enabled) this.systemOne.attachManifoldReflex(focus);
-    if (options.lmReflex && this.systemOne.enabled) this.systemOne.attachLMReflex(focus);
-    bag.add(focus.focus);
-    this.attachedGames.set(id, { focus, bag });
-    this.metaGameFocuses.set(id, focus);
-    return focus;
+    return this.attach(this.suggestGameId(game), game, options).focus;
   }
 
   /** Remove a game's focus from the bag and drop its scoped gates (no residue). */
@@ -137,22 +118,27 @@ export class GameManager {
    * Returns the created focus and the ConversationGame instance.
    */
   attachConversationGame(
-    options: {
-      id?: string;
-      reflexes?: Reflex[];
-      weight?: number;
-      focusBag?: FocusBag;
-      lmReflex?: boolean;
-      /** Phase C (REFACTOR.todo3): extra proposers (e.g. ProofMettaProposer) + contradiction bus. */
-      proposers?: GameFocusOptions['proposers'];
-      eventBus?: GameFocusOptions['eventBus'];
-    } = {}
+    options: GameAttachOptions = {}
   ): { focus: GameFocus; game: ConversationGame } {
-    const bag = options.focusBag ?? this.getFocusBag();
-    const id = options.id ?? 'conversation';
     const game = new ConversationGame();
-    
-    // Merge ProofMettaProposer with any user-provided proposers
+    return { ...this.attach(options.id ?? 'conversation', game, options), game };
+  }
+
+  private suggestGameId(game: GameFocusOptions['game']): string {
+    return `game-${game.constructor.name}-${this.getFocusBag().getFocusWeights().size}`;
+  }
+
+  /**
+   * The single game-attach path: scoped-gate GameFocus, bound reflexes, the
+   * ProofMettaProposer merge, FocusBag insertion, and the two registries. Every
+   * attach surface (explicit game, conversation loop) goes through here.
+   */
+  private attach(
+    id: string,
+    game: GameFocusOptions['game'],
+    options: GameAttachOptions
+  ): { focus: GameFocus; bag: FocusBag } {
+    const bag = options.focusBag ?? this.getFocusBag();
     const mergedProposers = this.proofMettaProposer
       ? [this.proofMettaProposer, ...(options.proposers ?? [])]
       : options.proposers;
@@ -170,7 +156,7 @@ export class GameManager {
     bag.add(focus.focus);
     this.attachedGames.set(id, { focus, bag });
     this.metaGameFocuses.set(id, focus);
-    return { focus, game };
+    return { focus, bag };
   }
 }
 

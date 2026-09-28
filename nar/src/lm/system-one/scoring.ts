@@ -1,4 +1,4 @@
-import { djb2, djb2Step } from '@senars/util';
+import { djb2, djb2Step, LruCache } from '@senars/util';
 import type { JudgmentQuery } from './types.js';
 
 export interface ScoringOptions {
@@ -38,14 +38,15 @@ export function createScorer(salt: number, minScore = 0.3, maxScore = 0.9) {
     computeDeterministicScore(embedding, query, { salt, minScore, maxScore });
 }
 
-export const scorerRegistry = new Map<string, ReturnType<typeof createScorer>>();
+/** Rubric-keyed scorers are derived from the rubric name alone, so eviction is
+ *  always safe — a miss just recomputes the identical closure. */
+const SCORER_CACHE_MAX = 256;
+const scorerRegistry = new LruCache<string, ReturnType<typeof createScorer>>(SCORER_CACHE_MAX);
 
 export function getScorer(rubric: string): ReturnType<typeof createScorer> {
-  let scorer = scorerRegistry.get(rubric);
-  if (!scorer) {
-    const salt = djb2(rubric);
-    scorer = createScorer(salt);
-    scorerRegistry.set(rubric, scorer);
-  }
+  const cached = scorerRegistry.get(rubric);
+  if (cached) return cached;
+  const scorer = createScorer(djb2(rubric));
+  scorerRegistry.set(rubric, scorer);
   return scorer;
 }

@@ -5,7 +5,7 @@
  * rows (TODO22 auto-capture) are excluded by construction.
  */
 
-import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
+import { sha256Hex, sha256Prefixed, shortSha256Hex, writeJsonFile } from '@senars/util';
 
 import { promises as fs } from 'node:fs';
 import { identityECE, meanBrier } from './calibration-fit.js';
@@ -117,10 +117,7 @@ export function headMetrics(rows: readonly FrozenEvalRow[]): Record<string, Eval
 }
 
 export async function writeEvalSet(set: FrozenEvalSet, path: string): Promise<void> {
-  const { promises: fs } = await import('node:fs');
-  const { dirname } = await import('node:path');
-  await ensureParentDir(path);
-  await fs.writeFile(path, JSON.stringify(set, null, 2), 'utf-8');
+  await writeJsonFile(path, set);
 }
 
 /** Fail-closed: a digest mismatch (corrupted or tampered snapshot) throws. */
@@ -147,4 +144,3 @@ export function assertFrozenNonRegression(
 }
 
 
-import { ensureParentDir } from '../../utils/fs.js';

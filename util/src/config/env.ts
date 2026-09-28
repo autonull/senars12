@@ -45,6 +45,25 @@ export const envInt = (key: string, fallback: number): number => {
   return Number.isNaN(parsed) ? fallback : parsed;
 };
 
+/**
+ * Finite real number from the environment, else `fallback`. Unlike `envInt`
+ * this keeps fractional values and rejects `NaN`/`Infinity` — the shape caps
+ * and sizes need, where `parseInt` would silently floor `1.5` to `1`.
+ */
+export const envNum = (key: string, fallback: number): number => {
+  const value = process.env[key];
+  if (value === undefined || value === '') return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+/** Positive finite number from the environment, else `fallback` — the guard for
+ *  limits and caps, where a non-positive value means "unset", not "zero". */
+export const envPositive = (key: string, fallback: number): number => {
+  const parsed = envNum(key, fallback);
+  return parsed > 0 ? parsed : fallback;
+};
+
 export const envCsv = (fallback: readonly string[], ...keys: string[]): string[] => {
   const value = envFirst(...keys);
   return value === undefined ? [...fallback] : value.split(',').map((part) => part.trim());

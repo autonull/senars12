@@ -2,7 +2,7 @@ import type { Concept } from '../../memory';
 import type { Task } from '../../types';
 import { samplePremises } from '../../strategies/premise/sample';
 import type { FilterSpec, SampleConfig } from '../../strategies/premise/primitives';
-import type { Strategy } from '../strategy.js';
+import type { Strategy } from '../../strategies/types.js';
 
 type StrategyConfig = Pick<
   SampleConfig,

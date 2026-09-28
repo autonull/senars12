@@ -22,4 +22,4 @@ export {
   SwitchingStrategy,
   TermLinkStrategy,
 } from '../strategies/premise/selection-strategies';
-export type { Strategy } from './strategy';
+export type { Strategy } from '../strategies/types';

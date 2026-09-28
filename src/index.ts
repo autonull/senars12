@@ -48,7 +48,6 @@ export type {
   ConnectionState,
   IOMessage,
 } from '@senars/util';
-export { ConnectionError as ConnError } from '@senars/util';
 export type { AgentSectionConfig, AppConfig, BotProfile } from './config/index.js';
 export {
   DEFAULT_BOT_CONFIG,

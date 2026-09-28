@@ -1,12 +1,10 @@
+import { envPositive } from '@senars/util/config';
 import { SenarsError } from '@senars/util/errors';
 
 export const DEFAULT_MAX_LM_OUTPUT_CHARS = 65_536;
 
-export const maxLMOutputChars = (): number => {
-  const raw = process.env.LM_MAX_OUTPUT_CHARS;
-  const n = raw ? Number(raw) : NaN;
-  return Number.isFinite(n) && n > 0 ? n : DEFAULT_MAX_LM_OUTPUT_CHARS;
-};
+export const maxLMOutputChars = (): number =>
+  envPositive('LM_MAX_OUTPUT_CHARS', DEFAULT_MAX_LM_OUTPUT_CHARS);
 
 export class LMOutputTooLargeError extends SenarsError {
   readonly length: number;

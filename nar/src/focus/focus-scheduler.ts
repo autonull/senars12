@@ -1,6 +1,6 @@
 import { raceDeadline } from '@senars/util';
 import type { MetaGame } from '../game/MetaGame.js';
-import { SeededRNG } from '../game/SeededRNG.js';
+import { SeededRNG } from '../utils/random.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
 import type { FocusStepReport } from './Focus.js';
 import type { FocusBag } from './FocusBag.js';

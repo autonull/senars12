@@ -5,7 +5,7 @@ import type { ReasoningBudget } from '@senars/kernel/schemas';
 import { describe, expect, it } from 'vitest';
 import type { GridWorldState } from '../../nar/src/game/GridWorldGame.js';
 import { GridWorldGame } from '../../nar/src/game/GridWorldGame.js';
-import { SeededRNG } from '../../nar/src/game/SeededRNG.js';
+import { SeededRNG } from '../../nar/src/utils/random.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { ManifoldRLAgent } from '../../nar/src/lm/system-one/manifold-rl-agent.js';

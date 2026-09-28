@@ -1,5 +1,5 @@
 import type { Game, GameOutcome, Perception } from './Game.js';
-import { SeededRNG } from './SeededRNG.js';
+import { SeededRNG } from '../utils/random.js';
 
 export type Move2048 = 0 | 1 | 2 | 3; // left, up, right, down
 

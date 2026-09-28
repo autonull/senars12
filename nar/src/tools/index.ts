@@ -27,7 +27,6 @@ export type {
   ToolFilter,
   ToolRegistry,
   ToolResult,
-  ToolStatistics,
 } from './types.js';
 export {
   CoreToolRegistryAdapter,

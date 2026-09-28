@@ -16,7 +16,6 @@ import type {
   ToolEvent,
   ToolFilter,
   ToolResult,
-  ToolStatistics,
 } from './types';
 import { errorResult } from './types';
 
@@ -30,13 +29,12 @@ export class ToolManager {
 
   private readonly registry = new Registry();
   private readonly executionHistory = new BoundedRing<ToolEvent>(ToolManager.MAX_HISTORY);
-  private readonly statistics = new Map<string, ToolStatistics>();
   private readonly allowedPermissions = new Set<string>();
   private readonly toolDescriptors = new Map<string, ToolDescriptor>();
   private readonly lifecycleState = new Map<string, LifecycleState>();
   private readonly sandboxMode: boolean;
   private eventBus?: EventBus<NAREventMap>;
-  private readonly feedbackObserver: ToolFeedbackObserver;
+  private readonly feedback: ToolFeedbackObserver;
   private readonly rng: RandomSource;
 
   constructor(options?: {
@@ -49,7 +47,7 @@ export class ToolManager {
   }) {
     this.sandboxMode = options?.sandboxMode ?? false;
     this.eventBus = options?.eventBus;
-    this.feedbackObserver = options?.feedbackObserver ?? new DefaultToolFeedbackObserver();
+    this.feedback = options?.feedbackObserver ?? new DefaultToolFeedbackObserver();
     this.rng = options?.rng ?? Math.random;
     for (const p of options?.allowedPermissions ?? []) {
       this.allowedPermissions.add(p);
@@ -84,7 +82,7 @@ export class ToolManager {
   unregister(name: string): void {
     this.stopTool(name);
     this.registry.unregister(name);
-    this.statistics.delete(name);
+    this.feedback.resetFeedback(name);
     this.lifecycleState.delete(name);
     this.toolDescriptors.delete(name);
     this.emit('tool:unregister', { name });
@@ -151,8 +149,8 @@ export class ToolManager {
       let best: string | null = null;
       let bestScore = -1;
       for (const name of tools) {
-        const stats = this.getStatistics(name);
-        const score = stats?.successfulCalls ? stats.successfulCalls / stats.totalCalls : 0;
+        const seen = this.getFeedback(name);
+        const score = seen?.successRate ?? 0;
         if (score > bestScore) {
           bestScore = score;
           best = name;
@@ -240,8 +238,7 @@ export class ToolManager {
         }
       }
 
-      this.updateStatistics(name, result, duration);
-      this.feedbackObserver.recordCall(name, result, duration);
+      this.feedback.recordCall(name, result, duration);
       this.emit('tool:result', { ...resultEvent, duration });
       this.addToHistory(resultEvent);
       return result;
@@ -257,8 +254,7 @@ export class ToolManager {
         duration,
       };
 
-      this.updateStatistics(name, result, duration);
-      this.feedbackObserver.recordCall(name, result, duration);
+      this.feedback.recordCall(name, result, duration);
       this.emit('tool:error', { ...errorEvent, duration });
       this.addToHistory(errorEvent);
       throw SenarsError.wrap(error, { tool: name, operation: 'execute' }, 'TOOL_ERROR');
@@ -268,37 +264,17 @@ export class ToolManager {
   executeChain = (chain: ToolChainStep[]): Promise<ToolChainResult> =>
     this.registry.executeChain(chain);
 
-  getStatistics(name: string): ToolStatistics | undefined {
-    return this.statistics.get(name);
-  }
-
-  getAllStatistics(): Map<string, ToolStatistics> {
-    return new Map(this.statistics);
-  }
-
-  resetStatistics(name?: string): void {
-    if (name) {
-      this.statistics.delete(name);
-      this.initializeStatistics(name);
-    } else {
-      this.statistics.clear();
-    }
-    this.feedbackObserver.resetFeedback(name);
-  }
-
-  /** Get procedural feedback in SkillFeedback-compatible format */
   getFeedback(name: string): ToolFeedback | undefined {
-    return this.feedbackObserver.getFeedback(name);
+    return this.feedback.getFeedback(name);
   }
 
-  /** Get all procedural feedback in SkillFeedback-compatible format */
   getAllFeedback(): ToolFeedback[] {
-    return this.feedbackObserver.getAllFeedback();
+    return this.feedback.getAllFeedback();
   }
 
   /** Get recent feedback as a string (for context injection) */
   getRecentFeedbackString(limit: number): string {
-    return this.feedbackObserver.getFeedbackString(limit);
+    return this.feedback.getFeedbackString(limit);
   }
 
   getHistory(limit = 10): ToolEvent[] {
@@ -323,31 +299,6 @@ export class ToolManager {
 
   private emitState(name: string, state: LifecycleState): void {
     this.emit(`tool:${state === 'running' ? 'init' : state}`, { name, state });
-  }
-
-  private initializeStatistics(name: string): void {
-    if (!this.statistics.has(name)) {
-      this.statistics.set(name, {
-        name,
-        totalCalls: 0,
-        successfulCalls: 0,
-        failedCalls: 0,
-        totalDuration: 0,
-        averageDuration: 0,
-      });
-    }
-  }
-
-  private updateStatistics(name: string, result: ToolResult, duration: number): void {
-    const stats = this.statistics.get(name);
-    if (!stats) return;
-
-    stats.totalCalls++;
-    stats.successfulCalls += result.success ? 1 : 0;
-    stats.failedCalls += result.success ? 0 : 1;
-    stats.totalDuration += duration;
-    stats.averageDuration = stats.totalDuration / stats.totalCalls;
-    stats.lastCalled = Date.now();
   }
 
   private addToHistory(event: ToolEvent): void {

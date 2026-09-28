@@ -1,4 +1,4 @@
-import type { LMTask } from '@senars/util';
+import { envPositive, type LMTask } from '@senars/util';
 import { recordLmSpend } from '../../metrics/index.js';
 import { getModelCapability } from '../providers.js';
 import { LMUnavailableError, withHint } from './errors.js';
@@ -13,10 +13,8 @@ export interface ProviderSpend {
 }
 
 const spendCapUsd = (): number | undefined => {
-  const raw = process.env.LM_MAX_SPEND_USD;
-  if (!raw) return undefined;
-  const v = Number(raw);
-  return Number.isFinite(v) && v > 0 ? v : undefined;
+  const cap = envPositive('LM_MAX_SPEND_USD', Number.NaN);
+  return Number.isNaN(cap) ? undefined : cap;
 };
 
 /** H3: per-provider spend ledger (token totals from AI-SDK usage + capability table). */

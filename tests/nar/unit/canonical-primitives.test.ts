@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import { describe, expect, it } from 'vitest';
 import { deepEqual, stableStringify } from '@senars/util';
-import { holdoutSplit, mulberry32 } from '../../../nar/src/utils/random.js';
+import { holdoutSplit, mulberry32, SeededRNG, seededStream } from '../../../nar/src/utils/random.js';
 
 describe('stableStringify', () => {
   it('is independent of key insertion order', () => {
@@ -72,5 +72,62 @@ describe('holdoutSplit', () => {
     const input = [...items];
     holdoutSplit(input, 0.5, mulberry32(5));
     expect(input).toEqual(items);
+  });
+});
+
+describe('seededStream', () => {
+  const draw = (seed: number, count: number): number[] => {
+    const { next } = seededStream(seed);
+    return Array.from({ length: count }, next);
+  };
+
+  it('is one PRNG: mulberry32 and the stream draw the identical sequence', () => {
+    expect(draw(42, 8)).toEqual(Array.from({ length: 8 }, mulberry32(42)));
+  });
+
+  it('emits a uniform [0, 1) sample from a given seed', () => {
+    const draws = draw(9, 4096);
+    expect(draws.every((d) => d >= 0 && d < 1)).toBe(true);
+    const mean = draws.reduce((a, b) => a + b, 0) / draws.length;
+    expect(Math.abs(mean - 0.5)).toBeLessThan(0.02);
+  });
+
+  it('reports a state word that resumes the stream exactly where it left off', () => {
+    const stream = seededStream(3);
+    stream.next();
+    stream.next();
+    const checkpoint = stream.state();
+
+    const tail = Array.from({ length: 5 }, seededStream(checkpoint).next);
+    expect(draw(3, 7).slice(2)).toEqual(tail);
+  });
+});
+
+describe('SeededRNG', () => {
+  it('round-trips a checkpoint mid-stream', () => {
+    const rng = new SeededRNG(17);
+    const prefix = Array.from({ length: 6 }, () => rng.next());
+    const checkpoint = rng.getState();
+    const tail = Array.from({ length: 6 }, () => rng.next());
+
+    rng.setState(checkpoint);
+    expect(Array.from({ length: 6 }, () => rng.next())).toEqual(tail);
+    expect(Array.from({ length: 6 }, () => rng.next())).not.toEqual(prefix);
+  });
+
+  it('exposes the same stream through next, source, and the free helpers', () => {
+    const a = new SeededRNG(5);
+    const b = new SeededRNG(5);
+    expect(Array.from({ length: 4 }, a.source)).toEqual(Array.from({ length: 4 }, b.next));
+  });
+
+  it('draws integers in range and rejects empty choice', () => {
+    const rng = new SeededRNG(2);
+    for (let i = 0; i < 500; i++) {
+      const n = rng.nextInt(7);
+      expect(n).toBeGreaterThanOrEqual(0);
+      expect(n).toBeLessThan(7);
+    }
+    expect(() => rng.choice([])).toThrow(RangeError);
   });
 });

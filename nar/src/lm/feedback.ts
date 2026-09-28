@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { formatTruth } from '@senars/util';
+import { BoundedRing, formatTruth } from '@senars/util';
 import { parseJsonWith } from './json.js';
 import { createLogger } from '@senars/core/logger';
 import type { Memory } from '../memory';
@@ -11,6 +11,9 @@ import { admitTasks } from './admit.js';
 import { topBeliefTasks } from './context.js';
 import { parseEnrichmentResponse } from './enrichment.js';
 import type { LMService } from './lm-service.js';
+
+/** Drop-oldest bound on the pattern history kept for later LM context. */
+const RECENT_PATTERN_LIMIT = 20;
 
 const ValidationSchema = z.object({
   verdict: z.enum(['valid', 'invalid', 'uncertain']),
@@ -81,7 +84,11 @@ export class BidirectionalFeedbackLoop {
   private readonly config: FeedbackConfig;
   private readonly logger: ReturnType<typeof createLogger>;
   private pendingValidations: TermMap<ValidationFeedback> = new TermMap();
-  private recentPatterns: ExtractedPattern[] = [];
+  private readonly recentPatterns = new BoundedRing<ExtractedPattern>(RECENT_PATTERN_LIMIT);
+
+  private recordPatterns(patterns: ExtractedPattern[]): void {
+    for (const pattern of patterns) this.recentPatterns.push(pattern);
+  }
 
   constructor(memory: Memory, lmService: LMService, config: Partial<FeedbackConfig> = {}) {
     this.memory = memory;
@@ -258,19 +265,13 @@ Respond with JSON:
         task: 'structured',
       });
       const patterns = this.applyPatterns(obj.patterns);
-      this.recentPatterns.push(...patterns);
-      if (this.recentPatterns.length > 20) {
-        this.recentPatterns = this.recentPatterns.slice(-20);
-      }
+      this.recordPatterns(patterns);
       return patterns;
     } catch {
       try {
         const response = await this.lmService.generateText(prompt);
         const patterns = this.parsePatterns(response);
-        this.recentPatterns.push(...patterns);
-        if (this.recentPatterns.length > 20) {
-          this.recentPatterns = this.recentPatterns.slice(-20);
-        }
+        this.recordPatterns(patterns);
         return patterns;
       } catch (error) {
         this.logger.warn(`Failed to extract patterns: ${errMsg(error)}`);
@@ -323,7 +324,7 @@ Respond with JSON:
   }
 
   getRecentPatterns(): ExtractedPattern[] {
-    return [...this.recentPatterns];
+    return this.recentPatterns.toArray();
   }
 
   clearPendingValidations(): void {

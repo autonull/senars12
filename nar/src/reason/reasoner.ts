@@ -3,7 +3,7 @@ import type { RuleProcessor } from '../rules';
 import { DefaultDerivation, PrioritySampling } from '../strategies';
 import type { CoreConfig, Task } from '../types';
 import { type InferenceConfig, InferenceController } from './inference-controller.js';
-import type { Strategy } from './strategy.js';
+import type { Strategy } from '../strategies/types.js';
 
 export interface ReasonerConfig
   extends Pick<CoreConfig, 'cpuThrottleMs' | 'maxDerivationDepth' | 'maxDerivationsPerStep'> {

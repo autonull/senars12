@@ -29,10 +29,11 @@ Shared primitives live in three places and are consumed by all subsystems:
   `resilience.ts` + `circuit-breaker.ts`, `throttle.ts`, `weak-cache.ts`,
   `collections.ts`, `hash.ts`, `similarity.ts`.
 
-Strategies are plug-ins over this base: `reason/strategy.ts` defines the
-`Strategy` interface with `BagStrategy` (priority-sampled) and
-`ExhaustiveStrategy` as swappable reasoners, and bag behavior itself is
-parameterized (`decayRate`, `forgetRate`, sampling budget).
+Strategies are plug-ins over this base: `strategies/types.ts` defines the
+`Strategy` interface, with `BagStrategy` (priority-sampled) and
+`ExhaustiveStrategy` in `strategies/premise/selection-strategies.ts` as
+swappable reasoners, and bag behavior itself is parameterized
+(`decayRate`, `forgetRate`, sampling budget).
 
 ## Consequences
 
@@ -50,5 +51,6 @@ parameterized (`decayRate`, `forgetRate`, sampling budget).
 - `nar/src/lifecycle/Container.ts`
 - `nar/src/cognitive/registry.ts`
 - `nar/src/config/cognitive-parameters.ts`
-- `nar/src/reason/strategy.ts`
+- `nar/src/strategies/types.ts`
+- `nar/src/strategies/premise/selection-strategies.ts`
 - `nar/src/utils/`

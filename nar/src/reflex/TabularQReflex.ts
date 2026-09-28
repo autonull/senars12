@@ -1,3 +1,4 @@
+import { getOrInsert } from '@senars/util';
 import type { Perception } from '../game/Game.js';
 import type { RandomSource } from '../types/primitives.js';
 import { type ActionProposal, byExpectedValue, type LearningEvent, type Reflex } from './Reflex.js';
@@ -56,6 +57,8 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
 
   propose(state: S, legalActions: A[]): ActionProposal[] {
     const stateKey = this.stateToKey(state);
+    // Read-only: materialising a row here would let `propose` alone grow the
+    // Q-table without bound.
     const qState = this.qTable.get(stateKey) ?? new Map();
 
     const proposals: ActionProposal[] = [];
@@ -94,11 +97,7 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
     const nextStateKey = this.perceptionToKey(event.perception);
     const actionKey = event.actionExecuted;
 
-    let qState = this.qTable.get(stateKey);
-    if (!qState) {
-      qState = new Map();
-      this.qTable.set(stateKey, qState);
-    }
+    const qState = getOrInsert(this.qTable, stateKey, () => new Map());
 
     const entry = qState.get(actionKey) ?? { value: 0, visits: 0 };
     const oldValue = entry.value;

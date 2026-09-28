@@ -6,7 +6,7 @@
  */
 
 import { raceDeadline } from '@senars/util';
-import { BudgetSlice, type ConsumedBudget, createBudgetSlice, sliceBudget, mergeConsumption, isExhausted } from '@senars/kernel/budget';
+import { BudgetSlice, type ConsumedBudget, createBudgetSlice, sliceBudget, mergeConsumption, mergeConsumed, isExhausted } from '@senars/kernel/budget';
 import type { Focus, FocusOptions, FocusStepReport } from '../focus/Focus.js';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
@@ -14,7 +14,7 @@ import type { MetaGame } from '../game/MetaGame.js';
 import type { GameFocus } from '../focus/GameFocus.js';
 import { FocusScheduler, type FocusSchedulerOptions } from '../focus/focus-scheduler.js';
 import type { RandomSource } from '../types/primitives.js';
-import { SeededRNG } from '../game/SeededRNG.js';
+import { SeededRNG } from '../utils/random.js';
 import { schedulerReward } from './scheduler-reward.js';
 
 export interface FocusTreeNode {
@@ -248,13 +248,8 @@ export class FocusTree {
   }
 
   private mergeConsumptionUp(node: FocusTreeNode, consumption: ConsumedBudget): void {
-    let current: FocusTreeNode | null = node;
-    while (current) {
-      current.budget.consumed.cycles += consumption.cycles;
-      current.budget.consumed.depth = Math.max(current.budget.consumed.depth, consumption.depth);
-      current.budget.consumed.memoryOps += consumption.memoryOps;
-      current.budget.consumed.llmCalls += consumption.llmCalls;
-      current = current.parent;
+    for (let current: FocusTreeNode | null = node; current; current = current.parent) {
+      mergeConsumed(current.budget.consumed, consumption);
     }
   }
 

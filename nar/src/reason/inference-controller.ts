@@ -13,7 +13,7 @@ import {
   createDerivedTask,
   exceedsDepthLimit,
 } from './inference-utils.js';
-import type { Strategy } from './strategy.js';
+import type { Strategy } from '../strategies/types.js';
 
 export interface InferenceConfig {
   maxDerivationsPerStep: number;

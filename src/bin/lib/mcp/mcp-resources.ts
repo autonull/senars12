@@ -105,7 +105,7 @@ const stateSummary = (nar: NAR) => ({
 const memoryStatus = async (nar: NAR, agent?: Agent) => {
   const episodic = await agent?.getEpisodicMemory?.();
   const episodes = episodic ? await episodic.getEpisodes({ limit: 10_000 }) : [];
-  const retrieval = [...(nar.tools.getAllStatistics?.() ?? new Map()).values()].reduce(
+  const retrieval = nar.tools.getAllFeedback().reduce(
     (acc: { calls: number; ok: number }, s) => ({
       calls: acc.calls + s.totalCalls,
       ok: acc.ok + s.successfulCalls,

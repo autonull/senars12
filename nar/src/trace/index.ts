@@ -1,6 +1,7 @@
 /**
  * Input tracing for debugging infinite loops and performance issues
  */
+import { SenarsError } from '@senars/util/errors';
 
 export type { PhaseEntry, PhaseTimerSummary } from './phase-timer.js';
 export { PhaseTimer } from './phase-timer.js';
@@ -94,8 +95,9 @@ export class InputTracer {
         label: `Operation exceeded ${this.config.timeoutMs}ms timeout`,
         data: { elapsed, phase: this.currentPhase, ...data },
       });
-      throw new TimeoutError(
+      throw new SenarsError(
         `Operation timed out after ${elapsed}ms in phase "${this.currentPhase}"`,
+        'TIMEOUT',
         { elapsed, phase: this.currentPhase }
       );
     }
@@ -187,16 +189,6 @@ export class LoopDetectionError extends Error {
   ) {
     super(message);
     this.name = 'LoopDetectionError';
-  }
-}
-
-export class TimeoutError extends Error {
-  constructor(
-    message: string,
-    public readonly context?: Record<string, unknown>
-  ) {
-    super(message);
-    this.name = 'TimeoutError';
   }
 }
 

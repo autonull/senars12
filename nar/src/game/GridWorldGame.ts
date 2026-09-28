@@ -1,6 +1,6 @@
 import type { Game, GameOutcome, Perception } from './Game.js';
 import { renderGrid } from './render.js';
-import { SeededRNG } from './SeededRNG.js';
+import { SeededRNG } from '../utils/random.js';
 
 export interface GridWorldConfig {
   grid: string[];

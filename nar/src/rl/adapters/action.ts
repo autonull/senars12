@@ -1,6 +1,6 @@
 import { mean } from '@senars/util';
 
-import { SeededRNG } from '../../game/SeededRNG.js';
+import { SeededRNG } from '../../utils/random.js';
 import { type Term, TermBuilder, Truth } from '../../index.js';
 import type { NAR } from '../../nar.js';
 import type { RandomSource } from '../../types/primitives.js';

@@ -1,5 +1,5 @@
 import { promises as fs } from 'node:fs';
-import { cachePath, sha256HexParts } from '@senars/util';
+import { cachePath, sha256HexParts, writeJsonFile } from '@senars/util';
 import { holdoutSplit, mulberry32 } from '../../utils/random.js';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration.js';
 import type { JudgmentDataset } from './distill.js';
@@ -234,9 +234,7 @@ function createLockDigest(calibrator: IsotonicCalibrator, threshold: number): st
 }
 
 export async function writeCalibrationLock(lock: CalibrationLock, path: string): Promise<void> {
-  const { dirname } = await import('node:path');
-  await ensureParentDir(path);
-  await fs.writeFile(path, JSON.stringify(lock, null, 2));
+  await writeJsonFile(path, lock);
 }
 
 export async function readCalibrationLock(path: string): Promise<CalibrationLock> {
@@ -280,4 +278,3 @@ export function applyCalibrationLock(
   }
 }
 
-import { ensureParentDir } from '../../utils/fs.js';

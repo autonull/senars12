@@ -144,7 +144,7 @@ export abstract class BaseConnection implements Connection {
     recoverable: boolean,
     cause?: Error
   ): ConnectionError {
-    return new ConnectionError(message, this.id, code, recoverable, cause);
+    return new ConnectionError(message, { connectionId: this.id, code, recoverable }, { cause });
   }
 
   protected withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {

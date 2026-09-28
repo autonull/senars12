@@ -1,3 +1,4 @@
+import { getOrInsert } from '@senars/util';
 import { type ActionProposal, byExpectedValue, type LearningEvent } from './Reflex.js';
 
 /** Incremental mean estimator for one (state, action) pair. */
@@ -39,11 +40,9 @@ export abstract class BanditReflex<O extends BanditReflexOptions = BanditReflexO
   }
 
   protected entryFor(state: string, action: number): QEntry {
-    let qState = this.qTable.get(state);
-    if (!qState) {
-      qState = Array.from({ length: this.numArms }, () => ({ value: 0, count: 0 }));
-      this.qTable.set(state, qState);
-    }
+    const qState = getOrInsert(this.qTable, state, () =>
+      Array.from({ length: this.numArms }, () => ({ value: 0, count: 0 }))
+    );
     qState[action] ??= { value: 0, count: 0 };
     return qState[action]!;
   }

@@ -1,3 +1,4 @@
+import { writeJsonFile } from '@senars/util';
 import { promises as fs } from 'node:fs';
 import { type EventBus, OperationError } from '../types';
 
@@ -37,7 +38,7 @@ export class ReasoningTrajectoryLogger {
     if (!filePath) return this.trajectory;
 
     try {
-      await fs.writeFile(filePath, JSON.stringify(this.trajectory, null, 2));
+      await writeJsonFile(filePath, this.trajectory);
     } catch (error) {
       throw new OperationError(
         `Failed to write trajectory to ${filePath}: ${(error as Error).message}`,

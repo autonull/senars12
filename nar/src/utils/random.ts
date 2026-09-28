@@ -5,17 +5,82 @@
 
 import type { RandomSource } from '../types/primitives.js';
 
-/** mulberry32: fast, well-distributed 32-bit seeded PRNG. */
-export const mulberry32 = (seed: number): RandomSource => {
+/** A resumable mulberry32 stream: the draw function plus its live 32-bit state word. */
+export interface SeededStream {
+  readonly next: RandomSource;
+  readonly state: () => number;
+}
+
+/**
+ * mulberry32 as a resumable stream. The state word is the only thing separating
+ * position N from position N+k, so exposing it is what makes a mid-run
+ * checkpoint (`SeededRNG.getState`) restore an exact continuation rather than
+ * restarting the sequence from its seed.
+ */
+export const seededStream = (seed: number): SeededStream => {
   let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  return {
+    next: () => {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    },
+    state: () => a,
   };
 };
+
+/** mulberry32: fast, well-distributed 32-bit seeded PRNG. */
+export const mulberry32 = (seed: number): RandomSource => seededStream(seed).next;
+
+/** Random integer in [0, max). */
+export const nextInt = (rng: RandomSource, max: number): number => Math.floor(rng() * max);
+
+/** Random element; throws on empty input. */
+export const choice = <T>(rng: RandomSource, items: readonly T[]): T => {
+  const picked = items[nextInt(rng, items.length)];
+  if (picked === undefined) throw new RangeError('choice from empty array');
+  return picked;
+};
+
+/**
+ * Stateful handle over the canonical `mulberry32` stream — the same PRNG as a
+ * resettable object, for call sites that thread an RNG through constructors.
+ * `getState`/`setState` checkpoint and restore the exact draw position, which is
+ * what makes cloned games and RL baseline snapshots resume identically.
+ */
+export class SeededRNG {
+  #stream: SeededStream;
+
+  constructor(seed: number = 1) {
+    this.#stream = seededStream(seed);
+  }
+
+  /** Random float in [0, 1). */
+  readonly next = (): number => this.#stream.next();
+
+  /** Adapter for utilities taking a bare `RandomSource` (e.g. `shuffleInPlace`). */
+  readonly source: RandomSource = () => this.#stream.next();
+
+  /** Random integer in [0, max). */
+  nextInt(max: number): number {
+    return nextInt(this.#stream.next, max);
+  }
+
+  /** Random element; throws on empty input. */
+  choice<T>(items: readonly T[]): T {
+    return choice(this.#stream.next, items);
+  }
+
+  getState(): number {
+    return this.#stream.state();
+  }
+
+  setState(state: number): void {
+    this.#stream = seededStream(state);
+  }
+}
 
 /** In-place Fisher–Yates shuffle — the single uniform-shuffle primitive (sampling, bags, exploration). */
 export const shuffleInPlace = <T>(items: T[], rng: RandomSource): T[] => {

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import {
   clamp01,
   ensureDir,
+  writeJsonFile,
   pearson,
   readJsonlAsync,
   sha256HexParts,
@@ -490,7 +491,7 @@ export async function writeHeadArtifacts(
   const bundle = exportArtifacts(model);
   await ensureDir(outDir);
   await Promise.all([
-    fs.writeFile(join(outDir, 'config.json'), JSON.stringify(bundle.config, null, 2)),
+    writeJsonFile(join(outDir, 'config.json'), bundle.config),
     fs.writeFile(join(outDir, 'weights.bin'), bundle.weightsBytes),
     fs.writeFile(join(outDir, 'MODEL_DIGEST'), bundle.modelDigest),
   ]);

@@ -1,5 +1,5 @@
 import type { Game } from '../../../../nar/src/game/Game.js';
-import { SeededRNG } from '../../../../nar/src/game/SeededRNG.js';
+import { SeededRNG } from '../../../../nar/src/utils/random.js';
 
 /**
  * Epsilon-Greedy Bandit Algorithm

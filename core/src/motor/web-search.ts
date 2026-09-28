@@ -11,6 +11,8 @@
  * are handled here rather than re-implemented per tool.
  */
 
+import { envFirst } from '@senars/util/config';
+
 const FETCH_TIMEOUT_MS = 15_000;
 /** Hard cap on a buffered response body. */
 const MAX_BODY_BYTES = 512 * 1024;
@@ -90,10 +92,7 @@ const collapseBlankLines = (s: string): string =>
     .filter((l) => l.length > 0)
     .join('\n');
 
-const env = (name: string): string | undefined => {
-  const value = process.env[name];
-  return value ? value : undefined;
-};
+
 
 export const tavilySearch = async (
   query: string,
@@ -177,8 +176,8 @@ export const duckDuckGoSearch = async (
 export const SEARCH_PROVIDERS: readonly SearchProvider[] = [
   {
     name: 'tavily',
-    configured: () => env('TAVILY_API_KEY') !== undefined,
-    search: (query, maxResults) => tavilySearch(query, env('TAVILY_API_KEY') as string, maxResults),
+    configured: () => envFirst('TAVILY_API_KEY') !== undefined,
+    search: (query, maxResults) => tavilySearch(query, envFirst('TAVILY_API_KEY') as string, maxResults),
   },
   {
     name: 'brave',
@@ -190,7 +189,7 @@ export const SEARCH_PROVIDERS: readonly SearchProvider[] = [
 
 /** Brave's key, or the generic web-search alias. */
 export function braveApiKey(): string | undefined {
-  return env('BRAVE_API_KEY') ?? env('WEB_SEARCH_API_KEY');
+  return envFirst('BRAVE_API_KEY') ?? envFirst('WEB_SEARCH_API_KEY');
 }
 
 export interface WebSearchOutcome {
