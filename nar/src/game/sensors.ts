@@ -1,3 +1,5 @@
+import { mean } from '@senars/util';
+
 import { clamp01, failClosed, type CognitionContext, type Sensor, type SensorReading } from './types.js';
 
 /** C2-S1: capacity pressure + utilization from memory statistics. */
@@ -64,7 +66,7 @@ export class HeadHealthSensor implements Sensor {
       const entries = Object.entries(headHealth ?? {});
       if (!entries.length) return { features: { healthyCount: 0, totalCount: 0, healthRatio: 1 }, confidence: 0 };
       const healthyCount = entries.filter(([, h]) => h.healthy).length;
-      const avgScore = entries.reduce((s, [, h]) => s + (h.score ?? (h.healthy ? 1 : 0)), 0) / entries.length;
+      const avgScore = mean(entries, ([, h]) => h.score ?? (h.healthy ? 1 : 0));
       return {
         features: { healthyCount, totalCount: entries.length, healthRatio: healthyCount / entries.length, avgScore },
         confidence: 1,

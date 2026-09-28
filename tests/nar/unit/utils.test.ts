@@ -2,7 +2,6 @@ import {
   clamp,
   clamp01,
   compact,
-  computeHash,
   ensureArray,
   fnv1a,
   isNil,
@@ -168,47 +167,6 @@ describe('Utility Functions', () => {
       expect(fnv1a('你好')).toBeDefined();
       expect(fnv1a('🚀')).toBeDefined();
       expect(fnv1a('你好')).not.toBe(fnv1a('world'));
-    });
-  });
-
-  describe('computeHash', () => {
-    test.each`
-      operator         | args
-      ${'test'}        | ${[1, 2, 3]}
-      ${'inheritance'} | ${[1, 2]}
-      ${'similarity'}  | ${[3, 2, 1]}
-      ${'conjunction'} | ${[5, 1, 3]}
-    `('computes hash for $operator with args', ({ operator, args }) => {
-      const hash = computeHash(operator, args);
-      expect(hash).toBeDefined();
-      expect(typeof hash).toBe('number');
-      expect(hash).toBeGreaterThan(0);
-    });
-
-    test.each`
-      operator         | args1        | args2
-      ${'similarity'}  | ${[1, 2, 3]} | ${[3, 2, 1]}
-      ${'conjunction'} | ${[5, 1, 3]} | ${[3, 5, 1]}
-    `('sorts args for commutative $operator', ({ operator, args1, args2 }) => {
-      expect(computeHash(operator, args1)).toBe(computeHash(operator, args2));
-    });
-
-    test.each`
-      operator         | args1        | args2
-      ${'inheritance'} | ${[1, 2, 3]} | ${[3, 2, 1]}
-      ${'implication'} | ${[1, 2]}    | ${[2, 1]}
-    `('preserves order for non-commutative $operator', ({ operator, args1, args2 }) => {
-      expect(computeHash(operator, args1)).not.toBe(computeHash(operator, args2));
-    });
-
-    test('is deterministic', () => {
-      expect(computeHash('test', [1, 2, 3])).toBe(computeHash('test', [1, 2, 3]));
-      expect(computeHash('test', [1, 2, 3])).not.toBe(computeHash('test', [3, 2, 1]));
-    });
-
-    test('handles empty args', () => {
-      expect(computeHash('test', [])).toBeDefined();
-      expect(computeHash('test', [])).toBeGreaterThan(0);
     });
   });
 

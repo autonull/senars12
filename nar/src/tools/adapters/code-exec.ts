@@ -1,9 +1,9 @@
-import { spawn } from 'node:child_process';
 import { basename, resolve } from 'node:path';
 import { truncateBytes } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { containsPath } from '../../capability/wasi-sandbox.js';
+import { runProcess } from './proc.js';
 
 export function shellAllowlistFromEnv(env: string | undefined): string[] {
   return (env ?? '')
@@ -25,9 +25,20 @@ export interface CodeExecDeps {
   wasiTimeoutMs?: number;
 }
 
-const deny = (reason: string) => ({ error: reason, exitCode: -1, stdout: '', stderr: '', duration: 0, truncated: false });
+const deny = (reason: string) => ({
+  error: reason,
+  exitCode: -1,
+  stdout: '',
+  stderr: '',
+  duration: 0,
+  truncated: false,
+});
 
-function createShellTool(deps: Required<Pick<CodeExecDeps, 'allowlist' | 'workspaceRoot' | 'maxTimeout' | 'maxOutputBytes'>>) {
+function createShellTool(
+  deps: Required<
+    Pick<CodeExecDeps, 'allowlist' | 'workspaceRoot' | 'maxTimeout' | 'maxOutputBytes'>
+  >
+) {
   return tool({
     description:
       'Execute an allow-listed command in a subprocess. Scoped to the workspace directory. No shell access.',
@@ -55,61 +66,26 @@ function createShellTool(deps: Required<Pick<CodeExecDeps, 'allowlist' | 'worksp
         return deny(`Working directory must be within workspace: ${deps.workspaceRoot}`);
       }
 
-      return new Promise((resolve) => {
-        const child = spawn(command, args, {
-          cwd: execCwd,
-          shell: false,
-          stdio: ['pipe', 'pipe', 'pipe'],
-          signal: AbortSignal.timeout(timeout),
-        });
-
-        const stdout: Buffer[] = [];
-        const stderr: Buffer[] = [];
-        let truncated = false;
-
-        const collect = (buffer: Buffer[], byteCount: { value: number }, maxBytes: number) => {
-          return (data: Buffer) => {
-            const remaining = maxBytes - byteCount.value;
-            if (remaining <= 0) {
-              truncated = true;
-              return;
-            }
-            const chunk = data.subarray(0, remaining);
-            buffer.push(chunk);
-            byteCount.value += chunk.length;
-          };
-        };
-
-        child.stdout?.on('data', collect(stdout, { value: 0 }, deps.maxOutputBytes));
-        child.stderr?.on('data', collect(stderr, { value: 0 }, deps.maxOutputBytes));
-
-        const startTime = Date.now();
-        child.on('close', (exitCode) => {
-          resolve({
-            exitCode: exitCode ?? -1,
-            stdout: Buffer.concat(stdout).toString('utf-8'),
-            stderr: Buffer.concat(stderr).toString('utf-8'),
-            duration: Date.now() - startTime,
-            truncated,
-          });
-        });
-
-        child.on('error', (err) => {
-          resolve({
-            error: String(err),
-            exitCode: -1,
-            stdout: '',
-            stderr: '',
-            duration: Date.now() - startTime,
-            truncated: false,
-          });
-        });
+      const startTime = Date.now();
+      const result = await runProcess(command, args, {
+        cwd: execCwd,
+        timeoutMs: timeout,
+        maxOutputBytes: deps.maxOutputBytes,
       });
+      return {
+        exitCode: result.code,
+        stdout: result.stdout,
+        stderr: result.stderr,
+        duration: Date.now() - startTime,
+        truncated: result.truncated,
+      };
     },
   });
 }
 
-function createWasiTool(deps: Required<Pick<CodeExecDeps, 'wasiAllowedPaths' | 'wasiTimeoutMs' | 'maxOutputBytes'>>) {
+function createWasiTool(
+  deps: Required<Pick<CodeExecDeps, 'wasiAllowedPaths' | 'wasiTimeoutMs' | 'maxOutputBytes'>>
+) {
   return tool({
     description:
       'Execute a WASM module in a WASI sandbox. No host FS or network access unless explicitly granted via capability tokens (allowedPaths).',

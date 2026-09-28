@@ -1,7 +1,7 @@
 import { dirname, resolve } from 'node:path';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { type SelfToolsContext, withShadowWorktree, toToolResult } from './context.js';
+import { type SelfToolsContext, toToolResult, withShadowWorktree } from './context.js';
 
 export const scaffoldCapabilityTool = (ctx: SelfToolsContext) => {
   const { deps, shadowManager } = ctx;

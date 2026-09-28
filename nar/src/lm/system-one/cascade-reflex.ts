@@ -1,8 +1,9 @@
+import { sha256Hex } from '@senars/util';
+
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
 import type { EmbeddingPointer, JudgmentManifold, JudgmentQuery, JudgmentProposition } from './types.js';
-import { sha256Hex } from '../../utils/hash.js';
 import type { BandDecision } from './policy.js';
 import { type JudgmentProvenance, stageProvenance } from './decide.js';
 

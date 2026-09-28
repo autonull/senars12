@@ -1,5 +1,6 @@
+import { sha256HexParts } from '@senars/util';
+
 import { promises as fs } from 'node:fs';
-import { sha256HexParts } from '../../utils/hash.js';
 import { mulberry32 } from '../../utils/random.js';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration.js';
 import type { JudgmentDataset } from './distill.js';

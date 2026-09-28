@@ -135,16 +135,12 @@ export function startHealthProbes(
         default:
           continue;
       }
-      const b = rt.breaker(p);
-      b.lastProbe = Date.now();
-      b.probeResult = ok;
       // Record Prometheus metric
       recordLmProbe(p, ok);
-      if (ok && b.state === 'open') {
-        b.state = 'half-open';
-        b.consecutiveSuccesses = 0;
-      } else if (!ok && b.state !== 'open') {
-        recordProviderCall(p, false, settings, rt);
+      if (ok) rt.recordProbe(p, true);
+      else {
+        rt.recordProbe(p, false);
+        if (rt.breaker(p).state !== 'open') recordProviderCall(p, false, settings, rt);
       }
     }
   }, intervalMs);

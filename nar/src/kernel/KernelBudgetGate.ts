@@ -8,7 +8,8 @@ import type {
 } from '@senars/kernel/schemas';
 import { validateCognitiveEvent, validateReasoningBudget } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
-import { BoundedEventLog, pushBounded } from './event-ring.js';
+import { BoundedRing } from '@senars/util';
+import { GATE_LOG_CAPACITY } from './event-ring.js';
 import { recordGateDecision } from '../telemetry/index.js';
 
 export interface KernelBudgetGateConfig {
@@ -69,7 +70,7 @@ const OPERATION_SPECS: Record<string, OperationSpec> = {
 export class KernelBudgetGate {
   private budget: ReasoningBudget;
   private scopes = new Map<string, ReasoningBudget>();
-  readonly eventLog = new BoundedEventLog<BudgetExhaustedEvent>();
+  readonly eventLog = new BoundedRing<BudgetExhaustedEvent>(GATE_LOG_CAPACITY);
   private costTable: Record<string, number>;
 
   constructor(config?: Partial<KernelBudgetGateConfig>) {

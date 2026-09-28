@@ -1,5 +1,5 @@
-import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../../utils/hash.js';
 import type { Episode } from '@senars/util';
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
 import type { NAR } from '../../nar.js';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import { PriorityBag } from '../../bag/Bag.js';

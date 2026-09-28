@@ -21,8 +21,5 @@ export const EMPTY_PATTERN: PatternAnalysis = {
   taskProcessingPatterns: { avgProcessingTime: 0, queueDepth: 0, dropRate: 0 },
 };
 
-export const calcAvg = (values: number[]): number =>
-  values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
-
 export const getMemory = () =>
   typeof process.memoryUsage === 'function' ? process.memoryUsage() : ({} as NodeJS.MemoryUsage);

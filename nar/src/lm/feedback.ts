@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { formatTruth } from '@senars/util';
+import { parseJsonWith } from './json.js';
 import { createLogger } from '@senars/core/logger';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
@@ -369,12 +370,9 @@ Respond with JSON:
     context: Task[]
   ): ValidationFeedback | null {
     try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return this.parseLegacyValidation(response, hypothesis, context);
-
-      const parsed = ValidationSchema.safeParse(JSON.parse(jsonMatch[0]));
-      if (!parsed.success) return this.parseLegacyValidation(response, hypothesis, context);
-      return this.applyValidation(parsed.data, hypothesis, context);
+      const parsed = parseJsonWith(response, ValidationSchema);
+      if (!parsed) return this.parseLegacyValidation(response, hypothesis, context);
+      return this.applyValidation(parsed, hypothesis, context);
     } catch {
       return this.parseLegacyValidation(response, hypothesis, context);
     }
@@ -413,12 +411,8 @@ Respond with JSON:
     beliefB: Task
   ): ContradictionExplanation | null {
     try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return null;
-
-      const parsed = ContradictionSchema.safeParse(JSON.parse(jsonMatch[0]));
-      if (!parsed.success) return null;
-      return this.applyContradiction(parsed.data, beliefA, beliefB);
+      const parsed = parseJsonWith(response, ContradictionSchema);
+      return parsed ? this.applyContradiction(parsed, beliefA, beliefB) : null;
     } catch {
       return null;
     }
@@ -426,12 +420,9 @@ Respond with JSON:
 
   private parsePatterns(response: string): ExtractedPattern[] {
     try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return [];
-
-      const parsed = PatternsSchema.safeParse(JSON.parse(jsonMatch[0]));
-      if (!parsed.success || !Array.isArray(parsed.data.patterns)) return [];
-      return this.applyPatterns(parsed.data.patterns);
+      const parsed = parseJsonWith(response, PatternsSchema);
+      if (!parsed || !Array.isArray(parsed.patterns)) return [];
+      return this.applyPatterns(parsed.patterns);
     } catch {
       return [];
     }

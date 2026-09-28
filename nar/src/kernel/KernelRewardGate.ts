@@ -7,7 +7,8 @@ import type {
 } from '@senars/kernel/schemas';
 import { SelfImprovementProposalSchema } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
-import { BoundedEventLog, recordPolicyViolation } from './event-ring.js';
+import { BoundedRing } from '@senars/util';
+import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
 
 export class EpistemicFirewallViolation extends Error {
   public readonly targetType: string;
@@ -32,7 +33,7 @@ export interface KernelRewardGateConfig {
 const DEFAULT_ALLOWED_TARGETS = new Set(['attention-priority', 'policy-weights']);
 
 export class KernelRewardGate {
-  readonly eventLog = new BoundedEventLog<PolicyViolationEvent>();
+  readonly eventLog = new BoundedRing<PolicyViolationEvent>(GATE_LOG_CAPACITY);
   private allowedTargets: ReadonlySet<string>;
 
   constructor(config?: Partial<KernelRewardGateConfig>) {

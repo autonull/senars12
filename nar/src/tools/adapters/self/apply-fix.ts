@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { type SelfToolsContext, withShadowWorktree, toToolResult } from './context.js';
+import { type SelfToolsContext, toToolResult, withShadowWorktree } from './context.js';
 
 export const applyFixTool = (ctx: SelfToolsContext) => {
   const { deps, shadowManager } = ctx;

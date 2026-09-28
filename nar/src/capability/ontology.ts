@@ -4,10 +4,11 @@
  * Consumers: delegation, curriculum probes (.probes), self-report.
  */
 
+import { shortSha256Hex } from '@senars/util';
+
 import { CapabilitySpace, type CapabilityDef } from './space.js';
 import type { ToolSpec } from '@senars/core/motor';
 import type { Tool as NarTool, Schema as NarSchema } from '../tools/types.js';
-import { shortSha256Hex } from '../utils/hash.js';
 
 export type CapabilityType = 'tool' | 'rule' | 'metta' | 'skill';
 

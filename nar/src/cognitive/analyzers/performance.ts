@@ -1,17 +1,19 @@
 /**
  * Performance pattern analysis - extracted from SelfAnalyzerService
  */
+import { mean } from '@senars/util';
+
 import type { MetricsCollector } from '../../metrics';
 import type { NAR } from '../../nar.js';
 import type { PerformancePatterns } from '../types.js';
-import { calcAvg, getMemory } from './constants.js';
+import { getMemory } from './constants.js';
 
 export const analyzePerformancePatterns = (
   metrics: MetricsCollector | null
 ): PerformancePatterns => {
   const ruleStats = metrics?.getRuleStats();
   const avgDuration = Array.isArray(ruleStats)
-    ? calcAvg(ruleStats.map((s) => s.averageDuration))
+    ? mean(ruleStats.map((s) => s.averageDuration))
     : 0;
 
   let memoryUsage = 0;

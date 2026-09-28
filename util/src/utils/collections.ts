@@ -3,12 +3,6 @@
  */
 
 /**
- * Drop-oldest bounded buffer — the single AIKR ring behind every bounded log
- * (revision history, decision logs, execution history, reward history). O(1)
- * amortized: one `shift()` per push, no `splice` reallocation, no cap arithmetic
- * duplicated at each call site.
- */
-/**
  * Drop-oldest push for plain arrays. One `shift()` per overflow — no `splice`
  * reallocation and no cap arithmetic repeated at the call site.
  */
@@ -17,6 +11,11 @@ export function pushCapped<T>(log: T[], item: T, capacity: number): void {
   if (log.length > capacity) log.shift();
 }
 
+/**
+ * Drop-oldest bounded buffer — the single AIKR ring behind every bounded log
+ * (revision history, decision logs, execution history, reward history). O(1)
+ * amortized: one `shift()` per push.
+ */
 export class BoundedRing<T> {
   readonly #items: T[] = [];
 

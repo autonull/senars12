@@ -1,7 +1,7 @@
 import type { LMTask } from '@senars/util';
 import { toError } from '@senars/util';
+import { parseJsonOrThrow, toCachedJsonSchema } from '../json.js';
 import type { ZodSchema } from 'zod';
-import { z } from 'zod';
 
 type GenerateText = (
   prompt: string,
@@ -18,7 +18,7 @@ export async function generateObjectViaText<T>(
   opts: { task?: LMTask; signal?: AbortSignal; temperature?: number; model?: string } | undefined,
   nativeError: unknown
 ): Promise<T> {
-  const jsonSchema = z.toJSONSchema(schema as never);
+  const jsonSchema = toCachedJsonSchema(schema);
   const enriched =
     `${prompt}\n\nRespond with ONLY a single JSON object matching this JSON Schema` +
     ` (no markdown fences, no commentary):\n${JSON.stringify(jsonSchema)}`;
@@ -34,9 +34,7 @@ export async function generateObjectViaText<T>(
         temperature,
         model: opts?.model,
       });
-      const match = text.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error('No JSON object in LM response');
-      return schema.parse(JSON.parse(match[0]));
+      return parseJsonOrThrow(text, schema);
     } catch (e) {
       lastError = e;
     }

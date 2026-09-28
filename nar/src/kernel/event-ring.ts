@@ -2,38 +2,15 @@
  * D11 (TODO17b): bounded event logs for kernel gates — drop-oldest rings.
  * Everything that grows has a bound; kernel logs cap at 1000 events.
  */
-import { pushCapped } from '@senars/util';
+import { BoundedRing } from '@senars/util';
 import type { CognitiveEvent, PolicyViolationEvent } from '@senars/kernel/schemas';
 import { validateCognitiveEvent } from '@senars/kernel/schemas';
 
 export const GATE_LOG_CAPACITY = 1000;
 
-export function pushBounded<T>(log: T[], event: T, capacity = GATE_LOG_CAPACITY): void {
-  pushCapped(log, event, capacity);
-}
-
-/** Anything the gate logs append to — an array or a `BoundedEventLog`. */
+/** Anything the gate logs append to — an array or a `BoundedRing`. */
 export interface BoundedSink<T> {
   push(event: T): void;
-}
-
-/** Bounded append-only gate log: drop-oldest ring plus the read/clear accessors every gate shares. */
-export class BoundedEventLog<T> {
-  readonly #events: T[] = [];
-
-  constructor(readonly capacity: number = GATE_LOG_CAPACITY) {}
-
-  push(event: T): void {
-    pushCapped(this.#events, event, this.capacity);
-  }
-
-  toArray(): ReadonlyArray<T> {
-    return [...this.#events];
-  }
-
-  clear(): void {
-    this.#events.length = 0;
-  }
 }
 
 export interface PolicyViolationInput {
@@ -60,3 +37,6 @@ export function recordPolicyViolation(
   log.push(event);
   return event;
 }
+
+/** Bounded append-only gate log: the shared drop-oldest ring at kernel capacity. */
+export const gateLog = <T>(): BoundedRing<T> => new BoundedRing<T>(GATE_LOG_CAPACITY);

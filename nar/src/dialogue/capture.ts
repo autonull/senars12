@@ -1,5 +1,5 @@
-import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../utils/hash.js';
 import type { Episode, EpisodicMemory, EpisodeType } from '@senars/util';
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
 import type { ContrastiveMemory } from '../lm/system-one/contrastive.js';
 import type { JudgmentDataset } from '../lm/system-one/distill.js';
 import type { EmbeddingCache } from '../lm/system-one/types.js';

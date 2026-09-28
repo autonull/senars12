@@ -6,6 +6,7 @@ import type { Truth as TruthType } from '../../terms/truth.js';
 import type { Budget, Task, TaskType } from '../../types';
 import { createTask, type NAREventMap, type NarEventBus } from '../../types';
 import { CircuitBreaker, errMsg } from '../../utils';
+import { parseJsonObject } from '../json.js';
 import type { LMExecutionStats, LMRuleConfig, LMRuleStats, LMService } from '../lm-service.js';
 import { createLMStats, recordLMCall } from '../stats.js';
 import { LMResponseParser } from './response-parser.js';
@@ -92,7 +93,7 @@ export class LMRule {
     this.circuitBreaker = new CircuitBreaker({
       failureThreshold: 5,
       resetTimeoutMs: 60000,
-      halfOpenRequests: 3,
+      successThreshold: 1,
       quiet: true,
     });
     this.eventBus = null;
@@ -295,7 +296,7 @@ export class LMRule {
       name: this.name,
       enabled: this.enabled,
       stats: this.stats,
-      circuitState: this.circuitBreaker.getState() as 'closed' | 'open' | 'half-open',
+      circuitState: this.circuitBreaker.state,
     };
   }
 
@@ -318,7 +319,7 @@ export class LMRule {
     context?: Record<string, unknown>
   ): NAREventMap['system:lm.rule:skipped']['reason'] | null {
     if (!this.enabled) return 'disabled';
-    if (this.circuitBreaker.getState() === 'open') return 'circuit_open';
+    if (this.circuitBreaker.state === 'open') return 'circuit_open';
     if (!this.lm || !primary) return 'disabled';
     if (!this.baseConfig.singlePremise && !secondary) return 'single_premise_missing';
     if (
@@ -517,8 +518,7 @@ export class LMRule {
   ): Task[] {
     let parsed: unknown;
     try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { response };
+      parsed = parseJsonObject(response) ?? { response };
     } catch {
       parsed = { response };
     }

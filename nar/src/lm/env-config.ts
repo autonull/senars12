@@ -20,14 +20,10 @@ export type ResolvedProvider = LMProviderName;
  * Canonical LM settings — the single source of truth for all LM configuration.
  * Precedence: environment variables > file config (senars.config.json) > defaults.
  */
-export interface CircuitBreakerConfig {
-  /** Failures before opening the circuit. */
-  failureThreshold: number;
-  /** Time in ms before attempting half-open. */
-  resetTimeoutMs: number;
-  /** Successful calls in half-open before closing. */
-  successThreshold: number;
-}
+import type { CircuitBreakerSettings } from '../utils/circuit-breaker.js';
+
+export type { CircuitState } from '../utils/circuit-breaker.js';
+export type CircuitBreakerConfig = CircuitBreakerSettings;
 
 export interface LMSettings {
   provider: LMProviderName;

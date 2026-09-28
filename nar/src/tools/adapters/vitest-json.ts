@@ -60,10 +60,9 @@ const addCounts = (into: Counters, counts: unknown): void => {
  * Reduce one file's `l`/`s`/`f`/`b` hit maps. Lines fall back to statements when
  * a reporter omits line data (istanbul's default shape).
  */
-export function fileCoverageMetrics(file: Record<string, unknown>): Record<
-  'lines' | 'statements' | 'functions' | 'branches',
-  CoverageMetrics
-> {
+export function fileCoverageMetrics(
+  file: Record<string, unknown>
+): Record<'lines' | 'statements' | 'functions' | 'branches', CoverageMetrics> {
   const lines = emptyCounters();
   const statements = emptyCounters();
   const functions = emptyCounters();

@@ -1,3 +1,5 @@
+import { mean } from '@senars/util';
+
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import type { RewardModel } from './RewardModel.js';
 import { findCommonFeatures } from './utils.js';
@@ -161,7 +163,7 @@ export class PolicyOptimizer {
       if (relevantHistory.length < 5) continue;
 
       const avgReward =
-        relevantHistory.reduce((sum, h) => sum + h.reward, 0) / relevantHistory.length;
+        mean(relevantHistory, (h) => h.reward);
       const topQuartile = relevantHistory
         .sort((a, b) => b.reward - a.reward)
         .slice(0, Math.ceil(relevantHistory.length / 4));

@@ -5,8 +5,9 @@
  * rows (TODO22 auto-capture) are excluded by construction.
  */
 
+import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
+
 import { promises as fs } from 'node:fs';
-import { sha256Hex, sha256Prefixed, shortSha256Hex } from '../../utils/hash.js';
 import { identityECE, meanBrier } from './calibration-fit.js';
 import type { JudgmentDataset } from './distill.js';
 import { DigestMismatchError } from './wasi-runtime.js';

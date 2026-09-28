@@ -10,6 +10,8 @@
  * REFACTOR.todo4 Phase B: now backed by the generic `Ledger<T>` primitive from `@senars/io`.
  */
 
+import { mean } from '@senars/util';
+
 import { dirname } from 'node:path';
 import { z } from 'zod';
 import {Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery} from '@senars/io/ledger';
@@ -137,10 +139,10 @@ export class OutcomeLinker {
   async correlate(options: { parameter?: string; windowMs?: number } = {}): Promise<ParameterImprovement[]> {
     const windowMs = options.windowMs ?? 60_000;
     const samples = this.outcomes();
-    const mean = (from: number, to: number): number | null => {
+    const windowMean = (from: number, to: number): number | null => {
       const inWindow = samples.filter((s) => s.at >= from && s.at < to).map((s) => s.quality);
       if (inWindow.length === 0) return null;
-      return inWindow.reduce((a, b) => a + b, 0) / inWindow.length;
+      return mean(inWindow);
     };
     const entries = await this.ledger.queryAsync({});
     const filtered = options.parameter
@@ -148,8 +150,8 @@ export class OutcomeLinker {
       : entries;
     const out: ParameterImprovement[] = [];
     for (const r of filtered) {
-      const before = mean(r.at - windowMs, r.at);
-      const after = mean(r.at, r.at + windowMs);
+      const before = windowMean(r.at - windowMs, r.at);
+      const after = windowMean(r.at, r.at + windowMs);
       if (before === null || after === null) continue;
       out.push({
         parameter: r.parameter,

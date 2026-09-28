@@ -4,6 +4,8 @@
  * self-consistency `consensus` — no new machinery.
  */
 
+import { sha256Hex } from '@senars/util';
+
 import {
   type CascadeJudge,
   type ConfidenceBands,
@@ -19,7 +21,6 @@ import type {
   JudgmentQuery,
   ReasoningBudget,
 } from './types.js';
-import { sha256Hex } from '../../utils/hash.js';
 import { type JudgmentProvenance, stageProvenance } from './decide.js';
 
 export type VerifyDecision = 'act' | 'review' | 'block' | 'abstain';

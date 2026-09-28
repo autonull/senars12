@@ -1,3 +1,5 @@
+import { mean } from '@senars/util';
+
 import type { Concept } from '../concept.js';
 import type { MemoryScorer } from '../pressure';
 
@@ -127,7 +129,7 @@ export class Forgetting {
     }));
 
     const avgConnectivity =
-      connectivity.reduce((sum, c) => sum + c.connectivity, 0) / connectivity.length;
+      mean(connectivity, (c) => c.connectivity);
 
     const lowConnectivity = connectivity.filter((c) => c.connectivity < avgConnectivity);
 

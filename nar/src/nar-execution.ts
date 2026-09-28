@@ -1,3 +1,5 @@
+import { mean } from '@senars/util';
+
 import { envBool } from '@senars/util/config';
 import type { CognitiveController } from './cognitive';
 import type { DriveManager } from './drives';
@@ -414,9 +416,7 @@ export class NARExecution {
 
     // Average RLFP reward
     const rlfpRewardAvg =
-      this._rlfpRewardHistory.size > 0
-        ? this._rlfpRewardHistory.reduce((a, b) => a + b, 0) / this._rlfpRewardHistory.size
-        : 0;
+      mean(this._rlfpRewardHistory.toArray());
 
     const summary: CognitiveStateSummary = {
       timestamp: new Date().toISOString(),

@@ -96,7 +96,7 @@ export class BrierHarness {
   advantageByArm(arm: string): number {
     const rows = this.byArm(arm);
     if (rows.length === 0) return 0;
-    return rows.reduce((s, r) => s + (r.predicted - r.observed), 0) / rows.length;
+    return mean(rows, (r) => r.predicted - r.observed);
   }
 
   summary(): ArmSummary[] {

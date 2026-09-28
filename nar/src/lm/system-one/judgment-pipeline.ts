@@ -4,8 +4,9 @@
  * HEAD_SPECS already declarative; pipeline adds composition + digest, does not replace the table.
  */
 
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
+
 import { HEAD_SPECS, HeadSpec, HeadId, HeadGroup, createHead, type HeadFactoryOptions, type JudgmentQuery, type EmbeddingCache, type CalibrationVersion } from './head-specs.js';
-import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../../utils/hash.js';
 
 export interface PipelineStage {
   readonly group: HeadGroup;

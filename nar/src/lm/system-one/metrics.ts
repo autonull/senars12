@@ -11,7 +11,7 @@
  */
 export function identityECE(data: readonly { predicted: number; observed: number }[]): number {
   if (data.length === 0) return 0;
-  return data.reduce((sum, d) => sum + Math.abs(d.predicted - d.observed), 0) / data.length;
+  return mean(data, (d) => Math.abs(d.predicted - d.observed));
 }
 
 /**
@@ -37,3 +37,5 @@ export const meanBrier = (data: readonly { predicted: number; observed: number }
     (d) => d.predicted,
     (d) => d.observed
   );
+import { mean } from '@senars/util';
+

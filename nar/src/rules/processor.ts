@@ -3,7 +3,8 @@
  */
 
 import { findConflicts } from '../cognitive/conflict-utils.js';
-import { pushBounded } from '../kernel/event-ring.js';
+import { pushCapped } from '@senars/util';
+import { GATE_LOG_CAPACITY } from '../kernel/event-ring.js';
 import type { LMRule } from '../lm';
 import type { LMRuleStats } from '../lm/lm-service.js';
 import type { Memory } from '../memory';
@@ -440,23 +441,23 @@ export class RuleProcessor {
           for (const r of result) {
             this.recorder.record(lmRule.id, p1, effectiveP2, r);
           }
-          pushBounded(this.executionLog, {
+          pushCapped(this.executionLog, {
             ruleName: lmRule.name,
             status: result.length > 0 ? 'fired' : 'timeout',
             durationMs: Date.now() - startTime,
             tasksProduced: result.length,
             timestamp: Date.now(),
-          });
+          }, GATE_LOG_CAPACITY);
           return result;
         } catch (error) {
           this.handleRuleError(error, lmRule.id);
-          pushBounded(this.executionLog, {
+          pushCapped(this.executionLog, {
             ruleName: lmRule.name,
             status: 'timeout',
             durationMs: Date.now() - startTime,
             tasksProduced: 0,
             timestamp: Date.now(),
-          });
+          }, GATE_LOG_CAPACITY);
           return [];
         }
       })

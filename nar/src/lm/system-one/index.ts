@@ -27,6 +27,7 @@ export * from './lm-reflex.js';
 export * from './manifold.js';
 export * from './manifold-reflex.js';
 export * from './policy.js';
+export type { ProvisionalStamp } from './provisional-stamp.js';
 export { createProvisionalStamp, isProvisionalStamp } from './provisional-stamp.js';
 export * from './reflex-label-source.js';
 export * from './resource-gate.js';

@@ -1,4 +1,5 @@
 import type { ReasoningBudget, SourceQuality } from '@senars/kernel/schemas';
+import type { ProvisionalStamp } from './provisional-stamp.js';
 
 export type { ReasoningBudget, SourceQuality };
 
@@ -230,17 +231,6 @@ export interface PEAResult {
     stamp: import('../../terms/stamp.js').Stamp;
   }[];
   provisional: readonly { candidate: string; provisional: ProvisionalStamp }[];
-}
-
-export interface ProvisionalStamp {
-  kind: 'provisional';
-  stamp: import('../../terms/stamp.js').Stamp;
-  cInitial: number;
-  decayRate: number;
-  createdAt: number;
-  expiresAt: number;
-
-  confidence(now: number): number;
 }
 
 /** Defaults for a System One judgment pass: one judge, no derivation fan-out. */

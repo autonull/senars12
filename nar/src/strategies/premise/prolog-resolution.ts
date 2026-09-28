@@ -5,8 +5,9 @@
  */
 import type { Concept, Memory } from '../../memory';
 import type { Term } from '../../terms';
-import { TermBuilder, unify, termsEqual, isVariableSymbol, getTermArgs, extractSymbols } from '../../terms';
+import { TermBuilder, unify, isVariableSymbol, getTermArgs, extractSymbols } from '../../terms';
 import type { Task, TaskType } from '../../types';
+import type { Substitution } from '../../terms/unifier.js';
 import { createSecondaryTask } from '../../types';
 import type { Strategy } from '../types';
 import type { ComponentMetadata } from '../types';
@@ -22,10 +23,6 @@ interface Clause {
   body: Term[];
 }
 
-interface Substitution {
-  [varName: string]: Term | undefined;
-}
-
 interface ResolutionState {
   goals: Term[];
   substitution: Substitution;
@@ -37,55 +34,28 @@ function isVariable(term: Term): term is Term & { kind: 'atom'; symbol: string }
   return term.kind === 'atom' && isVariableSymbol(term.symbol);
 }
 
-function occursCheck(varName: string, term: Term, subst: Substitution): boolean {
-  const resolved = subst[varName];
-  if (resolved) return occursCheck(varName, resolved, subst);
-  if (isVariable(term)) return term.symbol === varName;
-  const args = getTermArgs(term);
-  if (args) return args.some(arg => occursCheck(varName, arg, subst));
-  return false;
-}
-
 function applySubstitution(term: Term, subst: Substitution): Term {
   if (isVariable(term)) {
     const replacement = subst[term.symbol];
-    if (replacement) return applySubstitution(replacement, subst);
-    return term;
+    return replacement ? applySubstitution(replacement, subst) : term;
   }
   const args = getTermArgs(term);
   if (!args) return term;
-  const newArgs = args.map((arg): Term => applySubstitution(arg, subst));
-  return TermBuilder.compound(term.kind as any, newArgs);
+  return TermBuilder.compound(term.kind as never, args.map((arg): Term => applySubstitution(arg, subst)));
 }
 
+/**
+ * SLD resolution carries an accumulated substitution, so both clauses are
+ * ground-ed through it before the shared unifier (which owns the occurs check)
+ * runs.
+ */
+/**
+ * SLD resolution carries an accumulated substitution, so both clauses are
+ * ground-ed through it before the shared unifier (which owns the occurs check)
+ * runs.
+ */
 function unifyTerms(t1: Term, t2: Term, subst: Substitution): Substitution | null {
-  const r1 = applySubstitution(t1, subst);
-  const r2 = applySubstitution(t2, subst);
-
-  if (termsEqual(r1, r2)) return subst;
-
-  if (isVariable(r1)) {
-    if (occursCheck(r1.symbol, r2, subst)) return null;
-    return { ...subst, [r1.symbol]: r2 };
-  }
-  if (isVariable(r2)) {
-    if (occursCheck(r2.symbol, r1, subst)) return null;
-    return { ...subst, [r2.symbol]: r1 };
-  }
-
-  const args1 = getTermArgs(r1);
-  const args2 = getTermArgs(r2);
-  if (!args1 || !args2 || args1.length !== args2.length) return null;
-
-  let newSubst: Substitution | null = subst;
-  for (let i = 0; i < args1.length; i++) {
-    const a1 = args1[i];
-    const a2 = args2[i];
-    if (!a1 || !a2) return null;
-    newSubst = unifyTerms(a1, a2, newSubst ?? {});
-    if (!newSubst) return null;
-  }
-  return newSubst;
+  return unify(applySubstitution(t1, subst), applySubstitution(t2, subst), subst, true) ?? null;
 }
 
 function findHornClauses(memory: Memory): Clause[] {

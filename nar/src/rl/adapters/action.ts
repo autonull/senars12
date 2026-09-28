@@ -1,3 +1,5 @@
+import { mean } from '@senars/util';
+
 import { SeededRNG } from '../../game/SeededRNG.js';
 import { type Term, TermBuilder, Truth } from '../../index.js';
 import type { NAR } from '../../nar.js';
@@ -318,7 +320,7 @@ export class NonStationarySelector implements NativeActionSelector {
       const bestErrors = bestIdx >= 0 ? this.predictionErrors[bestIdx] : undefined;
       if (bestErrors && bestErrors.size > 5) {
         const recentErrors = bestErrors.tail(5);
-        const avgError = recentErrors.reduce((a, b) => a + b, 0) / recentErrors.length;
+        const avgError = mean(recentErrors);
         if (avgError > this.changeDetectionThreshold) {
           effectiveExplorationRate = Math.min(0.5, this.explorationRate * 2);
           qStore.stimulateCuriosity(0.1);
@@ -350,7 +352,7 @@ export class NonStationarySelector implements NativeActionSelector {
       const errors = this.predictionErrors[action] ?? new BoundedRing<number>(20);
       const recentRewards = errors.tail(10);
       if (recentRewards.length > 0) {
-        const avgRecent = recentRewards.reduce((a, b) => a + b, 0) / recentRewards.length;
+        const avgRecent = mean(recentRewards);
         errors.push(Math.abs(reward - avgRecent));
         this.predictionErrors[action] = errors;
       }

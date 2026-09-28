@@ -1,4 +1,4 @@
-import { pushCapped } from '@senars/util';
+import { mean, pushCapped } from '@senars/util';
 import type { MetricsCollector } from '../../metrics';
 /**
  * Policy management - extracted from SelfAnalyzerService
@@ -63,7 +63,7 @@ export const createPolicyManager = (recencyEpisodes: number): PolicyManager => {
 
       const ruleStats = metrics?.getRuleStats?.();
       const avgDuration = Array.isArray(ruleStats)
-        ? ruleStats.reduce((a, b) => a + b.averageDuration, 0) / ruleStats.length
+        ? mean(ruleStats, (r) => r.averageDuration)
         : 0;
       const budget = avgDuration > 50 ? 1024 : 2048;
 

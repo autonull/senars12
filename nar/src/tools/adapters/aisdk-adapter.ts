@@ -1,6 +1,6 @@
+import { evaluateExpression } from '@senars/util/utils/eval';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { evaluateExpression } from '@senars/util/utils/eval';
 import type { Term } from '../../terms';
 import { mentionsSymbol } from '../../terms';
 

@@ -167,7 +167,7 @@ export interface MemoryConfig {
 }
 
 /** Build default parameters from the shared cognitive bounds. */
-function buildDefaults(): CognitiveParameters {
+export function buildDefaults(): CognitiveParameters {
   return {
     priority: {
       initialPriority: getCognitiveBound('priority', 'initialPriority', 'default'),

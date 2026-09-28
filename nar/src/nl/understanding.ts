@@ -22,6 +22,7 @@ import { SingleFlight } from './singleflight.js';
 export type { Ambiguity, Coreference, TaskBatch } from '../types/events.js';
 import type { TaskBatch } from '../types/events.js';
 import { pct } from '@senars/util';
+import { parseJsonWith } from '../lm/json.js';
 
 export interface NLContext {
   beliefs?: string[];
@@ -194,10 +195,7 @@ export class NLUnderstandingService {
             prompt: prompt + '\n\nRespond with valid JSON only.',
             maxOutputTokens: 120,
           }).then((r) => r.text);
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return null;
-      const parsed = TaskBatchSchema.safeParse(JSON.parse(jsonMatch[0]));
-      return parsed.success ? (parsed.data as TaskBatch) : null;
+      return (parseJsonWith(text, TaskBatchSchema) as TaskBatch | null) ?? null;
     } catch {
       return null;
     }

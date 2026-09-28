@@ -6,8 +6,8 @@
  * emitted through the wired sink — append-only, raw episodes are never
  * deleted (I6-style: the summary is an index, not a replacement).
  */
-import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../utils/hash.js';
 import type { Episode, EpisodeType } from '@senars/util';
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
 import { AIKRProcessor, type ProcessOptions, type AikrBagOptions } from '../learning/aikr-processor.js';
 import { PriorityBag } from '../bag/Bag.js';
 import type { RandomSource } from '../types/primitives.js';

@@ -4,6 +4,7 @@ import {
   type MonitorState,
   SelfAnalyzerService as SelfAnalyzer,
 } from '../cognitive/SelfAnalyzerService.js';
+import type { QualityAssessment } from '../cognitive/types.js';
 import { createLogger } from '@senars/core/logger';
 import type { NAR } from '../nar.js';
 
@@ -41,14 +42,6 @@ export interface ReasoningState {
   lastUpdate: number;
   monitorsActive: number;
   pendingMetaTasks: number;
-}
-
-export interface QualityAssessment {
-  overall: number;
-  coherence: number;
-  relevance: number;
-  completeness: number;
-  timestamp: number;
 }
 
 export class ReasoningAboutReasoning {

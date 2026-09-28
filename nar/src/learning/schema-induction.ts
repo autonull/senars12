@@ -10,6 +10,7 @@
 
 import { type BagItem, PriorityBag } from '../bag/Bag.js';
 import type { LMService } from '../lm/lm-service.js';
+import { parseJsonObject } from '../lm/json.js';
 import { createLogger, type Logger } from '@senars/core/logger';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
@@ -312,15 +313,13 @@ Respond with JSON:
     variables: string[];
   } | null {
     try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return null;
-      const obj = JSON.parse(jsonMatch[0]);
-      if (!obj.pattern || !obj.variables) return null;
+      const obj = parseJsonObject(response) as Record<string, unknown> | null;
+      if (typeof obj?.pattern !== 'string' || !Array.isArray(obj.variables)) return null;
       return {
         pattern: obj.pattern,
-        type: obj.type ?? 'unknown',
-        confidence: clamp01(obj.confidence ?? 0.5),
-        variables: obj.variables,
+        type: typeof obj.type === 'string' ? obj.type : 'unknown',
+        confidence: clamp01(typeof obj.confidence === 'number' ? obj.confidence : 0.5),
+        variables: obj.variables.filter((v): v is string => typeof v === 'string'),
       };
     } catch {
       return null;

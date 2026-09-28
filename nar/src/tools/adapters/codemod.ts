@@ -1,7 +1,8 @@
-import { spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { tool } from 'ai';
 import { z } from 'zod';
+import { runProcess } from './proc.js';
 
 // --- codemod ---
 
@@ -44,6 +45,13 @@ function findAstGrep(): string {
   return 'ast-grep';
 }
 
+interface AstGrepMatch {
+  file: string;
+  range: { start: { line: number }; end: { line: number } };
+  lines: string;
+  replacement: string;
+}
+
 export async function runCodemod(
   workspaceRoot: string,
   options: CodemodOptions,
@@ -62,67 +70,43 @@ export async function runCodemod(
     args.push('--update-all', '--json');
   }
 
-  return new Promise((resolve) => {
-    const child = spawn(astGrepCmd, args, {
-      cwd: workspaceRoot,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+  const { code, stdout, stderr } = await runProcess(astGrepCmd, args, { cwd: workspaceRoot });
+  if (code !== 0 && !stdout) {
+    return {
+      success: false,
+      error: stderr.trim() || `ast-grep exited ${code}`,
+      files: [],
+      applied: false,
+    };
+  }
 
-    let stdout = '';
-    let _stderr = '';
+  try {
+    const matches = (stdout ? JSON.parse(stdout) : []) as AstGrepMatch[];
+    const files = [...new Set(matches.map((m) => m.file))].filter((f) => f !== 'STDIN');
+    const diff = matches
+      .map(({ file, range, lines, replacement }) => {
+        const { start, end: stop } = range;
+        const span = stop.line - start.line + 1;
+        const hunk = `@@ -${start.line + 1},${span} +${start.line + 1},${span} @@`;
+        return `${file}\n${hunk}\n-${lines}\n+${replacement}`;
+      })
+      .join('\n');
 
-    child.stdout?.on('data', (data: Buffer) => {
-      stdout += data.toString();
-    });
-
-    child.stderr?.on('data', (data: Buffer) => {
-      _stderr += data.toString();
-    });
-
-    child.on('close', (exitCode: number) => {
-      try {
-        const matches: any[] = stdout ? JSON.parse(stdout) : [];
-        const files: string[] = Array.from(new Set(matches.map((m) => m.file))).filter(
-          (f) => f !== 'STDIN'
-        );
-
-        // Generate unified diff
-        let diff = '';
-        if (matches.length > 0) {
-          for (const match of matches) {
-            diff += `${match.file}\n`;
-            diff += `@@ -${match.range.start.line + 1},${match.range.end.line - match.range.start.line + 1} +${match.range.start.line + 1},${match.range.end.line - match.range.start.line + 1} @@\n`;
-            diff += `-${match.lines}\n`;
-            diff += `+${match.replacement}\n`;
-          }
-        }
-
-        resolve({
-          success: exitCode === 0,
-          diff: diff || undefined,
-          files,
-          applied: !dryRun && exitCode === 0,
-          matches: matches.length,
-        });
-      } catch (error) {
-        resolve({
-          success: false,
-          error: `Failed to parse ast-grep output: ${String(error)}`,
-          files: [],
-          applied: false,
-        });
-      }
-    });
-
-    child.on('error', (error: Error) => {
-      resolve({
-        success: false,
-        error: String(error),
-        files: [],
-        applied: false,
-      });
-    });
-  });
+    return {
+      success: code === 0,
+      diff: diff || undefined,
+      files,
+      applied: !dryRun && code === 0,
+      matches: matches.length,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to parse ast-grep output: ${String(error)}`,
+      files: [],
+      applied: false,
+    };
+  }
 }
 
 export function createCodemodTools(deps: CodemodDeps = {}) {

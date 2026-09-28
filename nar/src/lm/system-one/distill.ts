@@ -1,3 +1,5 @@
+import { sha256Hex } from '@senars/util';
+
 import { promises as fs } from 'node:fs';
 import { dirname } from 'node:path';
 
@@ -13,7 +15,6 @@ import { z } from 'zod';
 
 import { Truth, type Truth as TruthType } from '../../terms/truth.js';
 import { appendJsonlAsync } from '../../utils/fs.js';
-import { sha256Hex } from '../../utils/hash.js';
 import { iterateJsonl, writeJsonl } from '../../utils/jsonl.js';
 import { meanBrierOf } from './metrics.js';
 import { seedTruth } from './seed.js';

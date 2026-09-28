@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { KernelActionGate } from '../../nar/src/kernel/KernelActionGate.js';
-import { GATE_LOG_CAPACITY, pushBounded } from '../../nar/src/kernel/event-ring.js';
+import { pushCapped } from '@senars/util';
+import { GATE_LOG_CAPACITY } from '../../nar/src/kernel/event-ring.js';
 import { MetacognitiveMonitor } from '../../nar/src/cognitive/MetacognitiveMonitor.js';
 import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
 import { InMemorySessionManager } from '../../util/src/memory/in-memory-session-manager.js';
@@ -34,9 +35,9 @@ describe('Bench 38 — Bounded Runtime', () => {
     expect(gate.getAutonomyLog().length).toBeLessThanOrEqual(1000);
   });
 
-  it('D11 — pushBounded drops oldest beyond capacity', () => {
+  it('D11 — pushCapped drops oldest beyond capacity', () => {
     const log: number[] = [];
-    for (let i = 0; i < 12; i++) pushBounded(log, i, 10);
+    for (let i = 0; i < 12; i++) pushCapped(log, i, 10);
     expect(log.length).toBe(10);
     expect(log[0]).toBe(2);
     expect(log[9]).toBe(11);

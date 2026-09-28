@@ -1,4 +1,5 @@
-import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../../utils/hash.js';
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
+
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import type { ContrastiveMemory } from './contrastive.js';
 import type { DistillationLabel, JudgmentDataset } from './distill.js';

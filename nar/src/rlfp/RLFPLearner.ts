@@ -1,6 +1,6 @@
 import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
 import { z } from 'zod';
-import type { CognitiveParameters } from '../config/cognitive-parameters.js';
+import { buildDefaults, type CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { ParameterLedger } from '../config/parameter-ledger.js';
 import { createLogger } from '@senars/core/logger';
 import { OperationError } from '../types';
@@ -81,59 +81,7 @@ export class RLFPLearner {
     this.rewardModel = config.rewardModel ?? new RewardModel();
     this.policyOptimizer = new PolicyOptimizer(this.rewardModel);
     this._preferenceCollector = config.preferenceCollector ?? new PreferenceCollector();
-    this.currentParams = config.currentParams ?? {
-      priority: {
-        initialPriority: 0.1,
-        maxPriority: 1.0,
-        directMentionBoost: 0.3,
-        relatedConceptBoost: 0.15,
-        decayRate: 0.05,
-        propagationStrength: 0.1,
-      },
-      lm: {
-        enabled: true,
-        singlePremiseEnabled: true,
-        maxRulesPerCycle: 13,
-        callTimeoutMs: 5000,
-        ruleCategories: {
-          translation: true,
-          explanation: true,
-          metaReasoning: true,
-          uncertainty: true,
-          schemaInduction: true,
-          temporalCausal: true,
-          conceptElaboration: true,
-        },
-        selectionStrategy: 'all',
-      },
-      attention: {
-        autoPrime: true,
-        primeBoost: 0.3,
-        relatedBoost: 0.15,
-        structuralSimilarity: true,
-        semanticRelatedness: false,
-        propagateActivation: true,
-        propagationIterations: 2,
-      },
-      inference: {
-        maxDerivationsPerStep: 1000,
-        maxDerivationDepth: 10,
-        enableCircularDetection: true,
-        enableTraceCollection: false,
-        cpuThrottleMs: 0,
-        maxSampledConcepts: 100,
-      },
-      modelRunner: { maxLoops: 5 },
-      memory: { activationDecayRate: 0.01 },
-      strategies: {
-        sampling: { type: 'priority' },
-        premise: { type: 'default-formation' },
-        derivation: { type: 'default' },
-        lmRule: { type: 'priority', maxRules: 5 },
-        attention: { type: 'simple' },
-        bag: { type: 'priority' },
-      },
-    };
+    this.currentParams = config.currentParams ?? buildDefaults();
     this.knobs = createKnobSet(this.currentParams);
     this.#trainingLedger = createLedger<TrainingLedgerEntry>(
       config.trainingDataPath ?? '.cache/rlfp/training',

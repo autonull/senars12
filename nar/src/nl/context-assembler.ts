@@ -13,14 +13,6 @@ export interface ContextAssemblerOpts {
   maxExamples?: number;
 }
 
-export interface ContextAssemblerOpts {
-  tokenBudget?: number;
-  maxBeliefs?: number;
-  maxDerivations?: number;
-  maxGoals?: number;
-  maxExamples?: number;
-}
-
 export class ContextAssembler {
   private cache: TranslationCache;
 

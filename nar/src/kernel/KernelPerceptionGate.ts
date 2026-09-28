@@ -10,7 +10,8 @@ import type {
 import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { normalizeNarsese } from '../nl/normalize.js';
-import { BoundedEventLog, recordPolicyViolation } from './event-ring.js';
+import { BoundedRing } from '@senars/util';
+import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
 import { domainKey } from './reputation-keys.js';
 import { recordGateDecision } from '../telemetry/index.js';
 import type { TaskTypeName, Term } from '../terms';
@@ -37,7 +38,7 @@ export interface KernelPerceptionGateConfig {
 }
 
 export class KernelPerceptionGate {
-  readonly eventLog = new BoundedEventLog<CognitiveEvent>();
+  readonly eventLog = new BoundedRing<CognitiveEvent>(GATE_LOG_CAPACITY);
   private config: KernelPerceptionGateConfig;
   private judge: IngressJudge | null = null;
   /** D23: optional DriveManager hook — ambiguity stimulates curiosity. */

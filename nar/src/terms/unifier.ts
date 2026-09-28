@@ -1,3 +1,4 @@
+import { LruCache } from '@senars/util';
 import { termsEqual } from './accessors.js';
 import type { Term } from './types.js';
 import { isCompound, isVariableSymbol } from './types.js';
@@ -10,26 +11,33 @@ export interface UnificationResult {
   error?: string;
 }
 
-const unificationCache = new Map<string, Substitution | undefined>();
 const CACHE_MAX_SIZE = 1000;
 
-const occursCheck = (variable: string, term: Term, _subst: Substitution): boolean => {
-  if (term.kind === 'atom') {
-    return term.symbol === variable;
-  }
+/** Only top-level calls are cached: the key must capture the whole substitution. */
+const cache = new LruCache<string, Substitution | null>(CACHE_MAX_SIZE);
 
+const occursCheck = (variable: string, term: Term, subst: Substitution, depth = 0): boolean => {
+  const bound = subst[variable];
+  if (bound && depth < 64) return occursCheck(variable, bound, subst, depth + 1);
+  if (term.kind === 'atom') return term.symbol === variable;
   for (const arg of term.args ?? []) {
-    if (occursCheck(variable, arg, _subst)) return true;
+    if (occursCheck(variable, arg, subst, depth + 1)) return true;
   }
-
   return false;
 };
 
 function termToKey(term: Term): string {
-  if (term.kind === 'atom') {
-    return `atom:${term.symbol}`;
-  }
-  return `${term.kind}:${term.args?.map(termToKey).join(',')}`;
+  if (term.kind === 'atom') return `a:${term.symbol}`;
+  return `${term.kind}[${term.args?.map(termToKey).join(',') ?? ''}]`;
+}
+
+/** Memoization key — includes bound *values*, never just the bound variable names. */
+function cacheKey(a: Term, b: Term, subst: Substitution, occurs: boolean): string {
+  const bindings = Object.keys(subst)
+    .sort()
+    .map((v) => `${v}=${termToKey(subst[v] as Term)}`)
+    .join(';');
+  return `${occurs ? 1 : 0}|${termToKey(a)}|${termToKey(b)}|${bindings}`;
 }
 
 export function unify(
@@ -38,68 +46,59 @@ export function unify(
   subst: Substitution = {},
   enableOccursCheck = true
 ): Substitution | undefined {
-  const cacheKey = `${termToKey(a)}-${termToKey(b)}-${Object.keys(subst).sort().join(',')}`;
-  const cached = unificationCache.get(cacheKey);
-  if (cached !== undefined) {
-    return cached;
-  }
+  const key = cacheKey(a, b, subst, enableOccursCheck);
+  const cached = cache.get(key);
+  if (cached !== undefined) return cached ?? undefined;
 
-  let result: Substitution | undefined;
+  const result = unifyInner(a, b, subst, enableOccursCheck) ?? null;
+  cache.set(key, result);
+  return result ?? undefined;
+}
 
+function unifyInner(
+  a: Term,
+  b: Term,
+  subst: Substitution,
+  enableOccursCheck: boolean
+): Substitution | undefined {
   if (a.kind === 'atom' && isVariableSymbol(a.symbol)) {
-    if (enableOccursCheck && occursCheck(a.symbol, b, subst)) {
-      result = undefined;
-    } else {
-      const bound = subst[a.symbol];
-      if (!bound) {
-        result = { ...subst, [a.symbol]: b };
-      } else {
-        result = termsEqual(bound, b) ? subst : undefined;
-      }
-    }
-  } else if (b.kind === 'atom' && isVariableSymbol(b.symbol)) {
-    if (enableOccursCheck && occursCheck(b.symbol, a, subst)) {
-      result = undefined;
-    } else {
-      const bound = subst[b.symbol];
-      if (!bound) {
-        result = { ...subst, [b.symbol]: a };
-      } else {
-        result = termsEqual(bound, a) ? subst : undefined;
-      }
-    }
-  } else if (a.kind === 'atom' && b.kind === 'atom') {
-    result = a.symbol === b.symbol ? subst : undefined;
-  } else if (
+    return bind(a.symbol, b, subst, enableOccursCheck);
+  }
+  if (b.kind === 'atom' && isVariableSymbol(b.symbol)) {
+    return bind(b.symbol, a, subst, enableOccursCheck);
+  }
+  if (a.kind === 'atom' && b.kind === 'atom') {
+    return a.symbol === b.symbol ? subst : undefined;
+  }
+  if (
     !isCompound(a) ||
     !isCompound(b) ||
     a.kind !== b.kind ||
     (a.args?.length ?? 0) !== (b.args?.length ?? 0)
   ) {
-    result = undefined;
-  } else {
-    let s: Substitution | undefined = subst;
-    const aArgs = a.args ?? [];
-    const bArgs = b.args ?? [];
-    for (let i = 0; i < aArgs.length; i++) {
-      const next = aArgs[i];
-      const nextB = bArgs[i];
-      if (!next || !nextB) {
-        result = undefined;
-        break;
-      }
-      s = unify(next, nextB, s, enableOccursCheck);
-      if (!s) {
-        result = undefined;
-        break;
-      }
-    }
-    result = s ?? subst;
+    return undefined;
   }
 
-  if (unificationCache.size < CACHE_MAX_SIZE) {
-    unificationCache.set(cacheKey, result);
+  const aArgs = a.args ?? [];
+  const bArgs = b.args ?? [];
+  let s: Substitution | undefined = subst;
+  for (let i = 0; i < aArgs.length; i++) {
+    const next = aArgs[i];
+    const nextB = bArgs[i];
+    if (!next || !nextB) return undefined;
+    s = unifyInner(next, nextB, s, enableOccursCheck);
+    if (!s) return undefined;
   }
-
-  return result;
+  return s;
 }
+
+const bind = (
+  variable: string,
+  value: Term,
+  subst: Substitution,
+  enableOccursCheck: boolean
+): Substitution | undefined => {
+  if (enableOccursCheck && occursCheck(variable, value, subst)) return undefined;
+  const bound = subst[variable];
+  return bound ? (termsEqual(bound, value) ? subst : undefined) : { ...subst, [variable]: value };
+};

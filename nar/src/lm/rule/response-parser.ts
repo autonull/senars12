@@ -2,6 +2,7 @@ import type { Term } from '../../terms';
 import { Truth, termParser } from '../../terms';
 import type { Truth as TruthType } from '../../terms/truth.js';
 import { errMsg } from '../../utils';
+import { parseJsonObject } from '../json.js';
 
 export interface ParsedLMResponse {
   term: Term;
@@ -36,13 +37,8 @@ const parseNarseseWithTruth = (text: string, raw: string): ParsedLMResponse => {
 };
 
 function extractStructuredOutput(response: string): StructuredLMOutput | null {
-  const jsonMatch = response.match(/\{[\s\S]*"narsese"\s*:[\s\S]*\}/);
-  if (!jsonMatch) return null;
-  try {
-    return JSON.parse(jsonMatch[0]);
-  } catch {
-    return null;
-  }
+  const parsed = parseJsonObject(response) as StructuredLMOutput | null;
+  return parsed && typeof parsed.narsese === 'string' ? parsed : null;
 }
 
 export const LMResponseParser = {

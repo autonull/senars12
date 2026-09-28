@@ -1,4 +1,5 @@
-import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../../utils/hash.js';
+import { shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
+
 import { createWasiSandbox } from '../../capability/wasi-sandbox.js';
 import type {
   ConsensusResult,

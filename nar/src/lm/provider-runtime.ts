@@ -16,14 +16,20 @@ import { recordCircuitBreakerState } from '../metrics/index.js';
 import { getTracer } from '../otel/index.js';
 import { ensureDirSync } from '../utils/fs.js';
 import {
-  type CircuitBreakerConfig,
+  type CircuitState,
   type LMProviderName,
   type LMSettings,
   type LMSettingsInput,
   resolveLMSettings,
 } from './env-config.js';
+import {
+  CircuitBreaker,
+  type CircuitBreakerSettings,
+  type TransitionReason,
+} from '../utils/circuit-breaker.js';
 
-export type { CircuitBreakerConfig, LMProviderName };
+export type { CircuitState, LMProviderName };
+export type CircuitBreakerConfig = CircuitBreakerSettings;
 
 /** Browser-side WebLLM runtime, injected by the UI layer (nar never imports browser code). */
 export interface WebLLMRuntime {
@@ -45,8 +51,6 @@ export interface RoutingPolicy {
   /** Offline failsafe ladder, smallest → most capable local model ids. */
   offlineLadder?: string[];
 }
-
-export type CircuitState = 'closed' | 'open' | 'half-open';
 
 export const DEFAULT_CIRCUIT_CONFIG: CircuitBreakerConfig = {
   failureThreshold: 5,
@@ -127,7 +131,9 @@ export class ProviderRuntime {
   lastDecision: RoutingDecision | undefined;
   /** Session-level demotions: a demoted model sinks to the back of the chain. */
   readonly demotions = new Map<string, { reason: string; at: number }>();
-  readonly circuitBreakers = new Map<LMProviderName, ProviderHealth>();
+  readonly circuitBreakers = new Map<LMProviderName, CircuitBreaker>();
+  /** Out-of-band probe bookkeeping — not part of the breaker state machine. */
+  readonly #probes = new Map<LMProviderName, { lastProbe: number | null; probeResult: boolean | null }>();
   /** Interval handle owned by start/stopHealthProbes (providers.ts). */
   healthProbeInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -207,31 +213,39 @@ export class ProviderRuntime {
     };
   }
 
-  /** Live breaker state (probe loops mutate `lastProbe`/`probeResult` directly). */
+  /** Live breaker state for a provider, including out-of-band probe results. */
   breaker(provider: LMProviderName): ProviderHealth {
-    let b = this.circuitBreakers.get(provider);
-    if (!b) {
-      b = {
-        provider,
-        state: 'closed',
-        consecutiveFailures: 0,
-        consecutiveSuccesses: 0,
-        lastFailure: null,
-        lastSuccess: null,
-        lastProbe: null,
-        probeResult: null,
-      };
-      this.circuitBreakers.set(provider, b);
+    const snap = this.#circuit(provider).snapshot();
+    const probe = this.#probes.get(provider) ?? { lastProbe: null, probeResult: null };
+    return { provider, ...snap, ...probe };
+  }
+
+  /** Record an out-of-band health probe; a success on an open circuit re-admits it. */
+  recordProbe(provider: LMProviderName, ok: boolean): void {
+    this.#probes.set(provider, { lastProbe: Date.now(), probeResult: ok });
+    const breaker = this.#circuit(provider);
+    if (ok && breaker.state === 'open') breaker.halfOpen('probe_recovered');
+  }
+
+  #circuit(provider: LMProviderName, settings?: LMSettings): CircuitBreaker {
+    const cfg = this.getEffectiveCircuitConfig(provider, settings);
+    let breaker = this.circuitBreakers.get(provider);
+    if (!breaker) {
+      breaker = new CircuitBreaker(cfg);
+      breaker.onTransition = (state, reason) => this.#transition(provider, state, reason);
+      this.circuitBreakers.set(provider, breaker);
+    } else {
+      breaker.configure(cfg);
     }
-    return b;
+    return breaker;
   }
 
   getCircuitBreaker(provider: LMProviderName): ProviderHealth {
-    return { ...this.breaker(provider) };
+    return this.breaker(provider);
   }
 
   getAllCircuitBreakers(): Map<LMProviderName, ProviderHealth> {
-    return new Map(this.circuitBreakers);
+    return new Map([...this.circuitBreakers.keys()].map((p) => [p, this.breaker(p)]));
   }
 
   /** Close all breakers and clear failure counts (test/bench isolation between independent scenarios). */
@@ -240,57 +254,14 @@ export class ProviderRuntime {
   }
 
   recordProviderCall(provider: LMProviderName, success: boolean, settings?: LMSettings): void {
-    const cfg = this.getEffectiveCircuitConfig(provider, settings);
-    const b = this.breaker(provider);
-    const now = Date.now();
-
-    if (success) {
-      b.consecutiveSuccesses++;
-      b.consecutiveFailures = 0;
-      b.lastSuccess = now;
-      if (b.state === 'half-open' && b.consecutiveSuccesses >= cfg.successThreshold) {
-        b.state = 'closed';
-        b.consecutiveFailures = 0;
-        b.consecutiveSuccesses = 0;
-        this.#transition(provider, 'closed', 'success_threshold_met');
-      }
-    } else {
-      b.consecutiveFailures++;
-      b.consecutiveSuccesses = 0;
-      b.lastFailure = now;
-      if (b.state === 'closed' && b.consecutiveFailures >= cfg.failureThreshold) {
-        this.#trip(provider);
-      } else if (b.state === 'half-open') {
-        this.#trip(provider);
-      }
-    }
+    this.#circuit(provider, settings).record(success);
   }
 
   canUseProvider(provider: LMProviderName, settings?: LMSettings): boolean {
-    const cfg = this.getEffectiveCircuitConfig(provider, settings);
-    const b = this.breaker(provider);
-    if (b.state === 'closed') return true;
-    if (b.state === 'open') {
-      if (b.lastFailure && Date.now() - b.lastFailure >= cfg.resetTimeoutMs) {
-        b.state = 'half-open';
-        b.consecutiveSuccesses = 0;
-        this.#transition(provider, 'half-open', 'reset_timeout_elapsed');
-        return true;
-      }
-      return false;
-    }
-    // half-open: allow one call through
-    return true;
+    return this.#circuit(provider, settings).canRequest();
   }
 
-  #trip(provider: LMProviderName): void {
-    const b = this.breaker(provider);
-    b.state = 'open';
-    b.lastFailure = Date.now();
-    this.#transition(provider, 'open', 'failure_threshold_exceeded');
-  }
-
-  #transition(provider: LMProviderName, state: CircuitState, reason: string): void {
+  #transition(provider: LMProviderName, state: CircuitState, reason: TransitionReason): void {
     const details = { reason };
     const span = trace.getActiveSpan();
     if (span) {
