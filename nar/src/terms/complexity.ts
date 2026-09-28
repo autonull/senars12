@@ -1,4 +1,5 @@
-import type { Term } from './types.js';
+import { isAtomic, type Term } from './types.js';
+import { walkTerms } from './accessors.js';
 
 export const getTermComplexity = (
   term: Term
@@ -8,22 +9,20 @@ export const getTermComplexity = (
   operatorCount: number;
   variableCount: number;
 } => {
-  let maxDepth = 0;
+  let depth = 0;
   let breadth = 0;
   let operatorCount = 0;
   let variableCount = 0;
 
-  const traverse = (t: Term, depth: number): void => {
-    maxDepth = Math.max(maxDepth, depth);
-    if (t.kind === 'atom') {
+  walkTerms(term, (t, d) => {
+    depth = Math.max(depth, d);
+    if (isAtomic(t)) {
       if (t.isVariable) variableCount++;
-    } else {
-      operatorCount++;
-      breadth = Math.max(breadth, t.args?.length ?? 0);
-      for (const arg of t.args ?? []) traverse(arg, depth + 1);
+      return;
     }
-  };
+    operatorCount++;
+    breadth = Math.max(breadth, t.args?.length ?? 0);
+  });
 
-  traverse(term, 0);
-  return { depth: maxDepth, breadth, operatorCount, variableCount };
+  return { depth, breadth, operatorCount, variableCount };
 };

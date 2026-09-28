@@ -1,4 +1,4 @@
-import { maxBy, minBy, sortBy, sortByDesc } from '@senars/util';
+import { insertByScoreDesc, maxBy, minBy, sortBy, sortByDesc } from '@senars/util';
 import { describe, expect, it } from 'vitest';
 
 describe('minBy', () => {
@@ -31,5 +31,34 @@ describe('sortBy / sortByDesc', () => {
 
   it('accepts any iterable', () => {
     expect(sortByDesc(new Set([1, 4, 2]), (n) => n)).toEqual([4, 2, 1]);
+  });
+});
+
+describe('insertByScoreDesc', () => {
+  const score = (i: { n: number }) => i.n;
+
+  it('keeps the list descending as items arrive out of order', () => {
+    const items: { n: number }[] = [];
+    for (const n of [3, 9, 1, 5, 9]) insertByScoreDesc(items, { n }, score);
+    expect(items.map(score)).toEqual([9, 9, 5, 3, 1]);
+  });
+
+  it('appends when the item scores lowest', () => {
+    const items = [{ n: 5 }, { n: 2 }];
+    insertByScoreDesc(items, { n: 0 }, score);
+    expect(items.map(score)).toEqual([5, 2, 0]);
+  });
+
+  it('prepends when the item scores highest', () => {
+    const items = [{ n: 5 }, { n: 2 }];
+    insertByScoreDesc(items, { n: 7 }, score);
+    expect(items.map(score)).toEqual([7, 5, 2]);
+  });
+
+  it('agrees with a full sort on mixed input', () => {
+    const input = [4, 1, 8, 8, 2, 9, 3];
+    const items: { n: number }[] = [];
+    for (const n of input) insertByScoreDesc(items, { n }, score);
+    expect(items.map(score)).toEqual([...input].sort((a, b) => b - a));
   });
 });

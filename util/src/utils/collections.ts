@@ -52,11 +52,19 @@ export function maxBy<T>(
   return best;
 }
 
+/** Insert into a descending-sorted list in O(n) — no full re-sort, unlike
+ *  `push` + `sort`. Ties keep insertion order. */
+export function insertByScoreDesc<T>(items: T[], item: T, score: (item: T) => number): void {
+  const s = score(item);
+  let i = items.length;
+  while (i > 0 && score(items[i - 1]!) < s) i--;
+  items.splice(i, 0, item);
+}
+
 /** Ascending copy sorted by a derived numeric key — never mutates the input. */
 export function sortBy<T>(items: Iterable<T>, score: (item: T) => number): T[] {
   return [...items].sort((a, b) => score(a) - score(b));
 }
-
 export function sortByDesc<T>(items: Iterable<T>, score: (item: T) => number): T[] {
   return [...items].sort((a, b) => score(b) - score(a));
 }

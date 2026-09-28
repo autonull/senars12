@@ -75,9 +75,51 @@ export const termsEqual = (a: Term | undefined, b: Term | undefined): boolean =>
   return true;
 };
 
-export const visitTerms = (term: Term, fn: (t: Term) => void): void => {
-  fn(term);
-  for (const arg of getArgs(term)) visitTerms(arg, fn);
+export type TermWalkOrder = 'pre-order' | 'post-order';
+
+/**
+ * The single term-tree walk. `fn` receives depth from the root and may return
+ * `false` to prune that node's subtree; `'post-order'` visits children first.
+ */
+export const walkTerms = (
+  term: Term,
+  fn: (t: Term, depth: number) => boolean | void,
+  order: TermWalkOrder = 'pre-order',
+  depth = 0
+): void => {
+  if (order === 'pre-order' && fn(term, depth) === false) return;
+  for (const arg of getArgs(term)) walkTerms(arg, fn, order, depth + 1);
+  if (order === 'post-order') fn(term, depth);
+};
+
+export const visitTerms = (term: Term, fn: (t: Term) => void): void =>
+  walkTerms(term, (t) => void fn(t));
+
+/** Depth-first pre-order fold in visit order. */
+export const foldTerm = <T>(term: Term, fn: (acc: T, t: Term) => T, initial: T): T => {
+  let acc = initial;
+  walkTerms(term, (t) => {
+    acc = fn(acc, t);
+  });
+  return acc;
+};
+
+/** Deepest nesting below the root; a bare atom has depth 0. */
+export const termDepth = (term: Term): number => {
+  let max = 0;
+  walkTerms(term, (_t, depth) => {
+    max = Math.max(max, depth);
+  });
+  return max;
+};
+
+/** Node count including the root. */
+export const termSize = (term: Term): number => {
+  let n = 0;
+  walkTerms(term, () => {
+    n++;
+  });
+  return n;
 };
 
 /** Canonical structural key for a term — the single identity used for maps, memoization, and link ids. */
@@ -85,8 +127,12 @@ export const termKey = (term: Term): string =>
   isAtomic(term) ? `atom:${term.symbol}` : `${term.kind}:${getArgs(term).map(termKey).join(',')}`;
 
 export const containsSubterm = (term: Term, target: Term): boolean => {
-  if (termsEqual(term, target)) return true;
-  return getArgs(term).some((arg) => containsSubterm(arg, target));
+  let found = false;
+  walkTerms(term, (t) => {
+    if (found) return false;
+    if (termsEqual(t, target)) found = true;
+  });
+  return found;
 };
 
 export const sharesSymbol = (a: Term, b: Term): boolean => {
@@ -97,13 +143,17 @@ export const sharesSymbol = (a: Term, b: Term): boolean => {
 };
 
 export const mentionsSymbol = (term: Term, symbol: string): boolean => {
-  if ('symbol' in term && term.symbol === symbol) return true;
-  return getArgs(term).some((arg) => mentionsSymbol(arg, symbol));
+  let found = false;
+  walkTerms(term, (t) => {
+    if (found) return false;
+    if (isAtomic(t) && t.symbol === symbol) found = true;
+  });
+  return found;
 };
 
 /** Every atomic symbol mentioned anywhere in the term. */
 export const collectAtomicSymbols = (term: Term, set = new Set<string>()): Set<string> => {
-  visitTerms(term, (t) => {
+  walkTerms(term, (t) => {
     if (isAtomic(t)) set.add(t.symbol);
   });
   return set;

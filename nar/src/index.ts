@@ -96,7 +96,9 @@ export { TaskManager } from './task/index.js';
 /** Term-to-graph-edge extraction. @public */
 export {
   atom,
+  collectAtomicSymbols,
   containsSubterm,
+  foldTerm,
   freeze,
   getAntecedent,
   getArgs,
@@ -123,9 +125,12 @@ export {
   TermBuilder,
   type TermEdge,
   TermParser,
+  termDepth,
   termParser,
+  termSize,
   termsEqual,
   visitTerms,
+  walkTerms,
 } from './terms/index.js';
 export type { SerializedStamp } from './terms/stamp.js';
 /** Term temporal stamp. @public */

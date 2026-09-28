@@ -1,8 +1,8 @@
 /**
  * Term-based Set wrapper that uses structural equality for membership testing
  *
- * Uses reference equality fast path for terms from TermFactory (which are frozen and cached),
- * with structural equality fallback for other terms.
+ * Equality is structural via the canonical `termKey`, so factory-cached and
+ * freshly-parsed terms address the same entry.
  */
 
 import { TermCollection } from './term-collection.js';
@@ -10,7 +10,7 @@ import type { Term } from './types.js';
 
 export class TermSet extends TermCollection<Term> {
   add(term: Term): this {
-    const idx = this.getIndex(term, (t) => t);
+    const idx = this.getIndex(term);
     if (idx < 0) {
       this.storage.push(term);
       this.setRef(term, this.storage.length - 1);
@@ -19,11 +19,11 @@ export class TermSet extends TermCollection<Term> {
   }
 
   has(term: Term): boolean {
-    return this.getIndex(term, (t) => t) >= 0;
+    return this.getIndex(term) >= 0;
   }
 
   delete(term: Term): boolean {
-    return this.deleteItem(term, (t) => t);
+    return this.deleteItem(term);
   }
 
   values(): IterableIterator<Term> {

@@ -24,10 +24,6 @@
       "types": "./src/rule-descriptor.ts",
       "import": "./src/rule-descriptor.ts"
     },
-    "./derivation-record": {
-      "types": "./src/derivation-record.ts",
-      "import": "./src/derivation-record.ts"
-    },
     "./verify-derivation": {
       "types": "./src/verify-derivation.ts",
       "import": "./src/verify-derivation.ts"

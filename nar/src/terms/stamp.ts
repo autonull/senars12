@@ -106,14 +106,6 @@ export const Stamp = {
   },
 
   derive(parentStamps: readonly Stamp[], source: Source = 'DERIVED'): Stamp | undefined {
-    if (parentStamps.length === 0) {
-      return Object.freeze({
-        id: nextStampId(),
-        creationTime: nowMicroseconds(),
-        source,
-        derivations: [],
-      });
-    }
     // Lineage gate on ancestor-set size. Exact for linear chains (length ==
     // chain depth); bushy proofs cut sooner, which is resource-principled
     // since set size tracks inference work. Strictly increasing along any
@@ -124,68 +116,16 @@ export const Stamp = {
     }
     if (maxLineage >= DEPTH_MAX) return undefined;
 
-    // Fast path: single parent stamp (most common case)
-    if (parentStamps.length === 1) {
-      const parent = parentStamps[0]!;
-      const derivations =
-        parent.derivations.length > 0 ? [...parent.derivations, parent.id] : [parent.id];
-      return Object.freeze({
-        id: nextStampId(),
-        creationTime: nowMicroseconds(),
-        source,
-        derivations,
-      });
-    }
-
-    // Multiple parents: use array + sort + dedupe instead of Set for small N
+    // Ordered union of each parent's lineage plus its own id; duplicates —
+    // repeated parents and shared ancestors — collapse in one pass.
+    const seen = new Set<string>();
     const derivations: string[] = [];
-    for (const stamp of parentStamps) {
-      if (!stamp) continue;
-      // Add parent id if not already present
-      let found = false;
-      for (const d of derivations) {
-        if (d === stamp.id) {
-          found = true;
-          break;
-        }
+    for (const parent of parentStamps) {
+      for (const id of [...parent.derivations, parent.id]) {
+        if (seen.has(id)) continue;
+        seen.add(id);
+        derivations.push(id);
       }
-      if (!found) derivations.push(stamp.id);
-      // Add parent's derivations
-      for (const derivationId of stamp.derivations) {
-        found = false;
-        for (const d of derivations) {
-          if (d === derivationId) {
-            found = true;
-            break;
-          }
-        }
-        if (!found) derivations.push(derivationId);
-      }
-    }
-
-    // Check for duplicate parent stamps (same id appearing multiple times)
-    let hasDuplicateParents = false;
-    for (let i = 0; i < parentStamps.length; i++) {
-      for (let j = i + 1; j < parentStamps.length; j++) {
-        if (parentStamps[i]!.id === parentStamps[j]!.id) {
-          hasDuplicateParents = true;
-          break;
-        }
-      }
-      if (hasDuplicateParents) break;
-    }
-
-    if (hasDuplicateParents && parentStamps.length > 1) {
-      // All parent stamps have the same id - treat as single parent
-      const parent = parentStamps[0]!;
-      const derivs =
-        parent.derivations.length > 0 ? [...parent.derivations, parent.id] : [parent.id];
-      return Object.freeze({
-        id: nextStampId(),
-        creationTime: nowMicroseconds(),
-        source,
-        derivations: derivs,
-      });
     }
 
     return Object.freeze({

@@ -2,7 +2,9 @@
 
 // Accessors
 export {
+  collectAtomicSymbols,
   containsSubterm,
+  foldTerm,
   getAntecedent,
   getArgs,
   getConsequent,
@@ -25,15 +27,17 @@ export {
   mentionsSymbol,
   sameKind,
   sharesSymbol,
+  termDepth,
   termKey,
+  termSize,
   termsEqual,
   visitTerms,
+  walkTerms,
 } from './accessors.js';
 // Complexity and similarity
 export { getTermComplexity } from './complexity.js';
 // Convenience export for atom function
 export { atom, freeze, TermBuilder, TermFactory } from './factory.js';
-export type { TermVisitorFn } from './normalize.js';
 // Normalization
 export { normalize } from './normalize.js';
 export type { ParserResult, ParseTaskResult, TaskTypeName } from './parser-peggy.js';
@@ -67,7 +71,8 @@ export type { Substitution } from './unifier.js';
 export { unify } from './unifier.js';
 
 // Utilities
-export { calculateSimilarity, extractSymbols } from './utils.js';
+export type { SymbolQuery } from './utils.js';
+export { calculateSimilarity, extractSymbols, similarityTo, symbolQuery } from './utils.js';
 
 // Validation
 export { isInvalidTaskTerm, isTautology, validateTaskTerm } from './validation.js';

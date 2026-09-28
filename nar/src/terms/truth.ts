@@ -1,8 +1,6 @@
+import type { Confidence, Frequency } from '@senars/util';
 import { formatTruth, serializeTruth } from '@senars/util';
 import { clamp, safeDiv } from '../utils';
-
-export type Frequency = number & { readonly __brand: unique symbol };
-export type Confidence = number & { readonly __brand: unique symbol };
 
 export interface Truth {
   readonly f: Frequency;

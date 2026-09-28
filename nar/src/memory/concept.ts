@@ -2,7 +2,15 @@ import { asBeliefTruth, makeId } from '@senars/util';
 import { createBag, type Bag, type BagOptions } from '../bag/index.js';
 import { LINK } from '../constants.js';
 import type { Term, Truth } from '../terms';
-import { calculateSimilarity, type Stamp, TermMap, TermSet, termsEqual } from '../terms';
+import {
+  similarityTo,
+  type Stamp,
+  type SymbolQuery,
+  symbolQuery,
+  TermMap,
+  TermSet,
+  termsEqual,
+} from '../terms';
 import { type IndependenceStatus, Truth as TruthOps } from '../terms/truth.js';
 import type { Budget, TaskType } from '../types';
 import { clamp01 } from '../utils';
@@ -68,9 +76,11 @@ export class Concept {
   private subConcepts = new Set<Concept>();
   private parentConcepts = new Set<Concept>();
   private readonly onRevision?: RevisionCallback;
+  private readonly symbolBag: SymbolQuery;
 
   constructor(term: Term, config: ConceptConfig = {}) {
     this.term = term;
+    this.symbolBag = symbolQuery(term);
     const baseOptions: BagOptions = {
       capacity: 100,
       implementation: config.bagImplementation ?? 'priority',
@@ -223,7 +233,7 @@ export class Concept {
   canMergeWith(other: Concept, threshold = 0.85): boolean {
     return (
       this !== other &&
-      (calculateSimilarity(this.term, other.term) >= threshold ||
+      (similarityTo(this.symbolBag, other.term) >= threshold ||
         this.calculateTaskOverlap(other) >= threshold)
     );
   }

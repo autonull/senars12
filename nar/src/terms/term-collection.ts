@@ -1,16 +1,17 @@
 /**
- * Base class for Term-based collections with structural equality
+ * Base class for Term-keyed collections with structural equality.
  *
- * Uses reference equality fast path for terms from TermFactory (which are frozen and cached),
- * with structural equality fallback for other terms.
+ * Lookups go through `termKey`, the canonical structural identity, so
+ * non-frozen (non-canonical) terms cost O(1) instead of a deep-equality scan
+ * over the whole collection.
  */
 
-import { termsEqual } from './accessors.js';
+import { termKey } from './accessors.js';
 import type { Term } from './types.js';
 
 export abstract class TermCollection<T> {
   protected storage: T[] = [];
-  private refIndex = new Map<Term, number>();
+  private keyIndex = new Map<string, number>();
 
   get size(): number {
     return this.storage.length;
@@ -18,22 +19,15 @@ export abstract class TermCollection<T> {
 
   clear(): void {
     this.storage = [];
-    this.refIndex.clear();
+    this.keyIndex.clear();
   }
 
-  protected getIndex(term: Term, getItem: (i: T) => Term): number {
-    const refIdx = this.refIndex.get(term);
-    if (refIdx !== undefined) return refIdx;
-
-    for (let i = 0; i < this.storage.length; i++) {
-      const stored = getItem(this.storage[i]!);
-      if (stored === term || termsEqual(stored, term)) return i;
-    }
-    return -1;
+  protected getIndex(term: Term): number {
+    return this.keyIndex.get(termKey(term)) ?? -1;
   }
 
   protected setRef(term: Term, index: number): void {
-    if (Object.isFrozen(term)) this.refIndex.set(term, index);
+    this.keyIndex.set(termKey(term), index);
   }
 
   /**
@@ -57,20 +51,18 @@ export abstract class TermCollection<T> {
   }
 
   protected clearRef(term: Term): void {
-    this.refIndex.delete(term);
+    this.keyIndex.delete(termKey(term));
   }
 
-  protected deleteItem(term: Term, getItem: (i: T) => Term): boolean {
-    const index = this.getIndex(term, getItem);
-    if (index >= 0) {
-      this.clearRef(term);
-      this.storage.splice(index, 1);
-      // shift cached ref indices above the removed slot without a full rebuild
-      for (const [key, refIdx] of this.refIndex) {
-        if (refIdx > index) this.refIndex.set(key, refIdx - 1);
-      }
-      return true;
+  protected deleteItem(term: Term): boolean {
+    const index = this.getIndex(term);
+    if (index < 0) return false;
+    this.clearRef(term);
+    this.storage.splice(index, 1);
+    // shift cached key indices above the removed slot without a full rebuild
+    for (const [key, idx] of this.keyIndex) {
+      if (idx > index) this.keyIndex.set(key, idx - 1);
     }
-    return false;
+    return true;
   }
 }

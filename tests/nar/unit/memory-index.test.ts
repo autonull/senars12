@@ -181,6 +181,50 @@ describe('MemoryIndex', () => {
       expect(index.getByAtomic('RemoveMe')).toEqual([]);
     });
 
+    test('leaves sibling concepts in a shared similarity cluster', () => {
+      const kept = createTestConcept('Shared', 0.5);
+      const dropped = createTestConcept('Shared', 0.5);
+      const other = createTestConcept('Other', 0.5);
+      index.index(kept);
+      index.index(dropped);
+      index.index(other);
+
+      index.remove(dropped);
+
+      const results = index.findSimilarConcepts(TermBuilder.atom('Shared'));
+      expect(results).toContain(kept);
+      expect(results).not.toContain(dropped);
+      expect(index.getByAtomic('Shared')).toEqual([kept]);
+    });
+
+    test('is idempotent and safe for unindexed concepts', () => {
+      const concept = createTestConcept('Twice');
+      index.index(concept);
+      index.index(concept);
+      expect(index.getByAtomic('Twice')).toEqual([concept]);
+
+      index.remove(concept);
+      expect(() => index.remove(concept)).not.toThrow();
+    });
+
+    test('releases index buckets once their last concept is gone', () => {
+      const a = createTestConcept('A');
+      const b = createTestConcept('B');
+      index.index(a);
+      index.index(b);
+      expect(index.stats.atomic).toBe(2);
+
+      index.remove(a);
+      index.remove(b);
+      expect(index.stats).toEqual({
+        atomic: 0,
+        temporal: 0,
+        activation: 0,
+        inverse: 0,
+        similarity: 0,
+      });
+    });
+
     test('removes from similarity index', () => {
       const concept = createTestConcept('SimRemove');
       index.index(concept);

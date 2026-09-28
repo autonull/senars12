@@ -1,9 +1,36 @@
-import { maxBy } from '@senars/util';
+import { addToSet, insertByScoreDesc } from '@senars/util';
 
 import type { Term } from '../terms';
-import { calculateSimilarity, TermMap, termsEqual } from '../terms';
-import { addToSet } from '../utils/collections.js';
+import { isAtomic, similarityTo, symbolQuery, TermMap, termKey } from '../terms';
 import type { Concept } from './concept.js';
+
+const getOrInsertTermSet = (map: TermMap<Set<Concept>>, term: Term): Set<Concept> => {
+  const existing = map.get(term);
+  if (existing) return existing;
+  const created = new Set<Concept>();
+  map.set(term, created);
+  return created;
+};
+
+const getOrInsertCluster = (map: TermMap<SimilarityCluster>, term: Term, seed: Concept) => {
+  const existing = map.get(term);
+  if (existing) return existing;
+  const created: SimilarityCluster = { term, concepts: [], representative: seed };
+  map.set(term, created);
+  return created;
+};
+
+const getOrInsertInverse = (map: TermMap<InverseIndexEntry>, term: Term) => {
+  const existing = map.get(term);
+  if (existing) return existing;
+  const created: InverseIndexEntry = {
+    term,
+    concepts: new Set<Concept>(),
+    subtermIndices: new TermMap<Set<Concept>>(),
+  };
+  map.set(term, created);
+  return created;
+};
 
 export interface MemoryIndexConfig {
   enableAtomicIndex: boolean;
@@ -20,6 +47,7 @@ export interface IndexEntry {
 }
 
 export interface InverseIndexEntry {
+  term: Term;
   concepts: Set<Concept>;
   subtermIndices: TermMap<Set<Concept>>;
 }
@@ -30,6 +58,16 @@ export interface SimilarityCluster {
   representative: Concept;
 }
 
+/** The exact index keys one concept was written under, so removal touches only
+ *  those buckets instead of scanning every index family. */
+interface ConceptFootprint {
+  atomicKey?: string;
+  temporalKey?: number;
+  inverseEntry?: InverseIndexEntry;
+  subterms: Term[];
+  clusters: SimilarityCluster[];
+}
+
 export class MemoryIndex {
   private readonly atomicIndex: Map<string, Set<Concept>>;
   private readonly temporalIndex: Map<number, Set<Concept>>;
@@ -37,6 +75,7 @@ export class MemoryIndex {
   private inverseIndex: TermMap<InverseIndexEntry>;
   private readonly similarityIndex: TermMap<SimilarityCluster>;
   private config: Required<MemoryIndexConfig>;
+  private readonly footprints = new Map<Concept, ConceptFootprint>();
   private readonly temporalResolution = 1000;
 
   constructor(
@@ -73,12 +112,18 @@ export class MemoryIndex {
   }
 
   index(concept: Concept, timestamp: number = Date.now()): void {
+    if (this.footprints.has(concept)) return;
+    const footprint: ConceptFootprint = { subterms: [], clusters: [] };
+    this.footprints.set(concept, footprint);
+
     if (this.config.enableAtomicIndex) {
-      this.indexByAtomic(concept);
+      footprint.atomicKey = this.atomicKey(concept.term);
+      addToSet(this.atomicIndex, footprint.atomicKey, concept);
     }
 
     if (this.config.enableTemporalIndex) {
-      this.indexByTemporal(concept, timestamp);
+      footprint.temporalKey = Math.floor(timestamp / this.temporalResolution);
+      addToSet(this.temporalIndex, footprint.temporalKey, concept);
     }
 
     if (this.config.enableActivationIndex) {
@@ -86,11 +131,11 @@ export class MemoryIndex {
     }
 
     if (this.config.enableInverseIndex) {
-      this.indexByInverse(concept);
+      this.indexByInverse(concept, footprint);
     }
 
     if (this.config.enableSimilarityIndex) {
-      this.indexBySimilarity(concept);
+      this.indexBySimilarity(concept, footprint);
     }
   }
 
@@ -149,13 +194,16 @@ export class MemoryIndex {
       return cluster.concepts.slice(0, limit);
     }
 
-    const scored = [...this.similarityIndex.values()].map((cluster) => ({
-      cluster,
-      similarity: calculateSimilarity(cluster.representative.term, term),
-    }));
-    const best = maxBy(scored, ({ similarity }) => similarity);
-    const bestCluster = best && best.similarity > 0 ? best.cluster : undefined;
-
+    const query = symbolQuery(term);
+    let bestCluster: SimilarityCluster | undefined;
+    let bestSimilarity = 0;
+    for (const candidate of this.similarityIndex.values()) {
+      const similarity = similarityTo(query, candidate.representative.term);
+      if (similarity > bestSimilarity) {
+        bestSimilarity = similarity;
+        bestCluster = candidate;
+      }
+    }
     return bestCluster ? bestCluster.concepts.slice(0, limit) : [];
   }
 
@@ -168,33 +216,39 @@ export class MemoryIndex {
   }
 
   remove(concept: Concept): void {
-    for (const set of this.atomicIndex.values()) {
-      set.delete(concept);
-    }
+    const footprint = this.footprints.get(concept);
+    this.footprints.delete(concept);
+    if (!footprint) return;
 
-    for (const set of this.temporalIndex.values()) {
-      set.delete(concept);
+    if (footprint.atomicKey !== undefined) {
+      this.pruneSet(this.atomicIndex, footprint.atomicKey, concept);
     }
-
+    if (footprint.temporalKey !== undefined) {
+      this.pruneSet(this.temporalIndex, footprint.temporalKey, concept);
+    }
     this.activationIndex.delete(concept);
 
-    if (this.config.enableInverseIndex) {
-      for (const entry of this.inverseIndex.values()) {
-        entry.concepts.delete(concept);
-        for (const [, subtermSet] of entry.subtermIndices.items()) {
-          subtermSet.delete(concept);
-        }
+    const entry = footprint.inverseEntry;
+    if (entry) {
+      entry.concepts.delete(concept);
+      for (const subterm of footprint.subterms) {
+        const bucket = entry.subtermIndices.get(subterm);
+        if (!bucket) continue;
+        bucket.delete(concept);
+        if (bucket.size === 0) entry.subtermIndices.delete(subterm);
       }
+      if (entry.concepts.size === 0) this.inverseIndex.delete(entry.term);
     }
 
-    if (this.config.enableSimilarityIndex) {
-      for (const cluster of this.similarityIndex.values()) {
-        cluster.concepts = cluster.concepts.filter((c) => c !== concept);
-      }
+    for (const cluster of footprint.clusters) {
+      const at = cluster.concepts.indexOf(concept);
+      if (at >= 0) cluster.concepts.splice(at, 1);
+      if (cluster.concepts.length === 0) this.similarityIndex.delete(cluster.term);
     }
   }
 
   clear(): void {
+    this.footprints.clear();
     this.atomicIndex.clear();
     this.temporalIndex.clear();
     this.activationIndex.clear();
@@ -202,84 +256,46 @@ export class MemoryIndex {
     this.similarityIndex.clear();
   }
 
-  private indexByAtomic(concept: Concept): void {
-    const term = concept.term;
-    const key =
-      term.kind === 'atom'
-        ? term.symbol
-        : `${term.kind}-${term.args?.map((a) => (a.kind === 'atom' ? a.symbol : String(a.kind))).join(',')}`;
-
-    addToSet(this.atomicIndex, key, concept);
+  /** Atoms index by their symbol; compounds by the canonical structural key. */
+  private atomicKey(term: Term): string {
+    return isAtomic(term) ? term.symbol : termKey(term);
   }
 
-  private indexByTemporal(concept: Concept, timestamp: number): void {
-    const timeKey = Math.floor(timestamp / this.temporalResolution);
-
-    addToSet(this.temporalIndex, timeKey, concept);
+  private pruneSet<K>(index: Map<K, Set<Concept>>, key: K, concept: Concept): void {
+    const bucket = index.get(key);
+    if (!bucket) return;
+    bucket.delete(concept);
+    if (bucket.size === 0) index.delete(key);
   }
 
-  private indexByInverse(concept: Concept): void {
+  private indexByInverse(concept: Concept, footprint: ConceptFootprint): void {
     const term = concept.term;
-
-    let entry = this.inverseIndex.get(term);
-    if (!entry) {
-      entry = {
-        concepts: new Set(),
-        subtermIndices: new TermMap(),
-      };
-      this.inverseIndex.set(term, entry);
-    }
+    const entry = getOrInsertInverse(this.inverseIndex, term);
+    footprint.inverseEntry = entry;
     entry.concepts.add(concept);
-
-    if ('args' in term && Array.isArray(term.args)) {
-      this.indexSubterms(term.args as readonly any[], concept, entry);
-    }
+    this.indexSubterms([term], concept, entry, footprint);
   }
 
   private indexSubterms(
-    args: readonly unknown[],
+    terms: readonly Term[],
     concept: Concept,
-    entry: InverseIndexEntry
+    entry: InverseIndexEntry,
+    footprint: ConceptFootprint
   ): void {
-    for (const arg of args) {
-      if (typeof arg === 'object' && arg !== null) {
-        const argTerm = arg as Term;
-        if (argTerm) {
-          const existingSet = entry.subtermIndices.get(argTerm) || new Set();
-          entry.subtermIndices.set(argTerm, existingSet);
-          entry.subtermIndices.get(argTerm)?.add(concept);
-
-          const argArgs = (arg as { args?: readonly unknown[] }).args;
-          if (argArgs && Array.isArray(argArgs)) {
-            this.indexSubterms(argArgs, concept, entry);
-          }
-        }
+    for (const term of terms) {
+      getOrInsertTermSet(entry.subtermIndices, term).add(concept);
+      footprint.subterms.push(term);
+      if (term.kind !== 'atom' && term.args?.length) {
+        this.indexSubterms(term.args, concept, entry, footprint);
       }
     }
   }
 
-  private indexBySimilarity(concept: Concept): void {
+  private indexBySimilarity(concept: Concept, footprint: ConceptFootprint): void {
     const term = concept.term;
-
-    let cluster = this.similarityIndex.get(term);
-    if (!cluster) {
-      cluster = {
-        term,
-        concepts: [],
-        representative: concept,
-      };
-      this.similarityIndex.set(term, cluster);
-    }
-
-    if (!cluster.concepts.includes(concept)) {
-      cluster.concepts.push(concept);
-      cluster.concepts.sort((a, b) => b.priority - a.priority);
-
-      if (cluster.concepts.length > 1 && cluster.concepts[0] !== cluster.representative) {
-        const first = cluster.concepts[0];
-        if (first) cluster.representative = first;
-      }
-    }
+    const cluster = getOrInsertCluster(this.similarityIndex, term, concept);
+    footprint.clusters.push(cluster);
+    insertByScoreDesc(cluster.concepts, concept, (c) => c.priority);
+    if (cluster.representative.priority < concept.priority) cluster.representative = concept;
   }
-
 }

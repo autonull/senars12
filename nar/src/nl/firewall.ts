@@ -1,4 +1,4 @@
-import type { Term } from '../terms/index.js';
+import { collectAtomicSymbols, type Term, termDepth } from '../terms/index.js';
 import { normalizeNarsese, parseNarseseLenient } from './normalize.js';
 
 export interface FirewallVerdict {
@@ -35,17 +35,6 @@ const DEFAULTS: Required<Omit<FirewallOptions, 'extraBlockedPatterns' | 'allowed
   absoluteConfidence: 0.95,
   blockOperators: true,
 };
-
-function astDepth(term: Term): number {
-  let max = 0;
-  const visit = (t: Term, depth: number): void => {
-    if (!t || typeof t !== 'object') return;
-    max = Math.max(max, depth);
-    if (t.kind !== 'atom') for (const child of t.args ?? []) visit(child, depth + 1);
-  };
-  visit(term, 0);
-  return max;
-}
 
 export class SymbolicFirewall {
   private readonly maxLength: number;
@@ -90,7 +79,7 @@ export class SymbolicFirewall {
     const parsed = parseNarseseLenient(cleaned);
     if (!parsed) return { allowed: false, reason: 'unparseable Narsese' };
     term = parsed;
-    if (astDepth(term) > this.maxDepth)
+    if (termDepth(term) > this.maxDepth)
       return { allowed: false, reason: `exceeds max AST depth ${this.maxDepth}` };
     if (this.allowedPredicates && !this.predicatesAllowed(term)) {
       return { allowed: false, reason: 'predicate outside whitelist' };
@@ -113,14 +102,9 @@ export class SymbolicFirewall {
 
   private predicatesAllowed(term: Term): boolean {
     const allowed = this.allowedPredicates!;
-    const names = new Set<string>();
-    const visit = (t: Term): void => {
-      if (!t || typeof t !== 'object') return;
-      if (t.kind === 'atom' && typeof t.symbol === 'string') names.add(t.symbol);
-      else for (const child of t.args ?? []) visit(child);
-    };
-    visit(term);
-    return [...names].every((n) => n.startsWith('^') || n.startsWith('?') || allowed.has(n));
+    return [...collectAtomicSymbols(term)].every(
+      (n) => n.startsWith('^') || n.startsWith('?') || allowed.has(n)
+    );
   }
 }
 

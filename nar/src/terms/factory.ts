@@ -1,4 +1,5 @@
 import { trackTerm } from '../memory/lifecycle/gc.js';
+import { containsSubterm } from './accessors.js';
 import { COMMUTATIVE_OPS, OPERATORS } from './operators.js';
 import { serializeTerm } from './serialize.js';
 import { VARIABLE_SYMBOL } from './types.js';
@@ -97,18 +98,6 @@ for (const key of Object.keys(OPERATORS) as OperatorKey[]) {
   compoundCtors[key] = (...args: Term[]) => createCompound(key, args);
 }
 
-const containsTerm = (container: Term, target: Term): boolean => {
-  if (container.kind === 'atom') {
-    return container.symbol === (target.kind === 'atom' ? target.symbol : '');
-  }
-  if ('args' in container && container.args) {
-    for (const arg of container.args) {
-      if (containsTerm(arg, target)) return true;
-    }
-  }
-  return false;
-};
-
 export const TermBuilder = {
   atom: (symbol: string): AtomicTerm =>
     symbol === 'TRUE' ? TRUE_ATOM : symbol === 'FALSE' ? FALSE_ATOM : createAtom(symbol),
@@ -124,7 +113,7 @@ export const TermBuilder = {
   tuple: (components: Term[]): Term => createCompound('conjunction', components),
   atomic: (symbol: string): AtomicTerm => createAtom(symbol),
   inheritance: (subj: Term, pred: Term): Term | undefined => {
-    if (containsTerm(subj, pred) || containsTerm(pred, subj)) {
+    if (containsSubterm(subj, pred) || containsSubterm(pred, subj)) {
       return undefined;
     }
     return createCompound('inheritance', [subj, pred]);

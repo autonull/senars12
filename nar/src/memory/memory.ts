@@ -2,7 +2,7 @@ import { LINK } from '../constants.js';
 import type { AttentionModel } from '../strategies/types.js';
 import { SimpleAttention } from '../strategies/attention/SimpleAttention.js';
 import type { Term } from '../terms';
-import { calculateSimilarity, mentionsSymbol, Stamp, TermMap, TermSet, Truth } from '../terms';
+import { mentionsSymbol, similarityTo, Stamp, symbolQuery, TermMap, TermSet, Truth } from '../terms';
 import { atom } from '../terms/factory.js';
 import type { Budget, Task } from '../types';
 import { NEUTRAL_BUDGET } from '../types';
@@ -494,7 +494,8 @@ export class Memory {
   }
 
   findSimilarConcepts(term: Term, limit = 10): Concept[] {
-    return selectTopN(this.concepts.values(), limit, (c) => calculateSimilarity(c.term, term));
+    const query = symbolQuery(term);
+    return selectTopN(this.concepts.values(), limit, (c) => similarityTo(query, c.term));
   }
 
   private recordRevision(entry: RevisionEntry): void {

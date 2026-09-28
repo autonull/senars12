@@ -18,37 +18,3 @@ export function normalize(term: Term): Term {
   }
   return term;
 }
-
-export type TermVisitorFn<T> = (term: Term) => T;
-
-export function visit<T>(
-  term: Term,
-  visitor: TermVisitorFn<T>,
-  order: 'pre-order' | 'post-order' = 'pre-order'
-): void {
-  if (order === 'pre-order') visitor(term);
-  if (hasArgs(term)) {
-    for (const arg of term.args ?? []) visit(arg, visitor, order);
-  }
-  if (order === 'post-order') visitor(term);
-}
-
-export type TermReducerFn<T> = (acc: T, term: Term) => T;
-
-export function reduce<T>(term: Term, fn: TermReducerFn<T>, initial: T): T {
-  let acc = fn(initial, term);
-  if (hasArgs(term)) {
-    for (const arg of term.args ?? []) acc = reduce(arg, fn, acc);
-  }
-  return acc;
-}
-
-export const getTermDepth = (term: Term): number => {
-  if (term.kind === 'atom' || !hasArgs(term)) return 0;
-  return 1 + Math.max(0, ...(term.args ?? []).map(getTermDepth));
-};
-
-export const getTermSize = (term: Term): number => {
-  if (term.kind === 'atom') return 1;
-  return 1 + (term.args ?? []).reduce((sum, arg) => sum + getTermSize(arg), 0);
-};

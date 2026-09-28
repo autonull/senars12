@@ -1,4 +1,4 @@
-import { errMsg, makeId } from '@senars/util';
+import { errMsg, makeId, withTimeout } from '@senars/util';
 import { envBool } from '@senars/util/config';
 import { createLogger, type LoggerInterface } from './Logger.js';
 
@@ -129,12 +129,11 @@ export class ApprovalService {
     }
 
     try {
-      const result = await Promise.race([
+      const result = await withTimeout(
         approvalRequest.result,
-        new Promise<ApprovalResult>((_, reject) =>
-          setTimeout(() => reject(new Error('Approval timeout')), params.timeoutMs ?? 60000)
-        ),
-      ]);
+        params.timeoutMs ?? 60000,
+        () => new Error('Approval timeout')
+      );
       return { approved: result.approved, feedback: result.reason };
     } catch (err: unknown) {
       return {

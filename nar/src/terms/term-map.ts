@@ -4,8 +4,8 @@
  * This replaces Map<number, V> where the number was a term hash,
  * allowing proper Term objects to be used as keys with correct equality semantics.
  *
- * Uses reference equality fast path for terms from TermFactory (which are frozen and cached),
- * with structural equality fallback for other terms.
+ * Equality is structural via the canonical `termKey`, so factory-cached and
+ * freshly-parsed terms address the same entry.
  */
 
 import { TermCollection } from './term-collection.js';
@@ -15,29 +15,27 @@ type Entry<V> = { key: Term; value: V };
 
 export class TermMap<V> extends TermCollection<{ key: Term; value: V }> {
   get(term: Term): V | undefined {
-    const idx = this.getIndex(term, (e) => e.key);
+    const idx = this.getIndex(term);
     return idx >= 0 ? this.storage[idx]?.value : undefined;
   }
 
   set(term: Term, value: V): this {
-    const existingIndex = this.getIndex(term, (e) => e.key);
+    const existingIndex = this.getIndex(term);
     if (existingIndex >= 0) {
-      this.clearRef(this.storage[existingIndex]!.key);
       this.storage[existingIndex]!.value = value;
-      this.setRef(term, existingIndex);
-    } else {
-      this.storage.push({ key: term, value });
-      this.setRef(term, this.storage.length - 1);
+      return this;
     }
+    this.storage.push({ key: term, value });
+    this.setRef(term, this.storage.length - 1);
     return this;
   }
 
   has(term: Term): boolean {
-    return this.getIndex(term, (e) => e.key) >= 0;
+    return this.getIndex(term) >= 0;
   }
 
   delete(term: Term): boolean {
-    return this.deleteItem(term, (e) => e.key);
+    return this.deleteItem(term);
   }
 
   getEntries(): Entry<V>[] {

@@ -1,4 +1,16 @@
-import { isAtomic, isCompound, TermBuilder, Truth } from '../../../nar/src';
+import {
+  collectAtomicSymbols,
+  containsSubterm,
+  foldTerm,
+  isAtomic,
+  isCompound,
+  mentionsSymbol,
+  termDepth,
+  TermBuilder,
+  termSize,
+  Truth,
+  walkTerms,
+} from '../../../nar/src';
 
 describe('TermBuilder', () => {
   beforeEach(() => TermBuilder.clear());
@@ -198,5 +210,72 @@ describe('Truth', () => {
       expect(result.f).toBeGreaterThan(Math.min(t1.f, t2.f));
       expect(result.c).toBeGreaterThan(Math.max(t1.c, t2.c));
     });
+  });
+});
+
+describe('walkTerms', () => {
+  const tree = () => TermBuilder.compound('conjunction', [
+    TermBuilder.inheritance(TermBuilder.atom('bird'), TermBuilder.atom('animal'))!,
+    TermBuilder.atom('flies'),
+  ]);
+
+  test('visits pre-order by default with depth from the root', () => {
+    const seen: [string, number][] = [];
+    walkTerms(tree(), (t, depth) => void seen.push([String(t), depth]));
+    expect(seen[0]).toEqual([String(tree()), 0]);
+    expect(seen[1]?.[1]).toBe(1);
+    expect(seen).toHaveLength(5);
+  });
+
+  test('visits post-order on request', () => {
+    const seen: string[] = [];
+    walkTerms(tree(), (t) => void seen.push(String(t)), 'post-order');
+    expect(seen.at(-1)).toBe(String(tree()));
+    expect(seen).toHaveLength(5);
+  });
+
+  test('prunes descendants when the visitor returns false', () => {
+    const seen: string[] = [];
+    walkTerms(tree(), (t) => {
+      seen.push(String(t));
+      return t.kind !== 'inheritance';
+    });
+    expect(seen.map(String)).toEqual([String(tree()), 'flies', '(bird --> animal)']);
+  });
+});
+
+describe('term metrics', () => {
+  const tree = () =>
+    TermBuilder.compound('conjunction', [
+      TermBuilder.inheritance(TermBuilder.atom('bird'), TermBuilder.atom('animal'))!,
+      TermBuilder.atom('flies'),
+    ]);
+
+  test('termDepth counts nesting below the root', () => {
+    expect(termDepth(TermBuilder.atom('bird'))).toBe(0);
+    expect(termDepth(tree())).toBe(2);
+  });
+
+  test('termSize counts every node including the root', () => {
+    expect(termSize(TermBuilder.atom('bird'))).toBe(1);
+    expect(termSize(tree())).toBe(5);
+  });
+
+  test('foldTerm accumulates in visit order', () => {
+    expect(foldTerm<number>(tree(), (n, t) => n + (isAtomic(t) ? 1 : 0), 0)).toBe(3);
+  });
+
+  test('containsSubterm matches structurally, at any depth', () => {
+    const t = tree();
+    expect(containsSubterm(t, TermBuilder.atom('animal'))).toBe(true);
+    expect(containsSubterm(t, TermBuilder.atom('bird'))).toBe(true);
+    expect(containsSubterm(t, TermBuilder.atom('fish'))).toBe(false);
+  });
+
+  test('mentionsSymbol and collectAtomicSymbols read the same bag', () => {
+    const t = tree();
+    expect(mentionsSymbol(t, 'flies')).toBe(true);
+    expect(mentionsSymbol(t, 'swims')).toBe(false);
+    expect([...collectAtomicSymbols(t)].sort()).toEqual(['animal', 'bird', 'flies']);
   });
 });

@@ -169,6 +169,7 @@ export {
   BoundedRing,
   getOrInsert,
   incrementCount,
+  insertByScoreDesc,
   maxBy,
   minBy,
   pushCapped,

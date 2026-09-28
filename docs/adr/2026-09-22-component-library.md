@@ -19,8 +19,8 @@ subsystem drifts behavior and multiplies maintenance.
 
 Shared primitives live in three places and are consumed by all subsystems:
 
-- `nar/src/lifecycle/BaseComponent.ts` — common component lifecycle;
-  registration via `cognitive/registry.ts` / `lifecycle/Container.ts`.
+- `core/src/Lifecycle.ts` — `BaseComponent` lifecycle base; registration via
+  `cognitive/registry.ts` / `lifecycle/Container.ts`.
 - `nar/src/config/cognitive-parameters.ts` — single source of default
   parameters (`DEFAULT_COGNITIVE_PARAMETERS`, deep-frozen) with grouped
   interfaces (`AttentionConfig`, `InferenceConfig`, `MemoryConfig`,
@@ -42,12 +42,12 @@ swappable reasoners, and bag behavior itself is parameterized
 - Strategy selection is data, not branching code; new strategies implement
   `Strategy` without touching call sites.
 - Deep-frozen defaults prevent accidental mutation of shared config.
-- Cost: changes to `BaseComponent` or `cognitive-parameters.ts` are
+- Cost: changes to `Lifecycle.ts` or `cognitive-parameters.ts` are
   cross-cutting and need broader review.
 
 ## References
 
-- `nar/src/lifecycle/BaseComponent.ts`
+- `core/src/Lifecycle.ts`
 - `nar/src/lifecycle/Container.ts`
 - `nar/src/cognitive/registry.ts`
 - `nar/src/config/cognitive-parameters.ts`
