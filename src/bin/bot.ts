@@ -62,7 +62,7 @@ import { NLUnderstandingService } from '@senars/nar/nl';
 import { TranslationCache } from '@senars/nar/nl/cache.js';
 import { episodeQualitySurface, MemoryQuery } from '@senars/nar/query/memory-query.js';
 import { MettaProposer } from '@senars/nar/reflex/metta-proposer.js';
-import { ensureDir, errMsg, makeId, readJsonlAsync } from '@senars/util';
+import { ensureDir, errMsg, makeId, readJsonlAsync, setupGracefulShutdown } from '@senars/util';
 import { envBool } from '@senars/util/config';
 import { Effect } from 'effect';
 import { buildCommands, cmd } from '../cli/commands.js';
@@ -77,8 +77,8 @@ import {
 import { loadConfig } from '../config/index.js';
 import { assertValidEnv } from '../utils/env-validate.js';
 import { readAuthConfig } from './lib/env-config.js';
+import { createAgentFromEnv } from './lib/lifecycle.js';
 import { runEntrypoint } from './lib/fatal-error.js';
-import { createAgentFromEnv, setupGracefulShutdown } from './lib/lifecycle.js';
 
 assertValidEnv();
 

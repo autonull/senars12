@@ -1,3 +1,4 @@
+import { chunk } from '@senars/util';
 import { Effect } from 'effect';
 import type { MeTTaAtom } from '../types/ast.js';
 
@@ -14,10 +15,7 @@ export const parallelReduce = (
   const workers = opts.workers ?? navigator?.hardwareConcurrency ?? 4;
   const chunkSize = opts.chunkSize ?? Math.ceil(atoms.length / workers);
 
-  const chunks: MeTTaAtom[][] = [];
-  for (let i = 0; i < atoms.length; i += chunkSize) {
-    chunks.push(atoms.slice(i, i + chunkSize).map((a) => a));
-  }
+  const chunks = chunk(atoms, chunkSize).map((group) => [...group]);
 
   return Effect.all(
     chunks.map((chunk) => Effect.try(() => chunk.map(reducer))),

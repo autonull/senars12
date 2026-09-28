@@ -307,8 +307,18 @@ export function groupQueries(group: HeadGroup): JudgmentQuery[] {
   return ALL_SPECS.filter((spec) => spec.group === group).map(specToQuery);
 }
 
-export const ingressQueries = () => groupQueries('ingress');
-export const actionQueries = () => groupQueries('action');
+/** Static, read-only query sets — built once; callers must not mutate them. */
+const QUERY_GROUPS = new Map<HeadGroup, JudgmentQuery[]>();
+const queriesFor = (group: HeadGroup): readonly JudgmentQuery[] => {
+  const cached = QUERY_GROUPS.get(group);
+  if (cached) return cached;
+  const built = groupQueries(group);
+  QUERY_GROUPS.set(group, built);
+  return built;
+};
+
+export const ingressQueries = (): readonly JudgmentQuery[] => queriesFor('ingress');
+export const actionQueries = (): readonly JudgmentQuery[] => queriesFor('action');
 
 export function selectQuery(space: readonly string[], instruction: string): ClassifyQuery {
   return {

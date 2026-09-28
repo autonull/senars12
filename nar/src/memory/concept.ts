@@ -1,5 +1,5 @@
 import { makeId } from '@senars/util';
-import { createBag, type Bag, type BagOptions } from '../bag/Bag.js';
+import { createBag, type Bag, type BagOptions } from '../bag/index.js';
 import { LINK } from '../constants.js';
 import type { Term, Truth } from '../terms';
 import { extractSymbols, type Stamp, TermMap, TermSet, termsEqual } from '../terms';

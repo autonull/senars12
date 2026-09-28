@@ -11,6 +11,32 @@ import type { ActionProposal, LearningEvent } from './Reflex.js';
 
 export type MettaEvaluator = (expression: string) => boolean | null;
 
+/**
+ * The one MeTTa-agreement vote: re-propose every reflex action the exact engine
+ * confirms, at `confidence` and tagged `source`. Never a veto — agreement
+ * amplifies, silence abstains. Shared by the live and proof-backed proposers.
+ */
+export function agreeByExactAlgebra(
+  input: NegotiationInput,
+  toExpression: MettaFactSource,
+  evaluate: MettaEvaluator,
+  { source, confidence, maxProposals = Number.POSITIVE_INFINITY }: {
+    source: string;
+    confidence: number;
+    maxProposals?: number;
+  }
+): ProposerContribution {
+  const reflex: ActionProposal[] = [];
+  for (const p of input.reflexProposals) {
+    if (reflex.length >= maxProposals) break;
+    const expr = toExpression(p.action);
+    if (expr !== undefined && evaluate(expr) === true) {
+      reflex.push({ ...p, confidence, source });
+    }
+  }
+  return reflex.length > 0 ? { reflex } : {};
+}
+
 export type MettaFactSource = (action: string) => string | undefined;
 
 export interface MettaProposerOptions {
@@ -49,17 +75,11 @@ export class MettaProposer implements IProposer {
    */
   propose(input: NegotiationInput): ProposerContribution {
     if (input.reflexProposals.length === 0) return {};
-    const reflex: ActionProposal[] = [];
-    for (const p of input.reflexProposals) {
-      if (reflex.length >= this.#maxProposals) break;
-      const expr = this.#toExpression(p.action);
-      if (expr === undefined) continue;
-      const verdict = this.#evaluate(expr);
-      if (verdict === true) {
-        reflex.push({ ...p, confidence: this.#confidence, source: 'metta' });
-      }
-    }
-    return reflex.length > 0 ? { reflex } : {};
+    return agreeByExactAlgebra(input, this.#toExpression, this.#evaluate, {
+      source: 'metta',
+      confidence: this.#confidence,
+      maxProposals: this.#maxProposals,
+    });
   }
 
   /** MeTTa is stateless per tick — learning events are absorbed (no-op). */

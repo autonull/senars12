@@ -64,6 +64,7 @@ export class RuleProcessor {
   private readonly seenBuffer = new Map<string, RuleResult>();
 
   /** Meta-reasoning budget tracking */
+  private stepScalars: { totalConcepts: number; memoryPressure: number; conflictCount: number } | null = null;
   private metaBudget: MetaBudgetState = {
     derivationsThisStep: 0,
     currentDepth: 0,
@@ -146,6 +147,33 @@ export class RuleProcessor {
   resetMetaBudget(): void {
     this.metaBudget.derivationsThisStep = 0;
     this.metaBudget.currentDepth = 0;
+    this.stepScalars = null;
+  }
+
+  /**
+   * Memory-wide scalars handed to LM rule contexts. `getStatistics` sorts the
+   * full concept array and `getBeliefs` materializes every belief, so the
+   * whole set is computed at most once per inference step (prompt hints may be
+   * a step stale; the values are never load-bearing for admission).
+   */
+  private stepMemoryScalars(): { totalConcepts: number; memoryPressure: number; conflictCount: number } {
+    if (this.stepScalars) return this.stepScalars;
+    const stats = this.memory?.getStatistics();
+    const beliefs = this.nar?.getBeliefs?.();
+    this.stepScalars = {
+      totalConcepts: stats?.totalConcepts ?? 0,
+      memoryPressure: stats?.memoryPressure ?? 0,
+      conflictCount: beliefs ? findConflicts(beliefs).length : 0,
+    };
+    return this.stepScalars;
+  }
+
+  private driveState(): Record<string, number> {
+    const driveManager = this.nar?.getDriveManager?.();
+    if (!driveManager) return {};
+    return Object.fromEntries(
+      driveManager.getAllStates().map((ds) => [ds.spec.id, ds.currentIntensity])
+    );
   }
 
   /** Get current meta-budget status */
@@ -350,31 +378,16 @@ export class RuleProcessor {
     this.lmRotationIndex = (this.lmRotationIndex + 1) % this.lmRules.length;
     if (selected.length === 0) return;
 
-    const stats = this.memory?.getStatistics();
-
-    // Build drive state from NAR's drive manager
-    const driveState: Record<string, number> = {};
-    const driveManager = this.nar?.getDriveManager?.();
-    if (driveManager) {
-      for (const ds of driveManager.getAllStates()) {
-        driveState[ds.spec.id] = ds.currentIntensity;
-      }
-    }
-
-    // Get conflict count from NAR
-    let conflictCount = 0;
-    if (this.nar) {
-      const beliefs = this.nar.getBeliefs?.();
-      if (beliefs) conflictCount = findConflicts(beliefs).length;
-    }
+    const { totalConcepts, memoryPressure, conflictCount } = this.stepMemoryScalars();
+    const driveState = this.driveState();
 
     const ruleContext: Record<string, unknown> = {
       priority: maxPriority,
       conceptPriority: maxPriority,
       taskTerm: p1.term.toString(),
       secondaryTerm: effectiveP2.term.toString(),
-      totalConcepts: stats?.totalConcepts ?? 0,
-      memoryPressure: stats?.memoryPressure ?? 0,
+      totalConcepts,
+      memoryPressure,
       driveState,
       conflictCount,
       truth: {

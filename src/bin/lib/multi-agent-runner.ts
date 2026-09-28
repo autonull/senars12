@@ -6,6 +6,7 @@
 import { CLIConnection } from '@senars/io/connections/cli';
 import { WSConnection } from '@senars/io/connections/ws';
 import { createLogger } from '@senars/nar/logger';
+import { setupGracefulShutdown } from '@senars/util';
 import type { WiredNAR } from '@senars/nar/agent/builder';
 
 export interface MultiAgentRunnerOptions {
@@ -80,11 +81,9 @@ export async function runMultiAgent(opts: MultiAgentRunnerOptions): Promise<void
   console.log('Press Ctrl+C to exit');
   console.log('══════════════════════════════════════════════════════════════\n');
 
-  process.on('SIGINT', async () => {
-    console.log('\n\nShutting down...');
+  setupGracefulShutdown(async () => {
     await agent.stop();
     await wsConn.disconnect();
     await cliConn.disconnect();
-    process.exit(0);
-  });
+  }, { info: (msg) => console.log(msg) });
 }

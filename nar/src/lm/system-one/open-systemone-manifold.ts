@@ -1,15 +1,12 @@
+import { createRemoteManifold } from './remote-manifold.js';
 import { type OpenRequest, type OpenResponse, openResponseSchema } from './systemone-wire.js';
 import type {
   BackendId,
-  ConsensusResult,
   EmbeddingCache,
-  EmbeddingPointer,
   JudgmentManifold,
   JudgmentProposition,
   JudgmentQuery,
-  ManifoldHealth,
   ModelDigest,
-  ReasoningBudget,
 } from './types.js';
 
 export const OPEN_REPLICA_BACKEND = 'open-systemone' as BackendId;
@@ -86,47 +83,25 @@ const buildProposition = (
   return { ...base, kind: 'evaluate', axis: query.axis, score } as unknown as JudgmentProposition;
 };
 
-export function createOpenSystemOneManifold(config: OpenSystemOneManifoldConfig): JudgmentManifold {
-  const fetchImpl = config.fetchImpl ?? fetch;
-  const timeoutMs = config.timeoutMs ?? 30_000;
-  const health: ManifoldHealth = {
+export function createOpenSystemOneManifold(
+  config: OpenSystemOneManifoldConfig
+): JudgmentManifold {
+  return createRemoteManifold({
     backendId: OPEN_REPLICA_BACKEND,
-    ready: true,
-    breakerOpen: false,
-    rollingEce: 0,
-    queueDepth: 0,
-  };
-
-  const judgeBatch = async (
-    sharedContext: EmbeddingPointer,
-    queries: readonly JudgmentQuery[],
-    _budget: ReasoningBudget
-  ): Promise<JudgmentProposition[]> => {
-    const embedding = config.embeddingCache.read(sharedContext);
-    if (!embedding) throw new Error(`Embedding not found for pointer ${sharedContext}`);
-
-    const request: OpenRequest = {
+    endpoint: config.endpoint,
+    embeddingCache: config.embeddingCache,
+    timeoutMs: config.timeoutMs,
+    fetchImpl: config.fetchImpl,
+    errorLabel: 'Open replica',
+    buildRequest: (embedding, queries) => ({
       state: canonicalState(embedding),
       questions: toOpenQuestions(queries),
-    };
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await fetchImpl(`${config.endpoint.replace(/\/$/, '')}/v1/systemone`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(request),
-        signal: controller.signal,
-      });
-      if (!res.ok) throw new Error(`Open replica HTTP ${res.status}`);
-      const parsed = openResponseSchema.parse(await res.json());
-      health.ready = true;
-      health.breakerOpen = false;
-
-      // Malformed/missing answers fail closed. Propositions pass through raw
-      // (D4 semantics); consumers re-enter them untrusted at the LLM_PRIOR
-      // ceiling via seedTruth — asserted in todo17-open-replica.test.ts.
+    }),
+    // Malformed/missing answers fail closed. Propositions pass through raw
+    // (D4 semantics); consumers re-enter them untrusted at the LLM_PRIOR
+    // ceiling via seedTruth — asserted in todo17-open-replica.test.ts.
+    parseResponse: (body, queries) => {
+      const parsed = openResponseSchema.parse(body);
       return queries.map((query, i) => {
         const answer = parsed.answers[i];
         if (!answer) {
@@ -138,29 +113,6 @@ export function createOpenSystemOneManifold(config: OpenSystemOneManifoldConfig)
         }
         return buildProposition(query, answer, parsed.model);
       });
-    } catch (e) {
-      health.ready = false;
-      health.breakerOpen = true;
-      throw e;
-    } finally {
-      clearTimeout(timer);
-    }
-  };
-
-  return {
-    judgeBatch,
-    async consensus(
-      sharedContext: EmbeddingPointer,
-      query: JudgmentQuery,
-      k: number,
-      budget: ReasoningBudget
-    ): Promise<ConsensusResult> {
-      const propositions = await judgeBatch(sharedContext, [query], budget);
-      void k;
-      const proposition = propositions[0];
-      if (!proposition) throw new Error('Open replica returned no proposition for consensus');
-      return { proposition, agreement: 1, independent: false };
     },
-    health: () => ({ ...health }),
-  };
+  });
 }

@@ -23,6 +23,8 @@ export {
   envStrOr,
   isTruthy,
   parseEnvValue,
+  parseOrThrow,
+  SchemaValidationError,
   readEnvOverrides,
   SENARS_ENV_MAP,
   validateAgentOptions,
@@ -188,11 +190,14 @@ export type { RetryOptions } from './utils/retry.js';
 export { withRetry } from './utils/retry.js';
 /** @public Serialization contracts for stateful components. */
 export type { Serializable, Versioned } from './utils/serialization.js';
+/** @public Process signal → graceful shutdown for every binary. */
+export { setupGracefulShutdown } from './utils/shutdown.js';
 /** @public Uniform-contract adapters bridging legacy serialize/deserialize shapes. */
 export { asSerializable, factorySerializable, inPlaceSerializable } from './utils/serialization.js';
 /** @public Shared utility functions (deduplicated across packages). */
 export {
   clamp,
+  chunk,
   clamp01,
   compact,
   deepFreeze,

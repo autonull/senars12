@@ -1,14 +1,7 @@
-import type {
-  LanguageModelV3,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-} from '@ai-sdk/provider';
 import type { LMExecutionStats, LMTask, MockLMConfig } from '@senars/util';
-import { extractLastUserMessage } from '@senars/util';
 import type { LanguageModel } from 'ai';
-import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import type { ZodSchema } from 'zod';
+import { createMockModel } from '../providers/mock-model.js';
 import { createLMStats, recordLMCall } from '../stats.js';
 import type { LMService } from './LMService.js';
 import type { ProviderSpend } from './spend.js';
@@ -58,46 +51,11 @@ class MockLMServiceImpl {
   }
 
   getModel(_task: LMTask): LanguageModel | undefined {
-    const doGenerate: LanguageModelV3['doGenerate'] = async (options) => {
-      const key = extractLastUserMessage(options.prompt ?? []);
-      const text = this._generateTextFn ? await this._generateTextFn(key) : 'Mock response';
-      const result: LanguageModelV3GenerateResult = {
-        content: [{ type: 'text', text }],
-        finishReason: { unified: 'stop', raw: 'stop' },
-        usage: {
-          inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-          outputTokens: { total: text.length, text: text.length, reasoning: 0 },
-        },
-        warnings: [],
-      };
-      return result;
-    };
-    const doStream: LanguageModelV3['doStream'] = async (options) => {
-      const key = extractLastUserMessage(options.prompt ?? []);
-      const text = this._generateTextFn ? await this._generateTextFn(key) : 'Mock response';
-      const chunks: LanguageModelV3StreamPart[] = [
-        { type: 'text-start', id: '0' },
-        { type: 'text-delta', id: '0', delta: text },
-        { type: 'text-end', id: '0' },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: {
-            inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-            outputTokens: { total: text.length, text: text.length, reasoning: 0 },
-          },
-        },
-      ];
-      const result: LanguageModelV3StreamResult = {
-        stream: simulateReadableStream({ chunks }),
-      };
-      return result;
-    };
-    return new MockLanguageModelV3({
+    return createMockModel({
       provider: this._provider,
       modelId: this._model,
-      doGenerate,
-      doStream,
+      generateTextFn: this._generateTextFn,
+      defaultText: () => 'Mock response',
     }) as unknown as LanguageModel;
   }
 

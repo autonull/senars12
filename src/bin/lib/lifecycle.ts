@@ -23,10 +23,10 @@ import {
   consolidateEpisodes,
 } from '@senars/nar/memory/retrieval-verified';
 import { threadScope } from '@senars/nar/kernel';
+import { setupGracefulShutdown } from '@senars/util';
 import { type AppConfig, loadConfig } from '../../config/index.js';
 import { readEpisodicConfig } from './env-config.js';
 
-export { setupGracefulShutdown } from '../../utils/shutdown.js';
 
 export interface AgentFromEnvOptions {
   narConfig?: Partial<NARConfig>;
@@ -217,15 +217,8 @@ export async function runAgent(agent: ExtendedAgent, options?: RunAgentOptions):
 
   await agent.start();
 
-  const handleShutdown = async (signal: string) => {
-    logger.info(`Received ${signal}, shutting down...`);
-    if (options?.onShutdown) {
-      await options.onShutdown();
-    }
+  setupGracefulShutdown(async () => {
+    await options?.onShutdown?.();
     await agent.stop();
-    process.exit(0);
-  };
-
-  process.on('SIGINT', () => handleShutdown('SIGINT'));
-  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+  }, logger);
 }

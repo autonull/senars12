@@ -20,7 +20,7 @@ import type {
   ReasoningBudget,
 } from './types.js';
 import { sha256Hex } from '../../utils/hash.js';
-import { isFitted, provenanceFrom, type JudgmentProvenance } from './decide.js';
+import { type JudgmentProvenance, stageProvenance } from './decide.js';
 
 export type VerifyDecision = 'act' | 'review' | 'block' | 'abstain';
 
@@ -34,19 +34,6 @@ export interface VerifyResult {
   provenance: JudgmentProvenance;
 }
 
-
-/** Derive provenance from judgeCascade result via the shared constructor. */
-function deriveVerifyProvenance(
-  stage1: JudgmentProposition | undefined,
-  stage2: JudgmentProposition | undefined,
-  inputDigest: string,
-  decision: VerifyDecision,
-  abstained: boolean
-): JudgmentProvenance {
-  return provenanceFrom(stage2 ?? stage1, inputDigest, decision === 'abstain' ? 'abstain' : decision, abstained, {
-    fitted: isFitted(stage1) || isFitted(stage2),
-  });
-}
 
 /** Stage-2 query space derived from stage-1 uncertainty: evidential support, not plausibility. */
 const verifyQuery = (statement: string, p: number): EvaluateQuery => ({
@@ -89,7 +76,7 @@ export async function verifyCascade(
     decision,
     p: prop.abstained ? undefined : prop.score,
     verification: result.stage2,
-    provenance: deriveVerifyProvenance(result.stage1, result.stage2, inputDigest, decision, prop.abstained),
+    provenance: stageProvenance([result.stage1, result.stage2], inputDigest, decision === 'abstain' ? 'abstain' : decision, prop.abstained),
   };
 }
 

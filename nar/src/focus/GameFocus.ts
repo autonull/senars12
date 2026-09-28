@@ -79,6 +79,11 @@ interface TickState {
   bestReflexProposal: ActionProposal | null;
   decision: NegotiationDecision;
   legalActions: Array<string | number>;
+  /** String-normalized legal actions: numeric actions (bandit/gridworld) must
+   *  not reach reflexes typed for strings (and 0 must not be falsy). */
+  legalActionStrings: string[];
+  /** Observation snapshotted once per tick — the world is static until `actStage`. */
+  observation: Perception;
   prevWeight: number;
   deliveringReflexes: Set<Reflex>;
   gameOutcome: GameOutcome | null;
@@ -97,6 +102,14 @@ export interface ReflexPrefetchContext {
   embeddingCache: EmbeddingCache;
   budget: ReasoningBudget;
 }
+
+/** AIKR bound for the unbounded-by-tick focus logs (audit tails stay inspectable). */
+const FOCUS_LOG_CAPACITY = 2000;
+
+const pushCapped = <T>(log: T[], entry: T): void => {
+  log.push(entry);
+  if (log.length > FOCUS_LOG_CAPACITY) log.splice(0, log.length - FOCUS_LOG_CAPACITY);
+};
 
 export class GameFocus {
   readonly focus: Focus;
@@ -236,7 +249,7 @@ export class GameFocus {
   }
 
   private recordPanel(entry: TickPanelEntry): void {
-    if (this.cognitive) this.panelLog.push(entry);
+    if (this.cognitive) pushCapped(this.panelLog, entry);
   }
 
   /** E7: build a DerivationRecord for a veto from the matched NAL derivation. */
@@ -289,11 +302,10 @@ export class GameFocus {
     return this.prefetchCalls;
   }
 
-  private async prefetchForReflexes(): Promise<void> {
+  private async prefetchForReflexes(t: TickState): Promise<void> {
     if (!this.reflexPrefetchContext) return;
     const { manifold, embeddingCache, budget } = this.reflexPrefetchContext;
-    const observation = this.game.observe();
-    const legalActions = this.game.legalActions(this.game.state()).map(String);
+    const { observation, legalActionStrings: legalActions } = t;
     for (const reflex of this.focus.reflexes) {
       const p = reflex as { prefetch?: unknown };
       if (typeof p.prefetch === 'function') {
@@ -363,6 +375,8 @@ export class GameFocus {
         arbitration: 'nal-veto',
       },
       legalActions: [],
+      legalActionStrings: [],
+      observation: { stateId: '', features: {} } as Perception,
       prevWeight: 0,
       deliveringReflexes: new Set(),
       gameOutcome: null,
@@ -389,14 +403,17 @@ export class GameFocus {
   /** PERCEPTION: the Focus step admits game observations as tasks, then ATTEND prefetch (C1). */
   private async perceiveStage(budget: number): Promise<TickState> {
     const t = this.tickState();
+    t.observation = this.game.observe();
+    t.legalActions = this.game.legalActions(this.game.state()) as Array<string | number>;
+    t.legalActionStrings = t.legalActions.map(String);
     t.focusReport = await this.focus.step(budget);
-    await this.attendStage();
+    await this.attendStage(t);
     return t;
   }
 
   /** ATTEND: prefetch semantic reflex judgments before the synchronous propose contract (C1). */
-  private async attendStage(): Promise<void> {
-    await this.prefetchForReflexes();
+  private async attendStage(t: TickState): Promise<void> {
+    await this.prefetchForReflexes(t);
   }
 
   /** PROPOSAL: collect from every bound reflex and merge best-of (A2). Returns false when no reflex proposed. */
@@ -404,12 +421,7 @@ export class GameFocus {
     t.reflexProposals = this.focus.reflexes
       .map((reflex) => ({
         reflex,
-        // String-normalized legal actions: numeric actions (bandit/gridworld)
-        // must not reach reflexes typed for strings (and 0 must not be falsy).
-        proposals: reflex.propose(
-          this.game.observe(),
-          this.game.legalActions(this.game.state()).map(String)
-        ),
+        proposals: reflex.propose(t.observation, t.legalActionStrings),
       }))
       .filter((entry) => entry.proposals.length > 0);
     if (t.reflexProposals.length === 0) return false;
@@ -463,9 +475,8 @@ export class GameFocus {
         return;
       }
       if (band === 'review') {
-        const legal = this.game.legalActions(this.game.state()).map(String);
-        const baseline = this.handover.baseline(this.game, legal);
-        if (baseline && legal.includes(baseline)) {
+        const baseline = this.handover.baseline(this.game, t.legalActionStrings);
+        if (baseline && t.legalActionStrings.includes(baseline)) {
           t.decision = {
             ...t.decision,
             action: baseline,
@@ -479,8 +490,7 @@ export class GameFocus {
       }
     }
 
-    // Legal actions, weight snapshot, and the delivering set for learning fan-out.
-    t.legalActions = this.game.legalActions(this.game.state()) as Array<string | number>;
+    // Weight snapshot and the delivering set for learning fan-out.
     t.prevWeight = this.focus.weight;
     t.deliveringReflexes =
       t.decision.action != null
@@ -637,7 +647,8 @@ export class GameFocus {
         : { action: '', truth: { f: 0, c: 0 }, source: 'none' },
     });
     if (vetoDerivation)
-      this.vetoJustifications.push(
+      pushCapped(
+        this.vetoJustifications,
         this.buildVetoJustification(this.cycle, t.decision.action!, vetoDerivation)
       );
   }

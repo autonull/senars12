@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { parseOrThrow } from '@senars/util';
 
 /**
  * ============================================================================
@@ -612,52 +613,17 @@ export type RewardGateOutput = z.infer<typeof RewardGateOutputSchema>;
 export type BudgetGateInput = z.infer<typeof BudgetGateInputSchema>;
 export type BudgetGateOutput = z.infer<typeof BudgetGateOutputSchema>;
 
-export const validateCognitiveEvent = (event: unknown): CognitiveEvent => {
-  const result = CognitiveEventSchema.safeParse(event);
-  if (!result.success) {
-    throw new Error(
-      `Invalid CognitiveEvent: ${result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`
-    );
-  }
-  return result.data;
-};
+export const validateCognitiveEvent = (event: unknown): CognitiveEvent =>
+  parseOrThrow(CognitiveEventSchema, 'CognitiveEvent', event);
 
-export const validateReasoningBudget = (budget: unknown): ReasoningBudget => {
-  const result = ReasoningBudgetSchema.safeParse(budget);
-  if (!result.success) {
-    throw new Error(
-      `Invalid ReasoningBudget: ${result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`
-    );
-  }
-  return result.data;
-};
+export const validateReasoningBudget = (budget: unknown): ReasoningBudget =>
+  parseOrThrow(ReasoningBudgetSchema, 'ReasoningBudget', budget);
 
-export const validateDerivationRecord = (record: unknown): DerivationRecord => {
-  const result = DerivationRecordSchema.safeParse(record);
-  if (!result.success) {
-    throw new Error(
-      `Invalid DerivationRecord: ${result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`
-    );
-  }
-  return result.data;
-};
+export const validateDerivationRecord = (record: unknown): DerivationRecord =>
+  parseOrThrow(DerivationRecordSchema, 'DerivationRecord', record);
 
-export const validateFormalizationCandidate = (candidate: unknown): FormalizationCandidate => {
-  const result = FormalizationCandidateSchema.safeParse(candidate);
-  if (!result.success) {
-    throw new Error(
-      `Invalid FormalizationCandidate: ${result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`
-    );
-  }
-  return result.data;
-};
+export const validateFormalizationCandidate = (candidate: unknown): FormalizationCandidate =>
+  parseOrThrow(FormalizationCandidateSchema, 'FormalizationCandidate', candidate);
 
-export const validateFormalizationBatch = (batch: unknown): FormalizationBatch => {
-  const result = FormalizationBatchSchema.safeParse(batch);
-  if (!result.success) {
-    throw new Error(
-      `Invalid FormalizationBatch: ${result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`
-    );
-  }
-  return result.data;
-};
+export const validateFormalizationBatch = (batch: unknown): FormalizationBatch =>
+  parseOrThrow(FormalizationBatchSchema, 'FormalizationBatch', batch);

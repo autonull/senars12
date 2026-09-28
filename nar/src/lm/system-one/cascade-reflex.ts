@@ -4,7 +4,7 @@ import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.
 import type { EmbeddingPointer, JudgmentManifold, JudgmentQuery, JudgmentProposition } from './types.js';
 import { sha256Hex } from '../../utils/hash.js';
 import type { BandDecision } from './policy.js';
-import { isFitted, provenanceFrom, type JudgmentProvenance } from './decide.js';
+import { type JudgmentProvenance, stageProvenance } from './decide.js';
 
 /**
  * Two-stage placement fan-out (W7 / DQ2 — the first live `judgeCascade`
@@ -32,18 +32,6 @@ const FINE_QUERY = (action: string): JudgmentQuery => ({
   axis: 'teleological',
 });
 
-
-function deriveCascadeProvenance(
-  stage1: JudgmentProposition | undefined,
-  stage2: JudgmentProposition | undefined,
-  inputDigest: string,
-  decision: BandDecision,
-  abstained: boolean
-): JudgmentProvenance {
-  return provenanceFrom(stage2 ?? stage1, inputDigest, decision, abstained, {
-    fitted: isFitted(stage1) || isFitted(stage2),
-  });
-}
 
 interface PrefetchEntry {
   score: number;
@@ -88,7 +76,7 @@ export class PlacementCascadeReflex implements Reflex<Perception, string> {
         const rows = new Map<string, PrefetchEntry>();
         for (const r of ranked) {
           const prop = coarse[legalActions.indexOf(r.action)];
-          const provenance = deriveCascadeProvenance(prop, undefined, sha256Hex(r.action), 'act', !prop || prop.abstained);
+          const provenance = stageProvenance([prop, undefined], sha256Hex(r.action), 'act', !prop || prop.abstained);
           rows.set(r.action, { score: r.p, provenance });
         }
         this.#prefetch.set(stateId, rows);
@@ -107,7 +95,7 @@ export class PlacementCascadeReflex implements Reflex<Perception, string> {
         const p = fine[i];
         if (p && !p.abstained && p.kind === 'evaluate') {
           const coarseProp = coarse[legalActions.indexOf(action)];
-          const provenance = deriveCascadeProvenance(coarseProp, p, sha256Hex(action), 'act', false);
+          const provenance = stageProvenance([coarseProp, p], sha256Hex(action), 'act', false);
           rows.set(action, { score: p.score, provenance });
         }
       });

@@ -5,6 +5,14 @@ export const isNil = (value: unknown): value is null | undefined => value == nul
 export const ensureArray = <T>(arr: T | T[] | undefined | null): T[] =>
   arr == null ? [] : Array.isArray(arr) ? arr : [arr];
 
+/** Fixed-size slices for batched work — the one chunking primitive. */
+export const chunk = <T>(items: readonly T[], size: number): T[][] => {
+  const step = Math.max(1, Math.floor(size));
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += step) out.push(items.slice(i, i + step) as T[]);
+  return out;
+};
+
 export const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
 export const toError = (e: unknown): Error => (e instanceof Error ? e : new Error(String(e)));

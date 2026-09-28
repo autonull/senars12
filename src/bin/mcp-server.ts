@@ -10,6 +10,7 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createLogger } from '@senars/nar/logger';
+import { setupGracefulShutdown } from '@senars/util';
 import { JobManager } from './lib/mcp/job-manager.js';
 import { registerMCPPrompts } from './lib/mcp/mcp-prompts.js';
 import { registerMCPResources } from './lib/mcp/mcp-resources.js';
@@ -46,15 +47,7 @@ const getHttpPort = (): number => {
   return parseInt(process.env.MCP_PORT ?? '8766', 10);
 };
 
-const installSignalShutdown = (onShutdown: () => Promise<void>): void => {
-  const handler = async (signal: string) => {
-    logger.info(`Received ${signal}, shutting down...`);
-    await onShutdown();
-    process.exit(0);
-  };
-  process.on('SIGINT', () => handler('SIGINT'));
-  process.on('SIGTERM', () => handler('SIGTERM'));
-};
+
 
 const startSse = (port: number, guard: HttpGuard): void => {
   const sessions = new Map<string, SSEServerTransport>();
@@ -89,9 +82,9 @@ const startSse = (port: number, guard: HttpGuard): void => {
   httpServer.listen(port, () => {
     logger.info(`SeNARS MCP Server started with SSE at http://localhost:${port}/mcp/sse`);
   });
-  installSignalShutdown(async () => {
+  setupGracefulShutdown(async () => {
     await httpServer.close();
-  });
+  }, logger);
 };
 
 const startHttp = (port: number, guard: HttpGuard): void => {
@@ -116,10 +109,10 @@ const startHttp = (port: number, guard: HttpGuard): void => {
   httpServer.listen(port, () => {
     logger.info(`SeNARS MCP Server started on Streamable HTTP at http://localhost:${port}/mcp`);
   });
-  installSignalShutdown(async () => {
+  setupGracefulShutdown(async () => {
     await httpTransport.close();
     await httpServer.close();
-  });
+  }, logger);
 };
 
 async function initialize() {
@@ -154,7 +147,7 @@ async function initialize() {
       const transport = new StdioServerTransport();
       await server.connect(transport);
       logger.info('SeNARS MCP Server started on stdio');
-      installSignalShutdown(async () => server.close());
+      setupGracefulShutdown(async () => server.close(), logger);
       break;
     }
     case 'sse':

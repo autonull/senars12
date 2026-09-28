@@ -2,12 +2,8 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
 import { transformersJS } from '@browser-ai/transformers-js';
-import { extractLastUserMessage } from '@senars/util';
 import {
   createProviderRegistry,
   customProvider,
@@ -15,7 +11,6 @@ import {
   type LanguageModelMiddleware,
   wrapLanguageModel,
 } from 'ai';
-import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import {
   builtinModels,
   defaultModelFor,
@@ -27,6 +22,7 @@ import {
 import { getProviderRuntime, type ProviderRuntime } from '../provider-runtime.js';
 import { createEmbeddedLlamaCppLanguageModel } from './embedded-llamacpp.js';
 import { createLlamaCppFetch, LLAMACPP_HOST_DEFAULT } from './llamacpp.js';
+import { createMockModel } from './mock-model.js';
 import { resolveOfflineTier } from './routing.js';
 import { getLMSettings } from './settings.js';
 import { withThinkingDisabled } from './thinking.js';
@@ -197,63 +193,16 @@ export function createSeNARSRegistry(settings?: LMSettings) {
 export type SeNARSRegistry = ReturnType<typeof createSeNARSRegistry>;
 export type SeNARSModelId = Parameters<SeNARSRegistry['languageModel']>[0];
 
-// ---- Mock model (moved from lm-service — M3: breaks lm-service -> providers cycle) ----
+// ---- Mock model (shared shim — see providers/mock-model.ts) ----
 
 export function createMockLanguageModel(
   generateTextFn?: (prompt: string) => string | Promise<string>
 ): LanguageModelV3 {
-  const doGenerate: LanguageModelV3['doGenerate'] = async (options: LanguageModelV3CallOptions) => {
-    const key = extractLastUserMessage(options.prompt);
-    let responseText = generateTextFn
-      ? await generateTextFn(key)
-      : `Mock response: ${key.slice(0, 50)}`;
-
-    if (options.responseFormat?.type === 'json') {
-      responseText = JSON.stringify({ result: 'mock', data: responseText.slice(0, 100) });
-    }
-
-    const result: LanguageModelV3GenerateResult = {
-      content: [{ type: 'text', text: responseText }],
-      finishReason: { unified: 'stop', raw: 'stop' },
-      usage: {
-        inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-        outputTokens: { total: responseText.length, text: responseText.length, reasoning: 0 },
-      },
-      warnings: [],
-    };
-    return result;
-  };
-  const doStream: LanguageModelV3['doStream'] = async (options: LanguageModelV3CallOptions) => {
-    const key = extractLastUserMessage(options.prompt);
-    const responseText = generateTextFn
-      ? await generateTextFn(key)
-      : `Mock response: ${key.slice(0, 50)}`;
-    const chunks: LanguageModelV3StreamPart[] = [
-      { type: 'text-start', id: '0' },
-      { type: 'text-delta', id: '0', delta: responseText },
-      { type: 'text-end', id: '0' },
-      {
-        type: 'finish',
-        finishReason: { unified: 'stop', raw: 'stop' },
-        usage: {
-          inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-          outputTokens: {
-            total: responseText.length,
-            text: responseText.length,
-            reasoning: 0,
-          },
-        },
-      },
-    ];
-    const result: LanguageModelV3StreamResult = {
-      stream: simulateReadableStream({ chunks }),
-    };
-    return result;
-  };
-  return new MockLanguageModelV3({
-    provider: 'mock',
-    modelId: 'mock',
-    doGenerate,
-    doStream,
+  return createMockModel({
+    generateTextFn,
+    transformText: (text, options) =>
+      options.responseFormat?.type === 'json'
+        ? JSON.stringify({ result: 'mock', data: text.slice(0, 100) })
+        : text,
   });
 }

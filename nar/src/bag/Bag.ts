@@ -53,24 +53,43 @@ export interface Bag<T extends BagItem> {
   toArray(): T[];
 }
 
-interface InternalEntry<T extends BagItem> {
+export interface InternalEntry<T extends BagItem> {
   item: T;
   createdAt: number;
   lastAccessedAt: number;
 }
 
-export class PriorityBag<T extends BagItem> implements Bag<T> {
+/**
+ * Shared `Bag<T>` policy: capacity admission, decay, eviction, pressure, and
+ * sampling bookkeeping. Subclasses supply only the storage and the derived
+ * indexes (splice, weighted-pick, reindex) their backend maintains.
+ */
+export abstract class BaseBag<T extends BagItem> implements Bag<T> {
   /** Increments on every structural mutation — consumers use it to invalidate derived indexes. */
   version = 0;
   readonly capacity: number;
-  private decayRate: number;
-  private readonly forgetRate: number;
-  private heap: InternalEntry<T>[] = [];
-  private totalPriority = 0;
-  private readonly rng: RandomSource;
-  private readonly clock: () => number;
-  private readonly id: string;
-  private lastPressureLevel: 'normal' | 'high' | 'critical' = 'normal';
+  protected decayRate: number;
+  protected readonly forgetRate: number;
+  protected totalPriority = 0;
+  protected readonly rng: RandomSource;
+  protected readonly clock: () => number;
+  protected readonly id: string;
+  protected lastPressureLevel: 'normal' | 'high' | 'critical' = 'normal';
+
+  /** Priority-descending entry store — the single source of ordering truth. */
+  protected abstract get store(): InternalEntry<T>[];
+  /** Insert into priority-descending order, maintaining any derived indexes. */
+  protected abstract insertEntry(entry: InternalEntry<T>): void;
+  /** Remove and return the entry at `index`, maintaining any derived indexes. */
+  protected abstract eraseAt(index: number): InternalEntry<T>;
+  /** Drop the lowest-priority tail entry, maintaining any derived indexes. */
+  protected abstract dropLast(): void;
+  /** Wholesale replacement after a bulk filter, maintaining any derived indexes. */
+  protected abstract replaceAll(entries: InternalEntry<T>[]): void;
+  /** Locate an entry by id or identity; -1 when absent. */
+  protected abstract indexOf(idOrItem: string | T): number;
+  /** Priority-weighted pick over the current store; no total-priority precheck. */
+  protected abstract pickWeighted(): InternalEntry<T> | undefined;
 
   get decayRateValue(): number {
     return this.decayRate;
@@ -89,92 +108,79 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     this.id = options.id ?? generateId('bag');
   }
 
+  /** First index whose priority is below `priority` (binary search over the sorted store). */
+  protected insertIndex(priority: number): number {
+    const store = this.store;
+    let lo = 0;
+    let hi = store.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (store[mid]!.item.priority >= priority) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  }
+
   add(item: T): boolean {
     if (this.capacity === 0) return false;
+    if (this.store.length >= this.capacity && !this.shouldOverflow(item.priority)) return false;
 
     const now = this.clock();
-    const entry: InternalEntry<T> = {
-      item,
-      createdAt: now,
-      lastAccessedAt: now,
-    };
-
-    if (this.heap.length >= this.capacity) {
-      if (!this.shouldOverflow(item.priority)) return false;
-    }
-
-    const idx = this.heap.findIndex((e) => e.item.priority < item.priority);
-    if (idx === -1) {
-      this.heap.push(entry);
-    } else {
-      this.heap.splice(idx, 0, entry);
-    }
+    this.insertEntry({ item, createdAt: now, lastAccessedAt: now });
     this.totalPriority += item.priority;
     this.version++;
     return true;
   }
 
   sample(): T | undefined {
-    if (this.heap.length === 0) return undefined;
-
+    if (this.store.length === 0) return undefined;
     if (this.totalPriority <= 0) {
       this.recalcTotalPriority();
-      if (this.totalPriority <= 0) return this.heap[0]?.item;
+      if (this.totalPriority <= 0) return this.store[0]?.item;
     }
-
-    let r = this.rng() * this.totalPriority;
-    for (let i = 0; i < this.heap.length; i++) {
-      const e = this.heap[i];
-      if (e) {
-        r -= e.item.priority;
-        if (r <= 0) {
-          e.lastAccessedAt = this.clock();
-          return e.item;
-        }
-      }
-    }
-    return this.heap[0]?.item;
+    const entry = this.pickWeighted();
+    if (!entry) return undefined;
+    entry.lastAccessedAt = this.clock();
+    return entry.item;
   }
 
   remove(idOrItem: string | T): boolean {
-    let idx: number;
-    if (typeof idOrItem === 'string') {
-      idx = this.heap.findIndex((e) => e.item.id === idOrItem);
-    } else {
-      idx = this.heap.findIndex((e) => e.item === idOrItem);
-    }
-    if (idx >= 0) {
-      this.totalPriority -= this.heap[idx]!.item.priority;
-      this.heap.splice(idx, 1);
-      this.version++;
-      return true;
-    }
-    return false;
+    const idx = this.indexOf(idOrItem);
+    return idx < 0 ? false : this.dropAt(idx);
+  }
+
+  private dropAt(index: number): boolean {
+    this.totalPriority -= this.store[index]!.item.priority;
+    this.eraseAt(index);
+    this.version++;
+    return true;
   }
 
   decay(rate?: number): void {
-    const applied = rate ?? this.decayRate;
+    const factor = 1 - (rate ?? this.decayRate);
+    const kept: InternalEntry<T>[] = [];
     let newTotal = 0;
 
-    for (const entry of this.heap) {
-      entry.item.priority *= 1 - applied;
-      if (entry.item.priority < this.forgetRate) {
-        entry.item.priority = 0;
+    for (const entry of this.store) {
+      entry.item.priority *= factor;
+      if (entry.item.priority < this.forgetRate) entry.item.priority = 0;
+      if (entry.item.priority > 0) {
+        kept.push(entry);
+        newTotal += entry.item.priority;
       }
-      newTotal += entry.item.priority;
     }
 
-    this.heap = this.heap.filter((e) => e.item.priority > 0);
     this.totalPriority = newTotal;
+    this.replaceAll(kept);
     this.version++;
   }
 
   size(): number {
-    return this.heap.length;
+    return this.store.length;
   }
 
   find(predicate: (item: T) => boolean): T | undefined {
-    for (const entry of this.heap) {
+    for (const entry of this.store) {
       if (predicate(entry.item)) return entry.item;
     }
     return undefined;
@@ -182,10 +188,9 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
 
   removeMany(predicate: (item: T) => boolean): number {
     let removed = 0;
-    for (let i = this.heap.length - 1; i >= 0; i--) {
-      if (predicate(this.heap[i]!.item)) {
-        this.totalPriority -= this.heap[i]!.item.priority;
-        this.heap.splice(i, 1);
+    for (let i = this.store.length - 1; i >= 0; i--) {
+      if (predicate(this.store[i]!.item)) {
+        this.dropAt(i);
         removed++;
       }
     }
@@ -193,7 +198,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   }
 
   forEach(fn: (item: T) => void): void {
-    for (const entry of this.heap) {
+    for (const entry of this.store) {
       fn(entry.item);
     }
   }
@@ -210,112 +215,127 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   }
 
   pressure(): number {
-    const pressure = this.capacity === 0 ? 1 : Math.min(1, this.heap.length / this.capacity);
+    const pressure = this.capacity === 0 ? 1 : Math.min(1, this.store.length / this.capacity);
     this.checkPressureTransition(pressure);
     return pressure;
   }
 
   private checkPressureTransition(pressure: number): void {
-    let level: 'normal' | 'high' | 'critical' = 'normal';
-    if (pressure >= 0.9) level = 'critical';
-    else if (pressure >= 0.7) level = 'high';
-    if (level !== this.lastPressureLevel) {
-      this.lastPressureLevel = level;
-      emitBagPressureTransition({
-        bagId: this.id,
-        pressure,
-        capacity: this.capacity,
-        size: this.heap.length,
-        transition: level,
-      });
-    }
+    const level = pressure >= 0.9 ? 'critical' : pressure >= 0.7 ? 'high' : 'normal';
+    if (level === this.lastPressureLevel) return;
+    this.lastPressureLevel = level;
+    emitBagPressureTransition({
+      bagId: this.id,
+      pressure,
+      capacity: this.capacity,
+      size: this.store.length,
+      transition: level,
+    });
   }
 
   evict(strategy: EvictStrategy = 'LowestPriority'): void {
-    if (this.heap.length === 0) return;
+    const store = this.store;
+    if (store.length === 0) return;
     switch (strategy) {
       case 'LowestPriority':
-        this.totalPriority -= this.heap[this.heap.length - 1]!.item.priority;
-        this.heap.pop();
+        this.totalPriority -= store[store.length - 1]!.item.priority;
+        this.dropLast();
         this.version++;
         break;
       case 'LRU': {
         let lruIdx = 0;
-        let lruTime = this.heap[0]!.lastAccessedAt;
-        for (let i = 1; i < this.heap.length; i++) {
-          if (this.heap[i]!.lastAccessedAt < lruTime) {
-            lruTime = this.heap[i]!.lastAccessedAt;
-            lruIdx = i;
-          }
+        for (let i = 1; i < store.length; i++) {
+          if (store[i]!.lastAccessedAt < store[lruIdx]!.lastAccessedAt) lruIdx = i;
         }
-        this.totalPriority -= this.heap[lruIdx]!.item.priority;
-        this.heap.splice(lruIdx, 1);
-        this.version++;
+        this.dropAt(lruIdx);
         break;
       }
-      case 'Random': {
-        const idx = Math.floor(this.rng() * this.heap.length);
-        this.totalPriority -= this.heap[idx]!.item.priority;
-        this.heap.splice(idx, 1);
-        this.version++;
+      case 'Random':
+        this.dropAt(Math.floor(this.rng() * store.length));
         break;
-      }
     }
   }
 
   *all(): IterableIterator<T> {
-    for (const entry of this.heap) {
+    for (const entry of this.store) {
       yield entry.item;
     }
   }
 
   *entries(): IterableIterator<[T, number]> {
-    for (const entry of this.heap) {
+    for (const entry of this.store) {
       yield [entry.item, entry.item.priority];
     }
   }
 
   private shouldOverflow(priority: number): boolean {
-    if (this.heap.length === 0) return true;
-    const minPriority = this.heap[this.heap.length - 1]!.item.priority;
+    const store = this.store;
+    if (store.length === 0) return true;
+    const minPriority = store[store.length - 1]!.item.priority;
     if (priority <= minPriority) return false;
 
     this.totalPriority -= minPriority;
-    this.heap.pop();
+    this.dropLast();
     return true;
   }
 
   private recalcTotalPriority(): void {
     this.totalPriority = 0;
-    for (const entry of this.heap) {
+    for (const entry of this.store) {
       this.totalPriority += entry.item.priority;
     }
   }
 
   clear(): void {
-    this.heap = [];
+    this.replaceAll([]);
     this.totalPriority = 0;
     this.version++;
   }
 
   peek(): T | undefined {
-    return this.heap[0]?.item;
+    return this.store[0]?.item;
   }
 
   toArray(): T[] {
-    return this.heap.map((e) => e.item);
+    return this.store.map((e) => e.item);
   }
 }
 
-import { FenwickBag } from './FenwickBag.js';
+export class PriorityBag<T extends BagItem> extends BaseBag<T> {
+  private heap: InternalEntry<T>[] = [];
 
-/** Factory to create a Bag instance based on the implementation option. */
-export function createBag<T extends BagItem>(options: BagOptions): Bag<T> {
-  switch (options.implementation ?? 'priority') {
-    case 'fenwick':
-      return new FenwickBag<T>(options);
-    case 'priority':
-    default:
-      return new PriorityBag<T>(options);
+  protected get store(): InternalEntry<T>[] {
+    return this.heap;
+  }
+
+  protected insertEntry(entry: InternalEntry<T>): void {
+    this.heap.splice(this.insertIndex(entry.item.priority), 0, entry);
+  }
+
+  protected eraseAt(index: number): InternalEntry<T> {
+    return this.heap.splice(index, 1)[0]!;
+  }
+
+  protected dropLast(): void {
+    this.heap.pop();
+  }
+
+  protected replaceAll(entries: InternalEntry<T>[]): void {
+    this.heap = entries;
+  }
+
+  protected indexOf(idOrItem: string | T): number {
+    return typeof idOrItem === 'string'
+      ? this.heap.findIndex((e) => e.item.id === idOrItem)
+      : this.heap.findIndex((e) => e.item === idOrItem);
+  }
+
+  protected pickWeighted(): InternalEntry<T> | undefined {
+    let r = this.rng() * this.totalPriority;
+    for (const entry of this.heap) {
+      r -= entry.item.priority;
+      if (r <= 0) return entry;
+    }
+    return this.heap[0];
   }
 }

@@ -4,6 +4,7 @@
  * contrastive layer. A thin facade — all inference logic lives in the
  * manifold heads, contrastive memory, and policy utilities it composes.
  */
+import { chunk } from '@senars/util';
 import { sha256Hex } from '../../utils/hash.js';
 import { type ContrastiveMemory, rubricOf } from './contrastive.js';
 import {
@@ -157,16 +158,21 @@ export function provenanceFrom(
   };
 }
 
-function deriveProvenance(
-  propositions: readonly JudgmentProposition[],
+/**
+ * Provenance for a staged judgment chain: the winning stage (last judged
+ * non-empty) supplies the digest identity, any fitted stage lifts `fitted`.
+ */
+export function stageProvenance(
+  stages: readonly (JudgmentProposition | undefined)[],
   inputDigest: string,
   band: BandDecision,
   abstained: boolean,
   overrides: ProvenanceOverrides = {}
 ): JudgmentProvenance {
-  return provenanceFrom(propositions[0], inputDigest, band, abstained, {
+  const winner = [...stages].reverse().find((p) => p !== undefined);
+  return provenanceFrom(winner, inputDigest, band, abstained, {
     ...overrides,
-    fitted: overrides.fitted ?? propositions.some((p) => p.calibration.fitted),
+    fitted: overrides.fitted ?? stages.some(isFitted),
   });
 }
 
@@ -192,9 +198,10 @@ export function createDecider(deps: DecideDeps): Decider {
     const VETO_TRIGGER = 0.8;
     const propositions: JudgmentProposition[] = [];
     let shortCircuited = false;
-    for (let i = 0; i < request.queries.length && !shortCircuited; i += chunkSize) {
-      const end = Math.min(i + chunkSize, request.queries.length);
-      const batch = await deps.judge(contextPointer, request.queries.slice(i, end), request.budget);
+    for (const [i, slice] of chunk(request.queries, chunkSize).entries()) {
+      if (shortCircuited) break;
+      const end = i + slice.length;
+      const batch = await deps.judge(contextPointer, slice, request.budget);
       propositions.push(...batch);
       shortCircuited = request.queries
         .slice(i, end)
@@ -260,7 +267,7 @@ export function createDecider(deps: DecideDeps): Decider {
       band,
       abstained,
       abstainReason: abstained ? abstainReason : undefined,
-      provenance: deriveProvenance(propositions, sha256Hex(request.context), band, abstained, deps),
+      provenance: stageProvenance(propositions, sha256Hex(request.context), band, abstained, deps),
     };
   };
 
@@ -274,7 +281,7 @@ export function createDecider(deps: DecideDeps): Decider {
         abstained: true,
         abstainReason: 'no-candidates',
         contrastive: { penalties: {}, vetoes: [] },
-        provenance: deriveProvenance([], sha256Hex(''), 'abstain', true, deps),
+        provenance: stageProvenance([], sha256Hex(''), 'abstain', true, deps),
       };
     }
 
@@ -318,7 +325,7 @@ export function createDecider(deps: DecideDeps): Decider {
     const band = abstained ? 'abstain' : verdictBand(router, proposition);
     const inputDigest = sha256Hex(candidates.join('\n'));
     const provenance = {
-      ...deriveProvenance(proposition ? [proposition] : [], inputDigest, band, abstained, deps),
+      ...stageProvenance(proposition ? [proposition] : [], inputDigest, band, abstained, deps),
       inputDigest,
     };
     return {

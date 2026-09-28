@@ -11,6 +11,7 @@ import type { DerivationRecord, DerivationStep } from '@senars/kernel/schemas';
 import type { Term } from '../terms/index.js';
 import { termParser, serializeTerm, TermBuilder } from '../terms/index.js';
 import { substituteVariables } from '../terms/substitute.js';
+import { agreeByExactAlgebra } from '../reflex/metta-proposer.js';
 import type { IProposer, NegotiationInput, ProposerContribution } from '../reflex/Negotiator.js';
 import type { ActionProposal, LearningEvent } from '../reflex/Reflex.js';
 
@@ -269,16 +270,10 @@ export class ProofMettaProposer implements IProposer {
     if (!this.mettaEvaluator || !this.actionToExpression || input.reflexProposals.length === 0) {
       return {};
     }
-    const reflex: ActionProposal[] = [];
-    for (const p of input.reflexProposals) {
-      const expr = this.actionToExpression(p.action);
-      if (expr === undefined) continue;
-      const verdict = this.mettaEvaluator(expr);
-      if (verdict === true) {
-        reflex.push({ ...p, confidence: 1.0, source: 'proof-metta' });
-      }
-    }
-    return reflex.length > 0 ? { reflex } : {};
+    return agreeByExactAlgebra(input, this.actionToExpression, this.mettaEvaluator, {
+      source: 'proof-metta',
+      confidence: 1.0,
+    });
   }
 
   /** IProposer.learn: accept learning events (no-op for ProofMettaProposer; learns from derivations via learnFromDerivation). */

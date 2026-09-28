@@ -29,6 +29,8 @@ export {
   AgentOptionsValidationError,
   agentOptionsSchema,
   contextOptsSchema,
+  parseOrThrow,
+  SchemaValidationError,
   validateAgentOptions,
 } from './validation.js';
 export { systemOneDefaults, systemOneSchema, type SystemOneConfig } from './system-one.js';

@@ -42,24 +42,34 @@ export const agentOptionsSchema = z
 
 export type ValidatedAgentOptions = z.infer<typeof agentOptionsSchema>;
 
-export class AgentOptionsValidationError extends Error {
-  override name = 'AgentOptionsValidationError' as const;
+/** @public Structured Zod failure — one shape for every untrusted-boundary parse. */
+export class SchemaValidationError extends Error {
+  override name: string = 'SchemaValidationError';
 
   constructor(
-    message: string,
-    readonly issues: z.ZodIssue[]
+    readonly label: string,
+    readonly issues: z.core.$ZodIssue[]
   ) {
-    super(message);
+    super(`Invalid ${label}: ${issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`);
   }
 }
 
-export const validateAgentOptions = (opts: unknown): ValidatedAgentOptions => {
-  const result = agentOptionsSchema.safeParse(opts);
-  if (!result.success) {
-    throw new AgentOptionsValidationError(
-      `Invalid AgentOptions: ${result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`,
-      result.error.issues
-    );
-  }
+/** @public Parse `input` or throw a `SchemaValidationError` carrying the flattened issue list. */
+export const parseOrThrow = <S extends z.ZodType>(
+  schema: S,
+  label: string,
+  input: unknown,
+  ErrorType: new (label: string, issues: z.core.$ZodIssue[]) => Error = SchemaValidationError
+): z.output<S> => {
+  const result = schema.safeParse(input);
+  if (!result.success) throw new ErrorType(label, result.error.issues);
   return result.data;
 };
+
+/** @deprecated since 0.2.0 — use `SchemaValidationError`. */
+export class AgentOptionsValidationError extends SchemaValidationError {
+  override name = 'AgentOptionsValidationError';
+}
+
+export const validateAgentOptions = (opts: unknown): ValidatedAgentOptions =>
+  parseOrThrow(agentOptionsSchema, 'AgentOptions', opts, AgentOptionsValidationError);
