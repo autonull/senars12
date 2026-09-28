@@ -47,11 +47,13 @@ export const DEFAULT_REPUTATION_CAPACITY = 10_000;
  */
 export class SourceReputation {
   readonly #ledger: Ledger<ReputationDeltaEntry>;
+  /** Map insertion order is the LRU order: `#touch` re-inserts, eviction takes the first key. */
   readonly #entries = new Map<string, ReputationEntry>();
-  readonly #accessOrder = new Set<string>(); // LRU: least recently used at start
   readonly #floor: number;
   readonly #decayGate: number;
   readonly #capacity: number;
+  /** Resolves once the persisted ledger has been folded into `#entries`. */
+  readonly ready: Promise<void>;
 
   constructor(options: SourceReputationOptions = {}) {
     this.#floor = options.floor ?? 0.5;
@@ -63,35 +65,35 @@ export class SourceReputation {
       rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
     });
     
-    // Async load for rollover mode - fire and forget
-    this.#ledger.query({}).then((entries) => {
-      for (const r of entries) {
-        const entry = this.#entries.get(r.key) ?? { confirmed: 0, contradicted: 0 };
-        entry.confirmed += r.delta.confirmed ?? 0;
-        entry.contradicted += r.delta.contradicted ?? 0;
-        this.#entries.set(r.key, entry);
-        this.#touch(r.key);
-      }
-    }).catch(() => {});
+    this.ready = this.#ledger
+      .query({})
+      .then((entries) => {
+        for (const r of entries) {
+          const entry = this.#entries.get(r.key) ?? { confirmed: 0, contradicted: 0 };
+          entry.confirmed += r.delta.confirmed ?? 0;
+          entry.contradicted += r.delta.contradicted ?? 0;
+          this.#entries.set(r.key, entry);
+          this.#touch(r.key);
+        }
+      })
+      .catch(() => {});
   }
 
   /** LRU touch — moves key to most-recently-used position. */
   #touch(key: string): void {
-    this.#accessOrder.delete(key);
-    this.#accessOrder.add(key);
+    const entry = this.#entries.get(key);
+    if (entry === undefined) return;
+    this.#entries.delete(key);
+    this.#entries.set(key, entry);
     this.#evictIfNeeded();
   }
 
   /** Evict LRU entries if over capacity. */
   #evictIfNeeded(): void {
-    while (this.#entries.size > this.#capacity && this.#accessOrder.size > 0) {
-      const lru = this.#accessOrder.values().next().value;
-      if (lru) {
-        this.#accessOrder.delete(lru);
-        this.#entries.delete(lru);
-      } else {
-        break;
-      }
+    while (this.#entries.size > this.#capacity) {
+      const lru = this.#entries.keys().next().value;
+      if (lru === undefined) break;
+      this.#entries.delete(lru);
     }
   }
 

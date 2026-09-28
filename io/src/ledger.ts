@@ -4,8 +4,9 @@
  * ParameterLedger is the in-tree prototype; this generalizes its shape.
  */
 
-import { appendFileSync, mkdirSync, readFileSync, unlinkSync, statSync, promises as fs } from 'node:fs';
+import { promises as fs, readFileSync, statSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { appendJsonl, ensureDir, ensureDirSync } from '@senars/util';
 import { z } from 'zod';
 
 /**
@@ -146,64 +147,59 @@ export class Ledger<T extends BaseLedgerEntry> {
     this.#config.onWrite(validated);
   }
 
-  /** Query entries with optional filters. Checks hot cache first, then falls back to disk scan. */
+  /**
+   * Query entries with optional filters. The hot cache answers when it is
+   * sufficient; otherwise disk is authoritative — every append is written
+   * synchronously, so disk rows already contain the cached ones.
+   */
   async query(filter: LedgerQuery = {}): Promise<T[]> {
-    const { correlationId, sessionId, since, until, limit } = filter;
-
-    // Fast path: hot cache
     const cacheMatches = this.#hotCache.filter((e) => this.#matchesFilter(e, filter));
-    if (cacheMatches.length >= (limit ?? Number.POSITIVE_INFINITY)) {
-      return cacheMatches.slice(0, limit);
+    if (cacheMatches.length >= (filter.limit ?? Number.POSITIVE_INFINITY)) {
+      return cacheMatches.slice(0, filter.limit);
     }
 
-    // Fallback: scan disk
-    const diskMatches: T[] = [];
+    const diskMatches = await this.#scanDisk(filter);
+    if (diskMatches === null) return cacheMatches.slice(0, filter.limit);
+    return diskMatches;
+  }
+
+  /**
+   * Append-order scan of the rollover files (oldest first, `limit` takes the
+   * oldest rows). `null` means the ledger directory is unreadable — the caller
+   * falls back to the hot cache.
+   */
+  async #scanDisk(filter: LedgerQuery): Promise<T[] | null> {
+    const { limit } = filter;
+    const cap = limit ?? Number.POSITIVE_INFINITY;
+    const matches: T[] = [];
+    let files: string[];
     try {
-      // Rollover mode: scan directory for date files (newest first)
-      const files = await fs.readdir(this.#config.basePath);
-      const filesToScan = files
-        .filter((f) => f.endsWith('.jsonl'))
-        .sort()
-        .reverse();
+      files = await fs.readdir(this.#config.basePath);
+    } catch {
+      return null;
+    }
 
-      for (const file of filesToScan) {
-        if (diskMatches.length >= (limit ?? Number.POSITIVE_INFINITY)) break;
-
-        const filePath = join(this.#config.basePath, file);
-        const content = await fs.readFile(filePath, 'utf-8');
-        const lines = content.split('\n').filter(Boolean);
-
-        for (let i = lines.length - 1; i >= 0; i--) {
-          const line = lines[i];
-          if (!line) continue;
-          try {
-            const entry = this.#config.schema.parse(JSON.parse(line));
-            if (this.#matchesFilter(entry, filter)) {
-              this.#config.onRead(entry);
-              diskMatches.push(entry);
-              if (diskMatches.length >= (limit ?? Number.POSITIVE_INFINITY)) break;
-            }
-          } catch {
-            // Skip malformed lines
-          }
+    for (const file of files.filter((f) => f.endsWith('.jsonl')).sort()) {
+      if (matches.length >= cap) break;
+      const content = await fs.readFile(join(this.#config.basePath, file), 'utf-8');
+      const lines = content.split('\n');
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) continue;
+        let entry: T;
+        try {
+          entry = this.#config.schema.parse(JSON.parse(line));
+        } catch {
+          continue;
+        }
+        if (this.#matchesFilter(entry, filter)) {
+          this.#config.onRead(entry);
+          matches.push(entry);
+          if (matches.length >= cap) break;
         }
       }
-    } catch {
-      // Directory may not exist yet / file may not exist
     }
-
-    // Merge: hot cache entries are newer, so they win on dedupe by (correlationId, at)
-    const merged = [...cacheMatches];
-    const seen = new Set(cacheMatches.map((e) => `${e.correlationId ?? ''}:${e.at}`));
-    for (const e of diskMatches) {
-      const key = `${e.correlationId ?? ''}:${e.at}`;
-      if (!seen.has(key)) {
-        merged.push(e);
-        seen.add(key);
-      }
-    }
-
-    return merged.slice(0, limit);
+    return matches;
   }
 
   /** Rotate to a new file (daily rollover or cap reached). */
@@ -228,7 +224,7 @@ export class Ledger<T extends BaseLedgerEntry> {
 
     // Rollover mode: rewrite all files
     await fs.rm(this.#config.basePath, { recursive: true, force: true }).catch(() => {});
-    await fs.mkdir(this.#config.basePath, { recursive: true });
+    await ensureDir(this.#config.basePath);
 
     const date = new Date().toISOString().split('T')[0]!;
     const fileName = this.#config.rollover.pathTemplate(date, 0);
@@ -319,16 +315,14 @@ export class Ledger<T extends BaseLedgerEntry> {
       this.#currentEntries = 0;
       // Ensure directory exists (handle case where path exists as a file)
       try {
-        const stat = statSync(this.#config.basePath);
-        if (!stat.isDirectory()) {
+        if (!statSync(this.#config.basePath).isDirectory()) {
           // Path exists as a file - remove it and create directory
           unlinkSync(this.#config.basePath);
-          mkdirSync(this.#config.basePath, { recursive: true });
         }
       } catch {
-        // Directory doesn't exist or other error - create it
-        mkdirSync(this.#config.basePath, { recursive: true });
+        // Directory doesn't exist or other error - create it below
       }
+      ensureDirSync(this.#config.basePath);
     }
 
     // Per-file cap rollover
@@ -340,7 +334,7 @@ export class Ledger<T extends BaseLedgerEntry> {
     }
 
     try {
-      appendFileSync(targetFile, JSON.stringify(entry) + '\n', 'utf-8');
+      appendJsonl(targetFile, [entry]);
       this.#currentEntries++;
     } catch (error) {
       throw new Error(`Ledger write failed: ${(error as Error).message}`);
