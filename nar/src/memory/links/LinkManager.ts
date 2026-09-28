@@ -1,9 +1,9 @@
 import type { Term } from '../../terms';
 import { Layer } from './Layer.js';
 import { EmbeddingLayer } from './EmbeddingLayer.js';
-import type { LinkEntry, LinkManagerConfig, LinkType } from './types.js';
+import { LINK_LAYER, type LinkEntry, type LinkManagerConfig, type LinkType } from './types.js';
 
-const DEFAULT_LAYER = 'term';
+const DEFAULT_LAYER: string = LINK_LAYER.TERM;
 
 export class LinkManager {
   private readonly layers = new Map<string, Layer>();
@@ -27,7 +27,7 @@ export class LinkManager {
   }
 
   getEmbeddingLayer(): EmbeddingLayer | undefined {
-    const layer = this.layers.get('embedding');
+    const layer = this.layers.get(LINK_LAYER.EMBEDDING);
     return layer instanceof EmbeddingLayer ? layer : undefined;
   }
 

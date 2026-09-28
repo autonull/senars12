@@ -23,6 +23,7 @@ export {
   CompositeStrategy,
   DefaultFormationStrategy,
   DecompositionStrategy,
+  EmbeddingLinkStrategy,
   ExhaustiveStrategy,
   GoalDrivenStrategy,
   PrologResolutionStrategy,
@@ -32,4 +33,5 @@ export {
   SwitchingStrategy,
   TermLinkStrategy,
 } from './selection-strategies';
+export { createLinkLayerStrategy, LinkLayerStrategy } from './term-link';
 export type { Strategy } from '../types';

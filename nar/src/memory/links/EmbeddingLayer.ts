@@ -2,6 +2,7 @@ import type { Term } from '../../terms';
 import { cosineSimilarity, createEmbeddingGenerator, type EmbeddingGenerator } from '../embedding.js';
 import { selectTopN } from '../../utils/collections.js';
 import { Layer } from './Layer.js';
+import { LINK_LAYER } from './types.js';
 
 export interface EmbeddingLayerConfig {
   capacity: number;
@@ -34,7 +35,7 @@ export class EmbeddingLayer extends Layer {
   private readonly storedEntries = new Map<string, StoredEntry>();
 
   constructor(config: EmbeddingLayerConfig) {
-    super('embedding', config.capacity, 'priority');
+    super(LINK_LAYER.EMBEDDING, config.capacity, 'priority');
     this.similarityThreshold = config.similarityThreshold;
     this.maxLinksPerConcept = config.maxLinksPerConcept;
     this.embeddingGenerator = createEmbeddingGenerator();

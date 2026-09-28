@@ -6,7 +6,10 @@ import type { Term, Truth } from '../../terms';
 import type { Task } from '../../types';
 import { createBeliefTask } from '../../types';
 import type { ComponentMetadata, Strategy } from '../types.js';
-import { TermLinkStrategy as RealTermLinkStrategy } from './term-link';
+import {
+  EmbeddingLinkStrategy as RealEmbeddingLinkStrategy,
+  TermLinkStrategy as RealTermLinkStrategy,
+} from './term-link';
 
 const logger = createLogger({ scope: 'Strategies' });
 
@@ -48,10 +51,15 @@ export const AnalogicalStrategy: Strategy = withMeta(
   'Match inheritance terms with overlapping subject/predicate'
 );
 
-export const TermLinkStrategy: Strategy = new RealTermLinkStrategy({
-  minLinkPriority: 0.3,
-  maxLinks: 20,
-});
+export const TermLinkStrategy: Strategy = withMeta(
+  new RealTermLinkStrategy({ minLinkPriority: 0.3, maxLinks: 20 }),
+  'Term-link premises plus the subject and predicate link neighbourhoods'
+);
+
+export const EmbeddingLinkStrategy: Strategy = withMeta(
+  new RealEmbeddingLinkStrategy({ minLinkPriority: 0.3, maxLinks: 20 }),
+  'Semantic premises from the embedding layer\'s similarity links'
+);
 
 export const SampledStrategy: Strategy = withMeta(
   createStrategy({

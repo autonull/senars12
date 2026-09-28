@@ -7,6 +7,7 @@ import { getSubject, getPredicate } from '../../terms';
 import type { Term } from '../../terms';
 import { getSharedConceptGraph } from '../lm-graph/RuleGraph.js';
 import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';
+import { LINK_LAYER } from '../../memory/links/types.js';
 
 export type PremiseSource = (task: Task, memory: MemoryView, n?: number) => Concept[];
 
@@ -23,7 +24,7 @@ export const PREMISE_SOURCES = {
   concepts: (task: Task, memory: MemoryView): Concept[] => memory.listConcepts(),
   links: (task: Task, memory: MemoryView): Concept[] => {
     const linkManager = memory.getLinkManager();
-    const termLinks = linkManager.getLayer('term');
+    const termLinks = linkManager.getLayer(LINK_LAYER.TERM);
     if (!termLinks) return [];
     const links = termLinks.getLinksByTerm(task.term);
     const concepts: Concept[] = [];

@@ -10,6 +10,11 @@ export type LinkType =
 
 export type LinkForgetPolicy = 'priority' | 'lru' | 'fifo' | 'random';
 
+/** Well-known associative-memory layers; any other name registers on demand. */
+export const LINK_LAYER = { TERM: 'term', EMBEDDING: 'embedding' } as const;
+
+export type KnownLinkLayer = (typeof LINK_LAYER)[keyof typeof LINK_LAYER];
+
 export interface LinkEntry {
   id: string;
   sourceTerm: Term;
