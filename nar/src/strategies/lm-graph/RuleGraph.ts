@@ -1,3 +1,5 @@
+import { selectTopN } from '../../utils/collections.js';
+
 /**
  * RuleGraph — composite LM-rule strategy using ConceptGraph co-activation edges.
  * Registered as 'lm-graph' strategy in CognitiveRegistry.
@@ -94,8 +96,9 @@ export class RuleGraph implements LMRuleSelector {
       return { rule, score };
     });
 
-    scoredRules.sort((a, b) => b.score - a.score);
-    const selected = scoredRules.slice(0, Math.max(1, Math.floor(rules.length * 0.5))).map((s) => s.rule);
+    const selected = selectTopN(scoredRules, Math.max(1, Math.floor(rules.length * 0.5)), (s) => s.score).map(
+      (s) => s.rule
+    );
 
     // Activate focus term and selected rule condition terms for future co-activation learning
     this.graph.activate(focusTerm);

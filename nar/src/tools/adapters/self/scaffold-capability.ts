@@ -1,7 +1,7 @@
 import { dirname, resolve } from 'node:path';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { type SelfToolsContext, withShadowWorktree } from './context.js';
+import { type SelfToolsContext, withShadowWorktree, toToolResult } from './context.js';
 
 export const scaffoldCapabilityTool = (ctx: SelfToolsContext) => {
   const { deps, shadowManager } = ctx;
@@ -100,7 +100,7 @@ export const ${capabilityId}_rule: RegisteredRule = {
         }
       );
 
-      return outcome.ok ? outcome.value : { success: false, error: outcome.error };
+      return toToolResult(outcome);
     },
   });
 };

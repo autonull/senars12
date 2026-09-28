@@ -47,7 +47,7 @@ describe('System One — Telemetry Emission (R2)', () => {
     console.log('Admit result:', result);
     
     // The gate's eventLog should contain judgment.resolved events
-    const events = (gate as any).eventLog;
+    const events = gate.getEventLog() as any[];
     const judgmentEvents = events.filter((e: any) => e.type === 'judgment.resolved');
     
     // Debug: print all events
@@ -67,7 +67,7 @@ describe('System One — Telemetry Emission (R2)', () => {
       sourceId: 'test-source',
     });
 
-    const events = (gate as any).eventLog;
+    const events = gate.getEventLog() as any[];
     const judgmentEvents = events.filter((e: any) => e.type === 'judgment.resolved');
     
     expect(judgmentEvents.length).toBe(6);
@@ -130,7 +130,7 @@ describe('System One — Telemetry Emission (R2)', () => {
       sourceId: 'test-source',
     });
 
-    const events = (disabledGate as any).eventLog;
+    const events = disabledGate.getEventLog() as any[];
     const judgmentEvents = events.filter((e: any) => e.type === 'judgment.resolved');
     
     expect(judgmentEvents.length).toBe(0);
@@ -149,7 +149,7 @@ describe('System One — Telemetry Emission (R2)', () => {
       sourceId: 'test-source',
     });
 
-    const events = (gate as any).eventLog;
+    const events = gate.getEventLog() as any[];
     const judgmentEvents = events.filter((e: any) => e.type === 'judgment.resolved');
     
     // Proposition count == event count (6 ingress queries)

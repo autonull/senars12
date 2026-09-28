@@ -2,7 +2,7 @@ import type { BinAgentApi as Agent } from '@senars/nar/agent';
 import type { CLICommand } from '@senars/io/connections/cli';
 import { QUIT_SENTINEL } from '@senars/io/connections/cli';
 import type { NAR } from '@senars/nar';
-import { truncate } from '@senars/util';
+import { type LMExecutionStats, truncate } from '@senars/util';
 import type { ConversationSession, SessionManager } from '@senars/util/types/memory';
 import {
   formatAgentStatus,
@@ -19,18 +19,11 @@ export const cmd = (
   execute: (args?: string) => string | Promise<string>
 ): CLICommand => ({ name, description, execute });
 
-export interface LMStats {
-  totalCalls: number;
-  successfulCalls: number;
-  failedCalls: number;
-  averageDuration: number;
-}
-
 export interface LMHandle {
   readonly provider?: string;
   readonly model?: string;
 
-  getStats(): LMStats | undefined;
+  getStats(): LMExecutionStats | undefined;
 }
 
 export const REPL_HELP = `

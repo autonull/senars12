@@ -11,6 +11,7 @@ import {
   type DecideResult,
   type Decider,
 } from '../lm/system-one/decide.js';
+import type { ReflexBindable } from '../focus/GameFocus.js';
 import { createDispatcher, StubCortex } from '../lm/system-one/dispatcher.js';
 import { JudgmentDataset } from '../lm/system-one/distill.js';
 import { createEmbeddingCache, type EmbeddingCache } from '../lm/system-one/embedding-cache.js';
@@ -306,14 +307,7 @@ export class SystemOneRuntime {
    * Create and bind a ManifoldReflex to a GameFocus.
    * Returns the created reflex for external management, or undefined if System One is disabled.
    */
-  attachManifoldReflex(gameFocus: {
-    bindReflex: (reflex: Reflex) => void;
-    setReflexPrefetchContext?: (context: {
-      manifold: JudgmentManifold;
-      embeddingCache: EmbeddingCache;
-      budget: ReasoningBudget;
-    }) => void;
-  }): Reflex | undefined {
+  attachManifoldReflex(gameFocus: ReflexBindable): Reflex | undefined {
     if (!this.dispatcher || !this.manifold || !this.embeddingCache) return undefined;
 
     // Create incumbent reflex as fallback
@@ -343,14 +337,7 @@ export class SystemOneRuntime {
    * Undefined when System One (dispatcher) is disabled.
    */
   attachLMReflex(
-    gameFocus: {
-      bindReflex: (reflex: Reflex) => void;
-      setReflexPrefetchContext?: (context: {
-        manifold: JudgmentManifold;
-        embeddingCache: EmbeddingCache;
-        budget: ReasoningBudget;
-      }) => void;
-    },
+    gameFocus: ReflexBindable,
     options: { maxCandidates?: number } = {}
   ): Reflex | undefined {
     if (!this.dispatcher || !this.embeddingCache || !this.manifold) return undefined;

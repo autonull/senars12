@@ -1,4 +1,4 @@
-import type { LMExecutionStats, LMTask } from '@senars/util';
+import type { LMExecutionStats, LMGenerateOptions, LMTask } from '@senars/util';
 import { generateObject, generateText, type LanguageModel, streamText, zodSchema } from 'ai';
 import { trace } from '@opentelemetry/api';
 import { withSpan } from '../../otel/index.js';
@@ -158,19 +158,7 @@ export class LMService implements ILMService {
     });
   }
 
-  private async generateTextInner(
-    prompt: string,
-    opts?: {
-      task?: LMTask;
-      signal?: AbortSignal;
-      temperature?: number;
-      maxOutputTokens?: number;
-      /** H2: explicit per-call model id (e.g. 'cloud:quality') — bypasses the routing chain. */
-      model?: string;
-      /** GBNF grammar for constrained decoding (llamacpp provider). */
-      grammar?: string;
-    }
-  ): Promise<string> {
+  private async generateTextInner(prompt: string, opts?: LMGenerateOptions): Promise<string> {
     const model = this.getModel(opts?.task ?? 'fast', opts?.model);
     if (!model) throw new Error('No model available');
 

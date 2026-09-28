@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 import { tool } from 'ai';
 import { z } from 'zod';
+import { parseCoverageFiles, type FileCoverage } from './vitest-json.js';
 
 // --- coverage_concepts ---
 
@@ -9,102 +10,6 @@ export interface CoverageConceptDeps {
   workspaceRoot?: string;
   memory?: any; // NAR Memory instance
   threshold?: number; // Coverage threshold (default 80%)
-}
-
-interface FileCoverage {
-  path: string;
-  lines: { total: number; covered: number; pct: number };
-  statements: { total: number; covered: number; pct: number };
-  functions: { total: number; covered: number; pct: number };
-  branches: { total: number; covered: number; pct: number };
-}
-
-function parseCoverageMap(output: string): FileCoverage[] {
-  try {
-    const lines = output.trim().split('\n');
-    let jsonStart = -1;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (line?.trim().startsWith('{')) {
-        jsonStart = i;
-        break;
-      }
-    }
-    if (jsonStart === -1) return [];
-    const jsonStr = lines.slice(jsonStart).join('\n');
-    const data = JSON.parse(jsonStr);
-
-    const results: FileCoverage[] = [];
-    if (data.coverageMap) {
-      for (const [filePath, fileCoverage] of Object.entries(data.coverageMap)) {
-        const fc = fileCoverage as any;
-
-        let totalLines = 0;
-        let coveredLines = 0;
-        let totalStatements = 0;
-        let coveredStatements = 0;
-        let totalFunctions = 0;
-        let coveredFunctions = 0;
-        let totalBranches = 0;
-        let coveredBranches = 0;
-
-        if (fc.l) {
-          for (const [, count] of Object.entries(fc.l)) {
-            totalLines++;
-            if ((count as number) > 0) coveredLines++;
-          }
-        }
-        if (fc.s) {
-          for (const [, count] of Object.entries(fc.s)) {
-            totalStatements++;
-            if ((count as number) > 0) coveredStatements++;
-          }
-        }
-        if (fc.f) {
-          for (const [, count] of Object.entries(fc.f)) {
-            totalFunctions++;
-            if ((count as number) > 0) coveredFunctions++;
-          }
-        }
-        if (fc.b) {
-          for (const [, count] of Object.entries(fc.b)) {
-            totalBranches++;
-            if ((count as number) > 0) coveredBranches++;
-          }
-        }
-
-        const linesTotal = totalLines > 0 ? totalLines : totalStatements;
-        const linesCovered = totalLines > 0 ? coveredLines : coveredStatements;
-
-        results.push({
-          path: filePath,
-          lines: {
-            total: linesTotal,
-            covered: linesCovered,
-            pct: linesTotal > 0 ? (linesCovered / linesTotal) * 100 : 0,
-          },
-          statements: {
-            total: totalStatements,
-            covered: coveredStatements,
-            pct: totalStatements > 0 ? (coveredStatements / totalStatements) * 100 : 0,
-          },
-          functions: {
-            total: totalFunctions,
-            covered: coveredFunctions,
-            pct: totalFunctions > 0 ? (coveredFunctions / totalFunctions) * 100 : 0,
-          },
-          branches: {
-            total: totalBranches,
-            covered: coveredBranches,
-            pct: totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 0,
-          },
-        });
-      }
-    }
-    return results;
-  } catch {
-    return [];
-  }
 }
 
 export function createCoverageConceptTools(deps: CoverageConceptDeps = {}) {
@@ -152,7 +57,7 @@ export function createCoverageConceptTools(deps: CoverageConceptDeps = {}) {
             try {
               const { readFile } = await import('node:fs/promises');
               const outputContent = await readFile(outputFile, 'utf-8');
-              fileCoverages = parseCoverageMap(outputContent);
+              fileCoverages = parseCoverageFiles(outputContent);
             } catch {
               resolve({
                 success: false,

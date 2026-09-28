@@ -1,7 +1,7 @@
 import { dirname, resolve } from 'node:path';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { type SelfToolsContext, withShadowWorktree } from './context.js';
+import { type SelfToolsContext, withShadowWorktree, toToolResult } from './context.js';
 
 export const registerToolTool = (ctx: SelfToolsContext) => {
   const { deps, shadowManager } = ctx;
@@ -49,7 +49,7 @@ export const registerToolTool = (ctx: SelfToolsContext) => {
         }
       );
 
-      return outcome.ok ? outcome.value : { success: false, error: outcome.error };
+      return toToolResult(outcome);
     },
   });
 };

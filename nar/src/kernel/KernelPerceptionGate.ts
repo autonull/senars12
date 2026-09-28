@@ -10,7 +10,7 @@ import type {
 import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { normalizeNarsese } from '../nl/normalize.js';
-import { pushBounded, recordPolicyViolation } from './event-ring.js';
+import { BoundedEventLog, recordPolicyViolation } from './event-ring.js';
 import { domainKey } from './reputation-keys.js';
 import { recordGateDecision } from '../telemetry/index.js';
 import type { TaskTypeName, Term } from '../terms';
@@ -37,7 +37,7 @@ export interface KernelPerceptionGateConfig {
 }
 
 export class KernelPerceptionGate {
-  private eventLog: CognitiveEvent[] = [];
+  readonly eventLog = new BoundedEventLog<CognitiveEvent>();
   private config: KernelPerceptionGateConfig;
   private judge: IngressJudge | null = null;
   /** D23: optional DriveManager hook — ambiguity stimulates curiosity. */
@@ -79,7 +79,7 @@ export class KernelPerceptionGate {
   }
 
   #pushEvent(event: CognitiveEvent): void {
-    pushBounded(this.eventLog, event);
+    this.eventLog.push(event);
   }
 
   /** Emit a shadow validation drop event to the gate's event log. */
@@ -384,10 +384,10 @@ export class KernelPerceptionGate {
   }
 
   getEventLog(): ReadonlyArray<CognitiveEvent> {
-    return this.eventLog;
+    return this.eventLog.toArray();
   }
 
   clearEventLog(): void {
-    this.eventLog = [];
+    this.eventLog.clear();
   }
 }

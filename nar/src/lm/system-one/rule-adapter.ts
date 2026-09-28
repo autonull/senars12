@@ -5,6 +5,7 @@ import type { Budget, Task, TruthType } from '../../types';
 import { createBudget, createTask, createTimestamp } from '../../types/core.js';
 import type { CognitiveDispatcher, EvaluateQuery, JudgmentProposition } from './types.js';
 import { createSystemOneBudget } from './types.js';
+import { selectTopN } from '../../utils/collections.js';
 
 export interface SystemOneLMRuleAdapterConfig {
   dispatcher: CognitiveDispatcher;
@@ -144,10 +145,8 @@ export class SystemOneLMRuleAdapter {
         const noveltyScore = props[1]?.kind === 'evaluate' ? props[1].score : 0.5;
         scores.push({ trace, score: noveltyScore - conflictScore });
       }
-      scores.sort((a, b) => b.score - a.score);
-
       const tasks: Task[] = [];
-      for (const { trace, score } of scores.slice(0, 2)) {
+      for (const { trace, score } of selectTopN(scores, 2, (s) => s.score)) {
         const term = termParser.parse(trace);
         if (!term) continue;
         tasks.push(

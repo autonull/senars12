@@ -1,4 +1,4 @@
-import type { LMExecutionStats, LMTask } from '@senars/util';
+import type { LMExecutionStats, LMGenerateOptions, LMTask } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import type { ZodSchema } from 'zod';
 import type { ProviderSpend } from './lm-service.js';
@@ -17,17 +17,7 @@ export interface ILMService {
   hasModel(): boolean;
   getStats(): LMExecutionStats;
 
-  generateText(
-    prompt: string,
-    opts?: {
-      task?: LMTask;
-      signal?: AbortSignal;
-      temperature?: number;
-      maxOutputTokens?: number;
-      model?: string;
-      grammar?: string;
-    }
-  ): Promise<string>;
+  generateText(prompt: string, opts?: LMGenerateOptions): Promise<string>;
 
   tryGenerateText(
     prompt: string,

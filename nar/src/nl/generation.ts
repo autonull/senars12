@@ -1,5 +1,6 @@
 import type { LanguageModel } from 'ai';
 import { generateObject, zodSchema } from 'ai';
+import { formatTruth } from '@senars/util';
 import type { SeNARSRegistry } from '../lm';
 import { getModelForTask } from '../lm';
 import type { ILMService } from '../lm/interfaces.js';
@@ -150,9 +151,7 @@ export class NLGenerationService {
     }
 
     const best = derivation.newBeliefs[0]!;
-    const truth = best.truth
-      ? ` (f=${best.truth.frequency.toFixed(2)}, c=${best.truth.confidence.toFixed(2)})`
-      : '';
+    const truth = best.truth ? ` ${formatTruth(best.truth)}` : '';
 
     return {
       response: `Based on reasoning: ${best.term}${truth}`,

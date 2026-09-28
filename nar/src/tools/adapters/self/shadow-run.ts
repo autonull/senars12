@@ -1,6 +1,7 @@
-import { spawn } from 'node:child_process';
 import { tool } from 'ai';
 import { z } from 'zod';
+import { runProcess } from '../proc.js';
+import { parseVitestJson } from '../vitest-json.js';
 import type { SelfToolsContext } from './context.js';
 
 export const runTestsShadowTool = ({ shadowManager, worktreeId }: SelfToolsContext) =>
@@ -28,81 +29,22 @@ export const runTestsShadowTool = ({ shadowManager, worktreeId }: SelfToolsConte
         const args = ['vitest', 'run', '--reporter=json'];
         if (testPath) args.push(testPath);
 
-        const result = await new Promise<{
-          success: boolean;
-          passed: number;
-          failed: number;
-          total: number;
-          duration: number;
-        }>((resolve) => {
-          const child = spawn('pnpm', args, {
-            cwd: worktreePath,
-            stdio: ['pipe', 'pipe', 'pipe'],
-          });
-
-          let stdout = '';
-          const startTime = Date.now();
-
-          child.stdout?.on('data', (data: Buffer) => {
-            stdout += data.toString();
-          });
-
-          child.on('close', (code) => {
-            try {
-              const lines = stdout.trim().split('\n');
-              let jsonStart = -1;
-              for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                if (line?.trim().startsWith('{')) {
-                  jsonStart = i;
-                  break;
-                }
-              }
-              if (jsonStart >= 0) {
-                const data = JSON.parse(lines.slice(jsonStart).join('\n'));
-                resolve({
-                  success: data.success,
-                  passed: data.numPassedTests ?? 0,
-                  failed: data.numFailedTests ?? 0,
-                  total: data.numTotalTests ?? 0,
-                  duration: Date.now() - startTime,
-                });
-              } else {
-                resolve({
-                  success: code === 0,
-                  passed: 0,
-                  failed: 0,
-                  total: 0,
-                  duration: Date.now() - startTime,
-                });
-              }
-            } catch {
-              resolve({
-                success: code === 0,
-                passed: 0,
-                failed: 0,
-                total: 0,
-                duration: Date.now() - startTime,
-              });
-            }
-          });
-
-          child.on('error', () =>
-            resolve({
-              success: false,
-              passed: 0,
-              failed: 0,
-              total: 0,
-              duration: Date.now() - startTime,
-            })
-          );
-        });
+        const startedAt = Date.now();
+        const { code, stdout } = await runProcess('pnpm', args, { cwd: worktreePath });
+        const parsed = parseVitestJson(stdout);
+        const result = {
+          success: parsed ? Boolean(parsed.success) : code === 0,
+          passed: parsed?.numPassedTests ?? 0,
+          failed: parsed?.numFailedTests ?? 0,
+          total: parsed?.numTotalTests ?? 0,
+          duration: Date.now() - startedAt,
+        };
 
         if (created) {
           await shadowManager.cleanupWorktree(`${worktreeId}-test`);
         }
 
-        return { ...result, success: result.success };
+        return result;
       } catch (error) {
         return { success: false, error: String(error) };
       }

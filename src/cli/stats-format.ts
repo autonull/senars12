@@ -5,15 +5,16 @@
 
 import type { NAR } from '@senars/nar';
 import type { BinAgentApi as Agent } from '@senars/nar/agent';
-import { limitList } from '@senars/util';
-import type { LMHandle, LMStats } from './commands.js';
+import { formatTruth, limitList } from '@senars/util';
+import type { LMExecutionStats } from '@senars/util';
+import type { LMHandle } from './commands.js';
 
 export interface FormattedStats {
   nar: string;
   lm: string;
 }
 
-export function formatLMStats(lmService: LMHandle): string {
+export function formatLMExecutionStats(lmService: LMHandle): string {
   const lmStats = lmService.getStats();
   const provider = lmService.provider ?? 'unknown';
   const model = lmService.model ?? 'unknown';
@@ -43,7 +44,7 @@ export function formatNARStats(nar: NAR): string {
 }
 
 export function formatCombinedStats(nar: NAR, lmService: LMHandle): string {
-  return `${formatNARStats(nar)}${formatLMStats(lmService)}`;
+  return `${formatNARStats(nar)}${formatLMExecutionStats(lmService)}`;
 }
 
 export function formatBeliefs(nar: NAR, limit = 20): string {
@@ -55,7 +56,7 @@ export function formatBeliefs(nar: NAR, limit = 20): string {
       limit,
       (b) => {
         const termStr = b.term?.toString?.() ?? String(b.term);
-        const truth = b.truth ? ` f=${b.truth.f.toFixed(2)} c=${b.truth.c.toFixed(2)}` : '';
+        const truth = b.truth ? ` ${formatTruth(b.truth)}` : '';
         return `  ${termStr}${truth}`;
       },
       'more'

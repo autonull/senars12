@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { pushCapped } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
 import type { DerivationRecord, ReasoningBudget } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
@@ -106,10 +107,11 @@ export interface ReflexPrefetchContext {
 /** AIKR bound for the unbounded-by-tick focus logs (audit tails stay inspectable). */
 const FOCUS_LOG_CAPACITY = 2000;
 
-const pushCapped = <T>(log: T[], entry: T): void => {
-  log.push(entry);
-  if (log.length > FOCUS_LOG_CAPACITY) log.splice(0, log.length - FOCUS_LOG_CAPACITY);
-};
+
+
+/** The GameFocus surface the System One / LM reflex binders need — one place to change. */
+export type ReflexBindable = Pick<GameFocus, 'bindReflex'> &
+  Partial<Pick<GameFocus, 'setReflexPrefetchContext'>>;
 
 export class GameFocus {
   readonly focus: Focus;
@@ -249,7 +251,7 @@ export class GameFocus {
   }
 
   private recordPanel(entry: TickPanelEntry): void {
-    if (this.cognitive) pushCapped(this.panelLog, entry);
+    if (this.cognitive) pushCapped(this.panelLog, entry, FOCUS_LOG_CAPACITY);
   }
 
   /** E7: build a DerivationRecord for a veto from the matched NAL derivation. */
@@ -649,7 +651,8 @@ export class GameFocus {
     if (vetoDerivation)
       pushCapped(
         this.vetoJustifications,
-        this.buildVetoJustification(this.cycle, t.decision.action!, vetoDerivation)
+        this.buildVetoJustification(this.cycle, t.decision.action!, vetoDerivation),
+        FOCUS_LOG_CAPACITY
       );
   }
 

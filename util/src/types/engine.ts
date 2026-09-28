@@ -1,5 +1,7 @@
 import type { CognitiveStimulus, Context, Derivation } from './cognitive.js';
 
+export type { CognitiveStimulus, Context, Derivation } from './cognitive.js';
+
 export type EngineId = string;
 
 export interface ToolResult {

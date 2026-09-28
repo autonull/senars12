@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import type { EmbeddingGenerator } from '../../memory/embedding.js';
 import { cosineSimilarity, createEmbeddingGenerator } from '../../memory/embedding.js';
+import { selectTopN } from '../../utils/collections.js';
 
 // --- rag_query ---
 
@@ -57,8 +58,7 @@ export function createRagQueryTools(deps: RagQueryDeps) {
             }
           }
 
-          scored.sort((a, b) => b.score - a.score);
-          const top = scored.slice(0, limit);
+          const top = selectTopN(scored, limit, (r) => r.score);
           return {
             results: top.map((r) => ({ ...r.episode, score: r.score })),
             count: top.length,

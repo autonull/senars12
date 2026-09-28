@@ -1,3 +1,4 @@
+import { pushCapped } from '@senars/util';
 import type { MetricsCollector } from '../../metrics';
 /**
  * Policy management - extracted from SelfAnalyzerService
@@ -36,15 +37,11 @@ export const createPolicyManager = (recencyEpisodes: number): PolicyManager => {
 
   return {
     recordRoute(kind: string) {
-      const cap = recencyEpisodes;
-      recentRoutes.push(kind);
-      if (recentRoutes.length > cap) recentRoutes.splice(0, recentRoutes.length - cap);
+      pushCapped(recentRoutes, kind, recencyEpisodes);
     },
 
     recordTool(name: string) {
-      const cap = recencyEpisodes;
-      recentTools.push(name);
-      if (recentTools.length > cap) recentTools.splice(0, recentTools.length - cap);
+      pushCapped(recentTools, name, recencyEpisodes);
     },
 
     recomputePolicy(metrics: MetricsCollector | null): AgentPolicy {

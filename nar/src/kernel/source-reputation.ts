@@ -10,6 +10,7 @@
 
 import { z } from 'zod';
 import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
+import { LruCache } from '@senars/util';
 import { clamp01 } from '../utils';
 
 export interface ReputationEntry {
@@ -47,18 +48,16 @@ export const DEFAULT_REPUTATION_CAPACITY = 10_000;
  */
 export class SourceReputation {
   readonly #ledger: Ledger<ReputationDeltaEntry>;
-  /** Map insertion order is the LRU order: `#touch` re-inserts, eviction takes the first key. */
-  readonly #entries = new Map<string, ReputationEntry>();
+  readonly #entries: LruCache<string, ReputationEntry>;
   readonly #floor: number;
   readonly #decayGate: number;
-  readonly #capacity: number;
   /** Resolves once the persisted ledger has been folded into `#entries`. */
   readonly ready: Promise<void>;
 
   constructor(options: SourceReputationOptions = {}) {
     this.#floor = options.floor ?? 0.5;
     this.#decayGate = options.contradictionsBeforeDecay ?? 2;
-    this.#capacity = options.capacity ?? DEFAULT_REPUTATION_CAPACITY;
+    this.#entries = new LruCache({ maxSize: options.capacity ?? DEFAULT_REPUTATION_CAPACITY });
     
     const path = options.path ?? DEFAULT_REPUTATION_PATH;
     this.#ledger = createLedger<ReputationDeltaEntry>(path, ReputationDeltaSchema, {
@@ -70,38 +69,18 @@ export class SourceReputation {
       .then((entries) => {
         for (const r of entries) {
           const entry = this.#entries.get(r.key) ?? { confirmed: 0, contradicted: 0 };
-          entry.confirmed += r.delta.confirmed ?? 0;
-          entry.contradicted += r.delta.contradicted ?? 0;
-          this.#entries.set(r.key, entry);
-          this.#touch(r.key);
+          this.#entries.set(r.key, {
+            confirmed: (this.#entries.peek(r.key)?.confirmed ?? 0) + (r.delta.confirmed ?? 0),
+            contradicted: (this.#entries.peek(r.key)?.contradicted ?? 0) + (r.delta.contradicted ?? 0),
+          });
         }
       })
       .catch(() => {});
   }
 
-  /** LRU touch — moves key to most-recently-used position. */
-  #touch(key: string): void {
-    const entry = this.#entries.get(key);
-    if (entry === undefined) return;
-    this.#entries.delete(key);
-    this.#entries.set(key, entry);
-    this.#evictIfNeeded();
-  }
-
-  /** Evict LRU entries if over capacity. */
-  #evictIfNeeded(): void {
-    while (this.#entries.size > this.#capacity) {
-      const lru = this.#entries.keys().next().value;
-      if (lru === undefined) break;
-      this.#entries.delete(lru);
-    }
-  }
-
   record(key: string, outcome: 'confirmed' | 'contradicted'): void {
     const entry = this.#entries.get(key) ?? { confirmed: 0, contradicted: 0 };
-    entry[outcome]++;
-    this.#entries.set(key, entry);
-    this.#touch(key);
+    this.#entries.set(key, { ...entry, [outcome]: entry[outcome] + 1 });
 
     const delta = outcome === 'confirmed'
       ? { confirmed: 1, contradicted: 0 }
@@ -118,7 +97,6 @@ export class SourceReputation {
   multiplier(key: string): number {
     const entry = this.#entries.get(key);
     if (!entry) return 1;
-    this.#touch(key);
     if (entry.contradicted < this.#decayGate) return 1;
     const share = entry.contradicted / Math.max(entry.confirmed + entry.contradicted, 1);
     return Math.max(this.#floor, clamp01(1 - share));
@@ -126,18 +104,17 @@ export class SourceReputation {
 
   /** `effectiveCeiling = baseQuality × multiplier` (clamped to [0, 1]). */
   effectiveCeiling(baseQuality: number, key: string): number {
-    const entry = this.#entries.get(key);
+    const entry = this.#entries.peek(key);
     if (!entry) return clamp01(baseQuality);
-    this.#touch(key);
     return clamp01(baseQuality * this.multiplier(key));
   }
 
   /** Reputation table for `.status` / retrospective audits. */
   table(): ReadonlyMap<string, ReputationEntry & { multiplier: number }> {
     return new Map(
-      [...this.#entries.entries()].map(([key, e]) => [
+      [...this.#entries.keys()].map((key) => [
         key,
-        { ...e, multiplier: this.multiplier(key) },
+        { ...this.#entries.peek(key)!, multiplier: this.multiplier(key) },
       ])
     );
   }
@@ -148,6 +125,6 @@ export class SourceReputation {
 
   /** Current capacity bound (for diagnostics/tests). */
   get capacity(): number {
-    return this.#capacity;
+    return this.#entries.maxSize;
   }
 }

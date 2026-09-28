@@ -9,6 +9,7 @@ import { mcReturns, recordMcReturnLabels } from '../../nar/src/lm/system-one/mc-
 import { actionFeatures, bakeOffSharedHead, type TrainingRow } from '../../nar/src/lm/system-one/train.js';
 import { induceEpisodeSchemas } from '../../nar/src/focus/episode-schemas.js';
 import { SchemaStore } from '../../nar/src/focus/schema-store.js';
+import { mulberry32 } from '../../nar/src/utils/random.js';
 
 /**
  * Bench 45 — Learning Closure (TODO19 Phase C)
@@ -81,14 +82,7 @@ describe('Bench 45 — Learning Closure', () => {
 
   it('L3 — bake-off: shared game-featured head transfers when per-game data is scarce', () => {
     const dim = 16;
-    const lcg = (seed: number): (() => number) => {
-      let s = seed >>> 0;
-      return () => {
-        s = (s + 0x6d2b79f5) >>> 0;
-        s = Math.imul(s ^ (s >>> 15), 1 | s);
-        return ((s ^ (s >>> 14)) >>> 0) / 4294967296;
-      };
-    };
+    const lcg = mulberry32;
     const state = (seed: number): Float32Array => {
       const e = new Float32Array(dim);
       const r = lcg(seed);
@@ -125,14 +119,7 @@ describe('Bench 45 — Learning Closure', () => {
 
   it('L3 — bake-off: conflicting game×state structure keeps per-game heads (honest loss)', () => {
     const dim = 16;
-    const lcg = (seed: number): (() => number) => {
-      let s = seed >>> 0;
-      return () => {
-        s = (s + 0x6d2b79f5) >>> 0;
-        s = Math.imul(s ^ (s >>> 15), 1 | s);
-        return ((s ^ (s >>> 14)) >>> 0) / 4294967296;
-      };
-    };
+    const lcg = mulberry32;
     const rows: TrainingRow[] = [];
     let n = 0;
     for (const game of ['conversation', 'tool-use']) {

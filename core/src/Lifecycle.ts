@@ -1,16 +1,8 @@
 export type ComponentState = 'created' | 'initialized' | 'started' | 'stopped' | 'disposed';
 
-export interface Logger {
-  debug(message: string, context?: Record<string, unknown>): void;
+import type { ScopedLogger } from '@senars/util';
 
-  info(message: string, context?: Record<string, unknown>): void;
-
-  warn(message: string, context?: Record<string, unknown>): void;
-
-  error(message: string, error?: Error, context?: Record<string, unknown>): void;
-
-  child(scope: string): Logger;
-}
+export type Logger = ScopedLogger;
 
 export interface Metrics {
   increment(name: string, value?: number, tags?: Record<string, unknown>): void;

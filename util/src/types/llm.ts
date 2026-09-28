@@ -14,6 +14,18 @@ export interface LMExecutionStats {
   averageCost: number;
 }
 
+/** The single per-call generation option bag — shared by every LM service interface. */
+export interface LMGenerateOptions {
+  task?: LMTask;
+  signal?: AbortSignal;
+  temperature?: number;
+  maxOutputTokens?: number;
+  /** Explicit per-call model id (e.g. 'cloud:quality') — bypasses the routing chain. */
+  model?: string;
+  /** GBNF grammar for constrained decoding. */
+  grammar?: string;
+}
+
 export interface LMService {
   readonly provider: string | undefined;
   readonly model: string | undefined;
@@ -25,15 +37,7 @@ export interface LMService {
 
   getStats(): LMExecutionStats;
 
-  generateText(
-    prompt: string,
-    opts?: {
-      task?: LMTask;
-      signal?: AbortSignal;
-      temperature?: number;
-      maxOutputTokens?: number;
-    }
-  ): Promise<string>;
+  generateText(prompt: string, opts?: LMGenerateOptions): Promise<string>;
 
   generateObject<T>(
     prompt: string,

@@ -1,4 +1,4 @@
-import { clamp01 } from '@senars/util';
+import { LruCache, clamp01 } from '@senars/util';
 import type { DriveManager } from '../drives/manager.js';
 import { type Term, TermBuilder, Truth, atom } from '../index.js';
 import type { NAR } from '../nar.js';
@@ -34,48 +34,26 @@ export class QBeliefStore {
   private readonly predictsRewardAtom = atom('predicts_reward');
   private readonly driveManager?: DriveManager;
   /** Per-state index of action terms with recorded values (X24). */
-  /** Map insertion order is the LRU order: `#touchState` re-inserts, eviction takes the first key. */
-  private readonly stateActions = new Map<string, Map<string, Term>>();
+  private readonly stateActions: LruCache<string, Map<string, Term>>;
   private readonly rng: RandomSource;
-  readonly #capacity: number;
 
   constructor(nar: NAR, rng: RandomSource = Math.random, options: QBeliefStoreOptions = {}) {
     this.nar = nar;
     this.rng = rng;
-    this.#capacity = options.capacity ?? DEFAULT_QBELIEF_CAPACITY;
+    this.stateActions = new LruCache({ maxSize: options.capacity ?? DEFAULT_QBELIEF_CAPACITY });
     this.driveManager = nar.getDriveManager?.();
-  }
-
-  /** LRU touch — moves state to most-recently-used position. */
-  #touchState(stateKey: string): void {
-    const actions = this.stateActions.get(stateKey);
-    if (actions === undefined) return;
-    this.stateActions.delete(stateKey);
-    this.stateActions.set(stateKey, actions);
-    this.#evictIfNeeded();
-  }
-
-  /** Evict LRU states if over capacity. */
-  #evictIfNeeded(): void {
-    while (this.stateActions.size > this.#capacity) {
-      const lru = this.stateActions.keys().next().value;
-      if (lru === undefined) break;
-      this.stateActions.delete(lru);
-    }
   }
 
   private indexValueBelief(state: Term, action: Term): void {
     const stateKey = state.toString();
-    const actions = this.stateActions.get(stateKey) ?? new Map<string, Term>();
+    const actions = new Map(this.stateActions.peek(stateKey) ?? []);
     actions.set(action.toString(), action);
     this.stateActions.set(stateKey, actions);
-    this.#touchState(stateKey);
   }
 
   /** Get value belief for state-action pair */
   getValue(state: Term, action: Term): { f: number; c: number } | null {
-    const stateKey = state.toString();
-    this.#touchState(stateKey);
+    this.stateActions.get(state.toString()); // recency: a read marks the state live
     const product = TermBuilder.product(state, action);
     const valueTerm = TermBuilder.inheritance(product, this.predictsRewardAtom);
     if (!valueTerm) return null;
@@ -159,7 +137,6 @@ export class QBeliefStore {
   /** Get max Q-value for a state across available actions */
   getMaxValue(state: Term, availableActions: Term[]): number {
     const stateKey = state.toString();
-    this.#touchState(stateKey);
     let maxValue = 0;
     for (const action of availableActions) {
       const value = this.getValue(state, action);
@@ -174,9 +151,8 @@ export class QBeliefStore {
   /** Get all recorded action values for a state (X24: real implementation). */
   getAllActions(state: Term): Map<string, { f: number; c: number }> {
     const stateKey = state.toString();
-    this.#touchState(stateKey);
     const results = new Map<string, { f: number; c: number }>();
-    for (const [actionKey, actionTerm] of this.stateActions.get(stateKey) ?? new Map()) {
+    for (const [actionKey, actionTerm] of this.stateActions.peek(stateKey) ?? new Map()) {
       const value = this.getValue(state, actionTerm);
       if (value) results.set(actionKey, value);
     }
@@ -186,7 +162,6 @@ export class QBeliefStore {
   /** Get best action for a state by highest decoded Q-expectation. */
   getBestAction(state: Term, availableActions: Term[]): Term | null {
     const stateKey = state.toString();
-    this.#touchState(stateKey);
     // Random tie-break among maximal-expectation actions — deterministic
     // first-action ties bias the policy toward the earliest-recorded action
     // (all small rewards clamp near f=0.5 under the Q-convex encoding),
@@ -218,7 +193,6 @@ export class QBeliefStore {
     confidenceThreshold: number = 0.5
   ): Term[] {
     const stateKey = state.toString();
-    this.#touchState(stateKey);
     const lowConfidence: Term[] = [];
     for (const action of availableActions) {
       const value = this.getValue(state, action);
@@ -250,7 +224,7 @@ export class QBeliefStore {
 
   /** Current capacity bound (for diagnostics/tests). */
   get capacity(): number {
-    return this.#capacity;
+    return this.stateActions.maxSize;
   }
 
   /** Current number of tracked states (for diagnostics/tests). */

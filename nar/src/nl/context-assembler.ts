@@ -3,6 +3,7 @@ import type { NAR } from '../nar.js';
 import { TermSet } from '../terms';
 import type { TranslationCache, TranslationCacheEntry } from './cache.js';
 import type { NLContext } from './understanding.js';
+import { selectTopN } from '../utils/collections.js';
 
 export interface ContextAssemblerOpts {
   tokenBudget?: number;
@@ -135,14 +136,11 @@ export class ContextAssembler {
       return { term: b.term.toString(), truth: b.truth, score };
     });
 
-    return scored
-      .filter((b) => b.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, max)
-      .map((b) => {
-        const truth = b.truth ? ` :${b.truth.f.toFixed(2)}:${b.truth.c.toFixed(2)}` : '';
-        return `${b.term}${truth}`;
-      });
+    return selectTopN(
+      scored.filter((b) => b.score > 0),
+      max,
+      (b) => b.score
+    ).map((b) => `${b.term}${b.truth ? ` :${b.truth.f.toFixed(2)}:${b.truth.c.toFixed(2)}` : ''}`);
   }
 
   private extractRecentDerivations(nar: NAR, max: number): string[] {

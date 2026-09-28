@@ -1,3 +1,4 @@
+import { LruCache } from '@senars/util';
 import { TransformersEmbeddingGenerator } from '../../memory/embedding.js';
 import type { EmbeddingPointer } from './types.js';
 
@@ -52,12 +53,10 @@ export interface EmbeddingCacheMetrics {
 export class EmbeddingCache {
   #generator: TransformersEmbeddingGenerator | NonNullable<EmbeddingCacheConfig['generator']>;
   #config: EmbeddingCacheConfig;
-  /** Map insertion order is the LRU order: `#touch` re-inserts, eviction takes the first key. */
-  #cache = new Map<string, CacheEntry>();
+  #cache: LruCache<string, CacheEntry>;
   #pointerIndex = new Map<EmbeddingPointer, CacheEntry>();
   #pointerCounter = 0;
   #metrics = { hits: 0, misses: 0, writes: 0, evictions: 0 };
-  #nextExpirySweep = 0;
   readonly #metricsSink?: NonNullable<EmbeddingCacheConfig['metricsSink']>;
 
   constructor(config: Partial<EmbeddingCacheConfig> = {}) {
@@ -68,6 +67,19 @@ export class EmbeddingCache {
     };
     this.#generator = config.generator ?? new TransformersEmbeddingGenerator();
     this.#metricsSink = config.metricsSink;
+    this.#cache = new LruCache({
+      maxSize: this.#config.maxSize,
+      ttlMs: this.#config.ttlMs,
+      onEvict: (entry) => this.#forgetEntry(entry),
+    });
+  }
+
+  /** Release everything the cache holds outside itself: pooled buffer + pointer index. */
+  #forgetEntry(entry: CacheEntry): void {
+    releaseBuffer(entry.slot);
+    this.#pointerIndex.delete(entry.pointer);
+    this.#metrics.evictions++;
+    this.#emit('eviction');
   }
 
   #emit(event: 'hit' | 'miss' | 'eviction'): void {
@@ -79,7 +91,7 @@ export class EmbeddingCache {
     if (existing) {
       this.#metrics.hits++;
       this.#emit('hit');
-      this.#touchEntry(existing);
+      this.#access(existing);
       return existing.pointer;
     }
     this.#metrics.misses++;
@@ -107,11 +119,10 @@ export class EmbeddingCache {
     const { slot, buffer } = allocateBuffer();
     buffer.set(embedding.slice(0, buffer.length));
     const pointer = ++this.#pointerCounter as EmbeddingPointer;
-    const now = Date.now();
 
     this.#metrics.writes++;
     const key = `\0raw:${pointer}`;
-    this.#insert(key, { key, pointer, slot, buffer, timestamp: now, accessCount: 1 });
+    this.#insert(key, { key, pointer, slot, buffer, timestamp: Date.now(), accessCount: 1 });
 
     return pointer;
   }
@@ -119,7 +130,9 @@ export class EmbeddingCache {
   read(pointer: EmbeddingPointer): Float32Array | undefined {
     const entry = this.#pointerIndex.get(pointer);
     if (!entry) return undefined;
-    this.#touchEntry(entry);
+    entry.accessCount++;
+    entry.timestamp = Date.now();
+    this.#cache.get(entry.key);
     return entry.buffer;
   }
 
@@ -132,11 +145,9 @@ export class EmbeddingCache {
   }
 
   clear(): void {
-    for (const entry of this.#cache.values()) releaseBuffer(entry.slot);
     this.#cache.clear();
     this.#pointerIndex.clear();
     this.#metrics = { hits: 0, misses: 0, writes: 0, evictions: 0 };
-    this.#nextExpirySweep = 0;
   }
 
   async warmup(texts: string[]): Promise<void> {
@@ -146,47 +157,11 @@ export class EmbeddingCache {
   #insert(key: string, entry: CacheEntry): void {
     this.#cache.set(key, entry);
     this.#pointerIndex.set(entry.pointer, entry);
-    this.#evictIfNeeded();
-    this.#expireStale(entry.timestamp);
   }
 
-  #touchEntry(entry: CacheEntry): void {
+  #access(entry: CacheEntry): void {
     entry.accessCount++;
     entry.timestamp = Date.now();
-    const { key } = entry;
-    this.#cache.delete(key);
-    this.#cache.set(key, entry);
-  }
-
-  #evictIfNeeded(): void {
-    while (this.#cache.size > this.#config.maxSize) {
-      const lru = this.#cache.keys().next().value;
-      if (lru === undefined) break;
-      this.#evictEntry(lru);
-    }
-  }
-
-  #evictEntry(key: string): void {
-    const entry = this.#cache.get(key);
-    if (entry) {
-      releaseBuffer(entry.slot);
-      this.#pointerIndex.delete(entry.pointer);
-      this.#metrics.evictions++;
-      this.#emit('eviction');
-    }
-    this.#cache.delete(key);
-  }
-
-  #expireStale(now: number): void {
-    // Amortized: a full scan per write is O(n) on the hot path; sweep at most
-    // once per ttlMs/4 window (stale entries are still evicted lazily by LRU).
-    if (now < this.#nextExpirySweep) return;
-    this.#nextExpirySweep = now + this.#config.ttlMs / 4;
-    for (const [key, entry] of this.#cache) {
-      if (now - entry.timestamp > this.#config.ttlMs) {
-        this.#evictEntry(key);
-      }
-    }
   }
 
   /** P2 (TODO20): cache effectiveness metrics. */

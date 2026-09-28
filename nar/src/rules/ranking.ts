@@ -1,3 +1,5 @@
+import { selectTopN } from '../utils/collections.js';
+
 export interface RankableDerivation {
   term: { toString(): string };
   truth?: { f: number; c: number } | null;
@@ -23,14 +25,15 @@ export function rankDerivations<T extends RankableDerivation>(
 ): T[] {
   const maxAdmissions = opts.maxAdmissions ?? DEFAULT_MAX_ADMISSIONS;
   const minScore = opts.minScore ?? DEFAULT_MIN_SCORE;
-  return results
-    .map((task) => {
-      const s = task.term.toString();
-      const score = task.truth ? scoreDerivation(s, task.truth.f, task.truth.c) : -1;
-      return { task, score };
-    })
-    .filter(({ score }) => score >= minScore)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, maxAdmissions)
-    .map(({ task }) => task);
+  return selectTopN(
+    results
+      .map((task) => {
+        const s = task.term.toString();
+        const score = task.truth ? scoreDerivation(s, task.truth.f, task.truth.c) : -1;
+        return { task, score };
+      })
+      .filter(({ score }) => score >= minScore),
+    maxAdmissions,
+    ({ score }) => score
+  ).map(({ task }) => task);
 }

@@ -6,7 +6,7 @@ import type { CognitiveParameters } from './config/cognitive-parameters';
 import type { ParameterLedger } from './config/parameter-ledger.js';
 import { createBootstrapTasks, DriveManager } from './drives';
 import type { FocusBag } from './focus/FocusBag.js';
-import type { GameFocus, GameFocusOptions } from './focus/GameFocus.js';
+import type { GameFocus, GameFocusOptions, ReflexBindable } from './focus/GameFocus.js';
 import type { ConversationGame } from './game/ConversationGame.js';
 import type { SelfMetaGameImpl } from './game/SelfMetaGame.js';
 import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js';
@@ -580,14 +580,7 @@ export class NAR extends BaseComponent {
     this._emitJudgmentResolved?.(proposition, query, provenance);
   }
 
-  attachManifoldReflex(gameFocus: {
-    bindReflex: (reflex: Reflex) => void;
-    setReflexPrefetchContext?: (context: {
-      manifold: JudgmentManifold;
-      embeddingCache: EmbeddingCache;
-      budget: ReasoningBudget;
-    }) => void;
-  }): Reflex | undefined {
+  attachManifoldReflex(gameFocus: ReflexBindable): Reflex | undefined {
     return this.systemOne.attachManifoldReflex(gameFocus);
   }
 
@@ -644,14 +637,7 @@ export class NAR extends BaseComponent {
 
   /** Bind an LMReflex (TODO17 C1): undefined when the System One dispatcher is disabled. */
   attachLMReflex(
-    gameFocus: {
-      bindReflex: (reflex: Reflex) => void;
-      setReflexPrefetchContext?: (context: {
-        manifold: JudgmentManifold;
-        embeddingCache: EmbeddingCache;
-        budget: ReasoningBudget;
-      }) => void;
-    },
+    gameFocus: ReflexBindable,
     options: { maxCandidates?: number } = {}
   ): Reflex | undefined {
     return this.systemOne.attachLMReflex(gameFocus, options);

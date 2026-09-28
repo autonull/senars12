@@ -1,5 +1,6 @@
 import { PriorityBag, FenwickBag, createBag, type Bag, type BagOptions } from '@senars/nar/bag';
 import { describe, expect, it, beforeEach } from 'vitest';
+import { createLCG } from '../helpers/rng.js';
 
 interface TestItem {
   id: string;
@@ -37,11 +38,7 @@ function createDeterministicBag(
   seed: number,
   options?: Partial<BagOptions>
 ): Bag<TestItem> {
-  let state = seed;
-  const rng = () => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 0x100000000;
-  };
+  const rng = createLCG(seed);
   const clock = () => 1000000;
   if (impl === 'priority') {
     return new PriorityBag<TestItem>({

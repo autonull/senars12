@@ -8,7 +8,7 @@ import type {
 import { AutonomyModeChangedEventSchema } from '@senars/kernel/schemas';
 import { SenarsError } from '@senars/util/errors';
 import { v4 as uuidv4 } from 'uuid';
-import { pushBounded, recordPolicyViolation } from './event-ring.js';
+import { BoundedEventLog, pushBounded, recordPolicyViolation } from './event-ring.js';
 import { recordGateDecision } from '../telemetry/index.js';
 
 const MODE_ORDER: AutonomyMode[] = [
@@ -56,7 +56,7 @@ const DEFAULT_AUTONOMY_MODE: AutonomyMode = 'observe-only';
 const DEFAULT_ALLOWED_OPS = new Set<string>();
 
 export class KernelActionGate {
-  private eventLog: PolicyViolationEvent[] = [];
+  readonly eventLog = new BoundedEventLog<PolicyViolationEvent>();
   private autonomyLog: AutonomyModeChangedEvent[] = [];
   private autonomyMode: AutonomyMode;
   private allowedOperations: ReadonlySet<string>;
@@ -252,11 +252,11 @@ export class KernelActionGate {
   }
 
   getEventLog(): ReadonlyArray<PolicyViolationEvent> {
-    return this.eventLog;
+    return this.eventLog.toArray();
   }
 
   clearEventLog(): void {
-    this.eventLog = [];
+    this.eventLog.clear();
     this.autonomyLog = [];
   }
 }

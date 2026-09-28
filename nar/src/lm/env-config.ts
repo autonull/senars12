@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { isTruthy } from '@senars/util/config';
+import { envFirst, isTruthy } from '@senars/util/config';
 
 export const LM_PROVIDER_NAMES = [
   'transformers',
@@ -92,16 +92,13 @@ const PROVIDERS = LM_PROVIDER_NAMES.filter(
 const isResolvedProvider = (v: string): v is ResolvedProvider =>
   (PROVIDERS as readonly string[]).includes(v);
 
-const env = (...keys: string[]): string | undefined =>
-  keys.map((k) => process.env[k]).find((v) => v !== undefined && v !== '');
-
 /**
  * The cloud credential: the env var named by `apiKeyEnv` (if any), then the
  * generic key, then the provider-specific cloud keys.
  */
 export const cloudApiKey = (apiKeyEnv?: string): string | undefined =>
   (apiKeyEnv ? process.env[apiKeyEnv] : undefined) ??
-  env('LM_API_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY');
+  envFirst('LM_API_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY');
 
 /** File/config-facing settings: provider may be any string (validated at resolve time). */
 export type LMSettingsInput = Omit<Partial<LMSettings>, 'provider'> & { provider?: string };
@@ -161,8 +158,8 @@ const resolveProfileProvider = (profile: string): LMProviderName | undefined => 
  * (cloud when credentials exist, else local transformers).
  */
 export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
-  const explicit = env('LM_PROVIDER', 'SENARS_LM_PROVIDER') ?? file?.provider;
-  const profile = env('LM_PROFILE') ?? file?.profile;
+  const explicit = envFirst('LM_PROVIDER', 'SENARS_LM_PROVIDER') ?? file?.provider;
+  const profile = envFirst('LM_PROFILE') ?? file?.profile;
   const profileProvider =
     profile && profile !== 'production' ? resolveProfileProvider(profile) : undefined;
   const rawProvider = (
@@ -188,51 +185,51 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
   return {
     provider,
     profile: profile && profile !== 'production' ? profile : undefined,
-    fastModel: env('LM_FAST_MODEL') ?? file?.fastModel,
-    structuredModel: env('LM_STRUCTURED_MODEL') ?? file?.structuredModel,
-    compactModel: env('LM_COMPACT_MODEL') ?? file?.compactModel,
+    fastModel: envFirst('LM_FAST_MODEL') ?? file?.fastModel,
+    structuredModel: envFirst('LM_STRUCTURED_MODEL') ?? file?.structuredModel,
+    compactModel: envFirst('LM_COMPACT_MODEL') ?? file?.compactModel,
     baseUrl:
-      env('LM_BASE_URL') ??
+      envFirst('LM_BASE_URL') ??
       file?.baseUrl ??
       (aliasedOllama
-        ? `${(env('OLLAMA_HOST') ?? file?.ollamaHost ?? 'http://localhost:11434').replace(/\/?$/, '')}/v1`
+        ? `${(envFirst('OLLAMA_HOST') ?? file?.ollamaHost ?? 'http://localhost:11434').replace(/\/?$/, '')}/v1`
         : undefined),
-    ollamaHost: env('OLLAMA_HOST') ?? file?.ollamaHost,
+    ollamaHost: envFirst('OLLAMA_HOST') ?? file?.ollamaHost,
     model:
-      env('LM_MODEL', 'SENARS_LM_MODEL') ??
+      envFirst('LM_MODEL', 'SENARS_LM_MODEL') ??
       file?.model ??
-      (aliasedOllama ? (env('OLLAMA_MODEL') ?? 'llama3.2') : undefined),
-    llamacppHost: env('LM_LLAMACPP_HOST') ?? file?.llamacppHost,
-    llamacppModelPath: env('LM_LLAMACPP_MODEL') ?? file?.llamacppModelPath,
+      (aliasedOllama ? (envFirst('OLLAMA_MODEL') ?? 'llama3.2') : undefined),
+    llamacppHost: envFirst('LM_LLAMACPP_HOST') ?? file?.llamacppHost,
+    llamacppModelPath: envFirst('LM_LLAMACPP_MODEL') ?? file?.llamacppModelPath,
     llamacppGpu:
-      (env('LM_LLAMACPP_GPU') as 'auto' | 'cuda' | 'metal' | 'vulkan' | false) ?? file?.llamacppGpu,
+      (envFirst('LM_LLAMACPP_GPU') as 'auto' | 'cuda' | 'metal' | 'vulkan' | false) ?? file?.llamacppGpu,
     llamacppGpuLayers:
-      (env('LM_LLAMACPP_GPU_LAYERS') ? Number(env('LM_LLAMACPP_GPU_LAYERS')) : undefined) ??
+      (envFirst('LM_LLAMACPP_GPU_LAYERS') ? Number(envFirst('LM_LLAMACPP_GPU_LAYERS')) : undefined) ??
       file?.llamacppGpuLayers,
-    llamacppContextSize: env('LM_LLAMACPP_CTX')
-      ? Number(env('LM_LLAMACPP_CTX'))
+    llamacppContextSize: envFirst('LM_LLAMACPP_CTX')
+      ? Number(envFirst('LM_LLAMACPP_CTX'))
       : file?.llamacppContextSize,
-    llamacppBatchSize: env('LM_LLAMACPP_BATCH')
-      ? Number(env('LM_LLAMACPP_BATCH'))
+    llamacppBatchSize: envFirst('LM_LLAMACPP_BATCH')
+      ? Number(envFirst('LM_LLAMACPP_BATCH'))
       : file?.llamacppBatchSize,
-    llamacppSequences: env('LM_LLAMACPP_SEQS')
-      ? Number(env('LM_LLAMACPP_SEQS'))
+    llamacppSequences: envFirst('LM_LLAMACPP_SEQS')
+      ? Number(envFirst('LM_LLAMACPP_SEQS'))
       : file?.llamacppSequences,
     // D7-adjacent: FA default true (KV-cache padding path without it is
     // segv-prone on hybrid-attention models); an explicit env value wins.
     llamacppFlashAttention:
-      env('LM_LLAMACPP_FLASH_ATTN') !== undefined
-        ? isTruthy(env('LM_LLAMACPP_FLASH_ATTN'))
+      envFirst('LM_LLAMACPP_FLASH_ATTN') !== undefined
+        ? isTruthy(envFirst('LM_LLAMACPP_FLASH_ATTN'))
         : (file?.llamacppFlashAttention ?? true),
     apiKeyEnv: file?.apiKeyEnv ?? cloudCredentialEnv,
     quantized: file?.quantized,
     cacheDir: file?.cacheDir,
-    offline: isTruthy(env('LM_OFFLINE')) || file?.offline === true,
-    dtype: (env('LM_DTYPE') as LMSettings['dtype'] | undefined) ?? file?.dtype,
+    offline: isTruthy(envFirst('LM_OFFLINE')) || file?.offline === true,
+    dtype: (envFirst('LM_DTYPE') as LMSettings['dtype'] | undefined) ?? file?.dtype,
     qualityDtype:
-      (env('LM_QUALITY_DTYPE') as LMSettings['qualityDtype'] | undefined) ?? file?.qualityDtype,
-    fastDtype: (env('LM_FAST_DTYPE') as LMSettings['fastDtype'] | undefined) ?? file?.fastDtype,
-    disableThinking: isTruthy(env('LM_DISABLE_THINKING')) || file?.disableThinking === true,
+      (envFirst('LM_QUALITY_DTYPE') as LMSettings['qualityDtype'] | undefined) ?? file?.qualityDtype,
+    fastDtype: (envFirst('LM_FAST_DTYPE') as LMSettings['fastDtype'] | undefined) ?? file?.fastDtype,
+    disableThinking: isTruthy(envFirst('LM_DISABLE_THINKING')) || file?.disableThinking === true,
     circuitBreaker: file?.circuitBreaker,
   };
 };
@@ -241,9 +238,9 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
 export const defaultModelFor = (provider: ResolvedProvider): string => {
   switch (provider) {
     case 'llamacpp':
-      return env('LM_MODEL') ?? 'local-model';
+      return envFirst('LM_MODEL') ?? 'local-model';
     case 'llamacpp-embedded':
-      return env('LM_LLAMACPP_MODEL') ?? 'local-model';
+      return envFirst('LM_LLAMACPP_MODEL') ?? 'local-model';
     case 'transformers':
       return TRANSFORMERS_DEFAULT_MODEL;
     case 'anthropic':

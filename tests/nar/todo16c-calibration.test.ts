@@ -13,18 +13,13 @@ import { validateHeadCandidate } from '../../nar/src/lm/system-one/distill.js';
 import type { ModelDigest } from '../../nar/src/lm/system-one/types.js';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { mulberry32 } from '../../nar/src/utils/random.js';
 import { join } from 'node:path';
 
 /** Synthetic miscalibrated head: predicted systematically inflated by 0.25 over a noisy truth. */
 function miscalibratedDataset(rows: number): JudgmentDataset {
   const dataset = new JudgmentDataset(join(tmpdir(), `test-calib-${rows}`));
-  let s = 12345;
-  const rand = () => {
-    s = (s + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+  const rand = mulberry32(12345);
   for (let i = 0; i < rows; i++) {
     const truth = rand();
     const predicted = Math.min(1, Math.max(0, truth + 0.25 + (rand() - 0.5) * 0.1));

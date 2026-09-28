@@ -21,6 +21,7 @@ import type {
   BackendId,
 } from '../../nar/src/lm/system-one/types.js';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
+import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,
@@ -31,20 +32,7 @@ const budget: ReasoningBudget = {
 };
 
 /** Deterministic hash-based embedding so real-manifold judgments are reproducible. */
-function fakeGenerator(dimension = 384) {
-  return {
-    async generate(text: string): Promise<number[]> {
-      const vec = new Array<number>(dimension).fill(0);
-      let h = 2166136261;
-      for (let i = 0; i < text.length; i++) {
-        h ^= text.charCodeAt(i);
-        h = Math.imul(h, 16777619) >>> 0;
-        vec[i % dimension] = ((h >>> 8) % 2000) / 1000 - 1;
-      }
-      return vec;
-    },
-  };
-}
+const fakeGenerator = fakeEmbeddingGenerator;
 
 function mkClassify(p: number, option = 'exploit'): ClassifyProposition {
   return {

@@ -109,22 +109,19 @@ function countUnboundedAccumulators(): number {
   // Check SourceReputation and QBeliefStore for capacity-bounded implementations
   let count = 0;
   try {
-    // SourceReputation: check for capacity option and LRU eviction
-    const srPath = join(ROOT, 'nar/src/kernel/source-reputation.ts');
-    if (existsSync(srPath)) {
-      const content = readFileSync(srPath, 'utf-8');
-      if (!content.includes('#capacity') || !content.includes('#evictIfNeeded')) {
+    // SourceReputation / QBeliefStore: every entry lives in an LruCache with a
+    // capacity bound — the shared eviction primitive is what keeps them bounded.
+    for (const rel of [
+      'nar/src/kernel/source-reputation.ts',
+      'nar/src/rl/q-belief-store.ts',
+    ]) {
+      const path = join(ROOT, rel);
+      if (!existsSync(path)) {
         count++;
+        continue;
       }
-    }
-
-    // QBeliefStore: check for capacity option and LRU eviction
-    const qsPath = join(ROOT, 'nar/src/rl/q-belief-store.ts');
-    if (existsSync(qsPath)) {
-      const content = readFileSync(qsPath, 'utf-8');
-      if (!content.includes('#capacity') || !content.includes('#evictIfNeeded')) {
-        count++;
-      }
+      const content = readFileSync(path, 'utf-8');
+      if (!content.includes('LruCache') || !/LruCache\(\{[^}]*maxSize/.test(content)) count++;
     }
   } catch {
     // If files don't exist or error, assume unbounded

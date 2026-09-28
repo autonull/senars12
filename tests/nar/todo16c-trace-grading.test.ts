@@ -7,21 +7,9 @@ import {
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
+import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
 
-function fakeGenerator(dimension = 384) {
-  return {
-    async generate(text: string): Promise<number[]> {
-      const vec = new Array<number>(dimension).fill(0);
-      let h = 2166136261;
-      for (let i = 0; i < text.length; i++) {
-        h ^= text.charCodeAt(i);
-        h = Math.imul(h, 16777619) >>> 0;
-        vec[i % dimension] = ((h >>> 8) % 2000) / 1000 - 1;
-      }
-      return vec;
-    },
-  };
-}
+const fakeGenerator = fakeEmbeddingGenerator;
 
 /** Manifold and grader must share ONE cache — pointers are cache-scoped (G4 invariant). */
 const mkFixture = () => {

@@ -23,14 +23,9 @@ import type { CapabilitySchema } from '../../nar/src/capability/ontology.js';
 import { createBudget } from '../../nar/src/types/index.js';
 import { Stamp } from '../../nar/src/terms/index.js';
 import type { SelfImprovementProposal } from '@senars/kernel/schemas';
+import { createLCG } from '../helpers/rng.js';
 
-const lcg = (seed: number): (() => number) => {
-  let state = seed >>> 0;
-  return () => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 0x100000000;
-  };
-};
+const lcg = createLCG;
 
 interface Item {
   id: string;

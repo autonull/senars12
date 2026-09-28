@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { formatTruth } from '@senars/util';
 import { createLogger } from '@senars/core/logger';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
@@ -179,8 +180,8 @@ export class BidirectionalFeedbackLoop {
 
     const prompt = `Two beliefs in memory appear contradictory. Analyze and explain.
 
-Belief A: ${beliefA.term.toString()} (f=${beliefA.truth?.f.toFixed(2)}, c=${beliefA.truth?.c.toFixed(2)})
-Belief B: ${beliefB.term.toString()} (f=${beliefB.truth?.f.toFixed(2)}, c=${beliefB.truth?.c.toFixed(2)})
+Belief A: ${beliefA.term.toString()} ${beliefA.truth ? formatTruth(beliefA.truth) : ''}
+Belief B: ${beliefB.term.toString()} ${beliefB.truth ? formatTruth(beliefB.truth) : ''}
 
 Provide a JSON response:
 {
@@ -337,7 +338,7 @@ Respond with JSON:
 
   private buildStructuredValidationPrompt(hypothesis: Task, context: Task[]): string {
     const contextStr = context
-      .map((t) => `${t.term.toString()}: f=${t.truth.f.toFixed(2)} c=${t.truth.c.toFixed(2)}`)
+      .map((t) => `${t.term.toString()}: ${formatTruth(t.truth)}`)
       .join('\n');
 
     return `You are validating a hypothesis against known context.
@@ -345,7 +346,7 @@ Respond with JSON:
 Context beliefs:
 ${contextStr}
 
-Hypothesis: ${hypothesis.term.toString()} (f=${hypothesis.truth?.f.toFixed(2)}, c=${hypothesis.truth?.c.toFixed(2)})
+Hypothesis: ${hypothesis.term.toString()} ${hypothesis.truth ? formatTruth(hypothesis.truth) : ''}
 
 Evaluate on three dimensions:
 1. Validity: Is it consistent with context?

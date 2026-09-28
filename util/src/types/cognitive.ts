@@ -142,6 +142,21 @@ export interface Derivation {
   timestamp: number;
 }
 
+export interface ChatOptions {
+  readonly signal?: AbortSignal;
+  readonly sessionId?: string;
+  readonly stream?: boolean;
+}
+
+export interface ChatStreamEvent {
+  readonly kind: 'text-delta' | 'tool-call' | 'tool-result' | 'finish' | 'error' | 'aborted';
+  readonly text?: string;
+  readonly toolName?: string;
+  readonly toolArgs?: unknown;
+  readonly toolResult?: unknown;
+  readonly error?: string;
+}
+
 export const isNarEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { engine: 'nar' }> =>
   e.engine === 'nar';
 

@@ -12,29 +12,46 @@ interface Entry<V> {
   expiresAt: number;
 }
 
-export interface LruCacheOptions {
+export interface LruCacheOptions<K = unknown, V = unknown> {
   /** Hard capacity; the least-recently-used key is evicted past it. */
   maxSize?: number;
   /** Entry lifetime in ms. Omit for no expiry. */
   ttlMs?: number;
   /** Injected clock (deterministic tests). */
   now?: () => number;
+  /**
+   * Called once per entry removed by capacity eviction, TTL expiry, purge, or
+   * `clear()` — the hook through which callers release side resources
+   * (buffer slots, index entries, metrics) held outside the cache.
+   */
+  onEvict?: (value: V, key: K) => void;
 }
 
 export class LruCache<K, V> {
   readonly #entries = new Map<K, Entry<V>>();
-  readonly #maxSize: number;
+  public readonly maxSize: number;
   readonly #ttlMs: number;
   readonly #now: () => number;
+  readonly #onEvict?: (value: V, key: K) => void;
   #hits = 0;
   #misses = 0;
 
-  constructor(options: LruCacheOptions | number = {}) {
-    const { maxSize = 1000, ttlMs = Infinity, now = Date.now } =
+  constructor(options: LruCacheOptions<K, V> | number = {}) {
+    const { maxSize = 1000, ttlMs = Infinity, now = Date.now, onEvict } =
       typeof options === 'number' ? { maxSize: options } : options;
-    this.#maxSize = Math.max(1, maxSize);
+    this.maxSize = Math.max(1, maxSize);
     this.#ttlMs = ttlMs;
     this.#now = now;
+    this.#onEvict = onEvict;
+  }
+
+  /** Evict an entry if present, firing the `onEvict` hook. */
+  evict(key: K): boolean {
+    const entry = this.#entries.get(key);
+    if (entry === undefined) return false;
+    this.#entries.delete(key);
+    this.#onEvict?.(entry.value, key);
+    return true;
   }
 
   get size(): number {
@@ -66,7 +83,7 @@ export class LruCache<K, V> {
     const entry = this.#entries.get(key);
     if (entry === undefined) return undefined;
     if (entry.expiresAt <= this.#now()) {
-      this.#entries.delete(key);
+      this.evict(key);
       return undefined;
     }
     this.#entries.delete(key);
@@ -76,7 +93,7 @@ export class LruCache<K, V> {
 
   set(key: K, value: V): this {
     if (this.#entries.has(key)) this.#entries.delete(key);
-    else if (this.#entries.size >= this.#maxSize) this.#evictOldest();
+    else if (this.#entries.size >= this.maxSize) this.#evictOldest();
     this.#entries.set(key, { value, expiresAt: this.#now() + this.#ttlMs });
     return this;
   }
@@ -90,6 +107,7 @@ export class LruCache<K, V> {
   }
 
   clear(): void {
+    for (const [key, entry] of this.#entries) this.#onEvict?.(entry.value, key);
     this.#entries.clear();
     this.#hits = 0;
     this.#misses = 0;
@@ -100,6 +118,17 @@ export class LruCache<K, V> {
     return this.#liveValues();
   }
 
+  /** Live keys, least-recently-used first. */
+  *keys(): Generator<K> {
+    for (const [key, entry] of [...this.#entries]) {
+      if (entry.expiresAt <= this.#now()) {
+        this.evict(key);
+        continue;
+      }
+      yield key;
+    }
+  }
+
   toArray(): V[] {
     return [...this.#liveValues()];
   }
@@ -107,7 +136,7 @@ export class LruCache<K, V> {
   *#liveValues(): Generator<V> {
     for (const [key, entry] of [...this.#entries]) {
       if (entry.expiresAt <= this.#now()) {
-        this.#entries.delete(key);
+        this.evict(key);
         continue;
       }
       yield entry.value;
@@ -119,16 +148,13 @@ export class LruCache<K, V> {
     const now = this.#now();
     let removed = 0;
     for (const [key, entry] of this.#entries) {
-      if (entry.expiresAt <= now) {
-        this.#entries.delete(key);
-        removed++;
-      }
+      if (entry.expiresAt <= now && this.evict(key)) removed++;
     }
     return removed;
   }
 
   #evictOldest(): void {
     const oldest = this.#entries.keys().next().value as K | undefined;
-    if (oldest !== undefined) this.#entries.delete(oldest);
+    if (oldest !== undefined) this.evict(oldest);
   }
 }

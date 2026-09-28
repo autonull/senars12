@@ -1,55 +1,21 @@
-export type ConnectionState =
-  | 'idle'
-  | 'connecting'
-  | 'connected'
-  | 'disconnecting'
-  | 'disconnected'
-  | 'error';
-
-export interface IOMessage {
-  readonly id: string;
-  readonly source: string;
-  readonly origin: string;
-  readonly sender: string;
-  readonly text: string;
-  readonly timestamp: number;
-  readonly metadata?: Record<string, unknown>;
-}
-
-export type MessageClassification =
-  | 'command'
-  | 'belief'
-  | 'question'
-  | 'goal'
-  | 'natural-language'
-  | 'unknown';
-
-export interface Connection {
-  readonly id: string;
-  readonly name: string;
-  readonly type: string;
-  readonly state: ConnectionState;
-
-  connect(): Promise<void>;
-
-  disconnect(reason?: string): Promise<void>;
-
-  reconnect(): Promise<void>;
-
-  send(target: string, text: string): Promise<void>;
-
-  onMessage(handler: (message: IOMessage) => Promise<void>): void;
-
-  removeMessageHandler(handler: (message: IOMessage) => Promise<void>): void;
-
-  onStateChange(handler: (state: ConnectionState, prev: ConnectionState) => void): void;
-
-  onError(handler: (error: ConnectionError) => void): void;
-
-  getStatus(): { state: ConnectionState; messageCount: number; errorCount: number };
-
-  reconfigure(config: Record<string, unknown>): Promise<void>;
-}
+/**
+ * Re-export of the canonical transport contracts owned by `@senars/util`. Kept
+ * as a module path for existing internal imports; declarations live in one place.
+ *
+ * `ConnectionError` stays declared here: it carries transport-specific detail
+ * (`connectionId`, `recoverable`) that the generic `SenarsError` lacks.
+ */
+export type {
+  Connection,
+  ConnectionConfig,
+  ConnectionDeps,
+  ConnectionFactory,
+  ConnectionState,
+  IOMessage,
+  Logger,
+  MessageClassification,
+  TransportDeps,
+} from '@senars/util/types/transport';
 
 export class ConnectionError extends Error {
   override name = 'ConnectionError';
@@ -63,41 +29,4 @@ export class ConnectionError extends Error {
   ) {
     super(message);
   }
-}
-
-export interface ConnectionFactory {
-  readonly type: string;
-
-  create(config: ConnectionConfig, deps: ConnectionDeps): Connection;
-}
-
-export interface ConnectionConfig {
-  readonly id: string;
-  readonly enabled: boolean;
-  readonly type: string;
-  readonly config: Record<string, unknown>;
-  readonly authSecret?: string;
-}
-
-export interface ConnectionDeps {
-  readonly emit: (event: string, data: unknown) => void;
-  readonly logger: Logger;
-  readonly getSessionSpaceId?: (connectionId: string) => string | undefined;
-}
-
-export interface TransportDeps extends ConnectionDeps {
-  readonly submit: (input: string, correlationId: string) => void;
-  readonly submitStream?: (input: string, correlationId: string) => AsyncGenerator<string, string>;
-}
-
-export interface Logger {
-  debug(message: string, context?: Record<string, unknown>): void;
-
-  info(message: string, context?: Record<string, unknown>): void;
-
-  warn(message: string, context?: Record<string, unknown>): void;
-
-  error(message: string, error?: Error, context?: Record<string, unknown>): void;
-
-  child(scope: string): Logger;
 }

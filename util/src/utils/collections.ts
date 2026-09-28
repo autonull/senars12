@@ -8,6 +8,15 @@
  * amortized: one `shift()` per push, no `splice` reallocation, no cap arithmetic
  * duplicated at each call site.
  */
+/**
+ * Drop-oldest push for plain arrays. One `shift()` per overflow — no `splice`
+ * reallocation and no cap arithmetic repeated at the call site.
+ */
+export function pushCapped<T>(log: T[], item: T, capacity: number): void {
+  log.push(item);
+  if (log.length > capacity) log.shift();
+}
+
 export class BoundedRing<T> {
   readonly #items: T[] = [];
 

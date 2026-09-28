@@ -66,3 +66,10 @@ export async function withShadowWorktree<T>(
     if (isNew) await shadowManager.cleanupWorktree(id);
   }
 }
+
+/** Flatten a shadow outcome into the tool-result shape every self tool returns. */
+export function toToolResult<T extends { success: boolean }>(
+  outcome: ShadowOutcome<T>
+): T | { success: false; error: string } {
+  return outcome.ok ? outcome.value : { success: false, error: outcome.error };
+}

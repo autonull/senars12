@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { type SelfToolsContext, withShadowWorktree } from './context.js';
+import { type SelfToolsContext, withShadowWorktree, toToolResult } from './context.js';
 
 export const tuneKnobTool = (ctx: SelfToolsContext) => {
   const { deps, shadowManager } = ctx;
@@ -75,7 +75,7 @@ export const tuneKnobTool = (ctx: SelfToolsContext) => {
         revert
       );
 
-      return outcome.ok ? outcome.value : { success: false, error: outcome.error };
+      return toToolResult(outcome);
     },
   });
 };

@@ -5,7 +5,7 @@
  */
 
 
-import { BudgetSlice, type BudgetSliceOptions, createBudgetSlice, sliceBudget, mergeConsumption, isExhausted, consumeCycles, remainingCycles, remainingDepth, remainingMemoryOps, remainingLMCalls } from '@senars/kernel/budget';
+import { BudgetSlice, type BudgetSliceOptions, createBudgetSlice, sliceBudget, mergeConsumption, isExhausted, consumeCycles, remainingCycles, remainingAll } from '@senars/kernel/budget';
 import type { Term } from '@senars/nar/terms';
 import type { Task } from '@senars/nar/types';
 import { emitBackpressureDecision } from '@senars/nar/tick';
@@ -108,10 +108,12 @@ export class CognitiveThread {
   /** Spawn a child thread with hard budget inheritance: Σ(child) ≤ parent.remaining. */
   spawn(childId: string, allocation?: BudgetAllocation): SpawnResult {
     // Calculate available budget
-    const availableCycles = remainingCycles(this.budget);
-    const availableDepth = remainingDepth(this.budget);
-    const availableMemoryOps = remainingMemoryOps(this.budget);
-    const availableLMCalls = remainingLMCalls(this.budget);
+    const {
+      cycles: availableCycles,
+      depth: availableDepth,
+      memoryOps: availableMemoryOps,
+      llmCalls: availableLMCalls,
+    } = remainingAll(this.budget);
 
     // Default allocation: proportional share of remaining budget
     const childAllocation: ResolvedBudgetAllocation = {
@@ -239,14 +241,7 @@ export class CognitiveThread {
     }
     if (this.error) throw this.error;
 
-    const unconsumedBudget: BudgetAllocation = {
-      cycles: remainingCycles(this.budget),
-      depth: remainingDepth(this.budget),
-      memoryOps: remainingMemoryOps(this.budget),
-      llmCalls: remainingLMCalls(this.budget),
-    };
-
-    return { result: this.result, unconsumedBudget };
+    return { result: this.result, unconsumedBudget: remainingAll(this.budget) };
   }
 
   /** Kill the thread and all children. */
@@ -294,12 +289,7 @@ export class CognitiveThread {
 
   /** Get unconsumed budget without joining. */
   getUnconsumedBudget(): BudgetAllocation {
-    return {
-      cycles: remainingCycles(this.budget),
-      depth: remainingDepth(this.budget),
-      memoryOps: remainingMemoryOps(this.budget),
-      llmCalls: remainingLMCalls(this.budget),
-    };
+    return remainingAll(this.budget);
   }
 }
 
@@ -334,10 +324,12 @@ export class ThreadPool {
     if (this.threads.has(id)) return null;
 
     // Calculate available budget from root
-    const availableCycles = remainingCycles(this.rootBudget);
-    const availableDepth = remainingDepth(this.rootBudget);
-    const availableMemoryOps = remainingMemoryOps(this.rootBudget);
-    const availableLMCalls = remainingLMCalls(this.rootBudget);
+    const {
+      cycles: availableCycles,
+      depth: availableDepth,
+      memoryOps: availableMemoryOps,
+      llmCalls: availableLMCalls,
+    } = remainingAll(this.rootBudget);
 
     // Default allocation
     const childAllocation: ResolvedBudgetAllocation = {

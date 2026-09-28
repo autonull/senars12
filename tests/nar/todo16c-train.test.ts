@@ -14,19 +14,14 @@ import { createHeadById } from '../../nar/src/lm/system-one/head-specs.js';
 import { loadHeadRuntime, DigestMismatchError } from '../../nar/src/lm/system-one/wasi-runtime.js';
 import { mkdtempSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { mulberry32 } from '../../nar/src/utils/random.js';
 import { join } from 'node:path';
 import type { JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
 
 /** Synthetic labeled fixtures: risk head where observed outcomes follow a learnable pattern. */
 function buildLabeledDataset(rows: number, basePath: string): JudgmentDataset {
   const dataset = new JudgmentDataset(basePath);
-  let s = 999;
-  const rand = () => {
-    s = (s + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+  const rand = mulberry32(999);
   for (let i = 0; i < rows; i++) {
     const action = Math.floor(rand() * 4);
     const observed = action % 2 === 0 ? 0.8 + rand() * 0.15 : 0.1 + rand() * 0.15;

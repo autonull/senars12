@@ -1,3 +1,4 @@
+import { selectTopN } from '../../utils/collections.js';
 import type { Term } from '../../terms';
 import { termsEqual } from '../../terms';
 import {
@@ -70,8 +71,7 @@ export class EmbeddingLayer extends Layer {
         }
       }
 
-      results.sort((a, b) => b.similarity - a.similarity);
-      return results.slice(0, topK);
+      return selectTopN(results, topK, (r) => r.similarity);
     } catch {
       return [];
     }
@@ -148,8 +148,7 @@ export class EmbeddingLayer extends Layer {
       }
     }
 
-    results.sort((a, b) => b.score - a.score);
-    return results.slice(0, n);
+    return selectTopN(results, n, (r) => r.score);
   }
 
   async getAll(): Promise<Array<{ id: string; text: string; metadata: Record<string, unknown> }>> {

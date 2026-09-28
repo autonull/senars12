@@ -3,6 +3,7 @@ import { createWakeGate } from '../../nar/src/lm/system-one/wake-gate.js';
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import type { EvaluateProposition } from '../../nar/src/lm/system-one/types.js';
+import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
 
 const budget = {
   maxCycles: 100,
@@ -12,20 +13,7 @@ const budget = {
   consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
 };
 
-function fakeGenerator(dimension = 384) {
-  return {
-    async generate(text: string): Promise<number[]> {
-      const vec = new Array<number>(dimension).fill(0);
-      let h = 2166136261;
-      for (let i = 0; i < text.length; i++) {
-        h ^= text.charCodeAt(i);
-        h = Math.imul(h, 16777619) >>> 0;
-        vec[i % dimension] = ((h >>> 8) % 2000) / 1000 - 1;
-      }
-      return vec;
-    },
-  };
-}
+const fakeGenerator = fakeEmbeddingGenerator;
 
 /** Fitted relevance head with a controllable score (Bench-20 oracle pattern). */
 function relevanceManifold(score: number, opts: { fitted?: boolean; abstain?: boolean } = {}) {

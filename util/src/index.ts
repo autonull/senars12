@@ -110,8 +110,10 @@ export type {
   LoggerConfig,
   LogLevel,
   Metrics,
+  ScopedLogger,
 } from './types/lifecycle.js';
 /** @public LM service contract. */
+export type { LMGenerateOptions } from './types/llm.js';
 export type {
   LMExecutionStats,
   LMPromptGenerator,
@@ -143,13 +145,14 @@ export type {
 /** @public Truth value branded types. */
 export type { Confidence, Frequency } from './types/truth.js';
 /** @public Truth value constructors. */
-export { toConfidence, toFrequency } from './types/truth.js';
+export { formatTruth, toConfidence, toFrequency } from './types/truth.js';
+export type { TruthLike } from './types/truth.js';
 // Utils
 /** @public Assertion helpers. */
 export { assertDefined, invariant } from './utils/assert.js';
 // Collections
 /** @public Drop-oldest bounded ring buffer. */
-export { BoundedRing } from './utils/collections.js';
+export { BoundedRing, pushCapped } from './utils/collections.js';
 export type { JsonlLoadResult } from './utils/fs.js';
 // Filesystem
 export {

@@ -1,3 +1,5 @@
+import { formatTruth } from '@senars/util';
+
 export interface ConflictInfo {
   belief: { term: string; truth?: { frequency: number; confidence: number } };
   conflictWith: { term: string; truth?: { frequency: number; confidence: number } };
@@ -35,9 +37,7 @@ export function buildGenerationPrompt(opts: {
   if (opts.beliefs.length > 0) {
     parts.push('\nDerived beliefs:');
     for (const b of opts.beliefs.slice(0, 10)) {
-      const truth = b.truth
-        ? ` (f=${b.truth.frequency.toFixed(2)}, c=${b.truth.confidence.toFixed(2)})`
-        : '';
+      const truth = b.truth ? ` ${formatTruth(b.truth)}` : '';
       parts.push(`  ${b.term}${truth}`);
     }
   }

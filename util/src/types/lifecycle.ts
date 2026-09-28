@@ -44,6 +44,23 @@ export interface LoggerConfig {
   samplingRate?: number;
 }
 
+/**
+ * Minimal structured-logging surface: level methods plus scope nesting. The
+ * shared supertype of every `Logger` in the monorepo, so transports, components
+ * and the concrete loggers all accept one structural shape.
+ */
+export interface ScopedLogger {
+  debug(message: string, context?: Record<string, unknown>): void;
+
+  info(message: string, context?: Record<string, unknown>): void;
+
+  warn(message: string, context?: Record<string, unknown>): void;
+
+  error(message: string, error?: Error, context?: Record<string, unknown>): void;
+
+  child(scope: string): ScopedLogger;
+}
+
 export interface Logger {
   readonly scope: string;
 

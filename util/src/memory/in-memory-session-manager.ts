@@ -1,3 +1,4 @@
+import { LruCache } from '../utils/lru-cache.js';
 import type { ConversationSession, SessionManager } from '../types/memory.js';
 
 export function abortSession(session: ConversationSession): void {
@@ -26,21 +27,20 @@ export interface InMemorySessionManagerOptions {
 }
 
 export class InMemorySessionManager implements SessionManager {
-  #sessions = new Map<string, ConversationSession>();
+  #sessions: LruCache<string, ConversationSession>;
   readonly #maxSessions: number;
   readonly #maxHistory: number;
 
   constructor(options: InMemorySessionManagerOptions = {}) {
     this.#maxSessions = options.maxSessions ?? DEFAULT_MAX_SESSIONS;
     this.#maxHistory = options.maxHistoryPerSession ?? DEFAULT_MAX_HISTORY_PER_SESSION;
+    this.#sessions = new LruCache({ maxSize: this.#maxSessions });
   }
 
   getOrCreate(key: string): ConversationSession {
     const existing = this.#sessions.get(key);
     if (existing) {
       existing.lastSeenAt = Date.now();
-      // LRU: re-insert to mark recency (Map preserves insertion order).
-      this.#sessions.delete(key);
       this.#sessions.set(key, existing);
       if (existing.history.length > this.#maxHistory) {
         existing.history.splice(0, existing.history.length - this.#maxHistory);
@@ -49,11 +49,6 @@ export class InMemorySessionManager implements SessionManager {
     }
     const session = createSession(key);
     this.#sessions.set(key, session);
-    // Evict least-recently-used session when at capacity.
-    if (this.#sessions.size > this.#maxSessions) {
-      const lru = this.#sessions.keys().next().value;
-      if (lru !== undefined) this.#sessions.delete(lru);
-    }
     return session;
   }
 

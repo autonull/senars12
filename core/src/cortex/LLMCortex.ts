@@ -1,4 +1,4 @@
-import { estimateTokens } from '@senars/util';
+import { estimateTokens, formatTruth } from '@senars/util';
 import type { ChatStreamEvent } from '../ChatService.js';
 import type { CognitiveStimulus, Context, Derivation } from '../engine/Engine.js';
 import type {
@@ -75,7 +75,7 @@ export class LLMCortex {
 
   #compose(req: CortexSynthesizeRequest): ComposedRequest {
     const systemPrompt = req.systemPrompt ?? this.#buildDefaultPrompt(req);
-    const historyText = req.context.working.map((e) => JSON.stringify(e)).join('\n');
+    const historyText = req.context.working.map((e: unknown) => JSON.stringify(e)).join('\n');
     const systemTokens = estimateTokens(systemPrompt);
     const historyTokens = estimateTokens(historyText) + estimateTokens(req.stimulus.text);
     return {
@@ -119,7 +119,7 @@ export class LLMCortex {
     const derivations = req.derivations
       .map(
         (d) =>
-          `- ${d.term}${d.truth ? ` (f=${d.truth.frequency.toFixed(2)}, c=${d.truth.confidence.toFixed(2)})` : ''}`
+          `- ${d.term}${d.truth ? ` ${formatTruth(d.truth)}` : ''}`
       )
       .join('\n');
 

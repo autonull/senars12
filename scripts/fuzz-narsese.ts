@@ -11,6 +11,7 @@ import { createNAR } from '../nar/src/nar-presets.js';
 import { termParser } from '../nar/src/terms/parser-peggy.js';
 import { Truth } from '../nar/src/terms/truth.js';
 import type { Term } from '../nar/src/terms/types.js';
+import { createLCG } from '../tests/helpers/rng.js';
 
 const ATOMS = [
   'cat', 'dog', 'animal', 'mammal', 'bird', 'fish',
@@ -233,7 +234,4 @@ declare global {
 }
 Math.seed = Date.now();
 const originalRandom = Math.random;
-Math.random = function() {
-  Math.seed = (Math.seed * 1664525 + 1013904223) >>> 0;
-  return Math.seed / 4294967296;
-};
+Math.random = createLCG(Math.seed);

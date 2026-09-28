@@ -1,5 +1,5 @@
+import { LruCache } from '@senars/util';
 import type { Term } from '../../terms';
-import { TermMap } from '../../terms';
 import type { Concept } from '../concept.js';
 
 export interface ArchiveConfig {
@@ -11,12 +11,12 @@ const DEFAULT_CONFIG: ArchiveConfig = {
 };
 
 export class Archive {
-  private archived: TermMap<Concept>;
+  private archived: LruCache<Term, Concept>;
   private config: ArchiveConfig;
 
   constructor(config: ArchiveConfig = DEFAULT_CONFIG) {
     this.config = config;
-    this.archived = new TermMap();
+    this.archived = new LruCache({ maxSize: config.maxArchivedConcepts });
   }
 
   get size(): number {
@@ -36,12 +36,6 @@ export class Archive {
   }
 
   archive(concept: Concept): void {
-    if (this.archived.size >= this.config.maxArchivedConcepts) {
-      const oldest = this.archived.keys().next();
-      if (oldest) {
-        this.archived.delete(oldest.value);
-      }
-    }
     this.archived.set(concept.term, concept);
   }
 

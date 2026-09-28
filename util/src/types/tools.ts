@@ -6,8 +6,6 @@ export interface Tool {
   execute(args: Record<string, unknown>): Promise<ToolResult>;
 }
 
-export interface ToolResult {
-  success: boolean;
-  content: unknown;
-  error?: string;
-}
+import type { ToolResult } from './engine.js';
+
+export type { ToolResult };

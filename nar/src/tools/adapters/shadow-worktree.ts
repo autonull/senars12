@@ -1,7 +1,7 @@
-import { spawn } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import type { CodemodResult } from './codemod.js';
 import { runCodemod } from './codemod.js';
+import { runProcess } from './proc.js';
 
 /** Shadow worktree manager for safe code modifications */
 export class ShadowWorktreeManager {
@@ -18,23 +18,12 @@ export class ShadowWorktreeManager {
     const { mkdir } = await import('node:fs/promises');
     await ensureParentDir(shadowDir);
 
-    return new Promise((resolvePromise, reject) => {
-      const child = spawn('git', ['worktree', 'add', shadowDir, 'HEAD'], {
-        cwd: this.workspaceRoot,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-
-      child.on('close', (code) => {
-        if (code === 0) {
-          this.activeWorktrees.set(id, shadowDir);
-          resolvePromise(shadowDir);
-        } else {
-          reject(new Error(`Failed to create worktree: ${code}`));
-        }
-      });
-
-      child.on('error', (err) => reject(err));
+    const { code, stderr } = await runProcess('git', ['worktree', 'add', shadowDir, 'HEAD'], {
+      cwd: this.workspaceRoot,
     });
+    if (code !== 0) throw new Error(`Failed to create worktree: ${code} ${stderr}`);
+    this.activeWorktrees.set(id, shadowDir);
+    return shadowDir;
   }
 
   /** Get the path of an active worktree by id, or undefined if not found */
@@ -111,19 +100,7 @@ export class ShadowWorktreeManager {
 
   /** Get diff between shadow worktree and main */
   async getDiff(worktreePath: string): Promise<string> {
-    return new Promise((resolve) => {
-      const child = spawn('git', ['diff', 'HEAD'], {
-        cwd: worktreePath,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-
-      let stdout = '';
-      child.stdout?.on('data', (data: Buffer) => {
-        stdout += data.toString();
-      });
-      child.on('close', () => resolve(stdout));
-      child.on('error', () => resolve(''));
-    });
+    return (await runProcess('git', ['diff', 'HEAD'], { cwd: worktreePath })).stdout;
   }
 
   /** Merge shadow worktree to main (requires approval) */
@@ -131,32 +108,14 @@ export class ShadowWorktreeManager {
     const worktreePath = this.activeWorktrees.get(id);
     if (!worktreePath) return false;
 
-    return new Promise((resolve) => {
-      const child = spawn('git', ['commit', '-am', `Self-improvement: ${id}`], {
-        cwd: worktreePath,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-
-      child.on('close', (code) => {
-        if (code === 0) {
-          // Switch to main and merge
-          const mergeChild = spawn('git', ['merge', id], {
-            cwd: this.workspaceRoot,
-            stdio: ['pipe', 'pipe', 'pipe'],
-          });
-          mergeChild.on('close', (mergeCode) => {
-            if (mergeCode === 0) {
-              this.cleanupWorktree(id);
-              resolve(true);
-            } else {
-              resolve(false);
-            }
-          });
-        } else {
-          resolve(false);
-        }
-      });
+    const commit = await runProcess('git', ['commit', '-am', `Self-improvement: ${id}`], {
+      cwd: worktreePath,
     });
+    if (commit.code !== 0) return false;
+    const merge = await runProcess('git', ['merge', id], { cwd: this.workspaceRoot });
+    if (merge.code !== 0) return false;
+    await this.cleanupWorktree(id);
+    return true;
   }
 
   /** Clean up shadow worktree */
@@ -164,20 +123,10 @@ export class ShadowWorktreeManager {
     const worktreePath = this.activeWorktrees.get(id);
     if (!worktreePath) return;
 
-    return new Promise((resolve) => {
-      const child = spawn('git', ['worktree', 'remove', '--force', worktreePath], {
-        cwd: this.workspaceRoot,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-      child.on('close', () => {
-        this.activeWorktrees.delete(id);
-        resolve();
-      });
-      child.on('error', () => {
-        this.activeWorktrees.delete(id);
-        resolve();
-      });
+    await runProcess('git', ['worktree', 'remove', '--force', worktreePath], {
+      cwd: this.workspaceRoot,
     });
+    this.activeWorktrees.delete(id);
   }
 
   /** Run a command in the worktree and return result */
@@ -186,30 +135,7 @@ export class ShadowWorktreeManager {
     command: string,
     args: string[]
   ): Promise<{ code: number; stdout: string; stderr: string }> {
-    return new Promise((resolve) => {
-      const child = spawn(command, args, {
-        cwd: worktreePath,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-
-      let stdout = '';
-      let stderr = '';
-
-      child.stdout?.on('data', (data: Buffer) => {
-        stdout += data.toString();
-      });
-      child.stderr?.on('data', (data: Buffer) => {
-        stderr += data.toString();
-      });
-
-      child.on('close', (code) => {
-        resolve({ code: code ?? 1, stdout, stderr });
-      });
-
-      child.on('error', (err) => {
-        resolve({ code: 1, stdout, stderr: err.message });
-      });
-    });
+    return runProcess(command, args, { cwd: worktreePath });
   }
 }
 

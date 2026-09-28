@@ -247,6 +247,21 @@ export function remainingLMCalls(budget: BudgetSlice): number {
   return Math.max(0, budget.totalLMCalls - budget.consumed.llmCalls);
 }
 
+/** All four remaining dimensions in one snapshot — the shape budget consumers hand around. */
+export function remainingAll(budget: BudgetSlice): {
+  cycles: number;
+  depth: number;
+  memoryOps: number;
+  llmCalls: number;
+} {
+  return {
+    cycles: remainingCycles(budget),
+    depth: remainingDepth(budget),
+    memoryOps: remainingMemoryOps(budget),
+    llmCalls: remainingLMCalls(budget),
+  };
+}
+
 export function toAIKRBudget(budget: BudgetSlice): AIKRBudget {
   return {
     cycles: remainingCycles(budget),
