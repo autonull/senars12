@@ -1,3 +1,4 @@
+import { raceDeadline } from '@senars/util';
 import type { MetaGame } from '../game/MetaGame.js';
 import { SeededRNG } from '../game/SeededRNG.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
@@ -82,18 +83,15 @@ export class FocusScheduler {
     if (!focus) return null;
     const budget = this.bag.allocateBudget(focus.focus, 100);
     let yielded = false;
-    const stepped = await Promise.race([
-      focus
-        .step(budget)
-        .then((r) => ({ report: r.focusReport as FocusStepReport, timedOut: false })),
-      new Promise<{ report: FocusStepReport | null; timedOut: true }>((resolve) =>
-        setTimeout(() => resolve({ report: null, timedOut: true }), this.deadlineMs)
-      ),
-    ]);
-    if (stepped.report) this.emitReport(stepped.report);
+    const stepped = await raceDeadline(
+      focus.step(budget).then((r) => r.focusReport as FocusStepReport),
+      this.deadlineMs
+    );
+    const report = stepped.value ?? null;
+    if (report) this.emitReport(report);
     else yielded = true;
     this.ticks++;
-    return { focusId: focus.focus.id, report: stepped.report, yielded };
+    return { focusId: focus.focus.id, report, yielded };
   }
 
   private emitReport(report: FocusStepReport): void {

@@ -10,6 +10,7 @@
  * REFACTOR.todo4 Phase B: now backed by the generic `Ledger<T>` primitive from `@senars/io`.
  */
 
+import { dirname } from 'node:path';
 import { z } from 'zod';
 import {Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery} from '@senars/io/ledger';
 
@@ -54,7 +55,7 @@ export class ParameterLedger {
   readonly #syncCache: ParameterLedgerEntry[] = [];
 
   constructor(options: ParameterLedgerOptions = {}) {
-    const basePath = options.path ? require('node:path').dirname(options.path) : DEFAULT_LEDGER_PATH;
+    const basePath = options.path ? dirname(options.path) : DEFAULT_LEDGER_PATH;
     this.#ledger = createLedger<ParameterLedgerEntry>(basePath, ParameterRecordSchema, {
       rollover: {
         daily: true,

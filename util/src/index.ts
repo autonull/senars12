@@ -200,14 +200,19 @@ export {
   makeId,
   mean,
   parseFlags,
+  raceDeadline,
   safeDiv,
   setNested,
   sleep,
+  TimeoutError,
   toError,
   truncate,
   truncateBytes,
+  withTimeout,
   wordOverlap,
 } from './utils/shared.js';
 /** @public Throttle configuration type. */
 export type { ThrottleConfig } from './utils/throttle.js';
 export { createThrottle, Throttle, throttleGenerator } from './utils/throttle.js';
+/** @public Percent, divider, and progress-bar formatting for reports and CLI output. */
+export { bar, divider, pct, section } from './utils/format.js';

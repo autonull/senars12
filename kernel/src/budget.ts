@@ -6,6 +6,7 @@ import type { AIKRBudget } from '@senars/nar/bag';
 import type { NarEventBus, ConsumedBudget, BudgetSliceTotal } from '@senars/nar/types/events';
 import { emitBudgetSliceCreated, emitBudgetSliceConsumed, emitBudgetSliceExhausted, emitBudgetSliceMerged } from '@senars/nar/tick';
 import type { TerminationReason } from './schemas.js';
+import { pct } from '@senars/util';
 
 export type { ConsumedBudget, BudgetSliceTotal };
 /** @deprecated since 1.0 — re-export the kernel's own `TerminationReason` from `./schemas.js`. */
@@ -307,9 +308,10 @@ export function formatBudgetSliceTree(slices: Map<string, BudgetSlice>): string 
   const lines: string[] = ['Budget Slice Tree:'];
   for (const [id, slice] of slices) {
     const parent = slice.parentId ? ` (parent: ${slice.parentId})` : ' (root)';
-    const util = slice.totalCycles > 0 ? ((slice.consumed.cycles / slice.totalCycles) * 100).toFixed(1) : '0.0';
-    const pressureValue = (pressure(slice) * 100).toFixed(1);
-    lines.push(`  ${id}${parent}: cycles=${slice.consumed.cycles}/${slice.totalCycles} (${util}%), pressure=${pressureValue}%`);
+    const util = pct(slice.totalCycles > 0 ? slice.consumed.cycles / slice.totalCycles : 0);
+    lines.push(
+      `  ${id}${parent}: cycles=${slice.consumed.cycles}/${slice.totalCycles} (${util}), pressure=${pct(pressure(slice))}`
+    );
     if (slice.terminationReason) {
       lines.push(`    TERMINATED: ${slice.terminationReason}`);
     }

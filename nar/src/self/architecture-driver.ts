@@ -38,7 +38,7 @@ export class ArchitectureDriver {
       gaps.push(
         this.createGap(
           'high_contradiction_rate',
-          `Contradiction rate ${(metrics.contradictionRate * 100).toFixed(1)}% exceeds 10%`,
+          `Contradiction rate ${pct(metrics.contradictionRate , 1)} exceeds 10%`,
           'medium',
           'contradiction_storm',
           'improve_revision_strategy',
@@ -64,7 +64,7 @@ export class ArchitectureDriver {
       gaps.push(
         this.createGap(
           'memory_pressure',
-          `Memory pressure ${(metrics.memoryPressure * 100).toFixed(0)}% near capacity`,
+          `Memory pressure ${pct(metrics.memoryPressure , 0)} near capacity`,
           'high',
           'memory_exhaustion',
           'implement_queue_shedding',
@@ -210,7 +210,7 @@ export class ArchitectureDriver {
 
 **ID:** ${gap.id}
 **Severity:** ${gap.severity.toUpperCase()}
-**Confidence:** ${(gap.confidence * 100).toFixed(0)}%
+**Confidence:** ${pct(gap.confidence , 0)}
 **Trigger:** ${gap.trigger}
 
 ## Description
@@ -273,3 +273,4 @@ export function createArchitectureDriver(nar: NAR, proposalsDir?: string): Archi
 }
 
 import { ensureParentDir } from '../utils/fs.js';
+import { pct } from '@senars/util';

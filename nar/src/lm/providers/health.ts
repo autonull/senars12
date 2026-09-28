@@ -1,5 +1,5 @@
 import { recordLmProbe } from '../../metrics/index.js';
-import type { LMSettings } from '../env-config.js';
+import { LM_PROVIDER_NAMES, type LMSettings } from '../env-config.js';
 import {
   getProviderRuntime,
   type LMProviderName,
@@ -147,25 +147,25 @@ export function startHealthProbes(
 ): void {
   if (rt.healthProbeInterval) return;
   rt.healthProbeInterval = setInterval(async () => {
-    const providers: LMProviderName[] = [
-      'anthropic',
-      'openai',
-      'openai-compatible',
-      'webllm',
-      'llamacpp-embedded',
-    ];
-    for (const p of providers) {
+    for (const p of LM_PROVIDER_NAMES) {
       if (!canUseProvider(p, settings, rt)) continue;
       let ok = false;
-      if (['anthropic', 'openai', 'openai-compatible'].includes(p)) {
-        ok =
-          p === 'openai-compatible'
-            ? await probeOpenAICompatible(settings)
-            : await probeCloudProvider(settings);
-      } else if (p === 'webllm') {
-        ok = typeof navigator !== 'undefined' && 'gpu' in navigator;
-      } else if (p === 'llamacpp-embedded') {
-        ok = (await probeEmbeddedLlama()).available;
+      switch (p) {
+        case 'anthropic':
+        case 'openai':
+          ok = await probeCloudProvider(settings);
+          break;
+        case 'openai-compatible':
+          ok = await probeOpenAICompatible(settings);
+          break;
+        case 'webllm':
+          ok = typeof navigator !== 'undefined' && 'gpu' in navigator;
+          break;
+        case 'llamacpp-embedded':
+          ok = (await probeEmbeddedLlama()).available;
+          break;
+        default:
+          continue;
       }
       const b = rt.breaker(p);
       b.lastProbe = Date.now();

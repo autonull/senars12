@@ -26,7 +26,7 @@ import {
   type FullReplayOptions,
   type ReplaySnapshotFile,
 } from '@senars/nar/kernel/replay';
-import { errMsg } from '@senars/util';
+import { errMsg, parseFlags } from '@senars/util';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -59,33 +59,24 @@ function parseOrdinal(raw: string | undefined, flag: string): number | undefined
 }
 
 function parseArgs(argv: string[]): ReplayCliOptions {
-  const opts: ReplayCliOptions = {};
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === '--from' || arg === '-f') {
-      opts.from = parseOrdinal(argv[++i], '--from');
-    } else if (arg === '--to' || arg === '-t') {
-      opts.to = parseOrdinal(argv[++i], '--to');
-    } else if (arg === '--from-id') {
-      opts.fromId = argv[++i];
-    } else if (arg === '--to-id') {
-      opts.toId = argv[++i];
-    } else if (arg === '--verify' || arg === '-v') {
-      opts.verify = true;
-    } else if (arg === '--snapshot' || arg === '-s') {
-      opts.snapshot = argv[++i];
-    } else if (arg === '--output' || arg === '-o') {
-      opts.output = argv[++i];
-    } else if (arg === '--gate-events') {
-      opts.gateEventsPath = argv[++i];
-    } else if (arg === '--derivation-records') {
-      opts.derivationRecordsPath = argv[++i];
-    } else if (arg === '--help' || arg === '-h') {
-      printUsage();
-      process.exit(0);
-    }
+  const flags = parseFlags(argv);
+  const str = (flag: string, alias?: string): string | undefined =>
+    flags.str(flag, alias ? flags.str(alias, '') : '') || undefined;
+  if (flags.has('--help', '-h')) {
+    printUsage();
+    process.exit(0);
   }
-  return opts;
+  return {
+    from: parseOrdinal(str('--from', '-f'), '--from'),
+    to: parseOrdinal(str('--to', '-t'), '--to'),
+    fromId: str('--from-id'),
+    toId: str('--to-id'),
+    verify: flags.has('--verify', '-v'),
+    snapshot: str('--snapshot', '-s'),
+    output: str('--output', '-o'),
+    gateEventsPath: str('--gate-events'),
+    derivationRecordsPath: str('--derivation-records'),
+  };
 }
 
 function printUsage(): void {

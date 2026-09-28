@@ -41,6 +41,7 @@ import { game2048HeuristicAction } from '../tests/nar/rl/baselines/2048.js';
 import { snakeHeuristicAction } from '../tests/nar/rl/baselines/snake.js';
 import { tetrisHeuristicPlacement } from '../tests/nar/rl/baselines/tetris.js';
 import { ticTacToeHeuristicAction } from '../tests/nar/rl/baselines/tictactoe.js';
+import { pct } from '@senars/util';
 
 type Arm = 'manifold' | 'lm' | 'replica' | 'heuristic' | 'random' | 'nal';
 
@@ -457,7 +458,7 @@ async function main(): Promise<void> {
   console.log('\n=== Arcade summary ===');
   for (const s of harness.summary()) {
     console.log(
-      `${s.arm}: ticks=${s.ticks} brier=${s.brier.toFixed(4)} ece=${s.ece.toFixed(4)} meanReward=${s.meanReward.toFixed(4)} return=${s.return.toFixed(3)} handover=${(s.handoverRate * 100).toFixed(1)}%`
+      `${s.arm}: ticks=${s.ticks} brier=${s.brier.toFixed(4)} ece=${s.ece.toFixed(4)} meanReward=${s.meanReward.toFixed(4)} return=${s.return.toFixed(3)} handover=${pct(s.handoverRate)}`
     );
   }
   for (const note of notes) console.log(`note: ${note}`);

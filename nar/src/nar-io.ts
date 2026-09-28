@@ -1,5 +1,6 @@
 import { makeId } from '@senars/util';
 import { promises as fs } from 'node:fs';
+import { writeJsonFile } from '@senars/util';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';
 import type { IPerceptionGate } from './kernel';
 import { gateRegistry } from './kernel/GateRegistry.js';
@@ -205,7 +206,7 @@ export class NARIO {
 
   async saveToFile(filename: string): Promise<void> {
     const data = this.export();
-    await fs.writeFile(filename, JSON.stringify(data, null, 2));
+    await writeJsonFile(filename, data);
   }
 
   async loadFromFile(filename: string): Promise<void> {

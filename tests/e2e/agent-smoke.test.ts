@@ -4,6 +4,7 @@ import { NAREngine } from '@senars/nar/engine/NAREngine';
 import { startAgentUI, type TestServer } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
+import { waitForMessage } from './fixtures.js';
 
 interface ClientMessage {
   type: string;
@@ -11,28 +12,6 @@ interface ClientMessage {
   [key: string]: unknown;
 }
 
-function waitFor(
-  messages: IncomingFromServer[],
-  predicate: (m: IncomingFromServer) => boolean,
-  timeoutMs = 5000
-): Promise<IncomingFromServer> {
-  return new Promise((resolve, reject) => {
-    const found = messages.find(predicate);
-    if (found) return resolve(found);
-    const timer = setTimeout(
-      () => reject(new Error('waitFor timed out waiting for message')),
-      timeoutMs
-    );
-    const check = setInterval(() => {
-      const hit = messages.find(predicate);
-      if (hit) {
-        clearTimeout(timer);
-        clearInterval(check);
-        resolve(hit);
-      }
-    }, 20);
-  });
-}
 
 describe('Agent-as-Kernel: smoke test (real WS + Agent + NAREngine)', () => {
   let agent: Agent;
@@ -66,7 +45,7 @@ describe('Agent-as-Kernel: smoke test (real WS + Agent + NAREngine)', () => {
       ws.on('error', reject);
     });
 
-    await waitFor(received, (m) => m.type === 'cognitive.delta');
+    await waitForMessage(received, (m) => m.type === 'cognitive.delta');
   }, 30000);
 
   afterAll(async () => {
@@ -96,7 +75,7 @@ describe('Agent-as-Kernel: smoke test (real WS + Agent + NAREngine)', () => {
     send({ type: 'chat.user', content: '<cat --> mammal>.' });
     const nodeId = (o: { action: string; id?: string }): string | undefined =>
       'id' in o ? o.id : undefined;
-    await waitFor(
+    await waitForMessage(
       received,
       (m) => m.type === 'cognitive.delta' && m.ops.some((o) => nodeId(o)?.includes('mammal'))
     );
@@ -110,13 +89,13 @@ describe('Agent-as-Kernel: smoke test (real WS + Agent + NAREngine)', () => {
 
   it('lens.set re-emits a delta tagged with the chosen lens', async () => {
     send({ type: 'lens.set', lens: 'contradiction' });
-    const delta = await waitFor(received, (m) => m.type === 'cognitive.delta' && 'lens' in m);
+    const delta = await waitForMessage(received, (m) => m.type === 'cognitive.delta' && 'lens' in m);
     expect(delta.type === 'cognitive.delta').toBe(true);
   });
 
   it('focus.set sends a delta response', async () => {
     send({ type: 'focus.set', term: 'bird' });
-    const delta = await waitFor(received, (m) => m.type === 'cognitive.delta');
+    const delta = await waitForMessage(received, (m) => m.type === 'cognitive.delta');
     expect(delta.type === 'cognitive.delta').toBe(true);
   });
 });

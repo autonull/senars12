@@ -68,3 +68,26 @@ type DeepPartial<T> = T extends readonly unknown[]
   : T extends object
     ? { [K in keyof T]?: DeepPartial<T[K]> }
     : T;
+
+/** Polls `predicate` until it yields a defined value; rejects on timeout. */
+export const waitFor = <T>(predicate: () => T | undefined, timeoutMs = 15_000): Promise<T> =>
+  new Promise((resolve, reject) => {
+    const start = Date.now();
+    const check = () => {
+      const result = predicate();
+      if (result !== undefined) return resolve(result);
+      if (Date.now() - start > timeoutMs) return reject(new Error('waitFor timed out'));
+      setTimeout(check, 20);
+    };
+    check();
+  });
+
+/** Resolves with the first message in the (growing) buffer matching `predicate`. */
+export const waitForMessage = <T>(
+  messages: readonly T[],
+  predicate: (message: T) => boolean,
+  timeoutMs = 5000
+): Promise<T> =>
+  waitFor(() => messages.find(predicate), timeoutMs).catch((err: unknown) => {
+    throw new Error(`waitForMessage timed out: ${err instanceof Error ? err.message : String(err)}`);
+  });

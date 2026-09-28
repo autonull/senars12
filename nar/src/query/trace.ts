@@ -1,6 +1,7 @@
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
 import type { Budget, Stamp, Task } from '../types';
+import { pct } from '@senars/util';
 
 export interface DerivationNode {
   task: Task;
@@ -226,9 +227,9 @@ export class ReasoningTrace {
     }
 
     const premiseStrs = premises.slice(0, 3).map((p) => p.term.toString());
-    const confidenceStr = (confidence * 100).toFixed(1);
+    const confidenceStr = pct(confidence);
 
-    return `Derived from ${premises.length} premise(s): ${premiseStrs.join(', ')}. Confidence: ${confidenceStr}%.`;
+    return `Derived from ${premises.length} premise(s): ${premiseStrs.join(', ')}. Confidence: ${confidenceStr}.`;
   }
 }
 

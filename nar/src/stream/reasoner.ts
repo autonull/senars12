@@ -1,9 +1,9 @@
 import { gateRegistry } from '../kernel/index.js';
-import { Truth } from '../terms/truth.js';
+import { type IndependenceStatus, Truth } from '../terms/truth.js';
 import type { TickContext } from '../tick/tick.js';
 import type { Task, TruthType } from '../types/core.js';
 
-export type IndependenceStatus = 'independent' | 'dependent' | 'unknown';
+export type { IndependenceStatus };
 
 export interface LMRequest {
   id: string;

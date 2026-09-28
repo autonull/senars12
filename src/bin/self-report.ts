@@ -12,7 +12,7 @@ import { createLogger } from '@senars/nar/logger';
 import { initializeMetaReasoning, registerMetaRules } from '@senars/nar/rules';
 import { initializeSelfConcept } from '@senars/nar/tools';
 import { runEntrypoint } from './lib/fatal-error.js';
-import { bar, divider, pct } from './lib/format.js';
+import { bar, divider, pct } from '@senars/util';
 
 const logger = createLogger({ scope: 'self-report' });
 

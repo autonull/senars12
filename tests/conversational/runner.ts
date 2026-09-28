@@ -1,3 +1,4 @@
+import { parseFlags } from '@senars/util';
 import { ConversationalTestHarness, type Scenario, type ScenarioResult } from './framework.js';
 import { describeProvider, resolveProvider, resolveTestLMService } from './providers.js';
 import { buildReport, formatHumanReadable, formatJson } from './report.js';
@@ -46,38 +47,25 @@ interface RunnerArgs {
 }
 
 function parseArgs(): RunnerArgs {
-  const args = process.argv.slice(2);
-  const result: RunnerArgs = { verbose: false, json: false, record: false, verify: false };
-  for (const arg of args) {
-    if (arg.startsWith('--scenario=')) {
-      result.scenario = arg.split('=')[1];
-    } else if (arg === '--verbose' || arg === '-v') {
-      result.verbose = true;
-    } else if (arg === '--json') {
-      result.json = true;
-    } else if (arg === '--record') {
-      result.record = true;
-    } else if (arg === '--verify') {
-      result.verify = true;
-    } else if (arg === '--help' || arg === '-h') {
-      console.log(`Usage: pnpm test:conversational [options]`);
-      console.log(`  --scenario=<name>  Run only the named scenario`);
-      console.log(`  --verbose, -v      Show per-probe output`);
-      console.log(`  --json             Output JSON report`);
-      console.log(`  --record           Save actual outputs to golden/ directory`);
-      console.log(`  --verify           Compare outputs against golden files`);
-      console.log(`  --help, -h         Show this help`);
-      console.log(`\nEnvironment:`);
-      console.log(
-        `  LM_PROVIDER        Provider: mock|transformers|openai-compatible|anthropic (default: mock)`
-      );
-      console.log(`  LM_MODEL           Model override`);
-      console.log(`  OLLAMA_HOST        Ollama server URL`);
-      console.log(`  ANTHROPIC_API_KEY  Anthropic API key`);
-      process.exit(0);
-    }
+  const flags = parseFlags();
+  if (flags.has('--help', '-h')) {
+    console.log(`Usage: pnpm test:conversational [options]`);
+    console.log(`  --scenario=<name>  Run only the named scenario`);
+    console.log(`  --verbose, -v      Show per-probe output`);
+    console.log(`  --json             Output JSON report`);
+    console.log(`  --record           Save actual outputs to golden/ directory`);
+    console.log(`  --verify           Compare outputs against golden files`);
+    console.log(`  --help, -h         Show this help`);
+    process.exit(0);
   }
-  return result;
+  const scenario = flags.str('--scenario', '');
+  return {
+    scenario: scenario || undefined,
+    verbose: flags.has('--verbose', '-v'),
+    json: flags.has('--json'),
+    record: flags.has('--record'),
+    verify: flags.has('--verify'),
+  };
 }
 
 async function main() {

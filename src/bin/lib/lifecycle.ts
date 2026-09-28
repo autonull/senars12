@@ -157,11 +157,19 @@ export async function createAgentFromEnv(
   coreAgent.getNAR = () => nar;
   coreAgent.getEpisodicMemory = () => episodicMemory;
   coreAgent.getRecentDerivations = () => [];
+  // Capture the originals before widening the agent onto NarAgentApi — a patched
+  // method that calls `coreAgent.<same>` recurses forever.
+  const baseSetMacroPipeline = coreAgent.setMacroPipeline?.bind(coreAgent);
+  const baseMount = (
+    coreAgent.mount as
+      | ((t: import('@senars/util/types/transport').Connection) => Promise<void>)
+      | undefined
+  )?.bind(coreAgent);
   coreAgent.setMacroPipeline = (phases: import('@senars/core/agent/phases').MacroPhase[]) => {
-    coreAgent.setMacroPipeline?.(phases);
+    baseSetMacroPipeline?.(phases);
   };
   coreAgent.mount = async (transport: import('@senars/util/types/transport').Connection) => {
-    await (coreAgent.mount as (t: import('@senars/util/types/transport').Connection) => Promise<void>)?.(transport);
+    await baseMount?.(transport);
   };
 
   // LM rules from config (`bot.lmRules.rules`) — presets by id, unknown ids logged.

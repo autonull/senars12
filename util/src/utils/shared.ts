@@ -11,6 +11,50 @@ export const toError = (e: unknown): Error => (e instanceof Error ? e : new Erro
 
 export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
+/** Raised by {@link withTimeout} unless a domain error is supplied. */
+export class TimeoutError extends Error {
+  constructor(readonly timeoutMs: number) {
+    super(`Operation timed out after ${timeoutMs}ms`);
+    this.name = 'TimeoutError';
+  }
+}
+
+/**
+ * Rejects with `error()` when `timeoutMs` elapses. The losing promise is not
+ * cancelled — it keeps running; use only where orphaned work is safe.
+ */
+export function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  error: () => Error = () => new TimeoutError(timeoutMs)
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(error()), timeoutMs);
+    timer.unref?.();
+  });
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
+}
+
+/**
+ * Cooperative deadline: resolves `{ timedOut: true }` when `timeoutMs` elapses,
+ * leaving `work` running. The interruptible-execution primitive — pair with
+ * `AbortSignal` when the loser must stop.
+ */
+export function raceDeadline<T>(
+  work: Promise<T>,
+  timeoutMs: number
+): Promise<{ value: T; timedOut: false } | { value?: undefined; timedOut: true }> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<{ value?: undefined; timedOut: true }>((resolve) => {
+    timer = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+    timer.unref?.();
+  });
+  return Promise.race([work.then((value) => ({ value, timedOut: false as const })), deadline]).finally(
+    () => clearTimeout(timer)
+  );
+}
+
 export const compact = <T>(arr: (T | null | undefined | false | '' | 0)[]): T[] =>
   arr.filter(Boolean) as T[];
 

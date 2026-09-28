@@ -1,3 +1,4 @@
+import { pct } from '@senars/util';
 export interface PhaseEntry {
   name: string;
   category: string;
@@ -54,24 +55,18 @@ export class PhaseTimer {
     const lines: string[] = [`=== Temporal Trace (${summary.totalDurationMs}ms total) ===`, ''];
     for (const p of summary.phases) {
       const bar = '#'.repeat(Math.max(1, Math.round(p.durationMs / 10)));
-      const pct =
-        summary.totalDurationMs > 0
-          ? ((p.durationMs / summary.totalDurationMs) * 100).toFixed(1)
-          : '0.0';
+      const share = pct(p.durationMs / summary.totalDurationMs);
       lines.push(
-        ` [${p.category}] ${p.name.padEnd(40)} ${String(p.durationMs).padStart(6)}ms (${pct}%) ${bar}`
+        ` [${p.category}] ${p.name.padEnd(40)} ${String(p.durationMs).padStart(6)}ms (${share}) ${bar}`
       );
     }
     if (Object.keys(summary.byCategory).length > 0) {
       lines.push('');
       lines.push('By Category:');
       for (const [cat, stats] of Object.entries(summary.byCategory)) {
-        const pct =
-          summary.totalDurationMs > 0
-            ? ((stats.totalMs / summary.totalDurationMs) * 100).toFixed(1)
-            : '0.0';
+        const share = pct(stats.totalMs / summary.totalDurationMs);
         lines.push(
-          ` ${cat.padEnd(20)} ${stats.count} calls, ${stats.totalMs}ms total (${pct}%), avg ${Math.round(stats.avgMs)}ms`
+          ` ${cat.padEnd(20)} ${stats.count} calls, ${stats.totalMs}ms total (${share}), avg ${Math.round(stats.avgMs)}ms`
         );
       }
     }

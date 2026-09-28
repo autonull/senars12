@@ -620,27 +620,15 @@ function buildExtraCommands(
           '@senars/nar/lm/providers.js'
         );
         const s = resolveLMSettings();
-        return (
-          [
-            'anthropic',
-            'openai',
-            'openai-compatible',
-            'llamacpp',
-            'llamacpp-embedded',
-            'transformers',
-            'mock',
-          ] as const
-        )
-          .map((p) => {
-            try {
-              const b = getCircuitBreaker(p as never);
-              getEffectiveCircuitConfig(p as never, s as never);
-              return `  ${p}: ${b.state} fails=${b.consecutiveFailures}`;
-            } catch {
-              return `  ${p}: n/a`;
-            }
-          })
-          .join('\n');
+        return LM_PROVIDER_NAMES.map((p) => {
+          try {
+            const b = getCircuitBreaker(p as never);
+            getEffectiveCircuitConfig(p as never, s as never);
+            return `  ${p}: ${b.state} fails=${b.consecutiveFailures}`;
+          } catch {
+            return `  ${p}: n/a`;
+          }
+        }).join('\n');
       } catch (e) {
         return `circuit info unavailable: ${errMsg(e)}`;
       }

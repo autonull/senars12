@@ -21,6 +21,7 @@ import { SingleFlight } from './singleflight.js';
 /** Canonical definitions live in types/events (EventMap depends on them); re-exported here for the nl surface. */
 export type { Ambiguity, Coreference, TaskBatch } from '../types/events.js';
 import type { TaskBatch } from '../types/events.js';
+import { pct } from '@senars/util';
 
 export interface NLContext {
   beliefs?: string[];
@@ -234,7 +235,7 @@ export class NLUnderstandingService {
       recentExamples: ctx?.recentExamples,
       lastError,
       memorySnapshot: ctx?.memoryHealth
-        ? `Memory: ${ctx.memoryHealth.totalConcepts} concepts, pressure ${(ctx.memoryHealth.pressure * 100).toFixed(0)}%`
+        ? `Memory: ${ctx.memoryHealth.totalConcepts} concepts, pressure ${pct(ctx.memoryHealth.pressure , 0)}`
         : undefined,
     });
 

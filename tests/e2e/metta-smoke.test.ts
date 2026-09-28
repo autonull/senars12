@@ -3,6 +3,7 @@ import { Agent } from '@senars/core';
 import { startAgentUI, type TestServer } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
+import { waitForMessage } from './fixtures.js';
 
 interface ClientMessage {
   type: string;
@@ -10,28 +11,6 @@ interface ClientMessage {
   [key: string]: unknown;
 }
 
-function waitFor(
-  messages: IncomingFromServer[],
-  predicate: (m: IncomingFromServer) => boolean,
-  timeoutMs = 5000
-): Promise<IncomingFromServer> {
-  return new Promise((resolve, reject) => {
-    const found = messages.find(predicate);
-    if (found) return resolve(found);
-    const timer = setTimeout(
-      () => reject(new Error('waitFor timed out waiting for message')),
-      timeoutMs
-    );
-    const check = setInterval(() => {
-      const hit = messages.find(predicate);
-      if (hit) {
-        clearTimeout(timer);
-        clearInterval(check);
-        resolve(hit);
-      }
-    }, 20);
-  });
-}
 
 describe('Agent-as-Kernel: Metta smoke test (real WS + Agent + MettaEngine)', () => {
   let agent: Agent;
@@ -61,7 +40,7 @@ describe('Agent-as-Kernel: Metta smoke test (real WS + Agent + MettaEngine)', ()
       ws.on('error', reject);
     });
 
-    await waitFor(received, (m) => m.type === 'cognitive.delta');
+    await waitForMessage(received, (m) => m.type === 'cognitive.delta');
   }, 30000);
 
   afterAll(async () => {
@@ -89,7 +68,7 @@ describe('Agent-as-Kernel: Metta smoke test (real WS + Agent + MettaEngine)', ()
 
   it('lens.set works on MeTTa graph', async () => {
     send({ type: 'lens.set', lens: 'belief' });
-    const delta = await waitFor(received, (m) => m.type === 'cognitive.delta' && 'lens' in m);
+    const delta = await waitForMessage(received, (m) => m.type === 'cognitive.delta' && 'lens' in m);
     expect(delta.type === 'cognitive.delta').toBe(true);
   });
 });

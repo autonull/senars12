@@ -27,6 +27,7 @@ import {
 import {
   cloudApiKey,
   embeddedLlamaConfigured,
+  LM_PROVIDER_NAMES,
   resolveLMConfig,
   resolveLMSettings,
 } from '@senars/nar/lm/env-config.js';
@@ -209,8 +210,7 @@ const main = async (): Promise<void> => {
 
   // Circuit breaker status
   try {
-    const providers: LMProviderName[] = ['anthropic', 'openai', 'openai-compatible', 'transformers', 'mock'];
-    for (const p of providers) {
+    for (const p of LM_PROVIDER_NAMES) {
       const cfg = getEffectiveCircuitConfig(p, settings);
       const breaker = getCircuitBreaker(p);
       output.circuitBreakers[p] = {

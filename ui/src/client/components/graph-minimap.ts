@@ -19,20 +19,22 @@ export class GraphMinimap extends BaseComponent {
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
 
+  private readonly toggleVisible = (): void => {
+    this.visible = !this.visible;
+    this.scheduleDraw();
+  };
+
   override connectedCallback() {
     super.connectedCallback();
     this.watchWith($graphNodes, () => this.scheduleDraw());
     this.watchWith($graphEdges, () => this.scheduleDraw());
     this.watchWith($viewport, () => this.scheduleDraw());
-    eventBus.on('graph:minimap-toggle', () => {
-      this.visible = !this.visible;
-      this.scheduleDraw();
-    });
+    eventBus.on('graph:minimap-toggle', this.toggleVisible);
   }
 
   override disconnectedCallback() {
     super.disconnectedCallback();
-    eventBus.off('graph:minimap-toggle', () => {});
+    eventBus.off('graph:minimap-toggle', this.toggleVisible);
   }
 
   override firstUpdated() {

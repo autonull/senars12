@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { createIsotonicCalibrator } from '../lm/system-one/calibration.js';
 import { identityECE, meanBrier } from '../lm/system-one/metrics.js';
 import { ensureDir } from '../utils/fs.js';
-import { mean } from '@senars/util';
+import { mean, pct } from '@senars/util';
 
 export interface ArcadeTickRecord {
   arm: string;
@@ -119,7 +119,7 @@ export class BrierHarness {
     const rows = this.summary()
       .map(
         (s) =>
-          `| ${s.arm} | ${s.ticks} | ${s.brier.toFixed(4)} | ${s.ece.toFixed(4)} | ${s.meanReward.toFixed(4)} | ${(s.handoverRate * 100).toFixed(1)}% | ${s.return.toFixed(3)} |`
+          `| ${s.arm} | ${s.ticks} | ${s.brier.toFixed(4)} | ${s.ece.toFixed(4)} | ${s.meanReward.toFixed(4)} | ${pct(s.handoverRate , 1)} | ${s.return.toFixed(3)} |`
       )
       .join('\n');
     return [

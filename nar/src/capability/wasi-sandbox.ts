@@ -1,3 +1,4 @@
+import { withTimeout as sharedWithTimeout } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 
 export class SandboxTimeoutError extends SenarsError {
@@ -32,18 +33,9 @@ export function sanitizePreopens(paths: string[] = []): Record<string, string> {
   return preopens;
 }
 
-/**
- * Rejects when `timeoutMs` elapses. The losing promise is not cancelled — it
- * keeps running; use only where orphaned work is safe.
- */
-export function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new SandboxTimeoutError(timeoutMs)), timeoutMs);
-    timer.unref?.();
-  });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
-}
+/** Rejects with {@link SandboxTimeoutError} when the sandbox deadline elapses. */
+export const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> =>
+  sharedWithTimeout(promise, timeoutMs, () => new SandboxTimeoutError(timeoutMs));
 
 export function containsPath(root: string, candidate: string): boolean {
   const norm = (p: string): string => p.replace(/\\/g, '/').replace(/\/+$/, '') || '/';

@@ -27,6 +27,7 @@ import { EpsilonGreedy, UCB1 } from '../tests/nar/rl/baselines/bandit.js';
 import { QLearning, SARSA } from '../tests/nar/rl/baselines/gridworld.js';
 import { BanditGame } from '../nar/src/game/BanditGame.js';
 import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
+import { pct } from '@senars/util';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -426,7 +427,7 @@ async function main() {
   console.log(`Baseline Return: ${avgBaseline.toFixed(4)}`);
   console.log(`SeNARS Return: ${avgSenars.toFixed(4)}`);
   console.log(`Ratio: ${overallRatio.toFixed(4)}`);
-  console.log(`Seed Pass Rate: ${(passRate * 100).toFixed(1)}%`);
+  console.log(`Seed Pass Rate: ${pct(passRate , 1)}`);
   console.log(`Overall Pass: ${summary.pass ? 'YES' : 'NO'}`);
 
   process.exit(summary.pass ? 0 : 1);

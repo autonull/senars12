@@ -3,9 +3,12 @@ import { createBag, type Bag, type BagOptions } from '../bag/Bag.js';
 import { LINK } from '../constants.js';
 import type { Term, Truth } from '../terms';
 import { extractSymbols, type Stamp, TermMap, TermSet, termsEqual } from '../terms';
-import { Truth as TruthOps } from '../terms/truth.js';
+import { type IndependenceStatus, Truth as TruthOps } from '../terms/truth.js';
 import type { Budget, TaskType } from '../types';
 import { clamp01, jaccard } from '../utils';
+
+export type { IndependenceStatus };
+
 
 const DECAY_TIME_CONSTANT = 60000;
 const { DECAY_RATE, MIN_PRIORITY: MIN_LINK_STRENGTH } = LINK;
@@ -17,8 +20,6 @@ export type RevisionCallback = (entry: {
   timestamp: number;
   source: 'input' | 'revision';
 }) => void;
-
-export type IndependenceStatus = 'independent' | 'dependent' | 'unknown';
 
 export interface ConceptConfig {
   maxBeliefs?: number;

@@ -4,19 +4,7 @@ import { startAgentUI } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { createAgentFromEnv } from '../../src/bin/lib/lifecycle';
-
-function waitFor<T>(predicate: () => T | undefined, timeoutMs = 30000): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const start = Date.now();
-    const check = () => {
-      const result = predicate();
-      if (result !== undefined) return resolve(result);
-      if (Date.now() - start > timeoutMs) return reject(new Error('waitFor timed out'));
-      setTimeout(check, 20);
-    };
-    check();
-  });
-}
+import { waitFor } from './fixtures.js';
 
 describe('Production loop with real LMService (LM_PROVIDER=mock via AI SDK)', () => {
   let server: Awaited<ReturnType<typeof startAgentUI>>;

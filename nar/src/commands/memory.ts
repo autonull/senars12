@@ -1,5 +1,6 @@
 import type { CommandDefinition } from '@senars/core/command-types';
 import { promises as fs } from 'node:fs';
+import { writeJsonFile } from '@senars/util';
 
 const CONCEPT_PREVIEW_LIMIT = 20;
 
@@ -75,7 +76,7 @@ export const memoryCommands: CommandDefinition[] = [
         timestamp: new Date().toISOString(),
         statistics: nar.getStatistics(),
       };
-      await fs.writeFile(filename, JSON.stringify(data, null, 2));
+      await writeJsonFile(filename, data);
       return `Saved ${concepts.length} concept(s) to ${filename}`;
     },
   },

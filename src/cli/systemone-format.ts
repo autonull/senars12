@@ -6,6 +6,7 @@
 import type { NAR } from '@senars/nar';
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { pct } from '@senars/util';
 
 /** The conversation-game focus the status readout reads veto counters from. */
 export interface ConversationGameFocus {
@@ -54,7 +55,7 @@ export function formatSystemOneStatus(nar: NAR, conversationGame: ConversationGa
     `  Cortex: ${cortexHealth.provider} (breaker: ${cortexHealth.breakerOpen ? 'open' : 'closed'})`,
     `  Groundedness Gate: ${groundednessGate ? 'enabled' : 'disabled'}`,
     `  Trace Grader: ${traceGrader ? 'enabled' : 'disabled'}`,
-    `  Embedding Cache: ${cacheMetrics.size} entries, hit rate: ${((cacheMetrics.hits / (cacheMetrics.hits + cacheMetrics.misses || 1)) * 100).toFixed(1)}%`,
+    `  Embedding Cache: ${cacheMetrics.size} entries, hit rate: ${pct(cacheMetrics.hits / (cacheMetrics.hits + cacheMetrics.misses || 1))}`,
     `  Contrastive: ${totals.p}P/${totals.n}N across ${cStats.length} rubric(s), ${totals.c} calibrated (refresh: .calibrate refresh)`,
     `  Contrastive Vetoes (LMReflex): ${vetoes}`,
     ...(() => {

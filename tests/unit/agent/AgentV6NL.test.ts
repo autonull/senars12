@@ -41,10 +41,14 @@ describe('Agent v6 — NL integration (real ModelRunner loop)', () => {
     expect(reply).toContain('Hello');
   });
 
-  // Skip tool-calling tests - they require AI SDK v7 tool schema format in mock
-  it('NL chat → LM emits nar_believe tool → belief added to NAR', async () => {});
-  it('NL chat → LM emits calculate tool → math result in final text', async () => {});
-  it('NL chat → LM emits nar_question tool → NAR runs reasoning', async () => {});
-  it('NL chat → system prompt contains constitution + custom instructions', async () => {});
-  it('NL chat with empty LM response still logs to episodic memory', async () => {});
+  it('NL chat with empty LM response still logs to episodic memory', async () => {
+    const lm = createMockLMService({ generateTextFn: async () => '' });
+    const agent = await createAgent({ nar, lmService: lm, episodicMemory: ep });
+    for await (const _evt of agent.chat('Hello there')) {
+      void _evt;
+    }
+    const episodes = await ep.getEpisodes({ limit: 10 });
+    expect(episodes.length).toBeGreaterThan(0);
+    expect(episodes[0]?.content ?? JSON.stringify(episodes[0])).toContain('Hello');
+  });
 });

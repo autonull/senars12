@@ -5,19 +5,7 @@ import { createMockLMService } from '@senars/nar/lm';
 import { startAgentUI } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-
-function waitFor<T>(predicate: () => T | undefined, timeoutMs = 15000): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const start = Date.now();
-    const check = () => {
-      const result = predicate();
-      if (result !== undefined) return resolve(result);
-      if (Date.now() - start > timeoutMs) return reject(new Error('waitFor timed out'));
-      setTimeout(check, 20);
-    };
-    check();
-  });
-}
+import { waitFor } from './fixtures.js';
 
 describe('chat-synthesis', () => {
   let server: Awaited<ReturnType<typeof startAgentUI>>;

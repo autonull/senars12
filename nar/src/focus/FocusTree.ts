@@ -5,6 +5,7 @@
  * Per-branch rollups feed domain learner + metaGame.
  */
 
+import { raceDeadline } from '@senars/util';
 import { BudgetSlice, type ConsumedBudget, createBudgetSlice, sliceBudget, mergeConsumption, isExhausted } from '@senars/kernel/budget';
 import type { Focus, FocusOptions, FocusStepReport } from '../focus/Focus.js';
 import type { FocusBag } from '../focus/FocusBag.js';
@@ -182,22 +183,19 @@ export class FocusTree {
     const focus = leaf.focus;
 
     let yielded = false;
-    const stepped = await Promise.race([
-      focus
-        .step(budget.consumed.cycles < budget.totalCycles ? 10 : 0)
-        .then((r) => ({ report: r, timedOut: false })),
-      new Promise<{ report: FocusStepReport | null; timedOut: true }>((resolve) =>
-        setTimeout(() => resolve({ report: null, timedOut: true }), this.deadlineMs)
-      ),
-    ]);
+    const stepped = await raceDeadline(
+      focus.step(budget.consumed.cycles < budget.totalCycles ? 10 : 0),
+      this.deadlineMs
+    );
 
-    if (stepped.report) {
-      this.emitReport(leaf.id, stepped.report);
+    const report = stepped.value;
+    if (report) {
+      this.emitReport(leaf.id, report);
       // Merge consumption back up the tree
       this.mergeConsumptionUp(leaf, {
         cycles: 1,
         depth: 0,
-        memoryOps: stepped.report.tasksProcessed,
+        memoryOps: report.tasksProcessed,
         llmCalls: 0,
       });
     } else {
@@ -205,7 +203,7 @@ export class FocusTree {
     }
 
     this.ticks++;
-    return { nodeId: leaf.id, report: stepped.report, yielded };
+    return { nodeId: leaf.id, report: report ?? null, yielded };
   }
 
   /** Weighted sample a leaf node across all roots. */

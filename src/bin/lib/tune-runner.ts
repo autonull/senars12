@@ -5,14 +5,14 @@
  * Usage: tsx src/bin/tune.ts --iterations 20
  */
 
-import { sleep } from '@senars/util';
+import { parseFlags, sleep } from '@senars/util';
 import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
 import type { CognitiveParameters } from '@senars/nar/config/cognitive-parameters.js';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters.js';
 import { RLFPLearner } from '@senars/nar/rlfp';
 import { runEntrypoint } from './fatal-error.js';
-import { pct } from './format.js';
+import { pct, section } from '@senars/util';
 
 interface TuneOptions {
   iterations: number;
@@ -32,39 +32,18 @@ interface Metrics {
 }
 
 function parseArgs(): TuneOptions {
-  const args = process.argv.slice(2);
-  const options: TuneOptions = {
-    iterations: 10,
-    baselineDuration: 100,
-    threshold: 0.05,
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    switch (args[i]) {
-      case '--iterations':
-      case '-i':
-        options.iterations = parseInt(args[++i] || '10', 10);
-        break;
-      case '--baseline':
-      case '-b':
-        options.baselineDuration = parseInt(args[++i] || '100', 10);
-        break;
-      case '--output':
-      case '-o':
-        options.outputConfig = args[++i];
-        break;
-      case '--threshold':
-      case '-t':
-        options.threshold = parseFloat(args[++i] || '0.05');
-        break;
-      case '--help':
-      case '-h':
-        printHelp();
-        process.exit(0);
-        break;
-    }
+  const flags = parseFlags();
+  if (flags.has('--help', '-h')) {
+    printHelp();
+    process.exit(0);
   }
-  return options;
+  const output = flags.str('--output', flags.str('-o', ''));
+  return {
+    iterations: flags.num('--iterations', flags.num('-i', 10)),
+    baselineDuration: flags.num('--baseline', flags.num('-b', 100)),
+    threshold: flags.num('--threshold', flags.num('-t', 0.05)),
+    outputConfig: output || undefined,
+  };
 }
 
 function printHelp(): void {
@@ -131,9 +110,7 @@ function collectMetrics(
 }
 
 function printMetrics(label: string, metrics: Metrics, params: CognitiveParameters): void {
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`${label}`);
-  console.log(`${'='.repeat(60)}`);
+  console.log(section(label, 60));
   console.log(`  Test Pass Rate:     ${pct(metrics.testPassRate)}`);
   console.log(`  Avg Test Duration:  ${metrics.avgTestDuration.toFixed(0)}ms`);
   console.log(`  Baseline Duration:  ${metrics.baselineDuration.toFixed(0)}ms`);
@@ -210,7 +187,7 @@ async function main(): Promise<void> {
   console.log(`Running ${options.iterations} iterations...\n`);
 
   const rlfp = new RLFPLearner({
-    currentParams: { ...DEFAULT_COGNITIVE_PARAMETERS },
+    currentParams: structuredClone(DEFAULT_COGNITIVE_PARAMETERS),
   });
 
   let prevCoverage = 0.5;
@@ -237,7 +214,7 @@ async function main(): Promise<void> {
     // Track best
     if (metrics.reward > bestReward) {
       bestReward = metrics.reward;
-      bestParams = JSON.parse(JSON.stringify(rlfp.currentParams));
+      bestParams = structuredClone(rlfp.currentParams);
       const improvement = ((bestReward - initialReward) / Math.abs(initialReward)) * 100;
       console.log(
         `  🏆 NEW BEST REWARD: ${bestReward.toFixed(4)} (${pct(improvement / 100)} improvement)`
@@ -253,9 +230,7 @@ async function main(): Promise<void> {
     prevCoverage = metrics.testPassRate;
   }
 
-  console.log('\n' + '='.repeat(60));
-  console.log('🏁 TUNING COMPLETE');
-  console.log('='.repeat(60));
+  console.log(section('🏁 TUNING COMPLETE', 60));
   console.log(`Initial Reward: ${initialReward.toFixed(4)}`);
   console.log(`Best Reward:    ${bestReward.toFixed(4)}`);
   const totalImprovement = ((bestReward - initialReward) / Math.abs(initialReward)) * 100;

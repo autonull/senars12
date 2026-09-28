@@ -7,6 +7,7 @@
  * plain-name configs resolve exactly as before; expressions activate only
  * where a caller names one (`CognitiveController.setStrategyExpression`).
  */
+import { raceDeadline } from '@senars/util';
 import type { Task } from '../types/core.js';
 
 /**
@@ -179,24 +180,17 @@ const timeoutRun =
   (ms: number, body: CompositionStrategy, fallback?: CompositionStrategy): CompositionRun =>
   async function* (primary, secondaries, processor, ctx) {
     if (ctx.signal?.aborted) return;
-    let timedOut = false;
-    const deadline = new Promise<'timeout'>((resolve) => {
-      const t = setTimeout(() => resolve('timeout'), ms);
-      t.unref?.();
-    });
     const gen = body.derive(primary, secondaries, processor, ctx);
+    let timedOut = false;
     try {
       while (true) {
-        const raced = await Promise.race([
-          gen.next().then((r) => ({ r })),
-          deadline.then((v) => ({ timeout: v })),
-        ]);
-        if ('timeout' in raced) {
+        const raced = await raceDeadline(gen.next(), ms);
+        if (raced.timedOut) {
           timedOut = true;
           break;
         }
-        if (raced.r.done) return;
-        yield raced.r.value;
+        if (raced.value.done) return;
+        yield raced.value.value;
       }
     } finally {
       await gen.return(undefined as never).catch(() => {});

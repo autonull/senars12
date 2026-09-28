@@ -535,6 +535,7 @@ async function runScenario7(): Promise<boolean> {
 // ── Main ─────────────────────────────────────────────────────
 
 import { enableRoutingTelemetry, getRoutingLogStatus, resetCircuitBreakers } from '@senars/nar/lm/providers.js';
+import { pct } from '@senars/util';
 
 async function main() {
   const config = loadConfig();
@@ -618,7 +619,7 @@ async function main() {
     // generation silently blocks with no output while the ONNX weights load).
     if (config.provider !== 'mock' && typeof (lmService as any).setProgressCallback === 'function') {
       (lmService as any).setProgressCallback((p: number) => {
-        logger.info(`  📥 model load ${(p * 100).toFixed(0)}%`);
+        logger.info(`  📥 model load ${pct(p , 0)}`);
       });
     }
   }

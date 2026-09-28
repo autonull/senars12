@@ -376,11 +376,13 @@ Additional duplications confirmed (already in plan):
 - Added `ScopedEventEmitter` for per-component scoped emission on single `NarEventBus`.
 - Channel taxonomy documented; migration of existing emitters deferred until after golden parity verified (C31).
 
-**B6 — NarAssembly** (`nar/src/nar-assembly.ts`):
+**B6 — NarAssembly** (`nar/src/nar-assembly.ts`, later deleted):
 - New `assembleNAR()` function with ordered phases: memory → gates → system-one → execution → games → optional features.
 - Returns `NARAssemblyResult` with all subsystems for testability and preset reuse.
 - `NAR` facade methods grouped behind 4 sub-facades conceptually (`systemOne`, `games`, `learning`, `io`).
 - `reconfigure()` updated to use `CognitiveController.onDerivation` hook.
+- **Retired 2026-09-27**: never wired into `NAR` (which assembles inline) and still
+  half-stubbed; deleted as duplicate architecture rather than completed.
 
 **B7 — Legacy Directory Retirement**:
 - Deleted `nar/src/cognition/` (moved `ReasoningGame`, `meta-spec`, `actions`, `rewards`, `sensors`, `types`, `registries` to `nar/src/game/`).

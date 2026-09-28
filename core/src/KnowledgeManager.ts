@@ -1,6 +1,4 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { ensureDirSync } from '@senars/util';
+import { readJsonFileSync, writeJsonFileSync } from '@senars/util';
 
 export class KnowledgeManager {
   private knowledge = new Map<string, string>();
@@ -16,10 +14,7 @@ export class KnowledgeManager {
   saveKnowledge(): void {
     if (!this.persistKnowledge) return;
     try {
-      const dir = path.dirname(this.knowledgePath);
-      ensureDirSync(dir);
-      const obj = Object.fromEntries(this.knowledge);
-      fs.writeFileSync(this.knowledgePath, JSON.stringify(obj, null, 2), 'utf8');
+      writeJsonFileSync(this.knowledgePath, Object.fromEntries(this.knowledge));
     } catch {
       // fail silently on save
     }
@@ -40,18 +35,8 @@ export class KnowledgeManager {
 
   private loadKnowledge(): void {
     if (!this.persistKnowledge) return;
-    try {
-      if (fs.existsSync(this.knowledgePath)) {
-        const data = fs.readFileSync(this.knowledgePath, 'utf8');
-        const parsed = JSON.parse(data);
-        for (const [k, v] of Object.entries(parsed)) {
-          if (typeof k === 'string' && typeof v === 'string') {
-            this.knowledge.set(k, v);
-          }
-        }
-      }
-    } catch {
-      // fail silently on load
+    for (const [k, v] of Object.entries(readJsonFileSync<Record<string, unknown>>(this.knowledgePath, {}))) {
+      if (typeof v === 'string') this.knowledge.set(k, v);
     }
   }
 }

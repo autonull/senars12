@@ -11,7 +11,8 @@ import { CognitiveTreadmill } from '@senars/nar/imagination/treadmill';
 import type { ScenarioProfile } from '@senars/nar/imagination/types';
 import { ArchitectureDriver } from '@senars/nar/self/architecture-driver';
 import { runEntrypoint } from './lib/fatal-error.js';
-import { pct } from './lib/format.js';
+import { parseFlags } from '@senars/util';
+import { pct, section } from '@senars/util';
 
 interface ImagineOptions {
   profile: ScenarioProfile;
@@ -24,51 +25,20 @@ interface ImagineOptions {
 }
 
 function parseArgs(): ImagineOptions {
-  const args = process.argv.slice(2);
-  const options: ImagineOptions = {
-    profile: 'induction',
-    seed: 42,
-    steps: 500,
-    count: 1,
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    switch (args[i]) {
-      case '--profile':
-      case '-p':
-        options.profile = args[++i] as ScenarioProfile;
-        break;
-      case '--seed':
-      case '-s':
-        options.seed = parseInt(args[++i] || '42', 10);
-        break;
-      case '--multiplier':
-      case '-m':
-        options.multiplier = parseFloat(args[++i] || '1');
-        break;
-      case '--steps':
-        options.steps = parseInt(args[++i] || '500', 10);
-        break;
-      case '--count':
-      case '-c':
-        options.count = parseInt(args[++i] || '1', 10);
-        break;
-      case '--output':
-      case '-o':
-        options.output = args[++i];
-        break;
-      case '--analyze':
-      case '-a':
-        options.analyze = true;
-        break;
-      case '--help':
-      case '-h':
-        printHelp();
-        process.exit(0);
-        break;
-    }
+  const flags = parseFlags();
+  if (flags.has('--help', '-h')) {
+    printHelp();
+    process.exit(0);
   }
-  return options;
+  return {
+    profile: flags.str('--profile', flags.str('-p', 'induction')) as ScenarioProfile,
+    seed: flags.num('--seed', flags.num('-s', 42)),
+    multiplier: flags.num('--multiplier', flags.num('-m', 1)),
+    steps: flags.num('--steps', 500),
+    count: flags.num('--count', flags.num('-c', 1)),
+    output: flags.str('--output', flags.str('-o', '')) || undefined,
+    analyze: flags.has('--analyze', '-a'),
+  };
 }
 
 function printHelp(): void {
@@ -121,9 +91,7 @@ async function runOverloadSweep(nar: NAR, seed: number, multipliers: number[]): 
 }
 
 function printScenarioResult(scenario: any, result: any): void {
-  console.log('\n' + '='.repeat(60));
-  console.log(`SCENARIO: ${scenario.profile.toUpperCase()} (seed: ${scenario.seed})`);
-  console.log('='.repeat(60));
+  console.log(section(`SCENARIO: ${scenario.profile.toUpperCase()} (seed: ${scenario.seed})`, 60));
   console.log(`Steps Executed:  ${result.stepsExecuted}/${scenario.events.length}`);
   console.log(`Duration:        ${result.durationMs}ms`);
   console.log(`Success:         ${result.success ? '✅' : '❌'}`);
@@ -139,9 +107,7 @@ function printScenarioResult(scenario: any, result: any): void {
 }
 
 function printDegradationCurve(curve: any): void {
-  console.log('\n' + '='.repeat(60));
-  console.log('DEGRADATION CURVE (Overload Sweep)');
-  console.log('='.repeat(60));
+  console.log(section('DEGRADATION CURVE (Overload Sweep)', 60));
   console.log('Multiplier | Quality | Latency P95 | Knee');
   console.log('-'.repeat(50));
   for (const point of curve.points) {
@@ -214,14 +180,12 @@ async function main(): Promise<void> {
       const metrics = outputData.result?.metrics || outputData.results?.[0]?.result?.metrics;
       const curve = outputData.curve || { points: [], kneePoint: null };
       const gaps = await driver.analyzeStressResults(metrics, curve);
-      console.log('\n' + '='.repeat(60));
-      console.log('ARCHITECTURE GAPS DETECTED');
-      console.log('='.repeat(60));
+      console.log(section('ARCHITECTURE GAPS DETECTED', 60));
       for (const gap of gaps) {
         console.log(`\n[${gap.severity.toUpperCase()}] ${gap.id}`);
         console.log(`  ${gap.description}`);
         console.log(
-          `  Fix: ${gap.proposedFix} (confidence: ${(gap.confidence * 100).toFixed(0)}%)`
+          `  Fix: ${gap.proposedFix} (confidence: ${pct(gap.confidence , 0)})`
         );
       }
       outputData.gaps = gaps;
