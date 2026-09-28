@@ -4,10 +4,12 @@
  * Hard budget inheritance: spawn enforces Σ(child) ≤ parent.remaining; join returns unconsumed budget.
  */
 
+
 import { BudgetSlice, type BudgetSliceOptions, createBudgetSlice, sliceBudget, mergeConsumption, isExhausted, consumeCycles, remainingCycles, remainingDepth, remainingMemoryOps, remainingLMCalls } from '@senars/kernel/budget';
 import type { Term } from '@senars/nar/terms';
 import type { Task } from '@senars/nar/types';
 import { emitBackpressureDecision } from '@senars/nar/tick';
+import { makeId, toError } from '@senars/util';
 
 export type ThreadStatus = 'created' | 'running' | 'waiting' | 'completed' | 'killed' | 'error';
 
@@ -179,7 +181,7 @@ export class CognitiveThread {
 
     const fullMessage: ThreadMessage = {
       ...message,
-      id: crypto.randomUUID(),
+      id: makeId(),
       timestamp: Date.now(),
     };
     const enqueued = this.mailbox.enqueue(fullMessage);
@@ -221,7 +223,7 @@ export class CognitiveThread {
       this.status = 'completed';
       return this.result as T;
     } catch (err) {
-      this.error = err instanceof Error ? err : new Error(String(err));
+      this.error = toError(err);
       this.status = 'error';
       throw this.error;
     }

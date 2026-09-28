@@ -1,3 +1,4 @@
+import { clamp01 } from '@senars/util';
 import type { Term } from '../../terms';
 import { Truth, termParser } from '../../terms';
 import type { Budget, Task, TruthType } from '../../types';
@@ -155,7 +156,7 @@ export class SystemOneLMRuleAdapter {
             'belief',
             Truth.create(Math.min(0.9, Math.max(0.5, 0.5 + score / 2)), 0.7),
             {
-              priority: Math.min(1, Math.max(0, score)),
+              priority: clamp01(score),
               durability: 0.7,
               quality: 0.8,
               cycles: 10,

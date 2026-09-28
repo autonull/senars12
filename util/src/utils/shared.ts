@@ -24,6 +24,10 @@ export const edgeKey = (source: string, target: string): string => `${source}->$
 export const safeDiv = (num: number, den: number): number =>
   den === 0 ? 0 : clamp(num / den, 0, 1);
 
+/** Arithmetic mean of a projection; 0 for an empty collection (rates, scores, sums). */
+export const mean = <T>(items: readonly T[], value: (item: T) => number = (item) => item as unknown as number): number =>
+  items.length === 0 ? 0 : items.reduce((sum, item) => sum + value(item), 0) / items.length;
+
 export const wordOverlap = (a: string, b: string, splitPattern?: RegExp): number => {
   const pattern = splitPattern ?? /\s+/;
   const aWords = new Set(a.toLowerCase().split(pattern).filter(Boolean));
@@ -33,6 +37,73 @@ export const wordOverlap = (a: string, b: string, splitPattern?: RegExp): number
   for (const w of aWords) if (bWords.has(w)) overlap++;
   return overlap / Math.max(aWords.size, bWords.size);
 };
+
+/** Dotted-path read; missing or non-object segments yield `undefined`. */
+export const getNested = (obj: unknown, path: string): unknown =>
+  path.split('.').reduce<unknown>((node, key) => (node as Record<string, unknown> | null)?.[key], obj);
+
+/** Dotted-path write, creating missing intermediate objects. */
+export function setNested(obj: Record<string, unknown>, path: string, value: unknown): void {
+  const keys = path.split('.');
+  let current = obj;
+  for (const key of keys.slice(0, -1)) {
+    if (typeof current[key] !== 'object' || current[key] === null) current[key] = {};
+    current = current[key] as Record<string, unknown>;
+  }
+  const lastKey = keys[keys.length - 1];
+  if (lastKey !== undefined) current[lastKey] = value;
+}
+
+/** Typed accessor over `--flag value` style argv arrays. */
+export interface Flags {
+  /** Raw argv (defaults to `process.argv.slice(2)`). */
+  readonly argv: readonly string[];
+  /** Positional arguments (tokens not consumed as a flag value). */
+  readonly positional: readonly string[];
+  has: (...flags: string[]) => boolean;
+  str: (flag: string, fallback: string) => string;
+  num: (flag: string, fallback: number) => number;
+  list: (flag: string, fallback: string[]) => string[];
+}
+
+/**
+ * Parses `argv` once into flag lookups. `--flag value` consumes the next token
+ * unless it is itself a flag; `--flag=value` is also accepted.
+ */
+export function parseFlags(argv: readonly string[] = process.argv.slice(2)): Flags {
+  const values = new Map<string, string>();
+  const flags = new Set<string>();
+  const positional: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    const token = argv[i]!;
+    if (!token.startsWith('-')) {
+      positional.push(token);
+      continue;
+    }
+    const eq = token.indexOf('=');
+    if (eq > 0) {
+      flags.add(token.slice(0, eq));
+      values.set(token.slice(0, eq), token.slice(eq + 1));
+      continue;
+    }
+    flags.add(token);
+    const next = argv[i + 1];
+    if (next !== undefined && !next.startsWith('-')) values.set(token, (i++, next));
+  }
+  const get = (flag: string): string | undefined => values.get(flag);
+  return {
+    argv,
+    positional,
+    has: (...names) => names.some((name) => flags.has(name)),
+    str: (flag, fallback) => get(flag) ?? fallback,
+    num: (flag, fallback) => {
+      const raw = get(flag);
+      const parsed = raw === undefined ? Number.NaN : Number(raw);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    },
+    list: (flag, fallback) => (get(flag) ?? fallback.join(',')).split(',').filter(Boolean),
+  };
+}
 
 let msgCounter = 0;
 
@@ -73,6 +144,13 @@ export function isNarsese(text: string): boolean {
 
 export const truncate = (text: string, maxLength = 60): string =>
   text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
+
+/** Byte-safe truncation for tool output — never splits a multi-byte character. */
+export const truncateBytes = (text: string, maxBytes: number): { text: string; truncated: boolean } => {
+  const bytes = Buffer.byteLength(text, 'utf8');
+  if (bytes <= maxBytes) return { text, truncated: false };
+  return { text: Buffer.from(text, 'utf8').subarray(0, maxBytes).toString('utf8'), truncated: true };
+};
 
 export const limitList = <T>(
   items: T[],

@@ -13,6 +13,7 @@
  * the CI gate for "no export without a consumer".
  */
 
+import { parseFlags } from '@senars/util';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -54,13 +55,8 @@ interface Options {
 }
 
 const parseArgs = (): Options => {
-  const args = process.argv.slice(2);
-  const pkgIdx = args.indexOf('--packages');
-  const packages =
-    pkgIdx >= 0 && args[pkgIdx + 1]
-      ? args[pkgIdx + 1]!.split(',')
-      : ['nar', 'util', 'core', 'io', 'metta'];
-  return { packages, verbose: args.includes('--verbose') };
+  const { has, list } = parseFlags();
+  return { packages: list('--packages', ['nar', 'util', 'core', 'io', 'metta']), verbose: has('--verbose') };
 };
 
 const consumerDirs = CONSUMER_DIRS.filter((d) => existsSync(join(ROOT, d)));

@@ -5,6 +5,7 @@
  */
 import type { NALDerivation, NegotiationDecision } from './negotiation-types.js';
 import type { ActionProposal } from './Reflex.js';
+import { LruCache } from '@senars/util';
 
 export interface ArbitrationStrategy {
   decide(
@@ -35,8 +36,8 @@ export class NalVetoArbitration implements ArbitrationStrategy {
    * (action, truth, proposal) — pure function of the key, so entries can never
    * go stale; bounded and cleared wholesale past the cap.
    */
-  readonly #vetoMemo = new Map<string, boolean>();
   static readonly #VETO_MEMO_CAP = 10_000;
+  readonly #vetoMemo = new LruCache<string, boolean>(NalVetoArbitration.#VETO_MEMO_CAP);
   readonly #nalVetoThreshold: number;
   readonly #reflexThreshold: number;
 
@@ -100,7 +101,6 @@ export class NalVetoArbitration implements ArbitrationStrategy {
       derivation.action === proposedAction &&
       derivation.truth.f < 0.3 &&
       derivation.truth.c >= this.#nalVetoThreshold;
-    if (this.#vetoMemo.size >= NalVetoArbitration.#VETO_MEMO_CAP) this.#vetoMemo.clear();
     this.#vetoMemo.set(key, result);
     return result;
   }

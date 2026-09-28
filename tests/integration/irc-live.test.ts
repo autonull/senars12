@@ -101,7 +101,7 @@ describe('IRC live integration', () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it.skip('connects bot to mock IRC and exchanges messages', async () => {
+  it('connects bot to mock IRC and exchanges messages', async () => {
     const episodicMemory = new EpisodicMemory({
       enabled: true,
       basePath: tempDir,
@@ -167,5 +167,5 @@ describe('IRC live integration', () => {
     await new Promise((r) => setTimeout(r, 1000));
 
     expect(receivedBotMessages.length).toBeGreaterThan(0);
-  }, 3000);
+  }, 20_000);
 });

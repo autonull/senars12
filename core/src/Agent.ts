@@ -1,4 +1,4 @@
-import type { EpisodicMemory } from '@senars/util';
+import { makeId, type EpisodicMemory } from '@senars/util';
 import type { ThreadScope } from '@senars/nar/kernel';
 import { AgentBridge } from './AgentBridge.js';
 import { ApprovalService } from './ApprovalService.js';
@@ -129,7 +129,7 @@ export class Agent {
 
   mount(transport: Connection): void {
     const handler = async (message: { text: string }) => {
-      const correlationId = crypto.randomUUID();
+      const correlationId = makeId();
       this.submit(message.text, correlationId);
     };
     transport.onMessage(handler);
@@ -226,7 +226,7 @@ export class Agent {
   }
 
   async *chat(input: string, opts?: ChatOptions): AsyncGenerator<ChatStreamEvent, string> {
-    const correlationId = crypto.randomUUID();
+    const correlationId = makeId();
     const stimulus: CognitiveStimulus = {
       text: input,
       source: 'chat',

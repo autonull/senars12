@@ -8,6 +8,7 @@
  */
 import type { Bag, BagItem } from '../bag/Bag.js';
 import type { RandomSource } from '../types/primitives.js';
+import { selectTopN } from '../utils/collections.js';
 
 export interface SamplingStrategy<T extends BagItem> {
   readonly name: string;
@@ -148,7 +149,7 @@ export class TopKSampling<T extends BagItem> implements SamplingStrategy<T> {
   ) {}
   select(items: T[], budget: number, rng: RandomSource): T[] {
     const k = Math.max(this.k ?? budget, budget);
-    const top = [...items].sort((a, b) => b.priority - a.priority).slice(0, k);
+    const top = selectTopN(items, k, (item) => item.priority);
     const t = Math.max(this.temperature, 1e-9);
     return weightedWithoutReplacement(
       softmaxWeights(top, (item) => item.priority / t),

@@ -1,3 +1,4 @@
+import { clamp01 } from '@senars/util';
 import type { Game, GameOutcome, Perception } from './Game.js';
 import { SeededRNG } from './SeededRNG.js';
 
@@ -94,7 +95,7 @@ export class BanditGame implements Game<number, number> {
     const magnitude = this.drift?.changeMagnitude ?? 0;
     this.armMeans = this.armMeans.map((mean) => {
       const next = mean + (this.rng.next() * 2 - 1) * magnitude;
-      return Math.min(1, Math.max(0, next));
+      return clamp01(next);
     });
   }
 }

@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { makeId } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
 
@@ -32,7 +32,7 @@ export class ApprovalManager {
   }
 
   createRequest(request: string, metadata: Record<string, unknown> = {}): ApprovalRequest {
-    const id = randomUUID();
+    const id = makeId();
     let resolveFn!: (result: ApprovalResult) => void;
     let rejectFn!: (error: Error) => void;
     const result = new Promise<ApprovalResult>((resolve, reject) => {

@@ -26,7 +26,7 @@ export const registerToolTool = (ctx: SelfToolsContext) => {
         async ({ path, id, isNew }) => {
           const toolFile = resolve(path, `tools/${toolName}.ts`);
           const { mkdir, writeFile } = await import('node:fs/promises');
-          await mkdir(dirname(toolFile), { recursive: true });
+          await ensureParentDir(toolFile);
           await writeFile(toolFile, toolCode, 'utf-8');
 
           const testResult = await shadowManager.runTestsInWorktree(path);
@@ -53,3 +53,5 @@ export const registerToolTool = (ctx: SelfToolsContext) => {
     },
   });
 };
+
+import { ensureParentDir } from '../../../utils/fs.js';

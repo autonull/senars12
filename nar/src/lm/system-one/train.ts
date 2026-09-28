@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { clamp01 } from '@senars/util';
+import { clamp01, ensureDir, readJsonlAsync } from '@senars/util';
 import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL_ID } from '../../memory/embedding.js';
 import { sha256HexParts, sha256Prefixed } from '../../utils/hash.js';
 import { mulberry32 } from '../../utils/random.js';
@@ -56,20 +56,13 @@ interface RawLabel {
 }
 
 export async function loadTrainingData(options: LoadTrainingDataOptions): Promise<TrainingRow[]> {
-  const content = await fs.readFile(options.datasetPath, 'utf-8');
-  const rows = content.trim().split('\n').filter(Boolean);
+  const { rows: rawRows } = await readJsonlAsync<RawLabel>(options.datasetPath, (value) => value as RawLabel);
 
   const grouped = new Map<
     string,
     { sum: number; count: number; action: string; vector?: string }
   >();
-  for (const line of rows) {
-    let label: RawLabel;
-    try {
-      label = JSON.parse(line) as RawLabel;
-    } catch {
-      continue;
-    }
+  for (const label of rawRows) {
     if (label.rubric !== options.headId) continue;
     const target = label.observed ?? label.score;
     if (target === undefined || !Number.isFinite(target) || !label.vector) continue;
@@ -512,7 +505,7 @@ export async function writeHeadArtifacts(
   outDir: string
 ): Promise<HeadArtifactBundle> {
   const bundle = exportArtifacts(model);
-  await fs.mkdir(outDir, { recursive: true });
+  await ensureDir(outDir);
   await Promise.all([
     fs.writeFile(join(outDir, 'config.json'), JSON.stringify(bundle.config, null, 2)),
     fs.writeFile(join(outDir, 'weights.bin'), bundle.weightsBytes),
@@ -599,3 +592,4 @@ export async function loadHeadArtifacts(
   }
   return new TrainedLinearHead(config, weightsBytes, modelDigest);
 }
+

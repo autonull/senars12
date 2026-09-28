@@ -1,3 +1,4 @@
+import { makeId } from '@senars/util';
 import { trace } from '@opentelemetry/api';
 import type { JudgmentResolvedEvent } from '@senars/kernel/schemas';
 import { recordJudgmentMetric } from '../../metrics/prometheus.js';
@@ -42,7 +43,7 @@ export function createTelemetryEmitter(sinks: TelemetrySinks = {}) {
           type: 'judgment.resolved',
           engine: 'proposer',
           timestamp: Date.now(),
-          correlationId: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
+          correlationId: makeId(),
           payload: {
             queryId: proposition.queryId,
             shape: proposition.kind,

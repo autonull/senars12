@@ -1,26 +1,18 @@
 /**
- * M3 Litmus Test — End-to-End Autonomous Self-Improvement
+ * M3 Litmus Test — Autonomous self-improvement wiring.
  *
- * This test verifies the complete autonomous self-improvement loop:
- * 1. Sabotage: introduce subtle bug in core NAR (truth-value calculation)
- * 2. Run autonomous loop with self-improvement enabled
- * 3. Background run_tests detects failure
- * 4. Competence drive decays rapidly
- * 5. Meta-rule fires → derives native AST goal: ((*, fix_pattern_id) --> ^apply_fix)!
- * 6. apply_fix spins up shadow worktree, applies AST-grep codemod
- * 7. Shadow worktree runs FULL CI (test + typecheck + lint) → PASSES
- * 8. ApprovalRequest emitted to CLI (auto-approved in test)
- * 9. Worktree merges → competence drive replenishes
+ * The sabotaged end-to-end loop (inject a truth-value bug → `run_tests` fails →
+ * competence drive decays → meta-rule derives `^apply_fix` → shadow worktree
+ * applies the codemod and runs full CI → approval → merge) needs a real fix
+ * pattern plus the whole CI suite, so it is not exercised here. This file
+ * asserts the wiring that loop depends on: self-concept vocabulary,
+ * meta-reasoning beliefs, meta-rule registration, and the enabled subsystems.
  */
 
-import { spawnSync } from 'node:child_process';
-import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { createNAR } from '../../../nar/src/nar-presets.js';
 import { createSeNARSRegistry } from '../../../nar/src/lm/index.js';
 import { createLMService } from '../../../nar/src/lm/lm-service.js';
 import { createLogger } from '../../../nar/src/logger/index.js';
+import { createNAR } from '../../../nar/src/nar-presets.js';
 import {
   initializeMetaReasoning,
   META_REASONING_BELIEFS,
@@ -35,103 +27,7 @@ const logger = createLogger({ scope: 'self-improvement-litmus' });
 // LM_PROVIDER in the environment still wins.
 if (!process.env.LM_PROVIDER) process.env.LM_PROVIDER = 'mock';
 
-// Test workspace for shadow operations
-const TEST_WORKSPACE = join(process.cwd(), '.cache', 'litmus-test');
-
-async function setupTestWorkspace(): Promise<void> {
-  await rm(TEST_WORKSPACE, { recursive: true, force: true });
-  await mkdir(TEST_WORKSPACE, { recursive: true });
-}
-
-async function teardownTestWorkspace(): Promise<void> {
-  await rm(TEST_WORKSPACE, { recursive: true, force: true });
-}
-
-async function injectBug(
-  targetFile: string,
-  bugPattern: string,
-  bugReplacement: string
-): Promise<void> {
-  const content = await readFile(targetFile, 'utf-8');
-  const buggyContent = content.replace(bugPattern, bugReplacement);
-  await writeFile(targetFile, buggyContent, 'utf-8');
-}
-
-async function runTestsInWorkspace(workspace: string): Promise<{
-  success: boolean;
-  passed: number;
-  failed: number;
-  total: number;
-}> {
-  const result = spawnSync('pnpm', ['vitest', 'run', '--reporter=json'], {
-    cwd: workspace,
-    stdio: ['pipe', 'pipe', 'pipe'],
-    timeout: 120000,
-  });
-
-  let passed = 0,
-    failed = 0,
-    total = 0;
-  try {
-    const stdout = result.stdout.toString();
-    const jsonStart = stdout.indexOf('{');
-    if (jsonStart >= 0) {
-      const data = JSON.parse(stdout.slice(jsonStart));
-      passed = data.numPassedTests ?? 0;
-      failed = data.numFailedTests ?? 0;
-      total = data.numTotalTests ?? 0;
-    }
-  } catch {}
-
-  return {
-    success: result.status === 0 && failed === 0,
-    passed,
-    failed,
-    total,
-  };
-}
-
 describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
-  let originalTruthFile: string;
-  let testTruthFile: string;
-
-  beforeEach(async () => {
-    await setupTestWorkspace();
-
-    // Backup the original truth.ts file
-    originalTruthFile = resolve(process.cwd(), 'nar/src/terms/truth.ts');
-    testTruthFile = resolve(TEST_WORKSPACE, 'truth.ts.bak');
-    await copyFile(originalTruthFile, testTruthFile);
-  });
-
-  afterEach(async () => {
-    // Restore original file
-    try {
-      await copyFile(testTruthFile, originalTruthFile);
-    } catch {}
-    await teardownTestWorkspace();
-  });
-
-  test.skip('M3 Litmus Test: sabotage truth-value → auto-fix → verify', async () => {
-    // This test is marked as skip because it requires:
-    // 1. A real bug that can be automatically fixed by the available fix patterns
-    // 2. The full CI suite to run in the test environment
-    // 3. ApprovalManager integration (auto-approve for testing)
-
-    // The test demonstrates the expected flow:
-    // 1. Inject a subtle bug in truth-value calculation
-    // 2. Run NAR with self-improvement enabled
-    // 3. Background test runner detects failure
-    // 4. Competence drive drops below threshold
-    // 5. Meta-rule fires → goal ^apply_fix(fix_pattern:...)
-    // 6. Shadow worktree applies fix via codemod
-    // 7. Full CI passes in shadow
-    // 8. Approval auto-granted → merge
-    // 9. Competence replenishes
-
-    expect(true).toBe(true);
-  });
-
   test('Self-improvement components are wired correctly', async () => {
     const registry = createSeNARSRegistry();
     const lmService = createLMService();

@@ -7,7 +7,7 @@
  *
  * Usage: tsx scripts/system-one-bakeoff.ts [dataset.jsonl]
  */
-import { readFileSync } from 'node:fs';
+import { readJsonl } from '@senars/util';
 import { runBakeOff, type BakeOffCase, type HeadCandidateSpec } from '../nar/src/lm/system-one/distill.js';
 import { createIsotonicCalibrator } from '../nar/src/lm/system-one/calibration.js';
 
@@ -19,14 +19,11 @@ interface DatasetRow {
 }
 
 function loadCases(path: string, rubric: string): BakeOffCase[] {
-  const rows = readFileSync(path, 'utf-8')
-    .split('\n')
-    .filter(Boolean)
-    .map((line) => JSON.parse(line) as DatasetRow)
-    .filter((r) => r.rubric === rubric);
+  const { rows } = readJsonl<DatasetRow>(path, (value) => value as DatasetRow);
+  const cases = rows.filter((r) => r.rubric === rubric);
 
   const calibrator = createIsotonicCalibrator('v2.4.1', rubric);
-  return rows.map((r) => {
+  return cases.map((r) => {
     const truth = r.score ?? 0;
     const predicted = calibrator.calibrate(truth);
     return { truth, incumbent: truth, candidate: predicted };

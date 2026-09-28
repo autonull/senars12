@@ -1,3 +1,4 @@
+import { mean } from '@senars/util';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { validateBatchQueries } from './algebra.js';
@@ -372,7 +373,7 @@ export class SystemOneManifold implements JudgmentManifold {
 
     const totalSamples = results.length;
     const avgECE =
-      Array.from(this.#calibrators.values()).reduce((sum, c) => sum + c.getECE(), 0) /
+      mean(Array.from(this.#calibrators.values()), (c) => c.getECE()) /
       this.#calibrators.size;
     this.#rollingECEMonitor.record(avgECE, totalSamples);
   }

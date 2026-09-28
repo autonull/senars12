@@ -5,12 +5,14 @@
  * Usage: tsx src/bin/tune.ts --iterations 20
  */
 
+import { sleep } from '@senars/util';
 import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
 import type { CognitiveParameters } from '@senars/nar/config/cognitive-parameters.js';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters.js';
 import { RLFPLearner } from '@senars/nar/rlfp';
 import { runEntrypoint } from './fatal-error.js';
+import { pct } from './format.js';
 
 interface TuneOptions {
   iterations: number;
@@ -86,7 +88,7 @@ Examples:
 
 async function runTests(): Promise<{ passRate: number; avgDuration: number; coverage: number }> {
   // Simulate test run - in reality this would run vitest
-  await new Promise((r) => setTimeout(r, 50));
+  await sleep(50);
   return {
     passRate: 0.7 + Math.random() * 0.25,
     avgDuration: 50 + Math.random() * 100,
@@ -132,11 +134,11 @@ function printMetrics(label: string, metrics: Metrics, params: CognitiveParamete
   console.log(`\n${'='.repeat(60)}`);
   console.log(`${label}`);
   console.log(`${'='.repeat(60)}`);
-  console.log(`  Test Pass Rate:     ${(metrics.testPassRate * 100).toFixed(1)}%`);
+  console.log(`  Test Pass Rate:     ${pct(metrics.testPassRate)}`);
   console.log(`  Avg Test Duration:  ${metrics.avgTestDuration.toFixed(0)}ms`);
   console.log(`  Baseline Duration:  ${metrics.baselineDuration.toFixed(0)}ms`);
-  console.log(`  Coverage Delta:     ${(metrics.coverageDelta * 100).toFixed(1)}%`);
-  console.log(`  Memory Overage:     ${(metrics.memoryOverage * 100).toFixed(1)}%`);
+  console.log(`  Coverage Delta:     ${pct(metrics.coverageDelta)}`);
+  console.log(`  Memory Overage:     ${pct(metrics.memoryOverage)}`);
   console.log(`  CPU Throttle:       ${metrics.cpuThrottleTime.toFixed(1)}ms`);
   console.log(`  REWARD:             ${metrics.reward.toFixed(4)}`);
   console.log(`\n  Current Knobs:`);
@@ -238,7 +240,7 @@ async function main(): Promise<void> {
       bestParams = JSON.parse(JSON.stringify(rlfp.currentParams));
       const improvement = ((bestReward - initialReward) / Math.abs(initialReward)) * 100;
       console.log(
-        `  🏆 NEW BEST REWARD: ${bestReward.toFixed(4)} (${improvement.toFixed(1)}% improvement)`
+        `  🏆 NEW BEST REWARD: ${bestReward.toFixed(4)} (${pct(improvement / 100)} improvement)`
       );
 
       // Persist config if improvement exceeds threshold
@@ -257,7 +259,7 @@ async function main(): Promise<void> {
   console.log(`Initial Reward: ${initialReward.toFixed(4)}`);
   console.log(`Best Reward:    ${bestReward.toFixed(4)}`);
   const totalImprovement = ((bestReward - initialReward) / Math.abs(initialReward)) * 100;
-  console.log(`Total Improvement: ${totalImprovement.toFixed(1)}%`);
+  console.log(`Total Improvement: ${pct(totalImprovement / 100)}`);
 
   if (bestParams) {
     console.log('\nBest Configuration:');

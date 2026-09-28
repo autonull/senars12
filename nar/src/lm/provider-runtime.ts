@@ -5,14 +5,16 @@
  * fresh instance gives a NAR/LMService its own routing + failure state so
  * parallel instances coexist in one process.
  */
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
-import { z } from 'zod';
+
 import { join } from 'node:path';
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
+import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
 import type { LMTask } from '@senars/util';
 import type { LanguageModel } from 'ai';
+import { z } from 'zod';
 import { recordCircuitBreakerState } from '../metrics/index.js';
 import { getTracer } from '../otel/index.js';
+import { ensureDirSync } from '../utils/fs.js';
 import {
   type CircuitBreakerConfig,
   type LMProviderName,
@@ -317,8 +319,7 @@ export class ProviderRuntime {
     }
     // Initialize ledger
     try {
-      const { mkdirSync } = require('node:fs');
-      mkdirSync(this.routingLogDir, { recursive: true });
+      ensureDirSync(this.routingLogDir);
       (this as any).#routingLedger = createLedger<RoutingTelemetryLedgerEntry>(
         this.routingLogDir,
         RoutingTelemetryEntrySchema,
@@ -376,3 +377,4 @@ let defaultRuntime: ProviderRuntime | undefined;
 
 /** Process-wide default instance backing the module-level provider API. */
 export const getProviderRuntime = (): ProviderRuntime => (defaultRuntime ??= new ProviderRuntime());
+

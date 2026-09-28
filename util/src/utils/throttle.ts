@@ -61,7 +61,7 @@ export async function* throttleGenerator<T>(
     if (shouldStop?.()) break;
     yield value;
     if (Date.now() - lastYield > intervalMs) {
-      await new Promise((r) => setTimeout(r, 0));
+      await sleep(0);
       lastYield = Date.now();
     }
   }

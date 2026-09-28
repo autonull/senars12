@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { errMsg } from '@senars/util';
 
 /** Default llama.cpp server (llama-server) address. */
 export const LLAMACPP_HOST_DEFAULT = 'http://localhost:8080';
@@ -38,7 +39,7 @@ const resolveModelId = (origin: string): Promise<string> => {
   // cache the placeholder forever (D4 — permanent 400s → breaker trips).
   resolvedModel = attempt.catch((error) => {
     console.warn(
-      `[llamacpp] ${error instanceof Error ? error.message : String(error)}; retrying on next request`
+      `[llamacpp] ${errMsg(error)}; retrying on next request`
     );
     return MODEL_PLACEHOLDER;
   });

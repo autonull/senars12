@@ -2,30 +2,23 @@ import { TransformersEmbeddingGenerator } from '../../memory/embedding.js';
 import type { EmbeddingPointer } from './types.js';
 
 const DIMENSION = 384;
-const POOL_SIZE = 8192;
 
-const bufferPool = new Array<Float32Array>(POOL_SIZE);
-const poolHead = 0;
+/** Process-wide buffer pool: the pool grows to the high-water mark of *concurrent*
+ *  live embeddings (bounded by the cache's own `maxSize`), and released slots are
+ *  recycled through the free list. Slots travel with their entry so release is O(1). */
+const bufferPool: Float32Array[] = [];
 const freeList: number[] = [];
 
-function allocateBuffer(): Float32Array {
-  if (freeList.length > 0) {
-    const idx = freeList.pop()!;
-    return bufferPool[idx]!;
-  }
-  if (poolHead < POOL_SIZE) {
-    const buf = new Float32Array(DIMENSION);
-    bufferPool[poolHead] = buf;
-    return buf;
-  }
-  throw new Error('Embedding buffer pool exhausted and free-list empty');
+function allocateBuffer(): { slot: number; buffer: Float32Array } {
+  const recycled = freeList.pop();
+  if (recycled !== undefined) return { slot: recycled, buffer: bufferPool[recycled]! };
+  const buffer = new Float32Array(DIMENSION);
+  bufferPool.push(buffer);
+  return { slot: bufferPool.length - 1, buffer };
 }
 
-function releaseBuffer(buffer: Float32Array): void {
-  const idx = bufferPool.indexOf(buffer);
-  if (idx >= 0) {
-    freeList.push(idx);
-  }
+function releaseBuffer(slot: number): void {
+  freeList.push(slot);
 }
 
 export interface EmbeddingCacheConfig {
@@ -41,6 +34,7 @@ export interface EmbeddingCacheConfig {
 interface CacheEntry {
   key: string;
   pointer: EmbeddingPointer;
+  slot: number;
   buffer: Float32Array;
   timestamp: number;
   accessCount: number;
@@ -58,9 +52,9 @@ export interface EmbeddingCacheMetrics {
 export class EmbeddingCache {
   #generator: TransformersEmbeddingGenerator | NonNullable<EmbeddingCacheConfig['generator']>;
   #config: EmbeddingCacheConfig;
+  /** Map insertion order is the LRU order: `#touch` re-inserts, eviction takes the first key. */
   #cache = new Map<string, CacheEntry>();
   #pointerIndex = new Map<EmbeddingPointer, CacheEntry>();
-  #lru = new Map<string, CacheEntry>();
   #pointerCounter = 0;
   #metrics = { hits: 0, misses: 0, writes: 0, evictions: 0 };
   #nextExpirySweep = 0;
@@ -85,7 +79,7 @@ export class EmbeddingCache {
     if (existing) {
       this.#metrics.hits++;
       this.#emit('hit');
-      this.#touchEntry(text, existing);
+      this.#touchEntry(existing);
       return existing.pointer;
     }
     this.#metrics.misses++;
@@ -97,64 +91,36 @@ export class EmbeddingCache {
         `Embedding dimension mismatch: expected ${this.#config.dimension}, got ${embedding.length}`
       );
     }
-    const buffer = allocateBuffer();
+    const { slot, buffer } = allocateBuffer();
     buffer.set(embedding);
 
     const pointer = ++this.#pointerCounter as EmbeddingPointer;
     const now = Date.now();
     this.#metrics.writes++;
 
-    const entry: CacheEntry = {
-      key: text,
-      pointer,
-      buffer,
-      timestamp: now,
-      accessCount: 1,
-    };
-
-    this.#cache.set(text, entry);
-    this.#pointerIndex.set(pointer, entry);
-    this.#lru.set(text, entry);
-
-    this.#evictIfNeeded();
-    this.#expireStale(now);
+    this.#insert(text, { key: text, pointer, slot, buffer, timestamp: now, accessCount: 1 });
 
     return pointer;
   }
 
   async writeRaw(embedding: readonly number[]): Promise<EmbeddingPointer> {
-    const buffer = allocateBuffer();
+    const { slot, buffer } = allocateBuffer();
     buffer.set(embedding.slice(0, buffer.length));
     const pointer = ++this.#pointerCounter as EmbeddingPointer;
     const now = Date.now();
 
-    const key = `\0raw:${pointer}`;
     this.#metrics.writes++;
-    const entry: CacheEntry = {
-      key,
-      pointer,
-      buffer,
-      timestamp: now,
-      accessCount: 1,
-    };
-
-    this.#cache.set(key, entry);
-    this.#pointerIndex.set(pointer, entry);
-    this.#lru.set(key, entry);
-
-    this.#evictIfNeeded();
-    this.#expireStale(now);
+    const key = `\0raw:${pointer}`;
+    this.#insert(key, { key, pointer, slot, buffer, timestamp: now, accessCount: 1 });
 
     return pointer;
   }
 
   read(pointer: EmbeddingPointer): Float32Array | undefined {
     const entry = this.#pointerIndex.get(pointer);
-    if (entry) {
-      entry.accessCount++;
-      return entry.buffer;
-    }
-    return undefined;
+    if (!entry) return undefined;
+    this.#touchEntry(entry);
+    return entry.buffer;
   }
 
   has(text: string): boolean {
@@ -166,12 +132,9 @@ export class EmbeddingCache {
   }
 
   clear(): void {
-    for (const entry of this.#cache.values()) {
-      releaseBuffer(entry.buffer);
-    }
+    for (const entry of this.#cache.values()) releaseBuffer(entry.slot);
     this.#cache.clear();
     this.#pointerIndex.clear();
-    this.#lru.clear();
     this.#metrics = { hits: 0, misses: 0, writes: 0, evictions: 0 };
     this.#nextExpirySweep = 0;
   }
@@ -180,32 +143,38 @@ export class EmbeddingCache {
     await Promise.all(texts.map((t) => this.write(t)));
   }
 
-  #touchEntry(key: string, entry: CacheEntry): void {
+  #insert(key: string, entry: CacheEntry): void {
+    this.#cache.set(key, entry);
+    this.#pointerIndex.set(entry.pointer, entry);
+    this.#evictIfNeeded();
+    this.#expireStale(entry.timestamp);
+  }
+
+  #touchEntry(entry: CacheEntry): void {
     entry.accessCount++;
     entry.timestamp = Date.now();
-    this.#lru.delete(key);
-    this.#lru.set(key, entry);
+    const { key } = entry;
+    this.#cache.delete(key);
+    this.#cache.set(key, entry);
   }
 
   #evictIfNeeded(): void {
     while (this.#cache.size > this.#config.maxSize) {
-      // LRU head: insertion-ordered Map; the entry stores its own key (O(1) eviction).
-      const firstEntry = this.#lru.values().next().value;
-      if (!firstEntry) break;
-      this.#evictEntry(firstEntry.key);
+      const lru = this.#cache.keys().next().value;
+      if (lru === undefined) break;
+      this.#evictEntry(lru);
     }
   }
 
   #evictEntry(key: string): void {
     const entry = this.#cache.get(key);
     if (entry) {
-      releaseBuffer(entry.buffer);
-      this.#cache.delete(key);
+      releaseBuffer(entry.slot);
       this.#pointerIndex.delete(entry.pointer);
       this.#metrics.evictions++;
       this.#emit('eviction');
     }
-    this.#lru.delete(key);
+    this.#cache.delete(key);
   }
 
   #expireStale(now: number): void {

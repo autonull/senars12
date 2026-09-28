@@ -3,8 +3,8 @@ import { dirname } from 'node:path';
 
 import {
   BaseLedgerEntrySchema,
-  Ledger,
   createLedger,
+  type Ledger,
   type RolloverPolicyOptions,
 } from '@senars/io/ledger';
 import type { SelfImprovementProposal } from '@senars/kernel/schemas';
@@ -12,7 +12,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
 import { Truth, type Truth as TruthType } from '../../terms/truth.js';
+import { appendJsonlAsync } from '../../utils/fs.js';
 import { sha256Hex } from '../../utils/hash.js';
+import { iterateJsonl, writeJsonl } from '../../utils/jsonl.js';
 import { meanBrierOf } from './metrics.js';
 import { seedTruth } from './seed.js';
 import type { JudgmentProposition } from './types.js';
@@ -43,39 +45,6 @@ function encodeVector(vec: Float32Array): string {
 function decodeVector(b64: string): Float32Array {
   const buf = Buffer.from(b64, 'base64');
   return new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4);
-}
-
-/** Stream a JSONL dataset file, flagging unreadable lines instead of aborting the load. */
-async function* readRows(path: string): AsyncGenerator<DistillationLabel | undefined> {
-  let content: string;
-  try {
-    content = await fs.readFile(path, 'utf-8');
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException)?.code === 'ENOENT') return;
-    throw e;
-  }
-  for (const line of content.split('\n')) {
-    if (!line.trim()) continue;
-    try {
-      yield JSON.parse(line) as DistillationLabel;
-    } catch {
-      yield undefined;
-    }
-  }
-}
-
-async function ensureDir(path: string): Promise<void> {
-  await fs.mkdir(dirname(path), { recursive: true });
-}
-
-async function writeRows(path: string, content: string): Promise<void> {
-  await ensureDir(path);
-  await fs.writeFile(path, content, 'utf-8');
-}
-
-async function appendRows(path: string, content: string): Promise<void> {
-  await ensureDir(path);
-  await fs.appendFile(path, content, 'utf-8');
 }
 
 export interface DistillationLabel {
@@ -158,26 +127,27 @@ export class JudgmentDataset {
     return this.#labels.length;
   }
 
+  /** Labels with their sidecar vectors inlined, as JSON-ready rows. */
+  rows(): (DistillationLabel | (DistillationLabel & { vector: string }))[] {
+    return this.#labels.map((l) => {
+      const vector = this.#vectors.get(l.evidenceId);
+      return vector ? { ...l, vector: encodeVector(vector) } : l;
+    });
+  }
+
   toJSONL(): string {
-    return this.#labels
-      .map((l) => {
-        const vector = this.#vectors.get(l.evidenceId);
-        const labelWithVector = vector ? { ...l, vector: encodeVector(vector) } : l;
-        return JSON.stringify(labelWithVector);
-      })
-      .join('\n');
+    return this.rows().map((l) => JSON.stringify(l)).join('\n');
   }
 
   /** Append the dataset to a JSONL file (creates directory if needed). */
   async flush(path: string): Promise<void> {
-    const jsonl = this.toJSONL();
-    if (jsonl) await appendRows(path, `${jsonl}\n`);
+    await appendJsonlAsync(path, this.rows());
   }
 
   /** Load a JSONL file and replace the current dataset. */
   static async load(path: string, basePath?: string): Promise<JudgmentDataset> {
     const dataset = new JudgmentDataset(basePath ?? (path.replace(/\/[^/]+$/, '') || '.'));
-    for await (const label of readRows(path)) {
+    for await (const label of iterateJsonl(path, (v) => v as DistillationLabel)) {
       if (!label) continue;
       dataset.record(label);
       if (label.vector) dataset.#vectors.set(label.evidenceId, decodeVector(label.vector));
@@ -192,11 +162,11 @@ export class JudgmentDataset {
   static async compact(datasetPath: string): Promise<{ kept: number; dropped: number }> {
     const byId = new Map<string, DistillationLabel>();
     let dropped = 0;
-    for await (const label of readRows(datasetPath)) {
+    for await (const label of iterateJsonl(datasetPath, (v) => v as DistillationLabel)) {
       if (!label || byId.has(label.evidenceId)) dropped++;
       if (label) byId.set(label.evidenceId, label);
     }
-    await writeRows(datasetPath, `${[...byId.values()].map((l) => JSON.stringify(l)).join('\n')}\n`);
+    await writeJsonl(datasetPath, [...byId.values()]);
     return { kept: byId.size, dropped };
   }
 
@@ -407,3 +377,4 @@ export function buildSabotageFlag(
     correlationId: `sabotage:${candidate.headId}`,
   };
 }
+

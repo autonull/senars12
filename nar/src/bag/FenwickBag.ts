@@ -1,6 +1,7 @@
-import type { Bag, BagItem, BagOptions, EvictStrategy, AIKRBudget } from './Bag.js';
-import type { RandomSource } from '../types/primitives.js';
+import { generateId } from '@senars/util';
 import { emitBagPressureTransition } from '../tick';
+import type { RandomSource } from '../types/primitives.js';
+import type { AIKRBudget, Bag, BagItem, BagOptions, EvictStrategy } from './Bag.js';
 
 interface FenwickEntry<T extends BagItem> {
   item: T;
@@ -36,7 +37,7 @@ export class FenwickBag<T extends BagItem> implements Bag<T> {
     this.forgetRate = options.forgetRate ?? 0.001;
     this.rng = options.rng ?? Math.random;
     this.clock = options.clock ?? Date.now;
-    this.id = options.id ?? `bag-${Math.random().toString(36).slice(2)}`;
+    this.id = options.id ?? generateId('bag');
   }
 
   private addToTree(index: number, value: number): void {

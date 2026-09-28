@@ -4,6 +4,8 @@
  * @public
  */
 
+import { setNested } from '../utils/shared.js';
+
 export const SENARS_ENV_MAP: Readonly<Record<string, string>> = {
   SENARS_LM_ENABLED: 'capabilities.lm.enabled',
   SENARS_LM_PROVIDER: 'capabilities.lm.provider',
@@ -28,21 +30,4 @@ export function readEnvOverrides(env: NodeJS.ProcessEnv = process.env): Record<s
     }
   }
   return out;
-}
-
-function setNested(obj: Record<string, unknown>, path: string, value: unknown): void {
-  const keys = path.split('.');
-  let current: Record<string, unknown> = obj;
-  for (let i = 0; i < keys.length - 1; i++) {
-    const key = keys[i];
-    if (key === undefined) continue;
-    if (!(key in current) || typeof current[key] !== 'object' || current[key] === null) {
-      current[key] = {};
-    }
-    current = current[key] as Record<string, unknown>;
-  }
-  const lastKey = keys[keys.length - 1];
-  if (lastKey !== undefined) {
-    current[lastKey] = value;
-  }
 }

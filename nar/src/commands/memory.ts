@@ -1,6 +1,23 @@
 import type { CommandDefinition } from '@senars/core/command-types';
 import { promises as fs } from 'node:fs';
 
+const CONCEPT_PREVIEW_LIMIT = 20;
+
+/** `Concepts (n shown[/total]):` block, truncated with an explicit remainder count. */
+const renderConcepts = (concepts: unknown[], shown = concepts.length): string => {
+  const lines = concepts
+    .slice(0, CONCEPT_PREVIEW_LIMIT)
+    .map((c) => ` - ${(c as { term: { toString(): string } }).term}`);
+  const header =
+    shown === concepts.length
+      ? `Concepts (${concepts.length} total):`
+      : `Concepts (${shown}/${concepts.length}):`;
+  if (concepts.length > CONCEPT_PREVIEW_LIMIT) {
+    lines.push(` ... and ${concepts.length - CONCEPT_PREVIEW_LIMIT} more`);
+  }
+  return [header, ...lines].join('\n');
+};
+
 export const memoryCommands: CommandDefinition[] = [
   {
     name: '/list',
@@ -12,12 +29,7 @@ export const memoryCommands: CommandDefinition[] = [
       if (!nar) return 'NAR not configured';
       const concepts = nar.listConcepts();
       if (concepts.length === 0) return 'Memory is empty';
-      let result = `Concepts (${concepts.length} total):\n`;
-      for (const concept of concepts.slice(0, 20)) {
-        result += ` - ${concept.term.toString()}\n`;
-      }
-      if (concepts.length > 20) result += ` ... and ${concepts.length - 20} more`;
-      return result.trim();
+      return renderConcepts(concepts);
     },
   },
   {
@@ -40,12 +52,7 @@ export const memoryCommands: CommandDefinition[] = [
         return `No concepts match filter: "${filter}"`;
       }
 
-      let result = `Concepts (${filtered.length}/${concepts.length}):\n`;
-      for (const concept of filtered.slice(0, 20)) {
-        result += ` - ${concept.term.toString()}\n`;
-      }
-      if (filtered.length > 20) result += ` ... and ${filtered.length - 20} more`;
-      return result.trim();
+      return renderConcepts(filtered);
     },
   },
   {

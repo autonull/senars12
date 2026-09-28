@@ -36,11 +36,11 @@ export class NLUnderstandingService {
   private structuredOnly: boolean;
   private readonly firewall: SymbolicFirewall;
   private readonly flight = new SingleFlight();
-  private readonly cache: TranslationCache;
+  private readonly cache?: TranslationCache;
 
   constructor(
     registry: SeNARSRegistry | ILMService,
-    cache: TranslationCache,
+    cache: TranslationCache | undefined,
     opts?: { structuredOnly?: boolean; firewall?: FirewallOptions | SymbolicFirewall }
   ) {
     if (registry && typeof (registry as ILMService).generateObject === 'function') {
@@ -59,7 +59,7 @@ export class NLUnderstandingService {
   }
 
   async understand(input: string, ctx?: NLContext, maxRetries = 2): Promise<TaskBatch | null> {
-    const cached = this.cache.get(input);
+    const cached = this.cache?.get(input);
     if (cached && typeof cached !== 'string') return this.sanitize(this.fromCached(cached));
     let ctxKey = '';
     try {
@@ -70,7 +70,7 @@ export class NLUnderstandingService {
     const result = await this.flight.run(`${maxRetries}::${input}::${ctxKey}`, () =>
       this.understandInner(input, ctx, maxRetries)
     );
-    if (result) this.cache.record(input, this.toCached(result));
+    if (result) this.cache?.record(input, this.toCached(result));
     return result;
   }
 

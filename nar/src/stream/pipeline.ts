@@ -1,3 +1,4 @@
+import { sleep } from '@senars/util';
 import type { Memory } from '../memory';
 import type { Strategy } from '../reason';
 import type { Task } from '../types';
@@ -41,7 +42,7 @@ export class MemoryPremiseSource extends PremiseSourceBase {
           yield createTask(concept.term, 'belief', topBelief.truth, createBudget(concept.priority));
         }
       }
-      await new Promise((r) => setTimeout(r, 0));
+      await sleep(0);
     }
   }
 }
@@ -60,7 +61,7 @@ export class FocusPremiseSource extends PremiseSourceBase {
           yield createTask(concept.term, 'belief', topBelief.truth, createBudget(concept.priority));
         }
       }
-      await new Promise((r) => setTimeout(r, 0));
+      await sleep(0);
     }
   }
 }
@@ -84,7 +85,7 @@ export class CompositePremiseSource extends PremiseSourceBase {
       if (tasks.length > 0) {
         yield tasks.shift()!;
       } else {
-        await new Promise((r) => setTimeout(r, 1));
+        await sleep(1);
       }
     }
   }
@@ -107,12 +108,12 @@ export async function* createPipeline(
   for await (const task of stream as AsyncIterable<Task>) {
     if (signal?.aborted) break;
     if (Date.now() - lastYield > config.cpuThrottleMs) {
-      await new Promise((r) => setTimeout(r, 0));
+      await sleep(0);
       lastYield = Date.now();
     }
 
     if (queueSize > config.maxQueueSize) {
-      await new Promise((r) => setTimeout(r, 0));
+      await sleep(0);
       continue;
     }
 
@@ -139,7 +140,7 @@ export async function* backpressureAware<T>(
   async function* reader(): AsyncGenerator<T> {
     while (buffer.length > 0 || writing) {
       if (buffer.length === 0) {
-        await new Promise((r) => setTimeout(r, 1));
+        await sleep(1);
         continue;
       }
       yield buffer.shift()!;
@@ -150,7 +151,7 @@ export async function* backpressureAware<T>(
     writing = true;
     for await (const value of gen) {
       while (buffer.length >= maxQueueSize && shouldPause()) {
-        await new Promise((r) => setTimeout(r, 1));
+        await sleep(1);
       }
       buffer.push(value);
     }
@@ -170,7 +171,7 @@ export async function* derive(
 
   for (const concept of memory.sample(100)) {
     if (Date.now() - lastYield > config.cpuThrottleMs) {
-      await new Promise((r) => setTimeout(r, 0));
+      await sleep(0);
       lastYield = Date.now();
     }
 

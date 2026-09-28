@@ -1,15 +1,16 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { createLogger } from '@senars/core/logger';
 import { SenarsError } from '@senars/util/errors';
 import type { DriveManager } from '../drives';
-import { createLogger } from '@senars/core/logger';
 import type { Memory } from '../memory';
+import { decodeState, encodeState } from '../state/codec.js';
 import { Stamp, Truth, type TruthType, termParser } from '../terms';
 import type { Task, TaskType } from '../types';
 import { createBudget } from '../types/core.js';
 import { errMsg } from '../utils';
+import { ensureParentDir } from '../utils/fs.js';
 import { err, ok, type Result } from '../utils/result.js';
-import { decodeState, encodeState } from '../state/codec.js';
 import type { NARConfig } from './config.js';
 
 /** Snapshot envelope version (StateCodec, TODO20 X7). */
@@ -102,7 +103,7 @@ export class StatePersister {
         ['lm-rules.json', 'nar.lm-rules', processor.serializeLMRules()],
       ];
 
-      await fs.mkdir(path.dirname(this.getStatePath(files[0]![0])), { recursive: true });
+      await ensureParentDir(this.getStatePath(files[0]![0]));
       await Promise.all(
         files.map(([name, kind, data]) =>
           fs.writeFile(this.getStatePath(name), encodeState(kind, NAR_STATE_VERSION, data), 'utf-8')

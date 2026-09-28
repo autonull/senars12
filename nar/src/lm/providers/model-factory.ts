@@ -18,6 +18,7 @@ import {
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import {
   builtinModels,
+  cloudApiKey as resolveCloudApiKey,
   defaultModelFor,
   embeddedLlamaConfigured,
   type LMSettings,
@@ -65,15 +66,8 @@ export const localModel = (
 
 export const mockModel = (): LanguageModel => createMockLanguageModel() as unknown as LanguageModel;
 
-export const cloudApiKey = (settings: LMSettings): string | undefined => {
-  const viaEnvName = settings.apiKeyEnv ? process.env[settings.apiKeyEnv] : undefined;
-  return (
-    viaEnvName ??
-    process.env.LM_API_KEY ??
-    process.env.ANTHROPIC_API_KEY ??
-    process.env.OPENAI_API_KEY
-  );
-};
+export const cloudApiKey = (settings: LMSettings): string | undefined =>
+  resolveCloudApiKey(settings.apiKeyEnv);
 
 export const setBuiltinProgressCallback = (
   cb: ModelDownloadProgressCallback | undefined,

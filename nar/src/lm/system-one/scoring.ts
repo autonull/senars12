@@ -1,3 +1,4 @@
+import { djb2, djb2Step } from '@senars/util';
 import type { JudgmentQuery } from './types.js';
 
 export interface ScoringOptions {
@@ -23,13 +24,10 @@ export function computeDeterministicScore(
   let hash = 0;
 
   for (let i = 0; i < Math.min(embedding.length, opts.embeddingSampleSize); i++) {
-    const val = embedding[i] ?? 0;
-    hash = ((hash << 5) - hash + Math.floor(val * 1000 + opts.salt)) | 0;
+    hash = djb2Step(hash, Math.floor((embedding[i] ?? 0) * 1000 + opts.salt));
   }
 
-  const instructionHash = query.instruction
-    .split('')
-    .reduce((h, c) => ((h << 5) - h + c.charCodeAt(0) + opts.salt) | 0, 0);
+  const instructionHash = djb2(query.instruction, opts.salt);
 
   const combined = (Math.abs(hash + instructionHash) % 10000) / 10000;
   return opts.minScore + combined * (opts.maxScore - opts.minScore);
@@ -45,7 +43,7 @@ export const scorerRegistry = new Map<string, ReturnType<typeof createScorer>>()
 export function getScorer(rubric: string): ReturnType<typeof createScorer> {
   let scorer = scorerRegistry.get(rubric);
   if (!scorer) {
-    const salt = rubric.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
+    const salt = djb2(rubric);
     scorer = createScorer(salt);
     scorerRegistry.set(rubric, scorer);
   }

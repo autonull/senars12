@@ -4,6 +4,7 @@ import type { Engine, EngineId } from './engine/Engine.js';
 import type { LensSpec } from './lens-schema.js';
 import type { ToolSpec } from './motor/ToolRegistry.js';
 import type { SenarsPlugin, TransportFactory } from './Plugin.js';
+import { errMsg } from '@senars/util';
 
 /** Minimal surface of a connection manager that accepts plugin transports. */
 export interface TransportRegistry {
@@ -16,7 +17,7 @@ export class PluginLoadError extends Error {
     cause: unknown
   ) {
     super(
-      `Failed to load plugin "${pluginId}": ${cause instanceof Error ? cause.message : String(cause)}`
+      `Failed to load plugin "${pluginId}": ${errMsg(cause)}`
     );
     this.name = 'PluginLoadError';
   }

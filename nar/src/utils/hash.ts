@@ -1,46 +1,15 @@
 /**
- * Hash utilities for term hashing and identification
+ * Hash utilities for term hashing and identification.
+ *
+ * Primitives and SHA-256 digests live in `@senars/util`; this module keeps the
+ * term-specific `computeHash` canonicalization alongside the re-exports.
  */
 
-import { createHash } from 'node:crypto';
+import { djb2, djb2Step, fnv1a, fnv1aCombine, mul32 } from '@senars/util';
 
-export type DigestInput = string | Uint8Array;
-
-/** SHA-256 hex digest — the single hashing entry point for digests and provenance keys. */
-export const sha256Hex = (data: DigestInput): string =>
-  createHash('sha256').update(data).digest('hex');
-
-/** Streaming SHA-256 hex digest over an ordered list of parts (no intermediate concat). */
-export const sha256HexParts = (parts: readonly DigestInput[]): string => {
-  const hash = createHash('sha256');
-  for (const part of parts) hash.update(part);
-  return hash.digest('hex');
-};
-
-/** Algorithm-pinned digest form (`sha256:<hex>`) used by ModelDigest, lock files, and dialogue digests. */
-export const sha256Prefixed = (data: DigestInput): string => `sha256:${sha256Hex(data)}`;
-
-/** Truncated digest for compact identity keys (sidecars, consolidation ids). */
-export const shortSha256Hex = (data: DigestInput, length = 16): string =>
-  sha256Hex(data).slice(0, length);
-
-/**
- * FNV-1a 32-bit hash function
- */
-export const fnv1a = (str: string): number => {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    hash ^= str.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return hash >>> 0;
-};
-
-/**
- * FNV-1a combine operation for compound terms
- */
-export const fnv1aCombine = (acc: number, val: number): number =>
-  Math.imul(acc ^ val, 0x01000193) >>> 0;
+export { djb2, djb2Step, fnv1a, fnv1aCombine, mul32 };
+export { sha256Hex, sha256HexParts, sha256Prefixed, shortSha256Hex } from '@senars/util';
+export type { DigestInput } from '@senars/util';
 
 const COMMUTATIVE_OPS = new Set(['similarity', 'conjunction', 'disjunction', 'equivalence']);
 

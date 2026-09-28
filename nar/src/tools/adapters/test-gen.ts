@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { tool } from 'ai';
 import * as fc from 'fast-check';
 import { z } from 'zod';
+import { ensureDir } from '../../utils/fs.js';
 
 // --- generate_tests ---
 
@@ -150,7 +151,7 @@ export function createTestGenTools(deps: TestGenDeps = {}) {
 
           const testContent = generateTestContent(schemaName, samples);
 
-          await mkdir(generatedDir, { recursive: true });
+          await ensureDir(generatedDir);
 
           const fileName = outputPath || `${schemaName.toLowerCase()}.test.ts`;
           const filePath = resolve(generatedDir, fileName);
@@ -170,3 +171,4 @@ export function createTestGenTools(deps: TestGenDeps = {}) {
     }),
   };
 }
+

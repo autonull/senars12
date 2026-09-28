@@ -1,4 +1,5 @@
 import { ConnectionError } from '@senars/core';
+import { toError, withRetry as retry } from '@senars/util';
 import type {
   Connection,
   ConnectionConfig,
@@ -118,7 +119,7 @@ export abstract class BaseConnection implements Connection {
           this.errorCount++;
           this.logger.error(
             `Message handler error for ${this.id}`,
-            r.reason instanceof Error ? r.reason : new Error(String(r.reason))
+            toError(r.reason)
           );
         }
       }
@@ -148,20 +149,6 @@ export abstract class BaseConnection implements Connection {
   }
 
   protected withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
-    return this._withRetry(fn, maxRetries, 0);
-  }
-
-  private async _withRetry<T>(
-    fn: () => Promise<T>,
-    maxRetries: number,
-    attempt: number
-  ): Promise<T> {
-    try {
-      return await fn();
-    } catch (error) {
-      if (attempt >= maxRetries) throw error;
-      await new Promise((resolve) => setTimeout(resolve, Math.min(100 * 2 ** attempt, 1000)));
-      return this._withRetry(fn, maxRetries, attempt + 1);
-    }
+    return retry(fn, { retries: maxRetries, baseMs: 100, maxMs: 1000 });
   }
 }

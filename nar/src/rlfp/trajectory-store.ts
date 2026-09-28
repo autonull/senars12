@@ -1,5 +1,6 @@
-import { promises as fs } from 'node:fs';
+import { appendJsonlAsync, readJsonlAsync } from '../utils/fs.js';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
+import { mean } from '@senars/util';
 
 /** Grades from one completed agent cycle (E4 trace grading). */
 export interface CycleGrades {
@@ -41,24 +42,13 @@ export class TrajectoryStore {
   async recordCycle(cycle: CycleTrajectory): Promise<void> {
     this.#cycles.push(cycle);
     if (!this.#path) return;
-    await fs.appendFile(this.#path, `${JSON.stringify(cycle)}\n`, 'utf-8');
+    await appendJsonlAsync(this.#path, [cycle]);
   }
 
   async load(): Promise<void> {
     if (!this.#path) return;
-    try {
-      const content = await fs.readFile(this.#path, 'utf-8');
-      for (const line of content.split('\n')) {
-        if (!line.trim()) continue;
-        try {
-          this.#cycles.push(JSON.parse(line) as CycleTrajectory);
-        } catch {
-          /* skip malformed lines — append-only tolerance */
-        }
-      }
-    } catch {
-      /* no store yet */
-    }
+    const { rows } = await readJsonlAsync(this.#path, (v) => v as CycleTrajectory);
+    this.#cycles.push(...rows);
   }
 
   getCycles(): readonly CycleTrajectory[] {
@@ -83,7 +73,7 @@ export class TrajectoryStore {
     const g = c.grades?.groundedness;
     if (!g || g.abstained) return Number.NaN;
     const risks = c.grades?.risks.filter((r) => !r.abstained) ?? [];
-    const meanRisk = risks.length ? risks.reduce((s, r) => s + r.score, 0) / risks.length : 0;
+    const meanRisk = mean(risks, (r) => r.score);
     return g.score * 10 - meanRisk;
   }
 }

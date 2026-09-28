@@ -1,3 +1,4 @@
+import { clamp01 } from '@senars/util';
 import { type Term, termParser } from '../terms/index.js';
 import { Truth } from '../terms/truth.js';
 import type { Task } from '../types/core.js';
@@ -92,13 +93,13 @@ export class ScenarioGenerator {
     if (noise) {
       termStr = this.corruptTerm(rule.term);
       truth = Truth.create(
-        Math.max(0, Math.min(1, rule.truth.f + (this.rng() - 0.5) * 0.6)),
+        clamp01(rule.truth.f + (this.rng() - 0.5) * 0.6),
         Math.max(0, Math.min(0.999, rule.truth.c + (this.rng() - 0.5) * 0.6))
       );
     } else {
       termStr = rule.term;
       truth = Truth.create(
-        Math.max(0, Math.min(1, rule.truth.f)),
+        clamp01(rule.truth.f),
         Math.max(0, Math.min(0.999, rule.truth.c))
       );
     }

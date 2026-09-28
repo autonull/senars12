@@ -1,5 +1,6 @@
-import type { RandomSource } from '../types/primitives.js';
+import { generateId } from '@senars/util';
 import { emitBagPressureTransition } from '../tick';
+import type { RandomSource } from '../types/primitives.js';
 
 export type { RandomSource } from '../types/primitives.js';
 
@@ -85,7 +86,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     this.forgetRate = options.forgetRate ?? 0.001;
     this.rng = options.rng ?? Math.random;
     this.clock = options.clock ?? Date.now;
-    this.id = options.id ?? `bag-${Math.random().toString(36).slice(2)}`;
+    this.id = options.id ?? generateId('bag');
   }
 
   add(item: T): boolean {

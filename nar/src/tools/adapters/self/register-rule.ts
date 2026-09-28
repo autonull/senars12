@@ -34,7 +34,7 @@ export const registerRuleTool = (ctx: SelfToolsContext) => {
           async ({ path, id, isNew }) => {
             const ruleFile = resolve(path, `rules/${ruleId}.ts`);
             const { mkdir, writeFile } = await import('node:fs/promises');
-            await mkdir(dirname(ruleFile), { recursive: true });
+            await ensureParentDir(ruleFile);
             await writeFile(ruleFile, ruleCode, 'utf-8');
 
             // Run tests to validate
@@ -67,3 +67,5 @@ export const registerRuleTool = (ctx: SelfToolsContext) => {
     },
   });
 };
+
+import { ensureParentDir } from '../../../utils/fs.js';

@@ -1,4 +1,5 @@
 import type { LMTask } from '@senars/util';
+import { toError } from '@senars/util';
 import type { ZodSchema } from 'zod';
 import { z } from 'zod';
 
@@ -40,5 +41,5 @@ export async function generateObjectViaText<T>(
       lastError = e;
     }
   }
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  throw toError(lastError);
 }

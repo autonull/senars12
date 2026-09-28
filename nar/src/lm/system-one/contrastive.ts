@@ -1,6 +1,10 @@
+import { generateId } from '@senars/util';
 import { type BagItem, PriorityBag } from '../../bag/Bag.js';
 import { AIKRProcessor, PrioritySampling } from '../../learning/aikr-processor.js';
+import { cosine } from '../../utils/similarity.js';
 import type { EmbeddingCache, JudgmentQuery } from './types.js';
+
+export { cosine as cosineF32 };
 
 /** Domain-level rubric shared by all contrastive consumers (gate, grader, routing). */
 export const DOMAIN_RUBRIC = 'domain';
@@ -10,22 +14,6 @@ export type ContrastiveScorerFn = (embedding: Float32Array, rubric?: string) => 
 /** Rubric a query is judged under (mirrors the manifold's head lookup rule). */
 export function rubricOf(query: JudgmentQuery): string {
   return query.kind === 'classify' ? (query.rubric ?? 'task_type') : query.rubric;
-}
-
-export function cosineF32(a: Float32Array, b: Float32Array): number {
-  const n = Math.min(a.length, b.length);
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < n; i++) {
-    const x = a[i]!;
-    const y = b[i]!;
-    dot += x * y;
-    normA += x * x;
-    normB += y * y;
-  }
-  if (normA === 0 || normB === 0) return 0;
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
 export interface InfoNCECalibration {
@@ -63,8 +51,8 @@ export function fitInfoNCE(
     let dBias = 0;
     loss = 0;
     for (const { query, positive, negatives } of pairs) {
-      const cosPos = Math.max(-1, Math.min(1, cosineF32(query, positive)));
-      const cosNegs = negatives.map((n) => Math.max(-1, Math.min(1, cosineF32(query, n))));
+      const cosPos = Math.max(-1, Math.min(1, cosine(query, positive)));
+      const cosNegs = negatives.map((n) => Math.max(-1, Math.min(1, cosine(query, n))));
       const logits = [scale * cosPos + bias, ...cosNegs.map((c) => scale * c + bias)];
       const max = Math.max(...logits);
       const exp = logits.map((l) => Math.exp(l - max));
@@ -227,8 +215,8 @@ export class ContrastiveMemory {
     const negatives = this.#negatives(rubric);
     if (positives.length === 0 && negatives.length === 0) return undefined;
 
-    const maxPos = positives.reduce((best, p) => Math.max(best, cosineF32(embedding, p)), -1);
-    const maxNeg = negatives.reduce((best, n) => Math.max(best, cosineF32(embedding, n)), -1);
+    const maxPos = positives.reduce((best, p) => Math.max(best, cosine(embedding, p)), -1);
+    const maxNeg = negatives.reduce((best, n) => Math.max(best, cosine(embedding, n)), -1);
     const calibration = this.#calibrations.get(rubric);
     const scale = calibration?.scale ?? this.#zeroShotScale;
     const bias = calibration?.bias ?? 0;
@@ -241,7 +229,7 @@ export class ContrastiveMemory {
     let seen = 0;
     for (const rubric of this.#rubrics.keys()) {
       for (const emb of [...this.#positives(rubric), ...this.#negatives(rubric)]) {
-        best = Math.max(best, cosineF32(embedding, emb));
+        best = Math.max(best, cosine(embedding, emb));
         seen++;
       }
     }
@@ -301,12 +289,12 @@ export class ContrastiveMemory {
     if (judgment.confidence < (options.admitThreshold ?? 0.8)) return false;
     const positives = this.#positives(rubric);
     const negatives = this.#negatives(rubric);
-    const maxPos = positives.reduce((best, p) => Math.max(best, cosineF32(embedding, p)), -1);
-    const maxNeg = negatives.reduce((best, n) => Math.max(best, cosineF32(embedding, n)), -1);
+    const maxPos = positives.reduce((best, p) => Math.max(best, cosine(embedding, p)), -1);
+    const maxNeg = negatives.reduce((best, n) => Math.max(best, cosine(embedding, n)), -1);
     const margin = Math.max(0, maxPos - maxNeg);
     const state = this.#rubricState(rubric);
     return state.maintainer.admit({
-      id: `${judgment.label}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      id: generateId(judgment.label),
       priority: margin * judgment.confidence,
       kind: judgment.label,
       embedding,
@@ -361,14 +349,11 @@ export class ContrastiveMemory {
     const margin = (() => {
       const others = exemplar.kind === 'pos' ? this.#negatives(rubric) : this.#positives(rubric);
       if (others.length === 0) return 1;
-      const maxCos = others.reduce(
-        (best, o) => Math.max(best, cosineF32(exemplar.embedding, o)),
-        -1
-      );
+      const maxCos = others.reduce((best, o) => Math.max(best, cosine(exemplar.embedding, o)), -1);
       return 1 - maxCos; // discrimination vs the opposing class
     })();
     const item: ExemplarItem = {
-      id: `${exemplar.kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      id: generateId(exemplar.kind),
       priority: Math.max(1e-6, priority ?? margin),
       kind: exemplar.kind,
       embedding: exemplar.embedding,

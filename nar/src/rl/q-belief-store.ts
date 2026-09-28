@@ -1,3 +1,4 @@
+import { clamp01 } from '@senars/util';
 import type { DriveManager } from '../drives/manager.js';
 import { type Term, TermBuilder, Truth, atom } from '../index.js';
 import type { NAR } from '../nar.js';
@@ -33,8 +34,8 @@ export class QBeliefStore {
   private readonly predictsRewardAtom = atom('predicts_reward');
   private readonly driveManager?: DriveManager;
   /** Per-state index of action terms with recorded values (X24). */
+  /** Map insertion order is the LRU order: `#touchState` re-inserts, eviction takes the first key. */
   private readonly stateActions = new Map<string, Map<string, Term>>();
-  private readonly stateAccessOrder = new Set<string>(); // LRU for states
   private readonly rng: RandomSource;
   readonly #capacity: number;
 
@@ -47,21 +48,19 @@ export class QBeliefStore {
 
   /** LRU touch — moves state to most-recently-used position. */
   #touchState(stateKey: string): void {
-    this.stateAccessOrder.delete(stateKey);
-    this.stateAccessOrder.add(stateKey);
+    const actions = this.stateActions.get(stateKey);
+    if (actions === undefined) return;
+    this.stateActions.delete(stateKey);
+    this.stateActions.set(stateKey, actions);
     this.#evictIfNeeded();
   }
 
   /** Evict LRU states if over capacity. */
   #evictIfNeeded(): void {
-    while (this.stateActions.size > this.#capacity && this.stateAccessOrder.size > 0) {
-      const lru = this.stateAccessOrder.values().next().value;
-      if (lru) {
-        this.stateAccessOrder.delete(lru);
-        this.stateActions.delete(lru);
-      } else {
-        break;
-      }
+    while (this.stateActions.size > this.#capacity) {
+      const lru = this.stateActions.keys().next().value;
+      if (lru === undefined) break;
+      this.stateActions.delete(lru);
     }
   }
 
@@ -115,8 +114,8 @@ export class QBeliefStore {
     if (!valueTerm) return;
     this.indexValueBelief(state, action);
 
-    const clamped = Math.max(0, Math.min(1, expectation));
-    const frequency = Math.max(0, Math.min(1, (clamped - 0.5) / confidence + 0.5));
+    const clamped = clamp01(expectation);
+    const frequency = clamp01((clamped - 0.5) / confidence + 0.5);
     await this.nar.believe(valueTerm, Truth.create(frequency, confidence));
   }
 

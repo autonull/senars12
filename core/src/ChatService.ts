@@ -4,8 +4,10 @@
  * Types (`ChatOptions`, `ChatStreamEvent`) remain canonical and are imported
  * across `Agent`, `phases`, and `LLMCortex`. Do not build new features here.
  */
+
 import type { CognitiveEvent } from './CognitiveEvent.js';
 import type { ModelRunner, ToolSet } from './ModelRunner.js';
+import { errMsg, makeId } from '@senars/util';
 
 export interface Tool {
   readonly name: string;
@@ -48,7 +50,7 @@ export interface ChatStreamEvent {
 export function createChatService<TCtx extends ChatContext>(deps: ChatServiceDeps<TCtx>) {
   return {
     async *chat(input: string, opts: ChatOptions = {}): AsyncGenerator<ChatStreamEvent, string> {
-      const correlationId = crypto.randomUUID();
+      const correlationId = makeId();
       const startTime = Date.now();
       const ctx = deps.getContext();
 
@@ -102,7 +104,7 @@ export function createChatService<TCtx extends ChatContext>(deps: ChatServiceDep
 
         return finalText;
       } catch (e) {
-        const error = e instanceof Error ? e.message : String(e);
+        const error = errMsg(e);
         yield { kind: 'error', error };
         throw e;
       }

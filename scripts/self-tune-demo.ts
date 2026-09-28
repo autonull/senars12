@@ -5,6 +5,7 @@
  * Runs 5 tuning iterations, prints before/after metrics
  */
 
+import { sleep } from '@senars/util';
 import type { CognitiveParameters } from '../nar/src/config/cognitive-parameters.js';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '../nar/src/config/cognitive-parameters.js';
 import { DEFAULT_CONFIG } from '../nar/src/nar.js';
@@ -23,7 +24,7 @@ interface Metrics {
 async function runTests(): Promise<{ passRate: number; avgDuration: number; coverage: number }> {
   // Simulate test run - in reality this would run vitest
   // For demo, we'll simulate varying results based on current config
-  await new Promise((r) => setTimeout(r, 100));
+  await sleep(100);
   return {
     passRate: 0.7 + Math.random() * 0.25,
     avgDuration: 50 + Math.random() * 100,

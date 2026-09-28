@@ -8,6 +8,7 @@ import type { ToolResult } from '../engine/Engine.js';
 import type { ToolSpec } from './ToolRegistry.js';
 import { duckDuckGoSearch, tavilySearch, webFetch } from './web-tools.js';
 import { withinWorkspace } from './workspace.js';
+import { errMsg } from '@senars/util';
 
 export type CmdArgSet = Record<string, unknown>;
 
@@ -76,7 +77,7 @@ function createRequestApprovalTool(approvalService: ApprovalService): ToolSpec {
           feedback: result.feedback,
         });
       } catch (err: unknown) {
-        return fail(`Approval error: ${err instanceof Error ? err.message : String(err)}`);
+        return fail(`Approval error: ${errMsg(err)}`);
       }
     },
   };

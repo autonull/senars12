@@ -6,12 +6,13 @@
  * similarity). Every leg is optional, bounded by `limit`, and mutating
  * nothing (C2').
  */
-import { SystemClock, type Clock } from '../clock.js';
-import { causalConnections, episodeSalience } from '../memory/episode-consolidator.js';
-import type { Concept } from '../memory/index.js';
+
 import type { Episode } from '@senars/util';
+import { type Clock, SystemClock } from '../clock.js';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
-import type { Memory } from '../memory/index.js';
+import { causalConnections, episodeSalience } from '../memory/episode-consolidator.js';
+import type { Concept, Memory } from '../memory/index.js';
+import { cosine } from '../utils/similarity.js';
 
 export interface MemoryQueryFilter {
   /** Substring/symbol filter over concept terms. */
@@ -47,19 +48,6 @@ export interface MemoryQueryOptions {
 
 const DEFAULT_LIMIT = 20;
 const DEFAULT_WEIGHTS = { concept: 1, episodic: 1, semantic: 1 } as const;
-
-const cosine = (a: Float32Array, b: Float32Array): number => {
-  let dot = 0;
-  let na = 0;
-  let nb = 0;
-  const n = Math.min(a.length, b.length);
-  for (let i = 0; i < n; i++) {
-    dot += a[i]! * b[i]!;
-    na += a[i]! * a[i]!;
-    nb += b[i]! * b[i]!;
-  }
-  return na === 0 || nb === 0 ? 0 : dot / Math.sqrt(na * nb);
-};
 
 /** Recency score ∈ (0, 1]: `1 / (1 + ageHours)`. */
 const recency = (timestamp: number, now: number): number => 1 / (1 + (now - timestamp) / 3_600_000);
@@ -135,7 +123,8 @@ export class MemoryQuery {
       results.push({
         source: 'concept',
         score:
-          this.#weights.concept * priority + (semantic !== undefined ? this.#weights.semantic * semantic : 0),
+          this.#weights.concept * priority +
+          (semantic !== undefined ? this.#weights.semantic * semantic : 0),
         concept,
       });
     }
@@ -151,7 +140,9 @@ export class MemoryQuery {
         // Phase B (REFACTOR.todo3): unified ranking prior — recency × salience
         // × (1 + causal connections), matching EpisodeConsolidator.admit.
         const recencyScore =
-          recency(episode.timestamp, now) * episodeSalience(episode) * (1 + causalConnections(episode));
+          recency(episode.timestamp, now) *
+          episodeSalience(episode) *
+          (1 + causalConnections(episode));
         if (filter.minPriority !== undefined && recencyScore < filter.minPriority) continue;
         const semantic = anchor ? await this.#similarity(anchor, episode.content) : undefined;
         if (semantic !== undefined && semantic < threshold) continue;
@@ -166,7 +157,10 @@ export class MemoryQuery {
     }
 
     results.sort(
-      (a, b) => b.score - a.score || this.#tiebreak(a) - this.#tiebreak(b) || this.#label(a).localeCompare(this.#label(b))
+      (a, b) =>
+        b.score - a.score ||
+        this.#tiebreak(a) - this.#tiebreak(b) ||
+        this.#label(a).localeCompare(this.#label(b))
     );
     return results.slice(0, limit);
   }
@@ -191,6 +185,6 @@ export class MemoryQuery {
   }
 
   #label(r: MemoryResult): string {
-    return r.source === 'episode' ? (r.episode?.id ?? '') : r.concept?.term.toString() ?? '';
+    return r.source === 'episode' ? (r.episode?.id ?? '') : (r.concept?.term.toString() ?? '');
   }
 }

@@ -2,6 +2,7 @@
  * Term pattern analysis - extracted from SelfAnalyzerService
  */
 import type { Concept } from '../../memory';
+import { selectTopN } from '../../utils/collections.js';
 import type { TermPattern } from '../types.js';
 
 interface TermFreqEntry {
@@ -40,5 +41,5 @@ export const analyzeTermPatterns = (concepts: Concept[]): TermPattern[] => {
     });
   }
 
-  return results.sort((a, b) => b.frequency - a.frequency).slice(0, 50);
+  return selectTopN(results, 50, (r) => r.frequency);
 };

@@ -97,15 +97,15 @@ describe('Bench 38 — Bounded Runtime', () => {
   });
 
   it('D16 — LM cache sweep piggybacks on writes', async () => {
-    const { LMService } = await import('../../nar/src/lm/lm-service.js');
-    const { createSeNARSRegistry } = await import('../../nar/src/lm/index.js');
-    const svc = new LMService(createSeNARSRegistry());
-    const rc = (svc as unknown as { cache: { set(k: string, v: string): void } }).cache;
-    const map = (rc as unknown as { cache: Map<string, { expiresAt: number; value: string }> }).cache;
-    map.set('stale', { value: 'v', expiresAt: Date.now() - 1000 });
+    const { ResponseCache } = await import('../../nar/src/lm/service/cache.js');
+    let clock = 1_000;
+    const rc = new ResponseCache({ ttlMs: 60_000, now: () => clock });
+    rc.set('stale', 'v');
+    clock += 60_001;
     rc.set('fresh', 'x');
-    expect(map.has('stale')).toBe(false);
-    expect(map.has('fresh')).toBe(true);
+    expect(rc.get('stale')).toBeUndefined();
+    expect(rc.size).toBe(1);
+    expect(rc.get('fresh')).toBe('x');
   });
 
   it('D17 — Memory revision log is capped', () => {

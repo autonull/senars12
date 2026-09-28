@@ -14,6 +14,7 @@
  * is a `Game` implementation + one GameSpec (name, description, actionLegend).
  */
 
+import { parseFlags } from '@senars/util';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import { startArcadeTickSpan } from '../nar/src/eval/arcade-trace.js';
 import { BrierHarness } from '../nar/src/eval/brier-harness.js';
@@ -57,23 +58,20 @@ const parseArgs = (): {
   otel: boolean;
   distill: boolean;
 } => {
-  const get = (flag: string, fallback: string): string => {
-    const i = process.argv.indexOf(flag);
-    return i >= 0 ? (process.argv[i + 1] ?? fallback) : fallback;
-  };
-  const games = get('--games', gameRegistry.names().join(',')).split(',').filter(Boolean);
-  const arms = get('--arms', 'heuristic,random').split(',').filter(Boolean) as Arm[];
+  const { has, list, num, str } = parseFlags();
+  const games = list('--games', [gameRegistry.names().join(',')]);
+  const arms = list('--arms', ['heuristic', 'random']) as Arm[];
   return {
     games,
     arms,
-    episodes: Number(get('--episodes', '3')),
-    seed: Number(get('--seed', '7')),
-    render: process.argv.includes('--render'),
-    cognitive: get('--mode', 'default') === 'cognitive',
-    resume: process.argv.includes('--resume'),
-    sessionPath: get('--session', '.reports/arcade-session.json'),
-    otel: process.argv.includes('--otel'),
-    distill: process.argv.includes('--distill'),
+    episodes: num('--episodes', 3),
+    seed: num('--seed', 7),
+    render: has('--render'),
+    cognitive: str('--mode', 'default') === 'cognitive',
+    resume: has('--resume'),
+    sessionPath: str('--session', '.reports/arcade-session.json'),
+    otel: has('--otel'),
+    distill: has('--distill'),
   };
 };
 

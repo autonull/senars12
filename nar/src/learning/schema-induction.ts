@@ -18,6 +18,7 @@ import { createBudget, createTask, type Task } from '../types';
 import type { RandomSource } from '../types/primitives.js';
 import { clamp01, errMsg } from '../utils';
 import { AIKRProcessor, PrioritySampling, type ProcessOptions, type AikrBagOptions } from './aikr-processor.js';
+import { LruCache } from '@senars/util';
 
 export interface SchemaPattern {
   id: string;
@@ -70,7 +71,8 @@ export class SchemaInductor {
   /** Phase C (REFACTOR.todo1): AIKR-bounded chain accumulation + processing. */
   readonly #chainBag = new PriorityBag<DerivationChainItem>({ capacity: 256 });
   readonly #processor: AIKRProcessor<DerivationChainItem, InductionResult>;
-  readonly #seenSignatures = new Set<string>();
+  static readonly #SEEN_SIGNATURE_CAP = 4096;
+  readonly #seenSignatures = new LruCache<string, true>(SchemaInductor.#SEEN_SIGNATURE_CAP);
 
   constructor(memory: Memory, lmClient: LMService, config: Partial<SchemaInductionConfig> = {}) {
     this.memory = memory;
@@ -97,8 +99,7 @@ export class SchemaInductor {
     if (!this.config.enableSchemaInduction || chain.length === 0) return;
     const signature = chain.map((t) => t.term.toString()).join('→');
     if (this.#seenSignatures.has(signature)) return;
-    this.#seenSignatures.add(signature);
-    if (this.#seenSignatures.size > 4096) this.#seenSignatures.clear();
+    this.#seenSignatures.set(signature, true);
     this.#processor.admit({
       id: signature,
       priority: chain.length,

@@ -12,9 +12,7 @@
  */
 
 import { cpus } from 'node:os';
-import { existsSync } from 'node:fs';
 import {
-  formatLMConfig,
   getModelChain,
   getRoutingStatus,
   getEffectiveCircuitConfig,
@@ -27,6 +25,8 @@ import {
   probeLlamaCpp,
 } from '@senars/nar/lm/providers.js';
 import {
+  cloudApiKey,
+  embeddedLlamaConfigured,
   resolveLMConfig,
   resolveLMSettings,
 } from '@senars/nar/lm/env-config.js';
@@ -47,7 +47,7 @@ interface Check {
 const probeProviderReachable = async (): Promise<boolean> => {
   const settings = resolveLMSettings();
   if (settings.provider === 'transformers' || settings.provider === 'mock') return true;
-  if (settings.provider !== 'openai-compatible') return Boolean(process.env.LM_API_KEY ?? process.env.OPENAI_API_KEY ?? process.env.ANTHROPIC_API_KEY);
+  if (settings.provider !== 'openai-compatible') return Boolean(cloudApiKey(settings.apiKeyEnv));
   try {
     const base = settings.baseUrl ?? 'http://localhost:11434/v1';
     const res = await fetch(`${base.replace(/\/$/, '')}/models`, { signal: AbortSignal.timeout(3000) });
@@ -77,9 +77,9 @@ const probeOllama = async (host: string): Promise<string> => {
 };
 
 const probeEmbeddedLlama = async (): Promise<{ available: boolean; detail: string }> => {
-  const modelPath = process.env.LM_LLAMACPP_MODEL;
-  if (!modelPath) return { available: false, detail: 'LM_LLAMACPP_MODEL not set' };
-  if (!existsSync(modelPath)) return { available: false, detail: `Model not found: ${modelPath}` };
+  if (!embeddedLlamaConfigured()) {
+    return { available: false, detail: 'LM_LLAMACPP_MODEL unset or not found' };
+  }
   try {
     // Quick probe: try to load llama.cpp backend info
     const { getLlama, getLlamaGpuTypes } = await import('node-llama-cpp');
@@ -151,7 +151,6 @@ const main = async (): Promise<void> => {
   // Effective LM resolution
   const settings = resolveLMSettings();
   const lmConfig = resolveLMConfig();
-  const lmClient = { provider: settings.provider, model: settings.model }; // placeholder
 
   const output: DoctorOutput = {
     lm: {
@@ -159,9 +158,7 @@ const main = async (): Promise<void> => {
       model: settings.model ?? 'default',
       available: Boolean(settings.provider !== 'mock'),
       tiers: {},
-      cloudCredentials: Boolean(
-        process.env.LM_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY
-      ),
+      cloudCredentials: Boolean(cloudApiKey()),
       offlineCapable: true,
       stats: {},
       routing: {},

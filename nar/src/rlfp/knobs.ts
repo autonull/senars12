@@ -1,3 +1,4 @@
+import { getNested, setNested } from '@senars/util';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 
 export interface TunableKnob {
@@ -79,29 +80,18 @@ export function findKnobSpec(name: string): KnobSpec | undefined {
   return specByName.get(name);
 }
 
-function getNested(obj: ParamObj, path: string): number {
-  return path.split('.').reduce((o: any, k: string) => o?.[k], obj) as number;
-}
-
-function setNested(obj: ParamObj, path: string, value: number): void {
-  const keys = path.split('.');
-  const last = keys.pop()!;
-  const target = keys.reduce((o: any, k: string) => o[k], obj);
-  target[last] = value;
-}
-
 function makeKnob(spec: KnobSpec, params: ParamObj): TunableKnob {
   return {
     ...spec,
     get() {
-      return getNested(params, spec.path);
+      return getNested(params, spec.path) as number;
     },
     set(value: number) {
       const clamped = Math.max(
         spec.min,
         Math.min(spec.max, Math.round(value / spec.step) * spec.step)
       );
-      setNested(params, spec.path, clamped);
+      setNested(params as unknown as Record<string, unknown>, spec.path, clamped);
     },
   };
 }

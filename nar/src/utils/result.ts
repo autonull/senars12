@@ -2,6 +2,8 @@
  * E2 (TODO20 Phase 3): canonical `Result` type — discriminated union for fallible
  * operations. Single definition; `types/core.ts` re-exports for the legacy barrel.
  */
+import { toError } from '@senars/util';
+
 export type Ok<T> = { readonly ok: true; readonly value: T };
 export type Err<E> = { readonly ok: false; readonly error: E };
 export type Result<T, E = Error> = Ok<T> | Err<E>;
@@ -33,7 +35,7 @@ export const attempt = <T>(fn: () => T): Result<T, Error> => {
   try {
     return ok(fn());
   } catch (error) {
-    return err(error instanceof Error ? error : new Error(String(error)));
+    return err(toError(error));
   }
 };
 
@@ -42,6 +44,6 @@ export const attemptAsync = async <T>(fn: () => Promise<T>): Promise<Result<T, E
   try {
     return ok(await fn());
   } catch (error) {
-    return err(error instanceof Error ? error : new Error(String(error)));
+    return err(toError(error));
   }
 };

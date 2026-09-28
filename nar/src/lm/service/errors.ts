@@ -1,4 +1,4 @@
-import type { LMTask } from '@senars/util';
+import { type LMTask, withRetry as retry } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 
 /** H6/X14: provider-specific remediation hints appended to LM failures. */
@@ -41,8 +41,6 @@ export const isTransportError = (e: unknown): boolean => {
   );
 };
 
-const backoff = (attempt: number): number => 250 * 2 ** (attempt - 1);
-
 export const withRetry = async <T>(
   fn: () => Promise<T>,
   provider: string | undefined,
@@ -50,14 +48,10 @@ export const withRetry = async <T>(
   retries = 2
 ): Promise<T> => {
   let lastError: unknown;
-  for (let attempt = 1; attempt <= retries + 1; attempt++) {
-    try {
-      return await fn();
-    } catch (e) {
-      lastError = e;
-      if (attempt > retries || !isTransportError(e)) break;
-      await new Promise((r) => setTimeout(r, backoff(attempt)));
-    }
+  try {
+    return await retry(fn, { retries, baseMs: 250, isRetryable: isTransportError });
+  } catch (e) {
+    lastError = e;
   }
   throw new LMUnavailableError(
     withHint(

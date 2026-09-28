@@ -3,7 +3,7 @@
  */
 
 import { JsonlSessionManager } from '@senars/core/memory';
-import { isNarsese } from '@senars/core/helpers';
+import { clamp, isNarsese } from '@senars/core/helpers';
 import type { NARConfig } from '@senars/nar';
 import type { Agent as CoreAgent } from '@senars/core';
 import type { ExtendedAgent } from '@senars/nar/agent';
@@ -151,7 +151,7 @@ export async function createAgentFromEnv(
   coreAgent.knowGet = (key: string) => knowStore.get(key);
   coreAgent.knowList = () => [...knowStore.entries()].map(([k, v]) => ({ key: k, value: v }));
   coreAgent.setThrottle = (n: number) => {
-    throttle = Math.min(100, Math.max(0, n));
+    throttle = clamp(n, 0, 100);
   };
   coreAgent.getThrottle = () => throttle;
   coreAgent.getNAR = () => nar;

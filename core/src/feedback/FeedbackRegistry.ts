@@ -1,3 +1,6 @@
+import { mean } from '@senars/core/helpers';
+import { BoundedRing } from '@senars/util';
+
 export interface FeedbackEntry {
   readonly source: 'tool' | 'engine' | 'human';
   readonly target: string;
@@ -6,34 +9,37 @@ export interface FeedbackEntry {
   readonly correlationId: string;
 }
 
+const MAX_ENTRIES = 10000;
+/** Per-target windows are bounded independently so one noisy target cannot
+ *  evict the global history (and neither map can grow without limit). */
+const MAX_PER_TARGET = 1000;
+
 export class FeedbackRegistry {
-  #entries: FeedbackEntry[] = [];
-  #byTarget = new Map<string, FeedbackEntry[]>();
-  #max = 10000;
+  readonly #entries = new BoundedRing<FeedbackEntry>(MAX_ENTRIES);
+  readonly #byTarget = new Map<string, BoundedRing<FeedbackEntry>>();
 
   record(entry: FeedbackEntry): void {
     this.#entries.push(entry);
-    const arr = this.#byTarget.get(entry.target) ?? [];
-    arr.push(entry);
-    this.#byTarget.set(entry.target, arr);
-    if (this.#entries.length > this.#max) this.#entries.shift();
+    const ring = this.#byTarget.get(entry.target) ?? new BoundedRing<FeedbackEntry>(MAX_PER_TARGET);
+    ring.push(entry);
+    this.#byTarget.set(entry.target, ring);
   }
 
   getForTarget(target: string): FeedbackEntry[] {
-    return this.#byTarget.get(target) ?? [];
+    return this.#byTarget.get(target)?.toArray() ?? [];
   }
 
   getRecent(limit: number): FeedbackEntry[] {
-    return this.#entries.slice(-limit);
+    return this.#entries.tail(limit);
   }
 
   getSuccessRate(target: string): number {
-    const e = this.#byTarget.get(target) ?? [];
-    return e.length ? e.filter((x) => x.result.success).length / e.length : 1;
+    const e = this.getForTarget(target);
+    return e.length ? mean(e, (x) => Number(x.result.success)) : 1;
   }
 
   clear(): void {
-    this.#entries = [];
+    this.#entries.clear();
     this.#byTarget.clear();
   }
 }

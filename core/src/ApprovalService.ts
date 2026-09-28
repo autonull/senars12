@@ -1,5 +1,6 @@
-import { randomUUID } from 'node:crypto';
+import { makeId } from '@senars/util';
 import { createLogger, type LoggerInterface } from './Logger.js';
+import { errMsg } from '@senars/util';
 
 export interface PendingApproval {
   id: string;
@@ -76,7 +77,7 @@ export class ApprovalService {
     } catch (err: unknown) {
       return {
         approved: false,
-        feedback: `Approval error: ${err instanceof Error ? err.message : String(err)}`,
+        feedback: `Approval error: ${errMsg(err)}`,
       };
     }
   }
@@ -106,7 +107,7 @@ export class ApprovalService {
 
     return {
       createRequest(request: string, metadata: Record<string, unknown> = {}) {
-        const id = randomUUID();
+        const id = makeId();
         let resolveFn!: (result: ApprovalResult) => void;
         let rejectFn!: (error: Error) => void;
         const result = new Promise<ApprovalResult>((resolve, reject) => {

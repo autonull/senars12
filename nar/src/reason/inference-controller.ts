@@ -2,6 +2,7 @@
  * Inference Controller - Orchestrates task sampling, secondary selection, and rule firing
  */
 
+import { sleep } from '@senars/util';
 import type { Memory } from '../memory';
 import type { RuleInput, RuleProcessor, RuleResult } from '../rules';
 import type { DerivationContext, DerivationStrategy, SamplingStrategy } from '../strategies';
@@ -136,7 +137,7 @@ export class InferenceController {
             yield derivedTask;
             resultCount++;
             if (this.config.cpuThrottleMs > 0) {
-              await new Promise((r) => setTimeout(r, this.config.cpuThrottleMs));
+              await sleep(this.config.cpuThrottleMs);
             }
           }
         }

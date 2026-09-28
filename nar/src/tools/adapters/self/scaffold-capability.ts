@@ -66,7 +66,7 @@ export const ${capabilityId}_rule: RegisteredRule = {
           const { mkdir, writeFile } = await import('node:fs/promises');
           const ext = templateId.includes('rule') ? '.ts' : '.ts';
           const capFile = resolve(path, `capabilities/${capabilityId}${ext}`);
-          await mkdir(dirname(capFile), { recursive: true });
+          await ensureParentDir(capFile);
           await writeFile(capFile, template ?? '', 'utf-8');
 
           const testResult = await shadowManager.runTestsInWorktree(path);
@@ -104,3 +104,5 @@ export const ${capabilityId}_rule: RegisteredRule = {
     },
   });
 };
+
+import { ensureParentDir } from '../../../utils/fs.js';

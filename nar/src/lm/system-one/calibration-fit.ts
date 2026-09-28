@@ -1,9 +1,9 @@
 import { promises as fs } from 'node:fs';
 import { sha256HexParts } from '../../utils/hash.js';
-import { identityECE, meanBrier } from './metrics.js';
 import { mulberry32 } from '../../utils/random.js';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration.js';
 import type { JudgmentDataset } from './distill.js';
+import { identityECE, meanBrier } from './metrics.js';
 import type { CalibrationVersion, ModelDigest } from './types.js';
 import { DigestMismatchError } from './wasi-runtime.js';
 
@@ -237,7 +237,7 @@ function createLockDigest(calibrator: IsotonicCalibrator, threshold: number): st
 
 export async function writeCalibrationLock(lock: CalibrationLock, path: string): Promise<void> {
   const { dirname } = await import('node:path');
-  await fs.mkdir(dirname(path), { recursive: true });
+  await ensureParentDir(path);
   await fs.writeFile(path, JSON.stringify(lock, null, 2));
 }
 
@@ -267,3 +267,5 @@ export function applyCalibrationLock(
     calibrator.update(entry.points);
   }
 }
+
+import { ensureParentDir } from '../../utils/fs.js';

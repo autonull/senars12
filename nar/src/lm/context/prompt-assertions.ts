@@ -3,7 +3,7 @@
  * Ensures prompts stay within token budgets and contain required elements.
  */
 
-import { type ContextBudgetOptions, estimateTokens } from './context-budget.js';
+import { type ContextBudgetOptions, estimateTokens, getContextBudget } from './context-budget.js';
 
 export interface PromptAssertionResult {
   ok: boolean;
@@ -85,26 +85,6 @@ export function assertInstructionBudget(
     message: `Instruction within budget: ${tokens}/${maxInstructionTokens} tokens`,
     details: { instructionTokens: tokens },
   };
-}
-
-/**
- * Default context budgets per LM task type (re-exported for convenience).
- */
-export const DEFAULT_CONTEXT_BUDGETS = {
-  quality: { maxPromptTokens: 8192, reservedOutputTokens: 1024, safetyMargin: 1.3 },
-  fast: { maxPromptTokens: 4096, reservedOutputTokens: 512, safetyMargin: 1.3 },
-  structured: { maxPromptTokens: 6144, reservedOutputTokens: 1024, safetyMargin: 1.3 },
-  compact: { maxPromptTokens: 2048, reservedOutputTokens: 256, safetyMargin: 1.3 },
-} as const;
-
-/**
- * Gets the default context budget for a task.
- */
-export function getContextBudget(task: string): ContextBudgetOptions {
-  return (
-    DEFAULT_CONTEXT_BUDGETS[task as keyof typeof DEFAULT_CONTEXT_BUDGETS] ??
-    DEFAULT_CONTEXT_BUDGETS.fast
-  );
 }
 
 /**

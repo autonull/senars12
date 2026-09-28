@@ -17,6 +17,7 @@ import type { TaskTypeName, Term } from '../terms';
 import { termParser } from '../terms';
 import type { IngressJudge, IngressVerdict } from './ingress.js';
 import type { SourceReputation } from './source-reputation.js';
+import { errMsg } from '@senars/util';
 
 export interface KernelPerceptionGateConfig {
   defaultBudget: {
@@ -186,7 +187,7 @@ export class KernelPerceptionGate {
       recordPolicyViolation(this.eventLog, {
         policyId: 'systemone-ingress',
         violationType: 'epistemic-firewall',
-        detail: `systemone_ingress_error: ${error instanceof Error ? error.message : String(error)}`,
+        detail: `systemone_ingress_error: ${errMsg(error)}`,
         correlationId,
       });
       return {

@@ -10,6 +10,7 @@ import {
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import type { CognitiveEvent, TickContext } from '../tick/tick.js';
+import { errMsg } from '@senars/util';
 
 let provider: NodeTracerProvider | null = null;
 let initialized = false;
@@ -73,7 +74,7 @@ export function withSpan<T>(
     const fail = (error: unknown): never => {
       span.setStatus({
         code: SpanStatusCode.ERROR,
-        message: error instanceof Error ? error.message : String(error),
+        message: errMsg(error),
       });
       span.recordException(error as Error);
       span.end();
@@ -146,7 +147,7 @@ export function wrapMiddlewareWithSpan(
         } catch (error) {
           span.setStatus({
             code: SpanStatusCode.ERROR,
-            message: error instanceof Error ? error.message : String(error),
+            message: errMsg(error),
           });
           span.recordException(error as Error);
           throw error;

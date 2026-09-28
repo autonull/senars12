@@ -1,17 +1,23 @@
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
-import { z } from 'zod';
 import { join } from 'node:path';
+import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
 import type { DerivationRecord, ReasoningBudget } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
 import { PriorityBag } from '../bag/Bag.js';
 import type { Game, GameOutcome, Perception } from '../game/Game.js';
 import { type GateRegistry, gateRegistry } from '../kernel/index.js';
 import type { ConfidenceRouter } from '../lm/system-one/policy.js';
 import type { EmbeddingCache, JudgmentManifold } from '../lm/system-one/types.js';
-import { type NALDerivation, type NegotiationDecision, Negotiator, type IProposer } from '../reflex/Negotiator.js';
+import {
+  type IProposer,
+  type NALDerivation,
+  type NegotiationDecision,
+  Negotiator,
+} from '../reflex/Negotiator.js';
 import { type ActionProposal, LearningEvent, type Reflex } from '../reflex/Reflex.js';
-import type { NarEventBus } from '../types/events.js';
 import { recordBagPressure, recordHandover } from '../telemetry/index.js';
+import type { NarEventBus } from '../types/events.js';
+import { ensureDirSync } from '../utils/fs.js';
 import { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding.js';
 import { induceEpisodeSchemas, type PromotedSchema } from './episode-schemas.js';
 import { Focus, type FocusOptions } from './Focus.js';
@@ -154,8 +160,7 @@ export class GameFocus {
     if (this.gameTraceEnabled) {
       try {
         const logDir = 'logs';
-        const { mkdirSync } = require('node:fs');
-        mkdirSync(logDir, { recursive: true });
+        ensureDirSync(logDir);
         (this as any).#gameTraceLedger = createLedger<GameTraceLedgerEntry>(
           logDir,
           GameTraceEntrySchema,
@@ -749,3 +754,4 @@ export class GameFocus {
 export function createGameFocus(options: GameFocusOptions): GameFocus {
   return new GameFocus(options);
 }
+

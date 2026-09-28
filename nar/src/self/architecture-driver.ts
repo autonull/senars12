@@ -197,7 +197,7 @@ export class ArchitectureDriver {
     const filePath = resolve(this.proposalsDir, fileName);
 
     try {
-      await fs.mkdir(dirname(filePath), { recursive: true });
+      await ensureParentDir(filePath);
       await fs.writeFile(filePath, proposalContent, 'utf-8');
       console.log(`📝 Proposal written: ${filePath}`);
     } catch (error) {
@@ -271,3 +271,5 @@ Implement \`${gap.proposedFix}\` to address the detected architecture gap.
 export function createArchitectureDriver(nar: NAR, proposalsDir?: string): ArchitectureDriver {
   return new ArchitectureDriver(nar, proposalsDir);
 }
+
+import { ensureParentDir } from '../utils/fs.js';

@@ -12,6 +12,7 @@
  * - Observability emission every N cycles
  */
 
+import { sleep } from '@senars/util';
 import { createNAR } from '../nar/src/nar-presets.js';
 import { createSeNARSRegistry } from '../nar/src/lm/index.js';
 import { createLMService } from '../nar/src/lm/lm-service.js';
@@ -96,7 +97,7 @@ async function main() {
     );
 
     // Small delay to observe
-    await new Promise((r) => setTimeout(r, 100));
+    await sleep(100);
   }
 
   // Final summary

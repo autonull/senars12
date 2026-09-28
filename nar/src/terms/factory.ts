@@ -3,18 +3,15 @@ import { COMMUTATIVE_OPS, OPERATORS } from './operators.js';
 import { serializeTerm } from './serialize.js';
 import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from './types.js';
 import { INVALID_ATOM_CHARS_REGEX } from './valid-atom.js';
+import { LruCache } from '@senars/util';
 
 const TERM_CACHE_MAX_SIZE = 10000;
 
-const termCache = new Map<string, Term>();
+const termCache = new LruCache<string, Term>(TERM_CACHE_MAX_SIZE);
 
 let trackTermReady = false;
 
 const cache = <T extends Term>(term: T, key: string): T => {
-  if (termCache.size >= TERM_CACHE_MAX_SIZE && !termCache.has(key)) {
-    const first = termCache.keys().next();
-    if (first.value) termCache.delete(first.value);
-  }
   termCache.set(key, term);
   if (trackTermReady) trackTerm(term);
   return term;

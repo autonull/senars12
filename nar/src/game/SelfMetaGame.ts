@@ -1,3 +1,4 @@
+import { clamp01 } from '@senars/util';
 import { v4 as uuidv4 } from 'uuid';
 import type { ParameterLedger } from '../config/parameter-ledger.js';
 import {
@@ -103,7 +104,7 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   }
 
   setFocusWeight(focusId: string, weight: number): void {
-    const clampedWeight = Math.max(0, Math.min(1, weight));
+    const clampedWeight = clamp01(weight);
     this.focusBag.rebalanceWeights(new Map([[focusId, clampedWeight]]));
   }
 

@@ -1,7 +1,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { identityECE, meanBrier } from '../lm/system-one/metrics.js';
 import { createIsotonicCalibrator } from '../lm/system-one/calibration.js';
+import { identityECE, meanBrier } from '../lm/system-one/metrics.js';
+import { ensureDir } from '../utils/fs.js';
+import { mean } from '@senars/util';
 
 export interface ArcadeTickRecord {
   arm: string;
@@ -66,7 +68,9 @@ export class BrierHarness {
     const rows = this.byArm(arm);
     if (rows.length === 0) return 0;
     const calibrator = createIsotonicCalibrator('arcade' as never, arm as never);
-    calibrator.update(rows.map((r) => ({ predicted: r.predicted, observed: r.observed, weight: 1 })));
+    calibrator.update(
+      rows.map((r) => ({ predicted: r.predicted, observed: r.observed, weight: 1 }))
+    );
     return identityECE(
       rows.map((r) => ({ predicted: calibrator.calibrate(r.predicted), observed: r.observed }))
     );
@@ -104,8 +108,8 @@ export class BrierHarness {
         ticks: rows.length,
         brier: this.brierByArm(arm),
         ece: this.eceByArm(arm),
-        meanReward: rows.length ? rows.reduce((s, r) => s + r.reward, 0) / rows.length : 0,
-        handoverRate: rows.length ? rows.filter((r) => r.handover).length / rows.length : 0,
+        meanReward: mean(rows, (r) => r.reward),
+        handoverRate: mean(rows, (r) => Number(r.handover)),
         return: this.returnCurveByArm(arm).at(-1) ?? 0,
       };
     });
@@ -130,11 +134,15 @@ export class BrierHarness {
   }
 
   async writeReports(dir = '.reports'): Promise<void> {
-    await mkdir(dir, { recursive: true });
+    await ensureDir(dir);
     await writeFile(
       join(dir, 'arcade.json'),
       JSON.stringify(
-        { summary: this.summary(), handoverByGame: [...this.handoverByGame], records: this.records },
+        {
+          summary: this.summary(),
+          handoverByGame: [...this.handoverByGame],
+          records: this.records,
+        },
         null,
         2
       )
@@ -142,3 +150,4 @@ export class BrierHarness {
     await writeFile(join(dir, 'arcade.md'), this.toMarkdown());
   }
 }
+

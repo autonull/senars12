@@ -1,45 +1,30 @@
+import { LruCache } from '@senars/util';
+
+/** Hash-keyed term cache over the shared bounded LRU. */
 export class TermCache<T = unknown> {
-  private cache = new Map<number, T>();
-  private readonly maxSize: number;
-  private hits = 0;
-  private misses = 0;
+  readonly #cache: LruCache<number, T>;
 
   constructor(maxSize = 5000) {
-    this.maxSize = maxSize;
+    this.#cache = new LruCache<number, T>({ maxSize });
   }
 
   get hitRate(): number {
-    const total = this.hits + this.misses;
-    return total > 0 ? this.hits / total : 0;
+    return this.#cache.hitRate;
   }
 
   get size(): number {
-    return this.cache.size;
+    return this.#cache.size;
   }
 
   get(hash: number): T | undefined {
-    const term = this.cache.get(hash);
-    if (term !== undefined) {
-      this.cache.delete(hash);
-      this.cache.set(hash, term);
-      this.hits++;
-      return term;
-    }
-    this.misses++;
-    return undefined;
+    return this.#cache.get(hash);
   }
 
   set(term: T & { hash: number }): void {
-    if (this.cache.size >= this.maxSize) {
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey !== undefined) this.cache.delete(firstKey);
-    }
-    this.cache.set(term.hash, term);
+    this.#cache.set(term.hash, term);
   }
 
   clear(): void {
-    this.cache.clear();
-    this.hits = 0;
-    this.misses = 0;
+    this.#cache.clear();
   }
 }

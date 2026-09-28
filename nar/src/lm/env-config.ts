@@ -97,6 +97,14 @@ const isResolvedProvider = (v: string): v is ResolvedProvider =>
 const env = (...keys: string[]): string | undefined =>
   keys.map((k) => process.env[k]).find((v) => v !== undefined && v !== '');
 
+/**
+ * The cloud credential: the env var named by `apiKeyEnv` (if any), then the
+ * generic key, then the provider-specific cloud keys.
+ */
+export const cloudApiKey = (apiKeyEnv?: string): string | undefined =>
+  (apiKeyEnv ? process.env[apiKeyEnv] : undefined) ??
+  env('LM_API_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY');
+
 /** File/config-facing settings: provider may be any string (validated at resolve time). */
 export type LMSettingsInput = Omit<Partial<LMSettings>, 'provider'> & { provider?: string };
 

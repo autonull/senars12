@@ -4,7 +4,7 @@
  * Agent B runs the same universal LM rule locally; Agent A admits the result
  * through its PerceptionGate with PEER_AGENT source quality and shadow-validates.
  */
-import { makeId } from '@senars/util';
+import { errMsg, makeId } from '@senars/util';
 import type { JudgmentQuery } from '../lm/system-one/types.js';
 
 export interface CognitiveTaskDelegation {
@@ -69,7 +69,7 @@ export const handleDelegationMessage = async (
       taskId: msg.delegation.taskId,
       resultNarsese: [],
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: errMsg(error),
     });
   }
 };
@@ -147,7 +147,7 @@ export class JudgmentDelegationPeer implements DelegationPeer {
         propositions: [],
         sourceQuality: 'PEER_AGENT',
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: errMsg(error),
       };
     }
   }

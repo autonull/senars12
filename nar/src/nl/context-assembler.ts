@@ -1,3 +1,4 @@
+import { estimateTokens } from '../lm/context/context-budget.js';
 import type { NAR } from '../nar.js';
 import { TermSet } from '../terms';
 import type { TranslationCache, TranslationCacheEntry } from './cache.js';
@@ -17,11 +18,6 @@ export interface ContextAssemblerOpts {
   maxDerivations?: number;
   maxGoals?: number;
   maxExamples?: number;
-}
-
-function estimateTokens(text: string): number {
-  // Rough estimate: 1 token ≈ 4 characters
-  return Math.ceil(text.length / 4);
 }
 
 export class ContextAssembler {

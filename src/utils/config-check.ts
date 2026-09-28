@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { formatLMConfig, resolveLMConfig } from '../../nar/src/lm/env-config.js';
+import { cloudApiKey, formatLMConfig, resolveLMConfig } from '../../nar/src/lm/env-config.js';
 import { createLogger } from '../../nar/src/logger/index.js';
 
 const logger = createLogger({ scope: 'config:check' });
@@ -17,8 +17,7 @@ const checkProviderSecrets = (provider: string): string[] => {
   const required = REQUIRED_SECRETS[provider] ?? [];
   const missing = required.filter((key) => !process.env[key]);
   if (missing.length === 0 && REMOTE_OPTIONAL_KEY.has(provider)) {
-    const hasKey =
-      !!process.env.OPENAI_API_KEY || !!process.env.LM_API_KEY || !!process.env.LM_API_KEY_ENV;
+    const hasKey = Boolean(cloudApiKey(process.env.LM_API_KEY_ENV));
     if (!hasKey) {
       console.log(
         `  ⚠ ${provider}: no API key set — fine for local daemons, required for hosted endpoints`

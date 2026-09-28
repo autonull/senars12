@@ -16,7 +16,7 @@ export class ShadowWorktreeManager {
   async createWorktree(id: string): Promise<string> {
     const shadowDir = resolve(this.workspaceRoot, '.shadow', id);
     const { mkdir } = await import('node:fs/promises');
-    await mkdir(dirname(shadowDir), { recursive: true });
+    await ensureParentDir(shadowDir);
 
     return new Promise((resolvePromise, reject) => {
       const child = spawn('git', ['worktree', 'add', shadowDir, 'HEAD'], {
@@ -212,3 +212,5 @@ export class ShadowWorktreeManager {
     });
   }
 }
+
+import { ensureParentDir } from '../../utils/fs.js';

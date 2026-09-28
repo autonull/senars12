@@ -3,6 +3,7 @@ import { getPredicate, getSubject, isAtomic, isInheritance } from '../terms/inde
 import type { Task } from '../types/core.js';
 import { createBudget, createTask } from '../types/core.js';
 import type { TickContext, TickHook } from './tick.js';
+import { mean } from '@senars/util';
 
 export type Maybe<T> = T | Promise<T>;
 
@@ -261,8 +262,7 @@ export function createDefaultHooks(deps: TickDeps): Record<string, TickHook> {
     },
     learn: async (ctx) => {
       const outcomes = ctx.state.outcomes;
-      const passRate =
-        outcomes.length === 0 ? 0 : outcomes.filter((o) => o.success).length / outcomes.length;
+      const passRate = mean(outcomes, (o) => Number(o.success));
       const reward =
         deps.rewardOf?.(ctx) ??
         (deps.rlfp

@@ -12,14 +12,14 @@ import { createLogger } from '@senars/nar/logger';
 import { initializeMetaReasoning, registerMetaRules } from '@senars/nar/rules';
 import { initializeSelfConcept } from '@senars/nar/tools';
 import { runEntrypoint } from './lib/fatal-error.js';
+import { bar, divider, pct } from './lib/format.js';
 
 const logger = createLogger({ scope: 'self-report' });
 
 function formatDrives(drives: Record<string, number>): string {
   const lines = [];
   for (const [name, value] of Object.entries(drives)) {
-    const bar = '█'.repeat(Math.round(value * 20)) + '░'.repeat(20 - Math.round(value * 20));
-    lines.push(`  ${name.padEnd(12)} ${bar} ${(value * 100).toFixed(1)}%`);
+    lines.push(`  ${name.padEnd(12)} ${bar(value)} ${pct(value)}`);
   }
   return lines.join('\n');
 }
@@ -136,25 +136,25 @@ async function main() {
   console.log(`Cycle Count: ${nar.getCycleCount()}`);
 
   console.log('\n📈 ACTIVE DRIVES');
-  console.log('─'.repeat(50));
+  console.log(divider());
   console.log(formatDrives(activeDrives));
 
   console.log('\n🎯 ACTIVE META-GOALS');
-  console.log('─'.repeat(50));
+  console.log(divider());
   console.log(formatMetaGoals(activeMetaGoals));
 
   console.log('\n⚙️  PENDING TOOL EXECUTIONS');
-  console.log('─'.repeat(50));
+  console.log(divider());
   console.log(formatToolExecutions([]));
 
   console.log('\n📊 AIKR PRESSURE');
-  console.log('─'.repeat(50));
+  console.log(divider());
   console.log(
-    `  ${formatAikrPressure(aikrPressure)} (memory: ${(memoryPressure * 100).toFixed(1)}%)`
+    `  ${formatAikrPressure(aikrPressure)} (memory: ${pct(memoryPressure)}})`
   );
 
   console.log('\n🎰 RLFP REWARD');
-  console.log('─'.repeat(50));
+  console.log(divider());
   console.log(`  Average: ${rlfpRewardAvg.toFixed(3)}`);
   if (rlfp) {
     const knobs = rlfp.getTunableKnobs();
@@ -165,24 +165,24 @@ async function main() {
   }
 
   console.log('\n💰 META-DERIVATION BUDGET');
-  console.log('─'.repeat(50));
+  console.log(divider());
   console.log(`  ${metaDerivationBudget}`);
 
   console.log('\n🔍 SELF-ASSESSMENT');
-  console.log('─'.repeat(50));
+  console.log(divider());
   console.log(`  Quality: ${selfQuality}`);
 
   console.log('\n📚 MEMORY STATISTICS');
-  console.log('─'.repeat(50));
+  console.log(divider());
   console.log(`  Concepts: ${stats.totalConcepts}`);
   console.log(`  Tasks: ${stats.totalTasks}`);
   console.log(`  Beliefs: ${beliefs.length}`);
   console.log(`  Goals: ${goals.length}`);
-  console.log(`  Memory Pressure: ${(memoryPressure * 100).toFixed(1)}%`);
+  console.log(`  Memory Pressure: ${pct(memoryPressure)}}`);
 
   // Top beliefs by priority
   console.log('\n🏆 TOP 5 BELIEFS (by priority)');
-  console.log('─'.repeat(50));
+  console.log(divider());
   const topBeliefs = beliefs
     .map((b) => ({ belief: b, concept: nar.getConcept(b.term) }))
     .filter((bc): bc is { belief: typeof beliefs[0]; concept: NonNullable<typeof bc.concept> } => bc.concept !== undefined)
@@ -196,13 +196,13 @@ async function main() {
 
   // Contradictions
   console.log('\n⚠️  CONTRADICTIONS');
-  console.log('─'.repeat(50));
+  console.log(divider());
   // This would need access to conflict detection
   console.log('  (run with --full for contradiction analysis)');
 
   // Stalled goals
   console.log('\n⏸️  STALLED GOALS');
-  console.log('─'.repeat(50));
+  console.log(divider());
   const pendingGoals = goals.filter((g) => g.term.toString().startsWith('^'));
   if (pendingGoals.length === 0) {
     console.log('  (none)');

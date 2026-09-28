@@ -26,6 +26,7 @@ import {
   type FullReplayOptions,
   type ReplaySnapshotFile,
 } from '@senars/nar/kernel/replay';
+import { errMsg } from '@senars/util';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -192,6 +193,6 @@ async function runReplay(opts: ReplayCliOptions): Promise<void> {
 
 const opts = parseArgs(process.argv.slice(2));
 runReplay(opts).catch((err) => {
-  logger.error('Replay failed', err instanceof Error ? err : undefined, { error: err instanceof Error ? err.message : String(err) });
+  logger.error('Replay failed', err instanceof Error ? err : undefined, { error: errMsg(err) });
   process.exit(1);
 });

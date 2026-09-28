@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ExtendedAgent as Agent } from '@senars/nar/agent';
 import { getRoutingStatus } from '@senars/nar/lm';
+import { cloudApiKey } from '@senars/nar/lm/env-config.js';
 import type { NAR } from '../../../../nar/src';
 import type { JobManager } from './job-manager.js';
 import { formatBeliefsForMCP, stringifyMCP } from './mcp-response.js';
@@ -40,9 +41,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
         model: lm?.model,
         available: lm?.available ?? false,
         tiers,
-        cloudCredentials: Boolean(
-          process.env.LM_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY
-        ),
+        cloudCredentials: Boolean(cloudApiKey()),
         offlineCapable: true,
         stats: lm?.getStats?.() ?? {},
         routing: getRoutingStatus(),

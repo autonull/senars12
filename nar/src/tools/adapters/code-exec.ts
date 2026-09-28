@@ -1,8 +1,9 @@
 import { spawn } from 'node:child_process';
 import { basename, resolve } from 'node:path';
-import { containsPath } from '../../capability/wasi-sandbox.js';
+import { truncateBytes } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
+import { containsPath } from '../../capability/wasi-sandbox.js';
 
 export function shellAllowlistFromEnv(env: string | undefined): string[] {
   return (env ?? '')
@@ -133,15 +134,9 @@ function createWasiTool(deps: Required<Pick<CodeExecDeps, 'wasiAllowedPaths' | '
           args,
           timeoutMs: timeout,
         });
-        const truncate = (s: string): { text: string; truncated: boolean } => {
-          const clipped = Buffer.from(s, 'utf8').subarray(0, deps.maxOutputBytes);
-          return {
-            text: clipped.toString('utf8'),
-            truncated: Buffer.byteLength(s, 'utf8') > deps.maxOutputBytes,
-          };
-        };
-        const out = truncate(result.stdout);
-        const errOut = truncate(result.stderr);
+        const clip = (s: string) => truncateBytes(s, deps.maxOutputBytes);
+        const out = clip(result.stdout);
+        const errOut = clip(result.stderr);
         return {
           exitCode: result.exitCode,
           stdout: out.text,

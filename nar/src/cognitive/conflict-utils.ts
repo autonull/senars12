@@ -1,3 +1,4 @@
+import { wordOverlap } from '@senars/util';
 import type { Term } from '../terms';
 import { TermMap } from '../terms';
 import type { Task } from '../types';
@@ -25,21 +26,5 @@ export const findConflicts = (beliefs: Task[]): Array<{ a: Term; b: Term }> => {
 
 export const countContradictions = (beliefs: Task[]): number => findConflicts(beliefs).length;
 
-export const termOverlap = (a: string, b: string): number => {
-  const aw = new Set(
-    a
-      .toLowerCase()
-      .split(/[\s_()[\]<>\-/=>]+/)
-      .filter(Boolean)
-  );
-  const bw = new Set(
-    b
-      .toLowerCase()
-      .split(/[\s_()[\]<>\-/=>]+/)
-      .filter(Boolean)
-  );
-  if (!aw.size || !bw.size) return 0;
-  let n = 0;
-  for (const w of aw) if (bw.has(w)) n++;
-  return n / Math.max(aw.size, bw.size);
-};
+export const termOverlap = (a: string, b: string): number =>
+  wordOverlap(a, b, /[\s_()[\]<>\-/=>]+/);

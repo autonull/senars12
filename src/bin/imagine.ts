@@ -11,6 +11,7 @@ import { CognitiveTreadmill } from '@senars/nar/imagination/treadmill';
 import type { ScenarioProfile } from '@senars/nar/imagination/types';
 import { ArchitectureDriver } from '@senars/nar/self/architecture-driver';
 import { runEntrypoint } from './lib/fatal-error.js';
+import { pct } from './lib/format.js';
 
 interface ImagineOptions {
   profile: ScenarioProfile;
@@ -131,9 +132,9 @@ function printScenarioResult(scenario: any, result: any): void {
   console.log(`  Latency P50:      ${result.metrics.latencyP50.toFixed(1)}ms`);
   console.log(`  Latency P95:      ${result.metrics.latencyP95.toFixed(1)}ms`);
   console.log(`  Latency P99:      ${result.metrics.latencyP99.toFixed(1)}ms`);
-  console.log(`  Contradiction Rate: ${(result.metrics.contradictionRate * 100).toFixed(1)}%`);
+  console.log(`  Contradiction Rate: ${pct(result.metrics.contradictionRate)}`);
   console.log(`  Priority Oscillation: ${result.metrics.priorityOscillation.toFixed(3)}`);
-  console.log(`  Memory Pressure:  ${(result.metrics.memoryPressure * 100).toFixed(1)}%`);
+  console.log(`  Memory Pressure:  ${pct(result.metrics.memoryPressure)}`);
   console.log(`  Derivation Quality: ${result.metrics.derivationQuality.toFixed(2)}`);
 }
 

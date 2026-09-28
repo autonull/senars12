@@ -1,5 +1,4 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { readJsonFileSync, writeJsonFileSync } from '../utils/fs.js';
 
 /**
  * G3 — multi-game session resume. The arcade records its tournament progress
@@ -23,19 +22,13 @@ export interface ArcadeSession {
 export const sessionKey = (arm: string, game: string): string => `${arm}/${game}`;
 
 export function loadSession(path: string): ArcadeSession | null {
-  if (!existsSync(path)) return null;
-  try {
-    const raw = JSON.parse(readFileSync(path, 'utf-8')) as ArcadeSession;
-    if (raw?.version !== 1 || typeof raw.seed !== 'number' || !raw.completed) return null;
-    return raw;
-  } catch {
-    return null;
-  }
+  const raw = readJsonFileSync<ArcadeSession | null>(path, null);
+  if (!raw || raw.version !== 1 || typeof raw.seed !== 'number' || !raw.completed) return null;
+  return raw;
 }
 
 export function saveSession(path: string, session: ArcadeSession): void {
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, JSON.stringify(session, null, 2), 'utf-8');
+  writeJsonFileSync(path, session);
 }
 
 /** A saved session resumes the current run only when the tournament config matches. */

@@ -1,3 +1,4 @@
+import { makeId } from '@senars/util';
 import { promises as fs } from 'node:fs';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';
 import type { IPerceptionGate } from './kernel';
@@ -101,7 +102,7 @@ export class NARIO {
         rawObservation: input,
         sensorConfidence: 1.0,
         sourceQuality: 'GENERAL',
-        correlationId: crypto.randomUUID(),
+        correlationId: makeId(),
       });
 
       if (!result.admitted || !result.task) {
@@ -186,7 +187,7 @@ export class NARIO {
           rawObservation: concept.term,
           sensorConfidence: 0.9,
           sourceQuality: concept.sourceQuality ?? 'GENERAL',
-          correlationId: crypto.randomUUID(),
+          correlationId: makeId(),
         });
 
         if (!result.admitted) {
@@ -235,7 +236,7 @@ export class NARIO {
         rawObservation: term.toString(),
         sensorConfidence: truth.c ?? 0.5,
         sourceQuality: 'GENERAL',
-        correlationId: crypto.randomUUID(),
+        correlationId: makeId(),
       });
 
       if (!result.admitted || !result.task) {
@@ -270,7 +271,7 @@ export class NARIO {
       rawObservation: term.toString(),
       sensorConfidence: truth.c,
       sourceQuality: 'GENERAL',
-      correlationId: crypto.randomUUID(),
+      correlationId: makeId(),
     });
 
     if (!result.admitted || !result.task) {

@@ -8,6 +8,7 @@
  *   senars config validate --json             # output machine-readable JSON
  */
 
+import { parseFlags } from '@senars/util';
 import { createLogger } from '@senars/nar/logger';
 import { appConfigSchema, loadConfig } from '../config/index.js';
 import { resolveLMSettings, resolveLMConfig } from '@senars/nar/lm';
@@ -20,11 +21,8 @@ interface ValidateOptions {
 }
 
 function parseArgs(): ValidateOptions {
-  const args = process.argv.slice(2);
-  const configIndex = args.indexOf('--config');
-  const configPath = configIndex >= 0 && args[configIndex + 1] ? args[configIndex + 1] : undefined;
-  const jsonOutput = args.includes('--json');
-  return { configPath, jsonOutput };
+  const { has, str } = parseFlags();
+  return { configPath: str('--config', '').trim() || undefined, jsonOutput: has('--json') };
 }
 
 interface ValidationResult {

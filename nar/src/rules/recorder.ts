@@ -69,11 +69,12 @@ export class DerivationRecorder {
   private readonly maxCompletedRecords: number;
   private enabled: boolean;
   private open: OpenRecord | null = null;
-  private readonly completed: DerivationRecord[] = [];
+  private readonly completed: BoundedRing<DerivationRecord>;
 
   constructor(opts: RecorderOptions = {}) {
     this.maxStepsPerRecord = opts.maxStepsPerRecord ?? 200;
     this.maxCompletedRecords = opts.maxCompletedRecords ?? 200;
+    this.completed = new BoundedRing(this.maxCompletedRecords);
     this.enabled = opts.enabled ?? false;
   }
 
@@ -153,22 +154,23 @@ export class DerivationRecorder {
       engine: 'nar',
     };
     this.completed.push(record);
-    while (this.completed.length > this.maxCompletedRecords) this.completed.shift();
     return record;
   }
 
   drain(): DerivationRecord[] {
     this.finish();
-    return this.completed.splice(0, this.completed.length);
+    const drained = this.completed.toArray();
+    this.completed.clear();
+    return drained;
   }
 
   pending(): number {
-    return this.completed.length;
+    return this.completed.size;
   }
 
   clear(): void {
     this.open = null;
-    this.completed.length = 0;
+    this.completed.clear();
   }
 }
 

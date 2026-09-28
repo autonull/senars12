@@ -1,3 +1,4 @@
+import { errMsg, truncate as truncateText } from '@senars/util';
 import {
   generateText,
   type LanguageModel,
@@ -79,8 +80,6 @@ export interface ModelRunnerDeps {
 const DEFAULT_MAX_TOOL_RESULT_ENTRIES = 20;
 const DEFAULT_MAX_TOOL_RESULT_CHARS = 8_000;
 
-const truncate = (s: string, n: number): string => (s.length > n ? `${s.slice(0, n)}…` : s);
-
 export class ModelRunner {
   private readonly modelProvider?: ModelProvider;
   private readonly maxLoops: number;
@@ -152,7 +151,7 @@ export class ModelRunner {
             const call = allCalls.find((c) => c.toolCallId === tr.toolCallId);
             const output =
               typeof tr.output === 'string' ? tr.output : JSON.stringify(tr.output ?? null);
-            const capped = truncate(output, this.maxToolResultChars);
+            const capped = truncateText(output, this.maxToolResultChars);
             if (call) {
               allArtifacts.push({
                 type: 'tool_result',
@@ -223,7 +222,7 @@ export class ModelRunner {
         };
       }
       return {
-        text: stringifyError(e),
+        text: errMsg(e),
         toolCalls: allCalls,
         artifacts: allArtifacts,
         errors: allErrors,
@@ -261,8 +260,4 @@ export class ModelRunner {
   private toMessages(composed: ComposedRequest): ModelMessage[] {
     return composed.messages;
   }
-}
-
-function stringifyError(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
 }

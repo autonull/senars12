@@ -1,5 +1,4 @@
-import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+
 import type {
   AutonomyMode,
   CognitiveEvent,
@@ -14,9 +13,12 @@ import {
 } from '@senars/kernel/schemas';
 import type { Concept, ConceptTaskType, TaskData } from '../memory/concept.js';
 import { Memory } from '../memory/memory.js';
+import { serialize as serializeMemory } from '../memory/state/serialization.js';
 import { Stamp, Truth, termParser } from '../terms/index.js';
 import type { Budget, Timestamp } from '../types/index.js';
 import { createBudget } from '../types/index.js';
+import { writeJsonFileSync } from '../utils/fs.js';
+import { appendJsonl, readJsonl } from '../utils/jsonl.js';
 import {
   loadGateEvents,
   persistGateLogs,
@@ -24,8 +26,7 @@ import {
   replayTaskAdmissions,
 } from './EventLogPersistence.js';
 import type { GateRegistry } from './GateRegistry.js';
-import { serialize as serializeMemory } from '../memory/state/serialization.js';
-import { appendJsonl, readJsonl } from '../utils/jsonl.js';
+import { errMsg, sha256Hex } from '@senars/util';
 
 function makeDerivedStamp(id: string): Stamp {
   return {
@@ -95,19 +96,12 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
     gateEvents = range?.to === undefined ? allGateEvents.slice(from) : allGateEvents.slice(from, range.to + 1);
   }
 
-  const derivationRecords: DerivationRecord[] = [];
-  if (derivationRecordsPath && existsSync(derivationRecordsPath)) {
-    for (const line of readFileSync(derivationRecordsPath, 'utf8').split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      try {
-        const parsed = DerivationRecordSchema.safeParse(JSON.parse(trimmed));
-        if (parsed.success) derivationRecords.push(parsed.data);
-      } catch {
-        // skip invalid
-      }
-    }
-  }
+  const derivationRecords: DerivationRecord[] = derivationRecordsPath
+    ? readJsonl(derivationRecordsPath, (value) => {
+        const parsed = DerivationRecordSchema.safeParse(value);
+        return parsed.success ? parsed.data : null;
+      }).rows
+    : [];
 
   const memory = new Memory(memoryConfig);
   const errors: string[] = [];
@@ -133,7 +127,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
     } catch (e) {
       skipped++;
       errors.push(
-        `Task admission failed: ${task.term} - ${e instanceof Error ? e.message : String(e)}`
+        `Task admission failed: ${task.term} - ${errMsg(e)}`
       );
     }
   }
@@ -159,7 +153,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
       } catch (e) {
         skipped++;
         errors.push(
-          `Revision failed: ${event.payload.term} - ${e instanceof Error ? e.message : String(e)}`
+          `Revision failed: ${event.payload.term} - ${errMsg(e)}`
         );
       }
     } else if (event.type === 'concept.activated') {
@@ -171,7 +165,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
       } catch (e) {
         skipped++;
         errors.push(
-          `Activation failed: ${event.payload.term} - ${e instanceof Error ? e.message : String(e)}`
+          `Activation failed: ${event.payload.term} - ${errMsg(e)}`
         );
       }
     }
@@ -201,7 +195,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
       } catch (e) {
         skipped++;
         errors.push(
-          `Derivation step failed: ${step.conclusion} - ${e instanceof Error ? e.message : String(e)}`
+          `Derivation step failed: ${step.conclusion} - ${errMsg(e)}`
         );
       }
     }
@@ -233,17 +227,14 @@ const HASHED_FIELDS = [
 
 /** Deterministic content hash of a replay outcome — the C14 replay verification token. */
 export async function computeReplayStateHash(result: ReplayResult): Promise<string> {
-  const hash = createHash('sha256');
-  const memorySerialized = serializeMemory(result.memory);
-  // Canonicalize: remove timestamp for deterministic hashing
-  const canonicalMemory = { ...memorySerialized, timestamp: 0 };
-  hash.update(
+  // Canonicalize: drop the timestamp so the hash is deterministic across runs.
+  const canonicalMemory = { ...serializeMemory(result.memory), timestamp: 0 };
+  return sha256Hex(
     JSON.stringify({
       counters: Object.fromEntries(HASHED_FIELDS.map((field) => [field, result[field]])),
       memory: canonicalMemory,
     })
   );
-  return hash.digest('hex');
 }
 
 export async function verifyReplayStateHash(
@@ -295,7 +286,7 @@ export async function serializeReplayResult(
       errors,
     },
   };
-  writeFileSync(outputPath, JSON.stringify(snapshot, null, 2));
+  writeJsonFileSync(outputPath, snapshot);
 }
 
 export function persistDerivationRecords(

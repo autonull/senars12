@@ -59,7 +59,7 @@ export function createFileSystemTools(deps: FileSystemDeps) {
           const resolvedPath = enforceWorkspaceScope(path, deps.workspaceRoot);
           const { mkdir } = await import('node:fs/promises');
           const { dirname } = await import('node:path');
-          await mkdir(dirname(resolvedPath), { recursive: true });
+          await ensureParentDir(resolvedPath);
           await writeFile(resolvedPath, content, 'utf-8');
           return { written: content.length, path };
         } catch (error) {
@@ -69,3 +69,5 @@ export function createFileSystemTools(deps: FileSystemDeps) {
     }),
   };
 }
+
+import { ensureParentDir } from '../../utils/fs.js';

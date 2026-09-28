@@ -8,12 +8,10 @@
  * --multiagent` delegate to `src/bin/lib/*` runners).
  */
 
+
 import { execFile } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
-import { Effect } from 'effect';
-import { errMsg } from '@senars/util';
 import { createCapturePhase, DEFAULT_MACRO_PIPELINE } from '@senars/core/agent/phases';
 import {
   AuthManager,
@@ -30,6 +28,7 @@ import {
   MCPConnection,
   WSConnection,
 } from '@senars/io';
+import { createMeTTa, parseMeTTa } from '@senars/metta';
 import type { BinAgentApi as Agent } from '@senars/nar/agent';
 import {
   configCommands,
@@ -54,16 +53,17 @@ import {
 } from '@senars/nar/dialogue';
 import { providerKey } from '@senars/nar/kernel/reputation-keys.js';
 import { DEFAULT_REPUTATION_PATH, SourceReputation } from '@senars/nar/kernel/source-reputation';
-import { episodeQualitySurface, MemoryQuery } from '@senars/nar/query/memory-query.js';
 import { formatLMConfig, resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm/env-config.js';
 import { computeEvidenceId, createSystemOneBudget } from '@senars/nar/lm/system-one';
-import { MettaProposer } from '@senars/nar/reflex/metta-proposer.js';
+import type { EmbeddingCache } from '@senars/nar/lm/system-one/types.js';
 import { createLogger } from '@senars/nar/logger';
 import { NLUnderstandingService } from '@senars/nar/nl';
 import { TranslationCache } from '@senars/nar/nl/cache.js';
-import type { EmbeddingCache } from '@senars/nar/lm/system-one/types.js';
-import { createMeTTa, parseMeTTa } from '@senars/metta';
+import { episodeQualitySurface, MemoryQuery } from '@senars/nar/query/memory-query.js';
+import { MettaProposer } from '@senars/nar/reflex/metta-proposer.js';
+import { ensureDir, errMsg, makeId, readJsonlAsync } from '@senars/util';
+import { Effect } from 'effect';
 import { buildCommands, cmd } from '../cli/commands.js';
 import {
   type ConversationGameFocus,
@@ -513,24 +513,18 @@ function buildExtraCommands(
       const path = args.trim();
       if (!path) return 'Usage: .memory-import <path>';
       try {
-        const lines = (await readFile(path, 'utf-8')).split('\n').filter((l) => l.trim());
+        const { rows } = await readJsonlAsync<{ type?: string; content?: string; metadata?: Record<string, unknown> }>(
+          path,
+          (value) => value as { type?: string; content?: string; metadata?: Record<string, unknown> }
+        );
         let n = 0;
-        for (const line of lines) {
-          try {
-            const e = JSON.parse(line) as {
-              type?: string;
-              content?: string;
-              metadata?: Record<string, unknown>;
-            };
-            if (typeof e.content === 'string') {
-              await episodicMemory.log((e.type as never) ?? 'input', e.content, e.metadata ?? {});
-              n++;
-            }
-          } catch {
-            /* skip malformed */
+        for (const e of rows) {
+          if (typeof e.content === 'string') {
+            await episodicMemory.log((e.type as never) ?? 'input', e.content, e.metadata ?? {});
+            n++;
           }
         }
-        return `Imported ${n}/${lines.length} episodes`;
+        return `Imported ${n}/${rows.length} episodes`;
       } catch (e) {
         return `import failed: ${errMsg(e)}`;
       }
@@ -1779,7 +1773,7 @@ async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   if (await runNonInteractive(argv)) return;
 
-  await mkdir('.cache/sessions', { recursive: true }).catch(() => undefined);
+  await ensureDir('.cache/sessions').catch(() => undefined);
   const wired = await createAgentFromEnv();
   const { agent, sessionManager, profile } = wired;
   const lmConfig = resolveLMConfig();
@@ -1833,7 +1827,7 @@ async function main(): Promise<void> {
     threshold: 0.7,
     gate: systemOneGate
       ? async (text: string) => {
-          const correlationId = randomUUID();
+          const correlationId = makeId();
           const ok = await systemOneGate(text, correlationId);
           for (const key of narrationKeys())
             sourceReputation.record(key, ok ? 'confirmed' : 'contradicted');
@@ -2024,7 +2018,7 @@ const dialogue = new DialogueCapture({
       (e) => (e.metadata as any).kind === 'correct'
     ).length;
     const proposal = {
-      proposalId: randomUUID(),
+      proposalId: makeId(),
       kind: 'focus-weight' as const,
       riskTier: 'low' as const,
       payload: { focusId: 'conversation', weight: 0.8 },

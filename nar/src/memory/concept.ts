@@ -1,3 +1,4 @@
+import { makeId } from '@senars/util';
 import { createBag, type Bag, type BagOptions } from '../bag/Bag.js';
 import { LINK } from '../constants.js';
 import type { Term, Truth } from '../terms';
@@ -108,7 +109,7 @@ export class Concept {
     if (type === 'belief') return this.addBeliefWithRevision(data as TaskData);
 
     const bag = type === 'goal' ? this.goalBag : this.questionBag;
-    const item = { ...data, id: crypto.randomUUID(), priority: data.budget.priority } as TaskData;
+    const item = { ...data, id: makeId(), priority: data.budget.priority } as TaskData;
     const added = bag.add(item);
     added && this.recordAccess();
     return added;
@@ -322,7 +323,7 @@ export class Concept {
 
     const item = {
       ...data,
-      id: crypto.randomUUID(),
+      id: makeId(),
       priority: data.budget?.priority ?? 0.5,
     } as TaskData;
     const added = this.beliefBag.add(item);

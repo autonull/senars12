@@ -1,7 +1,9 @@
+import { LruCache } from '@senars/util';
 const escapeGbnf = (literal: string): string =>
   `"${literal.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 
-const grammarCache = new Map<string, string>();
+const GRAMMAR_CACHE_MAX = 1024;
+const grammarCache = new LruCache<string, string>(GRAMMAR_CACHE_MAX);
 
 /**
  * Generate a GBNF grammar enumerating the legal-action set. Generated text is
@@ -13,7 +15,6 @@ export function actionGrammar(legalActions: readonly string[]): string {
   let grammar = grammarCache.get(signature);
   if (!grammar) {
     grammar = `root ::= ${legalActions.map(escapeGbnf).join(' | ')}`;
-    if (grammarCache.size > 1024) grammarCache.clear();
     grammarCache.set(signature, grammar);
   }
   return grammar;

@@ -18,6 +18,7 @@ import { SystemOneManifold } from '@senars/nar/lm/system-one/manifold.js';
 import { systemOneDefaults, systemOneSchema } from '../../config/schema.js';
 import { createLogger } from '@senars/nar/logger';
 import { formatBudgetSliceTree, collectBudgetSlices, type BudgetSlice } from '@senars/kernel';
+import { errMsg } from '@senars/util';
 
 const logger = createLogger({ scope: 'status' });
 
@@ -149,7 +150,7 @@ export const runStatus = async (): Promise<StatusReport> => {
 
 if (process.argv[1]?.endsWith('status-report.ts')) {
   runStatus().catch((e) => {
-    logger.error('status failed', e instanceof Error ? e : undefined, { error: e instanceof Error ? e.message : String(e) });
+    logger.error('status failed', e instanceof Error ? e : undefined, { error: errMsg(e) });
     process.exit(1);
   });
 }

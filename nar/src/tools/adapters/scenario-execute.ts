@@ -160,8 +160,7 @@ export async function generateScenarioSpec(
   }
 
   try {
-    // @ts-expect-error - TranslationCache interface mismatch
-    const understanding = new NLUnderstandingService(registry, new Map(), { structuredOnly: true });
+    const understanding = new NLUnderstandingService(registry, undefined, { structuredOnly: true });
     const nlInput = `Generate a cognitive test scenario for SeNARS. Profile: ${profile}. Seed: "${seed}". 
     Output a JSON spec with: name, description, duration_steps, inject (array of events with type, pattern, interval), success_criteria.
     Events can be: belief_stream (pattern, interval), question (pattern, interval), resource_pressure (maxDerivationsPerStep), goal (narsese, priority).

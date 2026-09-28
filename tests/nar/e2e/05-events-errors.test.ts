@@ -64,6 +64,8 @@ describe('Event System', () => {
     expect(derivations[0]).toBe('bird');
   });
 
+  // Unimplemented: nothing in the kernel emits `nar:concept:activated` — the
+  // concept bus only carries derivations, gates, and errors.
   it.skip('system event bus emits nar:concept:activated on believe()', async () => {
     const systemBus = nar.getSystemEventBus();
     const activated: { term: string; priority: number }[] = [];

@@ -13,6 +13,7 @@ import { MettaEngine } from '@senars/metta/agent';
 import type { EpisodicMemory, LMService, NAR } from '@senars/nar';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
+import { clamp } from '@senars/util/utils/shared';
 import { NAREngine } from '../engine/NAREngine.js';
 import { TrajectoryStore } from '../rlfp/trajectory-store.js';
 import { CoreToolRegistryAdapter } from '../tools';
@@ -277,7 +278,7 @@ function attachNarApi(
   pinStore: Map<string, string>
 ): void {
   const knowStore = pinStore;
-  let throttle = Math.min(100, Math.max(0, config.throttle ?? 100));
+  let throttle = clamp(config.throttle ?? 100, 0, 100);
 
   const originalChat = agent.chat.bind(agent);
   const chatOverride = async function* (
@@ -390,7 +391,7 @@ function attachNarApi(
   }
 
   agent.setThrottle = (n: number) => {
-    throttle = Math.min(100, Math.max(0, n));
+    throttle = clamp(n, 0, 100);
   };
   agent.getThrottle = () => throttle;
   agent.getNAR = () => narEngine?.nar;

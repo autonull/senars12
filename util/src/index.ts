@@ -41,6 +41,12 @@ export type { EventReceiver, EventUnsubscribe } from './events/event-bus.js';
 // Events
 /** @public Generic typed event bus runtime. */
 export { EventBus } from './events/event-bus.js';
+/** @public Tool feedback observer for unified statistics tracking. */
+export {
+  DefaultToolFeedbackObserver,
+  type ToolFeedback,
+  type ToolFeedbackObserver,
+} from './feedback/ToolFeedbackObserver.js';
 // Memory
 /** @public In-memory session manager shared by io and core. */
 export {
@@ -48,6 +54,9 @@ export {
   createSession,
   InMemorySessionManager,
 } from './memory/in-memory-session-manager.js';
+export type { Middleware } from './middleware.js';
+/** @public Unified middleware primitive (REFACTOR.todo4 Phase A). */
+export { dispatch, passthrough } from './middleware.js';
 /** @public Agent-facing option and capability types. */
 export type {
   AgentOptions,
@@ -78,6 +87,8 @@ export type {
 } from './types/episodic-memory.js';
 /** @public Typed event emitter contract. */
 export type { EventHandler, TypedEventEmitter } from './types/events.js';
+/** @public Health-report types (O3, TODO20). */
+export type { HealthCheckResult, HealthReport } from './types/health.js';
 /** @public Component lifecycle and observability contracts. */
 export type {
   BaseComponent,
@@ -120,55 +131,83 @@ export type {
 } from './types/transport.js';
 /** @public Truth value branded types. */
 export type { Confidence, Frequency } from './types/truth.js';
-/** @public Health-report types (O3, TODO20). */
-export type { HealthCheckResult, HealthReport } from './types/health.js';
 /** @public Truth value constructors. */
 export { toConfidence, toFrequency } from './types/truth.js';
 // Utils
 /** @public Assertion helpers. */
 export { assertDefined, invariant } from './utils/assert.js';
+// Collections
+/** @public Drop-oldest bounded ring buffer. */
+export { BoundedRing } from './utils/collections.js';
+export type { JsonlLoadResult } from './utils/fs.js';
+// Filesystem
+export {
+  appendJsonl,
+  appendJsonlAsync,
+  ensureDir,
+  ensureDirSync,
+  ensureParentDir,
+  ensureParentDirSync,
+  iterateJsonl,
+  readJsonFile,
+  readJsonFileSync,
+  readJsonl,
+  readJsonlAsync,
+  writeJsonFile,
+  writeJsonFileSync,
+  writeJsonl,
+} from './utils/fs.js';
+// Hashing
+export { djb2, djb2Step, fnv1a, fnv1aCombine, mul32 } from './utils/hash.js';
+/** @public SHA-256 digests for provenance keys, digest pinning, and state hashes. */
+export {
+  sha256Hex,
+  sha256HexParts,
+  sha256Prefixed,
+  shortSha256Hex,
+} from './utils/hash.js';
+export type { DigestInput } from './utils/hash.js';
 /** @public ULID id generation. */
 export { generateId } from './utils/id.js';
+export type { LruCacheOptions } from './utils/lru-cache.js';
+/** @public Bounded recency-ordered cache with optional TTL. */
+export { LruCache } from './utils/lru-cache.js';
+/** @public Throttle utilities for stream/callback rate control. */
+export { extractLastUserMessage } from './utils/prompt.js';
+export type { RetryOptions } from './utils/retry.js';
+// Caching
+export { withRetry } from './utils/retry.js';
 /** @public Serialization contracts for stateful components. */
 export type { Serializable, Versioned } from './utils/serialization.js';
 /** @public Uniform-contract adapters bridging legacy serialize/deserialize shapes. */
 export { asSerializable, factorySerializable, inPlaceSerializable } from './utils/serialization.js';
-/** @public Tool feedback observer for unified statistics tracking. */
-export {
-  DefaultToolFeedbackObserver,
-  type ToolFeedback,
-  type ToolFeedbackObserver,
-} from './feedback/ToolFeedbackObserver.js';
-
-/** @public Unified middleware primitive (REFACTOR.todo4 Phase A). */
-export { dispatch, passthrough } from './middleware.js';
-export type { Middleware } from './middleware.js';
-
 /** @public Shared utility functions (deduplicated across packages). */
 export {
   clamp,
   clamp01,
   compact,
-  edgeKey,
   deepFreeze,
+  edgeKey,
   ensureArray,
   errMsg,
   extractTerm,
+  type Flags,
+  getNested,
   generateId as generatePrefixedId,
   isNarsese,
   isNil,
   limitList,
   makeId,
+  mean,
+  parseFlags,
   safeDiv,
+  setNested,
   sleep,
   toError,
   truncate,
+  truncateBytes,
   wordOverlap,
 } from './utils/shared.js';
 /** @public Throttle configuration type. */
 export type { ThrottleConfig } from './utils/throttle.js';
-/** @public Throttle utilities for stream/callback rate control. */
-export { extractLastUserMessage } from './utils/prompt.js';
 export { createThrottle, Throttle, throttleGenerator } from './utils/throttle.js';
-
-

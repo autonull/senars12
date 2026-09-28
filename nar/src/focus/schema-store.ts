@@ -1,7 +1,6 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
 import { withSpan } from '../otel/index.js';
 import { recordSchemaPromotion } from '../telemetry/index.js';
+import { readJsonFileSync, writeJsonFileSync } from '../utils/fs.js';
 import type { PromotedSchema } from './episode-schemas.js';
 
 /**
@@ -52,10 +51,10 @@ export class SchemaStore {
   static load(path: string): SchemaStore {
     const store = new SchemaStore();
     try {
-      const raw = JSON.parse(readFileSync(path, 'utf-8')) as {
+      const raw = readJsonFileSync<{
         episode?: number;
         schemas?: { scope: string; schema: StoredSchema }[];
-      };
+      }>(path, {});
       store.episode = raw.episode ?? 0;
       for (const { scope, schema } of raw.schemas ?? [])
         store.schemas.set(SchemaStore.key(scope, schema), schema);
@@ -73,7 +72,6 @@ export class SchemaStore {
         schema,
       })),
     };
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, JSON.stringify(payload, null, 2), 'utf-8');
+    writeJsonFileSync(path, payload);
   }
 }

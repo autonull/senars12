@@ -1,3 +1,5 @@
+import { errMsg } from '../utils/shared.js';
+
 export type ErrorCode =
   | 'TOOL_ERROR'
   | 'ENGINE_ERROR'
@@ -47,7 +49,7 @@ export class SenarsError extends Error {
         cause: error,
       });
     }
-    const message = error instanceof Error ? error.message : String(error);
+    const message = errMsg(error);
     return new SenarsError(message, code, context, {
       cause: error instanceof Error ? error : undefined,
     });

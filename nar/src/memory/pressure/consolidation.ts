@@ -1,9 +1,10 @@
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
+import { join } from 'node:path';
+import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
 import { z } from 'zod';
 import { termsEqual } from '../../terms';
+import { ensureDirSync } from '../../utils/fs.js';
 import type { Concept } from '../concept.js';
 import type { Memory } from '../memory.js';
-import { join } from 'node:path';
 
 export interface ConsolidationConfig {
   healthCheckInterval: number;
@@ -239,9 +240,8 @@ let watchdogLedger: Ledger<WatchdogSnapshotLedgerEntry> | null = null;
 function getWatchdogLedger(): Ledger<WatchdogSnapshotLedgerEntry> | null {
   if (!watchdogLedger && watchdogEnabled) {
     try {
-      const { mkdirSync } = require('node:fs');
       const logDir = DEFAULT_WATCHDOG_CONFIG.logDir;
-      mkdirSync(logDir, { recursive: true });
+      ensureDirSync(logDir);
       watchdogLedger = createLedger<WatchdogSnapshotLedgerEntry>(
         logDir,
         getWatchdogSnapshotSchema(),

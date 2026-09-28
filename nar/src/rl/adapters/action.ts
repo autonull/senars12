@@ -2,6 +2,7 @@ import { SeededRNG } from '../../game/SeededRNG.js';
 import { type Term, TermBuilder, Truth } from '../../index.js';
 import type { NAR } from '../../nar.js';
 import type { RandomSource } from '../../types/primitives.js';
+import { BoundedRing } from '../../utils/collections.js';
 import type { QBeliefStore } from '../q-belief-store.js';
 
 /**
@@ -277,7 +278,7 @@ export class NonStationarySelector implements NativeActionSelector {
   private readonly rng: RandomSource;
   private armPullCounts: number[] = [];
   private lastRewards: number[] = [];
-  private predictionErrors: number[][] = [];
+  private predictionErrors: BoundedRing<number>[] = [];
 
   constructor(
     numArms: number = 2,
@@ -293,7 +294,7 @@ export class NonStationarySelector implements NativeActionSelector {
     this.actions = Array.from({ length: numArms }, (_, i) => TermBuilder.atom(`^pull_arm_${i}`));
     this.armPullCounts = new Array(numArms).fill(0);
     this.lastRewards = new Array(numArms).fill(0);
-    this.predictionErrors = Array.from({ length: numArms }, () => []);
+    this.predictionErrors = Array.from({ length: numArms }, () => new BoundedRing<number>(20));
   }
 
   selectAction(
@@ -315,8 +316,8 @@ export class NonStationarySelector implements NativeActionSelector {
     if (bestAction) {
       const bestIdx = this.actions.indexOf(bestAction);
       const bestErrors = bestIdx >= 0 ? this.predictionErrors[bestIdx] : undefined;
-      if (bestErrors && bestErrors.length > 5) {
-        const recentErrors = bestErrors.slice(-5);
+      if (bestErrors && bestErrors.size > 5) {
+        const recentErrors = bestErrors.tail(5);
         const avgError = recentErrors.reduce((a, b) => a + b, 0) / recentErrors.length;
         if (avgError > this.changeDetectionThreshold) {
           effectiveExplorationRate = Math.min(0.5, this.explorationRate * 2);
@@ -346,13 +347,11 @@ export class NonStationarySelector implements NativeActionSelector {
     this.lastRewards[action] = reward;
 
     if ((this.armPullCounts[action] ?? 0) > 1) {
-      const errors = this.predictionErrors[action] ?? [];
-      const recentRewards = errors.slice(-10);
+      const errors = this.predictionErrors[action] ?? new BoundedRing<number>(20);
+      const recentRewards = errors.tail(10);
       if (recentRewards.length > 0) {
         const avgRecent = recentRewards.reduce((a, b) => a + b, 0) / recentRewards.length;
-        const error = Math.abs(reward - avgRecent);
-        errors.push(error);
-        if (errors.length > 20) errors.shift();
+        errors.push(Math.abs(reward - avgRecent));
         this.predictionErrors[action] = errors;
       }
     }

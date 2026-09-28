@@ -6,6 +6,7 @@
  * Implements IProposer for use in Negotiator.
  */
 
+import { mean } from '@senars/util';
 import type { DerivationRecord, DerivationStep } from '@senars/kernel/schemas';
 import type { Term } from '../terms/index.js';
 import { termParser, serializeTerm, TermBuilder } from '../terms/index.js';
@@ -259,7 +260,7 @@ export class ProofMettaProposer implements IProposer {
     return {
       totalRules: rules.length,
       proofStreamLength: this.proofStream.length,
-      avgConfidence: rules.length > 0 ? rules.reduce((sum, r) => sum + r.confidence, 0) / rules.length : 0,
+      avgConfidence: mean(rules, (r) => r.confidence),
     };
   }
 

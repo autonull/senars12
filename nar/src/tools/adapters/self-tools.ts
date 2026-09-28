@@ -1,3 +1,4 @@
+import { generateId } from '@senars/util';
 import { applyFixTool } from './self/apply-fix.js';
 import type { SelfToolsContext, SelfToolsDeps } from './self/context.js';
 import { registerRuleTool } from './self/register-rule.js';
@@ -15,7 +16,7 @@ export function createSelfTools(deps: SelfToolsDeps = {}) {
   const ctx: SelfToolsContext = {
     deps,
     shadowManager: new ShadowWorktreeManager(deps.workspaceRoot || process.cwd()),
-    worktreeId: `fix-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    worktreeId: generateId('fix'),
   };
 
   return {

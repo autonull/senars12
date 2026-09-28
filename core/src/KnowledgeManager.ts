@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { ensureDirSync } from '@senars/util';
 
 export class KnowledgeManager {
   private knowledge = new Map<string, string>();
@@ -16,7 +17,7 @@ export class KnowledgeManager {
     if (!this.persistKnowledge) return;
     try {
       const dir = path.dirname(this.knowledgePath);
-      fs.mkdirSync(dir, { recursive: true });
+      ensureDirSync(dir);
       const obj = Object.fromEntries(this.knowledge);
       fs.writeFileSync(this.knowledgePath, JSON.stringify(obj, null, 2), 'utf8');
     } catch {
@@ -54,3 +55,4 @@ export class KnowledgeManager {
     }
   }
 }
+

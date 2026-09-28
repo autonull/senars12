@@ -4,7 +4,6 @@
  */
 
 import type { DerivationRecord, DerivationStep, TruthValue } from './schemas.js';
-import { createHash } from 'node:crypto';
 
 export interface VerificationResult {
   readonly ok: boolean;

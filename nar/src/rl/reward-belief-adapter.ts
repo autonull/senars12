@@ -1,3 +1,4 @@
+import { clamp01 } from '@senars/util';
 import { type Term, Truth, TermBuilder } from '../index.js';
 import type { NAR } from '../nar.js';
 import { QBeliefStore } from './q-belief-store.js';
@@ -74,7 +75,7 @@ export class RewardBeliefAdapter {
       tdTarget = reward + this.config.gamma * nextMaxValue;
     }
 
-    tdTarget = Math.max(0, Math.min(1, tdTarget));
+    tdTarget = clamp01(tdTarget);
 
     await this.qStore.updateValueQLearning(
       state,
@@ -115,7 +116,7 @@ export class RewardBeliefAdapter {
       tdTarget = reward + this.config.gamma * nextQ;
     }
 
-    tdTarget = Math.max(0, Math.min(1, tdTarget));
+    tdTarget = clamp01(tdTarget);
     await this.qStore.updateValueTD(state, action, tdTarget, this.config.tdConfidence);
 
     const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';

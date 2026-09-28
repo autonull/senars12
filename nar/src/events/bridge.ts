@@ -1,13 +1,6 @@
+import { generateId } from '@senars/util';
 import type { CognitiveEvent, EngineOrigin } from '@senars/util/types/cognitive';
 import type { NAREventMap } from '../types/events.js';
-
-function now(): number {
-  return Date.now();
-}
-
-function corrId(): string {
-  return `${now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
 
 type Handler = (data: unknown, engine: EngineOrigin) => CognitiveEvent | null;
 
@@ -19,8 +12,8 @@ const handlers = new Map<keyof NAREventMap, Handler>([
       return {
         type: 'cycle',
         engine,
-        timestamp: now(),
-        correlationId: corrId(),
+        timestamp: Date.now(),
+        correlationId: generateId('corr'),
         cycle: d.cycle,
         derived: 0,
         payload: { cycle: d.cycle, derived: 0 },
@@ -34,8 +27,8 @@ const handlers = new Map<keyof NAREventMap, Handler>([
       return {
         type: 'derivation.made',
         engine,
-        timestamp: now(),
-        correlationId: corrId(),
+        timestamp: Date.now(),
+        correlationId: generateId('corr'),
         payload: {
           rule: d.ruleId,
           premises: d.premises.map(String),
@@ -54,8 +47,8 @@ const handlers = new Map<keyof NAREventMap, Handler>([
       return {
         type: 'concept.activated',
         engine,
-        timestamp: now(),
-        correlationId: corrId(),
+        timestamp: Date.now(),
+        correlationId: generateId('corr'),
         payload: { term: String(d.term), priority: d.priority },
       };
     },
@@ -67,8 +60,8 @@ const handlers = new Map<keyof NAREventMap, Handler>([
       return {
         type: 'belief.retracted',
         engine,
-        timestamp: now(),
-        correlationId: corrId(),
+        timestamp: Date.now(),
+        correlationId: generateId('corr'),
         payload: { term: String(d.term) },
       };
     },
@@ -80,8 +73,8 @@ const handlers = new Map<keyof NAREventMap, Handler>([
       return {
         type: 'drive.changed',
         engine,
-        timestamp: now(),
-        correlationId: corrId(),
+        timestamp: Date.now(),
+        correlationId: generateId('corr'),
         payload: { drive: `cognitive:${d.action}`, urgency: 0.5 },
       };
     },
@@ -94,7 +87,7 @@ const handlers = new Map<keyof NAREventMap, Handler>([
         type: 'tool.request',
         engine,
         timestamp: d.timestamp,
-        correlationId: corrId(),
+        correlationId: generateId('corr'),
         payload: { toolName: d.name, args: d.args as Record<string, unknown> },
       };
     },
@@ -107,7 +100,7 @@ const handlers = new Map<keyof NAREventMap, Handler>([
         type: 'tool.response',
         engine,
         timestamp: d.timestamp,
-        correlationId: corrId(),
+        correlationId: generateId('corr'),
         payload: {
           requestId: `${d.type}:${d.name}`,
           toolName: d.name,
@@ -125,7 +118,7 @@ const handlers = new Map<keyof NAREventMap, Handler>([
         type: 'tool.response',
         engine,
         timestamp: d.timestamp,
-        correlationId: corrId(),
+        correlationId: generateId('corr'),
         payload: {
           requestId: `${d.type}:${d.name}`,
           toolName: d.name,
@@ -140,8 +133,8 @@ const handlers = new Map<keyof NAREventMap, Handler>([
     (_data, engine) => ({
       type: 'skill.executed',
       engine,
-      timestamp: now(),
-      correlationId: corrId(),
+      timestamp: Date.now(),
+      correlationId: generateId('corr'),
       payload: { skill: 'lm.generate', args: [], result: '', durationMs: 0 },
     }),
   ],

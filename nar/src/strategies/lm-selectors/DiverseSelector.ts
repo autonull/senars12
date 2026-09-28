@@ -1,4 +1,5 @@
 import type { LMRule } from '../../lm';
+import { selectTopN } from '../../utils/collections.js';
 import type { LMRuleSelectionContext, LMRuleSelector } from '../types.js';
 
 export class DiverseSelector implements LMRuleSelector {
@@ -12,8 +13,10 @@ export class DiverseSelector implements LMRuleSelector {
       byCat.get(cat)!.push(r);
     }
     const perCat = Math.max(1, Math.floor(ctx.maxRules / byCat.size));
-    return [...byCat.values()]
-      .flatMap((cat) => cat.sort((a, b) => b.priority - a.priority).slice(0, perCat))
-      .slice(0, ctx.maxRules);
+    return selectTopN(
+      [...byCat.values()].flatMap((cat) => selectTopN(cat, perCat, (rule) => rule.priority)),
+      ctx.maxRules,
+      (rule) => rule.priority
+    );
   }
 }

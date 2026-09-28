@@ -1,3 +1,4 @@
+import { errMsg } from '@senars/util';
 export type CapabilityRisk = 'low' | 'medium' | 'high';
 
 export interface CapabilityDef {
@@ -122,7 +123,7 @@ export class CapabilitySpace {
     } catch (error) {
       return this.record(name, {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: errMsg(error),
       });
     }
   }

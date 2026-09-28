@@ -1,5 +1,6 @@
 import { ArraySpace } from '../core/space.js';
 import type { MeTTaAtom } from '../types/ast.js';
+import { errMsg } from '@senars/core/helpers';
 
 export interface PersistedSpaceData {
   id: string;
@@ -41,7 +42,7 @@ export class PersistentSpace extends ArraySpace {
     } catch (error) {
       await fs.rename(file, `${file}.corrupt`);
       throw new Error(
-        `PersistentSpace '${this.id}': corrupt persisted state quarantined as ${file}.corrupt — ${error instanceof Error ? error.message : String(error)}`
+        `PersistentSpace '${this.id}': corrupt persisted state quarantined as ${file}.corrupt — ${errMsg(error)}`
       );
     }
   }

@@ -4,11 +4,12 @@
  * migrate into training across distillation generations. Conversation-captured
  * rows (TODO22 auto-capture) are excluded by construction.
  */
-import { shortSha256Hex, sha256Hex, sha256Prefixed } from '../../utils/hash.js';
+
 import { promises as fs } from 'node:fs';
+import { sha256Hex, sha256Prefixed, shortSha256Hex } from '../../utils/hash.js';
 import { identityECE, meanBrier } from './calibration-fit.js';
-import { DigestMismatchError } from './wasi-runtime.js';
 import type { JudgmentDataset } from './distill.js';
+import { DigestMismatchError } from './wasi-runtime.js';
 
 /** TODO22 auto-capture source — never eligible for the frozen set. */
 export const CONVERSATION_SOURCE = 'conversation';
@@ -88,9 +89,10 @@ export function createFrozenEvalSet(
 }
 
 /** Split a frozen set into in-domain and OOD slices (Phase 7 lock metrics). */
-export function splitOod(
-  rows: readonly FrozenEvalRow[]
-): { inDomain: FrozenEvalRow[]; ood: FrozenEvalRow[] } {
+export function splitOod(rows: readonly FrozenEvalRow[]): {
+  inDomain: FrozenEvalRow[];
+  ood: FrozenEvalRow[];
+} {
   const inDomain: FrozenEvalRow[] = [];
   const ood: FrozenEvalRow[] = [];
   for (const row of rows) (row.domain === 'ood' ? ood : inDomain).push(row);
@@ -104,9 +106,7 @@ export function evalMetrics(rows: readonly FrozenEvalRow[]): EvalMetrics {
   return { brier, ece: identityECE(rows), count: rows.length };
 }
 
-export function headMetrics(
-  rows: readonly FrozenEvalRow[]
-): Record<string, EvalMetrics> {
+export function headMetrics(rows: readonly FrozenEvalRow[]): Record<string, EvalMetrics> {
   const byHead = new Map<string, FrozenEvalRow[]>();
   for (const row of rows) {
     const bucket = byHead.get(row.headId) ?? [];
@@ -119,7 +119,7 @@ export function headMetrics(
 export async function writeEvalSet(set: FrozenEvalSet, path: string): Promise<void> {
   const { promises: fs } = await import('node:fs');
   const { dirname } = await import('node:path');
-  await fs.mkdir(dirname(path), { recursive: true });
+  await ensureParentDir(path);
   await fs.writeFile(path, JSON.stringify(set, null, 2), 'utf-8');
 }
 
@@ -145,3 +145,5 @@ export function assertFrozenNonRegression(
     throw new EvalRegressionError(baseline.brier, candidate.brier, tolerance);
   }
 }
+
+import { ensureParentDir } from '../../utils/fs.js';

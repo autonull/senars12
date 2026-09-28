@@ -1,3 +1,4 @@
+import { sleep } from '@senars/util';
 import type { CognitiveEvent } from '@senars/util/types/cognitive';
 import type { NAR } from '../nar.js';
 import { termParser } from '../terms/index.js';
@@ -82,7 +83,7 @@ export class CognitiveTreadmill {
           }
         }
 
-        await this.sleep(1000 / this.config.rate);
+        await sleep(1000 / this.config.rate);
       }
 
       const durationMs = Date.now() - startTime;
@@ -256,10 +257,6 @@ export class CognitiveTreadmill {
 
   private rng(): number {
     return this.config.rng?.() ?? Math.random();
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 

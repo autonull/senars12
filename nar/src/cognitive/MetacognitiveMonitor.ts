@@ -4,6 +4,8 @@
  * Migrated from: nar/src/self/MetacognitiveMonitor.ts
  */
 
+import { mean } from '@senars/util';
+
 interface PerformanceData {
   throughput?: number;
   avgProcessingTime?: number;
@@ -178,7 +180,7 @@ export class MetacognitiveMonitor {
     }
 
     const recent = this.performanceHistory.slice(-10);
-    const avgThroughput = recent.reduce((sum, m) => sum + (m.throughput || 0), 0) / recent.length;
+    const avgThroughput = mean(recent, (m: (typeof recent)[number]) => m.throughput || 0);
 
     const earlier = this.performanceHistory.slice(
       Math.max(0, this.performanceHistory.length - 20),
@@ -188,8 +190,7 @@ export class MetacognitiveMonitor {
       return avgThroughput > 0 ? 'improving' : 'declining';
     }
 
-    const avgEarlierThroughput =
-      earlier.reduce((sum, m) => sum + (m.throughput || 0), 0) / earlier.length;
+    const avgEarlierThroughput = mean(earlier, (m) => m.throughput || 0);
     return avgThroughput > avgEarlierThroughput
       ? 'improving'
       : avgThroughput < avgEarlierThroughput
@@ -338,8 +339,8 @@ export class MetacognitiveMonitor {
 
         if (currentMonitor.history.length > 1) {
           const values = currentMonitor.history.map((h) => h.value);
-          const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-          const variance = values.reduce((sum, val) => sum + (val - mean) ** 2, 0) / values.length;
+          const avg = mean(values);
+          const variance = values.reduce((sum, val) => sum + (val - avg) ** 2, 0) / values.length;
           currentMonitor.stability = 1 / (1 + Math.sqrt(variance));
         }
 

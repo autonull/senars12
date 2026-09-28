@@ -1,20 +1,6 @@
-import type { LMTask } from '@senars/util';
+import { djb2, type LMTask, LruCache } from '@senars/util';
 
 const CACHE_TTL_MS = 60_000;
-
-interface CacheEntry {
-  value: string;
-  expiresAt: number;
-}
-
-function hashKey(input: string): string {
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) {
-    hash = (hash << 5) - hash + input.charCodeAt(i);
-    hash |= 0;
-  }
-  return hash.toString(36);
-}
 
 export function buildCacheKey(
   prompt: string,
@@ -34,35 +20,33 @@ export function buildCacheKey(
     options?.grammar ?? '',
     options?.model ?? '',
   ];
-  return hashKey(parts.join('|'));
+  return djb2(parts.join('|')).toString(36);
 }
 
 /** Prompt-hash-keyed semantic cache with 60s TTL. Cleared on failure so retries
  *  re-populate. D16: bounded memory without a timer — each write sweeps expired entries. */
 export class ResponseCache {
-  private cache = new Map<string, CacheEntry>();
+  readonly #cache: LruCache<string, string>;
+
+  constructor(opts: { ttlMs?: number; now?: () => number } = {}) {
+    this.#cache = new LruCache<string, string>({ ttlMs: opts.ttlMs ?? CACHE_TTL_MS, now: opts.now });
+  }
+
+  /** Live (unexpired) entries — the bound the sweep maintains. */
+  get size(): number {
+    return this.#cache.size;
+  }
 
   get(key: string): string | undefined {
-    const entry = this.cache.get(key);
-    if (!entry) return undefined;
-    if (Date.now() > entry.expiresAt) {
-      this.cache.delete(key);
-      return undefined;
-    }
-    return entry.value;
+    return this.#cache.get(key);
   }
 
   set(key: string, value: string): void {
-    const now = Date.now();
-    if (this.cache.size > 0) {
-      for (const [k, entry] of this.cache) {
-        if (now > entry.expiresAt) this.cache.delete(k);
-      }
-    }
-    this.cache.set(key, { value, expiresAt: now + CACHE_TTL_MS });
+    this.#cache.purgeExpired();
+    this.#cache.set(key, value);
   }
 
   clear(key: string): void {
-    this.cache.delete(key);
+    this.#cache.delete(key);
   }
 }

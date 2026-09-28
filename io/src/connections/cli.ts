@@ -1,5 +1,5 @@
 import { createInterface, type Interface } from 'node:readline';
-import { errMsg } from '@senars/core/helpers';
+import { errMsg, toError } from '@senars/core/helpers';
 import { createLogger } from '@senars/core/logger';
 import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../types.js';
 import { BaseConnection } from './base.js';
@@ -109,7 +109,7 @@ export class CLIConnection extends BaseConnection {
           this.errorCount++;
           this.logger.error(
             'Message handler error',
-            r.reason instanceof Error ? r.reason : new Error(String(r.reason))
+            toError(r.reason)
           );
         }
       }
