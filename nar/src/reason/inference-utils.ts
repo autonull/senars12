@@ -1,6 +1,6 @@
 import type { RuleResult } from '../rules';
 import type { Task } from '../types';
-import { createBudget, createTask } from '../types';
+import { createBeliefTask, createBudget, createTask } from '../types';
 
 const MAX_RECENT_STAMPS = 1000;
 
@@ -34,14 +34,13 @@ interface BeliefBagLike {
   peek?: () => { truth?: Task['truth']; stamp?: Task['stamp'] } | undefined;
 }
 
-export const createBeliefTask = (concept: {
+/** A concept's strongest belief as a task, or `null` when it holds no truth. */
+export const createBeliefTaskFromConcept = (concept: {
   term: Task['term'];
   priority: number;
   beliefBag?: BeliefBagLike;
 }): Task | null => {
   const belief = concept.beliefBag?.peek?.();
   if (!belief?.truth) return null;
-  return createTask(concept.term, 'belief', belief.truth, createBudget(concept.priority), {
-    ...(belief.stamp ? { stamp: belief.stamp } : {}),
-  });
+  return createBeliefTask(concept.term, belief.truth, concept.priority, belief.stamp);
 };

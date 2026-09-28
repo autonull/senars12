@@ -1,9 +1,9 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { type SelfToolsContext, toToolResult, withShadowWorktree } from './context.js';
+import { type SelfToolsContext, applyAndValidate } from './context.js';
 
 export const tuneKnobTool = (ctx: SelfToolsContext) => {
-  const { deps, shadowManager } = ctx;
+  const { deps } = ctx;
   return tool({
     description:
       'Tune a cognitive knob via RLFP. Applies tuning update and validates with tests. Supports worktree reuse.',
@@ -13,36 +13,26 @@ export const tuneKnobTool = (ctx: SelfToolsContext) => {
       reason: z.string().optional().describe('Reason for tuning'),
       worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
     }),
-    execute: async ({ knob, value, reason, worktreeId: existingId }) => {
+    execute: async ({ knob, value, worktreeId: existingId }) => {
       const { rlfpLearner, nar } = deps;
       if (!rlfpLearner || !nar) {
         return { success: false, error: 'RLFP learner or NAR not available' };
       }
 
-      // Get current knob value for potential rollback
-      const knobs = rlfpLearner.getTunableKnobs();
-      const previousValue = (knobs as Record<string, { current: number }>)[knob]?.current;
+      const previous = (rlfpLearner.getTunableKnobs() as Record<string, { current: number }>)[knob]
+        ?.current;
+      const set = (next: number) => rlfpLearner.applyTuningUpdate(knob, next);
 
-      // Apply tuning update
-      rlfpLearner.applyTuningUpdate(knob, value);
-
-      const revert = () => {
-        if (previousValue !== undefined) rlfpLearner.applyTuningUpdate(knob, previousValue);
-      };
-
-      const outcome = await withShadowWorktree(
+      return applyAndValidate(
         ctx,
         'tune',
         existingId,
-        async ({ path, id, isNew }) => {
-          // Validate with quick test run in shadow worktree
-          const testResult = await shadowManager.runTestsInWorktree(path);
-
-          if (!testResult.success) {
-            revert();
-            return { success: false, error: 'Tuning broke tests', testResult };
-          }
-
+        'Tuning broke tests',
+        () => set(value),
+        () => {
+          if (previous !== undefined) set(previous);
+        },
+        async ({ id }, testResult) => {
           // Record reward (TaskOutcome shape → intrinsic+extrinsic) with CI metrics
           const reward = rlfpLearner.calculateRewardFromTask({
             taskType: 'knob_tune',
@@ -59,7 +49,6 @@ export const tuneKnobTool = (ctx: SelfToolsContext) => {
           });
           rlfpLearner.reward(reward, `knob_tune:${knob}`);
 
-          // Stimulate competence drive
           nar.getExecution?.()?.stimulateDrives?.('knob_tuned');
 
           return {
@@ -69,13 +58,10 @@ export const tuneKnobTool = (ctx: SelfToolsContext) => {
             reward,
             testResult,
             message: 'Knob tuned and validated',
-            worktreeId: isNew ? id : existingId,
+            worktreeId: existingId ?? id,
           };
-        },
-        revert
+        }
       );
-
-      return toToolResult(outcome);
     },
   });
 };

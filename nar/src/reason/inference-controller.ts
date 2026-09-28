@@ -8,7 +8,7 @@ import type { RuleInput, RuleProcessor, RuleResult } from '../rules';
 import type { DerivationContext, DerivationStrategy, SamplingStrategy } from '../strategies';
 import type { Task } from '../types';
 import {
-  createBeliefTask,
+  createBeliefTaskFromConcept,
   createCircularDetector,
   createDerivedTask,
   exceedsDepthLimit,
@@ -76,7 +76,7 @@ export class InferenceController {
       });
       if (boost !== 0) concept.priority = Math.min(1, concept.priority + boost);
 
-      const task = createBeliefTask(concept);
+      const task = createBeliefTaskFromConcept(concept);
       if (!task) continue;
       const secondaries = this.strategy.selectSecondary(task, this.memory);
 
@@ -122,7 +122,7 @@ export class InferenceController {
       });
       if (boost !== 0) concept.priority = Math.min(1, concept.priority + boost);
 
-      const task = createBeliefTask(concept);
+      const task = createBeliefTaskFromConcept(concept);
       if (!task) continue;
       const secondaries = this.strategy.selectSecondary(task, this.memory);
 

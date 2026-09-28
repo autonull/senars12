@@ -1,6 +1,7 @@
 import type { SeNARSRegistry } from '../../lm';
 import { createLogger } from '../../logger/index.js';
 import { NLUnderstandingService } from '../../nl/understanding.js';
+import type { ScenarioProfile, ScenarioTemplateProfile } from './scenario-profiles.js';
 
 // --- generate_scenarios ---
 
@@ -33,7 +34,7 @@ export interface ScenarioSpec {
   metadata: {
     seed: string;
     generated_at: string;
-    profile: string;
+    profile: ScenarioProfile;
   };
 }
 
@@ -188,7 +189,7 @@ export async function generateScenarioSpec(
 }
 
 function generateTemplateScenario(seed: string, profile: string): ScenarioSpec {
-  const profiles: Record<string, Partial<ScenarioSpec>> = {
+  const profiles: Record<ScenarioTemplateProfile, Partial<ScenarioSpec>> = {
     contradictory_sensors: {
       name: 'contradictory_sensors',
       description: 'Test handling of contradictory sensor inputs',
@@ -272,7 +273,7 @@ function generateTemplateScenario(seed: string, profile: string): ScenarioSpec {
     },
   };
 
-  const profileSpec = profiles[profile] ?? profiles.contradictory_sensors!;
+  const profileSpec = profiles[profile as ScenarioTemplateProfile] ?? profiles.contradictory_sensors;
 
   return {
     name: profileSpec.name ?? profile,

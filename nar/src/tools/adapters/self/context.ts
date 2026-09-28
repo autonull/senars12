@@ -4,7 +4,7 @@ import type { NAR } from '../../../nar.js';
 import type { RLFPLearner } from '../../../rlfp/RLFPLearner.js';
 import type { RuleProcessor } from '../../../rules/processor.js';
 import type { ToolManager } from '../../tool-registry.js';
-import type { ShadowWorktreeManager } from '../shadow-worktree.js';
+import type { ShadowWorktreeManager, TestRunResult } from '../shadow-worktree.js';
 
 export interface SelfToolsDeps {
   workspaceRoot?: string;
@@ -72,4 +72,38 @@ export function toToolResult<T extends { success: boolean }>(
   outcome: ShadowOutcome<T>
 ): T | { success: false; error: string } {
   return outcome.ok ? outcome.value : { success: false, error: outcome.error };
+}
+
+/**
+ * The apply-then-validate flow shared by every mutating self tool: apply the
+ * change, run the worktree's tests inside a shadow worktree, and roll back when
+ * validation fails or the body throws.
+ */
+export async function applyAndValidate<T extends { success: boolean }>(
+  ctx: SelfToolsContext,
+  suffix: string,
+  existingId: string | undefined,
+  failureMessage: string,
+  apply: () => void,
+  revert: () => void,
+  commit: (session: ShadowSession, testResult: TestRunResult) => Promise<T>
+): Promise<T | { success: false; error: string }> {
+  const { shadowManager } = ctx;
+  apply();
+  return toToolResult(
+    await withShadowWorktree(
+      ctx,
+      suffix,
+      existingId,
+      async (session) => {
+        const testResult = await shadowManager.runTestsInWorktree(session.path);
+        if (!testResult.success) {
+          revert();
+          return { success: false, error: failureMessage, testResult };
+        }
+        return commit(session, testResult);
+      },
+      revert
+    )
+  );
 }

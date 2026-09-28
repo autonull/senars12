@@ -2,53 +2,34 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { runProcess } from '../proc.js';
 import { parseVitestJson } from '../vitest-json.js';
-import type { SelfToolsContext } from './context.js';
+import { SCENARIO_PROFILES } from '../scenario-profiles.js';
+import { type SelfToolsContext, toToolResult, withShadowWorktree } from './context.js';
 
-export const runTestsShadowTool = ({ shadowManager, worktreeId }: SelfToolsContext) =>
+export const runTestsShadowTool = (ctx: SelfToolsContext) =>
   tool({
     description: 'Run tests in a shadow worktree for validation without affecting main branch.',
     inputSchema: z.strictObject({
       testPath: z.string().optional().describe('Specific test file or directory'),
       worktreeId: z.string().optional().describe('Existing worktree ID to use'),
     }),
-    execute: async ({ testPath, worktreeId: existingId }) => {
-      try {
-        let worktreePath: string;
-        let created = false;
+    execute: async ({ testPath, worktreeId: existingId }) =>
+      toToolResult(
+        await withShadowWorktree(ctx, 'test', existingId, async ({ path }) => {
+          const args = ['vitest', 'run', '--reporter=json'];
+          if (testPath) args.push(testPath);
 
-        if (existingId) {
-          worktreePath = shadowManager.getWorktreePath(existingId) || '';
-          if (!worktreePath) {
-            return { success: false, error: `Worktree not found: ${existingId}` };
-          }
-        } else {
-          worktreePath = await shadowManager.createWorktree(`${worktreeId}-test`);
-          created = true;
-        }
-
-        const args = ['vitest', 'run', '--reporter=json'];
-        if (testPath) args.push(testPath);
-
-        const startedAt = Date.now();
-        const { code, stdout } = await runProcess('pnpm', args, { cwd: worktreePath });
-        const parsed = parseVitestJson(stdout);
-        const result = {
-          success: parsed ? Boolean(parsed.success) : code === 0,
-          passed: parsed?.numPassedTests ?? 0,
-          failed: parsed?.numFailedTests ?? 0,
-          total: parsed?.numTotalTests ?? 0,
-          duration: Date.now() - startedAt,
-        };
-
-        if (created) {
-          await shadowManager.cleanupWorktree(`${worktreeId}-test`);
-        }
-
-        return result;
-      } catch (error) {
-        return { success: false, error: String(error) };
-      }
-    },
+          const startedAt = Date.now();
+          const { code, stdout } = await runProcess('pnpm', args, { cwd: path });
+          const parsed = parseVitestJson(stdout);
+          return {
+            success: parsed ? Boolean(parsed.success) : code === 0,
+            passed: parsed?.numPassedTests ?? 0,
+            failed: parsed?.numFailedTests ?? 0,
+            total: parsed?.numTotalTests ?? 0,
+            duration: Date.now() - startedAt,
+          };
+        })
+      ),
   });
 
 export const runScenarioShadowTool = ({ deps }: SelfToolsContext) =>
@@ -56,16 +37,7 @@ export const runScenarioShadowTool = ({ deps }: SelfToolsContext) =>
     description: 'Run a cognitive scenario in a shadow worktree for validation.',
     inputSchema: z.strictObject({
       seed: z.string().describe('Scenario seed/intent'),
-      profile: z
-        .enum([
-          'contradictory_sensors',
-          'temporal_reasoning',
-          'resource_pressure',
-          'belief_revision',
-          'cross_engine_sync',
-          'auto',
-        ])
-        .optional()
+      profile: z.enum(SCENARIO_PROFILES).optional()
         .default('auto'),
       worktreeId: z.string().optional().describe('Existing worktree ID to use'),
     }),

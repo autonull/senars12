@@ -3,6 +3,20 @@ import type { CodemodResult } from './codemod.js';
 import { runCodemod } from './codemod.js';
 import { runProcess } from './proc.js';
 
+/** Aggregate vitest + typecheck + lint verdict for one worktree run. */
+export interface TestRunResult {
+  success: boolean;
+  testPassed: boolean;
+  typecheckPassed: boolean;
+  lintPassed: boolean;
+  passed: number;
+  failed: number;
+  total: number;
+  testOutput?: string;
+  typecheckOutput?: string;
+  lintOutput?: string;
+}
+
 /** Shadow worktree manager for safe code modifications */
 export class ShadowWorktreeManager {
   private workspaceRoot: string;
@@ -43,18 +57,7 @@ export class ShadowWorktreeManager {
   }
 
   /** Run full CI suite in shadow worktree */
-  async runTestsInWorktree(worktreePath: string): Promise<{
-    success: boolean;
-    testPassed: boolean;
-    typecheckPassed: boolean;
-    lintPassed: boolean;
-    passed: number;
-    failed: number;
-    total: number;
-    testOutput?: string;
-    typecheckOutput?: string;
-    lintOutput?: string;
-  }> {
+  async runTestsInWorktree(worktreePath: string): Promise<TestRunResult> {
     // Run vitest
     const testResult = await this.runCommandInWorktree(worktreePath, 'pnpm', [
       'vitest',

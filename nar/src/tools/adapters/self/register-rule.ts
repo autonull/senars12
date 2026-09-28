@@ -1,6 +1,8 @@
-import { dirname, resolve } from 'node:path';
+import { writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { tool } from 'ai';
 import { z } from 'zod';
+import { ensureParentDir } from '../../../utils/fs.js';
 import { type SelfToolsContext, withShadowWorktree } from './context.js';
 
 export const registerRuleTool = (ctx: SelfToolsContext) => {
@@ -33,7 +35,6 @@ export const registerRuleTool = (ctx: SelfToolsContext) => {
           existingId,
           async ({ path, id, isNew }) => {
             const ruleFile = resolve(path, `rules/${ruleId}.ts`);
-            const { mkdir, writeFile } = await import('node:fs/promises');
             await ensureParentDir(ruleFile);
             await writeFile(ruleFile, ruleCode, 'utf-8');
 
@@ -67,5 +68,3 @@ export const registerRuleTool = (ctx: SelfToolsContext) => {
     },
   });
 };
-
-import { ensureParentDir } from '../../../utils/fs.js';

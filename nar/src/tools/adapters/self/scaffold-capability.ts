@@ -1,6 +1,8 @@
-import { dirname, resolve } from 'node:path';
+import { writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { tool } from 'ai';
 import { z } from 'zod';
+import { ensureParentDir } from '../../../utils/fs.js';
 import { type SelfToolsContext, toToolResult, withShadowWorktree } from './context.js';
 
 export const scaffoldCapabilityTool = (ctx: SelfToolsContext) => {
@@ -63,9 +65,7 @@ export const ${capabilityId}_rule: RegisteredRule = {
           };
 
           const template = templates[templateId] || templates.tool_template;
-          const { mkdir, writeFile } = await import('node:fs/promises');
-          const ext = templateId.includes('rule') ? '.ts' : '.ts';
-          const capFile = resolve(path, `capabilities/${capabilityId}${ext}`);
+          const capFile = resolve(path, `capabilities/${capabilityId}.ts`);
           await ensureParentDir(capFile);
           await writeFile(capFile, template ?? '', 'utf-8');
 
@@ -104,5 +104,3 @@ export const ${capabilityId}_rule: RegisteredRule = {
     },
   });
 };
-
-import { ensureParentDir } from '../../../utils/fs.js';

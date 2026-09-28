@@ -13,6 +13,7 @@ import {
   scenarioLogger,
   validators,
 } from './scenario-execute.js';
+import { SCENARIO_PROFILES } from './scenario-profiles.js';
 
 export type {
   ScenarioGenDeps,
@@ -33,16 +34,7 @@ export function createScenarioGenTools(deps: ScenarioGenDeps = {}) {
         seed: z
           .string()
           .describe('High-level intent for scenario (e.g., "contradictory sensors under load")'),
-        profile: z
-          .enum([
-            'contradictory_sensors',
-            'temporal_reasoning',
-            'resource_pressure',
-            'belief_revision',
-            'cross_engine_sync',
-            'auto',
-          ])
-          .optional()
+        profile: z.enum(SCENARIO_PROFILES).optional()
           .default('auto')
           .describe('Scenario profile/template to use'),
         count: z

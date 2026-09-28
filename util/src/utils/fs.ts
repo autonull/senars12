@@ -108,6 +108,33 @@ export async function appendJsonlAsync(path: string, rows: readonly unknown[]): 
   return rows.length;
 }
 
+/** Parse one JSONL line; `null` marks a line `parse` rejects, `FAIL` a syntax error. */
+const FAIL = Symbol('jsonl-parse-failure');
+const parseLine = <T>(line: string, parse: (value: unknown) => T | null): T | null | typeof FAIL => {
+  try {
+    return parse(JSON.parse(line));
+  } catch {
+    return FAIL;
+  }
+};
+
+/** The single line-walk behind every JSONL reader: blank lines are skipped, unparseable ones counted. */
+function* walkJsonl<T>(content: string, parse: (value: unknown) => T | null): Generator<T | null | typeof FAIL> {
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed) yield parseLine(trimmed, parse);
+  }
+}
+
+const readContent = async (path: string): Promise<string | null> => {
+  try {
+    return await readFile(path, 'utf8');
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw e;
+  }
+};
+
 /**
  * Read a JSONL file, keeping rows that `parse` accepts and counting the rest.
  * A missing file is an empty log, not an error — append-only sinks start empty.
@@ -116,16 +143,9 @@ export function readJsonl<T>(path: string, parse: (value: unknown) => T | null):
   if (!existsSync(path)) return { rows: [], invalid: 0 };
   const rows: T[] = [];
   let invalid = 0;
-  for (const line of readFileSync(path, 'utf8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    try {
-      const row = parse(JSON.parse(trimmed));
-      if (row === null) invalid++;
-      else rows.push(row);
-    } catch {
-      invalid++;
-    }
+  for (const row of walkJsonl(readFileSync(path, 'utf8'), parse)) {
+    if (row === null || row === FAIL) invalid++;
+    else rows.push(row);
   }
   return { rows, invalid };
 }
@@ -134,25 +154,13 @@ export async function readJsonlAsync<T>(
   path: string,
   parse: (value: unknown) => T | null
 ): Promise<JsonlLoadResult<T>> {
-  let content: string;
-  try {
-    content = await readFile(path, 'utf8');
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return { rows: [], invalid: 0 };
-    throw e;
-  }
+  const content = await readContent(path);
+  if (content === null) return { rows: [], invalid: 0 };
   const rows: T[] = [];
   let invalid = 0;
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    try {
-      const row = parse(JSON.parse(trimmed));
-      if (row === null) invalid++;
-      else rows.push(row);
-    } catch {
-      invalid++;
-    }
+  for (const row of walkJsonl(content, parse)) {
+    if (row === null || row === FAIL) invalid++;
+    else rows.push(row);
   }
   return { rows, invalid };
 }
@@ -162,20 +170,7 @@ export async function* iterateJsonl<T>(
   path: string,
   parse: (value: unknown) => T | null
 ): AsyncGenerator<T | undefined> {
-  let content: string;
-  try {
-    content = await readFile(path, 'utf8');
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return;
-    throw e;
-  }
-  for (const line of content.split('\n')) {
-    if (!line.trim()) continue;
-    try {
-      const row = parse(JSON.parse(line));
-      yield row ?? undefined;
-    } catch {
-      yield undefined;
-    }
-  }
+  const content = await readContent(path);
+  if (content === null) return;
+  for (const row of walkJsonl(content, parse)) yield row === FAIL ? undefined : (row ?? undefined);
 }

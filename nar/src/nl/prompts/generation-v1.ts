@@ -66,18 +66,3 @@ export function buildGenerationPrompt(opts: {
 
   return parts.join('\n');
 }
-
-export function buildClarificationPrompt(
-  input: string,
-  ambiguity: { type: string; options: string[] }
-): string {
-  return [
-    'The user input is ambiguous and needs clarification.',
-    `Input: "${input}"`,
-    `Ambiguity type: ${ambiguity.type}`,
-    `Possible interpretations: ${ambiguity.options.join(', ')}`,
-    '',
-    'Generate a clear clarifying question with the possible options.',
-    'Return JSON: { "question": "...", "options": ["..."] }',
-  ].join('\n');
-}
