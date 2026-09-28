@@ -267,4 +267,7 @@ export {
 export { setupGracefulShutdown } from './utils/shutdown.js';
 /** @public Throttle configuration type. */
 export type { ThrottleConfig } from './utils/throttle.js';
+/** @public Structural unification over an arbitrary term AST (Narsese, MeTTa). */
+export type { Substitution as UnifierSubstitution, UnifierDialect, UnifyOptions } from './utils/unify.js';
+export { Unifier } from './utils/unify.js';
 export { createThrottle, Throttle, throttleGenerator } from './utils/throttle.js';

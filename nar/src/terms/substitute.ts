@@ -1,14 +1,10 @@
-import { TermBuilder } from './factory.js';
-import type { AtomicTerm, Term } from './types.js';
+import type { Term } from './types.js';
+import { applyBindings } from './unifier.js';
 
-export const substituteVariables = (term: Term, bindings: Map<string, Term>): Term => {
-  if (term.kind === 'atom') {
-    if ((term as AtomicTerm).isVariable && bindings.has(term.symbol)) {
-      return bindings.get(term.symbol)!;
-    }
-    return term;
-  }
-
-  const newArgs = (term.args ?? []).map((arg) => substituteVariables(arg, bindings));
-  return TermBuilder.compound(term.kind, newArgs);
-};
+/**
+ * Substitute `bindings` through `term`. Thin alias over the unifier's
+ * substitution pass, so variable recognition can never drift from the rule
+ * that binds them.
+ */
+export const substituteVariables = (term: Term, bindings: ReadonlyMap<string, Term>): Term =>
+  applyBindings(term, bindings);

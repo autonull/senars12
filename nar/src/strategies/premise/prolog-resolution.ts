@@ -5,9 +5,9 @@
  */
 import type { Concept, Memory } from '../../memory';
 import type { Term } from '../../terms';
-import { TermBuilder, unify, isVariableSymbol, getTermArgs, extractSymbols } from '../../terms';
+import { unify, getTermArgs, extractSymbols } from '../../terms';
 import type { Task, TaskType } from '../../types';
-import type { Substitution } from '../../terms/unifier.js';
+import { applySubstitution, type Substitution } from '../../terms/unifier.js';
 import { createSecondaryTask } from '../../types';
 import type { Strategy } from '../types';
 import type { ComponentMetadata } from '../types';
@@ -28,20 +28,6 @@ interface ResolutionState {
   substitution: Substitution;
   depth: number;
   derivation: Clause[];
-}
-
-function isVariable(term: Term): term is Term & { kind: 'atom'; symbol: string } {
-  return term.kind === 'atom' && isVariableSymbol(term.symbol);
-}
-
-function applySubstitution(term: Term, subst: Substitution): Term {
-  if (isVariable(term)) {
-    const replacement = subst[term.symbol];
-    return replacement ? applySubstitution(replacement, subst) : term;
-  }
-  const args = getTermArgs(term);
-  if (!args) return term;
-  return TermBuilder.compound(term.kind as never, args.map((arg): Term => applySubstitution(arg, subst)));
 }
 
 /**

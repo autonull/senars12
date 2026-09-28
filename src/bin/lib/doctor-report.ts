@@ -60,7 +60,7 @@ const probeProviderReachable = async (): Promise<boolean> => {
 };
 
 const checkCredentials = (): { key: string; present: boolean }[] =>
-  ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'LM_API_KEY', 'TAVILY_API_KEY'].map((key) => ({
+  ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'LM_API_KEY', 'TAVILY_API_KEY', 'BRAVE_API_KEY'].map((key) => ({
     key,
     present: Boolean(process.env[key]),
   }));

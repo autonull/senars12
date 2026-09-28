@@ -6,7 +6,14 @@ import { z } from 'zod';
 import type { ApprovalService } from '../ApprovalService.js';
 import type { ToolResult } from '../engine/Engine.js';
 import type { ToolSpec } from './ToolRegistry.js';
-import { duckDuckGoSearch, tavilySearch, webFetch } from './web-tools.js';
+import {
+  braveApiKey,
+  braveSearch,
+  searchWeb,
+  tavilySearch,
+  webFetch,
+  type WebSearchResult,
+} from './web-search.js';
 import { withinWorkspace } from './workspace.js';
 import { errMsg } from '@senars/util';
 
@@ -34,6 +41,26 @@ function getArgs(args: CmdArgSet): string[] {
 
 function getFirstArg(args: CmdArgSet): string | undefined {
   return getArgs(args)[0];
+}
+
+/**
+ * The single-provider tools (`tavily_search`, `brave_search`) share this: a
+ * missing key is a reported note rather than a failure, so an unconfigured
+ * deployment degrades to "no results" instead of an error.
+ */
+async function keyedProvider(
+  rawQuery: string,
+  via: string,
+  apiKey: string | undefined,
+  run: (query: string, apiKey: string) => Promise<WebSearchResult[]>
+): Promise<ToolResult> {
+  const query = parseJsonArg(rawQuery);
+  if (!apiKey) return ok({ query, results: [], note: `${via.toUpperCase()}_API_KEY not set` });
+  try {
+    return ok({ query, via, results: await run(query, apiKey) });
+  } catch (e) {
+    return fail(`${via}_search failed: ${errMsg(e)}`);
+  }
 }
 
 function getSecondArg(args: CmdArgSet): string | undefined {
@@ -226,7 +253,7 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
   },
   {
     name: 'search',
-    description: 'Search the web (tavily when TAVILY_API_KEY is set, else DuckDuckGo)',
+    description: 'Search the web (Tavily, then Brave, then DuckDuckGo — whichever is configured)',
     parameters: {
       type: 'object',
       properties: { args: { type: 'array', items: { type: 'string' } } },
@@ -234,27 +261,7 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const first = getFirstArg(args);
       if (!first) return fail('search requires a query');
-      const query = parseJsonArg(first);
-      const chain: Array<{
-        via: string;
-        run: () => Promise<Awaited<ReturnType<typeof duckDuckGoSearch>>>;
-      }> = [];
-      if (process.env.TAVILY_API_KEY) {
-        chain.push({
-          via: 'tavily',
-          run: () => tavilySearch(query, process.env.TAVILY_API_KEY as string),
-        });
-      }
-      chain.push({ via: 'duckduckgo', run: () => duckDuckGoSearch(query) });
-      for (const { via, run } of chain) {
-        try {
-          const results = await run();
-          return ok({ query, via, results });
-        } catch {
-          // fall through to the next provider in the chain
-        }
-      }
-      return ok({ query, via: 'none', results: [], note: 'all search providers failed' });
+      return ok(await searchWeb(parseJsonArg(first)));
     },
   },
   {
@@ -338,15 +345,20 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const first = getFirstArg(args);
       if (!first) return fail('tavily_search requires a query');
-      const apiKey = process.env.TAVILY_API_KEY;
-      if (!apiKey)
-        return ok({ query: parseJsonArg(first), results: [], note: 'TAVILY_API_KEY not set' });
-      try {
-        const results = await tavilySearch(parseJsonArg(first), apiKey);
-        return ok({ query: parseJsonArg(first), via: 'tavily', results });
-      } catch (e) {
-        return fail(`tavily_search failed: ${(e as Error).message}`);
-      }
+      return keyedProvider(first, 'tavily', process.env.TAVILY_API_KEY, tavilySearch);
+    },
+  },
+  {
+    name: 'brave_search',
+    description: 'Search the web via Brave Search API (requires BRAVE_API_KEY)',
+    parameters: {
+      type: 'object',
+      properties: { args: { type: 'array', items: { type: 'string' } } },
+    },
+    execute: async (args: CmdArgSet): Promise<ToolResult> => {
+      const first = getFirstArg(args);
+      if (!first) return fail('brave_search requires a query');
+      return keyedProvider(first, 'brave', braveApiKey(), braveSearch);
     },
   },
   {

@@ -38,7 +38,16 @@ export interface CompoundTerm<K extends OperatorKey = OperatorKey> {
 
 export type Term = AtomicTerm | CompoundTerm;
 
-export const isVariableSymbol = (symbol: string): boolean => symbol.startsWith('$');
+/**
+ * Narsese variable sigils. This is the single definition: the atom factory
+ * stamps `isVariable` from it, and every variable test — rules, complexity,
+ * substitution, the unifier — reads it. The unifier previously used a
+ * `$`-only test while the factory accepted all five, so `atom('?x')` was built
+ * as a variable that the unifier then refused to bind.
+ */
+export const VARIABLE_SYMBOL = /^[?$#*%]/;
+
+export const isVariableSymbol = (symbol: string): boolean => VARIABLE_SYMBOL.test(symbol);
 export const isAtomic = (term: Term): term is AtomicTerm => term.kind === 'atom';
 export const isCompound = (term: Term): term is CompoundTerm => term.kind !== 'atom';
 export const getTermArgs = (term: Term): readonly Term[] | undefined =>

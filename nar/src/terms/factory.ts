@@ -1,6 +1,7 @@
 import { trackTerm } from '../memory/lifecycle/gc.js';
 import { COMMUTATIVE_OPS, OPERATORS } from './operators.js';
 import { serializeTerm } from './serialize.js';
+import { VARIABLE_SYMBOL } from './types.js';
 import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from './types.js';
 import { INVALID_ATOM_CHARS_REGEX } from './valid-atom.js';
 import { LruCache } from '@senars/util';
@@ -22,10 +23,10 @@ const createAtom = (symbol: string): AtomicTerm => {
     throw new Error(`Atomic term symbol cannot contain ':' (Narsese compact inheritance shorthand). Use '_' instead, or use the parser for namespaced terms like 'ns:term'.`);
   }
   // Allow variable symbols starting with ? $ # * %
-  const isVariableSymbol = /^[?$#*%]/.test(symbol);
+  const isVariable = VARIABLE_SYMBOL.test(symbol);
   // Allow quoted atoms (wrapped in ") which can contain spaces and other chars
   const isQuotedAtom = symbol.startsWith('"') && symbol.endsWith('"');
-  if (!isVariableSymbol && !isQuotedAtom && INVALID_ATOM_CHARS_REGEX.test(symbol)) {
+  if (!isVariable && !isQuotedAtom && INVALID_ATOM_CHARS_REGEX.test(symbol)) {
     const badChar = symbol.match(INVALID_ATOM_CHARS_REGEX)?.[0];
     throw new Error(
       `Atomic term symbol cannot contain '${badChar}' (reserved in Narsese grammar). ` +
@@ -39,7 +40,7 @@ const createAtom = (symbol: string): AtomicTerm => {
     Object.freeze({
       kind: 'atom' as const,
       symbol,
-      isVariable: /^[?$#*%]/.test(symbol),
+      isVariable,
       toString() {
         return symbol;
       },

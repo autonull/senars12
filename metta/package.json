@@ -1,6 +1,6 @@
 {
   "name": "@senars/metta",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "private": true,
   "exports": {
@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@senars/core": "workspace:*",
+    "@senars/util": "workspace:*",
     "effect": "^3.22.1",
     "immutable": "^5.1.9",
     "valibot": "^1.4.2"

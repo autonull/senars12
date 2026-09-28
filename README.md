@@ -692,11 +692,12 @@ await tools.execute('timer', { action: 'start', name: 'reasoning' });
 async function myTool(args: { input: string }) { ... }
 ```
 
-**Built-in tool surface (all backed by real implementations):** fs (`read-file`, `write-file`,
-`append-file`, workspace-sandboxed), `shell` (30s timeout, async), web (`search` with
-Tavily→DuckDuckGo fallback, `tavily-search`, `web-fetch`), memory (`remember`, `query`,
-`episodes` — episodic memory; fail honestly when no backend), `metta` (delegates to the MeTTa
-engine), plus approval/timer/sleep utilities.
+**Built-in tool surface (all backed by real implementations):** fs (`fs_read`, `fs_write`,
+`fs_append`, workspace-sandboxed), `shell` (30s timeout, async), web (`search` across a shared
+provider registry — Tavily → Brave → DuckDuckGo, whichever is configured — plus `tavily_search`,
+`brave_search`, and the read-only `web_fetch`), memory (`remember`, `query`, `episodes` —
+episodic memory; fail honestly when no backend), `metta` (delegates to the MeTTa engine), plus
+approval/timer/sleep utilities.
 
 ### NAR Commands — CLI & Programmatic Control
 

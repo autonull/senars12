@@ -1,99 +1,44 @@
-import { LruCache } from '@senars/util';
-import { termKey, termsEqual } from './accessors.js';
+import { Unifier, type UnifierDialect } from '@senars/util';
+import { getArgs, termKey, termsEqual } from './accessors.js';
+import { TermBuilder } from './factory.js';
 import type { Term } from './types.js';
-import { isCompound, isVariableSymbol } from './types.js';
+import { isVariableSymbol } from './types.js';
 
 export type Substitution = Record<string, Term>;
 
-export interface UnificationResult {
-  success: boolean;
-  substitution?: Substitution;
-  error?: string;
-}
-
-const CACHE_MAX_SIZE = 1000;
-
-/** Only top-level calls are cached: the key must capture the whole substitution. */
-const cache = new LruCache<string, Substitution | null>(CACHE_MAX_SIZE);
-
-const occursCheck = (variable: string, term: Term, subst: Substitution, depth = 0): boolean => {
-  const bound = subst[variable];
-  if (bound && depth < 64) return occursCheck(variable, bound, subst, depth + 1);
-  if (term.kind === 'atom') return term.symbol === variable;
-  for (const arg of term.args ?? []) {
-    if (occursCheck(variable, arg, subst, depth + 1)) return true;
-  }
-  return false;
+/** How the generic unifier reads a Narsese term. */
+const DIALECT: UnifierDialect<Term> = {
+  variableName: (t) => (t.kind === 'atom' && isVariableSymbol(t.symbol) ? t.symbol : null),
+  key: termKey,
+  equal: termsEqual,
+  sameHead: (a, b) => a.kind === b.kind,
+  children: getArgs,
+  rebuild: (node, kids) => TermBuilder.compound(node.kind as never, [...kids]),
 };
 
-/** Memoization key — includes bound *values*, never just the bound variable names. */
-function cacheKey(a: Term, b: Term, subst: Substitution, occurs: boolean): string {
-  const bindings = Object.keys(subst)
-    .sort()
-    .map((v) => `${v}=${termKey(subst[v] as Term)}`)
-    .join(';');
-  return `${occurs ? 1 : 0}|${termKey(a)}|${termKey(b)}|${bindings}`;
-}
+const unifier = new Unifier(DIALECT);
 
+/**
+ * Unify two terms, extending `subst`. Returns the extended substitution, or
+ * `undefined` when they do not unify — in which case `subst` is unchanged.
+ */
 export function unify(
   a: Term,
   b: Term,
   subst: Substitution = {},
   enableOccursCheck = true
 ): Substitution | undefined {
-  const key = cacheKey(a, b, subst, enableOccursCheck);
-  const cached = cache.get(key);
-  if (cached !== undefined) return cached ?? undefined;
-
-  const result = unifyInner(a, b, subst, enableOccursCheck) ?? null;
-  cache.set(key, result);
-  return result ?? undefined;
+  const result = unifier.unify(a, b, new Map(Object.entries(subst)), { occursCheck: enableOccursCheck });
+  return result ? Object.fromEntries(result) : undefined;
 }
 
-function unifyInner(
-  a: Term,
-  b: Term,
-  subst: Substitution,
-  enableOccursCheck: boolean
-): Substitution | undefined {
-  if (a.kind === 'atom' && isVariableSymbol(a.symbol)) {
-    return bind(a.symbol, b, subst, enableOccursCheck);
-  }
-  if (b.kind === 'atom' && isVariableSymbol(b.symbol)) {
-    return bind(b.symbol, a, subst, enableOccursCheck);
-  }
-  if (a.kind === 'atom' && b.kind === 'atom') {
-    return a.symbol === b.symbol ? subst : undefined;
-  }
-  if (
-    !isCompound(a) ||
-    !isCompound(b) ||
-    a.kind !== b.kind ||
-    (a.args?.length ?? 0) !== (b.args?.length ?? 0)
-  ) {
-    return undefined;
-  }
+/** Substitute through `term` until no bound variable remains. */
+export const applyBindings = (term: Term, bindings: ReadonlyMap<string, Term>): Term =>
+  unifier.apply(term, bindings);
 
-  const aArgs = a.args ?? [];
-  const bArgs = b.args ?? [];
-  let s: Substitution | undefined = subst;
-  for (let i = 0; i < aArgs.length; i++) {
-    const next = aArgs[i];
-    const nextB = bArgs[i];
-    if (!next || !nextB) return undefined;
-    s = unifyInner(next, nextB, s, enableOccursCheck);
-    if (!s) return undefined;
-  }
-  return s;
-}
+/** {@link applyBindings} over the object-literal substitution this module exports. */
+export const applySubstitution = (term: Term, subst: Substitution): Term =>
+  applyBindings(term, new Map(Object.entries(subst)));
 
-const bind = (
-  variable: string,
-  value: Term,
-  subst: Substitution,
-  enableOccursCheck: boolean
-): Substitution | undefined => {
-  if (enableOccursCheck && occursCheck(variable, value, subst)) return undefined;
-  const bound = subst[variable];
-  return bound ? (termsEqual(bound, value) ? subst : undefined) : { ...subst, [variable]: value };
-};
+/** Every variable symbol in `term`, in first-occurrence order. */
+export const termVariables = (term: Term): string[] => unifier.variables(term);
