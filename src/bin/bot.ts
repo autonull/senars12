@@ -6,22 +6,18 @@
  * at runtime via `.connect`. Replaces bot-ai.ts, repl.ts, status.ts,
  * doctor.ts, multi-agent.ts, tune.ts (`--status/--doctor/--tune/--arcade/
  * --multiagent` delegate to `src/bin/lib/*` runners).
+ *
+ * This module owns wiring, lifecycle and chat capture. The `.command` surface
+ * lives in `src/bin/commands/*`; non-interactive runners in `src/bin/lib/*`.
  */
 
-
-import { execFile } from 'node:child_process';
-import { existsSync, statSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createCapturePhase, DEFAULT_MACRO_PIPELINE } from '@senars/core/agent/phases';
 import {
   AuthManager,
   bindAgentToConnection,
-  type CLICommand,
   CLIConnection,
-  CommandRegistry,
+  type Connection,
   ConnectionManager,
-  connectionCommands,
-  createAuthCommands,
   createConnectionConfigsFromEnv,
   HTTPConnection,
   IRCConnection,
@@ -29,79 +25,62 @@ import {
   WSConnection,
 } from '@senars/io';
 import { createMeTTa, parseMeTTa } from '@senars/metta';
-import type { BinAgentApi as Agent } from '@senars/nar/agent';
-import {
-  configCommands,
-  coreCommands,
-  episodesCommands,
-  lmCommands,
-  memoryCommands,
-  narCommands,
-  rlfpCommands,
-  selfCommands,
-} from '@senars/nar/commands';
-import { DEFAULT_LEDGER_PATH, OutcomeLinker, ParameterLedger } from '@senars/nar/config';
-import type { DialogueCapture as DialogueCaptureType } from '@senars/nar/dialogue';
-import {
-  DialogueCapture,
-  extractLessons,
-  loadRetrospectives,
-  persistRetrospective,
-  Reconsolidator,
-  RetrospectiveAdapter,
-  retrospect,
-} from '@senars/nar/dialogue';
+import { DEFAULT_LEDGER_PATH, ParameterLedger } from '@senars/nar/config';
+import { DialogueCapture, RetrospectiveAdapter } from '@senars/nar/dialogue';
 import { providerKey } from '@senars/nar/kernel/reputation-keys.js';
 import { DEFAULT_REPUTATION_PATH, SourceReputation } from '@senars/nar/kernel/source-reputation';
-import { formatLMConfig, resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
-import { LM_PROVIDER_NAMES } from '@senars/nar/lm/env-config.js';
-import { computeEvidenceId, createSystemOneBudget } from '@senars/nar/lm/system-one';
-import type { EmbeddingCache } from '@senars/nar/lm/system-one/types.js';
+import { resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
+import { computeEvidenceId } from '@senars/nar/lm/system-one';
 import { createLogger } from '@senars/nar/logger';
 import { NLUnderstandingService } from '@senars/nar/nl';
 import { TranslationCache } from '@senars/nar/nl/cache.js';
-import { episodeQualitySurface, MemoryQuery } from '@senars/nar/query/memory-query.js';
+import { MemoryQuery } from '@senars/nar/query/memory-query.js';
 import { MettaProposer } from '@senars/nar/reflex/metta-proposer.js';
-import { ensureDir, errMsg, makeId, readJsonlAsync, setupGracefulShutdown } from '@senars/util';
+import { ensureDir, errMsg, makeId, setupGracefulShutdown } from '@senars/util';
 import { envBool } from '@senars/util/config';
 import { Effect } from 'effect';
-import { buildCommands, cmd } from '../cli/commands.js';
-import {
-  type ConversationGameFocus,
-  formatSystemOneCortex,
-  formatSystemOneDispatcher,
-  formatSystemOneHeads,
-  formatSystemOneReflexes,
-  formatSystemOneStatus,
-} from '../cli/systemone-format.js';
-import { loadConfig } from '../config/index.js';
+import { reflexesOf } from '../cli/conversation-game.js';
+import { buildCommands } from '../cli/commands.js';
 import { assertValidEnv } from '../utils/env-validate.js';
+import {
+  type BotRuntime,
+  buildBotCommands,
+  type ConnectSpec,
+  gpuSummary,
+  type GroundednessState,
+  runSessionRetrospective,
+  type SystemOneBag,
+  type TraceState,
+} from './commands/index.js';
 import { readAuthConfig } from './lib/env-config.js';
-import { createAgentFromEnv } from './lib/lifecycle.js';
 import { runEntrypoint } from './lib/fatal-error.js';
+import { createAgentFromEnv } from './lib/lifecycle.js';
+import { createRemoteRegistry } from './lib/remote-registry.js';
 
 assertValidEnv();
 
 const logger = createLogger({ scope: 'bot' });
 
-type Wired = Awaited<ReturnType<typeof createAgentFromEnv>>;
-
-interface GroundednessState {
-  enabled: boolean;
-  threshold: number;
-  gate: ((text: string) => Promise<boolean | { grounded: boolean; score?: number }>) | undefined;
-}
-
 /** Min grade score for a conversation to be auto-captured into the distillation dataset. */
 const DISTILL_CAPTURE_THRESHOLD = 0.7;
 
-interface TraceState {
-  enabled: boolean;
-  sampleRate: number;
-  grader: ((trace: any) => Promise<any>) | undefined;
-  dataset?: { record: (label: unknown, embedding?: Float32Array) => void } | undefined;
-  embeddingCache?: EmbeddingCache | undefined;
-}
+/** Connection types the bot can construct, keyed by the id used in `ConnectionConfig.type`. */
+const CONNECTION_FACTORIES = {
+  cli: (cfg: never) => new CLIConnection(cfg, { emit: () => undefined, logger } as never),
+  irc: (cfg: never) => new IRCConnection(cfg, { emit: () => undefined, logger } as never),
+  websocket: (cfg: never) => new WSConnection(cfg, { emit: () => undefined, logger } as never),
+  http: (cfg: never) => new HTTPConnection(cfg, { emit: () => undefined, logger } as never),
+  mcp: (cfg: never) => new MCPConnection(cfg, { emit: () => undefined, logger } as never),
+} as const;
+
+/** `--flag` → runner, in precedence order. `undefined` return falls through to the REPL. */
+const NON_INTERACTIVE_MODES: Record<string, () => Promise<unknown>> = {
+  '--status': () => import('./lib/status-report.js').then((m) => m.runStatus()),
+  '--doctor': () => import('./lib/doctor-report.js').then((m) => m.runDoctor()),
+  '--tune': () => import('./lib/tune-runner.js').then((m) => m.runTune()),
+  '--arcade': () => import('../../scripts/arcade.js'),
+  '--multiagent': () => import('./lib/multi-agent-entry.js').then((m) => m.runMultiAgentEntry()),
+};
 
 /** Auto-capture a high-quality graded conversation into the distillation dataset. */
 const captureDistillation = async (
@@ -116,7 +95,6 @@ const captureDistillation = async (
   try {
     const evidenceId = computeEvidenceId(input, response);
     const pointer = await embeddingCache.write(response);
-    const embedding = embeddingCache.read(pointer);
     dataset.record(
       {
         evidenceId,
@@ -125,11 +103,11 @@ const captureDistillation = async (
         label: 'accepted',
         score,
         source: 'conversation',
-        // TODO23: groundedness-head abstain ⇒ out-of-domain turn — feeds the
-        // frozen-set OOD slice (lock.ood) rather than in-domain evaluation.
+        // TODO23: a groundedness-head abstain marks an out-of-domain turn, feeding
+        // the frozen-set OOD slice rather than in-domain evaluation.
         ...(domain ? { domain } : {}),
       },
-      embedding
+      embeddingCache.read(pointer)
     );
   } catch {
     // Distillation capture is best-effort; never disrupt chat
@@ -137,12 +115,12 @@ const captureDistillation = async (
 };
 
 async function collectChat(
-  agent: Agent,
+  rt: BotRuntime,
   input: string,
-  tier: 'quality' | 'fast' | 'structured',
-  ground: GroundednessState,
-  trace: TraceState
+  tier: 'quality' | 'fast' | 'structured'
 ): Promise<void> {
+  const { agent } = rt.wired;
+  const { ground, trace } = rt;
   const ctl = new AbortController();
   const onSigint = () => ctl.abort();
   process.once('SIGINT', onSigint);
@@ -153,8 +131,7 @@ async function collectChat(
         response += evt.text;
         if (ground.enabled && ground.gate) {
           const ok = await ground.gate(evt.text);
-          if (ok) process.stdout.write(evt.text);
-          else process.stdout.write('[filtered]');
+          process.stdout.write(ok ? evt.text : '[filtered]');
         } else {
           process.stdout.write(evt.text);
         }
@@ -163,17 +140,13 @@ async function collectChat(
     }
     // REFACTOR.todo1 Phase A: dialogue capture is a Capture phase inside the
     // macro pipeline (installed at startup); no fire-and-forget hook here.
-    // Trace grader sampling + distillation auto-capture from successful conversations
     if (trace.enabled && trace.grader && Math.random() < trace.sampleRate) {
-      const toolCalls: Array<{ command: string; success: boolean }> = [];
       try {
-        const grade = await trace.grader({ narration: response || input, toolCalls });
-        const score = grade.groundedness?.abstained
-          ? grade.contrastiveQuality
-          : grade.groundedness?.score;
+        const grade = await trace.grader({ narration: response || input, toolCalls: [] });
+        const abstained = grade.groundedness?.abstained ?? false;
+        const score = abstained ? grade.contrastiveQuality : grade.groundedness?.score;
         if (score !== undefined && score >= DISTILL_CAPTURE_THRESHOLD) {
-          const domain = grade.groundedness?.abstained ? ('ood' as const) : ('in-domain' as const);
-          await captureDistillation(trace, input, response, score, domain);
+          await captureDistillation(trace, input, response, score, abstained ? 'ood' : 'in-domain');
         }
       } catch {
         // Ignore trace grading errors
@@ -185,60 +158,94 @@ async function collectChat(
   }
 }
 
-const setPath = (obj: Record<string, unknown>, path: string, value: unknown): boolean => {
-  const keys = path.split('.');
-  let cur = obj;
-  for (let i = 0; i < keys.length - 1; i++) {
-    const next = cur[keys[i] ?? ''];
-    if (typeof next !== 'object' || next === null) return false;
-    cur = next as Record<string, unknown>;
+async function runNonInteractive(argv: string[]): Promise<boolean> {
+  if (argv.includes('--help') || argv.includes('-h')) {
+    console.log(
+      'Usage: pnpm run bot [-- --status|--doctor|--tune|--arcade|--multiagent] [--json]\n\nNo flags: interactive CLI (senars> ). Connections are opt-in via .connect or ENABLE_IRC/WS/HTTP/MCP=true.'
+    );
+    return true;
   }
-  cur[keys[keys.length - 1] ?? ''] = value;
+  const mode = Object.keys(NON_INTERACTIVE_MODES).find((flag) => argv.includes(flag));
+  if (!mode) return false;
+  await NON_INTERACTIVE_MODES[mode]?.();
   return true;
-};
+}
 
-const coerce = (raw: string): unknown =>
-  raw === 'true'
-    ? true
-    : raw === 'false'
-      ? false
-      : raw === 'null'
-        ? null
-        : Number.isNaN(Number(raw)) || raw.trim() === ''
-          ? raw
-          : Number(raw);
+async function main(): Promise<void> {
+  if (await runNonInteractive(process.argv.slice(2))) return;
 
-const gpuSummary = async (): Promise<string> => {
-  try {
-    const { getLlamaGpuTypes } = await import('node-llama-cpp');
-    const types = await getLlamaGpuTypes('supported');
-    const avail = (types as string[]).filter((t) => t === 'cuda' || t === 'metal' || t === 'vulkan');
-    return avail.length ? avail.join(',') : 'cpu';
-  } catch {
-    return 'unknown';
+  await ensureDir('.cache/sessions').catch(() => undefined);
+  const wired = await createAgentFromEnv();
+  const { agent, sessionManager, profile } = wired;
+  const lmConfig = resolveLMConfig();
+  const settings = resolveLMSettings();
+  const { nar, lmService, episodicMemory } = wired;
+
+  const auth = new AuthManager();
+  const authCfg = readAuthConfig();
+  if (authCfg.secret) for (const id of authCfg.connectionIds) auth.setSecret(id, authCfg.secret);
+
+  const cm = new ConnectionManager();
+  for (const [type, create] of Object.entries(CONNECTION_FACTORIES)) {
+    cm.registerFactory({ type, create: create as never });
   }
-};
 
-// Forward declaration for runSessionRetrospective (defined later in the file)
-let runSessionRetrospective: (sessionId: string, memoryQuery: import('@senars/nar/query/memory-query.js').MemoryQuery) => Promise<string>;
-
-function buildExtraCommands(
-  w: Wired,
-  cm: ConnectionManager,
-  auth: AuthManager,
-  ground: GroundednessState,
-  trace: TraceState,
-  conversationGame: { focus: any; game: any } | null,
-  routing: { auto: boolean; policy: 'conservative' | 'balanced' | 'aggressive' },
-  provisional: { enabled: boolean },
-  dialogue: DialogueCaptureType,
-  strategyAdapter?: RetrospectiveAdapter,
-  parameterLedger?: ParameterLedger
-): CLICommand[] {
-  const { agent, nar, sessionManager, episodicMemory, lmService } = w;
-  // Phase C (REFACTOR.todo2): cross-memory query facade — concept + episodic
-  // legs; the semantic leg wires System One's encoder cache when available.
+  let currentSession = sessionManager.getOrCreate('default');
+  let tier: 'quality' | 'fast' | 'structured' = profile.narrateTier;
   const embeddingCache = nar.getSystemOneEmbeddingCache?.();
+  const systemOne: SystemOneBag | undefined = (nar as unknown as { systemOne?: SystemOneBag }).systemOne;
+  const systemOneGate = nar.getSystemOneGroundednessGate?.();
+  // Phase E: egress-gate verdicts are verification signals for the narration channel.
+  // Phase F (audit M2): record under the fine provider:<name> key the ingress
+  // judge reads — legacy llm-narration key kept alongside during transition.
+  const narrationKeys = (): string[] => {
+    let provider: string | undefined;
+    try {
+      provider = resolveLMSettings().provider;
+    } catch {
+      provider = undefined;
+    }
+    const key = providerKey(provider);
+    return key ? ['llm-naration', key] : ['llm-naration'];
+  };
+  const sourceReputation = new SourceReputation({ path: DEFAULT_REPUTATION_PATH });
+  nar.setSourceReputation(sourceReputation);
+  const ground: GroundednessState = {
+    enabled: wired.appConfig.systemOne?.enabled === true,
+    threshold: 0.7,
+    gate: systemOneGate
+      ? async (text: string) => {
+          const ok = await systemOneGate(text, makeId());
+          for (const key of narrationKeys()) {
+            sourceReputation.record(key, ok ? 'confirmed' : 'contradicted');
+          }
+          return ok;
+        }
+      : undefined,
+  };
+  const trace: TraceState = {
+    enabled: false,
+    sampleRate: 0.1,
+    grader: nar.getSystemOneTraceGrader?.(),
+    dataset: systemOne?.dataset,
+    embeddingCache,
+  };
+  const routing: BotRuntime['routing'] = { auto: false, policy: 'balanced' };
+  const provisional = { enabled: true };
+
+  // TODO24 Dialogue Flywheel: one instance per bot; every sink guarded by
+  // dialogue.enabled (I5 default false ⇒ byte-identical disabled path).
+  // Phase-B enrichment: decider bands + provenance, LM formalizations, reflex
+  // readout — all best-effort with graceful degradation.
+  const decider = nar.getSystemOneDecider?.();
+  // An LM call per turn, so gated on `dialogue.captureAll` — explicit opt-in to
+  // full-fidelity turns (cost gate).
+  const understanding =
+    wired.appConfig.dialogue?.captureAll === true
+      ? new NLUnderstandingService(lmService, new TranslationCache(), { structuredOnly: true })
+      : undefined;
+  // REFACTOR.todo2 Phase C: cross-memory facade — concept + episodic legs; the
+  // semantic leg wires System One's encoder cache when available.
   const memoryQuery = new MemoryQuery({
     memory: nar.memory,
     episodic: episodicMemory,
@@ -249,1616 +256,20 @@ function buildExtraCommands(
         }
       : undefined,
   });
-  // loadConfig() returns a deeply frozen object — clone for runtime mutation.
-  let appConfig = structuredClone(w.appConfig);
-  const profile = appConfig.profile;
-  const secretIds = new Set<string>();
-  let webuiHandle: { close?: () => Promise<void> } | null = null;
-  const tier: 'quality' | 'fast' | 'structured' = profile.narrateTier;
-
-  const attach = async (cfg: {
-    id: string;
-    type: string;
-    config: Record<string, unknown>;
-  }): Promise<string> => {
-    const conn = await cm.addConnection(
-      { ...cfg, enabled: true },
-      { emit: () => undefined, logger }
-    );
-    const registry = new CommandRegistry();
-    for (const c of [
-      ...coreCommands,
-      ...narCommands,
-      ...memoryCommands,
-      ...episodesCommands,
-      ...configCommands,
-      ...lmCommands,
-      ...rlfpCommands,
-      ...selfCommands,
-      ...connectionCommands,
-      ...createAuthCommands(auth),
-    ])
-      registry.register(c);
-    bindAgentToConnection(
-      agent as any,
-      conn as never,
-      {
-        auth,
-        commandRegistry: registry,
-        sessionManager,
-        episodicMemory,
-        manager: cm,
-      } as never
-    );
-    return `Connected ${cfg.type} as ${cfg.id}`;
-  };
-
-  return [
-    cmd(
-      'help',
-      'Show all commands (categorized)',
-      () =>
-        `SeNARS Bot — CLI-first (.help, .quit, or just chat)\n\nConnection:\n  .connect irc [server] [port] [nick] [#ch1,#ch2] [--tls|--no-tls] [--password p]\n  .connect ws [port] [--greeting msg]\n  .connect http [port] [--api-key k] [--cors]\n  .connect mcp [stdio|http|sse] [--approval] [--api-key k] [--rate-limit n]\n  .disconnect <id> | .connections [id]\nCore: .stats .beliefs .concepts .attention .episodes .know .recall .sessions .session .throttle .tier .status .clear\nProfile: .profile [field value] | Skills: .skills .skill-enable .skill-disable .skill-add .skill-remove .skill-edit | Memory: .consolidate .memory-stats .memory-export .memory-import .memory-clear\nLM: .lm-config .lm-provider .lm-model .lm-rules .lm-rule-enable .lm-rule-disable .routing .routing-set .routing-offline .circuit-breakers .circuit-reset | SystemOne: .systemone .manifold .calibrate .distill .selftune .decide .judge\nDiag: .doctor .health .benchmarks .routing-log .spend .gates | .webui [port]|stop | .arcade | .multiagent | .config-show .config-set .config-save .config-reload .config-reset | .auth-list .auth-add .auth-remove\nDialogue: .react .turns .retrospect .retrospectives .lessons .reconsolidate .probes .adaptations .schemas-induce`
-    ),
-    cmd('connect', 'Start a connection: irc|ws|http|mcp', async (args = '') => {
-      const parts = args.trim().split(/\s+/).filter(Boolean);
-      const kind = parts[0]?.toLowerCase();
-      const rest = parts.slice(1);
-      const flag = (n: string): string | undefined => {
-        const i = rest.findIndex((p) => p === `--${n}`);
-        return i >= 0 ? (rest[i + 1] ?? '') : undefined;
-      };
-      const has = (n: string): boolean => rest.includes(`--${n}`);
-      const pos = rest.filter((p) => !p.startsWith('--'));
-      try {
-        if (kind === 'irc') {
-          const [
-            server = 'irc.libera.chat',
-            port = '6697',
-            nick = 'senars-bot',
-            chans = '#senars',
-          ] = pos;
-          return await attach({
-            id: `irc-${Date.now()}`,
-            type: 'irc',
-            config: {
-              name: 'IRC',
-              server,
-              port: Number(port),
-              nick,
-              channels: (chans ?? '')
-                .split(',')
-                .map((s) => s.trim())
-                .filter(Boolean),
-              tls: has('no-tls') ? false : true,
-              ...(flag('password') ? { password: flag('password') } : {}),
-            },
-          });
-        }
-        if (kind === 'ws' || kind === 'websocket')
-          return await attach({
-            id: `ws-${Date.now()}`,
-            type: 'websocket',
-            config: {
-              name: 'WS',
-              port: Number(pos[0] ?? '8765'),
-              ...(flag('greeting') ? { greeting: flag('greeting') } : {}),
-            },
-          });
-        if (kind === 'http')
-          return await attach({
-            id: `http-${Date.now()}`,
-            type: 'http',
-            config: {
-              name: 'HTTP',
-              port: Number(pos[0] ?? '3000'),
-              ...(flag('api-key') ? { apiKey: flag('api-key') } : {}),
-              cors: has('cors'),
-            },
-          });
-        if (kind === 'mcp')
-          return await attach({
-            id: `mcp-${Date.now()}`,
-            type: 'mcp',
-            config: {
-              name: 'MCP',
-              transport: pos[0] ?? 'stdio',
-              ...(has('approval') ? { approval: true } : {}),
-              ...(flag('api-key') ? { apiKey: flag('api-key') } : {}),
-              ...(flag('rate-limit') ? { rateLimit: Number(flag('rate-limit')) } : {}),
-            },
-          });
-        return 'Usage: .connect irc|ws|http|mcp [...]';
-      } catch (e) {
-        return `connect failed: ${errMsg(e)}`;
-      }
-    }),
-    cmd('disconnect', 'Disconnect and remove a connection', async (args = '') => {
-      const key = args.trim().split(/\s+/)[0]?.toLowerCase();
-      if (!key) return 'Usage: .disconnect <connection-id|irc|ws|http|mcp>';
-      try {
-        const direct = cm.getConnection(args.trim().split(/\s+/)[0] ?? '');
-        const id =
-          direct?.id ??
-          [...cm.getConnections()].find(
-            ([, c]) => c.type === key || c.type.replace('websocket', 'ws') === key
-          )?.[0];
-        if (!id) return `Unknown connection: ${key}`;
-        await cm.removeConnection(id);
-        return `Disconnected ${id}`;
-      } catch (e) {
-        return `disconnect failed: ${errMsg(e)}`;
-      }
-    }),
-    cmd('connections', 'List connections or show one in detail', (args = '') => {
-      const id = args.trim().split(/\s+/)[0];
-      if (id) {
-        const c = cm.getConnection(id);
-        if (!c) return `Unknown connection: ${id}`;
-        const s = c.getStatus();
-        return `${c.id} (${c.type}): ${s.state} msgs=${s.messageCount} errs=${s.errorCount}`;
-      }
-      const all = cm.getConnections();
-      if (all.size === 0) return 'No active connections (CLI-only mode)';
-      return [...all].map(([cid, c]) => `  ${cid} (${c.type}): ${c.getStatus().state}`).join('\n');
-    }),
-    cmd('profile', 'Show or set profile fields', (args = '') => {
-      const [field, ...rest] = args.trim().split(/\s+/).filter(Boolean);
-      if (!field)
-        return `name=${profile.name} personality=${profile.personality?.slice(0, 80)} tier=${tier} join=${profile.joinMessage?.slice(0, 80) ?? '—'}`;
-      if (field === 'tier') return 'Use .tier quality|fast|structured to switch chat tier';
-      if (field in profile && rest.length) {
-        (profile as Record<string, unknown>)[field] = rest.join(' ');
-        return `profile.${field} updated`;
-      }
-      return 'Usage: .profile [name|personality|joinmsg|tier <value>]';
-    }),
-    cmd('skills', 'List skills', () => {
-      const skills = (appConfig.bot.skills ?? []) as Array<{
-        id?: string;
-        name?: string;
-        enabled?: boolean;
-        description?: string;
-      }>;
-      return skills.length
-        ? skills
-            .map(
-              (s) =>
-                `  ${s.id ?? s.name ?? '?'} [${s.enabled === false ? 'off' : 'on'}] ${s.description ?? ''}`
-            )
-            .join('\n')
-        : '(no skills configured)';
-    }),
-    cmd('skill-enable', 'Enable a skill', (args = '') => {
-      const id = args.trim();
-      const s = ((appConfig.bot.skills ?? []) as Array<Record<string, unknown>>).find(
-        (x) => x.id === id || x.name === id
-      );
-      if (!s) return `Unknown skill: ${id}`;
-      s.enabled = true;
-      return `Enabled ${id} (persist with .config-save)`;
-    }),
-    cmd('skill-disable', 'Disable a skill', (args = '') => {
-      const id = args.trim();
-      const s = ((appConfig.bot.skills ?? []) as Array<Record<string, unknown>>).find(
-        (x) => x.id === id || x.name === id
-      );
-      if (!s) return `Unknown skill: ${id}`;
-      s.enabled = false;
-      return `Disabled ${id} (persist with .config-save)`;
-    }),
-    cmd('skill-add', 'Add a skill: <id> <description> <instructions>', (args = '') => {
-      const [id, ...rest] = args.trim().split(/\s+/).filter(Boolean);
-      if (!id || rest.length < 2) return 'Usage: .skill-add <id> <description> <instructions>';
-      const skills = (appConfig.bot.skills ?? []) as Array<Record<string, unknown>>;
-      if (skills.some((s) => s.id === id)) return `Skill exists: ${id}`;
-      skills.push({
-        id,
-        description: rest.slice(0, -1).join(' '),
-        instructions: rest[rest.length - 1],
-        enabled: true,
-      });
-      return `Added ${id} (persist with .config-save)`;
-    }),
-    cmd('skill-remove', 'Remove a skill', (args = '') => {
-      const id = args.trim();
-      const skills = (appConfig.bot.skills ?? []) as Array<Record<string, unknown>>;
-      const i = skills.findIndex((s) => s.id === id || s.name === id);
-      if (i < 0) return `Unknown skill: ${id}`;
-      skills.splice(i, 1);
-      return `Removed ${id} (persist with .config-save)`;
-    }),
-    cmd('skill-edit', 'Edit a skill field: <id> <field> <value>', (args = '') => {
-      const [id, field, ...rest] = args.trim().split(/\s+/).filter(Boolean);
-      if (!id || !field || !rest.length)
-        return 'Usage: .skill-edit <id> <description|instructions|enabled> <value>';
-      const s = ((appConfig.bot.skills ?? []) as Array<Record<string, unknown>>).find(
-        (x) => x.id === id || x.name === id
-      );
-      if (!s) return `Unknown skill: ${id}`;
-      if (!(field in s)) return `Unknown field: ${field}`;
-      s[field] = field === 'enabled' ? rest[0] !== 'false' : rest.join(' ');
-      return `Updated ${id}.${field} (persist with .config-save)`;
-    }),
-    cmd('consolidate', 'Run memory consolidation', async (args = '') => {
-      const [limit, relevance, dedupe] = args.trim().split(/\s+/).filter(Boolean).map(Number);
-      try {
-        const r = await w.consolidateMemory({
-          ...(Number.isFinite(limit) ? { limit } : {}),
-          ...(Number.isFinite(relevance) ? { relevanceThreshold: relevance } : {}),
-          ...(Number.isFinite(dedupe) ? { dedupeThreshold: dedupe } : {}),
-        });
-        return `Consolidated: promoted=${r.promoted.length} deduped=${r.deduped ?? 0} scanned=${r.considered ?? 0}`;
-      } catch (e) {
-        return `consolidate failed: ${errMsg(e)}`;
-      }
-    }),
-    cmd('memory-stats', 'Episodic memory stats', async () => {
-      const eps = await episodicMemory.getEpisodes({ limit: 100000 });
-      const byType = new Map<string, number>();
-      for (const e of eps) byType.set(e.type, (byType.get(e.type) ?? 0) + 1);
-      return `episodes=${eps.length} path=${episodicMemory.basePath}\n${[...byType].map(([t, n]) => `  ${t}: ${n}`).join('\n') || '  (empty)'}`;
-    }),
-    cmd('memory-clear', 'Clear episodic memory (requires --yes)', async (args = '') => {
-      if (!args.includes('--yes')) return 'Destructive. Re-run as .memory-clear --yes to confirm';
-      await episodicMemory.clear();
-      return 'Episodic memory cleared';
-    }),
-    cmd('memory-export', 'Export episodes to JSONL', async (args = '') => {
-      const path = args.trim() || '.cache/episodes-export.jsonl';
-      const eps = await episodicMemory.getEpisodes({ limit: 100000 });
-      await writeFile(path, eps.map((e) => JSON.stringify(e)).join('\n'));
-      return `Exported ${eps.length} episodes to ${path}`;
-    }),
-    cmd('memory-import', 'Import episodes from JSONL', async (args = '') => {
-      const path = args.trim();
-      if (!path) return 'Usage: .memory-import <path>';
-      try {
-        const { rows } = await readJsonlAsync<{ type?: string; content?: string; metadata?: Record<string, unknown> }>(
-          path,
-          (value) => value as { type?: string; content?: string; metadata?: Record<string, unknown> }
-        );
-        let n = 0;
-        for (const e of rows) {
-          if (typeof e.content === 'string') {
-            await episodicMemory.log((e.type as never) ?? 'input', e.content, e.metadata ?? {});
-            n++;
-          }
-        }
-        return `Imported ${n}/${rows.length} episodes`;
-      } catch (e) {
-        return `import failed: ${errMsg(e)}`;
-      }
-    }),
-    cmd('lm-config', 'Show resolved LM config', async () => {
-      const s = resolveLMSettings(appConfig.lm as never);
-      const gpu =
-        s.provider === 'llamacpp-embedded'
-          ? ` gpu=${s.llamacppGpu ?? 'auto'} gpuDetail=${await gpuSummary()}`
-          : '';
-      return `${formatLMConfig(resolveLMConfig(appConfig.lm as never))}${gpu}\nfast=${s.fastModel ?? '—'} structured=${s.structuredModel ?? '—'} baseUrl=${s.baseUrl ?? '—'}`;
-    }),
-    cmd('lm-provider', 'Switch provider (takes effect on restart)', (args = '') => {
-      const name = args.trim().toLowerCase();
-      if (!name) return `provider=${resolveLMSettings().provider}`;
-      if (!(LM_PROVIDER_NAMES as readonly string[]).includes(name))
-        return `Unknown provider: ${name} (${LM_PROVIDER_NAMES.join('|')})`;
-      process.env.LM_PROVIDER = name;
-      return `LM_PROVIDER=${name} (restart bot to apply)`;
-    }),
-    cmd('lm-model', 'Set model for tier: quality|fast|structured', (args = '') => {
-      const [task, ...rest] = args.trim().split(/\s+/);
-      const model = rest.join(' ');
-      if (!task || !model) return 'Usage: .lm-model <quality|fast|structured> <model>';
-      if (task === 'quality') process.env.LM_MODEL = model;
-      else if (task === 'fast') process.env.LM_FAST_MODEL = model;
-      else if (task === 'structured') process.env.LM_STRUCTURED_MODEL = model;
-      else return 'Usage: .lm-model <quality|fast|structured> <model>';
-      return `${task} model=${model} (restart bot to apply)`;
-    }),
-    cmd(
-      'lm-rules',
-      'List LM rules from config',
-      () =>
-        (appConfig.bot.lmRules?.rules ?? []).map((r) => r.id).join(', ') || '(no lm rules configured)'
-    ),
-    cmd('lm-rule-enable', 'Enable an LM rule id', (args = '') => {
-      const id = args.trim();
-      if (!id) return 'Usage: .lm-rule-enable <id>';
-      const rules = appConfig.bot.lmRules?.rules ?? [];
-      if (!rules.some((r) => r.id === id)) rules.push({ id, enabled: true });
-      return `Enabled ${id} (restart bot to register; persist with .config-save)`;
-    }),
-    cmd('lm-rule-disable', 'Disable an LM rule id', (args = '') => {
-      const id = args.trim();
-      if (!id) return 'Usage: .lm-rule-disable <id>';
-      const rules = appConfig.bot.lmRules?.rules ?? [];
-      const i = rules.findIndex((r) => r.id === id);
-      if (i < 0) return `Not configured: ${id}`;
-      rules.splice(i, 1);
-      return `Disabled ${id} (restart bot to deregister; persist with .config-save)`;
-    }),
-    cmd('routing', 'Show routing matrix', async () => {
-      try {
-        const { getModelChain } = await import('@senars/nar/lm/providers.js');
-        const cfg = resolveLMConfig();
-        return (['quality', 'fast', 'structured'] as const)
-          .map((t) => `  ${t}: ${getModelChain(cfg.provider, t).join(' → ')}`)
-          .join('\n');
-      } catch (e) {
-        return `routing unavailable: ${errMsg(e)}`;
-      }
-    }),
-    cmd('routing-set', 'Set routing candidates live: <model-id...>', async (args = '') => {
-      const candidates = args.trim().split(/\s+/).filter(Boolean);
-      if (!candidates.length) return 'Usage: .routing-set <model-id...>';
-      try {
-        const { getRouting, setRouting } = await import('@senars/nar/lm/providers.js');
-        setRouting({ ...(getRouting() ?? {}), candidates });
-        if (appConfig.routing)
-          (appConfig.routing as Record<string, unknown>).candidates = candidates;
-        return `candidates=${candidates.join(',')} (persist with .config-save)`;
-      } catch (e) {
-        return `routing-set failed: ${errMsg(e)}`;
-      }
-    }),
-    cmd('routing-offline', 'Set offline failsafe ladder: <model-id...>', async (args = '') => {
-      const ladder = args.trim().split(/\s+/).filter(Boolean);
-      if (!ladder.length) return 'Usage: .routing-offline <model-id...>';
-      try {
-        const { getRouting, setRouting } = await import('@senars/nar/lm/providers.js');
-        setRouting({ ...(getRouting() ?? {}), offlineLadder: ladder });
-        if (appConfig.routing)
-          (appConfig.routing as Record<string, unknown>).offlineLadder = ladder;
-        return `offline ladder=${ladder.join(' → ')} (persist with .config-save)`;
-      } catch (e) {
-        return `routing-offline failed: ${errMsg(e)}`;
-      }
-    }),
-    cmd('circuit-breakers', 'Show circuit breaker states', async () => {
-      try {
-        const { getCircuitBreaker, getEffectiveCircuitConfig } = await import(
-          '@senars/nar/lm/providers.js'
-        );
-        const s = resolveLMSettings();
-        return LM_PROVIDER_NAMES.map((p) => {
-          try {
-            const b = getCircuitBreaker(p as never);
-            getEffectiveCircuitConfig(p as never, s as never);
-            return `  ${p}: ${b.state} fails=${b.consecutiveFailures}`;
-          } catch {
-            return `  ${p}: n/a`;
-          }
-        }).join('\n');
-      } catch (e) {
-        return `circuit info unavailable: ${errMsg(e)}`;
-      }
-    }),
-    cmd('circuit-reset', 'Reset circuit breaker(s): <provider>|all', async (args = '') => {
-      const name = args.trim().toLowerCase();
-      if (!name) return 'Usage: .circuit-reset <provider>|all';
-      try {
-        const { getCircuitBreaker, resetCircuitBreakers } = await import(
-          '@senars/nar/lm/providers.js'
-        );
-        if (name === 'all') {
-          resetCircuitBreakers();
-          return 'All circuit breakers reset';
-        }
-        const b = getCircuitBreaker(name as never) as { reset?: () => void };
-        if (typeof b.reset !== 'function') return `No resettable breaker: ${name}`;
-        b.reset();
-        return `Circuit breaker reset: ${name}`;
-      } catch (e) {
-        return `circuit-reset failed: ${errMsg(e)}`;
-      }
-    }),
-    cmd(
-      'react',
-      'Bind a reaction to the last turn: accept|correct|reject|clarify|redirect|abandon [correction]',
-      async (args = '') => {
-        const [kind, ...rest] = args.trim().split(/\s+/).filter(Boolean) as [string, ...string[]];
-        const turn = dialogue.latestTurn();
-        if (!turn) return 'No captured turn to react to (capture disabled or no exchange yet).';
-        if (!['accept', 'correct', 'reject', 'clarify', 'redirect', 'abandon'].includes(kind))
-          return 'Usage: .react accept|correct|reject|clarify|redirect|abandon [correction]';
-        const correction = kind === 'correct' ? rest.join(' ') : undefined;
-        if (kind === 'correct' && !correction) return 'Usage: .react correct <correction text>';
-        try {
-          await dialogue.bindReaction(turn.turnId, kind as any, correction);
-          // Phase E: reactions are verification signals for the user channel.
-          w.nar
-            .getSourceReputation?.()
-            ?.record(
-              'user',
-              kind === 'accept'
-                ? 'confirmed'
-                : kind === 'clarify' || kind === 'redirect'
-                  ? 'confirmed'
-                  : 'contradicted'
-            );
-          return `Reaction ${kind} bound to ${turn.turnId}${kind === 'correct' ? ' (embedded + labeled, text discarded)' : ''}`;
-        } catch (e) {
-          return `react failed: ${errMsg(e)}`;
-        }
-      }
-    ),
-    cmd('turns', 'Show captured dialogue turns: [session-id] [n]', async (args = '') => {
-      const [sid, nRaw] = args.trim().split(/\s+/).filter(Boolean);
-      const n = Number(nRaw ?? 10) || 10;
-      if (!episodicMemory) return 'Episodic memory not available.';
-      const episodes = await w.episodicMemory.getEpisodes({ type: 'dialogue', limit: 500 });
-      const target =
-        sid ?? [...new Set(episodes.map((e) => (e.metadata as any).sessionId as string))].pop();
-      const rows = episodes.filter((e) => (e.metadata as any).sessionId === target).slice(-n);
-      if (rows.length === 0)
-        return target ? `No turns for session ${target}` : 'No captured turns.';
-      return rows
-        .map((e) => {
-          const d = JSON.parse(e.content) as any;
-          return `  ${d.turnId} seq=${d.seq}${d.grounding ? ` ground=${d.grounding.score.toFixed(2)}` : ''} resp=${d.responseDigest?.slice(0, 19) ?? '—'}`;
-        })
-        .join('\n');
-    }),
-    cmd('parameters', 'Show the parameter change ledger: [improved]', async (args = '') => {
-      if (!parameterLedger) return 'Parameter ledger not attached.';
-      if (!w.episodicMemory) return 'Episodic memory not available.';
-      if (args.trim() === 'improved') {
-        // Phase C (REFACTOR.todo2): sharper outcome surface — quality signals
-        // by concept/time (turn groundedness joined with reaction quality via
-        // MemoryQuery); reaction-only proxy preserved as the fallback floor.
-        const [turnResults, reactions] = await Promise.all([
-          memoryQuery.search({ episodeType: 'dialogue', limit: 500 }).catch(() => []),
-          episodicMemory.getEpisodes({ type: 'reaction', limit: 500 }),
-        ]);
-        const turnEpisodes = turnResults.map((r) => r.episode!).filter(Boolean);
-        const samples = episodeQualitySurface([...turnEpisodes, ...reactions]);
-        const link = new OutcomeLinker(parameterLedger, () => samples);
-        const improved = await link.improvedOnly({ windowMs: 120_000 });
-        if (improved.length === 0) return 'No improvement-evidenced parameter changes.';
-        return improved
-          .map(
-            (i) =>
-              `  ${i.parameter} ${i.oldValue}→${i.newValue} quality ${i.before.toFixed(2)}→${i.after.toFixed(2)}`
-          )
-          .join('\n');
-      }
-      const records = parameterLedger.query().slice(-20);
-      if (records.length === 0) return 'No parameter changes recorded.';
-      return records
-        .map(
-          (r) =>
-            `  [${new Date(r.at).toLocaleTimeString()}] ${r.writer}/${r.scope} ${r.parameter} ${r.oldValue}→${r.newValue}${r.trigger ? ` (${r.trigger.slice(0, 12)})` : ''}`
-        )
-        .join('\n');
-    }),
-    cmd('recall', 'Cross-memory recall: <term> [n]', async (args = '') => {
-      const [term, nRaw] = args.trim().split(/\s+/).filter(Boolean);
-      if (!term) return 'Usage: .recall <term> [n]';
-      const results = await memoryQuery
-        .search({ concept: term, limit: Number(nRaw ?? 8) || 8 })
-        .catch((e) => {
-          throw new Error(`recall failed: ${errMsg(e)}`);
-        });
-      if (results.length === 0) return `No memory results for “${term}”.`;
-      return results
-        .map((r) => {
-          const score = r.score.toFixed(3);
-          return r.source === 'episode'
-            ? `  [ep] ${score} ${r.episode?.type}:${String(r.episode?.content).slice(0, 60)}`
-            : `  [concept] ${score} ${r.concept?.term.toString().slice(0, 60)}`;
-        })
-        .join('\n');
-    }),
-    cmd('retrospect', 'Run a retrospective: [session-id]', async (args = '') => {
-      if (!w.episodicMemory) return 'Episodic memory not available.';
-      const sid =
-        args.trim() ||
-        [
-          ...new Set(
-            (await w.episodicMemory.getEpisodes({ type: 'dialogue', limit: 500 })).map(
-              (e) => (e.metadata as any).sessionId as string
-            )
-          ),
-        ].pop();
-      if (!sid) return 'No captured sessions.';
-      return runSessionRetrospective(sid, memoryQuery);
-    }),
-    cmd('retrospectives', 'List past retrospectives: [n]', async (args = '') => {
-      const n = Number(args.trim() || 10) || 10;
-      const rs = await loadRetrospectives(n);
-      if (rs.length === 0) return 'No retrospectives.';
-      return rs
-        .map(
-          (r) =>
-            `  ${r.sessionId} turns=${r.turnCount} reactions=${r.reactionCount} digest=${r.digest.slice(0, 19)}`
-        )
-        .join('\n');
-    }),
-    cmd(
-      'lessons',
-      'Show lessons extracted from retrospectives + formalized corrections',
-      async () => {
-        const rs = await loadRetrospectives(50);
-        const retrospectLessons = rs.flatMap((r) =>
-          extractLessons(r, {
-            term: 'dialogue_performance',
-            truth: { frequency: 0.9, confidence: 0.6 },
-          })
-        );
-        // DQ6: lessons from formalized corrections join here — same explicit
-        // ingestion path, never auto-applied (I2/I3).
-        const reactionLessons = dialogue.lessons;
-        const lessons = [...reactionLessons, ...retrospectLessons];
-        if (lessons.length === 0)
-          return 'No lessons (require ≥2 supporting turns per retrospective, or formalized corrections).';
-        // DQ4: ingest as Narsese self-beliefs (non-LLM path, seeded truth) so
-        // they are queryable via .ask — best-effort, never blocks the listing.
-        for (const l of lessons) {
-          await nar
-            .input(`<${l.term}>.`, 'belief', {
-              f: l.truth.frequency,
-              c: l.truth.confidence,
-            } as never)
-            .catch(() => {});
-        }
-        return lessons
-          .map(
-            (l) =>
-              `  ${l.term} f=${l.truth.frequency} c=${l.truth.confidence} turns=${l.provenance.turnIds.length}`
-          )
-          .join('\n');
-      }
-    ),
-    cmd(
-      'reconsolidate',
-      'Ingest retrospective lessons as self-beliefs (one-shot per digest, survives restarts)',
-      async () => {
-        const reconsolidator = new Reconsolidator(
-          { load: (n: number) => loadRetrospectives(n) },
-          {
-            input: (term, frequency, confidence) =>
-              nar
-                .input(`<${term}>.`, 'belief', { f: frequency, c: confidence } as never)
-                .then(() => {}),
-          },
-          { term: 'dialogue_performance', truth: { frequency: 0.9, confidence: 0.6 } }
-        );
-        const { ingested, skipped } = await reconsolidator.reconsolidate(50).catch((e) => {
-          throw new Error(`Reconsolidation failed (fail-closed): ${errMsg(e)}`);
-        });
-        return `Reconsolidated: ingested=${ingested} already-done=${skipped}`;
-      }
-    ),
-    cmd(
-      'probes',
-      'Show curriculum probes selected from flywheel-graded data (corrections + low grades)',
-      async () => {
-        const { selectProbes } = await import('@senars/nar/dialogue');
-        const probes = await selectProbes(
-          {
-            reactions: () => episodicMemory.getEpisodes({ type: 'reaction', limit: 1000 }),
-            grades: (nar as any).systemOne?.traceGradeHistory ?? new Map(),
-          },
-          // Phase E: the curriculum trains on the least-reliable sources first.
-          { sourceReputation: { multiplier: (key) => nar.getSourceReputation?.()?.multiplier(key) ?? 1 } }
-        );
-        if (probes.length === 0) return 'No probes yet (requires corrected or low-graded turns).';
-        return probes.map((p) => `  ${p.kind} ${p.id} score=${p.score.toFixed(2)}`).join('\n');
-      }
-    ),
-    cmd(
-      'adaptations',
-      'Show retrospective-driven strategy adaptations: [.restore]',
-      async (args = '') => {
-        if (!strategyAdapter) return 'Strategy adaptation unavailable (no kernel controller).';
-        if (args.trim() === 'restore') {
-          return strategyAdapter.restore()
-            ? 'Restored pre-adaptation strategies.'
-            : 'Nothing to restore.';
-        }
-        const ledger = strategyAdapter.ledger;
-        if (ledger.length === 0)
-          return 'No adaptations yet (correction-dominated retrospectives drive them).';
-        return ledger
-          .map(
-            (a) =>
-              `  ${a.at ? new Date(a.at).toISOString() : ''} ${a.retrospectiveDigest.slice(0, 19)} ${Object.entries(
-                a.to
-              )
-                .map(([k, v]) => `${k}→${v}`)
-                .join(', ')}`
-          )
-          .join('\n');
-      }
-    ),
-    cmd(
-      'schemas-induce',
-      'Induce schemas from captured derivation chains (LM-backed)',
-      async () => {
-        const chains = nar.getDerivationChains(64);
-        if (chains.length === 0)
-          return 'No derivation chains captured yet (chains accrue as the kernel reasons).';
-        // Phase C (REFACTOR.todo1): the NAR-owned inductor is continuously fed
-        // by the derivation sink; the CLI force-drains its bag.
-        const inductor =
-          nar.getSchemaInductor() ??
-          new (await import('@senars/nar/learning')).SchemaInductor(
-            nar.memory,
-            lmService,
-            { inductionIntervalMs: 0 }
-          );
-        for (const chain of chains) inductor.onDerivation(chain as never);
-        const results = await inductor.induceNow({ budget: 8 }).catch((e) => {
-          throw new Error(`Schema induction failed: ${errMsg(e)}`);
-        });
-        if (results.length === 0)
-          return `No schemas induced from ${chains.length} chains (below confidence/steps bar).`;
-        return results
-          .map(
-            (r) =>
-              `  ${r.schema.template} conf=${r.confidence.toFixed(2)} instances=${r.instances.length}`
-          )
-          .join('\n');
-      }
-    ),
-    cmd(
-      'systemone',
-      'System One status / subcommands: heads|dispatcher|cortex|reflexes|eval-set',
-      async (args = '') => {
-        const on = nar.isSystemOneEnabled?.() ?? false;
-        if (!on) return 'System One: disabled (enable via config systemOne.enabled + restart)';
-        const sub = args.trim().toLowerCase();
-        if (sub === 'heads') return formatSystemOneHeads(nar);
-        if (sub === 'dispatcher') return formatSystemOneDispatcher(nar);
-        if (sub === 'cortex') return formatSystemOneCortex(nar);
-        if (sub === 'reflexes') return formatSystemOneReflexes(nar);
-        if (sub.startsWith('eval-set')) {
-          const [action] = sub.split(/\s+/).slice(1);
-          const { createFrozenEvalSet, evalMetrics, headMetrics, loadEvalSet, writeEvalSet } =
-            await import('@senars/nar/lm/system-one/eval-set.js');
-          const { JudgmentDataset } = await import('@senars/nar/lm/system-one/distill.js');
-          const path = '.cache/systemone/eval-set.json';
-          if (action === 'create' || action === 'regenerate') {
-            const dataset = await JudgmentDataset.load(
-              appConfig.systemOne?.distillation?.datasetPath ?? '.cache/systemone/dataset.jsonl'
-            );
-            const set = createFrozenEvalSet(dataset);
-            await writeEvalSet(set, path);
-            const m = evalMetrics(set.rows);
-            return `Eval set frozen: ${set.rows.length} rows (conversation-captured excluded) → ${path}\ndigest=${set.digest}\nbrier=${m.brier.toFixed(4)} ece=${m.ece.toFixed(4)}`;
-          }
-          if (action === 'show') {
-            try {
-              const set = await loadEvalSet(path);
-              const heads = headMetrics(set.rows);
-              const lines = [
-                `Eval set: ${set.rows.length} rows, digest=${set.digest}`,
-                `frozen at ${new Date(set.createdAt).toISOString()}`,
-              ];
-              for (const [head, m] of Object.entries(heads))
-                lines.push(
-                  `  ${head}: n=${m.count} brier=${m.brier.toFixed(4)} ece=${m.ece.toFixed(4)}`
-                );
-              return lines.join('\n');
-            } catch (e) {
-              return `eval-set load failed (run .systemone eval-set create): ${errMsg(e)}`;
-            }
-          }
-          return 'Usage: .systemone eval-set create|show|regenerate (regenerate is explicit + logged)';
-        }
-        return formatSystemOneStatus(nar, conversationGame);
-      }
-    ),
-    cmd(
-      'judge',
-      'Run manifold heads on a proposition: .judge <proposition> [--head <rubric>] [--explain]',
-      async (args = '') => {
-        const decider = nar.getSystemOneDecider?.();
-        if (!decider) return 'System One decider not available';
-
-        const parts = args.trim().split(/\s+/);
-        const headFlag = parts.indexOf('--head');
-        let headRubric: string | undefined;
-        if (headFlag >= 0 && parts[headFlag + 1]) {
-          headRubric = parts[headFlag + 1];
-          parts.splice(headFlag, 2);
-        }
-        const explain = parts.includes('--explain');
-        const proposition = parts.filter((p) => p !== '--explain').join(' ');
-        if (!proposition) return 'Usage: .judge <proposition> [--head <rubric>] [--explain]';
-
-        const budget = createSystemOneBudget();
-        const queries = headRubric
-          ? [
-              {
-                kind: 'evaluate' as const,
-                instruction: `Evaluate ${headRubric}`,
-                rubric: headRubric as any,
-                axis: 'epistemic' as const,
-              },
-            ]
-          : [
-              {
-                kind: 'evaluate' as const,
-                instruction: 'Evaluate entailment',
-                rubric: 'entailment' as any,
-                axis: 'epistemic' as const,
-              },
-              {
-                kind: 'evaluate' as const,
-                instruction: 'Evaluate groundedness',
-                rubric: 'groundedness' as any,
-                axis: 'epistemic' as const,
-              },
-              {
-                kind: 'evaluate' as const,
-                instruction: 'Evaluate quality',
-                rubric: 'plausibility' as any,
-                axis: 'epistemic' as const,
-              },
-              {
-                kind: 'evaluate' as const,
-                instruction: 'Evaluate safety',
-                rubric: 'assertion' as any,
-                axis: 'epistemic' as const,
-              },
-            ];
-        try {
-          const result = await decider.decide({ context: proposition, queries, budget });
-          const lines = result.verdicts.map((v) => {
-            const r = v.proposition;
-            if (!r || r.kind === 'classify') {
-              const top = r && r.kind === 'classify' ? r.top : undefined;
-              return `${v.query.rubric}: top=${top?.option ?? '—'} p=${top?.p.toFixed(3) ?? '—'} abstained=${v.abstained} band=${v.band}${v.skipped ? ' skipped' : ''}`;
-            }
-            return `${v.query.rubric}: score=${r.score.toFixed(3)} abstained=${r.abstained} latency=${r.latencyMs}ms band=${v.band}${v.skipped ? ' skipped' : ''}`;
-          });
-          lines.push(
-            `band=${result.band} composite=${result.composite?.score.toFixed(3) ?? '—'} contrastive=${result.contrastive.score?.toFixed(3) ?? '—'}`
-          );
-          if (explain) {
-            const p = result.provenance;
-            lines.push(
-              `provenance: model=${p.modelDigest ?? '—'} calibration=${p.calibrationDigest ?? '—'} input=${p.inputDigest.slice(0, 12)} fitted=${p.fitted} abstained=${p.abstained} at=${new Date(p.timestamp).toISOString()}`
-            );
-          }
-          return lines.join('\n');
-        } catch (e) {
-          return `judge failed: ${errMsg(e)}`;
-        }
-      }
-    ),
-    cmd(
-      'decide',
-      'Unified decision (heads + contrastive + router): .decide <input> [--rubrics a,b,c]',
-      async (args = '') => {
-        const decider = nar.getSystemOneDecider?.();
-        if (!decider) return 'System One decider not available';
-        const parts = args.trim().split(/\s+/);
-        const rubricFlag = parts.indexOf('--rubrics');
-        let rubrics: string[] | undefined;
-        if (rubricFlag >= 0 && parts[rubricFlag + 1]) {
-          rubrics = parts[rubricFlag + 1]!.split(',').map((r) => r.trim());
-          parts.splice(rubricFlag, 2);
-        }
-        const input = parts.join(' ');
-        if (!input) return 'Usage: .decide <input> [--rubrics a,b,c]';
-        const all = ['relevance', 'groundedness', 'injection', 'ambiguity', 'plausibility'];
-        const budget = createSystemOneBudget();
-        const queries = (rubrics ?? all).map((rubric) => ({
-          kind: 'evaluate' as const,
-          instruction: `Evaluate ${rubric}`,
-          rubric: rubric as any,
-          axis: 'epistemic' as const,
-        }));
-        try {
-          const result = await decider.decide({ context: input, queries, budget });
-          const lines = result.verdicts.map(
-            (v) =>
-              `  ${v.query.rubric}: ${(v.proposition as any)?.score?.toFixed(3) ?? '—'} band=${v.band} abstained=${v.abstained}${v.skipped ? ' skipped' : ''}`
-          );
-          lines.push(
-            `  band=${result.band} composite=${result.composite?.score.toFixed(3) ?? '—'} contrastive=${result.contrastive.score?.toFixed(3) ?? '—'} penalty=${result.contrastive.penalty?.toFixed(3) ?? '—'}`
-          );
-          const p = result.provenance;
-          lines.push(
-            `  provenance: model=${p.modelDigest ?? '—'} calibration=${p.calibrationDigest ?? '—'} input=${p.inputDigest.slice(0, 12)} at=${new Date(p.timestamp).toISOString()}`
-          );
-          return `Decision for: "${input}"\n${lines.join('\n')}`;
-        } catch (e) {
-          return `decide failed: ${errMsg(e)}`;
-        }
-      }
-    ),
-    cmd(
-      'route',
-      'Show dispatcher routing decision for a task: .route <task> [--verbose]',
-      async (args = '') => {
-        const dispatcher = nar.getSystemOneDispatcher?.();
-        const embeddingCache = nar.getSystemOneEmbeddingCache?.();
-        if (!dispatcher || !embeddingCache) return 'System One dispatcher not available';
-
-        const parts = args.trim().split(/\s+/);
-        const verbose = parts.includes('--verbose');
-        const task = parts.filter((p) => p !== '--verbose').join(' ');
-        if (!task) return 'Usage: .route <task> [--verbose]';
-
-        const budget = createSystemOneBudget();
-        const pointer = await embeddingCache.write(task);
-        const queries = [
-          {
-            kind: 'classify' as const,
-            instruction: 'Classify task type',
-            space: ['question', 'belief', 'goal', 'tool'],
-            axis: 'epistemic' as const,
-            rubric: 'task_type' as any,
-          },
-          {
-            kind: 'evaluate' as const,
-            instruction: 'Evaluate injection risk',
-            rubric: 'injection' as any,
-            axis: 'epistemic' as const,
-          },
-          {
-            kind: 'evaluate' as const,
-            instruction: 'Evaluate ambiguity',
-            rubric: 'ambiguity' as any,
-            axis: 'epistemic' as const,
-          },
-        ];
-        try {
-          const results = await dispatcher.judge(pointer as any, queries, budget);
-          const lines = ['Routing decision for:', `  "${task}"`, ''];
-          for (let i = 0; i < results.length; i++) {
-            const r = results[i]!;
-            const q = queries[i]!;
-            if (r.kind === 'classify') {
-              const cp = r as { kind: 'classify'; top: { option: string; p: number }; entropy: number; tier: number };
-              lines.push(
-                `  ${q.rubric}: ${cp.top.option} (p=${cp.top.p.toFixed(3)})${verbose ? ` entropy=${cp.entropy.toFixed(3)} tier=${cp.tier}` : ''}`
-              );
-            } else {
-              const ep = r as { kind: 'evaluate'; score: number; abstained: boolean; tier: number; latencyMs: number };
-              lines.push(
-                `  ${q.rubric}: score=${ep.score.toFixed(3)} abstained=${ep.abstained}${verbose ? ` tier=${ep.tier} latency=${ep.latencyMs}ms` : ''}`
-              );
-            }
-          }
-          // Show tier path
-          const tier1Result = results.find((r) => r.tier === 1);
-          const tier = tier1Result ? 'tier1 (manifold)' : 'tier0 (deterministic)';
-          lines.push('', `Path: ${tier}`);
-          return lines.join('\n');
-        } catch (e) {
-          return `route failed: ${errMsg(e)}`;
-        }
-      }
-    ),
-    cmd(
-      'cortex',
-      'Cortex control: .cortex on|off|status|model <id>|grammar <narsese|json>',
-      async (args = '') => {
-        const dispatcher = nar.getSystemOneDispatcher?.() as any;
-        if (!dispatcher) return 'System One dispatcher not available';
-        const cortex = dispatcher.cortex;
-        const { StubCortex } = await import('@senars/nar/lm/system-one/dispatcher.js');
-        if (!cortex || cortex instanceof StubCortex) {
-          return 'Cortex not available (System One cortex provider must be configured)';
-        }
-        const parts = args.trim().split(/\s+/);
-        const sub = parts[0]?.toLowerCase();
-        if (sub === 'status' || !sub) {
-          const health = cortex.health?.();
-          const cfg = cortex.describe?.();
-          return `Cortex: ${health?.provider ?? 'unknown'} (breaker: ${health?.breakerOpen ? 'open' : 'closed'}) grammar=${cfg?.grammar ?? 'narsese-term'} temp=${cfg?.temperature ?? 0} model=${cfg?.model ?? '—'}`;
-        }
-        if (sub === 'on') {
-          // Re-create cortex with LM service - requires restart for full effect
-          return 'Cortex enable requires config change (systemOne.cortex.provider) + restart';
-        }
-        if (sub === 'off') {
-          return 'Cortex disable requires config change (systemOne.cortex.provider=off) + restart';
-        }
-        if (sub === 'model' && parts[1]) {
-          cortex.setRuntimeTuning({ model: parts[1] });
-          return `Cortex model set to ${parts[1]} (runtime only; persist via .s1-config)`;
-        }
-        if (sub === 'grammar' && parts[1]) {
-          if (!['narsese-term', 'json'].includes(parts[1]))
-            return 'Grammar must be narsese-term or json';
-          cortex.setRuntimeTuning({ grammar: parts[1] });
-          return `Cortex grammar set to ${parts[1]} (runtime only; persist via .s1-config)`;
-        }
-        return 'Usage: .cortex on|off|status|model <id>|grammar <narsese-term|json>';
-      }
-    ),
-    cmd('manifold', 'Manifold health', async () => {
-      const m = nar.getSystemOneManifold?.() as { health?: () => unknown } | undefined;
-      if (!m) return 'Manifold: not constructed (System One disabled)';
-      try {
-        return JSON.stringify(m.health?.() ?? {}, null, 2);
-      } catch (e) {
-        return `manifold error: ${errMsg(e)}`;
-      }
-    }),
-    cmd('calibrate', 'Calibration lock status: .calibrate [refresh|refit]', async (args = '') => {
-      if (args.trim().toLowerCase() === 'refresh') {
-        if (!nar.isSystemOneEnabled?.()) return 'System One: disabled';
-        await nar.refreshSystemOneContrastive(episodicMemory);
-        const stats = nar.getSystemOneContrastive?.()?.stats() ?? {};
-        const totals = Object.values(stats).reduce(
-          (a, s) => ({ p: a.p + s.positives, n: a.n + s.negatives }),
-          { p: 0, n: 0 }
-        );
-        return `Contrastive exemplars refreshed: ${totals.p}P/${totals.n}N across ${Object.keys(stats).length} rubric(s)`;
-      }
-      const { CALIBRATION_LOCK_PATH, readCalibrationLockOrNull, writeCalibrationLock, fitCalibrationLock } =
-        await import('@senars/nar/lm/system-one/calibration-fit.js');
-      if (args.trim().toLowerCase() === 'refit') {
-        if (!nar.isSystemOneEnabled?.()) return 'System One: disabled';
-        try {
-          const { JudgmentDataset } = await import('@senars/nar/lm/system-one/distill.js');
-          const { digestRows, loadEvalSet, splitOod } = await import(
-            '@senars/nar/lm/system-one/eval-set.js'
-          );
-          const datasetPath =
-            appConfig.systemOne?.distillation?.datasetPath ?? '.cache/systemone/dataset.jsonl';
-          const dataset = await JudgmentDataset.load(datasetPath);
-          let options: Record<string, unknown> = {};
-          try {
-            const frozen = await loadEvalSet('.cache/systemone/eval-set.json');
-            const { inDomain, ood } = splitOod(frozen.rows);
-            options = {
-              frozenSet: {
-                digest: inDomain.length > 0 ? digestRows(inDomain) : frozen.digest,
-                rows: inDomain,
-              },
-              ...(ood.length > 0 ? { oodSet: { digest: digestRows(ood), rows: ood } } : {}),
-            };
-          } catch {
-            // No frozen set — per-run holdout only (Phase 2 gap applies)
-          }
-          const { lock, perHead, improved } = fitCalibrationLock(dataset, options as never);
-          await writeCalibrationLock(lock, CALIBRATION_LOCK_PATH);
-          return `Calibration lock refit: ${perHead.size} head(s), holdout ECE improved=${improved}, frozen-set metrics=${lock.eval ? 'embedded' : 'absent (run .systemone eval-set create)'}\nRestart required to apply the lock to the manifold.`;
-        } catch (e) {
-          return `refit failed: ${errMsg(e)}`;
-        }
-      }
-      if (!existsSync(CALIBRATION_LOCK_PATH))
-        return 'No calibration lock (heads unfitted — pass-through mode)';
-      const lock = await readCalibrationLockOrNull();
-      if (!lock) return `lock unreadable: ${CALIBRATION_LOCK_PATH}`;
-      const heads = lock.heads
-        .map((h) => `  ${h.headId}: abstain=${h.fitted ? h.abstainThreshold.toFixed(4) : '—'}`)
-        .join('\n');
-      return `lock ${statSync(CALIBRATION_LOCK_PATH).size}B\n${heads || '  (no per-head data)'}`;
-    }),
-    cmd('distill', 'Distillation dataset status', () => {
-      const p = appConfig.systemOne?.distillation?.datasetPath ?? '.cache/systemone/dataset.jsonl';
-      const st = existsSync(p) ? `${statSync(p).size}B` : 'absent';
-      return `dataset ${p}: ${st}\nRun full teacher→student loop: pnpm run demo:arcade -- --distill`;
-    }),
-    cmd('ground', 'Groundedness gate: .ground on|off|status|threshold <0-1>', (args = '') => {
-      const parts = args.trim().split(/\s+/);
-      const sub = parts[0]?.toLowerCase();
-      if (!sub || sub === 'status')
-        return `Groundedness gate: ${ground.enabled ? 'on' : 'off'} threshold=${ground.threshold}`;
-      if (sub === 'on') {
-        ground.enabled = true;
-        return 'Groundedness gate enabled';
-      }
-      if (sub === 'off') {
-        ground.enabled = false;
-        return 'Groundedness gate disabled';
-      }
-      if (sub === 'threshold' && parts[1]) {
-        const t = Number(parts[1]);
-        if (Number.isNaN(t) || t < 0 || t > 1) return 'Threshold must be 0-1';
-        ground.threshold = t;
-        return `Groundedness threshold set to ${t}`;
-      }
-      return 'Usage: .ground on|off|status|threshold <0-1>';
-    }),
-    cmd('trace', 'Trace grader: .trace on|off|status|sample <0-1>|dataset', (args = '') => {
-      const parts = args.trim().split(/\s+/);
-      const sub = parts[0]?.toLowerCase();
-      if (!sub || sub === 'status')
-        return `Trace grader: ${trace.enabled ? 'on' : 'off'} sampleRate=${trace.sampleRate} grader=${trace.grader ? 'available' : 'unavailable'}`;
-      if (sub === 'on') {
-        trace.enabled = true;
-        return 'Trace grader enabled';
-      }
-      if (sub === 'off') {
-        trace.enabled = false;
-        return 'Trace grader disabled';
-      }
-      if (sub === 'sample' && parts[1]) {
-        const r = Number(parts[1]);
-        if (Number.isNaN(r) || r < 0 || r > 1) return 'Sample rate must be 0-1';
-        trace.sampleRate = r;
-        return `Trace sample rate set to ${r}`;
-      }
-      if (sub === 'dataset') {
-        const dataset = (nar as any).systemOne?.dataset;
-        if (!dataset) return 'Dataset not available (distillation not configured)';
-        const bySource = new Map<string, number>();
-        for (const l of dataset.all() as ReadonlyArray<{ source: string }>) {
-          bySource.set(l.source, (bySource.get(l.source) ?? 0) + 1);
-        }
-        const breakdown = [...bySource].map(([s, n]) => `  ${s}: ${n}`).join('\n');
-        return `Dataset: ${dataset.size} labels\n${breakdown}`;
-      }
-      return 'Usage: .trace on|off|status|sample <0-1>|dataset';
-    }),
-    cmd(
-      'reflex',
-      'Reflex control: .reflex list|manifold on|off|lm on|off|budget <cycles>|arms <n>',
-      (args = '') => {
-        const parts = args.trim().split(/\s+/);
-        const sub = parts[0]?.toLowerCase();
-        if (!conversationGame) return 'ConversationGame not attached (System One must be enabled)';
-        const focus = conversationGame.focus;
-        const reflexes = focus.reflexes ?? [];
-        if (!sub || sub === 'list') {
-          if (reflexes.length === 0) return 'No reflexes attached';
-          return reflexes
-            .map(
-              (r: any) =>
-                `  ${r.id}: arms=${r.numArms ?? '—'} epsilon=${r.epsilon ?? '—'} budget=${r.budget?.maxCycles ?? '—'}`
-            )
-            .join('\n');
-        }
-        const manifoldReflex = reflexes.find((r: any) => r.id === 'manifold-reflex');
-        const lmReflex = reflexes.find((r: any) => r.id === 'lm-reflex');
-        if (sub === 'manifold' && parts[1]) {
-          if (parts[1] === 'on') {
-            if (!manifoldReflex) return 'ManifoldReflex not attached';
-            return 'ManifoldReflex already active';
-          }
-          if (parts[1] === 'off') {
-            if (!manifoldReflex) return 'ManifoldReflex not attached';
-            focus.disableReflex('manifold-reflex');
-            return 'ManifoldReflex disabled';
-          }
-          return 'Usage: .reflex manifold on|off';
-        }
-        if (sub === 'lm' && parts[1]) {
-          if (parts[1] === 'on') {
-            if (!lmReflex) return 'LMReflex not attached (enable with lmReflex option)';
-            return 'LMReflex already active';
-          }
-          if (parts[1] === 'off') {
-            if (!lmReflex) return 'LMReflex not attached';
-            focus.disableReflex('lm-reflex');
-            return 'LMReflex disabled';
-          }
-          return 'Usage: .reflex lm on|off';
-        }
-        if (sub === 'budget' && parts[1]) {
-          const cycles = Number(parts[1]);
-          if (Number.isNaN(cycles) || cycles < 1) return 'Budget must be a positive number';
-          for (const r of reflexes) {
-            if (r.budget) r.budget.maxCycles = cycles;
-          }
-          return `Reflex budget set to ${cycles} cycles`;
-        }
-        if (sub === 'arms' && parts[1]) {
-          const n = Number(parts[1]);
-          if (Number.isNaN(n) || n < 1) return 'Arms must be a positive number';
-          for (const r of reflexes) {
-            if ('numArms' in r) (r as any).numArms = n;
-          }
-          return `Reflex arms set to ${n}`;
-        }
-        return 'Usage: .reflex list|manifold on|off|lm on|off|budget <cycles>|arms <n>';
-      }
-    ),
-    cmd(
-      'routing-auto',
-      'Dispatcher auto-routing: .routing-auto on|off|status|policy <conservative|balanced|aggressive>',
-      (args = '') => {
-        const parts = args.trim().split(/\s+/);
-        const sub = parts[0]?.toLowerCase();
-        if (!sub || sub === 'status')
-          return `Auto-routing: ${routing.auto ? 'on' : 'off'} policy=${routing.policy}`;
-        if (sub === 'on') {
-          routing.auto = true;
-          return 'Auto-routing enabled';
-        }
-        if (sub === 'off') {
-          routing.auto = false;
-          return 'Auto-routing disabled';
-        }
-        if (sub === 'policy' && parts[1]) {
-          const p = parts[1] as 'conservative' | 'balanced' | 'aggressive';
-          if (!['conservative', 'balanced', 'aggressive'].includes(p))
-            return 'Policy must be conservative|balanced|aggressive';
-          routing.policy = p;
-          return `Routing policy set to ${p}`;
-        }
-        return 'Usage: .routing-auto on|off|status|policy <conservative|balanced|aggressive>';
-      }
-    ),
-    cmd('provisional', 'Provisional cache: .provisional status|flush', (args = '') => {
-      const parts = args.trim().split(/\s+/);
-      const sub = parts[0]?.toLowerCase();
-      if (!sub || sub === 'status') {
-        const dispatcher = nar.getSystemOneDispatcher?.() as any;
-        const prov = dispatcher?.describe?.().provisional;
-        return `Provisional cache: ${provisional.enabled ? 'enabled' : 'disabled'} cInitial=${prov?.cInitial ?? '—'} decayRate=${prov?.decayRate ?? '—'} maxTtlMs=${prov?.maxTtlMs ?? '—'}`;
-      }
-      if (sub === 'flush') {
-        // The dispatcher's provisional cache is internal; we'd need to expose a flush method
-        return 'Provisional cache flush not yet implemented (requires dispatcher API)';
-      }
-      return 'Usage: .provisional status|flush';
-    }),
-    cmd(
-      'meta',
-      'Self-meta-game: .meta status|drives|proposals|propose <type> [args...]',
-      (args = '') => {
-        const parts = args.trim().split(/\s+/);
-        const sub = parts[0]?.toLowerCase();
-        const metaGame = nar.getSelfMetaGame?.();
-        if (!metaGame)
-          return 'Self-meta-game not available (requires System One with self enabled)';
-
-        if (!sub || sub === 'status') {
-          const queues = metaGame.getGovernanceQueues?.() ?? { validation: 0, approval: 0 };
-          const observes = (metaGame as any).observesFocuses ?? [];
-          const cycle = (metaGame as any).cycle ?? 0;
-          const knobs = metaGame.getAllKnobs?.() ?? new Map();
-          return [
-            'Self-Meta-Game:',
-            `  ID: ${metaGame.id}`,
-            `  Cycle: ${cycle}`,
-            `  Observed focuses: ${observes.length ? observes.join(', ') : '(none)'}`,
-            `  Governance queues: validation=${queues.validation} approval=${queues.approval}`,
-            `  Knobs: ${knobs.size ? [...knobs.entries()].map(([k, v]) => `${k}=${v}`).join(', ') : '(none)'}`,
-          ].join('\n');
-        }
-        if (sub === 'drives') {
-          // Drive stimulation intensities would come from the reward gate / scheduler
-          const scheduler = (metaGame as any).scheduler;
-          if (!scheduler) return 'No scheduler attached (drives require scheduler)';
-          return 'Drives: test_failed, contradiction_detected, low_coverage (use .drive stimulate <name>)';
-        }
-        if (sub === 'proposals') {
-          // Phase F (audit M4): proposalRouter is private — the queue depths
-          // already surface via getGovernanceQueues.
-          const queues = metaGame.getGovernanceQueues?.() ?? { validation: 0, approval: 0 };
-          const total = queues.validation + queues.approval;
-          if (total === 0) return 'No pending proposals';
-          return `${total} pending proposal(s): validation=${queues.validation} approval=${queues.approval}`;
-        }
-        if (sub === 'propose' && parts[1]) {
-          const type = parts[1];
-          const args = parts.slice(2);
-          const proposal = {
-            kind: type,
-            riskTier: 'low',
-            payload: { args },
-            correlationId: `manual-${Date.now()}`,
-          };
-          const result = metaGame.applyProposal?.(proposal) ?? {
-            applied: false,
-            reason: 'applyProposal not available',
-          };
-          return result.applied
-            ? `Proposal applied: ${result.reason}`
-            : `Proposal rejected: ${result.reason}`;
-        }
-        return 'Usage: .meta status|drives|proposals|propose <type> [args...]';
-      }
-    ),
-    cmd(
-      's1-config',
-      'System One config: .s1-config show|set <path> <value>|save|reload',
-      async (args = '') => {
-        const parts = args.trim().split(/\s+/);
-        const sub = parts[0]?.toLowerCase();
-        if (!sub || sub === 'show') {
-          return JSON.stringify(appConfig.systemOne ?? {}, null, 2);
-        }
-        if (sub === 'set' && parts[1] && parts[2]) {
-          const path = parts[1];
-          const value = parts.slice(2).join(' ');
-          if (
-            setPath(
-              appConfig as unknown as Record<string, unknown>,
-              `systemOne.${path}`,
-              coerce(value)
-            )
-          ) {
-            return `Set systemOne.${path} (persist with .s1-config save)`;
-          }
-          return `Unknown path: systemOne.${path}`;
-        }
-        if (sub === 'save') {
-          const path =
-            args.trim().split(/\s+/)[1] || process.env.SENARS_CONFIG || 'senars.config.json';
-          await writeFile(path, JSON.stringify(appConfig, null, 2));
-          return `Saved to ${path}`;
-        }
-        if (sub === 'reload') {
-          const newConfig = await loadConfig();
-          appConfig = newConfig;
-          return 'Config reloaded (LM/routing changes need restart)';
-        }
-        return 'Usage: .s1-config show|set <path> <value>|save|reload';
-      }
-    ),
-    cmd('drive', 'Drive stimulation: .drive stimulate <name> [intensity]', (args = '') => {
-      const parts = args.trim().split(/\s+/);
-      const sub = parts[0]?.toLowerCase();
-      if (sub !== 'stimulate' || !parts[1]) return 'Usage: .drive stimulate <name> [intensity]';
-      const name = parts[1];
-      const intensity = parts[2] ? Number(parts[2]) : 1.0;
-      const metaGame = nar.getSelfMetaGame?.();
-      if (!metaGame) return 'Self-meta-game not available';
-      // Drive stimulation would go through the reward gate
-      const scheduler = (metaGame as any).scheduler;
-      if (!scheduler) return 'No scheduler attached (drives require scheduler)';
-      const reward = intensity;
-      const check = scheduler.rewardGate.process({
-        eventId: `drive-${Date.now()}`,
-        rewardSignal: reward,
-        rewardType: 'intrinsic',
-        targetType: 'policy-weights',
-        targetId: 'drive',
-        domain: 'self-scheduler',
-      });
-      return check.accepted
-        ? `Drive ${name} stimulated (intensity=${intensity})`
-        : `Drive ${name} rejected: ${check.rejectionReason}`;
-    }),
-    cmd('selftune', 'Quick 3-iteration self-tune demo', async () => {
-      const { RLFPLearner } = await import('@senars/nar/rlfp');
-      const { DEFAULT_COGNITIVE_PARAMETERS } = await import(
-        '@senars/nar/config/cognitive-parameters.js'
-      );
-      const rlfp = new RLFPLearner({ currentParams: { ...DEFAULT_COGNITIVE_PARAMETERS } });
-      let best = -Infinity;
-      for (let i = 0; i < 3; i++) {
-        const r = rlfp.calculateReward({
-          testPassRate: 0.8,
-          avgTestDuration: 90,
-          coverageDelta: 0.01,
-          memoryOverage: 0.05,
-          cpuThrottleTime: 2,
-          baselineDuration: 100,
-        });
-        best = Math.max(best, r);
-      }
-      return `selftune demo: 3 iters, best reward=${best.toFixed(4)} (full run: pnpm self-tune-demo)`;
-    }),
-    cmd('doctor', 'Lightweight health check', async (args = '') => {
-      const s = resolveLMSettings();
-      const creds = ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'LM_API_KEY']
-        .map((k) => `${k}=${process.env[k] ? 'set' : 'unset'}`)
-        .join(' ');
-      let embedded = 'n/a';
-      if (s.provider === 'llamacpp-embedded') {
-        try {
-          const { probeEmbeddedLlama } = await import(
-            '@senars/nar/lm/providers/embedded-llamacpp.js'
-          );
-          const r = await probeEmbeddedLlama();
-          embedded = `${r.available ? 'ok' : 'FAIL'}: ${r.detail}`;
-        } catch (e) {
-          embedded = `probe failed: ${errMsg(e)}`;
-        }
-      }
-      let cfgValid = true;
-      try {
-        await loadConfig();
-      } catch {
-        cfgValid = false;
-      }
-      const out = {
-        provider: s.provider,
-        model: s.model ?? 'default',
-        embedded,
-        configValid: cfgValid,
-        creds,
-      };
-      return args.includes('--json')
-        ? JSON.stringify(out, null, 2)
-        : `provider=${s.provider} model=${s.model ?? 'default'}\nembedded: ${embedded}\nconfig: ${cfgValid ? 'valid' : 'INVALID'}\n${creds}`;
-    }),
-    cmd('health', 'Quick health check', async () => {
-      const s = resolveLMSettings();
-      const m = nar.getSystemOneManifold?.();
-      return `lm=${s.provider} systemOne=${nar.isSystemOneEnabled?.() ? 'on' : 'off'} manifold=${m ? 'up' : '—'} connections=${cm.getConnections().size}`;
-    }),
-    cmd('routing-log', 'Routing telemetry status', async () => {
-      try {
-        const { getRoutingLogStatus } = await import('@senars/nar/lm/providers.js');
-        const st = getRoutingLogStatus();
-        return `enabled=${st.enabled} buffered=${st.bufferSize} log=${st.logPath}`;
-      } catch (e) {
-        return `routing-log unavailable: ${errMsg(e)}`;
-      }
-    }),
-    cmd('spend', 'LM spend counters', () => {
-      const spend = nar.getLMClient?.()?.getSpend?.() as
-        | Record<string, { calls: number; tokensIn: number; tokensOut: number }>
-        | undefined;
-      return spend && Object.keys(spend).length
-        ? Object.entries(spend)
-            .map(([p, v]) => `  ${p}: ${v.calls} calls in=${v.tokensIn} out=${v.tokensOut}`)
-            .join('\n')
-        : 'No LM spend recorded';
-    }),
-    cmd('gates', 'Kernel gate states', () => {
-      try {
-        return (
-          Object.keys((nar as unknown as { gates?: object }).gates ?? {}).join(', ') || 'gates: n/a'
-        );
-      } catch (e) {
-        return `gates unavailable: ${errMsg(e)}`;
-      }
-    }),
-    cmd('benchmarks', 'Micro-benchmark: time NAR inference cycles', async (args = '') => {
-      const cycles = Math.max(1, Math.min(200, Number(args.trim()) || 20));
-      const t0 = Date.now();
-      const derived = await nar.run(cycles);
-      const ms = Date.now() - t0;
-      return `${cycles} cycles in ${ms}ms (${((cycles / Math.max(ms, 1)) * 1000).toFixed(0)} cyc/s), derivations=${derived}\nFull suites: pnpm bench`;
-    }),
-    cmd('webui', 'Start/stop web UI', async (args = '') => {
-      const [sub] = args.trim().split(/\s+/);
-      if (sub === 'stop') {
-        if (webuiHandle?.close) await webuiHandle.close().catch(() => undefined);
-        webuiHandle = null;
-        return 'Web UI stopped';
-      }
-      if (webuiHandle) return 'Web UI already running';
-      const port = Number(sub) || 3001;
-      const { startAgentUI } = await import('../../ui/src/server/index.js');
-      webuiHandle = await startAgentUI(agent as never, { port } as never).catch((e: unknown) => {
-        throw e;
-      });
-      return `Web UI on :${port}`;
-    }),
-    cmd('arcade', 'Run arcade games: [games] [arms] [episodes] [seed]', async (args = '') => {
-      const [games = 'snake', arms = 'heuristic,random', episodes = '2', seed = '7'] = args
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean);
-      return await new Promise<string>((resolve) => {
-        execFile(
-          'pnpm',
-          [
-            'exec',
-            'tsx',
-            'scripts/arcade.ts',
-            '--games',
-            games ?? '',
-            '--arms',
-            arms ?? '',
-            '--episodes',
-            episodes ?? '',
-            '--seed',
-            seed ?? '',
-          ],
-          { timeout: 300000, maxBuffer: 1 << 20 },
-          (_e, stdout, stderr) =>
-            resolve(((stdout || '') + (stderr || '')).slice(-8000) || 'arcade produced no output')
-        );
-      });
-    }),
-    cmd('multiagent', 'MeTTa multi-agent status', async (args = '') => {
-      if (args.trim().toLowerCase() === 'on' || args.trim().toLowerCase() === 'off')
-        return 'MeTTa is a builtin ActionGate tool (always available); NAR+MeTTa are unified by design — nothing to toggle';
-      try {
-        const tools = (
-          agent as unknown as { tools?: { has?: (n: string) => boolean; list?: () => string[] } }
-        ).tools;
-        const names = tools?.list?.() ?? [];
-        return `metta tool: ${(tools?.has?.('metta') ?? names.includes('metta')) ? 'available' : 'unknown'}\n${names.length ? `tools: ${names.slice(0, 20).join(', ')}` : 'chat: Narsese routes to NAR, NL routes to LM'}`;
-      } catch (e) {
-        return `multiagent status unavailable: ${errMsg(e)}`;
-      }
-    }),
-    cmd('config-show', 'Show effective config', () =>
-      JSON.stringify(
-        {
-          profile: appConfig.profile,
-          lm: appConfig.lm,
-          routing: appConfig.routing,
-          systemOne: appConfig.systemOne
-            ? { enabled: (appConfig.systemOne as { enabled?: boolean }).enabled }
-            : undefined,
-        },
-        null,
-        2
-      )
-    ),
-    cmd('config-set', 'Set config value (dot notation)', (args = '') => {
-      const [path, ...rest] = args.trim().split(/\s+/);
-      if (!path || !rest.length) return 'Usage: .config-set <dot.path> <value>';
-      return setPath(appConfig as unknown as Record<string, unknown>, path, coerce(rest.join(' ')))
-        ? `Set ${path} (persist with .config-save)`
-        : `Unknown path: ${path}`;
-    }),
-    cmd('config-save', 'Save config to file', async (args = '') => {
-      const path = args.trim() || process.env.SENARS_CONFIG || 'senars.config.json';
-      await writeFile(path, JSON.stringify(appConfig, null, 2));
-      return `Saved to ${path}`;
-    }),
-    cmd('config-reload', 'Reload config from file', async () => {
-      appConfig = await loadConfig();
-      return 'Config reloaded (LM/routing changes need restart)';
-    }),
-    cmd('config-reset', 'Reset config to defaults (requires --yes)', async (args = '') => {
-      if (!args.includes('--yes')) return 'Destructive. Re-run as .config-reset --yes to confirm';
-      const { DEFAULT_APP_CONFIG } = await import('../config/index.js');
-      appConfig = structuredClone(DEFAULT_APP_CONFIG);
-      return 'Config reset to defaults (persist with .config-save; restart bot to apply)';
-    }),
-    cmd('auth-list', 'List connections with auth secrets', () =>
-      secretIds.size
-        ? [...secretIds].map((id) => `  ${id}: secret set`).join('\n')
-        : '(no auth secrets set)'
-    ),
-    cmd('auth-add', 'Set auth secret for a connection', (args = '') => {
-      const [id, secret] = args.trim().split(/\s+/);
-      if (!id || !secret) return 'Usage: .auth-add <connection-id> <secret>';
-      auth.setSecret(id, secret);
-      secretIds.add(id);
-      return `Secret set for ${id}`;
-    }),
-    cmd('auth-remove', 'Remove auth secret', (args = '') => {
-      const id = args.trim();
-      if (!id) return 'Usage: .auth-remove <connection-id>';
-      auth.removeSecret(id);
-      secretIds.delete(id);
-      return `Secret removed for ${id}`;
-    }),
-  ];
-}
-
-
-async function runNonInteractive(argv: string[]): Promise<boolean> {
-  if (argv.includes('--help') || argv.includes('-h')) {
-    console.log(
-      'Usage: pnpm run bot [-- --status|--doctor|--tune|--arcade|--multiagent] [--json]\n\nNo flags: interactive CLI (senars> ). Connections are opt-in via .connect or ENABLE_IRC/WS/HTTP/MCP=true.'
-    );
-    return true;
-  }
-  if (argv.includes('--status')) {
-    await import('./lib/status-report.js').then((m) => m.runStatus());
-    return true;
-  }
-  if (argv.includes('--doctor')) {
-    await import('./lib/doctor-report.js').then((m) => m.runDoctor());
-    return true;
-  }
-  if (argv.includes('--tune')) {
-    await import('./lib/tune-runner.js').then((m) => m.runTune());
-    return true;
-  }
-  if (argv.includes('--arcade')) {
-    await import('../../scripts/arcade.js');
-    return true;
-  }
-  if (argv.includes('--multiagent')) {
-    await import('./lib/multi-agent-entry.js').then((m) => m.runMultiAgentEntry());
-    return true;
-  }
-  return false;
-}
-
-async function main(): Promise<void> {
-  const argv = process.argv.slice(2);
-  if (await runNonInteractive(argv)) return;
-
-  await ensureDir('.cache/sessions').catch(() => undefined);
-  const wired = await createAgentFromEnv();
-  const { agent, sessionManager, profile } = wired;
-  const lmConfig = resolveLMConfig();
-  const settings = resolveLMSettings();
-
-  const auth = new AuthManager();
-  const authCfg = readAuthConfig();
-  if (authCfg.secret) for (const id of authCfg.connectionIds) auth.setSecret(id, authCfg.secret);
-
-  const cm = new ConnectionManager();
-  cm.registerFactory({
-    type: 'cli',
-    create: (cfg) => new CLIConnection(cfg, { emit: () => undefined, logger }),
-  });
-  cm.registerFactory({
-    type: 'irc',
-    create: (cfg) => new IRCConnection(cfg, { emit: () => undefined, logger }),
-  });
-  cm.registerFactory({
-    type: 'websocket',
-    create: (cfg) => new WSConnection(cfg, { emit: () => undefined, logger }),
-  });
-  cm.registerFactory({
-    type: 'http',
-    create: (cfg) => new HTTPConnection(cfg, { emit: () => undefined, logger }),
-  });
-  cm.registerFactory({
-    type: 'mcp',
-    create: (cfg) => new MCPConnection(cfg, { emit: () => undefined, logger }),
-  });
-
-  let currentSession = sessionManager.getOrCreate('default');
-  let tier: 'quality' | 'fast' | 'structured' = profile.narrateTier;
-  // Groundedness gate state (shared with collectChat). Phase E: egress-gate
-  // verdicts are verification signals for the LM narration channel.
-  // Phase F (audit M2): record under the fine provider:<name> key the ingress
-  // judge reads — legacy llm-narration key kept alongside during transition.
-  const systemOneGate = wired.nar.getSystemOneGroundednessGate?.();
-  const narrationKeys = (): string[] => {
-    let provider: string | undefined;
-    try {
-      provider = resolveLMSettings().provider;
-    } catch {
-      provider = undefined;
-    }
-    const key = providerKey(provider);
-    return key ? ['llm-narration', key] : ['llm-narration'];
-  };
-  const ground: GroundednessState = {
-    enabled: wired.appConfig.systemOne?.enabled === true,
-    threshold: 0.7,
-    gate: systemOneGate
-      ? async (text: string) => {
-          const correlationId = makeId();
-          const ok = await systemOneGate(text, correlationId);
-          for (const key of narrationKeys())
-            sourceReputation.record(key, ok ? 'confirmed' : 'contradicted');
-          return ok;
-        }
-      : undefined,
-  };
-  // Trace grader state
-  const trace: TraceState = {
-    enabled: false,
-    sampleRate: 0.1,
-    grader: wired.nar.getSystemOneTraceGrader?.(),
-    dataset: (wired.nar as any).systemOne?.dataset,
-    embeddingCache: wired.nar.getSystemOneEmbeddingCache?.(),
-  };
-  // Auto-routing state (Phase 4)
-  const routing: { auto: boolean; policy: 'conservative' | 'balanced' | 'aggressive' } = {
-    auto: false,
-    policy: 'balanced',
-  };
-  // Provisional cache state (Phase 4)
-  const provisional: { enabled: boolean } = { enabled: true };
-
-  // TODO24 Dialogue Flywheel: one instance per bot; every sink guarded by
-  // dialogue.enabled (I5 default false ⇒ byte-identical disabled path).
-  // Phase-B enrichment: decider bands + provenance, LM formalizations, reflex
-  // readout — all best-effort with graceful degradation.
-  const decider = wired.nar.getSystemOneDecider?.();
-  const dialogueEmbeddingCache = wired.nar.getSystemOneEmbeddingCache?.();
-  // LM-bound formalization enrichment: a real LM call per turn, so gated on
-  // `dialogue.captureAll` — explicit opt-in to full-fidelity turns (cost gate).
-  const understanding =
-    wired.appConfig.dialogue?.captureAll === true
-      ? new NLUnderstandingService(wired.lmService, new TranslationCache(), { structuredOnly: true })
-      : undefined;
+  let conversationGame: BotRuntime['conversationGame'] = null;
   const enrich =
     decider || understanding
       ? async (input: { utterance: string; at?: number }) => {
           const [result, batch] = await Promise.all([
-            decider && dialogueEmbeddingCache
+            decider && embeddingCache
               ? decider.decide({
                   context: input.utterance,
                   queries: [
                     {
-                      kind: 'evaluate',
+                      kind: 'evaluate' as const,
                       instruction: 'Evaluate groundedness of the dialogue turn',
-                      rubric: 'groundedness',
-                      axis: 'epistemic',
+                      rubric: 'groundedness' as never,
+                      axis: 'epistemic' as const,
                     },
                   ],
                   budget: {
@@ -1872,16 +283,18 @@ async function main(): Promise<void> {
               : null,
             understanding?.understandCandidates(input.utterance).catch(() => null) ?? null,
           ]);
-          const reflexes = conversationGame?.focus?.reflexes ?? [];
-          // Per-message attribution (I7): join reflex decisions by the
-          // message's wall-clock span — the kernel mints correlationIds
-          // inside agent.chat(), so the span is the honest join available
-          // without threading ids through the Focus cycle. Vetoes stay
-          // cumulative (the reflexes only expose a running counter).
+          // Per-message attribution (I7): join reflex decisions by the message's
+          // wall-clock span — the kernel mints correlationIds inside agent.chat(),
+          // so the span is the honest join available without threading ids
+          // through the Focus cycle. Vetoes stay cumulative (running counter).
           const since = input.at ?? 0;
-          const windowed = reflexes.flatMap((r: any) => r.decisionsSince?.(since) ?? []);
+          const windowed = reflexesOf(conversationGame).flatMap((r) =>
+            (r as { decisionsSince?(t: number): Array<{ proposed: string[]; selected?: unknown }> })
+              .decisionsSince?.(since) ?? []
+          );
           const selected = windowed.at(-1)?.selected;
-          const vetoes = reflexes.find((r: any) => r.id === 'lm-reflex')?.contrastiveVetoes ?? 0;
+          const vetoes =
+            reflexesOf(conversationGame).find((r) => r.id === 'lm-reflex')?.contrastiveVetoes ?? 0;
           return {
             ...(result
               ? {
@@ -1893,7 +306,7 @@ async function main(): Promise<void> {
             ...(windowed.length && selected
               ? {
                   reflex: {
-                    proposed: [...new Set(windowed.flatMap((d: any) => d.proposed))],
+                    proposed: [...new Set(windowed.flatMap((d) => d.proposed))],
                     selected,
                     vetoes,
                   },
@@ -1902,23 +315,23 @@ async function main(): Promise<void> {
           };
         }
       : undefined;
-const dialogue = new DialogueCapture({
-    episodic: wired.episodicMemory,
-    dataset: (wired.nar as any).systemOne?.dataset,
-    embeddingCache: dialogueEmbeddingCache,
-    contrastive: wired.nar.getSystemOneContrastive?.(),
+  const dialogue = new DialogueCapture({
+    episodic: episodicMemory,
+    dataset: systemOne?.dataset,
+    embeddingCache,
+    contrastive: nar.getSystemOneContrastive?.(),
     // Phase F (audit M3): episodes join the reputation table by channel —
     // narration-source provider key, resolved live (provider switches apply).
     sourceKey: () => {
       try {
         const p = resolveLMSettings().provider;
-        return p ? providerKey(p) ?? 'user' : 'user';
+        return p ? (providerKey(p) ?? 'user') : 'user';
       } catch {
         return 'user';
       }
     },
     ...(enrich ? { enrich: enrich as never } : {}),
-    // DQ6: formalize corrections into Narsese lessons when the LM-bound
+    // DQ6: formalize corrections into Narsese lessons when an LM-bound
     // understanding service is available (same captureAll cost gate).
     ...(understanding
       ? {
@@ -1933,26 +346,12 @@ const dialogue = new DialogueCapture({
     config: wired.appConfig.dialogue,
   });
 
-  // MemoryQuery for cross-memory operations (auto-retrospect, etc.)
-  const memoryQuery = new MemoryQuery({
-    memory: wired.nar.memory,
-    episodic: wired.episodicMemory,
-    embed: dialogueEmbeddingCache
-      ? async (text) => {
-          const pointer = await dialogueEmbeddingCache.write(text).catch(() => undefined);
-          return pointer ? dialogueEmbeddingCache.read(pointer) : undefined;
-        }
-      : undefined,
-  });
-
   // REFACTOR.todo1 Phase A: promote dialogue capture from the per-message
   // fire-and-forget hook to a Capture phase appended to the macro pipeline —
   // same onExchange call, joined on the cycle's correlationId (I7).
-  wired.agent.setMacroPipeline([
+  agent.setMacroPipeline([
     ...DEFAULT_MACRO_PIPELINE,
-    createCapturePhase({
-      onExchange: (exchange) => dialogue.onExchange(exchange as never),
-    }),
+    createCapturePhase({ onExchange: (exchange) => dialogue.onExchange(exchange as never) }),
   ]);
 
   // TODO25 Phase A: retrospective-driven strategy adaptation (clamped +
@@ -1960,87 +359,11 @@ const dialogue = new DialogueCapture({
   // Phase B (REFACTOR.todo1): shared parameter ledger (C2 — observe, never
   // decide) wired into every writer; off until this attach point.
   const parameterLedger = new ParameterLedger({ path: DEFAULT_LEDGER_PATH });
-  wired.nar.setParameterLedger(parameterLedger);
-  // Phase E: source reputation (trust-not-truth ceiling) — fed by verification
-  // signals only: egress-gate verdicts and `.react` corrections.
-  const sourceReputation = new SourceReputation({ path: DEFAULT_REPUTATION_PATH });
-  wired.nar.setSourceReputation(sourceReputation);
-  const narController = wired.nar.getController?.();
+  nar.setParameterLedger(parameterLedger);
+  const narController = nar.getController?.();
   const strategyAdapter = narController
     ? new RetrospectiveAdapter(narController as never, { ledger: parameterLedger })
     : undefined;
-
-  // TODO24 §5 Phase C: shared retrospective runner — aggregates captured turns,
-  // mines contradiction terms from live beliefs, and emits a low-risk
-  // focus-weight proposal when corrections dominate (governance unchanged, I3:
-  // routed through ProposalRouter at the consumer, never auto-applied here).
-  runSessionRetrospective = async (
-    sessionId: string,
-    memoryQuery: import('@senars/nar/query/memory-query.js').MemoryQuery
-  ): Promise<string> => {
-    const { mineHardNegatives } = await import('@senars/nar/lm/system-one/hard-negatives.js');
-    const negatives = await mineHardNegatives(wired.nar, wired.episodicMemory, {
-      limit: 16,
-      // Phase D (REFACTOR.todo2): mined candidates accumulate in the bounded
-      // bag when the kernel opted in (priority-ordered contrastive seeding).
-      ...(wired.nar.getMiningBag?.() ? { into: wired.nar.getMiningBag() } : {}),
-    }).catch(() => []);
-    const contradictionTerms = negatives
-      .filter((n) => n.source === 'contradiction')
-      .map((n) => n.text);
-    // Corrections dominating reactions ⇒ propose a low-risk focus-weight tune
-    // (payload only; ProposalRouter governs — never auto-applied here, I3).
-    const reactionEpisodes = await wired.episodicMemory.getEpisodes({
-      type: 'reaction',
-      limit: 500,
-    });
-    const sessionReactions = reactionEpisodes.filter(
-      (e) => (e.metadata as any).sessionId === sessionId
-    );
-    const corrections = sessionReactions.filter(
-      (e) => (e.metadata as any).kind === 'correct'
-    ).length;
-    const proposal = {
-      proposalId: makeId(),
-      kind: 'focus-weight' as const,
-      riskTier: 'low' as const,
-      payload: { focusId: 'conversation', weight: 0.8 },
-      rewardDomain: 'external-reflex' as const,
-      correlationId: sessionId,
-    };
-    const r = await retrospect(sessionId, wired.episodicMemory, {
-      // I7 payoff: trace grades keyed by the correlationId the kernel minted —
-      // each message's turnId shares that prefix, so joins are exact.
-      traceGrades: (wired.nar as any).systemOne?.traceGradeHistory,
-      // Phase B: which parameter writes preceded this session's quality shifts.
-      ledgerEntries: parameterLedger
-        .query()
-        .filter(
-          (r) =>
-            sessionReactions.length === 0 ||
-            r.at >= Math.min(...sessionReactions.map((e) => e.timestamp))
-        ),
-      // Phase C (REFACTOR.todo2): cross-memory session context around the window.
-      memoryQuery,
-      contradictionTerms,
-      proposals:
-        sessionReactions.length >= 2 && corrections * 2 >= sessionReactions.length
-          ? [proposal]
-          : [],
-    });
-    await persistRetrospective(r);
-    // TODO25 Phase A: correction-dominated retrospectives switch reasoning
-    // strategies (N1 clamped: strategy-type switches only, digest one-shot
-    // N2, restorable via the adapter ledger).
-    const controller = wired.nar.getController?.();
-    const adapted =
-      controller && strategyAdapter ? strategyAdapter.adaptFromRetrospective(r) : false;
-    return (
-      `Retrospective ${r.sessionId}: turns=${r.turnCount} reactions=${r.reactionCount} ` +
-      `corrections=${r.corrections.length} proposals=${r.proposals.length} ` +
-      `adapted=${adapted ? 'derivation→focused,lm-rule→priority' : 'no'} digest=${r.digest.slice(0, 19)}`
-    );
-  };
 
   // Bot-only default profile: enable System One by default (opt-out via config)
   // This only affects the bot; non-Bot NAR consumers are unaffected.
@@ -2062,38 +385,82 @@ const dialogue = new DialogueCapture({
   const evaluateMetta = (expression: string): boolean | null => {
     try {
       const atom = Effect.runSync(mettaRuntime.evaluate(parseMeTTa(expression)));
-      return atom.kind === 0 ? (atom.value === 'True' ? true : atom.value === 'False' ? false : null) : null;
+      return atom.kind === 0
+        ? atom.value === 'True'
+          ? true
+          : atom.value === 'False'
+            ? false
+            : null
+        : null;
     } catch {
       return null;
     }
   };
-  const mettaProposer = new MettaProposer(evaluateMetta, { toExpression: () => undefined });
 
   // Attach ConversationGameFocus for System One reflexes (Phase 3)
-  let conversationGame: { focus: any; game: any } | null = null;
-  if (wired.nar.isSystemOneEnabled?.()) {
+  if (nar.isSystemOneEnabled?.()) {
     try {
-      conversationGame = wired.nar.attachConversationGame?.({
+      conversationGame = nar.attachConversationGame({
         id: 'conversation',
         lmReflex: true,
-        proposers: [mettaProposer],
+        proposers: [new MettaProposer(evaluateMetta, { toExpression: () => undefined })],
       });
-      if (conversationGame) {
-        logger.info('ConversationGameFocus attached with reflexes');
-      }
+      if (conversationGame) logger.info('ConversationGameFocus attached with reflexes');
     } catch (e) {
       logger.warn('Failed to attach ConversationGameFocus', { error: errMsg(e) });
     }
     // Seed CLM contrastive exemplars from live state (hard negatives + calibration).
-    wired.nar
-      .refreshSystemOneContrastive?.(wired.episodicMemory)
+    nar
+      .refreshSystemOneContrastive?.(episodicMemory)
       .catch((e) => logger.warn('Contrastive refresh failed at startup', { error: errMsg(e) }));
   }
 
+  // loadConfig() returns a deeply frozen object — clone for runtime mutation.
+  const appConfig = structuredClone(wired.appConfig);
+  const registry = createRemoteRegistry(auth);
+  const secretIds = new Set<string>();
+  const bindTo = (conn: Connection): void => {
+    bindAgentToConnection(agent as never, conn as never, {
+      auth,
+      commandRegistry: registry,
+      sessionManager,
+      episodicMemory,
+      manager: cm,
+    } as never);
+  };
+  const rt: BotRuntime = {
+    wired,
+    cm,
+    auth,
+    registry,
+    dialogue,
+    memoryQuery,
+    strategyAdapter,
+    parameterLedger,
+    conversationGame,
+    ground,
+    trace,
+    routing,
+    provisional,
+    profile: appConfig.profile,
+    tier,
+    secretIds,
+    appConfig,
+    webuiHandle: null,
+    attach: async (spec: ConnectSpec) => {
+      const conn = await cm.addConnection(
+        { ...spec, enabled: true },
+        { emit: () => undefined, logger }
+      );
+      bindTo(conn);
+      return `Connected ${spec.type} as ${spec.id}`;
+    },
+  };
+
   const core = buildCommands(
-    wired.nar,
+    nar,
     agent,
-    wired.lmService,
+    lmService,
     sessionManager,
     () => currentSession,
     (s) => {
@@ -2106,20 +473,7 @@ const dialogue = new DialogueCapture({
       },
     }
   );
-  const extra = buildExtraCommands(
-    wired,
-    cm,
-    auth,
-    ground,
-    trace,
-    conversationGame,
-    routing,
-    provisional,
-    dialogue,
-    strategyAdapter,
-    parameterLedger
-  );
-  const commands = [...core.filter((c) => c.name !== 'help'), ...extra];
+  const commands = [...core.filter((c) => c.name !== 'help'), ...buildBotCommands(rt)];
 
   const cli = new CLIConnection(
     { id: 'cli-main', type: 'cli', enabled: true, config: { name: 'CLI', commands } } as never,
@@ -2127,7 +481,7 @@ const dialogue = new DialogueCapture({
   );
   await cli.connect();
   cli.onMessage(async (message) => {
-    await collectChat(agent, message.text, tier, ground, trace);
+    await collectChat(rt, message.text, tier);
   });
   agent.mount(cli as never);
 
@@ -2143,41 +497,18 @@ const dialogue = new DialogueCapture({
     }
   });
 
-  const remoteRegistry = new CommandRegistry();
-  for (const c of [
-    ...coreCommands,
-    ...narCommands,
-    ...memoryCommands,
-    ...episodesCommands,
-    ...configCommands,
-    ...lmCommands,
-    ...rlfpCommands,
-    ...selfCommands,
-    ...connectionCommands,
-    ...createAuthCommands(auth),
-  ])
-    remoteRegistry.register(c);
-
   const autoConnect = envBool('BOT_CLI_ONLY')
     ? []
     : createConnectionConfigsFromEnv({ irc: wired.appConfig.irc });
   for (const cfg of autoConnect) {
-    if (cfg.type === 'irc' || cfg.type === 'websocket') cfg.config.greeting ??= profile.joinMessage;
+    if (cfg.type === 'irc' || cfg.type === 'websocket') {
+      cfg.config.greeting ??= profile.joinMessage;
+    }
   }
   for (const cfg of autoConnect) {
     try {
       const conn = await cm.addConnection(cfg, { emit: () => undefined, logger });
-      bindAgentToConnection(
-        agent as any,
-        conn as never,
-        {
-          auth,
-          commandRegistry: remoteRegistry,
-          sessionManager,
-          episodicMemory: wired.episodicMemory,
-          manager: cm,
-        } as never
-      );
+      bindTo(conn);
       logger.info(`Bound bridge to: ${conn.name} (${conn.type})`);
     } catch (e) {
       logger.error(`Failed to add ${cfg.type}: ${errMsg(e)}`);
@@ -2196,7 +527,7 @@ const dialogue = new DialogueCapture({
     logger.info('Shutting down...');
     // TODO24 (DQ3, opt-in): auto-retrospect the session on close.
     if (wired.appConfig.dialogue?.autoRetrospect) {
-      await runSessionRetrospective(currentSession.id ?? 'default', memoryQuery).catch((e) =>
+      await runSessionRetrospective(rt, currentSession.id ?? 'default').catch((e) =>
         logger.warn('Auto-retrospect failed', { error: errMsg(e) })
       );
     }

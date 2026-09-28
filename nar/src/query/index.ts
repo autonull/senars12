@@ -1,6 +1,3 @@
-export type { LogEntry, LoggerConfig, LogLevel } from '@senars/util';
-export { createLogger, defaultLogger, Logger } from '@senars/core/logger';
-export { createMetricsCollector, MetricsCollector } from '../metrics/index.js';
 export type { TermFilter } from '../types/index.js';
 export type { Answer, QueryResult } from './api.js';
 export { createQueryAPI, QueryAPI } from './api.js';

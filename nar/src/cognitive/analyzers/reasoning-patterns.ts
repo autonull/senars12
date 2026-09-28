@@ -1,7 +1,8 @@
 /**
  * Reasoning pattern analysis - extracted from SelfAnalyzerService
  */
-import type { MetricsCollector, NAR } from '../../nar.js';
+import type { MetricsCollector } from '../../metrics';
+import type { NAR } from '../../nar.js';
 import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
 import type { InferenceChain, PatternAnalysis, ReasoningStep } from '../types.js';
 import { EMPTY_PATTERN } from './constants.js';

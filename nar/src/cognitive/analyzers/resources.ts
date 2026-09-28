@@ -4,7 +4,8 @@
 import { mean } from '@senars/util';
 
 import type { Concept } from '../../memory';
-import type { MetricsCollector, NAR } from '../../nar.js';
+import type { MetricsCollector } from '../../metrics';
+import type { NAR } from '../../nar.js';
 import type { ResourceUsage } from '../types.js';
 import { getMemory } from './constants.js';
 

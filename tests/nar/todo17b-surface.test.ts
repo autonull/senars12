@@ -51,11 +51,15 @@ describe('Bench 40 — Surface Truth', () => {
   });
 
   it('D19 — the bot populates its CommandRegistry at bind time', () => {
-    const botSrc = readFileSync(join(ROOT, 'src/bin/bot.ts'), 'utf-8');
-    expect(botSrc.includes('new CommandRegistry()')).toBe(true);
-    expect(botSrc.includes('.register(')).toBe(true);
-    expect(botSrc.includes('coreCommands')).toBe(true);
-    expect(botSrc.includes('createAuthCommands')).toBe(true);
+    // The registry is built by the bot's command surface, so the whole
+    // `src/bin` tree is the surface under test — not one file.
+    const binSrc = walk(join(ROOT, 'src/bin'))
+      .map((f) => readFileSync(f, 'utf-8'))
+      .join('\n');
+    expect(binSrc.includes('new CommandRegistry()')).toBe(true);
+    expect(binSrc.includes('.register(')).toBe(true);
+    expect(binSrc.includes('coreCommands')).toBe(true);
+    expect(binSrc.includes('createAuthCommands')).toBe(true);
   });
 
   it('D24 — README rule-matrix claims have implementations', async () => {

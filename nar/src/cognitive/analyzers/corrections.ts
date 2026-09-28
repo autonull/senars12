@@ -4,7 +4,8 @@
 import { loadGrammar } from '../../lm/grammars/index.js';
 import type { LMService } from '../../lm/lm-service.js';
 import { fromNarsese, type Term } from '../../terms/index.js';
-import type { MetricsCollector, NAR } from '../../nar.js';
+import type { MetricsCollector } from '../../metrics';
+import type { NAR } from '../../nar.js';
 import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
 import type { CorrectionResult, IdentifiedIssues } from '../types.js';
 import { analyzeTaskPatterns } from './performance.js';

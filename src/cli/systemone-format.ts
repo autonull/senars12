@@ -6,15 +6,9 @@
 import type { NAR } from '@senars/nar';
 import { readCalibrationLockOrNull } from '@senars/nar/lm/system-one/calibration-fit.js';
 import { pct } from '@senars/util';
+import { type AttachedGame, reflexesOf } from './conversation-game.js';
 
-/** The conversation-game focus the status readout reads veto counters from. */
-export interface ConversationGameFocus {
-  focus: {
-    reflexes?: ReadonlyArray<{ id: string; contrastiveVetoes?: number }>;
-  } | null;
-}
-
-export function formatSystemOneStatus(nar: NAR, conversationGame: ConversationGameFocus | null): string {
+export function formatSystemOneStatus(nar: NAR, conversationGame: AttachedGame | null): string {
   const manifold = nar.getSystemOneManifold?.();
   const dispatcher = nar.getSystemOneDispatcher?.();
   const cortex = dispatcher ? (dispatcher as any).cortex : undefined;
@@ -44,8 +38,7 @@ export function formatSystemOneStatus(nar: NAR, conversationGame: ConversationGa
     { p: 0, n: 0, c: 0 }
   );
   const vetoes =
-    (conversationGame?.focus?.reflexes ?? []).find((r: any) => r.id === 'lm-reflex')
-      ?.contrastiveVetoes ?? 0;
+    reflexesOf(conversationGame).find((r) => r.id === 'lm-reflex')?.contrastiveVetoes ?? 0;
 
   return [
     'System One: enabled',
@@ -159,21 +152,17 @@ export function formatSystemOneCortex(nar: NAR): string {
 }
 
 export function formatSystemOneReflexes(nar: NAR): string {
-  const gameManager = (nar as any).games as
-    | { attachedGames?: Map<string, { focus: any }> }
-    | undefined;
-  const attachedGames = gameManager?.attachedGames;
+  const attachedGames = (
+    nar as unknown as { games?: { attachedGames?: Map<string, AttachedGame> } }
+  ).games?.attachedGames;
   if (!attachedGames || attachedGames.size === 0) return 'No games attached';
 
   const lines = ['System One Reflexes (per focus):'];
   for (const [gameId, entry] of attachedGames) {
-    const focus = entry.focus;
-    const reflexes = focus.reflexes ?? [];
+    const reflexes = reflexesOf(entry);
     lines.push(`  ${gameId}:`);
     for (const reflex of reflexes) {
-      const arms = (reflex as any).numArms ?? '—';
-      const epsilon = (reflex as any).epsilon ?? '—';
-      lines.push(`    ${reflex.id}: arms=${arms} epsilon=${epsilon}`);
+      lines.push(`    ${reflex.id}: arms=${reflex.numArms ?? '—'} epsilon=${reflex.epsilon ?? '—'}`);
     }
     if (reflexes.length === 0) lines.push('    (no reflexes)');
   }

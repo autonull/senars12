@@ -1,5 +1,6 @@
 import { createLogger } from '@senars/core/logger';
-import type { MetricsCollector, NAR } from '../nar.js';
+import type { MetricsCollector } from '../metrics';
+import type { NAR } from '../nar.js';
 import { SelfOptimizer } from '../self/SelfOptimizer';
 import { errMsg } from '../utils';
 import { diffCapabilities, getCapabilitySnapshot } from './analyzers/capabilities.js';

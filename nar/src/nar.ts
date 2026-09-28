@@ -72,8 +72,6 @@ const DERIVATION_RING_CAP = 256;
 import { errMsg } from './utils';
 import { createSystemOneBudget } from './lm/system-one/types.js';
 
-export { MetricsCollector } from './metrics';
-
 export type {
   NARConfig,
   RLFPConfig,
