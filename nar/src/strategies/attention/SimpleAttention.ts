@@ -1,4 +1,5 @@
-import type { Concept, Memory } from '../../memory';
+import type { Concept } from '../../memory/concept.js';
+import type { MemoryView } from '../../memory/view.js';
 import type { AttentionContext, AttentionModel } from '../types.js';
 
 export class SimpleAttention implements AttentionModel {
@@ -12,5 +13,5 @@ export class SimpleAttention implements AttentionModel {
     return concept.priority * baseDecayRate;
   }
 
-  tick(_memory: Memory, _cycleCount: number): void {}
+  tick(_memory: MemoryView, _cycleCount: number): void {}
 }

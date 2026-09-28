@@ -20,9 +20,10 @@ import type {
   LMRuleSelector,
   SamplingStrategy,
   Strategy,
+  StrategyImpl,
   StrategyRegistry,
   StrategyType,
-} from '../strategies';
+} from '../strategies/types.js';
 import {
   AllSelector,
   AnytimeDerivation,
@@ -47,12 +48,6 @@ import { ConfigurationError } from '../types';
 import { PriorityBag } from '../bag/Bag';
 import { emitStrategySelection } from '../tick';
 
-type StrategyImpl =
-  | SamplingStrategy
-  | Strategy
-  | DerivationStrategy
-  | LMRuleSelector
-  | AttentionModel;
 type StrategyMap = Map<string, StrategyImpl>;
 
 interface StrategyItem<T> {

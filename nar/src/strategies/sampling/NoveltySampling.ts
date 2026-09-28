@@ -1,4 +1,5 @@
-import type { Concept, Memory } from '../../memory';
+import type { Concept } from '../../memory/concept.js';
+import type { MemoryView } from '../../memory/view.js';
 import type { SamplingStrategy } from '../types.js';
 
 export class NoveltySampling implements SamplingStrategy {
@@ -7,7 +8,7 @@ export class NoveltySampling implements SamplingStrategy {
     description: 'Bias toward least-recently-accessed concepts',
   };
 
-  sample(memory: Memory, count: number): Concept[] {
+  sample(memory: MemoryView, count: number): Concept[] {
     return memory
       .listConcepts()
       .sort((a, b) => (a.lastAccessedAt ?? 0) - (b.lastAccessedAt ?? 0))

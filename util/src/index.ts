@@ -133,7 +133,7 @@ export type {
 } from './types/llm.js';
 /** @public Session/memory manager contracts. */
 export type { ConversationSession, SessionManager } from './types/memory.js';
-/** @public NAR agent contracts. */
+/** @public NAR agent contracts. @deprecated — re-exported from `@senars/nar`. */
 export type { NAR, NARConfig } from './types/nar.js';
 /** @public Tool contracts. */
 export type { Tool, ToolCapabilities, ToolResult } from './types/tools.js';

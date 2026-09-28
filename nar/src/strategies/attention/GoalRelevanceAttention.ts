@@ -1,4 +1,5 @@
-import type { Concept, Memory } from '../../memory';
+import type { Concept } from '../../memory/concept.js';
+import type { MemoryView } from '../../memory/view.js';
 import { wordOverlap } from '../../utils';
 import type { AttentionContext } from '../types.js';
 import { SimpleAttention } from './SimpleAttention.js';
@@ -17,7 +18,7 @@ export class GoalRelevanceAttention extends SimpleAttention {
     return boost * (1 + goalOverlap * 0.5);
   }
 
-  private goalOverlap(concept: Concept, memory: Memory): number {
+  private goalOverlap(concept: Concept, memory: MemoryView): number {
     const termStr = concept.term.toString().toLowerCase();
     const goals = memory.getFocus().getActiveGoals();
     if (goals.length === 0) return 0;

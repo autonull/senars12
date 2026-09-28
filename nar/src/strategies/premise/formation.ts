@@ -1,4 +1,4 @@
-import type { Memory } from '../../memory';
+import type { MemoryView } from '../../memory/view.js';
 import { termsEqual } from '../../terms';
 import type { Task } from '../../types';
 import { createSecondaryTask } from '../../types';
@@ -8,7 +8,7 @@ import { samplePremises } from './sample.js';
 export interface PremiseSelector {
   readonly name: string;
 
-  select(task: Task, memory: Memory, limit?: number): Task[];
+  select(task: Task, memory: MemoryView, limit?: number): Task[];
 }
 
 /** @deprecated Use Strategy config instead. */
@@ -16,7 +16,7 @@ export interface PremiseConfig {
   sampleSize: number;
   qualityThreshold: number;
   diversityWindow: number;
-  filters: Array<(task: Task, memory: Memory) => boolean>;
+  filters: Array<(task: Task, memory: MemoryView) => boolean>;
 }
 
 /** @deprecated Use Strategy implementations from '../strategy.js' or '../strategies/index.js' instead. */
@@ -25,7 +25,7 @@ export class TermMatchingSelector implements PremiseSelector {
 
   constructor(private readonly sampleSize = 20) {}
 
-  select(task: Task, memory: Memory, limit = 10): Task[] {
+  select(task: Task, memory: MemoryView, limit = 10): Task[] {
     return samplePremises(memory, task, {
       sampleSize: this.sampleSize,
       limit,
@@ -38,7 +38,7 @@ export class TermMatchingSelector implements PremiseSelector {
 export class DecompositionSelector implements PremiseSelector {
   readonly name = 'decomposition';
 
-  select(task: Task, memory: Memory, limit = 10): Task[] {
+  select(task: Task, memory: MemoryView, limit = 10): Task[] {
     if (task.term.kind !== 'conjunction') {
       return [];
     }
@@ -65,7 +65,7 @@ export class AnalogySelector implements PremiseSelector {
 
   constructor(private readonly sampleSize = 15) {}
 
-  select(task: Task, memory: Memory, limit = 5): Task[] {
+  select(task: Task, memory: MemoryView, limit = 5): Task[] {
     return samplePremises(memory, task, {
       sampleSize: this.sampleSize,
       limit,

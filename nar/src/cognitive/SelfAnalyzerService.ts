@@ -1,6 +1,6 @@
 import { createLogger } from '@senars/core/logger';
 import type { MetricsCollector } from '../metrics';
-import type { NAR } from '../nar.js';
+import type { SelfHost } from '../self/host.js';
 import { SelfOptimizer } from '../self/SelfOptimizer';
 import { errMsg } from '../utils';
 import { diffCapabilities, getCapabilitySnapshot } from './analyzers/capabilities.js';
@@ -31,7 +31,7 @@ export type { MetaCognitiveResult, MonitorState } from './types.js';
 const log = createLogger({ scope: 'self-analyzer' });
 
 export class SelfAnalyzerService {
-  private readonly nar: NAR | null;
+  private readonly nar: SelfHost | null;
   private readonly monitor: MetacognitiveMonitor;
   private readonly metrics: MetricsCollector | null;
   private readonly optimizer: SelfOptimizer;
@@ -39,7 +39,7 @@ export class SelfAnalyzerService {
   private readonly policyManager: ReturnType<typeof createPolicyManager>;
 
   constructor(
-    nar: NAR | null,
+    nar: SelfHost | null,
     monitor: MetacognitiveMonitor,
     metrics: MetricsCollector | null,
     config: SelfAnalyzerConfig = {}

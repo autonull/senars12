@@ -142,7 +142,7 @@ export class NAR extends BaseComponent {
       { attentionModel: createAttentionModel(config) }
     );
     this.processor = new RuleProcessor();
-    this.processor.setConfig({ memory: this.memory, nar: this });
+    this.processor.setConfig({ memory: this.memory, host: this });
     this.processor.setEventBus(eventBus);
     this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, { ...this.config, sampleSize: this.config.sampleSize });
     this.taskManager = new TaskManager(this.memory, { gateRegistry: this.gates });

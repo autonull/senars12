@@ -6,7 +6,7 @@ import {
 } from '../cognitive/SelfAnalyzerService.js';
 import type { QualityAssessment } from '../cognitive/types.js';
 import { createLogger } from '@senars/core/logger';
-import type { NAR } from '../nar.js';
+import type { SelfHost } from '../self/host.js';
 
 export interface GapReport {
   missingRules: string[];
@@ -46,13 +46,13 @@ export interface ReasoningState {
 
 export class ReasoningAboutReasoning {
   isRunning = false;
-  private readonly nar: NAR | null;
+  private readonly nar: SelfHost | null;
   private readonly config: Required<ReasoningAboutReasoningConfig>;
   private readonly monitor: MetacognitiveMonitor;
   private analyzer: SelfAnalyzer;
   private periodicAnalysisInterval: NodeJS.Timeout | null = null;
 
-  constructor(nar: NAR | null, config: ReasoningAboutReasoningConfig = {}) {
+  constructor(nar: SelfHost | null, config: ReasoningAboutReasoningConfig = {}) {
     this.nar = nar;
     this.config = {
       ...MONITOR_DEFAULTS,
@@ -110,21 +110,16 @@ export class ReasoningAboutReasoning {
     }
 
     const memory = this.nar.memory;
-    const config = this.nar.getConfig?.();
-    const stats = this.nar.getStatistics?.();
+    const config = this.nar.getConfig();
+    const stats = this.nar.getStatistics();
     const monitorState = this.monitor.getMonitorState();
-    const isRunning =
-      'isRunning' in this.nar && typeof this.nar.isRunning === 'function'
-        ? this.nar.isRunning()
-        : 'state' in this.nar
-          ? this.nar.state === 'started'
-          : false;
+    const isRunning = this.nar.isRunning();
 
     return {
       reasoningTrace: this.monitor.getReasoningTrace().slice(-10),
       performanceTrend: this.monitor.getPerformanceTrend(),
       currentContext: {
-        memorySize: memory ? ((memory as { size?: number }).size ?? 0) : 0,
+        memorySize: memory?.size ?? 0,
         conceptCount: this.nar.listConcepts().length,
         timestamp: Date.now(),
       },
@@ -145,12 +140,7 @@ export class ReasoningAboutReasoning {
 
   getReasoningState(): ReasoningState {
     const monitorState = this.monitor.getMonitorState();
-    const isRunning =
-      this.nar && 'isRunning' in this.nar && typeof this.nar.isRunning === 'function'
-        ? this.nar.isRunning()
-        : this.nar && 'state' in this.nar
-          ? this.nar.state === 'started'
-          : false;
+    const isRunning = this.nar?.isRunning() ?? false;
 
     return {
       active: isRunning,

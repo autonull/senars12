@@ -1,4 +1,28 @@
-import type { Term, Truth } from '../terms';
+import type { StampType, Term, Truth } from '../terms';
+
+export interface RuleInput {
+  term: Term;
+  truth: Truth;
+  stamp: StampType;
+}
+
+export interface RuleResult {
+  term: Term;
+  truth: Truth;
+  stamp: StampType;
+  priority: number;
+  taskType?: 'belief' | 'goal' | 'question' | 'command';
+}
+
+/** Engine port consumed by derivation strategies — keeps `strategies/` free of the processor implementation. */
+export interface RuleEngine {
+  processSync(p1: RuleInput, p2: RuleInput): RuleResult[];
+  processLMRules(
+    p1: RuleInput,
+    p2?: RuleInput,
+    opts?: { signal?: AbortSignal; singlePremise?: boolean }
+  ): AsyncGenerator<RuleResult>;
+}
 
 export type TruthFn = (t1: Truth, t2: Truth) => Truth | null;
 

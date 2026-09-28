@@ -5,6 +5,7 @@
  */
 
 import { mean, pushCapped, stdDev } from '@senars/util';
+import type { SelfHost } from '../self/host.js';
 
 /** Rolling window of per-metric values kept for stability/trend analysis. */
 const MONITOR_HISTORY = 50;
@@ -66,11 +67,6 @@ interface EventBus {
   off(event: string, handler: (...args: unknown[]) => void): void;
 }
 
-interface NARWithEventBus {
-  eventBus?: EventBus;
-  memory?: { size?: number };
-}
-
 /** Shared bounds for the reasoning trace and the performance-history ring. */
 export const MONITOR_DEFAULTS = {
   maxTraceSize: 1000,
@@ -78,7 +74,7 @@ export const MONITOR_DEFAULTS = {
 } as const;
 
 export class MetacognitiveMonitor {
-  private nar: NARWithEventBus | null;
+  private nar: SelfHost | null;
   /** D13: teardown state — interval handle + subscribed listeners. */
   private monitorInterval: ReturnType<typeof setInterval> | undefined;
   private registeredListeners: Array<[string, (...args: unknown[]) => void]> = [];
@@ -87,7 +83,7 @@ export class MetacognitiveMonitor {
   private performanceHistory: PerformanceData[];
   private performanceMonitors: Map<string, PerformanceMonitor>;
 
-  constructor(nar: NARWithEventBus | null, config: MetacognitiveMonitorConfig = {}) {
+  constructor(nar: SelfHost | null, config: MetacognitiveMonitorConfig = {}) {
     this.nar = nar;
     this.config = {
       ...MONITOR_DEFAULTS,

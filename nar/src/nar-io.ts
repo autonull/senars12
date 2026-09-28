@@ -5,7 +5,7 @@ import type { CognitiveParameters } from './config/cognitive-parameters.js';
 import type { IPerceptionGate } from './kernel';
 import { gateRegistry } from './kernel/GateRegistry.js';
 import type { Memory } from './memory';
-import type { NARConfig } from './nar';
+import type { NARConfig } from './facade/config.js';
 import type { TaskManager } from './task';
 import type { Term } from './terms';
 import { Truth, termParser, validateTaskTerm } from './terms';

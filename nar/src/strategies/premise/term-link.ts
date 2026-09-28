@@ -1,4 +1,4 @@
-import type { Memory } from '../../memory';
+import type { MemoryView } from '../../memory/view.js';
 import type { LinkEntry } from '../../memory/links';
 import { getPredicate, getSubject } from '../../terms';
 import type { Task } from '../../types';
@@ -20,7 +20,7 @@ export class TermLinkStrategy implements Strategy {
     this.maxLinks = config?.maxLinks ?? 20;
   }
 
-  selectSecondary(task: Task, memory: Memory): Task[] {
+  selectSecondary(task: Task, memory: MemoryView): Task[] {
     const linkManager = memory.getLinkManager();
     const termLinks = linkManager.getLayer('term');
     if (!termLinks) return [];
@@ -44,7 +44,7 @@ export class TermLinkStrategy implements Strategy {
     return this.candidatesToTasks(links, memory, task);
   }
 
-  private candidatesToTasks(candidates: LinkEntry[], memory: Memory, _task: Task): Task[] {
+  private candidatesToTasks(candidates: LinkEntry[], memory: MemoryView, _task: Task): Task[] {
     const results: Task[] = [];
     const seen = new Set<string>();
 

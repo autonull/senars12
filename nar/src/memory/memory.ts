@@ -1,6 +1,6 @@
 import { LINK } from '../constants.js';
-import type { AttentionModel } from '../strategies';
-import { SimpleAttention } from '../strategies';
+import type { AttentionModel } from '../strategies/types.js';
+import { SimpleAttention } from '../strategies/attention/SimpleAttention.js';
 import type { Term } from '../terms';
 import { calculateSimilarity, mentionsSymbol, Stamp, TermMap, TermSet, Truth } from '../terms';
 import { atom } from '../terms/factory.js';

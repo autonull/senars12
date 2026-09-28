@@ -1,4 +1,5 @@
-import type { Concept, Memory } from '../../memory';
+import type { Concept } from '../../memory/concept.js';
+import type { MemoryView } from '../../memory/view.js';
 import type { AttentionContext, AttentionModel } from '../types.js';
 
 export class CompositeAttention implements AttentionModel {
@@ -17,7 +18,7 @@ export class CompositeAttention implements AttentionModel {
     return this.models.reduce((sum, m) => sum + m.model.decay(concept, cycles, rate) * m.weight, 0);
   }
 
-  tick(memory: Memory, cycleCount: number): void {
+  tick(memory: MemoryView, cycleCount: number): void {
     for (const m of this.models) m.model.tick(memory, cycleCount);
   }
 }

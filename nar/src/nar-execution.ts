@@ -6,7 +6,7 @@ import type { DriveManager } from './drives';
 import { type GateRegistry, gateRegistry } from './kernel/GateRegistry.js';
 import { createLogger } from './logger/index.js';
 import type { Memory } from './memory';
-import type { NARConfig } from './nar';
+import type { NARConfig } from './facade/config.js';
 import type { Reasoner } from './reason';
 import { BagStrategy } from './reason';
 import type { PolicyOptimizer, RLFPLearner } from './rlfp';

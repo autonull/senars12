@@ -1,10 +1,10 @@
 /**
  * Capability snapshot and diff - extracted from SelfAnalyzerService
  */
-import type { NAR } from '../../nar.js';
+import type { SelfHost } from '../../self/host.js';
 import type { CapabilityDiff, CapabilitySnapshot } from '../types.js';
 
-export const getCapabilitySnapshot = async (nar: NAR | null): Promise<CapabilitySnapshot> => {
+export const getCapabilitySnapshot = async (nar: SelfHost | null): Promise<CapabilitySnapshot> => {
   if (!nar) {
     return {
       timestamp: Date.now(),

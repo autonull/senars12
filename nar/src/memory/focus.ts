@@ -1,4 +1,4 @@
-import type { AttentionModel } from '../strategies';
+import type { AttentionModel } from '../strategies/types.js';
 import { containsSubterm, type Term, TermMap } from '../terms';
 import type { Task } from '../types';
 import { clamp01 } from '../utils';

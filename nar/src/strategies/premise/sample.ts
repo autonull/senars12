@@ -1,4 +1,5 @@
-import type { Concept, Memory } from '../../memory';
+import type { Concept } from '../../memory/concept.js';
+import type { MemoryView } from '../../memory/view.js';
 import type { Task } from '../../types';
 import { samplePremisesFromConfig } from './primitives.js';
 import type { FilterSpec, SampleConfig as ExtendedSampleConfig } from './primitives.js';
@@ -31,7 +32,7 @@ const DEFAULT_CONFIG: Omit<SampleConfig, 'filter' | 'truthFilter'> & {
 };
 
 export function samplePremises(
-  memory: Memory,
+  memory: MemoryView,
   task: Task,
   config: Partial<SampleConfig> = {}
 ): Task[] {

@@ -1,4 +1,4 @@
-import type { RuleProcessor } from '../../rules';
+import type { RuleEngine } from '../../rules/types.js';
 import { sharesSymbol } from '../../terms';
 import type { Task } from '../../types';
 import type { DerivationContext } from '../types.js';
@@ -13,7 +13,7 @@ export class FocusedDerivation extends DefaultDerivation {
   override async *derive(
     primary: Task,
     secondaries: Task[],
-    processor: RuleProcessor,
+    processor: RuleEngine,
     ctx: DerivationContext
   ): AsyncGenerator<Task> {
     const sorted = [...secondaries].sort((a, b) => {

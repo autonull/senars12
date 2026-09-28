@@ -4,7 +4,7 @@
 import { mean } from '@senars/util';
 
 import type { MetricsCollector } from '../../metrics';
-import type { NAR } from '../../nar.js';
+import type { SelfHost } from '../../self/host.js';
 import type { PerformancePatterns } from '../types.js';
 import { getMemory } from './constants.js';
 
@@ -43,7 +43,7 @@ export const identifySuccessfulStrategies = (metrics: MetricsCollector | null): 
     .map((s) => s.id);
 };
 
-export const analyzeTaskPatterns = (nar: NAR | null, metrics: MetricsCollector | null) => {
+export const analyzeTaskPatterns = (nar: SelfHost | null, metrics: MetricsCollector | null) => {
   if (!nar || !metrics) {
     return { avgProcessingTime: 0, queueDepth: 0, dropRate: 0 };
   }

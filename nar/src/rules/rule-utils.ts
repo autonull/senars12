@@ -7,7 +7,7 @@ import {
   Stamp as StampFactory,
 } from '../terms';
 import { Truth, type Truth as TruthType } from '../terms/truth.js';
-import type { RuleInput, RuleResult } from './processor.js';
+import type { RuleInput, RuleResult } from './types.js';
 import type { TruthFn } from './types.js';
 
 export const deriveStamp = (p1: RuleInput, p2: RuleInput): StampType => {

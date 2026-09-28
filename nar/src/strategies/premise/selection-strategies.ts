@@ -1,5 +1,6 @@
 import { createLogger } from '@senars/core/logger';
-import type { Concept, Memory } from '../../memory';
+import type { Concept } from '../../memory/concept.js';
+import type { MemoryView } from '../../memory/view.js';
 import { createStrategy } from '../../reason/strategies/base';
 import type { Term, Truth } from '../../terms';
 import type { Task } from '../../types';
@@ -135,7 +136,7 @@ export class CompositeStrategy implements Strategy {
     private weights?: number[]
   ) {}
 
-  selectSecondary(task: Task, memory: Memory): Task[] {
+  selectSecondary(task: Task, memory: MemoryView): Task[] {
     const allResults: Task[] = [];
 
     for (const strategy of this.strategies) {
@@ -190,7 +191,7 @@ export class AdaptiveStrategy implements Strategy {
     this.resetStats();
   }
 
-  selectSecondary(task: Task, memory: Memory): Task[] {
+  selectSecondary(task: Task, memory: MemoryView): Task[] {
     const sortedStrategies = [...this.strategies].sort((a, b) => {
       const statsA = this.stats.get(a.name)!;
       const statsB = this.stats.get(b.name)!;
@@ -247,7 +248,7 @@ export class SwitchingStrategy implements Strategy {
     this.switchInterval = switchInterval;
   }
 
-  selectSecondary(task: Task, memory: Memory): Task[] {
+  selectSecondary(task: Task, memory: MemoryView): Task[] {
     const strategy = this.strategies[this.currentIndex];
     if (!strategy) return [];
 

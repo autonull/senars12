@@ -5,19 +5,25 @@
 import { findConflicts } from '../cognitive/conflict-utils.js';
 import { formatNarseseTruth, pushCapped } from '@senars/util';
 import { GATE_LOG_CAPACITY } from '../kernel/event-ring.js';
-import type { LMRule } from '../lm';
-import type { LMRuleStats } from '../lm/lm-service.js';
+import type { LMRule } from '../lm/rule/LMRule.js';
+import type { LMRuleStats } from '@senars/util';
+import type { DriveManager } from '../drives';
 import type { Memory } from '../memory';
-import type { NAR } from '../nar.js';
-import type { LMRuleSelector } from '../strategies';
+import type { LMRuleSelector } from '../strategies/types.js';
 import type { StampType, Term } from '../terms';
 import { Truth, type Truth as TruthType } from '../terms';
-import type { NarEventBus } from '../types';
+import type { NarEventBus, Task } from '../types';
 import { toError } from '../utils';
 import { META_AIKR_BOUNDS, shouldActivateMetaReasoning } from './meta-rules.js';
 import { DerivationRecorder } from './recorder.js';
 import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils.js';
-import { type RegisteredRule, RuleIndex, RuleRegistry } from './types.js';
+import {
+  type RegisteredRule,
+  RuleIndex,
+  type RuleInput,
+  type RuleResult,
+  RuleRegistry,
+} from './types.js';
 
 interface LMRuleExecutionEntry {
   ruleName: string;
@@ -27,18 +33,14 @@ interface LMRuleExecutionEntry {
   timestamp: number;
 }
 
-export interface RuleInput {
-  term: Term;
-  truth: TruthType;
-  stamp: StampType;
-}
-
-export interface RuleResult {
-  term: Term;
-  truth: TruthType;
-  stamp: StampType;
-  priority: number;
-  taskType?: 'belief' | 'goal' | 'question' | 'command';
+/**
+ * Narrow read-only view of the owning engine that the processor needs. Keeps
+ * the rule layer free of any dependency on the NAR facade (dependency
+ * inversion: the host is injected structurally, not imported).
+ */
+export interface RuleProcessorHost {
+  getBeliefs(filter?: Record<string, unknown>): Task[];
+  getDriveManager(): DriveManager | undefined;
 }
 
 /** Meta-reasoning budget state */
@@ -57,7 +59,7 @@ export class RuleProcessor {
   private eventBus: NarEventBus | null = null;
   private resultBuffer: RuleResult[] = [];
   private memory?: Memory;
-  private nar?: NAR;
+  private host?: RuleProcessorHost;
   private readonly recorder: DerivationRecorder = new DerivationRecorder();
   private lmSelector: LMRuleSelector | null = null;
   private maxLMRulesPerStep = 13;
@@ -82,9 +84,9 @@ export class RuleProcessor {
     });
   }
 
-  setConfig(config: { memory?: Memory; nar?: NAR; recorderEnabled?: boolean }): void {
+  setConfig(config: { memory?: Memory; host?: RuleProcessorHost; recorderEnabled?: boolean }): void {
     if (config.memory) this.memory = config.memory;
-    if (config.nar) this.nar = config.nar;
+    if (config.host) this.host = config.host;
     if (config.recorderEnabled !== undefined) this.recorder.setEnabled(config.recorderEnabled);
   }
 
@@ -163,7 +165,7 @@ export class RuleProcessor {
   private stepMemoryScalars(): { totalConcepts: number; memoryPressure: number; conflictCount: number } {
     if (this.stepScalars) return this.stepScalars;
     const stats = this.memory?.getStatistics();
-    const beliefs = this.nar?.getBeliefs?.();
+    const beliefs = this.host?.getBeliefs();
     this.stepScalars = {
       totalConcepts: stats?.totalConcepts ?? 0,
       memoryPressure: stats?.memoryPressure ?? 0,
@@ -173,7 +175,7 @@ export class RuleProcessor {
   }
 
   private driveState(): Record<string, number> {
-    const driveManager = this.nar?.getDriveManager?.();
+    const driveManager = this.host?.getDriveManager();
     if (!driveManager) return {};
     return Object.fromEntries(
       driveManager.getAllStates().map((ds) => [ds.spec.id, ds.currentIntensity])
@@ -285,7 +287,7 @@ export class RuleProcessor {
   /** Meta-reasoning activation, computed only when a matched rule is a meta rule. */
   private metaActive(matched: readonly RegisteredRule[]): boolean {
     if (!matched.some((rule) => rule.sync && this.isMetaRule(rule))) return false;
-    const driveManager = this.nar?.getDriveManager?.();
+    const driveManager = this.host?.getDriveManager();
     return driveManager ? shouldActivateMetaReasoning(driveManager.getAllStates()) : false;
   }
 

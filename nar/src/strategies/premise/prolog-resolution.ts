@@ -3,7 +3,8 @@
  * Horn clause backward chaining, occurs-check, depth-bounded search.
  * Registered as `premise` strategy `prolog-resolution`.
  */
-import type { Concept, Memory } from '../../memory';
+import type { Concept } from '../../memory/concept.js';
+import type { MemoryView } from '../../memory/view.js';
 import type { Term } from '../../terms';
 import { unify, getTermArgs, extractSymbols } from '../../terms';
 import type { Task, TaskType } from '../../types';
@@ -44,7 +45,7 @@ function unifyTerms(t1: Term, t2: Term, subst: Substitution): Substitution | nul
   return unify(applySubstitution(t1, subst), applySubstitution(t2, subst), subst, true) ?? null;
 }
 
-function findHornClauses(memory: Memory): Clause[] {
+function findHornClauses(memory: MemoryView): Clause[] {
   const clauses: Clause[] = [];
   for (const concept of memory.listConcepts()) {
     const belief = concept.beliefBag.peek();
@@ -80,7 +81,7 @@ function sldResolve(
   config: PrologConfig,
   state: ResolutionState,
   results: Task[],
-  memory: Memory
+  memory: MemoryView
 ): void {
   if (state.depth >= (config.maxDepth ?? 10)) return;
   if (results.length >= (config.maxResults ?? 10)) return;
@@ -134,7 +135,7 @@ export class PrologResolutionStrategy implements Strategy {
 
   constructor(private readonly config: PrologConfig = {}) {}
 
-  selectSecondary(task: Task, memory: Memory): Task[] {
+  selectSecondary(task: Task, memory: MemoryView): Task[] {
     const clauses = findHornClauses(memory);
     if (clauses.length === 0) return [];
 

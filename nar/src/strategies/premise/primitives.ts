@@ -1,4 +1,5 @@
-import type { Concept, Memory } from '../../memory';
+import type { Concept } from '../../memory/concept.js';
+import type { MemoryView } from '../../memory/view.js';
 import type { Task } from '../../types';
 import { createSecondaryTask } from '../../types';
 import { sharesSymbol, termsEqual, Stamp } from '../../terms';
@@ -7,20 +8,20 @@ import type { Term } from '../../terms';
 import { getSharedConceptGraph } from '../lm-graph/RuleGraph.js';
 import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';
 
-export type PremiseSource = (task: Task, memory: Memory, n?: number) => Concept[];
+export type PremiseSource = (task: Task, memory: MemoryView, n?: number) => Concept[];
 
 export type PremiseScorer = (task: Task, concept: Concept) => number;
 
-export type PremiseScorerFactory = (memory: Memory) => PremiseScorer;
+export type PremiseScorerFactory = (memory: MemoryView) => PremiseScorer;
 
 export type PremiseFilter = (task: Task, concept: Concept) => boolean;
 
 export type PremiseFilterFactory = (...args: unknown[]) => PremiseFilter;
 
 export const PREMISE_SOURCES = {
-  bag: (task: Task, memory: Memory, n = 10): Concept[] => memory.sample(n),
-  concepts: (task: Task, memory: Memory): Concept[] => memory.listConcepts(),
-  links: (task: Task, memory: Memory): Concept[] => {
+  bag: (task: Task, memory: MemoryView, n = 10): Concept[] => memory.sample(n),
+  concepts: (task: Task, memory: MemoryView): Concept[] => memory.listConcepts(),
+  links: (task: Task, memory: MemoryView): Concept[] => {
     const linkManager = memory.getLinkManager();
     const termLinks = linkManager.getLayer('term');
     if (!termLinks) return [];
@@ -32,11 +33,11 @@ export const PREMISE_SOURCES = {
     }
     return concepts;
   },
-  taskArgs: (task: Task, memory: Memory): Concept[] => {
+  taskArgs: (task: Task, memory: MemoryView): Concept[] => {
     const args = task.term.kind === 'conjunction' ? task.term.args : [];
     return args.map((arg) => memory.getConcept(arg)).filter((c): c is Concept => !!c);
   },
-  graph: (task: Task, _memory: Memory): Concept[] => {
+  graph: (task: Task, _memory: MemoryView): Concept[] => {
     const graph = getSharedConceptGraph();
     if (!graph) return [];
     const coActivations = graph.getCoActivations(task.term, 20);
@@ -49,7 +50,7 @@ export const PREMISE_SOURCES = {
   },
 } as const;
 
-function getLinkStrength(memory: Memory, primary: Term, target: Term): number {
+function getLinkStrength(memory: MemoryView, primary: Term, target: Term): number {
   const linkManager = memory.getLinkManager();
   return linkManager.getLinkPriority(primary, target);
 }
@@ -60,12 +61,12 @@ function getLinkStrength(memory: Memory, primary: Term, target: Term): number {
  * Each entry is either a direct PremiseScorer or a PremiseScorerFactory(memory) => PremiseScorer.
  */
 interface ScorerEntry {
-  create: (memory: Memory) => PremiseScorer;
+  create: (memory: MemoryView) => PremiseScorer;
   isExtended?: false;
 }
 
 interface ExtendedScorerEntry {
-  create: (memory: Memory, weights: { link: number; embed: number; pri: number }) => (memory: Memory) => PremiseScorer;
+  create: (memory: MemoryView, weights: { link: number; embed: number; pri: number }) => (memory: MemoryView) => PremiseScorer;
   isExtended: true;
 }
 
@@ -75,17 +76,17 @@ function createScorerRegistry() {
   const registry = {
     // Simple scorers (no memory dependency)
     priority: {
-      create: (_memory: Memory): PremiseScorer => (_task: Task, concept: Concept) => concept.priority,
+      create: (_memory: MemoryView): PremiseScorer => (_task: Task, concept: Concept) => concept.priority,
       isExtended: false as const,
     },
     // Curried scorers (need memory)
     linkWeight: {
-      create: (memory: Memory): PremiseScorer => (task: Task, concept: Concept) =>
+      create: (memory: MemoryView): PremiseScorer => (task: Task, concept: Concept) =>
         getLinkStrength(memory, task.term, concept.term),
       isExtended: false as const,
     },
     edgeWeight: {
-      create: (memory: Memory): PremiseScorer => (task: Task, concept: Concept) => {
+      create: (memory: MemoryView): PremiseScorer => (task: Task, concept: Concept) => {
         const graph = getSharedConceptGraph();
         if (!graph) return 0;
         const coActivations = graph.getCoActivations(task.term, 20);
@@ -97,10 +98,10 @@ function createScorerRegistry() {
     // Extended scorers (parameterized factories)
     linear: {
       create: (
-        _memory: Memory,
+        _memory: MemoryView,
         weights: { link: number; embed: number; pri: number }
-      ): (memory: Memory) => PremiseScorer => {
-        return (memory: Memory) => (task: Task, concept: Concept): number => {
+      ): (memory: MemoryView) => PremiseScorer => {
+        return (memory: MemoryView) => (task: Task, concept: Concept): number => {
           const linkStrength = getLinkStrength(memory, task.term, concept.term);
           const embeddingIndex = memory.getEmbeddingIndex?.();
           const embeddingSim =
@@ -217,7 +218,7 @@ function resolveFilters(filters: FilterSpec[]): PremiseFilter[] {
 }
 
 export function resolveScorer(
-  memory: Memory,
+  memory: MemoryView,
   scorer: SampleConfig['scorer']
 ): PremiseScorer | undefined {
   if (!scorer) return undefined;
@@ -241,7 +242,7 @@ export function resolveScorer(
 }
 
 export function samplePremisesFromConfig(
-  memory: Memory,
+  memory: MemoryView,
   task: Task,
   config: SampleConfig
 ): Task[] {

@@ -1,4 +1,4 @@
-import type { ToolResult } from '@senars/core/engine';
+import type { ToolResult } from '../types/engine.js';
 
 export interface ToolFeedback {
   name: string;

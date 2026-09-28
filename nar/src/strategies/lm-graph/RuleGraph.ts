@@ -7,8 +7,12 @@ import { selectTopN } from '../../utils/collections.js';
  */
 
 import { ConceptGraph, type CoActivationEdge } from '@senars/core/concept-graph';
-import type { LMRuleSelector, ComponentMetadata, LMRuleSelectionContext } from '../types.js';
-import { CognitiveRegistry } from '../../cognitive/registry.js';
+import type {
+  ComponentMetadata,
+  LMRuleSelectionContext,
+  LMRuleSelector,
+  StrategyRegistry,
+} from '../types.js';
 import type { LMRule } from '../../lm/LMRule.js';
 import type { Term } from '../../terms/index.js';
 import { termsEqual } from '../../terms';
@@ -142,9 +146,16 @@ export class RuleGraph implements LMRuleSelector {
   }
 }
 
-/** Register RuleGraph as 'lm-graph' strategy type. */
-export function registerRuleGraph(registry: CognitiveRegistry, options?: RuleGraphOptions): RuleGraph {
+/**
+ * Register RuleGraph as the 'lm-graph' LM-rule strategy. Takes the registry as
+ * a port so the strategy layer stays independent of the cognitive facade that
+ * owns it.
+ */
+export function registerRuleGraph(
+  registry: StrategyRegistry,
+  options?: RuleGraphOptions
+): RuleGraph {
   const ruleGraph = new RuleGraph(options);
-  registry.register('lm-rule', 'lm-graph', ruleGraph as any);
+  registry.register('lm-rule', 'lm-graph', ruleGraph as unknown as LMRuleSelector);
   return ruleGraph;
 }

@@ -1,5 +1,6 @@
 import type { Agent, PromptBuilder } from '@senars/core';
-import type { EpisodicMemory, LMService } from '@senars/nar';
+import type { LMService } from '../lm';
+import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import type { SystemOneConfig } from '@senars/util/config';
 import { BuilderError } from '../errors/index.js';
 import { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from '../config/cognitive-parameters.js';

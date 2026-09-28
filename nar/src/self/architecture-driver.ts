@@ -1,15 +1,15 @@
 import { promises as fs } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { ArchitectureGap, DegradationCurve, StressMetrics } from '../imagination/types.js';
-import type { NAR } from '../nar.js';
+import type { SelfHost } from '../self/host.js';
 import { ReasoningAboutReasoning } from './ReasoningAboutReasoning.js';
 
 export class ArchitectureDriver {
-  private readonly nar: NAR;
+  private readonly nar: SelfHost;
   private readonly selfAnalyzer: ReasoningAboutReasoning;
   private readonly proposalsDir: string;
 
-  constructor(nar: NAR, proposalsDir = 'docs/proposals') {
+  constructor(nar: SelfHost, proposalsDir = 'docs/proposals') {
     this.nar = nar;
     this.selfAnalyzer = new ReasoningAboutReasoning(nar);
     this.proposalsDir = proposalsDir;
@@ -268,7 +268,7 @@ Implement \`${gap.proposedFix}\` to address the detected architecture gap.
   }
 }
 
-export function createArchitectureDriver(nar: NAR, proposalsDir?: string): ArchitectureDriver {
+export function createArchitectureDriver(nar: SelfHost, proposalsDir?: string): ArchitectureDriver {
   return new ArchitectureDriver(nar, proposalsDir);
 }
 

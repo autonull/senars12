@@ -1,5 +1,5 @@
 import type { MetricsCollector } from '../metrics';
-import type { NAR } from '../nar.js';
+import type { SelfHost } from '../self/host.js';
 
 export interface Optimization {
   type: string;
@@ -26,7 +26,7 @@ export interface Optimizations {
 }
 
 export class SelfOptimizer {
-  private readonly nar: NAR | null;
+  private readonly nar: SelfHost | null;
   private readonly metrics: MetricsCollector | null;
   private optimizationHistory: Optimizations = {
     rulePriorities: [],
@@ -35,7 +35,7 @@ export class SelfOptimizer {
     performanceImprovements: [],
   };
 
-  constructor(nar: NAR | null, metrics: MetricsCollector | null) {
+  constructor(nar: SelfHost | null, metrics: MetricsCollector | null) {
     this.nar = nar;
     this.metrics = metrics;
   }
@@ -118,13 +118,13 @@ export class SelfOptimizer {
     }
 
     if (memoryUsage > 100000000 || conceptCount > config.maxConcepts! * 0.9) {
-      this.nar.memory?.consolidate();
+      this.nar.memory?.consolidate?.();
     }
 
     const concepts = this.nar.listConcepts();
     const lowPriorityConcepts = concepts.filter((c) => c.priority < 0.2);
     if (lowPriorityConcepts.length > concepts.length * 0.5) {
-      this.nar.memory?.consolidate();
+      this.nar.memory?.consolidate?.();
     }
   }
 
@@ -149,6 +149,6 @@ export class SelfOptimizer {
   }
 
   private async performMemoryCleanup(): Promise<void> {
-    this.nar?.memory?.consolidate();
+    this.nar?.memory?.consolidate?.();
   }
 }

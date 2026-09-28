@@ -2,7 +2,7 @@
  * Reasoning pattern analysis - extracted from SelfAnalyzerService
  */
 import type { MetricsCollector } from '../../metrics';
-import type { NAR } from '../../nar.js';
+import type { SelfHost } from '../../self/host.js';
 import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
 import type { InferenceChain, PatternAnalysis, ReasoningStep } from '../types.js';
 import { EMPTY_PATTERN } from './constants.js';
@@ -15,7 +15,7 @@ import { analyzeResourceUsage } from './resources.js';
 import { analyzeTermPatterns } from './term-patterns.js';
 
 export const analyzeReasoningPatterns = async (
-  nar: NAR | null,
+  nar: SelfHost | null,
   monitor: MetacognitiveMonitor,
   metrics: MetricsCollector | null
 ): Promise<PatternAnalysis> => {

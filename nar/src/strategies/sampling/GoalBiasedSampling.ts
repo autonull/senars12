@@ -1,4 +1,5 @@
-import type { Concept, Memory } from '../../memory';
+import type { Concept } from '../../memory/concept.js';
+import type { MemoryView } from '../../memory/view.js';
 import { selectTopN } from '../../utils/collections.js';
 import { containsSubterm } from '../../terms';
 import type { SamplingStrategy } from '../types.js';
@@ -9,7 +10,7 @@ export class GoalBiasedSampling implements SamplingStrategy {
     description: 'Boost concepts related to active goals',
   };
 
-  sample(memory: Memory, count: number): Concept[] {
+  sample(memory: MemoryView, count: number): Concept[] {
     const goals = memory.getGoals();
     return selectTopN(
       memory.listConcepts(),

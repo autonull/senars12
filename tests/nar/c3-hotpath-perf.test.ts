@@ -161,7 +161,7 @@ describe('C3 Hot-path benchmarks (bench 119+)', () => {
       });
       
       processor = new RuleProcessor();
-      processor.setConfig({ memory, nar: null as any });
+      processor.setConfig({ memory, host: null as any });
       
       // Add some concepts
       for (let i = 0; i < 100; i++) {

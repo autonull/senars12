@@ -1,15 +1,17 @@
-import type { NAR } from '../nar.js';
-import { counterfactual } from '../reason/counterfactual.js';
+import {
+  counterfactual,
+  type CounterfactualHost,
+} from '../reason/counterfactual.js';
 import { atom } from '../terms';
 
 export async function runCounterfactual(
   termStr: string,
   negate: boolean,
-  nar: NAR,
+  host: CounterfactualHost,
   steps = 5
 ): Promise<string> {
   const term = atom(termStr);
-  const result = await counterfactual(term, negate, nar, steps);
+  const result = await counterfactual(term, negate, host, steps);
 
   if (!result.possible) {
     return `I cannot reason counterfactually about "${termStr}": ${result.reason}`;

@@ -1,7 +1,7 @@
 import { makeId } from '@senars/util';
 import type { DerivationRecord, DerivationStep, TruthValue } from '@senars/kernel/schemas';
 import { BoundedRing } from '../utils/collections.js';
-import type { RuleInput, RuleResult } from './processor.js';
+import type { RuleInput, RuleResult } from './types.js';
 
 type Independence = DerivationStep['independence'];
 type RuleCategory = DerivationStep['ruleCategory'];

@@ -1,12 +1,17 @@
 import type { Episode } from '@senars/util';
 import { selectByPriority, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
-import type { NAR } from '../../nar.js';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import { PriorityBag } from '../../bag/Bag.js';
 import { AIKRProcessor, type ProcessOptions, type AikrBagOptions } from '../../learning/aikr-processor.js';
 import { cosineF32 } from './contrastive.js';
 import type { ContrastiveMemory } from './contrastive.js';
 import type { EmbeddingCache } from './types.js';
+import type { Task } from '../../types';
+
+/** Read-only belief view a miner needs — keeps System One independent of the NAR facade. */
+export interface BeliefSource {
+  getBeliefs(): Task[];
+}
 
 export interface MinedNegative {
   /** Rubric the negative is hard for. */
@@ -38,7 +43,7 @@ export const hardNegativeId = (text: string): string =>
  * Deterministic; reads only live NAR state + the episodic store.
  */
 export async function mineHardNegatives(
-  nar: NAR,
+  beliefs: BeliefSource,
   episodic: EpisodicMemory | undefined,
   options: MineHardNegativesOptions = {}
 ): Promise<MinedNegative[]> {
@@ -47,7 +52,7 @@ export async function mineHardNegatives(
   const negatives: MinedNegative[] = [];
 
   const byTerm = new Map<string, { f: number }[]>();
-  for (const belief of nar.getBeliefs()) {
+  for (const belief of beliefs.getBeliefs()) {
     if (!belief.truth) continue;
     const key = belief.term.toString();
     const list = byTerm.get(key) ?? [];

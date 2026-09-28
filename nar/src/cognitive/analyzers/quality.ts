@@ -1,8 +1,8 @@
-import type { NAR } from '../../nar.js';
+import type { SelfHost } from '../../self/host.js';
 import { containsSubterm, getSubject } from '../../terms';
 import type { QualityAssessment } from '../types.js';
 
-export const assessQuality = async (nar: NAR | null): Promise<QualityAssessment> => {
+export const assessQuality = async (nar: SelfHost | null): Promise<QualityAssessment> => {
   if (!nar) {
     return { overall: 0, coherence: 0, relevance: 0, completeness: 0, timestamp: Date.now() };
   }

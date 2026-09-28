@@ -12,7 +12,7 @@ export {
   registerMetaRules,
   shouldActivateMetaReasoning,
 } from './meta-rules.js';
-export type { RuleInput, RuleResult } from './processor.js';
+
 // Rule processor
 export { RuleProcessor } from './processor.js';
 export type { RecorderOptions } from './recorder.js';
@@ -22,7 +22,10 @@ export { NALExtendedRules, NALRules } from './rules-dsl.js';
 // Rule types and registry
 export type {
   RegisteredRule,
+  RuleEngine,
   RuleFn,
+  RuleInput,
   RulePattern,
+  RuleResult,
 } from './types.js';
 export { createRulePattern, RuleIndex, RuleRegistry } from './types.js';

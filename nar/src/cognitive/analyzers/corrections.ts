@@ -5,7 +5,7 @@ import { loadGrammar } from '../../lm/grammars/index.js';
 import type { LMService } from '../../lm/lm-service.js';
 import { fromNarsese, type Term } from '../../terms/index.js';
 import type { MetricsCollector } from '../../metrics';
-import type { NAR } from '../../nar.js';
+import type { SelfHost } from '../../self/host.js';
 import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
 import type { CorrectionResult, IdentifiedIssues } from '../types.js';
 import { analyzeTaskPatterns } from './performance.js';
@@ -37,7 +37,7 @@ export const attemptLMCorrection = async (
 };
 
 export const identifyIssues = async (
-  nar: NAR | null,
+  nar: SelfHost | null,
   monitor: MetacognitiveMonitor,
   metrics: MetricsCollector | null
 ): Promise<IdentifiedIssues> => {
@@ -104,7 +104,7 @@ export const identifyIssues = async (
 };
 
 export const applyCorrections = async (
-  nar: NAR | null,
+  nar: SelfHost | null,
   issues: IdentifiedIssues,
   optimizer: {
     rebalancePriorities: () => Promise<void>;
@@ -122,7 +122,7 @@ export const applyCorrections = async (
       appliedCorrections.push({ type: 'priority_rebalancing', issue: 'high_low_priority_ratio' });
     } else if (issue.type === 'high_concept_count') {
       if (nar.memory) {
-        nar.memory.consolidate();
+        nar.memory.consolidate?.();
         appliedCorrections.push({ type: 'memory_consolidation', issue: 'high_concept_count' });
       } else {
         pendingCorrections.push({

@@ -1,10 +1,11 @@
-import type { Concept, Memory } from '../../memory';
+import type { Concept } from '../../memory/concept.js';
+import type { MemoryView } from '../../memory/view.js';
 import type { SamplingStrategy } from '../types.js';
 
 export class DiverseSampling implements SamplingStrategy {
   readonly metadata = { name: 'diverse', description: 'Stratified sample across priority bands' };
 
-  sample(memory: Memory, count: number): Concept[] {
+  sample(memory: MemoryView, count: number): Concept[] {
     const concepts = memory.listConcepts();
     const bands = 4;
     const perBand = Math.max(1, Math.ceil(count / bands));

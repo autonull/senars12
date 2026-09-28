@@ -1,5 +1,5 @@
 import { createDerivedTask } from '../../reason/inference-utils.js';
-import type { RuleInput, RuleProcessor } from '../../rules';
+import type { RuleEngine, RuleInput } from '../../rules/types.js';
 import type { Task } from '../../types';
 import type { DerivationContext, DerivationStrategy } from '../types.js';
 
@@ -12,7 +12,7 @@ export class DefaultDerivation implements DerivationStrategy {
   async *derive(
     primary: Task,
     secondaries: Task[],
-    processor: RuleProcessor,
+    processor: RuleEngine,
     ctx: DerivationContext
   ): AsyncGenerator<Task> {
     if (secondaries.length > 0) {

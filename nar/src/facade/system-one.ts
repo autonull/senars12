@@ -19,7 +19,11 @@ import { createDispatcher, StubCortex } from '../lm/system-one/dispatcher.js';
 import { JudgmentDataset } from '../lm/system-one/distill.js';
 import { createEmbeddingCache, type EmbeddingCache } from '../lm/system-one/embedding-cache.js';
 import { createGroundednessGate } from '../lm/system-one/groundedness-gate.js';
-import { mineHardNegatives, seedContrastiveMemory } from '../lm/system-one/hard-negatives.js';
+import {
+  type BeliefSource,
+  mineHardNegatives,
+  seedContrastiveMemory,
+} from '../lm/system-one/hard-negatives.js';
 import { createHttpManifold } from '../lm/system-one/http-manifold.js';
 import {
   createJudgmentPipeline,
@@ -293,12 +297,12 @@ export class SystemOneRuntime {
    * Uses 'default' correlationId for maintenance operations.
    */
   async refreshContrastive(
-    nar?: { getBeliefs: () => readonly unknown[] },
+    nar?: BeliefSource,
     episodic?: import('../memory/EpisodicMemory.js').EpisodicMemory
   ): Promise<void> {
     if (!this.embeddingCache || !nar) return;
     const contrastive = this.getContrastive('default');
-    const mined = await mineHardNegatives(nar as never, episodic, { limit: 64 });
+    const mined = await mineHardNegatives(nar, episodic, { limit: 64 });
     await seedContrastiveMemory(mined, contrastive, this.embeddingCache);
     if (this.dataset) {
       const positives = this.dataset

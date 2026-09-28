@@ -1,4 +1,4 @@
-import type { RuleProcessor } from '../../rules';
+import type { RuleEngine } from '../../rules/types.js';
 import type { RandomSource } from '../../types/primitives.js';
 import type { Task } from '../../types';
 import type { DerivationContext } from '../types.js';
@@ -15,7 +15,7 @@ export class SampledDerivation extends DefaultDerivation {
   override async *derive(
     primary: Task,
     secondaries: Task[],
-    processor: RuleProcessor,
+    processor: RuleEngine,
     ctx: DerivationContext
   ): AsyncGenerator<Task> {
     const maxPairs = Math.min(secondaries.length, Math.max(1, Math.ceil(secondaries.length * 0.3)));

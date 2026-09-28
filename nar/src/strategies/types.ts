@@ -1,6 +1,7 @@
-import type { LMRule } from '../lm';
-import type { Concept, Memory } from '../memory';
-import type { RuleProcessor } from '../rules';
+import type { LMRule } from '../lm/rule/LMRule.js';
+import type { Concept } from '../memory/concept.js';
+import type { MemoryView } from '../memory/view.js';
+import type { RuleEngine } from '../rules/types.js';
 import type { Task } from '../types';
 import type { Term } from '../terms';
 
@@ -13,11 +14,19 @@ export interface ComponentMetadata {
 
 export type StrategyType = 'sampling' | 'premise' | 'derivation' | 'lm-rule' | 'attention';
 
+/** Every plugin shape the registry can hold. */
+export type StrategyImpl =
+  | SamplingStrategy
+  | Strategy
+  | DerivationStrategy
+  | LMRuleSelector
+  | AttentionModel;
+
 // ── 1. SamplingStrategy ──────────────────────
 export interface SamplingStrategy {
   readonly metadata: ComponentMetadata;
 
-  sample(memory: Memory, count: number): Concept[];
+  sample(memory: MemoryView, count: number): Concept[];
 }
 
 // ── 2. Strategy (Premise Selection) ───────────
@@ -27,7 +36,7 @@ export interface Strategy {
   readonly sampleSize?: number;
   readonly limit?: number;
 
-  selectSecondary(task: Task, memory: Memory): Task[];
+  selectSecondary(task: Task, memory: MemoryView): Task[];
 }
 
 // ── 3. DerivationStrategy ─────────────────────
@@ -45,7 +54,7 @@ export interface DerivationStrategy {
   derive(
     primary: Task,
     secondaries: Task[],
-    processor: RuleProcessor,
+    processor: RuleEngine,
     context: DerivationContext
   ): AsyncGenerator<Task>;
 }
@@ -70,7 +79,7 @@ export interface AttentionContext {
   concept: Concept;
   task?: Task;
   cycleCount: number;
-  memory: Memory;
+  memory: MemoryView;
 }
 
 export interface AttentionModel {
@@ -80,7 +89,7 @@ export interface AttentionModel {
 
   decay(concept: Concept, cyclesElapsed: number, baseDecayRate: number): number;
 
-  tick(memory: Memory, cycleCount: number): void;
+  tick(memory: MemoryView, cycleCount: number): void;
 }
 
 // ── MetricsSummary ────────────────────────────

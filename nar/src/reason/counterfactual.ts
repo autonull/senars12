@@ -1,6 +1,16 @@
-import type { NAR } from '../nar.js';
-import type { Term } from '../terms';
+import type { Term, Truth as TruthType } from '../terms';
 import { containsSubterm, getSubject, TermSet, Truth } from '../terms';
+import type { Task } from '../types';
+
+/**
+ * Minimal engine surface a counterfactual probe needs. Declared structurally so
+ * the reason layer never depends on the NAR facade.
+ */
+export interface CounterfactualHost {
+  getBeliefs(): Task[];
+  believe(term: Term, truth: TruthType): Promise<void>;
+  run(steps?: number): Promise<void>;
+}
 
 export interface CounterfactualReport {
   possible: boolean;
@@ -13,10 +23,10 @@ export interface CounterfactualReport {
 export async function counterfactual(
   term: Term,
   negate: boolean,
-  nar: NAR,
+  host: CounterfactualHost,
   steps = 5
 ): Promise<CounterfactualReport> {
-  const beliefsBefore = nar.getBeliefs().map((b) => ({
+  const beliefsBefore = host.getBeliefs().map((b) => ({
     term: b.term,
     truth: b.truth ? { ...b.truth } : undefined,
   }));
@@ -37,10 +47,10 @@ export async function counterfactual(
     : Truth.create(negate ? 0 : 1, 0.5);
 
   try {
-    await nar.believe(term, negatedTruth);
-    await nar.run(steps);
+    await host.believe(term, negatedTruth);
+    await host.run(steps);
 
-    const beliefsAfter = nar.getBeliefs().map((b) => b.term);
+    const beliefsAfter = host.getBeliefs().map((b) => b.term);
     const beforeSet = new TermSet();
     for (const b of beliefsBefore) beforeSet.add(b.term);
 
@@ -58,7 +68,7 @@ export async function counterfactual(
     };
   } finally {
     if (originalTruth) {
-      await nar.believe(term, originalTruth);
+      await host.believe(term, originalTruth);
     }
   }
 }
