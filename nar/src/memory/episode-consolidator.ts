@@ -88,12 +88,14 @@ export class EpisodeConsolidator {
   readonly #budget: number;
   #emit?: (summary: Episode) => Promise<void> | void;
   readonly #summarizeWithLM?: (group: readonly Episode[]) => Promise<string>;
+  readonly #clock: () => number;
 
   constructor(options: EpisodeConsolidatorOptions = {}) {
     this.#maxMerged = options.maxMerged ?? 6;
     this.#budget = options.budget ?? 8;
     this.#emit = options.emit;
     this.#summarizeWithLM = options.summarizeWithLM;
+    this.#clock = options.clock ?? Date.now;
     this.#bag = new PriorityBag<EpisodeCandidate>({
       capacity: options.capacity ?? 256,
       forgetRate: options.forgetRate,
@@ -190,7 +192,7 @@ export class EpisodeConsolidator {
       const ids = merged.map((c) => c.episode.id ?? c.id);
       const causes = [...ids].sort();
       const summary: Episode = {
-        timestamp: Date.now(),
+        timestamp: this.#clock(),
         type: 'belief_added',
         content: await this.#summarize(merged.map((c) => c.episode)),
         metadata: {

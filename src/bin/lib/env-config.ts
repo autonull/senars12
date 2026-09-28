@@ -1,7 +1,10 @@
 /**
- * Unified environment variable configuration for all bins.
- * Single source of truth for all `process.env` reads in bin entry points.
+ * Bin-level environment configuration (storage, auth, app shell).
+ * Transport addresses resolve through `createConnectionConfigsFromEnv`
+ * (`@senars/io`) — the single source of truth for `ENABLE_*` gates.
  */
+
+import { envBool, envCsv, envInt, envStrOr } from '@senars/util/config';
 
 export interface EpisodicConfig {
   memoryPath: string;
@@ -13,29 +16,6 @@ export interface AuthConfig {
   connectionIds: string[];
 }
 
-export interface IRCConfig {
-  server: string;
-  channels: string[];
-  nick: string;
-  port: number;
-  authSecret: string | undefined;
-}
-
-export interface WSConfig {
-  enabled: boolean;
-  port: number;
-}
-
-export interface HTTPConfig {
-  enabled: boolean;
-  port: number;
-}
-
-export interface MCPConfig {
-  enabled: boolean;
-  transport: string;
-}
-
 export interface AppEnvConfig {
   enableWebUI: boolean;
   histfile: string;
@@ -44,80 +24,27 @@ export interface AppEnvConfig {
 export interface BinEnvConfig {
   episodic: EpisodicConfig;
   auth: AuthConfig;
-  irc: IRCConfig;
-  ws: WSConfig;
-  http: HTTPConfig;
-  mcp: MCPConfig;
   app: AppEnvConfig;
 }
 
 export function readEpisodicConfig(): EpisodicConfig {
   return {
-    memoryPath: process.env.EPISODIC_MEMORY_PATH || '.cache/episodes',
-    retentionDays: Number.parseInt(process.env.EPISODIC_RETENTION_DAYS || '30', 10),
+    memoryPath: envStrOr('.cache/episodes', 'EPISODIC_MEMORY_PATH'),
+    retentionDays: envInt('EPISODIC_RETENTION_DAYS', 30),
   };
 }
 
 export function readAuthConfig(): AuthConfig {
   return {
     secret: process.env.AUTH_SECRET,
-    connectionIds: (process.env.AUTH_CONNECTION_IDS ?? 'irc-main,http-main,ws-main')
-      .split(',')
-      .map((s) => s.trim()),
-  };
-}
-
-/** Config-file `irc` block shape (subset) used as env fallback. */
-export interface IRCFileConfig {
-  server?: string;
-  port?: number;
-  nick?: string;
-  channels?: string[];
-}
-
-export function readIRCConfig(file?: IRCFileConfig): IRCConfig {
-  return {
-    server:
-      process.env.IRC_SERVER ?? process.env.SENARS_IRC_SERVER ?? file?.server ?? 'irc.libera.chat',
-    channels: (
-      process.env.IRC_CHANNELS ??
-      process.env.SENARS_IRC_CHANNELS ??
-      file?.channels?.join(',') ??
-      '#senars'
-    )
-      .split(',')
-      .map((s) => s.trim()),
-    nick: process.env.SENARS_IRC_NICK ?? file?.nick ?? 'senars-bot',
-    port: Number.parseInt(process.env.SENARS_IRC_PORT || String(file?.port ?? 6697), 10),
-    authSecret: process.env.SENARS_IRC_AUTH_SECRET,
-  };
-}
-
-export function readWSConfig(): WSConfig {
-  return {
-    enabled: (process.env.ENABLE_WS ?? 'false') === 'true',
-    port: Number.parseInt((process.env.WS_PORT ?? process.env.SENARS_WS_PORT) || '8765', 10),
-  };
-}
-
-export function readHTTPConfig(): HTTPConfig {
-  return {
-    enabled: (process.env.ENABLE_HTTP ?? 'false') === 'true',
-    port: Number.parseInt((process.env.HTTP_PORT ?? process.env.SENARS_HTTP_PORT) || '3000', 10),
-  };
-}
-
-export function readMCPConfig(): MCPConfig {
-  return {
-    enabled: (process.env.ENABLE_MCP ?? 'false') === 'true',
-    transport: process.env.MCP_TRANSPORT ?? process.env.SENARS_MCP_TRANSPORT ?? 'stdio',
+    connectionIds: envCsv(['irc-main', 'http-main', 'ws-main'], 'AUTH_CONNECTION_IDS'),
   };
 }
 
 export function readAppEnvConfig(): AppEnvConfig {
   return {
-    enableWebUI: process.env.ENABLE_WEB_UI === 'true',
-    histfile: process.env.SENARS_HISTFILE || '/tmp/senars_history',
+    enableWebUI: envBool('ENABLE_WEB_UI'),
+    histfile: envStrOr('/tmp/senars_history', 'SENARS_HISTFILE'),
   };
 }
 
@@ -125,10 +52,6 @@ export function readAllEnvConfig(): BinEnvConfig {
   return {
     episodic: readEpisodicConfig(),
     auth: readAuthConfig(),
-    irc: readIRCConfig(),
-    ws: readWSConfig(),
-    http: readHTTPConfig(),
-    mcp: readMCPConfig(),
     app: readAppEnvConfig(),
   };
 }

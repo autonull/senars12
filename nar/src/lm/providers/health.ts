@@ -10,6 +10,7 @@ import { hasCloudCredentials } from './chains.js';
 import { probeEmbeddedLlama } from './embedded-llamacpp.js';
 import { probeLlamaCpp } from './llamacpp.js';
 import { cloudApiKey } from './model-factory.js';
+import { probeModelsEndpoint } from './probe.js';
 import { getLMSettings, getLmProvider } from './settings.js';
 
 /** Probe an OpenAI-compatible endpoint (/models); auth header sent only when a key is available. */
@@ -19,25 +20,7 @@ export async function probeOpenAICompatible(
 ): Promise<boolean> {
   void rt;
   const s = settings ?? getLMSettings();
-  const base = (s.baseUrl ?? 'http://localhost:11434/v1').replace(/\/?$/, '');
-  try {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 1500);
-    const key = cloudApiKey(s);
-    const res = await fetch(`${base}/models`, {
-      signal: ctl.signal,
-      ...(key && {
-        headers:
-          s.provider === 'anthropic'
-            ? { 'x-api-key': key, 'anthropic-version': '2023-06-01' }
-            : { Authorization: `Bearer ${key}` },
-      }),
-    });
-    clearTimeout(t);
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return probeModelsEndpoint(s.baseUrl ?? 'http://localhost:11434/v1', s.provider, cloudApiKey(s));
 }
 
 const OFFLINE_SAFE_PROVIDERS: readonly LMProviderName[] = [
@@ -119,25 +102,10 @@ export async function probeCloudProvider(settings?: LMSettings): Promise<boolean
   const s = settings ?? getLMSettings();
   const key = cloudApiKey(s);
   if (!key) return false;
-
   const baseUrl =
     s.baseUrl ??
     (s.provider === 'anthropic' ? 'https://api.anthropic.com/v1' : 'https://api.openai.com/v1');
-  try {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 5000);
-    const res = await fetch(`${baseUrl}/models`, {
-      signal: ctl.signal,
-      headers:
-        s.provider === 'anthropic'
-          ? { 'x-api-key': key, 'anthropic-version': '2023-06-01' }
-          : { Authorization: `Bearer ${key}` },
-    });
-    clearTimeout(t);
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return probeModelsEndpoint(baseUrl, s.provider, key, 5000);
 }
 
 export function startHealthProbes(

@@ -1,7 +1,7 @@
 import cytoscape, { type Core } from 'cytoscape';
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { edgeKey } from '../../shared/utils.js';
+import { edgeKey } from '../../shared/index.js';
 import { GraphRenderer } from '../core/graph-renderer.js';
 import {
   $activeLens,

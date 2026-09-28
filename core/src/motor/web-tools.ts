@@ -12,10 +12,7 @@ export interface WebSearchResult {
   snippet?: string;
 }
 
-const withTimeout = (): { signal: AbortSignal } | Record<string, never> =>
-  typeof AbortSignal.timeout === 'function'
-    ? { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }
-    : {};
+const bounded = (): { signal: AbortSignal } => ({ signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 
 const readBody = async (res: Response): Promise<string> => {
   const reader = res.body?.getReader();
@@ -45,7 +42,7 @@ export const tavilySearch = async (
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({ query, max_results: maxResults, search_depth: 'basic' }),
-    ...withTimeout(),
+    ...bounded(),
   });
   if (!res.ok) throw new Error(`tavily ${res.status}`);
   const data = (await res.json()) as {
@@ -73,7 +70,7 @@ export const duckDuckGoSearch = async (
 ): Promise<WebSearchResult[]> => {
   const res = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
     headers: { 'user-agent': 'Mozilla/5.0 (SeNARS web-fetch; +https://github.com/senars)' },
-    ...withTimeout(),
+    ...bounded(),
   });
   if (!res.ok) throw new Error(`duckduckgo ${res.status}`);
   const html = await readBody(res);
@@ -108,7 +105,7 @@ export const webFetch = async (
   const res = await fetch(parsed, {
     headers: { accept: 'text/html,text/plain,application/json;q=0.9,*/*;q=0.5' },
     redirect: 'follow',
-    ...withTimeout(),
+    ...bounded(),
   });
   if (!res.ok) throw new Error(`web-fetch ${res.status} for ${url}`);
   const contentType = res.headers.get('content-type') ?? 'text/plain';

@@ -63,6 +63,7 @@ import { TranslationCache } from '@senars/nar/nl/cache.js';
 import { episodeQualitySurface, MemoryQuery } from '@senars/nar/query/memory-query.js';
 import { MettaProposer } from '@senars/nar/reflex/metta-proposer.js';
 import { ensureDir, errMsg, makeId, readJsonlAsync } from '@senars/util';
+import { envBool } from '@senars/util/config';
 import { Effect } from 'effect';
 import { buildCommands, cmd } from '../cli/commands.js';
 import {
@@ -75,7 +76,7 @@ import {
 } from '../cli/systemone-format.js';
 import { loadConfig } from '../config/index.js';
 import { assertValidEnv } from '../utils/env-validate.js';
-import { readAuthConfig, readIRCConfig } from './lib/env-config.js';
+import { readAuthConfig } from './lib/env-config.js';
 import { runEntrypoint } from './lib/fatal-error.js';
 import { createAgentFromEnv, setupGracefulShutdown } from './lib/lifecycle.js';
 
@@ -2157,29 +2158,15 @@ const dialogue = new DialogueCapture({
   ])
     remoteRegistry.register(c);
 
-  const autoConnect = process.env.BOT_CLI_ONLY === 'true' ? [] : createConnectionConfigsFromEnv();
+  const autoConnect = envBool('BOT_CLI_ONLY')
+    ? []
+    : createConnectionConfigsFromEnv({ irc: wired.appConfig.irc });
   for (const cfg of autoConnect) {
-    if ((cfg.type === 'irc' || cfg.type === 'websocket') && 'config' in cfg) {
-      (cfg.config as Record<string, unknown>).greeting ??= profile.joinMessage;
-    }
-  }
-  const ircExtra = readIRCConfig(wired.appConfig.irc);
-  const ircAuto = autoConnect.find((c) => c.type === 'irc');
-  if (ircAuto && 'config' in ircAuto) {
-    const cfg = ircAuto as { config: Record<string, unknown>; type: string; id: string; [key: string]: unknown };
-    Object.assign(cfg.config, {
-      server: ircExtra.server,
-      port: ircExtra.port,
-      nick: ircExtra.nick,
-      channels: ircExtra.channels,
-    });
+    if (cfg.type === 'irc' || cfg.type === 'websocket') cfg.config.greeting ??= profile.joinMessage;
   }
   for (const cfg of autoConnect) {
     try {
-      const conn = await cm.addConnection(
-        cfg as unknown as import('@senars/core').ConnectionConfig,
-        { emit: () => undefined, logger }
-      );
+      const conn = await cm.addConnection(cfg, { emit: () => undefined, logger });
       bindAgentToConnection(
         agent as any,
         conn as never,
@@ -2193,7 +2180,7 @@ const dialogue = new DialogueCapture({
       );
       logger.info(`Bound bridge to: ${conn.name} (${conn.type})`);
     } catch (e) {
-      logger.error(`Failed to add ${(cfg as { type: string }).type}: ${errMsg(e)}`);
+      logger.error(`Failed to add ${cfg.type}: ${errMsg(e)}`);
     }
   }
 

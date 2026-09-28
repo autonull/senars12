@@ -1,6 +1,7 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { estimateTokens } from '../../shared/index.js';
 import {
   $graphNodes,
   $streamingDelta,
@@ -51,10 +52,6 @@ interface Suggestion {
   id: string;
   label: string;
   type: 'slash' | 'mention';
-}
-
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
 }
 
 const inputHistory: string[] = [];

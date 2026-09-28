@@ -18,10 +18,10 @@ import {
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import {
   builtinModels,
-  cloudApiKey as resolveCloudApiKey,
   defaultModelFor,
   embeddedLlamaConfigured,
   type LMSettings,
+  cloudApiKey as resolveCloudApiKey,
 } from '../env-config.js';
 
 import { getProviderRuntime, type ProviderRuntime } from '../provider-runtime.js';
@@ -29,6 +29,7 @@ import { createEmbeddedLlamaCppLanguageModel } from './embedded-llamacpp.js';
 import { createLlamaCppFetch, LLAMACPP_HOST_DEFAULT } from './llamacpp.js';
 import { resolveOfflineTier } from './routing.js';
 import { getLMSettings } from './settings.js';
+import { withThinkingDisabled } from './thinking.js';
 import { detectDevice, getWebLLMRuntime } from './webllm.js';
 
 // S4 (TODO20): strip tool-calling directives local models cannot honor —
@@ -106,20 +107,7 @@ export function createSeNARSRegistry(settings?: LMSettings) {
     // by default — thinking stays off unless explicitly re-enabled.
     fetch: createLlamaCppFetch({ disableThinking: s.disableThinking !== false }),
   });
-  const thinkingAwareFetch: typeof fetch | undefined = s.disableThinking
-    ? (input, init) => {
-        if (typeof init?.body === 'string') {
-          try {
-            const body = JSON.parse(init.body);
-            if (body.messages && !body.chat_template_kwargs) {
-              body.chat_template_kwargs = { enable_thinking: false };
-              init = { ...init, body: JSON.stringify(body) };
-            }
-          } catch {}
-        }
-        return fetch(input, init);
-      }
-    : undefined;
+  const thinkingAwareFetch = s.disableThinking ? withThinkingDisabled() : undefined;
   const cloud = createOpenAICompatible({
     name: 'cloud',
     apiKey: cloudApiKey(s) ?? '',

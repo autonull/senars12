@@ -1,3 +1,4 @@
+import { envBool } from '@senars/util/config';
 import type { CognitiveController } from './cognitive';
 import type { DriveManager } from './drives';
 import { type GateRegistry, gateRegistry } from './kernel/GateRegistry.js';
@@ -17,9 +18,9 @@ import { Truth } from './terms/truth.js';
 import { PhaseTimer } from './trace';
 import type { Task } from './types';
 import { createTask } from './types';
-import { BoundedRing } from './utils/collections.js';
 import type { EventBus as NarEventBus } from './types/events.js';
 import { errMsg } from './utils';
+import { BoundedRing } from './utils/collections.js';
 
 /** Cognitive state summary for observability */
 export interface CognitiveStateSummary {
@@ -170,7 +171,7 @@ export class NARExecution {
     this.phaseTimer.clear();
 
     // Check RLFP enablement via env var
-    const rlfpEnabled = process.env.RLFP_ENABLED === 'true' && this.policyOptimizer;
+    const rlfpEnabled = envBool('RLFP_ENABLED') && this.policyOptimizer;
 
     for (let i = 0; i < steps; i++) {
       if (signal?.aborted) break;

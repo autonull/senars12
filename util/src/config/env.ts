@@ -13,12 +13,48 @@ export const SENARS_ENV_MAP: Readonly<Record<string, string>> = {
   SENARS_SENARS_ENABLED: 'capabilities.senars.enabled',
 } as const;
 
+const TRUTHY = new Set(['true', '1', 'yes', 'on']);
+
+/** Canonical truthiness for env-sourced strings — every `=== 'true'` check funnels here. */
+export const isTruthy = (value: string | undefined): boolean =>
+  value !== undefined && TRUTHY.has(value.toLowerCase());
+
+/** First defined value among `keys`, or `undefined`. */
+export const envFirst = (...keys: string[]): string | undefined => {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (value !== undefined && value !== '') return value;
+  }
+  return undefined;
+};
+
+export const envStr = (...keys: string[]): string | undefined => envFirst(...keys);
+
+export const envStrOr = (fallback: string, ...keys: string[]): string =>
+  envFirst(...keys) ?? fallback;
+
+export const envBool = (key: string, fallback = false): boolean => {
+  const value = process.env[key];
+  return value === undefined ? fallback : isTruthy(value);
+};
+
+export const envInt = (key: string, fallback: number): number => {
+  const value = process.env[key];
+  if (value === undefined) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
+};
+
+export const envCsv = (fallback: readonly string[], ...keys: string[]): string[] => {
+  const value = envFirst(...keys);
+  return value === undefined ? [...fallback] : value.split(',').map((part) => part.trim());
+};
+
 export function parseEnvValue(value: string): unknown {
-  if (value.toLowerCase() === 'true' || value === '1') return true;
-  if (value.toLowerCase() === 'false' || value === '0') return false;
+  if (isTruthy(value)) return true;
+  if (['false', '0', 'no', 'off'].includes(value.toLowerCase())) return false;
   const num = Number(value);
-  if (!Number.isNaN(num)) return num;
-  return value;
+  return Number.isNaN(num) ? value : num;
 }
 
 export function readEnvOverrides(env: NodeJS.ProcessEnv = process.env): Record<string, unknown> {

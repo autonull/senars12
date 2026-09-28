@@ -1,3 +1,4 @@
+import { estimateTokens } from './shared/index.js';
 import type { LanguageModelV4, LanguageModelV4CallOptions, LanguageModelV4GenerateResult, LanguageModelV4StreamResult, LanguageModelV4StreamPart, LanguageModelV4Usage, LanguageModelV4FinishReason, LanguageModelV4Content, SharedV4ProviderMetadata, SharedV4Warning } from '@ai-sdk/provider';
 import { CreateMLCEngine, type MLCEngineInterface, type ChatCompletionMessageParam, type ChatCompletionChunk, type ChatCompletion, type ChatCompletionContentPart } from '@mlc-ai/web-llm';
 
@@ -97,10 +98,6 @@ function mapFinishReason(reason: string | null | undefined): LanguageModelV4Fini
     case 'content_filter': unified = 'content-filter'; break;
   }
   return { unified, raw: reason ?? undefined };
-}
-
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
 }
 
 function createUsage(inputTokens: number, outputTokens: number): LanguageModelV4Usage {

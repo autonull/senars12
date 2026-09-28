@@ -1,5 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { errMsg } from '@senars/util';
+import { probeReachable } from './probe.js';
+import { withThinkingDisabled } from './thinking.js';
 
 /** Default llama.cpp server (llama-server) address. */
 export const LLAMACPP_HOST_DEFAULT = 'http://localhost:8080';
@@ -38,9 +40,7 @@ const resolveModelId = (origin: string): Promise<string> => {
   // Memoize only successes: a probe before llama-server readiness must not
   // cache the placeholder forever (D4 — permanent 400s → breaker trips).
   resolvedModel = attempt.catch((error) => {
-    console.warn(
-      `[llamacpp] ${errMsg(error)}; retrying on next request`
-    );
+    console.warn(`[llamacpp] ${errMsg(error)}; retrying on next request`);
     return MODEL_PLACEHOLDER;
   });
   void resolvedModel.then(
@@ -59,18 +59,15 @@ const resolveModelId = (origin: string): Promise<string> => {
  * and JSON response formats straight through to the native backend, and swaps
  * the placeholder model id for the server's loaded alias.
  */
-export const createLlamaCppFetch =
-  (opts: LlamaCppFetchOptions = {}): typeof fetch =>
-  async (input, init) => {
+export const createLlamaCppFetch = (opts: LlamaCppFetchOptions = {}): typeof fetch => {
+  const dispatch = opts.disableThinking ? withThinkingDisabled(fetch) : fetch;
+  return async (input, init) => {
     const grammar = grammarScope.getStore();
     if (typeof init?.body !== 'string') return fetch(input, init);
     try {
       const body = JSON.parse(init.body);
       // Bounded generation: uncapped small-model runs wander (and burn GPU time).
       body.max_tokens ??= 768;
-      if (opts.disableThinking && body.messages && !body.chat_template_kwargs) {
-        body.chat_template_kwargs = { enable_thinking: false };
-      }
       if (grammar) body.grammar = grammar;
       if (!body.model || body.model === MODEL_PLACEHOLDER) {
         const origin =
@@ -85,8 +82,9 @@ export const createLlamaCppFetch =
     } catch {
       /* non-JSON body: pass through untouched */
     }
-    return fetch(input, init);
+    return dispatch(input, init);
   };
+};
 
 /** Probe llama-server's native /health endpoint. */
 export const probeLlamaCpp = async (host?: string): Promise<boolean> => {
@@ -94,13 +92,5 @@ export const probeLlamaCpp = async (host?: string): Promise<boolean> => {
     /\/v1\/?$/,
     ''
   );
-  try {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 1500);
-    const res = await fetch(`${base}/health`, { signal: ctl.signal });
-    clearTimeout(t);
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return probeReachable(`${base}/health`);
 };

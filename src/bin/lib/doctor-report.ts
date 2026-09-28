@@ -22,7 +22,9 @@ import {
   resolveOfflineTier,
   setRouting,
   getRoutingLogStatus,
+  fetchBounded,
   probeLlamaCpp,
+  probeModelsEndpoint,
 } from '@senars/nar/lm/providers.js';
 import {
   cloudApiKey,
@@ -49,13 +51,12 @@ const probeProviderReachable = async (): Promise<boolean> => {
   const settings = resolveLMSettings();
   if (settings.provider === 'transformers' || settings.provider === 'mock') return true;
   if (settings.provider !== 'openai-compatible') return Boolean(cloudApiKey(settings.apiKeyEnv));
-  try {
-    const base = settings.baseUrl ?? 'http://localhost:11434/v1';
-    const res = await fetch(`${base.replace(/\/$/, '')}/models`, { signal: AbortSignal.timeout(3000) });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return probeModelsEndpoint(
+    settings.baseUrl ?? 'http://localhost:11434/v1',
+    settings.provider,
+    cloudApiKey(settings.apiKeyEnv),
+    3000
+  );
 };
 
 const checkCredentials = (): { key: string; present: boolean }[] =>
@@ -65,16 +66,11 @@ const checkCredentials = (): { key: string; present: boolean }[] =>
   }));
 
 const probeOllama = async (host: string): Promise<string> => {
-  try {
-    const res = await fetch(`${host.replace(/\/$/, '')}/api/tags`, {
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) return `unreachable (${res.status})`;
-    const data = (await res.json()) as { models?: Array<{ name?: string }> };
-    return `online, models: ${data.models?.map((m) => m.name).join(', ') || 'none'}`;
-  } catch {
-    return 'unreachable (is ollama running?)';
-  }
+  const res = await fetchBounded(`${host.replace(/\/$/, '')}/api/tags`, { timeoutMs: 3000 });
+  if (!res) return 'unreachable (is ollama running?)';
+  if (!res.ok) return `unreachable (${res.status})`;
+  const data = (await res.json().catch(() => null)) as { models?: Array<{ name?: string }> } | null;
+  return `online, models: ${data?.models?.map((m) => m.name).join(', ') || 'none'}`;
 };
 
 const probeEmbeddedLlama = async (): Promise<{ available: boolean; detail: string }> => {

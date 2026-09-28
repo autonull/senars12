@@ -113,6 +113,7 @@ export {
   edgeKey,
   ensureArray,
   errMsg,
+  estimateTokens,
   extractTerm,
   generateId,
   isNarsese,

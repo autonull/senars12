@@ -16,6 +16,8 @@ afterAll(async () => {
   for (const d of dirs) await rm(d, { recursive: true, force: true });
 });
 
+const FIXED_CLOCK = 1_700_000_000_000;
+
 const episode = (
   id: string,
   type: Episode['type'],
@@ -24,7 +26,7 @@ const episode = (
   correlationId = 'c1',
   kind?: string
 ): Episode => ({
-  timestamp: Date.now(),
+  timestamp: FIXED_CLOCK,
   type,
   content,
   metadata: { correlationId, ...(kind ? { kind } : {}) },
@@ -124,7 +126,7 @@ describe('Bench 87 — EpisodeConsolidator (AIKR pattern #1)', () => {
         s = (s * 48271) % 2147483647;
         return s / 2147483647;
       };
-      const c = new EpisodeConsolidator({ capacity: 64, rng });
+      const c = new EpisodeConsolidator({ capacity: 64, rng, clock: () => FIXED_CLOCK });
       for (let i = 0; i < 12; i++)
         c.admit(episode(`d${i}`, i % 2 ? 'dialogue' : 'input', `v${i}`, {}, i % 2 ? 's1' : 's2'));
       const out = await c.consolidate();

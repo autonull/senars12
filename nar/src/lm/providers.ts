@@ -27,6 +27,7 @@ export type {
   WebLLMRuntime,
 } from './provider-runtime.js';
 export { getProviderRuntime, PROVIDER_CIRCUIT_DEFAULTS } from './provider-runtime.js';
+export { fetchBounded, probeModelsEndpoint } from './providers/probe.js';
 export type { ModelCapability } from './providers/capabilities.js';
 export {
   getModelCapability,

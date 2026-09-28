@@ -4,10 +4,13 @@ export {
   ChatMessage,
   CognitiveDelta,
   ConfigField,
+  edgeKey,
+  estimateTokens,
+  extractTerm,
   GraphOp,
+  generateId,
   IncomingFromClient,
   IncomingFromServer,
   Lens,
 } from '@senars/core';
 export * from './constants.js';
-export { edgeKey } from './utils.js';

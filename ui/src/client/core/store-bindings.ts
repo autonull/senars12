@@ -1,6 +1,6 @@
 import type { ChatMessage, GraphNodeData, GraphOp, IncomingFromServer } from '@senars/core';
 import type { Core } from 'cytoscape';
-import { edgeKey, extractTerm, generateId } from '../../shared/utils.js';
+import { edgeKey, extractTerm, generateId } from '../../shared/index.js';
 import type { CognitiveMetricsData } from './store.js';
 import {
   $activeLens,

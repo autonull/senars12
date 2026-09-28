@@ -292,26 +292,49 @@ describe('bindAgentToConnection end-to-end', () => {
 });
 
 describe('createConnectionConfigsFromEnv', () => {
-  it('returns empty by default (opt-in only)', () => {
+  const withEnv = (vars: Record<string, string>, run: () => void) => {
     const old = { ...process.env };
-    delete process.env.ENABLE_IRC;
-    delete process.env.ENABLE_WS;
-    delete process.env.ENABLE_HTTP;
-    delete process.env.ENABLE_MCP;
-    const configs = createConnectionConfigsFromEnv();
-    expect(configs).toHaveLength(0);
-    process.env = old;
+    Object.assign(process.env, vars);
+    try {
+      run();
+    } finally {
+      process.env = old;
+    }
+  };
+
+  it('returns empty by default (opt-in only)', () => {
+    withEnv({ ENABLE_IRC: '', ENABLE_WS: '', ENABLE_HTTP: '', ENABLE_MCP: '' }, () => {
+      expect(createConnectionConfigsFromEnv()).toHaveLength(0);
+    });
   });
 
   it('returns IRC + WS when ENABLE_IRC/ENABLE_WS=true', () => {
-    const old = { ...process.env };
-    process.env.ENABLE_IRC = 'true';
-    process.env.ENABLE_WS = 'true';
-    const configs = createConnectionConfigsFromEnv();
-    const types = configs.map((c) => c.type);
-    expect(types).toContain('irc');
-    expect(types).toContain('websocket');
-    process.env = old;
+    withEnv({ ENABLE_IRC: 'true', ENABLE_WS: 'true' }, () => {
+      const types = createConnectionConfigsFromEnv().map((c) => c.type);
+      expect(types).toContain('irc');
+      expect(types).toContain('websocket');
+    });
+  });
+
+  it('accepts SENARS_* aliases and env values over defaults', () => {
+    withEnv({ ENABLE_WS: '1', SENARS_WS_PORT: '9001' }, () => {
+      const [ws] = createConnectionConfigsFromEnv();
+      expect(ws?.config).toMatchObject({ port: 9001 });
+    });
+  });
+
+  it('lets config-file overrides supply transport addresses env does not set', () => {
+    withEnv({ ENABLE_IRC: 'true', IRC_SERVER: '', SENARS_IRC_SERVER: '' }, () => {
+      const [irc] = createConnectionConfigsFromEnv({
+        irc: { server: 'irc.example.org', port: 7000, nick: 'tester', channels: ['#a'] },
+      });
+      expect(irc?.config).toMatchObject({
+        server: 'irc.example.org',
+        port: 7000,
+        nick: 'tester',
+        channels: ['#a'],
+      });
+    });
   });
 });
 

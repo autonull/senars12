@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { isTruthy } from '@senars/util/config';
 
 export const LM_PROVIDER_NAMES = [
   'transformers',
@@ -221,18 +222,17 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
     // segv-prone on hybrid-attention models); an explicit env value wins.
     llamacppFlashAttention:
       env('LM_LLAMACPP_FLASH_ATTN') !== undefined
-        ? ['1', 'true'].includes(env('LM_LLAMACPP_FLASH_ATTN') ?? '')
+        ? isTruthy(env('LM_LLAMACPP_FLASH_ATTN'))
         : (file?.llamacppFlashAttention ?? true),
     apiKeyEnv: file?.apiKeyEnv ?? cloudCredentialEnv,
     quantized: file?.quantized,
     cacheDir: file?.cacheDir,
-    offline: ['1', 'true'].includes(env('LM_OFFLINE') ?? '') || file?.offline === true,
+    offline: isTruthy(env('LM_OFFLINE')) || file?.offline === true,
     dtype: (env('LM_DTYPE') as LMSettings['dtype'] | undefined) ?? file?.dtype,
     qualityDtype:
       (env('LM_QUALITY_DTYPE') as LMSettings['qualityDtype'] | undefined) ?? file?.qualityDtype,
     fastDtype: (env('LM_FAST_DTYPE') as LMSettings['fastDtype'] | undefined) ?? file?.fastDtype,
-    disableThinking:
-      ['1', 'true'].includes(env('LM_DISABLE_THINKING') ?? '') || file?.disableThinking === true,
+    disableThinking: isTruthy(env('LM_DISABLE_THINKING')) || file?.disableThinking === true,
     circuitBreaker: file?.circuitBreaker,
   };
 };

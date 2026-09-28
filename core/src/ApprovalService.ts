@@ -1,6 +1,6 @@
-import { makeId } from '@senars/util';
+import { errMsg, makeId } from '@senars/util';
+import { envBool } from '@senars/util/config';
 import { createLogger, type LoggerInterface } from './Logger.js';
-import { errMsg } from '@senars/util';
 
 export interface PendingApproval {
   id: string;
@@ -61,7 +61,7 @@ export class ApprovalService {
       risk: params.risk,
     });
 
-    if (process.env.CI === 'true' || process.env.SENARS_HEADLESS === '1') {
+    if (envBool('CI') || envBool('SENARS_HEADLESS')) {
       this.approvalManager.rejectApproval(approvalRequest.id, 'Auto-rejected: headless mode');
       return { approved: false, feedback: 'Auto-rejected in headless mode' };
     }

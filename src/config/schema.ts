@@ -1,6 +1,7 @@
 import {
   dialogueDefaults,
   dialogueSchema,
+  isTruthy,
   lmSettingsSchema,
   narCoreBounds,
   type SystemOneConfig,
@@ -18,7 +19,7 @@ const envBool = (key: string) =>
   z
     .string()
     .optional()
-    .transform((v) => v?.toLowerCase() === 'true' || v === '1')
+    .transform((v) => isTruthy(v))
     .pipe(z.boolean());
 const envNumber = (key: string) =>
   z
