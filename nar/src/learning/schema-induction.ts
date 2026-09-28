@@ -19,7 +19,7 @@ import { createBudget, createTask, type Task } from '../types';
 import type { RandomSource } from '../types/primitives.js';
 import { clamp01, errMsg } from '../utils';
 import { AIKRProcessor, PrioritySampling, type ProcessOptions, type AikrBagOptions } from './aikr-processor.js';
-import { LruCache } from '@senars/util';
+import { generateId, LruCache } from '@senars/util';
 
 export interface SchemaPattern {
   id: string;
@@ -165,7 +165,7 @@ export class SchemaInductor {
     const confidences = chain.map((t) => (t.truth ? t.truth.f * t.truth.c : 0));
     const confidence = clamp01(Math.min(...confidences));
     if (confidence < this.config.minConfidenceForInduction) return null;
-    const id = `schema-sym-${Date.now()}-${this.rng().toString(36).slice(2, 8)}`;
+    const id = generateId('schema-sym', this.rng);
     const schema: SchemaPattern = {
       id,
       template,
@@ -285,7 +285,7 @@ Respond with JSON:
     const parsed = this.parseSchemaResponse(response);
     if (!parsed) return null;
 
-    const id = `schema-${Date.now()}-${this.rng().toString(36).slice(2, 8)}`;
+    const id = generateId('schema', this.rng);
     const schema: SchemaPattern = {
       id,
       template: parsed.pattern,

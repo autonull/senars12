@@ -1,5 +1,5 @@
 import { ConnectionError } from '@senars/core';
-import { toError, withRetry as retry } from '@senars/util';
+import { generateId, toError, withRetry as retry } from '@senars/util';
 import type {
   Connection,
   ConnectionConfig,
@@ -79,7 +79,7 @@ export abstract class BaseConnection implements Connection {
     metadata?: Record<string, unknown>
   ): IOMessage {
     return {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      id: generateId(this.type),
       source: this.id,
       origin: metadata?.origin
         ? String(metadata.origin)
@@ -106,23 +106,22 @@ export abstract class BaseConnection implements Connection {
     }
   }
 
+  /** D10: settled rejections must never vanish silently — log + count. */
+  protected accountHandlerResults(results: PromiseSettledResult<unknown>[]): void {
+    for (const result of results) {
+      if (result.status !== 'rejected') continue;
+      this.errorCount++;
+      this.logger.error(`Message handler error for ${this.id}`, toError(result.reason));
+    }
+  }
+
   protected handleMessage(message: IOMessage): void {
     this.messageCount++;
     const origin = message.origin;
     const prev = this.queues.get(origin) ?? Promise.resolve();
     const handlers = this.messageHandlers.slice();
     const next = prev.then(async () => {
-      const results = await Promise.allSettled(handlers.map((h) => h(message)));
-      // D10: settled rejections must never vanish silently — log + count.
-      for (const r of results) {
-        if (r.status === 'rejected') {
-          this.errorCount++;
-          this.logger.error(
-            `Message handler error for ${this.id}`,
-            toError(r.reason)
-          );
-        }
-      }
+      this.accountHandlerResults(await Promise.allSettled(handlers.map((h) => h(message))));
     });
     this.queues.set(origin, next);
     next

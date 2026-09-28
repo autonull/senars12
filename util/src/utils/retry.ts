@@ -18,23 +18,27 @@ export interface RetryOptions {
   isRetryable?: (error: unknown) => boolean;
   onRetry?: (error: unknown, attempt: number, delayMs: number) => void;
   signal?: AbortSignal;
+  /** Translate the final failure into a domain error (LM unavailability, …). */
+  mapError?: (error: unknown) => Error;
 }
 
 /** Retry `fn` with exponential backoff; rethrows the last failure. */
 export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
-  const { retries = 2, baseMs = 100, maxMs = 1000, isRetryable, onRetry, signal } = options;
+  const { retries = 2, baseMs = 100, maxMs = 1000, isRetryable, onRetry, signal, mapError } =
+    options;
   let lastError: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error;
-      if (attempt === retries || (isRetryable && !isRetryable(error))) throw error;
+      if (attempt === retries || (isRetryable && !isRetryable(error)))
+        throw mapError ? mapError(error) : error;
       const delay = backoffDelay(attempt, baseMs, maxMs);
       onRetry?.(error, attempt, delay);
       if (signal?.aborted) throw error;
       await sleep(delay);
     }
   }
-  throw lastError;
+  throw mapError ? mapError(lastError) : lastError;
 }

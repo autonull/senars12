@@ -2,10 +2,10 @@ import { makeId } from '@senars/util';
 import { createBag, type Bag, type BagOptions } from '../bag/index.js';
 import { LINK } from '../constants.js';
 import type { Term, Truth } from '../terms';
-import { extractSymbols, type Stamp, TermMap, TermSet, termsEqual } from '../terms';
+import { calculateSimilarity, type Stamp, TermMap, TermSet, termsEqual } from '../terms';
 import { type IndependenceStatus, Truth as TruthOps } from '../terms/truth.js';
 import type { Budget, TaskType } from '../types';
-import { clamp01, jaccard } from '../utils';
+import { clamp01 } from '../utils';
 
 export type { IndependenceStatus };
 
@@ -223,7 +223,7 @@ export class Concept {
   canMergeWith(other: Concept, threshold = 0.85): boolean {
     return (
       this !== other &&
-      (this.calculateTermSimilarity(other.term) >= threshold ||
+      (calculateSimilarity(this.term, other.term) >= threshold ||
         this.calculateTaskOverlap(other) >= threshold)
     );
   }
@@ -343,12 +343,6 @@ export class Concept {
 
   private findMatchingBelief(term: Term): TaskData | undefined {
     return this.beliefBag.find((item) => termsEqual(item.term, term));
-  }
-
-  private calculateTermSimilarity(other: Term): number {
-    return termsEqual(this.term, other)
-      ? 1
-      : jaccard(extractSymbols(this.term), extractSymbols(other));
   }
 
   private calculateTaskOverlap(other: Concept): number {

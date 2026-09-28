@@ -1,3 +1,5 @@
+import { tokenizeWords } from '@senars/util';
+
 import { estimateTokens } from '../lm/context/context-budget.js';
 import type { NAR } from '../nar.js';
 import { TermSet } from '../terms';
@@ -107,11 +109,10 @@ export class ContextAssembler {
 
   private extractRelatedBeliefs(nar: NAR, input: string, max: number): string[] {
     const allBeliefs = nar.getBeliefs();
-    const words = new Set(input.toLowerCase().split(/\s+/));
+    const words = tokenizeWords(input);
 
     const scored = allBeliefs.map((b) => {
-      const term = b.term.toString().toLowerCase();
-      const termWords = new Set(term.split(/\s+/));
+      const termWords = tokenizeWords(b.term.toString());
       let overlap = 0;
       for (const w of words) {
         if (termWords.has(w)) overlap++;

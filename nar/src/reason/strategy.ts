@@ -1,20 +1,11 @@
 import type { Memory } from '../memory';
 import type { ComponentMetadata } from '../strategies';
-import { extractSymbols, termsEqual } from '../terms';
+import { sharesSymbol, termsEqual } from '../terms';
 import { Stamp } from '../terms/stamp.js';
 import type { Task } from '../types';
 import { createSecondaryTask } from '../types';
 
 const MIN_DERIVATION_PRIORITY = 0.05;
-
-const hasSharedAtoms = (term1: Task['term'], term2: Task['term']): boolean => {
-  const atoms1 = extractSymbols(term1);
-  const atoms2 = extractSymbols(term2);
-  for (const a of atoms1) {
-    if (atoms2.has(a)) return true;
-  }
-  return false;
-};
 
 export interface Strategy {
   readonly metadata?: ComponentMetadata;
@@ -35,7 +26,7 @@ export const BagStrategy: Strategy = {
     memory
       .sample(10)
       .filter((c) => !termsEqual(c.term, task.term))
-      .filter((c) => hasSharedAtoms(c.term, task.term))
+      .filter((c) => sharesSymbol(c.term, task.term))
       .filter((c) => {
         const belief = c.beliefBag.peek();
         if (!belief?.stamp || !task.stamp) return true;
@@ -52,7 +43,7 @@ export const ExhaustiveStrategy: Strategy = {
     memory
       .sample(100)
       .filter((c) => !termsEqual(c.term, task.term))
-      .filter((c) => hasSharedAtoms(c.term, task.term))
+      .filter((c) => sharesSymbol(c.term, task.term))
       .map((c) => createSecondaryTask(c.term, c.priority, c.beliefBag.peek()?.truth, 'belief'))
       .filter((t) => t.budget.priority >= MIN_DERIVATION_PRIORITY),
 };

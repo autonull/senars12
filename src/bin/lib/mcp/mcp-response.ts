@@ -81,17 +81,6 @@ export function formatEpisodesForMCP(
  */
 export const stringifyMCP = (value: unknown): string => JSON.stringify(value, null, 2);
 
-/**
- * Safe JSON parse with fallback
- */
-export function safeJSONParse<T>(text: string, fallback: T): T {
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return fallback;
-  }
-}
-
 type UriLike = string | URL;
 
 const uriOf = (uri: UriLike): string => (typeof uri === 'string' ? uri : uri.href);

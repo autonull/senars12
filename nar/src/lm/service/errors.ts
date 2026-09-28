@@ -1,4 +1,4 @@
-import { type LMTask, withRetry as retry } from '@senars/util';
+import { errMsg, type LMTask, withRetry as retry } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 
 /** H6/X14: provider-specific remediation hints appended to LM failures. */
@@ -46,20 +46,19 @@ export const withRetry = async <T>(
   provider: string | undefined,
   task: LMTask,
   retries = 2
-): Promise<T> => {
-  let lastError: unknown;
-  try {
-    return await retry(fn, { retries, baseMs: 250, isRetryable: isTransportError });
-  } catch (e) {
-    lastError = e;
-  }
-  throw new LMUnavailableError(
-    withHint(
-      `LM provider unavailable (${provider ?? 'unknown'}): ${(lastError as Error)?.message ?? String(lastError)}`,
-      provider
-    ),
-    provider,
-    task,
-    lastError
-  );
-};
+): Promise<T> =>
+  retry(fn, {
+    retries,
+    baseMs: 250,
+    isRetryable: isTransportError,
+    mapError: (error) =>
+      new LMUnavailableError(
+        withHint(
+          `LM provider unavailable (${provider ?? 'unknown'}): ${errMsg(error)}`,
+          provider
+        ),
+        provider,
+        task,
+        error
+      ),
+  });

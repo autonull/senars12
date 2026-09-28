@@ -1,7 +1,7 @@
 import type { Concept, Memory } from '../../memory';
 import type { Task } from '../../types';
 import { createSecondaryTask } from '../../types';
-import { extractSymbols, termsEqual, Stamp } from '../../terms';
+import { sharesSymbol, termsEqual, Stamp } from '../../terms';
 import { getSubject, getPredicate } from '../../terms';
 import type { Term } from '../../terms';
 import { getSharedConceptGraph } from '../lm-graph/RuleGraph.js';
@@ -119,14 +119,8 @@ export const PREMISE_SCORER_REGISTRY = createScorerRegistry();
 function createFilterRegistry() {
   const registry = {
     sharedAtoms: {
-      create: (): PremiseFilter => (task: Task, concept: Concept): boolean => {
-        const atoms1 = extractSymbols(task.term);
-        const atoms2 = extractSymbols(concept.term);
-        for (const a of atoms1) {
-          if (atoms2.has(a)) return true;
-        }
-        return false;
-      },
+      create: (): PremiseFilter => (task: Task, concept: Concept): boolean =>
+        sharesSymbol(task.term, concept.term),
       isCurried: false as const,
     },
     noStampOverlap: {

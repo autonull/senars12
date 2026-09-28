@@ -153,7 +153,7 @@ export { formatTruth, toConfidence, toFrequency } from './types/truth.js';
 export { assertDefined, invariant } from './utils/assert.js';
 // Collections
 /** @public Drop-oldest bounded ring buffer. */
-export { BoundedRing, pushCapped } from './utils/collections.js';
+export { BoundedRing, maxBy, minBy, pushCapped, sortBy, sortByDesc } from './utils/collections.js';
 /** @public Percent, divider, and progress-bar formatting for reports and CLI output. */
 export { bar, divider, pct, section } from './utils/format.js';
 export type { JsonlLoadResult } from './utils/fs.js';
@@ -166,6 +166,7 @@ export {
   ensureParentDir,
   ensureParentDirSync,
   iterateJsonl,
+  parseJsonOr,
   readJsonFile,
   readJsonFileSync,
   readJsonl,
@@ -183,6 +184,7 @@ export {
   fnv1a,
   fnv1aCombine,
   mul32,
+  SHA256_PINNED,
   sha256Hex,
   sha256HexParts,
   sha256Prefixed,
@@ -229,6 +231,7 @@ export {
   sleep,
   TimeoutError,
   toError,
+  tokenizeWords,
   truncate,
   truncateBytes,
   withTimeout,

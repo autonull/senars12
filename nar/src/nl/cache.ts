@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { errMsg, LruCache } from '@senars/util';
+import { errMsg, LruCache, tokenizeWords } from '@senars/util';
 import { createLogger } from '../logger';
 import { readJsonFileSync, writeJsonFileSync } from '../utils/fs.js';
 
@@ -57,15 +57,10 @@ export class TranslationCache {
   }
 
   getRelevant(nl: string, max = 3): TranslationCacheEntry[] {
-    const words = new Set(nl.toLowerCase().split(/\s+/));
+    const words = tokenizeWords(nl);
     return this.#cache
       .toArray()
-      .filter((e) =>
-        e.nl
-          .toLowerCase()
-          .split(/\s+/)
-          .some((w) => words.has(w))
-      )
+      .filter((entry) => [...tokenizeWords(entry.nl)].some((word) => words.has(word)))
       .slice(0, max);
   }
 

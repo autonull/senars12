@@ -1,4 +1,4 @@
-import { mean } from '@senars/util';
+import { mean, minBy } from '@senars/util';
 
 import type { Concept } from '../concept.js';
 import type { MemoryScorer } from '../pressure';
@@ -35,7 +35,7 @@ export class Forgetting {
     string,
     (concepts: Concept[], scorer: MemoryScorer) => Concept | undefined
   > = {
-    fifo: (concepts) => this.selectFifo(concepts),
+    fifo: (concepts) => this.findOldest(concepts),
     'lowest-priority': (concepts) => this.selectLowestPriority(concepts),
     'forgetting-curve': (concepts, scorer) => this.selectByForgettingCurve(concepts, scorer),
     age: (concepts) => this.selectByAge(concepts),
@@ -158,23 +158,12 @@ export class Forgetting {
     return 'lastAccessedAt' in concept ? (concept.lastAccessedAt ?? 0) : 0;
   }
 
-  private selectFifo(concepts: Concept[]): Concept | undefined {
-    if (concepts.length === 0) return undefined;
-    return concepts.reduce(
-      (oldest, c) => (this.getLastAccess(c) < this.getLastAccess(oldest) ? c : oldest),
-      concepts[0]!
-    );
-  }
-
   private selectLowestPriority(concepts: Concept[]): Concept | undefined {
-    return concepts.reduce((lowest, c) => (c.priority < lowest.priority ? c : lowest));
+    return minBy(concepts, (c) => c.priority);
   }
 
   private findOldest(concepts: Concept[]): Concept | undefined {
-    return concepts.reduce(
-      (oldest, c) => (this.getLastAccess(c) < this.getLastAccess(oldest) ? c : oldest),
-      concepts[0]!
-    );
+    return minBy(concepts, (c) => this.getLastAccess(c));
   }
 
   private selectByForgettingCurve(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {

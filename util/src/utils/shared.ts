@@ -95,14 +95,18 @@ export const mean = <T>(
 ): number =>
   items.length === 0 ? 0 : items.reduce((sum, item) => sum + value(item), 0) / items.length;
 
+/** Lowercased word-token set — the tokenizer behind every text-similarity path. */
+export const tokenizeWords = (text: string, splitPattern: RegExp = /\s+/): Set<string> =>
+  new Set(text.toLowerCase().split(splitPattern).filter(Boolean));
+
 export const wordOverlap = (a: string, b: string, splitPattern?: RegExp): number => {
-  const pattern = splitPattern ?? /\s+/;
-  const aWords = new Set(a.toLowerCase().split(pattern).filter(Boolean));
-  const bWords = new Set(b.toLowerCase().split(pattern).filter(Boolean));
-  if (aWords.size === 0 && bWords.size === 0) return 0;
+  const aWords = tokenizeWords(a, splitPattern);
+  const bWords = tokenizeWords(b, splitPattern);
+  const denominator = Math.max(aWords.size, bWords.size);
+  if (denominator === 0) return 0;
   let overlap = 0;
-  for (const w of aWords) if (bWords.has(w)) overlap++;
-  return overlap / Math.max(aWords.size, bWords.size);
+  for (const word of aWords) if (bWords.has(word)) overlap++;
+  return overlap / denominator;
 };
 
 /** Dotted-path read; missing or non-object segments yield `undefined`. */
@@ -176,8 +180,12 @@ export function parseFlags(argv: readonly string[] = process.argv.slice(2)): Fla
 
 let msgCounter = 0;
 
-export function generateId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${++msgCounter}-${Math.random().toString(36).slice(2, 6)}`;
+/**
+ * Monotonic, collision-resistant id. Pass an injectable `rng` (seeded runs,
+ * deterministic replay) — the default source is the global `Math.random`.
+ */
+export function generateId(prefix: string, rng: () => number = Math.random): string {
+  return `${prefix}-${Date.now()}-${++msgCounter}-${rng().toString(36).slice(2, 6)}`;
 }
 
 export function extractTerm(content: string): string | undefined {

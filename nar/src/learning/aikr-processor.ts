@@ -9,6 +9,7 @@
 import type { Bag, BagItem } from '../bag/Bag.js';
 import type { RandomSource } from '../types/primitives.js';
 import { selectTopN } from '../utils/collections.js';
+import { weightedSample, weightedSampleBy } from '../utils/random.js';
 
 export interface SamplingStrategy<T extends BagItem> {
   readonly name: string;
@@ -44,33 +45,6 @@ const softmaxWeights = <T>(
   return items.map((item, i) => ({ item, weight: exps[i]! / sum }));
 };
 
-/** Sample `budget` items without replacement by weighted roulette. */
-const weightedWithoutReplacement = <T>(
-  weighted: { item: T; weight: number }[],
-  budget: number,
-  rng: RandomSource
-): T[] => {
-  const pool = weighted.filter((w) => w.weight > 0);
-  const out: T[] = [];
-  for (let i = 0; i < budget && pool.length > 0; i++) {
-    const total = pool.reduce((a, w) => a + w.weight, 0);
-    if (total <= 0) {
-      out.push(pool.shift()!.item);
-      continue;
-    }
-    let r = rng() * total;
-    let idx = 0;
-    for (; idx < pool.length; idx++) {
-      r -= pool[idx]!.weight;
-      if (r <= 0) break;
-    }
-    const picked = pool[Math.min(idx, pool.length - 1)]!;
-    out.push(picked.item);
-    pool.splice(pool.indexOf(picked), 1);
-  }
-  return out;
-};
-
 /**
  * Softmax over priority with temperature (default T=1.0). Controllable
  * exploration/exploitation: T→∞ uniform, T→0 greedy.
@@ -80,7 +54,7 @@ export class PrioritySampling<T extends BagItem> implements SamplingStrategy<T> 
   constructor(private readonly temperature = 1.0) {}
   select(items: T[], budget: number, rng: RandomSource): T[] {
     const t = Math.max(this.temperature, 1e-9);
-    return weightedWithoutReplacement(
+    return weightedSampleBy(
       softmaxWeights(items, (item) => item.priority / t),
       budget,
       rng
@@ -93,7 +67,7 @@ export class PowerLawSampling<T extends BagItem> implements SamplingStrategy<T> 
   readonly name = 'power-law';
   constructor(private readonly alpha = 1.5) {}
   select(items: T[], budget: number, rng: RandomSource): T[] {
-    return weightedWithoutReplacement(
+    return weightedSampleBy(
       softmaxWeights(items, (item) => Math.log(Math.max(item.priority, 1e-9) ** this.alpha)),
       budget,
       rng
@@ -116,7 +90,7 @@ export class FairnessSampling<T extends BagItem> implements SamplingStrategy<T> 
 
   select(items: T[], budget: number, rng: RandomSource): T[] {
     const t = Math.max(this.temperature, 1e-9);
-    const picked = weightedWithoutReplacement(
+    const picked = weightedSampleBy(
       softmaxWeights(items, (item) => {
         const age = this.#sinceSampled.get(item.id) ?? 0;
         return (item.priority * (1 + this.ageFactor * age)) / t;
@@ -151,7 +125,7 @@ export class TopKSampling<T extends BagItem> implements SamplingStrategy<T> {
     const k = Math.max(this.k ?? budget, budget);
     const top = selectTopN(items, k, (item) => item.priority);
     const t = Math.max(this.temperature, 1e-9);
-    return weightedWithoutReplacement(
+    return weightedSampleBy(
       softmaxWeights(top, (item) => item.priority / t),
       budget,
       rng
@@ -163,25 +137,7 @@ export class TopKSampling<T extends BagItem> implements SamplingStrategy<T> {
 export class PriorityProportional<T extends BagItem> implements SamplingStrategy<T> {
   readonly name = 'priority-proportional';
   select(items: T[], budget: number, rng: RandomSource): T[] {
-    const pool = items.slice();
-    const out: T[] = [];
-    for (let i = 0; i < budget && pool.length > 0; i++) {
-      const total = pool.reduce((a, item) => a + Math.max(item.priority, 0), 0);
-      if (total <= 0) {
-        out.push(pool.shift()!);
-        continue;
-      }
-      let r = rng() * total;
-      let idx = 0;
-      for (; idx < pool.length; idx++) {
-        r -= Math.max(pool[idx]!.priority, 0);
-        if (r <= 0) break;
-      }
-      const picked = pool[Math.min(idx, pool.length - 1)]!;
-      out.push(picked);
-      pool.splice(pool.indexOf(picked), 1);
-    }
-    return out;
+    return weightedSample(items, budget, (item) => item.priority, rng);
   }
 }
 

@@ -11,7 +11,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { DialogueCapture } from '@senars/nar/dialogue';
 import { createLogger } from '@senars/nar/logger';
-import { setupGracefulShutdown } from '@senars/util';
+import { generateId, setupGracefulShutdown } from '@senars/util';
 import { HttpGuard, rejectWithStatus } from './lib/http-guards.js';
 import { createAgentFromEnv } from './lib/lifecycle.js';
 import { JobManager } from './lib/mcp/job-manager.js';
@@ -87,7 +87,7 @@ const startSse = (port: number, guard: HttpGuard): void => {
 
 const startHttp = (port: number, guard: HttpGuard): void => {
   const httpTransport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => `session-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    sessionIdGenerator: () => generateId('session'),
   });
   void server.connect(httpTransport);
 

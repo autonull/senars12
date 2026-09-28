@@ -1,4 +1,4 @@
-import { sha256Hex } from '@senars/util';
+import { SHA256_PINNED, sha256Hex } from '@senars/util';
 
 import { promises as fs } from 'node:fs';
 import { dirname } from 'node:path';
@@ -224,8 +224,6 @@ export interface BakeOffResult {
   };
 }
 
-const HASH_PINNED = /^sha256:[0-9a-f]{64}$/;
-
 /** Bench 10: promoted head matches incumbent accuracy on shadow bake-off within 2%. */
 export function runBakeOff(
   _incumbent: HeadCandidateSpec | undefined,
@@ -315,7 +313,7 @@ export function validateHeadCandidate(
   incumbent?: HeadCandidateSpec
 ): SabotageVerdict {
   const violations: string[] = [];
-  if (!HASH_PINNED.test(candidate.modelDigest)) {
+  if (!SHA256_PINNED.test(candidate.modelDigest)) {
     violations.push(
       `Un-pinned modelDigest '${candidate.modelDigest}' — head must be hash-pinned (SHA256(weights))`
     );

@@ -1,4 +1,4 @@
-import { shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
+import { SHA256_PINNED, shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
 
 import { createWasiSandbox } from '../../capability/wasi-sandbox.js';
 import type {
@@ -11,8 +11,6 @@ import type {
   ReasoningBudget,
 } from './types.js';
 
-const HASH_PINNED = /^sha256:[0-9a-f]{64}$/;
-
 /** Hash-pin mismatch fails closed — no fallback, no demotion ladder (§10). */
 export class DigestMismatchError extends Error {
   constructor(expected: string, actual: string) {
@@ -22,7 +20,7 @@ export class DigestMismatchError extends Error {
 }
 
 export function verifyModelDigest(loaded: string, pinned: string): void {
-  if (!HASH_PINNED.test(pinned)) {
+  if (!SHA256_PINNED.test(pinned)) {
     throw new DigestMismatchError(pinned, loaded);
   }
   if (loaded !== pinned) {

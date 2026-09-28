@@ -33,10 +33,19 @@ export async function ensureParentDir(filePath: string): Promise<string> {
   return ensureDir(dirname(filePath));
 }
 
+/** Parse JSON text, yielding `fallback` on any syntax error. */
+export const parseJsonOr = <T>(text: string, fallback: T): T => {
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return fallback;
+  }
+};
+
 /** Read and parse a JSON file. A missing or unreadable file yields `fallback`. */
 export async function readJsonFile<T>(path: string, fallback: T): Promise<T> {
   try {
-    return JSON.parse(await readFile(path, 'utf8')) as T;
+    return parseJsonOr(await readFile(path, 'utf8'), fallback);
   } catch {
     return fallback;
   }
@@ -44,7 +53,7 @@ export async function readJsonFile<T>(path: string, fallback: T): Promise<T> {
 
 export function readJsonFileSync<T>(path: string, fallback: T): T {
   try {
-    return JSON.parse(readFileSync(path, 'utf8')) as T;
+    return parseJsonOr(readFileSync(path, 'utf8'), fallback);
   } catch {
     return fallback;
   }

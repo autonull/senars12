@@ -232,36 +232,22 @@ describe('MemoryIndex', () => {
   });
 
   describe('cluster similarity', () => {
-    test('calculates cluster similarity correctly', () => {
-      const c1 = createTestConcept('Cat');
-      const c2 = createTestConcept('Dog');
-      index.index(c1);
-      index.index(c2);
+    test('finds the exact-term concept first', () => {
+      const cat = createTestConcept('Cat');
+      const dog = createTestConcept('Dog');
+      index.index(cat);
+      index.index(dog);
 
-      const cluster = (index as any).similarityIndex.get(c1.term);
-      if (cluster) {
-        const similarity = (index as any).calculateClusterSimilarity(
-          cluster,
-          TermBuilder.atom('Cat')
-        );
-        expect(similarity).toBe(1);
-      }
+      const results = index.findSimilarConcepts(cat.term);
+      expect(results[0]?.term.toString()).toBe('Cat');
     });
 
-    test('returns 0 for disjoint symbols', () => {
-      const c1 = createTestConcept('X');
-      const c2 = createTestConcept('Y');
-      index.index(c1);
-      index.index(c2);
+    test('returns nothing for disjoint symbols', () => {
+      const x = createTestConcept('X');
+      index.index(x);
+      index.index(createTestConcept('Y'));
 
-      const cluster = (index as any).similarityIndex.get(c1.term);
-      if (cluster) {
-        const similarity = (index as any).calculateClusterSimilarity(
-          cluster,
-          TermBuilder.atom('Z')
-        );
-        expect(similarity).toBe(0);
-      }
+      expect(index.findSimilarConcepts(TermBuilder.atom('Z'))).toEqual([]);
     });
   });
 });

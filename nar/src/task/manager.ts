@@ -1,3 +1,5 @@
+import { maxBy, sortByDesc } from '@senars/util';
+
 import { type GateRegistry, gateRegistry } from '../kernel/GateRegistry.js';
 import type { Memory } from '../memory';
 import type { Budget, Task } from '../types';
@@ -58,14 +60,18 @@ export class TaskManager {
     };
   }
 
+  /** Pending wrappers, highest priority first. */
+  private byPriority(): TaskWrapper[] {
+    return sortByDesc(this.pending.values(), (w) => w.priority);
+  }
+
   peekTask(): Task | undefined {
-    const pending = [...this.pending.values()].sort((a, b) => b.priority - a.priority);
-    return pending[0]?.task;
+    return maxBy([...this.pending.values()], (w) => w.priority)?.task;
   }
 
   /** All pending tasks, highest priority first. */
   getPending(): Task[] {
-    return [...this.pending.values()].sort((a, b) => b.priority - a.priority).map((w) => w.task);
+    return this.byPriority().map((w) => w.task);
   }
 
   /** Remove a pending task without marking it failed/expired (e.g. dispatched to tools). */
@@ -104,9 +110,7 @@ export class TaskManager {
 
   async processPending(): Promise<Task[]> {
     const processed: Task[] = [];
-    const items = [...this.pending.values()].sort((a, b) => b.priority - a.priority);
-
-    for (const wrapper of items) {
+    for (const wrapper of this.byPriority()) {
       if (wrapper.lifecycle !== 'pending') continue;
 
       if (!this.gates.getBudgetGate().check({ operation: 'memory-op', estimatedCost: 1 }).granted)
@@ -204,7 +208,7 @@ export class TaskManager {
   }
 
   private reschedulePending(): void {
-    const items = [...this.pending.values()].sort((a, b) => b.priority - a.priority);
+    const items = this.byPriority();
     this.pending.clear();
     for (const w of items) this.pending.set(w.task.stamp.id, w);
   }

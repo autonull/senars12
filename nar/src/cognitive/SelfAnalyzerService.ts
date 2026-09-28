@@ -7,6 +7,7 @@ import { applyCorrections, identifyIssues } from './analyzers/corrections.js';
 import { createPolicyManager } from './analyzers/policy.js';
 import { assessQuality } from './analyzers/quality.js';
 import { analyzeReasoningPatterns } from './analyzers/reasoning-patterns.js';
+import { analyzePerformancePatterns } from './analyzers/performance.js';
 import { getResourceAnalysis } from './analyzers/resources.js';
 import type { MetacognitiveMonitor } from './MetacognitiveMonitor.js';
 import type {
@@ -164,15 +165,7 @@ export class SelfAnalyzerService {
   }
 
   private analyzePerformancePatterns(): PerformancePatterns {
-    const ruleStats = this.metrics?.getRuleStats();
-    const avgDuration = Array.isArray(ruleStats)
-      ? ruleStats.reduce((a, b) => a + b.averageDuration, 0) / ruleStats.length
-      : 0;
-    return {
-      ruleExecution: avgDuration,
-      memoryUsage: 0,
-      throughput: 'stable' as const,
-    };
+    return analyzePerformancePatterns(this.metrics);
   }
 
   private async identifyIssues(): Promise<IdentifiedIssues> {

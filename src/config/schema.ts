@@ -1,7 +1,6 @@
 import {
   dialogueDefaults,
   dialogueSchema,
-  isTruthy,
   lmSettingsSchema,
   narCoreBounds,
   type SystemOneConfig,
@@ -14,20 +13,6 @@ import { LM_PROVIDER_NAMES } from '../../nar/src/lm/env-config.js';
 // System One schema/defaults live in @senars/util/config (single definition —
 // also consumed by @senars/nar); re-exported here for the app config surface.
 export { type SystemOneConfig, systemOneDefaults, systemOneSchema };
-
-const envBool = (key: string) =>
-  z
-    .string()
-    .optional()
-    .transform((v) => isTruthy(v))
-    .pipe(z.boolean());
-const envNumber = (key: string) =>
-  z
-    .string()
-    .optional()
-    .transform((v) => (v ? Number.parseFloat(v) : undefined))
-    .pipe(z.number().optional());
-const envString = (key: string) => z.string().optional();
 
 const narCoreDefaults = {
   maxConcepts: narCoreBounds.maxConcepts.default,

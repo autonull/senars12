@@ -53,6 +53,9 @@ export const sha256HexParts = (parts: readonly DigestInput[]): string => {
 /** Algorithm-pinned digest form (`sha256:<hex>`) used by ModelDigest, lock files, and dialogue digests. */
 export const sha256Prefixed = (data: DigestInput): string => `sha256:${sha256Hex(data)}`;
 
+/** Canonical pinned-digest shape (`sha256:<64 lowercase hex>`) — ModelDigest, lock files. */
+export const SHA256_PINNED = /^sha256:[0-9a-f]{64}$/;
+
 /** Truncated digest for compact identity keys (sidecars, consolidation ids). */
 export const shortSha256Hex = (data: DigestInput, length = 16): string =>
   sha256Hex(data).slice(0, length);

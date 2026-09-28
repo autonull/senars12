@@ -1,3 +1,4 @@
+import { generateId } from '../utils/shared.js';
 import { LruCache } from '../utils/lru-cache.js';
 import type { ConversationSession, SessionManager } from '../types/memory.js';
 
@@ -8,7 +9,7 @@ export function abortSession(session: ConversationSession): void {
 
 export function createSession(key: string): ConversationSession {
   return {
-    id: `sess-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: generateId('sess'),
     key,
     history: [],
     createdAt: Date.now(),

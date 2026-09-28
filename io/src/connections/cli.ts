@@ -1,5 +1,5 @@
 import { createInterface, type Interface } from 'node:readline';
-import { errMsg, toError } from '@senars/core/helpers';
+import { errMsg } from '@senars/core/helpers';
 import { createLogger } from '@senars/core/logger';
 import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../types.js';
 import { BaseConnection } from './base.js';
@@ -102,18 +102,9 @@ export class CLIConnection extends BaseConnection {
 
   protected override handleMessage = (message: IOMessage): void => {
     const handlers = this.messageHandlers.slice();
-    void Promise.allSettled(handlers.map((h) => h(message))).then((results) => {
-      // D10: settled rejections must never vanish silently — log + count.
-      for (const r of results) {
-        if (r.status === 'rejected') {
-          this.errorCount++;
-          this.logger.error(
-            'Message handler error',
-            toError(r.reason)
-          );
-        }
-      }
-    });
+    void Promise.allSettled(handlers.map((h) => h(message))).then((results) =>
+      this.accountHandlerResults(results)
+    );
   };
 
   private async tryCommand(rest: string): Promise<void> {

@@ -1,6 +1,7 @@
+import { maxBy } from '@senars/util';
+
 import type { Term } from '../terms';
-import { extractSymbols, TermMap, termsEqual } from '../terms';
-import { jaccard } from '../utils';
+import { calculateSimilarity, TermMap, termsEqual } from '../terms';
 import { addToSet } from '../utils/collections.js';
 import type { Concept } from './concept.js';
 
@@ -148,22 +149,14 @@ export class MemoryIndex {
       return cluster.concepts.slice(0, limit);
     }
 
-    let bestCluster: SimilarityCluster | undefined;
-    let bestSimilarity = 0;
+    const scored = [...this.similarityIndex.values()].map((cluster) => ({
+      cluster,
+      similarity: calculateSimilarity(cluster.representative.term, term),
+    }));
+    const best = maxBy(scored, ({ similarity }) => similarity);
+    const bestCluster = best && best.similarity > 0 ? best.cluster : undefined;
 
-    for (const [, cluster] of this.similarityIndex.items()) {
-      const similarity = this.calculateClusterSimilarity(cluster, term);
-      if (similarity > bestSimilarity) {
-        bestSimilarity = similarity;
-        bestCluster = cluster;
-      }
-    }
-
-    if (bestCluster) {
-      return bestCluster.concepts.slice(0, limit);
-    }
-
-    return [];
+    return bestCluster ? bestCluster.concepts.slice(0, limit) : [];
   }
 
   getActivation(concept: Concept): number {
@@ -289,8 +282,4 @@ export class MemoryIndex {
     }
   }
 
-  private calculateClusterSimilarity(cluster: SimilarityCluster, term: Term): number {
-    if (termsEqual(cluster.representative.term, term)) return 1;
-    return jaccard(extractSymbols(cluster.representative.term), extractSymbols(term));
-  }
 }
