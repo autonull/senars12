@@ -14,8 +14,7 @@
  * is a `Game` implementation + one GameSpec (name, description, actionLegend).
  */
 
-import { parseFlags } from '@senars/util';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import { clamp01, parseFlags, pct } from '@senars/util';
 import { startArcadeTickSpan } from '../nar/src/eval/arcade-trace.js';
 import { BrierHarness } from '../nar/src/eval/brier-harness.js';
 import {
@@ -26,9 +25,10 @@ import {
   sessionKey,
 } from '../nar/src/eval/session-state.js';
 import { GameFocus } from '../nar/src/focus/GameFocus.js';
-import { createArcadeRegistry, type Game, SeededRNG } from '../nar/src/game/index.js';
 import type { Game as GameInterface } from '../nar/src/game/Game.js';
+import { createArcadeRegistry, type Game, SeededRNG } from '../nar/src/game/index.js';
 import { renderGame } from '../nar/src/game/render.js';
+import { createSystemOneBudget } from '../nar/src/lm/system-one/types.js';
 import {
   recordedProposals,
   recordingReflex,
@@ -41,7 +41,6 @@ import { game2048HeuristicAction } from '../tests/nar/rl/baselines/2048.js';
 import { snakeHeuristicAction } from '../tests/nar/rl/baselines/snake.js';
 import { tetrisHeuristicPlacement } from '../tests/nar/rl/baselines/tetris.js';
 import { ticTacToeHeuristicAction } from '../tests/nar/rl/baselines/tictactoe.js';
-import { pct } from '@senars/util';
 
 type Arm = 'manifold' | 'lm' | 'replica' | 'heuristic' | 'random' | 'nal';
 
@@ -96,20 +95,14 @@ const heuristics: Partial<Record<string, (game: Game) => string | number>> = {
   tictactoe: (g) => ticTacToeHeuristicAction(g as never),
 };
 
-const BUDGET: ReasoningBudget = {
-  maxCycles: 100,
-  maxDepth: 10,
-  maxMemoryOps: 1000,
-  maxLMCalls: 5,
-  consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-};
-
 /** Cognitive arm construction — fail-closed per arm: skip with a note, never substitute. */
 async function buildCognitiveArm(
   arm: 'manifold' | 'lm' | 'replica' | 'nal',
   gameName: string,
   dataset?: unknown
-): Promise<{ reflex: Reflex; manifold: unknown; cache: unknown; headLoaded: boolean } | { note: string }> {
+): Promise<
+  { reflex: Reflex; manifold: unknown; cache: unknown; headLoaded: boolean } | { note: string }
+> {
   // nal arm: NAL-rules + kernel gates over a plain epsilon-greedy reflex —
   // the falsifiable question is whether the Negotiator's vetoes help, not
   // whether the reflex is smart.
@@ -196,7 +189,7 @@ async function buildCognitiveArm(
       fallback: new EpsilonGreedyReflex('lm-incumbent', { numArms: 10, epsilon: 0.1 }),
       dispatcher,
       embeddingCache: cache,
-      budget: BUDGET,
+      budget: createSystemOneBudget(),
       actionLegend: gameRegistry.get(gameName)?.actionLegend,
       promptTemplate: promptTemplates[gameName],
       dataset: dataset as never,
@@ -274,7 +267,10 @@ async function main(): Promise<void> {
           continue;
         }
         for (let e = firstEpisode; e < episodes; e++) {
-          const game = gameRegistry.create(gameName, seed + e) as GameInterface<unknown, string | number>;
+          const game = gameRegistry.create(gameName, seed + e) as GameInterface<
+            unknown,
+            string | number
+          >;
           let steps = 0;
           while (true) {
             const perception = game.observe();
@@ -301,7 +297,7 @@ async function main(): Promise<void> {
               stateId: (game as { stateKey?: () => string }).stateKey?.() ?? String(steps),
               action,
               predicted: arm === 'heuristic' ? 0.8 : 1 / legal.length,
-              observed: Math.max(0, Math.min(1, outcome.reward)),
+              observed: clamp01(outcome.reward),
               reward: outcome.reward,
               latencyMs,
               handover: false,
@@ -331,7 +327,10 @@ async function main(): Promise<void> {
       const recording = wrapReflex(built.reflex, vetoAwareReflex(), recordingReflex());
       let promotedCount = 0;
       for (let e = firstEpisode; e < episodes; e++) {
-        const game = gameRegistry.create(gameName, seed + e) as GameInterface<unknown, string | number>;
+        const game = gameRegistry.create(gameName, seed + e) as GameInterface<
+          unknown,
+          string | number
+        >;
         const focus = new GameFocus({
           focusId: `${arm}-${gameName}-${e}`,
           game,
@@ -346,7 +345,7 @@ async function main(): Promise<void> {
           focus.setReflexPrefetchContext?.({
             manifold: built.manifold as never,
             embeddingCache: built.cache as never,
-            budget: BUDGET,
+            budget: createSystemOneBudget(),
           });
         let steps = 0;
         while (true) {
@@ -377,8 +376,8 @@ async function main(): Promise<void> {
             game: gameName,
             stateId: (game as { stateKey?: () => string }).stateKey?.() ?? String(steps),
             action: gameOutcome.terminal || top ? String(top?.action ?? '') : '',
-            predicted: top ? Math.max(0, Math.min(1, top.confidence)) : 0.5,
-            observed: Math.max(0, Math.min(1, gameOutcome.reward)),
+            predicted: top ? clamp01(top.confidence) : 0.5,
+            observed: clamp01(gameOutcome.reward),
             reward: gameOutcome.reward,
             latencyMs,
             handover: focus.didLastTickHandover(),

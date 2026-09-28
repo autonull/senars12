@@ -14,6 +14,8 @@ export type { ConfigCapability, ConfigEvent, ConfigSchema, ConfigView } from './
 export {
   AgentOptionsValidationError,
   agentOptionsSchema,
+  CACHE_DIR,
+  cachePath,
   contextOptsSchema,
   envBool,
   envCsv,
@@ -24,8 +26,8 @@ export {
   isTruthy,
   parseEnvValue,
   parseOrThrow,
-  SchemaValidationError,
   readEnvOverrides,
+  SchemaValidationError,
   SENARS_ENV_MAP,
   validateAgentOptions,
 } from './config/index.js';
@@ -113,9 +115,9 @@ export type {
   ScopedLogger,
 } from './types/lifecycle.js';
 /** @public LM service contract. */
-export type { LMGenerateOptions } from './types/llm.js';
 export type {
   LMExecutionStats,
+  LMGenerateOptions,
   LMPromptGenerator,
   LMResponseProcessor,
   LMRuleConfig,
@@ -143,16 +145,17 @@ export type {
   TransportDeps,
 } from './types/transport.js';
 /** @public Truth value branded types. */
-export type { Confidence, Frequency } from './types/truth.js';
+export type { Confidence, Frequency, TruthLike } from './types/truth.js';
 /** @public Truth value constructors. */
 export { formatTruth, toConfidence, toFrequency } from './types/truth.js';
-export type { TruthLike } from './types/truth.js';
 // Utils
 /** @public Assertion helpers. */
 export { assertDefined, invariant } from './utils/assert.js';
 // Collections
 /** @public Drop-oldest bounded ring buffer. */
 export { BoundedRing, pushCapped } from './utils/collections.js';
+/** @public Percent, divider, and progress-bar formatting for reports and CLI output. */
+export { bar, divider, pct, section } from './utils/format.js';
 export type { JsonlLoadResult } from './utils/fs.js';
 // Filesystem
 export {
@@ -171,16 +174,20 @@ export {
   writeJsonFileSync,
   writeJsonl,
 } from './utils/fs.js';
+export type { DigestInput } from './utils/hash.js';
 // Hashing
-export { djb2, djb2Step, fnv1a, fnv1aCombine, mul32 } from './utils/hash.js';
 /** @public SHA-256 digests for provenance keys, digest pinning, and state hashes. */
 export {
+  djb2,
+  djb2Step,
+  fnv1a,
+  fnv1aCombine,
+  mul32,
   sha256Hex,
   sha256HexParts,
   sha256Prefixed,
   shortSha256Hex,
 } from './utils/hash.js';
-export type { DigestInput } from './utils/hash.js';
 /** @public ULID id generation. */
 export { generateId } from './utils/id.js';
 export type { LruCacheOptions } from './utils/lru-cache.js';
@@ -193,14 +200,13 @@ export type { RetryOptions } from './utils/retry.js';
 export { withRetry } from './utils/retry.js';
 /** @public Serialization contracts for stateful components. */
 export type { Serializable, Versioned } from './utils/serialization.js';
-/** @public Process signal → graceful shutdown for every binary. */
-export { setupGracefulShutdown } from './utils/shutdown.js';
 /** @public Uniform-contract adapters bridging legacy serialize/deserialize shapes. */
 export { asSerializable, factorySerializable, inPlaceSerializable } from './utils/serialization.js';
 /** @public Shared utility functions (deduplicated across packages). */
 export {
-  clamp,
+  boundedSignal,
   chunk,
+  clamp,
   clamp01,
   compact,
   deepFreeze,
@@ -228,8 +234,8 @@ export {
   withTimeout,
   wordOverlap,
 } from './utils/shared.js';
+/** @public Process signal → graceful shutdown for every binary. */
+export { setupGracefulShutdown } from './utils/shutdown.js';
 /** @public Throttle configuration type. */
 export type { ThrottleConfig } from './utils/throttle.js';
 export { createThrottle, Throttle, throttleGenerator } from './utils/throttle.js';
-/** @public Percent, divider, and progress-bar formatting for reports and CLI output. */
-export { bar, divider, pct, section } from './utils/format.js';

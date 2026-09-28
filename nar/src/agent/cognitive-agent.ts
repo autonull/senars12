@@ -1,12 +1,18 @@
-import { createAgent, type CreateAgentConfig } from './index.js';
-import { NAR } from '../nar.js';
-import { DEFAULT_CONFIG } from '../types/index.js';
-import type { NAR as NARType } from '../index.js';
-import { mergeParameters, validateParameters, FAST_COGNITIVE_CONFIG, type CognitiveParameters } from '../config/cognitive-parameters.js';
-import { verifyRecord } from '@senars/kernel/verify-derivation';
-import { termParser, Truth } from '../terms/index.js';
-import type { Task } from '../types/index.js';
 import { createLogger } from '@senars/core/logger';
+import { verifyRecord } from '@senars/kernel/verify-derivation';
+import { cachePath } from '@senars/util';
+import {
+  type CognitiveParameters,
+  FAST_COGNITIVE_CONFIG,
+  mergeParameters,
+  validateParameters,
+} from '../config/cognitive-parameters.js';
+import type { NAR as NARType } from '../index.js';
+import { NAR } from '../nar.js';
+import { Truth, termParser } from '../terms/index.js';
+import type { Task } from '../types/index.js';
+import { DEFAULT_CONFIG } from '../types/index.js';
+import { type CreateAgentConfig, createAgent } from './index.js';
 
 const log = createLogger({ scope: 'CognitiveAgent' });
 
@@ -48,10 +54,7 @@ async function runBootSelfTest(nar: NARType): Promise<void> {
     throw new Error('Boot POST failed: DerivationRecorder not available');
   }
 
-  const syllogism = [
-    '(cat --> animal). %1.00;0.90%',
-    '(animal --> organism). %1.00;0.90%',
-  ];
+  const syllogism = ['(cat --> animal). %1.00;0.90%', '(animal --> organism). %1.00;0.90%'];
 
   for (const stmt of syllogism) {
     await nar.believe(stmt);
@@ -97,7 +100,7 @@ export async function createCognitiveAgent(config: CognitiveAgentConfig): Promis
 
   const cognitiveParams = mergeParameters({ ...presetParams, ...config.cognitiveParams });
 
-  const statePath = config.statePath ?? '.cache/nar-state';
+  const statePath = config.statePath ?? cachePath('nar-state');
 
   const narInstance = new NAR({
     ...DEFAULT_CONFIG,
@@ -145,9 +148,7 @@ export async function createCognitiveAgent(config: CognitiveAgentConfig): Promis
 
     return {
       conclusion: answer?.answer ?? '',
-      truth: answer
-        ? { f: answer.confidence, c: 1 }
-        : { f: 0, c: 0 },
+      truth: answer ? { f: answer.confidence, c: 1 } : { f: 0, c: 0 },
       reputation,
     };
   };

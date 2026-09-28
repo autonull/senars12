@@ -1,16 +1,37 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { DialogueCapture as DialogueCaptureType } from '@senars/nar/dialogue';
-import { DialogueCapture } from '@senars/nar/dialogue';
-import type { EpisodicMemory } from '@senars/util';
 import { retrospect, selectProbes } from '@senars/nar/dialogue';
 import { z } from 'zod';
-import { createMCPResponse, stringifyMCP } from './mcp-response.js';
+import type { EpisodicMemory } from '../../../../nar/src/memory/EpisodicMemory.js';
+import { ANNOTATIONS, createMCPResponse, stringifyMCP } from './mcp-response.js';
 
 export interface DialogueToolsOptions {
   dialogue: DialogueCaptureType;
+  /** Episodic memory backing turns/reactions — required by turns/retrospect/probes. */
+  episodic?: EpisodicMemory;
   /** Trace grades by correlationId (for curriculum probe selection, TODO25 Phase C). */
   traceGrades?: ReadonlyMap<string, number>;
 }
+
+interface TurnRow {
+  turnId: string;
+  sessionId: string;
+  seq: number;
+  grounding?: { admitted: boolean; score: number };
+  responseDigest?: string;
+}
+
+const parseTurnRow = (content: string): TurnRow | undefined => {
+  try {
+    const row = JSON.parse(content) as TurnRow;
+    return row.turnId && row.sessionId ? row : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const sessionIdOf = (episode: { metadata: unknown }): string | undefined =>
+  (episode.metadata as { sessionId?: string } | null)?.sessionId;
 
 /**
  * TODO24 §12 extension point: MCP tool exposure of the Dialogue Flywheel so
@@ -19,27 +40,30 @@ export interface DialogueToolsOptions {
  * boundary (§3: the class is the API).
  */
 export function registerDialogueTools(server: McpServer, options: DialogueToolsOptions): void {
-  const dialogue: DialogueCaptureType = options.dialogue;
+  const { dialogue, episodic, traceGrades } = options;
 
   server.registerTool(
     'dialogue_react',
     {
       title: 'Dialogue React',
-      description: 'Bind an explicit reaction (accept/correct/reject/clarify/redirect/abandon) to the most recent dialogue turn',
+      description:
+        'Bind an explicit reaction (accept/correct/reject/clarify/redirect/abandon) to the most recent dialogue turn',
       inputSchema: {
         kind: z.enum(['accept', 'correct', 'reject', 'clarify', 'redirect', 'abandon']),
         correction: z.string().optional(),
       },
-      annotations: { idempotentHint: true, openWorldHint: false },
+      annotations: ANNOTATIONS.set,
     },
     async ({ kind, correction }) => {
-      const d = dialogue as DialogueCaptureType;
-      const turn = d.latestTurn();
+      const turn = dialogue.latestTurn();
       if (!turn) return createMCPResponse('No captured turn to react to.', {});
       if (kind === 'correct' && !correction?.trim())
         return createMCPResponse('Correction text required for kind=correct.', {});
-      await d.bindReaction(turn.turnId, kind, correction);
-      return createMCPResponse(`Reaction ${kind} bound to ${turn.turnId}`, { turnId: turn.turnId, kind });
+      await dialogue.bindReaction(turn.turnId, kind, correction);
+      return createMCPResponse(`Reaction ${kind} bound to ${turn.turnId}`, {
+        turnId: turn.turnId,
+        kind,
+      });
     }
   );
 
@@ -48,11 +72,29 @@ export function registerDialogueTools(server: McpServer, options: DialogueToolsO
     {
       title: 'Dialogue Turns',
       description: 'List captured dialogue turns (hash-only digests)',
-      inputSchema: { limit: z.number().int().positive().max(100).default(10) },
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+      inputSchema: {
+        sessionId: z.string().optional(),
+        limit: z.number().int().positive().max(100).default(10),
+      },
+      outputSchema: { sessionId: z.string().nullable(), turns: z.array(z.any()) },
+      annotations: ANNOTATIONS.read,
     },
-    async ({ limit }) => {
-      return createMCPResponse('Episodic memory not available in this context.', { count: 0 });
+    async ({ sessionId, limit }) => {
+      if (!episodic) return createMCPResponse('Episodic memory not available.', { turns: [] });
+      const episodes = await episodic.getEpisodes({ type: 'dialogue', limit: 500 });
+      const session =
+        sessionId ?? [...new Set(episodes.map((e) => sessionIdOf(e) ?? ''))].filter(Boolean).pop();
+      const turns = episodes
+        .filter((e) => sessionIdOf(e) === session)
+        .map((e) => parseTurnRow(e.content))
+        .filter((t): t is TurnRow => t !== undefined)
+        .slice(-limit);
+      return createMCPResponse(
+        turns.length === 0
+          ? 'No captured turns.'
+          : `${turns.length} turn(s) for session ${session}`,
+        { sessionId: session ?? null, turns }
+      );
     }
   );
 
@@ -62,10 +104,13 @@ export function registerDialogueTools(server: McpServer, options: DialogueToolsO
       title: 'Dialogue Retrospect',
       description: 'Run a session-level retrospective diagnostic over captured turns and reactions',
       inputSchema: { sessionId: z.string() },
-      annotations: { readOnlyHint: false, idempotentHint: false, openWorldHint: false },
+      outputSchema: { sessionId: z.string(), retrospective: z.any() },
+      annotations: ANNOTATIONS.run,
     },
     async ({ sessionId }) => {
-      return createMCPResponse('Episodic memory not available in this context.', {});
+      if (!episodic) return createMCPResponse('Episodic memory not available.', {});
+      const retrospective = await retrospect(sessionId, episodic, { traceGrades });
+      return createMCPResponse(stringifyMCP(retrospective), { sessionId, retrospective });
     }
   );
 
@@ -73,12 +118,27 @@ export function registerDialogueTools(server: McpServer, options: DialogueToolsO
     'dialogue_probes',
     {
       title: 'Dialogue Probes',
-      description: 'Select curriculum probes from flywheel-graded data (corrected turns first, then low trace grades)',
+      description:
+        'Select curriculum probes from flywheel-graded data (corrected turns first, then low trace grades)',
       inputSchema: { limit: z.number().int().positive().max(100).default(16) },
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+      outputSchema: { probes: z.array(z.any()) },
+      annotations: ANNOTATIONS.read,
     },
     async ({ limit }) => {
-      return createMCPResponse('Episodic memory not available in this context.', { count: 0 });
+      if (!episodic) return createMCPResponse('Episodic memory not available.', { probes: [] });
+      const probes = await selectProbes(
+        {
+          reactions: () => episodic.getEpisodes({ type: 'reaction', limit: 1000 }),
+          grades: () => traceGrades ?? new Map<string, number>(),
+        },
+        { limit }
+      );
+      return createMCPResponse(
+        probes.length === 0
+          ? 'No probes yet (requires corrected or low-graded turns).'
+          : `${probes.length} probe(s)`,
+        { probes }
+      );
     }
   );
 }

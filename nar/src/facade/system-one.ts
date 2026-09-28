@@ -1,5 +1,9 @@
+import { createLogger } from '@senars/core/logger';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
+import { cachePath } from '@senars/util';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
+import type { ReflexBindable } from '../focus/GameFocus.js';
+import { threadScope } from '../kernel/thread-scope.js';
 import type { LMService } from '../lm';
 import { ContrastiveMemory } from '../lm/system-one/contrastive.js';
 import { createLMServiceCortex } from '../lm/system-one/cortex-adapter.js';
@@ -11,29 +15,30 @@ import {
   type DecideResult,
   type Decider,
 } from '../lm/system-one/decide.js';
-import type { ReflexBindable } from '../focus/GameFocus.js';
 import { createDispatcher, StubCortex } from '../lm/system-one/dispatcher.js';
 import { JudgmentDataset } from '../lm/system-one/distill.js';
 import { createEmbeddingCache, type EmbeddingCache } from '../lm/system-one/embedding-cache.js';
 import { createGroundednessGate } from '../lm/system-one/groundedness-gate.js';
 import { mineHardNegatives, seedContrastiveMemory } from '../lm/system-one/hard-negatives.js';
 import { createHttpManifold } from '../lm/system-one/http-manifold.js';
+import {
+  createJudgmentPipeline,
+  type JudgmentPipeline,
+  type PipelineSpec,
+} from '../lm/system-one/judgment-pipeline.js';
 import { LMReflex } from '../lm/system-one/lm-reflex.js';
 import { createManifold } from '../lm/system-one/manifold.js';
 import { ManifoldReflex } from '../lm/system-one/manifold-reflex.js';
-import { createJudgmentPipeline, type JudgmentPipeline, type PipelineSpec } from '../lm/system-one/judgment-pipeline.js';
 import type { TraceGradeInput, TraceGradeResult } from '../lm/system-one/trace-grader.js';
 import { createTraceGrader } from '../lm/system-one/trace-grader.js';
 import type { CognitiveDispatcher, JudgmentManifold } from '../lm/system-one/types.js';
+import { createSystemOneBudget } from '../lm/system-one/types.js';
 import { composeModelDigest, encoderDigest } from '../lm/system-one/wasi-runtime.js';
-import { createLogger } from '@senars/core/logger';
 import { createEmbeddingGenerator } from '../memory/embedding.js';
 import { recordEmbeddingCacheEvent } from '../metrics/prometheus.js';
 import { EpsilonGreedyReflex } from '../reflex/EpsilonGreedyReflex.js';
 import type { Reflex } from '../reflex/Reflex.js';
 import type { NARConfig } from './config.js';
-import { threadScope } from '../kernel/thread-scope.js';
-import { createSystemOneBudget } from '../lm/system-one/types.js';
 
 /**
  * System One runtime (extracted from NAR — M2): owns the Tier-1 manifold,
@@ -46,7 +51,10 @@ export class SystemOneRuntime {
   readonly dispatcher?: CognitiveDispatcher;
   /** TODO23 unified decision facade (heads + contrastive + router), `decide`/`choose`. */
   readonly decider?: Decider;
-  readonly groundednessGate?: (narration: string, correlationId: string) => Promise<{ grounded: boolean; score?: number }>;
+  readonly groundednessGate?: (
+    narration: string,
+    correlationId: string
+  ) => Promise<{ grounded: boolean; score?: number }>;
   readonly traceGrader?: (trace: TraceGradeInput) => Promise<TraceGradeResult>;
   /** TODO24: correlationId → last trace quality, for retrospect strategy audit. */
   readonly traceGradeHistory = new Map<string, number>();
@@ -225,7 +233,7 @@ export class SystemOneRuntime {
     const datasetPath = systemOneConfig.distillation?.datasetPath;
     let dataset: JudgmentDataset | undefined;
     if (datasetPath) {
-      const basePath = '.cache/systemone/dataset';
+      const basePath = cachePath('systemone', 'dataset');
       dataset = new JudgmentDataset(basePath);
       if (systemOneConfig.distillation?.autoFlush) {
         dataset.startAutoFlush(datasetPath);

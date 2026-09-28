@@ -22,6 +22,14 @@ export const estimateTokens = (text: string): number => Math.ceil(text.length / 
 
 export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
+/** Abort signal that fires after `timeoutMs`; call `done()` in a `finally` to release the timer. */
+export const boundedSignal = (timeoutMs: number): { signal: AbortSignal; done: () => void } => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new TimeoutError(timeoutMs)), timeoutMs);
+  timer.unref?.();
+  return { signal: controller.signal, done: () => clearTimeout(timer) };
+};
+
 /** Raised by {@link withTimeout} unless a domain error is supplied. */
 export class TimeoutError extends Error {
   constructor(readonly timeoutMs: number) {
@@ -61,9 +69,10 @@ export function raceDeadline<T>(
     timer = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
     timer.unref?.();
   });
-  return Promise.race([work.then((value) => ({ value, timedOut: false as const })), deadline]).finally(
-    () => clearTimeout(timer)
-  );
+  return Promise.race([
+    work.then((value) => ({ value, timedOut: false as const })),
+    deadline,
+  ]).finally(() => clearTimeout(timer));
 }
 
 export const compact = <T>(arr: (T | null | undefined | false | '' | 0)[]): T[] =>
@@ -80,7 +89,10 @@ export const safeDiv = (num: number, den: number): number =>
   den === 0 ? 0 : clamp(num / den, 0, 1);
 
 /** Arithmetic mean of a projection; 0 for an empty collection (rates, scores, sums). */
-export const mean = <T>(items: readonly T[], value: (item: T) => number = (item) => item as unknown as number): number =>
+export const mean = <T>(
+  items: readonly T[],
+  value: (item: T) => number = (item) => item as unknown as number
+): number =>
   items.length === 0 ? 0 : items.reduce((sum, item) => sum + value(item), 0) / items.length;
 
 export const wordOverlap = (a: string, b: string, splitPattern?: RegExp): number => {
@@ -95,7 +107,9 @@ export const wordOverlap = (a: string, b: string, splitPattern?: RegExp): number
 
 /** Dotted-path read; missing or non-object segments yield `undefined`. */
 export const getNested = (obj: unknown, path: string): unknown =>
-  path.split('.').reduce<unknown>((node, key) => (node as Record<string, unknown> | null)?.[key], obj);
+  path
+    .split('.')
+    .reduce<unknown>((node, key) => (node as Record<string, unknown> | null)?.[key], obj);
 
 /** Dotted-path write, creating missing intermediate objects. */
 export function setNested(obj: Record<string, unknown>, path: string, value: unknown): void {
@@ -201,10 +215,16 @@ export const truncate = (text: string, maxLength = 60): string =>
   text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
 
 /** Byte-safe truncation for tool output — never splits a multi-byte character. */
-export const truncateBytes = (text: string, maxBytes: number): { text: string; truncated: boolean } => {
+export const truncateBytes = (
+  text: string,
+  maxBytes: number
+): { text: string; truncated: boolean } => {
   const bytes = Buffer.byteLength(text, 'utf8');
   if (bytes <= maxBytes) return { text, truncated: false };
-  return { text: Buffer.from(text, 'utf8').subarray(0, maxBytes).toString('utf8'), truncated: true };
+  return {
+    text: Buffer.from(text, 'utf8').subarray(0, maxBytes).toString('utf8'),
+    truncated: true,
+  };
 };
 
 export const limitList = <T>(

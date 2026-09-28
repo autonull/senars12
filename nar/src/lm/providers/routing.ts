@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { LMExecutionStats } from '@senars/util';
+import { cachePath } from '@senars/util';
 import type { LMSettings } from '../env-config.js';
 import {
   getProviderRuntime,
@@ -120,7 +121,7 @@ export const pickBestModel = (
 
 // ---- R7: self-upgrading offline ladder ----
 
-const OFFLINE_CACHE_DIR_DEFAULT = '.cache/transformers';
+const OFFLINE_CACHE_DIR_DEFAULT = cachePath('transformers');
 
 const cacheDirNameFor = (model: string): string => `models--${model.replaceAll('/', '--')}`;
 

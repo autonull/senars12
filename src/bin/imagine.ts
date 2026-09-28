@@ -10,9 +10,8 @@ import { ScenarioGenerator } from '@senars/nar/imagination/generator';
 import { CognitiveTreadmill } from '@senars/nar/imagination/treadmill';
 import type { ScenarioProfile } from '@senars/nar/imagination/types';
 import { ArchitectureDriver } from '@senars/nar/self/architecture-driver';
+import { divider, parseFlags, pct, section } from '@senars/util';
 import { runEntrypoint } from './lib/fatal-error.js';
-import { parseFlags } from '@senars/util';
-import { pct, section } from '@senars/util';
 
 interface ImagineOptions {
   profile: ScenarioProfile;
@@ -109,7 +108,7 @@ function printScenarioResult(scenario: any, result: any): void {
 function printDegradationCurve(curve: any): void {
   console.log(section('DEGRADATION CURVE (Overload Sweep)', 60));
   console.log('Multiplier | Quality | Latency P95 | Knee');
-  console.log('-'.repeat(50));
+  console.log(divider(50));
   for (const point of curve.points) {
     const kneeMarker = point.isKnee ? ' ← KNEE' : '';
     console.log(
@@ -184,9 +183,7 @@ async function main(): Promise<void> {
       for (const gap of gaps) {
         console.log(`\n[${gap.severity.toUpperCase()}] ${gap.id}`);
         console.log(`  ${gap.description}`);
-        console.log(
-          `  Fix: ${gap.proposedFix} (confidence: ${pct(gap.confidence , 0)})`
-        );
+        console.log(`  Fix: ${gap.proposedFix} (confidence: ${pct(gap.confidence, 0)})`);
       }
       outputData.gaps = gaps;
     }

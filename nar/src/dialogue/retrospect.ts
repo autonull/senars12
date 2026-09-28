@@ -1,8 +1,8 @@
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
-import { z } from 'zod';
 import { join } from 'node:path';
+import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
 import type { Episode } from '@senars/util';
-import { shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
+import { cachePath, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
+import { z } from 'zod';
 import { DigestMismatchError } from '../lm/system-one/wasi-runtime.js';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import {
@@ -14,7 +14,7 @@ import {
   type Retrospective,
 } from './types.js';
 
-const RETROSPECTIVE_DIR = '.cache/retrospectives';
+const RETROSPECTIVE_DIR = cachePath('retrospectives');
 
 const RetrospectiveSchema = BaseLedgerEntrySchema.extend({
   version: z.string(),
@@ -187,7 +187,9 @@ export async function retrospect(
       .search({ timeRange: [start, end], limit: 5 })
       .catch(() => []);
     sessionContext = results.map((r) =>
-      r.source === 'episode' ? `episode:${r.episode?.id ?? ''}` : `concept:${r.concept?.term.toString() ?? ''}`
+      r.source === 'episode'
+        ? `episode:${r.episode?.id ?? ''}`
+        : `concept:${r.concept?.term.toString() ?? ''}`
     );
   }
 

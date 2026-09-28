@@ -11,8 +11,8 @@ import { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
 import { initializeMetaReasoning, registerMetaRules } from '@senars/nar/rules';
 import { initializeSelfConcept } from '@senars/nar/tools';
-import { runEntrypoint } from './lib/fatal-error.js';
 import { bar, divider, pct } from '@senars/util';
+import { runEntrypoint } from './lib/fatal-error.js';
 
 const logger = createLogger({ scope: 'self-report' });
 
@@ -41,7 +41,7 @@ function formatAikrPressure(pressure: 'low' | 'medium' | 'high'): string {
 
 async function main() {
   logger.info('📊 SeNARS Self-Report');
-  logger.info('═'.repeat(50));
+  logger.info(divider(50));
 
   // Create minimal NAR to query state
   const registry = createSeNARSRegistry();
@@ -50,7 +50,11 @@ async function main() {
   const nar = (
     await new NARBuilder()
       .withLM(lmService)
-      .withCapabilities({ self: { enabled: true }, rlfp: { enabled: true }, lmRules: { enabled: true } })
+      .withCapabilities({
+        self: { enabled: true },
+        rlfp: { enabled: true },
+        lmRules: { enabled: true },
+      })
       .withNarConfig({
         providerRegistry: registry,
         enableTools: true,
@@ -131,7 +135,7 @@ async function main() {
 
   // Print report
   console.log('\n🧠 COGNITIVE STATE SUMMARY');
-  console.log('═'.repeat(50));
+  console.log(divider(50));
   console.log(`Timestamp: ${new Date().toISOString()}`);
   console.log(`Cycle Count: ${nar.getCycleCount()}`);
 
@@ -149,9 +153,7 @@ async function main() {
 
   console.log('\n📊 AIKR PRESSURE');
   console.log(divider());
-  console.log(
-    `  ${formatAikrPressure(aikrPressure)} (memory: ${pct(memoryPressure)}})`
-  );
+  console.log(`  ${formatAikrPressure(aikrPressure)} (memory: ${pct(memoryPressure)}})`);
 
   console.log('\n🎰 RLFP REWARD');
   console.log(divider());
@@ -185,7 +187,10 @@ async function main() {
   console.log(divider());
   const topBeliefs = beliefs
     .map((b) => ({ belief: b, concept: nar.getConcept(b.term) }))
-    .filter((bc): bc is { belief: typeof beliefs[0]; concept: NonNullable<typeof bc.concept> } => bc.concept !== undefined)
+    .filter(
+      (bc): bc is { belief: (typeof beliefs)[0]; concept: NonNullable<typeof bc.concept> } =>
+        bc.concept !== undefined
+    )
     .sort((a, b) => b.concept.priority - a.concept.priority)
     .slice(0, 5);
   for (const bc of topBeliefs) {
@@ -213,7 +218,7 @@ async function main() {
   }
 
   await nar.stop();
-  console.log('\n' + '═'.repeat(50));
+  console.log('\n' + divider(50));
   console.log('✅ Self-report complete');
 }
 

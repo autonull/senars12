@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Consumer-aware export audit (TODO20 A1).
  *
@@ -13,15 +14,12 @@
  * the CI gate for "no export without a consumer".
  */
 
-import { parseFlags } from '@senars/util';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { parseFlags } from '@senars/util';
 import { readExports } from './lib/pkg.js';
-
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const ROOT = resolve(__dirname, '..');
+import { ROOT } from './lib/root.js';
 
 /** Directories scanned for consumers (relative to repo root). */
 const CONSUMER_DIRS = [
@@ -45,7 +43,15 @@ const PUBLIC_API: Record<string, string[]> = {
   // The root barrel is the package's public API by definition.
   nar: ['.'],
   util: ['.'],
-  core: ['.', './agent', './agent/*', './memory', './cognitive-thread', './agent/pipeline', './agent/types'],
+  core: [
+    '.',
+    './agent',
+    './agent/*',
+    './memory',
+    './cognitive-thread',
+    './agent/pipeline',
+    './agent/types',
+  ],
   io: ['.'],
   metta: ['.'],
 };
@@ -57,7 +63,10 @@ interface Options {
 
 const parseArgs = (): Options => {
   const { has, list } = parseFlags();
-  return { packages: list('--packages', ['nar', 'util', 'core', 'io', 'metta']), verbose: has('--verbose') };
+  return {
+    packages: list('--packages', ['nar', 'util', 'core', 'io', 'metta']),
+    verbose: has('--verbose'),
+  };
 };
 
 const consumerDirs = CONSUMER_DIRS.filter((d) => existsSync(join(ROOT, d)));

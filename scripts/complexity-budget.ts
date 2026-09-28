@@ -6,15 +6,12 @@
  * and compares against checked-in baseline. Fails on regression.
  */
 
-import { execFileSync, execSync } from 'node:child_process';
-import { readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { tmpdir } from 'node:os';
+import { execSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { countCircularChains } from './lib/dpdm.js';
 import { readExports } from './lib/pkg.js';
-
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const ROOT = resolve(__dirname, '..');
+import { ROOT } from './lib/root.js';
 
 interface Baseline {
   exportSubpaths: number;
@@ -52,12 +49,15 @@ function countExportSubpaths(): number {
 
 function countProductionLOC(): number {
   try {
-    const out = execSync('pnpm dlx cloc --json nar/src core/src metta/src util/src io/src kernel/src src', {
-      cwd: ROOT,
-      encoding: 'utf-8',
-      maxBuffer: 10 * 1024 * 1024,
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
+    const out = execSync(
+      'pnpm dlx cloc --json nar/src core/src metta/src util/src io/src kernel/src src',
+      {
+        cwd: ROOT,
+        encoding: 'utf-8',
+        maxBuffer: 10 * 1024 * 1024,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }
+    );
     const data = JSON.parse(out.trim());
     return data.SUM?.code ?? 0;
   } catch {
@@ -72,15 +72,25 @@ function countAppendOnlyPersistenceSites(): number {
   try {
     // Count Ledger<T> usages in production (not tests)
     const ledgerOut = execSync(
-      `grep -r "from.*['\"]\\.\\./.*ledger\\|from.*['\"]@senars/io.*ledger\\|import.*Ledger" --include="*.ts" nar/src core/src io/src metta/src util/src kernel/src 2>/dev/null | grep -v ".test.ts" | grep -v ".spec.ts" | wc -l`,
-      { cwd: ROOT, encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }
+      `grep -r "from.*['"]\\.\\./.*ledger\\|from.*['"]@senars/io.*ledger\\|import.*Ledger" --include="*.ts" nar/src core/src io/src metta/src util/src kernel/src 2>/dev/null | grep -v ".test.ts" | grep -v ".spec.ts" | wc -l`,
+      {
+        cwd: ROOT,
+        encoding: 'utf-8',
+        maxBuffer: 10 * 1024 * 1024,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }
     );
     const ledgerImports = parseInt(ledgerOut.trim(), 10) || 0;
 
     // Count bespoke fs.appendFile in production (excluding ledger implementation itself)
     const bespokeOut = execSync(
       `grep -r "fs\\.appendFile\\|appendFileSync" --include="*.ts" nar/src core/src io/src metta/src util/src kernel/src 2>/dev/null | grep -v ".test.ts" | grep -v ".spec.ts" | grep -v "io/src/ledger" | wc -l`,
-      { cwd: ROOT, encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }
+      {
+        cwd: ROOT,
+        encoding: 'utf-8',
+        maxBuffer: 10 * 1024 * 1024,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }
     );
     const bespokeAppends = parseInt(bespokeOut.trim(), 10) || 0;
 
@@ -97,7 +107,12 @@ function countAIKRProcessorCoverage(): number {
   try {
     const out = execSync(
       `grep -r "new AIKRProcessor" --include="*.ts" nar/src/ 2>/dev/null | grep -v ".test.ts" | grep -v ".spec.ts" | wc -l`,
-      { cwd: ROOT, encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }
+      {
+        cwd: ROOT,
+        encoding: 'utf-8',
+        maxBuffer: 10 * 1024 * 1024,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }
     );
     return parseInt(out.trim(), 10) || 0;
   } catch {
@@ -111,10 +126,7 @@ function countUnboundedAccumulators(): number {
   try {
     // SourceReputation / QBeliefStore: every entry lives in an LruCache with a
     // capacity bound — the shared eviction primitive is what keeps them bounded.
-    for (const rel of [
-      'nar/src/kernel/source-reputation.ts',
-      'nar/src/rl/q-belief-store.ts',
-    ]) {
+    for (const rel of ['nar/src/kernel/source-reputation.ts', 'nar/src/rl/q-belief-store.ts']) {
       const path = join(ROOT, rel);
       if (!existsSync(path)) {
         count++;
@@ -131,20 +143,8 @@ function countUnboundedAccumulators(): number {
 }
 
 function countDepsGateRawChains(): number {
-  const TARGETS = ['src/', 'core/src/', 'nar/src/', 'io/src/', 'metta/src/'];
   try {
-    const outPath = join(mkdtempSync(join(tmpdir(), 'deps-')), 'deps.json');
-    try {
-      execFileSync(
-        'npx',
-        ['dpdm', '--circular', '--warning', 'false', '--skip-dynamic-imports', 'tree', '-o', outPath, ...TARGETS],
-        { stdio: ['ignore', 'ignore', 'inherit'] }
-      );
-      const { circulars } = JSON.parse(readFileSync(outPath, 'utf-8')) as { circulars: string[][] };
-      return circulars.length;
-    } finally {
-      rmSync(outPath, { recursive: true, force: true });
-    }
+    return countCircularChains({ transform: false });
   } catch {
     return 999; // failure indicator
   }
@@ -180,7 +180,10 @@ function countWorkspaces(): number {
       inPackages = true;
       continue;
     }
-    if (inPackages && (trimmed.startsWith('allowBuilds:') || trimmed.startsWith('minimumReleaseAgeExclude:'))) {
+    if (
+      inPackages &&
+      (trimmed.startsWith('allowBuilds:') || trimmed.startsWith('minimumReleaseAgeExclude:'))
+    ) {
       break;
     }
     if (inPackages && trimmed.startsWith('- ')) {
@@ -208,7 +211,13 @@ function main(): void {
   };
 
   let failed = false;
-  const results: Array<{ metric: string; baseline: number; current: number; status: string; rule: string }> = [];
+  const results: Array<{
+    metric: string;
+    baseline: number;
+    current: number;
+    status: string;
+    rule: string;
+  }> = [];
 
   // Export subpaths: must not increase
   results.push({
@@ -235,7 +244,8 @@ function main(): void {
     metric: 'Append-only persistence sites',
     baseline: baseline.appendOnlyPersistenceSites,
     current: current.appendOnlyPersistenceSites,
-    status: current.appendOnlyPersistenceSites <= baseline.appendOnlyPersistenceSites ? 'PASS' : 'FAIL',
+    status:
+      current.appendOnlyPersistenceSites <= baseline.appendOnlyPersistenceSites ? 'PASS' : 'FAIL',
     rule: budget.rules.appendOnlyPersistenceSites,
   });
   if (current.appendOnlyPersistenceSites > baseline.appendOnlyPersistenceSites) failed = true;
@@ -291,9 +301,15 @@ function main(): void {
   if (current.workspaceCount !== baseline.workspaceCount) failed = true;
 
   // Print results table
-  console.log('┌─────────────────────────────────────┬──────────┬─────────┬───────┬────────────────────────────────┐');
-  console.log('│ Metric                              │ Baseline │ Current │ Status│ Rule                           │');
-  console.log('├─────────────────────────────────────┼──────────┼─────────┼───────┼────────────────────────────────┤');
+  console.log(
+    '┌─────────────────────────────────────┬──────────┬─────────┬───────┬────────────────────────────────┐'
+  );
+  console.log(
+    '│ Metric                              │ Baseline │ Current │ Status│ Rule                           │'
+  );
+  console.log(
+    '├─────────────────────────────────────┼──────────┼─────────┼───────┼────────────────────────────────┤'
+  );
   for (const r of results) {
     const metric = r.metric.padEnd(35);
     const base = r.baseline.toString().padStart(8);
@@ -302,10 +318,14 @@ function main(): void {
     const rule = r.rule.padEnd(32);
     console.log(`│ ${metric} │ ${base} │ ${curr} │ ${stat} │ ${rule} │`);
   }
-  console.log('└─────────────────────────────────────┴──────────┴─────────┴───────┴────────────────────────────────┘');
+  console.log(
+    '└─────────────────────────────────────┴──────────┴─────────┴───────┴────────────────────────────────┘'
+  );
 
   if (failed) {
-    console.error('\n✗ complexity-budget: REGRESSION DETECTED — one or more metrics exceeded baseline');
+    console.error(
+      '\n✗ complexity-budget: REGRESSION DETECTED — one or more metrics exceeded baseline'
+    );
     process.exit(1);
   }
 

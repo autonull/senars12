@@ -1,4 +1,4 @@
-import { generateId } from '@senars/util';
+import { clamp01, generateId } from '@senars/util';
 import { emitBagPressureTransition } from '../tick';
 import type { RandomSource } from '../types/primitives.js';
 
@@ -96,7 +96,7 @@ export abstract class BaseBag<T extends BagItem> implements Bag<T> {
   }
 
   set decayRateValue(value: number) {
-    this.decayRate = Math.max(0, Math.min(1, value));
+    this.decayRate = clamp01(value);
   }
 
   constructor(options: BagOptions) {

@@ -9,9 +9,11 @@
  */
 
 import { promises as fs } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { pct } from '@senars/util';
 import { program } from 'commander';
+import { BanditGame } from '../nar/src/game/BanditGame.js';
+import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
 import { TermBuilder } from '../nar/src/index.js';
 import { NAR } from '../nar/src/nar.js';
 import {
@@ -25,12 +27,6 @@ import {
 } from '../nar/src/rl/index.js';
 import { EpsilonGreedy, UCB1 } from '../tests/nar/rl/baselines/bandit.js';
 import { QLearning, SARSA } from '../tests/nar/rl/baselines/gridworld.js';
-import { BanditGame } from '../nar/src/game/BanditGame.js';
-import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
-import { pct } from '@senars/util';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 program
   .name('rl-parity')
@@ -103,7 +99,15 @@ function createGame(envType: EnvType, seed: number) {
     case 'gridworld':
       return new GridWorldGame({ ...baseGridConfig, seed });
     case 'nonstationary':
-      return new BanditGame({ ...baseNonStationaryConfig, armMeans: baseNonStationaryConfig.initialMeans, drift: { changeInterval: baseNonStationaryConfig.changeInterval, changeMagnitude: baseNonStationaryConfig.changeMagnitude }, seed });
+      return new BanditGame({
+        ...baseNonStationaryConfig,
+        armMeans: baseNonStationaryConfig.initialMeans,
+        drift: {
+          changeInterval: baseNonStationaryConfig.changeInterval,
+          changeMagnitude: baseNonStationaryConfig.changeMagnitude,
+        },
+        seed,
+      });
     default:
       throw new Error(`Unknown environment: ${envType}`);
   }
@@ -427,7 +431,7 @@ async function main() {
   console.log(`Baseline Return: ${avgBaseline.toFixed(4)}`);
   console.log(`SeNARS Return: ${avgSenars.toFixed(4)}`);
   console.log(`Ratio: ${overallRatio.toFixed(4)}`);
-  console.log(`Seed Pass Rate: ${pct(passRate , 1)}`);
+  console.log(`Seed Pass Rate: ${pct(passRate, 1)}`);
   console.log(`Overall Pass: ${summary.pass ? 'YES' : 'NO'}`);
 
   process.exit(summary.pass ? 0 : 1);

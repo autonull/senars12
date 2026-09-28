@@ -77,17 +77,16 @@ export const termsEqual = (a: Term | undefined, b: Term | undefined): boolean =>
 
 export const visitTerms = (term: Term, fn: (t: Term) => void): void => {
   fn(term);
-  if ('args' in term && Array.isArray(term.args)) {
-    for (const arg of term.args) {
-      visitTerms(arg as Term, fn);
-    }
-  }
+  for (const arg of getArgs(term)) visitTerms(arg, fn);
 };
+
+/** Canonical structural key for a term — the single identity used for maps, memoization, and link ids. */
+export const termKey = (term: Term): string =>
+  isAtomic(term) ? `atom:${term.symbol}` : `${term.kind}:${getArgs(term).map(termKey).join(',')}`;
 
 export const containsSubterm = (term: Term, target: Term): boolean => {
   if (termsEqual(term, target)) return true;
-  const args = 'args' in term && Array.isArray(term.args) ? term.args : [];
-  return args.some((a) => containsSubterm(a as Term, target));
+  return getArgs(term).some((arg) => containsSubterm(arg, target));
 };
 
 export const sharesSymbol = (a: Term, b: Term): boolean => {
@@ -99,16 +98,13 @@ export const sharesSymbol = (a: Term, b: Term): boolean => {
 
 export const mentionsSymbol = (term: Term, symbol: string): boolean => {
   if ('symbol' in term && term.symbol === symbol) return true;
-  const args = 'args' in term && Array.isArray(term.args) ? term.args : [];
-  return args.some((a) => mentionsSymbol(a as Term, symbol));
+  return getArgs(term).some((arg) => mentionsSymbol(arg, symbol));
 };
 
-const collectAtomicSymbols = (term: Term, set = new Set<string>()): Set<string> => {
-  if (isAtomic(term)) {
-    set.add(term.symbol);
-    return set;
-  }
-  const args = 'args' in term && Array.isArray(term.args) ? term.args : [];
-  for (const arg of args) collectAtomicSymbols(arg as Term, set);
+/** Every atomic symbol mentioned anywhere in the term. */
+export const collectAtomicSymbols = (term: Term, set = new Set<string>()): Set<string> => {
+  visitTerms(term, (t) => {
+    if (isAtomic(t)) set.add(t.symbol);
+  });
   return set;
 };

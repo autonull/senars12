@@ -6,10 +6,8 @@
  * Reducing cycles? Lower BASELINE in the same commit. Adding cycles? The gate fails —
  * either break the cycle or justify + raise the baseline explicitly.
  */
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { errMsg } from '@senars/util';
+import { circularChains } from './lib/dpdm.js';
 
 /** Documented raw-cycle count at gate introduction (CLI prints 10 deduplicated chains). */
 /** 276 = 272 TODO5 baseline + 4 accepted TODO6 edges, net of −2 removed by C21 work
@@ -24,29 +22,24 @@ import { join } from 'node:path';
  *  3. + 4. `io/bridge/ConnectionBinder.ts -> @senars/core` barrel -> `Agent` / `SessionManager`
  *     — `Agent` is exported only from the core root. Needs a deep subpath export (minor
  *     semver) before the barrel import can be narrowed.
- * 
+ *
  * With `--transform` flag (TODO7 D3), type-only edges (1) are excluded.
  * Remaining cycles: 2 & 3/4 = 25.
  * Baseline updated 2026-09-26 (TODO7 Phase D — dpdm --transform). */
 const BASELINE = 25;
 
-const TARGETS = ['src/', 'core/src/', 'nar/src/', 'io/src/', 'metta/src/'];
-const outPath = join(mkdtempSync(join(tmpdir(), 'deps-')), 'deps.json');
-
 try {
-  execFileSync(
-    'pnpm',
-    ['dlx', 'dpdm', '--circular', '--warning', 'false', '--skip-dynamic-imports', 'circular', '--transform', 'tree', '-o', outPath, ...TARGETS],
-    { stdio: ['ignore', 'ignore', 'inherit'] }
-  );
-  const { circulars } = JSON.parse(readFileSync(outPath, 'utf-8')) as { circulars: string[][] };
+  const circulars = circularChains();
   const count = circulars.length;
   if (count > BASELINE) {
-    console.error(`deps:gate FAILED — ${count} cycles > baseline ${BASELINE} (+${count - BASELINE} new)`);
+    console.error(
+      `deps:gate FAILED — ${count} cycles > baseline ${BASELINE} (+${count - BASELINE} new)`
+    );
     for (const c of circulars.slice(BASELINE)) console.error(`  new: ${c.join(' -> ')}`);
     process.exit(1);
   }
   console.log(`deps:gate ok — ${count} cycles ≤ baseline ${BASELINE}`);
-} finally {
-  rmSync(outPath, { recursive: true, force: true });
+} catch (err) {
+  console.error(`deps:gate ERROR — dpdm failed: ${errMsg(err)}`);
+  process.exit(1);
 }

@@ -2,12 +2,13 @@
  * Shared bin lifecycle utilities — agent startup, shutdown, env-based creation.
  */
 
-import { JsonlSessionManager } from '@senars/core/memory';
-import { clamp, isNarsese } from '@senars/core/helpers';
-import type { NARConfig } from '@senars/nar';
 import type { Agent as CoreAgent } from '@senars/core';
+import { clamp, isNarsese } from '@senars/core/helpers';
+import { JsonlSessionManager } from '@senars/core/memory';
+import type { NARConfig } from '@senars/nar';
 import type { ExtendedAgent } from '@senars/nar/agent';
 import { NARBuilder } from '@senars/nar/agent/builder';
+import { threadScope } from '@senars/nar/kernel';
 import {
   configureLM,
   createConfiguredLMRules,
@@ -22,11 +23,9 @@ import {
   type ConsolidationResult,
   consolidateEpisodes,
 } from '@senars/nar/memory/retrieval-verified';
-import { threadScope } from '@senars/nar/kernel';
-import { setupGracefulShutdown } from '@senars/util';
+import { cachePath, setupGracefulShutdown } from '@senars/util';
 import { type AppConfig, loadConfig } from '../../config/index.js';
 import { readEpisodicConfig } from './env-config.js';
-
 
 export interface AgentFromEnvOptions {
   narConfig?: Partial<NARConfig>;
@@ -99,7 +98,7 @@ export async function createAgentFromEnv(
     retentionDays: episodicCfg.retentionDays,
   });
 
-  const sessionManager = new JsonlSessionManager({ basePath: '.cache/sessions' });
+  const sessionManager = new JsonlSessionManager({ basePath: cachePath('sessions') });
 
   const wired = await NARBuilder.fromProfile('tool-use')
     .withLM(lmService)
@@ -141,9 +140,7 @@ export async function createAgentFromEnv(
   coreAgent.recall = async (query?: string, limit?: number) => {
     if (!episodicMemory) return [];
     const episodes = await episodicMemory.getEpisodes({ limit: limit ?? 50 });
-    return episodes.filter(
-      (e) => !query || e.content.toLowerCase().includes(query.toLowerCase())
-    );
+    return episodes.filter((e) => !query || e.content.toLowerCase().includes(query.toLowerCase()));
   };
   coreAgent.know = (key: string, value: string) => {
     knowStore.set(key, value);

@@ -9,16 +9,16 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { DialogueCapture } from '@senars/nar/dialogue';
 import { createLogger } from '@senars/nar/logger';
 import { setupGracefulShutdown } from '@senars/util';
+import { HttpGuard, rejectWithStatus } from './lib/http-guards.js';
+import { createAgentFromEnv } from './lib/lifecycle.js';
 import { JobManager } from './lib/mcp/job-manager.js';
+import { registerDialogueTools } from './lib/mcp/mcp-dialogue-tools.js';
 import { registerMCPPrompts } from './lib/mcp/mcp-prompts.js';
 import { registerMCPResources } from './lib/mcp/mcp-resources.js';
 import { registerNARTools } from './lib/mcp/mcp-tools.js';
-import { registerDialogueTools } from './lib/mcp/mcp-dialogue-tools.js';
-import { DialogueCapture } from '@senars/nar/dialogue';
-import { createAgentFromEnv } from './lib/lifecycle.js';
-import { HttpGuard, rejectWithStatus } from './lib/http-guards.js';
 
 const logger = createLogger({ scope: 'mcp' });
 
@@ -46,8 +46,6 @@ const getHttpPort = (): number => {
   }
   return parseInt(process.env.MCP_PORT ?? '8766', 10);
 };
-
-
 
 const startSse = (port: number, guard: HttpGuard): void => {
   const sessions = new Map<string, SSEServerTransport>();
@@ -135,6 +133,7 @@ async function initialize() {
         contrastive: nar.getSystemOneContrastive?.(),
         config: appConfig.dialogue,
       }),
+      episodic: episodicMemory,
       traceGrades: (nar as any).systemOne?.traceGradeHistory,
     });
   }
@@ -153,9 +152,7 @@ async function initialize() {
     case 'sse':
     case 'http': {
       const mcpConfig = appConfig.connections?.mcp;
-      const apiKey = mcpConfig?.apiKeyEnv
-        ? process.env[mcpConfig.apiKeyEnv]
-        : mcpConfig?.apiKey;
+      const apiKey = mcpConfig?.apiKeyEnv ? process.env[mcpConfig.apiKeyEnv] : mcpConfig?.apiKey;
       const guard = new HttpGuard({ apiKey, rateLimitPerMinute: mcpConfig?.rateLimitPerMinute });
       if (!apiKey) logger.info(`MCP API key (client x-api-key header): ${guard.activeKey}`);
       if (transportType === 'sse') startSse(port, guard);

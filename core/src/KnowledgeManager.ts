@@ -1,4 +1,4 @@
-import { readJsonFileSync, writeJsonFileSync } from '@senars/util';
+import { cachePath, readJsonFileSync, writeJsonFileSync } from '@senars/util';
 
 export class KnowledgeManager {
   private knowledge = new Map<string, string>();
@@ -6,7 +6,7 @@ export class KnowledgeManager {
   private readonly persistKnowledge: boolean;
 
   constructor(opts: { knowledgePath?: string; persistKnowledge?: boolean } = {}) {
-    this.knowledgePath = opts.knowledgePath ?? '.cache/agent-knowledge.json';
+    this.knowledgePath = opts.knowledgePath ?? cachePath('agent-knowledge.json');
     this.persistKnowledge = opts.persistKnowledge ?? false;
     this.loadKnowledge();
   }
@@ -35,9 +35,10 @@ export class KnowledgeManager {
 
   private loadKnowledge(): void {
     if (!this.persistKnowledge) return;
-    for (const [k, v] of Object.entries(readJsonFileSync<Record<string, unknown>>(this.knowledgePath, {}))) {
+    for (const [k, v] of Object.entries(
+      readJsonFileSync<Record<string, unknown>>(this.knowledgePath, {})
+    )) {
       if (typeof v === 'string') this.knowledge.set(k, v);
     }
   }
 }
-

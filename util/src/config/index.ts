@@ -4,6 +4,15 @@
  */
 
 export {
+  type CognitiveBoundCategory,
+  type CognitiveBoundKey,
+  type CognitiveBounds,
+  cognitiveBounds,
+  getAllCognitiveBounds,
+  getCognitiveBound,
+} from './cognitive-bounds.js';
+export { type DialogueConfig, dialogueDefaults, dialogueSchema } from './dialogue.js';
+export {
   envBool,
   envCsv,
   envFirst,
@@ -16,8 +25,14 @@ export {
   SENARS_ENV_MAP,
 } from './env.js';
 export { type LMSettingsShape, lmSettingsSchema, lmSettingsShape } from './lm-schema.js';
-export { narCoreBounds, type NarCoreBounds, type NarCoreBoundKey, getBound } from './nar-core-bounds.js';
-export { cognitiveBounds, type CognitiveBounds, type CognitiveBoundCategory, type CognitiveBoundKey, getCognitiveBound, getAllCognitiveBounds } from './cognitive-bounds.js';
+export {
+  getBound,
+  type NarCoreBoundKey,
+  type NarCoreBounds,
+  narCoreBounds,
+} from './nar-core-bounds.js';
+export { CACHE_DIR, cachePath } from './paths.js';
+export { type SystemOneConfig, systemOneDefaults, systemOneSchema } from './system-one.js';
 export type {
   ConfigCapability,
   ConfigEvent,
@@ -33,5 +48,3 @@ export {
   SchemaValidationError,
   validateAgentOptions,
 } from './validation.js';
-export { systemOneDefaults, systemOneSchema, type SystemOneConfig } from './system-one.js';
-export { dialogueDefaults, dialogueSchema, type DialogueConfig } from './dialogue.js';

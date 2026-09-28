@@ -4,7 +4,7 @@
  * (`@senars/io`) — the single source of truth for `ENABLE_*` gates.
  */
 
-import { envBool, envCsv, envInt, envStrOr } from '@senars/util/config';
+import { cachePath, envBool, envCsv, envInt, envStrOr } from '@senars/util/config';
 
 export interface EpisodicConfig {
   memoryPath: string;
@@ -29,7 +29,7 @@ export interface BinEnvConfig {
 
 export function readEpisodicConfig(): EpisodicConfig {
   return {
-    memoryPath: envStrOr('.cache/episodes', 'EPISODIC_MEMORY_PATH'),
+    memoryPath: envStrOr(cachePath('episodes'), 'EPISODIC_MEMORY_PATH'),
     retentionDays: envInt('EPISODIC_RETENTION_DAYS', 30),
   };
 }

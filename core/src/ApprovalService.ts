@@ -40,12 +40,74 @@ export interface ApprovalServiceConfig {
   logger?: LoggerInterface;
 }
 
+export interface ApprovalManagerOptions {
+  /** Observer invoked on every newly created request (pending-approval surfaces). */
+  onRequest?: (request: ApprovalRequest) => void;
+}
+
+/** In-memory pending-approval registry: the default `ApprovalManager` implementation. */
+export class InMemoryApprovalManager implements ApprovalManager {
+  private readonly pending = new Map<string, ApprovalRequest>();
+
+  constructor(private readonly opts: ApprovalManagerOptions = {}) {}
+
+  createRequest(request: string, metadata: Record<string, unknown> = {}): ApprovalRequest {
+    const id = makeId();
+    let resolveFn!: (result: ApprovalResult) => void;
+    let rejectFn!: (error: Error) => void;
+    const result = new Promise<ApprovalResult>((resolve, reject) => {
+      resolveFn = resolve;
+      rejectFn = reject;
+    });
+    const req: ApprovalRequest = {
+      id,
+      request,
+      metadata,
+      createdAt: Date.now(),
+      result,
+      resolve: resolveFn,
+      reject: rejectFn,
+    };
+    this.pending.set(id, req);
+    this.opts.onRequest?.(req);
+    return req;
+  }
+
+  resolveApproval(id: string, approved: boolean, reason?: string): boolean {
+    const req = this.#take(id);
+    if (!req) return false;
+    req.resolve({ approved, reason });
+    return true;
+  }
+
+  rejectApproval(id: string, error: string): boolean {
+    const req = this.#take(id);
+    if (!req) return false;
+    req.reject(new Error(error));
+    return true;
+  }
+
+  getPending(): ApprovalRequest[] {
+    return [...this.pending.values()];
+  }
+
+  getPendingCount(): number {
+    return this.pending.size;
+  }
+
+  #take(id: string): ApprovalRequest | undefined {
+    const req = this.pending.get(id);
+    this.pending.delete(id);
+    return req;
+  }
+}
+
 export class ApprovalService {
   private readonly approvalManager: ApprovalManager;
   private readonly logger: NonNullable<ApprovalServiceConfig['logger']>;
 
   constructor(config: ApprovalServiceConfig = {}) {
-    this.approvalManager = config.approvalManager ?? this.createDefaultManager();
+    this.approvalManager = config.approvalManager ?? new InMemoryApprovalManager();
     this.logger = config.logger ?? createLogger({ scope: 'approval' });
   }
 
@@ -100,52 +162,5 @@ export class ApprovalService {
 
   getApprovalManager(): ApprovalManager {
     return this.approvalManager;
-  }
-
-  private createDefaultManager(): ApprovalManager {
-    const pending = new Map<string, ApprovalRequest>();
-
-    return {
-      createRequest(request: string, metadata: Record<string, unknown> = {}) {
-        const id = makeId();
-        let resolveFn!: (result: ApprovalResult) => void;
-        let rejectFn!: (error: Error) => void;
-        const result = new Promise<ApprovalResult>((resolve, reject) => {
-          resolveFn = resolve;
-          rejectFn = reject;
-        });
-        const req: ApprovalRequest = {
-          id,
-          request,
-          metadata,
-          createdAt: Date.now(),
-          result,
-          resolve: resolveFn,
-          reject: rejectFn,
-        };
-        pending.set(id, req);
-        return req;
-      },
-      resolveApproval(id: string, approved: boolean, reason?: string): boolean {
-        const req = pending.get(id);
-        if (!req) return false;
-        pending.delete(id);
-        req.resolve({ approved, reason });
-        return true;
-      },
-      rejectApproval(id: string, error: string): boolean {
-        const req = pending.get(id);
-        if (!req) return false;
-        pending.delete(id);
-        req.reject(new Error(error));
-        return true;
-      },
-      getPending(): ApprovalRequest[] {
-        return Array.from(pending.values());
-      },
-      getPendingCount(): number {
-        return pending.size;
-      },
-    };
   }
 }

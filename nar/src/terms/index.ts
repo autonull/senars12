@@ -1,13 +1,4 @@
 // Core types
-export type { AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol, Term } from './types.js';
-export {
-  getTermArg,
-  getTermArgs,
-  isAtomic,
-  isCompound,
-  isVariableSymbol,
-  OPERATORS,
-} from './types.js';
 
 // Accessors
 export {
@@ -34,6 +25,7 @@ export {
   mentionsSymbol,
   sameKind,
   sharesSymbol,
+  termKey,
   termsEqual,
   visitTerms,
 } from './accessors.js';
@@ -62,6 +54,15 @@ export { TermSet } from './term-set.js';
 export type { Truth as TruthType } from './truth.js';
 // Truth and stamp systems
 export { isTruthEqual, Truth } from './truth.js';
+export type { AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol, Term } from './types.js';
+export {
+  getTermArg,
+  getTermArgs,
+  isAtomic,
+  isCompound,
+  isVariableSymbol,
+  OPERATORS,
+} from './types.js';
 export type { Substitution } from './unifier.js';
 // Unification
 export { unify } from './unifier.js';

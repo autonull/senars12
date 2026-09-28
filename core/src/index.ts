@@ -53,9 +53,16 @@ export { isEventType, isNarEvent } from '@senars/util';
 export { Agent } from './Agent.js';
 /** Cognitive-event → UI-delta projection bridge. @public */
 export { AgentBridge, type BridgeDelta, type BridgeEvent } from './AgentBridge.js';
-export type { ApprovalManager, ApprovalServiceConfig, PendingApproval } from './ApprovalService.js';
+export type {
+  ApprovalManager,
+  ApprovalManagerOptions,
+  ApprovalRequest,
+  ApprovalResult,
+  ApprovalServiceConfig,
+  PendingApproval,
+} from './ApprovalService.js';
 /** Human-in-the-loop approval service. @public */
-export { ApprovalService } from './ApprovalService.js';
+export { ApprovalService, InMemoryApprovalManager } from './ApprovalService.js';
 /** Chat service types. @public */
 export type {
   ChatContext,
@@ -67,7 +74,21 @@ export type {
 /** Chat service factory. @public */
 export { createChatService } from './ChatService.js';
 export type { ChatCapable, CognitiveEventSource } from './CognitiveEventSource.js';
+export {
+  type BudgetAllocation,
+  CognitiveThread,
+  type CognitiveThreadOptions,
+  createCognitiveThread,
+  createRootBudget,
+  type JoinResult,
+  type SpawnResult,
+  type ThreadMessage,
+  ThreadPool,
+  type ThreadScope,
+  type ThreadStatus,
+} from './cognitive-thread.js';
 export type { CommandContext, CommandDefinition, CommandHandler } from './command-types.js';
+export { type CoActivationEdge, ConceptGraph, type ConceptGraphOptions } from './concept-graph.js';
 /**
  * @deprecated Use `import type { ConfigView, ConfigEvent, ConfigSchema } from '@senars/util/config'` instead.
  */
@@ -127,11 +148,8 @@ export { KnowledgeManager } from './KnowledgeManager.js';
 /** Lifecycle base component. @public */
 export { BaseComponent } from './Lifecycle.js';
 export type { LogEntry, LoggerConfig, LogLevel } from './Logger.js';
-export { registerLogEnricher } from './Logger.js';
 /** Structured logger. @public */
-export { createLogger, defaultLogger, Logger } from './Logger.js';
-export { CognitiveThread, ThreadPool, createCognitiveThread, createRootBudget, type CognitiveThreadOptions, type ThreadMessage, type ThreadStatus, type ThreadScope, type BudgetAllocation, type SpawnResult, type JoinResult } from './cognitive-thread.js';
-export { ConceptGraph, type ConceptGraphOptions, type CoActivationEdge } from './concept-graph.js';
+export { createLogger, defaultLogger, Logger, registerLogEnricher } from './Logger.js';
 export type { BuiltinLens, LensSpec, ModulationSpec } from './lens-schema.js';
 export {
   BUILTIN_LENS_IDS,

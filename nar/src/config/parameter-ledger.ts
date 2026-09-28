@@ -10,11 +10,15 @@
  * REFACTOR.todo4 Phase B: now backed by the generic `Ledger<T>` primitive from `@senars/io`.
  */
 
-import { mean } from '@senars/util';
-
 import { dirname } from 'node:path';
+import {
+  BaseLedgerEntrySchema,
+  createLedger,
+  type Ledger,
+  type LedgerQuery,
+} from '@senars/io/ledger';
+import { cachePath, mean } from '@senars/util';
 import { z } from 'zod';
-import {Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery} from '@senars/io/ledger';
 
 export interface ParameterRecord {
   /** Subsystem that performed the write (e.g. 'self-meta-game', 'rlfp'). */
@@ -45,7 +49,7 @@ const ParameterRecordSchema = BaseLedgerEntrySchema.extend({
 
 export type ParameterLedgerEntry = z.infer<typeof ParameterRecordSchema>;
 
-export const DEFAULT_LEDGER_PATH = '.cache/parameters';
+export const DEFAULT_LEDGER_PATH = cachePath('parameters');
 
 /**
  * ParameterLedger — now backed by the generic `Ledger<T>` primitive from `@senars/io`.
@@ -136,7 +140,9 @@ export class OutcomeLinker {
     private readonly outcomes: () => readonly OutcomeSample[]
   ) {}
 
-  async correlate(options: { parameter?: string; windowMs?: number } = {}): Promise<ParameterImprovement[]> {
+  async correlate(
+    options: { parameter?: string; windowMs?: number } = {}
+  ): Promise<ParameterImprovement[]> {
     const windowMs = options.windowMs ?? 60_000;
     const samples = this.outcomes();
     const windowMean = (from: number, to: number): number | null => {
@@ -167,7 +173,9 @@ export class OutcomeLinker {
   }
 
   /** Evidence-gated view (N1): only changes followed by quality improvement. */
-  async improvedOnly(options: { parameter?: string; windowMs?: number } = {}): Promise<ParameterImprovement[]> {
+  async improvedOnly(
+    options: { parameter?: string; windowMs?: number } = {}
+  ): Promise<ParameterImprovement[]> {
     return (await this.correlate(options)).filter((i) => i.improved);
   }
 }

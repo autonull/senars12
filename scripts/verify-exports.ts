@@ -17,12 +17,9 @@
  */
 
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { entryTargets, readPackageJson } from './lib/pkg.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const root = resolve(__dirname, '..');
+import { ROOT as root } from './lib/root.js';
 
 const PACKAGES = ['util', 'core', 'nar', 'io', 'metta', 'ui'];
 
@@ -33,7 +30,6 @@ function isDirectory(p: string): boolean {
     return false;
   }
 }
-
 
 /**
  * A wildcard target like `./src/agent/*.ts` is a glob, not a literal file.

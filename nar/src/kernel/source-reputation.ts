@@ -8,9 +8,9 @@
  * REFACTOR.todo4 Phase B: now backed by the generic `Ledger<T>` primitive from `@senars/io`.
  */
 
+import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
+import { cachePath, LruCache } from '@senars/util';
 import { z } from 'zod';
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
-import { LruCache } from '@senars/util';
 import { clamp01 } from '../utils';
 
 export interface ReputationEntry {
@@ -39,7 +39,7 @@ const ReputationDeltaSchema = BaseLedgerEntrySchema.extend({
 
 export type ReputationDeltaEntry = z.infer<typeof ReputationDeltaSchema>;
 
-export const DEFAULT_REPUTATION_PATH = '.cache/parameters/source-reputation';
+export const DEFAULT_REPUTATION_PATH = cachePath('parameters', 'source-reputation');
 export const DEFAULT_REPUTATION_CAPACITY = 10_000;
 
 /**
@@ -58,12 +58,12 @@ export class SourceReputation {
     this.#floor = options.floor ?? 0.5;
     this.#decayGate = options.contradictionsBeforeDecay ?? 2;
     this.#entries = new LruCache({ maxSize: options.capacity ?? DEFAULT_REPUTATION_CAPACITY });
-    
+
     const path = options.path ?? DEFAULT_REPUTATION_PATH;
     this.#ledger = createLedger<ReputationDeltaEntry>(path, ReputationDeltaSchema, {
       rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
     });
-    
+
     this.ready = this.#ledger
       .query({})
       .then((entries) => {
@@ -71,7 +71,8 @@ export class SourceReputation {
           const entry = this.#entries.get(r.key) ?? { confirmed: 0, contradicted: 0 };
           this.#entries.set(r.key, {
             confirmed: (this.#entries.peek(r.key)?.confirmed ?? 0) + (r.delta.confirmed ?? 0),
-            contradicted: (this.#entries.peek(r.key)?.contradicted ?? 0) + (r.delta.contradicted ?? 0),
+            contradicted:
+              (this.#entries.peek(r.key)?.contradicted ?? 0) + (r.delta.contradicted ?? 0),
           });
         }
       })
@@ -82,9 +83,10 @@ export class SourceReputation {
     const entry = this.#entries.get(key) ?? { confirmed: 0, contradicted: 0 };
     this.#entries.set(key, { ...entry, [outcome]: entry[outcome] + 1 });
 
-    const delta = outcome === 'confirmed'
-      ? { confirmed: 1, contradicted: 0 }
-      : { confirmed: 0, contradicted: 1 };
+    const delta =
+      outcome === 'confirmed'
+        ? { confirmed: 1, contradicted: 0 }
+        : { confirmed: 0, contradicted: 1 };
 
     this.#ledger.append({
       at: Date.now(),

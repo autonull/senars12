@@ -4,10 +4,10 @@
  * internals plus a public-surface view (barrels → top-level folders). Checked
  * into docs/architecture/ so drift is reviewable; CI can diff the output.
  */
-import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join, relative, dirname } from 'node:path';
+import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
+import { ROOT } from './lib/root.js';
 
-const ROOT = join(import.meta.dirname, '..');
 const NAR_SRC = join(ROOT, 'nar/src');
 const OUT_DIR = join(ROOT, 'docs/architecture');
 

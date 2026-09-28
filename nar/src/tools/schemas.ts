@@ -1,3 +1,4 @@
+import { cachePath } from '@senars/util';
 import { z } from 'zod';
 
 export const ToolSpecSchema = z
@@ -44,7 +45,7 @@ export const AgentOptionsSchema = z.object({
   persistKnowledge: z.boolean().default(false).describe('Persist knowledge'),
   knowledgePath: z
     .string()
-    .default('.cache/agent-knowledge.json')
+    .default(cachePath('agent-knowledge.json'))
     .describe('Knowledge persistence path'),
   workspaceRoot: z.string().optional().describe('Workspace root path'),
   externalTools: z.any().optional().describe('External tools'),

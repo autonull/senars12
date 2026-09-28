@@ -1,18 +1,18 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { ChatStreamEvent } from '@senars/core';
 import { withinWorkspace } from '@senars/core';
 import type { NAR } from '@senars/nar';
 import type { ExtendedAgent as Agent } from '@senars/nar/agent';
-import {
-  getModelChain,
-  getRoutingStatus,
-  type LMTask,
-  resetDemotions,
-  resolveOfflineTier,
-} from '@senars/nar/lm';
+import { resetDemotions } from '@senars/nar/lm';
 import { z } from 'zod';
 import type { JobManager } from './job-manager.js';
 import { registerNARRegistryTools } from './mcp-bridge.js';
-import { createMCPResponse, formatBeliefsForMCP, stringifyMCP } from './mcp-response.js';
+import {
+  ANNOTATIONS,
+  createMCPResponse,
+  formatBeliefsForMCP,
+  stringifyMCP,
+} from './mcp-response.js';
 
 export interface NARToolsOptions {
   jobs?: JobManager;
@@ -75,15 +75,55 @@ function safeEvaluate(expr: string): number {
   return result;
 }
 
-/** Drives the agent chat generator to completion, returning the final text. */
-const chatToCompletion = async (agent: Agent, input: string): Promise<string> => {
+/**
+ * Drives the agent chat generator to completion, returning the final text.
+ * `onDelta` receives intermediate events so the streaming variant can forward
+ * progress notifications instead of blocking until the answer is complete.
+ */
+const chatToCompletion = async (
+  agent: Agent,
+  input: string,
+  onDelta?: (event: ChatStreamEvent) => void
+): Promise<string> => {
   let result = '';
   for await (const event of agent.chat(input)) {
     if (event.kind === 'finish' || event.kind === 'aborted' || event.kind === 'error') {
       result = event.text ?? '';
+    } else {
+      onDelta?.(event);
     }
   }
   return result;
+};
+
+/** Registers an agent chat tool; `stream` mirrors deltas as progress notifications. */
+const registerChatTool = (
+  server: McpServer,
+  agent: Agent,
+  spec: { name: string; title: string; description: string; stream: boolean }
+): void => {
+  const { name, title, description, stream } = spec;
+  server.registerTool(
+    name,
+    {
+      title,
+      description,
+      inputSchema: { input: z.string(), historyLimit: z.number().optional() },
+      outputSchema: { response: z.string() },
+      annotations: ANNOTATIONS.open,
+    },
+    async ({ input }, extra) => {
+      const result = await chatToCompletion(agent, input, (event) => {
+        if (stream) {
+          extra?.sendNotification?.({
+            method: 'notifications/message',
+            params: { level: 'info', logger: 'senars', data: event },
+          });
+        }
+      });
+      return createMCPResponse(result, { response: result });
+    }
+  );
 };
 
 export function registerNARTools(
@@ -99,11 +139,7 @@ export function registerNARTools(
       description: 'Evaluate arithmetic/math expressions',
       inputSchema: { expression: z.string() },
       outputSchema: { result: z.number() },
-      annotations: {
-        readOnlyHint: true,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.read,
     },
     async ({ expression }) => {
       const sanitized = expression.replace(/[^0-9+\-*/.()eE\s]/g, '');
@@ -122,11 +158,7 @@ export function registerNARTools(
       description: 'Search NAR memory for beliefs',
       inputSchema: { query: z.string() },
       outputSchema: { results: z.array(z.object({ term: z.string(), truth: z.any() })) },
-      annotations: {
-        readOnlyHint: true,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.read,
     },
     async ({ query }) => {
       const beliefs = nar.getBeliefs();
@@ -148,11 +180,7 @@ export function registerNARTools(
         derived: z.number(),
         beliefs: z.array(z.object({ term: z.string(), truth: z.any() })),
       },
-      annotations: {
-        readOnlyHint: false,
-        idempotentHint: false,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.run,
     },
     async ({ steps }) => {
       const derived = await nar.run(steps);
@@ -171,12 +199,7 @@ export function registerNARTools(
       description: 'Add a belief to memory',
       inputSchema: { belief: z.string() },
       outputSchema: { added: z.string() },
-      annotations: {
-        readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.apply,
     },
     async ({ belief }) => {
       await nar.believe(belief);
@@ -191,11 +214,7 @@ export function registerNARTools(
       description: 'Explain how a belief was derived',
       inputSchema: { term: z.string() },
       outputSchema: { term: z.string(), derivation: z.string() },
-      annotations: {
-        readOnlyHint: true,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.read,
     },
     async ({ term }) => {
       const result = await nar.tools.execute('explain', { term });
@@ -206,43 +225,14 @@ export function registerNARTools(
     }
   );
 
-  server.registerTool(
-    'agent_chat',
-    {
-      title: 'Agent Chat',
-      description: 'Chat with the agent (non-streaming)',
-      inputSchema: { input: z.string(), historyLimit: z.number().optional() },
-      outputSchema: { response: z.string() },
-      annotations: {
-        readOnlyHint: false,
-        idempotentHint: false,
-        openWorldHint: true,
-      },
-    },
-    async ({ input }) => {
-      const result = await chatToCompletion(agent, input);
-      return createMCPResponse(result, { response: result });
-    }
-  );
-
-  server.registerTool(
-    'agent_chat_stream',
-    {
-      title: 'Agent Chat Stream',
-      description: 'Chat with the agent (streaming)',
-      inputSchema: { input: z.string(), historyLimit: z.number().optional() },
-      outputSchema: { response: z.string() },
-      annotations: {
-        readOnlyHint: false,
-        idempotentHint: false,
-        openWorldHint: true,
-      },
-    },
-    async ({ input }) => {
-      const result = await chatToCompletion(agent, input);
-      return createMCPResponse(result, { response: result });
-    }
-  );
+  for (const stream of [false, true]) {
+    registerChatTool(server, agent, {
+      name: stream ? 'agent_chat_stream' : 'agent_chat',
+      title: stream ? 'Agent Chat Stream' : 'Agent Chat',
+      description: `Chat with the agent (${stream ? 'streaming' : 'non-streaming'})`,
+      stream,
+    });
+  }
 
   server.registerTool(
     'agent_believe',
@@ -251,12 +241,7 @@ export function registerNARTools(
       description: 'Add a belief to NAR memory',
       inputSchema: { narsese: z.string() },
       outputSchema: { success: z.boolean() },
-      annotations: {
-        readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.apply,
     },
     async ({ narsese }) => {
       await agent.believe(narsese);
@@ -271,11 +256,7 @@ export function registerNARTools(
       description: 'Recall from episodic memory',
       inputSchema: { query: z.string().optional(), limit: z.number().optional() },
       outputSchema: z.any(),
-      annotations: {
-        readOnlyHint: true,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.read,
     },
     async ({ query, limit }) => {
       const result = await agent.recall(query, limit);
@@ -294,12 +275,7 @@ export function registerNARTools(
         value: z.string().optional(),
         stored: z.boolean().optional(),
       },
-      annotations: {
-        readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.set,
     },
     async ({ key, value }) => {
       if (value !== undefined) {
@@ -322,12 +298,7 @@ export function registerNARTools(
       description: 'Enable an LM rule',
       inputSchema: { id: z.string() },
       outputSchema: { enabled: z.boolean(), id: z.string() },
-      annotations: {
-        readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.set,
     },
     async ({ id }) => {
       const rule = nar.getProcessor().getLMRule(id);
@@ -346,12 +317,7 @@ export function registerNARTools(
       description: 'Disable an LM rule',
       inputSchema: { id: z.string() },
       outputSchema: { disabled: z.boolean(), id: z.string() },
-      annotations: {
-        readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.set,
     },
     async ({ id }) => {
       const rule = nar.getProcessor().getLMRule(id);
@@ -370,11 +336,7 @@ export function registerNARTools(
       description: 'List LM rules with their enablement state and stats',
       inputSchema: {},
       outputSchema: { rules: z.array(z.any()) },
-      annotations: {
-        readOnlyHint: true,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.read,
     },
     async () => {
       const rules = nar.getProcessor().getLmRuleStats();
@@ -389,11 +351,7 @@ export function registerNARTools(
       description: 'Explain a belief or goal',
       inputSchema: { term: z.string(), type: z.enum(['belief', 'goal']).optional() },
       outputSchema: { term: z.string(), type: z.string(), explanation: z.string() },
-      annotations: {
-        readOnlyHint: true,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.read,
     },
     async ({ term, type }) => {
       const result = await nar.tools.execute('explain', {
@@ -418,11 +376,7 @@ export function registerNARTools(
       description: 'Get goal progress or list active goals',
       inputSchema: { goalId: z.string().optional() },
       outputSchema: { goals: z.array(z.object({ goalId: z.string(), progress: z.number() })) },
-      annotations: {
-        readOnlyHint: true,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.read,
     },
     async ({ goalId }) => {
       const goalsList = nar.getGoals();
@@ -460,12 +414,7 @@ export function registerNARTools(
       description: 'Clear session-level routing demotions so all candidates rank normally again',
       inputSchema: {},
       outputSchema: { reset: z.boolean() },
-      annotations: {
-        readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.set,
     },
     async () => {
       resetDemotions();
@@ -480,11 +429,7 @@ export function registerNARTools(
       description: 'Get all beliefs from NAR memory',
       inputSchema: {},
       outputSchema: { beliefs: z.array(z.object({ term: z.string(), truth: z.any() })) },
-      annotations: {
-        readOnlyHint: true,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.read,
     },
     async () => {
       const beliefs = formatBeliefsForMCP(nar.getBeliefs());
@@ -499,11 +444,7 @@ export function registerNARTools(
       description: 'Get current attention snapshot',
       inputSchema: {},
       outputSchema: z.any(),
-      annotations: {
-        readOnlyHint: true,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.read,
     },
     async () => {
       const report = nar.attentionReport();
@@ -523,11 +464,7 @@ export function registerNARTools(
         content: z.string().optional(),
       },
       outputSchema: { jobId: z.string() },
-      annotations: {
-        readOnlyHint: false,
-        idempotentHint: false,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.run,
     },
     async ({ kind, steps, content }) => {
       const jobs = options?.jobs;
@@ -557,11 +494,7 @@ export function registerNARTools(
       description: 'Get the status/result of a background job (or all jobs)',
       inputSchema: { jobId: z.string().optional() },
       outputSchema: z.any(),
-      annotations: {
-        readOnlyHint: true,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
+      annotations: ANNOTATIONS.read,
     },
     async ({ jobId }) => {
       const jobs = options?.jobs;

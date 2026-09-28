@@ -1,8 +1,20 @@
-import { z } from 'zod';
-import {Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery} from '@senars/io/ledger';
-import type { Episode, EpisodeType, EpisodeFilter, EpisodicMemoryConfig, EpisodicMemory as UtilEpisodicMemory } from '@senars/util';
+import {
+  BaseLedgerEntrySchema,
+  createLedger,
+  type Ledger,
+  type LedgerQuery,
+} from '@senars/io/ledger';
+import type {
+  Episode,
+  EpisodeFilter,
+  EpisodeType,
+  EpisodicMemoryConfig,
+  EpisodicMemory as UtilEpisodicMemory,
+} from '@senars/util';
+import { cachePath } from '@senars/util';
 import { ulid } from 'ulid';
-import { SystemClock, type Clock } from '../clock.js';
+import { z } from 'zod';
+import { type Clock, SystemClock } from '../clock.js';
 import { CausalIndex } from './CausalIndex.js';
 
 export type { EpisodicMemoryConfig } from '@senars/util';
@@ -10,7 +22,7 @@ export type { Episode, EpisodeType };
 
 const DEFAULT_CONFIG = {
   enabled: true,
-  basePath: '.cache/episodes',
+  basePath: cachePath('episodes'),
   retentionDays: 30,
   maxEntriesPerFile: 10000,
 } as const;
@@ -20,7 +32,16 @@ const DEFAULT_CONFIG = {
  * Exported for test reuse and external ledger construction.
  */
 export const EpisodeSchema = BaseLedgerEntrySchema.extend({
-  type: z.enum(['input', 'response', 'belief_added', 'question', 'tool_call', 'error', 'dialogue', 'reaction']),
+  type: z.enum([
+    'input',
+    'response',
+    'belief_added',
+    'question',
+    'tool_call',
+    'error',
+    'dialogue',
+    'reaction',
+  ]),
   content: z.string(),
   metadata: z.record(z.string(), z.unknown()),
   id: z.string().optional(),
@@ -30,6 +51,18 @@ export const EpisodeSchema = BaseLedgerEntrySchema.extend({
 });
 
 export type LedgerEpisode = z.infer<typeof EpisodeSchema>;
+
+/** Ledger entry → in-memory episode projection (the `at` field is the timestamp). */
+const toEpisode = (entry: LedgerEpisode): Episode => ({
+  timestamp: entry.at,
+  type: entry.type,
+  content: entry.content,
+  metadata: entry.metadata,
+  id: entry.id,
+  causes: entry.causes,
+  consequences: entry.consequences,
+  context: entry.context,
+});
 
 const matchesFilter = (e: Episode, options: EpisodeFilter): boolean => {
   const meta = e.metadata as { correlationId?: unknown; sessionId?: unknown } | undefined;
@@ -214,17 +247,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
   async #readAllEpisodes(visit: (episode: Episode) => void): Promise<void> {
     const entries = await this.#ledger.query({});
     for (const entry of entries) {
-      const episode: Episode = {
-        timestamp: entry.at,
-        type: entry.type,
-        content: entry.content,
-        metadata: entry.metadata,
-        id: entry.id,
-        causes: entry.causes,
-        consequences: entry.consequences,
-        context: entry.context,
-      };
-      visit(episode);
+      visit(toEpisode(entry));
     }
   }
 
@@ -233,16 +256,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     const index = new Map<string, Episode[]>();
     const entries = await this.#ledger.query({});
     for (const entry of entries) {
-      const episode: Episode = {
-        timestamp: entry.at,
-        type: entry.type,
-        content: entry.content,
-        metadata: entry.metadata,
-        id: entry.id,
-        causes: entry.causes,
-        consequences: entry.consequences,
-        context: entry.context,
-      };
+      const episode = toEpisode(entry);
       const meta = episode.metadata as { correlationId?: unknown; sessionId?: unknown } | undefined;
       if (typeof meta?.correlationId === 'string') {
         const bucket = index.get(`cid:${meta.correlationId}`) ?? [];
@@ -263,17 +277,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     const causal = new CausalIndex();
     const entries = await this.#ledger.query({});
     for (const entry of entries) {
-      const episode: Episode = {
-        timestamp: entry.at,
-        type: entry.type,
-        content: entry.content,
-        metadata: entry.metadata,
-        id: entry.id,
-        causes: entry.causes,
-        consequences: entry.consequences,
-        context: entry.context,
-      };
-      causal.add(episode);
+      causal.add(toEpisode(entry));
     }
     this.#causal = causal;
   }
@@ -293,17 +297,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     const episodes: Episode[] = [];
 
     for (const entry of entries) {
-      const episode: Episode = {
-        timestamp: entry.at,
-        type: entry.type,
-        content: entry.content,
-        metadata: entry.metadata,
-        id: entry.id,
-        causes: entry.causes,
-        consequences: entry.consequences,
-        context: entry.context,
-      };
-
+      const episode = toEpisode(entry);
       if (!matchesFilter(episode, options ?? {})) continue;
       episodes.push(episode);
     }

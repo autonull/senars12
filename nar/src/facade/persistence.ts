@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { createLogger } from '@senars/core/logger';
+import { cachePath } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import type { DriveManager } from '../drives';
 import type { Memory } from '../memory';
@@ -42,7 +43,7 @@ export class StatePersister {
   }
 
   private getStatePath(filename: string): string {
-    const base = this.deps.config.statePath ?? '.cache/nar-state';
+    const base = this.deps.config.statePath ?? cachePath('nar-state');
     return path.resolve(base, filename);
   }
 

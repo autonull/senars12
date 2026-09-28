@@ -1,11 +1,13 @@
 #!/usr/bin/env tsx
+
 /**
  * Analyze CPU profile file (V8 format)
  */
 
+import { pct } from '@senars/util';
 import * as fs from 'fs';
 
-const profileFiles = fs.readdirSync('.').filter(f => f.endsWith('.cpuprofile'));
+const profileFiles = fs.readdirSync('.').filter((f) => f.endsWith('.cpuprofile'));
 if (profileFiles.length === 0) {
   console.error('No .cpuprofile files found');
   process.exit(1);
@@ -48,8 +50,8 @@ const sorted = Array.from(sampleCounts.entries())
 
 console.log('\nTop 50 functions by exclusive sample count:');
 for (const [nodeId, count] of sorted) {
-  const pct = (count / samples.length * 100).toFixed(1);
-  console.log(`  ${pct}% (${count}) ${getFunctionName(nodeId)}`);
+  const share = pct(count / samples.length);
+  console.log(`  ${share}% (${count}) ${getFunctionName(nodeId)}`);
 }
 
 // Also calculate inclusive (walk up the tree)
@@ -66,7 +68,8 @@ for (const node of nodes) {
 
 for (const [nodeId, count] of sampleCounts) {
   let current = nodeId;
-  while (current && current !== 1) { // 1 is root
+  while (current && current !== 1) {
+    // 1 is root
     inclusiveCounts.set(current, (inclusiveCounts.get(current) || 0) + count);
     current = parentMap.get(current) || 0;
   }
@@ -81,8 +84,8 @@ const sortedInclusive = Array.from(inclusiveCounts.entries())
 
 console.log('\nTop 50 functions by inclusive sample count:');
 for (const [nodeId, count] of sortedInclusive) {
-  const pct = (count / samples.length * 100).toFixed(1);
-  console.log(`  ${pct}% (${count}) ${getFunctionName(nodeId)}`);
+  const share = pct(count / samples.length);
+  console.log(`  ${share}% (${count}) ${getFunctionName(nodeId)}`);
 }
 
 console.log(`\nTotal samples: ${samples.length}`);

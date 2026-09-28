@@ -3,6 +3,7 @@
  * @public
  */
 import { z } from 'zod';
+import { cachePath } from './paths.js';
 
 export const contextOptsSchema = z
   .object({
@@ -27,7 +28,7 @@ export const agentOptionsSchema = z
     maxLoops: z.number().int().min(0).max(50).default(5),
     logger: z.unknown().optional(),
     persistKnowledge: z.boolean().default(false),
-    knowledgePath: z.string().default('.cache/agent-knowledge.json'),
+    knowledgePath: z.string().default(cachePath('agent-knowledge.json')),
     workspaceRoot: z.string().optional(),
     externalTools: z.any().optional(),
     approvalManager: z.any().optional(),

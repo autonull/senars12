@@ -1,6 +1,5 @@
-import { sha256HexParts } from '@senars/util';
-
 import { promises as fs } from 'node:fs';
+import { cachePath, sha256HexParts } from '@senars/util';
 import { mulberry32 } from '../../utils/random.js';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration.js';
 import type { JudgmentDataset } from './distill.js';
@@ -247,7 +246,7 @@ export async function readCalibrationLock(path: string): Promise<CalibrationLock
 }
 
 /** The one on-disk location of the digest-pinned calibration lock. */
-export const CALIBRATION_LOCK_PATH = '.cache/systemone/calibration-lock.json';
+export const CALIBRATION_LOCK_PATH = cachePath('systemone', 'calibration-lock.json');
 
 /** Best-effort lock read: `null` when absent or unreadable. */
 export async function readCalibrationLockOrNull(

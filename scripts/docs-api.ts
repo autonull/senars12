@@ -9,11 +9,10 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { readExports } from './lib/pkg.js';
+import { ROOT } from './lib/root.js';
 
-const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const PACKAGES = ['nar', 'core', 'util', 'io', 'metta'];
 const OUT = join(ROOT, 'docs', 'api');
 

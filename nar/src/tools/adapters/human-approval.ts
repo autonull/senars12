@@ -1,84 +1,14 @@
-import { makeId } from '@senars/util';
+import type { ApprovalManagerOptions, ApprovalRequest, ApprovalResult } from '@senars/core';
+import { InMemoryApprovalManager } from '@senars/core';
 import { tool } from 'ai';
 import { z } from 'zod';
 
-// --- human_approval ---
+/** Pending-approval registry shared with core's `ApprovalService` — one implementation. */
+export const ApprovalManager = InMemoryApprovalManager;
 
-export interface ApprovalRequest {
-  id: string;
-  request: string;
-  metadata: Record<string, unknown>;
-  createdAt: number;
-  result: Promise<ApprovalResult>;
-  resolve: (result: ApprovalResult) => void;
-  reject: (error: Error) => void;
-}
+export type { ApprovalManagerOptions, ApprovalRequest, ApprovalResult };
 
-export interface ApprovalResult {
-  approved: boolean;
-  reason?: string;
-}
-
-export interface ApprovalManagerOptions {
-  onRequest?: (request: ApprovalRequest) => void;
-}
-
-export class ApprovalManager {
-  private readonly pending = new Map<string, ApprovalRequest>();
-  private readonly onRequest?: (request: ApprovalRequest) => void;
-
-  constructor(opts: ApprovalManagerOptions = {}) {
-    this.onRequest = opts.onRequest;
-  }
-
-  createRequest(request: string, metadata: Record<string, unknown> = {}): ApprovalRequest {
-    const id = makeId();
-    let resolveFn!: (result: ApprovalResult) => void;
-    let rejectFn!: (error: Error) => void;
-    const result = new Promise<ApprovalResult>((resolve, reject) => {
-      resolveFn = resolve;
-      rejectFn = reject;
-    });
-    const req: ApprovalRequest = {
-      id,
-      request,
-      metadata,
-      createdAt: Date.now(),
-      result,
-      resolve: resolveFn,
-      reject: rejectFn,
-    };
-    this.pending.set(id, req);
-    this.onRequest?.(req);
-    return req;
-  }
-
-  resolveApproval(id: string, approved: boolean, reason?: string): boolean {
-    const req = this.pending.get(id);
-    if (!req) return false;
-    this.pending.delete(id);
-    req.resolve({ approved, reason });
-    return true;
-  }
-
-  rejectApproval(id: string, error: string): boolean {
-    const req = this.pending.get(id);
-    if (!req) return false;
-    this.pending.delete(id);
-    req.reject(new Error(error));
-    return true;
-  }
-
-  getPending(): ApprovalRequest[] {
-    return Array.from(this.pending.values());
-  }
-
-  getPendingCount(): number {
-    return this.pending.size;
-  }
-}
-
-export function createHumanApprovalTool(manager: ApprovalManager) {
+export function createHumanApprovalTool(manager: InMemoryApprovalManager) {
   return {
     human_approval: tool({
       description:

@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import type { ReasoningBudget } from '@senars/kernel/schemas';
 import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
 /**
  * C3 demo: pure-System-One RL on GridWorldGame — no NAR, no RuleProcessor,
@@ -9,16 +8,11 @@ import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
 import { EmbeddingCache } from '../nar/src/lm/system-one/embedding-cache.js';
 import { createManifold } from '../nar/src/lm/system-one/manifold.js';
 import { ManifoldRLAgent } from '../nar/src/lm/system-one/manifold-rl-agent.js';
+import { createSystemOneBudget } from '../nar/src/lm/system-one/types.js';
 import { loadConfig } from '../src/config/index.js';
 
 const episodes = Number(process.argv[2] ?? 20);
-const budget: ReasoningBudget = {
-  maxCycles: 100,
-  maxDepth: 10,
-  maxMemoryOps: 1000,
-  maxLMCalls: 5,
-  consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-};
+const budget = createSystemOneBudget();
 const grid = ['S...', '.#..', '..#.', '...G'];
 
 const cache = new EmbeddingCache({ maxSize: 1000, ttlMs: 600_000 });

@@ -3,11 +3,11 @@ import {
   getConsequent,
   getPredicate,
   getSubject,
-  termsEqual,
   isEquivalence,
   isImplication,
   isInheritance,
   isSimilarity,
+  termsEqual,
   visitTerms,
 } from '../terms/accessors.js';
 import type { Term } from '../terms/types.js';
@@ -20,18 +20,13 @@ export interface TermEdge {
   directed: boolean;
 }
 
-function termToString(term: Term): string {
-  return term.toString();
-}
-
-function extractAtomicTerms(term: Term): Term[] {
+const collectAtoms = (term: Term): Term[] => {
   const atoms: Term[] = [];
   visitTerms(term, (t) => {
     if (t.kind === 'atom') atoms.push(t);
   });
   return atoms;
-}
-
+};
 
 export function parseTermToEdges(term: Term): TermEdge[] {
   const edges: TermEdge[] = [];
@@ -41,20 +36,20 @@ export function parseTermToEdges(term: Term): TermEdge[] {
     const predicate = getPredicate(term);
     if (subject && predicate) {
       edges.push({
-        source: termToString(subject),
-        target: termToString(predicate),
+        source: subject.toString(),
+        target: predicate.toString(),
         type: 'inheritance',
         weight: 1.0,
         directed: true,
       });
     }
-    for (const subTerm of extractAtomicTerms(term)) {
+    for (const subTerm of collectAtoms(term)) {
       if (!termsEqual(subTerm, subject) && !termsEqual(subTerm, predicate)) {
         const sub = getSubject(term);
         if (sub && !termsEqual(subTerm, sub)) {
           edges.push({
-            source: termToString(subTerm),
-            target: termToString(sub),
+            source: subTerm.toString(),
+            target: sub.toString(),
             type: 'related',
             weight: 0.3,
             directed: false,
@@ -67,8 +62,8 @@ export function parseTermToEdges(term: Term): TermEdge[] {
     const predicate = getPredicate(term);
     if (subject && predicate) {
       edges.push({
-        source: termToString(subject),
-        target: termToString(predicate),
+        source: subject.toString(),
+        target: predicate.toString(),
         type: 'similarity',
         weight: 0.8,
         directed: false,
@@ -79,20 +74,20 @@ export function parseTermToEdges(term: Term): TermEdge[] {
     const consequent = getConsequent(term);
     if (antecedent && consequent) {
       edges.push({
-        source: termToString(antecedent),
-        target: termToString(consequent),
+        source: antecedent.toString(),
+        target: consequent.toString(),
         type: 'implication',
         weight: 0.9,
         directed: true,
       });
     }
-    const atoms = extractAtomicTerms(term);
+    const atoms = collectAtoms(term);
     for (const atom of atoms) {
       if (!termsEqual(atom, antecedent) && !termsEqual(atom, consequent)) {
         if (antecedent) {
           edges.push({
-            source: termToString(atom),
-            target: termToString(antecedent),
+            source: atom.toString(),
+            target: antecedent.toString(),
             type: 'related',
             weight: 0.2,
             directed: false,
@@ -100,8 +95,8 @@ export function parseTermToEdges(term: Term): TermEdge[] {
         }
         if (consequent) {
           edges.push({
-            source: termToString(atom),
-            target: termToString(consequent),
+            source: atom.toString(),
+            target: consequent.toString(),
             type: 'related',
             weight: 0.2,
             directed: false,
@@ -114,23 +109,23 @@ export function parseTermToEdges(term: Term): TermEdge[] {
     const consequent = getConsequent(term);
     if (antecedent && consequent) {
       edges.push({
-        source: termToString(antecedent),
-        target: termToString(consequent),
+        source: antecedent.toString(),
+        target: consequent.toString(),
         type: 'equivalence',
         weight: 1.0,
         directed: false,
       });
     }
   } else {
-    const atoms = extractAtomicTerms(term);
+    const atoms = collectAtoms(term);
     for (let i = 0; i < atoms.length - 1; i++) {
       for (let j = i + 1; j < atoms.length; j++) {
         const a = atoms[i];
         const b = atoms[j];
         if (a && b) {
           edges.push({
-            source: termToString(a),
-            target: termToString(b),
+            source: a.toString(),
+            target: b.toString(),
             type: 'related',
             weight: 0.1,
             directed: false,

@@ -1,8 +1,9 @@
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
+import { createLogger } from '@senars/core/logger';
+import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
+import { cachePath } from '@senars/util';
 import { z } from 'zod';
 import { buildDefaults, type CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { ParameterLedger } from '../config/parameter-ledger.js';
-import { createLogger } from '@senars/core/logger';
 import { OperationError } from '../types';
 import { clamp } from '../utils';
 import { createKnobSet, type TunableKnob } from './knobs.js';
@@ -84,7 +85,7 @@ export class RLFPLearner {
     this.currentParams = config.currentParams ?? buildDefaults();
     this.knobs = createKnobSet(this.currentParams);
     this.#trainingLedger = createLedger<TrainingLedgerEntry>(
-      config.trainingDataPath ?? '.cache/rlfp/training',
+      config.trainingDataPath ?? cachePath('rlfp', 'training'),
       TrainingEntrySchema,
       { rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 } }
     );

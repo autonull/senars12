@@ -1,5 +1,5 @@
 import { LruCache } from '@senars/util';
-import { termsEqual } from './accessors.js';
+import { termKey, termsEqual } from './accessors.js';
 import type { Term } from './types.js';
 import { isCompound, isVariableSymbol } from './types.js';
 
@@ -26,18 +26,13 @@ const occursCheck = (variable: string, term: Term, subst: Substitution, depth = 
   return false;
 };
 
-function termToKey(term: Term): string {
-  if (term.kind === 'atom') return `a:${term.symbol}`;
-  return `${term.kind}[${term.args?.map(termToKey).join(',') ?? ''}]`;
-}
-
 /** Memoization key — includes bound *values*, never just the bound variable names. */
 function cacheKey(a: Term, b: Term, subst: Substitution, occurs: boolean): string {
   const bindings = Object.keys(subst)
     .sort()
-    .map((v) => `${v}=${termToKey(subst[v] as Term)}`)
+    .map((v) => `${v}=${termKey(subst[v] as Term)}`)
     .join(';');
-  return `${occurs ? 1 : 0}|${termToKey(a)}|${termToKey(b)}|${bindings}`;
+  return `${occurs ? 1 : 0}|${termKey(a)}|${termKey(b)}|${bindings}`;
 }
 
 export function unify(

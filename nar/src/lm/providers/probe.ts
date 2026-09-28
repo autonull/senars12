@@ -4,6 +4,8 @@
  * fail-closed semantics live in one place.
  */
 
+import { boundedSignal } from '@senars/util';
+
 export interface ProbeOptions {
   readonly timeoutMs?: number;
   readonly headers?: Record<string, string>;
@@ -16,15 +18,13 @@ export async function fetchBounded(
   url: string,
   { timeoutMs = DEFAULT_TIMEOUT_MS, headers }: ProbeOptions = {}
 ): Promise<Response | null> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  timer.unref?.();
+  const { signal, done } = boundedSignal(timeoutMs);
   try {
-    return await fetch(url, { signal: controller.signal, ...(headers && { headers }) });
+    return await fetch(url, { signal, ...(headers && { headers }) });
   } catch {
     return null;
   } finally {
-    clearTimeout(timer);
+    done();
   }
 }
 

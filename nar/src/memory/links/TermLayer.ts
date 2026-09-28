@@ -1,5 +1,5 @@
 import type { Term } from '../../terms';
-import { termsEqual } from '../../terms';
+import { termKey, termsEqual } from '../../terms';
 import { Layer } from './Layer.js';
 import type { LinkEntry, LinkType, SerializedLayer } from './types.js';
 
@@ -7,15 +7,8 @@ interface LinkEntryInternal extends LinkEntry {
   data?: Record<string, unknown>;
 }
 
-function termToIdKey(term: Term): string {
-  if (term.kind === 'atom') {
-    return `atom:${term.symbol}`;
-  }
-  return `${term.kind}:${term.args?.map((a) => termToIdKey(a)).join(',')}`;
-}
-
 function createLinkId(source: Term, target: Term, type: LinkType): string {
-  return `${termToIdKey(source)}_${termToIdKey(target)}_${type}`;
+  return `${termKey(source)}_${termKey(target)}_${type}`;
 }
 
 export class TermLayer extends Layer {

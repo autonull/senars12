@@ -12,6 +12,7 @@ import { createContrastiveMemory } from '../nar/src/lm/system-one/contrastive.js
 import { createEmbeddingCache } from '../nar/src/lm/system-one/embedding-cache.js';
 import { createManifold } from '../nar/src/lm/system-one/manifold.js';
 import type { JudgmentQuery } from '../nar/src/lm/system-one/types.js';
+import { createSystemOneBudget } from '../nar/src/lm/system-one/types.js';
 import { l2Normalize } from '../nar/src/utils/similarity.js';
 
 const CANDIDATES = Number(process.env.BENCH_CANDIDATES ?? 100);
@@ -30,10 +31,7 @@ const directional = (text: string): Float32Array => {
 const POSITIVE = 'verified grounded factual statement consistent with prior beliefs';
 const NEGATIVE = 'hallucinated unverifiable claim contradicting known episode outcomes';
 
-const budget = {
-  maxCycles: 100, maxDepth: 10, maxMemoryOps: 1000, maxLMCalls: 5,
-  consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-};
+const budget = createSystemOneBudget();
 
 const evaluateQuery = (i: number): JudgmentQuery => ({
   kind: 'evaluate',
@@ -72,17 +70,23 @@ const main = async (): Promise<void> => {
 
   // Enhanced leg: calibrated contrastive memory over the same frozen embeddings.
   const contrastive = createContrastiveMemory();
-  await contrastive.add('groundedness', {
-    positives: Array.from({ length: 16 }, (_, i) => `${POSITIVE} exemplar ${i}`),
-    negatives: Array.from({ length: 16 }, (_, i) => `${NEGATIVE} exemplar ${i}`),
-  }, cache);
+  await contrastive.add(
+    'groundedness',
+    {
+      positives: Array.from({ length: 16 }, (_, i) => `${POSITIVE} exemplar ${i}`),
+      negatives: Array.from({ length: 16 }, (_, i) => `${NEGATIVE} exemplar ${i}`),
+    },
+    cache
+  );
   contrastive.calibrateAll();
 
   const enhancedPerJudgment = await bench(async () => {
-    await Promise.all(pointers.map(async (p, i) => {
-      await manifold.judgeBatch(p, [queries[i]!], budget);
-      contrastive.score(cache.read(p)!, 'groundedness');
-    }));
+    await Promise.all(
+      pointers.map(async (p, i) => {
+        await manifold.judgeBatch(p, [queries[i]!], budget);
+        contrastive.score(cache.read(p)!, 'groundedness');
+      })
+    );
   });
 
   const pass = enhancedPerJudgment <= 20;

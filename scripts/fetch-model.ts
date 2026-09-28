@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Fetches GGUF models for the embedded llama.cpp runtime into .models/.
  * Idempotent: resolves each spec to a local file, downloading if missing.
@@ -7,13 +8,12 @@
  *   pnpm exec tsx scripts/fetch-model.ts [--model=qwen|gemma|<hf-uri>] [--validate] [--dry-run] [--force]
  */
 
-import { resolveModelFile, getLlama } from 'node-llama-cpp';
-import { existsSync, mkdirSync, cpSync } from 'node:fs';
-import { dirname, join, basename } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { cpSync, existsSync, mkdirSync } from 'node:fs';
+import { basename, join } from 'node:path';
+import { pct } from '@senars/util';
+import { getLlama, resolveModelFile } from 'node-llama-cpp';
+import { ROOT as PROJECT_ROOT } from './lib/root.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, '..');
 const MODELS_DIR = join(PROJECT_ROOT, '.models');
 const CACHE_DIR = join(PROJECT_ROOT, '.cache', 'llama.cpp');
 
@@ -47,8 +47,10 @@ const fetchModel = async (uri: string, force: boolean, dryRun: boolean): Promise
     directory: CACHE_DIR,
     onProgress: ({ totalSize, downloadedSize }: { totalSize: number; downloadedSize: number }) => {
       if (totalSize > 0) {
-        const pct = ((downloadedSize / totalSize) * 100).toFixed(1);
-        process.stdout.write(`\r   Downloading: ${pct}%  (${(downloadedSize / 1e9).toFixed(2)}/${(totalSize / 1e9).toFixed(2)} GB)`);
+        const share = pct(downloadedSize / totalSize);
+        process.stdout.write(
+          `\r   Downloading: ${share}%  (${(downloadedSize / 1e9).toFixed(2)}/${(totalSize / 1e9).toFixed(2)} GB)`
+        );
       }
     },
   });
@@ -85,9 +87,10 @@ const main = async () => {
   const dryRun = args.includes('--dry-run');
   const validate = args.includes('--validate');
   const modelArg = args.find((a) => a.startsWith('--model='))?.split('=')[1];
-  const uris = !modelArg || modelArg === 'all'
-    ? Object.values(MODEL_SPECS).map((s) => s.uri)
-    : [resolveSpec(modelArg)];
+  const uris =
+    !modelArg || modelArg === 'all'
+      ? Object.values(MODEL_SPECS).map((s) => s.uri)
+      : [resolveSpec(modelArg)];
 
   for (const uri of uris) {
     console.log(`📦 Fetching: ${uri}`);
