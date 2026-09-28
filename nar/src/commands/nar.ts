@@ -1,6 +1,9 @@
 import type { CommandDefinition } from '@senars/core/command-types';
+import { formatNarseseTruth } from '@senars/util';
+import { filterByTerm } from '../memory/term-filter.js';
+import { termParser } from '../terms';
+import { NAR_UNCONFIGURED, narOf } from './utils.js';
 
-// Copy of exact original src/io/commands/nar.ts content
 export const narCommands: CommandDefinition[] = [
   {
     name: '/believe',
@@ -8,8 +11,8 @@ export const narCommands: CommandDefinition[] = [
     description: 'Add a belief to NAR (Narsese)',
     usage: '/believe <narsese>',
     execute: async (args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
       const narsese = args.join(' ');
       if (!narsese) return 'Usage: /believe <narsese>';
       await nar.input(narsese);
@@ -22,8 +25,8 @@ export const narCommands: CommandDefinition[] = [
     description: 'Ask a question to NAR (Narsese)',
     usage: '/ask <narsese>',
     execute: async (args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
       const narsese = args.join(' ');
       if (!narsese) return 'Usage: /ask <narsese>';
       await nar.input(`${narsese}?`);
@@ -36,8 +39,8 @@ export const narCommands: CommandDefinition[] = [
     description: 'Set a goal in NAR (Narsese)',
     usage: '/goal <narsese>',
     execute: async (args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
       const narsese = args.join(' ');
       if (!narsese) return 'Usage: /goal <narsese>';
       await nar.input(`${narsese}!`);
@@ -50,8 +53,8 @@ export const narCommands: CommandDefinition[] = [
     description: 'Run N cycles of inference',
     usage: '/derive [n]',
     execute: async (args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
       const steps = args[0] ? Number.parseInt(args[0]) : 5;
       const derived = await nar.run(steps);
       return `Derived ${derived} belief(s) in ${steps} step(s)`;
@@ -63,14 +66,15 @@ export const narCommands: CommandDefinition[] = [
     description: 'Show concept details',
     usage: '/concept <term>',
     execute: async (args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
-      const term = args.join(' ');
-      if (!term) return 'Usage: /concept <term>';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
+      const raw = args.join(' ');
+      if (!raw) return 'Usage: /concept <term>';
+      const term = termParser.parse(raw);
       const concept = nar.getConcept(term);
-      if (!concept) return `Concept not found: ${term}`;
+      if (!concept) return `Concept not found: ${raw}`;
       const beliefs = concept.getBeliefs?.() ?? [];
-      return `Concept: ${term}\nBeliefs: ${beliefs.length}`;
+      return `Concept: ${raw}\nBeliefs: ${beliefs.length}`;
     },
   },
   {
@@ -79,13 +83,13 @@ export const narCommands: CommandDefinition[] = [
     description: 'Get truth value of a term',
     usage: '/truth <term>',
     execute: async (args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
-      const term = args.join(' ');
-      if (!term) return 'Usage: /truth <term>';
-      const truth = nar.getTruth(term);
-      if (!truth) return `No truth value for: ${term}`;
-      return `${term} ${truth}`;
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
+      const raw = args.join(' ');
+      if (!raw) return 'Usage: /truth <term>';
+      const truth = filterByTerm(nar.getBeliefs(), raw, 1)[0]?.truth;
+      if (!truth) return `No truth value for: ${raw}`;
+      return `${raw} ${formatNarseseTruth(truth)}`;
     },
   },
 ];

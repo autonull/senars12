@@ -1,4 +1,5 @@
 import type { CommandDefinition } from '@senars/core/command-types';
+import { NAR_UNCONFIGURED, narOf } from './utils.js';
 
 export const configCommands: CommandDefinition[] = [
   {
@@ -7,8 +8,8 @@ export const configCommands: CommandDefinition[] = [
     description: 'Show current configuration',
     usage: '/config [key]',
     execute: async (args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
       const key = args[0];
       if (key) {
         return `Config: ${key} = ${(nar as any)._config?.[key] ?? 'not found'}`;
@@ -22,8 +23,8 @@ export const configCommands: CommandDefinition[] = [
     description: 'Set configuration value',
     usage: '/config.set <key> <value>',
     execute: async (args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
       if (args.length < 2) return 'Usage: /config.set <key> <value>';
       const key = args[0]!;
       const value = args.slice(1).join(' ');
@@ -37,8 +38,8 @@ export const configCommands: CommandDefinition[] = [
     description: 'Reset configuration to default',
     usage: '/config.reset [key]',
     execute: async (args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
       if (args.length === 0) {
         (nar as any)._config = {};
         return 'Configuration reset to defaults';

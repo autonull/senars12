@@ -3,6 +3,8 @@ import type {
   LMService,
   NAR,
   BridgeOptions as UtilBridgeOptions,
+  HealthStatus,
+  SkillDefinition,
 } from '@senars/util';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import type { ThreadScope } from '@senars/nar/kernel';
@@ -108,18 +110,12 @@ export interface BridgeContext {
   session?: ConversationSession;
 }
 
-export interface HealthStatus {
-  readonly status: 'healthy' | 'degraded' | 'stuck' | 'crashed';
-  readonly lastCycle: number;
-  readonly cycleCount: number;
-  readonly errorRate: number;
-}
-
-export interface SkillDefinition {
-  readonly name: string;
-  readonly description?: string;
-
-  execute(...args: unknown[]): unknown;
-}
-
-export type { AgentCapabilities, ChatOptions, ChatStreamEvent, CognitiveEvent, Engine };
+export type {
+  AgentCapabilities,
+  ChatOptions,
+  ChatStreamEvent,
+  CognitiveEvent,
+  Engine,
+  HealthStatus,
+  SkillDefinition,
+};

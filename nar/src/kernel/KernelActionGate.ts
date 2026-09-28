@@ -8,8 +8,9 @@ import type {
 import { AutonomyModeChangedEventSchema } from '@senars/kernel/schemas';
 import { SenarsError } from '@senars/util/errors';
 import { v4 as uuidv4 } from 'uuid';
-import { BoundedRing, pushCapped } from '@senars/util';
+import { pushCapped } from '@senars/util';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
+import { KernelGate } from './gate-base.js';
 import { recordGateDecision } from '../telemetry/index.js';
 
 const MODE_ORDER: AutonomyMode[] = [
@@ -56,8 +57,7 @@ export interface KernelActionGateConfig {
 const DEFAULT_AUTONOMY_MODE: AutonomyMode = 'observe-only';
 const DEFAULT_ALLOWED_OPS = new Set<string>();
 
-export class KernelActionGate {
-  readonly eventLog = new BoundedRing<PolicyViolationEvent>(GATE_LOG_CAPACITY);
+export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
   private autonomyLog: AutonomyModeChangedEvent[] = [];
   private autonomyMode: AutonomyMode;
   private allowedOperations: ReadonlySet<string>;
@@ -67,6 +67,7 @@ export class KernelActionGate {
   private scopeOperations: Map<string, Set<string>> = new Map();
 
   constructor(config?: Partial<KernelActionGateConfig>) {
+    super();
     this.autonomyMode = config?.autonomyMode ?? DEFAULT_AUTONOMY_MODE;
     this.allowedOperations = config?.allowedOperations ?? DEFAULT_ALLOWED_OPS;
   }
@@ -182,7 +183,7 @@ export class KernelActionGate {
   }
 
   private decideAuthorization(input: ActionGateInput): ActionGateOutput {
-    const correlationId = input.correlationId ?? uuidv4();
+    const correlationId = this.correlationOf(input.correlationId);
 
     // Scoped (game) operations authorize against their own scope — the global
     // autonomy mode and allowlist are never consulted nor mutated (A3).
@@ -252,12 +253,8 @@ export class KernelActionGate {
     this.allowedOperations = newSet;
   }
 
-  getEventLog(): ReadonlyArray<PolicyViolationEvent> {
-    return this.eventLog.toArray();
-  }
-
-  clearEventLog(): void {
-    this.eventLog.clear();
+  override clearEventLog(): void {
+    super.clearEventLog();
     this.autonomyLog = [];
   }
 }

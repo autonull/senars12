@@ -10,8 +10,9 @@ import type {
 import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { normalizeNarsese } from '../nl/normalize.js';
-import { asBeliefTruth, BoundedRing, errMsg, type TruthLike } from '@senars/util';
+import { asBeliefTruth, errMsg, type TruthLike } from '@senars/util';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
+import { KernelGate } from './gate-base.js';
 import { domainKey } from './reputation-keys.js';
 import { recordGateDecision } from '../telemetry/index.js';
 import type { TaskTypeName, Term } from '../terms';
@@ -36,8 +37,7 @@ export interface KernelPerceptionGateConfig {
   reputation?: SourceReputation;
 }
 
-export class KernelPerceptionGate {
-  readonly eventLog = new BoundedRing<CognitiveEvent>(GATE_LOG_CAPACITY);
+export class KernelPerceptionGate extends KernelGate {
   private config: KernelPerceptionGateConfig;
   private judge: IngressJudge | null = null;
   /** D23: optional DriveManager hook — ambiguity stimulates curiosity. */
@@ -54,6 +54,7 @@ export class KernelPerceptionGate {
   }
 
   constructor(config?: Partial<KernelPerceptionGateConfig>) {
+    super();
     this.config = {
       defaultBudget: {
         priority: 0.5,
@@ -88,7 +89,7 @@ export class KernelPerceptionGate {
   }
 
   async admit(input: PerceptionGateInput): Promise<PerceptionGateOutput> {
-    const correlationId = input.correlationId ?? uuidv4();
+    const correlationId = this.correlationOf(input.correlationId);
 
     const sourceQuality = input.sourceQuality;
     // Phase E: reputation multiplier lowers the trust ceiling for sources with
@@ -268,7 +269,7 @@ export class KernelPerceptionGate {
       truth: normalized,
       source: this.mapSource(source),
       confidence: normalized?.confidence ?? 0.5,
-      correlationId: correlationId ?? uuidv4(),
+      correlationId: this.correlationOf(correlationId),
     });
   }
 
@@ -355,11 +356,4 @@ export class KernelPerceptionGate {
     return { admitted, rejected };
   }
 
-  getEventLog(): ReadonlyArray<CognitiveEvent> {
-    return this.eventLog.toArray();
-  }
-
-  clearEventLog(): void {
-    this.eventLog.clear();
-  }
 }

@@ -16,6 +16,17 @@ export const NodeLayout = z.object({
 });
 export type NodeLayout = z.infer<typeof NodeLayout>;
 
+/** Optional UI lens attributes carried by every graph node. */
+export const lensShape = { lensData: LensData.optional(), layout: NodeLayout.optional() };
+
+/** Truth/attention annotations carried by every cognitively meaningful node. */
+export const cognitionShape = {
+  truth: TruthValue.optional(),
+  isContradiction: z.boolean().optional(),
+  occurrenceTime: z.number().optional(),
+  goalRelevance: z.number().optional(),
+};
+
 export const NarConceptNode = z.object({
   nodeType: z.literal('nar:concept'),
   id: z.string().optional(),
@@ -23,12 +34,8 @@ export const NarConceptNode = z.object({
   term: z.string(),
   priority: z.number(),
   confidence: z.number(),
-  truth: TruthValue.optional(),
-  isContradiction: z.boolean().optional(),
-  occurrenceTime: z.number().optional(),
-  goalRelevance: z.number().optional(),
-  lensData: LensData.optional(),
-  layout: NodeLayout.optional(),
+  ...cognitionShape,
+  ...lensShape,
   html: z.string().optional(),
   punctuation: z.enum(['.', '!', '?']).optional(),
 });
@@ -40,8 +47,7 @@ export const MettaAtomNode = z.object({
   atom: z.string(),
   type: z.string().optional(),
   space: z.string(),
-  lensData: LensData.optional(),
-  layout: NodeLayout.optional(),
+  ...lensShape,
 });
 
 export const MettaSkillNode = z.object({
@@ -52,8 +58,7 @@ export const MettaSkillNode = z.object({
   args: z.array(z.string()),
   result: z.string(),
   durationMs: z.number(),
-  lensData: LensData.optional(),
-  layout: NodeLayout.optional(),
+  ...lensShape,
 });
 
 export const GraphNodeDataStrict = z.discriminatedUnion('nodeType', [

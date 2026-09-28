@@ -69,14 +69,14 @@ export class PlacementCascadeReflex implements Reflex<Perception, string> {
       const ranked = legalActions
         .map((action, i) => {
           const p = coarse[i];
-          return { action, p: p && !p.abstained && p.kind === 'evaluate' ? p.score : -1 };
+          return { i, action, p: p && !p.abstained && p.kind === 'evaluate' ? p.score : -1 };
         })
         .sort((a, b) => b.p - a.p);
 
       if (ranked.length <= this.topK) {
         const rows = new Map<string, PrefetchEntry>();
         for (const r of ranked) {
-          const prop = coarse[legalActions.indexOf(r.action)];
+          const prop = coarse[r.i];
           const provenance = stageProvenance([prop, undefined], sha256Hex(r.action), 'act', !prop || prop.abstained);
           rows.set(r.action, { score: r.p, provenance });
         }
@@ -85,17 +85,19 @@ export class PlacementCascadeReflex implements Reflex<Perception, string> {
       }
 
       // Stage-2: fine reflex_value on the top-K only (cascade dependency).
-      const topKActions = ranked.slice(0, this.topK).map((r) => r.action);
+      const topK = ranked.slice(0, this.topK);
+      const topKActions = topK.map((r) => r.action);
       const fine = await manifold.judgeBatch(
         sharedContext,
         topKActions.map(FINE_QUERY),
         budget
       );
       const rows = new Map<string, PrefetchEntry>();
-      topKActions.forEach((action, i) => {
+      topK.forEach((r, i) => {
         const p = fine[i];
         if (p && !p.abstained && p.kind === 'evaluate') {
-          const coarseProp = coarse[legalActions.indexOf(action)];
+          const { action } = r;
+          const coarseProp = coarse[r.i];
           const provenance = stageProvenance([coarseProp, p], sha256Hex(action), 'act', false);
           rows.set(action, { score: p.score, provenance });
         }

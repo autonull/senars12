@@ -2,6 +2,7 @@ import { SeededRNG } from '../../game/SeededRNG.js';
 import { Truth } from '../../index.js';
 import type { NAR } from '../../nar.js';
 import { TermBuilder } from '../../terms/index.js';
+import { rewardBeliefTerm } from '../reward-term.js';
 
 export interface RLObservation {
   stateId: string;
@@ -61,15 +62,9 @@ export class BeliefPerceptionAdapter {
 
     // Reward observation if present
     if (observation.reward !== undefined) {
-      const rewardLevel =
-        observation.reward > 0 ? 'high' : observation.reward < 0 ? 'low' : 'neutral';
-      const rewardTerm = TermBuilder.inheritance(
-        TermBuilder.atom(`reward_${rewardLevel}`),
-        TermBuilder.atom('achieved')
-      );
-      if (!rewardTerm) throw new Error(`Invalid inheritance: reward:${rewardLevel} --> achieved`);
-      const confidence = Math.min(0.95, 0.5 + Math.abs(observation.reward) * 0.4);
-      await this.nar.believe(rewardTerm, Truth.create(Math.abs(observation.reward), confidence));
+      const { reward } = observation;
+      const confidence = Math.min(0.95, 0.5 + Math.abs(reward) * 0.4);
+      await this.nar.believe(rewardBeliefTerm(reward), Truth.create(Math.abs(reward), confidence));
     }
 
     // Terminal state observation

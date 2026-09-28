@@ -1,4 +1,5 @@
 import type { CommandDefinition } from '@senars/core/command-types';
+import { NAR_UNCONFIGURED, narOf } from './utils.js';
 
 export const lmCommands: CommandDefinition[] = [
   {
@@ -7,8 +8,8 @@ export const lmCommands: CommandDefinition[] = [
     description: 'Show language model status',
     usage: '/lm-status',
     execute: async (_args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
       const lm = nar.getLMClient();
       if (!lm) return 'LM client not configured';
       return `LM Status:\nProvider: ${lm.provider ?? 'unknown'}\nModel: ${lm.model ?? 'unknown'}\nAvailable: ${lm.available ? 'Yes' : 'No'}`;

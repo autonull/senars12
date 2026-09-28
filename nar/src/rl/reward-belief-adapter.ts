@@ -2,6 +2,7 @@ import { clamp01 } from '@senars/util';
 import { type Term, Truth, TermBuilder } from '../index.js';
 import type { NAR } from '../nar.js';
 import { QBeliefStore } from './q-belief-store.js';
+import { rewardBeliefTerm, rewardLevel } from './reward-term.js';
 
 /**
  * Handles reward representation and value updates with TD learning support
@@ -35,6 +36,10 @@ export class RewardBeliefAdapter {
     };
   }
 
+  private async believeReward(reward: number, confidence: number): Promise<void> {
+    await this.nar.believe(rewardBeliefTerm(reward), Truth.create(Math.abs(reward), confidence));
+  }
+
   /** Process reward and update value beliefs (immediate reward only) */
   async processReward(
     state: Term,
@@ -45,13 +50,7 @@ export class RewardBeliefAdapter {
     this.rewardHistory.push({ state, action, reward, timestamp: Date.now() });
     await this.qStore.updateValue(state, action, reward, confidence);
 
-    const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
-    const rewardTerm = TermBuilder.inheritance(
-      TermBuilder.atom(`reward_${rewardLevel}`),
-      TermBuilder.atom('achieved')
-    );
-    if (!rewardTerm) throw new Error(`Invalid inheritance: reward_${rewardLevel} --> achieved`);
-    await this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
+    await this.believeReward(reward, confidence);
   }
 
   /** Process reward with TD learning (Q-learning style: uses max next-state value) */
@@ -85,13 +84,7 @@ export class RewardBeliefAdapter {
       this.config.tdQLearningConfidence
     );
 
-    const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
-    const rewardTerm = TermBuilder.inheritance(
-      TermBuilder.atom(`reward_${rewardLevel}`),
-      TermBuilder.atom('achieved')
-    );
-    if (!rewardTerm) throw new Error(`Invalid inheritance: reward_${rewardLevel} --> achieved`);
-    await this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
+    await this.believeReward(reward, confidence);
   }
 
   /** Process reward with SARSA (on-policy: uses next action's value) */
@@ -119,19 +112,12 @@ export class RewardBeliefAdapter {
     tdTarget = clamp01(tdTarget);
     await this.qStore.updateValueTD(state, action, tdTarget, this.config.tdConfidence);
 
-    const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
-    const rewardTerm = TermBuilder.inheritance(
-      TermBuilder.atom(`reward_${rewardLevel}`),
-      TermBuilder.atom('achieved')
-    );
-    if (!rewardTerm) throw new Error(`Invalid inheritance: reward_${rewardLevel} --> achieved`);
-    await this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
+    await this.believeReward(reward, confidence);
   }
 
   /** Create terminal satisfaction signal (goal term for nar.goal()) */
   createSatisfactionSignal(reward: number): Term {
-    const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
-    return TermBuilder.atom(`reward_${rewardLevel}`);
+    return TermBuilder.atom(`reward_${rewardLevel(reward)}`);
   }
 
   getQStore(): QBeliefStore {

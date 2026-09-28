@@ -390,14 +390,12 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
       ranking = selectUsable ? (select as ClassifyProposition).distribution : undefined;
     }
 
-    const ranked = candidates.map((candidate) => {
-      if (ranking) {
-        const p = ranking.find((d) => d.option === candidate)?.p ?? 0;
-        const authority = selectUsable ? seedTruth(select as ClassifyProposition).c : 0;
-        return { candidate, truth: Truth.create(p, authority) };
-      }
-      return { candidate, truth: Truth.NEUTRAL };
-    });
+    const pByOption = new Map((ranking ?? []).map((d) => [d.option, d.p] as const));
+    const authority = selectUsable ? seedTruth(select as ClassifyProposition).c : 0;
+    const ranked = candidates.map((candidate) => ({
+      candidate,
+      truth: ranking ? Truth.create(pByOption.get(candidate) ?? 0, authority) : Truth.NEUTRAL,
+    }));
     ranked.sort((a, b) => b.truth.f - a.truth.f);
 
     const provisional = [];

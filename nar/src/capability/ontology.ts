@@ -112,11 +112,12 @@ export class CapabilityOntology {
     provenanceOverrides?: Partial<Provenance>
   ): void {
     // Convert NAR's Schema to the flat format expected by CapabilitySchema.input
+    const required = new Set(tool.parameters?.required ?? []);
     const inputSchema = tool.parameters
       ? Object.fromEntries(
           Object.entries(tool.parameters.properties).map(([k, v]) => [
             k,
-            { type: v.type, required: tool.parameters.required?.includes(k) ?? false, description: v.description },
+            { type: v.type, required: required.has(k), description: v.description },
           ])
         )
       : {};

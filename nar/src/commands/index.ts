@@ -7,4 +7,4 @@ export { narCommands } from './nar.js';
 export { rlfpCommands } from './rlfp.js';
 export { selfCommands } from './self.js';
 export type { NarCommandContext } from './utils.js';
-export { requireNar } from './utils.js';
+export { NAR_UNCONFIGURED, narOf } from './utils.js';

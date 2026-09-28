@@ -17,6 +17,7 @@ import { EmbeddingLayer } from './links/EmbeddingLayer.js';
 import { MemoryIndex } from './memory-index.js';
 import { MemoryConsolidation, MemoryScorer, recordConsolidationWatchdogCycle } from './pressure';
 import { calculateConceptStats } from './state';
+import { filterByTerm } from './term-filter.js';
 
 export interface MemoryConfig {
   maxConcepts?: number;
@@ -226,15 +227,7 @@ export class Memory {
   }
 
   findConcepts(pattern: string, limit = 10): Concept[] {
-    const patternLower = pattern.toLowerCase();
-    const results: Concept[] = [];
-    for (const concept of this.concepts.values()) {
-      if (concept.term.toString().toLowerCase().includes(patternLower)) {
-        results.push(concept);
-        if (results.length >= limit) break;
-      }
-    }
-    return results;
+    return filterByTerm(this.concepts.values(), pattern, limit);
   }
 
   addConcept(term: Term): Concept {
@@ -403,10 +396,7 @@ export class Memory {
   }
 
   removeConceptsMatching(pattern: string): number {
-    const patternLower = pattern.toLowerCase();
-    const toRemove = this.listConcepts().filter((c) =>
-      c.term.toString().toLowerCase().includes(patternLower)
-    );
+    const toRemove = filterByTerm(this.listConcepts(), pattern);
     for (const concept of toRemove) {
       this.removeConcept(concept.term);
     }

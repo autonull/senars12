@@ -22,6 +22,9 @@ import type { ThreadScope } from '../kernel/thread-scope.js';
 
 import type { CreateAgentConfig } from './config.js';
 import { createSystemOneBudget } from '../lm/system-one/types.js';
+import { recallEpisodes } from './recall.js';
+
+
 
 export type { CreateAgentConfig };
 
@@ -352,13 +355,8 @@ function attachNarApi(
     }
   };
 
-  agent.recall = async (query?: string, limit?: number) => {
-    if (!config.episodicMemory) return [];
-    const episodes = await config.episodicMemory.getEpisodes({ limit: limit ?? 50 });
-    return episodes.filter(
-      (e: { content: string }) => !query || e.content.toLowerCase().includes(query.toLowerCase())
-    );
-  };
+  const recall = (query?: string, limit?: number) => recallEpisodes(config, query, limit);
+  agent.recall = recall;
 
   agent.know = (key: string, value: string) => {
     knowStore.set(key, value);
@@ -371,14 +369,7 @@ function attachNarApi(
       know: (k, v) => void knowStore.set(k, v),
       knowGet: (k) => knowStore.get(k),
       knowList: () => [...knowStore.entries()].map(([k, v]) => ({ key: k, value: v })),
-      recall: async (query?: string, limit?: number) => {
-        if (!config.episodicMemory) return [];
-        const episodes = await config.episodicMemory.getEpisodes({ limit: limit ?? 50 });
-        return episodes.filter(
-          (e: { content: string }) =>
-            !query || e.content.toLowerCase().includes(query.toLowerCase())
-        );
-      },
+      recall,
       delegate: createDelegateRunner(config),
     });
 

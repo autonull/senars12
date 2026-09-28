@@ -7,9 +7,8 @@ import type {
   TerminationReason,
 } from '@senars/kernel/schemas';
 import { validateCognitiveEvent, validateReasoningBudget } from '@senars/kernel/schemas';
-import { v4 as uuidv4 } from 'uuid';
-import { BoundedRing } from '@senars/util';
 import { GATE_LOG_CAPACITY } from './event-ring.js';
+import { KernelGate } from './gate-base.js';
 import { recordGateDecision } from '../telemetry/index.js';
 
 export interface KernelBudgetGateConfig {
@@ -67,13 +66,13 @@ const OPERATION_SPECS: Record<string, OperationSpec> = {
   },
 };
 
-export class KernelBudgetGate {
+export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   private budget: ReasoningBudget;
   private scopes = new Map<string, ReasoningBudget>();
-  readonly eventLog = new BoundedRing<BudgetExhaustedEvent>(GATE_LOG_CAPACITY);
   private costTable: Record<string, number>;
 
   constructor(config?: Partial<KernelBudgetGateConfig>) {
+    super();
     this.costTable = { ...DEFAULT_COST_TABLE, ...config?.costTable };
     this.budget = config?.defaultBudget ?? this.createDefaultBudget();
   }
@@ -127,7 +126,7 @@ export class KernelBudgetGate {
   }
 
   private decideBudget(input: BudgetGateInput): BudgetGateOutput {
-    const correlationId = input.correlationId ?? uuidv4();
+    const correlationId = this.correlationOf(input.correlationId);
     const operation = input.operation;
     const estimatedCost = input.estimatedCost ?? this.costTable[operation] ?? 1;
 
@@ -218,13 +217,6 @@ export class KernelBudgetGate {
     return this.scopes.get(scopeId);
   }
 
-  getEventLog(): ReadonlyArray<BudgetExhaustedEvent> {
-    return this.eventLog.toArray();
-  }
-
-  clearEventLog(): void {
-    this.eventLog.clear();
-  }
 
   isExhausted(operation?: string): boolean {
     if (operation) {

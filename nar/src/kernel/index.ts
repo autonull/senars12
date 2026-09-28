@@ -11,6 +11,7 @@ export {
   gateRegistry,
   resetGateRegistry,
 } from './GateRegistry.js';
+export { KernelGate } from './gate-base.js';
 export { KernelActionGate, NALVetoError } from './KernelActionGate.js';
 export { KernelBudgetGate } from './KernelBudgetGate.js';
 export { KernelPerceptionGate } from './KernelPerceptionGate.js';

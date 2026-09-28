@@ -56,6 +56,7 @@ export interface PipelineHeadResult {
   readonly abstained: boolean;
   readonly abstainReason?: string;
   readonly axis: 'epistemic' | 'teleological';
+  readonly decisionBand?: string;
 }
 
 export interface JudgmentPipelineResult {
@@ -170,30 +171,22 @@ export class JudgmentPipeline {
 
   private applyRouter(propositions: PipelineHeadResult[]): PipelineHeadResult[] {
     const { type, bands } = this.spec.router;
-
-    if (type === 'confidence') {
-      return propositions.map((p) => {
-        const band = bands.find((b) => p.score >= b.threshold) ?? bands[bands.length - 1]!;
-        return { ...p, decisionBand: band.action };
-      });
-    }
+    const bandFor = (score: number) => bands.find((b) => score >= b.threshold) ?? bands.at(-1)!;
+    const withBand = (p: PipelineHeadResult): PipelineHeadResult => ({
+      ...p,
+      decisionBand: bandFor(p.score).action,
+    });
 
     if (type === 'cascade') {
       const threshold = this.spec.router.cascadeThreshold ?? 0.7;
-      return propositions.map((p) => {
-        if (p.abstained || p.score < threshold) {
-          return { ...p, decisionBand: 'abstain' as const, abstained: true, abstainReason: 'cascade-threshold' };
-        }
-        const band = bands.find((b) => p.score >= b.threshold) ?? bands[bands.length - 1]!;
-        return { ...p, decisionBand: band.action };
-      });
+      return propositions.map((p) =>
+        p.abstained || p.score < threshold
+          ? { ...p, decisionBand: 'abstain' as const, abstained: true, abstainReason: 'cascade-threshold' }
+          : withBand(p)
+      );
     }
 
-    // Consensus
-    return propositions.map((p) => {
-      const band = bands.find((b) => p.score >= b.threshold) ?? bands[bands.length - 1]!;
-      return { ...p, decisionBand: band.action };
-    });
+    return propositions.map(withBand);
   }
 
   private computeModelDigest(): PipelineModelDigest {

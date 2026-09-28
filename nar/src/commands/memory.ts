@@ -1,6 +1,8 @@
 import type { CommandDefinition } from '@senars/core/command-types';
 import { promises as fs } from 'node:fs';
 import { writeJsonFile } from '@senars/util';
+import { filterByTerm } from '../memory/term-filter.js';
+import { NAR_UNCONFIGURED, narOf } from './utils.js';
 
 const CONCEPT_PREVIEW_LIMIT = 20;
 
@@ -26,8 +28,8 @@ export const memoryCommands: CommandDefinition[] = [
     description: 'List all concepts',
     usage: '/list',
     execute: async (_args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
       const concepts = nar.listConcepts();
       if (concepts.length === 0) return 'Memory is empty';
       return renderConcepts(concepts);
@@ -39,15 +41,13 @@ export const memoryCommands: CommandDefinition[] = [
     description: 'List concepts with optional filter',
     usage: '/concepts [filter]',
     execute: async (args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
-      const filter = args.join(' ').toLowerCase();
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
+      const filter = args.join(' ');
       const concepts = nar.listConcepts();
       if (concepts.length === 0) return 'Memory is empty';
 
-      const filtered = filter
-        ? concepts.filter((c: any) => c.term.toString().toLowerCase().includes(filter))
-        : concepts;
+      const filtered = filter ? filterByTerm(concepts, filter) : concepts;
 
       if (filtered.length === 0) {
         return `No concepts match filter: "${filter}"`;
@@ -62,8 +62,8 @@ export const memoryCommands: CommandDefinition[] = [
     description: 'Save memory to file',
     usage: '/save <filename>',
     execute: async (args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
       const filename = args[0];
       if (!filename) return 'Usage: /save <filename>';
       const concepts = nar.listConcepts().map((c: any) => ({
@@ -86,8 +86,8 @@ export const memoryCommands: CommandDefinition[] = [
     description: 'Load beliefs from file',
     usage: '/load <filename>',
     execute: async (args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
       const filename = args[0];
       if (!filename) return 'Usage: /load <filename>';
       try {

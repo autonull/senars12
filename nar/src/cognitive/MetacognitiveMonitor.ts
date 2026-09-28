@@ -71,6 +71,12 @@ interface NARWithEventBus {
   memory?: { size?: number };
 }
 
+/** Shared bounds for the reasoning trace and the performance-history ring. */
+export const MONITOR_DEFAULTS = {
+  maxTraceSize: 1000,
+  maxPerformanceHistory: 100,
+} as const;
+
 export class MetacognitiveMonitor {
   private nar: NARWithEventBus | null;
   /** D13: teardown state — interval handle + subscribed listeners. */
@@ -84,8 +90,8 @@ export class MetacognitiveMonitor {
   constructor(nar: NARWithEventBus | null, config: MetacognitiveMonitorConfig = {}) {
     this.nar = nar;
     this.config = {
-      maxTraceSize: config.maxTraceSize ?? 1000,
-      maxPerformanceHistory: config.maxPerformanceHistory ?? 100,
+      ...MONITOR_DEFAULTS,
+      ...config,
       minThroughput: config.minThroughput ?? 0.1,
       maxAvgProcessingTime: config.maxAvgProcessingTime ?? 1000,
       maxMemoryUsage: config.maxMemoryUsage ?? 100000000,

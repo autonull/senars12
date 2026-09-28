@@ -6,6 +6,7 @@ import { getModelForTask } from '../lm';
 import type { ILMService } from '../lm/interfaces.js';
 import { buildGenerationPrompt } from './prompts/generation-v1.js';
 import { GenerationOutputSchema } from './schemas.js';
+import { resolveStructuredLm } from './resolve-lm.js';
 import { SingleFlight } from './singleflight.js';
 
 export interface BeliefInfo {
@@ -67,13 +68,9 @@ export class NLGenerationService {
   private readonly flight = new SingleFlight();
 
   constructor(registry: SeNARSRegistry | ILMService) {
-    if (registry && typeof (registry as ILMService).generateObject === 'function') {
-      this.lm = registry as ILMService;
-      this.model = null;
-    } else {
-      this.lm = null;
-      this.model = getModelForTask(registry as SeNARSRegistry, 'structured');
-    }
+    const { lm, model } = resolveStructuredLm(registry);
+    this.lm = lm;
+    this.model = model;
   }
 
   async generate(input: GenerationInput): Promise<GenerationOutput> {

@@ -16,6 +16,7 @@ import type { TranslationCache, TranslationCacheEntry, TranslationResult } from 
 import { type FirewallOptions, SymbolicFirewall } from './firewall.js';
 import { buildUnderstandingPrompt } from './prompts/understanding-v1.js';
 import { TaskBatchSchema } from './schemas.js';
+import { resolveStructuredLm } from './resolve-lm.js';
 import { SingleFlight } from './singleflight.js';
 
 /** Canonical definitions live in types/events (EventMap depends on them); re-exported here for the nl surface. */
@@ -45,13 +46,9 @@ export class NLUnderstandingService {
     cache: TranslationCache | undefined,
     opts?: { structuredOnly?: boolean; firewall?: FirewallOptions | SymbolicFirewall }
   ) {
-    if (registry && typeof (registry as ILMService).generateObject === 'function') {
-      this.lm = registry as ILMService;
-      this.model = null;
-    } else {
-      this.lm = null;
-      this.model = getModelForTask(registry as SeNARSRegistry, 'structured');
-    }
+    const { lm, model } = resolveStructuredLm(registry);
+    this.lm = lm;
+    this.model = model;
     this.cache = cache;
     this.structuredOnly = opts?.structuredOnly ?? true;
     this.firewall =

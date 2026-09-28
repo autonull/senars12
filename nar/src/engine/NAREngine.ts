@@ -11,6 +11,7 @@ import { asBeliefTruth, isNarsese } from '@senars/util';
 import { MAPPED_NAR_EVENTS, narEventToCognitive } from '../events/bridge.js';
 import { NAR } from '../nar.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
+import { filterByTerm } from '../memory/term-filter.js';
 
 export type CognitiveEventEmitter = (event: CognitiveEvent) => void;
 
@@ -84,9 +85,7 @@ export class NAREngine extends BaseEngine {
   }
 
   async query(pattern: string): Promise<unknown[]> {
-    const beliefs = this.#nar.getBeliefs();
-    const lower = pattern.toLowerCase();
-    return beliefs.filter((b) => b.term.toString().toLowerCase().includes(lower));
+    return filterByTerm(this.#nar.getBeliefs(), pattern);
   }
 
   async persist(): Promise<void> {

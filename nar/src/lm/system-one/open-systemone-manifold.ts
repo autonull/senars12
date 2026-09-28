@@ -1,3 +1,4 @@
+import { shannonEntropy, topOption } from './distribution.js';
 import { createRemoteManifold } from './remote-manifold.js';
 import { type OpenRequest, type OpenResponse, openResponseSchema } from './systemone-wire.js';
 import type {
@@ -66,17 +67,13 @@ const buildProposition = (
   if (query.kind === 'classify') {
     const distribution =
       answer.distribution ?? (answer.choice ? [{ option: answer.choice, p: 1 }] : []);
-    const top = distribution.reduce(
-      (best, d) => (d.p > best.p ? d : best),
-      distribution[0] ?? { option: '', p: 0 }
-    );
     return {
       ...base,
       kind: 'classify',
       axis: query.axis,
       distribution,
-      top,
-      entropy: -distribution.reduce((s, d) => s + (d.p > 0 ? d.p * Math.log(d.p) : 0), 0),
+      top: topOption(distribution),
+      entropy: shannonEntropy(distribution),
     } as unknown as JudgmentProposition;
   }
   const score = answer.score ?? (answer.boolean === undefined ? 0 : answer.boolean ? 1 : 0);

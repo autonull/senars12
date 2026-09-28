@@ -70,9 +70,12 @@ export class StreamReasoner {
       return [];
     }
     const resolved = await backend(batch);
+    const byRequest = new Map(
+      Array.from(this.provisionals.values(), (p) => [p.requestId, p] as const)
+    );
     return batch.flatMap((req) => {
       const truth = resolved.get(req.id);
-      const prov = [...this.provisionals.values()].find((p) => p.requestId === req.id);
+      const prov = byRequest.get(req.id);
       if (!truth || !prov) return [];
       if (prov.independence === 'unknown') return [];
       prov.truth = Truth.revision(prov.truth, truth);

@@ -4,13 +4,15 @@ import { termParser } from '../terms';
 const COPULA = /(-->|<->|==>|<=>)/;
 const BINARY_OPS = ['-->', '<->', '==>', '<=>', '&&'] as const;
 
-/** snake_case a bare multi-word operand: "senior developer" → "senior_developer".
- *  Preserves '^' (operator marker) so the firewall can still block LLM-minted operators. */
+/** Collapse every non-atom character run to a single '_'. Preserves '^' (operator marker)
+ *  so the firewall can still block LLM-minted operators, and '-' for hyphenated words. */
+const sanitizeWord = (word: string): string => word.replace(/[^A-Za-z0-9_^-]+/g, '_');
+
 const snakeCaseWords = (operand: string): string =>
   operand
     .trim()
     .split(/\s+/)
-    .map((w) => w.replace(/[^A-Za-z0-9_^\-]/g, '_'))
+    .map(sanitizeWord)
     .filter(Boolean)
     .join('_');
 
@@ -56,7 +58,7 @@ export const normalizeNarsese = (input: string): string => {
     const words = inner.trim().split(/\s+/).filter(Boolean);
     if (words.length === 0) return m;
     if (words.length === 1 && /^[A-Za-z0-9_^\-]+$/.test(words[0]!)) return m;
-    return `(${words.map((w) => w.replace(/[^A-Za-z0-9_^\-]/g, '_')).join('_')})`;
+    return `(${words.map(sanitizeWord).join('_')})`;
   });
 
   // "(A) --> (B)" → "((A) --> (B))"; bare "A && B" → "(A && B)"

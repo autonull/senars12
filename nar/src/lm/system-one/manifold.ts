@@ -16,6 +16,7 @@ import {
   assertLockMatches,
   type CalibrationLock,
 } from './calibration-fit.js';
+import { shannonEntropy as entropy, topOption } from './distribution.js';
 import {
   createAllActionHeads,
   createAllIngressHeads,
@@ -62,25 +63,6 @@ export interface ManifoldConfig {
   contrastive?: ContrastiveMemory;
 }
 
-function entropy(distribution: readonly { option: string; p: number }[]): number {
-  let h = 0;
-  for (const { p } of distribution) {
-    if (p > 0) h -= p * Math.log2(p);
-  }
-  return h;
-}
-
-function topOption(distribution: readonly { option: string; p: number }[]): {
-  option: string;
-  p: number;
-} {
-  let best = distribution[0]!;
-  for (const d of distribution) {
-    if (d.p > best.p) best = d;
-  }
-  return best;
-}
-
 function makeProposition(
   query: JudgmentQuery,
   result: HeadResult,
@@ -98,7 +80,7 @@ function makeProposition(
       kind: 'classify',
       axis: query.axis,
       distribution: dist,
-      top: topOption(dist),
+      top: topOption(dist)!,
       entropy: entropy(dist),
     };
   } else {

@@ -1,29 +1,15 @@
-import type { LogEntry, LogLevel } from '@senars/util';
+import type { LogEntry, LoggerConfig, LogLevel, ScopedLogger } from '@senars/util';
 
-export type { LogEntry, LogLevel };
+export type { LogEntry, LoggerConfig, LogLevel };
 
-export interface LoggerConfig {
-  level: LogLevel;
-  format: 'json' | 'text';
-  scope: string;
-  samplingRate?: number;
-}
-
-export interface LoggerInterface {
-  debug(message: string, context?: Record<string, unknown>): void;
-
-  info(message: string, context?: Record<string, unknown>): void;
-
-  warn(message: string, context?: Record<string, unknown>): void;
-
-  error(message: string, error?: Error, context?: Record<string, unknown>): void;
-
-  child(scope: string): LoggerInterface;
-
+/** Core's logger surface: the shared `ScopedLogger` plus core's deprecation helpers. */
+export interface LoggerInterface extends ScopedLogger {
   warnOnce(key: string, message: string, context?: Record<string, unknown>): void;
 
   deprecated(oldSymbol: string, replacement: string, context?: Record<string, unknown>): void;
 }
+
+type ResolvedLoggerConfig = Required<LoggerConfig> & { samplingRate: number };
 
 const LOG_LEVELS: LogLevel[] = ['debug', 'info', 'warn', 'error'];
 
@@ -38,12 +24,12 @@ export const registerLogEnricher = (enrich?: LogEnricher): void => {
 };
 
 export class Logger {
-  private readonly config: LoggerConfig;
+  private readonly config: ResolvedLoggerConfig;
   private readonly parent?: Logger;
   private readonly children: Map<string, Logger> = new Map();
   private readonly warnedOnce: Set<string> = new Set();
 
-  constructor(config: Partial<LoggerConfig> = {}) {
+  constructor(config: LoggerConfig = {}) {
     this.config = {
       level: config.level ?? 'info',
       format: config.format ?? 'text',

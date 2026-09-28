@@ -1,4 +1,4 @@
-import { MetacognitiveMonitor } from '../cognitive/MetacognitiveMonitor.js';
+import { MONITOR_DEFAULTS, MetacognitiveMonitor } from '../cognitive/MetacognitiveMonitor.js';
 import {
   type MetaCognitiveResult,
   type MonitorState,
@@ -55,15 +55,15 @@ export class ReasoningAboutReasoning {
   constructor(nar: NAR | null, config: ReasoningAboutReasoningConfig = {}) {
     this.nar = nar;
     this.config = {
-      maxTraceSize: config.maxTraceSize ?? 1000,
-      maxPerformanceHistory: config.maxPerformanceHistory ?? 100,
+      ...MONITOR_DEFAULTS,
+      ...config,
       monitoringInterval: config.monitoringInterval ?? 1000,
       reasoningInterval: config.reasoningInterval ?? 30000,
       selfCorrectionEnabled: config.selfCorrectionEnabled ?? true,
     };
 
-    this.monitor = new MetacognitiveMonitor(nar, this.config);
-    this.analyzer = new SelfAnalyzer(nar, this.monitor, null, this.config);
+    this.monitor = new MetacognitiveMonitor(nar, config);
+    this.analyzer = new SelfAnalyzer(nar, this.monitor, null, config);
   }
 
   start(): void {

@@ -7,8 +7,8 @@ import type {
 } from '@senars/kernel/schemas';
 import { SelfImprovementProposalSchema } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
-import { BoundedRing } from '@senars/util';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
+import { KernelGate } from './gate-base.js';
 
 export class EpistemicFirewallViolation extends Error {
   public readonly targetType: string;
@@ -32,16 +32,16 @@ export interface KernelRewardGateConfig {
 
 const DEFAULT_ALLOWED_TARGETS = new Set(['attention-priority', 'policy-weights']);
 
-export class KernelRewardGate {
-  readonly eventLog = new BoundedRing<PolicyViolationEvent>(GATE_LOG_CAPACITY);
+export class KernelRewardGate extends KernelGate<PolicyViolationEvent> {
   private allowedTargets: ReadonlySet<string>;
 
   constructor(config?: Partial<KernelRewardGateConfig>) {
+    super();
     this.allowedTargets = config?.allowedTargets ?? DEFAULT_ALLOWED_TARGETS;
   }
 
   process(input: RewardGateInput): RewardGateOutput {
-    const correlationId = input.correlationId ?? uuidv4();
+    const correlationId = this.correlationOf(input.correlationId);
     const domain: RewardDomain = input.domain ?? 'external-reflex';
 
     if (!this.allowedTargets.has(input.targetType)) {
@@ -72,13 +72,6 @@ export class KernelRewardGate {
     return { accepted: true, mutationApplied: true };
   }
 
-  getEventLog(): ReadonlyArray<PolicyViolationEvent> {
-    return this.eventLog.toArray();
-  }
-
-  clearEventLog(): void {
-    this.eventLog.clear();
-  }
 }
 
 export class ExternalRewardGate extends KernelRewardGate {

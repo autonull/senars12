@@ -58,7 +58,7 @@ export interface GateInitConfig {
   initialAutonomyMode?: AutonomyMode;
 }
 
-export interface IPerceptionGate {
+export interface IPerceptionGate extends GateEventLog<CognitiveEvent> {
   admit(input: PerceptionGateInput): Promise<PerceptionGateOutput>;
   admitTask(
     term: Term,
@@ -76,12 +76,10 @@ export interface IPerceptionGate {
   };
   /** Emit a shadow validation drop event to the gate's event log. */
   emitShadowValidationDrop(event: ShadowValidationDropEvent): void;
-  getEventLog(): ReadonlyArray<CognitiveEvent>;
-  clearEventLog(): void;
   setDriveManager(dm: { stimulate(driveId: string, amount: number): void }): void;
 }
 
-export interface IActionGate {
+export interface IActionGate extends GateEventLog<PolicyViolationEvent> {
   authorize(input: ActionGateInput): ActionGateOutput;
   setAutonomyMode(mode: AutonomyMode): void;
   getAutonomyMode(): AutonomyMode;
@@ -98,17 +96,13 @@ export interface IActionGate {
   registerNALDerivation(derivationId: string, conclusion: string, veto?: boolean): void;
   addAllowedOperation(operation: string): void;
   removeAllowedOperation(operation: string): void;
-  getEventLog(): ReadonlyArray<PolicyViolationEvent>;
-  clearEventLog(): void;
 }
 
-export interface IRewardGate {
+export interface IRewardGate extends GateEventLog<PolicyViolationEvent> {
   process(input: RewardGateInput): RewardGateOutput;
-  getEventLog(): ReadonlyArray<PolicyViolationEvent>;
-  clearEventLog(): void;
 }
 
-export interface IBudgetGate {
+export interface IBudgetGate extends GateEventLog<BudgetExhaustedEvent> {
   check(input: BudgetGateInput): BudgetGateOutput;
   getBudget(): Readonly<ReasoningBudget>;
   setBudget(budget: ReasoningBudget): void;
@@ -117,9 +111,13 @@ export interface IBudgetGate {
   releaseScope(scopeId: string): void;
   getScopeBudget(scopeId: string): ReasoningBudget | undefined;
   getScopeConsumed(scopeId: string): number;
-  getEventLog(): ReadonlyArray<BudgetExhaustedEvent>;
-  clearEventLog(): void;
   isExhausted(operation?: string): boolean;
+}
+
+/** Bounded event-log accessors every kernel gate exposes. */
+export interface GateEventLog<TEvent> {
+  getEventLog(): ReadonlyArray<TEvent>;
+  clearEventLog(): void;
 }
 
 export interface IGateRegistry {

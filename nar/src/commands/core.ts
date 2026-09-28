@@ -1,4 +1,5 @@
 import type { CommandDefinition } from '@senars/core/command-types';
+import { NAR_UNCONFIGURED, narOf } from './utils.js';
 
 export const coreCommands: CommandDefinition[] = [
   {
@@ -16,8 +17,8 @@ export const coreCommands: CommandDefinition[] = [
     description: 'Run inference steps',
     usage: '/run [n]',
     execute: async (args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
       const steps = args[0] ? Number.parseInt(args[0], 10) : 5;
       const derived = await nar.run(steps);
       return `Ran ${steps} step(s), derived ${derived} belief(s)`;
@@ -29,8 +30,8 @@ export const coreCommands: CommandDefinition[] = [
     description: 'Show system statistics',
     usage: '/stats [detail]',
     execute: async (args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
       const stats = nar.getStatistics();
       let result = `Concepts: ${stats.totalConcepts}, Tasks: ${stats.totalTasks}`;
       if (args[0] === 'detail') {
@@ -54,8 +55,8 @@ export const coreCommands: CommandDefinition[] = [
     description: 'Clear all memory',
     usage: '/clear',
     execute: async (_args, ctx) => {
-      const nar = (ctx as any).nar;
-      if (!nar) return 'NAR not configured';
+      const nar = narOf(ctx);
+      if (!nar) return NAR_UNCONFIGURED;
       nar.clearMemory();
       return 'Memory cleared';
     },
