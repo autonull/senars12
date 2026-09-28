@@ -1,4 +1,4 @@
-import { makeId } from '@senars/util';
+import { asBeliefTruth, makeId } from '@senars/util';
 import { createBag, type Bag, type BagOptions } from '../bag/index.js';
 import { LINK } from '../constants.js';
 import type { Term, Truth } from '../terms';
@@ -312,7 +312,7 @@ export class Concept {
       if (added && this.onRevision && existing.stamp) {
         this.onRevision({
           term: this.term.toString(),
-          truth: { frequency: revisedTruth.f, confidence: revisedTruth.c },
+          truth: asBeliefTruth(revisedTruth),
           stampId: existing.stamp.id,
           timestamp: Date.now(),
           source: 'revision',
@@ -331,7 +331,7 @@ export class Concept {
     if (added && this.onRevision && data.truth && data.stamp) {
       this.onRevision({
         term: this.term.toString(),
-        truth: { frequency: data.truth.f, confidence: data.truth.c },
+        truth: asBeliefTruth(data.truth),
         stampId: data.stamp.id,
         timestamp: Date.now(),
         source: 'input',

@@ -1,3 +1,4 @@
+import { pearson } from '@senars/util';
 import { SeededRNG } from '../game/SeededRNG.js';
 
 /**
@@ -84,17 +85,7 @@ export class RLParityHarness {
 
     if (baselineVals.length < 2) return 0;
 
-    const n = baselineVals.length;
-    const sumX = baselineVals.reduce((a, b) => a + b, 0);
-    const sumY = senarsVals.reduce((a, b) => a + b, 0);
-    const sumXY = baselineVals.reduce((a, b, i) => a + b * (senarsVals[i] ?? 0), 0);
-    const sumX2 = baselineVals.reduce((a, b) => a + b * b, 0);
-    const sumY2 = senarsVals.reduce((a, b) => a + b * b, 0);
-
-    const numerator = n * sumXY - sumX * sumY;
-    const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
-
-    return denominator === 0 ? 0 : numerator / denominator;
+    return pearson(baselineVals, senarsVals);
   }
 
   getRNG(): SeededRNG {

@@ -3,6 +3,7 @@
  */
 import { z } from 'zod';
 import { TruthValue } from './chat.js';
+import { LensData, NodeLayout } from './graph-nodes.js';
 
 export const GraphNodeDataView = z.object({
   id: z.string().optional(),
@@ -16,14 +17,8 @@ export const GraphNodeDataView = z.object({
   isContradiction: z.boolean().optional(),
   occurrenceTime: z.number().optional(),
   goalRelevance: z.number().optional(),
-  lensData: z.object({ score: z.number(), color: z.string(), size: z.number() }).optional(),
-  layout: z
-    .object({
-      x: z.number().optional(),
-      y: z.number().optional(),
-      threadIndex: z.number().optional(),
-    })
-    .optional(),
+  lensData: LensData.optional(),
+  layout: NodeLayout.optional(),
   nodeType: z.enum(['nar:concept', 'metta:atom', 'metta:skill']),
   capabilities: z.array(z.string()).optional(),
   html: z.string().optional(),

@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { pushCapped } from '@senars/util';
+import { asBeliefTruth, clamp, pushCapped } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
 import type { DerivationRecord, ReasoningBudget } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
@@ -22,6 +22,7 @@ import { ensureDirSync } from '../utils/fs.js';
 import { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding.js';
 import { induceEpisodeSchemas, type PromotedSchema } from './episode-schemas.js';
 import { Focus, type FocusOptions } from './Focus.js';
+import { maxBy } from '@senars/util';
 
 const GameTraceEntrySchema = BaseLedgerEntrySchema.extend({
   cycle: z.number(),
@@ -261,7 +262,7 @@ export class GameFocus {
     derivation: NALDerivation
   ): DerivationRecord {
     const premise = derivation.premise ?? action;
-    const premiseTruth = { frequency: derivation.truth.f, confidence: derivation.truth.c };
+    const premiseTruth = asBeliefTruth(derivation.truth);
     const stepId = uuidv4();
     const derived = {
       frequency: premiseTruth.frequency * premiseTruth.frequency,
@@ -456,9 +457,7 @@ export class GameFocus {
     for (const proposal of t.proposals) {
       t.nalDerivations.push(...this.focus.getNALDerivations(proposal.action));
     }
-    t.bestReflexProposal = t.proposals.reduce((best, p) =>
-      p.value * p.confidence > best.value * best.confidence ? p : best
-    );
+    t.bestReflexProposal = maxBy(t.proposals, (p) => p.value * p.confidence) ?? null;
     const decision = this.negotiator.resolve(t.proposals, t.nalDerivations);
     recordBagPressure('focus.tasks', this.focus.tasks.pressure());
     recordBagPressure('focus.memory', this.focus.memory.pressure());
@@ -536,7 +535,7 @@ export class GameFocus {
       // REWARD: epistemic firewall — reward may only tune policy, never truth
       const firewall = this.gates.getRewardGate().process({
         eventId: uuidv4(),
-        rewardSignal: Math.max(-1, Math.min(1, t.gameOutcome.reward)),
+        rewardSignal: clamp(t.gameOutcome.reward, -1, 1),
         rewardType: 'extrinsic',
         targetType: 'policy-weights',
         targetId: this.focus.id,

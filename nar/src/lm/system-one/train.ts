@@ -1,6 +1,15 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { clamp01, ensureDir, readJsonlAsync, sha256HexParts, sha256Prefixed } from '@senars/util';
+import {
+  clamp01,
+  ensureDir,
+  pearson,
+  readJsonlAsync,
+  sha256HexParts,
+  sha256Prefixed,
+} from '@senars/util';
+
+export { pearson };
 import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL_ID } from '../../memory/embedding.js';
 import { mulberry32 } from '../../utils/random.js';
 import { meanBrierOf } from './metrics.js';
@@ -125,24 +134,6 @@ export interface TrainedHeadModel {
     holdoutLoss: number;
     valueCorrelation?: number;
   };
-}
-
-export function pearson(xs: readonly number[], ys: readonly number[]): number {
-  const n = Math.min(xs.length, ys.length);
-  if (n < 2) return 0;
-  const mx = xs.reduce((a, b) => a + b, 0) / n;
-  const my = ys.reduce((a, b) => a + b, 0) / n;
-  let sxy = 0,
-    sxx = 0,
-    syy = 0;
-  for (let i = 0; i < n; i++) {
-    const dx = xs[i]! - mx,
-      dy = ys[i]! - my;
-    sxy += dx * dy;
-    sxx += dx * dx;
-    syy += dy * dy;
-  }
-  return sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : 0;
 }
 
 const sigmoid = (z: number) => 1 / (1 + Math.exp(-z));

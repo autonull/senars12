@@ -1,3 +1,4 @@
+import type { ToolCapabilities } from '@senars/util';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
 import type { ToolResult } from '../engine/Engine.js';
@@ -8,14 +9,7 @@ export type ToolFn = (
   signal?: AbortSignal
 ) => Promise<ToolResult> | ToolResult;
 
-export interface ToolCapabilities {
-  pure?: boolean;
-  idempotent?: boolean;
-  readOnly?: boolean;
-  requiresPermissions?: string[];
-  timeout?: number;
-  maxConcurrency?: number;
-}
+export type { ToolCapabilities };
 
 export interface ToolSpec {
   name: string;

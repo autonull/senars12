@@ -1,6 +1,13 @@
 import { threadId } from 'node:worker_threads';
 import { Timestamp, DEPTH_MAX } from '../types/primitives.js';
 
+/** Deepest derivation lineage across a stamp set; 0 for an empty set. */
+const maxDepthOf = (stamps: readonly Stamp[]): number => {
+  let max = 0;
+  for (const stamp of stamps) max = Math.max(max, stamp.derivations.length);
+  return max;
+};
+
 const nowMicroseconds = (): Timestamp => (Date.now() * 1000) as Timestamp;
 
 // Monotonic stamp-ID counter. Atomics-backed so IDs stay unique when the
@@ -191,8 +198,7 @@ export const Stamp = {
 
   getDepth: (stamp: Stamp): number => stamp.derivations.length,
 
-  getMaxDepth: (stamps: readonly Stamp[]): number =>
-    stamps.reduce((max, s) => Math.max(max, s.derivations.length), 0),
+  getMaxDepth: (stamps: readonly Stamp[]): number => maxDepthOf(stamps),
 
   canDerive: (stamps: readonly Stamp[]): boolean => Stamp.getMaxDepth(stamps) < DEPTH_MAX,
 

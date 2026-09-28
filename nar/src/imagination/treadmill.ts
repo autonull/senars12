@@ -1,4 +1,4 @@
-import { sleep } from '@senars/util';
+import { percentile, sleep, stdDev } from '@senars/util';
 import type { CognitiveEvent } from '@senars/util/types/cognitive';
 import type { NAR } from '../nar.js';
 import { termParser } from '../terms/index.js';
@@ -181,10 +181,9 @@ export class CognitiveTreadmill {
     contradictions: number,
     derivations: number
   ): Promise<StressMetrics> {
-    const sortedLatencies = [...this.stepLatencies].sort((a, b) => a - b);
-    const p50 = sortedLatencies[Math.floor(sortedLatencies.length * 0.5)] || 0;
-    const p95 = sortedLatencies[Math.floor(sortedLatencies.length * 0.95)] || 0;
-    const p99 = sortedLatencies[Math.floor(sortedLatencies.length * 0.99)] || 0;
+    const p50 = percentile(this.stepLatencies, 0.5);
+    const p95 = percentile(this.stepLatencies, 0.95);
+    const p99 = percentile(this.stepLatencies, 0.99);
 
     const throughput = steps / (durationMs / 1000);
     const contradictionRate = contradictions / Math.max(steps, 1);
@@ -194,12 +193,7 @@ export class CognitiveTreadmill {
     const priorityChanges: number[] = [];
     // Note: 'priority.changed' is not in the CognitiveEvent union, so we skip this metric
     // for (const event of this.eventLog) { ... }
-    if (priorityChanges.length > 1) {
-      const mean = priorityChanges.reduce((a, b) => a + b, 0) / priorityChanges.length;
-      priorityOscillation = Math.sqrt(
-        priorityChanges.reduce((a, b) => a + (b - mean) ** 2, 0) / priorityChanges.length
-      );
-    }
+    if (priorityChanges.length > 1) priorityOscillation = stdDev(priorityChanges);
 
     const memoryPressure = await this.estimateMemoryPressure();
 

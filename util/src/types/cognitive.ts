@@ -155,6 +155,8 @@ export interface ChatStreamEvent {
   readonly toolArgs?: unknown;
   readonly toolResult?: unknown;
   readonly error?: string;
+  /** The correlationId minted for this message (on `finish`), joining turns ↔ trace grades ↔ episodes. */
+  readonly correlationId?: string;
 }
 
 export const isNarEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { engine: 'nar' }> =>

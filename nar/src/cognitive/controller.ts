@@ -1,4 +1,4 @@
-import type { CognitiveParameters } from '../config/cognitive-parameters';
+import { sameStrategies, type CognitiveParameters } from '../config/cognitive-parameters';
 import type { Memory } from '../memory';
 import type { MetricsCollector } from '../metrics';
 import type { Strategy } from '../reason';
@@ -85,7 +85,7 @@ export class CognitiveController {
     }
 
     const newParams = this.adaptWithRLFP();
-    if (JSON.stringify(newParams.strategies) !== JSON.stringify(this.currentParams.strategies)) {
+    if (!sameStrategies(newParams.strategies, this.currentParams.strategies)) {
       this.currentParams = newParams;
       this.buildInferenceController(newParams);
     }

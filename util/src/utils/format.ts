@@ -14,6 +14,13 @@ export const divider = (width = 50): string => '─'.repeat(width);
 export const section = (title: string, width = 50, rule = '='): string =>
   `\n${rule.repeat(width)}\n${title}\n${rule.repeat(width)}`;
 
+/** Nearest-rank percentile of an unsorted sample; 0 for an empty one. */
+export const percentile = (values: readonly number[], p: number): number => {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * p)))] ?? 0;
+};
+
 /** Unicode progress bar for a 0–1 fraction. */
 export const bar = (fraction: number, width = 20): string => {
   const filled = Math.min(width, Math.round(fraction * width));

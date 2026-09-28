@@ -1,3 +1,4 @@
+import { maxBy, minBy } from '@senars/util';
 /**
  * G2 — episode-level schema induction. After each episode the (action,
  * reward) history is aggregated; the worst and best action patterns are
@@ -38,8 +39,8 @@ export function induceEpisodeSchemas(
     .filter((e) => e.count >= minSamples);
   if (entries.length < 2) return [];
 
-  const worst = entries.reduce((a, b) => (b.meanReward < a.meanReward ? b : a));
-  const best = entries.reduce((a, b) => (b.meanReward > a.meanReward ? b : a));
+  const worst = minBy(entries, (e) => e.meanReward)!;
+  const best = maxBy(entries, (e) => e.meanReward)!;
   if (worst.action === best.action || worst.meanReward >= best.meanReward) return [];
   return [
     { action: worst.action, kind: 'bad', meanReward: worst.meanReward },

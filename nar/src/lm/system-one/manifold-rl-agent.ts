@@ -2,6 +2,7 @@ import type { ReasoningBudget } from '@senars/kernel/schemas';
 import type { Game, GameOutcome } from '../../game/Game.js';
 import type { Decider } from './decide.js';
 import type { JudgmentDataset } from './distill.js';
+import { getOrInsert, incrementCount, maxBy, ucb1 } from '@senars/util';
 import { recordReflexOutcome } from './reflex-label-source.js';
 import type {
   EmbeddingCache,
@@ -218,12 +219,11 @@ export class ManifoldRLAgent {
     const scoreOf = (a: A): number => {
       const base = values.get(String(a)) ?? 0;
       if (this.#policy !== 'ucb') return base;
-      const total = Math.max(1, this.#totalVisits);
       const visits = this.#visits.get(stateId)?.get(String(a)) ?? 0;
-      return base + this.#ucbC * Math.sqrt(Math.log(total) / (1 + visits));
+      return ucb1(base, visits, this.#totalVisits, this.#ucbC);
     };
 
-    return candidates.reduce((best, a) => (scoreOf(a) > scoreOf(best) ? a : best));
+    return maxBy(candidates, scoreOf)!;
   }
 
   /** Step the game with a manifold decision; records outcome labels (C4). */
@@ -231,9 +231,7 @@ export class ManifoldRLAgent {
     const { action, values, feasible, risks, pointer, stateId } = await this.decide(game);
     const outcome = game.step(action);
 
-    const stateVisits = this.#visits.get(stateId) ?? new Map<string, number>();
-    stateVisits.set(String(action), (stateVisits.get(String(action)) ?? 0) + 1);
-    this.#visits.set(stateId, stateVisits);
+    incrementCount(getOrInsert(this.#visits, stateId, () => new Map<string, number>()), String(action));
     this.#totalVisits++;
 
     if (this.#dataset && this.#labelOutcomes) {

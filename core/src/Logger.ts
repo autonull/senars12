@@ -1,16 +1,6 @@
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+import type { LogEntry, LogLevel } from '@senars/util';
 
-export interface LogEntry {
-  level: LogLevel;
-  message: string;
-  timestamp: number;
-  scope: string;
-  context?: Record<string, unknown>;
-  error?: Error;
-  /** Injected by the registered log enricher (see registerLogEnricher). */
-  traceId?: string;
-  spanId?: string;
-}
+export type { LogEntry, LogLevel };
 
 export interface LoggerConfig {
   level: LogLevel;

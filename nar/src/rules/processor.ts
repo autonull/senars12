@@ -3,7 +3,7 @@
  */
 
 import { findConflicts } from '../cognitive/conflict-utils.js';
-import { pushCapped } from '@senars/util';
+import { formatNarseseTruth, pushCapped } from '@senars/util';
 import { GATE_LOG_CAPACITY } from '../kernel/event-ring.js';
 import type { LMRule } from '../lm';
 import type { LMRuleStats } from '../lm/lm-service.js';
@@ -52,6 +52,8 @@ interface MetaBudgetState {
 export class RuleProcessor {
   private readonly ruleIndex: RuleIndex;
   private readonly lmRules: LMRule[] = [];
+  /** Id index over `lmRules` — O(1) lookup instead of a linear scan per query. */
+  private readonly lmRulesById = new Map<string, LMRule>();
   private eventBus: NarEventBus | null = null;
   private resultBuffer: RuleResult[] = [];
   private memory?: Memory;
@@ -99,6 +101,7 @@ export class RuleProcessor {
 
   registerLMRule(lmRule: LMRule): void {
     this.lmRules.push(lmRule);
+    this.lmRulesById.set(lmRule.id, lmRule);
     if (this.eventBus) lmRule.setEventBus(this.eventBus);
   }
 
@@ -112,7 +115,7 @@ export class RuleProcessor {
   }
 
   getLMRule(id: string): LMRule | undefined {
-    return this.lmRules.find((r) => r.id === id);
+    return this.lmRulesById.get(id);
   }
 
   getLmRuleStats(): LMRuleStats[] {
@@ -131,7 +134,7 @@ export class RuleProcessor {
 
   deserializeLMRules(data: { rules: LMRuleStats[] }): void {
     for (const ruleData of data.rules) {
-      const rule = this.lmRules.find((r) => r.id === ruleData.id);
+      const rule = this.lmRulesById.get(ruleData.id);
       if (rule) {
         if (ruleData.enabled !== undefined) {
           if (ruleData.enabled) rule.enable();
@@ -205,121 +208,78 @@ export class RuleProcessor {
 
   async *process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
     for await (const [p1, p2] of premises) {
-      this.recorder.begin(`${p1.term.toString()}|${p2.term.toString()}`, p1.term.toString());
-      const matched = this.ruleIndex.match(p1.term, p2.term);
-      const metaActive = this.metaActive(matched);
-
-      for (const rule of matched) {
-        if (!rule.sync) continue;
-
-        // Enforce meta-reasoning AIKR bounds
-        if (this.isMetaRule(rule)) {
-          if (!metaActive) continue; // Only fire when drives demand it
-          if (!this.checkMetaBudget(this.metaBudget.currentDepth + 1)) continue;
-        }
-
-        try {
-          const result = rule.apply([p1.term, p2.term]);
-          if (result && validateRuleOutput(result, [p1.term, p2.term])) {
-            if (this.isMetaRule(rule)) {
-              this.recordMetaDerivation(this.metaBudget.currentDepth + 1);
-            }
-            const ruleResult = buildResult(
-              result as Term,
-              rule.truthFn ?? NEUTRAL_FN,
-              p1,
-              p2,
-              rule.priority
-            );
-            (ruleResult as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType =
-              rule.taskType;
-            this.recorder.record(rule.id, p1, p2, ruleResult);
-            // Emit rule:applied event for cost tracking
-            this.eventBus?.emit('rule:applied', {
-              ruleId: rule.id,
-              premises: [p1.term, p2.term],
-              conclusion: result as Term,
-              truth: ruleResult.truth,
-              duration: 0, // Will be updated by caller if needed
-              cpuMs: 0,
-              lmCalls: 0,
-              lmTokens: 0,
-            });
-            yield ruleResult;
-          } else if (result) {
-            this.eventBus?.emit('rule:output-rejected', {
-              ruleId: rule.id,
-              term: result.toString(),
-            });
-          }
-        } catch (error) {
-          this.handleRuleError(error, rule.id);
-        }
+      for (const { ruleResult } of this.applySyncRules(p1, p2)) {
+        yield ruleResult;
       }
-
-      for await (const lmResult of this.processLMRulesImpl(p1, p2)) {
-        yield lmResult;
-      }
+      yield* this.processLMRulesImpl(p1, p2);
       this.recorder.finish();
     }
   }
 
   processSync(p1: RuleInput, p2: RuleInput): RuleResult[] {
-    this.recorder.begin(`${p1.term.toString()}|${p2.term.toString()}`, p1.term.toString());
-    this.resultBuffer = [];
-    const matchedRules = this.ruleIndex.match(p1.term, p2.term);
     this.seenBuffer.clear();
+    for (const { conclusion, ruleResult } of this.applySyncRules(p1, p2)) {
+      const existing = this.seenBuffer.get(conclusion);
+      if (!existing || ruleResult.priority > existing.priority) {
+        this.seenBuffer.set(conclusion, ruleResult);
+      }
+    }
+    this.resultBuffer = Array.from(this.seenBuffer.values());
+    this.recorder.finish();
+    return this.resultBuffer;
+  }
+
+  /**
+   * The single synchronous rule-application path shared by `process` and
+   * `processSync`: meta-budget enforcement, validation, recording, and
+   * `rule:applied` / `rule:output-rejected` emission.
+   */
+  private *applySyncRules(
+    p1: RuleInput,
+    p2: RuleInput
+  ): Generator<{ conclusion: string; ruleResult: RuleResult }> {
     const p1s = p1.term.toString();
     const p2s = p2.term.toString();
+    this.recorder.begin(`${p1s}|${p2s}`, p1s);
+    const matched = this.ruleIndex.match(p1.term, p2.term);
+    const metaActive = this.metaActive(matched);
 
-    const metaActive = this.metaActive(matchedRules);
-
-    for (const rule of matchedRules) {
+    for (const rule of matched) {
       if (!rule.sync) continue;
-
-      // Enforce meta-reasoning AIKR bounds
       if (this.isMetaRule(rule)) {
-        if (!metaActive) continue; // Only fire when drives demand it
+        if (!metaActive) continue;
         if (!this.checkMetaBudget(this.metaBudget.currentDepth + 1)) continue;
       }
 
       try {
         const result = rule.apply([p1.term, p2.term]);
-        if (result && validateRuleOutput(result, [p1.term, p2.term])) {
-          if (this.isMetaRule(rule)) {
-            this.recordMetaDerivation(this.metaBudget.currentDepth + 1);
-          }
-          const rs = result.toString();
-          if (rs === p1s || rs === p2s) continue;
-          const rr = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
-          (rr as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType = rule.taskType;
-          this.recorder.record(rule.id, p1, p2, rr);
-          // Emit rule:applied event for cost tracking
-          this.eventBus?.emit('rule:applied', {
-            ruleId: rule.id,
-            premises: [p1.term, p2.term],
-            conclusion: result as Term,
-            truth: rr.truth,
-            duration: 0,
-            cpuMs: 0,
-            lmCalls: 0,
-            lmTokens: 0,
-          });
-          const existing = this.seenBuffer.get(rs);
-          if (!existing || rule.priority > existing.priority) {
-            this.seenBuffer.set(rs, rr);
-          }
-        } else if (result) {
+        if (!result) continue;
+        if (!validateRuleOutput(result, [p1.term, p2.term])) {
           this.eventBus?.emit('rule:output-rejected', { ruleId: rule.id, term: result.toString() });
+          continue;
         }
+        if (this.isMetaRule(rule)) this.recordMetaDerivation(this.metaBudget.currentDepth + 1);
+        const conclusion = result.toString();
+        if (conclusion === p1s || conclusion === p2s) continue;
+        const ruleResult = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
+        (ruleResult as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType = rule.taskType;
+        this.recorder.record(rule.id, p1, p2, ruleResult);
+        // Emit rule:applied event for cost tracking
+        this.eventBus?.emit('rule:applied', {
+          ruleId: rule.id,
+          premises: [p1.term, p2.term],
+          conclusion: result as Term,
+          truth: ruleResult.truth,
+          duration: 0,
+          cpuMs: 0,
+          lmCalls: 0,
+          lmTokens: 0,
+        });
+        yield { conclusion, ruleResult };
       } catch (error) {
         this.handleRuleError(error, rule.id);
       }
     }
-
-    this.resultBuffer = Array.from(this.seenBuffer.values());
-    this.recorder.finish();
-    return this.resultBuffer;
   }
 
   /** Meta-reasoning activation, computed only when a matched rule is a meta rule. */
@@ -408,7 +368,7 @@ export class RuleProcessor {
           .getBeliefs()
           .slice(0, 2)
           .map((b) => {
-            const truth = b.truth ? ` :${b.truth.f.toFixed(2)}:${b.truth.c.toFixed(2)}` : '';
+            const truth = formatNarseseTruth(b.truth);
             return `${b.term.toString()}${truth}`;
           })
       );

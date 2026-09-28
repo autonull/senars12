@@ -9,6 +9,7 @@ import {
   type ParameterTable,
 } from '../config/parameter-table.js';
 import type { FocusStepReport } from '../focus/Focus.js';
+import { schedulerReward } from '../focus/scheduler-reward.js';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { GameFocus } from '../focus/GameFocus.js';
 import { ProposalRouter } from '../governance/pipeline.js';
@@ -183,8 +184,7 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   }
 
   static schedulerReward(report: FocusStepReport): number {
-    if (report.tasksProcessed <= 0) return 0;
-    return Math.max(-1, Math.min(1, (report.derivations / report.tasksProcessed - 0.5) * 2));
+    return schedulerReward(report);
   }
 
   applyProposal(proposal: { kind: string; riskTier: string; payload: Record<string, unknown> }): {

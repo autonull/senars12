@@ -44,18 +44,31 @@ export const buildHigherOrderRule =
     return linkValidator(a1, c1, a2, c2) ? resultBuilder(a1, c1, a2, c2) : undefined;
   };
 
-export const foldNary = (
-  kind: Term['kind'],
-  eq: (a1: Term, a2: Term) => boolean,
-  unique = false
-): RuleFn => {
+/**
+ * Intersect (`unique: false`) or union (`unique: true`) the argument lists of two
+ * same-kind n-ary terms. Terms are canonical, so their serialized form is a
+ * sound key for both membership and dedup — an O(n+m) `Set` fold instead of a
+ * quadratic structural comparison on the per-pair derivation path.
+ */
+export const foldNary = (kind: Term['kind'], unique = false): RuleFn => {
   return ([t1, t2]: [Term, Term]): Term | undefined => {
     if (t1.kind !== kind || t2.kind !== kind) return undefined;
-    const a1 = t1.args!,
-      a2 = t2.args!;
-    const args = unique
-      ? [...a1, ...a2].filter((a, i, arr) => arr.findIndex((b) => eq(a, b)) === i)
-      : a1.filter((x) => a2.some((y) => eq(x, y)));
+    const a1 = t1.args!;
+    const a2 = t2.args!;
+    let args: Term[];
+    if (unique) {
+      const seen = new Set<string>();
+      args = [];
+      for (const arg of [...a1, ...a2]) {
+        const key = arg.toString();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        args.push(arg);
+      }
+    } else {
+      const keys = new Set(a2.map((arg) => arg.toString()));
+      args = a1.filter((x) => keys.has(x.toString()));
+    }
     return args.length > 0
       ? kind === 'conjunction'
         ? TermBuilder.conjunction(...args)

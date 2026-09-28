@@ -132,7 +132,7 @@ export type { ConversationSession, SessionManager } from './types/memory.js';
 /** @public NAR agent contracts. */
 export type { NAR, NARConfig } from './types/nar.js';
 /** @public Tool contracts. */
-export type { Tool, ToolResult } from './types/tools.js';
+export type { Tool, ToolCapabilities, ToolResult } from './types/tools.js';
 /** @public Transport/connection contracts shared by io and core. */
 export type {
   Connection,
@@ -147,15 +147,34 @@ export type {
 /** @public Truth value branded types. */
 export type { Confidence, Frequency, TruthLike } from './types/truth.js';
 /** @public Truth value constructors. */
-export { formatTruth, toConfidence, toFrequency } from './types/truth.js';
+export {
+  asBeliefTruth,
+  formatNarseseTruth,
+  formatTruth,
+  serializeTruth,
+  toConfidence,
+  toFrequency,
+} from './types/truth.js';
 // Utils
 /** @public Assertion helpers. */
 export { assertDefined, invariant } from './utils/assert.js';
 // Collections
 /** @public Drop-oldest bounded ring buffer. */
-export { BoundedRing, maxBy, minBy, pushCapped, sortBy, sortByDesc } from './utils/collections.js';
+export {
+  addToSet,
+  BoundedRing,
+  getOrInsert,
+  incrementCount,
+  maxBy,
+  minBy,
+  pushCapped,
+  selectByPriority,
+  selectTopN,
+  sortBy,
+  sortByDesc,
+} from './utils/collections.js';
 /** @public Percent, divider, and progress-bar formatting for reports and CLI output. */
-export { bar, divider, pct, section } from './utils/format.js';
+export { bar, divider, pct, percentile, section } from './utils/format.js';
 export type { JsonlLoadResult } from './utils/fs.js';
 // Filesystem
 export {
@@ -225,17 +244,21 @@ export {
   makeId,
   mean,
   parseFlags,
+  pearson,
   raceDeadline,
   safeDiv,
   setNested,
   sleep,
+  stdDev,
   TimeoutError,
   toError,
+  ucb1,
   tokenizeWords,
   truncate,
   truncateBytes,
   withTimeout,
   wordOverlap,
+  variance,
 } from './utils/shared.js';
 /** @public Process signal → graceful shutdown for every binary. */
 export { setupGracefulShutdown } from './utils/shutdown.js';

@@ -15,6 +15,7 @@ import type { GameFocus } from '../focus/GameFocus.js';
 import { FocusScheduler, type FocusSchedulerOptions } from '../focus/focus-scheduler.js';
 import type { RandomSource } from '../types/primitives.js';
 import { SeededRNG } from '../game/SeededRNG.js';
+import { schedulerReward } from './scheduler-reward.js';
 
 export interface FocusTreeNode {
   readonly id: string;
@@ -239,9 +240,11 @@ export class FocusTree {
   private emitReport(nodeId: string, report: FocusStepReport): void {
     this.metaGame?.recordFocusStepReport(report);
     if (!this.schedulerAdapter) return;
-    const tasks = Math.max(1, report.tasksProcessed);
-    const reward = Math.max(-1, Math.min(1, (report.derivations / tasks - 0.5) * 2));
-    this.schedulerAdapter.learn({ domain: 'self-scheduler', reward, focusId: nodeId });
+    this.schedulerAdapter.learn({
+      domain: 'self-scheduler',
+      reward: schedulerReward(report),
+      focusId: nodeId,
+    });
   }
 
   private mergeConsumptionUp(node: FocusTreeNode, consumption: ConsumedBudget): void {

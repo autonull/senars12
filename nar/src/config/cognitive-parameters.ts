@@ -340,10 +340,12 @@ export function validateParameters(params: Partial<CognitiveParameters>): {
 /**
  * Merge partial parameters with defaults
  */
-/** Shallow-merge over defaults, copying mutable nested leaves — a knob writing
- *  through a shared `ranking`/`ruleCategories` reference would otherwise mutate
- *  the module default (isolate:false test pollution, F5 ParameterTable seeds). */
-function mergeNested<T extends object>(base: T, over: Partial<T> | undefined, nested: (keyof T)[]): T {
+/**
+ * Shallow-merge over defaults, copying the named mutable nested leaves — a knob
+ * writing through a shared `ranking`/`ruleCategories` reference would otherwise
+ * mutate the module default (isolate:false test pollution, F5 ParameterTable seeds).
+ */
+function mergeSection<T extends object>(base: T, over: Partial<T> | undefined, nested: (keyof T)[] = []): T {
   const out: T = { ...base, ...over };
   for (const k of nested) {
     const v = out[k];
@@ -354,34 +356,30 @@ function mergeNested<T extends object>(base: T, over: Partial<T> | undefined, ne
 
 export function mergeParameters(partial: Partial<CognitiveParameters>): CognitiveParameters {
   const d = DEFAULT_COGNITIVE_PARAMETERS;
+  const strategies = d.strategies;
   return {
-    priority: { ...d.priority, ...partial.priority },
-    lm: mergeNested(d.lm, partial.lm, ['ruleCategories']),
-    attention: { ...d.attention, ...partial.attention },
-    inference: mergeNested(d.inference, partial.inference, ['ranking']),
-    modelRunner: { ...d.modelRunner, ...partial.modelRunner },
-    memory: { ...d.memory, ...partial.memory },
-    strategies: {
-      ...DEFAULT_COGNITIVE_PARAMETERS.strategies,
-      ...partial.strategies,
-      sampling: {
-        ...DEFAULT_COGNITIVE_PARAMETERS.strategies.sampling,
-        ...partial.strategies?.sampling,
-      },
-      premise: {
-        ...DEFAULT_COGNITIVE_PARAMETERS.strategies.premise,
-        ...partial.strategies?.premise,
-      },
-      derivation: {
-        ...DEFAULT_COGNITIVE_PARAMETERS.strategies.derivation,
-        ...partial.strategies?.derivation,
-      },
-      lmRule: { ...DEFAULT_COGNITIVE_PARAMETERS.strategies.lmRule, ...partial.strategies?.lmRule },
-      attention: {
-        ...DEFAULT_COGNITIVE_PARAMETERS.strategies.attention,
-        ...partial.strategies?.attention,
-      },
-      bag: { ...DEFAULT_COGNITIVE_PARAMETERS.strategies.bag, ...partial.strategies?.bag },
-    },
+    priority: mergeSection(d.priority, partial.priority),
+    lm: mergeSection(d.lm, partial.lm, ['ruleCategories']),
+    attention: mergeSection(d.attention, partial.attention),
+    inference: mergeSection(d.inference, partial.inference, ['ranking']),
+    modelRunner: mergeSection(d.modelRunner, partial.modelRunner),
+    memory: mergeSection(d.memory, partial.memory),
+    strategies: mergeSection(strategies, partial.strategies, [
+      'sampling',
+      'premise',
+      'derivation',
+      'lmRule',
+      'attention',
+      'bag',
+    ]),
   };
+}
+
+/** Per-slot strategy change detection — avoids serializing the whole strategy graph to compare it. */
+export function sameStrategies(
+  a: CognitiveParameters['strategies'],
+  b: CognitiveParameters['strategies']
+): boolean {
+  const keys = Object.keys(a) as (keyof CognitiveParameters['strategies'])[];
+  return keys.every((key) => JSON.stringify(a[key]) === JSON.stringify(b[key]));
 }

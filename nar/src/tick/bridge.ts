@@ -1,4 +1,4 @@
-import type { CognitiveEvent } from '@senars/util';
+import { asBeliefTruth, type CognitiveEvent } from '@senars/util';
 import type { TickContext } from './tick.js';
 
 export function toCognitiveEvents(ctx: TickContext): CognitiveEvent[] {
@@ -10,7 +10,7 @@ export function toCognitiveEvents(ctx: TickContext): CognitiveEvent[] {
       type: 'belief.added',
       payload: {
         term: String(task.term),
-        truth: { frequency: task.truth.f, confidence: task.truth.c },
+        truth: asBeliefTruth(task.truth),
       },
     });
   for (const event of ctx.events) {

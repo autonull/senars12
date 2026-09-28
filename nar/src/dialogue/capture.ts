@@ -2,6 +2,7 @@ import type { Episode, EpisodicMemory, EpisodeType } from '@senars/util';
 import { shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
 import type { ContrastiveMemory } from '../lm/system-one/contrastive.js';
 import type { JudgmentDataset } from '../lm/system-one/distill.js';
+import { embedCached } from '../lm/system-one/embedding-cache.js';
 import type { EmbeddingCache } from '../lm/system-one/types.js';
 import { recordReactionLabel } from '../lm/system-one/label-sources.js';
 import type { DialogueTurn, Lesson, Reaction, ReactionKind } from './types.js';
@@ -255,14 +256,8 @@ export class DialogueCapture {
     let correctionEmbedding: Float32Array | undefined;
     let responseEmbedding: Float32Array | undefined;
     if (embeddingCache && kind !== 'clarify' && kind !== 'redirect') {
-      if (correctionText?.trim()) {
-        const pointer = await embeddingCache.write(correctionText).catch(() => undefined);
-        correctionEmbedding = pointer ? embeddingCache.read(pointer) : undefined;
-      }
-      if (turn.responseDigest) {
-        const pointer = await embeddingCache.write(turn.responseDigest).catch(() => undefined);
-        responseEmbedding = pointer ? embeddingCache.read(pointer) : undefined;
-      }
+      if (correctionText?.trim()) correctionEmbedding = await embedCached(embeddingCache, correctionText);
+      if (turn.responseDigest) responseEmbedding = await embedCached(embeddingCache, turn.responseDigest);
     }
 
     if (dataset) {

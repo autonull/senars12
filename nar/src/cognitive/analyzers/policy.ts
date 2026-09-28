@@ -1,4 +1,4 @@
-import { mean, pushCapped } from '@senars/util';
+import { incrementCount, mean, pushCapped } from '@senars/util';
 import type { MetricsCollector } from '../../metrics';
 /**
  * Policy management - extracted from SelfAnalyzerService
@@ -46,7 +46,7 @@ export const createPolicyManager = (recencyEpisodes: number): PolicyManager => {
 
     recomputePolicy(metrics: MetricsCollector | null): AgentPolicy {
       const routeCounts = new Map<string, number>();
-      for (const r of recentRoutes) routeCounts.set(r, (routeCounts.get(r) ?? 0) + 1);
+      for (const r of recentRoutes) incrementCount(routeCounts, r);
       const totalRoutes = Math.max(1, recentRoutes.length);
       const routingWeights: Record<string, number> = {};
       for (const [kind, count] of routeCounts)
@@ -56,7 +56,7 @@ export const createPolicyManager = (recencyEpisodes: number): PolicyManager => {
       }
 
       const toolCounts = new Map<string, number>();
-      for (const t of recentTools) toolCounts.set(t, (toolCounts.get(t) ?? 0) + 1);
+      for (const t of recentTools) incrementCount(toolCounts, t);
       const toolSelectionBias: Record<string, number> = {};
       for (const [name, count] of toolCounts)
         toolSelectionBias[name] = Math.max(0.1, count / Math.max(1, recentTools.length));

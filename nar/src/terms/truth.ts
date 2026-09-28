@@ -1,4 +1,4 @@
-import { formatTruth } from '@senars/util';
+import { formatTruth, serializeTruth } from '@senars/util';
 import { clamp, safeDiv } from '../utils';
 
 export type Frequency = number & { readonly __brand: unique symbol };
@@ -140,7 +140,7 @@ export const Truth = {
   c2w,
   w2c,
 
-  serialize: (t: Truth): string => `%${t.f.toFixed(4)};${t.c.toFixed(4)}%`,
+  serialize: (t: Truth): string => serializeTruth(t),
   format: (t: Truth, fractionDigits = 2): string => formatTruth(t, fractionDigits),
   deserialize: (s: string): Truth | null => {
     const match = s.match(/%\s*([0-9.]+)\s*;\s*([0-9.]+)\s*%/);

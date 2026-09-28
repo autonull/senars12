@@ -1,4 +1,4 @@
-import { estimateTokens, mean } from '@senars/util';
+import { estimateTokens, mean, variance } from '@senars/util';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { validateBatchQueries } from './algebra.js';
@@ -284,9 +284,7 @@ export class SystemOneManifold implements JudgmentManifold {
       agreement = 1 / unique.size;
     } else {
       const scores = runs.map((r) => (r[0]! as EvaluateProposition).score);
-      const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
-      const variance = scores.reduce((sum, s) => sum + (s - mean) ** 2, 0) / scores.length;
-      agreement = Math.max(0, 1 - variance * 4);
+      agreement = Math.max(0, 1 - variance(scores) * 4);
     }
 
     return {

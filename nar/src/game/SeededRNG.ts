@@ -12,6 +12,9 @@ export class SeededRNG {
     return this.state / 4294967296;
   }
 
+  /** Adapter for utilities taking a bare `RandomSource` (e.g. `shuffleInPlace`). */
+  readonly source: () => number = () => this.next();
+
   /** Random integer in [0, max). */
   nextInt(max: number): number {
     return Math.floor(this.next() * max);

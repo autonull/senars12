@@ -10,7 +10,7 @@ import type {
 import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { normalizeNarsese } from '../nl/normalize.js';
-import { BoundedRing } from '@senars/util';
+import { asBeliefTruth, BoundedRing, errMsg, type TruthLike } from '@senars/util';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
 import { domainKey } from './reputation-keys.js';
 import { recordGateDecision } from '../telemetry/index.js';
@@ -18,7 +18,6 @@ import type { TaskTypeName, Term } from '../terms';
 import { termParser } from '../terms';
 import type { IngressJudge, IngressVerdict } from './ingress.js';
 import type { SourceReputation } from './source-reputation.js';
-import { errMsg } from '@senars/util';
 
 export interface KernelPerceptionGateConfig {
   defaultBudget: {
@@ -127,38 +126,14 @@ export class KernelPerceptionGate {
       if (judged) return judged;
     }
 
-    const truth = taskType === 'belief' ? { frequency: 1.0, confidence } : undefined;
-
-    const budget = {
-      priority: this.config.defaultBudget.priority * confidence,
-      durability: this.config.defaultBudget.durability,
-      quality: this.config.defaultBudget.quality,
-      cycles: this.config.defaultBudget.cycles,
-      depth: this.config.defaultBudget.depth,
-    };
-
-    const taskId = uuidv4();
-    const task: TaskAdmittedEvent['payload'] = {
-      taskId,
-      term: term.toString(),
+    return this.emitAdmitted({
+      term,
       taskType,
-      truth,
+      truth: taskType === 'belief' ? { frequency: 1.0, confidence } : undefined,
       source: input.source ?? this.mapSource(input.sourceId),
-      budget,
-    };
-
-    const event: TaskAdmittedEvent = {
-      type: 'task.admitted',
-      engine: 'kernel',
-      timestamp: Date.now(),
+      confidence,
       correlationId,
-      payload: task,
-    };
-
-    validateCognitiveEvent(event);
-    this.#pushEvent(event);
-
-    return { admitted: true, task };
+    });
   }
 
   private async admitViaJudge(
@@ -205,35 +180,14 @@ export class KernelPerceptionGate {
     // hook (wired by the NAR at init) — closes the TODO16c A4 gap.
     if (verdict.ambiguityFlag) this.driveManager?.stimulate('curiosity', 1);
 
-    const budget = {
-      priority: this.config.defaultBudget.priority * verdict.confidence,
-      durability: this.config.defaultBudget.durability,
-      quality: this.config.defaultBudget.quality,
-      cycles: this.config.defaultBudget.cycles,
-      depth: this.config.defaultBudget.depth,
-    };
-
-    const task: TaskAdmittedEvent['payload'] = {
-      taskId: uuidv4(),
-      term: term.toString(),
+    return this.emitAdmitted({
+      term,
       taskType,
-      truth: { frequency: verdict.truth.f, confidence: verdict.truth.c },
+      truth: verdict.truth,
       source: input.source ?? this.mapSource(input.sourceId),
-      budget,
-    };
-
-    const event: TaskAdmittedEvent = {
-      type: 'task.admitted',
-      engine: 'kernel',
-      timestamp: Date.now(),
+      confidence: verdict.confidence,
       correlationId,
-      payload: task,
-    };
-
-    validateCognitiveEvent(event);
-    this.#pushEvent(event);
-
-    return { admitted: true, task };
+    });
   }
 
   private sourceQualityToConfidence(quality: SourceQuality): number {
@@ -291,7 +245,7 @@ export class KernelPerceptionGate {
   admitTask(
     term: Term,
     taskType: TaskTypeName,
-    truth?: { frequency: number; confidence: number } | { f: number; c: number },
+    truth?: TruthLike,
     source = 'derivation',
     correlationId?: string
   ): PerceptionGateOutput {
@@ -303,37 +257,54 @@ export class KernelPerceptionGate {
   private decideAdmission(
     term: Term,
     taskType: TaskTypeName,
-    truth?: { frequency: number; confidence: number } | { f: number; c: number },
+    truth?: TruthLike,
     source = 'derivation',
     correlationId?: string
   ): PerceptionGateOutput {
-    const cid = correlationId ?? uuidv4();
-    const normalized = truth
-      ? 'frequency' in truth
-        ? truth
-        : { frequency: truth.f, confidence: truth.c }
-      : undefined;
-    const confidence = normalized?.confidence ?? 0.5;
-    const budget = {
-      priority: this.config.defaultBudget.priority * confidence,
-      durability: this.config.defaultBudget.durability,
-      quality: this.config.defaultBudget.quality,
-      cycles: this.config.defaultBudget.cycles,
-      depth: this.config.defaultBudget.depth,
-    };
+    const normalized = asBeliefTruth(truth);
+    return this.emitAdmitted({
+      term,
+      taskType,
+      truth: normalized,
+      source: this.mapSource(source),
+      confidence: normalized?.confidence ?? 0.5,
+      correlationId: correlationId ?? uuidv4(),
+    });
+  }
+
+  /**
+   * The single admission path: budget derivation, `task.admitted` construction,
+   * schema validation, and event push. Every gate entry point funnels here.
+   */
+  private emitAdmitted(params: {
+    term: Term;
+    taskType: TaskTypeName;
+    truth?: TruthLike;
+    source: TaskAdmittedEvent['payload']['source'];
+    confidence: number;
+    correlationId: string;
+  }): PerceptionGateOutput {
+    const { term, taskType, truth, source, confidence, correlationId } = params;
+    const defaults = this.config.defaultBudget;
     const task: TaskAdmittedEvent['payload'] = {
       taskId: uuidv4(),
       term: term.toString(),
       taskType,
-      ...(normalized ? { truth: normalized } : {}),
-      source: this.mapSource(source),
-      budget,
+      ...(truth ? { truth: asBeliefTruth(truth) } : {}),
+      source,
+      budget: {
+        priority: defaults.priority * confidence,
+        durability: defaults.durability,
+        quality: defaults.quality,
+        cycles: defaults.cycles,
+        depth: defaults.depth,
+      },
     };
     const event: TaskAdmittedEvent = {
       type: 'task.admitted',
       engine: 'kernel',
       timestamp: Date.now(),
-      correlationId: cid,
+      correlationId,
       payload: task,
     };
     validateCognitiveEvent(event);

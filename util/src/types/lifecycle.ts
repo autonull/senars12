@@ -35,6 +35,9 @@ export interface LogEntry {
   scope: string;
   context?: Record<string, unknown>;
   error?: Error;
+  /** Injected by the registered log enricher (see registerLogEnricher). */
+  traceId?: string;
+  spanId?: string;
 }
 
 export interface LoggerConfig {

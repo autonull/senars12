@@ -1,3 +1,4 @@
+import { ucb1 } from '@senars/util';
 import { type QEntry, BanditReflex } from './BanditReflex.js';
 import type { Reflex } from './Reflex.js';
 
@@ -21,7 +22,6 @@ export class UCBReflex extends BanditReflex<UCBOptions> implements Reflex<string
   }
 
   protected explore(entry: QEntry): number {
-    if (entry.count === 0) return 1.0;
-    return entry.value + this.c * Math.sqrt(Math.log(this.totalSteps + 1) / entry.count);
+    return entry.count === 0 ? 1.0 : ucb1(entry.value, entry.count, this.totalSteps + 1, this.c);
   }
 }

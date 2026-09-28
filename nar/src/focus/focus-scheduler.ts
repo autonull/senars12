@@ -4,6 +4,7 @@ import { SeededRNG } from '../game/SeededRNG.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
 import type { FocusStepReport } from './Focus.js';
 import type { FocusBag } from './FocusBag.js';
+import { schedulerReward } from './scheduler-reward.js';
 import type { GameFocus } from './GameFocus.js';
 
 export interface FocusSchedulerOptions {
@@ -98,9 +99,11 @@ export class FocusScheduler {
     if (typeof report.focusId !== 'string') return;
     this.metaGame?.recordFocusStepReport(report);
     if (!this.schedulerAdapter) return;
-    const tasks = Math.max(1, report.tasksProcessed);
-    const reward = Math.max(-1, Math.min(1, (report.derivations / tasks - 0.5) * 2));
-    this.schedulerAdapter.learn({ domain: 'self-scheduler', reward, focusId: report.focusId });
+    this.schedulerAdapter.learn({
+      domain: 'self-scheduler',
+      reward: schedulerReward(report),
+      focusId: report.focusId,
+    });
   }
 
   run(ticks: number): Promise<SchedulerTickResult[]> {

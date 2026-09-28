@@ -15,8 +15,8 @@ export const contrapositive: RuleFn = ([imp, inh]: [Term, Term]): Term | undefin
   return consequent ? TermBuilder.implication(consequent, cons) : undefined;
 };
 
-export const intersection: RuleFn = foldNary('conjunction', (a1, a2) => termsEqual(a1, a2));
-export const union: RuleFn = foldNary('disjunction', (a1, a2) => termsEqual(a1, a2), true);
+export const intersection: RuleFn = foldNary('conjunction');
+export const union: RuleFn = foldNary('disjunction', true);
 
 export const decompose: RuleFn = ([c1, c2]: [Term, Term]): Term | undefined => {
   if (c1.kind !== 'conjunction' || c2.kind !== 'conjunction') return undefined;

@@ -1,6 +1,7 @@
 import type { Perception } from '../game/Game.js';
 import type { RandomSource } from '../types/primitives.js';
 import { type ActionProposal, byExpectedValue, type LearningEvent, type Reflex } from './Reflex.js';
+import { shuffleInPlace } from '../utils/random.js';
 
 interface QEntry {
   value: number;
@@ -77,11 +78,7 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
 
     // Epsilon-greedy: with probability epsilon, randomize the order
     if (this.rng() < this.epsilon) {
-      // Shuffle to simulate exploration
-      for (let i = proposals.length - 1; i > 0; i--) {
-        const j = Math.floor(this.rng() * (i + 1));
-        [proposals[i]!, proposals[j]!] = [proposals[j]!, proposals[i]!];
-      }
+      shuffleInPlace(proposals, this.rng);
     } else {
       // Sort by value * confidence for exploitation
       proposals.sort(byExpectedValue);

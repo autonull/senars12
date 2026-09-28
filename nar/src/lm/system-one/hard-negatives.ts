@@ -1,5 +1,5 @@
 import type { Episode } from '@senars/util';
-import { shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
+import { selectByPriority, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
 import type { NAR } from '../../nar.js';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import { PriorityBag } from '../../bag/Bag.js';
@@ -187,10 +187,7 @@ const greedyCandidateSelection = (
   budget: number,
   marginFloor: number
 ): HardNegativeCandidate[] =>
-  items
-    .filter((c) => (c.negative.margin ?? 0.5) >= marginFloor)
-    .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id))
-    .slice(0, Math.max(budget, 0));
+  selectByPriority(items, budget, (c) => (c.negative.margin ?? 0.5) >= marginFloor);
 
 /**
  * Score margins against a ContrastiveMemory's stored positives and seed the

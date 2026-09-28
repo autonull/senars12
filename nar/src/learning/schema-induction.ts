@@ -18,6 +18,9 @@ import { containsSubterm, getSubject, Truth } from '../terms';
 import { createBudget, createTask, type Task } from '../types';
 import type { RandomSource } from '../types/primitives.js';
 import { clamp01, errMsg } from '../utils';
+
+/** Serialized chain terms — the single rendering behind signatures, templates, and instances. */
+const chainTerms = (chain: readonly Task[]): string[] => chain.map((t) => t.term.toString());
 import { AIKRProcessor, PrioritySampling, type ProcessOptions, type AikrBagOptions } from './aikr-processor.js';
 import { generateId, LruCache } from '@senars/util';
 
@@ -98,7 +101,7 @@ export class SchemaInductor {
   /** Phase C: continuous admission from the derivation-chain sink (novelty × length). */
   onDerivation(chain: readonly Task[]): void {
     if (!this.config.enableSchemaInduction || chain.length === 0) return;
-    const signature = chain.map((t) => t.term.toString()).join('→');
+    const signature = chainTerms(chain).join('→');
     if (this.#seenSignatures.has(signature)) return;
     this.#seenSignatures.set(signature, true);
     this.#processor.admit({
@@ -160,8 +163,9 @@ export class SchemaInductor {
   /** Deterministic structural induction — no LM: abstract chain terms into variables. */
   #symbolicInduction(chain: Task[]): InductionResult | null {
     if (chain.length < this.config.minDerivationSteps) return null;
-    const variables = chain.map((_, i) => `?V${i + 1}`);
-    const template = chain.map((t, i) => `${variables[i]}:${t.term.toString()}`).join(' → ');
+    const terms = chainTerms(chain);
+    const variables = terms.map((_, i) => `?V${i + 1}`);
+    const template = terms.map((t, i) => `${variables[i]}:${t}`).join(' → ');
     const confidences = chain.map((t) => (t.truth ? t.truth.f * t.truth.c : 0));
     const confidence = clamp01(Math.min(...confidences));
     if (confidence < this.config.minConfidenceForInduction) return null;
@@ -170,14 +174,14 @@ export class SchemaInductor {
       id,
       template,
       variables,
-      examples: [chain.map((t) => t.term.toString()).join(' → ')],
+      examples: [terms.join(' → ')],
       confidence,
       usageCount: 0,
       lastUsed: Date.now(),
     };
     this.schemas.set(id, schema);
     this.enforceMaxSchemas();
-    return { schema, instances: chain.map((t) => t.term.toString()), confidence };
+    return { schema, instances: terms, confidence };
   }
 
   async induceFromDerivations(derivations: Task[]): Promise<InductionResult[]> {
@@ -262,7 +266,7 @@ export class SchemaInductor {
   }
 
   private async induceSchema(chain: Task[]): Promise<InductionResult | null> {
-    const chainStr = chain.map((t) => t.term.toString()).join(' → ');
+    const chainStr = chainTerms(chain).join(' → ');
 
     const prompt = `Analyze this derivation chain and extract a reusable schema pattern.
 
@@ -299,11 +303,7 @@ Respond with JSON:
     this.schemas.set(id, schema);
     this.enforceMaxSchemas();
 
-    return {
-      schema,
-      instances: chain.map((t) => t.term.toString()),
-      confidence: parsed.confidence,
-    };
+    return { schema, instances: chainTerms(chain), confidence: parsed.confidence };
   }
 
   private parseSchemaResponse(response: string): {

@@ -1,3 +1,4 @@
+import { formatNarseseTruth } from '@senars/util';
 import type { IDriveManager } from '../kernel/interfaces.js';
 import { Truth, type Truth as TruthType } from '../terms/truth.js';
 import type { EventBus as InternalEventBus } from '../types/events.js';
@@ -92,7 +93,7 @@ export class DriveManager implements IDriveManager {
   }
 
   private injectDriveGoal(spec: DriveSpec, truth: { f: number; c: number }): void {
-    const narsese = `(self --> ${spec.goalProperty})! :${truth.f.toFixed(2)}:${truth.c.toFixed(2)}`;
+    const narsese = `(self --> ${spec.goalProperty})!${formatNarseseTruth(truth)}`;
     this.nar.input(narsese, 'goal', Truth.create(truth.f, truth.c));
   }
 }

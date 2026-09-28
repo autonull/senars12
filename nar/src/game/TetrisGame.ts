@@ -1,5 +1,6 @@
 import type { Game, GameOutcome, Perception } from './Game.js';
 import { SeededRNG } from './SeededRNG.js';
+import { shuffleInPlace } from '../utils/random.js';
 
 /** Placement action: 'place:r<rotation>:c<column>' (hard drop). */
 export type TetrisPlacement = string;
@@ -131,12 +132,7 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
   /** Bag-7 piece generator. */
   private nextType(): number {
     if (this.bag.length === 0) {
-      const bag = [0, 1, 2, 3, 4, 5, 6];
-      for (let i = bag.length - 1; i > 0; i--) {
-        const j = this.rng.nextInt(i + 1);
-        [bag[i], bag[j]] = [bag[j]!, bag[i]!];
-      }
-      this.bag.push(...bag);
+      this.bag.push(...shuffleInPlace([0, 1, 2, 3, 4, 5, 6], this.rng.source));
     }
     return this.bag.shift()!;
   }

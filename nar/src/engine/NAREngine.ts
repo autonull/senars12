@@ -7,7 +7,7 @@ import type {
   ToolResult,
 } from '@senars/core/engine';
 import { BaseEngine } from '@senars/core/engine/base';
-import { isNarsese } from '@senars/util';
+import { asBeliefTruth, isNarsese } from '@senars/util';
 import { MAPPED_NAR_EVENTS, narEventToCognitive } from '../events/bridge.js';
 import { NAR } from '../nar.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
@@ -53,7 +53,7 @@ export class NAREngine extends BaseEngine {
         const beliefs = this.#nar.getBeliefs();
         return beliefs.slice(-5).map((b) => ({
           term: b.term.toString(),
-          truth: b.truth ? { frequency: b.truth.f, confidence: b.truth.c } : undefined,
+          truth: asBeliefTruth(b.truth),
           timestamp,
         }));
       }
@@ -69,7 +69,7 @@ export class NAREngine extends BaseEngine {
       const beliefs = this.#nar.getBeliefs();
       const derivations = beliefs.slice(-3).map((b) => ({
         term: b.term.toString(),
-        truth: b.truth ? { frequency: b.truth.f, confidence: b.truth.c } : undefined,
+        truth: asBeliefTruth(b.truth),
         timestamp,
       }));
       console.log(

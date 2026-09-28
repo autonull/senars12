@@ -4,7 +4,10 @@
  * Migrated from: nar/src/self/MetacognitiveMonitor.ts
  */
 
-import { mean } from '@senars/util';
+import { mean, pushCapped, stdDev } from '@senars/util';
+
+/** Rolling window of per-metric values kept for stability/trend analysis. */
+const MONITOR_HISTORY = 50;
 
 interface PerformanceData {
   throughput?: number;
@@ -94,23 +97,24 @@ export class MetacognitiveMonitor {
   }
 
   recordReasoningStep(stepData: unknown): void {
-    this.reasoningTrace.push({
+    this.#trace({
       timestamp: Date.now(),
       stepData: stepData as ReasoningStep['stepData'],
       context: this.getCurrentContext(),
     });
-
-    if (this.reasoningTrace.length > this.config.maxTraceSize) {
-      this.reasoningTrace = this.reasoningTrace.slice(-Math.floor(this.config.maxTraceSize / 2));
-    }
   }
 
   recordError(errorData: unknown): void {
-    this.reasoningTrace.push({
+    this.#trace({
       timestamp: Date.now(),
       stepData: { type: 'error', errorData } as ReasoningStep['stepData'],
       context: this.getCurrentContext(),
     });
+  }
+
+  /** Bounded trace append — drop-oldest, so error floods cannot grow the buffer. */
+  #trace(step: ReasoningStep): void {
+    pushCapped(this.reasoningTrace, step, this.config.maxTraceSize);
   }
 
   analyzePerformance(metrics: Partial<PerformanceData>): PerformanceIssue[] {
@@ -119,12 +123,7 @@ export class MetacognitiveMonitor {
       timestamp: Date.now(),
     };
 
-    this.performanceHistory.push(performanceRecord);
-    if (this.performanceHistory.length > this.config.maxPerformanceHistory) {
-      this.performanceHistory = this.performanceHistory.slice(
-        -Math.floor(this.config.maxPerformanceHistory / 2)
-      );
-    }
+    pushCapped(this.performanceHistory, performanceRecord, this.config.maxPerformanceHistory);
 
     const issues = this.detectPerformanceIssues(performanceRecord);
     this.updatePerformanceMonitors(performanceRecord);
@@ -325,10 +324,7 @@ export class MetacognitiveMonitor {
           alerts: [] as unknown[],
         };
 
-        currentMonitor.history.push({ value, timestamp: Date.now() });
-        if (currentMonitor.history.length > 50) {
-          currentMonitor.history = currentMonitor.history.slice(-25);
-        }
+        pushCapped(currentMonitor.history, { value, timestamp: Date.now() }, MONITOR_HISTORY);
 
         if (currentMonitor.history.length >= 2) {
           const recent = currentMonitor.history.at(-1)?.value;
@@ -339,9 +335,7 @@ export class MetacognitiveMonitor {
 
         if (currentMonitor.history.length > 1) {
           const values = currentMonitor.history.map((h) => h.value);
-          const avg = mean(values);
-          const variance = values.reduce((sum, val) => sum + (val - avg) ** 2, 0) / values.length;
-          currentMonitor.stability = 1 / (1 + Math.sqrt(variance));
+          currentMonitor.stability = 1 / (1 + stdDev(values));
         }
 
         currentMonitor.currentValue = value;

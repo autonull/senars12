@@ -17,6 +17,15 @@ export const mulberry32 = (seed: number): RandomSource => {
   };
 };
 
+/** In-place Fisher–Yates shuffle — the single uniform-shuffle primitive (sampling, bags, exploration). */
+export const shuffleInPlace = <T>(items: T[], rng: RandomSource): T[] => {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [items[i], items[j]] = [items[j]!, items[i]!];
+  }
+  return items;
+};
+
 /**
  * Weighted sampling without replacement (roulette wheel) — the single
  * selection primitive behind priority-proportional, softmax, and windowed

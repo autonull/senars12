@@ -138,11 +138,19 @@ export function createTraceGrader(options: TraceGraderOptions) {
       );
     }
 
+    // One round trip per tool call, not one per risk: embed and judge concurrently.
+    const risks = await Promise.all(
+      trace.toolCalls.map(async (call) => {
+        const pointer = (await embeddingCache.write(
+          `${call.command} ${call.success ? 'ok' : 'error'}`
+        )) as EmbeddingPointer;
+        const [risk] = await manifold.judgeBatch(pointer, [riskQuery], budget);
+        return risk;
+      })
+    );
+
     for (const [i, call] of trace.toolCalls.entries()) {
-      const callPointer = (await embeddingCache.write(
-        `${call.command} ${call.success ? 'ok' : 'error'}`
-      )) as EmbeddingPointer;
-      const [risk] = await manifold.judgeBatch(callPointer, [riskQuery], budget);
+      const risk = risks[i];
       if (risk && risk.kind === 'evaluate') {
         const r = risk as EvaluateProposition;
         if (!r.abstained)

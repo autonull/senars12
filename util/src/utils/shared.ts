@@ -95,6 +95,51 @@ export const mean = <T>(
 ): number =>
   items.length === 0 ? 0 : items.reduce((sum, item) => sum + value(item), 0) / items.length;
 
+/** Population variance of a projection; 0 for fewer than two samples. */
+export const variance = <T>(
+  items: readonly T[],
+  value: (item: T) => number = (item) => item as unknown as number
+): number => {
+  if (items.length < 2) return 0;
+  const avg = mean(items, value);
+  return mean(items, (item) => (value(item) - avg) ** 2);
+};
+
+/** Population standard deviation — `sqrt(variance)`. */
+export const stdDev: typeof variance = (items, value) => Math.sqrt(variance(items, value));
+
+/**
+ * Pearson correlation over the leading `min(xs, ys)` samples. The single
+ * correlation implementation behind head training and RL parity scoring.
+ */
+export const pearson = (xs: readonly number[], ys: readonly number[]): number => {
+  const n = Math.min(xs.length, ys.length);
+  if (n < 2) return 0;
+  const mx = mean(xs.slice(0, n));
+  const my = mean(ys.slice(0, n));
+  let sxy = 0;
+  let sxx = 0;
+  let syy = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = (xs[i] ?? 0) - mx;
+    const dy = (ys[i] ?? 0) - my;
+    sxy += dx * dy;
+    sxx += dx * dx;
+    syy += dy * dy;
+  }
+  return sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : 0;
+};
+
+/**
+ * UCB1 exploration term: `c · sqrt(ln(total) / visits)`, with untried arms
+ * scored as the maximum. The single bandit formula behind every UCB policy —
+ * the reflex and the manifold RL agent must not drift apart.
+ */
+export const ucb1 = (value: number, visits: number, totalVisits: number, c: number): number => {
+  if (visits <= 0) return Number.POSITIVE_INFINITY;
+  return value + c * Math.sqrt(Math.log(Math.max(1, totalVisits)) / visits);
+};
+
 /** Lowercased word-token set — the tokenizer behind every text-similarity path. */
 export const tokenizeWords = (text: string, splitPattern: RegExp = /\s+/): Set<string> =>
   new Set(text.toLowerCase().split(splitPattern).filter(Boolean));

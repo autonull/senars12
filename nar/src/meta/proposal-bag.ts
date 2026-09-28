@@ -10,6 +10,7 @@ import type { SelfImprovementProposal } from '@senars/kernel/schemas';
 import { PriorityBag } from '../bag/Bag.js';
 import { AIKRProcessor, type ProcessOptions, type AikrBagOptions } from '../learning/aikr-processor.js';
 import type { RandomSource } from '../types/primitives.js';
+import { selectByPriority } from '@senars/util';
 
 export interface ProposalCandidate {
   id: string;
@@ -49,15 +50,6 @@ export const proposalScope = (proposal: SelfImprovementProposal): string => {
   return `${proposal.kind}:${target}`;
 };
 
-/** Highest-leverage first, id-tiebroken — deterministic (no RNG in selection). */
-const greedySelection = <T extends { priority: number; id: string }>(
-  items: T[],
-  budget: number
-): T[] =>
-  [...items]
-    .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id))
-    .slice(0, Math.max(budget, 0));
-
 export interface ProposalBagOptions extends AikrBagOptions {
   /** Optional drive-alignment multiplier (default neutral 1). */
   alignmentOf?: (proposal: SelfImprovementProposal) => number;
@@ -83,7 +75,7 @@ export class ProposalBag {
       rng: options.rng,
       samplingStrategy: {
         name: 'greedy-priority',
-        select: (items, budget) => greedySelection(items, budget),
+        select: (items, budget) => selectByPriority(items, budget),
       },
       process: (picked) => picked.map((c) => c.proposal),
     });

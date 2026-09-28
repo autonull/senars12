@@ -1,3 +1,5 @@
+import type { SessionManager } from '@senars/util/types/memory';
+
 export interface MemoryEntry {
   readonly id: string;
   readonly type: string;
@@ -13,26 +15,13 @@ export interface MemoryQuery {
   readonly to?: number;
 }
 
+export type { ConversationSession, SessionManager } from '@senars/util/types/memory';
+
 export interface Episode {
   timestamp: number;
   type: string;
   content: string;
   metadata: Record<string, unknown>;
-}
-
-export interface ConversationSession {
-  id: string;
-  key: string;
-  history: Array<{ role: 'user' | 'agent' | 'system'; content: string; timestamp: number }>;
-  createdAt: number;
-  lastSeenAt: number;
-  metadata: Record<string, unknown>;
-}
-
-export interface SessionManager {
-  getOrCreate(key: string): ConversationSession;
-
-  size(): number;
 }
 
 export interface PersistableSessionManager extends SessionManager {

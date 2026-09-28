@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { HealthCheckResult, HealthReport } from '@senars/util';
+import { errMsg, type HealthCheckResult, type HealthReport } from '@senars/util';
 import type { SchemaStore } from '../focus/schema-store.js';
 import type { GateRegistry } from '../kernel/GateRegistry.js';
 
@@ -35,39 +35,38 @@ const checkLM = async ({ lmReachable }: HealthCheckDeps): Promise<HealthCheckRes
     ? { ok: true, detail: 'no lm probe configured' }
     : lmReachable().then(
         (ok) => ({ ok, detail: ok ? 'provider reachable' : 'provider unreachable' }),
-        (e: unknown) => ({ ok: false, detail: (e as Error).message })
+        (e: unknown) => ({ ok: false, detail: errMsg(e) })
       );
 
-const checkSchemaStore = ({ schemaStore }: HealthCheckDeps): Promise<HealthCheckResult> => {
-  if (!schemaStore) return Promise.resolve({ ok: true, detail: 'no schema store' });
+const checkSchemaStore = ({ schemaStore }: HealthCheckDeps): HealthCheckResult => {
+  if (!schemaStore) return { ok: true, detail: 'no schema store' };
   try {
     const dir = mkdtempSync(join(tmpdir(), 'senars-health-'));
     try {
       schemaStore.save(join(dir, 'probe.json'));
-      return Promise.resolve({ ok: true, detail: `${schemaStore.size()} schemas` });
+      return { ok: true, detail: `${schemaStore.size()} schemas` };
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
   } catch (e) {
-    return Promise.resolve({ ok: false, detail: (e as Error).message });
+    return { ok: false, detail: errMsg(e) };
   }
 };
 
-const checkGates = ({ gates }: HealthCheckDeps): Promise<HealthCheckResult> =>
-  Promise.resolve(
-    !gates
-      ? { ok: true, detail: 'no gate registry' }
-      : { ok: gates.isInitialized(), detail: gates.isInitialized() ? 'responsive' : 'not initialized' }
-  );
+const checkGates = ({ gates }: HealthCheckDeps): HealthCheckResult => {
+  if (!gates) return { ok: true, detail: 'no gate registry' };
+  const ok = gates.isInitialized();
+  return { ok, detail: ok ? 'responsive' : 'not initialized' };
+};
 
 const checkEventLog = ({ eventLog }: HealthCheckDeps): Promise<HealthCheckResult> => {
   if (!eventLog) return Promise.resolve({ ok: true, detail: 'no event log' });
   try {
     return Promise.resolve(eventLog.append({ type: 'health.probe', timestamp: Date.now() })).then(
       () => ({ ok: true, detail: 'appendable' }),
-      (e: unknown) => ({ ok: false, detail: (e as Error).message })
+      (e: unknown) => ({ ok: false, detail: errMsg(e) })
     );
   } catch (e) {
-    return Promise.resolve({ ok: false, detail: (e as Error).message });
+    return Promise.resolve({ ok: false, detail: errMsg(e) });
   }
 };

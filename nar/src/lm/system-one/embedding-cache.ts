@@ -1,6 +1,6 @@
 import { LruCache } from '@senars/util';
 import { TransformersEmbeddingGenerator } from '../../memory/embedding.js';
-import type { EmbeddingPointer } from './types.js';
+import type { EmbeddingCache as EmbeddingCacheApi, EmbeddingPointer } from './types.js';
 
 const DIMENSION = 384;
 
@@ -187,3 +187,19 @@ export class EmbeddingCache {
 export function createEmbeddingCache(config?: Partial<EmbeddingCacheConfig>): EmbeddingCache {
   return new EmbeddingCache(config);
 }
+
+/**
+ * Embed `text` through any `EmbeddingCache` and return an owned copy of the
+ * vector, or `undefined` on any failure (fail-open, no throw). The single
+ * write→read embedding path used by graders, gates, and dialogue capture.
+ */
+export const embedCached = async (
+  cache: EmbeddingCacheApi,
+  text: string
+): Promise<Float32Array | undefined> => {
+  try {
+    return cache.read(await cache.write(text))?.slice();
+  } catch {
+    return undefined;
+  }
+};

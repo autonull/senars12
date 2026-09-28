@@ -5,7 +5,7 @@
  * across `Agent`, `phases`, and `LLMCortex`. Do not build new features here.
  */
 
-import type { CognitiveEvent } from './CognitiveEvent.js';
+import type { ChatStreamEvent, CognitiveEvent } from './CognitiveEvent.js';
 import type { ModelRunner, ToolSet } from './ModelRunner.js';
 import { errMsg, makeId } from '@senars/util';
 
@@ -29,22 +29,13 @@ export interface ChatServiceDeps<TCtx extends ChatContext> {
   readonly getContext: () => TCtx;
 }
 
+export type { ChatStreamEvent };
+
 export interface ChatOptions {
   readonly signal?: AbortSignal;
   readonly sessionId?: string;
   readonly stream?: boolean;
   readonly tier?: 'quality' | 'fast' | 'structured';
-}
-
-export interface ChatStreamEvent {
-  readonly kind: 'text-delta' | 'tool-call' | 'tool-result' | 'finish' | 'error' | 'aborted';
-  readonly text?: string;
-  readonly toolName?: string;
-  readonly toolArgs?: unknown;
-  readonly toolResult?: unknown;
-  readonly error?: string;
-  /** TODO24 I7: the correlationId minted for this message (on `finish`), joining turns ↔ trace grades ↔ episodes. */
-  readonly correlationId?: string;
 }
 
 export function createChatService<TCtx extends ChatContext>(deps: ChatServiceDeps<TCtx>) {

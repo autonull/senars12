@@ -1,4 +1,5 @@
 import type { TranslationCacheEntry } from '../cache.js';
+import { serializeTruth } from '@senars/util';
 
 const NARSESE_GRAMMAR = `Narsese syntax:
   (A --> B) inheritance (most common)
@@ -52,8 +53,7 @@ const SEED_EXAMPLES: TranslationCacheEntry[] = [
     timestamp: 0,
   },
 ];
-const formatTruth = (t?: { f: number; c: number }): string =>
-  t ? ` %${t.f};${t.c}%` : '';
+const truthSuffix = (t?: { f: number; c: number }): string => (t ? ` ${serializeTruth(t)}` : '');
 
 function formatExamples(entries: TranslationCacheEntry[]): string {
   if (entries.length === 0) return '';
@@ -61,7 +61,7 @@ function formatExamples(entries: TranslationCacheEntry[]): string {
     if (typeof e.result === 'string') return `  "${e.nl}" → ${e.result}`;
     const r = e.result;
     const items = [
-      ...r.beliefs.map((b) => `(belief) ${b.narsese}${formatTruth(b.truth)}`),
+      ...r.beliefs.map((b) => `(belief) ${b.narsese}${truthSuffix(b.truth)}`),
       ...r.questions.map((q) => `(question) ${q}`),
       ...r.goals.map((g) => `(goal) ${g}`),
     ];

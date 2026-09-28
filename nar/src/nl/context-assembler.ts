@@ -1,4 +1,4 @@
-import { tokenizeWords } from '@senars/util';
+import { formatNarseseTruth, tokenizeWords } from '@senars/util';
 
 import { estimateTokens } from '../lm/context/context-budget.js';
 import type { NAR } from '../nar.js';
@@ -112,28 +112,22 @@ export class ContextAssembler {
     const words = tokenizeWords(input);
 
     const scored = allBeliefs.map((b) => {
-      const termWords = tokenizeWords(b.term.toString());
+      const term = b.term.toString();
+      const termWords = tokenizeWords(term);
       let overlap = 0;
-      for (const w of words) {
-        if (termWords.has(w)) overlap++;
-      }
+      for (const word of words) if (termWords.has(word)) overlap++;
       // Handle mock NARs that may not have getConcept
-      let attentionPriority = 0;
-      if (typeof nar.getConcept === 'function') {
-        const concept = nar.getConcept(b.term);
-        attentionPriority = concept?.priority ?? 0;
-      }
+      const attentionPriority =
+        typeof nar.getConcept === 'function' ? (nar.getConcept(b.term)?.priority ?? 0) : 0;
       // Score formula: overlapScore * 0.4 + attentionPriority * 0.6
-      const overlapScore = overlap / Math.max(1, words.size);
-      const score = overlapScore * 0.4 + attentionPriority * 0.6;
-      return { term: b.term.toString(), truth: b.truth, score };
+      return { term, truth: b.truth, score: (overlap / Math.max(1, words.size)) * 0.4 + attentionPriority * 0.6 };
     });
 
     return selectTopN(
       scored.filter((b) => b.score > 0),
       max,
       (b) => b.score
-    ).map((b) => `${b.term}${b.truth ? ` :${b.truth.f.toFixed(2)}:${b.truth.c.toFixed(2)}` : ''}`);
+    ).map((b) => `${b.term}${formatNarseseTruth(b.truth)}`);
   }
 
   private extractRecentDerivations(nar: NAR, max: number): string[] {
@@ -153,10 +147,7 @@ export class ContextAssembler {
       })
       .slice(-max);
 
-    return filtered.map((b) => {
-      const truth = b.truth ? ` :${b.truth.f.toFixed(2)}:${b.truth.c.toFixed(2)}` : '';
-      return `${b.term.toString()}${truth}`;
-    });
+    return filtered.map((b) => `${b.term.toString()}${formatNarseseTruth(b.truth)}`);
   }
 
   private extractActiveGoals(nar: NAR, max: number): string[] {

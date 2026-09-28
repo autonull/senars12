@@ -56,7 +56,7 @@ trackTermReady = true;
 /** Module-scope collator: identical ordering to `localeCompare` without its per-call ICU setup. */
 const CANONICAL_COLLATOR = new Intl.Collator();
 const canonicalKeyOf = (t: Term): string => (t.kind === 'atom' ? t.symbol : t.kind);
-const compareForCanonicalOrder = (a: Term, b: Term): number =>
+export const compareForCanonicalOrder = (a: Term, b: Term): number =>
   CANONICAL_COLLATOR.compare(canonicalKeyOf(a), canonicalKeyOf(b));
 
 const createCompound = (kind: OperatorKey, args: Term[]): Term => {

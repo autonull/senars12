@@ -1,5 +1,6 @@
 import type { Game, GameOutcome, Perception } from './Game.js';
 import { SeededRNG } from './SeededRNG.js';
+import { shuffleInPlace } from '../utils/random.js';
 
 export type Cell = { r: number; c: number };
 export type Direction = 0 | 1 | 2 | 3; // up, right, down, left
@@ -69,11 +70,7 @@ export class SnakeGame implements Game<SnakeState, Direction> {
       const [r, c] = k.split(',').map(Number) as [number, number];
       return { r, c };
     });
-    for (let i = cells.length - 1; i > 0; i--) {
-      const j = this.rng.nextInt(i + 1);
-      [cells[i], cells[j]] = [cells[j]!, cells[i]!];
-    }
-    this.spawnBag.push(...cells);
+    this.spawnBag.push(...shuffleInPlace(cells, this.rng.source));
     return this.spawnBag.pop()!;
   }
 

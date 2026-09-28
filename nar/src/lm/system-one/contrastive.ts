@@ -1,7 +1,8 @@
-import { generateId } from '@senars/util';
+import { clamp, generateId } from '@senars/util';
 import { type BagItem, PriorityBag } from '../../bag/Bag.js';
 import { AIKRProcessor, PrioritySampling } from '../../learning/aikr-processor.js';
 import { cosine } from '../../utils/similarity.js';
+import { embedCached } from './embedding-cache.js';
 import type { EmbeddingCache, JudgmentQuery } from './types.js';
 
 export { cosine as cosineF32 };
@@ -51,8 +52,8 @@ export function fitInfoNCE(
     let dBias = 0;
     loss = 0;
     for (const { query, positive, negatives } of pairs) {
-      const cosPos = Math.max(-1, Math.min(1, cosine(query, positive)));
-      const cosNegs = negatives.map((n) => Math.max(-1, Math.min(1, cosine(query, n))));
+      const cosPos = clamp(cosine(query, positive), -1, 1);
+      const cosNegs = negatives.map((n) => clamp(cosine(query, n), -1, 1));
       const logits = [scale * cosPos + bias, ...cosNegs.map((c) => scale * c + bias)];
       const max = Math.max(...logits);
       const exp = logits.map((l) => Math.exp(l - max));
@@ -130,11 +131,11 @@ export class ContrastiveMemory {
   ): Promise<number> {
     let added = 0;
     for (const text of exemplars.positives ?? []) {
-      const emb = await this.#embed(text, cache);
+      const emb = await embedCached(cache, text);
       if (emb && this.#admit(rubric, { kind: 'pos', embedding: emb })) added++;
     }
     for (const text of exemplars.negatives ?? []) {
-      const emb = await this.#embed(text, cache);
+      const emb = await embedCached(cache, text);
       if (emb && this.#admit(rubric, { kind: 'neg', embedding: emb })) added++;
     }
     return added;
@@ -211,12 +212,11 @@ export class ContrastiveMemory {
       }
       return best;
     }
-    const positives = this.#positives(rubric);
-    const negatives = this.#negatives(rubric);
-    if (positives.length === 0 && negatives.length === 0) return undefined;
+    const state = this.#rubrics.get(rubric);
+    if (!state || (state.pos.size() === 0 && state.neg.size() === 0)) return undefined;
 
-    const maxPos = positives.reduce((best, p) => Math.max(best, cosine(embedding, p)), -1);
-    const maxNeg = negatives.reduce((best, n) => Math.max(best, cosine(embedding, n)), -1);
+    const maxPos = this.#maxCosine(state.pos, embedding);
+    const maxNeg = this.#maxCosine(state.neg, embedding);
     const calibration = this.#calibrations.get(rubric);
     const scale = calibration?.scale ?? this.#zeroShotScale;
     const bias = calibration?.bias ?? 0;
@@ -227,11 +227,10 @@ export class ContrastiveMemory {
   routingScore(embedding: Float32Array): number | undefined {
     let best = -1;
     let seen = 0;
-    for (const rubric of this.#rubrics.keys()) {
-      for (const emb of [...this.#positives(rubric), ...this.#negatives(rubric)]) {
-        best = Math.max(best, cosine(embedding, emb));
-        seen++;
-      }
+    for (const state of this.#rubrics.values()) {
+      best = Math.max(best, this.#maxCosine(state.pos, embedding));
+      best = Math.max(best, this.#maxCosine(state.neg, embedding));
+      seen += state.pos.size() + state.neg.size();
     }
     return seen === 0 ? undefined : Math.max(0, best);
   }
@@ -287,12 +286,8 @@ export class ContrastiveMemory {
     options: { admitThreshold?: number } = {}
   ): boolean {
     if (judgment.confidence < (options.admitThreshold ?? 0.8)) return false;
-    const positives = this.#positives(rubric);
-    const negatives = this.#negatives(rubric);
-    const maxPos = positives.reduce((best, p) => Math.max(best, cosine(embedding, p)), -1);
-    const maxNeg = negatives.reduce((best, n) => Math.max(best, cosine(embedding, n)), -1);
-    const margin = Math.max(0, maxPos - maxNeg);
     const state = this.#rubricState(rubric);
+    const margin = Math.max(0, this.#margin(state, embedding));
     return state.maintainer.admit({
       id: generateId(judgment.label),
       priority: margin * judgment.confidence,
@@ -346,12 +341,9 @@ export class ContrastiveMemory {
     priority?: number
   ): boolean {
     const state = this.#rubricState(rubric);
-    const margin = (() => {
-      const others = exemplar.kind === 'pos' ? this.#negatives(rubric) : this.#positives(rubric);
-      if (others.length === 0) return 1;
-      const maxCos = others.reduce((best, o) => Math.max(best, cosine(exemplar.embedding, o)), -1);
-      return 1 - maxCos; // discrimination vs the opposing class
-    })();
+    const opposing = exemplar.kind === 'pos' ? state.neg : state.pos;
+    // Discrimination against the opposing class; 1 when unopposed.
+    const margin = opposing.size() === 0 ? 1 : 1 - this.#maxCosine(opposing, exemplar.embedding);
     const item: ExemplarItem = {
       id: generateId(exemplar.kind),
       priority: Math.max(1e-6, priority ?? margin),
@@ -362,6 +354,18 @@ export class ContrastiveMemory {
     const admitted = bag.add(item);
     if (admitted) state.maintainer?.admit(item);
     return admitted;
+  }
+
+  /** Max cosine against a bag's exemplars — streams the bag, no array copies. */
+  #maxCosine(bag: { all(): IterableIterator<ExemplarItem> }, embedding: Float32Array): number {
+    let best = -1;
+    for (const item of bag.all()) best = Math.max(best, cosine(embedding, item.embedding));
+    return best;
+  }
+
+  /** Positive-vs-negative cosine margin for a rubric state. */
+  #margin(state: RubricState, embedding: Float32Array): number {
+    return this.#maxCosine(state.pos, embedding) - this.#maxCosine(state.neg, embedding);
   }
 
   #positives(rubric: string): Float32Array[] {
@@ -376,15 +380,6 @@ export class ContrastiveMemory {
     return [...state.neg.all()].map((e) => e.embedding);
   }
 
-  async #embed(text: string, cache: EmbeddingCache): Promise<Float32Array | undefined> {
-    try {
-      const pointer = await cache.write(text);
-      const buffer = cache.read(pointer);
-      return buffer?.slice();
-    } catch {
-      return undefined;
-    }
-  }
 }
 
 export function createContrastiveMemory(config?: ContrastiveMemoryConfig): ContrastiveMemory {

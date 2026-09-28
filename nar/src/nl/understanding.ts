@@ -21,7 +21,7 @@ import { SingleFlight } from './singleflight.js';
 /** Canonical definitions live in types/events (EventMap depends on them); re-exported here for the nl surface. */
 export type { Ambiguity, Coreference, TaskBatch } from '../types/events.js';
 import type { TaskBatch } from '../types/events.js';
-import { pct } from '@senars/util';
+import { asBeliefTruth, pct } from '@senars/util';
 import { parseJsonWith } from '../lm/json.js';
 
 export interface NLContext {
@@ -352,7 +352,7 @@ export function toFormalizationBatch(input: string, batch: TaskBatch): Formaliza
         candidateId: uuidv4(),
         narsese: b.narsese,
         taskType: 'belief',
-        ...(b.truth ? { truth: { frequency: b.truth.f, confidence: b.truth.c } } : {}),
+        ...(b.truth ? { truth: asBeliefTruth(b.truth) } : {}),
         confidence: b.truth?.c ?? (b.source === 'user' ? 0.7 : 0.5),
         sourceSpans: [span],
         ambiguityFlags: detectAmbiguityFlags(span.text),

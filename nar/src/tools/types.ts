@@ -1,3 +1,5 @@
+import type { ToolCapabilities } from '@senars/util';
+
 export interface Tool {
   readonly name: string;
   readonly description: string;
@@ -8,14 +10,7 @@ export interface Tool {
   execute(args: Record<string, unknown>, context?: ToolContext): Promise<ToolResult>;
 }
 
-export interface ToolCapabilities {
-  pure?: boolean;
-  idempotent?: boolean;
-  readOnly?: boolean;
-  requiresPermissions?: string[];
-  timeout?: number;
-  maxConcurrency?: number;
-}
+export type { ToolCapabilities };
 
 export interface ToolContext {
   permissions?: Set<string>;

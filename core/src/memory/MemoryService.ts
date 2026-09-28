@@ -1,3 +1,4 @@
+import { pushCapped } from '@senars/util';
 import type { Engine } from '../engine/Engine.js';
 import type { EventLog } from '../eventlog/EventLog.js';
 import { generateId } from '../helpers.js';
@@ -49,10 +50,7 @@ export class MemoryService {
       id: generateId('mem'),
       timestamp: Date.now(),
     };
-    this.#working.push(full);
-    if (this.#working.length > this.#maxWorking) {
-      this.#working = this.#working.slice(-this.#maxWorking);
-    }
+    pushCapped(this.#working, full, this.#maxWorking);
   }
 
   recent(limit: number, type?: string): MemoryEntry[] {
