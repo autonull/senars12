@@ -126,10 +126,9 @@ export class Memory {
     this.forgetting = new Forgetting(this.config.forgettingPolicy);
     this.linkManager = new LinkManager({
       defaultCapacity: config.linkCapacity ?? LINK.DEFAULT_CAPACITY,
-      layers: {
-        term: config.termLinkCapacity ?? LINK.TERM_LAYER_CAPACITY,
-        semantic: config.semanticLinkCapacity ?? LINK.SEMANTIC_LAYER_CAPACITY,
-      },
+      // One term-keyed layer; semantic similarity lives in the EmbeddingLayer
+      // below, so a second term layer would only ever be an empty duplicate.
+      layers: { term: config.termLinkCapacity ?? LINK.TERM_LAYER_CAPACITY },
       forgetPolicy: config.linkForgetPolicy ?? LINK.FORGET_POLICY,
       globalDecayRate: config.linkDecayRate ?? LINK.DECAY_RATE,
     });
@@ -146,7 +145,7 @@ export class Memory {
   }
 
   getEmbeddingIndex(): EmbeddingLayer | undefined {
-    return this.linkManager.getLayer('embedding') as EmbeddingLayer | undefined;
+    return this.linkManager.getEmbeddingLayer();
   }
 
   get size(): number {

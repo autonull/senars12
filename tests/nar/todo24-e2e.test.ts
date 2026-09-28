@@ -9,8 +9,6 @@ import { JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
 import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
 import { DialogueCapture } from '../../nar/src/dialogue/capture.js';
 import { loadRetrospectives, persistRetrospective, retrospect } from '../../nar/src/dialogue/retrospect.js';
-import { emptyReactionDistribution } from '../../nar/src/dialogue/types.js';
-import { rm } from 'node:fs/promises';
 
 const makeEpisodic = async (): Promise<EpisodicMemory> =>
   new EpisodicMemory({
@@ -25,6 +23,9 @@ describe('TODO24 bench 74: end-to-end flywheel', () => {
     const ep = await makeEpisodic();
     const tmp = await mkdtemp(join(tmpdir(), 's1-e2e-'));
     const dataset = new JudgmentDataset(tmp);
+    // Own ledger dir: the default `.cache/retrospectives` is shared with other
+    // suites running in parallel.
+    const retrospectives = join(tmp, 'retrospectives');
     const d = new DialogueCapture({
       dataset,
       episodic: ep,
@@ -52,8 +53,10 @@ describe('TODO24 bench 74: end-to-end flywheel', () => {
     expect(r.turnCount).toBe(12);
     expect(r.reactionCount).toBe(4);
     expect(r.corrections).toHaveLength(1);
-    await persistRetrospective(r);
-    expect((await loadRetrospectives()).some((x) => x.sessionId === 'e2e')).toBe(true);
+    await persistRetrospective(r, retrospectives);
+    expect((await loadRetrospectives(10, retrospectives)).some((x) => x.sessionId === 'e2e')).toBe(
+      true
+    );
 
     // Governance: retrospective findings become proposals; only low-risk
     // focus-weight auto-applies — governance pipeline is the sole gate.
@@ -75,8 +78,5 @@ describe('TODO24 bench 74: end-to-end flywheel', () => {
       'human-approved-production'
     );
     expect(highRisk.applied).toBe(false);
-
-    await rm('.cache/retrospectives', { recursive: true, force: true });
-    expect(emptyReactionDistribution().accept).toBe(0);
   });
 });

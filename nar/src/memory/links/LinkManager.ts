@@ -1,66 +1,41 @@
 import type { Term } from '../../terms';
 import { Layer } from './Layer.js';
-import { TermLayer } from './TermLayer.js';
 import { EmbeddingLayer } from './EmbeddingLayer.js';
-import type {
-  LinkEntry,
-  LinkManagerConfig as LinkManagerConfigType,
-  LinkType,
-  SerializedLinkManager,
-} from './types.js';
+import type { LinkEntry, LinkManagerConfig, LinkType } from './types.js';
+
+const DEFAULT_LAYER = 'term';
 
 export class LinkManager {
-  private readonly layers: Map<string, Layer>;
-  private capacityByLayer: Map<string, number>;
-  private readonly config: LinkManagerConfigType;
+  private readonly layers = new Map<string, Layer>();
+  private readonly config: LinkManagerConfig;
 
-  constructor(config?: Partial<LinkManagerConfigType>) {
+  constructor(config?: Partial<LinkManagerConfig>) {
     this.config = {
       defaultCapacity: config?.defaultCapacity ?? 1000,
-      layers: config?.layers ?? { term: 1000 },
+      layers: config?.layers ?? { [DEFAULT_LAYER]: 1000 },
       globalDecayRate: config?.globalDecayRate ?? 0.001,
       forgetPolicy: config?.forgetPolicy ?? 'priority',
     };
-
-    this.layers = new Map();
-    this.capacityByLayer = new Map();
 
     for (const [name, capacity] of Object.entries(this.config.layers)) {
       this.registerLayer(name, capacity);
     }
   }
 
-  static deserialize(
-    data: SerializedLinkManager,
-    termResolver: (id: string) => Term | undefined
-  ): LinkManager {
-    const manager = new LinkManager(data.config);
-
-    for (const layerData of data.layers) {
-      const layer = TermLayer.deserialize(layerData, termResolver);
-      manager.layers.set(layerData.name, layer);
-    }
-
-    return manager;
-  }
-
   getLayer(name: string): Layer | undefined {
     return this.layers.get(name);
   }
 
+  getEmbeddingLayer(): EmbeddingLayer | undefined {
+    const layer = this.layers.get('embedding');
+    return layer instanceof EmbeddingLayer ? layer : undefined;
+  }
+
   registerLayer(name: string, capacity: number): Layer {
     const existing = this.layers.get(name);
-    if (existing) {
-      return existing;
-    }
-
-    const layer =
-      name === 'term' || name === 'semantic'
-        ? new TermLayer(capacity, this.config.forgetPolicy)
-        : new Layer(name, capacity, this.config.forgetPolicy);
-
+    if (existing) return existing;
+    const layer = new Layer(name, capacity, this.config.forgetPolicy);
     this.layers.set(name, layer);
-    this.capacityByLayer.set(name, capacity);
     return layer;
   }
 
@@ -71,69 +46,36 @@ export class LinkManager {
   addLink(
     sourceTerm: Term,
     targetTerm: Term,
-    options?: {
-      layer?: string;
-      type?: LinkType;
-      priority?: number;
-    }
+    options?: { layer?: string; type?: LinkType; priority?: number }
   ): LinkEntry | null {
-    const layerName = options?.layer ?? 'term';
-    const layer =
-      this.getLayer(layerName) ?? this.registerLayer(layerName, this.config.defaultCapacity);
-
-    if (layer instanceof TermLayer) {
-      return layer.add(0, 0, {
-        type: options?.type,
-        priority: options?.priority,
-        sourceTerm,
-        targetTerm,
-      });
-    }
-
-    return null;
+    const name = options?.layer ?? DEFAULT_LAYER;
+    return this.layerFor(name).addLink({
+      sourceTerm,
+      targetTerm,
+      type: options?.type,
+      priority: options?.priority,
+    });
   }
 
   getLinks(
     sourceTerm: Term,
-    options?: {
-      layer?: string;
-      type?: LinkType;
-      minPriority?: number;
-    }
+    options?: { layer?: string; type?: LinkType; minPriority?: number }
   ): LinkEntry[] {
-    const layerName = options?.layer ?? 'term';
-    const layer = this.getLayer(layerName);
-
-    if (!layer) return [];
-
-    if (layer instanceof TermLayer) {
-      return layer.getLinksByTerm(sourceTerm);
-    }
-
-    return [];
+    return this.layers
+      .get(options?.layer ?? DEFAULT_LAYER)
+      ?.getLinksByTerm(sourceTerm, { type: options?.type, minPriority: options?.minPriority }) ?? [];
   }
 
   removeByTerm(sourceTerm: Term, targetTerm: Term, type?: LinkType): boolean {
-    const layer = this.getLayer('term');
-    if (layer instanceof TermLayer) {
-      return layer.removeByTerms(sourceTerm, targetTerm, type ?? 'term-link');
-    }
-    return false;
+    return this.layerFor(DEFAULT_LAYER).removeLink(sourceTerm, targetTerm, type);
   }
 
   removeAllLinksForTerm(term: Term): void {
-    const layer = this.getLayer('term');
-    if (layer instanceof TermLayer) {
-      layer.removeAllLinksForTerm(term);
-    }
+    this.layerFor(DEFAULT_LAYER).removeAllLinksForTerm(term);
   }
 
-  getLinkPriority(sourceTerm: Term, targetTerm: Term, layerName = 'term'): number {
-    const layer = this.getLayer(layerName);
-    if (layer instanceof TermLayer) {
-      return layer.getLinkPriority(sourceTerm, targetTerm);
-    }
-    return 0;
+  getLinkPriority(sourceTerm: Term, targetTerm: Term, layerName = DEFAULT_LAYER): number {
+    return this.layers.get(layerName)?.getLinkPriority(sourceTerm, targetTerm) ?? 0;
   }
 
   applyDecay(decayRate?: number): void {
@@ -146,30 +88,15 @@ export class LinkManager {
   getStats(): Record<string, { size: number; capacity: number }> {
     const stats: Record<string, { size: number; capacity: number }> = {};
     for (const [name, layer] of this.layers) {
-      const layerStats = layer.getStats();
-      stats[name] = {
-        size: layerStats.size,
-        capacity: layerStats.capacity,
-      };
+      const { size, capacity } = layer.getStats();
+      stats[name] = { size, capacity };
     }
     return stats;
   }
 
-  serialize(): SerializedLinkManager {
-    const serializedLayers: SerializedLinkManager['layers'] = [];
-
-    for (const layer of this.layers.values()) {
-      if (layer instanceof TermLayer) {
-        serializedLayers.push(layer.serialize());
-      }
-    }
-
-    return {
-      version: 1,
-      layers: serializedLayers,
-      config: this.config,
-    };
+  private layerFor(name: string): Layer {
+    return this.layers.get(name) ?? this.registerLayer(name, this.config.defaultCapacity);
   }
 }
 
-export type { LinkManagerConfigType as LinkManagerConfig };
+export type { LinkManagerConfig };

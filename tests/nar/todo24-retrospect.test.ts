@@ -77,23 +77,23 @@ describe('TODO24 bench 73: retrospect diagnostic', () => {
   it('persists digest-pinned JSONL; corrupted artifact fails closed', async () => {
     const { promises: fs } = await import('node:fs');
     const { readdir } = await import('node:fs/promises');
-    // Clean up first to ensure only one file
-    await fs.rm('.cache/retrospectives', { recursive: true, force: true }).catch(() => {});
-    
+    // Isolated ledger dir: the default `.cache/retrospectives` is shared with
+    // suites running in parallel.
+    const dir = await mkdtemp(join(tmpdir(), 'todo24-retro-'));
     const ep = await makeEpisodic();
     await seedSession(ep, 'sess-2');
     const r = await retrospect('sess-2', ep);
-    await persistRetrospective(r);
-    const loaded = await loadRetrospectives();
+    await persistRetrospective(r, dir);
+    const loaded = await loadRetrospectives(10, dir);
     expect(loaded.some((x) => x.sessionId === 'sess-2')).toBe(true);
 
-    await persistRetrospective({ ...r, sessionId: 'tampered' });
-    const all = await loadRetrospectives();
+    await persistRetrospective({ ...r, sessionId: 'tampered' }, dir);
+    const all = await loadRetrospectives(10, dir);
     expect(all[all.length - 1]!.sessionId).toBe('tampered');
     // Tamper with the digest pin by overwriting the file with a corrupt entry.
-    const files = await readdir('.cache/retrospectives');
+    const files = await readdir(dir);
     const jsonlFiles = files.filter((f) => f.endsWith('.jsonl')).sort().reverse();
-    const path = join('.cache/retrospectives', jsonlFiles[0]!);
+    const path = join(dir, jsonlFiles[0]!);
     // Write a corrupt entry (wrong digest) as the only line
     const corruptEntry = JSON.stringify({
       ...r,
@@ -101,8 +101,7 @@ describe('TODO24 bench 73: retrospect diagnostic', () => {
       digest: 'sha256:0000000000000000000000000000000000000000000000000000000000000000',
     });
     await fs.writeFile(path, corruptEntry + '\n', 'utf-8');
-    await expect(loadRetrospectives()).rejects.toThrow(DigestMismatchError);
-    await fs.rm('.cache/retrospectives', { recursive: true, force: true });
+    await expect(loadRetrospectives(10, dir)).rejects.toThrow(DigestMismatchError);
   });
 
   it('lessons require ≥2 supporting turns and confidence above the admission floor', () => {
