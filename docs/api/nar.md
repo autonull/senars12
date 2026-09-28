@@ -42,6 +42,14 @@
 
 - `EpisodicMemory`
 
+- `EpisodeConsolidator`
+
+- `symbolicSummary` — Symbolic fallback summary: deterministic, bounded, no LM. Rendered by the
+
+- `ProposalBag`
+
+- `MiningBag`
+
 - `Concept`
 
 - `Memory`
@@ -52,7 +60,7 @@
 
 - `createMinimalNAR` — Minimal kernel: tiny budgets, no throttle.
 
-- `createNAR`
+- `createNAR` — Default kernel: LM rules on, isolated provider registry/event bus.
 
 - `createTestNAR` — Deterministic test kernel: decay off, small depth, optional LM.
 
@@ -134,7 +142,7 @@
 
 - `termParser`
 
-- `termsEqual`
+- `termsEqual` — Structural term equality. `undefined` is accepted so optional-arg probes need no guard.
 
 - `visitTerms`
 
@@ -190,7 +198,7 @@
 
 - `BudgetGateError`
 
-- `BuilderError` — E1 (TODO20 Phase 3): kernel-domain error taxonomy. The base `SenarsError`
+- `BuilderError` — E1: assembly-time failure, typed by the builder step that failed.
 
 - `BoundaryValidationError` — E1: boundary validation with Zod issues attached.
 
@@ -207,6 +215,8 @@
 - `SenarsError`
 
 ## `./agent`
+
+- `BinAgentApi` — Minimal agent API for bin layer consumers (excludes core internals).
 
 - `createAgent`
 
@@ -226,11 +236,21 @@
 
 - `BuilderError` — Typed failure of an inconsistent assembly spec (TODO19 F1; E1: SenarsError-based).
 
-- `NARBuilder` — P7: tier-0 sandboxed reflex-value head (zero-import WASM, digest-pinned). */
+- `NARBuilder` — TODO19 F1: the single assembly path for NAR-backed agents. Fluent steps
 
 - `NAR_PROFILES`
 
 - `resolveProfile`
+
+- `createCognitiveAgent`
+
+- `type CognitiveAgent`
+
+- `type CognitiveAgentConfig`
+
+- `type CognitiveAgentPreset`
+
+- `type AnswerEnvelope`
 
 ## `./agent/*`
 
@@ -238,11 +258,27 @@ _Dynamic subpath (no single entry file)._
 
 ## `./bag`
 
+- `createBag` — Factory to create a Bag instance based on the implementation option.
+
+- `BaseBag`
+
 - `PriorityBag`
+
+- `FenwickBag` — Fenwick-tree priority bag: weighted sampling in O(log n) over a
 
 ## `./capability`
 
 - `CapabilitySpace`
+
+- `CapabilityOntology`
+
+- `createCapabilityOntology`
+
+- `type CapabilityOntologyEntry`
+
+- `type CapabilitySchema`
+
+- `type CapabilityType`
 
 - `assertWasmPathContained`
 
@@ -260,7 +296,7 @@ _Dynamic subpath (no single entry file)._
 
 - `sanitizePreopens`
 
-- `withTimeout` — Rejects when `timeoutMs` elapses. The losing promise is not cancelled — it
+- `withTimeout` — Rejects with {@link SandboxTimeoutError} when the sandbox deadline elapses.
 
 ## `./cognitive`
 
@@ -298,8 +334,6 @@ _Dynamic subpath (no single entry file)._
 
 - `TopNSampling`
 
-- `toTask`
-
 - `CognitiveController`
 
 - `runCounterfactual`
@@ -308,7 +342,7 @@ _Dynamic subpath (no single entry file)._
 
 ## `./cognitive/corrections`
 
-- `attemptLMCorrection` — Issue identification and corrections - extracted from SelfAnalyzerService
+- `attemptLMCorrection` — Bidirectional correction: when a contradiction is traceable to an LLM
 
 - `identifyIssues`
 
@@ -332,7 +366,9 @@ _Dynamic subpath (no single entry file)._
 
 - `selfCommands`
 
-- `requireNar`
+- `NAR_UNCONFIGURED`
+
+- `narOf` — Typed view of the NAR handle carried on the command context.
 
 ## `./config`
 
@@ -342,11 +378,17 @@ _Dynamic subpath (no single entry file)._
 
 - `getBudget`
 
+- `DEFAULT_LEDGER_PATH`
+
+- `OutcomeLinker` — Joins ledger changes against an outcome series (trace grades, Brier scores,
+
+- `ParameterLedger` — ParameterLedger — now backed by the generic `Ledger<T>` primitive from `@senars/io`.
+
 ## `./config/cognitive-parameters`
 
 - `CognitiveParameters` — Cognitive Architecture Parameters
 
-- `PriorityConfig` — Priority Management */
+- `PriorityConfig`
 
 - `LMConfig`
 
@@ -358,9 +400,11 @@ _Dynamic subpath (no single entry file)._
 
 - `MemoryConfig`
 
-- `DEFAULT_COGNITIVE_PARAMETERS` — selectionStrategy: 'all',
+- `buildDefaults` — Build default parameters from the shared cognitive bounds.
 
-- `FAST_COGNITIVE_CONFIG`
+- `DEFAULT_COGNITIVE_PARAMETERS`
+
+- `FAST_COGNITIVE_CONFIG` — Fast inference configuration - minimal LM usage
 
 - `LM_HEAVY_CONFIG` — LM-heavy configuration - maximum enhancement
 
@@ -371,6 +415,8 @@ _Dynamic subpath (no single entry file)._
 - `validateParameters` — Validate cognitive parameters
 
 - `mergeParameters`
+
+- `sameStrategies` — Per-slot strategy change detection — avoids serializing the whole strategy graph to compare it.
 
 ## `./engine`
 
@@ -390,7 +436,11 @@ _Dynamic subpath (no single entry file)._
 
 - `type SeededBelief`
 
-- `seedBelief` — Narsese, e.g. `(up ==> wall_bump)`. The antecedent atom names the action. */
+- `seedBelief` — Inject a Narsese rule belief into the focus's task bag (E7 Self-Concept-Vocabulary pattern).
+
+- `induceEpisodeSchemas`
+
+- `type PromotedSchema`
 
 - `Focus`
 
@@ -400,11 +450,19 @@ _Dynamic subpath (no single entry file)._
 
 - `createFocusScheduler`
 
-- `FocusScheduler`
+- `FocusScheduler` — Production multi-focus drive loop (TODO17 A1): per tick, weighted-sample a
 
 - `type FocusSchedulerOptions`
 
 - `type SchedulerTickResult`
+
+- `createFocusTree`
+
+- `FocusTree`
+
+- `type FocusTreeOptions`
+
+- `type FocusTreeRollup`
 
 - `createGameFocus`
 
@@ -414,25 +472,21 @@ _Dynamic subpath (no single entry file)._
 
 - `MetaFocus`
 
-- `induceEpisodeSchemas`
+- `type NalABResult`
 
-- `type PromotedSchema`
+- `runNalAB`
 
 - `SchemaStore`
 
 - `type StoredSchema`
 
-- `runNalAB`
-
-- `type NalABResult`
-
 ## `./game`
 
-- `BanditGame` — Optional non-stationarity: means drift every `changeInterval` steps. */
+- `BanditGame` — Multi-armed bandit as a `Game` (DQ2: no Environment layer). Bernoulli rewards;
 
 - `createBanditGame`
 
-- `ArithmeticGame`
+- `ArithmeticGame` — Arithmetic quiz: answer `a+b` or `a−b` by picking among shuffled candidates
 
 - `createArithmeticGame`
 
@@ -460,7 +514,7 @@ _Dynamic subpath (no single entry file)._
 
 - `createTicTacToeGame`
 
-- `minimax` — Opponent policy for O: random (default) or perfect minimax. */
+- `minimax` — Perfect-play minimax (the game-theoretic parity anchor). Scores from X's perspective.
 
 - `TicTacToeGame`
 
@@ -474,7 +528,7 @@ _Dynamic subpath (no single entry file)._
 
 - `GameRegistry` — Open registry of playable games — adding a game is implementing `Game` + one spec.
 
-- `UnknownGameError` — Arcade identifier (snake, bandit, …). */
+- `UnknownGameError` — Thrown for an unknown game name; callers fail loudly, never silently skip.
 
 - `createMetaGame`
 
@@ -483,6 +537,18 @@ _Dynamic subpath (no single entry file)._
 - `createSelfMetaGame`
 
 - `SelfMetaGameImpl`
+
+- `createReasoningGame` — Assemble a spec: absent sensor/action/reward lists default to the library seeds.
+
+- `REASONING_SPECS` — Domain presets (R1): per-domain spec data.
+
+- `ReasoningGame`
+
+- `describeMetaGameActions` — Operation strings are domain-tagged for kernel ActionGate enforcement.
+
+- `FOCUS_WEIGHT_STEPS` — C5: the per-game MetaGame as a thin spec over the component library —
+
+- `KNOB_SET_VALUES`
 
 ## `./health`
 
@@ -511,6 +577,10 @@ _Dynamic subpath (no single entry file)._
 - `createSchemaInductor`
 
 - `SchemaInductor`
+
+## `./dialogue`
+
+_Re-export barrel._
 
 ## `./lm`
 
@@ -550,7 +620,7 @@ _Dynamic subpath (no single entry file)._
 
 - `type ConfiguredRuleSpec`
 
-- `createConfiguredLMRules`
+- `createConfiguredLMRules` — Builds LM rules from validated config entries (senars.config.json `bot.lmRules.rules`).
 
 - `LMRules`
 
@@ -562,7 +632,7 @@ _Dynamic subpath (no single entry file)._
 
 - `LMService`
 
-- `getProviderRuntime` — Session-level demotions: a demoted model sinks to the back of the chain. */
+- `getProviderRuntime` — Process-wide default instance backing the module-level provider API.
 
 - `type ProviderHealth`
 
@@ -676,7 +746,7 @@ _Dynamic subpath (no single entry file)._
 
 - `createMockLMService`
 
-- `SpendLedger` — Cumulative cost in milli-dollars (MODEL_CAPABILITIES.costPerMTok × tokens). */
+- `SpendLedger` — H3: per-provider spend ledger (token totals from AI-SDK usage + capability table).
 
 ## `./lm/providers/llamacpp`
 
@@ -688,7 +758,7 @@ _Dynamic subpath (no single entry file)._
 
 - `LlamaCppFetchOptions`
 
-- `MODEL_PLACEHOLDER` — Inject chat_template_kwargs {thinking:false} (Qwen-family reasoning models). */
+- `MODEL_PLACEHOLDER` — Placeholder model id; substituted with the server's loaded alias on first request.
 
 - `createLlamaCppFetch` — Native fetch for llama.cpp's OpenAI-compatible server: passes GBNF `grammar`
 
@@ -708,9 +778,9 @@ _Dynamic subpath (no single entry file)._
 
 ## `./lm/rule-templates/fallbacks`
 
-- `SymbolicFallback` — Pure-NAL symbolic fallbacks for LM rules: zero LM dependency, safe on any model.
+- `SymbolicFallback`
 
-- `templateTranslation`
+- `templateTranslation` — "X is Y" → (X --> Y). Template parser standing in for constrained JSON translation.
 
 - `similarityFallback` — Structural match admitted as a NAL similarity belief.
 
@@ -724,11 +794,13 @@ _Dynamic subpath (no single entry file)._
 
 ## `./lm/shadow-validation`
 
-- `BeliefLike` — Shadow validation (TODO13 3.3): LLM-generated Narsese tasks are checked
+- `BeliefLike`
 
 - `ShadowCheckOptions`
 
-- `ShadowSystemOneDeps`
+- `ShadowSystemOneDeps` — F5: conflict-head consumer — semantic conflict verdict alongside the frequency check.
+
+- `ShadowValidationResult` — Result of shadow validation with details for decision-path recording.
 
 - `ShadowValidator`
 
@@ -792,7 +864,7 @@ _Dynamic subpath (no single entry file)._
 
 - `deserialize`
 
-- `encodeMemoryState`
+- `encodeMemoryState` — Schema-pinned, versioned persistence format for the memory dump (StateCodec, TODO20 X7).
 
 - `repair`
 
@@ -824,17 +896,21 @@ _Dynamic subpath (no single entry file)._
 
 ## `./memory/episodic`
 
+- `EpisodeSchema` — Episode schema for Ledger-backed EpisodicMemory.
+
+- `LedgerEpisode`
+
 - `EpisodicMemory`
 
 ## `./memory/retrieval-verified`
 
 - `ConsolidationOptions`
 
-- `ConsolidationResult` — Episodes considered per consolidation pass. */
+- `ConsolidationResult`
 
 - `ConsolidatorDeps`
 
-- `consolidateEpisodes`
+- `consolidateEpisodes` — Retrieval-verified long-term memory consolidation:
 
 ## `./nl`
 
@@ -866,11 +942,11 @@ _Dynamic subpath (no single entry file)._
 
 - `OtelConfig`
 
-- `initOtel` — Additional span processors (tests use an in-memory collector). */
+- `initOtel`
 
 - `getTracer`
 
-- `withSpan`
+- `withSpan` — O1 helper: run `fn` inside an active span; attributes settable via the handle.
 
 - `decisionSpan` — O1/O4 helper: fire-and-forget span for high-frequency decisions (gate verdicts).
 
@@ -884,11 +960,31 @@ _Dynamic subpath (no single entry file)._
 
 - `emitSpanEvent`
 
+- `emitBudgetSliceCreated` — F1: BudgetSlice operation span events.
+
+- `emitBudgetSliceConsumed`
+
+- `emitBudgetSliceExhausted`
+
+- `emitBudgetSliceMerged`
+
+- `emitBagPressureTransition` — F1: Bag pressure transition span event.
+
+- `emitBackpressureDecision` — F1: Backpressure decision span event.
+
+- `emitStrategySelection` — F1: Strategy selection span event.
+
 - `recordCognitiveEvents`
 
 - `shutdownOtel`
 
 ## `./reflex`
+
+- `NalVetoArbitration` — Extracted Negotiator default: reflex best-of with the NAL trap veto (Bench-15).
+
+- `WeightedQuorum` — Consensus arbitration (opt-in): NAL derivations vote on proposed actions
+
+- `MettaProposer`
 
 - `forwardingReflex` — Forwards `prefetch` (all arguments) to the wrapped reflex.
 
@@ -904,13 +1000,13 @@ _Dynamic subpath (no single entry file)._
 
 - `wrapReflex` — Compose a wrapper chain around a base reflex: `wrapReflex(base, recordingReflex(), vetoAwareReflex())`.
 
-- `EpsilonGreedyReflex`
+- `EpsilonGreedyReflex` — ε-greedy: the mean estimate, with bounded random exploration of young arms.
 
 - `Negotiator`
 
 - `TabularQReflex`
 
-- `UCBReflex`
+- `UCBReflex` — UCB1: optimistic untried arms, confidence-scaled exploration thereafter.
 
 ## `./rlfp`
 
@@ -980,13 +1076,157 @@ _Re-export barrel._
 
 _Dynamic subpath (no single entry file)._
 
+## `./terms`
+
+- `containsSubterm`
+
+- `getAntecedent`
+
+- `getArgs`
+
+- `getConsequent`
+
+- `getPredicate`
+
+- `getSubject`
+
+- `isConjunction`
+
+- `isDisjunction`
+
+- `isEquivalence`
+
+- `isImplication`
+
+- `isInheritance`
+
+- `isInstance`
+
+- `isNegation`
+
+- `isOperation`
+
+- `isParallel`
+
+- `isPredictive`
+
+- `isProperty`
+
+- `isRetrospective`
+
+- `isSequence`
+
+- `isSimilarity`
+
+- `mentionsSymbol`
+
+- `sameKind`
+
+- `sharesSymbol`
+
+- `termKey` — Canonical structural key for a term — the single identity used for maps, memoization, and link ids.
+
+- `termsEqual` — Structural term equality. `undefined` is accepted so optional-arg probes need no guard.
+
+- `visitTerms`
+
+- `getTermComplexity`
+
+- `atom`
+
+- `freeze`
+
+- `TermBuilder`
+
+- `TermFactory`
+
+- `normalize`
+
+- `ParseError`
+
+- `TermParser`
+
+- `termParser`
+
+- `deserializeTerm`
+
+- `fromNarsese` — Canonical Narsese string → Term API. Delegates to {@link deserializeTerm}.
+
+- `serializeTerm`
+
+- `toNarsese` — Canonical term → Narsese string API. Delegates to {@link serializeTerm}.
+
+- `getTermSimilarity`
+
+- `deserializeStamp`
+
+- `observeStampId` — Advance the ID counter past a persisted ID so reloaded stamps never collide
+
+- `Stamp`
+
+- `serializeStamp`
+
+- `substituteVariables`
+
+- `TermCollection`
+
+- `parseTermToEdges`
+
+- `type TermEdge`
+
+- `TermMap`
+
+- `TermSet`
+
+- `isTruthEqual`
+
+- `Truth`
+
+- `getTermArg`
+
+- `getTermArgs`
+
+- `isAtomic`
+
+- `isCompound`
+
+- `isVariableSymbol`
+
+- `OPERATORS` — Operator definitions - standalone to avoid circular dependencies
+
+- `unify`
+
+- `calculateSimilarity`
+
+- `extractSymbols`
+
+- `isInvalidTaskTerm`
+
+- `isTautology`
+
+- `validateTaskTerm`
+
 ## `./tick`
 
 - `emitSpanEvent`
 
+- `emitBudgetSliceCreated` — F1: BudgetSlice operation span events.
+
+- `emitBudgetSliceConsumed`
+
+- `emitBudgetSliceExhausted`
+
+- `emitBudgetSliceMerged`
+
+- `emitBagPressureTransition` — F1: Bag pressure transition span event.
+
+- `emitBackpressureDecision` — F1: Backpressure decision span event.
+
+- `emitStrategySelection` — F1: Strategy selection span event.
+
 - `getTracer`
 
-- `initOtel` — Additional span processors (tests use an in-memory collector). */
+- `initOtel`
 
 - `instrumentPipeline`
 
@@ -1002,9 +1242,11 @@ _Dynamic subpath (no single entry file)._
 
 - `toCognitiveEvents`
 
-- `createPipeline`
+- `// Phase F (audit M6): the `@deprecated` createPipeline alias no longer
+  // re-exports from the barrel; consumers import createTickPipeline directly.
+  createTickContext`
 
-- `createTickContext`
+- `createTickPipeline`
 
 - `DEFAULT_PIPELINE`
 
@@ -1027,3 +1269,63 @@ _Re-export barrel._
 - `AgentOptionsSchema`
 
 - `AgentOptions`
+
+## `./kernel`
+
+- `loadGateEvents`
+
+- `persistGateLogs`
+
+- `replayCognitiveState`
+
+- `replayTaskAdmissions`
+
+- `createGateRegistry` — Per-instance gate registry factory (TODO19 F2): each NAR/agent owns its own registry, enabling gate isolation in one process.
+
+- `GateRegistry`
+
+- `gateRegistry`
+
+- `resetGateRegistry` — Resets the process-global registry singleton (test isolation: suites mutating autonomy/allowlists must not leak across files).
+
+- `KernelGate`
+
+- `KernelActionGate`
+
+- `NALVetoError` — Typed NAL-veto error for callers that convert a gate veto result
+
+- `KernelBudgetGate`
+
+- `KernelPerceptionGate`
+
+- `EpistemicFirewallViolation`
+
+- `ExternalRewardGate`
+
+- `KernelRewardGate`
+
+- `SelfRewardGate`
+
+- `computeReplayStateHash` — Deterministic content hash of a replay outcome — the C14 replay verification token.
+
+- `type FullReplayOptions`
+
+- `loadDerivationRecords`
+
+- `persistDerivationRecords`
+
+- `type ReplayResult`
+
+- `type ReplaySnapshotFile`
+
+- `type ReplaySnapshotStats`
+
+- `replayIntoMemory`
+
+- `serializeReplayResult`
+
+- `verifyReplayStateHash`
+
+- `ThreadScope` — ThreadScope provides isolated state per correlationId.
+
+- `threadScope` — Singleton instance for the process.

@@ -19,6 +19,8 @@ export {
   isNarsese,
   isNil,
   limitList,
+  type LruCacheOptions,
+  LruCache,
   makeId,
   mean,
   mul32,

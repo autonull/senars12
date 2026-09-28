@@ -140,6 +140,27 @@ export const ucb1 = (value: number, visits: number, totalVisits: number, c: numb
   return value + c * Math.sqrt(Math.log(Math.max(1, totalVisits)) / visits);
 };
 
+/**
+ * Deterministic JSON with object keys emitted in sorted order — the single
+ * serializer behind every cache key and content digest, so two structurally
+ * equal values always digest identically regardless of insertion order.
+ * `undefined` members are dropped, matching `JSON.stringify`.
+ */
+export function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
+  if (ArrayBuffer.isView(value)) {
+    return JSON.stringify(Array.from(value as unknown as ArrayLike<number>));
+  }
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(',')}}`;
+}
+
+/** Structural equality via {@link stableStringify} — order-insensitive for object keys. */
+export const deepEqual = (a: unknown, b: unknown): boolean => stableStringify(a) === stableStringify(b);
+
 /** Lowercased word-token set — the tokenizer behind every text-similarity path. */
 export const tokenizeWords = (text: string, splitPattern: RegExp = /\s+/): Set<string> =>
   new Set(text.toLowerCase().split(splitPattern).filter(Boolean));

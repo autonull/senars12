@@ -93,8 +93,10 @@ const describeEntry = (file: string): Array<{ name: string; summary: string }> =
   const out: Array<{ name: string; summary: string }> = [];
   const exportRe =
     /^export (?:async )?(?:const|function|class|interface|type|enum)\s+([A-Za-z0-9_]+)/gm;
+  // The body must not span a `*/`, or a doc comment on an interface field
+  // swallows the next declaration and is attributed to it.
   const jsdocRe =
-    /\/\*\*([\s\S]*?)\*\/\s*(?:export )?(?:async )?(?:const|function|class|interface|type|enum)\s+[A-Za-z0-9_]+/g;
+    /\/\*\*((?:(?!\*\/)[\s\S])*?)\*\/\s*(?:export\s+)?(?:async\s+)?(?:const|function|class|interface|type|enum)\s+[A-Za-z0-9_]+/g;
   const summaries = new Map<string, string>();
   for (const m of text.matchAll(jsdocRe)) {
     const decl = /(?:export )?(?:const|function|class|interface|type|enum)\s+([A-Za-z0-9_]+)/.exec(

@@ -1,3 +1,4 @@
+import { makeId } from '@senars/util';
 import type {
   PolicyViolationEvent,
   RewardDomain,
@@ -6,7 +7,6 @@ import type {
   SelfImprovementProposal,
 } from '@senars/kernel/schemas';
 import { SelfImprovementProposalSchema } from '@senars/kernel/schemas';
-import { v4 as uuidv4 } from 'uuid';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
 import { KernelGate } from './gate-base.js';
 
@@ -82,7 +82,7 @@ export class ExternalRewardGate extends KernelRewardGate {
     eventId?: string;
   }): RewardGateOutput {
     return this.process({
-      eventId: outcome.eventId ?? uuidv4(),
+      eventId: outcome.eventId ?? makeId(),
       rewardSignal: outcome.rewardSignal,
       rewardType: outcome.rewardType,
       targetType: 'policy-weights',
@@ -111,10 +111,10 @@ export class SelfRewardGate extends KernelRewardGate {
     kind: SelfImprovementProposal['kind'],
     payload: Record<string, unknown>,
     rewardDomain: RewardDomain,
-    correlationId = uuidv4()
+    correlationId = makeId()
   ): SelfImprovementProposal {
     return SelfImprovementProposalSchema.parse({
-      proposalId: uuidv4(),
+      proposalId: makeId(),
       kind,
       riskTier: PROPOSAL_RISK[kind],
       payload,
@@ -127,7 +127,7 @@ export class SelfRewardGate extends KernelRewardGate {
     kind: SelfImprovementProposal['kind'],
     payload: Record<string, unknown>,
     rewardDomain: RewardDomain,
-    correlationId = uuidv4()
+    correlationId = makeId()
   ): SelfImprovementProposal {
     const proposal = this.propose(kind, payload, rewardDomain, correlationId);
     this.queue.push(proposal);

@@ -5,6 +5,7 @@
  * reach-in); `nar.ts` re-binds them as thin methods. Init guards live in a
  * WeakSet so per-instance semantics survive the extraction.
  */
+import { makeId } from '@senars/util';
 import { createBootstrapTasks } from '../drives';
 import { getModelForTask } from '../lm/providers/chains.js';
 import { LMRules } from '../lm/rule-selectors/factory.js';
@@ -22,7 +23,6 @@ import type { Tool } from '../tools';
 import { errMsg } from '../utils';
 import type { NAR } from '../nar.js';
 import type { SelfImprovementProposal, AutonomyMode } from '@senars/kernel/schemas';
-import { v4 as uuidv4 } from 'uuid';
 
 const initialized = new WeakSet<NAR>();
 const toolsInitialized = new WeakSet<NAR>();
@@ -186,7 +186,7 @@ export const consolidateLearning = async (
       const mode = nar.gates.getActionGate().getAutonomyMode();
       for (const result of results) {
         const proposal: SelfImprovementProposal = {
-          proposalId: uuidv4(),
+          proposalId: makeId(),
           kind: 'schema-promotion',
           riskTier: 'low',
           payload: {
@@ -252,7 +252,7 @@ export const consolidateLearning = async (
                         const mode = nar.gates.getActionGate().getAutonomyMode();
                         console.log(`[consolidateLearning] Submitting to governance resolver, mode: ${mode}`);
                         const proposal: SelfImprovementProposal = {
-                          proposalId: uuidv4(),
+                          proposalId: makeId(),
                           kind: 'metta-rule-adoption',
                           riskTier: 'low',
                           payload: {

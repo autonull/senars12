@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { makeId } from '@senars/util';
 import { termParser } from '../terms/index.js';
 import type { Focus, FocusTask } from './Focus.js';
 
@@ -15,7 +15,7 @@ export function seedBelief(focus: Focus, belief: SeededBelief): FocusTask | null
   if (!term || term.kind === 'atom') return null;
   const priority = belief.priority ?? belief.truth.c;
   const task: FocusTask = {
-    id: `seeded-${uuidv4()}`,
+    id: `seeded-${makeId()}`,
     priority,
     term,
     type: 'belief',

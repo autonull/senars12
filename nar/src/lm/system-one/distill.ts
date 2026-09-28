@@ -1,4 +1,4 @@
-import { SHA256_PINNED, sha256Hex } from '@senars/util';
+import { SHA256_PINNED, makeId, sha256Hex } from '@senars/util';
 
 import { promises as fs } from 'node:fs';
 import { dirname } from 'node:path';
@@ -10,7 +10,6 @@ import {
   type RolloverPolicyOptions,
 } from '@senars/io/ledger';
 import type { SelfImprovementProposal } from '@senars/kernel/schemas';
-import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
 import { Truth, type Truth as TruthType } from '../../terms/truth.js';
@@ -337,7 +336,7 @@ export function buildHeadSwapProposal(
   bakeOff: BakeOffResult
 ): SelfImprovementProposal {
   return {
-    proposalId: uuidv4(),
+    proposalId: makeId(),
     kind: 'patch-apply',
     riskTier: 'medium',
     payload: {
@@ -363,7 +362,7 @@ export function buildSabotageFlag(
   violations: readonly string[]
 ): SelfImprovementProposal {
   return {
-    proposalId: uuidv4(),
+    proposalId: makeId(),
     kind: 'patch-apply',
     riskTier: 'high',
     payload: {

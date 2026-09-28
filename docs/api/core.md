@@ -16,7 +16,37 @@
 
 - `ApprovalService`
 
+- `InMemoryApprovalManager` — In-memory pending-approval registry: the default `ApprovalManager` implementation.
+
 - `createChatService`
+
+- `type BudgetAllocation`
+
+- `CognitiveThread`
+
+- `type CognitiveThreadOptions`
+
+- `createCognitiveThread` — Create a cognitive thread with default options.
+
+- `createRootBudget` — Create a root budget slice for the main thread.
+
+- `type JoinResult`
+
+- `type SpawnResult`
+
+- `type ThreadMessage`
+
+- `ThreadPool` — Thread pool for managing multiple threads.
+
+- `type ThreadScope`
+
+- `type ThreadStatus`
+
+- `type CoActivationEdge`
+
+- `ConceptGraph`
+
+- `type ConceptGraphOptions`
 
 - `ConfigViewImpl`
 
@@ -70,6 +100,8 @@
 
 - `errMsg`
 
+- `estimateTokens`
+
 - `extractTerm`
 
 - `generateId`
@@ -88,13 +120,13 @@
 
 - `BaseComponent`
 
-- `registerLogEnricher`
-
 - `createLogger`
 
 - `defaultLogger`
 
 - `Logger`
+
+- `registerLogEnricher`
 
 - `BUILTIN_LENS_IDS` — Built-in lens IDs shipped with the system.
 
@@ -222,19 +254,9 @@
 
 ## `./cognitive-event`
 
-- `EngineOrigin`
-
-- `CognitiveEventBase`
-
-- `CognitiveEvent`
-
-- `isNarEvent`
-
 - `isEventType`
 
-- `ChatOptions`
-
-- `ChatStreamEvent`
+- `isNarEvent`
 
 ## `./protocol`
 
@@ -310,13 +332,7 @@
 
 ## `./logger`
 
-- `LogLevel`
-
-- `LogEntry`
-
-- `LoggerConfig` — Injected by the registered log enricher (see registerLogEnricher). */
-
-- `LoggerInterface`
+- `LoggerInterface` — Core's logger surface: the shared `ScopedLogger` plus core's deprecation helpers.
 
 - `registerLogEnricher`
 
@@ -342,7 +358,13 @@
 
 - `errMsg`
 
+- `estimateTokens`
+
 - `extractTerm`
+
+- `fnv1a`
+
+- `fnv1aCombine`
 
 - `generateId`
 
@@ -354,7 +376,15 @@
 
 - `limitList`
 
+- `type LruCacheOptions`
+
+- `LruCache`
+
 - `makeId`
+
+- `mean`
+
+- `mul32`
 
 - `sleep`
 
@@ -390,25 +420,83 @@ _Re-export barrel._
 
 - `Agent`
 
+- `InMemorySessionManager`
+
+- `JsonlSessionManager`
+
+- `createSession`
+
+- `abortSession`
+
+- `createCognitiveAgent`
+
+- `type CognitiveAgent`
+
+- `type CognitiveAgentConfig`
+
+- `type CognitiveAgentPreset`
+
+- `type AnswerEnvelope`
+
+## `./agent/*`
+
+_Dynamic subpath (no single entry file)._
+
 ## `./agent/phases`
 
-- `CycleHost` — Agent reasoning cycle phases, extracted from Agent.cycle for modularity.
+- `DEFAULT_MACRO_PIPELINE`
 
 - `runCycle`
 
+- `createCapturePhase`
+
+- `createReflectPhase` — Opt-in phase: metacognitive reflection over the completed cycle.
+
+## `./agent/pipeline`
+
+- `CycleHost` — Shared macro-cycle pipeline (REFACTOR.todo1 Phase A).
+
+- `NarrationTier`
+
+- `MacroCycleState`
+
+- `MacroContext`
+
+- `MacroPhase`
+
+- `dispatchMacro` — Onion dispatch — delegated to shared primitive in `@senars/util`.
+
+- `createMacroContext`
+
+- `motorTools`
+
+- `ExchangeCapture` — Opt-in phase: promotes an exchange to dialogue capture (replaces fire-and-forget bot hooks).
+
+- `createCapturePhase`
+
+- `createReflectPhase` — Opt-in phase: metacognitive reflection over the completed cycle.
+
+## `./agent/types`
+
+- `AgentOptions`
+
+- `ParsedCommand`
+
+- `AgentPresetName`
+
+- `AgentPresetDeps`
+
+- `AgentPresetResult`
+
+- `ValidatedAgentOptions`
+
+- `BridgeOptions` — Refines the canonical util contract with core-owned memory typing; the auth/commandRegistry
+
+- `BridgeContext`
+
 ## `./engine`
 
-- `EngineId`
-
-- `CognitiveStimulus`
-
-- `Context`
-
-- `Derivation`
-
-- `ToolResult`
-
-- `Engine`
+_Re-export barrel._
 
 ## `./engine/base`
 
@@ -485,3 +573,41 @@ _Re-export barrel._
 - `LLMCortex`
 
 - `type PromptBuilder`
+
+## `./concept-graph`
+
+- `CoActivationEdge`
+
+- `ConceptGraphOptions`
+
+- `ConceptGraph`
+
+- `SerializedConceptGraph`
+
+## `./cognitive-thread`
+
+- `ThreadStatus`
+
+- `ThreadMessage`
+
+- `BudgetAllocation`
+
+- `CognitiveThreadOptions`
+
+- `SpawnResult`
+
+- `JoinResult`
+
+- `ThreadMailbox`
+
+- `CognitiveThread`
+
+- `ThreadPool` — Thread pool for managing multiple threads.
+
+- `ThreadScope` — Deprecated alias for backward compatibility.
+
+- `ThreadScope` — Deprecated alias for backward compatibility.
+
+- `createRootBudget` — Create a root budget slice for the main thread.
+
+- `createCognitiveThread` — Create a cognitive thread with default options.

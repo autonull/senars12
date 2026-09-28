@@ -356,7 +356,7 @@ export async function* runCycleStream(
       ctx.stream.close();
     }
   })();
-  yield* ctx.stream.drain();
+  yield* ctx.stream;
   await running;
   return host.getLastResponse() || ctx.state.narrativeText;
 }

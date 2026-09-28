@@ -1,6 +1,6 @@
 import type { LanguageModel } from 'ai';
 import { generateObject, zodSchema } from 'ai';
-import { formatTruth } from '@senars/util';
+import { formatTruth, stableStringify } from '@senars/util';
 import type { SeNARSRegistry } from '../lm';
 import { getModelForTask } from '../lm';
 import type { ILMService } from '../lm/interfaces.js';
@@ -76,7 +76,7 @@ export class NLGenerationService {
   async generate(input: GenerationInput): Promise<GenerationOutput> {
     let key = '';
     try {
-      key = JSON.stringify(input);
+      key = stableStringify(input);
     } catch {
       key = `${Date.now()}:${Math.random()}`;
     }

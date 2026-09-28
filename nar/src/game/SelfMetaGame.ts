@@ -1,5 +1,4 @@
-import { clamp01 } from '@senars/util';
-import { v4 as uuidv4 } from 'uuid';
+import { clamp01, makeId } from '@senars/util';
 import type { ParameterLedger } from '../config/parameter-ledger.js';
 import {
   createParameterTable,
@@ -118,7 +117,7 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
     if (!this.scheduler) return;
     const reward = SelfMetaGameImpl.schedulerReward(report);
     const check = this.scheduler.rewardGate.process({
-      eventId: uuidv4(),
+      eventId: makeId(),
       rewardSignal: reward,
       rewardType: 'intrinsic',
       targetType: 'policy-weights',

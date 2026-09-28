@@ -8,9 +8,8 @@ import type {
   ShadowValidationDropEvent,
 } from '@senars/kernel/schemas';
 import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/kernel/schemas';
-import { v4 as uuidv4 } from 'uuid';
 import { normalizeNarsese } from '../nl/normalize.js';
-import { asBeliefTruth, errMsg, type TruthLike } from '@senars/util';
+import { asBeliefTruth, errMsg, makeId, type TruthLike } from '@senars/util';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
 import { KernelGate } from './gate-base.js';
 import { domainKey } from './reputation-keys.js';
@@ -288,7 +287,7 @@ export class KernelPerceptionGate extends KernelGate {
     const { term, taskType, truth, source, confidence, correlationId } = params;
     const defaults = this.config.defaultBudget;
     const task: TaskAdmittedEvent['payload'] = {
-      taskId: uuidv4(),
+      taskId: makeId(),
       term: term.toString(),
       taskType,
       ...(truth ? { truth: asBeliefTruth(truth) } : {}),

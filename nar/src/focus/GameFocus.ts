@@ -1,8 +1,7 @@
 import { join } from 'node:path';
-import { asBeliefTruth, clamp, pushCapped } from '@senars/util';
+import { asBeliefTruth, clamp, makeId, pushCapped } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
 import type { DerivationRecord, ReasoningBudget } from '@senars/kernel/schemas';
-import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { PriorityBag } from '../bag/Bag.js';
 import type { Game, GameOutcome, Perception } from '../game/Game.js';
@@ -263,14 +262,14 @@ export class GameFocus {
   ): DerivationRecord {
     const premise = derivation.premise ?? action;
     const premiseTruth = asBeliefTruth(derivation.truth);
-    const stepId = uuidv4();
+    const stepId = makeId();
     const derived = {
       frequency: premiseTruth.frequency * premiseTruth.frequency,
       confidence: premiseTruth.confidence * premiseTruth.confidence,
     };
     return {
-      derivationId: uuidv4(),
-      taskId: uuidv4(),
+      derivationId: makeId(),
+      taskId: makeId(),
       goalTerm: `veto(${action})`,
       steps: [
         {
@@ -503,7 +502,7 @@ export class GameFocus {
   private actStage(t: TickState): void {
     if (t.decision.actionExecuted) {
       const auth = this.gates.getActionGate().authorize({
-        proposalId: uuidv4(),
+        proposalId: makeId(),
         operation: `game:${this.focus.id}:${t.decision.actionExecuted}`,
         args: {},
       });
@@ -534,7 +533,7 @@ export class GameFocus {
 
       // REWARD: epistemic firewall — reward may only tune policy, never truth
       const firewall = this.gates.getRewardGate().process({
-        eventId: uuidv4(),
+        eventId: makeId(),
         rewardSignal: clamp(t.gameOutcome.reward, -1, 1),
         rewardType: 'extrinsic',
         targetType: 'policy-weights',

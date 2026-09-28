@@ -7,8 +7,7 @@ import type {
 } from '@senars/kernel/schemas';
 import { AutonomyModeChangedEventSchema } from '@senars/kernel/schemas';
 import { SenarsError } from '@senars/util/errors';
-import { v4 as uuidv4 } from 'uuid';
-import { pushCapped } from '@senars/util';
+import { makeId, pushCapped } from '@senars/util';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
 import { KernelGate } from './gate-base.js';
 import { recordGateDecision } from '../telemetry/index.js';
@@ -83,7 +82,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
   requestModeChange(
     newMode: AutonomyMode,
     authorizedBy: AutonomyAuthority,
-    correlationId = uuidv4()
+    correlationId = makeId()
   ): { changed: boolean; reason?: string } {
     const prev = this.autonomyMode;
     if (prev === newMode) return { changed: true };
@@ -169,7 +168,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
         vetoReason: `Operation '${action}' not permitted in scope ${scopeId}`,
         requiredApprovals: ['human-approval'],
       };
-    return { authorized: true, toolCallId: uuidv4() };
+    return { authorized: true, toolCallId: makeId() };
   }
 
   registerNALDerivation(derivationId: string, conclusion: string, veto: boolean = false): void {
@@ -234,7 +233,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
       };
     }
 
-    const toolCallId = uuidv4();
+    const toolCallId = makeId();
     return {
       authorized: true,
       toolCallId,

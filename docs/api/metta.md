@@ -2,14 +2,6 @@
 
 ## `.`
 
-- `Cache`
-
-- `type CacheOptions`
-
-- `type CacheStats`
-
-- `type EvictionPolicy`
-
 - `Concept`
 
 - `ConceptBag`
@@ -30,7 +22,7 @@
 
 - `type InternOptions`
 
-- `SymbolInterner`
+- `SymbolInterner` — Bounded, recency-ordered name → symbol intern table (cold names age out).
 
 - `clearOps`
 
@@ -80,7 +72,7 @@
 
 - `globalJIT`
 
-- `JITCompiler`
+- `JITCompiler` — Hot-pattern detector and compiled-code store over bounded recency caches.
 
 - `parallelMap`
 

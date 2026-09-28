@@ -1,36 +1,48 @@
+import { LruCache } from '@senars/core/helpers';
 import { hashAtom } from '../core/hash.js';
 import type { MeTTaAtom } from '../types/ast.js';
 
 export interface JitCacheEntry {
   readonly code: (...args: MeTTaAtom[]) => MeTTaAtom;
-  readonly hits: number;
   readonly compiledAt: number;
   readonly argTypes: readonly string[];
 }
 
+/** Hotness tally — the counter behind threshold promotion. */
+interface HotPattern {
+  count: number;
+  lastUsed: number;
+}
+
+const DEFAULT_HOT_PATTERNS = 4096;
+const DEFAULT_COMPILED = 1024;
+
+/** Hot-pattern detector and compiled-code store over bounded recency caches. */
 export class JITCompiler {
-  private hotPatterns = new Map<string, { count: number; lastUsed: number }>();
+  private readonly hotPatterns: LruCache<string, HotPattern>;
+  private readonly cache: LruCache<string, JitCacheEntry>;
   private threshold: number;
-  private cache = new Map<string, JitCacheEntry>();
 
   constructor(threshold = 100) {
     this.threshold = threshold;
+    this.hotPatterns = new LruCache({ maxSize: DEFAULT_HOT_PATTERNS });
+    this.cache = new LruCache({ maxSize: DEFAULT_COMPILED });
   }
 
   record(pattern: MeTTaAtom): void {
-    const key = String(hashAtom(pattern));
-    const existing = this.hotPatterns.get(key);
+    const key = this.keyOf(pattern);
+    const existing = this.hotPatterns.peek(key);
     if (existing) {
       existing.count++;
       existing.lastUsed = Date.now();
+      this.hotPatterns.set(key, existing);
     } else {
       this.hotPatterns.set(key, { count: 1, lastUsed: Date.now() });
     }
   }
 
   isHot(pattern: MeTTaAtom): boolean {
-    const key = String(hashAtom(pattern));
-    const entry = this.hotPatterns.get(key);
+    const entry = this.hotPatterns.peek(this.keyOf(pattern));
     return entry ? entry.count >= this.threshold : false;
   }
 
@@ -38,22 +50,16 @@ export class JITCompiler {
     pattern: MeTTaAtom,
     impl: (...args: MeTTaAtom[]) => MeTTaAtom
   ): (...args: MeTTaAtom[]) => MeTTaAtom {
-    const key = String(hashAtom(pattern));
-    const types = extractArgTypes(pattern);
-
-    this.cache.set(key, {
+    this.cache.set(this.keyOf(pattern), {
       code: impl,
-      hits: 0,
       compiledAt: Date.now(),
-      argTypes: types,
+      argTypes: extractArgTypes(pattern),
     });
-
     return impl;
   }
 
   getCompiled(pattern: MeTTaAtom): ((...args: MeTTaAtom[]) => MeTTaAtom) | undefined {
-    const key = String(hashAtom(pattern));
-    return this.cache.get(key)?.code;
+    return this.cache.get(this.keyOf(pattern))?.code;
   }
 
   getStats(): { hotPatterns: number; compiled: number; cacheSize: number } {
@@ -67,6 +73,10 @@ export class JITCompiler {
   clear(): void {
     this.hotPatterns.clear();
     this.cache.clear();
+  }
+
+  private keyOf(pattern: MeTTaAtom): string {
+    return String(hashAtom(pattern));
   }
 }
 

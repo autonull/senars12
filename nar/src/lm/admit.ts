@@ -1,8 +1,8 @@
+import { makeId } from '@senars/util';
 import { type GateRegistry, gateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
 import type { Task } from '../types';
 import { shadowValidator, type ShadowValidationResult } from './shadow-validation.js';
-import { v4 as uuidv4 } from 'uuid';
 import type { ShadowValidationDropEvent } from '@senars/kernel/schemas';
 
 export async function admitTasks(
@@ -26,7 +26,7 @@ export async function admitTasks(
         const dropEvent: ShadowValidationDropEvent = {
           engine: 'nar',
           timestamp: Date.now(),
-          correlationId: task.stamp?.id ?? uuidv4(),
+          correlationId: task.stamp?.id ?? makeId(),
           type: 'shadow.validation.dropped',
           payload: {
             candidateTerm: task.term.toString(),

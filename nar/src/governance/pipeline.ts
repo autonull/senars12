@@ -1,3 +1,4 @@
+import { makeId } from '@senars/util';
 import type {
   AutonomyMode,
   GovernanceDecision,
@@ -6,7 +7,6 @@ import type {
   RiskAssessment,
   SelfImprovementProposal,
 } from '@senars/kernel/schemas';
-import { v4 as uuidv4 } from 'uuid';
 import { findKnobSpec } from '../rlfp/knobs.js';
 import type { FocusStepReport } from '../focus/Focus.js';
 import type { SelfMetaGameImpl } from '../game/SelfMetaGame.js';
@@ -116,7 +116,7 @@ export class GovernanceResolver {
     const decision = this.policyEngine.decide(risk, mode);
     const routing = this.router.route(proposal, mode, actuators, this.validator);
 
-    const adaptationId = uuidv4();
+    const adaptationId = makeId();
     
     // Build derivation chain: parent chain + this adaptation
     const newDerivationChain = [...this.derivationChain, adaptationId];
@@ -202,14 +202,14 @@ export class GovernanceResolver {
     const original = this.adaptations[idx]!;
     // Create a reverse adaptation
     const restoreAdaptation: AdaptationRecord = {
-      adaptationId: uuidv4(),
+      adaptationId: makeId(),
       timestamp: Date.now(),
-      proposal: { ...original.proposal, proposalId: uuidv4() },
+      proposal: { ...original.proposal, proposalId: makeId() },
       decision: { action: 'REJECT', reason: `Restored from ${adaptationId}` },
       evidence: original.evidence,
       applied: true,
       restoredFrom: adaptationId,
-      derivationChain: [...(original.derivationChain ?? []), uuidv4()],
+      derivationChain: [...(original.derivationChain ?? []), makeId()],
     };
     this.adaptations.push(restoreAdaptation);
     // Update derivation chain to reflect the restore
@@ -458,7 +458,7 @@ export class GovernancePolicyEngine {
     mode: AutonomyMode
   ): GovernanceEvent {
     return {
-      eventId: uuidv4(),
+      eventId: makeId(),
       proposalId: proposal.proposalId,
       decision:
         decision.action === 'AUTO_MERGE'

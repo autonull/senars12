@@ -6,7 +6,6 @@ import type {
 import { validateFormalizationBatch } from '@senars/kernel/schemas';
 import type { LanguageModel } from 'ai';
 import { generateObject, generateText, zodSchema } from 'ai';
-import { v4 as uuidv4 } from 'uuid';
 import type { ZodSchema } from 'zod';
 import type { SeNARSRegistry } from '../lm';
 import { getModelForTask } from '../lm';
@@ -22,7 +21,7 @@ import { SingleFlight } from './singleflight.js';
 /** Canonical definitions live in types/events (EventMap depends on them); re-exported here for the nl surface. */
 export type { Ambiguity, Coreference, TaskBatch } from '../types/events.js';
 import type { TaskBatch } from '../types/events.js';
-import { asBeliefTruth, pct } from '@senars/util';
+import { asBeliefTruth, makeId, pct, stableStringify } from '@senars/util';
 import { parseJsonWith } from '../lm/json.js';
 
 export interface NLContext {
@@ -62,7 +61,7 @@ export class NLUnderstandingService {
     if (cached && typeof cached !== 'string') return this.sanitize(this.fromCached(cached));
     let ctxKey = '';
     try {
-      ctxKey = JSON.stringify(ctx ?? null);
+      ctxKey = stableStringify(ctx ?? null);
     } catch {
       ctxKey = '';
     }
@@ -346,7 +345,7 @@ export function toFormalizationBatch(input: string, batch: TaskBatch): Formaliza
     ...batch.beliefs.map((b): FormalizationCandidate => {
       const span = locateSpan(input, b.sourceText);
       return {
-        candidateId: uuidv4(),
+        candidateId: makeId(),
         narsese: b.narsese,
         taskType: 'belief',
         ...(b.truth ? { truth: asBeliefTruth(b.truth) } : {}),
@@ -358,7 +357,7 @@ export function toFormalizationBatch(input: string, batch: TaskBatch): Formaliza
     ...batch.questions.map((q): FormalizationCandidate => {
       const span = locateSpan(input, q.sourceText);
       return {
-        candidateId: uuidv4(),
+        candidateId: makeId(),
         narsese: q.narsese,
         taskType: 'question',
         confidence: 0.6,
@@ -369,7 +368,7 @@ export function toFormalizationBatch(input: string, batch: TaskBatch): Formaliza
     ...batch.goals.map((g): FormalizationCandidate => {
       const span = locateSpan(input, g.sourceText);
       return {
-        candidateId: uuidv4(),
+        candidateId: makeId(),
         narsese: g.narsese,
         taskType: 'goal',
         confidence: g.priority ?? 0.5,
@@ -379,7 +378,7 @@ export function toFormalizationBatch(input: string, batch: TaskBatch): Formaliza
     }),
   ];
   return validateFormalizationBatch({
-    batchId: uuidv4(),
+    batchId: makeId(),
     sourceText: input,
     candidates,
     detectedIntent: batch.meta.detectedIntent,

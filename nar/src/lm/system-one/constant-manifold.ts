@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { makeId } from '@senars/util';
 import { validateBatchQueries } from './algebra.js';
 import type {
   BackendId,
@@ -70,7 +70,7 @@ export class ConstantManifold implements JudgmentManifold {
       JudgmentProposition,
       'kind' | 'axis' | 'distribution' | 'top' | 'entropy' | 'score'
     > = {
-      queryId: uuidv4() as QueryId,
+      queryId: makeId() as QueryId,
       backendId,
       modelDigest,
       calibration: { version: calibrationVersion, ece },

@@ -1,6 +1,6 @@
 {
   "name": "@senars/nar",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "private": true,
   "exports": {
@@ -207,7 +207,6 @@
     "@senars/kernel": "workspace:*",
     "@senars/util": "workspace:*",
     "ulid": "^3.0.2",
-    "uuid": "^11.1.1",
     "zod": "^4.5.4"
   }
 }

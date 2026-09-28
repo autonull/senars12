@@ -1,101 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { Cache } from '../src/core/cache.js';
 import { ErrorCode, MeTTaError } from '../src/core/errors.js';
 import { equalAtoms, hashAtom } from '../src/core/hash.js';
 import { SymbolInterner } from '../src/core/intern.js';
 import { InMemorySpace } from '../src/core/space.js';
 import { expr, num, str, sym } from '../src/types/ast.js';
-
-describe('Cache', () => {
-  it('stores and retrieves values', () => {
-    using cache = new Cache({ policy: 'lru' });
-    cache.set('a', 'value-a');
-    expect(cache.get('a')).toBe('value-a');
-  });
-
-  it('returns undefined for missing keys', () => {
-    using cache = new Cache({ policy: 'lru' });
-    expect(cache.get('missing')).toBeUndefined();
-  });
-
-  it('tracks stats', () => {
-    using cache = new Cache({ policy: 'lru' });
-    cache.set('a', 'value-a');
-    cache.get('a');
-    cache.get('missing');
-    const stats = cache.getStats();
-    expect(stats.hits).toBe(1);
-    expect(stats.misses).toBe(1);
-    expect(stats.size).toBe(1);
-  });
-
-  it('evicts when maxSize is reached', () => {
-    using cache = new Cache({ maxSize: 2, policy: 'lru' });
-    cache.set('a', 'value-a');
-
-    cache.set('b', 'value-b');
-    cache.set('c', 'value-c');
-    expect(cache.get('a')).toBeUndefined();
-    expect(cache.get('b')).toBe('value-b');
-    expect(cache.get('c')).toBe('value-c');
-  });
-
-  it('supports TTL eviction', async () => {
-    using cache = new Cache({ ttl: 50 });
-    cache.set('a', 'value-a');
-    expect(cache.has('a')).toBe(true);
-    await new Promise((r) => setTimeout(r, 100));
-    expect(cache.has('a')).toBe(false);
-  });
-
-  it('supports LRU eviction', () => {
-    using cache = new Cache({ maxSize: 2, policy: 'lru' });
-    cache.set('a', 'value-a');
-    cache.set('b', 'value-b');
-    cache.get('a');
-    cache.set('c', 'value-c');
-    expect(cache.get('b')).toBeUndefined();
-  });
-
-  it('supports LFU eviction', () => {
-    using cache = new Cache({ maxSize: 2, policy: 'lfu' });
-    cache.set('a', 'value-a');
-    cache.set('b', 'value-b');
-    cache.get('a');
-    cache.set('c', 'value-c');
-    expect(cache.get('b')).toBeUndefined();
-  });
-
-  it('supports FIFO eviction', () => {
-    using cache = new Cache({ maxSize: 2, policy: 'fifo' });
-    cache.set('a', 'value-a');
-    cache.set('b', 'value-b');
-    cache.set('c', 'value-c');
-    expect(cache.get('a')).toBeUndefined();
-  });
-
-  it('calls onEvict callback', () => {
-    let evicted: { key: string; value: string } | undefined;
-    using cache = new Cache({
-      maxSize: 1,
-      policy: 'fifo',
-      onEvict: (k, v) => {
-        evicted = { key: k, value: v };
-      },
-    });
-    cache.set('a', 'value-a');
-    cache.set('b', 'value-b');
-    expect(evicted?.key).toBe('a');
-    expect(evicted?.value).toBe('value-a');
-  });
-
-  it('disposes properly', () => {
-    const cache = new Cache({ policy: 'lru' });
-    cache.set('a', 'value-a');
-    cache[Symbol.dispose]();
-    expect(cache.get('a')).toBeUndefined();
-  });
-});
 
 describe('SymbolInterner', () => {
   it('interns symbols', () => {
@@ -108,8 +16,16 @@ describe('SymbolInterner', () => {
   it('returns existing symbol', () => {
     using interner = new SymbolInterner();
     const s1 = interner.intern('hello');
-    const s2 = interner.get('hello');
-    expect(s1).toBe(s2);
+    expect(interner.get('hello')).toBe(s1);
+    expect(interner.has('hello')).toBe(true);
+  });
+
+  it('evicts least-recently-used names past capacity', () => {
+    using interner = new SymbolInterner({ maxSize: 1 });
+    interner.intern('a');
+    interner.intern('b');
+    expect(interner.has('a')).toBe(false);
+    expect(interner.has('b')).toBe(true);
   });
 });
 

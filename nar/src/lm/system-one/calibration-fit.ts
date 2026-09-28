@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { cachePath, sha256HexParts } from '@senars/util';
-import { mulberry32 } from '../../utils/random.js';
+import { holdoutSplit, mulberry32 } from '../../utils/random.js';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration.js';
 import type { JudgmentDataset } from './distill.js';
 import { identityECE, meanBrier } from './metrics.js';
@@ -99,10 +99,8 @@ export function extractLabeledDataWithDerivedOutcomes(
 }
 
 function split(data: readonly LabeledDatum[], holdoutFraction: number, seed: number) {
-  const rand = mulberry32(seed);
-  const shuffled = [...data].sort(() => rand() - 0.5);
-  const cut = Math.max(1, Math.floor(shuffled.length * holdoutFraction));
-  return { holdout: shuffled.slice(0, cut), fit: shuffled.slice(cut) };
+  const { holdout, train: fit } = holdoutSplit(data, holdoutFraction, mulberry32(seed));
+  return { holdout, fit };
 }
 
 /** Brier with abstain→0.5 fallback, used to select the per-head threshold. */

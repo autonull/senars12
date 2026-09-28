@@ -11,7 +11,7 @@ import {
 
 export { pearson };
 import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL_ID } from '../../memory/embedding.js';
-import { mulberry32 } from '../../utils/random.js';
+import { holdoutSplit, mulberry32 } from '../../utils/random.js';
 import { meanBrierOf } from './metrics.js';
 import type { CognitiveAxis, JudgmentHead, JudgmentQuery, RubricId } from './types.js';
 import { composeModelDigest, DigestMismatchError, encoderDigest } from './wasi-runtime.js';
@@ -206,10 +206,7 @@ export function trainHead(
   // dimension; the game block (shared heads) appends gameFeatureDim hashed dims.
   const dim = embeddingDim + gameFeatureDim;
 
-  const shuffled = [...rows].sort(() => rng() - 0.5);
-  const holdoutCount = Math.floor(shuffled.length * holdoutFraction);
-  const holdout = shuffled.slice(0, holdoutCount);
-  const train = shuffled.slice(holdoutCount);
+  const { holdout, train } = holdoutSplit(rows, holdoutFraction, rng);
 
   // Standardize features on the training split.
   const mean = new Float32Array(dim);
@@ -394,13 +391,9 @@ export function bakeOffSharedHead(
   const train = new Map<string, TrainingRow[]>();
   const holdout = new Map<string, TrainingRow[]>();
   for (const [game, gameRows] of byGame) {
-    const shuffled = [...gameRows].sort(() => rng() - 0.5);
-    const holdoutCount = Math.max(
-      1,
-      Math.floor(shuffled.length * (options.holdoutFraction ?? 0.2))
-    );
-    holdout.set(game, shuffled.slice(0, holdoutCount));
-    train.set(game, shuffled.slice(holdoutCount));
+    const split = holdoutSplit(gameRows, options.holdoutFraction ?? 0.2, rng);
+    holdout.set(game, split.holdout);
+    train.set(game, split.train);
   }
 
   const pooledTrain = [...train.values()].flat();

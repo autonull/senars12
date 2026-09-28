@@ -1,6 +1,5 @@
-import { estimateTokens, mean, variance } from '@senars/util';
+import { estimateTokens, makeId, mean, variance } from '@senars/util';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
-import { v4 as uuidv4 } from 'uuid';
 import { validateBatchQueries } from './algebra.js';
 import { ContrastiveMemory, rubricOf } from './contrastive.js';
 import {
@@ -195,7 +194,7 @@ export class SystemOneManifold implements JudgmentManifold {
         JudgmentProposition,
         'kind' | 'axis' | 'distribution' | 'top' | 'entropy' | 'score'
       > = {
-        queryId: uuidv4() as any,
+        queryId: makeId() as any,
         backendId: this.#config.backendId,
         modelDigest: this.#config.modelDigest,
         calibration: {

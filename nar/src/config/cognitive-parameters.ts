@@ -1,6 +1,6 @@
 import { createLogger } from '@senars/core/logger';
 import { cognitiveBounds, getCognitiveBound } from '@senars/util/config';
-import { deepFreeze } from '@senars/util/utils/shared';
+import { deepEqual, deepFreeze } from '@senars/util/utils/shared';
 
 const log = createLogger({ scope: 'cognitive-params' });
 
@@ -381,5 +381,5 @@ export function sameStrategies(
   b: CognitiveParameters['strategies']
 ): boolean {
   const keys = Object.keys(a) as (keyof CognitiveParameters['strategies'])[];
-  return keys.every((key) => JSON.stringify(a[key]) === JSON.stringify(b[key]));
+  return keys.every((key) => deepEqual(a[key], b[key]));
 }

@@ -1,5 +1,5 @@
 import type { EpisodicMemory } from '@senars/util';
-import { dispatch, type Middleware } from '@senars/util';
+import { dispatch, type Middleware, PushQueue } from '@senars/util';
 import type { ThreadScope } from '@senars/nar/kernel';
 import type { ChatOptions, ChatStreamEvent } from '../ChatService.js';
 import type { CognitiveEvent } from '../CognitiveEvent.js';
@@ -81,47 +81,11 @@ export interface MacroContext {
   readonly stimulus: CognitiveStimulus;
   readonly opts?: { signal?: AbortSignal; tier?: NarrationTier };
   /** Streamed narration events, drained by `runCycleStream` while phases dispatch. */
-  readonly stream: AsyncQueue<ChatStreamEvent>;
+  readonly stream: PushQueue<ChatStreamEvent>;
   readonly state: MacroCycleState;
 }
 
 export type MacroPhase = Middleware<MacroContext>;
-
-/** Minimal async queue joining middleware-dispatched narration to the consumer generator. */
-export class AsyncQueue<T> {
-  #items: T[] = [];
-  #waiters: (() => void)[] = [];
-  #closed = false;
-
-  push(item: T): void {
-    if (this.#closed) return;
-    this.#items.push(item);
-    this.#flush();
-  }
-
-  close(): void {
-    this.#closed = true;
-    this.#flush();
-  }
-
-  #flush(): void {
-    const waiters = this.#waiters;
-    this.#waiters = [];
-    for (const w of waiters) w();
-  }
-
-  async *drain(): AsyncGenerator<T> {
-    let i = 0;
-    while (true) {
-      while (i < this.#items.length) {
-        const item = this.#items[i++];
-        if (item !== undefined) yield item;
-      }
-      if (this.#closed) return;
-      await new Promise<void>((resolve) => this.#waiters.push(resolve));
-    }
-  }
-}
 
 /** Onion dispatch — delegated to shared primitive in `@senars/util`. */
 export const dispatchMacro = async (
@@ -139,7 +103,7 @@ export const createMacroContext = (
   host,
   stimulus,
   opts,
-  stream: new AsyncQueue<ChatStreamEvent>(),
+  stream: new PushQueue<ChatStreamEvent>(),
   state: { derivations: [], narrativeText: '', toolResults: [] },
 });
 

@@ -27,6 +27,22 @@ export const shuffleInPlace = <T>(items: T[], rng: RandomSource): T[] => {
 };
 
 /**
+ * Deterministic train/holdout partition — shuffles uniformly, then cuts a
+ * `fraction`-sized holdout of at least one row. The single split primitive
+ * behind head training, shared-head bake-off, and calibration fitting, so no
+ * caller resorts to a biased `sort(() => rng() - 0.5)` shuffle.
+ */
+export const holdoutSplit = <T>(
+  items: readonly T[],
+  fraction: number,
+  rng: RandomSource
+): { holdout: T[]; train: T[] } => {
+  const shuffled = shuffleInPlace([...items], rng);
+  const cut = Math.min(shuffled.length, Math.max(1, Math.floor(shuffled.length * fraction)));
+  return { holdout: shuffled.slice(0, cut), train: shuffled.slice(cut) };
+};
+
+/**
  * Weighted sampling without replacement (roulette wheel) — the single
  * selection primitive behind priority-proportional, softmax, and windowed
  * sampling. Each draw renormalizes over the remaining pool, so the returned

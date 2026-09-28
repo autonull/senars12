@@ -1,5 +1,5 @@
+import { makeId } from '@senars/util';
 import type { DerivationRecord, DerivationStep, TruthValue } from '@senars/kernel/schemas';
-import { v4 as uuidv4 } from 'uuid';
 import { BoundedRing } from '../utils/collections.js';
 import type { RuleInput, RuleResult } from './processor.js';
 
@@ -86,8 +86,8 @@ export class DerivationRecorder {
     if (!this.enabled) return;
     void taskKey;
     this.open = {
-      derivationId: uuidv4(),
-      taskId: uuidv4(),
+      derivationId: makeId(),
+      taskId: makeId(),
       goalTerm,
       steps: [],
       stampToStep: new Map(),
@@ -99,7 +99,7 @@ export class DerivationRecorder {
   record(ruleId: string, p1: RuleInput, p2: RuleInput, result: RuleResult): void {
     if (!this.enabled || !this.open) return;
     if (this.open.steps.length >= this.maxStepsPerRecord) return;
-    const stepId = uuidv4();
+    const stepId = makeId();
     const p1Ancestors = ancestorsOf(p1);
     const p2Ancestors = ancestorsOf(p2);
     let independence: Independence = 'independent';
