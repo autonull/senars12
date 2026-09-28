@@ -35,3 +35,14 @@ export {
 } from './sync.js';
 export type { ConfigFieldType } from './unions.js';
 export { IncomingFromClient, IncomingFromServer } from './unions.js';
+export {
+  CONNECTION_COLORS,
+  EDGE_LABELS,
+  EDGE_TYPES,
+  edgeTypeLabel,
+  LENS_COLORS_HEX,
+  LENS_DESCRIPTIONS,
+  LENS_FIELDS,
+  LENS_LABELS,
+  type LensFieldDescriptor,
+} from '../constants.js';

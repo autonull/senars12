@@ -61,12 +61,14 @@ export {
   type ToolFeedbackObserver,
 } from './feedback/ToolFeedbackObserver.js';
 // Memory
-/** @public In-memory session manager shared by io and core. */
+/** @public Bounded session store and the in-memory session manager over it. */
 export {
   abortSession,
   createSession,
   InMemorySessionManager,
+  SessionStore,
 } from './memory/in-memory-session-manager.js';
+export type { SessionStoreOptions } from './memory/in-memory-session-manager.js';
 export type { Middleware } from './middleware.js';
 /** @public Unified middleware primitive (REFACTOR.todo4 Phase A). */
 export { dispatch, passthrough } from './middleware.js';

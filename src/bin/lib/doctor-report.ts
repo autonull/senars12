@@ -23,12 +23,12 @@ import {
   setRouting,
   getRoutingLogStatus,
   fetchBounded,
+  probeEmbeddedLlama,
   probeLlamaCpp,
   probeModelsEndpoint,
 } from '@senars/nar/lm/providers.js';
 import {
   cloudApiKey,
-  embeddedLlamaConfigured,
   LM_PROVIDER_NAMES,
   resolveLMConfig,
   resolveLMSettings,
@@ -71,26 +71,6 @@ const probeOllama = async (host: string): Promise<string> => {
   if (!res.ok) return `unreachable (${res.status})`;
   const data = (await res.json().catch(() => null)) as { models?: Array<{ name?: string }> } | null;
   return `online, models: ${data?.models?.map((m) => m.name).join(', ') || 'none'}`;
-};
-
-const probeEmbeddedLlama = async (): Promise<{ available: boolean; detail: string }> => {
-  if (!embeddedLlamaConfigured()) {
-    return { available: false, detail: 'LM_LLAMACPP_MODEL unset or not found' };
-  }
-  try {
-    // Quick probe: try to load llama.cpp backend info
-    const { getLlama, getLlamaGpuTypes } = await import('node-llama-cpp');
-    const gpuTypes = await getLlamaGpuTypes('supported');
-    const llama = await getLlama({ gpu: 'auto' });
-    await llama.dispose();
-    const available = gpuTypes.filter((t) => t === 'cuda' || t === 'metal' || t === 'vulkan');
-    return {
-      available: true,
-      detail: `Model found, GPU backends: ${available.length ? available.join(', ') : 'CPU only'}`,
-    };
-  } catch (e) {
-    return { available: false, detail: `Load failed: ${(e as Error).message}` };
-  }
 };
 
 const args = process.argv.slice(2);

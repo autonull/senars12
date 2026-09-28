@@ -1,4 +1,4 @@
-import type { ChatMessage, GraphNodeData, Lens } from '@senars/core';
+import type { ChatMessage, GraphNodeData, Lens, LensFieldDescriptor } from '@senars/core';
 import type { LensSpec } from '../../shared/lens-schema.js';
 import { isBuiltinLens } from '../../shared/lens-schema.js';
 import { beliefLens, builtinLensModulations, compile } from '../modulation/compile.js';
@@ -135,12 +135,6 @@ export const $view = atom<View>({
   flags: detectViewFlags(),
   timeline: { t: Number.POSITIVE_INFINITY },
 });
-
-export interface LensFieldDescriptor {
-  key: string;
-  label: string;
-  type: 'number' | 'boolean' | 'string' | 'object';
-}
 
 /** Dynamic lens fields received from server (fallback to hardcoded). */
 export const $lensFields = atom<LensFieldDescriptor[]>([]);

@@ -4,7 +4,10 @@ import { pushCapped } from '@senars/util';
 import { GATE_LOG_CAPACITY } from '../../nar/src/kernel/event-ring.js';
 import { MetacognitiveMonitor } from '../../nar/src/cognitive/MetacognitiveMonitor.js';
 import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
-import { InMemorySessionManager } from '../../util/src/memory/in-memory-session-manager.js';
+import {
+  InMemorySessionManager,
+  SessionStore,
+} from '../../util/src/memory/in-memory-session-manager.js';
 import { EGraph } from '../../metta/src/engine/egraph.js';
 import { Memory } from '../../nar/src/memory/memory.js';
 
@@ -95,6 +98,18 @@ describe('Bench 38 — Bounded Runtime', () => {
     mgr.getOrCreate('c'); // evicts LRU (a)
     expect(mgr.size()).toBe(2);
     expect(mgr.getOrCreate('a').history.length).toBe(0); // fresh session recreated
+  });
+
+  it('D15 — SessionStore bounds restored sessions and their history', () => {
+    const store = new SessionStore({ maxSessions: 2, maxHistoryPerSession: 2 });
+    const restored = { history: Array.from({ length: 5 }, (_, i) => ({ role: 'user' as const, content: `m${i}`, timestamp: i })) };
+    store.load('a', { ...restored, id: 'sess-a', key: 'a', createdAt: 0, lastSeenAt: 0, metadata: {} });
+    expect(store.getOrCreate('a').history.map((h) => h.content)).toEqual(['m3', 'm4']);
+    store.load('b', { id: 'sess-b', key: 'b', history: [], createdAt: 0, lastSeenAt: 0, metadata: {} });
+    store.load('c', { id: 'sess-c', key: 'c', history: [], createdAt: 0, lastSeenAt: 0, metadata: {} });
+    expect(store.size()).toBe(2);
+    expect([...store.values()].map((s) => s.key).sort()).toEqual(['b', 'c']);
+    expect(store.getOrCreate('a').history).toEqual([]); // LRU-evicted, recreated fresh
   });
 
   it('D16 — LM cache sweep piggybacks on writes', async () => {

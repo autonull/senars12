@@ -2,19 +2,6 @@ import type { Core } from 'cytoscape';
 import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
 import { TOKEN_COLORS } from './token-colors.js';
 
-export const SUPPORT_2D: Set<Channel> = new Set([
-  'color',
-  'opacity',
-  'size',
-  'label',
-  'stroke.dash',
-  'stroke.width',
-  'z',
-  'line-style',
-  'width',
-  'edge-color',
-]);
-
 interface StyleChanges {
   'background-color'?: string;
   opacity?: number;

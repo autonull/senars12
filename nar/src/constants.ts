@@ -1,12 +1,3 @@
-export const DEPRECATED_DEPRECATED_THRESHOLDS = Object.freeze({
-  PRIORITY: Object.freeze({ LOW: 0.3, MEDIUM: 0.7, HIGH: 0.9 }),
-  MERGE: 0.85,
-  ARCHIVE: 0.2,
-  PRESSURE: 0.9,
-  TEMPORAL_RESOLUTION: 1000,
-  DECAY_TIME_CONSTANT: 60000,
-} as const);
-
 export const LINK = Object.freeze({
   DEFAULT_CAPACITY: 1000,
   TERM_LAYER_CAPACITY: 1000,
@@ -26,15 +17,5 @@ export const LINK = Object.freeze({
     inheritance: 0.2,
     similarity: 0.15,
     implication: 0.15,
-  },
-} as const);
-
-export const RELATIONSHIP_INDEX = Object.freeze({
-  PREFIXES: {
-    SUBJECT: 'subject:',
-    PREDICATE: 'predicate:',
-    PREMISE: 'premise:',
-    CONCLUSION: 'conclusion:',
-    SIMILAR: 'similar:',
   },
 } as const);

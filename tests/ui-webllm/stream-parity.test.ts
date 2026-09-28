@@ -97,9 +97,7 @@ vi.mock('../../ui/src/webllm.ts', () => {
   return {
     createWebLLMModel: createMockModel,
     webllmModels: {},
-    detectDevice: () => 'cpu' as const,
     preloadModel: vi.fn(),
-    clearEngineCache: vi.fn(),
     __testUtils: { setMockStream },
   };
 });

@@ -1,8 +1,7 @@
-import {Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery} from '@senars/io/ledger';
-import { z } from 'zod';
-import { join } from 'node:path';
-import { abortSession, createSession, InMemorySessionManager } from '@senars/util/memory';
+import { abortSession, createSession, InMemorySessionManager, SessionStore } from '@senars/util/memory';
 import type { ConversationSession, SessionManager } from '@senars/util/types/memory';
+import { type Ledger, BaseLedgerEntrySchema, createLedger } from '@senars/io/ledger';
+import { z } from 'zod';
 
 /**
  * @deprecated Will be removed in next major version.
@@ -17,11 +16,13 @@ export interface JsonlSessionManagerConfig {
 function getSessionRecordSchema() {
   return BaseLedgerEntrySchema.extend({
     key: z.string(),
-    history: z.array(z.object({
-      role: z.enum(['user', 'agent', 'system']),
-      content: z.string(),
-      timestamp: z.number(),
-    })),
+    history: z.array(
+      z.object({
+        role: z.enum(['user', 'agent', 'system']),
+        content: z.string(),
+        timestamp: z.number(),
+      })
+    ),
     createdAt: z.number(),
     lastSeenAt: z.number(),
     metadata: z.record(z.string(), z.unknown()),
@@ -30,9 +31,10 @@ function getSessionRecordSchema() {
 
 export type SessionLedgerEntry = z.infer<ReturnType<typeof getSessionRecordSchema>>;
 
+/** Bounded in-memory sessions with a JSONL ledger snapshot on close. */
 export class JsonlSessionManager implements SessionManager {
   readonly #ledger: Ledger<SessionLedgerEntry>;
-  #sessions = new Map<string, ConversationSession>();
+  readonly #store = new SessionStore();
 
   constructor(config: JsonlSessionManagerConfig) {
     this.#ledger = createLedger<SessionLedgerEntry>(config.basePath, getSessionRecordSchema(), {
@@ -41,41 +43,31 @@ export class JsonlSessionManager implements SessionManager {
   }
 
   getOrCreate(key: string): ConversationSession {
-    const existing = this.#sessions.get(key);
-    if (existing) {
-      existing.lastSeenAt = Date.now();
-      return existing;
-    }
-    const session = createSession(key);
-    this.#sessions.set(key, session);
-    return session;
+    return this.#store.getOrCreate(key);
   }
 
   size(): number {
-    return this.#sessions.size;
+    return this.#store.size();
   }
 
   async restore(): Promise<void> {
-    const entries = await this.#ledger.query({});
-    for (const entry of entries) {
-      const key = entry.key;
-      const session: ConversationSession = {
-        id: `sess-${key}`,
-        key,
+    for (const entry of await this.#ledger.query({})) {
+      this.#store.load(entry.key, {
+        id: `sess-${entry.key}`,
+        key: entry.key,
         history: entry.history,
         createdAt: entry.createdAt,
         lastSeenAt: entry.lastSeenAt,
         metadata: entry.metadata,
-      };
-      this.#sessions.set(key, session);
+      });
     }
   }
 
   async snapshot(): Promise<void> {
-    for (const [key, session] of this.#sessions) {
+    for (const session of this.#store.values()) {
       this.#ledger.append({
         at: session.lastSeenAt,
-        key,
+        key: session.key,
         history: session.history,
         createdAt: session.createdAt,
         lastSeenAt: session.lastSeenAt,
@@ -86,7 +78,7 @@ export class JsonlSessionManager implements SessionManager {
 
   async close(): Promise<void> {
     await this.snapshot();
-    this.#sessions.clear();
+    this.#store.clear();
     this.#ledger.close();
   }
 }

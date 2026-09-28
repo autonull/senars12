@@ -68,19 +68,19 @@ describe('Bench 27 — Per-Call Model Override', () => {
 
   it('H3 — LM_MAX_SPEND_USD cap trips with a remediation hint', async () => {
     await withEnv({ LM_PROVIDER: 'mock' }, async () => {
-      const service = createLMService();
-      // Cost accrues only for paid capabilities; make the mock capability paid so
-      // the ledger math is deterministic, then exceed the cap.
+      // Cost accrues only for paid capabilities; price the mock so its real
+      // reported usage alone exceeds the cap, then drive it through a live call.
       const { MODEL_CAPABILITIES } = await import('../../nar/src/lm/providers.js');
       const cap = MODEL_CAPABILITIES['builtin:mock'];
       if (!cap) throw new Error('builtin:mock capability missing');
       const original = cap.costPerMTok;
-      cap.costPerMTok = 3;
+      cap.costPerMTok = 1_000_000;
       try {
-        await service.generateText('hello world'); // sets lastRoutingDecision → builtin:mock
-        const record = (service as unknown as { recordSpend: (p: string, t: string, i: number, o: number) => void });
-        process.env.LM_MAX_SPEND_USD = '0.001';
-        expect(() => record.recordSpend.call(service, 'mock', 'fast', 0, 1_000_000)).toThrow(/Spend cap reached.*LM_PROVIDER=mock/);
+        await withEnv({ LM_MAX_SPEND_USD: '0.001' }, () =>
+          expect(createLMService().generateText('hello world')).rejects.toThrow(
+            /Spend cap reached.*LM_PROVIDER=mock/
+          )
+        );
       } finally {
         cap.costPerMTok = original;
       }

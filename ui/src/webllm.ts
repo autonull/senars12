@@ -208,26 +208,11 @@ export function createWebLLMModel(modelKey?: string, onProgress?: (progress: num
 
 export const webllmModels = WEBLLM_MODELS.models;
 
-export function detectDevice(): 'webgpu' | 'cpu' {
-  if (typeof navigator !== 'undefined' && 'gpu' in navigator) {
-    return 'webgpu';
-  }
-  return 'cpu';
-}
-
 export async function preloadModel(modelKey?: string, onProgress?: (progress: number) => void): Promise<void> {
   const key = modelKey ?? WEBLLM_MODELS.defaultModel;
   await getOrCreateEngine(key, onProgress);
 }
 
-export function clearEngineCache(): void {
-  for (const engine of engineCache.values()) {
-    // MLCEngineInterface doesn't have a destroy method in the current version
-    // The cache will be cleared on page unload
-  }
-  engineCache.clear();
-  initPromises.clear();
-}
 /** Map internal model config to runtime contract { id, label? }. */
 const runtimeModels: Record<string, { id: string; label?: string }> = Object.fromEntries(
   Object.entries(webllmModels).map(([key, cfg]) => [key, { id: cfg.modelId, label: key }])

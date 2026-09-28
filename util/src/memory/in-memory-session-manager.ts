@@ -22,38 +22,79 @@ export function createSession(key: string): ConversationSession {
 export const DEFAULT_MAX_SESSIONS = 200;
 export const DEFAULT_MAX_HISTORY_PER_SESSION = 100;
 
-export interface InMemorySessionManagerOptions {
+export interface SessionStoreOptions {
   maxSessions?: number;
   maxHistoryPerSession?: number;
 }
 
-export class InMemorySessionManager implements SessionManager {
-  #sessions: LruCache<string, ConversationSession>;
-  readonly #maxSessions: number;
+/**
+ * Bounded session map — the single runtime store behind every `SessionManager`,
+ * in-memory or persistent. A long-running agent creates a session per
+ * conversation, so the store is the AIKR boundary that keeps the working set
+ * finite: LRU sessions, trimmed per-session history.
+ */
+export class SessionStore {
+  readonly #sessions: LruCache<string, ConversationSession>;
   readonly #maxHistory: number;
 
-  constructor(options: InMemorySessionManagerOptions = {}) {
-    this.#maxSessions = options.maxSessions ?? DEFAULT_MAX_SESSIONS;
+  constructor(options: SessionStoreOptions = {}) {
     this.#maxHistory = options.maxHistoryPerSession ?? DEFAULT_MAX_HISTORY_PER_SESSION;
-    this.#sessions = new LruCache({ maxSize: this.#maxSessions });
+    this.#sessions = new LruCache({ maxSize: options.maxSessions ?? DEFAULT_MAX_SESSIONS });
+  }
+
+  get maxSessions(): number {
+    return this.#sessions.maxSize;
+  }
+
+  size(): number {
+    return this.#sessions.size;
+  }
+
+  /** Live sessions, least-recently-used first. */
+  *values(): Generator<ConversationSession> {
+    yield* this.#sessions.values();
+  }
+
+  /** Adopt a session (persistence replay), subject to the same bounds. */
+  load(key: string, session: ConversationSession): ConversationSession {
+    this.#trim(session);
+    this.#sessions.set(key, session);
+    return session;
   }
 
   getOrCreate(key: string): ConversationSession {
     const existing = this.#sessions.get(key);
     if (existing) {
       existing.lastSeenAt = Date.now();
-      this.#sessions.set(key, existing);
-      if (existing.history.length > this.#maxHistory) {
-        existing.history.splice(0, existing.history.length - this.#maxHistory);
-      }
+      this.#trim(existing);
       return existing;
     }
-    const session = createSession(key);
-    this.#sessions.set(key, session);
-    return session;
+    return this.load(key, createSession(key));
+  }
+
+  clear(): void {
+    this.#sessions.clear();
+  }
+
+  #trim(session: ConversationSession): void {
+    const excess = session.history.length - this.#maxHistory;
+    if (excess > 0) session.history.splice(0, excess);
+  }
+}
+
+/** Sessions with no persistence layer. */
+export class InMemorySessionManager implements SessionManager {
+  readonly #store: SessionStore;
+
+  constructor(options: SessionStoreOptions = {}) {
+    this.#store = new SessionStore(options);
+  }
+
+  getOrCreate(key: string): ConversationSession {
+    return this.#store.getOrCreate(key);
   }
 
   size(): number {
-    return this.#sessions.size;
+    return this.#store.size();
   }
 }

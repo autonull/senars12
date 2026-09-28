@@ -86,4 +86,5 @@ export {
 export { configureLM, getLMSettings, getLmProvider } from './providers/settings.js';
 export { formatLMConfig } from './env-config.js';
 export { probeLlamaCpp } from './providers/llamacpp.js';
+export { probeEmbeddedLlama } from './providers/embedded-llamacpp.js';
 export { configureWebLLM, detectDevice, getWebLLMRuntime } from './providers/webllm.js';

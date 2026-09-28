@@ -104,7 +104,7 @@ export {
   LENS_FIELDS,
   LENS_LABELS,
   type LensFieldDescriptor,
-} from './constants.js';
+} from './protocol/index.js';
 /** Cortex factory from an LM service. @public */
 export { createCortexFromLM } from './cortex/createCortexFromLM.js';
 /** Narrative synthesis cortex. @public */
