@@ -230,6 +230,16 @@ describe('Bench 90 — controller wiring', () => {
     expect(controller.getStrategy('derivation')).toBe('focused');
   });
 
+  it('a premise slot naming several strategies round-trips as a list', () => {
+    const { controller } = makeController();
+
+    controller.setStrategy('premise', ['term-link', 'embedding-link']);
+    expect(controller.getStrategy('premise')).toEqual(['term-link', 'embedding-link']);
+
+    controller.setStrategy('premise', 'bag');
+    expect(controller.getStrategy('premise')).toBe('bag');
+  });
+
   it('setStrategyExpression registers a composed strategy by its deterministic label', () => {
     const { controller, registry } = makeController();
     controller.setStrategyExpression('derivation', {

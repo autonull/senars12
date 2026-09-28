@@ -1,3 +1,4 @@
+import type { ConceptGraph } from '@senars/core/concept-graph';
 import { LINK } from '../constants.js';
 import type { AttentionModel } from '../strategies/types.js';
 import { SimpleAttention } from '../strategies/attention/SimpleAttention.js';
@@ -12,8 +13,10 @@ import { Focus } from './focus.js';
 import type { MemoryHealth } from './health.js';
 import type { ForgettingPolicy } from './lifecycle';
 import { Archive, Forgetting } from './lifecycle';
+import { AssociativeRegistry, GraphMemory } from './associative.js';
 import { LinkManager } from './links';
 import { EmbeddingLayer } from './links/EmbeddingLayer.js';
+import { LINK_LAYER } from './links/types.js';
 import { MemoryIndex } from './memory-index.js';
 import { MemoryConsolidation, MemoryScorer, recordConsolidationWatchdogCycle } from './pressure';
 import { calculateConceptStats } from './state';
@@ -84,6 +87,7 @@ export class Memory {
   static readonly REVISION_LOG_CAP = 1000;
   readonly attentionModel: AttentionModel;
   private readonly concepts = new TermMap<Concept>();
+  private readonly associative: AssociativeRegistry;
   private readonly config: Required<MemoryConfig>;
   private readonly index: MemoryIndex;
   private readonly focus: Focus;
@@ -133,6 +137,9 @@ export class Memory {
       globalDecayRate: config.linkDecayRate ?? LINK.DECAY_RATE,
     });
 
+    // Every layer the manager owns is recallable by name; no second registry.
+    this.associative = new AssociativeRegistry((name) => this.linkManager.getLayer(name));
+
     // Register EmbeddingLayer for semantic similarity (optional)
     if (config.enableEmbeddingLayer) {
       const embeddingLayer = new EmbeddingLayer({
@@ -146,6 +153,16 @@ export class Memory {
 
   getEmbeddingIndex(): EmbeddingLayer | undefined {
     return this.linkManager.getEmbeddingLayer();
+  }
+
+  getAssociativeMemories(): AssociativeRegistry {
+    return this.associative;
+  }
+
+  /** Publish the co-activation graph as the `graph` associative memory, replacing any prior one. */
+  attachConceptGraph(graph: ConceptGraph): ConceptGraph {
+    this.associative.register(new GraphMemory(graph));
+    return graph;
   }
 
   get size(): number {

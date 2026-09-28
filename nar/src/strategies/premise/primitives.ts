@@ -5,8 +5,8 @@ import { createSecondaryTask } from '../../types';
 import { sharesSymbol, termsEqual, Stamp } from '../../terms';
 import { getSubject, getPredicate } from '../../terms';
 import type { Term } from '../../terms';
-import { getSharedConceptGraph } from '../lm-graph/RuleGraph.js';
 import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';
+import { GRAPH_MEMORY, type RecallHit } from '../../memory/associative.js';
 import { LINK_LAYER } from '../../memory/links/types.js';
 
 export type PremiseSource = (task: Task, memory: MemoryView, n?: number) => Concept[];
@@ -19,36 +19,50 @@ export type PremiseFilter = (task: Task, concept: Concept) => boolean;
 
 export type PremiseFilterFactory = (...args: unknown[]) => PremiseFilter;
 
+/** Concepts reached through an associative memory, in that memory's strength order. */
+const conceptsFrom = (memory: MemoryView, name: string, term: Term, limit: number): Concept[] => {
+  const concepts: Concept[] = [];
+  for (const hit of memory.getAssociativeMemories().recall(name, term, { limit })) {
+    const concept = memory.getConcept(hit.term);
+    if (concept) concepts.push(concept);
+  }
+  return concepts;
+};
+
+/** Recall depth for a standalone per-concept strength lookup. */
+const LOOKUP_LIMIT = 20;
+
+/** Association strength one memory assigns to a specific target term. */
+const strengthOf = (memory: MemoryView, name: string, from: Term, to: Term): number =>
+  memory
+    .getAssociativeMemories()
+    .recall(name, from, { limit: LOOKUP_LIMIT })
+    .find((hit) => hit.term.toString() === to.toString())?.strength ?? 0;
+
+/** One recall for the whole scored set, keyed by the target's string form. */
+const strengthIndexFor = (
+  memory: MemoryView,
+  name: string,
+  from: Term,
+  size: number
+): Map<string, number> | null => {
+  const hits: RecallHit[] = memory
+    .getAssociativeMemories()
+    .recall(name, from, { limit: size });
+  return hits.length ? new Map(hits.map((hit) => [hit.term.toString(), hit.strength])) : null;
+};
+
 export const PREMISE_SOURCES = {
   bag: (task: Task, memory: MemoryView, n = 10): Concept[] => memory.sample(n),
   concepts: (task: Task, memory: MemoryView): Concept[] => memory.listConcepts(),
-  links: (task: Task, memory: MemoryView): Concept[] => {
-    const linkManager = memory.getLinkManager();
-    const termLinks = linkManager.getLayer(LINK_LAYER.TERM);
-    if (!termLinks) return [];
-    const links = termLinks.getLinksByTerm(task.term);
-    const concepts: Concept[] = [];
-    for (const link of links) {
-      const concept = memory.getConcept(link.targetTerm);
-      if (concept) concepts.push(concept);
-    }
-    return concepts;
-  },
+  links: (task: Task, memory: MemoryView, n = 20): Concept[] =>
+    conceptsFrom(memory, LINK_LAYER.TERM, task.term, n),
   taskArgs: (task: Task, memory: MemoryView): Concept[] => {
     const args = task.term.kind === 'conjunction' ? task.term.args : [];
     return args.map((arg) => memory.getConcept(arg)).filter((c): c is Concept => !!c);
   },
-  graph: (task: Task, _memory: MemoryView): Concept[] => {
-    const graph = getSharedConceptGraph();
-    if (!graph) return [];
-    const coActivations = graph.getCoActivations(task.term, 20);
-    const concepts: Concept[] = [];
-    for (const edge of coActivations) {
-      const concept = _memory.getConcept(edge.targetTerm);
-      if (concept) concepts.push(concept);
-    }
-    return concepts;
-  },
+  graph: (task: Task, memory: MemoryView, n = 20): Concept[] =>
+    conceptsFrom(memory, GRAPH_MEMORY, task.term, n),
 } as const;
 
 function getLinkStrength(memory: MemoryView, primary: Term, target: Term): number {
@@ -67,7 +81,7 @@ interface ScorerEntry {
 }
 
 interface ExtendedScorerEntry {
-  create: (memory: MemoryView, weights: { link: number; embed: number; pri: number }) => (memory: MemoryView) => PremiseScorer;
+  create: (memory: MemoryView, weights: LinearWeights) => (memory: MemoryView) => PremiseScorer;
   isExtended: true;
 }
 
@@ -87,20 +101,15 @@ function createScorerRegistry() {
       isExtended: false as const,
     },
     edgeWeight: {
-      create: (memory: MemoryView): PremiseScorer => (task: Task, concept: Concept) => {
-        const graph = getSharedConceptGraph();
-        if (!graph) return 0;
-        const coActivations = graph.getCoActivations(task.term, 20);
-        const edge = coActivations.find((e) => termsEqual(e.targetTerm, concept.term));
-        return edge?.weight ?? 0;
-      },
+      create: (memory: MemoryView): PremiseScorer => (task: Task, concept: Concept): number =>
+        strengthOf(memory, GRAPH_MEMORY, task.term, concept.term),
       isExtended: false as const,
     },
     // Extended scorers (parameterized factories)
     linear: {
       create: (
         _memory: MemoryView,
-        weights: { link: number; embed: number; pri: number }
+        weights: LinearWeights
       ): (memory: MemoryView) => PremiseScorer => {
         return (memory: MemoryView) => (task: Task, concept: Concept): number => {
           const linkStrength = getLinkStrength(memory, task.term, concept.term);
@@ -175,9 +184,18 @@ export type FilterName = keyof typeof PREMISE_FILTER_REGISTRY;
 /** A filter name, or a parameterized curried filter spec. */
 export type FilterSpec = FilterName | { highConfidence: number };
 
+/** Registry-derived, never hand-written: adding a source/scorer widens the config automatically. */
+export type SourceName = keyof typeof PREMISE_SOURCES;
+
+export interface LinearWeights {
+  link: number;
+  embed: number;
+  pri: number;
+}
+
 export interface SampleConfig {
-  source?: keyof typeof PREMISE_SOURCES;
-  scorer?: ScorerName | { linear: { link: number; embed: number; pri: number } };
+  source?: SourceName;
+  scorer?: ScorerName | { linear: LinearWeights };
   filters?: FilterSpec[];
   minScore?: number;
   sampleSize: number;
@@ -195,8 +213,8 @@ const DEFAULT_SAMPLE_CONFIG: Omit<SampleConfig, 'source' | 'scorer' | 'filters' 
   filters: FilterSpec[];
   minScore: number;
 } = {
-  source: 'bag',
-  scorer: 'priority',
+  source: 'bag' as SourceName,
+  scorer: 'priority' as const,
   filters: ['sharedAtoms'],
   minScore: 0,
   sampleSize: 20,
@@ -258,29 +276,19 @@ export function samplePremisesFromConfig(
   const scorerFn = resolveScorer(memory, merged.scorer);
   if (!scorerFn) return results;
 
-  // Pre-compute co-activations once if using edgeWeight scorer
-  let coActivationMap: Map<string, number> | null = null;
-  const isEdgeWeightScorer = typeof merged.scorer === 'string' && merged.scorer === 'edgeWeight';
-  if (isEdgeWeightScorer) {
-    const graph = getSharedConceptGraph();
-    if (graph) {
-      const coActivations = graph.getCoActivations(task.term, 20);
-      coActivationMap = new Map(coActivations.map((e) => [e.targetTerm.toString(), e.weight]));
-    }
-  }
+  // One recall per scored set, not one per concept.
+  const strengthIndex =
+    merged.scorer === 'edgeWeight'
+      ? strengthIndexFor(memory, GRAPH_MEMORY, task.term, concepts.length)
+      : null;
 
   const filterFns = resolveFilters(merged.filters);
 
   const scored = concepts
-    .map((c) => {
-      let score: number;
-      if (isEdgeWeightScorer && coActivationMap) {
-        score = coActivationMap.get(c.term.toString()) ?? 0;
-      } else {
-        score = scorerFn(task, c);
-      }
-      return { concept: c, score };
-    })
+    .map((c) => ({
+      concept: c,
+      score: strengthIndex ? (strengthIndex.get(c.term.toString()) ?? 0) : scorerFn(task, c),
+    }))
     .filter(({ score }) => score >= merged.minScore)
     .filter(({ concept }) => {
       if (merged.skipSameTerm && termsEqual(concept.term, task.term)) return false;

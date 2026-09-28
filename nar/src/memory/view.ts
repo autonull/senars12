@@ -8,6 +8,7 @@
  * the implicit contract into a single checked interface.
  */
 
+import type { AssociativeRegistry } from './associative.js';
 import type { Concept } from './concept.js';
 import { type Focus } from './focus.js';
 import { type EmbeddingLayer } from './links/EmbeddingLayer.js';
@@ -21,6 +22,8 @@ export interface MemoryView {
   getConcept(term: Term): Concept | undefined;
   getLinkManager(): LinkManager;
   getEmbeddingIndex(): EmbeddingLayer | undefined;
+  /** Every associative index (term links, embedding similarity, co-activation) by name. */
+  getAssociativeMemories(): AssociativeRegistry;
   getGoals(): Task[];
   listConcepts(): Concept[];
   conceptValues(): IterableIterator<Concept>;
@@ -28,4 +31,4 @@ export interface MemoryView {
   sampleWindow(windowSize: number, rng?: RandomSource): Concept[];
 }
 
-export type { EmbeddingLayer, Focus, LinkManager };
+export type { AssociativeRegistry, EmbeddingLayer, Focus, LinkManager };

@@ -63,7 +63,7 @@ describe('LinkLayerStrategy', () => {
     links.addLink(cat, animal, { type: 'inheritance', priority: 0.8 });
     links.addLink(cat, whiskers, { priority: 0.05 });
 
-    const premises = new TermLinkStrategy({ minLinkPriority: 0.5 }).selectSecondary(
+    const premises = new TermLinkStrategy({ minStrength: 0.5 }).selectSecondary(
       createBeliefTask(cat, Truth.create(0.9, 0.9), 0.9),
       memory
     );

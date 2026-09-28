@@ -39,7 +39,13 @@ export interface CognitiveParameters {
   /** Pluggable strategy configuration */
   strategies: {
     sampling: { type: string; config?: Record<string, unknown> };
-    premise: { type: string; config?: Record<string, unknown> };
+    /**
+     * One premise strategy, or several composed per task. A list lets several
+     * associative memories (term links, embedding similarity, co-activation)
+     * contribute premises in one pass; overlapping terms are deduped to the
+     * highest-priority claim.
+     */
+    premise: { type: string | string[]; config?: Record<string, unknown> };
     derivation: { type: string; config?: Record<string, unknown> };
     lmRule: { type: string; maxRules: number; config?: Record<string, unknown> };
     attention: { type: string; config?: Record<string, unknown> };

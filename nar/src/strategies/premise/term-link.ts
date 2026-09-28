@@ -1,6 +1,5 @@
-import type { Layer } from '../../memory/links/Layer.js';
+import type { AssociativeRegistry, RecallHit } from '../../memory/associative.js';
 import { LINK_LAYER } from '../../memory/links/types.js';
-import type { LinkEntry } from '../../memory/links/types.js';
 import type { MemoryView } from '../../memory/view.js';
 import { getPredicate, getSubject, termKey, type Term } from '../../terms';
 import type { Task } from '../../types';
@@ -11,8 +10,8 @@ import type { Strategy } from '../types.js';
 const MIN_TASK_PRIORITY = 0.3;
 
 export interface LinkLayerStrategyConfig {
-  minLinkPriority?: number;
-  maxLinks?: number;
+  minStrength?: number;
+  limit?: number;
 }
 
 /**
@@ -34,39 +33,42 @@ export class LinkLayerStrategy implements Strategy {
   }
 
   selectSecondary(task: Task, memory: MemoryView): Task[] {
-    const layer = memory.getLinkManager().getLayer(this.layer);
-    if (!layer) return [];
+    const { minStrength = 0.1, limit = 20 } = this.config;
+    const memories = memory.getAssociativeMemories();
 
-    const { minLinkPriority = 0.1, maxLinks = 20 } = this.config;
-    const links = [
-      ...layer.getLinksByTerm(task.term, { minPriority: minLinkPriority, maxResults: maxLinks }),
-      ...this.associativeNeighbours(task.term, layer, maxLinks),
+    const hits = [
+      ...memories.recall(this.layer, task.term, { minStrength, limit }),
+      ...this.associativeNeighbours(task.term, memories, limit),
     ];
 
-    return this.toTasks(links, memory);
+    return this.toTasks(hits, memory);
   }
 
-  /** Further link sets this layer treats as associative neighbours of the term. */
-  protected associativeNeighbours(_term: Term, _layer: Layer, _maxLinks: number): LinkEntry[] {
+  /** Further terms this memory treats as associative neighbours of the term. */
+  protected associativeNeighbours(
+    _term: Term,
+    _memories: AssociativeRegistry,
+    _limit: number
+  ): RecallHit[] {
     return [];
   }
 
-  private toTasks(links: LinkEntry[], memory: MemoryView): Task[] {
+  private toTasks(hits: RecallHit[], memory: MemoryView): Task[] {
     const results: Task[] = [];
     const seen = new Set<string>();
 
-    for (const link of links) {
-      const key = termKey(link.targetTerm);
+    for (const hit of hits) {
+      const key = termKey(hit.term);
       if (seen.has(key)) continue;
       seen.add(key);
 
-      const concept = memory.getConcept(link.targetTerm);
+      const concept = memory.getConcept(hit.term);
       const belief = concept?.beliefBag.peek();
       if (!concept || !belief) continue;
 
       const secondary = createSecondaryTask(
         concept.term,
-        link.priority,
+        hit.strength,
         belief.truth ? { f: belief.truth.f, c: belief.truth.c } : undefined,
         'belief'
       );
@@ -87,14 +89,18 @@ export class TermLinkStrategy extends LinkLayerStrategy {
     super(LINK_LAYER.TERM, 'term-link', config);
   }
 
-  protected override associativeNeighbours(term: Term, layer: Layer, maxLinks: number): LinkEntry[] {
+  protected override associativeNeighbours(
+    term: Term,
+    memories: AssociativeRegistry,
+    limit: number
+  ): RecallHit[] {
     const subject = getSubject(term);
     const predicate = getPredicate(term);
     if (!subject && !predicate) return [];
 
     return [
-      ...(subject ? layer.getLinksByTerm(subject, { maxResults: maxLinks }) : []),
-      ...(predicate ? layer.getLinksByTerm(predicate, { maxResults: maxLinks }) : []),
+      ...(subject ? memories.recall(this.layer, subject, { limit }) : []),
+      ...(predicate ? memories.recall(this.layer, predicate, { limit }) : []),
     ];
   }
 }

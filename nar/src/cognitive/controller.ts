@@ -19,6 +19,7 @@ import {
 } from '../reason/strategy-algebra';
 import type { CognitiveRegistry } from './registry';
 import { registerRuleGraph, RuleGraph } from '../strategies/lm-graph/RuleGraph.js';
+import { CompositeStrategy } from '../strategies/premise/selection-strategies.js';
 
 export class CognitiveController {
   private currentParams: CognitiveParameters;
@@ -69,8 +70,8 @@ export class CognitiveController {
     };
   }
 
-  /** Get the current strategy name for a strategy type, or undefined if unset */
-  getStrategy(type: StrategyType): string | undefined {
+  /** Get the current strategy name(s) for a strategy type; a composed slot has several. */
+  getStrategy(type: StrategyType): string | string[] | undefined {
     const key: keyof typeof this.currentParams.strategies =
       type === 'lm-rule' ? 'lmRule' : (type as keyof typeof this.currentParams.strategies);
     return this.currentParams.strategies[key]?.type;
@@ -94,14 +95,16 @@ export class CognitiveController {
     for (const cb of this.onAdaptCallbacks) cb();
   }
 
-  setStrategy(type: StrategyType, name: string | StrategyExpression): void {
+  /** An array names several composed strategies; a `StrategyExpression` is registered as one composite. */
+  setStrategy(type: StrategyType, name: string | string[] | StrategyExpression): void {
     const key: keyof typeof this.currentParams.strategies =
       type === 'lm-rule' ? 'lmRule' : (type as keyof typeof this.currentParams.strategies);
-    const resolved =
-      typeof name === 'string'
+    const resolved = Array.isArray(name)
+      ? name
+      : typeof name === 'string'
         ? name
         : this.#composeAndRegister(type, describeStrategyExpression(name), name);
-    this.currentParams.strategies[key].type = resolved;
+    (this.currentParams.strategies[key] as { type: string | string[] }).type = resolved;
     this.buildInferenceController(this.currentParams);
   }
 
@@ -132,12 +135,19 @@ export class CognitiveController {
     return composed;
   }
 
+  /** One premise strategy by name, or several composed with overlapping terms deduped. */
+  private resolvePremiseStrategies(type: string | string[]): Strategy {
+    const names = Array.isArray(type) ? type : [type];
+    const strategies = names.map((name) => this.registry.get<Strategy>('premise', name));
+    return strategies.length === 1 ? strategies[0]! : new CompositeStrategy(strategies, 'dedup');
+  }
+
   private buildInferenceController(params: CognitiveParameters): InferenceController {
     const samplingStrategy = this.registry.get<SamplingStrategy>(
       'sampling',
       params.strategies.sampling.type
     );
-    const strategy = this.registry.get<Strategy>('premise', params.strategies.premise.type);
+    const strategy = this.resolvePremiseStrategies(params.strategies.premise.type);
     const derivationStrategy = this.registry.get<DerivationStrategy>(
       'derivation',
       params.strategies.derivation.type
@@ -155,6 +165,8 @@ export class CognitiveController {
         ruleGraph = this.registry.get<RuleGraph>('lm-rule', 'lm-graph');
       }
       lmSelector = ruleGraph;
+      // Publish the co-activation graph to premise selection explicitly.
+      this.memory.attachConceptGraph(ruleGraph.graph);
     } else {
       lmSelector = this.registry.get<LMRuleSelector>('lm-rule', lmRuleType);
     }

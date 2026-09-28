@@ -1,6 +1,4 @@
 // Strategy system
-export type { PremiseConfig, PremiseSelector } from '../strategies/premise/formation';
-export { AnalogySelector, DecompositionSelector, TermMatchingSelector } from '../strategies/premise/formation';
 export type { ReasonerConfig, ReasoningTrace } from './reasoner';
 // Reasoner
 export { Reasoner } from './reasoner';

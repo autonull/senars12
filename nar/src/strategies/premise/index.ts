@@ -4,16 +4,17 @@
  */
 
 // Premise formation utilities
-export { samplePremises } from './sample.js';
-export type { PremiseFilter, TruthPredicate, SampleConfig } from './sample.js';
-export type { ExtendedSampleConfig } from './sample.js';
-export { samplePremisesFromConfig } from './sample.js';
-
-// Deprecated: PremiseSelector interface (use Strategy from ../types.js instead)
-/** @deprecated Use Strategy from '../types.js' instead. */
-export type { PremiseConfig, PremiseSelector } from './formation.js';
-/** @deprecated Use Strategy implementations from '../types.js' or '../index.js' instead. */
-export { AnalogySelector, DecompositionSelector, TermMatchingSelector } from './formation.js';
+export { samplePremisesFromConfig } from './primitives.js';
+export type {
+  FilterName,
+  FilterSpec,
+  LinearWeights,
+  PremiseFilter,
+  PremiseScorer,
+  SampleConfig,
+  ScorerName,
+  SourceName,
+} from './primitives.js';
 
 // Premise selection strategies
 export {

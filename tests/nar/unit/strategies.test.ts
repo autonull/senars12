@@ -219,7 +219,7 @@ describe('Composite Strategies', () => {
   });
 
   it('should handle sequential mode', async () => {
-    const composite = new CompositeStrategy([ResolutionStrategy, SampledStrategy], 'sequential');
+    const composite = new CompositeStrategy([ResolutionStrategy, SampledStrategy], 'concatenate');
 
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
@@ -230,7 +230,7 @@ describe('Composite Strategies', () => {
   });
 
   it('should handle parallel mode', async () => {
-    const composite = new CompositeStrategy([ResolutionStrategy, GoalDrivenStrategy], 'parallel');
+    const composite = new CompositeStrategy([ResolutionStrategy, GoalDrivenStrategy], 'concatenate');
 
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
@@ -240,18 +240,18 @@ describe('Composite Strategies', () => {
     }
   });
 
-  it('should handle weighted mode', async () => {
+  it('should dedupe overlapping terms to the strongest task in dedup mode', async () => {
     const composite = new CompositeStrategy(
       [ResolutionStrategy, SampledStrategy, GoalDrivenStrategy],
-      'weighted',
-      [0.5, 0.3, 0.2]
+      'dedup'
     );
 
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
     if (task) {
       const results = composite.selectSecondary(task, nar.memory);
-      expect(Array.isArray(results)).toBe(true);
+      const keys = results.map((r) => r.term.toString());
+      expect(new Set(keys).size).toBe(keys.length);
     }
   });
 

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Memory, TermBuilder, Truth } from '../../nar/src';
 import { type RuleInput, RuleProcessor } from '../../nar/src/rules';
 import { CognitiveRegistry } from '../../nar/src/cognitive/registry.js';
-import { registerRuleGraph, RuleGraph, getSharedConceptGraph } from '../../nar/src/strategies/lm-graph/RuleGraph.js';
+import { registerRuleGraph, RuleGraph } from '../../nar/src/strategies/lm-graph/RuleGraph.js';
 import type { LMRule } from '../../nar/src/lm/LMRule.js';
 import type { LMRuleSelector } from '../../nar/src/strategies/types.js';
 import type { Term } from '../../nar/src/terms';
@@ -150,8 +150,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
 
   test('co-activations are keyed on real terms (not rule names)', () => {
     const ruleGraph = registerRuleGraph(registry);
-    const graph = getSharedConceptGraph();
-    expect(graph).not.toBeNull();
+    const graph = memory.attachConceptGraph(ruleGraph.graph) ?? ruleGraph.graph;
 
     const focusTerm = TermBuilder.atom('focus');
     const ruleTerm = TermBuilder.atom('rule_term');
@@ -160,10 +159,10 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     ruleGraph.learnFromDerivation(focusTerm, ruleTerm);
 
     // Check that co-activation is stored with real terms
-    const coActivations = graph!.getCoActivations(focusTerm, 10);
+    const coActivations = graph.getCoActivations(focusTerm, 10);
     expect(coActivations.length).toBeGreaterThan(0);
     
-    const found = coActivations.find(e => 
+    const found = coActivations.find((e: { targetTerm: Term; weight: number }) =>
       e.targetTerm.kind === 'atom' && e.targetTerm.symbol === 'rule_term'
     );
     expect(found).toBeDefined();
@@ -172,8 +171,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
 
   test('graph premise source returns memory-backed concepts', async () => {
     const ruleGraph = registerRuleGraph(registry);
-    const graph = getSharedConceptGraph();
-    expect(graph).not.toBeNull();
+    const graph = memory.attachConceptGraph(ruleGraph.graph) ?? ruleGraph.graph;
 
     // Add concepts to memory
     const termA = TermBuilder.atom('A');
@@ -184,7 +182,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     conceptB.priority = 0.6;
 
     // Create co-activation in graph
-    graph!.activate(termA, termB);
+    graph.activate(termA, termB);
 
     // Use graph premise source via primitives
     const { PREMISE_SOURCES } = await import('../../nar/src/strategies/premise/primitives.js');
@@ -197,8 +195,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
 
   test('edgeWeight scorer uses RLFPLearner-derived edge weights', async () => {
     const ruleGraph = registerRuleGraph(registry);
-    const graph = getSharedConceptGraph();
-    expect(graph).not.toBeNull();
+    const graph = memory.attachConceptGraph(ruleGraph.graph) ?? ruleGraph.graph;
 
     const termA = TermBuilder.atom('A');
     const termB = TermBuilder.atom('B');
@@ -206,8 +203,8 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     const conceptB = memory.addConcept(termB);
 
     // Create co-activation with weight
-    graph!.activate(termA, termB);
-    graph!.activate(termA, termB); // Second activation increases weight
+    graph.activate(termA, termB);
+    graph.activate(termA, termB); // Second activation increases weight
 
     const { PREMISE_SCORER_REGISTRY, resolveScorer } = await import('../../nar/src/strategies/premise/primitives.js');
     const scorer = resolveScorer(memory, 'edgeWeight');
@@ -237,15 +234,14 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
 
   test('RuleGraph tick() decays graph edges', () => {
     const ruleGraph = registerRuleGraph(registry);
-    const graph = getSharedConceptGraph();
-    expect(graph).not.toBeNull();
+    const graph = memory.attachConceptGraph(ruleGraph.graph) ?? ruleGraph.graph;
 
     const termA = TermBuilder.atom('A');
     const termB = TermBuilder.atom('B');
     
-    graph!.activate(termA, termB);
-    graph!.activate(termA, termB);
-    graph!.activate(termA, termB);
+    graph.activate(termA, termB);
+    graph.activate(termA, termB);
+    graph.activate(termA, termB);
 
     const initialStats = graph!.getStats();
     expect(initialStats.edges).toBeGreaterThan(0);

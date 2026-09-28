@@ -2,7 +2,7 @@ import { createLogger } from '@senars/core/logger';
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import { createStrategy } from '../../reason/strategies/base';
-import type { Term, Truth } from '../../terms';
+import { termKey, type Term, type Truth } from '../../terms';
 import type { Task } from '../../types';
 import { createBeliefTask } from '../../types';
 import type { ComponentMetadata, Strategy } from '../types.js';
@@ -52,12 +52,12 @@ export const AnalogicalStrategy: Strategy = withMeta(
 );
 
 export const TermLinkStrategy: Strategy = withMeta(
-  new RealTermLinkStrategy({ minLinkPriority: 0.3, maxLinks: 20 }),
+  new RealTermLinkStrategy({ minStrength: 0.3, limit: 20 }),
   'Term-link premises plus the subject and predicate link neighbourhoods'
 );
 
 export const EmbeddingLinkStrategy: Strategy = withMeta(
-  new RealEmbeddingLinkStrategy({ minLinkPriority: 0.3, maxLinks: 20 }),
+  new RealEmbeddingLinkStrategy({ minStrength: 0.3, limit: 20 }),
   'Semantic premises from the embedding layer\'s similarity links'
 );
 
@@ -131,50 +131,45 @@ export const SemanticStrategy: Strategy = withMeta(
   'Semantic similarity via linear(link, embed, priority)'
 );
 
+/**
+ * How several premise strategies combine into one premise set.
+ * - `concatenate`: every strategy's premises, in order
+ * - `dedup`: one premise per term, keeping the highest-priority claim
+ */
+export type CompositeMode = 'concatenate' | 'dedup';
+
 export class CompositeStrategy implements Strategy {
   readonly metadata: ComponentMetadata = {
     name: 'composite',
-    description: 'Combine multiple strategies with weights',
+    description: 'Combine multiple premise strategies',
   };
   readonly name = 'composite';
 
   constructor(
     private strategies: Strategy[],
-    private mode: 'sequential' | 'parallel' | 'weighted' = 'sequential',
-    private weights?: number[]
+    private mode: CompositeMode = 'concatenate'
   ) {}
 
   selectSecondary(task: Task, memory: MemoryView): Task[] {
-    const allResults: Task[] = [];
-
-    for (const strategy of this.strategies) {
+    const contributions = this.strategies.flatMap((strategy) => {
       try {
-        const results = strategy.selectSecondary(task, memory);
-        allResults.push(...results);
+        return strategy.selectSecondary(task, memory);
       } catch (error) {
         logger.warn(`Strategy ${strategy.name} failed: ${error}`);
+        return [];
       }
+    });
+
+    if (this.mode !== 'dedup') return contributions;
+
+    // Highest link/priority wins; `termKey` is the canonical structural identity.
+    const strongest = new Map<string, Task>();
+    for (const candidate of contributions) {
+      const key = termKey(candidate.term);
+      const held = strongest.get(key);
+      if (!held || candidate.budget.priority > held.budget.priority) strongest.set(key, candidate);
     }
-
-    if (this.mode === 'sequential' || this.mode === 'parallel') {
-      return allResults;
-    }
-
-    const weightedResults = new Map<string, Task>();
-
-    for (const strategy of this.strategies) {
-      const results = strategy.selectSecondary(task, memory);
-
-      for (const result of results) {
-        const key =
-          result.term.kind === 'atom' ? result.term.symbol : `${result.term.kind}-${Date.now()}`;
-        if (!weightedResults.has(key)) {
-          weightedResults.set(key, result);
-        }
-      }
-    }
-
-    return Array.from(weightedResults.values());
+    return [...strongest.values()];
   }
 }
 

@@ -1,7 +1,7 @@
 import type { Concept } from '../../memory';
 import type { Task } from '../../types';
-import { samplePremises } from '../../strategies/premise/sample';
 import type { FilterSpec, SampleConfig } from '../../strategies/premise/primitives';
+import { samplePremisesFromConfig } from '../../strategies/premise/primitives';
 import type { Strategy } from '../../strategies/types.js';
 
 type StrategyConfig = Pick<
@@ -25,12 +25,12 @@ export const createStrategy = (config: StrategyConfig): Strategy => {
     sampleSize,
     limit,
     selectSecondary(task, memory) {
-      return samplePremises(memory, task, {
+      return samplePremisesFromConfig(memory, task, {
         ...primitives,
         sampleSize,
         limit,
-        filter,
-        truthFilter: truthFilter ? (truth) => truthFilter(truth, task) : undefined,
+        where: filter ? (_task, concept) => filter(concept, _task) : undefined,
+        whereTruth: truthFilter ? (_task, truth) => truthFilter(truth, task) : undefined,
       });
     },
   } as Strategy & { sampleSize: number; limit: number };

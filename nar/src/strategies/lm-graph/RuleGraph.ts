@@ -17,17 +17,6 @@ import type { LMRule } from '../../lm/LMRule.js';
 import type { Term } from '../../terms/index.js';
 import { termsEqual } from '../../terms';
 
-/** Shared ConceptGraph instance for co-activation graph (used by RuleGraph, premise sources, and scorers). */
-let sharedConceptGraph: ConceptGraph | null = null;
-
-export function getSharedConceptGraph(): ConceptGraph | null {
-  return sharedConceptGraph;
-}
-
-export function setSharedConceptGraph(graph: ConceptGraph): void {
-  sharedConceptGraph = graph;
-}
-
 export interface RuleGraphOptions {
   maxNodes?: number;
   maxEdgesPerNode?: number;
@@ -46,7 +35,8 @@ export class RuleGraph implements LMRuleSelector {
   readonly metadata: ComponentMetadata = { name: 'lm-graph', description: 'ConceptGraph-based LM rule selector with RLFPLearner rewards' };
   readonly name = 'lm-graph';
 
-  private readonly graph: ConceptGraph;
+  /** Published so a `Memory` can adopt it as its `graph` associative memory. */
+  readonly graph: ConceptGraph;
   private readonly fallbackWeight: number;
   private readonly rulePerformance = new Map<string, RulePerformance>();
 
@@ -56,7 +46,6 @@ export class RuleGraph implements LMRuleSelector {
       maxEdgesPerNode: options.maxEdgesPerNode ?? 30,
       decayRate: options.decayRate ?? 0.002,
     });
-    setSharedConceptGraph(this.graph);
     this.fallbackWeight = options.fallbackWeight ?? 0.3;
   }
 
