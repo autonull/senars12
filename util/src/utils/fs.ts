@@ -33,6 +33,19 @@ export async function ensureParentDir(filePath: string): Promise<string> {
   return ensureDir(dirname(filePath));
 }
 
+/**
+ * True when `candidate` is `root` itself or lies beneath it. Separators are
+ * normalized to `/` and trailing ones dropped, so a sibling that merely shares
+ * a name prefix (`/ws` vs `/ws-evil`) is rejected. The single path-containment
+ * predicate behind the motor workspace, the WASI sandbox, and the fs tool scope.
+ */
+export const containsPath = (root: string, candidate: string): boolean => {
+  const norm = (p: string): string => p.replace(/\\/g, '/').replace(/\/+$/, '') || '/';
+  const r = norm(root);
+  const c = norm(candidate);
+  return c === r || c.startsWith(r === '/' ? '/' : `${r}/`);
+};
+
 /** Parse JSON text, yielding `fallback` on any syntax error. */
 export const parseJsonOr = <T>(text: string, fallback: T): T => {
   try {

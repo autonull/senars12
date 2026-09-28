@@ -9,6 +9,7 @@ import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
 
 import { promises as fs } from 'node:fs';
 import { identityECE, meanBrier } from './calibration-fit.js';
+import { frozenRegression } from './metrics.js';
 import type { JudgmentDataset } from './distill.js';
 import { DigestMismatchError } from './wasi-runtime.js';
 
@@ -44,9 +45,7 @@ export interface EvalMetrics {
 
 export class EvalRegressionError extends Error {
   constructor(baseline: number, candidate: number, tolerance: number) {
-    super(
-      `Frozen-set regression: Brier ${candidate.toFixed(4)} > baseline ${baseline.toFixed(4)} + tolerance ${tolerance}`
-    );
+    super(frozenRegression(baseline, candidate, tolerance).reason);
     this.name = 'EvalRegressionError';
   }
 }
@@ -142,9 +141,10 @@ export function assertFrozenNonRegression(
   candidate: EvalMetrics,
   tolerance = 0.02
 ): void {
-  if (candidate.brier > baseline.brier + tolerance) {
+  if (frozenRegression(baseline.brier, candidate.brier, tolerance).regressed) {
     throw new EvalRegressionError(baseline.brier, candidate.brier, tolerance);
   }
 }
+
 
 import { ensureParentDir } from '../../utils/fs.js';

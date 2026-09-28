@@ -1156,8 +1156,6 @@ _Dynamic subpath (no single entry file)._
 
 - `toNarsese` — Canonical term → Narsese string API. Delegates to {@link serializeTerm}.
 
-- `getTermSimilarity`
-
 - `deserializeStamp`
 
 - `observeStampId` — Advance the ID counter past a persisted ID so reloaded stamps never collide

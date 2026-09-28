@@ -1,3 +1,4 @@
+import { percentile } from '@senars/util';
 import type { Concept } from '../concept.js';
 
 export interface ConceptStats {
@@ -15,16 +16,23 @@ export const calculateConceptStats = (concepts: Iterable<Concept>): ConceptStats
     totalTasks += concept.totalTasks;
     priorities.push(concept.priority);
   }
-  priorities.sort((a, b) => a - b);
-  const n = priorities.length;
-  const p33 = n > 0 ? priorities[Math.floor(n * 0.33)]! : 0;
-  const p67 = n > 0 ? priorities[Math.floor(n * 0.67)]! : 0;
+  const p33 = percentile(priorities, 0.33);
+  const p67 = percentile(priorities, 0.67);
 
+  // One pass over the sample. The terciles are inclusive-low / exclusive-high,
+  // so every concept lands in exactly one band and the third count is implied —
+  // no per-band filter, no second materialization of the array.
+  let lowPriority = 0;
+  let mediumPriority = 0;
+  for (const p of priorities) {
+    if (p < p33) lowPriority++;
+    else if (p < p67) mediumPriority++;
+  }
   return {
-    totalConcepts: n,
+    totalConcepts: priorities.length,
     totalTasks,
-    lowPriority: priorities.filter((p) => p < p33).length,
-    mediumPriority: priorities.filter((p) => p >= p33 && p < p67).length,
-    highPriority: priorities.filter((p) => p >= p67).length,
+    lowPriority,
+    mediumPriority,
+    highPriority: priorities.length - lowPriority - mediumPriority,
   };
 };

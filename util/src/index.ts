@@ -180,6 +180,7 @@ export type { JsonlLoadResult } from './utils/fs.js';
 export {
   appendJsonl,
   appendJsonlAsync,
+  containsPath,
   ensureDir,
   ensureDirSync,
   ensureParentDir,

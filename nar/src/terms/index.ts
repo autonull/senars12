@@ -40,7 +40,6 @@ export type { ParserResult, ParseTaskResult, TaskTypeName } from './parser-peggy
 export { ParseError, TermParser, termParser } from './parser-peggy.js';
 // Serialization
 export { deserializeTerm, fromNarsese, serializeTerm, toNarsese } from './serialize.js';
-export { getTermSimilarity } from './similarity.js';
 export type { SerializedStamp, Source, Stamp as StampType } from './stamp.js';
 export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './stamp.js';
 // Variable substitution

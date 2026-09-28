@@ -15,7 +15,7 @@ import { z } from 'zod';
 import { Truth, type Truth as TruthType } from '../../terms/truth.js';
 import { appendJsonlAsync } from '../../utils/fs.js';
 import { iterateJsonl, writeJsonl } from '../../utils/jsonl.js';
-import { meanBrierOf } from './metrics.js';
+import { frozenRegression, meanBrierOf } from './metrics.js';
 import { seedTruth } from './seed.js';
 import type { JudgmentProposition } from './types.js';
 
@@ -250,25 +250,25 @@ export function runBakeOff(
   // the incumbent on the digest-pinned snapshot beyond the tolerance window.
   let frozenReport: BakeOffResult['frozen'];
   if (frozen && frozen.cases.length > 0) {
-    const fb = (key: 'incumbent' | 'candidate') =>
+    const brierOf = (key: 'incumbent' | 'candidate') =>
       meanBrierOf(
         frozen.cases,
         (c) => c[key],
         (c) => c.truth
       );
-    const baselineBrier = fb('incumbent');
-    const candidateBrier = fb('candidate');
+    const baselineBrier = brierOf('incumbent');
+    const candidateBrier = brierOf('candidate');
     const tolerance = frozen.tolerance ?? parityTolerance;
-    const nonRegression = candidateBrier <= baselineBrier + tolerance;
-    frozenReport = { baselineBrier, candidateBrier, nonRegression };
-    if (!nonRegression) {
+    const { regressed, reason } = frozenRegression(baselineBrier, candidateBrier, tolerance);
+    frozenReport = { baselineBrier, candidateBrier, nonRegression: !regressed };
+    if (regressed) {
       return {
         incumbentAccuracy,
         candidateAccuracy,
         parityGap,
         withinParity,
         accepted: false,
-        reason: `Frozen-set regression: candidate Brier ${candidateBrier.toFixed(4)} > baseline ${baselineBrier.toFixed(4)} + tolerance ${tolerance}`,
+        reason: reason as string,
         frozen: frozenReport,
       };
     }

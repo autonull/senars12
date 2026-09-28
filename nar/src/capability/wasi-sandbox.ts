@@ -1,4 +1,4 @@
-import { withTimeout as sharedWithTimeout } from '@senars/util';
+import { containsPath, withTimeout as sharedWithTimeout } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 
 export class SandboxTimeoutError extends SenarsError {
@@ -37,12 +37,7 @@ export function sanitizePreopens(paths: string[] = []): Record<string, string> {
 export const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> =>
   sharedWithTimeout(promise, timeoutMs, () => new SandboxTimeoutError(timeoutMs));
 
-export function containsPath(root: string, candidate: string): boolean {
-  const norm = (p: string): string => p.replace(/\\/g, '/').replace(/\/+$/, '') || '/';
-  const r = norm(root);
-  const c = norm(candidate);
-  return c === r || c.startsWith(r === '/' ? '/' : `${r}/`);
-}
+export { containsPath };
 
 export function assertWasmPathContained(wasmPath: string, allowedPaths: string[] = []): void {
   if (allowedPaths.length > 0 && !allowedPaths.some((root) => containsPath(root, wasmPath))) {

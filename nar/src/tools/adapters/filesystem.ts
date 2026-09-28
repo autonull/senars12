@@ -1,5 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { normalize, resolve } from 'node:path';
+import { containsPath } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
 
@@ -11,13 +12,11 @@ export interface FileSystemDeps {
 }
 
 function enforceWorkspaceScope(requestedPath: string, workspaceRoot: string): string {
-  const resolved = resolve(workspaceRoot, requestedPath);
-  const normalized = normalize(resolved);
-  const normalizedRoot = normalize(workspaceRoot);
-  if (!normalized.startsWith(normalizedRoot)) {
+  const resolved = normalize(resolve(workspaceRoot, requestedPath));
+  if (!containsPath(workspaceRoot, resolved)) {
     throw new Error(`Path must be within workspace: ${workspaceRoot}`);
   }
-  return normalized;
+  return resolved;
 }
 
 export function createFileSystemTools(deps: FileSystemDeps) {

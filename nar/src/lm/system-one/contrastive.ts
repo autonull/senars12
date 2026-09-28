@@ -1,7 +1,7 @@
 import { clamp, generateId } from '@senars/util';
 import { type BagItem, PriorityBag } from '../../bag/Bag.js';
 import { AIKRProcessor, PrioritySampling } from '../../learning/aikr-processor.js';
-import { cosine } from '../../utils/similarity.js';
+import { cosine, cosineNormalized, normalize, type NormalizedVector } from '../../utils/similarity.js';
 import { embedCached } from './embedding-cache.js';
 import type { EmbeddingCache, JudgmentQuery } from './types.js';
 
@@ -52,8 +52,9 @@ export function fitInfoNCE(
     let dBias = 0;
     loss = 0;
     for (const { query, positive, negatives } of pairs) {
-      const cosPos = clamp(cosine(query, positive), -1, 1);
-      const cosNegs = negatives.map((n) => clamp(cosine(query, n), -1, 1));
+      const q = normalize(query);
+      const cosPos = clamp(cosineNormalized(q, positive), -1, 1);
+      const cosNegs = negatives.map((n) => clamp(cosineNormalized(q, n), -1, 1));
       const logits = [scale * cosPos + bias, ...cosNegs.map((c) => scale * c + bias)];
       const max = Math.max(...logits);
       const exp = logits.map((l) => Math.exp(l - max));
@@ -215,8 +216,9 @@ export class ContrastiveMemory {
     const state = this.#rubrics.get(rubric);
     if (!state || (state.pos.size() === 0 && state.neg.size() === 0)) return undefined;
 
-    const maxPos = this.#maxCosine(state.pos, embedding);
-    const maxNeg = this.#maxCosine(state.neg, embedding);
+    const query = normalize(embedding);
+    const maxPos = this.#maxCosine(state.pos, query);
+    const maxNeg = this.#maxCosine(state.neg, query);
     const calibration = this.#calibrations.get(rubric);
     const scale = calibration?.scale ?? this.#zeroShotScale;
     const bias = calibration?.bias ?? 0;
@@ -227,9 +229,10 @@ export class ContrastiveMemory {
   routingScore(embedding: Float32Array): number | undefined {
     let best = -1;
     let seen = 0;
+    const query = normalize(embedding);
     for (const state of this.#rubrics.values()) {
-      best = Math.max(best, this.#maxCosine(state.pos, embedding));
-      best = Math.max(best, this.#maxCosine(state.neg, embedding));
+      best = Math.max(best, this.#maxCosine(state.pos, query));
+      best = Math.max(best, this.#maxCosine(state.neg, query));
       seen += state.pos.size() + state.neg.size();
     }
     return seen === 0 ? undefined : Math.max(0, best);
@@ -343,7 +346,8 @@ export class ContrastiveMemory {
     const state = this.#rubricState(rubric);
     const opposing = exemplar.kind === 'pos' ? state.neg : state.pos;
     // Discrimination against the opposing class; 1 when unopposed.
-    const margin = opposing.size() === 0 ? 1 : 1 - this.#maxCosine(opposing, exemplar.embedding);
+    const margin =
+      opposing.size() === 0 ? 1 : 1 - this.#maxCosine(opposing, normalize(exemplar.embedding));
     const item: ExemplarItem = {
       id: generateId(exemplar.kind),
       priority: Math.max(1e-6, priority ?? margin),
@@ -356,16 +360,24 @@ export class ContrastiveMemory {
     return admitted;
   }
 
-  /** Max cosine against a bag's exemplars — streams the bag, no array copies. */
-  #maxCosine(bag: { all(): IterableIterator<ExemplarItem> }, embedding: Float32Array): number {
+  /**
+   * Max cosine against a bag's exemplars — streams the bag, no array copies.
+   * `query` carries its precomputed norm so the same embedding scored against
+   * two bags (or a whole routing sweep) is measured once.
+   */
+  #maxCosine(
+    bag: { all(): IterableIterator<ExemplarItem> },
+    query: NormalizedVector
+  ): number {
     let best = -1;
-    for (const item of bag.all()) best = Math.max(best, cosine(embedding, item.embedding));
+    for (const item of bag.all()) best = Math.max(best, cosineNormalized(query, item.embedding));
     return best;
   }
 
   /** Positive-vs-negative cosine margin for a rubric state. */
   #margin(state: RubricState, embedding: Float32Array): number {
-    return this.#maxCosine(state.pos, embedding) - this.#maxCosine(state.neg, embedding);
+    const query = normalize(embedding);
+    return this.#maxCosine(state.pos, query) - this.#maxCosine(state.neg, query);
   }
 
   #positives(rubric: string): Float32Array[] {

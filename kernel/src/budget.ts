@@ -6,7 +6,7 @@ import type { AIKRBudget } from '@senars/nar/bag';
 import type { NarEventBus, ConsumedBudget, BudgetSliceTotal } from '@senars/nar/types/events';
 import { emitBudgetSliceCreated, emitBudgetSliceConsumed, emitBudgetSliceExhausted, emitBudgetSliceMerged } from '@senars/nar/tick';
 import type { TerminationReason } from './schemas.js';
-import { pct } from '@senars/util';
+import { clamp, pct } from '@senars/util';
 
 export type { ConsumedBudget, BudgetSliceTotal };
 /** @deprecated since 1.0 — re-export the kernel's own `TerminationReason` from `./schemas.js`. */
@@ -103,117 +103,82 @@ export function sliceBudget(
   return slice;
 }
 
-function emitConsumed(budget: BudgetSlice, resource: 'cycles' | 'depth' | 'memoryOps' | 'llmCalls', amount: number, eventBus?: NarEventBus): void {
+/** The four AIKR dimensions, each with its consumed key, total key, and exhaustion reason. */
+const RESOURCES = {
+  cycles: { total: 'totalCycles', reason: 'cycle-budget' },
+  depth: { total: 'totalDepth', reason: 'depth-budget' },
+  memoryOps: { total: 'totalMemoryOps', reason: 'memory-budget' },
+  llmCalls: { total: 'totalLMCalls', reason: 'llm-budget' },
+} as const satisfies Record<
+  keyof ConsumedBudget,
+  { total: keyof BudgetSliceTotal; reason: TerminationReason }
+>;
+
+type BudgetResource = keyof typeof RESOURCES;
+
+const totalsOf = (budget: BudgetSlice): { -readonly [K in keyof BudgetSliceTotal]: number } => ({
+  totalCycles: budget.totalCycles,
+  totalDepth: budget.totalDepth,
+  totalMemoryOps: budget.totalMemoryOps,
+  totalLMCalls: budget.totalLMCalls,
+});
+
+const totalOf = (budget: BudgetSlice, resource: BudgetResource): number =>
+  budget[RESOURCES[resource].total];
+
+/** Fraction of one dimension consumed; 0 when the total is 0. */
+const pressureOf = (budget: BudgetSlice, resource: BudgetResource): number => {
+  const total = totalOf(budget, resource);
+  return total > 0 ? budget.consumed[resource] / total : 0;
+};
+
+/**
+ * Charge `amount` to one budget dimension, or terminate the slice when the
+ * charge would exceed its total. The single accounting path: exhaustion sets
+ * the termination reason exactly once and reports the full consumed/total
+ * snapshot; success accumulates and emits the resource-scoped event.
+ */
+function consume(
+  budget: BudgetSlice,
+  resource: BudgetResource,
+  amount: number,
+  eventBus?: NarEventBus
+): boolean {
+  const { reason } = RESOURCES[resource];
+  const total = totalOf(budget, resource);
+  if (budget.consumed[resource] + amount > total) {
+    budget.terminationReason = reason;
+    const snapshot = { sliceId: budget.id, reason, consumed: { ...budget.consumed }, total: totalsOf(budget) };
+    eventBus?.emit('budget:slice:exhausted', snapshot);
+    emitBudgetSliceExhausted(snapshot);
+    return false;
+  }
+  budget.consumed[resource] += amount;
   const consumed = budget.consumed[resource];
-  const total = resource === 'cycles' ? budget.totalCycles :
-                resource === 'depth' ? budget.totalDepth :
-                resource === 'memoryOps' ? budget.totalMemoryOps : budget.totalLMCalls;
-  const pressure = total > 0 ? consumed / total : 0;
-  eventBus?.emit('budget:slice:consumed', {
+  const payload = {
     sliceId: budget.id,
     resource,
     amount,
     consumed,
     total,
-    pressure,
-  });
-  emitBudgetSliceConsumed({
-    sliceId: budget.id,
-    resource,
-    amount,
-    consumed,
-    total,
-    pressure,
-  });
-}
-
-export function consumeCycles(budget: BudgetSlice, cycles: number, eventBus?: NarEventBus): boolean {
-  if (budget.consumed.cycles + cycles > budget.totalCycles) {
-    budget.terminationReason = 'cycle-budget';
-    eventBus?.emit('budget:slice:exhausted', {
-      sliceId: budget.id,
-      reason: 'cycle-budget',
-      consumed: { ...budget.consumed },
-      total: { totalCycles: budget.totalCycles, totalDepth: budget.totalDepth, totalMemoryOps: budget.totalMemoryOps, totalLMCalls: budget.totalLMCalls },
-    });
-    emitBudgetSliceExhausted({
-      sliceId: budget.id,
-      reason: 'cycle-budget',
-      consumed: { ...budget.consumed },
-      total: { totalCycles: budget.totalCycles, totalDepth: budget.totalDepth, totalMemoryOps: budget.totalMemoryOps, totalLMCalls: budget.totalLMCalls },
-    });
-    return false;
-  }
-  budget.consumed.cycles += cycles;
-  emitConsumed(budget, 'cycles', cycles, eventBus);
+    pressure: pressureOf(budget, resource),
+  };
+  eventBus?.emit('budget:slice:consumed', payload);
+  emitBudgetSliceConsumed(payload);
   return true;
 }
 
-export function consumeDepth(budget: BudgetSlice, depth: number, eventBus?: NarEventBus): boolean {
-  if (budget.consumed.depth + depth > budget.totalDepth) {
-    budget.terminationReason = 'depth-budget';
-    eventBus?.emit('budget:slice:exhausted', {
-      sliceId: budget.id,
-      reason: 'depth-budget',
-      consumed: { ...budget.consumed },
-      total: { totalCycles: budget.totalCycles, totalDepth: budget.totalDepth, totalMemoryOps: budget.totalMemoryOps, totalLMCalls: budget.totalLMCalls },
-    });
-    emitBudgetSliceExhausted({
-      sliceId: budget.id,
-      reason: 'depth-budget',
-      consumed: { ...budget.consumed },
-      total: { totalCycles: budget.totalCycles, totalDepth: budget.totalDepth, totalMemoryOps: budget.totalMemoryOps, totalLMCalls: budget.totalLMCalls },
-    });
-    return false;
-  }
-  budget.consumed.depth += depth;
-  emitConsumed(budget, 'depth', depth, eventBus);
-  return true;
-}
+export const consumeCycles = (budget: BudgetSlice, cycles: number, eventBus?: NarEventBus): boolean =>
+  consume(budget, 'cycles', cycles, eventBus);
 
-export function consumeMemoryOps(budget: BudgetSlice, ops: number, eventBus?: NarEventBus): boolean {
-  if (budget.consumed.memoryOps + ops > budget.totalMemoryOps) {
-    budget.terminationReason = 'memory-budget';
-    eventBus?.emit('budget:slice:exhausted', {
-      sliceId: budget.id,
-      reason: 'memory-budget',
-      consumed: { ...budget.consumed },
-      total: { totalCycles: budget.totalCycles, totalDepth: budget.totalDepth, totalMemoryOps: budget.totalMemoryOps, totalLMCalls: budget.totalLMCalls },
-    });
-    emitBudgetSliceExhausted({
-      sliceId: budget.id,
-      reason: 'memory-budget',
-      consumed: { ...budget.consumed },
-      total: { totalCycles: budget.totalCycles, totalDepth: budget.totalDepth, totalMemoryOps: budget.totalMemoryOps, totalLMCalls: budget.totalLMCalls },
-    });
-    return false;
-  }
-  budget.consumed.memoryOps += ops;
-  emitConsumed(budget, 'memoryOps', ops, eventBus);
-  return true;
-}
+export const consumeDepth = (budget: BudgetSlice, depth: number, eventBus?: NarEventBus): boolean =>
+  consume(budget, 'depth', depth, eventBus);
 
-export function consumeLMCalls(budget: BudgetSlice, calls: number, eventBus?: NarEventBus): boolean {
-  if (budget.consumed.llmCalls + calls > budget.totalLMCalls) {
-    budget.terminationReason = 'llm-budget';
-    eventBus?.emit('budget:slice:exhausted', {
-      sliceId: budget.id,
-      reason: 'llm-budget',
-      consumed: { ...budget.consumed },
-      total: { totalCycles: budget.totalCycles, totalDepth: budget.totalDepth, totalMemoryOps: budget.totalMemoryOps, totalLMCalls: budget.totalLMCalls },
-    });
-    emitBudgetSliceExhausted({
-      sliceId: budget.id,
-      reason: 'llm-budget',
-      consumed: { ...budget.consumed },
-      total: { totalCycles: budget.totalCycles, totalDepth: budget.totalDepth, totalMemoryOps: budget.totalMemoryOps, totalLMCalls: budget.totalLMCalls },
-    });
-    return false;
-  }
-  budget.consumed.llmCalls += calls;
-  emitConsumed(budget, 'llmCalls', calls, eventBus);
-  return true;
-}
+export const consumeMemoryOps = (budget: BudgetSlice, ops: number, eventBus?: NarEventBus): boolean =>
+  consume(budget, 'memoryOps', ops, eventBus);
+
+export const consumeLMCalls = (budget: BudgetSlice, calls: number, eventBus?: NarEventBus): boolean =>
+  consume(budget, 'llmCalls', calls, eventBus);
 
 export function checkDeadline(budget: BudgetSlice): boolean {
   if (budget.wallclockDeadlineMs && Date.now() > budget.wallclockDeadlineMs) {
@@ -231,36 +196,25 @@ export function checkAbort(budget: BudgetSlice): boolean {
   return true;
 }
 
-export function remainingCycles(budget: BudgetSlice): number {
-  return Math.max(0, budget.totalCycles - budget.consumed.cycles);
-}
+/** Unconsumed capacity in one dimension, floored at zero. */
+const remainingOf = (budget: BudgetSlice, resource: BudgetResource): number =>
+  clamp(totalOf(budget, resource) - budget.consumed[resource], 0, Number.POSITIVE_INFINITY);
 
-export function remainingDepth(budget: BudgetSlice): number {
-  return Math.max(0, budget.totalDepth - budget.consumed.depth);
-}
+export const remainingCycles = (budget: BudgetSlice): number => remainingOf(budget, 'cycles');
 
-export function remainingMemoryOps(budget: BudgetSlice): number {
-  return Math.max(0, budget.totalMemoryOps - budget.consumed.memoryOps);
-}
+export const remainingDepth = (budget: BudgetSlice): number => remainingOf(budget, 'depth');
 
-export function remainingLMCalls(budget: BudgetSlice): number {
-  return Math.max(0, budget.totalLMCalls - budget.consumed.llmCalls);
-}
+export const remainingMemoryOps = (budget: BudgetSlice): number => remainingOf(budget, 'memoryOps');
+
+export const remainingLMCalls = (budget: BudgetSlice): number => remainingOf(budget, 'llmCalls');
 
 /** All four remaining dimensions in one snapshot — the shape budget consumers hand around. */
-export function remainingAll(budget: BudgetSlice): {
-  cycles: number;
-  depth: number;
-  memoryOps: number;
-  llmCalls: number;
-} {
-  return {
-    cycles: remainingCycles(budget),
-    depth: remainingDepth(budget),
-    memoryOps: remainingMemoryOps(budget),
-    llmCalls: remainingLMCalls(budget),
-  };
-}
+export const remainingAll = (budget: BudgetSlice): ConsumedBudget => ({
+  cycles: remainingCycles(budget),
+  depth: remainingDepth(budget),
+  memoryOps: remainingMemoryOps(budget),
+  llmCalls: remainingLMCalls(budget),
+});
 
 export function toAIKRBudget(budget: BudgetSlice): AIKRBudget {
   return {
@@ -289,24 +243,20 @@ export function mergeConsumption(parent: BudgetSlice, child: BudgetSlice, eventB
   });
 }
 
+const ALL_RESOURCES = Object.keys(RESOURCES) as BudgetResource[];
+
 export function isExhausted(budget: BudgetSlice): boolean {
-  return Boolean(
+  return (
     budget.terminationReason !== undefined ||
-    budget.consumed.cycles >= budget.totalCycles ||
-    budget.consumed.depth >= budget.totalDepth ||
-    budget.consumed.memoryOps >= budget.totalMemoryOps ||
-    budget.consumed.llmCalls >= budget.totalLMCalls ||
-    (budget.wallclockDeadlineMs && Date.now() > budget.wallclockDeadlineMs) ||
-    budget.abortSignal?.aborted
+    ALL_RESOURCES.some((resource) => budget.consumed[resource] >= totalOf(budget, resource)) ||
+    Boolean(budget.wallclockDeadlineMs && Date.now() > budget.wallclockDeadlineMs) ||
+    Boolean(budget.abortSignal?.aborted)
   );
 }
 
+/** Worst per-dimension pressure — the slice's overall load. */
 export function pressure(budget: BudgetSlice): number {
-  const cyclePressure = budget.totalCycles > 0 ? budget.consumed.cycles / budget.totalCycles : 0;
-  const depthPressure = budget.totalDepth > 0 ? budget.consumed.depth / budget.totalDepth : 0;
-  const memoryPressure = budget.totalMemoryOps > 0 ? budget.consumed.memoryOps / budget.totalMemoryOps : 0;
-  const llmPressure = budget.totalLMCalls > 0 ? budget.consumed.llmCalls / budget.totalLMCalls : 0;
-  return Math.max(cyclePressure, depthPressure, memoryPressure, llmPressure);
+  return Math.max(...ALL_RESOURCES.map((resource) => pressureOf(budget, resource)));
 }
 
 /** Collect all budget slices in a tree starting from root. */

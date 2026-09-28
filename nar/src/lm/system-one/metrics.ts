@@ -39,3 +39,20 @@ export const meanBrier = (data: readonly { predicted: number; observed: number }
   );
 import { mean } from '@senars/util';
 
+/**
+ * The one frozen-set non-regression comparison, and its message. Lower Brier is
+ * better, so a candidate regresses when it exceeds the baseline by more than
+ * `tolerance`. Lives here — beside the Brier implementation, in the leaf module
+ * — so both the throwing gate (eval-set) and the bake-off report (distill) agree.
+ */
+export const frozenRegression = (
+  baselineBrier: number,
+  candidateBrier: number,
+  tolerance: number
+): { regressed: boolean; reason?: string } =>
+  candidateBrier > baselineBrier + tolerance
+    ? {
+        regressed: true,
+        reason: `Frozen-set regression: candidate Brier ${candidateBrier.toFixed(4)} > baseline ${baselineBrier.toFixed(4)} + tolerance ${tolerance}`,
+      }
+    : { regressed: false };

@@ -58,18 +58,31 @@ export function createSessionBinder(mgr: SessionManager): MessageMiddleware {
   };
 }
 
+/**
+ * Sliding one-second window, at most `maxPerWindow` messages. Timestamps live
+ * in a bounded ring indexed by a head cursor: each message advances the cursor
+ * and evicts whatever has aged out, so the hot path is O(1) amortized with no
+ * per-message filter, realloc, or unbounded growth.
+ */
 export function createRateLimiter(maxPerWindow: number): MessageMiddleware {
-  const timestamps: number[] = [];
+  const capacity = Math.max(1, Math.floor(maxPerWindow));
+  const window = new Array<number>(capacity).fill(0);
+  let cursor = 0;
+  let seen = 0;
+  const reject = async (ctx: MessageContext): Promise<void> => {
+    const respond = ctxAsRecord(ctx).respond as ((text: string) => Promise<void>) | undefined;
+    if (respond) await respond('Rate limit exceeded. Please slow down.');
+  };
   return async (_msg: IOMessage, ctx: MessageContext, next: () => Promise<void>) => {
+    if (maxPerWindow < 1) return reject(ctx);
     const now = Date.now();
-    const window = timestamps.filter((t) => now - t < 1000);
-    timestamps.length = 0;
-    timestamps.push(...window, now);
-    if (timestamps.length > maxPerWindow) {
-      const respond = ctxAsRecord(ctx).respond as ((text: string) => Promise<void>) | undefined;
-      if (respond) await respond('Rate limit exceeded. Please slow down.');
-      return;
-    }
+    // `window[cursor]` is the oldest of the last `capacity` arrivals; it is the
+    // entry this one displaces, so the window is full exactly when seen==capacity.
+    const full = seen >= capacity;
+    window[cursor] = now;
+    cursor = cursor + 1 === capacity ? 0 : cursor + 1;
+    if (seen < capacity) seen++;
+    if (full && now - window[cursor]! < 1000) return reject(ctx);
     await next();
   };
 }
