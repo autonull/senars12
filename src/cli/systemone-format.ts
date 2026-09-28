@@ -4,8 +4,7 @@
  */
 
 import type { NAR } from '@senars/nar';
-import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { readCalibrationLockOrNull } from '@senars/nar/lm/system-one/calibration-fit.js';
 import { pct } from '@senars/util';
 
 /** The conversation-game focus the status readout reads veto counters from. */
@@ -94,25 +93,15 @@ export async function formatSystemOneHeads(nar: NAR): Promise<string> {
     );
   }
   // Phase 7: eval/ood metrics from the calibration lock (frozen-set fitted).
-  try {
-    const lockPath = '.cache/systemone/calibration-lock.json';
-    if (existsSync(lockPath)) {
-      const lock = JSON.parse(await readFile(lockPath, 'utf-8')) as {
-        eval?: { brier: number; ece: number; count: number; datasetDigest?: string };
-        ood?: { brier: number; ece: number; count: number; datasetDigest?: string };
-      };
-      if (lock.eval)
-        lines.push(
-          `  eval: brier=${lock.eval.brier.toFixed(4)} ece=${lock.eval.ece.toFixed(4)} n=${lock.eval.count} digest=${lock.eval.datasetDigest?.slice(0, 19) ?? '—'}`
-        );
-      if (lock.ood)
-        lines.push(
-          `  ood: brier=${lock.ood.brier.toFixed(4)} ece=${lock.ood.ece.toFixed(4)} n=${lock.ood.count} digest=${lock.ood.datasetDigest?.slice(0, 19) ?? '—'}`
-        );
-    }
-  } catch {
-    // Lock metrics are best-effort display
-  }
+  const lock = await readCalibrationLockOrNull();
+  for (const [label, metrics] of [
+    ['eval', lock?.eval],
+    ['ood', lock?.ood],
+  ] as const)
+    if (metrics)
+      lines.push(
+        `  ${label}: brier=${metrics.brier.toFixed(4)} ece=${metrics.ece.toFixed(4)} n=${metrics.count} digest=${metrics.datasetDigest.slice(0, 19)}`
+      );
   return lines.join('\n');
 }
 

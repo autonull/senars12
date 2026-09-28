@@ -291,12 +291,10 @@ export async function initializeMetaReasoning(nar: {
 
 /** Check if meta-reasoning should activate based on drive intensities */
 export function shouldActivateMetaReasoning(
-  driveStates: Map<string, { currentIntensity: number }>
+  driveStates: Iterable<{ currentIntensity: number }>
 ): boolean {
-  for (const [, state] of driveStates) {
-    if (state.currentIntensity > META_AIKR_BOUNDS.metaRuleActivationThreshold) {
-      return true;
-    }
+  for (const state of driveStates) {
+    if (state.currentIntensity > META_AIKR_BOUNDS.metaRuleActivationThreshold) return true;
   }
   return false;
 }

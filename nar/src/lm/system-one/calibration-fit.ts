@@ -245,6 +245,20 @@ export async function readCalibrationLock(path: string): Promise<CalibrationLock
   return JSON.parse(await fs.readFile(path, 'utf-8')) as CalibrationLock;
 }
 
+/** The one on-disk location of the digest-pinned calibration lock. */
+export const CALIBRATION_LOCK_PATH = '.cache/systemone/calibration-lock.json';
+
+/** Best-effort lock read: `null` when absent or unreadable. */
+export async function readCalibrationLockOrNull(
+  path: string = CALIBRATION_LOCK_PATH
+): Promise<CalibrationLock | null> {
+  try {
+    return await readCalibrationLock(path);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Digest-pinned lock load (H3 fail-closed semantics): a lock pinned to a
  * modelDigest that does not match the manifold's bundle is rejected outright.

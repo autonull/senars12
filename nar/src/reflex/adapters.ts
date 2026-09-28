@@ -1,4 +1,4 @@
-import type { ActionProposal, LearningEvent, Reflex } from './Reflex.js';
+import { type ActionProposal, byExpectedValue, type LearningEvent, type Reflex } from './Reflex.js';
 
 /**
  * TODO19 F6: composable ReflexAdapter wrappers. One wrapper chain API replaces
@@ -66,7 +66,7 @@ export const vetoAwareReflex =
               ? { ...p, value: p.value * demotion, confidence: p.confidence * demotion }
               : p
           )
-          .sort((a, b) => b.value * b.confidence - a.value * a.confidence);
+          .sort(byExpectedValue);
       },
       learn: (e: LearningEvent) => {
         if (e.overriddenBy && e.actionProposed)

@@ -18,6 +18,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readExports } from './lib/pkg.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -94,12 +95,8 @@ export const auditPackages = (
   const violations: string[] = [];
 
   for (const pkg of packages) {
-    const pkgPath = join(root, pkg, 'package.json');
-    if (!existsSync(pkgPath)) continue;
-    const { exports } = JSON.parse(readFileSync(pkgPath, 'utf-8')) as {
-      exports?: Record<string, unknown>;
-    };
-    if (!exports) continue;
+    const exports = readExports(root, pkg);
+    if (Object.keys(exports).length === 0) continue;
     const allowlist = PUBLIC_API[pkg] ?? [];
 
     for (const sub of Object.keys(exports)) {

@@ -19,6 +19,7 @@ import { systemOneDefaults, systemOneSchema } from '../../config/schema.js';
 import { createLogger } from '@senars/nar/logger';
 import { formatBudgetSliceTree, collectBudgetSlices, type BudgetSlice } from '@senars/kernel';
 import { errMsg } from '@senars/util';
+import { CALIBRATION_LOCK_PATH } from '@senars/nar/lm/system-one/calibration-fit.js';
 
 const logger = createLogger({ scope: 'status' });
 
@@ -37,8 +38,6 @@ const byteSize = (path: string): { exists: boolean; bytes: number } => {
   return { exists: true, bytes: statSync(path).size };
 };
 
-const LOCK_PATH = '.cache/systemone/calibration-lock.json';
-
 const collect = async (): Promise<StatusReport> => {
   const appConfig = await loadConfig();
   const systemOne = appConfig.systemOne ?? systemOneSchema.parse({});
@@ -50,7 +49,7 @@ const collect = async (): Promise<StatusReport> => {
 
   const nar = (await new NARBuilder().withLM(createLMService()).withNarConfig({ systemOne }).build()).nar;
   const dataset = byteSize(systemOne.distillation.datasetPath);
-  const lock = byteSize(LOCK_PATH);
+  const lock = byteSize(CALIBRATION_LOCK_PATH);
   const report: StatusReport = {
     systemOne: { enabled: nar.isSystemOneEnabled(), provenance },
     manifold: null,
@@ -60,7 +59,7 @@ const collect = async (): Promise<StatusReport> => {
       datasetPath: systemOne.distillation.datasetPath,
       datasetExists: dataset.exists,
       datasetBytes: dataset.bytes,
-      lockPath: LOCK_PATH,
+      lockPath: CALIBRATION_LOCK_PATH,
       lockExists: lock.exists,
       lockBytes: lock.bytes,
     },

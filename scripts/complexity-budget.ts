@@ -11,6 +11,7 @@ import { readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
+import { readExports } from './lib/pkg.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -44,10 +45,7 @@ function countExportSubpaths(): number {
   const packages = ['nar', 'util', 'core', 'io', 'metta', 'kernel'];
   let total = 0;
   for (const pkg of packages) {
-    const pkgPath = join(ROOT, pkg, 'package.json');
-    if (!existsSync(pkgPath)) continue;
-    const { exports } = JSON.parse(readFileSync(pkgPath, 'utf-8')) as { exports?: Record<string, unknown> };
-    if (exports) total += Object.keys(exports).length;
+    total += Object.keys(readExports(ROOT, pkg)).length;
   }
   return total;
 }

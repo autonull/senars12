@@ -1192,15 +1192,14 @@ function buildExtraCommands(
         );
         return `Contrastive exemplars refreshed: ${totals.p}P/${totals.n}N across ${Object.keys(stats).length} rubric(s)`;
       }
+      const { CALIBRATION_LOCK_PATH, readCalibrationLockOrNull, writeCalibrationLock, fitCalibrationLock } =
+        await import('@senars/nar/lm/system-one/calibration-fit.js');
       if (args.trim().toLowerCase() === 'refit') {
         if (!nar.isSystemOneEnabled?.()) return 'System One: disabled';
         try {
           const { JudgmentDataset } = await import('@senars/nar/lm/system-one/distill.js');
           const { digestRows, loadEvalSet, splitOod } = await import(
             '@senars/nar/lm/system-one/eval-set.js'
-          );
-          const { fitCalibrationLock, writeCalibrationLock } = await import(
-            '@senars/nar/lm/system-one/calibration-fit.js'
           );
           const datasetPath =
             appConfig.systemOne?.distillation?.datasetPath ?? '.cache/systemone/dataset.jsonl';
@@ -1220,25 +1219,20 @@ function buildExtraCommands(
             // No frozen set — per-run holdout only (Phase 2 gap applies)
           }
           const { lock, perHead, improved } = fitCalibrationLock(dataset, options as never);
-          await writeCalibrationLock(lock, '.cache/systemone/calibration-lock.json');
+          await writeCalibrationLock(lock, CALIBRATION_LOCK_PATH);
           return `Calibration lock refit: ${perHead.size} head(s), holdout ECE improved=${improved}, frozen-set metrics=${lock.eval ? 'embedded' : 'absent (run .systemone eval-set create)'}\nRestart required to apply the lock to the manifold.`;
         } catch (e) {
           return `refit failed: ${errMsg(e)}`;
         }
       }
-      const p = '.cache/systemone/calibration-lock.json';
-      if (!existsSync(p)) return 'No calibration lock (heads unfitted — pass-through mode)';
-      try {
-        const lock = JSON.parse(await readFile(p, 'utf-8')) as {
-          heads?: Record<string, { abstainThreshold?: number }>;
-        };
-        const heads = Object.entries(lock.heads ?? {})
-          .map(([h, v]) => `  ${h}: abstain=${v.abstainThreshold ?? '—'}`)
-          .join('\n');
-        return `lock ${statSync(p).size}B\n${heads || '  (no per-head data)'}`;
-      } catch (e) {
-        return `lock unreadable: ${errMsg(e)}`;
-      }
+      if (!existsSync(CALIBRATION_LOCK_PATH))
+        return 'No calibration lock (heads unfitted — pass-through mode)';
+      const lock = await readCalibrationLockOrNull();
+      if (!lock) return `lock unreadable: ${CALIBRATION_LOCK_PATH}`;
+      const heads = lock.heads
+        .map((h) => `  ${h.headId}: abstain=${h.fitted ? h.abstainThreshold.toFixed(4) : '—'}`)
+        .join('\n');
+      return `lock ${statSync(CALIBRATION_LOCK_PATH).size}B\n${heads || '  (no per-head data)'}`;
     }),
     cmd('distill', 'Distillation dataset status', () => {
       const p = appConfig.systemOne?.distillation?.datasetPath ?? '.cache/systemone/dataset.jsonl';

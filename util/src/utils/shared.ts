@@ -9,6 +9,9 @@ export const errMsg = (e: unknown): string => (e instanceof Error ? e.message : 
 
 export const toError = (e: unknown): Error => (e instanceof Error ? e : new Error(String(e)));
 
+/** Rough token count: ~4 characters per token. Single source for every budget. */
+export const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
+
 export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
 /** Raised by {@link withTimeout} unless a domain error is supplied. */

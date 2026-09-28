@@ -21,3 +21,11 @@ export const cosine = (a: ArrayLike<number>, b: ArrayLike<number>): number => {
   }
   return normA === 0 || normB === 0 ? 0 : dot / (Math.sqrt(normA) * Math.sqrt(normB));
 };
+
+/** Unit-length copy of `v`; a zero vector passes through unchanged. */
+export const l2Normalize = <V extends ArrayLike<number>>(v: V): number[] => {
+  let norm = 0;
+  for (let i = 0; i < v.length; i++) norm += (v[i] ?? 0) ** 2;
+  const scale = Math.sqrt(norm) || 1;
+  return Array.from({ length: v.length }, (_, i) => (v[i] ?? 0) / scale);
+};

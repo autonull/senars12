@@ -1,3 +1,4 @@
+import { PushQueue } from '@senars/util/events';
 import type { ConfigEvent, ConfigView } from '@senars/util/config';
 import type { EventLog } from '../eventlog/EventLog.js';
 
@@ -24,20 +25,11 @@ export class ConfigViewImpl implements ConfigView {
   }
 
   subscribe(prefix: string): AsyncIterable<ConfigEvent> {
-    const queue: ConfigEvent[] = [];
-    const resolvers: Array<(value: IteratorResult<ConfigEvent>) => void> = [];
-    let closed = false;
+    const queue = new PushQueue<ConfigEvent>();
     const subscribers = this.#subscribers;
 
     const handler = (event: ConfigEvent) => {
-      if (event.payload.path.startsWith(prefix)) {
-        queue.push(event);
-        if (resolvers.length > 0) {
-          const next = queue.shift();
-          const resolver = resolvers.shift();
-          if (next && resolver) resolver({ value: next, done: false });
-        }
-      }
+      if (event.payload.path.startsWith(prefix)) queue.push(event);
     };
 
     const handlers = subscribers.get(prefix) ?? new Set();
@@ -45,26 +37,14 @@ export class ConfigViewImpl implements ConfigView {
     subscribers.set(prefix, handlers);
 
     return {
-      [Symbol.asyncIterator]() {
-        return {
-          async next(): Promise<IteratorResult<ConfigEvent>> {
-            if (queue.length > 0) {
-              const next = queue.shift();
-              if (next) return { value: next, done: false };
-            }
-            if (closed) return { value: undefined, done: true };
-            return new Promise<IteratorResult<ConfigEvent>>((res) => {
-              resolvers.push(res);
-            });
-          },
-          async return(): Promise<IteratorResult<ConfigEvent>> {
-            closed = true;
-            const h = subscribers.get(prefix);
-            if (h) h.delete(handler);
-            return { value: undefined, done: true };
-          },
-        };
-      },
+      [Symbol.asyncIterator]: () => ({
+        next: () => queue.next(),
+        return: async () => {
+          queue.close();
+          subscribers.get(prefix)?.delete(handler);
+          return { value: undefined, done: true };
+        },
+      }),
     };
   }
 

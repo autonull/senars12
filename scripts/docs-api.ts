@@ -11,6 +11,7 @@
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readExports } from './lib/pkg.js';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const PACKAGES = ['nar', 'core', 'util', 'io', 'metta'];
@@ -136,12 +137,10 @@ const main = (): void => {
   mkdirSync(OUT, { recursive: true });
   let entries = 0;
   for (const pkg of PACKAGES) {
-    const pkgJson = JSON.parse(readFileSync(join(ROOT, pkg, 'package.json'), 'utf-8')) as {
-      exports?: Record<string, ExportEntry>;
-    };
-    if (!pkgJson.exports) continue;
+    const exports = readExports(ROOT, pkg);
+    if (Object.keys(exports).length === 0) continue;
     const lines: string[] = [`# @senars/${pkg} — public API`, ''];
-    for (const [sub, entry] of Object.entries(pkgJson.exports)) {
+    for (const [sub, entry] of Object.entries(exports)) {
       const file = entryFileOf(pkg, entry);
       lines.push(`## \`${sub}\``);
       if (!file) {

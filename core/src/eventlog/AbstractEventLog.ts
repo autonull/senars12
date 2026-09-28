@@ -1,3 +1,4 @@
+import { PushQueue } from '@senars/util/events';
 import type { CognitiveEvent, EventLog } from './EventLog.js';
 import { EventLogError } from './EventLog.js';
 
@@ -75,16 +76,12 @@ export abstract class AbstractEventLog implements EventLog {
     types?: string[];
   }): AsyncIterable<CognitiveEvent> {
     const typesSet = options?.types ? new Set(options.types) : undefined;
-    const queue: CognitiveEvent[] = [];
-    let closed = false;
 
     const subscription: Subscription = {
       filter: options?.filter,
       fromId: options?.fromId,
       types: typesSet,
-      queue,
-      closed: false,
-      resolver: null,
+      queue: new PushQueue<CognitiveEvent>(),
     };
 
     this.#subscribers.add(subscription);
@@ -94,33 +91,19 @@ export abstract class AbstractEventLog implements EventLog {
         for (const event of events) {
           if (typesSet && !typesSet.has(event.type)) continue;
           if (options.filter && !options.filter(event)) continue;
-          queue.push(event);
+          subscription.queue.push(event);
         }
       });
     }
 
     return {
-      [Symbol.asyncIterator]() {
-        return {
-          async next(): Promise<IteratorResult<CognitiveEvent>> {
-            while (queue.length > 0) {
-              const nextEvent = queue.shift();
-              if (nextEvent) return { value: nextEvent, done: false };
-            }
-            if (closed) {
-              return { value: undefined, done: true };
-            }
-            return new Promise<IteratorResult<CognitiveEvent>>((res) => {
-              subscription.resolver = res;
-            });
-          },
-          async return(): Promise<IteratorResult<CognitiveEvent>> {
-            closed = true;
-            subscription.closed = true;
-            return { value: undefined, done: true };
-          },
-        };
-      },
+      [Symbol.asyncIterator]: () => ({
+        next: () => subscription.queue.next(),
+        return: async () => {
+          subscription.queue.close();
+          return { value: undefined, done: true };
+        },
+      }),
     };
   }
 
@@ -137,20 +120,14 @@ export abstract class AbstractEventLog implements EventLog {
 
   notify(event: CognitiveEvent): void {
     for (const sub of this.#subscribers) {
-      if (!sub.closed) {
-        try {
-          if (sub.fromId && sub.fromId >= (event.id ?? '')) continue;
-          if (sub.types && !sub.types.has(event.type)) continue;
-          if (sub.filter && !sub.filter(event)) continue;
-          sub.queue.push(event);
-          if (sub.resolver) {
-            const resolver = sub.resolver;
-            sub.resolver = null;
-            resolver({ value: event, done: false });
-          }
-        } catch {
-          // ignore handler errors
-        }
+      if (sub.queue.closed) continue;
+      try {
+        if (sub.fromId && sub.fromId >= (event.id ?? '')) continue;
+        if (sub.types && !sub.types.has(event.type)) continue;
+        if (sub.filter && !sub.filter(event)) continue;
+        sub.queue.push(event);
+      } catch {
+        // ignore handler errors
       }
     }
   }
@@ -331,7 +308,5 @@ interface Subscription {
   filter?: (event: CognitiveEvent) => boolean;
   fromId?: string;
   types?: Set<string>;
-  queue: CognitiveEvent[];
-  closed: boolean;
-  resolver: ((value: IteratorResult<CognitiveEvent>) => void) | null;
+  queue: PushQueue<CognitiveEvent>;
 }

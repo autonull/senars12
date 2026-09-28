@@ -25,45 +25,22 @@ export const setCORSHeaders = (res: http.ServerResponse): void => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
 };
 
-export const startHttpServer = (
-  port: number,
-  handler: (req: IncomingMessage, res: http.ServerResponse) => void,
-  options?: { timeout?: number }
-): Promise<http.Server> => {
-  const server = http.createServer(handler);
-  const timeout = options?.timeout ?? 10000;
+interface StartupServer {
+  on(event: 'listening', handler: () => void): unknown;
+  on(event: 'error', handler: (err: Error) => void): unknown;
+  close(): unknown;
+  address(): unknown;
+}
 
-  return new Promise((resolve, reject) => {
+const listenWithDeadline = <T extends StartupServer>(
+  server: T,
+  start: () => void,
+  what: string,
+  timeout: number
+): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
     const failTimeout = setTimeout(() => {
-      reject(new Error('HTTP server startup timeout'));
-      server.close();
-    }, timeout);
-
-    server.on('listening', () => {
-      clearTimeout(failTimeout);
-      resolve(server);
-    });
-
-    server.on('error', (err) => {
-      if (server.listening) return;
-      reject(err);
-    });
-
-    server.listen(port);
-  });
-};
-
-export const startWSServer = (
-  port: number,
-  WSServerClass: new (options: { port: number }) => WebSocketServer,
-  options?: { timeout?: number }
-): Promise<WebSocketServer> => {
-  const server = new WSServerClass({ port });
-  const timeout = options?.timeout ?? 10000;
-
-  return new Promise((resolve, reject) => {
-    const failTimeout = setTimeout(() => {
-      reject(new Error('WebSocket server startup timeout'));
+      reject(new Error(`${what} server startup timeout`));
       server.close();
     }, timeout);
 
@@ -76,7 +53,26 @@ export const startWSServer = (
       if (server.address()) return;
       reject(err);
     });
+
+    start();
   });
+
+export const startHttpServer = (
+  port: number,
+  handler: (req: IncomingMessage, res: http.ServerResponse) => void,
+  options?: { timeout?: number }
+): Promise<http.Server> => {
+  const server = http.createServer(handler);
+  return listenWithDeadline(server, () => server.listen(port), 'HTTP', options?.timeout ?? 10000);
+};
+
+export const startWSServer = (
+  port: number,
+  WSServerClass: new (options: { port: number }) => WebSocketServer,
+  options?: { timeout?: number }
+): Promise<WebSocketServer> => {
+  const server = new WSServerClass({ port });
+  return listenWithDeadline(server, () => undefined, 'WebSocket', options?.timeout ?? 10000);
 };
 
 export class ApiKeyManager {

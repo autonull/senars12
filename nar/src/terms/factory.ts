@@ -53,15 +53,17 @@ const FALSE_ATOM = createAtom('FALSE');
 
 trackTermReady = true;
 
+/** Module-scope collator: identical ordering to `localeCompare` without its per-call ICU setup. */
+const CANONICAL_COLLATOR = new Intl.Collator();
+const canonicalKeyOf = (t: Term): string => (t.kind === 'atom' ? t.symbol : t.kind);
+const compareForCanonicalOrder = (a: Term, b: Term): number =>
+  CANONICAL_COLLATOR.compare(canonicalKeyOf(a), canonicalKeyOf(b));
+
 const createCompound = (kind: OperatorKey, args: Term[]): Term => {
   const valid = args.filter(Boolean);
   if (valid.length === 0) return kind === 'disjunction' ? FALSE_ATOM : TRUE_ATOM;
 
-  const sorted = COMMUTATIVE_OPS.has(kind)
-    ? valid.toSorted((a, b) =>
-        (a.kind === 'atom' ? a.symbol : a.kind).localeCompare(b.kind === 'atom' ? b.symbol : b.kind)
-      )
-    : valid;
+  const sorted = COMMUTATIVE_OPS.has(kind) ? valid.toSorted(compareForCanonicalOrder) : valid;
 
   // Use full term serialization for cache key to distinguish nested structures
   const key = `${kind}:${sorted.map((a) => a.toString()).join(',')}`;

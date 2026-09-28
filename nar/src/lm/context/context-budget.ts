@@ -1,7 +1,11 @@
+import { estimateTokens } from '@senars/util';
+
 /**
  * Context budget utilities for LM prompt construction.
  * Provides token estimation and truncation for bounded contexts.
  */
+
+export { estimateTokens };
 
 export interface ContextBudgetOptions {
   /** Maximum tokens for the entire prompt (instructions + context + user input). */
@@ -19,14 +23,6 @@ export interface TruncationResult {
   truncated: boolean;
   /** Estimated token count of the result. */
   estimatedTokens: number;
-}
-
-/**
- * Rough token estimation: ~4 characters per token for English text.
- * This is a conservative estimate; actual tokenizer behavior varies.
- */
-export function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
 }
 
 /**

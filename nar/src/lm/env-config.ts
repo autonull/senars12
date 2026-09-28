@@ -81,15 +81,12 @@ export interface ResolvedLMConfig {
 const TRANSFORMERS_DEFAULT_MODEL = 'onnx-community/Qwen2.5-1.5B-Instruct';
 const TRANSFORMERS_DEFAULT_COMPACT = 'HuggingFaceTB/SmolLM2-360M-Instruct';
 
-const PROVIDERS: readonly ResolvedProvider[] = [
-  'transformers',
-  'llamacpp',
-  'llamacpp-embedded',
-  'mock',
-  'anthropic',
-  'openai',
-  'openai-compatible',
-];
+/** Registry-only providers: valid ids that this (server-side) runtime never resolves. */
+const BROWSER_ONLY_PROVIDERS = ['webllm'] as const satisfies readonly LMProviderName[];
+
+const PROVIDERS = LM_PROVIDER_NAMES.filter(
+  (name) => !(BROWSER_ONLY_PROVIDERS as readonly string[]).includes(name)
+) as readonly ResolvedProvider[];
 
 const isResolvedProvider = (v: string): v is ResolvedProvider =>
   (PROVIDERS as readonly string[]).includes(v);

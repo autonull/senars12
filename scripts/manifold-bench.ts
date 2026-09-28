@@ -12,6 +12,7 @@ import { createContrastiveMemory } from '../nar/src/lm/system-one/contrastive.js
 import { createEmbeddingCache } from '../nar/src/lm/system-one/embedding-cache.js';
 import { createManifold } from '../nar/src/lm/system-one/manifold.js';
 import type { JudgmentQuery } from '../nar/src/lm/system-one/types.js';
+import { l2Normalize } from '../nar/src/utils/similarity.js';
 
 const CANDIDATES = Number(process.env.BENCH_CANDIDATES ?? 100);
 const DIM = 384;
@@ -23,8 +24,7 @@ const directional = (text: string): Float32Array => {
     const seed = word.split('').reduce((h, c) => h * 31 + c.charCodeAt(0), 7);
     for (let i = 0; i < DIM; i++) v[i]! += Math.sin(seed * 0.1 + i);
   }
-  const norm = Math.sqrt(v.reduce((s, x) => s + x * x, 0)) || 1;
-  return v.map((x) => x / norm);
+  return l2Normalize(v);
 };
 
 const POSITIVE = 'verified grounded factual statement consistent with prior beliefs';

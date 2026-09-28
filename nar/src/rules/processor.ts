@@ -2,6 +2,7 @@
  * Rule processor for applying inference rules
  */
 
+import { findConflicts } from '../cognitive/conflict-utils.js';
 import { pushBounded } from '../kernel/event-ring.js';
 import type { LMRule } from '../lm';
 import type { LMRuleStats } from '../lm/lm-service.js';
@@ -176,18 +177,10 @@ export class RuleProcessor {
   async *process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
     for await (const [p1, p2] of premises) {
       this.recorder.begin(`${p1.term.toString()}|${p2.term.toString()}`, p1.term.toString());
-      // Check if meta-reasoning should activate
-      const driveManager = this.nar?.getDriveManager?.();
-      const driveStates = driveManager
-        ? new Map(
-            driveManager
-              .getAllStates()
-              .map((ds) => [ds.spec.id, { currentIntensity: ds.currentIntensity }])
-          )
-        : new Map();
-      const metaActive = shouldActivateMetaReasoning(driveStates);
+      const matched = this.ruleIndex.match(p1.term, p2.term);
+      const metaActive = this.metaActive(matched);
 
-      for (const rule of this.ruleIndex.match(p1.term, p2.term)) {
+      for (const rule of matched) {
         if (!rule.sync) continue;
 
         // Enforce meta-reasoning AIKR bounds
@@ -250,17 +243,7 @@ export class RuleProcessor {
     const p1s = p1.term.toString();
     const p2s = p2.term.toString();
 
-    // Check if meta-reasoning should activate
-    const driveManager = this.nar?.getDriveManager?.();
-    let metaActive = false;
-    if (driveManager) {
-      const driveStates = new Map(
-        driveManager
-          .getAllStates()
-          .map((ds) => [ds.spec.id, { currentIntensity: ds.currentIntensity }])
-      );
-      metaActive = shouldActivateMetaReasoning(driveStates);
-    }
+    const metaActive = this.metaActive(matchedRules);
 
     for (const rule of matchedRules) {
       if (!rule.sync) continue;
@@ -310,6 +293,13 @@ export class RuleProcessor {
     return this.resultBuffer;
   }
 
+  /** Meta-reasoning activation, computed only when a matched rule is a meta rule. */
+  private metaActive(matched: readonly RegisteredRule[]): boolean {
+    if (!matched.some((rule) => rule.sync && this.isMetaRule(rule))) return false;
+    const driveManager = this.nar?.getDriveManager?.();
+    return driveManager ? shouldActivateMetaReasoning(driveManager.getAllStates()) : false;
+  }
+
   /** Check if a rule is a meta-rule (by ID prefix) */
   private isMetaRule(rule: RegisteredRule): boolean {
     return rule.id.startsWith('meta-');
@@ -347,6 +337,19 @@ export class RuleProcessor {
       this.memory?.getConcept(effectiveP2.term)?.priority ?? 0
     );
 
+    const selected = this.lmSelector
+      ? this.lmSelector.select(this.lmRules, {
+          maxRules: this.maxLMRulesPerStep,
+          conceptPriority: maxPriority,
+          rotationIndex: this.lmRotationIndex,
+          premiseCount: isSinglePremise ? 1 : 2,
+          focusTerm: p1.term,
+        })
+      : this.lmRules;
+
+    this.lmRotationIndex = (this.lmRotationIndex + 1) % this.lmRules.length;
+    if (selected.length === 0) return;
+
     const stats = this.memory?.getStatistics();
 
     // Build drive state from NAR's drive manager
@@ -362,10 +365,7 @@ export class RuleProcessor {
     let conflictCount = 0;
     if (this.nar) {
       const beliefs = this.nar.getBeliefs?.();
-      if (beliefs) {
-        const { findConflicts } = await import('../cognitive/conflict-utils.js');
-        conflictCount = findConflicts(beliefs).length;
-      }
+      if (beliefs) conflictCount = findConflicts(beliefs).length;
     }
 
     const ruleContext: Record<string, unknown> = {
@@ -404,16 +404,6 @@ export class RuleProcessor {
     if (goals && goals.length > 0) {
       ruleContext.activeGoals = goals.slice(0, 5).map((g) => g.term.toString());
     }
-
-    const selected = this.lmSelector
-      ? this.lmSelector.select(this.lmRules, {
-          maxRules: this.maxLMRulesPerStep,
-          conceptPriority: maxPriority,
-          rotationIndex: this.lmRotationIndex,
-          premiseCount: isSinglePremise ? 1 : 2,
-          focusTerm: p1.term,
-        })
-      : this.lmRules;
 
     const results = await Promise.all(
       selected.map(async (lmRule) => {
@@ -458,7 +448,6 @@ export class RuleProcessor {
         }
       })
     );
-    this.lmRotationIndex = (this.lmRotationIndex + 1) % this.lmRules.length;
     yield* results.flat();
   }
 

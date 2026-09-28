@@ -11,6 +11,10 @@ export interface ActionProposal {
   provenance?: JudgmentProvenance;
 }
 
+/** The one reflex ranking order: highest `value × confidence` first. */
+export const byExpectedValue = (a: ActionProposal, b: ActionProposal): number =>
+  b.value * b.confidence - a.value * a.confidence;
+
 export interface LearningEvent {
   perception: Perception;
   previousPerception: Perception | null;

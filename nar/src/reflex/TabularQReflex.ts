@@ -1,6 +1,6 @@
 import type { Perception } from '../game/Game.js';
 import type { RandomSource } from '../types/primitives.js';
-import type { ActionProposal, LearningEvent, Reflex } from './Reflex.js';
+import { type ActionProposal, byExpectedValue, type LearningEvent, type Reflex } from './Reflex.js';
 
 interface QEntry {
   value: number;
@@ -84,7 +84,7 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
       }
     } else {
       // Sort by value * confidence for exploitation
-      proposals.sort((a, b) => b.value * b.confidence - a.value * a.confidence);
+      proposals.sort(byExpectedValue);
     }
 
     return proposals;

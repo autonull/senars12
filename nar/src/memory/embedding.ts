@@ -1,5 +1,6 @@
 import { TransformersJSEmbeddingModel } from '@browser-ai/transformers-js';
 import { detectDevice, getLMSettings } from '../lm/providers.js';
+import { l2Normalize } from '../utils/similarity.js';
 
 export interface EmbeddingGenerator {
   dimension: number;
@@ -55,8 +56,7 @@ export class MockEmbeddingGenerator implements EmbeddingGenerator {
     for (let i = 0; i < text.length; i++) {
       embedding[i % this.dimension] += text.charCodeAt(i) / 256;
     }
-    const norm = Math.sqrt(embedding.reduce((sum, v) => sum + v * v, 0));
-    return embedding.map((v) => v / norm);
+    return l2Normalize(embedding);
   }
 }
 

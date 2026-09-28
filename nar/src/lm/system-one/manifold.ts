@@ -1,4 +1,4 @@
-import { mean } from '@senars/util';
+import { estimateTokens, mean } from '@senars/util';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { validateBatchQueries } from './algebra.js';
@@ -355,7 +355,7 @@ export class SystemOneManifold implements JudgmentManifold {
   }
 
   #estimateCost(query: JudgmentQuery, latencyMs: number): ResourceCost {
-    const baseTokens = query.instruction.length / 4;
+    const baseTokens = estimateTokens(query.instruction);
     return {
       tokensIn: Math.ceil(baseTokens),
       tokensOut: 0,

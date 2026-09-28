@@ -304,9 +304,13 @@ export class Memory {
    */
   sampleWindow(windowSize: number, rng: () => number = Math.random): Concept[] {
     this.decayAll();
-    const allConcepts = Array.from(this.concepts.values())
-      .sort((a, b) => this.scorer.scoreForRetrieval(b) - this.scorer.scoreForRetrieval(a));
-    
+    const allConcepts = Array.from(
+      this.concepts.values(),
+      (c) => ({ c, score: this.scorer.scoreForRetrieval(c) })
+    )
+      .sort((a, b) => b.score - a.score)
+      .map((e) => e.c);
+
     if (allConcepts.length <= windowSize) return allConcepts;
     
     const maxStart = allConcepts.length - windowSize;
@@ -577,8 +581,11 @@ export class Memory {
 
   private updateAllFocus(): void {
     this.focus.clearFocus();
-    const sorted = [...this.concepts.values()].sort((a, b) => b.priority - a.priority);
-    for (const concept of sorted.slice(0, this.config.focusMaxConcepts)) {
+    for (const concept of selectTopN(
+      this.concepts.values(),
+      this.config.focusMaxConcepts,
+      (c) => c.priority
+    )) {
       this.focus.addToFocus(concept);
     }
   }
@@ -596,11 +603,10 @@ export class Memory {
   }
 
   private findOrphanedLinks(): Concept[] {
-    const knownKeys = new Set(this.concepts.keys());
     return [...this.concepts.values()].filter((concept) => {
       let hasOrphan = false;
       concept.forEachLink((link) => {
-        if (!knownKeys.has(link.concept.key)) hasOrphan = true;
+        if (!this.concepts.has(link.concept.key)) hasOrphan = true;
       });
       return hasOrphan;
     });

@@ -1,4 +1,4 @@
-import type { ActionProposal, LearningEvent, Reflex } from './Reflex.js';
+import { type ActionProposal, byExpectedValue, type LearningEvent, type Reflex } from './Reflex.js';
 
 interface QEntry {
   value: number;
@@ -53,7 +53,7 @@ export class UCBReflex implements Reflex<string, number> {
       });
     }
 
-    return proposals.sort((a, b) => b.value * b.confidence - a.value * a.confidence);
+    return proposals.sort(byExpectedValue);
   }
 
   learn(event: LearningEvent): void {

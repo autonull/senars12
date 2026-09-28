@@ -41,6 +41,8 @@ export type { EventReceiver, EventUnsubscribe } from './events/event-bus.js';
 // Events
 /** @public Generic typed event bus runtime. */
 export { EventBus } from './events/event-bus.js';
+/** @public Push-to-async-iterator bridge shared by config views and event logs. */
+export { PushQueue } from './events/push-queue.js';
 /** @public Tool feedback observer for unified statistics tracking. */
 export {
   DefaultToolFeedbackObserver,
@@ -190,6 +192,7 @@ export {
   edgeKey,
   ensureArray,
   errMsg,
+  estimateTokens,
   extractTerm,
   type Flags,
   getNested,

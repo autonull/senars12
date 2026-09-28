@@ -1,3 +1,4 @@
+import { estimateTokens } from '@senars/util';
 import type { ChatStreamEvent } from '../ChatService.js';
 import type { CognitiveStimulus, Context, Derivation } from '../engine/Engine.js';
 import type {
@@ -75,9 +76,8 @@ export class LLMCortex {
   #compose(req: CortexSynthesizeRequest): ComposedRequest {
     const systemPrompt = req.systemPrompt ?? this.#buildDefaultPrompt(req);
     const historyText = req.context.working.map((e) => JSON.stringify(e)).join('\n');
-    const estimate = (s: string): number => Math.ceil(s.length / 4);
-    const systemTokens = estimate(systemPrompt);
-    const historyTokens = estimate(historyText) + estimate(req.stimulus.text);
+    const systemTokens = estimateTokens(systemPrompt);
+    const historyTokens = estimateTokens(historyText) + estimateTokens(req.stimulus.text);
     return {
       system: systemPrompt,
       messages: [{ role: 'user' as const, content: req.stimulus.text }],
