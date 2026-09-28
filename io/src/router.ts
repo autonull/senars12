@@ -6,6 +6,8 @@ export interface MessageContext {
   readonly respond: (text: string) => Promise<void>;
   readonly sessionKey?: string;
   readonly manager?: ConnectionManager;
+  /** NAR handle forwarded to the `nar/*` command groups. */
+  readonly nar?: unknown;
 }
 
 export type MessageMiddleware = (
@@ -21,6 +23,9 @@ export type MessageMiddleware = (
  */
 export const ctxAsRecord = (ctx: MessageContext): Record<string, unknown> =>
   ctx as unknown as Record<string, unknown>;
+
+/** Session identity for a message — the origin channel, the one keying rule. */
+export const resolveSessionKey = (msg: IOMessage): string => msg.origin;
 
 export class MessageRouter {
   private middleware: MessageMiddleware[] = [];

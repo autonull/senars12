@@ -1,4 +1,4 @@
-import { percentile, sleep, stdDev } from '@senars/util';
+import { clamp, percentile, sleep, stdDev } from '@senars/util';
 import type { CognitiveEvent } from '@senars/util/types/cognitive';
 import type { NAR } from '../nar.js';
 import { termParser } from '../terms/index.js';
@@ -187,7 +187,7 @@ export class CognitiveTreadmill {
 
     const throughput = steps / (durationMs / 1000);
     const contradictionRate = contradictions / Math.max(steps, 1);
-    const derivationQuality = Math.min(1, derivations / Math.max(steps * 0.5, 1));
+    const derivationQuality = clamp(derivations / Math.max(steps * 0.5, 1), 0, 1);
 
     let priorityOscillation = 0;
     const priorityChanges: number[] = [];

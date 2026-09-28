@@ -1,4 +1,4 @@
-import { clamp01 } from '@senars/util';
+import { clamp, clamp01 } from '@senars/util';
 import type { Term } from '../../terms';
 import { Truth, termParser } from '../../terms';
 import type { Budget, Task, TruthType } from '../../types';
@@ -149,7 +149,7 @@ export class SystemOneLMRuleAdapter {
           createTask(
             term,
             'belief',
-            Truth.create(Math.min(0.9, Math.max(0.5, 0.5 + score / 2)), 0.7),
+            Truth.create(clamp(0.5 + score / 2, 0.5, 0.9), 0.7),
             {
               priority: clamp01(score),
               durability: 0.7,
@@ -189,7 +189,7 @@ export class SystemOneLMRuleAdapter {
       const best = fitted.sort((a, b) => a.getECE() - b.getECE())[0];
       let cPrime = best ? best.calibrate(c) : c;
       if (manifold && !manifold.health().ready) cPrime *= 0.8; // drift demotion
-      const calibrated = Truth.create(f, Math.min(0.99, Math.max(0.01, cPrime)));
+      const calibrated = Truth.create(f, clamp(cPrime, 0.01, 0.99));
       return [
         createTask(primary, 'belief', calibrated, {
           priority: cPrime,

@@ -1,3 +1,4 @@
+import { clamp } from '@senars/util';
 import type { Game, GameOutcome, Perception } from './Game.js';
 import { renderGrid } from './render.js';
 import { SeededRNG } from '../utils/random.js';
@@ -66,7 +67,11 @@ export class CatchGame implements Game<CatchState, 0 | 1 | 2> {
 
   step(action: 0 | 1 | 2): GameOutcome {
     if (this.terminal_) return { reward: 0, terminal: true, info: { reason: 'terminal' } };
-    this.paddleC = Math.max(0, Math.min(this.cols - 1, this.paddleC + (action === 0 ? -1 : action === 2 ? 1 : 0)));
+    this.paddleC = clamp(
+      this.paddleC + (action === 0 ? -1 : action === 2 ? 1 : 0),
+      0,
+      this.cols - 1
+    );
     this.targetR++;
     this.stepCount++;
     let reward = 0;

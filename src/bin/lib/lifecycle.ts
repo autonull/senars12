@@ -3,7 +3,6 @@
  */
 
 import type { Agent as CoreAgent } from '@senars/core';
-import { clamp, isNarsese } from '@senars/core/helpers';
 import { JsonlSessionManager } from '@senars/core/memory';
 import type { NARConfig } from '@senars/nar';
 import type { ExtendedAgent } from '@senars/nar/agent';
@@ -125,49 +124,6 @@ export async function createAgentFromEnv(
     .withThreadScope(threadScope)
     .build();
   const { nar, agent: coreAgent } = wired;
-
-  // Extend the base Agent with NarAgentApi methods
-  const knowStore = new Map<string, string>();
-  let throttle = 0;
-
-  // Add NarAgentApi methods to the core agent
-  coreAgent.believe = async (text: string) => {
-    if (isNarsese(text) && nar) {
-      await nar.believe(text);
-      await nar.run(3);
-    }
-  };
-  coreAgent.recall = async (query?: string, limit?: number) => {
-    if (!episodicMemory) return [];
-    const episodes = await episodicMemory.getEpisodes({ limit: limit ?? 50 });
-    return episodes.filter((e) => !query || e.content.toLowerCase().includes(query.toLowerCase()));
-  };
-  coreAgent.know = (key: string, value: string) => {
-    knowStore.set(key, value);
-  };
-  coreAgent.knowGet = (key: string) => knowStore.get(key);
-  coreAgent.knowList = () => [...knowStore.entries()].map(([k, v]) => ({ key: k, value: v }));
-  coreAgent.setThrottle = (n: number) => {
-    throttle = clamp(n, 0, 100);
-  };
-  coreAgent.getThrottle = () => throttle;
-  coreAgent.getNAR = () => nar;
-  coreAgent.getEpisodicMemory = () => episodicMemory;
-  coreAgent.getRecentDerivations = () => [];
-  // Capture the originals before widening the agent onto NarAgentApi — a patched
-  // method that calls `coreAgent.<same>` recurses forever.
-  const baseSetMacroPipeline = coreAgent.setMacroPipeline?.bind(coreAgent);
-  const baseMount = (
-    coreAgent.mount as
-      | ((t: import('@senars/util/types/transport').Connection) => Promise<void>)
-      | undefined
-  )?.bind(coreAgent);
-  coreAgent.setMacroPipeline = (phases: import('@senars/core/agent/phases').MacroPhase[]) => {
-    baseSetMacroPipeline?.(phases);
-  };
-  coreAgent.mount = async (transport: import('@senars/util/types/transport').Connection) => {
-    await baseMount?.(transport);
-  };
 
   // LM rules from config (`bot.lmRules.rules`) — presets by id, unknown ids logged.
   if (appConfig.bot.lmRules.enabled && appConfig.bot.lmRules.rules.length > 0) {

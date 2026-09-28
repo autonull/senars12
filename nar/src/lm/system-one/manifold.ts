@@ -1,4 +1,4 @@
-import { estimateTokens, makeId, mean, variance } from '@senars/util';
+import { clamp, estimateTokens, makeId, mean, variance } from '@senars/util';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import { validateBatchQueries } from './algebra.js';
 import { ContrastiveMemory, rubricOf } from './contrastive.js';
@@ -394,7 +394,7 @@ export class SystemOneManifold implements JudgmentManifold {
     if (labelCount <= 0) return 0;
     const n0 = 64;
     const raw = embeddingDim * Math.pow(labelCount / n0, 0.18);
-    const width = Math.round(Math.min(embeddingDim, Math.max(8, raw)));
+    const width = Math.round(clamp(raw, 8, embeddingDim));
     this.#suggestedHeadSize = width;
     return width;
   }

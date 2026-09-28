@@ -1,3 +1,4 @@
+import { clamp } from '@senars/util';
 import { collectAtomicSymbols, type Term, termDepth } from '../terms/index.js';
 import { normalizeNarsese, parseNarseseLenient } from './normalize.js';
 
@@ -91,7 +92,7 @@ export class SymbolicFirewall {
   }
 
   clampConfidence(c: number): number {
-    return Math.min(Math.max(c, 0), this.maxConfidence);
+    return clamp(c, 0, this.maxConfidence);
   }
 
   checkTruth(f: number, c: number): FirewallVerdict {

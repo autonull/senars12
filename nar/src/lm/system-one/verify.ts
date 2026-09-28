@@ -4,7 +4,7 @@
  * self-consistency `consensus` — no new machinery.
  */
 
-import { sha256Hex } from '@senars/util';
+import { clamp, sha256Hex } from '@senars/util';
 
 import {
   type CascadeJudge,
@@ -92,7 +92,7 @@ export interface ConsensusJudge {
 
 /** Fan-out never exceeds the LM-call budget remaining; k≥1 always degrades to a single judgment. */
 export const fanoutWithinBudget = (k: number, budget: ReasoningBudget, charged = 0): number =>
-  Math.max(1, Math.min(k, budget.maxLMCalls - (budget.consumed?.llmCalls ?? 0) - charged));
+  clamp(budget.maxLMCalls - (budget.consumed?.llmCalls ?? 0) - charged, 1, k);
 
 /** Consensus fan-out as a budget knob: the requested k is clamped to remaining budget. */
 export async function consensusFanout(

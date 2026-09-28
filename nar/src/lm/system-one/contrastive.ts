@@ -70,8 +70,8 @@ export function fitInfoNCE(
       });
     }
     const n = pairs.length || 1;
-    scale = Math.min(100, Math.max(0.1, scale - (lr * dScale) / n));
-    bias = Math.min(10, Math.max(-10, bias - (lr * dBias) / n));
+    scale = clamp(scale - (lr * dScale) / n, 0.1, 100);
+    bias = clamp(bias - (lr * dBias) / n, -10, 10);
   }
   return { scale, bias, loss: loss / (pairs.length || 1) };
 }

@@ -1,7 +1,6 @@
-import { z } from 'zod';
-import { BoundedRing, formatTruth } from '@senars/util';
-import { parseJsonWith } from './json.js';
 import { createLogger } from '@senars/core/logger';
+import { BoundedRing, formatTruth } from '@senars/util';
+import { z } from 'zod';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { TermMap, Truth } from '../terms';
@@ -10,6 +9,7 @@ import { clamp01, errMsg } from '../utils';
 import { admitTasks } from './admit.js';
 import { topBeliefTasks } from './context.js';
 import { parseEnrichmentResponse } from './enrichment.js';
+import { parseJsonWith } from './json.js';
 import type { LMService } from './lm-service.js';
 
 /** Drop-oldest bound on the pattern history kept for later LM context. */
@@ -384,24 +384,17 @@ Respond with JSON:
     context: Task[]
   ): ValidationFeedback | null {
     const normalized = response.trim().toUpperCase();
-    let result: 'confirmed' | 'contradicted' | 'inconclusive' = 'inconclusive';
-    let revisedTruth: Truth | undefined;
-
-    if (normalized.startsWith('VALID')) {
-      result = 'confirmed';
-      const t = hypothesis.truth!;
-      revisedTruth = Truth.create(Math.min(t.f * 1.1, 1.0), Math.min(t.c + 0.1, 1.0));
-    } else if (normalized.startsWith('INVALID')) {
-      result = 'contradicted';
-      const t = hypothesis.truth!;
-      revisedTruth = Truth.create(Math.max(t.f * 0.9, 0.0), Math.min(t.c + 0.1, 1.0));
-    }
+    const result: 'confirmed' | 'contradicted' | 'inconclusive' = normalized.startsWith('VALID')
+      ? 'confirmed'
+      : normalized.startsWith('INVALID')
+        ? 'contradicted'
+        : 'inconclusive';
 
     return {
       originalHypothesis: hypothesis,
       validationResult: result,
       evidence: context,
-      revisedTruth,
+      revisedTruth: this.reviseTruth(undefined, hypothesis.truth, result),
       derivationChain: [hypothesis.term.toString()],
     };
   }

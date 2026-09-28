@@ -6,7 +6,7 @@ import { startWSServer } from '../utils/http.js';
 import {
   broadcastToSubscribers,
   cleanupWSClient,
-  sendHeartbeat,
+  createWSClient,
   sendWSMessage,
   subscribeToEvents,
   unsubscribeFromEvents,
@@ -81,42 +81,26 @@ export class WSConnection extends BaseConnection {
 
   private handleNewClient(ws: WebSocket): void {
     const id = makeId();
-    const client: WSClient = {
-      ws,
-      id,
-      subscriptions: new Set(),
-      heartbeat: setInterval(() => sendHeartbeat(ws), 30000),
-      lastSeen: Date.now(),
-    };
+    const client = createWSClient(ws, id, {
+      onMessage: (message) => this.handleWSMessage(message, client),
+      onClose: (closed) => {
+        this.dropClient(closed, id);
+        this.logger.info(`WebSocket client ${id} disconnected. Total: ${this.clients.size}`);
+      },
+      onError: (err) => {
+        this.logger.error(`WebSocket client ${id} error`, err);
+        this.dropClient(client, id);
+      },
+    });
 
     this.clients.set(id, client);
     this.logger.info(`WebSocket client ${id} connected. Total: ${this.clients.size}`);
-
-    ws.on('message', (data) => {
-      client.lastSeen = Date.now();
-      try {
-        this.handleWSMessage(JSON.parse(data.toString()), client);
-      } catch (e) {
-        this.logger.error('Invalid WebSocket message', e as Error);
-      }
-    });
-
-    ws.on('close', () => {
-      clearInterval(client.heartbeat);
-      unsubscribeFromEvents(this.eventSubscriptions, client, [...client.subscriptions]);
-      this.clients.delete(id);
-      this.logger.info(`WebSocket client ${id} disconnected. Total: ${this.clients.size}`);
-    });
-
-    ws.on('error', (err) => {
-      this.logger.error(`WebSocket client ${id} error`, err);
-      clearInterval(client.heartbeat);
-      unsubscribeFromEvents(this.eventSubscriptions, client, [...client.subscriptions]);
-      this.clients.delete(id);
-    });
-
-    ws.send(JSON.stringify({ type: 'connected', id }));
     if (this.greeting) sendWSMessage(ws, 'message', { data: this.greeting });
+  }
+
+  private dropClient(client: WSClient, id: string): void {
+    unsubscribeFromEvents(this.eventSubscriptions, client, [...client.subscriptions]);
+    this.clients.delete(id);
   }
 
   private handleWSMessage(message: Record<string, unknown>, client: WSClient): void {
