@@ -16,8 +16,8 @@ export type { AtomicTerm, CompoundTerm, Term } from '../terms/types.js';
 // Core identity and hashing
 
 // Branded types for temporal and probabilistic reasoning safety
-export type { Timestamp, Duration } from './primitives.js';
-export { createTimestamp, createDuration, DEPTH_MAX } from './primitives.js';
+export type { Duration, Timestamp } from './primitives.js';
+export { createDuration, createTimestamp, DEPTH_MAX } from './primitives.js';
 
 export type Hash = number;
 export type TermSymbol = string;
@@ -82,15 +82,15 @@ export type Optional<T> = T | undefined;
 export {
   attempt,
   attemptAsync,
+  type Err,
   err,
   flatMap,
   getOrElse,
   isErr,
   isOk,
   map,
-  ok,
-  type Err,
   type Ok,
+  ok,
   type Result,
   unwrapOrThrow,
 } from '../utils/result.js';
@@ -107,21 +107,37 @@ export const createBudget = (
 // Pre-allocated neutral budget for performance
 export const NEUTRAL_BUDGET = createBudget(0.5);
 
+/** Fields a caller may pin when the defaults (input stamp, now, not derived) are wrong. */
+export interface TaskOverrides {
+  stamp?: Stamp;
+  occurrenceTime?: Timestamp;
+  derived?: boolean;
+}
+
 // Create Task object - optimized
 export const createTask = (
   term: Term,
   type: TaskType,
   truth: TruthType,
-  budget: Budget = NEUTRAL_BUDGET
+  budget: Budget = NEUTRAL_BUDGET,
+  overrides: TaskOverrides = {}
 ): Task => ({
   term,
   type,
   truth,
   budget,
-  stamp: Stamp.createInput(),
-  occurrenceTime: createTimestamp(),
-  derived: false,
+  stamp: overrides.stamp ?? Stamp.createInput(),
+  occurrenceTime: overrides.occurrenceTime ?? createTimestamp(),
+  derived: overrides.derived ?? false,
 });
+
+/** Belief task at a concept's priority; `stamp` defaults to a fresh input stamp. */
+export const createBeliefTask = (
+  term: Term,
+  truth: TruthType,
+  priority: number,
+  stamp?: Stamp
+): Task => createTask(term, 'belief', truth, createBudget(priority), stamp ? { stamp } : {});
 
 // Create secondary task from concept or belief - unified replacement for createTaskFromBelief/createTaskFromConcept
 export const createSecondaryTask = (

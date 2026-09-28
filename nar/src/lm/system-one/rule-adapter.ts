@@ -2,10 +2,10 @@ import { clamp01 } from '@senars/util';
 import type { Term } from '../../terms';
 import { Truth, termParser } from '../../terms';
 import type { Budget, Task, TruthType } from '../../types';
-import { createBudget, createTask, createTimestamp } from '../../types/core.js';
+import { createBudget, createTask } from '../../types/core.js';
+import { selectTopN } from '../../utils/collections.js';
 import type { CognitiveDispatcher, EvaluateQuery, JudgmentProposition } from './types.js';
 import { createSystemOneBudget } from './types.js';
-import { selectTopN } from '../../utils/collections.js';
 
 export interface SystemOneLMRuleAdapterConfig {
   dispatcher: CognitiveDispatcher;
@@ -76,15 +76,11 @@ export class SystemOneLMRuleAdapter {
         const parsed = termParser.parse(admitted.candidate);
         if (parsed) {
           const taskBudget: Budget = createBudget(admitted.truth.c, 0.8, 0.9, 10, 5);
-          tasks.push({
-            term: parsed,
-            type: 'belief',
-            truth: admitted.truth as TruthType,
-            budget: taskBudget,
-            stamp: admitted.stamp,
-            occurrenceTime: createTimestamp(),
-            derived: false,
-          });
+          tasks.push(
+            createTask(parsed, 'belief', admitted.truth as TruthType, taskBudget, {
+              stamp: admitted.stamp,
+            })
+          );
         }
       }
 

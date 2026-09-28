@@ -3,7 +3,7 @@ import type { Concept } from '../memory';
 import type { Term } from '../terms';
 import { Truth, termParser, termsEqual } from '../terms';
 import type { Stamp, Task, TaskType, TermFilter } from '../types';
-import { createBudget, createTimestamp } from '../types';
+import { createBudget, createTask, createTimestamp } from '../types';
 
 const logger = createLogger({ scope: 'QueryAPI' });
 
@@ -126,22 +126,13 @@ export class QueryAPI {
     },
     priority: number
   ): Task {
-    return {
+    return createTask(
       term,
-      type: 'belief',
-      truth: belief.truth ? Truth.create(belief.truth.f, belief.truth.c) : Truth.NEUTRAL,
-      budget: createBudget(priority),
-      stamp:
-        belief.stamp ??
-        ({
-          id: '',
-          creationTime: 0,
-          source: 'INPUT' as const,
-          derivations: [],
-        } as any),
-      occurrenceTime: createTimestamp(0),
-      derived: false,
-    };
+      'belief',
+      belief.truth ? Truth.create(belief.truth.f, belief.truth.c) : Truth.NEUTRAL,
+      createBudget(priority),
+      { ...(belief.stamp ? { stamp: belief.stamp } : {}), occurrenceTime: createTimestamp(0) }
+    );
   }
 
   private extractDerivationPath(stamp?: Stamp): string[] {
@@ -192,10 +183,7 @@ export class QueryAPI {
           term: concept.term,
           type,
           truth: item.truth,
-          budget:
-            typeof item.budget === 'number'
-              ? createBudget(item.budget)
-              : item.budget,
+          budget: typeof item.budget === 'number' ? createBudget(item.budget) : item.budget,
           stamp: item.stamp ?? {
             id: '',
             creationTime: 0,

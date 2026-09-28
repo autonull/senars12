@@ -179,15 +179,10 @@ export async function* derive(
 
     const belief = concept.beliefBag.peek();
     if (!belief?.truth || !belief.stamp) continue;
-    const task: Task = {
-      term: concept.term,
-      type: 'belief',
-      truth: belief.truth,
-      budget: createBudget(concept.priority),
+    const task = createTask(concept.term, 'belief', belief.truth, createBudget(concept.priority), {
       stamp: belief.stamp,
       occurrenceTime: createTimestamp(0),
-      derived: false,
-    };
+    });
 
     for (const secondary of strategy.selectSecondary(task, memory)) {
       if (++count >= config.maxDerivationsPerStep) break;

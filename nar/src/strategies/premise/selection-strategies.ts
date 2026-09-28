@@ -1,13 +1,11 @@
 import { createLogger } from '@senars/core/logger';
 import type { Concept, Memory } from '../../memory';
-import type { ComponentMetadata } from '../types.js';
-import type { Term } from '../../terms';
-import type { Truth } from '../../terms';
-import type { Task, TaskType } from '../../types';
-import type { Strategy } from '../types.js';
 import { createStrategy } from '../../reason/strategies/base';
+import type { Term, Truth } from '../../terms';
+import type { Task } from '../../types';
+import { createBeliefTask } from '../../types';
+import type { ComponentMetadata, Strategy } from '../types.js';
 import { TermLinkStrategy as RealTermLinkStrategy } from './term-link';
-import { createBudget } from '../../types/core.js';
 
 const logger = createLogger({ scope: 'Strategies' });
 
@@ -18,25 +16,6 @@ const withMeta = <T extends Strategy>(strategy: T, description: string): T => {
   };
   return strategy;
 };
-
-const createTask = (term: Term, type: TaskType, truth: Truth, priority: number): Task => ({
-  term,
-  type,
-  truth,
-  budget: createBudget(priority),
-  stamp: Object.freeze({
-    id: '',
-    creationTime: 0 as any,
-    source: 'INPUT' as const,
-    derivations: [],
-    depth: 0,
-  }),
-  occurrenceTime: 0 as any,
-  derived: false,
-});
-
-const createBeliefTask = (term: Term, truth: Truth, priority: number): Task =>
-  createTask(term, 'belief', truth, priority);
 
 export const ResolutionStrategy: Strategy = withMeta(
   createStrategy({
@@ -68,7 +47,10 @@ export const AnalogicalStrategy: Strategy = withMeta(
   'Match inheritance terms with overlapping subject/predicate'
 );
 
-export const TermLinkStrategy: Strategy = new RealTermLinkStrategy({ minLinkPriority: 0.3, maxLinks: 20 });
+export const TermLinkStrategy: Strategy = new RealTermLinkStrategy({
+  minLinkPriority: 0.3,
+  maxLinks: 20,
+});
 
 export const SampledStrategy: Strategy = withMeta(
   createStrategy({
@@ -287,4 +269,4 @@ export class SwitchingStrategy implements Strategy {
   }
 }
 
-export { PrologResolutionStrategy, createPrologResolutionStrategy } from './prolog-resolution';
+export { createPrologResolutionStrategy, PrologResolutionStrategy } from './prolog-resolution';

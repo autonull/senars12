@@ -1,7 +1,6 @@
 import type { RuleResult } from '../rules';
-import { Stamp } from '../terms';
 import type { Task } from '../types';
-import { createBudget } from '../types';
+import { createBudget, createTask } from '../types';
 
 const MAX_RECENT_STAMPS = 1000;
 
@@ -25,15 +24,11 @@ export const createCircularDetector = () => {
   };
 };
 
-export const createDerivedTask = (result: RuleResult, taskType: Task['type'] = 'belief'): Task => ({
-  term: result.term,
-  type: taskType,
-  truth: result.truth,
-  budget: createBudget(result.priority),
-  stamp: result.stamp,
-  occurrenceTime: Date.now() as Task['occurrenceTime'],
-  derived: true,
-});
+export const createDerivedTask = (result: RuleResult, taskType: Task['type'] = 'belief'): Task =>
+  createTask(result.term, taskType, result.truth, createBudget(result.priority), {
+    stamp: result.stamp,
+    derived: true,
+  });
 
 interface BeliefBagLike {
   peek?: () => { truth?: Task['truth']; stamp?: Task['stamp'] } | undefined;
@@ -45,14 +40,8 @@ export const createBeliefTask = (concept: {
   beliefBag?: BeliefBagLike;
 }): Task | null => {
   const belief = concept.beliefBag?.peek?.();
-  if (!belief || !belief.truth) return null;
-  return {
-    term: concept.term,
-    type: 'belief' as const,
-    truth: belief.truth,
-    budget: createBudget(concept.priority),
-    stamp: belief.stamp ?? Stamp.createInput(),
-    occurrenceTime: Date.now() as Task['occurrenceTime'],
-    derived: false,
-  };
+  if (!belief?.truth) return null;
+  return createTask(concept.term, 'belief', belief.truth, createBudget(concept.priority), {
+    ...(belief.stamp ? { stamp: belief.stamp } : {}),
+  });
 };

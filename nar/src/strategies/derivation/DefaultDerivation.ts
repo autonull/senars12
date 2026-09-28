@@ -1,17 +1,7 @@
-import type { RuleInput, RuleProcessor, RuleResult } from '../../rules';
+import { createDerivedTask } from '../../reason/inference-utils.js';
+import type { RuleInput, RuleProcessor } from '../../rules';
 import type { Task } from '../../types';
-import { createBudget } from '../../types';
 import type { DerivationContext, DerivationStrategy } from '../types.js';
-
-export const toTask = (r: RuleResult): Task => ({
-  term: r.term,
-  type: 'belief',
-  truth: r.truth,
-  budget: createBudget(r.priority),
-  stamp: r.stamp,
-  occurrenceTime: Date.now() as any,
-  derived: true,
-});
 
 export class DefaultDerivation implements DerivationStrategy {
   readonly metadata = {
@@ -35,9 +25,9 @@ export class DefaultDerivation implements DerivationStrategy {
           stamp: secondary.stamp,
         };
 
-        for (const result of processor.processSync(p1, p2)) yield toTask(result);
+        for (const result of processor.processSync(p1, p2)) yield createDerivedTask(result);
         for await (const result of processor.processLMRules(p1, p2, { signal: ctx.signal }))
-          yield toTask(result);
+          yield createDerivedTask(result);
       }
     } else if (ctx.singlePremiseEnabled) {
       const p1: RuleInput = { term: primary.term, truth: primary.truth, stamp: primary.stamp };
@@ -45,7 +35,7 @@ export class DefaultDerivation implements DerivationStrategy {
         signal: ctx.signal,
         singlePremise: true,
       }))
-        yield toTask(result);
+        yield createDerivedTask(result);
     }
   }
 }

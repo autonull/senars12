@@ -5,9 +5,9 @@ import { SenarsError } from '@senars/util/errors';
 import type { DriveManager } from '../drives';
 import type { Memory } from '../memory';
 import { decodeState, encodeState } from '../state/codec.js';
-import { Stamp, Truth, type TruthType, termParser } from '../terms';
+import { type Stamp, Truth, type TruthType, termParser } from '../terms';
 import type { Task, TaskType } from '../types';
-import { createBudget } from '../types/core.js';
+import { createBudget, createTask } from '../types/core.js';
 import { errMsg } from '../utils';
 import { ensureParentDir } from '../utils/fs.js';
 import { err, ok, type Result } from '../utils/result.js';
@@ -67,22 +67,17 @@ export class StatePersister {
   }
 
   private rehydrateTask(
-    record: { term: string; type?: TaskType; truth?: TruthType; stamp?: any },
+    record: { term: string; type?: TaskType; truth?: TruthType; stamp?: Stamp },
     type: TaskType
   ) {
     const punctuation =
       (record.type ?? type) === 'belief' ? '.' : (record.type ?? type) === 'goal' ? '!' : '?';
     const parsed = termParser.parse(`${record.term}${punctuation}`);
     return (
-      parsed && {
-        term: parsed,
-        type: record.type ?? type,
-        truth: record.truth ?? Truth.NEUTRAL,
-        budget: createBudget(0.5),
-        stamp: record.stamp ?? Stamp.createInput(),
-        occurrenceTime: Date.now() as any,
-        derived: false,
-      }
+      parsed &&
+      createTask(parsed, record.type ?? type, record.truth ?? Truth.NEUTRAL, createBudget(0.5), {
+        ...(record.stamp ? { stamp: record.stamp as Stamp } : {}),
+      })
     );
   }
 
@@ -124,9 +119,15 @@ export class StatePersister {
         ['questions.json', 'question'],
       ];
       for (const [name, type] of taskFiles) {
-        const result = await this.readStateFile<any[]>(name, `nar.${name.slice(0, -'.json'.length)}`);
+        const result = await this.readStateFile<any[]>(
+          name,
+          `nar.${name.slice(0, -'.json'.length)}`
+        );
         if (!result.ok) {
-          this.logger.warn('NAR state file unreadable', { file: name, error: errMsg(result.error) });
+          this.logger.warn('NAR state file unreadable', {
+            file: name,
+            error: errMsg(result.error),
+          });
           continue;
         }
         const records = result.value;
@@ -141,7 +142,10 @@ export class StatePersister {
         }
       }
 
-      const drivesResult = await this.readStateFile<Record<string, number>>('drives.json', 'nar.drives');
+      const drivesResult = await this.readStateFile<Record<string, number>>(
+        'drives.json',
+        'nar.drives'
+      );
       if (driveManager && drivesResult.ok && drivesResult.value) {
         for (const [driveId, value] of Object.entries(drivesResult.value)) {
           const currentIntensity = driveManager.getState(driveId)?.currentIntensity ?? 0;
@@ -149,7 +153,10 @@ export class StatePersister {
         }
       }
 
-      const lmRuleResult = await this.readStateFile<{ rules: any[] }>('lm-rules.json', 'nar.lm-rules');
+      const lmRuleResult = await this.readStateFile<{ rules: any[] }>(
+        'lm-rules.json',
+        'nar.lm-rules'
+      );
       if (lmRuleResult.ok && lmRuleResult.value) processor.deserializeLMRules(lmRuleResult.value);
 
       this.logger.info('NAR state loaded');
