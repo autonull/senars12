@@ -134,7 +134,7 @@ const records = nar.getRuleProcessor().getRecorder().drain();
 // Each record: { derivationId, steps[{ruleId, premises, conclusion, truth, premiseTruths, independence, ...}], finalTruth, ... }
 
 // Standalone verification (zero NAR engine deps)
-import { verifyRecord } from '@senars/kernel/scripts/verify-derivation';
+import { verifyRecord } from '@senars/kernel/verify-derivation';
 for (const r of records) {
   const result = verifyRecord(r, { strict: true, epsilon: 1e-6 });
   console.log(result.ok ? 'VALID' : 'INVALID', result.errors);
@@ -142,7 +142,8 @@ for (const r of records) {
 ```
 
 - `DerivationRecorder` (opt-in, bounded: 200 steps/record, 200 records) emits `DerivationRecord` with step-level `premiseTruths`, `evidenceLineage`, `independence`
-- `scripts/verify-derivation.ts` — dependency-free checker: re-computes truth algebra, validates substitution, lineage DAG, revision independence flag. CI workflow runs on every change.
+- `@senars/kernel/verify-derivation` — the one proof checker. Shape comes from `DerivationRecordSchema`; proof comes from `verifyRecord`, which re-computes the NAL truth algebra, validates substitution grounding, the lineage DAG, and the revision independence flag. The truth table is transcribed rather than imported from the engine, and the package has no engine dependency, so a verifier bug cannot hide behind an engine bug.
+- `scripts/verify-derivation.ts` — CLI over the same checker (`pnpm exec tsx scripts/verify-derivation.ts <record.json> --strict`). CI runs it on every change.
 
 ### Source Quality & Grounding
 

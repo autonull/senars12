@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { SchemaInductor } from '@senars/nar/learning';
 import { InferenceController } from '../../nar/src/reason/inference-controller.js';
 import type { Task } from '../../nar/src/types/index.js';
+import { createTask } from '../../nar/src/types/index.js';
+import { termParser, Truth } from '../../nar/src/terms/index.js';
 import { Memory } from '../../nar/src/memory/memory.js';
 import type { Concept } from '../../nar/src/memory/index.js';
 import type { DerivationContext } from '../../nar/src/strategies/index.js';
@@ -13,8 +15,8 @@ import type { DerivationContext } from '../../nar/src/strategies/index.js';
  * NAR ring), and the captured chains are well-formed SchemaInductor input —
  * a full chain→schema induction round-trip with a deterministic LM double.
  */
-const task = (term: string, f = 0.9, c = 0.9): Task =>
-  ({ term, type: 'belief', truth: { f, c }, budget: {}, stamp: {}, occurrenceTime: 0, derived: false }) as unknown as Task;
+const task = (narsese: string, f = 0.9, c = 0.9): Task =>
+  createTask(termParser.parse(narsese), 'belief', Truth.create(f, c));
 
 const controllerWith = (
   derivation: (primary: Task, secondaries: Task[]) => AsyncGenerator<Task>,
@@ -23,30 +25,32 @@ const controllerWith = (
   new InferenceController(
     { attentionModel: { prime: () => 0 } } as never,
     {} as never,
-    { sample: () => [{ term: '<sparrow --> bird>', priority: 0.5, beliefBag: { peek: () => ({ truth: { f: 0.9, c: 0.9 } }) } } as unknown as Concept] } as never,
+    {
+      sample: () =>
+        [
+          {
+            term: termParser.parse('<sparrow --> bird>'),
+            priority: 0.5,
+            beliefBag: { peek: () => ({ truth: Truth.create(0.9, 0.9) }) },
+          },
+        ] as unknown as Concept[],
+    } as never,
     { selectSecondary: () => [] } as never,
     { derive: derivation } as never,
-    { maxDerivationsPerStep: 10, maxDerivationDepth: 5, sampleSize: 10, enableCircularDetection: true, enableTraceCollection: false, cpuThrottleMs: 0, singlePremiseLMRules: true, maxLMRulesPerStep: 1, enableLMRules: false, ...(onDerivation ? { onDerivation } : {}) }
+    { maxDerivationsPerStep: 10, maxDerivationDepth: 5, sampleSize: 10, enableCircularDetection: true, cpuThrottleMs: 0, singlePremiseLMRules: true, ...(onDerivation ? { onDerivation } : {}) }
   );
 
 describe('TODO25 Bench 80 — derivation-chain capture', () => {
   it('onDerivation receives [primary, ...secondaries, derived] per derivation', async () => {
     const chains: Task[][] = [];
-    const primary = task('<sparrow --> bird>');
-    const secondary = task('<bird --> animal>');
-    const derived = task('<sparrow --> animal>');
-    const controller = controllerWith(
-      async function* () {
-        yield derived;
-      },
-      (chain) => chains.push([...chain])
-    );
+    const controller = controllerWith(async function* () {
+      yield task('<sparrow --> animal>');
+    }, (chain) => chains.push([...chain]));
     await controller.step();
-    // Semantic comparison: createBeliefTask/createBudget enrich the doubles.
     expect(chains.length).toBe(1);
     expect(chains[0]!.length).toBe(2);
-    expect(chains[0]![0]!.term).toBe('<sparrow --> bird>');
-    expect(chains[0]![1]!.term).toBe('<sparrow --> animal>');
+    expect(chains[0]![0]!.term).toEqual(termParser.parse('<sparrow --> bird>'));
+    expect(chains[0]![1]!.term).toEqual(termParser.parse('<sparrow --> animal>'));
   });
 
   it('no sink ⇒ capture is inert (zero-cost default path)', async () => {

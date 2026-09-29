@@ -1,256 +1,260 @@
 /**
- * Runtime derivation-verification sampling — spot-check with dependency-free verifyRecord under budget.
- * Cheap in-run checker; complements CI verification.
+ * Derivation verification — the trusted boundary's proof checker.
+ *
+ * Two questions, two owners. *Shape* belongs to `DerivationRecordSchema`: id
+ * formats, rule categories, truth bounds, engine identity. *Proof* belongs here:
+ * does each step's declared truth follow from its premise truths under the NAL
+ * algebra, is its lineage well formed, and does the record's conclusion match
+ * its last step.
+ *
+ * The truth table below is written out rather than imported from `@senars/nar`
+ * on purpose — a verifier that shares the engine's arithmetic can only confirm
+ * the engine agrees with itself. This package has no engine dependency, so that
+ * independence is enforced by the dependency graph rather than by convention.
  */
 
+import { DerivationRecordSchema } from './schemas.js';
 import type { DerivationRecord, DerivationStep, TruthValue } from './schemas.js';
 
-export interface VerificationResult {
-  readonly ok: boolean;
-  readonly errors: string[];
-  readonly stepResults: StepVerificationResult[];
-  readonly verifiedAt: number;
+/** One defect, tagged with the check that caught it. */
+export interface VerificationFinding {
+  readonly stepId?: string;
+  readonly check: string;
+  readonly detail: string;
 }
 
+/** Per-step verdict. `computedTruth` is absent when no truth function applies. */
 export interface StepVerificationResult {
   readonly stepId: string;
   readonly ok: boolean;
+  /** {@link VerificationFinding}s for this step, as messages. */
   readonly errors: string[];
-  readonly computedTruth?: TruthValue;
+  readonly findings: readonly VerificationFinding[];
   readonly declaredTruth: TruthValue;
+  readonly computedTruth?: TruthValue;
+}
+
+export interface VerificationResult {
+  readonly derivationId: string;
+  readonly ok: boolean;
+  /** {@link VerificationFinding}s as messages — the form a boot check logs. */
+  readonly errors: string[];
+  readonly findings: readonly VerificationFinding[];
+  readonly stepResults: readonly StepVerificationResult[];
+  /** Steps whose declared truth was reproduced by the table below. */
+  readonly truthVerified: number;
+  /** Steps the table could not judge: unknown rule, or premise truths absent. */
+  readonly truthSkipped: number;
+  readonly verifiedAt: number;
 }
 
 export interface VerifyOptions {
-  /**
-   * Accepted for call compatibility. Truth-algebra proof is not performed here
-   * by design — see `verifyStep`. Use `scripts/verify-derivation.ts` for it.
-   */
-  readonly strict: boolean;
-  readonly epsilon: number;
+  /** Fail on a step whose rule has no truth function in the table below. */
+  readonly strict?: boolean;
+  /** Tolerance on every truth comparison. */
+  readonly epsilon?: number;
+  /** Verify at most the first N steps. */
   readonly maxSteps?: number;
-  readonly sampleRate?: number; // 0-1, fraction of steps to verify
-  /** Sampling source for {@link DerivationVerifier}. Defaults to `Math.random`. */
-  readonly random?: () => number;
 }
 
-/** @deprecated since 1.0 — `verifyRecord` now takes the superset {@link VerifyOptions}. */
-export type VerifyRecordOptions = VerifyOptions;
+const DEFAULT_EPSILON = 1e-6;
 
-/** Standalone derivation verifier — no NAR engine dependencies. */
-export function verifyRecord(record: DerivationRecord, options: VerifyOptions): VerificationResult {
-  const { epsilon } = options;
-  const errors: string[] = [];
-  const stepResults: StepVerificationResult[] = [];
+const c2w = (c: number): number => (c === 1 ? 1e10 : c / (1 - c));
+const w2c = (w: number): number => w / (w + 1);
+const div = (n: number, d: number): number => (d === 0 ? 0 : n / d);
 
-  // Verify each step
-  const stepsToVerify = options.maxSteps ? record.steps.slice(0, options.maxSteps) : record.steps;
+type BinaryTruthFn = (f1: number, f2: number, c1: number, c2: number) => [number, number];
+type UnaryTruthFn = (f: number, c: number) => [number, number];
 
-  for (const step of stepsToVerify) {
-    const stepResult = verifyStep(step);
-    stepResults.push(stepResult);
-    if (!stepResult.ok) {
-      errors.push(...stepResult.errors.map((e) => `Step ${step.stepId}: ${e}`));
-    }
+/**
+ * NAL truth functions, transcribed from the algebra in NAL_IR.md §Truth Value
+ * Algebra. Revision caps confidence at the engine's `MAX_CONFIDENCE` so a
+ * saturating revision compares equal to the clamped value the engine stores.
+ */
+const BINARY_TRUTH: Record<string, BinaryTruthFn> = {
+  deduction: (f1, f2, c1, c2) => [f1 * f2, c1 * c2],
+  induction: (f1, f2, c1, c2) => {
+    const w = f2 * c1 * c2;
+    return [f2, w / (w + 1)];
+  },
+  abduction: (f1, f2, c1, c2) => {
+    const w = f1 * c1 * c2;
+    return [f1, w / (w + 1)];
+  },
+  exemplification: (f1, f2, c1, c2) => [f1 * f2, (c1 / (c1 + 1)) * c1 * c2 * f1 * f2],
+  comparison: (f1, f2, c1, c2) => {
+    const p = f1 * f2;
+    return [div(p, p + (1 - f1) * (1 - f2)), c1 * c2];
+  },
+  analogy: (f1, f2, c1, c2) => [f1 * f2, c1 * c2 * f2],
+  resemblance: (f1, f2, c1, c2) => [(f1 + f2) / 2, c1 * c2],
+  intersection: (f1, f2, c1, c2) => [f1 * f2, c1 * c2],
+  union: (f1, f2, c1, c2) => [1 - (1 - f1) * (1 - f2), c1 * c2],
+  revision: (f1, f2, c1, c2) => {
+    const w = c2w(c1) + c2w(c2);
+    return [(f1 * c2w(c1) + f2 * c2w(c2)) / w, Math.min(w2c(w), 0.999)];
+  },
+  detachment: (f1, f2, c1, c2) => [f2, f1 * c1 * c2],
+};
+
+const UNARY_TRUTH: Record<string, UnaryTruthFn> = {
+  'negation-intro': (f, c) => [1 - f, c],
+  'negation-elim': (f, c) => [1 - f, c],
+  negation: (f, c) => [1 - f, c],
+  conversion: (f, c) => [f, f * c],
+};
+
+/**
+ * Map a rule id onto its truth function. Rule ids are namespaced
+ * (`nal.deduction`, `structural.conversion`, …), so an exact hit is tried
+ * before a substring match. An unmatched id is a skip, never a proof.
+ */
+const resolveTruthFn = (
+  ruleId: string
+): { arity: 1 | 2; fn: (f: number[], c: number[]) => [number, number] } | null => {
+  const key = ruleId.toLowerCase().replace(/_/g, '-');
+  const binary = BINARY_TRUTH[key];
+  if (binary) return { arity: 2, fn: (f, c) => binary(f[0]!, f[1]!, c[0]!, c[1]!) };
+  const unary = UNARY_TRUTH[key];
+  if (unary) return { arity: 1, fn: (f, c) => unary(f[0]!, c[0]!) };
+  const binaryName = Object.keys(BINARY_TRUTH).find((name) => key.includes(name));
+  if (binaryName !== undefined) {
+    const fn = BINARY_TRUTH[binaryName]!;
+    return { arity: 2, fn: (f, c) => fn(f[0]!, f[1]!, c[0]!, c[1]!) };
   }
-
-  // Verify final truth matches last step
-  const lastStep = record.steps[record.steps.length - 1];
-  if (lastStep) {
-    const truthDiff = Math.abs(lastStep.truth.frequency - record.finalTruth.frequency) +
-                      Math.abs(lastStep.truth.confidence - record.finalTruth.confidence);
-    if (truthDiff > epsilon) {
-      errors.push(`Final truth mismatch: step truth (${lastStep.truth.frequency}, ${lastStep.truth.confidence}) vs record (${record.finalTruth.frequency}, ${record.finalTruth.confidence})`);
-    }
+  const unaryName = Object.keys(UNARY_TRUTH).find((name) => key.includes(name));
+  if (unaryName !== undefined) {
+    const fn = UNARY_TRUTH[unaryName]!;
+    return { arity: 1, fn: (f, c) => fn(f[0]!, c[0]!) };
   }
+  return null;
+};
 
-  // Verify derivation ID format
-  if (!isValidUUID(record.derivationId)) {
-    errors.push(`Invalid derivationId format: ${record.derivationId}`);
-  }
+const close = (a: number, b: number, epsilon: number): boolean => Math.abs(a - b) <= epsilon;
 
-  // Verify task ID format
-  if (!isValidUUID(record.taskId)) {
-    errors.push(`Invalid taskId format: ${record.taskId}`);
-  }
+export const formatFinding = (finding: VerificationFinding): string =>
+  `[${finding.check}]${finding.stepId ? ` step ${finding.stepId}` : ''}: ${finding.detail}`;
 
-  // Verify timestamps
-  if (record.timestamp <= 0 || record.timestamp > Date.now() + 60000) {
-    errors.push(`Invalid timestamp: ${record.timestamp}`);
-  }
+type ProofState = { verified: number; skipped: number };
 
-  // Verify engine
-  if (record.engine !== 'nar') {
-    errors.push(`Unknown engine: ${record.engine}`);
-  }
-
-  return {
-    ok: errors.length === 0,
-    errors,
-    stepResults,
-    verifiedAt: Date.now(),
+/** Verify one derivation step: shape, lineage, substitution grounding, truth. */
+const verifyStep = (
+  step: DerivationStep,
+  priorStepIds: ReadonlySet<string>,
+  taskId: string,
+  options: { epsilon: number; strict: boolean },
+  state: ProofState
+): StepVerificationResult => {
+  const findings: VerificationFinding[] = [];
+  const fail = (check: string, detail: string): void => {
+    findings.push({ stepId: step.stepId, check, detail });
   };
-}
 
-/** Verify a single derivation step. */
-function verifyStep(step: DerivationStep): StepVerificationResult {
-  const errors: string[] = [];
+  if (!step.ruleId.trim()) fail('rule-shape', 'Missing ruleId');
+  if (step.premises.length === 0) fail('premise-shape', 'No premises provided');
+  if (step.premises.some((p) => !p.trim())) fail('premise-shape', 'Empty premise term string');
+  if (!step.conclusion.trim()) fail('conclusion-shape', 'Empty conclusion term string');
 
-  // Verify step ID format
-  if (!isValidUUID(step.stepId)) {
-    errors.push(`Invalid stepId format: ${step.stepId}`);
+  for (const [variable, value] of Object.entries(step.substitution ?? {})) {
+    if (!value.trim()) fail('substitution-value', `Variable ${variable} binds empty value`);
+    else if (!step.premises.some((p) => p.includes(variable)))
+      fail('substitution-premise', `Variable ${variable} appears in no premise`);
+    else if (!step.conclusion.includes(variable) && !step.conclusion.includes(value))
+      fail('substitution-conclusion', `Neither ${variable} nor its value appears in conclusion`);
   }
 
-  // Verify rule ID
-  if (!step.ruleId || step.ruleId.trim() === '') {
-    errors.push('Missing ruleId');
+  for (const parent of step.evidenceLineage) {
+    if (!priorStepIds.has(parent) && parent !== taskId)
+      fail('lineage-dag', `Lineage ${parent} is neither a prior step nor the taskId`);
   }
 
-  // Verify rule category
-  const validCategories = [
-    'core', 'logic', 'propositional', 'higher-order', 'comparison',
-    'classical', 'structural', 'temporal', 'procedural', 'meta-cognitive', 'variable'
-  ];
-  if (!validCategories.includes(step.ruleCategory)) {
-    errors.push(`Invalid ruleCategory: ${step.ruleCategory}`);
-  }
+  if (step.independence === 'unknown' && step.ruleId.toLowerCase().includes('revision'))
+    fail(
+      'evidence-independence',
+      'Revision with unknown independence must be conservatively rejected by the engine'
+    );
 
-  // Verify premises
-  if (!step.premises || step.premises.length === 0) {
-    errors.push('No premises provided');
+  let computedTruth: TruthValue | undefined;
+  const resolved = resolveTruthFn(step.ruleId);
+  if (!resolved) {
+    state.skipped++;
+    if (options.strict) fail('unknown-rule', `No truth function for ruleId '${step.ruleId}'`);
+  } else if (step.premiseTruths?.length !== resolved.arity) {
+    state.skipped++;
+  } else {
+    const [f, c] = resolved.fn(
+      step.premiseTruths.map((t) => t.frequency),
+      step.premiseTruths.map((t) => t.confidence)
+    );
+    computedTruth = { frequency: f, confidence: c };
+    if (close(f, step.truth.frequency, options.epsilon) && close(c, step.truth.confidence, options.epsilon))
+      state.verified++;
+    else
+      fail(
+        'truth-algebra',
+        `Expected f=${f.toFixed(6)} c=${c.toFixed(6)}, got f=${step.truth.frequency} c=${step.truth.confidence} via ${step.ruleId}`
+      );
   }
-
-  // Verify conclusion
-  if (!step.conclusion || step.conclusion.trim() === '') {
-    errors.push('Missing conclusion');
-  }
-
-  // Verify truth values
-  if (!isValidTruthValue(step.truth)) {
-    errors.push(`Invalid truth value: ${JSON.stringify(step.truth)}`);
-  }
-
-  // Verify premise truths if present
-  if (step.premiseTruths) {
-    if (step.premiseTruths.length !== step.premises.length) {
-      errors.push(`Premise truths count (${step.premiseTruths.length}) doesn't match premises count (${step.premises.length})`);
-    }
-    for (const pt of step.premiseTruths) {
-      if (!isValidTruthValue(pt)) {
-        errors.push(`Invalid premise truth: ${JSON.stringify(pt)}`);
-      }
-    }
-  }
-
-  // Verify evidence lineage
-  if (step.evidenceLineage) {
-    for (const lineageId of step.evidenceLineage) {
-      if (!isValidUUID(lineageId)) {
-        errors.push(`Invalid evidence lineage ID: ${lineageId}`);
-      }
-    }
-  }
-
-  // Verify independence
-  const validIndependence = ['independent', 'dependent', 'unknown'];
-  if (!validIndependence.includes(step.independence)) {
-    errors.push(`Invalid independence: ${step.independence}`);
-  }
-
-  // Truth-algebra proof lives in scripts/verify-derivation.ts, which carries an
-  // independent NAL table. Reproducing that table here would make the checker
-  // agree with the engine by construction, which is the one thing a verifier
-  // must not do — so this stays structural only, and `computedTruth` is
-  // always absent.
 
   return {
     stepId: step.stepId,
-    ok: errors.length === 0,
-    errors,
+    ok: findings.length === 0,
+    errors: findings.map(formatFinding),
+    findings,
     declaredTruth: step.truth,
+    ...(computedTruth ? { computedTruth } : {}),
   };
-}
+};
 
-/** Validate truth value bounds. */
-function isValidTruthValue(t: TruthValue): boolean {
-  return typeof t.frequency === 'number' &&
-         typeof t.confidence === 'number' &&
-         t.frequency >= 0 && t.frequency <= 1 &&
-         t.confidence >= 0 && t.confidence <= 1;
-}
+/**
+ * Verify a derivation record end to end. Shape is checked against the schema
+ * first, so every field read below is guaranteed well formed.
+ */
+export function verifyRecord(record: DerivationRecord, options: VerifyOptions = {}): VerificationResult {
+  const epsilon = options.epsilon ?? DEFAULT_EPSILON;
+  const findings: VerificationFinding[] = [];
+  const stepResults: StepVerificationResult[] = [];
+  const state: ProofState = { verified: 0, skipped: 0 };
+  const fail = (check: string, detail: string, stepId?: string): void => {
+    findings.push({ stepId, check, detail });
+  };
 
-/** Validate UUID format. */
-function isValidUUID(str: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(str);
-}
+  const parsed = DerivationRecordSchema.safeParse(record);
+  if (!parsed.success) {
+    fail(
+      'record-shape',
+      parsed.error.issues.map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`).join('; ')
+    );
+  } else {
+    const { steps, finalTruth, taskId, totalCycles } = parsed.data;
+    const toVerify = options.maxSteps ? steps.slice(0, options.maxSteps) : steps;
+    const seen = new Set<string>();
 
-/** Budget-aware verification sampler. */
-export class DerivationVerifier {
-  private readonly budget: { maxVerificationsPerCycle: number; verificationsThisCycle: number };
-  private readonly options: VerifyOptions;
-  private cycleCount = 0;
-
-  /** Sampling source. Injected so verification stays reproducible. */
-  readonly #random: () => number;
-
-  constructor(options: VerifyOptions = { strict: false, epsilon: 1e-6, sampleRate: 0.1 }) {
-    this.options = {
-      strict: options.strict ?? false,
-      epsilon: options.epsilon ?? 1e-6,
-      maxSteps: options.maxSteps,
-      sampleRate: options.sampleRate ?? 0.1,
-    };
-    this.#random = options.random ?? Math.random;
-    this.budget = {
-      maxVerificationsPerCycle: Math.max(1, Math.floor(10 * (this.options.sampleRate ?? 0.1))),
-      verificationsThisCycle: 0,
-    };
-  }
-
-  /** Start a new cycle (resets budget). */
-  newCycle(): void {
-    this.cycleCount++;
-    this.budget.verificationsThisCycle = 0;
-  }
-
-  /** Verify a derivation record if budget allows. */
-  verify(record: DerivationRecord): VerificationResult | null {
-    if (this.budget.verificationsThisCycle >= this.budget.maxVerificationsPerCycle) {
-      return null; // Budget exhausted
+    for (const step of toVerify) {
+      if (seen.has(step.stepId)) fail('unique-step-id', `Duplicate stepId ${step.stepId}`, step.stepId);
+      stepResults.push(verifyStep(step, new Set(seen), taskId, { epsilon, strict: options.strict ?? false }, state));
+      seen.add(step.stepId);
     }
+    for (const result of stepResults) findings.push(...result.findings);
 
-    // Sample: only verify a fraction of records
-    if (this.#random() > (this.options.sampleRate ?? 0.1)) {
-      return null; // Not sampled
+    const last = toVerify[toVerify.length - 1];
+    if (last) {
+      if (!close(last.truth.frequency, finalTruth.frequency, epsilon)
+        || !close(last.truth.confidence, finalTruth.confidence, epsilon))
+        fail('final-truth', 'finalTruth does not match last step truth');
+    } else if (totalCycles > 0) {
+      fail('empty-derivation', 'Record claims cycles but has no steps');
     }
-
-    this.budget.verificationsThisCycle++;
-    return verifyRecord(record, {
-      strict: this.options.strict,
-      epsilon: this.options.epsilon,
-    });
   }
 
-  /** Verify multiple records. */
-  verifyBatch(records: DerivationRecord[]): VerificationResult[] {
-    const results: VerificationResult[] = [];
-    for (const record of records) {
-      const result = this.verify(record);
-      if (result) results.push(result);
-    }
-    return results;
-  }
-
-  /** Get verifier stats. */
-  getStats(): { cycleCount: number; verificationsThisCycle: number; budget: number } {
-    return {
-      cycleCount: this.cycleCount,
-      verificationsThisCycle: this.budget.verificationsThisCycle,
-      budget: this.budget.maxVerificationsPerCycle,
-    };
-  }
-}
-
-export function createDerivationVerifier(options?: VerifyOptions): DerivationVerifier {
-  return new DerivationVerifier(options);
+  return {
+    derivationId: record?.derivationId ?? '',
+    ok: findings.length === 0,
+    errors: findings.map(formatFinding),
+    findings,
+    stepResults,
+    truthVerified: state.verified,
+    truthSkipped: state.skipped,
+    verifiedAt: Date.now(),
+  };
 }

@@ -80,15 +80,24 @@ async function runBootSelfTest(nar: NARType): Promise<void> {
     throw new Error('Boot POST failed: no derivation records captured');
   }
 
+  // Proof of traceability, not shape: every record must verify, and the drain
+  // as a whole must contain at least one step whose truth the verifier
+  // reproduced. A boot check that only inspected shape could not fail on a bad
+  // rule; one that demanded a proof per record would fail on rules the
+  // verifier's table does not cover.
+  let proved = 0;
   for (const record of records) {
-    const result = verifyRecord(record, { strict: false, epsilon: 0.1 });
+    const result = verifyRecord(record);
     if (!result.ok) {
-      const details = result.errors.join('; ');
-      throw new Error(`Boot POST failed: derivation verification failed - ${details}`);
+      throw new Error(`Boot POST failed: derivation verification failed - ${result.errors.join('; ')}`);
     }
+    proved += result.truthVerified;
+  }
+  if (proved === 0) {
+    throw new Error('Boot POST failed: no step carried premise truths the verifier could prove');
   }
 
-  log.info('Boot POST passed: core logic verified');
+  log.info(`Boot POST passed: core logic verified (${proved} steps reproduced)`);
 }
 
 export async function createCognitiveAgent(config: CognitiveAgentConfig): Promise<CognitiveAgent> {

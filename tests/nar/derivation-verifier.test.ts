@@ -1,6 +1,6 @@
 import type { DerivationRecord } from '@senars/kernel/schemas';
 import { describe, expect, it } from 'vitest';
-import { verifyRecord } from '../../scripts/verify-derivation.js';
+import { verifyRecord } from '@senars/kernel/verify-derivation';
 
 const taskId = '11111111-1111-4111-8111-111111111111';
 const step = (overrides: Record<string, unknown>): DerivationRecord['steps'][number] =>
@@ -38,14 +38,14 @@ const record = (
 describe('standalone derivation verifier', () => {
   it('accepts a valid deduction record', () => {
     const result = verifyRecord(record([step({})]));
-    expect(result.passed).toBe(true);
+    expect(result.ok).toBe(true);
     expect(result.truthVerified).toBe(1);
   });
 
   it('rejects tampered truth values', () => {
     const bad = step({ truth: { frequency: 0.99, confidence: 0.99 } });
     const result = verifyRecord(record([bad], { frequency: 0.99, confidence: 0.99 }));
-    expect(result.passed).toBe(false);
+    expect(result.ok).toBe(false);
     expect(result.findings.some((f) => f.check === 'truth-algebra')).toBe(true);
   });
 
@@ -72,7 +72,7 @@ describe('standalone derivation verifier', () => {
     });
     const result = verifyRecord(record([revision, negation], { frequency: 0.2, confidence: 0.9 }));
     expect(result.findings).toEqual([]);
-    expect(result.passed).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   it('flags revision with unknown independence', () => {
@@ -104,5 +104,23 @@ describe('standalone derivation verifier', () => {
       strict: true,
     });
     expect(strict.findings.some((f) => f.check === 'unknown-rule')).toBe(true);
+  });
+
+  it('reports the truth it recomputed alongside the truth it was handed', () => {
+    const [result] = verifyRecord(record([step({})])).stepResults;
+    expect(result?.computedTruth?.frequency).toBeCloseTo(0.72, 12);
+    expect(result?.computedTruth?.confidence).toBeCloseTo(0.72, 12);
+  });
+
+  it('rejects a record the schema cannot admit, before reading any of it', () => {
+    const result = verifyRecord({ ...record([step({})]), derivationId: 'not-a-uuid' });
+    expect(result.ok).toBe(false);
+    expect(result.stepResults).toEqual([]);
+    expect(result.findings.some((f) => f.check === 'record-shape')).toBe(true);
+  });
+
+  it('rejects duplicate step ids', () => {
+    const result = verifyRecord(record([step({}), step({})], { frequency: 0.72, confidence: 0.72 }));
+    expect(result.findings.some((f) => f.check === 'unique-step-id')).toBe(true);
   });
 });
