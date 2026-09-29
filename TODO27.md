@@ -1,11 +1,14 @@
 # TODO27: Strategy Composition & Configuration — One Resolution Path
 
-**Version:** 1.3 (2026-09-28) · **Predecessor:** REFACTOR.todo8 §8 B/C, the premise-strategy
+**Version:** 1.4 (2026-09-29) · **Predecessor:** REFACTOR.todo8 §8 B/C, the premise-strategy
 landing (`8b8cb1f8`), and the associative-memory port (`e7a52b21`).
 
-**Status: Phases A–N landed. Benches 100–111 green; 2514 unit tests + 25 e2e/determinism tests
-passing; static gates green; the RL parity gate is seeded, deterministic and green. Deviations are
-recorded in §11 (A–F), §12 (G), §13 (H), §14 (I), §16 (J), §17 (K), §18 (L), §19 (M), §20 (N).
+**Status: Phases A–N landed. Benches 100–111 green; `test:unit` 2516 passing / 3 skipped,
+`tests/e2e` 15 and `test:determinism` 10 verified 2026-09-29; static gates green; the RL parity
+gate is seeded, deterministic and green. The one open blocker is a release decision, not code:
+Phase I removed public exports at `nar@0.6.0` without the deprecation cycle AGENTS.md requires
+(§20.6). Deviations are recorded in §11 (A–F), §12 (G), §13 (H), §14 (I), §16 (J), §17 (K),
+§18 (L), §19 (M), §20 (N).
 
 > **A fresh session should read §20 first.** §15 diagnosed the RL parity gate as measuring
 > machine load rather than reasoning; §16 seeded the harness end to end so it reproduces its own
@@ -13,6 +16,21 @@ recorded in §11 (A–F), §12 (G), §13 (H), §14 (I), §16 (J), §17 (K), §18
 > RL agent against a tabular baseline, not about SeNARS. The reasoner is measured by the
 > NAL/derivation/ReasoningGame benches and the fundamentals suite, and measuring *those* found a
 > three-day-old defect in the capability bench that no gate ran.**
+
+**How to read this document.** §§0–10 are the original plan, written before any of it landed, and
+are kept as written — that is what makes the deviations in §11 legible. §§11–20 are an append-only
+session log: each section is a phase, in order, with its gates at the time. **A "still open" list in
+an earlier section is not current**; the current state is §20, and the superseded claims are mapped
+below.
+
+| earlier section | its open items were closed by |
+|---|---|
+| §10 (config-driven attention, `AdaptiveStrategy`) | §13.1 (weights), Phase I (removed — see the §20.6 version note) |
+| §11.4, §12.7, §13.7 (premise config, bag slot, unbounded memo, filters/scorer, composite weights) | §12, §13 |
+| §14.6, §15.6 (replay attention, parity seeding, LRU metric) | §16, §18 |
+| §15.7 ("if you have time for exactly one thing") | §16 |
+| §16.3 (the parity numbers) | §19.2 — those figures were measured against a fixed-later bug |
+| §19.3 ("the first honest answer…") | §20.1 — that reading was an overclaim |
 
 ---
 
@@ -268,6 +286,17 @@ Phase G was not in the original plan; it is §11.4 taken as work rather than as 
 the premise `filters`/`scorer` surface (§12.1), the bag slot's missing contract, the unbounded
 instance caches, and `describeSpec` as the one renderer. The record is §12.
 
+### Phases H–N (also added after the fact; each recorded in its own section)
+| Phase | Subject | Record |
+|---|---|---|
+| H | weighted composites; no silent degradation in the premise pipeline | §13 |
+| I | the North Star made literal: one NAR, one registry, one inference path | §14 |
+| J | the RL parity harness seeded end to end | §16 |
+| K | the North Star as a bench (109) | §17 |
+| L | the two cheap residuals: replay fidelity, memo visibility | §18 |
+| M | one acceptance rule, and the number it produces | §19 |
+| N | what the 0.646 does not measure; the capability bench, gated (111) | §20 |
+
 ---
 
 ## 5. Acceptance benches
@@ -283,6 +312,9 @@ instance caches, and `describeSpec` as the one renderer. The record is §12.
 | 106 | `todo27-bounded-memo.test.ts` | Memoized instances are bounded; eviction costs identity, not correctness. |
 | 107 | `todo27-bag-slot.test.ts` | The bag slot names its candidates, rejects an unknown key, and both reach the bag. |
 | 108 | `todo27-weighted-attention.test.ts` | A composite is a named strategy with config; a weight is a ratio; a typo'd part is a boundary error. |
+| 109 | `todo27-north-star.test.ts` | No module outside the catalogue constructs a strategy or imports an attention implementation. |
+| 110 | `todo27-seeded-sampling.test.ts` | One seed fixes the whole stochastic path: bags, link layer, stochastic factories. |
+| 111 | `todo27-fundamentals-gate.test.ts` | The seven capability scenarios run in the unit tier, and none of them silently stopped running. |
 
 Every bench asserts *behaviour*, never implementation: identity (`toBe`) only where identity is
 the contract (Tier 0, memoization), values otherwise. No mocks — the benches drive the real
@@ -336,7 +368,10 @@ the contract (Tier 0, memoization), values otherwise. No mocks — the benches d
 
 ## 9. Definition of done
 
-1. B Benches 100–108 green in the CI unit tier (109 specified in §14.6, not yet written).
+*Met as written by Phase I (§14); items 1 and 7 are restated against the current tree, and phases
+J–N are follow-ups outside this contract — they are in the log, not below.*
+
+1. ✓ Benches 100–108 green in the CI unit tier. (109–111 added since, in §17/§16/§20.)
 2. `config` demonstrably changes behaviour for at least one registered strategy in each stateless
    slot, asserted by value — not by "it was passed through".
 3. An unknown strategy name fails at `validateParameters`/`setStrategy` with the candidate list,
@@ -346,17 +381,22 @@ the contract (Tier 0, memoization), values otherwise. No mocks — the benches d
    are gone; `rg` finds no references.
 6. One spec form (`string | string[] | StrategyExpression`) is accepted by every slot, with one
    spelling per behaviour.
-7. No regression: `test:unit` (currently 2505 passing, 3 skipped), `lint`, `typecheck`,
-   `typecheck:bin`, `deps:gate` (≤ 5 cycles), `exports:audit`, `complexity:budget` all green.
+7. ✓ No regression: `test:unit` (currently 2516 passing, 3 skipped), `lint`, `typecheck`,
+   `typecheck:bin`, `deps:gate` (≤ 5 cycles), `exports:audit`, `exports:check`,
+   `complexity:budget` all green; `test:e2e` 15 and `test:determinism` 10 verified 2026-09-29.
 8. `docs/strategy-composition.md` written.
 
 ---
 
 ## 10. Follow-ups (recorded, not scheduled)
 
+*Verdict as of 2026-09-29, appended — this list is from the original session:*
+
 - **Config-driven attention** (`CompositeAttention` ignores weights) — needs a demand signal.
+  **CLOSED** by §13.1: `composite` is a named registration taking `models: [{name, weight}]`.
 - **`AdaptiveStrategy`** is registered but unreachable from config; either wire it or delete it
-  (same verdict as `createAdaptive`, taken in Phase A).
+  (same verdict as `createAdaptive`, taken in Phase A). **DONE, not as specified**: removed outright
+  in Phase I without the deprecation cycle §13.3 promised — see §20.6.
 - **Association provenance.** `associate` has no source tag, so a link written by a strategy is
   indistinguishable from one written by inference. Worth a `source` field on `AssociateOptions`
   when something consumes it.
