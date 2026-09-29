@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { CognitiveRegistry } from '@senars/nar/cognitive';
+import { CognitiveRegistry, createDefaultRegistry } from '@senars/nar/cognitive';
 import { ConfigurationError } from '@senars/nar/types';
-import { PREMISE_PRIMITIVES, SampledStrategy } from '@senars/nar/strategies/premise';
+import { PREMISE_PRIMITIVES } from '@senars/nar/strategies/premise';
 import { validateParameters } from '@senars/nar/config/cognitive-parameters';
 import { Memory } from '@senars/nar/memory';
 import { atom, Truth } from '../../nar/src/terms/index.js';
@@ -42,6 +42,10 @@ const primary = () => createBeliefTask(atom('cat'), Truth.create(0.9, 0.9), 0.9)
 
 const selected = (r: CognitiveRegistry, config: Record<string, unknown>, memory = memoryWithLinks()) =>
   r.resolve<Strategy>('premise', 'sampled', config).selectSecondary(primary(), memory).map((t) => t.term.toString());
+
+/** The premise slot, by name — the registry is the only way to get a strategy. */
+const premise = (name: string): Strategy =>
+  createDefaultRegistry().get<Strategy>('premise', name);
 
 describe('Bench 105 — premise source, scorer, filters, minScore', () => {
   it('scorer decides which premise ranks first', () => {
@@ -120,7 +124,7 @@ describe('Bench 105 — premise source, scorer, filters, minScore', () => {
     const task = primary();
     const registered = registry().get<Strategy>('premise', 'sampled');
     expect(registered.selectSecondary(task, memory).map((t) => t.term.toString())).toEqual(
-      SampledStrategy.selectSecondary(task, memory).map((t) => t.term.toString())
+      createDefaultRegistry().get<Strategy>('premise', 'sampled').selectSecondary(task, memory).map((t) => t.term.toString())
     );
   });
 

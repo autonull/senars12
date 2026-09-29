@@ -15,14 +15,6 @@ import {
 
 const logger = createLogger({ scope: 'Strategies' });
 
-const withMeta = <T extends Strategy>(strategy: T, description: string): T => {
-  (strategy as unknown as { metadata: ComponentMetadata }).metadata = {
-    name: strategy.name,
-    description,
-  };
-  return strategy;
-};
-
 export type PremisePrimitiveSpec = { description: string } & Omit<
   StrategyConfig,
   'name' | 'description' | 'filter' | 'truthFilter' | 'sampleSize' | 'limit'
@@ -100,32 +92,6 @@ export const createPremiseStrategy = (
   return createStrategy({ ...primitives, name, ...overrides });
 };
 
-const primitive = <N extends keyof typeof PREMISE_PRIMITIVES>(name: N): Strategy => {
-  const spec = PREMISE_PRIMITIVES[name];
-  return withMeta(
-    createPremiseStrategy(name, { sampleSize: spec.sampleSize, limit: spec.limit }),
-    spec.description
-  );
-};
-
-export const ResolutionStrategy: Strategy = primitive('resolution');
-
-export const GoalDrivenStrategy: Strategy = primitive('goal-driven');
-
-export const AnalogicalStrategy: Strategy = primitive('analogical');
-
-export const TermLinkStrategy: Strategy = withMeta(
-  new RealTermLinkStrategy({ minStrength: 0.3, limit: 20 }),
-  'Term-link premises plus the subject and predicate link neighbourhoods'
-);
-
-export const EmbeddingLinkStrategy: Strategy = withMeta(
-  new RealEmbeddingLinkStrategy({ minStrength: 0.3, limit: 20 }),
-  'Semantic premises from the embedding layer\'s similarity links'
-);
-
-export const SampledStrategy: Strategy = primitive('sampled');
-
 export class DecompositionStrategy implements Strategy {
   readonly metadata: ComponentMetadata = {
     name: 'decomposition',
@@ -147,14 +113,6 @@ export class DecompositionStrategy implements Strategy {
       .filter((t): t is Task => t !== null);
   }
 }
-
-export const DefaultFormationStrategy: Strategy = primitive('default-formation');
-
-export const BagStrategy: Strategy = primitive('bag');
-
-export const ExhaustiveStrategy: Strategy = primitive('exhaustive');
-
-export const SemanticStrategy: Strategy = primitive('semantic');
 
 /**
  * How several premise strategies combine into one premise set.
@@ -195,117 +153,6 @@ export class CompositeStrategy implements Strategy {
       if (!held || candidate.budget.priority > held.budget.priority) strongest.set(key, candidate);
     }
     return [...strongest.values()];
-  }
-}
-
-interface StrategyStats {
-  pairsGenerated: number;
-  successfulDerivations: number;
-  effectiveness: number;
-}
-
-/**
- * @deprecated since 1.0 — unreachable from config and with no replacement.
- * Choosing among strategies by past effectiveness is a slot, not a strategy:
- * a registration that takes `config: { strategies: [...], metric }` and is
- * `stateful` would be the supported form. Removed in 2.0.
- */
-export class AdaptiveStrategy implements Strategy {
-  readonly metadata: ComponentMetadata = {
-    name: 'adaptive',
-    description: 'Select best strategy based on past effectiveness',
-  };
-  readonly name = 'adaptive';
-  private stats: Map<string, StrategyStats> = new Map();
-
-  constructor(
-    private strategies: Strategy[],
-    private initialWeights?: number[]
-  ) {
-    this.resetStats();
-  }
-
-  selectSecondary(task: Task, memory: MemoryView): Task[] {
-    const sortedStrategies = [...this.strategies].sort((a, b) => {
-      const statsA = this.stats.get(a.name)!;
-      const statsB = this.stats.get(b.name)!;
-      return statsB.effectiveness - statsA.effectiveness;
-    });
-
-    const bestStrategy = sortedStrategies[0];
-    if (!bestStrategy) return [];
-
-    const results = bestStrategy.selectSecondary(task, memory);
-
-    const currentStats = this.stats.get(bestStrategy.name)!;
-    currentStats.pairsGenerated += results.length;
-    currentStats.successfulDerivations += results.filter((r) => r.derived).length;
-    currentStats.effectiveness =
-      currentStats.pairsGenerated > 0
-        ? currentStats.successfulDerivations / currentStats.pairsGenerated
-        : 1.0;
-    this.stats.set(bestStrategy.name, currentStats);
-
-    return results;
-  }
-
-  getStats(): Map<string, StrategyStats> {
-    return new Map(this.stats);
-  }
-
-  private resetStats(): void {
-    this.stats = new Map();
-    for (const strategy of this.strategies) {
-      this.stats.set(strategy.name, {
-        pairsGenerated: 0,
-        successfulDerivations: 0,
-        effectiveness: 1.0,
-      });
-    }
-  }
-}
-
-/**
- * @deprecated since 1.0 — unreachable from config and with no replacement.
- * A fixed-interval rotation is a counter, not a strategy: it belongs in the
- * controller, which already owns the cycle. Removed in 2.0.
- */
-export class SwitchingStrategy implements Strategy {
-  readonly metadata: ComponentMetadata = {
-    name: 'switching',
-    description: 'Cycle through strategies at fixed intervals',
-  };
-  readonly name = 'switching';
-  private currentIndex = 0;
-  private readonly switchInterval: number;
-  private callCount = 0;
-
-  constructor(
-    private strategies: Strategy[],
-    switchInterval = 10
-  ) {
-    this.switchInterval = switchInterval;
-  }
-
-  selectSecondary(task: Task, memory: MemoryView): Task[] {
-    const strategy = this.strategies[this.currentIndex];
-    if (!strategy) return [];
-
-    this.callCount++;
-    if (this.callCount % this.switchInterval === 0) {
-      this.currentIndex = (this.currentIndex + 1) % this.strategies.length;
-    }
-
-    return strategy.selectSecondary(task, memory);
-  }
-
-  reset(): void {
-    this.currentIndex = 0;
-    this.callCount = 0;
-  }
-
-  getCurrentStrategy(): Strategy | undefined {
-    return this.strategies[this.currentIndex];
   }
 }
 

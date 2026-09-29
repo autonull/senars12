@@ -1,23 +1,5 @@
-// Strategy system
-export type { ReasonerConfig, ReasoningTrace } from './reasoner';
-// Reasoner
-export { Reasoner } from './reasoner';
-
-// Strategy implementations (premise strategies now in strategies/premise/)
+// The inference loop lives in `InferenceController`; `Reasoner` and the premise
+// singletons it carried are gone (TODO27 §14). Strategies are reached through the
+// registry, never imported.
 export { createStrategy } from './strategies/base';
-export {
-  AdaptiveStrategy,
-  AnalogicalStrategy,
-  BagStrategy,
-  CompositeStrategy,
-  DecompositionStrategy,
-  DefaultFormationStrategy,
-  ExhaustiveStrategy,
-  GoalDrivenStrategy,
-  ResolutionStrategy,
-  SampledStrategy,
-  SemanticStrategy,
-  SwitchingStrategy,
-  TermLinkStrategy,
-} from '../strategies/premise/selection-strategies';
 export type { Strategy } from '../strategies/types';

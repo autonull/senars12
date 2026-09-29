@@ -6,7 +6,7 @@ import { ConceptGraph } from '@senars/core/concept-graph';
 import { rankDerivations } from '../../nar/src/rules/ranking.js';
 import { InferenceController } from '../../nar/src/reason/inference-controller.js';
 import { RuleProcessor } from '../../nar/src/rules/processor.js';
-import { BagStrategy } from '../../nar/src/strategies/premise/selection-strategies.js';
+import { createDefaultRegistry } from '../../nar/src/cognitive';
 import { SamplingStrategy, DerivationStrategy, Strategy } from '../../nar/src/strategies/types.js';
 import type { Task } from '../../nar/src/types/core.js';
 import { createBudgetSlice, consumeCycles, type BudgetSlice } from '@senars/kernel/budget';

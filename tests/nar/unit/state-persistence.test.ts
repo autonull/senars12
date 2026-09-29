@@ -3,18 +3,18 @@ import { join } from 'node:path';
 import { EventBus } from '@senars/util/events';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
-  BagStrategy,
   createBudget,
   createNAR,
   DEFAULT_CONFIG,
   Memory,
-  Reasoner,
   TaskManager,
   TermBuilder,
   Truth,
 } from '../../../nar/src';
 import { createSeNARSRegistry } from '../../../nar/src/lm';
 import { createLMService } from '../../../nar/src/lm/lm-service';
+import { createTestController } from '../fixtures/cognitive';
+import type { CognitiveController } from '../../../nar/src/cognitive';
 import { NARExecution } from '../../../nar/src/nar-execution';
 import type { RLFPLearner } from '../../../nar/src/rlfp';
 
@@ -22,13 +22,6 @@ import type { RLFPLearner } from '../../../nar/src/rlfp';
 // this file stays hermetic (avoids downloading real weights). Explicit
 // LM_PROVIDER in the environment still wins.
 if (!process.env.LM_PROVIDER) process.env.LM_PROVIDER = 'mock';
-
-const createMockProcessor = () => ({
-  processSync: () => [],
-  processLMRules: async function* () {
-    /* noop */
-  },
-});
 
 const createMockRLFP = (): RLFPLearner =>
   ({
@@ -176,7 +169,7 @@ describe('NAR State Persistence', () => {
 describe('NARExecution Observability Emission', () => {
   let memory: Memory;
   let taskManager: TaskManager;
-  let reasoner: Reasoner;
+  let reasoner: CognitiveController;
   let rlfp: RLFPLearner;
   let execution: NARExecution;
   let eventBus: EventBus;
@@ -188,18 +181,14 @@ describe('NARExecution Observability Emission', () => {
       consolidationInterval: 10,
     });
     taskManager = new TaskManager(memory);
-    reasoner = new Reasoner(memory, createMockProcessor() as any, BagStrategy, {
-      cpuThrottleMs: 0,
-      maxDerivationDepth: 10,
-      maxDerivationsPerStep: 100,
-    });
+    reasoner = createTestController(memory);
     rlfp = createMockRLFP();
     eventBus = new EventBus();
     // Pass eventBus as the 9th parameter (systemEventBus)
     execution = new NARExecution({
       memory,
       taskManager,
-      reasoner,
+      cognitiveController: reasoner,
       config: DEFAULT_CONFIG,
       rlfp,
       systemEventBus: eventBus,

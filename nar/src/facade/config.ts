@@ -10,7 +10,6 @@ import type { JudgmentManifold } from '../lm/system-one/types.js';
 import type { AttentionModel } from '../strategies';
 import type { NarEventBus } from '../types/events.js';
 import type { RandomSource } from '../types/primitives.js';
-import { SimpleAttention } from '../strategies';
 import { ConfigurationError, type CoreConfig } from '../types';
 
 export interface RLFPConfig {
@@ -79,8 +78,16 @@ export function validateNarConfig(config: NARConfig): NARConfig {
   return config;
 }
 
-export function createAttentionModel(config: NARConfig): AttentionModel {
-  const slot = config.cognitiveParams?.strategies.attention;
-  if (!slot || !config.strategyRegistry) return new SimpleAttention();
-  return config.strategyRegistry.resolve<AttentionModel>('attention', slot.type, slot.config);
+/**
+ * The attention slot's instance. A NAR always has a registry and a parameter
+ * graph, so there is no fallback here: a memory that was not given an attention
+ * model gets `NullAttentionModel`, and anything that *was* configured gets the
+ * registry's answer. Nothing between the slot and the registry decides anything.
+ */
+export function createAttentionModel(
+  registry: CognitiveRegistry,
+  params: CognitiveParameters
+): AttentionModel {
+  const slot = params.strategies.attention;
+  return registry.resolve<AttentionModel>('attention', slot.type, slot.config);
 }

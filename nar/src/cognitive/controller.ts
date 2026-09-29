@@ -58,6 +58,23 @@ export class CognitiveController {
     return this.inferenceController;
   }
 
+  /**
+   * Replace the whole parameter graph in place. Validation happens before any
+   * strategy is built, so a bad slot leaves the live controller untouched; the
+   * resolved strategies then reconfigure the same `InferenceController` every
+   * other holder already has a reference to.
+   */
+  reconfigure(params: CognitiveParameters): void {
+    this.validateSlots(params);
+    this.currentParams = structuredClone(params);
+    this.buildInferenceController(this.currentParams);
+  }
+
+  /** The live parameter graph. */
+  getParams(): Readonly<CognitiveParameters> {
+    return this.currentParams;
+  }
+
   getRegistry(): CognitiveRegistry {
     return this.registry;
   }

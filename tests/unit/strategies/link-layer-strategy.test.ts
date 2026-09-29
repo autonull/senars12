@@ -4,11 +4,14 @@ import { Memory } from '../../../nar/src/memory/memory.js';
 import { LINK_LAYER } from '../../../nar/src/memory/links/types.js';
 import {
   createLinkLayerStrategy,
-  EmbeddingLinkStrategy,
-  TermLinkStrategy,
 } from '../../../nar/src/strategies/premise/term-link.js';
+import { createDefaultRegistry } from '../../../nar/src/cognitive';
+import type { Strategy } from '../../../nar/src/strategies/types';
 import { atom, Truth, type Term } from '../../../nar/src/terms';
 import { createBeliefTask, createBudget } from '../../../nar/src/types';
+
+/** The premise slot, by name — the registry is the only way to get a strategy. */
+const premise = (name: string): Strategy => createDefaultRegistry().get<Strategy>('premise', name);
 
 const cat = atom('cat');
 const animal = atom('animal');
@@ -32,7 +35,7 @@ describe('LinkLayerStrategy', () => {
     const memory = memoryWith();
     memory.getLinkManager().addLink(cat, animal, { priority: 0.8 });
 
-    const premises = new TermLinkStrategy().selectSecondary(
+    const premises = premise('term-link').selectSecondary(
       createBeliefTask(cat, Truth.create(0.9, 0.9), 0.9),
       memory
     );
@@ -51,7 +54,7 @@ describe('LinkLayerStrategy', () => {
       Truth.create(0.9, 0.9),
       0.9
     );
-    const premises = new TermLinkStrategy().selectSecondary(task, memory);
+    const premises = premise('term-link').selectSecondary(task, memory);
 
     expect(terms(premises)).toEqual([cat.toString(), whiskers.toString()]);
   });
@@ -63,7 +66,7 @@ describe('LinkLayerStrategy', () => {
     links.addLink(cat, animal, { type: 'inheritance', priority: 0.8 });
     links.addLink(cat, whiskers, { priority: 0.05 });
 
-    const premises = new TermLinkStrategy({ minStrength: 0.5 }).selectSecondary(
+    const premises = createDefaultRegistry().resolve<Strategy>('premise', 'term-link', {  minStrength: 0.5  }).selectSecondary(
       createBeliefTask(cat, Truth.create(0.9, 0.9), 0.9),
       memory
     );
@@ -97,8 +100,8 @@ describe('LinkLayerStrategy', () => {
   });
 
   it('names itself after the layer it reads', () => {
-    expect(new TermLinkStrategy().name).toBe('term-link');
-    expect(new EmbeddingLinkStrategy().name).toBe('embedding-link');
+    expect(premise('term-link').name).toBe('term-link');
+    expect(premise('embedding-link').name).toBe('embedding-link');
     expect(createLinkLayerStrategy('semantic').name).toBe('semantic-link');
   });
 });

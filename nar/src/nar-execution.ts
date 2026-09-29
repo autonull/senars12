@@ -7,12 +7,9 @@ import { type GateRegistry, gateRegistry } from './kernel/GateRegistry.js';
 import { createLogger } from './logger/index.js';
 import type { Memory } from './memory';
 import type { NARConfig } from './facade/config.js';
-import type { Reasoner } from './reason';
-import { BagStrategy } from './reason';
 import type { PolicyOptimizer, RLFPLearner } from './rlfp';
 import { rankDerivations } from './rules/ranking.js';
 import type { ReasoningAboutReasoning } from './self';
-import { createPipeline, MemoryPremiseSource } from './stream';
 import type { TaskManager } from './task';
 import { classifyTask, type TaskSignal } from './task';
 import { getTermArgs, isAtomic, isCompound, type Term, termParser } from './terms';
@@ -47,11 +44,10 @@ const META_GOAL_BY_DRIVE: Record<string, { threshold: number; narsese: string }>
 export interface NARExecutionOptions {
   memory: Memory;
   taskManager: TaskManager;
-  reasoner: Reasoner;
   config: NARConfig;
   rlfp?: RLFPLearner;
   policyOptimizer?: PolicyOptimizer;
-  cognitiveController?: CognitiveController;
+  cognitiveController: CognitiveController;
   driveManager?: DriveManager;
   systemEventBus?: NarEventBus;
   self?: ReasoningAboutReasoning;
@@ -75,7 +71,6 @@ export class NARExecution {
   constructor(options: NARExecutionOptions) {
     this.memory = options.memory;
     this.taskManager = options.taskManager;
-    this.reasoner = options.reasoner;
     this.config = options.config;
     this.rlfp = options.rlfp;
     this.policyOptimizer = options.policyOptimizer;
@@ -90,11 +85,10 @@ export class NARExecution {
 
   private readonly memory: Memory;
   private readonly taskManager: TaskManager;
-  private readonly reasoner: Reasoner;
   private readonly config: NARConfig;
   private readonly rlfp?: RLFPLearner;
   private readonly policyOptimizer?: PolicyOptimizer;
-  private readonly cognitiveController?: CognitiveController;
+  private readonly cognitiveController: CognitiveController;
   private readonly driveManager?: DriveManager;
   private readonly systemEventBus?: NarEventBus;
   private readonly self?: ReasoningAboutReasoning;
@@ -200,7 +194,7 @@ export class NARExecution {
       this.injectMetaGoals();
 
       // Adaptation hook — allows CognitiveController to tune strategies at runtime
-      this.cognitiveController?.adapt();
+      this.cognitiveController.adapt();
 
       // RLFP-driven reasoning decisions
       let effectiveSteps = 1;
@@ -216,9 +210,9 @@ export class NARExecution {
       }
 
       this.phaseTimer.begin('reasoner', `step-${this._cycleCount}`);
-      const results = this.cognitiveController
-        ? await this.cognitiveController.getInferenceController().step(5000, 100, signal)
-        : await this.reasoner.step(5000, effectiveSteps * 100, signal);
+      const results = await this.cognitiveController
+        .getInferenceController()
+        .step(5000, effectiveSteps * 100, signal);
       derived += results.length;
       this.phaseTimer.end();
 
@@ -299,9 +293,7 @@ export class NARExecution {
       if (testFailed) this.stimulateDrives('test_failed');
       if (contradictionDetected) this.stimulateDrives('contradiction_detected');
 
-      // RLFP optimization handled by CognitiveController when present
       if (
-        !this.cognitiveController &&
         this.rlfp &&
         this._cycleCount %
           (this.rlfp.optimizeInterval ?? this.config.rlfp?.optimizeInterval ?? 100) ===
@@ -368,17 +360,16 @@ export class NARExecution {
     return this.phaseTimer;
   }
 
+  /**
+   * Streaming derivation, through the one inference path. The strategies come
+   * from the configured slots like every other entry point; the previous
+   * `stream/pipeline` was a parallel engine that sampled memory directly and
+   * ignored them.
+   */
   async *runStream(steps = 1, maxResults = 100, signal?: AbortSignal): AsyncGenerator<Task> {
-    const source = new MemoryPremiseSource(this.memory, 'priority-weighted');
-    const pipeline = createPipeline(source, this.memory, BagStrategy, {
-      maxDepth: 10,
-      maxQueueSize: 1000,
-      maxDerivationsPerStep: maxResults,
-      cpuThrottleMs: 10,
-    });
-
+    const inference = this.cognitiveController.getInferenceController();
     let count = 0;
-    for await (const task of pipeline) {
+    for await (const task of inference.run(maxResults, signal)) {
       if (signal?.aborted) break;
       yield task;
       this.taskManager.addTask(task);

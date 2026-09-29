@@ -2,7 +2,7 @@ import type { ConceptGraph } from '@senars/core/concept-graph';
 import type { ResolvedBagSlot } from '../bag/registration';
 import { LINK } from '../constants.js';
 import type { AttentionModel } from '../strategies/types.js';
-import { SimpleAttention } from '../strategies/attention/SimpleAttention.js';
+import { NullAttentionModel } from '../strategies/attention/NullAttentionModel.js';
 import type { Term } from '../terms';
 import { mentionsSymbol, similarityTo, Stamp, symbolQuery, TermMap, TermSet, Truth } from '../terms';
 import { atom } from '../terms/factory.js';
@@ -63,6 +63,9 @@ const DEFAULT_CONFIG: Required<MemoryConfig> = {
   bag: { implementation: 'priority' },
 };
 
+/** Stateless, so one instance serves every memory that was not given a model. */
+const NULL_ATTENTION = new NullAttentionModel();
+
 export interface RevisionEntry {
   term: string;
   truth: { frequency: number; confidence: number };
@@ -113,8 +116,7 @@ export class Memory {
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.healthCheckInterval = this.config.healthCheckInterval;
-    this.attentionModel = options?.attentionModel ?? new SimpleAttention();
-
+    this.attentionModel = options?.attentionModel ?? NULL_ATTENTION;
     this.index = new MemoryIndex({
       enableAtomicIndex: this.config.enableIndexing,
       enableTemporalIndex: this.config.enableIndexing,

@@ -666,16 +666,16 @@ Async derivation streams with backpressure and CPU throttling:
   - Bounded LLM-backed reasoning with pressure-driven flush
 
 ```typescript
-import { createPipeline, StreamReasoner, MemoryPremiseSource, FocusPremiseSource } from '@senars/nar/stream';
+import { StreamReasoner } from '@senars/nar/stream';
 
 const reasoner = new StreamReasoner({ maxBatch: 10, highPressure: 0.8 });
-const pipeline = createPipeline({ premiseSources: [new MemoryPremiseSource(memory)] });
-for await (const result of pipeline.derive(reasoner)) {
-  // incremental derivations
+// Derivations come from the NAR's one inference path, not from a stream pipeline:
+for await (const task of nar.runStream(10, 100)) {
+  // incremental derivations, honouring the configured strategies
 }
 ```
 
-**Exports:** `createPipeline`, `StreamReasoner`, `MemoryPremiseSource`, `FocusPremiseSource`, `CompositePremiseSource`, `derive`, `throttled`, `backpressureAware`, types `PipelineConfig`, `PremiseSource`, `LMBackend`, `ProvisionalBelief` from `@senars/nar/stream`.
+**Exports:** `StreamReasoner`, types `LMBackend`, `LMRequest`, `ProvisionalBelief`, `StreamReasonerOptions` from `@senars/nar/stream`. The inference pipeline that used to live here (`createPipeline`, the `PremiseSource` classes, `derive`) is gone: it was a second inference path that ignored the strategy slots, so `runStream` now goes through the one `InferenceController` (TODO27 §14).
 
 ### Tools & Function Calling
 
@@ -1606,7 +1606,7 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 
 | Category | Key Exports | Entry Points |
 |----------|-------------|--------------|
-| **Core NAR** | `NAR`, `createNAR`, `Reasoner`, `Memory`, `TaskManager` | `@senars/nar` |
+| **Core NAR** | `NAR`, `createNAR`, `Memory`, `TaskManager` | `@senars/nar` |
 | **Terms** | `TermBuilder`, `termParser`, `Truth`, `Stamp` | `@senars/nar` |
 | **Rules** | `NALRules`, `NALExtendedRules`, `RuleProcessor`, `MetaRules` | `@senars/nar` |
 | **Agent (NAR)** | `createAgent`, `Agent`, `NAREngine` | `@senars/nar/agent` |
@@ -1619,7 +1619,7 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 | **Self-Reasoning** | `ReasoningAboutReasoning`, `SelfAnalyzer`, `MetacognitiveMonitor` | `@senars/nar/self` |
 | **Cognitive Analyzers** | `capabilities`, `performance`, `quality`, `reasoning-patterns`, ... | `@senars/nar/cognitive/analyzers` |
 | **Grounding** | `GroundingPipeline`, `SourceQuality` | `@senars/nar` (internal) |
-| **Streaming** | `createPipeline`, `StreamReasoner`, `MemoryPremiseSource`, `FocusPremiseSource`, `CompositePremiseSource`, `derive`, `throttled`, `backpressureAware` | `@senars/nar/stream` |
+| **Streaming** | `StreamReasoner` (LM batching queue) | `@senars/nar/stream` |
 | **Commands** | `narCommands`, `rlfpCommands`, `selfCommands`, `configCommands`, `memoryCommands`, `lmCommands`, `episodesCommands` | `@senars/nar/commands` |
 | **LM Rules** | `LMRules`, `LMRule`, `LMRuleFactory`, `symbolicFallbacks`, `TraceAbstractor`, `ShadowValidator`, `attemptLMCorrection` | `@senars/nar/lm` |
 | **Cooperation** | `CognitiveTaskDelegation`, `CognitiveTaskResult`, `createDelegation`, `handleDelegationMessage` | `@senars/nar/cooperation` |

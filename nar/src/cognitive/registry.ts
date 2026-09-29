@@ -79,6 +79,19 @@ const memoStores = <V>(): Record<StrategyType, BoundedCache<V>> =>
     BoundedCache<V>
   >;
 
+/**
+ * A registry with every built-in registration loaded.
+ *
+ * The registry has no external dependencies, so a NAR always has one — there is
+ * no "bare NAR" whose strategy slots are quietly hardcoded. Callers that want a
+ * custom catalogue still pass their own; this is the default, not a global.
+ */
+export const createDefaultRegistry = (): CognitiveRegistry => {
+  const registry = new CognitiveRegistry();
+  registry.initializeDefaults();
+  return registry;
+};
+
 const emptyStores = <V>(): Record<StrategyType, Map<string, V>> =>
   Object.fromEntries(SLOT_TYPES.map((type) => [type, new Map<string, V>()])) as Record<
     StrategyType,

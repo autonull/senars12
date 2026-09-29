@@ -1,10 +1,10 @@
 # TODO27: Strategy Composition & Configuration — One Resolution Path
 
-**Version:** 1.2 (2026-09-28) · **Predecessor:** REFACTOR.todo8 §8 B/C, the premise-strategy
+**Version:** 1.3 (2026-09-28) · **Predecessor:** REFACTOR.todo8 §8 B/C, the premise-strategy
 landing (`8b8cb1f8`), and the associative-memory port (`e7a52b21`).
 
-**Status: implemented (Phases A–H). Benches 100–108 green; 2521 unit tests passing. Deviations
-from the plan as written are recorded in §11 (A–F), §12 (G) and §13 (H).**
+**Status: implemented (Phases A–I). Benches 100–108 green; 2505 unit tests passing. Deviations
+from the plan as written are recorded in §11 (A–F), §12 (G), §13 (H) and §14 (I).**
 
 ---
 
@@ -328,7 +328,7 @@ the contract (Tier 0, memoization), values otherwise. No mocks — the benches d
 
 ## 9. Definition of done
 
-1. B Benches 100–108 green in the CI unit tier.
+1. B Benches 100–108 green in the CI unit tier (109 specified in §14.6, not yet written).
 2. `config` demonstrably changes behaviour for at least one registered strategy in each stateless
    slot, asserted by value — not by "it was passed through".
 3. An unknown strategy name fails at `validateParameters`/`setStrategy` with the candidate list,
@@ -338,7 +338,7 @@ the contract (Tier 0, memoization), values otherwise. No mocks — the benches d
    are gone; `rg` finds no references.
 6. One spec form (`string | string[] | StrategyExpression`) is accepted by every slot, with one
    spelling per behaviour.
-7. No regression: `test:unit` (currently 2521 passing, 3 skipped), `lint`, `typecheck`,
+7. No regression: `test:unit` (currently 2505 passing, 3 skipped), `lint`, `typecheck`,
    `typecheck:bin`, `deps:gate` (≤ 5 cycles), `exports:audit`, `complexity:budget` all green.
 8. `docs/strategy-composition.md` written.
 
@@ -379,6 +379,7 @@ corrected rather than the code.*
 | F — docs & benches | done | `docs/strategy-composition.md`; `tests/nar/todo27-*.test.ts` (100–104) |
 | G — the §11.4 follow-ups | done | see §12 |
 | H — weighted composites, no silent degradation | done | see §13 |
+| I — the North Star, made literal | done | see §14 |
 
 Every gate is green at the A–F commit: `test:unit` 2485 passed / 3 skipped, `lint`, `typecheck`,
 `typecheck:bin`, `deps:gate` 5 cycles, `exports:audit`, `exports:check`, `complexity:budget`
@@ -717,3 +718,85 @@ patch-level change; a factory that wants it declares `(config, { resolve }) => �
 unchanged: `config` is always parsed output, never raw user input, and `resolve` is tier 0 only —
 a composing factory cannot reach a configured or composed instance, so there is no way for a
 registration to depend on another registration's *configuration*.
+
+---
+
+## 14. Phase I — the North Star, made literal (2026-09-28)
+
+§0 states the target as one sentence: **"a strategy slot names a strategy and its configuration; the
+registry turns that pair into a validated, memoized instance, and nothing else in the system
+constructs or selects a strategy."** Phases A–H delivered the first clause. This phase makes the
+second clause true, after an audit of every construction and selection site found it false in four
+production paths.
+
+### 14.1 What the audit found
+
+| # | Finding | Consequence |
+|---|---------|-------------|
+| 1 | `nar.ts` hardcoded `BagStrategy` into a `Reasoner`; `Reasoner` hardcoded `new PrioritySampling()` and `new DefaultDerivation()` | three registered slots decided in a constructor |
+| 2 | **`createPipeline(memory, strategy)` never reads `memory` or `strategy`.** `runStream` was driven by `MemoryPremiseSource`, which samples memory directly | the stream path honoured *no* strategy slot at all — a whole second inference engine |
+| 3 | `createBotNAR` / `createMinimalNAR` / `createTestNAR` pass no `strategyRegistry` | **every preset-built NAR silently ignored its configured premise strategy**; it was a hardcoded `bag` |
+| 4 | `createAttentionModel` and `Memory` each fell back to `new SimpleAttention()` | the `attention` slot had two ways to be bypassed |
+| 5 | `NAR.reconfigure(params)` built a *new* `CognitiveController` and a *new* `NARExecution`, but reused the old `reasoner` | a reconfigure could not reach the hardcoded path at all |
+| 6 | `Reasoner.traces` is never written; `getDerivationCount` is test-only | the class was a counter and a dead buffer over a second `InferenceController` |
+
+### 14.2 What changed
+
+| Change | Notes |
+|---|---|
+| **A NAR always has a registry and a parameter graph.** `createDefaultRegistry()`; `cognitiveParams` defaults to `DEFAULT_COGNITIVE_PARAMETERS` | the registry has no external dependencies, so "no strategy config" stops being a state a NAR can be in. This is what made finding #3 impossible |
+| **`CognitiveController` is always constructed**, so `nar-execution.ts` no longer branches between it and a reasoner | the ternary selected *who drives the cycle* by way of *which strategies* — those are now orthogonal |
+| **`CognitiveController.reconfigure(params)` reconfigures in place** | `NAR.reconfigure` no longer rebuilds a controller *and* a `NARExecution`. Every holder of a reference now sees the new strategies on its next cycle rather than after a swap |
+| **`Reasoner` deleted** (public export removed) | its `traces` buffer was dead and `getDerivationCount` duplicated `InferenceController.getStats()` |
+| **`stream/pipeline.ts` deleted**; `runStream` → `InferenceController.run` | the stream path is now the configured path. `StreamReasoner` stays: it is an LM batching queue with no counterpart |
+| **`NullAttentionModel`** is `Memory`'s default; `createAttentionModel` has no fallback | a substrate default must not be a strategy. The old `new SimpleAttention()` was a `0.3` boost chosen in a constructor |
+| **The ten premise singletons deleted** (`BagStrategy`, `ResolutionStrategy`, …), plus `withMeta`/`primitive`, plus `AdaptiveStrategy`/`SwitchingStrategy` | they were the *second* way to get a strategy — the exact class of collision phases A–H existed to remove. `registrations.ts` is now the only place a premise strategy is built |
+| **`reason/index.ts`** keeps only `createStrategy` and the `Strategy` type | it was a barrel over the deleted singletons |
+
+### 14.3 A bug this phase introduced, and the suite caught
+
+`NullAttentionModel.decay` first returned `concept.priority`. The `AttentionModel` contract is that
+`decay` returns the *amount to subtract*, which `Memory.decayAll` then deducts — so the first
+version subtracted the whole priority and flattened every concept to zero. Two unrelated tests
+(`memory.test.ts` ordering, `todo6-capability` roulette) failed for the same reason. Returning `0`
+is the correct "no attention" reading, and the comment on the method now says so.
+
+### 14.4 Behaviour changes (visible, and intended)
+
+- `runStream` yields **derivations**, not re-streamed memory tasks. This is the fix for finding #2;
+  the old shape is what made the stream path unable to derive anything the rules did not already
+  produce.
+- A preset-built NAR now **honours its configured premise strategy** for the first time.
+- `reconfigure`/`setStrategy`/`adapt` now take effect on the **live** controller immediately.
+- `new Memory()` with no attention model primes nothing (was: a `0.3` boost). Production NARs always
+  pass a resolved model; `nar/src/kernel/replay.ts` does **not** yet — see §14.6.
+
+### 14.5 Gates
+
+`test:unit` 2505 passed / 3 skipped, `typecheck`, `typecheck:bin`, `lint`, `deps:gate` 5 cycles,
+`exports:audit`, `exports:check`, `complexity:budget` (production LOC 73 705 → 71 697;
+`unboundedAccumulators` 0; export subpaths 97). `docs:api` regenerated — the API doc is generated
+from the exports map, so deleting a public export is a doc change.
+
+### 14.6 Remaining work for the next session
+
+- **`kernel/replay.ts` builds a `Memory` with no attention model.** A replay exists to reproduce a
+  run, so it should resolve the attention model from the same parameters as the original rather than
+  inheriting `NullAttentionModel`. This is a *fidelity* gap, not a default to undo. It wants the
+  replay's recorded parameters; if they are not recorded yet, that is the thing to add.
+- **Bench 109** for the North Star itself — a test that asserts, by construction, that no module
+  outside `cognitive/` constructs a strategy. The natural form is a lint-style test over the import
+  graph, which is what would have caught all six findings in §14.1 automatically.
+- **`registerRuleGraph` is still registered by side effect from the controller** rather than from
+  the catalogue. It is registry-mediated, so it does not violate the North Star, but the catalogue
+  is not yet the single declaration of every built-in.
+- **Association provenance** (§10, §13.7) — unchanged, still needs a `Link` model change.
+- **The LRU still has no OTel metric** (§13.7) — `memoizedSize` exists; nothing exports it.
+- **`AIKRProcessor` still takes `options.samplingStrategy ?? new PrioritySampling()`**
+  (`learning/aikr-processor.ts:170`). Its callers pass a *constrained* sampler
+  (`new PrioritySampling(1.0)`), so it is plausibly a different thing from the `sampling` slot
+  rather than a bypass of it. Worth one reading before deciding.
+- **An injected `RandomSource` for the NAR's own sampling** (§13.5) — the unseeded RL parity flake.
+- **`tests/conversational/` and the e2e tier** were not run for this phase (out of the `test:unit`
+  gate); `tests/nar/c3-hotpath-perf.test.ts` and `tests/unit/strategies/link-layer-strategy.test.ts`
+  were migrated to the registry and are in the green run.

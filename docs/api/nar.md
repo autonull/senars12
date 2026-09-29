@@ -64,12 +64,6 @@
 
 - `createTestNAR` — Deterministic test kernel: decay off, small depth, optional LM.
 
-- `BagStrategy`
-
-- `ExhaustiveStrategy`
-
-- `Reasoner`
-
 - `createRulePattern`
 
 - `NALExtendedRules`
@@ -86,7 +80,11 @@
 
 - `atom`
 
+- `collectAtomicSymbols` — Every atomic symbol mentioned anywhere in the term.
+
 - `containsSubterm`
+
+- `foldTerm` — Depth-first pre-order fold in visit order.
 
 - `freeze`
 
@@ -140,11 +138,17 @@
 
 - `TermParser`
 
+- `termDepth` — Deepest nesting below the root; a bare atom has depth 0.
+
 - `termParser`
+
+- `termSize` — Node count including the root.
 
 - `termsEqual` — Structural term equality. `undefined` is accepted so optional-arg probes need no guard.
 
 - `visitTerms`
+
+- `walkTerms` — The single term-tree walk. `fn` receives depth from the root and may return
 
 - `deserializeStamp`
 
@@ -234,7 +238,7 @@
 
 - `registerAgentTools`
 
-- `BuilderError` — Typed failure of an inconsistent assembly spec (TODO19 F1; E1: SenarsError-based).
+- `BuilderError`
 
 - `NARBuilder` — TODO19 F1: the single assembly path for NAR-backed agents. Fluent steps
 
@@ -265,6 +269,12 @@ _Dynamic subpath (no single entry file)._
 - `PriorityBag`
 
 - `FenwickBag` — Fenwick-tree priority bag: weighted sampling in O(log n) over a
+
+- `BAG_IMPLEMENTATIONS`
+
+- `bagSlotErrors` — Every error a `strategies.bag` slot can carry, phrased for `validateParameters`.
+
+- `resolveBagSlot` — The single read path for the slot: a validated `{ implementation, …knobs }`.
 
 ## `./capability`
 
@@ -318,6 +328,8 @@ _Dynamic subpath (no single entry file)._
 
 - `GoalRelevanceAttention`
 
+- `NullAttentionModel`
+
 - `NoveltySampling`
 
 - `PrioritySampling`
@@ -339,6 +351,8 @@ _Dynamic subpath (no single entry file)._
 - `runCounterfactual`
 
 - `CognitiveRegistry`
+
+- `createDefaultRegistry`
 
 ## `./cognitive/corrections`
 
@@ -388,6 +402,10 @@ _Dynamic subpath (no single entry file)._
 
 - `CognitiveParameters` — Cognitive Architecture Parameters
 
+- `StrategySlotParams` — A strategy slot names a strategy and its configuration; the registry turns
+
+- `STRATEGY_SLOTS` — Slot key ↔ registry type: the config uses `lmRule`, the registry `lm-rule`.
+
 - `PriorityConfig`
 
 - `LMConfig`
@@ -412,7 +430,7 @@ _Dynamic subpath (no single entry file)._
 
 - `PARAMETER_SPACE` — Parameter space for optimization
 
-- `validateParameters` — Validate cognitive parameters
+- `validateParameters` — Validate cognitive parameters.
 
 - `mergeParameters`
 
@@ -506,7 +524,7 @@ _Dynamic subpath (no single entry file)._
 
 - `GridWorldGame` — Gridworld as a plain `Game` — ASCII `grid` with `S` start, `G` goal, `#` walls.
 
-- `SeededRNG` — Deterministic LCG RNG (Numerical Recipes parameters) for reproducible RL experiments.
+- `SeededRNG` — Stateful handle over the canonical `mulberry32` stream — the same PRNG as a
 
 - `createSnakeGame`
 
@@ -972,7 +990,7 @@ _Re-export barrel._
 
 - `emitBackpressureDecision` — F1: Backpressure decision span event.
 
-- `emitStrategySelection` — F1: Strategy selection span event.
+- `emitStrategySelection` — F1: Strategy selection span event — one event per *resolution*, not per recall.
 
 - `recordCognitiveEvents`
 
@@ -1054,22 +1072,6 @@ _Re-export barrel._
 
 ## `./stream`
 
-- `backpressureAware`
-
-- `CompositePremiseSource`
-
-- `createPipeline`
-
-- `derive`
-
-- `FocusPremiseSource`
-
-- `MemoryPremiseSource`
-
-- `PremiseSourceBase`
-
-- `throttled`
-
 - `StreamReasoner`
 
 ## `./stream/*`
@@ -1078,7 +1080,11 @@ _Dynamic subpath (no single entry file)._
 
 ## `./terms`
 
+- `collectAtomicSymbols` — Every atomic symbol mentioned anywhere in the term.
+
 - `containsSubterm`
+
+- `foldTerm` — Depth-first pre-order fold in visit order.
 
 - `getAntecedent`
 
@@ -1124,11 +1130,17 @@ _Dynamic subpath (no single entry file)._
 
 - `sharesSymbol`
 
+- `termDepth` — Deepest nesting below the root; a bare atom has depth 0.
+
 - `termKey` — Canonical structural key for a term — the single identity used for maps, memoization, and link ids.
+
+- `termSize` — Node count including the root.
 
 - `termsEqual` — Structural term equality. `undefined` is accepted so optional-arg probes need no guard.
 
 - `visitTerms`
+
+- `walkTerms` — The single term-tree walk. `fn` receives depth from the root and may return
 
 - `getTermComplexity`
 
@@ -1164,7 +1176,7 @@ _Dynamic subpath (no single entry file)._
 
 - `serializeStamp`
 
-- `substituteVariables`
+- `substituteVariables` — Substitute `bindings` through `term`. Thin alias over the unifier's
 
 - `TermCollection`
 
@@ -1192,11 +1204,15 @@ _Dynamic subpath (no single entry file)._
 
 - `OPERATORS` — Operator definitions - standalone to avoid circular dependencies
 
-- `unify`
+- `unify` — Unify two terms, extending `subst`. Returns the extended substitution, or
 
 - `calculateSimilarity`
 
 - `extractSymbols`
+
+- `similarityTo`
+
+- `symbolQuery`
 
 - `isInvalidTaskTerm`
 
@@ -1220,7 +1236,7 @@ _Dynamic subpath (no single entry file)._
 
 - `emitBackpressureDecision` — F1: Backpressure decision span event.
 
-- `emitStrategySelection` — F1: Strategy selection span event.
+- `emitStrategySelection` — F1: Strategy selection span event — one event per *resolution*, not per recall.
 
 - `getTracer`
 

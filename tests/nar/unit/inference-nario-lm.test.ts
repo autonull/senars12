@@ -1,47 +1,41 @@
 /**
- * Reasoner, NARLM, and NARIO Tests
+ * InferenceController, NARLM, and NARIO Tests
+ *
+ * The inference loop is reached through the NAR's own `CognitiveController`, so
+ * these exercise the configured strategies rather than a separately constructed
+ * engine. (They used to build a `Reasoner` over its own `RuleProcessor` with a
+ * hand-made `createStrategy`, which is a second reasoner that no configuration
+ * could ever reach.)
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Reasoner, RuleProcessor, TaskManager, TermBuilder, Truth } from '../../../nar/src';
+import { TaskManager, TermBuilder, Truth } from '../../../nar/src';
+import type { InferenceController } from '../../../nar/src/reason/inference-controller.js';
 import { NARIO } from '../../../nar/src/nar-io.js';
 import { NARLM } from '../../../nar/src/nar-lm.js';
-import { createStrategy } from '../../../nar/src/reason';
 import { createTask } from '../../../nar/src/types/index.js';
 import { NAR } from '../../../src';
 
-describe('Reasoner', () => {
+describe('InferenceController', () => {
   let nar: NAR;
-  let reasoner: Reasoner;
-  let processor: RuleProcessor;
-  let strategy: any;
+  let inference: InferenceController;
 
   beforeEach(() => {
     nar = new NAR();
-    processor = new RuleProcessor();
-    strategy = createStrategy({ name: 'test', sampleSize: 10, limit: 5 });
-
-    reasoner = new Reasoner(nar.memory, processor, strategy, {
-      cpuThrottleMs: 0,
-      maxDerivationDepth: 10,
-      maxDerivationsPerStep: 100,
-      enableCircularDetection: true,
-      enableTraceCollection: true,
-    });
+    inference = nar.cognitiveController.getInferenceController();
   });
 
-  it('should create Reasoner instance', () => {
-    expect(reasoner).toBeDefined();
-    expect(reasoner.step).toBeDefined();
-    expect(reasoner.run).toBeDefined();
-    expect(reasoner.getTraces).toBeDefined();
+  it('is the one inference path the NAR reaches', () => {
+    expect(nar.cognitiveController.getInferenceController()).toBe(inference);
+    expect(inference.step).toBeDefined();
+    expect(inference.run).toBeDefined();
   });
 
   it('should perform reasoning step', async () => {
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
     await nar.input('(b --> c)', 'belief', Truth.create(0.9, 0.9));
 
-    const results = await reasoner.step(100, 10);
+    const results = await inference.step(100, 10);
     expect(Array.isArray(results)).toBe(true);
   });
 
@@ -49,46 +43,23 @@ describe('Reasoner', () => {
     await nar.input('(x --> y)', 'belief', Truth.create(0.9, 0.9));
     await nar.input('(y --> z)', 'belief', Truth.create(0.9, 0.9));
 
-    const generator = reasoner.run(100, 10);
     const results = [];
-
-    for await (const result of generator) {
-      results.push(result);
-    }
+    for await (const result of inference.run(10)) results.push(result);
 
     expect(results.length).toBeGreaterThanOrEqual(0);
-  });
-
-  it('should collect traces when enabled', async () => {
-    await nar.input('(trace --> test)', 'belief', Truth.create(0.9, 0.9));
-
-    await reasoner.step(100, 10);
-
-    const traces = reasoner.getTraces();
-    expect(Array.isArray(traces)).toBe(true);
-  });
-
-  it('should clear traces', async () => {
-    await nar.input('(clear --> test)', 'belief', Truth.create(0.9, 0.9));
-    await reasoner.step(100, 10);
-
-    reasoner.clearTraces();
-    const traces = reasoner.getTraces();
-    expect(traces.length).toBe(0);
   });
 
   it('should track derivation count', async () => {
     await nar.input('(count --> test)', 'belief', Truth.create(0.9, 0.9));
 
-    reasoner.resetCircularDetection();
-    const count = reasoner.getDerivationCount();
-    expect(typeof count).toBe('number');
+    inference.resetCircularDetection();
+    expect(typeof inference.getStats().derivations).toBe('number');
   });
 
   it('should respect max derivations limit', async () => {
     await nar.input('(limit --> test)', 'belief', Truth.create(0.9, 0.9));
 
-    const results = await reasoner.step(100, 5);
+    const results = await inference.step(100, 5);
     expect(results.length).toBeLessThanOrEqual(5);
   });
 
@@ -98,17 +69,17 @@ describe('Reasoner', () => {
     const controller = new AbortController();
     controller.abort();
 
-    const results = await reasoner.step(100, 10, controller.signal);
+    const results = await inference.step(100, 10, controller.signal);
     expect(results.length).toBe(0);
   });
 
   it('should detect circular derivations', async () => {
-    reasoner.resetCircularDetection();
+    inference.resetCircularDetection();
 
     await nar.input('(circular --> test)', 'belief', Truth.create(0.9, 0.9));
-    await reasoner.step(100, 10);
+    await inference.step(100, 10);
 
-    expect(reasoner.getDerivationCount()).toBeGreaterThanOrEqual(0);
+    expect(inference.getStats().derivations).toBeGreaterThanOrEqual(0);
   });
 });
 
@@ -266,26 +237,16 @@ describe('NARLM', () => {
   });
 });
 
-describe('Integration: Reasoner + NARIO', () => {
+describe('Integration: inference + NARIO', () => {
   let nar: NAR;
-  let reasoner: Reasoner;
+  let inference: InferenceController;
   let nario: NARIO;
-  let processor: RuleProcessor;
-  let strategy: any;
   let taskManager: TaskManager;
 
   beforeEach(() => {
     nar = new NAR();
     taskManager = new TaskManager(nar.memory, {});
-    processor = new RuleProcessor();
-    strategy = createStrategy({ name: 'test', sampleSize: 10, limit: 5 });
-
-    reasoner = new Reasoner(nar.memory, processor, strategy, {
-      cpuThrottleMs: 0,
-      maxDerivationDepth: 10,
-      maxDerivationsPerStep: 100,
-    });
-
+    inference = nar.cognitiveController.getInferenceController();
     nario = new NARIO(nar.memory, taskManager, nar.getConfig());
   });
 
@@ -293,13 +254,13 @@ describe('Integration: Reasoner + NARIO', () => {
     await nario.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
     await nario.input('(b --> c)', 'belief', Truth.create(0.9, 0.9));
 
-    const results = await reasoner.step(100, 10);
+    const results = await inference.step(100, 10);
     expect(Array.isArray(results)).toBe(true);
   });
 
   it('should export after reasoning', async () => {
     await nario.input('(export --> test)', 'belief', Truth.create(0.9, 0.9));
-    await reasoner.step(100, 10);
+    await inference.step(100, 10);
 
     const state = nario.export();
     expect(state.concepts.length).toBeGreaterThan(0);

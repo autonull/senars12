@@ -1,19 +1,22 @@
 import type { RLFPLearner } from '@senars/nar/rlfp';
 import { describe, expect, test, vi } from 'vitest';
 import {
-  BagStrategy,
   createBudget,
   createTask,
+  type Task,
   DEFAULT_CONFIG,
   Memory,
-  Reasoner,
   TaskManager,
   TermBuilder,
   Truth,
   termParser,
+  RuleProcessor,
 } from '../../../nar/src';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '../../../nar/src/config/cognitive-parameters';
 import { DriveManager } from '../../../nar/src/drives';
 import { NARExecution } from '../../../nar/src/nar-execution';
+import type { CognitiveController } from '../../../nar/src/cognitive';
+import { createTestController, inferenceParams, transitivity } from '../fixtures/cognitive';
 import { ToolManager } from '../../../nar/src/tools';
 
 const createMockProcessor = () => ({
@@ -33,7 +36,7 @@ const createMockRLFP = (): RLFPLearner =>
 describe('NARExecution', () => {
   let memory: Memory;
   let taskManager: TaskManager;
-  let reasoner: Reasoner;
+  let controller: CognitiveController;
   let rlfp: RLFPLearner;
   let execution: NARExecution;
 
@@ -44,13 +47,15 @@ describe('NARExecution', () => {
       consolidationInterval: 10,
     });
     taskManager = new TaskManager(memory);
-    reasoner = new Reasoner(memory, createMockProcessor() as any, BagStrategy, {
-      cpuThrottleMs: 0,
-      maxDerivationDepth: 10,
-      maxDerivationsPerStep: 100,
-    });
+    controller = createTestController(memory);
     rlfp = createMockRLFP();
-    execution = new NARExecution({ memory, taskManager, reasoner, config: DEFAULT_CONFIG, rlfp });
+    execution = new NARExecution({
+      memory,
+      taskManager,
+      cognitiveController: controller,
+      config: DEFAULT_CONFIG,
+      rlfp,
+    });
   });
 
   describe('run', () => {
@@ -82,13 +87,9 @@ describe('NARExecution', () => {
       expect(consolidateSpy).toHaveBeenCalled();
     });
 
-    test('respects maxDerivationDepth via reasoner config', async () => {
-      const constrainedReasoner = new Reasoner(memory, createMockProcessor() as any, BagStrategy, {
-        cpuThrottleMs: 0,
-        maxDerivationDepth: 2,
-        maxDerivationsPerStep: 100,
-      });
-      const exec = new NARExecution({ memory, taskManager, reasoner: constrainedReasoner, config: DEFAULT_CONFIG });
+    test('respects maxDerivationDepth from the inference parameters', async () => {
+      const constrainedController = createTestController(memory, inferenceParams(2));
+      const exec = new NARExecution({ memory, taskManager, cognitiveController: constrainedController, config: DEFAULT_CONFIG });
 
       memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
 
@@ -99,7 +100,12 @@ describe('NARExecution', () => {
 
     test('respects cpuThrottleMs', async () => {
       const configWithThrottle = { ...DEFAULT_CONFIG, cpuThrottleMs: 50 };
-      const exec = new NARExecution({ memory, taskManager, reasoner, config: configWithThrottle });
+      const exec = new NARExecution({
+        memory,
+        taskManager,
+        cognitiveController: controller,
+        config: configWithThrottle,
+      });
 
       memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
 
@@ -115,7 +121,7 @@ describe('NARExecution', () => {
       const execWithRLFP = new NARExecution({
         memory,
         taskManager,
-        reasoner,
+        cognitiveController: controller,
         config: configWithInterval as any,
         rlfp,
       });
@@ -141,17 +147,28 @@ describe('NARExecution', () => {
   });
 
   describe('runStream', () => {
-    test('yields derived tasks', async () => {
-      memory.addTask(TermBuilder.atom('A'), 'belief', Truth.TRUE, createBudget(0.9));
-      memory.addTask(TermBuilder.atom('B'), 'belief', Truth.TRUE, createBudget(0.9));
+    test('derives through the configured strategies, not a parallel engine', async () => {
+      // The stream path used to re-stream sampled memory tasks: it honoured
+      // neither the rules nor the strategy slots. Seeding a chain that the
+      // transitivity rule closes is what tells the two apart.
+      const processor = new RuleProcessor([transitivity()]);
+      const streamed = new NARExecution({
+        memory,
+        taskManager,
+        cognitiveController: createTestController(memory, DEFAULT_COGNITIVE_PARAMETERS, undefined, processor),
+        config: DEFAULT_CONFIG,
+      });
+      const ab = TermBuilder.inheritance(TermBuilder.atom('A')!, TermBuilder.atom('B')!)!;
+      const bc = TermBuilder.inheritance(TermBuilder.atom('B')!, TermBuilder.atom('C')!)!;
+      memory.addTask(ab, 'belief', Truth.TRUE, createBudget(0.9));
+      memory.addTask(bc, 'belief', Truth.TRUE, createBudget(0.9));
 
-      const results: any[] = [];
-      for await (const task of execution.runStream(5, 100)) {
-        results.push(task);
-        if (results.length >= 5) break;
-      }
+      const results: Task[] = [];
+      for await (const task of streamed.runStream(5, 100)) results.push(task);
 
-      expect(results.length).toBeGreaterThan(0);
+      expect(
+        results.map((t) => t.term.toString())
+      ).toContain('(A --> C)');
     });
 
     test('respects maxResults limit', async () => {
@@ -194,15 +211,11 @@ describe('NARExecution', () => {
           consolidationInterval: 10,
         });
         const freshTaskManager = new TaskManager(freshMemory);
-        const freshReasoner = new Reasoner(freshMemory, createMockProcessor() as any, BagStrategy, {
-          cpuThrottleMs: 0,
-          maxDerivationDepth: 10,
-          maxDerivationsPerStep: 100,
-        });
+        const freshController = createTestController(freshMemory, inferenceParams(10));
         const exec = new NARExecution({
           memory: freshMemory,
           taskManager: freshTaskManager,
-          reasoner: freshReasoner,
+          cognitiveController: freshController,
           config: DEFAULT_CONFIG,
           rlfp,
           driveManager,
@@ -231,15 +244,11 @@ describe('NARExecution', () => {
           consolidationInterval: 10,
         });
         const freshTaskManager = new TaskManager(freshMemory);
-        const freshReasoner = new Reasoner(freshMemory, createMockProcessor() as any, BagStrategy, {
-          cpuThrottleMs: 0,
-          maxDerivationDepth: 10,
-          maxDerivationsPerStep: 100,
-        });
+        const freshController = createTestController(freshMemory, inferenceParams(10));
         const exec = new NARExecution({
           memory: freshMemory,
           taskManager: freshTaskManager,
-          reasoner: freshReasoner,
+          cognitiveController: freshController,
           config: DEFAULT_CONFIG,
           rlfp,
           driveManager,
@@ -265,7 +274,7 @@ describe('NARExecution', () => {
       const exec = new NARExecution({
         memory,
         taskManager,
-        reasoner,
+        cognitiveController: controller,
         config: DEFAULT_CONFIG,
         rlfp,
         driveManager,
@@ -300,15 +309,11 @@ describe('NARExecution', () => {
         consolidationInterval: 10,
       });
       const freshTaskManager = new TaskManager(freshMemory);
-      const freshReasoner = new Reasoner(freshMemory, createMockProcessor() as any, BagStrategy, {
-        cpuThrottleMs: 0,
-        maxDerivationDepth: 10,
-        maxDerivationsPerStep: 100,
-      });
+      const freshController = createTestController(freshMemory, inferenceParams(10));
       const exec = new NARExecution({
         memory: freshMemory,
         taskManager: freshTaskManager,
-        reasoner: freshReasoner,
+        cognitiveController: freshController,
         config: DEFAULT_CONFIG,
         rlfp,
         toolGoalExecutor: async (goalTerm) => toolManager.executeToolGoal(goalTerm),
@@ -353,15 +358,11 @@ describe('NARExecution', () => {
         consolidationInterval: 10,
       });
       const freshTaskManager = new TaskManager(freshMemory);
-      const freshReasoner = new Reasoner(freshMemory, createMockProcessor() as any, BagStrategy, {
-        cpuThrottleMs: 0,
-        maxDerivationDepth: 10,
-        maxDerivationsPerStep: 100,
-      });
+      const freshController = createTestController(freshMemory, inferenceParams(10));
       const exec = new NARExecution({
         memory: freshMemory,
         taskManager: freshTaskManager,
-        reasoner: freshReasoner,
+        cognitiveController: freshController,
         config: DEFAULT_CONFIG,
         rlfp,
         toolGoalExecutor: async (goalTerm) => toolManager.executeToolGoal(goalTerm),

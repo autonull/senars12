@@ -5,22 +5,15 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Strategy } from '../../../nar/src/reason';
-import {
-  AdaptiveStrategy,
-  AnalogicalStrategy,
-  CompositeStrategy,
-  createStrategy,
-  DecompositionStrategy,
-  DefaultFormationStrategy,
-  GoalDrivenStrategy,
-  ResolutionStrategy,
-  SampledStrategy,
-  SwitchingStrategy,
-  TermLinkStrategy,
-} from '../../../nar/src/reason';
+import { createStrategy } from '../../../nar/src/reason';
+import { CompositeStrategy, DecompositionStrategy } from '../../../nar/src/strategies/premise';
+import { createDefaultRegistry } from '../../../nar/src/cognitive';
 import { Truth } from '../../../nar/src/terms/truth.js';
-import { createTask } from '../../../nar/src/types/index.js';
+import { createTask, type Task } from '../../../nar/src/types/index.js';
 import { NAR } from '../../../src';
+
+/** The premise slot, by name — the registry is the only way to get a strategy. */
+const premise = (name: string): Strategy => createDefaultRegistry().get<Strategy>('premise', name);
 
 describe('Core Strategies', () => {
   let nar: NAR;
@@ -29,11 +22,11 @@ describe('Core Strategies', () => {
     nar = new NAR();
   });
 
-  describe('ResolutionStrategy', () => {
+  describe('resolution', () => {
     it('should have correct configuration', () => {
-      expect(ResolutionStrategy.name).toBe('resolution');
-      expect(ResolutionStrategy.sampleSize).toBe(15);
-      expect(ResolutionStrategy.limit).toBe(5);
+      expect(premise('resolution').name).toBe('resolution');
+      expect(premise('resolution').sampleSize).toBe(15);
+      expect(premise('resolution').limit).toBe(5);
     });
 
     it('should select secondary tasks for inference', async () => {
@@ -42,17 +35,17 @@ describe('Core Strategies', () => {
 
       const task = nar.taskManager.peekTask();
       if (task) {
-        const results = ResolutionStrategy.selectSecondary(task, nar.memory);
+        const results = premise('resolution').selectSecondary(task, nar.memory);
         expect(Array.isArray(results)).toBe(true);
       }
     });
   });
 
-  describe('ResolutionStrategy', () => {
+  describe('resolution', () => {
     it('should have correct configuration', () => {
-      expect(ResolutionStrategy.name).toBe('resolution');
-      expect(ResolutionStrategy.sampleSize).toBe(15);
-      expect(ResolutionStrategy.limit).toBe(5);
+      expect(premise('resolution').name).toBe('resolution');
+      expect(premise('resolution').sampleSize).toBe(15);
+      expect(premise('resolution').limit).toBe(5);
     });
 
     it('should filter for inheritance terms only', async () => {
@@ -65,9 +58,9 @@ describe('Core Strategies', () => {
     });
   });
 
-  describe('GoalDrivenStrategy', () => {
+  describe('goal-driven', () => {
     it('should have correct name', () => {
-      expect(GoalDrivenStrategy.name).toBe('goal-driven');
+      expect(premise('goal-driven').name).toBe('goal-driven');
     });
 
     it('should prioritize high-confidence beliefs', async () => {
@@ -76,15 +69,15 @@ describe('Core Strategies', () => {
 
       const task = nar.taskManager.peekTask();
       if (task) {
-        const results = GoalDrivenStrategy.selectSecondary(task, nar.memory);
+        const results = premise('goal-driven').selectSecondary(task, nar.memory);
         expect(Array.isArray(results)).toBe(true);
       }
     });
   });
 
-  describe('AnalogicalStrategy', () => {
+  describe('analogical', () => {
     it('should have correct name', () => {
-      expect(AnalogicalStrategy.name).toBe('analogical');
+      expect(premise('analogical').name).toBe('analogical');
     });
 
     it('should find concepts with overlapping terms', async () => {
@@ -93,7 +86,7 @@ describe('Core Strategies', () => {
 
       const task = nar.taskManager.peekTask();
       if (task) {
-        const results = AnalogicalStrategy.selectSecondary(task, nar.memory);
+        const results = premise('analogical').selectSecondary(task, nar.memory);
         expect(Array.isArray(results)).toBe(true);
       }
     });
@@ -103,15 +96,15 @@ describe('Core Strategies', () => {
 
       const task = nar.taskManager.peekTask();
       if (task) {
-        const results = AnalogicalStrategy.selectSecondary(task, nar.memory);
+        const results = premise('analogical').selectSecondary(task, nar.memory);
         expect(Array.isArray(results)).toBe(true);
       }
     });
   });
 
-  describe('TermLinkStrategy', () => {
+  describe('term-link', () => {
     it('should have correct configuration', () => {
-      expect(TermLinkStrategy.name).toBe('term-link');
+      expect(premise('term-link').name).toBe('term-link');
     });
 
     it('should link related terms', async () => {
@@ -120,17 +113,17 @@ describe('Core Strategies', () => {
 
       const task = nar.taskManager.peekTask();
       if (task) {
-        const results = TermLinkStrategy.selectSecondary(task, nar.memory);
+        const results = premise('term-link').selectSecondary(task, nar.memory);
         expect(Array.isArray(results)).toBe(true);
       }
     });
   });
 
-  describe('SampledStrategy', () => {
+  describe('sampled', () => {
     it('should have correct configuration', () => {
-      expect(SampledStrategy.name).toBe('sampled');
-      expect(SampledStrategy.sampleSize).toBe(20);
-      expect(SampledStrategy.limit).toBe(5);
+      expect(premise('sampled').name).toBe('sampled');
+      expect(premise('sampled').sampleSize).toBe(20);
+      expect(premise('sampled').limit).toBe(5);
     });
 
     it('should match tasks with similar terms', async () => {
@@ -138,7 +131,7 @@ describe('Core Strategies', () => {
 
       const task = nar.taskManager.peekTask();
       if (task) {
-        const results = SampledStrategy.selectSecondary(task, nar.memory);
+        const results = premise('sampled').selectSecondary(task, nar.memory);
         expect(Array.isArray(results)).toBe(true);
       }
     });
@@ -180,11 +173,11 @@ describe('Core Strategies', () => {
     });
   });
 
-  describe('DefaultFormationStrategy', () => {
+  describe('default-formation', () => {
     it('should have correct configuration', () => {
-      expect(DefaultFormationStrategy.name).toBe('default-formation');
-      expect(DefaultFormationStrategy.sampleSize).toBe(10);
-      expect(DefaultFormationStrategy.limit).toBe(5);
+      expect(premise('default-formation').name).toBe('default-formation');
+      expect(premise('default-formation').sampleSize).toBe(10);
+      expect(premise('default-formation').limit).toBe(5);
     });
 
     it('should form beliefs from premises', async () => {
@@ -192,7 +185,7 @@ describe('Core Strategies', () => {
 
       const task = nar.taskManager.peekTask();
       if (task) {
-        const results = DefaultFormationStrategy.selectSecondary(task, nar.memory);
+        const results = premise('default-formation').selectSecondary(task, nar.memory);
         expect(Array.isArray(results)).toBe(true);
       }
     });
@@ -207,7 +200,7 @@ describe('Composite Strategies', () => {
   });
 
   it('should combine multiple strategies', async () => {
-    const composite = new CompositeStrategy([ResolutionStrategy, SampledStrategy]);
+    const composite = new CompositeStrategy([premise('resolution'), premise('sampled')]);
 
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
 
@@ -219,7 +212,7 @@ describe('Composite Strategies', () => {
   });
 
   it('should handle sequential mode', async () => {
-    const composite = new CompositeStrategy([ResolutionStrategy, SampledStrategy], 'concatenate');
+    const composite = new CompositeStrategy([premise('resolution'), premise('sampled')], 'concatenate');
 
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
@@ -230,7 +223,7 @@ describe('Composite Strategies', () => {
   });
 
   it('should handle parallel mode', async () => {
-    const composite = new CompositeStrategy([ResolutionStrategy, GoalDrivenStrategy], 'concatenate');
+    const composite = new CompositeStrategy([premise('resolution'), premise('goal-driven')], 'concatenate');
 
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
@@ -242,7 +235,7 @@ describe('Composite Strategies', () => {
 
   it('should dedupe overlapping terms to the strongest task in dedup mode', async () => {
     const composite = new CompositeStrategy(
-      [ResolutionStrategy, SampledStrategy, GoalDrivenStrategy],
+      [premise('resolution'), premise('sampled'), premise('goal-driven')],
       'dedup'
     );
 
@@ -250,7 +243,7 @@ describe('Composite Strategies', () => {
     const task = nar.taskManager.peekTask();
     if (task) {
       const results = composite.selectSecondary(task, nar.memory);
-      const keys = results.map((r) => r.term.toString());
+      const keys = results.map((r: Task) => r.term.toString());
       expect(new Set(keys).size).toBe(keys.length);
     }
   });
@@ -263,7 +256,7 @@ describe('Composite Strategies', () => {
       },
     };
 
-    const composite = new CompositeStrategy([failingStrategy, ResolutionStrategy]);
+    const composite = new CompositeStrategy([failingStrategy, premise('resolution')]);
 
     await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
@@ -271,98 +264,6 @@ describe('Composite Strategies', () => {
       const results = composite.selectSecondary(task, nar.memory);
       expect(Array.isArray(results)).toBe(true);
     }
-  });
-});
-
-describe('Adaptive Strategy', () => {
-  let nar: NAR;
-
-  beforeEach(() => {
-    nar = new NAR();
-  });
-
-  it('should initialize with provided strategies', () => {
-    const adaptive = new AdaptiveStrategy([ResolutionStrategy, SampledStrategy]);
-    expect(adaptive.name).toBe('adaptive');
-
-    const stats = adaptive.getStats();
-    expect(stats).toBeDefined();
-    expect(stats.size).toBe(2);
-  });
-
-  it('should adapt based on effectiveness', async () => {
-    const adaptive = new AdaptiveStrategy([ResolutionStrategy, SampledStrategy]);
-
-    await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
-    const task = nar.taskManager.peekTask();
-
-    if (task) {
-      const results1 = adaptive.selectSecondary(task, nar.memory);
-      expect(Array.isArray(results1)).toBe(true);
-
-      const results2 = adaptive.selectSecondary(task, nar.memory);
-      expect(Array.isArray(results2)).toBe(true);
-
-      const stats = adaptive.getStats();
-      expect(stats.size).toBe(2);
-    }
-  });
-
-  it('should track statistics per strategy', async () => {
-    const adaptive = new AdaptiveStrategy([ResolutionStrategy]);
-
-    await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
-    const task = nar.taskManager.peekTask();
-
-    if (task) {
-      adaptive.selectSecondary(task, nar.memory);
-      adaptive.selectSecondary(task, nar.memory);
-
-      const stats = adaptive.getStats();
-      const resolutionStats = stats.get('resolution');
-      expect(resolutionStats).toBeDefined();
-      if (resolutionStats) {
-        expect(resolutionStats.pairsGenerated).toBeGreaterThanOrEqual(0);
-      }
-    }
-  });
-});
-
-describe('Switching Strategy', () => {
-  let nar: NAR;
-
-  beforeEach(() => {
-    nar = new NAR();
-  });
-
-  it('should switch between strategies', () => {
-    const switching = new SwitchingStrategy([ResolutionStrategy, SampledStrategy], 5);
-    expect(switching.name).toBe('switching');
-    expect(switching.getCurrentStrategy()).toBe(ResolutionStrategy);
-  });
-
-  it('should cycle through strategies at interval', async () => {
-    const switching = new SwitchingStrategy([ResolutionStrategy, SampledStrategy], 3);
-
-    await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
-    const task = nar.taskManager.peekTask();
-
-    if (task) {
-      expect(switching.getCurrentStrategy()).toBe(ResolutionStrategy);
-
-      switching.selectSecondary(task, nar.memory);
-      switching.selectSecondary(task, nar.memory);
-      switching.selectSecondary(task, nar.memory);
-
-      expect(switching.getCurrentStrategy()).toBe(SampledStrategy);
-    }
-  });
-
-  it('should reset to first strategy', () => {
-    const switching = new SwitchingStrategy([ResolutionStrategy, SampledStrategy], 3);
-
-    switching.reset();
-    expect(switching.getCurrentStrategy()).toBe(ResolutionStrategy);
   });
 });
 
@@ -416,7 +317,7 @@ describe('Strategy Performance', () => {
 
     const task = nar.taskManager.peekTask();
     if (task) {
-      const strategies = [ResolutionStrategy, TermLinkStrategy, SampledStrategy];
+      const strategies = [premise('resolution'), premise('term-link'), premise('sampled')];
 
       for (const strategy of strategies) {
         const start = Date.now();
@@ -432,11 +333,9 @@ describe('Strategy Performance', () => {
   it('should handle empty memory gracefully', () => {
     const task = nar.taskManager.peekTask();
     if (task) {
-      const strategies = [
-        ResolutionStrategy,
-        GoalDrivenStrategy,
-        AnalogicalStrategy,
-      ];
+      const strategies: Strategy[] = ['resolution', 'goal-driven', 'analogical', 'sampled', 'default-formation'].map(
+        premise
+      );
 
       for (const strategy of strategies) {
         const results = strategy.selectSecondary(task, nar.memory);

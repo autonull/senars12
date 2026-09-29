@@ -26,22 +26,10 @@ export type { PremiseOverrides, PremiseSampleSpec } from './config.js';
 
 // Premise selection strategies
 export {
-  AdaptiveStrategy,
-  AnalogicalStrategy,
-  BagStrategy,
   CompositeStrategy,
-  DefaultFormationStrategy,
   DecompositionStrategy,
-  EmbeddingLinkStrategy,
-  ExhaustiveStrategy,
-  GoalDrivenStrategy,
   PREMISE_PRIMITIVES,
   PrologResolutionStrategy,
-  ResolutionStrategy,
-  SampledStrategy,
-  SemanticStrategy,
-  SwitchingStrategy,
-  TermLinkStrategy,
 } from './selection-strategies';
 export type { PremisePrimitiveSpec } from './selection-strategies.js';
 export { createLinkLayerStrategy, LinkLayerStrategy } from './term-link';

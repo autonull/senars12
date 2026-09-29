@@ -8,6 +8,7 @@ export {
   FocusedDerivation,
   GoalBiasedSampling,
   GoalRelevanceAttention,
+  NullAttentionModel,
   NoveltySampling,
   PrioritySampling,
   PrioritySelector,
@@ -33,11 +34,13 @@ export type {
   StrategyType,
 } from '../strategies/types.js';
 export type {
+  StrategyCatalog,
   StrategyConfig,
+  StrategyFactoryDeps,
   StrategyRegistration,
   StrategyRegistry,
   StrategySpec,
 } from '../strategies/registration.js';
 export { CognitiveController } from './controller';
 export { runCounterfactual } from './counterfactual.js';
-export { CognitiveRegistry } from './registry';
+export { CognitiveRegistry, createDefaultRegistry } from './registry';

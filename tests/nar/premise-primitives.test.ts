@@ -6,17 +6,11 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
+import { createDefaultRegistry } from '../../nar/src/cognitive';
 import { Memory, TermBuilder, Truth } from '../../nar/src';
 import type { Term } from '../../nar/src/terms';
 import { createTask } from '../../nar/src/types/index.js';
 import {
-  AnalogicalStrategy,
-  BagStrategy,
-  DefaultFormationStrategy,
-  ExhaustiveStrategy,
-  GoalDrivenStrategy,
-  ResolutionStrategy,
-  SemanticStrategy,
 } from '../../nar/src/strategies/premise/selection-strategies.js';
 import { createStrategy } from '../../nar/src/reason/strategies/base.js';
 import { samplePremisesFromConfig } from '../../nar/src/strategies/premise/primitives.js';
@@ -24,6 +18,10 @@ import type { Strategy } from '../../nar/src/strategies/types.js';
 
 const taskFor = (term: Term) => createTask(term, 'belief', Truth.create(0.9, 0.9));
 const atom = (symbol: string): Term => TermBuilder.atom(symbol);
+
+/** The premise slot, by name — the registry is the only way to get a strategy. */
+const premise = (name: string): Strategy =>
+  createDefaultRegistry().get<Strategy>('premise', name);
 
 describe('premise strategy compositions apply their declared filters', () => {
   let memory: Memory;
@@ -46,7 +44,7 @@ describe('premise strategy compositions apply their declared filters', () => {
     seedBelief(TermBuilder.atom('cat'));
     seedBelief(inheritance('cat', 'animal'));
 
-    const selected = ResolutionStrategy.selectSecondary(taskFor(atom('cat')), memory);
+    const selected = premise('resolution').selectSecondary(taskFor(atom('cat')), memory);
     expect(selected.length).toBeGreaterThan(0);
     expect(selected.every((t) => t.term.kind === 'inheritance')).toBe(true);
   });
@@ -55,7 +53,7 @@ describe('premise strategy compositions apply their declared filters', () => {
     seedBelief(TermBuilder.atom('dog'), 0.9);
     seedBelief(TermBuilder.atom('low'), 0.4);
 
-    const selected = GoalDrivenStrategy.selectSecondary(taskFor(atom('cat')), memory);
+    const selected = premise('goal-driven').selectSecondary(taskFor(atom('cat')), memory);
     expect(selected.length).toBeGreaterThan(0);
     expect(selected.every((t) => (t.truth?.f ?? 0) > 0.7)).toBe(true);
     expect(selected.some((t) => t.term.kind === 'atom' && t.term.symbol === 'low')).toBe(false);
@@ -65,7 +63,7 @@ describe('premise strategy compositions apply their declared filters', () => {
     seedBelief(inheritance('cat', 'animal'));
     seedBelief(inheritance('dog', 'pet'));
 
-    const selected = AnalogicalStrategy.selectSecondary(taskFor(inheritance('cat', 'animal')), memory);
+    const selected = premise('analogical').selectSecondary(taskFor(inheritance('cat', 'animal')), memory);
     expect(selected.every((t) => t.term.kind === 'inheritance')).toBe(true);
     expect(selected.some((t) => t.term.kind === 'inheritance' && t.term.args?.[1]?.toString() === 'pet')).toBe(false);
   });
@@ -74,7 +72,7 @@ describe('premise strategy compositions apply their declared filters', () => {
     seedBelief(TermBuilder.atom('cat'));
     seedBelief(TermBuilder.atom('unrelated'));
 
-    const selected = DefaultFormationStrategy.selectSecondary(taskFor(inheritance('cat', 'animal')), memory);
+    const selected = premise('default-formation').selectSecondary(taskFor(inheritance('cat', 'animal')), memory);
     expect(selected.length).toBeGreaterThan(0);
     expect(selected.some((t) => t.term.kind === 'atom' && t.term.symbol === 'cat')).toBe(true);
     expect(selected.some((t) => t.term.kind === 'atom' && t.term.symbol === 'unrelated')).toBe(false);
@@ -84,13 +82,13 @@ describe('premise strategy compositions apply their declared filters', () => {
     seedBelief(TermBuilder.atom('cat'));
     for (const s of ['dog', 'bird', 'fish', 'snake']) seedBelief(TermBuilder.atom(s));
 
-    const bagged = BagStrategy.selectSecondary(taskFor(inheritance('cat', 'animal')), memory);
+    const bagged = premise('bag').selectSecondary(taskFor(inheritance('cat', 'animal')), memory);
     expect(bagged.length).toBeGreaterThan(0);
     expect(bagged.some((t) => t.term.kind === 'atom' && t.term.symbol === 'cat')).toBe(true);
 
-    const exhaustive = ExhaustiveStrategy.selectSecondary(taskFor(inheritance('cat', 'animal')), memory);
+    const exhaustive = premise('exhaustive').selectSecondary(taskFor(inheritance('cat', 'animal')), memory);
     expect(exhaustive.length).toBeGreaterThanOrEqual(bagged.length);
-    expect(ExhaustiveStrategy.sampleSize).toBe(100);
+    expect(premise('exhaustive').sampleSize).toBe(100);
   });
 
   it('honors one-off predicate escape hatches (regression: they were dropped)', () => {
@@ -176,7 +174,7 @@ describe('premise strategy compositions apply their declared filters', () => {
     const felineConcept = memory.getConcept(atom('feline'))!;
     felineConcept.priority = 0.9;
 
-    const selected = SemanticStrategy.selectSecondary(taskFor(atom('cat')), memory);
+    const selected = premise('semantic').selectSecondary(taskFor(atom('cat')), memory);
     expect(selected.length).toBeGreaterThan(0);
     expect(selected.some((t) => t.term.kind === 'atom' && t.term.symbol === 'feline')).toBe(true);
     // Should not include the task term itself

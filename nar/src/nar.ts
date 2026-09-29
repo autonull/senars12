@@ -2,7 +2,7 @@ import { BaseComponent } from '@senars/core';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import type { Episode } from '@senars/util';
 import { resolveBagSlot } from './bag/registration.js';
-import { CognitiveController } from './cognitive';
+import { CognitiveController, createDefaultRegistry } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
 import type { ParameterLedger } from './config/parameter-ledger.js';
 import { createBootstrapTasks, DriveManager } from './drives';
@@ -30,6 +30,7 @@ import { EpisodeConsolidator } from './memory/episode-consolidator.js';
 import { MiningBag } from './lm/system-one/hard-negatives.js';
 import { MetricsCollector } from './metrics';
 import { createAttentionModel, type NARConfig, validateNarConfig } from './facade/config.js';
+import { DEFAULT_COGNITIVE_PARAMETERS } from './config/cognitive-parameters.js';
 import { type GameAttachOptions, GameManager } from './facade/games.js';
 import { StatePersister } from './facade/persistence.js';
 import { SystemOneRuntime } from './facade/system-one.js';
@@ -46,7 +47,6 @@ import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';
 import { QueryAPI, ReasoningTrace } from './query';
-import { BagStrategy, Reasoner } from './reason';
 import type { Reflex } from './reflex/Reflex.js';
 import { RLFPLearner } from './rlfp';
 import { RuleProcessor } from './rules';
@@ -85,13 +85,12 @@ export class NAR extends BaseComponent {
   readonly id = 'nar';
   readonly memory: Memory;
   readonly taskManager: TaskManager;
-  readonly reasoner: Reasoner;
   readonly query: QueryAPI;
   readonly traceAPI: ReasoningTrace;
   readonly tools: ToolManager;
   self?: ReasoningAboutReasoning;
   rlfp?: RLFPLearner;
-  cognitiveController?: CognitiveController;
+  readonly cognitiveController: CognitiveController;
   /** TODO25 follow-on: bounded derivation-chain ring, fuel for SchemaInductor; Phase D live ProofStream source. */
   #proofRing = new ProofStreamRing<readonly Task[]>(DERIVATION_RING_CAP);
   #schemaInductor?: SchemaInductor;
@@ -135,17 +134,18 @@ export class NAR extends BaseComponent {
 
     this.config = { ...validateNarConfig(config) };
     this.gates = config.gateRegistry ?? createGateRegistry();
+    // A NAR always has a registry and a parameter graph: the registry has no
+    // external dependencies, so "no strategy config" is not a state a NAR can be
+    // in. Everything below reads from these two and nothing else decides.
+    const registry = config.strategyRegistry ?? createDefaultRegistry();
+    const cognitiveParams = config.cognitiveParams ?? DEFAULT_COGNITIVE_PARAMETERS;
     this.memory = new Memory(
-      {
-        ...this.config,
-        bag: resolveBagSlot(this.config.cognitiveParams?.strategies?.bag),
-      },
-      { attentionModel: createAttentionModel(config) }
+      { ...this.config, bag: resolveBagSlot(cognitiveParams.strategies.bag) },
+      { attentionModel: createAttentionModel(registry, cognitiveParams) }
     );
     this.processor = new RuleProcessor();
     this.processor.setConfig({ memory: this.memory, host: this });
     this.processor.setEventBus(eventBus);
-    this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, { ...this.config, sampleSize: this.config.sampleSize });
     this.taskManager = new TaskManager(this.memory, { gateRegistry: this.gates });
     this.query = new QueryAPI(this.memory);
     this.traceAPI = new ReasoningTrace(this.memory);
@@ -182,18 +182,16 @@ export class NAR extends BaseComponent {
       });
     }
 
-    if (config.cognitiveParams && config.strategyRegistry) {
-      this.cognitiveController = new CognitiveController(
-        config.strategyRegistry,
-        this.memory,
-        this.processor,
-        metrics,
-        this.rlfp,
-        config.cognitiveParams,
-        config.adaptationInterval
-      );
-      this.cognitiveController.onDerivation((chain) => this.#recordDerivationChain(chain));
-    }
+    this.cognitiveController = new CognitiveController(
+      registry,
+      this.memory,
+      this.processor,
+      metrics,
+      this.rlfp,
+      cognitiveParams,
+      config.adaptationInterval
+    );
+    this.cognitiveController.onDerivation((chain) => this.#recordDerivationChain(chain));
 
     // Extracted subsystems. System One must initialize before gateRegistry.initialize
     // to provide perceptionConfig.
@@ -257,7 +255,6 @@ export class NAR extends BaseComponent {
     this.execution = new NARExecution({
       memory: this.memory,
       taskManager: this.taskManager,
-      reasoner: this.reasoner,
       config: this.config,
       rlfp: this.rlfp,
       policyOptimizer: this.rlfp?.policyOptimizerPublic,
@@ -622,38 +619,14 @@ export class NAR extends BaseComponent {
     return this._metricsCollector;
   }
 
+  /**
+   * Replace the whole parameter graph. The live `CognitiveController` and its
+   * `InferenceController` are reconfigured in place — nothing is rebuilt, so
+   * every holder of a reference (this NAR, `NARExecution`, the stream pipeline)
+   * sees the new strategies on its next cycle rather than after a swap.
+   */
   reconfigure(params: CognitiveParameters): void {
-    if (!this.cognitiveController) {
-      throw new ConfigurationError('NAR was not created with cognitive architecture enabled');
-    }
-    const registry = this.config.strategyRegistry;
-    if (!registry) {
-      throw new ConfigurationError('NAR has no strategy registry — cannot reconfigure');
-    }
-    this.cognitiveController = new CognitiveController(
-      registry,
-      this.memory,
-      this.processor,
-      this._metricsCollector,
-      this.rlfp,
-      params,
-      this.config.adaptationInterval
-    );
-    this.cognitiveController.onDerivation((chain) => this.#recordDerivationChain(chain));
-    this.execution = new NARExecution({
-      memory: this.memory,
-      taskManager: this.taskManager,
-      reasoner: this.reasoner,
-      config: this.config,
-      rlfp: this.rlfp,
-      policyOptimizer: this.rlfp?.policyOptimizerPublic,
-      cognitiveController: this.cognitiveController,
-      driveManager: this.driveManager,
-      systemEventBus: this.systemEventBus,
-      self: this.self,
-      toolGoalExecutor: async (goalTerm) => this.tools.executeToolGoal(goalTerm),
-      gates: this.gates,
-    });
+    this.cognitiveController.reconfigure(params);
   }
 
   setRLFP(rlfp: RLFPLearner): void {

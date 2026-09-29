@@ -65,9 +65,7 @@ export { createBotNAR, createMinimalNAR, createNAR, createTestNAR } from './nar-
 /** Natural-language translation schemas. @public */
 export * from './nl/schemas.js';
 // Reason
-export type { ReasonerConfig, Strategy } from './reason/index.js';
-/** Core reasoner. @public */
-export { BagStrategy, ExhaustiveStrategy, Reasoner } from './reason/index.js';
+export type { Strategy } from './reason/index.js';
 // Rules
 /** Rule type definitions. @public */
 export type { RegisteredRule, RuleFn, RulePattern, RuleResult } from './rules/index.js';
