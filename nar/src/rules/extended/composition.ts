@@ -1,5 +1,5 @@
 import { getPredicate, getSubject, TermBuilder, termsEqual } from '../../terms';
-import { buildBinaryInhRule } from '../rule-builder.js';
+import { buildBinaryInhRule } from '../impls/rule-builder.js';
 import type { RuleFn } from '../types.js';
 
 export const intersectionComposition: RuleFn = buildBinaryInhRule(

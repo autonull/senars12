@@ -50,7 +50,7 @@ import { QueryAPI, ReasoningTrace } from './query';
 import type { Reflex } from './reflex/Reflex.js';
 import { RLFPLearner } from './rlfp';
 import { RuleProcessor } from './rules';
-import { ProofStreamRing } from './rules/recorder.js';
+import { ProofStreamRing } from './rules/impls/recorder.js';
 import { ReasoningAboutReasoning } from './self';
 import { TaskManager } from './task';
 import type { Term } from './terms';

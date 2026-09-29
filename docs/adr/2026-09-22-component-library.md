@@ -49,7 +49,7 @@ swappable reasoners, and bag behavior itself is parameterized
 
 - `core/src/Lifecycle.ts`
 - `nar/src/lifecycle/Container.ts`
-- `nar/src/cognitive/registry.ts`
+- `nar/src/cognitive/impls/CognitiveRegistry.ts`
 - `nar/src/config/cognitive-parameters.ts`
 - `nar/src/strategies/types.ts`
 - `nar/src/strategies/premise/selection-strategies.ts`

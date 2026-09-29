@@ -1,8 +1,3 @@
-/**
- * Self-analyzer types - extracted from SelfAnalyzerService
- */
-
-import type { ReasoningStep } from './MetacognitiveMonitor.js';
 
 export interface SelfAnalyzerConfig {
   selfCorrectionEnabled?: boolean;
@@ -60,8 +55,6 @@ export interface QualityAssessment {
   completeness: number;
   timestamp: number;
 }
-
-export type { ReasoningStep };
 
 export interface MetaCognitiveResult {
   success: boolean;
@@ -149,4 +142,25 @@ export interface PendingCorrection {
   type: string;
   issue: string;
   reason: string;
+}
+
+export interface ReasoningStep {
+  timestamp: number;
+  stepData: {
+    type?: string;
+    task?: unknown;
+    ruleId?: string;
+    result?: unknown;
+    duration?: number;
+    startTerm?: string;
+    endTerm?: string;
+    success?: boolean;
+    error?: unknown;
+    [key: string]: unknown;
+  };
+  context: {
+    memorySize?: number;
+    timestamp?: number;
+    [key: string]: unknown;
+  };
 }

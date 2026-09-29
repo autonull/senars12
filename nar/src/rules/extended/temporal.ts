@@ -3,7 +3,7 @@
  */
 import type { Term } from '../../terms';
 import { getPredicate, getSubject, TermBuilder, termsEqual } from '../../terms';
-import { buildSequenceRule } from '../builders.js';
+import { buildSequenceRule } from '../impls/builders.js';
 import type { RuleFn } from '../types.js';
 
 export const sequenceIntroduction: RuleFn = buildSequenceRule(TermBuilder.sequence);

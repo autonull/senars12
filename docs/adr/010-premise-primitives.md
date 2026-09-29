@@ -110,6 +110,6 @@ definition per concept, one home per strategy type.
 - `nar/src/strategies/premise/primitives.ts`
 - `nar/src/strategies/premise/selection-strategies.ts`
 - `nar/src/reason/strategies/base.ts` (`createStrategy`)
-- `nar/src/cognitive/registry.ts` (registration list)
+- `nar/src/cognitive/impls/CognitiveRegistry.ts` (registration list)
 - `tests/nar/premise-primitives.test.ts`
 - `docs/adr/007-rulegraph-adoption.md` (the `graph` source / `edgeWeight` scorer)

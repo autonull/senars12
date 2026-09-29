@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Memory, TermBuilder, Truth } from '../../nar/src';
 import { type RuleInput, RuleProcessor } from '../../nar/src/rules';
-import { CognitiveRegistry } from '../../nar/src/cognitive/registry.js';
+import { CognitiveRegistry } from '../../nar/src/cognitive/impls/CognitiveRegistry.js';
 import { registerRuleGraph, RuleGraph } from '../../nar/src/strategies/lm-graph/RuleGraph.js';
 import type { LMRule } from '../../nar/src/lm/LMRule.js';
 import type { LMRuleSelector } from '../../nar/src/strategies/types.js';

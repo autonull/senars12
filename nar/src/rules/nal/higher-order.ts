@@ -1,5 +1,5 @@
 import { TermBuilder, termsEqual } from '../../terms';
-import { buildHigherOrderRule } from '../builders.js';
+import { buildHigherOrderRule } from '../impls/builders.js';
 import type { RuleFn } from '../types.js';
 
 export const higherOrderDeduction: RuleFn = buildHigherOrderRule(

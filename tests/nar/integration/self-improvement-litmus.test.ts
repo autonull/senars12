@@ -17,8 +17,8 @@ import {
   initializeMetaReasoning,
   META_REASONING_BELIEFS,
   registerMetaRules,
-} from '../../../nar/src/rules/meta-rules.js';
-import { initializeSelfConcept } from '../../../nar/src/tools/self-concept.js';
+} from '../../../nar/src/rules/impls/meta-rules.js';
+import { initializeSelfConcept } from '../../../nar/src/tools/impls/self-concept.js';
 
 const logger = createLogger({ scope: 'self-improvement-litmus' });
 
@@ -257,7 +257,7 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
 describe('Self-Concept Fix Pattern → Codemod Mapping', () => {
   test('Fix patterns map to valid codemod patterns', async () => {
     const { getFixPatternMapping, getFixPatternConcepts, FIX_PATTERN_MAPPINGS } = await import(
-      '../../../nar/src/tools/self-concept.js'
+      '../../../nar/src/tools/impls/self-concept.js'
     );
 
     const concepts = getFixPatternConcepts();
@@ -285,7 +285,7 @@ describe('Self-Concept Fix Pattern → Codemod Mapping', () => {
 describe('Meta-Reasoning AIKR Bounds Enforcement', () => {
   test('Meta-derivation budget is enforced', async () => {
     const { META_AIKR_BOUNDS, getMetaBudgetStatus } = await import(
-      '../../../nar/src/rules/meta-rules.js'
+      '../../../nar/src/rules/impls/meta-rules.js'
     );
 
     expect(META_AIKR_BOUNDS.maxMetaDerivationsPerStep).toBe(5);

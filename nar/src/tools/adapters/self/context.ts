@@ -1,9 +1,9 @@
 import type { InMemoryApprovalManager } from '@senars/core';
-import type { CognitiveController } from '../../../cognitive/controller.js';
+import type { CognitiveController } from '../../../cognitive/impls/CognitiveController.js';
 import type { NAR } from '../../../nar.js';
 import type { RLFPLearner } from '../../../rlfp/RLFPLearner.js';
-import type { RuleProcessor } from '../../../rules/processor.js';
-import type { ToolManager } from '../../tool-registry.js';
+import type { RuleProcessor } from '../../../rules/impls/processor.js';
+import type { ToolManager } from '../../impls/tool-registry.js';
 import type { ShadowWorktreeManager, TestRunResult } from '../shadow-worktree.js';
 
 export interface SelfToolsDeps {

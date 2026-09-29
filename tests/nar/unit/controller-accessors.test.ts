@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { CognitiveRegistry } from '../../../nar/src/cognitive/registry.js';
+import { CognitiveRegistry } from '../../../nar/src/cognitive/impls/CognitiveRegistry.js';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '../../../nar/src/config/cognitive-parameters.js';
 import { createNAR } from '../../../nar/src/nar-presets.js';
 import { createSeNARSRegistry } from '../../../nar/src/lm/index.js';

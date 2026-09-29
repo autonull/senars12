@@ -3,7 +3,7 @@
  */
 import type { Term } from '../../terms';
 import { TermBuilder, termsEqual } from '../../terms';
-import { getVars } from '../rule-builder.js';
+import { getVars } from '../impls/rule-builder.js';
 import type { RuleFn } from '../types.js';
 
 export const variableDependency: RuleFn = ([t1, t2]: [Term, Term]): Term | undefined => {

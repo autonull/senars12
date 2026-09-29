@@ -3,7 +3,7 @@ import { validateDerivationRecord } from '@senars/core/derivation-schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
 import { Memory } from '../../nar/src/memory/memory.js';
-import { hydrateRecord } from '../../nar/src/rules/hydration.js';
+import { hydrateRecord } from '../../nar/src/rules/impls/hydration.js';
 import { termParser } from '../../nar/src/terms/index.js';
 
 const record = (conclusions: string[]): DerivationRecord =>

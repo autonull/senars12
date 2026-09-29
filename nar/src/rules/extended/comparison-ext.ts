@@ -4,9 +4,9 @@
  */
 import type { Term } from '../../terms';
 import { TermBuilder, termsEqual } from '../../terms';
-import { extractInh, sameInhPair } from '../extractors.js';
+import { extractInh, sameInhPair } from '../impls/extractors.js';
 import { analogy, exemplification } from '../nal/comparison.js';
-import { buildBinaryInhRule } from '../rule-builder.js';
+import { buildBinaryInhRule } from '../impls/rule-builder.js';
 import type { RuleFn } from '../types.js';
 
 export { analogy, exemplification };

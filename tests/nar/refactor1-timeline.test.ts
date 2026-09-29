@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { InMemoryEventLog, SqliteEventLog } from '@senars/core/eventlog';
 import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
-import { ProofStreamRing } from '@senars/nar/rules/recorder.js';
+import { ProofStreamRing } from '@senars/nar/rules/impls/recorder.js';
 import { afterAll, describe, expect, it } from 'vitest';
 
 const dirs: string[] = [];

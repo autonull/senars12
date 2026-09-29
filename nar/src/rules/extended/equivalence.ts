@@ -3,8 +3,8 @@
  */
 import type { Term } from '../../terms';
 import { getPredicate, getSubject, TermBuilder, termsEqual } from '../../terms';
-import { ID } from '../extractors.js';
-import { buildInhRule } from '../rule-builder.js';
+import { ID } from '../impls/extractors.js';
+import { buildInhRule } from '../impls/rule-builder.js';
 import type { RuleFn } from '../types.js';
 
 export const equivalence: RuleFn = ([imp1, imp2]: [Term, Term]): Term | undefined => {

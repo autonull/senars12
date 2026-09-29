@@ -2,7 +2,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { Registry } from '../../nar/src/tools/registry.js';
+import { Registry } from '../../nar/src/tools/impls/Registry.js';
 import type { Schema } from '../../nar/src/tools/types.js';
 import {
   createCodeExecTools,

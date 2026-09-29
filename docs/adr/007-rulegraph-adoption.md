@@ -38,7 +38,7 @@ The decision was adopt-or-retire, with retirement allowed if the wiring showed n
 | No default-path regression | non-`lm-graph` cycle byte-identical (C11) | PASS |
 | Graph decays | `tick()` shrinks edge weights | PASS |
 
-Wiring landed in `nar/src/cognitive/controller.ts`: `registerRuleGraph` at controller
+Wiring landed in `nar/src/cognitive/impls/CognitiveController.ts`: `registerRuleGraph` at controller
 assembly (opt-in), `recordPerformance` from the LM rule execution log on each `adapt()`,
 `tick()` per adaptation step, and `learnFromDerivation(focus.term, derived.term)` from the
 derivation chain. The shared `ConceptGraph` (`getSharedConceptGraph`) is the single
@@ -79,7 +79,7 @@ its own parity risk, deliberately out of scope here.
 ## References
 
 - `nar/src/strategies/lm-graph/RuleGraph.ts`
-- `nar/src/cognitive/controller.ts` (`#wireRuleGraphCallbacks`)
+- `nar/src/cognitive/impls/CognitiveController.ts` (`#wireRuleGraphCallbacks`)
 - `nar/src/strategies/types.ts` (`LMRuleSelectionContext.focusTerm`)
 - `nar/src/strategies/premise/primitives.ts` (`PREMISE_SOURCES.graph`, `PREMISE_SCORERS_CURRIED.edgeWeight`)
 - `tests/nar/rulegraph-wiring.test.ts`

@@ -12,7 +12,7 @@ import {
   validateDerivationRecord,
 } from '@senars/core/derivation-schemas';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
-import { createDefaultRegistry, resolveSlot } from '../cognitive/registry.js';
+import { createDefaultRegistry, resolveSlot } from '../cognitive/impls/CognitiveRegistry.js';
 import type { AttentionModel } from '../strategies/types.js';
 import type { Concept, ConceptTaskType, TaskData } from '../memory/concept.js';
 import { Memory } from '../memory/memory.js';

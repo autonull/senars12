@@ -4,7 +4,7 @@
  */
 import type { Term } from '../../terms';
 import { TermBuilder, termsEqual } from '../../terms';
-import { matchInhPair } from '../extractors.js';
+import { matchInhPair } from '../impls/extractors.js';
 import type { RuleFn } from '../types.js';
 
 export const analogy: RuleFn = ([inh, sim]: [Term, Term]) => {

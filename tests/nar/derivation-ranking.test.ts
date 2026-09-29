@@ -9,7 +9,7 @@ import {
   DEFAULT_MIN_SCORE,
   rankDerivations,
   scoreDerivation,
-} from '../../nar/src/rules/ranking.js';
+} from '../../nar/src/rules/impls/ranking.js';
 
 const t = (s: string, f?: number, c?: number) => ({
   term: { toString: () => s },

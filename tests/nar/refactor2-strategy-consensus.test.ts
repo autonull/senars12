@@ -20,7 +20,7 @@ import { NalVetoArbitration, WeightedQuorum } from '@senars/nar/reflex';
 import { CognitiveRegistry } from '@senars/nar/cognitive';
 import { MetricsCollector } from '@senars/nar/metrics';
 import { composeStrategy, describeStrategyExpression } from '@senars/nar/reason/strategy-algebra.js';
-import { CognitiveController } from '@senars/nar/cognitive/controller.js';
+import { CognitiveController } from '@senars/nar/cognitive/impls/CognitiveController.js';
 import type { DerivationContext, DerivationStrategy } from '@senars/nar/strategies';
 import type { Task } from '@senars/nar/types';
 import type { JudgmentManifold, JudgmentProposition } from '@senars/nar/lm/system-one/types.js';

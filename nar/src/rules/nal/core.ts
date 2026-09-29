@@ -1,7 +1,7 @@
 import { getPredicate, getSubject, TermBuilder, termsEqual } from '../../terms';
-import { buildAbduction, buildDeduction, buildInduction } from '../builders.js';
-import { _abductionLink, _deductionLink, _inductionLink } from '../extractors.js';
-import { buildBinaryInhRule } from '../rule-builder.js';
+import { buildAbduction, buildDeduction, buildInduction } from '../impls/builders.js';
+import { _abductionLink, _deductionLink, _inductionLink } from '../impls/extractors.js';
+import { buildBinaryInhRule } from '../impls/rule-builder.js';
 import type { RuleFn } from '../types.js';
 
 export const deduction: RuleFn = buildBinaryInhRule((l, r) => _deductionLink(l, r), buildDeduction);

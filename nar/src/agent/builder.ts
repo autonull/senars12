@@ -12,7 +12,7 @@ import { resolveProfile } from './profiles.js';
 import type { LoadedHeadBundle } from '../lm/system-one/wasi-head-bundle.js';
 import { loadHeadBundle } from '../lm/system-one/wasi-head-bundle.js';
 import { withSpan } from '../otel/index.js';
-import { CognitiveRegistry } from '../cognitive/registry.js';
+import { CognitiveRegistry } from '../cognitive/impls/CognitiveRegistry.js';
 export { NAR_PROFILES, resolveProfile } from './profiles.js';
 export type { CapabilityTier, NARProfileName, NARProfileSpec } from './profiles.js';
 

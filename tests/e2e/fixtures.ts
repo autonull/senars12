@@ -4,7 +4,7 @@
  * in a dozen hand-rolled literals.
  */
 
-import { CognitiveRegistry } from '@senars/nar/cognitive/registry.js';
+import { CognitiveRegistry } from '@senars/nar/cognitive/impls/CognitiveRegistry.js';
 import {
   DEFAULT_COGNITIVE_PARAMETERS,
   type CognitiveParameters,

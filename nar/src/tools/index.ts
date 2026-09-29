@@ -1,6 +1,6 @@
-import { discoverTools } from './decorator.js';
-import { ExplainTool } from './ExplainTool.js';
-import { SleepTool } from './SleepTool.js';
+import { discoverTools } from './impls/decorator.js';
+import { ExplainTool } from './impls/ExplainTool.js';
+import { SleepTool } from './impls/SleepTool.js';
 import {
   FIX_PATTERN_MAPPINGS,
   type FixPatternMapping,
@@ -8,9 +8,9 @@ import {
   getFixPatternMapping,
   initializeSelfConcept,
   SELF_CONCEPT_BELIEFS,
-} from './self-concept.js';
-import { TimerTool } from './TimerTool.js';
-import { CoreToolRegistryAdapter, Registry, ToolManager } from './tool-registry.js';
+} from './impls/self-concept.js';
+import { TimerTool } from './impls/TimerTool.js';
+import { CoreToolRegistryAdapter, Registry, ToolManager } from './impls/tool-registry.js';
 import { createToolEvent, errorResult } from './types.js';
 
 // Type re-exports for TypeScript consumers

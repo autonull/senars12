@@ -23,8 +23,8 @@ import { describe, expect, it } from 'vitest';
  * be argued rather than appended.
  */
 const CONSTRUCTION_SITES: Record<string, string> = {
-  'cognitive/registrations.ts': 'the catalogue — every built-in registration',
-  'cognitive/composition.ts': 'tier-2 composition, driven by a resolved spec',
+  'cognitive/impls/registrations.ts': 'the catalogue — every built-in registration',
+  'cognitive/impls/composition.ts': 'tier-2 composition, driven by a resolved spec',
   'reason/strategy-algebra.ts': 'the derivation expression algebra (D4)',
   'lm/dynamic-rule.ts': 'CompositeLMRule is an LM rule body, not an lm-rule selector',
 };

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { KernelActionGate } from '../../nar/src/kernel/KernelActionGate.js';
 import { pushCapped } from '@senars/util';
 import { GATE_LOG_CAPACITY } from '../../nar/src/kernel/event-ring.js';
-import { MetacognitiveMonitor } from '../../nar/src/cognitive/MetacognitiveMonitor.js';
+import { MetacognitiveMonitor } from '../../nar/src/cognitive/impls/MetacognitiveMonitor.js';
 import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
 import {
   InMemorySessionManager,

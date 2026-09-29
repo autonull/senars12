@@ -1,5 +1,5 @@
 // Side-effect: register NAL rules on module load
-import './rules-dsl.js';
+import './impls/rules-dsl.js';
 
 // Meta-rules with AIKR bounds
 export {
@@ -11,21 +11,25 @@ export {
   META_RULES_NARSESE,
   registerMetaRules,
   shouldActivateMetaReasoning,
-} from './meta-rules.js';
-
-// Rule processor
-export { RuleProcessor } from './processor.js';
-export type { RecorderOptions } from './recorder.js';
-export { DerivationRecorder, inferRuleCategory } from './recorder.js';
+} from './impls/meta-rules.js';
+export { RuleProcessor } from './impls/processor.js';
+export type { RecorderOptions } from './impls/recorder.js';
+export { DerivationRecorder, inferRuleCategory } from './impls/recorder.js';
+export { RuleIndex } from './impls/RuleIndex.js';
+export { RuleRegistry } from './impls/rule-registry.js';
 // Rule sets
-export { NALExtendedRules, NALRules } from './rules-dsl.js';
-// Rule types and registry
+export { NALExtendedRules, NALRules } from './impls/rules-dsl.js';
+// Rule contract
 export type {
   RegisteredRule,
+  RuleDef,
+  RuleDependency,
   RuleEngine,
   RuleFn,
   RuleInput,
   RulePattern,
   RuleResult,
+  RuleStatistics,
+  TruthFn,
 } from './types.js';
-export { createRulePattern, RuleIndex, RuleRegistry } from './types.js';
+export { createRulePattern } from './types.js';

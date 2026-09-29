@@ -4,7 +4,7 @@ import {
   mergeParameters,
 } from '../../nar/src/config/cognitive-parameters.js';
 import { createKnobSet, knobSchema } from '../../nar/src/rlfp/knobs.js';
-import { rankDerivations } from '../../nar/src/rules/ranking.js';
+import { rankDerivations } from '../../nar/src/rules/impls/ranking.js';
 
 const t = (s: string) => ({ term: { toString: () => s }, truth: { f: 0.9, c: 0.9 } });
 

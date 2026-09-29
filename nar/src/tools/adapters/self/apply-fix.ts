@@ -19,7 +19,7 @@ export const applyFixTool = (ctx: SelfToolsContext) => {
         return { success: false, error: 'NAR not available' };
       }
 
-      const { getFixPatternMapping } = await import('../../self-concept.js');
+      const { getFixPatternMapping } = await import('../../impls/self-concept.js');
       const mapping = getFixPatternMapping(fixPattern);
       if (!mapping) {
         return { success: false, error: `Unknown fix pattern: ${fixPattern}` };

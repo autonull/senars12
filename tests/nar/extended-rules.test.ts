@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RuleRegistry } from '../../nar/src';
-import '../../nar/src/rules/rules-dsl.js';
+import '../../nar/src/rules/impls/rules-dsl.js';
 
 describe('Extended NAL Rules Registration', () => {
   it('should register all extended rules with truth functions', () => {

@@ -3,7 +3,7 @@
  */
 import type { Term } from '../../terms';
 import { getSubject, TermBuilder, termsEqual } from '../../terms';
-import { foldNary } from '../builders.js';
+import { foldNary } from '../impls/builders.js';
 import type { RuleFn } from '../types.js';
 
 export const contrapositive: RuleFn = ([imp, inh]: [Term, Term]): Term | undefined => {

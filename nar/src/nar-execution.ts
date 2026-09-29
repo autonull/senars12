@@ -8,7 +8,7 @@ import { createLogger } from '@senars/core/logger';
 import type { Memory } from './memory';
 import type { NARConfig } from './facade/config.js';
 import type { PolicyOptimizer, RLFPLearner } from './rlfp';
-import { rankDerivations } from './rules/ranking.js';
+import { rankDerivations } from './rules/impls/ranking.js';
 import type { ReasoningAboutReasoning } from './self';
 import type { TaskManager } from './task';
 import { classifyTask, type TaskSignal } from './task';
