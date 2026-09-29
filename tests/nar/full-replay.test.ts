@@ -11,6 +11,7 @@ import {
   replayIntoMemory,
   serializeReplayResult,
 } from '../../nar/src/kernel/replay.js';
+import { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from '../../nar/src/config/cognitive-parameters.js';
 import { Memory } from '../../nar/src/memory/memory.js';
 import { termParser } from '../../nar/src/terms/index.js';
 
@@ -264,6 +265,41 @@ describe('todo7: full-state memory replay', () => {
     const c2 = result2.memory.getConcept(termParser.parse('(a --> c)'));
     expect(c1?.getBeliefs()[0]?.truth).toEqual(c2?.getBeliefs()[0]?.truth);
     expect(c1?.priority).toBeCloseTo(c2?.priority ?? -1, 2);
+  });
+
+  it('replays with the original run\'s attention model when its parameters are given', async () => {
+    // TODO27 §18: a replay that primes nothing is not a replay. `sample` runs
+    // `decayAll`, so the attention slot is observable in the replayed state.
+    const replay = async (cognitiveParams?: CognitiveParameters) => {
+      const dir = mkdtempSync(join(tmpdir(), 'replay-attention-'));
+      const gatePath = join(dir, 'gate-events.jsonl');
+      const registry = new GateRegistry();
+      registry.getPerceptionGate().admit({
+        sourceId: 's',
+        rawObservation: '(a --> b).',
+        sensorConfidence: 1,
+        sourceQuality: 'PRIMARY',
+      });
+      persistGateLogs(registry, gatePath);
+      const result = await replayIntoMemory({ gateEventsPath: gatePath, cognitiveParams });
+      const concept = result.memory.getConcept(termParser.parse('(a --> b)'))!;
+      concept.priority = 1;
+      result.memory.sample(1);
+      return concept.priority;
+    };
+
+    const configured = await replay({
+      ...DEFAULT_COGNITIVE_PARAMETERS,
+      strategies: {
+        ...DEFAULT_COGNITIVE_PARAMETERS.strategies,
+        attention: { type: 'simple', config: { boost: 0.3 } },
+      },
+    });
+    const unconfigured = await replay(undefined);
+
+    // `simple` subtracts priority × activationDecayRate; `NullAttentionModel` subtracts nothing.
+    expect(configured).toBeLessThan(1);
+    expect(unconfigured).toBe(1);
   });
 
   it('handles missing derivation records gracefully', async () => {

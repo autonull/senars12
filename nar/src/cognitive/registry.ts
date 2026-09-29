@@ -274,16 +274,28 @@ export class CognitiveRegistry implements StrategyRegistry {
     const impl = composeSpec<StrategyImpl>(type, spec, (name) => this.get(type, name));
     const resolved = impl as T;
     cache.set(label, impl);
-    this.#emit(type, label, 2);
+    this.#emit(type, label, 2, undefined, cache);
     return resolved;
   }
 
-  #emit(type: StrategyType, name: string, tier: ResolutionTier, digest?: string): void {
+  /**
+   * Tier 1/2 also report the slot's memo size: a configuration that churns
+   * digests is bounded, but "bounded and always full" is a signal the status
+   * surface should not have to infer. The repository has no OTel meter, so this
+   * rides the resolution event rather than a gauge (TODO27 §18).
+   */
+  #emit(
+    type: StrategyType,
+    name: string,
+    tier: ResolutionTier,
+    digest?: string,
+    cache?: BoundedCache<StrategyImpl>
+  ): void {
     emitStrategySelection({
       strategyType: type,
       strategyName: name,
       configDigest: digest,
-      context: { tier },
+      context: cache ? { tier, memoSize: cache.keys().length } : { tier },
     });
   }
 }

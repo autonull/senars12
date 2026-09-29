@@ -11,6 +11,9 @@ import {
   validateCognitiveEvent,
   validateDerivationRecord,
 } from '@senars/kernel/schemas';
+import type { CognitiveParameters } from '../config/cognitive-parameters.js';
+import { createDefaultRegistry } from '../cognitive/registry.js';
+import type { AttentionModel } from '../strategies/types.js';
 import type { Concept, ConceptTaskType, TaskData } from '../memory/concept.js';
 import { Memory } from '../memory/memory.js';
 import { serialize as serializeMemory } from '../memory/state/serialization.js';
@@ -41,6 +44,14 @@ export interface FullReplayOptions {
   gateEventsPath: string;
   derivationRecordsPath?: string;
   memoryConfig?: ConstructorParameters<typeof Memory>[0];
+  /**
+   * The original run's strategy parameters. A replay exists to reproduce a
+   * run, so it resolves its attention model from the same slot the NAR did
+   * rather than inheriting `NullAttentionModel` (TODO27 §18) — a memory primed
+   * nothing during a replay that the original run primed.
+   */
+  cognitiveParams?: CognitiveParameters;
+  strategyRegistry?: ReturnType<typeof createDefaultRegistry>;
   /** Inclusive ordinal window over the gate-event log (no `id` field exists on CognitiveEvent). */
   range?: { from?: number; to?: number };
   /** Inclusive event ID window over the gate-event log (preferred over ordinals). */
@@ -103,7 +114,15 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
       }).rows
     : [];
 
-  const memory = new Memory(memoryConfig);
+  const { cognitiveParams, strategyRegistry } = options;
+  const attentionModel = cognitiveParams
+    ? (strategyRegistry ?? createDefaultRegistry()).resolve<AttentionModel>(
+        'attention',
+        cognitiveParams.strategies.attention.type,
+        cognitiveParams.strategies.attention.config
+      )
+    : undefined;
+  const memory = new Memory(memoryConfig, { attentionModel });
   const errors: string[] = [];
   let appliedTasks = 0;
   let appliedRevisions = 0;

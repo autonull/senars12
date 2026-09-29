@@ -3,7 +3,7 @@
 **Version:** 1.3 (2026-09-28) · **Predecessor:** REFACTOR.todo8 §8 B/C, the premise-strategy
 landing (`8b8cb1f8`), and the associative-memory port (`e7a52b21`).
 
-**Status: Phases A–K landed (§16: the parity harness is seeded and reproducible). Benches 100–108 green; 2505 unit tests + 25 e2e/determinism tests
+**Status: Phases A–L landed (§16: the parity harness is seeded and reproducible). Benches 100–108 green; 2505 unit tests + 25 e2e/determinism tests
 passing; static gates green. Deviations are recorded in §11 (A–F), §12 (G), §13 (H), §14 (I).
 
 > **A fresh session should read §16 first.** §15 diagnosed the RL parity gate as measuring machine
@@ -1034,3 +1034,55 @@ findings in §14.1.
 
 `lm/dynamic-rule.ts` is on the allowlist for `CompositeLMRule`, which is an LM *rule body* — the
 `lm-rule` slot selects rules, it does not implement one.
+
+---
+
+## 18. Phase L — the two cheap residuals (2026-09-28)
+
+### 18.1 `kernel/replay.ts` replays with the recorded attention slot
+
+§15.6's fidelity gap. `replayIntoMemory` built `new Memory(memoryConfig)`, so every replay ran on
+`NullAttentionModel` and primed nothing — a replay of a run that *did* prime was not the same run.
+`FullReplayOptions` takes `cognitiveParams` (and optionally the `strategyRegistry` the original run
+used) and resolves the attention slot exactly as `nar.ts` does: `registry.resolve('attention',
+slot.type, slot.config)`. No parameters, no change: the substrate default stays `NullAttentionModel`.
+
+The replay hash stays deterministic because `SimpleAttention.decay` is a pure function of priority
+and rate — no clock. Verified in `tests/nar/full-replay.test.ts`: with `strategies.attention =
+{ type: 'simple' }` a replayed concept's priority drops on `sample`, and without parameters it does
+not. `Memory.sample` is where `decayAll` runs, which is what makes the slot observable in a replay at
+all.
+
+**Not done, and recorded rather than guessed:** the `senars replay` CLI has no way to *supply*
+`cognitiveParams` (there is no cognitive-parameter file loader anywhere in the repo), and the
+snapshot file does not record which attention slot produced it. Both are a recording format, and a
+format with no reader is what §12.5 warned about. The programmatic path is the honest one for now.
+
+### 18.2 The memo size rides the resolution event
+
+§13.7 asked for a metric and there is no metric: the repository has no OTel *meter* anywhere — no
+`getMeter`, no counters, no gauges. Introducing one is a plan of its own, so the smaller honest
+version landed instead: tier 1/2 resolution events now carry `strategy.context.memoSize` (the slot's
+live LRU size), read alongside the existing `tier` and `config_digest`. A configuration that churns
+digests is bounded, but "bounded and always full" is a signal the status surface should not have to
+infer. `registry.memoizedSize(type)` remains the programmatic accessor.
+
+### 18.3 Gates
+
+`test:unit` 2514 passed / 3 skipped, `typecheck`, `typecheck:bin`, `lint`, `deps:gate` 5 cycles
+(unchanged — `kernel → cognitive` added no cycle), `exports:audit`, `exports:check`,
+`complexity:budget`.
+
+One full-suite run during this phase failed on a file whose name the captured output did not retain;
+it did not recur across the two full runs that followed, nor across 8 isolated runs of
+`tests/nar/rl/parity/cognitive-advantage.test.ts` (the flake §13.5 documents). Unattributed.
+
+### 18.4 What is still open
+
+- **Association provenance** (§10, §13.7) — needs a `Link` model change; nothing can read the field yet.
+- **A cognitive-parameter file loader**, so the `senars replay` CLI and any other out-of-process
+  consumer can name the parameters a run used. It is the missing half of both 18.1 and 18.2.
+- **An OTel meter**, for the same reason: `memoSize` on a span event is a sample, not a series.
+- **`AdaptiveStrategy` / `SwitchingStrategy`** — deprecated in Phase H, removed in 2.0.
+- **`bandit` returns `pass: false` from `rl-parity.ts`** at 20 seeds while the test's own acceptance
+  is 2/3 seed passes (§16.4). Two rules in two places; unify when either moves.
