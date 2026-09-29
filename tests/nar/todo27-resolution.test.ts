@@ -1,9 +1,9 @@
 import { beforeAll, afterAll, beforeEach, describe, expect, it } from 'vitest';
-import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { initOtel, shutdownOtel, withSpan } from '@senars/nar/otel';
 import { CognitiveRegistry } from '@senars/nar/cognitive';
 import { ConfigurationError } from '@senars/nar/types';
 import { canonicalJson, configDigest } from '@senars/nar/strategies/registration';
+import { getMetricsAsJson } from '@senars/nar/metrics';
 import { registerRuleGraph } from '@senars/nar/strategies/lm-graph/RuleGraph.js';
 import { TermLinkStrategy } from '@senars/nar/strategies/premise/term-link.js';
 import { Memory } from '@senars/nar/memory';
@@ -17,6 +17,7 @@ import type {
   SamplingStrategy,
   Strategy,
 } from '../../nar/src/strategies/types.js';
+import { CollectingProcessor } from '../helpers/otel.js';
 
 /** A memory holding three linked concepts, so a config can be seen in the output. */
 const memoryWithLinks = (): Memory => {
@@ -40,27 +41,8 @@ const rule = (name: string) => ({ id: name, name, category: 'general', priority:
  * "`strategy.selection` counts recalls rather than choices".
  */
 
-class CollectingProcessor implements SpanProcessor {
-  readonly spans: ReadableSpan[] = [];
-  onStart(): void {}
-  onEnd(span: ReadableSpan): void {
-    this.spans.push(span);
-  }
-  shutdown(): Promise<void> {
-    return Promise.resolve();
-  }
-  forceFlush(): Promise<void> {
-    return Promise.resolve();
-  }
-}
-
 const processor = new CollectingProcessor();
-
-const selections = () =>
-  processor.spans
-    .flatMap((span) => span.events)
-    .filter((event) => event.name === 'strategy.selection')
-    .map((event) => event.attributes as Record<string, unknown>);
+const selections = () => processor.allEvents('strategy.selection');
 
 const registry = () => {
   const r = new CognitiveRegistry();
@@ -70,7 +52,7 @@ const registry = () => {
 
 /** Run inside a live span and report only the events that resolution emitted. */
 const capture = <T>(run: () => T): T => {
-  processor.spans.length = 0;
+  processor.reset();
   return withSpan('tick', {}, run);
 };
 
@@ -175,6 +157,23 @@ describe('Bench 101 — resolution, memoization, telemetry', () => {
       r.resolve('premise', 'term-link', { minStrength: 0.2 });
     });
     expect(selections().filter((a) => a['strategy.context.tier'] === 1).length).toBe(2);
+  });
+
+  it('memo occupancy is a gauge, not only a sample on the resolution event', async () => {
+    const r = registry();
+    capture(() => {
+      r.resolve('premise', 'term-link', { minStrength: 0.7 });
+      r.resolve('premise', 'term-link', { minStrength: 0.2 });
+    });
+    // Two digests memoized; re-resolving either adds nothing.
+    r.resolve('premise', 'term-link', { minStrength: 0.7 });
+    expect(r.memoizedSize('premise')).toBe(2);
+
+    const series = (await getMetricsAsJson())['senars_strategy_memo_size'] as Array<{
+      labels: Record<string, string>;
+      value: number;
+    }>;
+    expect(series.find((s) => s.labels.strategy === 'premise')?.value).toBe(2);
   });
 });
 

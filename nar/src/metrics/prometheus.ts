@@ -256,6 +256,19 @@ export function recordEmbeddingCacheEvent(event: 'hit' | 'miss' | 'eviction', si
   embeddingCacheSize.set(size);
 }
 
+/** TODO27 §18.4: memo occupancy per strategy slot (tier 1 + tier 2). */
+export const strategyMemoSize = new Gauge({
+  name: 'senars_strategy_memo_size',
+  help: 'Memoized strategy instances held per slot, bounded by the registry limit',
+  labelNames: ['strategy'] as const,
+  registers: [prometheusRegistry],
+});
+
+/** A full-but-bounded memo is a signal the status surface should not infer. */
+export function recordStrategyMemoSize(strategy: string, size: number): void {
+  strategyMemoSize.set({ strategy }, size);
+}
+
 // Export metrics in Prometheus format
 export async function getMetricsAsText(): Promise<string> {
   return prometheusRegistry.metrics();

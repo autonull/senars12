@@ -1,31 +1,15 @@
+import type { ReadableSpan } from '@opentelemetry/sdk-trace-node';
 import { afterAll, describe, expect, it } from 'vitest';
-import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { createLogger } from '@senars/core';
 import { HTTPConnection } from '@senars/io';
-import { initOtel, shutdownOtel, withSpan } from '@senars/nar/otel';
+import { emitEvent, initOtel, shutdownOtel, withSpan } from '@senars/nar/otel';
 import { runHealthChecks } from '@senars/nar/health';
 import { getMetricsAsJson } from '@senars/nar/metrics';
 import { KernelActionGate, KernelBudgetGate, KernelPerceptionGate } from '@senars/nar/kernel';
 import { Negotiator } from '@senars/nar/reflex';
 import { SchemaStore } from '@senars/nar/focus';
 import { Truth } from '../../nar/src';
-
-class CollectingProcessor implements SpanProcessor {
-  readonly spans: ReadableSpan[] = [];
-  onStart(): void {}
-  onEnd(span: ReadableSpan): void {
-    this.spans.push(span);
-  }
-  shutdown(): Promise<void> {
-    return Promise.resolve();
-  }
-  forceFlush(): Promise<void> {
-    return Promise.resolve();
-  }
-  findByName(name: string): ReadableSpan | undefined {
-    return this.spans.find((s) => s.name === name);
-  }
-}
+import { CollectingProcessor } from '../helpers/otel.js';
 
 const collector = new CollectingProcessor();
 initOtel({ otlpEndpoint: undefined, spanProcessors: [collector] });
@@ -67,8 +51,26 @@ describe('Bench 65 — observability', () => {
     expect(collector.findByName('schema_store.promote')).toBeDefined();
   });
 
-  it('enriches JSON logs with traceId/spanId inside a span (O2)', async () => {
-    const lines: string[] = [];
+  it('emitEvent flattens a nested payload and drops undefined keys', () => {
+    withSpan('emit.probe', {}, () => {
+      emitEvent('probe.event', 'alpha', {
+        id: 'a',
+        absent: undefined,
+        nested: { deep: 2, deeper: { leaf: true } },
+        list: [1, 2],
+      });
+    });
+    const attrs = collector.findByName('emit.probe')?.events.find((e) => e.name === 'probe.event')
+      ?.attributes as Record<string, unknown>;
+    expect(attrs).toEqual({
+      'alpha.id': 'a',
+      'alpha.nested.deep': 2,
+      'alpha.nested.deeper.leaf': true,
+      'alpha.list': [1, 2],
+    });
+  });
+
+  it('enriches JSON logs with traceId/spanId inside a span (O2)', async () => {    const lines: string[] = [];
     const orig = console.log;
     console.log = (m: string) => lines.push(m);
     try {

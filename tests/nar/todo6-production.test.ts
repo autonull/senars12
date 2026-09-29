@@ -12,7 +12,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
-import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { initOtel, shutdownOtel, withSpan } from '@senars/nar/otel';
 import { createCognitiveThread } from '@senars/core';
 import { consumeCycles, createBudgetSlice, mergeConsumption, sliceBudget, type BudgetSlice } from '@senars/kernel/budget';
@@ -26,27 +25,7 @@ import {
   verifyReplayStateHash,
   type ReplaySnapshotFile,
 } from '@senars/nar/kernel/replay';
-
-class CollectingProcessor implements SpanProcessor {
-  readonly spans: ReadableSpan[] = [];
-  onStart(): void {}
-  onEnd(span: ReadableSpan): void {
-    this.spans.push(span);
-  }
-  shutdown(): Promise<void> {
-    return Promise.resolve();
-  }
-  forceFlush(): Promise<void> {
-    return Promise.resolve();
-  }
-  eventsOf(spanName: string, eventName: string): Array<Record<string, unknown>> {
-    const span = this.spans.find((s) => s.name === spanName);
-    return (span?.events ?? []).filter((e) => e.name === eventName).map((e) => e.attributes as Record<string, unknown>);
-  }
-  reset(): void {
-    this.spans.length = 0;
-  }
-}
+import { CollectingProcessor } from '../helpers/otel.js';
 
 const collector = new CollectingProcessor();
 initOtel({ otlpEndpoint: undefined, spanProcessors: [collector] });

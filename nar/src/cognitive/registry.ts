@@ -13,6 +13,7 @@
 import { ConfigurationError } from '../types';
 import type { RandomSource } from '../types/primitives.js';
 import { emitStrategySelection } from '../tick';
+import { recordStrategyMemoSize } from '../metrics/prometheus.js';
 import {
   configDigest,
   strategySpecErrors,
@@ -69,8 +70,8 @@ class BoundedCache<V> {
     this.entries.clear();
   }
 
-  keys(): string[] {
-    return [...this.entries.keys()];
+  get size(): number {
+    return this.entries.size;
   }
 }
 
@@ -188,7 +189,7 @@ export class CognitiveRegistry implements StrategyRegistry {
 
   /** Total memoized (tier 1 + tier 2) instances held for a slot — bounded, not a leak. */
   memoizedSize(type: StrategyType): number {
-    return [...this.composed[type].keys()].length + [...this.configured[type].keys()].length;
+    return this.composed[type].size + this.configured[type].size;
   }
 
   clear(type?: StrategyType): void {
@@ -274,28 +275,25 @@ export class CognitiveRegistry implements StrategyRegistry {
     const impl = composeSpec<StrategyImpl>(type, spec, (name) => this.get(type, name));
     const resolved = impl as T;
     cache.set(label, impl);
-    this.#emit(type, label, 2, undefined, cache);
+    this.#emit(type, label, 2, undefined);
     return resolved;
   }
 
   /**
    * Tier 1/2 also report the slot's memo size: a configuration that churns
    * digests is bounded, but "bounded and always full" is a signal the status
-   * surface should not have to infer. The repository has no OTel meter, so this
-   * rides the resolution event rather than a gauge (TODO27 §18).
+   * surface should not have to infer. It rides a gauge as well as the
+   * resolution event, because a span event is a sample, not a series
+   * (TODO27 §18.4).
    */
-  #emit(
-    type: StrategyType,
-    name: string,
-    tier: ResolutionTier,
-    digest?: string,
-    cache?: BoundedCache<StrategyImpl>
-  ): void {
+  #emit(type: StrategyType, name: string, tier: ResolutionTier, digest?: string): void {
+    const memoSize = this.memoizedSize(type);
+    recordStrategyMemoSize(type, memoSize);
     emitStrategySelection({
       strategyType: type,
       strategyName: name,
       configDigest: digest,
-      context: cache ? { tier, memoSize: cache.keys().length } : { tier },
+      context: { tier, memoSize },
     });
   }
 }

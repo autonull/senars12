@@ -106,10 +106,6 @@ function registerLogTraceEnricher(): void {
   });
 }
 
-export function createMiddlewareSpans(): Map<string, { start: number; end: number }> {
-  return new Map();
-}
-
 const COGNITIVE_STAGES = [
   'perceive',
   'recall',
@@ -167,8 +163,35 @@ export function instrumentPipeline(
   return pipeline.map((mw, i) => wrapMiddlewareWithSpan(COGNITIVE_STAGES[i] as CognitiveStage, mw));
 }
 
-export function createOtelTickHooks(): Record<string, (ctx: TickContext) => void | Promise<void>> {
-  return {};
+/**
+ * The one event emitter. A nested payload is flattened into dotted attribute
+ * names, so `{ consumed: { memoryOps: 1 } }` under the prefix `budget.slice`
+ * arrives as `budget.slice.consumed.memoryOps`. `prefix` carries no trailing
+ * dot; pass `''` for an unprefixed payload. A key present with value
+ * `undefined` is dropped rather than emitted as `''` or `0` — an absent parent
+ * id is absent.
+ */
+export function emitEvent(
+  name: string,
+  prefix: string,
+  payload: Record<string, unknown>
+): void {
+  const span = trace.getActiveSpan();
+  if (!span) return;
+  const attributes: Attributes = {};
+  const visit = (at: string, source: Record<string, unknown>): void => {
+    for (const [key, value] of Object.entries(source)) {
+      if (value === undefined) continue;
+      const path = at ? `${at}.${key}` : key;
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        visit(path, value as Record<string, unknown>);
+      } else {
+        attributes[path] = value as string | number | boolean;
+      }
+    }
+  };
+  visit(prefix, payload);
+  span.addEvent(name, attributes);
 }
 
 export function emitSpanEvent(
@@ -176,10 +199,7 @@ export function emitSpanEvent(
   name: string,
   attributes: Record<string, unknown> = {}
 ): void {
-  const span = trace.getActiveSpan();
-  if (span) {
-    span.addEvent(name, { 'tick.id': ctx.tickId, ...attributes });
-  }
+  emitEvent(name, '', { 'tick.id': ctx.tickId, ...attributes });
 }
 
 /** F1: BudgetSlice operation span events. */
@@ -191,17 +211,14 @@ export function emitBudgetSliceCreated(attributes: {
   totalMemoryOps: number;
   totalLMCalls: number;
 }): void {
-  const span = trace.getActiveSpan();
-  if (span) {
-    span.addEvent('budget.slice.created', {
-      'budget.slice.id': attributes.sliceId,
-      'budget.slice.parent_id': attributes.parentId ?? '',
-      'budget.slice.total_cycles': attributes.totalCycles,
-      'budget.slice.total_depth': attributes.totalDepth,
-      'budget.slice.total_memory_ops': attributes.totalMemoryOps,
-      'budget.slice.total_llm_calls': attributes.totalLMCalls,
-    });
-  }
+  emitEvent('budget.slice.created', 'budget.slice', {
+    id: attributes.sliceId,
+    parent_id: attributes.parentId,
+    total_cycles: attributes.totalCycles,
+    total_depth: attributes.totalDepth,
+    total_memory_ops: attributes.totalMemoryOps,
+    total_llm_calls: attributes.totalLMCalls,
+  });
 }
 
 export function emitBudgetSliceConsumed(attributes: {
@@ -212,17 +229,14 @@ export function emitBudgetSliceConsumed(attributes: {
   total: number;
   pressure: number;
 }): void {
-  const span = trace.getActiveSpan();
-  if (span) {
-    span.addEvent('budget.slice.consumed', {
-      'budget.slice.id': attributes.sliceId,
-      'budget.slice.resource': attributes.resource,
-      'budget.slice.amount': attributes.amount,
-      'budget.slice.consumed': attributes.consumed,
-      'budget.slice.total': attributes.total,
-      'budget.slice.pressure': attributes.pressure,
-    });
-  }
+  emitEvent('budget.slice.consumed', 'budget.slice', {
+    id: attributes.sliceId,
+    resource: attributes.resource,
+    amount: attributes.amount,
+    consumed: attributes.consumed,
+    total: attributes.total,
+    pressure: attributes.pressure,
+  });
 }
 
 export function emitBudgetSliceExhausted(attributes: {
@@ -231,21 +245,22 @@ export function emitBudgetSliceExhausted(attributes: {
   consumed: Record<string, number>;
   total: Record<string, number>;
 }): void {
-  const span = trace.getActiveSpan();
-  if (span) {
-    span.addEvent('budget.slice.exhausted', {
-      'budget.slice.id': attributes.sliceId,
-      'budget.slice.reason': attributes.reason,
-      'budget.slice.consumed.cycles': attributes.consumed.cycles ?? 0,
-      'budget.slice.consumed.depth': attributes.consumed.depth ?? 0,
-      'budget.slice.consumed.memory_ops': attributes.consumed.memoryOps ?? 0,
-      'budget.slice.consumed.llm_calls': attributes.consumed.llmCalls ?? 0,
-      'budget.slice.total.cycles': attributes.total.totalCycles ?? 0,
-      'budget.slice.total.depth': attributes.total.totalDepth ?? 0,
-      'budget.slice.total.memory_ops': attributes.total.totalMemoryOps ?? 0,
-      'budget.slice.total.llm_calls': attributes.total.totalLMCalls ?? 0,
-    });
-  }
+  emitEvent('budget.slice.exhausted', 'budget.slice', {
+    id: attributes.sliceId,
+    reason: attributes.reason,
+    consumed: {
+      cycles: attributes.consumed.cycles,
+      depth: attributes.consumed.depth,
+      memory_ops: attributes.consumed.memoryOps,
+      llm_calls: attributes.consumed.llmCalls,
+    },
+    total: {
+      cycles: attributes.total.totalCycles,
+      depth: attributes.total.totalDepth,
+      memory_ops: attributes.total.totalMemoryOps,
+      llm_calls: attributes.total.totalLMCalls,
+    },
+  });
 }
 
 export function emitBudgetSliceMerged(attributes: {
@@ -253,17 +268,16 @@ export function emitBudgetSliceMerged(attributes: {
   childId: string;
   consumed: Record<string, number>;
 }): void {
-  const span = trace.getActiveSpan();
-  if (span) {
-    span.addEvent('budget.slice.merged', {
-      'budget.slice.parent_id': attributes.parentId,
-      'budget.slice.child_id': attributes.childId,
-      'budget.slice.consumed.cycles': attributes.consumed.cycles ?? 0,
-      'budget.slice.consumed.depth': attributes.consumed.depth ?? 0,
-      'budget.slice.consumed.memory_ops': attributes.consumed.memoryOps ?? 0,
-      'budget.slice.consumed.llm_calls': attributes.consumed.llmCalls ?? 0,
-    });
-  }
+  emitEvent('budget.slice.merged', 'budget.slice', {
+    parent_id: attributes.parentId,
+    child_id: attributes.childId,
+    consumed: {
+      cycles: attributes.consumed.cycles,
+      depth: attributes.consumed.depth,
+      memory_ops: attributes.consumed.memoryOps,
+      llm_calls: attributes.consumed.llmCalls,
+    },
+  });
 }
 
 /** F1: Bag pressure transition span event. */
@@ -274,10 +288,7 @@ export function emitBagPressureTransition(attributes: {
   size: number;
   transition: 'normal' | 'high' | 'critical';
 }): void {
-  const span = trace.getActiveSpan();
-  if (span) {
-    span.addEvent('bag.pressure.transition', attributes);
-  }
+  emitEvent('bag.pressure.transition', '', attributes);
 }
 
 /** F1: Backpressure decision span event. */
@@ -289,10 +300,7 @@ export function emitBackpressureDecision(attributes: {
   mailboxSize: number;
   mailboxCapacity: number;
 }): void {
-  const span = trace.getActiveSpan();
-  if (span) {
-    span.addEvent('thread.backpressure', attributes);
-  }
+  emitEvent('thread.backpressure', '', attributes);
 }
 
 /** F1: Strategy selection span event — one event per *resolution*, not per recall. */
@@ -303,27 +311,18 @@ export function emitStrategySelection(attributes: {
   configDigest?: string;
   context?: Record<string, string | number | boolean>;
 }): void {
-  const span = trace.getActiveSpan();
-  if (span) {
-    const flatAttrs: Record<string, string | number | boolean> = {
-      'strategy.type': attributes.strategyType,
-      'strategy.name': attributes.strategyName,
-    };
-    if (attributes.configDigest) flatAttrs['strategy.config_digest'] = attributes.configDigest;
-    if (attributes.context) {
-      for (const [key, value] of Object.entries(attributes.context)) {
-        flatAttrs[`strategy.context.${key}`] = value;
-      }
-    }
-    span.addEvent('strategy.selection', flatAttrs);
-  }
+  emitEvent('strategy.selection', 'strategy', {
+    type: attributes.strategyType,
+    name: attributes.strategyName,
+    config_digest: attributes.configDigest,
+    context: attributes.context,
+  });
 }
 
 export function recordCognitiveEvents(ctx: TickContext): void {
-  const span = trace.getActiveSpan();
-  if (!span || !ctx.events.length) return;
+  if (!ctx.events.length) return;
   for (const event of ctx.events) {
-    span.addEvent(event.stage, {
+    emitEvent(event.stage, '', {
       'tick.id': ctx.tickId,
       'event.stage': event.stage,
       'event.detail': event.detail ?? '',

@@ -1310,3 +1310,92 @@ and two of them are not open — they were *done*, badly, a while ago:
 What this costs is a call I should not make silently: either `nar` goes to 1.0.0 (major, honest) or
 the removals are restored behind a deprecation cycle. It is a release decision, recorded here as a
 blocker for whoever versions the next release.
+
+---
+
+## 21. Phase O — one event emitter, and memo occupancy as a series (2026-09-29)
+
+The telemetry module was the last place in the NAR that still spelled out OTel
+mechanics by hand, and the last open item from §13.7 / §14.6 / §18.4 that was
+about telemetry rather than about a model change.
+
+### 21.1 What was duplicated
+
+Seven `emit*` functions in `nar/src/otel/index.ts` each opened with the same
+three lines — `const span = trace.getActiveSpan()`, `if (span)`, and a hand-built
+attribute literal whose keys were written out dotted by hand. Six of the seven
+also spelled `parentId ?? ''` or `consumed.cycles ?? 0` inline, so "how an
+absent value is represented" was decided seven times.
+
+Two more exports were stubs: `createMiddlewareSpans()` returned an empty `Map`
+and `createOtelTickHooks()` returned `{}`. Neither had a caller anywhere in the
+repository, and neither was reachable from an `exports` subpath.
+
+The same `CollectingProcessor` span processor was copy-pasted into three test
+files, each copy a *different* subset of `findByName` / `eventsOf` / `reset`.
+
+### 21.2 What changed
+
+- **`emitEvent(name, prefix, payload)` is the one emitter.** It flattens a nested
+  payload into dotted attribute names and drops keys whose value is `undefined`,
+  so each `emit*` is now a mapping from its typed argument to that mapping's
+  wire names and nothing else. The `?? ''` / `?? 0` defensive coalescing is gone:
+  an absent `parentId` is now an omitted attribute, not `''`.
+- **The two stubs are deleted.** Module-private to a non-exported barrel, so no
+  consumer could have depended on them.
+- **`senars_strategy_memo_size` gauge**, labelled by slot, following the existing
+  `recordEmbeddingCacheEvent` cache-telemetry precedent rather than introducing an
+  OTel `MeterProvider` the repository does not have. `CognitiveRegistry.#emit`
+  now reports `memoizedSize(type)` on every tier-1/tier-2 resolution.
+- **`memoizedSize` is O(1).** It was `[...cache.keys()].length` twice — two
+  array copies per resolution, on the path that now also reports the gauge.
+  `BoundedCache` gains a `size` getter, which retires `keys()` (it had exactly one
+  caller).
+- **`tests/helpers/otel.ts`** holds the single `CollectingProcessor`, a superset of
+  the three copies. `allEvents` additionally replaces the inline event-flattening
+  in `todo27-resolution.test.ts`.
+
+The gauge replaces a comment that had gone stale on arrival: §18.4 recorded "the
+repository has no OTel meter" as the reason `memoSize` had to ride the resolution
+event. The repository does not have an OTel meter, but it does have a Prometheus
+registry — which is the right home for a level, and the two dead stubs are why
+nobody had looked.
+
+### 21.3 Behaviour changes (visible, and intended)
+
+- `budget.slice.parent_id` is omitted when there is no parent, rather than
+  emitted as `''`. Asserted-key coverage in `todo6-production.test.ts` is
+  unchanged; the merge path always has both ids, so nothing that was meaningful
+  disappears.
+- `emitBudgetSliceExhausted` / `emitBudgetSliceMerged` omit a counter that the
+  caller left `undefined` rather than reporting `0`. Their parameters are typed
+  `Record<string, number>`, so this is unreachable from a well-typed caller.
+
+### 21.4 Gates
+
+`test:unit` 2518 passed / 3 skipped, `typecheck`, `typecheck:bin`, `lint`,
+`deps:gate` 5 cycles, `exports:audit`, `exports:check`, `complexity:budget`
+(production LOC 71 769, `unboundedAccumulators` 0).
+
+New tests: the memo gauge (Bench 101) and `emitEvent`'s flattening contract.
+Both falsified by reverting the change under test — the gauge test fails with
+`recordStrategyMemoSize` commented out, as §20.4 required of Bench 111.
+
+### 21.5 What this closes
+
+- "The LRUs have no metric" (§13.7, §14.6, §18.4) — **closed**, for the strategy
+  memo. The embedding cache already had one; the memo was the gap.
+- The `CollectingProcessor` triplication.
+
+### 21.6 Still open (unchanged)
+
+- **§20.6 is untouched and still a release blocker.** Nothing here adds or removes
+  an export from an `exports` subpath, so `nar` stays at 0.6.0 and the Phase I
+  removal violation is exactly where §20.6 left it.
+- **Association provenance** (§10, §13.7) — still a `Link` model change with no
+  reader yet.
+- **`registerRuleGraph`** is still registered by side effect from the controller
+  rather than from the catalogue.
+- **Bench 109** — the import-graph assertion that would catch a strategy
+  constructed outside `cognitive/`.
+- **The backport measurement** (§19.4, §20.5) — needs an install at that commit.
