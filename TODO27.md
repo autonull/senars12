@@ -1159,6 +1159,15 @@ tree with a seeded harness, so there is no baseline to compare 0.646 against, an
   no behavioural intent, and it is the only way to say whether the premise/attention work changed
   reasoning quality in either direction. Recorded, not done.
 
+  **Attempted once and abandoned (2026-09-29), with the reason, so the next attempt does not
+  rediscover it:** the seeding patch itself applies almost cleanly in a worktree — the shapes of
+  `RewardBeliefAdapter`, the agents, `Memory`/`Concept` bags and the link layer are the same at
+  `e7a52b21` — but the old tree will not *run* against the current install. Its dependencies are
+  not the current ones (`ulid` alone is unresolved), and the worktree has to be made resolvable by
+  hand-symlinking packages out of `node_modules/.pnpm` into a synthetic `node_modules`. The real
+  cost is therefore an install at that commit (`pnpm install` in the worktree, or a worktree that
+  shares the base tree's own store), not the patch.
+
 ### 19.5 Gates
 
 `test:unit` 2514 passed / 3 skipped, `typecheck`, `typecheck:bin`, `lint`, `deps:gate` 5 cycles,
