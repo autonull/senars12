@@ -315,3 +315,4 @@ same port it reads through — no `LinkManager` import.
 | 108 | `todo27-weighted-attention.test.ts` | A composite is a named strategy with config; a weight is a ratio; a typo'd part is a boundary error |
 | 109 | `todo27-north-star.test.ts` | Nothing outside the catalogue constructs a strategy or imports an attention implementation |
 | 110 | `todo27-seeded-sampling.test.ts` | One seed fixes the whole stochastic path: bags, link layer, stochastic factories |
+| 111 | `todo27-fundamentals-gate.test.ts` | The seven capability scenarios run in the unit tier, and none of them silently stopped running |

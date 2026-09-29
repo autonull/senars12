@@ -3,15 +3,16 @@
 **Version:** 1.3 (2026-09-28) · **Predecessor:** REFACTOR.todo8 §8 B/C, the premise-strategy
 landing (`8b8cb1f8`), and the associative-memory port (`e7a52b21`).
 
-**Status: Phases A–M landed. Benches 100–110 green; 2514 unit tests + 25 e2e/determinism tests
+**Status: Phases A–N landed. Benches 100–111 green; 2514 unit tests + 25 e2e/determinism tests
 passing; static gates green; the RL parity gate is seeded, deterministic and green. Deviations are
-recorded in §11 (A–F), §12 (G), §13 (H), §14 (I), §16 (J), §17 (K), §18 (L), §19 (M).
+recorded in §11 (A–F), §12 (G), §13 (H), §14 (I), §16 (J), §17 (K), §18 (L), §19 (M), §20 (N).
 
-> **A fresh session should read §19 first.** §15 diagnosed the RL parity gate as measuring machine
-> load rather than reasoning; §16 seeded the harness end to end, so it now reproduces its own numbers
-> bit-for-bit, and §19 read the number: SeNARS reaches ~65% of Q-learning's gridworld return,
-> deterministically. §19.4 is explicit about what that is *not* evidence of — there is still no
-> pre-strategy baseline. §15's warnings are the reason §16 was needed.**
+> **A fresh session should read §20 first.** §15 diagnosed the RL parity gate as measuring
+> machine load rather than reasoning; §16 seeded the harness end to end so it reproduces its own
+> numbers bit-for-bit; §19 read the number; and §20 corrects the reading — 0.646 is a fact about one
+> RL agent against a tabular baseline, not about SeNARS. The reasoner is measured by the
+> NAL/derivation/ReasoningGame benches and the fundamentals suite, and measuring *those* found a
+> three-day-old defect in the capability bench that no gate ran.**
 
 ---
 
@@ -1172,3 +1173,77 @@ tree with a seeded harness, so there is no baseline to compare 0.646 against, an
 
 `test:unit` 2514 passed / 3 skipped, `typecheck`, `typecheck:bin`, `lint`, `deps:gate` 5 cycles,
 `exports:audit`, `exports:check`, `complexity:budget`, `test:load-sensitive` 4/4 (333 s).
+
+---
+
+## 20. Phase N — what the 0.646 does and does not measure (2026-09-29)
+
+§19 read the parity number and wrote it as the answer to "does SeNARS still reason as well as the
+baselines". That was an overclaim, and the plan's own framing invited it: §15.4 asked the question
+about *SeNARS*, and §19 answered it with a measurement of one agent.
+
+### 20.1 The correction
+
+**0.646 is a fact about `GridWorldNativeAgent`, not about SeNARS.** It is the return of a Q-belief
+store plus two selectors, over 20 seeds × 20 episodes × 30 steps, on a 3×3 grid with no walls,
+against tabular Q-learning — a baseline built for exactly this task, given exactly the information a
+tabular learner needs. A general reasoner being measured on a specialist's task at 65% of the
+specialist is a statement about that comparison. It is not a statement about NAL inference, premise
+selection, analogy, revision, or the epistemic firewall, and nothing in phases A–M should be read
+through it.
+
+### 20.2 Where SeNARS itself is measured
+
+The reasoning stack has its own instruments, and they are green:
+
+| instrument | what it speaks to | state |
+|---|---|---|
+| `tests/nar/nal{2,7,8,9}-*.test.ts` | NAL rule families (copula, temporal, procedural, self) | green in `test:unit` |
+| `tests/nar/derivation-ranking`, `derivation-verifier`, `todo25-derivation-capture` | derivation quality, not just derivation count | green in `test:unit` |
+| `tests/nar/todo19-reasoning` (Bench 44) | ReasoningGame falsification: tier gating, scope enforcement, NAL vetoes, fail-closed | green in `test:unit` |
+| `scripts/fundamentals-bench.ts` | the seven capabilities SeNARS is *for* — ambiguity, multi-input, epistemic firewall, Socratic explanation, bidirectional correction, analogical leap, graceful degradation | **was ungated, and was red** |
+| `tests/e2e/{production-loop,cognitive-metrics,golden-scenarios,determinism-gate}` | end-to-end loops and replay determinism | green (opt-in tier) |
+| `scripts/rl-parity.ts` (phase J/M) | one RL consumer of the reasoner | green, deterministic |
+
+### 20.3 What measuring the right thing immediately found
+
+Running the fundamentals bench — which is *about* SeNARS rather than about an RL agent — surfaced a
+defect three days old:
+
+`a76f30f0` (2026-09-25, REFACTOR.todo4 Phase D) changed `ShadowValidator.validate` to return
+`ShadowValidationResult` instead of a boolean. `scripts/fundamentals-bench.ts` was never updated:
+it still wrote `!validator.validate(contradicting, [belief])`, and `!{ valid: false }` is `false`
+for any object, so scenario 6 reported `❌ Shadow validation drops contradiction, admits fresh`
+while the validator was dropping the contradiction correctly. The bench had been red — or, before the
+API change, accidentally green on a meaningless expression — and **nothing ran it**, which is the
+only reason it survived.
+
+So: the repository's capability benchmark was ungated, and the ungated benchmark was the one place
+a real regression would have shown up. That is the structural finding, and the 0.646 was never going
+to find it.
+
+### 20.4 What changed
+
+- The bench reads `.valid` (scenario 6 now passes on its merits; the three assertions are
+  isomorphic + grammar-constrained mask + NAL analogy fallback + shadow verdict).
+- **Bench 111** (`tests/nar/todo27-fundamentals-gate.test.ts`) runs the bench under
+  `LM_PROVIDER=mock` in the unit tier (~3 s) and fails on any scenario failure *or* on a scenario
+  that disappears — a benchmark that silently stops running a scenario is the same failure as one
+  that fails. Falsifiability checked by reverting the bench fix: the gate fails on `scenario6`.
+- The real-provider lanes (`bench:fundamentals`, `bench:fundamentals:ollama`) stay manual. A gate
+  needs determinism and a local model's temperature is not determinism; that is a capability
+  question, not a gate question.
+
+**Current reading, mock provider: 7/7.** SeNARS' own capabilities pass on the suite written for
+them. That, plus the NAL/derivation/ReasoningGame benches, is the evidence about the reasoner. The
+0.646 is the evidence about the RL consumer.
+
+### 20.5 Still open
+
+- The backport measurement (§19.4) — a pre-strategy baseline, so "did the refactor change quality"
+  could be answered rather than assumed. Same obstacle: an install at that commit.
+- The fundamentals bench asserts *wiring* (does the capability run and produce the right shape of
+  task), not *quality* (is the formalization the best one). Scenario 1 has a multi-candidate
+  ambiguity and the bench checks that candidates come back, not that the right one wins. Making that
+  a measurement is a real project with a scoring decision in it.
+- No deterministic gate on the real-provider lanes; the temperature problem is unsolved.

@@ -468,8 +468,11 @@ async function runScenario6(): Promise<boolean> {
   const belief = mkTask(cat, 1.0);
   const contradicting = mkTask(cat, 0.0);
   const valid = mkTask(dog, 0.8);
+  // `validate` returns a result object, not a boolean: a bare `!result` is
+  // always false, which is how this scenario learned to report FAIL while the
+  // validator was behaving correctly (TODO27 §20).
   const shadowOk =
-    !validator.validate(contradicting, [belief]) && validator.validate(valid, [belief]);
+    !validator.validate(contradicting, [belief]).valid && validator.validate(valid, [belief]).valid;
   logger.info(`  ${shadowOk ? '✅' : '❌'} Shadow validation drops contradiction, admits fresh`);
 
   return isomorphic && grammarSet && symbolic && shadowOk;
