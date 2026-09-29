@@ -95,6 +95,67 @@ describe('Layer', () => {
     expect(layer.getStats().size).toBe(1);
     expect(layer.getLinkPriority(cat, bird)).toBe(0.9);
   });
+
+  it('breaks priority ties by creation order', () => {
+    const layer = new Layer('term', 2);
+
+    layer.addLink({ sourceTerm: cat, targetTerm: dog, priority: 0.5 });
+    layer.addLink({ sourceTerm: cat, targetTerm: bird, priority: 0.5 });
+    layer.addLink({ sourceTerm: cat, targetTerm: whiskers, priority: 0.5 });
+
+    expect(layer.getLinkPriority(cat, dog)).toBe(0);
+    expect(layer.getLinkPriority(cat, bird)).toBe(0.5);
+  });
+
+  it('refreshes recency on a read under the lru policy', () => {
+    const layer = new Layer('term', 2, 'lru');
+
+    layer.addLink({ sourceTerm: cat, targetTerm: dog });
+    layer.addLink({ sourceTerm: bird, targetTerm: whiskers });
+    layer.getLinksByTerm(cat);
+    layer.addLink({ sourceTerm: dog, targetTerm: whiskers });
+
+    expect(layer.getLinkPriority(cat, dog)).toBe(0.5);
+    expect(layer.getLinkPriority(bird, whiskers)).toBe(0);
+  });
+
+  it('does not refresh recency on a read under the fifo policy', () => {
+    const layer = new Layer('term', 2, 'fifo');
+
+    layer.addLink({ sourceTerm: cat, targetTerm: dog });
+    layer.addLink({ sourceTerm: bird, targetTerm: whiskers });
+    layer.getLinksByTerm(cat);
+    layer.addLink({ sourceTerm: dog, targetTerm: whiskers });
+
+    expect(layer.getLinkPriority(cat, dog)).toBe(0);
+    expect(layer.getLinkPriority(bird, whiskers)).toBe(0.5);
+  });
+
+  it('draws its victim from the injected stream under the random policy', () => {
+    const layer = new Layer('term', 2, 'random', () => 0);
+
+    layer.addLink({ sourceTerm: cat, targetTerm: dog });
+    layer.addLink({ sourceTerm: bird, targetTerm: whiskers });
+    layer.addLink({ sourceTerm: dog, targetTerm: whiskers });
+
+    expect(layer.getLinkPriority(cat, dog)).toBe(0);
+    expect(layer.getStats().size).toBe(2);
+  });
+
+  it('admit-nothing capacity rejects every link rather than holding one', () => {
+    const layer = new Layer('term', 0);
+
+    expect(layer.addLink({ sourceTerm: cat, targetTerm: dog })).toBeNull();
+    expect(layer.getStats()).toMatchObject({ size: 0, utilization: NaN });
+    expect(layer.pressure()).toBe(1);
+  });
+
+  it('reports occupancy as pressure', () => {
+    const layer = new Layer('term', 4);
+    layer.addLink({ sourceTerm: cat, targetTerm: dog });
+
+    expect(layer.pressure()).toBe(0.25);
+  });
 });
 
 describe('LinkManager', () => {
