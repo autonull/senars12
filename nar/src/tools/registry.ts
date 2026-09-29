@@ -1,5 +1,5 @@
 import { ToolError } from '../types';
-import { errMsg } from '../utils';
+import { errMsg, isPlainObject } from '../utils';
 import type {
   Schema,
   Tool,
@@ -153,7 +153,7 @@ export class Registry implements ToolRegistry {
       number: () => typeof value === 'number',
       boolean: () => typeof value === 'boolean',
       array: () => Array.isArray(value),
-      object: () => typeof value === 'object' && value !== null && !Array.isArray(value),
+      object: () => isPlainObject(value),
     };
 
     const check = typeChecks[prop.type];

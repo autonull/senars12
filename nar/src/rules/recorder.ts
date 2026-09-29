@@ -1,4 +1,4 @@
-import { makeId } from '@senars/util';
+import { makeId, PushQueue, Signal } from '@senars/util';
 import type { DerivationRecord, DerivationStep, TruthValue } from '@senars/kernel/schemas';
 import { BoundedRing } from '../utils/collections.js';
 import type { RuleInput, RuleResult } from './types.js';
@@ -181,7 +181,7 @@ export class DerivationRecorder {
  */
 export class ProofStreamRing<T> {
   readonly #items: BoundedRing<T>;
-  readonly #listeners = new Set<(item: T) => void>();
+  readonly #listeners = new Signal<T>();
 
   constructor(private readonly capacity: number) {
     this.#items = new BoundedRing(capacity);
@@ -189,7 +189,7 @@ export class ProofStreamRing<T> {
 
   push(item: T): void {
     this.#items.push(item);
-    for (const listener of this.#listeners) listener(item);
+    this.#listeners.emit(item);
   }
 
   snapshot(limit = this.capacity): readonly T[] {
@@ -198,44 +198,28 @@ export class ProofStreamRing<T> {
 
   /** Live view: ring snapshot first, then pushed items; `return`/abort unsubscribes. */
   stream(signal?: AbortSignal): AsyncIterable<T> {
-    const queue: T[] = this.#items.toArray();
-    let wake: (() => void) | null = null;
-    let live = true;
-    const listener = (item: T): void => {
-      queue.push(item);
-      const w = wake;
-      wake = null;
-      w?.();
-    };
-    this.#listeners.add(listener);
+    // `PushQueue` is the canonical push→`for await` bridge: it seeds from the
+    // ring snapshot, wakes waiters FIFO, and closes every waiter on unsubscribe.
+    const queue = new PushQueue<T>();
+    for (const item of this.#items.toArray()) queue.push(item);
+
+    const unsubscribeListener = this.#listeners.on((item) => queue.push(item));
+
     const unsubscribe = (): void => {
-      if (!live) return;
-      live = false;
-      this.#listeners.delete(listener);
-      const w = wake;
-      wake = null;
-      w?.();
+      if (queue.closed) return;
+      unsubscribeListener();
+      queue.close();
     };
     signal?.addEventListener('abort', unsubscribe, { once: true });
+
     return {
-      [Symbol.asyncIterator]() {
-        return {
-          next: async (): Promise<IteratorResult<T>> => {
-            for (;;) {
-              const item = queue.shift();
-              if (item !== undefined) return { done: false, value: item };
-              if (!live) return { done: true, value: undefined };
-              await new Promise<void>((resolve) => {
-                wake = resolve;
-              });
-            }
-          },
-          return: async (): Promise<IteratorResult<T>> => {
-            unsubscribe();
-            return { done: true, value: undefined };
-          },
-        };
-      },
+      [Symbol.asyncIterator]: () => ({
+        next: () => queue.next(),
+        return: async () => {
+          unsubscribe();
+          return { done: true as const, value: undefined };
+        },
+      }),
     };
   }
 }

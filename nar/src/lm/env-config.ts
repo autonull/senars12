@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { envFirst, isTruthy } from '@senars/util/config';
+import { envFirst, envNumOr, isTruthy } from '@senars/util/config';
 
 export const LM_PROVIDER_NAMES = [
   'transformers',
@@ -178,6 +178,7 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
   }
   const provider = normalized as LMProviderName;
   const cloudCredentialEnv = CLOUD_CREDENTIALS.find(([p]) => p === provider)?.[1] ?? undefined;
+  const flashAttentionEnv = envFirst('LM_LLAMACPP_FLASH_ATTN');
   return {
     provider,
     profile: profile && profile !== 'production' ? profile : undefined,
@@ -199,23 +200,15 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
     llamacppModelPath: envFirst('LM_LLAMACPP_MODEL') ?? file?.llamacppModelPath,
     llamacppGpu:
       (envFirst('LM_LLAMACPP_GPU') as 'auto' | 'cuda' | 'metal' | 'vulkan' | false) ?? file?.llamacppGpu,
-    llamacppGpuLayers:
-      (envFirst('LM_LLAMACPP_GPU_LAYERS') ? Number(envFirst('LM_LLAMACPP_GPU_LAYERS')) : undefined) ??
-      file?.llamacppGpuLayers,
-    llamacppContextSize: envFirst('LM_LLAMACPP_CTX')
-      ? Number(envFirst('LM_LLAMACPP_CTX'))
-      : file?.llamacppContextSize,
-    llamacppBatchSize: envFirst('LM_LLAMACPP_BATCH')
-      ? Number(envFirst('LM_LLAMACPP_BATCH'))
-      : file?.llamacppBatchSize,
-    llamacppSequences: envFirst('LM_LLAMACPP_SEQS')
-      ? Number(envFirst('LM_LLAMACPP_SEQS'))
-      : file?.llamacppSequences,
+    llamacppGpuLayers: envNumOr('LM_LLAMACPP_GPU_LAYERS') ?? file?.llamacppGpuLayers,
+    llamacppContextSize: envNumOr('LM_LLAMACPP_CTX') ?? file?.llamacppContextSize,
+    llamacppBatchSize: envNumOr('LM_LLAMACPP_BATCH') ?? file?.llamacppBatchSize,
+    llamacppSequences: envNumOr('LM_LLAMACPP_SEQS') ?? file?.llamacppSequences,
     // D7-adjacent: FA default true (KV-cache padding path without it is
     // segv-prone on hybrid-attention models); an explicit env value wins.
     llamacppFlashAttention:
-      envFirst('LM_LLAMACPP_FLASH_ATTN') !== undefined
-        ? isTruthy(envFirst('LM_LLAMACPP_FLASH_ATTN'))
+      flashAttentionEnv !== undefined
+        ? isTruthy(flashAttentionEnv)
         : (file?.llamacppFlashAttention ?? true),
     apiKeyEnv: file?.apiKeyEnv ?? cloudCredentialEnv,
     quantized: file?.quantized,

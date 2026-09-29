@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
 /**
  * C3 demo: pure-System-One RL on GridWorldGame — no NAR, no RuleProcessor,
  * no kernel gates. Only EmbeddingCache + JudgmentManifold (+ optional
  * JudgmentDataset labels). Run: pnpm exec tsx scripts/rl-manifold.ts [episodes]
  */
+import { mean } from '@senars/util';
 import { EmbeddingCache } from '../nar/src/lm/system-one/embedding-cache.js';
+import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
 import { createManifold } from '../nar/src/lm/system-one/manifold.js';
 import { ManifoldRLAgent } from '../nar/src/lm/system-one/manifold-rl-agent.js';
 import { createSystemOneBudget } from '../nar/src/lm/system-one/types.js';
@@ -39,7 +40,7 @@ for (let ep = 0; ep < episodes; ep++) {
   rewards.push(await agent.runEpisode(game, 30));
 }
 
-const avg = rewards.reduce((a, b) => a + b, 0) / rewards.length;
+const avg = mean(rewards);
 console.log(`ManifoldRLAgent over ${episodes} GridWorld episodes:`);
 console.log(
   `  avg reward: ${avg.toFixed(4)}  min: ${Math.min(...rewards).toFixed(2)}  max: ${Math.max(...rewards).toFixed(2)}`

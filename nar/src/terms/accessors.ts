@@ -122,9 +122,24 @@ export const termSize = (term: Term): number => {
   return n;
 };
 
+/**
+ * Terms are interned by `TermFactory`, so structurally equal terms are the same
+ * object and the key is computed once per term rather than once per lookup.
+ * A `WeakMap` keyed on identity holds no term alive: an evicted term takes its
+ * key with it, and a term built outside the factory simply misses the cache.
+ */
+const termKeyCache = new WeakMap<Term, string>();
+
 /** Canonical structural key for a term — the single identity used for maps, memoization, and link ids. */
-export const termKey = (term: Term): string =>
-  isAtomic(term) ? `atom:${term.symbol}` : `${term.kind}:${getArgs(term).map(termKey).join(',')}`;
+export const termKey = (term: Term): string => {
+  const cached = termKeyCache.get(term);
+  if (cached !== undefined) return cached;
+  const key = isAtomic(term)
+    ? `atom:${term.symbol}`
+    : `${term.kind}:${getArgs(term).map(termKey).join(',')}`;
+  termKeyCache.set(term, key);
+  return key;
+};
 
 export const containsSubterm = (term: Term, target: Term): boolean => {
   let found = false;

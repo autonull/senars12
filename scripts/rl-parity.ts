@@ -10,7 +10,7 @@
 
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { pct } from '@senars/util';
+import { mean, pct, stdDev } from '@senars/util';
 import { program } from 'commander';
 import { BanditGame } from '../nar/src/game/BanditGame.js';
 import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
@@ -330,15 +330,11 @@ async function runExperiment(
 }
 
 function computeMetrics(baselineRewards: number[], senarsRewards: number[]): any {
-  const avgBaseline = baselineRewards.reduce((a, b) => a + b, 0) / baselineRewards.length;
-  const avgSenars = senarsRewards.reduce((a, b) => a + b, 0) / senarsRewards.length;
+  const avgBaseline = mean(baselineRewards);
+  const avgSenars = mean(senarsRewards);
 
-  const baselineStd = Math.sqrt(
-    baselineRewards.reduce((sum, r) => sum + (r - avgBaseline) ** 2, 0) / baselineRewards.length
-  );
-  const senarsStd = Math.sqrt(
-    senarsRewards.reduce((sum, r) => sum + (r - avgSenars) ** 2, 0) / senarsRewards.length
-  );
+  const baselineStd = stdDev(baselineRewards);
+  const senarsStd = stdDev(senarsRewards);
 
   return {
     avgBaselineReward: avgBaseline,

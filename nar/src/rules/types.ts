@@ -1,3 +1,5 @@
+import { weightedMean } from '@senars/util';
+
 import type { StampType, Term, Truth } from '../terms';
 
 export interface RuleInput {
@@ -125,9 +127,9 @@ export class RuleIndex {
     const now = Date.now();
     stats.hitCount++;
     stats.lastHitTime = now;
-    stats.successRate =
-      (stats.successRate * (stats.hitCount - 1) + (success ? 1 : 0)) / stats.hitCount;
-    stats.avgDuration = (stats.avgDuration * (stats.hitCount - 1) + duration) / stats.hitCount;
+    const priorWeight = stats.hitCount - 1;
+    stats.successRate = weightedMean(stats.successRate, priorWeight, success ? 1 : 0);
+    stats.avgDuration = weightedMean(stats.avgDuration, priorWeight, duration);
 
     this.hitStats.set(ruleId, stats);
 

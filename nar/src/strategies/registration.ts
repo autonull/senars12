@@ -11,7 +11,7 @@
  * strategies→lm→nar SCC.
  */
 
-import { sha256Hex } from '@senars/util';
+import { sha256Hex, stableStringify } from '@senars/util';
 import { z, type ZodError } from 'zod';
 import { describeStrategyExpression, type StrategyExpression } from '../reason/strategy-algebra.js';
 import type { RandomSource } from '../types/primitives.js';
@@ -125,17 +125,7 @@ export const singleton = (name: string, description: string, instance: StrategyI
 });
 
 /** Recursively key-sorted JSON, so `{a,b}` and `{b,a}` are one configuration. */
-export const canonicalJson = (value: unknown): string => {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
-  if (Array.isArray(value)) {
-    // Order is not semantic in a config bag, so equivalent spellings collapse.
-    return `[${value.map(canonicalJson).sort().join(',')}]`;
-  }
-  const entries = Object.entries(value as Record<string, unknown>)
-    .filter(([, v]) => v !== undefined)
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
-};
+export const canonicalJson = (value: unknown): string => stableStringify(value, true);
 
 /** `sha256(name || canonicalJson(config))` — the memo key and the telemetry attribute. */
 export const configDigest = (name: string, config: StrategyConfig): string =>

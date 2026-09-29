@@ -1,4 +1,5 @@
 import type { Metrics as CoreMetrics } from '@senars/util';
+import { weightedMean } from '@senars/util';
 import type { BaseStats as CoreBaseStats } from '../types/core.js';
 
 // Public: performance metric type for external consumers
@@ -71,11 +72,6 @@ interface ThroughputStats {
   averageStepDuration: number;
 }
 
-// Internal: helper for aggregating numeric stats with running average
-function aggregateStats(currentAvg: number, count: number, value: number): number {
-  return count > 0 ? (currentAvg * (count - 1) + value) / count : value;
-}
-
 export class MetricsCollector implements CoreMetrics {
   private startTime: number = Date.now();
   private ruleStats: Map<string, RuleStats> = new Map();
@@ -100,9 +96,9 @@ export class MetricsCollector implements CoreMetrics {
       } else {
         existing.failures++;
       }
-      existing.averageDuration = aggregateStats(
+      existing.averageDuration = weightedMean(
         existing.averageDuration,
-        existing.executions,
+        existing.executions - 1,
         duration
       );
       existing.lastExecution = Date.now();

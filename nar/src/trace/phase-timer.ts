@@ -1,4 +1,4 @@
-import { pct } from '@senars/util';
+import { pct, weightedMean } from '@senars/util';
 export interface PhaseEntry {
   name: string;
   category: string;
@@ -42,10 +42,10 @@ export class PhaseTimer {
     const byCategory: Record<string, { count: number; totalMs: number; avgMs: number }> = {};
     for (const p of this.phases) {
       if (!byCategory[p.category]) byCategory[p.category] = { count: 0, totalMs: 0, avgMs: 0 };
-      byCategory[p.category]!.count++;
-      byCategory[p.category]!.totalMs += p.durationMs;
-      byCategory[p.category]!.avgMs =
-        byCategory[p.category]!.totalMs / byCategory[p.category]!.count;
+      const bucket = byCategory[p.category]!;
+      bucket.totalMs += p.durationMs;
+      bucket.avgMs = weightedMean(bucket.avgMs, bucket.count, p.durationMs);
+      bucket.count++;
     }
     return { totalDurationMs, phases: [...this.phases], byCategory };
   }

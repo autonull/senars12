@@ -8,7 +8,7 @@
  */
 import type { SelfImprovementProposal } from '@senars/kernel/schemas';
 import { PriorityBag } from '../bag/Bag.js';
-import { AIKRProcessor, type ProcessOptions, type AikrBagOptions } from '../learning/aikr-processor.js';
+import { AIKRProcessor, AikrShell, type ProcessOptions, type AikrBagOptions } from '../learning/aikr-processor.js';
 import type { RandomSource } from '../types/primitives.js';
 import { selectByPriority } from '@senars/util';
 
@@ -55,39 +55,45 @@ export interface ProposalBagOptions extends AikrBagOptions {
   alignmentOf?: (proposal: SelfImprovementProposal) => number;
 }
 
+/**
+ * Governance routing is a per-call concern rather than a constructor-wired
+ * sink, so this one composes the shell instead of inheriting it.
+ */
 export class ProposalBag {
-  readonly #bag: PriorityBag<ProposalCandidate>;
-  readonly #processor: AIKRProcessor<ProposalCandidate, SelfImprovementProposal>;
-  readonly #budget: number;
+  readonly #shell: AikrShell<ProposalCandidate, SelfImprovementProposal, SelfImprovementProposal>;
   readonly #alignmentOf: (proposal: SelfImprovementProposal) => number;
 
   constructor(options: ProposalBagOptions = {}) {
-    this.#budget = options.budget ?? 4;
-    this.#alignmentOf = options.alignmentOf ?? (() => 1);
-    this.#bag = new PriorityBag<ProposalCandidate>({
+    const bag = new PriorityBag<ProposalCandidate>({
       capacity: options.capacity ?? 64,
       forgetRate: options.forgetRate,
       rng: options.rng,
     });
-    this.#processor = new AIKRProcessor<ProposalCandidate, SelfImprovementProposal>({
-      bag: this.#bag,
-      pressureThreshold: options.pressureThreshold ?? 0.4,
-      rng: options.rng,
-      samplingStrategy: {
-        name: 'greedy-priority',
-        select: (items, budget) => selectByPriority(items, budget),
-      },
-      process: (picked) => picked.map((c) => c.proposal),
+    this.#shell = new AikrShell<ProposalCandidate, SelfImprovementProposal, SelfImprovementProposal>({
+      bag,
+      budget: options.budget ?? 4,
+      view: (candidate) => candidate.proposal,
+      processor: new AIKRProcessor<ProposalCandidate, SelfImprovementProposal>({
+        bag,
+        pressureThreshold: options.pressureThreshold ?? 0.4,
+        rng: options.rng,
+        samplingStrategy: {
+          name: 'greedy-priority',
+          select: (items, budget) => selectByPriority(items, budget),
+        },
+        process: (picked) => picked.map((c) => c.proposal),
+      }),
     });
+    this.#alignmentOf = options.alignmentOf ?? (() => 1);
   }
 
   /** Admit a proposal; same-scope elders halve in priority (superseded ⇒ decay out). */
   admit(proposal: SelfImprovementProposal): boolean {
     const scope = proposalScope(proposal);
-    for (const candidate of this.#bag.all()) {
+    for (const candidate of this.#shell.bag.all()) {
       if (candidate.scope === scope) candidate.priority *= 0.5;
     }
-    return this.#bag.add({
+    return this.#shell.admit({
       id: proposal.proposalId,
       priority: KIND_IMPACT[proposal.kind] * RISK_INVERSE[proposal.riskTier] * this.#alignmentOf(proposal),
       proposal,
@@ -100,10 +106,7 @@ export class ProposalBag {
     route: (proposal: SelfImprovementProposal) => void,
     options: ProcessOptions = {}
   ): Promise<SelfImprovementProposal[]> {
-    const drained = await this.#processor.processIfPressured({
-      ...options,
-      budget: options.budget ?? this.#budget,
-    });
+    const drained = await this.#shell.drainIfPressured(options);
     for (const proposal of drained) route(proposal);
     return drained;
   }
@@ -113,28 +116,25 @@ export class ProposalBag {
     route: (proposal: SelfImprovementProposal) => void,
     options: ProcessOptions = {}
   ): Promise<SelfImprovementProposal[]> {
-    const drained = await this.#processor.process({
-      ...options,
-      budget: options.budget ?? this.#budget,
-    });
+    const drained = await this.#shell.drain(options);
     for (const proposal of drained) route(proposal);
     return drained;
   }
 
   /** Stage 6 — decay (superseded/stale proposals evaporate). */
   decay(rate?: number): void {
-    this.#processor.decay(rate);
+    this.#shell.decay(rate);
   }
 
   get pressure(): number {
-    return this.#processor.pressure();
+    return this.#shell.pressure;
   }
 
   get size(): number {
-    return this.#bag.size();
+    return this.#shell.size;
   }
 
   peek(): SelfImprovementProposal[] {
-    return [...this.#bag.all()].map((c) => c.proposal);
+    return this.#shell.peek();
   }
 }

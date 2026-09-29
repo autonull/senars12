@@ -215,3 +215,74 @@ export class AIKRProcessor<TIn extends BagItem, TOut> {
     return this.#bag.size();
   }
 }
+
+export interface AikrShellOptions<TIn extends BagItem, TOut, TView, TAdmit> {
+  bag: Bag<TIn>;
+  processor: AIKRProcessor<TIn, TOut>;
+  /** Default items examined per pass when a call passes no budget. */
+  budget: number;
+  /** Project a bagged candidate onto the domain value `peek` reports. */
+  view: (item: TIn) => TView;
+  /** Public admit input → bagged candidate; defaults to the identity. */
+  admit?: (value: TAdmit) => TIn;
+}
+
+/**
+ * The six delegating stages every self-maintaining cognitive process exposes
+ * over an {@link AIKRProcessor} — admit, drain, drain-if-pressured, decay,
+ * pressure, size, peek. Each process owns different *names* for these
+ * (`drain`/`consolidate`/`induceNow`), so the shared body lives here and the
+ * process keeps only its public spelling.
+ *
+ * `TAdmit` is the type callers hand to {@link AikrShell.admit}, which is
+ * usually a domain value (`Episode`, `MinedNegative`) the process wraps into a
+ * scored candidate, and the bag item only when it does not.
+ */
+export class AikrShell<TIn extends BagItem, TOut, TView = TOut, TAdmit = TIn> {
+  readonly bag: Bag<TIn>;
+  readonly processor: AIKRProcessor<TIn, TOut>;
+  readonly #budget: number;
+  readonly #view: (item: TIn) => TView;
+  readonly #admit: (value: TAdmit) => TIn;
+
+  constructor(options: AikrShellOptions<TIn, TOut, TView, TAdmit>) {
+    this.bag = options.bag;
+    this.processor = options.processor;
+    this.#budget = options.budget;
+    this.#view = options.view;
+    this.#admit = options.admit ?? ((value) => value as unknown as TIn);
+  }
+
+  /** Stage 1 — admit (bag enforces capacity + priority eviction). */
+  admit(value: TAdmit): boolean {
+    return this.bag.add(this.#admit(value));
+  }
+
+  /** Stages 3–5 — explicit drain, ignoring the pressure gate. */
+  drain(options: ProcessOptions = {}): Promise<TOut[]> {
+    return this.processor.process({ ...options, budget: options.budget ?? this.#budget });
+  }
+
+  /** Inert below the pressure threshold (AIKR budget conservation). */
+  drainIfPressured(options: ProcessOptions = {}): Promise<TOut[]> {
+    return this.processor.processIfPressured({ ...options, budget: options.budget ?? this.#budget });
+  }
+
+  /** Stage 6 — decay (forget stale accumulation). */
+  decay(rate?: number): void {
+    this.processor.decay(rate);
+  }
+
+  get pressure(): number {
+    return this.processor.pressure();
+  }
+
+  get size(): number {
+    return this.bag.size();
+  }
+
+  /** Bounded introspection: the bagged candidates, projected. */
+  peek(): TView[] {
+    return [...this.bag.all()].map(this.#view);
+  }
+}

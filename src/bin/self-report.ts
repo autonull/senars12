@@ -11,7 +11,7 @@ import { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
 import { initializeMetaReasoning, registerMetaRules } from '@senars/nar/rules';
 import { initializeSelfConcept } from '@senars/nar/tools';
-import { bar, divider, pct } from '@senars/util';
+import { bar, divider, mean, pct } from '@senars/util';
 import { runEntrypoint } from './lib/fatal-error.js';
 
 const logger = createLogger({ scope: 'self-report' });
@@ -109,7 +109,7 @@ async function main() {
     // Access internal _rlfpRewardHistory if available
     const history = (rlfp as any)._rlfpRewardHistory ?? [];
     if (history.length > 0) {
-      rlfpRewardAvg = history.reduce((a: number, b: number) => a + b, 0) / history.length;
+      rlfpRewardAvg = mean(history);
     }
   }
 

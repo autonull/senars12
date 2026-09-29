@@ -9,7 +9,7 @@
 import { join } from 'node:path';
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
-import type { LMTask } from '@senars/util';
+import { type LMTask, utcDate } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 import { recordCircuitBreakerState } from '../metrics/index.js';
@@ -329,7 +329,7 @@ export class ProviderRuntime {
   }
 
   getRoutingLogStatus(): { enabled: boolean; bufferSize: number; logPath: string } {
-    const date = new Date().toISOString().split('T')[0];
+    const date = utcDate();
     const ledger = (this as any).#routingLedger as Ledger<RoutingTelemetryLedgerEntry> | null;
     return {
       enabled: this.routingLogEnabled,

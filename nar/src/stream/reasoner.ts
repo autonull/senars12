@@ -84,12 +84,6 @@ export class StreamReasoner {
     });
   }
 
-  dropLowPriority(keep: number): number {
-    const dropped = Math.max(0, this.queue.length - keep);
-    this.queue.splice(0, dropped);
-    return dropped;
-  }
-
   reasonHook(backend: LMBackend, pressureOf?: () => number): (ctx: TickContext) => Promise<void> {
     return async (ctx) => {
       const settled = await this.flush(backend, pressureOf?.() ?? 0);

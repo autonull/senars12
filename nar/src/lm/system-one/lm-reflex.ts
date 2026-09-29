@@ -1,4 +1,5 @@
 import type { ReasoningBudget } from '@senars/kernel/schemas';
+import { LruCache } from '@senars/util';
 import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
 import type { Truth } from '../../terms/truth.js';
@@ -30,6 +31,15 @@ export interface LMReflexOptions {
 }
 
 /**
+ * Warm decisions retained per reflex. A `stateId` is minted per distinct
+ * observation, so this table is keyed on unbounded input and needs the AIKR
+ * capacity bound; the least-recently-used entry is the one to drop, because a
+ * stale state id is the least likely to be asked for again.
+ */
+const WARM_DECISIONS_CAP = 512;
+const STATE_POINTER_CAP = 2000;
+
+/**
  * Real-LM per-tick decision reflex (TODO17 C1): at the prefetch (attend) stage
  * the LM proposes ranked candidates under a generated GBNF grammar enumerating
  * the legal-action set; the manifold judges them (reflex_value / feasibility /
@@ -50,11 +60,10 @@ export class LMReflex extends DecisionReadout implements Reflex<Perception, stri
   #contrastive?: ContrastiveMemory;
   /** TODO23 Phase 4: candidate verification routed through the unified choose() API. */
   #decider: Decider;
-  #warm = new Map<string, { action: string; confidence: number }>();
+  #warm = new LruCache<string, { action: string; confidence: number }>(WARM_DECISIONS_CAP);
   /** stateId → embedding pointer, for recording distillation rows whose vectors
-   *  match what the manifold reads at runtime (bounded; evicts-all at cap). */
-  #statePointers = new Map<string, EmbeddingPointer>();
-  #statePointersCap = 2000;
+   *  match what the manifold reads at runtime (bounded; evicts least-recently-used). */
+  #statePointers = new LruCache<string, EmbeddingPointer>(STATE_POINTER_CAP);
   failures = 0;
   /** Distillation rows recorded WITH an embedding (vector-joinable at training). */
   embeddedRows = 0;
@@ -151,10 +160,7 @@ export class LMReflex extends DecisionReadout implements Reflex<Perception, stri
         this.#warm.set(stateId, { action: top.candidate, confidence: top.truth.f });
         this.decisions++;
       }
-      if (context) {
-        if (this.#statePointers.size >= this.#statePointersCap) this.#statePointers.clear();
-        this.#statePointers.set(stateId, context);
-      }
+      if (context) this.#statePointers.set(stateId, context);
     } catch {
       this.failures++; // cold — fallback serves at propose
     }
@@ -162,8 +168,7 @@ export class LMReflex extends DecisionReadout implements Reflex<Perception, stri
 
   /** Synchronous contract: warm LM decision, else fallback. */
   propose(state: Perception, legalActions: string[]): ActionProposal[] {
-    const warm = this.#warm.get(state.stateId);
-    this.#warm.delete(state.stateId);
+    const warm = this.#warm.take(state.stateId);
     const legal = legalActions.map(String);
     if (warm && legal.includes(warm.action)) {
       this.served++;

@@ -2,7 +2,7 @@ import { createLogger } from '@senars/core/logger';
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
 import { Truth, termParser, termsEqual } from '../terms';
-import type { Stamp, Task, TaskType, TermFilter } from '../types';
+import type { Stamp, Task, TaskType, TermFilter, Timestamp } from '../types';
 import { createBudget, createTask, createTimestamp } from '../types';
 
 const logger = createLogger({ scope: 'QueryAPI' });
@@ -134,7 +134,6 @@ export class QueryAPI {
       { ...(belief.stamp ? { stamp: belief.stamp } : {}), occurrenceTime: createTimestamp(0) }
     );
   }
-
   private extractDerivationPath(stamp?: Stamp): string[] {
     const path: string[] = [];
     let currentStamp: Stamp | undefined = stamp;
@@ -179,21 +178,17 @@ export class QueryAPI {
 
     return bag.toArray().map(
       (item) =>
-        ({
-          term: concept.term,
+        createTask(
+          concept.term,
           type,
-          truth: item.truth,
-          budget: typeof item.budget === 'number' ? createBudget(item.budget) : item.budget,
-          stamp: item.stamp ?? {
-            id: '',
-            creationTime: 0,
-            source: 'INPUT' as const,
-            derivations: [],
-            depth: 0,
-          },
-          occurrenceTime: item.occurrenceTime || Date.now(),
-          derived: item.derived || false,
-        }) as Task
+          item.truth ?? Truth.NEUTRAL,
+          item.budget ?? createBudget(concept.priority),
+          {
+            stamp: item.stamp,
+            occurrenceTime: (item.occurrenceTime || Date.now()) as Timestamp,
+            derived: item.derived ?? false,
+          }
+        )
     );
   }
 

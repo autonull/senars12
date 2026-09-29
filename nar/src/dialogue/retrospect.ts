@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
 import type { Episode } from '@senars/util';
-import { cachePath, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
+import { cachePath, mean, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
 import { z } from 'zod';
 import { DigestMismatchError } from '../lm/system-one/wasi-runtime.js';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
@@ -199,11 +199,7 @@ export async function retrospect(
         {
           strategy: 'dialogue',
           gradedTurns: turns.length,
-          meanQuality:
-            turns.reduce(
-              (acc, t) => acc + (options.traceGrades?.get(t.turnId.split(':')[0]!) ?? 0),
-              0
-            ) / Math.max(turns.length, 1),
+          meanQuality: mean(turns, (t) => options.traceGrades?.get(t.turnId.split(':')[0]!) ?? 0),
           // Phase B: enrich with ledger changes inside the session window
           // (which parameter/strategy writes preceded quality shifts).
           ...(options.ledgerEntries?.length

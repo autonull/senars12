@@ -9,6 +9,7 @@
  *   pnpm bench:system-one                       # mock leg → .reports/system-one-onoff.{json,md}
  *   LM_PROVIDER=llamacpp-embedded ... pnpm bench:system-one   # real leg (overwrites the report)
  */
+import { percentile } from '@senars/util';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createNAR } from '../nar/src/nar-presets.js';
@@ -31,13 +32,6 @@ const UTTERANCES = [
 ];
 
 const CYCLES_PER_UTTERANCE = 3;
-
-const percentile = (values: number[], p: number): number => {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
-  return sorted[idx] ?? 0;
-};
 
 interface LegResult {
   enabled: boolean;
@@ -140,8 +134,8 @@ async function runLeg(enabled: boolean): Promise<LegResult> {
   const result: LegResult = {
     enabled,
     totalMs: latencies.reduce((a, b) => a + b, 0),
-    p50Ms: percentile(latencies, 50),
-    p99Ms: percentile(latencies, 99),
+    p50Ms: percentile(latencies, 0.5),
+    p99Ms: percentile(latencies, 0.99),
     parseFailures,
     lmCalls: spend.calls,
     tokensIn: spend.tokensIn,

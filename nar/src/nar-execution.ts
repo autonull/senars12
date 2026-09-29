@@ -1,4 +1,4 @@
-import { mean } from '@senars/util';
+import { mean, roundTo } from '@senars/util';
 
 import { envBool } from '@senars/util/config';
 import type { CognitiveController } from './cognitive';
@@ -415,7 +415,7 @@ export class NARExecution {
       active_meta_goals: activeMetaGoals,
       pending_tool_executions: [], // Would be populated by tool execution tracking
       aikr_pressure: aikrPressure,
-      rlfp_reward_avg: Math.round(rlfpRewardAvg * 100) / 100,
+      rlfp_reward_avg: roundTo(rlfpRewardAvg),
       meta_derivation_budget_used: `${this._metaDerivationsThisStep}/5`,
     };
 

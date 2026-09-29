@@ -5,7 +5,7 @@
  * reach-in); `nar.ts` re-binds them as thin methods. Init guards live in a
  * WeakSet so per-instance semantics survive the extraction.
  */
-import { makeId } from '@senars/util';
+import { makeId, truncate } from '@senars/util';
 import { createBootstrapTasks } from '../drives';
 import { getModelForTask } from '../lm/providers/chains.js';
 import { LMRules } from '../lm/rule-selectors/factory.js';
@@ -235,7 +235,7 @@ export const consolidateLearning = async (
               console.log(`[consolidateLearning] Metta rules learned: ${mettaRules.length}`);
               if (mettaRules.length > 0) {
                 const mettaProgram = proofMettaProposer.exportAsMetta();
-                console.log(`[consolidateLearning] Metta program: ${mettaProgram.substring(0, 200)}...`);
+                console.log(`[consolidateLearning] Metta program: ${truncate(mettaProgram, 200)}`);
                 if (mettaProgram.trim()) {
                   // Use metta tool to rewrite/validate the learned rules
                   const mettaTool = nar.tools.get('metta');
@@ -246,7 +246,7 @@ export const consolidateLearning = async (
                       console.log(`[consolidateLearning] Metta rewrite result:`, rewriteResult);
                       if (rewriteResult && typeof rewriteResult === 'object' && 'content' in rewriteResult) {
                         const rewrittenRules = String(rewriteResult.content);
-                        console.log(`[consolidateLearning] Rewritten rules: ${rewrittenRules.substring(0, 200)}...`);
+                        console.log(`[consolidateLearning] Rewritten rules: ${truncate(rewrittenRules, 200)}`);
                         // Submit to GovernanceResolver for auto-apply (low-risk)
                         const resolver = nar.getGovernanceResolver();
                         const mode = nar.gates.getActionGate().getAutonomyMode();

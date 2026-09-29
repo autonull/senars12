@@ -1,4 +1,4 @@
-import { estimateTokens } from '@senars/util';
+import { CHARS_PER_TOKEN, estimateTokens } from '@senars/util';
 
 /**
  * Context budget utilities for LM prompt construction.
@@ -47,7 +47,7 @@ export function truncateContext(
     };
   }
 
-  const charsToKeep = availableTokens * 4;
+  const charsToKeep = availableTokens * CHARS_PER_TOKEN;
   const truncated = context.slice(-charsToKeep);
   return {
     context: prefix + truncated,

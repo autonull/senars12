@@ -208,4 +208,17 @@ describe('Bench 84 — ProofStream', () => {
     ring.push('b'); // no listeners — must not throw
     expect(ring.snapshot()).toEqual(['b']);
   });
+
+  it('serves concurrent waiters FIFO — a push may not strand the first', async () => {
+    const ring = new ProofStreamRing<string>(4);
+    const iter = ring.stream()[Symbol.asyncIterator]();
+    const first = iter.next();
+    const second = iter.next();
+    await Promise.resolve();
+    ring.push('a');
+    ring.push('b');
+    expect((await first).value).toBe('a');
+    expect((await second).value).toBe('b');
+    await iter.return?.(undefined);
+  });
 });

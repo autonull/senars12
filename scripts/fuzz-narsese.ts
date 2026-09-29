@@ -7,6 +7,7 @@
  * Or: pnpm exec tsx scripts/fuzz-narsese.ts [iterations] [--seed N]
  */
 
+import { errMsg } from '@senars/util';
 import { createNAR } from '../nar/src/nar-presets.js';
 import { termParser } from '../nar/src/terms/parser-peggy.js';
 import { Truth } from '../nar/src/terms/truth.js';
@@ -172,16 +173,14 @@ async function runFuzz(iterations: number, seed?: number): Promise<void> {
           admitSuccess++;
         } catch (e) {
           admitFail++;
-          const errMsg = e instanceof Error ? e.message : String(e);
-          errors.set(errMsg, (errors.get(errMsg) || 0) + 1);
+          errors.set(errMsg(e), (errors.get(errMsg(e)) || 0) + 1);
         }
       } else {
         parseFail++;
       }
     } catch (e) {
       parseFail++;
-      const errMsg = e instanceof Error ? e.message : String(e);
-      errors.set(errMsg, (errors.get(errMsg) || 0) + 1);
+      errors.set(errMsg(e), (errors.get(errMsg(e)) || 0) + 1);
     }
 
     if (i % 1000 === 0 && i > 0) {

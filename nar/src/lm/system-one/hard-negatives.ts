@@ -2,7 +2,7 @@ import type { Episode } from '@senars/util';
 import { selectByPriority, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import { PriorityBag } from '../../bag/Bag.js';
-import { AIKRProcessor, type ProcessOptions, type AikrBagOptions } from '../../learning/aikr-processor.js';
+import { AIKRProcessor, AikrShell, type AikrBagOptions } from '../../learning/aikr-processor.js';
 import { cosineF32 } from './contrastive.js';
 import type { ContrastiveMemory } from './contrastive.js';
 import type { EmbeddingCache } from './types.js';
@@ -121,68 +121,34 @@ export interface MiningBagOptions extends AikrBagOptions {
   marginFloor?: number;
 }
 
-export class MiningBag {
-  readonly #bag: PriorityBag<HardNegativeCandidate>;
-  readonly #processor: AIKRProcessor<HardNegativeCandidate, MinedNegative>;
-  readonly #budget: number;
-  readonly #marginFloor: number;
-
+export class MiningBag extends AikrShell<HardNegativeCandidate, MinedNegative, MinedNegative, MinedNegative> {
   constructor(options: MiningBagOptions = {}) {
-    this.#budget = options.budget ?? 8;
-    this.#marginFloor = options.marginFloor ?? 0;
-    this.#bag = new PriorityBag<HardNegativeCandidate>({
+    const marginFloor = options.marginFloor ?? 0;
+    const bag = new PriorityBag<HardNegativeCandidate>({
       capacity: options.capacity ?? 128,
       forgetRate: options.forgetRate,
     });
-    this.#processor = new AIKRProcessor<HardNegativeCandidate, MinedNegative>({
-      bag: this.#bag,
-      pressureThreshold: options.pressureThreshold ?? 0.5,
-      samplingStrategy: {
-        name: 'greedy-priority',
-        select: (items, budget) =>
-          greedyCandidateSelection(items, budget, this.#marginFloor),
-      },
-      process: (picked) => picked.map((c) => c.negative),
+    super({
+      bag,
+      budget: options.budget ?? 8,
+      view: (candidate) => candidate.negative,
+      // priority = margin × recency(1, decays) × rubric relevance
+      admit: (negative) => ({
+        id: hardNegativeId(negative.text),
+        priority: (negative.margin ?? 0.5) * (RUBRIC_RELEVANCE[negative.rubric] ?? 0.5),
+        negative,
+      }),
+      processor: new AIKRProcessor<HardNegativeCandidate, MinedNegative>({
+        bag,
+        pressureThreshold: options.pressureThreshold ?? 0.5,
+        samplingStrategy: {
+          name: 'greedy-priority',
+          select: (items, selectBudget) =>
+            greedyCandidateSelection(items, selectBudget, marginFloor),
+        },
+        process: (picked) => picked.map((c) => c.negative),
+      }),
     });
-  }
-
-  /** Admit a mined candidate: priority = margin × recency(1, decays) × rubric relevance. */
-  admit(negative: MinedNegative): boolean {
-    const margin = negative.margin ?? 0.5;
-    return this.#bag.add({
-      id: hardNegativeId(negative.text),
-      priority: margin * (RUBRIC_RELEVANCE[negative.rubric] ?? 0.5),
-      negative,
-    });
-  }
-
-  /** Drain highest-signal candidates (margin × rubric weighted). */
-  async drainIfPressured(options: ProcessOptions = {}): Promise<MinedNegative[]> {
-    return this.#processor.processIfPressured({
-      ...options,
-      budget: options.budget ?? this.#budget,
-    });
-  }
-
-  /** Explicit drain — ignores the pressure gate. */
-  async drain(options: ProcessOptions = {}): Promise<MinedNegative[]> {
-    return this.#processor.process({ ...options, budget: options.budget ?? this.#budget });
-  }
-
-  decay(rate?: number): void {
-    this.#processor.decay(rate);
-  }
-
-  get pressure(): number {
-    return this.#processor.pressure();
-  }
-
-  get size(): number {
-    return this.#bag.size();
-  }
-
-  peek(): MinedNegative[] {
-    return [...this.#bag.all()].map((c) => c.negative);
   }
 }
 

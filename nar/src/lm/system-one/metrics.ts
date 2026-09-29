@@ -2,7 +2,7 @@
  * Calibration metrics — the single Brier/ECE implementation, kept in a leaf
  * module so scorers (distill, train, eval) can share it without import cycles.
  */
-
+import { mean } from '@senars/util';
 
 /**
  * Identity (unfitted) calibrator ECE — the honest baseline the fit must beat.
@@ -24,10 +24,7 @@ export function meanBrierOf<T>(
   predicted: (row: T) => number,
   observed: (row: T) => number
 ): number {
-  if (rows.length === 0) return 0;
-  let sum = 0;
-  for (const row of rows) sum += (predicted(row) - observed(row)) ** 2;
-  return sum / rows.length;
+  return mean(rows, (row) => (predicted(row) - observed(row)) ** 2);
 }
 
 /** Mean squared calibration error over predicted/observed pairs. Sits beside {@link identityECE}. */
@@ -37,7 +34,6 @@ export const meanBrier = (data: readonly { predicted: number; observed: number }
     (d) => d.predicted,
     (d) => d.observed
   );
-import { mean } from '@senars/util';
 
 /**
  * The one frozen-set non-regression comparison, and its message. Lower Brier is

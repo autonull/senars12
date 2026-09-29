@@ -3,7 +3,7 @@ import { cachePath, sha256HexParts, writeJsonFile } from '@senars/util';
 import { holdoutSplit, mulberry32 } from '../../utils/random.js';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration.js';
 import type { JudgmentDataset } from './distill.js';
-import { identityECE, meanBrier } from './metrics.js';
+import { identityECE, meanBrier, meanBrierOf } from './metrics.js';
 import type { CalibrationVersion, ModelDigest } from './types.js';
 import { DigestMismatchError } from './wasi-runtime.js';
 
@@ -109,13 +109,7 @@ function brierWithAbstain(
   calibrate: (s: number) => number,
   threshold: number
 ): number {
-  if (data.length === 0) return 0;
-  let sum = 0;
-  for (const d of data) {
-    const p = d.predicted < threshold ? 0.5 : calibrate(d.predicted);
-    sum += (p - d.observed) ** 2;
-  }
-  return sum / data.length;
+  return meanBrierOf(data, (d) => (d.predicted < threshold ? 0.5 : calibrate(d.predicted)), (d) => d.observed);
 }
 
 export interface FitCalibrationOptions {

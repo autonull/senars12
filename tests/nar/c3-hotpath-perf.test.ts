@@ -194,11 +194,8 @@ describe('C3 Hot-path benchmarks (bench 119+)', () => {
           maxDerivationsPerStep: 100,
           maxDerivationDepth: 10,
           enableCircularDetection: true,
-          enableTraceCollection: false,
           cpuThrottleMs: 0,
           singlePremiseLMRules: false,
-          maxLMRulesPerStep: 10,
-          enableLMRules: false,
           sampleSize: 100,
         }
       );

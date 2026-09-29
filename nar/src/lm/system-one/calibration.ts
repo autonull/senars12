@@ -1,4 +1,8 @@
+import { trimCapped } from '@senars/util';
 import type { CalibrationVersion, RubricId } from './types.js';
+
+/** Fitted points retained per calibrator; older points stop steering the fit. */
+const CALIBRATION_POINT_CAP = 10_000;
 
 export interface CalibrationPoint {
   predicted: number;
@@ -138,9 +142,7 @@ export function createIsotonicCalibrator(
         fitted = true;
       }
       points.push(...newPoints);
-      if (points.length > 10000) {
-        points.splice(0, points.length - 10000);
-      }
+      trimCapped(points, CALIBRATION_POINT_CAP);
       rebuild();
     },
 

@@ -1,6 +1,6 @@
 import { createLogger } from '@senars/core/logger';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
-import { cachePath } from '@senars/util';
+import { cachePath, roundTo } from '@senars/util';
 import { z } from 'zod';
 import { buildDefaults, type CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { ParameterLedger } from '../config/parameter-ledger.js';
@@ -239,11 +239,11 @@ export class RLFPLearner {
     this.logger.debug('reward breakdown', {
       taskType: outcome.taskType,
       success: outcome.success,
-      extrinsic: Math.round(extrinsic * 100) / 100,
-      intrinsic: Math.round(rewardIntrinsic * 100) / 100,
-      weightedIntrinsic: Math.round(0.3 * rewardIntrinsic * 100) / 100,
-      ciPenalty: Math.round(ciPenalty * 100) / 100,
-      total: Math.round(total * 100) / 100,
+      extrinsic: roundTo(extrinsic),
+      intrinsic: roundTo(rewardIntrinsic),
+      weightedIntrinsic: roundTo(0.3 * rewardIntrinsic),
+      ciPenalty: roundTo(ciPenalty),
+      total: roundTo(total),
     });
 
     return total;

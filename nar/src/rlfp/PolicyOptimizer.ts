@@ -1,9 +1,13 @@
-import { mean } from '@senars/util';
+import { mean, weightedMean } from '@senars/util';
 
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import type { RewardModel } from './RewardModel.js';
 import { findCommonFeatures } from './utils.js';
 import type { RandomSource } from '../types/primitives.js';
+
+/** Prior-sample weight for a strategy's success rate: proven, or still unproven. */
+const PROVEN_WEIGHT = 10;
+const UNPROVEN_WEIGHT = 1;
 
 export interface PolicyConfig {
   explorationRate?: number;
@@ -71,11 +75,18 @@ export class PolicyOptimizer {
 
     const strategy = this.strategies.get(strategyUsed);
     if (strategy) {
-      const n = strategy.successRate > 0 ? 10 : 1;
-      strategy.successRate = (strategy.successRate * n + reward) / (n + 1);
-
-      const m = strategy.avgReward > 0 ? 10 : 1;
-      strategy.avgReward = (strategy.avgReward * m + reward) / (m + 1);
+      // A strategy with no track record is taken at its word; a proven one is held
+      // to a ten-sample mean, so one lucky trajectory cannot re-rank the policy.
+      strategy.successRate = weightedMean(
+        strategy.successRate,
+        strategy.successRate > 0 ? PROVEN_WEIGHT : UNPROVEN_WEIGHT,
+        reward
+      );
+      strategy.avgReward = weightedMean(
+        strategy.avgReward,
+        strategy.avgReward > 0 ? PROVEN_WEIGHT : UNPROVEN_WEIGHT,
+        reward
+      );
     }
 
     return reward;

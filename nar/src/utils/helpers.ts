@@ -5,6 +5,7 @@ export {
   ensureArray,
   errMsg,
   isNil,
+  isPlainObject,
   makeId,
   safeDiv,
   sleep,

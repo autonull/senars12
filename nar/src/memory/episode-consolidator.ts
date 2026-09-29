@@ -8,7 +8,7 @@
  */
 import type { Episode, EpisodeType } from '@senars/util';
 import { selectByPriority, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
-import { AIKRProcessor, type ProcessOptions, type AikrBagOptions } from '../learning/aikr-processor.js';
+import { AIKRProcessor, AikrShell, type ProcessOptions, type AikrBagOptions } from '../learning/aikr-processor.js';
 import { PriorityBag } from '../bag/Bag.js';
 import type { RandomSource } from '../types/primitives.js';
 
@@ -81,90 +81,66 @@ const groupable = (items: readonly EpisodeCandidate[]): Map<string, EpisodeCandi
 const signature = (e: Episode): string =>
   `${e.type}|${String((e.metadata as { correlationId?: unknown } | undefined)?.correlationId ?? '')}`;
 
-export class EpisodeConsolidator {
-  readonly #bag: PriorityBag<EpisodeCandidate>;
-  readonly #processor: AIKRProcessor<EpisodeCandidate, ConsolidationResult>;
+export class EpisodeConsolidator extends AikrShell<EpisodeCandidate, ConsolidationResult, string, Episode> {
   readonly #maxMerged: number;
-  readonly #budget: number;
   #emit?: (summary: Episode) => Promise<void> | void;
   readonly #summarizeWithLM?: (group: readonly Episode[]) => Promise<string>;
   readonly #clock: () => number;
 
   constructor(options: EpisodeConsolidatorOptions = {}) {
-    this.#maxMerged = options.maxMerged ?? 6;
-    this.#budget = options.budget ?? 8;
-    this.#emit = options.emit;
-    this.#summarizeWithLM = options.summarizeWithLM;
-    this.#clock = options.clock ?? Date.now;
-    this.#bag = new PriorityBag<EpisodeCandidate>({
+    const bag = new PriorityBag<EpisodeCandidate>({
       capacity: options.capacity ?? 256,
       forgetRate: options.forgetRate,
       rng: options.rng,
       clock: options.clock,
     });
-    this.#processor = new AIKRProcessor<EpisodeCandidate, ConsolidationResult>({
-      bag: this.#bag,
-      pressureThreshold: options.pressureThreshold ?? 0.7,
-      rng: options.rng,
-      samplingStrategy: {
-        name: 'groupable-priority',
-        select: (items, budget) => {
-          const byKey = groupable(items);
-          const groupableItems: EpisodeCandidate[] = [];
-          for (const bucket of byKey.values()) {
-            if (bucket.length < 2) continue;
-            groupableItems.push(...bucket);
-          }
-          return selectByPriority(groupableItems, budget);
+    super({
+      bag,
+      budget: options.budget ?? 8,
+      view: (candidate) => candidate.id,
+      admit: (episode) => ({
+        id: episode.id ?? `${episode.timestamp}:${episode.content.slice(0, 32)}`,
+        priority: episodeSalience(episode) * (1 + causalConnections(episode)),
+        episode,
+      }),
+      processor: new AIKRProcessor<EpisodeCandidate, ConsolidationResult>({
+        bag,
+        pressureThreshold: options.pressureThreshold ?? 0.7,
+        rng: options.rng,
+        samplingStrategy: {
+          name: 'groupable-priority',
+          select: (items, budget) => {
+            const byKey = groupable(items);
+            const groupableItems: EpisodeCandidate[] = [];
+            for (const bucket of byKey.values()) {
+              if (bucket.length < 2) continue;
+              groupableItems.push(...bucket);
+            }
+            return selectByPriority(groupableItems, budget);
+          },
         },
-      },
-      process: (items, signal) => this.#consolidate(items, signal),
+        process: (items, signal) => this.#consolidate(items, signal),
+      }),
     });
-  }
-
-  /** Stage 1 — admit (bag enforces capacity + priority eviction). */
-  admit(episode: Episode): boolean {
-    return this.#bag.add({
-      id: episode.id ?? `${episode.timestamp}:${episode.content.slice(0, 32)}`,
-      priority: episodeSalience(episode) * (1 + causalConnections(episode)),
-      episode,
-    });
+    this.#maxMerged = options.maxMerged ?? 6;
+    this.#emit = options.emit;
+    this.#summarizeWithLM = options.summarizeWithLM;
+    this.#clock = options.clock ?? Date.now;
   }
 
   /** Stages 3–5 — sample groupable episodes, merge, emit summaries. */
-  async consolidate(options: ProcessOptions = {}): Promise<ConsolidationResult[]> {
-    return this.#processor.process({ ...options, budget: options.budget ?? this.#budget });
+  consolidate(options: ProcessOptions = {}): Promise<ConsolidationResult[]> {
+    return this.drain(options);
   }
 
   /** Inert below the pressure threshold (AIKR budget conservation). */
-  async consolidateIfPressured(options: ProcessOptions = {}): Promise<ConsolidationResult[]> {
-    return this.#processor.processIfPressured({
-      ...options,
-      budget: options.budget ?? this.#budget,
-    });
-  }
-
-  /** Stage 6 — decay (forget stale episodes). */
-  decay(rate?: number): void {
-    this.#processor.decay(rate);
+  consolidateIfPressured(options: ProcessOptions = {}): Promise<ConsolidationResult[]> {
+    return this.drainIfPressured(options);
   }
 
   /** Wire the summary sink post-construction (integrator owns persistence). */
   setSink(emit: (summary: Episode) => Promise<void> | void): void {
     this.#emit = emit;
-  }
-
-  get pressure(): number {
-    return this.#processor.pressure();
-  }
-
-  get size(): number {
-    return this.#bag.size();
-  }
-
-  /** Bounded introspection: candidate ids currently bagged (diagnostics/tests). */
-  peek(): string[] {
-    return [...this.#bag.all()].map((i) => i.id);
   }
 
   async #consolidate(

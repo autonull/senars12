@@ -1,3 +1,4 @@
+import { LruCache } from '@senars/util';
 import type { Term } from '../terms';
 import { termParser } from '../terms';
 
@@ -69,7 +70,14 @@ export const normalizeNarsese = (input: string): string => {
     : normalized;
 };
 
-const parseCache = new Map<string, Term | null>();
+/**
+ * Parse results are keyed on raw ingress text, so the cache is an untrusted
+ * input surface: without a capacity bound a distinct utterance per request
+ * grows it without limit. `LruCache` restores the AIKR bound and keeps the
+ * hot firewall path allocation-free on a hit.
+ */
+const PARSE_CACHE_CAP = 2048;
+const parseCache = new LruCache<string, Term | null>(PARSE_CACHE_CAP);
 
 /** Parse with normalization; cached for firewall hot paths. Null when unparseable. */
 export const parseNarseseLenient = (narsese: string): Term | null => {

@@ -1,11 +1,15 @@
 import { selectTopN } from '../../utils/collections.js';
 
+/** Newest sample carries 10% of the mean; the rest is the retained 90%. */
+const EWMA_WEIGHT = 9;
+
 /**
  * RuleGraph — composite LM-rule strategy using ConceptGraph co-activation edges.
  * Registered as 'lm-graph' strategy in CognitiveRegistry.
  * Fallback edges guarantee non-regression when LM rules fail.
  */
 
+import { weightedMean } from '@senars/util';
 import { ConceptGraph, type CoActivationEdge } from '@senars/core/concept-graph';
 import { singleton, type StrategyRegistry } from '../registration.js';
 import type {
@@ -57,8 +61,8 @@ export class RuleGraph implements LMRuleSelector {
       avgLatencyMs: latencyMs,
       lastUsed: Date.now(),
     };
-    perf.successRate = perf.successRate * 0.9 + (success ? 0.1 : 0);
-    perf.avgLatencyMs = perf.avgLatencyMs * 0.9 + latencyMs * 0.1;
+    perf.successRate = weightedMean(perf.successRate, EWMA_WEIGHT, success ? 1 : 0);
+    perf.avgLatencyMs = weightedMean(perf.avgLatencyMs, EWMA_WEIGHT, latencyMs);
     perf.lastUsed = Date.now();
     this.rulePerformance.set(ruleId, perf);
   }

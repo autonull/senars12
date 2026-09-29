@@ -4,6 +4,7 @@
  * Run with: pnpm exec tsx benchmarks/rule-dispatch.ts
  */
 
+import { mean } from '@senars/util';
 import { atom, RuleProcessor, TermBuilder, Truth } from '../src';
 
 const processor = new RuleProcessor();
@@ -31,7 +32,7 @@ for (let run = 0; run < 5; run++) {
   measurements.push(elapsed / iterations);
 }
 
-const avg = measurements.reduce((a, b) => a + b, 0) / measurements.length;
+const avg = mean(measurements);
 const min = Math.min(...measurements);
 const max = Math.max(...measurements);
 

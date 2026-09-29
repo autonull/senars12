@@ -5,7 +5,7 @@ import { createGridWorldGame, SeededRNG, type Game } from '@senars/nar/game';
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { verifyRecord } from '../../scripts/verify-derivation.js';
+import { verifyRecord } from '@senars/kernel/verify-derivation';
 import {
   isResumable,
   loadSession,
@@ -159,7 +159,7 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
     expect(justifications.length).toBeGreaterThanOrEqual(1);
     for (const record of justifications) {
       const result = verifyRecord(record, { strict: true, epsilon: 1e-6 });
-      expect(result.passed).toBe(true);
+      expect(result.ok).toBe(true);
     }
   });
 
