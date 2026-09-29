@@ -486,8 +486,8 @@ its configured variant cannot drift. Benches 100 and 101 assert both projections
   `complexity:budget` currently cannot see it (the maps are in `cognitive/`, not a trusted path).
   **✅ Phase G** — a 64-entry `BoundedCache` LRU over tiers 1 and 2, reported by
   `registry.memoizedSize(type)`.
-- **`AdaptiveStrategy` is still exported and still unreachable.** If nothing wires it, it should go
-  in a future major with a deprecation cycle (AGENTS.md §Deprecation lifecycle).
+- ~~**`AdaptiveStrategy` is still exported and still unreachable.**~~ Resolved in Phase I: removed
+  outright (`ba939629`), without the deprecation cycle §13.3 specified. See §20.6.
 - **`describeSpec` is the only way to render a spec,** and three call sites still build their own
   rendering (the parameter ledger takes `number | string`). **✅ Phase G** — `composedName` delegates
   to it; the other two turned out not to render a spec, so the count is one, not three.
@@ -1093,7 +1093,10 @@ it did not recur across the two full runs that followed, nor across 8 isolated r
 - **A cognitive-parameter file loader**, so the `senars replay` CLI and any other out-of-process
   consumer can name the parameters a run used. It is the missing half of both 18.1 and 18.2.
 - **An OTel meter**, for the same reason: `memoSize` on a span event is a sample, not a series.
-- **`AdaptiveStrategy` / `SwitchingStrategy`** — deprecated in Phase H, removed in 2.0.
+- **`AdaptiveStrategy` / `SwitchingStrategy`** — **no longer open: both were removed outright in
+  Phase I (`ba939629`), not deprecated.** §13.3 promised a `@deprecated` marker, two minors of
+  availability, and removal in 2.0. Phase I skipped all three. See §20.6 — this is a policy
+  violation to settle at release time, not a code task.
 - **`bandit` returns `pass: false` from `rl-parity.ts`** at 20 seeds while the test's own acceptance
   is 2/3 seed passes (§16.4). Two rules in two places; unify when either moves.
 
@@ -1247,3 +1250,23 @@ them. That, plus the NAL/derivation/ReasoningGame benches, is the evidence about
   ambiguity and the bench checks that candidates come back, not that the right one wins. Making that
   a measurement is a real project with a scoring decision in it.
 - No deterministic gate on the real-provider lanes; the temperature problem is unsolved.
+
+### 20.6 Release blocker this line of work created (found 2026-09-29)
+
+Asking "what is the honest state" meant grepping for the items §13.3 and §10 still listed as open,
+and two of them are not open — they were *done*, badly, a while ago:
+
+- **Phase I (`ba939629`) removed public exports outright.** `AdaptiveStrategy` and
+  `SwitchingStrategy` (both exported and tested at `bef760db`), plus `Reasoner`, `BagStrategy`,
+  `ExhaustiveStrategy` and the `ReasonerConfig` type from the `nar` barrel. `nar/package.json` is
+  still **0.6.0**.
+- AGENTS.md is explicit: *a removed or renamed public export is a major change*, and the lifecycle is
+  mark `@deprecated` → two minors → remove in the next major. §13.3 wrote that promise down for
+  `AdaptiveStrategy`/`SwitchingStrategy` ("Removal in 2.0, not before") and then Phase I removed them
+  in the same plan, without the marker, without the minors, and at a minor version.
+- `pnpm exports:audit` cannot catch this: it checks that declared subpaths have consumers, not that
+  removals were versioned. So the gate was green throughout and the violation was invisible to it.
+
+What this costs is a call I should not make silently: either `nar` goes to 1.0.0 (major, honest) or
+the removals are restored behind a deprecation cycle. It is a release decision, recorded here as a
+blocker for whoever versions the next release.
