@@ -16,7 +16,7 @@ import type { Bag } from '@senars/nar/bag';
 import { Memory, TermBuilder, Truth } from '../../nar/src';
 import { WindowedRouletteStrategy } from '../../nar/src/strategies/sampling/WindowedRoulette.js';
 import { PrioritySampling } from '../../nar/src/strategies/sampling/PrioritySampling.js';
-import { ProofMettaProposer } from '../../nar/src/meta/metta-proposer.js';
+import { ProofMettaProposer } from '../../nar/src/meta/ProofMettaProposer.js';
 import { GovernanceResolver } from '../../nar/src/governance/pipeline.js';
 import { createCapabilityOntology } from '../../nar/src/capability/ontology.js';
 import type { CapabilitySchema } from '../../nar/src/capability/ontology.js';

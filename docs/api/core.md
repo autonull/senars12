@@ -880,6 +880,8 @@ _Re-export barrel._
 
 - `VerifyOptions`
 
+- `VERIFIER_TRUTH_TABLE` — The transcribed table, exported so the drift test can compare it against the
+
 - `formatFinding`
 
 - `verifyRecord` — Verify a derivation record end to end. Shape is checked against the schema

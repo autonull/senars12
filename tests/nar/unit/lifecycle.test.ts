@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BaseComponent, Container } from '../../../nar/src';
-import { createLogger } from '../../../nar/src/logger/index.js';
+import { createLogger } from '@senars/core/logger';
 import { MetricsCollector } from '../../../nar/src/metrics';
 import { EventBus } from '../../../nar/src/types';
 

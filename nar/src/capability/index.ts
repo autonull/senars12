@@ -20,5 +20,5 @@ export {
   DEFAULT_SANDBOX_TIMEOUT_MS,
   SandboxTimeoutError,
   sanitizePreopens,
-  withTimeout,
+  withSandboxTimeout,
 } from './wasi-sandbox.js';

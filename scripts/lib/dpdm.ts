@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { ROOT } from './root.js';
 
 /** Source roots analysed for circular imports by every dpdm-based gate. */
-export const DPDM_TARGETS = ['src/', 'core/src/', 'nar/src/', 'io/src/', 'metta/src/'];
+export const DPDM_TARGETS = ['src/', 'core/src/', 'io/src/', 'metta/src/', 'nar/src/', 'util/src/'];
 
 /**
  * Raw circular dependency chains from dpdm. `--transform` resolves types through

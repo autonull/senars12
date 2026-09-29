@@ -16,6 +16,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm deps:gate
+      # TODO28 §4.2: deps:gate counts cycles and cannot see an inversion.
+      - run: pnpm deps:direction
       # TODO20 A1: no export without a consumer (or PUBLIC_API declaration)
       - run: pnpm exports:audit
       # TODO20 §5s: generated docs must match committed output (drift gate)
@@ -24,6 +26,19 @@ jobs:
           pnpm docs:architecture
           git diff --exit-code docs/api docs/architecture
       - run: pnpm test:unit
+  determinism:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Needs no model, and gates the seeded-RNG paths the whole reasoning line
+      # of work touches — the cheapest missing gate in the repository.
+      - run: pnpm test:determinism
   systemone-slo:
     runs-on: ubuntu-latest
     steps:

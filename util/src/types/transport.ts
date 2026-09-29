@@ -68,16 +68,6 @@ export interface ConnectionFactory {
   create(config: ConnectionConfig, deps: ConnectionDeps): Connection;
 }
 
-/**
- * @deprecated since 0.7.0 — use `ScopedLogger` for the type, or the `Logger`
- * class from `@senars/util` for an implementation. This alias resolves to
- * `ScopedLogger`, so importing it alongside the root barrel's `Logger` gives
- * two different types under one name. Nothing in the repo imports it; the
- * alias survived because `ScopedLogger` and `Logger` were separate
- * declarations until TODO27 collapsed them onto one. Removal in 1.0.
- */
-export type Logger = ScopedLogger;
-
 export interface ConnectionDeps {
   readonly emit: (event: string, data: unknown) => void;
   readonly logger: ScopedLogger;

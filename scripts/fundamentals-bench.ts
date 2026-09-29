@@ -22,7 +22,7 @@ import { ShadowValidator } from '@senars/nar/lm/shadow-validation';
 import { attemptLMCorrection } from '@senars/nar/cognitive/corrections';
 import { NLUnderstandingService } from '@senars/nar/nl';
 import { TranslationCache } from '@senars/nar/nl/cache.js';
-import { createLogger } from '@senars/nar/logger';
+import { createLogger } from '@senars/core/logger';
 import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate';
 import { termParser, Truth, Stamp, type Term, type TaskType, type Task, type TruthType } from '@senars/nar';
 import { strict as assert } from 'node:assert';

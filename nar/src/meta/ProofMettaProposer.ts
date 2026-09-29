@@ -2,7 +2,8 @@
  * ProofMettaProposer — learns MeTTa rules from ProofStream via PerceptionGate.SELF_METTA.
  * Refactorer inlines them via the `metta` tool.
  * Closes the MeTTa↔NAL arbiter loop on system's own proofs.
- * Renamed from MettaProposer to avoid collision with reflex/metta-proposer.ts (C13).
+ * Named for its class, per the file-naming rule in AGENTS.md; its sibling is
+ * reflex/MettaProposer.ts and the vote they share is reflex/algebra-vote.ts.
  * Implements IProposer for use in Negotiator.
  */
 
@@ -11,7 +12,7 @@ import type { DerivationRecord, DerivationStep } from '@senars/core/derivation-s
 import type { Term } from '../terms/index.js';
 import { termParser, serializeTerm, TermBuilder } from '../terms/index.js';
 import { substituteVariables } from '../terms/substitute.js';
-import { agreeByExactAlgebra } from '../reflex/metta-proposer.js';
+import { agreeByExactAlgebra } from '../reflex/algebra-vote.js';
 import type { IProposer, NegotiationInput, ProposerContribution } from '../reflex/Negotiator.js';
 import type { ActionProposal, LearningEvent } from '../reflex/Reflex.js';
 

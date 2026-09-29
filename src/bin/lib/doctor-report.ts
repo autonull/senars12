@@ -33,7 +33,7 @@ import {
   resolveLMConfig,
   resolveLMSettings,
 } from '@senars/nar/lm/env-config.js';
-import { createLogger } from '@senars/nar/logger';
+import { createLogger } from '@senars/core/logger';
 import { createBotNAR } from '@senars/nar';
 import { runHealthChecks } from '@senars/nar/health';
 import { loadConfig } from '../../config/index.js';

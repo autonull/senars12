@@ -9,7 +9,7 @@
  */
 
 import { parseFlags } from '@senars/util';
-import { createLogger } from '@senars/nar/logger';
+import { createLogger } from '@senars/core/logger';
 import { appConfigSchema, loadConfig } from '../config/index.js';
 import { resolveLMSettings, resolveLMConfig } from '@senars/nar/lm';
 

@@ -16,7 +16,7 @@ import { NARBuilder } from '@senars/nar/agent/builder';
 import { HEAD_SPECS } from '@senars/nar/lm/system-one/head-specs.js';
 import { SystemOneManifold } from '@senars/nar/lm/system-one/manifold.js';
 import { systemOneDefaults, systemOneSchema } from '../../config/schema.js';
-import { createLogger } from '@senars/nar/logger';
+import { createLogger } from '@senars/core/logger';
 import { formatBudgetSliceTree, collectBudgetSlices, type BudgetSlice } from '@senars/core/budget';
 import { errMsg, parseFlags } from '@senars/util';
 import { CALIBRATION_LOCK_PATH } from '@senars/nar/lm/system-one/calibration-fit.js';

@@ -36,7 +36,6 @@ graph TD
   lm_service["lm/service"]
   lm_system-one["lm/system-one"]
   lm_system-one_heads["lm/system-one/heads"]
-  logger["logger"]
   memory["memory"]
   memory_lifecycle["memory/lifecycle"]
   memory_links["memory/links"]
@@ -57,7 +56,6 @@ graph TD
   rules["rules"]
   rules_extended["rules/extended"]
   rules_nal["rules/nal"]
-  schemas["schemas"]
   self["self"]
   state["state"]
   strategies["strategies"]
@@ -91,7 +89,6 @@ graph TD
   _ --> lifecycle
   _ --> lm
   _ --> lm_system-one
-  _ --> logger
   _ --> memory
   _ --> meta
   _ --> nl
@@ -167,7 +164,6 @@ graph TD
   facade --> lm_rule
   facade --> lm_rule-selectors
   facade --> lm_system-one
-  facade --> logger
   facade --> memory
   facade --> meta
   facade --> metrics
@@ -358,7 +354,6 @@ graph TD
   rules_extended --> rules
   rules_extended --> rules_nal
   rules_nal --> rules
-  schemas --> nl
   self --> cognitive
   self --> imagination
   self --> lm_service
@@ -418,7 +413,6 @@ graph TD
   tools --> types
   tools --> utils
   tools_adapters --> capability
-  tools_adapters --> logger
   tools_adapters --> memory
   tools_adapters --> nl
   tools_adapters --> tools_adapters_self

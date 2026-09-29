@@ -80,15 +80,22 @@ describe('Bench 99 — complexity budget gate', () => {
     expect(result.stdout).toContain('FAIL');
   });
 
-  it('fails when unbounded accumulators > 0', { timeout: 60000 }, () => {
+  it('holds every audited accumulator site bounded', { timeout: 60000 }, () => {
+    // The rule is an absolute `=== 0` check, so it cannot be induced from the
+    // config. Assert the real invariant instead: the declared ledger is fully
+    // bounded, and an empty ledger cannot pass as coverage.
+    const result = runGate(originalBudget);
+    expect(result.stdout).toMatch(/Unbounded accumulator sites\s*│\s*0\s*│\s*0\s*│\s*PASS/);
+    expect(result.stdout).toMatch(/Accumulators audited\s*│\s*\d+\s*│\s*\d+\s*│\s*PASS/);
+  });
+
+  it('fails when the audited accumulator set shrinks', { timeout: 60000 }, () => {
     const budget = JSON.parse(originalBudget);
-    budget.baseline.unboundedAccumulators = -1; // impossible baseline to test logic
-    // Current state has 0 unbounded accumulators, so gate should pass this metric
-    // But typecheck:bin errors will cause overall failure
+    budget.baseline.accumulatorsAudited = 99; // more sites than the ledger can hold
     const result = runGate(JSON.stringify(budget, null, 2));
-    // Gate fails overall due to typecheck:bin errors, but unbounded accumulators should show PASS
-    expect(result.stdout).toContain('Unbounded accumulators');
-    expect(result.stdout).toContain('PASS');
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain('Accumulators audited');
+    expect(result.stdout).toContain('FAIL');
   });
 
   it('fails when deps:gate raw chains increase', { timeout: 60000 }, () => {

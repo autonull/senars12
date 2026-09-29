@@ -34,7 +34,7 @@ export function sanitizePreopens(paths: string[] = []): Record<string, string> {
 }
 
 /** Rejects with {@link SandboxTimeoutError} when the sandbox deadline elapses. */
-export const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> =>
+export const withSandboxTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> =>
   sharedWithTimeout(promise, timeoutMs, () => new SandboxTimeoutError(timeoutMs));
 
 export { containsPath };
@@ -63,7 +63,7 @@ export async function createWasiSandbox(
   // created here — closures run on the host, unlike createWasmModuleSandbox).
   void options;
   return async <T>(fn: () => Promise<T>): Promise<T> =>
-    withTimeout(fn(), options.timeoutMs ?? DEFAULT_SANDBOX_TIMEOUT_MS) as Promise<T>;
+    withSandboxTimeout(fn(), options.timeoutMs ?? DEFAULT_SANDBOX_TIMEOUT_MS) as Promise<T>;
 }
 
 export interface WasmModuleOptions {

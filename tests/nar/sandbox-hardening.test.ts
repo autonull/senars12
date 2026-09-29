@@ -4,7 +4,7 @@ import {
   createNodeVMSandbox,
   SandboxTimeoutError,
   sanitizePreopens,
-  withTimeout,
+  withSandboxTimeout,
 } from '@senars/nar/capability';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -27,9 +27,9 @@ describe('sandbox hardening', () => {
     expect(() => assertWasmPathContained('/anywhere/mod.wasm')).not.toThrow();
   });
 
-  it('withTimeout rejects slow executions', async () => {
-    await expect(withTimeout(Promise.resolve('fast'), 1000)).resolves.toBe('fast');
-    await expect(withTimeout(new Promise(() => {}), 20)).rejects.toBeInstanceOf(
+  it('withSandboxTimeout rejects slow executions', async () => {
+    await expect(withSandboxTimeout(Promise.resolve('fast'), 1000)).resolves.toBe('fast');
+    await expect(withSandboxTimeout(new Promise(() => {}), 20)).rejects.toBeInstanceOf(
       SandboxTimeoutError
     );
   });

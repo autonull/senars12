@@ -170,8 +170,8 @@ describe.skipIf(!process.env.VITEST_PARITY)('RL Parity Restoration — Live Asse
     console.log(`  Minimum aggregate ratio: ${minRatio.toFixed(3)}`);
 
     // At least 2 of 3 environments should meet both criteria (allowing for variance)
-    const environmentsMeetingBoth = allResults.filter(
-      r => r.ratio >= ACCEPTANCE[r.env]!.minAggregateRatio && r.seedPassRate >= ACCEPTANCE[r.env]!.minSeedPassRate
+    const environmentsMeetingBoth = allResults.filter(r =>
+      parityAcceptance.meetsParityAcceptance(r.env, r.ratio, r.seedPassRate)
     ).length;
     
     console.log(`  Environments meeting both criteria: ${environmentsMeetingBoth}/3`);
@@ -181,7 +181,10 @@ describe.skipIf(!process.env.VITEST_PARITY)('RL Parity Restoration — Live Asse
     // GridWorld must always pass (it's the primary env fixed in TODO11)
     const gridworld = allResults.find(r => r.env === 'gridworld');
     const gwAcceptance = ACCEPTANCE.gridworld!;
-    expect(gridworld?.ratio).toBeGreaterThanOrEqual(gwAcceptance.minAggregateRatio);
-    expect(gridworld?.seedPassRate).toBeGreaterThanOrEqual(gwAcceptance.minSeedPassRate);
+    expect(gridworld).toBeDefined();
+    expect(
+      parityAcceptance.meetsParityAcceptance('gridworld', gridworld!.ratio, gridworld!.seedPassRate)
+    ).toBe(true);
+    expect(gwAcceptance.minSeedPassRate).toBe(2 / 3);
   });
 });

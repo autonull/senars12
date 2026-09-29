@@ -8,7 +8,7 @@
 
 import { NARBuilder } from '@senars/nar/agent/builder';
 import { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
-import { createLogger } from '@senars/nar/logger';
+import { createLogger } from '@senars/core/logger';
 import { initializeMetaReasoning, registerMetaRules } from '@senars/nar/rules';
 import { initializeSelfConcept } from '@senars/nar/tools';
 import { bar, divider, formatNarseseTruth, mean, pct } from '@senars/util';

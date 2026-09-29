@@ -37,9 +37,28 @@
 
 - Use `pnpm`, not `npm`
 
+## File naming
+
+- A file whose exported name is a type — `Game`, `BanditReflex`, `TetrisGame` — is
+  `PascalCase.ts`.
+- Everything else is `kebab-case.ts`: helpers, registries, schemas, configs, barrels.
+- A file exporting one class *and* its config type keeps the class's name
+  (`TetrisGame.ts` exports `TetrisGameConfig`).
+- No file name is an initialism run together. `LMRule.ts` is the exception and is
+  deliberate — the domain says LM, not Lm.
+- A directory holds one concept: the contract at the top, implementations under
+  `impls/` (or named subdirectories, as `strategies/` does). `Game.ts` sits beside
+  `registry.ts`, not beside fourteen games.
+
 ## Versioning & Deprecation Policy (TODO20 A3/A4)
 
-**Semver (per `@senars/*` package):**
+**The packages are not published and have no external consumers, so every
+`@senars/*` version is `0.0.0` and the semver/deprecation lifecycle below does not
+apply to anything in this repository.** A removed or renamed public export is
+therefore just a change. The policy is kept for the export-surface rules, which do
+apply, and as the shape to follow if publication ever happens.
+
+**Semver (per `@senars/*` package), if that ever happens:**
 - Breaking change (removed/renamed public export, changed signature): **major**
 - New public export (declared in `exports` map, consumed per `pnpm exports:audit`): **minor**
 - Internal refactor (no export-surface delta): **patch**
@@ -51,10 +70,9 @@
 - Internal code imports via relative paths, not package specifiers — the exports map
   is the *declared public API*, not an internal shortcut.
 
-**Deprecation lifecycle:**
+**Deprecation lifecycle (if publication ever happens):**
 1. Mark with a JSDoc `@deprecated since X.Y — <replacement>` tag (lints in editors, greppable).
 2. Keep the old path working for **2 minors**.
 3. Remove in the next major; the removal is the breaking change.
 - Case studies: `SeNARSFactory` deleted outright (TODO19 — pre-policy); `ollama` provider
-  retired via alias-to-`openai-compatible` at the settings boundary (§5f of TODO20);
-  `memory.derivationDepth` alias is the current live deprecation.
+  retired via alias-to-`openai-compatible` at the settings boundary (§5f of TODO20).

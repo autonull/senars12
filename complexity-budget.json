@@ -5,7 +5,8 @@
     "productionLOC": 73705,
     "appendOnlyPersistenceSites": 12,
     "aikrProcessorCoverage": 5,
-    "unboundedAccumulators": 0,
+    "unboundedAccumulatorSites": 0,
+    "accumulatorsAudited": 2,
     "depsGateRawChains": 277,
     "typecheckBinErrors": 0,
     "workspaceCount": 6
@@ -15,7 +16,8 @@
     "productionLOC": "mustDecreaseOrJustify",
     "appendOnlyPersistenceSites": "mustNotIncrease",
     "aikrProcessorCoverage": "mustNotDecrease",
-    "unboundedAccumulators": "mustRemainZero",
+    "unboundedAccumulatorSites": "mustRemainZero",
+    "accumulatorsAudited": "mustNotDecrease",
     "depsGateRawChains": "mustNotIncrease",
     "typecheckBinErrors": "mustRemainZero",
     "workspaceCount": "fixed"

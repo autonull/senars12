@@ -9,6 +9,7 @@
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { ACCUMULATOR_LEDGER } from './lib/accumulator-ledger.js';
 import { countCircularChains } from './lib/dpdm.js';
 import { readExports } from './lib/pkg.js';
 import { ROOT } from './lib/root.js';
@@ -18,7 +19,8 @@ interface Baseline {
   productionLOC: number;
   appendOnlyPersistenceSites: number;
   aikrProcessorCoverage: number;
-  unboundedAccumulators: number;
+  unboundedAccumulatorSites: number;
+  accumulatorsAudited: number;
   depsGateRawChains: number;
   typecheckBinErrors: number;
   workspaceCount: number;
@@ -39,7 +41,7 @@ function loadBudget(): BudgetConfig {
 }
 
 function countExportSubpaths(): number {
-  const packages = ['nar', 'util', 'core', 'io', 'metta', 'kernel'];
+  const packages = ['nar', 'util', 'core', 'io', 'metta'];
   let total = 0;
   for (const pkg of packages) {
     total += Object.keys(readExports(ROOT, pkg)).length;
@@ -50,7 +52,7 @@ function countExportSubpaths(): number {
 function countProductionLOC(): number {
   try {
     const out = execSync(
-      'pnpm dlx cloc --json nar/src core/src metta/src util/src io/src kernel/src src',
+      'pnpm dlx cloc --json nar/src core/src metta/src util/src io/src src',
       {
         cwd: ROOT,
         encoding: 'utf-8',
@@ -120,26 +122,17 @@ function countAIKRProcessorCoverage(): number {
   }
 }
 
-function countUnboundedAccumulators(): number {
-  // Check SourceReputation and QBeliefStore for capacity-bounded implementations
-  let count = 0;
-  try {
-    // SourceReputation / QBeliefStore: every entry lives in an LruCache with a
-    // capacity bound — the shared eviction primitive is what keeps them bounded.
-    for (const rel of ['nar/src/kernel/source-reputation.ts', 'nar/src/rl/q-belief-store.ts']) {
-      const path = join(ROOT, rel);
-      if (!existsSync(path)) {
-        count++;
-        continue;
-      }
-      const content = readFileSync(path, 'utf-8');
-      if (!content.includes('LruCache') || !/LruCache\(\{[^}]*maxSize/.test(content)) count++;
-    }
-  } catch {
-    // If files don't exist or error, assume unbounded
-    count = 2;
-  }
-  return count;
+/**
+ * Ledger entries whose container is not capacity-bounded. The audited set is
+ * `ACCUMULATOR_LEDGER` — see that module for why it is data and not a scan.
+ */
+function countUnboundedAccumulatorSites(): number {
+  return ACCUMULATOR_LEDGER.filter(({ file }) => {
+    const path = join(ROOT, file);
+    if (!existsSync(path)) return true;
+    const content = readFileSync(path, 'utf-8');
+    return !content.includes('LruCache') || !/LruCache\(\{[^}]*maxSize/.test(content);
+  }).length;
 }
 
 function countDepsGateRawChains(): number {
@@ -204,7 +197,8 @@ function main(): void {
     productionLOC: countProductionLOC(),
     appendOnlyPersistenceSites: countAppendOnlyPersistenceSites(),
     aikrProcessorCoverage: countAIKRProcessorCoverage(),
-    unboundedAccumulators: countUnboundedAccumulators(),
+    unboundedAccumulatorSites: countUnboundedAccumulatorSites(),
+    accumulatorsAudited: ACCUMULATOR_LEDGER.length,
     depsGateRawChains: countDepsGateRawChains(),
     typecheckBinErrors: countTypecheckBinErrors(),
     workspaceCount: countWorkspaces(),
@@ -260,15 +254,25 @@ function main(): void {
   });
   if (current.aikrProcessorCoverage < baseline.aikrProcessorCoverage) failed = true;
 
-  // Unbounded accumulators: must reach 0
+  // Unbounded accumulators on the audited ledger: must reach 0
   results.push({
-    metric: 'Unbounded accumulators (trusted path)',
-    baseline: baseline.unboundedAccumulators,
-    current: current.unboundedAccumulators,
-    status: current.unboundedAccumulators === 0 ? 'PASS' : 'FAIL',
-    rule: budget.rules.unboundedAccumulators,
+    metric: 'Unbounded accumulator sites',
+    baseline: baseline.unboundedAccumulatorSites,
+    current: current.unboundedAccumulatorSites,
+    status: current.unboundedAccumulatorSites === 0 ? 'PASS' : 'FAIL',
+    rule: budget.rules.unboundedAccumulatorSites,
   });
-  if (current.unboundedAccumulators > 0) failed = true;
+  if (current.unboundedAccumulatorSites > 0) failed = true;
+
+  // Accumulators audited: the ledger may grow, never shrink
+  results.push({
+    metric: 'Accumulators audited',
+    baseline: baseline.accumulatorsAudited,
+    current: current.accumulatorsAudited,
+    status: current.accumulatorsAudited >= baseline.accumulatorsAudited ? 'PASS' : 'FAIL',
+    rule: budget.rules.accumulatorsAudited,
+  });
+  if (current.accumulatorsAudited < baseline.accumulatorsAudited) failed = true;
 
   // deps:gate raw chains: must not increase
   results.push({

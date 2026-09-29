@@ -2,7 +2,7 @@ import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
 
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { assertWasmPathContained, withTimeout } from '../../capability/wasi-sandbox.js';
+import { assertWasmPathContained, withSandboxTimeout } from '../../capability/wasi-sandbox.js';
 import { ensureDir } from '../../utils/fs.js';
 import { DigestMismatchError } from './wasi-runtime.js';
 
@@ -206,7 +206,7 @@ export async function loadHeadBundle(options: {
         throw new Error(`Head bundle expects ${dimension} inputs, got ${embedding.length}`);
       }
       new Float32Array(memory.buffer, 0, dimension).set(embedding);
-      return await withTimeout(
+      return await withSandboxTimeout(
         Promise.resolve(evalHead(0)),
         options.timeoutMs ?? DEFAULT_EVAL_TIMEOUT_MS
       );

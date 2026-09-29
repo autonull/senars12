@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { errMsg, LruCache, tokenizeWords } from '@senars/util';
-import { createLogger } from '../logger';
+import { createLogger } from '@senars/core/logger';
 import { readJsonFileSync, writeJsonFileSync } from '../utils/fs.js';
 
 export interface TranslationCacheEntry {

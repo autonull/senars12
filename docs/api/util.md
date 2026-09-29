@@ -528,8 +528,6 @@
 
 - `ConnectionFactory`
 
-- `Logger` — class from `@senars/util` for an implementation. This alias resolves to
-
 - `ConnectionDeps`
 
 - `TransportDeps`

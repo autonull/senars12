@@ -22,7 +22,7 @@ import { containsSubterm, getSubject, type Term, termParser, termsEqual, Truth }
 import { discoverTools } from '../tools';
 import { createSelfTools } from '../tools/adapters/self-tools.js';
 import type { Tool } from '../tools';
-import { createLogger } from '../logger/index.js';
+import { createLogger } from '@senars/core/logger';
 import { errMsg } from '../utils';
 
 const logger = createLogger({ scope: 'nar:facade' });

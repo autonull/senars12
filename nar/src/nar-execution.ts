@@ -4,7 +4,7 @@ import { envBool } from '@senars/util/config';
 import type { CognitiveController } from './cognitive';
 import type { DriveManager } from './drives';
 import { type GateRegistry, gateRegistry } from './kernel/GateRegistry.js';
-import { createLogger } from './logger/index.js';
+import { createLogger } from '@senars/core/logger';
 import type { Memory } from './memory';
 import type { NARConfig } from './facade/config.js';
 import type { PolicyOptimizer, RLFPLearner } from './rlfp';

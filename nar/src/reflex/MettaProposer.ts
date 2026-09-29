@@ -1,43 +1,15 @@
 /**
- * Phase E (REFACTOR.todo2 §3 tail): `IProposer` over the MeTTa engine.
- * Votes with confidence 1.0 on exact algebraic facts, abstains otherwise.
+ * `IProposer` over the MeTTa engine: votes with confidence 1.0 on exact
+ * algebraic facts, abstains otherwise.
+ *
  * The engine seam is a synchronous evaluator (`(expr) => boolean | null`) —
  * `nar` has no `@senars/metta` dependency, so integrators inject one (the
  * agent's `mettaExecutor` + `Effect.runSync` is the canonical wiring); a null
  * return (engine absent/faulted) means abstain, never a veto.
  */
+import { agreeByExactAlgebra, type MettaEvaluator, type MettaFactSource } from './algebra-vote.js';
 import type { IProposer, NegotiationInput, ProposerContribution } from './Negotiator.js';
-import type { ActionProposal, LearningEvent } from './Reflex.js';
-
-export type MettaEvaluator = (expression: string) => boolean | null;
-
-/**
- * The one MeTTa-agreement vote: re-propose every reflex action the exact engine
- * confirms, at `confidence` and tagged `source`. Never a veto — agreement
- * amplifies, silence abstains. Shared by the live and proof-backed proposers.
- */
-export function agreeByExactAlgebra(
-  input: NegotiationInput,
-  toExpression: MettaFactSource,
-  evaluate: MettaEvaluator,
-  { source, confidence, maxProposals = Number.POSITIVE_INFINITY }: {
-    source: string;
-    confidence: number;
-    maxProposals?: number;
-  }
-): ProposerContribution {
-  const reflex: ActionProposal[] = [];
-  for (const p of input.reflexProposals) {
-    if (reflex.length >= maxProposals) break;
-    const expr = toExpression(p.action);
-    if (expr !== undefined && evaluate(expr) === true) {
-      reflex.push({ ...p, confidence, source });
-    }
-  }
-  return reflex.length > 0 ? { reflex } : {};
-}
-
-export type MettaFactSource = (action: string) => string | undefined;
+import type { LearningEvent } from './Reflex.js';
 
 export interface MettaProposerOptions {
   /**

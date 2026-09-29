@@ -1,5 +1,5 @@
 import type { SeNARSRegistry } from '../../lm';
-import { createLogger } from '../../logger/index.js';
+import { createLogger } from '@senars/core/logger';
 import { NLUnderstandingService } from '../../nl/understanding.js';
 import { clamp01 } from '../../utils';
 import type { ScenarioProfile, ScenarioTemplateProfile } from './scenario-profiles.js';

@@ -1,6 +1,6 @@
 {
   "name": "@senars/nar",
-  "version": "0.6.0",
+  "version": "0.0.0",
   "type": "module",
   "private": true,
   "exports": {
@@ -115,10 +115,6 @@
     "./lm/system-one": {
       "types": "./src/lm/system-one/index.ts",
       "import": "./src/lm/system-one/index.ts"
-    },
-    "./logger": {
-      "types": "./src/logger/index.ts",
-      "import": "./src/logger/index.ts"
     },
     "./memory": {
       "types": "./src/memory/index.ts",

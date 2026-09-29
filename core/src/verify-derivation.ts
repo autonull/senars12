@@ -106,6 +106,14 @@ const UNARY_TRUTH: Record<string, UnaryTruthFn> = {
 };
 
 /**
+ * The transcribed table, exported so the drift test can compare it against the
+ * engine's own arithmetic. Exporting it for that test does not weaken the
+ * independence the header claims: nothing in the engine imports it, so the
+ * verifier's proofs are still computed without the engine's arithmetic.
+ */
+export const VERIFIER_TRUTH_TABLE = { BINARY_TRUTH, UNARY_TRUTH };
+
+/**
  * Map a rule id onto its truth function. Rule ids are namespaced
  * (`nal.deduction`, `structural.conversion`, …), so an exact hit is tried
  * before a substring match. An unmatched id is a skip, never a proof.

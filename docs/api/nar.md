@@ -306,7 +306,7 @@ _Dynamic subpath (no single entry file)._
 
 - `sanitizePreopens`
 
-- `withTimeout` — Rejects with {@link SandboxTimeoutError} when the sandbox deadline elapses.
+- `withSandboxTimeout` — Rejects with {@link SandboxTimeoutError} when the sandbox deadline elapses.
 
 ## `./cognitive`
 
@@ -838,14 +838,6 @@ _Re-export barrel._
 
 - `isProvisionalStamp`
 
-## `./logger`
-
-- `createLogger`
-
-- `defaultLogger`
-
-- `Logger`
-
 ## `./memory`
 
 - `Concept`
@@ -983,6 +975,8 @@ _Re-export barrel._
 - `NalVetoArbitration` — Extracted Negotiator default: reflex best-of with the NAL trap veto (Bench-15).
 
 - `WeightedQuorum` — Consensus arbitration (opt-in): NAL derivations vote on proposed actions
+
+- `agreeByExactAlgebra` — The one MeTTa-agreement vote: re-propose every reflex action the exact engine
 
 - `MettaProposer`
 

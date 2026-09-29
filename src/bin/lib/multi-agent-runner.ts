@@ -5,7 +5,7 @@
 
 import { CLIConnection } from '@senars/io/connections/cli';
 import { WSConnection } from '@senars/io/connections/ws';
-import { createLogger } from '@senars/nar/logger';
+import { createLogger } from '@senars/core/logger';
 import { setupGracefulShutdown } from '@senars/util';
 import type { WiredNAR } from '@senars/nar/agent/builder';
 

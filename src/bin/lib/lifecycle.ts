@@ -15,7 +15,7 @@ import {
   createSeNARSRegistry,
   setRouting,
 } from '@senars/nar/lm';
-import { createLogger } from '@senars/nar/logger';
+import { createLogger } from '@senars/core/logger';
 import { createEmbeddingGenerator } from '@senars/nar/memory/embedding';
 import { EpisodicMemory } from '@senars/nar/memory/episodic';
 import {
