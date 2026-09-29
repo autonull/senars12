@@ -176,7 +176,7 @@ export class ArchitectureDriver {
       trigger,
       proposedFix,
       confidence,
-      narseseBelief: `(${trigger} --> gap_${proposedFix}). %${confidence.toFixed(2)};${confidence.toFixed(2)}%`,
+      narseseBelief: `(${trigger} --> gap_${proposedFix}). ${serializeTruth({ f: confidence, c: confidence }, 2)}`,
       narseseGoal: `(^implement_${proposedFix})!`,
     };
   }
@@ -262,7 +262,7 @@ Implement \`${gap.proposedFix}\` to address the detected architecture gap.
       trigger,
       proposedFix,
       confidence,
-      narseseBelief: `(${trigger} --> gap_${proposedFix}). %${confidence.toFixed(2)};${confidence.toFixed(2)}%`,
+      narseseBelief: `(${trigger} --> gap_${proposedFix}). ${serializeTruth({ f: confidence, c: confidence }, 2)}`,
       narseseGoal: `(^implement_${proposedFix})!`,
     };
   }
@@ -273,4 +273,4 @@ export function createArchitectureDriver(nar: SelfHost, proposalsDir?: string): 
 }
 
 import { ensureParentDir } from '../utils/fs.js';
-import { pct } from '@senars/util';
+import { pct, serializeTruth } from '@senars/util';

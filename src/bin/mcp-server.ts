@@ -11,7 +11,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { DialogueCapture } from '@senars/nar/dialogue';
 import { createLogger } from '@senars/nar/logger';
-import { generateId, setupGracefulShutdown } from '@senars/util';
+import { generateId, parseFlags, setupGracefulShutdown } from '@senars/util';
 import { HttpGuard, rejectWithStatus } from './lib/http-guards.js';
 import { createAgentFromEnv } from './lib/lifecycle.js';
 import { JobManager } from './lib/mcp/job-manager.js';
@@ -32,20 +32,12 @@ const server = new McpServer(serverInfo);
 
 type TransportType = 'stdio' | 'sse' | 'http';
 
-const getTransportType = (): TransportType => {
-  const arg = process.argv.find((a) => a.startsWith('--transport='));
-  if (arg) return arg.split('=')[1] as TransportType;
-  return (process.env.MCP_TRANSPORT as TransportType) ?? 'stdio';
-};
+const flags = parseFlags();
 
-const getHttpPort = (): number => {
-  const arg = process.argv.find((a) => a.startsWith('--port='));
-  if (arg) {
-    const portStr = arg.split('=')[1];
-    if (portStr) return parseInt(portStr, 10);
-  }
-  return parseInt(process.env.MCP_PORT ?? '8766', 10);
-};
+const getTransportType = (): TransportType =>
+  (flags.str('--transport', process.env.MCP_TRANSPORT ?? 'stdio') as TransportType);
+
+const getHttpPort = (): number => flags.num('--port', Number(process.env.MCP_PORT ?? 8766));
 
 const startSse = (port: number, guard: HttpGuard): void => {
   const sessions = new Map<string, SSEServerTransport>();

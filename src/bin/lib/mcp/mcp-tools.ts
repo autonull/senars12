@@ -4,6 +4,7 @@ import { withinWorkspace } from '@senars/core';
 import type { NAR } from '@senars/nar';
 import type { ExtendedAgent as Agent } from '@senars/nar/agent';
 import { resetDemotions } from '@senars/nar/lm';
+import { evaluateExpression } from '@senars/util/utils/eval';
 import { z } from 'zod';
 import type { JobManager } from './job-manager.js';
 import { registerNARRegistryTools } from './mcp-bridge.js';
@@ -18,61 +19,6 @@ export interface NARToolsOptions {
   jobs?: JobManager;
   /** Require approval for mutating tools (write_file). */
   approval?: boolean;
-}
-
-/** Safe math evaluator - parses and evaluates arithmetic expressions without eval() */
-function safeEvaluate(expr: string): number {
-  const tokens = expr.match(/\d+\.?\d*|[+\-*/()]/g) ?? [];
-  let pos = 0;
-
-  const peek = () => tokens[pos];
-  const consume = () => tokens[pos++];
-
-  const parseExpression = (): number => {
-    let left = parseTerm();
-    while (peek() === '+' || peek() === '-') {
-      const op = consume();
-      const right = parseTerm();
-      left = op === '+' ? left + right : left - right;
-    }
-    return left;
-  };
-
-  const parseTerm = (): number => {
-    let left = parseFactor();
-    while (peek() === '*' || peek() === '/') {
-      const op = consume();
-      const right = parseFactor();
-      left = op === '*' ? left * right : left / right;
-    }
-    return left;
-  };
-
-  const parseFactor = (): number => {
-    if (peek() === '(') {
-      consume();
-      const result = parseExpression();
-      consume();
-      return result;
-    }
-    if (peek() === '-') {
-      consume();
-      return -parseFactor();
-    }
-    if (peek() === '+') {
-      consume();
-      return parseFactor();
-    }
-    const token = consume();
-    if (token === undefined) throw new Error('Unexpected end of expression');
-    const num = Number(token);
-    if (Number.isNaN(num)) throw new Error(`Invalid number: ${token}`);
-    return num;
-  };
-
-  const result = parseExpression();
-  if (pos !== tokens.length) throw new Error('Unexpected tokens remaining');
-  return result;
 }
 
 /**
@@ -142,8 +88,9 @@ export function registerNARTools(
       annotations: ANNOTATIONS.read,
     },
     async ({ expression }) => {
-      const sanitized = expression.replace(/[^0-9+\-*/.()eE\s]/g, '');
-      const result = safeEvaluate(sanitized);
+      // No character stripping: `evaluateExpression` rejects what it cannot parse,
+      // where sanitizing first would silently answer a different question.
+      const result = evaluateExpression(expression);
       return createMCPResponse(String(result), { result });
     }
   );

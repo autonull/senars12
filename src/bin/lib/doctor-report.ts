@@ -38,6 +38,7 @@ import { createBotNAR } from '@senars/nar';
 import { runHealthChecks } from '@senars/nar/health';
 import { loadConfig } from '../../config/index.js';
 import { getConsolidationWatchdogStatus } from '@senars/nar/memory/pressure/index.js';
+import { parseFlags } from '@senars/util';
 
 const logger = createLogger({ scope: 'doctor' });
 
@@ -73,12 +74,12 @@ const probeOllama = async (host: string): Promise<string> => {
   return `online, models: ${data?.models?.map((m) => m.name).join(', ') || 'none'}`;
 };
 
-const args = process.argv.slice(2);
-const jsonOutput = args.includes('--json');
-const showDegradation = args.includes('--degradation');
-const showRoutingLog = args.includes('--routing-log');
-const showBenchmarks = args.includes('--benchmarks');
-const deep = args.includes('--deep');
+const flags = parseFlags();
+const jsonOutput = flags.has('--json');
+const showDegradation = flags.has('--degradation');
+const showRoutingLog = flags.has('--routing-log');
+const showBenchmarks = flags.has('--benchmarks');
+const deep = flags.has('--deep');
 
 interface DoctorOutput {
   lm: {

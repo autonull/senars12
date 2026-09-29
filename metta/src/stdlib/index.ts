@@ -1,3 +1,4 @@
+import { equalAtoms } from '../core/hash.js';
 import { defineOp, registerOp } from '../core/ops.js';
 import type { ExpressionAtom, MeTTaAtom, NumberAtom } from '../types/ast.js';
 import { expr, num, str, sym } from '../types/ast.js';
@@ -6,9 +7,6 @@ const toNumber = (a: MeTTaAtom): number | null => (a.kind === 2 ? (a as NumberAt
 
 const atomToString = (a: MeTTaAtom): string | null =>
   a.kind === 3 ? (a as { readonly value: string }).value : null;
-
-const equals = (a: MeTTaAtom, b: MeTTaAtom): boolean =>
-  a.kind === b.kind && JSON.stringify(a) === JSON.stringify(b);
 
 const isConsAtom = (a: MeTTaAtom): a is ExpressionAtom =>
   a.kind === 4 && a.operator.kind === 0 && a.operator.value === 'cons';
@@ -84,7 +82,7 @@ const normalize = (a: MeTTaAtom): MeTTaAtom => {
 };
 
 const eqOp = defineOp('=', (a: MeTTaAtom, b: MeTTaAtom) =>
-  sym(equals(normalize(a), normalize(b)) ? 'True' : 'False')
+  sym(equalAtoms(normalize(a), normalize(b)) ? 'True' : 'False')
 );
 const neOp = cmpOp('!=', (a, b) => a !== b);
 const ltOp = cmpOp('<', (a, b) => a < b);

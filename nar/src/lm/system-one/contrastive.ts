@@ -219,7 +219,7 @@ export class ContrastiveMemory {
     const calibration = this.#calibrations.get(rubric);
     const scale = calibration?.scale ?? this.#zeroShotScale;
     const bias = calibration?.bias ?? 0;
-    return 1 / (1 + Math.exp(-(scale * (maxPos - maxNeg) + bias)));
+    return sigmoid(scale * (maxPos - maxNeg) + bias);
   }
 
   /** Max cosine over every stored exemplar — in-domain-ness for OOD routing. */

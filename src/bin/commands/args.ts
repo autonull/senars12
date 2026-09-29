@@ -1,6 +1,6 @@
 /** Raw-token access for CLI commands — the single argv-shape toolkit. */
 
-import { type Flags, getNested, parseFlags } from '@senars/util';
+import { type Flags, getNested, parseEnvValue, parseFlags } from '@senars/util';
 
 /** Split a command tail into positional tokens; an empty tail yields no tokens. */
 export const tokenize = (args = ''): string[] => args.trim().split(/\s+/).filter(Boolean);
@@ -26,17 +26,13 @@ export const setPath = (obj: Record<string, unknown>, path: string, value: unkno
   return true;
 };
 
-/** CLI value coercion for `.config-set` / `.s1-config set`. */
+/**
+ * CLI value coercion for `.config-set` / `.s1-config set` — the same truthiness
+ * and number vocabulary as env overrides, so a literal means one thing whichever
+ * path set it. `null` stays literal because a config file can express a real null.
+ */
 export const coerce = (raw: string): unknown =>
-  raw === 'true'
-    ? true
-    : raw === 'false'
-      ? false
-      : raw === 'null'
-        ? null
-        : Number.isNaN(Number(raw)) || raw.trim() === ''
-          ? raw
-          : Number(raw);
+  raw === 'null' ? null : raw.trim() === '' ? raw : parseEnvValue(raw);
 
 export type SubHandler = (rest: string[]) => string | Promise<string>;
 

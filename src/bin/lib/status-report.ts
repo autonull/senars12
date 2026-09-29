@@ -18,7 +18,7 @@ import { SystemOneManifold } from '@senars/nar/lm/system-one/manifold.js';
 import { systemOneDefaults, systemOneSchema } from '../../config/schema.js';
 import { createLogger } from '@senars/nar/logger';
 import { formatBudgetSliceTree, collectBudgetSlices, type BudgetSlice } from '@senars/kernel';
-import { errMsg } from '@senars/util';
+import { errMsg, parseFlags } from '@senars/util';
 import { CALIBRATION_LOCK_PATH } from '@senars/nar/lm/system-one/calibration-fit.js';
 
 const logger = createLogger({ scope: 'status' });
@@ -91,7 +91,7 @@ const collect = async (): Promise<StatusReport> => {
   };
 
   // Collect budget slices if --budget flag is present
-  if (process.argv.includes('--budget')) {
+  if (parseFlags().has('--budget')) {
     // Optional capability: absent unless a root budget slice is exposed on the NAR.
     const rootSlice = (nar as { getRootBudgetSlice?: () => BudgetSlice }).getRootBudgetSlice?.();
     if (rootSlice) {
@@ -139,7 +139,7 @@ const renderText = (r: StatusReport): void => {
 
 export const runStatus = async (): Promise<StatusReport> => {
   const report = await collect();
-  if (process.argv.includes('--json') || !process.stdout.isTTY) {
+  if (parseFlags().has('--json') || !process.stdout.isTTY) {
     console.log(JSON.stringify(report, null, 2));
   } else {
     renderText(report);

@@ -11,7 +11,7 @@
  * strategies→lm→nar SCC.
  */
 
-import { createHash } from 'node:crypto';
+import { sha256Hex } from '@senars/util';
 import { z, type ZodError } from 'zod';
 import { describeStrategyExpression, type StrategyExpression } from '../reason/strategy-algebra.js';
 import type { RandomSource } from '../types/primitives.js';
@@ -139,7 +139,7 @@ export const canonicalJson = (value: unknown): string => {
 
 /** `sha256(name || canonicalJson(config))` — the memo key and the telemetry attribute. */
 export const configDigest = (name: string, config: StrategyConfig): string =>
-  createHash('sha256').update(`${name}\u0000${canonicalJson(config)}`).digest('hex');
+  sha256Hex(`${name}\u0000${canonicalJson(config)}`);
 
 export const isStrategyExpression = (spec: StrategySpec | CompositeSpec): spec is Exclude<StrategyExpression, string> =>
   typeof spec === 'object' && !Array.isArray(spec);

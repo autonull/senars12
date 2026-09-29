@@ -6,6 +6,7 @@
 import type { Term } from '../terms';
 import { Stamp, Truth } from '../terms';
 import type { Truth as TruthType } from '../terms/truth.js';
+import { type NarCoreBoundKey, narCoreBounds } from '@senars/util/config';
 import { createTimestamp, DEPTH_MAX, type Timestamp } from './primitives.js';
 
 export type { Source, Stamp } from '../terms/stamp.js';
@@ -63,16 +64,12 @@ export interface CoreConfig {
   readonly sampleSize: number;
 }
 
-// Default configuration values
-export const DEFAULT_CONFIG: CoreConfig = Object.freeze({
-  maxConcepts: 1000,
-  activationDecayRate: 0.01,
-  consolidationInterval: 10,
-  cpuThrottleMs: 10,
-  maxDerivationDepth: 10,
-  maxDerivationsPerStep: 1000,
-  sampleSize: 100,
-});
+// Default configuration values — one table, so a limit and its default can never disagree.
+export const DEFAULT_CONFIG: CoreConfig = Object.freeze(
+  Object.fromEntries(
+    Object.keys(narCoreBounds).map((key) => [key, narCoreBounds[key as NarCoreBoundKey].default])
+  ) as unknown as CoreConfig
+);
 
 // Utility types
 export type Nullable<T> = T | null;

@@ -36,7 +36,7 @@ import { NLUnderstandingService } from '@senars/nar/nl';
 import { TranslationCache } from '@senars/nar/nl/cache.js';
 import { MemoryQuery } from '@senars/nar/query/memory-query.js';
 import { MettaProposer } from '@senars/nar/reflex/metta-proposer.js';
-import { ensureDir, errMsg, makeId, setupGracefulShutdown } from '@senars/util';
+import { ensureDir, errMsg, type Flags, makeId, parseFlags, setupGracefulShutdown } from '@senars/util';
 import { envBool } from '@senars/util/config';
 import { Effect } from 'effect';
 import { reflexesOf } from '../cli/conversation-game.js';
@@ -158,21 +158,21 @@ async function collectChat(
   }
 }
 
-async function runNonInteractive(argv: string[]): Promise<boolean> {
-  if (argv.includes('--help') || argv.includes('-h')) {
+async function runNonInteractive(flags: Flags): Promise<boolean> {
+  if (flags.has('--help', '-h')) {
     console.log(
       'Usage: pnpm run bot [-- --status|--doctor|--tune|--arcade|--multiagent] [--json]\n\nNo flags: interactive CLI (senars> ). Connections are opt-in via .connect or ENABLE_IRC/WS/HTTP/MCP=true.'
     );
     return true;
   }
-  const mode = Object.keys(NON_INTERACTIVE_MODES).find((flag) => argv.includes(flag));
+  const mode = Object.keys(NON_INTERACTIVE_MODES).find((flag) => flags.has(flag));
   if (!mode) return false;
   await NON_INTERACTIVE_MODES[mode]?.();
   return true;
 }
 
 async function main(): Promise<void> {
-  if (await runNonInteractive(process.argv.slice(2))) return;
+  if (await runNonInteractive(parseFlags())) return;
 
   await ensureDir('.cache/sessions').catch(() => undefined);
   const wired = await createAgentFromEnv();

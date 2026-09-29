@@ -2,7 +2,10 @@ import {
   dialogueDefaults,
   dialogueSchema,
   lmSettingsSchema,
+  type NarCoreBoundKey,
   narCoreBounds,
+  narCoreDefaultedNumber,
+  narCoreNumber,
   type SystemOneConfig,
   systemOneDefaults,
   systemOneSchema,
@@ -14,47 +17,19 @@ import { LM_PROVIDER_NAMES } from '../../nar/src/lm/env-config.js';
 // also consumed by @senars/nar); re-exported here for the app config surface.
 export { type SystemOneConfig, systemOneDefaults, systemOneSchema };
 
-const narCoreDefaults = {
-  maxConcepts: narCoreBounds.maxConcepts.default,
-  activationDecayRate: narCoreBounds.activationDecayRate.default,
-  consolidationInterval: narCoreBounds.consolidationInterval.default,
-  cpuThrottleMs: narCoreBounds.cpuThrottleMs.default,
-  maxDerivationDepth: narCoreBounds.maxDerivationDepth.default,
-  maxDerivationsPerStep: narCoreBounds.maxDerivationsPerStep.default,
-} as const;
+const narCoreDefaults = Object.fromEntries(
+  Object.keys(narCoreBounds).map((key) => [
+    key,
+    narCoreBounds[key as NarCoreBoundKey].default,
+  ])
+) as Record<NarCoreBoundKey, number>;
 
-export const narCoreSchema = z.object({
-  maxConcepts: z
-    .number()
-    .min(narCoreBounds.maxConcepts.min)
-    .max(narCoreBounds.maxConcepts.max)
-    .default(narCoreDefaults.maxConcepts),
-  activationDecayRate: z
-    .number()
-    .min(narCoreBounds.activationDecayRate.min)
-    .max(narCoreBounds.activationDecayRate.max)
-    .default(narCoreDefaults.activationDecayRate),
-  consolidationInterval: z
-    .number()
-    .min(narCoreBounds.consolidationInterval.min)
-    .max(narCoreBounds.consolidationInterval.max)
-    .default(narCoreDefaults.consolidationInterval),
-  cpuThrottleMs: z
-    .number()
-    .min(narCoreBounds.cpuThrottleMs.min)
-    .max(narCoreBounds.cpuThrottleMs.max)
-    .default(narCoreDefaults.cpuThrottleMs),
-  maxDerivationDepth: z
-    .number()
-    .min(narCoreBounds.maxDerivationDepth.min)
-    .max(narCoreBounds.maxDerivationDepth.max)
-    .default(narCoreDefaults.maxDerivationDepth),
-  maxDerivationsPerStep: z
-    .number()
-    .min(narCoreBounds.maxDerivationsPerStep.min)
-    .max(narCoreBounds.maxDerivationsPerStep.max)
-    .default(narCoreDefaults.maxDerivationsPerStep),
-});
+/** Every core knob is table-driven — a limit is written once, in `narCoreBounds`. */
+export const narCoreSchema = z.object(
+  Object.fromEntries(
+    Object.keys(narCoreBounds).map((key) => [key, narCoreDefaultedNumber(key as NarCoreBoundKey)])
+  ) as { [K in NarCoreBoundKey]: ReturnType<typeof narCoreDefaultedNumber> }
+);
 
 const lmDefaults = { enabled: true, provider: 'llamacpp-embedded' } as const;
 
@@ -115,21 +90,22 @@ export const lmRuleSchema = z.object({
 const memoryDefaults = {} as const;
 
 export const memorySchema = z.object({
-  maxConcepts: z.number().positive().max(10000).optional(),
+  // Memory caps are deliberately looser than the core bounds — only the ceiling is shared.
+  maxConcepts: z.number().positive().max(narCoreBounds.maxConcepts.max).optional(),
   /**
    * Deprecated alias for inference.maxDerivationDepth.
    * @deprecated since 2.1 — use inference.maxDerivationDepth (removed after 2 minors — see AGENTS.md).
    */
-  derivationDepth: z.number().positive().optional(),
+  derivationDepth: narCoreNumber('maxDerivationDepth').optional(),
   bagSize: z.number().positive().optional(),
 });
 
 const inferenceDefaults = {} as const;
 
 export const inferenceSchema = z.object({
-  maxDerivationDepth: z.number().positive().max(100).optional(),
-  maxDerivationsPerStep: z.number().positive().max(10000).optional(),
-  cpuThrottleMs: z.number().min(0).optional(),
+  maxDerivationDepth: narCoreNumber('maxDerivationDepth').optional(),
+  maxDerivationsPerStep: narCoreNumber('maxDerivationsPerStep').optional(),
+  cpuThrottleMs: narCoreNumber('cpuThrottleMs').optional(),
 });
 
 const backendsDefaults = { nar: { enabled: true } } as const;

@@ -4,6 +4,8 @@
  * (src/config/schema.ts), and UI slider configs.
  * Avoids drift between validation limits, config defaults, and UI control ranges.
  */
+import type { BoundProp } from './nar-core-bounds.js';
+
 export const cognitiveBounds = {
   priority: {
     initialPriority: { min: 0.01, max: 1.0, default: 0.1, step: 0.01 },
@@ -52,8 +54,6 @@ export type CognitiveBounds = typeof cognitiveBounds;
 export type CognitiveBoundCategory = keyof CognitiveBounds;
 
 export type CognitiveBoundKey<C extends CognitiveBoundCategory> = keyof CognitiveBounds[C];
-
-export type BoundProp = 'min' | 'max' | 'default' | 'step';
 
 export function getCognitiveBound(category: string, key: string, prop: BoundProp): number {
   const cat = cognitiveBounds[category as keyof CognitiveBounds];

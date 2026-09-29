@@ -1,3 +1,4 @@
+import { serializeTruth, type TruthLike } from '@senars/util';
 import { evaluateExpression } from '@senars/util/utils/eval';
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -78,10 +79,10 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
             statement,
           };
         }
-        const f = truth?.frequency;
-        const c = truth?.confidence;
-        const hasTruth = f !== undefined && c !== undefined;
-        const fullStatement = hasTruth ? `${statement.replace(/\.$/, '')} %${f};${c}%` : statement;
+        const hasTruth = truth?.frequency !== undefined && truth?.confidence !== undefined;
+        const fullStatement = hasTruth
+          ? `${statement.replace(/\.$/, '')} ${serializeTruth(truth as TruthLike)}`
+          : statement;
         await nar.input(fullStatement);
         return {
           success: true,

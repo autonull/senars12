@@ -6,10 +6,11 @@
  */
 
 import { NARBuilder } from '@senars/nar/agent/builder';
+import { parseFlags } from '@senars/util';
 import { runMultiAgent } from './multi-agent-runner.js';
 
 export const runMultiAgentEntry = async (): Promise<void> => {
-  const testing = process.argv.includes('--testing');
+  const testing = parseFlags().has('--testing');
   const banner = testing
     ? ['[NAR] Initializing...']
     : [
