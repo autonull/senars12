@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createDispatcher } from '../../nar/src/lm/system-one/dispatcher.js';
 import type { CognitiveContext, ReasoningBudget } from '../../nar/src/lm/system-one/types.js';
 import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
-import { validateCognitiveEvent } from '@senars/kernel/schemas';
+import { validateCognitiveEvent } from '@senars/core/derivation-schemas';
 
 describe('System One — Thermodynamic Fallback (Bench 13)', () => {
   let dispatcher: ReturnType<typeof createDispatcher>;

@@ -1,7 +1,7 @@
 import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import { describe, expect, it } from 'vitest';
 import type { GridWorldState } from '../../nar/src/game/GridWorldGame.js';
 import { GridWorldGame } from '../../nar/src/game/GridWorldGame.js';

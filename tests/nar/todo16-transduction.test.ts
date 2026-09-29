@@ -6,7 +6,7 @@ import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { EpsilonGreedyReflex } from '../../nar/src/reflex/EpsilonGreedyReflex.js';
 import { NAR, createTask, createBudget, termParser, Truth } from '../../nar/src';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { ClassifyProposition } from '../../nar/src/lm/system-one/types.js';
 import type { Perception } from '../../nar/src/game/Game.js';
 

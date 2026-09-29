@@ -2,7 +2,7 @@ import { LMReflex } from '@senars/nar/lm/system-one/lm-reflex.js';
 import { actionGrammar } from '@senars/nar/lm/system-one/action-grammar.js';
 import { JudgmentDataset } from '@senars/nar/lm/system-one/distill.js';
 import type { CognitiveDispatcher, PEAResult } from '@senars/nar/lm/system-one/types.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
 import type { Perception } from '@senars/nar/game';
 import { EpsilonGreedyReflex } from '@senars/nar/reflex';

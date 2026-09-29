@@ -150,7 +150,7 @@
 
 - `InMemorySessionManager`
 
-- `JsonlSessionManager`
+- `JsonlSessionManager` — Bounded in-memory sessions with a JSONL ledger snapshot on close.
 
 - `registerAgentTools`
 
@@ -270,7 +270,7 @@
 
 - `ChatUserMsg`
 
-- `TruthValue`
+- `TruthValue` — The shared `0..1` truth pair, under this protocol's name.
 
 - `ConfigField`
 
@@ -330,17 +330,33 @@
 
 - `IncomingFromServer`
 
+- `CONNECTION_COLORS` — Color coding for WebSocket connection states.
+
+- `EDGE_LABELS` — Human-readable labels for edge types (aliased from EDGE_TYPES for convenience).
+
+- `EDGE_TYPES` — NAR-native edge types and their UI labels.
+
+- `edgeTypeLabel` — Returns the UI label for an edge type, falling back to the raw type string.
+
+- `LENS_COLORS_HEX` — Hex color codes for each cognitive lens.
+
+- `LENS_DESCRIPTIONS` — Short descriptions for each cognitive lens shown in the UI.
+
+- `LENS_FIELDS` — Available fields for lens mapping, shared between server schema and designer.
+
+- `LENS_LABELS` — Human-readable labels for each cognitive lens.
+
+- `type LensFieldDescriptor`
+
 ## `./logger`
-
-- `LoggerInterface` — Core's logger surface: the shared `ScopedLogger` plus core's deprecation helpers.
-
-- `registerLogEnricher`
-
-- `Logger`
 
 - `createLogger`
 
 - `defaultLogger`
+
+- `Logger`
+
+- `registerLogEnricher`
 
 ## `./helpers`
 
@@ -422,7 +438,7 @@ _Re-export barrel._
 
 - `InMemorySessionManager`
 
-- `JsonlSessionManager`
+- `JsonlSessionManager` — Bounded in-memory sessions with a JSONL ledger snapshot on close.
 
 - `createSession`
 
@@ -478,6 +494,8 @@ _Dynamic subpath (no single entry file)._
 
 ## `./agent/types`
 
+- `CorrelationScopeStore` — Per-correlationId scope store (Phase A) — the contract that keeps one user's
+
 - `AgentOptions`
 
 - `ParsedCommand`
@@ -516,7 +534,7 @@ _Re-export barrel._
 
 - `InMemorySessionManager`
 
-- `JsonlSessionManager`
+- `JsonlSessionManager` — Bounded in-memory sessions with a JSONL ledger snapshot on close.
 
 ## `./motor`
 
@@ -562,6 +580,26 @@ _Re-export barrel._
 
 - `withinWorkspace` — True when an absolute path resolves inside the workspace root.
 
+- `braveApiKey` — Brave's key, or the generic web-search alias.
+
+- `braveSearch`
+
+- `duckDuckGoSearch`
+
+- `SEARCH_PROVIDERS` — Every backend, in failover order. Keyed providers first (better ranking,
+
+- `type SearchProvider`
+
+- `searchWeb` — Run the provider chain and return the first successful answer. A provider
+
+- `tavilySearch`
+
+- `webFetch`
+
+- `type WebSearchOutcome`
+
+- `type WebSearchResult`
+
 ## `./cortex`
 
 - `createCortexFromLM` — LMService satisfies ModelProvider structurally (LMTask ≡ ModelTier) — one LM execution path.
@@ -584,13 +622,273 @@ _Re-export barrel._
 
 - `SerializedConceptGraph`
 
+## `./derivation-schemas`
+
+- `TruthValueSchema` — The `0..1` truth pair every event payload, derivation record, and formalization
+
+- `EngineOriginSchema` — ============================================================================
+
+- `CognitiveEventBaseSchema`
+
+- `TaskAdmittedEventSchema`
+
+- `DerivationAcceptedEventSchema`
+
+- `BeliefRevisedEventSchema`
+
+- `ConceptActivatedEventSchema`
+
+- `BudgetExhaustedEventSchema`
+
+- `PolicyViolationEventSchema`
+
+- `AutonomyModeChangedEventSchema`
+
+- `PatchProposalSchema`
+
+- `SelfModProposalEventSchema`
+
+- `JudgmentResolvedEventSchema`
+
+- `JudgmentResolvedEvent`
+
+- `EgressGateRejectedEventSchema`
+
+- `ShadowValidationDropEventSchema`
+
+- `CognitiveEventSchema`
+
+- `CognitiveEvent`
+
+- `EgressGateRejectedEvent`
+
+- `ShadowValidationDropEvent`
+
+- `TaskAdmittedEvent`
+
+- `DerivationAcceptedEvent`
+
+- `BeliefRevisedEvent`
+
+- `ConceptActivatedEvent`
+
+- `BudgetExhaustedEvent`
+
+- `PolicyViolationEvent`
+
+- `AutonomyModeChangedEvent`
+
+- `SelfModProposalEvent`
+
+- `TerminationReasonSchema` — ============================================================================
+
+- `ReasoningBudgetSchema`
+
+- `ReasoningBudget`
+
+- `TerminationReason`
+
+- `DerivationStepSchema` — ============================================================================
+
+- `DerivationRecordSchema`
+
+- `DerivationRecord`
+
+- `DerivationStep`
+
+- `TruthValue`
+
+- `AmbiguityFlagSchema` — ============================================================================
+
+- `SourceSpanSchema`
+
+- `FormalizationCandidateSchema`
+
+- `FormalizationBatchSchema`
+
+- `FormalizationCandidate`
+
+- `AmbiguityFlag`
+
+- `SourceSpan`
+
+- `FormalizationBatch`
+
+- `AutonomyModeSchema` — ============================================================================
+
+- `AutonomyMode`
+
+- `SourceQualitySchema`
+
+- `SourceQuality`
+
+- `SOURCE_QUALITY_CONFIDENCE` — Confidence ceiling by source quality — single source of truth.
+
+- `GameDomainSchema`
+
+- `GameDomain`
+
+- `RewardDomainSchema`
+
+- `RewardDomain`
+
+- `SelfImprovementProposalSchema`
+
+- `SelfImprovementProposal`
+
+- `PatchProposal`
+
+- `RiskLevelSchema`
+
+- `RiskLevel`
+
+- `RiskAssessmentSchema`
+
+- `RiskAssessment`
+
+- `GovernanceDecisionSchema`
+
+- `GovernanceDecision`
+
+- `GovernanceEventSchema`
+
+- `GovernanceEvent`
+
+- `PerceptionGateInputSchema`
+
+- `PerceptionGateOutputSchema`
+
+- `ActionGateInputSchema`
+
+- `ActionGateOutputSchema`
+
+- `RewardGateInputSchema`
+
+- `RewardGateOutputSchema`
+
+- `BudgetGateInputSchema`
+
+- `BudgetGateOutputSchema`
+
+- `PerceptionGateInput` — ============================================================================
+
+- `PerceptionGateOutput`
+
+- `ActionGateInput`
+
+- `ActionGateOutput`
+
+- `RewardGateInput`
+
+- `RewardGateOutput`
+
+- `BudgetGateInput`
+
+- `BudgetGateOutput`
+
+- `validateCognitiveEvent`
+
+- `validateReasoningBudget`
+
+- `validateDerivationRecord`
+
+- `validateFormalizationCandidate`
+
+- `validateFormalizationBatch`
+
+## `./budget`
+
+- `ConsumedBudget` — Budget slice consumed resources.
+
+- `BudgetSliceTotal` — Budget slice total resources.
+
+- `AIKRBudget` — The remaining-cycles view the bag and the tick pipeline both consume.
+
+- `BudgetEventMap` — Every `budget:slice:*` payload, so a bus can be typed against this alone.
+
+- `BudgetEventBus` — The one bus method `BudgetSlice` needs — a NAR `NarEventBus` satisfies it.
+
+- `BudgetSlice`
+
+- `BudgetSliceOptions`
+
+- `createBudgetSlice`
+
+- `sliceBudget`
+
+- `BudgetAllocation` — A partial budget request across the four AIKR dimensions.
+
+- `consumeCycles`
+
+- `consumeDepth`
+
+- `consumeMemoryOps`
+
+- `consumeLMCalls`
+
+- `checkDeadline`
+
+- `checkAbort`
+
+- `remainingCycles`
+
+- `remainingDepth`
+
+- `remainingMemoryOps`
+
+- `remainingLMCalls`
+
+- `remainingAll` — All four remaining dimensions in one snapshot — the shape budget consumers hand around.
+
+- `resolveAllocation` — Resolve a requested child allocation against the parent's unconsumed capacity
+
+- `chargeAllocation` — Charge a resolved allocation against a parent slice across all four
+
+- `toAIKRBudget`
+
+- `mergeConsumed` — Fold a child's consumed totals into a parent's. `depth` is a high-water mark
+
+- `mergeConsumption`
+
+- `isExhausted`
+
+- `pressure` — Worst per-dimension pressure — the slice's overall load.
+
+- `collectBudgetSlices` — Collect all budget slices in a tree starting from root.
+
+- `formatBudgetSliceTree` — Format budget slice tree for CLI output.
+
+## `./event-sink`
+
+- `DomainEventPayload` — The domain-event sink: the one place a lower layer can announce something
+
+- `DomainEventSink`
+
+- `setDomainEventSink`
+
+- `hasDomainEventSink`
+
+- `emitDomainEvent`
+
+## `./verify-derivation`
+
+- `VerificationFinding` — One defect, tagged with the check that caught it.
+
+- `StepVerificationResult` — Per-step verdict. `computedTruth` is absent when no truth function applies.
+
+- `VerificationResult`
+
+- `VerifyOptions`
+
+- `formatFinding`
+
+- `verifyRecord` — Verify a derivation record end to end. Shape is checked against the schema
+
 ## `./cognitive-thread`
 
 - `ThreadStatus`
 
 - `ThreadMessage`
-
-- `BudgetAllocation`
 
 - `CognitiveThreadOptions`
 

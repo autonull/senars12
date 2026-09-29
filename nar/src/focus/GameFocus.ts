@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { asBeliefTruth, clamp, makeId, pushCapped } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
-import type { DerivationRecord, ReasoningBudget } from '@senars/kernel/schemas';
+import type { DerivationRecord, ReasoningBudget } from '@senars/core/derivation-schemas';
 import { z } from 'zod';
 import { PriorityBag } from '../bag/Bag.js';
 import type { Game, GameOutcome, Perception } from '../game/Game.js';

@@ -2,8 +2,8 @@ import type {
   AmbiguityFlag,
   FormalizationBatch,
   FormalizationCandidate,
-} from '@senars/kernel/schemas';
-import { validateFormalizationBatch } from '@senars/kernel/schemas';
+} from '@senars/core/derivation-schemas';
+import { validateFormalizationBatch } from '@senars/core/derivation-schemas';
 import type { LanguageModel } from 'ai';
 import { generateObject, generateText, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';

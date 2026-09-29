@@ -5,8 +5,8 @@ import type {
   CognitiveEvent,
   ReasoningBudget,
   TerminationReason,
-} from '@senars/kernel/schemas';
-import { validateCognitiveEvent, validateReasoningBudget } from '@senars/kernel/schemas';
+} from '@senars/core/derivation-schemas';
+import { validateCognitiveEvent, validateReasoningBudget } from '@senars/core/derivation-schemas';
 import { GATE_LOG_CAPACITY } from './event-ring.js';
 import { KernelGate } from './gate-base.js';
 import { recordGateDecision } from '../telemetry/index.js';

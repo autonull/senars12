@@ -84,6 +84,22 @@
       "types": "./src/concept-graph.ts",
       "import": "./src/concept-graph.ts"
     },
+    "./derivation-schemas": {
+      "types": "./src/derivation-schemas.ts",
+      "import": "./src/derivation-schemas.ts"
+    },
+    "./budget": {
+      "types": "./src/budget.ts",
+      "import": "./src/budget.ts"
+    },
+    "./event-sink": {
+      "types": "./src/event-sink.ts",
+      "import": "./src/event-sink.ts"
+    },
+    "./verify-derivation": {
+      "types": "./src/verify-derivation.ts",
+      "import": "./src/verify-derivation.ts"
+    },
     "./cognitive-thread": {
       "types": "./src/cognitive-thread.ts",
       "import": "./src/cognitive-thread.ts"

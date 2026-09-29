@@ -14,8 +14,8 @@
  */
 
 import { formatIssues } from '@senars/util';
-import { DerivationRecordSchema } from './schemas.js';
-import type { DerivationRecord, DerivationStep, TruthValue } from './schemas.js';
+import { DerivationRecordSchema } from './derivation-schemas.js';
+import type { DerivationRecord, DerivationStep, TruthValue } from './derivation-schemas.js';
 
 /** One defect, tagged with the check that caught it. */
 export interface VerificationFinding {

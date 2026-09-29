@@ -1,10 +1,15 @@
 import { makeId, type EpisodicMemory } from '@senars/util';
-import type { ThreadScope } from '@senars/nar/kernel';
 import { AgentBridge } from './AgentBridge.js';
 import { ApprovalService } from './ApprovalService.js';
 import { type CycleHost, runCycle, runCycleStream } from './agent/phases.js';
 import type { MacroPhase } from './agent/pipeline.js';
-import type { AgentOptions, HealthStatus, ParsedCommand, SkillDefinition } from './agent/types.js';
+import type {
+  AgentOptions,
+  CorrelationScopeStore,
+  HealthStatus,
+  ParsedCommand,
+  SkillDefinition,
+} from './agent/types.js';
 import type { ChatOptions, ChatStreamEvent } from './ChatService.js';
 import type { CognitiveEvent as _CE, CognitiveEvent } from './CognitiveEvent.js';
 import type { LLMCortex } from './cortex/LLMCortex.js';
@@ -45,7 +50,7 @@ export class Agent {
   readonly cortex?: LLMCortex;
   readonly episodicMemory?: EpisodicMemory;
   readonly sessionManager?: PersistableSessionManager;
-  readonly threadScope?: ThreadScope;
+  readonly threadScope?: CorrelationScopeStore;
 
   #cognitiveListeners = new Set<(e: CognitiveEvent) => void>();
   #transports = new Map<string, Connection>();

@@ -6,8 +6,8 @@ import type {
   SourceQuality,
   TaskAdmittedEvent,
   ShadowValidationDropEvent,
-} from '@senars/kernel/schemas';
-import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/kernel/schemas';
+} from '@senars/core/derivation-schemas';
+import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/core/derivation-schemas';
 import { normalizeNarsese } from '../nl/normalize.js';
 import { asBeliefTruth, errMsg, makeId, type TruthLike } from '@senars/util';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';

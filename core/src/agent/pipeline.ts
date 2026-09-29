@@ -1,6 +1,6 @@
 import type { EpisodicMemory } from '@senars/util';
 import { dispatch, type Middleware, PushQueue } from '@senars/util';
-import type { ThreadScope } from '@senars/nar/kernel';
+import type { CorrelationScopeStore } from './types.js';
 import type { ChatOptions, ChatStreamEvent } from '../ChatService.js';
 import type { CognitiveEvent } from '../CognitiveEvent.js';
 import type { LLMCortex } from '../cortex/LLMCortex.js';
@@ -56,7 +56,7 @@ export interface CycleHost {
   /** Consolidation config: default enabled, optional per-invocation budget. */
   readonly consolidation?: { enabled?: boolean; budget?: number };
   /** Phase A (REFACTOR.todo4): per-correlationId scope for ContrastiveMemory isolation. */
-  readonly threadScope?: ThreadScope;
+  readonly threadScope?: CorrelationScopeStore;
 
   emit(event: CognitiveEvent): void;
 

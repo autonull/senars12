@@ -6,7 +6,7 @@ import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { KernelRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
 import { PriorityBag } from '../../nar/src/bag/Bag.js';
 import { NAR, createTask, createBudget, termParser, Truth } from '../../nar/src';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { ClassifyProposition, JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
 
 const budget: ReasoningBudget = {

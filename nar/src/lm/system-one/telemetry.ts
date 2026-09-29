@@ -1,6 +1,6 @@
 import { makeId } from '@senars/util';
 import { trace } from '@opentelemetry/api';
-import type { JudgmentResolvedEvent } from '@senars/kernel/schemas';
+import type { JudgmentResolvedEvent } from '@senars/core/derivation-schemas';
 import { recordJudgmentMetric } from '../../metrics/prometheus.js';
 import type { JudgmentProposition, JudgmentQuery } from './types.js';
 

@@ -7,7 +7,7 @@ import { createJudgmentDelegation, JudgmentDelegationPeer } from '../../nar/src/
 import { admitRemotePropositions, handleSystemOneRequest } from '../../nar/src/lm/system-one/http-endpoint.js';
 import { loadHeadRuntime, SandboxedHeadRuntime, verifyModelDigest, DigestMismatchError } from '../../nar/src/lm/system-one/wasi-runtime.js';
 import { createManifold as createTier1Manifold } from '../../nar/src/lm/system-one/manifold.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { EmbeddingPointer, JudgmentProposition } from '../../nar/src/lm/system-one/types.js';
 import { prometheusRegistry } from '../../nar/src/metrics/prometheus.js';
 import { recordJudgmentMetric } from '../../nar/src/metrics/prometheus.js';

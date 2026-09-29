@@ -10,9 +10,10 @@
  * Nothing else in the system constructs or selects a strategy.
  */
 
+import { emitDomainEvent } from '@senars/core/event-sink';
+
 import { ConfigurationError } from '../types';
 import type { RandomSource } from '../types/primitives.js';
-import { emitStrategySelection } from '../tick';
 import { recordStrategyMemoSize } from '../metrics/prometheus.js';
 import {
   configDigest,
@@ -284,11 +285,10 @@ export class CognitiveRegistry implements StrategyRegistry {
   #emit(type: StrategyType, name: string, tier: ResolutionTier, digest?: string): void {
     const memoSize = this.memoizedSize(type);
     recordStrategyMemoSize(type, memoSize);
-    emitStrategySelection({
-      strategyType: type,
-      strategyName: name,
-      configDigest: digest,
-      context: { tier, memoSize },
-    });
+    emitDomainEvent(
+      'strategy.selection',
+      'strategy',
+      { type, name, config_digest: digest, context: { tier, memoSize } }
+    );
   }
 }

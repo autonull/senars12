@@ -11,7 +11,7 @@ import {
   loadHeadArtifacts,
   pearson,
 } from '../../nar/src/lm/system-one/train.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import { GridWorldGame } from '../../nar/src/game/GridWorldGame.js';
 import type { GridWorldState } from '../../nar/src/game/GridWorldGame.js';
 import { QLearning } from './rl/baselines/gridworld.js';

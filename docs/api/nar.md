@@ -46,7 +46,7 @@
 
 - `symbolicSummary` — Symbolic fallback summary: deterministic, bounded, no LM. Rendered by the
 
-- `ProposalBag`
+- `ProposalBag` — Governance routing is a per-call concern rather than a constructor-wired
 
 - `MiningBag`
 
@@ -158,7 +158,7 @@
 
 - `serializeStamp`
 
-- `isTruthEqual`
+- `isTruthEqual` — The one epsilon-tolerant truth comparison; `Truth.equals` is the member form.
 
 - `Truth`
 
@@ -274,7 +274,7 @@ _Dynamic subpath (no single entry file)._
 
 - `bagSlotErrors` — Every error a `strategies.bag` slot can carry, phrased for `validateParameters`.
 
-- `resolveBagSlot` — The single read path for the slot: a validated `{ implementation, …knobs }`.
+- `resolveBagSlot` — The single read path for the slot: a validated `{ implementation, …knobs, rng }`.
 
 ## `./capability`
 
@@ -354,6 +354,10 @@ _Dynamic subpath (no single entry file)._
 
 - `createDefaultRegistry`
 
+- `resolveSlot`
+
+- `SLOT_KEY`
+
 ## `./cognitive/corrections`
 
 - `attemptLMCorrection` — Bidirectional correction: when a contradiction is traceable to an LLM
@@ -385,12 +389,6 @@ _Dynamic subpath (no single entry file)._
 - `narOf` — Typed view of the NAR handle carried on the command context.
 
 ## `./config`
-
-- `BUDGET_PRESETS`
-
-- `BudgetTracker`
-
-- `getBudget`
 
 - `DEFAULT_LEDGER_PATH`
 
@@ -968,29 +966,13 @@ _Re-export barrel._
 
 - `decisionSpan` — O1/O4 helper: fire-and-forget span for high-frequency decisions (gate verdicts).
 
-- `createMiddlewareSpans`
-
 - `wrapMiddlewareWithSpan`
 
 - `instrumentPipeline`
 
-- `createOtelTickHooks`
+- `emitEvent` — The one event emitter. A nested payload is flattened into dotted attribute
 
 - `emitSpanEvent`
-
-- `emitBudgetSliceCreated` — F1: BudgetSlice operation span events.
-
-- `emitBudgetSliceConsumed`
-
-- `emitBudgetSliceExhausted`
-
-- `emitBudgetSliceMerged`
-
-- `emitBagPressureTransition` — F1: Bag pressure transition span event.
-
-- `emitBackpressureDecision` — F1: Backpressure decision span event.
-
-- `emitStrategySelection` — F1: Strategy selection span event — one event per *resolution*, not per recall.
 
 - `recordCognitiveEvents`
 
@@ -1188,7 +1170,7 @@ _Dynamic subpath (no single entry file)._
 
 - `TermSet`
 
-- `isTruthEqual`
+- `isTruthEqual` — The one epsilon-tolerant truth comparison; `Truth.equals` is the member form.
 
 - `Truth`
 
@@ -1223,20 +1205,6 @@ _Dynamic subpath (no single entry file)._
 ## `./tick`
 
 - `emitSpanEvent`
-
-- `emitBudgetSliceCreated` — F1: BudgetSlice operation span events.
-
-- `emitBudgetSliceConsumed`
-
-- `emitBudgetSliceExhausted`
-
-- `emitBudgetSliceMerged`
-
-- `emitBagPressureTransition` — F1: Bag pressure transition span event.
-
-- `emitBackpressureDecision` — F1: Backpressure decision span event.
-
-- `emitStrategySelection` — F1: Strategy selection span event — one event per *resolution*, not per recall.
 
 - `getTracer`
 
@@ -1340,6 +1308,6 @@ _Re-export barrel._
 
 - `verifyReplayStateHash`
 
-- `ThreadScope` — ThreadScope provides isolated state per correlationId.
+- `ThreadScope`
 
 - `threadScope` — Singleton instance for the process.

@@ -1,5 +1,5 @@
 import { createLogger } from '@senars/core/logger';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import { BoundedMap, cachePath } from '@senars/util';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { ReflexBindable } from '../focus/GameFocus.js';

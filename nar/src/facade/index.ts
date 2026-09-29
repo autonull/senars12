@@ -6,7 +6,7 @@
  * WeakSet so per-instance semantics survive the extraction.
  */
 import { makeId, truncate } from '@senars/util';
-import type { SelfImprovementProposal } from '@senars/kernel/schemas';
+import type { SelfImprovementProposal } from '@senars/core/derivation-schemas';
 import type { MeTTaRuntime } from '@senars/metta';
 import type { LanguageModel } from 'ai';
 import { createBootstrapTasks } from '../drives';

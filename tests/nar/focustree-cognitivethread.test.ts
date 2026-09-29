@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { FocusTree, createFocusTree, type FocusTreeOptions } from '@senars/nar/focus';
 import { CognitiveThread, createCognitiveThread, createRootBudget, ThreadPool, type BudgetAllocation, type SpawnResult } from '@senars/core';
-import { BudgetSlice, createBudgetSlice, consumeCycles, isExhausted } from '@senars/kernel/budget';
+import { BudgetSlice, createBudgetSlice, consumeCycles, isExhausted } from '@senars/core/budget';
 import { Focus } from '@senars/nar/focus/Focus.js';
 
 function createMockFocusOptions(id: string): FocusTreeOptions['rootFocus'] {

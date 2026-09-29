@@ -1,4 +1,4 @@
-import type { AutonomyMode, ReasoningBudget } from '@senars/kernel/schemas';
+import type { AutonomyMode, ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import type { CognitiveRegistry } from '../cognitive';

@@ -5,7 +5,7 @@ import { createGridWorldGame, SeededRNG, type Game } from '@senars/nar/game';
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { verifyRecord } from '@senars/kernel/verify-derivation';
+import { verifyRecord } from '@senars/core/verify-derivation';
 import {
   isResumable,
   loadSession,

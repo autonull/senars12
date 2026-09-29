@@ -5,9 +5,21 @@
  */
 
 
-import { BudgetSlice, type BudgetSliceOptions, createBudgetSlice, sliceBudget, isExhausted, consumeCycles, chargeAllocation, remainingAll, remainingCycles, resolveAllocation, type BudgetAllocation } from '@senars/kernel/budget';
-import { emitBackpressureDecision } from '@senars/nar/tick';
+import { BudgetSlice, type BudgetSliceOptions, createBudgetSlice, sliceBudget, isExhausted, consumeCycles, chargeAllocation, remainingAll, remainingCycles, resolveAllocation, type BudgetAllocation } from '@senars/core/budget';
 import { makeId, toError } from '@senars/util';
+import { emitDomainEvent } from './event-sink.js';
+
+/** One backpressure decision, as a trace event. Core reaches the tracer through the sink. */
+const emitBackpressureDecision = (attributes: {
+  threadId: string;
+  allowed: boolean;
+  reason: 'budget-exhausted' | 'mailbox-full' | 'ok';
+  budgetRemaining: number;
+  mailboxSize: number;
+  mailboxCapacity: number;
+}): void => {
+  emitDomainEvent('thread.backpressure', '', attributes);
+};
 
 export type ThreadStatus = 'created' | 'running' | 'waiting' | 'completed' | 'killed' | 'error';
 

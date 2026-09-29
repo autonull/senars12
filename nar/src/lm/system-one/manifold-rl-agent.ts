@@ -1,4 +1,4 @@
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { Game, GameOutcome } from '../../game/Game.js';
 import type { Decider } from './decide.js';
 import type { JudgmentDataset } from './distill.js';

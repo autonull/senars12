@@ -7,7 +7,7 @@
  */
 
 import { BoundedMap, incrementCount, mean } from '@senars/util';
-import type { DerivationRecord, DerivationStep } from '@senars/kernel/schemas';
+import type { DerivationRecord, DerivationStep } from '@senars/core/derivation-schemas';
 import type { Term } from '../terms/index.js';
 import { termParser, serializeTerm, TermBuilder } from '../terms/index.js';
 import { substituteVariables } from '../terms/substitute.js';

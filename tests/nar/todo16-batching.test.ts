@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { JudgmentQuery, EmbeddingPointer } from '../../nar/src/lm/system-one/types.js';
 
 describe('System One — Zero-Copy Batching (Bench 2)', () => {

@@ -16,7 +16,7 @@ import { gateRegistry } from '../../nar/src/kernel/GateRegistry.js';
 import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
 import { KernelRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
 import { toFormalizationBatch } from '../../nar/src/nl/understanding.js';
-import { verifyRecord } from '@senars/kernel/verify-derivation';
+import { verifyRecord } from '@senars/core/verify-derivation';
 
 describe('TODO7 validation benchmarks', () => {
   it('1. evidence laundering: looped reinforcement cannot inflate confidence', () => {

@@ -7,7 +7,7 @@ import {
   isExhausted,
   pressure,
   remainingAll,
-} from '../../kernel/src/budget.js';
+} from '@senars/core/budget';
 import { cosine, cosineNormalized, jaccard, normalize } from '../../nar/src/utils/similarity.js';
 import { describe, expect, it } from 'vitest';
 

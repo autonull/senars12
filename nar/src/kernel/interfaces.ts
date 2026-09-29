@@ -16,7 +16,7 @@ import type {
   FormalizationBatch,
   SourceQuality,
   ShadowValidationDropEvent,
-} from '@senars/kernel/schemas';
+} from '@senars/core/derivation-schemas';
 import type { Term, TaskTypeName } from '../terms';
 import type { IngressJudge } from './ingress.js';
 

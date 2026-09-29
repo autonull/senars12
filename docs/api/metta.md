@@ -54,7 +54,7 @@
 
 - `type Substitution`
 
-- `unify`
+- `unify` — Unify `a` and `b`, extending `subst`. Returns `null` when they do not
 
 - `type PersistedSpaceData`
 

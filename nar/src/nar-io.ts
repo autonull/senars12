@@ -13,9 +13,9 @@ import type { Truth as TruthType } from './terms/truth.js';
 import type { TaskType } from './types';
 import { createBudget, type EventBus } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';
-import type { PerceptionGateInput, PerceptionGateOutput } from '@senars/kernel/schemas';
+import type { PerceptionGateInput, PerceptionGateOutput } from '@senars/core/derivation-schemas';
 import { seedTruth } from './lm/system-one/seed.js';
-import type { SourceQuality } from '@senars/kernel/schemas';
+import type { SourceQuality } from '@senars/core/derivation-schemas';
 
 function toTruth(t: TruthType | { frequency: number; confidence: number } | undefined): Truth {
   if (!t) return Truth.NEUTRAL;

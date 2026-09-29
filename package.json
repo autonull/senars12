@@ -76,7 +76,6 @@
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@senars/core": "workspace:*",
     "@senars/io": "workspace:*",
-    "@senars/kernel": "workspace:*",
     "@senars/metta": "workspace:*",
     "@senars/nar": "workspace:*",
     "@senars/ui": "workspace:*",

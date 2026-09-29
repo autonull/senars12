@@ -1,16 +1,74 @@
 /**
  * Unified BudgetSlice — single budget object flowing from gate → thread → focus → bag → derivation.
  * AIKRBudget/ThreadScope become views onto this shared slice.
+ *
+ * Owns the budget event vocabulary as well as the accounting, so the otel
+ * emitters in `nar` are reachable through the domain-event sink rather than
+ * imported downward.
  */
-import type { AIKRBudget } from '@senars/nar/bag';
-import type { NarEventBus, ConsumedBudget, BudgetSliceTotal } from '@senars/nar/types/events';
-import { emitBudgetSliceCreated, emitBudgetSliceConsumed, emitBudgetSliceExhausted, emitBudgetSliceMerged } from '@senars/nar/tick';
-import type { TerminationReason } from './schemas.js';
 import { clamp, clamp01, maxScore, pct } from '@senars/util';
+import { emitDomainEvent, type DomainEventPayload } from './event-sink.js';
+import type { TerminationReason } from './derivation-schemas.js';
 
-export type { ConsumedBudget, BudgetSliceTotal };
-/** @deprecated since 1.0 — re-export the kernel's own `TerminationReason` from `./schemas.js`. */
 export type { TerminationReason };
+
+/** Budget slice consumed resources. */
+export interface ConsumedBudget {
+  cycles: number;
+  depth: number;
+  memoryOps: number;
+  llmCalls: number;
+}
+
+/** Budget slice total resources. */
+export interface BudgetSliceTotal {
+  totalCycles: number;
+  totalDepth: number;
+  totalMemoryOps: number;
+  totalLMCalls: number;
+}
+
+/** The remaining-cycles view the bag and the tick pipeline both consume. */
+export interface AIKRBudget {
+  cycles: number;
+  depth?: number;
+}
+
+/** Every `budget:slice:*` payload, so a bus can be typed against this alone. */
+export interface BudgetEventMap {
+  'budget:slice:created': {
+    sliceId: string;
+    parentId?: string;
+    totalCycles: number;
+    totalDepth: number;
+    totalMemoryOps: number;
+    totalLMCalls: number;
+  };
+  'budget:slice:consumed': {
+    sliceId: string;
+    resource: keyof ConsumedBudget;
+    amount: number;
+    consumed: number;
+    total: number;
+    pressure: number;
+  };
+  'budget:slice:exhausted': {
+    sliceId: string;
+    reason: TerminationReason;
+    consumed: ConsumedBudget;
+    total: BudgetSliceTotal;
+  };
+  'budget:slice:merged': {
+    parentId: string;
+    childId: string;
+    consumed: ConsumedBudget;
+  };
+}
+
+/** The one bus method `BudgetSlice` needs — a NAR `NarEventBus` satisfies it. */
+export interface BudgetEventBus {
+  emit<K extends keyof BudgetEventMap>(eventName: K, payload: BudgetEventMap[K]): void;
+}
 
 export interface BudgetSlice {
   readonly id: string;
@@ -36,7 +94,7 @@ export interface BudgetSliceOptions {
   abortSignal?: AbortSignal;
 }
 
-export function createBudgetSlice(options: BudgetSliceOptions, eventBus?: NarEventBus): BudgetSlice {
+export function createBudgetSlice(options: BudgetSliceOptions, eventBus?: BudgetEventBus): BudgetSlice {
   const slice: BudgetSlice = {
     id: options.id,
     parentId: options.parentId,
@@ -48,7 +106,7 @@ export function createBudgetSlice(options: BudgetSliceOptions, eventBus?: NarEve
     abortSignal: options.abortSignal,
     consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
   };
-  announceSlice(slice, eventBus);
+  announce('budget:slice:created', sliceAnnouncement(slice), eventBus);
   return slice;
 }
 
@@ -56,7 +114,7 @@ export function sliceBudget(
   parent: BudgetSlice,
   childId: string,
   allocation: Partial<ConsumedBudget>,
-  eventBus?: NarEventBus
+  eventBus?: BudgetEventBus
 ): BudgetSlice {
   const slice: BudgetSlice = {
     id: childId,
@@ -69,8 +127,71 @@ export function sliceBudget(
     abortSignal: parent.abortSignal,
     consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
   };
-  announceSlice(slice, eventBus);
+  announce('budget:slice:created', sliceAnnouncement(slice), eventBus);
   return slice;
+}
+
+/** The bus vocabulary and the trace vocabulary for the same four events. */
+const OTEL_EVENT = {
+  'budget:slice:created': 'budget.slice.created',
+  'budget:slice:consumed': 'budget.slice.consumed',
+  'budget:slice:exhausted': 'budget.slice.exhausted',
+  'budget:slice:merged': 'budget.slice.merged',
+} as const satisfies Record<keyof BudgetEventMap, string>;
+
+/** Camel-case payload keys the trace vocabulary spells differently. */
+const OTEL_KEYS: Record<string, string> = {
+  sliceId: 'id',
+  parentId: 'parent_id',
+  childId: 'child_id',
+  totalCycles: 'total_cycles',
+  totalDepth: 'total_depth',
+  totalMemoryOps: 'total_memory_ops',
+  totalLMCalls: 'total_llm_calls',
+};
+
+const renameKeys = (payload: Record<string, unknown>): DomainEventPayload =>
+  Object.fromEntries(
+    Object.entries(payload).map(([key, value]) => [OTEL_KEYS[key] ?? key, value])
+  );
+
+const toOtelConsumed = (consumed: ConsumedBudget): DomainEventPayload => ({
+  cycles: consumed.cycles,
+  depth: consumed.depth,
+  memory_ops: consumed.memoryOps,
+  llm_calls: consumed.llmCalls,
+});
+
+const toOtelTotal = (total: BudgetSliceTotal): DomainEventPayload => ({
+  cycles: total.totalCycles,
+  depth: total.totalDepth,
+  memory_ops: total.totalMemoryOps,
+  llm_calls: total.totalLMCalls,
+});
+
+/** Bus vocabulary → trace vocabulary, per event: one sink, two spellings. */
+type OtelProjection<K extends keyof BudgetEventMap> = (
+  payload: BudgetEventMap[K]
+) => DomainEventPayload;
+
+const OTEL_PROJECTION: {
+  [K in keyof BudgetEventMap]: OtelProjection<K>;
+} = {
+  'budget:slice:created': (p) => renameKeys(p),
+  'budget:slice:consumed': (p) => renameKeys(p),
+  'budget:slice:exhausted': (p) =>
+    renameKeys({ ...p, consumed: toOtelConsumed(p.consumed), total: toOtelTotal(p.total) }),
+  'budget:slice:merged': (p) => renameKeys({ ...p, consumed: toOtelConsumed(p.consumed) }),
+};
+
+/** One budget event, two vocabularies: the typed bus and the trace sink. */
+function announce<K extends keyof BudgetEventMap>(
+  event: K,
+  payload: BudgetEventMap[K],
+  eventBus?: BudgetEventBus
+): void {
+  eventBus?.emit(event, payload);
+  emitDomainEvent(OTEL_EVENT[event], 'budget.slice', OTEL_PROJECTION[event](payload));
 }
 
 /** The four AIKR dimensions, each with its consumed key, total key, and exhaustion reason. */
@@ -92,18 +213,16 @@ const ALL_RESOURCES = Object.keys(RESOURCES) as BudgetResource[];
 export type BudgetAllocation = Partial<ConsumedBudget>;
 
 /** Both slice constructors announce a new slice through this one payload builder. */
-const announceSlice = (slice: BudgetSlice, eventBus?: NarEventBus) => {
-  const payload = {
-    sliceId: slice.id,
-    parentId: slice.parentId,
-    totalCycles: slice.totalCycles,
-    totalDepth: slice.totalDepth,
-    totalMemoryOps: slice.totalMemoryOps,
-    totalLMCalls: slice.totalLMCalls,
-  };
-  eventBus?.emit('budget:slice:created', payload);
-  emitBudgetSliceCreated(payload);
-};
+const sliceAnnouncement = (
+  slice: BudgetSlice
+): BudgetEventMap['budget:slice:created'] => ({
+  sliceId: slice.id,
+  parentId: slice.parentId,
+  totalCycles: slice.totalCycles,
+  totalDepth: slice.totalDepth,
+  totalMemoryOps: slice.totalMemoryOps,
+  totalLMCalls: slice.totalLMCalls,
+});
 
 const totalsOf = (budget: BudgetSlice): { -readonly [K in keyof BudgetSliceTotal]: number } => ({
   totalCycles: budget.totalCycles,
@@ -136,15 +255,14 @@ function consume(
   budget: BudgetSlice,
   resource: BudgetResource,
   amount: number,
-  eventBus?: NarEventBus
+  eventBus?: BudgetEventBus
 ): boolean {
   const { reason } = RESOURCES[resource];
   const total = totalOf(budget, resource);
   if (budget.consumed[resource] + amount > total) {
     budget.terminationReason = reason;
     const snapshot = { sliceId: budget.id, reason, consumed: { ...budget.consumed }, total: totalsOf(budget) };
-    eventBus?.emit('budget:slice:exhausted', snapshot);
-    emitBudgetSliceExhausted(snapshot);
+    announce('budget:slice:exhausted', snapshot, eventBus);
     return false;
   }
   budget.consumed[resource] += amount;
@@ -157,21 +275,20 @@ function consume(
     total,
     pressure: pressureOf(budget, resource),
   };
-  eventBus?.emit('budget:slice:consumed', payload);
-  emitBudgetSliceConsumed(payload);
+  announce('budget:slice:consumed', payload, eventBus);
   return true;
 }
 
-export const consumeCycles = (budget: BudgetSlice, cycles: number, eventBus?: NarEventBus): boolean =>
+export const consumeCycles = (budget: BudgetSlice, cycles: number, eventBus?: BudgetEventBus): boolean =>
   consume(budget, 'cycles', cycles, eventBus);
 
-export const consumeDepth = (budget: BudgetSlice, depth: number, eventBus?: NarEventBus): boolean =>
+export const consumeDepth = (budget: BudgetSlice, depth: number, eventBus?: BudgetEventBus): boolean =>
   consume(budget, 'depth', depth, eventBus);
 
-export const consumeMemoryOps = (budget: BudgetSlice, ops: number, eventBus?: NarEventBus): boolean =>
+export const consumeMemoryOps = (budget: BudgetSlice, ops: number, eventBus?: BudgetEventBus): boolean =>
   consume(budget, 'memoryOps', ops, eventBus);
 
-export const consumeLMCalls = (budget: BudgetSlice, calls: number, eventBus?: NarEventBus): boolean =>
+export const consumeLMCalls = (budget: BudgetSlice, calls: number, eventBus?: BudgetEventBus): boolean =>
   consume(budget, 'llmCalls', calls, eventBus);
 
 export function checkDeadline(budget: BudgetSlice): boolean {
@@ -239,7 +356,7 @@ export function resolveAllocation(
 export function chargeAllocation(
   budget: BudgetSlice,
   allocation: BudgetAllocation,
-  eventBus?: NarEventBus
+  eventBus?: BudgetEventBus
 ): void {
   for (const resource of ALL_RESOURCES) {
     const amount = allocation[resource] ?? 0;
@@ -266,21 +383,16 @@ export function mergeConsumed(parent: ConsumedBudget, child: ConsumedBudget): vo
   }
 }
 
-export function mergeConsumption(parent: BudgetSlice, child: BudgetSlice, eventBus?: NarEventBus): void {
+export function mergeConsumption(parent: BudgetSlice, child: BudgetSlice, eventBus?: BudgetEventBus): void {
   mergeConsumed(parent.consumed, child.consumed);
   if (child.terminationReason && !parent.terminationReason) {
     parent.terminationReason = child.terminationReason;
   }
-  eventBus?.emit('budget:slice:merged', {
-    parentId: parent.id,
-    childId: child.id,
-    consumed: { ...child.consumed },
-  });
-  emitBudgetSliceMerged({
-    parentId: parent.id,
-    childId: child.id,
-    consumed: { ...child.consumed },
-  });
+  announce(
+    'budget:slice:merged',
+    { parentId: parent.id, childId: child.id, consumed: { ...child.consumed } },
+    eventBus
+  );
 }
 
 export function isExhausted(budget: BudgetSlice): boolean {

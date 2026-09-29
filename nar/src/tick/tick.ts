@@ -1,10 +1,8 @@
 import type { Budget, Task, Term, TruthType } from '../types/core.js';
 import { dispatch, type Middleware, passthrough } from '@senars/util';
+export type { AIKRBudget };
+import type { AIKRBudget } from '@senars/core/budget';
 
-export interface AIKRBudget {
-  cycles: number;
-  depth?: number;
-}
 
 export interface CognitiveEvent {
   tickId: string;

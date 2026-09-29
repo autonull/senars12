@@ -1,4 +1,4 @@
-import type { RewardDomain } from '@senars/kernel/schemas';
+import type { RewardDomain } from '@senars/core/derivation-schemas';
 import { SenarsError } from '@senars/util/errors';
 import { clamp, clamp01 } from '@senars/util';
 import type { FocusBag } from '../focus/FocusBag.js';

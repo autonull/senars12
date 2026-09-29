@@ -1,5 +1,5 @@
 import { clamp, estimateTokens, makeId, mean, variance } from '@senars/util';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import { validateBatchQueries } from './algebra.js';
 import { ContrastiveMemory, rubricOf } from './contrastive.js';
 import {

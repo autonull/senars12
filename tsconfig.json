@@ -14,8 +14,6 @@
       "@senars/nar/*": ["./nar/src/*"],
       "@senars/metta": ["./metta/src/index.ts"],
       "@senars/metta/*": ["./metta/src/*"],
-      "@senars/kernel": ["./kernel/src/index.ts"],
-      "@senars/kernel/*": ["./kernel/src/*"],
       "@senars/ui/*": ["./ui/src/*"]
     }
   },

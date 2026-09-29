@@ -7,11 +7,19 @@ import type {
   SkillDefinition,
 } from '@senars/util';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
-import type { ThreadScope } from '@senars/nar/kernel';
 import type { ChatOptions, ChatStreamEvent } from '../ChatService.js';
 /**
  * Agent public type definitions.
  */
+
+/**
+ * Per-correlationId scope store (Phase A) — the contract that keeps one user's
+ * context from bleeding into another's. `nar` holds the LRU-backed
+ * implementation; `core` only needs to name the reader.
+ */
+export interface CorrelationScopeStore {
+  get(correlationId: string): { contrastiveMemory?: object; sourceKey?: string };
+}
 import type { CognitiveEvent } from '../CognitiveEvent.js';
 import type { LLMCortex } from '../cortex/LLMCortex.js';
 import type {
@@ -65,7 +73,7 @@ export interface AgentOptions {
   /** Consolidation config: enabled by default, optional per-invocation budget. */
   consolidation?: { enabled?: boolean; budget?: number };
   /** Phase A (REFACTOR.todo4): per-correlationId scope for ContrastiveMemory isolation. */
-  threadScope?: ThreadScope;
+  threadScope?: CorrelationScopeStore;
 }
 
 export interface ParsedCommand {

@@ -4,8 +4,8 @@ import type {
   AutonomyMode,
   AutonomyModeChangedEvent,
   PolicyViolationEvent,
-} from '@senars/kernel/schemas';
-import { AutonomyModeChangedEventSchema } from '@senars/kernel/schemas';
+} from '@senars/core/derivation-schemas';
+import { AutonomyModeChangedEventSchema } from '@senars/core/derivation-schemas';
 import { SenarsError } from '@senars/util/errors';
 import { addToSet, makeId, pushCapped } from '@senars/util';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';

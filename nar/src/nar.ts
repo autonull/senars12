@@ -1,5 +1,5 @@
 import { BaseComponent } from '@senars/core';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import { selectTopN, type Episode } from '@senars/util';
 import { resolveBagSlot } from './bag/registration.js';
 import { CognitiveController, createDefaultRegistry } from './cognitive';

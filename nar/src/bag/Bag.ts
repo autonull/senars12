@@ -1,5 +1,6 @@
+import { emitDomainEvent } from '@senars/core/event-sink';
 import { clamp01, generateId, occupancy } from '@senars/util';
-import { emitBagPressureTransition } from '../tick';
+import type { AIKRBudget } from '@senars/core/budget';
 import type { RandomSource } from '../types/primitives.js';
 import { weightedPick } from '../utils/random.js';
 
@@ -28,10 +29,7 @@ export interface BagOptions {
 
 export type EvictStrategy = 'LRU' | 'LowestPriority' | 'Random';
 
-export interface AIKRBudget {
-  cycles: number;
-  depth?: number;
-}
+export type { AIKRBudget };
 
 export interface Bag<T extends BagItem> {
   readonly capacity: number;
@@ -229,7 +227,7 @@ export abstract class BaseBag<T extends BagItem> implements Bag<T> {
     const level = pressure >= 0.9 ? 'critical' : pressure >= 0.7 ? 'high' : 'normal';
     if (level === this.lastPressureLevel) return;
     this.lastPressureLevel = level;
-    emitBagPressureTransition({
+    emitDomainEvent('bag.pressure.transition', '', {
       bagId: this.id,
       pressure,
       capacity: this.capacity,

@@ -1,6 +1,6 @@
 import { type MinedNegative, MiningBag } from '@senars/nar/lm/system-one/hard-negatives.js';
 import { ProposalBag } from '@senars/nar/meta/proposal-bag.js';
-import type { SelfImprovementProposal } from '@senars/kernel/schemas';
+import type { SelfImprovementProposal } from '@senars/core/derivation-schemas';
 import { describe, expect, it } from 'vitest';
 
 const proposal = (

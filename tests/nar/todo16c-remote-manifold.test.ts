@@ -5,7 +5,7 @@ import { handleSystemOneRequest } from '../../nar/src/lm/system-one/http-endpoin
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { admitRemotePropositions } from '../../nar/src/lm/system-one/http-endpoint.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
 
 const budget: ReasoningBudget = {

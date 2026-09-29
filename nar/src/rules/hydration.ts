@@ -1,4 +1,4 @@
-import type { DerivationRecord } from '@senars/kernel/schemas';
+import type { DerivationRecord } from '@senars/core/derivation-schemas';
 import type { Memory } from '../memory/memory.js';
 import type { Term } from '../terms/index.js';
 import { Truth, termParser } from '../terms/index.js';

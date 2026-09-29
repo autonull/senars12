@@ -4,7 +4,7 @@
 
 - `AuthManager`
 
-- `bindAgentToConnection`
+- `bindAgentToConnection` — The single message path: auth, `/`-commands, session binding, and agent
 
 - `createAgentDispatch`
 
@@ -16,7 +16,7 @@
 
 - `createErrorBoundary`
 
-- `createRateLimiter`
+- `createRateLimiter` — Sliding one-second window, at most `maxPerWindow` messages across the transport.
 
 - `createSessionBinder`
 

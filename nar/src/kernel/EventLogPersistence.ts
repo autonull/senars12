@@ -1,5 +1,5 @@
-import type { AutonomyMode, CognitiveEvent, TaskAdmittedEvent } from '@senars/kernel/schemas';
-import { CognitiveEventSchema } from '@senars/kernel/schemas';
+import type { AutonomyMode, CognitiveEvent, TaskAdmittedEvent } from '@senars/core/derivation-schemas';
+import { CognitiveEventSchema } from '@senars/core/derivation-schemas';
 import { appendJsonl, readJsonl } from '../utils/jsonl.js';
 import type { GateRegistry } from './GateRegistry.js';
 

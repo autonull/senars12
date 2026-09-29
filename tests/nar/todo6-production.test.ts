@@ -14,10 +14,10 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
 import { initOtel, shutdownOtel, withSpan } from '@senars/nar/otel';
 import { createCognitiveThread } from '@senars/core';
-import { consumeCycles, createBudgetSlice, mergeConsumption, sliceBudget, type BudgetSlice } from '@senars/kernel/budget';
+import { consumeCycles, createBudgetSlice, mergeConsumption, sliceBudget, type BudgetSlice } from '@senars/core/budget';
 import { PriorityBag } from '@senars/nar/bag';
 import { CognitiveRegistry } from '@senars/nar/cognitive';
-import { validateCognitiveEvent } from '@senars/kernel/schemas';
+import { validateCognitiveEvent } from '@senars/core/derivation-schemas';
 import {
   computeReplayStateHash,
   replayIntoMemory,

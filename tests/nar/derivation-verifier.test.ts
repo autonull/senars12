@@ -1,6 +1,6 @@
-import type { DerivationRecord } from '@senars/kernel/schemas';
+import type { DerivationRecord } from '@senars/core/derivation-schemas';
 import { describe, expect, it } from 'vitest';
-import { verifyRecord } from '@senars/kernel/verify-derivation';
+import { verifyRecord } from '@senars/core/verify-derivation';
 
 const taskId = '11111111-1111-4111-8111-111111111111';
 const step = (overrides: Record<string, unknown>): DerivationRecord['steps'][number] =>

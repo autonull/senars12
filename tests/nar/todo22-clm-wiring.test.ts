@@ -8,7 +8,7 @@ import { LMReflex } from '../../nar/src/lm/system-one/lm-reflex.js';
 import { ManifoldReflex } from '../../nar/src/lm/system-one/manifold-reflex.js';
 import { createTraceGrader } from '../../nar/src/lm/system-one/trace-grader.js';
 import type { CognitiveDispatcher, JudgmentManifold, PEAResult } from '../../nar/src/lm/system-one/types.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { ActionProposal, Reflex } from '../../nar/src/reflex/Reflex.js';
 import { EpsilonGreedyReflex } from '../../nar/src/reflex/EpsilonGreedyReflex.js';
 

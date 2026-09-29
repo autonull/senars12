@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SandboxValidator } from '../../nar/src/governance/pipeline.js';
-import { SelfImprovementProposal, AutonomyMode } from '@senars/kernel/schemas';
+import { SelfImprovementProposal, AutonomyMode } from '@senars/core/derivation-schemas';
 
 describe('SystemOne Knob Validation', () => {
   const validator = new SandboxValidator();

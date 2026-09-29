@@ -9,7 +9,7 @@ import { RuleProcessor } from '../../nar/src/rules/processor.js';
 import { createDefaultRegistry } from '../../nar/src/cognitive';
 import { SamplingStrategy, DerivationStrategy, Strategy } from '../../nar/src/strategies/types.js';
 import type { Task } from '../../nar/src/types/core.js';
-import { createBudgetSlice, consumeCycles, type BudgetSlice } from '@senars/kernel/budget';
+import { createBudgetSlice, consumeCycles, type BudgetSlice } from '@senars/core/budget';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 
 function time(name: string, iterations: number, fn: (i: number) => void): number {

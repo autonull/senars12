@@ -9,7 +9,7 @@ import {
   type Ledger,
   type RolloverPolicyOptions,
 } from '@senars/io/ledger';
-import type { SelfImprovementProposal } from '@senars/kernel/schemas';
+import type { SelfImprovementProposal } from '@senars/core/derivation-schemas';
 import { z } from 'zod';
 
 import { Truth, type Truth as TruthType } from '../../terms/truth.js';

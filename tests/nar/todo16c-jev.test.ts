@@ -20,7 +20,7 @@ import type {
   QueryId,
   BackendId,
 } from '../../nar/src/lm/system-one/types.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
 
 const budget: ReasoningBudget = {

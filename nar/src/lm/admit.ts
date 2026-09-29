@@ -3,7 +3,7 @@ import { type GateRegistry, gateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
 import type { Task } from '../types';
 import { shadowValidator, type ShadowValidationResult } from './shadow-validation.js';
-import type { ShadowValidationDropEvent } from '@senars/kernel/schemas';
+import type { ShadowValidationDropEvent } from '@senars/core/derivation-schemas';
 
 export async function admitTasks(
   memory: Memory,

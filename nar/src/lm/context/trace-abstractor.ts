@@ -1,4 +1,4 @@
-import type { DerivationRecord } from '@senars/kernel/schemas';
+import type { DerivationRecord } from '@senars/core/derivation-schemas';
 import { atom, fromNarsese, type Term } from '../../terms/index.js';
 
 export interface CriticalPathStep {

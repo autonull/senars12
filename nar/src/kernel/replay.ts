@@ -4,13 +4,13 @@ import type {
   CognitiveEvent,
   DerivationRecord,
   TaskAdmittedEvent,
-} from '@senars/kernel/schemas';
+} from '@senars/core/derivation-schemas';
 import {
   CognitiveEventSchema,
   DerivationRecordSchema,
   validateCognitiveEvent,
   validateDerivationRecord,
-} from '@senars/kernel/schemas';
+} from '@senars/core/derivation-schemas';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 import { createDefaultRegistry, resolveSlot } from '../cognitive/registry.js';
 import type { AttentionModel } from '../strategies/types.js';

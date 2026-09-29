@@ -5,8 +5,8 @@ import type {
   RewardGateInput,
   RewardGateOutput,
   SelfImprovementProposal,
-} from '@senars/kernel/schemas';
-import { SelfImprovementProposalSchema } from '@senars/kernel/schemas';
+} from '@senars/core/derivation-schemas';
+import { SelfImprovementProposalSchema } from '@senars/core/derivation-schemas';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
 import { KernelGate } from './gate-base.js';
 

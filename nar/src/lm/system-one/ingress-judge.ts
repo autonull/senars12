@@ -1,5 +1,5 @@
-import type { SourceQuality } from '@senars/kernel/schemas';
-import { SOURCE_QUALITY_CONFIDENCE } from '@senars/kernel/schemas';
+import type { SourceQuality } from '@senars/core/derivation-schemas';
+import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/derivation-schemas';
 import type { IngressJudge, IngressJudgmentRequest, IngressVerdict } from '../../kernel/ingress.js';
 import { providerKey } from '../../kernel/reputation-keys.js';
 import type { TaskTypeName } from '../../terms';

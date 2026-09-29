@@ -1,5 +1,5 @@
 import { createLogger } from '@senars/core/logger';
-import { verifyRecord } from '@senars/kernel/verify-derivation';
+import { verifyRecord } from '@senars/core/verify-derivation';
 import { cachePath } from '@senars/util';
 import {
   type CognitiveParameters,

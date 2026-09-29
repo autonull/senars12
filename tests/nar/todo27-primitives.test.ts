@@ -7,7 +7,7 @@ import {
   parseTruthLiteral,
   serializeTruth,
 } from '@senars/util';
-import { createBudgetSlice, consumeCycles, pressure } from '@senars/kernel/budget';
+import { createBudgetSlice, consumeCycles, pressure } from '@senars/core/budget';
 import { Memory } from '@senars/nar/memory';
 import { BoundaryValidationError } from '../../nar/src/errors/index.js';
 import { SingleFlight } from '../../nar/src/nl/singleflight.js';

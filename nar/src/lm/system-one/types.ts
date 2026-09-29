@@ -1,4 +1,4 @@
-import type { ReasoningBudget, SourceQuality } from '@senars/kernel/schemas';
+import type { ReasoningBudget, SourceQuality } from '@senars/core/derivation-schemas';
 import type { ProvisionalStamp } from './provisional-stamp.js';
 
 export type { ReasoningBudget, SourceQuality };

@@ -5,7 +5,7 @@ import { SystemOneDispatcher, DeterministicManifold, StubCortex } from '../../na
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { PriorityBag } from '../../nar/src/bag/Bag.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { EmbeddingPointer, JudgmentManifold, JudgmentProposition } from '../../nar/src/lm/system-one/types.js';
 
 const budget: ReasoningBudget = {

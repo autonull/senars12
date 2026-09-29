@@ -1,5 +1,6 @@
 import { SpanKind, SpanStatusCode, trace, type Attributes, type Span } from '@opentelemetry/api';
 import { registerLogEnricher } from '@senars/core';
+import { setDomainEventSink } from '@senars/core/event-sink';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import {
@@ -36,6 +37,7 @@ export function initOtel(config: OtelConfig = {}): void {
   initialized = true;
   if (!enabled) return;
   registerLogTraceEnricher();
+  setDomainEventSink(emitEvent);
   const spanProcessors: SpanProcessor[] = [...extraProcessors];
   if (otlpEndpoint) {
     const exporter = new OTLPTraceExporter({ url: otlpEndpoint });
@@ -200,123 +202,6 @@ export function emitSpanEvent(
   attributes: Record<string, unknown> = {}
 ): void {
   emitEvent(name, '', { 'tick.id': ctx.tickId, ...attributes });
-}
-
-/** F1: BudgetSlice operation span events. */
-export function emitBudgetSliceCreated(attributes: {
-  sliceId: string;
-  parentId?: string;
-  totalCycles: number;
-  totalDepth: number;
-  totalMemoryOps: number;
-  totalLMCalls: number;
-}): void {
-  emitEvent('budget.slice.created', 'budget.slice', {
-    id: attributes.sliceId,
-    parent_id: attributes.parentId,
-    total_cycles: attributes.totalCycles,
-    total_depth: attributes.totalDepth,
-    total_memory_ops: attributes.totalMemoryOps,
-    total_llm_calls: attributes.totalLMCalls,
-  });
-}
-
-export function emitBudgetSliceConsumed(attributes: {
-  sliceId: string;
-  resource: 'cycles' | 'depth' | 'memoryOps' | 'llmCalls';
-  amount: number;
-  consumed: number;
-  total: number;
-  pressure: number;
-}): void {
-  emitEvent('budget.slice.consumed', 'budget.slice', {
-    id: attributes.sliceId,
-    resource: attributes.resource,
-    amount: attributes.amount,
-    consumed: attributes.consumed,
-    total: attributes.total,
-    pressure: attributes.pressure,
-  });
-}
-
-export function emitBudgetSliceExhausted(attributes: {
-  sliceId: string;
-  reason: string;
-  consumed: Record<string, number>;
-  total: Record<string, number>;
-}): void {
-  emitEvent('budget.slice.exhausted', 'budget.slice', {
-    id: attributes.sliceId,
-    reason: attributes.reason,
-    consumed: {
-      cycles: attributes.consumed.cycles,
-      depth: attributes.consumed.depth,
-      memory_ops: attributes.consumed.memoryOps,
-      llm_calls: attributes.consumed.llmCalls,
-    },
-    total: {
-      cycles: attributes.total.totalCycles,
-      depth: attributes.total.totalDepth,
-      memory_ops: attributes.total.totalMemoryOps,
-      llm_calls: attributes.total.totalLMCalls,
-    },
-  });
-}
-
-export function emitBudgetSliceMerged(attributes: {
-  parentId: string;
-  childId: string;
-  consumed: Record<string, number>;
-}): void {
-  emitEvent('budget.slice.merged', 'budget.slice', {
-    parent_id: attributes.parentId,
-    child_id: attributes.childId,
-    consumed: {
-      cycles: attributes.consumed.cycles,
-      depth: attributes.consumed.depth,
-      memory_ops: attributes.consumed.memoryOps,
-      llm_calls: attributes.consumed.llmCalls,
-    },
-  });
-}
-
-/** F1: Bag pressure transition span event. */
-export function emitBagPressureTransition(attributes: {
-  bagId: string;
-  pressure: number;
-  capacity: number;
-  size: number;
-  transition: 'normal' | 'high' | 'critical';
-}): void {
-  emitEvent('bag.pressure.transition', '', attributes);
-}
-
-/** F1: Backpressure decision span event. */
-export function emitBackpressureDecision(attributes: {
-  threadId: string;
-  allowed: boolean;
-  reason: 'budget-exhausted' | 'mailbox-full' | 'ok';
-  budgetRemaining: number;
-  mailboxSize: number;
-  mailboxCapacity: number;
-}): void {
-  emitEvent('thread.backpressure', '', attributes);
-}
-
-/** F1: Strategy selection span event — one event per *resolution*, not per recall. */
-export function emitStrategySelection(attributes: {
-  strategyType: 'sampling' | 'premise' | 'derivation' | 'lm-rule' | 'attention';
-  strategyName: string;
-  /** Tier 1/2 identity: the config digest or composition label. Absent at tier 0. */
-  configDigest?: string;
-  context?: Record<string, string | number | boolean>;
-}): void {
-  emitEvent('strategy.selection', 'strategy', {
-    type: attributes.strategyType,
-    name: attributes.strategyName,
-    config_digest: attributes.configDigest,
-    context: attributes.context,
-  });
 }
 
 export function recordCognitiveEvents(ctx: TickContext): void {

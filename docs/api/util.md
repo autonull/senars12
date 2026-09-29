@@ -22,6 +22,10 @@
 
 - `envInt`
 
+- `envNum` — Finite real number from the environment, else `fallback`. Unlike `envInt`
+
+- `envPositive` — Positive finite number from the environment, else `fallback` — the guard for
+
 - `envStr`
 
 - `envStrOr`
@@ -64,6 +68,8 @@
 
 - `PushQueue` — Single-writer push buffer exposed as an async iterator — the one bridge
 
+- `Signal` — One subject, any number of listeners — the unnamed case {@link EventBus} generalises.
+
 - `DefaultToolFeedbackObserver`
 
 - `type ToolFeedback`
@@ -74,7 +80,9 @@
 
 - `createSession`
 
-- `InMemorySessionManager`
+- `InMemorySessionManager` — Sessions with no persistence layer.
+
+- `SessionStore` — Bounded session map — the single runtime store behind every `SessionManager`,
 
 - `dispatch` — Onion-style dispatch for a middleware chain.
 
@@ -84,11 +92,25 @@
 
 - `isNarEvent`
 
+- `createLogger`
+
+- `defaultLogger`
+
+- `Logger`
+
+- `registerLogEnricher`
+
 - `asBeliefTruth` — Belief-shaped truth from either truth representation; absent truth stays absent.
+
+- `BeliefTruthSchema` — The runtime guard for {@link BeliefTruth}, and the one place a truth value's
 
 - `formatNarseseTruth` — Narsese inline truth suffix ` :f:c` (empty when absent) — the single
 
 - `formatTruth` — The single human/LLM-readable truth rendering — prompt text must not drift between call sites.
+
+- `parseNarseseTruth` — Reads back what {@link formatNarseseTruth} writes. The suffix is a rendering,
+
+- `parseTruthLiteral` — Reads back what {@link serializeTruth} writes, tolerating the whitespace a term's punctuation leaves.
 
 - `serializeTruth` — Narsese `%f;c%` truth literal.
 
@@ -108,11 +130,15 @@
 
 - `incrementCount` — Accumulate a per-key count; returns the new total.
 
+- `insertByScoreDesc` — Insert into a descending-sorted list in O(n) — no full re-sort, unlike
+
 - `maxBy`
+
+- `maxScore` — Highest `score` over `items`, floored at 0. Single pass over the iterable
 
 - `minBy` — Extremum pick over a collection. `initial`/`initialScore` seed the running
 
-- `pushCapped` — Drop-oldest push for plain arrays. One `shift()` per overflow — no `splice`
+- `pushCapped`
 
 - `selectByPriority` — Greedy budget selection over `{ priority, id }` items: highest priority
 
@@ -122,19 +148,25 @@
 
 - `sortByDesc`
 
+- `trimCapped` — Keep the newest `capacity` entries of a plain array, dropping from the front.
+
 - `bar` — Unicode progress bar for a 0–1 fraction.
 
 - `divider` — Horizontal rule separating report sections.
 
 - `pct` — Fraction → percentage string (`pct(0.6123)` → `'61.2%'`).
 
-- `percentile` — Nearest-rank percentile of an unsorted sample; 0 for an empty one.
+- `percentile` — Percentile of an unsorted sample at index `floor(p * n)`, clamped; 0 for an empty one.
 
 - `section` — Section banner: rule, title, rule.
+
+- `utcDate` — UTC calendar day as `YYYY-MM-DD` — the one date key for daily ledger files.
 
 - `appendJsonl` — Append `rows` as one JSON object per line. Returns the number appended.
 
 - `appendJsonlAsync`
+
+- `containsPath` — True when `candidate` is `root` itself or lies beneath it. Separators are
 
 - `ensureDir`
 
@@ -184,11 +216,17 @@
 
 - `generateId` — Monotonic, collision-resistant id. Pass an injectable `rng` (seeded runs,
 
+- `BoundedMap`
+
 - `LruCache`
 
 - `extractLastUserMessage` — Extract the concatenated text of the last user message in an AI-SDK prompt.
 
+- `SlidingWindowRateLimiter`
+
 - `withRetry` — Retry `fn` with exponential backoff; rethrows the last failure.
+
+- `weightedMean` — The weighted running mean, in one place.
 
 - `asSerializable` — Wraps an object that already fulfills the instance-side contract
 
@@ -197,6 +235,8 @@
 - `inPlaceSerializable` — Bridges a class whose instance `serialize()` pairs with an *in-place*
 
 - `boundedSignal` — Abort signal that fires after `timeoutMs`; call `done()` in a `finally` to release the timer.
+
+- `CHARS_PER_TOKEN` — Characters per token in {@link estimateTokens} — its inverse, for budgeting characters from a token allowance.
 
 - `chunk` — Fixed-size slices for batched work — the one chunking primitive.
 
@@ -210,6 +250,8 @@
 
 - `deepFreeze` — Recursively freeze an object graph (TODO20 C3). Arrays and nested objects included.
 
+- `deepMerge` — Recursively merge `override` onto `base`. Plain objects merge key-by-key;
+
 - `edgeKey`
 
 - `ensureArray`
@@ -222,11 +264,15 @@
 
 - `type Flags`
 
+- `formatIssues` — The monorepo's one rendering of a schema failure. Four validators used to
+
 - `getNested` — Dotted-path read; missing or non-object segments yield `undefined`.
 
 - `isNarsese`
 
 - `isNil`
+
+- `isPlainObject` — Plain-object guard — the one object test behind config merging and tool schemas.
 
 - `limitList`
 
@@ -234,17 +280,27 @@
 
 - `mean` — Arithmetic mean of a projection; 0 for an empty collection (rates, scores, sums).
 
+- `occupancy` — Occupancy of a bounded resource in `0..1` — the AIKR pressure signal every
+
 - `parseFlags` — Parses `argv` once into flag lookups. `--flag value` consumes the next token
 
 - `pearson` — Pearson correlation over the leading `min(xs, ys)` samples. The single
 
 - `raceDeadline` — Cooperative deadline: resolves `{ timedOut: true }` when `timeoutMs` elapses,
 
+- `roundTo` — Round to `digits` decimal places — the one float-noise guard for reported values.
+
 - `safeDiv`
+
+- `type SchemaIssue`
 
 - `setNested` — Dotted-path write, creating missing intermediate objects.
 
+- `sigmoid` — Logistic function; the single sigmoid used by scoring and gradient descent.
+
 - `sleep`
+
+- `softmax`
 
 - `stableStringify` — Deterministic JSON with object keys emitted in sorted order — the single
 
@@ -270,6 +326,8 @@
 
 - `setupGracefulShutdown` — Process lifecycle — the single signal → shutdown path for every SeNARS binary.
 
+- `Unifier`
+
 - `createThrottle`
 
 - `Throttle`
@@ -288,7 +346,7 @@
 
 - `type CognitiveBounds`
 
-- `cognitiveBounds` — Shared min/max/default bounds for cognitive parameters — single source of truth for
+- `cognitiveBounds`
 
 - `getAllCognitiveBounds`
 
@@ -308,9 +366,19 @@
 
 - `envInt`
 
+- `envNum` — Finite real number from the environment, else `fallback`. Unlike `envInt`
+
+- `envNumOr` — Finite real number from the first defined alias, or `undefined` when the key is
+
+- `envPositive` — Positive finite number from the environment, else `fallback` — the guard for
+
 - `envStr`
 
 - `envStrOr`
+
+- `isBooleanSpelling` — True only for a spelling both halves accept — the acceptance test a validator wants.
+
+- `isFalsy` — Exact complement of {@link isTruthy}. The two together are the whole boolean grammar.
 
 - `isTruthy` — Canonical truthiness for env-sourced strings — every `=== 'true'` check funnels here.
 
@@ -328,11 +396,17 @@
 
 - `getBound`
 
+- `type BoundProp`
+
 - `type NarCoreBoundKey`
 
 - `type NarCoreBounds`
 
-- `narCoreBounds` — Shared min/max/default bounds for NAR core config — single source of truth for
+- `narCoreBounds`
+
+- `narCoreDefaultedNumber` — The same row as a zod number carrying its default.
+
+- `narCoreNumber` — A zod number constrained by a `narCoreBounds` row — the schema never restates a limit.
 
 - `CACHE_DIR` — Root of the runtime cache/checkpoint tree (state snapshots, ledgers, datasets).
 
@@ -343,6 +417,8 @@
 - `systemOneDefaults`
 
 - `systemOneSchema`
+
+- `type ValidatedAgentOptions`
 
 - `AgentOptionsValidationError`
 
@@ -384,6 +460,8 @@
 
 - `PushQueue` — Single-writer push buffer exposed as an async iterator — the one bridge
 
+- `Signal` — One subject, any number of listeners — the unnamed case {@link EventBus} generalises.
+
 ## `./feedback`
 
 - `ToolFeedback`
@@ -402,9 +480,11 @@
 
 - `DEFAULT_MAX_HISTORY_PER_SESSION`
 
-- `InMemorySessionManagerOptions`
+- `SessionStoreOptions`
 
-- `InMemorySessionManager`
+- `SessionStore` — Bounded session map — the single runtime store behind every `SessionManager`,
+
+- `InMemorySessionManager` — Sessions with no persistence layer.
 
 ## `./types/cognitive`
 
@@ -448,7 +528,7 @@
 
 - `ConnectionFactory`
 
-- `Logger`
+- `Logger` — class from `@senars/util` for an implementation. This alias resolves to
 
 - `ConnectionDeps`
 
@@ -494,6 +574,8 @@
 
 - `toError`
 
+- `CHARS_PER_TOKEN` — Characters per token in {@link estimateTokens} — its inverse, for budgeting characters from a token allowance.
+
 - `estimateTokens` — Rough token count: ~4 characters per token. Single source for every budget.
 
 - `sleep`
@@ -512,7 +594,19 @@
 
 - `clamp01`
 
+- `occupancy` — Occupancy of a bounded resource in `0..1` — the AIKR pressure signal every
+
+- `roundTo` — Round to `digits` decimal places — the one float-noise guard for reported values.
+
 - `edgeKey`
+
+- `isPlainObject` — Plain-object guard — the one object test behind config merging and tool schemas.
+
+- `deepMerge` — Recursively merge `override` onto `base`. Plain objects merge key-by-key;
+
+- `sigmoid` — Logistic function; the single sigmoid used by scoring and gradient descent.
+
+- `softmax`
 
 - `safeDiv`
 
@@ -549,6 +643,10 @@
 - `isNarsese`
 
 - `truncate`
+
+- `SchemaIssue` — One issue's worth of what a diagnostic can say; the shape every schema issue already has.
+
+- `formatIssues` — The monorepo's one rendering of a schema failure. Four validators used to
 
 - `truncateBytes` — Byte-safe truncation for tool output — never splits a multi-byte character.
 

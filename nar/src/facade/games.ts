@@ -1,4 +1,4 @@
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import { FocusBag } from '../focus/FocusBag.js';
 import { GameFocus, type GameFocusOptions } from '../focus/GameFocus.js';
 import { createSelfMetaGame, type SelfMetaGameImpl } from '../game/SelfMetaGame.js';

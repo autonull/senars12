@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { validateCognitiveEvent, validateDerivationRecord } from '@senars/kernel/schemas';
+import { validateCognitiveEvent, validateDerivationRecord } from '@senars/core/derivation-schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
 import { loadGateEvents, persistGateLogs } from '../../nar/src/kernel/EventLogPersistence.js';

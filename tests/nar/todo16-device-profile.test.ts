@@ -3,7 +3,7 @@ import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { DeterministicManifold, Tier3SymbolicManifold, createDispatcher } from '../../nar/src/lm/system-one/dispatcher.js';
 import { verifyModelDigest, DigestMismatchError, SandboxedHeadRuntime, loadHeadRuntime } from '../../nar/src/lm/system-one/wasi-runtime.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { JudgmentQuery, EvaluateQuery } from '../../nar/src/lm/system-one/types.js';
 
 const mockBudget: ReasoningBudget = {
@@ -96,7 +96,7 @@ describe('System One — No-Cloud Device Profile E2E (H3)', () => {
 
   it('No provider fallback - untrusted HTTP results re-enter at LLM_PRIOR ceiling', async () => {
     // From http-endpoint.ts: untrusted results are seeded at LLM_PRIOR (0.5) ceiling
-    const { SOURCE_QUALITY_CONFIDENCE } = await import('@senars/kernel/schemas');
+    const { SOURCE_QUALITY_CONFIDENCE } = await import('@senars/core/derivation-schemas');
 
     // Verify LLM_PRIOR ceiling is 0.5
     expect(SOURCE_QUALITY_CONFIDENCE.LLM_PRIOR).toBe(0.5);
@@ -107,7 +107,7 @@ describe('System One — No-Cloud Device Profile E2E (H3)', () => {
 
   it('Policy violation event emitted on safety-floor veto', async () => {
     // This verifies the kernel event structure for safety-floor veto
-    const { validateCognitiveEvent } = await import('@senars/kernel/schemas');
+    const { validateCognitiveEvent } = await import('@senars/core/derivation-schemas');
 
     // Create a mock event matching the safety-floor veto pattern
     const vetoEvent = {

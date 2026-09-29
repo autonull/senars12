@@ -22,7 +22,7 @@ import { createCapabilityOntology } from '../../nar/src/capability/ontology.js';
 import type { CapabilitySchema } from '../../nar/src/capability/ontology.js';
 import { createBudget } from '../../nar/src/types/index.js';
 import { Stamp } from '../../nar/src/terms/index.js';
-import type { SelfImprovementProposal } from '@senars/kernel/schemas';
+import type { SelfImprovementProposal } from '@senars/core/derivation-schemas';
 import { createLCG } from '../helpers/rng.js';
 
 const lcg = createLCG;

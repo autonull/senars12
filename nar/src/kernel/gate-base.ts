@@ -1,5 +1,5 @@
 import { makeId } from '@senars/util';
-import type { CognitiveEvent } from '@senars/kernel/schemas';
+import type { CognitiveEvent } from '@senars/core/derivation-schemas';
 import { gateLog } from './event-ring.js';
 
 /**

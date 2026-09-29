@@ -204,7 +204,6 @@
     "@wasmer/wasi": "^1.2.2",
     "@senars/core": "workspace:*",
     "@senars/io": "workspace:*",
-    "@senars/kernel": "workspace:*",
     "@senars/util": "workspace:*",
     "ulid": "^3.0.2",
     "zod": "^4.5.4"

@@ -107,24 +107,36 @@ graph TD
   agent --> cognitive
   agent --> config
   agent --> engine
+  agent --> errors
   agent --> kernel
   agent --> lm
   agent --> lm_system-one
+  agent --> memory
   agent --> otel
   agent --> rlfp
   agent --> terms
   agent --> types
   bag --> types
+  bag --> utils
   capability --> tools
-  cognitive --> _
+  capability --> utils
   cognitive --> cognitive_analyzers
+  cognitive --> config
+  cognitive --> metrics
   cognitive --> reason
+  cognitive --> self
   cognitive --> strategies
+  cognitive --> strategies_attention
   cognitive --> strategies_lm-graph
-  cognitive_analyzers --> _
+  cognitive --> strategies_lm-selectors
+  cognitive --> strategies_premise
+  cognitive --> strategies_sampling
+  cognitive --> types
+  cognitive --> utils
   cognitive_analyzers --> cognitive
   cognitive_analyzers --> lm
   cognitive_analyzers --> lm_grammars
+  cognitive_analyzers --> self
   cognitive_analyzers --> terms
   cognitive_analyzers --> utils
   commands --> _
@@ -136,7 +148,6 @@ graph TD
   dialogue --> memory
   dialogue_consumers --> config
   dialogue_consumers --> dialogue
-  dialogue_consumers --> reason
   dialogue_consumers --> strategies
   drives --> kernel
   drives --> terms
@@ -156,11 +167,13 @@ graph TD
   facade --> lm_rule
   facade --> lm_rule-selectors
   facade --> lm_system-one
+  facade --> logger
   facade --> memory
   facade --> meta
   facade --> metrics
   facade --> reflex
   facade --> state
+  facade --> task
   facade --> tools_adapters
   facade --> types
   facade --> utils
@@ -176,6 +189,7 @@ graph TD
   focus --> terms
   focus --> types
   focus --> utils
+  game --> _
   game --> agent
   game --> config
   game --> focus
@@ -200,9 +214,13 @@ graph TD
   imagination --> terms
   imagination --> types
   imagination --> utils
+  kernel --> cognitive
+  kernel --> config
   kernel --> memory
   kernel --> memory_state
   kernel --> nl
+  kernel --> strategies
+  kernel --> task
   kernel --> telemetry
   kernel --> terms
   kernel --> types
@@ -214,7 +232,6 @@ graph TD
   learning --> reflex
   learning --> types
   learning --> utils
-  lifecycle --> types
   lm --> kernel
   lm --> lm_grammars
   lm --> lm_providers
@@ -243,7 +260,6 @@ graph TD
   lm_service --> lm_providers
   lm_service --> metrics
   lm_service --> otel
-  lm_system-one --> _
   lm_system-one --> bag
   lm_system-one --> capability
   lm_system-one --> dialogue
@@ -267,19 +283,25 @@ graph TD
   memory --> memory_links
   memory --> memory_pressure
   memory --> memory_state
+  memory --> strategies
+  memory --> strategies_attention
   memory --> terms
   memory --> types
   memory --> utils
+  memory_lifecycle --> _
   memory_lifecycle --> memory
+  memory_lifecycle --> memory_pressure
   memory_lifecycle --> terms
   memory_links --> memory
   memory_links --> types
   memory_links --> utils
+  memory_pressure --> _
   memory_pressure --> memory
   memory_pressure --> utils
   memory_state --> bag
   memory_state --> memory
   memory_state --> state
+  memory_state --> task
   meta --> bag
   meta --> learning
   meta --> reflex
@@ -298,14 +320,12 @@ graph TD
   otel --> tick
   query --> _
   query --> memory
-  query --> metrics
   query --> types
   query --> utils
-  reason --> _
-  reason --> reason_strategies
-  reason --> terms
+  reason --> strategies
   reason --> types
-  reason_strategies --> reason
+  reason_strategies --> strategies
+  reflex --> _
   reflex --> focus
   reflex --> game
   reflex --> lm_system-one
@@ -317,8 +337,8 @@ graph TD
   rl --> game
   rl --> rl_adapters
   rl --> types
+  rl --> utils
   rl_adapters --> _
-  rl_adapters --> game
   rl_adapters --> rl
   rl_adapters --> terms
   rl_adapters --> types
@@ -326,44 +346,55 @@ graph TD
   rlfp --> config
   rlfp --> types
   rlfp --> utils
-  rules --> _
   rules --> cognitive
   rules --> kernel
-  rules --> lm
+  rules --> lm_rule
   rules --> memory
   rules --> rules_extended
   rules --> rules_nal
+  rules --> strategies
   rules --> terms
   rules --> utils
   rules_extended --> rules
   rules_extended --> rules_nal
   rules_nal --> rules
   schemas --> nl
-  self --> _
   self --> cognitive
   self --> imagination
+  self --> lm_service
+  self --> memory
+  self --> terms
+  self --> types
   self --> utils
+  strategies --> lm_rule
+  strategies --> memory
+  strategies --> reason
+  strategies --> rules
   strategies --> strategies_attention
   strategies --> strategies_derivation
   strategies --> strategies_lm-graph
   strategies --> strategies_lm-selectors
   strategies --> strategies_sampling
+  strategies --> types
+  strategies_attention --> memory
   strategies_attention --> strategies
   strategies_derivation --> reason
+  strategies_derivation --> rules
   strategies_derivation --> strategies
   strategies_derivation --> types
   strategies_derivation --> utils
-  strategies_lm-graph --> cognitive
   strategies_lm-graph --> lm
   strategies_lm-graph --> strategies
   strategies_lm-graph --> terms
   strategies_lm-graph --> utils
+  strategies_lm-selectors --> lm
   strategies_lm-selectors --> strategies
   strategies_lm-selectors --> utils
+  strategies_premise --> memory
   strategies_premise --> memory_links
   strategies_premise --> strategies
-  strategies_premise --> strategies_lm-graph
   strategies_premise --> terms
+  strategies_sampling --> memory
   strategies_sampling --> strategies
   strategies_sampling --> types
   strategies_sampling --> utils
@@ -371,7 +402,9 @@ graph TD
   stream --> terms
   stream --> tick
   stream --> types
+  stream --> utils
   task --> kernel
+  task --> terms
   task --> types
   telemetry --> metrics
   telemetry --> otel
@@ -392,6 +425,7 @@ graph TD
   tools_adapters --> utils
   tools_adapters_self --> _
   tools_adapters_self --> cognitive
+  tools_adapters_self --> config
   tools_adapters_self --> rlfp
   tools_adapters_self --> rules
   tools_adapters_self --> tools

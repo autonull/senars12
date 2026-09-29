@@ -1,4 +1,4 @@
-import type { AutonomyMode, ReasoningBudget } from '@senars/kernel/schemas';
+import type { AutonomyMode, ReasoningBudget } from '@senars/core/derivation-schemas';
 import type {
   IActionGate,
   IBudgetGate,

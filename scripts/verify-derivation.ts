@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Standalone Derivation Verifier — CLI over the trusted kernel's proof checker.
- * The proof itself lives in `@senars/kernel/verify-derivation`, so CI and the
+ * The proof itself lives in `@senars/core/verify-derivation`, so CI and the
  * runtime settle every record with the same algebra and the same findings.
  *
  * Usage: pnpm exec tsx scripts/verify-derivation.ts <record.json> [--strict] [--epsilon 1e-6]
@@ -9,8 +9,8 @@
  * Exit 0 when every record verifies, 1 otherwise.
  */
 import { readFileSync } from 'node:fs';
-import { DerivationRecordSchema } from '@senars/kernel/schemas';
-import { verifyRecord } from '@senars/kernel/verify-derivation';
+import { DerivationRecordSchema } from '@senars/core/derivation-schemas';
+import { verifyRecord } from '@senars/core/verify-derivation';
 import { z } from 'zod';
 
 const [file, ...rest] = process.argv.slice(2);

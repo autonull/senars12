@@ -3,7 +3,7 @@
  * circular deps. All at-rest payloads are hash-only (I6): raw conversational
  * text never persists; content survives as sha256 digests + embeddings.
  */
-import type { FormalizationCandidate } from '@senars/kernel/schemas';
+import type { FormalizationCandidate } from '@senars/core/derivation-schemas';
 import type { JudgmentProvenance } from '../lm/system-one/decide.js';
 
 export type ReactionKind = 'accept' | 'correct' | 'reject' | 'clarify' | 'redirect' | 'abandon';

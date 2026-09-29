@@ -6,7 +6,7 @@
  */
 
 import { raceDeadline } from '@senars/util';
-import { BudgetSlice, type ConsumedBudget, createBudgetSlice, sliceBudget, mergeConsumption, mergeConsumed, isExhausted } from '@senars/kernel/budget';
+import { BudgetSlice, type ConsumedBudget, createBudgetSlice, sliceBudget, mergeConsumption, mergeConsumed, isExhausted } from '@senars/core/budget';
 import type { Focus, FocusOptions, FocusStepReport } from '../focus/Focus.js';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';

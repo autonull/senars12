@@ -3,8 +3,8 @@ import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { SystemOneIngressJudge } from '../../nar/src/lm/system-one/ingress-judge.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { validateCognitiveEvent } from '@senars/kernel/schemas';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import { validateCognitiveEvent } from '@senars/core/derivation-schemas';
+import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
 
 const budget: ReasoningBudget = {

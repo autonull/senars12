@@ -5,7 +5,7 @@ import {
   type HeadCandidateSpec,
 } from '../../nar/src/lm/system-one/distill.js';
 import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
-import type { AutonomyMode } from '@senars/kernel/schemas';
+import type { AutonomyMode } from '@senars/core/derivation-schemas';
 
 const pinnedIncumbent: HeadCandidateSpec = {
   headId: 'injection',
