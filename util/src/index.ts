@@ -56,6 +56,8 @@ export type { EventReceiver, EventUnsubscribe } from './events/event-bus.js';
 export { EventBus } from './events/event-bus.js';
 /** @public Push-to-async-iterator bridge shared by config views and event logs. */
 export { PushQueue } from './events/push-queue.js';
+/** @public Single-subject fan-out with isolated listeners. */
+export { Signal } from './events/signal.js';
 /** @public Tool feedback observer for unified statistics tracking. */
 export {
   DefaultToolFeedbackObserver,
@@ -177,9 +179,10 @@ export {
   selectTopN,
   sortBy,
   sortByDesc,
+  trimCapped,
 } from './utils/collections.js';
 /** @public Percent, divider, and progress-bar formatting for reports and CLI output. */
-export { bar, divider, pct, percentile, section } from './utils/format.js';
+export { bar, divider, pct, percentile, section, utcDate } from './utils/format.js';
 export type { JsonlLoadResult } from './utils/fs.js';
 // Filesystem
 export {
@@ -217,21 +220,29 @@ export {
 } from './utils/hash.js';
 /** @public ULID id generation. */
 export { generateId } from './utils/id.js';
+/** @public Bounded map with pluggable eviction order and optional TTL. */
+export type { BoundedMapOptions, EvictionOrder } from './utils/bounded-map.js';
+export { BoundedMap } from './utils/bounded-map.js';
 export type { LruCacheOptions } from './utils/lru-cache.js';
 /** @public Bounded recency-ordered cache with optional TTL. */
 export { LruCache } from './utils/lru-cache.js';
 /** @public Throttle utilities for stream/callback rate control. */
 export { extractLastUserMessage } from './utils/prompt.js';
+export type { RateLimiterOptions } from './utils/rate-limit.js';
+/** @public Keyed sliding-window rate limiter for transports and guards. */
+export { SlidingWindowRateLimiter } from './utils/rate-limit.js';
 export type { RetryOptions } from './utils/retry.js';
 // Caching
 export { withRetry } from './utils/retry.js';
 /** @public Serialization contracts for stateful components. */
 export type { Serializable, Versioned } from './utils/serialization.js';
+export { weightedMean } from './utils/stats.js';
 /** @public Uniform-contract adapters bridging legacy serialize/deserialize shapes. */
 export { asSerializable, factorySerializable, inPlaceSerializable } from './utils/serialization.js';
 /** @public Shared utility functions (deduplicated across packages). */
 export {
   boundedSignal,
+  CHARS_PER_TOKEN,
   chunk,
   clamp,
   clamp01,
@@ -248,12 +259,14 @@ export {
   getNested,
   isNarsese,
   isNil,
+  isPlainObject,
   limitList,
   makeId,
   mean,
   parseFlags,
   pearson,
   raceDeadline,
+  roundTo,
   safeDiv,
   setNested,
   sigmoid,

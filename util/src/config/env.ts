@@ -13,11 +13,20 @@ export const SENARS_ENV_MAP: Readonly<Record<string, string>> = {
   SENARS_SENARS_ENABLED: 'capabilities.senars.enabled',
 } as const;
 
-const TRUTHY = new Set(['true', '1', 'yes', 'on']);
+const TRUTHY_SPELLINGS = new Set(['true', '1', 'yes', 'on']);
+const FALSY_SPELLINGS = new Set(['false', '0', 'no', 'off']);
 
 /** Canonical truthiness for env-sourced strings — every `=== 'true'` check funnels here. */
 export const isTruthy = (value: string | undefined): boolean =>
-  value !== undefined && TRUTHY.has(value.toLowerCase());
+  value !== undefined && TRUTHY_SPELLINGS.has(value.toLowerCase());
+
+/** Exact complement of {@link isTruthy}. The two together are the whole boolean grammar. */
+export const isFalsy = (value: string | undefined): boolean =>
+  value !== undefined && FALSY_SPELLINGS.has(value.toLowerCase());
+
+/** True only for a spelling both halves accept — the acceptance test a validator wants. */
+export const isBooleanSpelling = (value: string | undefined): boolean =>
+  isTruthy(value) || isFalsy(value);
 
 /** First defined value among `keys`, or `undefined`. */
 export const envFirst = (...keys: string[]): string | undefined => {
@@ -46,16 +55,21 @@ export const envInt = (key: string, fallback: number): number => {
 };
 
 /**
- * Finite real number from the environment, else `fallback`. Unlike `envInt`
- * this keeps fractional values and rejects `NaN`/`Infinity` — the shape caps
- * and sizes need, where `parseInt` would silently floor `1.5` to `1`.
+ * Finite real number from the first defined alias, or `undefined` when the key is
+ * absent, empty, or unparseable. This is the `?? file?.field` shape: a typo'd env
+ * value falls through to the file instead of installing `NaN` into typed settings.
  */
-export const envNum = (key: string, fallback: number): number => {
-  const value = process.env[key];
-  if (value === undefined || value === '') return fallback;
+export const envNumOr = (...keys: string[]): number | undefined => {
+  const value = envFirst(...keys);
+  if (value === undefined) return undefined;
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  return Number.isFinite(parsed) ? parsed : undefined;
 };
+
+/** Finite real number from the environment, else `fallback`. Unlike `envInt`
+ *  this keeps fractional values and rejects `NaN`/`Infinity` — the shape caps
+ *  and sizes need, where `parseInt` would silently floor `1.5` to `1`. */
+export const envNum = (key: string, fallback: number): number => envNumOr(key) ?? fallback;
 
 /** Positive finite number from the environment, else `fallback` — the guard for
  *  limits and caps, where a non-positive value means "unset", not "zero". */
@@ -71,7 +85,7 @@ export const envCsv = (fallback: readonly string[], ...keys: string[]): string[]
 
 export function parseEnvValue(value: string): unknown {
   if (isTruthy(value)) return true;
-  if (['false', '0', 'no', 'off'].includes(value.toLowerCase())) return false;
+  if (isFalsy(value)) return false;
   const num = Number(value);
   return Number.isNaN(num) ? value : num;
 }

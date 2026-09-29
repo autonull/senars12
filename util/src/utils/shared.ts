@@ -17,8 +17,11 @@ export const errMsg = (e: unknown): string => (e instanceof Error ? e.message : 
 
 export const toError = (e: unknown): Error => (e instanceof Error ? e : new Error(String(e)));
 
+/** Characters per token in {@link estimateTokens} — its inverse, for budgeting characters from a token allowance. */
+export const CHARS_PER_TOKEN = 4;
+
 /** Rough token count: ~4 characters per token. Single source for every budget. */
-export const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
+export const estimateTokens = (text: string): number => Math.ceil(text.length / CHARS_PER_TOKEN);
 
 export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
@@ -83,9 +86,16 @@ export const clamp = (v: number, min: number, max: number): number =>
 
 export const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
 
+/** Round to `digits` decimal places — the one float-noise guard for reported values. */
+export const roundTo = (v: number, digits = 2): number => {
+  const scale = 10 ** digits;
+  return Math.round(v * scale) / scale;
+};
+
 export const edgeKey = (source: string, target: string): string => `${source}->${target}`;
 
-const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+/** Plain-object guard — the one object test behind config merging and tool schemas. */
+export const isPlainObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 
 /**
@@ -174,17 +184,24 @@ export const ucb1 = (value: number, visits: number, totalVisits: number, c: numb
  * serializer behind every cache key and content digest, so two structurally
  * equal values always digest identically regardless of insertion order.
  * `undefined` members are dropped, matching `JSON.stringify`.
+ *
+ * `sortArrays` treats array order as non-semantic, so `{ filters: ['b','a'] }`
+ * and `{ filters: ['a','b'] }` are one value. Use it only where a list is a
+ * set — strategy config, filters, tags — never for an ordered sequence.
  */
-export function stableStringify(value: unknown): string {
+export function stableStringify(value: unknown, sortArrays = false): string {
   if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
   if (ArrayBuffer.isView(value)) {
     return JSON.stringify(Array.from(value as unknown as ArrayLike<number>));
   }
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  if (Array.isArray(value)) {
+    const items = value.map((item) => stableStringify(item, sortArrays));
+    return `[${sortArrays ? items.sort() : items.join(',')}]`;
+  }
   const entries = Object.entries(value as Record<string, unknown>)
     .filter(([, v]) => v !== undefined)
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(',')}}`;
+  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v, sortArrays)}`).join(',')}}`;
 }
 
 /** Structural equality via {@link stableStringify} — order-insensitive for object keys. */

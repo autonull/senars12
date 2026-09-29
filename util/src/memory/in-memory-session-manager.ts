@@ -1,4 +1,5 @@
 import { generateId } from '../utils/shared.js';
+import { trimCapped } from '../utils/collections.js';
 import { LruCache } from '../utils/lru-cache.js';
 import type { ConversationSession, SessionManager } from '../types/memory.js';
 
@@ -77,8 +78,7 @@ export class SessionStore {
   }
 
   #trim(session: ConversationSession): void {
-    const excess = session.history.length - this.#maxHistory;
-    if (excess > 0) session.history.splice(0, excess);
+    trimCapped(session.history, this.#maxHistory);
   }
 }
 

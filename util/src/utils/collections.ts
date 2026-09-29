@@ -4,11 +4,24 @@
 
 /**
  * Drop-oldest push for plain arrays. One `shift()` per overflow — no `splice`
- * reallocation and no cap arithmetic repeated at the call site.
+ * reallocation and no cap arithmetic repeated at the call site. Returns the
+ * displaced item, which is what a sliding-window caller needs and what every
+ * other caller ignores.
  */
-export function pushCapped<T>(log: T[], item: T, capacity: number): void {
+export function pushCapped<T>(log: T[], item: T, capacity: number): T | undefined {
   log.push(item);
-  if (log.length > capacity) log.shift();
+  return log.length > capacity ? log.shift() : undefined;
+}
+
+/**
+ * Keep the newest `capacity` entries of a plain array, dropping from the front.
+ * Returns how many were dropped, for the callers that report it. The list
+ * counterpart of {@link pushCapped} for the callers that cannot push through it.
+ */
+export function trimCapped<T>(log: T[], capacity: number): number {
+  const dropped = Math.max(0, log.length - capacity);
+  if (dropped > 0) log.splice(0, dropped);
+  return dropped;
 }
 
 /**
@@ -178,12 +191,17 @@ export class BoundedRing<T> {
     return this.#items.length;
   }
 
-  push(item: T): void {
-    pushCapped(this.#items, item, this.capacity);
+  /** Append, dropping the oldest item past capacity. Returns what was displaced. */
+  push(item: T): T | undefined {
+    return pushCapped(this.#items, item, this.capacity);
   }
 
   clear(): void {
     this.#items.length = 0;
+  }
+
+  first(): T | undefined {
+    return this.#items[0];
   }
 
   last(): T | undefined {
