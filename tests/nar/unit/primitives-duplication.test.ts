@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { shannonEntropy, topOption } from '../../../nar/src/lm/system-one/distribution.js';
-import { rewardBeliefTerm, rewardLevel } from '../../../nar/src/rl/reward-term.js';
+import { rewardBeliefTerm, rewardLevel } from '../../../nar/src/rl/impls/reward-term.js';
 import { filterByTerm, termMatches } from '../../../nar/src/memory/term-filter.js';
 import { recallEpisodes } from '../../../nar/src/agent/recall.js';
 

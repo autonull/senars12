@@ -5,7 +5,7 @@
  * deliberately conservative: cue-word matching over the user's *next*
  * utterance, bound to the immediately preceding turn only.
  */
-import type { ReactionKind } from './types.js';
+import type { ReactionKind } from '../types.js';
 
 /** Priority order: high-value negatives first, weak positives last. */
 const CUES: readonly (readonly [ReactionKind, RegExp])[] = [

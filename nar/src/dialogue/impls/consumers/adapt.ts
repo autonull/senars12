@@ -6,9 +6,9 @@
  * parameter mutation), one switch set per retrospective digest (N2), full
  * snapshot/restore, append-only ledger for the audit trail.
  */
-import type { ParameterLedger } from '../../config/parameter-ledger.js';
-import { describeSpec, type StrategySpec, type StrategyType } from '../../strategies/index.js';
-import type { Retrospective } from '../types.js';
+import type { ParameterLedger } from '../../../config/parameter-ledger.js';
+import { describeSpec, type StrategySpec, type StrategyType } from '../../../strategies/index.js';
+import type { Retrospective } from '../../types.js';
 
 /** Structural surface of `CognitiveController` this consumer needs. */
 export interface StrategyController {

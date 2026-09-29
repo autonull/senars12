@@ -10,8 +10,8 @@ import {
   shortSha256Hex,
 } from '@senars/util';
 import { z } from 'zod';
-import { DigestMismatchError } from '../lm/system-one/wasi-runtime.js';
-import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
+import { DigestMismatchError } from '../../lm/system-one/wasi-runtime.js';
+import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import {
   type CausalChainEdge,
   type CorrectionAnalysis,
@@ -19,7 +19,7 @@ import {
   type Lesson,
   type ReactionKind,
   type Retrospective,
-} from './types.js';
+} from '../types.js';
 
 const RETROSPECTIVE_DIR = cachePath('retrospectives');
 
@@ -129,7 +129,7 @@ export async function retrospect(
     minTurns?: number;
     minReactions?: number;
     /** Phase C (REFACTOR.todo2): cross-memory context lookup around the session window. */
-    memoryQuery?: import('../query/memory-query.js').MemoryQuery;
+    memoryQuery?: import('../../query/memory-query.js').MemoryQuery;
   } = {}
 ): Promise<Retrospective> {
   // Phase D (REFACTOR.todo1): indexed path — O(matches) via the sessionId

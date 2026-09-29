@@ -7,8 +7,8 @@ import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
 import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
 import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
-import { DialogueCapture } from '../../nar/src/dialogue/capture.js';
-import { loadRetrospectives, persistRetrospective, retrospect } from '../../nar/src/dialogue/retrospect.js';
+import { DialogueCapture } from '../../nar/src/dialogue/impls/DialogueCapture.js';
+import { loadRetrospectives, persistRetrospective, retrospect } from '../../nar/src/dialogue/impls/retrospect.js';
 
 const makeEpisodic = async (): Promise<EpisodicMemory> =>
   new EpisodicMemory({

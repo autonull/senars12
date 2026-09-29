@@ -1,11 +1,11 @@
 import { mean } from '@senars/util';
 
-import { SeededRNG } from '../../utils/random.js';
-import { type Term, TermBuilder, Truth } from '../../index.js';
-import type { NAR } from '../../nar.js';
-import type { RandomSource } from '../../types/primitives.js';
-import { BoundedRing } from '../../utils/collections.js';
-import type { QBeliefStore } from '../q-belief-store.js';
+import { SeededRNG } from '../../../utils/random.js';
+import { type Term, TermBuilder, Truth } from '../../../index.js';
+import type { NAR } from '../../../nar.js';
+import type { RandomSource } from '../../../types/primitives.js';
+import { BoundedRing } from '../../../utils/collections.js';
+import type { QBeliefStore } from '../QBeliefStore.js';
 
 /**
  * Converts RL actions to NAR goals (native AST form)

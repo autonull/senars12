@@ -2,7 +2,7 @@ import type { CognitiveEvent } from '@senars/core';
 import type { CycleHost } from '@senars/core/agent/phases';
 import { runCycle } from '@senars/core/agent/phases';
 import { type BagItem, PriorityBag } from '@senars/nar/bag/Bag.js';
-import { retrospect } from '@senars/nar/dialogue/retrospect.js';
+import { retrospect } from '@senars/nar/dialogue/impls/retrospect.js';
 import { AIKRProcessor } from '@senars/nar/learning/aikr-processor.js';
 import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
 import { mkdtemp, rm } from 'node:fs/promises';

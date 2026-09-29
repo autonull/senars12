@@ -1,14 +1,14 @@
 import type { Episode, EpisodicMemory, EpisodeType } from '@senars/util';
 import { shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
-import type { ContrastiveMemory } from '../lm/system-one/contrastive.js';
-import type { JudgmentDataset } from '../lm/system-one/distill.js';
-import { embedCached } from '../lm/system-one/embedding-cache.js';
-import type { EmbeddingCache } from '../lm/system-one/types.js';
-import { recordReactionLabel } from '../lm/system-one/label-sources.js';
-import type { DialogueTurn, Lesson, Reaction, ReactionKind } from './types.js';
+import type { ContrastiveMemory } from '../../lm/system-one/contrastive.js';
+import type { JudgmentDataset } from '../../lm/system-one/distill.js';
+import { embedCached } from '../../lm/system-one/embedding-cache.js';
+import type { EmbeddingCache } from '../../lm/system-one/types.js';
+import { recordReactionLabel } from '../../lm/system-one/label-sources.js';
+import type { DialogueTurn, Lesson, Reaction, ReactionKind } from '../types.js';
 import { inferReactionFromUtterance } from './attribution.js';
 import type { DialogueConfig } from '@senars/util/config';
-import { DialogueTextStore, type DialogueTextRecord } from './text-store.js';
+import { DialogueTextStore, type DialogueTextRecord } from './DialogueTextStore.js';
 
 export const sha256 = sha256Prefixed;
 

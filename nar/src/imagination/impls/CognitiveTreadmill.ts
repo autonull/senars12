@@ -1,18 +1,18 @@
 import { clamp, percentile, sleep, stdDev } from '@senars/util';
 import type { CognitiveEvent } from '@senars/util/types/cognitive';
-import type { NAR } from '../nar.js';
-import { termParser } from '../terms/index.js';
-import { Truth } from '../terms/truth.js';
-import type { Task } from '../types/core.js';
-import { createBudget, createTask } from '../types/core.js';
-import { ScenarioGenerator } from './generator.js';
+import type { NAR } from '../../nar.js';
+import { termParser } from '../../terms/index.js';
+import { Truth } from '../../terms/truth.js';
+import type { Task } from '../../types/core.js';
+import { createBudget, createTask } from '../../types/core.js';
+import { ScenarioGenerator } from './ScenarioGenerator.js';
 import type {
   DegradationCurve,
   DegradationPoint,
   Scenario,
   StressMetrics,
   TreadmillConfig,
-} from './types.js';
+} from '../types.js';
 
 export class CognitiveTreadmill {
   private readonly nar: NAR;

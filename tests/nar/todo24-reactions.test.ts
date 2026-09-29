@@ -6,7 +6,7 @@ import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cach
 import { JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
 import { createFrozenEvalSet } from '../../nar/src/lm/system-one/eval-set.js';
 import { recordReactionLabel } from '../../nar/src/lm/system-one/label-sources.js';
-import { DialogueCapture, sha256 } from '../../nar/src/dialogue/capture.js';
+import { DialogueCapture, sha256 } from '../../nar/src/dialogue/impls/DialogueCapture.js';
 import { REACTION_KINDS } from '../../nar/src/dialogue/types.js';
 import { InMemoryEpisodicMemory } from '../utils/in-memory-episodic.js';
 
@@ -82,7 +82,7 @@ describe('TODO24 bench 71: reaction labels + exclusions + redaction', () => {
   });
 
   it('text retention off by default; opting in writes only the sidecar (I6 scoping)', async () => {
-    const { DialogueTextStore } = await import('../../nar/src/dialogue/text-store.js');
+    const { DialogueTextStore } = await import('../../nar/src/dialogue/impls/DialogueTextStore.js');
     const { mkdtemp } = await import('node:fs/promises');
     const { tmpdir } = await import('node:os');
     const { join } = await import('node:path');

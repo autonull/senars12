@@ -9,8 +9,8 @@ import {
   loadRetrospectives,
   persistRetrospective,
   retrospect,
-} from '../../nar/src/dialogue/retrospect.js';
-import { DialogueCapture } from '../../nar/src/dialogue/capture.js';
+} from '../../nar/src/dialogue/impls/retrospect.js';
+import { DialogueCapture } from '../../nar/src/dialogue/impls/DialogueCapture.js';
 import { InMemoryEpisodicMemory } from '../utils/in-memory-episodic.js';
 
 const makeEpisodic = async () =>

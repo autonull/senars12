@@ -8,7 +8,7 @@
  */
 import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
 import { z } from 'zod';
-import type { Retrospective } from '../types.js';
+import type { Retrospective } from '../../types.js';
 import { extractLessons } from '../retrospect.js';
 
 export interface RetrospectiveSource {

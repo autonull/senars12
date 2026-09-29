@@ -1,5 +1,5 @@
 import { pearson } from '@senars/util';
-import { SeededRNG } from '../utils/random.js';
+import { SeededRNG } from '../../utils/random.js';
 
 /**
  * Main harness for running RL parity experiments

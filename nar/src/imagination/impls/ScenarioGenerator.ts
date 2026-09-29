@@ -1,11 +1,11 @@
 import { clamp, clamp01 } from '@senars/util';
-import { type Term, termParser } from '../terms/index.js';
-import { Truth } from '../terms/truth.js';
-import type { Task } from '../types/core.js';
-import { createBudget, createTask } from '../types/core.js';
-import { createOracleFromScenario, HiddenModelOracle } from './oracle.js';
-import { mulberry32 } from '../utils/random.js';
-import type { GeneratorConfig, HiddenRule, Scenario, ScenarioProfile } from './types.js';
+import { type Term, termParser } from '../../terms/index.js';
+import { Truth } from '../../terms/truth.js';
+import type { Task } from '../../types/core.js';
+import { createBudget, createTask } from '../../types/core.js';
+import { createOracleFromScenario, HiddenModelOracle } from './HiddenModelOracle.js';
+import { mulberry32 } from '../../utils/random.js';
+import type { GeneratorConfig, HiddenRule, Scenario, ScenarioProfile } from '../types.js';
 
 export class ScenarioGenerator {
   private readonly rng: () => number;

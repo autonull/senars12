@@ -6,8 +6,8 @@
 
 import type { NAR } from '@senars/nar';
 import { createNAR, DEFAULT_CONFIG } from '@senars/nar';
-import { ScenarioGenerator } from '@senars/nar/imagination/generator';
-import { CognitiveTreadmill } from '@senars/nar/imagination/treadmill';
+import { ScenarioGenerator } from '@senars/nar/imagination/impls/ScenarioGenerator.js';
+import { CognitiveTreadmill } from '@senars/nar/imagination/impls/CognitiveTreadmill.js';
 import type { ScenarioProfile } from '@senars/nar/imagination/types';
 import { ArchitectureDriver } from '@senars/nar/self/architecture-driver';
 import { divider, parseFlags, pct, section } from '@senars/util';

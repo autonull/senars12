@@ -1,8 +1,8 @@
-import { type Term, TermBuilder } from '../../index.js';
-import type { NAR } from '../../nar.js';
-import type { RandomSource } from '../../types/primitives.js';
-import type { QBeliefStore } from '../q-belief-store.js';
-import { RewardBeliefAdapter } from '../reward-belief-adapter.js';
+import { type Term, TermBuilder } from '../../../index.js';
+import type { NAR } from '../../../nar.js';
+import type { RandomSource } from '../../../types/primitives.js';
+import type { QBeliefStore } from '../QBeliefStore.js';
+import { RewardBeliefAdapter } from '../RewardBeliefAdapter.js';
 import {
   BanditSelector,
   GoalActionAdapter,

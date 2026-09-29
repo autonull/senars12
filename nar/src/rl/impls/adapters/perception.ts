@@ -1,7 +1,7 @@
-import { SeededRNG } from '../../utils/random.js';
-import { Truth } from '../../index.js';
-import type { NAR } from '../../nar.js';
-import { TermBuilder } from '../../terms/index.js';
+import { SeededRNG } from '../../../utils/random.js';
+import { Truth } from '../../../index.js';
+import type { NAR } from '../../../nar.js';
+import { TermBuilder } from '../../../terms/index.js';
 import { rewardBeliefTerm } from '../reward-term.js';
 
 export interface RLObservation {

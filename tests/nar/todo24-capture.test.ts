@@ -3,7 +3,7 @@ import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DialogueCapture } from '../../nar/src/dialogue/capture.js';
+import { DialogueCapture } from '../../nar/src/dialogue/impls/DialogueCapture.js';
 
 const makeEpisodic = async (): Promise<{ ep: EpisodicMemory; cleanup: () => Promise<void> }> => {
   const basePath = join(await mkdtemp(join(tmpdir(), 'todo24-')), 'episodes');

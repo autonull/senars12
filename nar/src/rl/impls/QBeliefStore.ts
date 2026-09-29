@@ -1,8 +1,8 @@
 import { LruCache, clamp01, maxScore } from '@senars/util';
-import type { DriveManager } from '../drives/manager.js';
-import { type Term, TermBuilder, Truth, atom } from '../index.js';
-import type { NAR } from '../nar.js';
-import type { RandomSource } from '../types/primitives.js';
+import type { DriveManager } from '../../drives/impls/DriveManager.js';
+import { type Term, TermBuilder, Truth, atom } from '../../index.js';
+import type { NAR } from '../../nar.js';
+import type { RandomSource } from '../../types/primitives.js';
 
 /**
  * Stores state-action value beliefs in NAR memory using native Product/Inheritance form

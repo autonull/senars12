@@ -1,9 +1,9 @@
 import { clamp01 } from '@senars/util';
-import { type Term, Truth, TermBuilder } from '../index.js';
-import type { NAR } from '../nar.js';
-import type { RandomSource } from '../types/primitives.js';
-import { BoundedRing } from '../utils/collections.js';
-import { QBeliefStore } from './q-belief-store.js';
+import { type Term, Truth, TermBuilder } from '../../index.js';
+import type { NAR } from '../../nar.js';
+import type { RandomSource } from '../../types/primitives.js';
+import { BoundedRing } from '../../utils/collections.js';
+import { QBeliefStore } from './QBeliefStore.js';
 import { rewardBeliefTerm, rewardLevel } from './reward-term.js';
 
 /**

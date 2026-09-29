@@ -5,7 +5,7 @@ import {
   episodeQualitySurface,
   MemoryQuery,
 } from '@senars/nar/query/memory-query.js';
-import { retrospect } from '@senars/nar/dialogue/retrospect.js';
+import { retrospect } from '@senars/nar/dialogue/impls/retrospect.js';
 import { TermBuilder } from '@senars/nar/terms';
 import type { Episode } from '@senars/util';
 import { mkdtemp, rm } from 'node:fs/promises';

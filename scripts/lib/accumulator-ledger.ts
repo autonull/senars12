@@ -35,7 +35,7 @@ export const ACCUMULATOR_LEDGER: readonly AccumulatorSite[] = [
     holds: 'per-source reputation, keyed by a source id that arrives on the wire',
   },
   {
-    file: 'nar/src/rl/q-belief-store.ts',
+    file: 'nar/src/rl/impls/QBeliefStore.ts',
     holds: 'beliefs over state-action pairs, keyed by an untrusted stream',
   },
 ];

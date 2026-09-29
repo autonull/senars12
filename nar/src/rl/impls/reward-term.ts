@@ -1,4 +1,4 @@
-import { TermBuilder, type Term } from '../index.js';
+import { TermBuilder, type Term } from '../../index.js';
 
 export type RewardLevel = 'high' | 'neutral' | 'low';
 

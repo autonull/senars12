@@ -1,6 +1,6 @@
-import { Truth } from '../terms';
-import { clamp } from '../utils';
-import type { DriveSpec } from './types.js';
+import { Truth } from '../../terms';
+import { clamp } from '../../utils';
+import type { DriveSpec } from '../types.js';
 
 export const BUILTIN_DRIVES: DriveSpec[] = [
   {

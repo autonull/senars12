@@ -1,5 +1,5 @@
 import { parseNarseseTruth } from '@senars/util';
-import type { TaskType } from '../types';
+import type { TaskType } from '../../types';
 
 export interface BootstrapGoal {
   narsese: string;

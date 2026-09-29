@@ -1,6 +1,6 @@
-import { Truth } from '../terms/truth.js';
-import { mulberry32 } from '../utils/random.js';
-import type { HiddenRule, OracleExpectation, ScenarioProfile } from './types.js';
+import { Truth } from '../../terms/truth.js';
+import { mulberry32 } from '../../utils/random.js';
+import type { HiddenRule, OracleExpectation, ScenarioProfile } from '../types.js';
 
 export class HiddenModelOracle {
   private readonly hiddenRules: HiddenRule[];
