@@ -31,13 +31,56 @@ SCC.
 | `stateful` | `true` ⇒ one instance per process, `config` rejected |
 | `defaultConfig` | The tier-0 configuration, derived from the schema |
 | `schema?` | Validates and defaults a user-supplied config |
-| `factory` | Builds an instance from a *parsed* config — never raw input |
+| `validate?` | Cross-field checks a schema cannot express (see below) |
+| `factory` | Builds an instance from a *parsed* config plus `StrategyFactoryDeps` |
 
 Three constructors, all in the same module:
 
-- `configurable({ name, description, schema, factory })` — a stateless strategy with expressible config
+- `configurable({ name, description, schema, validate?, factory })` — a stateless strategy with expressible config
 - `fixed({ name, description, factory })` — `configurable` with an empty schema: any config key is an error
 - `singleton(name, description, instance)` — a pre-built instance; `stateful: true`
+
+### A factory that composes by name
+
+```ts
+interface StrategyFactoryDeps {
+  resolve<T>(type: StrategyType, name: string): T;   // tier 0, by name
+}
+```
+
+`composite` attention is the built-in that needs it: its config *names* other attention models and
+weights them, so the factory resolves each name through the registry.
+
+```ts
+strategies.attention = {
+  type: 'composite',
+  config: { models: [{ name: 'simple', weight: 1 }, { name: 'goal-relevance', weight: 3 }] },
+};
+```
+
+Two things make that safe rather than recursive:
+
+- **`validate`** is the cross-field pass. The schema cannot know that `models[].name` is a
+  registered attention model, so the registration declares it:
+
+  ```ts
+  validate: (config) => models.filter(m => !known.includes(m.name))
+    .map(m => `config.models[].name: no attention strategy named '${m.name}' (available: …)`)
+  ```
+
+  The typo is a `ConfigurationError` from `validateParameters`, not a stack trace from a factory.
+- **The registry refuses a self-referential composite.** `building` holds the registrations
+  mid-build, so a registration that (transitively) composes itself is an error naming itself rather
+  than a stack overflow.
+
+### Weights are a ratio
+
+`CompositeAttention` is a weighted **mean**, not a sum. Its members are alternative sources of the
+same boost — three models that each answer "how hard should this concept be primed" — so
+accumulating them would make the slot's magnitude a function of how many names the user listed.
+Normalizing keeps the composite in the same range as any single member and makes `weight` mean what
+a user expects: a ratio. An empty model list, or an all-zero weighting, is a `ConfigurationError`
+rather than a mean of nothing.
 
 ### Invariant S1 — stateful strategies are singletons
 
@@ -106,9 +149,8 @@ composition (D7) — there is no second way to spell it.
 A single-element list resolves to the strategy itself: a composite of one is an indirection with no
 behaviour.
 
-`CompositeAttention` composes with **equal weights**. Configurable weights need the registry at
-build time, so `configurable` cannot express them; a weighted composite is a tier-1 *named*
-registration, which is the open item in `TODO27.md` §12.7.
+`CompositeAttention` composes with **equal weights** when named as a list. For unequal weights, name
+it with a config instead — see "A factory that composes by name" above.
 
 ### The premise primitives' whole pipeline is configuration
 
@@ -128,6 +170,13 @@ strategies.premise = {
 `PREMISE_SAMPLE_FALLBACK` is the single declaration of what a primitive inherits when it says
 nothing, and it is both the sample-time default and the schema default — so a table entry, an
 exported singleton and a user config cannot drift.
+
+A name the registries do not hold is an error at *both* layers. The schema rejects it with the
+slot-qualified message; `resolveScorer`/`resolveFilters` throw for a caller that bypasses the
+schema. Neither degrades: an unknown scorer used to yield `undefined`, which
+`samplePremisesFromConfig` turned into an empty premise set. A bare `highConfidence` — a curried
+filter named without its parameter — resolves to its declared default rather than silently doing
+nothing.
 
 ---
 
@@ -257,3 +306,4 @@ same port it reads through — no `LinkManager` import.
 | 105 | `todo27-premise-config.test.ts` | `source`/`scorer`/`filters`/`minScore` change the premise set; a typo is a boundary error; the table is the default |
 | 106 | `todo27-bounded-memo.test.ts` | Repeated digests stay identical; 500 configs do not grow the cache; eviction costs identity, not correctness |
 | 107 | `todo27-bag-slot.test.ts` | The bag slot validates its name and config, and both reach the bag it builds |
+| 108 | `todo27-weighted-attention.test.ts` | A composite is a named strategy with config; a weight is a ratio; a typo'd part is a boundary error |

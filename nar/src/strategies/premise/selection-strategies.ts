@@ -204,6 +204,12 @@ interface StrategyStats {
   effectiveness: number;
 }
 
+/**
+ * @deprecated since 1.0 — unreachable from config and with no replacement.
+ * Choosing among strategies by past effectiveness is a slot, not a strategy:
+ * a registration that takes `config: { strategies: [...], metric }` and is
+ * `stateful` would be the supported form. Removed in 2.0.
+ */
 export class AdaptiveStrategy implements Strategy {
   readonly metadata: ComponentMetadata = {
     name: 'adaptive',
@@ -259,6 +265,11 @@ export class AdaptiveStrategy implements Strategy {
   }
 }
 
+/**
+ * @deprecated since 1.0 — unreachable from config and with no replacement.
+ * A fixed-interval rotation is a counter, not a strategy: it belongs in the
+ * controller, which already owns the cycle. Removed in 2.0.
+ */
 export class SwitchingStrategy implements Strategy {
   readonly metadata: ComponentMetadata = {
     name: 'switching',

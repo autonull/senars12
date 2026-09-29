@@ -18,6 +18,7 @@ import {
   type CompositeSpec,
   type ResolutionTier,
   type StrategyConfig,
+  type StrategyFactoryDeps,
   type StrategyRegistration,
   type StrategySpec,
 } from '../strategies/registration';
@@ -92,6 +93,8 @@ export class CognitiveRegistry implements StrategyRegistry {
   private readonly configured: Record<StrategyType, BoundedCache<StrategyImpl>> = memoStores();
   /** Tier 2: composed instances keyed by their deterministic label. */
   private readonly composed: Record<StrategyType, BoundedCache<StrategyImpl>> = memoStores();
+  /** Registrations mid-build, so a self-referential composite is an error, not a stack overflow. */
+  private readonly building = new Set<string>();
 
   register(type: StrategyType, registration: StrategyRegistration): void;
   /** @deprecated pass a `StrategyRegistration` — a bare instance cannot carry its config contract. */
@@ -119,6 +122,11 @@ export class CognitiveRegistry implements StrategyRegistry {
       });
     }
     this.stores[type].set(registration.name, registration);
+  }
+
+  /** What a composing factory gets: the default instance of another named strategy. */
+  get #deps(): StrategyFactoryDeps {
+    return { resolve: <T>(type: StrategyType, name: string) => this.get<T>(type, name) };
   }
 
   /** Tier 0: the registered default instance for `name`. */
@@ -189,23 +197,45 @@ export class CognitiveRegistry implements StrategyRegistry {
         { type, name }
       );
     }
-    const impl = registration.factory(registration.defaultConfig);
+    const impl = this.#build(registration, registration.defaultConfig);
     this.defaults[type].set(name, impl);
     return impl;
+  }
+
+  /**
+   * Build one instance. A factory that resolves other names re-enters this
+   * method, so a registration that (transitively) composes itself would recurse
+   * until the stack gives out — `building` turns that into an error naming the
+   * registration, at the cost of one set membership per build.
+   */
+  #build(registration: StrategyRegistration, config: StrategyConfig): StrategyImpl {
+    const key = `${registration.name}`;
+    if (this.building.has(key)) {
+      throw new ConfigurationError(
+        `'${key}' composes itself; a composite may not contain its own registration`,
+        { name: registration.name }
+      );
+    }
+    this.building.add(key);
+    try {
+      return registration.factory(config, this.#deps);
+    } finally {
+      this.building.delete(key);
+    }
   }
 
   #configured<T>(type: StrategyType, name: string, config: StrategyConfig): T {
     const registration = this.stores[type].get(name);
     if (!registration) this.#buildDefault(type, name); // throws with the candidate list
     this.validate(type, name, config);
-    const { schema, factory } = registration!;
+    const { schema } = registration!;
     const parsed = schema!.parse(config);
     const digest = configDigest(name, parsed);
     const cache = this.configured[type];
     const existing = cache.get(digest);
     if (existing) return existing as T;
 
-    const impl = factory(parsed);
+    const impl = this.#build(registration!, parsed);
     cache.set(digest, impl);
     this.#emit(type, name, 1, digest);
     return impl as T;

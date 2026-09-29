@@ -96,15 +96,18 @@ describe('Bench 103 — uniform composition', () => {
     expect(selected.map((rule) => rule.name).sort()).toEqual(['a', 'b']);
   });
 
-  it('attention composes to a weighted blend', () => {
+  it('attention composes to an equal-weight blend, not a sum', () => {
     const r = registry();
     const composed = r.resolve<AttentionModel>('attention', ['simple', 'goal-relevance']);
     expect(composed).toBeInstanceOf(CompositeAttention);
     const m = memory();
     const concept = m.getConcept(atom('cat'))!;
     const ctx = { concept, cycleCount: 0, memory: m };
+    // No goals are active, so goal-relevance primes exactly like simple; the
+    // mean of two identical boosts is that boost, not twice it.
     expect(r.resolve<AttentionModel>('attention', 'simple').prime(concept, ctx)).toBe(0.3);
-    expect(composed.prime(concept, ctx)).toBe(0.6);
+    expect(r.resolve<AttentionModel>('attention', 'goal-relevance').prime(concept, ctx)).toBe(0.3);
+    expect(composed.prime(concept, ctx)).toBe(0.3);
   });
 
   it('a single-element list is the strategy itself, not a wrapper', () => {

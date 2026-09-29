@@ -36,6 +36,16 @@ export interface ConfigSchema {
   safeParse(config: unknown): { success: true; data: StrategyConfig } | { success: false; error: ZodError };
 }
 
+/**
+ * What the registry hands a factory besides its parsed config. A factory that
+ * composes *other* strategies needs a way to name them, and the registry is the
+ * only thing that can resolve a name.
+ */
+export interface StrategyFactoryDeps {
+  /** Tier 0 resolution by name — the default instance of another registered strategy. */
+  resolve<T>(type: StrategyType, name: string): T;
+}
+
 export interface StrategyRegistration {
   readonly name: string;
   readonly description: string;
@@ -48,7 +58,13 @@ export interface StrategyRegistration {
   readonly defaultConfig: StrategyConfig;
   /** Validates and defaults a user-supplied config. Stateless strategies only. */
   readonly schema?: ConfigSchema;
-  readonly factory: (config: StrategyConfig) => StrategyImpl;
+  /**
+   * Cross-field validation a schema cannot express — "each `models[].name` is a
+   * registered attention strategy". Runs at the boundary, before anything is
+   * built, and returns human-readable errors.
+   */
+  readonly validate?: (config: StrategyConfig) => string[];
+  readonly factory: (config: StrategyConfig, deps: StrategyFactoryDeps) => StrategyImpl;
 }
 
 /** An object schema narrowed to the registration contract. */
@@ -77,7 +93,8 @@ export const configurable = (spec: {
   name: string;
   description: string;
   schema: ConfigSchema;
-  factory: (config: StrategyConfig) => StrategyImpl;
+  validate?: (config: StrategyConfig) => string[];
+  factory: (config: StrategyConfig, deps: StrategyFactoryDeps) => StrategyImpl;
 }): StrategyRegistration => ({
   ...spec,
   stateful: false,
@@ -88,7 +105,7 @@ export const configurable = (spec: {
 export const fixed = (spec: {
   name: string;
   description: string;
-  factory: (config: StrategyConfig) => StrategyImpl;
+  factory: (config: StrategyConfig, deps: StrategyFactoryDeps) => StrategyImpl;
 }): StrategyRegistration => configurable({ ...spec, schema: configSchema({}) });
 
 /** A pre-built singleton: the instance *is* the registration (Invariant S1). */
@@ -179,7 +196,9 @@ export const strategySpecErrors = (
       continue;
     }
     const parsed = registration.schema.safeParse(config);
-    if (!parsed.success) {
+    if (parsed.success) {
+      errors.push(...(registration.validate?.(parsed.data) ?? []));
+    } else {
       errors.push(`strategies.${slot}.config: ${describeIssues(parsed.error)}`);
     }
   }

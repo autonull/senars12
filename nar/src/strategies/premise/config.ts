@@ -23,9 +23,9 @@ import {
 } from './primitives.js';
 
 export const PREMISE_SOURCE_NAMES = Object.keys(PREMISE_SOURCES) as SourceName[];
-export const PREMISE_FILTER_NAMES = Object.keys(PREMISE_FILTER_REGISTRY).filter(
-  (name) => !PREMISE_FILTER_REGISTRY[name as FilterName].isCurried
-) as FilterName[];
+/** Every filter name, curried ones included: a bare `highConfidence` uses its declared default. */
+export const PREMISE_FILTER_NAMES = Object.keys(PREMISE_FILTER_REGISTRY) as FilterName[];
+/** Scorers with a bare spelling; `linear` is curried and has none. */
 export const PREMISE_SCORER_NAMES = Object.keys(PREMISE_SCORER_REGISTRY).filter(
   (name) => !PREMISE_SCORER_REGISTRY[name as ScorerName].isExtended
 ) as ScorerName[];
@@ -40,7 +40,7 @@ const linearWeights = z
   })
   .strict();
 
-/** Only the curried `highConfidence` filter takes a parameter; the rest are names. */
+/** A curried filter takes a parameter, or the bare name uses its declared default. */
 const filterSpec = z.union([
   enumOf(PREMISE_FILTER_NAMES),
   z.object({ highConfidence: z.number().min(0).max(1) }).strict(),

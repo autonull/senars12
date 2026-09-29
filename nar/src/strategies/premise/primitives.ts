@@ -1,7 +1,7 @@
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import type { Task } from '../../types';
-import { createSecondaryTask } from '../../types';
+import { ConfigurationError, createSecondaryTask } from '../../types';
 import { sharesSymbol, termsEqual, Stamp } from '../../terms';
 import { getSubject, getPredicate } from '../../terms';
 import type { Term } from '../../terms';
@@ -232,42 +232,58 @@ export const PREMISE_SAMPLE_FALLBACK: ResolvedSampleConfig = {
   skipSameTerm: true,
 };
 
-const HIGH_CONFIDENCE_DEFAULT = 0.7;
+/**
+ * The threshold a *bare* curried filter name resolves to. Naming `highConfidence`
+ * with no number is the same as naming it with this one — a filter that silently
+ * did nothing because it wanted a parameter was the failure mode this replaces.
+ * Adding a curried filter without a default here is a type error, not a no-op.
+ */
+const CURRIED_FILTER_DEFAULTS = { highConfidence: 0.7 } as const;
+
+type CurriedFilterName = keyof typeof CURRIED_FILTER_DEFAULTS;
+
+const known = (registry: object) => Object.keys(registry).sort().join(', ');
+
+const noSuch = (kind: string, name: string, candidates: string) =>
+  new ConfigurationError(`premise config: no ${kind} named '${name}' (available: ${candidates})`);
 
 function resolveFilters(filters: FilterSpec[]): PremiseFilter[] {
+  const candidates = known(PREMISE_FILTER_REGISTRY);
   return filters.map((spec) => {
-    if (typeof spec === 'object') {
-      const entry = PREMISE_FILTER_REGISTRY.highConfidence;
-      return entry.create(spec.highConfidence);
-    }
+    if (typeof spec === 'object') return PREMISE_FILTER_REGISTRY.highConfidence.create(spec.highConfidence);
     const entry = PREMISE_FILTER_REGISTRY[spec as keyof typeof PREMISE_FILTER_REGISTRY];
-    if (entry && !entry.isCurried) return entry.create();
-    return () => true;
+    if (!entry) throw noSuch('filter', spec, candidates);
+    if (!entry.isCurried) return entry.create();
+    return entry.create(CURRIED_FILTER_DEFAULTS[spec as CurriedFilterName]);
   });
 }
 
+/**
+ * The scorer for a sample config, or `undefined` when the caller asked for none.
+ *
+ * A name that is *present but unresolvable* throws rather than degrading: an
+ * unknown scorer used to yield `undefined`, which `samplePremisesFromConfig`
+ * turned into an empty premise set — a strategy that silently stopped
+ * contributing. `linear` is curried and has no bare spelling, so naming it
+ * without weights is a mistake worth reporting.
+ */
 export function resolveScorer(
   memory: MemoryView,
   scorer: SampleConfig['scorer']
 ): PremiseScorer | undefined {
   if (!scorer) return undefined;
+  const candidates = known(PREMISE_SCORER_REGISTRY);
   if (typeof scorer === 'string') {
     const entry = PREMISE_SCORER_REGISTRY[scorer as keyof typeof PREMISE_SCORER_REGISTRY];
-    if (entry && !entry.isExtended) {
-      return entry.create(memory);
-    }
-    return undefined;
+    if (!entry) throw noSuch('scorer', scorer, candidates);
+    if (entry.isExtended) throw noSuch('bare scorer (use its weighted form)', scorer, candidates);
+    return entry.create(memory);
   }
   if ('linear' in scorer) {
-    const entry = PREMISE_SCORER_REGISTRY.linear;
-    if (entry && entry.isExtended) {
-      // linear.create returns (memory) => PremiseScorer factory, call it with memory
-      const factory = entry.create(memory, scorer.linear);
-      return factory(memory);
-    }
-    return undefined;
+    // linear.create returns (memory) => PremiseScorer factory, call it with memory
+    return PREMISE_SCORER_REGISTRY.linear.create(memory, scorer.linear)(memory);
   }
-  return undefined;
+  throw noSuch('scorer', JSON.stringify(scorer), candidates);
 }
 
 export function samplePremisesFromConfig(

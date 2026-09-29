@@ -125,6 +125,29 @@ const SAMPLED_CONFIG = configSchema({
 
 const ROTATION_CONFIG = configSchema({ offset: z.number().int().min(0).default(0) });
 
+/**
+ * The one built-in that composes *other registered strategies by name*. Its
+ * factory needs the registry to resolve them, which is what `StrategyFactoryDeps`
+ * is for; the cross-field `validate` is what makes a typo'd part name a boundary
+ * error rather than a `ConfigurationError` thrown from inside a factory.
+ */
+const COMPOSITE_ATTENTION_PART = z
+  .object({
+    name: z.string(),
+    weight: z.number().min(0),
+  })
+  .strict();
+
+const COMPOSITE_ATTENTION_CONFIG = configSchema({
+  models: z
+    .array(COMPOSITE_ATTENTION_PART)
+    .min(1)
+    .default([{ name: 'simple', weight: 1 }]),
+});
+
+/** The names a composite attention may name: every attention registration but itself. */
+const COMPOSABLE_ATTENTION = Object.keys(ATTENTION_MODELS);
+
 export type StrategySlotEntry = readonly [StrategyType, StrategyRegistration];
 export type StrategySlot = readonly StrategySlotEntry[];
 
@@ -320,9 +343,26 @@ export const DEFAULT_REGISTRATIONS: StrategySlot = [
     'attention',
     configurable({
       name: 'composite',
-      description: 'Weighted combination of attention models',
-      schema: configSchema({}),
-      factory: () => new CompositeAttention([]),
+      description: 'Weighted mean of several attention models',
+      schema: COMPOSITE_ATTENTION_CONFIG,
+      validate: (config) => {
+        const models = config.models as Array<{ name: string; weight: number }>;
+        return [
+          ...models
+            .filter(({ name }) => !COMPOSABLE_ATTENTION.includes(name))
+            .map(({ name }) => `config.models[].name: no attention strategy named '${name}' (available: ${COMPOSABLE_ATTENTION.join(', ')})`),
+          ...(models.every(({ weight }) => weight === 0)
+            ? ['config.models: at least one weight must be positive']
+            : []),
+        ];
+      },
+      factory: (config, { resolve }) =>
+        new CompositeAttention(
+          (config.models as Array<{ name: string; weight: number }>).map(({ name, weight }) => ({
+            model: resolve<AttentionModel>('attention', name),
+            weight,
+          }))
+        ),
     }),
   ],
 ];

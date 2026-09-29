@@ -1,10 +1,10 @@
 # TODO27: Strategy Composition & Configuration — One Resolution Path
 
-**Version:** 1.1 (2026-09-28) · **Predecessor:** REFACTOR.todo8 §8 B/C, the premise-strategy
+**Version:** 1.2 (2026-09-28) · **Predecessor:** REFACTOR.todo8 §8 B/C, the premise-strategy
 landing (`8b8cb1f8`), and the associative-memory port (`e7a52b21`).
 
-**Status: implemented (Phases A–G). Benches 100–107 green; 2512 unit tests passing. Deviations
-from the plan as written are recorded in §11 (A–F) and §12 (G).**
+**Status: implemented (Phases A–H). Benches 100–108 green; 2521 unit tests passing. Deviations
+from the plan as written are recorded in §11 (A–F), §12 (G) and §13 (H).**
 
 ---
 
@@ -274,6 +274,7 @@ instance caches, and `describeSpec` as the one renderer. The record is §12.
 | 105 | `todo27-premise-config.test.ts` | A premise primitive's `source`/`scorer`/`filters`/`minScore` are configuration; a typo is a boundary error. |
 | 106 | `todo27-bounded-memo.test.ts` | Memoized instances are bounded; eviction costs identity, not correctness. |
 | 107 | `todo27-bag-slot.test.ts` | The bag slot names its candidates, rejects an unknown key, and both reach the bag. |
+| 108 | `todo27-weighted-attention.test.ts` | A composite is a named strategy with config; a weight is a ratio; a typo'd part is a boundary error. |
 
 Every bench asserts *behaviour*, never implementation: identity (`toBe`) only where identity is
 the contract (Tier 0, memoization), values otherwise. No mocks — the benches drive the real
@@ -327,7 +328,7 @@ the contract (Tier 0, memoization), values otherwise. No mocks — the benches d
 
 ## 9. Definition of done
 
-1. B Benches 100–107 green in the CI unit tier.
+1. B Benches 100–108 green in the CI unit tier.
 2. `config` demonstrably changes behaviour for at least one registered strategy in each stateless
    slot, asserted by value — not by "it was passed through".
 3. An unknown strategy name fails at `validateParameters`/`setStrategy` with the candidate list,
@@ -337,7 +338,7 @@ the contract (Tier 0, memoization), values otherwise. No mocks — the benches d
    are gone; `rg` finds no references.
 6. One spec form (`string | string[] | StrategyExpression`) is accepted by every slot, with one
    spelling per behaviour.
-7. No regression: `test:unit` (currently 2512 passing, 3 skipped), `lint`, `typecheck`,
+7. No regression: `test:unit` (currently 2521 passing, 3 skipped), `lint`, `typecheck`,
    `typecheck:bin`, `deps:gate` (≤ 5 cycles), `exports:audit`, `complexity:budget` all green.
 8. `docs/strategy-composition.md` written.
 
@@ -377,6 +378,7 @@ corrected rather than the code.*
 | E — residuals | done | `AssociativeMemory.associate` + `AssociativeRegistry.associate`; `EmbeddingLayer` document store deleted; `dialogue/consumers/adapt.ts` mirrors the controller; `registry.list` returns registrations |
 | F — docs & benches | done | `docs/strategy-composition.md`; `tests/nar/todo27-*.test.ts` (100–104) |
 | G — the §11.4 follow-ups | done | see §12 |
+| H — weighted composites, no silent degradation | done | see §13 |
 
 Every gate is green at the A–F commit: `test:unit` 2485 passed / 3 skipped, `lint`, `typecheck`,
 `typecheck:bin`, `deps:gate` 5 cycles, `exports:audit`, `exports:check`, `complexity:budget`
@@ -597,3 +599,121 @@ Two things fell out of the work rather than being planned:
   `strategies/premise`.
 
 ---
+
+## 13. Phase H — a composite is a named strategy (2026-09-28)
+
+§12.7 left three items. All three are closed here; the first is the only one that changed a
+behaviour anyone could observe.
+
+### 13.1 Weighted attention (`CompositeAttention` weights)
+
+The `composite` attention registration was `configurable` with an empty schema whose factory was
+`() => new CompositeAttention([])` — a registration that declared a configuration contract it did
+not have, and built an object that primes at zero. Three changes:
+
+| Change | Why |
+|---|---|
+| `StrategyFactoryDeps.resolve(type, name)` is handed to every `factory` | A factory that composes *other registered strategies by name* had no way to name them. The registry is the only thing that can resolve a name. |
+| `StrategyRegistration.validate?(config): string[]` — a cross-field pass | The schema cannot know that `models[].name` is a registered attention model. `validate` runs inside `strategySpecErrors` on the *parsed* config, so a typo'd part is a boundary error with the candidate list. |
+| `registry.building` — a set of registrations mid-build | A registration that transitively composes itself recursed until the stack gave out. It is now a `ConfigurationError` naming itself. |
+
+```ts
+strategies.attention = {
+  type: 'composite',
+  config: { models: [{ name: 'simple', weight: 1 }, { name: 'goal-relevance', weight: 3 }] },
+};
+```
+
+**`CompositeAttention` is now a weighted mean, not a sum.** This is the behaviour change. The
+members are alternative sources of the same boost — three models that each answer "how hard should
+this concept be primed" — so `prime` returning a sum made the attention slot's magnitude a function
+of how many names the user listed. `['simple', 'spreading']` primed at `0.6` where either member
+primes at `0.3`. Normalizing keeps the composite in the same range as any single member and is what
+makes `weight` a *ratio*, which is the whole point of "config-driven attention". Bench 103's
+assertion moved `0.6 → 0.3` and now names the reason. An empty model list, or an all-zero
+weighting, is a `ConfigurationError` rather than a mean of nothing.
+
+`composite`'s default config is now `[{ name: 'simple', weight: 1 }]` — the honest reading of "a
+composite of the default attention model", where `CompositeAttention([])` was a zero.
+
+### 13.2 No silent degradation left in the premise pipeline
+
+§12.1 made `filters`/`scorer` schema-validated, which closed the *configured* typo. The
+programmatic path still degraded, in the same direction as the plan's opening finding:
+
+| Before | After |
+|---|---|
+| `resolveScorer` returns `undefined` for a name it does not hold → `samplePremisesFromConfig` returns `[]` | throws `ConfigurationError` naming the candidates; an **absent** scorer still returns `undefined` |
+| `resolveFilters` returns `() => true` for an unknown name — silently *widening* the premise set | throws `ConfigurationError` naming the candidates |
+| a bare `'highConfidence'` is a curried name with no parameter → `() => true`, i.e. a no-op | resolves to its declared default, from `CURRIED_FILTER_DEFAULTS` |
+| `linear` named bare → `undefined` | throws, pointing at its weighted form |
+| `HIGH_CONFIDENCE_DEFAULT` — declared, exported nowhere, referenced nowhere | folded into `CURRIED_FILTER_DEFAULTS` and used |
+
+The dead constant is the tell: someone intended a bare `highConfidence` to mean `0.7`, wrote the
+constant, and wired the parameterless path to a permissive no-op instead. Adding a curried filter
+without a default is now a type error rather than a no-op.
+
+`PREMISE_FILTER_NAMES` also stopped excluding curried names, so `filters: ['highConfidence']` is
+accepted by the schema with the same meaning as `filters: [{ highConfidence: 0.7 }]`.
+
+### 13.3 Verdict on the two unreachable strategies
+
+`AdaptiveStrategy` and `SwitchingStrategy` are exported, tested, and unreachable from config. Phase
+A set a precedent for deleting unreferenced code, but §11.2 item 8 already recorded the reasoning
+for not doing it here, and AGENTS.md prescribes a different instrument: mark, keep two minors,
+remove in the next major. Both now carry
+
+```
+@deprecated since 1.0 — unreachable from config and with no replacement. …
+```
+
+with the replacement each would need (`AdaptiveStrategy` is a *slot* that should be a `stateful`
+registration taking `config: { strategies, metric }`; `SwitchingStrategy` is a counter the
+controller already owns). Removal in 2.0, not before.
+
+### 13.4 Deviation
+
+- **`validate` is a registration field, not a schema feature.** A zod `.refine` on the object would
+  have worked for `composite`, but it cannot name the candidate list without the registration list
+  in scope, and it would have put a strategy-specific rule in a shared builder. A field the
+  registration owns is also reusable by the next composite that appears.
+
+### 13.5 Finding recorded, not fixed: an unseeded parity test
+
+`tests/nar/rl/parity/cognitive-advantage.test.ts` failed once during this phase's full-suite run
+(`expected null not to be null` for a Q-value) and passed on re-run, in isolation, and against the
+pre-Phase-H tree. It seeds the *game* (`seed: 42`, `seed: 100`) but the NAR side samples with
+`Math.random` — `createBag` defaults `rng` to `Math.random`, and the premise/sampling strategies
+draw from it. Under full-suite contention the file took 22s against 7.6s isolated, and a different
+sampling path left one action's Q-value uninitialised.
+
+Not introduced here, and not fixed here: making it deterministic means threading an injected
+`RandomSource` through `NARConfig` into every bag and sampler, which is a plan of its own and
+touches the parity baseline the excluded `test:load-sensitive` tier exists to protect.
+
+### 13.6 Gates
+
+`test:unit` 2521 passed / 3 skipped, `typecheck`, `typecheck:bin`, `lint`, `deps:gate` 5 cycles,
+`exports:audit`, `exports:check`, `complexity:budget` (production LOC 72 105, `unboundedAccumulators`
+0, export subpaths 97).
+
+### 13.7 What is still open
+
+- **Association provenance** (§10, §11.4, §12.7). `AssociateOptions` has no `source`. The fix is a
+  `Link` model change, not a port change: nothing can read a provenance field yet, so adding one
+  now would be a field with no consumer.
+- **The LRUs have no metric.** `memoizedSize` exists; nothing exports it to OTel, so a
+  configuration that churns digests is invisible in the status surface.
+- **The N1/N2 dialogue adapters** still take an optional catalog. Cheap to remove, but it is
+  ergonomics, not a defect.
+- **The premise `where`/`whereTruth` escape hatches** are correctly not config-expressible (they are
+  functions). Recorded so nobody tries.
+- **An injected `RandomSource` for the NAR's own sampling** — see §13.5.
+
+### 13.8 Note for the next reader
+
+`factory` now takes a second argument. Every existing factory ignores it, which is why this was a
+patch-level change; a factory that wants it declares `(config, { resolve }) => …`. The invariant is
+unchanged: `config` is always parsed output, never raw user input, and `resolve` is tier 0 only —
+a composing factory cannot reach a configured or composed instance, so there is no way for a
+registration to depend on another registration's *configuration*.
