@@ -3,7 +3,7 @@
 **Version:** 1.3 (2026-09-28) · **Predecessor:** REFACTOR.todo8 §8 B/C, the premise-strategy
 landing (`8b8cb1f8`), and the associative-memory port (`e7a52b21`).
 
-**Status: Phases A–J landed (§16: the parity harness is seeded and reproducible). Benches 100–108 green; 2505 unit tests + 25 e2e/determinism tests
+**Status: Phases A–K landed (§16: the parity harness is seeded and reproducible). Benches 100–108 green; 2505 unit tests + 25 e2e/determinism tests
 passing; static gates green. Deviations are recorded in §11 (A–F), §12 (G), §13 (H), §14 (I).
 
 > **A fresh session should read §16 first.** §15 diagnosed the RL parity gate as measuring machine
@@ -1011,3 +1011,26 @@ to the real clock. Every remaining nondeterminism was `Math.random`.
   async interleaving, and `makeId` (`crypto.randomUUID`) still stamps task ids that nothing reads
   behaviourally. Both are believed harmless — the bit-identical repeats are the evidence — and both
   would be caught by a second `Math.random`/UUID trace if that assumption ever breaks.
+
+---
+
+## 17. Phase K — the North Star as a bench (2026-09-28)
+
+§15.6's "cheapest high-value item": the invariant in §0 is a property of the *source*, so it is
+tested over the source. `tests/nar/todo27-north-star.test.ts` (Bench 109) walks `nar/src` and fails
+on
+
+- any `new *Strategy(` / `new Composite*(` outside four allowed construction sites, each of which
+  carries its reason in a map the test itself owns — so widening the invariant is a claim somebody
+  has to argue, not a line somebody has to delete;
+- any import of an attention *implementation* outside the catalogue. `NullAttentionModel` in
+  `memory/memory.ts` is the one documented exception (§15.5: a substrate default that primes nothing
+  is not a choice of model);
+- a construction site that no longer exists (a stale allowlist entry fails too).
+
+Falsifiability was checked by planting a bypass: adding `new SimpleAttention()` to a module named
+`tmp-bypass.ts` fails the bench, and removing it passes. The same plant would have caught all six
+findings in §14.1.
+
+`lm/dynamic-rule.ts` is on the allowlist for `CompositeLMRule`, which is an LM *rule body* — the
+`lm-rule` slot selects rules, it does not implement one.
