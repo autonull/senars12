@@ -53,3 +53,6 @@ tests/generated/
 .reports
 .vitest/
 clean.sh
+
+# Scratch probes
+.tmp-probe/
