@@ -45,10 +45,16 @@ Three constructors, all in the same module:
 ```ts
 interface StrategyFactoryDeps {
   resolve<T>(type: StrategyType, name: string): T;   // tier 0, by name
+  rng: RandomSource;                                 // the registry's stream
 }
 ```
 
-`composite` attention is the built-in that needs it: its config *names* other attention models and
+`rng` is the other half: a stochastic strategy draws from the registry's stream unless its own
+config pins a `seed`. `createDefaultRegistry({ rng })` is what makes a NAR reproducible end to end
+— the same stream reaches the memory bags, the link layer and every strategy factory, so
+`NARConfig.rng` is the single determinism knob.
+
+`composite` attention is the built-in that needs `resolve`: its config *names* other attention models and
 weights them, so the factory resolves each name through the registry.
 
 ```ts
@@ -307,3 +313,5 @@ same port it reads through — no `LinkManager` import.
 | 106 | `todo27-bounded-memo.test.ts` | Repeated digests stay identical; 500 configs do not grow the cache; eviction costs identity, not correctness |
 | 107 | `todo27-bag-slot.test.ts` | The bag slot validates its name and config, and both reach the bag it builds |
 | 108 | `todo27-weighted-attention.test.ts` | A composite is a named strategy with config; a weight is a ratio; a typo'd part is a boundary error |
+| 109 | `todo27-north-star.test.ts` | Nothing outside the catalogue constructs a strategy or imports an attention implementation |
+| 110 | `todo27-seeded-sampling.test.ts` | One seed fixes the whole stochastic path: bags, link layer, stochastic factories |
