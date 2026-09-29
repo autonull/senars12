@@ -28,6 +28,7 @@ import {
 } from '../nar/src/rl/index.js';
 import { EpsilonGreedy, UCB1 } from '../tests/nar/rl/baselines/bandit.js';
 import { QLearning, SARSA } from '../tests/nar/rl/baselines/gridworld.js';
+import { computeSeedPassRate, meetsParityAcceptance, PER_SEED_RATIO_FLOOR } from '../nar/src/rl/parity-acceptance.js';
 
 program
   .name('rl-parity')
@@ -375,7 +376,7 @@ async function main() {
     });
 
     // Check if this seed passes
-    const threshold = mode === 'adapter' ? 0.95 : 0.5; // Adapter: 5% diff, Native: 50% of baseline
+    const threshold = mode === 'adapter' ? 0.95 : PER_SEED_RATIO_FLOOR;
     if (metrics.ratio >= threshold) {
       seedPassCount++;
     }
@@ -394,7 +395,7 @@ async function main() {
   const avgBaseline = allResults.reduce((sum, r) => sum + r.avgBaselineReward, 0) / numSeeds;
   const avgSenars = allResults.reduce((sum, r) => sum + r.avgSenarsReward, 0) / numSeeds;
   const overallRatio = avgSenars / Math.max(0.001, avgBaseline);
-  const passRate = seedPassCount / numSeeds;
+  const passRate = computeSeedPassRate(allResults);
 
   const summary = {
     environment: envType,
@@ -407,7 +408,7 @@ async function main() {
     senarsReturn: avgSenars,
     ratio: overallRatio,
     seedPassRate: passRate,
-    pass: passRate >= 0.8,
+    pass: meetsParityAcceptance(envType, overallRatio, passRate),
     perSeedResults: allResults,
   };
 

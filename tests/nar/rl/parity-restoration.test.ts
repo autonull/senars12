@@ -7,25 +7,27 @@
  * The harness is **seeded end to end** (TODO27 §16). `NARConfig.rng` reaches the
  * memory bags, the link layer, every stochastic strategy factory, the value
  * store and the action selectors, so a repeated run of an unchanged tree
- * reproduces the ratio exactly — measured 2026-09-28: gridworld 0.7184, bandit
- * 0.6647, nonstationary 0.9157, and byte-identical on every repeat. The
- * previous signal was load, not behaviour: the same commit measured 0.44–0.91
- * across runs.
+ * reproduces the ratio exactly — measured 2026-09-28 at this configuration:
+ * gridworld 0.6459, bandit 0.8240, nonstationary 0.9565, byte-identical on
+ * every repeat.
+ * The previous signal was load, not behaviour: the same commit measured
+ * 0.44–0.91 across runs.
  *
- * It stays opt-in because the *sample* is still small, not because the harness
- * is nondeterministic: at 10 seeds a single seed moves the aggregate by a few
- * points. Run it deliberately:
+ * It stays opt-in because it costs ~6 minutes, not because the harness is
+ * nondeterministic: a single seed still moves the aggregate by a few points, so
+ * the 20-seed figure is the measurement and the floor is calibrated to it. Run
+ * it deliberately:
  *   VITEST_PARITY=1 pnpm run test:load-sensitive
  * or measure directly (20 seeds, ~2 min per environment):
  *   pnpm exec tsx scripts/rl-parity.ts --env gridworld --mode both --seeds 20
  *
- * `computeSeedPassRate` mirrors rl-parity.ts's own per-seed rule because the
- * script exposes no reusable export; keep the two in step if either changes.
+ * The acceptance rule is `nar/src/rl/parity-acceptance.ts`, shared with the runner.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import * as parityAcceptance from '../../../nar/src/rl/parity-acceptance.js';
 
 interface ParityResult {
   environment: string;
@@ -51,24 +53,22 @@ interface ParityResult {
 
 const REPORTS_DIR = '.reports/rl-parity';
 
-// 10 seeds x 20 episodes x 30 steps: ~1 min per environment. The ratio is now
-// reproducible, so the sample size is the only thing that decides the width of
-// the confidence band.
+// 20 seeds x 20 episodes x 30 steps: ~2 min per environment, ~6 min for the
+// gate. The ratio is now reproducible, so the sample size is the only thing
+// that decides the width of the confidence band — and the floor in
+// `nar/src/rl/parity-acceptance.ts` is calibrated against *this* sample size
+// (10 seeds measures 0.58 on gridworld where 20 measures 0.65, from the same
+// deterministic system; a floor must be set against the gate's own config).
 const SMOKE_CONFIG = {
-  seeds: 10,
+  seeds: 20,
   episodesPerSeed: 20,
   stepsPerEpisode: 30,
 };
 
-// Acceptance criteria from TODO11 1E. Measured on the seeded harness (2026-09-28,
-// 10 seeds): gridworld 0.718, bandit 0.665, nonstationary 0.916 — the floors sit
-// below the measurements, so a red gate is a behaviour change, not machine load.
-const ACCEPTANCE: Record<string, { minAggregateRatio: number; minSeedPassRate: number }> = {
-  gridworld: { minAggregateRatio: 0.7, minSeedPassRate: 2 / 3 },
-  bandit: { minAggregateRatio: 0.6, minSeedPassRate: 2 / 3 },  // Higher variance
-  nonstationary: { minAggregateRatio: 0.6, minSeedPassRate: 2 / 3 },  // Higher variance
-};
-const perSeedThreshold = 0.5;
+// The acceptance rule lives with the runner that reports it, so the report's
+// "Overall Pass" and this gate can no longer disagree.
+const ACCEPTANCE = parityAcceptance.PARITY_ACCEPTANCE;
+const perSeedThreshold = parityAcceptance.PER_SEED_RATIO_FLOOR;
 
 const ENVIRONMENTS: Array<{ env: string; baseline: string; mode: string }> = [
   { env: 'gridworld', baseline: 'qlearning', mode: 'both' },
@@ -111,17 +111,12 @@ function runParityExperiment(env: string, baseline: string, mode: string): Parit
   return result;
 }
 
-// Compute seed pass rate using rl-parity.ts logic (per-seed ratio >= 0.5)
-function computeSeedPassRate(result: ParityResult): number {
-  const passingSeeds = result.perSeedResults.filter(
-    (s) => s.ratio >= perSeedThreshold
-  ).length;
-  return passingSeeds / result.seeds;
-}
+const computeSeedPassRate = (result: ParityResult): number =>
+  parityAcceptance.computeSeedPassRate(result.perSeedResults);
 
 describe.skipIf(!process.env.VITEST_PARITY)('RL Parity Restoration — Live Assertions (1C\') @load-sensitive (env-gated)', { timeout: 900000 }, () => {
   beforeAll(async () => {
-    console.log('Running RL parity experiments for all 3 environments (10 seeds × 20 eps × 30 steps)...');
+    console.log('Running RL parity experiments for all 3 environments (20 seeds × 20 eps × 30 steps)...');
   });
 
   for (const { env, baseline, mode } of ENVIRONMENTS) {
