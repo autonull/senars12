@@ -10,18 +10,14 @@
  */
 
 import type { Bag } from '../../bag/Bag.js';
-import type { SerializedStamp, Stamp, Term } from '../../terms';
-import {
-  deserializeStamp,
-  Stamp as StampFactory,
-  serializeStamp,
-  Truth,
-  termParser,
-} from '../../terms';
-import { createBudget } from '../../types';
+import { type Term, serializeStamp, termParser } from '../../terms';
+import { createLogger } from '@senars/core/logger';
+import { rehydrateTask, type TaskRecord } from '../../task/record.js';
 import { decodeState, encodeState } from '../../state/codec.js';
 import type { Concept, ConceptTaskType, TaskData } from '../concept.js';
 import type { Memory } from '../memory.js';
+
+const logger = createLogger({ scope: 'Memory.State' });
 
 export interface SerializedMemory {
   version: number;
@@ -36,19 +32,17 @@ export interface SerializedMemory {
 export interface SerializedConcept {
   term: string;
   priority: number;
-  beliefs: SerializedTask[];
-  goals: SerializedTask[];
-  questions: SerializedTask[];
-}
-
-export interface SerializedTask {
-  term: string;
-  truth?: { f: number; c: number };
-  budget: number;
-  stamp?: SerializedStamp;
+  beliefs: TaskRecord[];
+  goals: TaskRecord[];
+  questions: TaskRecord[];
 }
 
 export const MEMORY_VERSION = 1;
+
+/**
+ * @deprecated since 0.7.0 — the task record has one shape everywhere; use `TaskRecord`.
+ */
+export type { TaskRecord as SerializedTask } from '../../task/record.js';
 
 const MEMORY_STATE_KIND = 'memory.state';
 
@@ -88,8 +82,8 @@ export function serialize(memory: Memory): SerializedMemory {
   };
 }
 
-function serializeBag(bag: Bag<TaskData>): SerializedTask[] {
-  const tasks: SerializedTask[] = [];
+function serializeBag(bag: Bag<TaskData>): TaskRecord[] {
+  const tasks: TaskRecord[] = [];
 
   for (const [item, priority] of bag.entries()) {
     tasks.push({
@@ -97,6 +91,7 @@ function serializeBag(bag: Bag<TaskData>): SerializedTask[] {
       truth: item.truth ? { f: item.truth.f, c: item.truth.c } : undefined,
       budget: item.budget.priority ?? priority,
       stamp: item.stamp ? serializeStamp(item.stamp) : undefined,
+      occurrenceTime: item.occurrenceTime,
     });
   }
   return tasks;
@@ -120,24 +115,20 @@ export async function deserialize(data: SerializedMemory, memory: Memory): Promi
       if (typeof serialized.priority === 'number') concept.priority = serialized.priority;
     } catch {
       // expected: individual concept deserialization failure shouldn't abort memory load
-      console.warn(`Failed to deserialize concept: ${serialized.term}`);
+      logger.warn('Failed to deserialize concept', { term: serialized.term });
     }
   }
 }
 
-function restoreBag(concept: Concept, type: TaskTypeName, tasks?: SerializedTask[]): void {
-  if (!tasks) return;
-  for (const task of tasks) {
-    try {
-      const term = termParser.parse(task.term);
-      const truth = task.truth ? Truth.create(task.truth.f, task.truth.c) : undefined;
-      const budget = createBudget(typeof task.budget === 'number' ? task.budget : 0.5);
-      const stamp: Stamp = task.stamp ? deserializeStamp(task.stamp) : StampFactory.createInput();
-      concept.addTask(type as ConceptTaskType, { term, truth, budget, stamp });
-    } catch {
-      // expected: individual task deserialization failure shouldn't abort concept load
-      console.warn(`Failed to deserialize task: ${task.term}`);
+function restoreBag(concept: Concept, type: TaskTypeName, tasks?: TaskRecord[]): void {
+  for (const record of tasks ?? []) {
+    const task = rehydrateTask(record, type);
+    if (task) {
+      concept.addTask(type, { term: task.term, truth: task.truth, budget: task.budget, stamp: task.stamp });
+      continue;
     }
+    // expected: individual task deserialization failure shouldn't abort concept load
+    logger.warn('Failed to deserialize task', { term: record.term, type });
   }
 }
 

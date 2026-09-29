@@ -1,6 +1,7 @@
 import type { Term } from '../terms';
 import { Truth, termParser } from '../terms';
 import { createBudget, createTask, type Task, type TaskType } from '../types';
+import { taskTypeFromPunctuation } from './record.js';
 
 export interface InputProcessorConfig {
   defaultType: TaskType;
@@ -13,9 +14,9 @@ const DEFAULT_CONFIG: InputProcessorConfig = {
 function extractPunctuation(input: string): { text: string; punctuation: string } {
   const match = input.trim().match(/^(.+?)([.!?@])?\s*$/);
   if (match) {
-    return { text: match[1]!.trim(), punctuation: match[2] || '.' };
+    return { text: match[1]!.trim(), punctuation: match[2] ?? '' };
   }
-  return { text: input.trim(), punctuation: '.' };
+  return { text: input.trim(), punctuation: '' };
 }
 
 export class InputProcessor {
@@ -53,21 +54,11 @@ export class InputProcessor {
   }
 
   detectType(input: string): TaskType {
-    const { punctuation } = extractPunctuation(input);
-
-    if (punctuation === '?') return 'question';
-    if (punctuation === '!') return 'goal';
-    if (punctuation === '@') return 'command';
-
-    return 'belief';
+    return this.determineTaskType(extractPunctuation(input).punctuation);
   }
 
   private determineTaskType(punctuation: string, type?: TaskType): TaskType {
-    if (type) return type;
-    if (punctuation === '?') return 'question';
-    if (punctuation === '!') return 'goal';
-    if (punctuation === '@') return 'command';
-    return this.config.defaultType;
+    return type ?? taskTypeFromPunctuation(punctuation, this.config.defaultType);
   }
 }
 

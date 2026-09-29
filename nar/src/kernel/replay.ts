@@ -12,12 +12,13 @@ import {
   validateDerivationRecord,
 } from '@senars/kernel/schemas';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
-import { createDefaultRegistry } from '../cognitive/registry.js';
+import { createDefaultRegistry, resolveSlot } from '../cognitive/registry.js';
 import type { AttentionModel } from '../strategies/types.js';
 import type { Concept, ConceptTaskType, TaskData } from '../memory/concept.js';
 import { Memory } from '../memory/memory.js';
 import { serialize as serializeMemory } from '../memory/state/serialization.js';
 import { Stamp, Truth, termParser } from '../terms/index.js';
+import { rehydrateTask } from '../task/record.js';
 import type { Budget, Timestamp } from '../types/index.js';
 import { createBudget } from '../types/index.js';
 import { writeJsonFileSync } from '../utils/fs.js';
@@ -115,14 +116,15 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
     : [];
 
   const { cognitiveParams, strategyRegistry } = options;
-  const attentionModel = cognitiveParams
-    ? (strategyRegistry ?? createDefaultRegistry()).resolve<AttentionModel>(
-        'attention',
-        cognitiveParams.strategies.attention.type,
-        cognitiveParams.strategies.attention.config
-      )
-    : undefined;
-  const memory = new Memory(memoryConfig, { attentionModel });
+  const memory = new Memory(memoryConfig, {
+    attentionModel: cognitiveParams
+      ? resolveSlot<AttentionModel>(
+          strategyRegistry ?? createDefaultRegistry(),
+          cognitiveParams,
+          'attention'
+        )
+      : undefined,
+  });
   const errors: string[] = [];
   let appliedTasks = 0;
   let appliedRevisions = 0;
@@ -132,22 +134,22 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
 
   const admittedTasks = replayTaskAdmissions(gateEvents);
 
-  for (const task of admittedTasks) {
-    try {
-      const term = termParser.parse(task.term);
-      const truth = task.truth
-        ? Truth.create(task.truth.frequency, task.truth.confidence)
-        : undefined;
-      const budget = createBudget(task.budget?.priority ?? 0.5);
-      const stamp = Stamp.createInput();
-      const ok = memory.addTask(term, taskTypeFromEvent(task.taskType), truth, budget, stamp);
-      if (ok) appliedTasks++;
-      else skipped++;
-    } catch (e) {
+  for (const { term: raw, taskType, truth, budget } of admittedTasks) {
+    const restored = rehydrateTask({
+      term: raw,
+      type: taskTypeFromEvent(taskType),
+      truth: truth ? { f: truth.frequency, c: truth.confidence } : undefined,
+      budget: budget?.priority,
+    });
+    if (!restored) {
       skipped++;
-      errors.push(
-        `Task admission failed: ${task.term} - ${errMsg(e)}`
-      );
+      errors.push(`Task admission failed: ${raw} - term did not parse`);
+      continue;
+    }
+    if (memory.addTask(restored.term, restored.type, restored.truth, restored.budget, restored.stamp)) {
+      appliedTasks++;
+    } else {
+      skipped++;
     }
   }
 

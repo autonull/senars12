@@ -6,9 +6,8 @@ import { SenarsError } from '@senars/util/errors';
 import type { DriveManager } from '../drives';
 import type { Memory } from '../memory';
 import { decodeState, encodeState } from '../state/codec.js';
-import { type Stamp, Truth, type TruthType, termParser } from '../terms';
+import { rehydrateTask, serializeTaskRecord, type TaskRecord } from '../task/record.js';
 import type { Task, TaskType } from '../types';
-import { createBudget, createTask } from '../types/core.js';
 import { errMsg } from '../utils';
 import { ensureParentDir } from '../utils/fs.js';
 import { err, ok, type Result } from '../utils/result.js';
@@ -58,30 +57,6 @@ export class StatePersister {
     }
   }
 
-  private serializeTask(task: Task) {
-    return {
-      term: task.term.toString(),
-      type: task.type,
-      truth: task.truth ? Truth.create(task.truth.f, task.truth.c) : undefined,
-      stamp: task.stamp,
-    };
-  }
-
-  private rehydrateTask(
-    record: { term: string; type?: TaskType; truth?: TruthType; stamp?: Stamp },
-    type: TaskType
-  ) {
-    const punctuation =
-      (record.type ?? type) === 'belief' ? '.' : (record.type ?? type) === 'goal' ? '!' : '?';
-    const parsed = termParser.parse(`${record.term}${punctuation}`);
-    return (
-      parsed &&
-      createTask(parsed, record.type ?? type, record.truth ?? Truth.NEUTRAL, createBudget(0.5), {
-        ...(record.stamp ? { stamp: record.stamp as Stamp } : {}),
-      })
-    );
-  }
-
   async save(): Promise<void> {
     if (!this.deps.config.persistState) return;
     try {
@@ -91,9 +66,13 @@ export class StatePersister {
       for (const ds of driveStates) drives[ds.spec.id] = ds.currentIntensity;
 
       const files: Array<[string, string, unknown]> = [
-        ['beliefs.json', 'nar.beliefs', query.getBeliefs().map((b) => this.serializeTask(b))],
-        ['goals.json', 'nar.goals', query.getGoals().map((g) => this.serializeTask(g))],
-        ['questions.json', 'nar.questions', query.getQuestions().map((q) => this.serializeTask(q))],
+        [
+          'beliefs.json',
+          'nar.beliefs',
+          query.getBeliefs().map(serializeTaskRecord),
+        ],
+        ['goals.json', 'nar.goals', query.getGoals().map(serializeTaskRecord)],
+        ['questions.json', 'nar.questions', query.getQuestions().map(serializeTaskRecord)],
         ['attention.json', 'nar.attention', attentionReport()],
         ['drives.json', 'nar.drives', drives],
         ['lm-rules.json', 'nar.lm-rules', processor.serializeLMRules()],
@@ -120,7 +99,7 @@ export class StatePersister {
         ['questions.json', 'question'],
       ];
       for (const [name, type] of taskFiles) {
-        const result = await this.readStateFile<any[]>(
+        const result = await this.readStateFile<TaskRecord[]>(
           name,
           `nar.${name.slice(0, -'.json'.length)}`
         );
@@ -134,12 +113,12 @@ export class StatePersister {
         const records = result.value;
         if (!records) continue;
         for (const record of records) {
-          try {
-            const task = this.rehydrateTask(record, type);
-            if (task) memory.addTask(task.term, task.type, task.truth, task.budget);
-          } catch (e) {
-            this.logger.warn('Skipping unparseable persisted task', { error: errMsg(e) });
+          const task = rehydrateTask(record, type);
+          if (!task) {
+            this.logger.warn('Skipping unparseable persisted task', { term: record.term });
+            continue;
           }
+          memory.addTask(task.term, task.type, task.truth, task.budget, task.stamp);
         }
       }
 
