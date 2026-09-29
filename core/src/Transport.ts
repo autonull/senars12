@@ -13,7 +13,6 @@ export type {
   ConnectionFactory,
   ConnectionState,
   IOMessage,
-  Logger,
   MessageClassification,
   TransportDeps,
 } from '@senars/util/types/transport';
