@@ -6,7 +6,7 @@ export {
   DEFAULT_PROFILE,
   makeDefaultBotConfig,
 } from './defaults.js';
-export { deepMergeConfig, loadConfig, loadConfigFromEnv } from './loader.js';
+export { loadConfig, loadConfigFromEnv } from './loader.js';
 export type {
   AgentSectionConfig,
   AppConfig,

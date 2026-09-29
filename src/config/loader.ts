@@ -68,7 +68,10 @@ export const loadConfig = async (path?: string): Promise<AppConfig> => {
   if (warning) {
     console.warn(`[config] ${warning.message}`);
   }
-  const merged = { ...raw_config, ...readEnvOverrides() };
+  // Env overrides arrive as nested objects (SENARS_ENV_MAP targets dotted paths),
+  // so this must merge rather than replace: a flat spread would drop every
+  // sibling of `capabilities.lm.*` that the file had configured.
+  const merged = deepMerge(raw_config, readEnvOverrides());
   // Ensure configVersion is set in the parsed result
   if (!merged.configVersion) {
     merged.configVersion = CURRENT_CONFIG_VERSION;
@@ -79,7 +82,5 @@ export const loadConfig = async (path?: string): Promise<AppConfig> => {
 export const loadConfigFromEnv = async (): Promise<AppConfig> => {
   return appConfigSchema.parse(readEnvOverrides());
 };
-
-export const deepMergeConfig = deepMerge;
 
 export { CURRENT_CONFIG_VERSION };

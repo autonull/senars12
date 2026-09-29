@@ -1,109 +1,103 @@
+import { isBooleanSpelling } from '@senars/util/config';
 import { createLogger } from '../../nar/src/logger/index.js';
 
 const logger = createLogger({ scope: 'env:validate' });
 
-const KNOWN_ENV_VARS = new Set([
-  'LM_PROVIDER',
-  'LM_MODEL',
-  'LM_FAST_MODEL',
-  'LM_STRUCTURED_MODEL',
-  'LM_BASE_URL',
-  'LM_API_KEY_ENV',
-  'LM_LLAMACPP_MODEL',
-  'LM_LLAMACPP_GPU',
-  'LM_LLAMACPP_GPU_LAYERS',
-  'LM_LLAMACPP_CTX',
-  'LM_LLAMACPP_BATCH',
-  'LM_LLAMACPP_SEQS',
-  'LM_LLAMACPP_FLASH_ATTN',
-  'OLLAMA_HOST',
-  'OLLAMA_MODEL',
-  'EPISODIC_MEMORY_PATH',
-  'EPISODIC_RETENTION_DAYS',
-  'AGENT_INSTRUCTIONS',
-  'AUTO_TRIGGER_REASONING',
-  'REASONING_THRESHOLD',
-  'REASONING_COOLDOWN',
-  'MAX_REASONING_STEPS',
-  'SENARS_AUTONOMY_BROADCAST',
-  'SENARS_MCP_ENABLED',
-  'SENARS_MCP_TRANSPORT',
-  'SENARS_IRC_ENABLED',
-  'SENARS_IRC_SERVER',
-  'SENARS_IRC_PORT',
-  'SENARS_IRC_NICK',
-  'SENARS_IRC_CHANNELS',
-  'SENARS_IRC_AUTH_SECRET',
-  'SENARS_WS_ENABLED',
-  'SENARS_WS_PORT',
-  'SENARS_HTTP_ENABLED',
-  'SENARS_HTTP_PORT',
-  'SENARS_HISTFILE',
-  'SENARS_CONFIG',
-  'SENARS_CLI_ENABLED',
-  'SENARS_LM_ENABLED',
-  'SENARS_LM_PROVIDER',
-  'SENARS_LM_MODEL',
-  'SENARS_SENARS_ENABLED',
-  'SENARS_REASONING_AUTO_TRIGGER',
-  'SENARS_REASONING_TRIGGER_THRESHOLD',
-  'SENARS_STREAMING_ENABLED',
-  'SENARS_TUI_COLORS',
-  'SENARS_TUI_TYPING_INDICATOR',
-  'DEBUG',
-  'NODE_ENV',
-  'NODE_NO_WARNINGS',
-  'NODE_OPTIONS',
-  'ANTHROPIC_API_KEY',
-  'OPENAI_API_KEY',
-  'LM_API_KEY',
-  'LM_OFFLINE',
-  'LM_PROFILE',
-  'BOT_CLI_ONLY',
-  'ENABLE_IRC',
-  'ENABLE_WS',
-  'ENABLE_HTTP',
-  'ENABLE_MCP',
-  'ENABLE_WEB_UI',
-]);
+type EnvKind = 'string' | 'int' | 'number' | 'bool';
 
-const NUMERIC_ENV_VARS: Record<string, (v: string) => number> = {
-  EPISODIC_RETENTION_DAYS: (v) => Number.parseInt(v, 10),
-  REASONING_THRESHOLD: (v) => Number.parseFloat(v),
-  REASONING_COOLDOWN: (v) => Number.parseInt(v, 10),
-  MAX_REASONING_STEPS: (v) => Number.parseInt(v, 10),
-  SENARS_IRC_PORT: (v) => Number.parseInt(v, 10),
-  SENARS_WS_PORT: (v) => Number.parseInt(v, 10),
-  SENARS_HTTP_PORT: (v) => Number.parseInt(v, 10),
-  SENARS_REASONING_TRIGGER_THRESHOLD: (v) => Number.parseFloat(v),
-  LM_LLAMACPP_GPU_LAYERS: (v) => Number.parseInt(v, 10),
-  LM_LLAMACPP_CTX: (v) => Number.parseInt(v, 10),
-  LM_LLAMACPP_BATCH: (v) => Number.parseInt(v, 10),
-  LM_LLAMACPP_SEQS: (v) => Number.parseInt(v, 10),
+/**
+ * The declared env grammar. One table answers both questions the validator asks —
+ * "do we know this var" and "what shape must it have" — so a var cannot be known
+ * without a kind, nor given a kind without being known. `int` additionally rejects
+ * a fractional value, which the previous `parseInt` check floored into a pass.
+ */
+const ENV_VAR_KINDS: Record<string, EnvKind> = {
+  LM_PROVIDER: 'string',
+  LM_MODEL: 'string',
+  LM_FAST_MODEL: 'string',
+  LM_STRUCTURED_MODEL: 'string',
+  LM_BASE_URL: 'string',
+  LM_API_KEY_ENV: 'string',
+  LM_LLAMACPP_MODEL: 'string',
+  LM_LLAMACPP_GPU: 'string',
+  OLLAMA_HOST: 'string',
+  OLLAMA_MODEL: 'string',
+  EPISODIC_MEMORY_PATH: 'string',
+  AGENT_INSTRUCTIONS: 'string',
+  SENARS_MCP_TRANSPORT: 'string',
+  SENARS_IRC_SERVER: 'string',
+  SENARS_IRC_NICK: 'string',
+  SENARS_IRC_CHANNELS: 'string',
+  SENARS_IRC_AUTH_SECRET: 'string',
+  SENARS_HISTFILE: 'string',
+  SENARS_CONFIG: 'string',
+  SENARS_LM_PROVIDER: 'string',
+  SENARS_LM_MODEL: 'string',
+  DEBUG: 'string',
+  NODE_ENV: 'string',
+  NODE_NO_WARNINGS: 'string',
+  NODE_OPTIONS: 'string',
+  ANTHROPIC_API_KEY: 'string',
+  OPENAI_API_KEY: 'string',
+  LM_API_KEY: 'string',
+  LM_PROFILE: 'string',
+
+  EPISODIC_RETENTION_DAYS: 'int',
+  REASONING_COOLDOWN: 'int',
+  MAX_REASONING_STEPS: 'int',
+  SENARS_IRC_PORT: 'int',
+  SENARS_WS_PORT: 'int',
+  SENARS_HTTP_PORT: 'int',
+  LM_LLAMACPP_GPU_LAYERS: 'int',
+  LM_LLAMACPP_CTX: 'int',
+  LM_LLAMACPP_BATCH: 'int',
+  LM_LLAMACPP_SEQS: 'int',
+
+  REASONING_THRESHOLD: 'number',
+  SENARS_REASONING_TRIGGER_THRESHOLD: 'number',
+
+  AUTO_TRIGGER_REASONING: 'bool',
+  SENARS_AUTONOMY_BROADCAST: 'bool',
+  SENARS_MCP_ENABLED: 'bool',
+  SENARS_IRC_ENABLED: 'bool',
+  SENARS_WS_ENABLED: 'bool',
+  SENARS_HTTP_ENABLED: 'bool',
+  SENARS_LM_ENABLED: 'bool',
+  SENARS_SENARS_ENABLED: 'bool',
+  SENARS_REASONING_AUTO_TRIGGER: 'bool',
+  SENARS_STREAMING_ENABLED: 'bool',
+  SENARS_TUI_COLORS: 'bool',
+  SENARS_TUI_TYPING_INDICATOR: 'bool',
+  SENARS_CLI_ENABLED: 'bool',
+  LM_LLAMACPP_FLASH_ATTN: 'bool',
+  LM_OFFLINE: 'bool',
+  BOT_CLI_ONLY: 'bool',
+  ENABLE_IRC: 'bool',
+  ENABLE_WS: 'bool',
+  ENABLE_HTTP: 'bool',
+  ENABLE_MCP: 'bool',
+  ENABLE_WEB_UI: 'bool',
 };
 
-const BOOLEAN_ENV_VARS = new Set([
-  'AUTO_TRIGGER_REASONING',
-  'SENARS_AUTONOMY_BROADCAST',
-  'SENARS_MCP_ENABLED',
-  'SENARS_IRC_ENABLED',
-  'SENARS_WS_ENABLED',
-  'SENARS_HTTP_ENABLED',
-  'SENARS_LM_ENABLED',
-  'SENARS_SENARS_ENABLED',
-  'SENARS_REASONING_AUTO_TRIGGER',
-  'SENARS_STREAMING_ENABLED',
-  'SENARS_TUI_COLORS',
-  'SENARS_TUI_TYPING_INDICATOR',
-  'LM_LLAMACPP_FLASH_ATTN',
-  'LM_OFFLINE',
-  'BOT_CLI_ONLY',
-  'ENABLE_IRC',
-  'ENABLE_WS',
-  'ENABLE_HTTP',
-  'ENABLE_MCP',
-  'ENABLE_WEB_UI',
-]);
+/** Only vars under these prefixes are ours to judge; the rest belong to the host. */
+const SCOPED_PREFIXES = [
+  'SENARS_',
+  'LM_',
+  'OLLAMA_',
+  'EPISODIC_',
+  'AGENT_',
+  'AUTO_',
+  'REASONING_',
+  'MAX_',
+] as const;
+
+const inScope = (name: string): boolean =>
+  name === 'DEBUG' || SCOPED_PREFIXES.some((prefix) => name.startsWith(prefix));
+
+const isNumeric = (kind: 'int' | 'number', value: string): boolean => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && (kind === 'number' || Number.isInteger(parsed));
+};
 
 export interface ValidationResult {
   readonly unknown: ReadonlyArray<string>;
@@ -115,33 +109,17 @@ export const validateEnv = (): ValidationResult => {
   const mistyped: { name: string; reason: string }[] = [];
 
   for (const [name, value] of Object.entries(process.env)) {
-    if (value === undefined) continue;
-    if (
-      !name.startsWith('SENARS_') &&
-      !name.startsWith('LM_') &&
-      !name.startsWith('OLLAMA_') &&
-      !name.startsWith('EPISODIC_') &&
-      !name.startsWith('AGENT_') &&
-      !name.startsWith('AUTO_') &&
-      !name.startsWith('REASONING_') &&
-      !name.startsWith('MAX_') &&
-      name !== 'DEBUG'
-    ) {
-      continue;
-    }
-    if (!KNOWN_ENV_VARS.has(name)) {
+    if (value === undefined || !inScope(name)) continue;
+    const kind = ENV_VAR_KINDS[name];
+    if (kind === undefined) {
       unknown.push(name);
-      continue;
-    }
-    if (NUMERIC_ENV_VARS[name]) {
-      const parsed = NUMERIC_ENV_VARS[name](value);
-      if (Number.isNaN(parsed)) {
-        mistyped.push({ name, reason: `expected number, got "${value}"` });
-      }
-    } else if (BOOLEAN_ENV_VARS.has(name)) {
-      if (value !== 'true' && value !== 'false' && value !== '1' && value !== '0') {
-        mistyped.push({ name, reason: `expected boolean (true/false/1/0), got "${value}"` });
-      }
+    } else if (kind === 'bool' && !isBooleanSpelling(value)) {
+      mistyped.push({
+        name,
+        reason: `expected boolean (true/false/1/0/yes/no/on/off), got "${value}"`,
+      });
+    } else if ((kind === 'int' || kind === 'number') && !isNumeric(kind, value)) {
+      mistyped.push({ name, reason: `expected ${kind}, got "${value}"` });
     }
   }
 
