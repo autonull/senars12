@@ -3,14 +3,17 @@
 **Version:** 1.0 (2026-09-29) · **Predecessor:** TODO27 (phases A–P; strategy composition, then
 the primitives pass), which closed the strategy axis and left this.
 
-**Status: nothing has landed.** This document is a plan. Every item is verified against
-`e5646695` / `b184f9e9` unless a line says otherwise.
+**Status: §1, §2.3–§2.5, §3.3, §3.5 and §4 have landed** (see *What landed* at the end of
+this document; commits `f45e9e7a`, `eec1dcb5`, `b7fb1971`). Every item below was verified
+against `e5646695` / `b184f9e9` unless a line says otherwise, and the landed sections say
+where the tree moved underneath them.
 
 > **A fresh session should read §1 first.** §1 is the one defect: a package that should not
 > exist, importing the package it was supposed to be independent of, invisibly to every gate.
-> §2 is a set of bulk file moves and is **yours to do by hand** — read it for the rule, then
-> open the IDE. §3 is TODO27's leftovers, re-verified against the tree rather than transcribed;
-> §4 is what becomes cheap once the above are done.
+> §2 is a set of bulk file moves. **The rule is now written** (§2.4, landed in `AGENTS.md`) and
+> one directory is done (§2.1, `game/`); the remaining eight are mechanical now that the rule
+> exists. §3 is TODO27's leftovers, re-verified against the tree rather than transcribed;
+> §4 is what became cheap once the above were done.
 
 ---
 
@@ -457,3 +460,220 @@ pattern; these two are not in it.
 - **The `verify-derivation` truth table itself.** §4.1 pins the drift. Rewriting the table is
   the thing the file's header argues against, and closing it properly means two hand-checked
   tables and a scoring decision — a project, not a cleanup.
+
+---
+
+## 6. What landed (2026-09-29)
+
+Three commits: `f45e9e7a` (§1), `eec1dcb5` (§1.2, §2.3–§2.5, §3.3, §3.5, §4),
+`b7fb1971` (§2.1 `game/`). Every gate green: `typecheck`, `typecheck:bin`, `lint`,
+`deps:gate`, `deps:direction` (new), `exports:audit`, `exports:check`, `docs:api` +
+`docs:architecture` drift, `complexity:budget`, `test:unit`, `test:determinism`.
+
+### Landed
+
+| § | Item | Notes |
+|---|------|-------|
+| 1.1 | The `kernel` package dissolves | `schemas.ts` → `core/derivation-schemas.ts`, `budget.ts` / `verify-derivation.ts` → `core/`. `term-view.ts` and `rule-descriptor.ts` **deleted** — they had no consumer, and `exports:audit` only caught them once the package stopped shielding them. `workspaceCount` 7 → 6. |
+| 1.2 | Versions `0.0.0` | Plus the two live deprecations deleted rather than marked: `transport`'s `Logger` alias, and `nar/capability`'s `withTimeout` → `withSandboxTimeout`. `AGENTS.md` now says the lifecycle does not apply here. |
+| 2.3 | Two `metta-proposer.ts` files | The shared vote is `reflex/algebra-vote.ts`; each proposer is named for its class (`MettaProposer.ts`, `ProofMettaProposer.ts`). |
+| 2.4 | The naming rule | `AGENTS.md`, first — it made every other §2 item mechanical. |
+| 2.5 | Barrel-only directories | `@senars/nar/logger` (a re-export of a re-export) and `nar/src/schemas/` both gone. One logger path fewer; two fewer module paths to the same declarations. |
+| 3.3 | `withTimeout` shadow | Renamed; the canonical `@senars/util` one is the only exported name. |
+| 3.5 | Bandit acceptance | The rule was already in `nar/src/rl/parity-acceptance.ts`; the test was re-implementing it inline and now calls `meetsParityAcceptance`. |
+| 4.1 | Verifier drift pinned | `tests/unit/core/verifier-drift.test.ts`. Declared divergence: `revision`'s **saturated branch, frequency only** — confidence agrees at the cap. Also pins that `div` is unclamped where `safeDiv` is (latent today), and that every table entry has an engine counterpart. |
+| 4.2 | Direction check | `pnpm deps:direction` + CI. `util/src/` joins `DPDM_TARGETS` (cycle count unchanged at 4/25). |
+| 4.3 | The accumulator metric | Renamed to what it measures; the audit set is declared data with a reason per row. See the note below. |
+| 4.5 | `test:determinism` in CI | Its own job. 4 s, no model. |
+| 2.1 | `game/` → `impls/` | The clearest instance, done first. The other eight directories are listed below. |
+
+### The `budget.ts` problem was bigger than the package graph
+
+§1.1 said `budget.ts`'s import of `@senars/nar/tick` was a layering inversion.
+Moving the file into `core` would have *created* the same inversion one level
+down, because `core` already depends on `nar` in two places. So the commit did
+the second half of the job as well:
+
+- `core/src/event-sink.ts` is a module-level domain-event sink. `initOtel`
+  registers the exporter there. A lower layer announces something without
+  importing a tracer. Seven one-line otel wrappers that existed only to forward
+  an `emitEvent` collapsed into their call sites, and two of them
+  (`emitBackpressureDecision`, `emitBagPressureTransition`,
+  `emitStrategySelection`) were reachable only through a package boundary
+  `core` should not be crossing.
+- The `budget:slice:*` payloads have **one owner** now (`core/budget.ts`) instead
+  of being transcribed into `nar`'s event map; `NAREventMap` extends
+  `BudgetEventMap`.
+- `AIKRBudget` had two declarations (`bag/Bag.ts`, `tick/tick.ts`). It has one.
+- `core/agent/{Agent,pipeline,types}` imported `ThreadScope` from
+  `@senars/nar/kernel` — a *different* `ThreadScope` from the one `core` exports
+  as a `BudgetSlice` alias, so the field was typed wrong the whole time and
+  nothing caught it. Replaced with the structural `CorrelationScopeStore`.
+
+### §4.3: the detection rule was built, measured, and rejected
+
+The plan offered a heuristic over the AST or a rename. Both were tried:
+
+```
+text scan for fields assigned `new Map` / `new Set` / `[]`
+  574 candidates across six source roots
+  302 unpruned — local variables, per-call scratch space, per-invocation maps
+```
+
+A heuristic that noisy cannot be a gate; it becomes a gate people learn to
+ignore, which is the failure mode `exports:audit` already has. So the shipped
+shape is the rename, plus two things the plan did not propose:
+
+- the audit set is **data** (`scripts/lib/accumulator-ledger.ts`) with the reason
+  each site is on it, so the next audit is adding a row rather than editing a
+  hardcoded array in a counting function;
+- `accumulatorsAudited` is a new metric with a `mustNotDecrease` ratchet, so the
+  set cannot be quietly shrunk to make the gate pass. **The gate cannot catch a
+  new unbounded accumulator elsewhere, and nothing in it claims to.** That is
+  the honest version; the previous one was green for a reason unrelated to the
+  property it named.
+
+### §4.2: `import type` is excluded, and the ledger has three entries
+
+An upward **type** edge is erased at compile time and cannot form a runtime
+cycle, so it is not a layering break — it is a smell. Value edges only. The gate
+found three pre-existing inversions on its first real run, all now named in
+`ALLOWED_UPWARD` with the seam that would break each:
+
+- `core → io` — `core/memory/SessionManager.ts` uses `createLedger`
+- `core → nar` — `core/agent/index.ts` re-exports nar's `createCognitiveAgent`;
+  `core/concept-graph.ts` uses `serializeTerm`
+- `nar → metta` — `nar/agent/index.ts` constructs `MettaEngine` directly
+
+The `nar → metta` one was **not** in the plan's list and is the argument for
+having the gate: the plan's §4.2 was written from the manifests, the gate reads
+the imports.
+
+---
+
+## 7. What is left
+
+### 7.1 The other eight directories in §2.1
+
+The rule is written and `game/` is done, so these are mechanical. `terms` last —
+18 files and the deepest import fan-in in the package. Same shape each time:
+contract at the top, implementations under `impls/`, barrel unchanged so the
+export surface does not move.
+
+`terms`, `tools`, `rules`, `cognitive`, `rl`, `dialogue`, `drives`, `imagination`.
+
+**`types.ts` is not the contract in every one of them.** In `game/`, `types.ts`
+holds the *component* vocabulary (sensors, actions, rewards) and `Game.ts` holds
+the game contract. Check which is which per directory before moving; the
+mechanical move is only mechanical once the target is right.
+
+### 7.2 §3.1 `registerRuleGraph`
+
+Unchanged. The catalogue is still not the single declaration of every built-in.
+Registry-mediated, so it does not violate the North Star — but it is a second
+place a built-in is named, and `game/registry.ts` is now a third kind of the
+same thing.
+
+### 7.3 §3.2 the hermetic seeded run
+
+Unchanged, and now sharper. `deps:direction` gave us the vocabulary: a
+`RandomSource` threaded through `NARConfig` is a *seam*, not a parameter, and
+the bags that sample from it are the ones that must take it. Still a plan of its
+own; still touches the parity baseline `test:load-sensitive` exists to protect.
+
+### 7.4 §3.4 the cognitive-parameter file loader
+
+Unchanged. `replay.ts` accepts `cognitiveParams` and resolves the attention
+model correctly; the only thing missing is a file the CLI can read.
+
+### 7.5 §3.6 / §3.7 recorded, not scheduled
+
+Association provenance (a `Link` field with no reader) and a third
+`AssociativeMemory` kind (a feature). Both still correctly declined.
+
+### 7.6 §3.8 the three measurement debts
+
+Unchanged — all three still blocked on the same thing, an install at a past
+commit.
+
+### 7.7 §4.4 `nar/src/nar.ts` at 846 lines
+
+Unchanged. The `game/` move does not touch it; the construction and the wiring
+are still one file.
+
+### 7.8 §4.6 two flaky tests
+
+Still flaky, still pre-existing, still outside the `test:load-sensitive` tier.
+`tests/nar/todo26-cognitive-agent.test.ts` and
+`tests/nar/rl/parity/stress-boundary.test.ts` — confirmed again on a clean stash
+of this work's tree. A third turned up during this pass and also passed in
+isolation on both sides of the change: `tests/nar/bag-fidelity.test.ts`
+(chi-squared at 50k samples under full-suite load).
+
+**The pattern is now three files and one job.** The fix is to add these to the
+`test:load-sensitive` set so they run isolated in CI, which is the pattern
+`ci.yml` already has for four other files. That is a small, mechanical change
+worth doing before more load-sensitive tests accumulate.
+
+---
+
+## 8. New improvement opportunities
+
+Surfaced by the work, not in the original plan. In rough value order.
+
+### 8.1 `core` still depends on `nar` and `io` — the largest remaining inversion
+
+`core` is the layer *below* `nar` and it imports from it, in two places, for a
+reason that no longer reads: `core/agent/index.ts` re-exports nar's
+`createCognitiveAgent`, and `core/concept-graph.ts` imports `serializeTerm`.
+Both are small seams:
+
+- `createCognitiveAgent` is a NAR-level factory with no business in core's agent
+  barrel. Moving it under `nar/src/agent/` and leaving a thin type-only
+  re-export is most of the work.
+- `serializeTerm` is a pure Narsese serializer with no NAR dependency of its
+  own. It belongs in `util` beside the rest of the term primitives.
+
+Removing both takes `ALLOWED_UPWARD` from three entries to one, and the last
+one (`core → io`, the ledger in `SessionManager`) is a genuine cycle waiting to
+happen. **`core` being importable without `nar` is what makes the layering
+claim real** — right now it is a convention with two exceptions in a script.
+
+### 8.2 `nar/src/nar.ts` imports its logger from `core` and everything imports `core`
+
+Not a defect — the opposite. Worth recording that the *event sink* worked:
+moving a signal across a package boundary needed one 40-line module and no
+consumer changes. That is the shape for any future downward signal.
+
+### 8.3 The `exports:audit` PUBLIC_API list is now the only place a dead export can hide
+
+Two of §1.1's six files were dead (`term-view`, `rule-descriptor`) and were
+caught only because the package dissolved. The audit is a consumer check, not a
+reachability check: it cannot see a subpath that has exactly one consumer which
+is itself dead. Worth a decision on whether `PUBLIC_API` entries should require
+a reason, the way `ALLOWED_UPWARD` and the accumulator ledger do.
+
+### 8.4 The 27 duplicate basenames, revisited
+
+§5 said the duplicates are worth a look only where two of them collide
+meaningfully, as `similarity.ts` does. The `game/` move makes a second class
+visible: `nar/src/game/index.ts` re-exported 14 impls and 9 support modules
+through `export *`, so the barrel was a second, unversioned index of the whole
+directory. Any directory whose barrel is a `export *` over more than a handful
+of modules has the same shape. `grep -c "export \*" */src/*/index.ts`.
+
+### 8.5 The verifier's `VERIFIER_TRUTH_TABLE` export
+
+`verify-derivation.ts` now exports its table so the drift test can compare it.
+That is safe — nothing in the engine imports it, so the verifier's proofs are
+still computed without the engine's arithmetic — but it is a *value* export from
+a module whose whole argument is about independence. The next reader should find
+that reasoning in the file, not have to reconstruct it. It is in the JSDoc.
+
+### 8.6 `deps:direction` counts `export … from` as a value edge
+
+A re-export is not a runtime cycle risk in the way a call is, and the gate
+currently treats `core/agent/index.ts`'s re-export of `createCognitiveAgent`
+identically to `concept-graph.ts`'s call of `serializeTerm`. Splitting the two
+would let the re-export case be measured separately, which matters because §8.1
+is two different fixes wearing one ledger entry.

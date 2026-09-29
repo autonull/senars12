@@ -132,7 +132,7 @@ export class PatchRiskClassifier {
       'src/nar/rlfp/RewardModel.ts',    // Reward functions
       'src/nar/rlfp/PolicyOptimizer.ts',
       'src/util/types/cognitive.ts',    // AutonomyMode enum
-      'kernel/src/schemas.ts',          // Kernel schemas (@senars/kernel)
+      'core/src/derivation-schemas.ts',  // Derivation schemas (@senars/core)
     ];
 
     for (const file of patch.affectedFiles) {
@@ -292,7 +292,7 @@ The following files/logic are **frozen** — any patch touching them is auto-cla
 | **Reward Functions** | `src/nar/rlfp/RewardModel.ts`, `src/nar/rlfp/PolicyOptimizer.ts` | Prevents reward hacking |
 | **Autonomy Mode** | `src/util/types/cognitive.ts` (AutonomyMode enum) | Prevents privilege escalation |
 | **Kernel Gates** | `nar/src/gates/*.ts`, `nar/src/kernel/Kernel*Gate.ts` | Prevents gate bypass |
-| **Kernel Schemas** | `kernel/src/schemas.ts` | Prevents schema weakening |
+| **Kernel Schemas** | `core/src/derivation-schemas.ts` | Prevents schema weakening |
 | **Budget Limits** | `src/nar/config/budget.ts` | Prevents resource exhaustion |
 
 **Enforcement:** Git branch protection rules on `main` + governance pipeline required status check.

@@ -134,7 +134,7 @@ const records = nar.getRuleProcessor().getRecorder().drain();
 // Each record: { derivationId, steps[{ruleId, premises, conclusion, truth, premiseTruths, independence, ...}], finalTruth, ... }
 
 // Standalone verification (zero NAR engine deps)
-import { verifyRecord } from '@senars/kernel/verify-derivation';
+import { verifyRecord } from '@senars/core/verify-derivation';
 for (const r of records) {
   const result = verifyRecord(r, { strict: true, epsilon: 1e-6 });
   console.log(result.ok ? 'VALID' : 'INVALID', result.errors);
@@ -142,12 +142,12 @@ for (const r of records) {
 ```
 
 - `DerivationRecorder` (opt-in, bounded: 200 steps/record, 200 records) emits `DerivationRecord` with step-level `premiseTruths`, `evidenceLineage`, `independence`
-- `@senars/kernel/verify-derivation` — the one proof checker. Shape comes from `DerivationRecordSchema`; proof comes from `verifyRecord`, which re-computes the NAL truth algebra, validates substitution grounding, the lineage DAG, and the revision independence flag. The truth table is transcribed rather than imported from the engine, and the package has no engine dependency, so a verifier bug cannot hide behind an engine bug.
+- `@senars/core/verify-derivation` — the one proof checker. Shape comes from `DerivationRecordSchema`; proof comes from `verifyRecord`, which re-computes the NAL truth algebra, validates substitution grounding, the lineage DAG, and the revision independence flag. The truth table is transcribed rather than imported from the engine, and `core` depends on nothing but `util` and its own schemas, so a verifier bug cannot hide behind an engine bug. That independence is now measured rather than asserted: `tests/unit/core/verifier-drift.test.ts` pins the table's known divergences against the engine's own arithmetic, so drift is reported rather than accumulated.
 - `scripts/verify-derivation.ts` — CLI over the same checker (`pnpm exec tsx scripts/verify-derivation.ts <record.json> --strict`). CI runs it on every change.
 
 ### Source Quality & Grounding
 
-The single source-quality table is `SOURCE_QUALITY_CONFIDENCE` (`@senars/kernel/schemas`), consumed by the PerceptionGate and System One seeding (`seedTruth`):
+The single source-quality table is `SOURCE_QUALITY_CONFIDENCE` (`@senars/core/derivation-schemas`), consumed by the PerceptionGate and System One seeding (`seedTruth`):
 
 | Source Type | Quality | Truth Confidence |
 |-------------|---------|------------------|

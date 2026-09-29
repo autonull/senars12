@@ -25,7 +25,7 @@ verdict. The concrete implementation, `SystemOneIngressJudge`
 at build time; the kernel holds the interface, never the implementation.
 
 `KernelPerceptionGate` imports no `lm/*` or System One modules — verified by
-its import set (`@senars/kernel/schemas`, `nl/normalize`, `terms`,
+its import set (`@senars/kernel/schemas` — now `core/derivation-schemas`, TODO28 §1.1 — `nl/normalize`, `terms`,
 `telemetry`, `kernel/ingress`). If the judge faults, the gate rejects the
 task with `rejectionReason: 'System One ingress fault: admission rejected
 (fail-closed)'` — judge failure degrades to conservative admission, never
