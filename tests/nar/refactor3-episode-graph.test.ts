@@ -62,7 +62,7 @@ describe('Bench 92 — episode graph completeness & MemoryQuery hardening (REFAC
   });
 
   it('SelfMetaGame drain budget reads `proposals.budget` from config', async () => {
-    const { createSelfMetaGame } = await import('@senars/nar/game/SelfMetaGame.js');
+    const { createSelfMetaGame } = await import('@senars/nar/game/impls/SelfMetaGame.js');
     const { FocusBag } = await import('@senars/nar/focus/FocusBag.js');
     const game = createSelfMetaGame({
       id: 'g',

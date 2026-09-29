@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { BanditGame } from '../../../nar/src/game/BanditGame.js';
-import { GridWorldGame } from '../../../nar/src/game/GridWorldGame.js';
+import { BanditGame } from '../../../nar/src/game/impls/BanditGame.js';
+import { GridWorldGame } from '../../../nar/src/game/impls/GridWorldGame.js';
 
 describe('Games (DQ2: Game is the only environment interface)', () => {
   describe('GridWorldGame slip', () => {

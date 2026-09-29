@@ -1,4 +1,4 @@
-import { createParameterTable, type ParameterScope, type ParameterTable } from '../config/parameter-table.js';
+import { createParameterTable, type ParameterScope, type ParameterTable } from '../../config/parameter-table.js';
 import type { ReasoningGame } from './ReasoningGame.js';
 
 /**

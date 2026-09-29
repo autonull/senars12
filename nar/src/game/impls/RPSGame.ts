@@ -1,5 +1,5 @@
-import type { Game, GameOutcome, Perception } from './Game.js';
-import { SeededRNG } from '../utils/random.js';
+import type { Game, GameOutcome, Perception } from '../Game.js';
+import { SeededRNG } from '../../utils/random.js';
 
 export interface RPSGameConfig {
   seed: number;

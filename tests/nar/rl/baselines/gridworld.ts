@@ -1,5 +1,5 @@
 import type { EpisodeGame } from '../../../../nar/src/rl/types.js';
-import type { GridAction, GridWorldState } from '../../../../nar/src/game/GridWorldGame.js';
+import type { GridAction, GridWorldState } from '../../../../nar/src/game/impls/GridWorldGame.js';
 import { SeededRNG } from '../../../../nar/src/utils/random.js';
 
 /**

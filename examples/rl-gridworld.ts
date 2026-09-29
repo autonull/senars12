@@ -5,7 +5,7 @@
 import { ManifoldRLAgent } from '../nar/src/lm/system-one/manifold-rl-agent.js';
 import { createManifold } from '../nar/src/lm/system-one/manifold.js';
 import { EmbeddingCache } from '../nar/src/lm/system-one/embedding-cache.js';
-import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
+import { GridWorldGame } from '../nar/src/game/impls/GridWorldGame.js';
 import type { GridWorldState } from '../nar/src/game/GridWorldEnv.js';
 import type { JudgmentHead, JudgmentQuery } from '../nar/src/lm/system-one/types.js';
 

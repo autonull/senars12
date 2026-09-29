@@ -8,7 +8,7 @@ import {
   type QBeliefStore,
   RewardBeliefAdapter,
 } from '../../../../nar/src/rl/index.js';
-import { BanditGame } from '../../../../nar/src/game/BanditGame.js';
+import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
 
 const NUM_ARMS = 3;
 const STATE_ID = 'bandit_state';

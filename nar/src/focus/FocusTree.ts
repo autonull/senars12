@@ -10,7 +10,7 @@ import { BudgetSlice, type ConsumedBudget, createBudgetSlice, sliceBudget, merge
 import type { Focus, FocusOptions, FocusStepReport } from '../focus/Focus.js';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
-import type { MetaGame } from '../game/MetaGame.js';
+import type { MetaGame } from '../game/impls/MetaGame.js';
 import type { GameFocus } from '../focus/GameFocus.js';
 import { FocusScheduler, type FocusSchedulerOptions } from '../focus/focus-scheduler.js';
 import type { RandomSource } from '../types/primitives.js';

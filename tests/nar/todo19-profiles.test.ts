@@ -6,7 +6,7 @@ import { NARBuilder, BuilderError, resolveProfile } from '../../nar/src/agent/bu
 import { createParameterTable, ParameterScopeError } from '../../nar/src/config/parameter-table.js';
 import type { Game } from '../../nar/src/game/Game.js';
 import type { Reflex, ActionProposal, LearningEvent } from '../../nar/src/reflex/Reflex.js';
-import { createGridWorldGame } from '../../nar/src/game/GridWorldGame.js';
+import { createGridWorldGame } from '../../nar/src/game/impls/GridWorldGame.js';
 import { trainHead } from '../../nar/src/lm/system-one/train.js';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';

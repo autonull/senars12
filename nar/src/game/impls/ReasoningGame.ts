@@ -1,12 +1,17 @@
-import type { Game, GameOutcome, Perception } from '../game/Game.js';
-import { SeededRNG } from '../utils/random.js';
-import type { CapabilityTier } from '../agent/profiles.js';
-import type { CognitionAction, Reward, Sensor } from './types.js';
-import { composeReward, DEFAULT_REWARDS } from './rewards.js';
-import { DEFAULT_ACTIONS } from './actions.js';
-import { DEFAULT_SENSORS } from './sensors.js';
+import type { Game, GameOutcome, Perception } from '../Game.js';
+import { SeededRNG } from '../../utils/random.js';
+import type { CapabilityTier } from '../../agent/profiles.js';
+import type { CognitionAction, Reward, Sensor } from '../types.js';
+import { composeReward, DEFAULT_REWARDS } from '../rewards.js';
+import { DEFAULT_ACTIONS } from '../actions.js';
+import { DEFAULT_SENSORS } from '../sensors.js';
 
 /**
+ * Placement: this is the bench workhorse for reasoning quality, not an arcade
+ * game, so `reason/` is arguably its home. It stays here because it is a `Game`
+ * in exactly the sense `Game.ts` defines — an assembled component library over
+ * a spec suite — and the contract is identical either way (TODO28 §2.1).
+ *
  * R1: reasoning is a Game. A ReasoningGame is assembled from the component
  * library — `{ id, sensors, actions, rewards, tier, params }` — and plays
  * over an eval task suite (spec data). Cognitive operations (clarify,

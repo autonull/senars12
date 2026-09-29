@@ -3,7 +3,7 @@ import type { FocusStepReport } from '../../nar/src/focus/Focus.js';
 import { Focus } from '../../nar/src/focus/Focus.js';
 import { FocusBag } from '../../nar/src/focus/FocusBag.js';
 import { schedulerReward } from '../../nar/src/focus/scheduler-reward.js';
-import { createSelfMetaGame, SelfMetaGameImpl } from '../../nar/src/game/SelfMetaGame.js';
+import { createSelfMetaGame, SelfMetaGameImpl } from '../../nar/src/game/impls/SelfMetaGame.js';
 import { SelfRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
 import { LearnerRegistry, SchedulerAdapter } from '../../nar/src/learning/domain-learners.js';
 

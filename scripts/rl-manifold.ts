@@ -6,7 +6,7 @@
  */
 import { mean } from '@senars/util';
 import { EmbeddingCache } from '../nar/src/lm/system-one/embedding-cache.js';
-import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
+import { GridWorldGame } from '../nar/src/game/impls/GridWorldGame.js';
 import { createManifold } from '../nar/src/lm/system-one/manifold.js';
 import { ManifoldRLAgent } from '../nar/src/lm/system-one/manifold-rl-agent.js';
 import { createSystemOneBudget } from '../nar/src/lm/system-one/types.js';

@@ -7,7 +7,7 @@ import {
   RewardBeliefAdapter,
 } from '../../../../nar/src/rl/index.js';
 import { QLearning } from '../baselines/gridworld';
-import { GridWorldGame } from '../../../../nar/src/game/GridWorldGame.js';
+import { GridWorldGame } from '../../../../nar/src/game/impls/GridWorldGame.js';
 
 describe('RL Parity - GridWorld Q-Learning', () => {
   const gridConfig = {

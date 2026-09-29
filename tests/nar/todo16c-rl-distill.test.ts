@@ -12,8 +12,8 @@ import {
   pearson,
 } from '../../nar/src/lm/system-one/train.js';
 import type { ReasoningBudget } from '@senars/core/derivation-schemas';
-import { GridWorldGame } from '../../nar/src/game/GridWorldGame.js';
-import type { GridWorldState } from '../../nar/src/game/GridWorldGame.js';
+import { GridWorldGame } from '../../nar/src/game/impls/GridWorldGame.js';
+import type { GridWorldState } from '../../nar/src/game/impls/GridWorldGame.js';
 import { QLearning } from './rl/baselines/gridworld.js';
 import { mkdtempSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';

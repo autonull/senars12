@@ -1,4 +1,4 @@
-import type { TetrisGame, TetrisPlacement } from '@senars/nar/game/TetrisGame.js';
+import type { TetrisGame, TetrisPlacement } from '@senars/nar/game/impls/TetrisGame.js';
 
 /** Lines-cleared + holes weight (the classic heuristic the community baseline uses). */
 export function tetrisHeuristicPlacement(game: TetrisGame): TetrisPlacement {

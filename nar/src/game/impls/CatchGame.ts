@@ -1,7 +1,7 @@
 import { clamp } from '@senars/util';
-import type { Game, GameOutcome, Perception } from './Game.js';
-import { renderGrid } from './render.js';
-import { SeededRNG } from '../utils/random.js';
+import type { Game, GameOutcome, Perception } from '../Game.js';
+import { renderGrid } from '../render.js';
+import { SeededRNG } from '../../utils/random.js';
 
 export interface CatchGameConfig {
   seed: number;

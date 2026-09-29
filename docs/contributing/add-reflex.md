@@ -87,7 +87,7 @@ export class CountReflex implements Reflex<string, string> {
   (`nar/src/facade/games.ts`).
 - **Disable at runtime:** `Focus.disableReflex(reflexId)` filters the reflex
   out; the meta-game reaches it across focuses via
-  `SelfMetaGame.disableReflex(focusId, reflexId)` (`nar/src/game/SelfMetaGame.ts`).
+  `SelfMetaGame.disableReflex(focusId, reflexId)` (`nar/src/game/impls/SelfMetaGame.ts`).
 - **Negotiation** (`nar/src/reflex/Negotiator.ts`): proposals compete by
   `value * confidence` against `reflexThreshold` (default `0.3`; `GameFocus`
   uses `-1` so any proposal is in-band). NAL derivations veto an action when

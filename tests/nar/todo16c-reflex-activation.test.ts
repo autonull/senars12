@@ -4,7 +4,7 @@ import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { EpsilonGreedyReflex } from '../../nar/src/reflex/EpsilonGreedyReflex.js';
 import { GameFocus } from '../../nar/src/focus/GameFocus.js';
-import { GridWorldGame } from '../../nar/src/game/GridWorldGame.js';
+import { GridWorldGame } from '../../nar/src/game/impls/GridWorldGame.js';
 import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { Perception } from '../../nar/src/game/Game.js';
 

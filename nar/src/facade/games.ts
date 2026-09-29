@@ -1,7 +1,7 @@
 import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import { FocusBag } from '../focus/FocusBag.js';
 import { GameFocus, type GameFocusOptions } from '../focus/GameFocus.js';
-import { createSelfMetaGame, type SelfMetaGameImpl } from '../game/SelfMetaGame.js';
+import { createSelfMetaGame, type SelfMetaGameImpl } from '../game/impls/SelfMetaGame.js';
 import { ProposalBag } from '../meta/proposal-bag.js';
 import type { NarEventBus } from '../types/events.js';
 import type { NARConfig } from './config.js';
@@ -11,7 +11,7 @@ import type { Reflex } from '../reflex/Reflex.js';
 import type { RandomSource } from '../types/primitives.js';
 import type { SystemOneRuntime } from './system-one.js';
 import { ProofMettaProposer } from '../meta/index.js';
-import { ConversationGame, type ConversationState, type ConversationAction } from '../game/ConversationGame.js';
+import { ConversationGame, type ConversationState, type ConversationAction } from '../game/impls/ConversationGame.js';
 
 /**
  * Game/attachment registry (extracted from NAR — M2): owns attached GameFocus

@@ -9,7 +9,7 @@ import type {
 } from '@senars/core/derivation-schemas';
 import { findKnobSpec } from '../rlfp/knobs.js';
 import type { FocusStepReport } from '../focus/Focus.js';
-import type { SelfMetaGameImpl } from '../game/SelfMetaGame.js';
+import type { SelfMetaGameImpl } from '../game/impls/SelfMetaGame.js';
 
 const GUARDRAIL_FRAGMENTS = [
   'ApprovalManager',

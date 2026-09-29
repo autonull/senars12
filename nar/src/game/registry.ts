@@ -1,14 +1,14 @@
 import type { Game } from './Game.js';
-import { createArithmeticGame } from './ArithmeticGame.js';
-import { createBanditGame } from './BanditGame.js';
-import { createCatchGame } from './CatchGame.js';
-import { createGame2048 } from './Game2048.js';
-import { createGridWorldGame } from './GridWorldGame.js';
-import { createRPSGame } from './RPSGame.js';
-import { createSnakeGame } from './SnakeGame.js';
-import { createTetrisGame } from './TetrisGame.js';
-import { createTicTacToeGame } from './TicTacToe.js';
-import { createReasoningGame, REASONING_SPECS } from './ReasoningGame.js';
+import { createArithmeticGame } from './impls/ArithmeticGame.js';
+import { createBanditGame } from './impls/BanditGame.js';
+import { createCatchGame } from './impls/CatchGame.js';
+import { createGame2048 } from './impls/Game2048.js';
+import { createGridWorldGame } from './impls/GridWorldGame.js';
+import { createRPSGame } from './impls/RPSGame.js';
+import { createSnakeGame } from './impls/SnakeGame.js';
+import { createTetrisGame } from './impls/TetrisGame.js';
+import { createTicTacToeGame } from './impls/TicTacToe.js';
+import { createReasoningGame, REASONING_SPECS } from './impls/ReasoningGame.js';
 
 /** A named `Game` factory in the playable-games collection. */
 export interface GameSpec {

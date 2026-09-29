@@ -1,4 +1,4 @@
-import type { Game, Perception, GameOutcome } from './Game.js';
+import type { Game, Perception, GameOutcome } from '../Game.js';
 
 export interface ConversationState {
   history: Array<{ role: 'user' | 'assistant'; content: string }>;

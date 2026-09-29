@@ -109,7 +109,7 @@ and parses numeric ones back in `parseAction` — so numeric action types work.
 
 Game-local tunables are `ParameterTable` scopes (`game:<id>`); system knobs
 live under `system` and are owned by `SelfMetaGameImpl`
-(`nar/src/game/SelfMetaGame.ts`). Each parameter is
+(`nar/src/game/impls/SelfMetaGame.ts`). Each parameter is
 `{ name, scope, min, max, value, owner, actuate? }`; `actuate` runs on every
 accepted `set`. `SelfMetaGame.setKnob/setKnobs` route through
 `parameterTable.set/setMany` with scope enforcement (`ParameterScopeError`).

@@ -1,23 +1,23 @@
 import { clamp01, makeId } from '@senars/util';
-import type { ParameterLedger } from '../config/parameter-ledger.js';
+import type { ParameterLedger } from '../../config/parameter-ledger.js';
 import {
   createParameterTable,
   type ParameterScope,
   ParameterScopeError,
   type ParameterSpec,
   type ParameterTable,
-} from '../config/parameter-table.js';
-import type { FocusStepReport } from '../focus/Focus.js';
-import { schedulerReward } from '../focus/scheduler-reward.js';
-import type { FocusBag } from '../focus/FocusBag.js';
-import type { GameFocus } from '../focus/GameFocus.js';
-import { ProposalRouter } from '../governance/pipeline.js';
-import { gateRegistry } from '../kernel/index.js';
-import type { ContradictionEvent } from '../types/events.js';
-import type { SelfRewardGate } from '../kernel/KernelRewardGate.js';
-import type { LearnerRegistry } from '../learning/domain-learners.js';
-import { ProposalBag } from '../meta/proposal-bag.js';
-import type { SelfMetaGame } from './Game.js';
+} from '../../config/parameter-table.js';
+import type { FocusStepReport } from '../../focus/Focus.js';
+import { schedulerReward } from '../../focus/scheduler-reward.js';
+import type { FocusBag } from '../../focus/FocusBag.js';
+import type { GameFocus } from '../../focus/GameFocus.js';
+import { ProposalRouter } from '../../governance/pipeline.js';
+import { gateRegistry } from '../../kernel/index.js';
+import type { ContradictionEvent } from '../../types/events.js';
+import type { SelfRewardGate } from '../../kernel/KernelRewardGate.js';
+import type { LearnerRegistry } from '../../learning/domain-learners.js';
+import { ProposalBag } from '../../meta/proposal-bag.js';
+import type { SelfMetaGame } from '../Game.js';
 import { MetaGame, type MetaGameConfig } from './MetaGame.js';
 
 export interface KnobConfig {

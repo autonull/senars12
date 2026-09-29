@@ -8,7 +8,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { DEFAULT_CONFIG, NAR } from '@senars/nar';
-import { GridWorldGame } from '../../../nar/src/game/GridWorldGame.js';
+import { GridWorldGame } from '../../../nar/src/game/impls/GridWorldGame.js';
 import { GridWorldNativeAgent } from '../../../nar/src/rl/index.js';
 import { QLearning } from './baselines/gridworld.js';
 

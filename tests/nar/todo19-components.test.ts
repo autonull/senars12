@@ -22,9 +22,9 @@ import {
   ParameterScopeError,
   createParameterTable,
 } from '../../nar/src/config/parameter-table.js';
-import { createSelfMetaGame } from '../../nar/src/game/SelfMetaGame.js';
+import { createSelfMetaGame } from '../../nar/src/game/impls/SelfMetaGame.js';
 import { describeMetaGameActions } from '../../nar/src/game/meta-spec.js';
-import { MetaGame } from '../../nar/src/game/MetaGame.js';
+import { MetaGame } from '../../nar/src/game/impls/MetaGame.js';
 
 /**
  * Bench 43 — Component Contracts (TODO19 Phase A)
@@ -106,7 +106,7 @@ describe('Bench 43 — Component Contracts', () => {
   });
 
   it('ParameterTable adopted by SelfMetaGame: knobs actuate, applyKnob switch deleted', () => {
-    const source = readFileSync('nar/src/game/SelfMetaGame.ts', 'utf8');
+    const source = readFileSync('nar/src/game/impls/SelfMetaGame.ts', 'utf8');
     expect(source).toContain('createParameterTable');
     expect(source).not.toMatch(/private applyKnob/);
 

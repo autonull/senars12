@@ -53,7 +53,7 @@ into the `rlfp/` test suite.
 ## References
 
 - `nar/src/game/Game.ts`
-- `nar/src/game/SelfMetaGame.ts`
+- `nar/src/game/impls/SelfMetaGame.ts`
 - `nar/src/game/registry.ts`
 - `nar/src/focus/GameFocus.ts`
 - `nar/src/reflex/Negotiator.ts`

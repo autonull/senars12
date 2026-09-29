@@ -8,7 +8,7 @@ import {
   RewardBeliefAdapter,
 } from '../../../../nar/src/rl/index.js';
 import { EpsilonGreedy } from '../baselines/bandit';
-import { BanditGame } from '../../../../nar/src/game/BanditGame.js';
+import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
 
 describe('RL Parity - Bandit Epsilon-Greedy @load-sensitive', () => {
   const banditConfig = {

@@ -1,5 +1,5 @@
 import { PriorityBag } from '../bag/Bag.js';
-import type { SelfMetaGameImpl } from '../game/SelfMetaGame.js';
+import type { SelfMetaGameImpl } from '../game/impls/SelfMetaGame.js';
 import { Focus, type FocusOptions, type FocusStepReport } from './Focus.js';
 
 export interface MetaFocusOptions extends FocusOptions {

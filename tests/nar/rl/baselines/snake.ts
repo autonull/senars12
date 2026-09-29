@@ -1,4 +1,4 @@
-import type { Direction, SnakeGame } from '@senars/nar/game/SnakeGame.js';
+import type { Direction, SnakeGame } from '@senars/nar/game/impls/SnakeGame.js';
 
 /** Flood-fill survival heuristic: prefer apple-catching moves that keep escape room. */
 export function snakeHeuristicAction(game: SnakeGame): Direction {

@@ -1,6 +1,6 @@
 import { clamp01 } from '@senars/util';
-import type { Game, GameOutcome, Perception } from './Game.js';
-import { SeededRNG } from '../utils/random.js';
+import type { Game, GameOutcome, Perception } from '../Game.js';
+import { SeededRNG } from '../../utils/random.js';
 
 export interface BanditDriftConfig {
   changeInterval: number;

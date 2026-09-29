@@ -6,7 +6,7 @@ import {
   GoalActionAdapter,
   RewardBeliefAdapter,
 } from '../../../../nar/src/rl/index.js';
-import { BanditGame } from '../../../../nar/src/game/BanditGame.js';
+import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
 
 describe('RL Parity - Non-Stationary Environment', () => {
   test('SeNARS can track drifting reward means', async () => {
