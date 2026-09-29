@@ -4,13 +4,12 @@
 
 import { sleep } from '@senars/util';
 import type { Memory } from '../memory';
-import type { RuleInput, RuleProcessor, RuleResult } from '../rules';
+import type { RuleProcessor } from '../rules';
 import type { DerivationContext, DerivationStrategy, SamplingStrategy } from '../strategies';
 import type { Task } from '../types';
 import {
   createBeliefTaskFromConcept,
   createCircularDetector,
-  createDerivedTask,
   exceedsDepthLimit,
 } from './inference-utils.js';
 import type { Strategy } from '../strategies/types.js';
@@ -19,21 +18,25 @@ export interface InferenceConfig {
   maxDerivationsPerStep: number;
   maxDerivationDepth: number;
   enableCircularDetection: boolean;
-  enableTraceCollection: boolean;
   cpuThrottleMs: number;
   singlePremiseLMRules: boolean;
-  maxLMRulesPerStep: number;
-  enableLMRules: boolean;
-  /** Number of concepts to sample per cycle (used by both step() and run()). */
+  /** Concepts sampled per cycle — `CognitiveParameters.inference.maxSampledConcepts`. */
   sampleSize: number;
   /** Optional derivation-chain sink (TODO25 follow-on: SchemaInductor fuel). */
   onDerivation?: (chain: readonly Task[]) => void;
 }
 
+/** How one cycle is paced: a batch step is deadline-bounded, a stream yields cooperatively. */
+interface CyclePacing {
+  maxResults: number;
+  /** Epoch ms after which the cycle stops; absent means the caller has no deadline. */
+  deadlineMs?: number;
+  /** Cooperative yield between derivations (AIKR). */
+  paceMs: number;
+}
+
 export class InferenceController {
   private derivationCount = 0;
-  private lmRulesFiredCount = 0;
-  private syncRulesFiredCount = 0;
   private readonly circularDetector = createCircularDetector();
 
   constructor(
@@ -59,15 +62,45 @@ export class InferenceController {
 
   async step(timeoutMs = 5000, maxResults = 100, signal?: AbortSignal): Promise<Task[]> {
     const results: Task[] = [];
-    const endTime = Date.now() + timeoutMs;
+    const pacing: CyclePacing = { maxResults, deadlineMs: Date.now() + timeoutMs, paceMs: 0 };
+    for await (const derived of this.cycle(pacing, signal)) results.push(derived);
+    return results;
+  }
+
+  async *run(maxResults = 100, signal?: AbortSignal): AsyncGenerator<Task> {
+    // Unbounded by anything but `maxResults`, so the cycle paces itself by yielding.
+    yield* this.cycle(
+      { maxResults, paceMs: this.config.cpuThrottleMs },
+      signal
+    );
+  }
+
+  getStats(): { derivations: number } {
+    return { derivations: this.derivationCount };
+  }
+
+  resetCircularDetection(): void {
+    this.circularDetector.reset();
+  }
+
+  /**
+   * The one inference cycle. It samples concepts, primes them, selects premises,
+   * derives through the configured strategy, and admits what survives the AIKR
+   * bounds — so every entry point reasons through the same strategies and the
+   * same limits, and the guards exist once rather than per caller.
+   */
+  private async *cycle(pacing: CyclePacing, signal?: AbortSignal): AsyncGenerator<Task> {
+    const { maxResults, deadlineMs, paceMs } = pacing;
     this.derivationCount = 0;
-    this.lmRulesFiredCount = 0;
-    this.syncRulesFiredCount = 0;
+
+    const maxDepth = this.config.maxDerivationDepth;
+    const outOfTime = () => deadlineMs !== undefined && Date.now() > deadlineMs;
+    let emitted = 0;
 
     const concepts = this.samplingStrategy.sample(this.memory, this.config.sampleSize);
 
     for (const concept of concepts) {
-      if (signal?.aborted || Date.now() > endTime || results.length >= maxResults) break;
+      if (signal?.aborted || emitted >= maxResults || outOfTime()) return;
 
       const boost = this.memory.attentionModel.prime(concept, {
         concept,
@@ -82,8 +115,8 @@ export class InferenceController {
 
       const ctx: DerivationContext = {
         maxDerivations: this.config.maxDerivationsPerStep,
-        maxDepth: this.config.maxDerivationDepth,
-        cpuThrottleMs: this.config.cpuThrottleMs,
+        maxDepth,
+        cpuThrottleMs: paceMs,
         singlePremiseEnabled: this.config.singlePremiseLMRules ?? true,
         signal,
       };
@@ -94,113 +127,17 @@ export class InferenceController {
         this.processor,
         ctx
       )) {
-        results.push(derived);
-        this.config.onDerivation?.([task, ...secondaries, derived]);
+        if (signal?.aborted || outOfTime()) return;
+        if (exceedsDepthLimit(derived, maxDepth) || this.isCircular(derived)) continue;
+
         this.derivationCount++;
-        if (this.derivationCount >= this.config.maxDerivationsPerStep) break;
+        this.config.onDerivation?.([task, ...secondaries, derived]);
+        yield derived;
+
+        if (++emitted >= maxResults || this.derivationCount >= this.config.maxDerivationsPerStep)
+          return;
+        if (paceMs > 0) await sleep(paceMs);
       }
-    }
-
-    return results;
-  }
-
-  async *run(maxResults = 100, signal?: AbortSignal): AsyncGenerator<Task> {
-    let resultCount = 0;
-    this.derivationCount = 0;
-    this.lmRulesFiredCount = 0;
-    this.syncRulesFiredCount = 0;
-
-    const concepts = this.samplingStrategy.sample(this.memory, this.config.sampleSize);
-
-    for (const concept of concepts) {
-      if (signal?.aborted || resultCount >= maxResults) break;
-
-      const boost = this.memory.attentionModel.prime(concept, {
-        concept,
-        cycleCount: Date.now(),
-        memory: this.memory,
-      });
-      if (boost !== 0) concept.priority = Math.min(1, concept.priority + boost);
-
-      const task = createBeliefTaskFromConcept(concept);
-      if (!task) continue;
-      const secondaries = this.strategy.selectSecondary(task, this.memory);
-
-      if (secondaries.length === 0 && this.config.singlePremiseLMRules) {
-        yield* this.fireSinglePremiseRules(task, signal);
-        resultCount++;
-      } else {
-        for (const secondary of secondaries) {
-          if (signal?.aborted || resultCount >= maxResults) break;
-
-          for await (const derivedTask of this.fireDualPremiseRules(task, secondary, signal)) {
-            yield derivedTask;
-            resultCount++;
-            if (this.config.cpuThrottleMs > 0) {
-              await sleep(this.config.cpuThrottleMs);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  getStats(): { derivations: number; lmRulesFired: number; syncRulesFired: number } {
-    return {
-      derivations: this.derivationCount,
-      lmRulesFired: this.lmRulesFiredCount,
-      syncRulesFired: this.syncRulesFiredCount,
-    };
-  }
-
-  resetCircularDetection(): void {
-    this.circularDetector.reset();
-  }
-
-  private async *fireSinglePremiseRules(task: Task, signal?: AbortSignal): AsyncGenerator<Task> {
-    const p1: RuleInput = { term: task.term, truth: task.truth, stamp: task.stamp };
-    const maxDepth = this.config.maxDerivationDepth ?? 10;
-
-    for await (const result of this.processor.processLMRules(p1, undefined, {
-      signal,
-      singlePremise: true,
-    })) {
-      const derivedTask = createDerivedTask(result, result.taskType);
-      if (exceedsDepthLimit(derivedTask, maxDepth) || this.isCircular(derivedTask)) continue;
-
-      this.derivationCount++;
-      this.lmRulesFiredCount++;
-
-      yield derivedTask;
-    }
-  }
-
-  private async *fireDualPremiseRules(
-    p1Task: Task,
-    p2Task: Task,
-    signal?: AbortSignal
-  ): AsyncGenerator<Task> {
-    const p1: RuleInput = { term: p1Task.term, truth: p1Task.truth, stamp: p1Task.stamp };
-    const p2: RuleInput = { term: p2Task.term, truth: p2Task.truth, stamp: p2Task.stamp };
-    const maxDepth = this.config.maxDerivationDepth ?? 10;
-
-    const processResult = (result: RuleResult) => {
-      const derivedTask = createDerivedTask(result, result.taskType);
-      if (exceedsDepthLimit(derivedTask, maxDepth) || this.isCircular(derivedTask)) return null;
-      this.derivationCount++;
-      return derivedTask;
-    };
-
-    for (const result of this.processor.processSync(p1, p2)) {
-      this.syncRulesFiredCount++;
-      const derived = processResult(result);
-      if (derived) yield derived;
-    }
-
-    for await (const result of this.processor.processLMRules(p1, p2, { signal })) {
-      this.lmRulesFiredCount++;
-      const derived = processResult(result);
-      if (derived) yield derived;
     }
   }
 

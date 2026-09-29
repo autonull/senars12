@@ -1,3 +1,4 @@
+import { roundTo } from '@senars/util';
 import type { SelfHost } from '../../self/host.js';
 import { containsSubterm, getSubject } from '../../terms';
 import type { QualityAssessment } from '../types.js';
@@ -33,10 +34,10 @@ export const assessQuality = async (nar: SelfHost | null): Promise<QualityAssess
   const overall = coherence * 0.4 + relevance * 0.3 + completeness * 0.3;
 
   return {
-    overall: Math.round(overall * 100) / 100,
-    coherence: Math.round(coherence * 100) / 100,
-    relevance: Math.round(relevance * 100) / 100,
-    completeness: Math.round(completeness * 100) / 100,
+    overall: roundTo(overall),
+    coherence: roundTo(coherence),
+    relevance: roundTo(relevance),
+    completeness: roundTo(completeness),
     timestamp: Date.now(),
   };
 };

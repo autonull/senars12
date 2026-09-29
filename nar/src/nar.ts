@@ -29,7 +29,7 @@ import { Memory } from './memory';
 import { EpisodeConsolidator } from './memory/episode-consolidator.js';
 import { MiningBag } from './lm/system-one/hard-negatives.js';
 import { MetricsCollector } from './metrics';
-import { createAttentionModel, type NARConfig, validateNarConfig } from './facade/config.js';
+import { type NARConfig, validateNarConfig } from './facade/config.js';
 import { DEFAULT_COGNITIVE_PARAMETERS } from './config/cognitive-parameters.js';
 import { type GameAttachOptions, GameManager } from './facade/games.js';
 import { StatePersister } from './facade/persistence.js';
@@ -140,10 +140,12 @@ export class NAR extends BaseComponent {
     // in. Everything below reads from these two and nothing else decides.
     const registry = config.strategyRegistry ?? createDefaultRegistry({ rng: config.rng });
     const cognitiveParams = config.cognitiveParams ?? DEFAULT_COGNITIVE_PARAMETERS;
-    this.memory = new Memory(
-      { ...this.config, bag: resolveBagSlot(cognitiveParams.strategies.bag, config.rng) },
-      { attentionModel: createAttentionModel(registry, cognitiveParams) }
-    );
+    // The `attention` slot is resolved by the controller, which owns every slot;
+    // memory starts on the null model and is given the resolved one there.
+    this.memory = new Memory({
+      ...this.config,
+      bag: resolveBagSlot(cognitiveParams.strategies.bag, config.rng),
+    });
     this.processor = new RuleProcessor();
     this.processor.setConfig({ memory: this.memory, host: this });
     this.processor.setEventBus(eventBus);

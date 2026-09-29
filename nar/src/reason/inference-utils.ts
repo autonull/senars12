@@ -1,26 +1,43 @@
-import type { RuleResult } from '../rules';
+import type { RuleInput, RuleResult } from '../rules';
+import { termKey } from '../terms';
 import type { Task } from '../types';
 import { createBeliefTask, createBudget, createTask } from '../types';
 
-const MAX_RECENT_STAMPS = 1000;
+const MAX_RECENT_CONCLUSIONS = 1000;
 
 export const exceedsDepthLimit = (task: Task, maxDepth: number): boolean =>
   task.stamp.derivations.length >= maxDepth;
 
+/** A task in the shape the rule engine consumes. */
+export const toRuleInput = (task: Task): RuleInput => ({
+  term: task.term,
+  truth: task.truth,
+  stamp: task.stamp,
+});
+
+/**
+ * A conclusion repeats when the same evidence produced the same term and truth.
+ * The stamp alone is not an identity: every task an LM rule derives from one
+ * premise pair shares that pair's stamp, so keying on it discarded all but the
+ * first candidate of a multi-candidate proposal.
+ */
+const conclusionKey = (task: Task): string =>
+  `${task.stamp.id}|${termKey(task.term)}|${task.truth.f}:${task.truth.c}`;
+
 export const createCircularDetector = () => {
-  const recentStamps = new Set<string>();
+  const recent = new Set<string>();
   return {
     isCircular: (task: Task): boolean => {
-      const stampId = task.stamp.id;
-      if (recentStamps.has(stampId)) return true;
-      if (recentStamps.size >= MAX_RECENT_STAMPS) {
-        const first = recentStamps.values().next().value;
-        if (first) recentStamps.delete(first);
+      const key = conclusionKey(task);
+      if (recent.has(key)) return true;
+      if (recent.size >= MAX_RECENT_CONCLUSIONS) {
+        const first = recent.values().next().value;
+        if (first) recent.delete(first);
       }
-      recentStamps.add(stampId);
+      recent.add(key);
       return false;
     },
-    reset: () => recentStamps.clear(),
+    reset: () => recent.clear(),
   };
 };
 

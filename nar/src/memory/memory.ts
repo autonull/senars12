@@ -89,7 +89,7 @@ export interface MemoryStatistics {
 export class Memory {
   /** D17: bounded revision log capacity. */
   static readonly REVISION_LOG_CAP = 1000;
-  readonly attentionModel: AttentionModel;
+  #attentionModel: AttentionModel;
   private readonly concepts = new TermMap<Concept>();
   private readonly associative: AssociativeRegistry;
   private readonly config: Required<MemoryConfig>;
@@ -116,7 +116,7 @@ export class Memory {
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.healthCheckInterval = this.config.healthCheckInterval;
-    this.attentionModel = options?.attentionModel ?? NULL_ATTENTION;
+    this.#attentionModel = options?.attentionModel ?? NULL_ATTENTION;
     this.index = new MemoryIndex({
       enableAtomicIndex: this.config.enableIndexing,
       enableTemporalIndex: this.config.enableIndexing,
@@ -179,6 +179,19 @@ export class Memory {
 
   getLinkManager(): LinkManager {
     return this.linkManager;
+  }
+
+  /**
+   * The `attention` slot's live instance. Reading it is how the strategy layer
+   * primes and decays; replacing it is how a reconfigure takes effect, which is
+   * why it is a pair of accessors rather than a readonly field.
+   */
+  get attentionModel(): AttentionModel {
+    return this.#attentionModel;
+  }
+
+  setAttentionModel(model: AttentionModel): void {
+    this.#attentionModel = model;
   }
 
   listConcepts(): Concept[] {

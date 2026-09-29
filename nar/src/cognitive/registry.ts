@@ -29,10 +29,39 @@ import type { StrategyRegistry } from '../strategies/registration.js';
 import { DEFAULT_REGISTRATIONS } from './registrations.js';
 import { composedName, composeSpec } from './composition.js';
 import { LruCache } from '@senars/util';
+import type { CognitiveParameters, StrategySlotParams } from '../config/cognitive-parameters.js';
 
 type Slot = Map<string, StrategyRegistration>;
 
 const SLOT_TYPES = ['sampling', 'premise', 'derivation', 'lm-rule', 'attention'] as const;
+
+/**
+ * The slot's config key: `lmRule` in a parameter graph, `lm-rule` in the
+ * registry. Declared once here and read by everyone who resolves a slot, so a
+ * slot cannot be spelled one way by the controller and another by a caller.
+ */
+export const SLOT_KEY = {
+  sampling: 'sampling',
+  premise: 'premise',
+  derivation: 'derivation',
+  'lm-rule': 'lmRule',
+  attention: 'attention',
+} as const satisfies Record<StrategyType, keyof CognitiveParameters['strategies']>;
+
+/**
+ * Resolve one slot of a parameter graph to its instance. The single read path
+ * for a slot outside the controller — a replaying or headless caller that holds
+ * a registry and a graph but no `CognitiveController` must not open a second
+ * spelling of what the controller already does.
+ */
+export const resolveSlot = <T>(
+  registry: CognitiveRegistry,
+  params: CognitiveParameters,
+  type: StrategyType
+): T => {
+  const slot = params.strategies[SLOT_KEY[type]] as StrategySlotParams;
+  return registry.resolve<T>(type, slot.type, slot.config);
+};
 
 /**
  * Tier 1 and tier 2 keys come from user configuration, so their caches are

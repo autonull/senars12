@@ -1,6 +1,7 @@
 /**
  * Term pattern analysis - extracted from SelfAnalyzerService
  */
+import { mean } from '@senars/util';
 import type { Concept } from '../../memory';
 import { selectTopN } from '../../utils/collections.js';
 import type { TermPattern } from '../types.js';
@@ -30,8 +31,7 @@ export const analyzeTermPatterns = (concepts: Concept[]): TermPattern[] => {
   const results: TermPattern[] = [];
   for (const [term, data] of termFreq) {
     if (data.count < 2) continue;
-    const sum = data.priorities.reduce((a, b) => a + b, 0);
-    const avgPriority = sum / data.priorities.length;
+    const avgPriority = mean(data.priorities);
     results.push({
       term,
       frequency: data.count,

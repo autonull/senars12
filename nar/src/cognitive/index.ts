@@ -43,4 +43,4 @@ export type {
 } from '../strategies/registration.js';
 export { CognitiveController } from './controller';
 export { runCounterfactual } from './counterfactual.js';
-export { CognitiveRegistry, createDefaultRegistry } from './registry';
+export { CognitiveRegistry, createDefaultRegistry, resolveSlot, SLOT_KEY } from './registry';

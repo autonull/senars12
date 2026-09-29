@@ -1,4 +1,3 @@
-import type { AttentionModel } from '../strategies/types.js';
 import { containsSubterm, type Term, TermMap } from '../terms';
 import type { Task } from '../types';
 import { clamp01 } from '../utils';
@@ -18,10 +17,7 @@ export class Focus {
   private topicBoosts = new Map<string, { factor: number; ttl: number }>();
   private activeGoals: Task[] = [];
 
-  constructor(
-    config: FocusConfig = DEFAULT_CONFIG,
-    private readonly attentionModel?: AttentionModel
-  ) {
+  constructor(config: FocusConfig = DEFAULT_CONFIG) {
     this.config = config;
   }
 
@@ -98,13 +94,6 @@ export class Focus {
 
   adjustPriority(concept: Concept, basePriority: number): number {
     let p = basePriority;
-
-    // Delegate to attention model if available
-    if (this.attentionModel) {
-      const decay = this.attentionModel.decay(concept, 1, 0.01);
-      p -= decay;
-    }
-
     const termStr = concept.term.toString().toLowerCase();
 
     for (const [topic, boost] of this.topicBoosts) {

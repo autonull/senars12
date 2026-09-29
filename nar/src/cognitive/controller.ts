@@ -8,17 +8,10 @@ import type { RLFPLearner } from '../rlfp';
 import type { RuleProcessor } from '../rules';
 import type { StrategySpec, StrategyType } from '../strategies/registration';
 import type { DerivationStrategy, LMRuleSelector, SamplingStrategy } from '../strategies';
+import type { AttentionModel } from '../strategies/types.js';
 import { registerRuleGraph, RuleGraph } from '../strategies/lm-graph/RuleGraph.js';
 import type { CognitiveRegistry } from './registry';
-
-/** `lmRule` is the config key; `lm-rule` is the registry type. */
-const SLOT_KEYS = {
-  sampling: 'sampling',
-  premise: 'premise',
-  derivation: 'derivation',
-  'lm-rule': 'lmRule',
-  attention: 'attention',
-} as const satisfies Record<StrategyType, keyof CognitiveParameters['strategies']>;
+import { SLOT_KEY } from './registry.js';
 
 export class CognitiveController {
   private currentParams: CognitiveParameters;
@@ -46,8 +39,8 @@ export class CognitiveController {
 
   /** Every slot is checked before any strategy is built (TODO27 §2.4). */
   private validateSlots(params: CognitiveParameters): void {
-    for (const [type, key] of Object.entries(SLOT_KEYS) as Array<
-      [StrategyType, (typeof SLOT_KEYS)[StrategyType]]
+    for (const [type, key] of Object.entries(SLOT_KEY) as Array<
+      [StrategyType, (typeof SLOT_KEY)[StrategyType]]
     >) {
       const slot = params.strategies[key] as StrategySlotParams;
       this.registry.validate(type, slot.type, slot.config, key);
@@ -99,7 +92,7 @@ export class CognitiveController {
 
   /** Get the current spec for a strategy type; a composed slot has several names. */
   getStrategy(type: StrategyType): StrategySpec | undefined {
-    return this.currentParams.strategies[SLOT_KEYS[type]]?.type;
+    return this.currentParams.strategies[SLOT_KEY[type]]?.type;
   }
 
   adapt(): void {
@@ -126,8 +119,8 @@ export class CognitiveController {
    * only place any of them is interpreted.
    */
   setStrategy(type: StrategyType, spec: StrategySpec, config?: Record<string, unknown>): void {
-    this.registry.validate(type, spec, config, SLOT_KEYS[type]);
-    const slot = this.currentParams.strategies[SLOT_KEYS[type]] as StrategySlotParams;
+    this.registry.validate(type, spec, config, SLOT_KEY[type]);
+    const slot = this.currentParams.strategies[SLOT_KEY[type]] as StrategySlotParams;
     slot.type = spec;
     if (config) slot.config = config;
     else delete slot.config;
@@ -140,6 +133,12 @@ export class CognitiveController {
     const derivationStrategy = this.resolve<DerivationStrategy>('derivation', params);
     const lmRule = this.resolveLMRule(params);
 
+    // `attention` is a slot like the other four, so it resolves here and is
+    // installed on the live memory. Resolving it anywhere else leaves memory
+    // holding the model built at construction while the parameter graph claims a
+    // different one — a reconfigure that validates, stores, and does nothing.
+    this.memory.setAttentionModel(this.resolve<AttentionModel>('attention', params));
+
     this.processor.setLMSelector(lmRule.selector, params.strategies.lmRule.maxRules);
     if (lmRule.ruleGraph) this.#wireRuleGraphCallbacks(lmRule.ruleGraph);
 
@@ -147,12 +146,9 @@ export class CognitiveController {
       maxDerivationsPerStep: params.inference.maxDerivationsPerStep,
       maxDerivationDepth: params.inference.maxDerivationDepth,
       enableCircularDetection: params.inference.enableCircularDetection ?? true,
-      enableTraceCollection: params.inference.enableTraceCollection ?? false,
       cpuThrottleMs: params.inference.cpuThrottleMs ?? 0,
       singlePremiseLMRules: params.lm.singlePremiseEnabled ?? true,
-      maxLMRulesPerStep: params.strategies.lmRule.maxRules,
-      enableLMRules: params.lm.enabled ?? true,
-      sampleSize: params.inference.maxDerivationsPerStep ?? 100,
+      sampleSize: params.inference.maxSampledConcepts,
       onDerivation: (chain: readonly Task[]) => {
         for (const cb of this.onDerivationCallbacks) cb(chain);
       },
@@ -180,7 +176,7 @@ export class CognitiveController {
 
   /** The one resolution call every slot makes. */
   private resolve<T>(type: StrategyType, params: CognitiveParameters): T {
-    const slot = params.strategies[SLOT_KEYS[type]] as StrategySlotParams;
+    const slot = params.strategies[SLOT_KEY[type]] as StrategySlotParams;
     return this.registry.resolve<T>(type, slot.type, slot.config);
   }
 
