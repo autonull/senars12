@@ -62,6 +62,7 @@ import {
   termParser,
   termsEqual,
 } from './terms';
+import type { RandomSource } from './types/primitives.js';
 import type { Tool, ToolResult } from './tools';
 import { discoverTools, ToolManager } from './tools';
 import { ProofMettaProposer, type ProofMettaProposerOptions } from './meta/index.js';
@@ -137,10 +138,10 @@ export class NAR extends BaseComponent {
     // A NAR always has a registry and a parameter graph: the registry has no
     // external dependencies, so "no strategy config" is not a state a NAR can be
     // in. Everything below reads from these two and nothing else decides.
-    const registry = config.strategyRegistry ?? createDefaultRegistry();
+    const registry = config.strategyRegistry ?? createDefaultRegistry({ rng: config.rng });
     const cognitiveParams = config.cognitiveParams ?? DEFAULT_COGNITIVE_PARAMETERS;
     this.memory = new Memory(
-      { ...this.config, bag: resolveBagSlot(cognitiveParams.strategies.bag) },
+      { ...this.config, bag: resolveBagSlot(cognitiveParams.strategies.bag, config.rng) },
       { attentionModel: createAttentionModel(registry, cognitiveParams) }
     );
     this.processor = new RuleProcessor();
@@ -404,6 +405,11 @@ export class NAR extends BaseComponent {
 
   getCycleCount(): number {
     return this.execution.getCycleCount();
+  }
+
+  /** The instance's randomness — the one stream memory bags, link layers and strategies draw from. */
+  get rng(): RandomSource {
+    return this.config.rng ?? Math.random;
   }
 
   getController(): CognitiveController | undefined {

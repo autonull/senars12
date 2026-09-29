@@ -63,16 +63,15 @@ import {
   type StrategyRegistration,
 } from '../strategies/registration.js';
 import type { Strategy, StrategyType } from '../strategies/types.js';
+import { mulberry32 } from '../utils/random.js';
 
-/** A seeded LCG so a configured sampling strategy stays reproducible. */
-const seededRng = (seed: number | undefined): (() => number) => {
-  if (seed === undefined) return Math.random;
-  let state = seed >>> 0;
-  return () => {
-    state = (state * 1_664_525 + 1_013_904_223) >>> 0;
-    return state / 0x1_0000_0000;
-  };
-};
+/**
+ * A `seed` in the config pins a strategy's own stream; absent one it draws from
+ * the registry's ambient stream, so seeding the NAR seeds every strategy that
+ * samples (TODO27 §16). One PRNG for the repository, not one per module.
+ */
+const strategyRng = (seed: number | undefined, ambient: () => number): (() => number) =>
+  seed === undefined ? ambient : mulberry32(seed);
 
 const LINK_CONFIG = configSchema({
   minStrength: z.number().min(0).max(1).default(0.3),
@@ -202,10 +201,10 @@ export const DEFAULT_REGISTRATIONS: StrategySlot = [
         windowSize: z.number().int().min(1).default(10),
         seed: z.number().optional(),
       }),
-      factory: (config) =>
+      factory: (config, { rng }) =>
         new WindowedRouletteStrategy({
           windowSize: config.windowSize as number,
-          rng: seededRng(config.seed as number | undefined),
+          rng: strategyRng(config.seed as number | undefined, rng),
         }),
     }),
   ],
@@ -285,9 +284,9 @@ export const DEFAULT_REGISTRATIONS: StrategySlot = [
       name: 'sampled',
       description: 'Random subset of secondaries',
       schema: SAMPLED_CONFIG,
-      factory: (config) =>
+      factory: (config, { rng }) =>
         new SampledDerivation(
-          seededRng(config.seed as number | undefined),
+          strategyRng(config.seed as number | undefined, rng),
           config.fraction as number
         ),
     }),

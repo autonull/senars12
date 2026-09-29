@@ -1,4 +1,5 @@
 import type { Term } from '../../terms';
+import type { RandomSource } from '../../types/primitives.js';
 
 export type LinkType =
   | 'term-link'
@@ -45,4 +46,6 @@ export interface LinkManagerConfig {
   layers: Record<string, number>;
   globalDecayRate: number;
   forgetPolicy: LinkForgetPolicy;
+  /** Injected randomness for the random-forget policy (default Math.random). */
+  rng?: RandomSource;
 }

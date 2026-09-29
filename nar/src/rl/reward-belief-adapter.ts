@@ -1,6 +1,7 @@
 import { clamp01 } from '@senars/util';
 import { type Term, Truth, TermBuilder } from '../index.js';
 import type { NAR } from '../nar.js';
+import type { RandomSource } from '../types/primitives.js';
 import { QBeliefStore } from './q-belief-store.js';
 import { rewardBeliefTerm, rewardLevel } from './reward-term.js';
 
@@ -12,6 +13,8 @@ export interface RewardBeliefAdapterConfig {
   tdConfidence?: number;
   tdAlpha?: number;
   tdQLearningConfidence?: number;
+  /** Injected randomness for value-belly exploration (default Math.random). */
+  rng?: RandomSource;
 }
 
 export class RewardBeliefAdapter {
@@ -27,7 +30,7 @@ export class RewardBeliefAdapter {
 
   constructor(nar: NAR, config: RewardBeliefAdapterConfig = {}) {
     this.nar = nar;
-    this.qStore = new QBeliefStore(nar);
+    this.qStore = new QBeliefStore(nar, config.rng);
     this.config = {
       gamma: config.gamma ?? 0.99,
       tdConfidence: config.tdConfidence ?? 0.5,

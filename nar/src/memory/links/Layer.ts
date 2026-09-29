@@ -1,4 +1,5 @@
 import { termKey, type Term } from '../../terms';
+import type { RandomSource } from '../../types/primitives.js';
 import { LinkBag } from './LinkBag.js';
 import type { LinkEntry, LinkForgetPolicy, LinkInput, LinkQuery, LinkType } from './types.js';
 
@@ -41,9 +42,10 @@ export class Layer {
   constructor(
     readonly name: string,
     readonly capacity: number,
-    forgetPolicy: LinkForgetPolicy = 'priority'
+    forgetPolicy: LinkForgetPolicy = 'priority',
+    rng?: RandomSource
   ) {
-    this.bag = new LinkBag(capacity, forgetPolicy, (entry) => this.purge(entry));
+    this.bag = new LinkBag(capacity, forgetPolicy, (entry) => this.purge(entry), rng);
   }
 
   addLink(input: LinkInput): LinkEntry | null {

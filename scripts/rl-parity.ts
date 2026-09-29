@@ -16,6 +16,7 @@ import { BanditGame } from '../nar/src/game/BanditGame.js';
 import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
 import { TermBuilder } from '../nar/src/index.js';
 import { NAR } from '../nar/src/nar.js';
+import { mulberry32 } from '../nar/src/utils/random.js';
 import {
   BanditNativeAgent,
   BeliefPerceptionAdapter,
@@ -147,12 +148,13 @@ async function runAdapterWrapped(
   baseline: any,
   episodes: number,
   steps: number,
-  envType: EnvType
+  envType: EnvType,
+  seed: number
 ): Promise<number[]> {
-  const nar = new NAR(narConfig);
-  const perception = new BeliefPerceptionAdapter(nar, { sensorConfidence: 0.95 });
+  const nar = new NAR({ ...narConfig, rng: mulberry32(seed) });
+  const perception = new BeliefPerceptionAdapter(nar, { sensorConfidence: 0.95 }, seed);
   const actionAdapter = new GoalActionAdapter(nar);
-  const rewardAdapter = new RewardBeliefAdapter(nar);
+  const rewardAdapter = new RewardBeliefAdapter(nar, { rng: mulberry32(seed + 1) });
 
   // Register tools based on environment
   if (envType === 'bandit' || envType === 'nonstationary') {
@@ -240,7 +242,10 @@ async function runNativeSenars(
   seed: number
 ): Promise<number[]> {
   const config = envType === 'gridworld' ? narConfigGridWorld : narConfig;
-  const nar = new NAR(config);
+  // Seed the NAR, not just the game: without this the memory bags and the
+  // stochastic strategies draw from Math.random and the ratio measures machine
+  // load (TODO27 §15.3/§16).
+  const nar = new NAR({ ...config, rng: mulberry32(seed) });
 
   let agent: NativeSenarsAgent;
   const maxDerivationsPerStep = envType === 'gridworld' ? 3 : 3;
@@ -250,7 +255,7 @@ async function runNativeSenars(
       agent = new BanditNativeAgent(nar, 3, maxDerivationsPerStep);
       break;
     case 'gridworld':
-      agent = new GridWorldNativeAgent(nar, maxDerivationsPerStep, seed);
+      agent = new GridWorldNativeAgent(nar, maxDerivationsPerStep);
       break;
     case 'nonstationary':
       agent = new NonStationaryNativeAgent(nar, 2, maxDerivationsPerStep);
@@ -302,7 +307,8 @@ async function runExperiment(
       baseline,
       episodesPerSeed,
       stepsPerEpisode,
-      envType
+      envType,
+      seed
     );
   } else {
     // native or both - both run baseline + native for parity comparison

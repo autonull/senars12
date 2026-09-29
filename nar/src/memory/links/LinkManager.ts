@@ -1,4 +1,5 @@
 import type { Term } from '../../terms';
+import type { RandomSource } from '../../types/primitives.js';
 import { Layer } from './Layer.js';
 import { EmbeddingLayer } from './EmbeddingLayer.js';
 import { LINK_LAYER, type LinkEntry, type LinkManagerConfig, type LinkType } from './types.js';
@@ -15,6 +16,7 @@ export class LinkManager {
       layers: config?.layers ?? { [DEFAULT_LAYER]: 1000 },
       globalDecayRate: config?.globalDecayRate ?? 0.001,
       forgetPolicy: config?.forgetPolicy ?? 'priority',
+      rng: config?.rng,
     };
 
     for (const [name, capacity] of Object.entries(this.config.layers)) {
@@ -34,7 +36,7 @@ export class LinkManager {
   registerLayer(name: string, capacity: number): Layer {
     const existing = this.layers.get(name);
     if (existing) return existing;
-    const layer = new Layer(name, capacity, this.config.forgetPolicy);
+    const layer = new Layer(name, capacity, this.config.forgetPolicy, this.config.rng);
     this.layers.set(name, layer);
     return layer;
   }

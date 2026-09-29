@@ -3,12 +3,12 @@
 **Version:** 1.3 (2026-09-28) · **Predecessor:** REFACTOR.todo8 §8 B/C, the premise-strategy
 landing (`8b8cb1f8`), and the associative-memory port (`e7a52b21`).
 
-**Status: Phases A–I landed. Benches 100–108 green; 2505 unit tests + 25 e2e/determinism tests
+**Status: Phases A–J landed (§16: the parity harness is seeded and reproducible). Benches 100–108 green; 2505 unit tests + 25 e2e/determinism tests
 passing; static gates green. Deviations are recorded in §11 (A–F), §12 (G), §13 (H), §14 (I).
 
-> **A fresh session should read §15 first.** It corrects a claim made in §14 about the RL parity
-> gate: the gate is not a known regression, it is a *broken benchmark*, and §15 has the measurements
-> that show it. Nothing is known to be broken; one important property is unmeasurable.**
+> **A fresh session should read §16 first.** §15 diagnosed the RL parity gate as measuring machine
+> load rather than reasoning; §16 seeded the harness end to end and the gate now reproduces its own
+> numbers bit-for-bit. §15's measurements and its warnings are still the reason §16 was needed.**
 
 ---
 
@@ -925,3 +925,89 @@ Ordered next actions:
 Seed the parity harness (§15.4 step 1). Everything else in this file is known, bounded, and
 recorded. That one item is what converts "the refactor looks correct" into "the refactor is
 measured to be correct", and right now nothing in this repository can do the latter.
+
+---
+
+## 16. Phase J — the parity harness, seeded (2026-09-28)
+
+§15.4's first step, taken. `NARConfig.rng` now reaches everything the parity benchmark
+exercises, and the benchmark reproduces its own numbers exactly.
+
+### 16.1 What was unseeded
+
+`NARConfig.rng` existed and was threaded to the focus bags and the schema inductor. The
+*reasoning* path never saw it: the strategy registry was built with no dependencies, the concept
+bags defaulted to `Math.random`, the link layer's random-forget policy did too, the RL value store
+and the bandit selectors constructed their own `Math.random`, and `Bag`'s constructor spent a draw
+from the injected stream minting an id.
+
+Finding it took a `Math.random` tracer that grouped call sites by stack (§16.4), because
+determinism was the *whole* claim and a hand-read of the paths could not distinguish "reaches
+memory" from "reaches the bag the sampler reads".
+
+### 16.2 What changed
+
+| Change | Why |
+|---|---|
+| `StrategyFactoryDeps.rng`; `createDefaultRegistry({ rng })`; `CognitiveRegistry` takes one | a stochastic strategy draws from the registry's stream unless its own config pins a `seed` — one NAR knob, no per-strategy wiring |
+| `resolveBagSlot(slot, rng)` → `ResolvedBagSlot.rng` | the bag slot is the only thing a `Memory` is configured by, so it carries the memory's randomness into every `Concept`'s three bags |
+| `MemoryConfig` → `LinkManager` → `Layer` → `LinkBag` `rng` | the link layer's random-forget policy was the other `Math.random` in the memory path |
+| `NAR.rng` getter | downstream components (the RL value store, the action selectors) read the NAR's stream instead of taking a second one |
+| `RewardBeliefAdapterConfig.rng`, `NativeSenarsAgent` → `nar.rng` | `QBeliefStore.getBestAction` and `BanditSelector`/`NonStationarySelector` were the two hottest `Math.random` call sites in the benchmark |
+| `Bag` ids draw from the global source, not the injected one | identity must not shift the stream that sampling and eviction replay from — Bench 83 pins bag/strategy draw parity and caught this |
+| `strategyRng(seed, ambient)` replaces the local LCG | one PRNG (`mulberry32`) for the repository, not one per module |
+| `scripts/rl-parity.ts` seeds the NAR, the perception adapter and the value store per seed | the game was seeded and the agent was not: the benchmark compared a deterministic baseline to a random one |
+
+### 16.3 What it bought, measured
+
+Three consecutive runs of each environment at 20 seeds × 20 episodes × 30 steps, same tree:
+
+| environment | baseline | SeNARS | ratio | repeats |
+|---|---|---|---|---|
+| gridworld / q-learning | 0.9407 | 0.6453 | **0.7090** | bit-identical |
+| bandit / ε-greedy | 22.75 | 17.77 | **0.6932** | bit-identical |
+| nonstationary / ε-greedy | 17.14 | 15.83 | **0.9054** | bit-identical |
+
+Before: 0.44–0.91 on an unchanged commit, decided by machine load (§15.3).
+
+`test:load-sensitive` (`tests/nar/rl/parity-restoration.test.ts`) now runs **10 seeds** (was 3) and
+is green: 9/9 tests, 160 s. The gate stays opt-in — the sample is still small, so a single seed
+moves the aggregate by a few points — but it is no longer opt-in *because it is noise*. A red gate
+is now a behaviour change.
+
+The wall clock turned out to be irrelevant: a `Date.now` counter over the same run was bit-identical
+to the real clock. Every remaining nondeterminism was `Math.random`.
+
+### 16.4 Notes for whoever measures next
+
+- **To re-measure:** `pnpm exec tsx scripts/rl-parity.ts --env gridworld --baseline qlearning
+  --mode both --seeds 20 --episodes 20 --steps 30`. ~2 min per environment at 20 seeds. Two runs of
+  the same command must print the same ratio; if they do not, something re-entered the unseeded
+  path and `Math.random` is the first suspect.
+- **To trace it again:** preload a module that replaces `Math.random` with a mulberry32 and counts
+  call sites by `new Error().stack`. That is how §16.1's list was produced; it is faster and more
+  reliable than reading the paths.
+- **`Bag`'s id is drawn from the global source on purpose.** Making it seeded *is* a way to break
+  seeded sampling — the constructor draw shifts every later draw in the bag.
+- **`GridWorldNativeAgent`'s third parameter** was a numeric `seed`; it is now optional and defaults
+  to the NAR's stream. A caller passing a seed still gets a seeded selector, in isolation from
+  everything else. That is the one signature change in this phase and it is backward compatible.
+- **`bandit` returns `pass: false` from the script** at 20 seeds (seed pass 0.70 < the script's own
+  0.8 rule) while the *test's* acceptance for bandit is 2/3 seed passes. Two different rules in two
+  places; the test's is the one that gates. Worth unifying, not worth it today.
+
+### 16.5 Still open (unchanged by this phase)
+
+- **Bench 109** — the North Star as a test over the import graph. Still the cheapest high-value item
+  (§15.6).
+- **`kernel/replay.ts` builds a `Memory` with no attention model** (§15.6).
+- **The LRU has no OTel metric** — `registry.memoizedSize(type)` exists; nothing exports it.
+- **Association provenance** (§10) — needs a `Link` model change.
+- **`AIKRProcessor` (`learning/aikr-processor.ts:172`)** — read, as §14.6 asked. It is **not** a
+  bypass of the `sampling` slot: `AIKRProcessor` takes `SamplingStrategy<BagItem>` (a bag-item
+  sampler over a bounded bag), while the slot is `SamplingStrategy<Concept>` over a `MemoryView`.
+  Different types, different job. Closed as *not a defect*.
+- **A seeded run still is not a hermetic one.** `NARConfig.rng` fixes the draws; nothing fixes
+  async interleaving, and `makeId` (`crypto.randomUUID`) still stamps task ids that nothing reads
+  behaviourally. Both are believed harmless — the bit-identical repeats are the evidence — and both
+  would be caught by a second `Math.random`/UUID trace if that assumption ever breaks.

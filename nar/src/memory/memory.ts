@@ -138,6 +138,7 @@ export class Memory {
       layers: { term: config.termLinkCapacity ?? LINK.TERM_LAYER_CAPACITY },
       forgetPolicy: config.linkForgetPolicy ?? LINK.FORGET_POLICY,
       globalDecayRate: config.linkDecayRate ?? LINK.DECAY_RATE,
+      rng: this.config.bag.rng,
     });
 
     // Every layer the manager owns is recallable by name; no second registry.

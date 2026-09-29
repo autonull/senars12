@@ -11,6 +11,7 @@
 
 import { z } from 'zod';
 import { ConfigurationError } from '../types';
+import type { RandomSource } from '../types/primitives.js';
 import type { BagImplementation } from './Bag.js';
 
 export const BAG_IMPLEMENTATIONS = ['priority', 'fenwick'] as const satisfies readonly BagImplementation[];
@@ -33,6 +34,12 @@ export interface ResolvedBagSlot {
   implementation: BagImplementation;
   decayRate?: number;
   forgetRate?: number;
+  /**
+   * The memory's randomness. One stream for every bag it builds and for the link
+   * layer's random-forget policy, so seeding a NAR seeds the memory path
+   * (TODO27 §16) — a slot is the only thing a memory is configured by.
+   */
+  rng?: RandomSource;
 }
 
 const unknownImplementation = (name: string) =>
@@ -57,8 +64,11 @@ export const bagSlotErrors = (slot: Partial<BagSlotParams> | undefined): string[
   return errors;
 };
 
-/** The single read path for the slot: a validated `{ implementation, …knobs }`. */
-export const resolveBagSlot = (slot: Partial<BagSlotParams> | undefined): ResolvedBagSlot => {
+/** The single read path for the slot: a validated `{ implementation, …knobs, rng }`. */
+export const resolveBagSlot = (
+  slot: Partial<BagSlotParams> | undefined,
+  rng?: RandomSource
+): ResolvedBagSlot => {
   const errors = bagSlotErrors(slot);
   if (errors.length) throw new ConfigurationError(errors.join('; '));
   const parsed = slot?.config === undefined ? undefined : bagConfig.parse(slot.config);
@@ -66,5 +76,6 @@ export const resolveBagSlot = (slot: Partial<BagSlotParams> | undefined): Resolv
     implementation: (slot?.type ?? 'priority') as BagImplementation,
     decayRate: parsed?.decayRate,
     forgetRate: parsed?.forgetRate,
+    rng,
   };
 };

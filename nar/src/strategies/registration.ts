@@ -14,6 +14,7 @@
 import { createHash } from 'node:crypto';
 import { z, type ZodError } from 'zod';
 import { describeStrategyExpression, type StrategyExpression } from '../reason/strategy-algebra.js';
+import type { RandomSource } from '../types/primitives.js';
 import type { StrategyImpl, StrategyType } from './types.js';
 
 export type { StrategyType };
@@ -44,6 +45,12 @@ export interface ConfigSchema {
 export interface StrategyFactoryDeps {
   /** Tier 0 resolution by name — the default instance of another registered strategy. */
   resolve<T>(type: StrategyType, name: string): T;
+  /**
+   * The registry's ambient randomness (TODO27 §16). A stochastic strategy draws
+   * from it unless its own config pins a `seed`, so one `rng` on the NAR seeds
+   * every strategy that samples.
+   */
+  rng: RandomSource;
 }
 
 export interface StrategyRegistration {

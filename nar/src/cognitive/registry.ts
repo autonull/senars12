@@ -11,6 +11,7 @@
  */
 
 import { ConfigurationError } from '../types';
+import type { RandomSource } from '../types/primitives.js';
 import { emitStrategySelection } from '../tick';
 import {
   configDigest,
@@ -86,8 +87,8 @@ const memoStores = <V>(): Record<StrategyType, BoundedCache<V>> =>
  * no "bare NAR" whose strategy slots are quietly hardcoded. Callers that want a
  * custom catalogue still pass their own; this is the default, not a global.
  */
-export const createDefaultRegistry = (): CognitiveRegistry => {
-  const registry = new CognitiveRegistry();
+export const createDefaultRegistry = ({ rng }: { rng?: RandomSource } = {}): CognitiveRegistry => {
+  const registry = new CognitiveRegistry({ rng });
   registry.initializeDefaults();
   return registry;
 };
@@ -108,6 +109,12 @@ export class CognitiveRegistry implements StrategyRegistry {
   private readonly composed: Record<StrategyType, BoundedCache<StrategyImpl>> = memoStores();
   /** Registrations mid-build, so a self-referential composite is an error, not a stack overflow. */
   private readonly building = new Set<string>();
+  /** Ambient randomness handed to every factory (TODO27 §16). */
+  private readonly rng: RandomSource;
+
+  constructor({ rng }: { rng?: RandomSource } = {}) {
+    this.rng = rng ?? Math.random;
+  }
 
   register(type: StrategyType, registration: StrategyRegistration): void;
   /** @deprecated pass a `StrategyRegistration` — a bare instance cannot carry its config contract. */
@@ -137,9 +144,12 @@ export class CognitiveRegistry implements StrategyRegistry {
     this.stores[type].set(registration.name, registration);
   }
 
-  /** What a composing factory gets: the default instance of another named strategy. */
+  /** What a factory gets: tier-0 resolution by name, and the ambient stream. */
   get #deps(): StrategyFactoryDeps {
-    return { resolve: <T>(type: StrategyType, name: string) => this.get<T>(type, name) };
+    return {
+      resolve: <T>(type: StrategyType, name: string) => this.get<T>(type, name),
+      rng: this.rng,
+    };
   }
 
   /** Tier 0: the registered default instance for `name`. */

@@ -107,7 +107,9 @@ export abstract class BaseBag<T extends BagItem> implements Bag<T> {
     this.forgetRate = options.forgetRate ?? 0.001;
     this.rng = options.rng ?? Math.random;
     this.clock = options.clock ?? Date.now;
-    this.id = options.id ?? generateId('bag');
+    // Identity, not a sample: drawn from the global source so that constructing a
+    // bag cannot shift the seeded stream that sampling and eviction replay from.
+    this.id = options.id ?? generateId('bag', Math.random);
   }
 
   /** First index whose priority is below `priority` (binary search over the sorted store). */

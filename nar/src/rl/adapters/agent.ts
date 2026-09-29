@@ -49,7 +49,7 @@ export class NativeSenarsAgent {
 
     this.perception = new BeliefPerceptionAdapter(nar, config.perceptionConfig);
     this.actionAdapter = new GoalActionAdapter(nar);
-    this.rewardAdapter = new RewardBeliefAdapter(nar, { gamma: this.gamma });
+    this.rewardAdapter = new RewardBeliefAdapter(nar, { gamma: this.gamma, rng: nar.rng });
     this.qStore = this.rewardAdapter.getQStore();
   }
 
@@ -184,7 +184,7 @@ export class BanditNativeAgent extends NativeSenarsAgent {
   private readonly actionTerms: Term[];
 
   constructor(nar: NAR, numArms: number = 3, maxDerivationsPerStep: number = 3) {
-    const selector = new BanditSelector(numArms);
+    const selector = new BanditSelector(numArms, 0.2, nar.rng);
     super(nar, { selector, maxDerivationsPerStep, useTDLearning: true, gamma: 0.99 });
     this.numArms = numArms;
     this.actionTerms = Array.from({ length: numArms }, (_, i) =>
@@ -218,8 +218,9 @@ export class GridWorldNativeAgent extends NativeSenarsAgent {
   private readonly actionNames = ['move_up', 'move_right', 'move_down', 'move_left'];
   private readonly actionTerms = this.actionNames.map((name) => TermBuilder.atom(`^${name}`));
 
-  constructor(nar: NAR, maxDerivationsPerStep: number = 3, seed: number = 42) {
-    const selector = new GridWorldSelector(0.3, -0.1, 0.99, 0.01, seed);
+  /** `seed` overrides the NAR's stream for exploration; absent one, the NAR's stream is it. */
+  constructor(nar: NAR, maxDerivationsPerStep: number = 3, seed?: number) {
+    const selector = new GridWorldSelector(0.3, -0.1, 0.99, 0.01, seed ?? nar.rng);
     super(nar, { selector, maxDerivationsPerStep, useTDLearning: true, gamma: 0.99 });
 
     const toolConfigs = [
@@ -315,7 +316,7 @@ export class NonStationaryNativeAgent extends NativeSenarsAgent {
   private readonly actionTerms: Term[];
 
   constructor(nar: NAR, numArms: number = 2, maxDerivationsPerStep: number = 3) {
-    const selector = new NonStationarySelector(numArms);
+    const selector = new NonStationarySelector(numArms, 0.3, 0.2, nar.rng);
     super(nar, { selector, maxDerivationsPerStep, useTDLearning: true, gamma: 0.99 });
     this.numArms = numArms;
     this.actionTerms = Array.from({ length: numArms }, (_, i) =>
