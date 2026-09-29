@@ -1,3 +1,4 @@
+import { Signal } from '@senars/util';
 import type { CognitiveEvent } from '../CognitiveEvent.js';
 import type { AgentEventSource, BridgeEvent } from './types.js';
 
@@ -5,19 +6,18 @@ export type { BridgeDelta, BridgeEvent } from './types.js';
 
 export class AgentBridge {
   readonly agent: AgentEventSource;
-  #listeners = new Set<(event: BridgeEvent) => void>();
+  #listeners = new Signal<BridgeEvent>();
 
   constructor(agent: AgentEventSource) {
     this.agent = agent;
     agent.on('*', (event) => {
       const projected = this.#project(event);
-      if (projected) this.#emit(projected);
+      if (projected) this.#listeners.emit(projected);
     });
   }
 
   onEvent(handler: (event: BridgeEvent) => void): () => void {
-    this.#listeners.add(handler);
-    return () => this.#listeners.delete(handler);
+    return this.#listeners.on(handler);
   }
 
   projectFromMessage(msg: Record<string, unknown>): BridgeEvent | null {
@@ -116,15 +116,5 @@ export class AgentBridge {
       };
     }
     return null;
-  }
-
-  #emit(event: BridgeEvent): void {
-    for (const listener of this.#listeners) {
-      try {
-        listener(event);
-      } catch {
-        /* ignore */
-      }
-    }
   }
 }

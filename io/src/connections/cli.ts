@@ -101,7 +101,7 @@ export class CLIConnection extends BaseConnection {
   }
 
   protected override handleMessage = (message: IOMessage): void => {
-    const handlers = this.messageHandlers.slice();
+    const handlers = this.messageHandlers.receivers();
     void Promise.allSettled(handlers.map((h) => h(message))).then((results) =>
       this.accountHandlerResults(results)
     );

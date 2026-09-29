@@ -1,5 +1,5 @@
 import { ConnectionError } from '@senars/core';
-import { generateId, toError, withRetry as retry } from '@senars/util';
+import { generateId, Signal, toError, withRetry as retry } from '@senars/util';
 import type {
   Connection,
   ConnectionConfig,
@@ -13,10 +13,9 @@ export abstract class BaseConnection implements Connection {
   id: string;
   name: string;
   abstract readonly type: string;
-  protected messageHandlers: Array<(message: IOMessage) => Promise<void>> = [];
-  protected stateChangeHandlers: Array<(state: ConnectionState, prev: ConnectionState) => void> =
-    [];
-  protected errorHandlers: Array<(error: ConnectionError) => void> = [];
+  protected readonly messageHandlers = new Signal<IOMessage>();
+  protected readonly stateChangeHandlers = new Signal<[ConnectionState, ConnectionState]>();
+  protected readonly errorHandlers = new Signal<ConnectionError>();
   protected messageCount = 0;
   protected errorCount = 0;
   protected readonly config: ConnectionConfig;
@@ -50,19 +49,19 @@ export abstract class BaseConnection implements Connection {
   }
 
   onMessage(handler: (message: IOMessage) => Promise<void>): void {
-    this.messageHandlers.push(handler);
+    this.messageHandlers.on(handler);
   }
 
   removeMessageHandler(handler: (message: IOMessage) => Promise<void>): void {
-    this.messageHandlers = this.messageHandlers.filter((h) => h !== handler);
+    this.messageHandlers.off(handler);
   }
 
   onStateChange(handler: (state: ConnectionState, prev: ConnectionState) => void): void {
-    this.stateChangeHandlers.push(handler);
+    this.stateChangeHandlers.on(([current, prev]) => handler(current, prev));
   }
 
   onError(handler: (error: ConnectionError) => void): void {
-    this.errorHandlers.push(handler);
+    this.errorHandlers.on(handler);
   }
 
   getStatus(): { state: ConnectionState; messageCount: number; errorCount: number } {
@@ -100,9 +99,7 @@ export abstract class BaseConnection implements Connection {
     if (prev !== value) {
       this._state = value;
       this.emit('connection:state', { id: this.id, prev, current: value });
-      for (const h of this.stateChangeHandlers) {
-        h(value, prev);
-      }
+      this.stateChangeHandlers.emit([value, prev]);
     }
   }
 
@@ -119,7 +116,9 @@ export abstract class BaseConnection implements Connection {
     this.messageCount++;
     const origin = message.origin;
     const prev = this.queues.get(origin) ?? Promise.resolve();
-    const handlers = this.messageHandlers.slice();
+    // Message handlers are async and their rejections are counted (D10), so they
+    // are driven here rather than through `Signal.emit`, which isolates and drops.
+    const handlers = this.messageHandlers.receivers();
     const next = prev.then(async () => {
       this.accountHandlerResults(await Promise.allSettled(handlers.map((h) => h(message))));
     });
@@ -133,9 +132,7 @@ export abstract class BaseConnection implements Connection {
 
   protected handleError(error: ConnectionError): void {
     this.errorCount++;
-    for (const h of this.errorHandlers) {
-      h(error);
-    }
+    this.errorHandlers.emit(error);
   }
 
   protected createError(

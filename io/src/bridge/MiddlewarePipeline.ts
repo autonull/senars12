@@ -4,6 +4,7 @@ import {
   type IOMessage,
   type Logger,
   type SessionManager,
+  SlidingWindowRateLimiter,
 } from '@senars/util';
 import type { CommandRegistry } from '../commands/registry.js';
 import {
@@ -79,28 +80,11 @@ export function createSessionBinder(mgr: SessionManager): MessageMiddleware {
   };
 }
 
-/**
- * Sliding one-second window, at most `maxPerWindow` messages. Timestamps live
- * in a bounded ring indexed by a head cursor: each message advances the cursor
- * and evicts whatever has aged out, so the hot path is O(1) amortized with no
- * per-message filter, realloc, or unbounded growth.
- */
+/** Sliding one-second window, at most `maxPerWindow` messages across the transport. */
 export function createRateLimiter(maxPerWindow: number): MessageMiddleware {
-  const capacity = Math.max(1, Math.floor(maxPerWindow));
-  const window = new Array<number>(capacity).fill(0);
-  let cursor = 0;
-  let seen = 0;
+  const limiter = new SlidingWindowRateLimiter({ limit: maxPerWindow, windowMs: 1000 });
   return async (_msg: IOMessage, ctx: MessageContext, next: () => Promise<void>) => {
-    if (maxPerWindow < 1) return respondTo(ctx, 'Rate limit exceeded. Please slow down.');
-    const now = Date.now();
-    // `window[cursor]` is the oldest of the last `capacity` arrivals; it is the
-    // entry this one displaces, so the window is full exactly when seen==capacity.
-    const full = seen >= capacity;
-    window[cursor] = now;
-    cursor = cursor + 1 === capacity ? 0 : cursor + 1;
-    if (seen < capacity) seen++;
-    if (full && now - window[cursor]! < 1000)
-      return respondTo(ctx, 'Rate limit exceeded. Please slow down.');
+    if (!limiter.tryAcquire()) return respondTo(ctx, 'Rate limit exceeded. Please slow down.');
     await next();
   };
 }

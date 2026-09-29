@@ -272,6 +272,60 @@ describe('Bench 96 — Ledger<T> primitive', () => {
     });
   });
 
+  describe('bounded hot cache', () => {
+    const entrySchema = BaseLedgerEntrySchema.extend({ value: z.number() });
+
+    it('caps the hot cache rather than growing it for one retention window', async () => {
+      const dir = await tmpBase();
+      const ledger = new Ledger({
+        basePath: dir,
+        schema: entrySchema,
+        hotCacheMaxSize: 8,
+      });
+
+      for (let i = 0; i < 200; i++) ledger.append({ at: 1000 + i, value: i });
+
+      expect(ledger.getHotCacheSize()).toBe(8);
+      const hot = await ledger.query({ limit: 8 });
+      expect(hot.map((e) => e.value)).toEqual(Array.from({ length: 8 }, (_, i) => 192 + i));
+    });
+
+    it('disables the hot cache for a non-positive retention window', async () => {
+      const dir = await tmpBase();
+      const ledger = new Ledger({ basePath: dir, schema: entrySchema, hotRetentionMs: 0 });
+
+      ledger.append({ at: 1, value: 1 });
+      ledger.append({ at: 2, value: 2 });
+
+      expect(ledger.getHotCacheSize()).toBe(0);
+      expect((await ledger.query({})).map((e) => e.value)).toEqual([1, 2]);
+    });
+
+    it('holds no timer between appends and sweeps expired rows on read', async () => {
+      const dir = await tmpBase();
+      vi.useFakeTimers();
+      try {
+        const at = 1_000_000;
+        vi.setSystemTime(at);
+        const ledger = new Ledger({ basePath: dir, schema: entrySchema, hotRetentionMs: 50 });
+
+        ledger.append({ at, value: 1 });
+        expect(ledger.getHotCacheSize()).toBe(1);
+        expect(vi.getTimerCount()).toBe(0);
+
+        vi.setSystemTime(at + 1000);
+        expect((await ledger.query({ limit: 1 })).map((e) => e.value)).toEqual([1]);
+        expect(ledger.getHotCacheSize()).toBe(0);
+
+        ledger.append({ at: at + 1000, value: 2 });
+        ledger.close();
+        expect(ledger.getHotCacheSize()).toBe(0);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   describe('deps:gate cycle break', () => {
     it('rule-builders → rule-templates chain is broken', async () => {
       // This is verified by running `pnpm deps:gate` and checking the count

@@ -1,15 +1,11 @@
 import { randomBytes } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import { ApiKeyManager } from '@senars/io/utils/http';
+import { SlidingWindowRateLimiter } from '@senars/util';
 
 export interface HttpGuardOptions {
   apiKey?: string;
   rateLimitPerMinute?: number;
-}
-
-interface RateLimitState {
-  count: number;
-  resetTime: number;
 }
 
 /**
@@ -19,11 +15,12 @@ interface RateLimitState {
  */
 export class HttpGuard {
   private readonly apiKeys = new ApiKeyManager();
-  private readonly rateLimitState = new Map<string, RateLimitState>();
+  private readonly rateLimiter: SlidingWindowRateLimiter;
   readonly rateLimitPerMinute: number;
 
   constructor(options: HttpGuardOptions = {}) {
     this.rateLimitPerMinute = options.rateLimitPerMinute ?? 30;
+    this.rateLimiter = new SlidingWindowRateLimiter({ limit: this.rateLimitPerMinute, windowMs: 60_000 });
     this.apiKeys.add(options.apiKey ?? randomBytes(32).toString('hex'));
   }
 
@@ -34,16 +31,7 @@ export class HttpGuard {
     const key = (req.headers['x-api-key'] as string | undefined) ?? '';
     if (!key || !this.apiKeys.has(key)) return 401;
 
-    const now = Date.now();
-    const state = this.rateLimitState.get(key);
-    if (!state || now > state.resetTime) {
-      this.rateLimitState.set(key, { count: 1, resetTime: now + 60_000 });
-    } else if (state.count >= this.rateLimitPerMinute) {
-      return 429;
-    } else {
-      state.count++;
-    }
-    return null;
+    return this.rateLimiter.tryAcquire(key) ? null : 429;
   }
 
   get activeKey(): string {
