@@ -8,7 +8,11 @@ import { shuffleInPlace } from '../../utils/random.js';
 export class SampledDerivation extends DefaultDerivation {
   override readonly metadata = { name: 'sampled', description: 'Random subset of secondaries' };
 
-  constructor(private readonly rng: RandomSource = Math.random) {
+  constructor(
+    private readonly rng: RandomSource = Math.random,
+    /** Fraction of secondaries to draw; the rest is the budget the slot gives back. */
+    private readonly fraction = 0.3
+  ) {
     super();
   }
 
@@ -18,7 +22,10 @@ export class SampledDerivation extends DefaultDerivation {
     processor: RuleEngine,
     ctx: DerivationContext
   ): AsyncGenerator<Task> {
-    const maxPairs = Math.min(secondaries.length, Math.max(1, Math.ceil(secondaries.length * 0.3)));
+    const maxPairs = Math.min(
+      secondaries.length,
+      Math.max(1, Math.ceil(secondaries.length * this.fraction))
+    );
     const pool = shuffleInPlace([...secondaries], this.rng);
     yield* super.derive(primary, pool.slice(0, maxPairs), processor, ctx);
   }

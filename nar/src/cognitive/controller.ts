@@ -1,4 +1,4 @@
-import { sameStrategies, type CognitiveParameters } from '../config/cognitive-parameters';
+import { sameStrategies, type CognitiveParameters, type StrategySlotParams } from '../config/cognitive-parameters';
 import type { Memory } from '../memory';
 import type { MetricsCollector } from '../metrics';
 import type { Strategy } from '../reason';
@@ -6,20 +6,19 @@ import type { Task } from '../types';
 import { InferenceController } from '../reason/inference-controller';
 import type { RLFPLearner } from '../rlfp';
 import type { RuleProcessor } from '../rules';
-import type {
-  DerivationStrategy,
-  LMRuleSelector,
-  SamplingStrategy,
-  StrategyType,
-} from '../strategies';
-import {
-  composeStrategy,
-  describeStrategyExpression,
-  type StrategyExpression,
-} from '../reason/strategy-algebra';
-import type { CognitiveRegistry } from './registry';
+import type { StrategySpec, StrategyType } from '../strategies/registration';
+import type { DerivationStrategy, LMRuleSelector, SamplingStrategy } from '../strategies';
 import { registerRuleGraph, RuleGraph } from '../strategies/lm-graph/RuleGraph.js';
-import { CompositeStrategy } from '../strategies/premise/selection-strategies.js';
+import type { CognitiveRegistry } from './registry';
+
+/** `lmRule` is the config key; `lm-rule` is the registry type. */
+const SLOT_KEYS = {
+  sampling: 'sampling',
+  premise: 'premise',
+  derivation: 'derivation',
+  'lm-rule': 'lmRule',
+  attention: 'attention',
+} as const satisfies Record<StrategyType, keyof CognitiveParameters['strategies']>;
 
 export class CognitiveController {
   private currentParams: CognitiveParameters;
@@ -41,7 +40,18 @@ export class CognitiveController {
     // Own the parameter graph: callers may pass frozen defaults (TODO20 C3).
     this.currentParams = structuredClone(params);
     this.adaptInterval = adaptInterval;
+    this.validateSlots(params);
     this.inferenceController = this.buildInferenceController(params);
+  }
+
+  /** Every slot is checked before any strategy is built (TODO27 §2.4). */
+  private validateSlots(params: CognitiveParameters): void {
+    for (const [type, key] of Object.entries(SLOT_KEYS) as Array<
+      [StrategyType, (typeof SLOT_KEYS)[StrategyType]]
+    >) {
+      const slot = params.strategies[key] as StrategySlotParams;
+      this.registry.validate(type, slot.type, slot.config, key);
+    }
   }
 
   getInferenceController(): InferenceController {
@@ -70,11 +80,9 @@ export class CognitiveController {
     };
   }
 
-  /** Get the current strategy name(s) for a strategy type; a composed slot has several. */
-  getStrategy(type: StrategyType): string | string[] | undefined {
-    const key: keyof typeof this.currentParams.strategies =
-      type === 'lm-rule' ? 'lmRule' : (type as keyof typeof this.currentParams.strategies);
-    return this.currentParams.strategies[key]?.type;
+  /** Get the current spec for a strategy type; a composed slot has several names. */
+  getStrategy(type: StrategyType): StrategySpec | undefined {
+    return this.currentParams.strategies[SLOT_KEYS[type]]?.type;
   }
 
   adapt(): void {
@@ -95,88 +103,28 @@ export class CognitiveController {
     for (const cb of this.onAdaptCallbacks) cb();
   }
 
-  /** An array names several composed strategies; a `StrategyExpression` is registered as one composite. */
-  setStrategy(type: StrategyType, name: string | string[] | StrategyExpression): void {
-    const key: keyof typeof this.currentParams.strategies =
-      type === 'lm-rule' ? 'lmRule' : (type as keyof typeof this.currentParams.strategies);
-    const resolved = Array.isArray(name)
-      ? name
-      : typeof name === 'string'
-        ? name
-        : this.#composeAndRegister(type, describeStrategyExpression(name), name);
-    (this.currentParams.strategies[key] as { type: string | string[] }).type = resolved;
-    this.buildInferenceController(this.currentParams);
-  }
-
   /**
-   * Phase E (REFACTOR.todo2 §8): execute a composed `StrategyExpression`.
-   * Deterministic label ⇒ idempotent registration (first compose wins, C7).
+   * Name the strategy (and its configuration) for a slot. A bare name, a list
+   * of names, or a derivation expression — the slot's own resolution is the
+   * only place any of them is interpreted.
    */
-  setStrategyExpression(type: StrategyType, expression: StrategyExpression): void {
-    const key: keyof typeof this.currentParams.strategies =
-      type === 'lm-rule' ? 'lmRule' : (type as keyof typeof this.currentParams.strategies);
-    const name = describeStrategyExpression(expression);
-    this.currentParams.strategies[key].type = this.#composeAndRegister(type, name, expression);
+  setStrategy(type: StrategyType, spec: StrategySpec, config?: Record<string, unknown>): void {
+    this.registry.validate(type, spec, config, SLOT_KEYS[type]);
+    const slot = this.currentParams.strategies[SLOT_KEYS[type]] as StrategySlotParams;
+    slot.type = spec;
+    if (config) slot.config = config;
+    else delete slot.config;
     this.buildInferenceController(this.currentParams);
-  }
-
-  #composeAndRegister(
-    type: StrategyType,
-    name: string,
-    expression: StrategyExpression
-  ): string {
-    const composed = `composed:${name}`;
-    if (this.registry.has(type, composed)) return composed;
-    this.registry.register(
-      type,
-      composed,
-      composeStrategy(expression, (primitive) => this.registry.get<DerivationStrategy>(type, primitive))
-    );
-    return composed;
-  }
-
-  /** One premise strategy by name, or several composed with overlapping terms deduped. */
-  private resolvePremiseStrategies(type: string | string[]): Strategy {
-    const names = Array.isArray(type) ? type : [type];
-    const strategies = names.map((name) => this.registry.get<Strategy>('premise', name));
-    return strategies.length === 1 ? strategies[0]! : new CompositeStrategy(strategies, 'dedup');
   }
 
   private buildInferenceController(params: CognitiveParameters): InferenceController {
-    const samplingStrategy = this.registry.get<SamplingStrategy>(
-      'sampling',
-      params.strategies.sampling.type
-    );
-    const strategy = this.resolvePremiseStrategies(params.strategies.premise.type);
-    const derivationStrategy = this.registry.get<DerivationStrategy>(
-      'derivation',
-      params.strategies.derivation.type
-    );
-    
-    // Register RuleGraph if selected (opt-in via config)
-    const lmRuleType = params.strategies.lmRule.type;
-    let lmSelector: LMRuleSelector;
-    let ruleGraph: RuleGraph | null = null;
-    
-    if (lmRuleType === 'lm-graph') {
-      if (!this.registry.has('lm-rule', 'lm-graph')) {
-        ruleGraph = registerRuleGraph(this.registry);
-      } else {
-        ruleGraph = this.registry.get<RuleGraph>('lm-rule', 'lm-graph');
-      }
-      lmSelector = ruleGraph;
-      // Publish the co-activation graph to premise selection explicitly.
-      this.memory.attachConceptGraph(ruleGraph.graph);
-    } else {
-      lmSelector = this.registry.get<LMRuleSelector>('lm-rule', lmRuleType);
-    }
+    const sampling = this.resolve<SamplingStrategy>('sampling', params);
+    const strategy = this.resolve<Strategy>('premise', params);
+    const derivationStrategy = this.resolve<DerivationStrategy>('derivation', params);
+    const lmRule = this.resolveLMRule(params);
 
-    this.processor.setLMSelector(lmSelector, params.strategies.lmRule.maxRules);
-
-    // Wire RuleGraph callbacks via explicit lifecycle hooks if using lm-graph
-    if (ruleGraph) {
-      this.#wireRuleGraphCallbacks(ruleGraph);
-    }
+    this.processor.setLMSelector(lmRule.selector, params.strategies.lmRule.maxRules);
+    if (lmRule.ruleGraph) this.#wireRuleGraphCallbacks(lmRule.ruleGraph);
 
     const inferenceConfig = {
       maxDerivationsPerStep: params.inference.maxDerivationsPerStep,
@@ -195,7 +143,7 @@ export class CognitiveController {
 
     if (this.inferenceController) {
       this.inferenceController.reconfigure({
-        samplingStrategy,
+        samplingStrategy: sampling,
         strategy,
         derivationStrategy,
         config: inferenceConfig,
@@ -206,36 +154,55 @@ export class CognitiveController {
     return new InferenceController(
       this.memory,
       this.processor,
-      samplingStrategy,
+      sampling,
       strategy,
       derivationStrategy,
       inferenceConfig
     );
   }
 
+  /** The one resolution call every slot makes. */
+  private resolve<T>(type: StrategyType, params: CognitiveParameters): T {
+    const slot = params.strategies[SLOT_KEYS[type]] as StrategySlotParams;
+    return this.registry.resolve<T>(type, slot.type, slot.config);
+  }
+
+  /**
+   * `lm-graph` is the one strategy with a side effect: it owns the co-activation
+   * graph, which premise selection reads. Registering it and publishing the
+   * graph stay here; selecting it is the registry's job.
+   */
+  private resolveLMRule(params: CognitiveParameters): {
+    selector: LMRuleSelector;
+    ruleGraph: RuleGraph | null;
+  } {
+    const slot = params.strategies.lmRule as StrategySlotParams;
+    if (slot.type !== 'lm-graph') {
+      return { selector: this.resolve<LMRuleSelector>('lm-rule', params), ruleGraph: null };
+    }
+
+    const ruleGraph = this.registry.has('lm-rule', 'lm-graph')
+      ? this.registry.get<RuleGraph>('lm-rule', 'lm-graph')
+      : registerRuleGraph(this.registry);
+    this.memory.attachConceptGraph(ruleGraph.graph);
+    return { selector: ruleGraph, ruleGraph };
+  }
+
   #wireRuleGraphCallbacks(ruleGraph: RuleGraph): void {
-    // Register adapt callback for RuleGraph performance recording and ticking
     this.onAdapt(() => {
-      // Record performance from execution log
       const log = this.processor.getLMRuleExecutionLog();
       for (const entry of log) {
         ruleGraph.recordPerformance(entry.ruleName, entry.status === 'fired', entry.durationMs);
       }
       this.processor.clearLMRuleExecutionLog();
-      
-      // Wire tick() from cycle
       ruleGraph.tick();
     });
 
-    // Register derivation callback for RuleGraph learning
-    this.onDerivation((chain: readonly Task[]) => {
+    this.onDerivation((chain) => {
       if (chain.length >= 2) {
         const primary = chain[0];
         const derived = chain[chain.length - 1];
-        if (primary && derived) {
-          // Use primary term as focus, derived term as rule term
-          ruleGraph.learnFromDerivation(primary.term, derived.term);
-        }
+        if (primary && derived) ruleGraph.learnFromDerivation(primary.term, derived.term);
       }
     });
   }

@@ -7,11 +7,11 @@ import { selectTopN } from '../../utils/collections.js';
  */
 
 import { ConceptGraph, type CoActivationEdge } from '@senars/core/concept-graph';
+import { singleton, type StrategyRegistry } from '../registration.js';
 import type {
   ComponentMetadata,
   LMRuleSelectionContext,
   LMRuleSelector,
-  StrategyRegistry,
 } from '../types.js';
 import type { LMRule } from '../../lm/LMRule.js';
 import type { Term } from '../../terms/index.js';
@@ -145,6 +145,9 @@ export function registerRuleGraph(
   options?: RuleGraphOptions
 ): RuleGraph {
   const ruleGraph = new RuleGraph(options);
-  registry.register('lm-rule', 'lm-graph', ruleGraph as unknown as LMRuleSelector);
+  registry.register(
+    'lm-rule',
+    singleton('lm-graph', ruleGraph.metadata.description, ruleGraph)
+  );
   return ruleGraph;
 }

@@ -5,7 +5,7 @@
  * `parallel` (first result wins), `conditional`, `loop` (bounded), `timeout`
  * (falls back on abort). Every combinator honors `ctx.signal` (C7/C6):
  * plain-name configs resolve exactly as before; expressions activate only
- * where a caller names one (`CognitiveController.setStrategyExpression`).
+ * where a caller names one (`CognitiveParameters.strategies.derivation.type`).
  */
 import { raceDeadline } from '@senars/util';
 import type { Task } from '../types/core.js';

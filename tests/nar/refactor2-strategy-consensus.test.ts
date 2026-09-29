@@ -240,24 +240,19 @@ describe('Bench 90 — controller wiring', () => {
     expect(controller.getStrategy('premise')).toBe('bag');
   });
 
-  it('setStrategyExpression registers a composed strategy by its deterministic label', () => {
-    const { controller, registry } = makeController();
-    controller.setStrategyExpression('derivation', {
-      op: 'sequence',
-      stages: ['default', 'default'],
-    });
-    expect(controller.getStrategy('derivation')).toBe('composed:seq(default,default)');
-    expect(registry.has('derivation', 'composed:seq(default,default)')).toBe(true);
-    // Idempotent: re-registering the same expression reuses the entry.
-    controller.setStrategyExpression('derivation', { op: 'sequence', stages: ['default', 'default'] });
-    expect(controller.getStrategy('derivation')).toBe('composed:seq(default,default)');
+  it('a derivation expression round-trips through the spec, not a label', () => {
+    const { controller } = makeController();
+    const expression = { op: 'sequence', stages: ['default', 'default'] } as const;
+    controller.setStrategy('derivation', expression);
+    // TODO27 D4: one spec, one spelling — the expression *is* the slot's value.
+    expect(controller.getStrategy('derivation')).toEqual(expression);
   });
 
-  it('setStrategy accepts an expression inline (RetrospectiveAdapter path)', () => {
+  it('a composed expression resolves once and is reused (C7)', () => {
     const { controller, registry } = makeController();
-    controller.setStrategy('derivation', { op: 'timeout', ms: 50, body: 'default', fallback: 'anytime' });
-    expect(controller.getStrategy('derivation')).toBe('composed:timeout(50,default)');
-    expect(registry.has('derivation', 'composed:timeout(50,default)')).toBe(true);
+    const first = registry.resolve('derivation', { op: 'sequence', stages: ['default', 'anytime'] });
+    const second = registry.resolve('derivation', { op: 'sequence', stages: ['default', 'anytime'] });
+    expect(second).toBe(first);
   });
 });
 

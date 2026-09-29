@@ -80,7 +80,7 @@ export function validateNarConfig(config: NARConfig): NARConfig {
 }
 
 export function createAttentionModel(config: NARConfig): AttentionModel {
-  const type = config.cognitiveParams?.strategies.attention.type;
-  if (!type) return new SimpleAttention();
-  return config.strategyRegistry?.get('attention', type) ?? new SimpleAttention();
+  const slot = config.cognitiveParams?.strategies.attention;
+  if (!slot || !config.strategyRegistry) return new SimpleAttention();
+  return config.strategyRegistry.resolve<AttentionModel>('attention', slot.type, slot.config);
 }

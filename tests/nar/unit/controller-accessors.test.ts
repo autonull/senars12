@@ -39,7 +39,7 @@ describe('CognitiveController accessors', () => {
 
     const derivation = controller!.getStrategy('derivation');
     expect(typeof derivation).toBe('string');
-    expect(derivation!.length).toBeGreaterThan(0);
+    expect(derivation).toBe('default');
   });
 
   test('getStrategy tracks setStrategy updates', () => {

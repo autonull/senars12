@@ -3,8 +3,8 @@
 **Version:** 1.0 (2026-09-28) · **Predecessor:** REFACTOR.todo8 §8 B/C, the premise-strategy
 landing (`8b8cb1f8`), and the associative-memory port (`e7a52b21`).
 
-**Status: design decided. Nothing implemented. This document closes the questions; it does not
-reopen them.**
+**Status: implemented (Phases A–F). Benches 100–104 green; 2485 unit tests passing. Deviations
+from the plan as written are recorded in §11.**
 
 ---
 
@@ -352,3 +352,131 @@ the contract (Tier 0, memoization), values otherwise. No mocks — the benches d
 *Findings verified against the tree at `e7a52b21`. Line references are to that commit. If a finding
 does not reproduce on a clean checkout of it, the finding is wrong and this document should be
 corrected rather than the code.*
+
+
+---
+
+## 11. Implementation record (2026-09-28)
+
+### 11.1 What landed
+
+| Phase | Status | Where |
+|-------|--------|-------|
+| A — delete the dead composition surface | done | `registry.compose` / `composePremise` / `createAdaptive` and `StrategyRegistry` members gone; the `any`-cast `switch` and `BagComposite` deleted with them |
+| B — registration, resolution, memoization, telemetry | done | `nar/src/strategies/registration.ts` (NEW leaf), `nar/src/cognitive/registry.ts`, `nar/src/cognitive/registrations.ts` (NEW catalogue), `nar/src/cognitive/controller.ts`, `otel/index.ts` (`configDigest` + `tier` attributes) |
+| C — validation at the boundary | done | `validateParameters(params, catalog?)`, `registry.validate`, `CognitiveController` constructor + `setStrategy`, `switch-strategy.ts` candidate lists |
+| D — uniform composition | done | `nar/src/cognitive/composition.ts`; `CompositeSampling` and `CompositeLMRuleSelector` added; premise `sequence` retired (D7) |
+| E — residuals | done | `AssociativeMemory.associate` + `AssociativeRegistry.associate`; `EmbeddingLayer` document store deleted; `dialogue/consumers/adapt.ts` mirrors the controller; `registry.list` returns registrations |
+| F — docs & benches | done | `docs/strategy-composition.md`; `tests/nar/todo27-*.test.ts` (100–104) |
+
+Every gate is green: `test:unit` 2485 passed / 3 skipped, `lint`, `typecheck`, `typecheck:bin`,
+`deps:gate` 5 cycles, `exports:audit`, `exports:check`, `complexity:budget` (production LOC
+73 705 → 71 887; `unboundedAccumulators` still 0).
+
+### 11.2 Deviations from the plan text
+
+1. **`StrategyRegistration` is not generic.** The plan's `<T extends StrategyImpl>` parameter made
+   the catalogue unreadable: `StrategyRegistration<Strategy>` is not assignable to
+   `StrategyRegistration<StrategyImpl>`, because `Strategy` has an optional `metadata` and the
+   constraint does not imply it. `factory` returns `StrategyImpl` and the caller casts at the
+   resolution site, where the slot's own interface is known — one assertion, in one place.
+2. **`StrategyRegistry` moved to `registration.ts`,** not `types.ts`. It names
+   `StrategyRegistration`; keeping it in `types.ts` would have made `types.ts → registration.ts →
+   types.ts`. `types.ts` no longer exports it; `strategies/index.ts` and `cognitive/index.ts`
+   re-export it from the new home.
+3. **`register(type, name, impl)` survives as a deprecated overload.** `RuleGraph` and the
+   controller's composition path used it, and the interface is public-ish. It now builds a
+   `stateful: true` registration (the honest reading of a bare instance). Both in-repo call sites
+   were migrated; the overload is a compatibility shim, not a supported form.
+4. **`register` takes `(type, registration)`,** not `(registration)`. The registration carries no
+   `type` in the plan's snippet, and the store is keyed by it.
+5. **`fixed()` is `configurable()` with an empty strict schema,** not a schema-less registration.
+   D3 said "absence of a schema on a stateless strategy is itself a validation error", which left
+   every `fixed` strategy as a latent error. An empty strict schema says the same thing *at the
+   right time*: a config key on a `fixed` strategy is rejected by name.
+6. **Telemetry for tiers 1–2 fires on instance creation, not on every `resolve` call.** The plan
+   said "once per resolution"; a memo hit is not a new choice, and the whole point of the change
+   (§2.3: "a strategy was chosen", not "consulted") is lost if a reconfigure loop re-fires the
+   same event. Tier 0 (`get`) still emits per call — the recall path is unchanged.
+7. **`StrategyExpression` is rejected on non-derivation slots** rather than accepted with `sequence`
+   support. D4 already confined the algebra to derivation, and D7 chose the list as the one
+   spelling; accepting `sequence` for premise would have re-created the collision.
+8. **`AdaptiveStrategy` was kept,** not deleted. §10 tied it to Phase A's verdict, but Phase A's
+   explicit deletion list is `compose` / `composePremise` / `createAdaptive` — the *registry
+   methods*. `AdaptiveStrategy` is a strategy class with direct tests
+   (`tests/nar/unit/strategies.test.ts`) and a public export; deleting exported, tested code to
+   satisfy a follow-up note is the wrong trade. It is now unreachable from config by construction
+   (it cannot be named without a list of strategies), so the "two spellings" concern is already
+   closed by D7.
+9. **Real config knobs were added where none existed.** DoD #2 requires a value-level behavioural
+   proof in *every* stateless slot, and four strategies had no parameter at all. The minimal honest
+   additions: `SimpleAttention(boost)` (the `attention.primeBoost` bound already existed),
+   `RotationSelector(offset)`, `SampledDerivation(fraction)`, plus the already-present
+   `WindowedRoulette(windowSize)`, `TermLink(minStrength, limit)`, `PrologResolution(maxDepth,
+   maxResults, occursCheck)`. Each is a parameter the strategy already branched on, or a bound
+   already published in `cognitiveBounds`.
+10. **`DecompositionStrategy` became a class.** It was the only premise strategy that was an object
+    literal, which made it the one entry a factory could not describe.
+11. **`setStrategyExpression` was removed.** It existed only to turn an expression into a label
+    string. The spec *is* the slot's value now; `getStrategy` returns it verbatim, and the label
+    survives only as the memo key. `tests/nar/refactor2-strategy-consensus.test.ts` was updated
+    accordingly (Bench 90 asserted the old label round-trip).
+
+### 11.3 Configurable surface as shipped
+
+| Slot | Configurable strategies | Keys |
+|---|---|---|
+| sampling | `windowed-roulette` | `windowSize`, `seed` |
+| premise | `term-link`, `embedding-link` | `minStrength`, `limit` |
+| premise | `default-formation`, `bag`, `resolution`, `goal-driven`, `analogical`, `sampled`, `exhaustive`, `semantic` | `sampleSize`, `limit` |
+| premise | `prolog-resolution` | `maxDepth`, `maxResults`, `occursCheck` |
+| derivation | `sampled` | `fraction`, `seed` |
+| lm-rule | `rotation` | `offset` |
+| attention | `simple`, `spreading`, `goal-relevance` | `boost` |
+
+Everything else is `fixed` (an empty strict schema). `lm-graph` is `singleton` and registered
+lazily by the controller, which is the only strategy with a construction side effect.
+
+The premise primitives are declared **once** in `PREMISE_PRIMITIVES` (`selection-strategies.ts`);
+the exported singletons and the registrations are both projections of that table, so a default and
+its configured variant cannot drift. Benches 100 and 101 assert both projections.
+
+### 11.4 New improvement opportunities
+
+- **The premise `filters`/`scorer` are still not user-configurable.** `PREMISE_PRIMITIVES` declares
+  them, so exposing them is a schema change, not a refactor — but `filters: ['sharedAtoms',
+  'noStampOverlap']` is a `FilterSpec[]` and belongs in the schema as a validated enum.
+- **`CompositeAttention` weights.** `config: { models: [{ name, weight }] }` needs the registry at
+  build time, so `configurable` cannot express it today. It is a Tier-2 concern: registering a
+  composite as a named registration would make it configurable. (Was §10's "config-driven
+  attention".)
+- **The `bag` slot is still outside the strategy system.** `strategies.bag.type` selects a bag
+  implementation and has no registration, no config and no validation. It is the last slot without
+  a contract.
+- **The instance caches are unbounded maps.** A caller that mints a fresh config per cycle grows
+  `configured` without limit. Today configs come from a frozen parameter graph, so the digest space
+  is small — but nothing enforces that. An LRU over `configured` would close it, and
+  `complexity:budget` currently cannot see it (the maps are in `cognitive/`, not a trusted path).
+- **`AdaptiveStrategy` is still exported and still unreachable.** If nothing wires it, it should go
+  in a future major with a deprecation cycle (AGENTS.md §Deprecation lifecycle).
+- **`describeSpec` is the only way to render a spec,** and three call sites still build their own
+  rendering (the parameter ledger takes `number | string`).
+- **Association provenance.** Still open from §10: `AssociateOptions` has no `source`, so a link
+  written by a strategy is indistinguishable from one written by inference.
+
+### 11.5 Notes for the remaining work
+
+- The one behaviour change worth re-reading: **the digest covers the *parsed* config**, so a user
+  config equal to the defaults digests identically to no config. That is correct (it is the same
+  instance) but means `config: { minStrength: 0.3 }` and no config share a tier-1 instance rather
+  than tier-0 — a bench must not assume otherwise.
+- `configSchema` is **strict**. A user config with an unrecognised key now throws where it used to
+  be silently ignored. This is the intended fix for finding #1, but it is a visible behaviour
+  change for anyone who had a typo in a working config.
+- `CognitiveController`'s constructor now validates every slot. A `CognitiveParameters` object that
+  was previously tolerated (an unregistered strategy name that happened never to be resolved) now
+  throws at construction. Benches 102 pins both halves of that.
+- `registry.list(type)` returns `StrategyRegistration[]`, not `ComponentMetadata[]`. It had no
+  in-repo consumer; a caller that only wants names can `list(type).map(r => r.name)`.
+- The `deprecated` `register(type, name, impl)` overload should be removed in the next major
+  (AGENTS.md: breaking change = major).

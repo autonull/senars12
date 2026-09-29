@@ -744,11 +744,22 @@ import { CognitiveParameters, DEFAULT_COGNITIVE_PARAMETERS, FAST_COGNITIVE_CONFI
 
 | Strategy Type | Options |
 |---------------|---------|
-| **Sampling** | `priority`, `top-n`, `novelty`, `goal-biased`, `diverse` |
-| **Premise Formation** | `default-formation`, `sample`, `focused` |
-| **Derivation** | `default`, `anytime`, `sampled`, `focused`, `exhaustive` |
-| **LM Rule Selection** | `all`, `priority`, `rotation`, `diverse` |
-| **Attention** | `simple`, `spreading-activation`, `goal-relevance`, `composite` |
+The catalogue below is `nar/src/cognitive/registrations.ts` — the source of truth.
+
+| Strategy Type | Options |
+|---------------|---------|
+| **Sampling** | `priority`, `top-n`, `novelty`, `goal-biased`, `diverse`, `windowed-roulette` |
+| **Premise Formation** | `default-formation`, `bag`, `resolution`, `goal-driven`, `analogical`, `sampled`, `exhaustive`, `semantic`, `decomposition`, `prolog-resolution`, `term-link`, `embedding-link` |
+| **Derivation** | `default`, `anytime`, `focused`, `sampled` |
+| **LM Rule Selection** | `all`, `priority`, `rotation`, `diverse`, `lm-graph` |
+| **Attention** | `simple`, `spreading`, `goal-relevance`, `composite` |
+
+Each slot takes a **spec and a configuration**: a strategy name, a list of names composed into one,
+or — for derivation — a strategy expression. The registry is the only place a strategy is built,
+validated and memoized; `config` is schema-validated and a `stateful` strategy rejects it outright.
+`AdaptiveStrategy` is exported but not reachable from config. See
+[`docs/strategy-composition.md`](docs/strategy-composition.md) for the resolution tiers, the
+stateful rule, and how to register a strategy.
 
 **Optimization-Ready** — `PARAMETER_SPACE` defines min/max/default for every tunable, enabling:
 - RL-based policy optimization (RLFP)

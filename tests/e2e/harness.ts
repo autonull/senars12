@@ -5,7 +5,7 @@ import type { Task } from '@senars/nar/types/core.js';
 import { Truth } from '@senars/nar/index.js';
 import { NAR } from '@senars/nar/nar.js';
 import type { NARConfig } from '@senars/nar/facade/config.js';
-import type { StrategyRegistry } from '@senars/nar/strategies/types.js';
+import type { StrategyRegistry } from '@senars/nar/strategies/registration.js';
 import { e2eNARConfig } from './fixtures.js';
 
 export interface ScenarioSpec {

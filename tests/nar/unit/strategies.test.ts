@@ -146,7 +146,7 @@ describe('Core Strategies', () => {
 
   describe('DecompositionStrategy', () => {
     it('should have correct name', () => {
-      expect(DecompositionStrategy.name).toBe('decomposition');
+      expect(new DecompositionStrategy().name).toBe('decomposition');
     });
 
     it('should decompose conjunctions into components', async () => {
@@ -154,7 +154,7 @@ describe('Core Strategies', () => {
 
       const task = nar.taskManager.peekTask();
       if (task && task.term.kind === 'conjunction') {
-        const results = DecompositionStrategy.selectSecondary(task, nar.memory);
+        const results = new DecompositionStrategy().selectSecondary(task, nar.memory);
         expect(Array.isArray(results)).toBe(true);
         expect(results.length).toBeGreaterThan(0);
       } else {
@@ -162,7 +162,7 @@ describe('Core Strategies', () => {
         const conjunctionConcept = concepts.find((c) => c.term.kind === 'conjunction');
         if (conjunctionConcept) {
           const mockTask = createTask(conjunctionConcept.term, 'belief', Truth.create(0.9, 0.9));
-          const results = DecompositionStrategy.selectSecondary(mockTask, nar.memory);
+          const results = new DecompositionStrategy().selectSecondary(mockTask, nar.memory);
           expect(Array.isArray(results)).toBe(true);
           expect(results.length).toBeGreaterThan(0);
         }
@@ -174,7 +174,7 @@ describe('Core Strategies', () => {
 
       const task = nar.taskManager.peekTask();
       if (task) {
-        const results = DecompositionStrategy.selectSecondary(task, nar.memory);
+        const results = new DecompositionStrategy().selectSecondary(task, nar.memory);
         expect(results.length).toBe(0);
       }
     });

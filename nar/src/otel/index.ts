@@ -295,10 +295,12 @@ export function emitBackpressureDecision(attributes: {
   }
 }
 
-/** F1: Strategy selection span event. */
+/** F1: Strategy selection span event — one event per *resolution*, not per recall. */
 export function emitStrategySelection(attributes: {
   strategyType: 'sampling' | 'premise' | 'derivation' | 'lm-rule' | 'attention';
   strategyName: string;
+  /** Tier 1/2 identity: the config digest or composition label. Absent at tier 0. */
+  configDigest?: string;
   context?: Record<string, string | number | boolean>;
 }): void {
   const span = trace.getActiveSpan();
@@ -307,6 +309,7 @@ export function emitStrategySelection(attributes: {
       'strategy.type': attributes.strategyType,
       'strategy.name': attributes.strategyName,
     };
+    if (attributes.configDigest) flatAttrs['strategy.config_digest'] = attributes.configDigest;
     if (attributes.context) {
       for (const [key, value] of Object.entries(attributes.context)) {
         flatAttrs[`strategy.context.${key}`] = value;

@@ -7,20 +7,19 @@
  * snapshot/restore, append-only ledger for the audit trail.
  */
 import type { ParameterLedger } from '../../config/parameter-ledger.js';
-import type { StrategyType } from '../../strategies/index.js';
-import type { StrategyExpression } from '../../reason/strategy-algebra.js';
+import { describeSpec, type StrategySpec, type StrategyType } from '../../strategies/index.js';
 import type { Retrospective } from '../types.js';
 
 /** Structural surface of `CognitiveController` this consumer needs. */
 export interface StrategyController {
-  getStrategy(type: StrategyType): string | undefined;
-  setStrategy(type: StrategyType, name: string | StrategyExpression): void;
+  getStrategy(type: StrategyType): StrategySpec | undefined;
+  setStrategy(type: StrategyType, spec: StrategySpec, config?: Record<string, unknown>): void;
 }
 
 export interface AdaptationRecord {
   retrospectiveDigest: string;
-  from: Partial<Record<StrategyType, string | undefined>>;
-  to: Partial<Record<StrategyType, string>>;
+  from: Partial<Record<StrategyType, StrategySpec | undefined>>;
+  to: Partial<Record<StrategyType, StrategySpec>>;
   at: number;
 }
 
@@ -73,7 +72,7 @@ export class RetrospectiveAdapter {
         writer: 'retrospective-adapter',
         scope: 'strategy',
         parameter: `strategy:${type}`,
-        oldValue: from[type] ?? '',
+        oldValue: from[type] === undefined ? '' : describeSpec(from[type]),
         newValue: name,
         at: Date.now(),
         trigger: r.digest,

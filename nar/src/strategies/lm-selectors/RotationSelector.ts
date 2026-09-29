@@ -4,8 +4,10 @@ import type { LMRuleSelectionContext, LMRuleSelector } from '../types.js';
 export class RotationSelector implements LMRuleSelector {
   readonly metadata = { name: 'rotation', description: 'Round-robin across cycles' };
 
+  constructor(private readonly offset = 0) {}
+
   select(rules: LMRule[], ctx: LMRuleSelectionContext): LMRule[] {
-    const start = ctx.rotationIndex ?? 0;
+    const start = (ctx.rotationIndex ?? 0) + this.offset;
     const result: LMRule[] = [];
     for (let i = 0; i < ctx.maxRules && result.length < rules.length; i++) {
       const rule = rules[(start + i) % rules.length];

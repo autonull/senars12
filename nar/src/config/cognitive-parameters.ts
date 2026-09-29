@@ -1,6 +1,13 @@
 import { createLogger } from '@senars/core/logger';
 import { cognitiveBounds, getCognitiveBound } from '@senars/util/config';
 import { deepEqual, deepFreeze } from '@senars/util/utils/shared';
+import {
+  strategySpecErrors,
+  type StrategyCatalog,
+  type StrategyConfig,
+  type StrategySpec,
+  type StrategyType,
+} from '../strategies/registration';
 
 const log = createLogger({ scope: 'cognitive-params' });
 
@@ -38,20 +45,39 @@ export interface CognitiveParameters {
 
   /** Pluggable strategy configuration */
   strategies: {
-    sampling: { type: string; config?: Record<string, unknown> };
+    sampling: StrategySlotParams;
     /**
      * One premise strategy, or several composed per task. A list lets several
      * associative memories (term links, embedding similarity, co-activation)
      * contribute premises in one pass; overlapping terms are deduped to the
      * highest-priority claim.
      */
-    premise: { type: string | string[]; config?: Record<string, unknown> };
-    derivation: { type: string; config?: Record<string, unknown> };
-    lmRule: { type: string; maxRules: number; config?: Record<string, unknown> };
-    attention: { type: string; config?: Record<string, unknown> };
+    premise: StrategySlotParams;
+    derivation: StrategySlotParams;
+    lmRule: StrategySlotParams & { maxRules: number };
+    attention: StrategySlotParams;
     bag: { type: 'priority' | 'fenwick'; config?: Record<string, unknown> };
   };
 }
+
+/**
+ * A strategy slot names a strategy and its configuration; the registry turns
+ * that pair into a validated, memoized instance (TODO27 §2.2). A list names
+ * several strategies composed into one.
+ */
+export interface StrategySlotParams {
+  type: StrategySpec;
+  config?: StrategyConfig;
+}
+
+/** Slot key ↔ registry type: the config uses `lmRule`, the registry `lm-rule`. */
+export const STRATEGY_SLOTS = {
+  sampling: { key: 'sampling', type: 'sampling' },
+  premise: { key: 'premise', type: 'premise' },
+  derivation: { key: 'derivation', type: 'derivation' },
+  lmRule: { key: 'lmRule', type: 'lm-rule' },
+  attention: { key: 'attention', type: 'attention' },
+} as const satisfies Record<string, { key: keyof CognitiveParameters['strategies']; type: StrategyType }>;
 
 export interface PriorityConfig {
   /** Initial priority for new concepts */
@@ -313,9 +339,18 @@ export const PARAMETER_SPACE = {
 } as const;
 
 /**
- * Validate cognitive parameters
+ * Validate cognitive parameters.
+ *
+ * `catalog` is the registry's read-only slice. It is injected rather than
+ * imported because `cognitive/registry.ts` already depends on this module, and
+ * `strategies/registration` is a leaf: the strategy pass needs no registry
+ * import to exist. Without a catalog the strategy pass is skipped, so a caller
+ * that only has numbers still gets the numeric validation.
  */
-export function validateParameters(params: Partial<CognitiveParameters>): {
+export function validateParameters(
+  params: Partial<CognitiveParameters>,
+  catalog?: StrategyCatalog
+): {
   valid: boolean;
   errors: string[];
 } {
@@ -335,6 +370,22 @@ export function validateParameters(params: Partial<CognitiveParameters>): {
 
   if (params.lm?.selectionStrategy) {
     log.warn('selectionStrategy in LMConfig is deprecated. Use strategies.lmRule.type instead.');
+  }
+
+  if (catalog && params.strategies) {
+    for (const slot of Object.values(STRATEGY_SLOTS)) {
+      const params_ = params.strategies[slot.key];
+      if (!params_) continue;
+      errors.push(
+        ...strategySpecErrors(
+          slot.key,
+          slot.type,
+          params_.type,
+          params_.config,
+          catalog.list(slot.type)
+        )
+      );
+    }
   }
 
   return {

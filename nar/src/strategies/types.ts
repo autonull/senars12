@@ -120,28 +120,4 @@ export interface SearchSpace {
   parameters: Record<string, SearchSpaceParam>;
 }
 
-// ── StrategyRegistry ──────────────────────────
-export interface StrategyRegistry {
-  register(
-    type: StrategyType,
-    name: string,
-    impl: SamplingStrategy | Strategy | DerivationStrategy | LMRuleSelector | AttentionModel
-  ): void;
 
-  get<T>(type: StrategyType, name: string): T;
-
-  list(type: StrategyType): ComponentMetadata[];
-
-  has(type: StrategyType, name: string): boolean;
-
-  unregister(type: StrategyType, name: string): boolean;
-
-  composePremise(strategies: Array<{ name: string; weight: number }>): Strategy;
-
-  compose<T extends SamplingStrategy | Strategy | DerivationStrategy | LMRuleSelector | AttentionModel>(
-    type: StrategyType,
-    strategies: Array<{ name: string; weight: number }>
-  ): T;
-
-  createAdaptive(strategies: string[]): Strategy;
-}

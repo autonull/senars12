@@ -13,6 +13,7 @@
 
 import type { ConceptGraph } from '@senars/core/concept-graph';
 import type { Layer } from './links/Layer.js';
+import type { LinkType } from './links/types.js';
 import type { Term } from '../terms/index.js';
 
 /** Name of the co-activation graph memory. */
@@ -29,10 +30,21 @@ export interface RecallOptions {
   minStrength?: number;
 }
 
+export interface AssociateOptions {
+  /** Link strength in [0, 1]; defaults to the layer's default priority. */
+  strength?: number;
+  type?: LinkType;
+}
+
 export interface AssociativeMemory {
   readonly name: string;
   /** Terms associated with `term`, strongest first. Empty when the term is unknown. */
   recall(term: Term, options?: RecallOptions): RecallHit[];
+  /**
+   * Optional write verb. A read-through view legitimately cannot write, so its
+   * absence is a valid implementation rather than a special case (TODO27 D6).
+   */
+  associate?(from: Term, to: Term, options?: AssociateOptions): boolean;
 }
 
 /**
@@ -51,6 +63,12 @@ export class LinkLayerMemory implements AssociativeMemory {
     return (this.layer()?.getLinksByTerm(term, { minPriority: minStrength, maxResults: limit }) ?? []).map(
       (link) => ({ term: link.targetTerm, strength: link.priority })
     );
+  }
+
+  associate(from: Term, to: Term, { strength, type }: AssociateOptions = {}): boolean {
+    const layer = this.layer();
+    if (!layer) return false;
+    return layer.addLink({ sourceTerm: from, targetTerm: to, priority: strength, type }) !== null;
   }
 }
 
@@ -111,5 +129,10 @@ export class AssociativeRegistry {
 
   recall(name: string, term: Term, options?: RecallOptions): RecallHit[] {
     return this.get(name)?.recall(term, options) ?? [];
+  }
+
+  /** Record an association; `false` when the memory behind the name cannot write. */
+  associate(name: string, from: Term, to: Term, options?: AssociateOptions): boolean {
+    return this.get(name)?.associate?.(from, to, options) ?? false;
   }
 }

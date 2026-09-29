@@ -30,9 +30,14 @@ export type {
   SearchSpace,
   SearchSpaceParam,
   Strategy,
-  StrategyRegistry,
   StrategyType,
 } from '../strategies/types.js';
+export type {
+  StrategyConfig,
+  StrategyRegistration,
+  StrategyRegistry,
+  StrategySpec,
+} from '../strategies/registration.js';
 export { CognitiveController } from './controller';
 export { runCounterfactual } from './counterfactual.js';
 export { CognitiveRegistry } from './registry';

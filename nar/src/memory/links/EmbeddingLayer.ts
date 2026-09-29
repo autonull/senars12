@@ -10,13 +10,6 @@ export interface EmbeddingLayerConfig {
   maxLinksPerConcept: number;
 }
 
-export interface StoredEntry {
-  id: string;
-  embedding: number[];
-  text: string;
-  metadata: Record<string, unknown>;
-}
-
 interface IndexedEmbedding {
   term: Term;
   embedding: number[];
@@ -32,7 +25,6 @@ export class EmbeddingLayer extends Layer {
   private readonly maxLinksPerConcept: number;
   private readonly embeddingGenerator: EmbeddingGenerator;
   private readonly termEmbeddings = new Map<string, IndexedEmbedding>();
-  private readonly storedEntries = new Map<string, StoredEntry>();
 
   constructor(config: EmbeddingLayerConfig) {
     super(LINK_LAYER.EMBEDDING, config.capacity, 'priority');
@@ -88,28 +80,5 @@ export class EmbeddingLayer extends Layer {
   async removeConcept(term: Term): Promise<void> {
     this.termEmbeddings.delete(term.toString());
     this.removeAllLinksForTerm(term);
-  }
-
-  async store(entry: StoredEntry): Promise<void> {
-    this.storedEntries.set(entry.id, entry);
-  }
-
-  async search(
-    queryEmbedding: number[],
-    n: number
-  ): Promise<Array<{ id: string; text: string; metadata: Record<string, unknown>; score: number }>> {
-    const results: Array<{ id: string; text: string; metadata: Record<string, unknown>; score: number }> =
-      [];
-
-    for (const [id, entry] of this.storedEntries) {
-      const score = cosineSimilarity(queryEmbedding, entry.embedding);
-      if (score > 0) results.push({ id, text: entry.text, metadata: entry.metadata, score });
-    }
-
-    return selectTopN(results, n, (r) => r.score);
-  }
-
-  async getAll(): Promise<Array<{ id: string; text: string; metadata: Record<string, unknown> }>> {
-    return [...this.storedEntries.values()].map(({ id, text, metadata }) => ({ id, text, metadata }));
   }
 }

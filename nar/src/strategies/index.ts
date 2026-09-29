@@ -17,6 +17,27 @@ export type {
   SearchSpace,
   SearchSpaceParam,
   Strategy,
-  StrategyRegistry,
   StrategyType,
 } from './types.js';
+
+export type {
+  CompositeSpec,
+  ConfigSchema,
+  ResolutionTier,
+  StrategyCatalog,
+  StrategyConfig,
+  StrategyRegistration,
+  StrategyRegistry,
+  StrategySpec,
+} from './registration.js';
+export {
+  canonicalJson,
+  configDigest,
+  configurable,
+  configSchema,
+  describeSpec,
+  fixed,
+  isStrategyExpression,
+  singleton,
+  strategySpecErrors,
+} from './registration.js';
