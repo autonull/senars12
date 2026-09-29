@@ -23,7 +23,6 @@ const GUARDRAIL_FRAGMENTS = [
   'rlfp/',
   'kernel/src/schemas',
   'util/src/types/cognitive',
-  'nar/src/config/budget',
 ];
 
 const CRITICAL_COMPONENTS = [

@@ -1,4 +1,4 @@
-import { wordOverlap } from '@senars/util';
+import { getOrInsert, wordOverlap } from '@senars/util';
 import type { Term } from '../terms';
 import { TermMap } from '../terms';
 import type { Task } from '../types';
@@ -7,9 +7,7 @@ export const findConflicts = (beliefs: Task[]): Array<{ a: Term; b: Term }> => {
   const byTerm = new TermMap<Array<{ term: Term; f: number }>>();
   for (const b of beliefs) {
     if (!b.truth) continue;
-    const list = byTerm.get(b.term) ?? [];
-    list.push({ term: b.term, f: b.truth.f });
-    byTerm.set(b.term, list);
+    getOrInsert(byTerm, b.term, () => []).push({ term: b.term, f: b.truth.f });
   }
   const conflicts: Array<{ a: Term; b: Term }> = [];
   for (const truths of byTerm.values()) {

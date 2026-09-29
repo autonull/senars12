@@ -1,3 +1,5 @@
+import { sortBy } from '@senars/util';
+
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import type { SamplingStrategy } from '../types.js';
@@ -9,9 +11,6 @@ export class NoveltySampling implements SamplingStrategy {
   };
 
   sample(memory: MemoryView, count: number): Concept[] {
-    return memory
-      .listConcepts()
-      .sort((a, b) => (a.lastAccessedAt ?? 0) - (b.lastAccessedAt ?? 0))
-      .slice(0, count);
+    return sortBy(memory.listConcepts(), (c) => c.lastAccessedAt ?? 0).slice(0, count);
   }
 }

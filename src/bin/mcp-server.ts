@@ -11,7 +11,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { DialogueCapture } from '@senars/nar/dialogue';
 import { createLogger } from '@senars/nar/logger';
-import { generateId, parseFlags, setupGracefulShutdown } from '@senars/util';
+import { BoundedMap, generateId, parseFlags, setupGracefulShutdown } from '@senars/util';
 import { HttpGuard, rejectWithStatus } from './lib/http-guards.js';
 import { createAgentFromEnv } from './lib/lifecycle.js';
 import { JobManager } from './lib/mcp/job-manager.js';
@@ -39,8 +39,11 @@ const getTransportType = (): TransportType =>
 
 const getHttpPort = (): number => flags.num('--port', Number(process.env.MCP_PORT ?? 8766));
 
+/** Concurrent SSE sessions one HTTP transport keeps before recycling the least recently used. */
+const MAX_SSE_SESSIONS = 64;
+
 const startSse = (port: number, guard: HttpGuard): void => {
-  const sessions = new Map<string, SSEServerTransport>();
+  const sessions = new BoundedMap<string, SSEServerTransport>({ maxSize: MAX_SSE_SESSIONS, eviction: 'lru' });
 
   const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? '/', `http://localhost:${port}`);

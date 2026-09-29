@@ -1,13 +1,12 @@
 import type { GameOutcome } from '../game/Game.js';
-import type { Focus, FocusTask } from '../focus/Focus.js';
+import type { FocusTask } from '../focus/Focus.js';
+import { clamp01 } from '../utils';
 import { focusTask, rewardTerm, stateTerm } from './tasks.js';
 
 export class RewardGate {
-  constructor(private readonly focus: Focus) {}
-
   toBeliefs(outcome: GameOutcome): FocusTask[] {
     const now = Date.now();
-    const magnitude = Math.min(1, Math.abs(outcome.reward) + 0.1);
+    const magnitude = clamp01(Math.abs(outcome.reward) + 0.1);
 
     const beliefs: FocusTask[] = [
       focusTask({

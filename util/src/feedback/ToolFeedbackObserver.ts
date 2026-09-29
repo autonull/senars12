@@ -1,3 +1,4 @@
+import { selectTopN } from '../utils/collections.js';
 import type { ToolResult } from '../types/engine.js';
 
 export interface ToolFeedback {
@@ -58,9 +59,7 @@ export class DefaultToolFeedbackObserver implements ToolFeedbackObserver {
   }
 
   getFeedbackString(limit: number): string {
-    return Array.from(this.feedback.values())
-      .sort((a, b) => b.totalCalls - a.totalCalls)
-      .slice(0, limit)
+    return selectTopN(this.feedback.values(), limit, (f) => f.totalCalls)
       .map((f) => `${f.name}: ${f.lastResult || f.lastError || 'no result'}`)
       .join('\n');
   }

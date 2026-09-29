@@ -1,6 +1,7 @@
 import type { ToolFeedback, ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
 import { SenarsError } from '@senars/util/errors';
+import { maxBy } from '@senars/util';
 import { createLogger } from '@senars/core/logger';
 import { BoundedRing } from '../utils/collections.js';
 import type { Term } from '../terms';
@@ -146,17 +147,8 @@ export class ToolManager {
     const preference = context?.preference || 'first';
 
     if (preference === 'best') {
-      let best: string | null = null;
-      let bestScore = -1;
-      for (const name of tools) {
-        const seen = this.getFeedback(name);
-        const score = seen?.successRate ?? 0;
-        if (score > bestScore) {
-          bestScore = score;
-          best = name;
-        }
-      }
-      return best || tools[0]!;
+      const best = maxBy(tools, (name) => this.getFeedback(name)?.successRate ?? 0);
+      return best ?? tools[0]!;
     }
 
     if (preference === 'random') {

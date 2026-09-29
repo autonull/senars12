@@ -1,5 +1,5 @@
 import { promises as fs } from 'node:fs';
-import { cachePath, sha256HexParts, writeJsonFile } from '@senars/util';
+import { cachePath, getOrInsert, sha256HexParts, writeJsonFile } from '@senars/util';
 import { holdoutSplit, mulberry32 } from '../../utils/random.js';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration.js';
 import type { JudgmentDataset } from './distill.js';
@@ -145,9 +145,7 @@ export function fitCalibrationLock(
   const data = extractLabeledDataWithDerivedOutcomes(dataset, options.headIds);
   const byHead = new Map<string, LabeledDatum[]>();
   for (const d of data) {
-    const list = byHead.get(d.headId) ?? [];
-    list.push(d);
-    byHead.set(d.headId, list);
+    getOrInsert(byHead, d.headId, () => []).push(d);
   }
 
   const perHead = new Map<string, IsotonicCalibrator>();

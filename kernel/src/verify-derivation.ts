@@ -13,6 +13,7 @@
  * independence is enforced by the dependency graph rather than by convention.
  */
 
+import { formatIssues } from '@senars/util';
 import { DerivationRecordSchema } from './schemas.js';
 import type { DerivationRecord, DerivationStep, TruthValue } from './schemas.js';
 
@@ -221,10 +222,7 @@ export function verifyRecord(record: DerivationRecord, options: VerifyOptions = 
 
   const parsed = DerivationRecordSchema.safeParse(record);
   if (!parsed.success) {
-    fail(
-      'record-shape',
-      parsed.error.issues.map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`).join('; ')
-    );
+    fail('record-shape', formatIssues(parsed.error.issues));
   } else {
     const { steps, finalTruth, taskId, totalCycles } = parsed.data;
     const toVerify = options.maxSteps ? steps.slice(0, options.maxSteps) : steps;

@@ -1,3 +1,5 @@
+import { selectTopN } from '@senars/util';
+
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import { termKey } from '../../terms';
@@ -26,6 +28,6 @@ export class CompositeSampling implements SamplingStrategy {
         if (!held || concept.priority > held.priority) strongest.set(key, concept);
       }
     }
-    return [...strongest.values()].sort((a, b) => b.priority - a.priority).slice(0, count);
+    return selectTopN(strongest.values(), count, (concept) => concept.priority);
   }
 }

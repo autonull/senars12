@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { createIsotonicCalibrator } from '../lm/system-one/calibration.js';
 import { identityECE, meanBrier } from '../lm/system-one/metrics.js';
 import { ensureDir } from '../utils/fs.js';
-import { mean, pct } from '@senars/util';
+import { incrementCount, mean, pct } from '@senars/util';
 
 export interface ArcadeTickRecord {
   arm: string;
@@ -42,8 +42,7 @@ export class BrierHarness {
 
   record(record: ArcadeTickRecord): void {
     this.records.push(record);
-    if (record.handover)
-      this.handoverByGame.set(record.game, (this.handoverByGame.get(record.game) ?? 0) + 1);
+    if (record.handover) incrementCount(this.handoverByGame, record.game);
   }
 
   get size(): number {

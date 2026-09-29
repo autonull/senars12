@@ -1,7 +1,7 @@
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
 import type { Budget, Stamp, Task } from '../types';
-import { pct } from '@senars/util';
+import { BoundedMap, pct } from '@senars/util';
 
 export interface DerivationNode {
   task: Task;
@@ -47,10 +47,14 @@ export interface MemoryReader {
 
 export class ReasoningTrace {
   private readonly memory: MemoryReader;
-  private readonly derivationHistory: Map<string, DerivationNode> = new Map();
+  private readonly derivationHistory: BoundedMap<string, DerivationNode>;
 
-  constructor(memory: MemoryReader) {
+  constructor(memory: MemoryReader, maxDerivations = 1000) {
     this.memory = memory;
+    this.derivationHistory = new BoundedMap<string, DerivationNode>({
+      maxSize: maxDerivations,
+      eviction: 'fifo',
+    });
   }
 
   getDerivationHistory(task: Task): Task[] {

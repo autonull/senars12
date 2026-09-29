@@ -7,7 +7,7 @@ import type {
 } from '@senars/kernel/schemas';
 import { AutonomyModeChangedEventSchema } from '@senars/kernel/schemas';
 import { SenarsError } from '@senars/util/errors';
-import { makeId, pushCapped } from '@senars/util';
+import { addToSet, makeId, pushCapped } from '@senars/util';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
 import { KernelGate } from './gate-base.js';
 import { recordGateDecision } from '../telemetry/index.js';
@@ -122,12 +122,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
   }
 
   addScopedOperation(scopeId: string, operation: string): void {
-    let ops = this.scopeOperations.get(scopeId);
-    if (!ops) {
-      ops = new Set();
-      this.scopeOperations.set(scopeId, ops);
-    }
-    ops.add(operation);
+    addToSet(this.scopeOperations, scopeId, operation);
   }
 
   removeScope(scopeId: string): void {

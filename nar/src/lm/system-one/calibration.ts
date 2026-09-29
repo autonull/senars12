@@ -1,4 +1,4 @@
-import { trimCapped } from '@senars/util';
+import { maxScore, trimCapped } from '@senars/util';
 import type { CalibrationVersion, RubricId } from './types.js';
 
 /** Fitted points retained per calibrator; older points stop steering the fit. */
@@ -251,11 +251,7 @@ export class DriftDemotionManager {
     const health = this.#backendHealth.get(backendId);
     if (!health) return null;
 
-    let maxECE = 0;
-    for (const calibrator of health.calibrators.values()) {
-      const ece = calibrator.getECE();
-      if (ece > maxECE) maxECE = ece;
-    }
+    const maxECE = maxScore(health.calibrators.values(), (calibrator) => calibrator.getECE());
 
     health.rollingECE = maxECE;
 
@@ -305,11 +301,7 @@ export class DriftDemotionManager {
     if (!health?.isDemoted) return false;
     if (!this.canRecover(backendId, cycleNumber)) return false;
 
-    let maxECE = 0;
-    for (const calibrator of health.calibrators.values()) {
-      const ece = calibrator.getECE();
-      if (ece > maxECE) maxECE = ece;
-    }
+    const maxECE = maxScore(health.calibrators.values(), (calibrator) => calibrator.getECE());
 
     if (maxECE <= this.#config.eceThreshold * 0.8) {
       health.isDemoted = false;

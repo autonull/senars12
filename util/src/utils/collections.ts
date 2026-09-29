@@ -8,6 +8,16 @@
  * displaced item, which is what a sliding-window caller needs and what every
  * other caller ignores.
  */
+/**
+ * The read surface every consumer of a keyed container needs and no more —
+ * `Map`, `BoundedMap`, and any bounded projection all satisfy it, so a caller
+ * that only looks keys up does not have to name a container.
+ */
+export interface ReadOnlyLookup<K, V> extends Iterable<[K, V]> {
+  get(key: K): V | undefined;
+  has(key: K): boolean;
+}
+
 export function pushCapped<T>(log: T[], item: T, capacity: number): T | undefined {
   log.push(item);
   return log.length > capacity ? log.shift() : undefined;
@@ -63,6 +73,21 @@ export function maxBy<T>(
     }
   }
   return best;
+}
+
+/**
+ * Highest `score` over `items`, floored at 0. Single pass over the iterable
+ * with no intermediate array and no second evaluation of `score` — `maxBy`
+ * returns the winning item instead, which forces callers that only want the
+ * number to either re-derive it or copy the collection first.
+ */
+export function maxScore<T>(items: Iterable<T>, score: (item: T) => number): number {
+  let max = 0;
+  for (const item of items) {
+    const value = score(item);
+    if (value > max) max = value;
+  }
+  return max;
 }
 
 /** Insert into a descending-sorted list in O(n) — no full re-sort, unlike
@@ -194,6 +219,11 @@ export class BoundedRing<T> {
   /** Append, dropping the oldest item past capacity. Returns what was displaced. */
   push(item: T): T | undefined {
     return pushCapped(this.#items, item, this.capacity);
+  }
+
+  /** Remove and return the oldest item — the dequeue half of {@link push}. */
+  shift(): T | undefined {
+    return this.#items.shift();
   }
 
   clear(): void {

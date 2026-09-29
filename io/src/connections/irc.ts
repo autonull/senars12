@@ -1,4 +1,5 @@
 import { createLogger } from '@senars/core/logger';
+import { BoundedRing } from '@senars/util';
 import irc, { type Client as IRCClient } from 'irc';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { BaseConnection } from './base.js';
@@ -22,13 +23,22 @@ export interface IRCConnectionConfig {
   greeting?: string;
 }
 
+/** One outbound line held back by flood protection. */
+interface QueuedMessage {
+  target: string;
+  message: string;
+}
+
+/** Deepest outbound backlog a connection keeps while the peer is rate-limiting. */
+const MAX_QUEUED_MESSAGES = 1000;
+
 export class IRCConnection extends BaseConnection {
   override readonly type = 'irc';
   override readonly logger = createLogger({ scope: 'io:irc' });
   private client: IRCClient | null = null;
   private readonly ircConfig: IRCConnectionConfig;
   private pendingMessages: Map<string, string[]> = new Map();
-  private messageQueue: Array<{ target: string; message: string }> = [];
+  private readonly messageQueue: BoundedRing<QueuedMessage>;
   private queueTimer: ReturnType<typeof setInterval> | null = null;
   private connected = false;
   private readyAt = 0;
@@ -38,6 +48,7 @@ export class IRCConnection extends BaseConnection {
     const cfg = config.config as unknown as IRCConnectionConfig;
     const nick = cfg.nick ?? 'senars';
     this.name = nick;
+    this.messageQueue = new BoundedRing<QueuedMessage>(MAX_QUEUED_MESSAGES);
     this.ircConfig = {
       server: cfg.server ?? 'localhost',
       port: cfg.port ?? 6667,
@@ -175,8 +186,8 @@ export class IRCConnection extends BaseConnection {
   }
 
   private drainQueue(): void {
-    while (this.messageQueue.length > 0) {
-      const next = this.messageQueue[0];
+    while (this.messageQueue.size > 0) {
+      const next = this.messageQueue.first();
       if (!next) break;
       const pending = this.pendingMessages.get(next.target) ?? [];
       if (pending.length >= (this.ircConfig.floodProtectionMaxPending ?? 3)) break;
@@ -223,7 +234,7 @@ export class IRCConnection extends BaseConnection {
   private dispose(): void {
     this.stopQueueDrain();
     this.pendingMessages.clear();
-    this.messageQueue = [];
+    this.messageQueue.clear();
     this.connected = false;
     if (this.client) {
       this.client.removeAllListeners();

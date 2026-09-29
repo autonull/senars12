@@ -11,7 +11,7 @@ import { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
 import { initializeMetaReasoning, registerMetaRules } from '@senars/nar/rules';
 import { initializeSelfConcept } from '@senars/nar/tools';
-import { bar, divider, mean, pct } from '@senars/util';
+import { bar, divider, formatNarseseTruth, mean, pct } from '@senars/util';
 import { runEntrypoint } from './lib/fatal-error.js';
 
 const logger = createLogger({ scope: 'self-report' });
@@ -195,7 +195,7 @@ async function main() {
     .slice(0, 5);
   for (const bc of topBeliefs) {
     const { belief, concept } = bc;
-    const truth = belief.truth ? `:${belief.truth.f.toFixed(2)}:${belief.truth.c.toFixed(2)}` : '';
+    const truth = belief.truth ? formatNarseseTruth(belief.truth) : '';
     console.log(`  [${concept.priority.toFixed(2)}] ${belief.term.toString()}${truth}`);
   }
 

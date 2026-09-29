@@ -1,4 +1,4 @@
-import { BoundedMap, type EvictionOrder } from '@senars/util';
+import { BoundedMap, type EvictionOrder, occupancy } from '@senars/util';
 import { termKey, type Term } from '../../terms';
 import type { RandomSource } from '../../types/primitives.js';
 import { addToSet } from '../../utils/collections.js';
@@ -141,7 +141,7 @@ export class Layer {
 
   /** Occupancy in `0..1` — the AIKR pressure signal; a zero-capacity layer is under full pressure. */
   pressure(): number {
-    return this.capacity < 1 ? 1 : this.links.pressure();
+    return occupancy(this.links.size, this.capacity);
   }
 
   private collect(ids: Iterable<string>, query: LinkQuery): LinkEntry[] {

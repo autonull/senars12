@@ -1,16 +1,23 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { DialogueCapture as DialogueCaptureType } from '@senars/nar/dialogue';
 import { retrospect, selectProbes } from '@senars/nar/dialogue';
+import type { ReadOnlyLookup } from '@senars/util';
 import { z } from 'zod';
 import type { EpisodicMemory } from '../../../../nar/src/memory/EpisodicMemory.js';
 import { ANNOTATIONS, createMCPResponse, stringifyMCP } from './mcp-response.js';
+
+const EMPTY_GRADES: ReadOnlyLookup<string, number> = {
+  get: () => undefined,
+  has: () => false,
+  [Symbol.iterator]: () => [][Symbol.iterator](),
+};
 
 export interface DialogueToolsOptions {
   dialogue: DialogueCaptureType;
   /** Episodic memory backing turns/reactions — required by turns/retrospect/probes. */
   episodic?: EpisodicMemory;
   /** Trace grades by correlationId (for curriculum probe selection, TODO25 Phase C). */
-  traceGrades?: ReadonlyMap<string, number>;
+  traceGrades?: ReadOnlyLookup<string, number>;
 }
 
 interface TurnRow {
@@ -129,7 +136,7 @@ export function registerDialogueTools(server: McpServer, options: DialogueToolsO
       const probes = await selectProbes(
         {
           reactions: () => episodic.getEpisodes({ type: 'reaction', limit: 1000 }),
-          grades: () => traceGrades ?? new Map<string, number>(),
+          grades: () => traceGrades ?? EMPTY_GRADES,
         },
         { limit }
       );

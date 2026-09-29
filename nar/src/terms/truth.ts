@@ -1,5 +1,5 @@
 import type { Confidence, Frequency } from '@senars/util';
-import { formatTruth, serializeTruth } from '@senars/util';
+import { formatTruth, parseTruthLiteral, serializeTruth } from '@senars/util';
 import { clamp, safeDiv } from '../utils';
 
 export interface Truth {
@@ -141,13 +141,10 @@ export const Truth = {
   serialize: (t: Truth): string => serializeTruth(t),
   format: (t: Truth, fractionDigits = 2): string => formatTruth(t, fractionDigits),
   deserialize: (s: string): Truth | null => {
-    const match = s.match(/%\s*([0-9.]+)\s*;\s*([0-9.]+)\s*%/);
-    return match
-      ? createTruth(Number.parseFloat(match[1]!) ?? 0.5, Number.parseFloat(match[2]!) ?? 0.9)
-      : null;
+    const parsed = parseTruthLiteral(s);
+    return parsed ? createTruth(parsed.f, parsed.c) : null;
   },
-  equals: (t1: Truth, t2: Truth, epsilon = 1e-3): boolean =>
-    Math.abs(t1.f - t2.f) < epsilon && Math.abs(t1.c - t2.c) < epsilon,
+  equals: (t1: Truth, t2: Truth, epsilon = 1e-3): boolean => isTruthEqual(t1, t2, epsilon),
   compare: (t1: Truth, t2: Truth): number => {
     const diff = Truth.expectation(t1) - Truth.expectation(t2);
     return Math.abs(diff) < 1e-9 ? 0 : diff > 0 ? 1 : -1;
@@ -174,5 +171,6 @@ export const Truth = {
   },
 } as const;
 
+/** The one epsilon-tolerant truth comparison; `Truth.equals` is the member form. */
 export const isTruthEqual = (a: Truth, b: Truth, epsilon = 1e-3): boolean =>
   Math.abs(a.f - b.f) < epsilon && Math.abs(a.c - b.c) < epsilon;

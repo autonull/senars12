@@ -1,13 +1,14 @@
 import type { Perception } from '../game/Game.js';
-import type { Focus, FocusTask } from '../focus/Focus.js';
+import type { FocusTask } from '../focus/Focus.js';
+import { clamp01 } from '../utils';
 import { featureTerm, focusTask, stateTerm } from './tasks.js';
 
-export class PerceptionGate {
-  constructor(private readonly focus: Focus) {}
+const DEFAULT_PERCEPTION_CONFIDENCE = 0.9;
 
+export class PerceptionGate {
   toBeliefs(perception: Perception): FocusTask[] {
     const now = Date.now();
-    const confidence = perception.confidence ?? 0.9;
+    const confidence = perception.confidence ?? DEFAULT_PERCEPTION_CONFIDENCE;
 
     const beliefs: FocusTask[] = [
       focusTask({
@@ -28,10 +29,10 @@ export class PerceptionGate {
           id: `percept-feature-${feature}-${now}`,
           term: featureTerm(feature, Number(value)),
           type: 'belief',
-          priority: magnitude * (perception.confidence ?? 0.5),
+          priority: magnitude * confidence,
           budgetPriority: magnitude,
-          f: Math.min(1, magnitude),
-          c: perception.confidence ?? 0.5,
+          f: clamp01(magnitude),
+          c: confidence,
           stamp: `perception-${now}`,
         })
       );

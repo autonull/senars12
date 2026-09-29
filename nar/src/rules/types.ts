@@ -1,6 +1,9 @@
-import { weightedMean } from '@senars/util';
+import { BoundedMap, getOrInsert, weightedMean } from '@senars/util';
 
 import type { StampType, Term, Truth } from '../terms';
+
+/** Hits older than this leave the recency set; the window is the map's TTL. */
+const TEMPORAL_WINDOW_MS = 1000;
 
 export interface RuleInput {
   term: Term;
@@ -95,15 +98,15 @@ export class RuleIndex {
   private rulesByType = new Map<string, RegisteredRule[]>();
   private cache = new Map<string, RegisteredRule[]>();
   private hitStats = new Map<string, RuleStatistics>();
-  private recentRules = new Map<string, number>();
+  private readonly recentRules = new BoundedMap<string, number>({
+    maxSize: 1000,
+    ttlMs: TEMPORAL_WINDOW_MS,
+  });
   private dependencies = new Map<string, RuleDependency>();
-  private temporalWindow = 1000;
 
   register(rule: RegisteredRule): void {
     const key = encodePattern(rule.pattern.left.op, rule.pattern.right.op);
-    const existing = this.rulesByType.get(key) ?? [];
-    existing.push(rule);
-    this.rulesByType.set(key, existing);
+    getOrInsert(this.rulesByType, key, () => []).push(rule);
     this.cache.clear();
 
     this.hitStats.set(rule.id, {
@@ -134,12 +137,7 @@ export class RuleIndex {
     this.hitStats.set(ruleId, stats);
 
     this.recentRules.set(ruleId, now);
-    const cutoff = now - this.temporalWindow;
-    for (const [id, time] of this.recentRules.entries()) {
-      if (time < cutoff) {
-        this.recentRules.delete(id);
-      }
-    }
+    this.recentRules.purgeExpired();
   }
 
   getStatistics(): Map<string, RuleStatistics> {
@@ -181,15 +179,13 @@ export class RuleIndex {
     if (k2 !== 'atom') addRules(`${k1}:*`);
     addRules('*:*');
 
-    const now = Date.now();
+    this.recentRules.purgeExpired();
     const sorted = Array.from(results).sort((a, b) => {
       const aStats = this.hitStats.get(a.id);
       const bStats = this.hitStats.get(b.id);
 
-      const aRecent =
-        this.recentRules.has(a.id) && now - (this.recentRules.get(a.id) || 0) < this.temporalWindow;
-      const bRecent =
-        this.recentRules.has(b.id) && now - (this.recentRules.get(b.id) || 0) < this.temporalWindow;
+      const aRecent = this.recentRules.has(a.id);
+      const bRecent = this.recentRules.has(b.id);
 
       if (aRecent && !bRecent) return 1;
       if (!aRecent && bRecent) return -1;

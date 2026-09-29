@@ -1,3 +1,5 @@
+import { selectTopN } from '@senars/util';
+
 import type { LMRule } from '../../lm/LMRule.js';
 import { termKey } from '../../terms';
 import type { ComponentMetadata, LMRuleSelectionContext, LMRuleSelector } from '../types.js';
@@ -20,8 +22,6 @@ export class CompositeLMRuleSelector implements LMRuleSelector {
     for (const selector of this.selectors) {
       for (const rule of selector.select(rules, ctx)) if (!union.has(rule.id)) union.set(rule.id, rule);
     }
-    return [...union.values()]
-      .sort((a, b) => b.priority - a.priority)
-      .slice(0, ctx.maxRules);
+    return selectTopN(union.values(), ctx.maxRules, (rule) => rule.priority);
   }
 }

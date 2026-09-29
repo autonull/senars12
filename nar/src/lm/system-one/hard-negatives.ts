@@ -1,5 +1,11 @@
 import type { Episode } from '@senars/util';
-import { selectByPriority, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
+import {
+  getOrInsert,
+  selectByPriority,
+  sha256Hex,
+  sha256Prefixed,
+  shortSha256Hex,
+} from '@senars/util';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import { PriorityBag } from '../../bag/Bag.js';
 import { AIKRProcessor, AikrShell, type AikrBagOptions } from '../../learning/aikr-processor.js';
@@ -55,9 +61,7 @@ export async function mineHardNegatives(
   for (const belief of beliefs.getBeliefs()) {
     if (!belief.truth) continue;
     const key = belief.term.toString();
-    const list = byTerm.get(key) ?? [];
-    list.push({ f: belief.truth.f });
-    byTerm.set(key, list);
+    getOrInsert(byTerm, key, () => []).push({ f: belief.truth.f });
   }
   for (const [term, truths] of byTerm) {
     if (negatives.length >= limit / 2) break;
@@ -171,9 +175,8 @@ export async function seedContrastiveMemory(
 ): Promise<number> {
   const byRubric = new Map<string, string[]>();
   for (const neg of negatives) {
-    const list = byRubric.get(neg.rubric) ?? [];
+    const list = getOrInsert(byRubric, neg.rubric, () => []);
     if (!list.includes(neg.text)) list.push(neg.text);
-    byRubric.set(neg.rubric, list);
   }
   let added = 0;
   for (const [rubric, texts] of byRubric) {

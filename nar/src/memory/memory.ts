@@ -1,14 +1,16 @@
 import type { ConceptGraph } from '@senars/core/concept-graph';
+import { clamp01, sortByDesc } from '@senars/util';
 import type { ResolvedBagSlot } from '../bag/registration';
 import { LINK } from '../constants.js';
 import type { AttentionModel } from '../strategies/types.js';
 import { NullAttentionModel } from '../strategies/attention/NullAttentionModel.js';
 import type { Term } from '../terms';
-import { mentionsSymbol, similarityTo, Stamp, symbolQuery, TermMap, TermSet, Truth } from '../terms';
+import { mentionsSymbol, Stamp, TermMap, TermSet, Truth } from '../terms';
 import { atom } from '../terms/factory.js';
 import type { Budget, Task } from '../types';
 import { NEUTRAL_BUDGET } from '../types';
 import { BoundedRing, selectTopN } from '../utils/collections.js';
+import { selectSimilar } from './similarity.js';
 import { Concept, type ConceptMergeResult, type ConceptTaskType } from './concept.js';
 import { Focus } from './focus.js';
 import type { MemoryHealth } from './health.js';
@@ -121,6 +123,8 @@ export class Memory {
       enableAtomicIndex: this.config.enableIndexing,
       enableTemporalIndex: this.config.enableIndexing,
       enableActivationIndex: true,
+      enableInverseIndex: this.config.enableIndexing,
+      enableSimilarityIndex: this.config.enableIndexing,
     });
     this.focus = new Focus({
       maxConcepts: this.config.focusMaxConcepts,
@@ -256,7 +260,7 @@ export class Memory {
       .filter((c): c is Concept => !!c);
 
     if (results.length === 0) results.push(...this.findSimilarConcepts(term, limit));
-    return results.slice(0, limit);
+    return results;
   }
 
   findConcepts(pattern: string, limit = 10): Concept[] {
@@ -302,9 +306,10 @@ export class Memory {
   }
 
   getRevisionHistory(term: string): RevisionEntry[] {
-    return this.revisionLog
-      .filter((entry) => entry.term === term)
-      .sort((a, b) => b.timestamp - a.timestamp);
+    return sortByDesc(
+      this.revisionLog.filter((entry) => entry.term === term),
+      (entry) => entry.timestamp
+    );
   }
 
   removeConcept(term: Term): boolean {
@@ -357,31 +362,13 @@ export class Memory {
 
     this.attentionModel.tick(this, opts?.cycleCount ?? this.cyclesSinceConsolidation);
 
-    const { linkDecayRate, maxConcepts } = this.config;
+    const { linkDecayRate } = this.config;
 
     this.decayAll();
 
-    const capacityPressure = this.concepts.size / maxConcepts;
-    if (capacityPressure > 0.8) {
-      const candidates = [...this.concepts.values()].filter((c) => c.totalTasks === 0);
-      candidates.sort((a, b) => a.priority - b.priority);
-      const toArchiveCount = Math.ceil(candidates.length * Math.min(0.3, capacityPressure - 0.5));
-      const toRemoveCount =
-        capacityPressure > 0.9
-          ? Math.ceil(candidates.length * Math.min(0.2, capacityPressure - 0.8))
-          : 0;
+    const { archived, forgotten } = this.consolidation.evict(this);
+    this.consolidation.record(this.concepts.size, archived, forgotten);
 
-      for (let i = 0; i < toArchiveCount && i < candidates.length; i++) {
-        this.archiveConcept(candidates[i]!);
-      }
-      for (
-        let i = toArchiveCount;
-        i < toArchiveCount + toRemoveCount && i < candidates.length;
-        i++
-      ) {
-        this.removeConcept(candidates[i]!.term);
-      }
-    }
     this.linkManager.applyDecay(linkDecayRate);
     this.updateAllFocus();
 
@@ -451,6 +438,12 @@ export class Memory {
     this.linkManager.applyDecay(1);
   }
 
+  /** Occupancy of the concept store in `0..1` — the AIKR pressure signal. */
+  capacityPressure(): number {
+    const { maxConcepts } = this.config;
+    return maxConcepts === 0 ? 1 : clamp01(this.concepts.size / maxConcepts);
+  }
+
   getStatistics(): MemoryStatistics {
     const stats = calculateConceptStats(this.concepts.values());
     const result: MemoryStatistics = {
@@ -459,7 +452,7 @@ export class Memory {
       focusedConcepts: this.focus.size,
       archivedConcepts: this.config.enableArchive ? this.archive.size : 0,
       memoryPressure: this.pressureLevel,
-      utilization: this.concepts.size / this.config.maxConcepts,
+      utilization: this.capacityPressure(),
       conceptDistribution: {
         lowPriority: stats.lowPriority,
         mediumPriority: stats.mediumPriority,
@@ -527,8 +520,9 @@ export class Memory {
   }
 
   findSimilarConcepts(term: Term, limit = 10): Concept[] {
-    const query = symbolQuery(term);
-    return selectTopN(this.concepts.values(), limit, (c) => similarityTo(query, c.term));
+    // Without an index the store itself is the only candidate set.
+    const candidates = this.config.enableIndexing ? this.index.indexedConcepts() : this.concepts.values();
+    return selectSimilar(candidates, term, limit);
   }
 
   private recordRevision(entry: RevisionEntry): void {
@@ -615,7 +609,7 @@ export class Memory {
   }
 
   private computeHealth(): MemoryHealth {
-    const utilization = this.concepts.size / this.config.maxConcepts;
+    const utilization = this.capacityPressure();
     const consolidationNeeded = this.cyclesSinceConsolidation >= this.config.consolidationInterval;
     return {
       isHealthy: utilization < 0.9 && !consolidationNeeded,

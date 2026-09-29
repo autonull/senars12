@@ -1,4 +1,5 @@
 import { makeId, toError } from '@senars/core/helpers';
+import { addToSet } from '@senars/util';
 import { WebSocket } from 'ws';
 
 export interface WSClient {
@@ -82,12 +83,7 @@ export const subscribeToEvents = (
   events: string[]
 ): void => {
   for (const event of events) {
-    let set = subscriptions.get(event);
-    if (!set) {
-      set = new Set();
-      subscriptions.set(event, set);
-    }
-    set.add(client.ws);
+    addToSet(subscriptions, event, client.ws);
     client.subscriptions.add(event);
   }
 };

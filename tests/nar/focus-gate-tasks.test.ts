@@ -6,8 +6,6 @@ import { toAtomSymbol } from '../../nar/src/terms/valid-atom.js';
 import { isValidAtomSymbol } from '../../nar/src/terms/valid-atom.js';
 import { createBudget } from '../../nar/src/types/core.js';
 
-const focus = {} as never;
-
 describe('toAtomSymbol', () => {
   it('collapses reserved runs to a single underscore', () => {
     expect(toAtomSymbol('move,left')).toBe('move_left');
@@ -21,7 +19,7 @@ describe('toAtomSymbol', () => {
 
 describe('focus gate task construction', () => {
   it('admits state and feature beliefs as serializable terms', () => {
-    const gate = new PerceptionGate(focus);
+    const gate = new PerceptionGate();
     const tasks = gate.toBeliefs({ stateId: 'snake', confidence: 0.8, features: { score: -3 } } as never);
 
     expect(tasks.map((t) => t.term.toString())).toEqual(['snake', '[score__3]']);
@@ -32,7 +30,17 @@ describe('focus gate task construction', () => {
   });
 
   it('records terminal outcomes as a sign belief plus a terminal flag', () => {
-    const tasks = new RewardGate(focus).toBeliefs({ reward: -0.5, terminal: true } as never);
+    const tasks = new RewardGate().toBeliefs({ reward: -0.5, terminal: true } as never);
     expect(tasks.map((t) => t.term.toString())).toEqual(['[reward_negative]', 'terminal']);
+  });
+
+  it('gives the state and its features one confidence default', () => {
+    const tasks = new PerceptionGate().toBeliefs({
+      stateId: 'snake',
+      features: { score: 3 },
+    } as never);
+
+    expect(tasks[0]?.truth.c).toBe(0.9);
+    expect(tasks[1]?.truth.c).toBe(tasks[0]?.truth.c);
   });
 });

@@ -1,30 +1,4 @@
-export type ComponentState = 'created' | 'initialized' | 'started' | 'stopped' | 'disposed';
-
-import type { ScopedLogger } from '@senars/util';
-
-export type Logger = ScopedLogger;
-
-export interface Metrics {
-  increment(name: string, value?: number, tags?: Record<string, unknown>): void;
-
-  gauge(name: string, value: number, tags?: Record<string, unknown>): void;
-
-  histogram(name: string, value: number, tags?: Record<string, unknown>): void;
-}
-
-export interface EventBus {
-  emit(event: string, data: unknown): void;
-
-  on(event: string, handler: (data: unknown) => void): () => void;
-
-  off(event: string, handler: (data: unknown) => void): void;
-}
-
-export interface ComponentContext {
-  readonly logger: Logger;
-  readonly metrics: Metrics;
-  readonly eventBus: EventBus;
-}
+import type { BaseComponent as BaseComponentContract, ComponentContext, ComponentState, ScopedLogger } from '@senars/util';
 
 const VALID_TRANSITIONS: Record<ComponentState, ComponentState[]> = {
   created: ['initialized', 'disposed'],
@@ -34,7 +8,7 @@ const VALID_TRANSITIONS: Record<ComponentState, ComponentState[]> = {
   disposed: [],
 };
 
-export abstract class BaseComponent {
+export abstract class BaseComponent implements BaseComponentContract {
   private readonly _context?: ComponentContext;
 
   constructor(context?: ComponentContext) {
@@ -47,15 +21,15 @@ export abstract class BaseComponent {
     return this._state;
   }
 
-  get logger(): Logger | undefined {
+  get logger(): ScopedLogger | undefined {
     return this._context?.logger;
   }
 
-  get metrics(): Metrics | undefined {
+  get metrics(): ComponentContext['metrics'] | undefined {
     return this._context?.metrics;
   }
 
-  get eventBus(): EventBus | undefined {
+  get eventBus(): ComponentContext['eventBus'] | undefined {
     return this._context?.eventBus;
   }
 

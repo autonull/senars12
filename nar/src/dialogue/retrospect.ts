@@ -1,7 +1,14 @@
 import { join } from 'node:path';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
 import type { Episode } from '@senars/util';
-import { cachePath, mean, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
+import {
+  cachePath,
+  mean,
+  type ReadOnlyLookup,
+  sha256Hex,
+  sha256Prefixed,
+  shortSha256Hex,
+} from '@senars/util';
 import { z } from 'zod';
 import { DigestMismatchError } from '../lm/system-one/wasi-runtime.js';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
@@ -108,7 +115,7 @@ export async function retrospect(
   episodic: EpisodicMemory,
   options: {
     /** Strategy grades by correlationId (existing TraceGradeInput plumbing). */
-    traceGrades?: ReadonlyMap<string, number>;
+    traceGrades?: ReadOnlyLookup<string, number>;
     contradictionTerms?: readonly string[];
     proposals?: readonly unknown[];
     /** Phase B: parameter-ledger changes to enrich the strategy audit with. */

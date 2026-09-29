@@ -1,4 +1,4 @@
-import { formatNarseseTruth } from '@senars/util';
+import { formatNarseseTruth, maxScore } from '@senars/util';
 import type { IDriveManager } from '../kernel/interfaces.js';
 import { Truth, type Truth as TruthType } from '../terms/truth.js';
 import type { EventBus as InternalEventBus } from '../types/events.js';
@@ -52,7 +52,7 @@ export class DriveManager implements IDriveManager {
     const state = this.states.get(driveId);
     if (state) {
       const prevIntensity = state.currentIntensity;
-      state.currentIntensity = Math.min(1, state.currentIntensity + amount);
+      state.currentIntensity = clamp01(state.currentIntensity + amount);
       state.lastStimulation = Date.now();
       if (amount !== 0 && this.systemEventBus) {
         this.systemEventBus.emit('nar:drive:changed', {
@@ -73,11 +73,7 @@ export class DriveManager implements IDriveManager {
   }
 
   getMaxIntensity(): number {
-    let max = 0;
-    for (const [, state] of this.states) {
-      if (state.currentIntensity > max) max = state.currentIntensity;
-    }
-    return max;
+    return maxScore(this.states.values(), (s) => s.currentIntensity);
   }
 
   getUrgency(): number {

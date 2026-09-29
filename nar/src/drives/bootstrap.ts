@@ -1,3 +1,4 @@
+import { parseNarseseTruth } from '@senars/util';
 import type { TaskType } from '../types';
 
 export interface BootstrapGoal {
@@ -32,17 +33,6 @@ export function createBootstrapTasks(): Array<{
   return BOOTSTRAP_GOALS.map((g) => ({
     term: g.narsese,
     type: g.type,
-    truth: extractTruth(g.narsese),
+    truth: parseNarseseTruth(g.narsese),
   }));
-}
-
-function extractTruth(narsese: string): { f: number; c: number } | undefined {
-  const match = narsese.match(/:(\d+\.\d+):(\d+\.\d+)/);
-  if (match && match[1] && match[2]) {
-    return {
-      f: Number.parseFloat(match[1]),
-      c: Number.parseFloat(match[2]),
-    };
-  }
-  return undefined;
 }

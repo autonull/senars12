@@ -1,6 +1,6 @@
 import { raceDeadline } from '@senars/util';
 import type { MetaGame } from '../game/MetaGame.js';
-import { SeededRNG } from '../utils/random.js';
+import { SeededRNG, weightedPick } from '../utils/random.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
 import type { FocusStepReport } from './Focus.js';
 import type { FocusBag } from './FocusBag.js';
@@ -69,14 +69,7 @@ export class FocusScheduler {
   /** Weighted sample: weight-proportional selection; zero-weight is never picked. */
   private sample(): GameFocus | null {
     const entries = [...this.focuses.values()].filter((f) => f.focus.weight > 0);
-    if (entries.length === 0) return null;
-    const total = entries.reduce((sum, f) => sum + f.focus.weight, 0);
-    let roll = this.rng.next() * total;
-    for (const focus of entries) {
-      roll -= focus.focus.weight;
-      if (roll <= 0) return focus;
-    }
-    return entries[entries.length - 1] ?? null;
+    return weightedPick(entries, (f) => f.focus.weight, this.rng.next) ?? null;
   }
 
   async tick(): Promise<SchedulerTickResult | null> {

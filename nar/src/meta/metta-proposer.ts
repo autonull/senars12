@@ -6,7 +6,7 @@
  * Implements IProposer for use in Negotiator.
  */
 
-import { mean } from '@senars/util';
+import { BoundedMap, incrementCount, mean } from '@senars/util';
 import type { DerivationRecord, DerivationStep } from '@senars/kernel/schemas';
 import type { Term } from '../terms/index.js';
 import { termParser, serializeTerm, TermBuilder } from '../terms/index.js';
@@ -49,19 +49,23 @@ interface GeneralizedPattern {
 }
 
 export class ProofMettaProposer implements IProposer {
-  private readonly rules = new Map<string, MettaRule>();
-  private readonly proofStream: ProofStreamEntry[] = [];
   private readonly maxRules: number;
+  private readonly rules: BoundedMap<string, MettaRule>;
   private readonly minConfidence: number;
   private readonly patternMinSupport: number;
   private readonly mettaEvaluator?: (expression: string) => boolean | null;
   private readonly actionToExpression?: (action: string) => string | undefined;
   private ruleCounter = 0;
+  private readonly proofStream: ProofStreamEntry[] = [];
   // Persistent pattern counts across all derivations, keyed by serialized pattern
   private readonly patternCounts = new Map<string, { count: number; confidence: number; examples: string[]; pattern: GeneralizedPattern }>();
 
   constructor(options: ProofMettaProposerOptions = {}) {
     this.maxRules = options.maxRules ?? 100;
+    this.rules = new BoundedMap({
+      maxSize: this.maxRules,
+      eviction: { by: (rule: MettaRule) => rule.confidence },
+    });
     this.minConfidence = options.minConfidence ?? 0.7;
     this.patternMinSupport = options.patternMinSupport ?? 3;
     this.mettaEvaluator = options.mettaEvaluator;
@@ -158,7 +162,7 @@ export class ProofMettaProposer implements IProposer {
   /** Collect all atomic symbols from a Term. */
   private collectAtoms(term: Term, counts: Map<string, number>): void {
     if (term.kind === 'atom') {
-      counts.set(term.symbol, (counts.get(term.symbol) ?? 0) + 1);
+      incrementCount(counts, term.symbol);
     } else {
       for (const arg of term.args ?? []) {
         this.collectAtoms(arg, counts);
@@ -194,12 +198,8 @@ export class ProofMettaProposer implements IProposer {
   }
 
   private addRule(patternKey: string, pattern: GeneralizedPattern, mettaPattern: string, confidence: number, sourceDerivation: string, examples: string[]): void {
-    if (this.rules.size >= this.maxRules) {
-      this.pruneWeakest();
-    }
-
     const id = `metta-rule-${this.ruleCounter++}`;
-    const rule: MettaRule = {
+    this.rules.set(patternKey, {
       id,
       pattern: mettaPattern,
       ruleCategory: pattern.ruleId,
@@ -207,22 +207,14 @@ export class ProofMettaProposer implements IProposer {
       confidence,
       createdAt: Date.now(),
       applications: 0,
-    };
-    this.rules.set(patternKey, rule);
+    });
   }
 
-  private pruneWeakest(): void {
-    const sorted = [...this.rules.entries()].sort((a, b) => a[1].confidence - b[1].confidence);
-    const toRemove = sorted.slice(0, Math.floor(this.maxRules * 0.1));
-    for (const [id] of toRemove) {
-      this.rules.delete(id);
-    }
-  }
-
+  /** Highest-scoring rules first; the map is already capacity-bounded. */
   private pruneAndRank(): MettaRule[] {
-    return [...this.rules.values()]
-      .sort((a, b) => b.confidence * b.applications - a.confidence * a.applications)
-      .slice(0, this.maxRules);
+    return [...this.rules.values()].sort(
+      (a, b) => b.confidence * b.applications - a.confidence * a.applications
+    );
   }
 
   /** Get all learned rules. */

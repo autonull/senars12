@@ -1,6 +1,7 @@
-import { clamp01, generateId } from '@senars/util';
+import { clamp01, generateId, occupancy } from '@senars/util';
 import { emitBagPressureTransition } from '../tick';
 import type { RandomSource } from '../types/primitives.js';
+import { weightedPick } from '../utils/random.js';
 
 export type { RandomSource } from '../types/primitives.js';
 
@@ -219,7 +220,7 @@ export abstract class BaseBag<T extends BagItem> implements Bag<T> {
   }
 
   pressure(): number {
-    const pressure = this.capacity === 0 ? 1 : Math.min(1, this.store.length / this.capacity);
+    const pressure = occupancy(this.store.length, this.capacity);
     this.checkPressureTransition(pressure);
     return pressure;
   }
@@ -335,11 +336,6 @@ export class PriorityBag<T extends BagItem> extends BaseBag<T> {
   }
 
   protected pickWeighted(): InternalEntry<T> | undefined {
-    let r = this.rng() * this.totalPriority;
-    for (const entry of this.heap) {
-      r -= entry.item.priority;
-      if (r <= 0) return entry;
-    }
-    return this.heap[0];
+    return weightedPick(this.heap, (entry) => entry.item.priority, this.rng);
   }
 }

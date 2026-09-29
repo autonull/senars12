@@ -96,21 +96,6 @@ describe('MemoryIndex', () => {
     });
   });
 
-  describe('getBySimilarity', () => {
-    test('returns concepts matching term', () => {
-      const concept = createTestConcept('HighPriority', 0.9);
-      index.index(concept);
-
-      const results = index.getBySimilarity(concept.term, 10);
-      expect(results.length).toBeGreaterThan(0);
-    });
-
-    test('returns empty for unknown hash', () => {
-      const results = index.getBySimilarity(TermBuilder.atom('nonexistent'), 10);
-      expect(results).toEqual([]);
-    });
-  });
-
   describe('findSimilarConcepts', () => {
     test('returns similar concepts by term hash', () => {
       const concept = createTestConcept('Findable', 0.7);
@@ -118,6 +103,24 @@ describe('MemoryIndex', () => {
 
       const results = index.findSimilarConcepts(TermBuilder.atom('Findable'), 10);
       expect(results).toBeDefined();
+    });
+
+    test('ranks by similarity and excludes zero-similarity concepts', () => {
+      const ranking = new MemoryIndex({
+        enableAtomicIndex: true,
+        enableTemporalIndex: true,
+        enableActivationIndex: true,
+        enableInverseIndex: true,
+        enableSimilarityIndex: true,
+      });
+      const mammal = TermBuilder.inheritance(TermBuilder.atom('cat'), TermBuilder.atom('animal'))!;
+      ranking.index(createTestConcept('unrelated'));
+      ranking.index(createTestConcept('cat'));
+      ranking.index(new Concept(mammal));
+
+      const ranked = ranking.findSimilarConcepts(mammal);
+      expect(ranked.map((c) => c.term.toString())).toEqual(['(cat --> animal)', 'cat']);
+      expect(ranking.findSimilarConcepts(TermBuilder.atom('missing'))).toEqual([]);
     });
 
     test('returns empty when similarity index disabled', () => {

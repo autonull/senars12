@@ -1,8 +1,9 @@
 import { addToSet, getOrInsert, insertByScoreDesc } from '@senars/util';
 
 import type { Term } from '../terms';
-import { isAtomic, similarityTo, symbolQuery, TermMap, termKey } from '../terms';
+import { isAtomic, TermMap, termKey } from '../terms';
 import type { Concept } from './concept.js';
+import { selectSimilar } from './similarity.js';
 
 const getOrInsertTermSet = (map: TermMap<Set<Concept>>, term: Term): Set<Concept> =>
   getOrInsert(map, term, () => new Set<Concept>());
@@ -17,13 +18,22 @@ const getOrInsertInverse = (map: TermMap<InverseIndexEntry>, term: Term) =>
     subtermIndices: new TermMap<Set<Concept>>(),
   }));
 
+/** Every family defaults on; a caller opts out of the ones it does not maintain. */
 export interface MemoryIndexConfig {
-  enableAtomicIndex: boolean;
-  enableTemporalIndex: boolean;
-  enableActivationIndex: boolean;
+  enableAtomicIndex?: boolean;
+  enableTemporalIndex?: boolean;
+  enableActivationIndex?: boolean;
   enableInverseIndex?: boolean;
   enableSimilarityIndex?: boolean;
 }
+
+const DEFAULT_INDEX_CONFIG: Required<MemoryIndexConfig> = Object.freeze({
+  enableAtomicIndex: true,
+  enableTemporalIndex: true,
+  enableActivationIndex: true,
+  enableInverseIndex: true,
+  enableSimilarityIndex: true,
+});
 
 export interface IndexEntry {
   concept: Concept;
@@ -63,16 +73,8 @@ export class MemoryIndex {
   private readonly footprints = new Map<Concept, ConceptFootprint>();
   private readonly temporalResolution = 1000;
 
-  constructor(
-    config: MemoryIndexConfig = {
-      enableAtomicIndex: true,
-      enableTemporalIndex: true,
-      enableActivationIndex: true,
-      enableInverseIndex: true,
-      enableSimilarityIndex: true,
-    }
-  ) {
-    this.config = { ...config } as Required<MemoryIndexConfig>;
+  constructor(config: MemoryIndexConfig = {}) {
+    this.config = { ...DEFAULT_INDEX_CONFIG, ...config };
     this.atomicIndex = new Map();
     this.temporalIndex = new Map();
     this.activationIndex = new Map();
@@ -164,32 +166,15 @@ export class MemoryIndex {
     return Array.from(results);
   }
 
-  getBySimilarity(term: Term, limit = 10): Concept[] {
-    const cluster = this.similarityIndex.get(term);
-    if (!cluster) return [];
-
-    return cluster.concepts.slice(0, limit);
+  /** Every concept the similarity families hold, as one candidate stream. */
+  *indexedConcepts(): Generator<Concept> {
+    for (const cluster of this.similarityIndex.values()) yield* cluster.concepts;
   }
 
   findSimilarConcepts(term: Term, limit = 10): Concept[] {
-    if (!this.config.enableSimilarityIndex) return [];
-
-    const cluster = this.similarityIndex.get(term);
-    if (cluster && cluster.concepts.length > 0) {
-      return cluster.concepts.slice(0, limit);
-    }
-
-    const query = symbolQuery(term);
-    let bestCluster: SimilarityCluster | undefined;
-    let bestSimilarity = 0;
-    for (const candidate of this.similarityIndex.values()) {
-      const similarity = similarityTo(query, candidate.representative.term);
-      if (similarity > bestSimilarity) {
-        bestSimilarity = similarity;
-        bestCluster = candidate;
-      }
-    }
-    return bestCluster ? bestCluster.concepts.slice(0, limit) : [];
+    return this.config.enableSimilarityIndex
+      ? selectSimilar(this.indexedConcepts(), term, limit)
+      : [];
   }
 
   getActivation(concept: Concept): number {

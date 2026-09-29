@@ -34,6 +34,20 @@ export const seededStream = (seed: number): SeededStream => {
 /** mulberry32: fast, well-distributed 32-bit seeded PRNG. */
 export const mulberry32 = (seed: number): RandomSource => seededStream(seed).next;
 
+/**
+ * Numerical-Recipes LCG — a second algorithm, not a second PRNG *policy*. It is
+ * kept because the test suites pin `Math.random` to it and changing the stream
+ * would silently move every seeded expectation; it lives here rather than in a
+ * test helper so a production entrypoint can use it without importing vitest.
+ */
+export const createLCG = (seed = 0x2f6e2b1): RandomSource => {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+};
+
 /** Random integer in [0, max). */
 export const nextInt = (rng: RandomSource, max: number): number => Math.floor(rng() * max);
 
@@ -120,26 +134,57 @@ export const weightedSample = <T>(
   rng: RandomSource
 ): T[] => weightedSampleBy(items.map((item) => ({ item, weight: weightOf(item) })), count, rng);
 
+/**
+ * The index of a weight-proportional draw over `count` slots, or -1 when the
+ * pool is empty or carries no weight. The one weighted scan in the NAR: the
+ * total is read off the pool itself rather than a cached scalar, so a stale
+ * aggregate cannot skew the draw. Non-positive weights are never drawn.
+ */
+const weightedScan = (count: number, weightAt: (index: number) => number, rng: RandomSource): number => {
+  let total = 0;
+  for (let i = 0; i < count; i++) {
+    const weight = weightAt(i);
+    if (weight > 0) total += weight;
+  }
+  if (total <= 0) return -1;
+  let roll = rng() * total;
+  for (let i = 0; i < count; i++) {
+    const weight = weightAt(i);
+    if (weight <= 0) continue;
+    roll -= weight;
+    if (roll <= 0) return i;
+  }
+  return count - 1;
+};
+
+/**
+ * One weight-proportional item draw — the primitive behind every weighted
+ * selection in the NAR (priority bags, focus scheduling, roulette sampling).
+ * `undefined` means the pool has no weight to distribute, which each caller
+ * already answers with its own fallback.
+ */
+export const weightedPick = <T>(
+  items: readonly T[],
+  weightOf: (item: T) => number,
+  rng: RandomSource
+): T | undefined => {
+  const index = weightedScan(items.length, (i) => weightOf(items[i]!), rng);
+  return index < 0 ? undefined : items[index];
+};
+
 /** Weighted sampling over pre-computed weights — the O(n) draw behind `weightedSample`. */
 export const weightedSampleBy = <T>(
   entries: readonly { item: T; weight: number }[],
   count: number,
   rng: RandomSource
 ): T[] => {
-  const positive = entries.filter((entry) => entry.weight > 0);
+  const pool = entries.filter((entry) => entry.weight > 0);
   // All-zero weights carry no information — fall back to source order.
-  const pool = positive.length > 0 ? positive : entries.slice();
+  if (pool.length === 0) return entries.slice(0, count).map((entry) => entry.item);
   const picked: T[] = [];
   for (let draw = 0; draw < count && pool.length > 0; draw++) {
-    let total = 0;
-    for (const entry of pool) total += entry.weight;
-    let r = rng() * total;
-    let index = 0;
-    for (; index < pool.length; index++) {
-      r -= pool[index]!.weight;
-      if (r <= 0) break;
-    }
-    picked.push(pool.splice(Math.min(index, pool.length - 1), 1)[0]!.item);
+    const index = weightedScan(pool.length, (i) => pool[i]!.weight, rng);
+    picked.push(pool.splice(index, 1)[0]!.item);
   }
   return picked;
 };

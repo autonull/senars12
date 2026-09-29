@@ -1,6 +1,7 @@
 import type { Game, GameOutcome, Perception } from './Game.js';
 import { SeededRNG } from '../utils/random.js';
 import { shuffleInPlace } from '../utils/random.js';
+import { clamp01 } from '../utils';
 
 /** Placement action: 'place:r<rotation>:c<column>' (hard drop). */
 export type TetrisPlacement = string;
@@ -224,7 +225,7 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
     state.piecesPlaced++;
 
     const lineReward = [0, 1, 3, 5, 8][cleared] ?? 8;
-    const reward = Math.min(1, lineReward / 8);
+    const reward = clamp01(lineReward / 8);
     if (state.piecesPlaced >= this.pieceCap) {
       state.terminal = true;
       state.piece = null;

@@ -11,6 +11,8 @@
  * the container.
  */
 
+import { occupancy } from './shared.js';
+
 interface Entry<V> {
   value: V;
   /** Epoch ms after which the entry is treated as absent. `Infinity` = no TTL. */
@@ -79,7 +81,7 @@ export class BoundedMap<K, V> {
 
   /** Occupancy in `0..1` — the AIKR pressure signal the bounded containers report. */
   pressure(): number {
-    return Math.min(1, this.#entries.size / this.maxSize);
+    return occupancy(this.#entries.size, this.maxSize);
   }
 
   evict(key: K): boolean {
@@ -153,6 +155,11 @@ export class BoundedMap<K, V> {
       if (this.#expired(entry)) this.evict(key);
       else yield [key, entry.value];
     }
+  }
+
+  /** Iteration alias of {@link entries}, so a bounded map is a drop-in for a `Map` read. */
+  [Symbol.iterator](): Generator<[K, V]> {
+    return this.entries();
   }
 
   toArray(): V[] {

@@ -1,4 +1,6 @@
 import { getOrInsert } from '@senars/util';
+import { SATURATION_COUNT } from '../constants.js';
+import { clamp01 } from '../utils';
 import { type ActionProposal, byExpectedValue, type LearningEvent } from './Reflex.js';
 
 /** Incremental mean estimator for one (state, action) pair. */
@@ -36,7 +38,7 @@ export abstract class BanditReflex<O extends BanditReflexOptions = BanditReflexO
 
   /** Proposal confidence from visit count — optimistic floors live in subclasses. */
   protected confidenceOf(entry: QEntry): number {
-    return Math.min(1, entry.count / 10);
+    return clamp01(entry.count / SATURATION_COUNT);
   }
 
   protected entryFor(state: string, action: number): QEntry {

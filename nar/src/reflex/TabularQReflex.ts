@@ -1,4 +1,4 @@
-import { getOrInsert } from '@senars/util';
+import { getOrInsert, maxScore } from '@senars/util';
 import type { Perception } from '../game/Game.js';
 import type { RandomSource } from '../types/primitives.js';
 import { type ActionProposal, byExpectedValue, type LearningEvent, type Reflex } from './Reflex.js';
@@ -111,13 +111,7 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
 
   private getMaxQ(stateKey: string): number {
     const qState = this.qTable.get(stateKey);
-    if (!qState || qState.size === 0) return 0;
-
-    let max = -Infinity;
-    for (const entry of qState.values()) {
-      if (entry.value > max) max = entry.value;
-    }
-    return max > 0 ? max : 0;
+    return qState ? maxScore(qState.values(), (e) => e.value) : 0;
   }
 
   private stateToKey(state: S): string {

@@ -41,6 +41,29 @@ const META_GOAL_BY_DRIVE: Record<string, { threshold: number; narsese: string }>
   curiosity: { threshold: 0.3, narsese: '^run_scenario_shadow(profile:induction)' },
 };
 
+const logger = createLogger({ scope: 'nar:execution' });
+
+/**
+ * The meta-goal table's parsed form. The narsese is a literal, so the parse is a
+ * constant too: doing it per cycle re-parsed two unchanging strings and
+ * re-emitted the same failure every cycle when one was malformed.
+ */
+const META_GOALS: readonly { driveId: string; threshold: number; term: Term }[] =
+  Object.entries(META_GOAL_BY_DRIVE).flatMap(([driveId, goal]) => {
+    try {
+      return [{ driveId, threshold: goal.threshold, term: termParser.parse(goal.narsese) }];
+    } catch (e) {
+      logger.warn('Failed to parse meta-goal narsese', {
+        driveId,
+        narsese: goal.narsese,
+        error: errMsg(e),
+      });
+      return [];
+    }
+  });
+
+const META_GOAL_BY_DRIVE_ID = new Map(META_GOALS.map((g) => [g.driveId, g]));
+
 export interface NARExecutionOptions {
   memory: Memory;
   taskManager: TaskManager;
@@ -63,7 +86,6 @@ export interface NARExecutionOptions {
 export class NARExecution {
   private _cycleCount = 0;
   private readonly phaseTimer = new PhaseTimer();
-  private readonly logger = createLogger({ scope: 'nar:execution' });
   private _metaDerivationsThisStep = 0;
   private _metaDerivationDepth = 0;
   private readonly _rlfpRewardHistory = new BoundedRing<number>(100);
@@ -242,7 +264,7 @@ export class NARExecution {
         );
 
         if (!result.admitted) {
-          this.logger?.warn('Perception gate rejected derived task', {
+          logger.warn('Perception gate rejected derived task', {
             reason: result.rejectionReason,
             term: task.term.toString(),
           });
@@ -310,7 +332,7 @@ export class NARExecution {
         this.phaseTimer.begin('self', 'assessQuality');
         try {
           const quality = await this.self.assessQuality();
-          this.logger.debug('Self-assessment', {
+          logger.debug('Self-assessment', {
             quality: quality.overall,
             cycle: this._cycleCount,
           });
@@ -320,7 +342,7 @@ export class NARExecution {
             this.phaseTimer.end();
           }
         } catch (e) {
-          this.logger.warn('Self-assessment failed', { error: errMsg(e) });
+          logger.warn('Self-assessment failed', { error: errMsg(e) });
         }
         this.phaseTimer.end();
       }
@@ -331,7 +353,7 @@ export class NARExecution {
       }
 
       // Structured meta-reasoning log: budget usage, drive stimuli, meta-goal fires
-      this.logger.debug('meta-reasoning', {
+      logger.debug('meta-reasoning', {
         cycle: this._cycleCount,
         metaDerivationsThisStep: this._metaDerivationsThisStep,
         metaDerivationDepth: this._metaDerivationDepth,
@@ -352,7 +374,7 @@ export class NARExecution {
     this.memory.consolidate({ cycleCount: this._cycleCount });
     this.phaseTimer.end();
 
-    this.logger.debug('run complete', { steps, cycles: this._cycleCount, derived });
+    logger.debug('run complete', { steps, cycles: this._cycleCount, derived });
     return derived;
   }
 
@@ -430,20 +452,6 @@ export class NARExecution {
   private injectMetaGoals(): void {
     if (!this.driveManager) return;
 
-    // Parse meta-goal narsese strings once
-    const parsedMetaGoals: Record<string, Term> = {};
-    for (const [driveId, goal] of Object.entries(META_GOAL_BY_DRIVE)) {
-      try {
-        parsedMetaGoals[driveId] = termParser.parse(goal.narsese);
-      } catch (e) {
-        this.logger.warn('Failed to parse meta-goal narsese', {
-          driveId,
-          narsese: goal.narsese,
-          error: errMsg(e),
-        });
-      }
-    }
-
     const activeTerms = new Set(this.memory.getGoals?.().map((g) => g.term.toString()) ?? []);
     // Include pending tasks so we don't re-inject the same goal across cycles
     const peeked = this.taskManager.peekTask();
@@ -452,21 +460,16 @@ export class NARExecution {
     }
 
     for (const state of this.driveManager.getAllStates()) {
-      const intensity = state.currentIntensity;
-      const goal = META_GOAL_BY_DRIVE[state.spec.id];
+      const goal = META_GOAL_BY_DRIVE_ID.get(state.spec.id);
       if (!goal) continue;
 
-      const { threshold } = goal;
-      const parsedTerm = parsedMetaGoals[state.spec.id];
-      if (!parsedTerm) continue;
+      const termStr = goal.term.toString();
+      if (state.currentIntensity >= goal.threshold || activeTerms.has(termStr)) continue;
 
-      const termStr = parsedTerm.toString();
-      if (intensity >= threshold || activeTerms.has(termStr)) continue;
-
-      this.taskManager.addTask(createTask(parsedTerm, 'goal', Truth.NEUTRAL));
-      this.logger.debug('Injected meta-goal from drive', {
+      this.taskManager.addTask(createTask(goal.term, 'goal', Truth.NEUTRAL));
+      logger.debug('Injected meta-goal from drive', {
         drive: state.spec.id,
-        intensity,
+        intensity: state.currentIntensity,
         goal: termStr,
       });
     }
@@ -502,7 +505,7 @@ export class NARExecution {
           | { success?: boolean; error?: string }
           | undefined;
         const ok = result?.success !== false;
-        this.logger.debug('Dispatched tool goal', {
+        logger.debug('Dispatched tool goal', {
           goal: task.term.toString(),
           success: ok,
           error: result?.error,
@@ -515,7 +518,7 @@ export class NARExecution {
           this.driveManager?.stimulate('competence', -0.1);
         }
       } catch (e) {
-        this.logger.warn('Tool goal dispatch failed', {
+        logger.warn('Tool goal dispatch failed', {
           goal: task.term.toString(),
           error: errMsg(e),
         });

@@ -1,12 +1,10 @@
 import { threadId } from 'node:worker_threads';
+import { maxScore } from '@senars/util';
 import { Timestamp, DEPTH_MAX } from '../types/primitives.js';
 
 /** Deepest derivation lineage across a stamp set; 0 for an empty set. */
-const maxDepthOf = (stamps: readonly Stamp[]): number => {
-  let max = 0;
-  for (const stamp of stamps) max = Math.max(max, stamp.derivations.length);
-  return max;
-};
+const maxDepthOf = (stamps: readonly Stamp[]): number =>
+  maxScore(stamps, (stamp) => stamp.derivations.length);
 
 const nowMicroseconds = (): Timestamp => (Date.now() * 1000) as Timestamp;
 
@@ -110,10 +108,7 @@ export const Stamp = {
     // chain depth); bushy proofs cut sooner, which is resource-principled
     // since set size tracks inference work. Strictly increasing along any
     // path, so termination is preserved.
-    let maxLineage = 0;
-    for (const stamp of parentStamps) {
-      if (stamp.derivations.length > maxLineage) maxLineage = stamp.derivations.length;
-    }
+    const maxLineage = maxDepthOf(parentStamps);
     if (maxLineage >= DEPTH_MAX) return undefined;
 
     // Ordered union of each parent's lineage plus its own id; duplicates —

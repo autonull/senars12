@@ -2,10 +2,15 @@ import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import { URL } from 'node:url';
 import { makeId } from '@senars/core/helpers';
 import { createLogger } from '@senars/core/logger';
-import type { HealthReport } from '@senars/util';
+import { BoundedMap, type HealthReport } from '@senars/util';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { ApiKeyManager, parseHttpBody, setCORSHeaders, startHttpServer } from '../utils/http.js';
 import { BaseConnection } from './base.js';
+
+/** In-flight handler callbacks a single HTTP connection may hold before dropping the oldest. */
+const MAX_INFLIGHT_REQUESTS = 256;
+/** Handler callbacks unclaimed by a response this long are abandoned. */
+const REQUEST_TIMEOUT_MS = 30_000;
 
 export class HTTPConnection extends BaseConnection {
   override readonly type = 'http';
@@ -13,7 +18,10 @@ export class HTTPConnection extends BaseConnection {
   private server: Server | null = null;
   private readonly port: number;
   private apiKeys = new ApiKeyManager();
-  private pendingRequests = new Map<string, (text: string) => void>();
+  private readonly pendingRequests = new BoundedMap<string, (text: string) => void>({
+    maxSize: MAX_INFLIGHT_REQUESTS,
+    ttlMs: REQUEST_TIMEOUT_MS,
+  });
   private readonly health?: () => Promise<HealthReport> | HealthReport;
 
   constructor(config: ConnectionConfig, deps: ConnectionDeps) {
@@ -140,7 +148,7 @@ export class HTTPConnection extends BaseConnection {
           res.end(JSON.stringify({ error: { code: 'TIMEOUT', message: 'Handler timeout' } }));
         }
       }
-    }, 30000);
+    }, REQUEST_TIMEOUT_MS);
 
     try {
       const responseText = await responsePromise;

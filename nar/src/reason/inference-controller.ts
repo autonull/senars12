@@ -7,6 +7,7 @@ import type { Memory } from '../memory';
 import type { RuleProcessor } from '../rules';
 import type { DerivationContext, DerivationStrategy, SamplingStrategy } from '../strategies';
 import type { Task } from '../types';
+import { clamp01 } from '../utils';
 import {
   createBeliefTaskFromConcept,
   createCircularDetector,
@@ -107,7 +108,7 @@ export class InferenceController {
         cycleCount: Date.now(),
         memory: this.memory,
       });
-      if (boost !== 0) concept.priority = Math.min(1, concept.priority + boost);
+      if (boost !== 0) concept.priority = clamp01(concept.priority + boost);
 
       const task = createBeliefTaskFromConcept(concept);
       if (!task) continue;

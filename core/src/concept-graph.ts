@@ -3,13 +3,14 @@
  * Provides O(k) lookup where k = term depth, with fallback edges for non-regression.
  */
 
+import { BoundedMap, selectTopN } from '@senars/util';
 import type { Term } from '@senars/nar/terms';
 import { serializeTerm } from '@senars/nar/terms';
 
 interface ConceptNode {
   term: Term;
   children: Map<string, ConceptNode>;
-  coActivations: Map<string, CoActivationEdge>;
+  coActivations: BoundedMap<string, CoActivationEdge>;
   activationCount: number;
   lastActivated: number;
 }
@@ -49,10 +50,21 @@ export class ConceptGraph {
     return {
       term,
       children: new Map(),
-      coActivations: new Map(),
+      coActivations: this.createEdgeBag(),
       activationCount: 0,
       lastActivated: Date.now(),
     };
+  }
+
+  /** Per-node edge budget: weakest edge loses the slot, and `edgeCount` follows. */
+  private createEdgeBag(): BoundedMap<string, CoActivationEdge> {
+    return new BoundedMap({
+      maxSize: this.maxEdgesPerNode,
+      eviction: { by: (edge: CoActivationEdge) => edge.weight },
+      onEvict: () => {
+        this.edgeCount--;
+      },
+    });
   }
 
   private getTermKey(term: Term): string {
@@ -96,9 +108,6 @@ export class ConceptGraph {
       let edge = node.coActivations.get(coActiveKey);
 
       if (!edge) {
-        if (node.coActivations.size >= this.maxEdgesPerNode) {
-          this.pruneWeakestEdges(node);
-        }
         edge = {
           targetTerm: coActiveWith,
           weight: 1,
@@ -120,10 +129,11 @@ export class ConceptGraph {
     const node = this.traversePath(term);
     if (!node) return [];
 
-    return [...node.coActivations.values()]
-      .filter((e) => e.weight >= this.minEdgeWeight)
-      .sort((a, b) => b.weight - a.weight)
-      .slice(0, limit);
+    return selectTopN(
+      [...node.coActivations.values()].filter((e) => e.weight >= this.minEdgeWeight),
+      limit,
+      (e) => e.weight
+    );
   }
 
   /** Get fallback edges — high-level structural connections for non-regression. */
@@ -149,15 +159,6 @@ export class ConceptGraph {
           this.edgeCount--;
         }
       }
-    }
-  }
-
-  private pruneWeakestEdges(node: ConceptNode): void {
-    const edges = [...node.coActivations.entries()].sort((a, b) => a[1].weight - b[1].weight);
-    const toRemove = edges.slice(0, Math.ceil(this.maxEdgesPerNode * 0.2));
-    for (const [key] of toRemove) {
-      node.coActivations.delete(key);
-      this.edgeCount--;
     }
   }
 
@@ -227,7 +228,7 @@ export class ConceptGraph {
     const result: ConceptNode = {
       term: node.term,
       children: new Map(),
-      coActivations: new Map(),
+      coActivations: this.createEdgeBag(),
       activationCount: node.activationCount,
       lastActivated: node.lastActivated,
     };

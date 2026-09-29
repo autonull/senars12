@@ -1,7 +1,9 @@
+import { BoundedMap, occupancy } from '@senars/util';
 import { gateRegistry } from '../kernel/index.js';
 import { type IndependenceStatus, Truth } from '../terms/truth.js';
 import type { TickContext } from '../tick/tick.js';
 import type { Task, TruthType } from '../types/core.js';
+import { pushCapped, trimCapped } from '../utils/collections.js';
 
 export type { IndependenceStatus };
 
@@ -23,15 +25,18 @@ export interface StreamReasonerOptions {
   maxBatch?: number;
   provisionalConfidence?: number;
   highPressure?: number;
+  /** Deepest admissible backlog and the most live provisionals it may hold. */
+  maxPending?: number;
 }
 
 export type LMBackend = (requests: LMRequest[]) => Promise<Map<string, TruthType>>;
 
 export class StreamReasoner {
   private readonly queue: LMRequest[] = [];
-  private readonly provisionals = new Map<string, ProvisionalBelief>();
+  private readonly provisionals: BoundedMap<string, ProvisionalBelief>;
   private seq = 0;
   private readonly maxBatch: number;
+  private readonly maxPending: number;
   private readonly provisionalConfidence: number;
   private readonly highPressure: number;
 
@@ -39,23 +44,33 @@ export class StreamReasoner {
     this.maxBatch = opts.maxBatch ?? 8;
     this.provisionalConfidence = opts.provisionalConfidence ?? 0.3;
     this.highPressure = opts.highPressure ?? 0.85;
+    this.maxPending = opts.maxPending ?? 256;
+    this.provisionals = new BoundedMap<string, ProvisionalBelief>({
+      maxSize: this.maxPending,
+      eviction: 'fifo',
+    });
   }
 
   dispatch(prompt: string, prior?: TruthType): ProvisionalBelief {
     const id = `lm-${++this.seq}`;
-    this.queue.push({ id, prompt, enqueuedAt: Date.now() });
+    pushCapped(this.queue, { id, prompt, enqueuedAt: Date.now() }, this.maxPending);
     const provisional: ProvisionalBelief = {
       id: `prov-${id}`,
       truth: { f: prior?.f ?? 0.5, c: this.provisionalConfidence } as TruthType,
       requestId: id,
       settled: false,
     };
-    this.provisionals.set(provisional.id, provisional);
+    this.provisionals.set(id, provisional);
     return provisional;
   }
 
   pending(): number {
     return this.queue.length;
+  }
+
+  /** Occupancy of the deepest backlog — the signal a caller backpressures on. */
+  pressure(): number {
+    return occupancy(Math.max(this.queue.length, this.provisionals.size), this.maxPending);
   }
 
   async flush(backend: LMBackend, pressure: number): Promise<ProvisionalBelief[]> {
@@ -67,15 +82,14 @@ export class StreamReasoner {
         .granted
     ) {
       this.queue.unshift(...batch);
+      trimCapped(this.queue, this.maxPending);
       return [];
     }
     const resolved = await backend(batch);
-    const byRequest = new Map(
-      Array.from(this.provisionals.values(), (p) => [p.requestId, p] as const)
-    );
     return batch.flatMap((req) => {
+      const prov = this.provisionals.peek(req.id);
+      this.provisionals.delete(req.id);
       const truth = resolved.get(req.id);
-      const prov = byRequest.get(req.id);
       if (!truth || !prov) return [];
       if (prov.independence === 'unknown') return [];
       prov.truth = Truth.revision(prov.truth, truth);

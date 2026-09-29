@@ -1,3 +1,5 @@
+import { addToSet } from '@senars/util';
+
 export interface AuthManagerConfig {
   defaultMode?: 'open' | 'auth';
 }
@@ -36,12 +38,7 @@ export class AuthManager {
   }
 
   bindUser(connectionId: string, senderId: string): void {
-    let bound = this.authenticated.get(connectionId);
-    if (!bound) {
-      bound = new Set();
-      this.authenticated.set(connectionId, bound);
-    }
-    bound.add(senderId);
+    addToSet(this.authenticated, connectionId, senderId);
   }
 
   isBound(connectionId: string, senderId: string): boolean {

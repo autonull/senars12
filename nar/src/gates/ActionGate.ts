@@ -1,10 +1,8 @@
-import type { Focus, FocusTask } from '../focus/Focus.js';
+import type { FocusTask } from '../focus/Focus.js';
 import type { ActionProposal } from '../reflex/Reflex.js';
 import { actionTerm, focusTask } from './tasks.js';
 
 export class ActionGate {
-  constructor(private readonly focus: Focus) {}
-
   toGoals(proposals: ActionProposal[]): FocusTask[] {
     const now = Date.now();
     return proposals.map((proposal) =>

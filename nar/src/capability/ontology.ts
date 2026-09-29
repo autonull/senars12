@@ -4,7 +4,7 @@
  * Consumers: delegation, curriculum probes (.probes), self-report.
  */
 
-import { shortSha256Hex } from '@senars/util';
+import { addToSet, shortSha256Hex } from '@senars/util';
 
 import { CapabilitySpace, type CapabilityDef } from './space.js';
 import type { ToolSpec } from '@senars/core/motor';
@@ -90,9 +90,7 @@ export class CapabilityOntology {
     }
 
     this.entries.set(entry.id, entry);
-    const typeSet = this.typeIndex.get(entry.type) ?? new Set();
-    typeSet.add(entry.id);
-    this.typeIndex.set(entry.type, typeSet);
+    addToSet(this.typeIndex, entry.type, entry.id);
 
     // Register with CapabilitySpace for execution
     const capabilityDef: CapabilityDef = {

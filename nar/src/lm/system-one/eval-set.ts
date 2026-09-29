@@ -5,7 +5,13 @@
  * rows (TODO22 auto-capture) are excluded by construction.
  */
 
-import { sha256Hex, sha256Prefixed, shortSha256Hex, writeJsonFile } from '@senars/util';
+import {
+  getOrInsert,
+  sha256Hex,
+  sha256Prefixed,
+  shortSha256Hex,
+  writeJsonFile,
+} from '@senars/util';
 
 import { promises as fs } from 'node:fs';
 import { identityECE, meanBrier } from './calibration-fit.js';
@@ -109,9 +115,7 @@ export function evalMetrics(rows: readonly FrozenEvalRow[]): EvalMetrics {
 export function headMetrics(rows: readonly FrozenEvalRow[]): Record<string, EvalMetrics> {
   const byHead = new Map<string, FrozenEvalRow[]>();
   for (const row of rows) {
-    const bucket = byHead.get(row.headId) ?? [];
-    bucket.push(row);
-    byHead.set(row.headId, bucket);
+    getOrInsert(byHead, row.headId, () => []).push(row);
   }
   return Object.fromEntries([...byHead.entries()].map(([headId, r]) => [headId, evalMetrics(r)]));
 }

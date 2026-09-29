@@ -129,7 +129,7 @@ async function runScenario1(
   const beliefs = nar.getBeliefs();
   logger.info(`  🔍 Total beliefs retained: ${beliefs.length}`);
   for (const b of beliefs.slice(0, 10)) {
-    logger.info(`    ${b.term} ${b.truth ? `%${b.truth.f.toFixed(2)}; ${b.truth.c.toFixed(2)}%` : ''}`);
+    logger.info(`    ${b.term} ${b.truth ? serializeTruth(b.truth, 2) : ''}`);
   }
 
   // Success criteria: multiple candidates admitted, NAR runs without error, beliefs retained
@@ -217,7 +217,7 @@ async function runScenario2(
   const beliefs = nar.getBeliefs();
   logger.info(`  🔍 Total beliefs retained: ${beliefs.length}`);
   for (const b of beliefs.slice(0, 15)) {
-    logger.info(`    ${b.term} ${b.truth ? `%${b.truth.f.toFixed(2)}; ${b.truth.c.toFixed(2)}%` : ''}`);
+    logger.info(`    ${b.term} ${b.truth ? serializeTruth(b.truth, 2) : ''}`);
   }
 
   // Check derivation trace for LM rule firing (only for real providers)
@@ -538,7 +538,7 @@ async function runScenario7(): Promise<boolean> {
 // ── Main ─────────────────────────────────────────────────────
 
 import { enableRoutingTelemetry, getRoutingLogStatus, resetCircuitBreakers } from '@senars/nar/lm/providers.js';
-import { pct } from '@senars/util';
+import { pct, serializeTruth } from '@senars/util';
 
 async function main() {
   const config = loadConfig();

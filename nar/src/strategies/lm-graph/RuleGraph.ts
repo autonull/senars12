@@ -9,7 +9,7 @@ const EWMA_WEIGHT = 9;
  * Fallback edges guarantee non-regression when LM rules fail.
  */
 
-import { weightedMean } from '@senars/util';
+import { clamp01, weightedMean } from '@senars/util';
 import { ConceptGraph, type CoActivationEdge } from '@senars/core/concept-graph';
 import { singleton, type StrategyRegistry } from '../registration.js';
 import type {
@@ -83,7 +83,7 @@ export class RuleGraph implements LMRuleSelector {
       const perf = this.rulePerformance.get(rule.id);
       if (perf) {
         score += perf.successRate * 0.6;
-        score += Math.min(1, 100 / Math.max(1, perf.avgLatencyMs)) * 0.2;
+        score += clamp01(100 / Math.max(1, perf.avgLatencyMs)) * 0.2;
       }
       for (const edge of coActivations) {
         if (this.ruleMatchesEdge(rule, edge)) {

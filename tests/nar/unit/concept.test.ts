@@ -65,6 +65,18 @@ describe('Concept', () => {
       expect(concept.priority).toBeGreaterThan(0.5);
     });
 
+    it('floors priority at 0 when a negative boost overshoots', () => {
+      concept.priority = 0.1;
+      concept.boost(-0.3);
+      expect(concept.priority).toBe(0);
+    });
+
+    it('caps priority at 1 when a boost overshoots', () => {
+      concept.priority = 0.9;
+      concept.boost(0.5);
+      expect(concept.priority).toBe(1);
+    });
+
     it('decays priority', () => {
       concept.priority = 0.8;
       concept.decay(0.2);
@@ -290,6 +302,12 @@ describe('Concept', () => {
       concept.boost(0.3);
       expect(concept.activationValue).toBeGreaterThan(0);
       expect(concept.activationValue).toBeLessThanOrEqual(1);
+    });
+
+    it('floors activation at 0 when a negative boost overshoots', () => {
+      concept.boost(0.3);
+      concept.boost(-0.5);
+      expect(concept.activationValue).toBe(0);
     });
 
     it('tracks access count', () => {

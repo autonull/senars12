@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { LMExecutionStats } from '@senars/util';
-import { cachePath } from '@senars/util';
+import { cachePath, clamp01 } from '@senars/util';
 import type { LMSettings } from '../env-config.js';
 import {
   getProviderRuntime,
@@ -91,7 +91,7 @@ export function pickModel(
     .map((id) => {
       const cap = MODEL_CAPABILITIES[id];
       const q = qualityTier(cap);
-      const cost = cap ? Math.min(1, cap.costPerMTok / 3) : 0;
+      const cost = cap ? clamp01(cap.costPerMTok / 3) : 0;
       const lat = cap ? LATENCY_PENALTY[cap.latencyClass] : 0.5;
       const successRate = stats?.[id]?.successRate ?? 1;
       const qualifies =

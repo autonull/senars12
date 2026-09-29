@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
+import { sortBy } from '@senars/util';
 import { z } from 'zod';
 import { termsEqual } from '../../terms';
 import { ensureDirSync } from '../../utils/fs.js';
@@ -21,6 +22,10 @@ const DEFAULT_CONFIG: ConsolidationConfig = {
   enableDecay: true,
   enableForgetting: true,
 };
+
+/** Occupancy at which eviction starts, and at which it hardens into removal. */
+const ARCHIVE_PRESSURE = 0.8;
+const FORGET_PRESSURE = 0.9;
 
 export class MemoryConsolidation {
   private config: ConsolidationConfig;
@@ -62,7 +67,6 @@ export class MemoryConsolidation {
 
   consolidate(memory: Memory): void {
     const concepts = memory.listConcepts();
-    this.totalConceptsProcessed += concepts.length;
 
     if (this.config.enableActivationPropagation) {
       this.propagateActivation(concepts);
@@ -73,12 +77,49 @@ export class MemoryConsolidation {
     }
 
     if (this.config.enableForgetting) {
-      const { archived, forgotten } = this.evaluateForgetting(memory, concepts);
-      this.totalConceptsForgotten += forgotten;
-      this.totalConceptsArchived += archived;
+      const { archived, forgotten } = this.evict(memory);
+      this.record(concepts.length, archived, forgotten);
     }
 
     this.consolidationCount++;
+  }
+
+  /**
+   * The one archive/forget policy. `Memory.consolidate` delegates here rather
+   * than carrying a second copy of the thresholds, so the watchdog below reads
+   * counters that actually move.
+   */
+  evict(memory: Memory): { archived: number; forgotten: number } {
+    const pressure = memory.capacityPressure();
+    const candidates = sortBy(
+      memory.listConcepts().filter((c) => c.totalTasks === 0),
+      (c) => c.priority
+    );
+    if (candidates.length === 0 || pressure <= ARCHIVE_PRESSURE) {
+      return { archived: 0, forgotten: 0 };
+    }
+
+    const archiveCount = Math.ceil(candidates.length * Math.min(0.3, pressure - 0.5));
+    const forgetCount =
+      pressure > FORGET_PRESSURE
+        ? Math.ceil(candidates.length * Math.min(0.2, pressure - 0.8))
+        : 0;
+
+    const archived = candidates
+      .slice(0, archiveCount)
+      .filter((c) => memory.archiveConcept(c)).length;
+    const forgotten = candidates
+      .slice(archiveCount, archiveCount + forgetCount)
+      .filter((c) => memory.removeConcept(c.term)).length;
+
+    return { archived, forgotten };
+  }
+
+  /** Consolidation telemetry — the watchdog's only input. */
+  record(processed: number, archived: number, forgotten: number): void {
+    this.totalConceptsProcessed += processed;
+    this.totalConceptsArchived += archived;
+    this.totalConceptsForgotten += forgotten;
   }
 
   reset(): void {
@@ -138,48 +179,6 @@ export class MemoryConsolidation {
       const decay = this.config.decayRate * (1 - concept.priority);
       concept.priority = Math.max(0, concept.priority - decay);
     }
-  }
-
-  private evaluateForgetting(
-    memory: Memory,
-    concepts: Concept[]
-  ): { archived: number; forgotten: number } {
-    const toArchive: Concept[] = [];
-    const toForget: Concept[] = [];
-
-    const capacityPressure = concepts.length / memory['config'].maxConcepts;
-
-    const candidates = concepts.filter((c) => c.totalTasks === 0);
-    if (candidates.length === 0) return { archived: 0, forgotten: 0 };
-
-    candidates.sort((a, b) => a.priority - b.priority);
-
-    if (capacityPressure > 0.8) {
-      const archiveCount = Math.ceil(candidates.length * Math.min(0.3, capacityPressure - 0.5));
-      toArchive.push(...candidates.slice(0, archiveCount));
-    }
-
-    if (capacityPressure > 0.9) {
-      const forgetCount = Math.ceil(candidates.length * Math.min(0.2, capacityPressure - 0.8));
-      const remaining = candidates.filter((c) => !toArchive.includes(c));
-      toForget.push(...remaining.slice(0, forgetCount));
-    }
-
-    let archived = 0;
-    for (const concept of toArchive) {
-      if (memory.archiveConcept(concept)) {
-        archived++;
-      }
-    }
-
-    let forgotten = 0;
-    for (const concept of toForget) {
-      if (memory.removeConcept(concept.term)) {
-        forgotten++;
-      }
-    }
-
-    return { archived, forgotten };
   }
 }
 
@@ -308,7 +307,7 @@ export function recordConsolidationWatchdogCycle(memory: Memory, consolidation: 
     promotedCount: stats.totalConceptsArchived,
     archivedCount: stats.totalConceptsArchived,
     forgottenCount: stats.totalConceptsForgotten,
-    memoryPressure: concepts.length / (memory['config']?.maxConcepts ?? 10000),
+    memoryPressure: memory.capacityPressure(),
     alerts,
   };
 

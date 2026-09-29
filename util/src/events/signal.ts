@@ -1,4 +1,4 @@
-import type { Logger } from '../types/lifecycle.js';
+import { type Logger, defaultLogger } from '../logger.js';
 import { errMsg } from '../utils/shared.js';
 import type { EventReceiver, EventUnsubscribe } from './event-bus.js';
 
@@ -12,9 +12,9 @@ import type { EventReceiver, EventUnsubscribe } from './event-bus.js';
  */
 export class Signal<T> {
   readonly #listeners = new Set<EventReceiver<T>>();
-  readonly #logger: Logger | undefined;
+  readonly #logger: Logger;
 
-  constructor(logger?: Logger) {
+  constructor(logger: Logger = defaultLogger) {
     this.#logger = logger;
   }
 
@@ -39,7 +39,7 @@ export class Signal<T> {
       try {
         receiver(value);
       } catch (e) {
-        this.#logger?.warn('Signal listener threw; remaining listeners still ran', {
+        this.#logger.warn('Signal listener threw; remaining listeners still ran', {
           error: errMsg(e),
         });
       }

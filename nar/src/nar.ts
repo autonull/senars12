@@ -1,6 +1,6 @@
 import { BaseComponent } from '@senars/core';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
-import type { Episode } from '@senars/util';
+import { selectTopN, type Episode } from '@senars/util';
 import { resolveBagSlot } from './bag/registration.js';
 import { CognitiveController, createDefaultRegistry } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
@@ -237,10 +237,10 @@ export class NAR extends BaseComponent {
     this.io.setEventBus(eventBus);
     this.systemEventBus = new NarEventBus();
     this.io.setSystemEventBus(this.systemEventBus);
-    this.games = new GameManager(this.systemOne, config.rng, config.proposals, this.systemEventBus, this.#proofMettaProposer);
-    this._emitJudgmentResolved = createTelemetryEmitter(
+    this.emitJudgmentResolved = createTelemetryEmitter(
       createNarTelemetrySinks(this.systemEventBus)
     );
+    this.games = new GameManager(this.systemOne, config.rng, config.proposals, this.systemEventBus, this.#proofMettaProposer);
     this.driveManager = new DriveManager({
       input: (text, type, truth) => this.io.input(text, type, truth),
     });
@@ -561,28 +561,8 @@ export class NAR extends BaseComponent {
     return this.systemOne.enabled;
   }
 
-  private _emitJudgmentResolved?: (
-    proposition: any,
-    query?: any,
-    provenance?: {
-      inputDigest?: string;
-      calibrationDigest?: string;
-      decisionBand?: 'act' | 'review' | 'block' | 'abstain';
-    }
-  ) => void;
-
   /** Emit a judgment.resolved kernel event + Prometheus metric for a resolved proposition. */
-  private emitJudgmentResolved(
-    proposition: any,
-    query?: any,
-    provenance?: {
-      inputDigest?: string;
-      calibrationDigest?: string;
-      decisionBand?: 'act' | 'review' | 'block' | 'abstain';
-    }
-  ): void {
-    this._emitJudgmentResolved?.(proposition, query, provenance);
-  }
+  private readonly emitJudgmentResolved: ReturnType<typeof createTelemetryEmitter>;
 
   attachManifoldReflex(gameFocus: ReflexBindable): Reflex | undefined {
     return this.systemOne.attachManifoldReflex(gameFocus);
@@ -697,14 +677,11 @@ export class NAR extends BaseComponent {
 
   attentionReport(): { concepts: Array<{ term: string; priority: number }>; total: number } {
     const concepts = this.memory.listConcepts();
-    const sorted = concepts
-      .map((c) => ({
-        term: c.term.toString(),
-        priority: c.priority,
-      }))
-      .sort((a, b) => b.priority - a.priority)
-      .slice(0, 20);
-    return { concepts: sorted, total: concepts.length };
+    const top = selectTopN(concepts, 20, (c) => c.priority).map((c) => ({
+      term: c.term.toString(),
+      priority: c.priority,
+    }));
+    return { concepts: top, total: concepts.length };
   }
 
   loadDomain(domain: { name: string; beliefs: string[] }): void {

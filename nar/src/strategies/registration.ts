@@ -11,7 +11,7 @@
  * strategies→lm→nar SCC.
  */
 
-import { sha256Hex, stableStringify } from '@senars/util';
+import { formatIssues, sha256Hex, stableStringify } from '@senars/util';
 import { z, type ZodError } from 'zod';
 import { describeStrategyExpression, type StrategyExpression } from '../reason/strategy-algebra.js';
 import type { RandomSource } from '../types/primitives.js';
@@ -203,10 +203,7 @@ export const strategySpecErrors = (
   return errors;
 };
 
-const describeIssues = (error: ZodError): string =>
-  error.issues
-    .map((issue) => `${issue.path.length ? issue.path.join('.') : '(root)'} ${issue.message}`)
-    .join('; ');
+const describeIssues = (error: ZodError): string => formatIssues(error.issues);
 
 /** Read-only registry surface that validation needs — the registry itself would cycle. */
 export interface StrategyCatalog {

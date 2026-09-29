@@ -145,8 +145,8 @@ export class Concept {
   }
 
   boost(amount: number): void {
-    this.activation = Math.min(1, this.activation + amount);
-    this._priority = Math.min(1, this._priority + amount);
+    this.activation = clamp01(this.activation + amount);
+    this._priority = clamp01(this._priority + amount);
   }
 
   decay(rate: number): void {
@@ -156,10 +156,10 @@ export class Concept {
   decayAttention(baseRate = 0.01): void {
     const elapsed = Date.now() - this.lastDecayTime;
     const decayFactor = Math.exp((-baseRate * elapsed) / DECAY_TIME_CONSTANT);
-    this.activation *= decayFactor;
-    this._priority = Math.max(0, this._priority * decayFactor);
+    this.activation = clamp01(this.activation * decayFactor);
+    this._priority = clamp01(this._priority * decayFactor);
     if (this._priority > 0 && elapsed < 1) {
-      this._priority = Math.max(0, this._priority * (1 - baseRate));
+      this._priority = clamp01(this._priority * (1 - baseRate));
     }
     this.lastDecayTime = Date.now();
   }
@@ -289,7 +289,7 @@ export class Concept {
   private recordAccess(): void {
     this.useCount++;
     this.lastAccessedAt = Date.now();
-    this._priority = Math.min(1, this._priority + 0.1);
+    this._priority = clamp01(this._priority + 0.1);
   }
 
   private addBeliefWithRevision(

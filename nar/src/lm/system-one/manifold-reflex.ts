@@ -5,6 +5,7 @@ import type { JudgmentDataset } from './distill.js';
 import { recordReflexOutcome } from './reflex-label-source.js';
 import { DecisionReadout } from './reflex-readout.js';
 import type { EmbeddingPointer, JudgmentManifold } from './types.js';
+import { PrefetchTable, proposeFromTable } from './prefetch-table.js';
 
 /** Optional distillation wiring (C4): record reflex decisions as training labels. */
 export interface ManifoldReflexOptions {
@@ -21,7 +22,7 @@ export class ManifoldReflex extends DecisionReadout implements Reflex<Perception
   readonly id = 'manifold-reflex';
 
   #fallback: Reflex<unknown, unknown>;
-  #prefetch = new Map<string, Map<string, number>>();
+  readonly #table = new PrefetchTable<number>();
   #dataset?: JudgmentDataset;
   /** CLM disaggregated embeddings: per-action query objects + embedding pointers,
    *  reused across ticks (only the state is re-encoded per step). */
@@ -72,7 +73,7 @@ export class ManifoldReflex extends DecisionReadout implements Reflex<Perception
         const p = propositions[i];
         if (p && !p.abstained && p.kind === 'evaluate') rows.set(action, p.score);
       });
-      if (rows.size > 0) this.#prefetch.set(stateId, rows);
+      this.#table.set(stateId, rows);
     } catch {
       // Manifold unavailable — table stays cold, incumbent reflex serves
     }
@@ -80,39 +81,21 @@ export class ManifoldReflex extends DecisionReadout implements Reflex<Perception
 
   /** Synchronous contract honored: reads the prefetch table (consume-once for bounded memory). */
   propose(state: Perception, legalActions: string[]): ActionProposal[] {
-    const rows = this.#prefetch.get(state.stateId);
-    if (!rows) return this.#fallback.propose(state, legalActions) as ActionProposal[];
-
-    this.#prefetch.delete(state.stateId);
-
-    const proposals: ActionProposal[] = [];
-    const fallbackProposals =
-      rows.size < legalActions.length
-        ? (this.#fallback.propose(state, legalActions) as ActionProposal[])
-        : [];
-    const byAction = new Map(fallbackProposals.map((p) => [String(p.action), p]));
-
-    for (const action of legalActions) {
-      const score = rows.get(String(action));
-      const incumbent = byAction.get(String(action));
-      if (score !== undefined) {
-        // String-normalized: numeric action 0 must not be falsy in the
-        // negotiation/act pipeline.
-        proposals.push({
-          action: String(action),
-          value: score,
-          confidence: score,
-          source: this.id,
-        });
-      } else if (incumbent) {
-        proposals.push({ ...incumbent, action: String(incumbent.action) });
-      }
-    }
+    const proposals = proposeFromTable({
+      id: this.id,
+      table: this.#table,
+      fallback: this.#fallback,
+      state,
+      legalActions,
+      toProposal: (action, score) => ({
+        action,
+        value: score,
+        confidence: score,
+        source: this.id,
+      }),
+    });
     if (proposals.length > 0) {
-      this.decisionLog.record(
-        legalActions.map(String),
-        String(proposals[0]!.action)
-      );
+      this.decisionLog.record(legalActions.map(String), String(proposals[0]!.action));
     }
     return proposals;
   }

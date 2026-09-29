@@ -1,6 +1,7 @@
 import type { SeNARSRegistry } from '../../lm';
 import { createLogger } from '../../logger/index.js';
 import { NLUnderstandingService } from '../../nl/understanding.js';
+import { clamp01 } from '../../utils';
 import type { ScenarioProfile, ScenarioTemplateProfile } from './scenario-profiles.js';
 
 // --- generate_scenarios ---
@@ -145,10 +146,10 @@ export function calculateScenarioReward(result: ScenarioResult, spec: ScenarioSp
   }
 
   const baseReward = totalWeight > 0 ? totalScore / totalWeight : 0;
-  const stepBonus = Math.min(1, result.steps_executed / spec.duration_steps) * 0.2;
-  const eventBonus = Math.min(1, result.cognitive_events / 100) * 0.1;
+  const stepBonus = clamp01(result.steps_executed / spec.duration_steps) * 0.2;
+  const eventBonus = clamp01(result.cognitive_events / 100) * 0.1;
 
-  return Math.min(1, baseReward + stepBonus + eventBonus);
+  return clamp01(baseReward + stepBonus + eventBonus);
 }
 
 export async function generateScenarioSpec(

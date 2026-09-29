@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { FocusStepReport } from '../../nar/src/focus/Focus.js';
 import { Focus } from '../../nar/src/focus/Focus.js';
 import { FocusBag } from '../../nar/src/focus/FocusBag.js';
+import { schedulerReward } from '../../nar/src/focus/scheduler-reward.js';
 import { createSelfMetaGame, SelfMetaGameImpl } from '../../nar/src/game/SelfMetaGame.js';
 import { SelfRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
 import { LearnerRegistry, SchedulerAdapter } from '../../nar/src/learning/domain-learners.js';
@@ -60,6 +61,6 @@ describe('todo7: self-game outcome wiring', () => {
       domain: 'self-scheduler',
     });
     expect(check).toMatchObject({ accepted: true, mutationApplied: false, requiresProposal: true });
-    expect(SelfMetaGameImpl.schedulerReward(report('f1', 0, 0))).toBe(0);
+    expect(schedulerReward(report('f1', 0, 0))).toBe(0);
   });
 });

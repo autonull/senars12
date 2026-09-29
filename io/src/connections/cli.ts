@@ -1,5 +1,6 @@
 import { createInterface, type Interface } from 'node:readline';
 import { errMsg } from '@senars/core/helpers';
+import { BoundedRing } from '@senars/util';
 import { createLogger } from '@senars/core/logger';
 import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../types.js';
 import { BaseConnection } from './base.js';
@@ -14,19 +15,23 @@ export const QUIT_SENTINEL = '__CLI_QUIT__';
 
 const isQuit = (result: string): boolean => result === QUIT_SENTINEL;
 
+/** Deepest command backlog the REPL holds while the previous command is still running. */
+const MAX_QUEUED_COMMANDS = 1000;
+
 export class CLIConnection extends BaseConnection {
   override readonly type = 'cli';
   override readonly logger = createLogger({ scope: 'io:cli' });
   private rl: Interface | null = null;
   private readonly sendFn: (text: string) => void;
   private readonly commands: Map<string, CLICommand>;
-  private cmdQueue: Array<() => Promise<void>> = [];
+  private readonly cmdQueue: BoundedRing<() => Promise<void>>;
   private cmdRunning = false;
 
   constructor(config: ConnectionConfig, deps: ConnectionDeps) {
     super(config, deps);
     this.name = (config.config.name as string) ?? 'CLI';
     this.sendFn = (config.config.sendFn as (text: string) => void) ?? ((text) => console.log(text));
+    this.cmdQueue = new BoundedRing<() => Promise<void>>(MAX_QUEUED_COMMANDS);
     this.commands = new Map();
     const cmds = (config.config.commands as CLICommand[] | undefined) ?? [];
     for (const cmd of cmds) {
@@ -131,7 +136,7 @@ export class CLIConnection extends BaseConnection {
   }
 
   private processQueue(): void {
-    if (this.cmdQueue.length === 0) {
+    if (this.cmdQueue.size === 0) {
       this.cmdRunning = false;
       this.rl?.prompt();
       return;

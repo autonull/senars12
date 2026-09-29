@@ -1,3 +1,5 @@
+import { getOrInsert } from '@senars/util';
+
 export class ConceptBag {
   #concepts = new Map<string, Concept>();
 
@@ -6,12 +8,7 @@ export class ConceptBag {
   }
 
   getOrCreate(term: string): Concept {
-    const existing = this.#concepts.get(term);
-    if (existing) return existing;
-
-    const created = new Concept(term);
-    this.#concepts.set(term, created);
-    return created;
+    return getOrInsert(this.#concepts, term, () => new Concept(term));
   }
 
   has(term: string): boolean {

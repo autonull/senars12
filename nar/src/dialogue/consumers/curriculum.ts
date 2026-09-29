@@ -5,7 +5,7 @@
  * low trace-quality turns. Digests only (I6); deterministic ordering (stable
  * sort, digest tie-break); frozen-eval rows are never in this data (I1).
  */
-import type { Episode } from '@senars/util';
+import type { Episode, ReadOnlyLookup } from '@senars/util';
 
 export type ProbeKind = 'correction' | 'low-grade' | 'lesson';
 
@@ -21,7 +21,7 @@ export interface CurriculumSource {
   /** Reaction episodes (`type: 'reaction'`). */
   reactions(): Promise<readonly Episode[]>;
   /** Trace grades by correlationId (existing TraceGradeInput plumbing). */
-  grades(): ReadonlyMap<string, number>;
+  grades(): ReadOnlyLookup<string, number>;
   /** Lessons from persisted retrospectives (digest, Narsese term, seeded confidence). */
   lessons?: () => Promise<readonly { digest: string; term: string; confidence: number }[]>;
 }

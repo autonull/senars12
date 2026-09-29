@@ -9,6 +9,7 @@
  * than a silent fallback to the default implementation.
  */
 
+import { formatIssues } from '@senars/util';
 import { z } from 'zod';
 import { ConfigurationError } from '../types';
 import type { RandomSource } from '../types/primitives.js';
@@ -56,10 +57,8 @@ export const bagSlotErrors = (slot: Partial<BagSlotParams> | undefined): string[
   if (slot.config === undefined) return errors;
   const parsed = bagConfig.safeParse(slot.config);
   if (!parsed.success) {
-    const detail = parsed.error.issues
-      .map((issue) => `${issue.path.length ? issue.path.join('.') : '(root)'} ${issue.message}`)
-      .join('; ');
-    errors.push(`strategies.bag.config: ${detail}`);
+    errors.push(`strategies.bag.config: ${formatIssues(parsed.error.issues)}`);
+    return errors;
   }
   return errors;
 };

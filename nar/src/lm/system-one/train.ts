@@ -14,6 +14,7 @@ import {
 export { pearson };
 import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL_ID } from '../../memory/embedding.js';
 import { holdoutSplit, mulberry32 } from '../../utils/random.js';
+import { decodeVector } from './distill.js';
 import { meanBrierOf } from './metrics.js';
 import type { CognitiveAxis, JudgmentHead, JudgmentQuery, RubricId } from './types.js';
 import { composeModelDigest, DigestMismatchError, encoderDigest } from './wasi-runtime.js';
@@ -68,10 +69,7 @@ interface RawLabel {
 export async function loadTrainingData(options: LoadTrainingDataOptions): Promise<TrainingRow[]> {
   const { rows: rawRows } = await readJsonlAsync<RawLabel>(options.datasetPath, (value) => value as RawLabel);
 
-  const grouped = new Map<
-    string,
-    { sum: number; count: number; action: string; vector?: string }
-  >();
+  const grouped = new Map<string, { sum: number; count: number; action: string; vector: string }>();
   for (const label of rawRows) {
     if (label.rubric !== options.headId) continue;
     const target = label.observed ?? label.score;
@@ -88,13 +86,7 @@ export async function loadTrainingData(options: LoadTrainingDataOptions): Promis
 
   const trainingRows: TrainingRow[] = [];
   for (const { sum, count, action, vector } of grouped.values()) {
-    try {
-      const buf = Buffer.from(vector!, 'base64');
-      const embedding = new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4);
-      trainingRows.push({ embedding, action, target: sum / count });
-    } catch {
-      // Inline vector missing/corrupt — row is untrainable, skip.
-    }
+    trainingRows.push({ embedding: decodeVector(vector), action, target: sum / count });
   }
   return trainingRows;
 }

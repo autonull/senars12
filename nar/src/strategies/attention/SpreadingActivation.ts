@@ -1,3 +1,4 @@
+import { clamp01 } from '../../utils';
 import type { Concept } from '../../memory/concept.js';
 import type { AttentionContext } from '../types.js';
 import { SimpleAttention } from './SimpleAttention.js';
@@ -13,7 +14,7 @@ export class SpreadingActivation extends SimpleAttention {
     concept.forEachLink((link) => {
       const target = ctx.memory.getConcept(link.concept.term);
       if (target && target !== concept) {
-        target.priority = Math.min(1, target.priority + boost * (link.strength ?? 0.3));
+        target.priority = clamp01(target.priority + boost * (link.strength ?? 0.3));
       }
     });
     return boost;

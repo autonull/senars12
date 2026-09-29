@@ -3,6 +3,7 @@
  * (code + context + wrap) lives in `@senars/util/errors` — single definition;
  * every class here adds typed, grep-able context for its failure mode.
  */
+import { formatIssues, type SchemaIssue } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 
 export { SenarsError } from '@senars/util/errors';
@@ -74,9 +75,9 @@ export class BoundaryValidationError extends SenarsError {
     this.name = 'BoundaryValidationError';
   }
 
-  static fromZod(path: string, error: { issues: { path: PropertyKey[]; message: string }[] }) {
+  static fromZod(path: string, error: { issues: readonly SchemaIssue[] }) {
     return new BoundaryValidationError(
-      `Validation failed at ${path}: ${error.issues.map((i) => i.message).join('; ')}`,
+      `Validation failed at ${path}: ${formatIssues(error.issues)}`,
       path,
       error.issues.map((i) => ({ path: [...i.path], message: i.message }))
     );

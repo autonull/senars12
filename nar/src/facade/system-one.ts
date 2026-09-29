@@ -1,6 +1,6 @@
 import { createLogger } from '@senars/core/logger';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
-import { cachePath } from '@senars/util';
+import { BoundedMap, cachePath } from '@senars/util';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { ReflexBindable } from '../focus/GameFocus.js';
 import { threadScope } from '../kernel/thread-scope.js';
@@ -31,11 +31,16 @@ import {
   type PipelineSpec,
 } from '../lm/system-one/judgment-pipeline.js';
 import { LMReflex } from '../lm/system-one/lm-reflex.js';
-import { createManifold } from '../lm/system-one/manifold.js';
+import { createManifold, type ManifoldConfig } from '../lm/system-one/manifold.js';
 import { ManifoldReflex } from '../lm/system-one/manifold-reflex.js';
 import type { TraceGradeInput, TraceGradeResult } from '../lm/system-one/trace-grader.js';
 import { createTraceGrader } from '../lm/system-one/trace-grader.js';
-import type { CognitiveDispatcher, JudgmentManifold } from '../lm/system-one/types.js';
+import type {
+  CognitiveDispatcher,
+  JudgmentManifold,
+  JudgmentProposition,
+  JudgmentQuery,
+} from '../lm/system-one/types.js';
 import { createSystemOneBudget } from '../lm/system-one/types.js';
 import { composeModelDigest, encoderDigest } from '../lm/system-one/wasi-runtime.js';
 import { createEmbeddingGenerator } from '../memory/embedding.js';
@@ -49,6 +54,9 @@ import type { NARConfig } from './config.js';
  * embedding cache, dispatcher, groundedness/trace components and their
  * telemetry. Inert unless `config.systemOne.enabled`.
  */
+/** Correlation ids whose latest trace grade is retained for retrospect (default 1000). */
+const MAX_TRACE_GRADES = 1000;
+
 export class SystemOneRuntime {
   readonly embeddingCache?: EmbeddingCache;
   readonly manifold?: JudgmentManifold;
@@ -61,7 +69,10 @@ export class SystemOneRuntime {
   ) => Promise<{ grounded: boolean; score?: number }>;
   readonly traceGrader?: (trace: TraceGradeInput) => Promise<TraceGradeResult>;
   /** TODO24: correlationId → last trace quality, for retrospect strategy audit. */
-  readonly traceGradeHistory = new Map<string, number>();
+  readonly traceGradeHistory = new BoundedMap<string, number>({
+    maxSize: MAX_TRACE_GRADES,
+    eviction: 'lru',
+  });
   readonly dataset?: JudgmentDataset;
   /** Phase E: JudgmentPipeline for comprehensive manifold evaluation (ADR-008). */
   readonly judgmentPipeline?: JudgmentPipeline;
@@ -85,7 +96,7 @@ export class SystemOneRuntime {
     config: NARConfig,
     opts: {
       lmService?: LMService;
-      onJudgmentResolved: (proposition: unknown, query?: unknown) => void;
+      onJudgmentResolved: (proposition: JudgmentProposition, query: JudgmentQuery) => void;
       logger?: ReturnType<typeof createLogger>;
     }
   ) {
@@ -172,9 +183,12 @@ export class SystemOneRuntime {
 
     // Emit judgment.resolved telemetry from the real Tier 1 manifold
     if ('setPropositionCallback' in manifold) {
+      // The callback pair is on the concrete Manifold, not on the JudgmentManifold
+      // interface, so the guard above is what narrows it.
+      type PropositionCallback = NonNullable<ManifoldConfig['onProposition']>;
       const m = manifold as {
-        setPropositionCallback: (cb: (proposition: any, query: any) => void) => void;
-        getPropositionCallback?: () => ((proposition: any, query: any) => void) | undefined;
+        setPropositionCallback: (cb: PropositionCallback) => void;
+        getPropositionCallback?: () => PropositionCallback | undefined;
       };
       const previous = m.getPropositionCallback?.();
       m.setPropositionCallback((proposition, query) => {

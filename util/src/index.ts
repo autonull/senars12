@@ -113,13 +113,15 @@ export type {
   BaseComponent,
   ComponentContext,
   ComponentState,
+  EventPublisher,
   LogEntry,
-  Logger,
   LoggerConfig,
   LogLevel,
   Metrics,
   ScopedLogger,
 } from './types/lifecycle.js';
+/** @public The monorepo's one logger. */
+export { createLogger, defaultLogger, Logger, registerLogEnricher } from './logger.js';
 /** @public LM service contract. */
 export type {
   LMExecutionStats,
@@ -155,8 +157,11 @@ export type { Confidence, Frequency, TruthLike } from './types/truth.js';
 /** @public Truth value constructors. */
 export {
   asBeliefTruth,
+  BeliefTruthSchema,
   formatNarseseTruth,
   formatTruth,
+  parseNarseseTruth,
+  parseTruthLiteral,
   serializeTruth,
   toConfidence,
   toFrequency,
@@ -173,6 +178,7 @@ export {
   incrementCount,
   insertByScoreDesc,
   maxBy,
+  maxScore,
   minBy,
   pushCapped,
   selectByPriority,
@@ -222,6 +228,7 @@ export {
 export { generateId } from './utils/id.js';
 /** @public Bounded map with pluggable eviction order and optional TTL. */
 export type { BoundedMapOptions, EvictionOrder } from './utils/bounded-map.js';
+export type { ReadOnlyLookup } from './utils/collections.js';
 export { BoundedMap } from './utils/bounded-map.js';
 export type { LruCacheOptions } from './utils/lru-cache.js';
 /** @public Bounded recency-ordered cache with optional TTL. */
@@ -256,6 +263,7 @@ export {
   estimateTokens,
   extractTerm,
   type Flags,
+  formatIssues,
   getNested,
   isNarsese,
   isNil,
@@ -263,11 +271,13 @@ export {
   limitList,
   makeId,
   mean,
+  occupancy,
   parseFlags,
   pearson,
   raceDeadline,
   roundTo,
   safeDiv,
+  type SchemaIssue,
   setNested,
   sigmoid,
   sleep,

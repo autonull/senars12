@@ -1,4 +1,5 @@
 import { errMsg } from '@senars/util';
+import { BoundedRing } from '../utils/collections.js';
 export type CapabilityRisk = 'low' | 'medium' | 'high';
 
 export interface CapabilityDef {
@@ -42,6 +43,8 @@ export interface CapabilitySpaceOptions {
   approval?: CapabilityApproval;
   allowedMutations?: string[];
   sandbox?: <T>(fn: () => Promise<T>) => Promise<T>;
+  /** Capability outcomes retained for audit (default 1000). */
+  maxRecords?: number;
 }
 
 const DEFAULT_MUTATIONS = [
@@ -59,7 +62,7 @@ const DEFAULT_MUTATIONS = [
 
 export class CapabilitySpace {
   private readonly capabilities = new Map<string, CapabilityDef>();
-  private readonly history: CapabilityRecord[] = [];
+  private readonly history: BoundedRing<CapabilityRecord>;
   private readonly policy?: CapabilityPolicy;
   private readonly approval?: CapabilityApproval;
   private readonly allowedMutations: Set<string>;
@@ -68,6 +71,7 @@ export class CapabilitySpace {
   constructor(opts: CapabilitySpaceOptions = {}) {
     this.policy = opts.policy;
     this.approval = opts.approval;
+    this.history = new BoundedRing<CapabilityRecord>(opts.maxRecords ?? 1000);
     this.allowedMutations = new Set(opts.allowedMutations ?? DEFAULT_MUTATIONS);
     this.sandbox = opts.sandbox ?? ((fn) => fn());
   }
@@ -88,7 +92,7 @@ export class CapabilitySpace {
   }
 
   records(): CapabilityRecord[] {
-    return [...this.history];
+    return this.history.toArray();
   }
 
   validateDiff(diff: AstDiff): { allowed: boolean; reason?: string } {

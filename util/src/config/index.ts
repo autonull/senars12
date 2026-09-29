@@ -47,7 +47,7 @@ export type {
   ConfigSchema,
   ConfigView,
 } from './types.js';
-export type { ValidatedAgentOptions } from './validation.js';
+export { type ValidatedAgentOptions } from './validation.js';
 export {
   AgentOptionsValidationError,
   agentOptionsSchema,

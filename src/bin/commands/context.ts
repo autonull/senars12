@@ -13,6 +13,7 @@ import type { JudgmentDataset } from '@senars/nar/lm/system-one/distill.js';
 import type { TraceGradeInput, TraceGradeResult } from '@senars/nar/lm/system-one/trace-grader.js';
 import type { EmbeddingCache } from '@senars/nar/lm/system-one/types.js';
 import type { MemoryQuery } from '@senars/nar/query/memory-query.js';
+import type { ReadOnlyLookup } from '@senars/util';
 import type { AppConfig, BotProfile } from '../../config/index.js';
 import type { AttachedGame } from '../../cli/conversation-game.js';
 import type { ChatTier } from '../../cli/commands.js';
@@ -38,7 +39,7 @@ export interface TraceState {
  */
 export interface SystemOneBag {
   readonly dataset?: JudgmentDataset;
-  readonly traceGradeHistory?: ReadonlyMap<string, number>;
+  readonly traceGradeHistory?: ReadOnlyLookup<string, number>;
 }
 
 export type SystemOneHolder = { readonly systemOne?: SystemOneBag };

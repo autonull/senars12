@@ -1,4 +1,4 @@
-import type { Logger } from '../types/lifecycle.js';
+import { type Logger, defaultLogger } from '../logger.js';
 
 export type EventReceiver<T> = (params: T) => void;
 export type EventUnsubscribe = () => void;
@@ -8,26 +8,12 @@ interface Listener<T = unknown> {
   once: boolean;
 }
 
-const consoleLogger: Logger = {
-  debug: (msg, ctx) => console.debug(msg, ctx),
-  info: (msg, ctx) => console.info(msg, ctx),
-  warn: (msg, ctx) => console.warn(msg, ctx),
-  error: (msg, err, ctx) => console.error(msg, err, ctx),
-  scope: 'console',
-  warnOnce: (key, msg, ctx) => consoleLogger.warn(`${key}: ${msg}`, ctx),
-  deprecated: (oldSymbol, replacement, ctx) =>
-    consoleLogger.warn(`deprecated ${oldSymbol}; use ${replacement} instead`, ctx),
-  setLevel: () => {},
-  getLevel: () => 'debug' as const,
-  getScope: () => 'console',
-};
-
 export class EventBus<T extends Record<string, unknown> = Record<string, unknown>> {
   private listeners = new Map<string, Listener[]>();
   private readonly logger: Logger;
 
-  constructor(logger?: Logger) {
-    this.logger = logger ?? consoleLogger;
+  constructor(logger: Logger = defaultLogger) {
+    this.logger = logger;
   }
 
   on<K extends keyof T>(eventName: K & string, fn: EventReceiver<T[K]>): EventUnsubscribe {

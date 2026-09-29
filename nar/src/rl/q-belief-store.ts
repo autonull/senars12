@@ -1,4 +1,4 @@
-import { LruCache, clamp01 } from '@senars/util';
+import { LruCache, clamp01, maxScore } from '@senars/util';
 import type { DriveManager } from '../drives/manager.js';
 import { type Term, TermBuilder, Truth, atom } from '../index.js';
 import type { NAR } from '../nar.js';
@@ -19,11 +19,12 @@ export const DEFAULT_QBELIEF_CAPACITY = 1000;
  * Decode a stored value belief back to the Q expectation it encodes.
  *
  * `updateValueQLearning` writes `f = (E - 0.5) / c + 0.5`, so the inverse is
- * `E = c * (f - 0.5) + 0.5`. Every read path must go through this — the previous
+ * `Truth.expectation` — `E = c * (f - 0.5) + 0.5`. Every read path must go
+ * through this, and the arithmetic itself must stay the engine's: the previous
  * mix of `f * c` (greedy policy) and the correct decode (max-value, blending)
  * ranked the same table under two different orderings.
  */
-export const decodeQExpectation = ({ f, c }: { f: number; c: number }): number => c * (f - 0.5) + 0.5;
+export const decodeQExpectation = Truth.expectation;
 
 /**
  * Stores state-action value beliefs in NAR memory using native Product/Inheritance form
@@ -52,7 +53,7 @@ export class QBeliefStore {
   }
 
   /** Get value belief for state-action pair */
-  getValue(state: Term, action: Term): { f: number; c: number } | null {
+  getValue(state: Term, action: Term): Truth | null {
     this.stateActions.get(state.toString()); // recency: a read marks the state live
     const product = TermBuilder.product(state, action);
     const valueTerm = TermBuilder.inheritance(product, this.predictsRewardAtom);
@@ -61,10 +62,7 @@ export class QBeliefStore {
     if (!concept) return null;
 
     const beliefs = concept.getBeliefs();
-    const belief = beliefs[0];
-    if (!belief?.truth) return null;
-
-    return { f: belief.truth.f, c: belief.truth.c };
+    return beliefs[0]?.truth ?? null;
   }
 
   /** Value-belief term for a (state, action) pair, or null if unbuildable. */
@@ -136,22 +134,16 @@ export class QBeliefStore {
 
   /** Get max Q-value for a state across available actions */
   getMaxValue(state: Term, availableActions: Term[]): number {
-    const stateKey = state.toString();
-    let maxValue = 0;
-    for (const action of availableActions) {
+    return maxScore(availableActions, (action) => {
       const value = this.getValue(state, action);
-      if (value) {
-        const expectation = decodeQExpectation(value);
-        if (expectation > maxValue) maxValue = expectation;
-      }
-    }
-    return maxValue;
+      return value ? decodeQExpectation(value) : 0;
+    });
   }
 
   /** Get all recorded action values for a state (X24: real implementation). */
-  getAllActions(state: Term): Map<string, { f: number; c: number }> {
+  getAllActions(state: Term): Map<string, Truth> {
     const stateKey = state.toString();
-    const results = new Map<string, { f: number; c: number }>();
+    const results = new Map<string, Truth>();
     for (const [actionKey, actionTerm] of this.stateActions.peek(stateKey) ?? new Map()) {
       const value = this.getValue(state, actionTerm);
       if (value) results.set(actionKey, value);

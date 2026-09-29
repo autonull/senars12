@@ -2,6 +2,7 @@ import { clamp01 } from '@senars/util';
 import { type Term, Truth, TermBuilder } from '../index.js';
 import type { NAR } from '../nar.js';
 import type { RandomSource } from '../types/primitives.js';
+import { BoundedRing } from '../utils/collections.js';
 import { QBeliefStore } from './q-belief-store.js';
 import { rewardBeliefTerm, rewardLevel } from './reward-term.js';
 
@@ -15,6 +16,16 @@ export interface RewardBeliefAdapterConfig {
   tdQLearningConfidence?: number;
   /** Injected randomness for value-belly exploration (default Math.random). */
   rng?: RandomSource;
+  /** Reward transitions retained for retrospective analysis (default 1000). */
+  maxHistory?: number;
+}
+
+/** One recorded `(state, action, reward)` transition. */
+export interface RewardHistoryEntry {
+  state: Term;
+  action: Term;
+  reward: number;
+  timestamp: number;
 }
 
 export class RewardBeliefAdapter {
@@ -26,7 +37,7 @@ export class RewardBeliefAdapter {
     tdAlpha: number;
     tdQLearningConfidence: number;
   };
-  private rewardHistory: { state: Term; action: Term; reward: number; timestamp: number }[] = [];
+  private readonly rewardHistory: BoundedRing<RewardHistoryEntry>;
 
   constructor(nar: NAR, config: RewardBeliefAdapterConfig = {}) {
     this.nar = nar;
@@ -37,6 +48,7 @@ export class RewardBeliefAdapter {
       tdAlpha: config.tdAlpha ?? 0.1,
       tdQLearningConfidence: config.tdQLearningConfidence ?? 0.9,
     };
+    this.rewardHistory = new BoundedRing<RewardHistoryEntry>(config.maxHistory ?? 1000);
   }
 
   private async believeReward(reward: number, confidence: number): Promise<void> {
@@ -127,7 +139,7 @@ export class RewardBeliefAdapter {
     return this.qStore;
   }
 
-  getRewardHistory(): typeof this.rewardHistory {
-    return [...this.rewardHistory];
+  getRewardHistory(): RewardHistoryEntry[] {
+    return this.rewardHistory.toArray();
   }
 }

@@ -7,12 +7,12 @@
  * Or: pnpm exec tsx scripts/fuzz-narsese.ts [iterations] [--seed N]
  */
 
-import { errMsg } from '@senars/util';
+import { errMsg, serializeTruth } from '@senars/util';
 import { createNAR } from '../nar/src/nar-presets.js';
 import { termParser } from '../nar/src/terms/parser-peggy.js';
 import { Truth } from '../nar/src/terms/truth.js';
 import type { Term } from '../nar/src/terms/types.js';
-import { createLCG } from '../tests/helpers/rng.js';
+import { choice, createLCG, nextInt } from '../nar/src/utils/random.js';
 
 const ATOMS = [
   'cat', 'dog', 'animal', 'mammal', 'bird', 'fish',
@@ -33,17 +33,13 @@ const OPERATORS = [
 
 const PUNCTUATION = ['.', '?', '!', ';'];
 
-function randomElement<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
 function randomInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return nextInt(Math.random, max - min + 1) + min;
 }
 
 function generateRandomAtom(): string {
   if (Math.random() < 0.3) {
-    return randomElement(ATOMS);
+    return choice(Math.random, ATOMS);
   }
   const len = randomInt(1, 10);
   let result = '';
@@ -59,7 +55,7 @@ function generateRandomTerm(depth: number = 0): string {
     return generateRandomAtom();
   }
 
-  const op = randomElement(OPERATORS);
+  const op = choice(Math.random, OPERATORS);
   const left = generateRandomTerm(depth + 1);
   const right = generateRandomTerm(depth + 1);
 
@@ -78,28 +74,26 @@ function generateRandomTerm(depth: number = 0): string {
 }
 
 function generateRandomTruth(): string {
-  const f = Math.random().toFixed(4);
-  const c = Math.random().toFixed(4);
-  return `%${f};${c}%`;
+  return serializeTruth({ f: Math.random(), c: Math.random() });
 }
 
 function generateRandomNarsese(): string {
   const term = generateRandomTerm();
   const hasTruth = Math.random() < 0.4;
   const truth = hasTruth ? ` ${generateRandomTruth()}` : '';
-  const punc = randomElement(PUNCTUATION);
+  const punc = choice(Math.random, PUNCTUATION);
   return `${term}${truth}${punc}`;
 }
 
 function mutateString(input: string): string {
   const mutations = [
-    () => input + randomElement(PUNCTUATION),
-    () => input.slice(0, -1) + randomElement(PUNCTUATION),
+    () => input + choice(Math.random, PUNCTUATION),
+    () => input.slice(0, -1) + choice(Math.random, PUNCTUATION),
     () => input + ' ' + generateRandomAtom(),
     () => input.replace(/[a-z]/gi, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))),
     () => {
       const pos = Math.floor(Math.random() * input.length);
-      return input.slice(0, pos) + randomElement(['(', ')', '&', '|', '-', '*', '-->', '<->', '==>', '<=>']) + input.slice(pos);
+      return input.slice(0, pos) + choice(Math.random, ['(', ')', '&', '|', '-', '*', '-->', '<->', '==>', '<=>']) + input.slice(pos);
     },
     () => {
       if (input.length < 2) return input;
@@ -112,7 +106,7 @@ function mutateString(input: string): string {
     },
     () => input + ' %' + Math.random().toFixed(4) + ';' + Math.random().toFixed(4) + '%',
   ];
-  return randomElement(mutations)();
+  return choice(Math.random, mutations)();
 }
 
 async function runFuzz(iterations: number, seed?: number): Promise<void> {
@@ -148,7 +142,7 @@ async function runFuzz(iterations: number, seed?: number): Promise<void> {
   for (let i = 0; i < iterations; i++) {
     let input: string;
     if (corpus.length > 0 && Math.random() < 0.3) {
-      input = mutateString(randomElement(corpus));
+      input = mutateString(choice(Math.random, corpus));
     } else {
       input = generateRandomNarsese();
     }

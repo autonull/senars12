@@ -94,13 +94,13 @@ export class ScenarioGenerator {
       termStr = this.corruptTerm(rule.term);
       truth = Truth.create(
         clamp01(rule.truth.f + (this.rng() - 0.5) * 0.6),
-        clamp(rule.truth.c + (this.rng() - 0.5) * 0.6, 0, 0.999)
+        clamp(rule.truth.c + (this.rng() - 0.5) * 0.6, 0, Truth.MAX_CONFIDENCE)
       );
     } else {
       termStr = rule.term;
       truth = Truth.create(
         clamp01(rule.truth.f),
-        clamp(rule.truth.c, 0, 0.999)
+        clamp(rule.truth.c, 0, Truth.MAX_CONFIDENCE)
       );
     }
 

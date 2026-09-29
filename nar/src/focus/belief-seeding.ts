@@ -1,4 +1,5 @@
 import { makeId } from '@senars/util';
+import { focusTask } from '../gates/tasks.js';
 import { termParser } from '../terms/index.js';
 import type { Focus, FocusTask } from './Focus.js';
 
@@ -13,17 +14,15 @@ export interface SeededBelief {
 export function seedBelief(focus: Focus, belief: SeededBelief): FocusTask | null {
   const term = termParser.parse(belief.narsese);
   if (!term || term.kind === 'atom') return null;
-  const priority = belief.priority ?? belief.truth.c;
-  const task: FocusTask = {
+  const task = focusTask({
     id: `seeded-${makeId()}`,
-    priority,
     term,
     type: 'belief',
-    truth: belief.truth,
-    budget: { priority, durability: 0.9, quality: 0.9, cycles: 0, depth: 0 },
+    priority: belief.priority ?? belief.truth.c,
+    f: belief.truth.f,
+    c: belief.truth.c,
     stamp: 'belief-seeding',
-    derived: false,
-  };
+  });
   focus.tasks.add(task);
   return task;
 }

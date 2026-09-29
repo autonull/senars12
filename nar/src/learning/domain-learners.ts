@@ -1,6 +1,6 @@
 import type { RewardDomain } from '@senars/kernel/schemas';
 import { SenarsError } from '@senars/util/errors';
-import { clamp } from '@senars/util';
+import { clamp, clamp01 } from '@senars/util';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { SelfRewardGate } from '../kernel/KernelRewardGate.js';
 import type { LearningEvent, Reflex } from '../reflex/Reflex.js';
@@ -59,10 +59,7 @@ export class SchedulerAdapter extends DomainLearner {
     this.guard(event);
     if (!event.focusId) return;
     const current = this.focusBag.getFocusWeights().get(event.focusId) ?? 0;
-    const next = Math.max(
-      0,
-      Math.min(1, current + this.learningRate * clamp(event.reward, -1, 1))
-    );
+    const next = clamp01(current + this.learningRate * clamp(event.reward, -1, 1));
     this.focusBag.rebalanceWeights(new Map([[event.focusId, next]]));
   }
 }

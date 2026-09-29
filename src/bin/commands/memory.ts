@@ -1,7 +1,6 @@
 /** Episodic + concept memory commands (`.consolidate`, `.memory-*`, `.recall`). */
 
-import { writeFile } from 'node:fs/promises';
-import { errMsg, readJsonlAsync } from '@senars/util';
+import { errMsg, readJsonlAsync, writeJsonl } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import { flagsOf, tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
@@ -40,7 +39,7 @@ export const memoryCommandsFor = (rt: BotRuntime) => [
   cmd('memory-export', 'Export episodes to JSONL', async (args = '') => {
     const path = args.trim() || '.cache/episodes-export.jsonl';
     const eps = await rt.wired.episodicMemory.getEpisodes({ limit: 100000 });
-    await writeFile(path, eps.map((e) => JSON.stringify(e)).join('\n'));
+    await writeJsonl(path, eps);
     return `Exported ${eps.length} episodes to ${path}`;
   }),
   cmd('memory-import', 'Import episodes from JSONL', async (args = '') => {

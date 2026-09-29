@@ -11,7 +11,7 @@ import type {
   EpisodicMemoryConfig,
   EpisodicMemory as UtilEpisodicMemory,
 } from '@senars/util';
-import { cachePath } from '@senars/util';
+import { cachePath, sortByDesc } from '@senars/util';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 import { type Clock, SystemClock } from '../clock.js';
@@ -302,10 +302,8 @@ export class EpisodicMemory implements UtilEpisodicMemory {
       episodes.push(episode);
     }
 
-    // Sort by timestamp descending (most recent first)
-    episodes.sort((a, b) => b.timestamp - a.timestamp);
-
-    return episodes;
+    // Most recent first
+    return sortByDesc(episodes, (episode) => episode.timestamp);
   }
 
   async pruneOldEpisodes(): Promise<void> {

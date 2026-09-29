@@ -115,7 +115,7 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   override recordFocusStepReport(report: FocusStepReport): void {
     super.recordFocusStepReport(report);
     if (!this.scheduler) return;
-    const reward = SelfMetaGameImpl.schedulerReward(report);
+    const reward = schedulerReward(report);
     const check = this.scheduler.rewardGate.process({
       eventId: makeId(),
       rewardSignal: reward,
@@ -180,10 +180,6 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
       validation: this.proposalRouter.getAwaitingValidation().length,
       approval: this.proposalRouter.getAwaitingApproval().length,
     };
-  }
-
-  static schedulerReward(report: FocusStepReport): number {
-    return schedulerReward(report);
   }
 
   applyProposal(proposal: { kind: string; riskTier: string; payload: Record<string, unknown> }): {

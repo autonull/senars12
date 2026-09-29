@@ -1,3 +1,4 @@
+import { BoundedMap } from '@senars/util';
 import type { Term } from '../../terms';
 import { cosineSimilarity, createEmbeddingGenerator, type EmbeddingGenerator } from '../embedding.js';
 import { selectTopN } from '../../utils/collections.js';
@@ -24,13 +25,17 @@ export class EmbeddingLayer extends Layer {
   private readonly similarityThreshold: number;
   private readonly maxLinksPerConcept: number;
   private readonly embeddingGenerator: EmbeddingGenerator;
-  private readonly termEmbeddings = new Map<string, IndexedEmbedding>();
+  private readonly termEmbeddings: BoundedMap<string, IndexedEmbedding>;
 
   constructor(config: EmbeddingLayerConfig) {
     super(LINK_LAYER.EMBEDDING, config.capacity, 'priority');
     this.similarityThreshold = config.similarityThreshold;
     this.maxLinksPerConcept = config.maxLinksPerConcept;
     this.embeddingGenerator = createEmbeddingGenerator();
+    this.termEmbeddings = new BoundedMap<string, IndexedEmbedding>({
+      maxSize: config.capacity,
+      eviction: 'lru',
+    });
   }
 
   async indexConcept(term: Term): Promise<void> {
@@ -61,7 +66,7 @@ export class EmbeddingLayer extends Layer {
   ): Array<{ term: Term; similarity: number }> {
     const results: Array<{ term: Term; similarity: number }> = [];
 
-    for (const [text, indexed] of this.termEmbeddings) {
+    for (const [text, indexed] of this.termEmbeddings.entries()) {
       if (text === exclude) continue;
       const similarity = cosineSimilarity(queryEmbedding, indexed.embedding);
       if (similarity > 0) results.push({ term: indexed.term, similarity });

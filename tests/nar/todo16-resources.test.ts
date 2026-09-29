@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
-import { BudgetTracker } from '../../nar/src/config/budget.js';
 import { chargeJudgment, assertCostReported } from '../../nar/src/lm/system-one/resource-gate.js';
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
@@ -66,15 +65,6 @@ describe('System One — AIKR Resource Accounting (Bench 12)', () => {
       }
     }
     throw new Error('BudgetGate never denied an over-budget head');
-  });
-
-  it('BudgetTracker penalizes over-budget heads', () => {
-    const tracker = new BudgetTracker({ maxNALSteps: 1, maxLMCalls: 1, maxDerivationDepth: 3, maxMemoryOps: 10 });
-    expect(tracker.canDoNAL()).toBe(true);
-    tracker.recordNAL();
-    expect(tracker.canDoNAL()).toBe(false);
-    // Over-budget heads get zero remaining allocation
-    expect(tracker.getRemaining().nal).toBe(0);
   });
 
   it('judgment delegation round-trips and re-enters at PEER_AGENT quality', async () => {

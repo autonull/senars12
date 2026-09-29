@@ -18,6 +18,7 @@ import {
   isOperation,
 } from '../terms/index.js';
 import type { Budget, ConceptLike, Task } from '../types/index.js';
+import { clamp01 } from '../utils';
 
 export interface FocusTask extends BagItem {
   id: string;
@@ -102,9 +103,9 @@ export class Focus implements BagItem {
       rng: options.rng,
     });
 
-    this.perceptionGate = new PerceptionGate(this);
-    this.actionGate = new ActionGate(this);
-    this.rewardGate = new RewardGate(this);
+    this.perceptionGate = new PerceptionGate();
+    this.actionGate = new ActionGate();
+    this.rewardGate = new RewardGate();
   }
 
   get priority(): number {
@@ -208,7 +209,7 @@ export class Focus implements BagItem {
     let concept = this.findConcept(id);
     if (concept) {
       concept.priority = Math.max(concept.priority, priority);
-      concept.activation = Math.min(1, concept.activation + 0.1);
+      concept.activation = clamp01(concept.activation + 0.1);
       concept.totalTasks++;
     } else {
       concept = {
@@ -275,7 +276,7 @@ export class Focus implements BagItem {
       const derivations = index.get(action) ?? [];
       derivations.push({
         action,
-        truth: concept.truth ?? { f: concept.activation, c: Math.min(1, concept.priority) },
+        truth: concept.truth ?? { f: concept.activation, c: clamp01(concept.priority) },
         source: 'focus-memory',
         premise: concept.term.toString(),
       });

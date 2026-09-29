@@ -1,13 +1,18 @@
-import { mean, weightedMean } from '@senars/util';
+import { maxBy, mean, selectTopN, weightedMean } from '@senars/util';
 
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import type { RewardModel } from './RewardModel.js';
 import { findCommonFeatures } from './utils.js';
 import type { RandomSource } from '../types/primitives.js';
+import { BoundedRing } from '../utils/collections.js';
 
 /** Prior-sample weight for a strategy's success rate: proven, or still unproven. */
 const PROVEN_WEIGHT = 10;
 const UNPROVEN_WEIGHT = 1;
+
+/** The one strategy ranking: priority × mean reward, scaled by proven-ness. */
+const STRATEGY_SCORE = (s: Strategy): number =>
+  s.priority * s.avgReward * (1 + s.successRate);
 
 export interface PolicyConfig {
   explorationRate?: number;
@@ -17,6 +22,15 @@ export interface PolicyConfig {
   convergenceThreshold?: number;
   /** §5s: injectable RNG for exploration sampling. */
   rng?: RandomSource;
+  /** Trajectory records retained for policy scoring (default 1000). */
+  maxHistory?: number;
+}
+
+/** One scored `(trajectory, strategy)` outcome the optimizer learns from. */
+export interface TrajectoryRecord {
+  trajectory: TrajectoryStep[];
+  reward: number;
+  strategyUsed: string;
 }
 
 export interface PolicyUpdate {
@@ -38,13 +52,9 @@ export interface Strategy {
 
 export class PolicyOptimizer {
   private strategies: Map<string, Strategy> = new Map();
-  private trajectoryHistory: Array<{
-    trajectory: TrajectoryStep[];
-    reward: number;
-    strategyUsed: string;
-  }> = [];
+  private readonly trajectoryHistory: BoundedRing<TrajectoryRecord>;
   private rewardModel: RewardModel;
-  private readonly config: Omit<Required<PolicyConfig>, 'rng'>;
+  private readonly config: Omit<Required<PolicyConfig>, 'rng' | 'maxHistory'>;
 
   constructor(rewardModel: RewardModel, config: PolicyConfig = {}) {
     this.rewardModel = rewardModel;
@@ -56,11 +66,12 @@ export class PolicyOptimizer {
       convergenceThreshold: config.convergenceThreshold ?? 0.001,
     };
     this.rng = config.rng ?? Math.random;
+    this.trajectoryHistory = new BoundedRing<TrajectoryRecord>(config.maxHistory ?? 1000);
   }
 
   private readonly rng: RandomSource;
 
-  getConfig(): Omit<Required<PolicyConfig>, 'rng'> {
+  getConfig(): Omit<Required<PolicyConfig>, 'rng' | 'maxHistory'> {
     return this.config;
   }
 
@@ -102,18 +113,7 @@ export class PolicyOptimizer {
       return strategyArray[Math.floor(this.rng() * strategyArray.length)] ?? 'default';
     }
 
-    let bestStrategy = 'default';
-    let bestScore = Number.NEGATIVE_INFINITY;
-
-    for (const [name, strategy] of this.strategies.entries()) {
-      const score = strategy.priority * strategy.avgReward * (1 + strategy.successRate);
-      if (score > bestScore) {
-        bestScore = score;
-        bestStrategy = name;
-      }
-    }
-
-    return bestStrategy;
+    return this.#bestStrategy() ?? 'default';
   }
 
   updateStrategy(
@@ -157,7 +157,7 @@ export class PolicyOptimizer {
   optimize(iterations = 100): PolicyUpdate[] {
     const updates: PolicyUpdate[] = [];
 
-    if (this.trajectoryHistory.length < 10) {
+    if (this.trajectoryHistory.size < 10) {
       return updates;
     }
 
@@ -175,9 +175,11 @@ export class PolicyOptimizer {
 
       const avgReward =
         mean(relevantHistory, (h) => h.reward);
-      const topQuartile = relevantHistory
-        .sort((a, b) => b.reward - a.reward)
-        .slice(0, Math.ceil(relevantHistory.length / 4));
+      const topQuartile = selectTopN(
+        relevantHistory,
+        Math.ceil(relevantHistory.length / 4),
+        (h) => h.reward
+      );
 
       if (topQuartile.length > 0) {
         const _commonFeatures = findCommonFeatures(topQuartile.map((h) => h.trajectory));
@@ -229,23 +231,16 @@ export class PolicyOptimizer {
 
   getBestStrategy(): string | null {
     if (this.strategies.size === 0) return null;
+    return this.#bestStrategy();
+  }
 
-    let bestName: string | null = null;
-    let bestScore = Number.NEGATIVE_INFINITY;
-
-    for (const [name, strategy] of this.strategies.entries()) {
-      const score = strategy.priority * strategy.avgReward * (1 + strategy.successRate);
-      if (score > bestScore) {
-        bestScore = score;
-        bestName = name;
-      }
-    }
-
-    return bestName;
+  /** The one strategy ranking, shared by the greedy and reporting paths. */
+  #bestStrategy(): string | null {
+    return maxBy([...this.strategies], ([, s]) => STRATEGY_SCORE(s))?.[0] ?? null;
   }
 
   reset(): void {
-    this.trajectoryHistory = [];
+    this.trajectoryHistory.clear();
     for (const strategy of this.strategies.values()) {
       strategy.successRate = 0;
       strategy.avgReward = 0;

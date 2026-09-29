@@ -6,7 +6,7 @@
 
 import { promises as fs, readFileSync, statSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { appendJsonl, BoundedMap, ensureDir, ensureDirSync, utcDate } from '@senars/util';
+import { appendJsonl, BoundedMap, ensureDir, ensureDirSync, utcDate, writeJsonl } from '@senars/util';
 import { z } from 'zod';
 
 /**
@@ -237,8 +237,7 @@ export class Ledger<T extends BaseLedgerEntry> {
     const date = utcDate();
     const fileName = this.#config.rollover.pathTemplate(date, 0);
     const targetFile = join(this.#config.basePath, fileName);
-    const lines = [...byKey.values()].map((e) => JSON.stringify(e)).join('\n') + '\n';
-    await fs.writeFile(targetFile, lines, 'utf-8');
+    await writeJsonl(targetFile, [...byKey.values()]);
 
     // Reset hot cache and file state
     this.#hotCache.clear();

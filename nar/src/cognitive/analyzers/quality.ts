@@ -1,4 +1,4 @@
-import { roundTo } from '@senars/util';
+import { clamp01, roundTo } from '@senars/util';
 import type { SelfHost } from '../../self/host.js';
 import { containsSubterm, getSubject } from '../../terms';
 import type { QualityAssessment } from '../types.js';
@@ -21,7 +21,7 @@ export const assessQuality = async (nar: SelfHost | null): Promise<QualityAssess
       return subject && containsSubterm(b.term, subject);
     })
   ).length;
-  const relevance = goals.length > 0 ? Math.min(1, relevantBeliefs / goals.length) : 0.5;
+  const relevance = goals.length > 0 ? clamp01(relevantBeliefs / goals.length) : 0.5;
 
   // Completeness: based on question resolution rate
   const questions = nar.getQuestions?.() ?? [];

@@ -2,20 +2,18 @@
  * Deterministic RNG for tests (TODO20 T1/T2). Pins the global `Math.random`
  * stream to a seeded LCG so Bag sampling and exploratory policies stop
  * depending on module-load order — and restores it afterwards.
+ *
+ * The LCG itself lives in `nar/src/utils/random.ts`: a production entrypoint
+ * (`scripts/fuzz-narsese.ts`) seeds from it too, and that script must not pull
+ * vitest in through a test helper.
  */
+import { createLCG } from '../../nar/src/utils/random.js';
 import { vi } from 'vitest';
 import type { RandomSource } from '../../nar/src/types/primitives.js';
 
-export type { RandomSource };
+export { createLCG };
 
-/** Seeded LCG (Numerical Recipes constants) — same seed ⇒ same stream. */
-export const createLCG = (seed = 0x2f6e2b1): RandomSource => {
-  let state = seed >>> 0;
-  return () => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 4294967296;
-  };
-};
+export type { RandomSource };
 
 let unpinned: (() => void) | null = null;
 

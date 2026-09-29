@@ -6,34 +6,39 @@
  * WeakSet so per-instance semantics survive the extraction.
  */
 import { makeId, truncate } from '@senars/util';
-import { createBootstrapTasks } from '../drives';
-import { getModelForTask } from '../lm/providers/chains.js';
-import { LMRules } from '../lm/rule-selectors/factory.js';
-import type { LMService } from '../lm';
+import type { SelfImprovementProposal } from '@senars/kernel/schemas';
 import type { MeTTaRuntime } from '@senars/metta';
 import type { LanguageModel } from 'ai';
+import { createBootstrapTasks } from '../drives';
+import type { LMService, SeNARSRegistry } from '../lm';
+import { getModelForTask } from '../lm/providers/chains.js';
+import { LMRules } from '../lm/rule-selectors/factory.js';
 import type { LMRule } from '../lm/rule/LMRule.js';
 import { seedContrastiveMemory } from '../lm/system-one/hard-negatives.js';
 import { createSystemOneLMRuleAdapter } from '../lm/system-one/rule-adapter.js';
-import { containsSubterm, getSubject, termParser, termsEqual, Truth } from '../terms';
-import type { Term } from '../terms';
+import type { ProofMettaProposer } from '../meta/index.js';
+import type { NAR } from '../nar.js';
+import { containsSubterm, getSubject, type Term, termParser, termsEqual, Truth } from '../terms';
 import { discoverTools } from '../tools';
 import { createSelfTools } from '../tools/adapters/self-tools.js';
 import type { Tool } from '../tools';
+import { createLogger } from '../logger/index.js';
 import { errMsg } from '../utils';
-import type { NAR } from '../nar.js';
-import type { SelfImprovementProposal, AutonomyMode } from '@senars/kernel/schemas';
+
+const logger = createLogger({ scope: 'nar:facade' });
 
 const initialized = new WeakSet<NAR>();
 const toolsInitialized = new WeakSet<NAR>();
 
-export const getModelWithFallback = (nar: NAR, prefix: string) => {
+export const getModelWithFallback = (nar: NAR, prefix: string): LanguageModel | undefined => {
   const registry = nar.getProviderRegistry();
   if (!registry) return undefined;
+  const id = (candidate: string) =>
+    registry.languageModel(candidate as Parameters<SeNARSRegistry['languageModel']>[0]);
   try {
-    return (registry as { languageModel: (id: string) => unknown }).languageModel(`local:${prefix}`);
+    return id(`local:${prefix}`);
   } catch {
-    return (registry as { languageModel: (id: string) => unknown }).languageModel('builtin:compact');
+    return id('builtin:compact');
   }
 };
 
@@ -116,7 +121,7 @@ export const initializeTools = (nar: NAR): void => {
     return mettaRuntime;
   };
 
-nar.tools.register({
+  nar.tools.register({
     name: 'metta',
     description: 'Evaluate a MeTTa expression',
     parameters: {
@@ -131,13 +136,10 @@ nar.tools.register({
         const { Effect } = await import('effect');
         const { parseMeTTa } = await import('@senars/metta');
         const runtime = await getMettaRuntime();
-        const parsed = parseMeTTa(args.program);
-        const effectOrPromise = runtime.evaluate(parsed);
-        // Handle both Effect and Promise (some versions may auto-run)
-        const result = effectOrPromise instanceof Promise
-          ? await effectOrPromise
-          : await Effect.runPromise(effectOrPromise);
-        // Return the program as confirmation of successful rule loading
+        const evaluated = runtime.evaluate(parseMeTTa(args.program));
+        // Handle both Effect and Promise (some versions may auto-run). Running it
+        // is the point: the program is returned as confirmation that it loaded.
+        await (evaluated instanceof Promise ? evaluated : Effect.runPromise(evaluated));
         return { success: true, content: args.program, error: undefined };
       } catch (e) {
         return { success: false, content: null, error: errMsg(e) };
@@ -223,64 +225,66 @@ export const consolidateLearning = async (
   // Phase E: feed ProofMettaProposer from derivation recorder
   const proofMettaProposer = nar.getProofMettaProposer();
   if (proofMettaProposer) {
-    const recorder = nar.getProcessor().getRecorder();
-    const records = recorder.drain();
+    const records = nar.getProcessor().getRecorder().drain();
     if (records.length > 0) {
-      proofMettaProposer.learnFromProofStream(records.map((r) => ({ derivation: r, timestamp: Date.now() })));
+      proofMettaProposer.learnFromProofStream(
+        records.map((r) => ({ derivation: r, timestamp: Date.now() }))
+      );
     }
-    
-// Phase E: Metta↔NAL arbiter loop closure — export learned MeTTa rules,
-              // rewrite via metta tool, adopt via GovernanceResolver auto-apply
-              const mettaRules = proofMettaProposer.getRules();
-              console.log(`[consolidateLearning] Metta rules learned: ${mettaRules.length}`);
-              if (mettaRules.length > 0) {
-                const mettaProgram = proofMettaProposer.exportAsMetta();
-                console.log(`[consolidateLearning] Metta program: ${truncate(mettaProgram, 200)}`);
-                if (mettaProgram.trim()) {
-                  // Use metta tool to rewrite/validate the learned rules
-                  const mettaTool = nar.tools.get('metta');
-                  console.log(`[consolidateLearning] Metta tool available: ${!!mettaTool}`);
-                  if (mettaTool) {
-                    try {
-                      const rewriteResult = await mettaTool.execute({ program: mettaProgram });
-                      console.log(`[consolidateLearning] Metta rewrite result:`, rewriteResult);
-                      if (rewriteResult && typeof rewriteResult === 'object' && 'content' in rewriteResult) {
-                        const rewrittenRules = String(rewriteResult.content);
-                        console.log(`[consolidateLearning] Rewritten rules: ${truncate(rewrittenRules, 200)}`);
-                        // Submit to GovernanceResolver for auto-apply (low-risk)
-                        const resolver = nar.getGovernanceResolver();
-                        const mode = nar.gates.getActionGate().getAutonomyMode();
-                        console.log(`[consolidateLearning] Submitting to governance resolver, mode: ${mode}`);
-                        const proposal: SelfImprovementProposal = {
-                          proposalId: makeId(),
-                          kind: 'metta-rule-adoption',
-                          riskTier: 'low',
-                          payload: {
-                            mettaProgram: rewrittenRules,
-                            sourceDerivationIds: mettaRules.map((r) => r.sourceDerivation),
-                          },
-                          rewardDomain: 'self-patch-score',
-                        };
-                        const result = resolver.resolve(proposal, mode, {
-                          applyFocusWeight: () => {},
-                          applyKnob: () => {},
-                          applySchemaPatch: () => {}, // Required for metta-rule-adoption auto-apply
-                        });
-                        console.log(`[consolidateLearning] Governance result:`, result);
-                        if (result.applied) {
-                          proofMettaProposer.getRules().forEach((r) => {
-                            proofMettaProposer.recordApplication(r.id);
-                          });
-                        }
-                      }
-                    } catch (e) {
-                      console.log(`[consolidateLearning] Metta tool error:`, e);
-                      // Metta tool failed — symbolic fallback (rules stay in proposer only)
-                    }
-                  }
-                }
-              }
+    await adoptLearnedMettaRules(nar, proofMettaProposer);
   }
+};
+
+/**
+ * Phase E: MeTTa↔NAL arbiter loop closure — export the learned MeTTa rules,
+ * validate them through the metta tool, then submit the result to the
+ * GovernanceResolver for low-risk auto-apply.
+ */
+const adoptLearnedMettaRules = async (nar: NAR, proposer: ProofMettaProposer): Promise<void> => {
+  const rules = proposer.getRules();
+  if (rules.length === 0) return;
+  logger.debug('Metta rules learned', { count: rules.length });
+
+  const program = proposer.exportAsMetta();
+  if (!program.trim()) return;
+  logger.debug('Exported learned MeTTa program', { program: truncate(program, 200) });
+
+  const mettaTool = nar.tools.get('metta');
+  if (!mettaTool) {
+    logger.debug('metta tool unavailable; learned rules stay in the proposer');
+    return;
+  }
+
+  let rewritten: string;
+  try {
+    const result = await mettaTool.execute({ program });
+    if (!result || typeof result !== 'object' || !('content' in result)) return;
+    rewritten = String(result.content);
+  } catch (e) {
+    // MeTTa tool failed — symbolic fallback (rules stay in the proposer only).
+    logger.warn('Metta tool error', { error: errMsg(e) });
+    return;
+  }
+  logger.debug('Rewritten MeTTa rules', { rules: truncate(rewritten, 200) });
+
+  const mode = nar.gates.getActionGate().getAutonomyMode();
+  const proposal: SelfImprovementProposal = {
+    proposalId: makeId(),
+    kind: 'metta-rule-adoption',
+    riskTier: 'low',
+    payload: {
+      mettaProgram: rewritten,
+      sourceDerivationIds: rules.map((r) => r.sourceDerivation),
+    },
+    rewardDomain: 'self-patch-score',
+  };
+  const decision = nar.getGovernanceResolver().resolve(proposal, mode, {
+    applyFocusWeight: () => {},
+    applyKnob: () => {},
+    applySchemaPatch: () => {}, // Required for metta-rule-adoption auto-apply
+  });
+  logger.debug('Metta rule adoption resolved', { applied: decision.applied, mode });
+  if (decision.applied) for (const rule of rules) proposer.recordApplication(rule.id);
 };
 
 export const askNaturalLanguage = async (nar: NAR, question: string): Promise<string> => {

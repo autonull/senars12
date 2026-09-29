@@ -1,3 +1,4 @@
+import { SATURATION_COUNT } from '../../constants.js';
 import { clamp01 } from '../../utils';
 import type { Concept } from '../concept.js';
 
@@ -77,6 +78,6 @@ export class MemoryScorer {
 
   private computeRelevance(concept: Concept, context: { relatedConcepts?: number }): number {
     const related = context.relatedConcepts ?? 0;
-    return Math.min(1, related / 10);
+    return clamp01(related / SATURATION_COUNT);
   }
 }

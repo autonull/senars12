@@ -1,3 +1,5 @@
+import { BoundedMap } from '@senars/util';
+
 import type { RuleInput, RuleResult } from '../rules';
 import { termKey } from '../terms';
 import type { Task } from '../types';
@@ -25,16 +27,15 @@ const conclusionKey = (task: Task): string =>
   `${task.stamp.id}|${termKey(task.term)}|${task.truth.f}:${task.truth.c}`;
 
 export const createCircularDetector = () => {
-  const recent = new Set<string>();
+  const recent = new BoundedMap<string, true>({
+    maxSize: MAX_RECENT_CONCLUSIONS,
+    eviction: 'fifo',
+  });
   return {
     isCircular: (task: Task): boolean => {
       const key = conclusionKey(task);
       if (recent.has(key)) return true;
-      if (recent.size >= MAX_RECENT_CONCLUSIONS) {
-        const first = recent.values().next().value;
-        if (first) recent.delete(first);
-      }
-      recent.add(key);
+      recent.set(key, true);
       return false;
     },
     reset: () => recent.clear(),

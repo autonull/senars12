@@ -14,7 +14,7 @@ import type { MetaGame } from '../game/MetaGame.js';
 import type { GameFocus } from '../focus/GameFocus.js';
 import { FocusScheduler, type FocusSchedulerOptions } from '../focus/focus-scheduler.js';
 import type { RandomSource } from '../types/primitives.js';
-import { SeededRNG } from '../utils/random.js';
+import { SeededRNG, weightedPick } from '../utils/random.js';
 import { schedulerReward } from './scheduler-reward.js';
 
 export interface FocusTreeNode {
@@ -209,19 +209,7 @@ export class FocusTree {
 
   /** Weighted sample a leaf node across all roots. */
   private sampleLeaf(): FocusTreeNode | null {
-    const leaves = this.getLeaves();
-    if (leaves.length === 0) return null;
-
-    // Weight-proportional selection across all leaves
-    const totalWeight = leaves.reduce((sum, n) => sum + n.weight, 0);
-    if (totalWeight === 0) return null;
-
-    let roll = this.rng.next() * totalWeight;
-    for (const node of leaves) {
-      roll -= node.weight;
-      if (roll <= 0) return node;
-    }
-    return leaves[leaves.length - 1] ?? null;
+    return weightedPick(this.getLeaves(), (node) => node.weight, this.rng.next) ?? null;
   }
 
   private getLeaves(): FocusTreeNode[] {

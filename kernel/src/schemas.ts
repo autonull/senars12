@@ -5,7 +5,15 @@
  */
 
 import { z } from 'zod';
-import { parseOrThrow } from '@senars/util';
+import { BeliefTruthSchema, parseOrThrow } from '@senars/util';
+
+/**
+ * The `0..1` truth pair every event payload, derivation record, and formalization
+ * candidate carries. One definition, in the leaf package that owns the truth
+ * type — the four event payloads here had each spelled it out inline, and the
+ * chat protocol's copy had dropped the bound.
+ */
+export const TruthValueSchema = BeliefTruthSchema;
 
 /**
  * ============================================================================
@@ -31,12 +39,7 @@ export const TaskAdmittedEventSchema = CognitiveEventBaseSchema.extend({
     taskId: z.string().uuid(),
     term: z.string(),
     taskType: z.enum(['belief', 'goal', 'question', 'command']),
-    truth: z
-      .object({
-        frequency: z.number().min(0).max(1),
-        confidence: z.number().min(0).max(1),
-      })
-      .optional(),
+    truth: TruthValueSchema.optional(),
     source: z.enum(['user', 'llm', 'derivation', 'reflex', 'sensor']),
     budget: z.object({
       priority: z.number().min(0).max(1),
@@ -55,10 +58,7 @@ export const DerivationAcceptedEventSchema = CognitiveEventBaseSchema.extend({
     ruleId: z.string(),
     premises: z.array(z.string()),
     conclusion: z.string(),
-    truth: z.object({
-      frequency: z.number().min(0).max(1),
-      confidence: z.number().min(0).max(1),
-    }),
+    truth: TruthValueSchema,
     evidenceLineage: z.array(z.string().uuid()),
     independenceCheck: z.enum(['independent', 'dependent', 'unknown']),
   }),
@@ -68,14 +68,8 @@ export const BeliefRevisedEventSchema = CognitiveEventBaseSchema.extend({
   type: z.literal('belief.revised'),
   payload: z.object({
     term: z.string(),
-    oldTruth: z.object({
-      frequency: z.number().min(0).max(1),
-      confidence: z.number().min(0).max(1),
-    }),
-    newTruth: z.object({
-      frequency: z.number().min(0).max(1),
-      confidence: z.number().min(0).max(1),
-    }),
+    oldTruth: TruthValueSchema,
+    newTruth: TruthValueSchema,
     evidenceLineage: z.array(z.string().uuid()),
     revisionRule: z.string(),
   }),
@@ -308,11 +302,6 @@ export type TerminationReason = z.infer<typeof TerminationReasonSchema>;
  * Used by the standalone Derivation Verifier script.
  * ============================================================================
  */
-
-export const TruthValueSchema = z.object({
-  frequency: z.number().min(0).max(1),
-  confidence: z.number().min(0).max(1),
-});
 
 export const DerivationStepSchema = z.object({
   stepId: z.string().uuid(),

@@ -159,34 +159,18 @@ export function assertBeliefTask(task: Task): asserts task is Task & { truth: Tr
   }
 }
 
-// Error types for better error handling
-/**
- * @deprecated Will be removed in next major version.
- * Use `import { SenarsError } from '@senars/util'` instead.
- */
-/**
- * @deprecated Will be removed in next major version.
- * Use `import { ValidationError } from '@senars/util'` instead.
- */
-/**
- * @deprecated Will be removed in next major version.
- * Use `import { ConfigurationError } from '@senars/util'` instead.
- */
-/**
- * @deprecated Will be removed in next major version.
- * Use `import { OperationError } from '@senars/util'` instead.
- */
-/**
- * @deprecated Will be removed in next major version.
- * Use `import { ToolError } from '@senars/util'` instead.
- */
-export {
-  ConfigurationError,
-  OperationError,
-  SenarsError as NARError,
-  ToolError,
-  ValidationError,
-} from '@senars/util';
+// Error types for better error handling — the taxonomy lives in `@senars/util`;
+// these aliases are the legacy spelling the `types` barrel and its importers use.
+/** @deprecated since 0.6.0 — use `SenarsError` from `@senars/util/errors`. */
+export { SenarsError as NARError } from '@senars/util';
+/** @deprecated since 0.6.0 — use `ValidationError` from `@senars/util/errors`. */
+export { ValidationError } from '@senars/util/errors';
+/** @deprecated since 0.6.0 — use `ConfigurationError` from `@senars/util/errors`. */
+export { ConfigurationError } from '@senars/util/errors';
+/** @deprecated since 0.6.0 — use `OperationError` from `@senars/util/errors`. */
+export { OperationError } from '@senars/util/errors';
+/** @deprecated since 0.6.0 — use `ToolError` from `@senars/util/errors`. */
+export { ToolError } from '@senars/util/errors';
 
 // Query filter types
 export interface TermFilter {

@@ -1,3 +1,4 @@
+import { SATURATION_COUNT } from '../constants.js';
 import { clamp01, type CognitionContext, type Reward } from './types.js';
 
 /**
@@ -55,7 +56,7 @@ export const CONSOLIDATION_REWARD: Reward = {
   id: 'consolidation',
   classification: 'intrinsic',
   score({ outcome }) {
-    return clamp01((outcome?.consolidations ?? 0) / 10);
+    return clamp01((outcome?.consolidations ?? 0) / SATURATION_COUNT);
   },
 };
 

@@ -1,3 +1,4 @@
+import { addToSet } from '@senars/util';
 import { PushQueue } from '@senars/util/events';
 import type { ConfigEvent, ConfigView } from '@senars/util/config';
 import type { EventLog } from '../eventlog/EventLog.js';
@@ -32,9 +33,7 @@ export class ConfigViewImpl implements ConfigView {
       if (event.payload.path.startsWith(prefix)) queue.push(event);
     };
 
-    const handlers = subscribers.get(prefix) ?? new Set();
-    handlers.add(handler);
-    subscribers.set(prefix, handlers);
+    addToSet(subscribers, prefix, handler);
 
     return {
       [Symbol.asyncIterator]: () => ({

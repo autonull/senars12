@@ -6,7 +6,7 @@ import type { AIKRBudget } from '@senars/nar/bag';
 import type { NarEventBus, ConsumedBudget, BudgetSliceTotal } from '@senars/nar/types/events';
 import { emitBudgetSliceCreated, emitBudgetSliceConsumed, emitBudgetSliceExhausted, emitBudgetSliceMerged } from '@senars/nar/tick';
 import type { TerminationReason } from './schemas.js';
-import { clamp, pct } from '@senars/util';
+import { clamp, clamp01, maxScore, pct } from '@senars/util';
 
 export type { ConsumedBudget, BudgetSliceTotal };
 /** @deprecated since 1.0 — re-export the kernel's own `TerminationReason` from `./schemas.js`. */
@@ -115,10 +115,15 @@ const totalsOf = (budget: BudgetSlice): { -readonly [K in keyof BudgetSliceTotal
 const totalOf = (budget: BudgetSlice, resource: BudgetResource): number =>
   budget[RESOURCES[resource].total];
 
-/** Fraction of one dimension consumed; 0 when the total is 0. */
+/**
+ * Fraction of one dimension consumed, in `0..1`. A zero total means the
+ * dimension is *unlimited*, not unbounded-and-full, so it reports 0; the clamp
+ * is there because a slice may be constructed with pre-consumed values, and
+ * `pressure` promises its callers a ratio.
+ */
 const pressureOf = (budget: BudgetSlice, resource: BudgetResource): number => {
   const total = totalOf(budget, resource);
-  return total > 0 ? budget.consumed[resource] / total : 0;
+  return total > 0 ? clamp01(budget.consumed[resource] / total) : 0;
 };
 
 /**
@@ -289,7 +294,7 @@ export function isExhausted(budget: BudgetSlice): boolean {
 
 /** Worst per-dimension pressure — the slice's overall load. */
 export function pressure(budget: BudgetSlice): number {
-  return Math.max(...ALL_RESOURCES.map((resource) => pressureOf(budget, resource)));
+  return maxScore(ALL_RESOURCES, (resource) => pressureOf(budget, resource));
 }
 
 /** Collect all budget slices in a tree starting from root. */

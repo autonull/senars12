@@ -1,5 +1,6 @@
 import type { Game, GameOutcome, Perception } from './Game.js';
 import { SeededRNG } from '../utils/random.js';
+import { clamp01 } from '../utils';
 
 export type Move2048 = 0 | 1 | 2 | 3; // left, up, right, down
 
@@ -127,7 +128,7 @@ export class Game2048 implements Game<Game2048State, Move2048> {
     let terminal = this.legalActions(state).length === 0;
     if (state.board.some((row) => row.some((v) => v >= this.target))) terminal = true;
     state.terminal = terminal;
-    return { reward: Math.min(1, gained / 64), terminal, info: { gained } };
+    return { reward: clamp01(gained / 64), terminal, info: { gained } };
   }
 
   observe(): Perception {

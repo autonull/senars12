@@ -86,6 +86,18 @@ export const clamp = (v: number, min: number, max: number): number =>
 
 export const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
 
+/**
+ * Occupancy of a bounded resource in `0..1` — the AIKR pressure signal every
+ * bounded container reports, so "how full is this" is answered the same way by
+ * the bag, the link layer, and the pending-request queue.
+ *
+ * A non-positive `capacity` is an *unbounded* container: it has no admission
+ * check, so it can never shed load, and it is therefore reported as fully
+ * occupied. Reporting `0` there would let an unbounded queue look idle.
+ */
+export const occupancy = (used: number, capacity: number): number =>
+  capacity > 0 ? clamp01(used / capacity) : 1;
+
 /** Round to `digits` decimal places — the one float-noise guard for reported values. */
 export const roundTo = (v: number, digits = 2): number => {
   const scale = 10 ** digits;
@@ -333,6 +345,23 @@ export function isNarsese(text: string): boolean {
 
 export const truncate = (text: string, maxLength = 60): string =>
   text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
+
+/** One issue's worth of what a diagnostic can say; the shape every schema issue already has. */
+export interface SchemaIssue {
+  readonly path: readonly PropertyKey[];
+  readonly message: string;
+}
+
+/**
+ * The monorepo's one rendering of a schema failure. Four validators used to
+ * spell this out, in two formats, one of which dropped the path entirely — so
+ * the same invalid config produced a different diagnostic depending on which
+ * boundary rejected it.
+ */
+export const formatIssues = (issues: readonly SchemaIssue[], separator = '; '): string =>
+  issues
+    .map((issue) => `${issue.path.map(String).join('.') || '(root)'}: ${issue.message}`)
+    .join(separator);
 
 /** Byte-safe truncation for tool output — never splits a multi-byte character. */
 export const truncateBytes = (

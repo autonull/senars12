@@ -6,6 +6,7 @@ import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.
 import type { EmbeddingPointer, JudgmentManifold, JudgmentQuery, JudgmentProposition } from './types.js';
 import type { BandDecision } from './policy.js';
 import { type JudgmentProvenance, stageProvenance } from './decide.js';
+import { PrefetchTable, proposeFromTable } from './prefetch-table.js';
 
 /**
  * Two-stage placement fan-out (W7 / DQ2 — the first live `judgeCascade`
@@ -44,7 +45,7 @@ export class PlacementCascadeReflex implements Reflex<Perception, string> {
   readonly topK: number;
 
   #fallback: Reflex<unknown, unknown>;
-  #prefetch = new Map<string, Map<string, PrefetchEntry>>();
+  readonly #table = new PrefetchTable<PrefetchEntry>();
 
   constructor(fallback: Reflex<unknown, unknown>, options: PlacementCascadeReflexOptions = {}) {
     this.#fallback = fallback;
@@ -80,7 +81,7 @@ export class PlacementCascadeReflex implements Reflex<Perception, string> {
           const provenance = stageProvenance([prop, undefined], sha256Hex(r.action), 'act', !prop || prop.abstained);
           rows.set(r.action, { score: r.p, provenance });
         }
-        this.#prefetch.set(stateId, rows);
+        this.#table.set(stateId, rows);
         return;
       }
 
@@ -102,7 +103,7 @@ export class PlacementCascadeReflex implements Reflex<Perception, string> {
           rows.set(action, { score: p.score, provenance });
         }
       });
-      if (rows.size > 0) this.#prefetch.set(stateId, rows);
+      this.#table.set(stateId, rows);
     } catch {
       // Manifold unavailable — table stays cold, incumbent reflex serves
     }
@@ -110,25 +111,20 @@ export class PlacementCascadeReflex implements Reflex<Perception, string> {
 
   /** Synchronous contract honored: reads the prefetch table (consume-once). */
   propose(state: Perception, legalActions: string[]): ActionProposal[] {
-    const rows = this.#prefetch.get(state.stateId);
-    if (!rows) return this.#fallback.propose(state, legalActions) as ActionProposal[];
-
-    this.#prefetch.delete(state.stateId);
-    const proposals: ActionProposal[] = [];
-    const fallbackProposals =
-      rows.size < legalActions.length
-        ? (this.#fallback.propose(state, legalActions) as ActionProposal[])
-        : [];
-    const byAction = new Map(fallbackProposals.map((p) => [String(p.action), p]));
-
-    for (const action of legalActions) {
-      const entry = rows.get(String(action));
-      const incumbent = byAction.get(String(action));
-      if (entry !== undefined)
-        proposals.push({ action, value: entry.score, confidence: entry.score, source: this.id, provenance: entry.provenance });
-      else if (incumbent) proposals.push(incumbent);
-    }
-    return proposals;
+    return proposeFromTable({
+      id: this.id,
+      table: this.#table,
+      fallback: this.#fallback,
+      state,
+      legalActions,
+      toProposal: (action, entry) => ({
+        action,
+        value: entry.score,
+        confidence: entry.score,
+        source: this.id,
+        provenance: entry.provenance,
+      }),
+    });
   }
 
   learn(event: LearningEvent): void {

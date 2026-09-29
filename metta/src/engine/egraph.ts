@@ -1,3 +1,4 @@
+import { minBy } from '@senars/util';
 import { Map as ImmMap, Set as ImmSet } from 'immutable';
 import { hashAtom } from '../core/hash.js';
 import type { MeTTaAtom } from '../types/ast.js';
@@ -64,17 +65,7 @@ export class EGraph {
     const best = this.eclasses.get(root);
     if (!best) throw new Error(`EClass ${root} not found`);
 
-    let bestAtom = best.nodes.first();
-    let bestCost = bestAtom ? costFn(bestAtom) : Number.POSITIVE_INFINITY;
-
-    for (const atom of best.nodes) {
-      const c = costFn(atom);
-      if (c < bestCost) {
-        bestCost = c;
-        bestAtom = atom;
-      }
-    }
-
+    const bestAtom = minBy([...best.nodes], costFn);
     if (!bestAtom) throw new Error(`EClass ${root} is empty`);
     return bestAtom;
   }

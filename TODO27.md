@@ -1399,3 +1399,141 @@ Both falsified by reverting the change under test — the gauge test fails with
 - **Bench 109** — the import-graph assertion that would catch a strategy
   constructed outside `cognitive/`.
 - **The backport measurement** (§19.4, §20.5) — needs an install at that commit.
+
+---
+
+## 22. Phase P — the primitives the selectors kept rewriting (2026-09-29)
+
+An audit of `nar` against the leaf package for *foundational* duplication —
+the
+helpers every subsystem reaches for rather than the domain logic. Twelve
+candidates were verified by reading the code; the ones that survived are here,
+and so are the two that were deliberately left alone.
+
+### 22.1 One weighted draw
+
+`PriorityBag.pickWeighted` (`bag/Bag.ts`), `FocusScheduler.sample`
+(`focus/focus-scheduler.ts`), and `FocusTree.sampleLeaf` each spelled the same
+roulette scan: sum the weights, roll, walk subtracting. `weightedSampleBy` in
+`utils/random.ts` spelled it a fourth time, and `FenwickBag` a fifth (by
+prefix sum, which is a genuine algorithmic variant and stays).
+
+`weightedPick(items, weightOf, rng)` is now the one scan, with
+`weightedScan` — the index-level primitive — underneath it, and
+`weightedSampleBy` draws through it too. Two properties came out of the
+unification rather than being asserted into it:
+
+- **The total is read off the pool, not a cached scalar.** `pickWeighted` used
+  the incrementally-maintained `this.totalPriority`; had that ever drifted
+  from the heap, the draw would have been biased rather than wrong, which is
+  the harder failure to notice.
+- **"No weight" has one answer.** The three callers disagreed at the
+  degenerate end — `null`, `null`, and the head of the heap. `weightedPick`
+  returns `undefined` and each caller applies the fallback it already had.
+
+### 22.2 One similarity read path — and an index that was never on
+
+`Memory.findSimilarConcepts` scanned every concept. `MemoryIndex` had its own
+`findSimilarConcepts` and a `getBySimilarity` beside it, and *neither was ever
+called from production* — the index families were written, maintained,
+configured, and reported in `stats`, and read by nothing.
+
+Wiring it up found the reason it was never read: `MemoryIndex`'s constructor
+defaulted the config as a **whole object**, so the one production caller —
+which passes three flags — silently got `enableInverseIndex` and
+`enableSimilarityIndex` as `undefined`, i.e. off. A partial config disabled
+the families it did not mention. The defaults are now merged field-wise, and
+`Memory` passes both optional families from `enableIndexing` so the flag means
+what it says.
+
+`getBySimilarity` is deleted: an exact-key lookup with no floor and no ranking
+is `findSimilarConcepts` on a term that happens to be indexed.
+
+The second defect was in the ranking itself. The index answered with the
+**single nearest cluster** — and because a cluster is keyed by its member's own
+term, one bucket holds one concept, so it returned at most one. `Memory`'s
+scan had the opposite problem: `selectTopN` over all scores returns the first
+`k` even when every score is zero, so an unrelated query was answered with
+`limit` arbitrary concepts. `selectSimilar` (`memory/similarity.ts`) is now the
+one ranking — most similar first, zero-similarity dropped — and both callers
+pass it a candidate stream: the index when indexing is on, the store when it
+is not.
+
+### 22.3 Smaller, same cause
+
+- `SATURATION_COUNT` (`constants.ts`) replaces the divisor that
+  connectivity, revisit confidence, relevance, and consolidation reward each
+  retyped — and which `LINK.CONNECTIVITY_NORMALIZER` had already declared,
+  unused. `getConnectivityFromLinks` had no callers at all; deleted.
+- `Truth.MAX_CONFIDENCE` at the two imagination-generator literals of `0.999`
+  — the ceiling was a magic number in three places, one of which is the kernel
+  verifier (§22.5).
+- `selectTopN`/`sortBy` at the four `sort(...).slice(0, n)` sites
+  (`CompositeSampling`, `CompositeLMRuleSelector`, `NAR.attentionReport`,
+  `NoveltySampling`): a bounded O(n·k) buffer instead of materializing and
+  sorting the whole store on the attention report path.
+- `SingleFlight` holds its in-flight map in an `LruCache` (cap 256). Its keys
+  are utterances on an untrusted input surface — the same argument
+  `nl/normalize.ts` already makes for its own map, applied here too. Past the
+  cap a duplicate re-issues instead of joining; deduplication was always
+  best-effort.
+- `SelfMetaGameImpl.schedulerReward` deleted: a static that re-exported the
+  function it imported. `clamp` used in `rlfp/knobs.ts` instead of a hand-rolled
+  `Math.max(min(...))`. `decodeVector` exported from `distill.ts` and imported
+  by `train.ts`, whose `try/catch` around it was unreachable — the vector is
+  filtered non-null three lines earlier, and `Buffer.from` does not throw on
+  corrupt base64, it returns zeros.
+
+### 22.4 Behaviour changes (visible, and intended)
+
+- `findSimilarConcepts` no longer answers an unrelated query with filler. It
+  returns `[]`, and `getRelatedConcepts`' link path is unchanged.
+- `enableSimilarityIndex` / `enableInverseIndex` are now genuinely on in
+  `Memory`, so those families cost what they are documented to cost.
+- `MemoryIndex.findSimilarConcepts` ranks and floors like the scan it replaces,
+  and returns up to `limit` rather than at most one.
+- A zero-total priority pool picks the head of the heap, as before.
+
+### 22.5 Left alone, deliberately
+
+- **The kernel's transcribed truth table** (`kernel/src/verify-derivation.ts`).
+  It is a near-copy of `nar/src/terms/truth.ts` and it *has* drifted — the
+  engine's `revision` caps at `MAX_CONFIDENCE` only in the saturated branch
+  while the verifier caps unconditionally, and the verifier's `div` is
+  `util`'s `safeDiv` without the clamp. Merging them would delete the property
+  the file's own header argues for: a verifier that shares the engine's
+  arithmetic can only confirm the engine agrees with itself. The drift is
+  recorded, not fixed; closing it means two hand-checked tables and a test
+  that pins the pairs, which is a project, not a cleanup.
+- **`withTimeout` in `@senars/nar/capability`.** It shadows the canonical
+  `@senars/util` name in a *declared export subpath*, so renaming it is a
+  public-export removal — a major change, at `nar` 0.6.0, while §20.6 is
+  still an open release blocker. Not this phase's decision to make.
+
+### 22.6 Gates
+
+`test:unit` 2620 passed / 3 skipped (baseline 2613 / 3 — the delta is this
+phase's Benches 112–114 and the deleted `getBySimilarity` pair), `typecheck`,
+`typecheck:bin`, `lint`, `deps:gate` 5 cycles, `exports:audit`,
+`exports:check`, `complexity:budget`.
+
+`tests/nar/rl/parity/stress-boundary.test.ts` fails under parallel load
+(15 s timeout, ~24 s of work) and passes in isolation on this tree and on the
+untouched baseline — the same flake §13.5 recorded, not a regression.
+
+Benches 112–114 in `tests/nar/todo27-primitives.test.ts`: the weighted
+draw's distribution and its degenerate end, the similarity path's ranking,
+floor, limit, and unindexed fallback, and the in-flight cap. 113 is the one
+that earns its keep — it fails on both reverts (the old scan returns filler
+for an unrelated query, the old index answer returns one concept).
+
+### 22.7 Still open (unchanged)
+
+- **§20.6** — untouched, and nothing here moves an export across a subpath.
+- **Association provenance** (§10, §13.7); **`registerRuleGraph`** registered by
+  side effect; **Bench 109**, the import-graph assertion.
+- The `hand-rolled murmur-style hash in train.ts` and the *two* hand-rolled
+  retry loops in `nl/understanding.ts` and `lm/service/LMService.ts` — the
+  first is a distinct algorithm that would invalidate every trained head
+  digest to change, the other two encode different escalation policies. Neither
+  is a `withRetry` clone.

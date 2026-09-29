@@ -3,6 +3,7 @@
  * @public
  */
 import { z } from 'zod';
+import { formatIssues } from '../utils/shared.js';
 import { cachePath } from './paths.js';
 
 export const contextOptsSchema = z
@@ -51,7 +52,7 @@ export class SchemaValidationError extends Error {
     readonly label: string,
     readonly issues: z.core.$ZodIssue[]
   ) {
-    super(`Invalid ${label}: ${issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`);
+    super(`Invalid ${label}: ${formatIssues(issues)}`);
   }
 }
 

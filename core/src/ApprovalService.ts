@@ -1,6 +1,5 @@
 import { errMsg, makeId, withTimeout } from '@senars/util';
 import { envBool } from '@senars/util/config';
-import { createLogger, type LoggerInterface } from './Logger.js';
 
 export interface PendingApproval {
   id: string;
@@ -37,7 +36,6 @@ export interface ApprovalManager {
 
 export interface ApprovalServiceConfig {
   approvalManager?: ApprovalManager;
-  logger?: LoggerInterface;
 }
 
 export interface ApprovalManagerOptions {
@@ -104,11 +102,9 @@ export class InMemoryApprovalManager implements ApprovalManager {
 
 export class ApprovalService {
   private readonly approvalManager: ApprovalManager;
-  private readonly logger: NonNullable<ApprovalServiceConfig['logger']>;
 
   constructor(config: ApprovalServiceConfig = {}) {
     this.approvalManager = config.approvalManager ?? new InMemoryApprovalManager();
-    this.logger = config.logger ?? createLogger({ scope: 'approval' });
   }
 
   async requestApproval(params: {

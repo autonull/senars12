@@ -2,6 +2,8 @@ import { maxBy, mean, minBy } from '@senars/util';
 
 import type { Concept } from '../concept.js';
 import type { MemoryScorer } from '../pressure/scorer.js';
+import { SATURATION_COUNT } from '../../constants.js';
+import { clamp01 } from '../../utils';
 
 export type ForgettingPolicy =
   | 'fifo'
@@ -98,11 +100,6 @@ export class Forgetting {
     return victim;
   }
 
-  getConnectivityFromLinks(linkCount: number): number {
-    if (linkCount === 0) return 0;
-    return Math.min(1, linkCount / 10);
-  }
-
   private selectAdaptive(
     concepts: Concept[],
     scorer: MemoryScorer,
@@ -118,8 +115,7 @@ export class Forgetting {
       return { concept, score: adaptiveScore };
     });
 
-    scored.sort((a, b) => b.score - a.score);
-    return scored[0]?.concept;
+    return maxBy(scored, (s) => s.score)?.concept;
   }
 
   private filterBySemanticConnectivity(concepts: Concept[]): Concept[] {
@@ -151,7 +147,7 @@ export class Forgetting {
     const children = concept.getChildConcepts();
     const totalConnections = linkCount + parents.length + children.length;
     if (totalConnections === 0) return 0;
-    return Math.min(1, (totalConnections + linkStrength) / 10);
+    return clamp01((totalConnections + linkStrength) / SATURATION_COUNT);
   }
 
   private getLastAccess(concept: Concept): number {
