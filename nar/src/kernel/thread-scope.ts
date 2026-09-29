@@ -3,30 +3,36 @@
  * Per-correlationId slice for ContrastiveMemory and sourceKey filter.
  * Fixes the context-bleed bug where one user's `.react correct` shifts
  * every other user's manifold judgments.
+ *
+ * Bounded by LRU capacity: correlation ids arrive per inbound message from
+ * untrusted transports, so an unbounded map here is a slow memory leak. The
+ * least-recently-touched thread is evicted whole — a half-evicted scope would
+ * reintroduce exactly the context bleed this class exists to prevent.
  */
+
+import { LruCache } from '@senars/util';
 
 export interface ThreadScopeState {
   contrastiveMemory?: object;
   sourceKey?: string;
 }
 
-/**
- * ThreadScope provides isolated state per correlationId.
- * Single-correlationId path is byte-identical to pre-ThreadScope behavior.
- */
+const MAX_THREAD_SCOPES = 1024;
+
 export class ThreadScope {
-  readonly #scopes = new Map<string, ThreadScopeState>();
+  readonly #scopes = new LruCache<string, ThreadScopeState>(MAX_THREAD_SCOPES);
 
   /**
    * Get or create a scope for the given correlationId.
    * Returns the same object for the same correlationId, ensuring isolation.
    */
   get(correlationId: string): ThreadScopeState {
-    let scope = this.#scopes.get(correlationId);
-    if (!scope) {
-      scope = {};
-      this.#scopes.set(correlationId, scope);
-    }
+    return this.#scopes.get(correlationId) ?? this.#create(correlationId);
+  }
+
+  #create(correlationId: string): ThreadScopeState {
+    const scope: ThreadScopeState = {};
+    this.#scopes.set(correlationId, scope);
     return scope;
   }
 

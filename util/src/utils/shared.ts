@@ -85,6 +85,35 @@ export const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
 
 export const edgeKey = (source: string, target: string): string => `${source}->${target}`;
 
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/**
+ * Recursively merge `override` onto `base`. Plain objects merge key-by-key;
+ * arrays and primitives replace wholesale, so a partial config narrows a list
+ * rather than interleaving with the default. `undefined` overrides are skipped.
+ */
+export const deepMerge = <T>(base: T, override: unknown): T => {
+  if (!isPlainObject(base) || !isPlainObject(override)) return override as T;
+  const merged: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    if (value === undefined) continue;
+    merged[key] = key in merged ? deepMerge(merged[key], value) : value;
+  }
+  return merged as T;
+};
+
+/** Logistic function; the single sigmoid used by scoring and gradient descent. */
+export const sigmoid = (z: number): number => 1 / (1 + Math.exp(-z));
+
+export const softmax = (values: readonly number[]): number[] => {
+  if (values.length === 0) return [];
+  const max = Math.max(...values);
+  const exps = values.map((v) => Math.exp(v - max));
+  const total = exps.reduce((a, b) => a + b, 0) || 1;
+  return exps.map((e) => e / total);
+};
+
 export const safeDiv = (num: number, den: number): number =>
   den === 0 ? 0 : clamp(num / den, 0, 1);
 

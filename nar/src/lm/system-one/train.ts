@@ -8,6 +8,7 @@ import {
   readJsonlAsync,
   sha256HexParts,
   sha256Prefixed,
+  sigmoid,
 } from '@senars/util';
 
 export { pearson };
@@ -137,7 +138,6 @@ export interface TrainedHeadModel {
   };
 }
 
-const sigmoid = (z: number) => 1 / (1 + Math.exp(-z));
 
 /** Gaussian elimination with partial pivoting (A square, nonsingular). */
 export function solveLinearSystem(A: number[][], b: number[]): number[] {

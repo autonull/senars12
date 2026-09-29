@@ -21,10 +21,16 @@ export interface StepVerificationResult {
 }
 
 export interface VerifyOptions {
+  /**
+   * Accepted for call compatibility. Truth-algebra proof is not performed here
+   * by design — see `verifyStep`. Use `scripts/verify-derivation.ts` for it.
+   */
   readonly strict: boolean;
   readonly epsilon: number;
   readonly maxSteps?: number;
   readonly sampleRate?: number; // 0-1, fraction of steps to verify
+  /** Sampling source for {@link DerivationVerifier}. Defaults to `Math.random`. */
+  readonly random?: () => number;
 }
 
 /** @deprecated since 1.0 — `verifyRecord` now takes the superset {@link VerifyOptions}. */
@@ -32,7 +38,7 @@ export type VerifyRecordOptions = VerifyOptions;
 
 /** Standalone derivation verifier — no NAR engine dependencies. */
 export function verifyRecord(record: DerivationRecord, options: VerifyOptions): VerificationResult {
-  const { strict, epsilon } = options;
+  const { epsilon } = options;
   const errors: string[] = [];
   const stepResults: StepVerificationResult[] = [];
 
@@ -40,7 +46,7 @@ export function verifyRecord(record: DerivationRecord, options: VerifyOptions): 
   const stepsToVerify = options.maxSteps ? record.steps.slice(0, options.maxSteps) : record.steps;
 
   for (const step of stepsToVerify) {
-    const stepResult = verifyStep(step, strict, epsilon);
+    const stepResult = verifyStep(step);
     stepResults.push(stepResult);
     if (!stepResult.ok) {
       errors.push(...stepResult.errors.map((e) => `Step ${step.stepId}: ${e}`));
@@ -86,7 +92,7 @@ export function verifyRecord(record: DerivationRecord, options: VerifyOptions): 
 }
 
 /** Verify a single derivation step. */
-function verifyStep(step: DerivationStep, strict: boolean, epsilon: number): StepVerificationResult {
+function verifyStep(step: DerivationStep): StepVerificationResult {
   const errors: string[] = [];
 
   // Verify step ID format
@@ -150,49 +156,18 @@ function verifyStep(step: DerivationStep, strict: boolean, epsilon: number): Ste
     errors.push(`Invalid independence: ${step.independence}`);
   }
 
-  // In strict mode, do truth algebra verification
-  let computedTruth: TruthValue | undefined;
-  if (strict && step.premiseTruths && step.premiseTruths.length > 0) {
-    computedTruth = computeInferredTruth(step.ruleCategory, step.premiseTruths);
-    if (computedTruth) {
-      const diff = Math.abs(computedTruth.frequency - step.truth.frequency) +
-                   Math.abs(computedTruth.confidence - step.truth.confidence);
-      if (diff > epsilon) {
-        errors.push(`Truth algebra mismatch: computed (${computedTruth.frequency.toFixed(3)}, ${computedTruth.confidence.toFixed(3)}) vs declared (${step.truth.frequency.toFixed(3)}, ${step.truth.confidence.toFixed(3)})`);
-      }
-    }
-  }
+  // Truth-algebra proof lives in scripts/verify-derivation.ts, which carries an
+  // independent NAL table. Reproducing that table here would make the checker
+  // agree with the engine by construction, which is the one thing a verifier
+  // must not do — so this stays structural only, and `computedTruth` is
+  // always absent.
 
   return {
     stepId: step.stepId,
     ok: errors.length === 0,
     errors,
-    computedTruth,
     declaredTruth: step.truth,
   };
-}
-
-/** Simple truth algebra computation for verification. */
-function computeInferredTruth(ruleCategory: string, premiseTruths: TruthValue[]): TruthValue | undefined {
-  // Simplified truth inference based on rule category
-  // Real implementation would use the actual NAL truth functions
-  if (premiseTruths.length === 0) return undefined;
-
-  const avgFreq = premiseTruths.reduce((sum, t) => sum + t.frequency, 0) / premiseTruths.length;
-  const avgConf = premiseTruths.reduce((sum, t) => sum + t.confidence, 0) / premiseTruths.length;
-
-  // Different rules have different truth combination behaviors
-  switch (ruleCategory) {
-    case 'logic':
-    case 'core':
-      // Deduction-like: confidence decreases
-      return { frequency: avgFreq, confidence: avgConf * 0.9 };
-    case 'revision':
-      // Revision: confidence increases
-      return { frequency: avgFreq, confidence: Math.min(1, avgConf * 1.1) };
-    default:
-      return { frequency: avgFreq, confidence: avgConf };
-  }
 }
 
 /** Validate truth value bounds. */
@@ -215,6 +190,9 @@ export class DerivationVerifier {
   private readonly options: VerifyOptions;
   private cycleCount = 0;
 
+  /** Sampling source. Injected so verification stays reproducible. */
+  readonly #random: () => number;
+
   constructor(options: VerifyOptions = { strict: false, epsilon: 1e-6, sampleRate: 0.1 }) {
     this.options = {
       strict: options.strict ?? false,
@@ -222,6 +200,7 @@ export class DerivationVerifier {
       maxSteps: options.maxSteps,
       sampleRate: options.sampleRate ?? 0.1,
     };
+    this.#random = options.random ?? Math.random;
     this.budget = {
       maxVerificationsPerCycle: Math.max(1, Math.floor(10 * (this.options.sampleRate ?? 0.1))),
       verificationsThisCycle: 0,
@@ -241,7 +220,7 @@ export class DerivationVerifier {
     }
 
     // Sample: only verify a fraction of records
-    if (Math.random() > (this.options.sampleRate ?? 0.1)) {
+    if (this.#random() > (this.options.sampleRate ?? 0.1)) {
       return null; // Not sampled
     }
 

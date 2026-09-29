@@ -6,6 +6,7 @@
  * under pressure (AIKR); processing is interruptible via AbortSignal and
  * deterministic under an injected RandomSource.
  */
+import { softmax } from '@senars/util';
 import type { Bag, BagItem } from '../bag/Bag.js';
 import type { RandomSource } from '../types/primitives.js';
 import { selectTopN } from '../utils/collections.js';
@@ -38,11 +39,8 @@ const softmaxWeights = <T>(
   item: T;
   weight: number;
 }[] => {
-  const raw = items.map((item) => scoreOf(item));
-  const max = Math.max(...raw, 0);
-  const exps = raw.map((r) => Math.exp(r - max));
-  const sum = exps.reduce((a, b) => a + b, 0) || 1;
-  return items.map((item, i) => ({ item, weight: exps[i]! / sum }));
+  const exps = softmax(items.map((item) => scoreOf(item)));
+  return items.map((item, i) => ({ item, weight: exps[i]! }));
 };
 
 /**

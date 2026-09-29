@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
 import { readEnvOverrides } from '@senars/util/config';
+import { deepMerge } from '@senars/util';
 import {
   CURRENT_CONFIG_VERSION,
   type MigrationOutcome,
@@ -10,27 +11,6 @@ import type { AppConfig } from './schema.js';
 import { appConfigSchema } from './schema.js';
 
 export type { AppConfig, BotConfig, BotProfile, LmConfig, NarCoreConfig } from './schema.js';
-
-const deepMerge = <T>(defaults: T, overrides: Partial<T> | undefined): T => {
-  if (!overrides) return defaults;
-  const out: Record<string, unknown> = { ...(defaults as Record<string, unknown>) };
-  for (const [k, v] of Object.entries(overrides as Record<string, unknown>)) {
-    const cur = out[k];
-    if (
-      v &&
-      typeof v === 'object' &&
-      !Array.isArray(v) &&
-      cur &&
-      typeof cur === 'object' &&
-      !Array.isArray(cur)
-    ) {
-      out[k] = deepMerge(cur, v as Record<string, unknown>);
-    } else if (v !== undefined) {
-      out[k] = v;
-    }
-  }
-  return out as T;
-};
 
 const KNOWN_CONFIG_MAJOR = 2;
 

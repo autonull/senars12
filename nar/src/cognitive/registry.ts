@@ -28,6 +28,7 @@ import type { StrategyImpl, StrategyType } from '../strategies/types.js';
 import type { StrategyRegistry } from '../strategies/registration.js';
 import { DEFAULT_REGISTRATIONS } from './registrations.js';
 import { composedName, composeSpec } from './composition.js';
+import { LruCache } from '@senars/util';
 
 type Slot = Map<string, StrategyRegistration>;
 
@@ -41,45 +42,10 @@ const SLOT_TYPES = ['sampling', 'premise', 'derivation', 'lm-rule', 'attention']
  */
 const MAX_MEMOIZED_INSTANCES = 64;
 
-/** Insertion-ordered LRU — a `get` hit refreshes, so hot digests survive. */
-class BoundedCache<V> {
-  private readonly entries = new Map<string, V>();
-
-  constructor(private readonly limit: number) {}
-
-  get(key: string): V | undefined {
-    const value = this.entries.get(key);
-    if (value === undefined) return undefined;
-    this.entries.delete(key);
-    this.entries.set(key, value);
-    return value;
-  }
-
-  set(key: string, value: V): void {
-    this.entries.delete(key);
-    this.entries.set(key, value);
-    const oldest = this.entries.keys().next();
-    if (!oldest.done && this.entries.size > this.limit) this.entries.delete(oldest.value);
-  }
-
-  delete(key: string): boolean {
-    return this.entries.delete(key);
-  }
-
-  clear(): void {
-    this.entries.clear();
-  }
-
-  get size(): number {
-    return this.entries.size;
-  }
-}
-
-const memoStores = <V>(): Record<StrategyType, BoundedCache<V>> =>
-  Object.fromEntries(SLOT_TYPES.map((type) => [type, new BoundedCache<V>(MAX_MEMOIZED_INSTANCES)])) as Record<
-    StrategyType,
-    BoundedCache<V>
-  >;
+const memoStores = <V>(): Record<StrategyType, LruCache<string, V>> =>
+  Object.fromEntries(
+    SLOT_TYPES.map((type) => [type, new LruCache<string, V>(MAX_MEMOIZED_INSTANCES)])
+  ) as Record<StrategyType, LruCache<string, V>>;
 
 /**
  * A registry with every built-in registration loaded.
@@ -105,9 +71,9 @@ export class CognitiveRegistry implements StrategyRegistry {
   /** Tier 0: the registered default instance per name. */
   private readonly defaults: Record<StrategyType, Map<string, StrategyImpl>> = emptyStores();
   /** Tier 1: configured instances keyed by config digest. */
-  private readonly configured: Record<StrategyType, BoundedCache<StrategyImpl>> = memoStores();
+  private readonly configured: Record<StrategyType, LruCache<string, StrategyImpl>> = memoStores();
   /** Tier 2: composed instances keyed by their deterministic label. */
-  private readonly composed: Record<StrategyType, BoundedCache<StrategyImpl>> = memoStores();
+  private readonly composed: Record<StrategyType, LruCache<string, StrategyImpl>> = memoStores();
   /** Registrations mid-build, so a self-referential composite is an error, not a stack overflow. */
   private readonly building = new Set<string>();
   /** Ambient randomness handed to every factory (TODO27 §16). */

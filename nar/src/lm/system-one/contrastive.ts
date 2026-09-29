@@ -1,4 +1,4 @@
-import { clamp, generateId } from '@senars/util';
+import { clamp, generateId, sigmoid, softmax } from '@senars/util';
 import { type BagItem, PriorityBag } from '../../bag/Bag.js';
 import { AIKRProcessor, PrioritySampling } from '../../learning/aikr-processor.js';
 import { cosine, cosineNormalized, normalize, type NormalizedVector } from '../../utils/similarity.js';
@@ -56,10 +56,7 @@ export function fitInfoNCE(
       const cosPos = clamp(cosineNormalized(q, positive), -1, 1);
       const cosNegs = negatives.map((n) => clamp(cosineNormalized(q, n), -1, 1));
       const logits = [scale * cosPos + bias, ...cosNegs.map((c) => scale * c + bias)];
-      const max = Math.max(...logits);
-      const exp = logits.map((l) => Math.exp(l - max));
-      const sum = exp.reduce((a, b) => a + b, 0);
-      const probs = exp.map((e) => e / sum);
+      const probs = softmax(logits);
       loss += -Math.log(probs[0]!);
       // dL/dz_0 = p_0 − 1; dL/dz_j = p_j; z_i = scale·c_i + bias
       dScale += (probs[0]! - 1) * cosPos;

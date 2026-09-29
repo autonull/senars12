@@ -11,21 +11,7 @@ import {
 } from '@senars/nar/config/cognitive-parameters.js';
 import { DEFAULT_CONFIG } from '@senars/nar/index.js';
 import type { NARConfig } from '@senars/nar/facade/config.js';
-
-type PlainObject = Record<string, unknown>;
-
-const isPlainObject = (value: unknown): value is PlainObject =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-/** Recursive merge; `override` wins, arrays and primitives replace wholesale. */
-export const deepMerge = <T>(base: T, override: unknown): T => {
-  if (!isPlainObject(base) || !isPlainObject(override)) return override as T;
-  const merged: PlainObject = { ...base };
-  for (const [key, value] of Object.entries(override)) {
-    merged[key] = key in merged ? deepMerge(merged[key], value) : value;
-  }
-  return merged as T;
-};
+import { deepMerge } from '@senars/util';
 
 /** Deterministic default registry with every built-in strategy registered. */
 export const e2eStrategyRegistry = (): CognitiveRegistry => {

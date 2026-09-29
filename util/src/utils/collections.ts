@@ -135,8 +135,14 @@ export function selectByPriority<T extends { priority: number; id: string }>(
   return kept.sort((a, b) => Number(better(b, a)) - Number(better(a, b)));
 }
 
+/** The get/set surface a keyed store must expose to be lazily populated. */
+export interface KeyedStore<K, V> {
+  get(key: K): V | undefined;
+  set(key: K, value: V): unknown;
+}
+
 /** Lazily-created map entry — the single get-or-create primitive for nested maps. */
-export function getOrInsert<K, V>(map: Map<K, V>, key: K, factory: () => V): V {
+export function getOrInsert<K, V>(map: KeyedStore<K, V>, key: K, factory: () => V): V {
   const existing = map.get(key);
   if (existing !== undefined) return existing;
   const created = factory();
@@ -173,8 +179,7 @@ export class BoundedRing<T> {
   }
 
   push(item: T): void {
-    this.#items.push(item);
-    if (this.#items.length > this.capacity) this.#items.shift();
+    pushCapped(this.#items, item, this.capacity);
   }
 
   clear(): void {

@@ -1,36 +1,21 @@
-import { addToSet, insertByScoreDesc } from '@senars/util';
+import { addToSet, getOrInsert, insertByScoreDesc } from '@senars/util';
 
 import type { Term } from '../terms';
 import { isAtomic, similarityTo, symbolQuery, TermMap, termKey } from '../terms';
 import type { Concept } from './concept.js';
 
-const getOrInsertTermSet = (map: TermMap<Set<Concept>>, term: Term): Set<Concept> => {
-  const existing = map.get(term);
-  if (existing) return existing;
-  const created = new Set<Concept>();
-  map.set(term, created);
-  return created;
-};
+const getOrInsertTermSet = (map: TermMap<Set<Concept>>, term: Term): Set<Concept> =>
+  getOrInsert(map, term, () => new Set<Concept>());
 
-const getOrInsertCluster = (map: TermMap<SimilarityCluster>, term: Term, seed: Concept) => {
-  const existing = map.get(term);
-  if (existing) return existing;
-  const created: SimilarityCluster = { term, concepts: [], representative: seed };
-  map.set(term, created);
-  return created;
-};
+const getOrInsertCluster = (map: TermMap<SimilarityCluster>, term: Term, seed: Concept) =>
+  getOrInsert(map, term, (): SimilarityCluster => ({ term, concepts: [], representative: seed }));
 
-const getOrInsertInverse = (map: TermMap<InverseIndexEntry>, term: Term) => {
-  const existing = map.get(term);
-  if (existing) return existing;
-  const created: InverseIndexEntry = {
+const getOrInsertInverse = (map: TermMap<InverseIndexEntry>, term: Term) =>
+  getOrInsert(map, term, (): InverseIndexEntry => ({
     term,
     concepts: new Set<Concept>(),
     subtermIndices: new TermMap<Set<Concept>>(),
-  };
-  map.set(term, created);
-  return created;
-};
+  }));
 
 export interface MemoryIndexConfig {
   enableAtomicIndex: boolean;

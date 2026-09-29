@@ -6,7 +6,7 @@ import { InMemorySpace } from '../core/space.js';
 import { MeTTaInterpreter } from '../engine/interpreter.js';
 import { bootstrapStdLib } from '../stdlib/index.js';
 import type { MeTTaAtom } from '../types/ast.js';
-import type { MeTTaContext } from './context.js';
+import { DEFAULT_MEMORY_LIMIT, type MeTTaContext } from './context.js';
 
 export class MeTTaBuilder {
   private config: MeTTaConfig;
@@ -41,12 +41,12 @@ export class MeTTaRuntime {
   ) {}
 
   evaluate(program: MeTTaAtom, ctx?: Partial<MeTTaContext>): Effect.Effect<MeTTaAtom, MeTTaError> {
-    const _context: MeTTaContext = {
+    const context: MeTTaContext = {
       maxSteps: ctx?.maxSteps ?? this.config.maxSteps,
       timeout: ctx?.timeout ?? this.config.timeout,
-      memoryLimit: ctx?.memoryLimit ?? 1024 * 1024,
+      memoryLimit: ctx?.memoryLimit ?? DEFAULT_MEMORY_LIMIT,
     };
-    return this.interpreter.evaluate(program, 'default');
+    return this.interpreter.evaluate(program, 'default', context);
   }
 }
 
