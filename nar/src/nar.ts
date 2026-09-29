@@ -1,6 +1,7 @@
 import { BaseComponent } from '@senars/core';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 import type { Episode } from '@senars/util';
+import { resolveBagSlot } from './bag/registration.js';
 import { CognitiveController } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
 import type { ParameterLedger } from './config/parameter-ledger.js';
@@ -137,7 +138,7 @@ export class NAR extends BaseComponent {
     this.memory = new Memory(
       {
         ...this.config,
-        bagImplementation: this.config.cognitiveParams?.strategies?.bag?.type ?? 'priority',
+        bag: resolveBagSlot(this.config.cognitiveParams?.strategies?.bag),
       },
       { attentionModel: createAttentionModel(config) }
     );

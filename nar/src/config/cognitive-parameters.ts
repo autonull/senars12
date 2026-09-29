@@ -8,6 +8,7 @@ import {
   type StrategySpec,
   type StrategyType,
 } from '../strategies/registration';
+import { bagSlotErrors, type BagSlotParams } from '../bag/registration';
 
 const log = createLogger({ scope: 'cognitive-params' });
 
@@ -56,7 +57,7 @@ export interface CognitiveParameters {
     derivation: StrategySlotParams;
     lmRule: StrategySlotParams & { maxRules: number };
     attention: StrategySlotParams;
-    bag: { type: 'priority' | 'fenwick'; config?: Record<string, unknown> };
+    bag: BagSlotParams;
   };
 }
 
@@ -64,6 +65,9 @@ export interface CognitiveParameters {
  * A strategy slot names a strategy and its configuration; the registry turns
  * that pair into a validated, memoized instance (TODO27 §2.2). A list names
  * several strategies composed into one.
+ *
+ * The bag slot is the exception: it names a per-concept data structure, so it has
+ * a contract (`bag/registration.ts`) rather than a registry.
  */
 export interface StrategySlotParams {
   type: StrategySpec;
@@ -387,6 +391,9 @@ export function validateParameters(
       );
     }
   }
+
+  // The bag slot carries its own contract, so it validates without a catalog.
+  if (params.strategies) errors.push(...bagSlotErrors(params.strategies.bag));
 
   return {
     valid: errors.length === 0,

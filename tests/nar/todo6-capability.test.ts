@@ -83,8 +83,8 @@ describe('A4 — strategies.bag knob selects the implementation', () => {
     expect(memory.getConcept(TermBuilder.atom('alpha'))!.beliefBag).toBeInstanceOf(PriorityBag);
   });
 
-  it('honors bagImplementation: fenwick', () => {
-    const memory = new Memory({ bagImplementation: 'fenwick' });
+  it('honors the bag slot: fenwick', () => {
+    const memory = new Memory({ bag: { implementation: 'fenwick' } });
     seed(memory);
     for (const symbol of ['alpha', 'beta', 'gamma', 'delta']) {
       expect(memory.getConcept(TermBuilder.atom(symbol))!.beliefBag).toBeInstanceOf(FenwickBag);
@@ -94,7 +94,7 @@ describe('A4 — strategies.bag knob selects the implementation', () => {
   it('both implementations return the same concept for the same task', () => {
     const task = TermBuilder.atom('alpha');
     const priority = new Memory();
-    const fenwick = new Memory({ bagImplementation: 'fenwick' });
+    const fenwick = new Memory({ bag: { implementation: 'fenwick' } });
     seed(priority);
     seed(fenwick);
 

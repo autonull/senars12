@@ -34,6 +34,8 @@ export interface AIKRBudget {
 
 export interface Bag<T extends BagItem> {
   readonly capacity: number;
+  /** The per-decay priority retention this bag was built with (`strategies.bag.config`). */
+  readonly decayRateValue: number;
   add(item: T): boolean;
   sample(): T | undefined;
   sampleMany(budget: AIKRBudget | number): T[];

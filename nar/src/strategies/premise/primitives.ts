@@ -207,14 +207,24 @@ export interface SampleConfig {
   whereTruth?: (task: Task, truth: { f: number; c: number }) => boolean;
 }
 
-const DEFAULT_SAMPLE_CONFIG: Omit<SampleConfig, 'source' | 'scorer' | 'filters' | 'minScore'> & {
-  source: keyof typeof PREMISE_SOURCES;
-  scorer: ScorerName;
-  filters: FilterSpec[];
-  minScore: number;
-} = {
-  source: 'bag' as SourceName,
-  scorer: 'priority' as const,
+/**
+ * The sampling pipeline a primitive inherits when it declares no value of its
+ * own. The configuration schema's defaults read from here, so the table, the
+ * singletons and a user config all resolve to the same pipeline.
+ */
+/** `SampleConfig` with the sampling pipeline resolved: no field left to a default. */
+export type ResolvedSampleConfig = Required<Omit<SampleConfig, 'scorer' | 'where' | 'whereTruth'>> & {
+  scorer: NonNullable<SampleConfig['scorer']>;
+};
+
+/**
+ * The sampling pipeline a primitive inherits when it declares no value of its
+ * own. The configuration schema's defaults read from here, so the table, the
+ * singletons and a user config all resolve to the same pipeline.
+ */
+export const PREMISE_SAMPLE_FALLBACK: ResolvedSampleConfig = {
+  source: 'bag',
+  scorer: 'priority',
   filters: ['sharedAtoms'],
   minScore: 0,
   sampleSize: 20,
@@ -265,7 +275,7 @@ export function samplePremisesFromConfig(
   task: Task,
   config: SampleConfig
 ): Task[] {
-  const merged = { ...DEFAULT_SAMPLE_CONFIG, ...config };
+  const merged = { ...PREMISE_SAMPLE_FALLBACK, ...config };
   const results: Task[] = [];
 
   const sourceFn = PREMISE_SOURCES[merged.source];

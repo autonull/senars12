@@ -27,9 +27,56 @@ import { DEFAULT_REGISTRATIONS } from './registrations.js';
 import { composedName, composeSpec } from './composition.js';
 
 type Slot = Map<string, StrategyRegistration>;
-type InstanceCache = Map<string, StrategyImpl>;
 
 const SLOT_TYPES = ['sampling', 'premise', 'derivation', 'lm-rule', 'attention'] as const;
+
+/**
+ * Tier 1 and tier 2 keys come from user configuration, so their caches are
+ * bounded: a caller that mints a fresh config per cycle evicts rather than
+ * growing without limit. Tier 0 is keyed by registration name and is already
+ * bounded by the catalogue.
+ */
+const MAX_MEMOIZED_INSTANCES = 64;
+
+/** Insertion-ordered LRU — a `get` hit refreshes, so hot digests survive. */
+class BoundedCache<V> {
+  private readonly entries = new Map<string, V>();
+
+  constructor(private readonly limit: number) {}
+
+  get(key: string): V | undefined {
+    const value = this.entries.get(key);
+    if (value === undefined) return undefined;
+    this.entries.delete(key);
+    this.entries.set(key, value);
+    return value;
+  }
+
+  set(key: string, value: V): void {
+    this.entries.delete(key);
+    this.entries.set(key, value);
+    const oldest = this.entries.keys().next();
+    if (!oldest.done && this.entries.size > this.limit) this.entries.delete(oldest.value);
+  }
+
+  delete(key: string): boolean {
+    return this.entries.delete(key);
+  }
+
+  clear(): void {
+    this.entries.clear();
+  }
+
+  keys(): string[] {
+    return [...this.entries.keys()];
+  }
+}
+
+const memoStores = <V>(): Record<StrategyType, BoundedCache<V>> =>
+  Object.fromEntries(SLOT_TYPES.map((type) => [type, new BoundedCache<V>(MAX_MEMOIZED_INSTANCES)])) as Record<
+    StrategyType,
+    BoundedCache<V>
+  >;
 
 const emptyStores = <V>(): Record<StrategyType, Map<string, V>> =>
   Object.fromEntries(SLOT_TYPES.map((type) => [type, new Map<string, V>()])) as Record<
@@ -40,11 +87,11 @@ const emptyStores = <V>(): Record<StrategyType, Map<string, V>> =>
 export class CognitiveRegistry implements StrategyRegistry {
   private readonly stores: Record<StrategyType, Slot> = emptyStores();
   /** Tier 0: the registered default instance per name. */
-  private readonly defaults: Record<StrategyType, InstanceCache> = emptyStores();
+  private readonly defaults: Record<StrategyType, Map<string, StrategyImpl>> = emptyStores();
   /** Tier 1: configured instances keyed by config digest. */
-  private readonly configured: Record<StrategyType, InstanceCache> = emptyStores();
+  private readonly configured: Record<StrategyType, BoundedCache<StrategyImpl>> = memoStores();
   /** Tier 2: composed instances keyed by their deterministic label. */
-  private readonly composed: Record<StrategyType, InstanceCache> = emptyStores();
+  private readonly composed: Record<StrategyType, BoundedCache<StrategyImpl>> = memoStores();
 
   register(type: StrategyType, registration: StrategyRegistration): void;
   /** @deprecated pass a `StrategyRegistration` — a bare instance cannot carry its config contract. */
@@ -102,8 +149,15 @@ export class CognitiveRegistry implements StrategyRegistry {
 
   unregister(type: StrategyType, name: string): boolean {
     this.defaults[type].delete(name);
-    this.configured[type].delete(name);
+    // Tier 1 keys are digests that embed the name, so a re-registration must
+    // drop every memoized instance of the slot, not one entry.
+    this.configured[type].clear();
     return this.stores[type].delete(name);
+  }
+
+  /** Total memoized (tier 1 + tier 2) instances held for a slot — bounded, not a leak. */
+  memoizedSize(type: StrategyType): number {
+    return [...this.composed[type].keys()].length + [...this.configured[type].keys()].length;
   }
 
   clear(type?: StrategyType): void {

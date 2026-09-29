@@ -1,4 +1,5 @@
 import type { ConceptGraph } from '@senars/core/concept-graph';
+import type { ResolvedBagSlot } from '../bag/registration';
 import { LINK } from '../constants.js';
 import type { AttentionModel } from '../strategies/types.js';
 import { SimpleAttention } from '../strategies/attention/SimpleAttention.js';
@@ -39,7 +40,7 @@ export interface MemoryConfig {
   semanticLinkCapacity?: number;
   linkForgetPolicy?: 'priority' | 'lru' | 'fifo' | 'random';
   linkDecayRate?: number;
-  bagImplementation?: 'priority' | 'fenwick';
+  bag?: ResolvedBagSlot;
 }
 
 const DEFAULT_CONFIG: Required<MemoryConfig> = {
@@ -59,7 +60,7 @@ const DEFAULT_CONFIG: Required<MemoryConfig> = {
   semanticLinkCapacity: 500,
   linkForgetPolicy: 'priority',
   linkDecayRate: 0.001,
-  bagImplementation: 'priority',
+  bag: { implementation: 'priority' },
 };
 
 export interface RevisionEntry {
@@ -254,7 +255,7 @@ export class Memory {
 
     const concept = new Concept(term, {
       onRevision: (entry) => this.recordRevision(entry),
-      bagImplementation: this.config.bagImplementation,
+      bag: this.config.bag,
     });
     this.concepts.set(term, concept);
 

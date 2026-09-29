@@ -6,6 +6,7 @@ import { termKey, type Term, type Truth } from '../../terms';
 import type { Task } from '../../types';
 import { createBeliefTask } from '../../types';
 import type { FilterSpec } from './primitives.js';
+import type { PremiseOverrides } from './config.js';
 import type { ComponentMetadata, Strategy } from '../types.js';
 import {
   EmbeddingLinkStrategy as RealEmbeddingLinkStrategy,
@@ -22,7 +23,7 @@ const withMeta = <T extends Strategy>(strategy: T, description: string): T => {
   return strategy;
 };
 
-type PremisePrimitiveSpec = { description: string } & Omit<
+export type PremisePrimitiveSpec = { description: string } & Omit<
   StrategyConfig,
   'name' | 'description' | 'filter' | 'truthFilter' | 'sampleSize' | 'limit'
 > & { sampleSize: number; limit: number };
@@ -90,13 +91,13 @@ export const PREMISE_PRIMITIVES = {
   },
 } as const satisfies Record<string, PremisePrimitiveSpec>;
 
-/** A primitive premise strategy with its sample size and limit supplied by config. */
+/** A primitive premise strategy with its sampling pipeline supplied by config. */
 export const createPremiseStrategy = (
   name: keyof typeof PREMISE_PRIMITIVES,
-  { sampleSize, limit }: { sampleSize: number; limit: number }
+  overrides: PremiseOverrides
 ): Strategy => {
   const { description: _description, ...primitives } = PREMISE_PRIMITIVES[name];
-  return createStrategy({ ...primitives, name, sampleSize, limit });
+  return createStrategy({ ...primitives, name, ...overrides });
 };
 
 const primitive = <N extends keyof typeof PREMISE_PRIMITIVES>(name: N): Strategy => {

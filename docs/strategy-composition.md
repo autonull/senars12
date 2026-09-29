@@ -76,6 +76,15 @@ recursively *and* array elements: order is not semantic in a config bag, so `{a,
 `get(type, name)` is tier 0 under a second name, kept because it is the recall-hot path and
 `RuleGraph` needs the typed instance.
 
+### The memo is bounded
+
+Tier 1 and tier 2 keys come from user configuration, so both caches are insertion-ordered LRUs of
+64 entries. A caller that mints a fresh config per cycle evicts rather than growing without limit,
+and a digest that is still in use survives because every hit refreshes it. An evicted configuration
+resolves again to a working instance — the bound costs identity, never correctness.
+`registry.memoizedSize(type)` reports what is held. Tier 0 is keyed by registration name and is
+already bounded by the catalogue.
+
 ---
 
 ## 3. Composition: one spec form, five semantics
@@ -96,6 +105,29 @@ composition (D7) — there is no second way to spell it.
 
 A single-element list resolves to the strategy itself: a composite of one is an indirection with no
 behaviour.
+
+`CompositeAttention` composes with **equal weights**. Configurable weights need the registry at
+build time, so `configurable` cannot express them; a weighted composite is a tier-1 *named*
+registration, which is the open item in `TODO27.md` §12.7.
+
+### The premise primitives' whole pipeline is configuration
+
+`PREMISE_PRIMITIVES` declares each primitive's source, scorer, filters and `minScore`; those fields
+are the *defaults* of the primitive's schema, not hidden constants. `premiseSampleShape(spec)`
+projects the three registries (`PREMISE_SOURCES`, `PREMISE_SCORER_REGISTRY`, `PREMISE_FILTER_REGISTRY`)
+into zod enums, so the knobs are user-configurable and **a typo'd scorer is a validation error at
+the boundary** rather than a strategy that silently returns nothing.
+
+```ts
+strategies.premise = {
+  type: 'sampled',
+  config: { source: 'links', scorer: 'linkWeight', filters: ['noStampOverlap'], minScore: 0.5 },
+};
+```
+
+`PREMISE_SAMPLE_FALLBACK` is the single declaration of what a primitive inherits when it says
+nothing, and it is both the sample-time default and the schema default — so a table entry, an
+exported singleton and a user config cannot drift.
 
 ---
 
@@ -178,7 +210,25 @@ from `CognitiveParameters` and never construct a strategy.
 
 ---
 
-## 7. The associative port
+## 7. The bag slot is a contract, not a registry
+
+`strategies.bag` is the one parameter slot that names no strategy. A bag is constructed *per
+concept*, so there is no instance for the registry to hold or memoize — the slot has a name and a
+configuration bag, and those are what `nar/src/bag/registration.ts` validates.
+
+```ts
+bag: { type: 'priority' | 'fenwick', config?: { decayRate?: number; forgetRate?: number } }
+```
+
+`validateParameters` runs `bagSlotErrors` unconditionally (no catalog needed), and
+`resolveBagSlot` is the single read path: it returns `{ implementation, decayRate, forgetRate }`,
+which `nar.ts` hands to `Memory`, which hands to every `Concept` it builds. An unknown implementation
+is an error naming `priority, fenwick`; an unrecognised config key is the schema's own message. There
+is no `?? 'priority'` fallback left — the resolution is the validation.
+
+---
+
+## 8. The associative port
 
 ```ts
 interface AssociativeMemory {
@@ -204,3 +254,6 @@ same port it reads through — no `LinkManager` import.
 | 102 | `todo27-validation.test.ts` | Unknown name / bad config / empty list / composed config, all with an actionable message |
 | 103 | `todo27-composition.test.ts` | A list composes on all five slots; one spelling per concept |
 | 104 | `todo27-associative-write.test.ts` | Associate/recall round-trip; read-only degrades to `false`; no document store |
+| 105 | `todo27-premise-config.test.ts` | `source`/`scorer`/`filters`/`minScore` change the premise set; a typo is a boundary error; the table is the default |
+| 106 | `todo27-bounded-memo.test.ts` | Repeated digests stay identical; 500 configs do not grow the cache; eviction costs identity, not correctness |
+| 107 | `todo27-bag-slot.test.ts` | The bag slot validates its name and config, and both reach the bag it builds |

@@ -11,10 +11,18 @@ export type {
   LinearWeights,
   PremiseFilter,
   PremiseScorer,
+  ResolvedSampleConfig,
   SampleConfig,
   ScorerName,
   SourceName,
 } from './primitives.js';
+export {
+  PREMISE_FILTER_NAMES,
+  PREMISE_SCORER_NAMES,
+  PREMISE_SOURCE_NAMES,
+  premiseSampleShape,
+} from './config.js';
+export type { PremiseOverrides, PremiseSampleSpec } from './config.js';
 
 // Premise selection strategies
 export {
@@ -27,6 +35,7 @@ export {
   EmbeddingLinkStrategy,
   ExhaustiveStrategy,
   GoalDrivenStrategy,
+  PREMISE_PRIMITIVES,
   PrologResolutionStrategy,
   ResolutionStrategy,
   SampledStrategy,
@@ -34,5 +43,6 @@ export {
   SwitchingStrategy,
   TermLinkStrategy,
 } from './selection-strategies';
+export type { PremisePrimitiveSpec } from './selection-strategies.js';
 export { createLinkLayerStrategy, LinkLayerStrategy } from './term-link';
 export type { Strategy } from '../types';

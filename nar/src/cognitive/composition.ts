@@ -8,12 +8,7 @@
  * spec twice yields the same registered name.
  */
 
-import {
-  composeStrategy,
-  describeStrategyExpression,
-  type StrategyExpression,
-  type StrategyResolver,
-} from '../reason/strategy-algebra';
+import { composeStrategy, type StrategyExpression, type StrategyResolver } from '../reason/strategy-algebra';
 import { CompositeAttention } from '../strategies/attention/CompositeAttention.js';
 import { CompositeLMRuleSelector } from '../strategies/lm-selectors/CompositeLMRuleSelector.js';
 import { CompositeSampling } from '../strategies/sampling/CompositeSampling.js';
@@ -26,15 +21,12 @@ import type {
   StrategyImpl,
   StrategyType,
 } from '../strategies/types.js';
-import { isStrategyExpression, type CompositeSpec } from '../strategies/registration.js';
+import { describeSpec, isStrategyExpression, type CompositeSpec } from '../strategies/registration.js';
 
 const COMPOSED_PREFIX = 'composed:';
 
-/** The stable registry name for a composed slot. */
-export const composedName = (spec: CompositeSpec): string =>
-  `${COMPOSED_PREFIX}${
-    isStrategyExpression(spec) ? describeStrategyExpression(spec) : spec.join('+')
-  }`;
+/** The stable registry name for a composed slot — `describeSpec` is the one renderer. */
+export const composedName = (spec: CompositeSpec): string => `${COMPOSED_PREFIX}${describeSpec(spec)}`;
 
 /**
  * One composite class per slot: the spec form is uniform, the semantics are not.

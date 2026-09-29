@@ -39,6 +39,7 @@ import {
   TermLinkStrategy,
 } from '../strategies/premise/term-link.js';
 import { PrologResolutionStrategy } from '../strategies/premise/prolog-resolution.js';
+import { premiseSampleShape, type PremiseOverrides } from '../strategies/premise/config.js';
 import {
   AnytimeDerivation,
   AllSelector,
@@ -91,21 +92,30 @@ const linkRegistration = (name: string, description: string, Ctor: LinkCtor) =>
       new Ctor({ minStrength: config.minStrength as number, limit: config.limit as number }),
   }));
 
+/**
+ * The premise primitives' whole sampling pipeline is their configuration: the
+ * table entry supplies every default, so a configured variant and the exported
+ * singleton are two projections of one declaration.
+ */
 const premisePrimitive = (name: keyof typeof PREMISE_PRIMITIVES): StrategySlotEntry => {
   const spec = PREMISE_PRIMITIVES[name];
-  return premise(configurable({
-    name,
-    description: spec.description,
-    schema: configSchema({
-      sampleSize: z.number().int().min(1).default(spec.sampleSize),
-      limit: z.number().int().min(1).default(spec.limit),
-    }),
-    factory: (config) =>
-      createPremiseStrategy(name, {
-        sampleSize: config.sampleSize as number,
-        limit: config.limit as number,
-      }),
-  }));
+  return premise(
+    configurable({
+      name,
+      description: spec.description,
+      schema: configSchema(premiseSampleShape(spec)),
+      factory: (config) =>
+        createPremiseStrategy(name, {
+          sampleSize: config.sampleSize as number,
+          limit: config.limit as number,
+          source: config.source as PremiseOverrides['source'],
+          scorer: config.scorer as PremiseOverrides['scorer'],
+          filters: config.filters as PremiseOverrides['filters'],
+          minScore: config.minScore as number,
+          skipSameTerm: config.skipSameTerm as boolean,
+        }),
+    })
+  );
 };
 
 const SAMPLED_CONFIG = configSchema({

@@ -1,10 +1,10 @@
 # TODO27: Strategy Composition & Configuration — One Resolution Path
 
-**Version:** 1.0 (2026-09-28) · **Predecessor:** REFACTOR.todo8 §8 B/C, the premise-strategy
+**Version:** 1.1 (2026-09-28) · **Predecessor:** REFACTOR.todo8 §8 B/C, the premise-strategy
 landing (`8b8cb1f8`), and the associative-memory port (`e7a52b21`).
 
-**Status: implemented (Phases A–F). Benches 100–104 green; 2485 unit tests passing. Deviations
-from the plan as written are recorded in §11.**
+**Status: implemented (Phases A–G). Benches 100–107 green; 2512 unit tests passing. Deviations
+from the plan as written are recorded in §11 (A–F) and §12 (G).**
 
 ---
 
@@ -255,6 +255,11 @@ engineering time excluding review.
 - Benches land as `tests/nar/todo27-*.test.ts`, numbered 100–104, in the CI unit tier.
 - Effort: ~0.5d.
 
+### Phase G — Close the recorded follow-ups (added after §11.1)
+Phase G was not in the original plan; it is §11.4 taken as work rather than as notes. Four items:
+the premise `filters`/`scorer` surface (§12.1), the bag slot's missing contract, the unbounded
+instance caches, and `describeSpec` as the one renderer. The record is §12.
+
 ---
 
 ## 5. Acceptance benches
@@ -266,6 +271,9 @@ engineering time excluding review.
 | 102 | `todo27-validation.test.ts` | Unknown name / bad config / empty list all fail with an actionable message; defaults stay valid. |
 | 103 | `todo27-composition.test.ts` | A list composes on all five slots; one spelling of premise composition. |
 | 104 | `todo27-associative-write.test.ts` | Associate/recall round-trip; read-only memory degrades to `false`; no unbounded map in the memory path. |
+| 105 | `todo27-premise-config.test.ts` | A premise primitive's `source`/`scorer`/`filters`/`minScore` are configuration; a typo is a boundary error. |
+| 106 | `todo27-bounded-memo.test.ts` | Memoized instances are bounded; eviction costs identity, not correctness. |
+| 107 | `todo27-bag-slot.test.ts` | The bag slot names its candidates, rejects an unknown key, and both reach the bag. |
 
 Every bench asserts *behaviour*, never implementation: identity (`toBe`) only where identity is
 the contract (Tier 0, memoization), values otherwise. No mocks — the benches drive the real
@@ -319,7 +327,7 @@ the contract (Tier 0, memoization), values otherwise. No mocks — the benches d
 
 ## 9. Definition of done
 
-1. B Benches 100–104 green in the CI unit tier.
+1. B Benches 100–107 green in the CI unit tier.
 2. `config` demonstrably changes behaviour for at least one registered strategy in each stateless
    slot, asserted by value — not by "it was passed through".
 3. An unknown strategy name fails at `validateParameters`/`setStrategy` with the candidate list,
@@ -329,7 +337,7 @@ the contract (Tier 0, memoization), values otherwise. No mocks — the benches d
    are gone; `rg` finds no references.
 6. One spec form (`string | string[] | StrategyExpression`) is accepted by every slot, with one
    spelling per behaviour.
-7. No regression: `test:unit` (currently 2436 passing, 3 skipped), `lint`, `typecheck`,
+7. No regression: `test:unit` (currently 2512 passing, 3 skipped), `lint`, `typecheck`,
    `typecheck:bin`, `deps:gate` (≤ 5 cycles), `exports:audit`, `complexity:budget` all green.
 8. `docs/strategy-composition.md` written.
 
@@ -368,10 +376,14 @@ corrected rather than the code.*
 | D — uniform composition | done | `nar/src/cognitive/composition.ts`; `CompositeSampling` and `CompositeLMRuleSelector` added; premise `sequence` retired (D7) |
 | E — residuals | done | `AssociativeMemory.associate` + `AssociativeRegistry.associate`; `EmbeddingLayer` document store deleted; `dialogue/consumers/adapt.ts` mirrors the controller; `registry.list` returns registrations |
 | F — docs & benches | done | `docs/strategy-composition.md`; `tests/nar/todo27-*.test.ts` (100–104) |
+| G — the §11.4 follow-ups | done | see §12 |
 
-Every gate is green: `test:unit` 2485 passed / 3 skipped, `lint`, `typecheck`, `typecheck:bin`,
-`deps:gate` 5 cycles, `exports:audit`, `exports:check`, `complexity:budget` (production LOC
-73 705 → 71 887; `unboundedAccumulators` still 0).
+Every gate is green at the A–F commit: `test:unit` 2485 passed / 3 skipped, `lint`, `typecheck`,
+`typecheck:bin`, `deps:gate` 5 cycles, `exports:audit`, `exports:check`, `complexity:budget`
+(production LOC 73 705 → 71 887; `unboundedAccumulators` still 0). After Phase G: `test:unit` 2512
+passed / 3 skipped, `typecheck`, `typecheck:bin`, `lint`, `exports:audit`, `exports:check`,
+`deps:gate` 5 cycles, `complexity:budget` ok (production LOC 72 032, `unboundedAccumulators` 0,
+export subpaths 98 → 97).
 
 ### 11.2 Deviations from the plan text
 
@@ -428,7 +440,7 @@ Every gate is green: `test:unit` 2485 passed / 3 skipped, `lint`, `typecheck`, `
 |---|---|---|
 | sampling | `windowed-roulette` | `windowSize`, `seed` |
 | premise | `term-link`, `embedding-link` | `minStrength`, `limit` |
-| premise | `default-formation`, `bag`, `resolution`, `goal-driven`, `analogical`, `sampled`, `exhaustive`, `semantic` | `sampleSize`, `limit` |
+| premise | `default-formation`, `bag`, `resolution`, `goal-driven`, `analogical`, `sampled`, `exhaustive`, `semantic` | `sampleSize`, `limit`, plus `source`, `scorer`, `filters`, `minScore`, `skipSameTerm` after Phase G |
 | premise | `prolog-resolution` | `maxDepth`, `maxResults`, `occursCheck` |
 | derivation | `sampled` | `fraction`, `seed` |
 | lm-rule | `rotation` | `offset` |
@@ -443,24 +455,31 @@ its configured variant cannot drift. Benches 100 and 101 assert both projections
 
 ### 11.4 New improvement opportunities
 
+> Items marked **✅ Phase G** were closed by the follow-up phase; see §12 for the record.
+
 - **The premise `filters`/`scorer` are still not user-configurable.** `PREMISE_PRIMITIVES` declares
   them, so exposing them is a schema change, not a refactor — but `filters: ['sharedAtoms',
   'noStampOverlap']` is a `FilterSpec[]` and belongs in the schema as a validated enum.
+  **✅ Phase G** — `strategies/premise/config.ts`.
 - **`CompositeAttention` weights.** `config: { models: [{ name, weight }] }` needs the registry at
   build time, so `configurable` cannot express it today. It is a Tier-2 concern: registering a
   composite as a named registration would make it configurable. (Was §10's "config-driven
   attention".)
 - **The `bag` slot is still outside the strategy system.** `strategies.bag.type` selects a bag
   implementation and has no registration, no config and no validation. It is the last slot without
-  a contract.
+  a contract. **✅ Phase G** — `bag/registration.ts`: a contract, deliberately not a registration
+  (§12.5).
 - **The instance caches are unbounded maps.** A caller that mints a fresh config per cycle grows
   `configured` without limit. Today configs come from a frozen parameter graph, so the digest space
   is small — but nothing enforces that. An LRU over `configured` would close it, and
   `complexity:budget` currently cannot see it (the maps are in `cognitive/`, not a trusted path).
+  **✅ Phase G** — a 64-entry `BoundedCache` LRU over tiers 1 and 2, reported by
+  `registry.memoizedSize(type)`.
 - **`AdaptiveStrategy` is still exported and still unreachable.** If nothing wires it, it should go
   in a future major with a deprecation cycle (AGENTS.md §Deprecation lifecycle).
 - **`describeSpec` is the only way to render a spec,** and three call sites still build their own
-  rendering (the parameter ledger takes `number | string`).
+  rendering (the parameter ledger takes `number | string`). **✅ Phase G** — `composedName` delegates
+  to it; the other two turned out not to render a spec, so the count is one, not three.
 - **Association provenance.** Still open from §10: `AssociateOptions` has no `source`, so a link
   written by a strategy is indistinguishable from one written by inference.
 
@@ -480,3 +499,101 @@ its configured variant cannot drift. Benches 100 and 101 assert both projections
   in-repo consumer; a caller that only wants names can `list(type).map(r => r.name)`.
 - The `deprecated` `register(type, name, impl)` overload should be removed in the next major
   (AGENTS.md: breaking change = major).
+
+## 12. Phase G — the follow-ups, landed (2026-09-28)
+
+### 12.1 What closed
+
+Phases A–F left seven items in §11.4 recorded rather than scheduled. Phase G closed four of them
+and, in doing so, found the one behavioural hole the plan had not named.
+
+| Item | Status | Where |
+|---|---|---|
+| Premise `filters`/`scorer` not user-configurable | **closed** | `nar/src/strategies/premise/config.ts` (NEW): `premiseSampleShape` projects `PREMISE_SOURCES` / `PREMISE_SCORER_REGISTRY` / `PREMISE_FILTER_REGISTRY` into zod enums; `registrations.ts` uses it |
+| `CompositeAttention` weights | **still open** | unchanged — it is a tier-2 concern (see §12.7) |
+| The `bag` slot has no contract | **closed** | `nar/src/bag/registration.ts` (NEW): `bagSlotErrors` + `resolveBagSlot`; `validateParameters` runs the bag pass unconditionally; `Memory`/`Concept` take `bag: ResolvedBagSlot` |
+| The instance caches are unbounded maps | **closed** | `BoundedCache` in `cognitive/registry.ts` (64-entry LRU for tiers 1 and 2); `registry.memoizedSize(type)` reports it |
+| `describeSpec` is not the only renderer | **closed** | `composedName` now delegates to it; the parameter ledger needed no change — its `number \| string` already admits a rendered spec |
+| `AdaptiveStrategy` unreachable | **still open** | unchanged — needs a deprecation cycle (AGENTS.md) |
+| Association provenance | **still open** | unchanged — needs a `Link` model change, not a port change |
+
+Two things fell out of the work rather than being planned:
+
+1. **A typo'd scorer was a silent zero.** `resolveScorer` returns `undefined` for an unknown name
+   and `samplePremisesFromConfig` then returns `[]` — the same "config is inert" failure mode the
+   plan opened with, one layer down. Making `filters`/`scorer` configurable *and* schema-validated is
+   what closes it; the permissive runtime degradation is kept for direct programmatic callers.
+2. **`DEFAULT_SAMPLE_CONFIG` and the table were two declarations of the same defaults.** They are
+   now `PREMISE_SAMPLE_FALLBACK`, which is both the sample-time default and the schema default.
+
+### 12.5 Deviations in Phase G
+
+- **The bag slot is a contract, not a registration.** `Bag` is generic over its item, is built once
+  per concept (three per concept, in fact), and is not a `StrategyImpl`. A registration would have
+  meant memoizing an instance nothing can hold. The slot therefore gets validation and one typed
+  read path instead, and is the only slot not in `STRATEGY_SLOTS` — deliberately, because
+  `switchStrategyTool` changes a slot by rebuilding the controller's strategies, while a bag change
+  is a `Memory` concern.
+- **`bag.config` was dead and is now live.** It declared an unvalidated `Record<string, unknown>`
+  that nothing read. Rather than reject it, the two knobs `BaseBag` already branches on
+  (`decayRate`, `forgetRate`) are plumbed `nar.ts → Memory → Concept → createBag` and
+  `Bag.decayRateValue` is on the interface, so the value is observable through the port. `capacity`,
+  `rng` and `clock` stay out: they are injection points, not user knobs.
+- **`unregister` clears the whole slot memo.** Tier-1 keys are digests that embed the strategy name,
+  so deleting by name never matched a key. A re-registration must drop every memoized instance of
+  the slot, which is what it now does.
+- **The composed LRU is unreachable in practice, and the bench says so.** A composed label is a
+  permutation of the registered names, and no slot has more than four, so the label space is small
+  regardless. The bound is a guard against a future slot with a bigger catalogue; Bench 106 pins
+  the reachable property (stage order is semantic, so reordering *is* a new instance) rather than
+  pretending the bound is exercised by the derivation algebra.
+- **`unregister` is not covered by the tier-0 default cache.** Tier 0 was already deleted by name
+  and stays a plain `Map`.
+
+### 12.6 Benches 105–107
+
+| Bench | File | Falsifies |
+|---|---|---|
+| 105 | `tests/nar/todo27-premise-config.test.ts` | The premise primitives' whole pipeline is config; a typo'd scorer/filters is a boundary error; the table and the exported singleton are one projection |
+| 106 | `tests/nar/todo27-bounded-memo.test.ts` | A repeated digest is still `toBe`; 500 configs do not grow the cache; eviction costs identity, not correctness; tier 0 is untouched by churn |
+| 107 | `tests/nar/todo27-bag-slot.test.ts` | The bag slot names its candidates, rejects an unknown key, and both the implementation and `decayRate` reach the bag |
+
+### 12.7 New improvement opportunities
+
+- **`CompositeAttention` weights.** Unchanged from §12.1: `config: { models: [{ name, weight }] }`
+  needs the registry at build time, so `configurable` cannot express it. Registering a composite
+  under a name would make it a tier-1 strategy.
+- **`AdaptiveStrategy` and `SwitchingStrategy`.** Both are exported, both are unreachable from
+  config, and both hold per-strategy state in an unbounded `Map` keyed by name. `SwitchingStrategy`
+  has no test and no export from the premise barrel; `AdaptiveStrategy` is the one §10 asked to
+  remove. Both are deprecation-cycle candidates.
+- **`resolveFilters`/`resolveScorer` still degrade silently.** Validation catches a bad name for a
+  *configured* strategy, but `createStrategy` and direct `samplePremisesFromConfig` callers can
+  still pass a name that does not resolve. Throwing would close it; the reason not to is that
+  `where`/`whereTruth` and programmatic callers are legitimate.
+- **The premise `where`/`whereTruth` escape hatches are not expressible in config.** Correct — they
+  are functions, and a config bag is data. Worth stating so nobody tries.
+- **`bag.capacity` is per-concept, not per-slot.** `Concept` hard-codes 100/50/20 for
+  belief/goal/question. Making it configurable is a real feature, not a knob, and belongs to a
+  future plan with a demand signal.
+- **The LRUs have no metric.** `memoizedSize` exists but nothing exports it to OTel, so a
+  configuration that churns digests is invisible in the status surface.
+
+### 12.8 Notes for the remaining work
+
+- **The premise schema is strict and now much wider.** A config that previously carried a `filters`
+  typo and was silently ignored now fails validation. That is the intended fix, and it is a visible
+  behaviour change for anyone with a stray key.
+- **`configSchema` is strict**, so an unrecognised premise key (`minScores`, `wheres`, …) is an error
+  naming the key.
+- **`Memory`'s public config key changed** from `bagImplementation: 'priority' | 'fenwick'` to
+  `bag: ResolvedBagSlot`. Internal callers are migrated; an out-of-repo caller must switch to
+  `new Memory({ bag: resolveBagSlot({ type: 'fenwick' }) })` or the equivalent literal. Not a package
+  export, so `exports:audit` is unaffected.
+- **The premise digest now covers the pipeline**, not just the sizes. Two configs that differ only in
+  `scorer` are two instances, which is the point — but a bench must not assume a size-only config
+  still digests as before.
+- **`DEFAULT_SAMPLE_CONFIG` is gone**; `PREMISE_SAMPLE_FALLBACK` is exported in its place from
+  `strategies/premise`.
+
+---

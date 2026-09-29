@@ -9,6 +9,12 @@ export type {
 } from './Bag.js';
 export { BaseBag, PriorityBag } from './Bag.js';
 export { FenwickBag } from './FenwickBag.js';
+export {
+  BAG_IMPLEMENTATIONS,
+  bagSlotErrors,
+  resolveBagSlot,
+} from './registration.js';
+export type { BagSlotParams, ResolvedBagSlot } from './registration.js';
 import { type Bag, type BagItem, type BagOptions, PriorityBag } from './Bag.js';
 import { FenwickBag } from './FenwickBag.js';
 

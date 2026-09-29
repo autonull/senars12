@@ -1,5 +1,6 @@
 import { asBeliefTruth, makeId } from '@senars/util';
 import { createBag, type Bag, type BagOptions } from '../bag/index.js';
+import type { ResolvedBagSlot } from '../bag/registration.js';
 import { LINK } from '../constants.js';
 import type { Term, Truth } from '../terms';
 import {
@@ -34,7 +35,8 @@ export interface ConceptConfig {
   maxGoals?: number;
   maxQuestions?: number;
   onRevision?: RevisionCallback;
-  bagImplementation?: BagOptions['implementation'];
+  /** The validated `strategies.bag` slot: implementation plus decay knobs. */
+  bag?: ResolvedBagSlot;
 }
 
 export interface TaskData {
@@ -83,7 +85,7 @@ export class Concept {
     this.symbolBag = symbolQuery(term);
     const baseOptions: BagOptions = {
       capacity: 100,
-      implementation: config.bagImplementation ?? 'priority',
+      ...config.bag,
     };
     this.beliefBag = createBag<TaskData>({ ...baseOptions, capacity: config.maxBeliefs ?? 100 });
     this.goalBag = createBag<TaskData>({ ...baseOptions, capacity: config.maxGoals ?? 50 });
