@@ -1,5 +1,6 @@
 import { type Term, TermBuilder } from '../../index.js';
 import type { NAR } from '../../nar.js';
+import type { RandomSource } from '../../types/primitives.js';
 import type { QBeliefStore } from '../q-belief-store.js';
 import { RewardBeliefAdapter } from '../reward-belief-adapter.js';
 import {
@@ -218,9 +219,13 @@ export class GridWorldNativeAgent extends NativeSenarsAgent {
   private readonly actionNames = ['move_up', 'move_right', 'move_down', 'move_left'];
   private readonly actionTerms = this.actionNames.map((name) => TermBuilder.atom(`^${name}`));
 
-  /** `seed` overrides the NAR's stream for exploration; absent one, the NAR's stream is it. */
-  constructor(nar: NAR, maxDerivationsPerStep: number = 3, seed?: number) {
-    const selector = new GridWorldSelector(0.3, -0.1, 0.99, 0.01, seed ?? nar.rng);
+  /**
+   * `seed` is a number to pin exploration, or a `RandomSource` to share the
+   * NAR's stream (the parity harness does the latter). The default stays 42: an
+   * omitted seed is not a request for entropy.
+   */
+  constructor(nar: NAR, maxDerivationsPerStep: number = 3, seed: number | RandomSource = 42) {
+    const selector = new GridWorldSelector(0.3, -0.1, 0.99, 0.01, seed);
     super(nar, { selector, maxDerivationsPerStep, useTDLearning: true, gamma: 0.99 });
 
     const toolConfigs = [

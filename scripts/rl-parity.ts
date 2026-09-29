@@ -256,7 +256,7 @@ async function runNativeSenars(
       agent = new BanditNativeAgent(nar, 3, maxDerivationsPerStep);
       break;
     case 'gridworld':
-      agent = new GridWorldNativeAgent(nar, maxDerivationsPerStep);
+      agent = new GridWorldNativeAgent(nar, maxDerivationsPerStep, nar.rng);
       break;
     case 'nonstationary':
       agent = new NonStationaryNativeAgent(nar, 2, maxDerivationsPerStep);
