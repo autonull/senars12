@@ -3,8 +3,12 @@
 **Version:** 1.3 (2026-09-28) · **Predecessor:** REFACTOR.todo8 §8 B/C, the premise-strategy
 landing (`8b8cb1f8`), and the associative-memory port (`e7a52b21`).
 
-**Status: implemented (Phases A–I). Benches 100–108 green; 2505 unit tests passing. Deviations
-from the plan as written are recorded in §11 (A–F), §12 (G), §13 (H) and §14 (I).**
+**Status: Phases A–I landed. Benches 100–108 green; 2505 unit tests + 25 e2e/determinism tests
+passing; static gates green. Deviations are recorded in §11 (A–F), §12 (G), §13 (H), §14 (I).
+
+> **A fresh session should read §15 first.** It corrects a claim made in §14 about the RL parity
+> gate: the gate is not a known regression, it is a *broken benchmark*, and §15 has the measurements
+> that show it. Nothing is known to be broken; one important property is unmeasurable.**
 
 ---
 
@@ -800,3 +804,124 @@ from the exports map, so deleting a public export is a doc change.
 - **`tests/conversational/` and the e2e tier** were not run for this phase (out of the `test:unit`
   gate); `tests/nar/c3-hotpath-perf.test.ts` and `tests/unit/strategies/link-layer-strategy.test.ts`
   were migrated to the registry and are in the green run.
+
+---
+
+## 15. Handoff — read this first (written 2026-09-28, end of session)
+
+### 15.1 State of the tree
+
+- Branch `main`, HEAD `ba939629` ("one NAR, one registry, one inference path"), working tree clean.
+- Phases A–I are landed and each is a self-contained commit:
+
+| commit | what |
+|---|---|
+| `bef760db` | Phase A–F: registration, resolution, validation, composition, docs, benches 100–104 |
+| `a6b09d30` | Phase G: premise pipeline as config, the bag slot's contract, the bounded memo |
+| `323bc9ff` | Phase H: weighted attention as a named strategy, no silent degradation in premise |
+| `ba939629` | Phase I: one NAR, one registry, one inference path |
+
+### 15.2 What is verified green
+
+```
+pnpm test:unit          # 2505 passed, 3 skipped
+pnpm typecheck          pnpm typecheck:bin      pnpm lint
+pnpm deps:gate          # 5 cycles
+pnpm exports:audit      pnpm exports:check
+pnpm complexity:budget  # production LOC 73 705 → 71 697; unboundedAccumulators 0
+```
+
+Also run and green, though outside the `test:unit` gate:
+
+```
+VITEST_E2E=1 pnpm vitest run tests/e2e/production-loop.test.ts tests/e2e/cognitive-metrics.test.ts \
+  tests/e2e/golden-scenarios.test.ts tests/e2e/persistence.test.ts     # 15 passed
+VITEST_E2E=1 pnpm vitest run tests/e2e/determinism-gate.test.ts        # 10 passed
+```
+
+So the reasoning stack is exercised end to end by tests that do run, including a determinism gate.
+
+### 15.3 The correction: the RL parity gate is a broken benchmark, not a regression
+
+`pnpm test:load-sensitive` is **excluded from `test:unit`**, and §14.6 dismissed it as "the
+unseeded RL parity flake". That was too quick, and a bisect performed during the wrap-up was
+over-read. Three runs of `pnpm test:load-sensitive` on the **same unchanged commit** (`ba939629`):
+
+| run | result |
+|---|---|
+| 1 | **29/29 passed** |
+| 2 | ratio **0.650** (floor 0.70) |
+| 3 | ratio **0.440** (floor 0.70) |
+
+A spread from *pass* to 0.44 on an identical tree. A bisect across commits
+(`e7a52b21` 0.558, `def74ea1` 0.668, `323bc9ff` 0.627, `ba939629` 0.691) was reading that noise as a
+trend; the apparent "Phase I improved it 0.627 → 0.691" is not supported, and the claim that "the
+regression is pre-existing" is not supported either. **There is no evidence the refactor changed
+reasoning quality, in either direction, and no way to detect that with the current harness.**
+
+This is not a surprise: `tests/nar/rl/parity-restoration.test.ts` documents the problem in its own
+header — *"That sample is far too small for a ratio gate: repeated runs of an unchanged tree land
+either side of these thresholds (gridworld observed at 0.66/0.69/0.70 against a 0.70 floor) … A gate
+that cannot fail for a real reason only teaches people to ignore it, so it is opt-in."* The exclusion
+from `test:unit` is a deliberate decision, correctly taken. The mistake was treating its red as a
+finding without first reading that header.
+
+**Do not re-derive this.** The gate is red on an idle machine and green on a loaded one. Do not
+bisect it, and do not "fix" a regression that is not there.
+
+### 15.4 The real remaining problem
+
+The property that matters — *does SeNARS still reason as well as the baselines?* — is currently
+**unmeasurable**, and has been for some time. Phase I made the configuration path correct; nothing
+can confirm that correctness reaches the measured behaviour. That is a measurement gap, not a
+defect, and it is the highest-value thing left.
+
+Ordered next actions:
+
+1. **Seed the parity harness.** `scripts/rl-parity.ts` seeds the *game*; the NAR side samples with
+   `Math.random` (`createBag` defaults `rng`, and the premise/sampling strategies draw from it).
+   Thread the existing `RandomSource` type (`nar/src/types/primitives.ts`, already used by
+   `BagOptions.rng`) through `NARConfig` into the bags and the sampling strategies. This is the
+   §13.5 item, and it is now blocking.
+2. **Widen the sample** (the file suggests `--seeds 20`) so the ratio is not decided by machine load.
+3. **Re-measure.** Only then is it meaningful to ask whether the premise/attention work in Phases
+   G–I changed reasoning quality. Record the number, seeded, in this file.
+4. **Re-run `test:load-sensitive` on `main`** once seeded, and only then decide whether it belongs
+   back in the default run.
+
+### 15.5 Traps and things not to re-litigate
+
+- **Do not re-add a fallback.** `Memory`'s default is `NullAttentionModel` and
+  `createAttentionModel` has no fallback, on purpose: a substrate default must not pick a strategy.
+  A `new SimpleAttention()` there is a regression, not a fix.
+- **`AttentionModel.decay` returns the amount to subtract**, which `Memory.decayAll` then deducts.
+  Returning the priority (rather than `0`) silently flattens every concept to zero. This happened
+  once already, in Phase I; the comment on `NullAttentionModel.decay` now says so.
+- **`CompositeAttention` is a weighted mean, not a sum.** A sum makes the attention slot's magnitude
+  a function of how many names the user listed. Bench 103 pins `0.3`.
+- **`rm`/`streams` in `git` state:** the tree is clean; no work is in progress.
+- `docs/api/*.md` is generated by `pnpm docs:api` from the exports map. Only `docs/api/nar.md` is
+  current; the other four packages have unrelated generator drift — do not sweep them in by accident.
+
+### 15.6 Smaller items still open (from §13.7 / §14.6, unchanged)
+
+- **`kernel/replay.ts` builds a `Memory` with no attention model.** A replay exists to reproduce a
+  run, so it should resolve the attention model from the recorded parameters. Fidelity gap, not a
+  default to undo.
+- **Bench 109 for the North Star** — a test over the import graph asserting that no module outside
+  `cognitive/` constructs a strategy. This is what would have caught all six findings in §14.1
+  automatically, instead of by manual audit. Cheapest high-value item on the list.
+- **`registerRuleGraph`** is still registered by side effect from the controller rather than from
+  the catalogue. Registry-mediated, so it does not violate the North Star.
+- **Association provenance** (§10) — needs a `Link` model change; nothing can read the field yet.
+- **The LRU has no OTel metric** — `registry.memoizedSize(type)` exists; nothing exports it.
+- **`AIKRProcessor`** still takes `options.samplingStrategy ?? new PrioritySampling()`
+  (`learning/aikr-processor.ts:170`). Its callers pass a *constrained* sampler
+  (`new PrioritySampling(1.0)`), so it may be a different thing from the `sampling` slot rather than
+  a bypass of it. One reading before deciding.
+
+### 15.7 If you have time for exactly one thing
+
+Seed the parity harness (§15.4 step 1). Everything else in this file is known, bounded, and
+recorded. That one item is what converts "the refactor looks correct" into "the refactor is
+measured to be correct", and right now nothing in this repository can do the latter.
