@@ -1,37 +1,40 @@
 # TODO28: Structure — the package graph, the directory shape, and the leftovers
 
-**Version:** 1.1 (2026-09-29) · **Predecessor:** TODO27 (phases A–P; strategy composition, then
-the primitives pass), which closed the strategy axis and left this. v1.1 is the same plan after
-the structural pass landed; the sections that shipped say so, and §6–§8 were rewritten around
-what actually happened rather than what was predicted.
+**Version:** 1.2 (2026-09-30) · **Predecessor:** TODO27 (phases A–P; strategy composition, then
+the primitives pass), which closed the strategy axis and left this. v1.2 is the same plan after
+the third pass: §8.1's last upward edge closed, §8.2/§8.6's barrels landed, and the gate that
+found them rewritten, because it could not see either.
 
 **Status: closed except §3.2 and the three recorded debts.** Everything in §1, §2, §3.1,
-§3.3–§3.5 and §4 landed, plus §8.1 — the plan's own list of new opportunities produced the
-largest single change of the second pass. §3.2 is a plan of its own; §3.6–§3.8 are recorded
-and still correctly not scheduled. §6 is what happened, §7 is what is left, §8 is what the
-work surfaced. Sections that shipped carry a **landed** marker and a note saying what the
-tree actually looked like.
+§3.3–§3.5 and §4 landed, plus §8.1, §8.2 and §8.6 — the third pass closed the last
+`ALLOWED_UPWARD` entry, so the ledger is now **empty** rather than short. §3.2 is a plan of its
+own; §3.6–§3.8 are recorded and still correctly not scheduled. §6 is what happened, §7 is what is
+left, §8 is what the work surfaced. Sections that shipped carry a **landed** marker and a note
+saying what the tree actually looked like.
 
-> **A fresh session should read §7 first.** The package that should not exist is gone, all
-> nine directories in §2.1 hold their contract at the top with implementations under
-> `impls/`, `core` no longer reaches upward, the catalogue declares every built-in, and
-> `test:unit` is green under full-suite load. The one inversion left is `nar → metta`.
+> **A fresh session should read §7 first, and §7.11 is the whole of what is left.** The
+> package that should not exist is gone, all nine directories in §2.1 hold their contract at
+> the top with implementations under `impls/`, `core` no longer reaches upward, the catalogue
+> declares every built-in, every barrel names its exports, and `test:unit` is green under
+> full-suite load. There is no longer an inversion to record: `ALLOWED_UPWARD` is empty and
+> two gates keep it that way.
 
 ---
 
 ## 0. What this is
 
 TODO27 was a behavioural line of work — one resolution path, then one primitive per concept.
-This is a **structural** one. Nothing here changes what the system does; two items change what
-it can *accidentally* do — §1.1, a layering inversion that no gate can currently see, and §4.3,
-a metric that reports a property it does not measure.
+This is a **structural** one. Nothing here changes what the system does; three items change what
+it can *accidentally* do — §1.1, a layering inversion that no gate can currently see; §4.3, a
+metric that reports a property it does not measure; and, from the third pass, §8.1, the
+direction gate that could not see the inversion it was written to catch.
 
 | # | Item | Kind |
 |---|------|------|
-| 1 | The `kernel` package exists and should not | **defect** |
+| 1 | The `kernel` package exists and should not | **defect** — **landed** |
 | 2 | Nine directories mix a contract with its implementations | **manual** — yours, in an IDE · **landed** |
 | 3 | The leftovers TODO27 recorded | carry-over, re-verified |
-| 4 | What we can get for free while reorganizing | opportunistic |
+| 4 | What we can get for free while reorganizing | opportunistic — **landed** |
 | 5 | Deliberately not doing | — |
 
 **§1, §3 and §4 are agent work**: a package that should not exist, a list, and small gate fixes.
@@ -500,12 +503,81 @@ zero failures under full-suite load.
 
 ## 6. What landed
 
-Two passes. The first (`f45e9e7a`, `eec1dcb5`, `b7fb1971`) dissolved the `kernel` package
+Three passes. The first (`f45e9e7a`, `eec1dcb5`, `b7fb1971`) dissolved the `kernel` package
 and fixed the three gates that were measuring the wrong thing. The second — the eight
 commits below — finished §2, cleared `core`'s upward edges, and closed three of the
-leftovers. Every gate green: `typecheck`, `typecheck:bin`, `lint`, `deps:gate`,
-`deps:direction`, `exports:audit`, `exports:check`, `complexity:budget`, `test:unit`
-(2 611 passing), `test:load-sensitive`, `test:determinism`.
+leftovers. The third closed §8.1 and §8.2/§8.6, and rewrote the direction gate, because the
+gate could not see the thing it existed to catch. Every gate green: `typecheck`,
+`typecheck:bin`, `lint`, `deps:gate`, `deps:direction`, `exports:audit`, `exports:check`,
+`exports:barrels`, `complexity:budget`, `test:unit` (2 628 passing), `test:load-sensitive`,
+`test:determinism`.
+
+### Third pass
+
+| Commit | § | Item |
+|---|---|---|
+| `64663578` | 8.1 | `MettaPort` in `core`, `createMettaPort` in `metta`, injected through `nar` — and `deps:direction` rewritten to see dynamic imports, undeclared manifests and self-references |
+| see below | 8.2, 8.6 | `exports:barrels`: no `export *`, no unreachable module. Seven barrels made explicit, one dead shim deleted |
+
+### §8.1: the gate that could not see the inversion it was written for
+
+The seam itself was the small part. The finding is what `deps:direction` reported when it
+was finally able to look properly:
+
+- **The edge was four sites, not one.** `nar/agent/index.ts` and `nar/src/facade/index.ts`,
+  and three of the four imports were `await import('@senars/metta')`. The regex matched only
+  `import … from '…'`, so removing the one static import made the gate go green with three
+  live edges underneath it. The lesson is the same one §7.2 already recorded, one layer up: a
+  gate built from a naming convention asserts the convention.
+- **The manifest said nothing.** `nar/package.json` declared no `@senars/metta` dependency at
+  all. The §1.1 kernel package's manifest declared `zod` and imported `nar` four times; this
+  is the same omission, one package over, and no gate compared imports against a manifest.
+  That comparison is now the gate's second rule.
+- **A self-reference rule found four real sites.** `core` importing `@senars/core/budget` and
+  `@senars/core/helpers`, `nar` importing `@senars/nar` twice — each resolving through the
+  workspace root rather than the package's own exports map. That is precisely the fragility
+  §1.1 described for `kernel`, and it survived the fix of it.
+
+The gate now reads specifiers from a **masking pass**, not a regex: comments and template
+literals are blanked, quoted strings are kept. `nar`'s own `test-gen.ts` and
+`scaffold-capability.ts` emit `from '@senars/nar/tools/schemas'` as *generated text* — three
+files' worth of false positives a naive scan would produce, and a gate that cries wolf is a
+gate people route around. The two rules that do not need a parser:
+
+> **Declared means declared** — a package that imports another must declare it in
+> `dependencies`. **Dynamic imports count** — `await import(…)` is a value edge at runtime.
+
+There is no type-only exemption any more. The first version excluded `import type` on the
+grounds that it is erased at compile time; that is true and it is the wrong question here,
+because a package naming a package above it is the layering claim being *made*. Nothing in
+the tree needed the exemption, so it went.
+
+`tests/nar/todo28-layering.test.ts` falsifies the scanner against the shapes that break it —
+comments, template literals, nested `${}` containing braces and quotes, escaped backticks,
+and the two generator files in the repository that emit import text as data.
+
+### §8.2/§8.6: the barrels, and how the conversion was verified
+
+Expanding `export *` into named re-exports is mechanical and *silently destructive* if the
+name list is wrong, so the list did not come from a regex over the source. It came from the
+compiler: `tsc --declaration --emitDeclarationOnly` over the seven barrels, then each
+module's resolved `.d.ts` parsed for its export list, with `export *` inside a `.d.ts`
+followed transitively. That gives the exact set including the value/type split — except for
+pass-through shims, where `nar/src/utils/throttle.ts` re-exports from `@senars/util` and the
+declaration does not mark `ReadOnlyLookup` as a type. Those were adjudicated by `tsc` itself:
+each `TS1205` moved the named export from `export { … }` to `export type { … }`, iterated
+until clean.
+
+The check that the conversion lost nothing: emit the barrel's `.d.ts` **before** and **after**
+and diff the flattened export name sets. 362 names across seven barrels, identical. Recorded
+because the failure mode is invisible — a dropped export is not a compile error when the
+barrel is the definition.
+
+`exports:barrels` found `nar/src/memory/episodic.ts` on its first run: a three-line shim
+re-exporting `EpisodicMemory.ts`, which the `./memory/episodic` subpath had already been
+repointed away from. Nothing imported it. Deleted — the second dead file this pass removed,
+after `nar/src/kernel/`'s `verify-derivation.ts` claim in §1.1 turned out not to need a
+package to live in.
 
 ### Second pass
 
@@ -592,7 +664,7 @@ than refactored. `NullAttentionModel` is excluded from the derived set by name: 
 The first version of this test would have passed with `registerRuleGraph` in the tree for
 several more phases.
 
-### §8.1: both `core` seams were misfiled rather than misplaced
+### Second-pass §8.1: both `core` seams were misfiled rather than misplaced
 
 The plan proposed moving `createCognitiveAgent` down and `serializeTerm` down. Neither
 needed moving — both were in the wrong file for a different reason.
@@ -701,13 +773,46 @@ System One got the seam it had; the rest stays. See §6.
 
 All three are in the isolated tier. See §6.
 
+### 7.9 §8.1 `nar → metta` — done, and the ledger is empty
+
+`MettaPort` in `core`, `createMettaPort` in `metta`, injected into `nar` and wired by the bin
+composition root. See §6.
+
+### 7.10 §8.2 / §8.6 the barrels — done
+
+Seven barrels explicit and verified lossless; `exports:barrels` keeps them that way and
+catches the module a barrel forgets. See §6.
+
+### 7.11 what is left, in one place
+
+Everything structural in this document is done. Four items remain, none scheduled:
+
+| Item | § | Kind |
+|---|---|---|
+| The hermetic seeded run | 7.3 | a plan of its own — the only one |
+| The `utils/` pass-through shims | 8.8 | mechanical, and the last instance of a named pattern |
+| `bandit-epsilon-greedy` as a unit test | 8.9 | a benchmark with a wall-clock timeout |
+| The `productionLOC` ratchet | 8.7 | a decision, not a measurement |
+
+The first is the only one that needs new design. §7.3 has it in full; the note that has
+changed is that the baseline it would move — the `test:load-sensitive` tier — is greener
+than when it was written and still load-sensitive, per §8.9.
+
+The three that are *not* scheduled all share a shape worth naming: each is something a
+previous pass already observed and recorded, and each is cheap enough that recording it is
+rational only because none of them was urgent. That is the failure mode this plan's §3
+warns about — a follow-up list accumulating its own observations. The difference is that
+each of these three has a concrete first step written down, where §3's transcribed list had
+four items that had already landed.
+
 ---
 
 ## 8. New improvement opportunities
 
-Surfaced by this pass, not in the original plan. In rough value order.
+Surfaced by this pass, not in the original plan. In rough value order. §8.1, §8.2 and §8.6
+landed in the third pass; §6 has the accounts.
 
-### 8.1 `nar → metta` is the last upward edge, and it is the one the plan never found
+### 8.1 `nar → metta` is the last upward edge, and it is the one the plan never found — **landed**
 
 `ALLOWED_UPWARD` now holds a single entry: `nar/agent/index.ts` constructs `MettaEngine`
 directly. It was found by the *gate*, not by reading the manifests — which is the argument
@@ -716,11 +821,34 @@ case to make.
 
 The fix is a seam, not a move: `createCognitiveAgent` should take an engine, the way it
 already takes a registry, a memory and a ledger. It is not small — the MeTTa engine is used
-deep in the proof-metta path — and it is the last thing standing between `core` being
-importable without anything above it and the layering claim being true rather than
-conventional.
+deep in the proof-metta path — and it is the last thing standing between
+`core` being importable without anything above it and the layering claim being true rather
+than conventional.
 
-### 8.2 Two barrels per directory, in three of the nine
+**Landed, and the ledger was worse than it said.** `MettaPort` now lives in `core`
+(`core/src/metta-port.ts`) — the three methods `nar` actually used — and `metta` implements it
+as `createMettaPort`. `nar` takes the port in `NARConfig` and `CreateAgentConfig`; the bin
+composition root (`src/bin/lib/metta.ts`) wires the real one. `ALLOWED_UPWARD` is empty.
+
+The edge the ledger recorded as **one** inversion was four import sites across two files,
+three of them `await import(…)`, and `nar/package.json` named **no** `@senars/metta`
+dependency at all. Three consequences worth keeping:
+
+- **The engine was dead code.** `new MettaEngine()` is constructed without a runtime, and
+  `doInitialize` is only reached through `Agent.registerEngine` — which never happened for
+  it, because MeTTa is a tool and not an engine. So `mettaExecutor` was calling `query` on an
+  engine with `#runtime === null`, which returns `[]` unconditionally. The port builds a real
+  runtime; the `metta` tool in `initializeTools` was the only live consumer all along.
+- **Absent a port is honest, not degraded.** The `metta` tool is still registered and reports
+  `metta engine not configured` — the same string `core`'s builtin tool already used — so the
+  tool surface does not change shape with the engine's presence. `adoptLearnedMettaRules`
+  already handled an absent tool, so the arbiter loop degrades where it always did.
+- **The narrowing also removed an undeclared third-party import.** `initializeTools` was doing
+  `await import('effect')`, and `effect` is `metta`'s dependency, not `nar`'s.
+
+See §6 for the gate rewrite that keeps it fixed.
+
+### 8.2 Two barrels per directory, in three of the nine — **landed**
 
 `tools/` had `index.ts` *and* `tool-registry.ts`, the second re-exporting four of the
 first's sources. `game/` had `index.ts` re-exporting 14 impls and 9 support modules through
@@ -731,6 +859,14 @@ The rule that would catch it: **one barrel per directory, and it names what it e
 `grep -l "export \*" */src/*/index.ts` finds the current offenders. The `game/` barrel is
 already explicit; `rl/` and `imagination/` are not, and `imagination/index.ts` is four
 lines of `export *` over a contract and three classes.
+
+**Landed.** `exports:barrels` is the gate: no `export *` in any barrel, and no module that
+its barrel, a declared export subpath and every sibling in the package all pass over. Seven
+barrels still had stars — `dialogue`, `game`, `imagination`, `nl`, `rl`, `strategies`,
+`utils` — and all seven are now explicit, 362 names across them, **verified identical** to
+what the stars exported (§6). The check found one dead file on its first run:
+`nar/src/memory/episodic.ts`, a three-line shim duplicating `EpisodicMemory.ts`, which the
+`./memory/episodic` subpath had already been repointed away from. Deleted.
 
 ### 8.3 The North Star's derived names are only as good as `strategies/`
 
@@ -761,7 +897,11 @@ left, the number is more informative than the prose, and a future `ALLOWED_UPWAR
 added without closing one is visible in the diff of that file. Two entries, the number
 stops carrying that. Nothing to do; worth knowing which regime the gate is in.
 
-### 8.6 `nar/src/terms/index.ts` is 78 lines of hand-maintained re-export
+**Closed.** The ledger is empty and the gate no longer reports a count, because there is
+nothing to count. The regime question is answered by removal rather than by watching the
+number.
+
+### 8.6 `nar/src/terms/index.ts` is 78 lines of hand-maintained re-export — **landed**
 
 Every one of the nine barrels is now explicit rather than `export *` — which is what the
 naming rule forces, since PascalCase impls under `impls/` need naming one at a time. The
@@ -772,10 +912,68 @@ A `verify-exports`-style check — every module under a directory is re-exported
 barrel — would make the omission fail instead. `scripts/verify-exports.ts` already walks
 the export map; the same walk one level down is the shape.
 
+**Landed, but not as proposed — the check as written was wrong.** "Every module under a
+directory is re-exported by its barrel" demands ~48 files the tree has deliberately kept
+private, and forcing them in would rebuild exactly the second unversioned index §8.2 objects
+to. The rule that survives is reachability rather than publicity, and it has no ledger:
+
+> A module is reachable if its barrel names it, a declared export subpath points at it, or
+> something outside its own directory imports it. One that is reachable by none of the three
+> is invisible.
+
+A private module is not a false positive — its directory's siblings import it, which is the
+third clause. What the check asks is whether a file is *reachable*, which is measurable,
+rather than *public*, which the barrel already declares.
+
 ### 8.7 `productionLOC` is a `mustDecreaseOrJustify` ratchet over 73 705 lines
 
 The second pass moved files and did not add much, so the ratchet should be comfortable —
 but it is the one baseline in `complexity-budget.json` that is a judgement call rather than
 a count, and it is the metric most likely to be quietly justified away. Worth deciding
 whether it is still the right instrument now that the structural work is done and the
-remaining movement is behavioural.
+remaining movement is behavioural. **Unchanged** — the third pass moved it to 71 196, so the
+question is still live rather than answered.
+
+### 8.8 Three pass-through shims in `nar/src/utils/` — the same shape as the file §8.6 deleted
+
+`collections.ts`, `helpers.ts` and `throttle.ts` each exist only to re-export
+`@senars/util`, and `utils/index.ts` re-exports all three. That is the *identical* shape to
+`memory/episodic.ts` — a second barrel, and a directory whose surface is two paths to one
+module. §2.5 recorded the same finding for the logger (`@senars/util`, `@senars/core/logger`
+and `@senars/nar/logger`) and did not act on it; `exports:barrels` does not catch this case
+either, because a shim *is* imported by its directory's siblings, so it passes the
+reachability clause.
+
+The fix is the same as the logger's: delete the shims, repoint the ~19 importing files at
+`@senars/util`, and let `nar` declare what it actually uses. Cheap, mechanical, and it would
+close the last instance of the pattern this plan spent three passes naming.
+
+### 8.9 `tests/nar/rl/parity/bandit-epsilon-greedy.test.ts` is a benchmark wearing a unit test's clothes
+
+Recorded after the third pass, and **pre-existing** — it fails the same way on clean `HEAD`.
+
+The `Level 2` cases drive 400 to 4 500 real NAR episodes (`perceive()` plus `nar.run(3)` at
+`maxDerivationsPerStep: 500`) against a **30-second wall-clock timeout**, with
+`cpuThrottleMs: 0`. The assertion is `setTimeout`, not a property, so pass/fail is a function
+of machine speed and of whatever else is running: it passes in isolation, and crosses 30 s
+under the isolated tier's own load.
+
+§4.6 moved three files into `@load-sensitive` for exactly this shape but left this one
+inside the tier, which reduces contention without changing what the assertion measures. The
+honest fix is to move it to a bench job, or to scale the timeout to the work. Two smaller
+costs sit inside the loop: `g.term.toString()` runs per pending goal per step, and
+`bestAction.toString()` twice more per step — real serialisation in the hot path, though
+fixing it perturbs what the test spends its time measuring.
+
+### 8.10 The masking scanner is a library now, and three scripts could share it
+
+`scripts/lib/imports.ts` extracts module specifiers by blanking comments and template
+literals rather than by parsing. `exports:audit`, `docs:api` and `verify-exports` each walk
+module structure by their own route; if any of them ever needs to know what a file imports,
+that is the one to call. No duplication is known to exist today — recorded so the third
+instance is not written from scratch.
+
+The reason it is a masker and not a parser is worth keeping: `typescript@7` exposes **no
+compiler API** (`require('typescript')` returns `{version, versionMajorMinor}`) and
+`typescript-eslint` refuses to run against it. A lexical question needed a lexical answer,
+and `typescript@7`'s removal of the compiler API is the surprising part.
