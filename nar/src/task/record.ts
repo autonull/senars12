@@ -9,40 +9,37 @@
  */
 
 import {
+  deserializeStamp,
+  PUNCTUATION_BY_TASK_TYPE,
   type SerializedStamp,
   type Stamp,
   Stamp as StampFactory,
-  Truth,
-  deserializeStamp,
   serializeStamp,
-  termParser,
   type Term,
+  Truth,
+  taskTypeForPunctuation,
+  termParser,
 } from '../terms/index.js';
+import type { TaskOverrides } from '../types/core.js';
 import {
-  type Task,
-  type TaskType,
   createBudget,
   createTask,
   NEUTRAL_BUDGET,
+  type Task,
+  type TaskType,
 } from '../types/index.js';
-import type { TaskOverrides } from '../types/core.js';
 import type { Timestamp } from '../types/primitives.js';
 
-/** Narsese sentence punctuation per task type; the inverse of {@link taskTypeFromPunctuation}. */
-export const PUNCTUATION_BY_TASK_TYPE: Readonly<Record<TaskType, string>> = Object.freeze({
-  belief: '.',
-  goal: '!',
-  question: '?',
-  command: '@',
-});
-
-const TYPE_BY_PUNCTUATION: ReadonlyMap<string, TaskType> = new Map(
-  Object.entries(PUNCTUATION_BY_TASK_TYPE).map(([type, mark]) => [mark, type as TaskType])
-);
+/**
+ * The punctuation table lives with the grammar that reads it
+ * (`terms/impls/parser-peggy`), so rendering a task and parsing it back cannot
+ * disagree — which they did, over the command mark.
+ */
+export { PUNCTUATION_BY_TASK_TYPE };
 
 /** Task type named by Narsese sentence punctuation; `fallback` when absent or unrecognised. */
 export const taskTypeFromPunctuation = (punctuation: string, fallback: TaskType): TaskType =>
-  TYPE_BY_PUNCTUATION.get(punctuation) ?? fallback;
+  taskTypeForPunctuation(punctuation) ?? fallback;
 
 /** A task as it crosses a persistence or event boundary. Every field is optional but the type. */
 export interface TaskRecord {
@@ -72,7 +69,10 @@ const finiteOr = (value: number | undefined, fallback: number): number =>
  * stamp also advances the mint counter past its id, so a reloaded stamp can never
  * collide with a newly minted one.
  */
-export const rehydrateTask = (record: TaskRecord, fallbackType: TaskType = 'belief'): Task | null => {
+export const rehydrateTask = (
+  record: TaskRecord,
+  fallbackType: TaskType = 'belief'
+): Task | null => {
   let term: Term;
   try {
     term = termParser.parse(record.term);

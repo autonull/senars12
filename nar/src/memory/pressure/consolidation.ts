@@ -23,13 +23,13 @@ const FORGET_SHARE = 0.2;
  */
 export const evictUnderPressure = (memory: Memory): { archived: number; forgotten: number } => {
   const pressure = memory.capacityPressure();
+  if (pressure <= PRESSURE.ARCHIVE) return { archived: 0, forgotten: 0 };
+
   const idle = sortBy(
     memory.listConcepts().filter((c) => c.totalTasks === 0),
     (c) => c.priority
   );
-  if (idle.length === 0 || pressure <= PRESSURE.ARCHIVE) {
-    return { archived: 0, forgotten: 0 };
-  }
+  if (idle.length === 0) return { archived: 0, forgotten: 0 };
 
   const archiveCount = Math.ceil(
     idle.length * Math.min(ARCHIVE_SHARE, pressure - PRESSURE.NEUTRAL)

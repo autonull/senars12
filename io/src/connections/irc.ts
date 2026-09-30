@@ -1,5 +1,5 @@
 import { createLogger } from '@senars/util';
-import { BoundedRing } from '@senars/util';
+import { BoundedRing, periodic } from '@senars/util';
 import irc, { type Client as IRCClient } from 'irc';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { BaseConnection } from './base.js';
@@ -36,10 +36,11 @@ export class IRCConnection extends BaseConnection {
   override readonly type = 'irc';
   override readonly logger = createLogger({ scope: 'io:irc' });
   private client: IRCClient | null = null;
-  private readonly ircConfig: IRCConnectionConfig;
+  /** Every default resolved in the constructor, so no read has to re-apply `??`. */
+  private readonly ircConfig: IRCConnectionConfig & Required<Pick<IRCConnectionConfig, 'floodProtectionDelay'>>;
   private pendingMessages: Map<string, string[]> = new Map();
   private readonly messageQueue: BoundedRing<QueuedMessage>;
-  private queueTimer: ReturnType<typeof setInterval> | null = null;
+  private stopQueueDrain: (() => void) | null = null;
   private connected = false;
   private readyAt = 0;
 
@@ -143,7 +144,7 @@ export class IRCConnection extends BaseConnection {
   override async disconnect(reason = 'Goodbye'): Promise<void> {
     if (this.isDisconnected()) return;
     this.setState('disconnecting');
-    this.stopQueueDrain();
+    this.haltQueueDrain();
 
     return new Promise((resolve) => {
       if (!this.client) return resolve();
@@ -198,14 +199,13 @@ export class IRCConnection extends BaseConnection {
 
   private startQueueDrain(): void {
     // D17: a reconnect must not leak the previous timer.
-    this.stopQueueDrain();
-    this.queueTimer = setInterval(() => this.drainQueue(), this.ircConfig.floodProtectionDelay);
-    this.queueTimer.unref();
+    this.haltQueueDrain();
+    this.stopQueueDrain = periodic(() => this.drainQueue(), this.ircConfig.floodProtectionDelay);
   }
 
-  private stopQueueDrain(): void {
-    if (this.queueTimer) clearInterval(this.queueTimer);
-    this.queueTimer = null;
+  private haltQueueDrain(): void {
+    this.stopQueueDrain?.();
+    this.stopQueueDrain = null;
   }
 
   private scheduleJoin(): void {
@@ -232,7 +232,7 @@ export class IRCConnection extends BaseConnection {
   }
 
   private dispose(): void {
-    this.stopQueueDrain();
+    this.haltQueueDrain();
     this.pendingMessages.clear();
     this.messageQueue.clear();
     this.connected = false;

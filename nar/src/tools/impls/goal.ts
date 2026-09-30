@@ -1,8 +1,8 @@
 import type { Term } from '../../terms';
-import { getTermArgs, isAtomic, isCompound } from '../../terms';
-import { getFixPatternMapping } from './self-concept.js';
+import { readOperationTerm } from '../../terms/impls/operation-term.js';
 import type { Tool, ToolContext, ToolResult } from '../types';
 import { errorResult } from '../types';
+import { getFixPatternMapping } from './self-concept.js';
 
 /** Minimal manager surface needed for goal execution. */
 export interface ToolExecutor {
@@ -16,101 +16,21 @@ export async function executeToolGoal(
   goalTerm: Term,
   context?: ToolContext
 ): Promise<ToolResult> {
-  // Parse AST: Inheritance(Product(args...), Atom('^toolName'))
-  if (!isCompound(goalTerm) || goalTerm.kind !== 'inheritance') {
+  const call = readOperationTerm(goalTerm);
+  if (!call) {
     return errorResult(
       'Tool goal must be an Inheritance term (AST form: ^tool(args) -> Inheritance(Product, Atom))'
     );
   }
 
-  const args = getTermArgs(goalTerm);
-  if (!args || args.length !== 2) {
-    return errorResult('Invalid Inheritance structure for tool goal');
+  if (!manager.get(call.name)) {
+    return errorResult(`Tool '${call.name}' not found`);
   }
-
-  const subject = args[0]; // Product of arguments
-  const predicate = args[1]; // Atom with ^toolName
-
-  if (!subject || !predicate) {
-    return errorResult('Invalid Inheritance structure: missing subject or predicate');
-  }
-
-  if (!isAtomic(predicate) || !predicate.symbol.startsWith('^')) {
-    return errorResult('Tool goal predicate must be an Atom starting with ^');
-  }
-
-  const toolName = predicate.symbol.slice(1); // Remove ^ prefix
-
-  // Check if tool exists
-  if (!manager.get(toolName)) {
-    return errorResult(`Tool '${toolName}' not found`);
-  }
-
-  // Extract arguments from Product
-  const parsedArgs = extractArgsFromProduct(subject);
 
   // Semantic resolution: fix_pattern_id → actual codemod strings, etc.
-  const resolvedArgs = await resolveSemanticArgs(toolName, parsedArgs);
+  const resolvedArgs = await resolveSemanticArgs(call.name, call.args);
 
-  return manager.execute(toolName, resolvedArgs, context);
-}
-
-/** Extract arguments from a Product term (or single term) into key-value pairs */
-function extractArgsFromProduct(subject: Term): Record<string, unknown> {
-  const args: Record<string, unknown> = {};
-
-  // Handle Product term with multiple args
-  if (isCompound(subject) && subject.kind === 'product') {
-    const productArgs = getTermArgs(subject);
-    if (productArgs) {
-      for (let i = 0; i < productArgs.length; i++) {
-        const arg = productArgs[i];
-        if (arg) {
-          const value = termToValue(arg);
-          // If the term is an Inheritance (compact form key:value), extract as key:value
-          if (isCompound(arg) && arg.kind === 'inheritance') {
-            const inhArgs = getTermArgs(arg);
-            if (inhArgs && inhArgs.length === 2) {
-              const subj = inhArgs[0];
-              const pred = inhArgs[1];
-              if (subj && pred && isAtomic(subj) && isAtomic(pred)) {
-                // Compact form: subject:predicate means (predicate --> subject)
-                // So key = predicate.symbol, value = subject.symbol
-                args[pred.symbol] = subj.symbol;
-                continue;
-              }
-            }
-          }
-          args[`arg${i}`] = value;
-        }
-      }
-    }
-    return args;
-  }
-
-  // Single argument (non-Product)
-  const value = termToValue(subject);
-  args.arg0 = value;
-  return args;
-}
-
-/** Convert a Narsese term to a JavaScript value */
-function termToValue(term: Term): unknown {
-  if (isAtomic(term)) {
-    const symbol = term.symbol;
-    // Try to parse as primitive
-    if (/^\d+$/.test(symbol)) return parseInt(symbol, 10);
-    if (/^\d+\.\d+$/.test(symbol)) return parseFloat(symbol);
-    if (symbol === 'true') return true;
-    if (symbol === 'false') return false;
-    if (symbol.startsWith('"') && symbol.endsWith('"')) return symbol.slice(1, -1);
-    if (symbol.startsWith("'") && symbol.endsWith("'")) return symbol.slice(1, -1);
-    // Return as concept reference string
-    return symbol;
-  }
-
-  // For compound terms, return string representation
-  return term.toString();
+  return manager.execute(call.name, resolvedArgs, context);
 }
 
 /** Semantic resolution: fix_pattern_id → actual codemod strings, etc. */

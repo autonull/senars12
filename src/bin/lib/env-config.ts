@@ -47,11 +47,3 @@ export function readAppEnvConfig(): AppEnvConfig {
     histfile: envStrOr('/tmp/senars_history', 'SENARS_HISTFILE'),
   };
 }
-
-export function readAllEnvConfig(): BinEnvConfig {
-  return {
-    episodic: readEpisodicConfig(),
-    auth: readAuthConfig(),
-    app: readAppEnvConfig(),
-  };
-}

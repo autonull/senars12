@@ -2,10 +2,11 @@
 // This replaces the hand-written recursive descent parser
 
 import { createRequire } from 'node:module';
-import { errMsg } from '@senars/util';
+import { errMsg, stripTruthSuffix } from '@senars/util';
+import type { TaskType } from '../../types/core.js';
+import type { Term } from '../types.js';
 import { TermFactory } from './factory.js';
 import { Truth } from './Truth.js';
-import type { Term } from '../types.js';
 
 const require = createRequire(import.meta.url);
 const peggyModule: {
@@ -19,7 +20,28 @@ export interface ParserResult {
   statements?: ParserResult[];
 }
 
-export type TaskTypeName = 'belief' | 'question' | 'goal' | 'command';
+export type TaskTypeName = TaskType;
+
+/**
+ * Narsese sentence punctuation per task type — the mapping `narsese.peggy`
+ * already encodes, in one table. `'@'` is the grammar's QUEST mark and is
+ * deliberately absent: it is not a task type, so a task rendered here parses
+ * back through {@link TermParser.parseTask} as the same type it was written as.
+ */
+export const PUNCTUATION_BY_TASK_TYPE: Readonly<Record<TaskTypeName, string>> = Object.freeze({
+  belief: '.',
+  goal: '!',
+  question: '?',
+  command: ';',
+});
+
+const TASK_TYPE_BY_PUNCTUATION: ReadonlyMap<string, TaskTypeName> = new Map(
+  Object.entries(PUNCTUATION_BY_TASK_TYPE).map(([type, mark]) => [mark, type as TaskTypeName])
+);
+
+/** Task type named by Narsese sentence punctuation; `null` when it is not one. */
+export const taskTypeForPunctuation = (punctuation: string): TaskTypeName | null =>
+  TASK_TYPE_BY_PUNCTUATION.get(punctuation) ?? null;
 
 export interface ParseTaskResult {
   term: Term;
@@ -94,21 +116,14 @@ export class TermParser {
   parseWithTruth(input: string): { term: Term; truth?: Truth } {
     const trimmed = input.trim();
 
-    // Support both :f:c (colon syntax) and %f;c% (percent syntax)
-    const truthMatch = trimmed.match(
-      /(?:%\s*([0-9.]+)\s*;\s*([0-9.]+)\s*%|:\s*([0-9.]+)\s*:\s*([0-9.]+))\s*$/
-    );
-    const truth = truthMatch
-      ? Truth.create(
-          Number.parseFloat(truthMatch[1] ?? truthMatch[3] ?? '0.5'),
-          Number.parseFloat(truthMatch[2] ?? truthMatch[4] ?? '0.9')
-        )
-      : undefined;
-    let termStr = truthMatch ? trimmed.slice(0, -truthMatch[0].length).trim() : trimmed;
+    // What counts as a truth suffix, and where it ends, is @senars/util's
+    // answer — this module used to hold a second copy of that grammar.
+    const { text: body, truth: parsed } = stripTruthSuffix(trimmed);
 
-    termStr = termStr.replace(/[.!?@;]+\s*$/, '').trim();
-
-    return { term: this.parse(termStr), truth };
+    return {
+      term: this.parse(body.replace(/[.!?@;]+$/, '').trim()),
+      truth: parsed && Truth.create(parsed.f, parsed.c),
+    };
   }
 
   parseTask(input: string): ParseTaskResult | null {
@@ -125,15 +140,7 @@ export class TermParser {
       if (!r || !r.term || !r.punctuation) return null;
 
       const punc = r.punctuation;
-      if (punc !== '.' && punc !== '?' && punc !== '!' && punc !== ';') return null;
-
-      const puncToType: Record<string, TaskTypeName> = {
-        '.': 'belief',
-        '?': 'question',
-        '!': 'goal',
-        ';': 'command',
-      };
-      const taskType = puncToType[punc];
+      const taskType = punc ? taskTypeForPunctuation(punc) : null;
       if (!taskType) return null;
 
       const rawTruth = r.truthValue;

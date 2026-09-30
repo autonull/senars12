@@ -1,17 +1,14 @@
 import type { AutonomyMode, CognitiveEvent, TaskAdmittedEvent } from '@senars/core/schemas';
 import { CognitiveEventSchema } from '@senars/core/schemas';
-import { appendJsonl, readJsonl } from '@senars/util';
+import { appendJsonl, readJsonl, sortBy } from '@senars/util';
 import type { GateRegistry } from './GateRegistry.js';
 
 export function persistGateLogs(registry: GateRegistry, path: string): { appended: number } {
   const logs = registry.getAllEventLogs();
-  const events: CognitiveEvent[] = [
-    ...logs.perception,
-    ...logs.action,
-    ...logs.autonomy,
-    ...logs.reward,
-    ...logs.budget,
-  ].sort((a, b) => a.timestamp - b.timestamp);
+  const events = sortBy(
+    [...logs.perception, ...logs.action, ...logs.autonomy, ...logs.reward, ...logs.budget],
+    (e) => e.timestamp
+  );
   return { appended: appendJsonl(path, events) };
 }
 

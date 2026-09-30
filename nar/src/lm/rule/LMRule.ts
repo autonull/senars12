@@ -1,5 +1,4 @@
 import { errMsg, stopwatch } from '@senars/util';
-import { generateObject, type LanguageModel, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
 import type { Term } from '../../terms';
 import { Truth } from '../../terms';
@@ -38,7 +37,6 @@ export class LMRule {
   private eventBus: NarEventBus | null;
   private systemEventBus: NarEventBus | null = null;
   private stats: LMExecutionStats = createLMStats();
-  private structuredModel: LanguageModel | null = null;
   private toolDispatcher?: (tool: string, args: Record<string, unknown>) => Promise<unknown>;
   private readonly enableTools: boolean;
   private readonly constitutionAware: boolean;
@@ -107,10 +105,6 @@ export class LMRule {
 
   setSystemEventBus(bus: NarEventBus): void {
     this.systemEventBus = bus;
-  }
-
-  setStructuredModel(model: LanguageModel): void {
-    this.structuredModel = model;
   }
 
   setNAR(nar: {
@@ -214,7 +208,7 @@ export class LMRule {
       });
 
       let response: string | null;
-      const usedStructured = !!(this.structuredModel && this.outputSchema);
+      const usedStructured = !!this.outputSchema;
       if (usedStructured) {
         response = await this.executeStructured(prompt, signal);
       } else {
@@ -376,26 +370,14 @@ export class LMRule {
   }
 
   private async executeStructured(prompt: string, signal?: AbortSignal): Promise<string | null> {
-    if (!this.structuredModel || !this.outputSchema) {
+    if (!this.lm || !this.outputSchema) {
       return this.executeLM(prompt, signal);
     }
-    const elapsed = stopwatch();
-    try {
-      const result = await this.circuitBreaker.execute(async () => {
-        const res = await generateObject({
-          model: this.structuredModel!,
-          prompt,
-          schema: zodSchema(this.outputSchema!),
-          abortSignal: signal,
-        });
-        return JSON.stringify(res.object);
-      });
-      recordLMCall(this.stats, true, elapsed(), prompt.length + result.length);
-      return result;
-    } catch (e) {
-      recordLMCall(this.stats, false, elapsed(), prompt.length);
-      throw e;
-    }
+    return this.circuitBreaker.execute(async () =>
+      JSON.stringify(
+        await this.lm!.generateObject(prompt, this.outputSchema as ZodSchema<unknown>, { signal })
+      )
+    );
   }
 
   private async tryToolDelegation(

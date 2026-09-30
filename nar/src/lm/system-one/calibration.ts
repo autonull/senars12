@@ -1,4 +1,4 @@
-import { maxScore, trimCapped } from '@senars/util';
+import { maxScore, sortBy, trimCapped } from '@senars/util';
 import type { CalibrationVersion, RubricId } from './types.js';
 
 /** Fitted points retained per calibrator; older points stop steering the fit. */
@@ -101,7 +101,7 @@ export function createIsotonicCalibrator(
       return;
     }
 
-    const sorted = [...points].sort((a, b) => a.predicted - b.predicted);
+    const sorted = sortBy(points, (p) => p.predicted);
     sortedPredicted = sorted.map((p) => p.predicted);
     const observed = sorted.map((p) => p.observed);
     const weights = sorted.map((p) => p.weight);

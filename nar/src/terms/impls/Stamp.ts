@@ -1,6 +1,6 @@
 import { threadId } from 'node:worker_threads';
 import { maxScore } from '@senars/util';
-import { Timestamp, DEPTH_MAX } from '../../types/primitives.js';
+import { DEPTH_MAX, type Timestamp } from '../../types/primitives.js';
 
 /** Deepest derivation lineage across a stamp set; 0 for an empty set. */
 const maxDepthOf = (stamps: readonly Stamp[]): number =>
@@ -14,10 +14,6 @@ const nowMicroseconds = (): Timestamp => (Date.now() * 1000) as Timestamp;
 let counterView = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
 
 const nextStampId = (): string => `${threadId}:${Atomics.add(counterView, 0, 1)}`;
-
-/** Share one counter buffer across threads (post the result to workers) for process-wide unique IDs. */
-export const getStampCounterBuffer = (): SharedArrayBuffer =>
-  counterView.buffer as SharedArrayBuffer;
 
 /** Adopt a shared counter buffer created elsewhere (e.g. received from the main thread). */
 export const shareStampCounterBuffer = (sab: SharedArrayBuffer): void => {

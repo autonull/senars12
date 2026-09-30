@@ -1,14 +1,15 @@
 import { join } from 'node:path';
-import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
-import type { Episode } from '@senars/util';
 import {
   cachePath,
+  type Episode,
   mean,
   type ReadOnlyLookup,
   sha256Hex,
   sha256Prefixed,
   shortSha256Hex,
+  sortBy,
 } from '@senars/util';
+import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 import { DigestMismatchError } from '../../lm/system-one/wasi-runtime.js';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
@@ -135,10 +136,12 @@ export async function retrospect(
   // Phase D (REFACTOR.todo1): indexed path — O(matches) via the sessionId
   // metadata index instead of O(all episodes).
   const episodes = await episodic.getEpisodes({ type: 'dialogue', sessionId, limit: 10_000 });
-  const turns = episodes
-    .map(parseTurn)
-    .filter((t): t is SessionTurn => t !== undefined && t.sessionId === sessionId)
-    .sort((a, b) => a.seq - b.seq);
+  const turns = sortBy(
+    episodes
+      .map(parseTurn)
+      .filter((t): t is SessionTurn => t !== undefined && t.sessionId === sessionId),
+    (t) => t.seq
+  );
 
   const reactionEpisodes = await episodic.getEpisodes({
     type: 'reaction',
@@ -156,9 +159,7 @@ export async function retrospect(
 
   // Phase A (REFACTOR.todo2): causal-chain summary from the `causes` edges
   // TODO1 Phase D writes on reaction episodes — upstream-first, chronological.
-  const causalChains: CausalChainEdge[] = reactions
-    .slice()
-    .sort((a, b) => a.at - b.at)
+  const causalChains: CausalChainEdge[] = sortBy(reactions, (r) => r.at)
     .flatMap((r) =>
       (r.causes ?? []).map((from) => ({ from, to: r.id ?? '', kind: r.kind, at: r.at }))
     )

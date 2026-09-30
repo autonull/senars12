@@ -1,5 +1,5 @@
 import type { EvictionOrder } from '@senars/util';
-import { addToSet, BoundedMap, occupancy } from '@senars/util';
+import { addToSet, BoundedMap, occupancy, removeFromSet } from '@senars/util';
 import { type Term, termKey } from '../../terms';
 import type { RandomSource } from '../../types/primitives.js';
 import type { LinkEntry, LinkForgetPolicy, LinkInput, LinkQuery, LinkType } from './types.js';
@@ -26,13 +26,6 @@ const evictionOrder = (policy: LinkForgetPolicy): EvictionOrder<LinkEntry> =>
       : policy === 'random'
         ? 'random'
         : 'lru';
-
-function removeFromIndex<K>(index: Map<K, Set<string>>, key: K, id: string): void {
-  const bucket = index.get(key);
-  if (!bucket) return;
-  bucket.delete(id);
-  if (bucket.size === 0) index.delete(key);
-}
 
 /**
  * A bounded, term-keyed link store.
@@ -161,9 +154,9 @@ export class Layer {
 
   /** Drop every index reference to a link. */
   private forget(entry: LinkEntry): void {
-    removeFromIndex(this.byType, entry.type, entry.id);
-    removeFromIndex(this.byTerm, termKey(entry.sourceTerm), entry.id);
-    removeFromIndex(this.byTerm, termKey(entry.targetTerm), entry.id);
+    removeFromSet(this.byType, entry.type, entry.id);
+    removeFromSet(this.byTerm, termKey(entry.sourceTerm), entry.id);
+    removeFromSet(this.byTerm, termKey(entry.targetTerm), entry.id);
   }
 
   /** Drop a link from the map and every index, once. */

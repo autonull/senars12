@@ -7,7 +7,7 @@ import type {
   BridgeOptions as UtilBridgeOptions,
 } from '@senars/util';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
-import type { ChatOptions, ChatStreamEvent } from '../ChatService.js';
+import type { ChatOptions, ChatStreamEvent } from '../chat.js';
 /**
  * Agent public type definitions.
  */

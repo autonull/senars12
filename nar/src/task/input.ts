@@ -1,7 +1,7 @@
 import type { Term } from '../terms';
 import { Truth, termParser } from '../terms';
 import { createBudget, createTask, type Task, type TaskType } from '../types';
-import { taskTypeFromPunctuation } from './record.js';
+import { PUNCTUATION_BY_TASK_TYPE, taskTypeFromPunctuation } from './record.js';
 
 export interface InputProcessorConfig {
   defaultType: TaskType;
@@ -11,8 +11,15 @@ const DEFAULT_CONFIG: InputProcessorConfig = {
   defaultType: 'belief',
 };
 
+/** The marks the grammar recognises as sentence punctuation — one source. */
+const SENTENCE_MARKS = [...new Set(Object.values(PUNCTUATION_BY_TASK_TYPE))]
+  .map((mark) => mark.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  .join('');
+
+const SENTENCE_END = new RegExp(`^(.+?)([${SENTENCE_MARKS}])?\\s*$`);
+
 function extractPunctuation(input: string): { text: string; punctuation: string } {
-  const match = input.trim().match(/^(.+?)([.!?@])?\s*$/);
+  const match = input.trim().match(SENTENCE_END);
   if (match) {
     return { text: match[1]!.trim(), punctuation: match[2] ?? '' };
   }

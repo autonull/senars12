@@ -5,6 +5,7 @@ import {
   appendJsonlAsync,
   iterateJsonl,
   makeId,
+  periodic,
   SHA256_PINNED,
   sha256Hex,
   writeJsonl,
@@ -177,13 +178,11 @@ export class JudgmentDataset {
 
   /** Periodic append of recorded labels to `path` (auto-flush). Returns a stop function. */
   startAutoFlush(path: string, intervalMs = 30_000): () => void {
-    const timer = setInterval(() => {
+    return periodic(() => {
       void this.flush(path).catch(() => {
         // Auto-flush is best-effort; the next tick retries.
       });
     }, intervalMs);
-    timer.unref?.();
-    return () => clearInterval(timer);
   }
 
   /** Close the ledger (stop timers, flush). */

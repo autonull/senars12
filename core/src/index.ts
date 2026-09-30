@@ -86,28 +86,17 @@ export {
 } from '@senars/util/config';
 export { Agent } from './Agent.js';
 /** Cognitive-event → UI-delta projection bridge. @public */
-export { AgentBridge, type BridgeDelta, type BridgeEvent } from './AgentBridge.js';
 export type {
   ApprovalManager,
   ApprovalManagerOptions,
   ApprovalRequest,
   ApprovalResult,
   ApprovalServiceConfig,
-  PendingApproval,
 } from './ApprovalService.js';
 /** Human-in-the-loop approval service. @public */
 export { ApprovalService, InMemoryApprovalManager } from './ApprovalService.js';
-/** Chat service types. @public */
-export type {
-  ChatContext,
-  ChatOptions,
-  ChatServiceDeps,
-  ChatStreamEvent,
-  Tool as ChatTool,
-} from './ChatService.js';
-/** Chat service factory. @public */
-export { createChatService } from './ChatService.js';
-export type { ChatCapable, CognitiveEventSource } from './CognitiveEventSource.js';
+/** Chat option and event vocabulary. @public */
+export type { ChatOptions, ChatStreamEvent } from './chat.js';
 export {
   type BudgetAllocation,
   CognitiveThread,
@@ -120,7 +109,6 @@ export {
   ThreadPool,
   type ThreadStatus,
 } from './cognitive-thread.js';
-export { ConfigViewImpl } from './config/ConfigView.js';
 /** Cortex factory from an LM service. @public */
 export { createCortexFromLM } from './cortex/createCortexFromLM.js';
 /** Narrative synthesis cortex. @public */
@@ -141,9 +129,7 @@ export type {
 /** In-memory + SQLite event logs. @public */
 export { InMemoryEventLog, SqliteEventLog } from './eventlog/index.js';
 /** Feedback store. @public */
-export { type FeedbackEntry, FeedbackRegistry } from './feedback/FeedbackRegistry.js';
 /** Knowledge manager. @public */
-export { KnowledgeManager } from './KnowledgeManager.js';
 /** Lifecycle base component. @public */
 export { BaseComponent } from './Lifecycle.js';
 export type { BuiltinLens, LensSpec, ModulationSpec } from './lens-schema.js';
@@ -256,8 +242,6 @@ export {
   MettaSkillNode,
   NarConceptNode,
 } from './protocol/index.js';
-export type { AgentStats } from './StatsManager.js';
 /** Stats manager. @public */
-export { StatsManager } from './StatsManager.js';
 /** Transport-level connection error. @public */
 export { ConnectionError } from './Transport.js';

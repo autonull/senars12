@@ -1,6 +1,6 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $lmStatus, $webllmAvailable, $webllmActive, BaseComponent, send } from '../core/index.js';
+import { $lmStatus, $webllmActive, $webllmAvailable, BaseComponent, send } from '../core/index.js';
 
 /**
  * Small status strip answering "which model am I actually using?"
@@ -54,8 +54,12 @@ export class LMStatusPanel extends BaseComponent {
       this.model = String(data.model ?? '');
       this.available = Boolean(data.available);
     });
-    this.watchWith($webllmAvailable, (v) => { this.webllmAvailable = v; });
-    this.watchWith($webllmActive, (v) => { this.webllmActive = v; });
+    this.watchWith($webllmAvailable, (v) => {
+      this.webllmAvailable = v;
+    });
+    this.watchWith($webllmActive, (v) => {
+      this.webllmActive = v;
+    });
 
     // Detect WebGPU availability
     this.webllmAvailable = 'gpu' in navigator;
@@ -64,7 +68,7 @@ export class LMStatusPanel extends BaseComponent {
 
   private async switchToWebLLM() {
     if (!this.webllmAvailable || this.webllmActive) return;
-    
+
     // Send a message to the server to switch provider to webllm
     // The server will need to handle this and update the lm-status
     send({ type: 'lm.switch', provider: 'webllm' });
@@ -80,11 +84,17 @@ export class LMStatusPanel extends BaseComponent {
         <span>LM: ${this.provider}</span>
         <span class="muted">${this.model}</span>
         
-        ${isWebLLM ? html`
+        ${
+          isWebLLM
+            ? html`
           <span class="webllm-badge local">🌐 Running locally (WebLLM)</span>
-        ` : ''}
+        `
+            : ''
+        }
         
-        ${showRunLocally ? html`
+        ${
+          showRunLocally
+            ? html`
           <button 
             class="run-locally-btn" 
             @click=${this.switchToWebLLM}
@@ -92,7 +102,9 @@ export class LMStatusPanel extends BaseComponent {
           >
             🌐 Run locally
           </button>
-        ` : ''}
+        `
+            : ''
+        }
       </span>
     `;
   }

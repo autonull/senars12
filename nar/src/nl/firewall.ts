@@ -1,5 +1,5 @@
 import { clamp } from '@senars/util';
-import { collectAtomicSymbols, type Term, termDepth } from '../terms/index.js';
+import { atomicSymbols, type Term, termDepth } from '../terms/index.js';
 import { normalizeNarsese, parseNarseseLenient } from './normalize.js';
 
 export interface FirewallVerdict {
@@ -103,7 +103,7 @@ export class SymbolicFirewall {
 
   private predicatesAllowed(term: Term): boolean {
     const allowed = this.allowedPredicates!;
-    return [...collectAtomicSymbols(term)].every(
+    return [...atomicSymbols(term)].every(
       (n) => n.startsWith('^') || n.startsWith('?') || allowed.has(n)
     );
   }

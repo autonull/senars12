@@ -3,6 +3,7 @@ import {
   createLogger,
   errMsg,
   LruCache,
+  periodic,
   readJsonFileSync,
   tokenizeWords,
   writeJsonFileSync,
@@ -35,7 +36,7 @@ export class TranslationCache {
   private flushCounter = 0;
   private readonly flushInterval: number;
   private readonly ttlMs: number;
-  private flushTimer?: NodeJS.Timeout;
+  private stopFlushTimer?: () => void;
 
   constructor(opts?: {
     maxSize?: number;
@@ -103,12 +104,11 @@ export class TranslationCache {
   }
 
   close(): void {
-    clearInterval(this.flushTimer);
-    this.flushTimer = undefined;
+    this.stopFlushTimer?.();
+    this.stopFlushTimer = undefined;
   }
 
   private startAutoFlush(basePath: string): void {
-    this.flushTimer = setInterval(() => this.saveToFile(basePath), 5 * 60 * 1000);
-    this.flushTimer.unref();
+    this.stopFlushTimer = periodic(() => this.saveToFile(basePath), 5 * 60 * 1000);
   }
 }

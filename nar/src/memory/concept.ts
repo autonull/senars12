@@ -3,16 +3,7 @@ import { type Bag, type BagOptions, createBag } from '../bag/index.js';
 import type { ResolvedBagSlot } from '../bag/registration.js';
 import { LINK } from '../constants.js';
 import type { Term, Truth } from '../terms';
-import {
-  type Stamp,
-  type SymbolQuery,
-  similarityTo,
-  symbolQuery,
-  TermMap,
-  TermSet,
-  termKey,
-  termsEqual,
-} from '../terms';
+import { calculateSimilarity, type Stamp, TermMap, TermSet, termKey, termsEqual } from '../terms';
 import { type IndependenceStatus, Truth as TruthOps } from '../terms/impls/Truth.js';
 import type { Budget, TaskType } from '../types';
 import { jaccard } from '../utils/similarity.js';
@@ -78,11 +69,9 @@ export class Concept {
   private subConcepts = new Set<Concept>();
   private parentConcepts = new Set<Concept>();
   private readonly onRevision?: RevisionCallback;
-  private readonly symbolBag: SymbolQuery;
 
   constructor(term: Term, config: ConceptConfig = {}) {
     this.term = term;
-    this.symbolBag = symbolQuery(term);
     const baseOptions: BagOptions = {
       capacity: 100,
       ...config.bag,
@@ -231,7 +220,7 @@ export class Concept {
   canMergeWith(other: Concept, threshold = 0.85): boolean {
     return (
       this !== other &&
-      (similarityTo(this.symbolBag, other.term) >= threshold ||
+      (calculateSimilarity(this.term, other.term) >= threshold ||
         this.calculateTaskOverlap(other) >= threshold)
     );
   }

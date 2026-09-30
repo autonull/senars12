@@ -9,19 +9,28 @@
  * 5. A single `correlationId` is byte-identical to the pre-`ThreadScope` path.
  */
 
-import { describe, expect, it, vi } from 'vitest';
-import { dispatch, Middleware, passthrough } from '@senars/util';
-import { ThreadScope } from '@senars/nar/kernel/thread-scope.js';
-import { runTick, createTickPipeline, createTickContext, type TickContext } from '@senars/nar/tick/tick.js';
-import { createMacroContext, type MacroContext, type CycleHost } from '@senars/core/agent/pipeline.js';
+import type { CognitiveStimulus } from '@senars/core';
 import { runCycleStream } from '@senars/core/agent/phases.js';
 import type { MacroPhase } from '@senars/core/agent/pipeline.js';
-import type { CognitiveStimulus } from '@senars/core';
+import {
+  type CycleHost,
+  createMacroContext,
+  type MacroContext,
+} from '@senars/core/agent/pipeline.js';
+import type { ChatStreamEvent } from '@senars/core/chat.js';
 import { InMemoryEventLog } from '@senars/core/eventlog/InMemoryEventLog.js';
 import { MemoryService } from '@senars/core/memory/MemoryService.js';
-import { PolicyEngine } from '@senars/core/PolicyEngine.js';
 import { ToolRegistry } from '@senars/core/motor/ToolRegistry.js';
-import { ChatStreamEvent } from '@senars/core/ChatService.js';
+import { PolicyEngine } from '@senars/core/PolicyEngine.js';
+import { ThreadScope } from '@senars/nar/kernel/thread-scope.js';
+import {
+  createTickContext,
+  createTickPipeline,
+  runTick,
+  type TickContext,
+} from '@senars/nar/tick/tick.js';
+import { dispatch, type Middleware, passthrough } from '@senars/util';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('Bench 95 — Middleware unification + ThreadScope', () => {
   describe('dispatch primitive', () => {

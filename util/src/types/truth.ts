@@ -50,12 +50,22 @@ export function formatNarseseTruth(truth: TruthLike | undefined, fractionDigits 
 }
 
 /**
+ * The two truth-suffix grammars, kept in one place because a caller that needs
+ * to both read a suffix and know where it ended cannot do so with a parse
+ * alone. Splitting them here rather than in a caller is what lets
+ * {@link stripTruthSuffix} reuse exactly these patterns — a second copy of this
+ * grammar is how `parseWithTruth` came to reject `%0.8; 0.9%`.
+ */
+const NARSESE_TRUTH = /(?:^|\s):(\d*\.?\d+):(\d*\.?\d+)(?=\s|$)/;
+const TRUTH_LITERAL = /%\s*(\d*\.?\d+)\s*;\s*(\d*\.?\d+)\s*%/;
+
+/**
  * Reads back what {@link formatNarseseTruth} writes. The suffix is a rendering,
  * not a grammar — the leading space is presentation and any number of decimals
  * parses — so a caller must not be stricter than the writer is.
  */
 export function parseNarseseTruth(text: string): { f: number; c: number } | undefined {
-  const match = text.match(/(?:^|\s):(\d*\.?\d+):(\d*\.?\d+)(?=\s|$)/);
+  const match = text.match(NARSESE_TRUTH);
   return match?.[1] && match[2] ? { f: Number(match[1]), c: Number(match[2]) } : undefined;
 }
 
@@ -67,8 +77,34 @@ export function serializeTruth(truth: TruthLike, fractionDigits = 4): string {
 
 /** Reads back what {@link serializeTruth} writes, tolerating the whitespace a term's punctuation leaves. */
 export function parseTruthLiteral(text: string): { f: number; c: number } | undefined {
-  const match = text.match(/%\s*(\d*\.?\d+)\s*;\s*(\d*\.?\d+)\s*%/);
+  const match = text.match(TRUTH_LITERAL);
   return match?.[1] && match[2] ? { f: Number(match[1]), c: Number(match[2]) } : undefined;
+}
+
+/**
+ * A Narsese sentence split into its term and the truth suffix it carries, if
+ * any. The suffix is removed whole — including the whitespace inside a `%f; c%`
+ * literal — so the body always parses on its own.
+ */
+export function stripTruthSuffix(text: string): {
+  text: string;
+  truth?: { f: number; c: number };
+} {
+  const literal = text.match(TRUTH_LITERAL);
+  if (literal) {
+    return {
+      text: text.slice(0, literal.index).trim(),
+      truth: { f: Number(literal[1]), c: Number(literal[2]) },
+    };
+  }
+  const narsese = text.match(NARSESE_TRUTH);
+  if (narsese?.[1] && narsese[2]) {
+    return {
+      text: text.slice(0, narsese.index).trim(),
+      truth: { f: Number(narsese[1]), c: Number(narsese[2]) },
+    };
+  }
+  return { text };
 }
 
 /** The single human/LLM-readable truth rendering — prompt text must not drift between call sites. */

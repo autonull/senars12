@@ -1,3 +1,4 @@
+import { sortBy } from '@senars/util';
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import type { SamplingStrategy } from '../types.js';
@@ -9,7 +10,7 @@ export class DiverseSampling implements SamplingStrategy {
     const concepts = memory.listConcepts();
     const bands = 4;
     const perBand = Math.max(1, Math.ceil(count / bands));
-    const sorted = concepts.sort((a, b) => a.priority - b.priority);
+    const sorted = sortBy(concepts, (c) => c.priority);
     const bandSize = Math.max(1, Math.floor(sorted.length / bands));
     const result: Concept[] = [];
     for (let b = 0; b < bands; b++) {

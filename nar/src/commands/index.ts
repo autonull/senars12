@@ -1,4 +1,3 @@
-export { configCommands } from './config.js';
 export { coreCommands } from './core.js';
 export { episodesCommands } from './episodes.js';
 export { lmCommands } from './lm.js';

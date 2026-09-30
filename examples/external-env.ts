@@ -5,12 +5,13 @@
  * smoke (the `device` profile is built and described in-process).
  * Run: `pnpm tsx examples/external-env.ts`
  */
-import { GameFocus } from '../nar/src/focus/GameFocus.js';
-import { GameRegistry } from '../nar/src/game/registry.js';
-import { SeededRNG } from '../nar/src/utils/random.js';
-import type { Game, GameOutcome, Perception } from '../nar/src/game/Game.js';
-import { TabularQReflex } from '../nar/src/reflex/TabularQReflex.js';
+
 import { NARBuilder } from '../nar/src/agent/builder.js';
+import { GameFocus } from '../nar/src/focus/GameFocus.js';
+import type { Game, GameOutcome, Perception } from '../nar/src/game/Game.js';
+import { GameRegistry } from '../nar/src/game/registry.js';
+import { TabularQReflex } from '../nar/src/reflex/TabularQReflex.js';
+import { SeededRNG } from '../nar/src/utils/random.js';
 
 interface ThermostatState {
   temp: number;
@@ -73,7 +74,8 @@ export class ThermostatGame implements Game<ThermostatState, number> {
 const registry = new GameRegistry().register({
   name: 'thermostat',
   description: 'External env: keep the room in 18–24°C while minimizing energy.',
-  actionLegend: 'Actions: 0=idle, 1=heat, 2=cool.',  create: (seed) => new ThermostatGame(seed),
+  actionLegend: 'Actions: 0=idle, 1=heat, 2=cool.',
+  create: (seed) => new ThermostatGame(seed),
 });
 
 // Builder third-profile smoke: device profile builds LM-free, tier-0.
@@ -90,5 +92,7 @@ for (let episode = 0; episode < 20; episode++) {
   focus.bindReflex(new TabularQReflex('thermostat-reflex', { epsilon: 0.2 }));
   for (let tick = 0; tick < 50; tick++) await focus.step(10);
   const { temp, energy, ret } = game.state();
-  console.log(`episode ${episode}: temp=${temp.toFixed(1)}°C energy=${energy} return=${ret.toFixed(2)}`);
+  console.log(
+    `episode ${episode}: temp=${temp.toFixed(1)}°C energy=${energy} return=${ret.toFixed(2)}`
+  );
 }

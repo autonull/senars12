@@ -2,21 +2,29 @@
  * Pure-System-One RL — a GridWorld driven by the Judgment Manifold alone
  * (no NAR, no RuleProcessor, no NAL). Run: `pnpm tsx examples/rl-gridworld.ts`
  */
-import { ManifoldRLAgent } from '../nar/src/lm/system-one/manifold-rl-agent.js';
-import { createManifold } from '../nar/src/lm/system-one/manifold.js';
-import { EmbeddingCache } from '../nar/src/lm/system-one/embedding-cache.js';
-import { GridWorldGame } from '../nar/src/game/impls/GridWorldGame.js';
+
 import type { GridWorldState } from '../nar/src/game/GridWorldEnv.js';
+import { GridWorldGame } from '../nar/src/game/impls/GridWorldGame.js';
+import { EmbeddingCache } from '../nar/src/lm/system-one/embedding-cache.js';
+import { createManifold } from '../nar/src/lm/system-one/manifold.js';
+import { ManifoldRLAgent } from '../nar/src/lm/system-one/manifold-rl-agent.js';
 import type { JudgmentHead, JudgmentQuery } from '../nar/src/lm/system-one/types.js';
 
 const budget = {
-  maxCycles: 100, maxDepth: 10, maxMemoryOps: 1000, maxLMCalls: 5,
+  maxCycles: 100,
+  maxDepth: 10,
+  maxMemoryOps: 1000,
+  maxLMCalls: 5,
   consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
 };
 
 const GOAL = { row: 3, col: 3 };
 const digest = (s: GridWorldState) =>
-  JSON.stringify({ row: s.row, col: s.col, distanceToGoal: Math.abs(s.row - GOAL.row) + Math.abs(s.col - GOAL.col) });
+  JSON.stringify({
+    row: s.row,
+    col: s.col,
+    distanceToGoal: Math.abs(s.row - GOAL.row) + Math.abs(s.col - GOAL.col),
+  });
 
 const cache = new EmbeddingCache({ maxSize: 1000, ttlMs: 60_000 });
 const manifold = createManifold(cache);

@@ -4,7 +4,7 @@
  * Migrated from: nar/src/self/MetacognitiveMonitor.ts
  */
 
-import { mean, pushCapped, stdDev } from '@senars/util';
+import { mean, periodic, pushCapped, stdDev } from '@senars/util';
 import type { SelfHost } from '../../self/host.js';
 import type { ReasoningStep } from '../types.js';
 
@@ -55,8 +55,8 @@ export const MONITOR_DEFAULTS = {
 
 export class MetacognitiveMonitor {
   private nar: SelfHost | null;
-  /** D13: teardown state — interval handle + subscribed listeners. */
-  private monitorInterval: ReturnType<typeof setInterval> | undefined;
+  /** D13: teardown state — the interval disposer + subscribed listeners. */
+  private stopMonitorInterval: (() => void) | undefined;
   private registeredListeners: Array<[string, (...args: unknown[]) => void]> = [];
   private config: Required<MetacognitiveMonitorConfig>;
   private reasoningTrace: ReasoningStep[];
@@ -204,9 +204,9 @@ export class MetacognitiveMonitor {
     this.performanceHistory = [];
     this.performanceMonitors.clear();
     // D13: full teardown — clear the interval, release listeners.
-    if (this.monitorInterval) {
-      clearInterval(this.monitorInterval);
-      this.monitorInterval = undefined;
+    if (this.stopMonitorInterval) {
+      this.stopMonitorInterval();
+      this.stopMonitorInterval = undefined;
     }
     const eventBus = this.nar?.eventBus;
     if (eventBus) {
@@ -275,8 +275,8 @@ export class MetacognitiveMonitor {
       }
     });
 
-    // D13: stored handle + unref — no unstoppable timers.
-    this.monitorInterval = setInterval(() => {
+    // D13: stored disposer — no unstoppable timers.
+    this.stopMonitorInterval = periodic(() => {
       const memoryUsage = process.memoryUsage ? process.memoryUsage().heapUsed : 0;
       this.analyzePerformance({
         throughput: lastThroughput,
@@ -284,7 +284,6 @@ export class MetacognitiveMonitor {
         timestamp: Date.now(),
       });
     }, 5000);
-    this.monitorInterval.unref();
   }
 
   private updatePerformanceMonitors(metrics: Partial<PerformanceData>): void {

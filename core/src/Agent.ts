@@ -1,6 +1,5 @@
 import { type EpisodicMemory, generateId, makeId } from '@senars/util';
 import type { CognitiveEvent as _CE, CognitiveEvent } from '@senars/util/types/cognitive';
-import { AgentBridge } from './AgentBridge.js';
 import { ApprovalService } from './ApprovalService.js';
 import { type CycleHost, runCycle, runCycleStream } from './agent/phases.js';
 import type { MacroPhase } from './agent/pipeline.js';
@@ -11,7 +10,8 @@ import type {
   ParsedCommand,
   SkillDefinition,
 } from './agent/types.js';
-import type { ChatOptions, ChatStreamEvent } from './ChatService.js';
+import { AgentBridge } from './bridge/AgentBridge.js';
+import type { ChatOptions, ChatStreamEvent } from './chat.js';
 import type { LLMCortex } from './cortex/LLMCortex.js';
 import type { CognitiveStimulus, Derivation, Engine } from './engine/Engine.js';
 import type { EventLog } from './eventlog/EventLog.js';

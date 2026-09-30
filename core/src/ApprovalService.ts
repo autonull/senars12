@@ -1,12 +1,6 @@
 import { errMsg, makeId, withTimeout } from '@senars/util';
 import { envBool } from '@senars/util/config';
 
-export interface PendingApproval {
-  id: string;
-  request: string;
-  createdAt: number;
-}
-
 export interface ApprovalRequest {
   id: string;
   request: string;
@@ -137,25 +131,5 @@ export class ApprovalService {
         feedback: `Approval error: ${errMsg(err)}`,
       };
     }
-  }
-
-  resolveApproval(id: string, approved: boolean, reason?: string): boolean {
-    return this.approvalManager.resolveApproval(id, approved, reason);
-  }
-
-  rejectApproval(id: string, error: string): boolean {
-    return this.approvalManager.rejectApproval(id, error);
-  }
-
-  getPendingApprovals(): PendingApproval[] {
-    return this.approvalManager.getPending().map((r) => ({
-      id: r.id,
-      request: r.request,
-      createdAt: r.createdAt,
-    }));
-  }
-
-  getApprovalManager(): ApprovalManager {
-    return this.approvalManager;
   }
 }

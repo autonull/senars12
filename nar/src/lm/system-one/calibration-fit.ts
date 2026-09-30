@@ -1,5 +1,5 @@
 import { promises as fs } from 'node:fs';
-import { cachePath, getOrInsert, sha256HexParts, writeJsonFile } from '@senars/util';
+import { cachePath, getOrInsert, sha256HexParts, sortBy, writeJsonFile } from '@senars/util';
 import { holdoutSplit, mulberry32 } from '../../utils/random.js';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration.js';
 import type { JudgmentDataset } from './distill.js';
@@ -109,7 +109,11 @@ function brierWithAbstain(
   calibrate: (s: number) => number,
   threshold: number
 ): number {
-  return meanBrierOf(data, (d) => (d.predicted < threshold ? 0.5 : calibrate(d.predicted)), (d) => d.observed);
+  return meanBrierOf(
+    data,
+    (d) => (d.predicted < threshold ? 0.5 : calibrate(d.predicted)),
+    (d) => d.observed
+  );
 }
 
 export interface FitCalibrationOptions {
@@ -218,9 +222,9 @@ function lockMetrics(set: {
 function createLockDigest(calibrator: IsotonicCalibrator, threshold: number): string {
   // Lightweight content digest over the sorted calibration curve + threshold.
   return sha256HexParts([
-    ...[...calibrator.getPoints()]
-      .sort((a, b) => a.predicted - b.predicted)
-      .map((p) => `${p.predicted}:${p.observed}:${p.weight};`),
+    ...sortBy(calibrator.getPoints(), (p) => p.predicted).map(
+      (p) => `${p.predicted}:${p.observed}:${p.weight};`
+    ),
     `threshold=${threshold}`,
   ]);
 }
@@ -269,4 +273,3 @@ export function applyCalibrationLock(
     calibrator.update(entry.points);
   }
 }
-

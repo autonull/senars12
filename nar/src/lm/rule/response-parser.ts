@@ -36,6 +36,36 @@ const parseNarseseWithTruth = (text: string, raw: string): ParsedLMResponse => {
   }
 };
 
+/**
+ * The last step both structured paths share: a `narsese` payload plus an
+ * optional explicit truth becomes a parsed response. `parse` and `validate`
+ * differ only in how they obtain the payload — brace-balanced extraction
+ * against a strict leading-`{` parse — and disagreed about what to do once
+ * they had one, so the resolution lived twice and would have drifted.
+ *
+ * `confidence` is carried only on the success path; an invalid response reports
+ * the parse error and nothing else.
+ */
+const fromStructured = (
+  narsese: string,
+  explicitTruth: { f: number; c: number } | undefined,
+  raw: string,
+  confidence?: number
+): ParsedLMResponse => {
+  try {
+    const { term, truth } = termParser.parseWithTruth(narsese);
+    return {
+      term,
+      truth: explicitTruth ? Truth.create(explicitTruth.f, explicitTruth.c) : (truth ?? Truth.NEUTRAL),
+      confidence,
+      raw,
+      valid: true,
+    };
+  } catch (error) {
+    return invalid(raw, errMsg(error));
+  }
+};
+
 function extractStructuredOutput(response: string): StructuredLMOutput | null {
   const parsed = parseJsonObject(response) as StructuredLMOutput | null;
   return parsed && typeof parsed.narsese === 'string' ? parsed : null;
@@ -46,21 +76,7 @@ export const LMResponseParser = {
     if (!response || response.trim() === '') return invalid(response, 'Empty response');
     const structured = extractStructuredOutput(response);
     if (structured) {
-      try {
-        const { term, truth } = termParser.parseWithTruth(structured.narsese);
-        const finalTruth = structured.truth
-          ? Truth.create(structured.truth.f, structured.truth.c)
-          : (truth ?? Truth.NEUTRAL);
-        return {
-          term,
-          truth: finalTruth,
-          confidence: structured.confidence,
-          raw: response,
-          valid: true,
-        };
-      } catch (error) {
-        return invalid(response, errMsg(error));
-      }
+      return fromStructured(structured.narsese, structured.truth, response, structured.confidence);
     }
     return parseNarseseWithTruth(response.trim(), response);
   },
@@ -77,15 +93,7 @@ export const LMResponseParser = {
       }
       if (typeof parsed.narsese !== 'string')
         return invalid(response, 'Missing narsese field in JSON');
-      try {
-        const { term, truth } = termParser.parseWithTruth(parsed.narsese);
-        const finalTruth = parsed.truth
-          ? Truth.create(parsed.truth.f, parsed.truth.c)
-          : (truth ?? Truth.NEUTRAL);
-        return { term, truth: finalTruth, raw: response, valid: true };
-      } catch (error) {
-        return invalid(response, errMsg(error));
-      }
+      return fromStructured(parsed.narsese, parsed.truth, response);
     }
     return parseNarseseWithTruth(trimmed, response);
   },

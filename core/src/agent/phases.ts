@@ -1,4 +1,4 @@
-import type { ChatStreamEvent } from '../ChatService.js';
+import type { ChatStreamEvent } from '../chat.js';
 /**
  * Agent reasoning cycle as a `MacroPhase` middleware pipeline (REFACTOR.todo1
  * Phase A): `DEFAULT_MACRO_PIPELINE` reproduces the original `runCycleStream`

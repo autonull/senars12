@@ -1,4 +1,4 @@
-import { addToSet, getOrInsert, insertByScoreDesc } from '@senars/util';
+import { addToSet, getOrInsert, insertByScoreDesc, removeFromSet } from '@senars/util';
 
 import type { Term } from '../terms';
 import { atomKey, TermMap, termKey } from '../terms';
@@ -196,10 +196,10 @@ export class MemoryIndex {
     if (!footprint) return;
 
     if (footprint.atomicKey !== undefined) {
-      this.pruneSet(this.atomicIndex, footprint.atomicKey, concept);
+      removeFromSet(this.atomicIndex, footprint.atomicKey, concept);
     }
     if (footprint.temporalKey !== undefined) {
-      this.pruneSet(this.temporalIndex, footprint.temporalKey, concept);
+      removeFromSet(this.temporalIndex, footprint.temporalKey, concept);
     }
     this.activationIndex.delete(concept);
 
@@ -229,13 +229,6 @@ export class MemoryIndex {
     this.activationIndex.clear();
     this.inverseIndex.clear();
     this.similarityIndex.clear();
-  }
-
-  private pruneSet<K>(index: Map<K, Set<Concept>>, key: K, concept: Concept): void {
-    const bucket = index.get(key);
-    if (!bucket) return;
-    bucket.delete(concept);
-    if (bucket.size === 0) index.delete(key);
   }
 
   private indexByInverse(concept: Concept, footprint: ConceptFootprint): void {

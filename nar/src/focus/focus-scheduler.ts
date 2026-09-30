@@ -1,4 +1,4 @@
-import { raceDeadline } from '@senars/util';
+import { periodic, raceDeadline } from '@senars/util';
 import type { MetaGame } from '../game/impls/MetaGame.js';
 import { SeededRNG, weightedPick } from '../utils/random.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
@@ -41,7 +41,7 @@ export class FocusScheduler {
   private readonly schedulerAdapter?: SchedulerAdapter;
   private readonly metaGame?: MetaGame;
   private readonly focuses = new Map<string, GameFocus>();
-  private interval: ReturnType<typeof setInterval> | null = null;
+  private stopInterval: (() => void) | null = null;
   private running = false;
   private ticks = 0;
 
@@ -116,15 +116,14 @@ export class FocusScheduler {
     if (this.running) return;
     this.running = true;
     const period = Math.max(1, Math.floor(1000 / this.hz));
-    this.interval = setInterval(() => {
+    this.stopInterval = periodic(() => {
       void this.tick();
     }, period);
-    this.interval.unref?.();
   }
 
   stop(): void {
-    if (this.interval) clearInterval(this.interval);
-    this.interval = null;
+    this.stopInterval?.();
+    this.stopInterval = null;
     this.running = false;
   }
 

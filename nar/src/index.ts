@@ -116,8 +116,8 @@ export { isTruthEqual, Truth } from './terms/impls/Truth.js';
 /** Term-to-graph-edge extraction. @public */
 export {
   atom,
+  atomicSymbols,
   atomKey,
-  collectAtomicSymbols,
   containsSubterm,
   foldTerm,
   getAntecedent,

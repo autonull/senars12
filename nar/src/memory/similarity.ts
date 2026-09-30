@@ -1,6 +1,6 @@
 import { selectTopN } from '@senars/util';
 
-import { similarityTo, symbolQuery, type Term } from '../terms';
+import { calculateSimilarity, type Term } from '../terms';
 import type { Concept } from './concept.js';
 
 /**
@@ -10,8 +10,10 @@ import type { Concept } from './concept.js';
  * answer than none, and returning filler silently is how an unindexed store
  * used to answer every unrelated query.
  *
- * Each candidate is scored twice (the floor, then the rank) so an unbounded
- * candidate set never has to be materialized.
+ * Each candidate is scored exactly once and carried alongside itself, because
+ * the zero-score filter and the ranking need the same number and only the
+ * ranking kept a reference to the call. The pairs are still produced lazily, so
+ * an unbounded candidate set is never materialized.
  */
 export const selectSimilar = (
   candidates: Iterable<Concept>,
@@ -19,11 +21,11 @@ export const selectSimilar = (
   limit: number
 ): Concept[] => {
   if (limit <= 0) return [];
-  const query = symbolQuery(term);
-  const similar = (function* () {
+  const scored = (function* () {
     for (const candidate of candidates) {
-      if (similarityTo(query, candidate.term) > 0) yield candidate;
+      const score = calculateSimilarity(term, candidate.term);
+      if (score > 0) yield [candidate, score] as const;
     }
   })();
-  return selectTopN(similar, limit, (candidate) => similarityTo(query, candidate.term));
+  return selectTopN(scored, limit, ([, score]) => score).map(([concept]) => concept);
 };

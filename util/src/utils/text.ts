@@ -47,13 +47,25 @@ export const wordOverlap = (a: string, b: string, splitPattern?: RegExp): number
   return overlap / denominator;
 };
 
+/**
+ * The characters a bare Narsese atom symbol may contain. The grammar's authority on
+ * which of these `createAtom` accepts lives one layer up, but the alphabet itself is
+ * lexical, and three sanitizers had each hardcoded their own copy of it — one of them
+ * keeping a character the factory rejects, another silently deleting the `^` operator
+ * marker, which mints a different term rather than refusing one.
+ *
+ * Variables (`? $ # * %`) and quoted atoms are grammar concerns, not alphabet concerns,
+ * so neither appears here.
+ */
+export const NARSESE_ATOM_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_^';
+
+/** Character class over {@link NARSESE_ATOM_CHARS}, hoisted so the pattern is not
+ * recompiled per call. Only safe to derive while the alphabet holds no `]`, `\` or `-`. */
+const ATOM_CHAR_RUN = new RegExp(`^[${NARSESE_ATOM_CHARS}]+`);
+
 /** The leading run of atom characters in `content`, or nothing if it starts with none. */
-export function extractTerm(content: string): string | undefined {
-  const trimmed = content.trim();
-  if (!trimmed) return undefined;
-  const words = trimmed.split(/\s+/);
-  return words[0]?.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) ?? undefined;
-}
+export const extractTerm = (content: string): string | undefined =>
+  ATOM_CHAR_RUN.exec(content.trim())?.[0].slice(0, 40);
 
 /** Whether `text` is Narsese rather than prose — the router between the two parsers. */
 export function isNarsese(text: string): boolean {

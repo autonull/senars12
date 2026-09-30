@@ -5,7 +5,6 @@ import {
   createAuthCommands,
 } from '@senars/io';
 import {
-  configCommands,
   coreCommands,
   episodesCommands,
   lmCommands,
@@ -27,7 +26,6 @@ export const createRemoteRegistry = (auth: AuthManager): CommandRegistry => {
     ...narCommands,
     ...memoryCommands,
     ...episodesCommands,
-    ...configCommands,
     ...lmCommands,
     ...rlfpCommands,
     ...selfCommands,

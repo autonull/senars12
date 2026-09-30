@@ -178,7 +178,6 @@ graph TD
   facade --> focus
   facade --> game_impls
   facade --> kernel
-  facade --> lm_providers
   facade --> lm_rule
   facade --> lm_rule-selectors
   facade --> lm_system-one
@@ -224,8 +223,6 @@ graph TD
   gates --> focus
   gates --> game
   gates --> reflex
-  gates --> terms
-  gates --> terms_impls
   gates --> types
   governance --> focus
   governance --> game_impls
@@ -365,6 +362,7 @@ graph TD
   rl_impls_adapters --> _
   rl_impls_adapters --> rl_impls
   rl_impls_adapters --> terms
+  rl_impls_adapters --> terms_impls
   rl_impls_adapters --> types
   rl_impls_adapters --> utils
   rlfp --> config
@@ -439,10 +437,11 @@ graph TD
   terms_impls --> utils
   tick --> otel
   tick --> stream
-  tick --> terms
+  tick --> terms_impls
   tick --> types
   tools --> tools_impls
   tools_adapters --> capability
+  tools_adapters --> lm
   tools_adapters --> memory
   tools_adapters --> nl
   tools_adapters --> tools_adapters_self
@@ -454,6 +453,7 @@ graph TD
   tools_adapters_self --> tools_adapters
   tools_adapters_self --> tools_impls
   tools_impls --> _
+  tools_impls --> terms_impls
   tools_impls --> tools
   tools_impls --> types
   tools_impls --> utils

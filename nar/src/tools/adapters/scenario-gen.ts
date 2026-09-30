@@ -13,7 +13,7 @@ import {
   scenarioLogger,
   validators,
 } from './scenario-execute.js';
-import { SCENARIO_PROFILES } from './scenario-profiles.js';
+import { SCENARIO_PROFILES, type ScenarioTemplateProfile } from './scenario-profiles.js';
 
 export type {
   ScenarioGenDeps,
@@ -34,7 +34,9 @@ export function createScenarioGenTools(deps: ScenarioGenDeps = {}) {
         seed: z
           .string()
           .describe('High-level intent for scenario (e.g., "contradictory sensors under load")'),
-        profile: z.enum(SCENARIO_PROFILES).optional()
+        profile: z
+          .enum(SCENARIO_PROFILES)
+          .optional()
           .default('auto')
           .describe('Scenario profile/template to use'),
         count: z
@@ -59,7 +61,7 @@ export function createScenarioGenTools(deps: ScenarioGenDeps = {}) {
           const scenarioSeed = count > 1 ? `${seed} (${i + 1}/${count})` : seed;
           const selectedProfile = profile === 'auto' ? inferProfile(scenarioSeed) : profile;
 
-          const spec = await generateScenarioSpec(scenarioSeed, selectedProfile, deps.registry);
+          const spec = await generateScenarioSpec(scenarioSeed, selectedProfile, deps.lmService);
           specs.push(spec);
 
           if (deps.nar) {
@@ -120,7 +122,7 @@ export function createScenarioGenTools(deps: ScenarioGenDeps = {}) {
   };
 }
 
-function inferProfile(seed: string): string {
+function inferProfile(seed: string): ScenarioTemplateProfile {
   const lower = seed.toLowerCase();
   if (lower.includes('contradict') || lower.includes('conflict') || lower.includes('sensor')) {
     return 'contradictory_sensors';

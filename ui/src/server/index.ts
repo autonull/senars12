@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import type { Agent, CognitiveEvent, GraphNodeData, IncomingFromServer } from '@senars/core';
 import { isNarsese } from '@senars/core';
 import { DEFAULT_CONFIG, parseTermToEdges, termParser } from '@senars/nar';
-import { WebSocketServer, type WebSocket } from 'ws';
+import { type WebSocket, WebSocketServer } from 'ws';
 import { applyConfigField, buildConfigSchema } from './config-schema.js';
 import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
 
@@ -241,7 +241,8 @@ async function aggregateChatResponse(agent: Agent, text: string, ws?: WebSocket)
       console.log('[aggregateChatResponse] Got event:', evt.kind);
       if (evt.kind === 'text-delta' && evt.text) {
         response += evt.text;
-        if (ws && ws.readyState === 1) { // WebSocket.OPEN = 1
+        if (ws && ws.readyState === 1) {
+          // WebSocket.OPEN = 1
           ws.send(JSON.stringify({ type: 'chat.agent.stream', delta: evt.text }));
         }
       }
@@ -369,7 +370,8 @@ function createServerWithProjection(agent?: Agent): {
             aggregateChatResponse(agent, msg.content, ws)
               .then((response) => {
                 console.log('[WS] Got response:', response);
-                if (ws.readyState === 1) { // WebSocket.OPEN
+                if (ws.readyState === 1) {
+                  // WebSocket.OPEN
                   ws.send(
                     JSON.stringify({
                       type: 'chat.agent.complete',
@@ -414,7 +416,18 @@ function createServerWithProjection(agent?: Agent): {
               const narEngine = agent.engines.get('nar') as
                 | { nar?: { setConfig: (u: Record<string, unknown>) => void } }
                 | undefined;
-              if (narEngine?.nar?.setConfig && ['webllm', 'transformers', 'ollama', 'anthropic', 'openai', 'openai-compatible', 'mock'].includes(provider)) {
+              if (
+                narEngine?.nar?.setConfig &&
+                [
+                  'webllm',
+                  'transformers',
+                  'ollama',
+                  'anthropic',
+                  'openai',
+                  'openai-compatible',
+                  'mock',
+                ].includes(provider)
+              ) {
                 narEngine.nar.setConfig({ lm: { provider } });
                 console.log(`[WS] Switched LM provider to: ${provider}`);
               }

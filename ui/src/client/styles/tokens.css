@@ -81,7 +81,8 @@
   --spacing-component-toolbar-padding: 8px;
   --spacing-component-tooltip-gap: 4px;
   --spacing-component-badge-gap: 2px;
-  --typography-fontFamilies-ui: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --typography-fontFamilies-ui:
+    "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --typography-fontFamilies-data: "IBM Plex Mono", "SF Mono", "Fira Code", monospace;
   --typography-fontFamilies-mono: "IBM Plex Mono", monospace;
   --typography-scale-xs: 0.625rem;

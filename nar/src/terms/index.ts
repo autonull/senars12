@@ -1,6 +1,6 @@
 export {
+  atomicSymbols,
   atomKey,
-  collectAtomicSymbols,
   containsSubterm,
   foldTerm,
   getAntecedent,
@@ -13,14 +13,8 @@ export {
   isEquivalence,
   isImplication,
   isInheritance,
-  isInstance,
   isNegation,
   isOperation,
-  isParallel,
-  isPredictive,
-  isProperty,
-  isRetrospective,
-  isSequence,
   isSimilarity,
   mentionsSymbol,
   sameKind,
@@ -35,8 +29,16 @@ export {
 export { getTermComplexity } from './impls/complexity.js';
 export { atom, TermBuilder, TermFactory } from './impls/factory.js';
 export { normalize } from './impls/normalize.js';
+export type { OperationCall } from './impls/operation-term.js';
+export { operationTerm, readOperationTerm } from './impls/operation-term.js';
 export type { ParserResult, ParseTaskResult, TaskTypeName } from './impls/parser-peggy.js';
-export { ParseError, TermParser, termParser } from './impls/parser-peggy.js';
+export {
+  ParseError,
+  PUNCTUATION_BY_TASK_TYPE,
+  TermParser,
+  taskTypeForPunctuation,
+  termParser,
+} from './impls/parser-peggy.js';
 export type { SerializedStamp, Source, Stamp as StampType } from './impls/Stamp.js';
 export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './impls/Stamp.js';
 export { deserializeTerm, fromNarsese, serializeTerm, toNarsese } from './impls/serialize.js';
@@ -49,9 +51,14 @@ export { TermMap } from './impls/term-map.js';
 export { TermSet } from './impls/term-set.js';
 export type { Substitution } from './impls/unifier.js';
 export { unify } from './impls/unifier.js';
-export type { SymbolQuery } from './impls/utils.js';
-export { calculateSimilarity, extractSymbols, similarityTo, symbolQuery } from './impls/utils.js';
+export { calculateSimilarity } from './impls/utils.js';
 export { isInvalidTaskTerm, isTautology, validateTaskTerm } from './impls/validation.js';
+export {
+  INVALID_ATOM_CHARS_REGEX,
+  isValidAtomSymbol,
+  toAtomSymbol,
+  VALID_ATOM_CHARS,
+} from './impls/valid-atom.js';
 export type { AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol, Term } from './types.js';
 export {
   getTermArg,

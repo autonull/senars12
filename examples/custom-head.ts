@@ -2,9 +2,10 @@
  * Custom head — extend the Judgment Manifold with your own rubric.
  * Run: `pnpm tsx examples/custom-head.ts`
  */
-import { createManifold } from '../nar/src/lm/system-one/manifold.js';
+
 import { EmbeddingCache } from '../nar/src/lm/system-one/embedding-cache.js';
-import { HEAD_SPECS, createHead } from '../nar/src/lm/system-one/head-specs.js';
+import { createHead, HEAD_SPECS } from '../nar/src/lm/system-one/head-specs.js';
+import { createManifold } from '../nar/src/lm/system-one/manifold.js';
 import type { JudgmentHead, JudgmentQuery } from '../nar/src/lm/system-one/types.js';
 
 const cache = new EmbeddingCache({ maxSize: 100, ttlMs: 60_000 });
@@ -27,16 +28,36 @@ const salienceHead: JudgmentHead = {
 manifold.registerHead(salienceHead);
 
 // Or derive a head from the declarative registry with a custom scorer:
-const derived = createHead(HEAD_SPECS.relevance, { calibrationVersion: 'v1', embeddingCache: cache, abstainThreshold: 0.2 });
+const derived = createHead(HEAD_SPECS.relevance, {
+  calibrationVersion: 'v1',
+  embeddingCache: cache,
+  abstainThreshold: 0.2,
+});
 manifold.registerHead(derived);
 
 const results = await manifold.judgeBatch(
   pointer as never,
   [
-    { kind: 'evaluate', instruction: 'How salient is this urgent request?', rubric: 'salience' as never, axis: 'epistemic' },
-    { kind: 'evaluate', instruction: 'Evaluate relevance of the context', rubric: 'relevance', axis: 'epistemic' },
+    {
+      kind: 'evaluate',
+      instruction: 'How salient is this urgent request?',
+      rubric: 'salience' as never,
+      axis: 'epistemic',
+    },
+    {
+      kind: 'evaluate',
+      instruction: 'Evaluate relevance of the context',
+      rubric: 'relevance',
+      axis: 'epistemic',
+    },
   ] as never,
-  { maxCycles: 10, maxDepth: 5, maxMemoryOps: 100, maxLMCalls: 10, consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 } } as never
+  {
+    maxCycles: 10,
+    maxDepth: 5,
+    maxMemoryOps: 100,
+    maxLMCalls: 10,
+    consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+  } as never
 );
 
 for (const p of results) {

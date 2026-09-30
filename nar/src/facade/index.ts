@@ -11,7 +11,6 @@ import { createLogger, errMsg, makeId, truncate } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { createBootstrapTasks } from '../drives';
 import type { LMService, SeNARSRegistry } from '../lm';
-import { getModelForTask } from '../lm/providers/chains.js';
 import type { LMRule } from '../lm/rule/LMRule.js';
 import { LMRules } from '../lm/rule-selectors/factory.js';
 import { seedContrastiveMemory } from '../lm/system-one/hard-negatives.js';
@@ -63,11 +62,7 @@ const SYSTEM_ONE_DISPOSITION_RULES = new Set([
   'lm-uncertainty-calibration',
 ]);
 
-export const initializeLMRules = (
-  nar: NAR,
-  lmRules: readonly LMRule[],
-  structuredModel?: LanguageModel
-): void => {
+export const initializeLMRules = (nar: NAR, lmRules: readonly LMRule[]): void => {
   if (initialized.has(nar)) return;
 
   const toolDispatcher = async (tool: string, args: Record<string, unknown>) => {
@@ -88,7 +83,6 @@ export const initializeLMRules = (
     : null;
 
   for (const rule of lmRules) {
-    if (structuredModel) rule.setStructuredModel(structuredModel);
     rule.setSystemEventBus(nar.getSystemEventBus());
     rule.setEventBus(nar.getSystemEventBus());
     rule.setNAR(nar);

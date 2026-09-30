@@ -52,17 +52,9 @@
 
 - `Agent`
 
-- `AgentBridge`
-
-- `type BridgeDelta`
-
-- `type BridgeEvent`
-
 - `ApprovalService`
 
 - `InMemoryApprovalManager` — In-memory pending-approval registry: the default `ApprovalManager` implementation.
-
-- `createChatService`
 
 - `type BudgetAllocation`
 
@@ -84,8 +76,6 @@
 
 - `type ThreadStatus`
 
-- `ConfigViewImpl`
-
 - `createCortexFromLM` — LMService satisfies ModelProvider structurally (LMTask ≡ ModelTier) — one LM execution path.
 
 - `type CortexSynthesizeRequest`
@@ -101,12 +91,6 @@
 - `InMemoryEventLog`
 
 - `SqliteEventLog`
-
-- `type FeedbackEntry`
-
-- `FeedbackRegistry`
-
-- `KnowledgeManager`
 
 - `BaseComponent`
 
@@ -231,8 +215,6 @@
 - `MettaSkillNode`
 
 - `NarConceptNode`
-
-- `StatsManager`
 
 - `ConnectionError`
 
@@ -454,10 +436,6 @@ _Re-export barrel._
 
 ## `./motor`
 
-- `type FeedbackEntry`
-
-- `FeedbackRegistry`
-
 - `registerAgentTools`
 
 - `BUILTIN_TOOLS`
@@ -660,10 +638,6 @@ _Dynamic subpath (no single entry file)._
 
 - `consumeLMCalls`
 
-- `checkDeadline`
-
-- `checkAbort`
-
 - `remainingCycles`
 
 - `remainingDepth`
@@ -677,8 +651,6 @@ _Dynamic subpath (no single entry file)._
 - `resolveAllocation` — Resolve a requested child allocation against the parent's unconsumed capacity
 
 - `chargeAllocation` — Charge a resolved allocation against a parent slice across all four
-
-- `toAIKRBudget`
 
 - `mergeConsumed` — Fold a child's consumed totals into a parent's. `depth` is a high-water mark
 

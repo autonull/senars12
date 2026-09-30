@@ -9,7 +9,13 @@ import { dirname, join } from 'node:path';
 import { z } from 'zod';
 import { BoundedMap } from './utils/bounded-map.js';
 import { utcDate } from './utils/format.js';
-import { appendJsonl, ensureDir, ensureDirSync, writeJsonl } from './utils/fs.js';
+import {
+  appendJsonl,
+  ensureDir,
+  ensureDirSync,
+  readJsonlAsync,
+  writeJsonl,
+} from './utils/fs.js';
 
 /**
  * Ledger entry schema — all entries carry a timestamp and correlation context.
@@ -195,24 +201,18 @@ export class Ledger<T extends BaseLedgerEntry> {
       return null;
     }
 
+    const { schema, onRead } = this.#config;
     for (const file of files.filter((f) => f.endsWith('.jsonl')).sort()) {
       if (matches.length >= cap) break;
-      const content = await fs.readFile(join(this.#config.basePath, file), 'utf-8');
-      const lines = content.split('\n');
-      for (const rawLine of lines) {
-        const line = rawLine.trim();
-        if (!line) continue;
-        let entry: T;
-        try {
-          entry = this.#config.schema.parse(JSON.parse(line));
-        } catch {
-          continue;
-        }
-        if (this.#matchesFilter(entry, filter)) {
-          await this.#config.onRead(entry);
-          matches.push(entry);
-          if (matches.length >= cap) break;
-        }
+      const { rows } = await readJsonlAsync(join(this.#config.basePath, file), (value) => {
+        const parsed = schema.safeParse(value);
+        return parsed.success ? parsed.data : null;
+      });
+      for (const entry of rows) {
+        if (!this.#matchesFilter(entry, filter)) continue;
+        await onRead(entry);
+        matches.push(entry);
+        if (matches.length >= cap) break;
       }
     }
     return matches;

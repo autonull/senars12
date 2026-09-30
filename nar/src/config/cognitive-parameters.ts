@@ -1,5 +1,5 @@
 import { createLogger } from '@senars/util';
-import { cognitiveBounds, getCognitiveBound } from '@senars/util/config';
+import { boundRange, cognitiveBounds, getCognitiveBound } from '@senars/util/config';
 import { deepEqual, deepFreeze, errMsg } from '@senars/util';
 import { type BagSlotParams, bagSlotErrors } from '../bag/registration';
 import {
@@ -309,92 +309,37 @@ export const RESEARCH_COGNITIVE_CONFIG: CognitiveParameters = deepFreeze({
 });
 
 /**
- * Parameter space for optimization
- * Defines ranges for each tunable parameter
+ * Parameter space for optimization — the tunable subset of `cognitiveBounds`,
+ * named rather than mirrored.
+ *
+ * This was 13 rows of `getCognitiveBound(category, key, 'min' | 'max' | 'default')`,
+ * which is a second copy of the table that no ratchet could see: widening a bound
+ * in `@senars/util` left this one describing the old range. The rows are named
+ * because the *subset* is a decision (which parameters are tunable), and the
+ * numbers inside each row are not.
  */
 export const PARAMETER_SPACE = {
   priority: {
-    initialPriority: {
-      min: getCognitiveBound('priority', 'initialPriority', 'min'),
-      max: getCognitiveBound('priority', 'initialPriority', 'max'),
-      default: getCognitiveBound('priority', 'initialPriority', 'default'),
-    },
-    directMentionBoost: {
-      min: getCognitiveBound('priority', 'directMentionBoost', 'min'),
-      max: getCognitiveBound('priority', 'directMentionBoost', 'max'),
-      default: getCognitiveBound('priority', 'directMentionBoost', 'default'),
-    },
-    relatedConceptBoost: {
-      min: getCognitiveBound('priority', 'relatedConceptBoost', 'min'),
-      max: getCognitiveBound('priority', 'relatedConceptBoost', 'max'),
-      default: getCognitiveBound('priority', 'relatedConceptBoost', 'default'),
-    },
+    initialPriority: boundRange('priority', 'initialPriority'),
+    directMentionBoost: boundRange('priority', 'directMentionBoost'),
+    relatedConceptBoost: boundRange('priority', 'relatedConceptBoost'),
   },
-
   lm: {
-    maxRulesPerCycle: {
-      min: getCognitiveBound('lm', 'maxRulesPerCycle', 'min'),
-      max: getCognitiveBound('lm', 'maxRulesPerCycle', 'max'),
-      default: getCognitiveBound('lm', 'maxRulesPerCycle', 'default'),
-    },
-    callTimeoutMs: {
-      min: getCognitiveBound('lm', 'callTimeoutMs', 'min'),
-      max: getCognitiveBound('lm', 'callTimeoutMs', 'max'),
-      default: getCognitiveBound('lm', 'callTimeoutMs', 'default'),
-    },
+    maxRulesPerCycle: boundRange('lm', 'maxRulesPerCycle'),
+    callTimeoutMs: boundRange('lm', 'callTimeoutMs'),
   },
-
   attention: {
-    primeBoost: {
-      min: getCognitiveBound('attention', 'primeBoost', 'min'),
-      max: getCognitiveBound('attention', 'primeBoost', 'max'),
-      default: getCognitiveBound('attention', 'primeBoost', 'default'),
-    },
-    relatedBoost: {
-      min: getCognitiveBound('attention', 'relatedBoost', 'min'),
-      max: getCognitiveBound('attention', 'relatedBoost', 'max'),
-      default: getCognitiveBound('attention', 'relatedBoost', 'default'),
-    },
+    primeBoost: boundRange('attention', 'primeBoost'),
+    relatedBoost: boundRange('attention', 'relatedBoost'),
   },
-
   inference: {
-    maxDerivationsPerStep: {
-      min: getCognitiveBound('inference', 'maxDerivationsPerStep', 'min'),
-      max: getCognitiveBound('inference', 'maxDerivationsPerStep', 'max'),
-      default: getCognitiveBound('inference', 'maxDerivationsPerStep', 'default'),
-    },
-    maxDerivationDepth: {
-      min: getCognitiveBound('inference', 'maxDerivationDepth', 'min'),
-      max: getCognitiveBound('inference', 'maxDerivationDepth', 'max'),
-      default: getCognitiveBound('inference', 'maxDerivationDepth', 'default'),
-    },
-    rankingMaxAdmissions: {
-      min: getCognitiveBound('inference', 'rankingMaxAdmissions', 'min'),
-      max: getCognitiveBound('inference', 'rankingMaxAdmissions', 'max'),
-      default: getCognitiveBound('inference', 'rankingMaxAdmissions', 'default'),
-    },
-    rankingMinScore: {
-      min: getCognitiveBound('inference', 'rankingMinScore', 'min'),
-      max: getCognitiveBound('inference', 'rankingMinScore', 'max'),
-      default: getCognitiveBound('inference', 'rankingMinScore', 'default'),
-    },
+    maxDerivationsPerStep: boundRange('inference', 'maxDerivationsPerStep'),
+    maxDerivationDepth: boundRange('inference', 'maxDerivationDepth'),
+    rankingMaxAdmissions: boundRange('inference', 'rankingMaxAdmissions'),
+    rankingMinScore: boundRange('inference', 'rankingMinScore'),
   },
-
-  modelRunner: {
-    maxLoops: {
-      min: getCognitiveBound('modelRunner', 'maxLoops', 'min'),
-      max: getCognitiveBound('modelRunner', 'maxLoops', 'max'),
-      default: getCognitiveBound('modelRunner', 'maxLoops', 'default'),
-    },
-  },
-
-  memory: {
-    activationDecayRate: {
-      min: getCognitiveBound('memory', 'activationDecayRate', 'min'),
-      max: getCognitiveBound('memory', 'activationDecayRate', 'max'),
-      default: getCognitiveBound('memory', 'activationDecayRate', 'default'),
-    },
-  },
+  modelRunner: { maxLoops: boundRange('modelRunner', 'maxLoops') },
+  memory: { activationDecayRate: boundRange('memory', 'activationDecayRate') },
 } as const;
 
 /**

@@ -1,5 +1,5 @@
 import { estimateTokens, formatTruth } from '@senars/util';
-import type { ChatStreamEvent } from '../ChatService.js';
+import type { ChatStreamEvent } from '../chat.js';
 import type { CognitiveStimulus, Context, Derivation } from '../engine/Engine.js';
 import type {
   ComposedRequest,

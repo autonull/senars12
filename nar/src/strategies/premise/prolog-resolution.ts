@@ -6,12 +6,11 @@
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import type { Term } from '../../terms';
-import { unify, getTermArgs, extractSymbols } from '../../terms';
-import type { Task, TaskType } from '../../types';
+import { getTermArgs, unify } from '../../terms';
 import { applySubstitution, type Substitution } from '../../terms/impls/unifier.js';
+import type { Task, TaskType } from '../../types';
 import { createSecondaryTask } from '../../types';
-import type { Strategy } from '../types';
-import type { ComponentMetadata } from '../types';
+import type { ComponentMetadata, Strategy } from '../types';
 
 interface PrologConfig {
   maxDepth?: number;
@@ -106,7 +105,7 @@ function sldResolve(
     const headSubst = unifyTerms(resolvedGoal, clause.head, state.substitution);
     if (!headSubst) continue;
 
-    const newGoals = [...clause.body, ...restGoals].map(g => applySubstitution(g, headSubst));
+    const newGoals = [...clause.body, ...restGoals].map((g) => applySubstitution(g, headSubst));
     sldResolve(
       goal,
       clauses,
@@ -128,7 +127,8 @@ export class PrologResolutionStrategy implements Strategy {
   readonly name = 'prolog-resolution';
   readonly metadata: ComponentMetadata = {
     name: 'prolog-resolution',
-    description: 'SLD resolution with unification, Horn clause backward chaining, occurs-check, depth-bounded search',
+    description:
+      'SLD resolution with unification, Horn clause backward chaining, occurs-check, depth-bounded search',
   };
   readonly sampleSize = 20;
   readonly limit = 5;

@@ -9,7 +9,7 @@
 import { join } from 'node:path';
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
-import { ensureDirSync, utcDate } from '@senars/util';
+import { ensureDirSync, periodic, utcDate } from '@senars/util';
 import type { LMTask } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
@@ -134,8 +134,8 @@ export class ProviderRuntime {
   readonly circuitBreakers = new Map<LMProviderName, CircuitBreaker>();
   /** Out-of-band probe bookkeeping — not part of the breaker state machine. */
   readonly #probes = new Map<LMProviderName, { lastProbe: number | null; probeResult: boolean | null }>();
-  /** Interval handle owned by start/stopHealthProbes (providers.ts). */
-  healthProbeInterval: ReturnType<typeof setInterval> | null = null;
+  /** Disposer owned by start/stopHealthProbes (providers.ts). */
+  healthProbeInterval: (() => void) | null = null;
 
   private fileSettings: LMSettingsInput | undefined;
   private webllmRuntime: WebLLMRuntime | undefined;
@@ -144,7 +144,7 @@ export class ProviderRuntime {
 
   routingLogEnabled = false;
   routingLogDir = 'logs';
-  routingLogInterval: ReturnType<typeof setInterval> | null = null;
+  routingLogInterval: (() => void) | null = null;
 
   /** Install file/config-derived settings (env still wins at read time). */
   configureLM(settings: LMSettingsInput): void {
@@ -286,7 +286,7 @@ export class ProviderRuntime {
     this.routingLogEnabled = true;
     if (options?.logDir) this.routingLogDir = options.logDir;
     if (options?.flushIntervalMs && this.routingLogInterval) {
-      clearInterval(this.routingLogInterval);
+      this.routingLogInterval();
     }
     // Initialize ledger
     try {
@@ -299,11 +299,10 @@ export class ProviderRuntime {
     } catch {
       // Silently fail
     }
-    this.routingLogInterval = setInterval(
+    this.routingLogInterval = periodic(
       () => this.flushRoutingLog(),
       options?.flushIntervalMs ?? ROUTING_LOG_FLUSH_INTERVAL_MS
     );
-    this.routingLogInterval.unref?.();
   }
 
   disableRoutingTelemetry(): void {
@@ -311,7 +310,7 @@ export class ProviderRuntime {
     this.routingLogEnabled = false;
     this.flushRoutingLog();
     if (this.routingLogInterval) {
-      clearInterval(this.routingLogInterval);
+      this.routingLogInterval();
       this.routingLogInterval = null;
     }
   }

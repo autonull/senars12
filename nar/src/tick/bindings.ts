@@ -1,9 +1,9 @@
+import { mean } from '@senars/util';
 import type { LMBackend, ProvisionalBelief } from '../stream/reasoner.js';
-import { getPredicate, getSubject, isAtomic, isInheritance } from '../terms/index.js';
+import { readOperationTerm } from '../terms/impls/operation-term.js';
 import type { Task } from '../types/core.js';
 import { createBudget, createTask } from '../types/core.js';
 import type { TickContext, TickHook } from './tick.js';
-import { mean } from '@senars/util';
 
 export type Maybe<T> = T | Promise<T>;
 
@@ -120,19 +120,7 @@ export interface TickDeps {
 
 export const operationActionOf = (
   task: Task
-): { name: string; args: Record<string, unknown> } | undefined => {
-  if (!isInheritance(task.term)) return undefined;
-  const predicate = getPredicate(task.term);
-  if (!predicate || !isAtomic(predicate) || !predicate.symbol.startsWith('^')) return undefined;
-  const subject = getSubject(task.term);
-  const args =
-    subject?.kind === 'product'
-      ? (subject.args?.map(String) ?? [])
-      : subject
-        ? [String(subject)]
-        : [];
-  return { name: predicate.symbol.slice(1), args: { args } };
-};
+): { name: string; args: Record<string, unknown> } | undefined => readOperationTerm(task.term);
 
 const actionKey = (task: Task, actionOf: NonNullable<TickDeps['actionOf']>): string =>
   actionOf(task)?.name ?? String(task.term);

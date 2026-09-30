@@ -1,4 +1,4 @@
-import { BoundedRing, occupancy, selectTopN, sortByDesc } from '@senars/util';
+import { BoundedRing, occupancy, selectTopN, sortBy, sortByDesc } from '@senars/util';
 import type { ResolvedBagSlot } from '../bag/registration';
 import { LINK, PRESSURE } from '../constants.js';
 import { NullAttentionModel } from '../strategies/attention/NullAttentionModel.js';
@@ -340,12 +340,9 @@ export class Memory {
    */
   sampleWindow(windowSize: number, rng: () => number = Math.random): Concept[] {
     this.decayAll();
-    const allConcepts = Array.from(this.concepts.values(), (c) => ({
-      c,
-      score: this.scorer.scoreForRetrieval(c),
-    }))
-      .sort((a, b) => b.score - a.score)
-      .map((e) => e.c);
+    const allConcepts = selectTopN(this.concepts.values(), windowSize, (c) =>
+      this.scorer.scoreForRetrieval(c)
+    );
 
     if (allConcepts.length <= windowSize) return allConcepts;
 
@@ -354,14 +351,7 @@ export class Memory {
     return allConcepts.slice(start, start + windowSize);
   }
 
-  consolidate(opts?: {
-    lm?: {
-      generateObject: (opts: { prompt: string; schema: unknown }) => Promise<{
-        object: { name: string; definition: string };
-      }>;
-    };
-    cycleCount?: number;
-  }): void {
+  consolidate(opts?: { cycleCount?: number }): void {
     if (++this.cyclesSinceConsolidation < this.config.consolidationInterval) return;
     this.cyclesSinceConsolidation = 0;
 
@@ -375,10 +365,6 @@ export class Memory {
 
     this.linkManager.applyDecay(linkDecayRate);
     this.updateAllFocus();
-
-    if (opts?.lm) {
-      this.lmAssistedConsolidate(opts.lm);
-    }
   }
 
   findDenseClusters(
@@ -502,9 +488,10 @@ export class Memory {
   }
 
   compact(): void {
-    const toRemove = this.listConcepts()
-      .filter((c) => c.priority < 0.1 && c.totalTasks === 0)
-      .sort((a, b) => a.priority - b.priority);
+    const toRemove = sortBy(
+      this.listConcepts().filter((c) => c.priority < 0.1 && c.totalTasks === 0),
+      (c) => c.priority
+    );
 
     toRemove.push(...this.findOrphanedLinks());
     const removeCount = Math.ceil(this.concepts.size * 0.1);
@@ -544,31 +531,6 @@ export class Memory {
     for (const concept of this.concepts.values()) {
       const decay = this.attentionModel.decay(concept, 1, this.config.activationDecayRate);
       if (decay !== 0) concept.priority = Math.max(0, concept.priority - decay);
-    }
-  }
-
-  private async lmAssistedConsolidate(lm: {
-    generateObject: (opts: { prompt: string; schema: unknown }) => Promise<{
-      object: { name: string; definition: string };
-    }>;
-  }): Promise<void> {
-    const clusters = this.findDenseClusters();
-    for (const cluster of clusters) {
-      if (cluster.concepts.length >= 3 && !cluster.hasAbstract) {
-        try {
-          const conceptNames = cluster.concepts.map((c) => c.term.toString());
-          const result = await lm.generateObject({
-            prompt: `Abstract category for: ${conceptNames.join(', ')}?`,
-            schema: {
-              type: 'object',
-              properties: { name: { type: 'string' }, definition: { type: 'string' } },
-            },
-          });
-          this.createAbstractConcept(result.object.name, cluster.concepts);
-        } catch {
-          // LM abstraction failed, continue without it
-        }
-      }
     }
   }
 

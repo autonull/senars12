@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { InputProcessor } from '../../../nar/src/task/input.js';
 import {
   PUNCTUATION_BY_TASK_TYPE,
   rehydrateTask,
   serializeTaskRecord,
   taskTypeFromPunctuation,
 } from '../../../nar/src/task/record.js';
-import { InputProcessor } from '../../../nar/src/task/input.js';
-import { createTask } from '../../../nar/src/types/index.js';
 import { Truth, termParser } from '../../../nar/src/terms/index.js';
-import { createBudget } from '../../../nar/src/types/index.js';
+import { createBudget, createTask } from '../../../nar/src/types/index.js';
 
 const term = (source: string) => termParser.parse(source);
 
@@ -17,12 +16,18 @@ describe('taskTypeFromPunctuation', () => {
     expect(taskTypeFromPunctuation('.', 'goal')).toBe('belief');
     expect(taskTypeFromPunctuation('!', 'belief')).toBe('goal');
     expect(taskTypeFromPunctuation('?', 'belief')).toBe('question');
-    expect(taskTypeFromPunctuation('@', 'belief')).toBe('command');
+    expect(taskTypeFromPunctuation(';', 'belief')).toBe('command');
   });
 
   it('falls back rather than guessing for an unrecognised mark', () => {
-    expect(taskTypeFromPunctuation(';', 'belief')).toBe('belief');
+    expect(taskTypeFromPunctuation('@', 'belief')).toBe('belief');
     expect(taskTypeFromPunctuation('', 'question')).toBe('question');
+  });
+
+  it('agrees with the grammar that reads these marks', () => {
+    for (const [type, mark] of Object.entries(PUNCTUATION_BY_TASK_TYPE)) {
+      expect(termParser.parseTask(`(a --> b)${mark}`)?.taskType).toBe(type);
+    }
   });
 
   it('round-trips every type through the punctuation table', () => {
@@ -43,7 +48,9 @@ describe('InputProcessor task typing', () => {
   });
 
   it('honours the configured default when the mark is absent', () => {
-    expect(new InputProcessor({ defaultType: 'question' }).detectType('(a --> b)')).toBe('question');
+    expect(new InputProcessor({ defaultType: 'question' }).detectType('(a --> b)')).toBe(
+      'question'
+    );
   });
 
   it('an explicit type overrides the mark', () => {
@@ -80,7 +87,9 @@ describe('rehydrateTask', () => {
 
   it('a non-finite budget falls back instead of poisoning the bag', () => {
     expect(rehydrateTask({ term: 'a', budget: Number.NaN })?.budget.priority).toBe(0.5);
-    expect(rehydrateTask({ term: 'a', budget: Number.POSITIVE_INFINITY })?.budget.priority).toBe(0.5);
+    expect(rehydrateTask({ term: 'a', budget: Number.POSITIVE_INFINITY })?.budget.priority).toBe(
+      0.5
+    );
   });
 
   it('returns null for a term that no longer parses, rather than throwing', () => {
@@ -110,9 +119,15 @@ describe('rehydrateTask', () => {
 
 describe('serializeTaskRecord', () => {
   it('round-trips a task through the record unchanged', () => {
-    const original = createTask(term('(a --> b)'), 'goal', Truth.create(0.7, 0.6), createBudget(0.42), {
-      occurrenceTime: 99 as never,
-    });
+    const original = createTask(
+      term('(a --> b)'),
+      'goal',
+      Truth.create(0.7, 0.6),
+      createBudget(0.42),
+      {
+        occurrenceTime: 99 as never,
+      }
+    );
 
     const restored = rehydrateTask(serializeTaskRecord(original));
 

@@ -114,9 +114,9 @@
 
 - `atom`
 
-- `atomKey` — An atom's key without building the term — the read side of `termKey` for callers holding a symbol.
+- `atomicSymbols` — Every atomic symbol mentioned anywhere in the term.
 
-- `collectAtomicSymbols` — Every atomic symbol mentioned anywhere in the term.
+- `atomKey` — An atom's key without building the term — the read side of `termKey` for callers holding a symbol.
 
 - `containsSubterm`
 
@@ -376,8 +376,6 @@ _Dynamic subpath (no single entry file)._
 
 ## `./commands`
 
-- `configCommands`
-
 - `coreCommands`
 
 - `episodesCommands`
@@ -434,7 +432,7 @@ _Dynamic subpath (no single entry file)._
 
 - `RESEARCH_COGNITIVE_CONFIG` — Research configuration - all tracing enabled
 
-- `PARAMETER_SPACE` — Parameter space for optimization
+- `PARAMETER_SPACE` — Parameter space for optimization — the tunable subset of `cognitiveBounds`,
 
 - `validateParameters` — Validate cognitive parameters.
 
@@ -1198,9 +1196,9 @@ _Dynamic subpath (no single entry file)._
 
 ## `./terms`
 
-- `atomKey` — An atom's key without building the term — the read side of `termKey` for callers holding a symbol.
+- `atomicSymbols` — Every atomic symbol mentioned anywhere in the term.
 
-- `collectAtomicSymbols` — Every atomic symbol mentioned anywhere in the term.
+- `atomKey` — An atom's key without building the term — the read side of `termKey` for callers holding a symbol.
 
 - `containsSubterm`
 
@@ -1226,21 +1224,9 @@ _Dynamic subpath (no single entry file)._
 
 - `isInheritance`
 
-- `isInstance`
-
 - `isNegation`
 
 - `isOperation`
-
-- `isParallel`
-
-- `isPredictive`
-
-- `isProperty`
-
-- `isRetrospective`
-
-- `isSequence`
 
 - `isSimilarity`
 
@@ -1272,9 +1258,17 @@ _Dynamic subpath (no single entry file)._
 
 - `normalize`
 
+- `operationTerm` — `^toolName(key --> value, ...)`. Keys are read in insertion order, so the
+
+- `readOperationTerm` — The operation a term names, or `undefined` when it names none. Accepts the
+
 - `ParseError`
 
+- `PUNCTUATION_BY_TASK_TYPE` — Narsese sentence punctuation per task type — the mapping `narsese.peggy`
+
 - `TermParser`
+
+- `taskTypeForPunctuation` — Task type named by Narsese sentence punctuation; `null` when it is not one.
 
 - `termParser`
 
@@ -1312,19 +1306,21 @@ _Dynamic subpath (no single entry file)._
 
 - `unify` — Unify two terms, extending `subst`. Returns the extended substitution, or
 
-- `calculateSimilarity`
-
-- `extractSymbols`
-
-- `similarityTo`
-
-- `symbolQuery`
+- `calculateSimilarity` — Symbol-bag similarity. The bags are memoized per term, so neither side is
 
 - `isInvalidTaskTerm`
 
 - `isTautology`
 
 - `validateTaskTerm`
+
+- `INVALID_ATOM_CHARS_REGEX`
+
+- `isValidAtomSymbol`
+
+- `toAtomSymbol` — Coerce arbitrary text into a valid atom symbol: invalid runs collapse to '_'.
+
+- `VALID_ATOM_CHARS`
 
 - `getTermArg`
 

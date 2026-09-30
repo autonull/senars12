@@ -1,24 +1,12 @@
 import { jaccard } from '../../utils/similarity.js';
-import { collectAtomicSymbols, termsEqual } from './accessors.js';
 import type { Term } from '../types.js';
+import { atomicSymbols, termsEqual } from './accessors.js';
 
-export const extractSymbols = (term: Term, symbols = new Set<string>()): Set<string> =>
-  collectAtomicSymbols(term, symbols);
-
-/** A term whose symbol bag is already extracted, for scoring one query against
- *  many candidates without re-walking the query per comparison. */
-export interface SymbolQuery {
-  readonly term: Term;
-  readonly symbols: Set<string>;
-}
-
-export const symbolQuery = (term: Term): SymbolQuery => ({
-  term,
-  symbols: collectAtomicSymbols(term),
-});
-
-export const similarityTo = (query: SymbolQuery, candidate: Term): number =>
-  termsEqual(query.term, candidate) ? 1 : jaccard(query.symbols, collectAtomicSymbols(candidate));
-
+/**
+ * Symbol-bag similarity. The bags are memoized per term, so neither side is
+ * re-walked per comparison and no caller has to hoist a query bag of its own.
+ */
 export const calculateSimilarity = (conceptTerm: Term, targetTerm: Term): number =>
-  similarityTo(symbolQuery(conceptTerm), targetTerm);
+  termsEqual(conceptTerm, targetTerm)
+    ? 1
+    : jaccard(atomicSymbols(conceptTerm), atomicSymbols(targetTerm));

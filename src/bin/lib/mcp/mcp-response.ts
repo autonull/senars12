@@ -26,15 +26,6 @@ export function createMCPResponse<T extends Record<string, unknown>>(
 }
 
 /**
- * Creates a simple text-only MCP response
- */
-export function createMCPTextResponse(text: string): MCPStructuredContent {
-  return {
-    content: [{ type: 'text', text }],
-  };
-}
-
-/**
  * Formats beliefs array for MCP responses
  */
 export function formatBeliefsForMCP(
@@ -47,33 +38,6 @@ export function formatBeliefsForMCP(
     term: b.term.toString(),
     truth: b.truth,
   }));
-}
-
-/**
- * Formats concepts array for MCP responses
- */
-export function formatConceptsForMCP(concepts: Array<{ term: string; priority: number }>): Array<{
-  term: string;
-  priority: number;
-}> {
-  return concepts.map((c) => ({ term: c.term, priority: c.priority }));
-}
-
-/**
- * Formats episodic memory entries for MCP responses
- */
-export function formatEpisodesForMCP(
-  episodes: Array<{
-    type: string;
-    content: string;
-    timestamp?: number;
-  }>
-): Array<{
-  type: string;
-  content: string;
-  timestamp?: number;
-}> {
-  return episodes;
 }
 
 /**

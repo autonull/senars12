@@ -1,6 +1,6 @@
 import type { ConfigFieldType } from '@senars/core';
-import { narCoreBounds } from '@senars/util/config';
 import { DEFAULT_CONFIG } from '@senars/nar';
+import { narCoreBounds } from '@senars/util/config';
 
 type ConfigSchema = Record<string, ConfigFieldType>;
 

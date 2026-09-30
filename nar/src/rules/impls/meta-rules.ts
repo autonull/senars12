@@ -25,8 +25,9 @@ import {
   Truth,
   type TruthType,
 } from '../../terms';
-import { RuleIndex } from './RuleIndex.js';
+import { operationTerm } from '../../terms/impls/operation-term.js';
 import type { RegisteredRule } from '../types.js';
+import type { RuleIndex } from './RuleIndex.js';
 import { RuleRegistry } from './rule-registry.js';
 
 /** Semantic truth values for meta-rules (moderate confidence) */
@@ -83,16 +84,12 @@ function extractVariableBinding(term: Term, expectedPredicate: string): string |
   return parts.subject.symbol;
 }
 
-/** Build operation term AST: ^tool(args...) -> Inheritance(Product(args...), Atom('^tool')) */
-function buildOperationTerm(toolName: string, argTerms: Term[]): Term {
-  const productTerm = argTerms.length > 0 ? TermBuilder.create('product', argTerms) : atom('*');
-  const opAtom = atom('^' + toolName);
-  const result = TermBuilder.inheritance(productTerm, opAtom);
-  if (!result) {
-    throw new Error(`Failed to build operation term for ${toolName}`);
-  }
-  return result;
-}
+/** `^tool(arg, ...)` — the shared operation-term encoding. */
+const buildOperationTerm = (toolName: string, argTerms: Term[]): Term =>
+  operationTerm(
+    toolName,
+    Object.fromEntries(argTerms.map((arg, i) => [`arg${i}`, arg.toString()]))
+  );
 
 /** Debug logging for meta-rules */
 const META_DEBUG = false;

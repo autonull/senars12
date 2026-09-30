@@ -66,6 +66,21 @@ export function withTimeout<T>(
 }
 
 /**
+ * Repeat `task` every `intervalMs` until the returned disposer is called.
+ *
+ * The timer is unref'd, so a periodic task never holds the process open — the one
+ * property every hand-rolled `setInterval` site had to remember, and two of them
+ * did not. The disposer is idempotent, so a `stop` that both `close` and an error
+ * path call needs no guard, and assigning the result to a field replaces any
+ * previous timer rather than leaking it.
+ */
+export const periodic = (task: () => void, intervalMs: number): (() => void) => {
+  const timer = setInterval(task, intervalMs);
+  timer.unref?.();
+  return () => clearInterval(timer);
+};
+
+/**
  * Cooperative deadline: resolves `{ timedOut: true }` when `timeoutMs` elapses,
  * leaving `work` running. The interruptible-execution primitive — pair with
  * `AbortSignal` when the loser must stop.

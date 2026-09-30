@@ -39,15 +39,3 @@ export function discoverTools(deps?: Record<string, unknown>): Tool[] {
   }
   return tools;
 }
-
-export function getToolMetadata(name: string): ToolMetadata | undefined {
-  return TOOL_REGISTRY.get(name)?.metadata;
-}
-
-export function getRegisteredToolNames(): string[] {
-  return Array.from(TOOL_REGISTRY.keys());
-}
-
-export function clearToolRegistry(): void {
-  TOOL_REGISTRY.clear();
-}

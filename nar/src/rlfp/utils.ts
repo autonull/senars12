@@ -58,7 +58,3 @@ export function findCommonFeatures(trajectories: TrajectoryStep[][]): Map<string
 
   return commonFeatures;
 }
-
-export function countByType(trajectory: TrajectoryStep[], type: TrajectoryStep['type']): number {
-  return trajectory.filter((s) => s.type === type).length;
-}

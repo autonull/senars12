@@ -1,4 +1,4 @@
-import { CHARS_PER_TOKEN, estimateTokens } from '@senars/util';
+import { CHARS_PER_TOKEN, estimateTokens, sortByDesc } from '@senars/util';
 
 /**
  * Context budget utilities for LM prompt construction.
@@ -67,7 +67,7 @@ export function buildPrompt(
   const { maxPromptTokens, reservedOutputTokens = 0, safetyMargin = 1.3 } = budget;
   const effectiveBudget = Math.floor((maxPromptTokens - reservedOutputTokens) / safetyMargin);
 
-  const sorted = [...components].sort((a, b) => b.priority - a.priority);
+  const sorted = sortByDesc(components, (c) => c.priority);
   let usedTokens = 0;
   const parts: string[] = [];
 

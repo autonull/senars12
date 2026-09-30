@@ -166,6 +166,7 @@ export {
   parseNarseseTruth,
   parseTruthLiteral,
   serializeTruth,
+  stripTruthSuffix,
   toConfidence,
   toFrequency,
 } from './types/truth.js';
@@ -180,6 +181,7 @@ export { assertDefined, invariant } from './utils/assert.js';
 export {
   boundedSignal,
   monotonicNow,
+  periodic,
   raceDeadline,
   sleep,
   stopwatch,
@@ -206,6 +208,7 @@ export {
   maxScore,
   minBy,
   pushCapped,
+  removeFromSet,
   selectByPriority,
   selectTopN,
   sortBy,
@@ -304,6 +307,7 @@ export {
   extractTerm,
   isNarsese,
   limitList,
+  NARSESE_ATOM_CHARS,
   tokenizeWords,
   truncate,
   truncateBytes,

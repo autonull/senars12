@@ -1,5 +1,6 @@
-import type { Game, GameOutcome, Perception } from '../Game.js';
+import { sortBy } from '@senars/util';
 import { SeededRNG } from '../../utils/random.js';
+import type { Game, GameOutcome, Perception } from '../Game.js';
 
 export interface ArithmeticGameConfig {
   seed: number;
@@ -96,7 +97,10 @@ export class ArithmeticGame implements Game<ArithmeticState, number> {
       const delta = this.rng.nextInt(2 * this.maxOperand + 1) - this.maxOperand || 1;
       distractors.add(this.correct + delta);
     }
-    this.options = [this.correct, ...distractors].map((value, i) => ({ value, k: this.rng.nextInt(1000) + i })).sort((a, b) => a.k - b.k).map(({ value }) => value);
+    this.options = sortBy(
+      [this.correct, ...distractors].map((value, i) => ({ value, k: this.rng.nextInt(1000) + i })),
+      (o) => o.k
+    ).map(({ value }) => value);
   }
 }
 

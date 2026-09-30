@@ -115,6 +115,3 @@ export const createLinkLayerStrategy = (
   layer: string,
   config?: LinkLayerStrategyConfig
 ): Strategy => new LinkLayerStrategy(layer, undefined, config);
-
-export const createTermLinkStrategy = (config?: LinkLayerStrategyConfig): Strategy =>
-  new TermLinkStrategy(config);

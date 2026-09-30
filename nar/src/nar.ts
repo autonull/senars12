@@ -31,7 +31,7 @@ import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js'
 import { createDefaultReasoningBudget } from './kernel/KernelBudgetGate.js';
 import { SchemaInductor } from './learning/schema-induction.js';
 import type { LMService, SeNARSRegistry } from './lm';
-import { getModelForTask, LMRules } from './lm';
+import { LMRules } from './lm';
 import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
 import { MiningBag, seedContrastiveMemory } from './lm/system-one/hard-negatives.js';
 import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
@@ -835,11 +835,7 @@ export class NAR extends BaseComponent {
   }
 
   private initializeLMRules(lmService: LMService): void {
-    initializeLMRules(
-      this,
-      LMRules.createAll(lmService as never),
-      this._registry ? getModelForTask(this._registry, 'structured') : undefined
-    );
+    initializeLMRules(this, LMRules.createAll(lmService as never));
     this._lmInitialized = true;
   }
 

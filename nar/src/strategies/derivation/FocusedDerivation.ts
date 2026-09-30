@@ -16,12 +16,19 @@ export class FocusedDerivation extends DefaultDerivation {
     processor: RuleEngine,
     ctx: DerivationContext
   ): AsyncGenerator<Task> {
-    const sorted = [...secondaries].sort((a, b) => {
-      const scoreA = a.budget.priority + this.sharedAtomScore(primary, a);
-      const scoreB = b.budget.priority + this.sharedAtomScore(primary, b);
-      return scoreB - scoreA;
-    });
-    yield* super.derive(primary, sorted, processor, ctx);
+    // Scored once each, not once per comparison: `sharesSymbol` walks both term
+    // trees. Decorate-sort-undecorate keeps the order — same scores, stable sort.
+    const scored = secondaries.map((task) => ({
+      task,
+      score: task.budget.priority + this.sharedAtomScore(primary, task),
+    }));
+    scored.sort((a, b) => b.score - a.score);
+    yield* super.derive(
+      primary,
+      scored.map(({ task }) => task),
+      processor,
+      ctx
+    );
   }
 
   private sharedAtomScore(a: Task, b: Task): number {

@@ -247,22 +247,6 @@ export const consumeLMCalls = (
   eventBus?: BudgetEventBus
 ): boolean => consume(budget, 'llmCalls', calls, eventBus);
 
-export function checkDeadline(budget: BudgetSlice): boolean {
-  if (budget.wallclockDeadlineMs && Date.now() > budget.wallclockDeadlineMs) {
-    budget.terminationReason = 'deadline';
-    return false;
-  }
-  return true;
-}
-
-export function checkAbort(budget: BudgetSlice): boolean {
-  if (budget.abortSignal?.aborted) {
-    budget.terminationReason = 'aborted';
-    return false;
-  }
-  return true;
-}
-
 /** Unconsumed capacity in one dimension, floored at zero. */
 const remainingOf = (budget: BudgetSlice, resource: BudgetResource): number =>
   clamp(totalOf(budget, resource) - budget.consumed[resource], 0, Number.POSITIVE_INFINITY);
@@ -321,13 +305,6 @@ export function chargeAllocation(
     const amount = allocation[resource] ?? 0;
     if (amount > 0) consume(budget, resource, amount, eventBus);
   }
-}
-
-export function toAIKRBudget(budget: BudgetSlice): AIKRBudget {
-  return {
-    cycles: remainingCycles(budget),
-    depth: remainingDepth(budget) || undefined,
-  };
 }
 
 /**

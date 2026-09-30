@@ -2,6 +2,7 @@
  * Rule builder utilities for deduplicating NAL rule definitions
  */
 import type { Term } from '../../terms';
+import { isAtomic, walkTerms } from '../../terms';
 import type { RuleFn } from '../types.js';
 
 export const buildBinaryInhRule =
@@ -26,16 +27,18 @@ export const buildInhRule =
     return extracted ? transform(extracted) : undefined;
   };
 
+/**
+ * Every variable atom in the term's subtree, in pre-order.
+ *
+ * The walk is `walkTerms` — the single term traversal — rather than a private
+ * recursion, so a new `Term` kind is covered here the moment the accessor
+ * covers it instead of silently falling out of this walk.
+ */
 export const getVars = (term: Term): Term[] => {
   const vars: Term[] = [];
-  const collect = (t: Term): void => {
-    if (t.kind === 'atom' && (t as any).isVariable) {
-      vars.push(t);
-    } else if (t.kind !== 'atom') {
-      (t.args ?? []).forEach(collect);
-    }
-  };
-  collect(term);
+  walkTerms(term, (t) => {
+    if (isAtomic(t) && t.isVariable) vars.push(t);
+  });
   return vars;
 };
 

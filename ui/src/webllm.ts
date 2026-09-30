@@ -1,6 +1,24 @@
+import type {
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  LanguageModelV4Usage,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
+} from '@ai-sdk/provider';
+import {
+  type ChatCompletion,
+  type ChatCompletionChunk,
+  type ChatCompletionContentPart,
+  type ChatCompletionMessageParam,
+  CreateMLCEngine,
+  type MLCEngineInterface,
+} from '@mlc-ai/web-llm';
 import { estimateTokens } from './shared/index.js';
-import type { LanguageModelV4, LanguageModelV4CallOptions, LanguageModelV4GenerateResult, LanguageModelV4StreamResult, LanguageModelV4StreamPart, LanguageModelV4Usage, LanguageModelV4FinishReason, LanguageModelV4Content, SharedV4ProviderMetadata, SharedV4Warning } from '@ai-sdk/provider';
-import { CreateMLCEngine, type MLCEngineInterface, type ChatCompletionMessageParam, type ChatCompletionChunk, type ChatCompletion, type ChatCompletionContentPart } from '@mlc-ai/web-llm';
 
 interface WebLLMModelConfig {
   modelId: string;
@@ -16,31 +34,38 @@ const WEBLLM_MODELS: WebLLMProviderConfig = {
   models: {
     'llama-3.2-3b-instruct': {
       modelId: 'Llama-3.2-3B-Instruct-q4f32_1-MLC',
-      modelLib: 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.85/dist/Llama-3.2-3B-Instruct-q4f32_1-MLC/',
+      modelLib:
+        'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.85/dist/Llama-3.2-3B-Instruct-q4f32_1-MLC/',
     },
     'phi-3.5-mini-instruct': {
       modelId: 'Phi-3.5-mini-instruct-q4f32_1-MLC',
-      modelLib: 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.85/dist/Phi-3.5-mini-instruct-q4f32_1-MLC/',
+      modelLib:
+        'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.85/dist/Phi-3.5-mini-instruct-q4f32_1-MLC/',
     },
     'gemma-2-2b-it': {
       modelId: 'gemma-2-2b-it-q4f32_1-MLC',
-      modelLib: 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.85/dist/gemma-2-2b-it-q4f32_1-MLC/',
+      modelLib:
+        'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.85/dist/gemma-2-2b-it-q4f32_1-MLC/',
     },
   },
   defaultModel: 'llama-3.2-3b-instruct',
 };
 
-let engineCache: Map<string, MLCEngineInterface> = new Map();
-let initPromises: Map<string, Promise<MLCEngineInterface>> = new Map();
+const engineCache: Map<string, MLCEngineInterface> = new Map();
+const initPromises: Map<string, Promise<MLCEngineInterface>> = new Map();
 
-async function getOrCreateEngine(modelKey: string, onProgress?: (progress: number) => void): Promise<MLCEngineInterface> {
+async function getOrCreateEngine(
+  modelKey: string,
+  onProgress?: (progress: number) => void
+): Promise<MLCEngineInterface> {
   const cached = engineCache.get(modelKey);
   if (cached) return cached;
 
   const existingInit = initPromises.get(modelKey);
   if (existingInit) return existingInit;
 
-  const modelConfig = WEBLLM_MODELS.models[modelKey] ?? WEBLLM_MODELS.models[WEBLLM_MODELS.defaultModel];
+  const modelConfig =
+    WEBLLM_MODELS.models[modelKey] ?? WEBLLM_MODELS.models[WEBLLM_MODELS.defaultModel];
   if (!modelConfig) {
     throw new Error(`Model ${modelKey} not found and no default model configured`);
   }
@@ -67,15 +92,22 @@ function getTextContent(content: string | ChatCompletionContentPart[] | null | u
   if (!content) return '';
   if (typeof content === 'string') return content;
   return content
-    .filter((part): part is { type: 'text'; text: string } => part.type === 'text' && typeof part.text === 'string')
+    .filter(
+      (part): part is { type: 'text'; text: string } =>
+        part.type === 'text' && typeof part.text === 'string'
+    )
     .map((part) => part.text)
     .join('');
 }
 
-function convertMessages(prompt: LanguageModelV4CallOptions['prompt']): ChatCompletionMessageParam[] {
+function convertMessages(
+  prompt: LanguageModelV4CallOptions['prompt']
+): ChatCompletionMessageParam[] {
   return prompt.map((msg) => {
     const role = msg.role;
-    const content = getTextContent(msg.content as string | ChatCompletionContentPart[] | null | undefined);
+    const content = getTextContent(
+      msg.content as string | ChatCompletionContentPart[] | null | undefined
+    );
 
     if (role === 'system') {
       return { role: 'system', content };
@@ -92,10 +124,18 @@ function convertMessages(prompt: LanguageModelV4CallOptions['prompt']): ChatComp
 function mapFinishReason(reason: string | null | undefined): LanguageModelV4FinishReason {
   let unified: LanguageModelV4FinishReason['unified'] = 'other';
   switch (reason) {
-    case 'stop': unified = 'stop'; break;
-    case 'length': unified = 'length'; break;
-    case 'tool_calls': unified = 'tool-calls'; break;
-    case 'content_filter': unified = 'content-filter'; break;
+    case 'stop':
+      unified = 'stop';
+      break;
+    case 'length':
+      unified = 'length';
+      break;
+    case 'tool_calls':
+      unified = 'tool-calls';
+      break;
+    case 'content_filter':
+      unified = 'content-filter';
+      break;
   }
   return { unified, raw: reason ?? undefined };
 }
@@ -107,7 +147,10 @@ function createUsage(inputTokens: number, outputTokens: number): LanguageModelV4
   };
 }
 
-export function createWebLLMModel(modelKey?: string, onProgress?: (progress: number) => void): LanguageModelV4 {
+export function createWebLLMModel(
+  modelKey?: string,
+  onProgress?: (progress: number) => void
+): LanguageModelV4 {
   const key = modelKey ?? WEBLLM_MODELS.defaultModel;
 
   return {
@@ -120,25 +163,24 @@ export function createWebLLMModel(modelKey?: string, onProgress?: (progress: num
       const engine = await getOrCreateEngine(key, onProgress);
       const messages = convertMessages(options.prompt);
 
-      const reply = await engine.chat.completions.create({
+      const reply = (await engine.chat.completions.create({
         messages,
         temperature: options.temperature ?? 0.7,
         max_tokens: options.maxOutputTokens ?? 2048,
         stream: false,
-      }) as ChatCompletion;
+      })) as ChatCompletion;
 
       const content = reply.choices[0]?.message?.content ?? '';
       const usage = reply.usage;
 
-      const responseContent: LanguageModelV4Content[] = [
-        { type: 'text', text: content },
-      ];
+      const responseContent: LanguageModelV4Content[] = [{ type: 'text', text: content }];
 
       return {
         content: responseContent,
         finishReason: mapFinishReason(reply.choices[0]?.finish_reason ?? 'stop'),
         usage: createUsage(
-          usage?.prompt_tokens ?? estimateTokens(messages.map(m => getTextContent(m.content)).join('')),
+          usage?.prompt_tokens ??
+            estimateTokens(messages.map((m) => getTextContent(m.content)).join('')),
           usage?.completion_tokens ?? estimateTokens(content)
         ),
         warnings: [],
@@ -149,12 +191,12 @@ export function createWebLLMModel(modelKey?: string, onProgress?: (progress: num
       const engine = await getOrCreateEngine(key, onProgress);
       const messages = convertMessages(options.prompt);
 
-      const stream = await engine.chat.completions.create({
+      const stream = (await engine.chat.completions.create({
         messages,
         temperature: options.temperature ?? 0.7,
         max_tokens: options.maxOutputTokens ?? 2048,
         stream: true,
-      }) as AsyncIterable<ChatCompletionChunk>;
+      })) as AsyncIterable<ChatCompletionChunk>;
 
       let textId = 0;
 
@@ -174,10 +216,17 @@ export function createWebLLMModel(modelKey?: string, onProgress?: (progress: num
             if (delta) {
               accumulatedContent += delta;
               if (!hasStarted) {
-                controller.enqueue({ type: 'text-start', id: String(textId++) } as LanguageModelV4StreamPart);
+                controller.enqueue({
+                  type: 'text-start',
+                  id: String(textId++),
+                } as LanguageModelV4StreamPart);
                 hasStarted = true;
               }
-              controller.enqueue({ type: 'text-delta', id: String(textId - 1), delta } as LanguageModelV4StreamPart);
+              controller.enqueue({
+                type: 'text-delta',
+                id: String(textId - 1),
+                delta,
+              } as LanguageModelV4StreamPart);
             }
 
             if (choice.finish_reason) {
@@ -186,10 +235,13 @@ export function createWebLLMModel(modelKey?: string, onProgress?: (progress: num
           }
 
           if (hasStarted) {
-            controller.enqueue({ type: 'text-end', id: String(textId - 1) } as LanguageModelV4StreamPart);
+            controller.enqueue({
+              type: 'text-end',
+              id: String(textId - 1),
+            } as LanguageModelV4StreamPart);
           }
 
-          inputTokens = estimateTokens(messages.map(m => getTextContent(m.content)).join(''));
+          inputTokens = estimateTokens(messages.map((m) => getTextContent(m.content)).join(''));
           outputTokens = estimateTokens(accumulatedContent);
 
           controller.enqueue({
@@ -208,7 +260,10 @@ export function createWebLLMModel(modelKey?: string, onProgress?: (progress: num
 
 export const webllmModels = WEBLLM_MODELS.models;
 
-export async function preloadModel(modelKey?: string, onProgress?: (progress: number) => void): Promise<void> {
+export async function preloadModel(
+  modelKey?: string,
+  onProgress?: (progress: number) => void
+): Promise<void> {
   const key = modelKey ?? WEBLLM_MODELS.defaultModel;
   await getOrCreateEngine(key, onProgress);
 }

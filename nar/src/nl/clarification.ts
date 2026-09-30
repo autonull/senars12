@@ -1,5 +1,4 @@
-import type { LanguageModel } from 'ai';
-import { generateObject, zodSchema } from 'ai';
+import type { ILMService } from '../lm/interfaces.js';
 import { type ClarificationResult, ClarificationSchema } from './schemas';
 import type { Ambiguity } from './understanding';
 
@@ -17,19 +16,18 @@ export class ClarificationHandler {
   async generateClarification(
     input: string,
     ambiguity: Ambiguity,
-    model: LanguageModel | null,
+    lm: ILMService | null,
     _ctx?: BotContext
   ): Promise<ClarificationRequest | null> {
-    if (!model) {
+    if (!lm) {
       return this.fallbackClarification(input, ambiguity);
     }
 
     try {
-      const { object } = await generateObject({
-        model,
-        prompt: `The input "${input}" is ambiguous. Possible interpretations: ${ambiguity.options.join(', ')}. Generate a clarifying question and return the options.`,
-        schema: zodSchema(ClarificationSchema),
-      });
+      const object = await lm.generateObject(
+        `The input "${input}" is ambiguous. Possible interpretations: ${ambiguity.options.join(', ')}. Generate a clarifying question and return the options.`,
+        ClarificationSchema
+      );
 
       const request: ClarificationRequest = {
         question: object.question,
@@ -91,12 +89,7 @@ export function buildClarificationPrompt(input: string, ambiguity: Ambiguity): s
 export async function generateClarificationWithLM(
   input: string,
   ambiguity: Ambiguity,
-  model: LanguageModel
+  lm: ILMService
 ): Promise<ClarificationResult> {
-  const { object } = await generateObject({
-    model,
-    prompt: buildClarificationPrompt(input, ambiguity),
-    schema: zodSchema(ClarificationSchema),
-  });
-  return object;
+  return await lm.generateObject(buildClarificationPrompt(input, ambiguity), ClarificationSchema);
 }

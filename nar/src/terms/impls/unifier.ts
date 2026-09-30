@@ -41,6 +41,3 @@ export const applyBindings = (term: Term, bindings: ReadonlyMap<string, Term>): 
 /** {@link applyBindings} over the object-literal substitution this module exports. */
 export const applySubstitution = (term: Term, subst: Substitution): Term =>
   applyBindings(term, new Map(Object.entries(subst)));
-
-/** Every variable symbol in `term`, in first-occurrence order. */
-export const termVariables = (term: Term): string[] => unifier.variables(term);

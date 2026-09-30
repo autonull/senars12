@@ -5,16 +5,12 @@ import type {
 } from '@senars/core/schemas';
 import { validateFormalizationBatch } from '@senars/core/schemas';
 import { asBeliefTruth, errMsg, makeId, pct, stableStringify } from '@senars/util';
-import type { LanguageModel } from 'ai';
-import { generateObject, generateText, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
-import type { SeNARSRegistry } from '../lm';
 import { getModelForTask } from '../lm';
 import type { ILMService } from '../lm/interfaces.js';
 import type { TranslationCache, TranslationCacheEntry, TranslationResult } from './cache.js';
 import { type FirewallOptions, SymbolicFirewall } from './firewall.js';
 import { buildUnderstandingPrompt } from './prompts/understanding-v1.js';
-import { resolveStructuredLm } from './resolve-lm.js';
 import { TaskBatchSchema } from './schemas.js';
 import { SingleFlight } from './singleflight.js';
 
@@ -34,20 +30,17 @@ export interface NLContext {
 
 export class NLUnderstandingService {
   private readonly lm: ILMService | null;
-  private readonly model: LanguageModel | null;
   private structuredOnly: boolean;
   private readonly firewall: SymbolicFirewall;
   private readonly flight = new SingleFlight();
   private readonly cache?: TranslationCache;
 
   constructor(
-    registry: SeNARSRegistry | ILMService,
+    lm: ILMService | null,
     cache: TranslationCache | undefined,
     opts?: { structuredOnly?: boolean; firewall?: FirewallOptions | SymbolicFirewall }
   ) {
-    const { lm, model } = resolveStructuredLm(registry);
     this.lm = lm;
-    this.model = model;
     this.cache = cache;
     this.structuredOnly = opts?.structuredOnly ?? true;
     this.firewall =
@@ -158,20 +151,11 @@ export class NLUnderstandingService {
     temperature?: number
   ): Promise<TaskBatch | null> {
     try {
-      if (this.lm) {
-        return await this.lm.generateObject(prompt, TaskBatchSchema as ZodSchema<TaskBatch>, {
-          task: 'structured',
-          temperature,
-        });
-      }
-      if (!this.model) return null;
-      const result = await generateObject({
-        model: this.model,
-        prompt,
-        schema: zodSchema(TaskBatchSchema as ZodSchema<TaskBatch>),
+      if (!this.lm) return null;
+      return await this.lm.generateObject(prompt, TaskBatchSchema as ZodSchema<TaskBatch>, {
+        task: 'structured',
         temperature,
       });
-      return result.object as TaskBatch;
     } catch {
       return null;
     }
@@ -179,17 +163,12 @@ export class NLUnderstandingService {
 
   private async jsonFallbackTranslate(prompt: string): Promise<TaskBatch | null> {
     try {
-      const text = this.lm
-        ? await this.lm.generateText(prompt + '\n\nRespond with valid JSON only.', {
-            task: 'structured',
-            maxOutputTokens: 120,
-            signal: AbortSignal.timeout(30000),
-          })
-        : await generateText({
-            model: this.model!,
-            prompt: prompt + '\n\nRespond with valid JSON only.',
-            maxOutputTokens: 120,
-          }).then((r) => r.text);
+      if (!this.lm) return null;
+      const text = await this.lm.generateText(prompt + '\n\nRespond with valid JSON only.', {
+        task: 'structured',
+        maxOutputTokens: 120,
+        signal: AbortSignal.timeout(30000),
+      });
       return (parseJsonWith(text, TaskBatchSchema) as TaskBatch | null) ?? null;
     } catch {
       return null;
@@ -198,17 +177,15 @@ export class NLUnderstandingService {
 
   private async narseseFallbackTranslate(prompt: string, input: string): Promise<TaskBatch | null> {
     try {
-      const text = this.lm
-        ? await this.lm.generateText(prompt + '\n\nRespond with Narsese statements only.', {
-            task: 'structured',
-            maxOutputTokens: 120,
-            signal: AbortSignal.timeout(30000),
-          })
-        : await generateText({
-            model: this.model!,
-            prompt: prompt + '\n\nRespond with Narsese statements only.',
-            maxOutputTokens: 120,
-          }).then((r) => r.text);
+      if (!this.lm) return null;
+      const text = await this.lm.generateText(
+        prompt + '\n\nRespond with Narsese statements only.',
+        {
+          task: 'structured',
+          maxOutputTokens: 120,
+          signal: AbortSignal.timeout(30000),
+        }
+      );
       return this.extractNarseseFromText(text, input);
     } catch {
       return null;
@@ -221,7 +198,7 @@ export class NLUnderstandingService {
     lastError?: string | null,
     temperature?: number
   ): Promise<TaskBatch | null> {
-    if (!this.lm && !this.model) return null;
+    if (!this.lm) return null;
 
     const prompt = buildUnderstandingPrompt(input, {
       beliefs: ctx?.beliefs,

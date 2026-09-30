@@ -1,4 +1,11 @@
-import { BoundedRing, createLogger, errMsg, type Logger } from '@senars/util';
+import {
+  BoundedRing,
+  createLogger,
+  errMsg,
+  type Logger,
+  periodic,
+  sortBy,
+} from '@senars/util';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { Truth } from '../terms';
@@ -57,7 +64,7 @@ function findUnderconnectedConcepts(
     }
   }
 
-  return result.sort((a, b) => a.connections - b.connections);
+  return sortBy(result, (r) => r.connections);
 }
 
 export function parseEnrichmentResponse(
@@ -97,7 +104,7 @@ export class ProactiveEnricher {
   private readonly config: EnricherConfig;
   private readonly logger: Logger;
   private readonly systemOne?: EnricherSystemOneDeps;
-  private enrichmentTimer?: NodeJS.Timeout;
+  private stopEnrichmentTimer: (() => void) | undefined;
   private enrichmentCycle = 0;
   private readonly results = new BoundedRing<EnrichmentResult>(ProactiveEnricher.RESULTS_CAP);
 
@@ -124,18 +131,17 @@ export class ProactiveEnricher {
 
   start(): void {
     if (this.config.enableProactiveEnrichment) {
-      this.enrichmentTimer = setInterval(
+      this.stopEnrichmentTimer = periodic(
         () => this.runEnrichmentCycle(),
         this.config.enrichmentIntervalMs
       );
-      this.enrichmentTimer.unref?.();
     }
   }
 
   stop(): void {
-    if (this.enrichmentTimer) {
-      clearInterval(this.enrichmentTimer);
-      this.enrichmentTimer = undefined;
+    if (this.stopEnrichmentTimer) {
+      this.stopEnrichmentTimer();
+      this.stopEnrichmentTimer = undefined;
     }
   }
 

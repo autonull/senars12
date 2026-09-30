@@ -1,5 +1,5 @@
 import { clamp01, createLogger, stopwatch } from '@senars/util';
-import type { SeNARSRegistry } from '../../lm';
+import type { ILMService } from '../../lm/interfaces.js';
 import { NLUnderstandingService } from '../../nl/understanding.js';
 import type { ScenarioProfile, ScenarioTemplateProfile } from './scenario-profiles.js';
 
@@ -55,7 +55,8 @@ export interface ScenarioRunnerDeps {
   nar?: any; // NAR instance
   episodicMemory?: any;
   rlfpLearner?: any;
-  registry?: SeNARSRegistry;
+  /** Accounted LM seam — spec generation is skipped when absent. */
+  lmService?: ILMService;
 }
 
 interface ScenarioValidator {
@@ -153,15 +154,17 @@ export function calculateScenarioReward(result: ScenarioResult, spec: ScenarioSp
 
 export async function generateScenarioSpec(
   seed: string,
-  profile: string,
-  registry?: SeNARSRegistry
+  profile: ScenarioProfile,
+  lmService?: ILMService
 ): Promise<ScenarioSpec> {
-  if (!registry) {
+  if (!lmService) {
     return generateTemplateScenario(seed, profile);
   }
 
   try {
-    const understanding = new NLUnderstandingService(registry, undefined, { structuredOnly: true });
+    const understanding = new NLUnderstandingService(lmService, undefined, {
+      structuredOnly: true,
+    });
     const nlInput = `Generate a cognitive test scenario for SeNARS. Profile: ${profile}. Seed: "${seed}". 
     Output a JSON spec with: name, description, duration_steps, inject (array of events with type, pattern, interval), success_criteria.
     Events can be: belief_stream (pattern, interval), question (pattern, interval), resource_pressure (maxDerivationsPerStep), goal (narsese, priority).
@@ -188,7 +191,7 @@ export async function generateScenarioSpec(
   return generateTemplateScenario(seed, profile);
 }
 
-function generateTemplateScenario(seed: string, profile: string): ScenarioSpec {
+function generateTemplateScenario(seed: string, profile: ScenarioProfile): ScenarioSpec {
   const profiles: Record<ScenarioTemplateProfile, Partial<ScenarioSpec>> = {
     contradictory_sensors: {
       name: 'contradictory_sensors',
@@ -274,14 +277,14 @@ function generateTemplateScenario(seed: string, profile: string): ScenarioSpec {
   };
 
   const profileSpec =
-    profiles[profile as ScenarioTemplateProfile] ?? profiles.contradictory_sensors;
+    profile === 'auto' ? undefined : (profiles[profile] ?? profiles.contradictory_sensors);
 
   return {
-    name: profileSpec.name ?? profile,
-    description: profileSpec.description ?? `Scenario for ${seed}`,
-    duration_steps: profileSpec.duration_steps ?? 300,
-    inject: profileSpec.inject ?? [],
-    success_criteria: profileSpec.success_criteria ?? { no_crash: true },
+    name: profileSpec?.name ?? profile,
+    description: profileSpec?.description ?? `Scenario for ${seed}`,
+    duration_steps: profileSpec?.duration_steps ?? 300,
+    inject: profileSpec?.inject ?? [],
+    success_criteria: profileSpec?.success_criteria ?? { no_crash: true },
     metadata: { seed, generated_at: new Date().toISOString(), profile },
   };
 }
@@ -380,10 +383,5 @@ export async function runScenario(nar: any, spec: ScenarioSpec): Promise<Scenari
   }
 }
 
-export interface ScenarioGenDeps {
-  workspaceRoot?: string;
-  nar?: any;
-  episodicMemory?: any;
-  rlfpLearner?: any;
-  registry?: SeNARSRegistry;
-}
+/** The scenario tools' one dependency shape — the adapter re-uses the runner's. */
+export type ScenarioGenDeps = ScenarioRunnerDeps;

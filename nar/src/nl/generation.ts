@@ -1,12 +1,8 @@
-import type { LanguageModel } from 'ai';
-import { generateObject, zodSchema } from 'ai';
 import { formatTruth, stableStringify } from '@senars/util';
-import type { SeNARSRegistry } from '../lm';
 import { getModelForTask } from '../lm';
 import type { ILMService } from '../lm/interfaces.js';
 import { buildGenerationPrompt } from './prompts/generation-v1.js';
 import { GenerationOutputSchema } from './schemas.js';
-import { resolveStructuredLm } from './resolve-lm.js';
 import { SingleFlight } from './singleflight.js';
 
 export interface BeliefInfo {
@@ -64,13 +60,10 @@ function findKnowledgeGaps(beliefs: BeliefInfo[]): string[] {
 
 export class NLGenerationService {
   private readonly lm: ILMService | null;
-  private readonly model: LanguageModel | null;
   private readonly flight = new SingleFlight();
 
-  constructor(registry: SeNARSRegistry | ILMService) {
-    const { lm, model } = resolveStructuredLm(registry);
+  constructor(lm: ILMService | null) {
     this.lm = lm;
-    this.model = model;
   }
 
   async generate(input: GenerationInput): Promise<GenerationOutput> {
@@ -84,7 +77,7 @@ export class NLGenerationService {
   }
 
   private async generateInner(input: GenerationInput): Promise<GenerationOutput> {
-    if (!this.lm && !this.model) {
+    if (!this.lm) {
       return this.fallbackGenerate(input);
     }
 
@@ -105,17 +98,9 @@ export class NLGenerationService {
     });
 
     try {
-      const object = this.lm
-        ? await this.lm.generateObject(prompt, GenerationOutputSchema, {
-            task: 'structured',
-          })
-        : (
-            await generateObject({
-              model: this.model!,
-              prompt,
-              schema: zodSchema(GenerationOutputSchema),
-            })
-          ).object;
+      const object = await this.lm.generateObject(prompt, GenerationOutputSchema, {
+        task: 'structured',
+      });
 
       return {
         response: object.response,

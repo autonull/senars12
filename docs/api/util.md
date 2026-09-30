@@ -120,6 +120,8 @@
 
 - `serializeTruth` — Narsese `%f;c%` truth literal.
 
+- `stripTruthSuffix` — A Narsese sentence split into its term and the truth suffix it carries, if
+
 - `toConfidence`
 
 - `toFrequency`
@@ -131,6 +133,8 @@
 - `boundedSignal` — Abort signal that fires after `timeoutMs`; call `done()` in a `finally` to release the timer.
 
 - `monotonicNow` — Monotonic millisecond clock: sub-millisecond resolution, and immune to wall-clock
+
+- `periodic` — Repeat `task` every `intervalMs` until the returned disposer is called.
 
 - `raceDeadline` — Cooperative deadline: resolves `{ timedOut: true }` when `timeoutMs` elapses,
 
@@ -167,6 +171,8 @@
 - `minBy` — Extremum pick over a collection. `initial`/`initialScore` seed the running
 
 - `pushCapped`
+
+- `removeFromSet` — Remove from a per-key set, dropping the key once its set empties — otherwise an
 
 - `selectByPriority` — Greedy budget selection over `{ priority, id }` items: highest priority
 
@@ -334,6 +340,8 @@
 
 - `limitList` — `items` through `format`, with a trailing count of what the limit hid.
 
+- `NARSESE_ATOM_CHARS` — The characters a bare Narsese atom symbol may contain. The grammar's authority on
+
 - `tokenizeWords` — Lowercased word-token set — the tokenizer behind every text-similarity path.
 
 - `truncate` — Text measurement, tokenizing, and truncation. The three questions — how big
@@ -349,6 +357,10 @@
 - `CommandRegistry`
 
 ## `./config`
+
+- `type BoundRange`
+
+- `boundRange` — One row projected to its `{min,max,default}` triple.
 
 - `type CognitiveBoundCategory`
 

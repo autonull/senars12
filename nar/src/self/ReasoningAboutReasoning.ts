@@ -1,4 +1,4 @@
-import { createLogger } from '@senars/util';
+import { createLogger, errMsg, periodic } from '@senars/util';
 import { MetacognitiveMonitor, MONITOR_DEFAULTS } from '../cognitive/impls/MetacognitiveMonitor.js';
 import {
   type MetaCognitiveResult,
@@ -50,7 +50,7 @@ export class ReasoningAboutReasoning {
   private readonly config: Required<ReasoningAboutReasoningConfig>;
   private readonly monitor: MetacognitiveMonitor;
   private analyzer: SelfAnalyzer;
-  private periodicAnalysisInterval: NodeJS.Timeout | null = null;
+  private stopPeriodicAnalysis: (() => void) | null = null;
 
   constructor(nar: SelfHost | null, config: ReasoningAboutReasoningConfig = {}) {
     this.nar = nar;
@@ -73,10 +73,8 @@ export class ReasoningAboutReasoning {
 
   stop(): void {
     this.isRunning = false;
-    if (this.periodicAnalysisInterval) {
-      clearInterval(this.periodicAnalysisInterval);
-      this.periodicAnalysisInterval = null;
-    }
+    this.stopPeriodicAnalysis?.();
+    this.stopPeriodicAnalysis = null;
   }
 
   applyOptimizations(): void {
@@ -161,23 +159,21 @@ export class ReasoningAboutReasoning {
   }
 
   shutdown(): void {
-    if (this.periodicAnalysisInterval) {
-      clearInterval(this.periodicAnalysisInterval);
-      this.periodicAnalysisInterval = null;
-    }
+    this.stopPeriodicAnalysis?.();
+    this.stopPeriodicAnalysis = null;
     this.monitor.shutdown();
     this.analyzer.shutdown();
   }
 
   private startPeriodicSelfAnalysis(): void {
-    if (this.config.reasoningInterval > 0) {
-      this.periodicAnalysisInterval = setInterval(async () => {
-        try {
-          await this.performMetaCognitiveReasoning();
-        } catch (error) {
-          logger.warn(`Periodic self-analysis error: ${error}`);
-        }
-      }, this.config.reasoningInterval);
-    }
+    this.stopPeriodicAnalysis?.();
+    if (this.config.reasoningInterval <= 0) return;
+    this.stopPeriodicAnalysis = periodic(async () => {
+      try {
+        await this.performMetaCognitiveReasoning();
+      } catch (error) {
+        logger.warn(`Periodic self-analysis error: ${errMsg(error)}`);
+      }
+    }, this.config.reasoningInterval);
   }
 }

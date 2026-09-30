@@ -1,5 +1,5 @@
-import { SATURATION_COUNT } from '../../constants.js';
 import { clamp01 } from '@senars/util';
+import { SATURATION_COUNT } from '../../constants.js';
 import type { Concept } from '../concept.js';
 
 export interface ScorerConfig {
@@ -14,6 +14,16 @@ const DEFAULT_CONFIG: ScorerConfig = {
   relevanceWeight: 0.3,
   activationWeight: 0.2,
   recencyWeight: 0.2,
+};
+
+type FactorType = 'retrieval' | 'consolidation' | 'forgetting';
+
+// Hoisted: `scoreFor` runs per concept per sample, and a fresh pair of object
+// literals per call was the only allocation on an otherwise arithmetic-only path.
+const FACTORS: Record<FactorType, { a: number; r: number }> = {
+  retrieval: { a: 1, r: 1 },
+  consolidation: { a: 0.5, r: 0.5 },
+  forgetting: { a: 0.3, r: 0.3 },
 };
 
 export class MemoryScorer {
@@ -59,12 +69,8 @@ export class MemoryScorer {
     return this.scoreFor('forgetting', concept);
   }
 
-  private scoreFor(type: 'retrieval' | 'consolidation' | 'forgetting', concept: Concept): number {
-    const factors = {
-      retrieval: { a: 1, r: 1 },
-      consolidation: { a: 0.5, r: 0.5 },
-      forgetting: { a: 0.3, r: 0.3 },
-    }[type];
+  private scoreFor(type: FactorType, concept: Concept): number {
+    const factors = FACTORS[type];
     return this.score(concept, {
       activation: concept.priority * factors.a,
       recency: factors.r,

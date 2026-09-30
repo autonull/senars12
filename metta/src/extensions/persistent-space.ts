@@ -1,6 +1,6 @@
 import { ArraySpace } from '../core/space.js';
 import type { MeTTaAtom } from '../types/ast.js';
-import { errMsg } from '@senars/util';
+import { errMsg, periodic } from '@senars/util';
 
 export interface PersistedSpaceData {
   id: string;
@@ -15,8 +15,8 @@ export interface PersistentSpaceOptions {
 }
 
 export class PersistentSpace extends ArraySpace {
-  private readonly opts: PersistentSpaceOptions;
-  private saveTimer: ReturnType<typeof setInterval> | undefined;
+  private readonly opts: PersistentSpaceOptions & Required<Pick<PersistentSpaceOptions, 'saveInterval'>>;
+  private stopSaveTimer: (() => void) | undefined;
 
   constructor(id: string, opts: PersistentSpaceOptions) {
     super(id);
@@ -48,24 +48,21 @@ export class PersistentSpace extends ArraySpace {
   }
 
   protected override onAdd(_atom: MeTTaAtom): void {
-    if (this.opts.autoSave && !this.saveTimer) {
-      // D9: guarded save + unref — a persist failure must neither crash the
-      // process nor hold the event loop open.
-      this.saveTimer = setInterval(() => {
+    if (this.opts.autoSave && !this.stopSaveTimer) {
+      // D9: guarded save on an unref'd timer — a persist failure must neither crash
+      // the process nor hold the event loop open.
+      this.stopSaveTimer = periodic(() => {
         this.persist().catch((error) => {
           console.error(`[metta] PersistentSpace '${this.id}' auto-save failed:`, error);
           PersistentSpace.failedSaves++;
         });
       }, this.opts.saveInterval);
-      this.saveTimer.unref();
     }
   }
 
   [Symbol.dispose](): void {
-    if (this.saveTimer) {
-      clearInterval(this.saveTimer);
-      this.saveTimer = undefined;
-    }
+    this.stopSaveTimer?.();
+    this.stopSaveTimer = undefined;
     // D9: final flush — dispose must not lose up to saveInterval of writes.
     void this.persist().catch((error) => {
       console.error(`[metta] PersistentSpace '${this.id}' final save failed:`, error);

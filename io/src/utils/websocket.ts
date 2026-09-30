@@ -1,12 +1,11 @@
-import { makeId, toError } from '@senars/util';
-import { addToSet } from '@senars/util';
+import { addToSet, makeId, periodic, toError } from '@senars/util';
 import { WebSocket } from 'ws';
 
 export interface WSClient {
   ws: WebSocket;
   id: string;
   subscriptions: Set<string>;
-  heartbeat: NodeJS.Timeout;
+  stopHeartbeat: () => void;
   lastSeen: number;
 }
 
@@ -27,7 +26,7 @@ export const createWSClient = (
     ws,
     id,
     subscriptions: new Set(),
-    heartbeat: setInterval(() => sendHeartbeat(ws), heartbeatInterval),
+    stopHeartbeat: periodic(() => sendHeartbeat(ws), heartbeatInterval),
     lastSeen: Date.now(),
   };
 
@@ -41,12 +40,12 @@ export const createWSClient = (
   });
 
   ws.on('close', () => {
-    clearInterval(client.heartbeat);
+    client.stopHeartbeat();
     onClose?.(client);
   });
 
   ws.on('error', (err) => {
-    clearInterval(client.heartbeat);
+    client.stopHeartbeat();
     onError?.(err, client);
   });
 
@@ -55,7 +54,7 @@ export const createWSClient = (
 };
 
 export const cleanupWSClient = (client: WSClient, code = 1000, reason = 'Server closing'): void => {
-  clearInterval(client.heartbeat);
+  client.stopHeartbeat();
   if (client.ws.readyState === WebSocket.OPEN) {
     client.ws.close(code, reason);
   }

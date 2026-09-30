@@ -7,7 +7,7 @@
  * nothing (C2').
  */
 
-import type { Episode } from '@senars/util';
+import { type Episode, sortBy } from '@senars/util';
 import { type Clock, SystemClock } from '../clock.js';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import { causalConnections, episodeSalience } from '../memory/episode-consolidator.js';
@@ -69,22 +69,25 @@ export const episodeQualitySurface = (
     reject: 0,
     abandon: 0,
   };
-  return episodes
-    .map((e): { at: number; quality: number } | null => {
-      if (e.type === 'dialogue') {
-        const grounding = (e.metadata as { grounding?: { score?: number } } | undefined)?.grounding;
-        return grounding && typeof grounding.score === 'number'
-          ? { at: e.timestamp, quality: grounding.score }
-          : null;
-      }
-      if (e.type === 'reaction') {
-        const kind = String((e.metadata as { kind?: unknown } | undefined)?.kind ?? '');
-        return { at: e.timestamp, quality: reactionQuality[kind] ?? 0.5 };
-      }
-      return null;
-    })
-    .filter((s): s is { at: number; quality: number } => s !== null)
-    .sort((a, b) => a.at - b.at);
+  return sortBy(
+    episodes
+      .map((e): { at: number; quality: number } | null => {
+        if (e.type === 'dialogue') {
+          const grounding = (e.metadata as { grounding?: { score?: number } } | undefined)
+            ?.grounding;
+          return grounding && typeof grounding.score === 'number'
+            ? { at: e.timestamp, quality: grounding.score }
+            : null;
+        }
+        if (e.type === 'reaction') {
+          const kind = String((e.metadata as { kind?: unknown } | undefined)?.kind ?? '');
+          return { at: e.timestamp, quality: reactionQuality[kind] ?? 0.5 };
+        }
+        return null;
+      })
+      .filter((s): s is { at: number; quality: number } => s !== null),
+    (s) => s.at
+  );
 };
 
 export class MemoryQuery {

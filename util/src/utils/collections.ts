@@ -213,6 +213,15 @@ export function addToSet<K, T>(map: Map<K, Set<T>>, key: K, value: T): void {
   getOrInsert(map, key, () => new Set<T>()).add(value);
 }
 
+/** Remove from a per-key set, dropping the key once its set empties — otherwise an
+ *  index over concepts or links accumulates a bucket per key ever seen. */
+export function removeFromSet<K, T>(map: Map<K, Set<T>>, key: K, value: T): void {
+  const bucket = map.get(key);
+  if (!bucket) return;
+  bucket.delete(value);
+  if (bucket.size === 0) map.delete(key);
+}
+
 /**
  * Drop-oldest bounded buffer — the single AIKR ring behind every bounded log
  * (revision history, decision logs, execution history, reward history). O(1)

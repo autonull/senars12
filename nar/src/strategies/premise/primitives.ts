@@ -1,3 +1,4 @@
+import { sortByDesc } from '@senars/util';
 import { GRAPH_MEMORY, type RecallHit } from '../../memory/associative.js';
 import type { Concept } from '../../memory/concept.js';
 import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';
@@ -273,13 +274,18 @@ const CURRIED_FILTER_DEFAULTS = { highConfidence: 0.7 } as const;
 
 type CurriedFilterName = keyof typeof CURRIED_FILTER_DEFAULTS;
 
-const known = (registry: object) => Object.keys(registry).sort().join(', ');
+// Computed once: `resolveFilters`/`resolveScorer` run per sampled concept per
+// cycle, and these only ever reach an error message.
+const known = (registry: object): string => Object.keys(registry).sort().join(', ');
 
 const noSuch = (kind: string, name: string, candidates: string) =>
   new ConfigurationError(`premise config: no ${kind} named '${name}' (available: ${candidates})`);
 
+const FILTER_NAMES = known(PREMISE_FILTER_REGISTRY);
+const SCORER_NAMES = known(PREMISE_SCORER_REGISTRY);
+
 function resolveFilters(filters: FilterSpec[]): PremiseFilter[] {
-  const candidates = known(PREMISE_FILTER_REGISTRY);
+  const candidates = FILTER_NAMES;
   return filters.map((spec) => {
     if (typeof spec === 'object')
       return PREMISE_FILTER_REGISTRY.highConfidence.create(spec.highConfidence);
@@ -304,7 +310,7 @@ export function resolveScorer(
   scorer: SampleConfig['scorer']
 ): PremiseScorer | undefined {
   if (!scorer) return undefined;
-  const candidates = known(PREMISE_SCORER_REGISTRY);
+  const candidates = SCORER_NAMES;
   if (typeof scorer === 'string') {
     const entry = PREMISE_SCORER_REGISTRY[scorer as keyof typeof PREMISE_SCORER_REGISTRY];
     if (!entry) throw noSuch('scorer', scorer, candidates);
@@ -342,21 +348,23 @@ export function samplePremisesFromConfig(
 
   const filterFns = resolveFilters(merged.filters);
 
-  const scored = concepts
-    .map((c) => ({
-      concept: c,
-      score: strengthIndex ? (strengthIndex.get(c.term) ?? 0) : scorerFn(task, c),
-    }))
-    .filter(({ score }) => score >= merged.minScore)
-    .filter(({ concept }) => {
-      if (merged.skipSameTerm && termsEqual(concept.term, task.term)) return false;
-      if (merged.where && !merged.where(task, concept)) return false;
-      for (const filter of filterFns) {
-        if (!filter(task, concept)) return false;
-      }
-      return true;
-    })
-    .sort((a, b) => b.score - a.score);
+  const scored = sortByDesc(
+    concepts
+      .map((c) => ({
+        concept: c,
+        score: strengthIndex ? (strengthIndex.get(c.term) ?? 0) : scorerFn(task, c),
+      }))
+      .filter(({ score }) => score >= merged.minScore)
+      .filter(({ concept }) => {
+        if (merged.skipSameTerm && termsEqual(concept.term, task.term)) return false;
+        if (merged.where && !merged.where(task, concept)) return false;
+        for (const filter of filterFns) {
+          if (!filter(task, concept)) return false;
+        }
+        return true;
+      }),
+    (entry) => entry.score
+  );
 
   for (const { concept } of scored) {
     const belief = concept.beliefBag.peek();

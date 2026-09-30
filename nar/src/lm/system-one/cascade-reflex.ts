@@ -1,5 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { sha256Hex } from '@senars/util';
+import { sha256Hex, sortByDesc } from '@senars/util';
 import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
 import { type JudgmentProvenance, stageProvenance } from './decide.js';
@@ -70,12 +70,13 @@ export class PlacementCascadeReflex implements Reflex<Perception, string> {
         legalActions.map(COARSE_QUERY),
         budget
       );
-      const ranked = legalActions
-        .map((action, i) => {
+      const ranked = sortByDesc(
+        legalActions.map((action, i) => {
           const p = coarse[i];
           return { i, action, p: p && !p.abstained && p.kind === 'evaluate' ? p.score : -1 };
-        })
-        .sort((a, b) => b.p - a.p);
+        }),
+        (r) => r.p
+      );
 
       if (ranked.length <= this.topK) {
         const rows = new Map<string, PrefetchEntry>();

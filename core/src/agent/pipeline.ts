@@ -1,7 +1,7 @@
 import type { EpisodicMemory } from '@senars/util';
 import { dispatch, type Middleware, PushQueue } from '@senars/util';
 import type { CognitiveEvent } from '@senars/util/types/cognitive';
-import type { ChatOptions, ChatStreamEvent } from '../ChatService.js';
+import type { ChatOptions, ChatStreamEvent } from '../chat.js';
 import type { LLMCortex } from '../cortex/LLMCortex.js';
 import type {
   CognitiveStimulus,

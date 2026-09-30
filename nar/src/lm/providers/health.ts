@@ -1,3 +1,4 @@
+import { periodic } from '@senars/util';
 import { recordLmProbe } from '../../metrics/index.js';
 import { cloudApiKey, LM_PROVIDER_NAMES, type LMSettings } from '../env-config.js';
 import {
@@ -117,7 +118,7 @@ export function startHealthProbes(
   rt: ProviderRuntime = getProviderRuntime()
 ): void {
   if (rt.healthProbeInterval) return;
-  rt.healthProbeInterval = setInterval(async () => {
+  rt.healthProbeInterval = periodic(async () => {
     for (const p of LM_PROVIDER_NAMES) {
       if (!canUseProvider(p, settings, rt)) continue;
       let ok = false;
@@ -147,12 +148,11 @@ export function startHealthProbes(
       }
     }
   }, intervalMs);
-  rt.healthProbeInterval.unref?.();
 }
 
 export function stopHealthProbes(rt: ProviderRuntime = getProviderRuntime()): void {
   if (rt.healthProbeInterval) {
-    clearInterval(rt.healthProbeInterval);
+    rt.healthProbeInterval();
     rt.healthProbeInterval = null;
   }
 }

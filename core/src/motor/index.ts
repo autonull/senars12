@@ -1,4 +1,3 @@
-export { type FeedbackEntry, FeedbackRegistry } from '../feedback/FeedbackRegistry.js';
 export type { AgentToolDeps } from '../memory/types.js';
 export { registerAgentTools } from './buildAgentTools.js';
 export {

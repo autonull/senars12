@@ -1,19 +1,15 @@
 import { LruCache } from '@senars/util';
 import type { Term } from '../terms';
-import { termParser } from '../terms';
+import { isValidAtomSymbol, termParser, toAtomSymbol } from '../terms';
 
 const COPULA = /(-->|<->|==>|<=>)/;
 const BINARY_OPS = ['-->', '<->', '==>', '<=>', '&&'] as const;
-
-/** Collapse every non-atom character run to a single '_'. Preserves '^' (operator marker)
- *  so the firewall can still block LLM-minted operators, and '-' for hyphenated words. */
-const sanitizeWord = (word: string): string => word.replace(/[^A-Za-z0-9_^-]+/g, '_');
 
 const snakeCaseWords = (operand: string): string =>
   operand
     .trim()
     .split(/\s+/)
-    .map(sanitizeWord)
+    .map(toAtomSymbol)
     .filter(Boolean)
     .join('_');
 
@@ -58,8 +54,8 @@ export const normalizeNarsese = (input: string): string => {
     if (COPULA.test(inner)) return `(${normalizeOperands(inner.trim())})`;
     const words = inner.trim().split(/\s+/).filter(Boolean);
     if (words.length === 0) return m;
-    if (words.length === 1 && /^[A-Za-z0-9_^\-]+$/.test(words[0]!)) return m;
-    return `(${words.map(sanitizeWord).join('_')})`;
+    if (words.length === 1 && isValidAtomSymbol(words[0]!)) return m;
+    return `(${words.map(toAtomSymbol).join('_')})`;
   });
 
   // "(A) --> (B)" → "((A) --> (B))"; bare "A && B" → "(A && B)"

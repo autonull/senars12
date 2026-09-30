@@ -32,12 +32,6 @@ export const isEquivalence = createTypeGuard('equivalence');
 export const isConjunction = createTypeGuard('conjunction');
 export const isDisjunction = createTypeGuard('disjunction');
 export const isNegation = createTypeGuard('negation');
-export const isInstance = createTypeGuard('instance');
-export const isProperty = createTypeGuard('property');
-export const isSequence = createTypeGuard('sequence');
-export const isParallel = createTypeGuard('parallel');
-export const isPredictive = createTypeGuard('predictive');
-export const isRetrospective = createTypeGuard('retrospective');
 export const isOperation = createTypeGuard('operation');
 
 const getRoleArg = (
@@ -56,8 +50,10 @@ export const getAntecedent = (term: Term): Term | undefined =>
 export const getConsequent = (term: Term): Term | undefined =>
   getRoleArg(term, 1, 'implication', 'equivalence');
 
+const NO_ARGS: readonly Term[] = Object.freeze([]);
+
 export const getArgs = (term: Term): readonly Term[] =>
-  term.kind === 'atom' ? [] : (term.args ?? []);
+  term.kind === 'atom' ? NO_ARGS : (term.args ?? []);
 export const sameKind = (a: Term, b: Term): boolean => a.kind === b.kind;
 
 /** Structural term equality. `undefined` is accepted so optional-arg probes need no guard. */
@@ -124,55 +120,84 @@ export const termSize = (term: Term): number => {
 
 /**
  * Terms are interned by `TermFactory`, so structurally equal terms are the same
- * object and the key is computed once per term rather than once per lookup.
- * A `WeakMap` keyed on identity holds no term alive: an evicted term takes its
- * key with it, and a term built outside the factory simply misses the cache.
+ * object and a fact derived from one is computed once rather than once per
+ * lookup. Every derived fact — the structural key, the symbol bag, the set of
+ * subterm keys — lives in this one `WeakMap`, because each is the same argument
+ * made three times and a second cache is a second thing to forget.
+ *
+ * Keyed on identity and holding only value types, so an evicted term takes its
+ * facts with it, and a term built outside the factory simply misses the cache.
+ * Fields are filled on first read rather than in one pass: a term is very often
+ * asked only for its key.
  */
-const termKeyCache = new WeakMap<Term, string>();
+interface TermFacts {
+  key?: string;
+  symbols?: ReadonlySet<string>;
+  subterms?: ReadonlySet<string>;
+}
+
+const factsCache = new WeakMap<Term, TermFacts>();
+
+const factsOf = (term: Term): TermFacts => {
+  const cached = factsCache.get(term);
+  if (cached) return cached;
+  const fresh: TermFacts = {};
+  factsCache.set(term, fresh);
+  return fresh;
+};
 
 /** An atom's key without building the term — the read side of `termKey` for callers holding a symbol. */
 export const atomKey = (symbol: string): string => `atom:${symbol}`;
 
 /** Canonical structural key for a term — the single identity used for maps, memoization, and link ids. */
 export const termKey = (term: Term): string => {
-  const cached = termKeyCache.get(term);
-  if (cached !== undefined) return cached;
+  const facts = factsOf(term);
+  if (facts.key !== undefined) return facts.key;
   const key = isAtomic(term)
     ? atomKey(term.symbol)
     : `${term.kind}:${getArgs(term).map(termKey).join(',')}`;
-  termKeyCache.set(term, key);
+  facts.key = key;
   return key;
 };
 
-export const containsSubterm = (term: Term, target: Term): boolean => {
-  let found = false;
+/** Every atomic symbol mentioned anywhere in the term. */
+export const atomicSymbols = (term: Term): ReadonlySet<string> => {
+  const facts = factsOf(term);
+  if (facts.symbols) return facts.symbols;
+  const symbols = new Set<string>();
   walkTerms(term, (t) => {
-    if (found) return false;
-    if (termsEqual(t, target)) found = true;
+    if (isAtomic(t)) symbols.add(t.symbol);
   });
-  return found;
+  facts.symbols = symbols;
+  return symbols;
 };
 
+/**
+ * `termKey` of every node in the term's subtree, the root included.
+ * `termKey` equality is structural equality — two terms with the same key agree
+ * on kind, arity and every argument recursively — so membership here is exactly
+ * "this term occurs somewhere in the other".
+ */
+const subtermKeys = (term: Term): ReadonlySet<string> => {
+  const facts = factsOf(term);
+  if (facts.subterms) return facts.subterms;
+  const keys = new Set<string>();
+  walkTerms(term, (t) => {
+    keys.add(termKey(t));
+  });
+  facts.subterms = keys;
+  return keys;
+};
+
+export const containsSubterm = (term: Term, target: Term): boolean =>
+  subtermKeys(term).has(termKey(target));
+
 export const sharesSymbol = (a: Term, b: Term): boolean => {
-  const aSyms = collectAtomicSymbols(a);
-  const bSyms = collectAtomicSymbols(b);
+  const aSyms = atomicSymbols(a);
+  const bSyms = atomicSymbols(b);
   for (const s of aSyms) if (bSyms.has(s)) return true;
   return false;
 };
 
-export const mentionsSymbol = (term: Term, symbol: string): boolean => {
-  let found = false;
-  walkTerms(term, (t) => {
-    if (found) return false;
-    if (isAtomic(t) && t.symbol === symbol) found = true;
-  });
-  return found;
-};
-
-/** Every atomic symbol mentioned anywhere in the term. */
-export const collectAtomicSymbols = (term: Term, set = new Set<string>()): Set<string> => {
-  walkTerms(term, (t) => {
-    if (isAtomic(t)) set.add(t.symbol);
-  });
-  return set;
-};
+export const mentionsSymbol = (term: Term, symbol: string): boolean =>
+  atomicSymbols(term).has(symbol);

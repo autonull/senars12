@@ -1,5 +1,5 @@
 import {
-  collectAtomicSymbols,
+  atomicSymbols,
   containsSubterm,
   foldTerm,
   isAtomic,
@@ -313,10 +313,10 @@ describe('term metrics', () => {
     expect(containsSubterm(t, TermBuilder.atom('fish'))).toBe(false);
   });
 
-  test('mentionsSymbol and collectAtomicSymbols read the same bag', () => {
+  test('mentionsSymbol and atomicSymbols read the same bag', () => {
     const t = tree();
     expect(mentionsSymbol(t, 'flies')).toBe(true);
     expect(mentionsSymbol(t, 'swims')).toBe(false);
-    expect([...collectAtomicSymbols(t)].sort()).toEqual(['animal', 'bird', 'flies']);
+    expect([...atomicSymbols(t)].sort()).toEqual(['animal', 'bird', 'flies']);
   });
 });
