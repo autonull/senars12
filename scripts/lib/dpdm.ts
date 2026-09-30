@@ -1,8 +1,9 @@
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { promisify } from 'node:util';
 import { ROOT } from './root.js';
 
 /** Source roots analysed for circular imports by every dpdm-based gate. */
@@ -27,6 +28,31 @@ const dpdmBin = (): string => {
   return join(dirname(requireFromRoot.resolve('dpdm/package.json')), relative);
 };
 
+const dpdmArgs = (outPath: string, transform: boolean): string[] => [
+  dpdmBin(),
+  '--circular',
+  '--warning',
+  'false',
+  '--skip-dynamic-imports',
+  'circular',
+  ...(transform ? ['--transform'] : ['tree']),
+  '-o',
+  outPath,
+  ...DPDM_TARGETS,
+];
+
+const readChains = (outPath: string): string[][] =>
+  JSON.parse(readFileSync(outPath, 'utf-8')).circulars as string[][];
+
+const withWorkDir = async <T>(use: (outPath: string) => Promise<T>): Promise<T> => {
+  const workDir = mkdtempSync(join(tmpdir(), 'dpdm-'));
+  try {
+    return await use(join(workDir, 'deps.json'));
+  } finally {
+    rmSync(workDir, { recursive: true, force: true });
+  }
+};
+
 /**
  * Raw circular dependency chains from dpdm. `--transform` resolves types through
  * the TS transform, so type-only edges no longer count as cycles.
@@ -35,23 +61,11 @@ export const circularChains = ({ transform = true }: { transform?: boolean } = {
   const workDir = mkdtempSync(join(tmpdir(), 'dpdm-'));
   const outPath = join(workDir, 'deps.json');
   try {
-    execFileSync(
-      process.execPath,
-      [
-        dpdmBin(),
-        '--circular',
-        '--warning',
-        'false',
-        '--skip-dynamic-imports',
-        'circular',
-        ...(transform ? ['--transform'] : ['tree']),
-        '-o',
-        outPath,
-        ...DPDM_TARGETS,
-      ],
-      { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] }
-    );
-    return JSON.parse(readFileSync(outPath, 'utf-8')).circulars as string[][];
+    execFileSync(process.execPath, dpdmArgs(outPath, transform), {
+      cwd: ROOT,
+      stdio: ['ignore', 'ignore', 'inherit'],
+    });
+    return readChains(outPath);
   } finally {
     rmSync(workDir, { recursive: true, force: true });
   }
@@ -60,3 +74,18 @@ export const circularChains = ({ transform = true }: { transform?: boolean } = {
 /** Number of raw circular chains — the metric the gates budget against. */
 export const countCircularChains = (options: { transform?: boolean } = {}): number =>
   circularChains(options).length;
+
+/**
+ * The same report, awaited. Gates that measure several slow signals at once
+ * (LOC, cycles, typecheck) need dpdm off the blocking path, or running the
+ * three in parallel costs exactly as much as the slowest of them serially.
+ */
+export const circularChainsAsync = ({
+  transform = true,
+}: {
+  transform?: boolean;
+} = {}): Promise<string[][]> =>
+  withWorkDir(async (outPath) => {
+    await promisify(execFile)(process.execPath, dpdmArgs(outPath, transform), { cwd: ROOT });
+    return readChains(outPath);
+  });
