@@ -5,6 +5,7 @@
  * `--testing` uses the deterministic testing factory (replaces multi-agent-demo).
  */
 
+import { mettaPort } from './metta.js';
 import { NARBuilder } from '@senars/nar/agent/builder';
 import { parseFlags } from '@senars/util';
 import { runMultiAgent } from './multi-agent-runner.js';
@@ -34,6 +35,7 @@ export const runMultiAgentEntry = async (): Promise<void> => {
           maxDerivationDepth: testing ? 20 : undefined,
           enableLMRules: true,
         })
+        .withMetta(mettaPort())
         .build(),
   });
 };

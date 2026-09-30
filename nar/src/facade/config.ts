@@ -1,4 +1,5 @@
 import type { AutonomyMode, ReasoningBudget } from '@senars/core/derivation-schemas';
+import type { MettaPort } from '@senars/core/metta-port';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import type { CognitiveRegistry } from '../cognitive';
@@ -39,6 +40,12 @@ export interface NARConfig extends CoreConfig {
   enableBidirectionalFeedback?: boolean;
   enableProactiveEnrichment?: boolean;
   enableLMStreaming?: boolean;
+  /**
+   * MeTTa engine seam. `metta` sits above `nar` in the layering, so the engine
+   * is injected by the composition root rather than imported. Absent ⇒ the
+   * `metta` tool reports `metta engine not configured`.
+   */
+  metta?: MettaPort;
   persistState?: boolean;
   statePath?: string;
 

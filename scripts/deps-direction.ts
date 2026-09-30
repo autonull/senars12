@@ -1,41 +1,47 @@
 #!/usr/bin/env tsx
 /**
- * Direction gate: fails when a package imports a package that sits *above* it
- * in the declared layering.
+ * Layering gate: fails when a package import breaks the dependency direction.
  *
- * `deps:gate` counts cycles and compares a number, which is why the layering
- * inversion that let `@senars/kernel` import `@senars/nar` while its manifest
- * declared only `zod` was invisible: an inversion is not a cycle, and a cycle
- * count cannot see one. This gate reads the same manifests for the layer
- * order and then reads the imports, so the *class* of defect fails rather than
- * the instance.
+ * `deps:gate` counts cycles and compares a number, which is why the inversion
+ * that let `@senars/kernel` import `@senars/nar` while its manifest declared
+ * only `zod` was invisible: an inversion is not a cycle, and a cycle count
+ * cannot see one. This gate reads the manifests for the layer order and the
+ * declared edges, then reads the imports, so the *class* of defect fails
+ * rather than the instance.
  *
- * Two rules, both deliberately narrow:
+ * Two rules, both from what the previous version of this gate got wrong:
  *
- *  - **Value edges only.** `import type` is erased at compile time and cannot
- *    form a runtime cycle, so dpdm's `--transform` mode excludes it too. A
- *    type-only upward edge is a smell, not a layering break.
- *  - **`ALLOWED_UPWARD` is a ledger, not a waiver.** Every entry names a
- *    pre-existing inversion and what would break it. A new upward edge is not
- *    added to the list; it is fixed.
+ *  - **Declared means declared.** A package that imports another must declare
+ *    it in `dependencies`. The kernel package's manifest said `zod` only and
+ *    nothing in CI compared the imports against it; the same held for
+ *    `nar → metta`, where `nar/package.json` named no MeTTa dependency at all.
+ *  - **Dynamic imports count.** `await import('@senars/metta')` is a value edge
+ *    at runtime, and it is what the whole `nar → metta` inversion consisted of
+ *    once the static import went. A static-only scan reported the edge closed
+ *    while three of its four sites were still live.
+ *
+ * There is no type-only exemption. `import type` is erased at compile time,
+ * but a package naming a package above it is the layering claim being made,
+ * and the tree needs no exemption from one.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { errMsg } from '@senars/util';
+import { importEdges } from './lib/imports.js';
+import { readPackageJson } from './lib/pkg.js';
 import { ROOT } from './lib/root.js';
 
 /** Bottom of the stack first. A package may import anything at or below itself. */
 const LAYERS = ['util', 'core', 'io', 'nar', 'metta'] as const;
+type Layer = (typeof LAYERS)[number];
 
-const layerOf = (pkg: string): number => LAYERS.indexOf(pkg as (typeof LAYERS)[number]);
+const layerOf = (pkg: string): number => LAYERS.indexOf(pkg as Layer);
 
 /**
- * The known upward value edges, each with the seam that would break it. These
+ * The known upward edges, each with the seam that would break it. These
  * predate the gate; every one is a real inversion, not a permitted design.
+ * Empty means the layering is clean, not that the rule was relaxed.
  */
-const ALLOWED_UPWARD: Record<string, string> = {
-  'nar -> metta': 'nar/agent/index.ts constructs `MettaEngine` directly; the MeTTa engine seam should be injected.',
-};
+const ALLOWED_UPWARD: Record<string, string> = {};
 
 const sourceFiles = (dir: string): string[] =>
   readdirSync(dir).flatMap((entry) => {
@@ -43,38 +49,54 @@ const sourceFiles = (dir: string): string[] =>
     return statSync(path).isDirectory() ? sourceFiles(path) : path.endsWith('.ts') ? [path] : [];
   });
 
-/** `import`/`export ... from '@senars/x'` — bare specifiers, skipping `import type`. */
-const crossPackageImports = (file: string): { pkg: string; typeOnly: boolean }[] => {
-  const source = readFileSync(file, 'utf-8');
-  const out: { pkg: string; typeOnly: boolean }[] = [];
-  const statement = /(^|\n)\s*(import|export)\s+([\s\S]*?)from\s+'(@senars\/([a-z]+)[^']*)'/g;
-  for (const [, , kind, clause, , pkg] of source.matchAll(statement)) {
-    if (!LAYERS.includes(pkg as (typeof LAYERS)[number])) continue;
-    out.push({ pkg, typeOnly: kind === 'import' && /^\s*type\b/.test(clause) });
-  }
-  return out;
+const specifierPkg = (specifier: string): Layer | undefined => {
+  const pkg = /^@senars\/([a-z]+)(?:\/|$)/.exec(specifier)?.[1];
+  return pkg && (LAYERS as readonly string[]).includes(pkg) ? (pkg as Layer) : undefined;
 };
+
+const lineAt = (source: string, offset: number): number => source.slice(0, offset).split('\n').length;
 
 const violations: string[] = [];
 
 for (const pkg of LAYERS) {
-  const files = sourceFiles(join(ROOT, pkg, 'src'));
-  const upward = new Map<string, string>();
-  for (const file of files) {
-    for (const { pkg: target, typeOnly } of crossPackageImports(file)) {
-      if (typeOnly || layerOf(target) <= layerOf(pkg)) continue;
-      upward.set(`${pkg} -> ${target}`, relative(ROOT, file));
+  const manifest = readPackageJson(ROOT, pkg);
+  const declared = new Set(Object.keys(manifest?.dependencies ?? {}));
+  const seen = new Set<string>();
+
+  for (const file of sourceFiles(join(ROOT, pkg, 'src'))) {
+    const source = readFileSync(file, 'utf-8');
+    for (const edge of importEdges(source)) {
+      const target = specifierPkg(edge.specifier);
+      if (!target) continue;
+      const witness = `${relative(ROOT, file)}:${lineAt(source, edge.offset)}`;
+      const key = `${witness} ${edge.specifier}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const where = `${witness} — ${edge.dynamic ? `import('${edge.specifier}')` : `imports '${edge.specifier}'`}`;
+
+      if (target === pkg) {
+        violations.push(
+          `  ${where}\n      names its own package; a relative import says the same without a\n      resolution hop through the workspace root`
+        );
+        continue;
+      }
+      if (!declared.has(`@senars/${target}`)) {
+        violations.push(
+          `  ${pkg} -> ${target} — ${witness} loads it but ${pkg}/package.json does not declare it`
+        );
+        continue;
+      }
+      if (layerOf(target) <= layerOf(pkg)) continue;
+      if (`${pkg} -> ${target}` in ALLOWED_UPWARD) continue;
+      violations.push(`  ${pkg} -> ${target} — ${witness}${edge.dynamic ? ' (dynamic)' : ''}`);
     }
-  }
-  for (const [edge, witness] of upward) {
-    if (edge in ALLOWED_UPWARD) continue;
-    violations.push(`  ${edge} — ${witness}`);
   }
 }
 
 if (violations.length > 0) {
-  console.error('deps:direction FAILED — a package imports one above it in the layering:');
-  for (const v of violations) console.error(v);
+  console.error('deps:direction FAILED — a package import breaks the declared layering:');
+  for (const violation of violations) console.error(violation);
   console.error(
     `\n${LAYERS.join(' < ')}. Fix the import, or — if the seam is genuinely not ready — record\n` +
       'the edge in ALLOWED_UPWARD with the reason it cannot be broken yet.'
@@ -84,7 +106,7 @@ if (violations.length > 0) {
 
 const ledger = Object.entries(ALLOWED_UPWARD);
 console.log(
-  `deps:direction ok — no upward value edges` +
+  `deps:direction ok — every @senars import is declared, relative and downward` +
     (ledger.length > 0 ? ` (${ledger.length} known inversion(s) in the ledger)` : '')
 );
 for (const [edge, reason] of ledger) console.log(`  known: ${edge} — ${reason}`);

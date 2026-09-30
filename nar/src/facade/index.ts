@@ -7,7 +7,6 @@
  */
 import { makeId, truncate } from '@senars/util';
 import type { SelfImprovementProposal } from '@senars/core/derivation-schemas';
-import type { MeTTaRuntime } from '@senars/metta';
 import type { LanguageModel } from 'ai';
 import { createBootstrapTasks } from '../drives';
 import type { LMService, SeNARSRegistry } from '../lm';
@@ -26,6 +25,9 @@ import { createLogger } from '@senars/core/logger';
 import { errMsg } from '../utils';
 
 const logger = createLogger({ scope: 'nar:facade' });
+
+/** Shared with `core`'s builtin `metta` tool, so both report the same absence. */
+const METTA_UNCONFIGURED = 'metta engine not configured';
 
 const initialized = new WeakSet<NAR>();
 const toolsInitialized = new WeakSet<NAR>();
@@ -113,14 +115,10 @@ export const initializeTools = (nar: NAR): void => {
     nar.tools.register(tool);
   }
 
-  // Metta tool — delegates to MeTTa runtime for exact computation
-  // Lazy-load MeTTa runtime to avoid circular deps
-  let mettaRuntime: MeTTaRuntime | undefined;
-  const getMettaRuntime = async (): Promise<MeTTaRuntime> => {
-    mettaRuntime ??= (await import('@senars/metta')).createMeTTa();
-    return mettaRuntime;
-  };
-
+  // Metta tool — delegates to the injected MeTTa port for exact computation.
+  // Absent a port the tool is still registered and fails honestly, so the
+  // tool surface does not change shape with the engine's presence.
+  const metta = nar.getConfig().metta;
   nar.tools.register({
     name: 'metta',
     description: 'Evaluate a MeTTa expression',
@@ -132,15 +130,11 @@ export const initializeTools = (nar: NAR): void => {
       required: ['program'],
     },
     execute: async (args: { program: string }) => {
+      if (!metta) return { success: false, content: null, error: METTA_UNCONFIGURED };
       try {
-        const { Effect } = await import('effect');
-        const { parseMeTTa } = await import('@senars/metta');
-        const runtime = await getMettaRuntime();
-        const evaluated = runtime.evaluate(parseMeTTa(args.program));
-        // Handle both Effect and Promise (some versions may auto-run). Running it
-        // is the point: the program is returned as confirmation that it loaded.
-        await (evaluated instanceof Promise ? evaluated : Effect.runPromise(evaluated));
-        return { success: true, content: args.program, error: undefined };
+        // Running the program is the point: the source is returned as the
+        // engine's confirmation that it loaded.
+        return { success: true, content: await metta.loadProgram(args.program) };
       } catch (e) {
         return { success: false, content: null, error: errMsg(e) };
       }

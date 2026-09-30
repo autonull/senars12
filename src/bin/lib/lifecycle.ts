@@ -25,6 +25,7 @@ import {
 import { cachePath, setupGracefulShutdown } from '@senars/util';
 import { type AppConfig, loadConfig } from '../../config/index.js';
 import { readEpisodicConfig } from './env-config.js';
+import { mettaPort } from './metta.js';
 
 export interface AgentFromEnvOptions {
   narConfig?: Partial<NARConfig>;
@@ -108,6 +109,7 @@ export async function createAgentFromEnv(
       ...(appConfig.systemOne ? { systemOne: appConfig.systemOne } : {}),
     })
     .withMemory(episodicMemory)
+    .withMetta(mettaPort())
     .withSessionManager(sessionManager)
     .withProfile({
       name: appConfig.profile.name,

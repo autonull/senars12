@@ -9,8 +9,7 @@ import { createCortexFromLM } from '@senars/core/cortex';
 import { isNarsese } from '@senars/core/helpers';
 import type { PersistableSessionManager } from '@senars/core/memory';
 import { registerAgentTools } from '@senars/core/motor';
-import { MettaEngine } from '@senars/metta/agent';
-import type { EpisodicMemory, LMService, NAR } from '@senars/nar';
+import type { EpisodicMemory, LMService, NAR } from '../index.js';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
 import { clamp } from '@senars/util/utils/shared';
@@ -147,17 +146,17 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
   const cortex = config.lmService ? createCortexFromLM(config.lmService, promptBuilder) : undefined;
 
   const pinStore = new Map<string, string>();
-  const { MettaCommandParser, MettaEngine } = await import('@senars/metta/agent');
-  // MeTTa is a tool, not a reasoning engine: instantiated only to back
-  // the `metta` builtin tool via mettaExecutor. Never registered as an engine.
-  const mettaEngine = new MettaEngine();
+  // MeTTa is a tool, not a reasoning engine: it backs the `metta` builtin tool
+  // and the command parser, and is never registered as an engine. Absent a
+  // port the tool reports `metta engine not configured` and parsing is skipped.
+  const metta = config.metta;
 
   // Create NAR with shared feedback observer if not provided
   let narInstance = config.nar;
   if (!narInstance) {
     const { NAR } = await import('../nar.js');
     const { DEFAULT_CONFIG } = await import('../types/index.js');
-    narInstance = new NAR({ ...DEFAULT_CONFIG, feedbackObserver });
+    narInstance = new NAR({ ...DEFAULT_CONFIG, feedbackObserver, metta });
   }
 
   // Wire System One groundedness gate + trace grader if available
@@ -208,10 +207,10 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
   const agent = new Agent({
     log,
     cortex,
-    commandParser: (text: string) => new MettaCommandParser().parse(text),
+    commandParser: metta && ((text: string) => metta.parseCommands(text)),
     builtinTools: true,
     episodicMemory: config.episodicMemory,
-    mettaExecutor: (expr) => mettaEngine.query(expr),
+    mettaExecutor: metta && ((expr: string) => metta.query(expr)),
     pinStore: {
       pin: (key: string, value: string) => void pinStore.set(key, value),
       unpin: (key?: string) => {
@@ -248,7 +247,10 @@ let delegationDepth = 0;
  */
 const createDelegateRunner =
   (
-    base: Pick<CreateAgentConfig, 'nar' | 'lmService' | 'episodicMemory' | 'profile' | 'threadScope'>
+    base: Pick<
+      CreateAgentConfig,
+      'nar' | 'lmService' | 'episodicMemory' | 'profile' | 'threadScope' | 'metta'
+    >
   ): ((prompt: string) => Promise<string>) =>
   async (prompt: string) => {
     if (delegationDepth >= MAX_DELEGATION_DEPTH) {
@@ -260,6 +262,7 @@ const createDelegateRunner =
       episodicMemory: base.episodicMemory,
       profile: base.profile,
       threadScope: base.threadScope,
+      metta: base.metta,
     });
     delegationDepth++;
     try {

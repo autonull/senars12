@@ -68,6 +68,10 @@
       "types": "./src/bridge/ChatStreamHandler.ts",
       "import": "./src/bridge/ChatStreamHandler.ts"
     },
+    "./metta-port": {
+      "types": "./src/metta-port.ts",
+      "import": "./src/metta-port.ts"
+    },
     "./memory": {
       "types": "./src/memory/index.ts",
       "import": "./src/memory/index.ts"

@@ -9,6 +9,7 @@
  *   --budget Show budget slice tree (AIKR observability)
  */
 
+import { mettaPort } from './metta.js';
 import { existsSync, statSync } from 'node:fs';
 import { loadConfig } from '../../config/index.js';
 import { createLMService } from '@senars/nar';
@@ -47,7 +48,7 @@ const collect = async (): Promise<StatusReport> => {
       ? 'default'
       : 'config-file';
 
-  const nar = (await new NARBuilder().withLM(createLMService()).withNarConfig({ systemOne }).build()).nar;
+  const nar = (await new NARBuilder().withLM(createLMService()).withMetta(mettaPort()).withNarConfig({ systemOne }).build()).nar;
   const dataset = byteSize(systemOne.distillation.datasetPath);
   const lock = byteSize(CALIBRATION_LOCK_PATH);
   const report: StatusReport = {

@@ -26,6 +26,8 @@ export interface CognitiveAgentConfig {
   lmService?: CreateAgentConfig['lmService'];
   episodicMemory?: CreateAgentConfig['episodicMemory'];
   persistence?: CreateAgentConfig['persistence'];
+  /** MeTTa engine seam — `metta` sits above `nar`, so it is injected. */
+  metta?: CreateAgentConfig['metta'];
 }
 
 export interface AnswerEnvelope {
@@ -117,12 +119,14 @@ export async function createCognitiveAgent(config: CognitiveAgentConfig): Promis
     statePath,
     cognitiveParams,
     enableEmbeddingLayer: false,
+    metta: config.metta,
   });
 
   const agentConfig: CreateAgentConfig = {
     nar: narInstance,
     lmService: config.lmService,
     episodicMemory: config.episodicMemory,
+    metta: config.metta,
   };
 
   const agent = await createAgent(agentConfig);

@@ -6,6 +6,7 @@
  *        pnpm exec tsx src/bin/self-report.ts
  */
 
+import { mettaPort } from './lib/metta.js';
 import { NARBuilder } from '@senars/nar/agent/builder';
 import { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
 import { createLogger } from '@senars/core/logger';
@@ -50,6 +51,7 @@ async function main() {
   const nar = (
     await new NARBuilder()
       .withLM(lmService)
+      .withMetta(mettaPort())
       .withCapabilities({
         self: { enabled: true },
         rlfp: { enabled: true },

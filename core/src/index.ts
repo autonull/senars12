@@ -172,6 +172,8 @@ export type {
 } from './ModelRunner.js';
 /** Model runner. @public */
 export { ModelRunner } from './ModelRunner.js';
+/** The MeTTa seam `nar` consumes and `metta` implements. @public */
+export type { MettaPort } from './metta-port.js';
 /** Working + episodic memory service. @public */
 export { MemoryService } from './memory/MemoryService.js';
 /** Session managers. @public */

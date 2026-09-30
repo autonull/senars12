@@ -1,4 +1,5 @@
 import type { Agent, PromptBuilder } from '@senars/core';
+import type { MettaPort } from '@senars/core/metta-port';
 import type { LMService } from '../lm';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import type { SystemOneConfig } from '@senars/util/config';
@@ -77,6 +78,7 @@ export class NARBuilder {
   private gateConfig?: GateInitConfig;
   private persistence?: { path: string };
   private episodicMemory?: EpisodicMemory;
+  private metta?: MettaPort;
   private sessionManager?: CreateAgentConfig['sessionManager'];
   private profile?: CreateAgentConfig['profile'];
   private skills?: CreateAgentConfig['skills'];
@@ -155,6 +157,12 @@ export class NARBuilder {
   withMemory(episodicMemory: EpisodicMemory): this {
     this.episodicMemory = episodicMemory;
     return this.record('memory', true);
+  }
+
+  /** MeTTa engine seam — `metta` is above `nar`, so the engine is injected. */
+  withMetta(metta: MettaPort): this {
+    this.metta = metta;
+    return this.record('metta', true);
   }
 
   withSessionManager(sessionManager: CreateAgentConfig['sessionManager']): this {
@@ -265,6 +273,7 @@ export class NARBuilder {
         ? { enableRLFP: true, rlfp: this.capabilities.rlfp.params as NARConfig['rlfp'] }
         : {}),
       ...(this.capabilities.lmRules?.enabled ? { enableLMRules: true } : {}),
+      ...(this.metta ? { metta: this.metta } : {}),
       ...(this.narConfigOverrides.systemOne
         ? {}
         : systemOneEnabled
@@ -285,6 +294,7 @@ export class NARBuilder {
       nar,
       ...(this.lm ? { lmService: this.lm } : {}),
       ...(this.episodicMemory ? { episodicMemory: this.episodicMemory } : {}),
+      ...(this.metta ? { metta: this.metta } : {}),
       ...(this.persistence ? { persistence: this.persistence } : {}),
       ...(this.sessionManager ? { sessionManager: this.sessionManager } : {}),
       ...(this.profile ? { profile: this.profile } : {}),

@@ -5,7 +5,7 @@
  */
 
 
-import { BudgetSlice, type BudgetSliceOptions, createBudgetSlice, sliceBudget, isExhausted, consumeCycles, chargeAllocation, remainingAll, remainingCycles, resolveAllocation, type BudgetAllocation } from '@senars/core/budget';
+import { BudgetSlice, type BudgetSliceOptions, createBudgetSlice, sliceBudget, isExhausted, consumeCycles, chargeAllocation, remainingAll, remainingCycles, resolveAllocation, type BudgetAllocation } from './budget.js';
 import { makeId, toError } from '@senars/util';
 import { emitDomainEvent } from './event-sink.js';
 

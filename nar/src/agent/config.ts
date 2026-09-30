@@ -1,12 +1,15 @@
 import type { PromptBuilder } from '@senars/core';
 import type { PersistableSessionManager } from '@senars/core/memory';
-import type { EpisodicMemory, LMService, NAR } from '@senars/nar';
+import type { MettaPort } from '@senars/core/metta-port';
+import type { EpisodicMemory, LMService, NAR } from '../index.js';
 import type { ThreadScope } from '../kernel/thread-scope.js';
 
 export interface CreateAgentConfig {
   nar?: NAR;
   lmService?: LMService;
   episodicMemory?: EpisodicMemory;
+  /** MeTTa engine seam. Absent ⇒ no `metta` tool, no MeTTa command parsing. */
+  metta?: MettaPort;
   persistence?: { path: string };
   sessionId?: string;
   externalTools?: Record<string, unknown>;
