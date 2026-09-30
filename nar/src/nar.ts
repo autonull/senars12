@@ -17,7 +17,6 @@ import type { SelfMetaGameEvidence } from './governance/pipeline.js';
 import type { LMService, SeNARSRegistry } from './lm';
 import { getModelForTask, LMRules } from './lm';
 import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
-import { SystemOneIngressJudge } from './lm/system-one/ingress-judge.js';
 import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
 import { seedContrastiveMemory } from './lm/system-one/hard-negatives.js';
 import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
@@ -34,6 +33,7 @@ import { DEFAULT_COGNITIVE_PARAMETERS } from './config/cognitive-parameters.js';
 import { type GameAttachOptions, GameManager } from './facade/games.js';
 import { StatePersister } from './facade/persistence.js';
 import { SystemOneRuntime } from './facade/system-one.js';
+import { wireSystemOne } from './system-one-wiring.js';
 import {
   askNaturalLanguage,
   consolidateLearning,
@@ -72,7 +72,6 @@ import { ConfigurationError, DEFAULT_CONFIG, NarEventBus, type Task, type TaskTy
 const DERIVATION_RING_CAP = 256;
 
 import { errMsg } from './utils';
-import { createSystemOneBudget } from './lm/system-one/types.js';
 
 export type {
   NARConfig,
@@ -196,28 +195,15 @@ export class NAR extends BaseComponent {
     );
     this.cognitiveController.onDerivation((chain) => this.#recordDerivationChain(chain));
 
-    // Extracted subsystems. System One must initialize before gateRegistry.initialize
-    // to provide perceptionConfig.
-    this.systemOne = new SystemOneRuntime(config, {
+    // System One must initialize before gateRegistry.initialize: it supplies
+    // the perception config, or the absence of one.
+    const { systemOne, perceptionConfig } = wireSystemOne({
+      config: this.config,
       lmService: this._lmService,
       onJudgmentResolved: (proposition, query) => this.emitJudgmentResolved(proposition, query),
+      reputation: () => this.#sourceReputation,
     });
-
-    // Initialize gate registry with System One perception config if enabled
-    const perceptionConfig = this.config.systemOne?.enabled
-      ? {
-          systemOne: {
-            enabled: true,
-            judge: new SystemOneIngressJudge({
-              manifold: this.systemOne.manifold!,
-              embeddingCache: this.systemOne.embeddingCache!,
-              budget: this.config.systemOne.reasoningBudget ?? createSystemOneBudget(),
-              reputation: () => this.#sourceReputation,
-              provider: () => this._lmService?.provider,
-            }),
-          },
-        }
-      : undefined;
+    this.systemOne = systemOne;
 
     this.gates.initialize({
       initialBudget: {
