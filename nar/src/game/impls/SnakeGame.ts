@@ -99,8 +99,15 @@ export class SnakeGame implements Game<SnakeState, Direction> {
 
   private hits(next: Cell, state: SnakeState): boolean {
     if (next.r < 0 || next.c < 0 || next.r >= this.height || next.c >= this.width) return true;
-    const body = state.snake.slice(0, -1); // tail vacates unless growing
-    return body.some((s) => s.r === next.r && s.c === next.c);
+    // The tail vacates unless the snake is growing, so the last segment is not
+    // in the way — walked by index rather than sliced, because this runs once
+    // per direction per step over a body that reaches the whole grid.
+    const { snake } = state;
+    for (let i = 0, end = snake.length - 1; i < end; i++) {
+      const seg = snake[i]!;
+      if (seg.r === next.r && seg.c === next.c) return true;
+    }
+    return false;
   }
 
   legalActions(state: SnakeState): Direction[] {

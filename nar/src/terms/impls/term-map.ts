@@ -8,10 +8,13 @@
  * freshly-parsed terms address the same entry.
  */
 
-import { TermCollection } from './term-collection.js';
 import type { Term } from '../types.js';
+import { TermCollection } from './term-collection.js';
 
-type Entry<V> = { key: Term; value: V };
+export interface TermMapEntry<V> {
+  key: Term;
+  value: V;
+}
 
 export class TermMap<V> extends TermCollection<{ key: Term; value: V }> {
   get(term: Term): V | undefined {
@@ -38,7 +41,7 @@ export class TermMap<V> extends TermCollection<{ key: Term; value: V }> {
     return this.deleteItem(term);
   }
 
-  getEntries(): Entry<V>[] {
+  getEntries(): TermMapEntry<V>[] {
     return this.storage;
   }
 

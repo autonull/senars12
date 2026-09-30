@@ -122,8 +122,9 @@ export const termSize = (term: Term): number => {
  * Terms are interned by `TermFactory`, so structurally equal terms are the same
  * object and a fact derived from one is computed once rather than once per
  * lookup. Every derived fact — the structural key, the symbol bag, the set of
- * subterm keys — lives in this one `WeakMap`, because each is the same argument
- * made three times and a second cache is a second thing to forget.
+ * subterm keys, the bare inheritance pair — lives in this one `WeakMap`, because
+ * each is the same argument made repeatedly and a second cache is a second thing
+ * to forget.
  *
  * Keyed on identity and holding only value types, so an evicted term takes its
  * facts with it, and a term built outside the factory simply misses the cache.
@@ -134,6 +135,8 @@ interface TermFacts {
   key?: string;
   symbols?: ReadonlySet<string>;
   subterms?: ReadonlySet<string>;
+  /** `null` once computed and found absent — distinct from "not yet looked at". */
+  pair?: BareInheritance | null;
 }
 
 const factsCache = new WeakMap<Term, TermFacts>();
@@ -201,3 +204,51 @@ export const sharesSymbol = (a: Term, b: Term): boolean => {
 
 export const mentionsSymbol = (term: Term, symbol: string): boolean =>
   atomicSymbols(term).has(symbol);
+
+/** The two symbols of a bare `a --> b` pair. */
+export interface BareInheritance {
+  readonly subject: string;
+  readonly predicate: string;
+}
+
+/**
+ * The first bare inheritance pair mentioned anywhere in the term — `(bird --> animal)`
+ * when the term is that pair, and the pair a compound mentions when it is not.
+ *
+ * Reachability by shared subject or predicate is a question about the tree, and
+ * asking it of the term's *string* form re-derived structure the term already
+ * carried: a regex plus two string allocations per concept, on a caller that
+ * walks every concept in memory. Terms are interned, so the answer is computed
+ * once per term and shared by every reader; `null` is cached too, so the
+ * majority of concepts that mention no pair cost one `WeakMap` read.
+ */
+export const bareInheritancePair = (term: Term): BareInheritance | null => {
+  const facts = factsOf(term);
+  if (facts.pair !== undefined) return facts.pair;
+
+  let found: BareInheritance | null = null;
+  walkTerms(term, (t) => {
+    if (found || t.kind !== 'inheritance') return;
+    const [subject, predicate] = t.args ?? [];
+    if (subject?.kind === 'atom' && predicate?.kind === 'atom') {
+      found = { subject: subject.symbol, predicate: predicate.symbol };
+    }
+  });
+
+  facts.pair = found;
+  return found;
+};
+
+/** True when the two terms mention a bare inheritance pair sharing an end. */
+export const sharesInheritanceEnd = (a: Term, b: Term): boolean => {
+  const x = bareInheritancePair(a);
+  if (!x) return false;
+  const y = bareInheritancePair(b);
+  if (!y) return false;
+  return (
+    x.subject === y.subject ||
+    x.subject === y.predicate ||
+    x.predicate === y.subject ||
+    x.predicate === y.predicate
+  );
+};

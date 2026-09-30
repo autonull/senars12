@@ -118,6 +118,8 @@
 
 - `atomKey` — An atom's key without building the term — the read side of `termKey` for callers holding a symbol.
 
+- `bareInheritancePair` — The first bare inheritance pair mentioned anywhere in the term — `(bird --> animal)`
+
 - `containsSubterm`
 
 - `foldTerm` — Depth-first pre-order fold in visit order.
@@ -164,6 +166,8 @@
 
 - `serializeTerm`
 
+- `sharesInheritanceEnd` — True when the two terms mention a bare inheritance pair sharing an end.
+
 - `sharesSymbol`
 
 - `TermBuilder`
@@ -173,6 +177,8 @@
 - `type TermEdge`
 
 - `TermMap`
+
+- `type TermMapEntry`
 
 - `TermParser`
 
@@ -1200,6 +1206,8 @@ _Dynamic subpath (no single entry file)._
 
 - `atomKey` — An atom's key without building the term — the read side of `termKey` for callers holding a symbol.
 
+- `bareInheritancePair` — The first bare inheritance pair mentioned anywhere in the term — `(bird --> animal)`
+
 - `containsSubterm`
 
 - `foldTerm` — Depth-first pre-order fold in visit order.
@@ -1233,6 +1241,8 @@ _Dynamic subpath (no single entry file)._
 - `mentionsSymbol`
 
 - `sameKind`
+
+- `sharesInheritanceEnd` — True when the two terms mention a bare inheritance pair sharing an end.
 
 - `sharesSymbol`
 
@@ -1308,12 +1318,6 @@ _Dynamic subpath (no single entry file)._
 
 - `calculateSimilarity` — Symbol-bag similarity. The bags are memoized per term, so neither side is
 
-- `isInvalidTaskTerm`
-
-- `isTautology`
-
-- `validateTaskTerm`
-
 - `INVALID_ATOM_CHARS_REGEX`
 
 - `isValidAtomSymbol`
@@ -1321,6 +1325,12 @@ _Dynamic subpath (no single entry file)._
 - `toAtomSymbol` — Coerce arbitrary text into a valid atom symbol: invalid runs collapse to '_'.
 
 - `VALID_ATOM_CHARS`
+
+- `isInvalidTaskTerm`
+
+- `isTautology`
+
+- `validateTaskTerm`
 
 - `getTermArg`
 

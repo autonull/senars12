@@ -4,7 +4,15 @@ import { LINK, PRESSURE } from '../constants.js';
 import { NullAttentionModel } from '../strategies/attention/NullAttentionModel.js';
 import type { AttentionModel } from '../strategies/types.js';
 import type { Term } from '../terms';
-import { mentionsSymbol, Stamp, TermMap, TermSet, Truth, termKey } from '../terms';
+import {
+  mentionsSymbol,
+  Stamp,
+  TermMap,
+  type TermMapEntry,
+  TermSet,
+  Truth,
+  termKey,
+} from '../terms';
 import { atom } from '../terms/impls/factory.js';
 import type { Budget, Task } from '../types';
 import { NEUTRAL_BUDGET } from '../types';
@@ -206,9 +214,23 @@ export class Memory {
   }
 
   forEachConcept(fn: (concept: Concept) => void): void {
-    for (const concept of this.concepts.values()) {
-      fn(concept);
-    }
+    const concepts = this.residentEntries();
+    for (let i = 0; i < concepts.length; i++) fn(concepts[i]!.value);
+  }
+
+  /**
+   * The concept collection's entries, for a full sweep.
+   *
+   * Read straight off the entries rather than through `values()`: the term
+   * collection's iterator is a general-purpose one that calls a projection
+   * closure per element, and three full sweeps per inference cycle — decay,
+   * sampling, relevance propagation — turned that into two indirect calls for
+   * every resident concept, every cycle. An index and a field read is the floor
+   * for a sweep. The array is live, so a sweep may not add or remove concepts;
+   * the sweeps in this class only ever mutate the concepts themselves.
+   */
+  private residentEntries(): TermMapEntry<Concept>[] {
+    return this.concepts.getEntries();
   }
 
   getFocusConcepts(): Concept[] {
@@ -331,7 +353,14 @@ export class Memory {
 
   sample(limit: number): Concept[] {
     this.decayAll();
-    return selectTopN(this.concepts.values(), limit, (c) => this.scorer.scoreForRetrieval(c));
+    return this.topConcepts(limit);
+  }
+
+  /** The `n` highest-priority resident concepts, ranked by the retrieval score. */
+  private topConcepts(n: number): Concept[] {
+    return selectTopN(this.residentEntries(), n, (entry) =>
+      this.scorer.scoreForRetrieval(entry.value)
+    ).map((entry) => entry.value);
   }
 
   /**
@@ -340,9 +369,7 @@ export class Memory {
    */
   sampleWindow(windowSize: number, rng: () => number = Math.random): Concept[] {
     this.decayAll();
-    const allConcepts = selectTopN(this.concepts.values(), windowSize, (c) =>
-      this.scorer.scoreForRetrieval(c)
-    );
+    const allConcepts = this.topConcepts(windowSize);
 
     if (allConcepts.length <= windowSize) return allConcepts;
 
@@ -528,9 +555,18 @@ export class Memory {
   }
 
   private decayAll(): void {
-    for (const concept of this.concepts.values()) {
-      const decay = this.attentionModel.decay(concept, 1, this.config.activationDecayRate);
-      if (decay !== 0) concept.priority = Math.max(0, concept.priority - decay);
+    // Every `sample()` decays the whole population, and a concept that has
+    // already decayed to zero stays there: its decay is zero times the rate, so
+    // skipping it changes no value and saves the write. Under pressure the tail
+    // of drained concepts is the majority of the population.
+    const rate = this.config.activationDecayRate;
+    const concepts = this.residentEntries();
+    for (let i = 0; i < concepts.length; i++) {
+      const concept = concepts[i]!.value;
+      const priority = concept.priority;
+      if (priority <= 0) continue;
+      const decay = this.attentionModel.decay(concept, 1, rate);
+      if (decay !== 0) concept.priority = Math.max(0, priority - decay);
     }
   }
 

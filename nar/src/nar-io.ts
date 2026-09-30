@@ -12,7 +12,13 @@ import { seedTruth } from './lm/system-one/seed.js';
 import type { Memory } from './memory';
 import type { TaskManager } from './task';
 import type { Term } from './terms';
-import { Truth, termParser, validateTaskTerm } from './terms';
+import {
+  bareInheritancePair,
+  sharesInheritanceEnd,
+  Truth,
+  termParser,
+  validateTaskTerm,
+} from './terms';
 import type { Truth as TruthType } from './terms/impls/Truth.js';
 import type { TaskType } from './types';
 import { createBudget, type EventBus } from './types';
@@ -29,10 +35,6 @@ interface SerializedNARState {
   config: NARConfig;
   timestamp: string;
 }
-
-// Bare inheritance atoms, e.g. `(bird --> animal)` — substring match, mirroring
-// the historical areTermsRelated semantics (nested compounds match their inner pair).
-const INHERITANCE_ATOMS_RE = /\((\w+)\s+-->\s+(\w+)\)/;
 
 export class NARIO {
   private _eventBus: EventBus | null = null;
@@ -326,22 +328,16 @@ export class NARIO {
     }
 
     // Also boost concepts that share terms (simple relevance propagation).
-    // The input term's atoms are loop-invariant: extract once, and skip the
-    // O(N) scan entirely when the input isn't a bare inheritance term
-    // (no concept could match, same as areTermsRelated returning false).
+    // The input term's bare pair is loop-invariant: extract once, and skip the
+    // O(N) scan entirely when the input mentions no `(a --> b)` (no concept
+    // could match, same as areTermsRelated returning false). Reachability is
+    // read off the term, not off its string form, and memoized per term — so
+    // the scan is a cached lookup per concept rather than a parse.
     if (params?.attention.structuralSimilarity ?? true) {
-      const termStr = term.toString();
-      const match1 = termStr.match(INHERITANCE_ATOMS_RE);
-      if (!match1) return;
-      const [, s1, p1] = match1;
+      if (!bareInheritancePair(term)) return;
       this.memory.forEachConcept((c) => {
-        const cStr = c.term.toString();
-        if (cStr === termStr) return;
-        const match2 = cStr.match(INHERITANCE_ATOMS_RE);
-        if (
-          match2 &&
-          (s1 === match2[1] || s1 === match2[2] || p1 === match2[1] || p1 === match2[2])
-        ) {
+        if (c.term === term) return;
+        if (sharesInheritanceEnd(term, c.term)) {
           c.priority = Math.min(maxPriority, c.priority + relatedBoost);
         }
       });

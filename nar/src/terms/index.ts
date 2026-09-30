@@ -1,6 +1,8 @@
+export type { BareInheritance } from './impls/accessors.js';
 export {
   atomicSymbols,
   atomKey,
+  bareInheritancePair,
   containsSubterm,
   foldTerm,
   getAntecedent,
@@ -18,6 +20,7 @@ export {
   isSimilarity,
   mentionsSymbol,
   sameKind,
+  sharesInheritanceEnd,
   sharesSymbol,
   termDepth,
   termKey,
@@ -47,18 +50,19 @@ export type { Truth as TruthType } from './impls/Truth.js';
 export { isTruthEqual, Truth } from './impls/Truth.js';
 export { TermCollection } from './impls/term-collection.js';
 export { parseTermToEdges, type TermEdge } from './impls/term-edges.js';
+export type { TermMapEntry } from './impls/term-map.js';
 export { TermMap } from './impls/term-map.js';
 export { TermSet } from './impls/term-set.js';
 export type { Substitution } from './impls/unifier.js';
 export { unify } from './impls/unifier.js';
 export { calculateSimilarity } from './impls/utils.js';
-export { isInvalidTaskTerm, isTautology, validateTaskTerm } from './impls/validation.js';
 export {
   INVALID_ATOM_CHARS_REGEX,
   isValidAtomSymbol,
   toAtomSymbol,
   VALID_ATOM_CHARS,
 } from './impls/valid-atom.js';
+export { isInvalidTaskTerm, isTautology, validateTaskTerm } from './impls/validation.js';
 export type { AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol, Term } from './types.js';
 export {
   getTermArg,

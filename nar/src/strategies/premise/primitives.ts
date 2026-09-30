@@ -1,4 +1,3 @@
-import { sortByDesc } from '@senars/util';
 import { GRAPH_MEMORY, type RecallHit } from '../../memory/associative.js';
 import type { Concept } from '../../memory/concept.js';
 import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';
@@ -238,16 +237,15 @@ export interface SampleConfig {
 }
 
 /**
- * The sampling pipeline a primitive inherits when it declares no value of its
- * own. The configuration schema's defaults read from here, so the table, the
- * singletons and a user config all resolve to the same pipeline.
+ * `SampleConfig` with every defaulted field resolved. The two escape hatches
+ * keep their optionality: they have no default, and a pipeline that declared
+ * one would be inventing a predicate the caller never wrote.
  */
-/** `SampleConfig` with the sampling pipeline resolved: no field left to a default. */
 export type ResolvedSampleConfig = Required<
   Omit<SampleConfig, 'scorer' | 'where' | 'whereTruth'>
 > & {
   scorer: NonNullable<SampleConfig['scorer']>;
-};
+} & Pick<SampleConfig, 'where' | 'whereTruth'>;
 
 /**
  * The sampling pipeline a primitive inherits when it declares no value of its
@@ -324,47 +322,67 @@ export function resolveScorer(
   throw noSuch('scorer', JSON.stringify(scorer), candidates);
 }
 
+/** The config merged over {@link PREMISE_SAMPLE_FALLBACK}, with its filters already bound. */
+interface ResolvedPipeline {
+  readonly config: ResolvedSampleConfig;
+  readonly filters: readonly PremiseFilter[];
+}
+
+/**
+ * Merged config and bound filters per config object.
+ *
+ * `samplePremisesFromConfig` runs once per sampled concept per inference cycle,
+ * and every one of those calls was re-merging the config and re-currying the
+ * filter registry to produce closures that depend on nothing but the config.
+ * Keyed on identity, so a caller that rebuilds its config per call still pays
+ * per call — see `createStrategy`, which hoists the one it controls.
+ */
+const PIPELINES = new WeakMap<SampleConfig, ResolvedPipeline>();
+
+const resolvePipeline = (config: SampleConfig): ResolvedPipeline => {
+  const cached = PIPELINES.get(config);
+  if (cached) return cached;
+  const merged: ResolvedSampleConfig = { ...PREMISE_SAMPLE_FALLBACK, ...config };
+  const pipeline: ResolvedPipeline = { config: merged, filters: resolveFilters(merged.filters) };
+  PIPELINES.set(config, pipeline);
+  return pipeline;
+};
+
 export function samplePremisesFromConfig(
   memory: MemoryView,
   task: Task,
   config: SampleConfig
 ): Task[] {
-  const merged = { ...PREMISE_SAMPLE_FALLBACK, ...config };
   const results: Task[] = [];
+  const { config: merged, filters } = resolvePipeline(config);
 
   const sourceFn = PREMISE_SOURCES[merged.source];
   if (!sourceFn) return results;
 
-  const concepts = sourceFn(task, memory, merged.sampleSize);
-
   const scorerFn = resolveScorer(memory, merged.scorer);
   if (!scorerFn) return results;
 
-  // One recall per scored set, not one per concept.
+  // One recall for the whole scored set, not one per concept.
   const strengthIndex =
     merged.scorer === 'edgeWeight'
-      ? strengthIndexFor(memory, GRAPH_MEMORY, task.term, concepts.length)
+      ? strengthIndexFor(memory, GRAPH_MEMORY, task.term, merged.sampleSize)
       : null;
 
-  const filterFns = resolveFilters(merged.filters);
-
-  const scored = sortByDesc(
-    concepts
-      .map((c) => ({
-        concept: c,
-        score: strengthIndex ? (strengthIndex.get(c.term) ?? 0) : scorerFn(task, c),
-      }))
-      .filter(({ score }) => score >= merged.minScore)
-      .filter(({ concept }) => {
-        if (merged.skipSameTerm && termsEqual(concept.term, task.term)) return false;
-        if (merged.where && !merged.where(task, concept)) return false;
-        for (const filter of filterFns) {
-          if (!filter(task, concept)) return false;
-        }
-        return true;
-      }),
-    (entry) => entry.score
-  );
+  // Score, filter and collect in one pass: the three chained array stages this
+  // replaced each materialized the surviving concepts again, and the sort
+  // copied them a fourth time.
+  const scored: Array<{ concept: Concept; score: number }> = [];
+  for (const concept of sourceFn(task, memory, merged.sampleSize)) {
+    const score = strengthIndex ? (strengthIndex.get(concept.term) ?? 0) : scorerFn(task, concept);
+    if (score < merged.minScore) continue;
+    if (merged.skipSameTerm && termsEqual(concept.term, task.term)) continue;
+    if (merged.where && !merged.where(task, concept)) continue;
+    let admitted = true;
+    for (const filter of filters) admitted = admitted && filter(task, concept);
+    if (!admitted) continue;
+    scored.push({ concept, score });
+  }
+  scored.sort((a, b) => b.score - a.score);
 
   for (const { concept } of scored) {
     const belief = concept.beliefBag.peek();

@@ -1,10 +1,13 @@
+import type { Term } from '../../../nar/src';
 import {
   atomicSymbols,
+  bareInheritancePair,
   containsSubterm,
   foldTerm,
   isAtomic,
   isCompound,
   mentionsSymbol,
+  sharesInheritanceEnd,
   TermBuilder,
   Truth,
   termDepth,
@@ -318,5 +321,47 @@ describe('term metrics', () => {
     expect(mentionsSymbol(t, 'flies')).toBe(true);
     expect(mentionsSymbol(t, 'swims')).toBe(false);
     expect([...atomicSymbols(t)].sort()).toEqual(['animal', 'bird', 'flies']);
+  });
+
+  describe('bare inheritance pair', () => {
+    const inheritance = (subj: string, pred: string) =>
+      TermBuilder.inheritance(TermBuilder.atom(subj), TermBuilder.atom(pred))!;
+    const tuple = (...args: Term[]) => TermBuilder.tuple(args);
+
+    test('reads the pair off the term itself', () => {
+      expect(bareInheritancePair(inheritance('bird', 'animal'))).toEqual({
+        subject: 'bird',
+        predicate: 'animal',
+      });
+    });
+
+    test('finds the pair a compound mentions', () => {
+      expect(
+        bareInheritancePair(tuple(TermBuilder.atom('flies'), inheritance('bird', 'animal')))
+      ).toEqual({ subject: 'bird', predicate: 'animal' });
+    });
+
+    test('skips an inheritance whose ends are not both atoms, and reports the inner one', () => {
+      const outer = TermBuilder.inheritance(
+        TermBuilder.atom('bird'),
+        inheritance('animal', 'thing')
+      )!;
+      expect(bareInheritancePair(outer)).toEqual({ subject: 'animal', predicate: 'thing' });
+    });
+
+    test('reports no pair for a term that mentions no bare inheritance', () => {
+      expect(
+        bareInheritancePair(tuple(TermBuilder.atom('bird'), TermBuilder.atom('animal')))
+      ).toBeNull();
+      expect(bareInheritancePair(TermBuilder.atom('bird'))).toBeNull();
+    });
+
+    test('sharesInheritanceEnd is true for a shared subject or predicate, false otherwise', () => {
+      const bird = inheritance('bird', 'animal');
+      expect(sharesInheritanceEnd(bird, inheritance('bird', 'flies'))).toBe(true);
+      expect(sharesInheritanceEnd(bird, inheritance('fish', 'animal'))).toBe(true);
+      expect(sharesInheritanceEnd(bird, inheritance('fish', 'swims'))).toBe(false);
+      expect(sharesInheritanceEnd(bird, tuple(TermBuilder.atom('bird')))).toBe(false);
+    });
   });
 });

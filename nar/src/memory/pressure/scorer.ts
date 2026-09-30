@@ -26,6 +26,15 @@ const FACTORS: Record<FactorType, { a: number; r: number }> = {
   forgetting: { a: 0.3, r: 0.3 },
 };
 
+/** Novelty falls off with the number of concepts already related to the term. */
+const noveltyOf = (related: number): number => (related === 0 ? 1 : 1 / (related + 1));
+
+/** Relevance saturates at {@link SATURATION_COUNT} related concepts. */
+const relevanceOf = (related: number): number => clamp01(related / SATURATION_COUNT);
+
+/** No context means no related-concept count — the value the two factors take at zero. */
+const UNRELATED = 0;
+
 export class MemoryScorer {
   private config: ScorerConfig;
 
@@ -43,18 +52,13 @@ export class MemoryScorer {
       recency?: number;
     } = {}
   ): number {
-    const novelty = this.computeNovelty(concept, context);
-    const relevance = this.computeRelevance(concept, context);
-    const activation = context.activation ?? concept.priority;
-    const recency = context.recency ?? 1;
-
-    const score =
-      novelty * this.config.noveltyWeight +
-      relevance * this.config.relevanceWeight +
-      activation * this.config.activationWeight +
-      recency * this.config.recencyWeight;
-
-    return clamp01(score);
+    const related = context.relatedConcepts ?? UNRELATED;
+    return this.weigh(
+      noveltyOf(related),
+      relevanceOf(related),
+      context.activation ?? concept.priority,
+      context.recency ?? 1
+    );
   }
 
   scoreForRetrieval(concept: Concept, _query?: Record<string, unknown>): number {
@@ -69,21 +73,25 @@ export class MemoryScorer {
     return this.scoreFor('forgetting', concept);
   }
 
+  /**
+   * The per-concept path: the same four factors `score` weighs, with the
+   * activation and recency scaled by the factor pair and no related-concept
+   * count to supply. This runs once per concept per inference cycle, so it takes
+   * the factors as arguments rather than building the context object `score`
+   * reads.
+   */
   private scoreFor(type: FactorType, concept: Concept): number {
-    const factors = FACTORS[type];
-    return this.score(concept, {
-      activation: concept.priority * factors.a,
-      recency: factors.r,
-    });
+    const { a, r } = FACTORS[type];
+    return this.weigh(noveltyOf(UNRELATED), relevanceOf(UNRELATED), concept.priority * a, r);
   }
 
-  private computeNovelty(concept: Concept, context: { relatedConcepts?: number }): number {
-    const related = context.relatedConcepts ?? 0;
-    return related === 0 ? 1 : 1 / (related + 1);
-  }
-
-  private computeRelevance(concept: Concept, context: { relatedConcepts?: number }): number {
-    const related = context.relatedConcepts ?? 0;
-    return clamp01(related / SATURATION_COUNT);
+  private weigh(novelty: number, relevance: number, activation: number, recency: number): number {
+    const { noveltyWeight, relevanceWeight, activationWeight, recencyWeight } = this.config;
+    return clamp01(
+      novelty * noveltyWeight +
+        relevance * relevanceWeight +
+        activation * activationWeight +
+        recency * recencyWeight
+    );
   }
 }
