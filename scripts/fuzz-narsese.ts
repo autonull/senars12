@@ -9,8 +9,8 @@
 
 import { errMsg, serializeTruth } from '@senars/util';
 import { createNAR } from '../nar/src/nar-presets.js';
-import { termParser } from '../nar/src/terms/parser-peggy.js';
-import { Truth } from '../nar/src/terms/truth.js';
+import { termParser } from '../nar/src/terms/impls/parser-peggy.js';
+import { Truth } from '../nar/src/terms/impls/Truth.js';
 import type { Term } from '../nar/src/terms/types.js';
 import { choice, createLCG, nextInt } from '../nar/src/utils/random.js';
 

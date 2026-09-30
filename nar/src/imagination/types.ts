@@ -1,4 +1,4 @@
-import type { Truth } from '../terms/truth.js';
+import type { Truth } from '../terms/impls/Truth.js';
 import type { Task } from '../types/core.js';
 
 export interface HiddenRule {

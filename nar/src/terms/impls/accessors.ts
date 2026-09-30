@@ -1,5 +1,5 @@
-import type { CompoundTerm, OperatorKey, Term } from './types.js';
-import { isAtomic } from './types.js';
+import type { CompoundTerm, OperatorKey, Term } from '../types.js';
+import { isAtomic } from '../types.js';
 
 export const isType = <K extends OperatorKey>(k: K, t: Term): t is CompoundTerm<K> => t.kind === k;
 

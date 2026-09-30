@@ -2,7 +2,7 @@ import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import { LruCache } from '@senars/util';
 import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
-import type { Truth } from '../../terms/truth.js';
+import type { Truth } from '../../terms/impls/Truth.js';
 import { actionGrammar } from './action-grammar.js';
 import type { ContrastiveMemory } from './contrastive.js';
 import { createDecider, type Decider } from './decide.js';

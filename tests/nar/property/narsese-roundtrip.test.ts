@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { TermBuilder, serializeTerm, termsEqual } from '../../../nar/src/terms';
-import { termParser } from '../../../nar/src/terms/parser-peggy.js';
+import { termParser } from '../../../nar/src/terms/impls/parser-peggy.js';
 import type { Term } from '../../../nar/src/terms';
 
 /** Parser-safe atom names (Narsese atoms: letters/digits, no reserved chars). */

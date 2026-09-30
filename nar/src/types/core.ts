@@ -5,12 +5,12 @@
 
 import type { Term } from '../terms';
 import { Stamp, Truth } from '../terms';
-import type { Truth as TruthType } from '../terms/truth.js';
+import type { Truth as TruthType } from '../terms/impls/Truth.js';
 import { type NarCoreBoundKey, narCoreBounds } from '@senars/util/config';
 import { createTimestamp, DEPTH_MAX, type Timestamp } from './primitives.js';
 
-export type { Source, Stamp } from '../terms/stamp.js';
-export type { Truth as TruthType } from '../terms/truth.js';
+export type { Source, Stamp } from '../terms/impls/Stamp.js';
+export type { Truth as TruthType } from '../terms/impls/Truth.js';
 // Re-export domain types
 export type { AtomicTerm, CompoundTerm, Term } from '../terms/types.js';
 

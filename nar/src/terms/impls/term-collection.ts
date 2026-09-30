@@ -7,7 +7,7 @@
  */
 
 import { termKey } from './accessors.js';
-import type { Term } from './types.js';
+import type { Term } from '../types.js';
 
 export abstract class TermCollection<T> {
   protected storage: T[] = [];

@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import type { Term } from '../../../nar/src';
 import { normalize, TermBuilder, termsEqual } from '../../../nar/src/terms';
-import { VALID_ATOM_CHARS } from '../../../nar/src/terms/valid-atom.js';
+import { VALID_ATOM_CHARS } from '../../../nar/src/terms/impls/valid-atom.js';
 
 // Valid atom characters: alphanumerics and underscore only (per Narsese grammar)
 const validAtomStr = fc.string({ minLength: 1, maxLength: 10 }).map((s) => s.split('').filter(c => VALID_ATOM_CHARS.includes(c)).join('')).filter((s) => s.length > 0);

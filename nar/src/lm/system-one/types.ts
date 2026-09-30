@@ -224,11 +224,11 @@ export interface CognitiveDispatcher {
 export interface PEAResult {
   candidates: readonly string[];
   judgments: readonly JudgmentProposition[];
-  ranked: readonly { candidate: string; truth: import('../../terms/truth.js').Truth }[];
+  ranked: readonly { candidate: string; truth: import('../../terms/impls/Truth.js').Truth }[];
   admitted: readonly {
     candidate: string;
-    truth: import('../../terms/truth.js').Truth;
-    stamp: import('../../terms/stamp.js').Stamp;
+    truth: import('../../terms/impls/Truth.js').Truth;
+    stamp: import('../../terms/impls/Stamp.js').Stamp;
   }[];
   provisional: readonly { candidate: string; provisional: ProvisionalStamp }[];
 }

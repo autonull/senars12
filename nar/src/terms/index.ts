@@ -1,6 +1,3 @@
-// Core types
-
-// Accessors
 export {
   collectAtomicSymbols,
   containsSubterm,
@@ -33,30 +30,22 @@ export {
   termsEqual,
   visitTerms,
   walkTerms,
-} from './accessors.js';
-// Complexity and similarity
-export { getTermComplexity } from './complexity.js';
-// Convenience export for atom function
-export { atom, freeze, TermBuilder, TermFactory } from './factory.js';
-// Normalization
-export { normalize } from './normalize.js';
-export type { ParserResult, ParseTaskResult, TaskTypeName } from './parser-peggy.js';
-export { ParseError, TermParser, termParser } from './parser-peggy.js';
-// Serialization
-export { deserializeTerm, fromNarsese, serializeTerm, toNarsese } from './serialize.js';
-export type { SerializedStamp, Source, Stamp as StampType } from './stamp.js';
-export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './stamp.js';
-// Variable substitution
-export { substituteVariables } from './substitute.js';
-// Term-based collections
-export { TermCollection } from './term-collection.js';
-// Term edges
-export { parseTermToEdges, type TermEdge } from './term-edges.js';
-export { TermMap } from './term-map.js';
-export { TermSet } from './term-set.js';
-export type { Truth as TruthType } from './truth.js';
-// Truth and stamp systems
-export { isTruthEqual, Truth } from './truth.js';
+} from './impls/accessors.js';
+export { getTermComplexity } from './impls/complexity.js';
+export { atom, freeze, TermBuilder, TermFactory } from './impls/factory.js';
+export { normalize } from './impls/normalize.js';
+export type { ParserResult, ParseTaskResult, TaskTypeName } from './impls/parser-peggy.js';
+export { ParseError, TermParser, termParser } from './impls/parser-peggy.js';
+export { deserializeTerm, fromNarsese, serializeTerm, toNarsese } from './impls/serialize.js';
+export type { SerializedStamp, Source, Stamp as StampType } from './impls/Stamp.js';
+export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './impls/Stamp.js';
+export { substituteVariables } from './impls/substitute.js';
+export { TermCollection } from './impls/term-collection.js';
+export { parseTermToEdges, type TermEdge } from './impls/term-edges.js';
+export { TermMap } from './impls/term-map.js';
+export { TermSet } from './impls/term-set.js';
+export type { Truth as TruthType } from './impls/Truth.js';
+export { isTruthEqual, Truth } from './impls/Truth.js';
 export type { AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol, Term } from './types.js';
 export {
   getTermArg,
@@ -66,13 +55,8 @@ export {
   isVariableSymbol,
   OPERATORS,
 } from './types.js';
-export type { Substitution } from './unifier.js';
-// Unification
-export { unify } from './unifier.js';
-
-// Utilities
-export type { SymbolQuery } from './utils.js';
-export { calculateSimilarity, extractSymbols, similarityTo, symbolQuery } from './utils.js';
-
-// Validation
-export { isInvalidTaskTerm, isTautology, validateTaskTerm } from './validation.js';
+export type { Substitution } from './impls/unifier.js';
+export { unify } from './impls/unifier.js';
+export type { SymbolQuery } from './impls/utils.js';
+export { calculateSimilarity, extractSymbols, similarityTo, symbolQuery } from './impls/utils.js';
+export { isInvalidTaskTerm, isTautology, validateTaskTerm } from './impls/validation.js';

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { PerceptionGate } from '../../nar/src/gates/PerceptionGate.js';
 import { RewardGate } from '../../nar/src/gates/RewardGate.js';
-import { toAtomSymbol } from '../../nar/src/terms/valid-atom.js';
-import { isValidAtomSymbol } from '../../nar/src/terms/valid-atom.js';
+import { toAtomSymbol } from '../../nar/src/terms/impls/valid-atom.js';
+import { isValidAtomSymbol } from '../../nar/src/terms/impls/valid-atom.js';
 import { createBudget } from '../../nar/src/types/core.js';
 
 describe('toAtomSymbol', () => {

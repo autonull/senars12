@@ -53,7 +53,7 @@ export function createCoverageConceptTools(deps: CoverageConceptDeps = {}) {
             // @ts-expect-error - dynamic import resolution
             const { TermBuilder } = await import('../terms/index.js');
             // @ts-expect-error - dynamic import resolution
-            const { Truth } = await import('../terms/truth.js');
+            const { Truth } = await import('../terms/impls/Truth.js');
             const { gateRegistry } = await import('../../kernel/index.js');
             const admit = gateRegistry.getPerceptionGate();
 

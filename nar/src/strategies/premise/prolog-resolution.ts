@@ -8,7 +8,7 @@ import type { MemoryView } from '../../memory/view.js';
 import type { Term } from '../../terms';
 import { unify, getTermArgs, extractSymbols } from '../../terms';
 import type { Task, TaskType } from '../../types';
-import { applySubstitution, type Substitution } from '../../terms/unifier.js';
+import { applySubstitution, type Substitution } from '../../terms/impls/unifier.js';
 import { createSecondaryTask } from '../../types';
 import type { Strategy } from '../types';
 import type { ComponentMetadata } from '../types';

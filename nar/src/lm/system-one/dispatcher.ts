@@ -1,7 +1,7 @@
 import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
-import { Stamp } from '../../terms/stamp.js';
-import { Truth } from '../../terms/truth.js';
+import { Stamp } from '../../terms/impls/Stamp.js';
+import { Truth } from '../../terms/impls/Truth.js';
 import { validateBatchQueries } from './algebra.js';
 import type { ContrastiveMemory } from './contrastive.js';
 import { DeterministicManifold, Tier3SymbolicManifold } from './constant-manifold.js';

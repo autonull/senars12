@@ -1,8 +1,8 @@
 import { Unifier, type UnifierDialect } from '@senars/util';
 import { getArgs, termKey, termsEqual } from './accessors.js';
 import { TermBuilder } from './factory.js';
-import type { Term } from './types.js';
-import { isVariableSymbol } from './types.js';
+import type { Term } from '../types.js';
+import { isVariableSymbol } from '../types.js';
 
 export type Substitution = Record<string, Term>;
 

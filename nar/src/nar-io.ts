@@ -9,7 +9,7 @@ import type { NARConfig } from './facade/config.js';
 import type { TaskManager } from './task';
 import type { Term } from './terms';
 import { Truth, termParser, validateTaskTerm } from './terms';
-import type { Truth as TruthType } from './terms/truth.js';
+import type { Truth as TruthType } from './terms/impls/Truth.js';
 import type { TaskType } from './types';
 import { createBudget, type EventBus } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';

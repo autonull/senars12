@@ -12,7 +12,7 @@ import {
   TermSet,
   termsEqual,
 } from '../terms';
-import { type IndependenceStatus, Truth as TruthOps } from '../terms/truth.js';
+import { type IndependenceStatus, Truth as TruthOps } from '../terms/impls/Truth.js';
 import type { Budget, TaskType } from '../types';
 import { clamp01 } from '../utils';
 

@@ -1,6 +1,6 @@
 import { clamp, clamp01 } from '@senars/util';
 import { type Term, termParser } from '../../terms/index.js';
-import { Truth } from '../../terms/truth.js';
+import { Truth } from '../../terms/impls/Truth.js';
 import type { Task } from '../../types/core.js';
 import { createBudget, createTask } from '../../types/core.js';
 import { createOracleFromScenario, HiddenModelOracle } from './HiddenModelOracle.js';

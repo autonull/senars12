@@ -9,7 +9,7 @@
  */
 
 import { TermCollection } from './term-collection.js';
-import type { Term } from './types.js';
+import type { Term } from '../types.js';
 
 type Entry<V> = { key: Term; value: V };
 

@@ -4,9 +4,9 @@
  */
 
 import type { FocusTask } from '../focus/Focus.js';
-import { TermBuilder } from '../terms/factory.js';
+import { TermBuilder } from '../terms/impls/factory.js';
 import type { Term } from '../terms/types.js';
-import { toAtomSymbol } from '../terms/valid-atom.js';
+import { toAtomSymbol } from '../terms/impls/valid-atom.js';
 import { createBudget } from '../types/core.js';
 
 interface TaskSpec {

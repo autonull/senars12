@@ -28,7 +28,7 @@
       "types": "./src/cognitive/index.ts",
       "import": "./src/cognitive/index.ts"
     },
-    "./cognitive/corrections": {
+    "./cognitive/impls/analyzers/corrections": {
       "types": "./src/cognitive/impls/analyzers/corrections.ts",
       "import": "./src/cognitive/impls/analyzers/corrections.ts"
     },

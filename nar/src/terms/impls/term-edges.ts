@@ -9,8 +9,8 @@ import {
   isSimilarity,
   termsEqual,
   visitTerms,
-} from '../terms/accessors.js';
-import type { Term } from '../terms/types.js';
+} from '../../terms/impls/accessors.js';
+import type { Term } from '../../terms/types.js';
 
 export interface TermEdge {
   source: string;

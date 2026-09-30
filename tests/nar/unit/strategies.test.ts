@@ -8,7 +8,7 @@ import type { Strategy } from '../../../nar/src/reason';
 import { createStrategy } from '../../../nar/src/reason';
 import { CompositeStrategy, DecompositionStrategy } from '../../../nar/src/strategies/premise';
 import { createDefaultRegistry } from '../../../nar/src/cognitive';
-import { Truth } from '../../../nar/src/terms/truth.js';
+import { Truth } from '../../../nar/src/terms/impls/Truth.js';
 import { createTask, type Task } from '../../../nar/src/types/index.js';
 import { NAR } from '../../../src';
 

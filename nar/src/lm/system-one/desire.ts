@@ -1,4 +1,4 @@
-import { Truth, type Truth as TruthType } from '../../terms/truth.js';
+import { Truth, type Truth as TruthType } from '../../terms/impls/Truth.js';
 
 export type Desire = TruthType;
 

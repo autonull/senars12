@@ -6,7 +6,7 @@
  */
 
 import { TermCollection } from './term-collection.js';
-import type { Term } from './types.js';
+import type { Term } from '../types.js';
 
 export class TermSet extends TermCollection<Term> {
   add(term: Term): this {

@@ -1,5 +1,5 @@
-export type { Source, Stamp } from '../terms/stamp.js';
-export type { Truth as TruthType } from '../terms/truth.js';
+export type { Source, Stamp } from '../terms/impls/Stamp.js';
+export type { Truth as TruthType } from '../terms/impls/Truth.js';
 export type { AtomicTerm, CompoundTerm, Term } from '../terms/types.js';
 export type {
   BaseStats,

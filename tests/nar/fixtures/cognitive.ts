@@ -4,7 +4,7 @@ import { MetricsCollector } from '@senars/nar/metrics';
 import { RuleProcessor } from '@senars/nar/rules';
 import { createRulePattern, type RegisteredRule } from '@senars/nar/rules/types';
 import { TermBuilder, getPredicate, getSubject, termsEqual } from '@senars/nar/terms';
-import { Truth } from '@senars/nar/terms/truth';
+import { Truth } from '@senars/nar/terms/impls/Truth.js';
 import type { Memory } from '@senars/nar/memory';
 import type { RLFPLearner } from '@senars/nar/rlfp';
 

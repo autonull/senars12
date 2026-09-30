@@ -13,7 +13,7 @@ import type { ReasoningAboutReasoning } from './self';
 import type { TaskManager } from './task';
 import { classifyTask, type TaskSignal } from './task';
 import { getTermArgs, isAtomic, isCompound, type Term, termParser } from './terms';
-import { Truth } from './terms/truth.js';
+import { Truth } from './terms/impls/Truth.js';
 import { PhaseTimer } from './trace';
 import type { Task } from './types';
 import { createTask } from './types';

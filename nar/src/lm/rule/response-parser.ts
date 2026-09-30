@@ -1,6 +1,6 @@
 import type { Term } from '../../terms';
 import { Truth, termParser } from '../../terms';
-import type { Truth as TruthType } from '../../terms/truth.js';
+import type { Truth as TruthType } from '../../terms/impls/Truth.js';
 import { errMsg } from '../../utils';
 import { parseJsonObject } from '../json.js';
 

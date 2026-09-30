@@ -6,7 +6,7 @@ import {
   isTautology,
   Stamp as StampFactory,
 } from '../../terms';
-import { Truth, type Truth as TruthType } from '../../terms/truth.js';
+import { Truth, type Truth as TruthType } from '../../terms/impls/Truth.js';
 import type { RuleInput, RuleResult } from '../types.js';
 import type { TruthFn } from '../types.js';
 

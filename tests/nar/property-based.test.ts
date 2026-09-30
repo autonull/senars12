@@ -8,7 +8,7 @@ import {
   Truth,
   termsEqual,
 } from '../../nar/src/terms';
-import { VALID_ATOM_CHARS } from '../../nar/src/terms/valid-atom.js';
+import { VALID_ATOM_CHARS } from '../../nar/src/terms/impls/valid-atom.js';
 
 // Valid atom name arbitrary matching Narsese grammar: alphanumerics and underscore only
 const validAtomName = fc.string({

@@ -1,9 +1,9 @@
-import { trackTerm } from '../memory/lifecycle/gc.js';
+import { trackTerm } from '../../memory/lifecycle/gc.js';
 import { containsSubterm } from './accessors.js';
-import { COMMUTATIVE_OPS, OPERATORS } from './operators.js';
+import { COMMUTATIVE_OPS, OPERATORS } from '../operators.js';
 import { serializeTerm } from './serialize.js';
-import { VARIABLE_SYMBOL } from './types.js';
-import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from './types.js';
+import { VARIABLE_SYMBOL } from '../types.js';
+import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from '../types.js';
 import { INVALID_ATOM_CHARS_REGEX } from './valid-atom.js';
 import { LruCache } from '@senars/util';
 

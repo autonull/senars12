@@ -11,7 +11,7 @@ import { BoundedMap, incrementCount, mean } from '@senars/util';
 import type { DerivationRecord, DerivationStep } from '@senars/core/derivation-schemas';
 import type { Term } from '../terms/index.js';
 import { termParser, serializeTerm, TermBuilder } from '../terms/index.js';
-import { substituteVariables } from '../terms/substitute.js';
+import { substituteVariables } from '../terms/impls/substitute.js';
 import { agreeByExactAlgebra } from '../reflex/algebra-vote.js';
 import type { IProposer, NegotiationInput, ProposerContribution } from '../reflex/Negotiator.js';
 import type { ActionProposal, LearningEvent } from '../reflex/Reflex.js';

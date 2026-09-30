@@ -6,7 +6,7 @@ import type { AttentionModel } from '../strategies/types.js';
 import { NullAttentionModel } from '../strategies/attention/NullAttentionModel.js';
 import type { Term } from '../terms';
 import { mentionsSymbol, Stamp, TermMap, TermSet, Truth } from '../terms';
-import { atom } from '../terms/factory.js';
+import { atom } from '../terms/impls/factory.js';
 import type { Budget, Task } from '../types';
 import { NEUTRAL_BUDGET } from '../types';
 import { BoundedRing, selectTopN } from '../utils/collections.js';

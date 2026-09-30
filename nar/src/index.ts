@@ -130,11 +130,11 @@ export {
   visitTerms,
   walkTerms,
 } from './terms/index.js';
-export type { SerializedStamp } from './terms/stamp.js';
+export type { SerializedStamp } from './terms/impls/Stamp.js';
 /** Term temporal stamp. @public */
-export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './terms/stamp.js';
+export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './terms/impls/Stamp.js';
 /** Truth-value algebra. @public */
-export { isTruthEqual, Truth } from './terms/truth.js';
+export { isTruthEqual, Truth } from './terms/impls/Truth.js';
 export type {
   AtomicTerm,
   Budget,

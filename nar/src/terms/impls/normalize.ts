@@ -1,7 +1,7 @@
 import { termsEqual } from './accessors.js';
 import { compareForCanonicalOrder, TermBuilder } from './factory.js';
-import { OPERATORS } from './operators.js';
-import type { CompoundTerm, Term } from './types.js';
+import { OPERATORS } from '../operators.js';
+import type { CompoundTerm, Term } from '../types.js';
 
 const COMPOUND_KINDS = new Set(Object.keys(OPERATORS));
 

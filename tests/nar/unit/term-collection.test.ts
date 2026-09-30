@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import { TermMap, TermSet } from '../../../nar/src/terms';
-import { TermBuilder } from '../../../nar/src/terms/factory.js';
+import { TermBuilder } from '../../../nar/src/terms/impls/factory.js';
 import type { AtomicTerm, CompoundTerm } from '../../../nar/src/terms/types.js';
 
 /** Locally-built terms are not frozen or factory-cached, so collections must

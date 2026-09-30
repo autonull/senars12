@@ -1,4 +1,4 @@
-import type { Stamp } from '../../terms/stamp.js';
+import type { Stamp } from '../../terms/impls/Stamp.js';
 
 export interface ProvisionalStamp {
   kind: 'provisional';

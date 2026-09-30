@@ -2,7 +2,7 @@ import { generateObject, type LanguageModel, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
 import type { Term } from '../../terms';
 import { Truth } from '../../terms';
-import type { Truth as TruthType } from '../../terms/truth.js';
+import type { Truth as TruthType } from '../../terms/impls/Truth.js';
 import type { Budget, Task, TaskType } from '../../types';
 import { createTask, type NAREventMap, type NarEventBus } from '../../types';
 import { CircuitBreaker, errMsg } from '../../utils';

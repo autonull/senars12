@@ -1,4 +1,4 @@
-import { isAtomic, type Term } from './types.js';
+import { isAtomic, type Term } from '../types.js';
 import { walkTerms } from './accessors.js';
 
 export const getTermComplexity = (

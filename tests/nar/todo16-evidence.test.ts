@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { computeEvidenceId, promoteProvisional, JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
 import { seedTruth } from '../../nar/src/lm/system-one/seed.js';
-import { Truth } from '../../nar/src/terms/truth.js';
+import { Truth } from '../../nar/src/terms/impls/Truth.js';
 import type { JudgmentProposition, EvaluateProposition } from '../../nar/src/lm/system-one/types.js';
 
 const makeEvaluateProposition = (score: number, ece = 0.02): EvaluateProposition => ({

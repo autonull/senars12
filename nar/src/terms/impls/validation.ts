@@ -3,7 +3,7 @@
  */
 
 import { getPredicate, getSubject, termsEqual } from './accessors.js';
-import type { Term } from './types.js';
+import type { Term } from '../types.js';
 
 const INVALID_TASK_SYMBOLS = new Set(['TRUE', 'FALSE']);
 

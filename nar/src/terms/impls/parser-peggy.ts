@@ -2,15 +2,15 @@
 // This replaces the hand-written recursive descent parser
 
 import { createRequire } from 'node:module';
-import { errMsg } from '../utils';
+import { errMsg } from '../../utils';
 import { TermFactory } from './factory.js';
-import { Truth } from './truth.js';
-import type { Term } from './types.js';
+import { Truth } from './Truth.js';
+import type { Term } from '../types.js';
 
 const require = createRequire(import.meta.url);
 const peggyModule: {
   parse: (input: string, options?: unknown) => unknown;
-} = require('./peggy-generated.cjs');
+} = require('../peggy-generated.cjs');
 const peggyParse = peggyModule.parse;
 
 export interface ParserResult {

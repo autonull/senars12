@@ -1,4 +1,4 @@
-import type { Term } from './types.js';
+import type { Term } from '../types.js';
 import { applyBindings } from './unifier.js';
 
 /**

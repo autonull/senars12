@@ -1,6 +1,6 @@
 import { BoundedMap, occupancy } from '@senars/util';
 import { gateRegistry } from '../kernel/index.js';
-import { type IndependenceStatus, Truth } from '../terms/truth.js';
+import { type IndependenceStatus, Truth } from '../terms/impls/Truth.js';
 import type { TickContext } from '../tick/tick.js';
 import type { Task, TruthType } from '../types/core.js';
 import { pushCapped, trimCapped } from '../utils/collections.js';

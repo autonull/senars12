@@ -12,7 +12,7 @@ import {
 import type { SelfImprovementProposal } from '@senars/core/derivation-schemas';
 import { z } from 'zod';
 
-import { Truth, type Truth as TruthType } from '../../terms/truth.js';
+import { Truth, type Truth as TruthType } from '../../terms/impls/Truth.js';
 import { appendJsonlAsync } from '../../utils/fs.js';
 import { iterateJsonl, writeJsonl } from '../../utils/jsonl.js';
 import { frozenRegression, meanBrierOf } from './metrics.js';

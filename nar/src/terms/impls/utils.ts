@@ -1,6 +1,6 @@
-import { jaccard } from '../utils';
+import { jaccard } from '../../utils';
 import { collectAtomicSymbols, termsEqual } from './accessors.js';
-import type { Term } from './types.js';
+import type { Term } from '../types.js';
 
 export const extractSymbols = (term: Term, symbols = new Set<string>()): Set<string> =>
   collectAtomicSymbols(term, symbols);

@@ -19,7 +19,7 @@ import { ruleDefs } from '@senars/nar/lm/rule-templates';
 import { symbolicFallbacks } from '@senars/nar/lm/rule-templates/fallbacks';
 import { traceAbstractor } from '@senars/nar/lm/context/trace-abstractor';
 import { ShadowValidator } from '@senars/nar/lm/shadow-validation';
-import { attemptLMCorrection } from '@senars/nar/cognitive/impls/analyzers/corrections.js';
+import { attemptLMCorrection } from '@senars/nar/cognitive/impls/analyzers/corrections';
 import { NLUnderstandingService } from '@senars/nar/nl';
 import { TranslationCache } from '@senars/nar/nl/cache.js';
 import { createLogger } from '@senars/core/logger';
