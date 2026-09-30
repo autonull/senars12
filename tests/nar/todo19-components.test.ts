@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { cognitiveBounds } from '@senars/util/config';
 import {
   ActionRegistry,
   RewardRegistry,
@@ -116,7 +117,9 @@ describe('Bench 43 — Component Contracts', () => {
       focusBag: { all: () => [], decayRateValue: 0 } as never,
       gameFocuses: new Map(),
     });
-    expect(game.getAllKnobs().get('maxDerivationsPerStep')).toBe(100);
+    expect(game.getAllKnobs().get('maxDerivationsPerStep')).toBe(
+      cognitiveBounds.inference.maxDerivationsPerStep.default
+    );
     game.setKnob('maxDerivationsPerStep', 500);
     expect(game.getKnobValue('maxDerivationsPerStep')).toBe(500);
   });

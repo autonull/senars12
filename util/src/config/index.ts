@@ -4,6 +4,10 @@
  */
 
 export {
+  type BoundRange,
+  boundRange,
+  type BoundSpec,
+  boundSpec,
   type CognitiveBoundCategory,
   type CognitiveBoundKey,
   type CognitiveBounds,

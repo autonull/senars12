@@ -124,7 +124,7 @@ describe('SystemOne Knob Validation', () => {
   });
 
   it('still rejects invalid cognitive knobs', () => {
-    const result = validator.validate(makeProposal('maxDerivationsPerStep', 10000));
+    const result = validator.validate(makeProposal('maxDerivationsPerStep', 10001));
     expect(result.approved).toBe(false);
   });
 

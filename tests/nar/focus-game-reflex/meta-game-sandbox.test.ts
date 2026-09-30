@@ -1,4 +1,5 @@
 import { createFocus, createGameFocus, createMetaFocus, FocusBag } from '@senars/nar/focus';
+import { cognitiveBounds } from '@senars/util/config';
 import {
   createGridWorldGame,
   createMetaGame,
@@ -208,8 +209,10 @@ describe('MetaGame Sandbox - Gate 5', () => {
         gameFocuses: new Map(),
       });
 
-      selfMetaGame.setKnob('maxDerivationsPerStep', 5000);
-      expect(selfMetaGame.getKnobValue('maxDerivationsPerStep')).toBe(2000);
+      selfMetaGame.setKnob('maxDerivationsPerStep', 50_000);
+      expect(selfMetaGame.getKnobValue('maxDerivationsPerStep')).toBe(
+        cognitiveBounds.inference.maxDerivationsPerStep.max
+      );
 
       selfMetaGame.setKnob('maxDerivationsPerStep', 5);
       expect(selfMetaGame.getKnobValue('maxDerivationsPerStep')).toBe(10);

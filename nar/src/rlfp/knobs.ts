@@ -1,4 +1,5 @@
 import { clamp, getNested, setNested } from '@senars/util';
+import { boundSpec as spec } from '@senars/util/config';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 
 export interface TunableKnob {
@@ -27,35 +28,24 @@ export interface KnobSpec {
 
 type ParamObj = Record<string, any>;
 
+/**
+ * The tunable subset of `cognitiveBounds`, with every range projected by `boundSpec`.
+ *
+ * These rows used to restate their `min`/`max`/`step` by hand, and nine of the ten had
+ * drifted from the canonical table — the tuner could not reach values the config schema
+ * already admitted. *Which* parameters are tunable is a decision; the numbers are not.
+ */
 const cognitiveKnobs: readonly Omit<KnobSpec, 'root'>[] = [
-  {
-    name: 'maxDerivationsPerStep',
-    path: 'inference.maxDerivationsPerStep',
-    min: 10,
-    max: 500,
-    step: 10,
-  },
-  { name: 'maxDerivationDepth', path: 'inference.maxDerivationDepth', min: 5, max: 20, step: 1 },
-  { name: 'maxRulesPerCycle', path: 'lm.maxRulesPerCycle', min: 1, max: 13, step: 1 },
-  { name: 'callTimeoutMs', path: 'lm.callTimeoutMs', min: 1000, max: 30000, step: 500 },
-  { name: 'decayRate', path: 'priority.decayRate', min: 0.001, max: 0.1, step: 0.001 },
-  { name: 'cpuThrottleMs', path: 'inference.cpuThrottleMs', min: 0, max: 50, step: 1 },
-  { name: 'maxLoops', path: 'modelRunner.maxLoops', min: 1, max: 10, step: 1 },
-  {
-    name: 'activationDecayRate',
-    path: 'memory.activationDecayRate',
-    min: 0.001,
-    max: 0.1,
-    step: 0.001,
-  },
-  {
-    name: 'rankingMaxAdmissions',
-    path: 'inference.ranking.maxAdmissions',
-    min: 10,
-    max: 1000,
-    step: 10,
-  },
-  { name: 'rankingMinScore', path: 'inference.ranking.minScore', min: 0, max: 0.5, step: 0.05 },
+  { name: 'maxDerivationsPerStep', path: 'inference.maxDerivationsPerStep', ...spec('inference', 'maxDerivationsPerStep') },
+  { name: 'maxDerivationDepth', path: 'inference.maxDerivationDepth', ...spec('inference', 'maxDerivationDepth') },
+  { name: 'maxRulesPerCycle', path: 'lm.maxRulesPerCycle', ...spec('lm', 'maxRulesPerCycle') },
+  { name: 'callTimeoutMs', path: 'lm.callTimeoutMs', ...spec('lm', 'callTimeoutMs') },
+  { name: 'decayRate', path: 'priority.decayRate', ...spec('priority', 'decayRate') },
+  { name: 'cpuThrottleMs', path: 'inference.cpuThrottleMs', ...spec('inference', 'cpuThrottleMs') },
+  { name: 'maxLoops', path: 'modelRunner.maxLoops', ...spec('modelRunner', 'maxLoops') },
+  { name: 'activationDecayRate', path: 'memory.activationDecayRate', ...spec('memory', 'activationDecayRate') },
+  { name: 'rankingMaxAdmissions', path: 'inference.ranking.maxAdmissions', ...spec('inference', 'rankingMaxAdmissions') },
+  { name: 'rankingMinScore', path: 'inference.ranking.minScore', ...spec('inference', 'rankingMinScore') },
 ];
 type SystemOneKnobSpec = Pick<KnobSpec, 'name' | 'min' | 'max' | 'step'>;
 

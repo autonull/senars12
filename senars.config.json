@@ -45,7 +45,6 @@
   },
   "memory": {
     "maxConcepts": 100,
-    "bagSize": 50,
     "derivationDepth": 5
   },
   "inference": {
@@ -64,8 +63,6 @@
     "port": 6697,
     "useTLS": true,
     "nick": "senars",
-    "channels": [
-      "#nars"
-    ]
+    "channels": ["#nars"]
   }
 }

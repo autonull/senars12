@@ -304,7 +304,7 @@ describe('E2 — GovernanceResolver audit trail and restore', () => {
     const resolver = new GovernanceResolver();
     const outOfRange = {
       ...proposal('medium'),
-      payload: { knob: 'maxDerivationsPerStep', value: 9999 },
+      payload: { knob: 'maxDerivationsPerStep', value: 10001 },
     };
     const result = resolver.resolve(outOfRange, 'sandbox-execute', { applyKnob: () => {} });
 

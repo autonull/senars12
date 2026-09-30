@@ -18,10 +18,7 @@ import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
 export { type SystemOneConfig, systemOneDefaults, systemOneSchema };
 
 const narCoreDefaults = Object.fromEntries(
-  Object.keys(narCoreBounds).map((key) => [
-    key,
-    narCoreBounds[key as NarCoreBoundKey].default,
-  ])
+  Object.keys(narCoreBounds).map((key) => [key, narCoreBounds[key as NarCoreBoundKey].default])
 ) as Record<NarCoreBoundKey, number>;
 
 /** Every core knob is table-driven — a limit is written once, in `narCoreBounds`. */
@@ -44,7 +41,6 @@ const profileDefaults = {
   personality: 'Curious, analytical, and helpful.',
   joinMessage: "Hello! I'm SeNARS.",
   capabilities: [] as string[],
-  interactionGuide: '',
   reasoningTransparency: 'summary' as const,
   narrateTier: 'fast' as const,
 };
@@ -54,7 +50,6 @@ export const botProfileSchema = z.object({
   personality: z.string().default(profileDefaults.personality),
   joinMessage: z.string().default(profileDefaults.joinMessage),
   capabilities: z.array(z.string()).default([]),
-  interactionGuide: z.string().default(profileDefaults.interactionGuide),
   reasoningTransparency: z
     .enum(['none', 'summary', 'full'])
     .default(profileDefaults.reasoningTransparency),
@@ -97,7 +92,6 @@ export const memorySchema = z.object({
    * @deprecated since 2.1 — use inference.maxDerivationDepth (removed after 2 minors — see AGENTS.md).
    */
   derivationDepth: narCoreNumber('maxDerivationDepth').optional(),
-  bagSize: z.number().positive().optional(),
 });
 
 const inferenceDefaults = {} as const;

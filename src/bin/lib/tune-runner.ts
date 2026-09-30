@@ -9,8 +9,8 @@ import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
 import type { CognitiveParameters } from '@senars/nar/config/cognitive-parameters';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters';
-import { RLFPLearner } from '@senars/nar/rlfp';
-import { clamp, parseFlags, pct, section, sleep } from '@senars/util';
+import { RLFPLearner, createKnobSet } from '@senars/nar/rlfp';
+import { parseFlags, pct, section, sleep } from '@senars/util';
 import { runEntrypoint } from './fatal-error.js';
 
 interface TuneOptions {
@@ -129,39 +129,10 @@ function printMetrics(label: string, metrics: Metrics, params: CognitiveParamete
 }
 
 function mutateParams(params: CognitiveParameters): void {
-  const knobs = [
-    { path: 'inference.maxDerivationsPerStep', min: 10, max: 500, step: 10 },
-    { path: 'inference.maxDerivationDepth', min: 5, max: 20, step: 1 },
-    { path: 'lm.maxRulesPerCycle', min: 1, max: 13, step: 1 },
-    { path: 'lm.callTimeoutMs', min: 1000, max: 30000, step: 500 },
-    { path: 'priority.decayRate', min: 0.001, max: 0.1, step: 0.001 },
-    { path: 'inference.cpuThrottleMs', min: 0, max: 50, step: 1 },
-    { path: 'modelRunner.maxLoops', min: 1, max: 10, step: 1 },
-    { path: 'memory.activationDecayRate', min: 0.001, max: 0.1, step: 0.001 },
-  ];
-
-  if (knobs.length === 0) return;
-  const knob = knobs[Math.floor(Math.random() * knobs.length)]!;
-  const keys = knob.path.split('.');
-  if (keys.length === 0) return;
-  let current: Record<string, unknown> = params as unknown as Record<string, unknown>;
-  for (let i = 0; i < keys.length - 1; i++) {
-    const k = keys[i]!;
-    const val = current[k];
-    if (!val || typeof val !== 'object') {
-      return;
-    }
-    current = val as Record<string, unknown>;
-  }
-  const key = keys[keys.length - 1]!;
-  const currentValue = Number(current[key] ?? 0);
-  const change = (Math.random() - 0.5) * 2 * knob.step;
-  const newValue = clamp(
-    Math.round((currentValue + change) / knob.step) * knob.step,
-    knob.min,
-    knob.max
-  );
-  current[key] = newValue;
+  const knobs = Object.values(createKnobSet(params));
+  const knob = knobs[Math.floor(Math.random() * knobs.length)];
+  if (!knob) return;
+  knob.set(knob.get() + (Math.random() - 0.5) * 2 * knob.step);
 }
 
 function configToJson(params: CognitiveParameters): string {

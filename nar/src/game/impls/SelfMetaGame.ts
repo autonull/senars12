@@ -1,4 +1,5 @@
 import { clamp01, makeId } from '@senars/util';
+import { type BoundRange, boundRange } from '@senars/util/config';
 import type { ParameterLedger } from '../../config/parameter-ledger.js';
 import {
   createParameterTable,
@@ -26,6 +27,19 @@ export interface KnobConfig {
   max: number;
   defaultValue: number;
 }
+
+/**
+ * A self-tunable knob over a canonical `cognitiveBounds` row. The row owns the numbers —
+ * the three knobs here that have a bounds row used to restate them, and all three had
+ * drifted: self-tuning clamped `maxDerivationsPerStep` at 2000 where the config schema
+ * admits 10000, and defaulted it to 100 where the engine defaults to 1000.
+ */
+const boundKnob = (name: string, range: BoundRange): KnobConfig => ({
+  name,
+  min: range.min,
+  max: range.max,
+  defaultValue: range.default,
+});
 
 export interface SelfMetaGameConfig extends MetaGameConfig {
   focusBag: FocusBag;
@@ -67,12 +81,12 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
     // TODO19 F5: knobs are ParameterTable entries (system scope, self-owned);
     // the actuator closures replace the former `applyKnob` switch-case.
     const defaultKnobs: KnobConfig[] = [
-      { name: 'maxDerivationsPerStep', min: 10, max: 2000, defaultValue: 100 },
+      boundKnob('maxDerivationsPerStep', boundRange('inference', 'maxDerivationsPerStep')),
       { name: 'taskDecayRate', min: 0.001, max: 0.1, defaultValue: 0.01 },
       { name: 'conceptDecayRate', min: 0.0001, max: 0.05, defaultValue: 0.005 },
       { name: 'focusDecayRate', min: 0.0001, max: 0.05, defaultValue: 0.005 },
-      { name: 'rankingMaxAdmissions', min: 10, max: 1000, defaultValue: 100 },
-      { name: 'rankingMinScore', min: 0, max: 0.5, defaultValue: 0 },
+      boundKnob('rankingMaxAdmissions', boundRange('inference', 'rankingMaxAdmissions')),
+      boundKnob('rankingMinScore', boundRange('inference', 'rankingMinScore')),
     ];
     const actuatorFor = (name: string): ParameterSpec['actuate'] => {
       switch (name) {
