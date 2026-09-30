@@ -60,7 +60,7 @@ function createDeterministicBag(
   });
 }
 
-describe('Bag fidelity tests', () => {
+describe('Bag fidelity tests @load-sensitive', () => {
   describe('Distribution fidelity (TV-distance ≤ 0.02 @ 50k samples)', () => {
     it('PriorityBag samples match priority distribution', () => {
       const bag = createPriorityBag();

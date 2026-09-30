@@ -136,7 +136,7 @@ async function runBanditEpisode(
   return episodeReward;
 }
 
-describe('RL Parity - Stress and Boundary Testing', () => {
+describe('RL Parity - Stress and Boundary Testing @load-sensitive', () => {
   /**
    * NOISE SWEEP EXPERIMENTS
    *

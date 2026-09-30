@@ -4,7 +4,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-describe('TODO26 T1 — createCognitiveAgent demo', () => {
+describe('TODO26 T1 — createCognitiveAgent demo @load-sensitive', () => {
   let stateDir: string;
 
   beforeEach(async () => {
