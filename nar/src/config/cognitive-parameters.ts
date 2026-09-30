@@ -1,6 +1,6 @@
 import { createLogger } from '@senars/core/logger';
 import { cognitiveBounds, getCognitiveBound } from '@senars/util/config';
-import { deepEqual, deepFreeze } from '@senars/util/utils/shared';
+import { deepEqual, deepFreeze, errMsg } from '@senars/util/utils/shared';
 import {
   strategySpecErrors,
   type StrategyCatalog,
@@ -446,4 +446,34 @@ export function sameStrategies(
 ): boolean {
   const keys = Object.keys(a) as (keyof CognitiveParameters['strategies'])[];
   return keys.every((key) => deepEqual(a[key], b[key]));
+}
+
+/**
+ * Parse a run's parameter file, the way `tune-runner` writes one.
+ *
+ * The tuner emits `{ "cognitiveParams": { … } }`; a hand-written file may be the
+ * bare parameter object. Both are accepted, because the second is what a person
+ * writes and the first is what the tool produces — refusing one of them buys
+ * nothing. Validation is the same pass a live config goes through, so a file
+ * that names an unregistered strategy fails here rather than at resolution.
+ */
+export function readCognitiveParams(source: string): {
+  params: CognitiveParameters;
+  errors: string[];
+} {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(source);
+  } catch (err) {
+    return { params: DEFAULT_COGNITIVE_PARAMETERS, errors: [`not valid JSON: ${errMsg(err)}`] };
+  }
+
+  const raw = (parsed as { cognitiveParams?: unknown } | null)?.cognitiveParams ?? parsed;
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    return { params: DEFAULT_COGNITIVE_PARAMETERS, errors: ['expected a parameter object'] };
+  }
+
+  const params = mergeParameters(raw as Partial<CognitiveParameters>);
+  const { errors } = validateParameters(params);
+  return { params, errors };
 }

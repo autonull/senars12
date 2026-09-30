@@ -26,6 +26,10 @@ import {
   type FullReplayOptions,
   type ReplaySnapshotFile,
 } from '@senars/nar/kernel/replay';
+import {
+  readCognitiveParams as readParamsFile,
+  type CognitiveParameters,
+} from '@senars/nar/config/cognitive-parameters';
 import { errMsg, parseFlags } from '@senars/util';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -43,6 +47,7 @@ interface ReplayCliOptions {
   output?: string;
   gateEventsPath?: string;
   derivationRecordsPath?: string;
+  cognitiveParamsPath?: string;
   memoryConfig?: Record<string, unknown>;
 }
 
@@ -76,6 +81,7 @@ function parseArgs(argv: string[]): ReplayCliOptions {
     output: str('--output', '-o'),
     gateEventsPath: str('--gate-events'),
     derivationRecordsPath: str('--derivation-records'),
+    cognitiveParamsPath: str('--cognitive-params'),
   };
 }
 
@@ -97,6 +103,7 @@ Options:
   -o, --output <path>          Output path for snapshot (default: stdout)
   --gate-events <path>         Gate events JSONL file (default: .cache/events/gate-events.jsonl)
   --derivation-records <path>  Derivation records JSONL file (default: .cache/events/derivations.jsonl)
+      --cognitive-params <path>   Cognitive parameters this run used, as written by the tuner
   -h, --help                   Show this help
 
 Examples:
@@ -117,6 +124,8 @@ async function runReplay(opts: ReplayCliOptions): Promise<void> {
     process.exit(1);
   }
 
+  const cognitiveParams = opts.cognitiveParamsPath ? readCognitiveParams(opts.cognitiveParamsPath) : undefined;
+
   const rangeInfo = opts.fromId ? { fromId: opts.fromId, toId: opts.toId } : { from: opts.from, to: opts.to };
   logger.info('Starting replay', { ...rangeInfo, gateEventsPath });
 
@@ -124,6 +133,7 @@ async function runReplay(opts: ReplayCliOptions): Promise<void> {
     gateEventsPath,
     derivationRecordsPath: existsSync(derivationRecordsPath) ? derivationRecordsPath : undefined,
     memoryConfig: opts.memoryConfig as FullReplayOptions['memoryConfig'],
+    cognitiveParams: cognitiveParams?.params,
     range: { from: opts.from, to: opts.to },
     idRange: opts.fromId ? { from: opts.fromId, to: opts.toId } : undefined,
   };
@@ -187,3 +197,17 @@ runReplay(opts).catch((err) => {
   logger.error('Replay failed', err instanceof Error ? err : undefined, { error: errMsg(err) });
   process.exit(1);
 });
+
+/** A run's parameters have to survive the process that produced them. */
+function readCognitiveParams(path: string): { params: CognitiveParameters; errors: string[] } {
+  if (!existsSync(path)) {
+    logger.error(`Cognitive parameters file not found: ${path}`);
+    process.exit(1);
+  }
+  const { params, errors } = readParamsFile(readFileSync(path, 'utf8'));
+  if (errors.length > 0) {
+    logger.error(`Invalid cognitive parameters in ${path}`, undefined, { errors });
+    process.exit(1);
+  }
+  return { params, errors };
+}
