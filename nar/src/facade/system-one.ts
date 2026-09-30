@@ -84,6 +84,11 @@ export class SystemOneRuntime {
    * Get a per-correlationId ContrastiveMemory instance.
    * Uses ThreadScope for isolation; single-correlationId path is byte-identical.
    */
+  /** The ε-greedy fallback every reflex path attaches; one construction, one stream (TODO28 §7.3). */
+  private incumbentReflex(name: string): EpsilonGreedyReflex {
+    return new EpsilonGreedyReflex(name, { numArms: 10, epsilon: 0.1, rng: this.config.rng });
+  }
+
   getContrastive(correlationId: string): ContrastiveMemory {
     const scope = threadScope.get(correlationId);
     if (!scope.contrastiveMemory) {
@@ -337,7 +342,7 @@ export class SystemOneRuntime {
     if (!this.dispatcher || !this.manifold || !this.embeddingCache) return undefined;
 
     // Create incumbent reflex as fallback
-    const incumbentReflex = new EpsilonGreedyReflex('incumbent', { numArms: 10, epsilon: 0.1 });
+    const incumbentReflex = this.incumbentReflex('incumbent');
 
     // Create ManifoldReflex with incumbent fallback
     const manifoldReflex = new ManifoldReflex(incumbentReflex);
@@ -368,7 +373,7 @@ export class SystemOneRuntime {
   ): Reflex | undefined {
     if (!this.dispatcher || !this.embeddingCache || !this.manifold) return undefined;
 
-    const incumbent = new EpsilonGreedyReflex('lm-incumbent', { numArms: 10, epsilon: 0.1 });
+    const incumbent = this.incumbentReflex('lm-incumbent');
     const lmReflex = new LMReflex({
       fallback: incumbent,
       dispatcher: this.dispatcher,

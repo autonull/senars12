@@ -41,6 +41,8 @@ export const GATES: readonly Gate[] = [
   script('docs:drift'),
   script('test:unit'),
   script('test:determinism', 'slow'),
+  // Ambient entropy throws for the duration — TODO28 §7.3's hermetic seeded run.
+  script('test:hermetic', 'slow'),
   script('test:load-sensitive', 'slow'),
 ];
 

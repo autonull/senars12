@@ -1,5 +1,5 @@
 import { emitDomainEvent } from '@senars/core/event-sink';
-import { clamp01, generateId, occupancy } from '@senars/util';
+import { clamp01, makeId, occupancy } from '@senars/util';
 import type { AIKRBudget } from '@senars/core/budget';
 import type { RandomSource } from '../types/primitives.js';
 import { weightedPick } from '../utils/random.js';
@@ -106,9 +106,9 @@ export abstract class BaseBag<T extends BagItem> implements Bag<T> {
     this.forgetRate = options.forgetRate ?? 0.001;
     this.rng = options.rng ?? Math.random;
     this.clock = options.clock ?? Date.now;
-    // Identity, not a sample: drawn from the global source so that constructing a
+    // Identity, not a sample: drawn from the *id* seam so that constructing a
     // bag cannot shift the seeded stream that sampling and eviction replay from.
-    this.id = options.id ?? generateId('bag', Math.random);
+    this.id = options.id ?? makeId();
   }
 
   /** First index whose priority is below `priority` (binary search over the sorted store). */

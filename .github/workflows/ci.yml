@@ -44,6 +44,10 @@ jobs:
       # Needs no model, and gates the seeded-RNG paths the whole reasoning line
       # of work touches — the cheapest missing gate in the repository.
       - run: pnpm test:determinism
+      # TODO28 §7.3: a seeded run must draw no ambient entropy. Math.random and
+      # crypto.randomUUID throw for the duration, so an unthreaded component
+      # fails the build rather than passing a trace nobody can reproduce.
+      - run: pnpm test:hermetic
   systemone-slo:
     runs-on: ubuntu-latest
     steps:

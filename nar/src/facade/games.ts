@@ -99,7 +99,11 @@ export class GameManager {
       // governance routing; default (absent) preserves arrival-order routing.
       ...(this.proposals
         ? {
-            proposalBag: new ProposalBag({ capacity: this.proposals.capacity, budget: this.proposals.budget }),
+            proposalBag: new ProposalBag({
+              capacity: this.proposals.capacity,
+              budget: this.proposals.budget,
+              rng: this.rng,
+            }),
             drainBudget: this.proposals.budget,
           }
         : {}),

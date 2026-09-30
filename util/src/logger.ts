@@ -102,7 +102,10 @@ export class Logger {
     error?: Error
   ): void {
     if (LOG_LEVELS.indexOf(level) < LOG_LEVELS.indexOf(this.config.level)) return;
-    if (this.config.samplingRate && Math.random() > this.config.samplingRate) return;
+    // `>= 1` never samples, and testing it first keeps the default path from
+    // drawing ambient entropy on every log line (TODO28 §7.3).
+    const { samplingRate } = this.config;
+    if (samplingRate < 1 && Math.random() > samplingRate) return;
 
     this.emit({ level, message, timestamp: Date.now(), scope: this.config.scope, context, error, ...logEnricher?.() });
   }

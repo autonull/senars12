@@ -3,6 +3,7 @@ import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/l
 import { cachePath, clamp, roundTo } from '@senars/util';
 import { z } from 'zod';
 import { buildDefaults, type CognitiveParameters } from '../config/cognitive-parameters.js';
+import type { RandomSource } from '../types/primitives.js';
 import type { ParameterLedger } from '../config/parameter-ledger.js';
 import { OperationError } from '../types';
 import { createKnobSet, type TunableKnob } from './knobs.js';
@@ -56,6 +57,8 @@ export interface RLFPLearnerConfig {
   ledger?: ParameterLedger;
   /** Path for training data ledger (REFACTOR.todo4 Phase B). */
   trainingDataPath?: string;
+  /** Seeded randomness for the reward model and the policy optimizer (TODO28 §7.3). */
+  rng?: RandomSource;
 }
 
 export class RLFPLearner {
@@ -78,8 +81,8 @@ export class RLFPLearner {
   constructor(config: RLFPLearnerConfig = {}) {
     this.optimizeInterval = config.optimizeInterval ?? 100;
     this.ledger = config.ledger;
-    this.rewardModel = config.rewardModel ?? new RewardModel();
-    this.policyOptimizer = new PolicyOptimizer(this.rewardModel);
+    this.rewardModel = config.rewardModel ?? new RewardModel({ rng: config.rng });
+    this.policyOptimizer = new PolicyOptimizer(this.rewardModel, { rng: config.rng });
     this._preferenceCollector = config.preferenceCollector ?? new PreferenceCollector();
     this.currentParams = config.currentParams ?? buildDefaults();
     this.knobs = createKnobSet(this.currentParams);

@@ -1,3 +1,4 @@
+import { sequentialIdSource } from '@senars/util';
 import { SeededRNG } from '@senars/nar/utils/random';
 import { Clock, SystemClock, fixedClock } from '@senars/nar/clock.js';
 import { NarEventBus } from '@senars/nar/types/events.js';
@@ -117,7 +118,14 @@ export class ScenarioHarness {
   }
 
   private buildNARConfig(): NARConfig {
-    return e2eNARConfig({ eventBus: this.eventBus, rng: () => this.rng.next(), ...this.spec?.config });
+    // `ids` as well as `rng`: a seeded run has to fix the names the draws are
+    // recorded under, not only the draws (TODO28 §7.3).
+    return e2eNARConfig({
+      eventBus: this.eventBus,
+      rng: () => this.rng.next(),
+      ids: sequentialIdSource(),
+      ...this.spec?.config,
+    });
   }
 
   async run(): Promise<ScenarioResult> {

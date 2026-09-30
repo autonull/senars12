@@ -2,6 +2,7 @@ import type { AutonomyMode, ReasoningBudget } from '@senars/core/derivation-sche
 import type { MettaPort } from '@senars/core/metta-port';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
+import type { IdSource } from '@senars/util';
 import type { CognitiveRegistry } from '../cognitive';
 import type { CognitiveParameters } from '../config/cognitive-parameters';
 import type { GateRegistry } from '../kernel/GateRegistry.js';
@@ -59,6 +60,13 @@ export interface NARConfig extends CoreConfig {
   systemOne?: Partial<SystemOneConfig>;
   /** TODO20 §5s: injectable RNG — one knob for deterministic replay (threads to focus bags). */
   rng?: RandomSource;
+  /**
+   * Id minting for the process this NAR owns. Absent ⇒ `crypto.randomUUID`.
+   * Installed for the NAR's lifetime and restored on `dispose`, so a seeded
+   * configuration yields reproducible event ids — `rng` fixes the draws, this
+   * fixes the names the draws are recorded under.
+   */
+  ids?: IdSource;
   /** Phase B (REFACTOR.todo2): episodic consolidation as an AIKR process (inert until admit/emit sinks are wired). */
   episodeConsolidation?: { enabled?: boolean; capacity?: number; budget?: number };
   /** Phase D (REFACTOR.todo2): bounded proposal bag for self-improvement routing (default off ⇒ arrival order). */

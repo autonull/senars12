@@ -216,6 +216,14 @@
 
 - `generateId` — Monotonic, collision-resistant id. Pass an injectable `rng` (seeded runs,
 
+- `installIdSource` — Install `source` as the process id source and return a restore function.
+
+- `type IdSource`
+
+- `makeId` — A fresh UUID, or the installed source's id when one is set.
+
+- `sequentialIdSource` — Counter-derived UUIDs, for seeded runs: `00000000-0000-4000-8000-000000000001`
+
 - `BoundedMap`
 
 - `LruCache`
@@ -275,8 +283,6 @@
 - `isPlainObject` — Plain-object guard — the one object test behind config merging and tool schemas.
 
 - `limitList`
-
-- `makeId`
 
 - `mean` — Arithmetic mean of a projection; 0 for an empty collection (rates, scores, sums).
 
@@ -560,8 +566,6 @@
 
 ## `./utils/shared`
 
-- `makeId`
-
 - `isNil`
 
 - `ensureArray`
@@ -633,8 +637,6 @@
 - `Flags` — Typed accessor over `--flag value` style argv arrays.
 
 - `parseFlags` — Parses `argv` once into flag lookups. `--flag value` consumes the next token
-
-- `generateId` — Monotonic, collision-resistant id. Pass an injectable `rng` (seeded runs,
 
 - `extractTerm`
 

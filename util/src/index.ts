@@ -225,7 +225,7 @@ export {
   shortSha256Hex,
 } from './utils/hash.js';
 /** @public ULID id generation. */
-export { generateId } from './utils/id.js';
+export { generateId, installIdSource, type IdSource, makeId, sequentialIdSource } from './utils/id.js';
 /** @public Bounded map with pluggable eviction order and optional TTL. */
 export type { BoundedMapOptions, EvictionOrder } from './utils/bounded-map.js';
 export type { ReadOnlyLookup } from './utils/collections.js';
@@ -269,7 +269,6 @@ export {
   isNil,
   isPlainObject,
   limitList,
-  makeId,
   mean,
   occupancy,
   parseFlags,

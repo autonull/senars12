@@ -1,6 +1,6 @@
 import { BaseComponent } from '@senars/core';
 import type { ReasoningBudget } from '@senars/core/derivation-schemas';
-import { errMsg, selectTopN } from '@senars/util';
+import { errMsg, installIdSource, selectTopN } from '@senars/util';
 import type { Episode } from '@senars/util';
 import { resolveBagSlot } from './bag/registration.js';
 import { CognitiveController, createDefaultRegistry } from './cognitive';
@@ -105,6 +105,8 @@ export class NAR extends BaseComponent {
   #governanceResolver?: GovernanceResolver;
   driveManager?: DriveManager;
   private readonly systemEventBus: NarEventBus;
+  /** Restores the process id source this NAR installed (TODO28 §7.3). */
+  #restoreIdSource?: () => void;
 
   private readonly io: NARIO;
   private execution: NARExecution;
@@ -151,18 +153,19 @@ export class NAR extends BaseComponent {
     this.taskManager = new TaskManager(this.memory, { gateRegistry: this.gates });
     this.query = new QueryAPI(this.memory);
     this.traceAPI = new ReasoningTrace(this.memory);
-    this.tools = new ToolManager({ eventBus, feedbackObserver: config.feedbackObserver });
+    this.tools = new ToolManager({ eventBus, feedbackObserver: config.feedbackObserver, rng: config.rng });
     this._lmService = this.config.lmService;
     this._registry = this.config.providerRegistry;
 
     if (this.config.enableRLFP)
-      this.rlfp = new RLFPLearner({ optimizeInterval: this.config.rlfp?.optimizeInterval });
+      this.rlfp = new RLFPLearner({ optimizeInterval: this.config.rlfp?.optimizeInterval, rng: config.rng });
 
     if (this.config.episodeConsolidation?.enabled) {
       const cfg = this.config.episodeConsolidation;
       this.#episodeConsolidator = new EpisodeConsolidator({
         capacity: cfg.capacity,
         budget: cfg.budget,
+        rng: config.rng,
       });
     }
 
@@ -172,6 +175,7 @@ export class NAR extends BaseComponent {
         capacity: cfg.capacity,
         budget: cfg.budget,
         marginFloor: cfg.marginFloor,
+        rng: config.rng,
       });
     }
 
@@ -272,6 +276,10 @@ export class NAR extends BaseComponent {
   }
 
   override async initialize(): Promise<void> {
+    // Ids are minted deep in the gates, the task manager and the concept store,
+    // none of which receives a config, so the source is installed process-wide
+    // for this NAR's lifetime rather than threaded to 38 call sites.
+    if (this.config.ids) this.#restoreIdSource ??= installIdSource(this.config.ids);
     await super.initialize();
     this.logger?.info('NAR initialized');
   }
@@ -299,6 +307,8 @@ export class NAR extends BaseComponent {
   override async dispose(): Promise<void> {
     this.self?.shutdown();
     this.stopLM();
+    this.#restoreIdSource?.();
+    this.#restoreIdSource = undefined;
     await super.dispose();
     this.logger?.info('NAR disposed');
   }

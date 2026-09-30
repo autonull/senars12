@@ -1,5 +1,3 @@
-export const makeId = (): string => crypto.randomUUID();
-
 export const isNil = (value: unknown): value is null | undefined => value == null;
 
 export const ensureArray = <T>(arr: T | T[] | undefined | null): T[] =>
@@ -300,16 +298,6 @@ export function parseFlags(argv: readonly string[] = process.argv.slice(2)): Fla
     },
     list: (flag, fallback) => (get(flag) ?? fallback.join(',')).split(',').filter(Boolean),
   };
-}
-
-let msgCounter = 0;
-
-/**
- * Monotonic, collision-resistant id. Pass an injectable `rng` (seeded runs,
- * deterministic replay) — the default source is the global `Math.random`.
- */
-export function generateId(prefix: string, rng: () => number = Math.random): string {
-  return `${prefix}-${Date.now()}-${++msgCounter}-${rng().toString(36).slice(2, 6)}`;
 }
 
 export function extractTerm(content: string): string | undefined {

@@ -1,4 +1,4 @@
-import { generateId } from '../utils/shared.js';
+import { generateId } from '../utils/id.js';
 import { trimCapped } from '../utils/collections.js';
 import { LruCache } from '../utils/lru-cache.js';
 import type { ConversationSession, SessionManager } from '../types/memory.js';

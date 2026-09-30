@@ -131,6 +131,7 @@ export class MiningBag extends AikrShell<HardNegativeCandidate, MinedNegative, M
     const bag = new PriorityBag<HardNegativeCandidate>({
       capacity: options.capacity ?? 128,
       forgetRate: options.forgetRate,
+      rng: options.rng,
     });
     super({
       bag,
@@ -145,6 +146,7 @@ export class MiningBag extends AikrShell<HardNegativeCandidate, MinedNegative, M
       processor: new AIKRProcessor<HardNegativeCandidate, MinedNegative>({
         bag,
         pressureThreshold: options.pressureThreshold ?? 0.5,
+        rng: options.rng,
         samplingStrategy: {
           name: 'greedy-priority',
           select: (items, selectBudget) =>

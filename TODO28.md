@@ -1,15 +1,15 @@
 # TODO28: Structure — the package graph, the directory shape, and the leftovers
 
-**Version:** 1.3 (2026-09-30) · **Predecessor:** TODO27 (phases A–P; strategy composition, then
-the primitives pass), which closed the strategy axis and left this. v1.3 is the same plan after
-the fourth pass: the four cheap items in §7.11 landed, and two of them turned out to be hiding
-something worse than the note recorded.
+**Version:** 1.4 (2026-09-30) · **Predecessor:** TODO27 (phases A–P; strategy composition, then
+the primitives pass), which closed the strategy axis and left this. v1.4 is the same plan after
+the fifth pass, which took the one item §7.11 still listed — the hermetic seeded run — and
+found the cost was in the assertion, not the code.
 
-**Status: closed except §3.2 and the three recorded debts.** Everything in §1, §2, §3.1,
-§3.3–§3.5 and §4 landed, plus §8.1, §8.2, §8.6, and — in the fourth pass — §8.7, §8.8, §8.9
-and §8.10. The layering ledger is empty, the barrels are explicit, and **one command now runs
-every gate**. §3.2 is a plan of its own; §3.6–§3.8 are recorded and still correctly not
-scheduled. §6 is what happened, §7 is what is left, §8 is what the work surfaced. Sections
+**Status: closed except the three recorded debts.** Everything in §1, §2, §3.1, §3.2,
+§3.3–§3.5 and §4 landed, plus §8.1, §8.2, §8.6, and — across the fourth and fifth passes —
+§8.7, §8.8, §8.9, §8.10 and §8.15. The layering ledger is empty, the barrels are explicit,
+a seeded run draws no ambient entropy, and **one command now runs every gate**. §3.6–§3.8
+are recorded and still correctly not scheduled. §6 is what happened, §7 is what is left, §8 is what the work surfaced. Sections
 that shipped carry a **landed** marker and a note saying what the tree actually looked like.
 
 **Every gate green, run by one command that also checks `ci.yml` runs them.**
@@ -547,6 +547,12 @@ Every gate green, run by `pnpm gates`: `typecheck`, `typecheck:bin`, `lint`, `de
 `docs:drift`, `test:unit` (2 628 passing), and under `--tier slow`, `test:determinism` and
 `test:load-sensitive` (57 passing across 8 files, under the tier's own load).
 
+### Fifth pass
+
+| Commit | § | Item |
+|---|---|---|
+| `1c2e0a41` | 7.3 | The id seam in `util`, `NARConfig.ids`, and `test:hermetic` — ambient entropy throws for the duration of a seeded run |
+
 ### Fourth pass
 
 | Commit | § | Item |
@@ -812,18 +818,58 @@ All nine directories. See §6.
 
 `lm-graph` is a catalogue registration. See §6.
 
-### 7.3 §3.2 the hermetic seeded run — unchanged, and now cheaper to scope
+### 7.3 §3.2 the hermetic seeded run — **landed**
 
-`NARConfig.rng` fixes the draws; nothing fixes async interleaving, and `makeId`
-(`crypto.randomUUID`) still stamps task ids. Still a plan of its own, and it still touches
-the parity baseline `test:load-sensitive` exists to protect — which is now a *better*
-protected baseline than before, since the whole tier is green rather than three files
-excluded.
+`NARConfig.rng` fixed the draws and `makeId` (`crypto.randomUUID`) stamped unpredictable ids
+onto them, so a "seeded" run recorded its trace under names nobody could reproduce. Those are
+one defect, not two: reproducibility is a property of the *trace*, and the trace was full of
+UUIDs.
 
-The vocabulary is `deps:direction`'s: a `RandomSource` threaded through `NARConfig` is a
-*seam*, not a parameter, and the bags that sample from it are the ones that must take it.
-`src/bin/lib/tune-runner.ts:169` already has the parameters in memory, and §7.4 now lets
-them survive the process — so the remaining half is the RNG, not the config.
+**Landed, and the finding was that the plan had been about the assertion.** The plan proposed
+threading a `RandomSource` into "every bag and sampler" — which is a parameter on a dozen
+constructors, and which fixes the half that was already half-fixed. The unseamed half was the
+*ids*, and no amount of `rng` threading touches them.
+
+So the seam is where the ids actually are: `util/src/utils/id.ts` gained `installIdSource` /
+`sequentialIdSource`, `makeId` reads the installed source, and `NARConfig.ids` installs it for
+the NAR's lifetime and restores it on `dispose`. Process-scoped rather than a parameter on 38
+call sites, because ids are minted deep in the gates, the task manager and the concept store,
+none of which receives a NAR config — and one seeded NAR per process is what the determinism
+gate and the replay CLI already assume. `sequentialIdSource` mints **counter-derived UUIDs**
+rather than `evt-1`, because `CognitiveEventSchema` validates `taskId` as a UUID at the
+untrusted boundary; that was the first thing the new test found.
+
+`NARConfig.rng` is now also passed to five components that already accepted it and were never
+given it: `ToolManager`, `RLFPLearner` (into `RewardModel` and `PolicyOptimizer`),
+`EpisodeConsolidator`, `MiningBag` and `GameManager`'s `ProposalBag`, plus both
+`EpsilonGreedyReflex`es in `facade/system-one.ts` (now one `incumbentReflex` helper — two
+copies of the same arm count would drift).
+
+#### The gate is a test that makes entropy throw
+
+`test:hermetic` (`tests/e2e/hermetic-run.test.ts`) mocks `Math.random` and `crypto.randomUUID`
+to **throw** and runs the five golden scenarios. A gate built from a naming convention asserts
+the convention (§7.2, §8.1); this one cannot be satisfied by a file that merely looks right —
+an unthreaded component fails the build by calling one.
+
+It paid for itself on first run, three times over, and none of the three were the plan's
+guess:
+
+- **`util/src/logger.ts` drew `Math.random()` on every log line.** `samplingRate` defaults to
+  `1.0` and the guard was `if (this.config.samplingRate && Math.random() > …)`, so the default
+  path sampled unconditionally to decide not to sample. Now `samplingRate < 1 &&`.
+- **`nar/src/bag/Bag.ts` minted its own id from `Math.random`** — deliberately, with a comment
+  explaining that bag identity must not shift the seeded *sample* stream. The reasoning was
+  right and the conclusion wrong: it needed the *id* seam, not the ambient source.
+- **`sequentialIdSource` emitting `evt-1`** was rejected by `CognitiveEventSchema`.
+
+A second case compares the raw event trace between two runs rather than the state hash: the
+existing determinism gate's hash is computed from term/priority/truth and is **blind to ids by
+construction**, which is why a UUID-stamped trace passed it for as long as it did.
+
+Async interleaving is untouched and is the one half of §3.2 this does not claim. The property
+now gated is: *given the same seed and the same ids, two runs produce the same trace* — which
+is what reproducibility means for a single-threaded step.
 
 ### 7.4 §3.4 the cognitive-parameter loader — done
 
@@ -860,15 +906,10 @@ catches the module a barrel forgets. See §6.
 
 ### 7.11 what is left, in one place
 
-**One item, and it needs new design.** The four cheap ones landed in the fourth pass (§6).
-
-| Item | § | Kind |
-|---|---|---|
-| The hermetic seeded run | 7.3 | a plan of its own — the only one |
-
-§7.3 has it in full. The note that has changed is that the baseline it would move — the
-`test:load-sensitive` tier — is greener than when it was written, and green *under its own
-load* rather than in isolation, which is what §8.9's fix made it.
+**Nothing.** §7.3 was the last item and it landed in the fifth pass (§6). The three §3.8
+measurement debts remain, blocked on an install at a past commit, and §3.6/§3.7 remain
+recorded rather than scheduled for the reason already given — a `Link` field with no reader and
+a feature, not a cleanup.
 
 ---
 
@@ -1206,6 +1247,28 @@ the *only* thing §8.8 left behind, and it is a real one: `nar/src/utils/similar
 nar implementation, not a pass-through, so it stays. The second is that a diagram which
 cannot be regenerated and diffed is documentation, and this one can, so it should be read
 as generated output rather than maintained source.
+
+### 8.15 The hermetic test's ceiling is the scenarios it can reach — **landed, and recorded**
+
+`test:hermetic` runs the golden scenarios with System One off, LM off and tools off, because
+those are the configurations the scenarios declare. It therefore does **not** cover the
+manifold, the episode consolidator, the governance pipeline, `QBeliefStore`'s tie-break or any
+reflex path — each is constructed only when its feature flag is on.
+
+That is the honest boundary of the claim, and it is a *test-coverage* boundary rather than a
+design one: every one of those components now takes `rng` from config, so what is missing is a
+scenario that switches them on, not a seam. Worth knowing when the next ambient-entropy
+failure appears in one of them — the test did not miss it because it is blind, but because
+nothing exercised it.
+
+### 8.16 `productionLOC` moved up for the first time under `mustNotIncrease`
+
+The fifth pass added the id seam and `productionLOC` went 71 290 → 71 333, so the ratchet from
+§8.7 fired on a change that added a real seam rather than padding. The baseline moved to the
+measurement in the same commit, which is the documented procedure, and the number is worth
+naming: **this is the first time in four passes that the baseline had to move up**, and it
+moved for the first honest reason available. A ratchet that has never gone up has not yet been
+tested in the direction that matters.
 
 ### 8.14 The remaining `utils/` directory is four modules and no barrel
 
