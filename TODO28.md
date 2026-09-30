@@ -12,6 +12,9 @@ own; §3.6–§3.8 are recorded and still correctly not scheduled. §6 is what h
 left, §8 is what the work surfaced. Sections that shipped carry a **landed** marker and a note
 saying what the tree actually looked like.
 
+**Every gate green, including one that had been red for a whole pass** — the docs-drift check
+was running in CI and failing since the second pass, which §6 has more on.
+
 > **A fresh session should read §7 first, and §7.11 is the whole of what is left.** The
 > package that should not exist is gone, all nine directories in §2.1 hold their contract at
 > the top with implementations under `impls/`, `core` no longer reaches upward, the catalogue
@@ -467,6 +470,12 @@ locally against the cached GGUFs, but no workflow runs them.
 `test:determinism` needs no model and is the gate that protects the seeded-RNG paths the last
 several phases touched. It is the cheapest missing CI gate in the repository.
 
+> **The docs-drift check was in that list the whole time, and red for the whole time.** The
+> third pass found six stale files — the second pass moved files across nine directories and
+> never regenerated. It is the one gate in this plan that was *running* and *failing* rather
+> than missing, which is a different and worse failure mode than §4.5 describes: nobody
+> notices a build that has been broken since the previous commit. Regenerated; see §6.
+
 ### 4.6 Two flaky tests, verified pre-existing — **landed, and a third joined them**
 
 `tests/nar/todo26-cognitive-agent.test.ts` and
@@ -517,7 +526,8 @@ gate could not see the thing it existed to catch. Every gate green: `typecheck`,
 | Commit | § | Item |
 |---|---|---|
 | `64663578` | 8.1 | `MettaPort` in `core`, `createMettaPort` in `metta`, injected through `nar` — and `deps:direction` rewritten to see dynamic imports, undeclared manifests and self-references |
-| see below | 8.2, 8.6 | `exports:barrels`: no `export *`, no unreachable module. Seven barrels made explicit, one dead shim deleted |
+| `0fc814c4` | 8.2, 8.6 | `exports:barrels`: no `export *`, no unreachable module. Seven barrels made explicit, one dead shim deleted |
+| see below | 4.5 | `docs:api` / `docs:architecture` regenerated — the drift gate had been red since the second pass |
 
 ### §8.1: the gate that could not see the inversion it was written for
 
@@ -555,6 +565,23 @@ the tree needed the exemption, so it went.
 `tests/nar/todo28-layering.test.ts` falsifies the scanner against the shapes that break it —
 comments, template literals, nested `${}` containing braces and quotes, escaped backticks,
 and the two generator files in the repository that emit import text as data.
+
+### §4.5: the gate that was running and failing, rather than missing
+
+Worth setting beside §4.5's own finding, because they are opposite failures. §4.5 is about
+gates that *do not exist* in `ci.yml` — cheap to add, and nobody can trip them. The
+docs-drift gate was in `ci.yml`, running on every push, and had been failing since the
+second pass regenerated nothing after moving files across nine directories.
+
+It survived two passes and a status header that claims `docs:api` as a verified gate,
+because the failure is six files of diff rather than a red test, and because the natural
+way to run this plan's gates by hand is `pnpm typecheck && pnpm lint && pnpm test:unit`.
+Verified pre-existing: the same six files drift on a clean checkout.
+
+The general lesson is the one §7.2 and §8.1 each rediscovered in their own shape — a check
+that nobody runs on the way through is a comment, not a gate — and the general fix is the
+one `complexity:budget` already models: **one command that runs everything**, so the set of
+gates is a list in a script rather than a set of habits.
 
 ### §8.2/§8.6: the barrels, and how the conversion was verified
 
@@ -785,11 +812,12 @@ catches the module a barrel forgets. See §6.
 
 ### 7.11 what is left, in one place
 
-Everything structural in this document is done. Four items remain, none scheduled:
+Everything structural in this document is done. Five items remain, none scheduled:
 
 | Item | § | Kind |
 |---|---|---|
 | The hermetic seeded run | 7.3 | a plan of its own — the only one |
+| One command that runs every gate | 8.10 | a list instead of a habit |
 | The `utils/` pass-through shims | 8.8 | mechanical, and the last instance of a named pattern |
 | `bandit-epsilon-greedy` as a unit test | 8.9 | a benchmark with a wall-clock timeout |
 | The `productionLOC` ratchet | 8.7 | a decision, not a measurement |
@@ -798,7 +826,7 @@ The first is the only one that needs new design. §7.3 has it in full; the note 
 changed is that the baseline it would move — the `test:load-sensitive` tier — is greener
 than when it was written and still load-sensitive, per §8.9.
 
-The three that are *not* scheduled all share a shape worth naming: each is something a
+The four that are *not* scheduled all share a shape worth naming: each is something a
 previous pass already observed and recorded, and each is cheap enough that recording it is
 rational only because none of them was urgent. That is the failure mode this plan's §3
 warns about — a follow-up list accumulating its own observations. The difference is that
@@ -965,7 +993,20 @@ costs sit inside the loop: `g.term.toString()` runs per pending goal per step, a
 `bestAction.toString()` twice more per step — real serialisation in the hot path, though
 fixing it perturbs what the test spends its time measuring.
 
-### 8.10 The masking scanner is a library now, and three scripts could share it
+### 8.10 There is no single command that runs every gate
+
+Surfaced by the docs-drift gate, and the fix for the reason it went unnoticed. The gates are
+ten separate `pnpm` scripts; the way they get run by hand is
+`typecheck && lint && test:unit`, which omits `deps:gate`, `deps:direction`, both `exports:`
+gates, `complexity:budget` and the docs-drift check — and the docs-drift gate then sat red for
+a whole pass, in CI, undetected.
+
+`complexity-budget.ts` is already the closest thing to an umbrella: it runs dpdm and
+`tsc -p tsconfig.bin.json` internally and gates on their results. The fix is one more script
+that runs the list, so the set of gates is a list rather than a set of habits, and a gate added
+to `ci.yml` without a local entry point cannot be the only place it runs.
+
+### 8.11 The masking scanner is a library now, and three scripts could share it
 
 `scripts/lib/imports.ts` extracts module specifiers by blanking comments and template
 literals rather than by parsing. `exports:audit`, `docs:api` and `verify-exports` each walk
