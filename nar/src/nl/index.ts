@@ -16,7 +16,8 @@ export type {
   GenerationOutput,
 } from './generation.js';
 export { NLGenerationService } from './generation.js';
-export * from './schemas.js';
+export { AmbiguitySchema, AnalogySchema, BeliefRevisionSchema, ClarificationSchema, ConceptElaborationSchema, CoreferenceSchema, ExplanationSchema, GenerationOutputSchema, GoalDecompositionSchema, HypothesisSchema, MetaReasoningSchema, NarseseBeliefSchema, QuestionGenerationSchema, SchemaInductionSchema, TaskBatchSchema, TemporalCausalSchema, TranslationSchema, UncertaintySchema, VariableGroundingSchema } from './schemas.js';
+export type { AnalogyResult, BeliefRevisionResult, ClarificationResult, ConceptElaborationResult, ExplanationResult, GoalDecompositionResult, HypothesisResult, MetaReasoningResult, QuestionGenerationResult, SchemaInductionResult, TemporalCausalResult, TranslationResult, UncertaintyResult, VariableGroundingResult } from './schemas.js';
 export type { Ambiguity, Coreference, NLContext, TaskBatch } from './understanding.js';
 export {
   detectAmbiguityFlags,

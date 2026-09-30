@@ -20,6 +20,10 @@ jobs:
       - run: pnpm deps:direction
       # TODO20 A1: no export without a consumer (or PUBLIC_API declaration)
       - run: pnpm exports:audit
+      # Every declared subpath resolves to a real file.
+      - run: pnpm exports:check
+      # TODO28 §8.6: one barrel per directory, and it names what it exports.
+      - run: pnpm exports:barrels
       # TODO20 §5s: generated docs must match committed output (drift gate)
       - run: |
           pnpm docs:api

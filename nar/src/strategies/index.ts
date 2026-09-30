@@ -1,8 +1,9 @@
-export * from './attention/index.js';
-export * from './derivation/index.js';
-export * from './lm-graph/RuleGraph.js';
-export * from './lm-selectors/index.js';
-export * from './sampling/index.js';
+export { CompositeAttention, GoalRelevanceAttention, NullAttentionModel, SimpleAttention, SpreadingActivation } from './attention/index.js';
+export { AnytimeDerivation, DefaultDerivation, FocusedDerivation, SampledDerivation } from './derivation/index.js';
+export { RuleGraph } from './lm-graph/RuleGraph.js';
+export type { RuleGraphOptions } from './lm-graph/RuleGraph.js';
+export { AllSelector, DiverseSelector, PrioritySelector, RotationSelector } from './lm-selectors/index.js';
+export { DiverseSampling, GoalBiasedSampling, NoveltySampling, PrioritySampling, TopNSampling, WindowedRouletteStrategy, createWindowedRouletteStrategy } from './sampling/index.js';
 
 export type {
   AttentionContext,
