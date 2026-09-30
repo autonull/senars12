@@ -6,8 +6,8 @@ import type {
   ConnectionDeps,
   ConnectionState,
   IOMessage,
-  Logger,
 } from '../types.js';
+import type { Logger } from '@senars/util';
 
 export abstract class BaseConnection implements Connection {
   id: string;

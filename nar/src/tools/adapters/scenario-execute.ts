@@ -1,7 +1,6 @@
+import { clamp01, createLogger, stopwatch } from '@senars/util';
 import type { SeNARSRegistry } from '../../lm';
-import { createLogger } from '@senars/core/logger';
 import { NLUnderstandingService } from '../../nl/understanding.js';
-import { clamp01 } from '@senars/util';
 import type { ScenarioProfile, ScenarioTemplateProfile } from './scenario-profiles.js';
 
 // --- generate_scenarios ---
@@ -274,7 +273,8 @@ function generateTemplateScenario(seed: string, profile: string): ScenarioSpec {
     },
   };
 
-  const profileSpec = profiles[profile as ScenarioTemplateProfile] ?? profiles.contradictory_sensors;
+  const profileSpec =
+    profiles[profile as ScenarioTemplateProfile] ?? profiles.contradictory_sensors;
 
   return {
     name: profileSpec.name ?? profile,
@@ -287,7 +287,7 @@ function generateTemplateScenario(seed: string, profile: string): ScenarioSpec {
 }
 
 export async function runScenario(nar: any, spec: ScenarioSpec): Promise<ScenarioResult> {
-  const startTime = Date.now();
+  const elapsed = stopwatch();
   let cognitiveEvents = 0;
   let contradictionsDetected = 0;
   const derivedBeliefs: string[] = [];
@@ -348,7 +348,7 @@ export async function runScenario(nar: any, spec: ScenarioSpec): Promise<Scenari
     const stepsToRun = spec.duration_steps;
     await nar.run(stepsToRun);
 
-    const duration = Date.now() - startTime;
+    const duration = elapsed();
 
     return {
       success: true,
@@ -361,7 +361,7 @@ export async function runScenario(nar: any, spec: ScenarioSpec): Promise<Scenari
       derived_beliefs: derivedBeliefs,
     };
   } catch (error) {
-    const duration = Date.now() - startTime;
+    const duration = elapsed();
     return {
       success: false,
       scenario_name: spec.name,

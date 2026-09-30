@@ -1,4 +1,3 @@
-import { makeId } from '@senars/util';
 import type {
   AutonomyMode,
   GovernanceDecision,
@@ -6,10 +5,11 @@ import type {
   PatchProposal,
   RiskAssessment,
   SelfImprovementProposal,
-} from '@senars/core/derivation-schemas';
-import { findKnobSpec } from '../rlfp/knobs.js';
+} from '@senars/core/schemas';
+import { makeId } from '@senars/util';
 import type { FocusStepReport } from '../focus/Focus.js';
 import type { SelfMetaGameImpl } from '../game/impls/SelfMetaGame.js';
+import { findKnobSpec } from '../rlfp/knobs.js';
 
 const GUARDRAIL_FRAGMENTS = [
   'ApprovalManager',
@@ -109,17 +109,23 @@ export class GovernanceResolver {
     proposal: SelfImprovementProposal,
     mode: AutonomyMode,
     actuators: ProposalActuators = {}
-  ): { decision: GovernanceDecision; route: ProposalRoute; applied: boolean; reason: string; adaptationId: string } {
+  ): {
+    decision: GovernanceDecision;
+    route: ProposalRoute;
+    applied: boolean;
+    reason: string;
+    adaptationId: string;
+  } {
     const evidence = this.gatherEvidence();
     const risk = this.assessRisk(proposal);
     const decision = this.policyEngine.decide(risk, mode);
     const routing = this.router.route(proposal, mode, actuators, this.validator);
 
     const adaptationId = makeId();
-    
+
     // Build derivation chain: parent chain + this adaptation
     const newDerivationChain = [...this.derivationChain, adaptationId];
-    
+
     const adaptation: AdaptationRecord = {
       adaptationId,
       timestamp: Date.now(),
@@ -136,7 +142,13 @@ export class GovernanceResolver {
       this.derivationChain = newDerivationChain;
     }
 
-    return { decision, route: routing.route, applied: routing.applied, reason: routing.reason, adaptationId };
+    return {
+      decision,
+      route: routing.route,
+      applied: routing.applied,
+      reason: routing.reason,
+      adaptationId,
+    };
   }
 
   /** Get the current derivation chain. */
@@ -158,7 +170,8 @@ export class GovernanceResolver {
       baseCommit: '',
       patchDiff: '',
       ciResults: { test: true, typecheck: true, lint: true, durationMs: 0 },
-      riskSelfAssessment: proposal.riskTier === 'high' ? 'HIGH' : proposal.riskTier === 'medium' ? 'MEDIUM' : 'LOW',
+      riskSelfAssessment:
+        proposal.riskTier === 'high' ? 'HIGH' : proposal.riskTier === 'medium' ? 'MEDIUM' : 'LOW',
       affectedComponents: ['cognitive-params'],
       affectedFiles: [],
       linesAdded: 0,
@@ -227,7 +240,12 @@ export class GovernanceResolver {
 
   drainAwaitingValidation(
     actuators: ProposalActuators = {}
-  ): Array<{ proposal: SelfImprovementProposal; route: ProposalRoute; applied: boolean; reason: string }> {
+  ): Array<{
+    proposal: SelfImprovementProposal;
+    route: ProposalRoute;
+    applied: boolean;
+    reason: string;
+  }> {
     return this.router.drainAwaitingValidation(actuators, this.validator);
   }
 
@@ -241,7 +259,11 @@ export type ProposalRoute = 'auto-apply' | 'sandbox-validate' | 'human-approval'
 export interface ProposalActuators {
   applyFocusWeight?: (focusId: string, weight: number) => void;
   applyKnob?: (knob: string, value: number) => void;
-  applySchemaPatch?: (patch: { schemaId: string; mettaProgram: string; sourceDerivationIds: string[] }) => void;
+  applySchemaPatch?: (patch: {
+    schemaId: string;
+    mettaProgram: string;
+    sourceDerivationIds: string[];
+  }) => void;
 }
 
 export interface ValidationVerdict {
@@ -406,7 +428,12 @@ export class ProposalRouter {
   drainAwaitingValidation(
     actuators: ProposalActuators = {},
     validator?: SandboxValidator
-  ): Array<{ proposal: SelfImprovementProposal; route: ProposalRoute; applied: boolean; reason: string }> {
+  ): Array<{
+    proposal: SelfImprovementProposal;
+    route: ProposalRoute;
+    applied: boolean;
+    reason: string;
+  }> {
     const held = this.awaitingValidation.splice(0);
     return held.map((proposal) => ({
       proposal,

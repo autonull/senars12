@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
-import type { JudgmentQuery, EmbeddingPointer } from '../../nar/src/lm/system-one/types.js';
+import type { EmbeddingPointer, JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
 
 describe('System One — Zero-Copy Batching (Bench 2)', () => {
   let cache: EmbeddingCache;
@@ -88,7 +88,9 @@ describe('System One — Zero-Copy Batching (Bench 2)', () => {
       axis: 'epistemic' as const,
     }));
 
-    await expect(manifold.judgeBatch(contextPointer, tooManyQueries, mockBudget)).rejects.toThrow('exceeds max');
+    await expect(manifold.judgeBatch(contextPointer, tooManyQueries, mockBudget)).rejects.toThrow(
+      'exceeds max'
+    );
   });
 
   it('propositions carry correct tier and resource cost', async () => {

@@ -94,7 +94,7 @@ export class SystemOneLMRuleAdapter {
     }
   }
 
-  #budget(): import('@senars/core/derivation-schemas').ReasoningBudget {
+  #budget(): import('@senars/core/schemas').ReasoningBudget {
     return createSystemOneBudget();
   }
 
@@ -145,18 +145,13 @@ export class SystemOneLMRuleAdapter {
         const term = termParser.parse(trace);
         if (!term) continue;
         tasks.push(
-          createTask(
-            term,
-            'belief',
-            Truth.create(clamp(0.5 + score / 2, 0.5, 0.9), 0.7),
-            {
-              priority: clamp01(score),
-              durability: 0.7,
-              quality: 0.8,
-              cycles: 10,
-              depth: 5,
-            }
-          )
+          createTask(term, 'belief', Truth.create(clamp(0.5 + score / 2, 0.5, 0.9), 0.7), {
+            priority: clamp01(score),
+            durability: 0.7,
+            quality: 0.8,
+            cycles: 10,
+            depth: 5,
+          })
         );
       }
       this.#logger?.debug?.('System One meta-reasoning', {

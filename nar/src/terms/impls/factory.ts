@@ -1,27 +1,25 @@
-import { trackTerm } from '../../memory/lifecycle/gc.js';
-import { containsSubterm } from './accessors.js';
-import { COMMUTATIVE_OPS, OPERATORS } from '../operators.js';
-import { serializeTerm } from './serialize.js';
-import { VARIABLE_SYMBOL } from '../types.js';
-import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from '../types.js';
-import { INVALID_ATOM_CHARS_REGEX } from './valid-atom.js';
 import { LruCache } from '@senars/util';
+import { COMMUTATIVE_OPS, OPERATORS } from '../operators.js';
+import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from '../types.js';
+import { VARIABLE_SYMBOL } from '../types.js';
+import { atomKey, containsSubterm, termKey } from './accessors.js';
+import { serializeTerm } from './serialize.js';
+import { INVALID_ATOM_CHARS_REGEX } from './valid-atom.js';
 
 const TERM_CACHE_MAX_SIZE = 10000;
 
 const termCache = new LruCache<string, Term>(TERM_CACHE_MAX_SIZE);
 
-let trackTermReady = false;
-
 const cache = <T extends Term>(term: T, key: string): T => {
   termCache.set(key, term);
-  if (trackTermReady) trackTerm(term);
   return term;
 };
 
 const createAtom = (symbol: string): AtomicTerm => {
   if (symbol.includes(':')) {
-    throw new Error(`Atomic term symbol cannot contain ':' (Narsese compact inheritance shorthand). Use '_' instead, or use the parser for namespaced terms like 'ns:term'.`);
+    throw new Error(
+      `Atomic term symbol cannot contain ':' (Narsese compact inheritance shorthand). Use '_' instead, or use the parser for namespaced terms like 'ns:term'.`
+    );
   }
   // Allow variable symbols starting with ? $ # * %
   const isVariable = VARIABLE_SYMBOL.test(symbol);
@@ -31,10 +29,10 @@ const createAtom = (symbol: string): AtomicTerm => {
     const badChar = symbol.match(INVALID_ATOM_CHARS_REGEX)?.[0];
     throw new Error(
       `Atomic term symbol cannot contain '${badChar}' (reserved in Narsese grammar). ` +
-      `Use '_' instead.`
+        `Use '_' instead.`
     );
   }
-  const key = `atom:${symbol}`;
+  const key = atomKey(symbol);
   const cached = termCache.get(key);
   if (cached) return cached as AtomicTerm;
   return cache(
@@ -53,8 +51,6 @@ const createAtom = (symbol: string): AtomicTerm => {
 const TRUE_ATOM = createAtom('TRUE');
 const FALSE_ATOM = createAtom('FALSE');
 
-trackTermReady = true;
-
 /** Module-scope collator: identical ordering to `localeCompare` without its per-call ICU setup. */
 const CANONICAL_COLLATOR = new Intl.Collator();
 const canonicalKeyOf = (t: Term): string => (t.kind === 'atom' ? t.symbol : t.kind);
@@ -67,18 +63,16 @@ const createCompound = (kind: OperatorKey, args: Term[]): Term => {
 
   const sorted = COMMUTATIVE_OPS.has(kind) ? valid.toSorted(compareForCanonicalOrder) : valid;
 
-  // Use full term serialization for cache key to distinguish nested structures
-  const key = `${kind}:${sorted.map((a) => a.toString()).join(',')}`;
+  // `termKey` is the canonical structural key — prefixing every atom makes the
+  // derivation injective, where joining bare `toString()` forms let any symbol
+  // containing `,` alias a different arity.
+  const shape = { kind, args: sorted } as CompoundTerm;
+  const key = termKey(shape);
   const cached = termCache.get(key);
   if (cached) return cached;
 
   // Compute serialized form once during creation (cache key is NOT the full serialized form)
-  const serialized = serializeTerm(
-    Object.freeze({
-      kind,
-      args: sorted as readonly Term[],
-    } as CompoundTerm)
-  );
+  const serialized = serializeTerm(shape);
 
   return cache(
     Object.freeze({
@@ -128,6 +122,5 @@ export const TermBuilder = {
   },
 };
 
-export const freeze = <T extends object>(obj: T): Readonly<T> => Object.freeze(obj);
 export const TermFactory = TermBuilder;
 export const atom = TermBuilder.atom;

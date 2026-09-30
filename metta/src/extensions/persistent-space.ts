@@ -1,6 +1,6 @@
 import { ArraySpace } from '../core/space.js';
 import type { MeTTaAtom } from '../types/ast.js';
-import { errMsg } from '@senars/core/helpers';
+import { errMsg } from '@senars/util';
 
 export interface PersistedSpaceData {
   id: string;

@@ -1,18 +1,16 @@
-import { BoundedRing, errMsg, mean, roundTo } from '@senars/util';
-
+import { BoundedRing, createLogger, errMsg, mean, roundTo } from '@senars/util';
 import { envBool } from '@senars/util/config';
 import type { CognitiveController } from './cognitive';
 import type { DriveManager } from './drives';
-import { type GateRegistry, gateRegistry } from './kernel/GateRegistry.js';
-import { createLogger } from '@senars/core/logger';
-import type { Memory } from './memory';
 import type { NARConfig } from './facade/config.js';
+import type { GateRegistry } from './kernel/GateRegistry.js';
+import type { Memory } from './memory';
 import type { PolicyOptimizer, RLFPLearner } from './rlfp';
 import { rankDerivations } from './rules/impls/ranking.js';
 import type { ReasoningAboutReasoning } from './self';
 import type { TaskManager } from './task';
 import { classifyTask, type TaskSignal } from './task';
-import { getTermArgs, isAtomic, isCompound, type Term, termParser } from './terms';
+import { getTermArgs, isAtomic, isCompound, type Term, TermSet, termParser } from './terms';
 import { Truth } from './terms/impls/Truth.js';
 import { PhaseTimer } from './trace';
 import type { Task } from './types';
@@ -46,19 +44,20 @@ const logger = createLogger({ scope: 'nar:execution' });
  * constant too: doing it per cycle re-parsed two unchanging strings and
  * re-emitted the same failure every cycle when one was malformed.
  */
-const META_GOALS: readonly { driveId: string; threshold: number; term: Term }[] =
-  Object.entries(META_GOAL_BY_DRIVE).flatMap(([driveId, goal]) => {
-    try {
-      return [{ driveId, threshold: goal.threshold, term: termParser.parse(goal.narsese) }];
-    } catch (e) {
-      logger.warn('Failed to parse meta-goal narsese', {
-        driveId,
-        narsese: goal.narsese,
-        error: errMsg(e),
-      });
-      return [];
-    }
-  });
+const META_GOALS: readonly { driveId: string; threshold: number; term: Term }[] = Object.entries(
+  META_GOAL_BY_DRIVE
+).flatMap(([driveId, goal]) => {
+  try {
+    return [{ driveId, threshold: goal.threshold, term: termParser.parse(goal.narsese) }];
+  } catch (e) {
+    logger.warn('Failed to parse meta-goal narsese', {
+      driveId,
+      narsese: goal.narsese,
+      error: errMsg(e),
+    });
+    return [];
+  }
+});
 
 const META_GOAL_BY_DRIVE_ID = new Map(META_GOALS.map((g) => [g.driveId, g]));
 
@@ -78,7 +77,7 @@ export interface NARExecutionOptions {
     getMetaBudgetStatus(): { derivationsThisStep: number; currentDepth: number };
     recordMetaDerivation(depth: number): void;
   };
-  gates?: GateRegistry;
+  gates: GateRegistry;
 }
 
 export class NARExecution {
@@ -118,7 +117,7 @@ export class NARExecution {
     getMetaBudgetStatus(): { derivationsThisStep: number; currentDepth: number };
     recordMetaDerivation(depth: number): void;
   };
-  private readonly gates?: GateRegistry;
+  private readonly gates: GateRegistry;
 
   /** Stimulate drives based on events — homeostatic regulation. Public so tool layer can report outcomes. */
   stimulateDrives(event: string, _data?: Record<string, unknown>): void {
@@ -251,8 +250,11 @@ export class NARExecution {
       let testPassed = false;
       let testFailed = false;
       let contradictionDetected = false;
-      const gate = (this.gates ?? gateRegistry).getPerceptionGate();
-      for (const task of rankDerivations(results, this.config.cognitiveParams?.inference.ranking)) {
+      const gate = this.gates.getPerceptionGate();
+      // The controller owns the parameter graph, so a `reconfigure` between cycles
+      // changes admission ranking without a NAR rebuild.
+      const ranking = this.cognitiveController.getParams().inference.ranking;
+      for (const task of rankDerivations(results, ranking)) {
         const result = gate.admitTask(
           task.term,
           task.type,
@@ -426,8 +428,7 @@ export class NARExecution {
     else if (memoryPressure > 0.5) aikrPressure = 'medium';
 
     // Average RLFP reward
-    const rlfpRewardAvg =
-      mean(this._rlfpRewardHistory.toArray());
+    const rlfpRewardAvg = mean(this._rlfpRewardHistory.toArray());
 
     const summary: CognitiveStateSummary = {
       timestamp: new Date().toISOString(),
@@ -450,11 +451,12 @@ export class NARExecution {
   private injectMetaGoals(): void {
     if (!this.driveManager) return;
 
-    const activeTerms = new Set(this.memory.getGoals?.().map((g) => g.term.toString()) ?? []);
+    const activeTerms = new TermSet();
+    for (const goal of this.memory.getGoals?.() ?? []) activeTerms.add(goal.term);
     // Include pending tasks so we don't re-inject the same goal across cycles
     const peeked = this.taskManager.peekTask();
     if (peeked) {
-      activeTerms.add(peeked.term.toString());
+      activeTerms.add(peeked.term);
     }
 
     for (const state of this.driveManager.getAllStates()) {
@@ -462,7 +464,7 @@ export class NARExecution {
       if (!goal) continue;
 
       const termStr = goal.term.toString();
-      if (state.currentIntensity >= goal.threshold || activeTerms.has(termStr)) continue;
+      if (state.currentIntensity >= goal.threshold || activeTerms.has(goal.term)) continue;
 
       this.taskManager.addTask(createTask(goal.term, 'goal', Truth.NEUTRAL));
       logger.debug('Injected meta-goal from drive', {

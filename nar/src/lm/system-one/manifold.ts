@@ -1,7 +1,14 @@
-import { clamp, estimateTokens, makeId, mean, variance } from '@senars/util';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import {
+  clamp,
+  estimateTokens,
+  makeId,
+  mean,
+  monotonicNow,
+  stopwatch,
+  variance,
+} from '@senars/util';
 import { validateBatchQueries } from './algebra.js';
-import { ContrastiveMemory, rubricOf } from './contrastive.js';
 import {
   createDefaultCalibrationSuite,
   type DriftDemotionConfig,
@@ -15,7 +22,8 @@ import {
   assertLockMatches,
   type CalibrationLock,
 } from './calibration-fit.js';
-import { shannonEntropy as entropy, topOption } from './distribution.js';
+import { type ContrastiveMemory, rubricOf } from './contrastive.js';
+import { shannonEntropy as entropy, legendFrom, topOption } from './distribution.js';
 import {
   createAllActionHeads,
   createAllIngressHeads,
@@ -88,21 +96,9 @@ function makeProposition(
       kind: 'evaluate',
       axis: query.axis,
       score: result.score,
-      legend: result.legend ?? evaluateLegend(query, result.score),
+      legend: result.legend ?? legendFrom(result.score, query.levels),
     };
   }
-}
-
-/** Score legend fallback: build the probability-weighted position from the
- *  query's declared levels when the head did not emit one. */
-function evaluateLegend(query: JudgmentQuery, score: number) {
-  if (query.kind !== 'evaluate') return undefined;
-  const levels = query.levels;
-  if (!levels || levels.length < 2) return undefined;
-  const n = levels.length;
-  const weights = levels.map((_, i) => Math.max(0, 1 - Math.abs(score - i / (n - 1)) * (n - 1)));
-  const total = weights.reduce((a: number, b) => a + b, 0) || 1;
-  return { levels, weights: weights.map((w) => w / total) };
 }
 
 export class SystemOneManifold implements JudgmentManifold {
@@ -143,7 +139,7 @@ export class SystemOneManifold implements JudgmentManifold {
     queries: readonly JudgmentQuery[],
     _budget: ReasoningBudget
   ): Promise<JudgmentProposition[]> {
-    const startTime = performance.now();
+    const elapsedBatch = stopwatch(monotonicNow);
 
     if (queries.length > this.#config.maxBatchSize) {
       throw new Error(`Batch size ${queries.length} exceeds max ${this.#config.maxBatchSize}`);
@@ -166,7 +162,7 @@ export class SystemOneManifold implements JudgmentManifold {
         throw new Error(`No head registered for query: ${query.kind} ${rubric}`);
       }
 
-      const queryStart = performance.now();
+      const elapsedQuery = stopwatch(monotonicNow);
       let headResult: HeadResult;
 
       if (head) {
@@ -188,7 +184,7 @@ export class SystemOneManifold implements JudgmentManifold {
             : { score, abstained: false };
       }
 
-      const latencyMs = Math.ceil(performance.now() - queryStart);
+      const latencyMs = Math.ceil(elapsedQuery());
 
       const base: Omit<
         JudgmentProposition,
@@ -221,7 +217,7 @@ export class SystemOneManifold implements JudgmentManifold {
       }
     }
 
-    const totalLatency = performance.now() - startTime;
+    const totalLatency = elapsedBatch();
     this.#setHealth('latency', totalLatency > this.#config.maxLatencyMs);
 
     this.#updateCalibration(results);
@@ -352,8 +348,7 @@ export class SystemOneManifold implements JudgmentManifold {
 
     const totalSamples = results.length;
     const avgECE =
-      mean(Array.from(this.#calibrators.values()), (c) => c.getECE()) /
-      this.#calibrators.size;
+      mean(Array.from(this.#calibrators.values()), (c) => c.getECE()) / this.#calibrators.size;
     this.#rollingECEMonitor.record(avgECE, totalSamples);
   }
 
@@ -393,7 +388,7 @@ export class SystemOneManifold implements JudgmentManifold {
   suggestHeadSize(labelCount: number, embeddingDim = 384): number {
     if (labelCount <= 0) return 0;
     const n0 = 64;
-    const raw = embeddingDim * Math.pow(labelCount / n0, 0.18);
+    const raw = embeddingDim * (labelCount / n0) ** 0.18;
     const width = Math.round(clamp(raw, 8, embeddingDim));
     this.#suggestedHeadSize = width;
     return width;

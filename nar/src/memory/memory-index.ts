@@ -1,7 +1,7 @@
 import { addToSet, getOrInsert, insertByScoreDesc } from '@senars/util';
 
 import type { Term } from '../terms';
-import { isAtomic, TermMap, termKey } from '../terms';
+import { atomKey, TermMap, termKey } from '../terms';
 import type { Concept } from './concept.js';
 import { selectSimilar } from './similarity.js';
 
@@ -12,11 +12,15 @@ const getOrInsertCluster = (map: TermMap<SimilarityCluster>, term: Term, seed: C
   getOrInsert(map, term, (): SimilarityCluster => ({ term, concepts: [], representative: seed }));
 
 const getOrInsertInverse = (map: TermMap<InverseIndexEntry>, term: Term) =>
-  getOrInsert(map, term, (): InverseIndexEntry => ({
+  getOrInsert(
+    map,
     term,
-    concepts: new Set<Concept>(),
-    subtermIndices: new TermMap<Set<Concept>>(),
-  }));
+    (): InverseIndexEntry => ({
+      term,
+      concepts: new Set<Concept>(),
+      subtermIndices: new TermMap<Set<Concept>>(),
+    })
+  );
 
 /** Every family defaults on; a caller opts out of the ones it does not maintain. */
 export interface MemoryIndexConfig {
@@ -104,7 +108,7 @@ export class MemoryIndex {
     this.footprints.set(concept, footprint);
 
     if (this.config.enableAtomicIndex) {
-      footprint.atomicKey = this.atomicKey(concept.term);
+      footprint.atomicKey = termKey(concept.term);
       addToSet(this.atomicIndex, footprint.atomicKey, concept);
     }
 
@@ -126,8 +130,9 @@ export class MemoryIndex {
     }
   }
 
+  /** Every term, atoms included, indexes under its canonical `termKey`; this names the atom entry. */
   getByAtomic(symbol: string): Concept[] {
-    const set = this.atomicIndex.get(symbol);
+    const set = this.atomicIndex.get(atomKey(symbol));
     return set ? Array.from(set) : [];
   }
 
@@ -224,11 +229,6 @@ export class MemoryIndex {
     this.activationIndex.clear();
     this.inverseIndex.clear();
     this.similarityIndex.clear();
-  }
-
-  /** Atoms index by their symbol; compounds by the canonical structural key. */
-  private atomicKey(term: Term): string {
-    return isAtomic(term) ? term.symbol : termKey(term);
   }
 
   private pruneSet<K>(index: Map<K, Set<Concept>>, key: K, concept: Concept): void {

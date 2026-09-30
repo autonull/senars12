@@ -76,9 +76,7 @@ export class Unifier<T> {
   constructor(ast: UnifierDialect<T>, options: UnifyOptions = {}) {
     this.#ast = ast;
     this.#memoize = options.memoize ?? DEFAULTS.memoize;
-    this.#memo = this.#memoize
-      ? new LruCache(options.memoCapacity ?? DEFAULTS.memoCapacity)
-      : null;
+    this.#memo = this.#memoize ? new LruCache(options.memoCapacity ?? DEFAULTS.memoCapacity) : null;
   }
 
   /**

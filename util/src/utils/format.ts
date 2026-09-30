@@ -4,8 +4,7 @@
  */
 
 /** Fraction → percentage string (`pct(0.6123)` → `'61.2%'`). */
-export const pct = (fraction: number, digits = 1): string =>
-  `${(fraction * 100).toFixed(digits)}%`;
+export const pct = (fraction: number, digits = 1): string => `${(fraction * 100).toFixed(digits)}%`;
 
 /** Horizontal rule separating report sections. */
 export const divider = (width = 50): string => '─'.repeat(width);

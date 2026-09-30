@@ -11,7 +11,7 @@ describe('Pillar 1: revision history', () => {
       memory.addTask(term, 'belief', Truth.create(1, 0.9), createBudget(0.9));
       memory.addTask(term, 'belief', Truth.create(0.2, 0.8), createBudget(0.9));
 
-      const history = memory.getRevisionHistory('bird');
+      const history = memory.getRevisionHistory(term);
       expect(history.length).toBeGreaterThanOrEqual(2);
     });
 
@@ -23,7 +23,7 @@ describe('Pillar 1: revision history', () => {
       memory.addTask(term, 'belief', Truth.create(0.3, 0.8), createBudget(0.9));
       memory.addTask(term, 'belief', Truth.create(0.6, 0.7), createBudget(0.9));
 
-      const history = memory.getRevisionHistory('cat');
+      const history = memory.getRevisionHistory(term);
       for (let i = 1; i < history.length; i++) {
         expect(history[i]!.timestamp).toBeLessThanOrEqual(history[i - 1]!.timestamp);
       }
@@ -36,7 +36,7 @@ describe('Pillar 1: revision history', () => {
       memory.addTask(term, 'belief', Truth.create(1, 0.9), createBudget(0.9));
       memory.addTask(term, 'belief', Truth.create(0.4, 0.85), createBudget(0.9));
 
-      const history = memory.getRevisionHistory('dog');
+      const history = memory.getRevisionHistory(term);
       const latest = history[0]!;
       const concept = memory.getConcept(term)!;
       const current = concept.getBeliefs()[0]?.truth;
@@ -49,7 +49,7 @@ describe('Pillar 1: revision history', () => {
       const memory = new Memory();
       const term = TermBuilder.atom('fish');
       memory.addTask(term, 'belief', Truth.create(0.9, 0.9), createBudget(0.9));
-      const history = memory.getRevisionHistory('fish');
+      const history = memory.getRevisionHistory(term);
       expect(history[0]!.source).toBe('input');
       expect(history[0]!.stampId).toBeTruthy();
     });
@@ -58,9 +58,11 @@ describe('Pillar 1: revision history', () => {
       const memory = new Memory();
       memory.addTask(TermBuilder.atom('a'), 'belief', Truth.create(1, 0.9), createBudget(0.9));
       memory.addTask(TermBuilder.atom('b'), 'belief', Truth.create(0.5, 0.9), createBudget(0.9));
-      expect(memory.getRevisionHistory('a').length).toBe(1);
-      expect(memory.getRevisionHistory('b').length).toBe(1);
-      expect(memory.getRevisionHistory('c').length).toBe(0);
+      const a = TermBuilder.atom('a');
+      const b = TermBuilder.atom('b');
+      expect(memory.getRevisionHistory(a).length).toBe(1);
+      expect(memory.getRevisionHistory(b).length).toBe(1);
+      expect(memory.getRevisionHistory(TermBuilder.atom('c')).length).toBe(0);
     });
 
     it('ignores non-belief tasks', () => {
@@ -68,7 +70,7 @@ describe('Pillar 1: revision history', () => {
       const term = TermBuilder.atom('g');
       memory.addTask(term, 'goal', undefined, createBudget(0.8));
       memory.addTask(term, 'question', undefined, createBudget(0.7));
-      expect(memory.getRevisionHistory('g').length).toBe(0);
+      expect(memory.getRevisionHistory(term).length).toBe(0);
     });
   });
 

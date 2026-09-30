@@ -3,7 +3,7 @@
  * transport and the io connection layers.
  */
 
-import { sleep } from './shared.js';
+import { sleep } from './async.js';
 
 /** Exponential backoff delay for a 0-based attempt number, capped at `maxMs`. */
 const backoffDelay = (attempt: number, baseMs: number, maxMs: number): number =>
@@ -24,8 +24,15 @@ export interface RetryOptions {
 
 /** Retry `fn` with exponential backoff; rethrows the last failure. */
 export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
-  const { retries = 2, baseMs = 100, maxMs = 1000, isRetryable, onRetry, signal, mapError } =
-    options;
+  const {
+    retries = 2,
+    baseMs = 100,
+    maxMs = 1000,
+    isRetryable,
+    onRetry,
+    signal,
+    mapError,
+  } = options;
   let lastError: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {

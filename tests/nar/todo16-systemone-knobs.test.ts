@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { AutonomyMode, type SelfImprovementProposal } from '@senars/core/schemas';
+import { describe, expect, it } from 'vitest';
 import { SandboxValidator } from '../../nar/src/governance/pipeline.js';
-import { SelfImprovementProposal, AutonomyMode } from '@senars/core/derivation-schemas';
 
 describe('SystemOne Knob Validation', () => {
   const validator = new SandboxValidator();
@@ -15,13 +15,17 @@ describe('SystemOne Knob Validation', () => {
   });
 
   it('validates systemOne.budgets.maxJudgmentCallsPerCycle within bounds', () => {
-    const result = validator.validate(makeProposal('systemOne.budgets.maxJudgmentCallsPerCycle', 16));
+    const result = validator.validate(
+      makeProposal('systemOne.budgets.maxJudgmentCallsPerCycle', 16)
+    );
     expect(result.approved).toBe(true);
     expect(result.reason).toContain('within [1, 32]');
   });
 
   it('rejects systemOne.budgets.maxJudgmentCallsPerCycle out of bounds', () => {
-    const result = validator.validate(makeProposal('systemOne.budgets.maxJudgmentCallsPerCycle', 100));
+    const result = validator.validate(
+      makeProposal('systemOne.budgets.maxJudgmentCallsPerCycle', 100)
+    );
     expect(result.approved).toBe(false);
     expect(result.reason).toContain('outside [1, 32]');
   });
@@ -37,12 +41,16 @@ describe('SystemOne Knob Validation', () => {
   });
 
   it('validates systemOne.budgets.maxLatencyMsPerJudgment within bounds', () => {
-    const result = validator.validate(makeProposal('systemOne.budgets.maxLatencyMsPerJudgment', 50));
+    const result = validator.validate(
+      makeProposal('systemOne.budgets.maxLatencyMsPerJudgment', 50)
+    );
     expect(result.approved).toBe(true);
   });
 
   it('rejects systemOne.budgets.maxLatencyMsPerJudgment out of bounds', () => {
-    const result = validator.validate(makeProposal('systemOne.budgets.maxLatencyMsPerJudgment', 500));
+    const result = validator.validate(
+      makeProposal('systemOne.budgets.maxLatencyMsPerJudgment', 500)
+    );
     expect(result.approved).toBe(false);
   });
 
@@ -103,7 +111,9 @@ describe('SystemOne Knob Validation', () => {
   });
 
   it('rejects non-numeric value', () => {
-    const result = validator.validate(makeProposal('systemOne.budgets.maxJudgmentCallsPerCycle', NaN));
+    const result = validator.validate(
+      makeProposal('systemOne.budgets.maxJudgmentCallsPerCycle', NaN)
+    );
     expect(result.approved).toBe(false);
     expect(result.reason).toContain('Non-numeric value');
   });

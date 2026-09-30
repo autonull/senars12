@@ -11,7 +11,7 @@ import {
   systemOneSchema,
 } from '@senars/util/config';
 import { z } from 'zod';
-import { LM_PROVIDER_NAMES } from '../../nar/src/lm/env-config.js';
+import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
 
 // System One schema/defaults live in @senars/util/config (single definition —
 // also consumed by @senars/nar); re-exported here for the app config surface.

@@ -9,6 +9,23 @@ export interface ConceptStats {
   highPriority: number;
 }
 
+/**
+ * Totals only. The tercile split below costs two percentile sorts, so a caller
+ * that discards the distribution — persistence does — pays for a sort it never
+ * reads unless it asks for totals on their own.
+ */
+export const tallyConcepts = (
+  concepts: Iterable<Concept>
+): { totalConcepts: number; totalTasks: number } => {
+  let totalConcepts = 0;
+  let totalTasks = 0;
+  for (const concept of concepts) {
+    totalConcepts++;
+    totalTasks += concept.totalTasks;
+  }
+  return { totalConcepts, totalTasks };
+};
+
 export const calculateConceptStats = (concepts: Iterable<Concept>): ConceptStats => {
   const priorities: number[] = [];
   let totalTasks = 0;

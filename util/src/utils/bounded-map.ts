@@ -11,7 +11,7 @@
  * the container.
  */
 
-import { occupancy } from './shared.js';
+import { occupancy } from './numeric.js';
 
 interface Entry<V> {
   value: V;
@@ -64,8 +64,15 @@ export class BoundedMap<K, V> {
   readonly #rng: () => number;
 
   constructor(options: BoundedMapOptions<K, V> | number = {}) {
-    const { maxSize = 1000, ttlMs = Infinity, now = Date.now, onEvict, eviction = 'lru', rng, touchOnRead } =
-      typeof options === 'number' ? { maxSize: options } : options;
+    const {
+      maxSize = 1000,
+      ttlMs = Infinity,
+      now = Date.now,
+      onEvict,
+      eviction = 'lru',
+      rng,
+      touchOnRead,
+    } = typeof options === 'number' ? { maxSize: options } : options;
     this.maxSize = Math.max(1, maxSize);
     this.#ttlMs = ttlMs;
     this.#now = now;

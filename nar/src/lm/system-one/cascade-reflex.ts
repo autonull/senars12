@@ -1,12 +1,16 @@
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import { sha256Hex } from '@senars/util';
-
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
-import type { EmbeddingPointer, JudgmentManifold, JudgmentQuery, JudgmentProposition } from './types.js';
-import type { BandDecision } from './policy.js';
 import { type JudgmentProvenance, stageProvenance } from './decide.js';
+import type { BandDecision } from './policy.js';
 import { PrefetchTable, proposeFromTable } from './prefetch-table.js';
+import type {
+  EmbeddingPointer,
+  JudgmentManifold,
+  JudgmentProposition,
+  JudgmentQuery,
+} from './types.js';
 
 /**
  * Two-stage placement fan-out (W7 / DQ2 — the first live `judgeCascade`
@@ -33,7 +37,6 @@ const FINE_QUERY = (action: string): JudgmentQuery => ({
   rubric: 'reflex_value',
   axis: 'teleological',
 });
-
 
 interface PrefetchEntry {
   score: number;
@@ -78,7 +81,12 @@ export class PlacementCascadeReflex implements Reflex<Perception, string> {
         const rows = new Map<string, PrefetchEntry>();
         for (const r of ranked) {
           const prop = coarse[r.i];
-          const provenance = stageProvenance([prop, undefined], sha256Hex(r.action), 'act', !prop || prop.abstained);
+          const provenance = stageProvenance(
+            [prop, undefined],
+            sha256Hex(r.action),
+            'act',
+            !prop || prop.abstained
+          );
           rows.set(r.action, { score: r.p, provenance });
         }
         this.#table.set(stateId, rows);
@@ -88,11 +96,7 @@ export class PlacementCascadeReflex implements Reflex<Perception, string> {
       // Stage-2: fine reflex_value on the top-K only (cascade dependency).
       const topK = ranked.slice(0, this.topK);
       const topKActions = topK.map((r) => r.action);
-      const fine = await manifold.judgeBatch(
-        sharedContext,
-        topKActions.map(FINE_QUERY),
-        budget
-      );
+      const fine = await manifold.judgeBatch(sharedContext, topKActions.map(FINE_QUERY), budget);
       const rows = new Map<string, PrefetchEntry>();
       topK.forEach((r, i) => {
         const p = fine[i];

@@ -1,13 +1,14 @@
 #!/usr/bin/env tsx
+
 /**
  * Multi-Agent SeNARS — NAR + MeTTa reasoning via one agent.
  * Uses createAgent() as the hub. Input routes to NAR (Narsese) or LM (NL).
  * `--testing` uses the deterministic testing factory (replaces multi-agent-demo).
  */
 
-import { mettaPort } from './metta.js';
 import { NARBuilder } from '@senars/nar/agent/builder';
 import { parseFlags } from '@senars/util';
+import { mettaPort } from './metta.js';
 import { runMultiAgent } from './multi-agent-runner.js';
 
 export const runMultiAgentEntry = async (): Promise<void> => {

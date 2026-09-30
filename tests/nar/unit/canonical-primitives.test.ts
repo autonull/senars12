@@ -1,7 +1,12 @@
 import { isDeepStrictEqual } from 'node:util';
-import { describe, expect, it } from 'vitest';
 import { deepEqual, stableStringify } from '@senars/util';
-import { holdoutSplit, mulberry32, SeededRNG, seededStream } from '../../../nar/src/utils/random.js';
+import { describe, expect, it } from 'vitest';
+import {
+  holdoutSplit,
+  mulberry32,
+  SeededRNG,
+  seededStream,
+} from '../../../nar/src/utils/random.js';
 
 describe('stableStringify', () => {
   it('is independent of key insertion order', () => {
@@ -41,6 +46,24 @@ describe('deepEqual', () => {
     for (const [a, b] of cases) {
       expect(deepEqual(a, b)).toBe(isDeepStrictEqual(a, b));
     }
+  });
+
+  it('treats an undefined member as absent, as the digest it replaced did', () => {
+    expect(deepEqual({ a: 1, b: undefined }, { a: 1 })).toBe(true);
+    expect(deepEqual({ a: 1 }, { a: 1, b: undefined })).toBe(true);
+    expect(deepEqual({ a: 1, b: undefined }, { a: 1, b: 2 })).toBe(false);
+  });
+
+  it('separates the container kinds the digest encoded differently', () => {
+    expect(deepEqual({ 0: 'a', length: 1 }, ['a'])).toBe(false);
+    expect(deepEqual([], {})).toBe(false);
+    expect(deepEqual([1], new Float32Array([1]))).toBe(false);
+    expect(deepEqual([1], new Float32Array([1, 2]))).toBe(false);
+  });
+
+  it('rejects differing key sets of the same size', () => {
+    expect(deepEqual({ a: 1, b: 2 }, { a: 1, c: 2 })).toBe(false);
+    expect(deepEqual({ a: 1 }, { a: 1, b: 2 })).toBe(false);
   });
 });
 

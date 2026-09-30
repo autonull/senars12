@@ -1,16 +1,20 @@
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import { describe, expect, it } from 'vitest';
 import { ContrastiveMemory } from '../../nar/src/lm/system-one/contrastive.js';
 import { createDispatcher } from '../../nar/src/lm/system-one/dispatcher.js';
 import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { createGroundednessGate } from '../../nar/src/lm/system-one/groundedness-gate.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { LMReflex } from '../../nar/src/lm/system-one/lm-reflex.js';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { ManifoldReflex } from '../../nar/src/lm/system-one/manifold-reflex.js';
 import { createTraceGrader } from '../../nar/src/lm/system-one/trace-grader.js';
-import type { CognitiveDispatcher, JudgmentManifold, PEAResult } from '../../nar/src/lm/system-one/types.js';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
-import type { ActionProposal, Reflex } from '../../nar/src/reflex/Reflex.js';
+import type {
+  CognitiveDispatcher,
+  JudgmentManifold,
+  PEAResult,
+} from '../../nar/src/lm/system-one/types.js';
 import { EpsilonGreedyReflex } from '../../nar/src/reflex/EpsilonGreedyReflex.js';
+import type { ActionProposal, Reflex } from '../../nar/src/reflex/Reflex.js';
 
 const dim = 32;
 
@@ -42,7 +46,10 @@ const memoryWithExemplars = async (): Promise<ContrastiveMemory> => {
   const memory = new ContrastiveMemory();
   await memory.add(
     'groundedness',
-    { positives: ['sunny meadow', 'sunny meadow walks', 'sunny meadow breeze'], negatives: ['dark storm', 'dark storm thunder'] },
+    {
+      positives: ['sunny meadow', 'sunny meadow walks', 'sunny meadow breeze'],
+      negatives: ['dark storm', 'dark storm thunder'],
+    },
     cache
   );
   memory.calibrateAll();
@@ -56,7 +63,14 @@ describe('TODO22 CLM — manifold headless contrastive fallback', () => {
     const pointer = await cache.write('sunny meadow day');
     const results = await manifold.judgeBatch(
       pointer,
-      [{ kind: 'evaluate', instruction: 'Evaluate groundedness', rubric: 'groundedness' as never, axis: 'epistemic' }],
+      [
+        {
+          kind: 'evaluate',
+          instruction: 'Evaluate groundedness',
+          rubric: 'groundedness' as never,
+          axis: 'epistemic',
+        },
+      ],
       BUDGET
     );
     expect(results).toHaveLength(1);
@@ -71,7 +85,14 @@ describe('TODO22 CLM — manifold headless contrastive fallback', () => {
     await expect(
       manifold.judgeBatch(
         pointer,
-        [{ kind: 'evaluate', instruction: 'x', rubric: 'nonexistent_rubric' as never, axis: 'epistemic' }],
+        [
+          {
+            kind: 'evaluate',
+            instruction: 'x',
+            rubric: 'nonexistent_rubric' as never,
+            axis: 'epistemic',
+          },
+        ],
         BUDGET
       )
     ).rejects.toThrow(/No head registered/);
@@ -148,10 +169,7 @@ describe('TODO22 CLM — dispatcher contrastive routing', () => {
       synthesize: async function* (_c: unknown, q: { maxCandidates?: number }) {
         yield {
           kind: 'synthesize' as const,
-          candidates: ['dark storm chaos', 'sunny meadow walk'].slice(
-            0,
-            q.maxCandidates ?? 3
-          ),
+          candidates: ['dark storm chaos', 'sunny meadow walk'].slice(0, q.maxCandidates ?? 3),
           cost: { tokensIn: 0, tokensOut: 0, computeMs: 0, memoryMb: 0 },
         };
       },
@@ -230,7 +248,14 @@ describe('TODO22 CLM — reflexes', () => {
       contrastive: memory,
     });
     const perception = { stateId: 's9', features: {} } as never;
-    await lmReflex.prefetch('s9', 0 as never, ['dark storm thunder', 'sunny meadow day'], undefined, BUDGET, perception);
+    await lmReflex.prefetch(
+      's9',
+      0 as never,
+      ['dark storm thunder', 'sunny meadow day'],
+      undefined,
+      BUDGET,
+      perception
+    );
     expect(lmReflex.contrastiveVetoes).toBe(1);
     const proposals = lmReflex.propose(perception, ['dark storm thunder', 'sunny meadow day']);
     expect(proposals[0]!.action).toBe('sunny meadow day');

@@ -1,7 +1,7 @@
 /** Health, telemetry and micro-benchmark commands (`.doctor`, `.health`, `.spend`, `.benchmarks`, …). */
 
 import { resolveLMSettings } from '@senars/nar/lm';
-import { clamp, errMsg } from '@senars/util';
+import { clamp, errMsg, stopwatch } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import { flagsOf } from './args.js';
 import type { BotRuntime } from './context.js';
@@ -73,9 +73,9 @@ export const diagnosticCommandsFor = (rt: BotRuntime) => [
   }),
   cmd('benchmarks', 'Micro-benchmark: time NAR inference cycles', async (args = '') => {
     const cycles = clamp(Number(args.trim()) || 20, 1, 200);
-    const t0 = Date.now();
+    const elapsed = stopwatch();
     const derived = await rt.wired.nar.run(cycles);
-    const ms = Date.now() - t0;
+    const ms = elapsed();
     return `${cycles} cycles in ${ms}ms (${((cycles / Math.max(ms, 1)) * 1000).toFixed(0)} cyc/s), derivations=${derived}\nFull suites: pnpm bench`;
   }),
   cmd('selftune', 'Quick 3-iteration self-tune demo', async () => {

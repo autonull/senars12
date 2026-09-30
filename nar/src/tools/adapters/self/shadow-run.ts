@@ -1,8 +1,9 @@
+import { stopwatch } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { runProcess } from '../proc.js';
-import { parseVitestJson } from '../vitest-json.js';
 import { SCENARIO_PROFILES } from '../scenario-profiles.js';
+import { parseVitestJson } from '../vitest-json.js';
 import { type SelfToolsContext, toToolResult, withShadowWorktree } from './context.js';
 
 export const runTestsShadowTool = (ctx: SelfToolsContext) =>
@@ -18,7 +19,7 @@ export const runTestsShadowTool = (ctx: SelfToolsContext) =>
           const args = ['vitest', 'run', '--reporter=json'];
           if (testPath) args.push(testPath);
 
-          const startedAt = Date.now();
+          const elapsed = stopwatch();
           const { code, stdout } = await runProcess('pnpm', args, { cwd: path });
           const parsed = parseVitestJson(stdout);
           return {
@@ -26,7 +27,7 @@ export const runTestsShadowTool = (ctx: SelfToolsContext) =>
             passed: parsed?.numPassedTests ?? 0,
             failed: parsed?.numFailedTests ?? 0,
             total: parsed?.numTotalTests ?? 0,
-            duration: Date.now() - startedAt,
+            duration: elapsed(),
           };
         })
       ),
@@ -37,8 +38,7 @@ export const runScenarioShadowTool = ({ deps }: SelfToolsContext) =>
     description: 'Run a cognitive scenario in a shadow worktree for validation.',
     inputSchema: z.strictObject({
       seed: z.string().describe('Scenario seed/intent'),
-      profile: z.enum(SCENARIO_PROFILES).optional()
-        .default('auto'),
+      profile: z.enum(SCENARIO_PROFILES).optional().default('auto'),
       worktreeId: z.string().optional().describe('Existing worktree ID to use'),
     }),
     execute: async ({ seed, profile }) => {

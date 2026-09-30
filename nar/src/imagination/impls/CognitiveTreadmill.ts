@@ -1,11 +1,11 @@
-import { clamp, percentile, sleep, stdDev } from '@senars/util';
+import { clamp, percentile, sleep, stdDev, stopwatch } from '@senars/util';
 import type { CognitiveEvent } from '@senars/util/types/cognitive';
 import type { NAR } from '../../nar.js';
-import { termParser } from '../../terms/index.js';
 import { Truth } from '../../terms/impls/Truth.js';
+import { termParser } from '../../terms/index.js';
 import type { Task } from '../../types/core.js';
 import { createBudget, createTask } from '../../types/core.js';
-import { ScenarioGenerator } from './ScenarioGenerator.js';
+import { nextInt } from '../../utils/random.js';
 import type {
   DegradationCurve,
   DegradationPoint,
@@ -13,6 +13,7 @@ import type {
   StressMetrics,
   TreadmillConfig,
 } from '../types.js';
+import { ScenarioGenerator } from './ScenarioGenerator.js';
 
 export class CognitiveTreadmill {
   private readonly nar: NAR;
@@ -41,7 +42,7 @@ export class CognitiveTreadmill {
     this.eventLog.length = 0;
     this.stepLatencies.length = 0;
 
-    const startTime = Date.now();
+    const elapsedRun = stopwatch();
     let stepsExecuted = 0;
     let contradictionsDetected = 0;
     const derivedBeliefs: string[] = [];
@@ -65,16 +66,15 @@ export class CognitiveTreadmill {
       for (const task of scenario.events) {
         if (stepsExecuted >= this.config.maxSteps) break;
 
-        const stepStart = Date.now();
+        const elapsedStep = stopwatch();
         await this.nar.inputTask(task);
         await this.nar.run(1);
-        const stepDuration = Date.now() - stepStart;
-        this.stepLatencies.push(stepDuration);
+        this.stepLatencies.push(elapsedStep());
 
         stepsExecuted++;
 
         if (this.rng() < this.config.burstProbability) {
-          const burstCount = Math.floor(this.rng() * this.config.burstSize) + 1;
+          const burstCount = nextInt(this.rng, this.config.burstSize) + 1;
           for (let i = 0; i < burstCount; i++) {
             const burstTask = this.generateBurstTask();
             await this.nar.inputTask(burstTask);
@@ -86,7 +86,7 @@ export class CognitiveTreadmill {
         await sleep(1000 / this.config.rate);
       }
 
-      const durationMs = Date.now() - startTime;
+      const durationMs = elapsedRun();
       const metrics = await this.computeMetrics(
         stepsExecuted,
         durationMs,
@@ -102,13 +102,14 @@ export class CognitiveTreadmill {
         cognitiveEvents: [...this.eventLog],
       };
     } catch (error) {
+      const durationMs = elapsedRun();
       return {
         success: false,
         stepsExecuted,
-        durationMs: Date.now() - startTime,
+        durationMs,
         metrics: await this.computeMetrics(
           stepsExecuted,
-          Date.now() - startTime,
+          durationMs,
           contradictionsDetected,
           derivedBeliefs.length
         ),
@@ -168,7 +169,7 @@ export class CognitiveTreadmill {
 
     const scaled = [...events];
     while (scaled.length < targetCount) {
-      const idx = Math.floor(this.rng() * events.length);
+      const idx = nextInt(this.rng, events.length);
       const event = events[idx];
       if (event) scaled.push(event);
     }

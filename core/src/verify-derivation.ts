@@ -14,8 +14,8 @@
  */
 
 import { formatIssues } from '@senars/util';
-import { DerivationRecordSchema } from './derivation-schemas.js';
-import type { DerivationRecord, DerivationStep, TruthValue } from './derivation-schemas.js';
+import type { DerivationRecord, DerivationStep, TruthValue } from './schemas/index.js';
+import { DerivationRecordSchema } from './schemas/index.js';
 
 /** One defect, tagged with the check that caught it. */
 export interface VerificationFinding {
@@ -196,7 +196,10 @@ const verifyStep = (
       step.premiseTruths.map((t) => t.confidence)
     );
     computedTruth = { frequency: f, confidence: c };
-    if (close(f, step.truth.frequency, options.epsilon) && close(c, step.truth.confidence, options.epsilon))
+    if (
+      close(f, step.truth.frequency, options.epsilon) &&
+      close(c, step.truth.confidence, options.epsilon)
+    )
       state.verified++;
     else
       fail(
@@ -219,7 +222,10 @@ const verifyStep = (
  * Verify a derivation record end to end. Shape is checked against the schema
  * first, so every field read below is guaranteed well formed.
  */
-export function verifyRecord(record: DerivationRecord, options: VerifyOptions = {}): VerificationResult {
+export function verifyRecord(
+  record: DerivationRecord,
+  options: VerifyOptions = {}
+): VerificationResult {
   const epsilon = options.epsilon ?? DEFAULT_EPSILON;
   const findings: VerificationFinding[] = [];
   const stepResults: StepVerificationResult[] = [];
@@ -237,16 +243,21 @@ export function verifyRecord(record: DerivationRecord, options: VerifyOptions = 
     const seen = new Set<string>();
 
     for (const step of toVerify) {
-      if (seen.has(step.stepId)) fail('unique-step-id', `Duplicate stepId ${step.stepId}`, step.stepId);
-      stepResults.push(verifyStep(step, new Set(seen), taskId, { epsilon, strict: options.strict ?? false }, state));
+      if (seen.has(step.stepId))
+        fail('unique-step-id', `Duplicate stepId ${step.stepId}`, step.stepId);
+      stepResults.push(
+        verifyStep(step, new Set(seen), taskId, { epsilon, strict: options.strict ?? false }, state)
+      );
       seen.add(step.stepId);
     }
     for (const result of stepResults) findings.push(...result.findings);
 
     const last = toVerify[toVerify.length - 1];
     if (last) {
-      if (!close(last.truth.frequency, finalTruth.frequency, epsilon)
-        || !close(last.truth.confidence, finalTruth.confidence, epsilon))
+      if (
+        !close(last.truth.frequency, finalTruth.frequency, epsilon) ||
+        !close(last.truth.confidence, finalTruth.confidence, epsilon)
+      )
         fail('final-truth', 'finalTruth does not match last step truth');
     } else if (totalCycles > 0) {
       fail('empty-derivation', 'Record claims cycles but has no steps');

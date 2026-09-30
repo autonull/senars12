@@ -1,6 +1,5 @@
-import { createLogger } from '@senars/core/logger';
 import { verifyRecord } from '@senars/core/verify-derivation';
-import { cachePath } from '@senars/util';
+import { cachePath, createLogger } from '@senars/util';
 import {
   type CognitiveParameters,
   FAST_COGNITIVE_CONFIG,
@@ -91,7 +90,9 @@ async function runBootSelfTest(nar: NARType): Promise<void> {
   for (const record of records) {
     const result = verifyRecord(record);
     if (!result.ok) {
-      throw new Error(`Boot POST failed: derivation verification failed - ${result.errors.join('; ')}`);
+      throw new Error(
+        `Boot POST failed: derivation verification failed - ${result.errors.join('; ')}`
+      );
     }
     proved += result.truthVerified;
   }

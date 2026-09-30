@@ -1,9 +1,18 @@
-export const jaccard = <T>(a: Set<T>, b: Set<T>): number => {
+/** The membership-and-size surface a set-overlap score needs; `Set` and `TermSet` both satisfy it. */
+export interface ReadonlySetLike<T> {
+  readonly size: number;
+  has(value: T): boolean;
+  forEach(callbackfn: (value: T) => void): void;
+}
+
+export const jaccard = <T>(a: ReadonlySetLike<T>, b: ReadonlySetLike<T>): number => {
   if (a.size === 0 && b.size === 0) return 0;
   let inter = 0;
   // Iterate the smaller set; membership is O(1) on the larger.
   const [small, large] = a.size <= b.size ? [a, b] : [b, a];
-  for (const x of small) if (large.has(x)) inter++;
+  small.forEach((x) => {
+    if (large.has(x)) inter++;
+  });
   return inter / (a.size + b.size - inter || 1);
 };
 

@@ -5,14 +5,13 @@
  * Usage: tsx src/bin/tune.ts --iterations 20
  */
 
-import { parseFlags, sleep } from '@senars/util';
 import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
-import type { CognitiveParameters } from '@senars/nar/config/cognitive-parameters.js';
-import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters.js';
+import type { CognitiveParameters } from '@senars/nar/config/cognitive-parameters';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters';
 import { RLFPLearner } from '@senars/nar/rlfp';
+import { clamp, parseFlags, pct, section, sleep } from '@senars/util';
 import { runEntrypoint } from './fatal-error.js';
-import { pct, section } from '@senars/util';
 
 interface TuneOptions {
   iterations: number;
@@ -157,9 +156,11 @@ function mutateParams(params: CognitiveParameters): void {
   const key = keys[keys.length - 1]!;
   const currentValue = Number(current[key] ?? 0);
   const change = (Math.random() - 0.5) * 2 * knob.step;
-  const newValue =
-    Math.round(Math.max(knob.min, Math.min(knob.max, currentValue + change)) / knob.step) *
-    knob.step;
+  const newValue = clamp(
+    Math.round((currentValue + change) / knob.step) * knob.step,
+    knob.min,
+    knob.max
+  );
   current[key] = newValue;
 }
 

@@ -1,12 +1,22 @@
-import { describe, it, expect } from 'vitest';
-import { createProvisionalStamp } from '../../nar/src/lm/system-one/provisional-stamp.js';
-import { isProvisionalStamp } from '../../nar/src/lm/system-one/provisional-stamp.js';
-import { SystemOneDispatcher, DeterministicManifold, StubCortex } from '../../nar/src/lm/system-one/dispatcher.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { describe, expect, it } from 'vitest';
 import { PriorityBag } from '../../nar/src/bag/Bag.js';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
-import type { EmbeddingPointer, JudgmentManifold, JudgmentProposition } from '../../nar/src/lm/system-one/types.js';
+import {
+  DeterministicManifold,
+  StubCortex,
+  SystemOneDispatcher,
+} from '../../nar/src/lm/system-one/dispatcher.js';
+import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
+import {
+  createProvisionalStamp,
+  isProvisionalStamp,
+} from '../../nar/src/lm/system-one/provisional-stamp.js';
+import type {
+  EmbeddingPointer,
+  JudgmentManifold,
+  JudgmentProposition,
+} from '../../nar/src/lm/system-one/types.js';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,
@@ -117,7 +127,11 @@ describe('System One — Provisional Stamps (Bench 5)', () => {
       0.3,
       30_000
     );
-    const bag = new PriorityBag<{ id: string; priority: number }>({ capacity: 10, decayRate: 0, forgetRate: 0.0001 });
+    const bag = new PriorityBag<{ id: string; priority: number }>({
+      capacity: 10,
+      decayRate: 0,
+      forgetRate: 0.0001,
+    });
     bag.add({ id: stamp.stamp.id, priority: stamp.confidence(stamp.createdAt) });
     for (let i = 0; i < 200; i++) bag.decay(0.5);
     const entry = bag.find((item) => item.id === stamp.stamp.id);
@@ -156,7 +170,13 @@ describe('System One — Provisional Stamps (Bench 5)', () => {
         throw new Error('manifold unavailable');
       },
       health() {
-        return { backendId: 'x' as never, ready: false, breakerOpen: true, rollingEce: 1, queueDepth: 0 };
+        return {
+          backendId: 'x' as never,
+          ready: false,
+          breakerOpen: true,
+          rollingEce: 1,
+          queueDepth: 0,
+        };
       },
     };
     const dispatcher = new SystemOneDispatcher(

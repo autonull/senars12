@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import type { JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
 
 describe('System One — Drift Demotion (Bench 9)', () => {
@@ -29,7 +29,12 @@ describe('System One — Drift Demotion (Bench 9)', () => {
     const pointer = await cache.write('stable context');
 
     const queries: JudgmentQuery[] = [
-      { kind: 'classify', instruction: 'Classify task type', space: ['belief', 'goal', 'question'], axis: 'epistemic' },
+      {
+        kind: 'classify',
+        instruction: 'Classify task type',
+        space: ['belief', 'goal', 'question'],
+        axis: 'epistemic',
+      },
     ];
 
     for (let i = 0; i < 5; i++) {
@@ -52,7 +57,12 @@ describe('System One — Drift Demotion (Bench 9)', () => {
   it('backend demoted after consecutive high-ECE cycles', async () => {
     const pointer = await cache.write('drift context');
     const queries: JudgmentQuery[] = [
-      { kind: 'evaluate', instruction: 'Evaluate relevance', rubric: 'relevance', axis: 'epistemic' },
+      {
+        kind: 'evaluate',
+        instruction: 'Evaluate relevance',
+        rubric: 'relevance',
+        axis: 'epistemic',
+      },
     ];
 
     for (let cycle = 0; cycle < 5; cycle++) {

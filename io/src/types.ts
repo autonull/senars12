@@ -1,24 +1,17 @@
-import type {
-  Connection as CoreConnection,
-  ConnectionConfig as CoreConnectionConfig,
-  ConnectionDeps as CoreConnectionDeps,
-  ConnectionState as CoreConnectionState,
-  IOMessage as CoreIOMessage,
-  TransportDeps as CoreTransportDeps,
+/**
+ * Transport types for `io`. Every one of them is declared once in the leaf
+ * package that owns it — `io` re-exports, it does not re-declare. It used to
+ * re-declare `Connection` and `ConnectionFactory`, and the `readonly type` on
+ * its copy of the factory made an `io` factory unassignable to the
+ * `util` contract `core` builds transports against.
+ */
+export type {
+  Connection,
+  ConnectionConfig,
+  ConnectionDeps,
+  ConnectionFactory,
+  ConnectionState,
+  IOMessage,
+  TransportDeps,
 } from '@senars/util';
-
-export { ConnectionError, Logger } from '@senars/core';
-
-export type ConnectionState = CoreConnectionState;
-export type IOMessage = CoreIOMessage;
-export type ConnectionConfig = CoreConnectionConfig;
-export type ConnectionDeps = CoreConnectionDeps;
-export type TransportDeps = CoreTransportDeps;
-
-export interface Connection extends CoreConnection {}
-
-export interface ConnectionFactory {
-  readonly type: string;
-
-  create(config: ConnectionConfig, deps: ConnectionDeps): Connection;
-}
+export { ConnectionError } from '@senars/util';

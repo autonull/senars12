@@ -6,24 +6,21 @@ import type {
 } from '@senars/core';
 import { Agent, InMemoryEventLog, SqliteEventLog } from '@senars/core';
 import { createCortexFromLM } from '@senars/core/cortex';
-import { isNarsese } from '@senars/core/helpers';
 import type { PersistableSessionManager } from '@senars/core/memory';
 import { registerAgentTools } from '@senars/core/motor';
-import type { EpisodicMemory, LMService, NAR } from '../index.js';
+import { isNarsese } from '@senars/util';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
-import { clamp } from '@senars/util/utils/shared';
+import { clamp } from '@senars/util';
 import { NAREngine } from '../engine/NAREngine.js';
+import type { EpisodicMemory, LMService, NAR } from '../index.js';
+import type { ThreadScope } from '../kernel/thread-scope.js';
+import { createSystemOneBudget } from '../lm/system-one/types.js';
 import { TrajectoryStore } from '../rlfp/trajectory-store.js';
 import { CoreToolRegistryAdapter } from '../tools';
 import { createCompactionPromptBuilder } from './compaction.js';
-import type { ThreadScope } from '../kernel/thread-scope.js';
-
 import type { CreateAgentConfig } from './config.js';
-import { createSystemOneBudget } from '../lm/system-one/types.js';
 import { recallEpisodes } from './recall.js';
-
-
 
 export type { CreateAgentConfig };
 
@@ -302,7 +299,9 @@ function attachNarApi(
         await narEngine.nar.run(5);
         // Get NARS answer
         const answer = await narEngine.nar.ask(trimmed);
-        const narsTruth = answer?.answer ? `NARS: ${answer.answer} f=${answer.confidence.toFixed(2)}` : 'No answer yet';
+        const narsTruth = answer?.answer
+          ? `NARS: ${answer.answer} f=${answer.confidence.toFixed(2)}`
+          : 'No answer yet';
         // Get manifold judgment if System One is enabled
         let manifoldJudgment = '';
         if (narEngine.nar.isSystemOneEnabled?.()) {
@@ -313,17 +312,34 @@ function attachNarApi(
               const budget = createSystemOneBudget();
               const pointer = await embeddingCache.write(trimmed);
               const queries = [
-                { kind: 'evaluate' as const, instruction: 'Evaluate entailment', rubric: 'entailment' as any, axis: 'epistemic' as const },
-                { kind: 'evaluate' as const, instruction: 'Evaluate groundedness', rubric: 'groundedness' as any, axis: 'epistemic' as const },
-                { kind: 'evaluate' as const, instruction: 'Evaluate quality', rubric: 'plausibility' as any, axis: 'epistemic' as const },
+                {
+                  kind: 'evaluate' as const,
+                  instruction: 'Evaluate entailment',
+                  rubric: 'entailment' as any,
+                  axis: 'epistemic' as const,
+                },
+                {
+                  kind: 'evaluate' as const,
+                  instruction: 'Evaluate groundedness',
+                  rubric: 'groundedness' as any,
+                  axis: 'epistemic' as const,
+                },
+                {
+                  kind: 'evaluate' as const,
+                  instruction: 'Evaluate quality',
+                  rubric: 'plausibility' as any,
+                  axis: 'epistemic' as const,
+                },
               ];
               const results = await manifold.judgeBatch(pointer as any, queries, budget);
-              manifoldJudgment = results.map((r, i) => {
-                const q = queries[i];
-                const rubric = q && 'rubric' in q ? q.rubric : 'unknown';
-                if (r.kind === 'evaluate') return `${rubric}=${r.score.toFixed(2)}`;
-                return `${rubric}=abstained`;
-              }).join(' ');
+              manifoldJudgment = results
+                .map((r, i) => {
+                  const q = queries[i];
+                  const rubric = q && 'rubric' in q ? q.rubric : 'unknown';
+                  if (r.kind === 'evaluate') return `${rubric}=${r.score.toFixed(2)}`;
+                  return `${rubric}=abstained`;
+                })
+                .join(' ');
             } catch {
               manifoldJudgment = 'manifold error';
             }
@@ -404,14 +420,13 @@ export {
 export { dispatchToolCalls, registerAgentTools } from '@senars/core/motor';
 export type { CapabilitySpec, CapabilitySurface, WiredNAR } from './builder.js';
 export { BuilderError, NARBuilder } from './builder.js';
-export type { NARProfileName, NARProfileSpec } from './profiles.js';
-export { NAR_PROFILES, resolveProfile } from './profiles.js';
-export type { ExtendedAgent };
-
 export {
-  createCognitiveAgent,
+  type AnswerEnvelope,
   type CognitiveAgent,
   type CognitiveAgentConfig,
   type CognitiveAgentPreset,
-  type AnswerEnvelope,
+  createCognitiveAgent,
 } from './cognitive-agent.js';
+export type { NARProfileName, NARProfileSpec } from './profiles.js';
+export { NAR_PROFILES, resolveProfile } from './profiles.js';
+export type { ExtendedAgent };

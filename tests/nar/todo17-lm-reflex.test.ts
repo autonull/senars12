@@ -1,14 +1,14 @@
-import { LMReflex } from '@senars/nar/lm/system-one/lm-reflex.js';
-import { actionGrammar } from '@senars/nar/lm/system-one/action-grammar.js';
-import { JudgmentDataset } from '@senars/nar/lm/system-one/distill.js';
-import type { CognitiveDispatcher, PEAResult } from '@senars/nar/lm/system-one/types.js';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
-import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
-import type { Perception } from '@senars/nar/game';
-import { EpsilonGreedyReflex } from '@senars/nar/reflex';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import type { Perception } from '@senars/nar/game';
+import { actionGrammar } from '@senars/nar/lm/system-one/action-grammar.js';
+import { JudgmentDataset } from '@senars/nar/lm/system-one/distill.js';
+import { LMReflex } from '@senars/nar/lm/system-one/lm-reflex.js';
+import type { CognitiveDispatcher, PEAResult } from '@senars/nar/lm/system-one/types.js';
+import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
+import { EpsilonGreedyReflex } from '@senars/nar/reflex';
 import { describe, expect, it } from 'vitest';
 
 const budget: ReasoningBudget = {
@@ -123,7 +123,9 @@ describe('TODO17 Bench 32 — Real-LM Reflex', () => {
     await reflex.prefetch('s0', 0 as never, ACTIONS);
     const proposals = reflex.propose({ stateId: 's0' } as Perception, ACTIONS);
     // illegal candidate never stored — warm table cold → fallback (empty here)
-    expect(proposals.every((p) => ACTIONS.includes(p.action) || p.source !== 'lm-reflex')).toBe(true);
+    expect(proposals.every((p) => ACTIONS.includes(p.action) || p.source !== 'lm-reflex')).toBe(
+      true
+    );
   });
 
   it('LM failure/timeout ⇒ fallback reflex served, zero crash', async () => {
@@ -148,7 +150,10 @@ describe('TODO17 Bench 32 — Real-LM Reflex', () => {
   it('labels recorded with source lm-reflex on learn', async () => {
     const tmp = mkdtempSync(join(tmpdir(), 's1-lm-reflex-'));
     const dataset = new JudgmentDataset(tmp);
-    const reflex = lmReflexWith(stubDispatcher((l) => [l[0]!]), dataset);
+    const reflex = lmReflexWith(
+      stubDispatcher((l) => [l[0]!]),
+      dataset
+    );
     await reflex.prefetch('s0', 0 as never, ACTIONS);
     reflex.learn({
       perception: { stateId: 's0' } as Perception,
@@ -165,31 +170,34 @@ describe('TODO17 Bench 32 — Real-LM Reflex', () => {
   });
 });
 
-describe.skipIf(!process.env.LM_LLAMACPP_MODEL)('TODO17 Bench 32 — embedded leg (model-gated)', () => {
-  it('real llamacpp-embedded model decides legally; P50 latency recorded', async () => {
-    const { createLMService } = await import('@senars/nar/lm/lm-service.js');
-    const { createLMServiceCortex } = await import('@senars/nar/lm/system-one/cortex-adapter.js');
-    const { createDispatcher } = await import('@senars/nar/lm/system-one/dispatcher.js');
-    const lmService = createLMService();
-    const cortex = createLMServiceCortex({ lmService });
-    const dispatcher = createDispatcher(true, {}, cortex);
-    const reflex = lmReflexWith(dispatcher);
+describe.skipIf(!process.env.LM_LLAMACPP_MODEL)(
+  'TODO17 Bench 32 — embedded leg (model-gated)',
+  () => {
+    it('real llamacpp-embedded model decides legally; P50 latency recorded', async () => {
+      const { createLMService } = await import('@senars/nar/lm/lm-service.js');
+      const { createLMServiceCortex } = await import('@senars/nar/lm/system-one/cortex-adapter.js');
+      const { createDispatcher } = await import('@senars/nar/lm/system-one/dispatcher.js');
+      const lmService = createLMService();
+      const cortex = createLMServiceCortex({ lmService });
+      const dispatcher = createDispatcher(true, {}, cortex);
+      const reflex = lmReflexWith(dispatcher);
 
-    const latencies: number[] = [];
-    let legal = 0;
-    const total = 20;
-    for (let tick = 0; tick < total; tick++) {
-      const stateId = `s${tick}`;
-      const t0 = performance.now();
-      await reflex.prefetch(stateId, 0 as never, ACTIONS);
-      latencies.push(performance.now() - t0);
-      const proposals = reflex.propose({ stateId } as Perception, ACTIONS);
-      if (proposals.length > 0 && proposals.every((p) => ACTIONS.includes(p.action))) legal++;
-    }
-    const sorted = [...latencies].sort((a, b) => a - b);
-    const p50 = sorted[Math.floor(sorted.length / 2)]!;
-    expect(legal).toBe(total);
-    expect(p50).toBeLessThanOrEqual(100);
-    console.log(`[todo17] embedded LM decision P50=${p50.toFixed(1)}ms over ${total} decisions`);
-  });
-});
+      const latencies: number[] = [];
+      let legal = 0;
+      const total = 20;
+      for (let tick = 0; tick < total; tick++) {
+        const stateId = `s${tick}`;
+        const t0 = performance.now();
+        await reflex.prefetch(stateId, 0 as never, ACTIONS);
+        latencies.push(performance.now() - t0);
+        const proposals = reflex.propose({ stateId } as Perception, ACTIONS);
+        if (proposals.length > 0 && proposals.every((p) => ACTIONS.includes(p.action))) legal++;
+      }
+      const sorted = [...latencies].sort((a, b) => a - b);
+      const p50 = sorted[Math.floor(sorted.length / 2)]!;
+      expect(legal).toBe(total);
+      expect(p50).toBeLessThanOrEqual(100);
+      console.log(`[todo17] embedded LM decision P50=${p50.toFixed(1)}ms over ${total} decisions`);
+    });
+  }
+);

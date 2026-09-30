@@ -1,4 +1,5 @@
-import type { ReasoningBudget, SourceQuality } from '@senars/core/derivation-schemas';
+import { type BudgetLimits, createBudget } from '@senars/core/budget';
+import type { ReasoningBudget, SourceQuality } from '@senars/core/schemas';
 import type { ProvisionalStamp } from './provisional-stamp.js';
 
 export type { ReasoningBudget, SourceQuality };
@@ -24,10 +25,16 @@ export interface JudgmentHead {
   evaluate(embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult>;
 }
 
+/** Per-level probability weights over an ordered rubric legend, summing to 1. */
+export interface ScoreLegend {
+  readonly levels: readonly string[];
+  readonly weights: readonly number[];
+}
+
 export interface HeadResult {
   score: number;
   distribution?: readonly { option: string; p: number }[];
-  legend?: { levels: readonly string[]; weights: readonly number[] };
+  legend?: ScoreLegend;
   abstained: boolean;
   abstainReason?: 'low-confidence' | 'out-of-domain' | 'timeout' | 'breaker-open';
 }
@@ -128,7 +135,7 @@ export interface EvaluateProposition extends PropositionBase {
   score: number;
   /** Jev-Score semantics (open technique): per-level probability weights over
    *  the ordered rubric legend, probability-weighted around the scalar score. */
-  legend?: { levels: readonly string[]; weights: readonly number[] };
+  legend?: ScoreLegend;
 }
 
 export type JudgmentProposition = ClassifyProposition | EvaluateProposition;
@@ -239,13 +246,11 @@ export const SYSTEM_ONE_BUDGET_DEFAULTS = {
   maxDepth: 10,
   maxMemoryOps: 1000,
   maxLMCalls: 5,
-} as const satisfies Omit<ReasoningBudget, 'consumed'>;
+} as const satisfies BudgetLimits;
 
 /**
  * Fresh System One budget. A factory, not a shared constant: budget consumers
  * mutate `consumed` in place, so every call site must own its own object.
  */
-export const createSystemOneBudget = (): ReasoningBudget => ({
-  ...SYSTEM_ONE_BUDGET_DEFAULTS,
-  consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-});
+export const createSystemOneBudget = (): ReasoningBudget =>
+  createBudget(SYSTEM_ONE_BUDGET_DEFAULTS);

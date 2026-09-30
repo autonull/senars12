@@ -2,7 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { createLogger } from '@senars/core/logger';
+import { createLogger } from '@senars/util';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { BaseConnection } from './base.js';
 

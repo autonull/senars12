@@ -1,8 +1,20 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { FocusTree, createFocusTree, type FocusTreeOptions } from '@senars/nar/focus';
-import { CognitiveThread, createCognitiveThread, createRootBudget, ThreadPool, type BudgetAllocation, type SpawnResult } from '@senars/core';
-import { BudgetSlice, createBudgetSlice, consumeCycles, isExhausted } from '@senars/core/budget';
+import {
+  type BudgetAllocation,
+  CognitiveThread,
+  createCognitiveThread,
+  createRootBudget,
+  type SpawnResult,
+  ThreadPool,
+} from '@senars/core';
+import {
+  type BudgetSlice,
+  consumeCycles,
+  createBudgetSlice,
+  isExhausted,
+} from '@senars/core/budget';
+import { createFocusTree, type FocusTree, type FocusTreeOptions } from '@senars/nar/focus';
 import { Focus } from '@senars/nar/focus/Focus.js';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 function createMockFocusOptions(id: string): FocusTreeOptions['rootFocus'] {
   return {
@@ -17,10 +29,10 @@ function createMockBudget(id: string, cycles = 1000): BudgetSlice {
   return createBudgetSlice({
     id,
     parentId: undefined,
-    totalCycles: cycles,
-    totalDepth: 100,
-    totalMemoryOps: 10000,
-    totalLMCalls: 100,
+    maxCycles: cycles,
+    maxDepth: 100,
+    maxMemoryOps: 10000,
+    maxLMCalls: 100,
   });
 }
 
@@ -56,7 +68,7 @@ describe('FocusTree multi-root (D1)', () => {
     expect(root2.id).toBe('root2');
     expect(root2.parent).toBeNull();
     expect(root2.budget.id).toBe('root2-budget');
-    expect(root2.budget.totalCycles).toBe(500);
+    expect(root2.budget.maxCycles).toBe(500);
 
     // Both roots should be in nodeMap
     expect(tree.getNode('root')).toBeDefined();
@@ -96,7 +108,7 @@ describe('FocusTree multi-root (D1)', () => {
 
     const rollups = tree.getRootRollup();
     expect(rollups).toHaveLength(2);
-    const rootIds = rollups.map(r => r.nodeId).sort();
+    const rootIds = rollups.map((r) => r.nodeId).sort();
     expect(rootIds).toEqual(['root', 'root2']);
     for (const r of rollups) {
       expect(r.childRollups).toHaveLength(1);
@@ -173,10 +185,10 @@ describe('CognitiveThread hard budget inheritance (D2)', () => {
     rootBudget = createBudgetSlice({
       id: 'root-budget',
       parentId: undefined,
-      totalCycles: 1000,
-      totalDepth: 100,
-      totalMemoryOps: 10000,
-      totalLMCalls: 100,
+      maxCycles: 1000,
+      maxDepth: 100,
+      maxMemoryOps: 10000,
+      maxLMCalls: 100,
     });
   });
 
@@ -204,12 +216,14 @@ describe('CognitiveThread hard budget inheritance (D2)', () => {
 
     // Request more than available
     const result = parent.spawn('child1', { cycles: 2000 });
-    expect(result.thread.budget.totalCycles).toBeLessThanOrEqual(1000);
+    expect(result.thread.budget.maxCycles).toBeLessThanOrEqual(1000);
     expect(result.remainingBudget.cycles).toBe(0);
   });
 
   it('join returns unconsumed budget', async () => {
-    const thread = createCognitiveThread('worker', rootBudget, { budgetAllocation: { cycles: 100 } });
+    const thread = createCognitiveThread('worker', rootBudget, {
+      budgetAllocation: { cycles: 100 },
+    });
 
     await thread.run(async () => {
       // Simulate some work consuming cycles
@@ -224,7 +238,9 @@ describe('CognitiveThread hard budget inheritance (D2)', () => {
   });
 
   it('getUnconsumedBudget returns remaining budget without joining', () => {
-    const thread = createCognitiveThread('worker', rootBudget, { budgetAllocation: { cycles: 200 } });
+    const thread = createCognitiveThread('worker', rootBudget, {
+      budgetAllocation: { cycles: 200 },
+    });
     consumeCycles(thread.budget, 50);
 
     const unconsumed = thread.getUnconsumedBudget();
@@ -235,10 +251,10 @@ describe('CognitiveThread hard budget inheritance (D2)', () => {
     const budget = createBudgetSlice({
       id: 'tiny',
       parentId: undefined,
-      totalCycles: 2,
-      totalDepth: 10,
-      totalMemoryOps: 100,
-      totalLMCalls: 10,
+      maxCycles: 2,
+      maxDepth: 10,
+      maxMemoryOps: 100,
+      maxLMCalls: 10,
     });
 
     const thread = createCognitiveThread('worker', budget);
@@ -278,10 +294,10 @@ describe('CognitiveThread mailbox budget-gated backpressure (D3)', () => {
     rootBudget = createBudgetSlice({
       id: 'root-budget',
       parentId: undefined,
-      totalCycles: 100,
-      totalDepth: 100,
-      totalMemoryOps: 10000,
-      totalLMCalls: 100,
+      maxCycles: 100,
+      maxDepth: 100,
+      maxMemoryOps: 10000,
+      maxLMCalls: 100,
     });
   });
 
@@ -349,10 +365,10 @@ describe('CognitiveThread spawn/join/kill lifecycle (D4)', () => {
     rootBudget = createBudgetSlice({
       id: 'root-budget',
       parentId: undefined,
-      totalCycles: 1000,
-      totalDepth: 100,
-      totalMemoryOps: 10000,
-      totalLMCalls: 100,
+      maxCycles: 1000,
+      maxDepth: 100,
+      maxMemoryOps: 10000,
+      maxLMCalls: 100,
     });
   });
 
@@ -376,9 +392,11 @@ describe('CognitiveThread spawn/join/kill lifecycle (D4)', () => {
   it('thread error status on thrown error', async () => {
     const thread = createCognitiveThread('worker', rootBudget);
 
-    await expect(thread.run(async () => {
-      throw new Error('work failed');
-    })).rejects.toThrow('work failed');
+    await expect(
+      thread.run(async () => {
+        throw new Error('work failed');
+      })
+    ).rejects.toThrow('work failed');
 
     expect(thread.getStatus()).toBe('error');
     expect(thread.getError()).toBeInstanceOf(Error);
@@ -462,8 +480,14 @@ describe('CognitiveThread spawn/join/kill lifecycle (D4)', () => {
     await t2!.run(async () => 'result2');
 
     const results = await pool.joinAll();
-    expect(results.get('thread1')).toEqual({ result: 'result1', unconsumedBudget: expect.any(Object) });
-    expect(results.get('thread2')).toEqual({ result: 'result2', unconsumedBudget: expect.any(Object) });
+    expect(results.get('thread1')).toEqual({
+      result: 'result1',
+      unconsumedBudget: expect.any(Object),
+    });
+    expect(results.get('thread2')).toEqual({
+      result: 'result2',
+      unconsumedBudget: expect.any(Object),
+    });
   });
 });
 
@@ -472,10 +496,10 @@ describe('FocusTree + CognitiveThread integration', () => {
     const rootBudget = createBudgetSlice({
       id: 'root-budget',
       parentId: undefined,
-      totalCycles: 1000,
-      totalDepth: 100,
-      totalMemoryOps: 10000,
-      totalLMCalls: 100,
+      maxCycles: 1000,
+      maxDepth: 100,
+      maxMemoryOps: 10000,
+      maxLMCalls: 100,
     });
 
     const tree = createFocusTree({
@@ -487,17 +511,17 @@ describe('FocusTree + CognitiveThread integration', () => {
     expect(child).not.toBeNull();
     // child budget parentId is set to parent budget ID ('root-budget')
     expect(child!.budget.parentId).toBe('root-budget');
-    expect(child!.budget.totalCycles).toBe(500);
+    expect(child!.budget.maxCycles).toBe(500);
   });
 
   it('ThreadPool and FocusTree can be used together', () => {
     const rootBudget = createBudgetSlice({
       id: 'root-budget',
       parentId: undefined,
-      totalCycles: 1000,
-      totalDepth: 100,
-      totalMemoryOps: 10000,
-      totalLMCalls: 100,
+      maxCycles: 1000,
+      maxDepth: 100,
+      maxMemoryOps: 10000,
+      maxLMCalls: 100,
     });
 
     const pool = new ThreadPool(rootBudget);
@@ -506,10 +530,10 @@ describe('FocusTree + CognitiveThread integration', () => {
       rootBudget: createBudgetSlice({
         id: 'focus-budget',
         parentId: 'root-budget',
-        totalCycles: 500,
-        totalDepth: 50,
-        totalMemoryOps: 5000,
-        totalLMCalls: 50,
+        maxCycles: 500,
+        maxDepth: 50,
+        maxMemoryOps: 5000,
+        maxLMCalls: 50,
       }),
     });
 

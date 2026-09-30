@@ -1,15 +1,20 @@
-import { SHA256_PINNED, appendJsonlAsync, iterateJsonl, makeId, sha256Hex, writeJsonl } from '@senars/util';
-
 import { promises as fs } from 'node:fs';
 import { dirname } from 'node:path';
-
+import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
+import {
+  appendJsonlAsync,
+  iterateJsonl,
+  makeId,
+  SHA256_PINNED,
+  sha256Hex,
+  writeJsonl,
+} from '@senars/util';
 import {
   BaseLedgerEntrySchema,
   createLedger,
   type Ledger,
   type RolloverPolicyOptions,
 } from '@senars/util/ledger';
-import type { SelfImprovementProposal } from '@senars/core/derivation-schemas';
 import { z } from 'zod';
 
 import { Truth, type Truth as TruthType } from '../../terms/impls/Truth.js';
@@ -134,7 +139,9 @@ export class JudgmentDataset {
   }
 
   toJSONL(): string {
-    return this.rows().map((l) => JSON.stringify(l)).join('\n');
+    return this.rows()
+      .map((l) => JSON.stringify(l))
+      .join('\n');
   }
 
   /** Append the dataset to a JSONL file (creates directory if needed). */
@@ -373,4 +380,3 @@ export function buildSabotageFlag(
     correlationId: `sabotage:${candidate.headId}`,
   };
 }
-

@@ -23,7 +23,7 @@ import type {
   RubricId,
 } from './types.js';
 
-const DEFAULT_BANDS: ConfidenceBands = { act: 0.8, review: 0.5, block: 0 };
+const DEFAULT_CONFIDENCE_BANDS: ConfidenceBands = { act: 0.8, review: 0.5, block: 0 };
 
 export interface JudgmentProvenance {
   modelDigest?: string;
@@ -185,7 +185,7 @@ function isSafetyFloor(query: JudgmentQuery): boolean {
 }
 
 export function createDecider(deps: DecideDeps): Decider {
-  const router = deps.router ?? new ConfidenceRouter(DEFAULT_BANDS);
+  const router = deps.router ?? new ConfidenceRouter(DEFAULT_CONFIDENCE_BANDS);
   const chunkSize = Math.max(1, deps.maxBatchSize ?? 64);
 
   const decide = async (request: DecideRequest): Promise<DecideResult> => {

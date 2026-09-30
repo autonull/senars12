@@ -9,12 +9,26 @@
  * concept store, none of which receives a NAR config — and `NAR` already owns
  * the process for its lifetime. The invariant is one seeded NAR per process,
  * which the determinism gate and the replay CLI already assume.
+ *
+ * Two id domains, deliberately. `makeId` mints ids the schemas validate as
+ * UUIDs — `CognitiveEventSchema.taskId` rejects anything else — while the event
+ * log mints ids it range-scans on (`ORDER BY id`, `getRange`), which a random
+ * UUID would make an arbitrary permutation. Both live here so the distinction is
+ * one place's decision and `ulid` stays a leaf dependency.
  */
+import { monotonicFactory } from 'ulid';
 
 /** Mints one fresh identifier. */
 export type IdSource = () => string;
 
 const ambient: IdSource = () => crypto.randomUUID();
+
+/**
+ * The event log's id source: ULID, monotonic and lexicographically sortable.
+ * Reused by a seeded run's `sequentialIdSource`, which is sortable for the same
+ * reason — so the log's ids stay ordered under a seed too.
+ */
+export const sortableIdSource = (): IdSource => monotonicFactory();
 
 let current: IdSource = ambient;
 

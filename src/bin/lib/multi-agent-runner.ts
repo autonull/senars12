@@ -5,9 +5,8 @@
 
 import { CLIConnection } from '@senars/io/connections/cli';
 import { WSConnection } from '@senars/io/connections/ws';
-import { createLogger } from '@senars/core/logger';
-import { setupGracefulShutdown } from '@senars/util';
 import type { WiredNAR } from '@senars/nar/agent/builder';
+import { createLogger, setupGracefulShutdown } from '@senars/util';
 
 export interface MultiAgentRunnerOptions {
   scope: string;
@@ -69,7 +68,8 @@ export async function runMultiAgent(opts: MultiAgentRunnerOptions): Promise<void
 
   cliConn.onMessage(async (msg: { text: string }) => {
     for await (const evt of agent.chat(msg.text)) {
-      if ((evt.kind === 'text-delta' || evt.kind === 'finish') && evt.text) console.log(`[Agent] ${evt.text}`);
+      if ((evt.kind === 'text-delta' || evt.kind === 'finish') && evt.text)
+        console.log(`[Agent] ${evt.text}`);
     }
   });
   console.log('[CLI] Ready for input\n');
@@ -81,9 +81,12 @@ export async function runMultiAgent(opts: MultiAgentRunnerOptions): Promise<void
   console.log('Press Ctrl+C to exit');
   console.log('══════════════════════════════════════════════════════════════\n');
 
-  setupGracefulShutdown(async () => {
-    await agent.stop();
-    await wsConn.disconnect();
-    await cliConn.disconnect();
-  }, { info: (msg) => console.log(msg) });
+  setupGracefulShutdown(
+    async () => {
+      await agent.stop();
+      await wsConn.disconnect();
+      await cliConn.disconnect();
+    },
+    { info: (msg) => console.log(msg) }
+  );
 }

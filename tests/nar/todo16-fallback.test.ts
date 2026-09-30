@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { validateCognitiveEvent } from '@senars/core/schemas';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
 import { createDispatcher } from '../../nar/src/lm/system-one/dispatcher.js';
 import type { CognitiveContext, ReasoningBudget } from '../../nar/src/lm/system-one/types.js';
-import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
-import { validateCognitiveEvent } from '@senars/core/derivation-schemas';
 
 describe('System One — Thermodynamic Fallback (Bench 13)', () => {
   let dispatcher: ReturnType<typeof createDispatcher>;
@@ -26,7 +26,12 @@ describe('System One — Thermodynamic Fallback (Bench 13)', () => {
 
   it('degrades to Deterministic (Tier 0) when manifold disabled', async () => {
     const queries = [
-      { kind: 'classify' as const, instruction: 'test', space: ['a', 'b'], axis: 'epistemic' as const },
+      {
+        kind: 'classify' as const,
+        instruction: 'test',
+        space: ['a', 'b'],
+        axis: 'epistemic' as const,
+      },
     ];
     const results = await dispatcher.judge(0 as any, queries, mockBudget);
     expect(results).toHaveLength(1);
@@ -47,12 +52,23 @@ describe('System One — Thermodynamic Fallback (Bench 13)', () => {
         throw new Error('Manifold unavailable');
       },
       health() {
-        return { backendId: 'failing' as any, ready: false, breakerOpen: true, rollingEce: 1.0, queueDepth: 0 };
+        return {
+          backendId: 'failing' as any,
+          ready: false,
+          breakerOpen: true,
+          rollingEce: 1.0,
+          queueDepth: 0,
+        };
       },
     };
 
     const queries = [
-      { kind: 'classify' as const, instruction: 'test', space: ['a', 'b'], axis: 'epistemic' as const },
+      {
+        kind: 'classify' as const,
+        instruction: 'test',
+        space: ['a', 'b'],
+        axis: 'epistemic' as const,
+      },
     ];
     const results = await enabledDispatcher.judge(0 as any, queries, mockBudget);
     expect(results).toHaveLength(1);
@@ -63,7 +79,11 @@ describe('System One — Thermodynamic Fallback (Bench 13)', () => {
 
   it('synthesize falls back to cortex when dispatcher disabled', async () => {
     const results: any[] = [];
-    for await (const synth of dispatcher.synthesize(mockContext, { kind: 'synthesize', instruction: 'test', maxCandidates: 2 }, mockBudget)) {
+    for await (const synth of dispatcher.synthesize(
+      mockContext,
+      { kind: 'synthesize', instruction: 'test', maxCandidates: 2 },
+      mockBudget
+    )) {
       results.push(synth);
     }
     expect(results).toHaveLength(1);
@@ -74,8 +94,20 @@ describe('System One — Thermodynamic Fallback (Bench 13)', () => {
   it('proposeAndJudge works with fallback chain', async () => {
     const result = await dispatcher.proposeAndJudge(
       mockContext,
-      { kind: 'synthesize', instruction: 'Generate term', grammar: 'narsese-term', maxCandidates: 2 },
-      [{ kind: 'classify' as const, instruction: 'Select best', space: ['a', 'b'], axis: 'teleological' as const }],
+      {
+        kind: 'synthesize',
+        instruction: 'Generate term',
+        grammar: 'narsese-term',
+        maxCandidates: 2,
+      },
+      [
+        {
+          kind: 'classify' as const,
+          instruction: 'Select best',
+          space: ['a', 'b'],
+          axis: 'teleological' as const,
+        },
+      ],
       mockBudget
     );
     expect(result.candidates).toHaveLength(2);

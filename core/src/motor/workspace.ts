@@ -5,4 +5,5 @@ import { containsPath } from '@senars/util';
 export const WORKSPACE_ROOT = process.cwd();
 
 /** True when an absolute path resolves inside the workspace root. */
-export const withinWorkspace = (p: string): boolean => containsPath(WORKSPACE_ROOT, path.resolve(p));
+export const withinWorkspace = (p: string): boolean =>
+  containsPath(WORKSPACE_ROOT, path.resolve(p));

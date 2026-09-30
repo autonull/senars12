@@ -1,4 +1,4 @@
-import { errMsg } from '../utils/shared.js';
+import { errMsg } from '../utils/error.js';
 
 export type ErrorCode =
   | 'TOOL_ERROR'
@@ -45,9 +45,14 @@ export class SenarsError extends Error {
     code: ErrorCode = 'OPERATION_ERROR'
   ): SenarsError {
     if (error instanceof SenarsError) {
-      return new SenarsError(error.message, error.code, { ...error.context, ...context }, {
-        cause: error,
-      });
+      return new SenarsError(
+        error.message,
+        error.code,
+        { ...error.context, ...context },
+        {
+          cause: error,
+        }
+      );
     }
     const message = errMsg(error);
     return new SenarsError(message, code, context, {

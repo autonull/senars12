@@ -1,6 +1,18 @@
 /**
- * Bounded buffer primitives shared by every package's bounded logs.
+ * Bounded buffer and selection primitives shared by every package's
+ * bounded logs, bags, and priority ordering.
  */
+
+/** Fixed-size slices for batched work — the one chunking primitive. */
+export const chunk = <T>(items: readonly T[], size: number): T[][] => {
+  const step = Math.max(1, Math.floor(size));
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += step) out.push(items.slice(i, i + step) as T[]);
+  return out;
+};
+
+/** The one edge identity between two term keys. */
+export const edgeKey = (source: string, target: string): string => `${source}->${target}`;
 
 /**
  * Drop-oldest push for plain arrays. One `shift()` per overflow — no `splice`
@@ -156,7 +168,8 @@ export function selectByPriority<T extends { priority: number; id: string }>(
   eligible: (item: T) => boolean = () => true
 ): T[] {
   if (budget <= 0) return [];
-  const better = (a: T, b: T) => a.priority > b.priority || (a.priority === b.priority && a.id < b.id);
+  const better = (a: T, b: T) =>
+    a.priority > b.priority || (a.priority === b.priority && a.id < b.id);
   const kept: T[] = [];
   let worst = 0;
   for (const item of items) {

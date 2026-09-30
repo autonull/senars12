@@ -1,11 +1,15 @@
-import { makeId } from '@senars/util';
 import { promises as fs } from 'node:fs';
-import { writeJsonFile } from '@senars/util';
+import type {
+  PerceptionGateInput,
+  PerceptionGateOutput,
+  SourceQuality,
+} from '@senars/core/schemas';
+import { makeId, writeJsonFile } from '@senars/util';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';
-import type { IPerceptionGate } from './kernel';
-import { gateRegistry } from './kernel/GateRegistry.js';
-import type { Memory } from './memory';
 import type { NARConfig } from './facade/config.js';
+import type { GateRegistry, IPerceptionGate } from './kernel';
+import { seedTruth } from './lm/system-one/seed.js';
+import type { Memory } from './memory';
 import type { TaskManager } from './task';
 import type { Term } from './terms';
 import { Truth, termParser, validateTaskTerm } from './terms';
@@ -13,9 +17,6 @@ import type { Truth as TruthType } from './terms/impls/Truth.js';
 import type { TaskType } from './types';
 import { createBudget, type EventBus } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';
-import type { PerceptionGateInput, PerceptionGateOutput } from '@senars/core/derivation-schemas';
-import { seedTruth } from './lm/system-one/seed.js';
-import type { SourceQuality } from '@senars/core/derivation-schemas';
 
 function toTruth(t: TruthType | { frequency: number; confidence: number } | undefined): Truth {
   if (!t) return Truth.NEUTRAL;
@@ -42,12 +43,13 @@ export class NARIO {
   constructor(
     private readonly memory: Memory,
     private readonly taskManager: TaskManager,
-    private readonly config: NARConfig
+    private readonly config: NARConfig,
+    gates: GateRegistry
   ) {
-    this.perceptionGate = gateRegistry.getPerceptionGate();
+    this.perceptionGate = gates.getPerceptionGate();
   }
 
-  setcognitiveParams(params: CognitiveParameters): void {
+  setCognitiveParams(params: CognitiveParameters): void {
     this.cognitiveParams = params;
   }
 
@@ -92,7 +94,7 @@ export class NARIO {
   }
 
   async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
-    const gate = gateRegistry.getPerceptionGate();
+    const gate = this.perceptionGate;
     const systemOneEnabled = this.config.systemOne?.enabled ?? false;
 
     // When System One is enabled, pass raw observation to gate before parsing
@@ -115,13 +117,18 @@ export class NARIO {
       }
 
       // Adopt gate's calibrated truth and taskType
-      const calibratedTruth = toTruth(result.task.truth ?? (result.task.taskType === 'belief' ? Truth.TRUE : undefined));
+      const calibratedTruth = toTruth(
+        result.task.truth ?? (result.task.taskType === 'belief' ? Truth.TRUE : undefined)
+      );
       const calibratedType = result.task.taskType as TaskType;
 
       // Parse the term for memory storage
       const parsedTerm = termParser.parse(result.task.term);
       if (!parsedTerm) {
-        this._eventBus?.emit('warning', { message: 'Failed to parse admitted term', term: result.task.term });
+        this._eventBus?.emit('warning', {
+          message: 'Failed to parse admitted term',
+          term: result.task.term,
+        });
         return;
       }
 
@@ -225,8 +232,12 @@ export class NARIO {
     }
   }
 
-  private async addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): Promise<void> {
-    const gate = gateRegistry.getPerceptionGate();
+  private async addTask(
+    term: Term,
+    type: TaskType,
+    truth: TruthType = Truth.NEUTRAL
+  ): Promise<void> {
+    const gate = this.perceptionGate;
     const systemOneEnabled = this.config.systemOne?.enabled ?? false;
 
     // When System One is enabled, use the gate's admit method which returns calibrated truth/taskType

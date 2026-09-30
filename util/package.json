@@ -56,14 +56,6 @@
       "types": "./src/utils/serialization.ts",
       "import": "./src/utils/serialization.ts"
     },
-    "./utils/shared": {
-      "types": "./src/utils/shared.ts",
-      "import": "./src/utils/shared.ts"
-    },
-    "./utils/throttle": {
-      "types": "./src/utils/throttle.ts",
-      "import": "./src/utils/throttle.ts"
-    },
     "./ledger": {
       "types": "./src/ledger.ts",
       "import": "./src/ledger.ts"
@@ -75,5 +67,8 @@
   "devDependencies": {
     "@types/node": "^22.19.19",
     "zod": "^4.5.4"
+  },
+  "dependencies": {
+    "ulid": "^3.0.2"
   }
 }

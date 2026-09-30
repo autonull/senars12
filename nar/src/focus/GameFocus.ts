@@ -1,7 +1,7 @@
 import { join } from 'node:path';
+import type { DerivationRecord, ReasoningBudget } from '@senars/core/schemas';
 import { asBeliefTruth, clamp, ensureDirSync, makeId, maxBy, pushCapped } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
-import type { DerivationRecord, ReasoningBudget } from '@senars/core/derivation-schemas';
 import { z } from 'zod';
 import { PriorityBag } from '../bag/Bag.js';
 import type { Game, GameOutcome, Perception } from '../game/Game.js';
@@ -104,8 +104,6 @@ export interface ReflexPrefetchContext {
 
 /** AIKR bound for the unbounded-by-tick focus logs (audit tails stay inspectable). */
 const FOCUS_LOG_CAPACITY = 2000;
-
-
 
 /** The GameFocus surface the System One / LM reflex binders need — one place to change. */
 export type ReflexBindable = Pick<GameFocus, 'bindReflex'> &
@@ -764,4 +762,3 @@ export class GameFocus {
 export function createGameFocus(options: GameFocusOptions): GameFocus {
   return new GameFocus(options);
 }
-

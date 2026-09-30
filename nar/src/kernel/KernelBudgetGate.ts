@@ -1,3 +1,4 @@
+import { type BudgetLimits, createBudget } from '@senars/core/budget';
 import type {
   BudgetExhaustedEvent,
   BudgetGateInput,
@@ -5,11 +6,10 @@ import type {
   CognitiveEvent,
   ReasoningBudget,
   TerminationReason,
-} from '@senars/core/derivation-schemas';
-import { validateCognitiveEvent, validateReasoningBudget } from '@senars/core/derivation-schemas';
-import { GATE_LOG_CAPACITY } from './event-ring.js';
-import { KernelGate } from './gate-base.js';
+} from '@senars/core/schemas';
+import { validateCognitiveEvent, validateReasoningBudget } from '@senars/core/schemas';
 import { recordGateDecision } from '../telemetry/index.js';
+import { KernelGate } from './gate-base.js';
 
 export interface KernelBudgetGateConfig {
   defaultBudget: ReasoningBudget;
@@ -66,6 +66,16 @@ const OPERATION_SPECS: Record<string, OperationSpec> = {
   },
 };
 
+/** The one budget a NAR starts from; the gate's own default and every NAR's initial budget. */
+export const NAR_BUDGET_LIMITS = {
+  maxCycles: 1000,
+  maxDepth: 100,
+  maxMemoryOps: 10000,
+  maxLMCalls: 50,
+} as const satisfies BudgetLimits;
+
+export const createDefaultReasoningBudget = (): ReasoningBudget => createBudget(NAR_BUDGET_LIMITS);
+
 export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   private budget: ReasoningBudget;
   private scopes = new Map<string, ReasoningBudget>();
@@ -74,25 +84,13 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   constructor(config?: Partial<KernelBudgetGateConfig>) {
     super();
     this.costTable = { ...DEFAULT_COST_TABLE, ...config?.costTable };
-    this.budget = config?.defaultBudget ?? this.createDefaultBudget();
+    this.budget = this.adopt(config?.defaultBudget ?? createDefaultReasoningBudget());
   }
 
-  private createDefaultBudget(): ReasoningBudget {
-    return {
-      maxCycles: 1000,
-      maxDepth: 100,
-      maxMemoryOps: 10000,
-      maxLMCalls: 50,
-      wallclockDeadlineMs: undefined,
-      abortSignal: undefined,
-      terminationReason: undefined,
-      consumed: {
-        cycles: 0,
-        depth: 0,
-        memoryOps: 0,
-        llmCalls: 0,
-      },
-    };
+  /** Validate at the boundary where a budget enters the gate, never on the per-operation read path. */
+  private adopt(budget: ReasoningBudget): ReasoningBudget {
+    validateReasoningBudget(budget);
+    return budget;
   }
 
   private freshCounters(): ReasoningBudget {
@@ -104,7 +102,7 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   }
 
   private resolveBudget(input: BudgetGateInput): ReasoningBudget {
-    if (input.budget) return input.budget;
+    if (input.budget) return this.adopt(input.budget);
     if (!input.scopeId) return this.budget;
     let scoped = this.scopes.get(input.scopeId);
     if (!scoped) {
@@ -131,8 +129,6 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
     const estimatedCost = input.estimatedCost ?? this.costTable[operation] ?? 1;
 
     const budget = this.resolveBudget(input);
-    validateReasoningBudget(budget);
-
     const remaining = this.getRemaining(budget, operation, estimatedCost);
     const granted = remaining >= estimatedCost;
 
@@ -196,17 +192,16 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   }
 
   setBudget(budget: ReasoningBudget): void {
-    validateReasoningBudget(budget);
-    this.budget = budget;
+    this.budget = this.adopt(budget);
   }
 
   resetBudget(): void {
-    this.budget = this.createDefaultBudget();
+    this.budget = createDefaultReasoningBudget();
     this.scopes.clear();
   }
 
   createScope(scopeId: string, budget?: ReasoningBudget): void {
-    this.scopes.set(scopeId, budget ?? this.freshCounters());
+    this.scopes.set(scopeId, budget ? this.adopt(budget) : this.freshCounters());
   }
 
   releaseScope(scopeId: string): void {
@@ -216,7 +211,6 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   getScopeBudget(scopeId: string): ReasoningBudget | undefined {
     return this.scopes.get(scopeId);
   }
-
 
   isExhausted(operation?: string): boolean {
     if (operation) {

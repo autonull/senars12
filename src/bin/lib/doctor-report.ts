@@ -12,33 +12,29 @@
  */
 
 import { cpus } from 'node:os';
+import { createBotNAR } from '@senars/nar';
+import { runHealthChecks } from '@senars/nar/health';
 import {
-  getModelChain,
-  getRoutingStatus,
-  getEffectiveCircuitConfig,
+  cloudApiKey,
+  fetchBounded,
   getCircuitBreaker,
+  getEffectiveCircuitConfig,
+  getModelChain,
+  getRoutingLogStatus,
+  getRoutingStatus,
+  LM_PROVIDER_NAMES,
   type LMProviderName,
   type LMTask,
-  resolveOfflineTier,
-  setRouting,
-  getRoutingLogStatus,
-  fetchBounded,
   probeEmbeddedLlama,
   probeLlamaCpp,
   probeModelsEndpoint,
-} from '@senars/nar/lm/providers.js';
-import {
-  cloudApiKey,
-  LM_PROVIDER_NAMES,
   resolveLMConfig,
   resolveLMSettings,
-} from '@senars/nar/lm/env-config.js';
-import { createLogger } from '@senars/core/logger';
-import { createBotNAR } from '@senars/nar';
-import { runHealthChecks } from '@senars/nar/health';
+  resolveOfflineTier,
+  setRouting,
+} from '@senars/nar/lm';
+import { createLogger, parseFlags } from '@senars/util';
 import { loadConfig } from '../../config/index.js';
-import { getConsolidationWatchdogStatus } from '@senars/nar/memory/pressure/index.js';
-import { parseFlags } from '@senars/util';
 
 const logger = createLogger({ scope: 'doctor' });
 
@@ -61,10 +57,12 @@ const probeProviderReachable = async (): Promise<boolean> => {
 };
 
 const checkCredentials = (): { key: string; present: boolean }[] =>
-  ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'LM_API_KEY', 'TAVILY_API_KEY', 'BRAVE_API_KEY'].map((key) => ({
-    key,
-    present: Boolean(process.env[key]),
-  }));
+  ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'LM_API_KEY', 'TAVILY_API_KEY', 'BRAVE_API_KEY'].map(
+    (key) => ({
+      key,
+      present: Boolean(process.env[key]),
+    })
+  );
 
 const probeOllama = async (host: string): Promise<string> => {
   const res = await fetchBounded(`${host.replace(/\/$/, '')}/api/tags`, { timeoutMs: 3000 });
@@ -105,12 +103,14 @@ interface DoctorOutput {
   routingMatrix: Record<string, string[]>;
   offlineTier: string | null;
   demoted: Array<{ id: string; reason: string; at: number }>;
-  circuitBreakers: Record<string, {
-    config: { failureThreshold: number; resetTimeoutMs: number; successThreshold: number };
-    state: string;
-    failures: number;
-  }>;
-  watchdog?: { enabled: boolean; config: Record<string, unknown> };
+  circuitBreakers: Record<
+    string,
+    {
+      config: { failureThreshold: number; resetTimeoutMs: number; successThreshold: number };
+      state: string;
+      failures: number;
+    }
+  >;
   degradation?: {
     activeProvider: string;
     effectiveChains: Record<string, string[]>;
@@ -191,7 +191,11 @@ const main = async (): Promise<void> => {
       const cfg = getEffectiveCircuitConfig(p, settings);
       const breaker = getCircuitBreaker(p);
       output.circuitBreakers[p] = {
-        config: { failureThreshold: cfg.failureThreshold, resetTimeoutMs: cfg.resetTimeoutMs, successThreshold: cfg.successThreshold },
+        config: {
+          failureThreshold: cfg.failureThreshold,
+          resetTimeoutMs: cfg.resetTimeoutMs,
+          successThreshold: cfg.successThreshold,
+        },
         state: breaker.state,
         failures: breaker.consecutiveFailures,
       };
@@ -207,7 +211,10 @@ const main = async (): Promise<void> => {
       activeProvider: lmConfig.provider,
       effectiveChains: output.routingMatrix,
       circuitBreakers: Object.fromEntries(
-        Object.entries(output.circuitBreakers).map(([k, v]) => [k, { state: v.state, failures: v.failures }])
+        Object.entries(output.circuitBreakers).map(([k, v]) => [
+          k,
+          { state: v.state, failures: v.failures },
+        ])
       ),
       offlineTier: output.offlineTier,
       credentials: Object.fromEntries(creds.map((c) => [c.key, c.present])),
@@ -218,10 +225,6 @@ const main = async (): Promise<void> => {
   if (showRoutingLog) {
     output.routingLog = getRoutingLogStatus();
   }
-
-  // Watchdog status
-  const watchdogStatus = getConsolidationWatchdogStatus();
-  output.watchdog = { enabled: watchdogStatus.enabled, config: watchdogStatus.config as unknown as Record<string, unknown> };
 
   // Deep health checks (O3): spin a bare kernel and run the shared readiness checks.
   if (deep) {
@@ -247,15 +250,19 @@ const main = async (): Promise<void> => {
     output.benchmarks = [];
   }
 
-if (jsonOutput) {
+  if (jsonOutput) {
     console.log(JSON.stringify(output, null, 2));
   } else {
     console.log(`\nLM Provider: ${output.lm.provider}`);
     console.log(`LM Model: ${output.lm.model}`);
-    console.log(`Embedded llama.cpp: ${output.embeddedLlama.available ? '✓ ' + output.embeddedLlama.detail : '✗ ' + output.embeddedLlama.detail}`);
+    console.log(
+      `Embedded llama.cpp: ${output.embeddedLlama.available ? '✓ ' + output.embeddedLlama.detail : '✗ ' + output.embeddedLlama.detail}`
+    );
     console.log(`Ollama daemon (local OpenAI-compatible): ${output.ollama}`);
     console.log(`CPUs: ${output.cpus}`);
-    console.log(`Config: ${output.config.valid ? 'valid' : 'invalid'}${output.config.error ? ` (${output.config.error})` : ''}`);
+    console.log(
+      `Config: ${output.config.valid ? 'valid' : 'invalid'}${output.config.error ? ` (${output.config.error})` : ''}`
+    );
 
     if (!showDegradation) {
       console.log('\nSee docs/tech/lm-config.md for the provider × tier × credential matrix.');
@@ -264,13 +271,19 @@ if (jsonOutput) {
     if (showDegradation) {
       console.log('\n--- Degradation Posture ---');
       console.log(`Active provider: ${output.degradation?.activeProvider}`);
-      console.log(`Effective chain (quality): ${output.degradation?.effectiveChains.quality?.join(' → ') ?? 'N/A'}`);
+      console.log(
+        `Effective chain (quality): ${output.degradation?.effectiveChains.quality?.join(' → ') ?? 'N/A'}`
+      );
       console.log('Circuit breakers:');
       for (const [p, v] of Object.entries(output.degradation?.circuitBreakers ?? {})) {
         console.log(`  ${p}: ${v.state} (failures=${v.failures})`);
       }
       console.log(`Offline tier: ${output.degradation?.offlineTier ?? 'none'}`);
-      console.log(`Credentials: ${Object.entries(output.degradation?.credentials ?? {}).map(([k, v]) => `${k} ${v ? '✓' : '·'}`).join(', ')}`);
+      console.log(
+        `Credentials: ${Object.entries(output.degradation?.credentials ?? {})
+          .map(([k, v]) => `${k} ${v ? '✓' : '·'}`)
+          .join(', ')}`
+      );
     }
 
     if (showRoutingLog) {

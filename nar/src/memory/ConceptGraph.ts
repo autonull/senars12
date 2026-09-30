@@ -5,7 +5,7 @@
 
 import { BoundedMap, selectTopN } from '@senars/util';
 import type { Term } from '../terms/index.js';
-import { serializeTerm } from '../terms/index.js';
+import { atom, getArgs, termKey } from '../terms/index.js';
 
 interface ConceptNode {
   term: Term;
@@ -43,7 +43,7 @@ export class ConceptGraph {
     this.maxEdgesPerNode = options.maxEdgesPerNode ?? 50;
     this.decayRate = options.decayRate ?? 0.001;
     this.minEdgeWeight = options.minEdgeWeight ?? 0.01;
-    this.root = this.createNode({ kind: 'atom', symbol: 'ROOT' });
+    this.root = this.createNode(atom('ROOT'));
   }
 
   private createNode(term: Term): ConceptNode {
@@ -67,16 +67,12 @@ export class ConceptGraph {
     });
   }
 
-  private getTermKey(term: Term): string {
-    return serializeTerm(term);
-  }
-
   private traversePath(term: Term, create = false): ConceptNode | null {
     let node = this.root;
-    const args = this.getTermArgs(term);
+    const args = getArgs(term);
 
     for (const arg of args) {
-      const key = this.getTermKey(arg);
+      const key = termKey(arg);
       let child = node.children.get(key);
       if (!child) {
         if (!create) return null;
@@ -90,11 +86,6 @@ export class ConceptGraph {
     return node;
   }
 
-  private getTermArgs(term: Term): Term[] {
-    if (term.kind === 'atom') return [term];
-    return (term.args ?? []) as Term[];
-  }
-
   /** Activate a concept and optionally record co-activation with another concept. */
   activate(term: Term, coActiveWith?: Term): void {
     const node = this.traversePath(term, true);
@@ -104,7 +95,7 @@ export class ConceptGraph {
     node.lastActivated = Date.now();
 
     if (coActiveWith) {
-      const coActiveKey = this.getTermKey(coActiveWith);
+      const coActiveKey = termKey(coActiveWith);
       let edge = node.coActivations.get(coActiveKey);
 
       if (!edge) {
@@ -197,7 +188,10 @@ export class ConceptGraph {
       term: node.term,
       activationCount: node.activationCount,
       lastActivated: node.lastActivated,
-      children: [...node.children.entries()].map(([key, child]) => [key, this.serializeNode(child)]),
+      children: [...node.children.entries()].map(([key, child]) => [
+        key,
+        this.serializeNode(child),
+      ]),
       coActivations: [...node.coActivations.entries()].map(([key, edge]) => [
         key,
         {

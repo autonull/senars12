@@ -1,4 +1,4 @@
-import { LruCache } from '@senars/core/helpers';
+import { LruCache } from '@senars/util';
 import { sym } from '../types/ast.js';
 
 export interface InternOptions {

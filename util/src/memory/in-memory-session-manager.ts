@@ -1,7 +1,7 @@
-import { generateId } from '../utils/id.js';
-import { trimCapped } from '../utils/collections.js';
-import { LruCache } from '../utils/lru-cache.js';
 import type { ConversationSession, SessionManager } from '../types/memory.js';
+import { trimCapped } from '../utils/collections.js';
+import { generateId } from '../utils/id.js';
+import { LruCache } from '../utils/lru-cache.js';
 
 export function abortSession(session: ConversationSession): void {
   session.metadata.aborted = true;

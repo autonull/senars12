@@ -1,6 +1,6 @@
-import { BoundedMap, addToSet, occupancy } from '@senars/util';
 import type { EvictionOrder } from '@senars/util';
-import { termKey, type Term } from '../../terms';
+import { addToSet, BoundedMap, occupancy } from '@senars/util';
+import { type Term, termKey } from '../../terms';
 import type { RandomSource } from '../../types/primitives.js';
 import type { LinkEntry, LinkForgetPolicy, LinkInput, LinkQuery, LinkType } from './types.js';
 
@@ -135,7 +135,7 @@ export class Layer {
     return {
       size: this.links.size,
       capacity: this.capacity,
-      utilization: this.links.size / this.capacity,
+      utilization: occupancy(this.links.size, this.capacity),
     };
   }
 

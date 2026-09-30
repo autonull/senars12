@@ -1,9 +1,8 @@
-import { createLogger, type Logger } from '@senars/core/logger';
+import { BoundedRing, createLogger, errMsg, type Logger } from '@senars/util';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { Truth } from '../terms';
 import { createBudget, createTask, type Task } from '../types';
-import { BoundedRing, errMsg } from '@senars/util';
 import { admitTasks } from './admit.js';
 import { topBeliefTasks } from './context.js';
 import { LMResponseParser } from './LMRule.js';

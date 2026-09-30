@@ -1,11 +1,11 @@
 import { clamp, clamp01 } from '@senars/util';
-import { type Term, termParser } from '../../terms/index.js';
 import { Truth } from '../../terms/impls/Truth.js';
+import { type Term, termParser } from '../../terms/index.js';
 import type { Task } from '../../types/core.js';
 import { createBudget, createTask } from '../../types/core.js';
-import { createOracleFromScenario, HiddenModelOracle } from './HiddenModelOracle.js';
-import { mulberry32 } from '../../utils/random.js';
+import { mulberry32, nextInt } from '../../utils/random.js';
 import type { GeneratorConfig, HiddenRule, Scenario, ScenarioProfile } from '../types.js';
+import { createOracleFromScenario, HiddenModelOracle } from './HiddenModelOracle.js';
 
 export class ScenarioGenerator {
   private readonly rng: () => number;
@@ -82,7 +82,7 @@ export class ScenarioGenerator {
   private generateBeliefEvent(hiddenRules: HiddenRule[]): Task | null {
     if (hiddenRules.length === 0) return null;
 
-    const ruleIndex = Math.floor(this.rng() * hiddenRules.length);
+    const ruleIndex = nextInt(this.rng, hiddenRules.length);
     const rule = hiddenRules[ruleIndex];
     if (!rule) return null;
     const noise = this.rng() < this.config.noiseLevel;
@@ -98,10 +98,7 @@ export class ScenarioGenerator {
       );
     } else {
       termStr = rule.term;
-      truth = Truth.create(
-        clamp01(rule.truth.f),
-        clamp(rule.truth.c, 0, Truth.MAX_CONFIDENCE)
-      );
+      truth = Truth.create(clamp01(rule.truth.f), clamp(rule.truth.c, 0, Truth.MAX_CONFIDENCE));
     }
 
     const term = this.parseTerm(termStr);
@@ -111,7 +108,7 @@ export class ScenarioGenerator {
   private generateQuestionEvent(hiddenRules: HiddenRule[]): Task | null {
     if (hiddenRules.length === 0) return null;
 
-    const ruleIndex = Math.floor(this.rng() * hiddenRules.length);
+    const ruleIndex = nextInt(this.rng, hiddenRules.length);
     const rule = hiddenRules[ruleIndex];
     if (!rule) return null;
     const termStr = rule.term.replace(/%.+$/, '').trim();
@@ -124,7 +121,7 @@ export class ScenarioGenerator {
   private generateGoalEvent(hiddenRules: HiddenRule[]): Task | null {
     if (hiddenRules.length === 0) return null;
 
-    const ruleIndex = Math.floor(this.rng() * hiddenRules.length);
+    const ruleIndex = nextInt(this.rng, hiddenRules.length);
     const rule = hiddenRules[ruleIndex];
     if (!rule) return null;
     const termStr = rule.term.replace(/%.+$/, '').trim();
@@ -151,7 +148,7 @@ export class ScenarioGenerator {
       (t: string) => t.replace('==>', '-->'),
       (t: string) => t.replace(/(\w+)/, ''),
     ];
-    const corruption = corruptions[Math.floor(this.rng() * corruptions.length)];
+    const corruption = corruptions[nextInt(this.rng, corruptions.length)];
     return corruption ? corruption(term) : term;
   }
 }
@@ -165,7 +162,6 @@ export function generateMultipleScenarios(count: number, baseConfig: GeneratorCo
     new ScenarioGenerator({ ...baseConfig, seed: (baseConfig.seed ?? Date.now()) + i }).generate()
   );
 }
-
 
 export function createInductionScenario(seed: number, eventCount = 100): Scenario {
   return generateScenario({

@@ -7,11 +7,19 @@
  * Implements IProposer for use in Negotiator.
  */
 
+import type { DerivationRecord, DerivationStep } from '@senars/core/schemas/derivation-records';
 import { BoundedMap, incrementCount, mean } from '@senars/util';
-import type { DerivationRecord, DerivationStep } from '@senars/core/derivation-schemas';
-import type { Term } from '../terms/index.js';
-import { termParser, serializeTerm, TermBuilder } from '../terms/index.js';
 import { substituteVariables } from '../terms/impls/substitute.js';
+import type { Term } from '../terms/index.js';
+import { serializeTerm, TermBuilder, termKey, termParser, walkTerms } from '../terms/index.js';
+
+/** Every atomic symbol in a term, counted — the canonical walk, not a second one. */
+const collectAtoms = (term: Term, counts: Map<string, number>): void => {
+  walkTerms(term, (t) => {
+    if (t.kind === 'atom') incrementCount(counts, t.symbol);
+  });
+};
+
 import { agreeByExactAlgebra } from '../reflex/algebra-vote.js';
 import type { IProposer, NegotiationInput, ProposerContribution } from '../reflex/Negotiator.js';
 import type { ActionProposal, LearningEvent } from '../reflex/Reflex.js';
@@ -59,7 +67,10 @@ export class ProofMettaProposer implements IProposer {
   private ruleCounter = 0;
   private readonly proofStream: ProofStreamEntry[] = [];
   // Persistent pattern counts across all derivations, keyed by serialized pattern
-  private readonly patternCounts = new Map<string, { count: number; confidence: number; examples: string[]; pattern: GeneralizedPattern }>();
+  private readonly patternCounts = new Map<
+    string,
+    { count: number; confidence: number; examples: string[]; pattern: GeneralizedPattern }
+  >();
 
   constructor(options: ProofMettaProposerOptions = {}) {
     this.maxRules = options.maxRules ?? 100;
@@ -102,20 +113,31 @@ export class ProofMettaProposer implements IProposer {
         existing.confidence = Math.max(existing.confidence, step.truth.confidence);
         existing.examples.push(`${step.ruleId}: ${step.premises.join(', ')} => ${step.conclusion}`);
       } else {
-        this.patternCounts.set(patternKey, { 
-          count: 1, 
-          confidence: step.truth.confidence, 
+        this.patternCounts.set(patternKey, {
+          count: 1,
+          confidence: step.truth.confidence,
           examples: [`${step.ruleId}: ${step.premises.join(', ')} => ${step.conclusion}`],
-          pattern: generalized
+          pattern: generalized,
         });
       }
     }
 
     // Convert frequent patterns to MeTTa rules
     for (const [patternKey, info] of this.patternCounts) {
-      if (info.count >= this.patternMinSupport && info.confidence >= this.minConfidence && !this.rules.has(patternKey)) {
+      if (
+        info.count >= this.patternMinSupport &&
+        info.confidence >= this.minConfidence &&
+        !this.rules.has(patternKey)
+      ) {
         const mettaPattern = this.patternToMetta(info.pattern);
-        this.addRule(patternKey, info.pattern, mettaPattern, info.confidence, derivation.derivationId, info.examples);
+        this.addRule(
+          patternKey,
+          info.pattern,
+          mettaPattern,
+          info.confidence,
+          derivation.derivationId,
+          info.examples
+        );
       }
     }
   }
@@ -134,10 +156,10 @@ export class ProofMettaProposer implements IProposer {
     // Anti-unification: find most general pattern by replacing repeated atoms with variables
     const allTerms = [...premises, conclusionParsed];
     const atomCounts = new Map<string, number>();
-    
+
     // Collect all atomic symbols
     for (const term of allTerms) {
-      this.collectAtoms(term, atomCounts);
+      collectAtoms(term, atomCounts);
     }
 
     // Create variable substitutions for atoms appearing multiple times
@@ -150,25 +172,14 @@ export class ProofMettaProposer implements IProposer {
     }
 
     // Apply substitutions to get generalized terms
-    const generalizedPremises = premises.map(p => substituteVariables(p, varBindings));
+    const generalizedPremises = premises.map((p) => substituteVariables(p, varBindings));
     const generalizedConclusion = substituteVariables(conclusionParsed, varBindings);
 
     return {
       premises: generalizedPremises,
       conclusion: generalizedConclusion,
-      ruleId: this.abstractRuleId(step.ruleId)
+      ruleId: this.abstractRuleId(step.ruleId),
     };
-  }
-
-  /** Collect all atomic symbols from a Term. */
-  private collectAtoms(term: Term, counts: Map<string, number>): void {
-    if (term.kind === 'atom') {
-      incrementCount(counts, term.symbol);
-    } else {
-      for (const arg of term.args ?? []) {
-        this.collectAtoms(arg, counts);
-      }
-    }
   }
 
   /** Abstract a concrete rule ID to a generic pattern category. */
@@ -186,19 +197,30 @@ export class ProofMettaProposer implements IProposer {
     return 'rule';
   }
 
-  /** Serialize a generalized pattern to a string key for Map lookup. */
+  /**
+   * Key a generalized pattern by canonical identity. `serializeTerm` is the
+   * rendering handed to MeTTa, not an identity — it collapses a 1-argument n-ary
+   * term to its argument, so two distinct patterns could key to one rule.
+   */
   private serializePattern(pattern: GeneralizedPattern): string {
-    const premiseStrs = pattern.premises.map(p => serializeTerm(p)).join(' ');
-    return `${pattern.ruleId}(${premiseStrs}) => ${serializeTerm(pattern.conclusion)}`;
+    const premiseKeys = pattern.premises.map((p) => termKey(p)).join(' ');
+    return `${pattern.ruleId}(${premiseKeys}) => ${termKey(pattern.conclusion)}`;
   }
 
   /** Convert a generalized Term pattern to MeTTa syntax string. */
   private patternToMetta(pattern: GeneralizedPattern): string {
-    const premiseStrs = pattern.premises.map(p => serializeTerm(p)).join(' ');
+    const premiseStrs = pattern.premises.map((p) => serializeTerm(p)).join(' ');
     return ` (= (${premiseStrs}) ${serializeTerm(pattern.conclusion)} )`;
   }
 
-  private addRule(patternKey: string, pattern: GeneralizedPattern, mettaPattern: string, confidence: number, sourceDerivation: string, examples: string[]): void {
+  private addRule(
+    patternKey: string,
+    pattern: GeneralizedPattern,
+    mettaPattern: string,
+    confidence: number,
+    sourceDerivation: string,
+    examples: string[]
+  ): void {
     const id = `metta-rule-${this.ruleCounter++}`;
     this.rules.set(patternKey, {
       id,
@@ -243,9 +265,7 @@ export class ProofMettaProposer implements IProposer {
 
   /** Export rules as MeTTa program string. */
   exportAsMetta(): string {
-    return [...this.rules.values()]
-      .map((r) => r.pattern)
-      .join('\n');
+    return [...this.rules.values()].map((r) => r.pattern).join('\n');
   }
 
   /** Get statistics. */

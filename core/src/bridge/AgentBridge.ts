@@ -1,5 +1,5 @@
 import { Signal } from '@senars/util';
-import type { CognitiveEvent } from '../CognitiveEvent.js';
+import type { CognitiveEvent } from '@senars/util/types/cognitive';
 import type { AgentEventSource, BridgeEvent } from './types.js';
 
 export type { BridgeDelta, BridgeEvent } from './types.js';

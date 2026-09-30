@@ -3,20 +3,20 @@ import type {
   FormalizationBatch,
   PerceptionGateInput,
   PerceptionGateOutput,
+  ShadowValidationDropEvent,
   SourceQuality,
   TaskAdmittedEvent,
-  ShadowValidationDropEvent,
-} from '@senars/core/derivation-schemas';
-import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/core/derivation-schemas';
-import { normalizeNarsese } from '../nl/normalize.js';
+} from '@senars/core/schemas';
+import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/core/schemas';
 import { asBeliefTruth, errMsg, makeId, type TruthLike } from '@senars/util';
-import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
-import { KernelGate } from './gate-base.js';
-import { domainKey } from './reputation-keys.js';
+import { normalizeNarsese } from '../nl/normalize.js';
 import { recordGateDecision } from '../telemetry/index.js';
 import type { TaskTypeName, Term } from '../terms';
 import { termParser } from '../terms';
+import { recordPolicyViolation } from './event-ring.js';
+import { KernelGate } from './gate-base.js';
 import type { IngressJudge, IngressVerdict } from './ingress.js';
+import { domainKey } from './reputation-keys.js';
 import type { SourceReputation } from './source-reputation.js';
 
 export interface KernelPerceptionGateConfig {
@@ -354,5 +354,4 @@ export class KernelPerceptionGate extends KernelGate {
     }
     return { admitted, rejected };
   }
-
 }

@@ -13,6 +13,20 @@ export { PriorityBag } from './bag/index.js';
 // Cognitive
 /** Counterfactual simulator. @public */
 export { runCounterfactual } from './cognitive/index.js';
+/** E1 error taxonomy — nar/public error surface. @public */
+export {
+  ActionGateError,
+  BoundaryValidationError,
+  BudgetExceeded,
+  BudgetGateError,
+  BuilderError,
+  DigestMismatch,
+  GateError,
+  PerceptionGateError,
+  RewardGateError,
+  SchemaInductionError,
+  SenarsError,
+} from './errors/index.js';
 // Imagination Engine (Cognitive Treadmill)
 /** Scenario generation, hidden-model oracle, cognitive treadmill. @public */
 export {
@@ -38,22 +52,25 @@ export { BaseComponent, Container } from './lifecycle/index.js';
 // LLM Service
 /** LLM service + factory/mock. @public */
 export { createLMService, createMockLMService, LMService } from './lm/lm-service.js';
+/** Bounded hard-negative mining bag (AIKR bag pattern; consumer: NAR). @public */
+export { MiningBag } from './lm/system-one/hard-negatives.js';
 export type { Episode, EpisodeType, EpisodicMemoryConfig } from './memory/EpisodicMemory.js';
 // Episodic Memory
 /** Episodic memory store. @public */
 export { EpisodicMemory } from './memory/EpisodicMemory.js';
 // Phase B (REFACTOR.todo2): episodic memory consolidation as an AIKR process
-export type { ConsolidationResult, EpisodeConsolidatorOptions } from './memory/episode-consolidator.js';
+export type {
+  ConsolidationResult,
+  EpisodeConsolidatorOptions,
+} from './memory/episode-consolidator.js';
 /** Episodic memory consolidation process (AIKR bag pattern; consumer: NAR + integrators). @public */
 export { EpisodeConsolidator, symbolicSummary } from './memory/episode-consolidator.js';
+export type { ConceptTaskType, MemoryConfig } from './memory/index.js';
+export { Concept, Memory } from './memory/index.js';
 // Phase D (REFACTOR.todo2): bounded AIKR bags for proposals + hard-negative mining
 export type { ProposalBagOptions, ProposalCandidate } from './meta/proposal-bag.js';
 /** Bounded self-improvement proposal bag (AIKR bag pattern; consumer: SelfMetaGame). @public */
 export { ProposalBag } from './meta/proposal-bag.js';
-/** Bounded hard-negative mining bag (AIKR bag pattern; consumer: NAR). @public */
-export { MiningBag } from './lm/system-one/hard-negatives.js';
-export type { ConceptTaskType, MemoryConfig } from './memory/index.js';
-export { Concept, Memory } from './memory/index.js';
 export type { NARConfig, RLFPConfig } from './nar.js';
 // Main NAR class
 /** The NAR reasoning engine. @public */
@@ -87,6 +104,11 @@ export * from './self/index.js';
 // Task
 /** Task scheduling/queuing. @public */
 export { TaskManager } from './task/index.js';
+export type { SerializedStamp } from './terms/impls/Stamp.js';
+/** Term temporal stamp. @public */
+export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './terms/impls/Stamp.js';
+/** Truth-value algebra. @public */
+export { isTruthEqual, Truth } from './terms/impls/Truth.js';
 // Terms
 /** Term construction + (de)serialization helpers. @public */
 /** Narsese parser. @public */
@@ -94,10 +116,10 @@ export { TaskManager } from './task/index.js';
 /** Term-to-graph-edge extraction. @public */
 export {
   atom,
+  atomKey,
   collectAtomicSymbols,
   containsSubterm,
   foldTerm,
-  freeze,
   getAntecedent,
   getArgs,
   getConsequent,
@@ -121,20 +143,19 @@ export {
   serializeTerm,
   sharesSymbol,
   TermBuilder,
+  TermCollection,
   type TermEdge,
+  TermMap,
   TermParser,
+  TermSet,
   termDepth,
+  termKey,
   termParser,
   termSize,
   termsEqual,
   visitTerms,
   walkTerms,
 } from './terms/index.js';
-export type { SerializedStamp } from './terms/impls/Stamp.js';
-/** Term temporal stamp. @public */
-export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './terms/impls/Stamp.js';
-/** Truth-value algebra. @public */
-export { isTruthEqual, Truth } from './terms/impls/Truth.js';
 export type {
   AtomicTerm,
   Budget,
@@ -162,23 +183,9 @@ export {
   isOk,
   map,
   NARError,
-  ok,
   OperationError,
+  ok,
   ToolError,
   unwrapOrThrow,
   ValidationError,
 } from './types/core.js';
-/** E1 error taxonomy — nar/public error surface. @public */
-export {
-  ActionGateError,
-  BudgetExceeded,
-  BudgetGateError,
-  BuilderError,
-  BoundaryValidationError,
-  DigestMismatch,
-  GateError,
-  PerceptionGateError,
-  RewardGateError,
-  SchemaInductionError,
-  SenarsError,
-} from './errors/index.js';

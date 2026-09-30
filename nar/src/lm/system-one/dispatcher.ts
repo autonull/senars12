@@ -1,10 +1,11 @@
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { monotonicNow, stopwatch } from '@senars/util';
 import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
 import { Stamp } from '../../terms/impls/Stamp.js';
 import { Truth } from '../../terms/impls/Truth.js';
 import { validateBatchQueries } from './algebra.js';
-import type { ContrastiveMemory } from './contrastive.js';
 import { DeterministicManifold, Tier3SymbolicManifold } from './constant-manifold.js';
+import type { ContrastiveMemory } from './contrastive.js';
 import { selectQuery as buildSelectQuery } from './head-specs.js';
 import { compositeScore } from './policy.js';
 import { createProvisionalStamp } from './provisional-stamp.js';
@@ -145,9 +146,9 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     validateBatchQueries(queries);
 
     // Tier 0: Always runs first (deterministic checks)
-    const t0Start = performance.now();
+    const t0Elapsed = stopwatch(monotonicNow);
     const tier0Results = await this.#tier0.judgeBatch(sharedContext, queries, budget);
-    this.#recordLatency(0, t0Start, tier0Results.length);
+    this.#recordLatency(0, t0Elapsed, tier0Results.length);
 
     // If System One is disabled or Tier 1 unavailable, return Tier 0 results
     if (!this.#enabled || !this.tier1) {
@@ -156,9 +157,9 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
 
     // Tier 1: Manifold (encoder heads)
     try {
-      const t1Start = performance.now();
+      const t1Elapsed = stopwatch(monotonicNow);
       const tier1Results = await this.tier1.judgeBatch(sharedContext, queries, budget);
-      this.#recordLatency(1, t1Start, tier1Results.length);
+      this.#recordLatency(1, t1Elapsed, tier1Results.length);
       // Use Tier 1 results when available and confident
       const mapped = tier1Results.map((r, i) => {
         const tier0Result = tier0Results[i];
@@ -222,15 +223,18 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
   #tierLatency = new Map<0 | 1, { calls: number; totalMs: number; judgments: number }>();
 
   /** Phase 5: per-level latency accounting (L0 deterministic / L1 manifold heads). */
-  #recordLatency(tier: 0 | 1, startMs: number, judgments: number): void {
+  #recordLatency(tier: 0 | 1, elapsed: () => number, judgments: number): void {
     const stats = this.#tierLatency.get(tier) ?? { calls: 0, totalMs: 0, judgments: 0 };
     stats.calls++;
-    stats.totalMs += performance.now() - startMs;
+    stats.totalMs += elapsed();
     stats.judgments += judgments;
     this.#tierLatency.set(tier, stats);
   }
 
-  latencyStats(): Record<string, { calls: number; totalMs: number; judgments: number; meanMs: number }> {
+  latencyStats(): Record<
+    string,
+    { calls: number; totalMs: number; judgments: number; meanMs: number }
+  > {
     return Object.fromEntries(
       [...this.#tierLatency.entries()].map(([tier, s]) => [
         `L${tier}`,
@@ -341,17 +345,10 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
       select.kind === 'classify' &&
       (select as ClassifyProposition).tier === 1;
 
-    // R5: Per-candidate embeddings — write each candidate to cache and evaluate individually
-    // so ranking discriminates content, not just context.
+    // R5: Re-judge each candidate over the shared context; declared extra ranking
+    // weights (E2) add per-candidate evaluate queries.
     let ranking: readonly { option: string; p: number }[] | undefined;
-    if (selectUsable && selectQ && this.#embeddingCache) {
-      const candidateEmbeddings: EmbeddingPointer[] = [];
-      for (const candidate of candidates) {
-        const pointer = await this.#embeddingCache.write(candidate);
-        candidateEmbeddings.push(pointer);
-      }
-      // Re-judge candidate_select with per-candidate embeddings; declared extra
-      // ranking weights (E2) add per-candidate evaluate queries.
+    if (selectUsable && selectQ) {
       const extraRubrics = Object.keys(this.#rankingWeights).filter(
         (k) => k !== 'candidate_select'
       );

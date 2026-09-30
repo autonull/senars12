@@ -1,4 +1,3 @@
-import { ulid } from 'ulid';
 import { AbstractEventLog } from './AbstractEventLog.js';
 import type { CognitiveEvent, EventLogConfig, EventLogQuery } from './EventLog.js';
 
@@ -15,10 +14,6 @@ export class InMemoryEventLog extends AbstractEventLog {
 
   get events(): ReadonlyArray<CognitiveEvent> {
     return this.#events;
-  }
-
-  generateId(): string {
-    return ulid();
   }
 
   async query(query: EventLogQuery): Promise<CognitiveEvent[]> {

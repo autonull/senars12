@@ -225,9 +225,6 @@ importers:
       better-sqlite3:
         specifier: ^13.0.3
         version: 13.0.3
-      ulid:
-        specifier: ^3.0.2
-        version: 3.0.2
       zod:
         specifier: ^4.5.4
         version: 4.5.4
@@ -323,9 +320,6 @@ importers:
       '@wasmer/wasi':
         specifier: ^1.2.2
         version: 1.2.2
-      ulid:
-        specifier: ^3.0.2
-        version: 3.0.2
       zod:
         specifier: ^4.5.4
         version: 4.5.4
@@ -452,6 +446,10 @@ importers:
         version: 8.2.2(@types/node@26.4.1)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)
 
   util:
+    dependencies:
+      ulid:
+        specifier: ^3.0.2
+        version: 3.0.2
     devDependencies:
       '@types/node':
         specifier: ^22.19.19

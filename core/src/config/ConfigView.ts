@@ -1,6 +1,6 @@
 import { addToSet } from '@senars/util';
-import { PushQueue } from '@senars/util/events';
 import type { ConfigEvent, ConfigView } from '@senars/util/config';
+import { PushQueue } from '@senars/util/events';
 import type { EventLog } from '../eventlog/EventLog.js';
 
 export class ConfigViewImpl implements ConfigView {

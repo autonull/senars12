@@ -1,49 +1,48 @@
 import { BaseComponent } from '@senars/core';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
-import { errMsg, installIdSource, selectTopN } from '@senars/util';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import type { Episode } from '@senars/util';
+import { createLogger, errMsg, installIdSource, selectTopN } from '@senars/util';
 import { resolveBagSlot } from './bag/registration.js';
 import { CognitiveController, createDefaultRegistry } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
+import { DEFAULT_COGNITIVE_PARAMETERS } from './config/cognitive-parameters.js';
 import type { ParameterLedger } from './config/parameter-ledger.js';
 import { createBootstrapTasks, DriveManager } from './drives';
-import type { FocusBag } from './focus/FocusBag.js';
-import type { GameFocus, GameFocusOptions, ReflexBindable } from './focus/GameFocus.js';
-import type { ConversationGame } from './game/impls/ConversationGame.js';
-import type { SelfMetaGameImpl } from './game/impls/SelfMetaGame.js';
-import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js';
-import { SchemaInductor } from './learning/schema-induction.js';
-import { GovernanceResolver } from './governance/pipeline.js';
-import type { SelfMetaGameEvidence } from './governance/pipeline.js';
-import type { LMService, SeNARSRegistry } from './lm';
-import { getModelForTask, LMRules } from './lm';
-import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
-import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
-import { seedContrastiveMemory } from './lm/system-one/hard-negatives.js';
-import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
-import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-grader.js';
-import type { CognitiveDispatcher, JudgmentManifold } from './lm/system-one/types.js';
-import { createLogger } from '@senars/core/logger';
-import type { Concept } from './memory';
-import { Memory } from './memory';
-import { EpisodeConsolidator } from './memory/episode-consolidator.js';
-import { MiningBag } from './lm/system-one/hard-negatives.js';
-import { MetricsCollector } from './metrics';
 import { type NARConfig, validateNarConfig } from './facade/config.js';
-import { DEFAULT_COGNITIVE_PARAMETERS } from './config/cognitive-parameters.js';
 import { type GameAttachOptions, GameManager } from './facade/games.js';
-import { StatePersister } from './facade/persistence.js';
-import { SystemOneRuntime } from './facade/system-one.js';
-import { wireSystemOne } from './system-one-wiring.js';
 import {
   askNaturalLanguage,
   consolidateLearning,
   contradicts,
   getModelWithFallback,
-  injectBootstrapGoals,
   initializeLMRules,
   initializeTools,
+  injectBootstrapGoals,
 } from './facade/index.js';
+import { StatePersister } from './facade/persistence.js';
+import type { SystemOneRuntime } from './facade/system-one.js';
+import type { FocusBag } from './focus/FocusBag.js';
+import type { GameFocus, GameFocusOptions, ReflexBindable } from './focus/GameFocus.js';
+import type { ConversationGame } from './game/impls/ConversationGame.js';
+import type { SelfMetaGameImpl } from './game/impls/SelfMetaGame.js';
+import type { SelfMetaGameEvidence } from './governance/pipeline.js';
+import { GovernanceResolver } from './governance/pipeline.js';
+import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js';
+import { createDefaultReasoningBudget } from './kernel/KernelBudgetGate.js';
+import { SchemaInductor } from './learning/schema-induction.js';
+import type { LMService, SeNARSRegistry } from './lm';
+import { getModelForTask, LMRules } from './lm';
+import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
+import { MiningBag, seedContrastiveMemory } from './lm/system-one/hard-negatives.js';
+import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
+import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
+import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-grader.js';
+import type { CognitiveDispatcher, JudgmentManifold } from './lm/system-one/types.js';
+import type { Concept } from './memory';
+import { Memory } from './memory';
+import { EpisodeConsolidator } from './memory/episode-consolidator.js';
+import { ProofMettaProposer, type ProofMettaProposerOptions } from './meta/index.js';
+import { MetricsCollector } from './metrics';
 import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';
@@ -53,6 +52,7 @@ import { RLFPLearner } from './rlfp';
 import { RuleProcessor } from './rules';
 import { ProofStreamRing } from './rules/impls/recorder.js';
 import { ReasoningAboutReasoning } from './self';
+import { wireSystemOne } from './system-one-wiring.js';
 import { TaskManager } from './task';
 import type { Term } from './terms';
 import {
@@ -63,15 +63,13 @@ import {
   termParser,
   termsEqual,
 } from './terms';
-import type { RandomSource } from './types/primitives.js';
 import type { Tool, ToolResult } from './tools';
 import { discoverTools, ToolManager } from './tools';
-import { ProofMettaProposer, type ProofMettaProposerOptions } from './meta/index.js';
 import { ConfigurationError, DEFAULT_CONFIG, NarEventBus, type Task, type TaskType } from './types';
+import type { RandomSource } from './types/primitives.js';
 
 /** Bounded derivation-chain ring per AIKR (no I/O on the hot path). */
 const DERIVATION_RING_CAP = 256;
-
 
 export type {
   NARConfig,
@@ -153,12 +151,19 @@ export class NAR extends BaseComponent {
     this.taskManager = new TaskManager(this.memory, { gateRegistry: this.gates });
     this.query = new QueryAPI(this.memory);
     this.traceAPI = new ReasoningTrace(this.memory);
-    this.tools = new ToolManager({ eventBus, feedbackObserver: config.feedbackObserver, rng: config.rng });
+    this.tools = new ToolManager({
+      eventBus,
+      feedbackObserver: config.feedbackObserver,
+      rng: config.rng,
+    });
     this._lmService = this.config.lmService;
     this._registry = this.config.providerRegistry;
 
     if (this.config.enableRLFP)
-      this.rlfp = new RLFPLearner({ optimizeInterval: this.config.rlfp?.optimizeInterval, rng: config.rng });
+      this.rlfp = new RLFPLearner({
+        optimizeInterval: this.config.rlfp?.optimizeInterval,
+        rng: config.rng,
+      });
 
     if (this.config.episodeConsolidation?.enabled) {
       const cfg = this.config.episodeConsolidation;
@@ -210,27 +215,29 @@ export class NAR extends BaseComponent {
     this.systemOne = systemOne;
 
     this.gates.initialize({
-      initialBudget: {
-        maxCycles: 1000,
-        maxDepth: 100,
-        maxMemoryOps: 10000,
-        maxLMCalls: 50,
-        consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-      },
+      initialBudget: createDefaultReasoningBudget(),
       initialAutonomyMode: this.config.initialAutonomyMode ?? 'observe-only',
       perceptionConfig,
     });
     // Phase E: reputation consulted lazily at admission/seeding time (C1 default-neutral).
     if (this.#sourceReputation) this.gates.setReputation(this.#sourceReputation);
 
-    this.io = new NARIO(this.memory, this.taskManager, this.config);
+    this.io = new NARIO(this.memory, this.taskManager, this.config, this.gates);
     this.io.setEventBus(eventBus);
+    this.io.setCognitiveParams(cognitiveParams);
     this.systemEventBus = new NarEventBus();
     this.io.setSystemEventBus(this.systemEventBus);
     this.emitJudgmentResolved = createTelemetryEmitter(
       createNarTelemetrySinks(this.systemEventBus)
     );
-    this.games = new GameManager(this.systemOne, config.rng, config.proposals, this.systemEventBus, this.#proofMettaProposer);
+    this.games = new GameManager(
+      this.systemOne,
+      config.rng,
+      config.proposals,
+      this.systemEventBus,
+      this.#proofMettaProposer,
+      this.gates
+    );
     this.driveManager = new DriveManager({
       input: (text, type, truth) => this.io.input(text, type, truth),
     });
@@ -496,7 +503,9 @@ export class NAR extends BaseComponent {
   }
 
   /** Phase E: Get JudgmentPipeline for comprehensive manifold evaluation (ADR-008). */
-  getSystemOneJudgmentPipeline(): import('./lm/system-one/judgment-pipeline.js').JudgmentPipeline | undefined {
+  getSystemOneJudgmentPipeline():
+    | import('./lm/system-one/judgment-pipeline.js').JudgmentPipeline
+    | undefined {
     return this.systemOne.judgmentPipeline;
   }
 
@@ -506,10 +515,9 @@ export class NAR extends BaseComponent {
   }
 
   /** Get System One groundedness gate (for egress filtering). */
-  getSystemOneGroundednessGate(): ((
-    narration: string,
-    correlationId: string
-  ) => Promise<{ grounded: boolean; score?: number }>) | undefined {
+  getSystemOneGroundednessGate():
+    | ((narration: string, correlationId: string) => Promise<{ grounded: boolean; score?: number }>)
+    | undefined {
     return this.systemOne.groundednessGate;
   }
 
@@ -519,9 +527,9 @@ export class NAR extends BaseComponent {
   }
 
   /** CLM contrastive exemplar memory (zero-shot scoring; undefined when disabled). */
-  getSystemOneContrastive(correlationId = 'default'):
-    | import('./lm/system-one/contrastive.js').ContrastiveMemory
-    | undefined {
+  getSystemOneContrastive(
+    correlationId = 'default'
+  ): import('./lm/system-one/contrastive.js').ContrastiveMemory | undefined {
     return this.systemOne.enabled ? this.systemOne.getContrastive(correlationId) : undefined;
   }
 
@@ -582,7 +590,10 @@ export class NAR extends BaseComponent {
   }
 
   /** Attach a ConversationGameFocus for the bot's conversation loop. */
-  attachConversationGame(options: GameAttachOptions = {}): { focus: GameFocus; game: ConversationGame } {
+  attachConversationGame(options: GameAttachOptions = {}): {
+    focus: GameFocus;
+    game: ConversationGame;
+  } {
     return this.games.attachConversationGame(options);
   }
 
@@ -611,6 +622,7 @@ export class NAR extends BaseComponent {
    */
   reconfigure(params: CognitiveParameters): void {
     this.cognitiveController.reconfigure(params);
+    this.io.setCognitiveParams(params);
   }
 
   setRLFP(rlfp: RLFPLearner): void {
@@ -698,8 +710,7 @@ export class NAR extends BaseComponent {
     timestamp: number;
     source: 'input' | 'derivation' | 'revision' | 'inference';
   }> {
-    const key = term.toString();
-    return this.memory.getRevisionHistory(key);
+    return this.memory.getRevisionHistory(term);
   }
 
   getGoals(filter?: Record<string, unknown>): Task[] {

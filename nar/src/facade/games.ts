@@ -1,17 +1,22 @@
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import { FocusBag } from '../focus/FocusBag.js';
 import { GameFocus, type GameFocusOptions } from '../focus/GameFocus.js';
+import {
+  type ConversationAction,
+  ConversationGame,
+  type ConversationState,
+} from '../game/impls/ConversationGame.js';
 import { createSelfMetaGame, type SelfMetaGameImpl } from '../game/impls/SelfMetaGame.js';
-import { ProposalBag } from '../meta/proposal-bag.js';
-import type { NarEventBus } from '../types/events.js';
-import type { NARConfig } from './config.js';
+import type { GateRegistry } from '../kernel/index.js';
 import type { EmbeddingCache } from '../lm/system-one/embedding-cache.js';
 import type { JudgmentManifold } from '../lm/system-one/types.js';
+import type { ProofMettaProposer } from '../meta/index.js';
+import { ProposalBag } from '../meta/proposal-bag.js';
 import type { Reflex } from '../reflex/Reflex.js';
+import type { NarEventBus } from '../types/events.js';
 import type { RandomSource } from '../types/primitives.js';
+import type { NARConfig } from './config.js';
 import type { SystemOneRuntime } from './system-one.js';
-import { ProofMettaProposer } from '../meta/index.js';
-import { ConversationGame, type ConversationState, type ConversationAction } from '../game/impls/ConversationGame.js';
 
 /**
  * Game/attachment registry (extracted from NAR — M2): owns attached GameFocus
@@ -44,7 +49,8 @@ export class GameManager {
     private readonly rng?: RandomSource,
     proposals?: NARConfig['proposals'],
     eventBus?: NarEventBus,
-    proofMettaProposer?: ProofMettaProposer
+    proofMettaProposer?: ProofMettaProposer,
+    private readonly gates?: GateRegistry
   ) {
     this.proposals = proposals?.bounded ? proposals : undefined;
     this.eventBus = eventBus;
@@ -62,10 +68,7 @@ export class GameManager {
    * binds the supplied reflexes (plus a ManifoldReflex when System One is enabled),
    * wires the prefetch context, and inserts the focus into a FocusBag.
    */
-  attachGame(
-    game: GameFocusOptions['game'],
-    options: GameAttachOptions = {}
-  ): GameFocus {
+  attachGame(game: GameFocusOptions['game'], options: GameAttachOptions = {}): GameFocus {
     return this.attach(this.suggestGameId(game), game, options).focus;
   }
 
@@ -95,6 +98,7 @@ export class GameManager {
       observesFocuses: [...this.attachedGames.keys()],
       focusBag: this.getFocusBag(),
       gameFocuses: this.metaGameFocuses,
+      ...(this.gates ? { gates: this.gates } : {}),
       // Phase D (REFACTOR.todo2): bounded proposal bag (opt-in) — priority-ordered
       // governance routing; default (absent) preserves arrival-order routing.
       ...(this.proposals
@@ -121,9 +125,10 @@ export class GameManager {
    * Attach a ConversationGameFocus for the bot's conversation loop.
    * Returns the created focus and the ConversationGame instance.
    */
-  attachConversationGame(
-    options: GameAttachOptions = {}
-  ): { focus: GameFocus; game: ConversationGame } {
+  attachConversationGame(options: GameAttachOptions = {}): {
+    focus: GameFocus;
+    game: ConversationGame;
+  } {
     const game = new ConversationGame();
     return { ...this.attach(options.id ?? 'conversation', game, options), game };
   }

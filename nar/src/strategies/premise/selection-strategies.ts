@@ -1,13 +1,13 @@
-import { createLogger } from '@senars/core/logger';
+import { createLogger } from '@senars/util';
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import { createStrategy, type StrategyConfig } from '../../reason/strategies/base';
-import { termKey, type Term, type Truth } from '../../terms';
+import { type Term, TermMap, type Truth } from '../../terms';
 import type { Task } from '../../types';
 import { createBeliefTask } from '../../types';
-import type { FilterSpec } from './primitives.js';
-import type { PremiseOverrides } from './config.js';
 import type { ComponentMetadata, Strategy } from '../types.js';
+import type { PremiseOverrides } from './config.js';
+import type { FilterSpec } from './primitives.js';
 import {
   EmbeddingLinkStrategy as RealEmbeddingLinkStrategy,
   TermLinkStrategy as RealTermLinkStrategy,
@@ -145,12 +145,12 @@ export class CompositeStrategy implements Strategy {
 
     if (this.mode !== 'dedup') return contributions;
 
-    // Highest link/priority wins; `termKey` is the canonical structural identity.
-    const strongest = new Map<string, Task>();
+    // Highest link/priority wins, deduped on the canonical structural identity.
+    const strongest = new TermMap<Task>();
     for (const candidate of contributions) {
-      const key = termKey(candidate.term);
-      const held = strongest.get(key);
-      if (!held || candidate.budget.priority > held.budget.priority) strongest.set(key, candidate);
+      const held = strongest.get(candidate.term);
+      if (!held || candidate.budget.priority > held.budget.priority)
+        strongest.set(candidate.term, candidate);
     }
     return [...strongest.values()];
   }

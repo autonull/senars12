@@ -10,11 +10,7 @@
 
 export type DomainEventPayload = Record<string, unknown>;
 
-export type DomainEventSink = (
-  name: string,
-  scope: string,
-  payload: DomainEventPayload
-) => void;
+export type DomainEventSink = (name: string, scope: string, payload: DomainEventPayload) => void;
 
 let sink: DomainEventSink | null = null;
 

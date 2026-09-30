@@ -2,6 +2,7 @@ import { exec } from 'node:child_process';
 import { access, appendFile, readFile, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import type { EpisodicMemory } from '@senars/util';
+import { errMsg } from '@senars/util';
 import { z } from 'zod';
 import type { ApprovalService } from '../ApprovalService.js';
 import type { ToolResult } from '../engine/Engine.js';
@@ -11,11 +12,10 @@ import {
   braveSearch,
   searchWeb,
   tavilySearch,
-  webFetch,
   type WebSearchResult,
+  webFetch,
 } from './web-search.js';
 import { withinWorkspace } from './workspace.js';
-import { errMsg } from '@senars/util';
 
 export type CmdArgSet = Record<string, unknown>;
 

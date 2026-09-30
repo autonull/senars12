@@ -10,7 +10,7 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { DialogueCapture } from '@senars/nar/dialogue';
-import { createLogger } from '@senars/core/logger';
+import { createLogger } from '@senars/util';
 import { BoundedMap, generateId, parseFlags, setupGracefulShutdown } from '@senars/util';
 import { HttpGuard, rejectWithStatus } from './lib/http-guards.js';
 import { createAgentFromEnv } from './lib/lifecycle.js';

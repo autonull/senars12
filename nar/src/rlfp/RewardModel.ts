@@ -1,7 +1,8 @@
+import type { RandomSource } from '../types/primitives.js';
+import { nextInt } from '../utils/random.js';
 import type { PreferenceData } from './PreferenceCollector.js';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import { extractTrajectoryFeatures } from './utils.js';
-import type { RandomSource } from '../types/primitives.js';
 
 export interface RewardFeatures {
   trajectoryLength: number;
@@ -116,7 +117,7 @@ export class RewardModel {
     let correctPredictions = 0;
 
     for (let i = 0; i < iterations; i++) {
-      const sample = this.preferences[Math.floor(this.rng() * this.preferences.length)];
+      const sample = this.preferences[nextInt(this.rng, this.preferences.length)];
       if (!sample) continue;
       const rewardA = this.computeReward(sample.trajectoryA);
       const rewardB = this.computeReward(sample.trajectoryB);
@@ -149,12 +150,13 @@ export class RewardModel {
     for (const [key, baseWeight] of Object.entries(this.config)) {
       if (baseWeight === undefined) continue;
 
-      this.config[key as keyof Omit<RewardModelConfig, "rng">] = baseWeight + epsilon;
+      this.config[key as keyof Omit<RewardModelConfig, 'rng'>] = baseWeight + epsilon;
       const lossWithPerturbation = this.computeLoss(preferences);
       const gradient = (lossWithPerturbation - initialLoss) / epsilon;
       gradients.set(key, gradient);
 
-      this.config[key as keyof Omit<RewardModelConfig, "rng">] = baseWeight - learningRate * gradient;
+      this.config[key as keyof Omit<RewardModelConfig, 'rng'>] =
+        baseWeight - learningRate * gradient;
     }
 
     this.normalizeWeights();
@@ -228,7 +230,7 @@ export class RewardModel {
 
     if (sum > 0) {
       for (const [key, value] of weights) {
-        this.config[key as keyof Omit<RewardModelConfig, "rng">] = value / sum;
+        this.config[key as keyof Omit<RewardModelConfig, 'rng'>] = value / sum;
       }
     }
   }

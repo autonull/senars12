@@ -1,12 +1,12 @@
-import { describe, it, expect, vi } from 'vitest';
-import { ManifoldReflex } from '../../nar/src/lm/system-one/manifold-reflex.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { EpsilonGreedyReflex } from '../../nar/src/reflex/EpsilonGreedyReflex.js';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { describe, expect, it, vi } from 'vitest';
 import { GameFocus } from '../../nar/src/focus/GameFocus.js';
-import { GridWorldGame } from '../../nar/src/game/impls/GridWorldGame.js';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { Perception } from '../../nar/src/game/Game.js';
+import { GridWorldGame } from '../../nar/src/game/impls/GridWorldGame.js';
+import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
+import { ManifoldReflex } from '../../nar/src/lm/system-one/manifold-reflex.js';
+import { EpsilonGreedyReflex } from '../../nar/src/reflex/EpsilonGreedyReflex.js';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,

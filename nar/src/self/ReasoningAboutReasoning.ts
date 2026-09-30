@@ -1,11 +1,11 @@
-import { MONITOR_DEFAULTS, MetacognitiveMonitor } from '../cognitive/impls/MetacognitiveMonitor.js';
+import { createLogger } from '@senars/util';
+import { MetacognitiveMonitor, MONITOR_DEFAULTS } from '../cognitive/impls/MetacognitiveMonitor.js';
 import {
   type MetaCognitiveResult,
   type MonitorState,
   SelfAnalyzerService as SelfAnalyzer,
 } from '../cognitive/impls/SelfAnalyzerService.js';
 import type { QualityAssessment } from '../cognitive/types.js';
-import { createLogger } from '@senars/core/logger';
 import type { SelfHost } from '../self/host.js';
 
 export interface GapReport {

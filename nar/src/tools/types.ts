@@ -1,5 +1,4 @@
-import { errMsg } from '@senars/util';
-import type { ToolCapabilities } from '@senars/util';
+import type { ToolCapabilities, ToolResult } from '@senars/util';
 
 export interface Tool {
   readonly name: string;
@@ -63,20 +62,8 @@ export interface ToolChainResult {
   error?: string;
 }
 
-
-export interface ToolResult {
-  success: boolean;
-  content: unknown;
-  error?: string;
-  partial?: boolean;
-  metadata?: Record<string, unknown>;
-}
-
-export const errorResult = (error: unknown): ToolResult => ({
-  success: false,
-  content: null,
-  error: errMsg(error),
-});
+export type { ToolResult } from '@senars/util';
+export { toolError as errorResult } from '@senars/util';
 
 export interface Schema {
   type: 'object';

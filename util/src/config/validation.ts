@@ -3,7 +3,7 @@
  * @public
  */
 import { z } from 'zod';
-import { formatIssues } from '../utils/shared.js';
+import { formatIssues } from '../utils/diagnostics.js';
 import { cachePath } from './paths.js';
 
 export const contextOptsSchema = z

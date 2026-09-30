@@ -8,7 +8,7 @@
  *  used to miss is the canonical example). */
 
 import { trace } from '@opentelemetry/api';
-import type { LMExecutionStats, LMTask } from '@senars/util';
+import { type LMExecutionStats, type LMTask, stopwatch } from '@senars/util';
 import type { LMProviderName, LMSettings } from '../env-config.js';
 import type { GrammarName } from '../grammars/index.js';
 import { loadGrammar } from '../grammars/index.js';
@@ -127,30 +127,39 @@ export class CallAccounting {
 
   /** Publish a settled call: cache, stats, routing telemetry, demotion, and —
    *  for transport failures — a provider re-probe. Never throws the call's own
-   *  error; the caller keeps its own control flow. */
+   *  error; the caller keeps its own control flow.
+   *
+   *  `durationMs` is the call's own latency, read once here: stats and routing
+   *  telemetry describe the same span, so they must not disagree — and must not
+   *  absorb the re-probe below, which is this class's overhead, not the call's. */
   async settle<T>(
     envelope: CallEnvelope<T>,
-    start: number,
+    durationMs: number,
     gate: Gate,
     outcome: CallOutcome<T>
   ): Promise<void> {
     if (outcome.ok) {
       const raw = envelope.encode(outcome.value);
       this.#cache.set(envelope.cacheKey, raw);
-      this.#recordCall(true, start, outcome.tokens ?? envelope.prompt.length + raw.length, gate);
+      this.#recordCall(
+        true,
+        durationMs,
+        outcome.tokens ?? envelope.prompt.length + raw.length,
+        gate
+      );
       this.#clearFailures();
-      this.#logRouting(envelope.task, start, true, gate);
+      this.#logRouting(envelope.task, durationMs, true, gate);
       return;
     }
     if (!outcome.committed) this.#cache.clear(envelope.cacheKey);
-    this.#recordCall(false, start, outcome.tokens ?? envelope.prompt.length, gate);
+    this.#recordCall(false, durationMs, outcome.tokens ?? envelope.prompt.length, gate);
     // Only transport-shaped failures count against the model: a rejected
     // response says nothing about the provider's reachability.
     if (isTransportError(outcome.error)) {
       this.#noteFailure();
       await this.reprobe();
     }
-    this.#logRouting(envelope.task, start, false, gate);
+    this.#logRouting(envelope.task, durationMs, false, gate);
   }
 
   /** Gate, cache, and settle one awaited call end to end. */
@@ -158,7 +167,7 @@ export class CallAccounting {
     const cached = this.lookup(spec, gate);
     if (cached.hit) return cached.value;
 
-    const start = Date.now();
+    const elapsed = stopwatch();
     try {
       const value = await inGrammarScope(spec.grammar, () =>
         withRetry(
@@ -167,16 +176,15 @@ export class CallAccounting {
           spec.task
         )
       );
-      await this.settle(spec, start, gate, { ok: true, value });
+      await this.settle(spec, elapsed(), gate, { ok: true, value });
       return value;
     } catch (error) {
-      await this.settle(spec, start, gate, { ok: false, error, committed: false });
+      await this.settle(spec, elapsed(), gate, { ok: false, error, committed: false });
       throw error;
     }
   }
 
-  #recordCall(success: boolean, start: number, tokens: number, gate: Gate): void {
-    const durationMs = Date.now() - start;
+  #recordCall(success: boolean, durationMs: number, tokens: number, gate: Gate): void {
     recordLMCall(this.#stats, success, durationMs, tokens);
     this.runtime.recordProviderCall(gate.provider ?? getLmProvider(), success, gate.settings);
     const id = this.runtime.lastDecision?.modelId;
@@ -198,21 +206,21 @@ export class CallAccounting {
     if (n >= 2) this.runtime.demoteModel(id, `repeated transport failures (${n})`);
   }
 
-  #logRouting(task: LMTask, start: number, success: boolean, gate: Gate): void {
+  #logRouting(task: LMTask, durationMs: number, success: boolean, gate: Gate): void {
     const { provider } = gate;
     const decision = this.runtime.lastDecision;
     trace.getActiveSpan()?.setAttributes({
       'lm.provider': provider ?? 'unknown',
       'lm.model': decision?.modelId ?? '',
       'lm.success': success,
-      'lm.latency_ms': Date.now() - start,
+      'lm.latency_ms': durationMs,
     });
     if (!decision) return;
     this.runtime.logRoutingDecision({
       ts: Date.now(),
       task,
       modelId: decision.modelId,
-      latencyMs: Date.now() - start,
+      latencyMs: durationMs,
       success,
       demoted: success && decision.reason === 'failover',
       provider: provider ?? 'unknown',
@@ -226,5 +234,8 @@ export class CallAccounting {
  *  text; raw GBNF passes through untouched. */
 const inGrammarScope = <T>(grammar: string | undefined, fn: () => Promise<T>): Promise<T> =>
   grammar
-    ? runWithGrammar(NAMED_GRAMMARS.has(grammar) ? loadGrammar(grammar as GrammarName) : grammar, fn)
+    ? runWithGrammar(
+        NAMED_GRAMMARS.has(grammar) ? loadGrammar(grammar as GrammarName) : grammar,
+        fn
+      )
     : fn();

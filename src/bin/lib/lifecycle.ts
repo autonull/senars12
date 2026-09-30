@@ -15,14 +15,13 @@ import {
   createSeNARSRegistry,
   setRouting,
 } from '@senars/nar/lm';
-import { createLogger } from '@senars/core/logger';
 import { createEmbeddingGenerator } from '@senars/nar/memory/embedding';
 import { EpisodicMemory } from '@senars/nar/memory/episodic';
 import {
   type ConsolidationResult,
   consolidateEpisodes,
 } from '@senars/nar/memory/retrieval-verified';
-import { cachePath, setupGracefulShutdown } from '@senars/util';
+import { cachePath, createLogger, setupGracefulShutdown } from '@senars/util';
 import { type AppConfig, loadConfig } from '../../config/index.js';
 import { readEpisodicConfig } from './env-config.js';
 import { mettaPort } from './metta.js';

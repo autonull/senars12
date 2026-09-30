@@ -1,5 +1,5 @@
-import type { SourceQuality } from '@senars/core/derivation-schemas';
-import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/derivation-schemas';
+import type { SourceQuality } from '@senars/core/schemas';
+import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas';
 import { Truth } from '../../terms/impls/Truth.js';
 import type { Desire } from './desire.js';
 import type { JudgmentProposition } from './types.js';

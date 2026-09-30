@@ -1,7 +1,7 @@
 /**
  * Dynamic LM rule generation and composite rules.
  */
-import { ulid } from 'ulid';
+import { makeId } from '@senars/util';
 import { z } from 'zod';
 import type { Term } from '../terms';
 import type { Task } from '../types';
@@ -63,7 +63,7 @@ Respond with JSON only:
       const config = await this.lm.generateObject(prompt, RuleConfigSchema, {
         task: 'structured',
       });
-      return new LMRule(config.id ?? ulid(), this.lm, {
+      return new LMRule(config.id ?? makeId(), this.lm, {
         id: config.id,
         name: config.name,
         description: config.description,

@@ -5,23 +5,23 @@
  * reach-in); `nar.ts` re-binds them as thin methods. Init guards live in a
  * WeakSet so per-instance semantics survive the extraction.
  */
-import { errMsg, makeId, truncate } from '@senars/util';
-import type { SelfImprovementProposal } from '@senars/core/derivation-schemas';
+
+import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
+import { createLogger, errMsg, makeId, truncate } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { createBootstrapTasks } from '../drives';
 import type { LMService, SeNARSRegistry } from '../lm';
 import { getModelForTask } from '../lm/providers/chains.js';
-import { LMRules } from '../lm/rule-selectors/factory.js';
 import type { LMRule } from '../lm/rule/LMRule.js';
+import { LMRules } from '../lm/rule-selectors/factory.js';
 import { seedContrastiveMemory } from '../lm/system-one/hard-negatives.js';
 import { createSystemOneLMRuleAdapter } from '../lm/system-one/rule-adapter.js';
 import type { ProofMettaProposer } from '../meta/index.js';
 import type { NAR } from '../nar.js';
-import { containsSubterm, getSubject, type Term, termParser, termsEqual, Truth } from '../terms';
+import { containsSubterm, getSubject, type Term, Truth, termParser, termsEqual } from '../terms';
+import type { Tool } from '../tools';
 import { discoverTools } from '../tools';
 import { createSelfTools } from '../tools/adapters/self-tools.js';
-import type { Tool } from '../tools';
-import { createLogger } from '@senars/core/logger';
 
 const logger = createLogger({ scope: 'nar:facade' });
 

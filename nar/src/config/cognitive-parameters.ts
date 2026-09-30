@@ -1,14 +1,14 @@
-import { createLogger } from '@senars/core/logger';
+import { createLogger } from '@senars/util';
 import { cognitiveBounds, getCognitiveBound } from '@senars/util/config';
-import { deepEqual, deepFreeze, errMsg } from '@senars/util/utils/shared';
+import { deepEqual, deepFreeze, errMsg } from '@senars/util';
+import { type BagSlotParams, bagSlotErrors } from '../bag/registration';
 import {
-  strategySpecErrors,
   type StrategyCatalog,
   type StrategyConfig,
   type StrategySpec,
   type StrategyType,
+  strategySpecErrors,
 } from '../strategies/registration';
-import { bagSlotErrors, type BagSlotParams } from '../bag/registration';
 
 const log = createLogger({ scope: 'cognitive-params' });
 
@@ -81,7 +81,10 @@ export const STRATEGY_SLOTS = {
   derivation: { key: 'derivation', type: 'derivation' },
   lmRule: { key: 'lmRule', type: 'lm-rule' },
   attention: { key: 'attention', type: 'attention' },
-} as const satisfies Record<string, { key: keyof CognitiveParameters['strategies']; type: StrategyType }>;
+} as const satisfies Record<
+  string,
+  { key: keyof CognitiveParameters['strategies']; type: StrategyType }
+>;
 
 export interface PriorityConfig {
   /** Initial priority for new concepts */
@@ -311,34 +314,86 @@ export const RESEARCH_COGNITIVE_CONFIG: CognitiveParameters = deepFreeze({
  */
 export const PARAMETER_SPACE = {
   priority: {
-    initialPriority: { min: getCognitiveBound('priority', 'initialPriority', 'min'), max: getCognitiveBound('priority', 'initialPriority', 'max'), default: getCognitiveBound('priority', 'initialPriority', 'default') },
-    directMentionBoost: { min: getCognitiveBound('priority', 'directMentionBoost', 'min'), max: getCognitiveBound('priority', 'directMentionBoost', 'max'), default: getCognitiveBound('priority', 'directMentionBoost', 'default') },
-    relatedConceptBoost: { min: getCognitiveBound('priority', 'relatedConceptBoost', 'min'), max: getCognitiveBound('priority', 'relatedConceptBoost', 'max'), default: getCognitiveBound('priority', 'relatedConceptBoost', 'default') },
+    initialPriority: {
+      min: getCognitiveBound('priority', 'initialPriority', 'min'),
+      max: getCognitiveBound('priority', 'initialPriority', 'max'),
+      default: getCognitiveBound('priority', 'initialPriority', 'default'),
+    },
+    directMentionBoost: {
+      min: getCognitiveBound('priority', 'directMentionBoost', 'min'),
+      max: getCognitiveBound('priority', 'directMentionBoost', 'max'),
+      default: getCognitiveBound('priority', 'directMentionBoost', 'default'),
+    },
+    relatedConceptBoost: {
+      min: getCognitiveBound('priority', 'relatedConceptBoost', 'min'),
+      max: getCognitiveBound('priority', 'relatedConceptBoost', 'max'),
+      default: getCognitiveBound('priority', 'relatedConceptBoost', 'default'),
+    },
   },
 
   lm: {
-    maxRulesPerCycle: { min: getCognitiveBound('lm', 'maxRulesPerCycle', 'min'), max: getCognitiveBound('lm', 'maxRulesPerCycle', 'max'), default: getCognitiveBound('lm', 'maxRulesPerCycle', 'default') },
-    callTimeoutMs: { min: getCognitiveBound('lm', 'callTimeoutMs', 'min'), max: getCognitiveBound('lm', 'callTimeoutMs', 'max'), default: getCognitiveBound('lm', 'callTimeoutMs', 'default') },
+    maxRulesPerCycle: {
+      min: getCognitiveBound('lm', 'maxRulesPerCycle', 'min'),
+      max: getCognitiveBound('lm', 'maxRulesPerCycle', 'max'),
+      default: getCognitiveBound('lm', 'maxRulesPerCycle', 'default'),
+    },
+    callTimeoutMs: {
+      min: getCognitiveBound('lm', 'callTimeoutMs', 'min'),
+      max: getCognitiveBound('lm', 'callTimeoutMs', 'max'),
+      default: getCognitiveBound('lm', 'callTimeoutMs', 'default'),
+    },
   },
 
   attention: {
-    primeBoost: { min: getCognitiveBound('attention', 'primeBoost', 'min'), max: getCognitiveBound('attention', 'primeBoost', 'max'), default: getCognitiveBound('attention', 'primeBoost', 'default') },
-    relatedBoost: { min: getCognitiveBound('attention', 'relatedBoost', 'min'), max: getCognitiveBound('attention', 'relatedBoost', 'max'), default: getCognitiveBound('attention', 'relatedBoost', 'default') },
+    primeBoost: {
+      min: getCognitiveBound('attention', 'primeBoost', 'min'),
+      max: getCognitiveBound('attention', 'primeBoost', 'max'),
+      default: getCognitiveBound('attention', 'primeBoost', 'default'),
+    },
+    relatedBoost: {
+      min: getCognitiveBound('attention', 'relatedBoost', 'min'),
+      max: getCognitiveBound('attention', 'relatedBoost', 'max'),
+      default: getCognitiveBound('attention', 'relatedBoost', 'default'),
+    },
   },
 
   inference: {
-    maxDerivationsPerStep: { min: getCognitiveBound('inference', 'maxDerivationsPerStep', 'min'), max: getCognitiveBound('inference', 'maxDerivationsPerStep', 'max'), default: getCognitiveBound('inference', 'maxDerivationsPerStep', 'default') },
-    maxDerivationDepth: { min: getCognitiveBound('inference', 'maxDerivationDepth', 'min'), max: getCognitiveBound('inference', 'maxDerivationDepth', 'max'), default: getCognitiveBound('inference', 'maxDerivationDepth', 'default') },
-    rankingMaxAdmissions: { min: getCognitiveBound('inference', 'rankingMaxAdmissions', 'min'), max: getCognitiveBound('inference', 'rankingMaxAdmissions', 'max'), default: getCognitiveBound('inference', 'rankingMaxAdmissions', 'default') },
-    rankingMinScore: { min: getCognitiveBound('inference', 'rankingMinScore', 'min'), max: getCognitiveBound('inference', 'rankingMinScore', 'max'), default: getCognitiveBound('inference', 'rankingMinScore', 'default') },
+    maxDerivationsPerStep: {
+      min: getCognitiveBound('inference', 'maxDerivationsPerStep', 'min'),
+      max: getCognitiveBound('inference', 'maxDerivationsPerStep', 'max'),
+      default: getCognitiveBound('inference', 'maxDerivationsPerStep', 'default'),
+    },
+    maxDerivationDepth: {
+      min: getCognitiveBound('inference', 'maxDerivationDepth', 'min'),
+      max: getCognitiveBound('inference', 'maxDerivationDepth', 'max'),
+      default: getCognitiveBound('inference', 'maxDerivationDepth', 'default'),
+    },
+    rankingMaxAdmissions: {
+      min: getCognitiveBound('inference', 'rankingMaxAdmissions', 'min'),
+      max: getCognitiveBound('inference', 'rankingMaxAdmissions', 'max'),
+      default: getCognitiveBound('inference', 'rankingMaxAdmissions', 'default'),
+    },
+    rankingMinScore: {
+      min: getCognitiveBound('inference', 'rankingMinScore', 'min'),
+      max: getCognitiveBound('inference', 'rankingMinScore', 'max'),
+      default: getCognitiveBound('inference', 'rankingMinScore', 'default'),
+    },
   },
 
   modelRunner: {
-    maxLoops: { min: getCognitiveBound('modelRunner', 'maxLoops', 'min'), max: getCognitiveBound('modelRunner', 'maxLoops', 'max'), default: getCognitiveBound('modelRunner', 'maxLoops', 'default') },
+    maxLoops: {
+      min: getCognitiveBound('modelRunner', 'maxLoops', 'min'),
+      max: getCognitiveBound('modelRunner', 'maxLoops', 'max'),
+      default: getCognitiveBound('modelRunner', 'maxLoops', 'default'),
+    },
   },
 
   memory: {
-    activationDecayRate: { min: getCognitiveBound('memory', 'activationDecayRate', 'min'), max: getCognitiveBound('memory', 'activationDecayRate', 'max'), default: getCognitiveBound('memory', 'activationDecayRate', 'default') },
+    activationDecayRate: {
+      min: getCognitiveBound('memory', 'activationDecayRate', 'min'),
+      max: getCognitiveBound('memory', 'activationDecayRate', 'max'),
+      default: getCognitiveBound('memory', 'activationDecayRate', 'default'),
+    },
   },
 } as const;
 
@@ -409,7 +464,11 @@ export function validateParameters(
  * writing through a shared `ranking`/`ruleCategories` reference would otherwise
  * mutate the module default (isolate:false test pollution, F5 ParameterTable seeds).
  */
-function mergeSection<T extends object>(base: T, over: Partial<T> | undefined, nested: (keyof T)[] = []): T {
+function mergeSection<T extends object>(
+  base: T,
+  over: Partial<T> | undefined,
+  nested: (keyof T)[] = []
+): T {
   const out: T = { ...base, ...over };
   for (const k of nested) {
     const v = out[k];

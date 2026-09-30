@@ -5,14 +5,22 @@
  * Per-branch rollups feed domain learner + metaGame.
  */
 
+import {
+  type BudgetSlice,
+  type ConsumedBudget,
+  createBudgetSlice,
+  isExhausted,
+  mergeConsumed,
+  mergeConsumption,
+  sliceBudget,
+} from '@senars/core/budget';
 import { raceDeadline } from '@senars/util';
-import { BudgetSlice, type ConsumedBudget, createBudgetSlice, sliceBudget, mergeConsumption, mergeConsumed, isExhausted } from '@senars/core/budget';
 import type { Focus, FocusOptions, FocusStepReport } from '../focus/Focus.js';
 import type { FocusBag } from '../focus/FocusBag.js';
-import type { SchedulerAdapter } from '../learning/domain-learners.js';
-import type { MetaGame } from '../game/impls/MetaGame.js';
+import type { FocusScheduler, FocusSchedulerOptions } from '../focus/focus-scheduler.js';
 import type { GameFocus } from '../focus/GameFocus.js';
-import { FocusScheduler, type FocusSchedulerOptions } from '../focus/focus-scheduler.js';
+import type { MetaGame } from '../game/impls/MetaGame.js';
+import type { SchedulerAdapter } from '../learning/domain-learners.js';
 import type { RandomSource } from '../types/primitives.js';
 import { SeededRNG, weightedPick } from '../utils/random.js';
 import { schedulerReward } from './scheduler-reward.js';
@@ -131,12 +139,27 @@ export class FocusTree {
       bindGame: () => {},
       bindReflex: () => {},
       disableReflex: () => {},
-      step: async () => ({ focusId: '', cycle: 0, budgetAllocated: 0, tasksProcessed: 0, derivations: 0, beliefsAdded: 0, goalsAdded: 0, questionsAdded: 0, gates: { perceptions: 0, actions: 0, rewards: 0 }, timestamp: Date.now() }),
+      step: async () => ({
+        focusId: '',
+        cycle: 0,
+        budgetAllocated: 0,
+        tasksProcessed: 0,
+        derivations: 0,
+        beliefsAdded: 0,
+        goalsAdded: 0,
+        questionsAdded: 0,
+        gates: { perceptions: 0, actions: 0, rewards: 0 },
+        timestamp: Date.now(),
+      }),
     } as unknown as Focus;
   }
 
   /** Add a child focus to a parent node. */
-  addChild(parentId: string, childOptions: FocusOptions, budgetAllocation: Partial<ConsumedBudget> = {}): FocusTreeNode | null {
+  addChild(
+    parentId: string,
+    childOptions: FocusOptions,
+    budgetAllocation: Partial<ConsumedBudget> = {}
+  ): FocusTreeNode | null {
     const parent = this.nodeMap.get(parentId);
     if (!parent) return null;
 
@@ -176,7 +199,11 @@ export class FocusTree {
   }
 
   /** Execute one tick: sample a leaf node across all roots and step it. */
-  async tick(): Promise<{ nodeId: string; report: FocusStepReport | null; yielded: boolean } | null> {
+  async tick(): Promise<{
+    nodeId: string;
+    report: FocusStepReport | null;
+    yielded: boolean;
+  } | null> {
     const leaf = this.sampleLeaf();
     if (!leaf) return null;
 
@@ -185,7 +212,7 @@ export class FocusTree {
 
     let yielded = false;
     const stepped = await raceDeadline(
-      focus.step(budget.consumed.cycles < budget.totalCycles ? 10 : 0),
+      focus.step(budget.consumed.cycles < budget.maxCycles ? 10 : 0),
       this.deadlineMs
     );
 

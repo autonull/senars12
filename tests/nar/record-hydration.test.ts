@@ -1,5 +1,5 @@
-import type { DerivationRecord } from '@senars/core/derivation-schemas';
-import { validateDerivationRecord } from '@senars/core/derivation-schemas';
+import type { DerivationRecord } from '@senars/core/schemas';
+import { validateDerivationRecord } from '@senars/core/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
 import { Memory } from '../../nar/src/memory/memory.js';

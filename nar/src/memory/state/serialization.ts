@@ -9,11 +9,11 @@
  * so the format is versioned (version 1) but has a single reader/writer.
  */
 
+import { createLogger } from '@senars/util';
 import type { Bag } from '../../bag/Bag.js';
-import { type Term, serializeStamp, termParser } from '../../terms';
-import { createLogger } from '@senars/core/logger';
-import { rehydrateTask, type TaskRecord } from '../../task/record.js';
 import { decodeState, encodeState } from '../../state/codec.js';
+import { rehydrateTask, type TaskRecord } from '../../task/record.js';
+import { serializeStamp, type Term, termParser } from '../../terms';
 import type { Concept, ConceptTaskType, TaskData } from '../concept.js';
 import type { Memory } from '../memory.js';
 
@@ -69,16 +69,11 @@ export function serialize(memory: Memory): SerializedMemory {
     });
   }
 
-  const stats = memory.getStatistics();
-
   return {
     version: MEMORY_VERSION,
     timestamp: Date.now(),
     concepts,
-    statistics: {
-      totalConcepts: stats.totalConcepts,
-      totalTasks: stats.totalTasks,
-    },
+    statistics: memory.totals(),
   };
 }
 
@@ -124,7 +119,12 @@ function restoreBag(concept: Concept, type: TaskTypeName, tasks?: TaskRecord[]):
   for (const record of tasks ?? []) {
     const task = rehydrateTask(record, type);
     if (task) {
-      concept.addTask(type, { term: task.term, truth: task.truth, budget: task.budget, stamp: task.stamp });
+      concept.addTask(type, {
+        term: task.term,
+        truth: task.truth,
+        budget: task.budget,
+        stamp: task.stamp,
+      });
       continue;
     }
     // expected: individual task deserialization failure shouldn't abort concept load

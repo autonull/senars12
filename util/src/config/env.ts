@@ -4,7 +4,7 @@
  * @public
  */
 
-import { setNested } from '../utils/shared.js';
+import { setNested } from '../utils/object.js';
 
 export const SENARS_ENV_MAP: Readonly<Record<string, string>> = {
   SENARS_LM_ENABLED: 'capabilities.lm.enabled',

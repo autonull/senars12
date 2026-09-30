@@ -1,4 +1,4 @@
-import type { ToolCapabilities } from '@senars/util';
+import { stopwatch, type ToolCapabilities } from '@senars/util';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
 import type { ToolResult } from '../engine/Engine.js';
@@ -115,14 +115,14 @@ export class ToolRegistry {
     const tool = this.#tools.get(name);
     if (!tool) return { success: false, content: null, error: `Unknown tool: ${name}` };
 
-    const start = Date.now();
+    const elapsed = stopwatch();
     try {
       const result = await tool.execute(args, correlationId, signal);
-      const duration = Date.now() - start;
+      const duration = elapsed();
       this.#feedbackObserver.recordCall(name, result, duration);
       return result;
     } catch (err) {
-      const duration = Date.now() - start;
+      const duration = elapsed();
       const result = { success: false, content: null, error: (err as Error).message };
       this.#feedbackObserver.recordCall(name, result, duration);
       return result;

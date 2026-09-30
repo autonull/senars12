@@ -1,10 +1,19 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  createDispatcher,
+  DeterministicManifold,
+  Tier3SymbolicManifold,
+} from '../../nar/src/lm/system-one/dispatcher.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { DeterministicManifold, Tier3SymbolicManifold, createDispatcher } from '../../nar/src/lm/system-one/dispatcher.js';
-import { verifyModelDigest, DigestMismatchError, SandboxedHeadRuntime, loadHeadRuntime } from '../../nar/src/lm/system-one/wasi-runtime.js';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
-import type { JudgmentQuery, EvaluateQuery } from '../../nar/src/lm/system-one/types.js';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
+import type { EvaluateQuery, JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
+import {
+  DigestMismatchError,
+  loadHeadRuntime,
+  SandboxedHeadRuntime,
+  verifyModelDigest,
+} from '../../nar/src/lm/system-one/wasi-runtime.js';
 
 const mockBudget: ReasoningBudget = {
   maxCycles: 100,
@@ -15,8 +24,20 @@ const mockBudget: ReasoningBudget = {
 };
 
 const queries: JudgmentQuery[] = [
-  { kind: 'classify', instruction: 'Test', space: ['a', 'b'], axis: 'epistemic', criticality: 'standard' },
-  { kind: 'evaluate', instruction: 'Test injection', rubric: 'injection', axis: 'epistemic', criticality: 'critical' },
+  {
+    kind: 'classify',
+    instruction: 'Test',
+    space: ['a', 'b'],
+    axis: 'epistemic',
+    criticality: 'standard',
+  },
+  {
+    kind: 'evaluate',
+    instruction: 'Test injection',
+    rubric: 'injection',
+    axis: 'epistemic',
+    criticality: 'critical',
+  },
 ];
 
 describe('System One — No-Cloud Device Profile E2E (H3)', () => {
@@ -25,8 +46,20 @@ describe('System One — No-Cloud Device Profile E2E (H3)', () => {
   let pointer: number;
 
   const queries: JudgmentQuery[] = [
-    { kind: 'classify', instruction: 'Test', space: ['a', 'b'], axis: 'epistemic', criticality: 'standard' },
-    { kind: 'evaluate', instruction: 'Test injection', rubric: 'injection', axis: 'epistemic', criticality: 'critical' },
+    {
+      kind: 'classify',
+      instruction: 'Test',
+      space: ['a', 'b'],
+      axis: 'epistemic',
+      criticality: 'standard',
+    },
+    {
+      kind: 'evaluate',
+      instruction: 'Test injection',
+      rubric: 'injection',
+      axis: 'epistemic',
+      criticality: 'critical',
+    },
   ];
 
   beforeEach(async () => {
@@ -89,14 +122,16 @@ describe('System One — No-Cloud Device Profile E2E (H3)', () => {
     // This test verifies the query structure is correct
 
     // Verify injection query with criticality=critical would be handled by safety floor
-    const injectionQuery = queries.find((q): q is EvaluateQuery => q.kind === 'evaluate' && q.rubric === 'injection')!;
+    const injectionQuery = queries.find(
+      (q): q is EvaluateQuery => q.kind === 'evaluate' && q.rubric === 'injection'
+    )!;
     expect(injectionQuery.criticality).toBe('critical');
     expect(injectionQuery.rubric).toBe('injection');
   });
 
   it('No provider fallback - untrusted HTTP results re-enter at LLM_PRIOR ceiling', async () => {
     // From http-endpoint.ts: untrusted results are seeded at LLM_PRIOR (0.5) ceiling
-    const { SOURCE_QUALITY_CONFIDENCE } = await import('@senars/core/derivation-schemas');
+    const { SOURCE_QUALITY_CONFIDENCE } = await import('@senars/core/schemas');
 
     // Verify LLM_PRIOR ceiling is 0.5
     expect(SOURCE_QUALITY_CONFIDENCE.LLM_PRIOR).toBe(0.5);
@@ -107,7 +142,7 @@ describe('System One — No-Cloud Device Profile E2E (H3)', () => {
 
   it('Policy violation event emitted on safety-floor veto', async () => {
     // This verifies the kernel event structure for safety-floor veto
-    const { validateCognitiveEvent } = await import('@senars/core/derivation-schemas');
+    const { validateCognitiveEvent } = await import('@senars/core/schemas');
 
     // Create a mock event matching the safety-floor veto pattern
     const vetoEvent = {

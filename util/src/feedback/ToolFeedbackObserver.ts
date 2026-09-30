@@ -1,5 +1,5 @@
-import { selectTopN } from '../utils/collections.js';
 import type { ToolResult } from '../types/engine.js';
+import { selectTopN } from '../utils/collections.js';
 
 export interface ToolFeedback {
   name: string;

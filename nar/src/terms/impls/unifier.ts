@@ -1,8 +1,8 @@
 import { Unifier, type UnifierDialect } from '@senars/util';
-import { getArgs, termKey, termsEqual } from './accessors.js';
-import { TermBuilder } from './factory.js';
 import type { Term } from '../types.js';
 import { isVariableSymbol } from '../types.js';
+import { getArgs, sameKind, termKey, termsEqual } from './accessors.js';
+import { TermBuilder } from './factory.js';
 
 export type Substitution = Record<string, Term>;
 
@@ -11,7 +11,7 @@ const DIALECT: UnifierDialect<Term> = {
   variableName: (t) => (t.kind === 'atom' && isVariableSymbol(t.symbol) ? t.symbol : null),
   key: termKey,
   equal: termsEqual,
-  sameHead: (a, b) => a.kind === b.kind,
+  sameHead: sameKind,
   children: getArgs,
   rebuild: (node, kids) => TermBuilder.compound(node.kind as never, [...kids]),
 };
@@ -28,7 +28,9 @@ export function unify(
   subst: Substitution = {},
   enableOccursCheck = true
 ): Substitution | undefined {
-  const result = unifier.unify(a, b, new Map(Object.entries(subst)), { occursCheck: enableOccursCheck });
+  const result = unifier.unify(a, b, new Map(Object.entries(subst)), {
+    occursCheck: enableOccursCheck,
+  });
   return result ? Object.fromEntries(result) : undefined;
 }
 

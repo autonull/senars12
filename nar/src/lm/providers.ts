@@ -12,7 +12,7 @@
  */
 export type { LMTask } from '@senars/util';
 export type { LMSettings } from './env-config.js';
-
+export { cloudApiKey, formatLMConfig } from './env-config.js';
 export type {
   CircuitBreakerConfig,
   CircuitState,
@@ -27,7 +27,6 @@ export type {
   WebLLMRuntime,
 } from './provider-runtime.js';
 export { getProviderRuntime, PROVIDER_CIRCUIT_DEFAULTS } from './provider-runtime.js';
-export { fetchBounded, probeModelsEndpoint } from './providers/probe.js';
 export type { ModelCapability } from './providers/capabilities.js';
 export {
   getModelCapability,
@@ -39,6 +38,7 @@ export {
   getQualityModel,
   hasCloudCredentials,
 } from './providers/chains.js';
+export { probeEmbeddedLlama } from './providers/embedded-llamacpp.js';
 export {
   canUseProvider,
   getAllCircuitBreakers,
@@ -52,19 +52,20 @@ export {
   startHealthProbes,
   stopHealthProbes,
 } from './providers/health.js';
+export { probeLlamaCpp } from './providers/llamacpp.js';
 export type {
   ModelDownloadProgressCallback,
   SeNARSModelId,
   SeNARSRegistry,
 } from './providers/model-factory.js';
 export {
-  cloudApiKey,
   createSeNARSRegistry,
   getBuiltinProgressCallback,
   localModel,
   mockModel,
   setBuiltinProgressCallback,
 } from './providers/model-factory.js';
+export { fetchBounded, probeModelsEndpoint } from './providers/probe.js';
 export type { CandidateScore } from './providers/routing.js';
 export {
   demoteModel,
@@ -84,7 +85,4 @@ export {
   setRouting,
 } from './providers/routing.js';
 export { configureLM, getLMSettings, getLmProvider } from './providers/settings.js';
-export { formatLMConfig } from './env-config.js';
-export { probeLlamaCpp } from './providers/llamacpp.js';
-export { probeEmbeddedLlama } from './providers/embedded-llamacpp.js';
 export { configureWebLLM, detectDevice, getWebLLMRuntime } from './providers/webllm.js';

@@ -1,8 +1,9 @@
-import { LruCache, clamp01, maxScore } from '@senars/util';
+import { clamp01, LruCache, maxScore } from '@senars/util';
 import type { DriveManager } from '../../drives/impls/DriveManager.js';
-import { type Term, TermBuilder, Truth, atom } from '../../index.js';
+import { atom, type Term, TermBuilder, TermSet, Truth, termKey } from '../../index.js';
 import type { NAR } from '../../nar.js';
 import type { RandomSource } from '../../types/primitives.js';
+import { nextInt } from '../../utils/random.js';
 
 /**
  * Stores state-action value beliefs in NAR memory using native Product/Inheritance form
@@ -34,8 +35,12 @@ export class QBeliefStore {
   private readonly nar: NAR;
   private readonly predictsRewardAtom = atom('predicts_reward');
   private readonly driveManager?: DriveManager;
-  /** Per-state index of action terms with recorded values (X24). */
-  private readonly stateActions: LruCache<string, Map<string, Term>>;
+  /**
+   * Per-state index of action terms with recorded values (X24), bounded in states
+   * by LRU. Both levels key on `termKey`, the canonical structural identity, so
+   * a value belief cannot be filed under a state that merely serializes alike.
+   */
+  private readonly stateActions: LruCache<string, TermSet>;
   private readonly rng: RandomSource;
 
   constructor(nar: NAR, rng: RandomSource = Math.random, options: QBeliefStoreOptions = {}) {
@@ -46,15 +51,15 @@ export class QBeliefStore {
   }
 
   private indexValueBelief(state: Term, action: Term): void {
-    const stateKey = state.toString();
-    const actions = new Map(this.stateActions.peek(stateKey) ?? []);
-    actions.set(action.toString(), action);
-    this.stateActions.set(stateKey, actions);
+    const key = termKey(state);
+    const actions = this.stateActions.peek(key) ?? new TermSet();
+    actions.add(action);
+    this.stateActions.set(key, actions);
   }
 
   /** Get value belief for state-action pair */
   getValue(state: Term, action: Term): Truth | null {
-    this.stateActions.get(state.toString()); // recency: a read marks the state live
+    this.stateActions.get(termKey(state)); // recency: a read marks the state live
     const product = TermBuilder.product(state, action);
     const valueTerm = TermBuilder.inheritance(product, this.predictsRewardAtom);
     if (!valueTerm) return null;
@@ -85,7 +90,12 @@ export class QBeliefStore {
   }
 
   /** Write a value belief by assignment, encoding expectation `expectation`. */
-  async #writeValue(state: Term, action: Term, expectation: number, confidence: number): Promise<void> {
+  async #writeValue(
+    state: Term,
+    action: Term,
+    expectation: number,
+    confidence: number
+  ): Promise<void> {
     const valueTerm = this.#valueTerm(state, action);
     if (!valueTerm) return;
     this.indexValueBelief(state, action);
@@ -96,12 +106,7 @@ export class QBeliefStore {
   }
 
   /** Update value belief using Truth.revision with immediate reward */
-  updateValue(
-    state: Term,
-    action: Term,
-    reward: number,
-    confidence: number = 0.5
-  ): Promise<void> {
+  updateValue(state: Term, action: Term, reward: number, confidence: number = 0.5): Promise<void> {
     return this.#reviseValue(state, action, Truth.create(reward, confidence));
   }
 
@@ -140,25 +145,22 @@ export class QBeliefStore {
     });
   }
 
-  /** Get all recorded action values for a state (X24: real implementation). */
+  /** Get all recorded action values for a state (X24: real implementation), keyed by `termKey`. */
   getAllActions(state: Term): Map<string, Truth> {
-    const stateKey = state.toString();
     const results = new Map<string, Truth>();
-    for (const [actionKey, actionTerm] of this.stateActions.peek(stateKey) ?? new Map()) {
-      const value = this.getValue(state, actionTerm);
-      if (value) results.set(actionKey, value);
+    for (const action of this.stateActions.peek(termKey(state))?.values() ?? []) {
+      const value = this.getValue(state, action);
+      if (value) results.set(termKey(action), value);
     }
     return results;
   }
 
   /** Get best action for a state by highest decoded Q-expectation. */
   getBestAction(state: Term, availableActions: Term[]): Term | null {
-    const stateKey = state.toString();
     // Random tie-break among maximal-expectation actions — deterministic
     // first-action ties bias the policy toward the earliest-recorded action
     // (all small rewards clamp near f=0.5 under the Q-convex encoding),
     // latching exploration shut (F4 GridWorld parity root cause).
-    const bestAction: Term | null = null;
     let bestExpectation = -Infinity;
     let ties: Term[] = [];
 
@@ -175,7 +177,7 @@ export class QBeliefStore {
       }
     }
 
-    return ties.length > 0 ? (ties[Math.floor(this.rng() * ties.length)] ?? null) : null;
+    return ties.length > 0 ? (ties[nextInt(this.rng, ties.length)] ?? null) : null;
   }
 
   /** Get low-confidence actions for curiosity-driven exploration */
@@ -184,7 +186,6 @@ export class QBeliefStore {
     availableActions: Term[],
     confidenceThreshold: number = 0.5
   ): Term[] {
-    const stateKey = state.toString();
     const lowConfidence: Term[] = [];
     for (const action of availableActions) {
       const value = this.getValue(state, action);

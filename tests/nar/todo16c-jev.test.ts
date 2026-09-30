@@ -1,26 +1,26 @@
-import { describe, it, expect } from 'vitest';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { describe, expect, it } from 'vitest';
+import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
+import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import {
+  type CompositeEntry,
+  ConfidenceRouter,
+  compositeScore,
+  isRestrictive,
+  judgeCascade,
+  routeConfidence,
   truthProbability,
   truthProbabilityOf,
-  ConfidenceRouter,
-  routeConfidence,
-  isRestrictive,
-  compositeScore,
-  judgeCascade,
-  type CompositeEntry,
 } from '../../nar/src/lm/system-one/policy.js';
-import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import type {
+  BackendId,
   ClassifyProposition,
   EvaluateProposition,
   JudgmentQuery,
   ModelDigest,
   QueryId,
-  BackendId,
 } from '../../nar/src/lm/system-one/types.js';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
 import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
 
 const budget: ReasoningBudget = {
@@ -79,7 +79,9 @@ describe('Jev Patterns (Bench 23)', () => {
     expect(pTrue!).toBeGreaterThanOrEqual(0);
     expect(pTrue!).toBeLessThanOrEqual(1);
 
-    expect(truthProbabilityOf({ ...mkClassify(0) as unknown as EvaluateProposition, abstained: true })).toBeUndefined();
+    expect(
+      truthProbabilityOf({ ...(mkClassify(0) as unknown as EvaluateProposition), abstained: true })
+    ).toBeUndefined();
   });
 
   it('ConfidenceRouter band mapping is deterministic (≥τ_act→act, τ_review..τ_act→review, <τ_review→block)', () => {
@@ -152,8 +154,18 @@ describe('Jev Patterns (Bench 23)', () => {
       (first) => {
         if (first.kind !== 'classify') return undefined;
         return first.top.option === 'question'
-          ? { kind: 'classify', instruction: 'Clarify the question', space: ['clarify', 'answer'], axis: 'epistemic' }
-          : { kind: 'classify', instruction: 'Tense of the statement', space: ['past', 'present', 'future'], axis: 'epistemic' };
+          ? {
+              kind: 'classify',
+              instruction: 'Clarify the question',
+              space: ['clarify', 'answer'],
+              axis: 'epistemic',
+            }
+          : {
+              kind: 'classify',
+              instruction: 'Tense of the statement',
+              space: ['past', 'present', 'future'],
+              axis: 'epistemic',
+            };
       },
       budget
     );
@@ -202,7 +214,12 @@ describe('Jev Patterns (Bench 23)', () => {
     const manifold = createManifold(cache, { abstainThreshold: 0.05 });
     const pointer = (await cache.write('ctx')) as never;
     const noulQuery = truthProbability('is the sky blue?');
-    const assertionQuery = { kind: 'evaluate' as const, instruction: 'The passage supports the claim', rubric: 'assertion' as const, axis: 'epistemic' as const };
+    const assertionQuery = {
+      kind: 'evaluate' as const,
+      instruction: 'The passage supports the claim',
+      rubric: 'assertion' as const,
+      axis: 'epistemic' as const,
+    };
     const props = await manifold.judgeBatch(pointer, [noulQuery, assertionQuery], budget);
     expect(props).toHaveLength(2);
     expect(props.every((p) => p && !p.abstained)).toBe(true);
@@ -216,7 +233,13 @@ describe('Jev Patterns (Bench 23)', () => {
     const manifold = createManifold(cache, { abstainThreshold: 0.05 });
     const pointer = (await cache.write('ctx')) as never;
     const candidates = ['push_left', 'push_right', 'hold'];
-    const riskQuery = { kind: 'classify' as const, instruction: 'classify the risk', space: candidates, axis: 'teleological' as const, rubric: 'risk' as const };
+    const riskQuery = {
+      kind: 'classify' as const,
+      instruction: 'classify the risk',
+      space: candidates,
+      axis: 'teleological' as const,
+      rubric: 'risk' as const,
+    };
     const [prop] = await manifold.judgeBatch(pointer, [riskQuery], budget);
     const classify = prop as ClassifyProposition;
     expect(classify.kind).toBe('classify');
@@ -228,14 +251,22 @@ describe('Jev Patterns (Bench 23)', () => {
     const cache = createEmbeddingCache({ maxSize: 100, ttlMs: 60_000, generator: fakeGenerator() });
     const manifold = createManifold(cache, { abstainThreshold: 0.05 });
     const pointer = (await cache.write('ctx')) as never;
-    const q = { kind: 'evaluate' as const, instruction: 'Evaluate feasibility', rubric: 'feasibility' as const, axis: 'teleological' as const };
+    const q = {
+      kind: 'evaluate' as const,
+      instruction: 'Evaluate feasibility',
+      rubric: 'feasibility' as const,
+      axis: 'teleological' as const,
+    };
     const [prop] = await manifold.judgeBatch(pointer, [q], budget);
     const ev = prop as EvaluateProposition;
     expect(ev.legend?.levels).toEqual(['impossible', 'unlikely', 'possible', 'likely', 'certain']);
     const weights = ev.legend!.weights;
     expect(weights.reduce((a: number, b: number) => a + b, 0)).toBeCloseTo(1, 6);
     // weighted position ≈ score (both live in [0,1])
-    const position = weights.reduce((a: number, w: number, i: number) => a + w * (i / (weights.length - 1)), 0);
+    const position = weights.reduce(
+      (a: number, w: number, i: number) => a + w * (i / (weights.length - 1)),
+      0
+    );
     expect(Math.abs(position - ev.score)).toBeLessThan(0.5);
   });
 
@@ -243,7 +274,12 @@ describe('Jev Patterns (Bench 23)', () => {
     const cache = createEmbeddingCache({ maxSize: 100, ttlMs: 60_000, generator: fakeGenerator() });
     const manifold = createManifold(cache, { abstainThreshold: 0.05 });
     const pointer = (await cache.write('consensus ctx')) as never;
-    const query = { kind: 'evaluate' as const, instruction: 'Evaluate reflex value', rubric: 'reflex_value' as const, axis: 'teleological' as const };
+    const query = {
+      kind: 'evaluate' as const,
+      instruction: 'Evaluate reflex value',
+      rubric: 'reflex_value' as const,
+      axis: 'teleological' as const,
+    };
     const consensus = await manifold.consensus(pointer, query, 3, budget);
     expect(consensus.independent).toBe(false);
     expect(consensus.agreement).toBeGreaterThanOrEqual(0);

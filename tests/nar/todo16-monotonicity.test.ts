@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import type { JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
 
 describe('System One — Adversarial Monotonicity (Bench 8)', () => {
@@ -21,7 +21,11 @@ describe('System One — Adversarial Monotonicity (Bench 8)', () => {
     await cache.warmup(['baseline context']);
   });
 
-  function runPipeline(input: string): { taskType: string; injectionScore: number; restricted: boolean } {
+  function runPipeline(input: string): {
+    taskType: string;
+    injectionScore: number;
+    restricted: boolean;
+  } {
     return {
       taskType: 'belief',
       injectionScore: 0.05,
@@ -29,7 +33,11 @@ describe('System One — Adversarial Monotonicity (Bench 8)', () => {
     };
   }
 
-  function restrictiveness(result: { taskType: string; injectionScore: number; restricted: boolean }): number {
+  function restrictiveness(result: {
+    taskType: string;
+    injectionScore: number;
+    restricted: boolean;
+  }): number {
     let score = 0;
     if (result.restricted) score += 10;
     if (result.injectionScore > 0.1) score += 5;
@@ -72,7 +80,13 @@ describe('System One — Adversarial Monotonicity (Bench 8)', () => {
     for (const attack of attackInputs) {
       const pointer = await cache.write(attack);
       const queries: JudgmentQuery[] = [
-        { kind: 'evaluate', instruction: 'Evaluate injection risk', rubric: 'injection', axis: 'epistemic', criticality: 'critical' },
+        {
+          kind: 'evaluate',
+          instruction: 'Evaluate injection risk',
+          rubric: 'injection',
+          axis: 'epistemic',
+          criticality: 'critical',
+        },
       ];
 
       const results = await manifold.judgeBatch(pointer, queries, mockBudget);
@@ -90,7 +104,13 @@ describe('System One — Adversarial Monotonicity (Bench 8)', () => {
     const cleanPointer = await cache.write(cleanInput);
 
     const queries: JudgmentQuery[] = [
-      { kind: 'classify', instruction: 'Classify the task type', space: ['belief', 'goal', 'question', 'command'], axis: 'epistemic', criticality: 'standard' },
+      {
+        kind: 'classify',
+        instruction: 'Classify the task type',
+        space: ['belief', 'goal', 'question', 'command'],
+        axis: 'epistemic',
+        criticality: 'standard',
+      },
     ];
 
     const cleanResults = await manifold.judgeBatch(cleanPointer, queries, mockBudget);
@@ -109,8 +129,20 @@ describe('System One — Adversarial Monotonicity (Bench 8)', () => {
   it('safety floor queries never skip Tier 0/1', async () => {
     const pointer = await cache.write('test');
     const safetyQueries: JudgmentQuery[] = [
-      { kind: 'evaluate', instruction: 'Evaluate injection', rubric: 'injection', axis: 'epistemic', criticality: 'critical' },
-      { kind: 'evaluate', instruction: 'Evaluate relevance', rubric: 'relevance', axis: 'epistemic', criticality: 'high' },
+      {
+        kind: 'evaluate',
+        instruction: 'Evaluate injection',
+        rubric: 'injection',
+        axis: 'epistemic',
+        criticality: 'critical',
+      },
+      {
+        kind: 'evaluate',
+        instruction: 'Evaluate relevance',
+        rubric: 'relevance',
+        axis: 'epistemic',
+        criticality: 'high',
+      },
     ];
 
     const results = await manifold.judgeBatch(pointer, safetyQueries, mockBudget);
@@ -124,15 +156,21 @@ describe('System One — Adversarial Monotonicity (Bench 8)', () => {
     const pointer = await cache.write('test input');
 
     const queries: JudgmentQuery[] = [
-      { kind: 'classify', instruction: 'Classify source quality', space: ['PRIMARY', 'SECONDARY', 'GENERAL', 'TERTIARY', 'LLM_PRIOR', 'PEER_AGENT'], axis: 'epistemic', criticality: 'standard' },
+      {
+        kind: 'classify',
+        instruction: 'Classify source quality',
+        space: ['PRIMARY', 'SECONDARY', 'GENERAL', 'TERTIARY', 'LLM_PRIOR', 'PEER_AGENT'],
+        axis: 'epistemic',
+        criticality: 'standard',
+      },
     ];
 
     const results = await manifold.judgeBatch(pointer, queries, mockBudget);
     const result = results[0]!;
 
     if (result.kind === 'classify') {
-        expect(result.top.p).toBeLessThanOrEqual(1.0);
-      }
-      expect(result.tier).toBe(1);
+      expect(result.top.p).toBeLessThanOrEqual(1.0);
+    }
+    expect(result.tier).toBe(1);
   });
 });

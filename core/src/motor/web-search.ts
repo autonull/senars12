@@ -92,8 +92,6 @@ const collapseBlankLines = (s: string): string =>
     .filter((l) => l.length > 0)
     .join('\n');
 
-
-
 export const tavilySearch = async (
   query: string,
   apiKey: string,
@@ -177,7 +175,8 @@ export const SEARCH_PROVIDERS: readonly SearchProvider[] = [
   {
     name: 'tavily',
     configured: () => envFirst('TAVILY_API_KEY') !== undefined,
-    search: (query, maxResults) => tavilySearch(query, envFirst('TAVILY_API_KEY') as string, maxResults),
+    search: (query, maxResults) =>
+      tavilySearch(query, envFirst('TAVILY_API_KEY') as string, maxResults),
   },
   {
     name: 'brave',
@@ -212,7 +211,8 @@ export async function searchWeb(
   providers: readonly SearchProvider[] = SEARCH_PROVIDERS
 ): Promise<WebSearchOutcome> {
   const configured = providers.filter((p) => p.configured());
-  if (configured.length === 0) return { query, via: 'none', results: [], note: 'no provider configured' };
+  if (configured.length === 0)
+    return { query, via: 'none', results: [], note: 'no provider configured' };
   const failures: string[] = [];
   for (const provider of configured) {
     try {
@@ -245,6 +245,8 @@ export const webFetch = async (
   if (!res.ok) throw new Error(`web-fetch ${res.status} for ${url}`);
   const contentType = res.headers.get('content-type') ?? 'text/plain';
   const body = await readBody(res);
-  const text = contentType.includes('html') ? stripTags(collapseBlankLines(htmlToText(body))) : body;
+  const text = contentType.includes('html')
+    ? stripTags(collapseBlankLines(htmlToText(body)))
+    : body;
   return { url: res.url, status: res.status, contentType, text: text.slice(0, MAX_FETCH_CHARS) };
 };

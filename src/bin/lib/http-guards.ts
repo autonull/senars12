@@ -20,7 +20,10 @@ export class HttpGuard {
 
   constructor(options: HttpGuardOptions = {}) {
     this.rateLimitPerMinute = options.rateLimitPerMinute ?? 30;
-    this.rateLimiter = new SlidingWindowRateLimiter({ limit: this.rateLimitPerMinute, windowMs: 60_000 });
+    this.rateLimiter = new SlidingWindowRateLimiter({
+      limit: this.rateLimitPerMinute,
+      windowMs: 60_000,
+    });
     this.apiKeys.add(options.apiKey ?? randomBytes(32).toString('hex'));
   }
 
@@ -39,7 +42,11 @@ export class HttpGuard {
   }
 }
 
-export const rejectWithStatus = (res: { writeHead: (code: number) => { end: (b?: string) => void } }, status: number): void => {
-  const reason = status === 401 ? 'Unauthorized (missing or invalid x-api-key)' : 'Rate limit exceeded';
+export const rejectWithStatus = (
+  res: { writeHead: (code: number) => { end: (b?: string) => void } },
+  status: number
+): void => {
+  const reason =
+    status === 401 ? 'Unauthorized (missing or invalid x-api-key)' : 'Rate limit exceeded';
   res.writeHead(status).end(reason);
 };

@@ -1,5 +1,5 @@
 import type { Term, Truth as TruthType } from '../terms';
-import { containsSubterm, getSubject, TermSet, Truth } from '../terms';
+import { containsSubterm, getSubject, TermSet, Truth, termsEqual } from '../terms';
 import type { Task } from '../types';
 
 /**
@@ -31,7 +31,7 @@ export async function counterfactual(
     truth: b.truth ? { ...b.truth } : undefined,
   }));
 
-  const originalBelief = beliefsBefore.find((b) => b.term === term);
+  const originalBelief = beliefsBefore.find((b) => termsEqual(b.term, term));
   if (!originalBelief) {
     return {
       possible: false,

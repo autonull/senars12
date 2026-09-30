@@ -85,7 +85,7 @@ describe('Concept', () => {
 
     it('applies time decay', () => {
       concept.priority = 0.9;
-      concept.applyTimeDecay(0.01);
+      concept.decayAttention(0.01);
       expect(concept.priority).toBeLessThan(0.9);
     });
   });
@@ -357,7 +357,7 @@ describe('Concept', () => {
       const concept = new Concept(term);
       concept.priority = 0.9;
 
-      concept.applyTimeDecay(0.1);
+      concept.decayAttention(0.1);
       expect(concept.priority).toBeLessThan(0.9);
     });
   });

@@ -1,4 +1,4 @@
-import { getOrInsert } from '@senars/util';
+import { getOrInsert, sortableIdSource } from '@senars/util';
 import { PushQueue } from '@senars/util/events';
 import type { CognitiveEvent, EventLog } from './EventLog.js';
 import { EventLogError } from './EventLog.js';
@@ -14,6 +14,7 @@ export abstract class AbstractEventLog implements EventLog {
   #subscribers = new Set<Subscription>();
   #snapshots = new Map<string, Map<number, unknown>>();
   #closed = false;
+  readonly #ids = sortableIdSource();
   protected readonly limits: EventLogLimits;
 
   constructor(limits: Partial<EventLogLimits> = {}) {
@@ -51,10 +52,16 @@ export abstract class AbstractEventLog implements EventLog {
 
   abstract get events(): ReadonlyArray<CognitiveEvent>;
 
-  abstract generateId(): string;
+  /**
+   * Append-order key. Monotonic and lexicographically sortable, because both
+   * logs range-scan on it (`ORDER BY id`, `getRange`) — one source, shared by
+   * both, so the sqlite and in-memory logs order identically.
+   */
+  generateId(): string {
+    return this.#ids();
+  }
 
   abstract getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]>;
-
 
   async append(event: Omit<CognitiveEvent, 'id' | 'timestamp'>): Promise<CognitiveEvent> {
     if (this.#closed) {

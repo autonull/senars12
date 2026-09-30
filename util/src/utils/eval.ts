@@ -6,13 +6,13 @@
 export class ExpressionError extends Error {
   constructor(
     message: string,
-    readonly position: number,
+    readonly position: number
   ) {
     super(message);
   }
 }
 
-const enum T {
+enum T {
   Num,
   Plus,
   Minus,
@@ -56,7 +56,11 @@ class Tokenizer {
       const pos = this.i;
       if (c >= '0' && c <= '9') {
         let j = this.i;
-        while (j < this.src.length && ((this.src[j]! >= '0' && this.src[j]! <= '9') || this.src[j] === '.')) j++;
+        while (
+          j < this.src.length &&
+          ((this.src[j]! >= '0' && this.src[j]! <= '9') || this.src[j] === '.')
+        )
+          j++;
         const num = Number(this.src.slice(this.i, j));
         if (!Number.isFinite(num)) throw new ExpressionError(`Invalid number at ${pos}`, pos);
         this.tokens.push({ type: T.Num, value: num, pos });
@@ -64,7 +68,8 @@ class Tokenizer {
         continue;
       }
       const type = PUNCT[c];
-      if (type === undefined) throw new ExpressionError(`Unexpected character '${c}' at ${pos}`, pos);
+      if (type === undefined)
+        throw new ExpressionError(`Unexpected character '${c}' at ${pos}`, pos);
       this.tokens.push({ type, value: 0, pos });
       this.i++;
     }

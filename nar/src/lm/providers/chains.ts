@@ -1,6 +1,7 @@
 import type { LMExecutionStats, LMTask } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import type { LMSettings } from '../env-config.js';
+import { cloudApiKey } from '../env-config.js';
 import {
   getProviderRuntime,
   type LMProviderName,
@@ -8,7 +9,6 @@ import {
 } from '../provider-runtime.js';
 import { latencyClassOf } from './capabilities.js';
 import type { SeNARSModelId, SeNARSRegistry } from './model-factory.js';
-import { cloudApiKey } from './model-factory.js';
 import { pickModel } from './routing.js';
 import { getLMSettings, getLmProvider } from './settings.js';
 
@@ -128,4 +128,4 @@ export function getQualityModel(registry: SeNARSRegistry): LanguageModel {
 }
 
 export const hasCloudCredentials = (settings?: LMSettings): boolean =>
-  Boolean(cloudApiKey(settings ?? getLMSettings()));
+  Boolean(cloudApiKey((settings ?? getLMSettings()).apiKeyEnv));

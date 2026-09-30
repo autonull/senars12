@@ -1,7 +1,7 @@
 import { BoundedMap, getOrInsert, weightedMean } from '@senars/util';
 
 import type { Term } from '../../terms';
-import type { RegisteredRule, RuleDependency, RulePattern, RuleStatistics } from '../types.js';
+import type { RegisteredRule, RuleDependency, RuleStatistics } from '../types.js';
 
 /** Hits older than this leave the recency set; the window is the map's TTL. */
 const TEMPORAL_WINDOW_MS = 1000;
@@ -11,7 +11,19 @@ const encodePattern = (leftOp: string | undefined, rightOp: string | undefined):
 
 export class RuleIndex {
   private rulesByType = new Map<string, RegisteredRule[]>();
-  private cache = new Map<string, RegisteredRule[]>();
+  /**
+   * Candidate order, memoised per term-kind pair. The candidate *set* is fully
+   * determined by the pair of kinds, but the *order* is not: it is a function of
+   * hit statistics and the recency set, both of which move. Each entry therefore
+   * carries the ranking epoch it was ordered at, and a stale entry is
+   * re-ordered rather than served — a cache that ignores the state its ordering
+   * was computed from freezes the ranking for the life of the process.
+   */
+  private ordered = new Map<
+    string,
+    { epoch: number; orderedAt: number; rules: RegisteredRule[] }
+  >();
+  private rankingEpoch = 0;
   private hitStats = new Map<string, RuleStatistics>();
   private readonly recentRules = new BoundedMap<string, number>({
     maxSize: 1000,
@@ -22,7 +34,8 @@ export class RuleIndex {
   register(rule: RegisteredRule): void {
     const key = encodePattern(rule.pattern.left.op, rule.pattern.right.op);
     getOrInsert(this.rulesByType, key, () => []).push(rule);
-    this.cache.clear();
+    this.ordered.clear();
+    this.rankingEpoch++;
 
     this.hitStats.set(rule.id, {
       hitCount: 0,
@@ -53,6 +66,7 @@ export class RuleIndex {
 
     this.recentRules.set(ruleId, now);
     this.recentRules.purgeExpired();
+    this.rankingEpoch++;
   }
 
   getStatistics(): Map<string, RuleStatistics> {
@@ -74,11 +88,23 @@ export class RuleIndex {
 
   match(term1: Term, term2: Term): RegisteredRule[] {
     const cacheKey = `${term1.kind}:${term2.kind}`;
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
+    const memo = this.ordered.get(cacheKey);
+    // Recency demotion is the one time-dependent input to the ordering, so the
+    // memo is only valid until the window it was ordered within can have closed.
+    if (
+      memo &&
+      memo.epoch === this.rankingEpoch &&
+      Date.now() - memo.orderedAt < TEMPORAL_WINDOW_MS
+    ) {
+      return memo.rules;
+    }
 
-    const k1 = term1.kind;
-    const k2 = term2.kind;
+    const rules = this.candidatesFor(term1.kind, term2.kind);
+    this.ordered.set(cacheKey, { epoch: this.rankingEpoch, orderedAt: Date.now(), rules });
+    return rules;
+  }
+
+  private candidatesFor(left: Term['kind'], right: Term['kind']): RegisteredRule[] {
     const results = new Set<RegisteredRule>();
 
     const addRules = (key: string): void => {
@@ -89,36 +115,34 @@ export class RuleIndex {
         });
     };
 
-    addRules(`${k1}:${k2}`);
-    if (k1 !== 'atom') addRules(`*:${k2}`);
-    if (k2 !== 'atom') addRules(`${k1}:*`);
+    addRules(`${left}:${right}`);
+    if (left !== 'atom') addRules(`*:${right}`);
+    if (right !== 'atom') addRules(`${left}:*`);
     addRules('*:*');
 
     this.recentRules.purgeExpired();
-    const sorted = Array.from(results).sort((a, b) => {
-      const aStats = this.hitStats.get(a.id);
-      const bStats = this.hitStats.get(b.id);
 
+    return Array.from(results).sort((a, b) => {
+      // Recency demotion: a rule that just fired yields to one that has not.
       const aRecent = this.recentRules.has(a.id);
       const bRecent = this.recentRules.has(b.id);
+      if (aRecent !== bRecent) return aRecent ? 1 : -1;
 
-      if (aRecent && !bRecent) return 1;
-      if (!aRecent && bRecent) return -1;
-
-      if (aStats && bStats) {
-        return b.priority * bStats.successRate - a.priority * aStats.successRate;
-      }
-
-      return b.priority - a.priority;
+      // Declared priority is the primary order. Observed success only breaks
+      // ties: weighting priority by a success rate that starts at zero for
+      // every rule collapses the comparator to a constant and orders nothing,
+      // so a rule with no track record would never be ranked at all.
+      const byPriority = b.priority - a.priority;
+      if (byPriority !== 0) return byPriority;
+      return (
+        (this.hitStats.get(b.id)?.successRate ?? 0) - (this.hitStats.get(a.id)?.successRate ?? 0)
+      );
     });
-
-    this.cache.set(cacheKey, sorted);
-    return sorted;
   }
 
   clear(): void {
     this.rulesByType.clear();
-    this.cache.clear();
+    this.ordered.clear();
     this.hitStats.clear();
     this.recentRules.clear();
     this.dependencies.clear();

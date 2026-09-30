@@ -1,16 +1,7 @@
-import { createLogger } from '@senars/core/logger';
+import { createLogger, errMsg } from '@senars/util';
 import type { MetricsCollector } from '../../metrics';
 import type { SelfHost } from '../../self/host.js';
 import { SelfOptimizer } from '../../self/SelfOptimizer';
-import { errMsg } from '@senars/util';
-import { diffCapabilities, getCapabilitySnapshot } from './analyzers/capabilities.js';
-import { applyCorrections, identifyIssues } from './analyzers/corrections.js';
-import { createPolicyManager } from './analyzers/policy.js';
-import { assessQuality } from './analyzers/quality.js';
-import { analyzeReasoningPatterns } from './analyzers/reasoning-patterns.js';
-import { analyzePerformancePatterns } from './analyzers/performance.js';
-import { getResourceAnalysis } from './analyzers/resources.js';
-import type { MetacognitiveMonitor } from './MetacognitiveMonitor.js';
 import type {
   AgentPolicy,
   CapabilityDiff,
@@ -25,6 +16,14 @@ import type {
   ResourceUsage,
   SelfAnalyzerConfig,
 } from '../types.js';
+import { diffCapabilities, getCapabilitySnapshot } from './analyzers/capabilities.js';
+import { applyCorrections, identifyIssues } from './analyzers/corrections.js';
+import { analyzePerformancePatterns } from './analyzers/performance.js';
+import { createPolicyManager } from './analyzers/policy.js';
+import { assessQuality } from './analyzers/quality.js';
+import { analyzeReasoningPatterns } from './analyzers/reasoning-patterns.js';
+import { getResourceAnalysis } from './analyzers/resources.js';
+import type { MetacognitiveMonitor } from './MetacognitiveMonitor.js';
 
 export type { MetaCognitiveResult, MonitorState } from '../types.js';
 

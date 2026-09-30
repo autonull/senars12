@@ -1,17 +1,16 @@
 import { BoundedRing, maxBy, mean, selectTopN, weightedMean } from '@senars/util';
-
+import type { RandomSource } from '../types/primitives.js';
+import { nextInt } from '../utils/random.js';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import type { RewardModel } from './RewardModel.js';
 import { findCommonFeatures } from './utils.js';
-import type { RandomSource } from '../types/primitives.js';
 
 /** Prior-sample weight for a strategy's success rate: proven, or still unproven. */
 const PROVEN_WEIGHT = 10;
 const UNPROVEN_WEIGHT = 1;
 
 /** The one strategy ranking: priority × mean reward, scaled by proven-ness. */
-const STRATEGY_SCORE = (s: Strategy): number =>
-  s.priority * s.avgReward * (1 + s.successRate);
+const STRATEGY_SCORE = (s: Strategy): number => s.priority * s.avgReward * (1 + s.successRate);
 
 export interface PolicyConfig {
   explorationRate?: number;
@@ -109,7 +108,7 @@ export class PolicyOptimizer {
 
     if (this.rng() < this.config.explorationRate) {
       const strategyArray = Array.from(this.strategies.keys());
-      return strategyArray[Math.floor(this.rng() * strategyArray.length)] ?? 'default';
+      return strategyArray[nextInt(this.rng, strategyArray.length)] ?? 'default';
     }
 
     return this.#bestStrategy() ?? 'default';
@@ -172,8 +171,7 @@ export class PolicyOptimizer {
 
       if (relevantHistory.length < 5) continue;
 
-      const avgReward =
-        mean(relevantHistory, (h) => h.reward);
+      const avgReward = mean(relevantHistory, (h) => h.reward);
       const topQuartile = selectTopN(
         relevantHistory,
         Math.ceil(relevantHistory.length / 4),

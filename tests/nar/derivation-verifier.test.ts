@@ -1,6 +1,6 @@
-import type { DerivationRecord } from '@senars/core/derivation-schemas';
-import { describe, expect, it } from 'vitest';
+import type { DerivationRecord } from '@senars/core/schemas/derivation-records';
 import { verifyRecord } from '@senars/core/verify-derivation';
+import { describe, expect, it } from 'vitest';
 
 const taskId = '11111111-1111-4111-8111-111111111111';
 const step = (overrides: Record<string, unknown>): DerivationRecord['steps'][number] =>
@@ -120,7 +120,9 @@ describe('standalone derivation verifier', () => {
   });
 
   it('rejects duplicate step ids', () => {
-    const result = verifyRecord(record([step({}), step({})], { frequency: 0.72, confidence: 0.72 }));
+    const result = verifyRecord(
+      record([step({}), step({})], { frequency: 0.72, confidence: 0.72 })
+    );
     expect(result.findings.some((f) => f.check === 'unique-step-id')).toBe(true);
   });
 });

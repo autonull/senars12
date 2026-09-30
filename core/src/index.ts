@@ -41,6 +41,9 @@ export type {
   EventBus,
   HealthStatus,
   IOMessage,
+  LogEntry,
+  LoggerConfig,
+  LogLevel,
   MessageClassification,
   Metrics,
   ParsedCommand,
@@ -49,7 +52,38 @@ export type {
   ToolResult,
   TransportDeps,
 } from '@senars/util';
-export { isEventType, isNarEvent } from '@senars/util';
+/** Leaf primitives re-exported from @senars/util for consumers of the @senars/core root. @public */
+/** Structured logger. @public */
+export {
+  clamp,
+  clamp01,
+  compact,
+  createLogger,
+  defaultLogger,
+  edgeKey,
+  ensureArray,
+  errMsg,
+  estimateTokens,
+  extractTerm,
+  generateId,
+  isEventType,
+  isNarEvent,
+  isNarsese,
+  isNil,
+  Logger,
+  makeId,
+  registerLogEnricher,
+  sleep,
+  toError,
+} from '@senars/util';
+/** Validated agent options. @public */
+export type { ValidatedAgentOptions } from '@senars/util/config';
+export {
+  AgentOptionsValidationError,
+  agentOptionsSchema,
+  contextOptsSchema,
+  validateAgentOptions,
+} from '@senars/util/config';
 export { Agent } from './Agent.js';
 /** Cognitive-event → UI-delta projection bridge. @public */
 export { AgentBridge, type BridgeDelta, type BridgeEvent } from './AgentBridge.js';
@@ -84,26 +118,9 @@ export {
   type SpawnResult,
   type ThreadMessage,
   ThreadPool,
-  type ThreadScope,
   type ThreadStatus,
 } from './cognitive-thread.js';
-export type { CommandContext, CommandDefinition, CommandHandler } from './command-types.js';
-/**
- * @deprecated Use `import type { ConfigView, ConfigEvent, ConfigSchema } from '@senars/util/config'` instead.
- */
-export type { ConfigEvent, ConfigSchema, ConfigView } from './config/Config.js';
 export { ConfigViewImpl } from './config/ConfigView.js';
-export {
-  CONNECTION_COLORS,
-  EDGE_LABELS,
-  EDGE_TYPES,
-  edgeTypeLabel,
-  LENS_COLORS_HEX,
-  LENS_DESCRIPTIONS,
-  LENS_FIELDS,
-  LENS_LABELS,
-  type LensFieldDescriptor,
-} from './protocol/index.js';
 /** Cortex factory from an LM service. @public */
 export { createCortexFromLM } from './cortex/createCortexFromLM.js';
 /** Narrative synthesis cortex. @public */
@@ -125,30 +142,10 @@ export type {
 export { InMemoryEventLog, SqliteEventLog } from './eventlog/index.js';
 /** Feedback store. @public */
 export { type FeedbackEntry, FeedbackRegistry } from './feedback/FeedbackRegistry.js';
-/** Narsese predicate. @public */
-export {
-  clamp,
-  clamp01,
-  compact,
-  edgeKey,
-  ensureArray,
-  errMsg,
-  estimateTokens,
-  extractTerm,
-  generateId,
-  isNarsese,
-  isNil,
-  makeId,
-  sleep,
-  toError,
-} from './helpers.js';
 /** Knowledge manager. @public */
 export { KnowledgeManager } from './KnowledgeManager.js';
 /** Lifecycle base component. @public */
 export { BaseComponent } from './Lifecycle.js';
-export type { LogEntry, LoggerConfig, LogLevel } from './Logger.js';
-/** Structured logger. @public */
-export { createLogger, defaultLogger, Logger, registerLogEnricher } from './Logger.js';
 export type { BuiltinLens, LensSpec, ModulationSpec } from './lens-schema.js';
 export {
   BUILTIN_LENS_IDS,
@@ -172,8 +169,6 @@ export type {
 } from './ModelRunner.js';
 /** Model runner. @public */
 export { ModelRunner } from './ModelRunner.js';
-/** The MeTTa seam `nar` consumes and `metta` implements. @public */
-export type { MettaPort } from './metta-port.js';
 /** Working + episodic memory service. @public */
 export { MemoryService } from './memory/MemoryService.js';
 /** Session managers. @public */
@@ -191,6 +186,8 @@ export type {
   MemoryQuery,
   PersistableSessionManager,
 } from './memory/types.js';
+/** The MeTTa seam `nar` consumes and `metta` implements. @public */
+export type { MettaPort } from './metta-port.js';
 /** Agent tool factory. @public */
 export { registerAgentTools } from './motor/buildAgentTools.js';
 /** Builtin tools. @public */
@@ -219,17 +216,6 @@ export {
 } from './motor/ToolRegistry.js';
 /** Workspace sandbox for motor fs tools. @public */
 export { WORKSPACE_ROOT, withinWorkspace } from './motor/workspace.js';
-/** Validated agent options. @public */
-export type { ValidatedAgentOptions } from './Options.js';
-/**
- * @deprecated Use `import { agentOptionsSchema, validateAgentOptions, AgentOptionsValidationError, contextOptsSchema } from '@senars/util/config'` instead.
- */
-export {
-  AgentOptionsValidationError,
-  agentOptionsSchema,
-  contextOptsSchema,
-  validateAgentOptions,
-} from './Options.js';
 /** Plugin system types. @public */
 export type { PluginContext, SenarsPlugin, TransportFactory } from './Plugin.js';
 /** Plugin loader + error type. @public */
@@ -249,14 +235,23 @@ export type { ConfigFieldType, GraphOpType } from './protocol/index.js';
 export {
   AgentCapabilities,
   ChatMessage,
+  CONNECTION_COLORS,
   CognitiveDelta,
   ConfigField,
+  EDGE_LABELS,
+  EDGE_TYPES,
+  edgeTypeLabel,
   GraphNodeData,
   GraphNodeDataStrict,
   GraphOp,
   IncomingFromClient,
   IncomingFromServer,
+  LENS_COLORS_HEX,
+  LENS_DESCRIPTIONS,
+  LENS_FIELDS,
+  LENS_LABELS,
   Lens,
+  type LensFieldDescriptor,
   MettaAtomNode,
   MettaSkillNode,
   NarConceptNode,

@@ -1,4 +1,9 @@
-import type { BaseComponent as BaseComponentContract, ComponentContext, ComponentState, ScopedLogger } from '@senars/util';
+import type {
+  BaseComponent as BaseComponentContract,
+  ComponentContext,
+  ComponentState,
+  ScopedLogger,
+} from '@senars/util';
 
 const VALID_TRANSITIONS: Record<ComponentState, ComponentState[]> = {
   created: ['initialized', 'disposed'],

@@ -1,5 +1,5 @@
-import type { NARConfig } from '../../nar/src';
-import { deepFreeze } from '@senars/util/utils/shared';
+import type { NARConfig } from '@senars/nar';
+import { deepFreeze } from '@senars/util';
 import type { AppConfig, BotConfig, BotProfile } from './schema.js';
 import { appConfigSchema, botConfigSchema, botProfileSchema } from './schema.js';
 

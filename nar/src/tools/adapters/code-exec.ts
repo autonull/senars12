@@ -1,5 +1,5 @@
 import { basename, resolve } from 'node:path';
-import { truncateBytes } from '@senars/util';
+import { stopwatch, truncateBytes } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { containsPath } from '../../capability/wasi-sandbox.js';
@@ -66,7 +66,7 @@ function createShellTool(
         return deny(`Working directory must be within workspace: ${deps.workspaceRoot}`);
       }
 
-      const startTime = Date.now();
+      const elapsed = stopwatch();
       const result = await runProcess(command, args, {
         cwd: execCwd,
         timeoutMs: timeout,
@@ -76,7 +76,7 @@ function createShellTool(
         exitCode: result.code,
         stdout: result.stdout,
         stderr: result.stderr,
-        duration: Date.now() - startTime,
+        duration: elapsed(),
         truncated: result.truncated,
       };
     },
@@ -102,7 +102,7 @@ function createWasiTool(
     }),
     execute: async ({ wasmPath, args = [], timeout = 30_000 }) => {
       const { createWasmModuleSandbox } = await import('../../capability/wasi-sandbox.js');
-      const startTime = Date.now();
+      const elapsed = stopwatch();
       try {
         const result = await createWasmModuleSandbox({
           wasmPath,
@@ -118,11 +118,11 @@ function createWasiTool(
           stdout: out.text,
           stderr: errOut.text,
           truncated: out.truncated || errOut.truncated,
-          duration: Date.now() - startTime,
+          duration: elapsed(),
         };
       } catch (err) {
         const error = String(err);
-        return { ...deny(error), duration: Date.now() - startTime };
+        return { ...deny(error), duration: elapsed() };
       }
     },
   });

@@ -1,7 +1,16 @@
-export type EngineOrigin = 'nar';
+/**
+ * Every origin a cognitive event may claim. One list, so the zod boundary in
+ * `core` cannot admit an origin the types do not carry — the gates mint
+ * `kernel` events and System One mints `proposer` ones, and the schema said so
+ * while `EngineOrigin` did not.
+ */
+export const ENGINE_ORIGINS = ['nar', 'kernel', 'proposer'] as const;
+
+export type EngineOrigin = (typeof ENGINE_ORIGINS)[number];
 
 export interface CognitiveEventBase {
-  readonly engine: EngineOrigin;
+  /** Nar events are the `engine: 'nar'` discriminant `isNarEvent` narrows on. */
+  readonly engine: 'nar';
   readonly timestamp: number;
   readonly correlationId: string;
   readonly causationId?: string;

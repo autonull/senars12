@@ -1,11 +1,13 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createServer, type Server } from 'node:http';
-import { createHttpManifold } from '../../nar/src/lm/system-one/http-manifold.js';
-import { handleSystemOneRequest } from '../../nar/src/lm/system-one/http-endpoint.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { admitRemotePropositions } from '../../nar/src/lm/system-one/http-endpoint.js';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
+import {
+  admitRemotePropositions,
+  handleSystemOneRequest,
+} from '../../nar/src/lm/system-one/http-endpoint.js';
+import { createHttpManifold } from '../../nar/src/lm/system-one/http-manifold.js';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
 
 const budget: ReasoningBudget = {
@@ -34,12 +36,16 @@ describe('D4 remote manifold (/v1/systemone client + server)', () => {
         res.writeHead(404).end();
         return;
       }
-      
+
       const chunks: Buffer[] = [];
       req.on('data', (c: Buffer) => chunks.push(c));
       req.on('end', () => {
-        const request = { json: async () => JSON.parse(Buffer.concat(chunks).toString('utf-8') || '{}') };
-        void handleSystemOneRequest(request, serverManifold, budget, (vec) => serverCache.writeRaw(vec)).then(
+        const request = {
+          json: async () => JSON.parse(Buffer.concat(chunks).toString('utf-8') || '{}'),
+        };
+        void handleSystemOneRequest(request, serverManifold, budget, (vec) =>
+          serverCache.writeRaw(vec)
+        ).then(
           ({ status, body }) => {
             res.writeHead(status, { 'content-type': 'application/json' });
             res.end(JSON.stringify(body));
@@ -62,10 +68,24 @@ describe('D4 remote manifold (/v1/systemone client + server)', () => {
     const cache = fakeCache();
     const remote = createHttpManifold({ endpoint: url, embeddingCache: cache });
     const pointer = await cache.write('the robin is a bird');
-    const propositions = await remote.judgeBatch(pointer as never, [
-      { kind: 'evaluate', instruction: 'Evaluate relevance', rubric: 'relevance', axis: 'epistemic' },
-      { kind: 'classify', instruction: 'Classify task type', space: ['belief', 'goal', 'question', 'command'], axis: 'epistemic' },
-    ], budget);
+    const propositions = await remote.judgeBatch(
+      pointer as never,
+      [
+        {
+          kind: 'evaluate',
+          instruction: 'Evaluate relevance',
+          rubric: 'relevance',
+          axis: 'epistemic',
+        },
+        {
+          kind: 'classify',
+          instruction: 'Classify task type',
+          space: ['belief', 'goal', 'question', 'command'],
+          axis: 'epistemic',
+        },
+      ],
+      budget
+    );
 
     expect(propositions).toHaveLength(2);
     for (const p of propositions) {
@@ -81,12 +101,17 @@ describe('D4 remote manifold (/v1/systemone client + server)', () => {
     const cache = fakeCache();
     const remote = createHttpManifold({ endpoint: url, embeddingCache: cache });
     const pointer = await cache.write('consensus probe');
-    const { proposition, agreement } = await remote.consensus(pointer as never, {
-      kind: 'evaluate',
-      instruction: 'Evaluate relevance',
-      rubric: 'relevance',
-      axis: 'epistemic',
-    }, 3, budget);
+    const { proposition, agreement } = await remote.consensus(
+      pointer as never,
+      {
+        kind: 'evaluate',
+        instruction: 'Evaluate relevance',
+        rubric: 'relevance',
+        axis: 'epistemic',
+      },
+      3,
+      budget
+    );
     expect(proposition).toBeDefined();
     expect(agreement).toBe(1);
   });
@@ -103,9 +128,13 @@ describe('D4 remote manifold (/v1/systemone client + server)', () => {
       const cache = fakeCache();
       const remote = createHttpManifold({ endpoint: gUrl, embeddingCache: cache });
       const pointer = await cache.write('bad probe');
-      await expect(remote.judgeBatch(pointer as never, [
-        { kind: 'evaluate', instruction: 'x', rubric: 'relevance', axis: 'epistemic' },
-      ], budget)).rejects.toThrow();
+      await expect(
+        remote.judgeBatch(
+          pointer as never,
+          [{ kind: 'evaluate', instruction: 'x', rubric: 'relevance', axis: 'epistemic' }],
+          budget
+        )
+      ).rejects.toThrow();
       expect(remote.health().ready).toBe(false);
       expect(remote.health().breakerOpen).toBe(true);
     } finally {
@@ -113,10 +142,18 @@ describe('D4 remote manifold (/v1/systemone client + server)', () => {
     }
 
     const downCache = fakeCache();
-    const down = createHttpManifold({ endpoint: 'http://127.0.0.1:1', embeddingCache: downCache, timeoutMs: 500 });
-    await expect(down.judgeBatch((await downCache.write('x')) as never, [
-      { kind: 'evaluate', instruction: 'x', rubric: 'relevance', axis: 'epistemic' },
-    ], budget)).rejects.toThrow();
+    const down = createHttpManifold({
+      endpoint: 'http://127.0.0.1:1',
+      embeddingCache: downCache,
+      timeoutMs: 500,
+    });
+    await expect(
+      down.judgeBatch(
+        (await downCache.write('x')) as never,
+        [{ kind: 'evaluate', instruction: 'x', rubric: 'relevance', axis: 'epistemic' }],
+        budget
+      )
+    ).rejects.toThrow();
     expect(down.health().breakerOpen).toBe(true);
   });
 });

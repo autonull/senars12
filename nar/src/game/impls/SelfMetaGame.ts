@@ -8,15 +8,15 @@ import {
   type ParameterTable,
 } from '../../config/parameter-table.js';
 import type { FocusStepReport } from '../../focus/Focus.js';
-import { schedulerReward } from '../../focus/scheduler-reward.js';
 import type { FocusBag } from '../../focus/FocusBag.js';
 import type { GameFocus } from '../../focus/GameFocus.js';
+import { schedulerReward } from '../../focus/scheduler-reward.js';
 import { ProposalRouter } from '../../governance/pipeline.js';
-import { gateRegistry } from '../../kernel/index.js';
-import type { ContradictionEvent } from '../../types/events.js';
+import { type GateRegistry, gateRegistry } from '../../kernel/index.js';
 import type { SelfRewardGate } from '../../kernel/KernelRewardGate.js';
 import type { LearnerRegistry } from '../../learning/domain-learners.js';
-import { ProposalBag } from '../../meta/proposal-bag.js';
+import type { ProposalBag } from '../../meta/proposal-bag.js';
+import type { ContradictionEvent } from '../../types/events.js';
 import type { SelfMetaGame } from '../Game.js';
 import { MetaGame, type MetaGameConfig } from './MetaGame.js';
 
@@ -35,6 +35,8 @@ export interface SelfMetaGameConfig extends MetaGameConfig {
   proposalBag?: ProposalBag;
   /** Phase B (REFACTOR.todo3): bag-drain budget (was hardcoded 4; `proposals.budget`). */
   drainBudget?: number;
+  /** Gate authority for proposal routing; defaults to the process-global registry. */
+  gates?: GateRegistry;
 }
 
 export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
@@ -51,11 +53,13 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   /** Phase D (REFACTOR.todo2): bounded proposal bag — absent ⇒ arrival-order routing. */
   private readonly proposalBag?: ProposalBag;
   private readonly drainBudget: number;
+  private readonly gates: GateRegistry;
 
   constructor(config: SelfMetaGameConfig) {
     super(config);
     this.focusBag = config.focusBag;
     this.gameFocuses = config.gameFocuses;
+    this.gates = config.gates ?? gateRegistry;
     this.proposalBag = config.proposalBag;
     this.drainBudget = config.drainBudget ?? 4;
     this.parameterTable = createParameterTable();
@@ -133,6 +137,7 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
 
   /** Route queued proposals through ProposalRouter with real actuators. */
   private routeProposals(): void {
+    const autonomy = this.gates.getActionGate().getAutonomyMode();
     const drained = this.scheduler?.rewardGate.drain() ?? [];
     const actuators = {
       applyFocusWeight: (focusId: string, weight: number) => this.setFocusWeight(focusId, weight),
@@ -143,15 +148,14 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
     if (this.proposalBag) {
       for (const proposal of drained) this.proposalBag.admit(proposal);
       void this.proposalBag
-        .drainIfPressured(
-          (proposal) => this.proposalRouter.route(proposal, gateRegistry.getActionGate().getAutonomyMode(), actuators),
-          { budget: this.drainBudget }
-        )
+        .drainIfPressured((proposal) => this.proposalRouter.route(proposal, autonomy, actuators), {
+          budget: this.drainBudget,
+        })
         .catch(() => {});
       return;
     }
     for (const proposal of drained) {
-      this.proposalRouter.route(proposal, gateRegistry.getActionGate().getAutonomyMode(), actuators);
+      this.proposalRouter.route(proposal, autonomy, actuators);
     }
   }
 

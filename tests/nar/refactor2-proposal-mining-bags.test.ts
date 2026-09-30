@@ -1,6 +1,6 @@
+import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
 import { type MinedNegative, MiningBag } from '@senars/nar/lm/system-one/hard-negatives.js';
 import { ProposalBag } from '@senars/nar/meta/proposal-bag.js';
-import type { SelfImprovementProposal } from '@senars/core/derivation-schemas';
 import { describe, expect, it } from 'vitest';
 
 const proposal = (
@@ -20,7 +20,12 @@ const negative = (
   text: string,
   rubric: MinedNegative['rubric'],
   margin?: number
-): MinedNegative => ({ rubric, text, source: 'contradiction', ...(margin !== undefined ? { margin } : {}) });
+): MinedNegative => ({
+  rubric,
+  text,
+  source: 'contradiction',
+  ...(margin !== undefined ? { margin } : {}),
+});
 
 describe('Bench 89 — ProposalBag (AIKR pattern #4)', () => {
   it('highest-leverage proposal drains first (impact × risk-inverse)', async () => {
@@ -29,7 +34,8 @@ describe('Bench 89 — ProposalBag (AIKR pattern #4)', () => {
     bag.admit(proposal('weak', 'test-generate', 'high')); // 0.4 × 0.2 = 0.08
     bag.admit(proposal('mid', 'knob-tune', 'low', { knob: 'taskDecayRate' })); // 0.6
     bag.admit(proposal('strong', 'strategy-switch', 'low', { strategy: 'focused' })); // 0.9
-    for (let i = 0; i < 14; i++) bag.admit(proposal(`filler-${i}`, 'focus-weight', 'low', { focusId: `f${i}` }));
+    for (let i = 0; i < 14; i++)
+      bag.admit(proposal(`filler-${i}`, 'focus-weight', 'low', { focusId: `f${i}` }));
     const out = await bag.drainIfPressured((p) => routed.push(p.proposalId), { budget: 3 });
     expect(out.map((p) => p.proposalId)).toEqual(['strong', 'mid', 'filler-0']);
     expect(routed).toEqual(['strong', 'mid', 'filler-0']);
@@ -41,7 +47,9 @@ describe('Bench 89 — ProposalBag (AIKR pattern #4)', () => {
     bag.admit(proposal('old', 'knob-tune', 'low', { knob: 'taskDecayRate' }));
     bag.admit(proposal('other', 'knob-tune', 'low', { knob: 'conceptDecayRate' }));
     bag.admit(proposal('newer', 'knob-tune', 'low', { knob: 'taskDecayRate' })); // supersedes 'old'
-    const priorities = (bag as unknown as { '#bag': { all(): Iterable<{ id: string; priority: number }> } });
+    const priorities = bag as unknown as {
+      '#bag': { all(): Iterable<{ id: string; priority: number }> };
+    };
     void priorities; // structurally asserted below via drain order instead
     // Halved elder (0.6 → 0.3) ranks below the untouched sibling (0.6).
     const out = await bag.drain((p) => p, { budget: 3 });
@@ -61,7 +69,12 @@ describe('Bench 89 — ProposalBag (AIKR pattern #4)', () => {
     tight.admit(proposal('low-risk', 'knob-tune', 'low', { knob: 'x' }));
     tight.admit(proposal('high-risk', 'patch-apply', 'high'));
     tight.admit(proposal('next', 'knob-tune', 'low', { knob: 'y' }));
-    expect(tight.peek().map((p) => p.proposalId).sort()).toEqual(['low-risk', 'next']);
+    expect(
+      tight
+        .peek()
+        .map((p) => p.proposalId)
+        .sort()
+    ).toEqual(['low-risk', 'next']);
 
     // Decay forgets stale accumulation.
     const decayer = new ProposalBag({ capacity: 4, forgetRate: 0.3 });
@@ -79,7 +92,9 @@ describe('Bench 89 — ProposalBag (AIKR pattern #4)', () => {
         ['p3', 'focus-weight'],
         ['p4', 'schema-promotion'],
       ] as const)
-        bag.admit(proposal(id, kind, 'low', kind === 'knob-tune' ? { knob: 'k' } : { strategy: 's' }));
+        bag.admit(
+          proposal(id, kind, 'low', kind === 'knob-tune' ? { knob: 'k' } : { strategy: 's' })
+        );
       const out = await bag.drain(() => undefined, { budget: 4 });
       return out.map((p) => p.proposalId);
     };
@@ -148,7 +163,12 @@ describe('Bench 89 — MiningBag (AIKR pattern #5)', () => {
     const mined = await mineHardNegatives(nar, episodic, { limit: 8, into: bag });
     expect(mined).toHaveLength(2);
     expect(bag.size).toBe(2);
-    expect(bag.peek().map((n) => n.rubric).sort()).toEqual(['conflict', 'groundedness']);
+    expect(
+      bag
+        .peek()
+        .map((n) => n.rubric)
+        .sort()
+    ).toEqual(['conflict', 'groundedness']);
     // Contradiction (rubric relevance 1.0) outranks the error episode (0.8).
     const drained = await bag.drain({ budget: 2 });
     expect(drained.map((n) => n.rubric)).toEqual(['conflict', 'groundedness']);

@@ -41,7 +41,10 @@ export class Logger {
     const existing = this.children.get(scope);
     if (existing) return existing;
 
-    const child = new Logger({ ...this.config, scope: this.config.scope ? `${this.config.scope}:${scope}` : scope });
+    const child = new Logger({
+      ...this.config,
+      scope: this.config.scope ? `${this.config.scope}:${scope}` : scope,
+    });
     this.children.set(scope, child);
     return child;
   }
@@ -69,7 +72,11 @@ export class Logger {
   }
 
   deprecated(oldSymbol: string, replacement: string, context?: Record<string, unknown>): void {
-    this.warnOnce(`deprecated:${oldSymbol}`, `deprecated ${oldSymbol}; use ${replacement} instead`, context);
+    this.warnOnce(
+      `deprecated:${oldSymbol}`,
+      `deprecated ${oldSymbol}; use ${replacement} instead`,
+      context
+    );
   }
 
   setLevel(level: LogLevel): void {
@@ -107,7 +114,15 @@ export class Logger {
     const { samplingRate } = this.config;
     if (samplingRate < 1 && Math.random() > samplingRate) return;
 
-    this.emit({ level, message, timestamp: Date.now(), scope: this.config.scope, context, error, ...logEnricher?.() });
+    this.emit({
+      level,
+      message,
+      timestamp: Date.now(),
+      scope: this.config.scope,
+      context,
+      error,
+      ...logEnricher?.(),
+    });
   }
 }
 

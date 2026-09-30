@@ -64,6 +64,9 @@ export {
   type ToolFeedback,
   type ToolFeedbackObserver,
 } from './feedback/ToolFeedbackObserver.js';
+/** @public The monorepo's one logger. */
+export { createLogger, defaultLogger, Logger, registerLogEnricher } from './logger.js';
+export type { SessionStoreOptions } from './memory/in-memory-session-manager.js';
 // Memory
 /** @public Bounded session store and the in-memory session manager over it. */
 export {
@@ -72,7 +75,6 @@ export {
   InMemorySessionManager,
   SessionStore,
 } from './memory/in-memory-session-manager.js';
-export type { SessionStoreOptions } from './memory/in-memory-session-manager.js';
 export type { Middleware } from './middleware.js';
 /** @public Unified middleware primitive (REFACTOR.todo4 Phase A). */
 export { dispatch, passthrough } from './middleware.js';
@@ -92,10 +94,13 @@ export type {
   Derivation,
   EngineOrigin,
 } from './types/cognitive.js';
+/** @public The one list of event origins; `EngineOrigin` is derived from it. */
 /** @public Runtime guards for cognitive event discrimination. */
-export { isEventType, isNarEvent } from './types/cognitive.js';
+export { ENGINE_ORIGINS, isEventType, isNarEvent } from './types/cognitive.js';
 /** @public Engine contract and identifiers. */
 export type { Engine, EngineId } from './types/engine.js';
+/** @public The one tool outcome shape and its two constructors. */
+export { toolError, toolOk } from './types/engine.js';
 /** @public Episodic memory contracts. */
 export type {
   Episode,
@@ -120,8 +125,6 @@ export type {
   Metrics,
   ScopedLogger,
 } from './types/lifecycle.js';
-/** @public The monorepo's one logger. */
-export { createLogger, defaultLogger, Logger, registerLogEnricher } from './logger.js';
 /** @public LM service contract. */
 export type {
   LMExecutionStats,
@@ -169,11 +172,33 @@ export {
 // Utils
 /** @public Assertion helpers. */
 export { assertDefined, invariant } from './utils/assert.js';
+/**
+ * @public The general-purpose primitives, grouped by domain: clocks and
+ * deadlines, argv, bounded buffers, scalar arithmetic, object graphs, digests,
+ * text measurement, schema-failure rendering, and error coercion.
+ */
+export {
+  boundedSignal,
+  monotonicNow,
+  raceDeadline,
+  sleep,
+  stopwatch,
+  TimeoutError,
+  withTimeout,
+} from './utils/async.js';
+/** @public Bounded map with pluggable eviction order and optional TTL. */
+export type { BoundedMapOptions, EvictionOrder } from './utils/bounded-map.js';
+export { BoundedMap } from './utils/bounded-map.js';
+export type { Flags } from './utils/cli.js';
+export { parseFlags } from './utils/cli.js';
+export type { ReadOnlyLookup } from './utils/collections.js';
 // Collections
 /** @public Drop-oldest bounded ring buffer. */
 export {
   addToSet,
   BoundedRing,
+  chunk,
+  edgeKey,
   getOrInsert,
   incrementCount,
   insertByScoreDesc,
@@ -187,6 +212,8 @@ export {
   sortByDesc,
   trimCapped,
 } from './utils/collections.js';
+export { formatIssues, type SchemaIssue } from './utils/diagnostics.js';
+export { errMsg, toError } from './utils/error.js';
 /** @public Percent, divider, and progress-bar formatting for reports and CLI output. */
 export { bar, divider, pct, percentile, section, utcDate } from './utils/format.js';
 export type { JsonlLoadResult } from './utils/fs.js';
@@ -209,6 +236,7 @@ export {
   writeJsonFileSync,
   writeJsonl,
 } from './utils/fs.js';
+export { compact, ensureArray, isNil, isPlainObject } from './utils/guards.js';
 export type { DigestInput } from './utils/hash.js';
 // Hashing
 /** @public SHA-256 digests for provenance keys, digest pinning, and state hashes. */
@@ -225,15 +253,34 @@ export {
   shortSha256Hex,
 } from './utils/hash.js';
 /** @public ULID id generation. */
-export { generateId, installIdSource, type IdSource, makeId, sequentialIdSource } from './utils/id.js';
-/** @public Bounded map with pluggable eviction order and optional TTL. */
-export type { BoundedMapOptions, EvictionOrder } from './utils/bounded-map.js';
-export type { ReadOnlyLookup } from './utils/collections.js';
-export { BoundedMap } from './utils/bounded-map.js';
+export {
+  generateId,
+  type IdSource,
+  installIdSource,
+  makeId,
+  sequentialIdSource,
+  sortableIdSource,
+} from './utils/id.js';
 export type { LruCacheOptions } from './utils/lru-cache.js';
 /** @public Bounded recency-ordered cache with optional TTL. */
 export { LruCache } from './utils/lru-cache.js';
-/** @public Throttle utilities for stream/callback rate control. */
+export {
+  CHARS_PER_TOKEN,
+  clamp,
+  clamp01,
+  estimateTokens,
+  mean,
+  occupancy,
+  pearson,
+  roundTo,
+  safeDiv,
+  sigmoid,
+  softmax,
+  stdDev,
+  ucb1,
+  variance,
+} from './utils/numeric.js';
+export { deepEqual, deepFreeze, deepMerge, getNested, setNested } from './utils/object.js';
 export { extractLastUserMessage } from './utils/prompt.js';
 export type { RateLimiterOptions } from './utils/rate-limit.js';
 /** @public Keyed sliding-window rate limiter for transports and guards. */
@@ -243,61 +290,29 @@ export type { RetryOptions } from './utils/retry.js';
 export { withRetry } from './utils/retry.js';
 /** @public Serialization contracts for stateful components. */
 export type { Serializable, Versioned } from './utils/serialization.js';
-export { weightedMean } from './utils/stats.js';
 /** @public Uniform-contract adapters bridging legacy serialize/deserialize shapes. */
-export { asSerializable, factorySerializable, inPlaceSerializable } from './utils/serialization.js';
-/** @public Shared utility functions (deduplicated across packages). */
 export {
-  boundedSignal,
-  CHARS_PER_TOKEN,
-  chunk,
-  clamp,
-  clamp01,
-  compact,
-  deepEqual,
-  deepFreeze,
-  deepMerge,
-  edgeKey,
-  ensureArray,
-  errMsg,
-  estimateTokens,
-  extractTerm,
-  type Flags,
-  formatIssues,
-  getNested,
-  isNarsese,
-  isNil,
-  isPlainObject,
-  limitList,
-  mean,
-  occupancy,
-  parseFlags,
-  pearson,
-  raceDeadline,
-  roundTo,
-  safeDiv,
-  type SchemaIssue,
-  setNested,
-  sigmoid,
-  sleep,
-  softmax,
+  asSerializable,
+  factorySerializable,
+  inPlaceSerializable,
   stableStringify,
-  stdDev,
-  TimeoutError,
-  toError,
-  ucb1,
+} from './utils/serialization.js';
+/** @public Process signal → graceful shutdown for every binary. */
+export { setupGracefulShutdown } from './utils/shutdown.js';
+export { weightedMean } from './utils/stats.js';
+export {
+  extractTerm,
+  isNarsese,
+  limitList,
   tokenizeWords,
   truncate,
   truncateBytes,
-  withTimeout,
   wordOverlap,
-  variance,
-} from './utils/shared.js';
-/** @public Process signal → graceful shutdown for every binary. */
-export { setupGracefulShutdown } from './utils/shutdown.js';
-/** @public Throttle configuration type. */
-export type { ThrottleConfig } from './utils/throttle.js';
+} from './utils/text.js';
 /** @public Structural unification over an arbitrary term AST (Narsese, MeTTa). */
-export type { Substitution as UnifierSubstitution, UnifierDialect, UnifyOptions } from './utils/unify.js';
+export type {
+  Substitution as UnifierSubstitution,
+  UnifierDialect,
+  UnifyOptions,
+} from './utils/unify.js';
 export { Unifier } from './utils/unify.js';
-export { createThrottle, Throttle, throttleGenerator } from './utils/throttle.js';

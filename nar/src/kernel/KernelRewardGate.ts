@@ -1,13 +1,14 @@
-import { makeId } from '@senars/util';
 import type {
   PolicyViolationEvent,
   RewardDomain,
   RewardGateInput,
   RewardGateOutput,
   SelfImprovementProposal,
-} from '@senars/core/derivation-schemas';
-import { SelfImprovementProposalSchema } from '@senars/core/derivation-schemas';
-import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
+} from '@senars/core/schemas';
+import { SelfImprovementProposalSchema } from '@senars/core/schemas';
+import { makeId } from '@senars/util';
+import { recordGateDecision } from '../telemetry/index.js';
+import { recordPolicyViolation } from './event-ring.js';
 import { KernelGate } from './gate-base.js';
 
 export class EpistemicFirewallViolation extends Error {
@@ -41,6 +42,19 @@ export class KernelRewardGate extends KernelGate<PolicyViolationEvent> {
   }
 
   process(input: RewardGateInput): RewardGateOutput {
+    const out = this.decideReward(input);
+    // A proposal is a restriction, not a grant: nothing was mutated, so it
+    // counts as denied with the reason a caller would need to act on.
+    recordGateDecision(
+      'reward',
+      input.targetType,
+      out.accepted && !out.requiresProposal,
+      out.requiresProposal ? 'requires-proposal' : out.rejectionReason
+    );
+    return out;
+  }
+
+  private decideReward(input: RewardGateInput): RewardGateOutput {
     const correlationId = this.correlationOf(input.correlationId);
     const domain: RewardDomain = input.domain ?? 'external-reflex';
 
@@ -71,7 +85,6 @@ export class KernelRewardGate extends KernelGate<PolicyViolationEvent> {
 
     return { accepted: true, mutationApplied: true };
   }
-
 }
 
 export class ExternalRewardGate extends KernelRewardGate {

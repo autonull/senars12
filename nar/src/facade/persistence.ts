@@ -1,7 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { createLogger } from '@senars/core/logger';
-import { cachePath, ensureParentDir, errMsg } from '@senars/util';
+import { cachePath, createLogger, ensureParentDir, errMsg } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import type { DriveManager } from '../drives';
 import type { Memory } from '../memory';
@@ -64,11 +63,7 @@ export class StatePersister {
       for (const ds of driveStates) drives[ds.spec.id] = ds.currentIntensity;
 
       const files: Array<[string, string, unknown]> = [
-        [
-          'beliefs.json',
-          'nar.beliefs',
-          query.getBeliefs().map(serializeTaskRecord),
-        ],
+        ['beliefs.json', 'nar.beliefs', query.getBeliefs().map(serializeTaskRecord)],
         ['goals.json', 'nar.goals', query.getGoals().map(serializeTaskRecord)],
         ['questions.json', 'nar.questions', query.getQuestions().map(serializeTaskRecord)],
         ['attention.json', 'nar.attention', attentionReport()],

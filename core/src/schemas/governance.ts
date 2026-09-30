@@ -1,0 +1,121 @@
+/**
+ * Governance schemas — autonomy level, self-modification proposals, risk, and
+ * the decision vocabulary the governance runner records.
+ *
+ * Sits below the event log because `autonomy.mode.changed` and
+ * `self-mod.proposal` are two of the events it admits: the mode is a property
+ * of a decision, and a patch is something a decision can be about.
+ */
+import { z } from 'zod';
+
+export const AutonomyModeSchema = z.enum([
+  'observe-only',
+  'propose-only',
+  'sandbox-execute',
+  'low-risk-auto-merge',
+  'human-approved-production',
+]);
+export type AutonomyMode = z.infer<typeof AutonomyModeSchema>;
+
+export const RiskLevelSchema = z.enum(['LOW', 'MEDIUM', 'HIGH']);
+export type RiskLevel = z.infer<typeof RiskLevelSchema>;
+
+export const GameDomainSchema = z.enum(['external', 'self']);
+export type GameDomain = z.infer<typeof GameDomainSchema>;
+
+export const RewardDomainSchema = z.enum([
+  'external-reflex',
+  'self-scheduler',
+  'self-config-proposal',
+  'self-patch-score',
+  'self-explanation-rank',
+]);
+export type RewardDomain = z.infer<typeof RewardDomainSchema>;
+
+export const PatchProposalSchema = z.object({
+  proposalId: z.string().uuid(),
+  patchRef: z.string(),
+  baseCommit: z.string(),
+  patchDiff: z.string(),
+  ciResults: z.object({
+    test: z.boolean(),
+    typecheck: z.boolean(),
+    lint: z.boolean(),
+    durationMs: z.number().int().positive(),
+  }),
+  riskSelfAssessment: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+  affectedComponents: z.array(
+    z.enum([
+      'approval-logic',
+      'sandbox-config',
+      'reward-functions',
+      'autonomy-mode',
+      'kernel-gates',
+      'cognitive-params',
+      'tools',
+      'rules',
+      'memory',
+      'other',
+    ])
+  ),
+  affectedFiles: z.array(z.string()),
+  linesAdded: z.number().int().nonnegative(),
+  linesRemoved: z.number().int().nonnegative(),
+  coverageDelta: z.number().optional(),
+  rationale: z.string(),
+  timestamp: z.number().int().positive(),
+  agentSignature: z.string(),
+  correlationId: z.string().optional(),
+});
+export type PatchProposal = z.infer<typeof PatchProposalSchema>;
+
+export const SelfImprovementProposalSchema = z.object({
+  proposalId: z.string().uuid(),
+  kind: z.enum([
+    'knob-tune',
+    'focus-weight',
+    'strategy-switch',
+    'schema-promotion',
+    'patch-apply',
+    'test-generate',
+    'schema-evolution',
+    'metta-rule-adoption',
+  ]),
+  riskTier: z.enum(['low', 'medium', 'high']),
+  payload: z.record(z.string(), z.unknown()),
+  rewardDomain: RewardDomainSchema,
+  correlationId: z.string().optional(),
+});
+export type SelfImprovementProposal = z.infer<typeof SelfImprovementProposalSchema>;
+
+export const RiskAssessmentSchema = z.object({
+  risk: RiskLevelSchema,
+  score: z.number().int().nonnegative(),
+  factors: z.array(
+    z.object({
+      factor: z.string(),
+      file: z.string().optional(),
+      component: z.string().optional(),
+      severity: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+    })
+  ),
+});
+export type RiskAssessment = z.infer<typeof RiskAssessmentSchema>;
+
+export const GovernanceDecisionSchema = z.object({
+  action: z.enum(['AUTO_MERGE', 'CREATE_PR', 'REQUIRE_HUMAN_REVIEW', 'REJECT']),
+  reason: z.string(),
+  reviewers: z.number().int().nonnegative().optional(),
+});
+export type GovernanceDecision = z.infer<typeof GovernanceDecisionSchema>;
+
+export const GovernanceEventSchema = z.object({
+  eventId: z.string().uuid(),
+  proposalId: z.string().uuid(),
+  decision: z.enum(['AUTO_MERGED', 'PR_CREATED', 'HUMAN_REVIEW_REQUIRED', 'REJECTED']),
+  riskLevel: RiskLevelSchema,
+  autonomyMode: AutonomyModeSchema,
+  decidedAt: z.number().int().positive(),
+  decidedBy: z.enum(['governance-runner', 'human-reviewer', 'security-team']),
+});
+export type GovernanceEvent = z.infer<typeof GovernanceEventSchema>;

@@ -1,8 +1,7 @@
 import type { EpisodicMemory } from '@senars/util';
 import { dispatch, type Middleware, PushQueue } from '@senars/util';
-import type { CorrelationScopeStore } from './types.js';
+import type { CognitiveEvent } from '@senars/util/types/cognitive';
 import type { ChatOptions, ChatStreamEvent } from '../ChatService.js';
-import type { CognitiveEvent } from '../CognitiveEvent.js';
 import type { LLMCortex } from '../cortex/LLMCortex.js';
 import type {
   CognitiveStimulus,
@@ -16,6 +15,7 @@ import type { MemoryService } from '../memory/MemoryService.js';
 import type { ToolRegistry } from '../motor/ToolRegistry.js';
 import { motorToToolSet } from '../motor/toToolSet.js';
 import type { PolicyEngine } from '../PolicyEngine.js';
+import type { CorrelationScopeStore } from './types.js';
 
 /**
  * Shared macro-cycle pipeline (REFACTOR.todo1 Phase A).

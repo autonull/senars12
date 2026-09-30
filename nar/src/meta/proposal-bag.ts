@@ -6,11 +6,16 @@
  * kind + scope) decay out. Inert until wired: default processing stays
  * arrival-order.
  */
-import type { SelfImprovementProposal } from '@senars/core/derivation-schemas';
-import { PriorityBag } from '../bag/Bag.js';
-import { AIKRProcessor, AikrShell, type ProcessOptions, type AikrBagOptions } from '../learning/aikr-processor.js';
-import type { RandomSource } from '../types/primitives.js';
+import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
 import { selectByPriority } from '@senars/util';
+import { PriorityBag } from '../bag/Bag.js';
+import {
+  AIKRProcessor,
+  type AikrBagOptions,
+  AikrShell,
+  type ProcessOptions,
+} from '../learning/aikr-processor.js';
+import type { RandomSource } from '../types/primitives.js';
 
 export interface ProposalCandidate {
   id: string;
@@ -69,7 +74,11 @@ export class ProposalBag {
       forgetRate: options.forgetRate,
       rng: options.rng,
     });
-    this.#shell = new AikrShell<ProposalCandidate, SelfImprovementProposal, SelfImprovementProposal>({
+    this.#shell = new AikrShell<
+      ProposalCandidate,
+      SelfImprovementProposal,
+      SelfImprovementProposal
+    >({
       bag,
       budget: options.budget ?? 4,
       view: (candidate) => candidate.proposal,
@@ -95,7 +104,8 @@ export class ProposalBag {
     }
     return this.#shell.admit({
       id: proposal.proposalId,
-      priority: KIND_IMPACT[proposal.kind] * RISK_INVERSE[proposal.riskTier] * this.#alignmentOf(proposal),
+      priority:
+        KIND_IMPACT[proposal.kind] * RISK_INVERSE[proposal.riskTier] * this.#alignmentOf(proposal),
       proposal,
       scope,
     });

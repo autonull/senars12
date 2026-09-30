@@ -1,9 +1,13 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { validateCognitiveEvent, validateDerivationRecord } from '@senars/core/derivation-schemas';
+import { validateCognitiveEvent, validateDerivationRecord } from '@senars/core/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
+import {
+  type CognitiveParameters,
+  DEFAULT_COGNITIVE_PARAMETERS,
+} from '../../nar/src/config/cognitive-parameters.js';
 import { loadGateEvents, persistGateLogs } from '../../nar/src/kernel/EventLogPersistence.js';
 import { GateRegistry } from '../../nar/src/kernel/GateRegistry.js';
 import {
@@ -11,7 +15,6 @@ import {
   replayIntoMemory,
   serializeReplayResult,
 } from '../../nar/src/kernel/replay.js';
-import { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from '../../nar/src/config/cognitive-parameters.js';
 import { Memory } from '../../nar/src/memory/memory.js';
 import { termParser } from '../../nar/src/terms/index.js';
 
@@ -267,7 +270,7 @@ describe('todo7: full-state memory replay', () => {
     expect(c1?.priority).toBeCloseTo(c2?.priority ?? -1, 2);
   });
 
-  it('replays with the original run\'s attention model when its parameters are given', async () => {
+  it("replays with the original run's attention model when its parameters are given", async () => {
     // TODO27 §18: a replay that primes nothing is not a replay. `sample` runs
     // `decayAll`, so the attention slot is observable in the replayed state.
     const replay = async (cognitiveParams?: CognitiveParameters) => {

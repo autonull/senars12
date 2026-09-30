@@ -6,8 +6,7 @@
  * class; neither re-implements closed → open → half-open → closed.
  */
 
-import { createLogger } from '@senars/core/logger';
-import { OperationError } from '@senars/util';
+import { createLogger, OperationError } from '@senars/util';
 
 const logger = createLogger({ scope: 'circuit-breaker' });
 
@@ -86,7 +85,10 @@ export class CircuitBreaker {
   /** Admit a call? Moves an expired open circuit to half-open first. */
   canRequest(): boolean {
     if (this.#state !== 'open') return true;
-    if (this.#lastFailure !== null && Date.now() - this.#lastFailure >= this.config.resetTimeoutMs) {
+    if (
+      this.#lastFailure !== null &&
+      Date.now() - this.#lastFailure >= this.config.resetTimeoutMs
+    ) {
       this.#to('half-open', 'reset_timeout_elapsed');
       return true;
     }
@@ -98,7 +100,8 @@ export class CircuitBreaker {
       this.#successes++;
       this.#failures = 0;
       this.#lastSuccess = Date.now();
-      if (this.#state === 'half-open' && this.#successes >= this.config.successThreshold) this.close();
+      if (this.#state === 'half-open' && this.#successes >= this.config.successThreshold)
+        this.close();
       return;
     }
     this.#failures++;
@@ -148,7 +151,10 @@ export class CircuitBreaker {
     if (from === 'half-open' && state === 'open') {
       this.#failures = 0;
     }
-    this.log(`Circuit breaker state changed: ${from} -> ${state}`, state === 'open' ? 'warn' : 'info');
+    this.log(
+      `Circuit breaker state changed: ${from} -> ${state}`,
+      state === 'open' ? 'warn' : 'info'
+    );
     this.config.onTransition?.(state, reason);
   }
 

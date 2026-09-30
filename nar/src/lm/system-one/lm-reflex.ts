@@ -1,4 +1,4 @@
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import { LruCache } from '@senars/util';
 import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
@@ -150,7 +150,10 @@ export class LMReflex extends DecisionReadout implements Reflex<Perception, stri
       // the next-best verified candidate serves instead.
       if (this.#contrastive && !this.#contrastive.isEmpty() && ranked.length > 0) {
         ranked = await this.#verifiedRanking(ranked);
-        if (ranked[0]!.candidate !== result.ranked.find((r) => legalActions.includes(r.candidate))!.candidate) {
+        if (
+          ranked[0]!.candidate !==
+          result.ranked.find((r) => legalActions.includes(r.candidate))!.candidate
+        ) {
           this.contrastiveVetoes++;
         }
       }

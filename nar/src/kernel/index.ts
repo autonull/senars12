@@ -12,8 +12,16 @@ export {
   resetGateRegistry,
 } from './GateRegistry.js';
 export { KernelGate } from './gate-base.js';
+export type {
+  IActionGate,
+  IBudgetGate,
+  IDriveManager,
+  IGateRegistry,
+  IPerceptionGate,
+  IRewardGate,
+} from './interfaces.js';
 export { KernelActionGate, NALVetoError } from './KernelActionGate.js';
-export { KernelBudgetGate } from './KernelBudgetGate.js';
+export { createDefaultReasoningBudget, KernelBudgetGate } from './KernelBudgetGate.js';
 export { KernelPerceptionGate } from './KernelPerceptionGate.js';
 export {
   EpistemicFirewallViolation,
@@ -34,14 +42,14 @@ export {
   verifyReplayStateHash,
 } from './replay.js';
 
-export type {
-  IPerceptionGate,
-  IActionGate,
-  IRewardGate,
-  IBudgetGate,
-  IGateRegistry,
-  IDriveManager,
-} from './interfaces.js';
-
-export { ThreadScope, threadScope } from './thread-scope.js';
+export { domainKey, providerKey } from './reputation-keys.js';
+export {
+  DEFAULT_REPUTATION_CAPACITY,
+  DEFAULT_REPUTATION_PATH,
+  type ReputationDeltaEntry,
+  type ReputationEntry,
+  SourceReputation,
+  type SourceReputationOptions,
+} from './source-reputation.js';
 export type { ThreadScopeState } from './thread-scope.js';
+export { ThreadScope, threadScope } from './thread-scope.js';

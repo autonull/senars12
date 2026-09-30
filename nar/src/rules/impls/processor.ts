@@ -2,23 +2,23 @@
  * Rule processor for applying inference rules
  */
 
-import { findConflicts } from '../../cognitive/impls/conflict-utils.js';
-import { formatNarseseTruth, pushCapped, toError } from '@senars/util';
 import type { LMRuleStats } from '@senars/util';
+import { formatNarseseTruth, pushCapped, stopwatch, toError } from '@senars/util';
+import { findConflicts } from '../../cognitive/impls/conflict-utils.js';
+import type { DriveManager } from '../../drives';
 import { GATE_LOG_CAPACITY } from '../../kernel/event-ring.js';
 import type { LMRule } from '../../lm/rule/LMRule.js';
-import type { DriveManager } from '../../drives';
 import type { Memory } from '../../memory';
 import type { LMRuleSelector } from '../../strategies/types.js';
 import type { StampType, Term } from '../../terms';
 import { Truth, type Truth as TruthType } from '../../terms';
 import type { NarEventBus, Task } from '../../types';
-import { META_AIKR_BOUNDS, shouldActivateMetaReasoning } from './meta-rules.js';
-import { DerivationRecorder } from './recorder.js';
-import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils.js';
-import { RuleIndex } from './RuleIndex.js';
-import { RuleRegistry } from './rule-registry.js';
 import type { RegisteredRule, RuleInput, RuleResult } from '../types.js';
+import { META_AIKR_BOUNDS, shouldActivateMetaReasoning } from './meta-rules.js';
+import { RuleIndex } from './RuleIndex.js';
+import { DerivationRecorder } from './recorder.js';
+import { RuleRegistry } from './rule-registry.js';
+import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils.js';
 
 interface LMRuleExecutionEntry {
   ruleName: string;
@@ -64,7 +64,11 @@ export class RuleProcessor {
   private readonly seenBuffer = new Map<string, RuleResult>();
 
   /** Meta-reasoning budget tracking */
-  private stepScalars: { totalConcepts: number; memoryPressure: number; conflictCount: number } | null = null;
+  private stepScalars: {
+    totalConcepts: number;
+    memoryPressure: number;
+    conflictCount: number;
+  } | null = null;
   private metaBudget: MetaBudgetState = {
     derivationsThisStep: 0,
     currentDepth: 0,
@@ -79,7 +83,11 @@ export class RuleProcessor {
     });
   }
 
-  setConfig(config: { memory?: Memory; host?: RuleProcessorHost; recorderEnabled?: boolean }): void {
+  setConfig(config: {
+    memory?: Memory;
+    host?: RuleProcessorHost;
+    recorderEnabled?: boolean;
+  }): void {
     if (config.memory) this.memory = config.memory;
     if (config.host) this.host = config.host;
     if (config.recorderEnabled !== undefined) this.recorder.setEnabled(config.recorderEnabled);
@@ -157,7 +165,11 @@ export class RuleProcessor {
    * whole set is computed at most once per inference step (prompt hints may be
    * a step stale; the values are never load-bearing for admission).
    */
-  private stepMemoryScalars(): { totalConcepts: number; memoryPressure: number; conflictCount: number } {
+  private stepMemoryScalars(): {
+    totalConcepts: number;
+    memoryPressure: number;
+    conflictCount: number;
+  } {
     if (this.stepScalars) return this.stepScalars;
     const stats = this.memory?.getStatistics();
     const beliefs = this.host?.getBeliefs();
@@ -258,8 +270,15 @@ export class RuleProcessor {
         if (this.isMetaRule(rule)) this.recordMetaDerivation(this.metaBudget.currentDepth + 1);
         const conclusion = result.toString();
         if (conclusion === p1s || conclusion === p2s) continue;
-        const ruleResult = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
-        (ruleResult as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType = rule.taskType;
+        const ruleResult = buildResult(
+          result as Term,
+          rule.truthFn ?? NEUTRAL_FN,
+          p1,
+          p2,
+          rule.priority
+        );
+        (ruleResult as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType =
+          rule.taskType;
         this.recorder.record(rule.id, p1, p2, ruleResult);
         // Emit rule:applied event for cost tracking
         this.eventBus?.emit('rule:applied', {
@@ -379,7 +398,7 @@ export class RuleProcessor {
     const results = await Promise.all(
       selected.map(async (lmRule) => {
         if (opts?.signal?.aborted) return [];
-        const startTime = Date.now();
+        const elapsed = stopwatch();
         try {
           const tasks = isSinglePremise
             ? await lmRule.apply(p1.term, p1.term, ruleContext, opts?.signal)
@@ -398,23 +417,31 @@ export class RuleProcessor {
           for (const r of result) {
             this.recorder.record(lmRule.id, p1, effectiveP2, r);
           }
-          pushCapped(this.executionLog, {
-            ruleName: lmRule.name,
-            status: result.length > 0 ? 'fired' : 'timeout',
-            durationMs: Date.now() - startTime,
-            tasksProduced: result.length,
-            timestamp: Date.now(),
-          }, GATE_LOG_CAPACITY);
+          pushCapped(
+            this.executionLog,
+            {
+              ruleName: lmRule.name,
+              status: result.length > 0 ? 'fired' : 'timeout',
+              durationMs: elapsed(),
+              tasksProduced: result.length,
+              timestamp: Date.now(),
+            },
+            GATE_LOG_CAPACITY
+          );
           return result;
         } catch (error) {
           this.handleRuleError(error, lmRule.id);
-          pushCapped(this.executionLog, {
-            ruleName: lmRule.name,
-            status: 'timeout',
-            durationMs: Date.now() - startTime,
-            tasksProduced: 0,
-            timestamp: Date.now(),
-          }, GATE_LOG_CAPACITY);
+          pushCapped(
+            this.executionLog,
+            {
+              ruleName: lmRule.name,
+              status: 'timeout',
+              durationMs: elapsed(),
+              tasksProduced: 0,
+              timestamp: Date.now(),
+            },
+            GATE_LOG_CAPACITY
+          );
           return [];
         }
       })

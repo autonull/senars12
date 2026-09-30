@@ -1,4 +1,4 @@
-import { createLogger } from '@senars/core/logger';
+import { createLogger } from '@senars/util';
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
 import { Truth, termParser, termsEqual } from '../terms';
@@ -176,19 +176,18 @@ export class QueryAPI {
             : null;
     if (!bag) return [];
 
-    return bag.toArray().map(
-      (item) =>
-        createTask(
-          concept.term,
-          type,
-          item.truth ?? Truth.NEUTRAL,
-          item.budget ?? createBudget(concept.priority),
-          {
-            stamp: item.stamp,
-            occurrenceTime: (item.occurrenceTime || Date.now()) as Timestamp,
-            derived: item.derived ?? false,
-          }
-        )
+    return bag.toArray().map((item) =>
+      createTask(
+        concept.term,
+        type,
+        item.truth ?? Truth.NEUTRAL,
+        item.budget ?? createBudget(concept.priority),
+        {
+          stamp: item.stamp,
+          occurrenceTime: (item.occurrenceTime || Date.now()) as Timestamp,
+          derived: item.derived ?? false,
+        }
+      )
     );
   }
 

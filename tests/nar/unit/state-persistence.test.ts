@@ -11,12 +11,13 @@ import {
   TermBuilder,
   Truth,
 } from '../../../nar/src';
+import type { CognitiveController } from '../../../nar/src/cognitive';
+import { createGateRegistry } from '../../../nar/src/kernel';
 import { createSeNARSRegistry } from '../../../nar/src/lm';
 import { createLMService } from '../../../nar/src/lm/lm-service';
-import { createTestController } from '../fixtures/cognitive';
-import type { CognitiveController } from '../../../nar/src/cognitive';
 import { NARExecution } from '../../../nar/src/nar-execution';
 import type { RLFPLearner } from '../../../nar/src/rlfp';
+import { createTestController } from '../fixtures/cognitive';
 
 // Persistence assertions are LM-independent; default to the mock provider so
 // this file stays hermetic (avoids downloading real weights). Explicit
@@ -186,6 +187,7 @@ describe('NARExecution Observability Emission', () => {
     eventBus = new EventBus();
     // Pass eventBus as the 9th parameter (systemEventBus)
     execution = new NARExecution({
+      gates: createGateRegistry(),
       memory,
       taskManager,
       cognitiveController: reasoner,

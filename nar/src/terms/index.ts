@@ -1,4 +1,5 @@
 export {
+  atomKey,
   collectAtomicSymbols,
   containsSubterm,
   foldTerm,
@@ -32,20 +33,25 @@ export {
   walkTerms,
 } from './impls/accessors.js';
 export { getTermComplexity } from './impls/complexity.js';
-export { atom, freeze, TermBuilder, TermFactory } from './impls/factory.js';
+export { atom, TermBuilder, TermFactory } from './impls/factory.js';
 export { normalize } from './impls/normalize.js';
 export type { ParserResult, ParseTaskResult, TaskTypeName } from './impls/parser-peggy.js';
 export { ParseError, TermParser, termParser } from './impls/parser-peggy.js';
-export { deserializeTerm, fromNarsese, serializeTerm, toNarsese } from './impls/serialize.js';
 export type { SerializedStamp, Source, Stamp as StampType } from './impls/Stamp.js';
 export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './impls/Stamp.js';
+export { deserializeTerm, fromNarsese, serializeTerm, toNarsese } from './impls/serialize.js';
 export { substituteVariables } from './impls/substitute.js';
+export type { Truth as TruthType } from './impls/Truth.js';
+export { isTruthEqual, Truth } from './impls/Truth.js';
 export { TermCollection } from './impls/term-collection.js';
 export { parseTermToEdges, type TermEdge } from './impls/term-edges.js';
 export { TermMap } from './impls/term-map.js';
 export { TermSet } from './impls/term-set.js';
-export type { Truth as TruthType } from './impls/Truth.js';
-export { isTruthEqual, Truth } from './impls/Truth.js';
+export type { Substitution } from './impls/unifier.js';
+export { unify } from './impls/unifier.js';
+export type { SymbolQuery } from './impls/utils.js';
+export { calculateSimilarity, extractSymbols, similarityTo, symbolQuery } from './impls/utils.js';
+export { isInvalidTaskTerm, isTautology, validateTaskTerm } from './impls/validation.js';
 export type { AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol, Term } from './types.js';
 export {
   getTermArg,
@@ -55,8 +61,3 @@ export {
   isVariableSymbol,
   OPERATORS,
 } from './types.js';
-export type { Substitution } from './impls/unifier.js';
-export { unify } from './impls/unifier.js';
-export type { SymbolQuery } from './impls/utils.js';
-export { calculateSimilarity, extractSymbols, similarityTo, symbolQuery } from './impls/utils.js';
-export { isInvalidTaskTerm, isTautology, validateTaskTerm } from './impls/validation.js';

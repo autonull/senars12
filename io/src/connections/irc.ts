@@ -1,4 +1,4 @@
-import { createLogger } from '@senars/core/logger';
+import { createLogger } from '@senars/util';
 import { BoundedRing } from '@senars/util';
 import irc, { type Client as IRCClient } from 'irc';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';

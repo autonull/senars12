@@ -1,27 +1,28 @@
-import type { ConceptGraph } from './ConceptGraph.js';
-import { BoundedRing, clamp01, selectTopN, sortByDesc } from '@senars/util';
+import { BoundedRing, occupancy, selectTopN, sortByDesc } from '@senars/util';
 import type { ResolvedBagSlot } from '../bag/registration';
-import { LINK } from '../constants.js';
-import type { AttentionModel } from '../strategies/types.js';
+import { LINK, PRESSURE } from '../constants.js';
 import { NullAttentionModel } from '../strategies/attention/NullAttentionModel.js';
+import type { AttentionModel } from '../strategies/types.js';
 import type { Term } from '../terms';
-import { mentionsSymbol, Stamp, TermMap, TermSet, Truth } from '../terms';
+import { mentionsSymbol, Stamp, TermMap, TermSet, Truth, termKey } from '../terms';
 import { atom } from '../terms/impls/factory.js';
 import type { Budget, Task } from '../types';
 import { NEUTRAL_BUDGET } from '../types';
-import { selectSimilar } from './similarity.js';
+import { nextInt } from '../utils/random.js';
+import { AssociativeRegistry, GraphMemory } from './associative.js';
+import type { ConceptGraph } from './ConceptGraph.js';
 import { Concept, type ConceptMergeResult, type ConceptTaskType } from './concept.js';
 import { Focus } from './focus.js';
 import type { MemoryHealth } from './health.js';
 import type { ForgettingPolicy } from './lifecycle';
 import { Archive, Forgetting } from './lifecycle';
-import { AssociativeRegistry, GraphMemory } from './associative.js';
 import { LinkManager } from './links';
 import { EmbeddingLayer } from './links/EmbeddingLayer.js';
 import { LINK_LAYER } from './links/types.js';
 import { MemoryIndex } from './memory-index.js';
-import { MemoryConsolidation, MemoryScorer, recordConsolidationWatchdogCycle } from './pressure';
-import { calculateConceptStats } from './state';
+import { evictUnderPressure, MemoryScorer } from './pressure';
+import { selectSimilar } from './similarity.js';
+import { calculateConceptStats, tallyConcepts } from './state';
 import { filterByTerm } from './term-filter.js';
 
 export interface MemoryConfig {
@@ -34,7 +35,6 @@ export interface MemoryConfig {
   enableArchive?: boolean;
   enableEmbeddingLayer?: boolean;
   forgettingPolicy?: ForgettingPolicy;
-  healthCheckInterval?: number;
   enablePressureDetection?: boolean;
   linkCapacity?: number;
   termLinkCapacity?: number;
@@ -54,7 +54,6 @@ const DEFAULT_CONFIG: Required<MemoryConfig> = {
   enableArchive: true,
   enableEmbeddingLayer: true,
   forgettingPolicy: 'fifo',
-  healthCheckInterval: 1000,
   enablePressureDetection: true,
   linkCapacity: 1000,
   termLinkCapacity: 1000,
@@ -68,7 +67,12 @@ const DEFAULT_CONFIG: Required<MemoryConfig> = {
 const NULL_ATTENTION = new NullAttentionModel();
 
 export interface RevisionEntry {
-  term: string;
+  /**
+   * `termKey` of the revised term. The log is keyed, never rendered: nothing
+   * reads this as text, so it carries the canonical structural identity rather
+   * than a serialized form that two distinct terms can share.
+   */
+  termKey: string;
   truth: { frequency: number; confidence: number };
   stampId: string;
   timestamp: number;
@@ -98,16 +102,12 @@ export class Memory {
   private readonly focus: Focus;
   private readonly archive: Archive;
   private readonly scorer: MemoryScorer;
-  private readonly consolidation: MemoryConsolidation;
   private readonly forgetting: Forgetting;
   private readonly linkManager: LinkManager;
   private readonly revisionLog = new BoundedRing<RevisionEntry>(Memory.REVISION_LOG_CAP);
   private lastRevisionTs = 0;
   private cyclesSinceConsolidation = 0;
   private lastTimestamp = Date.now();
-  private readonly healthCheckInterval: number;
-  private lastHealthCheck = 0;
-  private pressureLevel = 0;
 
   constructor(
     config: MemoryConfig = DEFAULT_CONFIG,
@@ -116,7 +116,6 @@ export class Memory {
     }
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
-    this.healthCheckInterval = this.config.healthCheckInterval;
     this.#attentionModel = options?.attentionModel ?? NULL_ATTENTION;
     this.index = new MemoryIndex({
       enableAtomicIndex: this.config.enableIndexing,
@@ -132,7 +131,6 @@ export class Memory {
       maxArchivedConcepts: this.config.archiveMaxConcepts,
     });
     this.scorer = new MemoryScorer();
-    this.consolidation = new MemoryConsolidation();
     this.forgetting = new Forgetting(this.config.forgettingPolicy);
     this.linkManager = new LinkManager({
       defaultCapacity: config.linkCapacity ?? LINK.DEFAULT_CAPACITY,
@@ -245,7 +243,7 @@ export class Memory {
   }
 
   getMemoryPressure(): number {
-    return this.pressureLevel;
+    return this.capacityPressure();
   }
 
   getRelatedConcepts(term: Term, limit = 10): Concept[] {
@@ -272,22 +270,29 @@ export class Memory {
 
     if (this.concepts.size >= this.config.maxConcepts) this.applyForgetting();
 
-    const concept = new Concept(term, {
-      onRevision: (entry) => this.recordRevision(entry),
-      bag: this.config.bag,
-    });
-    this.concepts.set(term, concept);
+    return this.adoptConcept(
+      new Concept(term, {
+        onRevision: (entry) => this.recordRevision(entry),
+        bag: this.config.bag,
+      })
+    );
+  }
+
+  /**
+   * Make `concept` the live instance for its term. Adopting the instance rather
+   * than rebuilding one is what lets an archived concept be restored with the
+   * identity its links, tasks and revision history refer to.
+   */
+  private adoptConcept(concept: Concept): Concept {
+    this.concepts.set(concept.term, concept);
 
     if (this.config.enableIndexing) this.index.index(concept, this.lastTimestamp);
-    
-    // Index concept in embedding layer for semantic similarity
+
     const embeddingIndex = this.getEmbeddingIndex();
-    if (embeddingIndex) {
-      embeddingIndex.indexConcept(term).catch(() => {
-        // Fire-and-forget; embedding index failures are non-fatal
-      });
-    }
-    
+    embeddingIndex?.indexConcept(concept.term).catch(() => {
+      // Fire-and-forget; embedding index failures are non-fatal
+    });
+
     this.updateFocus(concept);
     return concept;
   }
@@ -304,9 +309,10 @@ export class Memory {
     return concept.addTask(type, { term, truth, budget, stamp: createdStamp });
   }
 
-  getRevisionHistory(term: string): RevisionEntry[] {
+  getRevisionHistory(term: Term): RevisionEntry[] {
+    const key = termKey(term);
     return sortByDesc(
-      this.revisionLog.filter((entry) => entry.term === term),
+      this.revisionLog.filter((entry) => entry.termKey === key),
       (entry) => entry.timestamp
     );
   }
@@ -334,17 +340,17 @@ export class Memory {
    */
   sampleWindow(windowSize: number, rng: () => number = Math.random): Concept[] {
     this.decayAll();
-    const allConcepts = Array.from(
-      this.concepts.values(),
-      (c) => ({ c, score: this.scorer.scoreForRetrieval(c) })
-    )
+    const allConcepts = Array.from(this.concepts.values(), (c) => ({
+      c,
+      score: this.scorer.scoreForRetrieval(c),
+    }))
       .sort((a, b) => b.score - a.score)
       .map((e) => e.c);
 
     if (allConcepts.length <= windowSize) return allConcepts;
-    
+
     const maxStart = allConcepts.length - windowSize;
-    const start = Math.floor(rng() * (maxStart + 1));
+    const start = nextInt(rng, maxStart + 1);
     return allConcepts.slice(start, start + windowSize);
   }
 
@@ -365,8 +371,7 @@ export class Memory {
 
     this.decayAll();
 
-    const { archived, forgotten } = this.consolidation.evict(this);
-    this.consolidation.record(this.concepts.size, archived, forgotten);
+    evictUnderPressure(this);
 
     this.linkManager.applyDecay(linkDecayRate);
     this.updateAllFocus();
@@ -374,9 +379,6 @@ export class Memory {
     if (opts?.lm) {
       this.lmAssistedConsolidate(opts.lm);
     }
-
-    // Memory consolidation watchdog (1D)
-    recordConsolidationWatchdogCycle(this, this.consolidation);
   }
 
   findDenseClusters(
@@ -422,11 +424,17 @@ export class Memory {
     return toRemove.length;
   }
 
+  /**
+   * Archive a concept out of the live store. The store removal is the point:
+   * an archive that leaves the concept resident does not relieve
+   * `capacityPressure()`, so eviction runs again every cycle against a
+   * population it has already shed, and `retrieveFromArchive` returns a concept
+   * that is simultaneously archived and live.
+   */
   archiveConcept(concept: Concept): boolean {
     if (!this.config.enableArchive) return false;
     this.archive.archive(concept);
-    this.index.remove(concept);
-    return true;
+    return this.removeConcept(concept.term);
   }
 
   clear(): void {
@@ -439,19 +447,24 @@ export class Memory {
 
   /** Occupancy of the concept store in `0..1` — the AIKR pressure signal. */
   capacityPressure(): number {
-    const { maxConcepts } = this.config;
-    return maxConcepts === 0 ? 1 : clamp01(this.concepts.size / maxConcepts);
+    return occupancy(this.concepts.size, this.config.maxConcepts);
+  }
+
+  /** Totals without the tercile pass; what persistence serializes. */
+  totals(): { totalConcepts: number; totalTasks: number } {
+    return tallyConcepts(this.concepts.values());
   }
 
   getStatistics(): MemoryStatistics {
     const stats = calculateConceptStats(this.concepts.values());
+    const pressure = this.capacityPressure();
     const result: MemoryStatistics = {
       totalConcepts: stats.totalConcepts,
       totalTasks: stats.totalTasks,
       focusedConcepts: this.focus.size,
       archivedConcepts: this.config.enableArchive ? this.archive.size : 0,
-      memoryPressure: this.pressureLevel,
-      utilization: this.capacityPressure(),
+      memoryPressure: pressure,
+      utilization: pressure,
       conceptDistribution: {
         lowPriority: stats.lowPriority,
         mediumPriority: stats.mediumPriority,
@@ -470,12 +483,8 @@ export class Memory {
 
   retrieveFromArchive(term: Term): Concept | undefined {
     if (!this.config.enableArchive) return undefined;
-    const concept = this.archive.retrieve(term);
-    if (concept) {
-      this.archive.unarchive(term);
-      this.addConcept(term);
-    }
-    return concept;
+    const concept = this.archive.unarchive(term);
+    return concept ? this.adoptConcept(concept) : undefined;
   }
 
   queryBySymbol(symbol: string): Concept[] {
@@ -489,8 +498,6 @@ export class Memory {
   }
 
   checkHealth(): MemoryHealth {
-    const now = Date.now();
-    if (now - this.lastHealthCheck >= this.healthCheckInterval) this.lastHealthCheck = now;
     return this.computeHealth();
   }
 
@@ -520,7 +527,9 @@ export class Memory {
 
   findSimilarConcepts(term: Term, limit = 10): Concept[] {
     // Without an index the store itself is the only candidate set.
-    const candidates = this.config.enableIndexing ? this.index.indexedConcepts() : this.concepts.values();
+    const candidates = this.config.enableIndexing
+      ? this.index.indexedConcepts()
+      : this.concepts.values();
     return selectSimilar(candidates, term, limit);
   }
 
@@ -611,10 +620,10 @@ export class Memory {
     const utilization = this.capacityPressure();
     const consolidationNeeded = this.cyclesSinceConsolidation >= this.config.consolidationInterval;
     return {
-      isHealthy: utilization < 0.9 && !consolidationNeeded,
+      isHealthy: utilization < PRESSURE.CRITICAL && !consolidationNeeded,
       pressureLevel: utilization,
       consolidationNeeded,
-      forgettingNeeded: utilization > 0.8,
+      forgettingNeeded: utilization > PRESSURE.ARCHIVE,
       recommendations: [],
     };
   }

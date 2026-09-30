@@ -4,6 +4,7 @@
  */
 
 import { createIsotonicCalibrator } from './calibration.js';
+import { dominantDistribution, legendFrom, uniformDistribution } from './distribution.js';
 import type { HeadFactoryOptions } from './heads/factory.js';
 import { getScorer } from './scoring.js';
 import type {
@@ -17,7 +18,13 @@ import type {
 } from './types.js';
 
 export type { HeadFactoryOptions } from './heads/factory.js';
-export type { JudgmentQuery, ClassifyQuery, EvaluateQuery, EmbeddingCache, CalibrationVersion } from './types.js';
+export type {
+  CalibrationVersion,
+  ClassifyQuery,
+  EmbeddingCache,
+  EvaluateQuery,
+  JudgmentQuery,
+} from './types.js';
 
 export interface HeadSpec {
   readonly rubric: RubricId;
@@ -204,7 +211,6 @@ export function createHead(spec: HeadSpec, options: HeadFactoryOptions): Judgmen
   const scorer = getScorer(spec.rubric);
   const isClassify = spec.kind === 'classify';
   const space = isClassify ? (spec.space ?? []) : [];
-  const _uniform = space.map((option) => ({ option, p: 1 / Math.max(1, space.length) }));
 
   return {
     rubric: spec.rubric,
@@ -220,9 +226,7 @@ export function createHead(spec: HeadSpec, options: HeadFactoryOptions): Judgmen
         // Disabled, or a Choice with no options — nothing to judge.
         return {
           score: 0,
-          distribution: isClassify
-            ? options.map((option) => ({ option, p: 1 / Math.max(1, options.length) }))
-            : undefined,
+          distribution: isClassify ? uniformDistribution(options) : undefined,
           abstained: true,
           abstainReason: 'out-of-domain',
         };
@@ -231,38 +235,26 @@ export function createHead(spec: HeadSpec, options: HeadFactoryOptions): Judgmen
       if (calibratedScore < abstainThreshold) {
         return {
           score: calibratedScore,
-          distribution: isClassify
-            ? options.map((option) => ({ option, p: 1 / Math.max(1, options.length) }))
-            : undefined,
+          distribution: isClassify ? uniformDistribution(options) : undefined,
           abstained: true,
           abstainReason: 'low-confidence',
         };
       }
       if (isClassify) {
         const dominantIdx = Math.floor(calibratedScore * options.length) % options.length;
-        const distribution = options.map((option, i) => ({
-          option,
-          p:
-            i === dominantIdx
-              ? calibratedScore
-              : (1 - calibratedScore) / Math.max(1, options.length - 1),
-        }));
-        return { score: calibratedScore, distribution, abstained: false };
+        return {
+          score: calibratedScore,
+          distribution: dominantDistribution(options, calibratedScore, dominantIdx),
+          abstained: false,
+        };
       }
       // Score semantics: probability-weighted position over the ordered legend —
       // triangular kernel around the calibrated scalar at the level anchors.
-      const legend =
-        legendLevels && legendLevels.length > 1
-          ? (() => {
-              const n = legendLevels.length;
-              const weights = legendLevels.map((_, i) =>
-                Math.max(0, 1 - Math.abs(calibratedScore - i / (n - 1)) * (n - 1))
-              );
-              const total = weights.reduce((a, b) => a + b, 0) || 1;
-              return { levels: legendLevels, weights: weights.map((w) => w / total) };
-            })()
-          : undefined;
-      return { score: calibratedScore, legend, abstained: false };
+      return {
+        score: calibratedScore,
+        legend: legendFrom(calibratedScore, legendLevels),
+        abstained: false,
+      };
     },
   };
 }

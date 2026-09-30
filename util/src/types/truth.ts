@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { clamp01 } from '../utils/shared.js';
+import { clamp01 } from '../utils/numeric.js';
 
 export type Frequency = number & { readonly __brand: unique symbol };
 export type Confidence = number & { readonly __brand: unique symbol };
@@ -73,7 +73,6 @@ export function parseTruthLiteral(text: string): { f: number; c: number } | unde
 
 /** The single human/LLM-readable truth rendering — prompt text must not drift between call sites. */
 export function formatTruth(truth: TruthLike, fractionDigits = 2): string {
-  const { f, c } =
-    'f' in truth ? truth : { f: truth.frequency, c: truth.confidence };
+  const { f, c } = 'f' in truth ? truth : { f: truth.frequency, c: truth.confidence };
   return `(f=${f.toFixed(fractionDigits)}, c=${c.toFixed(fractionDigits)})`;
 }

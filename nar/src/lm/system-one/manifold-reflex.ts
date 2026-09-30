@@ -1,11 +1,11 @@
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
 import type { JudgmentDataset } from './distill.js';
+import { PrefetchTable, proposeFromTable } from './prefetch-table.js';
 import { recordReflexOutcome } from './reflex-label-source.js';
 import { DecisionReadout } from './reflex-readout.js';
 import type { EmbeddingPointer, JudgmentManifold } from './types.js';
-import { PrefetchTable, proposeFromTable } from './prefetch-table.js';
 
 /** Optional distillation wiring (C4): record reflex decisions as training labels. */
 export interface ManifoldReflexOptions {
@@ -26,15 +26,18 @@ export class ManifoldReflex extends DecisionReadout implements Reflex<Perception
   #dataset?: JudgmentDataset;
   /** CLM disaggregated embeddings: per-action query objects + embedding pointers,
    *  reused across ticks (only the state is re-encoded per step). */
-  #actionQueries = new Map<string, {
-    query: {
-      kind: 'evaluate';
-      instruction: string;
-      rubric: 'reflex_value';
-      axis: 'teleological';
-    };
-    pointer?: EmbeddingPointer;
-  }>();
+  #actionQueries = new Map<
+    string,
+    {
+      query: {
+        kind: 'evaluate';
+        instruction: string;
+        rubric: 'reflex_value';
+        axis: 'teleological';
+      };
+      pointer?: EmbeddingPointer;
+    }
+  >();
 
   constructor(fallback: Reflex<unknown, unknown>, options?: ManifoldReflexOptions) {
     super();

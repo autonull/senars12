@@ -1,16 +1,16 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createLogger } from '@senars/util';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { BaseConnection } from '../../io/src/connections/base.js';
+import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../../io/src/types.js';
+import { PersistentSpace } from '../../metta/src/extensions/persistent-space.js';
+import type { CognitiveTaskResult } from '../../nar/src/cooperation/delegation.js';
+import { createDelegation, handleDelegationMessage } from '../../nar/src/cooperation/delegation.js';
 import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
 import { SystemOneIngressJudge } from '../../nar/src/lm/system-one/ingress-judge.js';
-import { PersistentSpace } from '../../metta/src/extensions/persistent-space.js';
 import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
-import { handleDelegationMessage, createDelegation } from '../../nar/src/cooperation/delegation.js';
-import type { CognitiveTaskResult } from '../../nar/src/cooperation/delegation.js';
-import { BaseConnection } from '../../io/src/connections/base.js';
-import { createLogger } from '@senars/core/logger';
-import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../../io/src/types.js';
 
 /**
  * Bench 36 — Fail-Closed Integrity (TODO17b Phase A)
@@ -49,12 +49,17 @@ describe('Bench 36 — Fail-Closed Integrity @load-sensitive', () => {
           throw new Error('manifold fault');
         },
       });
-      const result = await gate.admit({ rawObservation: '(robin --> bird)', sourceId: 'test', sensorConfidence: 1, sourceQuality: 'GENERAL' });
+      const result = await gate.admit({
+        rawObservation: '(robin --> bird)',
+        sourceId: 'test',
+        sensorConfidence: 1,
+        sourceQuality: 'GENERAL',
+      });
       expect(result.admitted).toBe(false);
       expect(result.rejectionReason).toContain('fail-closed');
-      const violation = gate
-        .getEventLog()
-        .find((e) => e.type === 'policy.violation') as { payload: { detail: string } };
+      const violation = gate.getEventLog().find((e) => e.type === 'policy.violation') as {
+        payload: { detail: string };
+      };
       expect(violation).toBeDefined();
       expect(violation.payload.detail).toContain('systemone_ingress_error');
     });
@@ -65,7 +70,12 @@ describe('Bench 36 — Fail-Closed Integrity @load-sensitive', () => {
           throw new Error('manifold fault');
         },
       });
-      const result = await gate.admit({ rawObservation: '(robin --> bird)', sourceId: 'test', sensorConfidence: 1, sourceQuality: 'GENERAL' });
+      const result = await gate.admit({
+        rawObservation: '(robin --> bird)',
+        sourceId: 'test',
+        sensorConfidence: 1,
+        sourceQuality: 'GENERAL',
+      });
       expect(result.admitted).toBe(false);
       expect(result.task).toBeUndefined();
     });
@@ -114,14 +124,18 @@ describe('Bench 36 — Fail-Closed Integrity @load-sensitive', () => {
       space.add({ kind: 0, value: 'a' } as never);
       space[Symbol.dispose]();
       await new Promise((r) => setTimeout(r, 20));
-      const persisted = JSON.parse(
-        await fs.readFile(join(dir, 'flush.metta.json'), 'utf-8')
-      ) as { atoms: unknown[] };
+      const persisted = JSON.parse(await fs.readFile(join(dir, 'flush.metta.json'), 'utf-8')) as {
+        atoms: unknown[];
+      };
       expect(persisted.atoms).toHaveLength(1);
     });
 
     it('unrefs the auto-save timer (process can exit)', () => {
-      const space = new PersistentSpace('timer', { storageDir: dir, autoSave: true, saveInterval: 10_000 });
+      const space = new PersistentSpace('timer', {
+        storageDir: dir,
+        autoSave: true,
+        saveInterval: 10_000,
+      });
       space.add({ kind: 0, value: 'a' } as never);
       // unref'd timers don't keep the loop alive — verified indirectly:
       // if the timer were ref'd, vitest teardown would hang.
@@ -169,15 +183,30 @@ describe('Bench 36 — Fail-Closed Integrity @load-sensitive', () => {
       expose(message: IOMessage): void {
         this.handleMessage(message);
       }
-      connect(): Promise<void> { return Promise.resolve(); }
-      disconnect(): Promise<void> { return Promise.resolve(); }
-      send(): Promise<void> { return Promise.resolve(); }
+      connect(): Promise<void> {
+        return Promise.resolve();
+      }
+      disconnect(): Promise<void> {
+        return Promise.resolve();
+      }
+      send(): Promise<void> {
+        return Promise.resolve();
+      }
     }
 
     const makeConfig = (): ConnectionConfig =>
-      ({ id: 'test-conn', enabled: true, type: 'test', config: { name: 'Test' } }) as ConnectionConfig;
+      ({
+        id: 'test-conn',
+        enabled: true,
+        type: 'test',
+        config: { name: 'Test' },
+      }) as ConnectionConfig;
     const makeDeps = (): ConnectionDeps =>
-      ({ emit: () => {}, logger: console, getSessionSpaceId: () => 'test' }) as unknown as ConnectionDeps;
+      ({
+        emit: () => {},
+        logger: console,
+        getSessionSpaceId: () => 'test',
+      }) as unknown as ConnectionDeps;
 
     it('increments errorCount and does not lose the rejection', async () => {
       const conn = new TestConnection(makeConfig(), makeDeps());

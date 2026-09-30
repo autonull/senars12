@@ -1,9 +1,8 @@
 import { BoundedRing, mean } from '@senars/util';
-
-import { SeededRNG } from '../../../utils/random.js';
 import { type Term, TermBuilder, Truth } from '../../../index.js';
 import type { NAR } from '../../../nar.js';
 import type { RandomSource } from '../../../types/primitives.js';
+import { nextInt, SeededRNG } from '../../../utils/random.js';
 import type { QBeliefStore } from '../QBeliefStore.js';
 
 /**
@@ -147,14 +146,14 @@ export class BanditSelector implements NativeActionSelector {
     }
 
     if (lowConfidence.length > 0 && this.rng() < 0.5) {
-      const exploreAction = lowConfidence[Math.floor(this.rng() * lowConfidence.length)];
-      if (!exploreAction) return Math.floor(this.rng() * this.numArms);
+      const exploreAction = lowConfidence[nextInt(this.rng, lowConfidence.length)];
+      if (!exploreAction) return nextInt(this.rng, this.numArms);
       const idx = armIndexOf(exploreAction.toString());
       qStore.stimulateCuriosity(0.05);
       if (idx !== undefined) return idx;
     }
 
-    return Math.floor(this.rng() * this.numArms);
+    return nextInt(this.rng, this.numArms);
   }
 
   onReward(stateId: string, action: number, reward: number): void {}
@@ -239,15 +238,15 @@ export class GridWorldSelector implements NativeActionSelector {
         selectedAction = this.actionNames.indexOf(`move_${match[1]}`);
       }
     } else if (lowConfidence.length > 0 && this.rng() < 0.4) {
-      const exploreAction = lowConfidence[Math.floor(this.rng() * lowConfidence.length)];
-      if (!exploreAction) return Math.floor(this.rng() * 4);
+      const exploreAction = lowConfidence[nextInt(this.rng, lowConfidence.length)];
+      if (!exploreAction) return nextInt(this.rng, 4);
       const match = exploreAction.toString().match(/move_(up|right|down|left)/);
       if (match) {
         selectedAction = this.actionNames.indexOf(`move_${match[1]}`);
       }
       qStore.stimulateCuriosity(0.03);
     } else {
-      selectedAction = Math.floor(this.rng() * 4);
+      selectedAction = nextInt(this.rng, 4);
     }
 
     this.lastStateId = stateId;
@@ -333,14 +332,14 @@ export class NonStationarySelector implements NativeActionSelector {
     }
 
     if (lowConfidence.length > 0 && this.rng() < 0.5) {
-      const exploreAction = lowConfidence[Math.floor(this.rng() * lowConfidence.length)];
-      if (!exploreAction) return Math.floor(this.rng() * this.numArms);
+      const exploreAction = lowConfidence[nextInt(this.rng, lowConfidence.length)];
+      if (!exploreAction) return nextInt(this.rng, this.numArms);
       const idx = armIndexOf(exploreAction.toString());
       qStore.stimulateCuriosity(0.05);
       if (idx !== undefined) return idx;
     }
 
-    return Math.floor(this.rng() * this.numArms);
+    return nextInt(this.rng, this.numArms);
   }
 
   onReward(stateId: string, action: number, reward: number): void {

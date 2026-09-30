@@ -130,12 +130,15 @@ export const termSize = (term: Term): number => {
  */
 const termKeyCache = new WeakMap<Term, string>();
 
+/** An atom's key without building the term — the read side of `termKey` for callers holding a symbol. */
+export const atomKey = (symbol: string): string => `atom:${symbol}`;
+
 /** Canonical structural key for a term — the single identity used for maps, memoization, and link ids. */
 export const termKey = (term: Term): string => {
   const cached = termKeyCache.get(term);
   if (cached !== undefined) return cached;
   const key = isAtomic(term)
-    ? `atom:${term.symbol}`
+    ? atomKey(term.symbol)
     : `${term.kind}:${getArgs(term).map(termKey).join(',')}`;
   termKeyCache.set(term, key);
   return key;

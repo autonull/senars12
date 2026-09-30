@@ -1,6 +1,6 @@
-import type { CommandDefinition } from '@senars/core/command-types';
 import { promises as fs } from 'node:fs';
-import { writeJsonFile } from '@senars/util';
+import type { CommandDefinition } from '@senars/util';
+import { limitList, writeJsonFile } from '@senars/util';
 import { filterByTerm } from '../memory/term-filter.js';
 import { NAR_UNCONFIGURED, narOf } from './utils.js';
 
@@ -8,16 +8,15 @@ const CONCEPT_PREVIEW_LIMIT = 20;
 
 /** `Concepts (n shown[/total]):` block, truncated with an explicit remainder count. */
 const renderConcepts = (concepts: unknown[], shown = concepts.length): string => {
-  const lines = concepts
-    .slice(0, CONCEPT_PREVIEW_LIMIT)
-    .map((c) => ` - ${(c as { term: { toString(): string } }).term}`);
+  const lines = limitList(
+    concepts,
+    CONCEPT_PREVIEW_LIMIT,
+    (c) => ` - ${(c as { term: { toString(): string } }).term}`
+  );
   const header =
     shown === concepts.length
       ? `Concepts (${concepts.length} total):`
       : `Concepts (${shown}/${concepts.length}):`;
-  if (concepts.length > CONCEPT_PREVIEW_LIMIT) {
-    lines.push(` ... and ${concepts.length - CONCEPT_PREVIEW_LIMIT} more`);
-  }
   return [header, ...lines].join('\n');
 };
 

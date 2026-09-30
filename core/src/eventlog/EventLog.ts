@@ -1,6 +1,6 @@
-export type { CognitiveEvent } from '../CognitiveEvent.js';
+export type { CognitiveEvent } from '@senars/util/types/cognitive';
 
-import type { CognitiveEvent } from '../CognitiveEvent.js';
+import type { CognitiveEvent } from '@senars/util/types/cognitive';
 
 /** Phase D (REFACTOR.todo1): indexed event-log query. All fields optional. */
 export interface EventLogQuery {

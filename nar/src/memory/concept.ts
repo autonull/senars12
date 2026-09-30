@@ -1,28 +1,29 @@
 import { asBeliefTruth, clamp01, makeId } from '@senars/util';
-import { createBag, type Bag, type BagOptions } from '../bag/index.js';
+import { type Bag, type BagOptions, createBag } from '../bag/index.js';
 import type { ResolvedBagSlot } from '../bag/registration.js';
 import { LINK } from '../constants.js';
 import type { Term, Truth } from '../terms';
 import {
-  similarityTo,
   type Stamp,
   type SymbolQuery,
+  similarityTo,
   symbolQuery,
   TermMap,
   TermSet,
+  termKey,
   termsEqual,
 } from '../terms';
 import { type IndependenceStatus, Truth as TruthOps } from '../terms/impls/Truth.js';
 import type { Budget, TaskType } from '../types';
+import { jaccard } from '../utils/similarity.js';
 
 export type { IndependenceStatus };
-
 
 const DECAY_TIME_CONSTANT = 60000;
 const { DECAY_RATE, MIN_PRIORITY: MIN_LINK_STRENGTH } = LINK;
 
 export type RevisionCallback = (entry: {
-  term: string;
+  termKey: string;
   truth: { frequency: number; confidence: number };
   stampId: string;
   timestamp: number;
@@ -161,10 +162,6 @@ export class Concept {
       this._priority = clamp01(this._priority * (1 - baseRate));
     }
     this.lastDecayTime = Date.now();
-  }
-
-  applyTimeDecay(baseRate = 0.01): void {
-    this.decayAttention(baseRate);
   }
 
   invalidateTruth(reason: 'temporal' | 'contradiction'): boolean {
@@ -322,7 +319,7 @@ export class Concept {
       const added = this.beliefBag.add(item);
       if (added && this.onRevision && existing.stamp) {
         this.onRevision({
-          term: this.term.toString(),
+          termKey: termKey(this.term),
           truth: asBeliefTruth(revisedTruth),
           stampId: existing.stamp.id,
           timestamp: Date.now(),
@@ -341,7 +338,7 @@ export class Concept {
     const added = this.beliefBag.add(item);
     if (added && this.onRevision && data.truth && data.stamp) {
       this.onRevision({
-        term: this.term.toString(),
+        termKey: termKey(this.term),
         truth: asBeliefTruth(data.truth),
         stampId: data.stamp.id,
         timestamp: Date.now(),
@@ -359,22 +356,12 @@ export class Concept {
   private calculateTaskOverlap(other: Concept): number {
     const thisSet = new TermSet();
     const otherSet = new TermSet();
-
     this.beliefBag.forEach((b) => {
       thisSet.add(b.term);
     });
     other.beliefBag.forEach((b) => {
       otherSet.add(b.term);
     });
-
-    if (thisSet.size === 0 && otherSet.size === 0) return 0;
-
-    let intersection = 0;
-    thisSet.forEach((term) => {
-      if (otherSet.has(term)) intersection++;
-    });
-
-    const union = thisSet.size + otherSet.size - intersection;
-    return union > 0 ? intersection / union : 0;
+    return jaccard(thisSet, otherSet);
   }
 }

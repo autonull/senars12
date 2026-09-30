@@ -201,7 +201,6 @@
     "@senars/core": "workspace:*",
     "@senars/io": "workspace:*",
     "@senars/util": "workspace:*",
-    "ulid": "^3.0.2",
     "zod": "^4.5.4"
   }
 }

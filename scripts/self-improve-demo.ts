@@ -16,7 +16,7 @@ import { sleep } from '@senars/util';
 import { createNAR } from '../nar/src/nar-presets.js';
 import { createSeNARSRegistry } from '../nar/src/lm/index.js';
 import { createLMService } from '../nar/src/lm/lm-service.js';
-import { createLogger } from '@senars/core/logger';
+import { createLogger } from '@senars/util';
 import { META_REASONING_BELIEFS, registerMetaRules } from '../nar/src/rules/impls/meta-rules.js';
 import { initializeSelfConcept, SELF_CONCEPT_BELIEFS } from '../nar/src/tools/impls/self-concept.js';
 

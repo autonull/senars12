@@ -10,21 +10,27 @@
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { v4 as uuidv4 } from 'uuid';
-import { initOtel, shutdownOtel, withSpan } from '@senars/nar/otel';
 import { createCognitiveThread } from '@senars/core';
-import { consumeCycles, createBudgetSlice, mergeConsumption, sliceBudget, type BudgetSlice } from '@senars/core/budget';
+import {
+  type BudgetSlice,
+  consumeCycles,
+  createBudgetSlice,
+  mergeConsumption,
+  sliceBudget,
+} from '@senars/core/budget';
+import { validateCognitiveEvent } from '@senars/core/schemas';
 import { PriorityBag } from '@senars/nar/bag';
 import { CognitiveRegistry } from '@senars/nar/cognitive';
-import { validateCognitiveEvent } from '@senars/core/derivation-schemas';
 import {
   computeReplayStateHash,
+  type ReplaySnapshotFile,
   replayIntoMemory,
   serializeReplayResult,
   verifyReplayStateHash,
-  type ReplaySnapshotFile,
 } from '@senars/nar/kernel/replay';
+import { initOtel, shutdownOtel, withSpan } from '@senars/nar/otel';
+import { v4 as uuidv4 } from 'uuid';
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { CollectingProcessor } from '../helpers/otel.js';
 
 const collector = new CollectingProcessor();
@@ -34,10 +40,10 @@ const budget = (id: string, cycles: number): BudgetSlice =>
   createBudgetSlice({
     id,
     parentId: undefined,
-    totalCycles: cycles,
-    totalDepth: 100,
-    totalMemoryOps: 10_000,
-    totalLMCalls: 100,
+    maxCycles: cycles,
+    maxDepth: 100,
+    maxMemoryOps: 10_000,
+    maxLMCalls: 100,
   });
 
 afterAll(async () => {
@@ -69,7 +75,10 @@ describe('F1 — OTel span events on the tick pipeline (C22)', () => {
     expect(created.some((a) => a['budget.slice.id'] === 'child')).toBe(true);
 
     const consumed = collector.eventsOf('tick', 'budget.slice.consumed');
-    expect(consumed[0]).toMatchObject({ 'budget.slice.resource': 'cycles', 'budget.slice.amount': 4 });
+    expect(consumed[0]).toMatchObject({
+      'budget.slice.resource': 'cycles',
+      'budget.slice.amount': 4,
+    });
     expect(consumed[1]).toMatchObject({ 'budget.slice.id': 'parent', 'budget.slice.amount': 2 });
 
     const exhausted = collector.eventsOf('tick', 'budget.slice.exhausted')[0];
@@ -116,7 +125,9 @@ describe('F1 — OTel span events on the tick pipeline (C22)', () => {
     });
 
     const ok = collector.eventsOf('tick', 'thread.backpressure').filter((a) => a.reason === 'ok');
-    const full = collector.eventsOf('tick', 'thread.backpressure').filter((a) => a.reason === 'mailbox-full');
+    const full = collector
+      .eventsOf('tick', 'thread.backpressure')
+      .filter((a) => a.reason === 'mailbox-full');
     expect(ok.length).toBe(1);
     expect(full.length).toBe(1);
     expect(full[0]).toMatchObject({ threadId: 'worker', allowed: false, mailboxCapacity: 1 });
@@ -181,7 +192,7 @@ describe('F2 — deterministic replay verification (C14)', () => {
 
     const result = await replayIntoMemory({ gateEventsPath: gateEventsFile });
     const hash = await computeReplayStateHash(result);
-    
+
     // Serialize the SAME result to snapshot
     const path = join(dir, 'snapshot.json');
     await serializeReplayResult(result, path);

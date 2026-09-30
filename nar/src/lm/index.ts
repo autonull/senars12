@@ -5,6 +5,7 @@ export type { EnricherConfig, EnricherSystemOneDeps, EnrichmentResult } from './
 export { createProactiveEnricher, ProactiveEnricher } from './enrichment.js';
 export type {
   LMProfileName,
+  LMProviderName,
   LMSettings,
   LMSettingsInput,
   ResolvedLMConfig,
@@ -12,10 +13,12 @@ export type {
 } from './env-config.js';
 export {
   builtinModels,
+  cloudApiKey,
   defaultModelFor,
   detectCloudProvider,
   formatLMConfig,
   LM_PROFILES,
+  LM_PROVIDER_NAMES,
   resolveLMConfig,
   resolveLMSettings,
 } from './env-config.js';
@@ -56,12 +59,15 @@ export {
   LMService,
 } from './lm-service.js';
 export { getProviderRuntime, type ProviderHealth, ProviderRuntime } from './provider-runtime.js';
+export { probeEmbeddedLlama } from './providers/embedded-llamacpp.js';
+export { resetCircuitBreakers } from './providers/health.js';
 export {
   createLlamaCppFetch,
   LLAMACPP_HOST_DEFAULT,
   probeLlamaCpp,
   runWithGrammar,
 } from './providers/llamacpp.js';
+export { fetchBounded, probeModelsEndpoint } from './providers/probe.js';
 export type {
   CandidateScore,
   CircuitBreakerConfig,
@@ -105,6 +111,10 @@ export {
   resolveOfflineTier,
   setRouting,
 } from './providers.js';
-export type { ShadowCheckOptions, ShadowSystemOneDeps, ShadowValidationResult } from './shadow-validation.js';
+export type {
+  ShadowCheckOptions,
+  ShadowSystemOneDeps,
+  ShadowValidationResult,
+} from './shadow-validation.js';
 export { ShadowValidator, shadowValidator } from './shadow-validation.js';
 export { createLMStats, recordLMCall } from './stats.js';

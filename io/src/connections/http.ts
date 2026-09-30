@@ -1,7 +1,7 @@
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import { URL } from 'node:url';
-import { makeId } from '@senars/core/helpers';
-import { createLogger } from '@senars/core/logger';
+import { makeId } from '@senars/util';
+import { createLogger } from '@senars/util';
 import { BoundedMap, type HealthReport } from '@senars/util';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { ApiKeyManager, parseHttpBody, setCORSHeaders, startHttpServer } from '../utils/http.js';

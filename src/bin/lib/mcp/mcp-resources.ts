@@ -1,9 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { NAR } from '@senars/nar';
 import type { ExtendedAgent as Agent } from '@senars/nar/agent';
-import { getRoutingStatus } from '@senars/nar/lm';
-import { cloudApiKey } from '@senars/nar/lm/env-config.js';
-import type { NAR } from '../../../../nar/src';
+import { cloudApiKey, getRoutingStatus } from '@senars/nar/lm';
 import type { JobManager } from './job-manager.js';
 import {
   formatBeliefsForMCP,

@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * `senars status` — live System One observability (I2/X12):
  * manifold health, per-head calibration, spend counters, dataset/lock artifacts,
@@ -6,32 +7,45 @@
  *
  * Flags:
  *   --json   Machine-readable output (non-TTY mode)
- *   --budget Show budget slice tree (AIKR observability)
+ *   --budget Show the root budget slice (AIKR observability)
  */
 
-import { mettaPort } from './metta.js';
 import { existsSync, statSync } from 'node:fs';
-import { loadConfig } from '../../config/index.js';
+import { type BudgetSlice, isExhausted, pressure, remainingAll } from '@senars/core/budget';
 import { createLMService } from '@senars/nar';
 import { NARBuilder } from '@senars/nar/agent/builder';
-import { HEAD_SPECS } from '@senars/nar/lm/system-one/head-specs.js';
-import { SystemOneManifold } from '@senars/nar/lm/system-one/manifold.js';
+import {
+  CALIBRATION_LOCK_PATH,
+  HEAD_SPECS,
+  type SystemOneManifold,
+} from '@senars/nar/lm/system-one';
+import { createLogger, errMsg, parseFlags, pct } from '@senars/util';
+import { loadConfig } from '../../config/index.js';
 import { systemOneDefaults, systemOneSchema } from '../../config/schema.js';
-import { createLogger } from '@senars/core/logger';
-import { formatBudgetSliceTree, collectBudgetSlices, type BudgetSlice } from '@senars/core/budget';
-import { errMsg, parseFlags } from '@senars/util';
-import { CALIBRATION_LOCK_PATH } from '@senars/nar/lm/system-one/calibration-fit.js';
+import { mettaPort } from './metta.js';
 
 const logger = createLogger({ scope: 'status' });
 
 interface StatusReport {
   systemOne: { enabled: boolean; provenance: 'config-file' | 'default' };
   manifold: { provider: string; health: Record<string, unknown> } | null;
-  heads: Array<{ headId: string; kind: string; ece: number | null; abstainThreshold: number | null }>;
+  heads: Array<{
+    headId: string;
+    kind: string;
+    ece: number | null;
+    abstainThreshold: number | null;
+  }>;
   spend: Record<string, { calls: number; tokensIn: number; tokensOut: number; costMilli: number }>;
-  artifacts: { datasetPath: string; datasetExists: boolean; datasetBytes: number; lockPath: string; lockExists: boolean; lockBytes: number };
+  artifacts: {
+    datasetPath: string;
+    datasetExists: boolean;
+    datasetBytes: number;
+    lockPath: string;
+    lockExists: boolean;
+    lockBytes: number;
+  };
   governance: { attachedGames: number; awaitingValidation: number; awaitingApproval: number };
-  budget?: { slices: Map<string, BudgetSlice> };
+  budget?: { slice: BudgetSlice };
 }
 
 const byteSize = (path: string): { exists: boolean; bytes: number } => {
@@ -48,7 +62,13 @@ const collect = async (): Promise<StatusReport> => {
       ? 'default'
       : 'config-file';
 
-  const nar = (await new NARBuilder().withLM(createLMService()).withMetta(mettaPort()).withNarConfig({ systemOne }).build()).nar;
+  const nar = (
+    await new NARBuilder()
+      .withLM(createLMService())
+      .withMetta(mettaPort())
+      .withNarConfig({ systemOne })
+      .build()
+  ).nar;
   const dataset = byteSize(systemOne.distillation.datasetPath);
   const lock = byteSize(CALIBRATION_LOCK_PATH);
   const report: StatusReport = {
@@ -69,7 +89,10 @@ const collect = async (): Promise<StatusReport> => {
 
   const manifold = nar.getSystemOneManifold();
   if (manifold && 'health' in manifold) {
-    report.manifold = { provider: systemOne.manifold.provider, health: manifold.health() as unknown as Record<string, unknown> };
+    report.manifold = {
+      provider: systemOne.manifold.provider,
+      health: manifold.health() as unknown as Record<string, unknown>,
+    };
     const sysManifold = manifold as SystemOneManifold;
     const calibrators = sysManifold.getCalibrators?.();
     const thresholds = sysManifold.getAbstainThresholds?.();
@@ -91,21 +114,40 @@ const collect = async (): Promise<StatusReport> => {
     awaitingApproval: governance.approval,
   };
 
-  // Collect budget slices if --budget flag is present
+  // Optional capability: absent unless a root budget slice is exposed on the NAR.
   if (parseFlags().has('--budget')) {
-    // Optional capability: absent unless a root budget slice is exposed on the NAR.
     const rootSlice = (nar as { getRootBudgetSlice?: () => BudgetSlice }).getRootBudgetSlice?.();
-    if (rootSlice) {
-      report.budget = { slices: collectBudgetSlices(rootSlice) };
-    }
+    if (rootSlice) report.budget = { slice: rootSlice };
   }
 
   await nar.dispose?.();
   return report;
 };
 
+const DIMENSIONS = [
+  ['cycles', 'maxCycles'],
+  ['depth', 'maxDepth'],
+  ['memoryOps', 'maxMemoryOps'],
+  ['llmCalls', 'maxLMCalls'],
+] as const;
+
+/** The root slice's per-dimension spend, worst dimension, and terminal state. */
+const renderBudgetSlice = (slice: BudgetSlice): string => {
+  const remaining = remainingAll(slice);
+  const rows = DIMENSIONS.map(
+    ([consumed, total]) =>
+      `  ${consumed.padEnd(11)} ${slice.consumed[consumed]}/${slice[total]}  remaining ${remaining[consumed]}`
+  );
+  rows.push(`  pressure    ${pct(pressure(slice))}`);
+  if (slice.terminationReason) rows.push(`  TERMINATED  ${slice.terminationReason}`);
+  else if (isExhausted(slice)) rows.push('  TERMINATED  all dimensions spent');
+  return ['Budget slice:', ...rows].join('\n');
+};
+
 const renderText = (r: StatusReport): void => {
-  console.log(`System One: ${r.systemOne.enabled ? 'enabled' : 'disabled'} (${r.systemOne.provenance})`);
+  console.log(
+    `System One: ${r.systemOne.enabled ? 'enabled' : 'disabled'} (${r.systemOne.provenance})`
+  );
   if (r.manifold) {
     console.log(`Manifold (${r.manifold.provider}):`, JSON.stringify(r.manifold.health));
     console.log('Heads:');
@@ -120,7 +162,9 @@ const renderText = (r: StatusReport): void => {
   if (providers.length > 0) {
     console.log('Spend:');
     for (const [provider, s] of providers)
-      console.log(`  ${provider}: ${s.calls} calls, ${s.tokensIn}/${s.tokensOut} tokens, ${s.costMilli} milli-USD`);
+      console.log(
+        `  ${provider}: ${s.calls} calls, ${s.tokensIn}/${s.tokensOut} tokens, ${s.costMilli} milli-USD`
+      );
   }
   console.log(
     `Dataset: ${r.artifacts.datasetPath} (${r.artifacts.datasetExists ? `${r.artifacts.datasetBytes} B` : 'absent'})`
@@ -132,10 +176,7 @@ const renderText = (r: StatusReport): void => {
     `Governance: ${r.governance.attachedGames} attached game(s), awaiting validation: ${r.governance.awaitingValidation}, awaiting approval: ${r.governance.awaitingApproval}`
   );
 
-  if (r.budget) {
-    console.log('');
-    console.log(formatBudgetSliceTree(r.budget.slices));
-  }
+  if (r.budget) console.log(`\n${renderBudgetSlice(r.budget.slice)}`);
 };
 
 export const runStatus = async (): Promise<StatusReport> => {

@@ -1,5 +1,5 @@
-import { BoundedRing, PushQueue, Signal, makeId } from '@senars/util';
-import type { DerivationRecord, DerivationStep, TruthValue } from '@senars/core/derivation-schemas';
+import type { DerivationRecord, DerivationStep, TruthValue } from '@senars/core/schemas';
+import { asBeliefTruth, BoundedRing, makeId, PushQueue, Signal } from '@senars/util';
 import type { RuleInput, RuleResult } from '../types.js';
 
 type Independence = DerivationStep['independence'];
@@ -29,11 +29,6 @@ export function inferRuleCategory(ruleId: string): RuleCategory {
   }
   return 'logic';
 }
-
-const truthValue = (t: { f: number; c: number }): TruthValue => ({
-  frequency: t.f,
-  confidence: t.c,
-});
 
 const ancestorsOf = (input: RuleInput): Set<string> => {
   const set = new Set<string>();
@@ -119,8 +114,8 @@ export class DerivationRecorder {
       ruleCategory: inferRuleCategory(ruleId),
       premises: [p1.term.toString(), p2.term.toString()],
       conclusion: result.term.toString(),
-      truth: truthValue(result.truth),
-      premiseTruths: [truthValue(p1.truth), truthValue(p2.truth)],
+      truth: asBeliefTruth(result.truth),
+      premiseTruths: [asBeliefTruth(p1.truth), asBeliefTruth(p2.truth)],
       evidenceLineage: lineage,
       independence,
     };

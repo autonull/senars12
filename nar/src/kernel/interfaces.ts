@@ -1,23 +1,23 @@
 import type {
-  PerceptionGateInput,
-  PerceptionGateOutput,
   ActionGateInput,
   ActionGateOutput,
-  RewardGateInput,
-  RewardGateOutput,
+  AutonomyMode,
+  AutonomyModeChangedEvent,
+  BudgetExhaustedEvent,
   BudgetGateInput,
   BudgetGateOutput,
-  ReasoningBudget,
-  AutonomyMode,
   CognitiveEvent,
-  PolicyViolationEvent,
-  BudgetExhaustedEvent,
-  AutonomyModeChangedEvent,
   FormalizationBatch,
-  SourceQuality,
+  PerceptionGateInput,
+  PerceptionGateOutput,
+  PolicyViolationEvent,
+  ReasoningBudget,
+  RewardGateInput,
+  RewardGateOutput,
   ShadowValidationDropEvent,
-} from '@senars/core/derivation-schemas';
-import type { Term, TaskTypeName } from '../terms';
+  SourceQuality,
+} from '@senars/core/schemas';
+import type { TaskTypeName, Term } from '../terms';
 import type { IngressJudge } from './ingress.js';
 
 /** Structural init configs — no concrete kernel-gate imports (keeps this module a leaf). */

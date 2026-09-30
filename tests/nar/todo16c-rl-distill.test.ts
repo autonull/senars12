@@ -1,23 +1,23 @@
-import { describe, it, expect } from 'vitest';
-import { ManifoldRLAgent } from '../../nar/src/lm/system-one/manifold-rl-agent.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { JudgmentDataset, runBakeOff } from '../../nar/src/lm/system-one/distill.js';
-import { recordReflexOutcome } from '../../nar/src/lm/system-one/reflex-label-source.js';
-import {
-  loadTrainingData,
-  trainHead,
-  writeHeadArtifacts,
-  loadHeadArtifacts,
-  pearson,
-} from '../../nar/src/lm/system-one/train.js';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
-import { GridWorldGame } from '../../nar/src/game/impls/GridWorldGame.js';
-import type { GridWorldState } from '../../nar/src/game/impls/GridWorldGame.js';
-import { QLearning } from './rl/baselines/gridworld.js';
 import { mkdtempSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { describe, expect, it } from 'vitest';
+import type { GridWorldState } from '../../nar/src/game/impls/GridWorldGame.js';
+import { GridWorldGame } from '../../nar/src/game/impls/GridWorldGame.js';
+import { JudgmentDataset, runBakeOff } from '../../nar/src/lm/system-one/distill.js';
+import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
+import { ManifoldRLAgent } from '../../nar/src/lm/system-one/manifold-rl-agent.js';
+import { recordReflexOutcome } from '../../nar/src/lm/system-one/reflex-label-source.js';
+import {
+  loadHeadArtifacts,
+  loadTrainingData,
+  pearson,
+  trainHead,
+  writeHeadArtifacts,
+} from '../../nar/src/lm/system-one/train.js';
+import { QLearning } from './rl/baselines/gridworld.js';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,
@@ -38,7 +38,13 @@ function distanceToGoal(state: GridWorldState): number {
 }
 
 function stateDigest(state: GridWorldState): string {
-  return JSON.stringify({ row: state.row, col: state.col, goalRow: state.goalRow, goalCol: state.goalCol, distanceToGoal: distanceToGoal(state) });
+  return JSON.stringify({
+    row: state.row,
+    col: state.col,
+    goalRow: state.goalRow,
+    goalCol: state.goalCol,
+    distanceToGoal: distanceToGoal(state),
+  });
 }
 
 function allCells(): GridWorldState[] {
@@ -64,7 +70,11 @@ function randomEpisode(game: GridWorldGame, maxSteps = 30): number {
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 /** Play the tabular-Q baseline, recording (state, action, MC-return) labels with state embeddings. */
-async function collectDistillationDataset(cache: EmbeddingCache, episodes: number, basePath: string) {
+async function collectDistillationDataset(
+  cache: EmbeddingCache,
+  episodes: number,
+  basePath: string
+) {
   const dataset = new JudgmentDataset(basePath);
   const outcomeMeans = new Map<string, number>();
   const outcomeSums = new Map<string, { sum: number; count: number }>();
@@ -123,7 +133,11 @@ describe('Reflex-Value Distillation Loop (Bench 21)', () => {
     // 2. Train the reflex_value head from the inline vector JSONL
     const rows = await loadTrainingData({ datasetPath, headId: 'reflex_value' });
     expect(rows.length).toBeGreaterThan(0);
-    const model = trainHead(rows, { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' }, { holdoutFraction: 0 });
+    const model = trainHead(
+      rows,
+      { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' },
+      { holdoutFraction: 0 }
+    );
 
     // 3. Digest-pinned artifacts
     const bundle = await writeHeadArtifacts(model, headDir);
@@ -157,7 +171,14 @@ describe('Reflex-Value Distillation Loop (Bench 21)', () => {
         qValues.push(clamp01(qTable.get(`${cell.row},${cell.col}`)?.[action] ?? 0));
       }
     }
-    console.log("DBG corrFit", pearson(candidates, labelMeans).toFixed(3), "corrQ", pearson(candidates, qValues).toFixed(3), "ceiling", pearson(labelMeans, qValues).toFixed(3));
+    console.log(
+      'DBG corrFit',
+      pearson(candidates, labelMeans).toFixed(3),
+      'corrQ',
+      pearson(candidates, qValues).toFixed(3),
+      'ceiling',
+      pearson(labelMeans, qValues).toFixed(3)
+    );
     expect(pearson(candidates, labelMeans)).toBeGreaterThan(0.98);
     const ceilingCorr = pearson(labelMeans, qValues);
     expect(pearson(candidates, qValues)).toBeGreaterThanOrEqual(ceilingCorr - 0.02);
@@ -165,19 +186,30 @@ describe('Reflex-Value Distillation Loop (Bench 21)', () => {
     // Bake-off parity: the trained candidate reproduces the recorded outcome table
     // (exact label-mean incumbent) within the 2% regression tolerance.
     const bakeOffCases = allCells().flatMap((cell) =>
-      [0, 1, 2, 3].map((action) => {
-        const mean = outcomeMeans.get(`${stateDigest(cell)}|${action}`);
-        if (mean === undefined) return null;
-        return {
-          truth: clamp01(mean),
-          incumbent: clamp01(mean),
-          candidate: trainedHead.score(cache.read(cachePointers.get(stateDigest(cell))!)!, String(action)),
-        };
-      }).filter((c) => c !== null)
+      [0, 1, 2, 3]
+        .map((action) => {
+          const mean = outcomeMeans.get(`${stateDigest(cell)}|${action}`);
+          if (mean === undefined) return null;
+          return {
+            truth: clamp01(mean),
+            incumbent: clamp01(mean),
+            candidate: trainedHead.score(
+              cache.read(cachePointers.get(stateDigest(cell))!)!,
+              String(action)
+            ),
+          };
+        })
+        .filter((c) => c !== null)
     );
     const bakeOff = runBakeOff(
       undefined,
-      { headId: 'reflex_value', modelDigest: bundle.modelDigest, calibrationVersion: 'v2.4.1', abstainThreshold: 0, enabled: true },
+      {
+        headId: 'reflex_value',
+        modelDigest: bundle.modelDigest,
+        calibrationVersion: 'v2.4.1',
+        abstainThreshold: 0,
+        enabled: true,
+      },
       bakeOffCases
     );
     expect(bakeOff.accepted).toBe(true);
@@ -185,17 +217,29 @@ describe('Reflex-Value Distillation Loop (Bench 21)', () => {
     // 5. Policy check: trained head drives the agent past random and the untrained regime
     const trainedManifold = createManifold(cache, { abstainThreshold: 0.05 });
     trainedManifold.registerHead(trainedHead);
-    const trainedAgent = new ManifoldRLAgent({ cache, manifold: trainedManifold, budget, epsilon: 0.05 });
+    const trainedAgent = new ManifoldRLAgent({
+      cache,
+      manifold: trainedManifold,
+      budget,
+      epsilon: 0.05,
+    });
     const trainedRewards: number[] = [];
     for (let ep = 0; ep < 50; ep++) {
       trainedRewards.push(await trainedAgent.runEpisode(new GridWorldGame({ grid, seed: ep }), 30));
     }
 
     const plainManifold = createManifold(cache, { abstainThreshold: 0.05 });
-    const untrainedAgent = new ManifoldRLAgent({ cache, manifold: plainManifold, budget, epsilon: 0.05 });
+    const untrainedAgent = new ManifoldRLAgent({
+      cache,
+      manifold: plainManifold,
+      budget,
+      epsilon: 0.05,
+    });
     const untrainedRewards: number[] = [];
     for (let ep = 0; ep < 50; ep++) {
-      untrainedRewards.push(await untrainedAgent.runEpisode(new GridWorldGame({ grid, seed: ep }), 30));
+      untrainedRewards.push(
+        await untrainedAgent.runEpisode(new GridWorldGame({ grid, seed: ep }), 30)
+      );
     }
 
     const randomRewards: number[] = [];

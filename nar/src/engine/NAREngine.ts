@@ -1,4 +1,3 @@
-import type { CognitiveEvent } from '@senars/core/cognitive-event';
 import type {
   CognitiveStimulus,
   Context,
@@ -7,13 +6,16 @@ import type {
   ToolResult,
 } from '@senars/core/engine';
 import { BaseEngine } from '@senars/core/engine/base';
-import { asBeliefTruth, isNarsese } from '@senars/util';
+import { asBeliefTruth, createLogger, errMsg, isNarsese } from '@senars/util';
+import type { CognitiveEvent } from '@senars/util/types/cognitive';
 import { MAPPED_NAR_EVENTS, narEventToCognitive } from '../events/bridge.js';
+import { filterByTerm } from '../memory/term-filter.js';
 import { NAR } from '../nar.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
-import { filterByTerm } from '../memory/term-filter.js';
 
 export type CognitiveEventEmitter = (event: CognitiveEvent) => void;
+
+const logger = createLogger({ scope: 'nar-engine', level: 'debug' });
 
 export class NAREngine extends BaseEngine {
   readonly id: EngineId = 'nar';
@@ -21,6 +23,7 @@ export class NAREngine extends BaseEngine {
 
   #nar: NAR;
   #emitCognitive?: CognitiveEventEmitter;
+  readonly #unwire: Array<() => void> = [];
 
   constructor(nar?: NAR, emitCognitive?: CognitiveEventEmitter) {
     super();
@@ -34,15 +37,10 @@ export class NAREngine extends BaseEngine {
 
   async reason(stimulus: CognitiveStimulus, context: Context): Promise<Derivation[]> {
     const text = stimulus.text;
-    console.error(
-      '[NAREngine.reason] Input:',
-      JSON.stringify(text),
-      'isNarsese:',
-      isNarsese(text)
-    );
+    // One parse of the router decision: it gates the whole method, and the
+    // previous shape tested it twice and serialized the input to say so.
     if (!isNarsese(text)) return [];
 
-    console.log('[NAREngine.reason] Processing Narsese...');
     // Strip tense/truth markers before parsing: "statement. :|:" or "statement. :!:"
     const clean = text.replace(/\.\s*:\|:\s*$/, '.').replace(/\.\s*:!:\s*$/, '.');
     try {
@@ -73,13 +71,10 @@ export class NAREngine extends BaseEngine {
         truth: asBeliefTruth(b.truth),
         timestamp,
       }));
-      console.log(
-        '[NAREngine.reason] Returning derivations:',
-        derivations.map((d) => d.term)
-      );
+      logger.debug('derivations', { terms: derivations.map((d) => d.term) });
       return derivations;
     } catch (e) {
-      console.error('[NAREngine.reason] Error:', e);
+      logger.warn('reason failed', { error: errMsg(e) });
       return [];
     }
   }
@@ -108,6 +103,7 @@ export class NAREngine extends BaseEngine {
   }
 
   protected async doShutdown(): Promise<void> {
+    this.#unwireEventBridge();
     if (this.#nar.isRunning()) {
       await this.#nar.stop();
     }
@@ -117,20 +113,33 @@ export class NAREngine extends BaseEngine {
     // NAR can learn from tool results in future
   }
 
+  /**
+   * `initialize` is idempotent on the NAR but not on this bridge, so a second
+   * call would double every subscriber and emit each event twice. Wiring is
+   * therefore a paired unbind rather than a bare registration loop.
+   */
   #wireEventBridge(): void {
+    if (this.#unwire.length > 0) return;
     const eventBus = this.#nar.getEventBus();
     const systemEventBus = this.#nar.getSystemEventBus();
     const emitter = this.#emitCognitive;
 
     for (const eventKey of MAPPED_NAR_EVENTS) {
       const handler = (data: unknown) => {
-        const cognitive = narEventToCognitive(eventKey, data, 'nar');
-        if (cognitive && emitter) {
-          emitter(cognitive);
-        }
+        const cognitive = narEventToCognitive(eventKey, data);
+        if (cognitive && emitter) emitter(cognitive);
       };
       eventBus.on(eventKey as string, handler);
       systemEventBus.on(eventKey as string, handler);
+      this.#unwire.push(() => {
+        eventBus.off(eventKey as string, handler);
+        systemEventBus.off(eventKey as string, handler);
+      });
     }
+  }
+
+  #unwireEventBridge(): void {
+    for (const off of this.#unwire) off();
+    this.#unwire.length = 0;
   }
 }

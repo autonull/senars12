@@ -1,6 +1,6 @@
-import type { RewardDomain } from '@senars/core/derivation-schemas';
-import { SenarsError } from '@senars/util/errors';
+import type { RewardDomain } from '@senars/core/schemas/governance';
 import { clamp, clamp01 } from '@senars/util';
+import { SenarsError } from '@senars/util/errors';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { SelfRewardGate } from '../kernel/KernelRewardGate.js';
 import type { LearningEvent, Reflex } from '../reflex/Reflex.js';
@@ -16,7 +16,11 @@ export interface DomainLearningEvent {
 
 export class CrossDomainError extends SenarsError {
   constructor(learner: string, expected: string, got: string) {
-    super(`${learner} declares domain ${expected} but received ${got}`, 'CROSS_DOMAIN', { learner, expected, got });
+    super(`${learner} declares domain ${expected} but received ${got}`, 'CROSS_DOMAIN', {
+      learner,
+      expected,
+      got,
+    });
   }
 }
 

@@ -80,7 +80,9 @@ describe('RuleProcessor LM Rule Priority', () => {
     expect(context?.taskTerm).toBe('A');
     expect(context?.secondaryTerm).toBe('B');
     expect(context?.totalConcepts).toBe(2);
-    expect(context?.memoryPressure).toBe(0);
+    // 2 concepts in the 100-concept store configured above — the accessor reports
+    // the real occupancy rather than a constant.
+    expect(context?.memoryPressure).toBeCloseTo(2 / 100);
     expect(Array.isArray(context?.relatedBeliefs)).toBe(true);
   });
 

@@ -2,26 +2,27 @@ import type {
   AmbiguityFlag,
   FormalizationBatch,
   FormalizationCandidate,
-} from '@senars/core/derivation-schemas';
-import { validateFormalizationBatch } from '@senars/core/derivation-schemas';
+} from '@senars/core/schemas';
+import { validateFormalizationBatch } from '@senars/core/schemas';
+import { asBeliefTruth, errMsg, makeId, pct, stableStringify } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { generateObject, generateText, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
 import type { SeNARSRegistry } from '../lm';
 import { getModelForTask } from '../lm';
 import type { ILMService } from '../lm/interfaces.js';
-import { asBeliefTruth, errMsg, makeId, pct, stableStringify } from '@senars/util';
 import type { TranslationCache, TranslationCacheEntry, TranslationResult } from './cache.js';
 import { type FirewallOptions, SymbolicFirewall } from './firewall.js';
 import { buildUnderstandingPrompt } from './prompts/understanding-v1.js';
-import { TaskBatchSchema } from './schemas.js';
 import { resolveStructuredLm } from './resolve-lm.js';
+import { TaskBatchSchema } from './schemas.js';
 import { SingleFlight } from './singleflight.js';
 
 /** Canonical definitions live in types/events (EventMap depends on them); re-exported here for the nl surface. */
 export type { Ambiguity, Coreference, TaskBatch } from '../types/events.js';
-import type { TaskBatch } from '../types/events.js';
+
 import { parseJsonWith } from '../lm/json.js';
+import type { TaskBatch } from '../types/events.js';
 
 export interface NLContext {
   beliefs?: string[];
@@ -116,8 +117,7 @@ export class NLUnderstandingService {
       try {
         const result = await this.translateWithLM(input, ctx, lastError, attemptTemps[attempt]);
         if (result) {
-          const empty =
-            result.beliefs.length + result.questions.length + result.goals.length === 0;
+          const empty = result.beliefs.length + result.questions.length + result.goals.length === 0;
           if (!empty) return this.sanitize(result);
           lastBatch = result;
           lastError = 'Empty task batch (no beliefs, questions, or goals)';
@@ -228,7 +228,7 @@ export class NLUnderstandingService {
       recentExamples: ctx?.recentExamples,
       lastError,
       memorySnapshot: ctx?.memoryHealth
-        ? `Memory: ${ctx.memoryHealth.totalConcepts} concepts, pressure ${pct(ctx.memoryHealth.pressure , 0)}`
+        ? `Memory: ${ctx.memoryHealth.totalConcepts} concepts, pressure ${pct(ctx.memoryHealth.pressure, 0)}`
         : undefined,
     });
 

@@ -10,9 +10,9 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TaskManager, TermBuilder, Truth } from '../../../nar/src';
-import type { InferenceController } from '../../../nar/src/reason/inference-controller.js';
 import { NARIO } from '../../../nar/src/nar-io.js';
 import { NARLM } from '../../../nar/src/nar-lm.js';
+import type { InferenceController } from '../../../nar/src/reason/inference-controller.js';
 import { createTask } from '../../../nar/src/types/index.js';
 import { NAR } from '../../../src';
 
@@ -91,7 +91,7 @@ describe('NARIO', () => {
   beforeEach(() => {
     nar = new NAR();
     taskManager = new TaskManager(nar.memory, {});
-    nario = new NARIO(nar.memory, taskManager, nar.getConfig());
+    nario = new NARIO(nar.memory, taskManager, nar.getConfig(), nar.gates);
   });
 
   it('should create NARIO instance', () => {
@@ -247,7 +247,7 @@ describe('Integration: inference + NARIO', () => {
     nar = new NAR();
     taskManager = new TaskManager(nar.memory, {});
     inference = nar.cognitiveController.getInferenceController();
-    nario = new NARIO(nar.memory, taskManager, nar.getConfig());
+    nario = new NARIO(nar.memory, taskManager, nar.getConfig(), nar.gates);
   });
 
   it('should chain input and reasoning', async () => {

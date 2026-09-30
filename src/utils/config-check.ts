@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
-import { cloudApiKey, formatLMConfig, resolveLMConfig } from '../../nar/src/lm/env-config.js';
-import { createLogger } from '@senars/core/logger';
+import { cloudApiKey, formatLMConfig, resolveLMConfig } from '@senars/nar/lm';
+import { createLogger } from '@senars/util';
 
 const logger = createLogger({ scope: 'config:check' });
 

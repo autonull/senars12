@@ -1,4 +1,4 @@
-import type { SourceQuality } from '@senars/core/derivation-schemas';
+import type { SourceQuality } from '@senars/core/schemas/truth';
 import type { TaskTypeName } from '../terms';
 
 /**

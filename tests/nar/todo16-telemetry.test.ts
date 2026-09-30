@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ReasoningBudget } from '@senars/core/schemas';
+import { validateCognitiveEvent } from '@senars/core/schemas';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import { SystemOneIngressJudge } from '../../nar/src/lm/system-one/ingress-judge.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { validateCognitiveEvent } from '@senars/core/derivation-schemas';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
+import { SystemOneIngressJudge } from '../../nar/src/lm/system-one/ingress-judge.js';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import type { JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
 
 const budget: ReasoningBudget = {
@@ -45,16 +45,19 @@ describe('System One — Telemetry Emission (R2)', () => {
     });
 
     console.log('Admit result:', result);
-    
+
     // The gate's eventLog should contain judgment.resolved events
     const events = gate.getEventLog() as any[];
     const judgmentEvents = events.filter((e: any) => e.type === 'judgment.resolved');
-    
+
     // Debug: print all events
-    console.log('All events:', events.map((e: any) => e.type));
+    console.log(
+      'All events:',
+      events.map((e: any) => e.type)
+    );
     console.log('SystemOne enabled:', (gate as any).config.systemOne?.enabled);
     console.log('Manifold judge:', (gate as any).judge?.constructor?.name);
-    
+
     // Expect one event per ingress query (6 total)
     expect(judgmentEvents.length).toBe(expectedIngressQueries);
   });
@@ -69,10 +72,10 @@ describe('System One — Telemetry Emission (R2)', () => {
 
     const events = gate.getEventLog() as any[];
     const judgmentEvents = events.filter((e: any) => e.type === 'judgment.resolved');
-    
+
     expect(judgmentEvents.length).toBe(6);
     const event = judgmentEvents[0];
-    
+
     // Validate against kernel schema
     expect(() => validateCognitiveEvent(event)).not.toThrow();
     expect(event.engine).toBe('proposer');
@@ -95,7 +98,7 @@ describe('System One — Telemetry Emission (R2)', () => {
 
   it('records Prometheus metrics for each judgment', async () => {
     const { systemoneJudgmentsTotal } = await import('../../nar/src/metrics/prometheus.js');
-    
+
     await gate.admit({
       rawObservation: '(test --> observation).',
       sourceQuality: 'LLM_PRIOR',
@@ -132,7 +135,7 @@ describe('System One — Telemetry Emission (R2)', () => {
 
     const events = disabledGate.getEventLog() as any[];
     const judgmentEvents = events.filter((e: any) => e.type === 'judgment.resolved');
-    
+
     expect(judgmentEvents.length).toBe(0);
   });
 
@@ -141,7 +144,7 @@ describe('System One — Telemetry Emission (R2)', () => {
     const { systemoneJudgmentsTotal } = await import('../../nar/src/metrics/prometheus.js');
     const metricsBefore = await systemoneJudgmentsTotal.get();
     const totalBefore = metricsBefore.values.reduce((sum, v) => sum + v.value, 0);
-    
+
     await gate.admit({
       rawObservation: '(test --> observation).',
       sourceQuality: 'LLM_PRIOR',
@@ -151,10 +154,10 @@ describe('System One — Telemetry Emission (R2)', () => {
 
     const events = gate.getEventLog() as any[];
     const judgmentEvents = events.filter((e: any) => e.type === 'judgment.resolved');
-    
+
     // Proposition count == event count (6 ingress queries)
     expect(judgmentEvents.length).toBe(6);
-    
+
     // Metric delta should match
     const metricsAfter = await systemoneJudgmentsTotal.get();
     const totalAfter = metricsAfter.values.reduce((sum, v) => sum + v.value, 0);

@@ -1,7 +1,7 @@
-import { createLogger } from '@senars/core/logger';
+import { createLogger } from '@senars/util';
 import { OPERATORS } from '../operators.js';
-import { termParser } from './parser-peggy.js';
 import type { Term } from '../types.js';
+import { termParser } from './parser-peggy.js';
 
 const log = createLogger({ scope: 'serialize' });
 

@@ -31,8 +31,8 @@ export {
 } from './env.js';
 export { type LMSettingsShape, lmSettingsSchema, lmSettingsShape } from './lm-schema.js';
 export {
-  getBound,
   type BoundProp,
+  getBound,
   type NarCoreBoundKey,
   type NarCoreBounds,
   narCoreBounds,
@@ -47,12 +47,12 @@ export type {
   ConfigSchema,
   ConfigView,
 } from './types.js';
-export { type ValidatedAgentOptions } from './validation.js';
 export {
   AgentOptionsValidationError,
   agentOptionsSchema,
   contextOptsSchema,
   parseOrThrow,
   SchemaValidationError,
+  type ValidatedAgentOptions,
   validateAgentOptions,
 } from './validation.js';

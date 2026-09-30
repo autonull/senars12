@@ -3,8 +3,8 @@
  * never a bare stack trace for actionable failures.
  */
 import { basename } from 'node:path';
-import { ConfigurationError } from '@senars/util/errors';
 import { initOtel, shutdownOtel, withSpan } from '@senars/nar/otel';
+import { ConfigurationError } from '@senars/util/errors';
 
 interface Remediation {
   match: (err: unknown) => boolean;

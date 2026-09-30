@@ -1,5 +1,4 @@
-import { mean } from '../helpers.js';
-import { BoundedRing } from '@senars/util';
+import { BoundedRing, mean } from '@senars/util';
 
 export interface FeedbackEntry {
   readonly source: 'tool' | 'engine' | 'human';

@@ -6,6 +6,8 @@
  * `code`, `recoverable`) rides in its typed context, so a transport failure is
  * catchable as either the class or the `CONNECTION_ERROR` code.
  */
+
+export { ConnectionError } from '@senars/util/errors';
 export type {
   Connection,
   ConnectionConfig,
@@ -16,5 +18,3 @@ export type {
   MessageClassification,
   TransportDeps,
 } from '@senars/util/types/transport';
-
-export { ConnectionError } from '@senars/util/errors';

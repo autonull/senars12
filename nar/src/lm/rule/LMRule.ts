@@ -1,3 +1,4 @@
+import { errMsg, stopwatch } from '@senars/util';
 import { generateObject, type LanguageModel, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
 import type { Term } from '../../terms';
@@ -5,7 +6,7 @@ import { Truth } from '../../terms';
 import type { Truth as TruthType } from '../../terms/impls/Truth.js';
 import type { Budget, Task, TaskType } from '../../types';
 import { createTask, type NAREventMap, type NarEventBus } from '../../types';
-import { errMsg } from '@senars/util';
+import { createBudget } from '../../types/core.js';
 import { CircuitBreaker } from '../../utils/circuit-breaker.js';
 import { parseJsonObject } from '../json.js';
 import type { LMExecutionStats, LMRuleConfig, LMRuleStats, LMService } from '../lm-service.js';
@@ -13,7 +14,6 @@ import { createLMStats, recordLMCall } from '../stats.js';
 import { LMResponseParser } from './response-parser.js';
 import type { LMContext, ValidationResult } from './types.js';
 import type { LMRuleConfigV2 } from './types-v2.js';
-import { createBudget } from '../../types/core.js';
 
 export type { ParsedLMResponse, StructuredLMOutput } from './response-parser.js';
 export { LMResponseParser } from './response-parser.js';
@@ -201,7 +201,7 @@ export class LMRule {
       }
     }
 
-    const startTime = Date.now();
+    const elapsed = stopwatch();
 
     try {
       const lmContext = this.buildLMContext(primary, secondary, context);
@@ -222,7 +222,7 @@ export class LMRule {
       }
 
       if (!response) {
-        this.recordFailure(Date.now() - startTime);
+        this.recordFailure(elapsed());
         return this.applyFallback(primary, secondary, context);
       }
 
@@ -255,7 +255,7 @@ export class LMRule {
         }
       }
 
-      const duration = Date.now() - startTime;
+      const duration = elapsed();
       this.emitEvent('lm.response', {
         ruleId: this.id,
         prompt,
@@ -278,7 +278,7 @@ export class LMRule {
       });
       return tasks;
     } catch (error) {
-      const duration = Date.now() - startTime;
+      const duration = elapsed();
       this.emitEvent('lm.failure', {
         ruleId: this.id,
         error: errMsg(error),
@@ -379,7 +379,7 @@ export class LMRule {
     if (!this.structuredModel || !this.outputSchema) {
       return this.executeLM(prompt, signal);
     }
-    const start = Date.now();
+    const elapsed = stopwatch();
     try {
       const result = await this.circuitBreaker.execute(async () => {
         const res = await generateObject({
@@ -390,10 +390,10 @@ export class LMRule {
         });
         return JSON.stringify(res.object);
       });
-      recordLMCall(this.stats, true, Date.now() - start, prompt.length + result.length);
+      recordLMCall(this.stats, true, elapsed(), prompt.length + result.length);
       return result;
     } catch (e) {
-      recordLMCall(this.stats, false, Date.now() - start, prompt.length);
+      recordLMCall(this.stats, false, elapsed(), prompt.length);
       throw e;
     }
   }
@@ -599,9 +599,7 @@ export class LMRule {
             parsed.term,
             this.taskType,
             parsed.truth,
-            parsed.confidence != null
-              ? createBudget(parsed.confidence)
-              : undefined
+            parsed.confidence != null ? createBudget(parsed.confidence) : undefined
           ),
           primary
         );

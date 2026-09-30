@@ -1,4 +1,9 @@
-import { type AuthManager, CommandRegistry, connectionCommands, createAuthCommands } from '@senars/io';
+import {
+  type AuthManager,
+  CommandRegistry,
+  connectionCommands,
+  createAuthCommands,
+} from '@senars/io';
 import {
   configCommands,
   coreCommands,

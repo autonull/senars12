@@ -5,9 +5,9 @@
  * across `Agent`, `phases`, and `LLMCortex`. Do not build new features here.
  */
 
-import type { ChatStreamEvent, CognitiveEvent } from './CognitiveEvent.js';
-import type { ModelRunner, ToolSet } from './ModelRunner.js';
 import { errMsg, makeId } from '@senars/util';
+import type { ChatStreamEvent, CognitiveEvent } from '@senars/util/types/cognitive';
+import type { ModelRunner, ToolSet } from './ModelRunner.js';
 
 export interface Tool {
   readonly name: string;

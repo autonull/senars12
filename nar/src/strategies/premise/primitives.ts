@@ -1,13 +1,12 @@
+import { GRAPH_MEMORY, type RecallHit } from '../../memory/associative.js';
 import type { Concept } from '../../memory/concept.js';
+import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';
+import { LINK_LAYER } from '../../memory/links/types.js';
 import type { MemoryView } from '../../memory/view.js';
+import type { Term } from '../../terms';
+import { getPredicate, getSubject, Stamp, sharesSymbol, TermMap, termsEqual } from '../../terms';
 import type { Task } from '../../types';
 import { ConfigurationError, createSecondaryTask } from '../../types';
-import { sharesSymbol, termsEqual, Stamp } from '../../terms';
-import { getSubject, getPredicate } from '../../terms';
-import type { Term } from '../../terms';
-import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';
-import { GRAPH_MEMORY, type RecallHit } from '../../memory/associative.js';
-import { LINK_LAYER } from '../../memory/links/types.js';
 
 export type PremiseSource = (task: Task, memory: MemoryView, n?: number) => Concept[];
 
@@ -37,19 +36,20 @@ const strengthOf = (memory: MemoryView, name: string, from: Term, to: Term): num
   memory
     .getAssociativeMemories()
     .recall(name, from, { limit: LOOKUP_LIMIT })
-    .find((hit) => hit.term.toString() === to.toString())?.strength ?? 0;
+    .find((hit) => termsEqual(hit.term, to))?.strength ?? 0;
 
-/** One recall for the whole scored set, keyed by the target's string form. */
+/** One recall for the whole scored set, keyed by the canonical structural identity of the target. */
 const strengthIndexFor = (
   memory: MemoryView,
   name: string,
   from: Term,
   size: number
-): Map<string, number> | null => {
-  const hits: RecallHit[] = memory
-    .getAssociativeMemories()
-    .recall(name, from, { limit: size });
-  return hits.length ? new Map(hits.map((hit) => [hit.term.toString(), hit.strength])) : null;
+): TermMap<number> | null => {
+  const hits: RecallHit[] = memory.getAssociativeMemories().recall(name, from, { limit: size });
+  if (hits.length === 0) return null;
+  const index = new TermMap<number>();
+  for (const hit of hits) index.set(hit.term, hit.strength);
+  return index;
 };
 
 export const PREMISE_SOURCES = {
@@ -91,18 +91,25 @@ function createScorerRegistry() {
   const registry = {
     // Simple scorers (no memory dependency)
     priority: {
-      create: (_memory: MemoryView): PremiseScorer => (_task: Task, concept: Concept) => concept.priority,
+      create:
+        (_memory: MemoryView): PremiseScorer =>
+        (_task: Task, concept: Concept) =>
+          concept.priority,
       isExtended: false as const,
     },
     // Curried scorers (need memory)
     linkWeight: {
-      create: (memory: MemoryView): PremiseScorer => (task: Task, concept: Concept) =>
-        getLinkStrength(memory, task.term, concept.term),
+      create:
+        (memory: MemoryView): PremiseScorer =>
+        (task: Task, concept: Concept) =>
+          getLinkStrength(memory, task.term, concept.term),
       isExtended: false as const,
     },
     edgeWeight: {
-      create: (memory: MemoryView): PremiseScorer => (task: Task, concept: Concept): number =>
-        strengthOf(memory, GRAPH_MEMORY, task.term, concept.term),
+      create:
+        (memory: MemoryView): PremiseScorer =>
+        (task: Task, concept: Concept): number =>
+          strengthOf(memory, GRAPH_MEMORY, task.term, concept.term),
       isExtended: false as const,
     },
     // Extended scorers (parameterized factories)
@@ -110,14 +117,18 @@ function createScorerRegistry() {
       create: (
         _memory: MemoryView,
         weights: LinearWeights
-      ): (memory: MemoryView) => PremiseScorer => {
-        return (memory: MemoryView) => (task: Task, concept: Concept): number => {
-          const linkStrength = getLinkStrength(memory, task.term, concept.term);
-          const embeddingIndex = memory.getEmbeddingIndex?.();
-          const embeddingSim =
-            embeddingIndex?.similarity?.(task.term.toString(), concept.term.toString()) ?? 0;
-          return weights.link * linkStrength + weights.embed * embeddingSim + weights.pri * concept.priority;
-        };
+      ): ((memory: MemoryView) => PremiseScorer) => {
+        return (memory: MemoryView) =>
+          (task: Task, concept: Concept): number => {
+            const linkStrength = getLinkStrength(memory, task.term, concept.term);
+            const embeddingIndex = memory.getEmbeddingIndex?.();
+            const embeddingSim = embeddingIndex?.similarity?.(task.term, concept.term) ?? 0;
+            return (
+              weights.link * linkStrength +
+              weights.embed * embeddingSim +
+              weights.pri * concept.priority
+            );
+          };
       },
       isExtended: true as const,
     },
@@ -130,45 +141,63 @@ export const PREMISE_SCORER_REGISTRY = createScorerRegistry();
 function createFilterRegistry() {
   const registry = {
     sharedAtoms: {
-      create: (): PremiseFilter => (task: Task, concept: Concept): boolean =>
-        sharesSymbol(task.term, concept.term),
+      create:
+        (): PremiseFilter =>
+        (task: Task, concept: Concept): boolean =>
+          sharesSymbol(task.term, concept.term),
       isCurried: false as const,
     },
     noStampOverlap: {
-      create: (): PremiseFilter => (task: Task, concept: Concept): boolean => {
-        const belief = concept.beliefBag.peek();
-        if (!belief?.stamp) return true;
-        const taskStamp = task.stamp;
-        if (!taskStamp) return true;
-        return !Stamp.overlaps(belief.stamp, taskStamp);
-      },
+      create:
+        (): PremiseFilter =>
+        (task: Task, concept: Concept): boolean => {
+          const belief = concept.beliefBag.peek();
+          if (!belief?.stamp) return true;
+          const taskStamp = task.stamp;
+          if (!taskStamp) return true;
+          return !Stamp.overlaps(belief.stamp, taskStamp);
+        },
       isCurried: false as const,
     },
     inheritanceOnly: {
-      create: (): PremiseFilter => (_task: Task, concept: Concept): boolean =>
-        concept.term.kind === 'inheritance',
+      create:
+        (): PremiseFilter =>
+        (_task: Task, concept: Concept): boolean =>
+          concept.term.kind === 'inheritance',
       isCurried: false as const,
     },
     inheritanceOverlap: {
-      create: (): PremiseFilter => (task: Task, concept: Concept): boolean => {
-        if (task.term.kind !== 'inheritance' || concept.term.kind !== 'inheritance') return true;
-        const [taskSub, taskPred] = task.term.args ?? [];
-        const [conceptSub, conceptPred] = concept.term.args ?? [];
-        return (
-          (taskSub !== undefined && conceptSub !== undefined && termsEqual(taskSub, conceptSub)) ||
-          (taskSub !== undefined && conceptPred !== undefined && termsEqual(taskSub, conceptPred)) ||
-          (taskPred !== undefined && conceptSub !== undefined && termsEqual(taskPred, conceptSub)) ||
-          (taskPred !== undefined && conceptPred !== undefined && termsEqual(taskPred, conceptPred))
-        );
-      },
+      create:
+        (): PremiseFilter =>
+        (task: Task, concept: Concept): boolean => {
+          if (task.term.kind !== 'inheritance' || concept.term.kind !== 'inheritance') return true;
+          const [taskSub, taskPred] = task.term.args ?? [];
+          const [conceptSub, conceptPred] = concept.term.args ?? [];
+          return (
+            (taskSub !== undefined &&
+              conceptSub !== undefined &&
+              termsEqual(taskSub, conceptSub)) ||
+            (taskSub !== undefined &&
+              conceptPred !== undefined &&
+              termsEqual(taskSub, conceptPred)) ||
+            (taskPred !== undefined &&
+              conceptSub !== undefined &&
+              termsEqual(taskPred, conceptSub)) ||
+            (taskPred !== undefined &&
+              conceptPred !== undefined &&
+              termsEqual(taskPred, conceptPred))
+          );
+        },
       isCurried: false as const,
     },
     // Curried filter with parameter
     highConfidence: {
-      create: (threshold: number): PremiseFilter => (task: Task, concept: Concept): boolean => {
-        const belief = concept.beliefBag.peek();
-        return (belief?.truth?.f ?? 0) > threshold;
-      },
+      create:
+        (threshold: number): PremiseFilter =>
+        (task: Task, concept: Concept): boolean => {
+          const belief = concept.beliefBag.peek();
+          return (belief?.truth?.f ?? 0) > threshold;
+        },
       isCurried: true as const,
     },
   } as const;
@@ -213,7 +242,9 @@ export interface SampleConfig {
  * singletons and a user config all resolve to the same pipeline.
  */
 /** `SampleConfig` with the sampling pipeline resolved: no field left to a default. */
-export type ResolvedSampleConfig = Required<Omit<SampleConfig, 'scorer' | 'where' | 'whereTruth'>> & {
+export type ResolvedSampleConfig = Required<
+  Omit<SampleConfig, 'scorer' | 'where' | 'whereTruth'>
+> & {
   scorer: NonNullable<SampleConfig['scorer']>;
 };
 
@@ -250,7 +281,8 @@ const noSuch = (kind: string, name: string, candidates: string) =>
 function resolveFilters(filters: FilterSpec[]): PremiseFilter[] {
   const candidates = known(PREMISE_FILTER_REGISTRY);
   return filters.map((spec) => {
-    if (typeof spec === 'object') return PREMISE_FILTER_REGISTRY.highConfidence.create(spec.highConfidence);
+    if (typeof spec === 'object')
+      return PREMISE_FILTER_REGISTRY.highConfidence.create(spec.highConfidence);
     const entry = PREMISE_FILTER_REGISTRY[spec as keyof typeof PREMISE_FILTER_REGISTRY];
     if (!entry) throw noSuch('filter', spec, candidates);
     if (!entry.isCurried) return entry.create();
@@ -313,7 +345,7 @@ export function samplePremisesFromConfig(
   const scored = concepts
     .map((c) => ({
       concept: c,
-      score: strengthIndex ? (strengthIndex.get(c.term.toString()) ?? 0) : scorerFn(task, c),
+      score: strengthIndex ? (strengthIndex.get(c.term) ?? 0) : scorerFn(task, c),
     }))
     .filter(({ score }) => score >= merged.minScore)
     .filter(({ concept }) => {

@@ -9,20 +9,20 @@
  *   E3 `CapabilityOntology` provenance + registration
  */
 
-import { describe, expect, it } from 'vitest';
-import { v4 as uuidv4 } from 'uuid';
-import { FenwickBag, PriorityBag } from '@senars/nar/bag';
+import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
 import type { Bag } from '@senars/nar/bag';
+import { FenwickBag, PriorityBag } from '@senars/nar/bag';
+import { v4 as uuidv4 } from 'uuid';
+import { describe, expect, it } from 'vitest';
 import { Memory, TermBuilder, Truth } from '../../nar/src';
-import { WindowedRouletteStrategy } from '../../nar/src/strategies/sampling/WindowedRoulette.js';
-import { PrioritySampling } from '../../nar/src/strategies/sampling/PrioritySampling.js';
-import { ProofMettaProposer } from '../../nar/src/meta/ProofMettaProposer.js';
-import { GovernanceResolver } from '../../nar/src/governance/pipeline.js';
-import { createCapabilityOntology } from '../../nar/src/capability/ontology.js';
 import type { CapabilitySchema } from '../../nar/src/capability/ontology.js';
-import { createBudget } from '../../nar/src/types/index.js';
+import { createCapabilityOntology } from '../../nar/src/capability/ontology.js';
+import { GovernanceResolver } from '../../nar/src/governance/pipeline.js';
+import { ProofMettaProposer } from '../../nar/src/meta/ProofMettaProposer.js';
+import { PrioritySampling } from '../../nar/src/strategies/sampling/PrioritySampling.js';
+import { WindowedRouletteStrategy } from '../../nar/src/strategies/sampling/WindowedRoulette.js';
 import { Stamp } from '../../nar/src/terms/index.js';
-import type { SelfImprovementProposal } from '@senars/core/derivation-schemas';
+import { createBudget } from '../../nar/src/types/index.js';
 import { createLCG } from '../helpers/rng.js';
 
 const lcg = createLCG;
@@ -34,9 +34,7 @@ interface Item {
 
 const makeBag = (impl: 'priority' | 'fenwick', clock: () => number): Bag<Item> => {
   const options = { capacity: 3, rng: lcg(42), clock };
-  return impl === 'priority'
-    ? new PriorityBag<Item>(options)
-    : new FenwickBag<Item>(options);
+  return impl === 'priority' ? new PriorityBag<Item>(options) : new FenwickBag<Item>(options);
 };
 
 describe('A3 — injected clock drives LRU eviction order', () => {
@@ -73,7 +71,13 @@ describe('A3 — injected clock drives LRU eviction order', () => {
 describe('A4 — strategies.bag knob selects the implementation', () => {
   const seed = (memory: Memory): void => {
     for (const symbol of ['alpha', 'beta', 'gamma', 'delta']) {
-      memory.addTask(TermBuilder.atom(symbol), 'belief', Truth.create(0.9, 0.9), createBudget(0.5), Stamp.createInput());
+      memory.addTask(
+        TermBuilder.atom(symbol),
+        'belief',
+        Truth.create(0.9, 0.9),
+        createBudget(0.5),
+        Stamp.createInput()
+      );
     }
   };
 
@@ -98,7 +102,9 @@ describe('A4 — strategies.bag knob selects the implementation', () => {
     seed(priority);
     seed(fenwick);
 
-    expect(priority.getConcept(task)!.term.toString()).toBe(fenwick.getConcept(task)!.term.toString());
+    expect(priority.getConcept(task)!.term.toString()).toBe(
+      fenwick.getConcept(task)!.term.toString()
+    );
     expect(priority.getStatistics()).toBeTruthy();
     expect(fenwick.getStatistics()).toBeTruthy();
   });
@@ -166,12 +172,16 @@ describe('A7 — windowed-roulette sampling', () => {
 });
 
 describe('E1 — ProofMettaProposer contributes to the Negotiator', () => {
-  const evaluator = (expr: string): boolean | null => (expr === '(= (cat --> animal) cat)' ? true : null);
+  const evaluator = (expr: string): boolean | null =>
+    expr === '(= (cat --> animal) cat)' ? true : null;
   const toExpression = (action: string): string | undefined =>
     action === 'classify' ? '(= (cat --> animal) cat)' : undefined;
 
   it('boosts a reflex proposal that a learned MeTTa rule supports', () => {
-    const proposer = new ProofMettaProposer({ mettaEvaluator: evaluator, actionToExpression: toExpression });
+    const proposer = new ProofMettaProposer({
+      mettaEvaluator: evaluator,
+      actionToExpression: toExpression,
+    });
     const contribution = proposer.propose({
       reflexProposals: [
         { action: 'classify', value: 1, confidence: 0.4, source: 'reflex' },
@@ -181,7 +191,11 @@ describe('E1 — ProofMettaProposer contributes to the Negotiator', () => {
     });
 
     expect(contribution.reflex).toHaveLength(1);
-    expect(contribution.reflex?.[0]).toMatchObject({ action: 'classify', confidence: 1, source: 'proof-metta' });
+    expect(contribution.reflex?.[0]).toMatchObject({
+      action: 'classify',
+      confidence: 1,
+      source: 'proof-metta',
+    });
   });
 
   it('contributes nothing when no MeTTa evaluator is wired', () => {
@@ -196,27 +210,27 @@ describe('E1 — ProofMettaProposer contributes to the Negotiator', () => {
 
   it('learns rules only above its support and confidence thresholds', () => {
     const derivation = (ruleId: string, confidence: number) => ({
-    derivationId: uuidv4(),
-    taskId: uuidv4(),
-    goalTerm: '(cat --> mammal)',
-    finalTruth: { frequency: confidence, confidence },
-    totalCycles: 3,
-    maxDepthReached: 2,
-    timestamp: Date.now(),
-    engine: 'nar' as const,
-    steps: [
-      {
-        stepId: uuidv4(),
-        ruleId,
-        ruleCategory: 'classical' as const,
-        premises: ['(cat --> animal)'],
-        conclusion: '(cat --> mammal)',
-        truth: { frequency: 1, confidence },
-        evidenceLineage: [],
-        independence: 'independent' as const,
-      },
-    ],
-  });
+      derivationId: uuidv4(),
+      taskId: uuidv4(),
+      goalTerm: '(cat --> mammal)',
+      finalTruth: { frequency: confidence, confidence },
+      totalCycles: 3,
+      maxDepthReached: 2,
+      timestamp: Date.now(),
+      engine: 'nar' as const,
+      steps: [
+        {
+          stepId: uuidv4(),
+          ruleId,
+          ruleCategory: 'classical' as const,
+          premises: ['(cat --> animal)'],
+          conclusion: '(cat --> mammal)',
+          truth: { frequency: 1, confidence },
+          evidenceLineage: [],
+          independence: 'independent' as const,
+        },
+      ],
+    });
 
     const strict = new ProofMettaProposer({ patternMinSupport: 5, minConfidence: 0.99 });
     expect(strict.learnFromDerivation(derivation('inheritance', 0.9))).toHaveLength(0);
@@ -288,7 +302,10 @@ describe('E2 — GovernanceResolver audit trail and restore', () => {
 
   it('holds a medium-risk knob whose value is out of the spec range', () => {
     const resolver = new GovernanceResolver();
-    const outOfRange = { ...proposal('medium'), payload: { knob: 'maxDerivationsPerStep', value: 9999 } };
+    const outOfRange = {
+      ...proposal('medium'),
+      payload: { knob: 'maxDerivationsPerStep', value: 9999 },
+    };
     const result = resolver.resolve(outOfRange, 'sandbox-execute', { applyKnob: () => {} });
 
     expect(result.applied).toBe(false);
@@ -336,13 +353,17 @@ describe('E3 — CapabilityOntology provenance and registration', () => {
     const ontology = createCapabilityOntology();
     ontology.registerMettaSkill('a', 'a', schema, () => 1);
     ontology.registerMettaSkill('b', 'b', schema, () => 1);
-    expect(ontology.get('metta:a')?.provenance.digest).not.toBe(ontology.get('metta:b')?.provenance.digest);
+    expect(ontology.get('metta:a')?.provenance.digest).not.toBe(
+      ontology.get('metta:b')?.provenance.digest
+    );
   });
 
   it('refuses a duplicate capability id', () => {
     const ontology = createCapabilityOntology();
     ontology.registerRule('r1', 'rule', schema, () => 1);
-    expect(() => ontology.registerRule('r1', 'rule', schema, () => 1)).toThrow(/already registered/);
+    expect(() => ontology.registerRule('r1', 'rule', schema, () => 1)).toThrow(
+      /already registered/
+    );
   });
 
   it('refuses a capability whose prerequisite is missing', () => {

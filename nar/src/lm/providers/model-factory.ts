@@ -1,8 +1,5 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import type {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-} from '@ai-sdk/provider';
+import type { LanguageModelV3, LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import { transformersJS } from '@browser-ai/transformers-js';
 import {
   createProviderRegistry,
@@ -13,10 +10,10 @@ import {
 } from 'ai';
 import {
   builtinModels,
+  cloudApiKey,
   defaultModelFor,
   embeddedLlamaConfigured,
   type LMSettings,
-  cloudApiKey as resolveCloudApiKey,
 } from '../env-config.js';
 
 import { getProviderRuntime, type ProviderRuntime } from '../provider-runtime.js';
@@ -63,9 +60,6 @@ export const localModel = (
 
 export const mockModel = (): LanguageModel => createMockLanguageModel() as unknown as LanguageModel;
 
-export const cloudApiKey = (settings: LMSettings): string | undefined =>
-  resolveCloudApiKey(settings.apiKeyEnv);
-
 export const setBuiltinProgressCallback = (
   cb: ModelDownloadProgressCallback | undefined,
   rt: ProviderRuntime = getProviderRuntime()
@@ -79,7 +73,7 @@ export function createSeNARSRegistry(settings?: LMSettings) {
   const s = settings ?? getLMSettings();
   const { provider, model: modelOverride, fastModel, structuredModel, compactModel, baseUrl } = s;
 
-  const hasCloudKey = Boolean(cloudApiKey(s));
+  const hasCloudKey = Boolean(cloudApiKey(s.apiKeyEnv));
   // anthropic/openai need a credential to be usable; openai-compatible is the
   // generic OpenAI-shaped lane (local daemons like ollama included — no key).
   const useCloud =
@@ -106,7 +100,7 @@ export function createSeNARSRegistry(settings?: LMSettings) {
   const thinkingAwareFetch = s.disableThinking ? withThinkingDisabled() : undefined;
   const cloud = createOpenAICompatible({
     name: 'cloud',
-    apiKey: cloudApiKey(s) ?? '',
+    apiKey: cloudApiKey(s.apiKeyEnv) ?? '',
     baseURL:
       baseUrl ??
       (provider === 'anthropic'

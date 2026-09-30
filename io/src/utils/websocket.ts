@@ -1,4 +1,4 @@
-import { makeId, toError } from '@senars/core/helpers';
+import { makeId, toError } from '@senars/util';
 import { addToSet } from '@senars/util';
 import { WebSocket } from 'ws';
 

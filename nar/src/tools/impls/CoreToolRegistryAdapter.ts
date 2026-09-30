@@ -1,30 +1,14 @@
+import type { SkillFeedback, ToolSpec } from '@senars/core/motor';
+import type { Tool, ToolContext, ToolResult } from '../types';
 import type { ToolManager } from './ToolManager';
-import type { Tool, ToolCapabilities, ToolContext, ToolResult } from '../types';
 
-/** core's `ToolSpec` projection: a nar `Tool` plus a positional-correlator signature. */
-export interface DelegateToolSpec {
-  name: string;
-  description: string;
-  parameters: Record<string, unknown>;
-  capabilities?: ToolCapabilities;
-  tags?: string[];
-  execute: (
-    args: Record<string, unknown>,
-    correlationId?: string,
-    signal?: AbortSignal
-  ) => Promise<ToolResult> | ToolResult;
-}
-
-/** core's `SkillFeedback` projection over nar's feedback record. */
-export interface DelegateSkillFeedback {
-  skill: string;
-  lastResult: string;
-  successRate: number;
-  callCount: number;
-  lastError?: string;
-}
-
-const toSpec = (tool: Tool): DelegateToolSpec => ({
+/**
+ * `ToolSpec` and `SkillFeedback` are core's — this used to carry private copies
+ * of both so the delegation could name them locally. What remains is the one
+ * adaptation core actually needs: nar's `execute(args, context)` against core's
+ * positional-correlator signature.
+ */
+const toSpec = (tool: Tool): ToolSpec => ({
   name: tool.name,
   description: tool.description,
   parameters: tool.parameters as unknown as Record<string, unknown>,
@@ -40,7 +24,7 @@ const toFeedback = (fb: {
   successRate: number;
   totalCalls: number;
   lastError?: string;
-}): DelegateSkillFeedback => ({
+}): SkillFeedback => ({
   skill: fb.name,
   lastResult: fb.lastResult ?? '',
   successRate: fb.successRate,
@@ -52,7 +36,7 @@ const toFeedback = (fb: {
 export class CoreToolRegistryAdapter {
   constructor(private readonly manager: ToolManager) {}
 
-  register(spec: DelegateToolSpec): void {
+  register(spec: ToolSpec): void {
     this.manager.register({
       name: spec.name,
       description: spec.description,
@@ -67,12 +51,12 @@ export class CoreToolRegistryAdapter {
     this.manager.unregister(name);
   }
 
-  get(name: string): DelegateToolSpec | undefined {
+  get(name: string): ToolSpec | undefined {
     const tool = this.manager.get(name);
     return tool ? toSpec(tool) : undefined;
   }
 
-  list(): DelegateToolSpec[] {
+  list(): ToolSpec[] {
     return this.manager.list().map(toSpec);
   }
 
@@ -85,12 +69,12 @@ export class CoreToolRegistryAdapter {
     return this.manager.execute(name, args, { chainId: correlationId, signal } as ToolContext);
   }
 
-  getFeedback(name: string): DelegateSkillFeedback | undefined {
+  getFeedback(name: string): SkillFeedback | undefined {
     const fb = this.manager.getFeedback(name);
     return fb ? toFeedback(fb) : undefined;
   }
 
-  getAllFeedback(): DelegateSkillFeedback[] {
+  getAllFeedback(): SkillFeedback[] {
     return this.manager.getAllFeedback().map(toFeedback);
   }
 

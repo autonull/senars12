@@ -1,4 +1,4 @@
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import type { LMService } from '../lm-service.js';
 import type {
   CognitiveContext,

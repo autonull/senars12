@@ -1,6 +1,4 @@
-import { SpanKind, SpanStatusCode, trace, type Attributes, type Span } from '@opentelemetry/api';
-import { registerLogEnricher } from '@senars/core';
-import { setDomainEventSink } from '@senars/core/event-sink';
+import { type Attributes, type Span, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import {
@@ -10,8 +8,10 @@ import {
 } from '@opentelemetry/sdk-trace';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+import { registerLogEnricher } from '@senars/core';
+import { setDomainEventSink } from '@senars/core/event-sink';
+import { errMsg, stopwatch } from '@senars/util';
 import type { CognitiveEvent, TickContext } from '../tick/tick.js';
-import { errMsg } from '@senars/util';
 
 let provider: NodeTracerProvider | null = null;
 let initialized = false;
@@ -61,11 +61,7 @@ export function getTracer(name: string) {
 }
 
 /** O1 helper: run `fn` inside an active span; attributes settable via the handle. */
-export function withSpan<T>(
-  name: string,
-  attributes: Attributes = {},
-  fn: (span: Span) => T
-): T {
+export function withSpan<T>(name: string, attributes: Attributes = {}, fn: (span: Span) => T): T {
   const tracer = getTracer('senars.nar');
   return tracer.startActiveSpan(name, { kind: SpanKind.INTERNAL, attributes }, (span) => {
     const settle = (result: T): T => {
@@ -134,7 +130,7 @@ export function wrapMiddlewareWithSpan(
       `cognitive.${stage}`,
       { kind: SpanKind.INTERNAL },
       async (span) => {
-        const start = Date.now();
+        const elapsed = stopwatch();
         span.setAttribute('tick.id', ctx.tickId);
         span.setAttribute('cognitive.stage', stage);
         span.setAttribute('cognitive.budget.cycles', ctx.budget.cycles);
@@ -150,8 +146,7 @@ export function wrapMiddlewareWithSpan(
           span.recordException(error as Error);
           throw error;
         } finally {
-          const duration = Date.now() - start;
-          span.setAttribute('cognitive.duration_ms', duration);
+          span.setAttribute('cognitive.duration_ms', elapsed());
           span.end();
         }
       }
@@ -173,11 +168,7 @@ export function instrumentPipeline(
  * `undefined` is dropped rather than emitted as `''` or `0` — an absent parent
  * id is absent.
  */
-export function emitEvent(
-  name: string,
-  prefix: string,
-  payload: Record<string, unknown>
-): void {
+export function emitEvent(name: string, prefix: string, payload: Record<string, unknown>): void {
   const span = trace.getActiveSpan();
   if (!span) return;
   const attributes: Attributes = {};

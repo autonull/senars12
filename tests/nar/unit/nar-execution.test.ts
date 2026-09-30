@@ -3,21 +3,22 @@ import { describe, expect, test, vi } from 'vitest';
 import {
   createBudget,
   createTask,
-  type Task,
   DEFAULT_CONFIG,
   Memory,
+  RuleProcessor,
+  type Task,
   TaskManager,
   TermBuilder,
   Truth,
   termParser,
-  RuleProcessor,
 } from '../../../nar/src';
+import type { CognitiveController } from '../../../nar/src/cognitive';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '../../../nar/src/config/cognitive-parameters';
 import { DriveManager } from '../../../nar/src/drives';
+import { createGateRegistry } from '../../../nar/src/kernel';
 import { NARExecution } from '../../../nar/src/nar-execution';
-import type { CognitiveController } from '../../../nar/src/cognitive';
-import { createTestController, inferenceParams, transitivity } from '../fixtures/cognitive';
 import { ToolManager } from '../../../nar/src/tools';
+import { createTestController, inferenceParams, transitivity } from '../fixtures/cognitive';
 
 const createMockProcessor = () => ({
   processSync: () => [],
@@ -50,6 +51,7 @@ describe('NARExecution', () => {
     controller = createTestController(memory);
     rlfp = createMockRLFP();
     execution = new NARExecution({
+      gates: createGateRegistry(),
       memory,
       taskManager,
       cognitiveController: controller,
@@ -89,7 +91,13 @@ describe('NARExecution', () => {
 
     test('respects maxDerivationDepth from the inference parameters', async () => {
       const constrainedController = createTestController(memory, inferenceParams(2));
-      const exec = new NARExecution({ memory, taskManager, cognitiveController: constrainedController, config: DEFAULT_CONFIG });
+      const exec = new NARExecution({
+        gates: createGateRegistry(),
+        memory,
+        taskManager,
+        cognitiveController: constrainedController,
+        config: DEFAULT_CONFIG,
+      });
 
       memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
 
@@ -101,6 +109,7 @@ describe('NARExecution', () => {
     test('respects cpuThrottleMs', async () => {
       const configWithThrottle = { ...DEFAULT_CONFIG, cpuThrottleMs: 50 };
       const exec = new NARExecution({
+        gates: createGateRegistry(),
         memory,
         taskManager,
         cognitiveController: controller,
@@ -119,6 +128,7 @@ describe('NARExecution', () => {
     test('triggers rlFP.optimize() on interval', async () => {
       const configWithInterval = { ...DEFAULT_CONFIG, rlfp: { optimizeInterval: 1 } };
       const execWithRLFP = new NARExecution({
+        gates: createGateRegistry(),
         memory,
         taskManager,
         cognitiveController: controller,
@@ -153,9 +163,15 @@ describe('NARExecution', () => {
       // transitivity rule closes is what tells the two apart.
       const processor = new RuleProcessor([transitivity()]);
       const streamed = new NARExecution({
+        gates: createGateRegistry(),
         memory,
         taskManager,
-        cognitiveController: createTestController(memory, DEFAULT_COGNITIVE_PARAMETERS, undefined, processor),
+        cognitiveController: createTestController(
+          memory,
+          DEFAULT_COGNITIVE_PARAMETERS,
+          undefined,
+          processor
+        ),
         config: DEFAULT_CONFIG,
       });
       const ab = TermBuilder.inheritance(TermBuilder.atom('A')!, TermBuilder.atom('B')!)!;
@@ -166,9 +182,7 @@ describe('NARExecution', () => {
       const results: Task[] = [];
       for await (const task of streamed.runStream(5, 100)) results.push(task);
 
-      expect(
-        results.map((t) => t.term.toString())
-      ).toContain('(A --> C)');
+      expect(results.map((t) => t.term.toString())).toContain('(A --> C)');
     });
 
     test('respects maxResults limit', async () => {
@@ -213,6 +227,7 @@ describe('NARExecution', () => {
         const freshTaskManager = new TaskManager(freshMemory);
         const freshController = createTestController(freshMemory, inferenceParams(10));
         const exec = new NARExecution({
+          gates: createGateRegistry(),
           memory: freshMemory,
           taskManager: freshTaskManager,
           cognitiveController: freshController,
@@ -246,6 +261,7 @@ describe('NARExecution', () => {
         const freshTaskManager = new TaskManager(freshMemory);
         const freshController = createTestController(freshMemory, inferenceParams(10));
         const exec = new NARExecution({
+          gates: createGateRegistry(),
           memory: freshMemory,
           taskManager: freshTaskManager,
           cognitiveController: freshController,
@@ -272,6 +288,7 @@ describe('NARExecution', () => {
       // competence starts at target 0.8 — above threshold
 
       const exec = new NARExecution({
+        gates: createGateRegistry(),
         memory,
         taskManager,
         cognitiveController: controller,
@@ -311,6 +328,7 @@ describe('NARExecution', () => {
       const freshTaskManager = new TaskManager(freshMemory);
       const freshController = createTestController(freshMemory, inferenceParams(10));
       const exec = new NARExecution({
+        gates: createGateRegistry(),
         memory: freshMemory,
         taskManager: freshTaskManager,
         cognitiveController: freshController,
@@ -360,6 +378,7 @@ describe('NARExecution', () => {
       const freshTaskManager = new TaskManager(freshMemory);
       const freshController = createTestController(freshMemory, inferenceParams(10));
       const exec = new NARExecution({
+        gates: createGateRegistry(),
         memory: freshMemory,
         taskManager: freshTaskManager,
         cognitiveController: freshController,

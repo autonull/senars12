@@ -1,8 +1,9 @@
+import type { AIKRBudget } from '@senars/core/budget';
 import { emitDomainEvent } from '@senars/core/event-sink';
 import { clamp01, makeId, occupancy } from '@senars/util';
-import type { AIKRBudget } from '@senars/core/budget';
+import { PRESSURE } from '../constants.js';
 import type { RandomSource } from '../types/primitives.js';
-import { weightedPick } from '../utils/random.js';
+import { nextInt, weightedPick } from '../utils/random.js';
 
 export type { RandomSource } from '../types/primitives.js';
 
@@ -224,7 +225,8 @@ export abstract class BaseBag<T extends BagItem> implements Bag<T> {
   }
 
   private checkPressureTransition(pressure: number): void {
-    const level = pressure >= 0.9 ? 'critical' : pressure >= 0.7 ? 'high' : 'normal';
+    const level =
+      pressure >= PRESSURE.CRITICAL ? 'critical' : pressure >= PRESSURE.HIGH ? 'high' : 'normal';
     if (level === this.lastPressureLevel) return;
     this.lastPressureLevel = level;
     emitDomainEvent('bag.pressure.transition', '', {
@@ -254,7 +256,7 @@ export abstract class BaseBag<T extends BagItem> implements Bag<T> {
         break;
       }
       case 'Random':
-        this.dropAt(Math.floor(this.rng() * store.length));
+        this.dropAt(nextInt(this.rng, store.length));
         break;
     }
   }

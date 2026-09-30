@@ -22,8 +22,7 @@ export const fnv1aCombine = (acc: number, val: number): number =>
   mul32(acc ^ val, 0x01000193) >>> 0;
 
 /** One djb2 step — for folding non-string values (floats, salts) into a hash. */
-export const djb2Step = (hash: number, value: number): number =>
-  ((hash << 5) - hash + value) | 0;
+export const djb2Step = (hash: number, value: number): number => ((hash << 5) - hash + value) | 0;
 
 /** djb2 over a string, with an optional per-character salt. */
 export const djb2 = (str: string, salt = 0): number => {

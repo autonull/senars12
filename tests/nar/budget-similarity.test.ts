@@ -8,11 +8,17 @@ import {
   pressure,
   remainingAll,
 } from '@senars/core/budget';
-import { cosine, cosineNormalized, jaccard, normalize } from '../../nar/src/utils/similarity.js';
 import { describe, expect, it } from 'vitest';
+import { cosine, cosineNormalized, jaccard, normalize } from '../../nar/src/utils/similarity.js';
 
 const slice = (cycles: number, depth: number, memoryOps: number, llmCalls: number) =>
-  createBudgetSlice({ id: 'b', totalCycles: cycles, totalDepth: depth, totalMemoryOps: memoryOps, totalLMCalls: llmCalls });
+  createBudgetSlice({
+    id: 'b',
+    maxCycles: cycles,
+    maxDepth: depth,
+    maxMemoryOps: memoryOps,
+    maxLMCalls: llmCalls,
+  });
 
 describe('budget slice accounting', () => {
   it('terminates with the dimension-specific reason and leaves consumption untouched', () => {

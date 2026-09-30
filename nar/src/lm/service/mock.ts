@@ -1,4 +1,4 @@
-import type { LMExecutionStats, LMTask, MockLMConfig } from '@senars/util';
+import { type LMExecutionStats, type LMTask, type MockLMConfig, stopwatch } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import type { ZodSchema } from 'zod';
 import { createMockModel } from '../providers/mock-model.js';
@@ -68,27 +68,27 @@ class MockLMServiceImpl {
   }
 
   async generateText(prompt: string): Promise<string> {
-    const start = Date.now();
+    const elapsed = stopwatch();
     try {
       const text = this._generateTextFn ? await this._generateTextFn(prompt) : 'Mock response';
-      this.recordCall(true, start, prompt.length + text.length);
+      this.recordCall(true, elapsed(), prompt.length + text.length);
       return text;
     } catch (e) {
-      this.recordCall(false, start, prompt.length);
+      this.recordCall(false, elapsed(), prompt.length);
       throw e;
     }
   }
 
   async generateObject<T>(_prompt: string, schema: ZodSchema<T>): Promise<T> {
-    const start = Date.now();
+    const elapsed = stopwatch();
     try {
       const obj = this._generateObjectFn
         ? await this._generateObjectFn(_prompt, schema)
         : ({} as T);
-      this.recordCall(true, start, JSON.stringify(obj).length);
+      this.recordCall(true, elapsed(), JSON.stringify(obj).length);
       return obj;
     } catch (e) {
-      this.recordCall(false, start, 0);
+      this.recordCall(false, elapsed(), 0);
       throw e;
     }
   }
@@ -97,8 +97,8 @@ class MockLMServiceImpl {
     yield '';
   }
 
-  private recordCall(success: boolean, start: number, tokens: number): void {
-    recordLMCall(this.stats, success, Date.now() - start, tokens);
+  private recordCall(success: boolean, durationMs: number, tokens: number): void {
+    recordLMCall(this.stats, success, durationMs, tokens);
   }
 
   getSpend(): Record<string, ProviderSpend> {

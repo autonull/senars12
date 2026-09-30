@@ -1,4 +1,4 @@
-import type { CommandDefinition } from '@senars/core/command-types';
+import type { CommandDefinition } from '@senars/util';
 import { formatNarseseTruth } from '@senars/util';
 import { filterByTerm } from '../memory/term-filter.js';
 import { termParser } from '../terms';

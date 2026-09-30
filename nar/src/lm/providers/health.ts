@@ -1,5 +1,5 @@
 import { recordLmProbe } from '../../metrics/index.js';
-import { LM_PROVIDER_NAMES, type LMSettings } from '../env-config.js';
+import { cloudApiKey, LM_PROVIDER_NAMES, type LMSettings } from '../env-config.js';
 import {
   getProviderRuntime,
   type LMProviderName,
@@ -9,7 +9,6 @@ import {
 import { hasCloudCredentials } from './chains.js';
 import { probeEmbeddedLlama } from './embedded-llamacpp.js';
 import { probeLlamaCpp } from './llamacpp.js';
-import { cloudApiKey } from './model-factory.js';
 import { probeModelsEndpoint } from './probe.js';
 import { getLMSettings, getLmProvider } from './settings.js';
 
@@ -20,7 +19,11 @@ export async function probeOpenAICompatible(
 ): Promise<boolean> {
   void rt;
   const s = settings ?? getLMSettings();
-  return probeModelsEndpoint(s.baseUrl ?? 'http://localhost:11434/v1', s.provider, cloudApiKey(s));
+  return probeModelsEndpoint(
+    s.baseUrl ?? 'http://localhost:11434/v1',
+    s.provider,
+    cloudApiKey(s.apiKeyEnv)
+  );
 }
 
 const OFFLINE_SAFE_PROVIDERS: readonly LMProviderName[] = [
@@ -100,7 +103,7 @@ export function canUseProvider(
 
 export async function probeCloudProvider(settings?: LMSettings): Promise<boolean> {
   const s = settings ?? getLMSettings();
-  const key = cloudApiKey(s);
+  const key = cloudApiKey(s.apiKeyEnv);
   if (!key) return false;
   const baseUrl =
     s.baseUrl ??

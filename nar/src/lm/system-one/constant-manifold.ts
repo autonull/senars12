@@ -1,5 +1,6 @@
 import { makeId } from '@senars/util';
 import { validateBatchQueries } from './algebra.js';
+import { dominantDistribution } from './distribution.js';
 import type {
   BackendId,
   CalibrationVersion,
@@ -82,10 +83,7 @@ export class ConstantManifold implements JudgmentManifold {
 
     if (query.kind === 'classify') {
       const space = query.space;
-      const dist = space.map((option, i) => ({
-        option,
-        p: i === 0 ? topP : topP === 1.0 ? 0.0 : (1 - topP) / Math.max(1, space.length - 1),
-      }));
+      const dist = dominantDistribution(space, topP, 0);
       return {
         ...base,
         kind: 'classify',

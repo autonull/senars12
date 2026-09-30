@@ -117,10 +117,7 @@ export class LLMCortex {
 
   #buildDefaultPrompt(req: CortexSynthesizeRequest): string {
     const derivations = req.derivations
-      .map(
-        (d) =>
-          `- ${d.term}${d.truth ? ` ${formatTruth(d.truth)}` : ''}`
-      )
+      .map((d) => `- ${d.term}${d.truth ? ` ${formatTruth(d.truth)}` : ''}`)
       .join('\n');
 
     return [

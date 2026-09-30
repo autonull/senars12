@@ -17,7 +17,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
-import { createLogger } from '@senars/core/logger';
+import { createLogger } from '@senars/util';
 import {
   computeReplayStateHash,
   replayIntoMemory,
@@ -25,7 +25,7 @@ import {
   verifyReplayStateHash,
   type FullReplayOptions,
   type ReplaySnapshotFile,
-} from '@senars/nar/kernel/replay';
+} from '@senars/nar/kernel';
 import {
   readCognitiveParams as readParamsFile,
   type CognitiveParameters,

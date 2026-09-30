@@ -1,15 +1,15 @@
-import { NAR } from '../../nar/src/nar.js';
-import { DEFAULT_CONFIG } from '../../nar/src/types/index.js';
+import type { JudgmentResolvedEvent } from '@senars/core/schemas';
+import { validateCognitiveEvent } from '@senars/core/schemas';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
 import { createMockLMService } from '../../nar/src/lm/lm-service.js';
 import { createSeNARSRegistry } from '../../nar/src/lm/providers.js';
-import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
-import { SystemOneIngressJudge } from '../../nar/src/lm/system-one/ingress-judge.js';
 import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import type { JudgmentResolvedEvent } from '@senars/core/derivation-schemas';
-import { validateCognitiveEvent } from '@senars/core/derivation-schemas';
+import { SystemOneIngressJudge } from '../../nar/src/lm/system-one/ingress-judge.js';
 import type { EvaluateProposition } from '../../nar/src/lm/system-one/types.js';
 import { getMetricsAsJson } from '../../nar/src/metrics/prometheus.js';
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { NAR } from '../../nar/src/nar.js';
+import { DEFAULT_CONFIG } from '../../nar/src/types/index.js';
 
 /**
  * Deterministic fake encoder — avoids model download in the test environment
@@ -28,7 +28,8 @@ const fakeGenerator = {
   },
 };
 
-const makeCache = () => createEmbeddingCache({ maxSize: 1000, ttlMs: 300_000, generator: fakeGenerator });
+const makeCache = () =>
+  createEmbeddingCache({ maxSize: 1000, ttlMs: 300_000, generator: fakeGenerator });
 
 const BUDGET = {
   maxCycles: 100,
@@ -66,7 +67,9 @@ describe('System One Full Enabled Path Integration', () => {
       // NOTE: enableLMRules deliberately off — LM-rule paths hang with mock providers
       // in this environment (provider probing / model download; pre-existing, H4-adjacent).
       enableLMRules: false,
-      lmService: createMockLMService({ generateTextFn: mockTextFn ?? (async () => 'mock response') }),
+      lmService: createMockLMService({
+        generateTextFn: mockTextFn ?? (async () => 'mock response'),
+      }),
       providerRegistry: createSeNARSRegistry(),
       systemOne: {
         enabled: true,
@@ -79,9 +82,19 @@ describe('System One Full Enabled Path Integration', () => {
           consensus: { criticalityFloor: 'high', fanout: 3, minAgreement: 0.66 },
         },
         cortex: { provider: 'mock' },
-        budgets: { maxJudgmentCallsPerCycle: 8, maxConsensusPerCycle: 2, maxLatencyMsPerJudgment: 33, maxTokensPerCycle: 4096, maxMemoryMbPerCycle: 256 },
+        budgets: {
+          maxJudgmentCallsPerCycle: 8,
+          maxConsensusPerCycle: 2,
+          maxLatencyMsPerJudgment: 33,
+          maxTokensPerCycle: 4096,
+          maxMemoryMbPerCycle: 256,
+        },
         provisional: { cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30000 },
-        distillation: { datasetPath: './data/systemone-distillation.jsonl', bakeOffSamplingRate: 0.1, driftEceBound: 0.15 },
+        distillation: {
+          datasetPath: './data/systemone-distillation.jsonl',
+          bakeOffSamplingRate: 0.1,
+          driftEceBound: 0.15,
+        },
       },
     });
     await instance.initialize();
@@ -131,7 +144,9 @@ describe('System One Full Enabled Path Integration', () => {
     expect(gate.getEventLog().some((e) => e.type === 'task.admitted')).toBe(true);
 
     // 6 ingress heads → 6 judgment.resolved events
-    const resolved = gate.getEventLog().filter((e): e is JudgmentResolvedEvent => e.type === 'judgment.resolved');
+    const resolved = gate
+      .getEventLog()
+      .filter((e): e is JudgmentResolvedEvent => e.type === 'judgment.resolved');
     expect(resolved.length).toBeGreaterThanOrEqual(6);
 
     for (const event of resolved) {
@@ -164,7 +179,10 @@ describe('System One Full Enabled Path Integration', () => {
     expect(output.rejectionReason).toContain('Injection attack detected');
     // Veto is fail-closed: no task.admitted event, but the judgment is still recorded
     expect(gate.getEventLog().some((e) => e.type === 'task.admitted')).toBe(false);
-    expect(gate.getEventLog().filter((e): e is JudgmentResolvedEvent => e.type === 'judgment.resolved').length).toBeGreaterThanOrEqual(6);
+    expect(
+      gate.getEventLog().filter((e): e is JudgmentResolvedEvent => e.type === 'judgment.resolved')
+        .length
+    ).toBeGreaterThanOrEqual(6);
   });
 
   it('records systemone_* Prometheus metrics', async () => {
@@ -186,7 +204,10 @@ describe('System One Full Enabled Path Integration', () => {
 
     expect(judgmentsValues.length).toBeGreaterThan(0);
     expect(latencyValues.length).toBeGreaterThan(0);
-    const total = judgmentsValues.reduce((a, v) => a + (typeof v.value === 'number' ? v.value : 0), 0);
+    const total = judgmentsValues.reduce(
+      (a, v) => a + (typeof v.value === 'number' ? v.value : 0),
+      0
+    );
     expect(total).toBeGreaterThanOrEqual(6);
   });
 
@@ -219,8 +240,20 @@ describe('System One Full Enabled Path Integration', () => {
         maxCandidates: 3,
       },
       [
-        { kind: 'classify' as const, instruction: 'Select best Narsese candidate', space: [], axis: 'teleological' as const, criticality: 'standard' as const },
-        { kind: 'evaluate' as const, instruction: 'Evaluate conflict with current beliefs', rubric: 'conflict' as const, axis: 'epistemic' as const, criticality: 'standard' as const },
+        {
+          kind: 'classify' as const,
+          instruction: 'Select best Narsese candidate',
+          space: [],
+          axis: 'teleological' as const,
+          criticality: 'standard' as const,
+        },
+        {
+          kind: 'evaluate' as const,
+          instruction: 'Evaluate conflict with current beliefs',
+          rubric: 'conflict' as const,
+          axis: 'epistemic' as const,
+          criticality: 'standard' as const,
+        },
       ],
       BUDGET
     );
@@ -241,7 +274,10 @@ describe('System One Full Enabled Path Integration', () => {
     expect(manifoldReflex).toBeDefined();
     expect(bound).toContain(manifoldReflex);
 
-    const proposals = manifoldReflex!.propose({ stateId: 'test-state', observations: [] }, ['action1', 'action2']);
+    const proposals = manifoldReflex!.propose({ stateId: 'test-state', observations: [] }, [
+      'action1',
+      'action2',
+    ]);
     expect(Array.isArray(proposals)).toBe(true);
   });
 
@@ -312,8 +348,21 @@ describe('System One Full Enabled Path Integration', () => {
     // 2. Generate-then-judge via the dispatcher
     const pea = await dispatcher.proposeAndJudge(
       { tickId: 'e2e', topBeliefs: ['<robin --> bird>.'], topGoals: [], workingMemory: [] },
-      { kind: 'synthesize' as const, instruction: 'Translate to Narsese: robin is a bird', grammar: 'narsese-term', maxCandidates: 2 },
-      [{ kind: 'evaluate' as const, instruction: 'conflict', rubric: 'conflict' as const, axis: 'epistemic' as const, criticality: 'standard' as const }],
+      {
+        kind: 'synthesize' as const,
+        instruction: 'Translate to Narsese: robin is a bird',
+        grammar: 'narsese-term',
+        maxCandidates: 2,
+      },
+      [
+        {
+          kind: 'evaluate' as const,
+          instruction: 'conflict',
+          rubric: 'conflict' as const,
+          axis: 'epistemic' as const,
+          criticality: 'standard' as const,
+        },
+      ],
       BUDGET
     );
     expect(pea.candidates.length).toBeGreaterThan(0);
@@ -326,7 +375,10 @@ describe('System One Full Enabled Path Integration', () => {
     expect(judgmentEvents.length).toBeGreaterThan(0);
     const metrics = (await getMetricsAsJson()) as Record<string, any[]>;
     const judgmentsValues = metrics['senars_systemone_judgments_total'] ?? [];
-    const total = judgmentsValues.reduce((a, v) => a + (typeof v.value === 'number' ? v.value : 0), 0);
+    const total = judgmentsValues.reduce(
+      (a, v) => a + (typeof v.value === 'number' ? v.value : 0),
+      0
+    );
     expect(total).toBeGreaterThan(0);
     expect(nar.isRunning()).toBe(true);
   });

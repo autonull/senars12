@@ -1,8 +1,9 @@
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { getOrInsert, incrementCount, maxBy, ucb1 } from '@senars/util';
 import type { Game, GameOutcome } from '../../game/Game.js';
+import { nextInt } from '../../utils/random.js';
 import type { Decider } from './decide.js';
 import type { JudgmentDataset } from './distill.js';
-import { getOrInsert, incrementCount, maxBy, ucb1 } from '@senars/util';
 import { recordReflexOutcome } from './reflex-label-source.js';
 import type {
   EmbeddingCache,
@@ -159,7 +160,10 @@ export class ManifoldRLAgent {
     // the unified choose() API (contrastive penalties + verification vetoes);
     // an abstain falls back to the incumbent head-driven selection.
     if (this.#decider && valuesFitted) {
-      const viaChoose = await this.#selectViaChoose(stateDigest, this.#eligible(legalActions, feasible, risks));
+      const viaChoose = await this.#selectViaChoose(
+        stateDigest,
+        this.#eligible(legalActions, feasible, risks)
+      );
       if (viaChoose !== undefined) {
         return { action: viaChoose, values, feasible, risks, pointer, stateId };
       }
@@ -208,12 +212,12 @@ export class ManifoldRLAgent {
   ): A {
     // Z2: unfitted value heads are not load-bearing — uniform exploration
     if (!valuesFitted) {
-      return legalActions[Math.floor(this.#rng() * legalActions.length)]!;
+      return legalActions[nextInt(this.#rng, legalActions.length)]!;
     }
     const candidates = this.#eligible(legalActions, feasible, risks);
 
     if (this.#rng() < this.#epsilon) {
-      return candidates[Math.floor(this.#rng() * candidates.length)]!;
+      return candidates[nextInt(this.#rng, candidates.length)]!;
     }
 
     const scoreOf = (a: A): number => {
@@ -231,7 +235,10 @@ export class ManifoldRLAgent {
     const { action, values, feasible, risks, pointer, stateId } = await this.decide(game);
     const outcome = game.step(action);
 
-    incrementCount(getOrInsert(this.#visits, stateId, () => new Map<string, number>()), String(action));
+    incrementCount(
+      getOrInsert(this.#visits, stateId, () => new Map<string, number>()),
+      String(action)
+    );
     this.#totalVisits++;
 
     if (this.#dataset && this.#labelOutcomes) {

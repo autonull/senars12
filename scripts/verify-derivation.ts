@@ -9,7 +9,7 @@
  * Exit 0 when every record verifies, 1 otherwise.
  */
 import { readFileSync } from 'node:fs';
-import { DerivationRecordSchema } from '@senars/core/derivation-schemas';
+import { DerivationRecordSchema } from '@senars/core/schemas';
 import { verifyRecord } from '@senars/core/verify-derivation';
 import { z } from 'zod';
 

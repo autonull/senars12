@@ -4,7 +4,7 @@
  */
 
 import type { NAR } from '@senars/nar';
-import { readCalibrationLockOrNull } from '@senars/nar/lm/system-one/calibration-fit.js';
+import { readCalibrationLockOrNull } from '@senars/nar/lm/system-one';
 import { pct } from '@senars/util';
 import { type AttachedGame, reflexesOf } from './conversation-game.js';
 

@@ -147,7 +147,7 @@ for (const r of records) {
 
 ### Source Quality & Grounding
 
-The single source-quality table is `SOURCE_QUALITY_CONFIDENCE` (`@senars/core/derivation-schemas`), consumed by the PerceptionGate and System One seeding (`seedTruth`):
+The single source-quality table is `SOURCE_QUALITY_CONFIDENCE` (`@senars/core/schemas/truth`), consumed by the PerceptionGate and System One seeding (`seedTruth`):
 
 | Source Type | Quality | Truth Confidence |
 |-------------|---------|------------------|

@@ -1,9 +1,9 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { EpisodicMemory } from '@senars/nar';
 import type { DialogueCapture as DialogueCaptureType } from '@senars/nar/dialogue';
 import { retrospect, selectProbes } from '@senars/nar/dialogue';
 import type { ReadOnlyLookup } from '@senars/util';
 import { z } from 'zod';
-import type { EpisodicMemory } from '../../../../nar/src/memory/EpisodicMemory.js';
 import { ANNOTATIONS, createMCPResponse, stringifyMCP } from './mcp-response.js';
 
 const EMPTY_GRADES: ReadOnlyLookup<string, number> = {

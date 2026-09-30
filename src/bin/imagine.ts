@@ -6,10 +6,10 @@
 
 import type { NAR } from '@senars/nar';
 import { createNAR, DEFAULT_CONFIG } from '@senars/nar';
-import { ScenarioGenerator } from '@senars/nar/imagination/impls/ScenarioGenerator.js';
-import { CognitiveTreadmill } from '@senars/nar/imagination/impls/CognitiveTreadmill.js';
-import type { ScenarioProfile } from '@senars/nar/imagination/types';
-import { ArchitectureDriver } from '@senars/nar/self/architecture-driver';
+import { ScenarioGenerator } from '@senars/nar/imagination';
+import { CognitiveTreadmill } from '@senars/nar/imagination';
+import type { ScenarioProfile } from '@senars/nar/imagination';
+import { ArchitectureDriver } from '@senars/nar/self';
 import { divider, parseFlags, pct, section } from '@senars/util';
 import { runEntrypoint } from './lib/fatal-error.js';
 

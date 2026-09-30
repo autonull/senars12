@@ -1,12 +1,22 @@
 /**
  * CognitiveThread — lifecycle (spawn/join/kill) + mailbox + BudgetSlice inheritance.
- * ThreadScope deprecated alias. Single-thread run byte-identical; enables parallel threads later.
  * Hard budget inheritance: spawn enforces Σ(child) ≤ parent.remaining; join returns unconsumed budget.
  */
 
-
-import { BudgetSlice, type BudgetSliceOptions, createBudgetSlice, sliceBudget, isExhausted, consumeCycles, chargeAllocation, remainingAll, remainingCycles, resolveAllocation, type BudgetAllocation } from './budget.js';
 import { makeId, toError } from '@senars/util';
+import {
+  type BudgetAllocation,
+  type BudgetSlice,
+  type BudgetSliceOptions,
+  chargeAllocation,
+  consumeCycles,
+  createBudgetSlice,
+  isExhausted,
+  remainingAll,
+  remainingCycles,
+  resolveAllocation,
+  sliceBudget,
+} from './budget.js';
 import { emitDomainEvent } from './event-sink.js';
 
 /** One backpressure decision, as a trace event. Core reaches the tracer through the sink. */
@@ -64,7 +74,9 @@ export interface ThreadMailbox {
 function createMailbox(capacity: number): ThreadMailbox {
   const messages: ThreadMessage[] = [];
   return {
-    get messages() { return messages; },
+    get messages() {
+      return messages;
+    },
     capacity,
     enqueue(message: ThreadMessage): boolean {
       if (messages.length >= capacity) return false;
@@ -196,7 +208,7 @@ export class CognitiveThread {
     try {
       // Consume one cycle for thread overhead
       consumeCycles(this.budget, 1);
-      
+
       this.result = await work(this);
       this.status = 'completed';
       return this.result as T;
@@ -299,7 +311,11 @@ export class ThreadPool {
     if (this.threads.size >= this.maxThreads) return null;
     if (this.threads.has(id)) return null;
 
-    const childAllocation = resolveAllocation(this.rootBudget, allocation, (remaining) => remaining);
+    const childAllocation = resolveAllocation(
+      this.rootBudget,
+      allocation,
+      (remaining) => remaining
+    );
     chargeAllocation(this.rootBudget, childAllocation);
 
     const thread = new CognitiveThread({
@@ -358,17 +374,18 @@ export class ThreadPool {
   }
 }
 
-/** Deprecated alias for backward compatibility. */
-export type ThreadScope = BudgetSlice;
-/** @deprecated Use BudgetSlice instead. */
-export const ThreadScope = {} as BudgetSlice;
-
 /** Create a root budget slice for the main thread. */
-export function createRootBudget(options: Omit<BudgetSliceOptions, 'id' | 'parentId'> & { id?: string }): BudgetSlice {
+export function createRootBudget(
+  options: Omit<BudgetSliceOptions, 'id' | 'parentId'> & { id?: string }
+): BudgetSlice {
   return createBudgetSlice({ id: options.id ?? 'root', parentId: undefined, ...options });
 }
 
 /** Create a cognitive thread with default options. */
-export function createCognitiveThread(id: string, parentBudget: BudgetSlice, options?: Partial<CognitiveThreadOptions>): CognitiveThread {
+export function createCognitiveThread(
+  id: string,
+  parentBudget: BudgetSlice,
+  options?: Partial<CognitiveThreadOptions>
+): CognitiveThread {
   return new CognitiveThread({ id, parentBudget, ...options });
 }

@@ -2,10 +2,10 @@
  * Rule result builders shared across NAL rule definitions.
  */
 import type { Term } from '../../terms';
-import { getPredicate, getSubject, TermBuilder, termsEqual } from '../../terms';
+import { getPredicate, getSubject, TermBuilder, TermSet, termsEqual } from '../../terms';
+import type { RuleFn } from '../types.js';
 import { ID, sameSubject } from './extractors.js';
 import { buildBinaryInhRule, buildInhRule } from './rule-builder.js';
-import type { RuleFn } from '../types.js';
 
 export const buildDeduction = (left: Term, right: Term): Term | undefined => {
   const s = getSubject(left),
@@ -46,9 +46,12 @@ export const buildHigherOrderRule =
 
 /**
  * Intersect (`unique: false`) or union (`unique: true`) the argument lists of two
- * same-kind n-ary terms. Terms are canonical, so their serialized form is a
- * sound key for both membership and dedup — an O(n+m) `Set` fold instead of a
- * quadratic structural comparison on the per-pair derivation path.
+ * same-kind n-ary terms. Membership and dedup go through `termKey`, the
+ * canonical structural identity — an O(n+m) keyed fold instead of a quadratic
+ * structural comparison on the per-pair derivation path. The serialized form
+ * cannot stand in for it: `serializeTerm` collapses a 1-argument n-ary term to
+ * its argument, so `(a ,/)` and `a` share a `toString()` and one argument of the
+ * union would be dropped.
  */
 export const foldNary = (kind: Term['kind'], unique = false): RuleFn => {
   return ([t1, t2]: [Term, Term]): Term | undefined => {
@@ -57,17 +60,17 @@ export const foldNary = (kind: Term['kind'], unique = false): RuleFn => {
     const a2 = t2.args!;
     let args: Term[];
     if (unique) {
-      const seen = new Set<string>();
+      const seen = new TermSet();
       args = [];
       for (const arg of [...a1, ...a2]) {
-        const key = arg.toString();
-        if (seen.has(key)) continue;
-        seen.add(key);
+        if (seen.has(arg)) continue;
+        seen.add(arg);
         args.push(arg);
       }
     } else {
-      const keys = new Set(a2.map((arg) => arg.toString()));
-      args = a1.filter((x) => keys.has(x.toString()));
+      const rhs = new TermSet();
+      for (const arg of a2) rhs.add(arg);
+      args = a1.filter((x) => rhs.has(x));
     }
     return args.length > 0
       ? kind === 'conjunction'

@@ -12,25 +12,9 @@
       "types": "./src/eventlog/index.ts",
       "import": "./src/eventlog/index.ts"
     },
-    "./cognitive-event": {
-      "types": "./src/CognitiveEvent.ts",
-      "import": "./src/CognitiveEvent.ts"
-    },
     "./protocol": {
       "types": "./src/protocol/index.ts",
       "import": "./src/protocol/index.ts"
-    },
-    "./logger": {
-      "types": "./src/Logger.ts",
-      "import": "./src/Logger.ts"
-    },
-    "./helpers": {
-      "types": "./src/helpers.ts",
-      "import": "./src/helpers.ts"
-    },
-    "./command-types": {
-      "types": "./src/command-types.ts",
-      "import": "./src/command-types.ts"
     },
     "./lens-schema": {
       "types": "./src/lens-schema.ts",
@@ -84,9 +68,13 @@
       "types": "./src/cortex/index.ts",
       "import": "./src/cortex/index.ts"
     },
-    "./derivation-schemas": {
-      "types": "./src/derivation-schemas.ts",
-      "import": "./src/derivation-schemas.ts"
+    "./schemas": {
+      "types": "./src/schemas/index.ts",
+      "import": "./src/schemas/index.ts"
+    },
+    "./schemas/*": {
+      "types": "./src/schemas/*.ts",
+      "import": "./src/schemas/*.ts"
     },
     "./budget": {
       "types": "./src/budget.ts",
@@ -112,7 +100,6 @@
     "@senars/util": "workspace:*",
     "ai": "^7.0.92",
     "better-sqlite3": "^13.0.3",
-    "ulid": "^3.0.2",
     "zod": "^4.5.4"
   },
   "devDependencies": {

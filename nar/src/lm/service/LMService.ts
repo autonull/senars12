@@ -1,4 +1,9 @@
-import type { LMExecutionStats, LMGenerateOptions, LMTask } from '@senars/util';
+import {
+  type LMExecutionStats,
+  type LMGenerateOptions,
+  type LMTask,
+  stopwatch,
+} from '@senars/util';
 import { generateObject, generateText, type LanguageModel, streamText, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
 import { z } from 'zod';
@@ -6,7 +11,11 @@ import { withSpan } from '../../otel/index.js';
 import type { ILMService } from '../interfaces.js';
 import { toCachedJsonSchema } from '../json.js';
 import { getProviderRuntime, type ProviderRuntime } from '../provider-runtime.js';
-import type { LMProviderName, ModelDownloadProgressCallback, SeNARSRegistry } from '../providers.js';
+import type {
+  LMProviderName,
+  ModelDownloadProgressCallback,
+  SeNARSRegistry,
+} from '../providers.js';
 import {
   createSeNARSRegistry,
   getLMSettings,
@@ -79,8 +88,10 @@ export class LMService implements ILMService {
     // AI SDK may suffix provider names (e.g. 'llamacpp.chat') — normalize.
     const normalized = raw?.split('.')[0] ?? raw;
     if (!normalized) return configured;
-    return (normalized === 'cloud' ? configured : PROVIDER_ALIASES[normalized]) ??
-      (normalized as LMProviderName);
+    return (
+      (normalized === 'cloud' ? configured : PROVIDER_ALIASES[normalized]) ??
+      (normalized as LMProviderName)
+    );
   }
 
   get model(): string | undefined {
@@ -129,9 +140,9 @@ export class LMService implements ILMService {
     opts?: Parameters<LMService['generateTextInner']>[1]
   ): Promise<string> {
     return withSpan('lm.generate_text', { 'lm.task': opts?.task ?? 'fast' }, async (span) => {
-      const start = Date.now();
+      const elapsed = stopwatch();
       const text = enforceLMOutputSize(await this.generateTextInner(prompt, opts));
-      span.setAttributes({ 'lm.latency_ms': Date.now() - start, 'lm.output_chars': text.length });
+      span.setAttributes({ 'lm.latency_ms': elapsed(), 'lm.output_chars': text.length });
       return text;
     });
   }
@@ -173,9 +184,10 @@ export class LMService implements ILMService {
       return await this.generateText(prompt, opts);
     } catch {
       if (opts?.signal?.aborted) return null;
-      return this.generateText(prompt, { ...opts, temperature: (opts?.temperature ?? 0) + 0.2 }).catch(
-        () => null
-      );
+      return this.generateText(prompt, {
+        ...opts,
+        temperature: (opts?.temperature ?? 0) + 0.2,
+      }).catch(() => null);
     }
   }
 
@@ -230,7 +242,10 @@ export class LMService implements ILMService {
     );
   }
 
-  async *stream(prompt: string, opts?: Pick<LMGenerateOptions, 'task' | 'signal'>): AsyncIterable<string> {
+  async *stream(
+    prompt: string,
+    opts?: Pick<LMGenerateOptions, 'task' | 'signal'>
+  ): AsyncIterable<string> {
     const task = opts?.task ?? 'fast';
     // D5: stream parity — no silent success when no model resolves.
     const { model, gate } = this.open(task);
@@ -248,7 +263,7 @@ export class LMService implements ILMService {
       return;
     }
 
-    const start = Date.now();
+    const elapsed = stopwatch();
     const outputLimit = maxLMOutputChars();
     let out = 0;
     let yielded = false;
@@ -266,7 +281,7 @@ export class LMService implements ILMService {
         }
         // D5: stream pays the same spend toll as generate.
         this.accounting.bill(task, gate, await result.usage);
-        await this.accounting.settle(envelope, start, gate, {
+        await this.accounting.settle(envelope, elapsed(), gate, {
           ok: true,
           value: (await result.text) || '',
           tokens: prompt.length + out,
@@ -274,7 +289,7 @@ export class LMService implements ILMService {
         return;
       } catch (error) {
         lastError = error;
-        await this.accounting.settle(envelope, start, gate, {
+        await this.accounting.settle(envelope, elapsed(), gate, {
           ok: false,
           error,
           committed: yielded,

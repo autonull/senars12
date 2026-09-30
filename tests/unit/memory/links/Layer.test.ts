@@ -146,7 +146,9 @@ describe('Layer', () => {
     const layer = new Layer('term', 0);
 
     expect(layer.addLink({ sourceTerm: cat, targetTerm: dog })).toBeNull();
-    expect(layer.getStats()).toMatchObject({ size: 0, utilization: NaN });
+    // `utilization` and `pressure` are the same quantity, so an admit-nothing
+    // layer reports full — not the `0/0 = NaN` the unguarded division gave.
+    expect(layer.getStats()).toMatchObject({ size: 0, utilization: 1 });
     expect(layer.pressure()).toBe(1);
   });
 

@@ -1,4 +1,4 @@
-import type { CommandDefinition } from '@senars/core/command-types';
+import type { CommandDefinition } from '@senars/util';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 
 interface NarWithEpisodes {

@@ -1,7 +1,7 @@
 /** Dialogue Flywheel commands (`.react`, `.turns`, `.retrospect*`, `.probes`, …). */
 
 import { OutcomeLinker } from '@senars/nar/config';
-import { episodeQualitySurface } from '@senars/nar/query/memory-query.js';
+import { episodeQualitySurface } from '@senars/nar/query';
 import { errMsg, makeId } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import { tokenize } from './args.js';

@@ -8,7 +8,7 @@
 import type { JudgmentDataset } from '../lm/system-one/distill.js';
 import { recordShadowVerdictLabel } from '../lm/system-one/label-sources.js';
 import type { SystemOneLMRuleAdapter } from '../lm/system-one/rule-adapter.js';
-import type { Term, Truth } from '../terms';
+import { type Term, type Truth, termsEqual } from '../terms';
 
 export interface BeliefLike {
   term: Term;
@@ -66,18 +66,15 @@ export class ShadowValidator {
   /** True when the candidate introduces no contradiction with existing beliefs. */
   validate(candidate: BeliefLike, beliefs: readonly BeliefLike[]): ShadowValidationResult {
     if (!candidate.truth) return { valid: true };
+    const sameTerm = (b: BeliefLike) => termsEqual(b.term, candidate.term);
     const hasConflict = beliefs.some(
       (b) =>
-        b.truth &&
-        b.term.toString() === candidate.term.toString() &&
-        Math.abs(b.truth.f - candidate.truth!.f) > this.maxFrequencyDelta
+        b.truth && sameTerm(b) && Math.abs(b.truth.f - candidate.truth!.f) > this.maxFrequencyDelta
     );
 
     let frequencyDelta: number | undefined;
     if (hasConflict) {
-      const existingBelief = beliefs.find(
-        (b) => b.truth && b.term.toString() === candidate.term.toString()
-      );
+      const existingBelief = beliefs.find((b) => b.truth && sameTerm(b));
       if (existingBelief?.truth) {
         frequencyDelta = Math.abs(existingBelief.truth.f - candidate.truth!.f);
       }
@@ -104,7 +101,10 @@ export class ShadowValidator {
    * (Z2 convention — hash scorers are not load-bearing); abstain or unfitted
    * heads fall back to the frequency check. Records the combined verdict.
    */
-  async validateWithHead(candidate: BeliefLike, beliefs: readonly BeliefLike[]): Promise<ShadowValidationResult> {
+  async validateWithHead(
+    candidate: BeliefLike,
+    beliefs: readonly BeliefLike[]
+  ): Promise<ShadowValidationResult> {
     const frequencyResult = this.validate(candidate, beliefs);
     if (!this.#systemOne || !frequencyResult.valid) return frequencyResult;
 

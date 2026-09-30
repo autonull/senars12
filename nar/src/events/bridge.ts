@@ -1,17 +1,23 @@
 import { generateId } from '@senars/util';
-import type { CognitiveEvent, EngineOrigin } from '@senars/util/types/cognitive';
+import type { CognitiveEvent } from '@senars/util/types/cognitive';
 import type { NAREventMap } from '../types/events.js';
 
-type Handler = (data: unknown, engine: EngineOrigin) => CognitiveEvent | null;
+/**
+ * Every NAR event becomes an `engine: 'nar'` cognitive event. The origin is the
+ * nar discriminant, not a parameter: `kernel` and `proposer` events are minted
+ * at their own construction sites, and threading an origin through here could
+ * only ever have produced a `'kernel'` event the nar type does not admit.
+ */
+type Handler = (data: unknown) => CognitiveEvent | null;
 
 const handlers = new Map<keyof NAREventMap, Handler>([
   [
     'cycle:start',
-    (data, engine) => {
+    (data) => {
       const d = data as NAREventMap['cycle:start'];
       return {
         type: 'cycle',
-        engine,
+        engine: 'nar',
         timestamp: Date.now(),
         correlationId: generateId('corr'),
         cycle: d.cycle,
@@ -22,11 +28,11 @@ const handlers = new Map<keyof NAREventMap, Handler>([
   ],
   [
     'rule:applied',
-    (data, engine) => {
+    (data) => {
       const d = data as NAREventMap['rule:applied'];
       return {
         type: 'derivation.made',
-        engine,
+        engine: 'nar',
         timestamp: Date.now(),
         correlationId: generateId('corr'),
         payload: {
@@ -42,11 +48,11 @@ const handlers = new Map<keyof NAREventMap, Handler>([
   ],
   [
     'concept:created',
-    (data, engine) => {
+    (data) => {
       const d = data as NAREventMap['concept:created'];
       return {
         type: 'concept.activated',
-        engine,
+        engine: 'nar',
         timestamp: Date.now(),
         correlationId: generateId('corr'),
         payload: { term: String(d.term), priority: d.priority },
@@ -55,11 +61,11 @@ const handlers = new Map<keyof NAREventMap, Handler>([
   ],
   [
     'concept:removed',
-    (data, engine) => {
+    (data) => {
       const d = data as NAREventMap['concept:removed'];
       return {
         type: 'belief.retracted',
-        engine,
+        engine: 'nar',
         timestamp: Date.now(),
         correlationId: generateId('corr'),
         payload: { term: String(d.term) },
@@ -68,11 +74,11 @@ const handlers = new Map<keyof NAREventMap, Handler>([
   ],
   [
     'cognitive:state-change',
-    (data, engine) => {
+    (data) => {
       const d = data as NAREventMap['cognitive:state-change'];
       return {
         type: 'drive.changed',
-        engine,
+        engine: 'nar',
         timestamp: Date.now(),
         correlationId: generateId('corr'),
         payload: { drive: `cognitive:${d.action}`, urgency: 0.5 },
@@ -81,11 +87,11 @@ const handlers = new Map<keyof NAREventMap, Handler>([
   ],
   [
     'tool:call',
-    (data, engine) => {
+    (data) => {
       const d = data as NAREventMap['tool:call'];
       return {
         type: 'tool.request',
-        engine,
+        engine: 'nar',
         timestamp: d.timestamp,
         correlationId: generateId('corr'),
         payload: { toolName: d.name, args: d.args as Record<string, unknown> },
@@ -94,11 +100,11 @@ const handlers = new Map<keyof NAREventMap, Handler>([
   ],
   [
     'tool:result',
-    (data, engine) => {
+    (data) => {
       const d = data as NAREventMap['tool:result'];
       return {
         type: 'tool.response',
-        engine,
+        engine: 'nar',
         timestamp: d.timestamp,
         correlationId: generateId('corr'),
         payload: {
@@ -112,11 +118,11 @@ const handlers = new Map<keyof NAREventMap, Handler>([
   ],
   [
     'tool:error',
-    (data, engine) => {
+    (data) => {
       const d = data as NAREventMap['tool:error'];
       return {
         type: 'tool.response',
-        engine,
+        engine: 'nar',
         timestamp: d.timestamp,
         correlationId: generateId('corr'),
         payload: {
@@ -130,9 +136,9 @@ const handlers = new Map<keyof NAREventMap, Handler>([
   ],
   [
     'lm:start',
-    (_data, engine) => ({
+    (_data) => ({
       type: 'skill.executed',
-      engine,
+      engine: 'nar',
       timestamp: Date.now(),
       correlationId: generateId('corr'),
       payload: { skill: 'lm.generate', args: [], result: '', durationMs: 0 },
@@ -142,12 +148,11 @@ const handlers = new Map<keyof NAREventMap, Handler>([
 
 export function narEventToCognitive(
   event: keyof NAREventMap,
-  data: NAREventMap[keyof NAREventMap],
-  engine: EngineOrigin = 'nar'
+  data: NAREventMap[keyof NAREventMap]
 ): CognitiveEvent | null {
   const handler = handlers.get(event);
   if (!handler) return null;
-  return handler(data, engine);
+  return handler(data);
 }
 
 /** All NAR event keys that have a CognitiveEvent mapping. */

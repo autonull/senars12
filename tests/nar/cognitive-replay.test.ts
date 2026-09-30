@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { validateCognitiveEvent } from '@senars/core/derivation-schemas';
+import { validateCognitiveEvent } from '@senars/core/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
 import {

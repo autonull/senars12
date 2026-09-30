@@ -1,15 +1,15 @@
-import { describe, it, expect } from 'vitest';
-import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import {
-  runBakeOff,
-  buildHeadSwapProposal,
-  JudgmentDataset,
-  type BakeOffCase,
-  type HeadCandidateSpec,
-} from '../../nar/src/lm/system-one/distill.js';
+import { join } from 'node:path';
+import type { AutonomyMode } from '@senars/core/schemas/governance';
+import { describe, expect, it } from 'vitest';
 import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
-import type { AutonomyMode } from '@senars/core/derivation-schemas';
+import {
+  type BakeOffCase,
+  buildHeadSwapProposal,
+  type HeadCandidateSpec,
+  JudgmentDataset,
+  runBakeOff,
+} from '../../nar/src/lm/system-one/distill.js';
 
 const incumbent: HeadCandidateSpec = {
   headId: 'candidate_select',
@@ -81,7 +81,13 @@ describe('System One — Distillation Parity (Bench 10)', () => {
     expect(proposal.riskTier).toBe('medium');
 
     const router = new ProposalRouter();
-    for (const mode of ['observe-only', 'propose-only', 'sandbox-execute', 'low-risk-auto-merge', 'human-approved-production'] as AutonomyMode[]) {
+    for (const mode of [
+      'observe-only',
+      'propose-only',
+      'sandbox-execute',
+      'low-risk-auto-merge',
+      'human-approved-production',
+    ] as AutonomyMode[]) {
       const routed = router.route(proposal, mode);
       expect(routed.applied).toBe(false);
     }
@@ -103,6 +109,9 @@ describe('System One — Distillation Parity (Bench 10)', () => {
     });
     const jsonl = dataset.toJSONL();
     expect(jsonl.split('\n')).toHaveLength(1);
-    expect(JSON.parse(jsonl)).toMatchObject({ evidenceId: 'sha256:deadbeef', rubric: 'groundedness' });
+    expect(JSON.parse(jsonl)).toMatchObject({
+      evidenceId: 'sha256:deadbeef',
+      rubric: 'groundedness',
+    });
   });
 });

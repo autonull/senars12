@@ -2,9 +2,10 @@
  * D11 (TODO17b): bounded event logs for kernel gates — drop-oldest rings.
  * Everything that grows has a bound; kernel logs cap at 1000 events.
  */
+
+import type { CognitiveEvent, PolicyViolationEvent } from '@senars/core/schemas';
+import { validateCognitiveEvent } from '@senars/core/schemas';
 import { BoundedRing } from '@senars/util';
-import type { CognitiveEvent, PolicyViolationEvent } from '@senars/core/derivation-schemas';
-import { validateCognitiveEvent } from '@senars/core/derivation-schemas';
 
 export const GATE_LOG_CAPACITY = 1000;
 

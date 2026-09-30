@@ -55,6 +55,13 @@ export const parseJsonOr = <T>(text: string, fallback: T): T => {
   }
 };
 
+/** The on-disk shape of every JSON state file — one definition so it cannot drift per writer. */
+const jsonDocument = (value: unknown): string => JSON.stringify(value, null, 2);
+
+/** The on-disk shape of every JSONL append: one row per line, trailing newline. */
+const jsonlPayload = (rows: readonly unknown[]): string =>
+  `${rows.map((row) => JSON.stringify(row)).join('\n')}\n`;
+
 /** Read and parse a JSON file. A missing or unreadable file yields `fallback`. */
 export async function readJsonFile<T>(path: string, fallback: T): Promise<T> {
   try {
@@ -75,19 +82,19 @@ export function readJsonFileSync<T>(path: string, fallback: T): T {
 /** Write a JSON file, creating parent directories. */
 export async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await ensureParentDir(path);
-  await writeFile(path, JSON.stringify(value, null, 2), 'utf8');
+  await writeFile(path, jsonDocument(value), 'utf8');
 }
 
 export function writeJsonFileSync(path: string, value: unknown): void {
   ensureParentDirSync(path);
-  writeFileSync(path, JSON.stringify(value, null, 2), 'utf8');
+  writeFileSync(path, jsonDocument(value), 'utf8');
 }
 
 /** Append `rows` as one JSON object per line. Returns the number appended. */
 export function appendJsonl(path: string, rows: readonly unknown[]): number {
   if (rows.length === 0) return 0;
   ensureParentDirSync(path);
-  appendFileSync(path, `${rows.map((row) => JSON.stringify(row)).join('\n')}\n`);
+  appendFileSync(path, jsonlPayload(rows));
   return rows.length;
 }
 
@@ -98,19 +105,22 @@ export async function writeJsonl(path: string, rows: readonly unknown[]): Promis
     await writeFile(path, '', 'utf8');
     return;
   }
-  await writeFile(path, `${rows.map((row) => JSON.stringify(row)).join('\n')}\n`, 'utf8');
+  await writeFile(path, jsonlPayload(rows), 'utf8');
 }
 
 export async function appendJsonlAsync(path: string, rows: readonly unknown[]): Promise<number> {
   if (rows.length === 0) return 0;
   await ensureParentDir(path);
-  await appendFile(path, `${rows.map((row) => JSON.stringify(row)).join('\n')}\n`);
+  await appendFile(path, jsonlPayload(rows));
   return rows.length;
 }
 
 /** Parse one JSONL line; `null` marks a line `parse` rejects, `FAIL` a syntax error. */
 const FAIL = Symbol('jsonl-parse-failure');
-const parseLine = <T>(line: string, parse: (value: unknown) => T | null): T | null | typeof FAIL => {
+const parseLine = <T>(
+  line: string,
+  parse: (value: unknown) => T | null
+): T | null | typeof FAIL => {
   try {
     return parse(JSON.parse(line));
   } catch {
@@ -119,43 +129,31 @@ const parseLine = <T>(line: string, parse: (value: unknown) => T | null): T | nu
 };
 
 /** The single line-walk behind every JSONL reader: blank lines are skipped, unparseable ones counted. */
-function* walkJsonl<T>(content: string, parse: (value: unknown) => T | null): Generator<T | null | typeof FAIL> {
+function* walkJsonl<T>(
+  content: string,
+  parse: (value: unknown) => T | null
+): Generator<T | null | typeof FAIL> {
   for (const line of content.split('\n')) {
     const trimmed = line.trim();
     if (trimmed) yield parseLine(trimmed, parse);
   }
 }
 
-const readContent = async (path: string): Promise<string | null> => {
+/** Absent content is empty content: append-only sinks start empty. */
+const readContent = async (path: string): Promise<string> => {
   try {
     return await readFile(path, 'utf8');
   } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return '';
     throw e;
   }
 };
 
-/**
- * Read a JSONL file, keeping rows that `parse` accepts and counting the rest.
- * A missing file is an empty log, not an error — append-only sinks start empty.
- */
-export function readJsonl<T>(path: string, parse: (value: unknown) => T | null): JsonlLoadResult<T> {
-  if (!existsSync(path)) return { rows: [], invalid: 0 };
-  const rows: T[] = [];
-  let invalid = 0;
-  for (const row of walkJsonl(readFileSync(path, 'utf8'), parse)) {
-    if (row === null || row === FAIL) invalid++;
-    else rows.push(row);
-  }
-  return { rows, invalid };
-}
-
-export async function readJsonlAsync<T>(
-  path: string,
+/** The one accumulate step behind every JSONL reader: rows kept in order, the rest counted. */
+const collectJsonl = <T>(
+  content: string,
   parse: (value: unknown) => T | null
-): Promise<JsonlLoadResult<T>> {
-  const content = await readContent(path);
-  if (content === null) return { rows: [], invalid: 0 };
+): JsonlLoadResult<T> => {
   const rows: T[] = [];
   let invalid = 0;
   for (const row of walkJsonl(content, parse)) {
@@ -163,6 +161,25 @@ export async function readJsonlAsync<T>(
     else rows.push(row);
   }
   return { rows, invalid };
+};
+
+/**
+ * Read a JSONL file, keeping rows that `parse` accepts and counting the rest.
+ * A missing file is an empty log, not an error — append-only sinks start empty.
+ */
+export function readJsonl<T>(
+  path: string,
+  parse: (value: unknown) => T | null
+): JsonlLoadResult<T> {
+  if (!existsSync(path)) return { rows: [], invalid: 0 };
+  return collectJsonl(readFileSync(path, 'utf8'), parse);
+}
+
+export async function readJsonlAsync<T>(
+  path: string,
+  parse: (value: unknown) => T | null
+): Promise<JsonlLoadResult<T>> {
+  return collectJsonl(await readContent(path), parse);
 }
 
 /** Stream a JSONL file row by row, yielding `undefined` for unreadable lines. */
@@ -170,7 +187,7 @@ export async function* iterateJsonl<T>(
   path: string,
   parse: (value: unknown) => T | null
 ): AsyncGenerator<T | undefined> {
-  const content = await readContent(path);
-  if (content === null) return;
-  for (const row of walkJsonl(content, parse)) yield row === FAIL ? undefined : (row ?? undefined);
+  for (const row of walkJsonl(await readContent(path), parse)) {
+    yield row === FAIL ? undefined : (row ?? undefined);
+  }
 }

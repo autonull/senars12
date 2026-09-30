@@ -1,15 +1,12 @@
-import type { ConnectionManager } from '../connection-manager.js';
-import type { Connection } from '../types.js';
-
-export type { CommandDefinition, CommandHandler } from '@senars/util';
 /**
- * @deprecated Will be removed in next major version.
- * Use `import { CommandRegistry, type CommandHandler, type CommandDefinition } from '@senars/util'` instead.
- * io-specific CommandContext with ConnectionManager kept locally for type safety.
+ * Command registry surface for `io`. `CommandRegistry` and the command
+ * vocabulary are declared once in `@senars/util`; `io` used to carry a
+ * narrowed `CommandContext` copy that dropped the `nar` handle the `nar/*`
+ * command groups need.
  */
-export { CommandRegistry } from '@senars/util';
-
-export interface CommandContext {
-  readonly connection: Connection;
-  readonly manager?: ConnectionManager;
-}
+export {
+  CommandRegistry,
+  type CommandContext,
+  type CommandDefinition,
+  type CommandHandler,
+} from '@senars/util';

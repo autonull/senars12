@@ -1,14 +1,13 @@
-import { describe, it, expect } from 'vitest';
-import { DEFAULT_CONFIG } from '../../nar/src';
-import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
-import { ManifoldReflex } from '../../nar/src/lm/system-one/manifold-reflex.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { EpsilonGreedyReflex } from '../../nar/src/reflex/EpsilonGreedyReflex.js';
-import { NAR, createTask, createBudget, termParser, Truth } from '../../nar/src';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
-import type { ClassifyProposition } from '../../nar/src/lm/system-one/types.js';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { describe, expect, it } from 'vitest';
+import { createBudget, createTask, DEFAULT_CONFIG, NAR, Truth, termParser } from '../../nar/src';
 import type { Perception } from '../../nar/src/game/Game.js';
+import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
+import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
+import { ManifoldReflex } from '../../nar/src/lm/system-one/manifold-reflex.js';
+import type { ClassifyProposition } from '../../nar/src/lm/system-one/types.js';
+import { EpsilonGreedyReflex } from '../../nar/src/reflex/EpsilonGreedyReflex.js';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,
@@ -113,12 +112,18 @@ describe('System One — Teleological Transduction (Bench 11)', () => {
 
   it('abstained teleological judgments never transduce', () => {
     const transducer = new ActionGateTransducer();
-    expect(transducer.transduce(makeProposition('move_to', 0.9, { abstained: true, abstainReason: 'low-confidence' }))).toBeUndefined();
+    expect(
+      transducer.transduce(
+        makeProposition('move_to', 0.9, { abstained: true, abstainReason: 'low-confidence' })
+      )
+    ).toBeUndefined();
   });
 
   it('epistemic-axis judgments never transduce through the action gate', () => {
     const transducer = new ActionGateTransducer();
-    expect(transducer.transduce(makeProposition('move_to', 0.9, { axis: 'epistemic' as never }))).toBeUndefined();
+    expect(
+      transducer.transduce(makeProposition('move_to', 0.9, { axis: 'epistemic' as never }))
+    ).toBeUndefined();
   });
 });
 

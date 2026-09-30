@@ -1,7 +1,6 @@
-import { pushCapped } from '@senars/util';
+import { generateId, pushCapped } from '@senars/util';
 import type { Engine } from '../engine/Engine.js';
 import type { EventLog } from '../eventlog/EventLog.js';
-import { generateId } from '../helpers.js';
 import type { ToolRegistry } from '../motor/ToolRegistry.js';
 import type { MemoryEntry, MemoryQuery } from './types.js';
 

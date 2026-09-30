@@ -1,10 +1,10 @@
 import type {
   EpisodicMemory,
+  HealthStatus,
   LMService,
   NAR,
-  BridgeOptions as UtilBridgeOptions,
-  HealthStatus,
   SkillDefinition,
+  BridgeOptions as UtilBridgeOptions,
 } from '@senars/util';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import type { ChatOptions, ChatStreamEvent } from '../ChatService.js';
@@ -20,7 +20,8 @@ import type { ChatOptions, ChatStreamEvent } from '../ChatService.js';
 export interface CorrelationScopeStore {
   get(correlationId: string): { contrastiveMemory?: object; sourceKey?: string };
 }
-import type { CognitiveEvent } from '../CognitiveEvent.js';
+
+import type { CognitiveEvent } from '@senars/util/types/cognitive';
 import type { LLMCortex } from '../cortex/LLMCortex.js';
 import type {
   CognitiveStimulus,
@@ -57,7 +58,10 @@ export interface AgentOptions {
   /** Shared feedback observer for unified tool statistics. */
   feedbackObserver?: ToolFeedbackObserver;
   /** System One egress gate: returns true (or `{grounded, score}`) when a narration draft is grounded enough to emit. */
-  groundednessGate?: (narration: string, correlationId: string) => Promise<boolean | { grounded: boolean; score?: number }>;
+  groundednessGate?: (
+    narration: string,
+    correlationId: string
+  ) => Promise<boolean | { grounded: boolean; score?: number }>;
   /** E4 agent-trace grading: grades the completed cycle's narration + executed tools into the distillation dataset. */
   traceGrader?: (trace: {
     narration: string;

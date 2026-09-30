@@ -4,17 +4,12 @@
  * ParameterLedger is the in-tree prototype; this generalizes its shape.
  */
 
-import { promises as fs, readFileSync, statSync, unlinkSync } from 'node:fs';
+import { existsSync, promises as fs, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { BoundedMap } from './utils/bounded-map.js';
-import {
-  appendJsonl,
-  ensureDir,
-  ensureDirSync,
-  writeJsonl,
-} from './utils/fs.js';
-import { utcDate } from './utils/format.js';
 import { z } from 'zod';
+import { BoundedMap } from './utils/bounded-map.js';
+import { utcDate } from './utils/format.js';
+import { appendJsonl, ensureDir, ensureDirSync, writeJsonl } from './utils/fs.js';
 
 /**
  * Ledger entry schema — all entries carry a timestamp and correlation context.
@@ -168,13 +163,19 @@ export class Ledger<T extends BaseLedgerEntry> {
    * synchronously, so disk rows already contain the cached ones.
    */
   async query(filter: LedgerQuery = {}): Promise<T[]> {
-    const cacheMatches = this.#hotCache.toArray().filter((e) => this.#matchesFilter(e, filter));
-    if (cacheMatches.length >= (filter.limit ?? Number.POSITIVE_INFINITY)) {
-      return cacheMatches.slice(0, filter.limit);
+    // Materializing the hot cache costs a full copy and a filter pass, so it is
+    // deferred to the two cases that read it: a bounded query it can answer, and
+    // the fallback when the ledger directory is unreadable.
+    const cached = (): T[] =>
+      this.#hotCache.toArray().filter((e) => this.#matchesFilter(e, filter));
+
+    if (filter.limit !== undefined) {
+      const cacheMatches = cached();
+      if (cacheMatches.length >= filter.limit) return cacheMatches.slice(0, filter.limit);
     }
 
     const diskMatches = await this.#scanDisk(filter);
-    if (diskMatches === null) return cacheMatches.slice(0, filter.limit);
+    if (diskMatches === null) return cached().slice(0, filter.limit);
     return diskMatches;
   }
 
@@ -208,7 +209,7 @@ export class Ledger<T extends BaseLedgerEntry> {
           continue;
         }
         if (this.#matchesFilter(entry, filter)) {
-          this.#config.onRead(entry);
+          await this.#config.onRead(entry);
           matches.push(entry);
           if (matches.length >= cap) break;
         }
@@ -305,7 +306,6 @@ export class Ledger<T extends BaseLedgerEntry> {
   }
 
   #writeToFile(entry: T): void {
-    // Rollover mode (original logic)
     const today = utcDate();
 
     // Daily rollover
@@ -324,20 +324,18 @@ export class Ledger<T extends BaseLedgerEntry> {
     if (this.#currentFile !== targetFile) {
       this.#currentFile = targetFile;
       this.#currentEntries = 0;
-      // Ensure directory exists (handle case where path exists as a file)
-      try {
-        if (!statSync(this.#config.basePath).isDirectory()) {
-          // Path exists as a file - remove it and create directory
-          unlinkSync(this.#config.basePath);
-        }
-      } catch {
-        // Directory doesn't exist or other error - create it below
+      // A basePath that exists as a file is a misconfiguration. Deleting it here
+      // would turn a typo into silent data loss, so the write refuses instead.
+      const { basePath } = this.#config;
+      if (existsSync(basePath) && !statSync(basePath).isDirectory()) {
+        throw new Error(`Ledger basePath is not a directory: ${basePath}`);
       }
-      ensureDirSync(this.#config.basePath);
+      ensureDirSync(basePath);
     }
 
-    // Per-file cap rollover
-    if (this.#currentEntries >= (this.#config.rollover.maxEntriesPerFile ?? 10_000)) {
+    // Per-file cap rollover. A non-positive cap would reset the counter on every
+    // attempt and recurse without end, so the floor is applied once here.
+    if (this.#currentEntries >= Math.max(1, this.#config.rollover.maxEntriesPerFile)) {
       this.#rolloverIndex++;
       this.#currentFile = null;
       this.#writeToFile(entry);
@@ -376,7 +374,6 @@ export class Ledger<T extends BaseLedgerEntry> {
       // Directory may not exist
     }
   }
-
 }
 
 /**

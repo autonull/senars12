@@ -1,13 +1,11 @@
+import { BoundedRing, createLogger, errMsg, maxBy, stopwatch } from '@senars/util';
+import { SenarsError } from '@senars/util/errors';
 import type { ToolFeedback, ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
-import { SenarsError } from '@senars/util/errors';
-import { BoundedRing, maxBy } from '@senars/util';
-import { createLogger } from '@senars/core/logger';
 import type { Term } from '../../terms';
 import type { EventBus, NAREventMap } from '../../types';
 import type { RandomSource } from '../../types/primitives.js';
-import { executeToolGoal } from './goal';
-import { Registry, type ToolDescriptor } from './Registry';
+import { nextInt } from '../../utils/random.js';
 import type {
   Tool,
   ToolChainResult,
@@ -18,6 +16,8 @@ import type {
   ToolResult,
 } from '../types';
 import { errorResult } from '../types';
+import { executeToolGoal } from './goal';
+import { Registry, type ToolDescriptor } from './Registry';
 
 const logger = createLogger({ scope: 'ToolManager' });
 
@@ -151,7 +151,7 @@ export class ToolManager {
     }
 
     if (preference === 'random') {
-      return tools[Math.floor(this.rng() * tools.length)]!;
+      return tools[nextInt(this.rng, tools.length)]!;
     }
 
     return tools[0]!;
@@ -177,7 +177,7 @@ export class ToolManager {
     args: Record<string, unknown>,
     context?: ToolContext
   ): Promise<ToolResult> {
-    const startTime = Date.now();
+    const elapsed = stopwatch();
     const tool = this.get(name);
     if (!tool) return errorResult(`Tool '${name}' not found`);
 
@@ -206,13 +206,13 @@ export class ToolManager {
       return errorResult('Execution aborted');
     }
 
-    const baseEvent = { name, args, timestamp: startTime, context } as const;
+    const baseEvent = { name, args, timestamp: Date.now(), context } as const;
     this.emit('tool:call', { type: 'tool_call', ...baseEvent });
     this.addToHistory({ type: 'tool_call', ...baseEvent });
 
     try {
       const result = await this.registry.execute(name, args, context);
-      const duration = Date.now() - startTime;
+      const duration = elapsed();
       const resultEvent: ToolEvent = {
         type: 'tool_result',
         ...baseEvent,
@@ -234,9 +234,8 @@ export class ToolManager {
       this.addToHistory(resultEvent);
       return result;
     } catch (error) {
-      const duration = Date.now() - startTime;
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      const result = { success: false, content: null, error: errorMsg };
+      const duration = elapsed();
+      const result = { success: false, content: null, error: errMsg(error) };
       const errorEvent: ToolEvent = {
         type: 'tool_error',
         ...baseEvent,

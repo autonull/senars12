@@ -1,4 +1,4 @@
-import { fnv1a, fnv1aCombine } from '@senars/core/helpers';
+import { fnv1a, fnv1aCombine } from '@senars/util';
 import type {
   ExpressionAtom,
   GroundedAtom,

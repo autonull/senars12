@@ -1,9 +1,6 @@
 import Database from 'better-sqlite3';
-import { monotonicFactory } from 'ulid';
 import { AbstractEventLog } from './AbstractEventLog.js';
 import type { CognitiveEvent, EventLogConfig, EventLogQuery } from './EventLog.js';
-
-const ulid = monotonicFactory();
 
 export interface SqliteEventLogConfig extends EventLogConfig {
   path: string;
@@ -24,7 +21,11 @@ export class SqliteEventLog extends AbstractEventLog {
 
   constructor(config: SqliteEventLogConfig) {
     super(config);
-    this.#config = { ...config, maxEvents: this.limits.maxEvents, maxEventSize: this.limits.maxEventSize };
+    this.#config = {
+      ...config,
+      maxEvents: this.limits.maxEvents,
+      maxEventSize: this.limits.maxEventSize,
+    };
     this.#db = new Database(this.#config.path);
     this.#db.pragma('journal_mode = WAL');
     this.#db.pragma('synchronous = NORMAL');
@@ -39,10 +40,6 @@ export class SqliteEventLog extends AbstractEventLog {
   get events(): ReadonlyArray<CognitiveEvent> {
     const rows = this.#db.prepare('SELECT * FROM events ORDER BY id').all() as Row[];
     return rows.map((row) => this.#rowToEvent(row));
-  }
-
-  generateId(): string {
-    return ulid();
   }
 
   async query(query: EventLogQuery): Promise<CognitiveEvent[]> {
@@ -88,7 +85,9 @@ export class SqliteEventLog extends AbstractEventLog {
   }
 
   protected async doAppend(fullEvent: CognitiveEvent): Promise<void> {
-    const { c: count } = this.#db.prepare('SELECT COUNT(*) as c FROM events').get() as { c: number };
+    const { c: count } = this.#db.prepare('SELECT COUNT(*) as c FROM events').get() as {
+      c: number;
+    };
     this.assertAppendable(fullEvent, count >= this.limits.maxEvents);
 
     this.#db

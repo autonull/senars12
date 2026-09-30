@@ -1,7 +1,7 @@
 import type { AssociativeRegistry, RecallHit } from '../../memory/associative.js';
 import { LINK_LAYER } from '../../memory/links/types.js';
 import type { MemoryView } from '../../memory/view.js';
-import { getPredicate, getSubject, termKey, type Term } from '../../terms';
+import { getPredicate, getSubject, type Term, TermSet } from '../../terms';
 import type { Task } from '../../types';
 import { createSecondaryTask } from '../../types';
 import type { Strategy } from '../types.js';
@@ -55,12 +55,11 @@ export class LinkLayerStrategy implements Strategy {
 
   private toTasks(hits: RecallHit[], memory: MemoryView): Task[] {
     const results: Task[] = [];
-    const seen = new Set<string>();
+    const seen = new TermSet();
 
     for (const hit of hits) {
-      const key = termKey(hit.term);
-      if (seen.has(key)) continue;
-      seen.add(key);
+      if (seen.has(hit.term)) continue;
+      seen.add(hit.term);
 
       const concept = memory.getConcept(hit.term);
       const belief = concept?.beliefBag.peek();

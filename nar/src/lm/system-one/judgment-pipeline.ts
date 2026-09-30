@@ -4,9 +4,19 @@
  * HEAD_SPECS already declarative; pipeline adds composition + digest, does not replace the table.
  */
 
-import { shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
+import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
 
-import { HEAD_SPECS, HeadSpec, HeadId, HeadGroup, createHead, type HeadFactoryOptions, type JudgmentQuery, type EmbeddingCache, type CalibrationVersion } from './head-specs.js';
+import {
+  type CalibrationVersion,
+  createHead,
+  type EmbeddingCache,
+  HEAD_SPECS,
+  type HeadFactoryOptions,
+  type HeadGroup,
+  type HeadId,
+  HeadSpec,
+  type JudgmentQuery,
+} from './head-specs.js';
 
 export interface PipelineStage {
   readonly group: HeadGroup;
@@ -67,14 +77,27 @@ export interface JudgmentPipelineResult {
 
 /** Default pipeline stages matching HEAD_SPECS groups. */
 export const DEFAULT_PIPELINE_STAGES: readonly PipelineStage[] = [
-  { group: 'ingress', heads: ['task_type', 'illocution', 'injection', 'ambiguity', 'tense', 'source_quality'], router: 'confidence' },
-  { group: 'action', heads: ['tool_dispatch', 'risk', 'feasibility', 'strategy', 'reflex_value'], router: 'cascade', cascadeThreshold: 0.7 },
-  { group: 'synthesis', heads: ['candidate_select', 'plausibility', 'assertion', 'conflict', 'groundedness'], router: 'consensus' },
+  {
+    group: 'ingress',
+    heads: ['task_type', 'illocution', 'injection', 'ambiguity', 'tense', 'source_quality'],
+    router: 'confidence',
+  },
+  {
+    group: 'action',
+    heads: ['tool_dispatch', 'risk', 'feasibility', 'strategy', 'reflex_value'],
+    router: 'cascade',
+    cascadeThreshold: 0.7,
+  },
+  {
+    group: 'synthesis',
+    heads: ['candidate_select', 'plausibility', 'assertion', 'conflict', 'groundedness'],
+    router: 'consensus',
+  },
   { group: 'memory', heads: ['relevance', 'episodic_match', 'novelty'], router: 'confidence' },
 ] as const;
 
 /** Default bands for router. */
-export const DEFAULT_BANDS: readonly BandConfig[] = [
+export const DEFAULT_PIPELINE_BANDS: readonly BandConfig[] = [
   { name: 'act', threshold: 0.8, action: 'act' },
   { name: 'review', threshold: 0.5, action: 'review' },
   { name: 'block', threshold: 0.3, action: 'block' },
@@ -83,7 +106,10 @@ export const DEFAULT_BANDS: readonly BandConfig[] = [
 
 export class JudgmentPipeline {
   private readonly spec: PipelineSpec;
-  private readonly heads = new Map<HeadId, { evaluate: (embedding: Float32Array, query: JudgmentQuery) => Promise<any> }>();
+  private readonly heads = new Map<
+    HeadId,
+    { evaluate: (embedding: Float32Array, query: JudgmentQuery) => Promise<any> }
+  >();
   private readonly modelDigest: PipelineModelDigest;
 
   constructor(spec: Partial<PipelineSpec> = {}) {
@@ -97,9 +123,13 @@ export class JudgmentPipeline {
       id: spec.id ?? 'default',
       version: spec.version ?? '1.0.0',
       stages: spec.stages ?? DEFAULT_PIPELINE_STAGES,
-      router: spec.router ?? { type: 'confidence', bands: DEFAULT_BANDS },
+      router: spec.router ?? { type: 'confidence', bands: DEFAULT_PIPELINE_BANDS },
       calibrators: spec.calibrators ?? {},
-      headFactoryOptions: spec.headFactoryOptions ?? { calibrationVersion: 'v1' as CalibrationVersion, embeddingCache: defaultEmbeddingCache, abstainThreshold: 0.5 },
+      headFactoryOptions: spec.headFactoryOptions ?? {
+        calibrationVersion: 'v1' as CalibrationVersion,
+        embeddingCache: defaultEmbeddingCache,
+        abstainThreshold: 0.5,
+      },
     };
 
     // Initialize heads from spec
@@ -107,7 +137,10 @@ export class JudgmentPipeline {
       for (const headId of stage.heads) {
         const headSpec = HEAD_SPECS[headId];
         if (headSpec) {
-          const calibratorConfig = this.spec.calibrators[headId] ?? { version: 'v1', abstainThreshold: 0.5 };
+          const calibratorConfig = this.spec.calibrators[headId] ?? {
+            version: 'v1',
+            abstainThreshold: 0.5,
+          };
           const head = createHead(headSpec, {
             ...this.spec.headFactoryOptions,
             calibrationVersion: calibratorConfig.version as CalibrationVersion,
@@ -146,7 +179,11 @@ export class JudgmentPipeline {
     };
   }
 
-  private async judgeStage(stage: PipelineStage, embedding: Float32Array, queries: JudgmentQuery[]): Promise<PipelineHeadResult[]> {
+  private async judgeStage(
+    stage: PipelineStage,
+    embedding: Float32Array,
+    queries: JudgmentQuery[]
+  ): Promise<PipelineHeadResult[]> {
     const results: PipelineHeadResult[] = [];
     for (const query of queries) {
       const head = this.heads.get(query.rubric as HeadId);
@@ -157,7 +194,17 @@ export class JudgmentPipeline {
     return results;
   }
 
-  private toResult(rubric: HeadId, result: { score: number; distribution?: any; legend?: any; abstained: boolean; abstainReason?: string }, query: JudgmentQuery): PipelineHeadResult {
+  private toResult(
+    rubric: HeadId,
+    result: {
+      score: number;
+      distribution?: any;
+      legend?: any;
+      abstained: boolean;
+      abstainReason?: string;
+    },
+    query: JudgmentQuery
+  ): PipelineHeadResult {
     return {
       rubric,
       axis: query.axis,
@@ -181,7 +228,12 @@ export class JudgmentPipeline {
       const threshold = this.spec.router.cascadeThreshold ?? 0.7;
       return propositions.map((p) =>
         p.abstained || p.score < threshold
-          ? { ...p, decisionBand: 'abstain' as const, abstained: true, abstainReason: 'cascade-threshold' }
+          ? {
+              ...p,
+              decisionBand: 'abstain' as const,
+              abstained: true,
+              abstainReason: 'cascade-threshold',
+            }
           : withBand(p)
       );
     }
@@ -217,9 +269,11 @@ export class JudgmentPipeline {
   }
 
   verifyDigest(digest: PipelineModelDigest): boolean {
-    return digest.specHash === this.modelDigest.specHash &&
-           digest.headWeightsDigest === this.modelDigest.headWeightsDigest &&
-           digest.encoderDigest === this.modelDigest.encoderDigest;
+    return (
+      digest.specHash === this.modelDigest.specHash &&
+      digest.headWeightsDigest === this.modelDigest.headWeightsDigest &&
+      digest.encoderDigest === this.modelDigest.encoderDigest
+    );
   }
 }
 

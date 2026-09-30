@@ -5,12 +5,13 @@ import {
   isAtomic,
   isCompound,
   mentionsSymbol,
-  termDepth,
   TermBuilder,
-  termSize,
   Truth,
+  termDepth,
+  termSize,
   walkTerms,
 } from '../../../nar/src';
+import { termKey } from '../../../nar/src/terms';
 
 describe('TermBuilder', () => {
   beforeEach(() => TermBuilder.clear());
@@ -122,6 +123,45 @@ describe('TermBuilder', () => {
       expect(isCompound(t)).toBe(true);
     });
   });
+
+  describe('interning', () => {
+    /** Interning is what makes structurally equal terms the same object, so the key
+     *  has to be injective over every legal symbol — including the ones the grammar
+     *  admits as variables and quoted atoms. */
+    test.each(['?', '$', '#', '*', '%'])(
+      'a %s-variable symbol does not alias across arity',
+      (prefix) => {
+        const joined = TermBuilder.conjunction(
+          TermBuilder.atom(`${prefix}a,b`),
+          TermBuilder.atom('c')
+        );
+        const split = TermBuilder.conjunction(
+          TermBuilder.atom(`${prefix}a`),
+          TermBuilder.atom('b'),
+          TermBuilder.atom('c')
+        );
+
+        expect(joined).not.toBe(split);
+        expect(termKey(joined)).not.toBe(termKey(split));
+      }
+    );
+
+    test('nesting does not flatten into an aliased arity', () => {
+      const nested = TermBuilder.conjunction(
+        TermBuilder.conjunction(TermBuilder.atom('a'), TermBuilder.atom('b')),
+        TermBuilder.atom('c')
+      );
+      const flat = TermBuilder.conjunction(
+        TermBuilder.atom('a'),
+        TermBuilder.atom('b'),
+        TermBuilder.atom('c')
+      );
+
+      expect(nested).not.toBe(flat);
+      expect(termDepth(nested)).toBe(2);
+      expect(termDepth(flat)).toBe(1);
+    });
+  });
 });
 
 describe('Truth', () => {
@@ -214,10 +254,11 @@ describe('Truth', () => {
 });
 
 describe('walkTerms', () => {
-  const tree = () => TermBuilder.compound('conjunction', [
-    TermBuilder.inheritance(TermBuilder.atom('bird'), TermBuilder.atom('animal'))!,
-    TermBuilder.atom('flies'),
-  ]);
+  const tree = () =>
+    TermBuilder.compound('conjunction', [
+      TermBuilder.inheritance(TermBuilder.atom('bird'), TermBuilder.atom('animal'))!,
+      TermBuilder.atom('flies'),
+    ]);
 
   test('visits pre-order by default with depth from the root', () => {
     const seen: [string, number][] = [];

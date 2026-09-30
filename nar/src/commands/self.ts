@@ -1,4 +1,4 @@
-import type { CommandDefinition } from '@senars/core/command-types';
+import type { CommandDefinition } from '@senars/util';
 import type { NAR } from '../nar.js';
 import type { ReasoningAboutReasoning } from '../self/ReasoningAboutReasoning.js';
 

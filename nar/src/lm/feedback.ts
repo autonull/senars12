@@ -1,5 +1,4 @@
-import { createLogger } from '@senars/core/logger';
-import { BoundedRing, clamp01, errMsg, formatTruth } from '@senars/util';
+import { BoundedRing, clamp01, createLogger, errMsg, formatTruth } from '@senars/util';
 import { z } from 'zod';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';

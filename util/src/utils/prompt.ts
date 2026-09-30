@@ -1,5 +1,7 @@
 /** Extract the concatenated text of the last user message in an AI-SDK prompt. */
-export function extractLastUserMessage(messages: Array<{ role?: string; content: unknown }>): string {
+export function extractLastUserMessage(
+  messages: Array<{ role?: string; content: unknown }>
+): string {
   if (!messages || messages.length === 0) return '';
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   if (!lastUser) return '';

@@ -1,12 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { DEFAULT_CONFIG } from '../../nar/src';
-import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { KernelRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
+import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { describe, expect, it } from 'vitest';
+import { createBudget, createTask, DEFAULT_CONFIG, NAR, Truth, termParser } from '../../nar/src';
 import { PriorityBag } from '../../nar/src/bag/Bag.js';
-import { NAR, createTask, createBudget, termParser, Truth } from '../../nar/src';
-import type { ReasoningBudget } from '@senars/core/derivation-schemas';
+import { KernelRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
+import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
+import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import type { ClassifyProposition, JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
 
 const budget: ReasoningBudget = {
@@ -118,7 +117,12 @@ describe('System One — Teleological Purity (Bench 3)', () => {
 
     // Desire seeded goal-side only: the task enters as 'goal'
     nar.taskManager.addTask(
-      createTask(termParser.parse('^move_north()'), 'goal', Truth.create(proposal.value, proposal.confidence), createBudget(0.9))
+      createTask(
+        termParser.parse('^move_north()'),
+        'goal',
+        Truth.create(proposal.value, proposal.confidence),
+        createBudget(0.9)
+      )
     );
     await nar.run(1);
 

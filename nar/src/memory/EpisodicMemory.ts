@@ -1,9 +1,3 @@
-import {
-  BaseLedgerEntrySchema,
-  createLedger,
-  type Ledger,
-  type LedgerQuery,
-} from '@senars/util/ledger';
 import type {
   Episode,
   EpisodeFilter,
@@ -11,14 +5,27 @@ import type {
   EpisodicMemoryConfig,
   EpisodicMemory as UtilEpisodicMemory,
 } from '@senars/util';
-import { cachePath, sortByDesc } from '@senars/util';
-import { ulid } from 'ulid';
+import { cachePath, sortableIdSource, sortByDesc } from '@senars/util';
+import {
+  BaseLedgerEntrySchema,
+  createLedger,
+  type Ledger,
+  type LedgerQuery,
+} from '@senars/util/ledger';
 import { z } from 'zod';
 import { type Clock, SystemClock } from '../clock.js';
 import { CausalIndex } from './CausalIndex.js';
 
 export type { EpisodicMemoryConfig } from '@senars/util';
 export type { Episode, EpisodeType };
+
+/**
+ * Episode ids are ULIDs, not UUIDs: the causal timeline and the JSONL replay
+ * scan them in mint order, and `tests/nar/refactor1-timeline.test.ts` pins the
+ * format. A sortable id source, minted here rather than from the `ulid` package,
+ * so `ulid` stays a leaf dependency of `util`.
+ */
+const episodeIds = sortableIdSource();
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -146,7 +153,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
       type,
       content,
       metadata: meta,
-      id: typeof causalId === 'string' ? causalId : ulid(),
+      id: typeof causalId === 'string' ? causalId : episodeIds(),
       ...(Array.isArray(causes) ? { causes: causes as string[] } : {}),
       ...(Array.isArray(consequences) ? { consequences: consequences as string[] } : {}),
       ...(Array.isArray(context) ? { context: context as string[] } : {}),

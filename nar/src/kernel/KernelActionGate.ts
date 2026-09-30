@@ -4,21 +4,15 @@ import type {
   AutonomyMode,
   AutonomyModeChangedEvent,
   PolicyViolationEvent,
-} from '@senars/core/derivation-schemas';
-import { AutonomyModeChangedEventSchema } from '@senars/core/derivation-schemas';
-import { SenarsError } from '@senars/util/errors';
+} from '@senars/core/schemas';
+import { AutonomyModeChangedEventSchema, AutonomyModeSchema } from '@senars/core/schemas';
 import { addToSet, makeId, pushCapped } from '@senars/util';
+import { SenarsError } from '@senars/util/errors';
+import { recordGateDecision } from '../telemetry/index.js';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
 import { KernelGate } from './gate-base.js';
-import { recordGateDecision } from '../telemetry/index.js';
 
-const MODE_ORDER: AutonomyMode[] = [
-  'observe-only',
-  'propose-only',
-  'sandbox-execute',
-  'low-risk-auto-merge',
-  'human-approved-production',
-];
+const MODE_ORDER = AutonomyModeSchema.options;
 
 const LEGAL_TRANSITIONS: Record<AutonomyMode, AutonomyMode[]> = {
   'observe-only': ['propose-only'],
@@ -202,11 +196,11 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
       const derivation = this.nalDerivations.get(input.nalDerivationId)!;
       if (derivation.veto) {
         recordPolicyViolation(this.eventLog, {
-        policyId: 'nal-veto',
-        violationType: 'unauthorized-tool',
-        detail: `NAL derivation ${input.nalDerivationId} vetoes action: ${derivation.conclusion}`,
-        correlationId,
-      });
+          policyId: 'nal-veto',
+          violationType: 'unauthorized-tool',
+          detail: `NAL derivation ${input.nalDerivationId} vetoes action: ${derivation.conclusion}`,
+          correlationId,
+        });
         return {
           authorized: false,
           vetoReason: `NAL veto: ${derivation.conclusion}`,

@@ -123,6 +123,7 @@ graph TD
   agent --> rlfp
   agent --> terms
   agent --> types
+  bag --> _
   bag --> types
   bag --> utils
   capability --> tools
@@ -271,7 +272,6 @@ graph TD
   lm_context --> terms
   lm_providers --> lm
   lm_providers --> lm_runtime
-  lm_providers --> memory
   lm_providers --> metrics
   lm_rule --> lm
   lm_rule --> terms_impls
@@ -315,11 +315,8 @@ graph TD
   memory --> terms_impls
   memory --> types
   memory --> utils
-  memory_lifecycle --> _
   memory_lifecycle --> memory
   memory_lifecycle --> memory_pressure
-  memory_lifecycle --> terms
-  memory_lifecycle --> terms_impls
   memory_links --> memory
   memory_links --> types
   memory_pressure --> _
@@ -372,6 +369,7 @@ graph TD
   rl_impls_adapters --> utils
   rlfp --> config
   rlfp --> types
+  rlfp --> utils
   rules --> rules_impls
   rules_extended --> rules
   rules_extended --> rules_impls
@@ -436,7 +434,6 @@ graph TD
   telemetry --> metrics
   telemetry --> otel
   terms --> terms_impls
-  terms_impls --> memory_lifecycle
   terms_impls --> terms
   terms_impls --> types
   terms_impls --> utils
@@ -459,6 +456,7 @@ graph TD
   tools_impls --> _
   tools_impls --> tools
   tools_impls --> types
+  tools_impls --> utils
   types --> terms
   types --> terms_impls
   types --> utils

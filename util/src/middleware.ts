@@ -10,10 +10,7 @@ export type Middleware<C> = (ctx: C, next: () => Promise<void>) => Promise<void>
  * Onion-style dispatch for a middleware chain.
  * Throws if `next()` is called multiple times at the same index (guards against double-dispatch).
  */
-export async function dispatch<C>(
-  chain: readonly Middleware<C>[],
-  ctx: C
-): Promise<void> {
+export async function dispatch<C>(chain: readonly Middleware<C>[], ctx: C): Promise<void> {
   let index = -1;
   const next = async (i: number): Promise<void> => {
     if (i <= index) throw new Error('next() called multiple times');

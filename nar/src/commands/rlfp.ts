@@ -1,4 +1,4 @@
-import type { CommandDefinition } from '@senars/core/command-types';
+import type { CommandDefinition } from '@senars/util';
 import { NAR_UNCONFIGURED, narOf } from './utils.js';
 
 export const rlfpCommands: CommandDefinition[] = [

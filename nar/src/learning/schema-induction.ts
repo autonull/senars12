@@ -8,20 +8,33 @@
  * - LM proposes, NARS validates, both adopt
  */
 
+import { clamp01, createLogger, errMsg, generateId, type Logger, LruCache } from '@senars/util';
 import { type BagItem, PriorityBag } from '../bag/Bag.js';
-import type { LMService } from '../lm/lm-service.js';
 import { parseJsonObject } from '../lm/json.js';
-import { createLogger, type Logger } from '@senars/core/logger';
+import type { LMService } from '../lm/lm-service.js';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
-import { containsSubterm, getSubject, Truth } from '../terms';
+import { containsSubterm, getSubject, Truth, termKey } from '../terms';
 import { createBudget, createTask, type Task } from '../types';
 import type { RandomSource } from '../types/primitives.js';
-import { LruCache, clamp01, errMsg, generateId } from '@senars/util';
 
 /** Serialized chain terms — the single rendering behind signatures, templates, and instances. */
 const chainTerms = (chain: readonly Task[]): string[] => chain.map((t) => t.term.toString());
-import { AIKRProcessor, PrioritySampling, type ProcessOptions, type AikrBagOptions } from './aikr-processor.js';
+
+/**
+ * Canonical identity of a chain, for novelty dedup only. The rendered signature
+ * is what a human reads and what a schema is named by, so it cannot double as
+ * the dedup key: two chains whose terms serialize alike would collapse into one.
+ */
+const chainIdentity = (chain: readonly Task[]): string =>
+  chain.map((t) => termKey(t.term)).join('→');
+
+import {
+  AIKRProcessor,
+  type AikrBagOptions,
+  PrioritySampling,
+  type ProcessOptions,
+} from './aikr-processor.js';
 
 export interface SchemaPattern {
   id: string;
@@ -100,9 +113,10 @@ export class SchemaInductor {
   /** Phase C: continuous admission from the derivation-chain sink (novelty × length). */
   onDerivation(chain: readonly Task[]): void {
     if (!this.config.enableSchemaInduction || chain.length === 0) return;
+    const identity = chainIdentity(chain);
+    if (this.#seenSignatures.has(identity)) return;
+    this.#seenSignatures.set(identity, true);
     const signature = chainTerms(chain).join('→');
-    if (this.#seenSignatures.has(signature)) return;
-    this.#seenSignatures.set(signature, true);
     this.#processor.admit({
       id: signature,
       priority: chain.length,
@@ -112,16 +126,12 @@ export class SchemaInductor {
   }
 
   /** Micro-tick-compatible induction: inert below pressure 0.7, interruptible. */
-  async induceIfPressured(
-    options: ProcessOptions = {}
-  ): Promise<InductionResult[]> {
+  async induceIfPressured(options: ProcessOptions = {}): Promise<InductionResult[]> {
     return this.#processor.processIfPressured(options);
   }
 
   /** Explicit drain (CLI `.schemas-induce`): ignores the pressure gate. */
-  async induceNow(
-    options: ProcessOptions = {}
-  ): Promise<InductionResult[]> {
+  async induceNow(options: ProcessOptions = {}): Promise<InductionResult[]> {
     return this.#processor.process(options);
   }
 
@@ -212,26 +222,6 @@ export class SchemaInductor {
 
   getSchema(id: string): SchemaPattern | undefined {
     return this.schemas.get(id);
-  }
-
-  applySchema(schemaId: string, terms: Record<string, string>): Task | null {
-    const schema = this.schemas.get(schemaId);
-    if (!schema) return null;
-
-    let result = schema.template;
-    for (const [variable, value] of Object.entries(terms)) {
-      result = result.replaceAll(variable, value);
-    }
-
-    schema.usageCount++;
-    schema.lastUsed = Date.now();
-
-    return createTask(
-      { kind: 'atom' as const, symbol: result } as Term,
-      'belief',
-      Truth.create(0.7, schema.confidence * 0.8),
-      createBudget(0.6, 0.7)
-    );
   }
 
   private extractPatterns(derivations: Task[]): Task[][] {

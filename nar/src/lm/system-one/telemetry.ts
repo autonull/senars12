@@ -1,6 +1,6 @@
-import { makeId } from '@senars/util';
 import { trace } from '@opentelemetry/api';
-import type { JudgmentResolvedEvent } from '@senars/core/derivation-schemas';
+import type { JudgmentResolvedEvent } from '@senars/core/schemas/cognitive-events';
+import { makeId } from '@senars/util';
 import { recordJudgmentMetric } from '../../metrics/prometheus.js';
 import type { JudgmentProposition, JudgmentQuery } from './types.js';
 
@@ -35,7 +35,11 @@ export function createTelemetryEmitter(sinks: TelemetrySinks = {}) {
   return function emitJudgmentResolved(
     proposition: JudgmentProposition,
     _query: JudgmentQuery,
-    provenance?: { inputDigest?: string; calibrationDigest?: string; decisionBand?: 'act' | 'review' | 'block' | 'abstain' }
+    provenance?: {
+      inputDigest?: string;
+      calibrationDigest?: string;
+      decisionBand?: 'act' | 'review' | 'block' | 'abstain';
+    }
   ): void {
     try {
       if (emitEvent) {

@@ -1,17 +1,17 @@
-import type { AutonomyMode, ReasoningBudget } from '@senars/core/derivation-schemas';
 import type { MettaPort } from '@senars/core/metta-port';
+import type { AutonomyMode, ReasoningBudget } from '@senars/core/schemas';
+import type { IdSource } from '@senars/util';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
-import type { IdSource } from '@senars/util';
 import type { CognitiveRegistry } from '../cognitive';
 import type { CognitiveParameters } from '../config/cognitive-parameters';
 import type { GateRegistry } from '../kernel/GateRegistry.js';
 import type { LMService, SeNARSRegistry } from '../lm';
 import type { EmbeddingCache } from '../lm/system-one/embedding-cache.js';
 import type { JudgmentManifold } from '../lm/system-one/types.js';
+import { ConfigurationError, type CoreConfig } from '../types';
 import type { NarEventBus } from '../types/events.js';
 import type { RandomSource } from '../types/primitives.js';
-import { ConfigurationError, type CoreConfig } from '../types';
 
 export interface RLFPConfig {
   optimizeInterval?: number;
@@ -72,9 +72,19 @@ export interface NARConfig extends CoreConfig {
   /** Phase D (REFACTOR.todo2): bounded proposal bag for self-improvement routing (default off ⇒ arrival order). */
   proposals?: { bounded?: boolean; capacity?: number; budget?: number };
   /** Phase D (REFACTOR.todo2): bounded hard-negative mining bag (default off ⇒ direct mining). */
-  hardNegativeMining?: { bounded?: boolean; capacity?: number; budget?: number; marginFloor?: number };
+  hardNegativeMining?: {
+    bounded?: boolean;
+    capacity?: number;
+    budget?: number;
+    marginFloor?: number;
+  };
   /** Phase E: ProofMettaProposer as a negotiation proposer (learns from proof stream). */
-  proofMettaProposer?: { enabled?: boolean; maxRules?: number; minConfidence?: number; patternMinSupport?: number };
+  proofMettaProposer?: {
+    enabled?: boolean;
+    maxRules?: number;
+    minConfidence?: number;
+    patternMinSupport?: number;
+  };
   /** Initial autonomy mode for the action gate (default: 'observe-only'). */
   initialAutonomyMode?: AutonomyMode;
   /** Injectable event bus; defaults to a fresh `NarEventBus`. */
@@ -91,4 +101,3 @@ export function validateNarConfig(config: NARConfig): NARConfig {
   }
   return config;
 }
-

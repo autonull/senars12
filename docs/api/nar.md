@@ -6,6 +6,28 @@
 
 - `runCounterfactual`
 
+- `ActionGateError`
+
+- `BoundaryValidationError` — E1: boundary validation with Zod issues attached.
+
+- `BudgetExceeded` — E1: reasoning budget exhausted for a scope/operation.
+
+- `BudgetGateError`
+
+- `BuilderError` — E1: assembly-time failure, typed by the builder step that failed.
+
+- `DigestMismatch` — E1: artifact digest verification failed.
+
+- `GateError` — E1: per-gate denial, typed by gate and operation.
+
+- `PerceptionGateError`
+
+- `RewardGateError`
+
+- `SchemaInductionError` — E1: schema induction phase failure with its cause attached.
+
+- `SenarsError`
+
 - `CognitiveTreadmill`
 
 - `type DegradationCurve`
@@ -40,19 +62,19 @@
 
 - `LMService`
 
+- `MiningBag`
+
 - `EpisodicMemory`
 
 - `EpisodeConsolidator`
 
 - `symbolicSummary` — Symbolic fallback summary: deterministic, bounded, no LM. Rendered by the
 
-- `ProposalBag` — Governance routing is a per-call concern rather than a constructor-wired
-
-- `MiningBag`
-
 - `Concept`
 
 - `Memory`
+
+- `ProposalBag` — Governance routing is a per-call concern rather than a constructor-wired
 
 - `NAR`
 
@@ -78,15 +100,27 @@
 
 - `TaskManager`
 
+- `deserializeStamp`
+
+- `observeStampId` — Advance the ID counter past a persisted ID so reloaded stamps never collide
+
+- `Stamp`
+
+- `serializeStamp`
+
+- `isTruthEqual` — The one epsilon-tolerant truth comparison; `Truth.equals` is the member form.
+
+- `Truth`
+
 - `atom`
+
+- `atomKey` — An atom's key without building the term — the read side of `termKey` for callers holding a symbol.
 
 - `collectAtomicSymbols` — Every atomic symbol mentioned anywhere in the term.
 
 - `containsSubterm`
 
 - `foldTerm` — Depth-first pre-order fold in visit order.
-
-- `freeze`
 
 - `getAntecedent`
 
@@ -134,11 +168,19 @@
 
 - `TermBuilder`
 
+- `TermCollection`
+
 - `type TermEdge`
+
+- `TermMap`
 
 - `TermParser`
 
+- `TermSet`
+
 - `termDepth` — Deepest nesting below the root; a bare atom has depth 0.
+
+- `termKey` — Canonical structural key for a term — the single identity used for maps, memoization, and link ids.
 
 - `termParser`
 
@@ -149,18 +191,6 @@
 - `visitTerms`
 
 - `walkTerms` — The single term-tree walk. `fn` receives depth from the root and may return
-
-- `deserializeStamp`
-
-- `observeStampId` — Advance the ID counter past a persisted ID so reloaded stamps never collide
-
-- `Stamp`
-
-- `serializeStamp`
-
-- `isTruthEqual` — The one epsilon-tolerant truth comparison; `Truth.equals` is the member form.
-
-- `Truth`
 
 - `ConfigurationError`
 
@@ -186,37 +216,15 @@
 
 - `NARError`
 
-- `ok`
-
 - `OperationError`
+
+- `ok`
 
 - `ToolError`
 
 - `unwrapOrThrow`
 
 - `ValidationError`
-
-- `ActionGateError`
-
-- `BudgetExceeded` — E1: reasoning budget exhausted for a scope/operation.
-
-- `BudgetGateError`
-
-- `BuilderError` — E1: assembly-time failure, typed by the builder step that failed.
-
-- `BoundaryValidationError` — E1: boundary validation with Zod issues attached.
-
-- `DigestMismatch` — E1: artifact digest verification failed.
-
-- `GateError` — E1: per-gate denial, typed by gate and operation.
-
-- `PerceptionGateError`
-
-- `RewardGateError`
-
-- `SchemaInductionError` — E1: schema induction phase failure with its cause attached.
-
-- `SenarsError`
 
 ## `./agent`
 
@@ -242,11 +250,7 @@
 
 - `NARBuilder` — TODO19 F1: the single assembly path for NAR-backed agents. Fluent steps
 
-- `NAR_PROFILES`
-
-- `resolveProfile`
-
-- `createCognitiveAgent`
+- `type AnswerEnvelope`
 
 - `type CognitiveAgent`
 
@@ -254,7 +258,11 @@
 
 - `type CognitiveAgentPreset`
 
-- `type AnswerEnvelope`
+- `createCognitiveAgent`
+
+- `NAR_PROFILES`
+
+- `resolveProfile`
 
 ## `./agent/*`
 
@@ -704,6 +712,8 @@ _Dynamic subpath (no single entry file)._
 
 - `builtinModels`
 
+- `cloudApiKey` — The cloud credential: the env var named by `apiKeyEnv` (if any), then the
+
 - `defaultModelFor` — Default per-provider model when none is configured.
 
 - `detectCloudProvider` — First cloud provider with a credential present in the environment.
@@ -711,6 +721,8 @@ _Dynamic subpath (no single entry file)._
 - `formatLMConfig`
 
 - `LM_PROFILES` — LM_PROFILE presets. `production` is reserved (handled by lifecycle config merge).
+
+- `LM_PROVIDER_NAMES`
 
 - `resolveLMConfig`
 
@@ -748,6 +760,10 @@ _Dynamic subpath (no single entry file)._
 
 - `ProviderRuntime`
 
+- `probeEmbeddedLlama`
+
+- `resetCircuitBreakers` — Close all breakers and clear failure counts (test/bench isolation between independent scenarios).
+
 - `createLlamaCppFetch` — Native fetch for llama.cpp's OpenAI-compatible server: passes GBNF `grammar`
 
 - `LLAMACPP_HOST_DEFAULT` — Default llama.cpp server (llama-server) address.
@@ -755,6 +771,10 @@ _Dynamic subpath (no single entry file)._
 - `probeLlamaCpp` — Probe llama-server's native /health endpoint.
 
 - `runWithGrammar`
+
+- `fetchBounded` — `GET url` bounded by `timeoutMs`; returns `null` on any transport failure.
+
+- `probeModelsEndpoint` — Probe an OpenAI-compatible `/models` endpoint; auth sent only when a key is available.
 
 - `configureLM`
 
@@ -944,25 +964,15 @@ _Dynamic subpath (no single entry file)._
 
 - `Forgetting`
 
-- `getTermMeta`
-
-- `structuralGC`
-
-- `trackTerm`
-
-- `untrackTerm`
-
-- `updateAccessTime`
-
 - `Memory`
 
 - `MemoryIndex`
 
-- `MemoryConsolidation`
-
-- `PressureDetector`
+- `evictUnderPressure` — The archive/forget policy — the only place concepts leave the live store
 
 - `MemoryScorer`
+
+- `calculateConceptStats`
 
 - `decodeMemoryState` — Inverse of encodeMemoryState; accepts legacy bare SerializedMemory files.
 
@@ -975,8 +985,6 @@ _Dynamic subpath (no single entry file)._
 - `serialize`
 
 - `validate`
-
-- `calculateConceptStats`
 
 ## `./memory/embedding`
 
@@ -1190,6 +1198,8 @@ _Dynamic subpath (no single entry file)._
 
 ## `./terms`
 
+- `atomKey` — An atom's key without building the term — the read side of `termKey` for callers holding a symbol.
+
 - `collectAtomicSymbols` — Every atomic symbol mentioned anywhere in the term.
 
 - `containsSubterm`
@@ -1256,8 +1266,6 @@ _Dynamic subpath (no single entry file)._
 
 - `atom`
 
-- `freeze`
-
 - `TermBuilder`
 
 - `TermFactory`
@@ -1270,14 +1278,6 @@ _Dynamic subpath (no single entry file)._
 
 - `termParser`
 
-- `deserializeTerm`
-
-- `fromNarsese` — Canonical Narsese string → Term API. Delegates to {@link deserializeTerm}.
-
-- `serializeTerm`
-
-- `toNarsese` — Canonical term → Narsese string API. Delegates to {@link serializeTerm}.
-
 - `deserializeStamp`
 
 - `observeStampId` — Advance the ID counter past a persisted ID so reloaded stamps never collide
@@ -1286,7 +1286,19 @@ _Dynamic subpath (no single entry file)._
 
 - `serializeStamp`
 
+- `deserializeTerm`
+
+- `fromNarsese` — Canonical Narsese string → Term API. Delegates to {@link deserializeTerm}.
+
+- `serializeTerm`
+
+- `toNarsese` — Canonical term → Narsese string API. Delegates to {@link serializeTerm}.
+
 - `substituteVariables` — Substitute `bindings` through `term`. Thin alias over the unifier's
+
+- `isTruthEqual` — The one epsilon-tolerant truth comparison; `Truth.equals` is the member form.
+
+- `Truth`
 
 - `TermCollection`
 
@@ -1297,22 +1309,6 @@ _Dynamic subpath (no single entry file)._
 - `TermMap`
 
 - `TermSet`
-
-- `isTruthEqual` — The one epsilon-tolerant truth comparison; `Truth.equals` is the member form.
-
-- `Truth`
-
-- `getTermArg`
-
-- `getTermArgs`
-
-- `isAtomic`
-
-- `isCompound`
-
-- `isVariableSymbol`
-
-- `OPERATORS` — Operator definitions - standalone to avoid circular dependencies
 
 - `unify` — Unify two terms, extending `subst`. Returns the extended substitution, or
 
@@ -1329,6 +1325,18 @@ _Dynamic subpath (no single entry file)._
 - `isTautology`
 
 - `validateTaskTerm`
+
+- `getTermArg`
+
+- `getTermArgs`
+
+- `isAtomic`
+
+- `isCompound`
+
+- `isVariableSymbol`
+
+- `OPERATORS` — Operator definitions - standalone to avoid circular dependencies
 
 ## `./tick`
 
@@ -1404,6 +1412,8 @@ _Re-export barrel._
 
 - `NALVetoError` — Typed NAL-veto error for callers that convert a gate veto result
 
+- `createDefaultReasoningBudget`
+
 - `KernelBudgetGate`
 
 - `KernelPerceptionGate`
@@ -1435,6 +1445,22 @@ _Re-export barrel._
 - `serializeReplayResult`
 
 - `verifyReplayStateHash`
+
+- `domainKey` — Derive a `domain:<host>` key from a URL-bearing source id, else undefined.
+
+- `providerKey` — Derive a `provider:<name>` key for an LM provider, else undefined.
+
+- `DEFAULT_REPUTATION_CAPACITY`
+
+- `DEFAULT_REPUTATION_PATH`
+
+- `type ReputationDeltaEntry`
+
+- `type ReputationEntry`
+
+- `SourceReputation` — SourceReputation — now backed by the generic `Ledger<T>` primitive.
+
+- `type SourceReputationOptions`
 
 - `ThreadScope`
 

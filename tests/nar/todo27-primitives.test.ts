@@ -1,18 +1,21 @@
-import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
-import { BoundedMap, formatIssues, occupancy, SchemaValidationError } from '@senars/util';
+import { consumeCycles, createBudgetSlice, pressure } from '@senars/core/budget';
+import { Memory } from '@senars/nar/memory';
 import {
+  BoundedMap,
+  formatIssues,
   formatNarseseTruth,
+  occupancy,
   parseNarseseTruth,
   parseTruthLiteral,
+  SchemaValidationError,
   serializeTruth,
 } from '@senars/util';
-import { createBudgetSlice, consumeCycles, pressure } from '@senars/core/budget';
-import { Memory } from '@senars/nar/memory';
+import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
+import { PriorityBag } from '../../nar/src/bag/Bag.js';
 import { BoundaryValidationError } from '../../nar/src/errors/index.js';
 import { SingleFlight } from '../../nar/src/nl/singleflight.js';
-import { PriorityBag } from '../../nar/src/bag/Bag.js';
-import { TermBuilder, atom, Truth } from '../../nar/src/terms/index.js';
+import { atom, TermBuilder, Truth } from '../../nar/src/terms/index.js';
 import { mulberry32, weightedPick, weightedSampleBy } from '../../nar/src/utils/random.js';
 
 /**
@@ -84,7 +87,8 @@ describe('Bench 113 — one similarity read path', () => {
 
   it('honours the limit', () => {
     const store = memory();
-    const inheritance = (sub: string, sup: string) => TermBuilder.inheritance(atom(sub), atom(sup))!;
+    const inheritance = (sub: string, sup: string) =>
+      TermBuilder.inheritance(atom(sub), atom(sup))!;
     store.addConcept(inheritance('cat', 'animal'));
     store.addConcept(inheritance('cat', 'plant'));
     store.addConcept(inheritance('dog', 'animal'));
@@ -142,9 +146,9 @@ describe('Bench 115 — one rendering of a schema failure', () => {
     expect(new SchemaValidationError('agent-options', parsed.error.issues).message).toBe(
       `Invalid agent-options: ${rendered}`
     );
-    expect(
-      BoundaryValidationError.fromZod('agent-options', parsed.error).message
-    ).toBe(`Validation failed at agent-options: ${rendered}`);
+    expect(BoundaryValidationError.fromZod('agent-options', parsed.error).message).toBe(
+      `Validation failed at agent-options: ${rendered}`
+    );
   });
 
   it('does not lose the path the way a message-only join does', () => {
@@ -171,9 +175,9 @@ describe('Bench 116 — truth literals round-trip through their own writer', () 
       // identity on what was written — not on what was passed in.
       const written = { f: Number(truth.f.toFixed(digits)), c: Number(truth.c.toFixed(digits)) };
       expect(parseTruthLiteral(serializeTruth(truth, digits))).toEqual(written);
-      expect(
-        parseNarseseTruth(`(cat --> animal)${formatNarseseTruth(truth, digits)}`)
-      ).toEqual(written);
+      expect(parseNarseseTruth(`(cat --> animal)${formatNarseseTruth(truth, digits)}`)).toEqual(
+        written
+      );
     }
   });
 
@@ -213,10 +217,10 @@ describe('Bench 117 — one occupancy policy for bounded containers', () => {
 
     const slice = createBudgetSlice({
       id: 'root',
-      totalCycles: 4,
-      totalDepth: 0,
-      totalMemoryOps: 0,
-      totalLMCalls: 0,
+      maxCycles: 4,
+      maxDepth: 0,
+      maxMemoryOps: 0,
+      maxLMCalls: 0,
     });
     expect(pressure(slice)).toBe(0);
     consumeCycles(slice, 4);

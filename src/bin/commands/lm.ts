@@ -1,7 +1,7 @@
 /** LM provider/model/routing/circuit-breaker commands (`.lm-*`, `.routing*`, `.circuit-*`). */
 
 import { formatLMConfig, resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
-import { LM_PROVIDER_NAMES } from '@senars/nar/lm/env-config.js';
+import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
 import { errMsg } from '@senars/util';
 import type { BotConfig } from '../../config/index.js';
 import { cmd } from '../../cli/commands.js';

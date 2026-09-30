@@ -1,27 +1,26 @@
-
 import type {
   AutonomyMode,
   CognitiveEvent,
   DerivationRecord,
   TaskAdmittedEvent,
-} from '@senars/core/derivation-schemas';
+} from '@senars/core/schemas';
 import {
   CognitiveEventSchema,
   DerivationRecordSchema,
   validateCognitiveEvent,
   validateDerivationRecord,
-} from '@senars/core/derivation-schemas';
-import type { CognitiveParameters } from '../config/cognitive-parameters.js';
+} from '@senars/core/schemas';
+import { appendJsonl, errMsg, readJsonl, sha256Hex, writeJsonFileSync } from '@senars/util';
 import { createDefaultRegistry, resolveSlot } from '../cognitive/impls/CognitiveRegistry.js';
-import type { AttentionModel } from '../strategies/types.js';
+import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { Concept, ConceptTaskType, TaskData } from '../memory/concept.js';
 import { Memory } from '../memory/memory.js';
 import { serialize as serializeMemory } from '../memory/state/serialization.js';
-import { Stamp, Truth, termParser } from '../terms/index.js';
+import type { AttentionModel } from '../strategies/types.js';
 import { rehydrateTask } from '../task/record.js';
+import { Stamp, Truth, termParser, termsEqual } from '../terms/index.js';
 import type { Budget, Timestamp } from '../types/index.js';
 import { createBudget } from '../types/index.js';
-import { appendJsonl, errMsg, readJsonl, sha256Hex, writeJsonFileSync } from '@senars/util';
 import {
   loadGateEvents,
   persistGateLogs,
@@ -99,11 +98,15 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
     } else {
       console.warn('[replay] ID range not found, falling back to ordinal range');
       const from = Math.max(0, range?.from ?? 0);
-      gateEvents = range?.to === undefined ? allGateEvents.slice(from) : allGateEvents.slice(from, range.to + 1);
+      gateEvents =
+        range?.to === undefined
+          ? allGateEvents.slice(from)
+          : allGateEvents.slice(from, range.to + 1);
     }
   } else {
     const from = Math.max(0, range?.from ?? 0);
-    gateEvents = range?.to === undefined ? allGateEvents.slice(from) : allGateEvents.slice(from, range.to + 1);
+    gateEvents =
+      range?.to === undefined ? allGateEvents.slice(from) : allGateEvents.slice(from, range.to + 1);
   }
 
   const derivationRecords: DerivationRecord[] = derivationRecordsPath
@@ -144,7 +147,9 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
       errors.push(`Task admission failed: ${raw} - term did not parse`);
       continue;
     }
-    if (memory.addTask(restored.term, restored.type, restored.truth, restored.budget, restored.stamp)) {
+    if (
+      memory.addTask(restored.term, restored.type, restored.truth, restored.budget, restored.stamp)
+    ) {
       appliedTasks++;
     } else {
       skipped++;
@@ -157,7 +162,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
         const term = termParser.parse(event.payload.term);
         const concept = memory.getConcept(term) ?? memory.addConcept(term);
         const beliefs = concept.getBeliefs();
-        const matching = beliefs.find((b) => b.term.toString() === event.payload.term);
+        const matching = beliefs.find((b) => termsEqual(b.term, term));
         if (matching) {
           const updatedTruth = Truth.create(
             event.payload.newTruth.frequency,
@@ -171,9 +176,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
         }
       } catch (e) {
         skipped++;
-        errors.push(
-          `Revision failed: ${event.payload.term} - ${errMsg(e)}`
-        );
+        errors.push(`Revision failed: ${event.payload.term} - ${errMsg(e)}`);
       }
     } else if (event.type === 'concept.activated') {
       try {
@@ -183,9 +186,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
         appliedActivations++;
       } catch (e) {
         skipped++;
-        errors.push(
-          `Activation failed: ${event.payload.term} - ${errMsg(e)}`
-        );
+        errors.push(`Activation failed: ${event.payload.term} - ${errMsg(e)}`);
       }
     }
   }
@@ -195,7 +196,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
       try {
         const term = termParser.parse(step.conclusion);
         const concept = memory.getConcept(term) ?? memory.addConcept(term);
-        const existing = concept.getBeliefs().find((b) => b.term.toString() === step.conclusion);
+        const existing = concept.getBeliefs().find((b) => termsEqual(b.term, term));
         if (!existing) {
           const truth = Truth.create(step.truth.frequency, step.truth.confidence);
           const budget = createBudget(0.5);
@@ -213,9 +214,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
         }
       } catch (e) {
         skipped++;
-        errors.push(
-          `Derivation step failed: ${step.conclusion} - ${errMsg(e)}`
-        );
+        errors.push(`Derivation step failed: ${step.conclusion} - ${errMsg(e)}`);
       }
     }
   }
@@ -286,7 +285,16 @@ export async function serializeReplayResult(
   result: ReplayResult,
   outputPath: string
 ): Promise<void> {
-  const { gateSnapshot, memory, appliedTasks, appliedRevisions, appliedDerivations, appliedActivations, skipped, errors } = result;
+  const {
+    gateSnapshot,
+    memory,
+    appliedTasks,
+    appliedRevisions,
+    appliedDerivations,
+    appliedActivations,
+    skipped,
+    errors,
+  } = result;
   const memorySerialized = serializeMemory(memory);
   // Canonicalize: remove timestamp for deterministic hashing
   const canonicalMemory = { ...memorySerialized, timestamp: 0 };

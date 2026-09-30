@@ -1,4 +1,4 @@
-import { LruCache } from '@senars/util';
+import { LruCache, occupancy } from '@senars/util';
 import type { Term } from '../../terms';
 import type { Concept } from '../concept.js';
 
@@ -31,7 +31,7 @@ export class Archive {
     return {
       size: this.archived.size,
       capacity: this.config.maxArchivedConcepts,
-      utilization: this.archived.size / this.config.maxArchivedConcepts,
+      utilization: occupancy(this.archived.size, this.config.maxArchivedConcepts),
     };
   }
 

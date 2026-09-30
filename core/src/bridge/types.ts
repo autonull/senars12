@@ -1,4 +1,4 @@
-import type { CognitiveEvent } from '../CognitiveEvent.js';
+import type { CognitiveEvent } from '@senars/util/types/cognitive';
 import type { ChatMessage } from '../protocol/index.js';
 
 /** Structural event source satisfied by Agent (bridge must not import the agent it bridges). */

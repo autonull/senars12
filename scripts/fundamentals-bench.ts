@@ -21,9 +21,9 @@ import { traceAbstractor } from '@senars/nar/lm/context/trace-abstractor';
 import { ShadowValidator } from '@senars/nar/lm/shadow-validation';
 import { attemptLMCorrection } from '@senars/nar/cognitive/impls/analyzers/corrections';
 import { NLUnderstandingService } from '@senars/nar/nl';
-import { TranslationCache } from '@senars/nar/nl/cache.js';
-import { createLogger } from '@senars/core/logger';
-import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate';
+import { TranslationCache } from '@senars/nar/nl';
+import { createLogger } from '@senars/util';
+import { KernelPerceptionGate } from '@senars/nar/kernel';
 import { termParser, Truth, Stamp, type Term, type TaskType, type Task, type TruthType } from '@senars/nar';
 import { strict as assert } from 'node:assert';
 
@@ -537,7 +537,7 @@ async function runScenario7(): Promise<boolean> {
 
 // ── Main ─────────────────────────────────────────────────────
 
-import { enableRoutingTelemetry, getRoutingLogStatus, resetCircuitBreakers } from '@senars/nar/lm/providers.js';
+import { enableRoutingTelemetry, getRoutingLogStatus, resetCircuitBreakers } from '@senars/nar/lm';
 import { pct, serializeTruth } from '@senars/util';
 
 async function main() {

@@ -1,4 +1,4 @@
-import { Truth } from '../../terms/impls/Truth.js';
+import { isTruthEqual, Truth } from '../../terms/impls/Truth.js';
 import { mulberry32 } from '../../utils/random.js';
 import type { HiddenRule, OracleExpectation, ScenarioProfile } from '../types.js';
 
@@ -176,18 +176,20 @@ export class HiddenModelOracle {
     const t1 = this.parseTerm(r1.term);
     const t2 = this.parseTerm(r2.term);
     if (!t1 || !t2) return false;
-    return t1.predicate === t2.predicate && t1.subject === t2.subject && t1.truth !== t2.truth;
+    return (
+      t1.predicate === t2.predicate &&
+      t1.subject === t2.subject &&
+      !isTruthEqual(r1.truth, r2.truth)
+    );
   }
 
-  private parseTerm(term: string): { subject: string; predicate: string; truth: Truth } | null {
+  /** Subject and predicate of an inheritance-shaped rule string. */
+  private parseTerm(term: string): { subject: string; predicate: string } | null {
     const match = term.match(/\((.+)\s*(==>|-->|<=>)\s*(.+)\)/);
     if (!match) return null;
-    const subject = match[1]?.trim() ?? '';
-    const predicate = match[3]?.trim() ?? '';
     return {
-      subject,
-      predicate,
-      truth: Truth.create(0.5, 0.5),
+      subject: match[1]?.trim() ?? '',
+      predicate: match[3]?.trim() ?? '',
     };
   }
 }
@@ -235,4 +237,3 @@ function generateHiddenRules(profile: ScenarioProfile, seed: number): HiddenRule
       return [];
   }
 }
-

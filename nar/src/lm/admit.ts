@@ -1,9 +1,9 @@
+import type { ShadowValidationDropEvent } from '@senars/core/schemas/cognitive-events';
 import { makeId } from '@senars/util';
 import { type GateRegistry, gateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
 import type { Task } from '../types';
-import { shadowValidator, type ShadowValidationResult } from './shadow-validation.js';
-import type { ShadowValidationDropEvent } from '@senars/core/derivation-schemas';
+import { type ShadowValidationResult, shadowValidator } from './shadow-validation.js';
 
 export async function admitTasks(
   memory: Memory,

@@ -76,6 +76,14 @@
 
 - `type ToolFeedbackObserver`
 
+- `createLogger`
+
+- `defaultLogger`
+
+- `Logger`
+
+- `registerLogEnricher`
+
 - `abortSession`
 
 - `createSession`
@@ -88,17 +96,15 @@
 
 - `passthrough` — Creates a passthrough middleware that emits an event and calls next.
 
+- `ENGINE_ORIGINS` — Every origin a cognitive event may claim. One list, so the zod boundary in
+
 - `isEventType`
 
 - `isNarEvent`
 
-- `createLogger`
+- `toolError` — A failed outcome; anything thrown is stringified at this boundary.
 
-- `defaultLogger`
-
-- `Logger`
-
-- `registerLogEnricher`
+- `toolOk` — A successful outcome.
 
 - `asBeliefTruth` — Belief-shaped truth from either truth representation; absent truth stays absent.
 
@@ -122,9 +128,31 @@
 
 - `invariant`
 
+- `boundedSignal` — Abort signal that fires after `timeoutMs`; call `done()` in a `finally` to release the timer.
+
+- `monotonicNow` — Monotonic millisecond clock: sub-millisecond resolution, and immune to wall-clock
+
+- `raceDeadline` — Cooperative deadline: resolves `{ timedOut: true }` when `timeoutMs` elapses,
+
+- `sleep`
+
+- `stopwatch` — Elapsed milliseconds since the call — the one stopwatch, so every subsystem
+
+- `TimeoutError` — Raised by {@link withTimeout} unless a domain error is supplied.
+
+- `withTimeout` — Rejects with `error()` when `timeoutMs` elapses. The losing promise is not
+
+- `BoundedMap`
+
+- `parseFlags` — Parses `argv` once into flag lookups. `--flag value` consumes the next token
+
 - `addToSet` — Add to a per-key set, creating the set on first use.
 
 - `BoundedRing` — Drop-oldest bounded buffer — the single AIKR ring behind every bounded log
+
+- `chunk` — Fixed-size slices for batched work — the one chunking primitive.
+
+- `edgeKey` — The one edge identity between two term keys.
 
 - `getOrInsert` — Lazily-created map entry — the single get-or-create primitive for nested maps.
 
@@ -149,6 +177,14 @@
 - `sortByDesc`
 
 - `trimCapped` — Keep the newest `capacity` entries of a plain array, dropping from the front.
+
+- `formatIssues` — The monorepo's one rendering of a schema failure. Four validators used to
+
+- `type SchemaIssue`
+
+- `errMsg` — The one coercion pair for values that reach an `Error` boundary from anywhere.
+
+- `toError`
 
 - `bar` — Unicode progress bar for a 0–1 fraction.
 
@@ -194,6 +230,14 @@
 
 - `writeJsonl` — Rewrite a JSONL file from `rows` (compaction path).
 
+- `compact`
+
+- `ensureArray`
+
+- `isNil` — Narrowing guards and the array normalizers built on them. Everything here
+
+- `isPlainObject` — Plain-object guard — the one object test behind config merging and tool schemas.
+
 - `djb2` — djb2 over a string, with an optional per-character salt.
 
 - `djb2Step` — One djb2 step — for folding non-string values (floats, salts) into a hash.
@@ -216,17 +260,55 @@
 
 - `generateId` — Monotonic, collision-resistant id. Pass an injectable `rng` (seeded runs,
 
-- `installIdSource` — Install `source` as the process id source and return a restore function.
-
 - `type IdSource`
+
+- `installIdSource` — Install `source` as the process id source and return a restore function.
 
 - `makeId` — A fresh UUID, or the installed source's id when one is set.
 
 - `sequentialIdSource` — Counter-derived UUIDs, for seeded runs: `00000000-0000-4000-8000-000000000001`
 
-- `BoundedMap`
+- `sortableIdSource` — The event log's id source: ULID, monotonic and lexicographically sortable.
 
 - `LruCache`
+
+- `CHARS_PER_TOKEN` — Characters per token in {@link estimateTokens} — its inverse, for budgeting characters from a token allowance.
+
+- `clamp`
+
+- `clamp01`
+
+- `estimateTokens` — Rough token count: ~4 characters per token. Single source for every budget.
+
+- `mean` — Arithmetic mean of a projection; 0 for an empty collection (rates, scores, sums).
+
+- `occupancy` — Occupancy of a bounded resource in `0..1` — the AIKR pressure signal every
+
+- `pearson` — Pearson correlation over the leading `min(xs, ys)` samples. The single
+
+- `roundTo` — Round to `digits` decimal places — the one float-noise guard for reported values.
+
+- `safeDiv`
+
+- `sigmoid` — Logistic function; the single sigmoid used by scoring and gradient descent.
+
+- `softmax`
+
+- `stdDev` — Population standard deviation — `sqrt(variance)`.
+
+- `ucb1` — UCB1 exploration term: `c · sqrt(ln(total) / visits)`, with untried arms
+
+- `variance` — Population variance of a projection; 0 for fewer than two samples.
+
+- `deepEqual` — Structural equality, order-insensitive for object keys and order-sensitive for
+
+- `deepFreeze` — Recursively freeze an object graph. Arrays and nested objects included.
+
+- `deepMerge` — Recursively merge `override` onto `base`. Plain objects merge key-by-key;
+
+- `getNested` — Dotted-path read; missing or non-object segments yield `undefined`.
+
+- `setNested` — Dotted-path write, creating missing intermediate objects.
 
 - `extractLastUserMessage` — Extract the concatenated text of the last user message in an AI-SDK prompt.
 
@@ -234,111 +316,33 @@
 
 - `withRetry` — Retry `fn` with exponential backoff; rethrows the last failure.
 
-- `weightedMean` — The weighted running mean, in one place.
-
 - `asSerializable` — Wraps an object that already fulfills the instance-side contract
 
 - `factorySerializable`
 
 - `inPlaceSerializable` — Bridges a class whose instance `serialize()` pairs with an *in-place*
 
-- `boundedSignal` — Abort signal that fires after `timeoutMs`; call `done()` in a `finally` to release the timer.
-
-- `CHARS_PER_TOKEN` — Characters per token in {@link estimateTokens} — its inverse, for budgeting characters from a token allowance.
-
-- `chunk` — Fixed-size slices for batched work — the one chunking primitive.
-
-- `clamp`
-
-- `clamp01`
-
-- `compact`
-
-- `deepEqual` — Structural equality via {@link stableStringify} — order-insensitive for object keys.
-
-- `deepFreeze` — Recursively freeze an object graph (TODO20 C3). Arrays and nested objects included.
-
-- `deepMerge` — Recursively merge `override` onto `base`. Plain objects merge key-by-key;
-
-- `edgeKey`
-
-- `ensureArray`
-
-- `errMsg`
-
-- `estimateTokens` — Rough token count: ~4 characters per token. Single source for every budget.
-
-- `extractTerm`
-
-- `type Flags`
-
-- `formatIssues` — The monorepo's one rendering of a schema failure. Four validators used to
-
-- `getNested` — Dotted-path read; missing or non-object segments yield `undefined`.
-
-- `isNarsese`
-
-- `isNil`
-
-- `isPlainObject` — Plain-object guard — the one object test behind config merging and tool schemas.
-
-- `limitList`
-
-- `mean` — Arithmetic mean of a projection; 0 for an empty collection (rates, scores, sums).
-
-- `occupancy` — Occupancy of a bounded resource in `0..1` — the AIKR pressure signal every
-
-- `parseFlags` — Parses `argv` once into flag lookups. `--flag value` consumes the next token
-
-- `pearson` — Pearson correlation over the leading `min(xs, ys)` samples. The single
-
-- `raceDeadline` — Cooperative deadline: resolves `{ timedOut: true }` when `timeoutMs` elapses,
-
-- `roundTo` — Round to `digits` decimal places — the one float-noise guard for reported values.
-
-- `safeDiv`
-
-- `type SchemaIssue`
-
-- `setNested` — Dotted-path write, creating missing intermediate objects.
-
-- `sigmoid` — Logistic function; the single sigmoid used by scoring and gradient descent.
-
-- `sleep`
-
-- `softmax`
-
 - `stableStringify` — Deterministic JSON with object keys emitted in sorted order — the single
-
-- `stdDev` — Population standard deviation — `sqrt(variance)`.
-
-- `TimeoutError` — Raised by {@link withTimeout} unless a domain error is supplied.
-
-- `toError`
-
-- `ucb1` — UCB1 exploration term: `c · sqrt(ln(total) / visits)`, with untried arms
-
-- `tokenizeWords` — Lowercased word-token set — the tokenizer behind every text-similarity path.
-
-- `truncate`
-
-- `truncateBytes` — Byte-safe truncation for tool output — never splits a multi-byte character.
-
-- `withTimeout` — Rejects with `error()` when `timeoutMs` elapses. The losing promise is not
-
-- `wordOverlap`
-
-- `variance` — Population variance of a projection; 0 for fewer than two samples.
 
 - `setupGracefulShutdown` — Process lifecycle — the single signal → shutdown path for every SeNARS binary.
 
+- `weightedMean` — The weighted running mean, in one place.
+
+- `extractTerm` — The leading run of atom characters in `content`, or nothing if it starts with none.
+
+- `isNarsese` — Whether `text` is Narsese rather than prose — the router between the two parsers.
+
+- `limitList` — `items` through `format`, with a trailing count of what the limit hid.
+
+- `tokenizeWords` — Lowercased word-token set — the tokenizer behind every text-similarity path.
+
+- `truncate` — Text measurement, tokenizing, and truncation. The three questions — how big
+
+- `truncateBytes` — Byte-safe truncation for tool output — never splits a multi-byte character.
+
+- `wordOverlap`
+
 - `Unifier`
-
-- `createThrottle`
-
-- `Throttle`
-
-- `throttleGenerator`
 
 ## `./commands`
 
@@ -400,9 +404,9 @@
 
 - `lmSettingsShape` — Canonical field shape for LM settings — shared by @senars/nar/lm (LMSettings),
 
-- `getBound`
-
 - `type BoundProp`
+
+- `getBound`
 
 - `type NarCoreBoundKey`
 
@@ -424,8 +428,6 @@
 
 - `systemOneSchema`
 
-- `type ValidatedAgentOptions`
-
 - `AgentOptionsValidationError`
 
 - `agentOptionsSchema`
@@ -435,6 +437,8 @@
 - `parseOrThrow`
 
 - `SchemaValidationError`
+
+- `type ValidatedAgentOptions`
 
 - `validateAgentOptions`
 
@@ -493,6 +497,8 @@
 - `InMemorySessionManager` — Sessions with no persistence layer.
 
 ## `./types/cognitive`
+
+- `ENGINE_ORIGINS` — Every origin a cognitive event may claim. One list, so the zod boundary in
 
 - `EngineOrigin`
 
@@ -564,103 +570,7 @@
 
 - `factorySerializable`
 
-## `./utils/shared`
-
-- `isNil`
-
-- `ensureArray`
-
-- `chunk` — Fixed-size slices for batched work — the one chunking primitive.
-
-- `errMsg`
-
-- `toError`
-
-- `CHARS_PER_TOKEN` — Characters per token in {@link estimateTokens} — its inverse, for budgeting characters from a token allowance.
-
-- `estimateTokens` — Rough token count: ~4 characters per token. Single source for every budget.
-
-- `sleep`
-
-- `boundedSignal` — Abort signal that fires after `timeoutMs`; call `done()` in a `finally` to release the timer.
-
-- `TimeoutError` — Raised by {@link withTimeout} unless a domain error is supplied.
-
-- `withTimeout` — Rejects with `error()` when `timeoutMs` elapses. The losing promise is not
-
-- `raceDeadline` — Cooperative deadline: resolves `{ timedOut: true }` when `timeoutMs` elapses,
-
-- `compact`
-
-- `clamp`
-
-- `clamp01`
-
-- `occupancy` — Occupancy of a bounded resource in `0..1` — the AIKR pressure signal every
-
-- `roundTo` — Round to `digits` decimal places — the one float-noise guard for reported values.
-
-- `edgeKey`
-
-- `isPlainObject` — Plain-object guard — the one object test behind config merging and tool schemas.
-
-- `deepMerge` — Recursively merge `override` onto `base`. Plain objects merge key-by-key;
-
-- `sigmoid` — Logistic function; the single sigmoid used by scoring and gradient descent.
-
-- `softmax`
-
-- `safeDiv`
-
-- `mean` — Arithmetic mean of a projection; 0 for an empty collection (rates, scores, sums).
-
-- `variance` — Population variance of a projection; 0 for fewer than two samples.
-
-- `stdDev` — Population standard deviation — `sqrt(variance)`.
-
-- `pearson` — Pearson correlation over the leading `min(xs, ys)` samples. The single
-
-- `ucb1` — UCB1 exploration term: `c · sqrt(ln(total) / visits)`, with untried arms
-
 - `stableStringify` — Deterministic JSON with object keys emitted in sorted order — the single
-
-- `deepEqual` — Structural equality via {@link stableStringify} — order-insensitive for object keys.
-
-- `tokenizeWords` — Lowercased word-token set — the tokenizer behind every text-similarity path.
-
-- `wordOverlap`
-
-- `getNested` — Dotted-path read; missing or non-object segments yield `undefined`.
-
-- `setNested` — Dotted-path write, creating missing intermediate objects.
-
-- `Flags` — Typed accessor over `--flag value` style argv arrays.
-
-- `parseFlags` — Parses `argv` once into flag lookups. `--flag value` consumes the next token
-
-- `extractTerm`
-
-- `isNarsese`
-
-- `truncate`
-
-- `SchemaIssue` — One issue's worth of what a diagnostic can say; the shape every schema issue already has.
-
-- `formatIssues` — The monorepo's one rendering of a schema failure. Four validators used to
-
-- `truncateBytes` — Byte-safe truncation for tool output — never splits a multi-byte character.
-
-- `limitList`
-
-- `deepFreeze` — Recursively freeze an object graph (TODO20 C3). Arrays and nested objects included.
-
-## `./utils/throttle`
-
-- `ThrottleConfig`
-
-- `Throttle`
-
-- `createThrottle`
 
 ## `./ledger`
 

@@ -1,5 +1,5 @@
-import { type Logger, defaultLogger } from '../logger.js';
-import { errMsg } from '../utils/shared.js';
+import { defaultLogger, type Logger } from '../logger.js';
+import { errMsg } from '../utils/error.js';
 import type { EventReceiver, EventUnsubscribe } from './event-bus.js';
 
 /**
