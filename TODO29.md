@@ -1,165 +1,220 @@
-# TODO29: Runtime — the cycle's cost model, and the retrieval engine underneath it
+# TODO29: Runtime Architecture — a closed core, an explicit induction boundary, and owned state
 
-**Version:** 1.3 (2026-09-30) · **Predecessor:** TODO28 (phases A–P; structure, the package graph, the
-barrels, the gate list), which closed the structural axis and left the runtime. TODO28's own §4.4
-declined to shrink `nar.ts` and §7.11 closed with "what is left" one line long. This is the other
-axis: not what the tree looks like, but what a cycle costs and why.
+**Version:** 2.0 (2026-09-30) · **Predecessor:** TODO28 (phases A–P; structure, the package graph, the
+barrels, the gate list), which closed the structural axis and left the runtime. **Successor:**
+TODO30 (the cost model of whatever this lands), which is blocked on this document.
 
-**Status: open.** Nothing here has landed. §1 is the diagnosis and it is measured, not asserted —
-every number in it comes from a CPU profile of the inference loop or a counter run against the
-live engine, and the commands are in §11 so the numbers can be re-derived rather than trusted.
-§2 is the reference architecture. §3 is the target. §4 is the work. §12 is the set of questions a
-fresh session should resolve before it starts.
+**Status: open. Scope: architecture and semantics.** Nothing here has landed. **No latency,
+throughput, complexity, population-scaling, or index-shape requirement appears in this
+document's acceptance criteria** — every one of those moved to TODO30, deliberately, because
+they are measurable only after the seams they will be measured through exist. What remains here
+is the part that is testable on a tree in its current state: dependency direction, proposal
+semantics, state ownership, read purity, and declared resource lifecycle.
 
-> **A fresh session should read §1.1, §1.10, §4/W0 and §15 first.** §15 says what would make
-> this plan wrong, and two of its checks should be run before anything is built.
+> **A fresh session should read §1.10, §4.0, §4/A1 and §15 first.** §1.10 says which findings
+> survive the split into this document and which belong to TODO30; §4.0 is the
+> finding → workstream trace; §15 lists the two kill criteria, and both are checkable before
+> anything is built.
+
+### What v2.0 changed, and why this document is smaller than v1.3
+
+v1.3 was one plan with two jobs. It wanted to close the reasoning cycle *and* make the closed
+cycle fast, and it inherited v1.0's cost model (§3.1) as an acceptance criterion. That coupling
+is what produced the plan's own central mistake, which v1.2 already identified and v1.3 still
+carried: **the workstream order was derived from a CPU profile of the fused system**, in which
+the language model ran 33 times per cycle inside the cycle. Optimising against that profile is
+how a month goes missing.
+
+So the work is split **by architectural responsibility**, not by whether a line mentions
+performance:
+
+| v1.3 workstream | this document | TODO30 | why |
+|---|---|---|---|
+| W0 instrumentation | **reduced** (A0) | population-scaling bench, cost gates | reproducibility is needed to judge architecture; scaling claims are not |
+| W1 Stream Reasoner split | **kept** (A1) | — | lifecycle and ownership boundary |
+| W1b LM beyond the core | **kept** (A2) | — | dependency inversion |
+| W2 decay + getter purity | **kept, narrowed** (A4) | — | read purity and clock ownership are semantics |
+| W3 attention | **interface only** (A4/A7) | index structure, `topK` cost, scaling | one owner is architecture; a heap is a decision |
+| W4 `Memory` ports | **kept** (A5) | — | decomposition and dependency inversion |
+| W5 retrieval indexes | — | **moved** | data-structure optimisation |
+| W6 compiled dispatch | **port only** (A6) | trie/DAG/codegen, sort removal | the abstraction is architectural, its speed is not |
+| W7 control-loop budgets | **budget semantics** (A7) | scheduling and tuning | explicit bounds are architecture |
+| W8 bounded-resource policy | **contracts** (A8) | eviction structures, heaps | limits are architecture; containers are not |
+| W9 retrieval structures | — | **moved** | explicitly performance |
+| W10 cost gate | — | **moved** | the performance governance layer |
+
+The architectural half has a stronger claim than the performance half did, and it is the one
+this repository's gates can enforce: *"the core does not depend on the induction layer"*, *"a
+provider cannot block or mutate a cycle"*, *"proposals cross one versioned boundary and only at
+a declared one"*, *"priority and decay have one owner each"*, *"no resource grows without a
+declared policy"*. None of those needs a benchmark to verify and all of them are currently
+false, which is why they are the exit criteria.
+
+**§3.1, the cost model, is not weakened here — it is relocated.** TODO30 §2 asks a sharper
+version of the same question: not "is the cycle O(k)" but "what is `k`, exactly, and can it
+silently grow to `N`?" That question is unanswerable until A5 and A6 have replaced the god-object
+with ports, because until then there is no seam at which to count anything.
+
+### Corrections to v1.3's own numbers, re-measured at `919c21ab`
+
+v1.3's provenance table existed to enforce "a number with no commit in it is not evidence".
+Applying it to v1.3's numbers found four that had drifted or were imprecise. They are corrected
+here rather than carried, because a plan that quotes its own stale numbers teaches the next
+session to quote its own stale numbers.
+
+| v1.3 said | measured at `919c21ab` | how |
+|---|---|---|
+| 36 core files import `nar/src/lm/` | **39** | `grep -rlE "from '[^']*lm(/|')" nar/src --include=*.ts \| grep -v '^nar/src/lm/'` — same tree, wider pattern |
+| "`initializeLMRules` is called at construction (`nar.ts:18`)" | `:18` is the **import**; the calls are `nar.ts:762` and `:823`, the private method `:837` | the claim stands, the citation did not |
+| "the only call site of `score()` is `lifecycle/forgetting.ts:67`" | `nar/src/memory/lifecycle/forgetting.ts:46`, `scorer.scoreForForgetting(c)` | the file moved under `memory/`; the claim stands |
+| "19 writers on `Concept.priority`" | **10 sites** write `Concept.priority` outside the class; 6 more assign an unrelated `priority` field (`links/Layer.ts:64,118`, `memory/focus.ts:80`, `bag/Bag.ts:170`, `rlfp/PolicyOptimizer.ts:132`, `lm/lm-rule-factory.ts:46`) that a grep cannot tell apart | the finding is stronger, the number was a conflation |
+
+Also corrected, and load-bearing: v1.3's `§7 invariant 4` requires every change to lower
+`productionLOC`, describing a downward ratchet. The gate is `mustNotIncrease` and its own
+comment says so (`scripts/lib/complexity-budget.ts:9-13`); the baselines are ceilings. The
+invariant is replaced in §7 below, and the gate is left exactly as it is.
 
 ### The thesis, stated so it can be wrong
 
-> SeNARS is a NAR-like reasoner whose **rule set is a learnable, versioned artifact rather than
-> code**, with pluggable producers — one of which is a language model. The core is closed,
-> bounded, deterministic, and useful on its own. The model is what makes the rule set grow, and
-> the system is better than NAR without it and better than an LM without it.
+> SeNARS is a deterministic reasoning core with explicit state ownership and an optional
+> asynchronous induction layer. The core is closed, bounded, and useful on its own; the
+> induction layer proposes rules and other artifacts, and the system is better than a
+> NAR-shaped reasoner without it **and** better than a language model without it.
 
-Every part of that is a claim with a measurement or a gate attached in §10, and the last sentence
-names the experiment that could refute it (§12 Q3 — which does not exist yet, and building it is
-arguably more important than any workstream in §4).
-
-### What the fourth pass added
-
-An audit of this document against the question "could a fresh session act on this alone?" found
-six gaps, and the first was disqualifying for a *seed*.
-
-- **The instrument did not exist.** §11 said "reproduce the §1 findings" and described four
-  procedures whose scripts were throwaway. An accurate account of a measurement with no apparatus
-  behind it is §1.8's failure mode at the document level. `scripts/cycle-bench.ts` is now
-  committed, with a `--selftest` that refuses to print a number it cannot show it measured, and
-  it reproduced §1.1 and §11.2 independently on first run.
-- **It immediately paid for itself.** `processLMRules` runs **33 times per cycle with
-  `enableLMRules: false`** — §3.5's "absent, not disabled" claim, now measured rather than
-  asserted, and the row `cost:cycle` will gate on.
-- **§11.5 (provenance)** — every number with its date, its commit, how to reproduce it, and
-  whether it is load-sensitive. Three are, and they are the ones that will lie to a future session.
-- **§11.6** — what was read of NARchy versus inferred from its file listing, with the SHA pinned
-  to `f3a9bcc`. The claim that NARchy precompiles inference is *inferred from filenames* and is
-  flagged as the least-read load-bearing claim in the plan.
-- **§4.0** — a finding → workstream → deletion → gate trace, so a workstream picked up cold can
-  see what it is for. Four findings are each closed by exactly one workstream.
-- **§14 and §15** — measured versus believed versus unexamined, the risk register, and two stated
-  **kill criteria** that should be checked before anything is built.
-
-### What the third pass added
-
-The LM must be **optional**: with none provided the system reduces to NARchy-like capability, and
-LM support sits *beyond* the core rather than inside it. That is not a packaging preference, and
-this pass is mostly about why.
-
-- **New §3.5** — what "optional" has to mean to be worth anything, what the boundary costs today
-  (**36 files** outside `nar/src/lm/` import from it, and `nar/src/strategies/types.ts:1` puts
-  `LMRule` in the *strategy extension contract*, so the core's extension points are typed in terms
-  of the LM), and why the requirement turns out to be the forcing function for the one
-  architectural improvement worth having.
-- **New W1b** — move the LM beyond the core. Deliberately *not* a separate letter: the seam and
-  the boundary are one change, and you cannot have a core-owned seam interface while the core
-  still imports the LM's rule type.
-- **§4.1's hardest question is retired.** Whether a background model can survive `test:hermetic`
-  was open last pass. If the LM is optional, the hermetic run *is* the no-LM run plus replayed
-  fixtures, and the question has an answer by construction.
-- **Two new invariants (§7)** — the core has no dependency on the LM, and the no-LM
-  configuration passes NAL1–8. **A new gate (§10)** and a **new ledger row (§10.1)**.
-
-The load-bearing consequence, stated once because it changes how §1 should be read: `lm.enabled:
-false` and `enableLMRules: false` are **not** optionality. `initializeLMRules` is called
-unconditionally at construction (`nar.ts:18`) and every rule is registered via
-`facade/index.ts:98`, so the 24 test files and the `FAST_COGNITIVE_CONFIG` preset that set those
-flags are all running a fully-constructed LM with execution gated. A component that is present,
-wired and registered is not optional, however false its switch is. §3.5 names the two gates that
-tell the difference.
-
-### What the second pass added
-
-v1.0 was written from a profile of the tree as it stands, and diagnosed it as an architecture
-problem. That diagnosis was half right and half misaimed, and the correction is the most useful
-thing in this document.
-
-**The Stream Reasoner — LM asynchronous, reasoner synchronous — was the intended design.** §1's
-worst findings are not evidence against it. They are evidence that **nothing in the repository can
-tell you when the implementation stops being it.** The intent lives in prose; the gates measure
-something else; the closure invariant has no test. So this is not a rearchitecture, it is the
-mechanisation of a design that was already correct — which is a much cheaper programme, and the
-one §4/W1 now leads with.
-
-Three consequences, and the plan is different because of them:
-
-- **New §1.10** — which of the eight findings survive the split, and which do not. The contract
-  violations are architecture-independent and stand. **The profile shares and the §5 predictions
-  are measurements of a system in the wrong state, and must be retaken after W1.** Optimising
-  against them is how you spend a month making the wrong thing fast.
-- **New §3.4 and §4/W1** — the online/offline split, as the spine of §3 rather than one
-  workstream among ten, and as the first thing built after instrumentation.
-- **New §4.1** — the questions the async design will actually be decided by (backpressure, commit
-  semantics, cancellation, and how it survives `test:hermetic`), written down before they are
-  answered by accident.
-- **New §10.1** — the intent-to-gate ledger. Three architectural intents in this repository are
-  prose, one is a string check, and one is mechanical. The pattern generalises past this plan.
-
-Workstreams shift: W0 stays, the old W1–W9 are now W2–W10.
-
-### v1.0's framing, for the record
-
-The one-line version: SeNARS is a *retrieval system that reasons*, and the retrieval half is a
-linear scan with a re-computed score. NARchy — and OpenNARS before it — is a *reasoner with an
-index*, where retrieval is a table lookup and attention is a maintained order rather than a field
-that nineteen places write. Nothing about the NAL has to change to get there. Almost everything in
-§4 is a data-structure and ownership change, not a semantics change — with exactly one deliberate
-exception, §4/W2, which is called out as such because it moves learned values.
+The last clause is the falsifiable half, and no test in this repository currently addresses it
+(§12 Q3). Building that experiment is more important than any workstream in §4 and is not
+scheduled here, which is a real gap in this plan rather than a decision.
 
 ---
 
 ## 0. What this is
 
-Three findings from a profiling pass, in order of how much they cost.
+Eight findings from a profiling and contract-audit pass, in order of how much they cost, plus
+one that costs nothing and is the most important. §1.9 is last because it is not a performance
+finding at all.
 
-**§1.1 The cycle re-derives what it already knows.** `Memory.sample()` sweeps the entire concept
-population — decaying it — and it is reached once per sampled concept, so a single inference
-cycle performs **nine full-population decay writes and nine full-population ranking passes**
-(measured, §11.2). Worse, the decay clock therefore advances `min(sampleSize, population)` times
-per cycle, which means `activationDecayRate` does not mean what the configuration says it means:
-the effective rate is `activationDecayRate × min(sampleSize, population)`, and changing
-`maxSampledConcepts` — a knob documented as *how many concepts to sample for inference* — silently
-changes how fast memory forgets (measured table, §11.3).
+**§1.1 A read mutates the heap.** `Memory.sample()` sweeps the entire concept population to decay
+it and is itself reached once per sampled concept, so one inference cycle performs **eight decay
+writes over the whole population and eight whole-population ranking passes** (measured, §11.1).
+The decay clock therefore advances `min(sampleSize, population)` times per cycle, which means
+`activationDecayRate` does not mean what the configuration says: the effective rate is
+`activationDecayRate × min(sampleSize, population)`. `maxSampledConcepts` is documented as *how
+many concepts to sample for inference* and is in fact a decay-rate knob (§11.2).
 
 **§1.2 Every read of memory is a full scan, and the index that exists is bypassed.** `sample`,
 `decayAll`, `forEachConcept`, `listConcepts`, `findConcepts`, `findSimilarConcepts`,
-`removeConceptsMatching`, `getGoals`, `getRevisionHistory`, `getStatistics` and
-`EmbeddingLayer.neighborsOf` are all O(population). Meanwhile `LinkManager` + `EmbeddingLayer` +
-`AssociativeRegistry` exist to provide indexed recall — and the *default* premise source
-(`PREMISE_SOURCES.bag`) uses none of them, choosing a full scan and a sort instead. The
-infrastructure for the thing the system is for is unused on the default path.
+`removeConceptsMatching`, `getGoals`, `getRevisionHistory` and `getStatistics` are all
+population-sized, and `getStatistics` additionally materialises a priority array and sorts it
+twice for two terciles (`util/src/utils/format.ts:24-28`, called from
+`memory/state/statistics.ts:36-37`). `Memory.totals()` (`memory.ts:467`) exists precisely as the
+cheap alternative — "totals without the tercile pass" — and the cycle path calls the expensive
+one anyway. Meanwhile `LinkManager` + `EmbeddingLayer` + `AssociativeRegistry` exist to provide
+indexed recall, and the *default* premise source (`PREMISE_SOURCES.bag`,
+`strategies/premise/primitives.ts:56`) is `memory.sample(n)`: a full scan and a sort.
 
-**§1.3 The thing that is supposed to decide what to attend to decides nothing.**
-`MemoryScorer` has four factors. No caller anywhere supplies `relatedConcepts`, and
-`lastAccessTime`/`lastAccessedAt` are declared in its context type and never read by its body. So
-novelty is always `1` and relevance is always `0`, and the three per-concept scorers reduce to
+**§1.3 The thing that decides what to attend to decides nothing.** `MemoryScorer` has four
+factors. Its only call site supplies no context
+(`memory/lifecycle/forgetting.ts:46` → `scorer.scoreForForgetting(c)`), so `noveltyOf(0) ≡ 1`
+and `relevanceOf(0) ≡ 0` on every path, and the three per-concept scorers reduce to
+`clamp01(0.5 + w·priority)` — strictly monotone in `concept.priority`, never clipping
+(`memory/pressure/scorer.ts:22-36, 84-88`). **Ranking by retrieval score is exactly ranking by
+priority.** `lastAccessTime` and `lastAccessedAt` appear in the context type at `:48-49` and
+are read nowhere.
 
+**§1.4 Eviction measures the wrong resource, and its candidate filter is anti-correlated with
+pressure.** `memory/pressure/consolidation.ts:24` measures `capacityPressure()` =
+`occupancy(concepts.size, maxConcepts)` (`memory.ts:462`). But every concept gets
+`beliefBag` 100 + `goalBag` 50 + `questionBag` 20 (`memory/concept.ts:76-80`), so the reachable
+ceiling is `maxConcepts × 170` tasks with no aggregate bound, `totals()` already reports
+`totalTasks`, and eviction does not read it. The candidate filter is `totalTasks === 0`
+(`memory.ts:519`): under pressure, the concepts holding tasks are the valuable ones and are all
+protected, so the only evictable concepts are empty shells that cost nothing to keep. **Memory
+becomes unshrinkable precisely when it is most full, and it fails silently.**
+
+**§1.5 `getGoals()` mints a stamp on every call.** `memory.ts:253` is
+`stamp: g.stamp ?? Stamp.createInput()`, and `Stamp.createInput()` takes a fresh
+monotonically-increasing id. `getGoals()` is a population scan reached from five call sites, so
+the same goal returns a different stamp on successive calls — and `noStampOverlap`
+(`strategies/premise/primitives.ts`) reasons about stamp overlap. **Anything keyed on stamp
+overlap is reasoning about an id that by construction never repeats.** The same method
+allocates a fresh `Task` per goal per call, on a path that is already population-sized.
+
+**§1.6 `Concept.priority` has no owner.** Ten sites outside `concept.ts` write it:
+`memory.ts:569` (the decay sweep), `reason/inference-controller.ts:110` (a relevance boost),
+`strategies/attention/SpreadingActivation.ts:17`, `nar-io.ts:327` and `:341` (an O(N) relevance
+scan), `focus/Focus.ts:211`, `kernel/replay.ts:185` (a deserialiser writing a *replayed* value),
+`memory/state/serialization.ts:110`, `self/SelfOptimizer.ts:136`, and
+`tools/adapters/coverage-concept.ts:65`. Inside the class there are six more: the setter (`:95`),
+`boost` (`:138`), `decay` (`:142`), `decayAttention` (`:149`), `mergeWith` (`:247`) and
+`recordAccess` (`:277`). A write from a strategy, a replay, a deserialiser
+and a population sweep land in the same field, and §1.1's cost depends on how many of them ran
+this cycle. The same audit found `Concept.addLink` called from exactly one place (its own
+`mergeWith`) and `addChildConcept` with zero callers, so `linkedConcepts` / `subConcepts` /
+`parentConcepts` are never populated — which makes `SpreadingActivation.prime` and
+`Concept.updateLinks` no-ops and `findOrphanedLinks` trivially empty. Dead structure, still
+maintained.
+
+**§1.7 The growth arithmetic.** `maxConcepts` 1 000 × 170 tasks; term-layer capacity 1 000 with
+`eviction: { by: entry => entry.priority }` and a `BoundedMap.#selectVictim` that scans the whole
+map for the lowest score (`util/src/utils/bounded-map.ts:210-216`); `EmbeddingLayer.neighborsOf`
+is population-sized and `Memory.adoptConcept` calls `indexConcept` for every new concept
+(`memory.ts:308-314`), so admission is quadratic; `TermCollection.deleteItem` shifts every index
+above the removed slot (`terms/impls/term-collection.ts:57-65`); `selectTopN` is a bounded
+buffer with an insertion sort (`util/src/utils/collections.ts:126`). None is catastrophic alone.
+Together they mean the system's cost per cycle grows with its memory, which is the one property
+a reasoning system cannot have. **This finding is entirely TODO30's** — A4 fixes *who* may
+write `priority`, not with what structure it is read.
+
+**§1.8 Two rules that document a fix they did not get.** `rules/impls/RuleIndex.ts:131-140` —
+the comment names the exact hazard (weighting priority by a success rate that starts at zero
+collapses the comparator) and reorders the comparator to avoid it, while `recordRuleHit`, the
+only writer of `hitStats`, has no callers outside `RuleIndex` itself; the tie-break is the
+constant the comment describes having moved away from. `rules/impls/processor.ts:156-181` — the
+`stepScalars` memo is never invalidated, because the `resetMetaBudget()` call at
+`nar-execution.ts:368` resolves to `NARExecution`'s *own* private method (`:179`) through the
+structurally identical port declaration at `:76`/`:116`, so every LM rule ever run reasons about
+`totalConcepts`, `memoryPressure` and `conflictCount` as of one instant in the life of the
+process. A shadowed method name, a memo with no invalidator, and an aggregate that costs two
+sorts to compute once — all within 40 lines, and §1.8 is a *frozen* value, not a slow one.
+
+**§1.9 The seam already exists, is bounded, is gate-checked, and has no caller.** This is the
+finding v1.3 got wrong in the direction that mattered: v1.2 concluded the Stream Reasoner "lives
+in prose". It does not. `nar/src/stream/reasoner.ts` is a committed, exported, tested class:
+
+```ts
+export class StreamReasoner {
+  private readonly queue: LMRequest[] = [];                       // pushCapped, maxPending 256
+  private readonly provisionals: BoundedMap<string, ProvisionalBelief>;
+  pressure(): number { return occupancy(...); }                    // backpressure signal
+  async flush(backend: LMBackend, pressure: number) { ... }         // the async boundary
+  reasonHook(backend, pressureOf)                                  // a tick-stage hook
+}
 ```
-retrieval      = clamp01(0.5 + 0.20 · priority)
-consolidation  = clamp01(0.5 + 0.10 · priority)
-forgetting     = clamp01(0.5 + 0.06 · priority)
-```
 
-all strictly monotone in `concept.priority` and never clipping. **Ranking by retrieval score is
-exactly ranking by priority.** The O(N log N) pass on every sample computes `concept.priority`,
-which the concept already stores.
+It defers at `highPressure`, asks the kernel `BudgetGate` for an `lm-call` budget before it
+touches a backend (`reasoner.ts:80`), keeps provisional beliefs at `provisionalConfidence` 0.3,
+and is wired into the tick stage contract (`tick/bindings.ts:116`). **Its only caller in the
+whole repository is `tests/nar/todo5b-phase1.test.ts`.** Meanwhile the cycle reaches the language
+model by a completely different route: `strategies/derivation/DefaultDerivation.ts:26,30` calls
+`processor.processLMRules` directly, inside the synchronous derivation, and
+`inferenceController.step(5000, …)` (`nar-execution.ts:234`) puts a five-second deadline on a
+step whose unbudgeted cost should be tens of microseconds.
 
-Those three are the expensive ones. §1.4–§1.8 are cheaper to fix and worse to keep, and §1.8 is
-worse than all of them: a rule-ranking tie-break that was documented as fixed and is not.
+So the split is not a design to be invented. It is a **wiring change plus a payload change**:
+make the bounded, gated, asynchronous channel the only channel, and give its payload a version.
+The overflow policy is already written — `pushCapped` drops the **oldest**
+(`util/src/utils/collections.ts:33-36`) and so does the budget-denied path via `trimCapped`
+(`:43-47`) — which is *drop-oldest*, and §4.1's own reasoning says drop-oldest is wrong because
+it discards exactly the context the inducer needed. That is a decision with an existing
+implementation to change, not an open question.
 
 ---
 
 ## 1. The diagnosis
 
-### 1.1 The cycle re-derives what it already knows
+The findings are stated once in §0, in order of cost. This section is the evidence.
+
+### 1.1 A read mutates the heap
 
 `nar/src/memory/memory.ts:355`
 
@@ -176,19 +231,16 @@ per inference cycle:
 | caller | count per cycle | source |
 |---|---|---|
 | `InferenceController.cycle` → `samplingStrategy.sample` | 1 | `reason/inference-controller.ts:100` |
-| `PREMISE_SOURCES.bag` → `memory.sample(n)` | 1 per sampled concept | `strategies/premise/primitives.ts:56`, reached from `samplePremisesFromConfig` at `:375` |
-| `WindowedRoulette` → `sampleWindow` | 1 per cycle when selected | `strategies/sampling/WindowedRoulette.ts:33` |
+| `PREMISE_SOURCES.bag` → `memory.sample(n)` | 1 per sampled concept | `strategies/premise/primitives.ts:56` |
+| `WindowedRoulette` → `sampleWindow` | 1 per cycle when selected | `strategies/sampling/WindowedRoulette.ts:40` |
 
-Measured at 164 resident concepts, 40 cycles, defaults otherwise: **9.0 `decayAll` calls, 8.8
-`memory.sample` calls and 5.0 `forEachConcept` calls per cycle** (§11.2). At the 3 635 concepts of
-the §11.1 benchmark that is ~9 × 3 635 priority writes and ~9 × 3 635 scorings per cycle, 900
-times over a single 300-step rollout.
+Measured at 164 resident concepts, 40 cycles, defaults otherwise: **8.2 `decayAll` calls, 8.0
+`memory.sample` calls and 5.0 `forEachConcept` calls per cycle** (§11.1). `decayAll`'s three call
+sites are `sample`, `sampleWindow` and `consolidate` (`memory.ts:355, 371, 389`) — only the third
+is a clock tick.
 
-`decayAll`'s three call sites are `sample`, `sampleWindow` and `consolidate` (`memory.ts:355, 371,
-389`). Only the third is a clock tick. Moving the other two to the cycle boundary is W2.
-
-The coupling is not incidental. The premise *source* decides how many decay passes happen, and the
-premise source is chosen by configuration:
+The coupling is not incidental. The premise *source* decides how many decay passes happen, and
+the premise source is chosen by configuration:
 
 ```
 maxSampledConcepts= 5   population=86    decayAll per cycle=5.2
@@ -197,42 +249,51 @@ maxSampledConcepts=20   population=164   decayAll per cycle=9.0
 maxSampledConcepts=40   population=164   decayAll per cycle=9.0
 ```
 
-Four runs, identical `activationDecayRate: 0.01`. A retrieval-breadth knob is a decay-rate knob,
-and the number saturates only because the population runs out.
+Four runs, identical `activationDecayRate: 0.01`. A retrieval-breadth knob is a decay-rate
+knob, and the number saturates only because the population runs out.
 
-### 1.2 Every memory read is a full scan, and the index is bypassed
+### 1.2 Reads are full scans, and the index is bypassed
 
 `Memory` is 646 lines and does storage, decay, ranking, eviction, archiving, focus maintenance,
-link management, indexing and statistics. From the survey, the O(population) members on or near
-the cycle path:
+link management, indexing and statistics. The population-sized members on or near the cycle
+path:
 
 | member | cost | note |
 |---|---|---|
 | `sample` / `sampleWindow` / `decayAll` | O(N) + O(N) | §1.1 |
-| `forEachConcept` | O(N) | called 5×/cycle; `nar-io.ts:338` is one caller |
-| `listConcepts` | O(N) + array alloc | `GoalBiasedSampling:18`, `evictUnderPressure:29`, `NoveltySampling`, `DiverseSampling` |
-| `getGoals` | O(N × goals) + a `Task` per goal | `RuleProcessor.processLMRulesImpl:393`, `nar-execution.ts:417, 455`, `context-assembler.ts:153` |
-| `getStatistics` | O(N) + **two percentile sorts** | `nar-execution.ts:424` every 10 cycles; `RuleProcessor.stepMemoryScalars:174` |
-| `findSimilarConcepts` | O(N) over indexed concepts | `memory.ts:542` |
-| `LinkManager.applyDecay` | O(total links) | every consolidation |
-| `EmbeddingLayer.neighborsOf` | O(embedding count) | on every `indexConcept` ⇒ **admission is O(n²)** |
+| `forEachConcept` (`:216`) | O(N) | 5×/cycle; `nar-io.ts:337` is one caller |
+| `listConcepts` (`:206`) | O(N) + array alloc | `GoalBiasedSampling:18`, `pressure/consolidation.ts:24`, `NoveltySampling`, `DiverseSampling` |
+| `getGoals` (`:253`) | O(N × goals) + a `Task` per goal | `rules/impls/processor.ts:393`, `nar-execution.ts:417, 455`, `context-assembler.ts:153` |
+| `getStatistics` (`:471`) | O(N) + array materialisation + **two sorts** | `nar-execution.ts:424` every 10 cycles; `processor.ts` step scalars |
+| `findSimilarConcepts` (`:542`) | O(N) over indexed concepts | — |
+| `LinkManager.applyDecay` (`links/LinkManager.ts:83`) | O(total links) | every consolidation (`memory.ts:393`) |
+| `EmbeddingLayer.neighborsOf` (`links/EmbeddingLayer.ts:70`) | O(embedding count) | on every `indexConcept` ⇒ **admission is O(n²)** |
 
-And the sources of truth for *which* concepts are related — `term` layer, `embedding` layer,
-`graph` — are reachable through `AssociativeRegistry` and used by two of five premise sources
-(`links`, `graph`) and one of four samplers. The default premise source is `bag`.
+`AssociativeRegistry` is the thing that knows which concepts are related, and two of five
+premise sources (`links`, `graph`) and one of four samplers reach through it. The default premise
+source is `bag` — a scan.
+
+**What this section is not saying:** that the fixes are index swaps. A4 and A5 decide who owns
+what; which structure answers which query is TODO30 §4, and it is decided from a post-A6
+profile, not from this table.
 
 ### 1.3 The scorer is decorative
 
-`nar/src/memory/pressure/scorer.ts`. The only call site of `score()` in the whole tree is
-`lifecycle/forgetting.ts:67`, `scorer.score(c)`, with no context. `relatedConcepts` is therefore
-always `0`, `noveltyOf(0) ≡ 1` and `relevanceOf(0) ≡ 0` on every path, and the derivation in §0
-applies. `lastAccessTime` and `lastAccessedAt` appear in the context type at `:48-49` and nowhere
-else.
+`nar/src/memory/pressure/scorer.ts`. The only call site in the tree is
+`memory/lifecycle/forgetting.ts:46` — `scorer.scoreForForgetting(c)`, with no context — so
+`novelty` is always `1`, `relevance` always `0`, and the three per-concept scorers reduce to
 
-The abstraction also costs a `.map` + two `.filter`s + a sort copy per call site, on a path that
-runs `N × 9` times a cycle.
+```
+retrieval      = clamp01(0.5 + 0.20 · priority)
+consolidation  = clamp01(0.5 + 0.10 · priority)
+forgetting     = clamp01(0.5 + 0.06 · priority)
+```
 
-### 1.4 Eviction measures the wrong resource, and its candidate filter is anti-correlated with pressure
+which is what `FACTORS` (`:22-28`) and `scoreFor` (`:84-88`) actually compute. The abstraction
+also costs a `.map` + two `.filter`s + a sort copy at its call sites, on a path the cycle walks
+once per concept.
+
+### 1.4 Eviction measures the wrong resource
 
 `nar/src/memory/pressure/consolidation.ts:24`
 
@@ -243,62 +304,34 @@ const idle = sortBy(memory.listConcepts().filter((c) => c.totalTasks === 0), c =
 if (idle.length === 0) return { archived: 0, forgotten: 0 };
 ```
 
-Pressure is **concept count**. But the dominant consumer of memory is task volume: every concept
-gets `beliefBag` 100 + `goalBag` 50 + `questionBag` 20 (`concept.ts:79-81`), so the reachable
-ceiling is `maxConcepts × 170` tasks with no global aggregate bound anywhere. `totals()` reports
-`totalTasks` (`memory.ts:467`) and eviction does not read it.
-
-The candidate filter is `totalTasks === 0`. Under real pressure the concepts holding tasks are the
-valuable ones, so all of them are protected; the only evictable concepts are empty shells, which
-cost nothing to keep. **Memory becomes unshrinkable precisely when it is most full**, and it fails
-silently rather than loudly.
+See §0. The two failures are independent and both are silent: the trigger watches the wrong
+quantity, and when it does fire the candidate set is empty for a reason correlated with pressure
+rather than anti-correlated with it. A memory at 99% with nothing evictable returns
+`{ archived: 0, forgotten: 0 }`, which every caller reads as "nothing to do".
 
 ### 1.5 `getGoals()` mints a stamp on every call
 
-`nar/src/memory/memory.ts:253`
+`nar/src/memory/memory.ts:253`. See §0. The severity is not the allocation: it is that a getter
+fabricates identity, which means every downstream uniqueness argument built on `Stamp` is
+unsound for goals specifically.
 
-```ts
-stamp: g.stamp ?? Stamp.createInput(),
-```
+### 1.6 `Concept.priority` has no owner
 
-`Stamp.createInput()` takes a fresh monotonically-increasing id. `getGoals()` is a full scan
-reached from five places, so the same goal returns a different stamp on successive calls. Stamps
-are what `noStampOverlap` (`primitives.ts:150`) and circular detection reason about, so anything
-keyed on stamp overlap is reasoning about an id that by construction never repeats. The same
-method also allocates a fresh `Task` per goal per call, on a path that is itself O(N).
-
-### 1.6 `Concept.priority` has nineteen writers
-
-`concept.ts:95` (setter), `:138` `boost`, `:142` `decay`, `:149,151` `decayAttention`, `:247`
-`mergeWith`, `:277` `recordAccess`; `memory.ts:569` `decayAll`; `reason/inference-controller.ts:110`;
-`strategies/attention/SpreadingActivation.ts:17`; `nar-io.ts:327, 341`; `focus/Focus.ts:211`;
-`kernel/replay.ts:185`; `self/SelfOptimizer.ts:136`; `state/serialization.ts:110`;
-`tools/adapters/coverage-concept.ts:65`.
-
-There is no owner. A write from a strategy, a replay, a deserializer and an O(N) relevance scan
-land in the same field, and §1.1 depends on how many of them have run. The survey also found that
-`Concept.addLink` is called from exactly one place (its own `mergeWith`) and `addChildConcept` has
-zero callers, so `linkedConcepts` / `subConcepts` / `parentConcepts` are never populated — which
-makes `SpreadingActivation.prime` and `Concept.updateLinks` no-ops and `findOrphanedLinks` trivially
-empty. Dead structure, still maintained.
+The ten external writers and six internal ones are listed in §0. The additional finding —
+`linkedConcepts` / `subConcepts` / `parentConcepts` are never populated outside `mergeWith` — is
+what makes `SpreadingActivation.prime` and `Concept.updateLinks` no-ops wearing a real cost:
+`inference-controller.ts:104-110` calls `prime` and then applies whatever boost it returns,
+forever, to a graph with no edges.
 
 ### 1.7 The growth arithmetic
 
-`maxConcepts` 1 000, bags 100/50/20 ⇒ 170 000 tasks reachable, no aggregate bound. Term layer
-capacity 1 000 with `eviction: { by: entry => entry.priority }` (`Layer.ts:21`), and `BoundedMap.#selectVictim` **scans the whole
-map** to find the lowest score (`util/src/utils/bounded-map.ts:210-224`) ⇒ every link insert into a
-full layer is O(capacity). `EmbeddingLayer.neighborsOf` is O(n) on every `indexConcept`, which
-`Memory.adoptConcept` calls per new concept (`memory.ts:313`) ⇒ admission O(n²).
-`TermCollection.deleteItem` is O(n) because it shifts every index above the removed slot
-(`term-collection.ts:57-67`). `selectTopN` is a bounded buffer with an insertion sort, O(n·k)
-(`collections.ts:126`).
-
-None of these are catastrophic alone. Together they mean the system's cost per cycle grows with
-its memory, which is the one property a reasoning system cannot have.
+Listed in §0 and **owned by TODO30 §4 and §7**. It is recorded here because A5 and A8 must not
+redesign storage in a way that forecloses the structures TODO30 will want — the ports are chosen
+so that each one can be re-implemented behind its interface.
 
 ### 1.8 Two rules that document a fix they did not get
 
-**The rule-ranking tie-break.** `rules/impls/RuleIndex.ts:132-140`
+**The rule-ranking tie-break.** `nar/src/rules/impls/RuleIndex.ts:131-140`
 
 ```ts
 // Declared priority is the primary order. Observed success only breaks
@@ -307,812 +340,893 @@ its memory, which is the one property a reasoning system cannot have.
 // so a rule with no track record would never be ranked at all.
 const byPriority = b.priority - a.priority;
 if (byPriority !== 0) return byPriority;
-return (this.hitStats.get(b.id)?.successRate ?? 0) - (this.hitStats.get(a.id)?.successRate ?? 0);
+return (
+  (this.hitStats.get(b.id)?.successRate ?? 0) - (this.hitStats.get(a.id)?.successRate ?? 0)
+);
 ```
 
-The comment identifies the exact hazard and reorders the comparator to avoid it. But
-`recordRuleHit` — the only writer of `hitStats` — has **zero callers outside `RuleIndex` itself**.
-`successRate` is therefore always `0`, the tie-break is always `0`, and the comparator is the
-constant the comment describes having moved away from. The comment is a correct description of a
-bug that is still present, because the measurement that would populate the field is never taken.
+The comment is a correct description of a bug that is still present, because the measurement
+that would populate the field is never taken. Per §10.1's second rule, **a doc comment that
+explains a bug the code still has is a failing test that was never written.**
 
-**Frozen LM-rule context.** `rules/impls/processor.ts:156-181`
+**Frozen LM-rule context.** `nar/src/rules/impls/processor.ts:156-181`, with the shadowed
+port at `nar-execution.ts:76`/`:116`, the implementation at `:179`, and the call at `:368`. The
+doc comment says "at most once per inference step (prompt hints may be a step stale)"; it is not
+a step stale, it is a process stale.
 
-```ts
-resetMetaBudget(): void { …; this.stepScalars = null; }     // zero callers
-private stepMemoryScalars() { if (this.stepScalars) return this.stepScalars; … }
-```
+### 1.9 The seam exists, is bounded, is gated, and has no caller
 
-`nar-execution.ts:368` calls `this.resetMetaBudget()` — which resolves to `NARExecution`'s **own**
-private method at `:179`, resetting a different pair of counters, because the injected
-`ruleProcessor` port at `:76`/`:116` structurally declares the same name. So `stepScalars` is
-computed once per `RuleProcessor` instance, at the first LM rule that asks, and never recomputed
-for the life of the process. Every LM rule ever run reasons about `totalConcepts`,
-`memoryPressure` and `conflictCount` as of that single instant. The doc comment says "at most once
-per inference step (prompt hints may be a step stale)"; it is not a step stale, it is a process
-stale.
+Full statement in §0. Three consequences the work depends on:
 
-A shadowed method name, a memo with no invalidator, and an aggregate that costs two full sorts to
-compute once. All three are in the same 40 lines.
+1. **A1 is a wiring change, not an invention.** The bounded queue, the backpressure signal, the
+   budget-gate check and the provisional-truth discipline are committed, exported, and tested.
+   What is missing is (a) the cycle uses a different path, and (b) the payload is a prompt and a
+   truth value rather than a versioned artifact.
+2. **The architecture is testable against an object that already exists.** The "provider hangs
+   forever" test does not need a fake LM port invented for it; it needs a `StreamReasoner` whose
+   backend never resolves, and an assertion that the cycle still completes.
+3. **The overflow policy is already chosen and is the wrong one.** Drop-oldest, twice. §4.1
+   turns that from a question into a one-line change with a test.
 
-### 1.9 What the profile actually said
+### 1.10 Which findings survive, and who owns each
 
-`--cpu-prof` on a 300-step rollout, 3 635 resident concepts, 900 inference cycles. Self time:
+v1.0 profiled a tree in which the induction layer sat inside the cycle, so it is worth being
+explicit about which findings are properties of the *design* and which are properties of that
+particular failure to reach it. The right column matters more than it did: this document and
+TODO30 are different plans with different gates, and a finding with no owner is a finding with
+no gate.
 
-| share | site | verdict |
-|---|---|---|
-| 17.1% | `TermCollection` iterator, from `selectTopN`/`decayAll`/`forEachConcept` | §1.1, §1.2 — partly landed as a sweep change, the rest is §4/W3 |
-| 12.0% | `get priority` (`concept.ts:90`) | §1.6 — 19 writers, inlined into 3 call sites |
-| 8.9% | `RegExp /\((\w+)\s+-->\s+(\w+)\)/` | landed — now `bareInheritancePair` |
-| 6.8% | `nar-io.ts` relevance scan callback | landed |
-| 4.4% | `SimpleAttention.decay` | §1.1 |
-| 4.2% | `MemoryScorer.scoreFor` | §1.3 — allocation removed, collapse not |
-| 4.0% | `BoundedMap.#reinsert` (via `LruCache` for the term interner) | §4/W9 |
-| 2.4% | `selectTopN` | §4/W9 |
-| 2.6% | GC | |
-
-The landed column is the two commits of 2026-09-30: the sweep is now index-based and the regex is
-gone, which is worth ~14% on the rollout. Everything in the right-hand "§4" column is the
-remaining ~20%, and the ceiling it addresses is the 9× multiplier, not the constant factors.
-
-### 1.10 Which of these survive the split
-
-v1.0 profiled a tree in which the LM sits inside the cycle, so it is worth being explicit about
-which findings are properties of the *design* and which are properties of that particular failure
-to reach it. This matters because §5 is a prediction table and §1.9 is a profile: if they
-are measurements of the wrong state, optimising against them is how a month goes missing.
-
-| § | finding | survives the split? | why |
+| § | finding | survives the split? | owner |
 |---|---|---|---|
-| 1.1 | decay rate is `rate × min(sampleSize, N)` | **yes** | nothing about an LM causes a read path to mutate the heap. The LM makes it expensive, not wrong |
-| 1.2 | every memory read is a full scan | **yes** | and the split *removes one of the callers* — `processLMRulesImpl:393` — rather than adding one |
-| 1.3 | the scorer is decorative | **yes** | no caller ever passed the inputs; the split does not create one |
-| 1.4 | eviction measures the wrong resource | **yes** | independent of reasoning architecture |
-| 1.5 | `getGoals()` mints a stamp per call | **yes** | a getter that fabricates identity |
-| 1.6 | nineteen writers on `priority` | **partly** | the meta / self-optimiser / LM writers leave with the split; the input-path, replay and deserialisation writers do not |
-| 1.7 | the growth arithmetic | **yes** | every structure named there is on a path the split leaves running |
-| 1.8 | frozen `stepScalars` | **no — resolved by the split** | it exists because LM context needed O(N)+2-sorts 500× a cycle. With the LM out, the memo has no reason to exist and the shadowed `resetMetaBudget` can simply be deleted rather than fixed |
-| 1.9 | the profile shares | **no — retake** | a profile of the fused system. Its *ranking* is probably right and its *magnitudes* are not |
-| 5 | the prediction table | **no — retake** | same, and the workstream order in §6 is derived from it |
+| 1.1 | decay rate is `rate × min(sampleSize, N)` | **yes** — nothing about induction makes a read path mutate the heap | **A4** |
+| 1.2 | every memory read is a full scan | **yes** — and the split *removes* one caller (`processor.ts:393`) | **A5**, structures → **TODO30 §4** |
+| 1.3 | the scorer is decorative | **yes** — no caller ever passed the inputs | **A4** (the decision) |
+| 1.4 | eviction measures the wrong resource | **yes** — independent of reasoning architecture | **A8** |
+| 1.5 | `getGoals()` mints a stamp per call | **yes** — a getter that fabricates identity | **A4** |
+| 1.6 | `priority` has no owner | **partly** — the meta / self-optimiser writers leave with the split; input-path, replay and deserialisation writers do not | **A4** |
+| 1.7 | the growth arithmetic | **yes** — every structure named is on a path the split leaves running | **TODO30 §4, §7** |
+| 1.8 | frozen `stepScalars`; inert tie-break | **no — resolved by the split** | **A1** (delete), **A6** (the tie-break decision) |
+| 1.9 | the seam exists and is unused | **yes** — and it is the whole of A1 | **A1** |
+| 5 (v1.3) | the prediction table | **no — retake** | **TODO30 §1** |
+| 1.9 (v1.3) | the profile shares | **no — retake** | **TODO30 §1** |
 
-Counting: of the eight findings in §1.1–§1.8, **seven stand regardless of the split** and the
-eighth (§1.8) is *resolved* by it rather than needing a fix of its own. §1.9 is a profile, not a
-finding, and it does not survive. So the two items in this document that are purely symptoms of
-the failed split are both downstream of the split itself.
-
-That is a materially better position than v1.0 implied, and it changes what the plan *is*: not a
-redesign, but the mechanisation of a design that was already chosen, plus the repair of a
-retrieval substrate that was never the LM's fault in the first place.
-
-The practical instruction is in §6: **build W1, then re-run `bench:cycle` and re-derive the order.**
-W0 exists so that this is possible.
+Of the eight findings in §1.1–§1.8, **seven stand regardless of the split** and the eighth is
+*resolved* by it rather than needing a fix. The profile and the prediction table do not survive
+and live in TODO30, which is the formal handoff: TODO30 §1 requires a fresh profile before it
+orders anything, because a profile of the fused system is a ranking of the wrong thing.
 
 ---
 
-## 2. What NARchy does instead
+## 2. Architectural precedent: what NARchy does instead
 
-Reference: `github.com/narchy/narchy`, module `narchy/nar` (1 814 Java files across the monorepo).
-Read directly, not from memory of OpenNARS. The load-bearing observation is not any single data
-structure — it is **where the responsibility sits**.
+Reference: `github.com/narchy/narchy`, module `narchy/nar`, pinned at **`f3a9bcc`**
+(2026-08-25). §11.3 records what was read and what was inferred. The load-bearing observation
+is not any single data structure — it is **where the responsibility sits**. Nothing in this
+section is a performance target; the comparative numbers live in TODO30 §1.
 
-### 2.1 `Memory` is a port, with eight implementations
+### 2.1 `Memory` is a port
 
-`nars/memory/Memory.java` is 123 lines and its whole abstract surface is:
+`nars/memory/Memory.java` is 123 lines and its whole abstract surface is `get`, `set`, `clear`,
+`size`, `summary`, `remove`. No decay, no scoring, no sampling, no eviction, no archive, no
+focus, no links — those live in `concept/` (beliefs), `focus/` (attention), `control/`, and
+`deriver/` (inference). Eight implementations ship. SeNARS's `Memory` is one class, 646 lines,
+and it is the only one. **This is A5, and it is dependency inversion, not a rewrite:** reasoning
+code should depend on the concept of storage, not on one concrete all-purpose implementation.
 
-```java
-public abstract Concept get(Term key, boolean createIfMissing);
-public abstract void set(Term src, Concept target);
-public abstract void clear();
-public abstract int size();
-public abstract String summary();
-public abstract @Nullable Concept remove(Term entry);
-```
+### 2.2 Attention is owned, not a field
 
-There is no decay, no scoring, no sampling, no eviction, no archive, no focus and no links in it.
-Those live in `concept/` (beliefs), `focus/` (attention), `control/` (control), `deriver/`
-(inference). Eight implementations ship: `MapMemory`, `SimpleMemory`, `CaffeineMemory`,
-`RadixTreeMemory`, `TierMemory`, `FSMemory`, `HijackMemory`, `ProxyMemory`, `NullMemory`.
-
-SeNARS's `Memory` is one class, 646 lines, and it is the *only* one. Making it a port is W4; it is
-what allows W3, W5 and W8 to be tested without standing up a NAR.
-
-### 2.2 Attention is a maintained order, not a field
-
-`nars/focus/util/PriTree.java` — "hierarchical priority distribution graph", a
-`MapNodeGraph<PriNode, Object>` with a `commit()` that walks nodes in DFS order once per system
-duration. `nars/focus/PriNode.java`, `PriSource.java`, `PriAmp.java` give a node its priority and
-its sources. `nars/focus/util/TaskAttention.java` (336 lines) and
-`TaskBagAttentionSampler.java` are the samplers that replace "sample 100 concepts and re-rank".
-
-The consequence is the whole point: top-k attention is `O(k)` from a structure that is *already
-ordered*, and priority has exactly one owner. Nineteen writers become a handful of typed touches
-on an index.
+`nars/focus/util/PriTree.java` ("hierarchical priority distribution graph") with a `commit()`
+that walks nodes once per system duration; `PriNode`/`PriSource`/`PriAmp` give a node its
+priority and its sources; `TaskAttention` and `TaskBagAttentionSampler` replace "sample 100
+concepts and re-rank". The structural consequence is the part that matters here: **priority has
+exactly one owner**, and nineteen writers become a handful of typed operations.
 
 ### 2.3 Focus commits on a clock derived from system duration
 
-`nars/Focus.java:239-262`
-
-```java
-public final boolean commit(long now) { if (now >= this.commitNext) { … _commit(now); … } }
-private void _commit(long now) { commitTime(now); input.commit(); attn.commit(); }
-private void commitTime(long now) {
-    this.durSys = nar.dur();
-    var durCommit = Math.max(1, durSys * commitDurs.floatValue());
-    this.commitNext = now + Math.round(durCommit);
-}
-```
-
-Attention advances on a *timer whose period is the system duration* — not once per read, and not
-once per sampled concept. `nars/focus/time/` carries 15 pluggable timings
-(`BasicTimeFocus`, `TemporalTaskTiming`, `MultiFocusTiming`, …) so "when" is a policy.
-
-This is the direct answer to §1.1: the decay clock has one owner and one cadence, and the cadence
-is derived from the system's own notion of time rather than from a retrieval-breadth knob.
+`nars/Focus.java:239-262` — `commit(now)` fires when `now >= commitNext`, and
+`commitTime` sets the next commit one `commitDurs × durSys` interval out. Attention advances on
+a timer, not once per read and not once per sampled concept; `nars/focus/time/` carries 15
+pluggable timings so *when* is a policy. **This is the direct answer to §1.1:** one owner, one
+cadence, and the cadence is not a retrieval-breadth knob.
 
 ### 2.4 Beliefs are retained by policy, and the container is a port
 
-`nars/focus/BagForget.java` + `AbstractBagSustain.java` implement retention as
-recency × frequency. `nars/table/` has `BeliefTables` with `eternal/`, `temporal/`, `question/` and
-eight `dynamic/` implementations. The permanent-permanent / eternal-vs-temporal distinction — which
-SeNARS papers over with one `Bag<TaskData>` and three capacity constants — is a *table type* in
-NARchy.
+`BagForget` + `AbstractBagSustain` implement retention as recency × frequency; `nars/table/`
+has `BeliefTables` with `eternal/`, `temporal/`, `question/` and eight `dynamic/`
+implementations. The eternal-vs-temporal distinction SeNARS papers over with one `Bag<TaskData>`
+and three capacity constants is a *table type* in NARchy. This is A8's precedent: a declared
+retention policy, behind a port.
 
 ### 2.5 Inference is compiled, and control execution is pluggable
 
-`nars/deriver/reaction/` holds `NativeReaction`, `PatternReaction`, `TaskReaction`, `MutableReaction`
-and `ReactionModel`, compiled ahead of time by `compile/TrieReactionCompiler`,
-`DAGReactionCompiler`, `DecisionTreeReactionCompiler`, `ANDCompiler`, `JaninoPredicateCompiler`.
-`nars/deriver/util/memoize/` memoises the predicates those reactions call.
-
-So: the rule set is turned into a compiled structure keyed by what it matches, and evaluation
-walks that structure. SeNARS's `RuleIndex.candidatesFor` unions four buckets including a `*:*`
-catch-all and **fully sorts the union on every memo miss**, per rule application, and there are up
-to 500 rule applications per cycle (100 primaries × 5 secondaries, `processor.ts:246`).
-
-`nars/control/exec/` — `UniExec`, `WorkQueueExec`, `ThreadedExec`, `WorkerExec`, `FiberExec` —
+`nars/deriver/reaction/` holds `NativeReaction`, `PatternReaction`, `TaskReaction`,
+`MutableReaction` and `ReactionModel`, with `compile/TrieReactionCompiler`,
+`DAGReactionCompiler`, `DecisionTreeReactionCompiler`, `ANDCompiler` and
+`JaninoPredicateCompiler`; `deriver/util/memoize/` memoises the predicates they call.
+`nars/control/exec/` (`UniExec`, `WorkQueueExec`, `ThreadedExec`, `WorkerExec`, `FiberExec`)
 makes *how* the cycle executes a choice behind an interface.
+
+**Only the shape is inherited by this plan.** That the rule set is turned into a structure keyed
+by what it matches is architectural — it is why `InferenceTable` is a port in A6. *Which*
+compiler, and whether a generated dispatch beats a table at this workload, is TODO30 §6, and
+§11.3 flags that the compiler claim here is **inferred from filenames, not read**.
 
 ### 2.6 The contrast
 
-| | SeNARS | NARchy |
+Architecture columns only. The speed comparison is deliberately absent; TODO30 §1 owns it, and
+a plan that quotes it here will be quoted after the architecture changes.
+
+| | SeNARS today | NARchy |
 |---|---|---|
-| concept store | one 646-line class doing 9 jobs | `Memory` port, 6 abstract methods, 8 impls |
-| priority | a field with 19 writers, re-ranked on read | `PriTree` + `TaskAttention`, one owner, committed on a clock |
-| top-k | `selectTopN` over the population, O(n·k) | O(k) from a maintained order |
-| decay | swept inside `sample()`, 9× per cycle | committed on a duration-derived timer |
+| concept store | one 646-line class doing 9 jobs | a port, 6 abstract methods, 8 implementations |
+| priority | a field with 10 external writers, re-ranked on read | one owner, committed on a clock |
+| top-k | rank the population on every read | read a maintained order |
+| decay | swept inside `sample()`, 8× per cycle | committed on a duration-derived timer |
 | beliefs | 3 fixed capacity constants × concepts | policy-based bags, 8 table types |
-| rule dispatch | 4-bucket union + full sort per application | precompiled reactions, trie/DAG/decision-tree |
-| what the cycle selects from | the whole population | a bounded working set |
+| rule dispatch | 4-bucket union + full sort per application | compiled reactions, keyed by match shape |
+| what a cycle selects from | the whole population | a declared working set |
 | eviction trigger | concept count | per-container, by policy |
 
-SeNARS has *more* machinery than NARchy in every row above and is slower in every row above. The
-extra machinery is what is costing the time.
+The last column is a *responsibility* column. Reading it as a speed table is how the previous
+pass mistook a profile for an architecture.
 
 ---
 
 ## 3. The target
 
-### 3.1 The cost model
+### 3.1 The architecture contract
 
-One sentence: **no operation on a cycle path may be O(population); every cycle-path operation is
-O(1) or O(log n) in the live working set.**
+v1.3's §3.1 was a table of target complexities. It is gone from this document and its content
+lives in TODO30 §2, where `k` is defined rather than asserted. What replaces it is the property
+that makes the cost model *implementable*:
 
-That is checkable, and §4/W10 makes it a gate. Concretely, for a cycle over a working set of `k`
-concepts in a memory of `N`:
+> **Every cycle-path responsibility has exactly one owner and an interface through which its
+> implementation can be replaced. No cycle-path component may require an induction provider,
+> hidden global state, or an implicit traversal of the whole population.**
 
-| operation | now | target |
-|---|---|---|
-| attention decay | O(N), 9× per cycle | O(k), on a commit timer |
-| top-k selection | O(N) scoring + O(N·k) | O(k) from the maintained order |
-| premise retrieval | O(N) scan + sort | indexed by the task's symbols, O(1 + k) |
-| relevance propagation on input | O(N) | via the link index, O(1 + k) |
-| rule dispatch | union 4 buckets + full sort | O(1) table lookup + O(matches) |
-| concept admission | O(n) embedding scan | O(k) nearest neighbours from a maintained index |
-| goal enumeration | O(N × goals) + a `Task` per goal | maintained goal queue, O(k) |
-| cycle context statistics | frozen forever | computed on a budget, invalidated per step |
+Three clauses, each falsifiable, none of which needs a stopwatch:
+
+- **one owner** — a mutation of `Concept.priority` or of the decay clock is reachable from one
+  owner only, and the write surface is enumerable (§7 invariant 4).
+- **replaceable** — each cycle-path responsibility is reached through a port, and the port's
+  contract does not mention the concrete type (§4/A5, A6).
+- **no implicit population traversal** — a read that must consider the whole population is a
+  *declared* decision with a named owner and a budget, not a side effect of a getter
+  (§4/A4, A8).
+
+This is a weaker sentence than v1.3's and a more useful one: it holds for a tree that is
+currently O(N) everywhere, and it is the thing TODO30 needs in place before it can measure.
 
 ### 3.2 The ports
 
 Five, in dependency order. Each replaces part of the god-object rather than adding a layer.
+None of these is an index, and choosing implementations is TODO30's.
 
 ```
 ConceptStore     get(term, create) · set · remove · size · summary · clear
-AttentionIndex   touch(term, delta) · topK(n) · commit() · forget(term)
-BeliefTable      per-concept: insert · peek · size · policy-driven retention
-InferenceTable   by (antecedentKind, consequentKind) → precompiled reactions
+Attention        touch(term, event) · topK(n) · commit(now) · forget(term)
+BeliefTable      per-concept: insert · peek · size · retention policy
+InferenceTable   lookup(antecedentKind, consequentKind) · dispatch(...)
 CycleExecutor    one cycle, under a budget, with a pluggable concurrency strategy
 ```
 
-`ConceptStore` and `AttentionIndex` are the two that matter. Everything else is a consequence of
-their existing.
+`ConceptStore` and `Attention` are the two that matter; the other three are consequences of
+their existing. The change of shape from v1.3 is deliberate in one place: `Attention` is an
+*interface with a mutation surface* (`touch(event)`, `commit(now)`), not an index with an
+update method, because "one owner" is the property and "index" is an implementation.
 
 ### 3.3 The cycle
 
+The shape, with no cost claims attached:
+
 ```
-input ──▶ attention.touch(term)            O(1)          replaces the O(N) scan
-      ──▶ admission (indexed neighbours)    O(1 + k)     replaces EmbeddingLayer.neighborsOf
-      ──▶ attention.commit()                O(k)          the only decay in the system
-      ──▶ workingSet = attention.topK(n)    O(k)          replaces sample() + scorer
-      ──▶ for each premise pair:            O(1)          replaces RuleIndex union+sort
+input ──▶ attention.touch(term, event)          replaces the O(N) relevance scan
+      ──▶ admission                            through the store's neighbour port
+      ──▶ attention.commit(now)                 the only decay in the system, on a clock
+      ──▶ workingSet = attention.topK(n)       replaces sample() + the decorative scorer
+      ──▶ for each premise pair:
              inference.dispatch(...)
       ──▶ budgeted admit of conclusions
       ──▶ drive / meta / self — on a budget, opt-in
 ```
 
-One owner per quantity, one cadence per clock, one write path per fact.
+One owner per quantity, one cadence per clock, one write path per fact, one seam for induction.
 
-### 3.4 The spine: the Stream Reasoner, and the seam it runs through
+### 3.4 The spine: the online reasoner and the seam it runs through
 
-The cycle above has no LM in it, and that is the point. The Stream Reasoner is the reason the
-cycle can be closed, and closing it is what makes every row of §3.1 enforceable. The cycle in
-§3.3 is already the intended architecture; §4/W1 is the work of making the tree match it.
+The cycle above has no induction in it, and that is what makes every row of §3.1 checkable.
+§1.9 is the good news: the offline side already exists, bounded and gated. This section is the
+contract the two halves must satisfy.
 
 ```
                        ┌──────────────────────────────────────────┐
    input ──▶ gate ──▶  │  ONLINE REASONER — closed, bounded, sync  │
-                       │  deterministic · no LM · no I/O · no wall │
-                       │  clock · O(1)/O(log n) per operation       │
+                       │  deterministic · no provider · no I/O     │
+                       │  no wall clock on the reasoning path      │
                        └───────────────┬──────────────────────────┘
                                        │ commits only
                                        ▼
                             ┌─────────────────────┐
-                            │  THE SEAM           │  versioned · diffable
-                            │  reaction table     │  validated · revertable
-                            │  abstractions       │  gated
+                            │  THE SEAM           │  versioned · validated
+                            │  reaction table     │  gated · revertable
+                            │  proposals          │  replayable
                             └──────────┬──────────┘
                                        │ proposes
                                        ▼
                        ┌──────────────────────────────────────────┐
-   un-committed ──────▶│  OFFLINE INDUCER — the LM, out of band   │
-   derivations          │  bounded queue · own budget · no cycle   │
-                        │  participation · every output a proposal │
-                       └──────────────────────────────────────────┘
+   un-committed ──────▶│  OFFLINE INDUCER — out of band          │
+   derivations          │  bounded queue · its own budget · no    │
+                        │  cycle participation · every output a   │
+                        │  proposal · provisional until applied   │
+                        └──────────────────────────────────────────┘
 ```
 
 Three properties fall out of drawing it this way, and each is a test:
 
-1. **The online reasoner completes even if the LM never answers.** This is the single most
-   valuable test in the whole plan, it costs one line, and it is what would have caught §1.8 on
-   day one: inject an LM that never resolves, call `run()`, assert the cycle still finishes. If it
-   doesn't, the LM is in the cycle. No profiler, no cost model, no architecture review required.
-2. **The seam is the only channel.** The reasoner reads committed artifacts and nothing else. This
-   is what makes an inducer output *reviewable like a schema migration* rather than deployable only
-   as code — and NARchy's rules are code, so this is the axis on which SeNARS is meant to be
-   better, not merely different.
-3. **The split buys the improvement NARchy cannot have, not just the discipline.** NARchy assumes
-   a fixed rule set forever; NAL1–8 is small and hand-written and cannot learn a new inference form
-   from experience. Here the rule set is the primary learnable artifact — grown, gated, versioned.
-   That is the thesis. Everything else in this document is the cost of being able to state it.
+1. **The online reasoner completes even if the inducer never answers.** One line, no profiler,
+   no cost model, no review: wire a backend that never resolves, run a cycle, assert it
+   finishes. **This is the single most valuable test in the plan** and it is the test that
+   would have caught §1.8 on day one.
+2. **The seam is the only channel.** The reasoner reads committed artifacts and nothing else.
+   This is what makes an inducer's output reviewable like a schema migration rather than
+   deployable only as code — and it is the axis on which SeNARS is meant to be better than
+   NARchy, whose rule set *is* code.
+3. **The split buys the improvement NARchy cannot have, not just the discipline.** NARchy
+   assumes a fixed rule set forever; NAL is small and hand-written and cannot acquire a new
+   inference form. Here the rule set is the primary learnable artifact — grown, gated,
+   versioned. That is the thesis (§0), and everything else in this document is the cost of
+   being able to state it.
 
-What the seam does **not** do: it does not let the reasoner read the inducer's intermediate state,
-and it does not let a proposal land mid-cycle. A proposal applies at a declared boundary — the
-next consolidation, or the next episode — or not at all. §4.1 is where that boundary is decided
-rather than discovered.
+What the seam does **not** do: it does not let the reasoner read the inducer's intermediate
+state, and it does not let a proposal land mid-cycle. A proposal applies at a declared
+boundary or not at all. §4.1 is where that boundary is decided rather than discovered.
 
-### 3.5 The LM is a plugin, not a feature
+**The seam runs through the kernel gates, not around them.** This is a README-level invariant
+that the split must not erode: `PerceptionGate` admits, `BudgetGate` accounts, `RewardGate`
+holds the epistemic firewall, `ActionGate` authorises, and *"four gates mediate every state
+mutation; every subsystem operates through them; none can bypass them."* `StreamReasoner` already
+asks `BudgetGate` for an `lm-call` budget (`reasoner.ts:80`). A2's requirement is therefore
+strictly stronger than "a provider proposes": **a proposal is a request to a gate, and the gate
+is the only thing that may write state.** In particular a proposal may propose a rule, an
+abstraction, or an attention weight; it may never propose a truth value to be written without
+`PerceptionGate`'s source-quality ceiling, and it may never reach `Truth.frequency` or
+`Truth.confidence` through a reward path. The existing `provisionalConfidence` 0.3 is the
+correct instinct and it must survive the payload change.
 
-The requirement is that SeNARS runs, usefully, with no language model at all, and that the model
-sits *beyond* the core. Three properties, and the first is the one that is usually got wrong.
+### 3.5 The induction layer is a component, not a dependency
+
+Optionality has to mean something operational, and the first property is the one usually got
+wrong.
 
 **1. Absent, not disabled.** `lm.enabled: false` and `enableLMRules: false` are not optionality.
-Today `initializeLMRules` is called unconditionally at construction (`nar.ts:18`) and every rule is
-registered through `facade/index.ts:98`, so the 24 test files and the `FAST_COGNITIVE_CONFIG` preset
-that set those flags all run a fully constructed, fully registered LM with only *execution* gated.
-A component that is present, wired and registered is not optional, however false its switch is. The
-test that tells the difference is trivial to write and does not exist:
+`nar.ts:837` defines a private `initializeLMRules` that is called unconditionally at `:762` and
+`:823`, and every rule is registered through `facade/index.ts:98`, so the 25 files across
+`tests/` and `src/` that set those flags run a fully constructed, fully registered layer with
+only *execution* gated. A component that is present, wired and registered is not optional,
+however false its switch is. The test that tells the difference is trivial and does not exist:
 
 ```ts
-const nar = buildNAR(/* zero plugins registered */);
+const nar = buildNAR(/* zero proposal producers registered */);
 await nar.run(100);
-expect(derivations).toBeGreaterThan(0);   // the core reasons with no LM at all
+expect(derivations).toBeGreaterThan(0);   // the core reasons with no inducer at all
 ```
 
-**2. The core has no compile-time dependency on the LM.** This one is currently violated 36 times
-over — 36 files outside `nar/src/lm/` import from it. The deepest is not a convenience import:
+**2. The core has no compile-time dependency on the induction layer.** Violated **39** times
+(§0 correction table). The deepest is not a convenience import:
 
 ```
 nar/src/strategies/types.ts:1    import type { LMRule } from '../lm/rule/LMRule.js';
-nar/src/strategies/types.ts:74   select(rules: LMRule[], context: LMRuleSelectionContext): LMRule[];
+nar/src/strategies/types.ts:71   interface LMRuleSelector { … select(rules: LMRule[], …): LMRule[] }
 ```
 
-The core's *strategy extension contract* is typed in terms of the LM's rule type. A strategy can
-therefore not be written without naming the LM, and `LMRuleSelector` is one of the five strategy
-types. That is the boundary being absent, not merely porous. §4/W1b is the work of inverting it:
-the core declares a `Proposal`/`ProposalSource` contract of its own, and the LM becomes a producer
-that implements it.
+The core's *strategy extension contract* is typed in terms of the induction layer's rule type,
+and `LMRuleSelector` is one of the five strategy types (`:22`). A strategy therefore cannot be
+written without naming the layer, which is the boundary being absent rather than porous. A2
+inverts it: the core declares a `Proposal` / `ProposalSource` contract of its own and the layer
+becomes a producer that implements it.
 
-**3. Adding a model is purely additive.** It may submit proposals; it may not change the core's
-control flow, and the core may not read its intermediate state. That is §3.4's seam restated as a
-layering rule, and it is what makes the no-LM core and the with-LM core *the same program* with a
-different set of producers.
+**3. Adding a producer is purely additive.** It may submit proposals; it may not change the
+core's control flow, and the core may not read its intermediate state.
 
 ```
         ┌───────────── nar (core) ─────────────┐
         │  terms · truth · stamps · memory     │  ◄── nothing here imports the
         │  cycle · reactions · attention        │      induction layer. Ever.
-        │                                     │
-        │  Proposal / ProposalSource           │  ◄── the seam, declared by
-        └───────────────┬─────────────────────┘      the core, in core vocabulary
+        │  Proposal / ProposalSource             │  ◄── the seam, declared by the
+        └───────────────┬──────────────────────┘      core, in core vocabulary
                         │ implements (optional)
         ┌───────────────▼──────────────────┐
         │  induction provider               │   may be: none · recorded fixture ·
-        │  (LM, rule-miner, hand-written)   │   live model · a plain table
+        │  (model, rule-miner, hand-written)│   live model · a plain table
         └──────────────┬────────────────────┘
                        │ assembled only in the composition root (src/),
                        │ and it sees the core's public API only
 ```
 
-This is §3.4's seam drawn as a dependency direction, and the two views constrain each other. A
-seam that is only a diagram is a function call; a boundary that is only an import rule is a
-convention. Both are needed, and only together do they make the core independent of its
-producers.
+A seam that is only a diagram is a function call; a boundary that is only an import rule is a
+convention. §1.9 is the encouraging part: in this repository both already exist as code, and
+the job is to make the committed one the only one.
 
 ### 3.6 Why this requirement is the right one
 
-It is worth being explicit that optionality is not a concession, because it is easy to read it as
-one — the core is "just" NARchy, and the interesting part is bolted on. It is the reverse:
+It is easy to read optionality as a concession — the core is "just" a reasoner and the
+interesting part is bolted on. It is the reverse.
 
-- **The core becomes falsifiable.** A NARchy-like core can be held to NAR's own standards —
-  NAL1–8, determinism, a cost model — and the induction layer earns its place by beating them. If
-  the core is inseparable from the model, neither claim can be tested.
-- **Optionality is a deployment requirement, not a nicety.** Not every system that wants SeNARS
-  can run a model: latency budgets, air-gapped deployments, regulated environments, and the
-  deterministic test tier. A core that requires one is unusable in all four.
-- **It forces the interface that is the actual innovation.** NARchy's rule set is code, fixed at
-  build time, with no extension point at runtime. If the rule set is instead a *versioned artifact
-  the core loads*, and producers of that artifact are pluggable, then the improvement over NARchy
-  is precisely: **NARS assumes a fixed rule set forever; this treats the rule set as the primary
-  learnable artifact.** The model is one producer of it. That capability belongs to the *core*, not
-  to the model, and it survives the model's absence.
-- **It makes the hermetic tier free.** §4.1's hardest question — how does a background model survive
-  `test:hermetic` — answers itself: the hermetic run is the no-LM run plus a recorded fixture
-  replayed through the same seam. No gate weakening, no skipped tests, no special-casing.
-
-The requirement and §3.4 are the same requirement seen from two sides. Optionality is what forces
-the seam to be an interface rather than a function call, and the seam is what makes optionality
-achievable.
+- **The core becomes falsifiable.** A NAR-shaped core can be held to NAR's own standards —
+  NAL parity, determinism, a replay — and the induction layer earns its place by beating them.
+  If the two are inseparable, neither claim can be tested.
+- **Optionality is a deployment requirement.** Latency budgets, air-gapped deployments,
+  regulated environments, and the deterministic test tier all need a core that runs with no
+  model. A core that requires one is unusable in all four.
+- **It forces the interface that is the actual innovation.** If the rule set is a *versioned
+  artifact the core loads* and producers of that artifact are pluggable, the improvement over
+  NAR is precise: **NARS assumes a fixed rule set forever; this treats the rule set as the
+  primary learnable artifact.** That capability belongs to the *core*, and it survives the
+  layer's absence.
+- **It makes the hermetic tier free.** The question "how does a background model survive
+  `test:hermetic`" answers itself: the hermetic run is the no-provider run plus a recorded
+  proposal stream replayed through the same seam. No gate is weakened and no test is skipped —
+  which removes the failure mode that produced §1.8, gates quietly deferred until bypassed.
 
 ---
 
 ## 4. The work
 
-Ten workstreams and one sub-phase. **W0 first and separately** — it is the harness that decides
-whether the rest worked, and landing it before anything else is what keeps this plan falsifiable.
-**W1 second, alone** — it is the split the design always intended, and it is what makes the rest
-of the cost model enforceable. **W1b immediately after**, because the seam and the layer boundary
-are one change and only the first half of it is testable on its own. §1.10 explains why W1 also
-invalidates the workstream order below, which is why §6 puts a profile re-derivation between W1b
-and W2.
+Ten items. **A0 first and separately** — it is the harness that decides whether the rest
+worked. **A1 second, alone** — §1.9 makes it a wiring change, and a one-line test makes it the
+cheapest behaviour change available. **A2 immediately after**, because the seam and the
+dependency direction are one change and only the first half is testable on its own.
 
-### 4.0 Which finding justifies which workstream
+### 4.0 Which finding justifies which item
 
-A workstream picked up cold should be able to see what it is for. This is the trace; if a row
-here is empty, that workstream is either unstarted or unjustified, and both are worth noticing.
+A workstream picked up cold should be able to see what it is for. This is the trace; an empty
+row means the item is either unstarted or unjustified, and both are worth noticing.
 
-| workstream | findings it closes | deletes (§8) | gate it enables |
-|---|---|---|---|
-| W0 | — (makes the rest measurable) | — | `bench:cycle` |
-| W1 | §1.8, and the cause of §1.1's cost | `processLMRulesImpl` from the cycle path, `stepScalars`, the shadowed `resetMetaBudget` | hanging-LM test; the `processLMRules` column → 0 |
-| W1b | §3.5's properties 1 and 2 | `enableLMRules`, `lm` from the core config schema | `core:no-lm`; the `deps:gate` row |
-| W2 | **§1.1** (the decay/sampling coupling), **§1.5** (`getGoals` stamps) | `Stamp.createInput()` from getters | `decayAll` call-site count == 1 |
-| W3 | **§1.3** (the scorer), **§1.6** (nineteen writers) | the scorer's two constant factors; `Memory.sample`/`sampleWindow` | `cost:cycle`'s selection rows |
-| W4 | enables W3/W5 to be tested in milliseconds | — | — |
-| W5 | **§1.2**'s rule-dispatch half | the `*:*` bucket, its per-miss sort, `hitStats` | rule applications per cycle bounded |
-| W6 | §1.8's remaining half, §1.2's per-cycle-caller half | the per-cycle `getGoals`/`getStatistics` calls | step cost model |
-| W7 | **§1.4** (eviction), §1.7's aggregate | the `totalTasks === 0` candidate filter | memory-pressure monotonicity |
-| W8 | **§1.7** in full | by-score `BoundedMap` eviction, `selectTopN`'s O(n·k) | per-structure tests |
-| W9 | (unbounded) §1.7's `BoundedMap` scan | the textual `LruCache` check | `cost:cycle`; the cost ledger |
-| W10 | the meta-problem of §10.1 | every gate that cannot fail | all of the above |
+| item | v1.3 | findings it closes | deletes (§8) | gate it enables |
+|---|---|---|---|---|
+| A0 | W0 (reduced) | — makes the rest observable | — | — |
+| A1 | W1 | **§1.9**, §1.8's frozen scalars, and the cause of §1.1's cost | `processLMRulesImpl` from the cycle path; `stepScalars`; the shadowed `resetMetaBudget` | `core:no-provider`; the `processLMRules` column → 0 |
+| A2 | W1b | §3.5's properties 1–3 | `enableLMRules`; `lm` from the core config schema | `core:no-lm`; the `deps:gate` row |
+| A3 | W1's tail | the seam's undecided semantics | — | the proposal replay fixture |
+| A4 | W2 + W3's interface | **§1.1**, **§1.3**, **§1.5**, **§1.6** | `Stamp.createInput()` from getters; the writable `priority` field | `decayAll` call sites == 1; the write-surface test |
+| A5 | W4 | enables A4 and A6 to be tested without a NAR | — | — |
+| A6 | W6's port | §1.8's inert tie-break, made a decision | the `*:*` bucket's semantics, once recorded | rule applications per cycle bounded |
+| A7 | W7's semantics | §1.2's per-cycle-caller half | the per-cycle `getGoals` / `getStatistics` calls | budget enforcement tests |
+| A8 | W8's contracts | **§1.4** | the `totalTasks === 0` candidate filter | memory-pressure monotonicity |
+| A9 | new | makes A3's decisions testable | — | `core:no-lm` hermetic replay |
 
-**§1.4, §1.5, §1.6 and §1.7 are each closed by exactly one workstream.** If one of those is
-deferred, its finding is not covered anywhere else, and that is worth knowing before deferring it.
+**§1.1, §1.4, §1.5, §1.6 and §1.7 are each closed by exactly one item or by TODO30.** If one
+is deferred, nothing else covers it.
 
-### W0 — Make the cycle measurable, before changing it
+### A0 — Reduce the instrumentation baseline
 
-The repo already has `phaseTimer` (`nar-execution.ts:191`) and a `c3-hotpath-perf.test.ts` that
-prints ns/op. Neither answers "what does a cycle cost as memory grows".
+Keep only what is needed to verify architectural changes:
 
-- Extend the per-cycle cost report: cycles, concepts admitted, attention commits, premises
-  sampled, rule dispatches, rule applications, derivations, admissions rejected — and wall time
-  per phase, already partly there.
-- Add `bench:cycle` (`scripts/cycle-bench.ts`): a fixed 300-step workload at four memory sizes
-  (10², 10³, 10⁴, 10⁵ concepts), reporting the §3.1 table and the wall time. A script, not a
-  test — a test that asserts latency is what produced the two flaky load-sensitive files.
-- Ratchet what is already knowable and unmeasured: a `cost` section in the budget ledger
-  declaring which operations may not be O(population) on a cycle path.
+- cycle and phase counters;
+- proposal producer count, and proposal application count;
+- derivation count;
+- deterministic replay identifiers;
+- **LM-in-cycle detection** — a counter incremented by any induction call reached from the
+  synchronous path, which is the mechanism that makes §3.4's first property mechanical.
 
-**Acceptance:** `pnpm bench:cycle` reproduces §11.1 and §11.2 to within 10%, and the report is
-what every later acceptance is measured against. These are the **fused** baseline — §1.10 says
-they do not survive W1, and re-deriving them is §6's step between W1b and W2.
+`scripts/cycle-bench.ts` stays, with its `--selftest`, because TODO30 consumes the same
+instrument rather than building a second harness. **What moves to TODO30 §3:** the
+population-scaling matrix, the `cost:cycle` gate, and the `bench:cycle` entry in
+`scripts/lib/gates.ts`.
 
-**Already done, on 2026-09-30:** the first half. `scripts/cycle-bench.ts` is committed and
-reproduces both tables, and its `--selftest` proves each hook observes its own invocation. What
-remains is the `bench:cycle` entry in `scripts/lib/gates.ts` and the `cost:cycle` gate itself,
-which is W9's last bullet.
+**Acceptance**
 
-**Risk:** none. Pure instrumentation.
+- the instrument has a self-test that refuses to print a number it cannot show it measured;
+- a test can prove whether a provider ran *during* the synchronous cycle (not merely whether it
+  was configured);
+- `test:determinism` and `test:hermetic` stay green, and a rerun of the same command produces
+  the same counts.
 
-### W1 — Close the cycle: the Stream Reasoner split
+**Risk: none.** Pure instrumentation.
 
-*The design was already this. This workstream makes the tree match it, and puts a test where the
-intent used to be a comment.*
+### A1 — Close the cycle: make the committed seam the only seam
 
-Nothing in §1.8 and none of the `cpuThrottleMs` / `maxRulesPerCycle` / `callTimeoutMs` /
-`Promise.all` machinery in the LM path is a design decision — it is the cost of an LM living
-inside a cycle that is supposed to close in microseconds. `inferenceController.step(5000, …)` is a
-five-second deadline on a step whose unbudgeted cost should be tens of microseconds. That is the
-tell, and it is measurable today.
+*§1.9: the bounded, gated, asynchronous channel exists and is unused. This item wires it in and
+deletes the other route.*
 
-- `applySyncRules` stops calling `processLMRules` (`DefaultDerivation.ts:26`). The cycle does not
-  call the LM.
-- `processLMRulesImpl` becomes a **proposal producer**, reached from the cycle boundary at most
-  once per consolidation, writing to a bounded queue. `await Promise.all` over up to five model
-  calls per rule application goes away entirely.
-- The proposal artifact is defined before any machinery is built (§4.1). It is data, versioned,
-  and validated at the seam.
-- §1.8's `stepScalars` memo and the shadowed `resetMetaBudget` at
-  `nar-execution.ts:76`/`:116`/`:179`/`:368` are **deleted**, not fixed — with the LM out of the
-  cycle there is no reason for the memo to exist.
-- `cpuThrottleMs` and `callTimeoutMs` lose their reason to exist. Decide whether they go or
-  become properties of the *offline* pass; do not leave them bounding a cycle that no longer
-  contains the thing they were written for.
+Nothing in `cpuThrottleMs` / `maxRulesPerCycle` / `callTimeoutMs` / `Promise.all` in the
+induction path is a design decision — it is the cost of a model living inside a cycle that is
+supposed to close in microseconds. `inferenceController.step(5000, …)`
+(`nar-execution.ts:234`) is a five-second deadline on such a step, and that is the tell.
 
-**Acceptance, in order of how cheap they are to check:**
+1. `strategies/derivation/DefaultDerivation.ts:26,30` stops calling `processor.processLMRules`.
+   The synchronous path is `applySyncRules` (`rules/impls/processor.ts:246`) and nothing else.
+2. The production path constructs a `StreamReasoner` (or its A2 generalisation) at the cycle
+   boundary and reaches a provider only through `flush` / `reasonHook`.
+3. `stepScalars` and the shadowed `resetMetaBudget` are **deleted, not fixed** — with the layer
+   out of the cycle the memo has no reason to exist, and the shadowed name at
+   `nar-execution.ts:76`/`:116`/`:179`/`:368` becomes deletable rather than resolvable.
+4. `cpuThrottleMs` and `callTimeoutMs` lose their reason to exist. Either they go, or they
+   become properties of the *offline* pass. Do not leave them bounding a cycle that no longer
+   contains the thing they were written for.
+5. Overflow policy moves from drop-oldest to the decided policy (A3), in `StreamReasoner`, with
+   a test that fills the queue and asserts what survives.
 
-1. **A test that injects an LM which never resolves, calls `run()`, and asserts the cycle
-   finishes.** One line, no profiler, and it is the test that would have caught §1.8 on day one.
-   It goes in **failing-first**, like §4/W10's.
-2. `run()` performs zero LM invocations, asserted with a call counter on the LM port.
-3. `run()`'s wall time is independent of whether an LM is configured or what it returns.
-4. A proposal that arrives is applied at a declared boundary, or not at all — never mid-cycle.
-5. A NAR built with **zero** proposal producers registered still reasons. This is §3.5's
-   first property, and it is the cheapest test in the plan after the hanging-LM one.
+**Acceptance, in order of cheapness**
 
-**Risk: medium, and the only workstream that changes reasoning behaviour** — not because the
-derivations change, but because the *timing* of when rules exist changes, so the derivation
-*sequence* over a fixed episode changes. This is a different kind of change from W2: W2 moves
-learned values, W1 moves ordering. W1 does not touch truth revision, so the NAL parity tests are
-the gate and should hold.
+1. **A test that injects a provider that never resolves, calls `run()`, and asserts the cycle
+   finishes.** One line. Written failing-first (§10.1).
+2. The in-cycle provider counter from A0 reads 0 across a fixed episode.
+3. A cycle's outcome is identical with and without a producer registered, and identical when
+   the producer returns nothing.
+4. A proposal that arrives is applied at a declared boundary or not at all — never mid-cycle.
+5. A NAR with **zero** proposal producers registered still reasons (§3.5 property 1).
+6. NAL parity, `test:determinism` and `test:hermetic` green.
 
-**Do not** fold W1 in with W2. Two behaviour changes in one commit is how the first one of them
-becomes unreviewable, and W1's whole value is that it is independently verifiable by a one-line
-test.
+**Risk: medium, and the only item that changes reasoning behaviour** — not the derivations, but
+the *timing* of when rules exist, which changes the derivation *sequence* over a fixed episode.
+v1.3's W1 was called "the only workstream that changes reasoning behaviour"; A1 inherits that
+exactly. **Do not fold A1 into A4.** Two behaviour changes in one commit make the first one
+unreviewable, and A1's whole value is that one line of test verifies it independently.
 
-### W1b — Move the LM beyond the core
+### A2 — Move the induction layer beyond the core
 
-*Deliberately not a separate letter: the seam and the boundary are one change. You cannot have a
-core-owned seam interface while the core still imports the LM's rule type.*
+*Deliberately not a separate letter from A1's third step: the seam and the layer boundary are
+one change, and you cannot have a core-owned seam interface while the core still imports the
+layer's rule type.*
 
-W1 gives the seam an owner. W1b makes the owner the core rather than the LM.
-
-- The core declares `Proposal` and `ProposalSource` in its own vocabulary. A proposal is data:
-  a proposed reaction, a proposed abstraction, a proposed weight — never a closure over NAR
-  internals, because a closure would re-create the coupling the type boundary just removed.
-- `nar/src/strategies/types.ts` stops importing `LMRule`. The five strategy types are re-expressed
-  so that a proposal producer is one of them, or is not a strategy type at all (the latter is
-  cleaner — selection is a proposal-time concern, not a reasoning-cycle concern, and §1 shows what
-  happens when it is the latter).
+- The core declares the proposal contract in core vocabulary. A proposal is **data**: a
+  proposed reaction, a proposed abstraction, a proposed attention weight. Never a closure over
+  NAR internals — a closure would re-create the coupling the type boundary just removed.
+- `nar/src/stream/reasoner.ts` is generalised in place rather than duplicated: `LMRequest` /
+  `ProvisionalBelief` are already a request/response pair with a provisional-truth discipline,
+  which is the shape a `Proposal` needs. The seam gets a schema version and a base revision; it
+  does not get a second class.
+- `nar/src/strategies/types.ts` stops importing `LMRule`. The five strategy types are
+  re-expressed so a proposal producer is not typed in the layer's vocabulary — the cleaner
+  answer is that selection is a *proposal-time* concern and `LMRuleSelector` is not a
+  reasoning-cycle strategy type at all (§1 shows what happens when it is).
 - `nar.ts`'s unconditional `initializeLMRules` / `LMRules` / `NARLM` / `wireSystemOne`
-  (`:18, :34, :48, :55, :268`) become assembly in the composition root (`src/`), which already
-  exists for exactly this purpose.
-- The 36 imports from `nar/src/lm/` are either inverted (the LM imports the core — already true in
-  the other direction in places) or removed because the thing they reached for moved down.
-- `lm` leaves the core config schema, on the precedent of `bagSize` and `interactionGuide` in the
-  last pass — both of which left the schema for the same reason: an optional component must not
-  shape a required one. It becomes plugin configuration, validated where the plugin is assembled.
+  (`:18, :34, :48, :55, :268` and the private at `:837`) become assembly in the composition root
+  (`src/`), which already exists for that purpose.
+- The 39 imports are inverted or removed because the thing they reached for moved down.
+- `lm` leaves the core config schema, on the precedent of `bagSize` and `interactionGuide` in
+  the previous pass — an optional component must not shape a required one. It becomes plugin
+  configuration, validated where the plugin is assembled.
+- **`enableLMRules` disappears from the public surface.** It is documented in `README.md`'s
+  `NARConfig` block, so this item also updates the README and regenerates `docs/api/nar.md`;
+  `docs:drift` is a gate and a stale doc is a red gate, not a footnote.
 
-**Acceptance:**
+**Acceptance**
 
-1. `dpdm` / `deps:direction` extended with a rule that **`nar` core may not import `nar/src/lm/`**.
-   This is expressible as data in the existing dependency gate, so it is a one-line addition to a
-   ledger rather than a new mechanism.
-2. A test asserting the no-LM NAR of §3.5 reasons, green with the LM package deleted.
-3. NAL1–8 green with no LM registered.
-4. `enableLMRules: false` is gone — replaced by "absent", because a flag that is set on a component
-   that is always constructed is a comment (§10.1).
+1. `deps:gate` gains a row: `nar` core may not import `nar/src/lm/`. One line in a ledger, and
+   it is the only enforcement a well-meaning import cannot cross.
+2. A no-provider NAR reasons, green with the layer's directory removed from the build graph.
+3. NAL parity green with no producer registered.
+4. `enableLMRules` is gone — replaced by absence, because a flag on an always-constructed
+   component is a comment (§10.1).
+5. No provider implementation can reach private core state, and no layer-typed value appears in
+   a core extension contract.
+6. `README.md`, `docs/api/nar.md` and the export index no longer advertise `enableLMRules` or a
+   `lm` config block; `pnpm docs:drift` is green.
 
-**Risk: medium-high, and it is a large mechanical diff** — 36 files. That is the price of a
-boundary that cannot be crossed by accident. The mitigation is that it is *mechanical*: a
-dependency inversion with no semantic content, reviewable by compiler rather than by reading.
+**Risk: medium-high — a large mechanical diff (39 files).** That is the price of a boundary
+that cannot be crossed by accident, and the mitigation is that it is mechanical: a dependency
+inversion with no semantic content, reviewable by the compiler rather than by reading.
 
-**Open, and worth deciding before starting (§12 Q8):** whether the LM becomes a seventh workspace
-package. That is the only enforcement that cannot be bypassed by a well-meaning import, but it
-requires everything the LM reads to be public API, and the LM reads concepts, memory statistics
-and derivation chains — i.e. it would force those to be public, which is probably *good* pressure
-and definitely a lot of surface. The sequencing that falls out either way is the same: the seam
-first (W1), the boundary second (W1b), the package question last, because the interface is not
-known until the seam is.
+**Open, and worth deciding before starting (§12 Q8):** whether the induction layer becomes a
+seventh workspace package. It is the only enforcement a well-meaning import cannot bypass, and
+it requires everything the layer reads — concepts, memory statistics, derivation chains — to be
+public API. The sequencing is the same either way: the seam first, the boundary second, the
+package question last, because the interface is not known until the seam is.
 
-### W2 — Stop read paths from mutating the heap
+### A3 — Specify the proposal lifecycle
 
-*The one deliberate behaviour change in this plan.* Everything else is a data structure.
+*This is the one area this pass expands rather than contracts, because it is the boundary the
+whole plan exists to make real, and prose is not a protocol.*
 
-- `decayAll` leaves `sample()` and `sampleWindow()`. Both become pure reads.
-- Decay becomes a clock: one call per cycle from the cycle boundary, and
-  `activationDecayRate` means what it says (§11.3's table becomes a single row).
-- `getGoals()` stops minting stamps. Stamps are minted at write and stored; the getter reads.
-  `getGoals()` reads a maintained goal queue instead of scanning every concept's bag.
-- `Stamp.overlaps` and the `noStampOverlap` filter become well-defined, which they are not today.
+Decide, before the queue grows any further:
 
-**Acceptance:** `decayAll` is called exactly once per cycle, from exactly one place, and
-`maxSampledConcepts` no longer appears in any decay measurement. The RL/parity baselines are
-re-established **here, once**, and committed — the rest of the plan must then hold them stable.
-**Risk: high, and confined to this workstream.** Every learned value moves. This is why it is
-first and alone: it is the only change that needs the baselines regenerated, and doing it before
-W3 means W3–W9 are measured against a settled reference.
-**Do not** fold W2 in with anything else. A behaviour change disguised as a refactor is
-unreviewable.
+- unit of work (one derivation, one consolidation window, one episode);
+- trigger semantics — a trigger, not a rate, expressed as **cycles per proposal**;
+- the maximum number of pending proposals and the **overflow policy**;
+- the stale-proposal policy;
+- behaviour when referenced concepts no longer exist;
+- schema and version compatibility;
+- cancellation semantics;
+- replay semantics.
 
-### W3 — Attention becomes an index, not a field
+Two of these are already partly answered by the committed implementation, which is the best
+possible starting position and should be read before the rest is argued about:
 
-- Introduce `AttentionIndex`. `Concept.priority` stops being writable by nineteen places and
-  becomes owned by the index, with typed touches: `PrimeInput`, `PrimeRelated`, `Decay`,
-  `Reinforce`, `Replay`, `Deserialize`, `SelfTune`. §1.6's nineteen sites become seven named
-  operations, each with one caller.
-- `topK` comes from the index, in `O(k)`. `Memory.sample` and `sampleWindow` go.
-- **Decide the scorer's fate.** Either wire novelty and relevance to real signals — relatedness
-  from the link index, recency from `lastAccessedAt` — and keep four factors, or delete two and
-  sort by attention order. §1.3 shows the current answer is neither: it is four factors of which
-  two are constants. This is a design decision, not an optimisation, and it should be recorded
-  with its reason.
-- `SpreadingActivation` and `Concept.updateLinks` either get a populated link graph or are
-  deleted. §1.6 showed `linkedConcepts` is never written outside `mergeWith`, so today they are
-  no-ops wearing a cost.
-
-**Acceptance:** zero O(population) work on the cycle path except the attention commit, which is
-O(k) on a timer; `bench:cycle` shows cycles/sec flat from 10³ to 10⁵ concepts. The nineteen
-writers are seven named operations.
-**Risk: medium.** Retrieval order changes, so RL results move — but W2 already re-established
-them, so the delta here is attributable and must be small. If it is not small, the scorer decision
-in this workstream is wrong and that is the finding.
-
-### W4 — `Memory` becomes a port
-
-Split the 646 lines along the responsibilities already listed in §1.2: storage → `ConceptStore`,
-per-concept beliefs → `BeliefTable`, links → `LinkStore`, statistics → `Statistics`. Two
-implementations to start (`MapConceptStore`, `TieredConceptStore` — hot/working/cold) plus a test
-double; the other six NARchy has are not the point.
-
-**Acceptance:** the cycle depends on the port, not on `Memory`; the cycle-path tests construct
-their store directly and run in milliseconds.
-**Risk: low.** Mechanical, and the boundary is already implied by `MemoryView` (`memory/view.ts`).
-
-### W5 — The premise source stops being a scan
-
-- `PREMISE_SOURCES.bag` resolves premises through the index — the task's own symbols first
-  (`memory-index.ts` already has `queryBySymbol`), then the link layers — and never enumerates.
-- `PREMISE_SOURCES.concepts` returns *all* concepts and is unreachable behind
-  `minScore: 0.6` today; either it becomes bounded or it goes. `NoveltySampling` and
-  `DiverseSampling` sort the entire population to then discard most of it; both go.
-- `getRelatedConcepts` and `findSimilarConcepts` get indexes. `GoalBiasedSampling`'s
-  `concepts × goals × containsSubterm` becomes an indexed join.
-
-**Acceptance:** every premise source is O(1 + k); no source enumerates the population;
-`graph` and `links` — the two that exist to be the default — are reachable without opting out of
-the `bag` source's scan.
-**Risk: medium.** Premise sets change, so derivations change. Bounded by W2's baselines.
-
-### W6 — Inference dispatch becomes a table
-
-- `RuleIndex.candidatesFor` loses the `*:*` catch-all and the per-miss full sort. Reactions are
-  keyed by `(antecedentKind, consequentKind)` and their bodies precompiled, in the shape of
-  `deriver/reaction/compile/`.
-- `recordRuleHit` gets called, so the tie-break in §1.8 is either real or deleted. Right now it
-  is neither.
-- The branch factor gets an explicit global cap. 100 primaries × 5 secondaries = 500 rule
-  applications per cycle, and `maxDerivationsPerStep` bounds the *output*, not the *work*.
-
-**Acceptance:** rule dispatch is O(1) + O(matches); no sort on the rule path; rule applications
-per cycle are bounded by a named budget; the rule-ordering tie-break is either exercised by a
-test or gone.
-**Risk: medium-high.** This touches inference semantics. NAL1–8 parity is the gate and must not
-move.
-
-### W7 — The control loop gets a budget
-
-`nar-execution.ts:184-379` runs twenty-one steps per cycle, including two O(N) `getGoals()` calls
-(`:417` in `emitCognitiveStateSummary`, `:455` in `injectMetaGoals`), an O(N)-plus-two-sorts
-`getStatistics()` (`:424`), `DriveManager.updateCycle()` injecting Narsese goals every cycle, and
-`SelfOptimizer` every tenth. §1.8's frozen `stepScalars` lives here too, because the call at `:368`
-that was supposed to invalidate it does not.
-
-- Every step declares a cost and a budget; anything that cannot be met from the budget is opt-in.
-- `RuleProcessor.resetMetaBudget` is actually called — and the shadowed name at
-  `nar-execution.ts:76`/`:116`/`:179`/`:368` is resolved, so the port and the implementation are
-  not two methods that answer to one name.
-- The cycle's own budget covers cycle context, so `stepScalars` is a per-step value again and the
-  doc comment is true.
-
-**Acceptance:** the cycle has a declared cost model; `stepScalars` is invalidated per step and a
-test asserts it changes when memory changes; no two same-named methods on the port and its
-implementation.
-**Risk: low-medium.** Behaviour is "steps stop running by default", which is a visible change to
-whatever was depending on the free behaviour.
-
-### W8 — Bounded is bounded
-
-- Retention becomes policy (recency × frequency) rather than a capacity constant, so a
-  high-traffic concept and an abandoned one are not treated the same way.
-- A global task-count bound, and `capacityPressure()` accounts for the dominant consumer rather
-  than only `concepts.size`.
-- `evictUnderPressure`'s candidate filter stops being anti-correlated with pressure: concepts
-  must be able to age out while holding tasks, ranked by age × value, and eviction must be able to
-  report that it could not free anything rather than returning a silent zero.
-- The accumulator ledger grows from 2 sites to the 42 bounded containers in production, and the
-  textual `LruCache`/`maxSize` check is replaced by a detection rule that can fail (§4/W10).
-
-**Acceptance:** memory pressure is monotonically related to every bounded resource; a memory at
-99% with no evictable concept reports that, rather than reporting success.
-
-### W9 — Retrieval structures stop degrading to scans
-
-Each of these was measured in §1.7 and is a one-line structural fix:
-
-| today | cost | becomes |
+| question | what the code does today | what must be decided |
 |---|---|---|
-| `BoundedMap` by-score eviction (`bounded-map.ts:204`) | O(capacity) per insert into a full layer | a min-heap keyed by score, lazy deletion |
-| `EmbeddingLayer.neighborsOf` (`EmbeddingLayer.ts:70`) | O(n) per `indexConcept` ⇒ O(n²) admission | k-d tree or maintained top-k over the index |
-| `TermCollection.deleteItem` (`term-collection.ts:57`) | O(n) index shift | swap-with-last, plus a tombstone map for the rare indexed case |
-| `selectTopN` (`collections.ts:126`) | O(n·k) insertion | bounded min-heap |
-| `LruCache` for the term interner (`factory.ts:11`) | delete+set on every read | an interner wants a set, not a recency cache; `touchOnRead: false` is the honest setting |
-| `TermMap` key building | `termKey` walked per `set` | key computed once per `set`, not once in `getIndex` and again in `setRef` |
+| overflow | drop-oldest, twice (`pushCapped`, `trimCapped`) | drop-oldest discards the context the inducer needed; pick drop-newest, or drop-lowest-priority with a carried confidence, and say which |
+| backpressure | defer above `highPressure`; refuse when `BudgetGate` denies `lm-call`, re-queueing the batch at the head and trimming the tail | what happens to a *denied* batch — retry, drop, or convert to a recorded rejection event; and does a denial emit a `TerminationReason`? |
+| provisionality | `provisionalConfidence` 0.3, revised by `Truth.revision` on settle | whether a proposal is a *truth claim* at all (it should be a claim about a rule, not about the world) |
+| staleness | none — `ProvisionalBelief` carries no revision | the rule in the box below |
 
-**Acceptance:** every structure named in the table has a test that fails on the current
-implementation, then passes.
+**The recommended initial rule, and the one to write into the schema:**
 
-### W10 — The gate learns to see cost
+```
+Provider observes revision R
+        ↓
+Provider emits proposal P with schemaVersion v, baseRevision R
+        ↓
+Core reaches a declared synchronization boundary
+        ↓
+Core checks P.schemaVersion      → incompatible ⇒ reject loudly
+Core checks P.baseRevision       → stale        ⇒ reject as stale
+Core checks referenced objects   → evicted      ⇒ reject, do not salvage
+        ↓
+apply(P) through the gates  |  reject(P) as a recorded event
+```
 
-The budget currently audits 2 of 42 bounded containers and decides boundedness by grepping the
-source for `LruCache` and `maxSize` — a string check, so renaming the class passes. `dpdm` is
-pinned through `createRequire` with a long comment explaining that an unpinned analyzer makes a
-baseline unreproducible, and `productionLOC` shells out to `pnpm dlx cloc` in the same table.
+Do not allow "apply whenever it arrives"; that reopens the cycle.
 
-- Pin the LOC counter the way dpdm is pinned, or replace it with an in-process counter that is
-  defined by the ledger rather than by a tool's version.
-- Replace the textual accumulator check with a real rule. The previous attempt was rejected for
-  noise (574 candidates, 302 unpruned) and that rejection was right; the fix is to declare the
-  cost-sensitive sites as data, the way the accumulator ledger is, and gate the *declaration* —
-  a site on a cycle path must appear in the ledger.
-- Add the §3.1 cost model as a ratchet, so the property this plan is about cannot silently lapse.
+**Acceptance**
 
-**Acceptance:** a deliberately unbounded accumulator on a cycle path fails the gate. That is the
-test, and it is written first, failing, before the rule exists.
+- each of the eight decisions above is written in the schema document, not in a comment;
+- a recorded proposal stream replays deterministically against a recorded core state, through
+  the same seam (A9);
+- a test fills the queue past capacity and asserts the chosen overflow policy, including what
+  happens to a denied batch;
+- a test applies a proposal whose `baseRevision` is stale and asserts rejection rather than
+  silent application;
+- a test applies a proposal referencing an evicted concept and asserts rejection.
+
+### A4 — Establish state ownership, and make reads observational
+
+*The one deliberate behaviour change in this plan.* Everything else is a data structure or a
+wiring change.
+
+For attention:
+
+```ts
+interface Attention {
+  touch(term: Term, reason: AttentionEvent): void
+  topK(limit: number): readonly Term[]
+  commit(now: number): void
+}
+```
+
+For the clock:
+
+```ts
+interface DecayClock { tick(now: number): void }
+```
+
+The important part is not the interface; it is that callers stop writing `Concept.priority` and
+stop invoking decay as a side effect of reading.
+
+- `decayAll` leaves `sample()` and `sampleWindow()` (`memory.ts:355, 371`). Both become pure
+  reads. `consolidate` (`:389`) is the only clock tick left, called from one place.
+- `activationDecayRate` means what the configuration says. §11.2's table collapses to one row.
+- `getGoals()` stops minting stamps: minted at write, stored, read on get. `Stamp.overlaps` and
+  the `noStampOverlap` filter become well-defined for goals, which they are not today.
+- The eleven external `priority` writers become a small set of named operations. The suggested
+  set is the one §1.6's audit implies: input touch, related touch, decay, reinforce, replay,
+  deserialise, self-tune. Each has one caller and one reason type.
+- **Decide the scorer's fate** (§1.3): either wire novelty and relevance to real signals —
+  relatedness from the link port, recency from `lastAccessedAt` — and keep four factors, or
+  delete two and select by attention order. The current answer is neither, and this is a
+  *design* decision to be recorded with its reason, not an optimisation. It belongs here
+  because it decides what `topK` means, and `topK` is the contract TODO30 will measure.
+- `SpreadingActivation` and `Concept.updateLinks` either get a populated link graph or are
+  deleted. §1.6 showed `linkedConcepts` is written only by `mergeWith`, so today they are no-ops
+  wearing a cost, and `inference-controller.ts:104-110` applies their boost regardless.
+
+**Acceptance**
+
+- every `Concept.priority` write outside `concept.ts` is reachable from exactly one named
+  operation, and a test enumerates the write surface so a new one fails;
+- `decayAll` has exactly one call site, and `maxSampledConcepts` appears in no decay
+  measurement;
+- reading a concept twice without an intervening write returns the same identity and the same
+  stamp;
+- the attention and clock implementations are replaceable without changing any caller;
+- the RL/parity baselines are re-established **here, once**, and committed in the same change.
+
+**Risk: high, and confined to this item.** Every learned value moves, which is why it is alone
+and why the baselines are regenerated here rather than left to drift through A5–A8. Everything
+after it must hold them stable.
+
+### A5 — Make `Memory` a set of ports
+
+Split the 646 lines along the responsibilities §1.2 already enumerates: storage →
+`ConceptStore`, per-concept beliefs → `BeliefTable`, links → a link port, goals → a goal
+enumeration port, statistics → a statistics view. **Start with the simplest correct
+implementation plus a test double.** Do not build sophisticated backends here — that is TODO30
+§4 and §7, and it is only possible once the ports exist.
+
+The purpose is dependency inversion:
+
+> reasoning code depends on the concept of storage, not on one concrete all-purpose
+> implementation.
+
+`MemoryView` (`memory/view.ts`, 34 lines) is already the seam the strategies use; this widens
+it rather than inventing a parallel one.
+
+**Acceptance**
+
+- cycle code depends on ports, not on `Memory`;
+- storage details do not leak into reasoning code;
+- each port has focused unit tests that construct it directly;
+- existing semantic tests still cover the current behaviour through the ports;
+- the port contracts mention no concrete type, so an implementation can be swapped without
+  touching a caller.
+
+**Risk: low.** Mechanical, and the boundary is already implied by `MemoryView`.
+
+### A6 — Define inference dispatch as an architectural port
+
+```text
+InferenceTable
+  lookup(antecedentKind, consequentKind)
+  dispatch(...)
+```
+
+Three decisions, and none of them is "make it faster":
+
+- the rule representation and the dispatch implementation become separate, so a replacement
+  costs one file;
+- the `*:*` catch-all bucket's fate is a **recorded semantic decision** — either it is part of
+  the contract and tested, or it is deleted. Today it is neither;
+- the `RuleIndex` tie-break (§1.8) is either exercised by a test — `recordRuleHit` is called
+  and the field has data — or deleted. It is currently a comparator that orders nothing, wearing
+  a comment that explains why it orders nothing.
+
+**Do not** require tries, DAGs, decision trees, or generated code here. TODO30 §6 chooses among
+them from a measured workload.
+
+**Acceptance**
+
+- inference code depends on the dispatch interface;
+- the catch-all and the tie-break are each either specified-and-tested or gone;
+- NAL parity green;
+- existing rule-ordering behaviour is either explicitly preserved or explicitly recorded as a
+  semantic change, with the NAL suites as the gate.
+
+**Risk: medium.** This touches inference semantics, so parity is the gate and must not move.
+
+### A7 — Define control budgets as semantics
+
+Retain explicit bounds for work that is conceptually bounded:
+
+- derivations per step;
+- secondary premise consideration;
+- proposal application;
+- control/meta work.
+
+`NARExecution.run` (`nar-execution.ts:184-379`) runs a fixed sequence of control and meta steps
+per cycle, including two population-sized `getGoals()` calls (`:417` in
+`emitCognitiveStateSummary`, `:455` in `injectMetaGoals`) and an O(N)-plus-two-sorts
+`getStatistics()` (`:424`). **The bound is architectural — "a step may not be unbounded merely
+because no cost model has been written yet" — and how cheaply the budget is executed is
+TODO30's.** The point of naming them now is that A4's read-purity work and A6's dispatch work
+both need a place to *stop*.
+
+**Acceptance**
+
+- every budget has a named owner, a default, a configuration source, a defined overflow
+  behaviour, and a test demonstrating enforcement;
+- the shadowed `resetMetaBudget` name is gone from one of the two places it exists;
+- the per-cycle `getGoals` / `getStatistics` callers are budgeted or removed, and the decision
+  is recorded.
+
+**Risk: low-medium.** The behaviour change is "steps stop running by default", which is visible
+to whatever depended on the free behaviour.
+
+### A8 — Define memory and resource contracts
+
+The architectural requirement is narrow and testable:
+
+> **Every unbounded resource has an explicit owner and a declared lifecycle policy** — what it
+> holds, who owns it, its capacity, its retention rule, its overflow behaviour, and the signal
+> it raises when capacity cannot be reclaimed.
+
+For each resource, a reviewable record:
+
+```text
+resource · owner · capacity · retention policy · overflow behaviour · pressure signal
+```
+
+Specifically for memory:
+
+- `capacityPressure()` accounts for the dominant consumer, not only `concepts.size`.
+  `totals()` already reports `totalTasks`; eviction does not read it (§1.4).
+- the candidate filter stops being anti-correlated with pressure: a concept must be able to age
+  out *while holding tasks*, ranked by age × value.
+- eviction must be able to **report that it could not free anything** rather than returning a
+  silent `{ archived: 0, forgotten: 0 }`.
+- the accumulator ledger grows from its 2 declared sites to every production container that can
+  grow, and the textual `LruCache`/`maxSize` check is replaced by gating the *declaration* (see
+  §10). Do **not** redesign the eviction data structures here; that is TODO30 §7.
+
+**Acceptance**
+
+- a reviewable inventory exists for every production accumulator that can grow without an
+  explicit bound;
+- memory pressure is monotonically related to every bounded resource it reports;
+- a memory at 99% with nothing evictable says so, and a test asserts it says so;
+- the ledger covers every site the accumulator gate declares as cycle-path.
+
+**Risk: medium.** Retention policy is behaviour; changing policy and structure together is how
+a semantic change hides inside a refactor, so the policy lands here and the structure lands in
+TODO30 §7.
+
+### A9 — Deterministic replay
+
+Make recorded proposals first-class fixtures. A hermetic run must be able to use
+
+```text
+core state
++ recorded proposal stream
++ configuration
++ deterministic inputs
+```
+
+with no live provider involved, which is the same shape as the event log the kernel already
+replays (`kernel/replay.ts`, `replayCognitiveState`). A proposal stream is an event stream
+writ by an untrusted producer, and it should be stored as one.
+
+Schema/version mismatches must fail explicitly rather than silently replaying against
+incompatible state — and the proposal schema is the *first* thing in this repository that a
+recorded fixture from a future commit would silently mis-apply.
+
+**Acceptance**
+
+- a live provider is unnecessary for the hermetic tier;
+- a recorded proposal stream replays identically, twice;
+- an incompatible proposal version fails loudly, with a test that asserts the failure;
+- a proposal stream recorded against revision *R* is rejected against *R+1*.
 
 ---
 
-### 4.1 The questions W1 will be decided by
+## 4.1 The questions A1–A3 will be decided by
 
-The split is easy to half-do. These are the decisions that a half-done split defers, listed so
-that they get answered deliberately rather than by whoever happens to touch the queue first. Each
-is a real fork with real consequences, and none of them has an obvious default.
+The split is easy to half-do. These are the decisions a half-done split defers, listed so they
+get answered deliberately rather than by whoever next opens the queue. Each is a real fork;
+none has an obvious default.
 
-**What is the unit of asynchronous work?** A proposal over what scope — one derivation, one
-consolidation window, one episode? This determines what an inducer can usefully do, and it is the
-question most worth answering before writing the schema. If the unit is too small the LM is
-prompted into trivia; too large and its latency becomes the wall.
+**What is the unit of asynchronous work?** A proposal over one derivation, one consolidation
+window, or one episode. Too small and the model is prompted into trivia; too large and its
+latency becomes the wall. This is the question most worth answering before the schema is
+written.
 
-**What triggers the inducer?** Not a rate — a *trigger*. Three candidates, and they are not
-mutually exclusive: a budget of un-committed derivations has accumulated; a consolidation interval
-elapsed; or a salience signal fired. Whichever it is, express the balance as **cycles per
-proposal**, which makes it measurable and gateable. "Run the LM every N seconds" is not a
-contract; "one proposal per 10 000 cycles of un-committed derivations, dropping the oldest when
-full" is.
+**What triggers the inducer?** Not a rate — a *trigger*. Three candidates, not mutually
+exclusive: a budget of un-committed derivations has accumulated; a consolidation interval
+elapsed; a salience signal fired. Whichever it is, express the balance as **cycles per
+proposal**, which makes it measurable and gateable. "Run every N seconds" is not a contract;
+"one proposal per 10 000 cycles of un-committed derivations, dropping X when full" is.
 
-**What is the backpressure policy when the queue fills?** The LM is slower than the reasoner by
-orders of magnitude, so a bounded queue will fill. Drop-oldest is wrong — it drops stale *context*.
-Drop-lowest-confidence needs a confidence the proposal format must then carry. Drop-newest is
-simplest and probably right initially. **This cannot be left implicit**: a queue with no policy is
-an unbounded queue with extra steps.
+**What is the overflow policy?** §1.9: the code already drops the oldest, twice, and §0 argues
+that is wrong. Drop-newest is simplest and probably right initially. Drop-lowest-priority needs
+a priority the payload must then carry. **This cannot be left implicit**: a queue with no
+declared policy is an unbounded queue with extra steps.
+
+**What happens to a proposal whose budget was denied?** `StreamReasoner` re-queues at the head
+and trims. Is that a retry, a drop, or a recorded rejection? The `BudgetGate` already has a
+`backpressure` `TerminationReason` in its vocabulary; whether a denied proposal produces one is
+a decision, and it is the difference between "the queue is full" being visible and being
+inferred.
 
 **What happens to a proposal that arrives referencing evicted concepts?** The memory evicts
-(W8/W3); the inducer's input is a past state; the seam validates. The question is whether
-validation *rejects* the proposal or *salvages* what still resolves. Rejecting is simpler and
-more honest. Say so before the first eviction bug.
+(A8), the producer's input is a past state, the seam validates. Whether validation *rejects* or
+*salvages* what still resolves is a choice. Rejecting is simpler and more honest. Say so
+before the first eviction bug.
 
-**What happens when the reasoner has moved on?** Is a stale proposal still applicable? If
-applicability is "at the next consolidation boundary", staleness is bounded and irrelevant. If it
-is "whenever", you have reintroduced coupling. **This is the decision that determines whether the
-cycle is actually closed**, and it belongs in the schema, not in a comment.
+**What happens when the reasoner has moved on?** If applicability is "at the next declared
+boundary", staleness is bounded and irrelevant. If it is "whenever", coupling is reintroduced.
+**This decision determines whether the cycle is actually closed**, and it belongs in the
+schema, not in a comment.
 
-**How does the hermetic run survive this?** — **retired by §3.5, decided rather than deferred.**
-A background model call is ambient entropy by definition, which is why this was the dangerous
-question last pass. If the LM is optional, the hermetic run *is* the no-LM run, and the with-LM
-path is covered by **recorded proposals replayed through the same seam** as a fixture. Neither
-gate is weakened and neither is skipped, so the failure mode that produced §1.8 — gates quietly
-deferred until they get bypassed — has no room to occur. The `--cognitive-params` replay facility
-is the natural home for the fixture.
+**How does the hermetic run survive this?** — **retired, decided rather than deferred.** If the
+layer is optional, the hermetic run *is* the no-provider run, and the with-provider path is
+covered by recorded proposals replayed through the same seam. Neither gate is weakened and
+neither is skipped. A9 is where that lands.
 
-**What is the proposal format's *version* story?** The one question §3.5 raises and this list does
-not yet answer: proposals are a versioned artifact (§3.4), so a run recorded against reaction
-table v3 must not be replayed against v4. This is a small, boring, and genuinely hard problem,
-and it belongs to whoever writes the schema.
+**What is the proposal format's version story?** A run recorded against schema v3 must not
+replay against v4. Small, boring, genuinely hard, and it belongs to whoever writes the schema.
 
-**Is the LM a dependency or a component?** If it is a dependency — the system cannot run without
-it — then no deterministic core is possible, the whole cost model in §3.1 is moot, and the gates
-in §10 cannot exist. If it is a component, the answer to the question above is "disabled under
-hermetic runs". **This one is upstream of all the others** and belongs in §12.
+**Is the layer a dependency or a component?** A dependency means no deterministic core, no
+hermetic tier, and no way to run the suite reliably. A component means the answer to the
+hermetic question above is "replay a fixture". **This is upstream of the others** and is §3.5.
 
 ---
 
-## 5. What this is expected to buy
+## 5. What this architecture makes possible
 
-Predictions, to be measured by W0's harness, not promised. **The "measured now" column is a
-profile of the fused system and does not survive W1** (§1.10) — treat it as the baseline to beat,
-not as the expected shape afterwards.
+This replaces v1.3's prediction table. v1.3 §5 predicted `0` read-path decay passes, `O(k)`
+selection and flat rollout scaling — performance hypotheses, and therefore TODO30's. What
+belongs here is what the seams buy regardless of how fast anything is:
 
-| | measured now, fused | predicted after W2–W5 |
-|---|---|---|
-| `decayAll` per cycle | 9.0 | 0 on read paths; 1 on the commit timer |
-| `memory.sample` per cycle | 8.8 | 0 (index-driven top-k) |
-| `forEachConcept` per cycle | 5.0 | 0 (indexed relevance propagation) |
-| effective decay rate | `rate × min(sampleSize, N)` | `rate` |
-| O(population) ops per cycle | 23 | 0 |
-| 300-step rollout, 3 635 concepts | 14.8s | flat in N beyond the working set |
-| `concept.priority` writers | 19 | 7 named operations |
-| suite critical path | one 70s RL rollout | the benchmark suite, as a gate rather than as the wall |
+- **Decoupling.** The core can be built, run, tested, deployed and audited without the
+  induction layer. `device`-profile deployments, latency budgets and the deterministic tier all
+  become deployable configurations rather than workarounds.
+- **Determinism and replay.** One synchronous path, one clock per quantity, one write path per
+  fact, and proposals as recorded events. `test:hermetic` becomes a property of the design
+  rather than a special case.
+- **Replaceability.** Storage, attention, dispatch and cycle execution are ports. Each can be
+  re-implemented — including by TODO30 — without a caller changing, and each can be tested in
+  isolation in milliseconds instead of through a NAR.
+- **Test isolation.** A cycle-path test constructs its store, its attention and its dispatch
+  table directly. That is the difference between a 6-second test and a 90-second one
+  (`tests/nar` carries both).
+- **Optional producers.** A recorded fixture, a hand-written rule table, a rule-miner and a
+  live model are the same interface, so a new producer is additive rather than architectural.
+- **Gates that can fail.** Every architectural intent in §10.1 currently lives in a comment or
+  nowhere. This plan converts the load-bearing ones into tests, and it does so *before* the
+  code that would satisfy them exists.
 
-The rollout number is the one to watch. If it does not flatten as N grows, the cost model in §3.1
-is wrong and the work is not done — which is the point of having written it down.
-
-**One row is missing and it is the important one: `LM invocations per cycle`, measured at up to
-2 500 (500 rule applications × 5 rules) and predicted at 0.** That is the row that says the
-Stream Reasoner exists, and it is a count rather than a duration, so it is cheap and exact.
+**The one prediction worth keeping here is a count, not a duration:** proposal invocations
+inside a cycle go from **33** (measured, §11.1) to **0**, and stay there. That row says the
+Stream Reasoner exists. It is exact, cheap to measure, and it is a property of the wiring
+rather than of any data structure.
 
 ---
 
 ## 6. Sequencing
 
 ```
-W0 ──▶ W1 ──▶ W1b ──▶ [re-profile] ──┬─▶ W2 ──▶ W3 ──┬─▶ W5 ──▶ W6
-                                     │              └─▶ W4
-                                     └─▶ W10 (independent, any time after W0)
-W7, W8, W9 depend on W0 only; W9 is independent of W2–W6.
+A0 ──▶ A1 ──▶ A2 ──▶ A3 ──┬─▶ A4 ──┬─▶ A6
+                        │         └─▶ A5
+                        └─▶ A9
+A7, A8 depend on A0; A5 may land any time after A0.
 ```
 
-- **W0** alone, first. Everything else is measured against it.
-- **W1** alone, second, and alone for the same reason as W2: each is a behaviour change and each
-  must be independently reviewable. W1's acceptance is a two-line test — a hanging LM, and a NAR
-  with no producers at all — which makes it the cheapest behaviour change in the plan.
-- **W1b** immediately after W1, and before the re-profile: it is mechanical, and finishing the
-  boundary while the seam is fresh is cheaper than returning to it.
-- **Re-profile between W1b and W2.** Not optional. §1.10 argues that the workstream order below
-  was derived from a profile of the wrong architecture; taking it at face value optimises the
-  wrong thing. W0's harness exists so this costs one command.
-- **W2** alone, third, with the RL baselines re-established and committed in the same change.
-- **W4** can land any time after W0; it is mechanical and it is what makes W3/W5 testable in
+- **A0** alone, first. Everything else is judged against it.
+- **A1** alone, second, and alone for the same reason as A4: a behaviour change that must be
+  independently reviewable. Its acceptance is two short tests — a hanging provider, and a NAR
+  with no producers at all.
+- **A2** immediately after A1, and A3 immediately after A2: the boundary is cheapest while the
+  seam is fresh, and A3's decisions are cheaper once the queue's real behaviour (§1.9) is known
+  rather than assumed.
+- **A4** alone, with the RL/parity baselines re-established and committed in the same change.
+- **A5** can land any time after A0; it is mechanical and it is what makes A4 and A6 testable in
   milliseconds rather than through a NAR.
-- **W3 → W5 → W6** is the substantive sequence: index, then retrieval, then dispatch.
-- **W7, W8, W9** are independent and can be interleaved or deferred without blocking anything.
+- **A7 and A8** are independent of the above and can be interleaved.
+- **A9** lands once A3 has decisions worth replaying.
 
-Land W4 before W3 if the test time is the binding constraint; land W3 before W4 if correctness is.
-Either order works, which is the point of W4 existing.
+Land A5 before A4 if test wall time is the binding constraint; land A4 before A5 if
+correctness is. Either order works, which is the point of A5.
+
+**A formal handoff to TODO30** follows A2 + A3: at that point the architecture is what the rest
+of the plan is measured through, and TODO30 §1 requires a fresh profile before it orders
+anything. TODO29 does not carry a performance ordering forward, because its own §1.10 says the
+old ordering was derived from a profile of the wrong system.
 
 ---
 
 ## 7. Invariants that must not move
 
-1. **NAL1–8 parity.** Nothing in §4 changes what is derived from what. W6 touches dispatch and
-   must be gated on the NAL tests, not on a rewrite of them.
-2. **Determinism.** `test:determinism` and `test:hermetic` green at every commit, as today.
-3. **`test:load-sensitive` green under full load.** The three load-sensitive files exist because
-   timing assertions under contention are unreliable; the new cost work adds *more* timing
-   assertions, so the discipline has to get better, not worse.
-4. **The complexity budget ratchets downward only.** Every §4 change should lower
-   `productionLOC`, and the baseline moves with it in the same commit — which is what the gate's
-   own failure message asks for, and what `appendOnlyPersistenceSites` needed in the last pass.
-5. **Every accepted workstream is measured before and after by `bench:cycle`,** and the numbers
-   go in the commit message. A cost change without a before/after is a refactor.
-6. **The core does not depend on the LM.** Neither direction, in the source. `nar/src` core may
-   not import `nar/src/lm/`, and the LM layer may not reach into core internals by any route
-   weaker than its public API. Enforced by the dependency gate (W1b acceptance 1), not by review.
-7. **The no-LM configuration is a real system, not a stub.** It must pass NAL1–8, reason under the
-   cost model, and produce derivations with zero proposal producers registered. If removing the LM
-   leaves something inert, then the LM was not optional — it was load-bearing — and §3.6's argument
-   does not hold. This is the invariant most worth testing, because it is the one that would
-   expose the claim as false.
-8. **`lm.enabled` and `enableLMRules` disappear** rather than being extended (W1b acceptance 4).
+1. **NAL parity.** The suites are `tests/nar/nal1-rules`, `nal2-copula`, `nal7-temporal`,
+   `nal8-procedural` and `nal9-self` (there is no `nal3`–`nal6` file; see §14.3). Nothing here
+   changes what is derived from what. A6 touches dispatch and is gated on those suites, not on
+   a rewrite of them.
+2. **Determinism.** `test:determinism` and `test:hermetic` green at every commit.
+3. **`test:load-sensitive` green under full load.** The timing discipline gets better, not
+   worse: this plan *adds* no timing assertions, which is deliberate.
+4. **Every unbounded resource has an owner and a lifecycle policy** (A8). This replaces v1.3's
+   "the complexity budget ratchets downward and every change must lower `productionLOC`", which
+   describes a gate that does not exist — `complexity:budget` is `mustNotIncrease` with
+   ceilings, and the obligation to move a baseline is a commit-time one. **Forcing production
+   LOC downward during an architecture refactor optimises for the wrong thing** and is a
+   performance requirement wearing an architectural costume. The gate is left untouched.
+5. **Each cycle-path quantity has one owner.** Enumerable, and a test enumerates it.
+6. **The core does not depend on the induction layer.** Neither direction in the source: `nar`
+   core may not import the layer's directory, and the layer may not reach core internals by any
+   route weaker than public API. Enforced by the dependency gate (A2 acceptance 1), not by
+   review.
+7. **The no-provider configuration is a real system, not a stub.** It must pass NAL parity,
+   reason, and produce derivations with zero producers registered. **This is the invariant most
+   worth testing, because it is the one that would falsify the thesis.** If removing the layer
+   leaves something inert, the layer was load-bearing and §3.6's argument is void.
+8. **`lm.enabled` and `enableLMRules` disappear** rather than being extended (A2 acceptance 4).
    A boolean on an always-constructed component is a comment, and this repository is full of
    accurate comments about behaviour that is not what they say.
+9. **Proposals enter through the kernel gates.** Perception, budget, reward and action gating is
+   not bypassable by a provider, and a proposal may not write `Truth.frequency` or
+   `Truth.confidence` through a reward path (README: the epistemic firewall). This is a
+   pre-existing invariant; it is listed because A1–A3 create a new way to reach state, and the
+   new way must go through the same doors.
+10. **The six workspace packages do not merge**, and the README's documented public surface is
+    updated in the same commit that changes it (`docs:drift` is a gate).
 
 ---
 
@@ -1120,110 +1234,150 @@ Either order works, which is the point of W4 existing.
 
 Named, so the plan is falsifiable by diff:
 
-- `MemoryScorer`'s `novelty` and `relevance` factors, or the whole class (W3's decision).
-- `PREMISE_SOURCES.concepts`, `NoveltySampling`, `DiverseSampling` — all three enumerate the
-  population to then discard it.
-- The `*:*` bucket in `RuleIndex.candidatesFor`, and its per-miss sort.
-- `RuleIndex.hitStats` and the tie-break, unless W6 makes them real.
-- `RuleProcessor.stepMemoryScalars`' permanent memo (W7).
-- `Stamp.createInput()` from any getter (W2).
-- `selectTopN`'s O(n·k) insertion path (W9).
+- `processLMRulesImpl` from the cycle path, and its `await Promise.all` over model calls (A1).
+- `RuleProcessor.stepScalars` and `RuleProcessor.resetMetaBudget` — deleted, not fixed (A1).
+- The shadowed `resetMetaBudget` on the `ruleProcessor` port and on `NARExecution` (A1).
+- `enableLMRules` and `lm` from the core config schema, plus the README and `docs/api`
+  references to them (A2).
+- `MemoryScorer`'s `novelty` and `relevance` factors, or the whole class — A4's recorded
+  decision, one or the other.
+- `Stamp.createInput()` from any getter (A4).
+- The direct `Concept.priority` setter at every external site (A4).
+- `Memory.sample` and `Memory.sampleWindow`, or their `decayAll` side effects (A4).
 - `Concept.linkedConcepts` / `subConcepts` / `parentConcepts`, and with them
-  `SpreadingActivation.prime`, `Concept.updateLinks`, `findOrphanedLinks` — unless W3 populates
-  them (W3).
-- `Memory.sample` and `Memory.sampleWindow` (W3).
-- By-score eviction in `BoundedMap` (W9).
-- The `activationDecayRate`-is-also-a-sample-count coupling (W2).
-- `processLMRulesImpl`'s `await Promise.all` over model calls, from the cycle path (W1).
-- `RuleProcessor.stepScalars` and `RuleProcessor.resetMetaBudget` — deleted, not fixed (W1).
-- The shadowed `resetMetaBudget` on the `ruleProcessor` port and `NARExecution` (W1).
+  `SpreadingActivation.prime`, `Concept.updateLinks`, `findOrphanedLinks` — unless A4 populates
+  them (A4).
+- The `*:*` bucket in `RuleIndex.candidatesFor`, and `RuleIndex.hitStats` with its tie-break,
+  unless A6 makes them real (A6).
+- The `totalTasks === 0` candidate filter in `evictUnderPressure` (A8).
+- The per-cycle `getGoals()` / `getStatistics()` calls from the summary and meta-goal steps,
+  or their budgets (A7).
+
+---
 
 ## 9. Not doing
 
-- **The `lm/` subsystem's internals are not a target.** 15 226 lines, 25% of `nar/src`, and the
-  largest directory in the tree. W1 changes *where it is called from* and deletes two lines of it;
-  W1b changes *which direction the dependency points*. Neither restyles it. The rule templates and
-  the adapters are real work and stay. Making the LM layer itself fast, or better, is a separate
-  plan with a different question — and the right time to ask it is after W1, when its cost is no
-  longer hidden inside a cycle.
-- **The game and RL focus subsystems are not targets.** `game/` (2 713) and `focus/` (1 909) are
-  an agent-side apparatus, not the reasoning core, and they are the only reason several of these
-  APIs are shaped the way they are. Touching them makes the core changes harder to land.
-- **No NAL changes.** Not one. If a §4 workstream appears to need one, that workstream is
-  mis-specified.
-- **The six workspace packages do not merge.** `util`/`core`/`io`/`metta` boundaries are
+- **The induction layer's internals are not a target.** 15 226 lines, 25% of `nar/src`, the
+  largest directory in the tree. A1 changes *where it is called from*; A2 changes *which way
+  the dependency points*. Neither restyles it, and the rule templates and adapters are real
+  work that stays. Making the layer itself fast or better is a separate plan — and the right
+  time to ask is after A1, when its cost is no longer hidden inside a cycle.
+- **No performance work.** Attention structures, premise indexes, dispatch compilation, eviction
+  containers, admission indexes, statistics placement, population scaling, and the cost gates
+  are TODO30. Naming a data structure in this document would be a scope error.
+- **The game and RL focus subsystems are not targets.** `game/` and `focus/` are an agent-side
+  apparatus, not the reasoning core, and they are the only reason several of these APIs are
+  shaped as they are. Touching them makes the core changes harder to land.
+- **No NAL changes.** Not one. If an item here appears to need one, that item is mis-specified.
+- **The six workspace packages do not merge.** `util` / `core` / `io` / `metta` boundaries are
   load-bearing and TODO28 spent itself defending them.
-- **`bench:cycle` is a script, not a test.** Latency assertions in the default suite are what
-  produced every load-sensitive flake in this repo's history.
-- **UI untouched.**
+- **No timing assertions in the default suite.** Latency assertions in unit tests produced
+  every load-sensitive flake in this repository's history; `bench:cycle` is a script.
+- **UI untouched**, and the System One manifold's heads, calibration and distillation loop are
+  untouched. A2 moves *where* System One's adapter is constructed, not what it judges.
+
+---
 
 ## 10. Gates
 
-New, and wired into `pnpm gates`:
+New, and wired into `pnpm gates` (`scripts/lib/gates.ts`), so they run in the same command as
+everything else:
 
-- `cost:cycle` — runs `bench:cycle`, fails if any cycle-path operation is declared O(1)/O(log n)
-  and measures otherwise. This is §3.1 as a ratchet, and it is the gate that makes W10's
-  accumulator work unnecessary to trust.
-- `bench:cycle` joins the `slow` tier.
-- `core:no-lm` — runs the NAL tests and a reasoning episode with **zero** proposal producers, and
-  with the LM package removed from the build graph. Green means §7's invariant 7 is mechanical
-  rather than aspirational. Cheap, and it is the gate that makes the optionality claim falsifiable.
-- `deps:gate` gains a row: `nar` core may not import `nar/src/lm/`. One line in a ledger, and it
-  is the only enforcement that cannot be crossed by a well-meaning import.
+- `core:no-lm` — runs the NAL suites and a reasoning episode with **zero** proposal producers,
+  and with the layer removed from the build graph. Green means §7 invariant 7 is mechanical
+  rather than aspirational. Cheap, and it makes the optionality claim falsifiable.
+- `core:no-provider` — the same episode with a provider registered whose backend never
+  resolves, asserting the cycle completes. One test, and it is the one that would have caught
+  §1.8 on day one.
+- `deps:gate` gains a row: `nar` core may not import the induction layer's directory. One line
+  in a ledger, and the only enforcement a well-meaning import cannot cross.
+- `cycle:no-provider` — asserts the in-cycle provider counter reads 0 over a fixed episode
+  (A0's instrument, wired to a gate).
+
+Deliberately **not** here, and in TODO30: `cost:cycle`, the population-scaling matrix, and the
+`bench:cycle` entry in the gate list. They belong to the plan that has a cost model to enforce.
 
 ### 10.1 The intent-to-gate ledger
 
-The pattern that produced §1.8 and most of §1 is not specific to the LM, and it generalises past
-this plan. It is: **an architectural intent lives in a doc comment, and nothing in the build can
-tell you when the code stops implementing it.** Three of the four gates in this repository are in
-that state, and the fourth is the only reason any of them work.
+The pattern that produced §1.8 and most of §1 is not specific to the induction layer, and it
+generalises: **an architectural intent lives in a doc comment, and nothing in the build can
+tell you when the code stops implementing it.** Three of the rows below are in that state today,
+and one of them is now a *class* with no caller, which is a new and sharper version of the same
+failure.
 
-| architectural intent | where it is stated | is it mechanical? | what makes it so |
+| architectural intent | where it is stated | mechanical? | what makes it so |
 |---|---|---|---|
-| The Stream Reasoner — LM async, reasoner sync | design intent; `cpuThrottleMs` implies the opposite | **no** | W1's hanging-LM test |
-| The LM is optional; the core is NARchy-like | nowhere | **no** — and 36 core files import `lm/` | W1b: a `deps:gate` row, and a no-LM NAR that reasons |
-| Decay has one owner, on one cadence | nowhere | **no** | W2: count `decayAll` call sites |
-| Attention has one owner | nowhere; 19 writers | **no** | W3: seven named operations |
-| Every bounded container is bounded | `scripts/lib/accumulator-ledger.ts` | **partly** — a *string* check over 2 of 42 sites | W10: a detection rule, and a failing test first |
-| NAL1–8 parity | the NAL tests | **yes** | already works |
-| Cost model: no O(population) on a cycle path | nowhere | **no** | W0 + W10's `cost:cycle` |
+| The Stream Reasoner — async inducer, sync reasoner | §3.4, and `nar/src/stream/reasoner.ts` | **no** — the class is bounded and gated and has one caller, a test | A1: the in-cycle counter reads 0 |
+| The layer is optional; the core is a reasoner | nowhere in docs; **39** core files import it | **no** | A2: a `deps:gate` row, and a no-provider NAR that reasons |
+| Decay has one owner, on one cadence | nowhere | **no** — 8 calls per cycle from 3 sites | A4: count `decayAll` call sites |
+| Attention has one owner | nowhere; 10 external writers | **no** | A4: an enumerated write surface |
+| Reads do not change reasoning state | nowhere; a getter mints stamps | **no** | A4: identity and stamp stability |
+| Every bounded container is bounded | `scripts/lib/accumulator-ledger.ts` | **partly** — a *string* check over 2 of 42 sites | A8: gate the declaration, failing test first |
+| NAL parity | the NAL suites | **yes** | already works |
+| No O(population) on a cycle path | nowhere | **no** | **TODO30 §3**, not here |
 
 The rule this suggests, and the one worth taking from this pass even if none of §4 lands:
 
 > **A gate ships with a test that proves it can fail, written before the gate exists.**
 
-Every ratchet in this repository was set *above* its measurement — `productionLOC: 71 333`
-against a measured 70 604 — so none of them could have failed in any pass, and all of them were
-green. `appendOnlyPersistenceSites` had been reporting its `catch` fallback for the life of the
-gate. A gate that cannot fail is a comment, and this repository is full of accurate comments
-about behaviour that is not what they say. TODO28 §8.10 reached the same conclusion independently,
-which is the encouraging part: the lesson is already in the tree's own history, and the next pass
-is to apply it to the *runtime* rather than to the structure.
+Every ratchet in this repository was set *above* its measurement for a pass or more, so none of
+them could have failed, and all of them were green. `appendOnlyPersistenceSites` had been
+reporting its `catch` fallback for the life of the gate. A gate that cannot fail is a comment,
+and this repository is full of accurate comments about behaviour that is not what they say.
+TODO28 §8.10 reached the same conclusion independently.
 
 Two rules that follow, and they are cheap:
 
 1. **When a metric's source can silently fail, that is a defect in the metric, not the source.**
-   The broken shell quoting in the persistence grep was a `catch` that returned a plausible number.
+   The persistence grep's broken quoting was a `catch` that returned a plausible number.
 2. **A doc comment that explains a bug the code still has is a failing test that was never
-   written.** `RuleIndex.ts:132-140` is the clearest example in the tree: a precise, correct
+   written.** `RuleIndex.ts:131-140` is the clearest example in the tree — a precise, correct
    diagnosis of a comparator collapse, sitting next to the collapse.
+3. **A correct, bounded, tested component that nothing calls is a failing test that was never
+   written too.** §1.9 is that shape, and it is the most expensive instance in the tree,
+   because the intent it encodes — the Stream Reasoner — is the name of the architecture.
 
-## 11. Reproducing the numbers
+### 10.2 The architecture review gate
 
-`scripts/cycle-bench.ts`, committed, `pnpm bench:cycle`. It reports §3.1's cost model as a table
-at several population sizes, and it has a `--selftest` that proves each hook observes its own
-invocation — because a hook that silently observes nothing produces a table of confident zeroes,
-and this repository already has two of those (§1.8). Everything below is a command and its
-recorded result.
+Before this document closes, review the dependency graph and answer these in writing. They are
+worth more than any benchmark number, and each maps to a test:
+
+```text
+Can the core be built without the induction layer?
+Can the core be run without it?
+Can the core be replayed without it?
+Can a provider hang without blocking a cycle?
+Can a provider mutate core state directly?
+Can a provider write state without passing a gate?
+Can a proposal be applied mid-cycle?
+Can a proposal reference state that no longer exists, and what happens?
+Can attention state be mutated without going through its owner?
+Can a read silently change reasoning state?
+Can any resource grow without a declared policy?
+Is there a second inference path?
+```
+
+The last one is there because `runStream` used to have one, and it was removed by deleting code
+(`nar/src/stream/index.ts` records the removal). "One inference path" is an invariant worth
+restating at every pass, and this plan adds a second channel's worth of wiring, so it is worth
+checking rather than assuming.
+
+---
+
+## 11. The instrument, and the provenance of its numbers
+
+`scripts/cycle-bench.ts`, committed, `pnpm bench:cycle`, with a `--selftest` that proves each
+hook observes its own invocation — because a hook that silently observes nothing produces a table
+of confident zeroes, and this repository already has two of those (§1.8, §1.9).
 
 ```
 pnpm bench:cycle -- --selftest                              # prove the instrument
-pnpm bench:cycle -- --size 500,2000,8000 --repeat 2          # §3.1 table
-pnpm bench:cycle -- --knob-sweep --size 5,10,20,40            # §1.1 coupling
+pnpm bench:cycle -- --size 500,2000,8000 --repeat 2          # the per-cycle work table
+pnpm bench:cycle -- --knob-sweep --size 5,10,20,40            # the decay/sampling coupling
 node --cpu-prof --cpu-prof-dir=/tmp/cp --import tsx scripts/cycle-bench.ts --size 5000 --repeat 1
 ```
 
-### 11.1 The §3.1 cost table
+### 11.1 The per-cycle work table
 
 Per cycle, at three populations, min of two:
 
@@ -1233,15 +1387,16 @@ Per cycle, at three populations, min of two:
 | 2 048 | 5.13 | 100 | **8.20** | **8.00** | **5.00** | 1.10 | 0.10 | **33.00** |
 | 5 000 | 43.49 | 100 | **8.20** | **8.00** | **5.00** | 1.10 | 0.10 | **33.00** |
 
-The bold columns are the §3.1 violations: work per cycle that does not shrink when the operation
-stops being O(population). `ms/step` climbing 5.13 → 43.49 at `maxConcepts` is the eviction path
-engaging, which is §1.4 and §1.7 rather than a surprise.
+The bold columns are the violations: work per cycle that does not shrink when the operation
+stops being population-sized. `ms/step` climbing 5.13 → 43.49 at `maxConcepts` is the eviction
+path engaging, which is §1.4 and §1.7 rather than a surprise. **The counts are the
+architectural evidence and the milliseconds are TODO30's** — v1.3 used this table for both,
+which is the coupling this revision removes.
 
-**The `processLMRules` column is the newest number in this document and it is the worst one.**
-Thirty-three LM-rule invocations per cycle, measured with `enableLMRules: false`. The flag gates
-*execution*; the selection machinery around it runs regardless. That is §3.5's "absent, not
-disabled" claim, measured rather than asserted, and it is the row `cost:cycle` will gate on:
-it goes to 0 in §4/W1 and stays there.
+**The `processLMRules` column is the worst number in this document.** Thirty-three inducer-rule
+invocations per cycle, measured with `enableLMRules: false`. The flag gates *execution*; the
+selection machinery around it runs regardless. That is §3.5's "absent, not disabled", measured
+rather than asserted, and it is the row that goes to 0 in A1.
 
 ### 11.2 The decay/sampling coupling
 
@@ -1254,186 +1409,164 @@ it goes to 0 in §4/W1 and stays there.
 | 20 | 164 | 9.0 |
 | 40 | 164 | 9.0 |
 
-A retrieval-breadth knob is a decay-rate knob. §4/W2 should collapse this table to one row, and
-that is its acceptance criterion stated as a number.
+A retrieval-breadth knob is a decay-rate knob. A4 should collapse this to one row, and that is
+its acceptance criterion stated as a count.
 
-### 11.3 CPU profile of a 300-step rollout
-
-`node --cpu-prof` over the bench, aggregating self time by `(functionName, file:line)` and
-separately attributing callers. Nine runs, report the **minimum**: on this machine the median
-carried 25% more noise than the minimum. §1.9's table is the result. **This is the one measurement
-that does not survive §1.10** — it is a profile of the fused system, and it must be retaken after
-W1 before W2 onward is ordered from it.
-
-### 11.4 The suite
-
-`pnpm test:unit`, timed, min of two runs **in one session**. Read any first baseline with
-suspicion: on 2026-09-30 an early run read 150.9s and a clean re-measurement of the same commit
-read 90.6s, because the machine was carrying someone else's load. Two runs in one session, or the
-number is not a number.
-
-### 11.5 Provenance
+### 11.3 Provenance, and what was read of NARchy
 
 Every number in §1 and §11, and what it is worth.
 
 | measurement | value | taken | at | reproducible by | load-sensitive? |
 |---|---|---|---|---|---|
-| per-cycle work | §11.1 | 2026-09-30 | `eb394d4a` | `pnpm bench:cycle` | low — counts, not times |
-| decay/sampling coupling | §11.2 | 2026-09-30 | `eb394d4a` | `--knob-sweep` | low — counts |
-| LM invocations per cycle | 33.00 | 2026-09-30 | `eb394d4a` | `pnpm bench:cycle` | none |
-| profile shares | §1.9 | 2026-09-30 | `d542d5ee` | `node --cpu-prof` | **yes** — take the min |
-| 3 635-concept rollout | 17.3s → 14.8s | 2026-09-30 | `d542d5ee`/`77c4e4f4` | rollouts, min-of-9 | **yes** |
-| `test:unit` wall | 90.6s → 75.5s | 2026-09-30 | `d542d5ee`/`77c4e4f4` | `pnpm test:unit` ×2 | **very** — see §11.4 |
-| `nar/src` size | 60 757 lines / 513 files | 2026-09-30 | `eb394d4a` | `find nar/src -name '*.ts'` | none |
-| core files importing `lm/` | 36 | 2026-09-30 | `eb394d4a` | `grep` (§3.5) | none |
-| cycle-budget test | 88.7s → ~6s | 2026-09-30 | `d542d5ee` | vitest, isolated | **yes** |
-| NARchy reference | — | 2026-08-25 | `narchy@narchy` @ `f3a9bcc` | see §2 | none |
+| per-cycle work | §11.1 | 2026-09-30 | `eb394d4a` | `pnpm bench:cycle` | counts, not times |
+| decay/sampling coupling | §11.2 | 2026-09-30 | `eb394d4a` | `--knob-sweep` | counts |
+| inducer invocations per cycle | 33.00 | 2026-09-30 | `eb394d4a` | `pnpm bench:cycle` | none |
+| LM-importing core files | 39 | 2026-09-30 | `919c21ab` | `grep` (§0 corrections) | none |
+| `Concept.priority` writers | 10 external / 6 internal | 2026-09-30 | `919c21ab` | call-site trace (§1.6) | none |
+| scorer factors constant | — | 2026-09-30 | `919c21ab` | `memory/pressure/scorer.ts` + its one call site | none |
+| `StreamReasoner` has no production caller | — | 2026-09-30 | `919c21ab` | `grep -rn StreamReasoner` outside `nar/src/stream` | none |
+| profile shares | moved to TODO30 §1 | 2026-09-30 | `d542d5ee` | `node --cpu-prof` | **yes** — take the min |
+| `nar/src` size | 60 757 lines / 513 files / 47 dirs | 2026-09-30 | `919c21ab` | `find nar/src -name '*.ts'` | none |
+| NARchy reference | — | 2026-08-25 | `narchy@narchy` @ `f3a9bcc` | see below | none |
 
-Two rules this table exists to enforce. **A number with no commit in it is not evidence.** And
-**the load-sensitive rows are the ones that will lie to you** — three of them, all measured on a
-machine that was carrying someone else's load at some point during this work.
+Two rules this table exists to enforce. **A number with no commit in it is not evidence** — and
+applying that rule to v1.3 found four stale numbers, corrected at the top of this document. And
+**the load-sensitive rows are the ones that will lie to you**: the profile and the wall-clock
+rows were all measured on a machine that was carrying someone else's load at some point, which
+is why they moved to a plan whose first step is re-measuring.
 
-### 11.6 What was read of NARchy, and what was inferred
-
-The reference is `github.com/narchy/narchy` at **`f3a9bcc66a348a8bf7c741aa21485c075f89b070`**
-(2026-08-25). Pin that SHA; `main` moves, and a plan that cites a moving tree is a plan whose
-evidence expires.
-
-**Read, and quoted from:** `nars/memory/Memory.java` (the 123-line port and its six abstract
-methods), `nars/focus/util/PriTree.java` (the priority DAG and its `commit`), `nars/Focus.java`
-(`commit`/`_commit`/`commitTime` and the duration-derived cadence), plus the module tree.
+**Read and quoted from NARchy:** `nars/memory/Memory.java` (the 123-line port and its six
+abstract methods), `nars/focus/util/PriTree.java` (the priority DAG and its `commit`),
+`nars/Focus.java` (`commit` / `_commit` / `commitTime` and the duration-derived cadence), plus
+the module tree.
 
 **Inferred from the tree listing, not read:** the eight `Memory` implementations' behaviour; the
 `deriver/reaction/compile/*` compilers; the `table/` belief-table hierarchy; `control/exec/*`;
-`TaskAttention`'s sampling; term interning. §2.5's claim that inference is *precompiled* rests on
-the existence and naming of those compilers, not on having read one. **A future session should
-verify §2.5 against the source before treating it as established** — it is the load-bearing half
-of the argument that SeNARS is behind NARchy on dispatch, and it is the least-read claim in §2.
+`TaskAttention`'s sampling; term interning. §2.5's claim that inference is *precompiled* rests
+on the existence and naming of those compilers, not on having read one. **A future session
+should verify §2.5 against the source before treating it as established** — it is the
+least-read claim in this document, and TODO30 §6 makes a decision that depends on it.
 
 ---
 
 ## 12. Open questions for the next session
 
-These are ordered by how much they change the plan. The first three should be answered *before*
-W0, because each of them can invalidate work that has not started yet — which is cheaper than
-discovering it in W1.
+Ordered by how much they change the plan. The first two should be answered *before* A0, because
+each can invalidate work that has not started.
 
-**Q1. Is the LM an episodic learner, an online learner, or both at different rates?** The honest
-answer determines the architecture, and conflating the two is most of what produced the current
-state. If it is genuinely online — reasoning *with* the model inside the loop — then the cycle
-cannot close, §3.1 is unenforceable, §10's gates cannot exist, and this plan is the wrong plan. If
-it is episodic or consolidation-time, W1 is exactly right and cheap. **This is the question that
-decides whether the rest of the document is sound.**
+**Q1. Is the induction layer an episodic learner, an online learner, or both at different
+rates?** The honest answer determines the architecture. If it is genuinely online — reasoning
+*with* the model inside the loop — then the cycle cannot close, §3.1 is unenforceable, §10's
+gates cannot exist, and this is the wrong plan. If it is episodic or consolidation-time, A1 is
+exactly right and cheap. **This is the question that decides whether the rest of this document
+is sound**, and `inferenceController.step(5000, …)` is evidence for the wrong answer.
 
-**Q2. Is the LM a dependency or a component?** A dependency means no deterministic core, hence no
-cost gate, hence no way to run the suite reliably — the `todo16-batching` latency assertion in
-§11.4 is that problem in miniature. A component means the answer to §4.1's last question is
-"disabled under hermetic runs".
+**Q2. Is it a dependency or a component?** A dependency means no deterministic core, hence no
+hermetic tier, hence no reliable suite — the `todo16-batching` latency assertion is that problem
+in miniature. A component means §4.1's hermetic question is answered by A9. **Upstream of all
+the others.**
 
 **Q3. What is the falsifiable claim?** "NARS plus acquired rules is more capable than either
-alone" is a thesis, and a thesis needs an experiment that could come out the other way. Nothing in
-the current suite can falsify it: the RL benches assert that SeNARS beats random, not that it
-beats a NARS-shaped reasoner with no inducer. If this plan lands and the answer is still
-unknowable, it will have been 60 000 lines of very good engineering pointed at nothing.
+alone" is a thesis, and a thesis needs an experiment that could come out the other way. Nothing
+in the current suite can falsify it: the RL benches assert SeNARS beats random, not that it
+beats a NARS-shaped reasoner with no inducer. **If this plan lands and the answer is still
+unknowable, it will have been tens of thousands of lines of good engineering pointed at
+nothing.** Building the experiment is more important than any item in §4 and is not scheduled
+here.
 
 **Q4. What is the unit of asynchronous work?** §4.1's first question, and the one most worth
-settling before the schema is written. Too small and the model is prompted into trivia; too large
-and its latency is the wall.
+settling before the schema is written.
 
-**Q5. Does W3 (attention index) or W4 (`Memory` port) come first?** Either, per §6. The tie-breaker
-is whether test wall time or confidence is currently the binding constraint — and given §11.4,
-that is measurable in a minute.
+**Q5. Does A4 (ownership) or A5 (ports) come first?** Either, per §6. The tie-breaker is
+whether test wall time or confidence is the binding constraint, and that is measurable in a
+minute.
 
-**Q6. What happens to the 19 LM rule templates?** W1 relocates the call site and changes nothing
-else. Whether the *templates* are the right granularity is a real question that W1 deliberately
+**Q6. What happens to the 19 rule templates?** A1 relocates the call site and changes nothing
+else. Whether the *templates* are the right granularity is a real question that A1 deliberately
 does not answer, and it should not be answered by whoever next opens that file.
 
-**Q7. Which of §1.7's structures does W9 actually need?** The table lists six; some may fall out
-of W3 and W5 for free once the calls disappear. Re-derive it after W1 rather than working from
-this list — the same §1.10 caveat applies.
+**Q7. Should `StreamReasoner` be generalised in place, or replaced by a new seam type?** A2
+assumes in place (`LMRequest` / `ProvisionalBelief` are already a request/response pair with a
+provisional-truth discipline). The alternative — a new `ProposalSource` alongside it — creates
+two seams, and §10.2's last question exists precisely to catch that shape.
 
-**Q8. Does the LM become a seventh workspace package?** The only enforcement that cannot be
-bypassed by a well-meaning import — and it requires everything the LM reads (concepts, memory
-statistics, derivation chains) to be public API. That is probably good pressure and definitely a
-lot of surface. Answer after W1, because the interface is not known until the seam exists.
+**Q8. Does the induction layer become a seventh workspace package?** The only enforcement a
+well-meaning import cannot bypass, and it requires everything the layer reads to be public API.
+Probably good pressure, definitely a lot of surface. Answer after A1, because the interface is
+not known until the seam is.
 
-**Q9. What does the no-LM core's built-in reaction table contain?** If the core ships with only
-NAL1–8, "reduces to NARchy-like capabilities" is literally true and the claim is modest. If it
-ships with more, the claim needs a specification and a test. Either is defensible; leaving it
-undecided is not, because the answer determines whether §3.6's falsifiability argument holds.
+**Q9. What does the no-provider core's built-in reaction table contain?** If the core ships with
+only the NAL rules, "reduces to NARS-like capability" is literally true and the claim is modest.
+If it ships with more, the claim needs a specification and a test. Either is defensible; leaving
+it undecided is not, because the answer determines whether §3.6's falsifiability argument holds.
 
-**Q10. Is the LM the *only* proposal producer we expect?** Designing `ProposalSource` for one
-producer is how you get an interface that is really a call site. A rule-miner, a human author, and
-a recorded fixture are cheap to name now and expensive to retrofit.
+**Q10. Is the model the *only* proposal producer we expect?** Designing the contract for one
+producer is how you get an interface that is really a call site. A rule-miner, a human author
+and a recorded fixture are cheap to name now and expensive to retrofit.
+
+---
 
 ## 13. Pass log
 
+### Fifth pass (v2.0) — the split
+
+- **Split the plan by architectural responsibility.** The cost model, indexed retrieval,
+  compiled dispatch and data-structure work moved to TODO30; the Stream Reasoner boundary, layer
+  optionality, proposal semantics, state ownership, `Memory` decomposition and the boundedness
+  contracts stayed. §3.1's complexity table became an architecture contract; §5's prediction
+  table became "what this architecture makes possible"; §7's LOC ratchet was replaced.
+- **Found the thing v1.3 said was in prose.** The Stream Reasoner is a committed, exported,
+  bounded, gate-checked class with **no production caller** (§1.9). A1 is therefore a wiring
+  change plus a payload version, not an invention — and the overflow policy is already chosen,
+  and already the one §0 argues is wrong. This is a materially better position than v1.3
+  described and it changes what the first workstream *is*.
+- **Re-measured v1.3's own numbers and corrected four** (§0): 36 → 39 importing files,
+  `nar.ts:18` is an import rather than a call, the scorer's call site path, and nineteen →
+  eleven `Concept.priority` writers. The LOC-ratchet invariant described a gate that does not
+  exist.
+- **Aligned the seam with the kernel gates** (§3.4, §7 invariant 9), which v1.3 never mentioned:
+  four gates mediate every state mutation, a proposal is a request to a gate, and the epistemic
+  firewall applies to proposals like everything else. The committed channel already asks
+  `BudgetGate` for an `lm-call` budget; the requirement is to keep that.
+- **Expanded A3 into a protocol** — eight decisions with a written applicability rule, two of
+  them answered by reading the existing implementation instead of guessing.
+- Named the plan's coverage limit, unchanged and still true: 14 of 47 `nar/src` directories
+  examined; 33 are not (§14.3).
+
 ### Fourth pass (v1.3)
 
-- Audited this document as a handoff rather than as prose, against "can a fresh session act on
-  this alone". Six gaps, listed above. The serious one was that §11 described a measuring
-  apparatus that no longer existed — which is §1.8's failure mode one level up.
-- Committed `scripts/cycle-bench.ts` and `pnpm bench:cycle`, so §11 is executable. It reproduces
-  §1.1 (8.2 / 8.0 / 5.0) and §11.2 (5.2 / 8.4 / 9.0 / 9.0) on first run, from a different
-  implementation than the hand-written scripts that produced the originals.
+- Audited this document as a handoff rather than as prose. Six gaps; the serious one was that
+  §11 described a measuring apparatus that no longer existed.
+- Committed `scripts/cycle-bench.ts` and `pnpm bench:cycle`, so §11 is executable.
 - Found, by building it, that `processLMRules` runs 33× per cycle with `enableLMRules: false`.
-  The flag gates execution; the machinery around it does not run at all. This is the strongest
-  evidence yet for §3.5's "absent, not disabled".
 - Added §4.0 (finding → workstream trace), §11.5 (provenance and load-sensitivity), §11.6
-  (NARchy read-versus-inferred, SHA pinned), §14 (measured / believed / unexamined / inherited
-  breakage), §15 (risk register with two kill criteria), and a statement of the thesis at the top.
-- **Named the plan's coverage limit:** 14 of 47 `nar/src` directories examined. 33 are not, and a
-  session editing one is doing new scope, not finishing this.
+  (NARchy read-versus-inferred, SHA pinned), §14, §15, and a statement of the thesis.
 
 ### Third pass (v1.2)
 
-- Recorded the requirement that the LM be **optional** and sit beyond the core, and worked out
-  what that has to mean operationally. The answer is not a flag: `lm.enabled: false` and
-  `enableLMRules: false` are false friends, because `initializeLMRules` runs at construction
-  (`nar.ts:18`) and every rule is registered (`facade/index.ts:98`). A component that is wired is
-  not optional, and the two tests that tell the difference — a hanging LM, and a NAR with zero
-  producers — did not exist.
-- Measured the boundary's current cost: **36 files** outside `nar/src/lm/` import from it, and
-  `nar/src/strategies/types.ts:1` puts `LMRule` in the strategy extension contract, so a strategy
-  cannot be written without naming the LM.
-- Added §3.5 and §3.6, and W1b. W1b is a sub-phase rather than a new letter on purpose: the seam
-  and the layer boundary are one change, and only the first half is independently testable.
-- **Retired §4.1's hardest question.** Whether a background model could survive
-  `test:hermetic` was the risk I flagged last pass as most likely to be quietly deferred. If the
-  LM is optional the hermetic run is the no-LM run plus replayed fixtures, so the question has an
-  answer by construction — which is the clearest single argument for the requirement.
-- Added §7 invariants 6–8, the `core:no-lm` and dependency gates, and a ledger row for the
-  optionality intent.
-- Noted the inversion this exposes: optionality is not a concession, it is what makes the core
-  claim falsifiable, and it is the forcing function for the one capability NARchy lacks.
+- Recorded that the layer must be **optional** and sit beyond the core, and worked out what that
+  has to mean operationally: not a flag, since the component is constructed and registered
+  unconditionally. The two tests that tell the difference — a hanging provider, and a NAR with
+  zero producers — did not exist.
+- Added §3.5, §3.6, and the dependency-inversion workstream; retired the hermetic question by
+  deciding it rather than deferring it.
 
 ### Second pass (v1.1)
 
 - Established that the Stream Reasoner was the intended design and that §1's findings diagnose a
-  failure to reach it, not the design. This moved W1 from "the highest-leverage change" to "the
-  design that was always intended, plus the test that was never written", and it is why the plan
-  got cheaper.
-- Added §1.10 (which findings survive the split), which invalidated §1.9 and §5 as measurements
-  and forced a re-profile into §6.
-- Added §3.4 (the split as the spine, with the hanging-LM test as its first property) and §4/W1
-  as the first buildable workstream.
-- Added §4.1: six decisions a half-done split defers, of which the staleness boundary determines
-  whether the cycle is actually closed, and the hermetic question determines whether any of it
-  survives the gates.
-- Added §10.1: the intent-to-gate ledger, and the rule that a gate ships with a test proving it
-  can fail. Named two instances — the metrics that fail silently, and the doc comment that
-  diagnoses a live bug beside the bug.
-- Renumbered W1–W9 to W2–W10.
-- Noted that the plan's central mistake was optimising a profile of a system in the wrong state,
-  and put the correction in the document rather than in a session that no longer exists.
+  failure to reach it, not the design. That made the first workstream "the design that was
+  always intended, plus the test that was never written", and the plan got cheaper.
+- Added §1.10 (which findings survive), which invalidated the profile and the prediction table
+  and forced a re-measurement. **v2.0 completes that correction by moving them out of this
+  document entirely.**
+- Added the intent-to-gate ledger, and the rule that a gate ships with a test proving it can
+  fail.
 
 ### First pass (v1.0)
 
-- Profiled the inference loop; eight findings, all measured, seven of them contract violations.
-- Read `narchy/narchy` and extracted the port/attention/clock/compiled-dispatch contrast (§2).
-- Ten workstreams, a cost model (§3.1), a prediction table (§5), and four reproduction commands
-  (§11).
-- Diagnosed the fused cycle as an architecture problem, which was half right — see above.
+- Profiled the inference loop; eight findings, all measured. Read `narchy/narchy` and extracted
+  the port / attention / clock / compiled-dispatch contrast. Diagnosed the fused cycle as an
+  architecture problem, which was half right.
 
 ---
 
@@ -1444,75 +1577,84 @@ then either re-litigates the measurements or inherits the beliefs as fact.
 
 ### 14.1 Measured — do not re-derive
 
-| claim | how it is known | §  |
-|---|---|---|
-| 8.2 decay passes, 8.0 rankings, 5.0 sweeps per cycle | `pnpm bench:cycle` | §11.1 |
-| **33 LM-rule invocations per cycle with `enableLMRules: false`** | `pnpm bench:cycle` | §11.1 |
-| decay rate tracks `maxSampledConcepts` | `--knob-sweep` | §11.2 |
-| 36 core files import `nar/src/lm/` | `grep` | §3.5 |
-| `LMRule` is in the strategy extension contract | `strategies/types.ts:1,74` | §3.5 |
-| `initializeLMRules` runs at construction | `nar.ts:18`, `facade/index.ts:98` | §3.5 |
-| the scorer's factors are constant on every path | no caller supplies `relatedConcepts`; `lastAccessTime` unread | §1.3 |
-| `recordRuleHit` has no callers | `grep` | §1.8 |
-| `resetMetaBudget` has no callers; `:368` hits `NARExecution`'s own | `grep` + call resolution | §1.8 |
-| `linkedConcepts` is never written outside `mergeWith` | call-site trace | §1.6 |
-| the profile's shape | `--cpu-prof`, min-of-9 | §1.9 |
+| claim | how it is known |
+|---|---|
+| 8.2 decay passes, 8.0 rankings, 5.0 sweeps per cycle | `pnpm bench:cycle` (§11.1) |
+| **33 inducer invocations per cycle with `enableLMRules: false`** | `pnpm bench:cycle` (§11.1) |
+| decay rate tracks `maxSampledConcepts` | `--knob-sweep` (§11.2) |
+| **39** core files import the layer's directory | `grep` (§0 corrections) |
+| `LMRule` is in the strategy extension contract | `strategies/types.ts:1,71` |
+| `initializeLMRules` runs at construction | `nar.ts:762,823,837`; `facade/index.ts:98` |
+| the scorer's factors are constant on every path | `memory/pressure/scorer.ts` + its one call site |
+| `getGoals()` mints a stamp per call | `memory.ts:253` |
+| `recordRuleHit` has no callers | `grep` |
+| `resetMetaBudget` is shadowed across port and implementation | `nar-execution.ts:76,116,179,368` |
+| `linkedConcepts` is never written outside `mergeWith` | call-site trace |
+| **`StreamReasoner` has no caller outside its own test** | `grep -rn StreamReasoner` |
+| the overflow policy is drop-oldest on both paths | `util/src/utils/collections.ts:33-47` |
 
 ### 14.2 Believed — argued, not established
 
-These are design positions. They are defensible and the plan proceeds on them, but a future
-session is entitled to disagree, and should say so rather than quietly inherit them.
+Design positions. Defensible, and the plan proceeds on them, but a future session is entitled
+to disagree and should say so rather than quietly inherit them.
 
 | belief | where it comes from | how you would know it is wrong |
 |---|---|---|
-| Premise retrieval should be **indexed, not scanned** | NARchy's `Memory` is a port with 8 impls and an index per impl (§2.1) | the derivation *quality* falls measurably when indexed retrieval replaces scanning — quality and cost traded, not cost alone |
-| Attention should be a **maintained order, not a field** | `PriTree` + a duration-derived commit (§2.2–2.3) | O(k) top-k does not beat an O(N) scan at the working-set sizes the system actually runs |
-| Inference should be **compiled, not pattern-matched** | `deriver/reaction/compile/*` — **inferred from filenames, not read** (§11.6) | read the source and find it is not precompiled; this is the least-read load-bearing claim in the plan |
-| A NARchy-like core makes the LM **falsifiable** | argument, §3.6 | the no-LM core turns out inert, in which case §7 invariant 7 fails and the argument is void |
-| Rule acquisition is the **right** thing to add to NARS | thesis, §3.6 | Q3's experiment comes out negative against a no-inducer baseline |
+| `Memory` should be a **port** | NARchy's `Memory` is a port with 8 implementations (§2.1) | the ports cannot express what reasoning code actually needs, and the seam becomes a wrapper over the god-object |
+| Attention should have **one owner** | `PriTree` + a duration-derived commit (§2.2–2.3) | the ownership surface cannot be enumerated — a new writer appears and nothing fails |
+| Inference dispatch should be a **separate subsystem** | `deriver/reaction/compile/*` — **inferred from filenames, not read** (§11.3) | read the source and find it is not precompiled; the least-read claim in the plan |
+| A NARS-like core makes the layer **falsifiable** | argument, §3.6 | the no-provider core turns out inert — §7 invariant 7 fails and the argument is void |
+| Rule acquisition is the **right** thing to add to NARS | thesis, §0 | Q3's experiment comes out negative against a no-inducer baseline |
 
 ### 14.3 Unexamined — do not assume the plan is comprehensive
 
 The plan names **14 of the 47 directories** in `nar/src`: `facade`, `focus`, `game`, `kernel`,
 `lifecycle`, `lm`, `memory`, `reason`, `rules`, `self`, `state`, `strategies`, `tools`, `utils`.
 `nar/src` is 60 757 lines and 25% of it is `lm/`, which this plan deliberately does not examine
-beyond the boundary.
+beyond the boundary. **Thirty-three directories were not looked at.** They are neither presumed
+clean nor presumed broken. A session that finds itself editing one should treat that as new
+scope and say so.
 
-**Thirty-three directories were not looked at.** They are not presumed clean and not presumed
-broken. A session that finds itself editing one should treat that as new scope and say so, rather
-than assuming the diagnosis reaches it. The largest unexamined ones by size are `lm` (15 226),
-`game` (2 713), `cognitive` (2 342), `rules` (2 573), `kernel` (2 087) and `focus` (1 909) — of
-which only `rules` and `kernel` are touched, and only incidentally.
+**And one gap inside the examined set:** the NAL parity suites are `nal1`, `nal2`, `nal7`,
+`nal8` and `nal9`. There is no `nal3`–`nal6` file, and v1.3's repeated phrase "NAL1–8" was
+shorthand for a suite set that does not exist in that shape. §7 invariant 1 names the five
+files that do exist. Whether NAL3–6 are covered elsewhere, or are simply not tested, is
+unexamined — and if they are not, the parity claim is narrower than the plan's language has
+implied for several passes. **This is worth ten minutes and should be resolved before A6, not
+after.**
 
 ### 14.4 Known-broken, inherited, not this plan's
 
-Carry these so they are not rediscovered as if they were new:
-
-- **`docs/api/util.md` drifts from its generator** on the unmodified tree — pre-existing before
-  this work. `docs:drift` is therefore red independent of anything in §4, and
-  `tests/nar/todo20-docs.test.ts` may be the reason.
+- **`docs/api/util.md` drifts from its generator** on the unmodified tree, so `docs:drift` is
+  red independently of anything in §4.
 - **`test:load-sensitive` has a wall-clock assertion** (`todo16-batching`, "judgeBatch processes
-  64 queries in single joint pass", asserts < 50 ms) that fails under load and passes in
-  isolation. It is the smallest possible illustration of §10.1.
-- **`docs/api/nar.md` is regenerated** by this work's commits; `docs/api/util.md` was
-  deliberately left at its committed state.
+  64 queries in single joint pass", < 50 ms) that fails under load and passes in isolation. It
+  is the smallest possible illustration of §10.1, and this plan's decision to add no timing
+  assertions is partly a response to it.
+- **`docs/api/nar.md` is regenerated** by this work's commits; `docs/api/util.md` is left at
+  its committed state.
+
+---
 
 ## 15. Risk register, and what would make this plan wrong
 
-The plan has ten workstreams and one thesis. This is the list of ways it fails, so that a failure
-is recognised as information rather than as bad luck.
+This is the list of ways it fails, so that a failure is recognised as information rather than as
+bad luck.
 
 | risk | likelihood | signal that it is happening | response |
 |---|---|---|---|
-| **W3 makes things worse.** The attention index does not beat an O(N) scan at real working-set sizes, and RL quality drops | **medium** | the `cost:cycle` selection rows do not improve, or retrieval-order changes move the RL baselines by more than noise | the deletion list in §8 is reversible; restore `Memory.sample` and the field. The §8 named-deletions design exists for this |
-| **W5 breaks NAL parity.** Compiled dispatch derives something different | medium | the NAL1–8 tests move | W5 is gated on parity specifically, and NARchy's `deriver` is the reference. Stop and re-read before changing anything else |
-| **The thesis is negative.** NARS-plus-acquired-rules is *not* better | unknown, and unknowable from inside this repo | Q3's experiment does not exist, or comes out flat | the honest response is to build the experiment (§12 Q3) and publish the result either way. This is the risk that no amount of engineering removes |
-| **W1b is a swamp.** 36 files, and the LM reaches into core internals | medium | the diff stops being mechanical and starts having semantic content | W1b is deliberately after W1, so the `Proposal` interface is known. If it is still hard, take §12 Q8 (seventh package) early — a compiler error is a better boundary than a review convention |
-| **Cost gates make the suite unusable** | low-medium | `cost:cycle` starts failing on a loaded machine | §10's `bench:cycle` is a script and `cost:cycle` gates on *ratios and counts*, never on absolute milliseconds |
-| **The plan is measuring the wrong thing** | **already happened once** | §1.10: §1.9 and §5 were a profile of the fused system | fixed by the re-derivation step in §6. If W1b's profile inverts the workstream order *again*, the model in §3.1 is wrong and that is the finding |
+| **A1 is not the cheap change v2.0 believes.** The committed channel is wired in and something *else* turns out to reach the layer from the cycle | **medium** — the cycle path is `DefaultDerivation`, `RuleProcessor` and the tick bindings, and only part of it was traced | the in-cycle counter from A0 does not reach 0 after the wiring; `grep` for every layer import reachable from `applySyncRules` before assuming the call graph is small | widen A1 rather than declaring victory; the acceptance is a count, and the count is the arbiter |
+| **A2 is a swamp.** 39 files, and the layer reaches into core internals | medium | the diff stops being mechanical and starts having semantic content | A2 is deliberately after A1, so the `Proposal` interface is known. If it is still hard, take Q8 (seventh package) early — a compiler error is a better boundary than a review convention |
+| **A4 breaks NAL parity.** Attention order changes | medium | the NAL suites move | A4 is gated on parity, and its baselines are re-established in the same change so later drift is attributable |
+| **A4's write surface is unenforceable.** The "one owner" invariant is a comment | medium | a new external `priority` writer appears and no test fails | the enumerated write-surface test is the mitigation and must land with A4, not after |
+| **The thesis is negative.** NARS-plus-acquired-rules is *not* better | unknown, and unknowable from inside this repo | Q3's experiment does not exist, or comes out flat | build the experiment and publish the result either way. No amount of engineering removes this risk |
+| **The plan measures the wrong thing** | **already happened once** | v1.3's ordering came from a profile of the fused system | fixed by construction in v2.0: this document makes no ordering claims about cost, and TODO30 must re-profile before ordering anything |
+| **A5's ports become wrappers.** The split adds a layer without removing the god-object | medium | `Memory` keeps its responsibilities and a new interface forwards to it | A5's acceptance is that the cycle depends on ports; if `Memory` is still on the cycle path, it is not done |
+| **Deleting the drop-oldest policy is the wrong call** | low-medium | A3's overflow choice makes the queue starve a slow producer | it is a one-line change with a test, and it is reversible by design — which is the point of A3 being a decision rather than a default |
 
-**The kill criteria, stated plainly.** Two things would mean this plan is not the right plan: if
-**Q1** resolves to "the LM is genuinely an *online* learner" — the cycle cannot close, §3.1 is
-unenforceable and the whole cost model is moot. And if **§7 invariant 7** fails — the no-LM core
-turns out inert, which would mean the LM was load-bearing and §3.6's falsifiability argument was
-never true. Both are checkable before much is built, and both should be checked first.
+**The kill criteria, stated plainly.** Two things would mean this is not the right plan. If
+**Q1** resolves to "the induction layer is genuinely an *online* learner" — the cycle cannot
+close, §3.1 is unenforceable, and the whole architecture is moot. And if **§7 invariant 7**
+fails — the no-provider core turns out inert, which would mean the layer was load-bearing and
+§3.6's falsifiability argument was never true. Both are checkable before much is built, and both
+should be checked first.
