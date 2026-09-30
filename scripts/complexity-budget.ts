@@ -4,6 +4,14 @@
  *
  * Reads existing metrics (exports-audit, deps-gate, cloc, typecheck:bin, AIKR coverage)
  * and compares against checked-in baseline. Fails on regression.
+ *
+ * The baselines are ceilings, and a ceiling that is never lowered is not a
+ * ratchet — it is a number that was correct once. Both `productionLOC` and
+ * `depsGateRawChains` sat thousands of units above their measurements for
+ * several passes, so they could not have failed. The rule name is
+ * `mustNotIncrease` rather than `mustDecreaseOrJustify` because that is what
+ * the comparison does; the obligation to move the baseline is a commit-time
+ * one, and the failure message says so.
  */
 
 import { execSync } from 'node:child_process';
@@ -204,6 +212,8 @@ function main(): void {
     workspaceCount: countWorkspaces(),
   };
 
+
+
   let failed = false;
   const results: Array<{
     metric: string;
@@ -329,6 +339,11 @@ function main(): void {
   if (failed) {
     console.error(
       '\n✗ complexity-budget: REGRESSION DETECTED — one or more metrics exceeded baseline'
+    );
+    console.error(
+      '  A `mustNotIncrease` rule only ratchets if the baseline moves with it: when a\n' +
+        '  metric goes down, lower its baseline in the same commit. ' +
+        'complexity-budget.json is the ledger.'
     );
     process.exit(1);
   }
