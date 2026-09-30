@@ -4,7 +4,8 @@
 core, an explicit induction boundary, and owned state) · **Successor:** undetermined.
 
 **Status: planned, and blocked on TODO29.** Nothing here has landed, and nothing here should be
-started before TODO29's A2 and A3 are done. The reason is not politeness: every optimisation in
+started before TODO29's A2 and A3 are done — and §6 additionally waits on A6 and A10, because a
+dispatch structure measured against a static 55-rule table is not a result. The reason is not politeness: every optimisation in
 this document is applied *through* a seam, and the seams are the deliverable of the other plan.
 A cost model measured on a tree that still has a 646-line god-object and a model inside the
 cycle is a model of the wrong system — which is precisely the mistake TODO29 v1.3 made, and the
@@ -41,7 +42,10 @@ exist, the correct response is to finish TODO29, not to work around it:
 | A6 | `InferenceTable` (`lookup` / `dispatch`) | §6 chooses the implementation |
 | A7 | named budgets with declared overflow | §2's `k` bounds and §6's branch-factor budget |
 | A8 | declared resource lifecycle policies | §7 implements them, without changing the policy |
+| A10 | the rule set as loaded, versioned data | §6's dispatch structures are indexed by the same kind pairs, and the table becomes enumerable rather than a side effect — so the dispatch measurement finally has a stable key space |
 | A0 | the shared instrument (`scripts/cycle-bench.ts`) | §1 consumes it rather than building a second harness |
+| the corrected invariant (TODO29 §3.7) | a cycle completes when a point-profile call and a rule backend both never resolve | this plan measures the *wait* a model causes on a cycle path, because that — not the call — is the cost TODO29's gate bounds |
+| A11 | one optional model-reasoning port, consultable pipeline-wide | §1 measures the per-stage cost of a point-profile call, and §2 requires every cycle-path call site to declare its budget; a capability available everywhere is only as cheap as its cheapest call site |
 
 ---
 
@@ -63,7 +67,7 @@ Two sentences, because the second is the one that is easy to get wrong:
 ## 1. First: re-profile, and resolve the contradiction
 
 **Do not carry any ranking forward from TODO29 v1.3.** Its order was derived from a CPU profile
-of the fused system, and TODO29 §1.10 exists to say so.
+of the fused system, and TODO29 §1.12 exists to say so.
 
 ### 1.1 The profile that does not survive, kept for the record
 
@@ -112,7 +116,11 @@ Against the post-TODO29 tree, at several populations with a fixed logical worklo
 - wall time per cycle, and per phase;
 - concepts touched, premises considered, rule dispatches, rule applications;
 - derivations, admissions, evictions;
-- provider calls **outside** the cycle (and the in-cycle count, which must be 0);
+- provider calls, split by profile (§3.7): out-of-cycle open-profile requests, and in-cycle
+  point-profile calls with the **time waited**, per call site. The cycle may never depend on a
+  model's *answer*, but it may legitimately pay for one, and that wait is the quantity with a
+  budget. **Per call site**, because A11 makes the capability available everywhere and a single
+  aggregate would hide the one that is too slow;
 - allocations (objects and bytes) per cycle;
 - resident memory, and memory per resident concept.
 
@@ -280,28 +288,67 @@ query · candidate source · expected candidate bound · maintenance cost · sem
 
 ## 6. Dispatch: implement the port TODO29 defined
 
-TODO29 A6 defines `InferenceTable` and requires the `*:*` catch-all and the inert tie-break to
-be either specified-and-tested or deleted. This plan chooses the implementation from the
-measured workload: direct table, trie, DAG, generated dispatch, decision tree.
+TODO29 A6 defines `InferenceTable` and settles the two structural questions by measurement: the
+wildcard buckets go (all 55 registered rules declare a kind pair — TODO29 §1.8), and the inert
+tie-break is either made real or deleted. This section chooses the implementation from the
+measured workload.
 
-**Do not retain the current four-bucket union plus a full sort per memo miss because it is
-familiar.** 100 primaries × 5 secondaries is 500 rule applications per cycle, and
-`maxDerivationsPerStep` bounds the *output*, not the *work*.
+**The reference is winnowing, not compilation.** NARchy's reaction layer builds a **predicate
+trie that narrows the applicable rules for a given premise**, and evaluation stays interpreted —
+deeper bytecode compilation was available in its design space and deliberately not taken (TODO29
+§2.5, stated by its author). So codegen is off the table here, and that is a decision with a
+precedent rather than a lack of ambition. The consequence is that this section is *smaller* than
+it looked: SeNARS's existing `(leftKind, rightKind)` key **is a depth-1 predicate trie**, so the
+work is extending a key from two term kinds to a predicate shape, behind a port, gated on NAL
+parity.
+
+**Start from what the census already says.** The exact 2-tuple table has 55 entries and a hot
+cell of 21 (`inheritance:inheritance`), and the three wildcard lookups A6 removes were dead
+work. So measure in this order, and stop as soon as the answer is good enough:
+
+1. **Candidate count after winnowing**, per premise shape. This is the number that decides
+   everything else, and it is a count rather than a duration. If winnowing a predicate shape
+   leaves 4 candidates out of 55, the 2-tuple table plus a stable partial selection is the answer
+   and this section is finished — do not build a trie to solve a problem the count says you do
+   not have.
+2. **Only if the count stays large**: extend the key to a predicate shape — one more trie level
+   per structural feature (commutativity, product arity, variable presence), which is
+   incremental and reviewable.
+3. **Never**: generated dispatch, bytecode, or a decision tree over the rule set. There is no
+   measurement in this repository that asks for one, and NARchy's author considered deeper
+   compilation and did not need it.
+
+**Do not retain the full sort per memo miss because it is familiar.** 100 primaries × 5
+secondaries is 500 rule applications per cycle, and `maxDerivationsPerStep` bounds the *output*,
+not the *work*.
+
+**One thing to re-check after A10, because it invalidates a measurement:** the census in §1.1 is
+of a rule table that is registered by importing a module. Once the table is loaded data (A10), the
+rule set changes shape mid-experiment, candidate counts change, and any dispatch structure chosen
+against the static 55-rule table has to be re-validated against a growing one. That is a feature
+— a dispatch structure that only works at 55 rules was never going to be the answer — but it
+means §6 is not complete until it has been measured against a table that learned something.
 
 Measure: candidate count, matching work, dispatch time, rule application count. Add an explicit
 branch-factor budget with a named owner (TODO29 A7's overflow rule applies).
 
-**Two dependencies to be honest about.** NARchy's compilers are **inferred from filenames, not
-read** (TODO29 §11.3), so the claim that a compiled dispatch is available as a reference is
-unverified. And ADR-018's "no action needed" (§1.2) covered `rankDerivations`, not dispatch — so
-there is no prior measurement either way.
+**Two dependencies to be honest about.** The winnowing claim is **stated by NARchy's author and
+still not read from source** (TODO29 §11.3) — which is why the ordering above measures the
+candidate count first and lets that number, not the reference, decide. And ADR-018's "no action
+needed" (§1.2) covered `rankDerivations`, not dispatch, so there is no prior measurement here
+either way.
 
 **Acceptance**
 
 - no full candidate sort on the normal dispatch path;
 - rule applications per cycle are bounded by a named budget with a test;
 - NAL parity and the inference fixtures green, with rule ordering either preserved exactly or
-  recorded as an intentional semantic change **before** the change lands, not after.
+  recorded as an intentional semantic change **before** the change lands, not after;
+- the choice is justified by the **measured candidate count**, and the section stops at the
+  simplest structure the count supports;
+- no code generation was introduced, and if one ever is, it comes with a measurement that
+  winnowing cannot satisfy — the reference implementation's author considered deeper compilation
+  and did not need it (TODO29 §2.5).
 
 ---
 
@@ -527,7 +574,7 @@ table**, with its commit, before any optimisation begins.
 ### First pass (v1.0)
 
 - Created by splitting TODO29 v1.3 by architectural responsibility: the cost model, the
-  complexity targets, indexed retrieval, compiled dispatch, data-structure work and the cost
+  complexity targets, indexed retrieval, dispatch winnowing, data-structure work and the cost
   gates moved here; the boundary, the proposal protocol, state ownership, the ports and the
   lifecycle contracts stayed. **No ranking from the old profile is carried forward**, because
   that profile is of a system this plan's predecessor exists to change.
