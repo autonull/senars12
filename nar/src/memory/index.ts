@@ -1,6 +1,8 @@
 // Core memory structures
 
 // Bag/BoundedBag removed - use PriorityBag from @senars/nar/bag instead (unified AIKR substrate)
+export type { CoActivationEdge, ConceptGraphOptions } from './ConceptGraph.js';
+export { ConceptGraph } from './ConceptGraph.js';
 export type { ConceptTaskType } from './concept.js';
 export { Concept } from './concept.js';
 export { Focus } from './focus.js';

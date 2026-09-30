@@ -1,4 +1,4 @@
-import type { ConceptGraph } from '@senars/core/concept-graph';
+import type { ConceptGraph } from './ConceptGraph.js';
 import { clamp01, sortByDesc } from '@senars/util';
 import type { ResolvedBagSlot } from '../bag/registration';
 import { LINK } from '../constants.js';

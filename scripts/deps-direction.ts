@@ -34,8 +34,6 @@ const layerOf = (pkg: string): number => LAYERS.indexOf(pkg as (typeof LAYERS)[n
  * predate the gate; every one is a real inversion, not a permitted design.
  */
 const ALLOWED_UPWARD: Record<string, string> = {
-  'core -> io': 'core/memory/SessionManager.ts uses `createLedger`; the ledger belongs below memory.',
-  'core -> nar': "core/agent/index.ts re-exports nar's createCognitiveAgent, and core/concept-graph.ts uses `serializeTerm`.",
   'nar -> metta': 'nar/agent/index.ts constructs `MettaEngine` directly; the MeTTa engine seam should be injected.',
 };
 

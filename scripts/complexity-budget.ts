@@ -86,7 +86,7 @@ function countAppendOnlyPersistenceSites(): number {
 
     // Count bespoke fs.appendFile in production (excluding ledger implementation itself)
     const bespokeOut = execSync(
-      `grep -r "fs\\.appendFile\\|appendFileSync" --include="*.ts" nar/src core/src io/src metta/src util/src kernel/src 2>/dev/null | grep -v ".test.ts" | grep -v ".spec.ts" | grep -v "io/src/ledger" | wc -l`,
+      `grep -r "fs\\.appendFile\\|appendFileSync" --include="*.ts" nar/src core/src io/src metta/src util/src kernel/src 2>/dev/null | grep -v ".test.ts" | grep -v ".spec.ts" | grep -v "util/src/ledger" | wc -l`,
       {
         cwd: ROOT,
         encoding: 'utf-8',

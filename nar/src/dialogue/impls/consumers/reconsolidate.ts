@@ -6,7 +6,7 @@
  *
  * REFACTOR.todo4 Phase B: now backed by the generic `Ledger<T>` primitive.
  */
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io/ledger';
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/util/ledger';
 import { z } from 'zod';
 import type { Retrospective } from '../../types.js';
 import { extractLessons } from '../retrospect.js';

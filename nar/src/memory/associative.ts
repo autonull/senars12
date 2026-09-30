@@ -11,7 +11,7 @@
  * stays a one-way acyclic edge (same rule as `view.ts`).
  */
 
-import type { ConceptGraph } from '@senars/core/concept-graph';
+import type { ConceptGraph } from './ConceptGraph.js';
 import type { Layer } from './links/Layer.js';
 import type { LinkType } from './links/types.js';
 import type { Term } from '../terms/index.js';

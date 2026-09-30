@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { asBeliefTruth, clamp, makeId, pushCapped } from '@senars/util';
-import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
+import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import type { DerivationRecord, ReasoningBudget } from '@senars/core/derivation-schemas';
 import { z } from 'zod';
 import { PriorityBag } from '../bag/Bag.js';

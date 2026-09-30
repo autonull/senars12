@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
+import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import type { Episode } from '@senars/util';
 import {
   cachePath,

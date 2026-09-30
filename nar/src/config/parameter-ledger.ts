@@ -16,7 +16,7 @@ import {
   createLedger,
   type Ledger,
   type LedgerQuery,
-} from '@senars/io/ledger';
+} from '@senars/util/ledger';
 import { cachePath, mean } from '@senars/util';
 import { z } from 'zod';
 

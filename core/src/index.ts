@@ -88,7 +88,6 @@ export {
   type ThreadStatus,
 } from './cognitive-thread.js';
 export type { CommandContext, CommandDefinition, CommandHandler } from './command-types.js';
-export { type CoActivationEdge, ConceptGraph, type ConceptGraphOptions } from './concept-graph.js';
 /**
  * @deprecated Use `import type { ConfigView, ConfigEvent, ConfigSchema } from '@senars/util/config'` instead.
  */

@@ -80,10 +80,6 @@
       "types": "./src/cortex/index.ts",
       "import": "./src/cortex/index.ts"
     },
-    "./concept-graph": {
-      "types": "./src/concept-graph.ts",
-      "import": "./src/concept-graph.ts"
-    },
     "./derivation-schemas": {
       "types": "./src/derivation-schemas.ts",
       "import": "./src/derivation-schemas.ts"

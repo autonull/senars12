@@ -8,7 +8,7 @@ import {
   createLedger,
   type Ledger,
   type RolloverPolicyOptions,
-} from '@senars/io/ledger';
+} from '@senars/util/ledger';
 import type { SelfImprovementProposal } from '@senars/core/derivation-schemas';
 import { z } from 'zod';
 

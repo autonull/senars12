@@ -15,7 +15,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/io';
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/util/ledger';
 import { EpisodeSchema } from '@senars/nar/memory/EpisodicMemory.js';
 
 describe('Bench 96 — Ledger<T> primitive', () => {
@@ -330,7 +330,7 @@ describe('Bench 96 — Ledger<T> primitive', () => {
     it('rule-builders → rule-templates chain is broken', async () => {
       // This is verified by running `pnpm deps:gate` and checking the count
       // The test here ensures the ledger import doesn't create new cycles
-      const { Ledger: LedgerImport } = await import('@senars/io');
+      const { Ledger: LedgerImport } = await import('@senars/util/ledger');
       expect(LedgerImport).toBeDefined();
     });
   });

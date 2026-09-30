@@ -23,10 +23,6 @@
     "./utils/http": {
       "types": "./src/utils/http.ts",
       "import": "./src/utils/http.ts"
-    },
-    "./ledger": {
-      "types": "./src/ledger.ts",
-      "import": "./src/ledger.ts"
     }
   },
   "scripts": {

@@ -2,7 +2,7 @@ import { describe, test, expect } from 'vitest';
 import { Memory } from '../../nar/src/memory';
 import { atom, TermBuilder, Stamp, Truth, type Term } from '../../nar/src';
 import { LinkManager } from '../../nar/src/memory/links';
-import { ConceptGraph } from '@senars/core/concept-graph';
+import { ConceptGraph } from '@senars/nar/memory';
 
 function time(name: string, iterations: number, fn: (i: number) => void): number {
   for (let i = 0; i < Math.min(100, iterations); i++) fn(i);

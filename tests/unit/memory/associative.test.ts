@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ConceptGraph } from '../../../core/src/concept-graph';
+import { ConceptGraph } from '../../../nar/src/memory/ConceptGraph.js';
 import { AssociativeRegistry, GraphMemory } from '../../../nar/src/memory/associative.js';
 import { Layer, LinkManager } from '../../../nar/src/memory/links';
 import { LINK_LAYER } from '../../../nar/src/memory/links/types.js';

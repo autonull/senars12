@@ -3,7 +3,7 @@ import {
   createLedger,
   type Ledger,
   type LedgerQuery,
-} from '@senars/io/ledger';
+} from '@senars/util/ledger';
 import type {
   Episode,
   EpisodeFilter,

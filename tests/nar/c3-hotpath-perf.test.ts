@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll } from 'vitest';
 import { Memory } from '../../nar/src/memory';
 import { atom, TermBuilder, Stamp, Truth, type Term, type TruthType } from '../../nar/src';
 import { LinkManager } from '../../nar/src/memory/links';
-import { ConceptGraph } from '@senars/core/concept-graph';
+import { ConceptGraph } from '@senars/nar/memory';
 import { rankDerivations } from '../../nar/src/rules/impls/ranking.js';
 import { InferenceController } from '../../nar/src/reason/inference-controller.js';
 import { RuleProcessor } from '../../nar/src/rules/impls/processor.js';

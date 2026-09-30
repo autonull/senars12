@@ -1,5 +1,5 @@
 import { createLogger } from '@senars/core/logger';
-import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
+import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { cachePath, roundTo } from '@senars/util';
 import { z } from 'zod';
 import { buildDefaults, type CognitiveParameters } from '../config/cognitive-parameters.js';

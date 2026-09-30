@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
+import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { sortBy } from '@senars/util';
 import { z } from 'zod';
 import { termsEqual } from '../../terms';

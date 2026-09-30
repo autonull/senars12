@@ -4,8 +4,8 @@
  */
 
 import { BoundedMap, selectTopN } from '@senars/util';
-import type { Term } from '@senars/nar/terms';
-import { serializeTerm } from '@senars/nar/terms';
+import type { Term } from '../terms/index.js';
+import { serializeTerm } from '../terms/index.js';
 
 interface ConceptNode {
   term: Term;

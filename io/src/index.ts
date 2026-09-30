@@ -74,14 +74,3 @@ export {
   subscribeToEvents,
   unsubscribeFromEvents,
 } from './utils/websocket.js';
-
-/** Generic append-only ledger primitive (REFACTOR.todo4 Phase B). @public */
-export {
-  Ledger,
-  createLedger,
-  BaseLedgerEntrySchema,
-  type BaseLedgerEntry,
-  type LedgerConfig,
-  type LedgerQuery,
-  type RolloverPolicy,
-} from './ledger.js';

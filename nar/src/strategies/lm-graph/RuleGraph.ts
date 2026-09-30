@@ -10,7 +10,7 @@ const EWMA_WEIGHT = 9;
  */
 
 import { clamp01, weightedMean } from '@senars/util';
-import { ConceptGraph, type CoActivationEdge } from '@senars/core/concept-graph';
+import { ConceptGraph, type CoActivationEdge } from '../../memory/ConceptGraph.js';
 import { singleton, type StrategyRegistry } from '../registration.js';
 import type {
   ComponentMetadata,

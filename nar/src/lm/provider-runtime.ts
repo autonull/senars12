@@ -8,7 +8,7 @@
 
 import { join } from 'node:path';
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
-import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/io/ledger';
+import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { type LMTask, utcDate } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
