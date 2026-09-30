@@ -144,6 +144,8 @@
 
 ## `./agent`
 
+- `createMettaPort`
+
 - `MettaEngine`
 
 - `LLM_COMMANDS`

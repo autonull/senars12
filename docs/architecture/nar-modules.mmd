@@ -4,13 +4,16 @@ graph TD
   bag["bag"]
   capability["capability"]
   cognitive["cognitive"]
-  cognitive_analyzers["cognitive/analyzers"]
+  cognitive_impls["cognitive/impls"]
+  cognitive_impls_analyzers["cognitive/impls/analyzers"]
   commands["commands"]
   config["config"]
   cooperation["cooperation"]
   dialogue["dialogue"]
-  dialogue_consumers["dialogue/consumers"]
+  dialogue_impls["dialogue/impls"]
+  dialogue_impls_consumers["dialogue/impls/consumers"]
   drives["drives"]
+  drives_impls["drives/impls"]
   engine["engine"]
   errors["errors"]
   eval["eval"]
@@ -23,6 +26,7 @@ graph TD
   governance["governance"]
   health["health"]
   imagination["imagination"]
+  imagination_impls["imagination/impls"]
   kernel["kernel"]
   learning["learning"]
   lifecycle["lifecycle"]
@@ -52,10 +56,12 @@ graph TD
   reason_strategies["reason/strategies"]
   reflex["reflex"]
   rl["rl"]
-  rl_adapters["rl/adapters"]
+  rl_impls["rl/impls"]
+  rl_impls_adapters["rl/impls/adapters"]
   rlfp["rlfp"]
   rules["rules"]
   rules_extended["rules/extended"]
+  rules_impls["rules/impls"]
   rules_nal["rules/nal"]
   self["self"]
   state["state"]
@@ -70,10 +76,12 @@ graph TD
   task["task"]
   telemetry["telemetry"]
   terms["terms"]
+  terms_impls["terms/impls"]
   tick["tick"]
   tools["tools"]
   tools_adapters["tools/adapters"]
   tools_adapters_self["tools/adapters/self"]
+  tools_impls["tools/impls"]
   types["types"]
   utils["utils"]
   _ --> bag
@@ -96,13 +104,15 @@ graph TD
   _ --> reason
   _ --> reflex
   _ --> rules
+  _ --> rules_impls
   _ --> self
   _ --> task
   _ --> terms
+  _ --> terms_impls
   _ --> types
   _ --> utils
   agent --> _
-  agent --> cognitive
+  agent --> cognitive_impls
   agent --> config
   agent --> engine
   agent --> errors
@@ -118,38 +128,48 @@ graph TD
   bag --> utils
   capability --> tools
   capability --> utils
-  cognitive --> cognitive_analyzers
-  cognitive --> config
-  cognitive --> metrics
-  cognitive --> reason
-  cognitive --> self
+  cognitive --> cognitive_impls
   cognitive --> strategies
-  cognitive --> strategies_attention
-  cognitive --> strategies_lm-graph
-  cognitive --> strategies_lm-selectors
-  cognitive --> strategies_premise
-  cognitive --> strategies_sampling
-  cognitive --> types
-  cognitive --> utils
-  cognitive_analyzers --> cognitive
-  cognitive_analyzers --> lm
-  cognitive_analyzers --> lm_grammars
-  cognitive_analyzers --> self
-  cognitive_analyzers --> terms
-  cognitive_analyzers --> utils
+  cognitive_impls --> cognitive
+  cognitive_impls --> cognitive_impls_analyzers
+  cognitive_impls --> config
+  cognitive_impls --> metrics
+  cognitive_impls --> reason
+  cognitive_impls --> self
+  cognitive_impls --> strategies
+  cognitive_impls --> strategies_attention
+  cognitive_impls --> strategies_lm-graph
+  cognitive_impls --> strategies_lm-selectors
+  cognitive_impls --> strategies_premise
+  cognitive_impls --> strategies_sampling
+  cognitive_impls --> types
+  cognitive_impls --> utils
+  cognitive_impls_analyzers --> cognitive
+  cognitive_impls_analyzers --> cognitive_impls
+  cognitive_impls_analyzers --> lm
+  cognitive_impls_analyzers --> lm_grammars
+  cognitive_impls_analyzers --> self
+  cognitive_impls_analyzers --> terms
+  cognitive_impls_analyzers --> utils
   commands --> _
   commands --> memory
   commands --> self
   cooperation --> lm_system-one
-  dialogue --> dialogue_consumers
+  dialogue --> dialogue_impls
+  dialogue --> dialogue_impls_consumers
   dialogue --> lm_system-one
-  dialogue --> memory
-  dialogue_consumers --> config
-  dialogue_consumers --> dialogue
-  dialogue_consumers --> strategies
-  drives --> kernel
-  drives --> terms
-  drives --> types
+  dialogue_impls --> dialogue
+  dialogue_impls --> lm_system-one
+  dialogue_impls --> memory
+  dialogue_impls_consumers --> config
+  dialogue_impls_consumers --> dialogue
+  dialogue_impls_consumers --> dialogue_impls
+  dialogue_impls_consumers --> strategies
+  drives --> drives_impls
+  drives_impls --> drives
+  drives_impls --> kernel
+  drives_impls --> terms_impls
+  drives_impls --> types
   engine --> _
   engine --> events
   engine --> memory
@@ -208,17 +228,23 @@ graph TD
   gates --> game
   gates --> reflex
   gates --> terms
+  gates --> terms_impls
   gates --> types
   governance --> focus
   governance --> game_impls
   governance --> rlfp
   health --> focus
   health --> kernel
-  imagination --> _
-  imagination --> terms
+  imagination --> imagination_impls
+  imagination --> terms_impls
   imagination --> types
-  imagination --> utils
-  kernel --> cognitive
+  imagination_impls --> _
+  imagination_impls --> imagination
+  imagination_impls --> terms
+  imagination_impls --> terms_impls
+  imagination_impls --> types
+  imagination_impls --> utils
+  kernel --> cognitive_impls
   kernel --> config
   kernel --> memory
   kernel --> memory_state
@@ -253,7 +279,7 @@ graph TD
   lm_providers --> memory
   lm_providers --> metrics
   lm_rule --> lm
-  lm_rule --> terms
+  lm_rule --> terms_impls
   lm_rule --> types
   lm_rule-selectors --> lm
   lm_rule-selectors --> lm_rule-templates
@@ -275,7 +301,7 @@ graph TD
   lm_system-one --> memory
   lm_system-one --> metrics
   lm_system-one --> reflex
-  lm_system-one --> terms
+  lm_system-one --> terms_impls
   lm_system-one --> types
   lm_system-one --> utils
   lm_system-one_heads --> lm_system-one
@@ -290,12 +316,14 @@ graph TD
   memory --> strategies
   memory --> strategies_attention
   memory --> terms
+  memory --> terms_impls
   memory --> types
   memory --> utils
   memory_lifecycle --> _
   memory_lifecycle --> memory
   memory_lifecycle --> memory_pressure
   memory_lifecycle --> terms
+  memory_lifecycle --> terms_impls
   memory_links --> memory
   memory_links --> types
   memory_links --> utils
@@ -310,6 +338,7 @@ graph TD
   meta --> learning
   meta --> reflex
   meta --> terms
+  meta --> terms_impls
   meta --> types
   metrics --> types
   nl --> _
@@ -336,33 +365,40 @@ graph TD
   reflex --> otel
   reflex --> types
   reflex --> utils
-  rl --> _
-  rl --> drives
   rl --> game
-  rl --> rl_adapters
-  rl --> types
-  rl --> utils
-  rl_adapters --> _
-  rl_adapters --> rl
-  rl_adapters --> terms
-  rl_adapters --> types
-  rl_adapters --> utils
+  rl --> rl_impls
+  rl --> rl_impls_adapters
+  rl_impls --> _
+  rl_impls --> drives_impls
+  rl_impls --> types
+  rl_impls --> utils
+  rl_impls_adapters --> _
+  rl_impls_adapters --> rl_impls
+  rl_impls_adapters --> terms
+  rl_impls_adapters --> types
+  rl_impls_adapters --> utils
   rlfp --> config
   rlfp --> types
   rlfp --> utils
-  rules --> cognitive
-  rules --> kernel
-  rules --> lm_rule
-  rules --> memory
-  rules --> rules_extended
-  rules --> rules_nal
-  rules --> strategies
-  rules --> terms
-  rules --> utils
+  rules --> rules_impls
   rules_extended --> rules
+  rules_extended --> rules_impls
   rules_extended --> rules_nal
+  rules_impls --> cognitive_impls
+  rules_impls --> kernel
+  rules_impls --> lm_rule
+  rules_impls --> memory
+  rules_impls --> rules
+  rules_impls --> rules_extended
+  rules_impls --> rules_nal
+  rules_impls --> strategies
+  rules_impls --> terms
+  rules_impls --> terms_impls
+  rules_impls --> utils
   rules_nal --> rules
+  rules_nal --> rules_impls
   self --> cognitive
+  self --> cognitive_impls
   self --> imagination
   self --> lm_service
   self --> memory
@@ -387,6 +423,7 @@ graph TD
   strategies_derivation --> types
   strategies_derivation --> utils
   strategies_lm-graph --> lm
+  strategies_lm-graph --> memory
   strategies_lm-graph --> strategies
   strategies_lm-graph --> terms
   strategies_lm-graph --> utils
@@ -396,13 +433,13 @@ graph TD
   strategies_premise --> memory
   strategies_premise --> memory_links
   strategies_premise --> strategies
-  strategies_premise --> terms
+  strategies_premise --> terms_impls
   strategies_sampling --> memory
   strategies_sampling --> strategies
   strategies_sampling --> types
   strategies_sampling --> utils
   stream --> kernel
-  stream --> terms
+  stream --> terms_impls
   stream --> tick
   stream --> types
   stream --> utils
@@ -411,28 +448,33 @@ graph TD
   task --> types
   telemetry --> metrics
   telemetry --> otel
-  terms --> memory_lifecycle
-  terms --> types
+  terms --> terms_impls
+  terms_impls --> memory_lifecycle
+  terms_impls --> terms
+  terms_impls --> types
   tick --> otel
   tick --> stream
   tick --> terms
   tick --> types
-  tools --> _
-  tools --> types
-  tools --> utils
+  tools --> tools_impls
   tools_adapters --> capability
   tools_adapters --> memory
   tools_adapters --> nl
   tools_adapters --> tools_adapters_self
   tools_adapters --> utils
   tools_adapters_self --> _
-  tools_adapters_self --> cognitive
+  tools_adapters_self --> cognitive_impls
   tools_adapters_self --> config
   tools_adapters_self --> rlfp
-  tools_adapters_self --> rules
-  tools_adapters_self --> tools
+  tools_adapters_self --> rules_impls
   tools_adapters_self --> tools_adapters
+  tools_adapters_self --> tools_impls
   tools_adapters_self --> utils
+  tools_impls --> _
+  tools_impls --> tools
+  tools_impls --> types
+  tools_impls --> utils
   types --> terms
+  types --> terms_impls
   types --> utils
   utils --> types

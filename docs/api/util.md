@@ -659,3 +659,23 @@
 - `Throttle`
 
 - `createThrottle`
+
+## `./ledger`
+
+- `BaseLedgerEntrySchema` — Ledger entry schema — all entries carry a timestamp and correlation context.
+
+- `BaseLedgerEntry`
+
+- `RolloverPolicy` — Rotation/rollover policy — parameterized from EpisodicMemory's load-bearing behavior.
+
+- `RolloverPolicyOptions` — Factory options for rollover policy (all optional, defaults applied).
+
+- `LedgerQuery` — Query filter for ledger entries.
+
+- `LedgerConfig` — Ledger configuration.
+
+- `CreateLedgerOptions` — Factory options for createLedger (excludes basePath and schema which are separate params).
+
+- `Ledger` — Generic append-only ledger with JSONL backing, rotation, retention, and in-memory hot cache.
+
+- `createLedger` — Convenience factory for common ledger shapes.

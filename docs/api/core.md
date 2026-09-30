@@ -42,12 +42,6 @@
 
 - `type ThreadStatus`
 
-- `type CoActivationEdge`
-
-- `ConceptGraph`
-
-- `type ConceptGraphOptions`
-
 - `ConfigViewImpl`
 
 - `CONNECTION_COLORS` — Color coding for WebSocket connection states.
@@ -444,16 +438,6 @@ _Re-export barrel._
 
 - `abortSession`
 
-- `createCognitiveAgent`
-
-- `type CognitiveAgent`
-
-- `type CognitiveAgentConfig`
-
-- `type CognitiveAgentPreset`
-
-- `type AnswerEnvelope`
-
 ## `./agent/*`
 
 _Dynamic subpath (no single entry file)._
@@ -523,6 +507,10 @@ _Re-export barrel._
 ## `./bridge/chat-stream-handler`
 
 - `aggregateChatResponse`
+
+## `./metta-port`
+
+- `MettaPort`
 
 ## `./memory`
 
@@ -611,16 +599,6 @@ _Re-export barrel._
 - `LLMCortex`
 
 - `type PromptBuilder`
-
-## `./concept-graph`
-
-- `CoActivationEdge`
-
-- `ConceptGraphOptions`
-
-- `ConceptGraph`
-
-- `SerializedConceptGraph`
 
 ## `./derivation-schemas`
 

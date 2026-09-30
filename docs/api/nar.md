@@ -314,7 +314,7 @@ _Dynamic subpath (no single entry file)._
 
 - `AnytimeDerivation`
 
-- `CompositeAttention`
+- `CompositeAttention` — A weighted *mean* of its members, not a sum.
 
 - `DefaultDerivation`
 
@@ -328,7 +328,7 @@ _Dynamic subpath (no single entry file)._
 
 - `GoalRelevanceAttention`
 
-- `NullAttentionModel`
+- `NullAttentionModel` — The absence of attention, not a registered strategy.
 
 - `NoveltySampling`
 
@@ -352,13 +352,13 @@ _Dynamic subpath (no single entry file)._
 
 - `CognitiveRegistry`
 
-- `createDefaultRegistry`
+- `createDefaultRegistry` — A registry with every built-in registration loaded.
 
-- `resolveSlot`
+- `resolveSlot` — Resolve one slot of a parameter graph to its instance. The single read path
 
-- `SLOT_KEY`
+- `SLOT_KEY` — The slot's config key: `lmRule` in a parameter graph, `lm-rule` in the
 
-## `./cognitive/corrections`
+## `./cognitive/impls/analyzers/corrections`
 
 - `attemptLMCorrection` — Bidirectional correction: when a contradiction is traceable to an LLM
 
@@ -433,6 +433,8 @@ _Dynamic subpath (no single entry file)._
 - `mergeParameters`
 
 - `sameStrategies` — Per-slot strategy change detection — avoids serializing the whole strategy graph to compare it.
+
+- `readCognitiveParams` — Parse a run's parameter file, the way `tune-runner` writes one.
 
 ## `./engine`
 
@@ -566,6 +568,72 @@ _Dynamic subpath (no single entry file)._
 
 - `KNOB_SET_VALUES`
 
+- `ASK_LM`
+
+- `CLARIFY`
+
+- `CONSOLIDATE`
+
+- `CYCLE` — C3: seed actions. `cycle`/`revise`/`rest` are tier-0 reflex; manifold
+
+- `DEFAULT_ACTIONS`
+
+- `REST`
+
+- `REVISE`
+
+- `SPAWN_SUBGOAL`
+
+- `actionsForTier` — Tier filtering: a tier-N context only offers actions with tier ≤ N.
+
+- `tuneAction`
+
+- `AMBIGUITY_REDUCTION_REWARD`
+
+- `CONSOLIDATION_REWARD`
+
+- `DEFAULT_REWARDS`
+
+- `GROUNDEDNESS_REWARD` — C4: seed rewards, firewall-classified. `extrinsic` rewards flow to
+
+- `SPEND_EFFICIENCY_REWARD`
+
+- `TASK_SETTLED_REWARD`
+
+- `VETO_PENALTY`
+
+- `composeReward` — Weighted reward composition; weights are game parameters.
+
+- `BagPressureSensor` — C2-S1: capacity pressure + utilization from memory statistics.
+
+- `DEFAULT_SENSORS`
+
+- `DerivationBacklogSensor` — C2-S3: derivation backlog from the focus step report.
+
+- `GovernanceQueueSensor` — C2-S7: governance queue depth (validation + approval).
+
+- `HeadHealthSensor` — C2-S5: head health via status-report adapter.
+
+- `SpendSensor` — C2-S6: token spend from the step outcome.
+
+- `TaskTypeMixSensor` — C2-S2: task/demographic mix from aggregate statistics (low/medium/high priority).
+
+- `VetoHandoverRateSensor` — C2-S4: veto + handover telemetry.
+
+- `ActionRegistry`
+
+- `ComponentRegistry` — C1: component registries. Named, seeded, addressable; games compose specs
+
+- `RewardRegistry`
+
+- `SensorRegistry`
+
+- `createCognitionRegistries`
+
+- `clamp01`
+
+- `failClosed`
+
 ## `./health`
 
 - `HealthCheckDeps` — O3 (TODO20): shared readiness checks. Consumed by the HTTP `/health/ready`
@@ -596,7 +664,33 @@ _Dynamic subpath (no single entry file)._
 
 ## `./dialogue`
 
-_Re-export barrel._
+- `DialogueCapture` — TODO24: the single fan-out point of the Dialogue Flywheel. One instance per
+
+- `sha256`
+
+- `DialogueTextStore` — I6 relaxation sidecar (TODO24): raw exchange text for opted-in sessions.
+
+- `inferReactionFromUtterance` — Infer the reaction the utterance implies toward the previous turn, or
+
+- `RetrospectiveAdapter`
+
+- `selectProbes`
+
+- `Reconsolidator`
+
+- `digestPin`
+
+- `extractLessons` — Lesson extraction (DQ4): a lesson requires ≥2 supporting turns, a
+
+- `loadRetrospectives`
+
+- `persistRetrospective` — Digest-pinned JSONL persistence; load is fail-closed (cf. FrozenEvalSet).
+
+- `retrospect` — TODO24 Phase C: session-level diagnostic aggregation over captured dialogue
+
+- `REACTION_KINDS`
+
+- `emptyReactionDistribution`
 
 ## `./lm`
 
@@ -840,6 +934,8 @@ _Re-export barrel._
 
 ## `./memory`
 
+- `ConceptGraph`
+
 - `Concept`
 
 - `Focus`
@@ -938,6 +1034,44 @@ _Re-export barrel._
 
 - `NLGenerationService`
 
+- `AmbiguitySchema`
+
+- `AnalogySchema`
+
+- `BeliefRevisionSchema`
+
+- `ClarificationSchema`
+
+- `ConceptElaborationSchema`
+
+- `CoreferenceSchema`
+
+- `ExplanationSchema`
+
+- `GenerationOutputSchema`
+
+- `GoalDecompositionSchema`
+
+- `HypothesisSchema`
+
+- `MetaReasoningSchema`
+
+- `NarseseBeliefSchema`
+
+- `QuestionGenerationSchema`
+
+- `SchemaInductionSchema`
+
+- `TaskBatchSchema`
+
+- `TemporalCausalSchema`
+
+- `TranslationSchema`
+
+- `UncertaintySchema`
+
+- `VariableGroundingSchema`
+
 - `detectAmbiguityFlags`
 
 - `locateSpan`
@@ -1030,15 +1164,15 @@ _Re-export barrel._
 
 - `inferRuleCategory`
 
+- `RuleIndex`
+
+- `RuleRegistry`
+
 - `NALExtendedRules`
 
 - `NALRules`
 
 - `createRulePattern`
-
-- `RuleIndex`
-
-- `RuleRegistry`
 
 ## `./self`
 
