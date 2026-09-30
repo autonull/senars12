@@ -25,10 +25,11 @@ that shipped carry a **landed** marker and a note saying what the tree actually 
 
 Three of the four items were cheap. Two were not what they looked like:
 
-- **§8.9 was not a benchmark wearing a unit test's clothes — it was a timeout that was never
-  a timeout.** `{ timeout: 30000 }` was passed as vitest's *second* argument, where the
-  signature wants `(name, fn, timeout)`. It was silently ignored, so the 15 s default applied
-  to a test that takes ~19 s. The test was failing in isolation, on its own machine.
+- **§8.9 was not a benchmark wearing a unit test's clothes — one of its two `Level 2` cases had
+  no timeout at all**, and sat on vitest's 15 s global default while taking ~19 s. It failed in
+  isolation, on this machine, which is why the plan had recorded it as load-dependent. Its
+  sibling *did* declare `{ timeout: 30000 }`, and that declaration was honoured — which is why
+  the file read as one flaky file rather than one marginal test and one missing option.
 - **§8.7 was a decision, and the answer was that the ratchet had never ratcheted.**
   `productionLOC` sat 2 415 lines above its measurement and `depsGateRawChains` sat 252 chains
   above, so neither could have failed in any pass of this plan. Both are now at their
@@ -551,7 +552,7 @@ Every gate green, run by `pnpm gates`: `typecheck`, `typecheck:bin`, `lint`, `de
 | Commit | § | Item |
 |---|---|---|
 | `b69dd06d` | 8.8, 8.10 | Six `utils/` shims deleted and 89 files repointed; `pnpm gates` added, and it found two gates `ci.yml` was not running |
-| `43e46818` | 8.9 | The bandit parity test's `{ timeout: 30000 }` was vitest's second argument — a timeout that was never applied |
+| `43e46818` | 8.9 | One `Level 2` case in the bandit parity test had no timeout at all and sat on the 15 s default; both now declare 90 s |
 | `36311c0b` | 8.7 | The `productionLOC` and `depsGateRawChains` baselines were slack ceilings; both now sit at their measurements |
 
 ### §8.10: the list that checks the checklist
@@ -1078,31 +1079,41 @@ costs sit inside the loop: `g.term.toString()` runs per pending goal per step, a
 `bestAction.toString()` twice more per step — real serialisation in the hot path, though
 fixing it perturbs what the test spends its time measuring.
 
-**Landed, and the diagnosis was wrong in a way that made it worse.** The plan read the 30 s
-timeout as a benchmark that outgrew its budget. It is a **timeout that was never a timeout**:
+**Landed, and the diagnosis was a misreading of vitest's signature — corrected here because
+the wrong version is more interesting-sounding and would mislead the next reader.** The plan
+read the 30 s timeout as a benchmark that outgrew its budget. The first fix claimed the
+`{ timeout: 30000 }` was in vitest's *second* argument, where the signature wants
+`(name, fn, timeout)`, and was therefore "silently ignored". **That is wrong.** vitest
+overloads the second position for exactly this:
 
 ```ts
-test('Level 2 native SeNARS across multiple seeds', { timeout: 30000 }, async () => {
+interface TestCollectorCallable<C = object> {
+  <ExtraContext extends C>(name, fn?: TestFunction, options?: number): void;
+  <ExtraContext extends C>(name, options?: TestCollectorOptions, fn?: TestFunction): void;
+}
 ```
 
-vitest's signature is `test(name, fn, timeout)`. The options object was the *second*
-argument, where it is not read at all — so the 15 s default applied to a test that takes
-~19 s. §8.9 recorded the failure as load-dependent because it was observed under load; it
-fails **in isolation, on its own machine**, which is why it was described as pre-existing and
-green in the isolated tier. The second `Level 2` case, at line 96, had the same defect with no
-timeout object at all, and the plan did not name it.
+Verified against `vitest@5.0.0`'s own `.d.ts`, and confirmed empirically: a probe test with a
+16 s body and `{ timeout: 30_000 }` in second position passes. The original `{ timeout: 30000 }`
+was honoured, and 30 s is genuinely not enough for a test that runs 4 500 episodes.
 
-So: no bench job, no tier change. Both cases pass `90_000` as the third argument, which is
-above the observed ~19 s with headroom for a loaded box. The loop cost went too — the arm
-index now comes from a `Map` over the three action terms rather than a regex over a
+**So the real defect was the one §8.9 half-saw and the plan did not name**: the *other*
+`Level 2` case, at line 96, had **no timeout at all** and sits on vitest's 15 s default while
+taking ~19 s. That is the test that failed, in isolation, on this machine — and it is why the
+failure looked like flakiness rather than a missing declaration. Both cases now pass `90_000`
+as the third argument; the first case's omission is the whole bug. The loop cost went too —
+the arm index now comes from a `Map` over the three action terms rather than a regex over a
 serialised term, three times per step across 400 episodes.
 
-**The lesson is §7.2's one level down.** A test that asserts wall-clock time is asserting
-about the machine, and the machine is not part of the contract. But the deeper failure is that
-**a mistyped argument is silent**: nothing in the runner says "I did not understand your
-options object", so the file sat at the default for however long it had been there, passing
-whenever it was fast enough and failing when it was not, which reads exactly like flakiness.
-Every other timeout in the tree should be checked for the same shape.
+**What survives, and it is the smaller point:** a 30 s ceiling on a ~19 s test is
+load-dependent by construction — it passes alone and crosses 30 s under the tier's own load,
+which is exactly the "passes in isolation" pattern the plan recorded and could not explain.
+The reason it was unexplainable is that the other test in the file was failing for a wholly
+different reason, on the same machine, at the same time. Two failures in one file read as one
+flaky file. Before blaming a timeout for being too tight, check whether the *neighbouring*
+test has a timeout at all.
+
+The `armOf` change is unaffected by any of this and stands on its own.
 
 ### 8.10 There is no single command that runs every gate
 
@@ -1151,29 +1162,33 @@ compiler API** (`require('typescript')` returns `{version, versionMajorMinor}`) 
 `typescript-eslint` refuses to run against it. A lexical question needed a lexical answer,
 and `typescript@7`'s removal of the compiler API is the surprising part.
 
-### 8.12 Every other `{ timeout: N }` in the tree is suspect — and nothing checks the shape
+### 8.12 A 15 s default is not a timeout you wrote — and vitest will not tell you
 
-Surfaced by §8.9. vitest's `test(name, fn, timeout)` takes the timeout as the **third**
-argument; an options object in the second position is read as the function body and silently
-discarded. So a mistyped timeout is not a failure — it is the default, and the file passes
-whenever the machine is fast enough, which is indistinguishable from flakiness.
+Surfaced by §8.9, and the generalisation is the opposite of the one I first drew. §8.9's
+actual defect was a test with **no** timeout declaration, silently on the 15 s default. There
+is no warning for it: nothing at declaration time, nothing at run time, and the failure reads
+as a timeout rather than as a missing option.
 
-`tests/nar/rl/parity/bandit-epsilon-greedy.test.ts` had it in one place and a case with no
-timeout at all in another, and neither was noticed for as long as the file has been there.
-The audit is mechanical: `grep -n "test(.*{ *timeout" tests/` and check each against the
-signature. The gate that would keep it fixed is one line in a vitest setup file — assert
-that no call passes a non-function second argument — but vitest exposes no hook for
-"a test was declared", so the honest version is a lint rule or a source scan over the test
-tree. Cheap, and it is the same class as §8.11's: a question the tooling can answer
-lexically.
+Twelve `{ timeout: N }` sites exist in the test tree and **all twelve are the valid
+options-object form** — `refactor4-budget.test.ts` (10), `todo16c-cache.test.ts`,
+`stress-boundary.test.ts` — and vitest honours every one. So the shape is not the hazard. The
+hazard is the **absence**: `grep -rn "^\s*\(it\|test\)(" tests/` and ask which declarations
+have no timeout and no enclosing one, then compare each against what it costs.
 
-The wider point is worth more than the timeout. **Every gate in this repository that cannot
-fail has now been found by reading its source rather than by tripping it** — §4.3's
-accumulator metric, §4.2's direction gate, §8.7's two ceilings, §8.10's two missing CI
-steps, and now this. That is five, across three passes, and none of them was caught by
-running the gate. The pattern is that a check whose failure mode is *silent* is a check
-nobody suspects, and the fix in each case was the same: make the assertion explicit enough
-that passing it means the thing it names.
+Two things make that worth doing rather than leaving:
+
+- The default is a **global** (`testTimeout`, currently 15 s) that nobody thinks about when
+  adding a test, and it is silently correct for almost all of them. The file-level `describe`
+  timeouts (`parity-restoration`, `budgetgate-verification`) are the other way to declare it,
+  so a test can inherit from three places and none of them are at the call.
+- A test whose runtime is within a factor of two of its timeout is **load-dependent by
+  construction**, and the file it shares with another such test will look like one flaky file
+  rather than two marginal ones — which is exactly how §8.9's misdiagnosis happened.
+
+The gate shape is small: over `tests/`, find `it`/`test` declarations whose nearest enclosing
+`testTimeout`/`{timeout}` exceeds ~3× a measured or declared duration. The measurement is the
+awkward part, so the cheap first cut is lexical — flag any heavy test file (one that
+constructs a `NAR`) with no timeout declared at either level.
 
 ### 8.13 `docs/architecture` encodes an import graph that goes stale quietly
 

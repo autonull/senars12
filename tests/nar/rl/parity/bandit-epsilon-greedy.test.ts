@@ -165,7 +165,7 @@ describe('RL Parity - Bandit Epsilon-Greedy @load-sensitive', () => {
         const { reward, terminal } = env.step(selectedAction);
 
         // Update beliefs
-      const stateTerm = TermBuilder.atom('bandit_state');
+        const stateTerm = TermBuilder.atom('bandit_state');
         const actionTerm = TermBuilder.atom(`^pull_arm_${selectedAction}`);
         await rewardAdapter.processReward(stateTerm, actionTerm, reward);
 
