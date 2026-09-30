@@ -1,6 +1,6 @@
 # TODO29: Runtime — the cycle's cost model, and the retrieval engine underneath it
 
-**Version:** 1.0 (2026-09-30) · **Predecessor:** TODO28 (phases A–P; structure, the package graph, the
+**Version:** 1.1 (2026-09-30) · **Predecessor:** TODO28 (phases A–P; structure, the package graph, the
 barrels, the gate list), which closed the structural axis and left the runtime. TODO28's own §4.4
 declined to shrink `nar.ts` and §7.11 closed with "what is left" one line long. This is the other
 axis: not what the tree looks like, but what a cycle costs and why.
@@ -8,15 +8,48 @@ axis: not what the tree looks like, but what a cycle costs and why.
 **Status: open.** Nothing here has landed. §1 is the diagnosis and it is measured, not asserted —
 every number in it comes from a CPU profile of the inference loop or a counter run against the
 live engine, and the commands are in §11 so the numbers can be re-derived rather than trusted.
-§2 is the reference architecture. §3 is the target. §4 is the work.
+§2 is the reference architecture. §3 is the target. §4 is the work. §12 is the set of questions a
+fresh session should resolve before it starts.
 
-> **A fresh session should read §1.1 and §4/W0 first.** The one-line version: SeNARS is a
-> *retrieval system that reasons*, and the retrieval half is a linear scan with a re-computed
-> score. NARchy — and OpenNARS before it — is a *reasoner with an index*, where retrieval is a
-> table lookup and attention is a maintained order rather than a field that nineteen places write.
-> Nothing about the NAL has to change to get there. Everything in §4 is a data-structure and
-> ownership change, not a semantics change — with exactly one deliberate exception, §4/W1, which
-> is called out as such because it moves learned values.
+> **A fresh session should read §1.1, §1.10 and §4/W0 first.**
+
+### What the second pass added
+
+v1.0 was written from a profile of the tree as it stands, and diagnosed it as an architecture
+problem. That diagnosis was half right and half misaimed, and the correction is the most useful
+thing in this document.
+
+**The Stream Reasoner — LM asynchronous, reasoner synchronous — was the intended design.** §1's
+worst findings are not evidence against it. They are evidence that **nothing in the repository can
+tell you when the implementation stops being it.** The intent lives in prose; the gates measure
+something else; the closure invariant has no test. So this is not a rearchitecture, it is the
+mechanisation of a design that was already correct — which is a much cheaper programme, and the
+one §4/W1 now leads with.
+
+Three consequences, and the plan is different because of them:
+
+- **New §1.10** — which of the eight findings survive the split, and which do not. The contract
+  violations are architecture-independent and stand. **The profile shares and the §5 predictions
+  are measurements of a system in the wrong state, and must be retaken after W1.** Optimising
+  against them is how you spend a month making the wrong thing fast.
+- **New §3.4 and §4/W1** — the online/offline split, as the spine of §3 rather than one
+  workstream among ten, and as the first thing built after instrumentation.
+- **New §4.1** — the questions the async design will actually be decided by (backpressure, commit
+  semantics, cancellation, and how it survives `test:hermetic`), written down before they are
+  answered by accident.
+- **New §10.1** — the intent-to-gate ledger. Three architectural intents in this repository are
+  prose, one is a string check, and one is mechanical. The pattern generalises past this plan.
+
+Workstreams shift: W0 stays, the old W1–W9 are now W2–W10.
+
+### v1.0's framing, for the record
+
+The one-line version: SeNARS is a *retrieval system that reasons*, and the retrieval half is a
+linear scan with a re-computed score. NARchy — and OpenNARS before it — is a *reasoner with an
+index*, where retrieval is a table lookup and attention is a maintained order rather than a field
+that nineteen places write. Nothing about the NAL has to change to get there. Almost everything in
+§4 is a data-structure and ownership change, not a semantics change — with exactly one deliberate
+exception, §4/W2, which is called out as such because it moves learned values.
 
 ---
 
@@ -89,7 +122,7 @@ the §11.1 benchmark that is ~9 × 3 635 priority writes and ~9 × 3 635 scoring
 times over a single 300-step rollout.
 
 `decayAll`'s three call sites are `sample`, `sampleWindow` and `consolidate` (`memory.ts:355, 371,
-389`). Only the third is a clock tick. Moving the other two to the cycle boundary is W1.
+389`). Only the third is a clock tick. Moving the other two to the cycle boundary is W2.
 
 The coupling is not incidental. The premise *source* decides how many decay passes happen, and the
 premise source is chosen by configuration:
@@ -245,19 +278,51 @@ compute once. All three are in the same 40 lines.
 
 | share | site | verdict |
 |---|---|---|
-| 17.1% | `TermCollection` iterator, from `selectTopN`/`decayAll`/`forEachConcept` | §1.1, §1.2 — partly landed as a sweep change, the rest is §4/W2 |
+| 17.1% | `TermCollection` iterator, from `selectTopN`/`decayAll`/`forEachConcept` | §1.1, §1.2 — partly landed as a sweep change, the rest is §4/W3 |
 | 12.0% | `get priority` (`concept.ts:90`) | §1.6 — 19 writers, inlined into 3 call sites |
 | 8.9% | `RegExp /\((\w+)\s+-->\s+(\w+)\)/` | landed — now `bareInheritancePair` |
 | 6.8% | `nar-io.ts` relevance scan callback | landed |
 | 4.4% | `SimpleAttention.decay` | §1.1 |
 | 4.2% | `MemoryScorer.scoreFor` | §1.3 — allocation removed, collapse not |
-| 4.0% | `BoundedMap.#reinsert` (via `LruCache` for the term interner) | §4/W8 |
-| 2.4% | `selectTopN` | §4/W8 |
+| 4.0% | `BoundedMap.#reinsert` (via `LruCache` for the term interner) | §4/W9 |
+| 2.4% | `selectTopN` | §4/W9 |
 | 2.6% | GC | |
 
 The landed column is the two commits of 2026-09-30: the sweep is now index-based and the regex is
 gone, which is worth ~14% on the rollout. Everything in the right-hand "§4" column is the
 remaining ~20%, and the ceiling it addresses is the 9× multiplier, not the constant factors.
+
+### 1.10 Which of these survive the split
+
+v1.0 profiled a tree in which the LM sits inside the cycle, so it is worth being explicit about
+which findings are properties of the *design* and which are properties of that particular failure
+to reach it. This matters because §5 is a prediction table and §1.9 is a profile: if they
+are measurements of the wrong state, optimising against them is how a month goes missing.
+
+| § | finding | survives the split? | why |
+|---|---|---|---|
+| 1.1 | decay rate is `rate × min(sampleSize, N)` | **yes** | nothing about an LM causes a read path to mutate the heap. The LM makes it expensive, not wrong |
+| 1.2 | every memory read is a full scan | **yes** | and the split *removes one of the callers* — `processLMRulesImpl:393` — rather than adding one |
+| 1.3 | the scorer is decorative | **yes** | no caller ever passed the inputs; the split does not create one |
+| 1.4 | eviction measures the wrong resource | **yes** | independent of reasoning architecture |
+| 1.5 | `getGoals()` mints a stamp per call | **yes** | a getter that fabricates identity |
+| 1.6 | nineteen writers on `priority` | **partly** | the meta / self-optimiser / LM writers leave with the split; the input-path, replay and deserialisation writers do not |
+| 1.7 | the growth arithmetic | **yes** | every structure named there is on a path the split leaves running |
+| 1.8 | frozen `stepScalars` | **no — resolved by the split** | it exists because LM context needed O(N)+2-sorts 500× a cycle. With the LM out, the memo has no reason to exist and the shadowed `resetMetaBudget` can simply be deleted rather than fixed |
+| 1.9 | the profile shares | **no — retake** | a profile of the fused system. Its *ranking* is probably right and its *magnitudes* are not |
+| 5 | the prediction table | **no — retake** | same, and the workstream order in §6 is derived from it |
+
+Counting: of the eight findings in §1.1–§1.8, **seven stand regardless of the split** and the
+eighth (§1.8) is *resolved* by it rather than needing a fix of its own. §1.9 is a profile, not a
+finding, and it does not survive. So the two items in this document that are purely symptoms of
+the failed split are both downstream of the split itself.
+
+That is a materially better position than v1.0 implied, and it changes what the plan *is*: not a
+redesign, but the mechanisation of a design that was already chosen, plus the repair of a
+retrieval substrate that was never the LM's fault in the first place.
+
+The practical instruction is in §6: **build W1, then re-run `bench:cycle` and re-derive the order.**
+W0 exists so that this is possible.
 
 ---
 
@@ -285,8 +350,8 @@ Those live in `concept/` (beliefs), `focus/` (attention), `control/` (control), 
 (inference). Eight implementations ship: `MapMemory`, `SimpleMemory`, `CaffeineMemory`,
 `RadixTreeMemory`, `TierMemory`, `FSMemory`, `HijackMemory`, `ProxyMemory`, `NullMemory`.
 
-SeNARS's `Memory` is one class, 646 lines, and it is the *only* one. Making it a port is W3; it is
-what allows W2, W4 and W7 to be tested without standing up a NAR.
+SeNARS's `Memory` is one class, 646 lines, and it is the *only* one. Making it a port is W4; it is
+what allows W3, W5 and W8 to be tested without standing up a NAR.
 
 ### 2.2 Attention is a maintained order, not a field
 
@@ -369,7 +434,7 @@ extra machinery is what is costing the time.
 One sentence: **no operation on a cycle path may be O(population); every cycle-path operation is
 O(1) or O(log n) in the live working set.**
 
-That is checkable, and §4/W9 makes it a gate. Concretely, for a cycle over a working set of `k`
+That is checkable, and §4/W10 makes it a gate. Concretely, for a cycle over a working set of `k`
 concepts in a memory of `N`:
 
 | operation | now | target |
@@ -413,12 +478,63 @@ input ──▶ attention.touch(term)            O(1)          replaces the O(N)
 
 One owner per quantity, one cadence per clock, one write path per fact.
 
+### 3.4 The spine: the Stream Reasoner, and the seam it runs through
+
+The cycle above has no LM in it, and that is the point. The Stream Reasoner is the reason the
+cycle can be closed, and closing it is what makes every row of §3.1 enforceable. The cycle in
+§3.3 is already the intended architecture; §4/W1 is the work of making the tree match it.
+
+```
+                       ┌──────────────────────────────────────────┐
+   input ──▶ gate ──▶  │  ONLINE REASONER — closed, bounded, sync  │
+                       │  deterministic · no LM · no I/O · no wall │
+                       │  clock · O(1)/O(log n) per operation       │
+                       └───────────────┬──────────────────────────┘
+                                       │ commits only
+                                       ▼
+                            ┌─────────────────────┐
+                            │  THE SEAM           │  versioned · diffable
+                            │  reaction table     │  validated · revertable
+                            │  abstractions       │  gated
+                            └──────────┬──────────┘
+                                       │ proposes
+                                       ▼
+                       ┌──────────────────────────────────────────┐
+   un-committed ──────▶│  OFFLINE INDUCER — the LM, out of band   │
+   derivations          │  bounded queue · own budget · no cycle   │
+                        │  participation · every output a proposal │
+                       └──────────────────────────────────────────┘
+```
+
+Three properties fall out of drawing it this way, and each is a test:
+
+1. **The online reasoner completes even if the LM never answers.** This is the single most
+   valuable test in the whole plan, it costs one line, and it is what would have caught §1.8 on
+   day one: inject an LM that never resolves, call `run()`, assert the cycle still finishes. If it
+   doesn't, the LM is in the cycle. No profiler, no cost model, no architecture review required.
+2. **The seam is the only channel.** The reasoner reads committed artifacts and nothing else. This
+   is what makes an inducer output *reviewable like a schema migration* rather than deployable only
+   as code — and NARchy's rules are code, so this is the axis on which SeNARS is meant to be
+   better, not merely different.
+3. **The split buys the improvement NARchy cannot have, not just the discipline.** NARchy assumes
+   a fixed rule set forever; NAL1–8 is small and hand-written and cannot learn a new inference form
+   from experience. Here the rule set is the primary learnable artifact — grown, gated, versioned.
+   That is the thesis. Everything else in this document is the cost of being able to state it.
+
+What the seam does **not** do: it does not let the reasoner read the inducer's intermediate state,
+and it does not let a proposal land mid-cycle. A proposal applies at a declared boundary — the
+next consolidation, or the next episode — or not at all. §4.1 is where that boundary is decided
+rather than discovered.
+
 ---
 
 ## 4. The work
 
-Nine workstreams. **W0 first and separately** — it is the harness that decides whether the rest
-worked, and landing it before anything else is what keeps this plan falsifiable.
+Ten workstreams. **W0 first and separately** — it is the harness that decides whether the rest
+worked, and landing it before anything else is what keeps this plan falsifiable. **W1 second,
+alone** — it is the split the design always intended, and it is what makes the rest of the cost
+model enforceable. §1.10 explains why it also invalidates the workstream order below, which is
+why §6 puts a profile re-derivation between W1 and W2.
 
 ### W0 — Make the cycle measurable, before changing it
 
@@ -438,7 +554,51 @@ prints ns/op. Neither answers "what does a cycle cost as memory grows".
 report is what every later acceptance is measured against.
 **Risk:** none. Pure instrumentation.
 
-### W1 — Stop read paths from mutating the heap
+### W1 — Close the cycle: the Stream Reasoner split
+
+*The design was already this. This workstream makes the tree match it, and puts a test where the
+intent used to be a comment.*
+
+Nothing in §1.8 and none of the `cpuThrottleMs` / `maxRulesPerCycle` / `callTimeoutMs` /
+`Promise.all` machinery in the LM path is a design decision — it is the cost of an LM living
+inside a cycle that is supposed to close in microseconds. `inferenceController.step(5000, …)` is a
+five-second deadline on a step whose unbudgeted cost should be tens of microseconds. That is the
+tell, and it is measurable today.
+
+- `applySyncRules` stops calling `processLMRules` (`DefaultDerivation.ts:26`). The cycle does not
+  call the LM.
+- `processLMRulesImpl` becomes a **proposal producer**, reached from the cycle boundary at most
+  once per consolidation, writing to a bounded queue. `await Promise.all` over up to five model
+  calls per rule application goes away entirely.
+- The proposal artifact is defined before any machinery is built (§4.1). It is data, versioned,
+  and validated at the seam.
+- §1.8's `stepScalars` memo and the shadowed `resetMetaBudget` at
+  `nar-execution.ts:76`/`:116`/`:179`/`:368` are **deleted**, not fixed — with the LM out of the
+  cycle there is no reason for the memo to exist.
+- `cpuThrottleMs` and `callTimeoutMs` lose their reason to exist. Decide whether they go or
+  become properties of the *offline* pass; do not leave them bounding a cycle that no longer
+  contains the thing they were written for.
+
+**Acceptance, in order of how cheap they are to check:**
+
+1. **A test that injects an LM which never resolves, calls `run()`, and asserts the cycle
+   finishes.** One line, no profiler, and it is the test that would have caught §1.8 on day one.
+   It goes in **failing-first**, like §4/W10's.
+2. `run()` performs zero LM invocations, asserted with a call counter on the LM port.
+3. `run()`'s wall time is independent of whether an LM is configured or what it returns.
+4. A proposal that arrives is applied at a declared boundary, or not at all — never mid-cycle.
+
+**Risk: medium, and the only workstream that changes reasoning behaviour** — not because the
+derivations change, but because the *timing* of when rules exist changes, so the derivation
+*sequence* over a fixed episode changes. This is a different kind of change from W2: W2 moves
+learned values, W1 moves ordering. W1 does not touch truth revision, so the NAL parity tests are
+the gate and should hold.
+
+**Do not** fold W1 in with W2. Two behaviour changes in one commit is how the first one of them
+becomes unreviewable, and W1's whole value is that it is independently verifiable by a one-line
+test.
+
+### W2 — Stop read paths from mutating the heap
 
 *The one deliberate behaviour change in this plan.* Everything else is a data structure.
 
@@ -454,11 +614,11 @@ report is what every later acceptance is measured against.
 re-established **here, once**, and committed — the rest of the plan must then hold them stable.
 **Risk: high, and confined to this workstream.** Every learned value moves. This is why it is
 first and alone: it is the only change that needs the baselines regenerated, and doing it before
-W2 means W2–W8 are measured against a settled reference.
-**Do not** fold W1 in with anything else. A behaviour change disguised as a refactor is
+W3 means W3–W9 are measured against a settled reference.
+**Do not** fold W2 in with anything else. A behaviour change disguised as a refactor is
 unreviewable.
 
-### W2 — Attention becomes an index, not a field
+### W3 — Attention becomes an index, not a field
 
 - Introduce `AttentionIndex`. `Concept.priority` stops being writable by nineteen places and
   becomes owned by the index, with typed touches: `PrimeInput`, `PrimeRelated`, `Decay`,
@@ -477,11 +637,11 @@ unreviewable.
 **Acceptance:** zero O(population) work on the cycle path except the attention commit, which is
 O(k) on a timer; `bench:cycle` shows cycles/sec flat from 10³ to 10⁵ concepts. The nineteen
 writers are seven named operations.
-**Risk: medium.** Retrieval order changes, so RL results move — but W1 already re-established
+**Risk: medium.** Retrieval order changes, so RL results move — but W2 already re-established
 them, so the delta here is attributable and must be small. If it is not small, the scorer decision
 in this workstream is wrong and that is the finding.
 
-### W3 — `Memory` becomes a port
+### W4 — `Memory` becomes a port
 
 Split the 646 lines along the responsibilities already listed in §1.2: storage → `ConceptStore`,
 per-concept beliefs → `BeliefTable`, links → `LinkStore`, statistics → `Statistics`. Two
@@ -492,7 +652,7 @@ double; the other six NARchy has are not the point.
 their store directly and run in milliseconds.
 **Risk: low.** Mechanical, and the boundary is already implied by `MemoryView` (`memory/view.ts`).
 
-### W4 — The premise source stops being a scan
+### W5 — The premise source stops being a scan
 
 - `PREMISE_SOURCES.bag` resolves premises through the index — the task's own symbols first
   (`memory-index.ts` already has `queryBySymbol`), then the link layers — and never enumerates.
@@ -505,9 +665,9 @@ their store directly and run in milliseconds.
 **Acceptance:** every premise source is O(1 + k); no source enumerates the population;
 `graph` and `links` — the two that exist to be the default — are reachable without opting out of
 the `bag` source's scan.
-**Risk: medium.** Premise sets change, so derivations change. Bounded by W1's baselines.
+**Risk: medium.** Premise sets change, so derivations change. Bounded by W2's baselines.
 
-### W5 — Inference dispatch becomes a table
+### W6 — Inference dispatch becomes a table
 
 - `RuleIndex.candidatesFor` loses the `*:*` catch-all and the per-miss full sort. Reactions are
   keyed by `(antecedentKind, consequentKind)` and their bodies precompiled, in the shape of
@@ -523,7 +683,7 @@ test or gone.
 **Risk: medium-high.** This touches inference semantics. NAL1–8 parity is the gate and must not
 move.
 
-### W6 — The control loop gets a budget
+### W7 — The control loop gets a budget
 
 `nar-execution.ts:184-379` runs twenty-one steps per cycle, including two O(N) `getGoals()` calls
 (`:417` in `emitCognitiveStateSummary`, `:455` in `injectMetaGoals`), an O(N)-plus-two-sorts
@@ -544,7 +704,7 @@ implementation.
 **Risk: low-medium.** Behaviour is "steps stop running by default", which is a visible change to
 whatever was depending on the free behaviour.
 
-### W7 — Bounded is bounded
+### W8 — Bounded is bounded
 
 - Retention becomes policy (recency × frequency) rather than a capacity constant, so a
   high-traffic concept and an abandoned one are not treated the same way.
@@ -554,12 +714,12 @@ whatever was depending on the free behaviour.
   must be able to age out while holding tasks, ranked by age × value, and eviction must be able to
   report that it could not free anything rather than returning a silent zero.
 - The accumulator ledger grows from 2 sites to the 42 bounded containers in production, and the
-  textual `LruCache`/`maxSize` check is replaced by a detection rule that can fail (§4/W9).
+  textual `LruCache`/`maxSize` check is replaced by a detection rule that can fail (§4/W10).
 
 **Acceptance:** memory pressure is monotonically related to every bounded resource; a memory at
 99% with no evictable concept reports that, rather than reporting success.
 
-### W8 — Retrieval structures stop degrading to scans
+### W9 — Retrieval structures stop degrading to scans
 
 Each of these was measured in §1.7 and is a one-line structural fix:
 
@@ -575,7 +735,7 @@ Each of these was measured in §1.7 and is a one-line structural fix:
 **Acceptance:** every structure named in the table has a test that fails on the current
 implementation, then passes.
 
-### W9 — The gate learns to see cost
+### W10 — The gate learns to see cost
 
 The budget currently audits 2 of 42 bounded containers and decides boundedness by grepping the
 source for `LruCache` and `maxSize` — a string check, so renaming the class passes. `dpdm` is
@@ -595,11 +755,62 @@ test, and it is written first, failing, before the rule exists.
 
 ---
 
+### 4.1 The questions W1 will be decided by
+
+The split is easy to half-do. These are the decisions that a half-done split defers, listed so
+that they get answered deliberately rather than by whoever happens to touch the queue first. Each
+is a real fork with real consequences, and none of them has an obvious default.
+
+**What is the unit of asynchronous work?** A proposal over what scope — one derivation, one
+consolidation window, one episode? This determines what an inducer can usefully do, and it is the
+question most worth answering before writing the schema. If the unit is too small the LM is
+prompted into trivia; too large and its latency becomes the wall.
+
+**What triggers the inducer?** Not a rate — a *trigger*. Three candidates, and they are not
+mutually exclusive: a budget of un-committed derivations has accumulated; a consolidation interval
+elapsed; or a salience signal fired. Whichever it is, express the balance as **cycles per
+proposal**, which makes it measurable and gateable. "Run the LM every N seconds" is not a
+contract; "one proposal per 10 000 cycles of un-committed derivations, dropping the oldest when
+full" is.
+
+**What is the backpressure policy when the queue fills?** The LM is slower than the reasoner by
+orders of magnitude, so a bounded queue will fill. Drop-oldest is wrong — it drops stale *context*.
+Drop-lowest-confidence needs a confidence the proposal format must then carry. Drop-newest is
+simplest and probably right initially. **This cannot be left implicit**: a queue with no policy is
+an unbounded queue with extra steps.
+
+**What happens to a proposal that arrives referencing evicted concepts?** The memory evicts
+(W8/W3); the inducer's input is a past state; the seam validates. The question is whether
+validation *rejects* the proposal or *salvages* what still resolves. Rejecting is simpler and
+more honest. Say so before the first eviction bug.
+
+**What happens when the reasoner has moved on?** Is a stale proposal still applicable? If
+applicability is "at the next consolidation boundary", staleness is bounded and irrelevant. If it
+is "whenever", you have reintroduced coupling. **This is the decision that determines whether the
+cycle is actually closed**, and it belongs in the schema, not in a comment.
+
+**How does the hermetic run survive this?** A background model call is ambient entropy by
+definition, and the repository already has `test:hermetic` and `test:determinism` gates plus a
+`--cognitive-params` replay facility for exactly this class of problem. Three options, and it must
+be one of them, decided now: the inducer is **disabled** under hermetic/determinism runs; its
+proposals are **recorded and replayed** as a fixture; or the gate is **weakened**, which should
+require writing down why. The default that happens by accident is that the gates get skipped, and
+the gates being skipped is how §1.8 survived.
+
+**Is the LM a dependency or a component?** If it is a dependency — the system cannot run without
+it — then no deterministic core is possible, the whole cost model in §3.1 is moot, and the gates
+in §10 cannot exist. If it is a component, the answer to the question above is "disabled under
+hermetic runs". **This one is upstream of all the others** and belongs in §12.
+
+---
+
 ## 5. What this is expected to buy
 
-Predictions, to be measured by W0's harness, not promised:
+Predictions, to be measured by W0's harness, not promised. **The "measured now" column is a
+profile of the fused system and does not survive W1** (§1.10) — treat it as the baseline to beat,
+not as the expected shape afterwards.
 
-| | measured now | predicted after W1–W4 |
+| | measured now, fused | predicted after W2–W5 |
 |---|---|---|
 | `decayAll` per cycle | 9.0 | 0 on read paths; 1 on the commit timer |
 | `memory.sample` per cycle | 8.8 | 0 (index-driven top-k) |
@@ -613,32 +824,42 @@ Predictions, to be measured by W0's harness, not promised:
 The rollout number is the one to watch. If it does not flatten as N grows, the cost model in §3.1
 is wrong and the work is not done — which is the point of having written it down.
 
+**One row is missing and it is the important one: `LM invocations per cycle`, measured at up to
+2 500 (500 rule applications × 5 rules) and predicted at 0.** That is the row that says the
+Stream Reasoner exists, and it is a count rather than a duration, so it is cheap and exact.
+
 ---
 
 ## 6. Sequencing
 
 ```
-W0 ──┬─▶ W1 ──▶ W2 ──┬─▶ W4 ──▶ W5
-     │              └─▶ W3
-     └─▶ W9 (independent, can run any time after W0)
-W6, W7, W8 depend on W0 only; W8 is independent of W1–W5.
+W0 ──▶ W1 ──▶ [re-profile] ──┬─▶ W2 ──▶ W3 ──┬─▶ W5 ──▶ W6
+                             │              └─▶ W4
+                             └─▶ W10 (independent, any time after W0)
+W7, W8, W9 depend on W0 only; W9 is independent of W2–W6.
 ```
 
 - **W0** alone, first. Everything else is measured against it.
-- **W1** alone, second, with the RL baselines re-established and committed in the same change.
-- **W3** can land any time after W0; it is mechanical and it is what makes W2/W4 testable in
+- **W1** alone, second, and alone for the same reason as W2: each is a behaviour change and each
+  must be independently reviewable. W1's acceptance is a one-line test, which makes it the
+  cheapest behaviour change in the plan.
+- **Re-profile between W1 and W2.** Not optional. §1.10 argues that the workstream order below was
+  derived from a profile of the wrong architecture; taking it at face value optimises the wrong
+  thing. W0's harness exists so this costs one command.
+- **W2** alone, third, with the RL baselines re-established and committed in the same change.
+- **W4** can land any time after W0; it is mechanical and it is what makes W3/W5 testable in
   milliseconds rather than through a NAR.
-- **W2 → W4 → W5** is the substantive sequence: index, then retrieval, then dispatch.
-- **W6, W7, W8** are independent and can be interleaved or deferred without blocking anything.
+- **W3 → W5 → W6** is the substantive sequence: index, then retrieval, then dispatch.
+- **W7, W8, W9** are independent and can be interleaved or deferred without blocking anything.
 
-Land W3 before W2 if the test time is the binding constraint; land W2 before W3 if correctness is.
-Either order works, which is the point of W3 existing.
+Land W4 before W3 if the test time is the binding constraint; land W3 before W4 if correctness is.
+Either order works, which is the point of W4 existing.
 
 ---
 
 ## 7. Invariants that must not move
 
-1. **NAL1–8 parity.** Nothing in §4 changes what is derived from what. W5 touches dispatch and
+1. **NAL1–8 parity.** Nothing in §4 changes what is derived from what. W6 touches dispatch and
    must be gated on the NAL tests, not on a rewrite of them.
 2. **Determinism.** `test:determinism` and `test:hermetic` green at every commit, as today.
 3. **`test:load-sensitive` green under full load.** The three load-sensitive files exist because
@@ -656,26 +877,31 @@ Either order works, which is the point of W3 existing.
 
 Named, so the plan is falsifiable by diff:
 
-- `MemoryScorer`'s `novelty` and `relevance` factors, or the whole class (W2's decision).
+- `MemoryScorer`'s `novelty` and `relevance` factors, or the whole class (W3's decision).
 - `PREMISE_SOURCES.concepts`, `NoveltySampling`, `DiverseSampling` — all three enumerate the
   population to then discard it.
 - The `*:*` bucket in `RuleIndex.candidatesFor`, and its per-miss sort.
-- `RuleIndex.hitStats` and the tie-break, unless W5 makes them real.
-- `RuleProcessor.stepMemoryScalars`' permanent memo (W6).
-- `Stamp.createInput()` from any getter (W1).
-- `selectTopN`'s O(n·k) insertion path (W8).
+- `RuleIndex.hitStats` and the tie-break, unless W6 makes them real.
+- `RuleProcessor.stepMemoryScalars`' permanent memo (W7).
+- `Stamp.createInput()` from any getter (W2).
+- `selectTopN`'s O(n·k) insertion path (W9).
 - `Concept.linkedConcepts` / `subConcepts` / `parentConcepts`, and with them
-  `SpreadingActivation.prime`, `Concept.updateLinks`, `findOrphanedLinks` — unless W2 populates
-  them (W2).
-- `Memory.sample` and `Memory.sampleWindow` (W2).
-- By-score eviction in `BoundedMap` (W8).
-- The `activationDecayRate`-is-also-a-sample-count coupling (W1).
+  `SpreadingActivation.prime`, `Concept.updateLinks`, `findOrphanedLinks` — unless W3 populates
+  them (W3).
+- `Memory.sample` and `Memory.sampleWindow` (W3).
+- By-score eviction in `BoundedMap` (W9).
+- The `activationDecayRate`-is-also-a-sample-count coupling (W2).
+- `processLMRulesImpl`'s `await Promise.all` over model calls, from the cycle path (W1).
+- `RuleProcessor.stepScalars` and `RuleProcessor.resetMetaBudget` — deleted, not fixed (W1).
+- The shadowed `resetMetaBudget` on the `ruleProcessor` port and `NARExecution` (W1).
 
 ## 9. Not doing
 
-- **The `lm/` subsystem is not a target.** 15 226 lines, 25% of `nar/src`, and the largest
-  directory in the tree. It is where §1.8's frozen context lives, and W6 fixes that one line.
-  Rearchitecting the LM layer is a separate plan with a different question.
+- **The `lm/` subsystem is not a target beyond W1.** 15 226 lines, 25% of `nar/src`, and the
+  largest directory in the tree. W1 changes *where it is called from* and deletes two lines of it;
+  it does not restyle it. The rule templates and the adapters are real work and stay. Making the
+  LM layer fast is a separate plan with a different question — and the right time to ask it is
+  after W1, when its cost is no longer hidden inside a cycle.
 - **The game and RL focus subsystems are not targets.** `game/` (2 713) and `focus/` (1 909) are
   an agent-side apparatus, not the reasoning core, and they are the only reason several of these
   APIs are shaped the way they are. Touching them makes the core changes harder to land.
@@ -692,9 +918,45 @@ Named, so the plan is falsifiable by diff:
 New, and wired into `pnpm gates`:
 
 - `cost:cycle` — runs `bench:cycle`, fails if any cycle-path operation is declared O(1)/O(log n)
-  and measures otherwise. This is §3.1 as a ratchet, and it is the gate that makes W9's
+  and measures otherwise. This is §3.1 as a ratchet, and it is the gate that makes W10's
   accumulator work unnecessary to trust.
 - `bench:cycle` joins the `slow` tier.
+
+### 10.1 The intent-to-gate ledger
+
+The pattern that produced §1.8 and most of §1 is not specific to the LM, and it generalises past
+this plan. It is: **an architectural intent lives in a doc comment, and nothing in the build can
+tell you when the code stops implementing it.** Three of the four gates in this repository are in
+that state, and the fourth is the only reason any of them work.
+
+| architectural intent | where it is stated | is it mechanical? | what makes it so |
+|---|---|---|---|
+| The Stream Reasoner — LM async, reasoner sync | design intent; `cpuThrottleMs` implies the opposite | **no** | W1's hanging-LM test |
+| Decay has one owner, on one cadence | nowhere | **no** | W2: count `decayAll` call sites |
+| Attention has one owner | nowhere; 19 writers | **no** | W3: seven named operations |
+| Every bounded container is bounded | `scripts/lib/accumulator-ledger.ts` | **partly** — a *string* check over 2 of 42 sites | W10: a detection rule, and a failing test first |
+| NAL1–8 parity | the NAL tests | **yes** | already works |
+| Cost model: no O(population) on a cycle path | nowhere | **no** | W0 + W10's `cost:cycle` |
+
+The rule this suggests, and the one worth taking from this pass even if none of §4 lands:
+
+> **A gate ships with a test that proves it can fail, written before the gate exists.**
+
+Every ratchet in this repository was set *above* its measurement — `productionLOC: 71 333`
+against a measured 70 604 — so none of them could have failed in any pass, and all of them were
+green. `appendOnlyPersistenceSites` had been reporting its `catch` fallback for the life of the
+gate. A gate that cannot fail is a comment, and this repository is full of accurate comments
+about behaviour that is not what they say. TODO28 §8.10 reached the same conclusion independently,
+which is the encouraging part: the lesson is already in the tree's own history, and the next pass
+is to apply it to the *runtime* rather than to the structure.
+
+Two rules that follow, and they are cheap:
+
+1. **When a metric's source can silently fail, that is a defect in the metric, not the source.**
+   The broken shell quoting in the persistence grep was a `catch` that returned a plausible number.
+2. **A doc comment that explains a bug the code still has is a failing test that was never
+   written.** `RuleIndex.ts:132-140` is the clearest example in the tree: a precise, correct
+   diagnosis of a comparator collapse, sitting next to the collapse.
 
 ## 11. Reproducing the numbers
 
@@ -726,3 +988,75 @@ experiment in this document and it takes about a minute to reproduce.
 suspicion: on 2026-09-30 an early run read 150.9s and a clean re-measurement of the same commit
 read 90.6s, because the machine was carrying someone else's load. Two runs in one session, or
 the number is not a number.
+
+---
+
+## 12. Open questions for the next session
+
+These are ordered by how much they change the plan. The first three should be answered *before*
+W0, because each of them can invalidate work that has not started yet — which is cheaper than
+discovering it in W1.
+
+**Q1. Is the LM an episodic learner, an online learner, or both at different rates?** The honest
+answer determines the architecture, and conflating the two is most of what produced the current
+state. If it is genuinely online — reasoning *with* the model inside the loop — then the cycle
+cannot close, §3.1 is unenforceable, §10's gates cannot exist, and this plan is the wrong plan. If
+it is episodic or consolidation-time, W1 is exactly right and cheap. **This is the question that
+decides whether the rest of the document is sound.**
+
+**Q2. Is the LM a dependency or a component?** A dependency means no deterministic core, hence no
+cost gate, hence no way to run the suite reliably — the `todo16-batching` latency assertion in
+§11.4 is that problem in miniature. A component means the answer to §4.1's last question is
+"disabled under hermetic runs".
+
+**Q3. What is the falsifiable claim?** "NARS plus acquired rules is more capable than either
+alone" is a thesis, and a thesis needs an experiment that could come out the other way. Nothing in
+the current suite can falsify it: the RL benches assert that SeNARS beats random, not that it
+beats a NARS-shaped reasoner with no inducer. If this plan lands and the answer is still
+unknowable, it will have been 60 000 lines of very good engineering pointed at nothing.
+
+**Q4. What is the unit of asynchronous work?** §4.1's first question, and the one most worth
+settling before the schema is written. Too small and the model is prompted into trivia; too large
+and its latency is the wall.
+
+**Q5. Does W3 (attention index) or W4 (`Memory` port) come first?** Either, per §6. The tie-breaker
+is whether test wall time or confidence is currently the binding constraint — and given §11.4,
+that is measurable in a minute.
+
+**Q6. What happens to the 19 LM rule templates?** W1 relocates the call site and changes nothing
+else. Whether the *templates* are the right granularity is a real question that W1 deliberately
+does not answer, and it should not be answered by whoever next opens that file.
+
+**Q7. Which of §1.7's structures does W9 actually need?** The table lists six; some may fall out
+of W3 and W5 for free once the calls disappear. Re-derive it after W1 rather than working from
+this list — the same §1.10 caveat applies.
+
+## 13. Pass log
+
+### Second pass (v1.1)
+
+- Established that the Stream Reasoner was the intended design and that §1's findings diagnose a
+  failure to reach it, not the design. This moved W1 from "the highest-leverage change" to "the
+  design that was always intended, plus the test that was never written", and it is why the plan
+  got cheaper.
+- Added §1.10 (which findings survive the split), which invalidated §1.9 and §5 as measurements
+  and forced a re-profile into §6.
+- Added §3.4 (the split as the spine, with the hanging-LM test as its first property) and §4/W1
+  as the first buildable workstream.
+- Added §4.1: six decisions a half-done split defers, of which the staleness boundary determines
+  whether the cycle is actually closed, and the hermetic question determines whether any of it
+  survives the gates.
+- Added §10.1: the intent-to-gate ledger, and the rule that a gate ships with a test proving it
+  can fail. Named two instances — the metrics that fail silently, and the doc comment that
+  diagnoses a live bug beside the bug.
+- Renumbered W1–W9 to W2–W10.
+- Noted that the plan's central mistake was optimising a profile of a system in the wrong state,
+  and put the correction in the document rather than in a session that no longer exists.
+
+### First pass (v1.0)
+
+- Profiled the inference loop; eight findings, all measured, seven of them contract violations.
+- Read `narchy/narchy` and extracted the port/attention/clock/compiled-dispatch contrast (§2).
+- Ten workstreams, a cost model (§3.1), a prediction table (§5), and four reproduction commands
+  (§11).
+- Diagnosed the fused cycle as an architecture problem, which was half right — see above.
