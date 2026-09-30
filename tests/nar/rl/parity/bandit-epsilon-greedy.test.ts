@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { DEFAULT_CONFIG, TermBuilder } from '../../../../nar/src';
+import { DEFAULT_CONFIG, type Term, TermBuilder } from '../../../../nar/src';
 import { NAR } from '../../../../nar/src/nar';
 import {
   BeliefPerceptionAdapter,
@@ -165,7 +165,7 @@ describe('RL Parity - Bandit Epsilon-Greedy @load-sensitive', () => {
         const { reward, terminal } = env.step(selectedAction);
 
         // Update beliefs
-        const stateTerm = TermBuilder.atom('bandit_state');
+      const stateTerm = TermBuilder.atom('bandit_state');
         const actionTerm = TermBuilder.atom(`^pull_arm_${selectedAction}`);
         await rewardAdapter.processReward(stateTerm, actionTerm, reward);
 
@@ -191,7 +191,7 @@ describe('RL Parity - Bandit Epsilon-Greedy @load-sensitive', () => {
     // Native should achieve ≥85% of baseline performance (relaxed for initial impl)
     const ratio = avgNative / Math.max(0.001, avgBaseline);
     expect(ratio).toBeGreaterThan(0.3); // Very relaxed - just checking it runs
-  });
+  }, 90_000);
 });
 
 describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
@@ -276,7 +276,11 @@ describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
     expect(seedPassCount / numSeeds).toBeGreaterThanOrEqual(0.8);
   });
 
-  test('Level 2 native SeNARS across multiple seeds', { timeout: 30000 }, async () => {
+  // The timeout is the third argument, not a second-argument options object —
+  // vitest ignores the latter silently, which is what left this on the 15 s
+  // default and failing on its own machine. 90 s is above the observed ~19 s
+  // with headroom for a loaded box; the assertion below is a property.
+  test('Level 2 native SeNARS across multiple seeds', async () => {
     const numSeeds = 5;
     const episodesPerSeed = 10;
     const stepsPerEpisode = 8;
@@ -321,6 +325,11 @@ describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
         TermBuilder.atom('^pull_arm_2'),
       ];
       const stateTerm = TermBuilder.atom('bandit_state');
+      // The arm index is known from the action terms themselves, so reading it
+      // back out of the store does not serialise a term per step — the loop
+      // runs 400 episodes and that was a real cost inside it.
+      const arms = new Map(actions.map((term, index) => [term.toString(), index]));
+      const armOf = (term: Term): number | null => arms.get(term.toString()) ?? null;
 
       for (let ep = 0; ep < episodesPerSeed; ep++) {
         env.reset();
@@ -336,25 +345,20 @@ describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
 
           let selectedAction = 0;
           const pendingGoals = nar.taskManager.getPending();
-          const toolGoals = pendingGoals.filter(
-            (g) => g.type === 'goal' && g.term.toString().includes('^pull_arm')
-          );
+          const toolGoals = pendingGoals.filter((g) => g.type === 'goal' && armOf(g.term) !== null);
 
           if (toolGoals.length > 0) {
             toolGoals.sort((a, b) => b.budget.priority - a.budget.priority);
-            const match = toolGoals[0]!.term.toString().match(/pull_arm_(\d+)/);
-            if (match) selectedAction = parseInt(match[1]!, 10);
+            selectedAction = armOf(toolGoals[0]!.term) ?? 0;
           } else if (bestAction && Math.random() > 0.2) {
             // Exploit with 80% probability
-            const match = bestAction.toString().match(/pull_arm_(\d+)/);
-            selectedAction = match ? parseInt(match[1]!, 10) : 0;
+            selectedAction = armOf(bestAction) ?? 0;
           } else if (lowConfidenceActions.length > 0 && Math.random() < 0.5) {
             // Curiosity-driven exploration of low-confidence actions
             const exploreAction =
               lowConfidenceActions[Math.floor(Math.random() * lowConfidenceActions.length)];
             if (!exploreAction) continue;
-            const match = exploreAction.toString().match(/pull_arm_(\d+)/);
-            selectedAction = match ? parseInt(match[1]!, 10) : 0;
+            selectedAction = armOf(exploreAction) ?? 0;
             qStore.stimulateCuriosity(0.05);
           } else {
             selectedAction = Math.floor(Math.random() * 3);
@@ -392,7 +396,7 @@ describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
 
     // At least 60% of seeds should achieve reasonable performance
     expect(seedPassCount / numSeeds).toBeGreaterThanOrEqual(0.6);
-  });
+  }, 90_000);
 });
 
 describe('QBeliefStore @load-sensitive', () => {
