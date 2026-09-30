@@ -10,7 +10,7 @@ import { Memory } from '@senars/nar/memory';
 import { MetricsCollector } from '@senars/nar/metrics';
 import { RuleProcessor } from '@senars/nar/rules';
 import { ConfigurationError } from '@senars/nar/types';
-import { registerRuleGraph } from '@senars/nar/strategies/lm-graph/RuleGraph.js';
+import { RuleGraph } from '@senars/nar/strategies/lm-graph/RuleGraph.js';
 
 /**
  * TODO27 Bench 102 — validation at the boundary.
@@ -107,7 +107,7 @@ describe('Bench 102 — boundary validation', () => {
 
   it('config on a stateful strategy is an error, not a shrug', () => {
     const r = registry();
-    registerRuleGraph(r);
+    r.get<RuleGraph>('lm-rule', 'lm-graph');
     expect(() => r.resolve('lm-rule', 'lm-graph', { offset: 1 })).toThrow(ConfigurationError);
   });
 

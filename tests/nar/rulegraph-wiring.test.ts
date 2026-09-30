@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Memory, TermBuilder, Truth } from '../../nar/src';
 import { type RuleInput, RuleProcessor } from '../../nar/src/rules';
 import { CognitiveRegistry } from '../../nar/src/cognitive/impls/CognitiveRegistry.js';
-import { registerRuleGraph, RuleGraph } from '../../nar/src/strategies/lm-graph/RuleGraph.js';
+import { RuleGraph } from '../../nar/src/strategies/lm-graph/RuleGraph.js';
 import type { LMRule } from '../../nar/src/lm/LMRule.js';
 import type { LMRuleSelector } from '../../nar/src/strategies/types.js';
 import type { Term } from '../../nar/src/terms';
@@ -55,7 +55,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
   });
 
   test('lm-graph strategy is selectable from registry', () => {
-    const ruleGraph = registerRuleGraph(registry);
+    const ruleGraph = registry.get<RuleGraph>('lm-rule', 'lm-graph');
     expect(ruleGraph).toBeInstanceOf(RuleGraph);
     expect(registry.has('lm-rule', 'lm-graph')).toBe(true);
     
@@ -65,7 +65,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
   });
 
   test('lm-graph selector returns non-empty selection (fail-closed)', () => {
-    const ruleGraph = registerRuleGraph(registry);
+    const ruleGraph = registry.get<RuleGraph>('lm-rule', 'lm-graph');
     processor.registerLMRule(mockLMRule);
     
     const rules = [mockLMRule];
@@ -82,7 +82,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
   });
 
   test('lm-graph records performance and shifts selection distribution', async () => {
-    const ruleGraph = registerRuleGraph(registry);
+    const ruleGraph = registry.get<RuleGraph>('lm-rule', 'lm-graph');
     
     const rule1: LMRule = {
       id: 'rule-1',
@@ -149,7 +149,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
   });
 
   test('co-activations are keyed on real terms (not rule names)', () => {
-    const ruleGraph = registerRuleGraph(registry);
+    const ruleGraph = registry.get<RuleGraph>('lm-rule', 'lm-graph');
     const graph = memory.attachConceptGraph(ruleGraph.graph) ?? ruleGraph.graph;
 
     const focusTerm = TermBuilder.atom('focus');
@@ -170,7 +170,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
   });
 
   test('graph premise source returns memory-backed concepts', async () => {
-    const ruleGraph = registerRuleGraph(registry);
+    const ruleGraph = registry.get<RuleGraph>('lm-rule', 'lm-graph');
     const graph = memory.attachConceptGraph(ruleGraph.graph) ?? ruleGraph.graph;
 
     // Add concepts to memory
@@ -194,7 +194,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
   });
 
   test('edgeWeight scorer uses RLFPLearner-derived edge weights', async () => {
-    const ruleGraph = registerRuleGraph(registry);
+    const ruleGraph = registry.get<RuleGraph>('lm-rule', 'lm-graph');
     const graph = memory.attachConceptGraph(ruleGraph.graph) ?? ruleGraph.graph;
 
     const termA = TermBuilder.atom('A');
@@ -233,7 +233,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
   });
 
   test('RuleGraph tick() decays graph edges', () => {
-    const ruleGraph = registerRuleGraph(registry);
+    const ruleGraph = registry.get<RuleGraph>('lm-rule', 'lm-graph');
     const graph = memory.attachConceptGraph(ruleGraph.graph) ?? ruleGraph.graph;
 
     const termA = TermBuilder.atom('A');

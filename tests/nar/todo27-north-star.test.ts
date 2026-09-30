@@ -27,7 +27,23 @@ const CONSTRUCTION_SITES: Record<string, string> = {
   'cognitive/impls/composition.ts': 'tier-2 composition, driven by a resolved spec',
   'reason/strategy-algebra.ts': 'the derivation expression algebra (D4)',
   'lm/dynamic-rule.ts': 'CompositeLMRule is an LM rule body, not an lm-rule selector',
+  // The three below are not strategy *slots*. They are private samplers for
+  // components that own their whole strategy stack and never consult the
+  // cognitive registry — so there is no slot to declare them in, and the
+  // instance is not a resolved built-in. §7.2 removed the one construction
+  // that *was* a bypass (`registerRuleGraph`); these three are the remainder,
+  // recorded rather than hidden.
+  'learning/aikr-processor.ts': 'AIKR’s own default sampler — injected, never a registry slot',
+  'learning/schema-induction.ts': 'schema induction’s own default sampler, as above',
+  'lm/system-one/contrastive.ts': 'contrastive memory’s own default sampler, as above',
 };
+
+/**
+ * The documented exception to the attention clause below (§15.5): a substrate
+ * default that primes nothing is not a choice of model, and requiring one
+ * would mean `Memory` cannot exist before a `CognitiveController` does.
+ */
+const SUBSTRATE_DEFAULTS = new Set(['NullAttentionModel']);
 
 const ROOT = join(__dirname, '../../nar/src');
 
@@ -62,6 +78,33 @@ describe('Bench 109 — nothing outside the catalogue constructs a strategy', ()
     const offenders = files
       .filter((path) => !CONSTRUCTION_SITES[relative(path)] && relative(path) !== 'memory/memory.ts')
       .filter((path) => /strategies\/attention\/(?!types)/.test(readFileSync(path, 'utf8')))
+      .map(relative);
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('every strategy implementation is constructed only at an allowed site', () => {
+    // TODO28 §7.2: the regex above only caught names ending in `Strategy` or
+    // `Composite*`, which is a naming convention, not the invariant. It missed
+    // `registerRuleGraph` — a real built-in, registered by the controller
+    // rather than the catalogue, for several phases. Derived from the
+    // implementation names instead, so the next one is caught by construction
+    // rather than by a reviewer noticing a missing suffix.
+    const names = new Set<string>();
+    for (const path of sources(join(ROOT, 'strategies'))) {
+      const source = readFileSync(path, 'utf8');
+      for (const match of source.matchAll(/export class (\w+)/g)) {
+        const name = match[1] ?? '';
+        if (!SUBSTRATE_DEFAULTS.has(name)) names.add(name);
+      }
+    }
+    expect(names.size).toBeGreaterThan(20);
+
+    const offenders = files
+      .filter((path) => !CONSTRUCTION_SITES[relative(path)])
+      .filter((path) =>
+        [...names].some((name) => new RegExp(`new ${name}\\(`).test(readFileSync(path, 'utf8')))
+      )
       .map(relative);
 
     expect(offenders).toEqual([]);

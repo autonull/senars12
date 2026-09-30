@@ -9,7 +9,7 @@ import type { RuleProcessor } from '../../rules';
 import type { StrategySpec, StrategyType } from '../../strategies/registration';
 import type { DerivationStrategy, LMRuleSelector, SamplingStrategy } from '../../strategies';
 import type { AttentionModel } from '../../strategies/types.js';
-import { registerRuleGraph, RuleGraph } from '../../strategies/lm-graph/RuleGraph.js';
+import { RuleGraph } from '../../strategies/lm-graph/RuleGraph.js';
 import type { CognitiveRegistry } from './CognitiveRegistry.js';
 import { SLOT_KEY } from './CognitiveRegistry.js';
 
@@ -194,11 +194,10 @@ export class CognitiveController {
       return { selector: this.resolve<LMRuleSelector>('lm-rule', params), ruleGraph: null };
     }
 
-    const ruleGraph = this.registry.has('lm-rule', 'lm-graph')
-      ? this.registry.get<RuleGraph>('lm-rule', 'lm-graph')
-      : registerRuleGraph(this.registry);
+    const ruleGraph = this.registry.get<RuleGraph>('lm-rule', 'lm-graph');
     this.memory.attachConceptGraph(ruleGraph.graph);
     return { selector: ruleGraph, ruleGraph };
+
   }
 
   #wireRuleGraphCallbacks(ruleGraph: RuleGraph): void {

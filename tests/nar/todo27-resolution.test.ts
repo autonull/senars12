@@ -4,7 +4,7 @@ import { CognitiveRegistry } from '@senars/nar/cognitive';
 import { ConfigurationError } from '@senars/nar/types';
 import { canonicalJson, configDigest } from '@senars/nar/strategies/registration';
 import { getMetricsAsJson } from '@senars/nar/metrics';
-import { registerRuleGraph } from '@senars/nar/strategies/lm-graph/RuleGraph.js';
+import { RuleGraph } from '@senars/nar/strategies/lm-graph/RuleGraph.js';
 import { TermLinkStrategy } from '@senars/nar/strategies/premise/term-link.js';
 import { Memory } from '@senars/nar/memory';
 import { atom, Truth } from '../../nar/src/terms/index.js';
@@ -97,17 +97,17 @@ describe('Bench 101 — resolution, memoization, telemetry', () => {
 
   it('a stateful strategy is a singleton and rejects config (Invariant S1)', () => {
     const r = registry();
-    const graph = registerRuleGraph(r);
+    const graph = r.get<RuleGraph>('lm-rule', 'lm-graph');
     expect(r.resolve<LMRuleSelector>('lm-rule', 'lm-graph')).toBe(graph);
     expect(() => r.resolve('lm-rule', 'lm-graph', { anything: 1 })).toThrow(ConfigurationError);
   });
 
   it('a singleton keeps the state it accumulated across resolutions', () => {
     const r = registry();
-    const graph = registerRuleGraph(r);
+    const graph = r.get<RuleGraph>('lm-rule', 'lm-graph');
     graph.recordPerformance('rule-a', true, 1);
     graph.learnFromDerivation(atom('cat'), atom('animal'));
-    const again = r.resolve<ReturnType<typeof registerRuleGraph>>('lm-rule', 'lm-graph');
+    const again = r.get<RuleGraph>('lm-rule', 'lm-graph');
     expect(again).toBe(graph);
     expect(again.getGraphStats().edges).toBe(1);
   });

@@ -115,14 +115,30 @@ export const fixed = (spec: {
   factory: (config: StrategyConfig, deps: StrategyFactoryDeps) => StrategyImpl;
 }): StrategyRegistration => configurable({ ...spec, schema: configSchema({}) });
 
+/**
+ * A lazily-built singleton: one instance per registration, built on first
+ * resolution and kept for the process lifetime, `config` rejected (Invariant
+ * S1). For state that must survive a `reconfigure` — rule performance, graph
+ * edges. Lazy so declaring one costs nothing until something asks for it.
+ */
+export const stateful = (spec: {
+  name: string;
+  description: string;
+  factory: () => StrategyImpl;
+}): StrategyRegistration => {
+  let instance: StrategyImpl | undefined;
+  return {
+    name: spec.name,
+    description: spec.description,
+    stateful: true,
+    defaultConfig: {},
+    factory: () => (instance ??= spec.factory()),
+  };
+};
+
 /** A pre-built singleton: the instance *is* the registration (Invariant S1). */
-export const singleton = (name: string, description: string, instance: StrategyImpl): StrategyRegistration => ({
-  name,
-  description,
-  stateful: true,
-  defaultConfig: {},
-  factory: () => instance,
-});
+export const singleton = (name: string, description: string, instance: StrategyImpl): StrategyRegistration =>
+  stateful({ name, description, factory: () => instance });
 
 /** Recursively key-sorted JSON, so `{a,b}` and `{b,a}` are one configuration. */
 export const canonicalJson = (value: unknown): string => stableStringify(value, true);

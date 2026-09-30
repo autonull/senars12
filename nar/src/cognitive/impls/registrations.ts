@@ -27,6 +27,7 @@ const ATTENTION_MODELS = {
   'goal-relevance': (boost: number) => new GoalRelevanceAttention(boost),
 } as const satisfies Record<string, (boost: number) => AttentionModel>;
 import { CompositeLMRuleSelector } from '../../strategies/lm-selectors/CompositeLMRuleSelector.js';
+import { RuleGraph } from '../../strategies/lm-graph/RuleGraph.js';
 import { CompositeSampling } from '../../strategies/sampling/CompositeSampling.js';
 import {
   CompositeStrategy,
@@ -59,6 +60,7 @@ import {
 import {
   configurable,
   configSchema,
+  stateful,
   fixed,
   type StrategyRegistration,
 } from '../../strategies/registration.js';
@@ -123,6 +125,7 @@ const SAMPLED_CONFIG = configSchema({
 });
 
 const ROTATION_CONFIG = configSchema({ offset: z.number().int().min(0).default(0) });
+
 
 /**
  * The one built-in that composes *other registered strategies by name*. Its
@@ -317,6 +320,17 @@ export const DEFAULT_REGISTRATIONS: StrategySlot = [
       name: 'diverse',
       description: 'One per category, then round-robin',
       factory: () => new DiverseSelector(),
+    }),
+  ],
+
+  [
+    'lm-rule',
+    // Stateful: the graph edges and rule performance are the point, and they
+    // have to survive a `reconfigure` (Invariant S1). Built on first resolution.
+    stateful({
+      name: 'lm-graph',
+      description: 'ConceptGraph co-activation with RLFPLearner rewards',
+      factory: () => new RuleGraph(),
     }),
   ],
 

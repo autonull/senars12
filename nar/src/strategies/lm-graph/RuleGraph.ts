@@ -11,7 +11,7 @@ const EWMA_WEIGHT = 9;
 
 import { clamp01, weightedMean } from '@senars/util';
 import { ConceptGraph, type CoActivationEdge } from '../../memory/ConceptGraph.js';
-import { singleton, type StrategyRegistry } from '../registration.js';
+
 import type {
   ComponentMetadata,
   LMRuleSelectionContext,
@@ -137,21 +137,4 @@ export class RuleGraph implements LMRuleSelector {
   getGraphStats(): { nodes: number; edges: number } {
     return this.graph.getStats();
   }
-}
-
-/**
- * Register RuleGraph as the 'lm-graph' LM-rule strategy. Takes the registry as
- * a port so the strategy layer stays independent of the cognitive facade that
- * owns it.
- */
-export function registerRuleGraph(
-  registry: StrategyRegistry,
-  options?: RuleGraphOptions
-): RuleGraph {
-  const ruleGraph = new RuleGraph(options);
-  registry.register(
-    'lm-rule',
-    singleton('lm-graph', ruleGraph.metadata.description, ruleGraph)
-  );
-  return ruleGraph;
 }
