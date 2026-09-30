@@ -7,18 +7,28 @@
  *
  * The baselines are ceilings, and a ceiling that is never lowered is not a
  * ratchet — it is a number that was correct once. Both `productionLOC` and
- * `depsGateRawChains` sat thousands of units above their measurements for
+ * `circularChains` sat thousands of units above their measurements for
  * several passes, so they could not have failed. The rule name is
  * `mustNotIncrease` rather than `mustDecreaseOrJustify` because that is what
  * the comparison does; the obligation to move the baseline is a commit-time
  * one, and the failure message says so.
+ *
+ * `circularChains` counts dpdm's `circular` report over *all* edges, while
+ * `deps:gate` counts the same report with `--transform`, which erases
+ * type-only edges. The two are different graphs of the same tree, so the
+ * ledger's metric was named for the gate while measuring something the gate
+ * deliberately excludes: a baseline written when it tracked `deps:gate` then
+ * compared against 26 cycles and failed, and the name implied a coupling that
+ * does not exist. Both budgets are worth keeping — runtime cycles break
+ * initialisation order, type-only cycles cost import coupling — so the metric
+ * now says which graph it reads.
  */
 
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ACCUMULATOR_LEDGER } from './lib/accumulator-ledger.js';
-import { countCircularChains } from './lib/dpdm.js';
+import { countCircularChains as countRawCircularChains } from './lib/dpdm.js';
 import { readExports } from './lib/pkg.js';
 import { ROOT } from './lib/root.js';
 
@@ -29,7 +39,7 @@ interface Baseline {
   aikrProcessorCoverage: number;
   unboundedAccumulatorSites: number;
   accumulatorsAudited: number;
-  depsGateRawChains: number;
+  circularChains: number;
   typecheckBinErrors: number;
   workspaceCount: number;
 }
@@ -143,9 +153,9 @@ function countUnboundedAccumulatorSites(): number {
   }).length;
 }
 
-function countDepsGateRawChains(): number {
+function countCircularChains(): number {
   try {
-    return countCircularChains({ transform: false });
+    return countRawCircularChains({ transform: false });
   } catch {
     return 999; // failure indicator
   }
@@ -207,7 +217,7 @@ function main(): void {
     aikrProcessorCoverage: countAIKRProcessorCoverage(),
     unboundedAccumulatorSites: countUnboundedAccumulatorSites(),
     accumulatorsAudited: ACCUMULATOR_LEDGER.length,
-    depsGateRawChains: countDepsGateRawChains(),
+    circularChains: countCircularChains(),
     typecheckBinErrors: countTypecheckBinErrors(),
     workspaceCount: countWorkspaces(),
   };
@@ -284,15 +294,15 @@ function main(): void {
   });
   if (current.accumulatorsAudited < baseline.accumulatorsAudited) failed = true;
 
-  // deps:gate raw chains: must not increase
+  // Circular chains over all edges: must not increase
   results.push({
-    metric: 'deps:gate raw chains',
-    baseline: baseline.depsGateRawChains,
-    current: current.depsGateRawChains,
-    status: current.depsGateRawChains <= baseline.depsGateRawChains ? 'PASS' : 'FAIL',
-    rule: budget.rules.depsGateRawChains,
+    metric: 'Circular chains',
+    baseline: baseline.circularChains,
+    current: current.circularChains,
+    status: current.circularChains <= baseline.circularChains ? 'PASS' : 'FAIL',
+    rule: budget.rules.circularChains,
   });
-  if (current.depsGateRawChains > baseline.depsGateRawChains) failed = true;
+  if (current.circularChains > baseline.circularChains) failed = true;
 
   // typecheck:bin errors: must reach 0
   results.push({

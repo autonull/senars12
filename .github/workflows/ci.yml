@@ -16,6 +16,7 @@ jobs:
       - run: pnpm typecheck
       # The bin/ composition root is a separate tsconfig and its own failure mode.
       - run: pnpm typecheck:bin
+      - run: pnpm typecheck:packages
       - run: pnpm lint
       - run: pnpm deps:gate
       # TODO28 §4.2: deps:gate counts cycles and cannot see an inversion.

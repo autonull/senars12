@@ -7,7 +7,7 @@
     "aikrProcessorCoverage": 5,
     "unboundedAccumulatorSites": 0,
     "accumulatorsAudited": 2,
-    "depsGateRawChains": 25,
+    "circularChains": 26,
     "typecheckBinErrors": 0,
     "workspaceCount": 6
   },
@@ -18,7 +18,7 @@
     "aikrProcessorCoverage": "mustNotDecrease",
     "unboundedAccumulatorSites": "mustRemainZero",
     "accumulatorsAudited": "mustNotDecrease",
-    "depsGateRawChains": "mustNotIncrease",
+    "circularChains": "mustNotIncrease",
     "typecheckBinErrors": "mustRemainZero",
     "workspaceCount": "fixed"
   }

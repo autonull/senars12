@@ -98,12 +98,12 @@ describe('Bench 99 — complexity budget gate', () => {
     expect(result.stdout).toContain('FAIL');
   });
 
-  it('fails when deps:gate raw chains increase', { timeout: 60000 }, () => {
+  it('fails when circular chains increase', { timeout: 60000 }, () => {
     const budget = JSON.parse(originalBudget);
-    budget.baseline.depsGateRawChains = 10; // artificially low baseline
+    budget.baseline.circularChains = 1; // artificially low baseline
     const result = runGate(JSON.stringify(budget, null, 2));
     expect(result.code).toBe(1);
-    expect(result.stdout).toContain('deps:gate raw chains');
+    expect(result.stdout).toContain('Circular chains');
     expect(result.stdout).toContain('FAIL');
   });
 

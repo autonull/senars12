@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { checkCycleBudget } from '../../scripts/lib/cycles.js';
 import { fixedClock, SystemClock } from '@senars/nar/clock.js';
 import { Memory } from '@senars/nar/memory';
 import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
@@ -54,8 +55,14 @@ describe('Bench 91 — test hygiene & monolith paydown (REFACTOR.todo3 Phase A)'
     expect(fixedClock(42).now()).toBe(42);
   });
 
-  it('deps:gate baseline documents current architectural cycles (25)', () => {
-    const gate = readFileSync(join(import.meta.dirname, '../../scripts/deps-gate.ts'), 'utf-8');
-    expect(gate).toContain('const BASELINE = 25');
+it('the cycle ratchet fails in both directions — new cycles and forgotten slack', () => {
+    expect(checkCycleBudget(4, 4)).toEqual({ ok: true });
+    expect(checkCycleBudget(3, 4)).toEqual({ ok: false, reason: 'slack', slack: 1 });
+    const regression = checkCycleBudget(6, 4, ['a', 'b', 'c', 'd', 'e', 'f']);
+    expect(regression).toMatchObject({ ok: false, reason: 'regression', over: 2 });
+    expect(regression.ok === false && regression.reason === 'regression' && regression.chains).toEqual([
+      'e',
+      'f',
+    ]);
   });
 });

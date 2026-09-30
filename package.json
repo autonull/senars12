@@ -57,6 +57,7 @@
     "bench:fundamentals:ollama": "LM_PROVIDER=ollama tsx scripts/fundamentals-bench.ts",
     "typecheck": "tsc --noEmit",
     "typecheck:bin": "tsc --noEmit -p tsconfig.bin.json",
+    "typecheck:packages": "tsx scripts/typecheck-packages.ts",
     "self-tune-demo": "tsx scripts/self-tune-demo.ts",
     "fuzz": "tsx scripts/fuzz-narsese.ts",
     "fuzz:ci": "tsx scripts/fuzz-narsese.ts 10000",

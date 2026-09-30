@@ -29,6 +29,7 @@ const script = (name: string, tier: Gate['tier'] = 'gate'): Gate => ({
 export const GATES: readonly Gate[] = [
   script('typecheck'),
   script('typecheck:bin'),
+  script('typecheck:packages'),
   script('lint'),
   script('deps:gate'),
   script('deps:direction'),
