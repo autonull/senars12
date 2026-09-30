@@ -1,6 +1,6 @@
 # TODO29: Runtime — the cycle's cost model, and the retrieval engine underneath it
 
-**Version:** 1.1 (2026-09-30) · **Predecessor:** TODO28 (phases A–P; structure, the package graph, the
+**Version:** 1.2 (2026-09-30) · **Predecessor:** TODO28 (phases A–P; structure, the package graph, the
 barrels, the gate list), which closed the structural axis and left the runtime. TODO28's own §4.4
 declined to shrink `nar.ts` and §7.11 closed with "what is left" one line long. This is the other
 axis: not what the tree looks like, but what a cycle costs and why.
@@ -12,6 +12,34 @@ live engine, and the commands are in §11 so the numbers can be re-derived rathe
 fresh session should resolve before it starts.
 
 > **A fresh session should read §1.1, §1.10 and §4/W0 first.**
+
+### What the third pass added
+
+The LM must be **optional**: with none provided the system reduces to NARchy-like capability, and
+LM support sits *beyond* the core rather than inside it. That is not a packaging preference, and
+this pass is mostly about why.
+
+- **New §3.5** — what "optional" has to mean to be worth anything, what the boundary costs today
+  (**36 files** outside `nar/src/lm/` import from it, and `nar/src/strategies/types.ts:1` puts
+  `LMRule` in the *strategy extension contract*, so the core's extension points are typed in terms
+  of the LM), and why the requirement turns out to be the forcing function for the one
+  architectural improvement worth having.
+- **New W1b** — move the LM beyond the core. Deliberately *not* a separate letter: the seam and
+  the boundary are one change, and you cannot have a core-owned seam interface while the core
+  still imports the LM's rule type.
+- **§4.1's hardest question is retired.** Whether a background model can survive `test:hermetic`
+  was open last pass. If the LM is optional, the hermetic run *is* the no-LM run plus replayed
+  fixtures, and the question has an answer by construction.
+- **Two new invariants (§7)** — the core has no dependency on the LM, and the no-LM
+  configuration passes NAL1–8. **A new gate (§10)** and a **new ledger row (§10.1)**.
+
+The load-bearing consequence, stated once because it changes how §1 should be read: `lm.enabled:
+false` and `enableLMRules: false` are **not** optionality. `initializeLMRules` is called
+unconditionally at construction (`nar.ts:18`) and every rule is registered via
+`facade/index.ts:98`, so the 24 test files and the `FAST_COGNITIVE_CONFIG` preset that set those
+flags are all running a fully-constructed LM with execution gated. A component that is present,
+wired and registered is not optional, however false its switch is. §3.5 names the two gates that
+tell the difference.
 
 ### What the second pass added
 
@@ -526,15 +554,100 @@ and it does not let a proposal land mid-cycle. A proposal applies at a declared 
 next consolidation, or the next episode — or not at all. §4.1 is where that boundary is decided
 rather than discovered.
 
+### 3.5 The LM is a plugin, not a feature
+
+The requirement is that SeNARS runs, usefully, with no language model at all, and that the model
+sits *beyond* the core. Three properties, and the first is the one that is usually got wrong.
+
+**1. Absent, not disabled.** `lm.enabled: false` and `enableLMRules: false` are not optionality.
+Today `initializeLMRules` is called unconditionally at construction (`nar.ts:18`) and every rule is
+registered through `facade/index.ts:98`, so the 24 test files and the `FAST_COGNITIVE_CONFIG` preset
+that set those flags all run a fully constructed, fully registered LM with only *execution* gated.
+A component that is present, wired and registered is not optional, however false its switch is. The
+test that tells the difference is trivial to write and does not exist:
+
+```ts
+const nar = buildNAR(/* zero plugins registered */);
+await nar.run(100);
+expect(derivations).toBeGreaterThan(0);   // the core reasons with no LM at all
+```
+
+**2. The core has no compile-time dependency on the LM.** This one is currently violated 36 times
+over — 36 files outside `nar/src/lm/` import from it. The deepest is not a convenience import:
+
+```
+nar/src/strategies/types.ts:1    import type { LMRule } from '../lm/rule/LMRule.js';
+nar/src/strategies/types.ts:74   select(rules: LMRule[], context: LMRuleSelectionContext): LMRule[];
+```
+
+The core's *strategy extension contract* is typed in terms of the LM's rule type. A strategy can
+therefore not be written without naming the LM, and `LMRuleSelector` is one of the five strategy
+types. That is the boundary being absent, not merely porous. §4/W1b is the work of inverting it:
+the core declares a `Proposal`/`ProposalSource` contract of its own, and the LM becomes a producer
+that implements it.
+
+**3. Adding a model is purely additive.** It may submit proposals; it may not change the core's
+control flow, and the core may not read its intermediate state. That is §3.4's seam restated as a
+layering rule, and it is what makes the no-LM core and the with-LM core *the same program* with a
+different set of producers.
+
+```
+        ┌───────────── nar (core) ─────────────┐
+        │  terms · truth · stamps · memory     │  ◄── nothing here imports the
+        │  cycle · reactions · attention        │      induction layer. Ever.
+        │                                     │
+        │  Proposal / ProposalSource           │  ◄── the seam, declared by
+        └───────────────┬─────────────────────┘      the core, in core vocabulary
+                        │ implements (optional)
+        ┌───────────────▼──────────────────┐
+        │  induction provider               │   may be: none · recorded fixture ·
+        │  (LM, rule-miner, hand-written)   │   live model · a plain table
+        └──────────────┬────────────────────┘
+                       │ assembled only in the composition root (src/),
+                       │ and it sees the core's public API only
+```
+
+This is §3.4's seam drawn as a dependency direction, and the two views constrain each other. A
+seam that is only a diagram is a function call; a boundary that is only an import rule is a
+convention. Both are needed, and only together do they make the core independent of its
+producers.
+
+### 3.6 Why this requirement is the right one
+
+It is worth being explicit that optionality is not a concession, because it is easy to read it as
+one — the core is "just" NARchy, and the interesting part is bolted on. It is the reverse:
+
+- **The core becomes falsifiable.** A NARchy-like core can be held to NAR's own standards —
+  NAL1–8, determinism, a cost model — and the induction layer earns its place by beating them. If
+  the core is inseparable from the model, neither claim can be tested.
+- **Optionality is a deployment requirement, not a nicety.** Not every system that wants SeNARS
+  can run a model: latency budgets, air-gapped deployments, regulated environments, and the
+  deterministic test tier. A core that requires one is unusable in all four.
+- **It forces the interface that is the actual innovation.** NARchy's rule set is code, fixed at
+  build time, with no extension point at runtime. If the rule set is instead a *versioned artifact
+  the core loads*, and producers of that artifact are pluggable, then the improvement over NARchy
+  is precisely: **NARS assumes a fixed rule set forever; this treats the rule set as the primary
+  learnable artifact.** The model is one producer of it. That capability belongs to the *core*, not
+  to the model, and it survives the model's absence.
+- **It makes the hermetic tier free.** §4.1's hardest question — how does a background model survive
+  `test:hermetic` — answers itself: the hermetic run is the no-LM run plus a recorded fixture
+  replayed through the same seam. No gate weakening, no skipped tests, no special-casing.
+
+The requirement and §3.4 are the same requirement seen from two sides. Optionality is what forces
+the seam to be an interface rather than a function call, and the seam is what makes optionality
+achievable.
+
 ---
 
 ## 4. The work
 
-Ten workstreams. **W0 first and separately** — it is the harness that decides whether the rest
-worked, and landing it before anything else is what keeps this plan falsifiable. **W1 second,
-alone** — it is the split the design always intended, and it is what makes the rest of the cost
-model enforceable. §1.10 explains why it also invalidates the workstream order below, which is
-why §6 puts a profile re-derivation between W1 and W2.
+Ten workstreams and one sub-phase. **W0 first and separately** — it is the harness that decides
+whether the rest worked, and landing it before anything else is what keeps this plan falsifiable.
+**W1 second, alone** — it is the split the design always intended, and it is what makes the rest
+of the cost model enforceable. **W1b immediately after**, because the seam and the layer boundary
+are one change and only the first half of it is testable on its own. §1.10 explains why W1 also
+invalidates the workstream order below, which is why §6 puts a profile re-derivation between W1b
+and W2.
 
 ### W0 — Make the cycle measurable, before changing it
 
@@ -587,6 +700,8 @@ tell, and it is measurable today.
 2. `run()` performs zero LM invocations, asserted with a call counter on the LM port.
 3. `run()`'s wall time is independent of whether an LM is configured or what it returns.
 4. A proposal that arrives is applied at a declared boundary, or not at all — never mid-cycle.
+5. A NAR built with **zero** proposal producers registered still reasons. This is §3.5's
+   first property, and it is the cheapest test in the plan after the hanging-LM one.
 
 **Risk: medium, and the only workstream that changes reasoning behaviour** — not because the
 derivations change, but because the *timing* of when rules exist changes, so the derivation
@@ -597,6 +712,51 @@ the gate and should hold.
 **Do not** fold W1 in with W2. Two behaviour changes in one commit is how the first one of them
 becomes unreviewable, and W1's whole value is that it is independently verifiable by a one-line
 test.
+
+### W1b — Move the LM beyond the core
+
+*Deliberately not a separate letter: the seam and the boundary are one change. You cannot have a
+core-owned seam interface while the core still imports the LM's rule type.*
+
+W1 gives the seam an owner. W1b makes the owner the core rather than the LM.
+
+- The core declares `Proposal` and `ProposalSource` in its own vocabulary. A proposal is data:
+  a proposed reaction, a proposed abstraction, a proposed weight — never a closure over NAR
+  internals, because a closure would re-create the coupling the type boundary just removed.
+- `nar/src/strategies/types.ts` stops importing `LMRule`. The five strategy types are re-expressed
+  so that a proposal producer is one of them, or is not a strategy type at all (the latter is
+  cleaner — selection is a proposal-time concern, not a reasoning-cycle concern, and §1 shows what
+  happens when it is the latter).
+- `nar.ts`'s unconditional `initializeLMRules` / `LMRules` / `NARLM` / `wireSystemOne`
+  (`:18, :34, :48, :55, :268`) become assembly in the composition root (`src/`), which already
+  exists for exactly this purpose.
+- The 36 imports from `nar/src/lm/` are either inverted (the LM imports the core — already true in
+  the other direction in places) or removed because the thing they reached for moved down.
+- `lm` leaves the core config schema, on the precedent of `bagSize` and `interactionGuide` in the
+  last pass — both of which left the schema for the same reason: an optional component must not
+  shape a required one. It becomes plugin configuration, validated where the plugin is assembled.
+
+**Acceptance:**
+
+1. `dpdm` / `deps:direction` extended with a rule that **`nar` core may not import `nar/src/lm/`**.
+   This is expressible as data in the existing dependency gate, so it is a one-line addition to a
+   ledger rather than a new mechanism.
+2. A test asserting the no-LM NAR of §3.5 reasons, green with the LM package deleted.
+3. NAL1–8 green with no LM registered.
+4. `enableLMRules: false` is gone — replaced by "absent", because a flag that is set on a component
+   that is always constructed is a comment (§10.1).
+
+**Risk: medium-high, and it is a large mechanical diff** — 36 files. That is the price of a
+boundary that cannot be crossed by accident. The mitigation is that it is *mechanical*: a
+dependency inversion with no semantic content, reviewable by compiler rather than by reading.
+
+**Open, and worth deciding before starting (§12 Q8):** whether the LM becomes a seventh workspace
+package. That is the only enforcement that cannot be bypassed by a well-meaning import, but it
+requires everything the LM reads to be public API, and the LM reads concepts, memory statistics
+and derivation chains — i.e. it would force those to be public, which is probably *good* pressure
+and definitely a lot of surface. The sequencing that falls out either way is the same: the seam
+first (W1), the boundary second (W1b), the package question last, because the interface is not
+known until the seam is.
 
 ### W2 — Stop read paths from mutating the heap
 
@@ -789,13 +949,18 @@ applicability is "at the next consolidation boundary", staleness is bounded and 
 is "whenever", you have reintroduced coupling. **This is the decision that determines whether the
 cycle is actually closed**, and it belongs in the schema, not in a comment.
 
-**How does the hermetic run survive this?** A background model call is ambient entropy by
-definition, and the repository already has `test:hermetic` and `test:determinism` gates plus a
-`--cognitive-params` replay facility for exactly this class of problem. Three options, and it must
-be one of them, decided now: the inducer is **disabled** under hermetic/determinism runs; its
-proposals are **recorded and replayed** as a fixture; or the gate is **weakened**, which should
-require writing down why. The default that happens by accident is that the gates get skipped, and
-the gates being skipped is how §1.8 survived.
+**How does the hermetic run survive this?** — **retired by §3.5, decided rather than deferred.**
+A background model call is ambient entropy by definition, which is why this was the dangerous
+question last pass. If the LM is optional, the hermetic run *is* the no-LM run, and the with-LM
+path is covered by **recorded proposals replayed through the same seam** as a fixture. Neither
+gate is weakened and neither is skipped, so the failure mode that produced §1.8 — gates quietly
+deferred until they get bypassed — has no room to occur. The `--cognitive-params` replay facility
+is the natural home for the fixture.
+
+**What is the proposal format's *version* story?** The one question §3.5 raises and this list does
+not yet answer: proposals are a versioned artifact (§3.4), so a run recorded against reaction
+table v3 must not be replayed against v4. This is a small, boring, and genuinely hard problem,
+and it belongs to whoever writes the schema.
 
 **Is the LM a dependency or a component?** If it is a dependency — the system cannot run without
 it — then no deterministic core is possible, the whole cost model in §3.1 is moot, and the gates
@@ -833,19 +998,21 @@ Stream Reasoner exists, and it is a count rather than a duration, so it is cheap
 ## 6. Sequencing
 
 ```
-W0 ──▶ W1 ──▶ [re-profile] ──┬─▶ W2 ──▶ W3 ──┬─▶ W5 ──▶ W6
-                             │              └─▶ W4
-                             └─▶ W10 (independent, any time after W0)
+W0 ──▶ W1 ──▶ W1b ──▶ [re-profile] ──┬─▶ W2 ──▶ W3 ──┬─▶ W5 ──▶ W6
+                                     │              └─▶ W4
+                                     └─▶ W10 (independent, any time after W0)
 W7, W8, W9 depend on W0 only; W9 is independent of W2–W6.
 ```
 
 - **W0** alone, first. Everything else is measured against it.
 - **W1** alone, second, and alone for the same reason as W2: each is a behaviour change and each
-  must be independently reviewable. W1's acceptance is a one-line test, which makes it the
-  cheapest behaviour change in the plan.
-- **Re-profile between W1 and W2.** Not optional. §1.10 argues that the workstream order below was
-  derived from a profile of the wrong architecture; taking it at face value optimises the wrong
-  thing. W0's harness exists so this costs one command.
+  must be independently reviewable. W1's acceptance is a two-line test — a hanging LM, and a NAR
+  with no producers at all — which makes it the cheapest behaviour change in the plan.
+- **W1b** immediately after W1, and before the re-profile: it is mechanical, and finishing the
+  boundary while the seam is fresh is cheaper than returning to it.
+- **Re-profile between W1b and W2.** Not optional. §1.10 argues that the workstream order below
+  was derived from a profile of the wrong architecture; taking it at face value optimises the
+  wrong thing. W0's harness exists so this costs one command.
 - **W2** alone, third, with the RL baselines re-established and committed in the same change.
 - **W4** can land any time after W0; it is mechanical and it is what makes W3/W5 testable in
   milliseconds rather than through a NAR.
@@ -870,6 +1037,17 @@ Either order works, which is the point of W4 existing.
    own failure message asks for, and what `appendOnlyPersistenceSites` needed in the last pass.
 5. **Every accepted workstream is measured before and after by `bench:cycle`,** and the numbers
    go in the commit message. A cost change without a before/after is a refactor.
+6. **The core does not depend on the LM.** Neither direction, in the source. `nar/src` core may
+   not import `nar/src/lm/`, and the LM layer may not reach into core internals by any route
+   weaker than its public API. Enforced by the dependency gate (W1b acceptance 1), not by review.
+7. **The no-LM configuration is a real system, not a stub.** It must pass NAL1–8, reason under the
+   cost model, and produce derivations with zero proposal producers registered. If removing the LM
+   leaves something inert, then the LM was not optional — it was load-bearing — and §3.6's argument
+   does not hold. This is the invariant most worth testing, because it is the one that would
+   expose the claim as false.
+8. **`lm.enabled` and `enableLMRules` disappear** rather than being extended (W1b acceptance 4).
+   A boolean on an always-constructed component is a comment, and this repository is full of
+   accurate comments about behaviour that is not what they say.
 
 ---
 
@@ -897,11 +1075,12 @@ Named, so the plan is falsifiable by diff:
 
 ## 9. Not doing
 
-- **The `lm/` subsystem is not a target beyond W1.** 15 226 lines, 25% of `nar/src`, and the
+- **The `lm/` subsystem's internals are not a target.** 15 226 lines, 25% of `nar/src`, and the
   largest directory in the tree. W1 changes *where it is called from* and deletes two lines of it;
-  it does not restyle it. The rule templates and the adapters are real work and stay. Making the
-  LM layer fast is a separate plan with a different question — and the right time to ask it is
-  after W1, when its cost is no longer hidden inside a cycle.
+  W1b changes *which direction the dependency points*. Neither restyles it. The rule templates and
+  the adapters are real work and stay. Making the LM layer itself fast, or better, is a separate
+  plan with a different question — and the right time to ask it is after W1, when its cost is no
+  longer hidden inside a cycle.
 - **The game and RL focus subsystems are not targets.** `game/` (2 713) and `focus/` (1 909) are
   an agent-side apparatus, not the reasoning core, and they are the only reason several of these
   APIs are shaped the way they are. Touching them makes the core changes harder to land.
@@ -921,6 +1100,11 @@ New, and wired into `pnpm gates`:
   and measures otherwise. This is §3.1 as a ratchet, and it is the gate that makes W10's
   accumulator work unnecessary to trust.
 - `bench:cycle` joins the `slow` tier.
+- `core:no-lm` — runs the NAL tests and a reasoning episode with **zero** proposal producers, and
+  with the LM package removed from the build graph. Green means §7's invariant 7 is mechanical
+  rather than aspirational. Cheap, and it is the gate that makes the optionality claim falsifiable.
+- `deps:gate` gains a row: `nar` core may not import `nar/src/lm/`. One line in a ledger, and it
+  is the only enforcement that cannot be crossed by a well-meaning import.
 
 ### 10.1 The intent-to-gate ledger
 
@@ -932,6 +1116,7 @@ that state, and the fourth is the only reason any of them work.
 | architectural intent | where it is stated | is it mechanical? | what makes it so |
 |---|---|---|---|
 | The Stream Reasoner — LM async, reasoner sync | design intent; `cpuThrottleMs` implies the opposite | **no** | W1's hanging-LM test |
+| The LM is optional; the core is NARchy-like | nowhere | **no** — and 36 core files import `lm/` | W1b: a `deps:gate` row, and a no-LM NAR that reasons |
 | Decay has one owner, on one cadence | nowhere | **no** | W2: count `decayAll` call sites |
 | Attention has one owner | nowhere; 19 writers | **no** | W3: seven named operations |
 | Every bounded container is bounded | `scripts/lib/accumulator-ledger.ts` | **partly** — a *string* check over 2 of 42 sites | W10: a detection rule, and a failing test first |
@@ -1031,7 +1216,43 @@ does not answer, and it should not be answered by whoever next opens that file.
 of W3 and W5 for free once the calls disappear. Re-derive it after W1 rather than working from
 this list — the same §1.10 caveat applies.
 
+**Q8. Does the LM become a seventh workspace package?** The only enforcement that cannot be
+bypassed by a well-meaning import — and it requires everything the LM reads (concepts, memory
+statistics, derivation chains) to be public API. That is probably good pressure and definitely a
+lot of surface. Answer after W1, because the interface is not known until the seam exists.
+
+**Q9. What does the no-LM core's built-in reaction table contain?** If the core ships with only
+NAL1–8, "reduces to NARchy-like capabilities" is literally true and the claim is modest. If it
+ships with more, the claim needs a specification and a test. Either is defensible; leaving it
+undecided is not, because the answer determines whether §3.6's falsifiability argument holds.
+
+**Q10. Is the LM the *only* proposal producer we expect?** Designing `ProposalSource` for one
+producer is how you get an interface that is really a call site. A rule-miner, a human author, and
+a recorded fixture are cheap to name now and expensive to retrofit.
+
 ## 13. Pass log
+
+### Third pass (v1.2)
+
+- Recorded the requirement that the LM be **optional** and sit beyond the core, and worked out
+  what that has to mean operationally. The answer is not a flag: `lm.enabled: false` and
+  `enableLMRules: false` are false friends, because `initializeLMRules` runs at construction
+  (`nar.ts:18`) and every rule is registered (`facade/index.ts:98`). A component that is wired is
+  not optional, and the two tests that tell the difference — a hanging LM, and a NAR with zero
+  producers — did not exist.
+- Measured the boundary's current cost: **36 files** outside `nar/src/lm/` import from it, and
+  `nar/src/strategies/types.ts:1` puts `LMRule` in the strategy extension contract, so a strategy
+  cannot be written without naming the LM.
+- Added §3.5 and §3.6, and W1b. W1b is a sub-phase rather than a new letter on purpose: the seam
+  and the layer boundary are one change, and only the first half is independently testable.
+- **Retired §4.1's hardest question.** Whether a background model could survive
+  `test:hermetic` was the risk I flagged last pass as most likely to be quietly deferred. If the
+  LM is optional the hermetic run is the no-LM run plus replayed fixtures, so the question has an
+  answer by construction — which is the clearest single argument for the requirement.
+- Added §7 invariants 6–8, the `core:no-lm` and dependency gates, and a ledger row for the
+  optionality intent.
+- Noted the inversion this exposes: optionality is not a concession, it is what makes the core
+  claim falsifiable, and it is the forcing function for the one capability NARchy lacks.
 
 ### Second pass (v1.1)
 
