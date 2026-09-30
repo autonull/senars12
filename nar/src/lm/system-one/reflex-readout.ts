@@ -5,7 +5,7 @@
  * the kernel mints correlationIds inside agent.chat(), so the message span is
  * the honest join available without threading ids through the Focus cycle.
  */
-import { BoundedRing } from '../../utils/collections.js';
+import { BoundedRing } from '@senars/util';
 
 export interface ReflexDecision {
   proposed: readonly string[];

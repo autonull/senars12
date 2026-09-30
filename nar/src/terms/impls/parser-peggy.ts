@@ -2,7 +2,7 @@
 // This replaces the hand-written recursive descent parser
 
 import { createRequire } from 'node:module';
-import { errMsg } from '../../utils';
+import { errMsg } from '@senars/util';
 import { TermFactory } from './factory.js';
 import { Truth } from './Truth.js';
 import type { Term } from '../types.js';

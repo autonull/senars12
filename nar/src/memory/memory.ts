@@ -1,5 +1,5 @@
 import type { ConceptGraph } from './ConceptGraph.js';
-import { clamp01, sortByDesc } from '@senars/util';
+import { BoundedRing, clamp01, selectTopN, sortByDesc } from '@senars/util';
 import type { ResolvedBagSlot } from '../bag/registration';
 import { LINK } from '../constants.js';
 import type { AttentionModel } from '../strategies/types.js';
@@ -9,7 +9,6 @@ import { mentionsSymbol, Stamp, TermMap, TermSet, Truth } from '../terms';
 import { atom } from '../terms/impls/factory.js';
 import type { Budget, Task } from '../types';
 import { NEUTRAL_BUDGET } from '../types';
-import { BoundedRing, selectTopN } from '../utils/collections.js';
 import { selectSimilar } from './similarity.js';
 import { Concept, type ConceptMergeResult, type ConceptTaskType } from './concept.js';
 import { Focus } from './focus.js';

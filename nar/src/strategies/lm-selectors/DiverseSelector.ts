@@ -1,5 +1,5 @@
 import type { LMRule } from '../../lm';
-import { selectTopN } from '../../utils/collections.js';
+import { selectTopN } from '@senars/util';
 import type { LMRuleSelectionContext, LMRuleSelector } from '../types.js';
 
 export class DiverseSelector implements LMRuleSelector {

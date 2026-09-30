@@ -5,7 +5,7 @@
  * reach-in); `nar.ts` re-binds them as thin methods. Init guards live in a
  * WeakSet so per-instance semantics survive the extraction.
  */
-import { makeId, truncate } from '@senars/util';
+import { errMsg, makeId, truncate } from '@senars/util';
 import type { SelfImprovementProposal } from '@senars/core/derivation-schemas';
 import type { LanguageModel } from 'ai';
 import { createBootstrapTasks } from '../drives';
@@ -22,7 +22,6 @@ import { discoverTools } from '../tools';
 import { createSelfTools } from '../tools/adapters/self-tools.js';
 import type { Tool } from '../tools';
 import { createLogger } from '@senars/core/logger';
-import { errMsg } from '../utils';
 
 const logger = createLogger({ scope: 'nar:facade' });
 

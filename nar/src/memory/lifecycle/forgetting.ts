@@ -1,9 +1,8 @@
-import { maxBy, mean, minBy } from '@senars/util';
+import { clamp01, maxBy, mean, minBy } from '@senars/util';
 
 import type { Concept } from '../concept.js';
 import type { MemoryScorer } from '../pressure/scorer.js';
 import { SATURATION_COUNT } from '../../constants.js';
-import { clamp01 } from '../../utils';
 
 export type ForgettingPolicy =
   | 'fifo'

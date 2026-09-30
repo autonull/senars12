@@ -149,12 +149,7 @@ describe('Bench 62: monolith split — M4 lm-service', () => {
     }
   });
 
-  it('X5: single generic breaker lives in utils/resilience', () => {
-    const resilience = readFileSync(
-      join(import.meta.dirname, '../../nar/src/utils/resilience.ts'),
-      'utf-8'
-    );
-    expect(resilience).toContain('CircuitBreaker');
+  it('X5: single generic breaker lives in utils/circuit-breaker', () => {
     expect(loc(join(import.meta.dirname, '../../nar/src/utils/circuit-breaker.ts'))).toBeGreaterThan(0);
   });
 });

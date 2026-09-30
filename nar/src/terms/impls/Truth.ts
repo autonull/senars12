@@ -1,6 +1,5 @@
+import { clamp, formatTruth, parseTruthLiteral, safeDiv, serializeTruth } from '@senars/util';
 import type { Confidence, Frequency } from '@senars/util';
-import { formatTruth, parseTruthLiteral, serializeTruth } from '@senars/util';
-import { clamp, safeDiv } from '../../utils';
 
 export interface Truth {
   readonly f: Frequency;

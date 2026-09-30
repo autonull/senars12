@@ -1,9 +1,8 @@
 import type { ToolFeedback, ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
 import { SenarsError } from '@senars/util/errors';
-import { maxBy } from '@senars/util';
+import { BoundedRing, maxBy } from '@senars/util';
 import { createLogger } from '@senars/core/logger';
-import { BoundedRing } from '../../utils/collections.js';
 import type { Term } from '../../terms';
 import type { EventBus, NAREventMap } from '../../types';
 import type { RandomSource } from '../../types/primitives.js';

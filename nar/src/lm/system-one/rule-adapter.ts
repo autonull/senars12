@@ -1,9 +1,8 @@
-import { clamp, clamp01 } from '@senars/util';
+import { clamp, clamp01, selectTopN } from '@senars/util';
 import type { Term } from '../../terms';
 import { Truth, termParser } from '../../terms';
 import type { Budget, Task, TruthType } from '../../types';
 import { createBudget, createTask } from '../../types/core.js';
-import { selectTopN } from '../../utils/collections.js';
 import type { CognitiveDispatcher, EvaluateQuery, JudgmentProposition } from './types.js';
 import { createSystemOneBudget } from './types.js';
 

@@ -1,7 +1,7 @@
-import { BoundedMap, type EvictionOrder, occupancy } from '@senars/util';
+import { BoundedMap, addToSet, occupancy } from '@senars/util';
+import type { EvictionOrder } from '@senars/util';
 import { termKey, type Term } from '../../terms';
 import type { RandomSource } from '../../types/primitives.js';
-import { addToSet } from '../../utils/collections.js';
 import type { LinkEntry, LinkForgetPolicy, LinkInput, LinkQuery, LinkType } from './types.js';
 
 const DEFAULT_TYPE: LinkType = 'term-link';

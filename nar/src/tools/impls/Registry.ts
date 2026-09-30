@@ -1,5 +1,5 @@
 import { ToolError } from '../../types';
-import { errMsg, isPlainObject } from '../../utils';
+import { errMsg, isPlainObject } from '@senars/util';
 import type {
   Schema,
   Tool,

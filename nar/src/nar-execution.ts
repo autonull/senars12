@@ -1,4 +1,4 @@
-import { mean, roundTo } from '@senars/util';
+import { BoundedRing, errMsg, mean, roundTo } from '@senars/util';
 
 import { envBool } from '@senars/util/config';
 import type { CognitiveController } from './cognitive';
@@ -18,8 +18,6 @@ import { PhaseTimer } from './trace';
 import type { Task } from './types';
 import { createTask } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';
-import { errMsg } from './utils';
-import { BoundedRing } from './utils/collections.js';
 
 /** Cognitive state summary for observability */
 export interface CognitiveStateSummary {

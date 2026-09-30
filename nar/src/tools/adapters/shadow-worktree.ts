@@ -142,4 +142,4 @@ export class ShadowWorktreeManager {
   }
 }
 
-import { ensureParentDir } from '../../utils/fs.js';
+import { ensureParentDir } from '@senars/util';

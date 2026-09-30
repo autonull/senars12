@@ -6,10 +6,9 @@
  * under pressure (AIKR); processing is interruptible via AbortSignal and
  * deterministic under an injected RandomSource.
  */
-import { softmax } from '@senars/util';
+import { selectTopN, softmax } from '@senars/util';
 import type { Bag, BagItem } from '../bag/Bag.js';
 import type { RandomSource } from '../types/primitives.js';
-import { selectTopN } from '../utils/collections.js';
 import { weightedSample, weightedSampleBy } from '../utils/random.js';
 
 export interface SamplingStrategy<T extends BagItem> {

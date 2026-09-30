@@ -1,6 +1,5 @@
-import { makeId, PushQueue, Signal } from '@senars/util';
+import { BoundedRing, PushQueue, Signal, makeId } from '@senars/util';
 import type { DerivationRecord, DerivationStep, TruthValue } from '@senars/core/derivation-schemas';
-import { BoundedRing } from '../../utils/collections.js';
 import type { RuleInput, RuleResult } from '../types.js';
 
 type Independence = DerivationStep['independence'];

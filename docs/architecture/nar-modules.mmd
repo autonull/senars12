@@ -110,7 +110,6 @@ graph TD
   _ --> terms
   _ --> terms_impls
   _ --> types
-  _ --> utils
   agent --> _
   agent --> cognitive_impls
   agent --> config
@@ -127,7 +126,6 @@ graph TD
   bag --> types
   bag --> utils
   capability --> tools
-  capability --> utils
   cognitive --> cognitive_impls
   cognitive --> strategies
   cognitive_impls --> cognitive
@@ -150,7 +148,6 @@ graph TD
   cognitive_impls_analyzers --> lm_grammars
   cognitive_impls_analyzers --> self
   cognitive_impls_analyzers --> terms
-  cognitive_impls_analyzers --> utils
   commands --> _
   commands --> memory
   commands --> self
@@ -175,7 +172,6 @@ graph TD
   engine --> memory
   engine --> types
   eval --> lm_system-one
-  eval --> utils
   events --> types
   facade --> _
   facade --> focus
@@ -254,7 +250,6 @@ graph TD
   kernel --> telemetry
   kernel --> terms
   kernel --> types
-  kernel --> utils
   learning --> bag
   learning --> focus
   learning --> kernel
@@ -281,6 +276,7 @@ graph TD
   lm_rule --> lm
   lm_rule --> terms_impls
   lm_rule --> types
+  lm_rule --> utils
   lm_rule-selectors --> lm
   lm_rule-selectors --> lm_rule-templates
   lm_rule-templates --> lm
@@ -326,10 +322,8 @@ graph TD
   memory_lifecycle --> terms_impls
   memory_links --> memory
   memory_links --> types
-  memory_links --> utils
   memory_pressure --> _
   memory_pressure --> memory
-  memory_pressure --> utils
   memory_state --> bag
   memory_state --> memory
   memory_state --> state
@@ -348,7 +342,6 @@ graph TD
   nl --> nl_prompts
   nl --> terms
   nl --> types
-  nl --> utils
   nl_prompts --> nl
   otel --> tick
   query --> _
@@ -379,7 +372,6 @@ graph TD
   rl_impls_adapters --> utils
   rlfp --> config
   rlfp --> types
-  rlfp --> utils
   rules --> rules_impls
   rules_extended --> rules
   rules_extended --> rules_impls
@@ -394,7 +386,6 @@ graph TD
   rules_impls --> strategies
   rules_impls --> terms
   rules_impls --> terms_impls
-  rules_impls --> utils
   rules_nal --> rules
   rules_nal --> rules_impls
   self --> cognitive
@@ -404,7 +395,6 @@ graph TD
   self --> memory
   self --> terms
   self --> types
-  self --> utils
   strategies --> lm_rule
   strategies --> memory
   strategies --> reason
@@ -426,10 +416,8 @@ graph TD
   strategies_lm-graph --> memory
   strategies_lm-graph --> strategies
   strategies_lm-graph --> terms
-  strategies_lm-graph --> utils
   strategies_lm-selectors --> lm
   strategies_lm-selectors --> strategies
-  strategies_lm-selectors --> utils
   strategies_premise --> memory
   strategies_premise --> memory_links
   strategies_premise --> strategies
@@ -442,7 +430,6 @@ graph TD
   stream --> terms_impls
   stream --> tick
   stream --> types
-  stream --> utils
   task --> kernel
   task --> terms
   task --> types
@@ -452,6 +439,7 @@ graph TD
   terms_impls --> memory_lifecycle
   terms_impls --> terms
   terms_impls --> types
+  terms_impls --> utils
   tick --> otel
   tick --> stream
   tick --> terms
@@ -461,7 +449,6 @@ graph TD
   tools_adapters --> memory
   tools_adapters --> nl
   tools_adapters --> tools_adapters_self
-  tools_adapters --> utils
   tools_adapters_self --> _
   tools_adapters_self --> cognitive_impls
   tools_adapters_self --> config
@@ -469,11 +456,9 @@ graph TD
   tools_adapters_self --> rules_impls
   tools_adapters_self --> tools_adapters
   tools_adapters_self --> tools_impls
-  tools_adapters_self --> utils
   tools_impls --> _
   tools_impls --> tools
   tools_impls --> types
-  tools_impls --> utils
   types --> terms
   types --> terms_impls
   types --> utils

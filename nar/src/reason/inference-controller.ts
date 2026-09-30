@@ -2,12 +2,11 @@
  * Inference Controller - Orchestrates task sampling, secondary selection, and rule firing
  */
 
-import { sleep } from '@senars/util';
+import { clamp01, sleep } from '@senars/util';
 import type { Memory } from '../memory';
 import type { RuleProcessor } from '../rules';
 import type { DerivationContext, DerivationStrategy, SamplingStrategy } from '../strategies';
 import type { Task } from '../types';
-import { clamp01 } from '../utils';
 import {
   createBeliefTaskFromConcept,
   createCircularDetector,

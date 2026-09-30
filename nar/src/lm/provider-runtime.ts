@@ -9,12 +9,12 @@
 import { join } from 'node:path';
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
-import { type LMTask, utcDate } from '@senars/util';
+import { ensureDirSync, utcDate } from '@senars/util';
+import type { LMTask } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 import { recordCircuitBreakerState } from '../metrics/index.js';
 import { getTracer } from '../otel/index.js';
-import { ensureDirSync } from '../utils/fs.js';
 import {
   type CircuitState,
   type LMProviderName,

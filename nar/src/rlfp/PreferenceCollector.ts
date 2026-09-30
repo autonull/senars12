@@ -1,7 +1,6 @@
-import { writeJsonFile } from '@senars/util';
+import { clamp01, writeJsonFile } from '@senars/util';
 import { promises as fs } from 'node:fs';
 import { OperationError } from '../types';
-import { clamp01 } from '../utils';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import { extractTrajectoryFeatures } from './utils.js';
 

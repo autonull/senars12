@@ -272,5 +272,4 @@ export function createArchitectureDriver(nar: SelfHost, proposalsDir?: string): 
   return new ArchitectureDriver(nar, proposalsDir);
 }
 
-import { ensureParentDir } from '../utils/fs.js';
-import { pct, serializeTruth } from '@senars/util';
+import { ensureParentDir, pct, serializeTruth } from '@senars/util';

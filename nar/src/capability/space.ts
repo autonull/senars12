@@ -1,5 +1,4 @@
-import { errMsg } from '@senars/util';
-import { BoundedRing } from '../utils/collections.js';
+import { BoundedRing, errMsg } from '@senars/util';
 export type CapabilityRisk = 'low' | 'medium' | 'high';
 
 export interface CapabilityDef {

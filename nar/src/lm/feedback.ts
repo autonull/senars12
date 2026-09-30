@@ -1,11 +1,10 @@
 import { createLogger } from '@senars/core/logger';
-import { BoundedRing, formatTruth } from '@senars/util';
+import { BoundedRing, clamp01, errMsg, formatTruth } from '@senars/util';
 import { z } from 'zod';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { TermMap, Truth } from '../terms';
 import { createBudget, createTask, type Task } from '../types';
-import { clamp01, errMsg } from '../utils';
 import { admitTasks } from './admit.js';
 import { topBeliefTasks } from './context.js';
 import { parseEnrichmentResponse } from './enrichment.js';

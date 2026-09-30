@@ -1,6 +1,6 @@
 import { withSpan } from '../otel/index.js';
 import { recordSchemaPromotion } from '../telemetry/index.js';
-import { readJsonFileSync, writeJsonFileSync } from '../utils/fs.js';
+import { readJsonFileSync, writeJsonFileSync } from '@senars/util';
 import type { PromotedSchema } from './episode-schemas.js';
 
 /**

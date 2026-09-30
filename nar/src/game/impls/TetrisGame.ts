@@ -1,7 +1,7 @@
 import type { Game, GameOutcome, Perception } from '../Game.js';
 import { SeededRNG } from '../../utils/random.js';
 import { shuffleInPlace } from '../../utils/random.js';
-import { clamp01 } from '../../utils';
+import { clamp01 } from '@senars/util';
 
 /** Placement action: 'place:r<rotation>:c<column>' (hard drop). */
 export type TetrisPlacement = string;

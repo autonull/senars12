@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { tool } from 'ai';
 import * as fc from 'fast-check';
 import { z } from 'zod';
-import { ensureDir } from '../../utils/fs.js';
+import { ensureDir } from '@senars/util';
 
 // --- generate_tests ---
 

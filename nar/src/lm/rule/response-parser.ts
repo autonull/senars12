@@ -1,7 +1,7 @@
 import type { Term } from '../../terms';
 import { Truth, termParser } from '../../terms';
 import type { Truth as TruthType } from '../../terms/impls/Truth.js';
-import { errMsg } from '../../utils';
+import { errMsg } from '@senars/util';
 import { parseJsonObject } from '../json.js';
 
 export interface ParsedLMResponse {

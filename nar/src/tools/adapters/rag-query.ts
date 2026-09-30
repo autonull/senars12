@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import type { EmbeddingGenerator } from '../../memory/embedding.js';
 import { cosineSimilarity, createEmbeddingGenerator } from '../../memory/embedding.js';
-import { selectTopN } from '../../utils/collections.js';
+import { selectTopN } from '@senars/util';
 
 // --- rag_query ---
 

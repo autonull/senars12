@@ -1,3 +1,4 @@
+import { errMsg } from '@senars/util';
 import type { ToolCapabilities } from '@senars/util';
 
 export interface Tool {
@@ -62,7 +63,6 @@ export interface ToolChainResult {
   error?: string;
 }
 
-import { errMsg } from '../utils';
 
 export interface ToolResult {
   success: boolean;

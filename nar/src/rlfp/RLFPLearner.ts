@@ -1,11 +1,10 @@
 import { createLogger } from '@senars/core/logger';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
-import { cachePath, roundTo } from '@senars/util';
+import { cachePath, clamp, roundTo } from '@senars/util';
 import { z } from 'zod';
 import { buildDefaults, type CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { ParameterLedger } from '../config/parameter-ledger.js';
 import { OperationError } from '../types';
-import { clamp } from '../utils';
 import { createKnobSet, type TunableKnob } from './knobs.js';
 import { PolicyOptimizer } from './PolicyOptimizer.js';
 import { PreferenceCollector, type PreferenceData } from './PreferenceCollector.js';

@@ -1,4 +1,4 @@
-import { selectTopN } from '../../utils/collections.js';
+import { clamp01, selectTopN, weightedMean } from '@senars/util';
 
 /** Newest sample carries 10% of the mean; the rest is the retained 90%. */
 const EWMA_WEIGHT = 9;
@@ -9,7 +9,6 @@ const EWMA_WEIGHT = 9;
  * Fallback edges guarantee non-regression when LM rules fail.
  */
 
-import { clamp01, weightedMean } from '@senars/util';
 import { ConceptGraph, type CoActivationEdge } from '../../memory/ConceptGraph.js';
 
 import type {

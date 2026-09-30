@@ -1,10 +1,9 @@
-import { maxBy, mean, selectTopN, weightedMean } from '@senars/util';
+import { BoundedRing, maxBy, mean, selectTopN, weightedMean } from '@senars/util';
 
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import type { RewardModel } from './RewardModel.js';
 import { findCommonFeatures } from './utils.js';
 import type { RandomSource } from '../types/primitives.js';
-import { BoundedRing } from '../utils/collections.js';
 
 /** Prior-sample weight for a strategy's success rate: proven, or still unproven. */
 const PROVEN_WEIGHT = 10;

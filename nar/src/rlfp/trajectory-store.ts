@@ -1,6 +1,5 @@
-import { appendJsonlAsync, readJsonlAsync } from '../utils/fs.js';
+import { appendJsonlAsync, mean, readJsonlAsync } from '@senars/util';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
-import { mean } from '@senars/util';
 
 /** Grades from one completed agent cycle (E4 trace grading). */
 export interface CycleGrades {

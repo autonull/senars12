@@ -1,4 +1,4 @@
-import { clamp01 } from '../../utils';
+import { clamp01 } from '@senars/util';
 import type { Concept } from '../../memory/concept.js';
 import type { AttentionContext } from '../types.js';
 import { SimpleAttention } from './SimpleAttention.js';

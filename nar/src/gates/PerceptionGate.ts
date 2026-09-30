@@ -1,6 +1,6 @@
 import type { Perception } from '../game/Game.js';
 import type { FocusTask } from '../focus/Focus.js';
-import { clamp01 } from '../utils';
+import { clamp01 } from '@senars/util';
 import { featureTerm, focusTask, stateTerm } from './tasks.js';
 
 const DEFAULT_PERCEPTION_CONFIDENCE = 0.9;

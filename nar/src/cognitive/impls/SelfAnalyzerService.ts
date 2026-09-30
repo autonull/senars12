@@ -2,7 +2,7 @@ import { createLogger } from '@senars/core/logger';
 import type { MetricsCollector } from '../../metrics';
 import type { SelfHost } from '../../self/host.js';
 import { SelfOptimizer } from '../../self/SelfOptimizer';
-import { errMsg } from '../../utils';
+import { errMsg } from '@senars/util';
 import { diffCapabilities, getCapabilitySnapshot } from './analyzers/capabilities.js';
 import { applyCorrections, identifyIssues } from './analyzers/corrections.js';
 import { createPolicyManager } from './analyzers/policy.js';

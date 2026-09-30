@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { normalize, resolve } from 'node:path';
-import { containsPath } from '@senars/util';
+import { containsPath, ensureParentDir } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
 
@@ -69,4 +69,3 @@ export function createFileSystemTools(deps: FileSystemDeps) {
   };
 }
 
-import { ensureParentDir } from '../../utils/fs.js';

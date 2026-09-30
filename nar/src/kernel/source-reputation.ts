@@ -9,9 +9,8 @@
  */
 
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
-import { cachePath, LruCache } from '@senars/util';
+import { LruCache, cachePath, clamp01 } from '@senars/util';
 import { z } from 'zod';
-import { clamp01 } from '../utils';
 
 export interface ReputationEntry {
   confirmed: number;

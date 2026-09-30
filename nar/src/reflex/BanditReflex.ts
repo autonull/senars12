@@ -1,6 +1,5 @@
-import { getOrInsert } from '@senars/util';
+import { clamp01, getOrInsert } from '@senars/util';
 import { SATURATION_COUNT } from '../constants.js';
-import { clamp01 } from '../utils';
 import { type ActionProposal, byExpectedValue, type LearningEvent } from './Reflex.js';
 
 /** Incremental mean estimator for one (state, action) pair. */

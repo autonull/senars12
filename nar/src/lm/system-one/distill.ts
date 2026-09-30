@@ -1,4 +1,4 @@
-import { SHA256_PINNED, makeId, sha256Hex } from '@senars/util';
+import { SHA256_PINNED, appendJsonlAsync, iterateJsonl, makeId, sha256Hex, writeJsonl } from '@senars/util';
 
 import { promises as fs } from 'node:fs';
 import { dirname } from 'node:path';
@@ -13,8 +13,6 @@ import type { SelfImprovementProposal } from '@senars/core/derivation-schemas';
 import { z } from 'zod';
 
 import { Truth, type Truth as TruthType } from '../../terms/impls/Truth.js';
-import { appendJsonlAsync } from '../../utils/fs.js';
-import { iterateJsonl, writeJsonl } from '../../utils/jsonl.js';
 import { frozenRegression, meanBrierOf } from './metrics.js';
 import { seedTruth } from './seed.js';
 import type { JudgmentProposition } from './types.js';

@@ -1,6 +1,6 @@
 import type { GameOutcome } from '../game/Game.js';
 import type { FocusTask } from '../focus/Focus.js';
-import { clamp01 } from '../utils';
+import { clamp01 } from '@senars/util';
 import { focusTask, rewardTerm, stateTerm } from './tasks.js';
 
 export class RewardGate {

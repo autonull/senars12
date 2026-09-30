@@ -1,5 +1,5 @@
 import { SATURATION_COUNT } from '../../constants.js';
-import { clamp01 } from '../../utils';
+import { clamp01 } from '@senars/util';
 import type { Concept } from '../concept.js';
 
 export interface ScorerConfig {

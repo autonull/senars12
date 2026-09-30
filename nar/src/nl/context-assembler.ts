@@ -1,11 +1,10 @@
-import { formatNarseseTruth, tokenizeWords } from '@senars/util';
+import { formatNarseseTruth, selectTopN, tokenizeWords } from '@senars/util';
 
 import { estimateTokens } from '../lm/context/context-budget.js';
 import type { NAR } from '../nar.js';
 import { TermSet } from '../terms';
 import type { TranslationCache, TranslationCacheEntry } from './cache.js';
 import type { NLContext } from './understanding.js';
-import { selectTopN } from '../utils/collections.js';
 
 export interface ContextAssemblerOpts {
   tokenBudget?: number;

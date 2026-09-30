@@ -49,6 +49,7 @@
     "deps:direction": "tsx scripts/deps-direction.ts",
     "exports:check": "tsx scripts/verify-exports.ts",
     "exports:barrels": "tsx scripts/verify-barrels.ts",
+    "gates": "tsx scripts/gates.ts",
     "bench": "vitest run tests/nar/benchmark.test.ts tests/nar/benchmark-infra.test.ts",
     "bench:fundamentals": "tsx scripts/fundamentals-bench.ts",
     "bench:fundamentals:mock": "LM_PROVIDER=mock tsx scripts/fundamentals-bench.ts",
@@ -68,6 +69,7 @@
     "open-replica-fixture": "tsx scripts/open-replica-fixture-server.ts",
     "docs:api": "tsx scripts/docs-api.ts",
     "docs:architecture": "tsx scripts/generate-architecture.ts",
+    "docs:drift": "pnpm docs:api && pnpm docs:architecture && git diff --exit-code docs/api docs/architecture",
     "exports:audit": "tsx scripts/exports-audit.ts",
     "complexity:budget": "tsx scripts/complexity-budget.ts"
   },

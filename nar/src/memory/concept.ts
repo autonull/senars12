@@ -1,4 +1,4 @@
-import { asBeliefTruth, makeId } from '@senars/util';
+import { asBeliefTruth, clamp01, makeId } from '@senars/util';
 import { createBag, type Bag, type BagOptions } from '../bag/index.js';
 import type { ResolvedBagSlot } from '../bag/registration.js';
 import { LINK } from '../constants.js';
@@ -14,7 +14,6 @@ import {
 } from '../terms';
 import { type IndependenceStatus, Truth as TruthOps } from '../terms/impls/Truth.js';
 import type { Budget, TaskType } from '../types';
-import { clamp01 } from '../utils';
 
 export type { IndependenceStatus };
 

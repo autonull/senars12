@@ -3,17 +3,16 @@
  */
 
 import { findConflicts } from '../../cognitive/impls/conflict-utils.js';
-import { formatNarseseTruth, pushCapped } from '@senars/util';
+import { formatNarseseTruth, pushCapped, toError } from '@senars/util';
+import type { LMRuleStats } from '@senars/util';
 import { GATE_LOG_CAPACITY } from '../../kernel/event-ring.js';
 import type { LMRule } from '../../lm/rule/LMRule.js';
-import type { LMRuleStats } from '@senars/util';
 import type { DriveManager } from '../../drives';
 import type { Memory } from '../../memory';
 import type { LMRuleSelector } from '../../strategies/types.js';
 import type { StampType, Term } from '../../terms';
 import { Truth, type Truth as TruthType } from '../../terms';
 import type { NarEventBus, Task } from '../../types';
-import { toError } from '../../utils';
 import { META_AIKR_BOUNDS, shouldActivateMetaReasoning } from './meta-rules.js';
 import { DerivationRecorder } from './recorder.js';
 import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils.js';

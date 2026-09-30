@@ -1,4 +1,4 @@
-import { readJsonFileSync, writeJsonFileSync } from '../utils/fs.js';
+import { readJsonFileSync, writeJsonFileSync } from '@senars/util';
 
 /**
  * G3 — multi-game session resume. The arcade records its tournament progress

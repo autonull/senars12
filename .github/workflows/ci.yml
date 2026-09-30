@@ -14,6 +14,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      # The bin/ composition root is a separate tsconfig and its own failure mode.
+      - run: pnpm typecheck:bin
       - run: pnpm lint
       - run: pnpm deps:gate
       # TODO28 §4.2: deps:gate counts cycles and cannot see an inversion.
@@ -25,10 +27,9 @@ jobs:
       # TODO28 §8.6: one barrel per directory, and it names what it exports.
       - run: pnpm exports:barrels
       # TODO20 §5s: generated docs must match committed output (drift gate)
-      - run: |
-          pnpm docs:api
-          pnpm docs:architecture
-          git diff --exit-code docs/api docs/architecture
+      - run: pnpm docs:drift
+      # TODO28 §8.10: every gate in scripts/lib/gates.ts, including this one.
+      - run: pnpm complexity:budget
       - run: pnpm test:unit
   determinism:
     runs-on: ubuntu-latest

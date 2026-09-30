@@ -2,7 +2,7 @@ import { type CreateAgentConfig, createAgent } from '@senars/nar/agent';
 import type { NAR } from '../../nar/src';
 import { createTestNAR } from '../../nar/src';
 import type { LMService } from '../../nar/src/lm';
-import { errMsg } from '../../nar/src/utils';
+import { errMsg } from '@senars/util';
 
 export interface ProbeExpectations {
   responseContains?: string[];

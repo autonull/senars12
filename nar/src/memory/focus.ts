@@ -1,6 +1,6 @@
 import { containsSubterm, type Term, TermMap } from '../terms';
 import type { Task } from '../types';
-import { clamp01 } from '../utils';
+import { clamp01 } from '@senars/util';
 import type { Concept } from './concept.js';
 
 export interface FocusConfig {

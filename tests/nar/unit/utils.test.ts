@@ -9,7 +9,7 @@ import {
   safeDiv,
   sleep,
   wordOverlap,
-} from '../../../nar/src/utils';
+} from '@senars/util';
 
 describe('Utility Functions', () => {
   describe('clamp', () => {

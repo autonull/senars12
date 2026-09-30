@@ -1,6 +1,7 @@
 import { BaseComponent } from '@senars/core';
 import type { ReasoningBudget } from '@senars/core/derivation-schemas';
-import { selectTopN, type Episode } from '@senars/util';
+import { errMsg, selectTopN } from '@senars/util';
+import type { Episode } from '@senars/util';
 import { resolveBagSlot } from './bag/registration.js';
 import { CognitiveController, createDefaultRegistry } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
@@ -71,7 +72,6 @@ import { ConfigurationError, DEFAULT_CONFIG, NarEventBus, type Task, type TaskTy
 /** Bounded derivation-chain ring per AIKR (no I/O on the hot path). */
 const DERIVATION_RING_CAP = 256;
 
-import { errMsg } from './utils';
 
 export type {
   NARConfig,

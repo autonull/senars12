@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { asBeliefTruth, clamp, makeId, pushCapped } from '@senars/util';
+import { asBeliefTruth, clamp, ensureDirSync, makeId, maxBy, pushCapped } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import type { DerivationRecord, ReasoningBudget } from '@senars/core/derivation-schemas';
 import { z } from 'zod';
@@ -17,11 +17,9 @@ import {
 import { type ActionProposal, LearningEvent, type Reflex } from '../reflex/Reflex.js';
 import { recordBagPressure, recordHandover } from '../telemetry/index.js';
 import type { NarEventBus } from '../types/events.js';
-import { ensureDirSync } from '../utils/fs.js';
 import { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding.js';
 import { induceEpisodeSchemas, type PromotedSchema } from './episode-schemas.js';
 import { Focus, type FocusOptions } from './Focus.js';
-import { maxBy } from '@senars/util';
 
 const GameTraceEntrySchema = BaseLedgerEntrySchema.extend({
   cycle: z.number(),

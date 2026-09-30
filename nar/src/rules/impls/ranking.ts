@@ -1,4 +1,4 @@
-import { selectTopN } from '../../utils/collections.js';
+import { selectTopN } from '@senars/util';
 
 export interface RankableDerivation {
   term: { toString(): string };

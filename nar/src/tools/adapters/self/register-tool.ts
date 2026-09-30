@@ -2,7 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { ensureParentDir } from '../../../utils/fs.js';
+import { ensureParentDir } from '@senars/util';
 import { type SelfToolsContext, toToolResult, withShadowWorktree } from './context.js';
 
 export const registerToolTool = (ctx: SelfToolsContext) => {

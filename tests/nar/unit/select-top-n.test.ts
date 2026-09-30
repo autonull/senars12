@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { selectTopN } from '../../../nar/src/utils/collections.js';
+import { selectTopN } from '@senars/util';
 
 const arr = [5, 1, 3, 9, 2, 8, 4, 7, 0, 6];
 const old = (n: number) => [...arr].sort((a, b) => b - a).slice(0, n);

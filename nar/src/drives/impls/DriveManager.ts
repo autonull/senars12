@@ -1,8 +1,7 @@
-import { formatNarseseTruth, maxScore } from '@senars/util';
+import { clamp01, formatNarseseTruth, maxScore } from '@senars/util';
 import type { IDriveManager } from '../../kernel/interfaces.js';
 import { Truth, type Truth as TruthType } from '../../terms/impls/Truth.js';
 import type { EventBus as InternalEventBus } from '../../types/events.js';
-import { clamp01 } from '../../utils';
 import { BUILTIN_DRIVES } from './builtin.js';
 import type { DriveSpec, DriveState } from '../types.js';
 

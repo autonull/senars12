@@ -18,7 +18,7 @@ import {
   isOperation,
 } from '../terms/index.js';
 import type { Budget, ConceptLike, Task } from '../types/index.js';
-import { clamp01 } from '../utils';
+import { clamp01 } from '@senars/util';
 
 export interface FocusTask extends BagItem {
   id: string;

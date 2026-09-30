@@ -1,5 +1,5 @@
 import { Truth } from '../../terms';
-import { clamp } from '../../utils';
+import { clamp } from '@senars/util';
 import type { DriveSpec } from '../types.js';
 
 export const BUILTIN_DRIVES: DriveSpec[] = [

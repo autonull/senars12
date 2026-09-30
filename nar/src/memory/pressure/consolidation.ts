@@ -1,9 +1,8 @@
 import { join } from 'node:path';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
-import { sortBy } from '@senars/util';
+import { ensureDirSync, sortBy } from '@senars/util';
 import { z } from 'zod';
 import { termsEqual } from '../../terms';
-import { ensureDirSync } from '../../utils/fs.js';
 import type { Concept } from '../concept.js';
 import type { Memory } from '../memory.js';
 

@@ -17,12 +17,11 @@ import type { Term } from '../terms';
 import { containsSubterm, getSubject, Truth } from '../terms';
 import { createBudget, createTask, type Task } from '../types';
 import type { RandomSource } from '../types/primitives.js';
-import { clamp01, errMsg } from '../utils';
+import { LruCache, clamp01, errMsg, generateId } from '@senars/util';
 
 /** Serialized chain terms — the single rendering behind signatures, templates, and instances. */
 const chainTerms = (chain: readonly Task[]): string[] => chain.map((t) => t.term.toString());
 import { AIKRProcessor, PrioritySampling, type ProcessOptions, type AikrBagOptions } from './aikr-processor.js';
-import { generateId, LruCache } from '@senars/util';
 
 export interface SchemaPattern {
   id: string;

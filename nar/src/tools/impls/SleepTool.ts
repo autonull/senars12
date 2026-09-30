@@ -1,4 +1,4 @@
-import { sleep } from '../../utils';
+import { sleep } from '@senars/util';
 import { tool } from './decorator.js';
 import type { Schema, Tool, ToolResult } from '../types';
 import { errorResult } from '../types';

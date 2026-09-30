@@ -1,6 +1,6 @@
 import type { AutonomyMode, CognitiveEvent, TaskAdmittedEvent } from '@senars/core/derivation-schemas';
 import { CognitiveEventSchema } from '@senars/core/derivation-schemas';
-import { appendJsonl, readJsonl } from '../utils/jsonl.js';
+import { appendJsonl, readJsonl } from '@senars/util';
 import type { GateRegistry } from './GateRegistry.js';
 
 export function persistGateLogs(registry: GateRegistry, path: string): { appended: number } {

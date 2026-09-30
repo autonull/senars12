@@ -1,6 +1,6 @@
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
-import { maxScore, wordOverlap } from '../../utils';
+import { maxScore, wordOverlap } from '@senars/util';
 import type { AttentionContext } from '../types.js';
 import { SimpleAttention } from './SimpleAttention.js';
 

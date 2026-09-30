@@ -1,9 +1,8 @@
-import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
+import { ensureDir, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
 
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { assertWasmPathContained, withSandboxTimeout } from '../../capability/wasi-sandbox.js';
-import { ensureDir } from '../../utils/fs.js';
 import { DigestMismatchError } from './wasi-runtime.js';
 
 /**

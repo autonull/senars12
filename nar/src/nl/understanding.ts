@@ -10,7 +10,7 @@ import type { ZodSchema } from 'zod';
 import type { SeNARSRegistry } from '../lm';
 import { getModelForTask } from '../lm';
 import type { ILMService } from '../lm/interfaces.js';
-import { errMsg } from '../utils';
+import { asBeliefTruth, errMsg, makeId, pct, stableStringify } from '@senars/util';
 import type { TranslationCache, TranslationCacheEntry, TranslationResult } from './cache.js';
 import { type FirewallOptions, SymbolicFirewall } from './firewall.js';
 import { buildUnderstandingPrompt } from './prompts/understanding-v1.js';
@@ -21,7 +21,6 @@ import { SingleFlight } from './singleflight.js';
 /** Canonical definitions live in types/events (EventMap depends on them); re-exported here for the nl surface. */
 export type { Ambiguity, Coreference, TaskBatch } from '../types/events.js';
 import type { TaskBatch } from '../types/events.js';
-import { asBeliefTruth, makeId, pct, stableStringify } from '@senars/util';
 import { parseJsonWith } from '../lm/json.js';
 
 export interface NLContext {

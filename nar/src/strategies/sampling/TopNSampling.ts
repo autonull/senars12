@@ -1,6 +1,6 @@
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
-import { selectTopN } from '../../utils/collections.js';
+import { selectTopN } from '@senars/util';
 import type { SamplingStrategy } from '../types.js';
 
 export class TopNSampling implements SamplingStrategy {
