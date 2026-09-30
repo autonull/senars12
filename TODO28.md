@@ -1,26 +1,40 @@
 # TODO28: Structure — the package graph, the directory shape, and the leftovers
 
-**Version:** 1.2 (2026-09-30) · **Predecessor:** TODO27 (phases A–P; strategy composition, then
-the primitives pass), which closed the strategy axis and left this. v1.2 is the same plan after
-the third pass: §8.1's last upward edge closed, §8.2/§8.6's barrels landed, and the gate that
-found them rewritten, because it could not see either.
+**Version:** 1.3 (2026-09-30) · **Predecessor:** TODO27 (phases A–P; strategy composition, then
+the primitives pass), which closed the strategy axis and left this. v1.3 is the same plan after
+the fourth pass: the four cheap items in §7.11 landed, and two of them turned out to be hiding
+something worse than the note recorded.
 
 **Status: closed except §3.2 and the three recorded debts.** Everything in §1, §2, §3.1,
-§3.3–§3.5 and §4 landed, plus §8.1, §8.2 and §8.6 — the third pass closed the last
-`ALLOWED_UPWARD` entry, so the ledger is now **empty** rather than short. §3.2 is a plan of its
-own; §3.6–§3.8 are recorded and still correctly not scheduled. §6 is what happened, §7 is what is
-left, §8 is what the work surfaced. Sections that shipped carry a **landed** marker and a note
-saying what the tree actually looked like.
+§3.3–§3.5 and §4 landed, plus §8.1, §8.2, §8.6, and — in the fourth pass — §8.7, §8.8, §8.9
+and §8.10. The layering ledger is empty, the barrels are explicit, and **one command now runs
+every gate**. §3.2 is a plan of its own; §3.6–§3.8 are recorded and still correctly not
+scheduled. §6 is what happened, §7 is what is left, §8 is what the work surfaced. Sections
+that shipped carry a **landed** marker and a note saying what the tree actually looked like.
 
-**Every gate green, including one that had been red for a whole pass** — the docs-drift check
-was running in CI and failing since the second pass, which §6 has more on.
+**Every gate green, run by one command that also checks `ci.yml` runs them.**
 
-> **A fresh session should read §7 first, and §7.11 is the whole of what is left.** The
+> **A fresh session should read §7 first, and §7.11 is now one line long.** The
 > package that should not exist is gone, all nine directories in §2.1 hold their contract at
 > the top with implementations under `impls/`, `core` no longer reaches upward, the catalogue
-> declares every built-in, every barrel names its exports, and `test:unit` is green under
-> full-suite load. There is no longer an inversion to record: `ALLOWED_UPWARD` is empty and
-> two gates keep it that way.
+> declares every built-in, every barrel names its exports, `test:unit` and `test:load-sensitive`
+> are both green under full load, and `pnpm gates` runs the lot. There is no longer an
+> inversion to record: `ALLOWED_UPWARD` is empty and two gates keep it that way.
+
+### What the fourth pass added
+
+Three of the four items were cheap. Two were not what they looked like:
+
+- **§8.9 was not a benchmark wearing a unit test's clothes — it was a timeout that was never
+  a timeout.** `{ timeout: 30000 }` was passed as vitest's *second* argument, where the
+  signature wants `(name, fn, timeout)`. It was silently ignored, so the 15 s default applied
+  to a test that takes ~19 s. The test was failing in isolation, on its own machine.
+- **§8.7 was a decision, and the answer was that the ratchet had never ratcheted.**
+  `productionLOC` sat 2 415 lines above its measurement and `depsGateRawChains` sat 252 chains
+  above, so neither could have failed in any pass of this plan. Both are now at their
+  measurements and the rule is named for what the comparison does.
+
+<dcp-message-id>m0125</dcp-message-id>
 
 ---
 
@@ -476,6 +490,13 @@ several phases touched. It is the cheapest missing CI gate in the repository.
 > than missing, which is a different and worse failure mode than §4.5 describes: nobody
 > notices a build that has been broken since the previous commit. Regenerated; see §6.
 
+**And in the fourth pass the list turned out to be short in the other direction.**
+`pnpm gates` (§8.10) checks that every gate it knows about appears in `ci.yml`, and it found
+two that did not: `typecheck:bin` and `complexity:budget`. The second is the sharper one —
+§6 of this document has claimed `complexity:budget` was a verified green gate since the first
+pass, and CI had never run it. §4.5 asked for gates to be added to `ci.yml`; the answer
+turned out to include *verifying* the ones already claimed there.
+
 ### 4.6 Two flaky tests, verified pre-existing — **landed, and a third joined them**
 
 `tests/nar/todo26-cognitive-agent.test.ts` and
@@ -512,14 +533,40 @@ zero failures under full-suite load.
 
 ## 6. What landed
 
-Three passes. The first (`f45e9e7a`, `eec1dcb5`, `b7fb1971`) dissolved the `kernel` package
+Four passes. The first (`f45e9e7a`, `eec1dcb5`, `b7fb1971`) dissolved the `kernel` package
 and fixed the three gates that were measuring the wrong thing. The second — the eight
 commits below — finished §2, cleared `core`'s upward edges, and closed three of the
 leftovers. The third closed §8.1 and §8.2/§8.6, and rewrote the direction gate, because the
-gate could not see the thing it existed to catch. Every gate green: `typecheck`,
-`typecheck:bin`, `lint`, `deps:gate`, `deps:direction`, `exports:audit`, `exports:check`,
-`exports:barrels`, `complexity:budget`, `test:unit` (2 628 passing), `test:load-sensitive`,
-`test:determinism`.
+gate could not see the thing it existed to catch. The fourth took the four cheap items in
+§7.11, and found that two of them were describing their symptom rather than their cause:
+§8.9's timeout was never a timeout, and §8.7's ratchet could not fail.
+
+Every gate green, run by `pnpm gates`: `typecheck`, `typecheck:bin`, `lint`, `deps:gate`,
+`deps:direction`, `exports:audit`, `exports:check`, `exports:barrels`, `complexity:budget`,
+`docs:drift`, `test:unit` (2 628 passing), and under `--tier slow`, `test:determinism` and
+`test:load-sensitive` (57 passing across 8 files, under the tier's own load).
+
+### Fourth pass
+
+| Commit | § | Item |
+|---|---|---|
+| `b69dd06d` | 8.8, 8.10 | Six `utils/` shims deleted and 89 files repointed; `pnpm gates` added, and it found two gates `ci.yml` was not running |
+| `43e46818` | 8.9 | The bandit parity test's `{ timeout: 30000 }` was vitest's second argument — a timeout that was never applied |
+| `36311c0b` | 8.7 | The `productionLOC` and `depsGateRawChains` baselines were slack ceilings; both now sit at their measurements |
+
+### §8.10: the list that checks the checklist
+
+The interesting failure is not the two gates `ci.yml` was missing. It is that
+`complexity:budget` was on that list — §6 of this document has named it as a verified green
+gate since the first pass — while `ci.yml` had never run it. Three passes of "every gate
+green" meant every gate green *on the machine where they were run*, and the one place that
+distinguishes is the one place two of them were absent.
+
+That is the same shape as §4.5 (gates that do not exist) and §4.5's opposite (a gate that
+was running and failing), and it has a name worth keeping: **a gate whose only entry point is
+a habit is not a gate.** The fix is one list in `scripts/lib/gates.ts`, a runner, and a
+check that the workflow runs every gate in it — because a list that only one side reads is
+the same failure with better tooling.
 
 ### Third pass
 
@@ -812,33 +859,22 @@ catches the module a barrel forgets. See §6.
 
 ### 7.11 what is left, in one place
 
-Everything structural in this document is done. Five items remain, none scheduled:
+**One item, and it needs new design.** The four cheap ones landed in the fourth pass (§6).
 
 | Item | § | Kind |
 |---|---|---|
 | The hermetic seeded run | 7.3 | a plan of its own — the only one |
-| One command that runs every gate | 8.10 | a list instead of a habit |
-| The `utils/` pass-through shims | 8.8 | mechanical, and the last instance of a named pattern |
-| `bandit-epsilon-greedy` as a unit test | 8.9 | a benchmark with a wall-clock timeout |
-| The `productionLOC` ratchet | 8.7 | a decision, not a measurement |
 
-The first is the only one that needs new design. §7.3 has it in full; the note that has
-changed is that the baseline it would move — the `test:load-sensitive` tier — is greener
-than when it was written and still load-sensitive, per §8.9.
-
-The four that are *not* scheduled all share a shape worth naming: each is something a
-previous pass already observed and recorded, and each is cheap enough that recording it is
-rational only because none of them was urgent. That is the failure mode this plan's §3
-warns about — a follow-up list accumulating its own observations. The difference is that
-each of these three has a concrete first step written down, where §3's transcribed list had
-four items that had already landed.
+§7.3 has it in full. The note that has changed is that the baseline it would move — the
+`test:load-sensitive` tier — is greener than when it was written, and green *under its own
+load* rather than in isolation, which is what §8.9's fix made it.
 
 ---
 
 ## 8. New improvement opportunities
 
 Surfaced by this pass, not in the original plan. In rough value order. §8.1, §8.2 and §8.6
-landed in the third pass; §6 has the accounts.
+landed in the third pass; §8.7, §8.8, §8.9 and §8.10 in the fourth; §6 has the accounts.
 
 ### 8.1 `nar → metta` is the last upward edge, and it is the one the plan never found — **landed**
 
@@ -953,7 +989,7 @@ A private module is not a false positive — its directory's siblings import it,
 third clause. What the check asks is whether a file is *reachable*, which is measurable,
 rather than *public*, which the barrel already declares.
 
-### 8.7 `productionLOC` is a `mustDecreaseOrJustify` ratchet over 73 705 lines
+### 8.7 `productionLOC` is a `mustDecreaseOrJustify` ratchet over 73 705 lines — **landed**
 
 The second pass moved files and did not add much, so the ratchet should be comfortable —
 but it is the one baseline in `complexity-budget.json` that is a judgement call rather than
@@ -961,6 +997,32 @@ a count, and it is the metric most likely to be quietly justified away. Worth de
 whether it is still the right instrument now that the structural work is done and the
 remaining movement is behavioural. **Unchanged** — the third pass moved it to 71 196, so the
 question is still live rather than answered.
+
+**Landed, and the instrument was not doing what its name said.** The plan asks whether a
+LOC target is still the right instrument. The finding is that the question was premature: it
+was never a target, because it could not fail. `productionLOC` had a baseline of 73 705
+against a measurement of 71 196 — 2 415 lines of headroom, against a rule named
+`mustDecreaseOrJustify`. `depsGateRawChains` had the same shape, 277 against a measurement
+of 25. **Neither could have failed in any pass of this plan**, and §6 lists
+`complexity:budget` as green in each.
+
+That is the §4.3 shape one level up: a green check asserting less than its name. The fix is
+not a better target, it is making the existing one honest:
+
+- The baselines are at their measurements (`productionLOC` 71 290, `depsGateRawChains` 25,
+  `exportSubpaths` 94). A ceiling that is never lowered is not a ratchet, it is a number
+  that was correct once.
+- The rule is `mustNotIncrease`, because that is what `current <= baseline` does. The
+  *obligation* to move the baseline down is a commit-time one the code cannot enforce, so
+  the failure message says so rather than the rule name implying it.
+- The gate's own header now says this, because a reader of `complexity-budget.json` has no
+  way to know the numbers were slack.
+
+The decision the plan actually asked for — whether a LOC ceiling is the right instrument
+for a codebase whose remaining work is behavioural — is still open, and it is now a real
+question rather than a number that could not fail. **Keeping it is defensible**: it is the
+metric that most reliably forces a deletion rather than a shrug, and the structural work has
+dropped it by ~2 400 lines without anyone being asked to.
 
 ### 8.8 Three pass-through shims in `nar/src/utils/` — the same shape as the file §8.6 deleted
 
@@ -975,6 +1037,29 @@ reachability clause.
 The fix is the same as the logger's: delete the shims, repoint the ~19 importing files at
 `@senars/util`, and let `nar` declare what it actually uses. Cheap, mechanical, and it would
 close the last instance of the pattern this plan spent three passes naming.
+
+**Landed — and it was six shims, plus a barrel nothing imported.** The plan counted three;
+the tree had `fs.ts` and `jsonl.ts` in the same shape, and `resilience.ts`, which existed only
+to re-export `circuit-breaker.ts` one file away. `utils/index.ts` went too: it had **zero**
+consumers, and its own header described the enumeration problem it was a symptom of —
+
+> Enumerating their names here is how a new shared helper silently stops reaching the 19
+> files that import this barrel.
+
+No file imported the barrel. The comment was describing a fan-in that had already gone.
+
+89 files repointed, `nar/src/utils/` down to four real modules (`circuit-breaker`,
+`random`, `result`, `similarity`). Two imports could not be repointed because they named
+nar-local symbols that had been riding the shim: `jaccard` (which lives in `utils/similarity`
+and is a real nar implementation) and `CircuitBreaker`. Both now name the module directly,
+which is the thing the shim was hiding.
+
+**The gate still cannot see this, and that is the standing lesson.** `exports:barrels`
+passes the shim because the third reachability clause covers it, and the shape is legal
+TypeScript — a module whose body is a re-export is reachable by definition when its siblings
+import it. What makes it wrong is not unreachability but *redundancy*: two paths to one
+module, and one of them is not the declaration. Deleting them was a human judgement over
+five files, and no rule derived from `exports:barrels` would have found them.
 
 ### 8.9 `tests/nar/rl/parity/bandit-epsilon-greedy.test.ts` is a benchmark wearing a unit test's clothes
 
@@ -993,6 +1078,32 @@ costs sit inside the loop: `g.term.toString()` runs per pending goal per step, a
 `bestAction.toString()` twice more per step — real serialisation in the hot path, though
 fixing it perturbs what the test spends its time measuring.
 
+**Landed, and the diagnosis was wrong in a way that made it worse.** The plan read the 30 s
+timeout as a benchmark that outgrew its budget. It is a **timeout that was never a timeout**:
+
+```ts
+test('Level 2 native SeNARS across multiple seeds', { timeout: 30000 }, async () => {
+```
+
+vitest's signature is `test(name, fn, timeout)`. The options object was the *second*
+argument, where it is not read at all — so the 15 s default applied to a test that takes
+~19 s. §8.9 recorded the failure as load-dependent because it was observed under load; it
+fails **in isolation, on its own machine**, which is why it was described as pre-existing and
+green in the isolated tier. The second `Level 2` case, at line 96, had the same defect with no
+timeout object at all, and the plan did not name it.
+
+So: no bench job, no tier change. Both cases pass `90_000` as the third argument, which is
+above the observed ~19 s with headroom for a loaded box. The loop cost went too — the arm
+index now comes from a `Map` over the three action terms rather than a regex over a
+serialised term, three times per step across 400 episodes.
+
+**The lesson is §7.2's one level down.** A test that asserts wall-clock time is asserting
+about the machine, and the machine is not part of the contract. But the deeper failure is that
+**a mistyped argument is silent**: nothing in the runner says "I did not understand your
+options object", so the file sat at the default for however long it had been there, passing
+whenever it was fast enough and failing when it was not, which reads exactly like flakiness.
+Every other timeout in the tree should be checked for the same shape.
+
 ### 8.10 There is no single command that runs every gate
 
 Surfaced by the docs-drift gate, and the fix for the reason it went unnoticed. The gates are
@@ -1006,6 +1117,27 @@ a whole pass, in CI, undetected.
 that runs the list, so the set of gates is a list rather than a set of habits, and a gate added
 to `ci.yml` without a local entry point cannot be the only place it runs.
 
+**Landed.** `scripts/lib/gates.ts` is the list; `pnpm gates` runs it. Three things about the
+shape, each from a way the obvious version fails:
+
+- **The list is checked against `ci.yml`, not just run.** Before any gate executes, the runner
+  verifies that every gate it knows about appears in the workflow. Without this it fixes the
+  "nobody runs the gates" failure mode and leaves the "the gate lives only in CI" one — which
+  is how a gate gets skipped by a workflow edited without reading the list.
+- **It found two gates that `ci.yml` was not running.** `typecheck:bin` and
+  `complexity:budget` were both absent — and §6 had been listing `complexity:budget` as a
+  verified green gate for three passes. It was green *locally*, and CI had never run it. A
+  gate nobody can trip is not a gate, which is §4.5's finding, and it was true of a gate this
+  plan itself had claimed was covered.
+- **`docs:drift` is now a `pnpm` script rather than an inline shell block.** The drift gate was
+  the only check CI ran that no local command could run at all, which is precisely why it sat
+  red. A gate that exists only as a YAML step is a gate that nobody reproduces.
+
+The tiers are `gate` (the default: everything above plus `test:unit`) and `slow`
+(`test:determinism`, `test:load-sensitive`), because the cost is not uniform and a command
+too slow to be used does not get used. The failure message says how many gates did not run,
+so a partial run cannot be mistaken for a clean one.
+
 ### 8.11 The masking scanner is a library now, and three scripts could share it
 
 `scripts/lib/imports.ts` extracts module specifiers by blanking comments and template
@@ -1018,3 +1150,56 @@ The reason it is a masker and not a parser is worth keeping: `typescript@7` expo
 compiler API** (`require('typescript')` returns `{version, versionMajorMinor}`) and
 `typescript-eslint` refuses to run against it. A lexical question needed a lexical answer,
 and `typescript@7`'s removal of the compiler API is the surprising part.
+
+### 8.12 Every other `{ timeout: N }` in the tree is suspect — and nothing checks the shape
+
+Surfaced by §8.9. vitest's `test(name, fn, timeout)` takes the timeout as the **third**
+argument; an options object in the second position is read as the function body and silently
+discarded. So a mistyped timeout is not a failure — it is the default, and the file passes
+whenever the machine is fast enough, which is indistinguishable from flakiness.
+
+`tests/nar/rl/parity/bandit-epsilon-greedy.test.ts` had it in one place and a case with no
+timeout at all in another, and neither was noticed for as long as the file has been there.
+The audit is mechanical: `grep -n "test(.*{ *timeout" tests/` and check each against the
+signature. The gate that would keep it fixed is one line in a vitest setup file — assert
+that no call passes a non-function second argument — but vitest exposes no hook for
+"a test was declared", so the honest version is a lint rule or a source scan over the test
+tree. Cheap, and it is the same class as §8.11's: a question the tooling can answer
+lexically.
+
+The wider point is worth more than the timeout. **Every gate in this repository that cannot
+fail has now been found by reading its source rather than by tripping it** — §4.3's
+accumulator metric, §4.2's direction gate, §8.7's two ceilings, §8.10's two missing CI
+steps, and now this. That is five, across three passes, and none of them was caught by
+running the gate. The pattern is that a check whose failure mode is *silent* is a check
+nobody suspects, and the fix in each case was the same: make the assertion explicit enough
+that passing it means the thing it names.
+
+### 8.13 `docs/architecture` encodes an import graph that goes stale quietly
+
+The architecture generator emitted `stream --> utils`, `tools_impls --> utils` and five
+other edges that §8.8 deleted, and `git diff --exit-code` caught them only because the
+drift gate ran. The `.mmd` files are hand-readable and *correct the moment they are
+generated* — but nothing makes them part of the import graph's contract, so a reader
+trusting the committed diagram over the tree gets a picture of a repository that no longer
+exists.
+
+Two things would make it trustworthy rather than merely current. The first is that
+`nar-modules.mmd` now shows `terms_impls --> utils` — the one real edge left, a genuine
+dependency on `jaccard`, and the one that stopped being a shim. Worth noting that this is
+the *only* thing §8.8 left behind, and it is a real one: `nar/src/utils/similarity.ts` is a
+nar implementation, not a pass-through, so it stays. The second is that a diagram which
+cannot be regenerated and diffed is documentation, and this one can, so it should be read
+as generated output rather than maintained source.
+
+### 8.14 The remaining `utils/` directory is four modules and no barrel
+
+`nar/src/utils/` is now `circuit-breaker.ts`, `random.ts`, `result.ts` and `similarity.ts`,
+with no `index.ts` — the first directory in `nar/src` with no barrel, and
+`exports:barrels` is green on it. That is worth recording as a *precedent* rather than an
+anomaly: the barrel gate's reachability clause treats a missing barrel as "nothing to
+check", which is right for four modules imported by relative path and wrong for a directory
+whose surface is meant to be public. If a fifth module lands and someone wants to publish
+the directory, the barrel comes back and the gate resumes governing it. No action; the
+point is that the gate is not asserting every directory has a barrel, which is the property
+a reader of `exports:barrels` might assume it is.
