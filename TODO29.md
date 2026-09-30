@@ -1,6 +1,6 @@
 # TODO29: Runtime — the cycle's cost model, and the retrieval engine underneath it
 
-**Version:** 1.2 (2026-09-30) · **Predecessor:** TODO28 (phases A–P; structure, the package graph, the
+**Version:** 1.3 (2026-09-30) · **Predecessor:** TODO28 (phases A–P; structure, the package graph, the
 barrels, the gate list), which closed the structural axis and left the runtime. TODO28's own §4.4
 declined to shrink `nar.ts` and §7.11 closed with "what is left" one line long. This is the other
 axis: not what the tree looks like, but what a cycle costs and why.
@@ -11,7 +11,42 @@ live engine, and the commands are in §11 so the numbers can be re-derived rathe
 §2 is the reference architecture. §3 is the target. §4 is the work. §12 is the set of questions a
 fresh session should resolve before it starts.
 
-> **A fresh session should read §1.1, §1.10 and §4/W0 first.**
+> **A fresh session should read §1.1, §1.10, §4/W0 and §15 first.** §15 says what would make
+> this plan wrong, and two of its checks should be run before anything is built.
+
+### The thesis, stated so it can be wrong
+
+> SeNARS is a NAR-like reasoner whose **rule set is a learnable, versioned artifact rather than
+> code**, with pluggable producers — one of which is a language model. The core is closed,
+> bounded, deterministic, and useful on its own. The model is what makes the rule set grow, and
+> the system is better than NAR without it and better than an LM without it.
+
+Every part of that is a claim with a measurement or a gate attached in §10, and the last sentence
+names the experiment that could refute it (§12 Q3 — which does not exist yet, and building it is
+arguably more important than any workstream in §4).
+
+### What the fourth pass added
+
+An audit of this document against the question "could a fresh session act on this alone?" found
+six gaps, and the first was disqualifying for a *seed*.
+
+- **The instrument did not exist.** §11 said "reproduce the §1 findings" and described four
+  procedures whose scripts were throwaway. An accurate account of a measurement with no apparatus
+  behind it is §1.8's failure mode at the document level. `scripts/cycle-bench.ts` is now
+  committed, with a `--selftest` that refuses to print a number it cannot show it measured, and
+  it reproduced §1.1 and §11.2 independently on first run.
+- **It immediately paid for itself.** `processLMRules` runs **33 times per cycle with
+  `enableLMRules: false`** — §3.5's "absent, not disabled" claim, now measured rather than
+  asserted, and the row `cost:cycle` will gate on.
+- **§11.5 (provenance)** — every number with its date, its commit, how to reproduce it, and
+  whether it is load-sensitive. Three are, and they are the ones that will lie to a future session.
+- **§11.6** — what was read of NARchy versus inferred from its file listing, with the SHA pinned
+  to `f3a9bcc`. The claim that NARchy precompiles inference is *inferred from filenames* and is
+  flagged as the least-read load-bearing claim in the plan.
+- **§4.0** — a finding → workstream → deletion → gate trace, so a workstream picked up cold can
+  see what it is for. Four findings are each closed by exactly one workstream.
+- **§14 and §15** — measured versus believed versus unexamined, the risk register, and two stated
+  **kill criteria** that should be checked before anything is built.
 
 ### What the third pass added
 
@@ -649,6 +684,29 @@ are one change and only the first half of it is testable on its own. §1.10 expl
 invalidates the workstream order below, which is why §6 puts a profile re-derivation between W1b
 and W2.
 
+### 4.0 Which finding justifies which workstream
+
+A workstream picked up cold should be able to see what it is for. This is the trace; if a row
+here is empty, that workstream is either unstarted or unjustified, and both are worth noticing.
+
+| workstream | findings it closes | deletes (§8) | gate it enables |
+|---|---|---|---|
+| W0 | — (makes the rest measurable) | — | `bench:cycle` |
+| W1 | §1.8, and the cause of §1.1's cost | `processLMRulesImpl` from the cycle path, `stepScalars`, the shadowed `resetMetaBudget` | hanging-LM test; the `processLMRules` column → 0 |
+| W1b | §3.5's properties 1 and 2 | `enableLMRules`, `lm` from the core config schema | `core:no-lm`; the `deps:gate` row |
+| W2 | **§1.1** (the decay/sampling coupling), **§1.5** (`getGoals` stamps) | `Stamp.createInput()` from getters | `decayAll` call-site count == 1 |
+| W3 | **§1.3** (the scorer), **§1.6** (nineteen writers) | the scorer's two constant factors; `Memory.sample`/`sampleWindow` | `cost:cycle`'s selection rows |
+| W4 | enables W3/W5 to be tested in milliseconds | — | — |
+| W5 | **§1.2**'s rule-dispatch half | the `*:*` bucket, its per-miss sort, `hitStats` | rule applications per cycle bounded |
+| W6 | §1.8's remaining half, §1.2's per-cycle-caller half | the per-cycle `getGoals`/`getStatistics` calls | step cost model |
+| W7 | **§1.4** (eviction), §1.7's aggregate | the `totalTasks === 0` candidate filter | memory-pressure monotonicity |
+| W8 | **§1.7** in full | by-score `BoundedMap` eviction, `selectTopN`'s O(n·k) | per-structure tests |
+| W9 | (unbounded) §1.7's `BoundedMap` scan | the textual `LruCache` check | `cost:cycle`; the cost ledger |
+| W10 | the meta-problem of §10.1 | every gate that cannot fail | all of the above |
+
+**§1.4, §1.5, §1.6 and §1.7 are each closed by exactly one workstream.** If one of those is
+deferred, its finding is not covered anywhere else, and that is worth knowing before deferring it.
+
 ### W0 — Make the cycle measurable, before changing it
 
 The repo already has `phaseTimer` (`nar-execution.ts:191`) and a `c3-hotpath-perf.test.ts` that
@@ -663,8 +721,15 @@ prints ns/op. Neither answers "what does a cycle cost as memory grows".
 - Ratchet what is already knowable and unmeasured: a `cost` section in the budget ledger
   declaring which operations may not be O(population) on a cycle path.
 
-**Acceptance:** `pnpm bench:cycle` reproduces §1.1 and §1.9's numbers to within 10%, and the
-report is what every later acceptance is measured against.
+**Acceptance:** `pnpm bench:cycle` reproduces §11.1 and §11.2 to within 10%, and the report is
+what every later acceptance is measured against. These are the **fused** baseline — §1.10 says
+they do not survive W1, and re-deriving them is §6's step between W1b and W2.
+
+**Already done, on 2026-09-30:** the first half. `scripts/cycle-bench.ts` is committed and
+reproduces both tables, and its `--selftest` proves each hook observes its own invocation. What
+remains is the `bench:cycle` entry in `scripts/lib/gates.ts` and the `cost:cycle` gate itself,
+which is W9's last bullet.
+
 **Risk:** none. Pure instrumentation.
 
 ### W1 — Close the cycle: the Stream Reasoner split
@@ -1145,34 +1210,105 @@ Two rules that follow, and they are cheap:
 
 ## 11. Reproducing the numbers
 
-The §1 figures came from these. All are cheap to re-run, and re-running them is how a future
-session checks that this document is still true.
+`scripts/cycle-bench.ts`, committed, `pnpm bench:cycle`. It reports §3.1's cost model as a table
+at several population sizes, and it has a `--selftest` that proves each hook observes its own
+invocation — because a hook that silently observes nothing produces a table of confident zeroes,
+and this repository already has two of those (§1.8). Everything below is a command and its
+recorded result.
 
-### 11.1 CPU profile of a 300-step rollout
+```
+pnpm bench:cycle -- --selftest                              # prove the instrument
+pnpm bench:cycle -- --size 500,2000,8000 --repeat 2          # §3.1 table
+pnpm bench:cycle -- --knob-sweep --size 5,10,20,40            # §1.1 coupling
+node --cpu-prof --cpu-prof-dir=/tmp/cp --import tsx scripts/cycle-bench.ts --size 5000 --repeat 1
+```
 
-A standalone tsx script — 20 episodes × 15 steps, `BanditGame`, `maxConcepts: 5000`,
-`cpuThrottleMs: 0` — under `node --cpu-prof --cpu-prof-dir=<dir> --import tsx <script>`, then
-aggregate self time by `(functionName, file:line)` and separately attribute callers. Nine runs,
-report the **minimum**: the median carried 25% more noise than the minimum on a loaded machine.
+### 11.1 The §3.1 cost table
 
-### 11.2 Per-cycle call counts
+Per cycle, at three populations, min of two:
 
-Monkey-patch `Memory.prototype.decayAll` / `sample` / `forEachConcept` with counting wrappers,
-run 40 `believe` + `run(1)` cycles against the defaults, and divide by 40. Result:
-`{ decay: 9.0, sample: 8.8, scan: 5.0 }` at 164 resident concepts.
+| population | ms/step | derived/step | decayAll | sample | forEachConcept | getGoals | getStatistics | **processLMRules** |
+|---|---|---|---|---|---|---|---|---|
+| 548 | 3.18 | 100 | **8.20** | **8.00** | **5.00** | 1.10 | 0.10 | **33.00** |
+| 2 048 | 5.13 | 100 | **8.20** | **8.00** | **5.00** | 1.10 | 0.10 | **33.00** |
+| 5 000 | 43.49 | 100 | **8.20** | **8.00** | **5.00** | 1.10 | 0.10 | **33.00** |
 
-### 11.3 The decay/sampling coupling
+The bold columns are the §3.1 violations: work per cycle that does not shrink when the operation
+stops being O(population). `ms/step` climbing 5.13 → 43.49 at `maxConcepts` is the eviction path
+engaging, which is §1.4 and §1.7 rather than a surprise.
 
-The same harness, varying only `cognitiveParams.inference.maxSampledConcepts` over
-{5, 10, 20, 40}. Result is the four-row table in §1.1. This is the single most important
-experiment in this document and it takes about a minute to reproduce.
+**The `processLMRules` column is the newest number in this document and it is the worst one.**
+Thirty-three LM-rule invocations per cycle, measured with `enableLMRules: false`. The flag gates
+*execution*; the selection machinery around it runs regardless. That is §3.5's "absent, not
+disabled" claim, measured rather than asserted, and it is the row `cost:cycle` will gate on:
+it goes to 0 in §4/W1 and stays there.
+
+### 11.2 The decay/sampling coupling
+
+`--knob-sweep`, varying only `maxSampledConcepts`:
+
+| maxSampledConcepts | population | decayAll per cycle |
+|---|---|---|
+| 5 | 86 | 5.2 |
+| 10 | 139 | 8.4 |
+| 20 | 164 | 9.0 |
+| 40 | 164 | 9.0 |
+
+A retrieval-breadth knob is a decay-rate knob. §4/W2 should collapse this table to one row, and
+that is its acceptance criterion stated as a number.
+
+### 11.3 CPU profile of a 300-step rollout
+
+`node --cpu-prof` over the bench, aggregating self time by `(functionName, file:line)` and
+separately attributing callers. Nine runs, report the **minimum**: on this machine the median
+carried 25% more noise than the minimum. §1.9's table is the result. **This is the one measurement
+that does not survive §1.10** — it is a profile of the fused system, and it must be retaken after
+W1 before W2 onward is ordered from it.
 
 ### 11.4 The suite
 
-`pnpm test:unit`, timed, min of two runs in one session. Read the **first** baseline with
+`pnpm test:unit`, timed, min of two runs **in one session**. Read any first baseline with
 suspicion: on 2026-09-30 an early run read 150.9s and a clean re-measurement of the same commit
-read 90.6s, because the machine was carrying someone else's load. Two runs in one session, or
-the number is not a number.
+read 90.6s, because the machine was carrying someone else's load. Two runs in one session, or the
+number is not a number.
+
+### 11.5 Provenance
+
+Every number in §1 and §11, and what it is worth.
+
+| measurement | value | taken | at | reproducible by | load-sensitive? |
+|---|---|---|---|---|---|
+| per-cycle work | §11.1 | 2026-09-30 | `eb394d4a` | `pnpm bench:cycle` | low — counts, not times |
+| decay/sampling coupling | §11.2 | 2026-09-30 | `eb394d4a` | `--knob-sweep` | low — counts |
+| LM invocations per cycle | 33.00 | 2026-09-30 | `eb394d4a` | `pnpm bench:cycle` | none |
+| profile shares | §1.9 | 2026-09-30 | `d542d5ee` | `node --cpu-prof` | **yes** — take the min |
+| 3 635-concept rollout | 17.3s → 14.8s | 2026-09-30 | `d542d5ee`/`77c4e4f4` | rollouts, min-of-9 | **yes** |
+| `test:unit` wall | 90.6s → 75.5s | 2026-09-30 | `d542d5ee`/`77c4e4f4` | `pnpm test:unit` ×2 | **very** — see §11.4 |
+| `nar/src` size | 60 757 lines / 513 files | 2026-09-30 | `eb394d4a` | `find nar/src -name '*.ts'` | none |
+| core files importing `lm/` | 36 | 2026-09-30 | `eb394d4a` | `grep` (§3.5) | none |
+| cycle-budget test | 88.7s → ~6s | 2026-09-30 | `d542d5ee` | vitest, isolated | **yes** |
+| NARchy reference | — | 2026-08-25 | `narchy@narchy` @ `f3a9bcc` | see §2 | none |
+
+Two rules this table exists to enforce. **A number with no commit in it is not evidence.** And
+**the load-sensitive rows are the ones that will lie to you** — three of them, all measured on a
+machine that was carrying someone else's load at some point during this work.
+
+### 11.6 What was read of NARchy, and what was inferred
+
+The reference is `github.com/narchy/narchy` at **`f3a9bcc66a348a8bf7c741aa21485c075f89b070`**
+(2026-08-25). Pin that SHA; `main` moves, and a plan that cites a moving tree is a plan whose
+evidence expires.
+
+**Read, and quoted from:** `nars/memory/Memory.java` (the 123-line port and its six abstract
+methods), `nars/focus/util/PriTree.java` (the priority DAG and its `commit`), `nars/Focus.java`
+(`commit`/`_commit`/`commitTime` and the duration-derived cadence), plus the module tree.
+
+**Inferred from the tree listing, not read:** the eight `Memory` implementations' behaviour; the
+`deriver/reaction/compile/*` compilers; the `table/` belief-table hierarchy; `control/exec/*`;
+`TaskAttention`'s sampling; term interning. §2.5's claim that inference is *precompiled* rests on
+the existence and naming of those compilers, not on having read one. **A future session should
+verify §2.5 against the source before treating it as established** — it is the load-bearing half
+of the argument that SeNARS is behind NARchy on dispatch, and it is the least-read claim in §2.
 
 ---
 
@@ -1232,6 +1368,23 @@ a recorded fixture are cheap to name now and expensive to retrofit.
 
 ## 13. Pass log
 
+### Fourth pass (v1.3)
+
+- Audited this document as a handoff rather than as prose, against "can a fresh session act on
+  this alone". Six gaps, listed above. The serious one was that §11 described a measuring
+  apparatus that no longer existed — which is §1.8's failure mode one level up.
+- Committed `scripts/cycle-bench.ts` and `pnpm bench:cycle`, so §11 is executable. It reproduces
+  §1.1 (8.2 / 8.0 / 5.0) and §11.2 (5.2 / 8.4 / 9.0 / 9.0) on first run, from a different
+  implementation than the hand-written scripts that produced the originals.
+- Found, by building it, that `processLMRules` runs 33× per cycle with `enableLMRules: false`.
+  The flag gates execution; the machinery around it does not run at all. This is the strongest
+  evidence yet for §3.5's "absent, not disabled".
+- Added §4.0 (finding → workstream trace), §11.5 (provenance and load-sensitivity), §11.6
+  (NARchy read-versus-inferred, SHA pinned), §14 (measured / believed / unexamined / inherited
+  breakage), §15 (risk register with two kill criteria), and a statement of the thesis at the top.
+- **Named the plan's coverage limit:** 14 of 47 `nar/src` directories examined. 33 are not, and a
+  session editing one is doing new scope, not finishing this.
+
 ### Third pass (v1.2)
 
 - Recorded the requirement that the LM be **optional** and sit beyond the core, and worked out
@@ -1281,3 +1434,85 @@ a recorded fixture are cheap to name now and expensive to retrofit.
 - Ten workstreams, a cost model (§3.1), a prediction table (§5), and four reproduction commands
   (§11).
 - Diagnosed the fused cycle as an architecture problem, which was half right — see above.
+
+---
+
+## 14. What is measured, what is believed, and what is unexamined
+
+A plan that does not separate these gets them all treated the same way, and a future session
+then either re-litigates the measurements or inherits the beliefs as fact.
+
+### 14.1 Measured — do not re-derive
+
+| claim | how it is known | §  |
+|---|---|---|
+| 8.2 decay passes, 8.0 rankings, 5.0 sweeps per cycle | `pnpm bench:cycle` | §11.1 |
+| **33 LM-rule invocations per cycle with `enableLMRules: false`** | `pnpm bench:cycle` | §11.1 |
+| decay rate tracks `maxSampledConcepts` | `--knob-sweep` | §11.2 |
+| 36 core files import `nar/src/lm/` | `grep` | §3.5 |
+| `LMRule` is in the strategy extension contract | `strategies/types.ts:1,74` | §3.5 |
+| `initializeLMRules` runs at construction | `nar.ts:18`, `facade/index.ts:98` | §3.5 |
+| the scorer's factors are constant on every path | no caller supplies `relatedConcepts`; `lastAccessTime` unread | §1.3 |
+| `recordRuleHit` has no callers | `grep` | §1.8 |
+| `resetMetaBudget` has no callers; `:368` hits `NARExecution`'s own | `grep` + call resolution | §1.8 |
+| `linkedConcepts` is never written outside `mergeWith` | call-site trace | §1.6 |
+| the profile's shape | `--cpu-prof`, min-of-9 | §1.9 |
+
+### 14.2 Believed — argued, not established
+
+These are design positions. They are defensible and the plan proceeds on them, but a future
+session is entitled to disagree, and should say so rather than quietly inherit them.
+
+| belief | where it comes from | how you would know it is wrong |
+|---|---|---|
+| Premise retrieval should be **indexed, not scanned** | NARchy's `Memory` is a port with 8 impls and an index per impl (§2.1) | the derivation *quality* falls measurably when indexed retrieval replaces scanning — quality and cost traded, not cost alone |
+| Attention should be a **maintained order, not a field** | `PriTree` + a duration-derived commit (§2.2–2.3) | O(k) top-k does not beat an O(N) scan at the working-set sizes the system actually runs |
+| Inference should be **compiled, not pattern-matched** | `deriver/reaction/compile/*` — **inferred from filenames, not read** (§11.6) | read the source and find it is not precompiled; this is the least-read load-bearing claim in the plan |
+| A NARchy-like core makes the LM **falsifiable** | argument, §3.6 | the no-LM core turns out inert, in which case §7 invariant 7 fails and the argument is void |
+| Rule acquisition is the **right** thing to add to NARS | thesis, §3.6 | Q3's experiment comes out negative against a no-inducer baseline |
+
+### 14.3 Unexamined — do not assume the plan is comprehensive
+
+The plan names **14 of the 47 directories** in `nar/src`: `facade`, `focus`, `game`, `kernel`,
+`lifecycle`, `lm`, `memory`, `reason`, `rules`, `self`, `state`, `strategies`, `tools`, `utils`.
+`nar/src` is 60 757 lines and 25% of it is `lm/`, which this plan deliberately does not examine
+beyond the boundary.
+
+**Thirty-three directories were not looked at.** They are not presumed clean and not presumed
+broken. A session that finds itself editing one should treat that as new scope and say so, rather
+than assuming the diagnosis reaches it. The largest unexamined ones by size are `lm` (15 226),
+`game` (2 713), `cognitive` (2 342), `rules` (2 573), `kernel` (2 087) and `focus` (1 909) — of
+which only `rules` and `kernel` are touched, and only incidentally.
+
+### 14.4 Known-broken, inherited, not this plan's
+
+Carry these so they are not rediscovered as if they were new:
+
+- **`docs/api/util.md` drifts from its generator** on the unmodified tree — pre-existing before
+  this work. `docs:drift` is therefore red independent of anything in §4, and
+  `tests/nar/todo20-docs.test.ts` may be the reason.
+- **`test:load-sensitive` has a wall-clock assertion** (`todo16-batching`, "judgeBatch processes
+  64 queries in single joint pass", asserts < 50 ms) that fails under load and passes in
+  isolation. It is the smallest possible illustration of §10.1.
+- **`docs/api/nar.md` is regenerated** by this work's commits; `docs/api/util.md` was
+  deliberately left at its committed state.
+
+## 15. Risk register, and what would make this plan wrong
+
+The plan has ten workstreams and one thesis. This is the list of ways it fails, so that a failure
+is recognised as information rather than as bad luck.
+
+| risk | likelihood | signal that it is happening | response |
+|---|---|---|---|
+| **W3 makes things worse.** The attention index does not beat an O(N) scan at real working-set sizes, and RL quality drops | **medium** | the `cost:cycle` selection rows do not improve, or retrieval-order changes move the RL baselines by more than noise | the deletion list in §8 is reversible; restore `Memory.sample` and the field. The §8 named-deletions design exists for this |
+| **W5 breaks NAL parity.** Compiled dispatch derives something different | medium | the NAL1–8 tests move | W5 is gated on parity specifically, and NARchy's `deriver` is the reference. Stop and re-read before changing anything else |
+| **The thesis is negative.** NARS-plus-acquired-rules is *not* better | unknown, and unknowable from inside this repo | Q3's experiment does not exist, or comes out flat | the honest response is to build the experiment (§12 Q3) and publish the result either way. This is the risk that no amount of engineering removes |
+| **W1b is a swamp.** 36 files, and the LM reaches into core internals | medium | the diff stops being mechanical and starts having semantic content | W1b is deliberately after W1, so the `Proposal` interface is known. If it is still hard, take §12 Q8 (seventh package) early — a compiler error is a better boundary than a review convention |
+| **Cost gates make the suite unusable** | low-medium | `cost:cycle` starts failing on a loaded machine | §10's `bench:cycle` is a script and `cost:cycle` gates on *ratios and counts*, never on absolute milliseconds |
+| **The plan is measuring the wrong thing** | **already happened once** | §1.10: §1.9 and §5 were a profile of the fused system | fixed by the re-derivation step in §6. If W1b's profile inverts the workstream order *again*, the model in §3.1 is wrong and that is the finding |
+
+**The kill criteria, stated plainly.** Two things would mean this plan is not the right plan: if
+**Q1** resolves to "the LM is genuinely an *online* learner" — the cycle cannot close, §3.1 is
+unenforceable and the whole cost model is moot. And if **§7 invariant 7** fails — the no-LM core
+turns out inert, which would mean the LM was load-bearing and §3.6's falsifiability argument was
+never true. Both are checkable before much is built, and both should be checked first.
