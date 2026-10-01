@@ -48,7 +48,6 @@ describe('System One — Teleological Transduction (Bench 11)', () => {
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
-      enableLMRules: false,
       enableTools: true,
       enableSelf: false,
       enableRLFP: false,

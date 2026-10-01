@@ -11,7 +11,6 @@ describe('Reward and Value Representation Contract', () => {
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
-      enableLMRules: false,
       enableTools: true,
       enableSelf: false,
       enableRLFP: false,

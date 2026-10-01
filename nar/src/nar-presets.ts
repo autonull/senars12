@@ -15,7 +15,6 @@ export interface SeNARSOptions {
   core?: Partial<CoreConfig>;
   lmService?: LMService;
   providerRegistry?: SeNARSRegistry;
-  enableLMRules?: boolean;
   eventBus?: NarEventBus;
   // Feature flags / config forwarded to NARConfig
   enableTools?: boolean;
@@ -63,7 +62,6 @@ export function createNAR(options: SeNARSOptions = {}): NAR {
       ? { strategyRegistry: options.strategyRegistry }
       : {}),
     ...(options.systemOne !== undefined ? { systemOne: options.systemOne } : {}),
-    enableLMRules: options.enableLMRules ?? true,
     lmService: options.lmService ?? createLMService(),
     providerRegistry: options.providerRegistry ?? createSeNARSRegistry(),
     eventBus: options.eventBus ?? new NarEventBus(),

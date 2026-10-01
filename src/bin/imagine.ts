@@ -131,7 +131,6 @@ async function main(): Promise<void> {
 
   const nar = createNAR({
     ...DEFAULT_CONFIG,
-    enableLMRules: false,
     enableTools: false,
     enableSelf: false,
     enableRLFP: false,

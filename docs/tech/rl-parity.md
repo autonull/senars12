@@ -242,7 +242,7 @@ Located at: `tests/nar/rl/contract/`
 - Environment stepping occurs only through operation execution
 - No hidden Q-table exists inside adapter
 - No hidden action-selection state bypasses SeNARS
-- No LM call supplies answer (`enableLMRules: false`)
+- No LM call supplies the answer (no `lmService`, so no model rules exist)
 - No self-modification participates (`enableSelf: false`)
 
 ---
@@ -371,7 +371,7 @@ For every episode record:
 - Environment RNG seeded
 - Baseline RNG seeded
 - Exploration RNG seeded
-- LM rules disabled (`enableLMRules: false`)
+- No `lmService`, so no model rules exist
 - Network disabled
 - Self-modification disabled (`enableSelf: false`)
 - RLFP disabled initially (`enableRLFP: false`)
@@ -383,7 +383,6 @@ For every episode record:
 **Suggested NARConfig:**
 ```typescript
 {
-  enableLMRules: false,
   enableTools: true,
   enableSelf: false,
   enableRLFP: false,

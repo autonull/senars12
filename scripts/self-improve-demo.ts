@@ -37,7 +37,6 @@ async function main() {
     enableSelf: true,
     enableRLFP: true,
     enableTools: true,
-    enableLMRules: true,
     maxConcepts: 1000,
     persistState: false,
   });

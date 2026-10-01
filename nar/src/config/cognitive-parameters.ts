@@ -185,9 +185,6 @@ export interface InferenceConfig {
   /** Maximum LM rules to fire per step */
   maxLMRulesPerStep?: number;
 
-  /** Master switch for LM rules */
-  enableLMRules?: boolean;
-
   /** Derivation ranking at admission (score = c × decisiveness − sizePenalty) */
   ranking?: {
     maxAdmissions: number;

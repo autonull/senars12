@@ -40,7 +40,6 @@ export const e2eCognitiveParams = (overrides?: DeepPartial<CognitiveParameters>)
 export const e2eNARConfig = (overrides?: Partial<NARConfig>): NARConfig => ({
   ...DEFAULT_CONFIG,
   cpuThrottleMs: 0,
-  enableLMRules: false,
   enableTools: false,
   enableSelf: false,
   enableRLFP: false,

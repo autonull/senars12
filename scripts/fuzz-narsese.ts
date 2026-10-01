@@ -121,7 +121,6 @@ async function runFuzz(iterations: number, seed?: number): Promise<void> {
   const nar = createNAR({
     maxConcepts: 1000,
     maxTasksPerConcept: 100,
-    enableLMRules: false,
     enableTools: false,
     enableSelf: false,
     enableRLFP: false,

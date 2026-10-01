@@ -34,7 +34,6 @@ interface BenchConfig {
   provider: string;
   fastModel: string;
   qualityModel: string;
-  enableLMRules: boolean;
   maxCyclesPerScenario: number;
 }
 
@@ -43,7 +42,6 @@ function loadConfig(): BenchConfig {
     provider: process.env.LM_PROVIDER ?? 'auto',
     fastModel: process.env.LM_FAST_MODEL ?? 'HuggingFaceTB/SmolLM2-360M-Instruct',
     qualityModel: process.env.LM_MODEL ?? 'onnx-community/Qwen2.5-1.5B-Instruct',
-    enableLMRules: process.env.ENABLE_LM_RULES !== 'false',
     maxCyclesPerScenario: parseInt(process.env.MAX_CYCLES ?? '20', 10),
   };
 }
@@ -237,7 +235,7 @@ async function runScenario2(
 
   // For mock provider, LM rules don't fire (no real LM). For real providers, verify LM rules fire.
   const isMock = config.provider === 'mock';
-  const lmRulesExpected = !isMock && config.enableLMRules;
+  const lmRulesExpected = !isMock;
   const lmRulesFired = lmHypothesisSteps.length > 0 || lmGoalDecompSteps.length > 0;
   
   if (lmRulesExpected && !lmRulesFired) {
@@ -506,7 +504,6 @@ async function runScenario7(): Promise<boolean> {
   // Real NAR cycle with all-fallback tasks: reasoning continues, no crash
   const nar = createNAR({
     lmService: undefined,
-    enableLMRules: false,
     enableTools: false,
     enableSelf: false,
     enableRLFP: false,
@@ -637,7 +634,6 @@ async function main() {
     const nar = createNAR({
       providerRegistry: registry,
       lmService,
-      enableLMRules: config.enableLMRules,
       enableTools: true,
       enableSelf: true,
       enableRLFP: false,

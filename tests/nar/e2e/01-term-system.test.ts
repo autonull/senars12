@@ -16,7 +16,6 @@ describe('Term System', () => {
       cpuThrottleMs: 10,
       maxDerivationDepth: 10,
       maxDerivationsPerStep: 100,
-      enableLMRules: false,
     });
   });
 

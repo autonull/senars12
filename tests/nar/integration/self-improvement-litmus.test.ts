@@ -47,7 +47,6 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
       enableSelf: true,
       enableRLFP: true,
       enableTools: true,
-      enableLMRules: true,
       maxConcepts: 1000,
       persistState: false,
       cognitiveParams: DEFAULT_COGNITIVE_PARAMETERS,
@@ -132,7 +131,6 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
       enableSelf: true,
       enableRLFP: true,
       enableTools: true,
-      enableLMRules: true,
       maxConcepts: 1000,
       persistState: false,
     });
@@ -174,7 +172,6 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
       enableSelf: true,
       enableRLFP: true,
       enableTools: true,
-      enableLMRules: true,
       maxConcepts: 1000,
       persistState: false,
     });
@@ -222,7 +219,6 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
       enableSelf: true,
       enableRLFP: true,
       enableTools: true,
-      enableLMRules: true,
       maxConcepts: 1000,
       persistState: false,
     });
@@ -322,7 +318,6 @@ describe('Homeostatic Drive Stimulation', () => {
       enableSelf: true,
       enableRLFP: true,
       enableTools: true,
-      enableLMRules: true,
       maxConcepts: 1000,
       persistState: false,
     });

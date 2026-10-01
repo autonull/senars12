@@ -64,9 +64,10 @@ describe('System One Full Enabled Path Integration', () => {
   const createSystemOneNAR = async (mockTextFn?: (p: string) => string | Promise<string>) => {
     const instance = new NAR({
       ...DEFAULT_CONFIG,
-      // NOTE: enableLMRules deliberately off — LM-rule paths hang with mock providers
-      // in this environment (provider probing / model download; pre-existing, H4-adjacent).
-      enableLMRules: false,
+      // NOTE: model rules exist because a provider was given, and the mock provider's
+      // rule paths hang here (provider probing / model download; pre-existing,
+      // H4-adjacent). They derive symbolically until they do not, which is what
+      // `rule:has-fallback` gates.
       lmService: createMockLMService({
         generateTextFn: mockTextFn ?? (async () => 'mock response'),
       }),
@@ -310,7 +311,6 @@ describe('System One Full Enabled Path Integration', () => {
   it('disabled System One yields baseline behavior', async () => {
     const narDisabled = new NAR({
       ...DEFAULT_CONFIG,
-      enableLMRules: false,
       lmService: createMockLMService(),
       providerRegistry: createSeNARSRegistry(),
     });

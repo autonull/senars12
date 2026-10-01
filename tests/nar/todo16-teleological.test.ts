@@ -91,7 +91,6 @@ describe('System One — Teleological Purity (Bench 3)', () => {
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
-      enableLMRules: false,
       enableTools: true,
       enableSelf: false,
       enableRLFP: false,

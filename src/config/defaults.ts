@@ -10,7 +10,6 @@ export const DEFAULT_NAR_CORE_CONFIG: Partial<NARConfig> = {
 
 export const DEFAULT_NAR_CONFIG: Partial<NARConfig> = {
   ...DEFAULT_NAR_CORE_CONFIG,
-  enableLMRules: true,
 } as const;
 
 /** §5n follow-up: frozen at module load — mutation throws in strict mode. */

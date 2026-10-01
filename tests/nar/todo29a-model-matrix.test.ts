@@ -41,9 +41,11 @@ const hungLM = {
 type Axis = { J: boolean; P: boolean; hung: boolean };
 
 const build = async (axis: Axis): Promise<NAR> => {
+  // `P` is a provider registered or not, and there is no switch beside that
+  // (TODO29.a §5.2); `J` needs the same provider for its judge.
+  const lm = axis.J || axis.P ? (axis.hung ? hungLM : answeringLM) : undefined;
   const nar = createNAR({
-    lmService: axis.hung ? hungLM : answeringLM,
-    enableLMRules: axis.P,
+    lmService: lm,
     systemOne: axis.J ? { enabled: true, judgeTimeoutMs: 50 } : { enabled: false },
     maxConcepts: 200,
   });

@@ -176,11 +176,10 @@ describe('Bench 89 — MiningBag (AIKR pattern #5)', () => {
 
   it('NAR: mining bag absent by default; opt-in creates it and the hook drains + seeds', async () => {
     const { NAR } = await import('@senars/nar');
-    const plain = new NAR({ enableLMRules: false } as never);
+    const plain = new NAR({} as never);
     expect(plain.getMiningBag()).toBeUndefined();
 
     const nar = new NAR({
-      enableLMRules: false,
       hardNegativeMining: { bounded: true, capacity: 4, budget: 4 },
     } as never);
     const bag = nar.getMiningBag();

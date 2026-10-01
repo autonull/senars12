@@ -23,7 +23,6 @@ describe('RL Parity - Non-Stationary Environment', () => {
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
-      enableLMRules: false,
       enableTools: true,
       enableSelf: false,
       enableRLFP: false,

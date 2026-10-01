@@ -17,7 +17,6 @@ describe('AIKR Compliance', () => {
       cpuThrottleMs: 10,
       maxDerivationDepth: 10,
       maxDerivationsPerStep: 100,
-      enableLMRules: false,
     });
   });
 
@@ -133,7 +132,6 @@ describe('AIKR Compliance', () => {
       ...DEFAULT_CONFIG,
         maxConcepts: 100,
         maxDerivationDepth: 10,
-        enableLMRules: false,
       } as NARConfig);
 
       const letters = 'abcdefghijklmnopqrst'.split('');
@@ -161,7 +159,6 @@ describe('AIKR Compliance', () => {
       const nar2 = new NAR({
       ...DEFAULT_CONFIG,
         maxConcepts: 100,
-        enableLMRules: false,
       } as NARConfig);
 
       for (let i = 0; i < 200; i++) {
@@ -176,7 +173,6 @@ describe('AIKR Compliance', () => {
       const nar2 = new NAR({
       ...DEFAULT_CONFIG,
         maxConcepts: 1000,
-        enableLMRules: false,
       } as NARConfig);
 
       for (let i = 0; i < 50; i++) {
@@ -199,7 +195,6 @@ describe('AIKR Compliance', () => {
       const nar2 = new NAR({
       ...DEFAULT_CONFIG,
         maxConcepts: 100,
-        enableLMRules: false,
       } as NARConfig);
 
       const startMem = process.memoryUsage?.()?.heapUsed ?? 0;

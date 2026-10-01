@@ -5,7 +5,6 @@ export const lmRuleFallbackScenario = createScenarioSpec({
   seed: 999,
   clockStart: 5000000,
   config: {
-    enableLMRules: true,
     lmService: undefined,
   },
   steps: [

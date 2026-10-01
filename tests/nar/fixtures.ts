@@ -10,7 +10,6 @@ export const E2E_CONFIG = {
   cpuThrottleMs: 10,
   maxDerivationDepth: 10,
   maxDerivationsPerStep: 100,
-  enableLMRules: false,
 } as const;
 
 export const createTestNAR = (overrides?: Partial<typeof E2E_CONFIG>) =>

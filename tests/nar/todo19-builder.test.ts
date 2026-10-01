@@ -42,11 +42,14 @@ describe('Bench 41 — Assembly Integrity', () => {
       .withParameters({} as never)
       .build();
     built.push(full);
+    // `lmRules` is not a step: model rules exist whenever a provider was given,
+    // and there is no flag beside that (TODO29.a §5.2).
     expect(full.describe().subsystems).toEqual([
       'lm',
       'systemOne',
       'self',
       'rlfp',
+      'lmRules',
       'cognitiveParameters',
     ]);
     expect(full.describe().steps.map((s) => s.step)).toContain('lm');

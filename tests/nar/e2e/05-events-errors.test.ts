@@ -16,7 +16,6 @@ describe('Event System', () => {
       cpuThrottleMs: 10,
       maxDerivationDepth: 10,
       maxDerivationsPerStep: 100,
-      enableLMRules: false,
     });
   });
 
@@ -112,7 +111,6 @@ describe('Error Handling', () => {
       cpuThrottleMs: 10,
       maxDerivationDepth: 10,
       maxDerivationsPerStep: 100,
-      enableLMRules: false,
     });
   });
 

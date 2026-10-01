@@ -338,7 +338,6 @@ import { NAR, createNAR } from '@senars/nar';
 const nar = createNAR({
   maxConcepts: 10000,
   maxTasksPerConcept: 100,
-  enableLMRules: true,
   enableTools: true,
   enableSelf: true,
   enableRLFP: true,
@@ -1472,7 +1471,6 @@ interface NARConfig extends CoreConfig {
   // LLM Integration
   lmService?: LMService;
   providerRegistry?: SeNARSRegistry;
-  enableLMRules?: boolean;
   enableBidirectionalFeedback?: boolean;
   enableProactiveEnrichment?: boolean;
   enableLMStreaming?: boolean;

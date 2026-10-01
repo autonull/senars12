@@ -835,7 +835,7 @@ export class NAR extends BaseComponent {
   }
 
   private initializeOptionalFeatures(): void {
-    if (this.config.enableLMRules && this.config.lmService) {
+    if (this.config.lmService) {
       this.initializeLMRules(this.config.lmService);
     }
     if (this.config.enableTools) {

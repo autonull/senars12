@@ -331,7 +331,6 @@ env.step(action); // ✗ NOT allowed without prior goal dispatch
 
 ```typescript
 {
-  enableLMRules: false,    // No LM contamination
   enableTools: true,       // Only RL action tools
   enableSelf: false,       // No self-modification
   enableRLFP: false,       // No RLFP initially
@@ -350,7 +349,7 @@ env.step(action); // ✗ NOT allowed without prior goal dispatch
 - [ ] Environment stepping occurs only through operation execution
 - [ ] No hidden Q-table exists inside adapter
 - [ ] No hidden action-selection state bypasses SeNARS
-- [ ] No LM call supplies the answer (`enableLMRules: false`)
+- [ ] No LM call supplies the answer (no `lmService`, so no model rules exist)
 - [ ] No self-modification mechanism participates (`enableSelf: false`)
 
 ---
@@ -411,7 +410,7 @@ After parity, test properties conventional RL lacks:
 - Environment RNG is seeded
 - Baseline RNG is seeded
 - Exploration RNG is seeded
-- LM rules disabled (`enableLMRules: false`)
+- No `lmService`, so no model rules exist
 - Network disabled
 - Self-modification disabled (`enableSelf: false`)
 - RLFP disabled initially (`enableRLFP: false`)

@@ -34,7 +34,6 @@ export const runMultiAgentEntry = async (): Promise<void> => {
           consolidationInterval: testing ? 1000 : undefined,
           cpuThrottleMs: testing ? 0 : undefined,
           maxDerivationDepth: testing ? 20 : undefined,
-          enableLMRules: true,
         })
         .withMetta(mettaPort())
         .build(),

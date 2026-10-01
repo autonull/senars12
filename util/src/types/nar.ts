@@ -6,7 +6,6 @@
  */
 export interface NARConfig {
   lmService?: import('./llm.js').LMService;
-  enableLMRules?: boolean;
   enableTools?: boolean;
   enableSelf?: boolean;
   enableRLFP?: boolean;

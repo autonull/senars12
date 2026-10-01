@@ -5,7 +5,7 @@ import type { SeNARSOptions } from '../../../nar/src/nar-presets.js';
 const created: NAR[] = [];
 
 async function makeNar(options: SeNARSOptions = {}): Promise<NAR> {
-  const nar = createNAR({ enableLMRules: false, ...options });
+  const nar = createNAR(options);
   created.push(nar);
   await nar.start();
   return nar;

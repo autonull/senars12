@@ -202,7 +202,7 @@ describe('Bench 87 — EpisodeConsolidator (AIKR pattern #1)', () => {
 describe('Bench 87 — NAR wiring (inert until sinks are wired)', () => {
   it('consolidator is absent unless config opts in; hook no-ops without it', async () => {
     const { NAR } = await import('@senars/nar');
-    const nar = new NAR({ enableLMRules: false } as never);
+    const nar = new NAR({} as never);
     expect(nar.getEpisodeConsolidator()).toBeUndefined();
     await expect(nar.consolidateLearning({ budget: 2 })).resolves.toBeUndefined();
   });
@@ -210,7 +210,6 @@ describe('Bench 87 — NAR wiring (inert until sinks are wired)', () => {
   it('enabled config creates the process; admit + emit flow through the episodic store', async () => {
     const { NAR } = await import('@senars/nar');
     const nar = new NAR({
-      enableLMRules: false,
       episodeConsolidation: { enabled: true, capacity: 4, budget: 4 },
     } as never);
     const consolidator = nar.getEpisodeConsolidator();

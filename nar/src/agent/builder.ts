@@ -254,13 +254,24 @@ export class NARBuilder {
   private async buildInner(): Promise<WiredNAR> {
     const systemOneEnabled = (this.systemOne?.tier ?? 0) > 0;
     const selfEnabled = this.capabilities.self?.enabled === true;
+    // Model rules exist when a provider was provided. There is no switch beside
+    // that, so a capability claiming them without one is a profile that is wrong
+    // rather than a build that silently derives less (TODO29.a §5.2).
+    const modelRulesEnabled = this.capabilities.lmRules?.enabled === true;
 
     if (
       (systemOneEnabled && (this.systemOne?.tier ?? 0) >= 2 && !this.lm) ||
-      (selfEnabled && !this.lm)
+      (selfEnabled && !this.lm) ||
+      (modelRulesEnabled && !this.lm)
     )
       throw new BuilderError(
-        `tier-${systemOneEnabled ? this.systemOne?.tier : 'self'} capability requires an LM — call withLM() first`,
+        `${
+          systemOneEnabled && (this.systemOne?.tier ?? 0) >= 2
+            ? `tier-${this.systemOne?.tier} systemOne`
+            : selfEnabled
+              ? 'self'
+              : 'lmRules'
+        } capability requires an LM — call withLM() first`,
         'capabilities'
       );
 
@@ -272,7 +283,6 @@ export class NARBuilder {
       ...(this.capabilities.rlfp?.enabled
         ? { enableRLFP: true, rlfp: this.capabilities.rlfp.params as NARConfig['rlfp'] }
         : {}),
-      ...(this.capabilities.lmRules?.enabled ? { enableLMRules: true } : {}),
       ...(this.metta ? { metta: this.metta } : {}),
       ...(this.narConfigOverrides.systemOne
         ? {}
@@ -347,7 +357,7 @@ export class NARBuilder {
           ...(systemOneEnabled ? ['systemOne'] : []),
           ...(selfEnabled ? ['self'] : []),
           ...(this.capabilities.rlfp?.enabled ? ['rlfp'] : []),
-          ...(this.capabilities.lmRules?.enabled ? ['lmRules'] : []),
+          ...(this.lm ? ['lmRules'] : []),
           ...(this.cognitiveParams ? ['cognitiveParameters'] : []),
           ...(this.episodicMemory ? ['memory'] : []),
           ...(this.persistence ? ['persistence'] : []),

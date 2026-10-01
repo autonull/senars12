@@ -78,7 +78,6 @@ const baseNonStationaryConfig = {
 };
 
 const narConfig = {
-  enableLMRules: false,
   enableTools: true,
   enableSelf: false,
   enableRLFP: false,

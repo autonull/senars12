@@ -34,7 +34,6 @@ export type SystemOneConfig = SystemOneRuntimeConfig;
 export interface NARConfig extends CoreConfig {
   lmService?: LMService;
   providerRegistry?: SeNARSRegistry;
-  enableLMRules?: boolean;
   enableTools?: boolean;
   enableSelf?: boolean;
   enableRLFP?: boolean;

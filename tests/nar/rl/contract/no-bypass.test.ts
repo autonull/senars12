@@ -22,7 +22,6 @@ describe('No-Bypass Contract', () => {
       activationDecayRate: 0.01,
       consolidationInterval: 5,
       cpuThrottleMs: 0,
-      enableLMRules: false,
       enableTools: true,
       enableSelf: false,
       enableRLFP: false,
@@ -140,9 +139,9 @@ describe('No-Bypass Contract', () => {
     expect(toolGoals.length).toBe(0);
   });
 
-  test('No LM call supplies the answer (enableLMRules: false)', () => {
-    const config = (nar as any).config;
-    expect(config.enableLMRules).toBe(false);
+  test('No LM call supplies the answer — no provider, so no model rules exist', () => {
+    expect((nar as any).config.lmService).toBeUndefined();
+    expect(nar.getProcessor().getModelRuleStats()).toEqual([]);
   });
 
   test('No self-modification mechanism participates (enableSelf: false)', () => {

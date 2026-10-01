@@ -25,7 +25,6 @@ async function runWithCyclesPerStep(
   const env = new GridWorldGame({ ...baseGridConfig, seed });
   const nar = new NAR({
       ...DEFAULT_CONFIG,
-    enableLMRules: false,
     enableTools: true,
     enableSelf: false,
     enableRLFP: false,
