@@ -9,6 +9,13 @@ import type { ForgettingPolicy } from './lifecycle';
 
 export interface MemoryConfig {
   maxConcepts?: number;
+  /**
+   * Tasks across every resident concept. A concept count is the *wrong*
+   * denominator for the dominant consumer (TODO29.a §5.8): a thousand concepts
+   * holding one belief each and a thousand holding fifty each are the same
+   * pressure reading, and only one of them is in trouble.
+   */
+  maxTasks?: number;
   activationDecayRate?: number;
   consolidationInterval?: number;
   focusMaxConcepts?: number;
@@ -32,6 +39,7 @@ export type ResolvedMemoryConfig = Required<Omit<MemoryConfig, 'embeddingGenerat
 
 export const DEFAULT_MEMORY_CONFIG: ResolvedMemoryConfig = {
   maxConcepts: 1000,
+  maxTasks: 10_000,
   activationDecayRate: 0.01,
   consolidationInterval: 10,
   focusMaxConcepts: 50,

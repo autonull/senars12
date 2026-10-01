@@ -38,6 +38,9 @@ jobs:
       # schema version fails loudly, and a stream recorded against R is stale at R+1.
       - run: pnpm replay:proposal
       # TODO29.a A0: provider-dependency detection, and the in-cycle induction inventory.
+      # TODO29.a A8: every growing resource declares its owner, its bound, its
+      # retention rule, its overflow behaviour and its pressure signal.
+      - run: pnpm resource:policy
       - run: pnpm cycle:no-provider
       - run: pnpm induction:inventory
       # TODO29.a A1: every model-backed rule derives without a model; one cycle step.

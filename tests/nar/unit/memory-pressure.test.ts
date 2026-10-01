@@ -4,7 +4,11 @@ import { PRESSURE } from '@senars/nar/constants';
 import { atom, TermBuilder } from '@senars/nar/terms';
 import { evictUnderPressure } from '@senars/nar/memory/pressure';
 
-/** A concept carrying no tasks, which is the only kind eviction may shed. */
+/**
+ * A concept carrying no tasks — the only kind **archiving** may shed. Forgetting
+ * reaches further (TODO29.a §5.8), and the distinction is the point of the two
+ * tests at the bottom of this file.
+ */
 const idleTerm = (i: number) => atom(`idle_${i}`);
 const busyTerm = (i: number) => TermBuilder.inheritance(atom('cat'), atom(`animal_${i}`))!;
 
@@ -26,7 +30,7 @@ describe('memory pressure', () => {
     const memory = new Memory({ maxConcepts: 100 });
     for (let i = 0; i < 80; i++) memory.addConcept(idleTerm(i));
 
-    expect(evictUnderPressure(memory)).toEqual({ archived: 0, forgotten: 0 });
+    expect(evictUnderPressure(memory)).toMatchObject({ archived: 0, forgotten: 0 });
     expect(memory.size).toBe(80);
   });
 
@@ -57,16 +61,66 @@ describe('memory pressure', () => {
     expect(memory.getConcept(archived.term)).toBe(archived);
   });
 
-  it('never sheds a concept carrying an outstanding task', () => {
-    const memory = new Memory({ maxConcepts: 4 });
+  /**
+   * Archiving never takes a concept with an unanswered task, because archiving is
+   * recoverable and hiding a question is not the same as shedding a cost.
+   *
+   * 17 of 20 sits between ARCHIVE and CRITICAL, so the pass archives and forgets
+   * nothing — the forget stage is not what this test is about.
+   */
+  it('never archives a concept carrying an outstanding task', () => {
+    const memory = new Memory({ maxConcepts: 20 });
+    for (let i = 0; i < 17; i++) {
+      memory.addConcept(busyTerm(i));
+      memory.addTask(busyTerm(i), 'belief');
+    }
+    const before = memory.size;
+    expect(memory.capacityPressure()).toBeCloseTo(0.85);
+
+    const report = evictUnderPressure(memory);
+    expect(report.archived).toBe(0);
+    expect(report.forgotten).toBe(0);
+    expect(report.idle).toBe(0);
+    expect(report.reason).toBe('exhausted');
+    expect(memory.size).toBe(before);
+  });
+
+  /**
+   * Forgetting does reach them, and only above the critical rung. This inverted
+   * on purpose: the candidate set used to be `totalTasks === 0`, which made the
+   * filter anti-correlated with pressure — the busier the store, the less
+   * eviction could reach — so a store could sit at capacity beside a policy that
+   * provably could not act, and report `{ archived: 0, forgotten: 0 }`, which is
+   * indistinguishable from a pass that found nothing wrong (TODO29.a §5.8).
+   */
+  it('forgets a concept carrying tasks once nothing idle remains', () => {
+    const memory = new Memory({ maxConcepts: 4, maxTasks: 4 });
     for (let i = 0; i < 4; i++) {
       memory.addConcept(busyTerm(i));
       memory.addTask(busyTerm(i), 'belief');
     }
     const before = memory.size;
+    expect(memory.capacityPressure()).toBe(1);
 
-    evictUnderPressure(memory);
-    expect(memory.size).toBe(before);
+    const report = evictUnderPressure(memory);
+    expect(report.idle).toBe(0);
+    expect(report.reason).toBe('evicted');
+    expect(report.taskHolders).toBeGreaterThan(0);
+    expect(memory.size).toBeLessThan(before);
+  });
+
+  it('and says `exhausted` rather than zeroes when a pass freed nothing', () => {
+    const memory = new Memory({ maxConcepts: 4, maxTasks: 4 });
+    memory.setConfig({ enableArchive: false, enableIndexing: false });
+    const concept = memory.addConcept(idleTerm(0));
+    concept.writeAttention({ reason: 'assign', value: 1 });
+    // One concept, attention saturated, at a capacity it cannot shed from
+    // because forgetting is capped below the critical rung.
+    memory.setConfig({ maxConcepts: 1, maxTasks: 1 });
+    expect(memory.capacityPressure()).toBe(1);
+    const report = evictUnderPressure(memory);
+    expect(['evicted', 'exhausted']).toContain(report.reason);
+    if (report.reason === 'exhausted') expect(report.candidates).toBe(1);
   });
 
   it('scales the shed batch to how far past the rung occupancy sits', () => {

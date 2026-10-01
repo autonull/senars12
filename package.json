@@ -55,6 +55,7 @@
     "rules:loaded-data": "tsx scripts/rules-loaded-data.ts",
     "control-budgets": "tsx scripts/control-budgets.ts",
     "replay:proposal": "tsx scripts/replay-proposal.ts",
+    "resource:policy": "tsx scripts/resource-policy.ts",
     "cycle:no-provider": "tsx scripts/cycle-no-provider.ts",
     "rule:has-fallback": "tsx scripts/rule-fallback.ts",
     "gates:one-cycle-path": "tsx scripts/gates-one-cycle-path.ts",

@@ -1,1 +1,7 @@
-export { evictUnderPressure } from './consolidation.js';
+export {
+  conceptValue,
+  evictionOrder,
+  evictUnderPressure,
+  type EvictionReason,
+  type EvictionReport,
+} from './consolidation.js';

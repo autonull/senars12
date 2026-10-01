@@ -42,6 +42,14 @@ export interface StreamReasonerOptions {
 
 export type LMBackend = (requests: LMRequest[]) => Promise<Map<string, TruthType>>;
 
+/**
+ * The deepest admissible backlog, and the reason it is a named constant rather
+ * than a literal: it is the bound the resource inventory declares
+ * (`stream.reasoner-queue`, TODO29.a §5.8), so the inventory points here rather
+ * than restating a number that could move.
+ */
+export const REASONER_QUEUE_CAPACITY = 256;
+
 /** A reasoner holds no proposals of its own beyond these two bounded ledgers. */
 export interface StreamReasonerStats {
   queued: number;
@@ -73,7 +81,7 @@ export class StreamReasoner {
     this.maxBatch = opts.maxBatch ?? 8;
     this.provisionalConfidence = opts.provisionalConfidence ?? 0.3;
     this.highPressure = opts.highPressure ?? 0.85;
-    this.maxPending = opts.maxPending ?? 256;
+    this.maxPending = opts.maxPending ?? REASONER_QUEUE_CAPACITY;
     this.backendTimeoutMs = opts.backendTimeoutMs ?? 8000;
     this.maxDerived = opts.maxDerived ?? 256;
     this.provisionals = new BoundedMap<string, ProvisionalBelief>({

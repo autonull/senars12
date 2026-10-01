@@ -135,7 +135,13 @@ class FakeStore implements MemoryPorts {
 
   // ── StatisticsView ──
   capacityPressure(): number {
-    return this.concepts.size / FAKE_CAPACITY;
+    return this.pressureBreakdown().capacity;
+  }
+  pressureBreakdown(): { concepts: number; tasks: number; capacity: number } {
+    const { totalConcepts, totalTasks } = this.totals();
+    const concepts = totalConcepts / FAKE_CAPACITY;
+    const tasks = totalTasks / FAKE_CAPACITY;
+    return { concepts, tasks, capacity: Math.max(concepts, tasks) };
   }
   totals(): { totalConcepts: number; totalTasks: number } {
     return {
@@ -145,7 +151,8 @@ class FakeStore implements MemoryPorts {
   }
   getStatistics(): MemoryStatistics {
     const { totalConcepts, totalTasks } = this.totals();
-    const pressure = this.capacityPressure();
+    const pressureBreakdown = this.pressureBreakdown();
+    const pressure = pressureBreakdown.capacity;
     return {
       totalConcepts,
       totalTasks,
@@ -153,6 +160,7 @@ class FakeStore implements MemoryPorts {
       archivedConcepts: 0,
       memoryPressure: pressure,
       utilization: pressure,
+      pressureByBound: { concepts: pressureBreakdown.concepts, tasks: pressureBreakdown.tasks },
       conceptDistribution: { lowPriority: 0, mediumPriority: 0, highPriority: 0 },
     };
   }

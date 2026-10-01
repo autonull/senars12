@@ -36,6 +36,7 @@ import { MemoryIndex } from './memory-index.js';
 import type { MemoryPorts } from './ports/index.js';
 import type { LinkPort } from './ports/links.js';
 import type { MemoryStatistics } from './ports/statistics-view.js';
+import type { EvictionReport } from './pressure';
 import { evictUnderPressure } from './pressure';
 import { selectSimilar } from './similarity.js';
 import { calculateConceptStats, tallyConcepts } from './state';
@@ -73,6 +74,8 @@ export class Memory implements MemoryPorts {
   private lastRevisionTs = 0;
   private cyclesSinceConsolidation = 0;
   private lastTimestamp = Date.now();
+  /** The last eviction pass's report, including whether it could free anything. */
+  private lastEviction: EvictionReport | undefined;
 
   constructor(
     config: MemoryConfig = DEFAULT_MEMORY_CONFIG,
@@ -392,7 +395,7 @@ export class Memory implements MemoryPorts {
 
     this.decayAll(cyclesElapsed);
 
-    evictUnderPressure(this);
+    this.lastEviction = evictUnderPressure(this);
 
     this.linkManager.applyDecay(linkDecayRate);
     this.updateAllFocus();
@@ -462,9 +465,35 @@ export class Memory implements MemoryPorts {
     this.linkManager.applyDecay(1);
   }
 
-  /** Occupancy of the concept store in `0..1` — the AIKR pressure signal. */
+  /**
+   * Pressure in `0..1`, and the **maximum of the store's own bounds** rather than
+   * the concept count alone (TODO29.a §5.8). A concept count is the wrong
+   * denominator: a thousand concepts holding one belief each and a thousand
+   * holding fifty each read identically, and only one of them is in trouble —
+   * which is the shape of finding 4, a signal disagreeing with the policy that
+   * reads it.
+   *
+   * `max` rather than a weighted sum, because a weighted sum makes the reading
+   * move when one bound is raised and the other is not, so "is the store under
+   * pressure" would depend on how the two capacities were chosen. The maximum is
+   * monotone in each bound, which is the property §5.8's acceptance asks for.
+   */
   capacityPressure(): number {
-    return occupancy(this.concepts.size, this.config.maxConcepts);
+    const { totalConcepts, totalTasks } = this.totals();
+    return Math.max(
+      occupancy(totalConcepts, this.config.maxConcepts),
+      occupancy(totalTasks, this.config.maxTasks)
+    );
+  }
+
+  /** The two bounds behind {@link capacityPressure}, so a report names both. */
+  pressureBreakdown(): { concepts: number; tasks: number; capacity: number } {
+    const { totalConcepts, totalTasks } = this.totals();
+    return {
+      concepts: occupancy(totalConcepts, this.config.maxConcepts),
+      tasks: occupancy(totalTasks, this.config.maxTasks),
+      capacity: this.capacityPressure(),
+    };
   }
 
   /** Totals without the tercile pass; what persistence serializes. */
@@ -474,7 +503,8 @@ export class Memory implements MemoryPorts {
 
   getStatistics(): MemoryStatistics {
     const stats = calculateConceptStats(this.concepts.values());
-    const pressure = this.capacityPressure();
+    const pressureBreakdown = this.pressureBreakdown();
+    const pressure = pressureBreakdown.capacity;
     const result: MemoryStatistics = {
       totalConcepts: stats.totalConcepts,
       totalTasks: stats.totalTasks,
@@ -482,6 +512,7 @@ export class Memory implements MemoryPorts {
       archivedConcepts: this.config.enableArchive ? this.archive.size : 0,
       memoryPressure: pressure,
       utilization: pressure,
+      pressureByBound: { concepts: pressureBreakdown.concepts, tasks: pressureBreakdown.tasks },
       conceptDistribution: {
         lowPriority: stats.lowPriority,
         mediumPriority: stats.mediumPriority,
@@ -632,6 +663,17 @@ export class Memory implements MemoryPorts {
       forgettingNeeded: utilization > PRESSURE.ARCHIVE,
       recommendations: [],
     };
+  }
+
+  /**
+   * What the last eviction pass did. A pass that freed nothing reports
+   * `reason: 'exhausted'` — a store at capacity whose policy provably could not
+   * act is a condition an operator has to be able to see, and returning
+   * `{ archived: 0, forgotten: 0 }` made it indistinguishable from a pass that
+   * found nothing wrong (TODO29.a §5.8).
+   */
+  evictionReport(): EvictionReport | undefined {
+    return this.lastEviction;
   }
 
   /** Resident concepts holding at least one link to a term that is no longer stored. */

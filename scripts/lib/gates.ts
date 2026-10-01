@@ -60,6 +60,10 @@ export const GATES: readonly Gate[] = [
   // reduction is pure, the replay path reaches no provider, an incompatible
   // schema version fails loudly, and a stream recorded against R is stale at R+1.
   script('replay:proposal', 'slow'),
+  // TODO29.a A8: every resource that can grow has a declared owner, a bound the
+  // owner actually reads, a retention rule, an overflow behaviour, and a pressure
+  // signal or an explicit null.
+  script('resource:policy'),
   script('cycle:no-provider'),
   // TODO29.a A0: the in-cycle induction inventory, and its references still hold.
   script('induction:inventory'),

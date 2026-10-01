@@ -18,12 +18,19 @@ export interface MemoryStatistics {
   archiveStats?: { size: number; capacity: number; utilization: number };
   memoryPressure: number;
   utilization: number;
+  /** Which bound `memoryPressure` came from. Both are 0..1. */
+  pressureByBound: { concepts: number; tasks: number };
   conceptDistribution: { lowPriority: number; mediumPriority: number; highPriority: number };
 }
 
 export interface StatisticsView {
   /** Store occupancy in `0..1` — the AIKR pressure signal. */
   capacityPressure(): number;
+  /**
+   * The bounds behind {@link capacityPressure}, so a report can name which one
+   * is binding rather than reporting one number with two causes (TODO29.a §5.8).
+   */
+  pressureBreakdown(): { concepts: number; tasks: number; capacity: number };
   /** Totals without the tercile pass; what persistence serializes. */
   totals(): { totalConcepts: number; totalTasks: number };
   getStatistics(): MemoryStatistics;
