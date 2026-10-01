@@ -1,10 +1,11 @@
 # TODO29.a: Runtime Architecture — S/J/P over a closed core
 
-**Version:** 3.0 · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
+**Version:** 3.1 · **Status:** A0 landed 2026-09-30; A1–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
 unchanged as the measurement and provenance record; §0.4 maps its sections onto this one) ·
 **Successor:** `TODO30.md`, blocked on this.
 
-**Scope: architecture and semantics. Nothing here has landed.** No latency, throughput, complexity,
+**Scope: architecture and semantics. Of what this document specifies, only A0's instrumentation has
+landed, and it changes no reasoning path** (§0.8). No latency, throughput, complexity,
 population-scaling or index-shape requirement appears in this document's acceptance criteria. Every
 one of those is `TODO30` §1–§10, deliberately, because they are measurable only after the seams they
 are measured through exist. What stays here is what is testable on the tree in its current state:
@@ -78,7 +79,9 @@ do is make four README promises structurally true rather than aspirational, and 
 
 ### 0.6 Next actions, in order
 
-1. **A0** — instrumentation, including provider-*dependency* detection, not presence detection.
+1. ~~**A0**~~ — instrumentation, including provider-*dependency* detection, not presence detection.
+   **Done**, except for one thing §0.8 finding 1 names: the live cycle has no tick stages, so A1's
+   trace criterion has nothing to read. Do that before A1, or restate A1 criterion 2.
 2. **§5.13 + A3's eight protocol decisions** — *produced* before A1, because A1's acceptance depends on
    them. A3's **implementation** lands after A2, once the queue's real behaviour is known (§6).
 3. **A1** — close the cycle's dependency on the model, bound the `J` profile, require a symbolic
@@ -90,6 +93,70 @@ do is make four README promises structurally true rather than aspirational, and 
 
 Not performance work, not the capability thesis, not the `lm/` internals, not UI, not NAL. §9 has
 the list. Read this as the floor, not the claim.
+
+### 0.8 What has landed
+
+**A0 is done (2026-09-30).** Nothing else has, and nothing behavioural has changed — the tree's
+reasoning is byte-identical to where it was.
+
+| artefact | what it is |
+|---|---|
+| `nar/src/lm/in-cycle-inventory.ts` | the Q1′ inventory as data: 7 behaviours with dispositions and a *noticedBy* column, the cycle path as a declared prefix list, and the three cycle-path value imports attributed to behaviours |
+| `nar/src/lm/provider-seams.ts` | the three cycle-path awaits on a provider, each with the bound it has **today** (`bounded: false` for all three) and the `file:line` + text it must still hold |
+| `scripts/lib/induction-inventory.ts` | pure verdict logic: an unaccounted cycle-path import, a dead call site, an unattributed or undeclared behaviour |
+| `scripts/lib/provider-dependency.ts` | the **symmetric** rule: a seam declared bounded must not block, a seam declared unbounded **must** block, and a probe that was never entered fails |
+| `pnpm induction:inventory` | the gate, plus the census it prints |
+| `pnpm cycle:no-provider` | drives a never-resolving provider through every declared seam, using the real `LMRule` / `KernelPerceptionGate` / `StreamReasoner` |
+| `tests/nar/todo29a-a0.test.ts` | 21 tests, every gate rule's failure case first |
+| `docs/induction-inventory.md` | the one dated page Q1′ asks for |
+
+Both gates were confirmed to fail by flipping a declaration, then restored — §10.1's rule, applied
+to the gates themselves.
+
+**Three findings the instrumentation produced, none of them in §4:**
+
+1. **The live cycle has no tick stages.** `nar/src/tick/` declares the canonical vocabulary and
+   *nothing in production calls it* — the only callers are four test files. `NARExecution.run` records
+   free-form `PhaseTimer` categories. So §5.1's acceptance criterion 2 ("no `propose`-stage work
+   inside a `reason` stage") is about a pipeline this tree does not run. **A1 cannot assert it until
+   the live cycle has a stage vocabulary, which is now A0's second job and is not done.**
+2. **The cycle path's dependence on the layer is already mostly data.** 14 edges into `nar/src/lm/`
+   from the cycle path: 3 values, 11 types. `RuleProcessor` — the one place the cycle applies a model
+   rule — imports `LMRule` as a **type only** and takes instances through `registerLMRule`. This is
+   §4 row 9's positive half, and it is why A1 is a wiring change rather than a rewrite.
+3. **The circuit breaker bounds failure count, not time.** `LMRule.executeLM` wraps
+   `tryGenerateText` in `CircuitBreaker.execute`, whose `resetTimeoutMs` governs a half-open probe
+   and not an in-flight call. So the `lm-rule-apply` seam hangs on a provider that never resolves,
+   exactly as declared — and the probe confirms it rather than inferring it.
+
+**Improvement opportunities the instrumentation exposed, none of them blocking A1:**
+
+- `CYCLE_PATH_PREFIXES` is a hand-maintained directory list. It is the right size today (12 files),
+  and a file moving into or out of the cycle path silently changes which edges need attribution. A
+  `deps:direction`-style manifest keyed on the *cycle* rather than the layer would make it derived.
+  Deferred: the list is short, and a wrong derived answer would be worse than a short list.
+- `ProviderSeam.callSites` is `file:line` plus a substring, which is a reference that can rot. The
+  gate catches rot; it cannot catch a line moving *and* the substring travelling with it, because
+  that is indistinguishable from the seam moving.
+- The census prints; it does not store. Nothing commits the counts, so a regression from 3 value
+  imports to 5 is visible in review but not in CI.
+
+**Notes for A1:**
+
+- The three seams are named and probed. A1's work is to make `bounded` true on `lm-rule-apply` and
+  `ingress-judge`, which turns `cycle:no-provider` into §1.3's invariant with no new gate and no new
+  file. `stream-reasoner-backend` becomes bounded as a consequence of A1 step 3.
+- **`ingress-judgment` is `synchronous` by design and must not be moved.** Judging a precondition of
+  admission is gating, not learning. A1 step 7 adds a *timeout*; it must not relocate the judge.
+- A1 acceptance 4 ("a proposal cannot affect state before the declared application boundary") needs
+  a stage vocabulary on the live cycle — see finding 1 above. Either introduce one on
+  `NARExecution` (small: the `PhaseTimer` categories are already per-step labels), or restate the
+  criterion against `PhaseTimer`. Restating is cheaper and says less; introducing one costs A0 work
+  that A1's own acceptance depends on.
+- `IN_CYCLE_INVENTORY` gains a row the moment `DefaultDerivation` stops calling `processLMRules`:
+  `lm-rule-derivation` moves from `synchronous` to `boundary`, and the gate will fail until it does
+  not, because the attribution's file no longer imports the layer. That is the gate working.
+
 
 ---
 
@@ -1215,7 +1282,7 @@ Every acceptance criterion above is demonstrated by a command and a gate. Gates 
 
 | item | verified by | gate lands with it | risk |
 |---|---|---|---|
-| **A0** | `pnpm bench:cycle -- --selftest && pnpm test:hermetic` | `cycle:no-provider`, `induction:inventory` (shared with A1) | **none** — pure instrumentation |
+| **A0** | `pnpm run cycle:no-provider && pnpm run induction:inventory && pnpm bench:cycle -- --selftest && pnpm test:hermetic` — **done 2026-09-30** | `cycle:no-provider`, `induction:inventory` (both landed in their A0 form; shared with A1) | **none** — pure instrumentation; no reasoning path touched |
 | **A1** | `pnpm run cycle:no-provider`, `pnpm test:determinism`, NAL suites | `cycle:no-provider`, `rule:has-fallback`, `config:model-matrix`, `gates:one-cycle-path`, `induction:inventory` | **medium** — the only item that changes reasoning behaviour: not the derivations, but the *timing* of when rules exist, which changes the sequence over a fixed episode |
 | **A2** | `pnpm run core:no-lm`, `pnpm run deps:gate`, `pnpm run docs:drift` | `core:no-lm`, `deps:gate` +1 row | **medium-high** — a large mechanical diff (39 files). The price of a boundary that cannot be crossed by accident, and it is mechanical: reviewable by the compiler |
 | **A3** | `pnpm test:unit` (new seam tests), `pnpm run core:no-provider` | — (gates land with A1/A9/A10) | **low** — the one item the plan expands rather than contracts |
@@ -1430,11 +1497,11 @@ gate listed here and not wired is the exact failure mode this plan is about.
 
 | gate | asserts | lands with | tier |
 |---|---|---|---|
-| `cycle:no-provider` | a cycle completes with `J` and `P` backends that never resolve **and** derives identically; no `propose`-stage work appears inside a `reason` stage in a recorded trace; a producer that returns nothing produces the same committed state. **Dependency, not presence** (§1.3) | A0 + A1 | `gate` |
+| `cycle:no-provider` | **A0 form (landed):** every declared seam is probed with a never-resolving provider and its `bounded` declaration is true — bounded must not block, unbounded must. **A1 form:** a cycle completes with `J` and `P` backends that never resolve **and** derives identically; no `propose`-stage work appears inside a `reason` stage in a recorded trace. **Dependency, not presence** (§1.3); blocked on the live cycle having no stages (§0.8) | A0 + A1 | `gate` |
 | `rule:has-fallback` | every registered `P` rule declares its symbolic fallback, and the fallback is what runs when the model call fails | A1 | `gate` |
 | `config:model-matrix` | all four S/J/P configurations initialise, reason and pass NAL parity; a hung `J` is rejected on a timeout rather than awaited; every model call site is in the manifest with its profile, budget and position | A1, A11 | `gate` |
 | `gates:one-cycle-path` | exactly one `InferenceController` construction site and one `.step(` call site | A1 | `gate` |
-| `induction:inventory` | every behaviour the layer currently performs inside a cycle is declared with a disposition — `boundary` / `synchronous` / `dropped` — and an unaccounted item fails | A0 + A1 | `gate` |
+| `induction:inventory` | **A0 form (landed):** every cycle-path value import of the layer is a declared behaviour with a `boundary` / `synchronous` / `dropped` disposition and a *noticedBy*, and every declared `file:line` still holds its await. **A1 adds:** no disposition of `synchronous` claims a cycle-path dependence A1 has closed | A0 + A1 | `gate` |
 | `core:no-lm` | NAL suites plus a reasoning episode with **zero** producers, with the layer removed from the build graph; a census asserts the shipped table is exactly the registered NAL rules | A2 | `gate` |
 | `deps:gate` +1 row | `nar` core may not import the layer's directory; `core` imports only `util` and its own schemas | A2 | `gate` |
 | `attention:write-surface` | every `Concept.priority` write is inside the attention owner's module; a new one fails | A4 | `gate` |
@@ -1498,14 +1565,14 @@ the second by A10's index reconstruction, the last by the vocabulary of §2.1.
 
 ### 11.1 Must be answered here, before the named item
 
-**Q1′ — the in-cycle induction inventory.** Which behaviours currently happen *inside a cycle*
-because of the induction layer, and what happens to each once the cycle is closed? A1 is mostly this
-work, and the dispositions are a decision, not a derivation. Procedure: enumerate the *behaviour*,
-not the call sites; give each a disposition declared as data (`boundary` / `synchronous` /
-`dropped`, with a "who would notice its absence" column); gate it; record it in
-`docs/architecture/`, one page, dated. That column is the whole point: it is the difference between
-moving a behaviour and losing one. Note the one behaviour that *stays* synchronous by design —
-System One judging untrusted input before admission is **gating, not learning**.
+**Q1′ — the in-cycle induction inventory — ANSWERED, and it landed with A0.** The seven behaviours,
+their dispositions and their *noticedBy* column are `nar/src/lm/in-cycle-inventory.ts`; the page is
+`docs/induction-inventory.md` (not `docs/architecture/`, which is generated by
+`scripts/generate-architecture.ts` and would drift on every run); the gate is
+`pnpm induction:inventory`. The dispositions are decisions and remain A1's to revise — the gate
+checks that they exist and that their references hold, not that they are right. The one behaviour
+that *stays* synchronous by design is `ingress-judgment`: System One judging untrusted input before
+admission is **gating, not learning**, and A1 gives it a timeout without moving it.
 
 **Q3 — what is the falsifiable claim.** The experiment exists; the hypothesis, the aggregate and a
 clean control do not. `scripts/arcade.ts` runs `nal` and `manifold` arms with the **same actuator**

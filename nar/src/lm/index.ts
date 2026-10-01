@@ -30,6 +30,13 @@ export type {
 } from './feedback.js';
 export { BidirectionalFeedbackLoop, createBidirectionalFeedbackLoop } from './feedback.js';
 export { type GrammarName, loadGrammar } from './grammars/index.js';
+export {
+  CYCLE_PATH_PREFIXES,
+  IN_CYCLE_EDGE_ATTRIBUTIONS,
+  IN_CYCLE_INVENTORY,
+  type InCycleBehaviour,
+  type InCycleDisposition,
+} from './in-cycle-inventory.js';
 export type { ILMService } from './interfaces.js';
 export type {
   LMContext,
@@ -59,6 +66,7 @@ export {
   LMService,
 } from './lm-service.js';
 export { getProviderRuntime, type ProviderHealth, ProviderRuntime } from './provider-runtime.js';
+export { PROVIDER_SEAMS, type ProviderSeam } from './provider-seams.js';
 export { probeEmbeddedLlama } from './providers/embedded-llamacpp.js';
 export { resetCircuitBreakers } from './providers/health.js';
 export {

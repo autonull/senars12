@@ -1,16 +1,16 @@
 #!/usr/bin/env tsx
 
 /**
- * The cycle cost bench (TODO29 §3.1, §11).
+ * The cycle cost bench (TODO29 §11; the cost model it measures is TODO30 §2).
  *
- * Reports the §3.1 cost model as a table: per-cycle work, measured at
+ * Reports the cost model as a table: per-cycle work, measured at
  * several memory sizes, so "does this operation scale with the
  * population" is a number rather than an opinion. Everything the gate
  * `cost:cycle` will eventually assert is computed here first.
  *
  * Three modes:
  *
- *   default        the §3.1 table, at each --size
+ *   default        the cost table, at each --size
  *   --knob-sweep   §1.1's coupling: decay passes per cycle against
  *                  maxSampledConcepts, everything else held constant
  *   --repeat N     min-of-N per size, because the median on a loaded
@@ -45,7 +45,7 @@ interface Counter {
   calls: number;
 }
 
-/** The operations §3.1 forbids from being O(population), plus the LM's cycle-path cost. */
+/** The operations TODO30 §2 forbids from being O(population), plus the inducer's cycle-path cost. */
 const HOOKS = [
   { name: 'decayAll', proto: Memory.prototype as object, method: 'decayAll' },
   { name: 'memory.sample', proto: Memory.prototype as object, method: 'sample' },
@@ -217,14 +217,14 @@ const knobSweep = async (sizes: readonly number[], steps: number, seed: number):
     );
   }
   console.log(
-    '\n  Before W1 the last column tracks the first: a retrieval-breadth knob is a decay-rate knob.\n' +
-      '  After W1 it should be a single row. See TODO29 §4/W2.\n'
+    '\n  Before TODO29 A4 the last column tracks the first: a retrieval-breadth knob is a\n' +
+      '  decay-rate knob. After A4 it should be a single row. See TODO29 §4/A4.\n'
   );
 };
 
 const table = (rows: readonly Row[], repeat: number): void => {
   const names = HOOKS.map((h) => h.name);
-  console.log(`\n§3.1 — per-cycle work by memory population (min of ${repeat})\n`);
+  console.log(`\nper-cycle work by memory population (min of ${repeat})\n`);
   const head = ['population', 'ms/step', 'derived/step', ...names];
   console.log('  ' + head.map((h, i) => (i < 3 ? h.padStart(14) : h.padStart(18))).join(''));
   for (const row of rows) {
@@ -240,13 +240,13 @@ const table = (rows: readonly Row[], repeat: number): void => {
   console.log(
     `\n  population grew ${scaling.toFixed(0)}x. A column that grew by roughly that factor is\n` +
       '  O(population) and is what TODO29 §3.1 forbids on a cycle path. `processLMRules` is\n' +
-      '  0 before TODO29 §4/W1 and is the row that proves the cycle is closed.\n'
+      '  0 after TODO29 A1 and is the row that proves the cycle is closed.\n'
   );
 };
 
 /**
  * Prove the instrument. Each hook is invoked once on a real instance and the
- * counter is required to move. This is the part that catches §1.8's failure
+ * counter is required to move. This is the part that catches §1.9's failure
  * mode: a hook that silently does not observe anything produces a table full
  * of confident zeroes, which is worse than no table.
  */
@@ -281,7 +281,7 @@ const selftest = async (): Promise<void> => {
           break;
         case 'processLMRules':
           // No LM is configured, so the only honest probe is that the hook is
-          // installed and callable; a real invocation is TODO29 §4/W1's job.
+          // installed and callable; a real invocation is TODO29 A1's job.
           break;
       }
       if (counter.name === 'processLMRules') continue;

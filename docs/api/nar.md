@@ -740,6 +740,16 @@ _Dynamic subpath (no single entry file)._
 
 - `loadGrammar` — Load a GBNF grammar by name (cached; grammars ship as sibling .gbnf files).
 
+- `CYCLE_PATH_PREFIXES` — The cycle path, by directory. Everything outside it is assembly or agent-side
+
+- `IN_CYCLE_EDGE_ATTRIBUTIONS` — Which declared behaviour owns each cycle-path file's imports of the layer.
+
+- `IN_CYCLE_INVENTORY`
+
+- `type InCycleBehaviour`
+
+- `type InCycleDisposition`
+
 - `LMResponseParser`
 
 - `LMRule`
@@ -763,6 +773,10 @@ _Dynamic subpath (no single entry file)._
 - `type ProviderHealth`
 
 - `ProviderRuntime`
+
+- `PROVIDER_SEAMS`
+
+- `type ProviderSeam`
 
 - `probeEmbeddedLlama`
 

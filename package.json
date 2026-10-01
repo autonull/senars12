@@ -47,6 +47,8 @@
     "lint:fix": "biome check --write .",
     "deps:check": "dpdm --circular --warning false src/ core/src/ nar/src/ io/src/ metta/src/",
     "deps:gate": "tsx scripts/deps-gate.ts",
+    "cycle:no-provider": "tsx scripts/cycle-no-provider.ts",
+    "induction:inventory": "tsx scripts/induction-inventory.ts",
     "deps:direction": "tsx scripts/deps-direction.ts",
     "exports:check": "tsx scripts/verify-exports.ts",
     "exports:barrels": "tsx scripts/verify-barrels.ts",

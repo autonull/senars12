@@ -33,6 +33,11 @@ export const GATES: readonly Gate[] = [
   script('lint'),
   script('deps:gate'),
   script('deps:direction'),
+  // TODO29.a A0: every cycle-path await on a provider is declared with the bound
+  // it actually has, and every declared bound is true.
+  script('cycle:no-provider'),
+  // TODO29.a A0: the in-cycle induction inventory, and its references still hold.
+  script('induction:inventory'),
   script('exports:audit'),
   script('exports:check'),
   script('exports:barrels'),
