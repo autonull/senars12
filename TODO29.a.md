@@ -56,14 +56,14 @@ do is make four README promises structurally true rather than aspirational, and 
 ### 0.4 Section map from `TODO29.md`
 
 `TODO30` cross-references the old numbering. `§0 → §0 · §1 → §4 · §2 → §3.4 · §3 → §1–§3 ·
-§3.7 → §2 · §4 → §5 · §4.1 → §5.12 · §5 → §0.3 · §6 → §6 · §7 → §7 · §8 → §8 · §9 → §9 ·
+§3.7 → §2 · §4 → §5 · §4.1 → §5.13 · §5 → §0.3 · §6 → §6 · §7 → §7 · §8 → §8 · §9 → §9 ·
 §10 → §10 · §11 → §13 · §12 → §11 · §13 dropped · §14 → §4, §12 · §15 → §12`
 
 ### 0.5 Open, and needing a decision before the named item
 
 | question | blocks | where |
 |---|---|---|
-| The in-cycle induction inventory: which behaviours the layer performs *inside* a cycle, each with a disposition (`boundary` / `synchronous` / `dropped`) and a "who would notice its absence" column | A1 | §5.12 |
+| The in-cycle induction inventory: which behaviours the layer performs *inside* a cycle, each with a disposition (`boundary` / `synchronous` / `dropped`) and a "who would notice its absence" column | A1 | §5.13 |
 | A3's eight protocol decisions — unit of work, trigger, overflow per proposal kind, denied-batch behaviour, staleness, evicted references, versioning, cancellation | A1's cost, A2's contract shape | §5.3 |
 | The `J` placement order and budget across the eight candidate sites | nothing architectural; TODO30 §1 measures it | §2.5 |
 | Q3's hypothesis — which arm should beat which, by how much, on which games, and what would count as "the model does not earn its place" | the plan's only falsifiable claim | §11.1 |
@@ -73,7 +73,7 @@ do is make four README promises structurally true rather than aspirational, and 
 ### 0.6 Next actions, in order
 
 1. **A0** — instrumentation, including provider-*dependency* detection, not presence detection.
-2. **§5.12 + A3's eight protocol decisions** — *produced* before A1, because A1's acceptance depends on
+2. **§5.13 + A3's eight protocol decisions** — *produced* before A1, because A1's acceptance depends on
    them. A3's **implementation** lands after A2, once the queue's real behaviour is known (§6).
 3. **A1** — close the cycle's dependency on the model, bound the `J` profile, require a symbolic
    fallback on every model-backed rule.
@@ -493,7 +493,7 @@ The cycle has *no* prohibition on model calls in it; it has the invariant of §1
 
 **What the seam does not do.** It does not let the reasoner read the inducer's intermediate state,
 and it does not let a proposal land mid-cycle. A proposal applies at a declared boundary or not at
-all (§5.12).
+all (§5.13).
 
 **The seam runs through the kernel gates, not around them.** This is a README-level invariant the
 split must not erode: `PerceptionGate` admits, `BudgetGate` accounts, `RewardGate` holds the
@@ -569,13 +569,10 @@ reference than two unrelated systems.
 | | SeNARS today | NARchy |
 |---|---|---|
 | concept store | one 646-line class doing 9 jobs | a port, 6 abstract methods, 8 implementations |
-| priority | a field with 10 external writers, re-ranked on read | one owner (`PriTree`), committed on a clock |
-| top-k | rank the population on every read | read a maintained order |
-| decay | swept inside `sample()`, 8× per cycle | committed on a duration-derived timer (`Focus.commit`) |
-| beliefs | 3 fixed capacity constants × concepts | policy-based bags, 8 table types |
-| rule dispatch | 4-bucket union + full sort per application | a predicate trie that **winnows**, still interpreted |
+| priority / decay | a field with 10 external writers, re-ranked on read; swept inside `sample()`, 8× per cycle | one owner (`PriTree`), committed on a duration-derived clock (`Focus.commit`) |
 | what a cycle selects from | the whole population | a declared working set |
-| eviction trigger | concept count | per-container, by policy |
+| rule dispatch | 4-bucket union + full sort per application | a predicate trie that **winnows**, still interpreted |
+| beliefs / eviction | 3 fixed capacity constants × concepts; trigger is concept count | policy-based bags, 8 table types; per-container, by policy |
 
 Two corrections are load-bearing and both came from NARchy's author rather than from its filenames:
 
@@ -695,13 +692,6 @@ on such a step, and that is the tell.
 9. A hung `J` is rejected on a timeout, and the rejection is the fail-closed one.
 10. NAL parity, `test:determinism` and `test:hermetic` green.
 
-**Verified by** `pnpm run cycle:no-provider` (new), `pnpm test:determinism`, the NAL suites.
-**Gate** `cycle:no-provider`, `rule:has-fallback`, `config:model-matrix`, `gates:one-cycle-path`,
-`induction:inventory`.
-**Risk: medium, and the only item that changes reasoning behaviour** — not the derivations, but the
-*timing* of when rules exist, which changes the derivation sequence over a fixed episode. **Do not
-fold A1 into A4**: two behaviour changes in one commit make the first unreviewable, and A1's entire
-value is that one line of test verifies it independently.
 
 ### 5.2 A2 — Move the induction layer beyond the core
 
@@ -757,11 +747,6 @@ and you cannot have a core-owned seam interface while the core imports the layer
    config block; `pnpm docs:drift` is green. Every blast-radius row is either changed or consciously
    left, in the same commit.
 
-**Verified by** `pnpm run core:no-lm` (new), `pnpm run deps:gate`, `pnpm run docs:drift`.
-**Gate** `core:no-lm`, `deps:gate` +1 row.
-**Risk: medium-high — a large mechanical diff (39 files).** That is the price of a boundary that
-cannot be crossed by accident, and the mitigation is that it is mechanical: reviewable by the
-compiler rather than by reading.
 
 **Settled: no seventh package, for the contracts.** Moving `Proposal` / `ProposalSource` to
 `@senars/core/schemas` makes the boundary structural for the thing that matters, at the price of one
@@ -813,7 +798,6 @@ What the code already answers, which is the best possible starting position:
   application;
 - a test applies a proposal referencing an evicted concept and asserts rejection.
 
-**Verified by** `pnpm test:unit` (the new seam tests), `pnpm run core:no-provider`.
 
 ### 5.4 A4 — Establish state ownership, and make reads observational
 
@@ -863,11 +847,6 @@ The interface is not the important part; the important part is that callers stop
 - the attention and clock implementations are replaceable without changing any caller;
 - the RL/parity baselines are re-established **here, once**, and committed in the same change.
 
-**Verified by** `pnpm test:unit` plus a diff on the committed baseline file.
-**Gate** `attention:write-surface`.
-**Risk: high, and confined to this item.** Every learned value moves, which is why it is alone, why it
-lands **after** A5, and why the baselines are regenerated here rather than left to drift through
-A6–A8. Everything after it must hold them stable.
 
 ### 5.5 A5 — Make `Memory` a set of ports
 
@@ -899,8 +878,6 @@ structure that is already final.
 - the port contracts mention no concrete type, so an implementation can be swapped without touching a
   caller.
 
-**Verified by** `pnpm test:unit` — parity is the only gate, because this item changes nothing.
-**Risk: low.**
 
 ### 5.6 A6 — Define inference dispatch as an architectural port
 
@@ -941,8 +918,6 @@ from a measured workload, after measuring the candidate count that survives winn
 - any cache keyed on rule ordering invalidates on the state its ordering depended on — the shape
   `RuleIndex.ordered` already gets right with `rankingEpoch`, and the shape `stepScalars` gets wrong.
 
-**Verified by** `pnpm test:unit` (NAL suites plus the new dispatch tests).
-**Gate** `dispatch:no-wildcard`. **Risk: medium.** Dispatch order changes, so parity is the gate.
 
 ### 5.7 A7 — Define control budgets as semantics
 
@@ -987,8 +962,6 @@ A6's dispatch work a place to *stop*.
 - `proposal-application` is a budget scope with A3's overflow behaviour, so a full queue and a spent
   budget are the same kind of event with the same kind of reason.
 
-**Verified by** `pnpm test:unit` (the new budget-enforcement tests).
-**Risk: low-medium.** The behaviour change is "steps stop running by default".
 
 ### 5.8 A8 — Define memory and resource contracts
 
@@ -1028,10 +1001,6 @@ Specifically for memory:
   by a comment — finding 4 is a disagreement between a signal and a policy, and it survived because
   nothing compared them.
 
-**Verified by** `pnpm test:unit` (the resource-policy tests). **Gate** `resource:policy`.
-**Risk: medium.** Retention policy *is* behaviour; changing policy and structure together is how a
-semantic change hides inside a refactor. The policy lands here — after A5 and A4, on a structure that
-has stopped moving — and the structure lands in TODO30 §7.
 
 ### 5.9 A9 — Deterministic replay
 
@@ -1063,8 +1032,6 @@ repository that a recorded fixture from a future commit would silently mis-apply
 - an incompatible proposal version fails loudly, with a test that asserts the failure;
 - a proposal stream recorded against revision *R* is rejected against *R+1*.
 
-**Verified by** `pnpm test:hermetic` — the tier this item exists to make possible.
-**Gate** `replay:proposal` (tier `slow`).
 
 ### 5.10 A10 — The rule path: the reaction table is admitted data, not an import side effect
 
@@ -1146,12 +1113,6 @@ The durable requirements, each testable:
   else;
 - the table is enumerable at runtime: ids, kinds, revisions, provenance, artifact version.
 
-**Verified by** `pnpm run rules:loaded-data` (new), `pnpm test:unit`.
-**Gate** `rules:loaded-data`.
-**Risk: medium-high, and the only item that changes what the system can do rather than how it is
-arranged.** It is last in the sequence for that reason. If it is deferred, §12 says so explicitly and
-the plan stops describing the rule set as an artifact — a deferred A10 leaves SeNARS where NARchy
-already is, which is a perfectly good system and not the one this document is about.
 
 ### 5.11 A11 — make the decision layer reachable from the reasoning cycle
 
@@ -1229,7 +1190,7 @@ exists**, and leave the agent-side binding alone.
 - the port is unreachable from any write path without going through a gate (a test, not a review);
 - **an answer that concludes something is an in-band derivation**: admitted through the normal
   derivation-admission path, never by direct write, counted against the A7 derivation budget, on the
-  on the Belief/Goal split it declared (§1.2 clause 2, §2.6); and the NAL suites still pass with the
+  Belief/Goal split it declared (§1.2 clause 2, §2.6); and the NAL suites still pass with the
   port bound;
 - every call site is in a declared manifest with its query kind, Belief/Goal, budget and position, and
   an undeclared one — or a `SynthesisQuery` declaring `position: 'cycle'` — fails
@@ -1240,12 +1201,28 @@ exists**, and leave the agent-side binding alone.
   existing `calibration-lock.json` digest check is the gate, and this item's manifest is where a head
   is bound.
 
-**Verified by** `pnpm run config:model-matrix` (new), `pnpm test:unit`.
-**Risk: medium, and it is the item that can spread.** A capability available everywhere is exactly as
-safe as the constraint on each call site, so this item's acceptance is mostly *declarations* — and a
-declaration that is not gated is a comment.
 
-### 5.12 The questions A1–A3 will be decided by
+### 5.12 Item summary — one command, one gate, one risk
+
+Every acceptance criterion above is demonstrated by a command and a gate. Gates are wired into
+`pnpm gates` **with the item that needs them** (§10).
+
+| item | verified by | gate lands with it | risk |
+|---|---|---|---|
+| **A0** | `pnpm bench:cycle -- --selftest && pnpm test:hermetic` | `cycle:no-provider`, `induction:inventory` (shared with A1) | **none** — pure instrumentation |
+| **A1** | `pnpm run cycle:no-provider`, `pnpm test:determinism`, NAL suites | `cycle:no-provider`, `rule:has-fallback`, `config:model-matrix`, `gates:one-cycle-path`, `induction:inventory` | **medium** — the only item that changes reasoning behaviour: not the derivations, but the *timing* of when rules exist, which changes the sequence over a fixed episode |
+| **A2** | `pnpm run core:no-lm`, `pnpm run deps:gate`, `pnpm run docs:drift` | `core:no-lm`, `deps:gate` +1 row | **medium-high** — a large mechanical diff (39 files). The price of a boundary that cannot be crossed by accident, and it is mechanical: reviewable by the compiler |
+| **A3** | `pnpm test:unit` (new seam tests), `pnpm run core:no-provider` | — (gates land with A1/A9/A10) | **low** — the one item the plan expands rather than contracts |
+| **A4** | `pnpm test:unit` + a diff on the committed baseline file | `attention:write-surface` | **high, and confined to this item.** Every learned value moves: why it is alone, why it lands after A5, and why the baselines are regenerated here rather than left to drift through A6–A8 |
+| **A5** | `pnpm test:unit` — parity is the only gate, because this changes nothing | — | **low** — mechanical, and the boundary is already implied by `MemoryView` |
+| **A6** | `pnpm test:unit` (NAL suites + dispatch tests) | `dispatch:no-wildcard` | **medium** — dispatch order changes, so parity is the gate |
+| **A7** | `pnpm test:unit` (budget-enforcement tests) | — | **low-medium** — the behaviour change is "steps stop running by default" |
+| **A8** | `pnpm test:unit` (resource-policy tests) | `resource:policy` | **medium** — retention policy *is* behaviour; policy and structure together is how a semantic change hides inside a refactor |
+| **A9** | `pnpm test:hermetic` — the tier this item exists to make possible | `replay:proposal` (`slow`) | **low** — extends an existing reducer with new event kinds |
+| **A10** | `pnpm run rules:loaded-data`, `pnpm test:unit` | `rules:loaded-data` | **medium-high** — the only item that changes what the system can do rather than how it is arranged. Last in sequence for that reason |
+| **A11** | `pnpm run config:model-matrix`, `pnpm test:unit` | `config:model-matrix` (re-landed, with the manifest) | **medium** — the item that can spread. A capability available everywhere is as safe as each call site, so its acceptance is mostly *declarations*, and an ungated declaration is a comment |
+
+### 5.13 The questions A1–A3 will be decided by
 
 The split is easy to half-do. These are the decisions a half-done split defers, listed so they get
 answered deliberately rather than by whoever next opens the queue.
@@ -1602,13 +1579,10 @@ retrieved; it may never change **what counts as** committed state (§1.2).
 |---|---|---|---|
 | **A1 is not the cheap change believed.** The committed channel is wired in and something *else* reaches the layer from the cycle | **medium** — the cycle path is `DefaultDerivation`, `RuleProcessor`, the tick bindings and `PerceptionGate`, and only part of it was traced | a cycle that does **not** complete with a hanging `J` and `P`, or derivations that change when a provider is added | widen A1 rather than declaring victory. The acceptance is a test and the test is the arbiter — not a call count, which §4 row 11 shows can be zero while a real dependency remains |
 | **A2 is a swamp.** 39 files, and the layer reaches into core internals | medium | the diff stops being mechanical and starts having semantic content | A2 is after A1, so the `Proposal` interface is known. If it is still hard, take Q8 (seventh package) early — a compiler error is a better boundary than a review convention |
-| **A4 breaks NAL parity** | medium | the NAL suites move | A4 is gated on parity, and its baselines are re-established in the same change so later drift is attributable |
-| **A4's write surface is unenforceable** | medium | a new external `priority` writer appears and no test fails | the type-level removal of the setter is the mitigation; the enumerated write-surface gate lands with A4, not after |
+| **A4 or A5 land as wrappers.** A5 adds a layer without removing the god-object, and A4's "one owner" invariant survives only as a comment | medium | `Memory` keeps its responsibilities behind a forwarding interface; or a new external `priority` writer appears and no test fails | A5's acceptance is that the cycle depends on ports, and if `Memory` is still on the cycle path it is not done. A4's mitigation is the type-level removal of the setter, with `attention:write-surface` as the backstop landing in the same change. A4 is gated on NAL parity, and its baselines are re-established in the same change so later drift is attributable |
 | **A10 never lands and the thesis stays prose** | **medium** — the largest item, last in sequence, and the easiest to defer because the other nine all look like progress | the plan closes with A1–A9 done and "the rule set is a learnable artifact" still describing a message format | if the sequence is cut, cut here *explicitly*: record in §7 and §8 that the rule set is code, and stop claiming otherwise. A floor delivered honestly beats a thesis claimed and not built |
 | **The thesis is negative.** S+J+P is not better than S alone | unknown — but no longer unknowable | the `nal` vs `manifold`/`lm` arcade run comes out flat or negative | Q3: write the hypothesis, run it with a seed count that survives the noise, publish the number either way. **A command, not a project** — but it needs A1 for a clean control and A10 for a meaningful with-`P` arm |
-| **A5's ports become wrappers.** The split adds a layer without removing the god-object | medium | `Memory` keeps its responsibilities and a new interface forwards to it | A5's acceptance is that the cycle depends on ports; if `Memory` is still on the cycle path, it is not done |
-| **Dropping drop-oldest is the wrong call** | low-medium | A3's overflow choice starves a slow producer | a one-line change with a test, reversible by design — which is the point of A3 being a decision rather than a default |
-| **"Judgment" re-imports the gate reading** | medium — the vocabulary invites it | `J` starts authorizing, filtering or scoring `P` | §2.1's anti-drift note, the axis-typed `CycleDecisionRequest`, and a test in A11's acceptance |
+| **"Judgment" re-imports the gate reading** | medium — the vocabulary invites it | `J` starts authorizing, filtering or scoring `P` | §2.1's anti-drift note, the Belief/Goal-typed `CycleDecisionRequest`, and a test in A11's acceptance |
 | **The plan measures the wrong thing** | already happened once | an ordering derived from a profile of the fused system | fixed by construction: this plan makes no ordering claims about cost, and TODO30 must re-profile before ordering anything |
 
 **The kill criteria, plainly.** Two things would mean this is not the right plan. If the induction
@@ -1627,13 +1601,8 @@ wall-clock figures are absent from this document and TODO30 §1 owns them.
 
 | measurement | value | taken at | reproduced by |
 |---|---|---|---|
-| inducer invocations per cycle, **with `enableLMRules: false`** | 33.00 | `eb394d4a` | `pnpm bench:cycle` |
-| per-cycle counts: `decayAll` / `sample` / `forEachConcept` | 8.2 / 8.0 / 5.0 at 164 concepts | `eb394d4a` | `pnpm bench:cycle` |
-| decay rate tracks `maxSampledConcepts` | 5.2 → 9.0 `decayAll`/cycle as the knob goes 5 → 40 | `eb394d4a` | `pnpm bench:cycle -- --knob-sweep` |
-| LM-importing core files | 39 | `919c21ab` | `grep` |
-| `Concept.priority` writers | 10 external / 6 internal | `919c21ab` | call-site audit |
-| rule registration census | 55 rules, 0 wildcard buckets, 21 in the hot cell | `919c21ab` | `RuleRegistry.getAll()` after importing `rules/impls/registration.js` |
-| `InferenceController` construction / `.step(` call sites | 1 / 1 | `919c21ab` | `grep` |
+| per-cycle counts with the layer "disabled" | **33 inducer invocations**, 8.2 `decayAll`, 8.0 `sample`, 5.0 `forEachConcept`; decay rate tracks `maxSampledConcepts` (5.2 → 9.0 as the knob goes 5 → 40) | `eb394d4a` | `pnpm bench:cycle` (counts, not times) and `-- --knob-sweep` |
+| static facts, unchanged by this plan | 39 LM-importing core files · 10 external / 6 internal `priority` writers · 55 rules, 0 wildcard buckets, 21 in the hot cell · 1 `InferenceController` construction and 1 `.step(` call site | `919c21ab` | `grep`, call-site audit, `RuleRegistry.getAll()` census |
 | NARchy reference | pinned `f3a9bcc` (2026-08-25) | — | `github.com/narchy/narchy` |
 
 **`scripts/cycle-bench.ts` is committed, with `--selftest` proving each hook observes its own
