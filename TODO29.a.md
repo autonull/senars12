@@ -1,8 +1,10 @@
 # TODO29.a: Runtime Architecture — S/J/P over a closed core
 
-**Version:** 3.15 · **Status:** A0–A7, A10 and A12 landed — §0.8.13 · A8, A9 and A11 remain · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
+**Version:** 3.16 · **Status:** **every item landed** — A0–A12, §0.8.14 · Q3 written, A9 §0.8.15, A8 §0.8.16, A11 §0.8.17 · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
 unchanged as the measurement and provenance record; §0.4 maps its sections onto this one) ·
-**Successor:** `TODO30.md`, blocked on this.
+**Successor:** `TODO30.md`, no longer blocked — every acceptance criterion below is either met or recorded
+as unmet with its reason. **Three things remain open and none of them is an item**: Q3's *run* (§0.8.14),
+the rule *producer* (§11.1's Q10), and a `J` that admits (§11.1).
 
 **Scope: architecture and semantics. A0's instrumentation and A1's cycle closure have landed; A1
 changed *when* model-backed rules exist, not what the core derives from what** (§0.8). No latency, throughput, complexity,
@@ -13,14 +15,18 @@ dependency direction, proposal semantics, state ownership, read purity, and decl
 lifecycle.
 
 > **A fresh session reads §0.1 (two minutes), then §1.2 and §1.3 (the two invariants everything else
-> follows from), then §5.12 (the item summary — one command, one gate, one risk per item).** §4 row 16
-> is the finding that makes A11 cheap instead of an invention, and §12's two kill criteria should be
-> checked *before* anything is built. **A3 is done (§0.8.9)**, so nothing in §5.14 is unanswered
-> and the queue is A8, A9, A11 — none of which blocks another. **A7 landed (§0.8.13)**: every control
-> bound is a declared scope, and the three remainders it recorded are where A11's ownership questions
-> now live.
-> **A3's rule queue has no producer yet** — the rule half of the protocol is specified, gated and
-> tested but not reachable from a model, which was A10's job and is now §11.1's largest gap.
+> follows from), then §5.13 (the item summary — one command, one gate, one risk per item).** §4 row 16
+> is the finding that made A11 cheap instead of an invention, and **§12's two kill criteria have both
+> been answered** — neither fired, so §1.1 is enforceable and the no-provider core is not inert.
+> **Every item is done** (§0.8.14–§0.8.17 are the last four), all thirteen gates are green, and
+> `TODO30.md` is unblocked. What remains is four things that are **not** items: Q3's run, the rule
+> producer, a `J` that admits, and one eviction policy rather than two.
+>
+> **Two findings a fresh session should not have to rediscover.** A8's eviction candidate filter was
+> **anti-correlated with pressure** — the busier the store, the less eviction could reach — so one test
+> in `tests/nar/unit/memory-pressure.test.ts` encoded the defect as its assertion and had to be
+> *inverted* (§0.8.16). And A11 could not have landed before A2, A1, A7 and A8: each was a premise it
+> found in the tree rather than one it assumed (§6).
 
 ---
 
@@ -31,9 +37,9 @@ lifecycle.
 | question | answer | where |
 |---|---|---|
 | **What am I changing?** | Where model reasoning is reachable from, and therefore which parts of the core depend on it; who owns each cycle-path quantity; what a proposal is and when it may land; whether the rule set is data or code | §5 |
-| **What must result?** | A closed synchronous cycle over committed state, with S / J / P composed through one seam and one set of gates | §1, §2 |
+| **What must result?** | A closed synchronous cycle over committed state, with S / J / P composed through one seam and one set of gates. **Landed**: the cycle awaits no model, the rule set is loaded data, a decision layer is reachable from a cycle stage, and every growing resource declares its lifecycle | §1, §2 |
 | **What must not change?** | NAL parity, determinism, `test:hermetic`, one inference path, the six packages, the epistemic firewall | §7 |
-| **How do I know it worked?** | Thirteen new gates, each landing with its item and each shipped with a test proving it can fail. Nine have landed (`cycle:no-provider`, `induction:inventory`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `proposal:protocol`, `dispatch:no-wildcard`, `rules:loaded-data`, `control-budgets`) plus `terms:canonical`'s three forms | §10 |
+| **How do I know it worked?** | Thirteen new gates, each landing with its item and each shipped with a test proving it can fail. **All thirteen have landed** (`cycle:no-provider`, `induction:inventory`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `proposal:protocol`, `dispatch:no-wildcard`, `rules:loaded-data`, `control-budgets`, `replay:proposal`, `resource:policy`, `config:model-matrix`'s manifest, plus `terms:canonical`'s four forms) | §10 |
 | **What belongs to TODO30 instead?** | Every data-structure choice, every cost target, `k`, the index shapes, the scaling gates | §11.2 |
 
 ### 0.2 Decided, and load-bearing
@@ -49,6 +55,8 @@ lifecycle.
 | NARchy **winnows** rules with a predicate trie and stays interpreted; its rule set is **selected at startup** | §3.4 | stated by NARchy's author — the earlier "precompiles" reading came from filenames and was wrong |
 | NARchy's data structures live in a **separate module** (`jcog`) from its reasoning | §3.4 | the monorepo layout; makes "storage is a port" a module-boundary precedent |
 | Structural work precedes behavioural work | §6 | so the one attribution (A4's RL/parity baselines) is measured on the final shape |
+| **The decision layer's *contracts* are a leaf the core may name** — `nar/src/decision/`, not `nar/src/lm/system-one/` | §0.8.17 | A2 forbids the cycle path importing `lm/`, so a port "typed in the layer's own vocabulary" is unsatisfiable until the vocabulary is reachable from both sides. The `jcog` precedent §3.4 names, applied here |
+| **A resource's capacity is declared as a *pointer* to where the bound lives**, never as a copy | §0.8.16 | TODO28's ledger checked that two paths *contained the text `LruCache`* — a check on spelling that cannot notice a bound being raised, and that counted a file which did not exist |
 
 ### 0.3 What this unlocks, in the README's terms
 
@@ -80,6 +88,8 @@ do is make four README promises structurally true rather than aspirational, and 
 | Q3's hypothesis — which arm should beat which, by how much, on which games, and what would count as "the model does not earn its place" | the plan's only falsifiable claim | §11.1 |
 | Is the induction layer ever a seventh workspace package (answered for the *contracts*; the rest open) | nothing | §11.1 |
 | ~~A census test asserting the core's shipped table is exactly the registered NAL rules~~ — **answered and landed with A2**; the count (55) is the committed part. Its *other* half — the table growing only through a proposal — is §4 row 14, and landed with A10 | nothing | §11.1, §0.8.6, §0.8.11 |
+| ~~Q3's hypothesis~~ — **answered and landed 2026-10-01** (§0.8.14): `docs/thesis-hypothesis.md`, written before the run. **The run itself is not done**, and §0.8.14 names what the harness still lacks (seed variance) | nothing; A11 is done | §11.1, §0.8.14 |
+| ~~Which stages take a `J` call~~ — **answered for the tree, not for the plan**: five of §2.5's seven candidates have no decision point to bind to, so `DECISION_CALL_SITES` declares the one that does (§0.8.17) | nothing; TODO30 §1 measures which pay | §0.8.17, §11.2 |
 | ~~Which `scopeId` each control bound answers to~~ — **answered and landed with A7**: `BUDGET_SCOPES` names five, each with an owner and an overflow reason, and `control-budgets` fails on a scope nothing spends | nothing; A7 is done | §0.8.13, §5.7 |
 
 ### 0.6 Next actions, in order
@@ -126,19 +136,29 @@ do is make four README promises structurally true rather than aspirational, and 
     not move when it is zero; the shadowed `resetMetaBudget` and the meta-budget struct it reset are gone;
     the per-cycle `getGoals` / `getStatistics` callers and settled-proposal application are budgeted; and
     `control-budgets` is the gate.
-12. **Q3's hypothesis, before A11.** One paragraph, written before the arcade run so it cannot be a
-    rationalisation afterwards (§11.1). **This is the only thing on the list that is not an item**, and
-    the reason it goes here is that it changes what A11 is *for*: A11's acceptance as written is
-    structural — the port exists, the manifest is declared, the gates hold — and a system that passes
-    every structural criterion while no measured claim has been stated is exactly the state this plan
-    has been avoiding since §1. The arcade's `nal` and `manifold` arms, with a clean control, are built
-    and idle; writing the hypothesis costs one file and makes the run answerable.
-13. **A8** — the last behavioural item, and the last one that can move what the system derives. It
-    lands where A4's RL and parity baselines can attribute the delta. **A9** is orthogonal and cheap —
-    the lifecycle is already a pure reducer over an event log, so A9 adds event kinds and nothing else.
-    **A11 last**: it connects a capability that already works (§5.11), and it is worth more once Q3's
-    hypothesis says which call sites pay.
+12. ~~**Q3's hypothesis**~~ — **done 2026-10-01** (§0.8.14). `docs/thesis-hypothesis.md`, written before
+    the run, and `BrierHarness.aggregate()`'s `macroBrier` beside `microBrier` so the comparison is not a
+    tick-count artefact. **What remains is the run, not a decision** — and it needs seed variance, which
+    §0.8.14 records as a gap rather than closing it with a sentence.
+13. ~~**A8**, ~~**A9**, ~~**A11** — **all three done 2026-10-01.** A8 (§0.8.16): fourteen resources
+    declared with a live bound each; pressure accounts for tasks as well as concepts; eviction reaches a
+    concept holding tasks and reports when it freed nothing. A9 (§0.8.15): the proposal replay extends
+    the existing reducer with `proposal.*` kinds rather than inventing a fixture format. A11 (§0.8.17):
+    the decision vocabulary moved to a leaf the core may name, the port is consulted once at `authorize`
+    for order only, and the manifest declares the one call site the tree actually has.
 
+**Nothing on this list is an item any more.** What is left is four things that are *not* items, and each
+belongs to somebody who knows the answer is not in this plan:
+
+- **Q3's run**, with seed variance — §0.8.14.
+- **The rule producer.** §11.1's Q10: `submitRule`/`admitRule` take any declaration from any producer and
+  `RuleTableStore.fromEvents` replays whatever they wrote, so the *consumer* half of learnability is
+  built — and nothing synthesises a rule proposal. **The mechanism is gated; the producer is not built.**
+- **A `J` that admits.** §11.1: with System One enabled and no calibrated heads, the ingress judge
+  abstains and the gate refuses. A11 bound the port; it did not close this.
+- **One eviction policy, not two.** §0.8.16: `Memory.addConcept` sheds through `Forgetting` while the
+  consolidation pass uses the pressure ranking. Both are now declared; unifying them is a public-API
+  break and belongs with TODO30 §7.
 ### 0.7 What this plan is not
 
 Not performance work, not the capability thesis, not the `lm/` internals, not UI, not NAL. §9 has
@@ -1296,6 +1316,239 @@ nothing could say who owned one or what happened when it ran out. **The budget s
    gate's own input is not. Narrowing `scopeId` on the five scope operations would make the gate
    self-enforcing rather than call-site-enforcing.
 
+### 0.8.14 Q3 is answered, and it was answered before the run (2026-10-01)
+
+§0.6 item 12 was "the only thing on the list that is not an item". It is now
+`docs/thesis-hypothesis.md`, written before the first three-arm arcade run and structured so that a
+later reader can tell which half was written when.
+
+| artefact | what it is |
+|---|---|
+| `docs/thesis-hypothesis.md` | the claim in one sentence, the four falsification conditions **in the negative direction** (what would count as the model not earning its place), what the experiment cannot show, and the clean-control condition with the two items that satisfied it |
+| `BrierHarness.aggregate()` | `macroBrier` — the mean over games of each game's Brier, beside `microBrier`'s tick-weighted figure. **Both are reported, because a difference that survives only one of them is a difference about tick counts rather than about decisions** |
+| `scripts/arcade.ts` | prints the aggregate block before the per-arm summary, so the comparison number is not the one you have to go looking for |
+
+**Why `macro`, and not the per-arm Brier the harness already had.** `microBrier` weights every tick
+equally, so a long game outvotes a short one. `macroBrier` gives every game one vote. Reporting both is
+what makes the number falsifiable *as a measurement*: if `manifold` beats `nal` on `macroBrier` and
+loses on `microBrier`, the finding is about episode length.
+
+**What is still missing, and it is a run rather than a decision.** The seed count is not fixed and no
+variance is estimated. §11.1's second condition — "the gap does not survive seeds" — therefore cannot
+be answered by the harness as it stands; it needs `--seeds n` and a spread over seeds, which is a
+measurement change and belongs with the run rather than before it. **Recorded as a gap rather than
+closed by writing the sentence that would close it.**
+
+### 0.8.15 A9 is done (2026-10-01) — the fixture is the event log, and the log is enough
+
+**The claim: a recorded proposal stream is a sufficient fixture.** Not "there is a proposal fixture" —
+that would be a fixture *format* of its own, and §5.9's own argument is that inventing one is the same
+mistake as inventing a parallel budget system in A7: a second representation of state that can disagree
+with the first. The fixture here **is** the gate event log, in the log's own schema.
+
+| artefact | what it is |
+|---|---|
+| `nar/src/proposal/replay.ts` | `replayProposalStream` — a pure function of the log. Throws `ProposalReplayError` on a schema version this build does not speak; `staleAdmissions` is §5.9's "a stream recorded against revision *R* is rejected against *R+1*" as a check a caller cannot skip by replaying without a lifecycle |
+| `nar/src/kernel/EventLogPersistence.ts` | `replayCognitiveState` folds `proposal.admitted` / `proposal.rejected` in the **same** reducer, so the proposal half is the same fold rather than a parallel one. `SNAPSHOT_VERSION` → 2 |
+| `nar/src/kernel/replay.ts` | `proposalState` and `appliedProposals` on `ReplayResult`; the reduction happens **before** memory is touched, so an incompatible stream fails rather than producing a half-reconstructed store that looks like a successful replay |
+| `tests/fixtures/proposal-stream.jsonl` | six events: three admissions (one content, two rules with declarations), three rejections across three distinct reasons |
+| `scripts/replay-proposal.ts`, `scripts/lib/module-closure.ts` | `replay:proposal` — purity, the second reducer agreeing with the first, the version refusal, the revision refusal, and the replay closure reaching no provider. `module-closure.ts` exists because two path gates otherwise walk the graph two ways |
+| `tests/nar/todo29a-a9.test.ts` | 16 tests, each failure case first |
+
+**Four decisions this item did not pre-answer.**
+
+1. **The version check lives in the replay, not only in the lifecycle.** `ProposalLifecycle.judge`
+   already refused a mismatched `schemaVersion`. A replay that reconstructs a rule table does not
+   necessarily construct a lifecycle, so the check had to be somewhere both paths pass through — and
+   putting it in the reducer is what makes "replayed against incompatible state" a property of the
+   *fixture* rather than of one caller's discipline.
+2. **`SNAPSHOT_VERSION` and `PROPOSAL_SCHEMA_VERSION` are different numbers and both stay.** The
+   snapshot version is the *shape's*; the proposal version is the *contract's*. Bumping the snapshot for
+   A9's new `proposals` field and leaving the proposal version alone means a snapshot mismatch and a
+   proposal mismatch fail as two different, specific errors rather than as one field quietly reading
+   `undefined`.
+3. **The gate checks the replay *closure*, not the provider being unset.** §5.9's first acceptance clause
+   is "a live provider is unnecessary for the hermetic tier", and running with the provider unset cannot
+   distinguish a path that never asks from one that asks and is politely refused. The closure of the two
+   replay modules is walked instead, over `nar/src/lm/`, `reflex/`, `game/` and `focus/`.
+4. **The fixture is hand-authored and static.** Generating it from a lifecycle run would have made it a
+   *product* of the code, so a change to the lifecycle would silently rewrite the evidence — which is the
+   wrong direction for a fixture. Its ids and timestamps are literals for the same reason.
+
+**Two things A9 found that are not §5.9 rows.**
+
+- **`SNAPSHOT_VERSION` had a consumer that asserted against the constant rather than a number** —
+  `cognitive-replay.test.ts` reads `SNAPSHOT_VERSION` — so the bump was invisible to it by construction.
+  That is the correct shape for the assertion and the wrong shape for the *gate*: nothing fails if a v1
+  snapshot is read by a v2 build. `replay:proposal` checks proposal versions; **nothing checks snapshot
+  versions.**
+- **The second reducer could have disagreed with the first silently.** `replayCognitiveState` and
+  `replayProposalStream` both fold `proposal.*`, and §5.9's claim is that there is *one* fold. The gate
+  now asserts they agree on revision and on both counts, so "the same fold" is a checked statement.
+
+**Improvement opportunities, none blocking.**
+
+- **No snapshot-version check on read.** `verifyReplayStateHash` compares a hash and a missing field
+  fails as a wrong hash. A `ReplaySnapshotFile.version` compared against `SNAPSHOT_VERSION`, refusing
+  loudly, is the same shape as A9's proposal check and is not written.
+- **`replay:proposal` is a `slow` gate** because A9's §5.13 row put it there. It takes well under a
+  second, and the only reason for the tier is that the committed fixture is a file the gate reads from
+  disk — cheap for the same reason `terms:canonical` is a `gate` tier. **Promoting it is free.**
+- **`replayIntoMemory` still ignores a proposal's *content*.** A `proposal.admitted` of kind `content`
+  has no task in the log to replay from, because the admission event carries the envelope and the task
+  travels with the `task.admitted` the gate emitted. That is correct — and it means the content half of
+  replay is A3's ordinary ingress path rather than a second reader.
+
+### 0.8.16 A8 is done (2026-10-01) — every resource declares its owner, its bound and its signal
+
+**The claim is the record, not the refactor:** `resource · owner · capacity · retention policy ·
+overflow behaviour · pressure signal`, for every production accumulator that can grow without an
+explicit bound. Fourteen resources, declared as data, with a gate that reads the **real** bound rather
+than a copy.
+
+| artefact | what it is |
+|---|---|
+| `nar/src/resources/contracts.ts` | `RESOURCE_CONTRACTS` — fourteen rows. A capacity is a **pointer** (`{ module, symbol, field? }`) to where the bound is declared, so raising a bound moves the record |
+| `scripts/lib/resource-policy.ts`, `scripts/resource-policy.ts` | `resource:policy` — a declaration is *live* (the symbol is named twice under `nar/src`), a bound is finite and positive, retention and overflow are declared, a pressure signal is declared or explicitly `null`, and TODO28's accumulator ledger is covered |
+| `nar/src/memory/config.ts` | `maxTasks` — the dominant consumer had no bound of its own |
+| `nar/src/memory/memory.ts` | `capacityPressure()` is `max` over the concept and task bounds; `pressureBreakdown()` names which one binds; `evictionReport()` publishes the last pass |
+| `nar/src/memory/pressure/consolidation.ts` | `EvictionReport` with `reason: within-capacity \| evicted \| exhausted`; forgetting reaches **task-holding** concepts, ranked `evictionOrder` |
+| `tests/nar/unit/memory-pressure.test.ts` | one test's name and assertion **inverted on purpose**, with the reason |
+| `tests/nar/todo29a-a8.test.ts` | 22 tests |
+
+**Five decisions this item did not pre-answer.**
+
+1. **The capacity is a pointer, not a number.** TODO28's ledger asserted two hand-listed paths *contained
+   the text `LruCache`* — a check on spelling, which cannot notice a bound being raised and which counted
+   a file that did not exist. Pointing at `DEFAULT_MEMORY_CONFIG.maxConcepts` makes raising the bound a
+   visible move in the inventory rather than a silent one.
+2. **`capacityPressure()` is the `max` of the bounds, not a weighted sum.** A weighted sum makes the
+   reading move when one capacity is chosen and the other is not, so "is the store under pressure" would
+   depend on how the two defaults were picked. `max` is monotone in each bound, which is the property
+   §5.8's acceptance actually asks for, and it names no weight.
+3. **`age × value` is a lexicographic comparison here, and §5.8's phrasing is why.** Attention is `0` for
+   a concept nothing has touched, so the *product* is `0` for exactly the concepts that are cheapest to
+   shed — and it ranks a fresh worthless concept as cheap as an ancient one, which re-creates the defect
+   the item removes by another route. A product says "cheap when *either* term is low"; only a two-level
+   comparison says "cheap when *both* are". **The weight that would collapse it into one number belongs
+   to TODO30 §7** ("the retention weights"), and inventing one here would have been a tuning decision
+   made in the middle of a refactor. The test that found this is the one asserting an *old* idle concept
+   costs less than a fresh busy one.
+4. **`EvictionReport` is a flat interface, not a discriminated union.** The union was more precise and
+   made `report.taskHolders` a type error on the `within-capacity` arm, so a caller had to narrow to ask
+   a question whose answer is `0` in that case anyway. `reason` carries the load-bearing distinction and
+   every field is readable.
+5. **One existing test was inverted rather than worked around.** `memory-pressure.test.ts`'s "never sheds
+   a concept carrying an outstanding task" encoded the anti-correlation §5.8 names as the defect. It is
+   now two tests: **archiving** never takes a task-holder (recoverable, and hiding a question is not
+   shedding a cost), **forgetting** does once nothing idle remains. The comment records the inversion.
+
+**Three things A8 found that are not in §5.8.**
+
+- **`resource:policy`'s first rule flagged a live bound as dead.** `PROPOSAL_LOG_CAPACITY` is declared in
+  `proposal/lifecycle.ts` and spent in `nar.ts`; a rule demanding that the *declaring module read its own
+  constant* would have flagged it, and the cheapest fix for that is to delete the constant — which is
+  exactly the wrong outcome. The rule counts mentions across `nar/src` instead, which is what "declared
+  and never read" actually means.
+- **There are two eviction policies in one store, and only one of them is declared.** `Memory.addConcept`
+  sheds a victim at capacity through the configured `forgettingPolicy` (`Forgetting`, exported from the
+  public `@senars/nar/memory` subpath), while the consolidation pass uses the pressure ranking. §5.8
+  warns that "retention policy *is* behaviour; policy and structure together is how a semantic change
+  hides inside a refactor", and this is that, already present. **Both are now declared** in
+  `memory.concepts`' overflow, rather than one of them being quietly present. Unifying them is a
+  public-API break and belongs with TODO30 §7's eviction containers.
+- **`Memory.getStatistics()` was walking the store twice** once pressure accounted for tasks. It now
+  takes `pressureBreakdown()` once — which is also the only way the reported `pressureByBound` could
+  agree with `capacityPressure()` rather than merely resemble it.
+
+**Improvement opportunities, none blocking.**
+
+- **`SNAPSHOT_VERSION`-style gaps exist for the inventory too**: a resource whose owner is deleted is
+  caught (`owner-exists`), and one whose *consumer* moves is not.
+- **`maxTasks: 10_000` is a declared default nobody has measured** — exactly TODO30 §1's job, and stated
+  here so the number is not mistaken for a measurement. §5.8 explicitly says do not redesign the
+  eviction structures here, so the default is declared rather than tuned.
+- **The retirement weights are now named in code** (`TASK_VALUE = 1`, the single `+1` in `conceptValue`),
+  which is one constant standing for TODO30 §7's whole question. It is commented as such.
+
+### 0.8.17 A11 is done (2026-10-01) — the decision layer is reachable from the cycle
+
+**A routing change, not a capability invention**, and §12's kill criteria never applied to it: the thing
+it connects (`manifold` / `lm` arcade arms reaching RL parity) has been measured, not assumed.
+
+| artefact | what it is |
+|---|---|
+| `nar/src/decision/types.ts`, `provisional-stamp.ts` | **the decision vocabulary, moved out of `lm/system-one/`** to a leaf that depends on `@senars/core` and the term layer and on nothing under `lm/` |
+| `nar/src/ports/decision.ts` | `DecisionPort`, `CycleDecisionRequest`, `DECISION_ASK_TIMEOUT_MS`, `askSafely` |
+| `nar/src/decision/call-sites.ts` | `DECISION_CALL_SITES` — one row, with its query kind, axis, position, budget scope and a rationale |
+| `nar/src/nar-execution.ts` | `rankForAdmission` at the `authorize` stage — **order only** |
+| `nar/src/facade/config.ts`, `nar-presets.ts` | `decision?: DecisionPort`. Declaring one is the whole configuration surface |
+| `scripts/lib/decision-manifest.ts` | the manifest rule, re-landed into `config:model-matrix` |
+| `tests/nar/todo29a-a11.test.ts` | 16 tests, including a never-settling port |
+
+**Four decisions this item did not pre-answer.**
+
+1. **The vocabulary had to move for §5.11 to be satisfiable at all.** §5.11 asks for the port to be
+   "typed in the layer's own vocabulary rather than a new one" — and A2's gate resolves the cycle path's
+   imports, so a vocabulary living under `nar/src/lm/` is a vocabulary the core may not name. The two
+   requirements are not in tension; they are in tension *until* the contracts live somewhere both can
+   reach, which is the `jcog` precedent §3.4 names for NARchy. `lm/system-one/types.ts` became a
+   re-export shim, so **there is one set of types and no importer moved**.
+2. **The port is consulted once, and for order only.** `rankDerivations` truncates at
+   `ranking.maxAdmissions`, so a decision that reorders the candidates changes *which of them fit through
+   a truncation the configuration already declared* — it cannot create an admission the symbolic ranking
+   would have refused, and every task either way goes through `admit`, the same gate. A port reachable
+   from a stage that writes, returning something with a side effect, is the shape of the bug this plan is
+   about, so the return type is a proposition and the effect is a re-order.
+3. **The manifest has one row, and §5.11 asks for eight.** Five of §2.5's seven candidate stages have no
+   decision point in this tree to bind to: there is no contradiction-adjudication step, attention has one
+   owner and one clock and no rank to ask about (A4), and the explanation surface is a read. **Declaring
+   eight wired sites would have been a manifest of intentions.** The manifest is a claim about the tree,
+   the gate fails on a site that is not in it, and §2.5's ordering plus §11.2's "which `J` call sites
+   are worth their budget" stay TODO30 §1's — because that is a measurement and this is a declaration.
+4. **`askSafely` needed a deadline, and the test is why.** A1 gave every provider await on the cycle path
+   a bound; the decision port is a new one, and a helper that catches *faults* leaves the cycle waiting
+   on a port that never answers — which §5.11's acceptance forbids in as many words. The test that builds
+   a never-settling port and asserts `null` is what turned that from an intention into
+   `raceDeadline(…, DECISION_ASK_TIMEOUT_MS)`. The deadline is a declared constant rather than a config
+   knob, because a *budget* for how many decisions a cycle may take already exists (A7's
+   `decision-derivations`); a second knob would be a second place to set a number nobody sets.
+
+**Two things A11 found that are not in §5.11.**
+
+- **The manifest rule needs a name for a site with no address.** `DecisionCallSite.at` is `file:line`
+  because a declaration with no site drifts — and the first draft of the table invented two plausible
+  call sites (contradiction adjudication in `KernelPerceptionGate`, winnowing in `rule-table.ts`) that
+  **do not exist as decision points**. Reading the tree rather than the plan is what caught it.
+- **`nar.ts` is under a monolith budget that A11's one line would have spent.** Binding the port is a
+  *configuration* change, so `NARExecution` reads `config.decision` with the constructor argument as an
+  override. **A port that has to be threaded through a facade to be bound is a line of that budget spent
+  on nothing** — and the budget exists to keep composition out of the facade.
+
+**What did not land, and it is the item's largest remainder.**
+
+- **The ingress judge is unchanged and still does not admit.** §5.11 is careful that this is a different
+  claim: A11's port does not require the ingress judge to admit, it requires the cycle to be able to
+  *ask*. **§11.1's "does a configured `J` admit anything yet?" is still NO**, and A11 did not move it —
+  it made the port exist for the cycle, and the admission path is the gate's own question.
+- **No `SynthesisQuery` site is wired.** The type forbids `position: 'cycle'` for it, so `P` is reachable
+  only from a boundary — and the one boundary this item wired is a cycle stage. **The `P` half of A11 is
+  structural and unwired**, which is the honest state: `P` reaches the cycle today through
+  `processLMRules` and `StreamReasoner`, both of which are A1's seam, not this port.
+
+**Improvement opportunities, none blocking.**
+
+- **`nar.ts`'s monolith budget is 939/940.** Any further configuration surface will trip it, and the fix
+  is to widen the facade's *composition* boundary rather than its line count.
+- **`DECISION_ASK_TIMEOUT_MS` is a flat 500 ms with no per-site variance.** §5.11's "a stage whose backend
+  hangs" is asserted; a site whose real answers take 600 ms would be abandoned. TODO30 §1 measures which
+  call sites pay, and this is the number that measurement would set.
+- **The manifest's `at` is a path, not `file:line`.** The first draft wanted the line, and `induction:
+  inventory` has since shown what that costs: adding `REASONER_QUEUE_CAPACITY` shifted `reasoner.ts` by
+  twelve lines and the gate failed on a stale `file:line` — correctly, but the fix is arithmetic rather
+  than intent. **`ProviderSeam.callSites` already accepts a substring alongside the line for exactly this
+  reason; the manifest should take the same shape.**
+
 ---
 
 ## 1. The contract
@@ -2268,7 +2521,7 @@ A6's dispatch work a place to *stop*.
   budget are the same kind of event with the same kind of reason.
 
 
-### 5.8 A8 — Define memory and resource contracts
+### 5.8 A8 — Define memory and resource contracts — **done 2026-10-01 (§0.8.16)**
 
 *For finding 4.*
 
@@ -2307,7 +2560,7 @@ Specifically for memory:
   nothing compared them.
 
 
-### 5.9 A9 — Deterministic replay
+### 5.9 A9 — Deterministic replay — **done 2026-10-01 (§0.8.15)**
 
 **A proposal is a `CognitiveEvent`, and the fixture is the event log the kernel already keeps.** The
 repository is event-sourced — README: "the event log is the cryptographic source of truth", with
@@ -2419,7 +2672,7 @@ The durable requirements, each testable:
 - the table is enumerable at runtime: ids, kinds, revisions, provenance, artifact version.
 
 
-### 5.11 A11 — make the decision layer reachable from the reasoning cycle
+### 5.11 A11 — make the decision layer reachable from the reasoning cycle — **done 2026-10-01 (§0.8.17)**
 
 *Small, and it is what makes §2's central claim true rather than aspirational. It follows A1,
 because the port is only safe once every call through it is bounded, and A7, because the separation
@@ -2764,11 +3017,11 @@ Every acceptance criterion above is demonstrated by a command and a gate. Gates 
 | **A5** | `pnpm test:unit` + `pnpm memory:ports` — **done 2026-10-01** | `memory:ports` | **low** — mechanical, and the boundary was already implied by `MemoryView` |
 | **A6** | `pnpm run dispatch:no-wildcard`, NAL suites, `pnpm test:unit` — **done 2026-10-01** (§0.8.10) | `dispatch:no-wildcard` | **medium** — measured *low*: ordering was already `priority` then registration, so parity was never at risk and is green |
 | **A7** | `pnpm run control-budgets`, `pnpm test:unit` (budget-enforcement tests) — **done 2026-10-01** (§0.8.13) | `control-budgets` | **low-medium, and it landed without a parity delta** — the `derivations` ceiling is the config value it always bounded, so the count is unchanged; the risk that materialised was structural (a scope that re-armed itself on every charge), not behavioural |
-| **A8** | `pnpm test:unit` (resource-policy tests) | `resource:policy` | **medium** — retention policy *is* behaviour; policy and structure together is how a semantic change hides inside a refactor |
-| **A9** | `pnpm test:hermetic` — the tier this item exists to make possible | `replay:proposal` (`slow`) | **low** — extends an existing reducer with new event kinds |
+| **A8** | `pnpm run resource:policy`, `pnpm test:unit` (resource-policy tests), NAL suites — **done 2026-10-01** (§0.8.16) | `resource:policy` | **medium** — retention policy *is* behaviour; policy and structure together is how a semantic change hides inside a refactor. **And it realised**: the candidate filter was anti-correlated with pressure, so one test's name and assertion had to be inverted rather than worked around |
+| **A9** | `pnpm run replay:proposal`, `pnpm test:hermetic` — the tier this item exists to make possible — **done 2026-10-01** (§0.8.15) | `replay:proposal` (`slow`; §0.8.15 says promoting it is free) | **low, and it stayed low** — extends an existing reducer with new event kinds. The risk that materialised was not behavioural: the gate flagged a *live* bound as dead, because "the declaring module reads its own constant" is not what "declared and never read" means |
 | **A10** | `pnpm run rules:loaded-data`, NAL suites, `pnpm run rule:matrix`, `pnpm test:unit` — **done 2026-10-01** (§0.8.11) | `rules:loaded-data` | **medium-high, and it landed** — the one item that changes what the system can do rather than how it is arranged. Parity held, because a *declaration* loaded from an artifact and a *closure* registered by an import derive the same thing — which is exactly what "added a capability without changing anything else" had to mean |
 | **A12** | `pnpm run terms:canonical`, NAL suites, `pnpm test:unit` — **done 2026-10-01**: step 1 (§5.12.1), the `^name` retirement (§0.8.3), §0.8.4's readability rule, and the reducers (§0.8.12) | `terms:canonical` — asserting *readable*, *injective* and now a **fixed point**; the body moved to `scripts/lib/terms-canonical.ts` so `todo29a-a12.test.ts` can prove the gate can fail |
-| **A11** | `pnpm run config:model-matrix`, `pnpm test:unit` | `config:model-matrix` (re-landed, with the manifest) | **medium** — the item that can spread. A capability available everywhere is as safe as each call site, so its acceptance is mostly *declarations*, and an ungated declaration is a comment |
+| **A11** | `pnpm run config:model-matrix`, `pnpm test:unit`, `pnpm run core:no-lm` — **done 2026-10-01** (§0.8.17) | `config:model-matrix` (re-landed, with the manifest) | **medium, and it realised as §12 predicted** — the item that can spread. §5.11 asks for eight call sites and the tree has one, because five of §2.5's seven candidates have no decision point to bind to. **Declaring eight would have been a manifest of intentions**; the manifest is a claim about the tree and the gate fails on a site not in it |
 
 ### 5.14 The questions A1–A3 will be decided by
 
@@ -2814,12 +3067,14 @@ A0 ─▶ A1 ─▶ A2 ─▶ A3 ─▶ ~~A5~~ ─▶ A4 ─┬─▶ A6 ─▶ 
                     A12 §5.12.1 (grammar alignment) → A12 reducers, after A4's baselines
 ```
 
-**As of 2026-10-01: A0, A1, A2, A3, A4, A5, A6, A7, A10 and A12 are done** (§0.8, §0.8.1, §0.8.6,
-§0.8.9, §0.8.7, §0.8.8, §0.8.10, §0.8.11, §0.8.12, §0.8.13). **The sequence's spine is complete**:
-A0 → A1 → A2 → A3 → A6 → A10 all landed, in that order, and each found the next one's premise rather
-than assuming it. **A12 and A7 are complete**, so §5 has no architectural item left and the one budget
-item is closed. **Remaining: A8, A9 and A11** — none of which blocks another, and A8 is the last
-behavioural one.
+**As of 2026-10-01: every item is done** — A0–A12 (§0.8, §0.8.1, §0.8.6–§0.8.13, §0.8.15–§0.8.17).
+**The sequence's spine completed in order**: A0 → A1 → A2 → A3 → A6 → A10, each finding the next one's
+premise rather than assuming it, and the three that remained — A8, A9, A11 — landed in that order too.
+**§5 has no item left.** What the sequence bought that the plan did not predict: **A11 could not have
+landed second.** It needs A2's boundary to be structural (or the decision vocabulary is unreachable from
+the cycle path), A1's bounds (or the port is an unbounded await), A7's scopes (or a decision spends the
+symbolic derivation budget), and A8's inventory (or the port's own await is an undeclared resource).
+Each of those was a premise this item found in the tree rather than one it assumed.
 
 **The ordering rule: structural before behavioural.** A5, A2 and A6 are mechanical — they move code
 and change no derived value. A1, A4 and A8 change what the system concludes or how fast it forgets.
@@ -2853,10 +3108,23 @@ which every later item must hold stable.
 > TODO30 slips, A10 does not.** Letting TODO30 become a hidden prerequisite for the feature this plan
 > exists to establish is the failure this sentence exists to prevent.
 
-**A formal handoff to TODO30 follows A2 + A3:** at that point the architecture is what the rest of the
-plan is measured through, and TODO30 §1 requires a fresh profile before it orders anything. This plan
-carries no performance ordering forward, because §4 row 15 shows the old ordering came from a
-profile of the wrong system.
+**The formal handoff to TODO30 is now due.** It was to follow A2 + A3; **it is eleven items and three
+plan-passes late**, because §0.6's rule — structural before behavioural, one attribution at a time — kept
+finding the next item's premise in the tree. Every item is landed and the architecture is what the rest
+of the plan is measured through, which is the condition the handoff needed.
+
+**What TODO30 inherits, stated as measurements rather than as claims** (§0.8.14, §11.2, and the two
+coverage limits this plan carried):
+
+- `macroBrier` exists and the per-game figures are there; **seed variance does not**, and Q3's run needs it.
+- `DECISION_CALL_SITES` names the one site a measurement would have to beat. §2.5's ordering and §11.2's
+  budget question are now **measurably posed** rather than open.
+- `RESOURCE_CONTRACTS` gives every bounded resource an owner and a bound; `maxTasks: 10_000` is a declared
+  default nobody measured, and the retirement weights TODO30 §7 owns stand in as one `+1` constant.
+- **The inventory is a floor.** A new unbounded container in `nar/src` is caught by nothing — §13's
+  coverage limit, unchanged in kind by A8 and improved only in the quality of the rule.
+- **Thirty-one of `nar/src`'s forty-nine directories were never examined**, and this plan's own §4 rows
+  are a partial sample of a partial sample.
 
 ---
 
@@ -2936,6 +3204,30 @@ profile of the wrong system.
    leaves both of the rule table's hot buckets populated; `proposal:protocol`'s schema version moved to
    **v2** with it, so a pre-canonicalisation state is rejected loudly rather than admitted and silently
    deduplicated.
+18. **A recorded proposal stream is a sufficient fixture, and the fixture *is* the event log** (A9 —
+   **landed 2026-10-01, §0.8.15**). Not a second format: the reduction is an extension of the reducer the
+   kernel already keeps, and `replay:proposal` asserts the two agree on revision and both counts, so
+   "one reducer" is checked rather than claimed. The reduction is pure; a schema version this build does
+   not speak fails loudly; a stream recorded against revision *R* is stale at *R+1*. **And the replay
+   path reaches no provider** — the stronger form of "a live provider is unnecessary for the hermetic
+   tier", because running with the provider unset cannot tell a path that never asks from one that is
+   politely refused.
+19. **Every resource that can grow declares its owner, its bound, its retention rule, its overflow
+   behaviour and its pressure signal** (A8 — **landed 2026-10-01, §0.8.16**). The capacity is a
+   *pointer* to where the bound is declared, not a copy — which is the whole difference from TODO28's
+   ledger, whose rule was that two hand-listed paths contained the text `LruCache`. Memory pressure is
+   the `max` of the concept and task bounds, so it is monotone in each; eviction reaches a concept
+   holding tasks once nothing idle remains; **and a pass that freed nothing says `exhausted`**, because
+   `{ archived: 0, forgotten: 0 }` is indistinguishable from a pass that found nothing wrong.
+   **The inventory is a floor and not a ceiling** — a new unbounded container in `nar/src` is caught by
+   nothing, and §0.8's closing coverage limit says so.
+20. **A decision is a decision, never an effect, and a cycle cannot be blocked by one** (A11 —
+   **landed 2026-10-01, §0.8.17**). The port returns a proposition; `SynthesisQuery` cannot declare
+   `position: 'cycle'`, so §2's boundary is unrepresentable-away rather than documented; absence,
+   refusal, timeout, breaker-open and out-of-domain all fall through to the caller's own path; and
+   **every call site is in a manifest a gate reads**, because an ungated declaration is a comment.
+   **What this does not say:** that `J` authorizes, filters or scores `P`. It is consulted for *order*
+   at one truncation the configuration already declared, and nothing else.
 
 ---
 
@@ -3039,7 +3331,7 @@ gate listed here and not wired is the exact failure mode this plan is about.
 |---|---|---|---|
 | `cycle:no-provider` | **A0 form (landed):** every declared seam is probed with a never-resolving provider and its `bounded` declaration is true — bounded must not block, unbounded must. **A1 form:** a cycle completes with `J` and `P` backends that never resolve **and** derives identically; no `propose`-stage work appears inside a `reason` stage in a recorded trace. **Dependency, not presence** (§1.3); blocked on the live cycle having no stages (§0.8) | A0 + A1 | `gate` |
 | `rule:has-fallback` | every registered `P` rule declares its symbolic fallback, and the fallback is what runs when the model call fails | A1 | `gate` |
-| `config:model-matrix` | all four S/J/P configurations initialise, reason and pass NAL parity; a hung `J` is rejected on a timeout rather than awaited; every model call site is in the manifest with its profile, budget and position | A1, A11 | `gate` |
+| `config:model-matrix` | **landed for A1** (four S/J/P configurations initialise, reason and pass NAL parity; a hung `J` is rejected on a timeout rather than awaited). **A11's manifest half landed 2026-10-01 (§0.8.17):** every decision call site is declared with its query kind, Belief/Goal axis, budget scope and position; a `synthesize` at `position: 'cycle'` fails; a judgment that declines to name an axis fails; a scope no `BUDGET_SCOPES` row has fails; **and the manifest is not empty**, because an empty one passes the same way | A1, A11 | `gate` |
 | `gates:one-cycle-path` | exactly one `InferenceController` construction site and one `.step(` call site | A1 | `gate` |
 | `induction:inventory` | **A0 form (landed):** every cycle-path value import of the layer is a declared behaviour with a `boundary` / `synchronous` / `dropped` disposition and a *noticedBy*, and every declared `file:line` still holds its await. **A1 adds:** no disposition of `synchronous` claims a cycle-path dependence A1 has closed | A0 + A1 | `gate` |
 | `core:no-lm` | **landed 2026-10-01, in a narrower form than stated:** no cycle-path module imports `nar/src/lm/` — relative, workspace-subpath, static, dynamic, value or type — and the shipped rule table is exactly the registered NAL rules (55, census in `tests/nar/todo29a-a2.test.ts`). **Not asserted:** literal removal of the layer directory from the build graph, since `nar/src/index.ts` re-exports it for assembly, which is the correct shape. See §0.8.6 | A2 | `gate` |
@@ -3047,11 +3339,11 @@ gate listed here and not wired is the exact failure mode this plan is about.
 | `memory:ports` | **landed 2026-10-01:** no cycle-path module imports `nar/src/memory/memory.ts` — by file, by directory or through the barrel — and the two sites that legitimately construct a store are declared in a ledger with reasons. §0.8.7 | A5 | `gate` |
 | `attention:write-surface` | **landed 2026-10-01, in a narrower form than stated:** the compiler holds the primary invariant (no setter) and the gate holds the rest — no `set priority` in the owner, every declared reason written with somewhere in `nar/src` + `src`, no reason the union lacks, `sample` / `sampleWindow` contain no write, and the decay sweep has exactly one call site. §0.8.8 | A4 | `gate` |
 | `dispatch:no-wildcard` | **landed 2026-10-01:** every registered rule declares both kinds as a kind the term layer defines, and the gate prints the bucket histogram (55 rules, 22 buckets, hottest `inheritance:inheritance` at 21). The compiler holds the static half; this holds the *dynamic* half, which is what A10's rule queue will need. §0.8.10 | A6 | `gate` |
-| `resource:policy` | every production accumulator is in the ledger, and a memory at capacity with nothing evictable says so | A8 | `gate` |
+| `resource:policy` | **landed 2026-10-01** (§0.8.16), and in a stronger form than stated. Fourteen resources, each declaring `resource · owner · capacity · retention · overflow · pressure signal`, and each capacity a **pointer** to where the bound is declared rather than a copy — so raising a bound moves the record. The gate checks the pointer resolves to a finite positive number, that the symbol is read somewhere under `nar/src`, that the vocabulary is the one the code can perform, that a pressure signal is declared or explicitly `null`, and that TODO28's accumulator ledger is covered. "A memory at capacity with nothing evictable says so" is `EvictionReport`'s `reason: 'exhausted'`, asserted by a test rather than by this row | A8 | `gate` |
 | `rules:loaded-data` | **landed 2026-10-01** (§0.8.11): no module registers a rule by importing one and no module names the retired `RuleRegistry`; the loaded table is enumerable, versioned and revertable, a learned rule enters at a boundary carrying its `ruleSetRevision` and `provenance`, two revisions diff in both directions, an incompatible schema version and an unresolvable body both fail loudly, and an empty table is a runnable state |
 | A10 | `gate` |
 | `control-budgets` | **landed 2026-10-01** (§0.8.13): every declared control scope is spent by a call site, no spend names an undeclared scope, every scope's operation is in the budget schema's enum, and no two scopes claim one operation. The compiler holds `charge`'s argument type; this holds the four properties that cross files |
-| `replay:proposal` | `replayCognitiveState` reconstructs the same state from `proposal.*` events, and a version mismatch fails loudly | A9 | `slow` |
+| `replay:proposal` | **landed 2026-10-01** (§0.8.15): the reduction is a pure function of the log (twice is once); `replayCognitiveState` and `replayProposalStream` **agree** on revision and both counts, which is what makes "one reducer" checked rather than asserted; a stream recorded under a schema version this build does not speak fails loudly and names the version; a stream recorded against *R* is stale at *R+1* and the offending admissions are named; **and the replay closure reaches no provider** — which is a stronger form of "a live provider is unnecessary" than running with it unset | A9 | `slow` |
 | `terms:canonical` | **step 1 form (landed 2026-09-30) + §0.8.4 (landed 2026-10-01):** every variadic kind round-trips at 2, 3 and 4 members, flat and nested one level deep, comparing the **term** as well as the text — a canonical form must be *readable*, not only injective. **Reducer form, landed 2026-10-01 (§0.8.12):** `canonical(canonical(t)) === canonical(t)`; already-canonical terms are returned unchanged **by object identity**, which is the no-allocation claim; every reducer's `applies` is false on every canonical term; the reducers commute under reversal; `(--x).f = 1 − f_x` across the range with confidence and stamp carried through; two spellings of one claim are one **term**; and `product` still does not sort while `implication` nesting still survives. The NAL suites derive what they derived before — all four green, so there is no parity delta to attribute | A12 | `gate` |
 
 Deliberately **not** here, and in TODO30: `cost:cycle`, the population-scaling matrix, and the
@@ -3067,6 +3359,16 @@ that a ratchet with no notion of a planned item can only be satisfied by writing
 `deps:gate`'s `BASELINE` moved 4 → 3 because the measured cycle count fell. **A baseline move in the
 direction its rule already wanted is a re-establishment; one against it would be a weakening, and
 neither happened.**
+
+**It happened three more times, and each was recorded in the commit that caused it.** `productionLOC`
+moved 71584 → 71786 (A7), → 72250 (A8), → 72427 (A11), each with the rule unchanged and each a
+declared item rather than an optimisation pass. `deps:gate`'s count did not move, and §0.8.17 caught a
+**new** cycle before it could be ratcheted: moving the decision vocabulary to `nar/src/decision/`
+created `ports/decision → decision/index → decision/call-sites → ports/decision`, fixed by importing
+the leaf (`../decision/types.js`) rather than the barrel. **A barrel that re-exports a sibling which
+imports the barrel's own sub-module is a cycle wearing a directory**, and `complexity:budget` measures
+the type-only graph that `deps:gate`'s `--transform` deliberately erases — so the two budgets disagreeing
+is the design (§0.8's note on `circularChains`), not a bug.
 
 ### 10.1 The intent-to-gate rule
 
@@ -3133,8 +3435,12 @@ checks that they exist and that their references hold, not that they are right. 
 that *stays* synchronous by design is `ingress-judgment`: System One judging untrusted input before
 admission is **gating, not learning**, and A1 gives it a timeout without moving it.
 
-**Q3 — what is the falsifiable claim. — WRITE THIS BEFORE A11.** The experiment exists; the hypothesis,
-the aggregate and a clean control do not. `scripts/arcade.ts` runs `nal` and `manifold` arms with the **same actuator**
+**Q3 — what is the falsifiable claim. — ANSWERED, and it landed before A11 (2026-10-01, §0.8.14).**
+`docs/thesis-hypothesis.md`, written before the run, with the four falsification conditions in the
+**negative** direction and an outcome section below a rule that says not to modify what is above it.
+`BrierHarness.aggregate()` supplies the aggregate (`macroBrier` beside `microBrier`). The run is not
+done, and §0.8.14 records that it needs seed variance the harness does not yet have. The original
+framing, kept because the correction is the finding: `scripts/arcade.ts` runs `nal` and `manifold` arms with the **same actuator**
 (`EpsilonGreedyReflex`, `numArms: 10, epsilon: 0.1`), Brier-scores every decision, and forces the
 `nal` arm into cognitive mode "so it is always a comparable row in the summary". So the controlled
 comparison is one command:
@@ -3148,8 +3454,11 @@ it is a rationalisation afterwards; **an aggregate** — per-game Brier means ex
 across the matrix with a variance estimate over seeds does not; and **a clean control** — the `nal` arm
 is only a true no-`J`/no-`P` control *after* A1, because until the cycle stops calling
 `processLMRules` the arm runs a constructed, fully registered layer with execution gated. **A
-falsification experiment whose control arm has a vestigial inducer cannot falsify anything.** Q3 is
-therefore sequenced after A1/A2 and after A10.
+falsification experiment whose control arm has a vestigial inducer cannot falsify anything.** Q3 was
+therefore sequenced after A1/A2 and after A10 — **and the control is clean now**: A1 removed the
+register-but-never-execute path, so the `nal` arm has no provider registered and therefore no inducer to
+be vestigial, and A10 means its 55 rules come from a loaded artifact. §0.8.14 records the condition and
+what would invalidate it again.
 
 **Q8 — does the induction layer become a seventh workspace package?** Answered for the *contracts*
 (§5.2); the rest stays open for the day the layer needs to be genuinely un-buildable rather than
@@ -3167,14 +3476,29 @@ fixture are cheap to name now and expensive to retrofit. **A10 answered half of 
 *consumer* side is now generic — `submitRule` + `admitRule` take any well-formed declaration from
 any producer, and `RuleTableStore.fromEvents` replays whatever they wrote. **The producer side is
 still empty**, and that is now the single largest remaining gap in the thesis: nothing synthesises
-a rule proposal, so the learned half is reachable and tested rather than populated.
+a rule proposal, so the learned half is reachable and tested rather than populated. **A9 made the
+*arrival* end real** — a recorded `proposal.admitted` carrying a declaration now replays into a rule
+table with no import graph (§0.8.15), so a rule miner has a destination it can be written against.
+**It did not build the miner, and that is the honest state: the door is gated and tested, and nobody
+walks through it.**
 
-**Is `J` reachable from the reasoning cycle? — NOT YET, and A11 is that item.** Do not read the
+**Is `J` reachable from the reasoning cycle? — YES, as of 2026-10-01 (§0.8.17).** `DecisionPort` is
+declared in `nar/src/ports/decision.ts`, typed in the layer's own vocabulary — which required moving that
+vocabulary to `nar/src/decision/`, because A2's gate otherwise makes "the layer's own vocabulary"
+unsatisfiable. It is consulted once, at the `authorize` stage, and **for order only**:
+`rankDerivations` truncates at `ranking.maxAdmissions`, so a decision changes which candidates fit
+through a truncation the configuration already declared, and every task either way goes through the
+same gate. Absence, refusal, timeout, breaker-open and out-of-domain all fall through to the symbolic
+order. The manifest declares one call site, and `config:model-matrix` fails on a site not in it.
+**The remaining text below is what the entry said before A11, and the second paragraph still stands:** Do not read the
 entry below as "`J` does nothing": the decision layer judges game decisions today through
 `ManifoldReflex`, and the `manifold` / `lm` arcade arms reach parity with RL under a real offline model
-(§5.11). **The gap is reachability from the *reasoning cycle*** — the cycle reaches a model through the
-ingress judge and through `processLMRules`, and neither is the port. A11 adds the port; §0.6 puts
-Q3's hypothesis before it so the port is aimed at sites that pay.
+(§5.11). **The gap was** reachability from the *reasoning cycle* — the cycle reached a model through the ingress
+judge and through `processLMRules`, and neither is the port. A11 added the port, and §0.6's ordering is
+why it was aimed rather than guessed: Q3's hypothesis was written first, and the answer to "which sites
+pay" turned out to be **the tree has one**, because five of §2.5's seven candidates have no decision
+point to bind to. **§2.5's ordering and §11.2's budget question are therefore still TODO30 §1's**, and
+they are now measurably better posed: the manifest names the site a measurement would have to beat.
 
 **Does a configured `J` admit anything yet? — NO, and A1 measured it (2026-09-30).** This is about the
 **ingress-judge path only** and is a gate-policy question, not a question of whether the layer
@@ -3248,17 +3572,28 @@ retrieved; it may never change **what counts as** committed state (§1.2).
 | ~~**A12's reducers are not sound and parity moves**~~ **Not realised 2026-10-01 (§0.8.12).** Four reducers landed, parity held on all four suites, and the risk resolved the way the plan said it would be resolved: by measurement. What the measurement *changed* is the catalogue — the six rewrites became four, because the four that rewrite across an operator kind would have moved derived terms and §7 invariant 1 is exactly the thing they were not worth risking | **none observed** — all four suites and all 328 unit files green | the gate is parity and it stayed quiet; and `terms:canonical` now asserts the reducer registry's fixed point directly, so the next reducer is checked without a NAR. **The recorded finding is more useful than a clean run would have been**: the surviving negation spelling is the one that keeps both of the rule table's hot buckets populated, and no amount of reading the NAL axioms alone would have produced that |
 | ~~**A10 never lands and the thesis stays prose**~~ **Answered 2026-10-01: it landed** (§0.8.11). The rule set is a versioned, loadable, diffable, revertable artifact; `registration.ts` registers nothing; `RuleRegistry` is deleted; a rule proposal reaches the table at a boundary; and `rules:loaded-data` is the gate. **The residual risk is narrower and is recorded rather than dismissed**: nothing yet *synthesises* a rule proposal, so the learned half is reachable and tested rather than populated — a rule miner is the next thing this thesis needs, and it is not in this plan | ~~medium~~ **low, and named** | the plan closing with "a rule proposal can become a rule" still describing a seam rather than a path. The honest statement is what §0.8.11 makes: the *mechanism* is built and gated; the *producer* is not |
 | ~~**A7 changes what the system concludes** ("steps stop running by default")~~ **Not realised 2026-10-01 (§0.8.13).** The `derivations` ceiling is the config value `InferenceController` already read at its stop condition, set on the scope at the composition root, so the count is the count it was; all four NAL suites and all 329 unit files are green | **none observed** | the derivation count moving under an unchanged `maxDerivationsPerStep`, or a parity suite going red for a budget reason | The risk that *did* materialise was structural and not in this table: **a scope that re-armed on every charge could never exhaust**, which is §10.1's shape rather than a behavioural one, and is now asserted by a test reading `[true, true, false]` |
-| **The thesis is negative.** S+J+P is not better than S alone | unknown — but no longer unknowable | the `nal` vs `manifold`/`lm` arcade run comes out flat or negative | Q3: write the hypothesis, run it with a seed count that survives the noise, publish the number either way. **A command, not a project** — but it needs A1 for a clean control and A10 for a meaningful with-`P` arm |
-| **"Judgment" re-imports the gate reading** | medium — the vocabulary invites it | `J` starts authorizing, filtering or scoring `P` | §2.1's anti-drift note, the Belief/Goal-typed `CycleDecisionRequest`, and a test in A11's acceptance |
+| ~~**The thesis is negative.** S+J+P is not better than S alone~~ **Half the response landed 2026-10-01 (§0.8.14); the other half is a run.** | **not yet knowable** — the hypothesis and the aggregate exist, the measurement does not | the `nal` vs `manifold`/`lm` arcade run comes out flat or negative | **Done:** Q3 is written *before* the run, `macroBrier` is the aggregate, and the control is clean because A1 left `nal` with no provider registered. **Not done:** the run itself, and the seed count it needs — §0.8.14 names the missing variance as a gap rather than closing it with a sentence. Publish the number either way; the document's split (outcome below a rule that forbids editing what is above it) is what makes a post-hoc reading detectable |
+| ~~**"Judgment" re-imports the gate reading**~~ **Not realised 2026-10-01 (§0.8.17).** `J` reorders candidates at a truncation the configuration already declared; it does not filter them, does not score `P`, and `SynthesisQuery` cannot declare `position: 'cycle'` at all, so `P` is unreachable from the stage the port is consulted at. **The gate-manifest rule is what holds the half that is data** — a `synthesize` at cycle position, and a judgment that declines to name Belief or Goal, both fail | **none observed** — all 332 unit files and all thirteen gates green | The `CycleDecisionRequest` type makes §2's boundary unrepresentable-away, and `config:model-matrix`'s manifest half makes the declared half checkable. **What is not asserted:** that `J` never *influences* `P` through a future boundary site — that is the day a second call site lands |
 | **The plan measures the wrong thing** | already happened once | an ordering derived from a profile of the fused system | fixed by construction: this plan makes no ordering claims about cost, and TODO30 must re-profile before ordering anything |
 
-**The kill criteria, plainly.** *A10 landed, so the second one is no longer hypothetical: the
-no-provider core runs the whole NAL suite from a loaded artifact, and `rules:loaded-data` fails if
-anything reaches the NAL rules by importing them.* Two things would mean this is not the right plan. If the induction
-layer turns out to be genuinely an *online* learner whose work cannot leave the cycle, the cycle
-cannot close, §1.1 is unenforceable and the architecture is moot. And if §7 invariant 7 fails — the
-no-provider core turns out inert, meaning the layer was load-bearing — then §2.7's falsifiability
-argument was never true. Both are checkable before much is built, and both should be checked first.
+**The kill criteria, plainly, and both have now been answered.** *A10 landed, so the second one is no
+longer hypothetical: the no-provider core runs the whole NAL suite from a loaded artifact, and
+`rules:loaded-data` fails if anything reaches the NAL rules by importing them.* Two things would have
+meant this is not the right plan.
+
+1. **The induction layer is genuinely an *online* learner whose work cannot leave the cycle.** **It is
+   not.** A1 pumped it off-cycle, A3 gave it a boundary, A9 made its output replayable from the log, and
+   §1.3's invariant is asserted by `cycle:no-provider` driving never-resolving providers through every
+   declared seam. **The cycle closes, and the layer's work leaves it as events.**
+2. **§7 invariant 7 — the no-provider core is inert.** **It is not.** 55 rules load from an artifact, the
+   four NAL parity suites derive what they derived before, and `rules:loaded-data` fails if anything
+   reaches them by import. **§2.7's falsifiability argument therefore was true, and A11 is its positive
+   form**: a decision layer reachable from a cycle stage, declared in a manifest a gate reads.
+
+**What would still make the plan wrong, stated so that it is checkable rather than felt:** Q3's run
+coming out flat (§0.8.14). Not "the thesis is negative in general" — the specific pre-registered
+comparison, on the aggregate, at a seed count that survives the noise. **That is the only falsifier left
+and it is a command.**
 
 ---
 
@@ -3276,6 +3611,11 @@ wall-clock figures are absent from this document and TODO30 §1 owns them.
 | term-layer round trip | **6 of 16 kinds could not be read back from their own output**; 3 further terms had a `kind` no operator declares (`'--'`, `'atom'` with arguments, and `('*',a,b)` and `(a&b)` interning to one term) | `919c21ab` | `pnpm terms:canonical` — one kind per entry, identity asserted |
 | term-layer canonical form, after A12 | **15 kinds, 3 term reducers and 1 task reducer reach a fixed point**; `(--x).f = 1 − f_x` holds at f ∈ {0, 0.1, 0.25, 0.5, 0.75, 0.9, 1} with confidence and stamp carried through; the four NAL parity suites and 328 unit files are green with no parity delta | `544f9dd7`+A12 | `pnpm terms:canonical` and `tests/nar/canonical-form.test.ts` |
 | rule-table buckets, which is what decided the negation spelling | **55 rules in 22 buckets**, hottest `inheritance:inheritance` at 21, and **three rules** (`nal.negationElim`, `nal.implicationIntro`, `classical.syllogismNegation`) that need a bare negation somewhere in the premise | `544f9dd7` | `pnpm dispatch:no-wildcard`, plus `registration.ts`'s declared kinds |
+| declared resources (A8) | **14 records, 6 with a pressure signal and 8 declaring that capacity cannot be reclaimed.** Every capacity a *pointer* — the gate imports the owner and reads the real binding, so raising a bound moves the record rather than diverging from it | `51c2be72` | `pnpm resource:policy` |
+| cycle-path edges after A11 | **0 edges across 0 files — 0 values, 0 types.** The decision vocabulary's move to `nar/src/decision/` is what made that survive A11: the port names the committed types without naming `lm/` | `a2661c54` | `pnpm core:no-lm`, `pnpm induction:inventory` |
+| decision call sites (A11) | **1 declared**, against §5.11's ask for 8 and §2.5's 7 candidate stages. Five of the seven have no decision point in this tree to bind to — reading the plan would not have found that; reading the tree did | `a2661c54` | `pnpm config:model-matrix` |
+| proposal replay determinism (A9) | two reductions of one recorded stream are byte-identical; `replayCognitiveState` and `replayProposalStream` agree on revision and both counts; the replay closure of `nar/src/proposal/replay.ts` and `nar/src/kernel/replay.ts` reaches no module under `lm/`, `reflex/`, `game/` or `focus/` | `07aab102` | `pnpm replay:proposal` |
+| the whole tree after the three items | **332 unit files, 2982 tests, 3 skipped — all green.** `test:determinism` 10/10, `test:hermetic` 7/7. All thirteen gates green, and the four NAL parity suites derive what they derived at `919c21ab` | `a2661c54` | `pnpm gates --tier slow` |
 
 **`scripts/cycle-bench.ts` is committed, with `--selftest` proving each hook observes its own
 invocation** — because a hook that silently observes nothing produces a table of confident zeroes,
@@ -3293,6 +3633,15 @@ winnowing claim is still not read from source, and TODO30 §6 is scoped so nothi
 difference — its first measurement is the candidate count after winnowing, which holds true
 whichever way the question goes.
 
-**Coverage limit.** The plan names 14 of the 47 `nar/src` directories. **Thirty-three were not
+**Coverage limit.** The plan names 18 of the 49 `nar/src` directories. **Thirty-one were not
 examined** — neither presumed clean nor presumed broken. A session that finds itself editing one
 should treat that as new scope and say so.
+
+**And one limit inside the three items that landed last, which is the one a reader should weigh
+most.** §5.8 asked for a reviewable inventory "for every production accumulator that can grow without
+an explicit bound", and `resource:policy` checks the declarations rather than finding them — TODO28's
+audit measured that a derived detection rule yields 574 candidates across the six source roots, 302
+unpruned, which is too noisy to be a gate anyone reads. **The inventory is therefore a floor and not a
+ceiling, and a new unbounded container in `nar/src` is not caught by anything.** TODO28's ledger said so
+of itself in the same words; this item replaced the *quality* of the rule, not the *reach* of it, and
+saying otherwise would be the exact overclaim §12's kill criteria were written against.
