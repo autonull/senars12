@@ -454,6 +454,12 @@ async function main(): Promise<void> {
   }
 
   await harness.writeReports();
+  console.log('\n=== Arcade aggregate (macro over games — the Q3 number) ===');
+  for (const a of harness.aggregate()) {
+    console.log(
+      `${a.arm}: games=${a.games} ticks=${a.ticks} macroBrier=${a.macroBrier.toFixed(4)} microBrier=${a.microBrier.toFixed(4)} macroEce=${a.macroEce.toFixed(4)} macroReward=${a.macroReward.toFixed(4)} macroReturn=${a.macroReturn.toFixed(3)}`
+    );
+  }
   console.log('\n=== Arcade summary ===');
   for (const s of harness.summary()) {
     console.log(

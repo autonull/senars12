@@ -33,6 +33,10 @@ jobs:
       # TODO29.a A7: every control budget is a declared scope, and every declared
       # scope is spent by a call site.
       - run: pnpm control-budgets
+      # TODO29.a A9: a recorded proposal stream is a sufficient fixture. The
+      # reduction is pure, the replay path reaches no provider, an incompatible
+      # schema version fails loudly, and a stream recorded against R is stale at R+1.
+      - run: pnpm replay:proposal
       # TODO29.a A0: provider-dependency detection, and the in-cycle induction inventory.
       - run: pnpm cycle:no-provider
       - run: pnpm induction:inventory

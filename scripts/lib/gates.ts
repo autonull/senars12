@@ -56,6 +56,10 @@ export const GATES: readonly Gate[] = [
   // TODO29.a A7: every control budget is a declared scope with a named owner,
   // and every declared scope is spent somewhere.
   script('control-budgets'),
+  // TODO29.a A9: a recorded proposal stream is a sufficient fixture — the
+  // reduction is pure, the replay path reaches no provider, an incompatible
+  // schema version fails loudly, and a stream recorded against R is stale at R+1.
+  script('replay:proposal', 'slow'),
   script('cycle:no-provider'),
   // TODO29.a A0: the in-cycle induction inventory, and its references still hold.
   script('induction:inventory'),

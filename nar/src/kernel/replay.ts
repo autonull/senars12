@@ -12,6 +12,8 @@ import {
 } from '@senars/core/schemas';
 import { appendJsonl, errMsg, readJsonl, sha256Hex, writeJsonFileSync } from '@senars/util';
 import { createDefaultRegistry, resolveSlot } from '../cognitive/impls/CognitiveRegistry.js';
+import { isProposalStream, replayProposalStream } from '../proposal/replay.js';
+import type { ProposalReplayState } from '../proposal/replay.js';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { Concept, ConceptTaskType, TaskData } from '../memory/concept.js';
 import { Memory } from '../memory/memory.js';
@@ -61,10 +63,17 @@ export interface ReplayResult {
   /** The reconstructed store, as a port: replay reads it, it does not own it. */
   memory: MemoryPorts;
   gateSnapshot: ReturnType<typeof replayCognitiveState>;
+  /**
+   * A9: the proposal seam's own reduction, from the same log. `undefined` for a
+   * log with no `proposal.*` events, so a caller can tell "no proposals were
+   * recorded" from "there was nothing to reduce".
+   */
+  proposalState?: ProposalReplayState;
   appliedTasks: number;
   appliedRevisions: number;
   appliedDerivations: number;
   appliedActivations: number;
+  appliedProposals: number;
   skipped: number;
   errors: string[];
 }
@@ -134,6 +143,14 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
   let appliedDerivations = 0;
   let appliedActivations = 0;
   let skipped = 0;
+
+  // A9: reduce the proposal seam's events before touching memory, so a stream
+  // recorded under an incompatible schema version fails here rather than
+  // producing a half-reconstructed store that looks like a successful replay.
+  const proposalState = isProposalStream(gateEvents)
+    ? replayProposalStream(gateEvents)
+    : undefined;
+  const appliedProposals = proposalState?.admissions.length ?? 0;
 
   const admittedTasks = replayTaskAdmissions(gateEvents);
 
@@ -226,10 +243,12 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
   return {
     memory,
     gateSnapshot,
+    proposalState,
     appliedTasks,
     appliedRevisions,
     appliedDerivations,
     appliedActivations,
+    appliedProposals,
     skipped,
     errors,
   };
@@ -240,9 +259,11 @@ const HASHED_FIELDS = [
   'appliedRevisions',
   'appliedDerivations',
   'appliedActivations',
+  'appliedProposals',
   'skipped',
   'errors',
   'gateSnapshot',
+  'proposalState',
 ] as const satisfies readonly (keyof ReplayResult)[];
 
 /** Deterministic content hash of a replay outcome — the C14 replay verification token. */
@@ -270,6 +291,7 @@ export interface ReplaySnapshotStats {
   appliedRevisions: number;
   appliedDerivations: number;
   appliedActivations: number;
+  appliedProposals: number;
   skipped: number;
   errors: string[];
 }
@@ -279,6 +301,7 @@ export interface ReplaySnapshotFile {
   timestamp: number;
   stateHash: string;
   gateSnapshot: ReplayResult['gateSnapshot'];
+  proposalState?: ProposalReplayState;
   memory: unknown;
   stats: ReplaySnapshotStats;
 }
@@ -289,11 +312,13 @@ export async function serializeReplayResult(
 ): Promise<void> {
   const {
     gateSnapshot,
+    proposalState,
     memory,
     appliedTasks,
     appliedRevisions,
     appliedDerivations,
     appliedActivations,
+    appliedProposals,
     skipped,
     errors,
   } = result;
@@ -301,16 +326,18 @@ export async function serializeReplayResult(
   // Canonicalize: remove timestamp for deterministic hashing
   const canonicalMemory = { ...memorySerialized, timestamp: 0 };
   const snapshot: ReplaySnapshotFile = {
-    version: 1,
+    version: 2,
     timestamp: Date.now(),
     stateHash: await computeReplayStateHash(result),
     gateSnapshot,
+    proposalState,
     memory: canonicalMemory,
     stats: {
       appliedTasks,
       appliedRevisions,
       appliedDerivations,
       appliedActivations,
+      appliedProposals,
       skipped,
       errors,
     },
