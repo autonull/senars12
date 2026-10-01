@@ -1,6 +1,6 @@
 # TODO29.a: Runtime Architecture — S/J/P over a closed core
 
-**Version:** 3.7 · **Status:** A0, A1, A2, A5, A12 step 1, its `^name` retirement and §0.8.4's n-ary gap landed — A3's decisions, A4, A6–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
+**Version:** 3.10 · **Status:** A0, A1, A2, A5, A12 step 1, its `^name` retirement and §0.8.4's n-ary gap landed — A3's decisions, A4, A6–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
 unchanged as the measurement and provenance record; §0.4 maps its sections onto this one) ·
 **Successor:** `TODO30.md`, blocked on this.
 
@@ -623,6 +623,112 @@ review comment.
   assembly and agent-side, which is the same exemption `core:no-lm` makes, and the reason the gate is
   scoped to the declared cycle path rather than to `nar/src`. `query/memory-query.ts` is the one
   borderline case: it is a read surface with a name that suggests it should be on `MemoryView`.
+- **Two of the nine port names are worse than the rest, and the fix is mechanical.** Reviewed after
+  landing: `StatisticsView` → **`Statistics`** (the `View` suffix is the weakest in the set — every
+  port here is a view of something) and `AttentionOwner` → **`Attention`** (§3.1 already names this
+  port `Attention`, and it pairs cleanly with the existing `AttentionModel`: the port owns the model,
+  the model is not the port). Four proposals were **declined**, and the reasons are the record:
+  - **`LinkPort` → `Links`** — §3.1 draws a deliberate line between *port* and *index* ("`Attention` is
+    an interface with a mutation surface, not an index with an update method, because 'one owner' is
+    the property and 'index' is an implementation"), and the port set embodies it: `SymbolIndex` *is*
+    index-shaped, `LinkPort` is a mutation surface that is not. `Links` also collides with the
+    `links()` accessor that returns it, and with the `Link*` family in `memory/links/`.
+  - **`GoalEnumeration` → `Goals`** — `getGoals()` returns `Task[]`, not `Goal[]`, and `Goal` is
+    half the `Belief`/`Goal` epistemic firewall, so the short name points at the firewall concept and
+    away from "read surface over stored goals".
+  - **`TaskAdmission` → `TaskInput`** — *admission is the gate vocabulary*:
+    `PerceptionGate.admitTask`, "four gates mediate every state mutation", A3's "proposal admission is
+    a single committed state transition". `TaskInput` suggests a channel, and blurring that line is
+    what the plan exists to prevent.
+  - **`MemoryClock` → `Clock`** — the `Memory` prefix is redundant inside `memory/ports/`, but A4
+    introduces `DecayClock` (§5.4) and `consolidate()` is not only decay (it is eviction, link decay
+    and focus update), so `Clock` + `DecayClock` would be two clocks. A4 should name its thing
+    instead.
+
+  The general finding behind the two acceptances: **a suffix should carry information, or be
+  dropped.** `TaskAdmission` (gate semantics) and `LinkPort` (not-an-index) earn their suffix;
+  `MemoryView`/`StatisticsView` do not. The tree is already mixed on this — A2's ports are
+  `TextGenerator`, `EmbeddingRuntime` and `ModelRule`, none of which takes a shape word — so the
+  renames bring A5's set in line rather than imposing a new rule.
+
+**Seven naming cleanups found while reviewing A5's, none blocking, none started, none on the critical
+path.** Items 1–5 are *duplication* removals rather than restylings — which is the only kind worth
+doing without a reason, since a rename that satisfies a style and not a duplication is churn. Items
+6–7 are a different kind again: an over-claim, not a duplicate.
+
+1. **`LMRuleConfig` moves out of `@senars/util`, and keeps its name.** §0.8.6's finding 3 is still
+   open: a config type for the *layer's* rule class lives in the *bottom* package, so `util` knows
+   vocabulary it should not. **The author's correction to the obvious fix is load-bearing: `LM` is
+   the right prefix** — it means Language Model specifically, where `Model` would claim a generality
+   the type does not have (other model kinds may arrive), and `ModelRule` / `ModelRuleStats`
+   deliberately mean "the core's contract", not "any model". So the defect is the *package*, not the
+   name: `LMRuleConfig` (and `LMRuleConfigV2`, which extends it from `nar/src/lm/rule/types-v2.ts`)
+   belong beside `LMRule` in `nar/src/lm/`. `nar/src/lm/lm-service.ts` already re-exports
+   `LMRuleConfig` from `util`, so **the move is invisible to every consumer** — which is also how we
+   know it is a move and not a rewrite. **Two types with the same name and opposite owners is the
+   shape that produced §4 row 9.**
+2. **`getMemoryPressure()` is deleted, not renamed** — `capacityPressure()` is the name, and
+   `getMemoryPressure()` is now a one-line delegate to it that `memory-pressure.test.ts` asserts is
+   equal. A5 made `capacityPressure` the port method, so the alias is pure legacy: **two names for one
+   quantity is §0.8.6's "a type and a config key that share a name are two things".** Delete the
+   method and the assertion together.
+3. **`TaskData` vs `TaskRecord` — decide after one read, do not assume they merge.** `concept.ts`
+   holds `TaskData` (live: carries `id` and `priority`), `task/record.ts` holds `TaskRecord` (the
+   persisted projection), and `state/serialization.ts` round-trips between them. If that is a real
+   distinction it **needs a docstring saying so**; if it is not, it is the same two-names-one-thing
+   defect as #2 and the same treatment as A12 gave a term's spellings. **Recorded as a question, not
+   as work** — merging two shapes on a guess is worse than two named shapes with one undocumented
+   difference.
+4. **The `NARConfig` shadow in `@senars/util` is deleted.** Deprecated since 0.8.0, it is re-exported
+   from `util/src/index.ts` and **read by nothing** — every one of the 20+ `NARConfig` sites in the
+   tree imports from `@senars/nar` or `src`. `util` importing nothing from `nar` is what makes the
+   deletion safe. A deprecated duplicate that survives is a second source of truth, which is defect
+   #1 in a different file: **delete rather than rename.**
+5. **`InferenceMemory` moves from `inference-controller.ts` into `ports/`.** It is
+   `MemoryView & { attentionModel }`, declared locally because A5 needed exactly that composite. Once
+   `AttentionOwner` is `Attention`, the composite belongs beside the contracts it composes rather than
+   in one consumer — otherwise the port set has a member that only exists because a consumer needed
+   it.
+
+> **All seven are low-priority and none is on the critical path.** They are recorded because the
+> author raised them, not because the plan needs them: A4, A3's decisions and A6 are the queue. Each
+> costs review attention and none buys an invariant, so **do not pull one forward to make a commit
+> look tidier** — the failure mode §0.8 named for `ProviderSeam.callSites` applies here too, where a
+> cleanup in flight reads as progress.
+
+**Two more over-general `Model` names, from the same review.** The author's criterion — does `Model`
+claim a generality the thing does not have? — separates ~120 `Model*` identifiers cleanly, and it is
+worth writing down *which* ones pass, because the obvious answer is wrong.
+
+6. **`core/src/ModelRunner.ts` and its family → `LMRunner`**: `ModelProvider`, `ModelTier`,
+   `ModelEvent`, `ModelRunResult`. **This is the one genuine over-claim in the tree.** The file
+   imports `generateText`, `streamText`, `LanguageModel` and `ModelMessage` from the `ai` SDK — every
+   one a language-model concept, and `LanguageModel` is the SDK's own word for it. So it is an LM
+   runner wearing a generic name, in **the package that is supposed to be the most
+   vocabulary-neutral**. It is not "a model runner that happens to work with LMs"; it cannot be
+   pointed at anything else. The smell is already visible in `createCortexFromLM.ts`, which writes
+   `LMTask ≡ ModelTier` to bridge two vocabularies that should have been one. **Not free:** `core`'s
+   public surface, so it wants its own item rather than a drive-by — and §7 invariant 10 requires the
+   README's documented surface updated in the same commit.
+7. **`ModelRunnerConfig` (`nar/src/config/cognitive-parameters.ts`) folds in with it** — one field,
+   `maxLoops`, commented "Maximum reasoning loops per turn", named after the class it mirrors. It is
+   a naming artefact of the runner, not a category of thing.
+
+**Three that were considered and deliberately left, because the same suffix does not mean the same
+thing in each** — and a sweep that renamed all of them would have been wrong:
+
+- **`ModelRule` / `ModelRuleSelector` / `ModelRuleStats`** (41 + 35 + 12 sites) — this is *already*
+  the generic half of a deliberate pair. A2's move was: the core names a `ModelRule`, the layer
+  implements it as `LMRule`. So `Model` here means "backed by *some* model, implementation-agnostic,"
+  which is exactly the claim — and it is what makes the pair coherent rather than accidental.
+  **Renaming these would undo A2.**
+- **`AttentionModel`** (50 sites) and **`RewardModel`** (29) — neither is a language model. The first
+  is `prime`/`decay`/`tick`, an attention *policy* filling a slot named `attention`; the second is a
+  reward *function* with learned weights, paired with a self-documenting `RewardModelConfig`. The
+  author's `LM` correction does not reach them, and 79 sites of churn would buy nothing.
+- **`LanguageModel`, `ModelMessage`** — re-exports of the `ai` SDK's own names. Renaming a re-export
+  breaks its correspondence with its source for no gain. `ModelCapability` sits inside
+  `lm/providers/`, where `lm` already supplies the context.
 
 **What A4 can now do that it could not before.** §5.4's acceptance is "the only module that can write
 `Concept.priority` is the attention owner's", and `attention:write-surface` is its backstop gate.
