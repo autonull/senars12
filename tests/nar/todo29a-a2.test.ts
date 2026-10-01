@@ -17,8 +17,12 @@ import {
   MockEmbeddingGenerator,
 } from '@senars/nar/memory/embedding';
 import { RuleProcessor } from '../../nar/src/rules/impls/processor.js';
+import { RuleRegistry } from '../../nar/src/rules/impls/rule-registry.js';
+import { NAL_EXTENDED_RULES, NAL_RULES } from '../../nar/src/rules/impls/registration.js';
 import type { ModelRule } from '@senars/nar/rules/types';
 import { parseJsonObject } from '@senars/util';
+
+const A2_TABLE = 'A2 — the shipped table is exactly the registered NAL rules';
 import { describe, expect, it } from 'vitest';
 import { coreLayerViolations, isCyclePath, resolveInNar } from '../../scripts/lib/layer-boundary.js';
 import { ROOT } from '../../scripts/lib/root.js';
@@ -125,5 +129,35 @@ describe('A2 — the cycle path is the inventory list, not a second copy', () =>
   it('assembly and the layer itself are not the cycle path', () => {
     expect(isCyclePath(`${ROOT}/nar/src/facade/system-one.ts`)).toBe(false);
     expect(isCyclePath(`${ROOT}/nar/src/lm/lm-service.ts`)).toBe(false);
+  });
+});
+describe(A2_TABLE, () => {
+  /**
+   * The census is in a test rather than a script on purpose: `RuleRegistry` is
+   * populated by a module side effect, so an out-of-process scan could only see
+   * the table by importing it — at which point it is a test. A10 removes the
+   * side effect and this can move.
+   */
+  const shipped = () => RuleRegistry.getAll();
+  const declared = [...NAL_RULES, ...NAL_EXTENDED_RULES];
+
+  it('every registered rule is a declared NAL or extended rule', () => {
+    const ids = new Set(declared.map((rule) => rule.id));
+    expect(shipped().filter((rule) => !ids.has(rule.id))).toEqual([]);
+  });
+
+  it('every declared rule is registered, and none is registered twice', () => {
+    expect(shipped().map((rule) => rule.id).sort()).toEqual(declared.map((rule) => rule.id).sort());
+  });
+
+  it('the table is a committed count, so a rule cannot arrive unnoticed', () => {
+    expect(declared).toHaveLength(55);
+  });
+
+  it('every rule declares a truth function and a priority — a rule that derives nothing is a comment', () => {
+    for (const rule of shipped()) {
+      expect(rule.truthFn, rule.id).toBeTypeOf('function');
+      expect(rule.priority, rule.id).toBeTypeOf('number');
+    }
   });
 });
