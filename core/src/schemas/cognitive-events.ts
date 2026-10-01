@@ -4,21 +4,15 @@
  * gates. Every variant below is admitted by exactly one gate.
  */
 
-import { ENGINE_ORIGINS, parseOrThrow } from '@senars/util';
+import { parseOrThrow } from '@senars/util';
 import { z } from 'zod';
+import { CognitiveEventBaseSchema } from './event-base.js';
 import { AutonomyModeSchema, PatchProposalSchema } from './governance.js';
 import { TerminationReasonSchema } from './reasoning-budget.js';
+import { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal.js';
 import { TruthValueSchema } from './truth.js';
 
-export const EngineOriginSchema = z.enum(ENGINE_ORIGINS);
-
-export const CognitiveEventBaseSchema = z.object({
-  engine: EngineOriginSchema,
-  timestamp: z.number().int().positive(),
-  correlationId: z.string(),
-  causationId: z.string().optional(),
-  id: z.string().uuid().optional(),
-});
+export { CognitiveEventBaseSchema, EngineOriginSchema } from './event-base.js';
 
 export const TaskAdmittedEventSchema = CognitiveEventBaseSchema.extend({
   type: z.literal('task.admitted'),
@@ -161,6 +155,11 @@ export const ShadowValidationDropEventSchema = CognitiveEventBaseSchema.extend({
   }),
 });
 
+/**
+ * Every event the kernel admits, plus the proposal seam's two from `proposal.ts`
+ * — so one log carries both families and a replay reducer reads one stream. They
+ * are the only two variants an origin of `proposer` may append.
+ */
 export const CognitiveEventSchema = z.discriminatedUnion('type', [
   TaskAdmittedEventSchema,
   DerivationAcceptedEventSchema,
@@ -173,6 +172,8 @@ export const CognitiveEventSchema = z.discriminatedUnion('type', [
   JudgmentResolvedEventSchema,
   EgressGateRejectedEventSchema,
   ShadowValidationDropEventSchema,
+  ProposalAdmittedEventSchema,
+  ProposalRejectedEventSchema,
 ]);
 
 export type CognitiveEvent = z.infer<typeof CognitiveEventSchema>;

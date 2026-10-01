@@ -1224,6 +1224,10 @@ _Re-export barrel._
 
 - `ReasoningAboutReasoning`
 
+## `./proposal/*`
+
+_Dynamic subpath (no single entry file)._
+
 ## `./stream`
 
 - `StreamReasoner`

@@ -43,6 +43,9 @@ export const GATES: readonly Gate[] = [
   // TODO29.a A4: attention has one write surface, the decay sweep has one
   // caller, and the two read paths contain no write.
   script('attention:write-surface'),
+  // TODO29.a A3: the eight proposal decisions are written down, each names the
+  // reason its rejection carries, and the two kinds are structurally distinct.
+  script('proposal:protocol'),
   script('cycle:no-provider'),
   // TODO29.a A0: the in-cycle induction inventory, and its references still hold.
   script('induction:inventory'),

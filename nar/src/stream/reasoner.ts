@@ -140,7 +140,7 @@ export class StreamReasoner {
       this.runBatch(backend, batch, answered),
       this.backendTimeoutMs
     );
-if (outcome.timedOut) {
+    if (outcome.timedOut) {
       // The batch is retired, not retried: a provider that misses the deadline
       // would otherwise make the backlog older and no larger.
       this.timedOut += batch.length;

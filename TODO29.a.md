@@ -1,6 +1,6 @@
 # TODO29.a: Runtime Architecture — S/J/P over a closed core
 
-**Version:** 3.11 · **Status:** A0, A1, A2, A4, A5, A12 step 1, its `^name` retirement and §0.8.4's n-ary gap landed — A3's decisions, A6–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
+**Version:** 3.12 · **Status:** A0–A5, A12 step 1, its `^name` retirement and §0.8.4's n-ary gap landed — A6–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
 unchanged as the measurement and provenance record; §0.4 maps its sections onto this one) ·
 **Successor:** `TODO30.md`, blocked on this.
 
@@ -15,9 +15,10 @@ lifecycle.
 > **A fresh session reads §0.1 (two minutes), then §1.2 and §1.3 (the two invariants everything else
 > follows from), then §5.12 (the item summary — one command, one gate, one risk per item).** §4 row 16
 > is the finding that makes A11 cheap instead of an invention, and §12's two kill criteria should be
-> checked *before* anything is built. **A4 is done (§0.8.8)**, so the only unanswered thing in the
-> queue is §0.6 item 2 — A3's eight protocol decisions — and then A6, whose dispatch order A4's
-> re-established baselines are the reference for.
+> checked *before* anything is built. **A3 is done (§0.8.9)**, so nothing in §5.14 is unanswered
+> and the queue is A6, whose dispatch order A4's re-established baselines are the reference for.
+> **A3's rule queue has no producer yet** — the rule half of the protocol is specified, gated and
+> tested but not reachable from a model, which is A10's job.
 
 ---
 
@@ -30,7 +31,7 @@ lifecycle.
 | **What am I changing?** | Where model reasoning is reachable from, and therefore which parts of the core depend on it; who owns each cycle-path quantity; what a proposal is and when it may land; whether the rule set is data or code | §5 |
 | **What must result?** | A closed synchronous cycle over committed state, with S / J / P composed through one seam and one set of gates | §1, §2 |
 | **What must not change?** | NAL parity, determinism, `test:hermetic`, one inference path, the six packages, the epistemic firewall | §7 |
-| **How do I know it worked?** | Twelve new gates, each landing with its item and each shipped with a test proving it can fail. Six have landed (`cycle:no-provider`, `induction:inventory`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `terms:canonical`'s A12 form) | §10 |
+| **How do I know it worked?** | Twelve new gates, each landing with its item and each shipped with a test proving it can fail. Seven have landed (`cycle:no-provider`, `induction:inventory`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `proposal:protocol`, `terms:canonical`'s A12 form) | §10 |
 | **What belongs to TODO30 instead?** | Every data-structure choice, every cost target, `k`, the index shapes, the scaling gates | §11.2 |
 
 ### 0.2 Decided, and load-bearing
@@ -72,7 +73,7 @@ do is make four README promises structurally true rather than aspirational, and 
 | question | blocks | where |
 |---|---|---|
 | ~~The in-cycle induction inventory~~ — **answered and landed with A0**; the dispositions were A1's to revise and were | A1 | §0.8, §0.8.1 |
-| A3's eight protocol decisions — unit of work, trigger, overflow per proposal kind, denied-batch behaviour, staleness, evicted references, versioning, cancellation | **A3's implementation**, and nothing else: A1 shipped against an assumed queue and A2 against an assumed contract | §5.3, §5.14 |
+| ~~A3's eight protocol decisions — unit of work, trigger, overflow per proposal kind, denied-batch behaviour, staleness, evicted references, versioning, cancellation~~ — **answered and landed with A3** (§0.8.9), written down in `docs/proposal-protocol.md` and gated by `proposal:protocol` | nothing; A3's own acceptance | §5.3, §5.14, §0.8.9 |
 | The `J` placement order and budget across the eight candidate sites | nothing architectural; TODO30 §1 measures it | §2.5 |
 | Q3's hypothesis — which arm should beat which, by how much, on which games, and what would count as "the model does not earn its place" | the plan's only falsifiable claim | §11.1 |
 | Is the induction layer ever a seventh workspace package (answered for the *contracts*; the rest open) | nothing | §11.1 |
@@ -83,8 +84,11 @@ do is make four README promises structurally true rather than aspirational, and 
 1. ~~**A0**~~ — instrumentation, including provider-*dependency* detection, not presence detection.
    **Done**, except for one thing §0.8 finding 1 names: the live cycle has no tick stages, so A1's
    trace criterion has nothing to read. Do that before A1, or restate A1 criterion 2.
-2. **§5.14 + A3's eight protocol decisions** — *produced* before A1, because A1's acceptance depends on
-   them. A3's **implementation** lands after A2, once the queue's real behaviour is known (§6).
+2. ~~**§5.14 + A3's eight protocol decisions**~~ — **done 2026-10-01** (§0.8.9): the eight decisions are
+   `docs/proposal-protocol.md`, `proposal:protocol` fails when the document and the code disagree, and
+   the lifecycle that enforces them is wired into the seam. **Its largest remainder is that the rule
+   queue has no producer** — nothing synthesises a reaction yet, so the rule half is specified, gated
+   and tested but unreachable. That is A10.
 3. ~~**A1**~~ — **done 2026-09-30.** The cycle stages model-backed work and pumps it off-cycle; every
    provider await carries a deadline; every model-backed rule declares and runs a symbolic body.
 4. ~~**A2**~~ — **done 2026-10-01** (§0.8.6): the cycle path imports the layer zero times and
@@ -844,6 +848,77 @@ the aggregate fall is a ceiling effect on a few strong seeds rather than a wider
   still knows it is allowed to write a *neighbour's* attention. A model that returned boosts instead
   of applying them would move the write into the owner, which is where §5.4's `Attention` interface
   puts it. Not done: it changes every model's signature for a rule that is currently satisfied.
+
+---
+
+### 0.8.9 A3 is done (2026-10-01) — the eight decisions are a document, and the document is gated
+
+The item the plan expands rather than contracts. Prose is now a protocol: `docs/proposal-protocol.md`
+holds D1–D8, `pnpm proposal:protocol` fails when the document and the code disagree, and every decision
+has a reason code a rejection actually carries.
+
+| artefact | what it is |
+|---|---|
+| `core/src/schemas/proposal.ts` | the seam contract as data: a `Proposal` envelope and **two** kinds whose payloads share no field, so the content/rule distinction is a type rather than a flag. `PROPOSAL_SCHEMA_VERSION`, `PROPOSAL_KINDS`, six rejection reasons |
+| `core/src/schemas/event-base.ts` | `CognitiveEventBaseSchema` and `EngineOriginSchema`, extracted so the kernel's and the seam's events extend one definition instead of two |
+| `cognitive-events.ts` | `proposal.admitted` and `proposal.rejected` join the discriminated union, so one log carries both families and a replay reducer reads one stream |
+| `nar/src/proposal/lifecycle.ts` | the state machine: two queues with two policies, `judge` as a pure function of the boundary, `commit` as the one transition, `fromEvents` as the replay |
+| `nar/src/proposal/lm-rule-producer.ts` | the drained work becomes a `ContentProposal` carrying the premises it read; only what the lifecycle admits reaches the gate |
+| `nar/src/nar.ts` | the producer gets a `resolves` against the store and its own bounded log — a proposal that never reached a gate has no gate log |
+| `docs/proposal-protocol.md` | D1–D8, each with what enforces it |
+| `scripts/proposal-protocol.ts`, `scripts/lib/proposal-protocol.ts` | `pnpm proposal:protocol`, wired into `pnpm gates` and `ci.yml` |
+| `tests/nar/todo29a-a3.test.ts` | 26 tests: every gate rule failing first, then each decision on real objects |
+
+**Four decisions this item did not pre-answer.**
+
+1. **`references` moved to the envelope.** Both kinds read terms and D6 checks them identically, so
+   the field was duplicated for no reason — and while it was duplicated, the two payloads shared a
+   field and the "separate types" claim was one field short of true. Hoisting it made the payloads
+   disjoint, which is what `the-kinds-have-different-payloads` now asserts.
+2. **A gate on the document, not just the code.** §5.3's acceptance is "in the schema document, not a
+   comment", and a document cannot be enforced. The gate reads `docs/proposal-protocol.md` and compares
+   it against the constants the code runs: every decision present, every reason code named in its own
+   section, both kinds declared, payloads disjoint, both queues bounded. It caught two real defects on
+   first run — the shared `references` field, and D5 discussing staleness without ever naming
+   `stale-revision`.
+3. **The revision is assigned by `commit`, not by `judge`.** A boundary admits a *batch*, and every
+   admission in it advances the table, so a verdict carrying a revision would have been computed
+   against a revision its own predecessor had not reached. The test caught this: two admissions in one
+   boundary both claimed r1.
+4. **No parallel revision bookkeeping was needed.** `stage` runs at `propose` and `admit` at the next
+   `authorize`, and a commit only happens inside that `admit` — so everything drained at one boundary
+   was staged since the last one with no commit between. Staleness is bounded *by construction*, and
+   `baseRevision` fires exactly when something outside the producer committed. The first draft carried
+   a `BoundedRing` of observed revisions to make this explicit; the construction says it, and the ring
+   was a second account of a fact the stage order already determines.
+
+**One test expectation was wrong before the code was.** `admit` judges and only `commit` writes the
+admitted event, so a batch's rejections are recorded at `admit` and its admissions at `commit`. The
+test asserted all four events arrived from `admit` alone; the split is the correct shape.
+
+**Improvement opportunities A3 exposed, none of them blocking.**
+
+- **The rule queue has no producer.** `LMProposalProducer` only emits content proposals, because
+  nothing in the tree synthesises a reaction. The rule half of the protocol is therefore specified,
+  validated, gated and tested but **not yet reachable from a model** — which is A10's job (learned
+  rules admitted as data) and the reason the rule queue's capacity is a guess today. **Do not read
+  `maxPendingRules: 16` as a tuned number**; it is the smallest value that makes "refused, not
+  dropped" observable.
+- **The seam's log is per-NAR and in-memory.** `getProposalLog()` is bounded and never persisted,
+  unlike the gate logs, which `persistGateLogs` writes to JSONL. A3's replay works because
+  `fromEvents` takes a stream — but nothing yet *produces* that stream from disk for proposals.
+  That is one line in `EventLogPersistence` and belongs with A9, which is where
+  `replay:proposal` is already scheduled.
+- **`failed-schema` is a rejection reason nothing routes to.** `submit` validates through
+  `validateProposal`, which *throws* rather than returning a verdict, so a malformed proposal is a
+  caller error rather than a recorded rejection. The reason is declared because D6's evicted-reference
+  check and D7's version check both need somewhere to land a "this proposal is not admissible"; whether
+  malformed input should also land there — rather than throw past the seam — is a decision A10 makes
+  when a proposer is finally allowed to be untrusted.
+- **`proposalOf` reconstructs a proposal from a `Task` on every drain.** Fine at one per premise pair,
+  but it re-serialises the term and rebuilds the truth pair each time. If the boundary ever carries
+  hundreds of proposals this is the hot spot, and it is the shape A9's recorded-proposal path would
+  replace anyway.
 
 ---
 
@@ -1615,6 +1690,17 @@ What the code already answers, which is the best possible starting position:
   application;
 - a test applies a proposal referencing an evicted concept and asserts rejection.
 
+**Status: done 2026-10-01 (§0.8.9).** Every criterion above is asserted in
+`tests/nar/todo29a-a3.test.ts` (26 tests). Two are narrower than written and the narrowing is
+deliberate: *"a recorded proposal stream replays deterministically against recorded core state"* is
+half-landed — `ProposalLifecycle.fromEvents` replays a stream it is handed, but nothing yet persists
+the seam's log to disk, so that is A9's `replay:proposal`; and *"a test that interrupts between
+admission and index update still reconstructs the admitted table"* is asserted by discarding the
+in-memory lifecycle and rebuilding from the events alone, which is the property with no way to
+interleave in a single-threaded test. The *"denied batch"* criterion is A1's D4 rather than this
+item's: a `BudgetGate` denial already records `budget.exhausted`, so there is no second vocabulary
+to add here. **The one thing not done is a producer for the rule queue** — see §0.8.9.
+
 
 ### 5.4 A4 — Establish state ownership, and make reads observational
 
@@ -2276,7 +2362,7 @@ Every acceptance criterion above is demonstrated by a command and a gate. Gates 
 | **A0** | `pnpm run cycle:no-provider && pnpm run induction:inventory && pnpm bench:cycle -- --selftest && pnpm test:hermetic` — **done 2026-09-30** | `cycle:no-provider`, `induction:inventory` (both landed in their A0 form; shared with A1) | **none** — pure instrumentation; no reasoning path touched |
 | **A1** | `pnpm run cycle:no-provider && pnpm run rule:has-fallback && pnpm run gates:one-cycle-path && pnpm run config:model-matrix`, `pnpm test:determinism`, NAL suites — **done 2026-09-30** | `cycle:no-provider`, `rule:has-fallback`, `config:model-matrix`, `gates:one-cycle-path`, `induction:inventory` | **medium** — the only item that changes reasoning behaviour: not the derivations, but the *timing* of when rules exist, which changes the sequence over a fixed episode |
 | **A2** | `pnpm run core:no-lm && pnpm run deps:direction && pnpm run docs:drift` — **done 2026-10-01** | `core:no-lm`, plus the same row inside `deps:direction` | **medium-high** — 51 files. The price of a boundary that cannot be crossed by accident, and it is mechanical: reviewable by the compiler |
-| **A3** | `pnpm test:unit` (new seam tests), `pnpm run core:no-provider` | — (gates land with A1/A9/A10) | **low** — the one item the plan expands rather than contracts |
+| **A3** | `pnpm proposal:protocol`, `pnpm test:unit` (new seam tests) — **done 2026-10-01** | `proposal:protocol` | **low** — the one item the plan expands rather than contracts |
 | **A4** | `pnpm run attention:write-surface`, `pnpm test:unit` + a diff on the committed baseline file — **done 2026-10-01** | `attention:write-surface` | **high, and confined to this item.** Every learned value moves: why it is alone, why it lands after A5, and why the baselines are regenerated here rather than left to drift through A6–A8 |
 | **A5** | `pnpm test:unit` + `pnpm memory:ports` — **done 2026-10-01** | `memory:ports` | **low** — mechanical, and the boundary was already implied by `MemoryView` |
 | **A6** | `pnpm test:unit` (NAL suites + dispatch tests) | `dispatch:no-wildcard` | **medium** — dispatch order changes, so parity is the gate |

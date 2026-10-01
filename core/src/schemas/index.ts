@@ -27,12 +27,10 @@ export {
   AutonomyModeChangedEventSchema,
   BeliefRevisedEventSchema,
   BudgetExhaustedEventSchema,
-  CognitiveEventBaseSchema,
   CognitiveEventSchema,
   ConceptActivatedEventSchema,
   DerivationAcceptedEventSchema,
   EgressGateRejectedEventSchema,
-  EngineOriginSchema,
   JudgmentResolvedEventSchema,
   PolicyViolationEventSchema,
   SelfModProposalEventSchema,
@@ -102,6 +100,26 @@ export {
   RiskLevelSchema,
   SelfImprovementProposalSchema,
 } from './governance.js';
+export { CognitiveEventBaseSchema, EngineOriginSchema, PROPOSER_ORIGIN } from './event-base.js';
+export type {
+  ContentProposal,
+  Proposal,
+  ProposalAdmittedEvent,
+  ProposalRejectedEvent,
+  ProposalRejection,
+  RuleProposal,
+} from './proposal.js';
+export {
+  ContentProposalSchema,
+  PROPOSAL_KINDS,
+  PROPOSAL_REJECTIONS,
+  PROPOSAL_SCHEMA_VERSION,
+  ProposalAdmittedEventSchema,
+  ProposalRejectedEventSchema,
+  ProposalSchema,
+  RuleProposalSchema,
+  validateProposal,
+} from './proposal.js';
 export type { ReasoningBudget, TerminationReason } from './reasoning-budget.js';
 export {
   ReasoningBudgetSchema,

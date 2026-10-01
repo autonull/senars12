@@ -152,6 +152,10 @@
       "types": "./src/self/index.ts",
       "import": "./src/self/index.ts"
     },
+    "./proposal/*": {
+      "types": "./src/proposal/*.ts",
+      "import": "./src/proposal/*.ts"
+    },
     "./stream": {
       "types": "./src/stream/index.ts",
       "import": "./src/stream/index.ts"

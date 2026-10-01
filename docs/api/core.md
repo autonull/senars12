@@ -514,17 +514,13 @@ _Re-export barrel._
 
 - `BudgetExhaustedEventSchema`
 
-- `CognitiveEventBaseSchema`
-
-- `CognitiveEventSchema`
+- `CognitiveEventSchema` — Every event the kernel admits, plus the proposal seam's two from `proposal.ts`
 
 - `ConceptActivatedEventSchema`
 
 - `DerivationAcceptedEventSchema`
 
 - `EgressGateRejectedEventSchema`
-
-- `EngineOriginSchema`
 
 - `JudgmentResolvedEventSchema`
 
@@ -589,6 +585,30 @@ _Re-export barrel._
 - `RiskLevelSchema`
 
 - `SelfImprovementProposalSchema`
+
+- `CognitiveEventBaseSchema`
+
+- `EngineOriginSchema`
+
+- `PROPOSER_ORIGIN` — The one origin permitted to append proposal events.
+
+- `ContentProposalSchema` — A formalized claim about a term. It is **not** a truth value to be written: it
+
+- `PROPOSAL_KINDS` — What a proposal is about. The two kinds have separate payloads, not a flag.
+
+- `PROPOSAL_REJECTIONS` — Why a proposal did not land. Every value is an operator-visible outcome.
+
+- `PROPOSAL_SCHEMA_VERSION` — The wire version of the proposal contract. A run recorded against one version
+
+- `ProposalAdmittedEventSchema`
+
+- `ProposalRejectedEventSchema`
+
+- `ProposalSchema`
+
+- `RuleProposalSchema` — A reaction: pattern, truth function, priority. It lands in the rule table, so
+
+- `validateProposal`
 
 - `ReasoningBudgetSchema`
 

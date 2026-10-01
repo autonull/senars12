@@ -50,6 +50,7 @@
     "core:no-lm": "tsx scripts/core-no-lm.ts",
     "memory:ports": "tsx scripts/memory-ports.ts",
     "attention:write-surface": "tsx scripts/attention-write-surface.ts",
+    "proposal:protocol": "tsx scripts/proposal-protocol.ts",
     "cycle:no-provider": "tsx scripts/cycle-no-provider.ts",
     "rule:has-fallback": "tsx scripts/rule-fallback.ts",
     "gates:one-cycle-path": "tsx scripts/gates-one-cycle-path.ts",

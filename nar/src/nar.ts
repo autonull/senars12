@@ -1,7 +1,8 @@
 import { BaseComponent } from '@senars/core';
+import type { CognitiveEvent } from '@senars/core/schemas';
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import type { Episode } from '@senars/util';
-import { createLogger, errMsg, installIdSource, selectTopN } from '@senars/util';
+import { BoundedRing, createLogger, errMsg, installIdSource, selectTopN } from '@senars/util';
 import { resolveBagSlot } from './bag/registration.js';
 import { CognitiveController, createDefaultRegistry } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
@@ -44,6 +45,7 @@ import { Memory } from './memory';
 import { createEmbeddingGenerator, type EmbeddingGenerator } from './memory/embedding.js';
 import { EpisodeConsolidator } from './memory/episode-consolidator.js';
 import { ProofMettaProposer, type ProofMettaProposerOptions } from './meta/index.js';
+import { PROPOSAL_LOG_CAPACITY } from './proposal/lifecycle.js';
 import { LMProposalProducer } from './proposal/lm-rule-producer.js';
 import { MetricsCollector } from './metrics';
 import { NARExecution } from './nar-execution';
@@ -61,6 +63,7 @@ import { TaskManager } from './task';
 import type { Term } from './terms';
 import {
   containsSubterm,
+  fromNarsese,
   getSubject,
   Truth,
   type TruthType,
@@ -117,6 +120,8 @@ export class NAR extends BaseComponent {
   private readonly processor: RuleProcessor;
   /** The proposal seam this NAR's producers stage into (TODO29.a A1). */
   readonly proposals: LMProposalProducer;
+  /** The seam's own bounded log — a proposal that never reached a gate has no gate log. */
+  private readonly proposalLog = new BoundedRing<CognitiveEvent>(PROPOSAL_LOG_CAPACITY);
   private readonly _metricsCollector: MetricsCollector;
   private readonly _lmService?: LMService;
   private readonly _registry?: SeNARSRegistry;
@@ -262,9 +267,15 @@ export class NAR extends BaseComponent {
     // TODO29.a A1: the cycle's only route to a provider. The seam holds this
     // NAR's gates — not the process global — and the processor stages work into
     // it rather than awaiting a rule, so `propose` cannot open inside `reason`.
+    // A3: a proposal that reads a term memory no longer holds is rejected at the
+    // boundary rather than salvaged — so the seam resolves against the store.
     this.proposals = new LMProposalProducer(
       new StreamReasoner({ gates: this.gates, backendTimeoutMs: cognitiveParams.lm.callTimeoutMs }),
-      this.processor
+      this.processor,
+      {
+        resolves: (narsese) => this.resolves(narsese),
+        record: (event) => this.recordProposal(event),
+      }
     );
     this.processor.setModelRuleWorkSink(this.proposals);
     this.execution = new NARExecution({
@@ -579,6 +590,30 @@ export class NAR extends BaseComponent {
   /** Check if System One is enabled and initialized. */
   isSystemOneEnabled(): boolean {
     return this.systemOne.enabled;
+  }
+
+  /**
+   * Whether a term a proposal read is still resident. A reference that no longer
+   * resolves is a rejection at the boundary, not a partially-applied proposal —
+   * salvaging what still resolves would land a claim whose evidence is gone.
+   */
+  private resolves(narsese: string): boolean {
+    const term = fromNarsese(narsese);
+    return term != null && this.memory.getConcept(term) !== undefined;
+  }
+
+  /**
+   * Append a seam event to the proposing origin's own bounded log. Kept off the
+   * kernel's rings deliberately: a proposal that never reached a gate did not
+   * pass one, and recording it in a gate's log would say otherwise.
+   */
+  private recordProposal(event: CognitiveEvent): void {
+    this.proposalLog.push(event);
+  }
+
+  /** The seam's committed admissions and rejections, oldest evicted first. */
+  getProposalLog(): readonly CognitiveEvent[] {
+    return this.proposalLog.toArray();
   }
 
   /** Emit a judgment.resolved kernel event + Prometheus metric for a resolved proposition. */
