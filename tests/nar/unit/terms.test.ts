@@ -365,3 +365,27 @@ describe('term metrics', () => {
     });
   });
 });
+
+/**
+ * Commutativity is a property of the operator, not a formatting choice: a
+ * commutative kind has its arguments sorted at construction, so declaring a kind
+ * commutative merges terms that are not equal. `product` was declared so, and
+ * `docs/java/Op.java:110` builds `PROD` through the non-commutative constructor.
+ */
+describe('operator commutativity', () => {
+  const product = (...symbols: string[]) =>
+    TermBuilder.compound('product', symbols.map((symbol) => TermBuilder.atom(symbol)!));
+
+  test('product order is preserved, so two products are two terms', () => {
+    expect(product('bird', 'cat').toString()).toBe('(bird,cat)');
+    expect(product('cat', 'bird').toString()).toBe('(cat,bird)');
+    expect(product('bird', 'cat')).not.toBe(product('cat', 'bird'));
+  });
+
+  test('conjunction order is not: it is commutative, and sorted at construction', () => {
+    const bird = TermBuilder.atom('bird')!;
+    const cat = TermBuilder.atom('cat')!;
+    expect(TermBuilder.conjunction(bird, cat)).toBe(TermBuilder.conjunction(cat, bird));
+  });
+});
+

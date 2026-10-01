@@ -27,6 +27,12 @@ const WRAPPERS: Record<string, [string, string]> = {
   property: ['[', ']'],
 };
 
+/**
+ * How a kind's arguments are written. The operator spellings keep their spaces
+ * because they are read as symbols; a bare comma-separated list — and `product`,
+ * whose `(*,a,b)` has the comma as its canonical short-hand — does not: `(a,b)`,
+ * not `(a, b)`. One fewer byte per argument, and nothing that reads it is misled.
+ */
 const NARY_SEPARATORS: Record<string, string> = {
   conjunction: ' & ',
   disjunction: ' | ',
@@ -34,15 +40,17 @@ const NARY_SEPARATORS: Record<string, string> = {
   parallel: ' || ',
 };
 
+const ARGUMENT_SEPARATOR = ',';
+
 const serialize = (term: Term): string => {
   if (term.kind === 'atom') return term.symbol;
 
   const serializeArgs = (args: readonly Term[]): string =>
-    args.map((a: Term) => serialize(a)).join(', ');
+    args.map((a: Term) => serialize(a)).join(ARGUMENT_SEPARATOR);
 
   if (NARY_OPS_SET.has(term.kind)) {
     const args = term.args ?? ([] as readonly Term[]);
-    const sep = NARY_SEPARATORS[term.kind] ?? ', ';
+    const sep = NARY_SEPARATORS[term.kind] ?? ARGUMENT_SEPARATOR;
     if (args.length === 0)
       return term.kind === 'conjunction' ? 'TRUE' : term.kind === 'disjunction' ? 'FALSE' : '';
     if (args.length === 1) return serialize(args[0] as Term);

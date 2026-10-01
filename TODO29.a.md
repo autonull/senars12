@@ -737,6 +737,7 @@ empty owner means the finding has no gate, and a finding with no gate is a findi
 | 15 | the growth arithmetic: quadratic admission via `neighborsOf`, a linear-shift `TermCollection`, a full-map victim scan, a bounded-buffer `selectTopN` | `memory.ts:308-314`; `terms/impls/term-collection.ts:57-65`; `util/src/utils/bounded-map.ts:210-216` | **TODO30 §4, §7** |
 | 16 | **the decision layer is wired to the agent side, not the reasoning side.** A complete typed/calibrated layer — `classify`/`evaluate`/`synthesize`, `CognitiveAxis`, `abstainReason`, isotonic calibrators with a digest-pinned lock, `ConfidenceRouter`, `judgeCascade` — is attached to a **`GameFocus`**, while the reasoning cycle reaches a model only via the ingress judge and `processLMRules` | `facade/system-one.ts:337`; `nar.ts:571`; `types.ts:63-141` | **A11** |
 | 17 | the three primitives are `classify` / `evaluate` / `synthesize` — `Noul` was folded into `evaluate` because a yes/no is a frequency judgement with two anchors. The plan must not reintroduce `Noul` as a fourth primitive or restate it as three | `types.ts:66-89`; `TODO16.md` §2; `TODO16b.md` App. A | **A11** (terminology, enforced by the types) |
+| 18 | **`product` is declared commutative and is not.** `createCompound` sorts a commutative kind's arguments at construction, so `(*,bird,cat)` and `(*,cat,bird)` interned to **one** term and `termsEqual` answered yes for two different products. `docs/java/Op.java:110` builds `PROD` through the non-commutative constructor | `nar/src/terms/operators.ts:20`; `factory.ts:64` | **A12** — **fixed 2026-09-30**, one declaration and a test. Found while reading `Op.java` for A12's catalogue: a commutativity flag is not a formatting choice, it is a claim about equality |
 
 **#15 is entirely TODO30's.** A4 fixes *who* may write `priority`, not with what structure it is
 read. **#14 is not justified by a finding at all** — it is justified by the thesis, and §1 has no
@@ -1388,7 +1389,7 @@ memory dedup agree for free instead of agreeing by luck on whichever producer no
 
 | reducer | level | decided | note |
 |---|---|---|---|
-| `flatten-nested` | term | **yes** — conjunction, disjunction, **parallel**, product only | never implication, equivalence, instance or property: nesting or membership there is meaningful |
+| `flatten-nested` | term | **yes** — conjunction, disjunction, parallel, **product (flatten, never sort)** | never implication, equivalence, instance or property: nesting or membership there is meaningful. `product` is associative but not commutative (§4 row 18), so flattening and sorting are different reducers for it |
 | `dedupe-args` | term | **yes** | `(a & a) → a`; one arg collapses to itself, zero to `TRUE`/`FALSE` as today |
 | `sort-args` | term | already exists | the one reducer that needs no new code |
 | `double-negation` | term | **yes** | `--x → x` |
@@ -1404,7 +1405,7 @@ knowing which half is the design. What it contributes:
 
 | from the reference | adopt? | note |
 |---|---|---|
-| `InterCONJxt/ntReduction1–3` — associativity for `&&` and `\|\|`, multi-level | **yes** | this is `flatten-nested`; our commutative n-ary set is `conjunction`, `disjunction`, `parallel` **and `product`** — `product` was missing from the catalogue above |
+| `InterCONJxt/ntReduction1–3` — associativity for `&&` and `\|\|`, multi-level | **yes** | this is `flatten-nested`. Our commutative n-ary kinds are `conjunction`, `disjunction`, `parallel` — **`product` is n-ary but not commutative** (§4 row 18), so flattening it is an *associativity* reducer that must not sort |
 | `IntExtEqual` — `CONJ(p, p) == p` | **yes** | idempotence, `dedupe-args` |
 | `InterCONJntReduction_to_one` — a compound of one distinct member *is* that member | **yes** | `(&&,P)` must not exist; ours collapses to `TRUE` on *zero* args today, and the one-arg case is the other half of the same rule |
 | `Multireduction` — reduction applied repeatedly reaches one form | **yes** | the acceptance property below; it is a *fixpoint* requirement, not a single pass |
@@ -1414,6 +1415,13 @@ knowing which half is the design. What it contributes:
 | `Difference*`, `DifferenceSorted`, `DiffEqual` — `-,` normalisation, `diff(p,p) → FALSE` | **not applicable** | there is no difference operator in `OPERATORS` (`nar/src/terms/operators.ts:5`). If one is added, it arrives with its own reducer and its own boundary conditions — not by extending this item |
 | `TemporalConjunction*`, `RepeatInverseEquivalent` — `&&+k` intervals, `(x &&-1 x) == (x &&+1 x)` | **not applicable** | same: temporal intervals are a term-kind this tree does not have, and their identities need interval arithmetic rather than canonicalisation |
 | `TemporalConjunctionReduction2`, `DisallowInhAndSim…` — `@Disabled` | **kept as-is** | upstream keeps a diagnosis next to the missing behaviour rather than deleting it, which is §10.1's rule applied by someone else first |
+
+**Canonical Narsese form, decided with the reducers.** `(bird,cat)` — no space after the comma — is the
+canonical spelling of a product, and the short-hand stays: it is shorter, it is what a reader wants, and
+`*` is the same term spelled the long way. The operator spellings keep their spaces (`a & b`), because
+there the space is part of reading the operator. This is `serialize.ts`'s `ARGUMENT_SEPARATOR`, and it
+is a display decision with a memory consequence — one fewer byte per argument — which is why it is
+recorded here rather than left to a formatter.
 
 **Acceptance**
 

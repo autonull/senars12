@@ -17,7 +17,11 @@ export const OPERATORS = {
   predictive: { symbol: '/>', arity: 2, commutative: false, nary: false },
   retrospective: { symbol: '/<', arity: 2, commutative: false, nary: false },
   operation: { symbol: '^', arity: 2, commutative: false, nary: false },
-  product: { symbol: '*', arity: 0, commutative: true, nary: true },
+  // Products are n-ary but NOT commutative: `docs/java/Op.java:110` builds PROD
+  // through the non-commutative constructor, and `(*,a,b)` and `(*,b,a)` are two
+  // different products. Declaring them commutative sorted their arguments at
+  // construction, so the two interned to one term and `termsEqual` said yes.
+  product: { symbol: '*', arity: 0, commutative: false, nary: true },
 } as const;
 
 export type OperatorKey = keyof typeof OPERATORS;
