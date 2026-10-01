@@ -36,8 +36,10 @@ out of is not a system yet.**
 > | landed | §1.5 `maxTasks` → `Infinity`, with `ResourceContract.unbounded` so a declared absence is distinguishable from an accidental one | in the tree, gated |
 > | **landed** | §1.4 `stop()` on a never-started component is a no-op — a lifecycle that throws on a legal call sequence teaches every caller to avoid it | `core/src/Lifecycle.ts`, `tests/nar/unit/lifecycle.test.ts` |
 > | **landed** | §1.1 `ask()` answers the asked term, a **ground instance of it** when the asked term carries variables, or nothing — and hands adjacency back as `evidence` | `nar/src/query/api.ts`, gate `answer:no-fabrication`, `tests/nar/todo30-u1.test.ts` |
-> | not started | §1.2, §1.3, §2.1–§2.4, §3.1–§3.3, §4.1–§4.3, §5.1–§5.9 | — |
-> | **measured, unfixed** | the five `(a-->TRUE)`-shaped rows in §2.2 that are wrongly `VALID` today | §2.2's test table |
+> | **landed** | §1.2 `relevance:measured` — read-path ranking by structural relevance, store unchanged | `nar/src/query/relevance.ts`, gate `relevance:measured`, `tests/nar/todo30-u2.test.ts` |
+> | **landed** | §2.1 `terms:canonical` — product arity 0/1 reachable, folds scoped to reference kinds | `nar/src/terms/impls/intern.ts`, gate `terms:canonical`, `tests/nar/todo30-t1.test.ts` |
+> | **landed** | §2.2 `terms:no-bool-task` — Bool atoms (TRUE/FALSE/NULL) cannot name a Task; cascade makes it total | `nar/src/terms/reduce.ts`, `nar/src/terms/impls/validation.ts`, gate `terms:no-bool-task` |
+> | not started | §1.3, §2.3–§2.4, §3.1–§3.3, §4.1–§4.3, §5.1–§5.9 | — |
 >
 > §1 and §2 are independent of each other and of §5. §3 is bookkeeping on the predecessor's debt and
 > can be done at any point. §4 is the thesis and needs no §1–§3.
@@ -641,23 +643,20 @@ anything.
 | §1.1 U1 — ask() answers asked term, ground instance, or refuses | ✅ landed | `answer:no-fabrication` |
 | §1.2 U2 — relevance ranking at read path, pure, store unchanged | ✅ landed | `relevance:measured` |
 | §2.1 T1 — product arity 0/1 reachable; folds scoped correctly | ✅ landed | `terms:canonical` |
-| §2.2 T2 — Bool atoms at term level, identities, isInvalidTaskTerm walks term | ⬜ next | `terms:no-bool-task` |
+| §2.2 T2 — Bool atoms at term level, identities, isInvalidTaskTerm walks term | ✅ landed | `terms:no-bool-task` |
 
 ### Remaining Failures (T1/T2 ripple)
 
 | test | failure | fix |
 |---|---|---|
-| `canonical-form.test.ts` corpus | sequence(3 args) — corpus generator passes wrong arity for binary `sequence` | adjust `termsOf` in canonical-form test (like terms-canonical did) |
-| `nal7-temporal.test.ts` | empty sequence/parallel throws — reference says binary/empty is invalid | test expects TRUE; change test to expect throw (empty sequence malformed) |
-| `nal8-procedural.test.ts` | proceduralChaining / operationToPredictive return undefined | rule expects `op.args[1]` as product; test builds operations with bare terms, now wrapped |
-| `refactor4-budget.test.ts` | LOC budget +57 — new relevance.ts + gate script | ratchet `complexity-budget.json` baseline (precedent: A11 did this) |
+| *(all fixed this session)* | — | — |
 
 ### Concrete Next Steps
 
-1. **T2 (§2.2)** — implement Bool identities in `reduce.ts`, update `isInvalidTaskTerm` to walk term, add `terms:no-bool-task` gate
-2. **Fix corpus generators** — `canonical-form.test.ts:36` and `nal7-temporal:141` need effective arity for `sequence` (binary) vs `parallel` (n-ary)
-3. **Procedural rules** — `proceduralChaining` / `operationToPredictive` expect `input1`/`input2` as product; tests must wrap or rules must unwrap
-4. **LOC budget** — `pnpm complexity:budget` passes; ratchet baseline in same commit (precedent: a2661c54)
+1. ~~**T2 (§2.2)** — implement Bool identities in `reduce.ts`, update `isInvalidTaskTerm` to walk term, add `terms:no-bool-task` gate~~ ✅
+2. ~~**Fix corpus generators** — `canonical-form.test.ts:36` and `nal7-temporal:141` need effective arity for `sequence` (binary) vs `parallel` (n-ary)~~ ✅
+3. ~~**Procedural rules** — `proceduralChaining` / `operationToPredictive` expect `input1`/`input2` as product; tests must wrap or rules must unwrap~~ ✅
+4. ~~**LOC budget** — `pnpm complexity:budget` passes; ratchet baseline in same commit (precedent: a2661c54)~~ ✅
 5. **T3 (§2.3)** — parens canonical, `<>` deprecated; mechanical sweep + gate `narsese:literals`
 6. **R1 (§3.1)** — `rule-table.history` retention row in `RESOURCE_CONTRACTS`
 
@@ -669,7 +668,7 @@ anything.
 - [x] Epistemic firewall (no model→Truth outside gates)
 - [x] 13 TODO29.a gates green (verified)
 - [x] Rule set stable mid-cycle
-- [x] Bool atom cannot name Task (T2 will enforce)
+- [x] Bool atom cannot name Task (T2 enforces)
 - [x] Absence is value (U1 refusal, U4 no-op, unbounded = declared)
 
 ### Ordering (per §6)
@@ -678,7 +677,7 @@ anything.
 U4  (lifecycle)           ── DONE
 U1  (fabricated answer)   ── DONE
 T1  (product arity)       ── DONE
-T2  (Bool identities)     ── NEXT (alone, with NAL parity re-run)
+T2  (Bool identities)     ── DONE (alone, with NAL parity re-run)
 T3  (parens)              ── after T2
 R1  (rule-table.history)  ── anytime
 U2  (relevance)           ── DONE (measured 1/133 at containment floor)
@@ -699,7 +698,7 @@ state is indexed or retrieved; it may never change **what counts as** committed 
 U4  (lifecycle lies)          ── alone, trivial, first
 U1  (fabricated answer)       ── alone, behavioural, with U2's measurement
 T1  (product arity)           ── alone, behavioural, against the four NAL suites
-T2  (Bool identities)         ── after T1: both touch compoundOf
+T2  (Bool identities)         ── after T1: both touch compoundOf (DONE)
 T3  (parens)                  ── mechanical; a gate lands first so the sweep is checked
 R1  (rule-table.history)      ── mechanical, and it is a predecessor's debt
 U2  (relevance)               ── after U1: U1 is the read path, U2 ranks within it

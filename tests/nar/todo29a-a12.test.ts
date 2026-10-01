@@ -15,7 +15,7 @@ import {
   type TermReducer,
 } from '../../nar/src/terms';
 import { OPERATORS } from '../../nar/src/terms/operators.js';
-import type { Term } from '../../nar/src/terms/types.js';
+import type { Term, OperatorKey } from '../../nar/src/terms/types.js';
 
 describe('terms:canonical', () => {
   it('is green on the tree', () => {

@@ -51,6 +51,8 @@ jobs:
       # TODO29.a A12 step 1: the operator table, the grammar and the serialiser
       # are one surface form, and every kind survives the round trip.
       - run: pnpm terms:canonical
+      # TODO30 T2: a Bool atom cannot name a Task; the cascade makes it total.
+      - run: pnpm terms:no-bool-task
       # TODO30 U1: ask() answers the asked term, a ground instance of it, or nothing.
       - run: pnpm answer:no-fabrication
       # TODO30 U2: relevance ranks an unchanged store, and the narrowing is measured.

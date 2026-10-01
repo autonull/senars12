@@ -31,7 +31,8 @@ const corpus = (): Term[] => {
   const terms: Term[] = [];
   for (const kind of Object.keys(OPERATORS) as (keyof typeof OPERATORS)[]) {
     const { arity, nary } = OPERATORS[kind];
-    for (const n of nary ? [2, 3] : [Math.max(arity, 1)]) {
+    const arities = nary ? [2, 3] : [Math.max(arity, 1)];
+    for (const n of arities) {
       const operands = members.slice(0, n);
       terms.push(TermBuilder.compound(kind, operands));
       if (nary)

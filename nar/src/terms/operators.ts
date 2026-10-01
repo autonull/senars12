@@ -19,7 +19,7 @@ export const OPERATORS = {
   // set, and the grammar has always built `setExt` / `setInt`.
   setExt: { symbol: '{', arity: 1, commutative: false, nary: false },
   setInt: { symbol: '[', arity: 1, commutative: false, nary: false },
-  sequence: { symbol: '&/', arity: 0, commutative: false, nary: true },
+  sequence: { symbol: '&/', arity: 2, commutative: false, nary: false },
   parallel: { symbol: '&|', arity: 0, commutative: true, nary: true },
   predictive: { symbol: '=/>', arity: 2, commutative: false, nary: false },
   retrospective: { symbol: '=|', arity: 2, commutative: false, nary: false },

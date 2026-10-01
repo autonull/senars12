@@ -1,6 +1,6 @@
 import type { OperatorKey, Term } from './types.js';
 import { termsEqual } from './impls/accessors.js';
-import { compoundOf } from './impls/intern.js';
+import { compoundOf, isBoolAtom, atomOf } from './impls/intern.js';
 
 /**
  * One NAL rewrite, declared and enumerable (TODO29.a §5.12).
@@ -58,10 +58,76 @@ const doubleNegation: TermReducer = {
   reduce: (term) => argsOf(argsOf(term)[0] as Term)[0] as Term,
 };
 
+/** `--TRUE = FALSE` — symmetric with double-negation. */
+const negateTrue: TermReducer = {
+  id: 'negate-true',
+  applies: (term) =>
+    term.kind === 'negation' && argsOf(term)[0]?.kind === 'atom' && argsOf(term)[0]!.symbol === 'TRUE',
+  reduce: (term) => atomOf('FALSE'),
+};
+
+/** `--FALSE = TRUE` */
+const negateFalse: TermReducer = {
+  id: 'negate-false',
+  applies: (term) =>
+    term.kind === 'negation' && argsOf(term)[0]?.kind === 'atom' && argsOf(term)[0]!.symbol === 'FALSE',
+  reduce: (term) => atomOf('TRUE'),
+};
+
+/** `a & TRUE = a` — TRUE is the identity for conjunction. */
+const conjunctionTrue: TermReducer = {
+  id: 'conjunction-true',
+  applies: (term) =>
+    term.kind === 'conjunction' &&
+    argsOf(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'TRUE'),
+  reduce: (term) =>
+    compoundOf(
+      'conjunction',
+      argsOf(term).filter((arg) => !(isBoolAtom(arg) && arg.symbol === 'TRUE'))
+    ),
+};
+
+/** `a & FALSE = FALSE` — FALSE absorbs conjunction. */
+const conjunctionFalse: TermReducer = {
+  id: 'conjunction-false',
+  applies: (term) =>
+    term.kind === 'conjunction' &&
+    argsOf(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'FALSE'),
+  reduce: () => atomOf('FALSE'),
+};
+
+/** `a | TRUE = TRUE` — TRUE absorbs disjunction. */
+const disjunctionTrue: TermReducer = {
+  id: 'disjunction-true',
+  applies: (term) =>
+    term.kind === 'disjunction' &&
+    argsOf(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'TRUE'),
+  reduce: () => atomOf('TRUE'),
+};
+
+/** `a | FALSE = a` — FALSE is the identity for disjunction. */
+const disjunctionFalse: TermReducer = {
+  id: 'disjunction-false',
+  applies: (term) =>
+    term.kind === 'disjunction' &&
+    argsOf(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'FALSE'),
+  reduce: (term) =>
+    compoundOf(
+      'disjunction',
+      argsOf(term).filter((arg) => !(isBoolAtom(arg) && arg.symbol === 'FALSE'))
+    ),
+};
+
 export const TERM_REDUCERS: readonly TermReducer[] = Object.freeze([
   flattenNested,
   dedupeArgs,
   doubleNegation,
+  negateTrue,
+  negateFalse,
+  conjunctionTrue,
+  conjunctionFalse,
+  disjunctionTrue,
+  disjunctionFalse,
 ]);
 
 /** Three reducers need two passes; the ceiling turns a non-terminating reducer into one loud error rather than a hang in the reasoning cycle. */

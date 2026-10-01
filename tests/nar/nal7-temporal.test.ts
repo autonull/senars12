@@ -135,13 +135,12 @@ describe('NAL7 Temporal Rules', () => {
     });
 
     test('empty n-ary operators fold to their empty form per reference', () => {
-      // Only n-ary operators (sequence, parallel, conjunction, disjunction, product)
-      // have defined empty forms. Binary operators like predictive/retrospective
+      // Only n-ary operators (parallel, conjunction, disjunction, product)
+      // have defined empty forms. Binary operators like sequence, predictive, retrospective
       // require 2 args and empty ones are malformed.
-      const seq = sequence();
+      expect(() => sequence()).toThrow('exactly 2');
       const par = parallel();
 
-      expect(seq.toString()).toBe('TRUE');
       expect(par.toString()).toBe('TRUE');
     });
   });

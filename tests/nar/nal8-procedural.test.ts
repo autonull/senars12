@@ -46,8 +46,9 @@ describe('NAL8 Procedural Rules', () => {
       const a = atom('a');
       const b = atom('b');
       const c = atom('c');
-      const op1 = operation(a, b);
-      const op2 = operation(b, c);
+      // operation wraps second arg in a product
+      const op1 = operation(a, TermBuilder.product(b));
+      const op2 = operation(b, TermBuilder.product(c));
 
       const result = NALExtendedRules.proceduralChaining([op1, op2]);
 
@@ -60,8 +61,8 @@ describe('NAL8 Procedural Rules', () => {
       const b = atom('b');
       const c = atom('c');
       const d = atom('d');
-      const op1 = operation(a, b);
-      const op2 = operation(c, d);
+      const op1 = operation(a, TermBuilder.product(b));
+      const op2 = operation(c, TermBuilder.product(d));
 
       const result = NALExtendedRules.proceduralChaining([op1, op2]);
       expect(result).toBeUndefined();
@@ -72,7 +73,7 @@ describe('NAL8 Procedural Rules', () => {
     test('converts operation to predictive implication', () => {
       const a = atom('a');
       const b = atom('b');
-      const op = operation(a, b);
+      const op = operation(a, TermBuilder.product(b));
       const seq = sequence(a, b);
 
       const result = NALExtendedRules.operationToPredictive([op, seq]);
@@ -85,7 +86,7 @@ describe('NAL8 Procedural Rules', () => {
       const a = atom('a');
       const b = atom('b');
       const c = atom('c');
-      const op = operation(a, b);
+      const op = operation(a, TermBuilder.product(b));
       const seq = sequence(a, c);
 
       const result = NALExtendedRules.operationToPredictive([op, seq]);

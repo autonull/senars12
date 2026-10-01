@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { compoundOf, atomOf, rawCompoundCtors, clearTerms } from '../../nar/src/terms/impls/intern.js';
-import { termKey, compoundCtors } from '../../nar/src/terms/index.js';
+import { termKey, isCompound } from '../../nar/src/terms/index.js';
 import { termParser, type Term } from '../../nar/src/terms/index.js';
 
 describe('T1 — product arity is reachable and distinct from atoms', () => {
@@ -29,8 +29,8 @@ describe('T1 — product arity is reachable and distinct from atoms', () => {
     const one = compoundOf('product', [a]);
 
     expect(one.kind).toBe('product');
-    expect(one.args).toHaveLength(1);
-    expect(one.args[0]).toBe(a);
+    expect(isCompound(one) && one.args).toHaveLength(1);
+    expect(isCompound(one) && one.args[0]).toBe(a);
     expect(termKey(one)).toBe('product:atom:a'); // NOT 'atom:a'
   });
 
@@ -38,7 +38,7 @@ describe('T1 — product arity is reachable and distinct from atoms', () => {
     const zero = compoundOf('product', []);
 
     expect(zero.kind).toBe('product');
-    expect(zero.args).toHaveLength(0);
+    expect(isCompound(zero) && zero.args).toHaveLength(0);
     expect(termKey(zero)).toBe('product:'); // NOT 'atom:TRUE'
   });
 
