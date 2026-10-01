@@ -31,11 +31,14 @@ export {
 } from './impls/accessors.js';
 export { getTermComplexity } from './impls/complexity.js';
 export { atom, TermBuilder, TermFactory } from './impls/factory.js';
-export { normalize } from './impls/normalize.js';
+export { canonicalTerm, type TermReducer, TERM_REDUCERS } from './reduce.js';
+export { canonicalTask, type TaskReducer, TASK_REDUCERS } from './reduce-task.js';
 export type { OperationCall } from './impls/operation-term.js';
 export { operationNameOf, operationTerm, readOperationTerm } from './impls/operation-term.js';
 export type { ParserResult, ParseTaskResult, TaskTypeName } from './impls/parser-peggy.js';
 export {
+  deserializeTerm,
+  fromNarsese,
   ParseError,
   PUNCTUATION_BY_TASK_TYPE,
   TermParser,
@@ -44,7 +47,7 @@ export {
 } from './impls/parser-peggy.js';
 export type { SerializedStamp, Source, Stamp as StampType } from './impls/Stamp.js';
 export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './impls/Stamp.js';
-export { deserializeTerm, fromNarsese, serializeTerm, toNarsese } from './impls/serialize.js';
+export { serializeTerm, toNarsese } from './impls/serialize.js';
 export { substituteVariables } from './impls/substitute.js';
 export type { Truth as TruthType } from './impls/Truth.js';
 export { isTruthEqual, Truth } from './impls/Truth.js';

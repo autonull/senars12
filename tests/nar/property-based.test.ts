@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import { PriorityBag } from '../../nar/src/bag';
 import {
-  normalize,
+  canonicalTerm,
   Stamp,
   serializeTerm,
   TermBuilder,
@@ -175,26 +175,26 @@ describe('Property-Based Tests', () => {
     });
   });
 
-  describe('Normalization Invariants', () => {
-    it('normalize(normalize(t)) produces same hash as normalize(t)', () => {
+  describe('Canonical form', () => {
+    it('canonicalTerm(canonicalTerm(t)) produces same hash as canonicalTerm(t)', () => {
       fc.assert(
         fc.property(validAtomName, (name) => {
           const term = TermBuilder.atom(name);
-          const norm1 = normalize(term);
-          const norm2 = normalize(norm1);
+          const norm1 = canonicalTerm(term);
+          const norm2 = canonicalTerm(norm1);
           expect(termsEqual(norm1, norm2)).toBe(true);
         })
       );
     });
 
-    it('normalize is idempotent for conjunctions', () => {
+    it('canonicalTerm is idempotent for conjunctions', () => {
       fc.assert(
         fc.property(validAtomName, validAtomName, (a, b) => {
           const t1 = TermBuilder.atom(a);
           const t2 = TermBuilder.atom(b);
           const conj = TermBuilder.conjunction(t1, t2);
-          const norm1 = normalize(conj);
-          const norm2 = normalize(norm1);
+          const norm1 = canonicalTerm(conj);
+          const norm2 = canonicalTerm(norm1);
           expect(termsEqual(norm1, norm2)).toBe(true);
         })
       );
@@ -237,12 +237,12 @@ describe('Property-Based Tests', () => {
   });
 
   describe('Rule Idempotence', () => {
-    it('atom terms never mutate on normalization', () => {
+    it('atom terms never mutate on canonicalisation', () => {
       fc.assert(
         fc.property(validAtomName, (name) => {
           const atom = TermBuilder.atom(name);
 
-          normalize(atom);
+          canonicalTerm(atom);
         })
       );
     });

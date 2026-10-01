@@ -3,26 +3,11 @@ import { isAtomic } from '../types.js';
 
 export const isType = <K extends OperatorKey>(k: K, t: Term): t is CompoundTerm<K> => t.kind === k;
 
+// The kind list is `OperatorKey`, not a hand-written copy of it: a guard table
+// that has to be updated when an operator is added is a second source of truth
+// about which kinds exist, which is what `terms:canonical` exists to catch.
 const createTypeGuard =
-  <
-    K extends
-      | 'inheritance'
-      | 'similarity'
-      | 'implication'
-      | 'equivalence'
-      | 'conjunction'
-      | 'disjunction'
-      | 'negation'
-      | 'setExt'
-      | 'setInt'
-      | 'sequence'
-      | 'parallel'
-      | 'predictive'
-      | 'retrospective'
-      | 'operation',
-  >(
-    kind: K
-  ) =>
+  <K extends OperatorKey>(kind: K) =>
   (t: Term): t is CompoundTerm<K> =>
     isType(kind, t);
 export const isInheritance = createTypeGuard('inheritance');

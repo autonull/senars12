@@ -1,105 +1,33 @@
-import { LruCache } from '@senars/util';
-import { COMMUTATIVE_OPS, NARY_OPS, OPERATORS } from '../operators.js';
-import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from '../types.js';
-import { VARIABLE_SYMBOL } from '../types.js';
-import { atomKey, containsSubterm, termKey } from './accessors.js';
-import { serializeTerm } from './serialize.js';
-import { INVALID_ATOM_CHARS_REGEX } from './valid-atom.js';
+import type { AtomicTerm, OperatorKey, Term } from '../types.js';
+import { canonicalTerm } from '../reduce.js';
+import { containsSubterm } from './accessors.js';
+import {
+  atomOf,
+  clearTerms,
+  compoundOf,
+  evictTerm,
+  rawCompoundCtors,
+  termCacheSize,
+} from './intern.js';
 
-const TERM_CACHE_MAX_SIZE = 10000;
+/**
+ * Every public construction path canonicalises before it keys, so interning,
+ * `termsEqual` and memory dedup agree by construction rather than by which
+ * producer remembered to normalise (TODO29.a §5.12).
+ */
+const createCompound = (kind: OperatorKey, args: Term[]): Term =>
+  canonicalTerm(compoundOf(kind, args));
 
-const termCache = new LruCache<string, Term>(TERM_CACHE_MAX_SIZE);
+const negation = (term: Term): Term => createCompound('negation', [term]);
 
-const cache = <T extends Term>(term: T, key: string): T => {
-  termCache.set(key, term);
-  return term;
-};
-
-const createAtom = (symbol: string): AtomicTerm => {
-  if (symbol.includes(':')) {
-    throw new Error(
-      `Atomic term symbol cannot contain ':' (Narsese compact inheritance shorthand). Use '_' instead, or use the parser for namespaced terms like 'ns:term'.`
-    );
-  }
-  // Allow variable symbols starting with ? $ # * %
-  const isVariable = VARIABLE_SYMBOL.test(symbol);
-  // Allow quoted atoms (wrapped in ") which can contain spaces and other chars
-  const isQuotedAtom = symbol.startsWith('"') && symbol.endsWith('"');
-  if (!isVariable && !isQuotedAtom && INVALID_ATOM_CHARS_REGEX.test(symbol)) {
-    const badChar = symbol.match(INVALID_ATOM_CHARS_REGEX)?.[0];
-    throw new Error(
-      `Atomic term symbol cannot contain '${badChar}' (reserved in Narsese grammar). ` +
-        `Use '_' instead.`
-    );
-  }
-  const key = atomKey(symbol);
-  const cached = termCache.get(key);
-  if (cached) return cached as AtomicTerm;
-  return cache(
-    Object.freeze({
-      kind: 'atom' as const,
-      symbol,
-      isVariable,
-      toString() {
-        return symbol;
-      },
-    } as AtomicTerm),
-    key
-  );
-};
-
-const TRUE_ATOM = createAtom('TRUE');
-const FALSE_ATOM = createAtom('FALSE');
-
-/** Module-scope collator: identical ordering to `localeCompare` without its per-call ICU setup. */
-const CANONICAL_COLLATOR = new Intl.Collator();
-const canonicalKeyOf = (t: Term): string => (t.kind === 'atom' ? t.symbol : t.kind);
-export const compareForCanonicalOrder = (a: Term, b: Term): number =>
-  CANONICAL_COLLATOR.compare(canonicalKeyOf(a), canonicalKeyOf(b));
-
-const createCompound = (kind: OperatorKey, args: Term[]): Term => {
-  const valid = args.filter(Boolean);
-  if (valid.length === 0) return kind === 'disjunction' ? FALSE_ATOM : TRUE_ATOM;
-  // A variadic kind with one member *is* that member: `(&&,P)` must not exist,
-  // and `(a)` must not read back as a one-arg product that writes as `a`.
-  if (valid.length === 1 && NARY_OPS.has(kind)) return valid[0]!;
-
-  const sorted = COMMUTATIVE_OPS.has(kind) ? valid.toSorted(compareForCanonicalOrder) : valid;
-
-  // `termKey` is the canonical structural key — prefixing every atom makes the
-  // derivation injective, where joining bare `toString()` forms let any symbol
-  // containing `,` alias a different arity.
-  const shape = { kind, args: sorted } as CompoundTerm;
-  const key = termKey(shape);
-  const cached = termCache.get(key);
-  if (cached) return cached;
-
-  // Compute serialized form once during creation (cache key is NOT the full serialized form)
-  const serialized = serializeTerm(shape);
-
-  return cache(
-    Object.freeze({
-      kind,
-      args: sorted as readonly Term[],
-      _serialized: serialized,
-      toString() {
-        return (this as any)._serialized ?? serializeTerm(this as CompoundTerm);
-      },
-    } as CompoundTerm & { _serialized?: string }),
-    key
-  );
-};
-
-const compoundCtors = {} as Record<OperatorKey, (...args: Term[]) => Term>;
-for (const key of Object.keys(OPERATORS) as OperatorKey[]) {
-  compoundCtors[key] = (...args: Term[]) => createCompound(key, args);
+const canonicalCtors = {} as Record<OperatorKey, (...args: Term[]) => Term>;
+for (const kind of Object.keys(rawCompoundCtors) as OperatorKey[]) {
+  canonicalCtors[kind] = (...args: Term[]) => createCompound(kind, args);
 }
 
 export const TermBuilder = {
-  atom: (symbol: string): AtomicTerm =>
-    symbol === 'TRUE' ? TRUE_ATOM : symbol === 'FALSE' ? FALSE_ATOM : createAtom(symbol),
-
-  ...(compoundCtors as Record<OperatorKey, (...args: Term[]) => Term>),
+  atom: atomOf,
+  ...canonicalCtors,
 
   compound: (kind: OperatorKey, args: Term[]): Term => createCompound(kind, args),
 
@@ -107,20 +35,19 @@ export const TermBuilder = {
   create: (kind: string, args: Term[]): Term => createCompound(kind as OperatorKey, args),
   setExt: (...components: Term[]): Term => createCompound('setExt', components),
   setInt: (...components: Term[]): Term => createCompound('setInt', components),
-  atomic: (symbol: string): AtomicTerm => createAtom(symbol),
   inheritance: (subj: Term, pred: Term): Term | undefined => {
     if (containsSubterm(subj, pred) || containsSubterm(pred, subj)) {
       return undefined;
     }
     return createCompound('inheritance', [subj, pred]);
   },
-  negation: (term: Term): Term => createCompound('negation', [term]),
-  delta: (term: Term): Term => createCompound('negation', [term]), // delta is negation
+  negation,
+  delta: negation, // Narsese's delta is a negation
 
-  evict: (key: string): boolean => termCache.delete(key),
-  clear: (): void => termCache.clear(),
+  evict: evictTerm,
+  clear: clearTerms,
   get size(): number {
-    return termCache.size;
+    return termCacheSize();
   },
 };
 

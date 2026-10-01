@@ -7,7 +7,6 @@
  * - serialize.ts / deserialize.ts - String conversion
  * - complexity.ts - Complexity and similarity metrics
  * - substitute.ts - Variable substitution
- * - normalize.ts - Normalization utilities
  * - accessors.ts - Term accessors and type guards
  * - guards.ts - Additional type guards
  * - factory.ts - Term construction

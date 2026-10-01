@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import type { Term } from '../../../nar/src';
-import { normalize, TermBuilder, termsEqual } from '../../../nar/src/terms';
+import { canonicalTerm, TermBuilder, termsEqual } from '../../../nar/src/terms';
 import { VALID_ATOM_CHARS } from '../../../nar/src/terms/impls/valid-atom.js';
 
 // Valid atom characters: alphanumerics and underscore only (per Narsese grammar)
@@ -18,8 +18,8 @@ describe('Term invariants (property)', () => {
   it('normalization is idempotent', () => {
     fc.assert(
       fc.property(termArb, (t) => {
-        const n1 = normalize(t);
-        const n2 = normalize(n1);
+        const n1 = canonicalTerm(t);
+        const n2 = canonicalTerm(n1);
         expect(termsEqual(n1, n2)).toBe(true);
         expect(hashOf(n1)).toBe(hashOf(n2));
       })

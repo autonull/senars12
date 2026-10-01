@@ -1,9 +1,5 @@
-import { createLogger } from '@senars/util';
 import { NARY_OPS, OPERATORS } from '../operators.js';
 import type { OperatorKey, Term } from '../types.js';
-import { termParser } from './parser-peggy.js';
-
-const log = createLogger({ scope: 'serialize' });
 
 const NARY_OPS_SET: ReadonlySet<string> = NARY_OPS;
 const BINARY_OPS = new Set(
@@ -117,24 +113,8 @@ const serialize = (term: Term): string => {
 
 export const serializeTerm = serialize;
 
-export const deserializeTerm = (s: string): Term | null => {
-  try {
-    return termParser.parse(s);
-  } catch (e) {
-    log.error('Deserialize failed', e as Error);
-    return null;
-  }
-};
-
 /**
  * Canonical term → Narsese string API. Delegates to {@link serializeTerm}.
  * @public
  */
 export const toNarsese = (term: Term): string => serializeTerm(term);
-
-/**
- * Canonical Narsese string → Term API. Delegates to {@link deserializeTerm}.
- * Returns `null` when the input is not parseable.
- * @public
- */
-export const fromNarsese = (s: string): Term | null => deserializeTerm(s);

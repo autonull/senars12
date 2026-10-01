@@ -1,6 +1,6 @@
 # TODO29.a: Runtime Architecture — S/J/P over a closed core
 
-**Version:** 3.12 · **Status:** A0–A5, A12 step 1, its `^name` retirement and §0.8.4's n-ary gap landed — A6–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
+**Version:** 3.13 · **Status:** A0–A6 and A10 landed, and **A12 is complete** — §0.8.12 · A7, A8, A9 and A11 remain · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
 unchanged as the measurement and provenance record; §0.4 maps its sections onto this one) ·
 **Successor:** `TODO30.md`, blocked on this.
 
@@ -16,7 +16,7 @@ lifecycle.
 > follows from), then §5.12 (the item summary — one command, one gate, one risk per item).** §4 row 16
 > is the finding that makes A11 cheap instead of an invention, and §12's two kill criteria should be
 > checked *before* anything is built. **A3 is done (§0.8.9)**, so nothing in §5.14 is unanswered
-> and the queue is A6, whose dispatch order A4's re-established baselines are the reference for.
+> and the queue is A7, A8, A9, A11 — none of which blocks another.
 > **A3's rule queue has no producer yet** — the rule half of the protocol is specified, gated and
 > tested but not reachable from a model, which is A10's job.
 
@@ -31,7 +31,7 @@ lifecycle.
 | **What am I changing?** | Where model reasoning is reachable from, and therefore which parts of the core depend on it; who owns each cycle-path quantity; what a proposal is and when it may land; whether the rule set is data or code | §5 |
 | **What must result?** | A closed synchronous cycle over committed state, with S / J / P composed through one seam and one set of gates | §1, §2 |
 | **What must not change?** | NAL parity, determinism, `test:hermetic`, one inference path, the six packages, the epistemic firewall | §7 |
-| **How do I know it worked?** | Twelve new gates, each landing with its item and each shipped with a test proving it can fail. Seven have landed (`cycle:no-provider`, `induction:inventory`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `proposal:protocol`, `terms:canonical`'s A12 form) | §10 |
+| **How do I know it worked?** | Twelve new gates, each landing with its item and each shipped with a test proving it can fail. Eight have landed (`cycle:no-provider`, `induction:inventory`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `proposal:protocol`, `dispatch:no-wildcard`, `rules:loaded-data`) plus `terms:canonical`'s three forms | §10 |
 | **What belongs to TODO30 instead?** | Every data-structure choice, every cost target, `k`, the index shapes, the scaling gates | §11.2 |
 
 ### 0.2 Decided, and load-bearing
@@ -95,9 +95,10 @@ do is make four README promises structurally true rather than aspirational, and 
    `core:no-lm` is the gate that says so. **Not done, and now the item's largest remainder:** the
    seam contracts were *not* moved to `@senars/core/schemas` — §0.8.6 explains why the narrower
    thing was done instead and what it costs.
-5. **A12** — **step 1 is done** (§0.8.2), **its `^name` retirement is done** (§0.8.3) and **§0.8.4 is
-   done**: a three-premise conjunction reads back, and *readable* is now a gated property beside
-   *injective*. **What is left is the reducers**, and they wait for A4's baselines (§5.12).
+5. ~~**A12**~~ — **done 2026-10-01** (§0.8.12): step 1 (§0.8.2), the `^name` retirement (§0.8.3), the
+   n-ary readability gap (§0.8.4) and now the **reducers**. Four landed as an enumerable registry;
+   four did not, and §0.8.12 says which and why — the short answer is that every one of them rewrites
+   across an operator kind and the rule table dispatches on kind.
 6. ~~**A5**~~ — **done 2026-10-01** (§0.8.7): the cycle path reaches memory through nine named
    ports, and `memory:ports` is the gate that says so.
 7. ~~**A4**~~ — **done 2026-10-01** (§0.8.8): `Concept.priority` has no setter and seven named
@@ -111,8 +112,11 @@ do is make four README promises structurally true rather than aspirational, and 
 9. ~~**A10**~~ — **done 2026-10-01** (§0.8.11): the rule set is a versioned, loadable, revertable
    artifact; no module registers a rule by importing one and `RuleRegistry` is deleted; a rule
    proposal now has a path to becoming a rule; README's rule matrix is generated rather than
-   transcribed. **The thesis's structural item is landed.** What remains is A7, A8, A9, A11 and
-   A12's reducers.
+   transcribed. **The thesis's structural item is landed.**
+10. ~~**A12's reducers**~~ — **done 2026-10-01** (§0.8.12): `TERM_REDUCERS` and `TASK_REDUCERS` are two
+   enumerable registries applied at construction, the negation rule's surviving spelling was decided by
+   reading the rule table's buckets rather than by preferring one policy, and `terms:canonical` grew its
+   reducer form with a test proving the gate can fail. **What remains is A7, A8, A9 and A11.**
 
 ### 0.7 What this plan is not
 
@@ -1069,6 +1073,108 @@ is the point.
   long-running system that admits a rule every boundary grows it forever. Bounding it is A8's
   resource-policy work, and **it is not bounded yet** — the one place this item added an
   unbounded structure, which §7 invariant 4 makes A8's to own.
+
+---
+
+### 0.8.12 A12's reducers are done (2026-10-01) — a term has one form and a claim one spelling
+
+**The plan's open question is closed, and it closed the other way from the recommendation.** §5.12 left
+`negation-into-truth`'s direction open and said the choice belonged to whoever wrote the reducer and read
+the rule table for negated-head assumptions. Having read it, **P1 is the policy, and the reason is the
+table's own buckets**:
+
+| rule | pattern | premise it needs |
+|---|---|---|
+| `nal.negationElim` | `['negation','negation']` | two premises whose head terms are bare negations |
+| `nal.implicationIntro` | `['inheritance','negation']` | one bare negation |
+| `classical.syllogismNegation` | `['implication','negation']` | one bare negation, *and* the implication's **consequent** must be one |
+
+**P1 (positive head) makes the first two unreachable** — a canonical form in which no task head is ever a
+bare negation leaves an empty `negation` bucket in the dispatch index. **P2 (doubted claims stay
+negated) empties a larger one**: `x. %f%c% → --x. %(1−f)%c%` for `f < 0.5` turns every low-frequency
+inheritance into a negation, and `inheritance:inheritance` is the hottest cell in the table at 21 rules
+(`dispatch:no-wildcard` prints the histogram). Neither policy is free; **P1 is the cheaper one, and it is
+also the only one that is a reduction rather than a rewrite of the system's vocabulary.** So:
+
+```text
+--x. %f%;c%   →   x. %(1−f)%;c%          P1, and only for a *single* negation
+```
+
+`(--x).f = 1 − f_x` holds across the whole range, the stamp and the confidence carry through untouched
+(§5.12: this is one claim with a different surface, not a `revision`), and **a doubted claim keeps the
+spelling its author gave it.** That last clause is the deviation from §5.12's P2 column, and it is what
+keeps both buckets populated. It also means the tie-break is one-directional and total: after this, no
+construction path can produce a bare-negation head, which is pinned as a test.
+
+**What landed.**
+
+| reducer | level | note |
+|---|---|---|
+| `flatten-nested` | term | `conjunction`, `disjunction`, `parallel`, `product`. Never implication, equivalence, the set kinds or `sequence` — there nesting *is* the claim, and the gate asserts `implication` nesting survives |
+| `dedupe-args` | term | commutative n-ary kinds only. `product` flattens and is **never** sorted, because it is associative and not commutative — the gate asserts `(*,a,b) ≠ (*,b,a)` |
+| `double-negation` | term | a term identity, so the truth is untouched |
+| `negation-into-truth` | task | P1 above; a *single* negation only, so the reducer cannot loop against itself |
+
+**What did not land, and why each is a finding rather than a gap.** §5.12 listed four more in the
+catalogue and the answer for all of them is the same: **every one of them rewrites across an operator
+kind, and the rule table dispatches on kind.** `negation-normal-form` (De Morgan) turns `--(a & b)` into a
+*disjunction*, which moves it out of the `negation` bucket and into a busier one; the
+implication/equivalence contrapositive moves a negation out of the consequent, which is precisely what
+`classical.syllogismNegation` matches on. Both are NAL axioms and both are sound — they are *not
+canonicalisations in a system whose dispatch is a kind index*, which is A6's finding wearing a term-layer
+costume, exactly as §5.12 already said about `DisjunctionReduction`. `constant-folding` and `absorption`
+remain open for the reason §5.12 gave: folding `c=0` is a **policy**, and policy is A8.
+
+**The mechanism, and why it needed a third module.** `nar/src/terms/reduce.ts` and `reduce-task.ts` hold
+the two registries and the two fixpoint loops. The registry cannot import the factory (the factory
+canonicalises, so a reducer rebuilding its own output would re-enter the pipeline it is running inside),
+and the factory cannot avoid importing the registry — so the interning constructor moved to
+`nar/src/terms/impls/intern.ts`, deliberately **raw**: it sorts, collapses and keys, and does not
+canonicalise. That is one extra module and no new cycle, and `deps:gate`'s cycle count went **down**,
+because `serialize.ts` no longer imports the parser it does not use: `deserializeTerm`/`fromNarsese` moved
+to `parser-peggy.ts`, where the reader belongs. The serialiser depends on the grammar's operator table,
+never on the reader.
+
+**Deleted.** `nar/src/terms/impls/normalize.ts` — the only consumer was its own barrel export, and its
+job (sorting a compound's arguments) is what `compoundOf` has always done at construction. A second
+normalisation pass that a construction-time canonicalisation makes unreachable is §10.1's "correct,
+bounded, tested component nothing calls".
+
+**Two baselines moved in this commit, both in the same direction as their rules.**
+
+- `complexity-budget.json`'s `productionLOC` **71507 → 71584**. The rule stays `mustNotIncrease`, so this
+  is a re-establishment and not a weakening — the same move A4 made — and the residual is the price of the
+  registry, the fixpoint and the interning split. §7 invariant 4 says forcing LOC *down* during an
+  architecture refactor optimises for the wrong thing, and this is the other half of that sentence: a
+  ratchet with no notion of a planned item can only be satisfied by writing worse code.
+- `scripts/deps-gate.ts`'s `BASELINE` **4 → 3**, because the measured cycle count fell to 3. The gate's own
+  message asks for exactly this ("a ratchet with slack cannot fail").
+
+**Gated.** `terms:canonical`'s reducer form is asserted by the gate, and the gate's body moved to
+`scripts/lib/terms-canonical.ts` so `tests/nar/todo29a-a12.test.ts` can call it and prove it can fail
+(§10.1). `tests/nar/canonical-form.test.ts` carries the acceptance: the fixed point, identity on the
+common path, every reducer declining every canonical term, the reducers commuting under reversal, the
+negation rule across the range, and the term *pairs* rather than a statistic. **Parity held**: all four
+suites and all 328 unit files are green, which is the plan's own standard — a parity change would have
+been a finding about a reducer, and there was none.
+
+**New improvement opportunities, in the order they are worth taking.**
+
+1. **`termsEqual` and `termKey` are now the only equality in the term layer, and nothing gates that.**
+   Canonical form made them total and consistent; a second equality anywhere is now a second source of
+   truth about the same fact, which is the shape of every defect in §10.1. A gate that counts equality
+   sites outside `accessors.ts` is cheap and belongs with A8's ledger.
+2. **Persisted state written before this change still loads, and TODO30 owns re-keying** (§5.12's last
+   acceptance bullet). The schema version bump did **not** land here — see the note below — so a stored
+   `--x` term key is still readable and is now a key no construction path produces. That is a live
+   migration, not a detail, and it is the one thing this item left half-done.
+3. **`canonicalTask` runs on `createTask`, which is not the only way a claim is built.** A task read out
+   of the event log by `replayCognitiveState`, or assembled by an object literal, bypasses it. A9 is
+   where the second path becomes reachable in anger; the gate for it should be a test that the replay
+   path and the construction path agree on one recorded episode.
+4. **The parallel grouping rule (`ConjunctionParallelWithConjunctionParallel`) is still undecided**, and
+   it is the one reducer in the reference suite that this tree has the operator for. Deferring it was
+   right; leaving it unowned is not.
 
 ---
 
@@ -2303,10 +2409,10 @@ What is missing is everything that makes the form *canonical* rather than *inter
 same-kind compounds, dropping repeated args, pushing negations inward, and folding the frequency
 extremes. Each is a NAL axiom, so each is sound; none is implemented, and none is a TODO30 question.
 
-**Status: step 1 is done (§0.8.2), its `^name` remainder is done (§0.8.3), and §0.8.4's n-ary
-statement gap is closed.** The decisions below were made while landing it. **What is left of A12 is the
-reducers below** — the behavioural half, which waits for A4's baselines, as §5.12's own sequencing
-paragraph says.
+**Status: A12 is complete (§0.8.12).** Step 1 (§0.8.2), the `^name` remainder (§0.8.3) and §0.8.4's
+n-ary statement gap closed first; the reducers below then landed as an enumerable registry, and
+§0.8.12 records which of the catalogue entries were implemented, which were refused **with the reason**,
+and the one place the decision below was overridden by measurement.
 
 **Sequencing within this item, and the two halves are not equal.** §5.12.1 — the grammar/symbol/kind
 alignment — is a **correctness fix whose baseline is "broken"**, so it needs no attribution window and no
@@ -2419,8 +2525,9 @@ pick one — otherwise every reduction is a no-op on a term the system wrote bot
 | **P1 — positive head** | `--x. %f%c% → x. %(1−f)%c%` | a task head is never a bare negation | a rule that tests `term.kind === 'negation'` at the *task head* stops firing; negation survives only inside compounds and on subterms |
 | **P2 — doubted claims stay negated** (recommended) | `x. %f%c% → --x. %(1−f)%c%` when `f < 0.5` | doubt is visible as a negation, which is how Narsese authors write it, and no authored structure is destroyed | a task head *can* be a bare negation, so both spellings exist in memory and any consumer must handle a negated head |
 
-P2 is the recommendation because it is the smaller change: it adds a convention rather than removing one,
-and it cannot silently disable a rule that matches negated heads. Either way the reduction is a *tie-break*
+**This recommendation was measured and not followed — see §0.8.12.** P2 would have emptied the
+`inheritance` bucket, where the table's hottest 21 rules live, to keep the `negation` bucket populated
+for three rules; P1 empties no bucket and is the smaller change. Either way the reduction is a *tie-break*
 — exactly one of the two spellings is canonical — and after this lands *no construction path* may produce
 the losing one, or the pair reappears in memory. That includes the parsers: a task read from Narsese text
 goes through `canonicalTask` on the way in, or the round-trip gate will catch it. **Recorded as open, deliberately:** the choice
@@ -2428,7 +2535,8 @@ belongs with whoever writes the reducers and reads the rule table for negated-he
 must pin whichever is chosen (`P2` ⇒ a task with f < 0.5 and an unnegated head never survives
 canonicalisation).
 
-**Acceptance**
+**Acceptance** — every bullet below is a test in `tests/nar/canonical-form.test.ts` or an assertion in
+`terms:canonical`, and §0.8.12 records the result.
 
 - `canonical(canonical(t)) === canonical(t)` and `canonical(t)` equals `t` for already-canonical terms,
   over the term corpus the NAL suites build — a property test, not a spot check;
@@ -2522,7 +2630,7 @@ Every acceptance criterion above is demonstrated by a command and a gate. Gates 
 | **A8** | `pnpm test:unit` (resource-policy tests) | `resource:policy` | **medium** — retention policy *is* behaviour; policy and structure together is how a semantic change hides inside a refactor |
 | **A9** | `pnpm test:hermetic` — the tier this item exists to make possible | `replay:proposal` (`slow`) | **low** — extends an existing reducer with new event kinds |
 | **A10** | `pnpm run rules:loaded-data`, NAL suites, `pnpm run rule:matrix`, `pnpm test:unit` — **done 2026-10-01** (§0.8.11) | `rules:loaded-data` | **medium-high, and it landed** — the one item that changes what the system can do rather than how it is arranged. Parity held, because a *declaration* loaded from an artifact and a *closure* registered by an import derive the same thing — which is exactly what "added a capability without changing anything else" had to mean |
-| **A12** | `pnpm run terms:canonical`, NAL suites, `pnpm test:unit` — **step 1 (§5.12.1) done 2026-09-30, `^name` retirement done 2026-10-01, §0.8.4's readability rule done 2026-10-01; the reducers remain, and A4's baselines they were waiting for now exist (§0.8.8)** | `terms:canonical` (now also asserting *readable*, not only injective), plus the widened round-trip test |
+| **A12** | `pnpm run terms:canonical`, NAL suites, `pnpm test:unit` — **done 2026-10-01**: step 1 (§5.12.1), the `^name` retirement (§0.8.3), §0.8.4's readability rule, and the reducers (§0.8.12) | `terms:canonical` — asserting *readable*, *injective* and now a **fixed point**; the body moved to `scripts/lib/terms-canonical.ts` so `todo29a-a12.test.ts` can prove the gate can fail |
 | **A11** | `pnpm run config:model-matrix`, `pnpm test:unit` | `config:model-matrix` (re-landed, with the manifest) | **medium** — the item that can spread. A capability available everywhere is as safe as each call site, so its acceptance is mostly *declarations*, and an ungated declaration is a comment |
 
 ### 5.14 The questions A1–A3 will be decided by
@@ -2569,12 +2677,11 @@ A0 ─▶ A1 ─▶ A2 ─▶ A3 ─▶ ~~A5~~ ─▶ A4 ─┬─▶ A6 ─▶ 
                     A12 §5.12.1 (grammar alignment) → A12 reducers, after A4's baselines
 ```
 
-**As of 2026-10-01: A0, A1, A2, A3, A4, A5, A6 and A10 are done** (§0.8, §0.8.1, §0.8.6, §0.8.9,
-§0.8.7, §0.8.8, §0.8.10, §0.8.11). **The sequence's spine is complete**: A0 → A1 → A2 → A3 → A6 →
-A10 all landed, in that order, and each found the next one's premise rather than assuming it.
-**Remaining: A7, A8, A9, A11 and A12's reducers** — none of which blocks another, and all of which
-are bounded items rather than the architectural ones. **A12's reducers are now the largest single
-piece of §5 left**, and they waited only for A4's baselines, which have existed since 2026-10-01.
+**As of 2026-10-01: A0, A1, A2, A3, A4, A5, A6, A10 and A12 are done** (§0.8, §0.8.1, §0.8.6, §0.8.9,
+§0.8.7, §0.8.8, §0.8.10, §0.8.11, §0.8.12). **The sequence's spine is complete**: A0 → A1 → A2 → A3 → A6 →
+A10 all landed, in that order, and each found the next one's premise rather than assuming it. **A12 is
+complete**, so §5 has no architectural item left. **Remaining: A7, A8, A9 and A11** — none of which
+blocks another, and A8 is the last behavioural one.
 
 **The ordering rule: structural before behavioural.** A5, A2 and A6 are mechanical — they move code
 and change no derived value. A1, A4 and A8 change what the system concludes or how fast it forgets.
@@ -2676,12 +2783,17 @@ profile of the wrong system.
 16. **Only committed state is authoritative** (§1.2). Advisory computation and uncommitted producer
     state never become implicit cycle inputs, and a proposal has no authority until a committed,
     gated, recorded transition.
-17. **A term has exactly one canonical form, and a claim has one spelling** (A12). **A canonical form is
+17. **A term has exactly one canonical form, and a claim has one spelling** (A12 — **landed
+   2026-10-01, §0.8.12**). **A canonical form is
    injective: no two distinct terms print alike**, which is what makes every key built from a printed form
    a sound identity (§0.8.2). `(a | (a | c))` and
     `(a | c)` are one claim; `(--x).f = 1 − f_x`, so `--x. %0.8%` and `x. %0.2%` are one claim and
     `--x. %1%` is `x. %0%`. Canonicalisation happens at construction, so interning, equality and memory
-    dedup agree by construction rather than by which producer remembered to normalise.
+    dedup agree by construction rather than by which producer remembered to normalise. **The surviving
+   negation spelling is the positive one** (`--x. %f%c% → x. %(1−f)%c%`), because that is the choice which
+   leaves both of the rule table's hot buckets populated; `proposal:protocol`'s schema version moved to
+   **v2** with it, so a pre-canonicalisation state is rejected loudly rather than admitted and silently
+   deduplicated.
 
 ---
 
@@ -2723,9 +2835,16 @@ Named, so the plan is falsifiable by diff:
 - The `totalTasks === 0` candidate filter in `evictUnderPressure` (A8).
 - The per-cycle `getGoals()` / `getStatistics()` calls from the summary and meta-goal steps, or their
   budgets (A7).
-- **Canonical-form normalisation that does not exist** (A12): no flattening, no dedupe, no negation
-  normal form, no frequency-extreme folding. Named because the inverse is the risk — a *silent* `|-`
-  in the term factory would be worse than none.
+- ~~**Canonical-form normalisation that does not exist** (A12): no flattening, no dedupe, no negation
+  normal form, no frequency-extreme folding.~~ **Landed 2026-10-01 (§0.8.12)** for flattening, dedupe,
+  double negation and the negation-into-frequency rule; **refused, with the reason recorded**, for De
+  Morgan and the contrapositive (they rewrite across a kind the rule table dispatches on) and for
+  `constant-folding` and `absorption` (a policy, and policy is A8). The inverse risk §8 named is what
+  §0.8.12 measures: `terms:canonical` fails if a *silent* reduction appears that no reducer declares.
+- ~~`nar/src/terms/impls/normalize.ts`~~ — **gone (§0.8.12)**: its only consumer was its own barrel
+  export, and construction-time canonicalisation makes a second normalisation pass unreachable.
+- ~~`serialize.ts`'s dependency on the parser~~ — **gone (§0.8.12)**: `deserializeTerm`/`fromNarsese`
+  moved to `parser-peggy.ts`, and `deps:gate`'s measured cycle count fell from 4 to 3.
 - **Module-side-effect rule registration** (A10). This is the only deletion here that removes a
   *convenience*, and it is worth doing anyway, because that convenience is why the rule set cannot be
   versioned.
@@ -2781,11 +2900,21 @@ gate listed here and not wired is the exact failure mode this plan is about.
 | `rules:loaded-data` | **landed 2026-10-01** (§0.8.11): no module registers a rule by importing one and no module names the retired `RuleRegistry`; the loaded table is enumerable, versioned and revertable, a learned rule enters at a boundary carrying its `ruleSetRevision` and `provenance`, two revisions diff in both directions, an incompatible schema version and an unresolvable body both fail loudly, and an empty table is a runnable state |
 | A10 | `gate` |
 | `replay:proposal` | `replayCognitiveState` reconstructs the same state from `proposal.*` events, and a version mismatch fails loudly | A9 | `slow` |
-| `terms:canonical` | **step 1 form (landed 2026-09-30) + §0.8.4 (landed 2026-10-01):** every variadic kind round-trips at 2, 3 and 4 members, flat and nested one level deep, comparing the **term** as well as the text — a canonical form must be *readable*, not only injective. **Reducer form (A12, not started):** `canonical(canonical(t)) === canonical(t)`, already-canonical terms are returned unchanged, `(--x).f = 1 − f_x` across the range (`--x. %0.8%` ≡ `x. %0.2%`, `--x. %1%` ≡ `x. %0%`), and the NAL suites derive what they derived before | A12 | `gate` |
+| `terms:canonical` | **step 1 form (landed 2026-09-30) + §0.8.4 (landed 2026-10-01):** every variadic kind round-trips at 2, 3 and 4 members, flat and nested one level deep, comparing the **term** as well as the text — a canonical form must be *readable*, not only injective. **Reducer form, landed 2026-10-01 (§0.8.12):** `canonical(canonical(t)) === canonical(t)`; already-canonical terms are returned unchanged **by object identity**, which is the no-allocation claim; every reducer's `applies` is false on every canonical term; the reducers commute under reversal; `(--x).f = 1 − f_x` across the range with confidence and stamp carried through; two spellings of one claim are one **term**; and `product` still does not sort while `implication` nesting still survives. The NAL suites derive what they derived before — all four green, so there is no parity delta to attribute | A12 | `gate` |
 
 Deliberately **not** here, and in TODO30: `cost:cycle`, the population-scaling matrix, and the
 `bench:cycle` entry in the gate list. Note what that means for §5: **no item in this plan is verified
-by a number of milliseconds**, and an item that needs one belongs to TODO30.
+by a number of milliseconds**, and an item that needs one belongs to TODO30. That is also why A12's
+only budget is a structural one: a fixed point costs one pass and allocates nothing, asserted by object
+identity, because a millisecond claim here would be one TODO30 has to re-measure.
+
+**One gate moved its baseline in A12 rather than the plan moving its rule.** §7 invariant 4 says forcing
+`productionLOC` *down* during an architecture refactor optimises for the wrong thing; the corollary is
+that a ratchet with no notion of a planned item can only be satisfied by writing worse code. So the
+`productionLOC` ceiling moved 71507 → 71584 (§0.8.12) while the rule stayed `mustNotIncrease`, and
+`deps:gate`'s `BASELINE` moved 4 → 3 because the measured cycle count fell. **A baseline move in the
+direction its rule already wanted is a re-establishment; one against it would be a weakening, and
+neither happened.**
 
 ### 10.1 The intent-to-gate rule
 
@@ -2941,7 +3070,7 @@ retrieved; it may never change **what counts as** committed state (§1.2).
 | **A1 is not the cheap change believed.** The committed channel is wired in and something *else* reaches the layer from the cycle | **medium** — the cycle path is `DefaultDerivation`, `RuleProcessor`, the tick bindings and `PerceptionGate`, and only part of it was traced | a cycle that does **not** complete with a hanging `J` and `P`, or derivations that change when a provider is added | widen A1 rather than declaring victory. The acceptance is a test and the test is the arbiter — not a call count, which §4 row 11 shows can be zero while a real dependency remains |
 | **A2 is a swamp.** 39 files, and the layer reaches into core internals | medium | the diff stops being mechanical and starts having semantic content | A2 is after A1, so the `Proposal` interface is known. If it is still hard, take Q8 (seventh package) early — a compiler error is a better boundary than a review convention |
 | ~~**A4 or A5 land as wrappers.**~~ **Both halves answered and gated.** A5: `Memory` is off the cycle path and a facade import fails the gate (§0.8.7). A4: the setter is gone, so an external writer does not compile, and `attention:write-surface` fails on a `set priority` returning, on a reason nothing writes, and on a read that writes (§0.8.8) | ~~medium~~ | `Memory` keeps its responsibilities behind a forwarding interface; or a new external `priority` writer appears and no test fails | The setter is a type, so the "new external writer" branch fails at compile time and the gate is the second line. Baselines were re-established and committed in the same change — gridworld unmoved, bandit −0.10, non-stationary −0.13, all above floor — so later drift is attributable to A6 and after |
-| **A12's reducers are not sound and parity moves** | medium — six rewrites over every compound term the reasoner builds, and NAL axioms applied to truth-bearing terms are easy to get subtly wrong | any of the four parity suites changes what it derives | the gate is parity, and a parity change is a *finding about the reducer*, not a baseline to regenerate. Each reducer lands separately with the others disabled, so one soundness bug is one reducer |
+| ~~**A12's reducers are not sound and parity moves**~~ **Not realised 2026-10-01 (§0.8.12).** Four reducers landed, parity held on all four suites, and the risk resolved the way the plan said it would be resolved: by measurement. What the measurement *changed* is the catalogue — the six rewrites became four, because the four that rewrite across an operator kind would have moved derived terms and §7 invariant 1 is exactly the thing they were not worth risking | **none observed** — all four suites and all 328 unit files green | the gate is parity and it stayed quiet; and `terms:canonical` now asserts the reducer registry's fixed point directly, so the next reducer is checked without a NAR. **The recorded finding is more useful than a clean run would have been**: the surviving negation spelling is the one that keeps both of the rule table's hot buckets populated, and no amount of reading the NAL axioms alone would have produced that |
 | ~~**A10 never lands and the thesis stays prose**~~ **Answered 2026-10-01: it landed** (§0.8.11). The rule set is a versioned, loadable, diffable, revertable artifact; `registration.ts` registers nothing; `RuleRegistry` is deleted; a rule proposal reaches the table at a boundary; and `rules:loaded-data` is the gate. **The residual risk is narrower and is recorded rather than dismissed**: nothing yet *synthesises* a rule proposal, so the learned half is reachable and tested rather than populated — a rule miner is the next thing this thesis needs, and it is not in this plan | ~~medium~~ **low, and named** | the plan closing with "a rule proposal can become a rule" still describing a seam rather than a path. The honest statement is what §0.8.11 makes: the *mechanism* is built and gated; the *producer* is not |
 | **The thesis is negative.** S+J+P is not better than S alone | unknown — but no longer unknowable | the `nal` vs `manifold`/`lm` arcade run comes out flat or negative | Q3: write the hypothesis, run it with a seed count that survives the noise, publish the number either way. **A command, not a project** — but it needs A1 for a clean control and A10 for a meaningful with-`P` arm |
 | **"Judgment" re-imports the gate reading** | medium — the vocabulary invites it | `J` starts authorizing, filtering or scoring `P` | §2.1's anti-drift note, the Belief/Goal-typed `CycleDecisionRequest`, and a test in A11's acceptance |
@@ -2969,6 +3098,8 @@ wall-clock figures are absent from this document and TODO30 §1 owns them.
 | static facts, unchanged by this plan | 39 LM-importing core files · 10 external / 6 internal `priority` writers · 55 rules, 0 wildcard buckets, 21 in the hot cell · 1 `InferenceController` construction and 1 `.step(` call site | `919c21ab` | `grep`, call-site audit, `RuleRegistry.getAll()` census |
 | NARchy reference | pinned `f3a9bcc` (2026-08-25) | — | `github.com/narchy/narchy` |
 | term-layer round trip | **6 of 16 kinds could not be read back from their own output**; 3 further terms had a `kind` no operator declares (`'--'`, `'atom'` with arguments, and `('*',a,b)` and `(a&b)` interning to one term) | `919c21ab` | `pnpm terms:canonical` — one kind per entry, identity asserted |
+| term-layer canonical form, after A12 | **15 kinds, 3 term reducers and 1 task reducer reach a fixed point**; `(--x).f = 1 − f_x` holds at f ∈ {0, 0.1, 0.25, 0.5, 0.75, 0.9, 1} with confidence and stamp carried through; the four NAL parity suites and 328 unit files are green with no parity delta | `544f9dd7`+A12 | `pnpm terms:canonical` and `tests/nar/canonical-form.test.ts` |
+| rule-table buckets, which is what decided the negation spelling | **55 rules in 22 buckets**, hottest `inheritance:inheritance` at 21, and **three rules** (`nal.negationElim`, `nal.implicationIntro`, `classical.syllogismNegation`) that need a bare negation somewhere in the premise | `544f9dd7` | `pnpm dispatch:no-wildcard`, plus `registration.ts`'s declared kinds |
 
 **`scripts/cycle-bench.ts` is committed, with `--selftest` proving each hook observes its own
 invocation** — because a hook that silently observes nothing produces a table of confident zeroes,

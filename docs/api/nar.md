@@ -1320,13 +1320,27 @@ _Dynamic subpath (no single entry file)._
 
 - `TermFactory`
 
-- `normalize`
+- `canonicalTerm`
+
+- `type TermReducer`
+
+- `TERM_REDUCERS`
+
+- `canonicalTask` — Canonicalisation at task construction, so a claim cannot reach memory in two
+
+- `type TaskReducer`
+
+- `TASK_REDUCERS`
 
 - `operationNameOf` — The operation a term names, or `undefined` when it names none.
 
 - `operationTerm` — `(move^(dir-->left,steps-->3))`. Keys are read in insertion order, so the
 
 - `readOperationTerm` — The name and arguments a term calls, or `undefined` when it calls nothing.
+
+- `deserializeTerm`
+
+- `fromNarsese` — Canonical Narsese string → Term API. Delegates to {@link deserializeTerm}.
 
 - `ParseError`
 
@@ -1345,10 +1359,6 @@ _Dynamic subpath (no single entry file)._
 - `Stamp`
 
 - `serializeStamp`
-
-- `deserializeTerm`
-
-- `fromNarsese` — Canonical Narsese string → Term API. Delegates to {@link deserializeTerm}.
 
 - `serializeTerm`
 

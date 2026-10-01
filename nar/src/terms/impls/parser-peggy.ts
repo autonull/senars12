@@ -2,7 +2,7 @@
 // This replaces the hand-written recursive descent parser
 
 import { createRequire } from 'node:module';
-import { errMsg, stripTruthSuffix } from '@senars/util';
+import { createLogger, errMsg, stripTruthSuffix } from '@senars/util';
 import type { TaskType } from '../../types/core.js';
 import type { Term } from '../types.js';
 import { TermFactory } from './factory.js';
@@ -181,3 +181,21 @@ export class TermParser {
 }
 
 export const termParser = new TermParser();
+
+const log = createLogger({ scope: 'narsese' });
+
+export const deserializeTerm = (s: string): Term | null => {
+  try {
+    return termParser.parse(s);
+  } catch (e) {
+    log.error('Deserialize failed', e as Error);
+    return null;
+  }
+};
+
+/**
+ * Canonical Narsese string → Term API. Delegates to {@link deserializeTerm}.
+ * Returns `null` when the input is not parseable.
+ * @public
+ */
+export const fromNarsese = (s: string): Term | null => deserializeTerm(s);

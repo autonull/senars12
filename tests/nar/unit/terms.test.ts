@@ -14,7 +14,7 @@ import {
   termSize,
   walkTerms,
 } from '../../../nar/src';
-import { termKey } from '../../../nar/src/terms';
+import { fromNarsese, termKey, toNarsese } from '../../../nar/src/terms';
 
 describe('TermBuilder', () => {
   beforeEach(() => TermBuilder.clear());
@@ -149,7 +149,11 @@ describe('TermBuilder', () => {
       }
     );
 
-    test('nesting does not flatten into an aliased arity', () => {
+    // TODO29.a §5.12: the nested spelling and the flat one are the same claim, so
+    // they intern to one term. What keeps that safe is that the canonical form
+    // still reads back at the arity it prints — which is the aliasing the old
+    // nesting test was actually about.
+    test('nesting is one claim with the flat form, and that form still round-trips', () => {
       const nested = TermBuilder.conjunction(
         TermBuilder.conjunction(TermBuilder.atom('a'), TermBuilder.atom('b')),
         TermBuilder.atom('c')
@@ -160,9 +164,9 @@ describe('TermBuilder', () => {
         TermBuilder.atom('c')
       );
 
-      expect(nested).not.toBe(flat);
-      expect(termDepth(nested)).toBe(2);
-      expect(termDepth(flat)).toBe(1);
+      expect(nested).toBe(flat);
+      expect(termDepth(nested)).toBe(1);
+      expect(fromNarsese(toNarsese(nested))).toBe(flat);
     });
   });
 });

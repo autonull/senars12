@@ -5,6 +5,7 @@
 
 import type { Term } from '../terms';
 import { Stamp, Truth } from '../terms';
+import { canonicalTask } from '../terms/reduce-task.js';
 import type { Truth as TruthType } from '../terms/impls/Truth.js';
 import { type NarCoreBoundKey, narCoreBounds } from '@senars/util/config';
 import { createTimestamp, DEPTH_MAX, type Timestamp } from './primitives.js';
@@ -118,15 +119,16 @@ export const createTask = (
   truth: TruthType,
   budget: Budget = NEUTRAL_BUDGET,
   overrides: TaskOverrides = {}
-): Task => ({
-  term,
-  type,
-  truth,
-  budget,
-  stamp: overrides.stamp ?? Stamp.createInput(),
-  occurrenceTime: overrides.occurrenceTime ?? createTimestamp(),
-  derived: overrides.derived ?? false,
-});
+): Task =>
+  canonicalTask({
+    term,
+    type,
+    truth,
+    budget,
+    stamp: overrides.stamp ?? Stamp.createInput(),
+    occurrenceTime: overrides.occurrenceTime ?? createTimestamp(),
+    derived: overrides.derived ?? false,
+  });
 
 /** Belief task at a concept's priority; `stamp` defaults to a fresh input stamp. */
 export const createBeliefTask = (
@@ -142,15 +144,16 @@ export const createSecondaryTask = (
   priority: number,
   truth?: TruthType,
   type: TaskType = 'belief'
-): Task => ({
-  term,
-  type,
-  truth: (truth as TruthType) ?? Truth.NEUTRAL,
-  budget: createBudget(priority),
-  stamp: Stamp.createInput(),
-  occurrenceTime: createTimestamp(0),
-  derived: false,
-});
+): Task =>
+  canonicalTask({
+    term,
+    type,
+    truth: (truth as TruthType) ?? Truth.NEUTRAL,
+    budget: createBudget(priority),
+    stamp: Stamp.createInput(),
+    occurrenceTime: createTimestamp(0),
+    derived: false,
+  });
 
 // Runtime assertion for belief tasks — crash early instead of silently fabricating values
 export function assertBeliefTask(task: Task): asserts task is Task & { truth: TruthType } {

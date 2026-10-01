@@ -23,8 +23,14 @@ import { TruthValueSchema } from './truth.js';
  * The wire version of the proposal contract. A run recorded against one version
  * must not replay against another, so the version travels on every proposal and
  * a mismatch is rejected loudly rather than coerced (§5.14, decision 7).
+ *
+ * **v2 (TODO29.a §5.12) — terms are canonical.** A v1 proposal may carry
+ * `--x. %0.8%`, a term key no construction path can produce since the term layer
+ * reached a canonical form. That is a migration rather than a detail, so v1 is
+ * rejected loudly here rather than admitted and silently deduplicated; TODO30
+ * owns re-keying the stored terms.
  */
-export const PROPOSAL_SCHEMA_VERSION = 1;
+export const PROPOSAL_SCHEMA_VERSION = 2;
 
 /** What a proposal is about. The two kinds have separate payloads, not a flag. */
 export const PROPOSAL_KINDS = ['content', 'rule'] as const;
