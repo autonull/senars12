@@ -1345,7 +1345,9 @@ reductions in the same shape follow from the same omission:
 ```text
 (a | (a | c))        ≡  (a | c)              associativity
 (a & a)              ≡  a                    idempotence
---x. %1%             |-  x. %0%              frequency extreme folds negation
+--x. %0.8%           |-  x. %0.2%            (--x).f = 1 - f_x, whole range
+x. %0.2%             |-  --x. %0.8%
+--x. %1%             |-  x. %0%              the same rule at the endpoints
 x. %0%               |-  --x. %1%
 ```
 
@@ -1707,9 +1709,10 @@ profile of the wrong system.
 16. **Only committed state is authoritative** (§1.2). Advisory computation and uncommitted producer
     state never become implicit cycle inputs, and a proposal has no authority until a committed,
     gated, recorded transition.
-17. **A term has exactly one canonical form** (A12). `(a | (a | c))` and `(a | c)` are one claim, and
-    `--x. %1%` is `x. %0%`; canonicalisation happens at construction, so interning, equality and
-    memory dedup agree by construction rather than by which producer remembered to normalise.
+17. **A term has exactly one canonical form, and a claim has one spelling** (A12). `(a | (a | c))` and
+    `(a | c)` are one claim; `(--x).f = 1 − f_x`, so `--x. %0.8%` and `x. %0.2%` are one claim and
+    `--x. %1%` is `x. %0%`. Canonicalisation happens at construction, so interning, equality and memory
+    dedup agree by construction rather than by which producer remembered to normalise.
 
 ---
 
