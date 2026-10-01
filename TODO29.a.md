@@ -1416,7 +1416,7 @@ decision, not an entry in a list.
 | `sort-args` | term | already exists | the one reducer that needs no new code |
 | `double-negation` | term | **yes** | `--x → x` |
 | `negation-normal-form` | term | **yes** | De Morgan in both directions, plus the implication/equivalence contrapositive: `(a ==> --b) |- --(a ==> b)` and `(--a ==> b) |- (a ==> --b)` |
-| `frequency-extremes` | task | **yes** | `--x. f=1 |- x. f=0` and its three siblings |
+| `negation-into-truth` | task | **the rule is yes; the direction is open** | NAL's negation rule is general, not a special case at the extremes: `(--x).f = 1 − f_x`, same confidence. So `--x. %0.8%` and `x. %0.2%` are one claim, and `%1%`/`%0%` are only its endpoints. See below — the rule is settled, the canonical spelling is a choice |
 | `constant-folding` | task | **open** | `TRUE. %1%` and `FALSE. %0%` are identities; whether they are rewritten or dropped is a policy question, and dropping a `c=0` task is a *policy*, not a normalisation — A8's territory, not this item's |
 | `absorption` | task | **open** | `(a & --a) → FALSE` is a truth-level identity, not a syntactic one, and needs the truth function to be named |
 
@@ -1444,6 +1444,36 @@ log line. `(a,b)` stays the product's canonical spelling rather than `(*,a,b)`, 
 shorter and it is what the grammar reads. The full decision, and the grammar work that has to precede it,
 is §5.12.1 — including the correction of this paragraph's earlier revision.
 
+**The negation rule, in full, because "frequency extremes" was an understatement.** NAL's negation
+rule is a *function*, not a pair of endpoints:
+
+```text
+(--x).f = 1 − f_x ,  c = c_x        so   --x. %0.8%  ≡  x. %0.2%
+                                     and --x. %1%    ≡  x. %0%     (the same rule, at the ends)
+```
+
+Confidence is carried through untouched, and the **stamp is not rewritten** — this is the same claim
+spelled twice, not a revision of it, so the reduction belongs in canonical form and not in
+`Truth.revision`. That distinction is the whole reason it is a task reducer rather than a truth-function
+rule: `revision` is for a new belief about the world, this is the same belief with a different surface.
+
+**What is still a choice: which spelling survives.** Two claims, one truth, and a canonical form has to
+pick one — otherwise every reduction is a no-op on a term the system wrote both ways.
+
+| policy | rule | what it preserves | what it costs |
+|---|---|---|---|
+| **P1 — positive head** | `--x. %f%c% → x. %(1−f)%c%` | a task head is never a bare negation | a rule that tests `term.kind === 'negation'` at the *task head* stops firing; negation survives only inside compounds and on subterms |
+| **P2 — doubted claims stay negated** (recommended) | `x. %f%c% → --x. %(1−f)%c%` when `f < 0.5` | doubt is visible as a negation, which is how Narsese authors write it, and no authored structure is destroyed | a task head *can* be a bare negation, so both spellings exist in memory and any consumer must handle a negated head |
+
+P2 is the recommendation because it is the smaller change: it adds a convention rather than removing one,
+and it cannot silently disable a rule that matches negated heads. Either way the reduction is a *tie-break*
+— exactly one of the two spellings is canonical — and after this lands *no construction path* may produce
+the losing one, or the pair reappears in memory. That includes the parsers: a task read from Narsese text
+goes through `canonicalTask` on the way in, or the round-trip gate will catch it. **Recorded as open, deliberately:** the choice
+belongs with whoever writes the reducers and reads the rule table for negated-head assumptions, and a test
+must pin whichever is chosen (`P2` ⇒ a task with f < 0.5 and an unnegated head never survives
+canonicalisation).
+
 **Acceptance**
 
 - `canonical(canonical(t)) === canonical(t)` and `canonical(t)` equals `t` for already-canonical terms,
@@ -1452,7 +1482,9 @@ is §5.12.1 — including the correction of this paragraph's earlier revision.
   about a reducer that is not sound rather than a baseline to regenerate;
 - two spellings of one claim reach memory as one concept, asserted on a term pair rather than on a
   statistic;
-- `--x. %1%` and `x. %0%` are the same task, asserted in both directions;
+- `(--x).f = 1 − f_x` holds as a canonical-form property for the whole range, not only the endpoints:
+  `--x. %0.8%` and `x. %0.2%` are one task, `--x. %1%` and `x. %0%` are one task, confidence preserved in
+  both, and the stamp is unchanged by the reduction;
 - `canonicalTerm` is on the hot path, so a benchmark-free budget stands in its place: every reducer
   returns `applies(t) === false` on a canonical term, so a fixed point costs one pass and no allocation
   (asserted by object identity on the common path);
@@ -1764,7 +1796,7 @@ gate listed here and not wired is the exact failure mode this plan is about.
 | `resource:policy` | every production accumulator is in the ledger, and a memory at capacity with nothing evictable says so | A8 | `gate` |
 | `rules:loaded-data` | no module-side-effect registration survives; the table is enumerable, versioned, revertable; two revisions are diffable and a prior one is restorable; an empty table is a runnable state | A10 | `gate` |
 | `replay:proposal` | `replayCognitiveState` reconstructs the same state from `proposal.*` events, and a version mismatch fails loudly | A9 | `slow` |
-| `terms:canonical` | `canonical(canonical(t)) === canonical(t)`, already-canonical terms are returned unchanged, `--x. %1%` and `x. %0%` are one task, and the NAL suites derive what they derived before | A12 | `gate` |
+| `terms:canonical` | `canonical(canonical(t)) === canonical(t)`, already-canonical terms are returned unchanged, `(--x).f = 1 − f_x` across the range (`--x. %0.8%` ≡ `x. %0.2%`, `--x. %1%` ≡ `x. %0%`), and the NAL suites derive what they derived before | A12 | `gate` |
 
 Deliberately **not** here, and in TODO30: `cost:cycle`, the population-scaling matrix, and the
 `bench:cycle` entry in the gate list. Note what that means for §5: **no item in this plan is verified
