@@ -738,6 +738,7 @@ empty owner means the finding has no gate, and a finding with no gate is a findi
 | 16 | **the decision layer is wired to the agent side, not the reasoning side.** A complete typed/calibrated layer — `classify`/`evaluate`/`synthesize`, `CognitiveAxis`, `abstainReason`, isotonic calibrators with a digest-pinned lock, `ConfidenceRouter`, `judgeCascade` — is attached to a **`GameFocus`**, while the reasoning cycle reaches a model only via the ingress judge and `processLMRules` | `facade/system-one.ts:337`; `nar.ts:571`; `types.ts:63-141` | **A11** |
 | 17 | the three primitives are `classify` / `evaluate` / `synthesize` — `Noul` was folded into `evaluate` because a yes/no is a frequency judgement with two anchors. The plan must not reintroduce `Noul` as a fourth primitive or restate it as three | `types.ts:66-89`; `TODO16.md` §2; `TODO16b.md` App. A | **A11** (terminology, enforced by the types) |
 | 18 | **`product` is declared commutative and is not.** `createCompound` sorts a commutative kind's arguments at construction, so `(*,bird,cat)` and `(*,cat,bird)` interned to **one** term and `termsEqual` answered yes for two different products. `docs/java/Op.java:110` builds `PROD` through the non-commutative constructor | `nar/src/terms/operators.ts:20`; `factory.ts:64` | **A12** — **fixed 2026-09-30**, one declaration and a test. Found while reading `Op.java` for A12's catalogue: a commutativity flag is not a formatting choice, it is a claim about equality |
+| 19 | **six of sixteen kinds do not round-trip through Narsese, and the round-trip test cannot see it.** `implication`, `parallel`, `predictive`, `retrospective` use symbols the grammar has never accepted; `instance`/`property` are not the kinds the grammar builds (`setExt`/`setInt`); `operation` loses its parens. `product` is worse than broken: `TermBuilder.tuple` builds it as a **conjunction**, so `(a,b)` and `(a&b)` are the same term | `nar/src/terms/operators.ts`; `narsese.peggy:4,118`; `factory.ts:107`; `tests/nar/property/narsese-roundtrip.test.ts:14-20` | **A12 step 1** (§5.12.1) — the symbols, the kinds, and a round-trip generator derived from `OPERATORS` instead of a list of what passes |
 
 **#15 is entirely TODO30's.** A4 fixes *who* may write `priority`, not with what structure it is
 read. **#14 is not justified by a finding at all** — it is justified by the thesis, and §1 has no
@@ -1416,12 +1417,11 @@ knowing which half is the design. What it contributes:
 | `TemporalConjunction*`, `RepeatInverseEquivalent` — `&&+k` intervals, `(x &&-1 x) == (x &&+1 x)` | **not applicable** | same: temporal intervals are a term-kind this tree does not have, and their identities need interval arithmetic rather than canonicalisation |
 | `TemporalConjunctionReduction2`, `DisallowInhAndSim…` — `@Disabled` | **kept as-is** | upstream keeps a diagnosis next to the missing behaviour rather than deleting it, which is §10.1's rule applied by someone else first |
 
-**Canonical Narsese form, decided with the reducers.** `(bird,cat)` — no space after the comma — is the
-canonical spelling of a product, and the short-hand stays: it is shorter, it is what a reader wants, and
-`*` is the same term spelled the long way. The operator spellings keep their spaces (`a & b`), because
-there the space is part of reading the operator. This is `serialize.ts`'s `ARGUMENT_SEPARATOR`, and it
-is a display decision with a memory consequence — one fewer byte per argument — which is why it is
-recorded here rather than left to a formatter.
+**Canonical Narsese form: dense, and for bytes.** `(a&b)`, `(a,b)`, `(a-->b)`, `(a||b)`, `(a,/b)` — no
+padding anywhere, because every space lands in every serialised term, every key built from one and every
+log line. `(a,b)` stays the product's canonical spelling rather than `(*,a,b)`, on the same grounds: it is
+shorter and it is what the grammar reads. The full decision, and the grammar work that has to precede it,
+is §5.12.1 — including the correction of this paragraph's earlier revision.
 
 **Acceptance**
 
@@ -1445,6 +1445,58 @@ baselines are re-established, and gated on the four suites that actually exist.
 
 ---
 
+### 5.12.1 A12's first step: align the operator table with the grammar
+
+*Recorded 2026-09-30 from a review of `docs/java/Op.java` and `nar/src/terms/narsese.peggy`. A canonical
+form that the parser cannot read is not canonical, so this precedes every reducer in §5.12 — and it is
+where the review found the largest defect in the term layer, which is not formatting.*
+
+**Findings, all reproduced in one probe** (`toNarsese` → `fromNarsese` per kind):
+
+| kind | serialises as | reads back as | verdict |
+|---|---|---|---|
+| `inheritance` `similarity` `conjunction` `disjunction` `negation` `equivalence` `sequence` `product` | `(a-->b)` … `(a,b)` | same | **round-trips** |
+| `implication` | `(a=>b)` | parse failure | **wrong symbol**: Narsese spells it `==>`, and the grammar has only ever accepted `==>` (`narsese.peggy:4`) |
+| `parallel` | `(a||b)` | `(a|b)` — a disjunction | **wrong symbol**: the grammar's token is `&|` |
+| `predictive` / `retrospective` | `(a/>b)` / `(a/<b)` | parse failure | **wrong symbols**: the grammar's are `=/>` and `=\|` |
+| `instance` / `property` | `{a}` / `[a]` | `(a)` | **wrong kinds**: the grammar builds `setExt` / `setInt`, and upstream names them **extensional set `{a}`** and **intensional set `[a]`** — our `instance`/`property` names are a NAL2-rules naming that leaked into the term kinds |
+| `operation` | `a^b` (unparenthesised) | `a^b` | **not a compound any more**: a round-trip silently loses the parens that make it one |
+
+**`product` is the comma copula, and was wired to the wrong kind.** `TermBuilder.tuple` called
+`createCompound('conjunction', …)` (`nar/src/terms/impls/factory.ts:107`), and the grammar routes the
+comma list through `tuple` (`narsese.peggy:118`). So `(a,b)` built a **conjunction**, every product in
+the tree was indistinguishable from one, and `product` had no text syntax at all — while five call sites
+(`rl/impls/QBeliefStore.ts:63`, `terms/impls/operation-term.ts:58`) already called `TermBuilder.product(a, b)`
+with two arguments, against a builder that had no such method. **The fix is a rename, not an addition:**
+`tuple` becomes `product`, with no `tuple` alias left behind, and the parser is regenerated from
+`narsese.peggy` (`npx peggy -o nar/src/terms/peggy-generated.cjs nar/src/terms/narsese.peggy` — the
+generated file is committed, so the grammar and the parser cannot disagree silently).
+
+**Why the round-trip property test never caught any of it.** `tests/nar/property/narsese-roundtrip.test.ts`
+enumerates its kinds by hand — `inheritance`, `similarity`, `conjunction`, `disjunction`, `negation` — and
+those are exactly the five that work. **The generator is the bug**: it is a list of what passes, written
+as if it were a list of what exists. It must derive its kinds from `OPERATORS`, and the broken kinds
+must appear as *named expectations* — assert that `parallel` does not round-trip, by what it becomes —
+so that fixing the grammar makes a test fail and say so, and adding an operator makes a test fail because
+nobody wrote its round-trip yet. That is §10.1's rule with the generator in the place of the doc comment.
+
+**Canonical Narsese form: no padding.** `(a&b)`, `(a,b)`, `(a-->b)`, `(a||b)`, `(a,/b)`, `(a==>b)` — dense,
+and the product keeps the comma short-hand rather than `(*,a,b)`. **The reason is bytes, not
+readability**: every space a serialiser emits is a byte in every serialised term, in every `termKey` built
+from one, in every persisted state and every log line, and canonical form is the form that gets stored
+copied the most. One separator constant (`ARGUMENT_SEPARATOR`), no spacing rule anywhere, and the operator
+symbols as Narsese writes them. Correcting an earlier note in this document: a previous revision justified
+keeping `(a & b)` by "the space is part of reading the operator". That was a rationalisation, and it was
+wrong.
+
+**Consequence to be aware of before starting.** Serialisation is asserted as literal strings in ~70 places
+across the NAL suites and elsewhere, so this step's diff is dominated by mechanical string updates. Do it
+as its own commit, before the reducers of §5.12, with the NAL suites as the gate — and do **not** fold the
+`product`/`parallel`/`implication` semantics in with the whitespace: semantics first, whitespace second,
+so a parity failure has one cause.
+
+---
+
 ### 5.13 Item summary — one command, one gate, one risk
 
 Every acceptance criterion above is demonstrated by a command and a gate. Gates are wired into
@@ -1463,7 +1515,7 @@ Every acceptance criterion above is demonstrated by a command and a gate. Gates 
 | **A8** | `pnpm test:unit` (resource-policy tests) | `resource:policy` | **medium** — retention policy *is* behaviour; policy and structure together is how a semantic change hides inside a refactor |
 | **A9** | `pnpm test:hermetic` — the tier this item exists to make possible | `replay:proposal` (`slow`) | **low** — extends an existing reducer with new event kinds |
 | **A10** | `pnpm run rules:loaded-data`, `pnpm test:unit` | `rules:loaded-data` | **medium-high** — the only item that changes what the system can do rather than how it is arranged. Last in sequence for that reason |
-| **A12** | `pnpm run terms:canonical`, NAL suites, `pnpm test:unit` | `terms:canonical` | **medium** — every reducer here changes derived terms, which is exactly what §7 invariant 1 protects. Its own commit, after A4's baselines |
+| **A12** | `pnpm run terms:canonical`, NAL suites, `pnpm test:unit` — **step 1 (§5.12.1) first: the round-trip property test, and it must derive its kinds from `OPERATORS`** | `terms:canonical`, plus the widened round-trip test | **medium-high** — step 1 changes what six kinds *mean* (`product`, `parallel`, `implication`, `predictive`, `retrospective`, the sets) and every reducer after it changes derived terms. Two commits, semantics then whitespace, never together |
 | **A11** | `pnpm run config:model-matrix`, `pnpm test:unit` | `config:model-matrix` (re-landed, with the manifest) | **medium** — the item that can spread. A capability available everywhere is as safe as each call site, so its acceptance is mostly *declarations*, and an ungated declaration is a comment |
 
 ### 5.14 The questions A1–A3 will be decided by
@@ -1507,7 +1559,7 @@ same seam. Neither gate is weakened and neither is skipped. A9 is where that lan
 A0 ─▶ A1 ─▶ A2 ─▶ A3 ─▶ A5 ─▶ A4 ─┬─▶ A6 ─▶ A10 ─▶ A11
                               └─▶ A7 ─▶ A8
                     A9 (after A3, parallel thereafter)
-                    A12 (after A4's baselines — behavioural, so it needs a clean attribution)
+                    A12 §5.12.1 (grammar alignment) → A12 reducers, after A4's baselines
 ```
 
 **The ordering rule: structural before behavioural.** A5, A2 and A6 are mechanical — they move code
