@@ -558,6 +558,8 @@ _Re-export barrel._
 
 - `BudgetGateInputSchema`
 
+- `BudgetOperationSchema` — Every operation the budget gate accounts. The five A7 control scopes are the
+
 - `BudgetGateOutputSchema`
 
 - `PerceptionGateInputSchema`

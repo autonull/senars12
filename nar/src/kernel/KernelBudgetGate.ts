@@ -9,6 +9,7 @@ import type {
 } from '@senars/core/schemas';
 import { validateCognitiveEvent, validateReasoningBudget } from '@senars/core/schemas';
 import { recordGateDecision } from '../telemetry/index.js';
+import { BUDGET_SCOPES, scopeBudget, type BudgetScopeId } from './budget-scopes.js';
 import { KernelGate } from './gate-base.js';
 
 export interface KernelBudgetGateConfig {
@@ -22,6 +23,9 @@ const DEFAULT_COST_TABLE: Record<string, number> = {
   'memory-op': 1,
   'derivation-depth': 1,
   'systemone-judgment': 5,
+  ...Object.fromEntries(
+    Object.values(BUDGET_SCOPES).map((scope) => [scope.operation, 1])
+  ),
 };
 
 /** Which budget dimension an operation spends, and how exhaustion is reported. Single source for
@@ -33,7 +37,32 @@ interface OperationSpec {
   readonly exhaustedReason: TerminationReason;
 }
 
-const OPERATION_SPECS: Record<string, OperationSpec> = {
+/** Each consumed dimension's event-level name — the schema owns the vocabulary. */
+const BUDGET_TYPES = {
+  cycles: 'cycles',
+  depth: 'depth',
+  memoryOps: 'memory',
+  llmCalls: 'llm',
+} as const satisfies Record<keyof ReasoningBudget['consumed'], BudgetExhaustedEvent['payload']['budgetType']>;
+
+/** The A7 control scopes, derived rather than restated: the scope table owns the
+ *  dimension, the ceiling key and the overflow reason, so a new scope cannot be
+ *  declared without them. */
+const SCOPE_SPECS: Record<string, OperationSpec> = Object.fromEntries(
+  Object.entries(BUDGET_SCOPES).map(([scopeId, spec]) => [
+    spec.operation,
+    {
+      consumedKey: spec.consumedKey,
+      maxKey: spec.limitKey,
+      budgetType: BUDGET_TYPES[spec.consumedKey],
+      exhaustedReason: spec.terminationReason,
+      scopeId: scopeId as BudgetScopeId,
+    },
+  ])
+);
+
+const OPERATION_SPECS: Record<string, OperationSpec & { scopeId?: BudgetScopeId }> = {
+  ...SCOPE_SPECS,
   'nal-step': {
     consumedKey: 'cycles',
     maxKey: 'maxCycles',

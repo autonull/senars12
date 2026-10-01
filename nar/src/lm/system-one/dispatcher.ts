@@ -1,5 +1,6 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import { monotonicNow, stopwatch } from '@senars/util';
+import { DECISION_DERIVATIONS_SCOPE } from '../../kernel/budget-scopes.js';
 import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
 import { Stamp } from '../../terms/impls/Stamp.js';
 import { Truth } from '../../terms/impls/Truth.js';
@@ -76,7 +77,10 @@ export interface DispatcherOptions {
    *  `candidate_select` adds a per-candidate judgment query (currently `feasibility`). */
   rankingWeights?: Record<string, number>;
   /** B7/X8: flow-level accounting — `judge` charges `systemone-judgment` per batch
-   *  (max proposition cost); a denied scope yields no Tier-1 propositions. */
+   *  (max proposition cost); a denied scope yields no Tier-1 propositions.
+   *  A7: the scope is the declared `decision-derivations` bound, not `'default'` —
+   *  a judgment's cost is the decision layer's own, and sharing a counter with
+   *  anything else would make symbolic derivations budget-dependent. */
   budgetGate?: KernelBudgetGate;
   budgetScopeId?: string;
   /** CLM contrastive routing: penalize candidates near stored hard negatives,
@@ -114,7 +118,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     this.#provisional = options.provisional ?? { cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30_000 };
     this.#rankingWeights = options.rankingWeights ?? { candidate_select: 1 };
     this.#budgetGate = options.budgetGate ?? null;
-    this.#budgetScopeId = options.budgetScopeId ?? 'default';
+    this.#budgetScopeId = options.budgetScopeId ?? DECISION_DERIVATIONS_SCOPE;
     this.#contrastive = options.contrastive ?? null;
   }
 

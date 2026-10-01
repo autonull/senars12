@@ -28,8 +28,9 @@ import type { ConversationGame } from './game/impls/ConversationGame.js';
 import type { SelfMetaGameImpl } from './game/impls/SelfMetaGame.js';
 import type { SelfMetaGameEvidence } from './governance/pipeline.js';
 import { GovernanceResolver } from './governance/pipeline.js';
+import { ControlBudgets } from './kernel/control-budgets.js';
 import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js';
-import { createDefaultReasoningBudget } from './kernel/KernelBudgetGate.js';
+import { createDefaultReasoningBudget, KernelBudgetGate } from './kernel/KernelBudgetGate.js';
 import { SchemaInductor } from './learning/schema-induction.js';
 import type { LMService, SeNARSRegistry } from './lm';
 import { LMRules } from './lm';
@@ -136,6 +137,9 @@ export class NAR extends BaseComponent {
   private _constitution: Task[] = [];
   /** TODO19 F2: per-instance kernel gates — isolated per NAR, injected or created. */
   readonly gates: GateRegistry;
+  /** TODO29.a §5.7: the declared control budgets, over this NAR's own gate. */
+  private readonly controlBudgets: ControlBudgets;
+  private readonly budgetGate: KernelBudgetGate;
 
   // Extracted subsystems (M2)
   private readonly systemOne: SystemOneRuntime;
@@ -151,6 +155,8 @@ export class NAR extends BaseComponent {
 
     this.config = { ...validateNarConfig(config) };
     this.gates = config.gateRegistry ?? createGateRegistry();
+    this.budgetGate = this.gates.getBudgetGate() as KernelBudgetGate;
+    this.controlBudgets = new ControlBudgets(this.budgetGate, config.controlBudgets);
     // A NAR always has a registry and a parameter graph: the registry has no
     // external dependencies, so "no strategy config" is not a state a NAR can be
     // in. Everything below reads from these two and nothing else decides.
@@ -165,7 +171,7 @@ export class NAR extends BaseComponent {
     });
     this.ruleTable = loadBuiltinTable();
     this.processor = new RuleProcessor(undefined, this.ruleTable.index());
-    this.processor.setConfig({ memory: this.memory, host: this });
+    this.processor.setConfig({ memory: this.memory, host: this, budgets: this.controlBudgets });
     this.processor.setEventBus(eventBus);
     this.taskManager = new TaskManager(this.memory, { gateRegistry: this.gates });
     this.query = new QueryAPI(this.memory);
@@ -219,7 +225,8 @@ export class NAR extends BaseComponent {
       metrics,
       this.rlfp,
       cognitiveParams,
-      config.adaptationInterval
+      config.adaptationInterval,
+      this.controlBudgets
     );
     this.cognitiveController.onDerivation((chain) => this.#recordDerivationChain(chain));
 
@@ -230,6 +237,7 @@ export class NAR extends BaseComponent {
       lmService: this._lmService,
       onJudgmentResolved: (proposition, query) => this.emitJudgmentResolved(proposition, query),
       reputation: () => this.#sourceReputation,
+      budgetGate: this.budgetGate,
     });
     this.systemOne = systemOne;
 
@@ -309,6 +317,7 @@ export class NAR extends BaseComponent {
       self: this.self,
       toolGoalExecutor: async (goalTerm) => this.tools.executeToolGoal(goalTerm),
       gates: this.gates,
+      budgets: this.controlBudgets,
       proposals: this.proposals,
     });
     this.lm = new NARLM(

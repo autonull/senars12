@@ -70,9 +70,24 @@ export const RewardGateOutputSchema = z.object({
   requiresProposal: z.boolean().optional(),
 });
 
+/** Every operation the budget gate accounts. The five A7 control scopes are the
+ *  named ones (TODO29.a §5.7); `BUDGET_SCOPES` says which dimension each spends. */
+export const BudgetOperationSchema = z.enum([
+  'nal-step',
+  'lm-call',
+  'memory-op',
+  'derivation-depth',
+  'systemone-judgment',
+  'derivation',
+  'premise-selection',
+  'proposal-application',
+  'control-work',
+  'decision-derivation',
+]);
+
 export const BudgetGateInputSchema = z.object({
   budget: ReasoningBudgetSchema.optional(),
-  operation: z.enum(['nal-step', 'lm-call', 'memory-op', 'derivation-depth', 'systemone-judgment']),
+  operation: BudgetOperationSchema,
   estimatedCost: z.number().int().positive().optional(),
   scopeId: z.string().optional(),
   correlationId: z.string().optional(),
@@ -90,5 +105,6 @@ export type ActionGateInput = z.infer<typeof ActionGateInputSchema>;
 export type ActionGateOutput = z.infer<typeof ActionGateOutputSchema>;
 export type RewardGateInput = z.infer<typeof RewardGateInputSchema>;
 export type RewardGateOutput = z.infer<typeof RewardGateOutputSchema>;
+export type BudgetOperation = z.infer<typeof BudgetOperationSchema>;
 export type BudgetGateInput = z.infer<typeof BudgetGateInputSchema>;
 export type BudgetGateOutput = z.infer<typeof BudgetGateOutputSchema>;

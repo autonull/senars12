@@ -1,6 +1,6 @@
 # TODO29.a: Runtime Architecture — S/J/P over a closed core
 
-**Version:** 3.13 · **Status:** A0–A6 and A10 landed, and **A12 is complete** — §0.8.12 · A7, A8, A9 and A11 remain · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
+**Version:** 3.14 · **Status:** A0–A7, A10 and A12 landed — §0.8.13 · A8, A9 and A11 remain · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
 unchanged as the measurement and provenance record; §0.4 maps its sections onto this one) ·
 **Successor:** `TODO30.md`, blocked on this.
 
@@ -16,9 +16,11 @@ lifecycle.
 > follows from), then §5.12 (the item summary — one command, one gate, one risk per item).** §4 row 16
 > is the finding that makes A11 cheap instead of an invention, and §12's two kill criteria should be
 > checked *before* anything is built. **A3 is done (§0.8.9)**, so nothing in §5.14 is unanswered
-> and the queue is A7, A8, A9, A11 — none of which blocks another.
+> and the queue is A8, A9, A11 — none of which blocks another. **A7 landed (§0.8.13)**: every control
+> bound is a declared scope, and the three remainders it recorded are where A11's ownership questions
+> now live.
 > **A3's rule queue has no producer yet** — the rule half of the protocol is specified, gated and
-> tested but not reachable from a model, which is A10's job.
+> tested but not reachable from a model, which was A10's job and is now §11.1's largest gap.
 
 ---
 
@@ -31,7 +33,7 @@ lifecycle.
 | **What am I changing?** | Where model reasoning is reachable from, and therefore which parts of the core depend on it; who owns each cycle-path quantity; what a proposal is and when it may land; whether the rule set is data or code | §5 |
 | **What must result?** | A closed synchronous cycle over committed state, with S / J / P composed through one seam and one set of gates | §1, §2 |
 | **What must not change?** | NAL parity, determinism, `test:hermetic`, one inference path, the six packages, the epistemic firewall | §7 |
-| **How do I know it worked?** | Twelve new gates, each landing with its item and each shipped with a test proving it can fail. Eight have landed (`cycle:no-provider`, `induction:inventory`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `proposal:protocol`, `dispatch:no-wildcard`, `rules:loaded-data`) plus `terms:canonical`'s three forms | §10 |
+| **How do I know it worked?** | Thirteen new gates, each landing with its item and each shipped with a test proving it can fail. Nine have landed (`cycle:no-provider`, `induction:inventory`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `proposal:protocol`, `dispatch:no-wildcard`, `rules:loaded-data`, `control-budgets`) plus `terms:canonical`'s three forms | §10 |
 | **What belongs to TODO30 instead?** | Every data-structure choice, every cost target, `k`, the index shapes, the scaling gates | §11.2 |
 
 ### 0.2 Decided, and load-bearing
@@ -77,7 +79,8 @@ do is make four README promises structurally true rather than aspirational, and 
 | The `J` placement order and budget across the eight candidate sites | nothing architectural; TODO30 §1 measures it | §2.5 |
 | Q3's hypothesis — which arm should beat which, by how much, on which games, and what would count as "the model does not earn its place" | the plan's only falsifiable claim | §11.1 |
 | Is the induction layer ever a seventh workspace package (answered for the *contracts*; the rest open) | nothing | §11.1 |
-| ~~A census test asserting the core's shipped table is exactly the registered NAL rules~~ — **answered and landed with A2**; the count (55) is the committed part. Its *other* half — the table growing only through a proposal — is §4 row 14, and belongs to A10 | A10 | §11.1, §0.8.6 |
+| ~~A census test asserting the core's shipped table is exactly the registered NAL rules~~ — **answered and landed with A2**; the count (55) is the committed part. Its *other* half — the table growing only through a proposal — is §4 row 14, and landed with A10 | nothing | §11.1, §0.8.6, §0.8.11 |
+| ~~Which `scopeId` each control bound answers to~~ — **answered and landed with A7**: `BUDGET_SCOPES` names five, each with an owner and an overflow reason, and `control-budgets` fails on a scope nothing spends | nothing; A7 is done | §0.8.13, §5.7 |
 
 ### 0.6 Next actions, in order
 
@@ -116,7 +119,13 @@ do is make four README promises structurally true rather than aspirational, and 
 10. ~~**A12's reducers**~~ — **done 2026-10-01** (§0.8.12): `TERM_REDUCERS` and `TASK_REDUCERS` are two
    enumerable registries applied at construction, the negation rule's surviving spelling was decided by
    reading the rule table's buckets rather than by preferring one policy, and `terms:canonical` grew its
-   reducer form with a test proving the gate can fail. **What remains is A7, A8, A9 and A11.**
+   reducer form with a test proving the gate can fail.
+11. ~~**A7**~~ — **done 2026-10-01** (§0.8.13): five bounds are declared scopes in one table with an
+    owner, a default, a configuration source and an overflow reason each; `decision-derivations` is
+    structurally separate from the symbolic derivation scope and a test shows `S`'s derivation count does
+    not move when it is zero; the shadowed `resetMetaBudget` and the meta-budget struct it reset are gone;
+    the per-cycle `getGoals` / `getStatistics` callers and settled-proposal application are budgeted; and
+    `control-budgets` is the gate. **What remains is A8, A9 and A11** — A8 is the last behavioural item.
 
 ### 0.7 What this plan is not
 
@@ -1176,6 +1185,105 @@ been a finding about a reducer, and there was none.
    it is the one reducer in the reference suite that this tree has the operator for. Deferring it was
    right; leaving it unowned is not.
 
+### 0.8.13 A7 is done (2026-10-01) — every bound is a declared scope, and a spent one is an event
+
+**The finding A7 answers is §4 row 2's second half.** `KernelBudgetGate` already accounted a
+`ReasoningBudget` per `scopeId` and already named five `TerminationReason`s — but **every
+`scopeId` in the tree was ad-hoc**: a focus identity, or the string `'default'`. Five bounds §5.7
+names — derivations per step, secondary premise consideration, proposal application, control/meta work,
+and decision-layer derivations — existed as plain numbers in a config or in a local class field, and
+nothing could say who owned one or what happened when it ran out. **The budget system was one; the
+*bounds* were six unrelated numbers with no names.**
+
+| artefact | what it is |
+|---|---|
+| `nar/src/kernel/budget-scopes.ts` | `BUDGET_SCOPES` — the five scopes as data. Each row names its operation, the budget dimension it spends, its owner, its default, its configuration source, its overflow `TerminationReason`, and (for one scope) the exported symbol a non-cycle caller charges it by. `scopeBudget` / `scopeLimit` / `scopeSpec` are the three readers |
+| `nar/src/kernel/control-budgets.ts` | `ControlBudgets` + the narrow `ControlBudgetPort` (`charge`, `beginCycle`). One gate, the NAR's own — so a scope and the kernel's accounting cannot drift into two budgets (§7 invariant 12) |
+| `core/src/schemas/gate-io.ts` | `BudgetOperationSchema` extracted from the inline enum, and the five scope operations added to it. The operation vocabulary is now exported rather than anonymous |
+| `nar/src/reason/inference-controller.ts` | charges `premises` before a population-sized secondary scan and `derivations` instead of reading `config.maxDerivationsPerStep` at the stop condition. **The config value became the scope's ceiling**, set at the composition root — the number is the same one it always bounded |
+| `nar/src/nar-execution.ts` | `beginCycle()` at the top of every cycle; the two `getGoals()` callers and the `getStatistics()` caller are `control-work`; settled proposals are `proposal-application` |
+| `nar/src/rules/impls/processor.ts` | `resetMetaBudget` and `MetaBudgetState` deleted. A meta derivation now *spends* `control-work` and is separately tracked for **nesting depth** — the counter and the bound were the same shape and only one of them was a budget |
+| `nar/src/lm/system-one/dispatcher.ts`, `facade/system-one.ts`, `system-one-wiring.ts` | the judgment charge takes `DECISION_DERIVATIONS_SCOPE` instead of `'default'`, and the gate reaches the dispatcher (it did not before, so nothing was charged) |
+| `nar/src/facade/config.ts`, README | `controlBudgets?: Partial<Record<BudgetScopeId, number>>` — an override map. An absent scope uses its declared default, so this is not a second declaration |
+| `scripts/control-budgets.ts`, `scripts/lib/control-budgets.ts`, `pnpm control-budgets` | the gate: a declared scope nothing spends, a spend naming no scope, a scope whose operation the schema lacks, and two scopes claiming one operation |
+| `tests/nar/todo29a-a7.test.ts` | 13 tests, each gate rule's failure case first |
+
+**Five decisions this item did not pre-answer.**
+
+1. **A scope is a `scopeId` plus its own ceilings — not a new mechanism, and not a new dimension.**
+   `ReasoningBudget` has four dimensions and the plan names five bounds, so the mapping is
+   one-to-many *by scope*: `derivations`, `premises` and `control-work` all spend `cycles`, and each
+   carries its own ceiling because each is its own `scopeId`. The alternative — a fifth dimension for
+   derivations — would have touched `ReasoningBudgetSchema`, `BudgetLimits`, the otel projection and
+   `status-report` for a distinction the scope name already carries.
+2. **`decision-derivations` spends `llmCalls` and nothing else spends that scope**, which is what makes
+   the separation structural rather than documentary: a decision-layer budget of zero exhausts
+   `maxLMCalls` on a scope no symbolic derivation reads. The test asserts it end to end — a two-cycle
+   NAR derives identically with the decision budget at zero and at its default.
+3. **A scope is opened once, not on every charge.** The first implementation re-derived the scope
+   budget inside `charge`, so every charge reset the consumption that decided the previous one and the
+   bound could never exhaust. **A bound that re-arms itself is a comment wearing a counter**, and it is
+   the same shape as §5.12's "accepted and never written": the machinery was present and the invariant
+   was not. The test asserts `[true, true, false]`.
+4. **`beginCycle()` re-opens every declared scope, including `decision-derivations`.** Four of the five
+   bounds are per cycle; the fifth was going to be lifetime, which is a real difference and one nothing
+   could see. Making them uniform means a scope's period is declared by *where it is re-opened* rather
+   than by two implicit clocks.
+5. **The `config.maxDerivationsPerStep` stop condition moved into the scope, and the config became the
+   ceiling.** Keeping both would have been two bounds on one quantity that could disagree — the same
+   defect as A2's `enableLMRules`. The composition root sets `derivations` from the config value, so
+   the count is unchanged and the vocabulary is one.
+
+**Two things A7 found that are not in §5.7.**
+
+- **`resetMetaBudget` was dead and the *name* was only half the problem.** A1 already deleted
+  `NARExecution`'s copy, so the acceptance line "gone from one of the two places" was satisfied by
+  nothing happening. The remaining copy reset a counter that nothing read. What it revealed is that
+  `MetaBudgetState` held **two different quantities in one struct** — a spend (`derivationsThisStep`)
+  and a nesting depth (`currentDepth`) — and only the first was a budget. That is why `configureMetaAikr`
+  now takes one field instead of two, and why the meta-rule bound is `control-work` plus a depth check
+  rather than one class.
+- **The judgment charge was reaching no gate at all.** `SystemOneDispatcher` had a `budgetGate` option
+  and no caller passed one, so `chargeJudgment` never ran in production and `'default'` was never a live
+  scope. **An option that is never supplied is a comment**, and §10.1 has now produced three of them
+  (`hasStructuralSimilarityNoOverlap`, `enableLMRules`, this). `nar.ts` now supplies the gate.
+
+**What did not land, and it is the item's largest remainder.**
+
+- **`budgets` is optional on `NARExecutionOptions` and on `RuleProcessor.setConfig`.** Every production
+  path binds it, and a bare test harness need not — which is the same "absent is a real state" property
+  §2.3 asks of the induction layer. But it is also how a *new* caller silently gets unbounded
+  derivations, and the gate cannot see it: `gates:one-cycle-path` counts construction sites, not
+  arguments. **The honest fix is a required `budgets` and a test-harness fixture**, which is a
+  four-file change and a decision about the harness rather than about A7.
+- **The per-cycle `getGoals()` / `getStatistics()` callers are bounded, not removed.** §5.7 allowed
+  either. Bounding is the smaller change and preserves the observability the summary exists for, so
+  that is what landed — but a bound means the reads *silently stop* at 16 per cycle, and the summary
+  emits `active_meta_goals: []` and `aikr_pressure: 'low'` when it does. **A skipped read that reports
+  itself as data is worse than an unbounded read.** The fix is to make the summary carry whether it was
+  budgeted, which is not a budget concern and so is recorded rather than taken.
+- **`control-work` is charged by `RuleProcessor` for meta derivations, from a class the rule layer owns.**
+  That is the right *accounting* and the wrong *owner*: `RuleProcessor` is constructed in one place
+  (`nar.ts`) and never reaches the gates, so A7 gave it a port rather than a gate. A11 is the item that
+  makes the decision layer reachable, and the two ownership questions — who charges `control-work`, and
+  whether `RuleProcessor` should hold a budget at all — should be answered together with it.
+
+**Improvement opportunities A7 exposed, in the order they are worth taking.**
+
+1. **`SystemOneDispatcher`'s `budgetGate` should not be optional.** It is the third "an option nothing
+   supplies" in the tree, and the gate that catches it does not exist. A rule over `DispatcherOptions`
+   fields — *every field is read at least once in `src/`* — is cheap, general, and would have caught
+   this and `enableLMRules` with one predicate.
+2. **`'default'` is still a scopeId the tree can mint.** A `Focus` uses its own id and System One now
+   uses the declared scope, but nothing stops a third caller inventing a string; `KernelBudgetGate`
+   accepts any `scopeId`. The gate could require a declared scope for the five A7 operations while
+   leaving ad-hoc scopes legal for the per-focus ones — which is a narrower rule than "every scope is
+   declared", and the narrower one is the true one.
+3. **`BudgetGateInput.scopeId` is `string` and `BudgetScopeId` is a union, and nothing joins them.**
+   The call sites are typed against the union (which is why the compiler holds the spend rule) but the
+   gate's own input is not. Narrowing `scopeId` on the five scope operations would make the gate
+   self-enforcing rather than call-site-enforcing.
+
 ---
 
 ## 1. The contract
@@ -2103,9 +2211,10 @@ from a measured workload, after measuring the candidate count that survives winn
   `RuleIndex.ordered` already gets right with `rankingEpoch`, and the shape `stepScalars` gets wrong.
 
 
-### 5.7 A7 — Define control budgets as semantics
+### 5.7 A7 — Define control budgets as semantics — **done 2026-10-01 (§0.8.13)**
 
-*For the per-cycle-caller half of finding 2.*
+*For the per-cycle-caller half of finding 2. Every acceptance line below is met; §0.8.13 records what
+landed, the three decisions the item did not pre-answer, and the three remainders it did not close.*
 
 **Use the budget system the kernel already has.** `ReasoningBudget` is a schema in
 `@senars/core/schemas/reasoning-budget`; `KernelBudgetGate` accounts it per-focus by `scopeId` and
@@ -2626,7 +2735,7 @@ Every acceptance criterion above is demonstrated by a command and a gate. Gates 
 | **A4** | `pnpm run attention:write-surface`, `pnpm test:unit` + a diff on the committed baseline file — **done 2026-10-01** | `attention:write-surface` | **high, and confined to this item.** Every learned value moves: why it is alone, why it lands after A5, and why the baselines are regenerated here rather than left to drift through A6–A8 |
 | **A5** | `pnpm test:unit` + `pnpm memory:ports` — **done 2026-10-01** | `memory:ports` | **low** — mechanical, and the boundary was already implied by `MemoryView` |
 | **A6** | `pnpm run dispatch:no-wildcard`, NAL suites, `pnpm test:unit` — **done 2026-10-01** (§0.8.10) | `dispatch:no-wildcard` | **medium** — measured *low*: ordering was already `priority` then registration, so parity was never at risk and is green |
-| **A7** | `pnpm test:unit` (budget-enforcement tests) | — | **low-medium** — the behaviour change is "steps stop running by default" |
+| **A7** | `pnpm run control-budgets`, `pnpm test:unit` (budget-enforcement tests) — **done 2026-10-01** (§0.8.13) | `control-budgets` | **low-medium, and it landed without a parity delta** — the `derivations` ceiling is the config value it always bounded, so the count is unchanged; the risk that materialised was structural (a scope that re-armed itself on every charge), not behavioural |
 | **A8** | `pnpm test:unit` (resource-policy tests) | `resource:policy` | **medium** — retention policy *is* behaviour; policy and structure together is how a semantic change hides inside a refactor |
 | **A9** | `pnpm test:hermetic` — the tier this item exists to make possible | `replay:proposal` (`slow`) | **low** — extends an existing reducer with new event kinds |
 | **A10** | `pnpm run rules:loaded-data`, NAL suites, `pnpm run rule:matrix`, `pnpm test:unit` — **done 2026-10-01** (§0.8.11) | `rules:loaded-data` | **medium-high, and it landed** — the one item that changes what the system can do rather than how it is arranged. Parity held, because a *declaration* loaded from an artifact and a *closure* registered by an import derive the same thing — which is exactly what "added a capability without changing anything else" had to mean |
@@ -2677,11 +2786,12 @@ A0 ─▶ A1 ─▶ A2 ─▶ A3 ─▶ ~~A5~~ ─▶ A4 ─┬─▶ A6 ─▶ 
                     A12 §5.12.1 (grammar alignment) → A12 reducers, after A4's baselines
 ```
 
-**As of 2026-10-01: A0, A1, A2, A3, A4, A5, A6, A10 and A12 are done** (§0.8, §0.8.1, §0.8.6, §0.8.9,
-§0.8.7, §0.8.8, §0.8.10, §0.8.11, §0.8.12). **The sequence's spine is complete**: A0 → A1 → A2 → A3 → A6 →
-A10 all landed, in that order, and each found the next one's premise rather than assuming it. **A12 is
-complete**, so §5 has no architectural item left. **Remaining: A7, A8, A9 and A11** — none of which
-blocks another, and A8 is the last behavioural one.
+**As of 2026-10-01: A0, A1, A2, A3, A4, A5, A6, A7, A10 and A12 are done** (§0.8, §0.8.1, §0.8.6,
+§0.8.9, §0.8.7, §0.8.8, §0.8.10, §0.8.11, §0.8.12, §0.8.13). **The sequence's spine is complete**:
+A0 → A1 → A2 → A3 → A6 → A10 all landed, in that order, and each found the next one's premise rather
+than assuming it. **A12 and A7 are complete**, so §5 has no architectural item left and the one budget
+item is closed. **Remaining: A8, A9 and A11** — none of which blocks another, and A8 is the last
+behavioural one.
 
 **The ordering rule: structural before behavioural.** A5, A2 and A6 are mechanical — they move code
 and change no derived value. A1, A4 and A8 change what the system concludes or how fast it forgets.
@@ -2761,7 +2871,11 @@ profile of the wrong system.
     (`cognitive/impls/CognitiveController.ts:167`) and `step` is called in exactly one place
     (`nar-execution.ts:234`). A1 adds producer assembly around the cycle, which is the moment this is
     most likely to be broken by accident — hence a gate.
-12. **One budget system.** Budgets are `ReasoningBudget` scopes accounted by `KernelBudgetGate` (A7).
+12. **One budget system, and every bound is a declared scope.** Budgets are `ReasoningBudget` scopes
+    accounted by `KernelBudgetGate`; **A7 closed the second half** — the five bounds are `BUDGET_SCOPES`
+    rows, each with a named owner, a default, a configuration source and an overflow reason, each
+    re-opened at the cycle boundary, and each spent through one port (`ControlBudgetPort`). A bound
+    nothing spends fails `control-budgets`.
 13. **The seam reaches state only through gates it was given.** The reasoner receives its
     `GateRegistry` by injection and holds no module-global. Today it violates this (§4 row 10).
 14. **`J` and `P` are both optional, and both fail closed.** The model may not be provided: the system
@@ -2804,10 +2918,14 @@ Named, so the plan is falsifiable by diff:
 - ~~`processLMRulesImpl` from the cycle path, and its `await Promise.all` over model calls~~ —
   **done (A1)**: `DefaultDerivation` calls `stageLMRules`, and `processLMRulesImpl` survives only as
   `applyLMRules`, reached from `LMProposalProducer.pump`.
-- ~~`RuleProcessor.stepScalars` and the shadowed `resetMetaBudget`~~ — **done (A1)**. The memo had no
-  invalidator, so it was deleted rather than fixed; `NARExecution`'s own `resetMetaBudget` was dead
-  with it, along with the `ruleProcessor` option nothing passed and the `meta_derivation_budget_used`
-  summary field it fed — a field that always reported `0/5`.
+- ~~`RuleProcessor.stepScalars` and the shadowed `resetMetaBudget`~~ — **done (A1, completed by A7)**.
+  The memo had no invalidator, so it was deleted rather than fixed; `NARExecution`'s own
+  `resetMetaBudget` was dead with it, along with the `ruleProcessor` option nothing passed and the
+  `meta_derivation_budget_used` summary field it fed — a field that always reported `0/5`. **The
+  surviving `RuleProcessor.resetMetaBudget` went in A7** (§0.8.13), and with it the whole of
+  `MetaBudgetState`: it held a spend *and* a nesting depth in one struct, and the spend is now the
+  `control-work` scope while the depth is a local high-water mark. `configureMetaAikr` takes one field
+  instead of two.
 - `enableLMRules` and `lm` from the core config schema, plus the README and `docs/api` references
   (A2).
 - ~~`MemoryScorer`'s `novelty` and `relevance` factors, or the whole class~~ — **done (A4,
@@ -2833,8 +2951,13 @@ Named, so the plan is falsifiable by diff:
 - ~~`RuleIndex.hitStats` with its tie-break, unless A6 makes them real.~~ **Done (A6)**: deleted
   rather than made real — see §0.8.10 for why real would have been a semantic change.
 - The `totalTasks === 0` candidate filter in `evictUnderPressure` (A8).
-- The per-cycle `getGoals()` / `getStatistics()` calls from the summary and meta-goal steps, or their
-  budgets (A7).
+- ~~The per-cycle `getGoals()` / `getStatistics()` calls from the summary and meta-goal steps, or their
+  budgets~~ — **the budgets landed (A7, §0.8.13)**; the calls stayed. Both `getGoals()` callers and the
+  `getStatistics()` caller are `control-work`, charged per cycle. §8 named this as
+  budget-or-delete and the honest record is which half won and what it cost: **a bounded read silently
+  stops and the summary then reports `aikr_pressure: 'low'` and an empty goal list as if it had
+  measured them.** Deleting the reads is still on the table and is recorded in §0.8.13's remainders,
+  because a summary that cannot say it was skipped is worse than an unbounded one.
 - ~~**Canonical-form normalisation that does not exist** (A12): no flattening, no dedupe, no negation
   normal form, no frequency-extreme folding.~~ **Landed 2026-10-01 (§0.8.12)** for flattening, dedupe,
   double negation and the negation-into-frequency rule; **refused, with the reason recorded**, for De
@@ -2899,6 +3022,7 @@ gate listed here and not wired is the exact failure mode this plan is about.
 | `resource:policy` | every production accumulator is in the ledger, and a memory at capacity with nothing evictable says so | A8 | `gate` |
 | `rules:loaded-data` | **landed 2026-10-01** (§0.8.11): no module registers a rule by importing one and no module names the retired `RuleRegistry`; the loaded table is enumerable, versioned and revertable, a learned rule enters at a boundary carrying its `ruleSetRevision` and `provenance`, two revisions diff in both directions, an incompatible schema version and an unresolvable body both fail loudly, and an empty table is a runnable state |
 | A10 | `gate` |
+| `control-budgets` | **landed 2026-10-01** (§0.8.13): every declared control scope is spent by a call site, no spend names an undeclared scope, every scope's operation is in the budget schema's enum, and no two scopes claim one operation. The compiler holds `charge`'s argument type; this holds the four properties that cross files |
 | `replay:proposal` | `replayCognitiveState` reconstructs the same state from `proposal.*` events, and a version mismatch fails loudly | A9 | `slow` |
 | `terms:canonical` | **step 1 form (landed 2026-09-30) + §0.8.4 (landed 2026-10-01):** every variadic kind round-trips at 2, 3 and 4 members, flat and nested one level deep, comparing the **term** as well as the text — a canonical form must be *readable*, not only injective. **Reducer form, landed 2026-10-01 (§0.8.12):** `canonical(canonical(t)) === canonical(t)`; already-canonical terms are returned unchanged **by object identity**, which is the no-allocation claim; every reducer's `applies` is false on every canonical term; the reducers commute under reversal; `(--x).f = 1 − f_x` across the range with confidence and stamp carried through; two spellings of one claim are one **term**; and `product` still does not sort while `implication` nesting still survives. The NAL suites derive what they derived before — all four green, so there is no parity delta to attribute | A12 | `gate` |
 
@@ -2956,10 +3080,15 @@ Can any resource grow without a declared policy?
 Is there a second inference path?
 Can committed state and in-memory index disagree?
 Can J authorize, gate or reject P?
+Can a control budget re-arm itself between two charges?
+Is a bound declared but never spent?
 ```
 
-The last two are new since v2.5 and are the two most likely to be violated by this plan's own work:
-the second by A10's index reconstruction, the last by the vocabulary of §2.1.
+The last two questions are new in v3.14 and the first of them was **asked by the implementation, not
+by the review**: the first `ControlBudgets` re-derived a scope's ceilings on every `charge`, so each
+charge reset the consumption that decided the previous one and no scope could ever exhaust (§0.8.13,
+decision 3). The other three came from this plan's own work — A10's index reconstruction, §2.1's
+vocabulary, and A7's declaration table.
 
 ---
 
@@ -3026,6 +3155,15 @@ there is no `nal1-rules` file either. The parity suites are `nal2-copula`, `nal7
 A6, not after — and if they are not covered, the parity claim is narrower than this plan's language
 has implied.
 
+**Q12 — is the decision layer's cost accounted, and separately? — ANSWERED, and it landed with A7.**
+`SystemOneDispatcher` had a `budgetGate` option and **no caller supplied one**, so `chargeJudgment`
+never ran in production and `'default'` was never a live scope. `nar.ts` now supplies the gate, the
+judgment charges `DECISION_DERIVATIONS_SCOPE`, and that scope spends `maxLMCalls` on its own — so a
+decision-layer budget of zero is structurally unable to touch the symbolic derivation count, which
+`tests/nar/todo29a-a7.test.ts` asserts end to end. §0.8.13 records this as the **third** "an option
+nothing supplies" §10.1 has found, after `hasStructuralSimilarityNoOverlap` and `enableLMRules`, and
+names the cheap general gate that would catch all three.
+
 **Q11 — ~~what truth does a `J`-derived conclusion carry?~~ — answered by committed code, not by this
 plan.** Every decision query must declare whether it is about a **Belief** or a **Goal** — the field
 is `CognitiveAxis`, whose two values mean exactly that (`types.ts:63,70,82,126,134`). The safe side is
@@ -3072,6 +3210,7 @@ retrieved; it may never change **what counts as** committed state (§1.2).
 | ~~**A4 or A5 land as wrappers.**~~ **Both halves answered and gated.** A5: `Memory` is off the cycle path and a facade import fails the gate (§0.8.7). A4: the setter is gone, so an external writer does not compile, and `attention:write-surface` fails on a `set priority` returning, on a reason nothing writes, and on a read that writes (§0.8.8) | ~~medium~~ | `Memory` keeps its responsibilities behind a forwarding interface; or a new external `priority` writer appears and no test fails | The setter is a type, so the "new external writer" branch fails at compile time and the gate is the second line. Baselines were re-established and committed in the same change — gridworld unmoved, bandit −0.10, non-stationary −0.13, all above floor — so later drift is attributable to A6 and after |
 | ~~**A12's reducers are not sound and parity moves**~~ **Not realised 2026-10-01 (§0.8.12).** Four reducers landed, parity held on all four suites, and the risk resolved the way the plan said it would be resolved: by measurement. What the measurement *changed* is the catalogue — the six rewrites became four, because the four that rewrite across an operator kind would have moved derived terms and §7 invariant 1 is exactly the thing they were not worth risking | **none observed** — all four suites and all 328 unit files green | the gate is parity and it stayed quiet; and `terms:canonical` now asserts the reducer registry's fixed point directly, so the next reducer is checked without a NAR. **The recorded finding is more useful than a clean run would have been**: the surviving negation spelling is the one that keeps both of the rule table's hot buckets populated, and no amount of reading the NAL axioms alone would have produced that |
 | ~~**A10 never lands and the thesis stays prose**~~ **Answered 2026-10-01: it landed** (§0.8.11). The rule set is a versioned, loadable, diffable, revertable artifact; `registration.ts` registers nothing; `RuleRegistry` is deleted; a rule proposal reaches the table at a boundary; and `rules:loaded-data` is the gate. **The residual risk is narrower and is recorded rather than dismissed**: nothing yet *synthesises* a rule proposal, so the learned half is reachable and tested rather than populated — a rule miner is the next thing this thesis needs, and it is not in this plan | ~~medium~~ **low, and named** | the plan closing with "a rule proposal can become a rule" still describing a seam rather than a path. The honest statement is what §0.8.11 makes: the *mechanism* is built and gated; the *producer* is not |
+| ~~**A7 changes what the system concludes** ("steps stop running by default")~~ **Not realised 2026-10-01 (§0.8.13).** The `derivations` ceiling is the config value `InferenceController` already read at its stop condition, set on the scope at the composition root, so the count is the count it was; all four NAL suites and all 329 unit files are green | **none observed** | the derivation count moving under an unchanged `maxDerivationsPerStep`, or a parity suite going red for a budget reason | The risk that *did* materialise was structural and not in this table: **a scope that re-armed on every charge could never exhaust**, which is §10.1's shape rather than a behavioural one, and is now asserted by a test reading `[true, true, false]` |
 | **The thesis is negative.** S+J+P is not better than S alone | unknown — but no longer unknowable | the `nal` vs `manifold`/`lm` arcade run comes out flat or negative | Q3: write the hypothesis, run it with a seed count that survives the noise, publish the number either way. **A command, not a project** — but it needs A1 for a clean control and A10 for a meaningful with-`P` arm |
 | **"Judgment" re-imports the gate reading** | medium — the vocabulary invites it | `J` starts authorizing, filtering or scoring `P` | §2.1's anti-drift note, the Belief/Goal-typed `CycleDecisionRequest`, and a test in A11's acceptance |
 | **The plan measures the wrong thing** | already happened once | an ordering derived from a profile of the fused system | fixed by construction: this plan makes no ordering claims about cost, and TODO30 must re-profile before ordering anything |

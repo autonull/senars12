@@ -53,6 +53,9 @@ export const GATES: readonly Gate[] = [
   // importing one, no module-global rule set, and the table is versioned,
   // enumerable and revertable.
   script('rules:loaded-data'),
+  // TODO29.a A7: every control budget is a declared scope with a named owner,
+  // and every declared scope is spent somewhere.
+  script('control-budgets'),
   script('cycle:no-provider'),
   // TODO29.a A0: the in-cycle induction inventory, and its references still hold.
   script('induction:inventory'),

@@ -1484,6 +1484,28 @@ _Re-export barrel._
 
 - `NALVetoError` — Typed NAL-veto error for callers that convert a gate veto result
 
+- `BUDGET_SCOPES`
+
+- `BUDGET_SCOPE_IDS` — The five bounds §5.7 names. The order is the plan's.
+
+- `scopeBudget` — Resolve a scope's ceilings over a base budget: the dimension the scope spends
+
+- `scopeLimit` — The declared limit for one scope, or the override configuration supplies.
+
+- `scopeSpec`
+
+- `type BudgetDimension`
+
+- `type BudgetScopeId`
+
+- `type BudgetScopeSpec`
+
+- `ControlBudgets`
+
+- `type ControlBudgetOverrides`
+
+- `type ControlBudgetPort`
+
 - `createDefaultReasoningBudget`
 
 - `KernelBudgetGate`

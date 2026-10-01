@@ -3,7 +3,9 @@ import { envBool } from '@senars/util/config';
 import type { CognitiveController } from './cognitive';
 import type { DriveManager } from './drives';
 import type { NARConfig } from './facade/config.js';
+import { ControlBudgets } from './kernel/control-budgets.js';
 import type { GateRegistry } from './kernel/GateRegistry.js';
+import type { KernelBudgetGate } from './kernel/KernelBudgetGate.js';
 import type { MemoryPorts } from './memory/ports/index.js';
 import { CycleTrace, type CycleStage } from './proposal/cycle-trace.js';
 import type { LMProposalProducer } from './proposal/lm-rule-producer.js';
@@ -73,6 +75,12 @@ export interface NARExecutionOptions {
   self?: ReasoningAboutReasoning;
   toolGoalExecutor?: (goalTerm: Task['term']) => Promise<unknown>;
   gates: GateRegistry;
+  /**
+   * TODO29.a §5.7: the declared control budgets, re-opened at the top of every
+   * cycle. Absent ⇒ the declared defaults over the same gate, which is what a
+   * NAR built without a composition root gets.
+   */
+  budgets?: ControlBudgets;
   /** Absent in the no-producer configuration: the cycle then stages nothing. */
   proposals?: LMProposalProducer;
 }
@@ -96,6 +104,8 @@ export class NARExecution {
     this.self = options.self;
     this.toolGoalExecutor = options.toolGoalExecutor;
     this.gates = options.gates;
+    this.budgets =
+      options.budgets ?? new ControlBudgets(options.gates.getBudgetGate() as KernelBudgetGate);
     this.proposals = options.proposals;
   }
 
@@ -110,6 +120,7 @@ export class NARExecution {
   private readonly self?: ReasoningAboutReasoning;
   private readonly toolGoalExecutor?: (goalTerm: Task['term']) => Promise<unknown>;
   private readonly gates: GateRegistry;
+  private readonly budgets: ControlBudgets;
   private readonly proposals?: LMProposalProducer;
 
   /** Stimulate drives based on events — homeostatic regulation. Public so tool layer can report outcomes. */
@@ -174,6 +185,9 @@ export class NARExecution {
 
       this._cycleCount++;
       this.phaseTimer.begin('cycle', `cycle-${this._cycleCount}`);
+      // Four of the five declared scopes are per cycle, so they are re-opened
+      // here rather than left to exhaust once over the NAR's life (§5.7).
+      this.budgets.beginCycle();
       this.cycleSignals.testPassed = false;
       this.cycleSignals.testFailed = false;
       this.cycleSignals.contradictionDetected = false;
@@ -231,7 +245,20 @@ export class NARExecution {
       await this.stage('authorize', 'memory', 'addTasks', async () => {
         const ranking = this.cognitiveController.getParams().inference.ranking;
         const settled = this.proposals?.takeDerived() ?? [];
-        for (const task of [...rankDerivations(results, ranking), ...settled]) this.admit(task);
+        // `proposal-application` is a declared scope, so a spent budget and a full
+        // queue are the same kind of event with the same kind of reason (§5.7).
+        // Symbolic derivations are not charged here: only what arrived from the seam.
+        for (const task of rankDerivations(results, ranking)) this.admit(task);
+        // `proposal-application` is a declared scope, so a spent budget and a
+        // full queue become the same kind of event with the same kind of reason
+        // (§5.7). Symbolic derivations are not charged: only what the seam sent.
+        for (const task of settled) {
+          if (!this.budgets.charge('proposal-application')) {
+            logger.warn('Proposal application budget exhausted; the rest stay queued');
+            break;
+          }
+          this.admit(task);
+        }
       });
 
       // Homeostatic drive stimulation based on events
@@ -435,15 +462,16 @@ export class NARExecution {
       activeDrives[ds.spec.id] = ds.currentIntensity;
     }
 
-    // Get active meta-goals (goals that call a tool)
-    const goals = this.memory.getGoals?.() ?? [];
+    // Both of the population-sized reads in the cycle are `control-work` (A7):
+    // observability that costs O(N) is control work and is bounded like it.
+    const goals = this.budgets.charge('control-work') ? (this.memory.getGoals?.() ?? []) : [];
     const activeMetaGoals = goals
       .filter((g) => operationNameOf(g.term) !== undefined)
       .map((g) => g.term.toString())
       .slice(0, 10);
 
     // Calculate AIKR pressure
-    const stats = this.memory.getStatistics?.();
+    const stats = this.budgets.charge('control-work') ? this.memory.getStatistics?.() : undefined;
     const memoryPressure = stats?.memoryPressure ?? 0;
     let aikrPressure: 'low' | 'medium' | 'high' = 'low';
     if (memoryPressure > 0.8) aikrPressure = 'high';
@@ -473,7 +501,10 @@ export class NARExecution {
     if (!this.driveManager) return;
 
     const activeTerms = new TermSet();
-    for (const goal of this.memory.getGoals?.() ?? []) activeTerms.add(goal.term);
+    // De-duplicating against every goal is control work (A7) — and the only
+    // reason to skip it is an exhausted budget, not a missing method.
+    if (this.budgets.charge('control-work'))
+      for (const goal of this.memory.getGoals?.() ?? []) activeTerms.add(goal.term);
     // Include pending tasks so we don't re-inject the same goal across cycles
     const peeked = this.taskManager.peekTask();
     if (peeked) {

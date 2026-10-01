@@ -18,6 +18,7 @@ import { SystemOneIngressJudge } from './lm/system-one/ingress-judge.js';
 import type { JudgmentProposition, JudgmentQuery } from './lm/system-one/types.js';
 import { SystemOneRuntime } from './facade/system-one.js';
 import type { NARConfig } from './facade/config.js';
+import type { KernelBudgetGate } from './kernel/KernelBudgetGate.js';
 import type { SourceReputation } from './kernel/source-reputation.js';
 import type { LMService } from './lm/lm-service.js';
 
@@ -27,6 +28,8 @@ export interface SystemOneWiringDeps {
   readonly onJudgmentResolved: (proposition: JudgmentProposition, query: JudgmentQuery) => void;
   /** Read at judge time, not at build time — attached after construction. */
   readonly reputation: () => SourceReputation | undefined;
+  /** A7: where a judgment's cost is charged. Absent ⇒ uncharged, as before. */
+  readonly budgetGate?: KernelBudgetGate;
 }
 
 export interface SystemOneWiring {
@@ -36,9 +39,13 @@ export interface SystemOneWiring {
 }
 
 export function wireSystemOne(deps: SystemOneWiringDeps): SystemOneWiring {
-  const { config, lmService, onJudgmentResolved, reputation } = deps;
+  const { config, lmService, onJudgmentResolved, reputation, budgetGate } = deps;
 
-  const systemOne = new SystemOneRuntime(config, { lmService, onJudgmentResolved });
+  const systemOne = new SystemOneRuntime(config, {
+    lmService,
+    onJudgmentResolved,
+    budgetGate,
+  });
 
   if (!config.systemOne?.enabled) return { systemOne, perceptionConfig: undefined };
 

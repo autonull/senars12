@@ -5,6 +5,7 @@ import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/conf
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import type { CognitiveRegistry } from '../cognitive';
 import type { CognitiveParameters } from '../config/cognitive-parameters';
+import type { BudgetScopeId } from '../kernel/budget-scopes.js';
 import type { GateRegistry } from '../kernel/GateRegistry.js';
 import type { LMService, SeNARSRegistry } from '../lm';
 import type { EmbeddingCache } from '../lm/system-one/embedding-cache.js';
@@ -87,6 +88,13 @@ export interface NARConfig extends CoreConfig {
   };
   /** Initial autonomy mode for the action gate (default: 'observe-only'). */
   initialAutonomyMode?: AutonomyMode;
+  /**
+   * Control-budget ceilings, per declared `scopeId` (TODO29.a §5.7). An absent
+   * scope uses its declared default, so this is an override and not the
+   * declaration — `BUDGET_SCOPES` owns every scope's vocabulary, owner and
+   * overflow reason.
+   */
+  controlBudgets?: Partial<Record<BudgetScopeId, number>>;
   /** Injectable event bus; defaults to a fresh `NarEventBus`. */
   eventBus?: NarEventBus;
   /** Disable embedding layer for semantic similarity (saves resources when no embedding model). */

@@ -3,6 +3,7 @@
  */
 
 import { sleep } from '@senars/util';
+import type { ControlBudgetPort } from '../kernel/control-budgets.js';
 import type { MemoryView } from '../memory/view.js';
 import type { RuleProcessor } from '../rules';
 import type {
@@ -57,7 +58,13 @@ export class InferenceController {
     private samplingStrategy: SamplingStrategy,
     private strategy: Strategy,
     private derivationStrategy: DerivationStrategy,
-    private readonly config: InferenceConfig
+    private readonly config: InferenceConfig,
+    /**
+     * The declared control budgets (TODO29.a §5.7). Absent ⇒ the config bounds
+     * stand alone, which is what a bare controller in a unit test means; the
+     * cycle path always binds one.
+     */
+    private readonly budgets?: ControlBudgetPort
   ) {}
 
   reconfigure(updates: {
@@ -121,9 +128,14 @@ export class InferenceController {
       });
       if (boost !== 0) concept.writeAttention({ reason: 'prime', amount: boost });
 
-      const task = createBeliefTaskFromConcept(concept);
-      if (!task) continue;
-      const secondaries = this.strategy.selectSecondary(task, this.memory);
+const task = createBeliefTaskFromConcept(concept);
+        if (!task) continue;
+        // Secondary premise consideration is its own declared bound (§5.7): a
+        // population-sized scan is unbounded work in a step that is not. Absent
+        // a budget port the consideration is unbudgeted, as it always was.
+        const consider = this.budgets ? this.budgets.charge('premises') : true;
+        if (!consider) return;
+        const secondaries = this.strategy.selectSecondary(task, this.memory);
 
       const ctx: DerivationContext = {
         maxDerivations: this.config.maxDerivationsPerStep,
@@ -146,11 +158,22 @@ export class InferenceController {
         this.config.onDerivation?.([task, ...secondaries, derived]);
         yield derived;
 
-        if (++emitted >= maxResults || this.derivationCount >= this.config.maxDerivationsPerStep)
-          return;
+        if (++emitted >= maxResults || this.derivationBudgetSpent()) return;
         if (paceMs > 0) await sleep(paceMs);
       }
     }
+  }
+
+  /**
+   * Whether this cycle has spent its symbolic derivation bound. With a budget
+   * port bound, that is the declared `derivations` scope — whose ceiling the
+   * composition root sets from `inference.maxDerivationsPerStep`, so the count is
+   * the same one the config always bounded. Without one (a bare controller in a
+   * unit test) the config bound stands alone.
+   */
+  private derivationBudgetSpent(): boolean {
+    if (this.budgets) return !this.budgets.charge('derivations');
+    return this.derivationCount >= this.config.maxDerivationsPerStep;
   }
 
   private isCircular(task: Task): boolean {

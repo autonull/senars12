@@ -1546,6 +1546,11 @@ interface NARConfig extends CoreConfig {
   strategyRegistry?: CognitiveRegistry;
   adaptationInterval?: number;
 
+  // Control budgets (TODO29.a §5.7): per-scope ceiling overrides.
+  // `BUDGET_SCOPES` in nar/src/kernel/budget-scopes.ts owns the vocabulary,
+  // the owner and the overflow reason of every declared scope.
+  controlBudgets?: Partial<Record<BudgetScopeId, number>>;
+
   // Persistence
   persistState?: boolean;
   statePath?: string;

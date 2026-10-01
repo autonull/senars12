@@ -14,7 +14,7 @@ import {
   type DecideResult,
   type Decider,
 } from '../lm/system-one/decide.js';
-import { createDispatcher, StubCortex } from '../lm/system-one/dispatcher.js';
+import { createDispatcher, type DispatcherOptions, StubCortex } from '../lm/system-one/dispatcher.js';
 import { JudgmentDataset } from '../lm/system-one/distill.js';
 import { createEmbeddingCache, type EmbeddingCache } from '../lm/system-one/embedding-cache.js';
 import { embeddingRuntime } from '../lm/embedding-runtime.js';
@@ -80,15 +80,15 @@ export class SystemOneRuntime {
   private readonly config: NARConfig;
   private readonly logger: ReturnType<typeof createLogger>;
 
-  /**
-   * Get a per-correlationId ContrastiveMemory instance.
-   * Uses ThreadScope for isolation; single-correlationId path is byte-identical.
-   */
   /** The ε-greedy fallback every reflex path attaches; one construction, one stream (TODO28 §7.3). */
   private incumbentReflex(name: string): EpsilonGreedyReflex {
     return new EpsilonGreedyReflex(name, { numArms: 10, epsilon: 0.1, rng: this.config.rng });
   }
 
+  /**
+   * Get a per-correlationId ContrastiveMemory instance.
+   * Uses ThreadScope for isolation; single-correlationId path is byte-identical.
+   */
   getContrastive(correlationId: string): ContrastiveMemory {
     const scope = threadScope.get(correlationId);
     if (!scope.contrastiveMemory) {
@@ -103,7 +103,7 @@ export class SystemOneRuntime {
       lmService?: LMService;
       onJudgmentResolved: (proposition: JudgmentProposition, query: JudgmentQuery) => void;
       logger?: ReturnType<typeof createLogger>;
-    }
+    } & Pick<DispatcherOptions, 'budgetGate'>
   ) {
     this.config = config;
     this.logger = opts.logger ?? createLogger({ scope: 'NAR.SystemOne' });
@@ -231,6 +231,7 @@ export class SystemOneRuntime {
           maxTtlMs: systemOneConfig.provisional?.maxTtlMs ?? 30_000,
         },
         contrastive: defaultContrastive,
+        budgetGate: opts.budgetGate,
       },
       cortex
     );

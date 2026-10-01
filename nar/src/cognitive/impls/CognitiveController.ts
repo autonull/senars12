@@ -1,4 +1,5 @@
 import { sameStrategies, type CognitiveParameters, type StrategySlotParams } from '../../config/cognitive-parameters';
+import type { ControlBudgetPort } from '../../kernel/control-budgets.js';
 import type { MemoryPorts } from '../../memory/ports/index.js';
 import type { MetricsCollector } from '../../metrics';
 import type { Strategy } from '../../reason';
@@ -16,6 +17,8 @@ import { SLOT_KEY } from './CognitiveRegistry.js';
 export class CognitiveController {
   private currentParams: CognitiveParameters;
   private readonly inferenceController: InferenceController;
+  /** TODO29.a §5.7: the declared control budgets, injected once and never rebuilt. */
+  private readonly budgets?: ControlBudgetPort;
   private cycleCount = 0;
   private readonly adaptInterval: number;
   private readonly onAdaptCallbacks: Array<() => void> = [];
@@ -28,8 +31,10 @@ export class CognitiveController {
     private readonly metrics: MetricsCollector,
     private readonly rlfp: RLFPLearner | undefined,
     params: CognitiveParameters,
-    adaptInterval = 50
+    adaptInterval = 50,
+    budgets?: ControlBudgetPort
   ) {
+    this.budgets = budgets;
     // Own the parameter graph: callers may pass frozen defaults (TODO20 C3).
     this.currentParams = structuredClone(params);
     this.adaptInterval = adaptInterval;
@@ -170,7 +175,8 @@ export class CognitiveController {
       sampling,
       strategy,
       derivationStrategy,
-      inferenceConfig
+      inferenceConfig,
+      this.budgets
     );
   }
 

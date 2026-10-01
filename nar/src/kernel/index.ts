@@ -21,6 +21,21 @@ export type {
   IRewardGate,
 } from './interfaces.js';
 export { KernelActionGate, NALVetoError } from './KernelActionGate.js';
+export {
+  BUDGET_SCOPES,
+  BUDGET_SCOPE_IDS,
+  scopeBudget,
+  scopeLimit,
+  scopeSpec,
+  type BudgetDimension,
+  type BudgetScopeId,
+  type BudgetScopeSpec,
+} from './budget-scopes.js';
+export {
+  ControlBudgets,
+  type ControlBudgetOverrides,
+  type ControlBudgetPort,
+} from './control-budgets.js';
 export { createDefaultReasoningBudget, KernelBudgetGate } from './KernelBudgetGate.js';
 export { KernelPerceptionGate } from './KernelPerceptionGate.js';
 export {

@@ -6,6 +6,7 @@ import type { ModelRuleStats } from '@senars/util';
 import { formatNarseseTruth, pushCapped, stopwatch, toError } from '@senars/util';
 import { findConflicts } from '../../cognitive/impls/conflict-utils.js';
 import type { DriveManager } from '../../drives';
+import type { ControlBudgetPort } from '../../kernel/control-budgets.js';
 import { GATE_LOG_CAPACITY } from '../../kernel/event-ring.js';
 import type { MemoryReader } from '../../memory/ports/index.js';
 import type { ModelRuleSelector } from '../../strategies/types.js';
@@ -45,12 +46,15 @@ export interface RuleProcessorHost {
   getDriveManager(): DriveManager | undefined;
 }
 
-/** Meta-reasoning budget state */
-interface MetaBudgetState {
-  derivationsThisStep: number;
+/**
+ * Meta-reasoning nesting. A high-water mark rather than a spend: the number a
+ * meta derivation is *at* in the chain, which is structural. The spend — how
+ * many meta derivations a step may make — is the `control-work` scope (A7), so
+ * there is one place that answers "how much" and this only answers "how deep".
+ */
+interface MetaDepthState {
   currentDepth: number;
-  maxDerivationsPerStep: number;
-  maxDerivationDepth: number;
+  maxDepth: number;
 }
 
 export class RuleProcessor {
@@ -71,12 +75,12 @@ export class RuleProcessor {
   private readonly seenBuffer = new Map<string, RuleResult>();
 
   private modelRuleWorkSink: ModelRuleWorkSink | null = null;
-  private metaBudget: MetaBudgetState = {
-    derivationsThisStep: 0,
+  private metaDepth: MetaDepthState = {
     currentDepth: 0,
-    maxDerivationsPerStep: META_AIKR_BOUNDS.maxMetaDerivationsPerStep,
-    maxDerivationDepth: META_AIKR_BOUNDS.maxMetaDerivationDepth,
+    maxDepth: META_AIKR_BOUNDS.maxMetaDerivationDepth,
   };
+  /** TODO29.a §5.7: the declared control budgets. Absent ⇒ meta derivations are unbudgeted. */
+  private budgets?: ControlBudgetPort;
 
   /**
    * `rules` builds a table of exactly those rules; omitting it loads the shipped
@@ -98,9 +102,11 @@ export class RuleProcessor {
     memory?: MemoryReader;
     host?: RuleProcessorHost;
     recorderEnabled?: boolean;
+    budgets?: ControlBudgetPort;
   }): void {
     if (config.memory) this.memory = config.memory;
     if (config.host) this.host = config.host;
+    if (config.budgets) this.budgets = config.budgets;
     if (config.recorderEnabled !== undefined) this.recorder.setEnabled(config.recorderEnabled);
   }
 
@@ -163,12 +169,6 @@ export class RuleProcessor {
     }
   }
 
-  /** Reset meta-budget for new step */
-  resetMetaBudget(): void {
-    this.metaBudget.derivationsThisStep = 0;
-    this.metaBudget.currentDepth = 0;
-  }
-
   /**
    * Memory-wide scalars handed to model-backed rule contexts. Prompt hints, never
    * load-bearing for admission, and read on the off-cycle pass only — which is
@@ -197,19 +197,9 @@ export class RuleProcessor {
     );
   }
 
-  /** Get current meta-budget status */
-  getMetaBudgetStatus(): MetaBudgetState {
-    return { ...this.metaBudget };
-  }
-
-  /** Configure meta-reasoning AIKR bounds */
-  configureMetaAikr(bounds: { maxDerivationsPerStep?: number; maxDerivationDepth?: number }): void {
-    if (bounds.maxDerivationsPerStep !== undefined) {
-      this.metaBudget.maxDerivationsPerStep = bounds.maxDerivationsPerStep;
-    }
-    if (bounds.maxDerivationDepth !== undefined) {
-      this.metaBudget.maxDerivationDepth = bounds.maxDerivationDepth;
-    }
+  /** How deep a meta derivation may nest. The *spend* is `control-work`; this is the chain depth. */
+  configureMetaAikr(bounds: { maxDerivationDepth?: number }): void {
+    if (bounds.maxDerivationDepth !== undefined) this.metaDepth.maxDepth = bounds.maxDerivationDepth;
   }
 
   /**
@@ -275,7 +265,7 @@ export class RuleProcessor {
       if (!rule.sync) continue;
       if (this.isMetaRule(rule)) {
         if (!metaActive) continue;
-        if (!this.checkMetaBudget(this.metaBudget.currentDepth + 1)) continue;
+        if (!this.checkMetaBudget(this.metaDepth.currentDepth + 1)) continue;
       }
 
       try {
@@ -285,7 +275,7 @@ export class RuleProcessor {
           this.eventBus?.emit('rule:output-rejected', { ruleId: rule.id, term: result.toString() });
           continue;
         }
-        if (this.isMetaRule(rule)) this.recordMetaDerivation(this.metaBudget.currentDepth + 1);
+        if (this.isMetaRule(rule)) this.recordMetaDerivation(this.metaDepth.currentDepth + 1);
         const conclusion = result.toString();
         if (conclusion === p1s || conclusion === p2s) continue;
         const ruleResult = buildResult(
@@ -328,18 +318,14 @@ export class RuleProcessor {
     return rule.id.startsWith('meta-');
   }
 
-  /** Check if meta-reasoning budget allows another derivation */
+  /** Whether the step may afford another meta derivation, at this nesting depth. */
   private checkMetaBudget(depth: number): boolean {
-    return (
-      this.metaBudget.derivationsThisStep < this.metaBudget.maxDerivationsPerStep &&
-      depth < this.metaBudget.maxDerivationDepth
-    );
+    return depth < this.metaDepth.maxDepth && (this.budgets?.charge('control-work') ?? true);
   }
 
-  /** Record a meta-derivation */
+  /** Record a meta-derivation's nesting depth. */
   private recordMetaDerivation(depth: number): void {
-    this.metaBudget.derivationsThisStep++;
-    this.metaBudget.currentDepth = Math.max(this.metaBudget.currentDepth, depth);
+    this.metaDepth.currentDepth = Math.max(this.metaDepth.currentDepth, depth);
   }
 
   private async *applyModelRulesImpl(
