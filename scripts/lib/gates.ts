@@ -49,6 +49,10 @@ export const GATES: readonly Gate[] = [
   // TODO29.a A6: dispatch is a port, and every registered rule declares both of
   // its kinds — no wildcard bucket, no catch-all.
   script('dispatch:no-wildcard'),
+  // TODO29.a A10: the rule set is loaded data — no module registers a rule by
+  // importing one, no module-global rule set, and the table is versioned,
+  // enumerable and revertable.
+  script('rules:loaded-data'),
   script('cycle:no-provider'),
   // TODO29.a A0: the in-cycle induction inventory, and its references still hold.
   script('induction:inventory'),

@@ -610,6 +610,22 @@ _Re-export barrel._
 
 - `validateProposal`
 
+- `BUILTIN_RULE_ARTIFACT_VERSION` — The shipped built-in table's own version, independent of the schema shape.
+
+- `RULE_TABLE_REJECTIONS` — Why a table could not be loaded. Each is a loud failure, never a coercion.
+
+- `RULE_TABLE_SCHEMA_VERSION` — The wire version of the rule-table artifact. A table recorded against one
+
+- `RuleArtifactEntrySchema` — One entry of a table at one revision. The identity fields are what make
+
+- `RuleDeclarationSchema` — One rule, as data. The pattern's `op` is a term kind, required on both sides:
+
+- `RuleProvenanceSchema` — How an entry came to exist. The three kinds have different revert stories.
+
+- `RuleTableSchema` — A whole table at a revision: the unit that is loaded, recorded and restored.
+
+- `validateRuleTable`
+
 - `ReasoningBudgetSchema`
 
 - `TerminationReasonSchema`

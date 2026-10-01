@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { RuleRegistry } from '../../nar/src';
-import '../../nar/src/rules/impls/rules-dsl.js';
+import { BUILTIN_DECLARATIONS, RULE_BODIES } from '../../nar/src/rules';
 
-describe('Extended NAL Rules Registration', () => {
-  it('should register all extended rules with truth functions', () => {
+describe('Extended NAL Rules — declared, not registered', () => {
+  it('should declare all extended rules with resolvable truth functions', () => {
     const extendedRuleIds = [
       'nal.structuralInheritance',
       'nal.structuralReduction',
@@ -20,20 +19,21 @@ describe('Extended NAL Rules Registration', () => {
       'nal.extended.exemplification',
     ];
 
-    extendedRuleIds.forEach((id) => {
-      const rule = RuleRegistry.get(id);
-      expect(rule).toBeDefined();
-      expect(rule?.truthFn).toBeDefined();
-      expect(rule?.sync).toBe(true);
-    });
+    const declared = new Map(BUILTIN_DECLARATIONS.map((rule) => [rule.ruleId, rule]));
+    for (const ruleId of extendedRuleIds) {
+      const rule = declared.get(ruleId);
+      expect(rule, ruleId).toBeDefined();
+      expect(RULE_BODIES[rule!.body], `${ruleId} body ${rule!.body}`).toBeTypeOf('function');
+    }
   });
 
-  it('should have all NAL rules with truth functions', () => {
-    const allRules = RuleRegistry.getAll();
-    const nalRules = allRules.filter((r) => r.id.startsWith('nal.'));
-    const rulesWithTruthFn = nalRules.filter((r) => r.truthFn);
+  it('should declare all NAL rules with a resolvable body', () => {
+    const nal = BUILTIN_DECLARATIONS.filter((rule) => rule.ruleId.startsWith('nal.'));
+    const resolvable = nal.filter((rule) => RULE_BODIES[rule.body]);
 
-    expect(nalRules.length).toBeGreaterThan(0);
-    expect(rulesWithTruthFn.length).toBe(nalRules.length);
+    expect(nal.length).toBeGreaterThan(0);
+    // A rule whose body resolves to nothing is a rule that derives nothing.
+    expect(nal.filter((rule) => !RULE_BODIES[rule.body]).map((rule) => rule.ruleId)).toEqual([]);
+    expect(resolvable).toHaveLength(nal.length);
   });
 });

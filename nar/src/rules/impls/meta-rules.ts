@@ -26,9 +26,7 @@ import {
   type TruthType,
 } from '../../terms';
 import { operationTerm } from '../../terms/impls/operation-term.js';
-import type { RegisteredRule } from '../types.js';
-import type { InferenceTable } from '../types.js';
-import { RuleRegistry } from './rule-registry.js';
+import type { InferenceTable, RegisteredRule } from '../types.js';
 
 /** Semantic truth values for meta-rules (moderate confidence) */
 const META_RULE_TRUTH: TruthType = Truth.create(0.6, 0.8);
@@ -248,12 +246,16 @@ export function buildMetaRules(): RegisteredRule[] {
   return rules;
 }
 
-/** Register meta-rules into the RuleRegistry */
-export function registerMetaRules(table?: InferenceTable): void {
-  for (const rule of buildMetaRules()) {
-    RuleRegistry.register(rule);
-    table?.register(rule);
-  }
+/**
+ * Register the meta-rules into a dispatch table.
+ *
+ * The table is **required**, not optional: these used to also land on a
+ * module-global registry, where a caller who passed nothing still "registered"
+ * them and no running engine could see it. A registration with no table is not a
+ * registration (TODO29.a §5.10).
+ */
+export function registerMetaRules(table: InferenceTable): void {
+  for (const rule of buildMetaRules()) table.register(rule);
 }
 
 /** Initialize meta-reasoning beliefs into NAR */

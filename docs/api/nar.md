@@ -88,6 +88,8 @@
 
 - `createRulePattern`
 
+- `loadBuiltinTable` — Load the shipped table. The one place the built-ins enter the system.
+
 - `NALExtendedRules`
 
 - `NALRules`
@@ -96,7 +98,7 @@
 
 - `RuleProcessor`
 
-- `RuleRegistry`
+- `RuleTableStore` — The loaded table: an artifact, a revision, and the index it projects into.
 
 - `TaskManager`
 
@@ -1198,7 +1200,7 @@ _Re-export barrel._
 
 - `META_RULES_NARSESE` — Meta-rule definitions in Narsese format
 
-- `registerMetaRules` — Register meta-rules into the RuleRegistry
+- `registerMetaRules` — Register the meta-rules into a dispatch table.
 
 - `shouldActivateMetaReasoning` — Check if meta-reasoning should activate based on drive intensities
 
@@ -1210,11 +1212,27 @@ _Re-export barrel._
 
 - `RuleIndex` — Dispatch, as an `InferenceTable`. One bucket per declared kind pair.
 
-- `RuleRegistry`
+- `loadBuiltinTable` — Load the shipped table. The one place the built-ins enter the system.
+
+- `builtinEntries` — Build the shipped table from its declarations, as *entries at revision 0*.
+
+- `diffArtifacts`
+
+- `resolveTable` — Validate an artifact and resolve every body.
+
+- `RuleTableError` — A table that could not be loaded. Every fault is enumerable, never swallowed.
+
+- `RuleTableStore` — The loaded table: an artifact, a revision, and the index it projects into.
+
+- `tableArtifact`
+
+- `BUILTIN_DECLARATIONS` — The shipped table. 55 declarations, all at revision 0, all `builtin`
 
 - `NALExtendedRules`
 
 - `NALRules`
+
+- `RULE_BODIES` — Namespaced so the three colliding names stay distinct bodies.
 
 - `createRulePattern`
 

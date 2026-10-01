@@ -120,6 +120,25 @@ export {
   RuleProposalSchema,
   validateProposal,
 } from './proposal.js';
+export type {
+  RuleArtifactEntry,
+  RuleDeclaration,
+  RuleProvenance,
+  RuleTable,
+  RuleTableDiff,
+  RuleTableFault,
+  RuleTableRejection,
+} from './rule-table.js';
+export {
+  BUILTIN_RULE_ARTIFACT_VERSION,
+  RULE_TABLE_REJECTIONS,
+  RULE_TABLE_SCHEMA_VERSION,
+  RuleArtifactEntrySchema,
+  RuleDeclarationSchema,
+  RuleProvenanceSchema,
+  RuleTableSchema,
+  validateRuleTable,
+} from './rule-table.js';
 export type { ReasoningBudget, TerminationReason } from './reasoning-budget.js';
 export {
   ReasoningBudgetSchema,

@@ -29,6 +29,7 @@ jobs:
       - run: pnpm attention:write-surface
       - run: pnpm proposal:protocol
       - run: pnpm dispatch:no-wildcard
+      - run: pnpm rules:loaded-data
       # TODO29.a A0: provider-dependency detection, and the in-cycle induction inventory.
       - run: pnpm cycle:no-provider
       - run: pnpm induction:inventory

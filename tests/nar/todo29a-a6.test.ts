@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { RuleIndex, RuleProcessor, RuleRegistry } from '@senars/nar/rules';
+import { BUILTIN_DECLARATIONS, loadBuiltinTable, RuleIndex, RuleProcessor } from '@senars/nar/rules';
 import { createRulePattern } from '@senars/nar/rules/types';
 import type { InferenceTable, RegisteredRule } from '@senars/nar/rules/types';
 import { bucketCensus, kindViolations } from '../../scripts/lib/dispatch-table.js';
@@ -17,30 +17,20 @@ const rule = (id: string, priority: number, ops: [Term['kind'], Term['kind']]): 
 const ids = (table: InferenceTable, left: Term['kind'], right: Term['kind']) =>
   table.candidates(left, right).map((r) => r.id);
 
-/** The kind census, over the shipped table rather than a hand-written list. */
-const declaredKinds = (): Map<string, RegisteredRule[]> => {
-  const byKinds = new Map<string, RegisteredRule[]>();
-  for (const registered of RuleRegistry.getAll()) {
-    const key = `${registered.pattern.left.op}:${registered.pattern.right.op}`;
-    byKinds.set(key, [...(byKinds.get(key) ?? []), registered]);
+/** The kind census, over the shipped table's declarations rather than a hand-written list. */
+const declaredKinds = (): Map<string, { ruleId: string }[]> => {
+  const byKinds = new Map<string, { ruleId: string }[]>();
+  for (const declared of BUILTIN_DECLARATIONS) {
+    const key = `${declared.left.op}:${declared.right.op}`;
+    byKinds.set(key, [...(byKinds.get(key) ?? []), { ruleId: declared.ruleId }]);
   }
   return byKinds;
 };
 
 describe('the gate can fail', () => {
   it('names a rule whose kind is undeclared or unknown', () => {
-    const wildcard = {
-      id: 'wildcard',
-      priority: 1,
-      sync: true,
-      pattern: { left: {}, right: { op: 'atom' } },
-    } as unknown as RegisteredRule;
-    const invented = {
-      id: 'invented',
-      priority: 1,
-      sync: true,
-      pattern: { left: { op: 'nope' }, right: { op: 'atom' } },
-    } as unknown as RegisteredRule;
+    const wildcard = { ruleId: 'wildcard', left: {}, right: { op: 'atom' } };
+    const invented = { ruleId: 'invented', left: { op: 'nope' }, right: { op: 'atom' } };
 
     expect(kindViolations([wildcard, invented])).toEqual([
       { ruleId: 'wildcard', reason: 'undeclared', detail: ',atom' },
@@ -49,21 +39,22 @@ describe('the gate can fail', () => {
   });
 
   it('a clean table has no violations and a census that counts every rule', () => {
-    const rules = RuleRegistry.getAll();
-    expect(kindViolations(rules)).toEqual([]);
-    expect([...bucketCensus(rules).values()].reduce((a, b) => a + b, 0)).toBe(rules.length);
+    const table = loadBuiltinTable();
+    expect(kindViolations(table.entries())).toEqual([]);
+    expect([...bucketCensus(table.entries()).values()].reduce((a, b) => a + b, 0)).toBe(
+      table.entries().length
+    );
   });
 });
 
 describe('every registered rule declares its kinds', () => {
   it('the shipped table is non-empty and fully keyed', () => {
-    const rules = RuleRegistry.getAll();
-    expect(rules.length).toBeGreaterThan(0);
+    expect(BUILTIN_DECLARATIONS.length).toBeGreaterThan(0);
 
-    const undeclared = rules.filter(
-      (r) => !r.pattern.left.op || !r.pattern.right.op
+    const undeclared = BUILTIN_DECLARATIONS.filter(
+      (r) => !r.left.op || !r.right.op
     );
-    expect(undeclared.map((r) => r.id)).toEqual([]);
+    expect(undeclared.map((r) => r.ruleId)).toEqual([]);
   });
 
   it('no rule sits under a wildcard bucket', () => {

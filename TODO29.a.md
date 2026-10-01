@@ -108,6 +108,11 @@ do is make four README promises structurally true rather than aspirational, and 
 8. ~~**A6**~~ — **done 2026-10-01** (§0.8.10): dispatch is an `InferenceTable` port, a rule declares
    both kinds or it does not register, the tie-break that ordered nothing is gone, and
    `dispatch:no-wildcard` is the gate. **Next is A10**, which needs this port to register through.
+9. ~~**A10**~~ — **done 2026-10-01** (§0.8.11): the rule set is a versioned, loadable, revertable
+   artifact; no module registers a rule by importing one and `RuleRegistry` is deleted; a rule
+   proposal now has a path to becoming a rule; README's rule matrix is generated rather than
+   transcribed. **The thesis's structural item is landed.** What remains is A7, A8, A9, A11 and
+   A12's reducers.
 
 ### 0.7 What this plan is not
 
@@ -903,8 +908,10 @@ test asserted all four events arrived from `admit` alone; the split is the corre
 
 - **The rule queue has no producer.** `LMProposalProducer` only emits content proposals, because
   nothing in the tree synthesises a reaction. The rule half of the protocol is therefore specified,
-  validated, gated and tested but **not yet reachable from a model** — which is A10's job (learned
-  rules admitted as data) and the reason the rule queue's capacity is a guess today. **Do not read
+  validated, gated and tested but **not yet reachable from a model**. **A10 closed the mechanism
+  half** (§0.8.11): a rule proposal now has a path to becoming a rule, so the queue's contents are
+  real and its capacity is no longer a guess about the future — it bounds a live path. **The
+  producer half is still empty**: nothing synthesises a rule proposal. **Do not read
   `maxPendingRules: 16` as a tuned number**; it is the smallest value that makes "refused, not
   dropped" observable.
 - **The seam's log is per-NAR and in-memory.** `getProposalLog()` is bounded and never persisted,
@@ -982,6 +989,86 @@ the other two branches were dead. All four parity suites (42 tests) and `test:un
   *rule* is pure; only the census is data. That coupling is the same one `terms-canonical.ts`
   already has with the same two constants, and both are worth it — one definition of "a kind" that
   the term layer and the dispatch gate cannot disagree about.
+
+### 0.8.11 A10 is done (2026-10-01) — the rule set is loaded data, not an import side effect
+
+The item the thesis rests on. §7 invariant 15 is now a fact about the tree rather than a claim
+about a message format.
+
+| artefact | what it is |
+|---|---|
+| `core/src/schemas/rule-table.ts` | the artifact's schema: `RULE_TABLE_SCHEMA_VERSION`, `RuleDeclaration` (data), `RuleArtifactEntry` (data + identity), `RuleTable`, `RuleTableDiff`, five loud rejection reasons |
+| `nar/src/rules/impls/rule-table.ts` | `RuleTableStore`: load, admit, diff, revert, enumerate, `fromEvents`; `RuleTableError` carrying every fault |
+| `nar/src/rules/impls/registration.ts` | **registers nothing.** It exports `BUILTIN_DECLARATIONS` (55) and `RULE_BODIES` (55), and importing it changes no state |
+| `nar/src/rules/impls/builtin-table.ts` | `loadBuiltinTable()` — the one place the built-ins enter the system |
+| `proposal.admitted` event | carries the admitted `declaration`, so the table is reconstructible from the log alone |
+| `LMProposalProducer.submitRule` / `admitRule` | the path A3 left with nothing on the other side: a rule proposal is queued, judged, committed, and lands in the table at the revision the event stated |
+| `pnpm rules:loaded-data` | the gate: no side-effect registration, no retired global, enumerable/versioned/revertable, empty-is-runnable, loud version and body failures |
+| `pnpm rule:matrix` | README's rule matrix, generated from the declarations and wired into `docs:drift` |
+| `tests/nar/todo29a-a10.test.ts` | 25 tests |
+
+**Four findings the item produced rather than assumed.**
+
+1. **A rule's *declaration* is data; its *body* is code, and the seam between them is the item's
+   real boundary.** `RuleDef.build` was a `RuleFn` closure, which cannot be serialised into an
+   event log at all — so a versioned artifact was impossible until `build` became a **name**.
+   Bodies are namespaced `nal:<fn>` / `nal.extended:<fn>`, which matters because `analogy`,
+   `comparison` and `exemplification` are exported by **both** rule maps; today the extended map
+   re-exports the NAL implementations verbatim, so a bare name worked *by accident*. The prefixes
+   make a future divergent extended rule a distinct body instead of a silent shadow. **A learned
+   declaration is only as real as the body it names, and a name nothing implements is refused with
+   `unresolved-body` rather than admitted inert** — the honest limit of the item, and the gate
+   proves it.
+2. **The projection has to be a stable view, not the index.** `RuleTableStore.index()` initially
+   returned the `RuleIndex`, so a holder taken at r0 dispatched against r0 *forever* after an
+   admission replaced it. The acceptance criterion "the index and the artifact cannot disagree" was
+   not representable with the index handed out directly; it is now a delegating view whose
+   identity is stable and whose candidates follow the table.
+3. **`registration → rule-table → registration` is a real cycle**, and `loadBuiltinTable` in
+   either module creates it. It lives in `builtin-table.ts` for that reason, not for tidiness —
+   `deps:gate` and `circularChains` confirm it.
+4. **README's rule matrix had already drifted**, which is the case for generating it:
+   `nal.extended.exemplification` was listed twice, `nal.higherOrderDeduction` and
+   `nal.contrapositionRule` appear under ids the table does not use, and the "Meta-Cognitive —
+   *none*" row described a category with no members. It is now grouped by **dispatch cell** — the
+   kind pair dispatch actually keys on — which is the one grouping the table can be wrong about.
+
+**What "the rule set is a learnable, versioned artifact" now means, precisely.** It means: a rule
+is a serialisable declaration; the table carries a schema version and refuses a mismatched one
+loudly; two revisions are diffable and a prior one is restorable from the artifact alone, with no
+import graph and no replay; an admission is one committed transition whose event carries the
+declaration; and **an empty table is a state the core runs in.** It does *not* yet mean a rule
+*miner* exists — the seam accepts a well-formed declaration and the table makes it real, but
+nothing yet synthesises one, so the learned half is reachable and exercised rather than populated.
+That gap is honest and is §0.8.9's note closed from the other side: A3 made the queue's overflow
+policy observable, and this makes the queue's *contents* real.
+
+**`RuleRegistry` is deleted.** It was a module-global mutated by an import — A1's hidden-global
+defect in the place it mattered most — and `deps:gate`, `rules:loaded-data` and the compiler all
+now notice if one returns. Two callers that reached through it (`registerMetaRules()` with no
+table, which "registered" into a global no running engine could see) became a compile error, which
+is the point.
+
+**Improvement opportunities A10 exposed, none of them blocking.**
+
+- **`failed-schema` is still a throw, not a rejection.** `validateProposal` throws on a malformed
+  proposal, so a rule proposal with an empty `symbolicFallback` never becomes a recorded
+  `proposal.rejected` — it is a caller error that escapes the seam. A3 flagged this; A10 makes it
+  *more* pressing, because a learned rule is exactly the input an untrusted proposer would supply.
+  Declaring the malformed-input path is a small decision and belongs with whoever makes a proposer
+  genuinely untrusted.
+- **A rule proposal's `symbolicFallback` field is doing two jobs.** It is D6's "a rule must have a
+  symbolic body" witness *and* the body name the table resolves, which is why the producer maps
+  one onto the other. That is a naming lie waiting to mislead; the honest shape is a separate
+  `body` field with `symbolicFallback` as its assertion.
+- **The revision is one counter for content and rule admissions**, so a busy content boundary
+  advances the base a rule proposer must be fresh against. That is conservative (more stale
+  rejections than strictly necessary) and D5's rule is unchanged by it — but it is a decision
+  someone should make knowingly rather than inherit.
+- **`RuleTableStore.history` is unbounded.** It holds one artifact per revision, and a
+  long-running system that admits a rule every boundary grows it forever. Bounding it is A8's
+  resource-policy work, and **it is not bounded yet** — the one place this item added an
+  unbounded structure, which §7 invariant 4 makes A8's to own.
 
 ---
 
@@ -2024,7 +2111,7 @@ repository that a recorded fixture from a future commit would silently mis-apply
 - a proposal stream recorded against revision *R* is rejected against *R+1*.
 
 
-### 5.10 A10 — The rule path: the reaction table is admitted data, not an import side effect
+### 5.10 A10 — The rule path: the reaction table is admitted data, not an import side effect — **done 2026-10-01 (§0.8.11)**
 
 *For finding 14. **This is the item that carries the thesis.** Everything else here makes the
 existing system well-bounded; this is the one that makes the rule set grow while the system runs.*
@@ -2434,7 +2521,7 @@ Every acceptance criterion above is demonstrated by a command and a gate. Gates 
 | **A7** | `pnpm test:unit` (budget-enforcement tests) | — | **low-medium** — the behaviour change is "steps stop running by default" |
 | **A8** | `pnpm test:unit` (resource-policy tests) | `resource:policy` | **medium** — retention policy *is* behaviour; policy and structure together is how a semantic change hides inside a refactor |
 | **A9** | `pnpm test:hermetic` — the tier this item exists to make possible | `replay:proposal` (`slow`) | **low** — extends an existing reducer with new event kinds |
-| **A10** | `pnpm run rules:loaded-data`, `pnpm test:unit` | `rules:loaded-data` | **medium-high** — the only item that changes what the system can do rather than how it is arranged. Last in sequence for that reason |
+| **A10** | `pnpm run rules:loaded-data`, NAL suites, `pnpm run rule:matrix`, `pnpm test:unit` — **done 2026-10-01** (§0.8.11) | `rules:loaded-data` | **medium-high, and it landed** — the one item that changes what the system can do rather than how it is arranged. Parity held, because a *declaration* loaded from an artifact and a *closure* registered by an import derive the same thing — which is exactly what "added a capability without changing anything else" had to mean |
 | **A12** | `pnpm run terms:canonical`, NAL suites, `pnpm test:unit` — **step 1 (§5.12.1) done 2026-09-30, `^name` retirement done 2026-10-01, §0.8.4's readability rule done 2026-10-01; the reducers remain, and A4's baselines they were waiting for now exist (§0.8.8)** | `terms:canonical` (now also asserting *readable*, not only injective), plus the widened round-trip test |
 | **A11** | `pnpm run config:model-matrix`, `pnpm test:unit` | `config:model-matrix` (re-landed, with the manifest) | **medium** — the item that can spread. A capability available everywhere is as safe as each call site, so its acceptance is mostly *declarations*, and an ungated declaration is a comment |
 
@@ -2482,10 +2569,12 @@ A0 ─▶ A1 ─▶ A2 ─▶ A3 ─▶ ~~A5~~ ─▶ A4 ─┬─▶ A6 ─▶ 
                     A12 §5.12.1 (grammar alignment) → A12 reducers, after A4's baselines
 ```
 
-**As of 2026-10-01: A0, A1, A2, A3, A4, A5 and A6 are done** (§0.8, §0.8.1, §0.8.6, §0.8.9, §0.8.7,
-§0.8.8, §0.8.10). **A10 is next**: it needs A6's `InferenceTable` to register learned rules
-through and A3's boundary rule to admit them, and both now exist. A7 and A8 remain interleaveable;
-A11 still waits on A6's port contract existing, which it now does.
+**As of 2026-10-01: A0, A1, A2, A3, A4, A5, A6 and A10 are done** (§0.8, §0.8.1, §0.8.6, §0.8.9,
+§0.8.7, §0.8.8, §0.8.10, §0.8.11). **The sequence's spine is complete**: A0 → A1 → A2 → A3 → A6 →
+A10 all landed, in that order, and each found the next one's premise rather than assuming it.
+**Remaining: A7, A8, A9, A11 and A12's reducers** — none of which blocks another, and all of which
+are bounded items rather than the architectural ones. **A12's reducers are now the largest single
+piece of §5 left**, and they waited only for A4's baselines, which have existed since 2026-10-01.
 
 **The ordering rule: structural before behavioural.** A5, A2 and A6 are mechanical — they move code
 and change no derived value. A1, A4 and A8 change what the system concludes or how fast it forgets.
@@ -2574,11 +2663,16 @@ profile of the wrong system.
     model runs its symbolic fallback. The one thing a model may never do is **hang**. And `J` is a
     **reasoning participant, not a gate on `P`**: it may be consulted anywhere in the pipeline and it
     may produce derivations.
-15. **The rule set is loaded data, never an import side effect** (A10). No module outside the
-    `InferenceTable` port's implementation may register a rule; the table carries a schema version,
-    every entry carries its identity (§5.10), it is enumerable at runtime, and it is revertable.
-    **This is the invariant the thesis rests on**: while registration is a side effect of an import,
-    the rule set is code, and "learnable, versioned artifact" is a claim about a message format.
+15. **The rule set is loaded data, never an import side effect** (A10 — **landed 2026-10-01**).
+    No module outside the `InferenceTable` a `RuleTableStore` owns may register a rule; the table
+    carries a schema version and refuses a mismatched one loudly; every entry carries its identity
+    (§5.10); it is enumerable at runtime, diffable, and revertable from the artifact alone; and an
+    **empty table is a runnable state**. `rules:loaded-data` and `dispatch:no-wildcard` are the
+    gates, and the compiler holds the primary half (a rule declares both kinds or the type refuses
+    it). **This was the invariant the thesis rested on**: while registration was a side effect of an
+    import, the rule set was code and "learnable, versioned artifact" was a claim about a message
+    format. It is now a property of the tree. **What is still not built** is a rule *miner* — the
+    seam accepts and versions a learned declaration, but nothing synthesises one.
 16. **Only committed state is authoritative** (§1.2). Advisory computation and uncommitted producer
     state never become implicit cycle inputs, and a proposal has no authority until a committed,
     gated, recorded transition.
@@ -2684,7 +2778,8 @@ gate listed here and not wired is the exact failure mode this plan is about.
 | `attention:write-surface` | **landed 2026-10-01, in a narrower form than stated:** the compiler holds the primary invariant (no setter) and the gate holds the rest — no `set priority` in the owner, every declared reason written with somewhere in `nar/src` + `src`, no reason the union lacks, `sample` / `sampleWindow` contain no write, and the decay sweep has exactly one call site. §0.8.8 | A4 | `gate` |
 | `dispatch:no-wildcard` | **landed 2026-10-01:** every registered rule declares both kinds as a kind the term layer defines, and the gate prints the bucket histogram (55 rules, 22 buckets, hottest `inheritance:inheritance` at 21). The compiler holds the static half; this holds the *dynamic* half, which is what A10's rule queue will need. §0.8.10 | A6 | `gate` |
 | `resource:policy` | every production accumulator is in the ledger, and a memory at capacity with nothing evictable says so | A8 | `gate` |
-| `rules:loaded-data` | no module-side-effect registration survives; the table is enumerable, versioned, revertable; two revisions are diffable and a prior one is restorable; an empty table is a runnable state | A10 | `gate` |
+| `rules:loaded-data` | **landed 2026-10-01** (§0.8.11): no module registers a rule by importing one and no module names the retired `RuleRegistry`; the loaded table is enumerable, versioned and revertable, a learned rule enters at a boundary carrying its `ruleSetRevision` and `provenance`, two revisions diff in both directions, an incompatible schema version and an unresolvable body both fail loudly, and an empty table is a runnable state |
+| A10 | `gate` |
 | `replay:proposal` | `replayCognitiveState` reconstructs the same state from `proposal.*` events, and a version mismatch fails loudly | A9 | `slow` |
 | `terms:canonical` | **step 1 form (landed 2026-09-30) + §0.8.4 (landed 2026-10-01):** every variadic kind round-trips at 2, 3 and 4 members, flat and nested one level deep, comparing the **term** as well as the text — a canonical form must be *readable*, not only injective. **Reducer form (A12, not started):** `canonical(canonical(t)) === canonical(t)`, already-canonical terms are returned unchanged, `(--x).f = 1 − f_x` across the range (`--x. %0.8%` ≡ `x. %0.2%`, `--x. %1%` ≡ `x. %0%`), and the NAL suites derive what they derived before | A12 | `gate` |
 
@@ -2782,7 +2877,11 @@ Cheap; lands with A2.
 
 **Q10 — is the model the only proposal producer we expect?** Designing the contract for one producer
 is how you get an interface that is really a call site. A rule-miner, a human author and a recorded
-fixture are cheap to name now and expensive to retrofit.
+fixture are cheap to name now and expensive to retrofit. **A10 answered half of this**: the
+*consumer* side is now generic — `submitRule` + `admitRule` take any well-formed declaration from
+any producer, and `RuleTableStore.fromEvents` replays whatever they wrote. **The producer side is
+still empty**, and that is now the single largest remaining gap in the thesis: nothing synthesises
+a rule proposal, so the learned half is reachable and tested rather than populated.
 
 **Does a configured `J` admit anything yet? — NO, and A1 measured it (2026-09-30).** With System One
 enabled and no calibrated heads, `SystemOneIngressJudge` abstains and `KernelPerceptionGate` refuses the
@@ -2843,12 +2942,14 @@ retrieved; it may never change **what counts as** committed state (§1.2).
 | **A2 is a swamp.** 39 files, and the layer reaches into core internals | medium | the diff stops being mechanical and starts having semantic content | A2 is after A1, so the `Proposal` interface is known. If it is still hard, take Q8 (seventh package) early — a compiler error is a better boundary than a review convention |
 | ~~**A4 or A5 land as wrappers.**~~ **Both halves answered and gated.** A5: `Memory` is off the cycle path and a facade import fails the gate (§0.8.7). A4: the setter is gone, so an external writer does not compile, and `attention:write-surface` fails on a `set priority` returning, on a reason nothing writes, and on a read that writes (§0.8.8) | ~~medium~~ | `Memory` keeps its responsibilities behind a forwarding interface; or a new external `priority` writer appears and no test fails | The setter is a type, so the "new external writer" branch fails at compile time and the gate is the second line. Baselines were re-established and committed in the same change — gridworld unmoved, bandit −0.10, non-stationary −0.13, all above floor — so later drift is attributable to A6 and after |
 | **A12's reducers are not sound and parity moves** | medium — six rewrites over every compound term the reasoner builds, and NAL axioms applied to truth-bearing terms are easy to get subtly wrong | any of the four parity suites changes what it derives | the gate is parity, and a parity change is a *finding about the reducer*, not a baseline to regenerate. Each reducer lands separately with the others disabled, so one soundness bug is one reducer |
-| **A10 never lands and the thesis stays prose** | **medium** — the largest item, last in sequence, and the easiest to defer because the other nine all look like progress | the plan closes with A1–A9 done and "the rule set is a learnable artifact" still describing a message format | if the sequence is cut, cut here *explicitly*: record in §7 and §8 that the rule set is code, and stop claiming otherwise. A floor delivered honestly beats a thesis claimed and not built |
+| ~~**A10 never lands and the thesis stays prose**~~ **Answered 2026-10-01: it landed** (§0.8.11). The rule set is a versioned, loadable, diffable, revertable artifact; `registration.ts` registers nothing; `RuleRegistry` is deleted; a rule proposal reaches the table at a boundary; and `rules:loaded-data` is the gate. **The residual risk is narrower and is recorded rather than dismissed**: nothing yet *synthesises* a rule proposal, so the learned half is reachable and tested rather than populated — a rule miner is the next thing this thesis needs, and it is not in this plan | ~~medium~~ **low, and named** | the plan closing with "a rule proposal can become a rule" still describing a seam rather than a path. The honest statement is what §0.8.11 makes: the *mechanism* is built and gated; the *producer* is not |
 | **The thesis is negative.** S+J+P is not better than S alone | unknown — but no longer unknowable | the `nal` vs `manifold`/`lm` arcade run comes out flat or negative | Q3: write the hypothesis, run it with a seed count that survives the noise, publish the number either way. **A command, not a project** — but it needs A1 for a clean control and A10 for a meaningful with-`P` arm |
 | **"Judgment" re-imports the gate reading** | medium — the vocabulary invites it | `J` starts authorizing, filtering or scoring `P` | §2.1's anti-drift note, the Belief/Goal-typed `CycleDecisionRequest`, and a test in A11's acceptance |
 | **The plan measures the wrong thing** | already happened once | an ordering derived from a profile of the fused system | fixed by construction: this plan makes no ordering claims about cost, and TODO30 must re-profile before ordering anything |
 
-**The kill criteria, plainly.** Two things would mean this is not the right plan. If the induction
+**The kill criteria, plainly.** *A10 landed, so the second one is no longer hypothetical: the
+no-provider core runs the whole NAL suite from a loaded artifact, and `rules:loaded-data` fails if
+anything reaches the NAL rules by importing them.* Two things would mean this is not the right plan. If the induction
 layer turns out to be genuinely an *online* learner whose work cannot leave the cycle, the cycle
 cannot close, §1.1 is unenforceable and the architecture is moot. And if §7 invariant 7 fails — the
 no-provider core turns out inert, meaning the layer was load-bearing — then §2.7's falsifiability

@@ -17,8 +17,12 @@ import {
   MockEmbeddingGenerator,
 } from '@senars/nar/memory/embedding';
 import { RuleProcessor } from '../../nar/src/rules/impls/processor.js';
-import { RuleRegistry } from '../../nar/src/rules/impls/rule-registry.js';
-import { NAL_EXTENDED_RULES, NAL_RULES } from '../../nar/src/rules/impls/registration.js';
+import { loadBuiltinTable } from '../../nar/src/rules/impls/builtin-table.js';
+import { RuleTableStore } from '../../nar/src/rules/impls/rule-table.js';
+import {
+  BUILTIN_DECLARATIONS,
+  RULE_BODIES,
+} from '../../nar/src/rules/impls/registration.js';
 import type { ModelRule } from '@senars/nar/rules/types';
 import { parseJsonObject } from '@senars/util';
 
@@ -133,31 +137,41 @@ describe('A2 — the cycle path is the inventory list, not a second copy', () =>
 });
 describe(A2_TABLE, () => {
   /**
-   * The census is in a test rather than a script on purpose: `RuleRegistry` is
-   * populated by a module side effect, so an out-of-process scan could only see
-   * the table by importing it — at which point it is a test. A10 removes the
-   * side effect and this can move.
+   * A10 removed the side effect this census was written around: the table is now
+   * *loaded*, so `shipped()` reads the loaded artifact's entries and no longer
+   * needs the import graph to have run first. It is still a test rather than a
+   * script because A2's claim is about the table the engine dispatches from, and
+   * the loaded artifact is the one that answers it.
    */
-  const shipped = () => RuleRegistry.getAll();
-  const declared = [...NAL_RULES, ...NAL_EXTENDED_RULES];
+  const shipped = () => loadBuiltinTable().entries();
+  const declared = BUILTIN_DECLARATIONS;
 
-  it('every registered rule is a declared NAL or extended rule', () => {
-    const ids = new Set(declared.map((rule) => rule.id));
-    expect(shipped().filter((rule) => !ids.has(rule.id))).toEqual([]);
+  it('every loaded rule is a declared NAL or extended rule', () => {
+    const ids = new Set(declared.map((rule) => rule.ruleId));
+    expect(shipped().filter((rule) => !ids.has(rule.ruleId))).toEqual([]);
   });
 
-  it('every declared rule is registered, and none is registered twice', () => {
-    expect(shipped().map((rule) => rule.id).sort()).toEqual(declared.map((rule) => rule.id).sort());
+  it('every declared rule is loaded, and none is loaded twice', () => {
+    expect(shipped().map((rule) => rule.ruleId).sort()).toEqual(
+      declared.map((rule) => rule.ruleId).sort()
+    );
   });
 
   it('the table is a committed count, so a rule cannot arrive unnoticed', () => {
     expect(declared).toHaveLength(55);
   });
 
-  it('every rule declares a truth function and a priority — a rule that derives nothing is a comment', () => {
+  it('every rule declares a truth function, a priority and a resolvable body — a rule that derives nothing is a comment', () => {
     for (const rule of shipped()) {
-      expect(rule.truthFn, rule.id).toBeTypeOf('function');
-      expect(rule.priority, rule.id).toBeTypeOf('number');
+      expect(rule.truthFn, rule.ruleId).toBeTypeOf('string');
+      expect(rule.priority, rule.ruleId).toBeTypeOf('number');
+      expect(RULE_BODIES[rule.body], rule.ruleId).toBeTypeOf('function');
     }
+  });
+
+  it('importing the rule modules registers nothing — the table is loaded, not imported', () => {
+    expect(declared.length).toBe(55);
+    // A store built with no artifact is the empty table, not the shipped one.
+    expect(RuleTableStore.empty(RULE_BODIES).entries()).toEqual([]);
   });
 });

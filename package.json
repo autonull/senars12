@@ -52,6 +52,7 @@
     "attention:write-surface": "tsx scripts/attention-write-surface.ts",
     "proposal:protocol": "tsx scripts/proposal-protocol.ts",
     "dispatch:no-wildcard": "tsx scripts/dispatch-no-wildcard.ts",
+    "rules:loaded-data": "tsx scripts/rules-loaded-data.ts",
     "cycle:no-provider": "tsx scripts/cycle-no-provider.ts",
     "rule:has-fallback": "tsx scripts/rule-fallback.ts",
     "gates:one-cycle-path": "tsx scripts/gates-one-cycle-path.ts",
@@ -83,7 +84,8 @@
     "open-replica-fixture": "tsx scripts/open-replica-fixture-server.ts",
     "docs:api": "tsx scripts/docs-api.ts",
     "docs:architecture": "tsx scripts/generate-architecture.ts",
-    "docs:drift": "pnpm docs:api && pnpm docs:architecture && git diff --exit-code docs/api docs/architecture",
+    "rule:matrix": "tsx scripts/generate-rule-matrix.ts",
+    "docs:drift": "pnpm docs:api && pnpm docs:architecture && pnpm rule:matrix && git diff --exit-code docs/api docs/architecture README.md",
     "exports:audit": "tsx scripts/exports-audit.ts",
     "complexity:budget": "tsx scripts/complexity-budget.ts"
   },

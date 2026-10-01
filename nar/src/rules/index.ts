@@ -1,6 +1,3 @@
-// Side-effect: register NAL rules on module load
-import './impls/rules-dsl.js';
-
 // Meta-rules with AIKR bounds
 export {
   buildMetaRules,
@@ -16,9 +13,24 @@ export { RuleProcessor } from './impls/processor.js';
 export type { RecorderOptions } from './impls/recorder.js';
 export { DerivationRecorder, inferRuleCategory } from './impls/recorder.js';
 export { RuleIndex } from './impls/RuleIndex.js';
-export { RuleRegistry } from './impls/rule-registry.js';
+// The loaded table (TODO29.a §5.10)
+export { loadBuiltinTable } from './impls/builtin-table.js';
+export {
+  builtinEntries,
+  diffArtifacts,
+  resolveTable,
+  RuleTableError,
+  RuleTableStore,
+  tableArtifact,
+} from './impls/rule-table.js';
+export type { RuleBodies, RuleLoadFault } from './impls/rule-table.js';
 // Rule sets
-export { NALExtendedRules, NALRules } from './impls/rules-dsl.js';
+export {
+  BUILTIN_DECLARATIONS,
+  NALExtendedRules,
+  NALRules,
+  RULE_BODIES,
+} from './impls/rules-dsl.js';
 // Rule contract
 export type {
   InferenceTable,

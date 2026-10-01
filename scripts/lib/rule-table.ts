@@ -1,0 +1,101 @@
+/**
+ * The rule-table verdicts (TODO29.a §5.10).
+ *
+ * **`rules:loaded-data` is a claim about the import graph and about one global,
+ * and neither is visible to the compiler.** A module-side-effect registration is
+ * legal TypeScript; a module-global mutated by an import is a legal side effect.
+ * So the rules here are read from the tree's text, one predicate per rule, which
+ * is why a failure reads as a sentence about the source rather than a stack
+ * trace out of a scanner.
+ *
+ * The runtime half of the same contract lives in `RuleTableStore` — a schema
+ * version, an enumerable table, a revert. This file asserts the *shape of the
+ * code*, which no amount of runtime testing can reach.
+ */
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { ROOT } from './root.js';
+
+const SCAN_ROOTS = ['nar/src', 'src'] as const;
+
+const sourceFiles = (dir: string): string[] =>
+  readdirSync(dir).flatMap((entry) => {
+    const path = join(dir, entry);
+    return statSync(path).isDirectory() ? sourceFiles(path) : path.endsWith('.ts') ? [path] : [];
+  });
+
+/** Every production source file, repo-relative. One reader, so gate and test cannot disagree. */
+export const scanSubject = (): { path: string; source: string }[] =>
+  SCAN_ROOTS.flatMap((root) => sourceFiles(join(ROOT, root))).map((path) => ({
+    path: path.slice(ROOT.length + 1),
+    source: readFileSync(path, 'utf8'),
+  }));
+
+export interface LoadedDataViolation {
+  readonly at: string;
+  readonly rule: string;
+  readonly detail: string;
+}
+
+/** The modules allowed to call the old global by name — it is deleted, so this is empty. */
+export const RETIRED_GLOBALS = ['RuleRegistry'] as const;
+
+/** Import statements, so a *dynamic* or type-only edge to a global is caught too. */
+const importEdges = (source: string): { specifier: string; offset: number }[] => {
+  const edges: { specifier: string; offset: number }[] = [];
+  const pattern = /(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g;
+  for (const match of source.matchAll(pattern)) {
+    edges.push({ specifier: match[1]!, offset: match.index ?? 0 });
+  }
+  return edges;
+};
+
+const lineAt = (source: string, offset: number): number => source.slice(0, offset).split('\n').length;
+
+/**
+ * Comments are not code. Two of these modules name the retired global in a
+ * comment explaining that it is gone, and a gate that fired on its own
+ * explanation would be a gate nobody keeps — so the text is stripped of
+ * comments before it is matched, preserving offsets by replacing comment
+ * characters with spaces.
+ */
+export const stripComments = (source: string): string =>
+  source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (comment) => ' '.repeat(comment.length));
+
+/** Every module-side-effect registration: a bare `import './x.js'` with no binding. */
+const sideEffectImports = (source: string): { specifier: string; offset: number }[] =>
+  importEdges(source).filter((edge) => {
+    const line = source.slice(edge.offset).split('\n')[0] ?? '';
+    return new RegExp(`^\\s*(import|require)\\s*\\(?\\s*['"]${edge.specifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]\\s*\\)?\\s*;`).test(line);
+  });
+
+export const loadedDataViolations = (
+  files: readonly { path: string; source: string }[]
+): LoadedDataViolation[] => {
+  const violations: LoadedDataViolation[] = [];
+  for (const { path, source: raw } of files) {
+    const file = { path, source: stripComments(raw) };
+    // 1. No module may import a rule module purely for its side effect.
+    for (const edge of sideEffectImports(file.source)) {
+      if (!/(^|\/)(rules|rule-table|registration)($|\/|\.js)/.test(edge.specifier)) continue;
+      violations.push({
+        at: `${file.path}:${lineAt(file.source, edge.offset)}`,
+        rule: 'no-side-effect-registration',
+        detail: `imports '${edge.specifier}' for effect; the table is loaded, not imported`,
+      });
+    }
+    // 2. No module may name the retired global.
+    for (const name of RETIRED_GLOBALS) {
+      const pattern = new RegExp(`\\b${name}\\b`, 'g');
+      for (const match of file.source.matchAll(pattern)) {
+        violations.push({
+          at: `${file.path}:${lineAt(file.source, match.index ?? 0)}`,
+          rule: 'no-retired-global',
+          detail: `names the module-global '${name}'; the table is per-instance`,
+        });
+      }
+    }
+  }
+  return violations;
+};

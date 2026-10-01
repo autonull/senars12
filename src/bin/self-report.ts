@@ -69,7 +69,7 @@ async function main() {
 
   await initializeSelfConcept(nar);
   await initializeMetaReasoning(nar);
-  registerMetaRules();
+  registerMetaRules(nar.getProcessor().getTable());
 
   await nar.start();
 

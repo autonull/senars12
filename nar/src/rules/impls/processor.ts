@@ -24,7 +24,7 @@ import type {
 import { META_AIKR_BOUNDS, shouldActivateMetaReasoning } from './meta-rules.js';
 import { RuleIndex } from './RuleIndex.js';
 import { DerivationRecorder } from './recorder.js';
-import { RuleRegistry } from './rule-registry.js';
+import { loadBuiltinTable } from './builtin-table.js';
 import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils.js';
 
 interface ModelRuleExecutionEntry {
@@ -78,11 +78,16 @@ export class RuleProcessor {
     maxDerivationDepth: META_AIKR_BOUNDS.maxMetaDerivationDepth,
   };
 
-  constructor(rules?: RegisteredRule[], table: InferenceTable = new RuleIndex()) {
-    this.table = table;
-    (rules ?? RuleRegistry.getAll()).forEach((rule) => {
-      this.table.register(rule);
-    });
+  /**
+   * `rules` builds a table of exactly those rules; omitting it loads the shipped
+   * table through the artifact path. Either way the table is *passed in* — the
+   * processor no longer reads a module-global, so which rules are loaded is a
+   * constructor argument rather than a property of the import graph
+   * (TODO29.a §5.10).
+   */
+  constructor(rules?: readonly RegisteredRule[], table?: InferenceTable) {
+    this.table = table ?? (rules ? new RuleIndex() : loadBuiltinTable().index());
+    for (const rule of rules ?? []) this.table.register(rule);
   }
 
   getTable(): InferenceTable {

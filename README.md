@@ -330,19 +330,48 @@ const projected = Truth.deduction(truth1, truth2); // Inference
 ### NAL Inference Rules
 
 <details>
-<summary><b>Complete NAL Rule Matrix (registered rules — `nar/src/rules/impls/registration.ts` is the source of truth)</b></summary>
+<summary><b>Complete NAL Rule Matrix — generated from the loaded rule table, not transcribed</b></summary>
 
-| Category | Rules |
-|----------|-------|
-| Logic | `nal.deduction`, `nal.induction`, `nal.abduction`, `nal.exemplification`, `nal.higherOrderDeduction`, `nal.higherOrderAbduction`, `nal.higherOrderInduction` |
-| Syllogistic | `nal.similarity`, `nal.contrapositive`, `nal.analogy`, `nal.comparison`, `nal.extended.analogy`, `nal.extended.comparison`, `nal.contrapositionRule`, `nal.equivalence` |
-| Compositional | `nal.intersection`, `nal.union`, `nal.intersectionComposition`, `nal.unionComposition`, `nal.difference`, `nal.conjunctionIntro`, `nal.disjunctionIntro`, `nal.implicationIntro`, `nal.implicationElim`, `nal.equivalenceIntro`, `nal.equivalenceElim`, `nal.destruct`, `nal.decompose`, `nal.revisionWeak` |
-| Propositional | `nal.negationIntro`, `nal.negationElim`, `nal.modusPonens`, `nal.modusTollens`, `nal.disjunctiveSyllogism` |
-| Structural | `nal.structuralInheritance`, `nal.structuralReduction`, `nal.conversion`, `nal.instanceConversion`, `nal.instanceDeduction`, `nal.propertyConversion`, `nal.propertyInduction`, `nal.extended.exemplification` |
-| Temporal | `nal.sequenceIntroduction`, `nal.parallelIntroduction`, `nal.predictiveImplication`, `nal.temporalDeduction` |
-| Procedural | `nal.proceduralDecomposition`, `nal.proceduralChaining`, `nal.operationToPredictive` |
-| Variable | `nal.instantiation`, `nal.variableIntroduction`, `nal.variableDependency`, `nal.sameness` |
-| Meta-Cognitive | _none — stubs removed (TODO17b D18: unimplemented rules were never executable logic)_ |
+<!-- rule-matrix:start -->
+
+| Dispatch cell | Rules | Declarations |
+|---|---|---|
+| `conjunction:conjunction` | 3 | `nal.intersection` (intersection), `nal.decompose` (deduction), `nal.decomposition` (deduction) |
+| `conjunction:inheritance` | 1 | `nal.structuralInheritance` (deduction) |
+| `disjunction:disjunction` | 1 | `nal.union` (union) |
+| `implication:implication` | 8 | `nal.equivalenceIntro` (intersection), `nal.negationIntro` (deduction), `nal.higherOrderDeduction` (deduction), `nal.higherOrderAbduction` (abduction), `nal.higherOrderInduction` (induction), `nal.contrapositionRule` (contraposition), `nal.implicationDeduction` (deduction), `nal.equivalence` (intersection) |
+| `implication:inheritance` | 1 | `nal.contrapositive` (contraposition) |
+| `inheritance:inheritance` | 21 | `nal.deduction` (deduction), `nal.induction` (induction), `nal.abduction` (abduction), `nal.similarity` (resemblance), `nal.conjunctionIntro` (intersection), `nal.comparison` (sameness), `nal.exemplification` (exemplification), `nal.conversion` (conversion), `nal.extended.analogy` (analogy), `nal.extended.comparison` (resemblance), `nal.structuralReduction` (structuralReduction), `nal.intersectionComposition` (intersection), `nal.unionComposition` (union), `nal.difference` (deduction), `nal.variableIntroduction` (deduction), `nal.variableDependency` (deduction), `nal.sameness` (sameness), `nal.revisionWeak` (revision), `nal.extended.exemplification` (exemplification), `nal.sequenceIntroduction` (deduction), `nal.parallelIntroduction` (deduction) |
+| `inheritance:similarity` | 2 | `nal.analogy` (analogy), `nal.instantiation` (deduction) |
+| `disjunction:negation` | 1 | `nal.disjunctiveSyllogism` (deduction) |
+| `implication:negation` | 1 | `nal.modusTollens` (contraposition) |
+| `inheritance:negation` | 1 | `nal.implicationIntro` (deduction) |
+| `sequence:inheritance` | 1 | `nal.predictiveImplication` (deduction) |
+| `operation:operation` | 1 | `nal.proceduralChaining` (deduction) |
+| `predictive:sequence` | 1 | `nal.temporalDeduction` (deduction) |
+| `inheritance:setExt` | 2 | `nal.instanceConversion` (conversion), `nal.instanceDeduction` (deduction) |
+| `inheritance:setInt` | 2 | `nal.propertyConversion` (conversion), `nal.propertyInduction` (induction) |
+| `operation:sequence` | 1 | `nal.operationToPredictive` (deduction) |
+| `sequence:operation` | 1 | `nal.proceduralDecomposition` (deduction) |
+| `negation:negation` | 1 | `nal.negationElim` (union) |
+| `conjunction:atom` | 1 | `nal.destruct` (deduction) |
+| `equivalence:atom` | 1 | `nal.equivalenceElim` (deduction) |
+| `implication:atom` | 2 | `nal.implicationElim` (deduction), `nal.modusPonens` (deduction) |
+| `atom:atom` | 1 | `nal.disjunctionIntro` (union) |
+
+_55 declarations in 22 cells, loaded at revision 0 with `artifactVersion` `builtin/1`. Every cell is an exact kind pair: a rule declares both kinds or it does not register, and `pnpm dispatch:no-wildcard` is the gate._
+
+<!-- rule-matrix:end -->
+
+The rule set is **loaded data, not an import side effect** (TODO29.a §5.10). The matrix above is a
+projection of `BUILTIN_DECLARATIONS` (`nar/src/rules/impls/registration.ts`) rendered by
+`pnpm rule:matrix`, so a rule cannot be added, renamed or removed without this table changing in
+the same commit. A rule is a *declaration* — pattern, truth function, priority, and a **named body**
+— and the body resolves at load time; a name nothing implements is refused loudly rather than
+admitted as a rule that derives nothing. The loaded table is versioned, enumerable at runtime, and
+revertable: `nar.getRuleTable()` returns the store, an admitted rule enters at a boundary with a
+`ruleSetRevision` and a `provenance`, and an empty table is a runnable state rather than a crash.
+`pnpm rules:loaded-data` is the gate.
 
 </details>
 

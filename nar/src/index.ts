@@ -92,11 +92,12 @@ export type { RegisteredRule, RuleFn, RulePattern, RuleResult } from './rules/in
 /** Extended NAL rule set. @public */
 export {
   createRulePattern,
+  loadBuiltinTable,
   NALExtendedRules,
   NALRules,
   RuleIndex,
   RuleProcessor,
-  RuleRegistry,
+  RuleTableStore,
 } from './rules/index.js';
 // Self-Reasoning (Metacognition)
 /** Reasoning about reasoning, architecture driver. @public */

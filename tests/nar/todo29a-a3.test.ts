@@ -54,7 +54,7 @@ const rule = (id: string, overrides: Partial<RuleProposal> = {}): RuleProposal =
   payload: {
     ruleId: id,
     name: id,
-    pattern: { left: {}, right: {} },
+    pattern: { left: { op: 'atom' }, right: { op: 'atom' } },
     truthFn: 'deduction',
     priority: 0.5,
     symbolicFallback: 'cat',

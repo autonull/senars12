@@ -54,7 +54,7 @@ import { NARLM } from './nar-lm';
 import { QueryAPI, ReasoningTrace } from './query';
 import type { Reflex } from './reflex/Reflex.js';
 import { RLFPLearner } from './rlfp';
-import { RuleProcessor } from './rules';
+import { loadBuiltinTable, RuleProcessor, RuleTableStore } from './rules';
 import { ProofStreamRing } from './rules/impls/recorder.js';
 import { ReasoningAboutReasoning } from './self';
 import { wireSystemOne } from './system-one-wiring.js';
@@ -118,6 +118,12 @@ export class NAR extends BaseComponent {
   private readonly lm: NARLM;
   private readonly config: NARConfig;
   private readonly processor: RuleProcessor;
+  /**
+   * The loaded rule table (TODO29.a §5.10). The processor dispatches from its
+   * projection; this owns the artifact, so the rule set is a loaded, versioned
+   * thing rather than a property of the import graph.
+   */
+  private readonly ruleTable: RuleTableStore;
   /** The proposal seam this NAR's producers stage into (TODO29.a A1). */
   readonly proposals: LMProposalProducer;
   /** The seam's own bounded log — a proposal that never reached a gate has no gate log. */
@@ -157,7 +163,8 @@ export class NAR extends BaseComponent {
       bag: resolveBagSlot(cognitiveParams.strategies.bag, config.rng),
       embeddingGenerator: config.embeddingGenerator ?? createEmbeddingGenerator(embeddingRuntime),
     });
-    this.processor = new RuleProcessor();
+    this.ruleTable = loadBuiltinTable();
+    this.processor = new RuleProcessor(undefined, this.ruleTable.index());
     this.processor.setConfig({ memory: this.memory, host: this });
     this.processor.setEventBus(eventBus);
     this.taskManager = new TaskManager(this.memory, { gateRegistry: this.gates });
@@ -275,6 +282,18 @@ export class NAR extends BaseComponent {
       {
         resolves: (narsese) => this.resolves(narsese),
         record: (event) => this.recordProposal(event),
+        // A10: a rule proposal that clears the lifecycle becomes a table entry at
+        // the revision the committing event stated. The table rebuilds the
+        // processor's index, so dispatch and the artifact cannot disagree.
+        admitRule: {
+          admit: (declaration, admitted) =>
+            this.ruleTable.admit(
+              declaration,
+              admitted.revision,
+              admitted.baseRevision,
+              { proposalId: admitted.proposalId }
+            ),
+        },
       }
     );
     this.processor.setModelRuleWorkSink(this.proposals);
@@ -609,6 +628,11 @@ export class NAR extends BaseComponent {
    */
   private recordProposal(event: CognitiveEvent): void {
     this.proposalLog.push(event);
+  }
+
+  /** The loaded rule table: enumerable, versioned, revertable (TODO29.a §5.10). */
+  getRuleTable(): RuleTableStore {
+    return this.ruleTable;
   }
 
   /** The seam's committed admissions and rejections, oldest evicted first. */

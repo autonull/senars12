@@ -14,6 +14,13 @@
  * passes through: a derived task becomes a `ContentProposal` carrying the
  * premises it read, and only a proposal the lifecycle admits reaches the gate.
  *
+ * **A rule proposal changes the rule table, not memory** (TODO29.a §5.10). So
+ * the drained batch is routed by kind: a content proposal becomes a task the
+ * perception gate admits, and a rule proposal becomes a *declaration* handed to
+ * the {@link RuleAdmission} sink, which writes it into the loaded table at the
+ * revision the committing event stated. That is the path A3 left with nothing on
+ * the other side — a well-formed new reaction now has somewhere to become one.
+ *
  * **Why no parallel revision bookkeeping.** `stage` runs at `propose` and
  * `admit` at the next `authorize`, and a commit only ever happens inside that
  * `admit`. So everything drained at one boundary was staged since the last one
@@ -22,7 +29,12 @@
  * outside this producer commits, which is exactly the case the rule is for.
  */
 
-import type { CognitiveEvent, ContentProposal } from '@senars/core/schemas';
+import type {
+  CognitiveEvent,
+  ContentProposal,
+  RuleDeclaration,
+  RuleProposal,
+} from '@senars/core/schemas';
 import { PROPOSAL_SCHEMA_VERSION } from '@senars/core/schemas';
 import { ProposalLifecycle } from './lifecycle.js';
 import { createDerivedTask } from '../reason/inference-utils.js';
@@ -35,6 +47,17 @@ export interface ModelRuleWorkApplicator {
   applyModelRules(work: ModelRuleWork, signal?: AbortSignal): AsyncGenerator<RuleResult>;
 }
 
+/**
+ * Where an admitted **rule** declaration goes. The table owns the revision and
+ * the event; this is only the door, so the producer never learns what a table is.
+ */
+export interface RuleAdmission {
+  admit(
+    declaration: RuleDeclaration,
+    admitted: { revision: number; baseRevision: number; proposalId: string }
+  ): void;
+}
+
 export interface LMProposalProducerOptions {
   /** No prompt-only requests are staged by the cycle, so the batch backend answers none. */
   backend?: LMBackend;
@@ -44,6 +67,8 @@ export interface LMProposalProducerOptions {
   resolves?: (term: string) => boolean;
   /** Cycles of derivation per proposal — the trigger is a work budget, not a rate. */
   cyclesPerProposal?: number;
+  /** Absent ⇒ a rule proposal is admitted to the lifecycle and goes nowhere else. */
+  admitRule?: RuleAdmission;
 }
 
 /** A batch backend that answers nothing — every production request carries a `derive`. */
@@ -56,6 +81,7 @@ export class LMProposalProducer implements ModelRuleWorkSink {
   private readonly lifecycle: ProposalLifecycle;
   private readonly resolves: (term: string) => boolean;
   private readonly cyclesPerProposal: number;
+  private readonly admitRule?: RuleAdmission;
   /**
    * The premises each derived task read, in the order {@link applyWork} produced
    * them. `StreamReasoner.takeDerived` drains in the same order, so this pairs
@@ -77,7 +103,17 @@ export class LMProposalProducer implements ModelRuleWorkSink {
     this.backend = options.backend ?? NO_PROMPT_REQUESTS;
     this.resolves = options.resolves ?? (() => true);
     this.cyclesPerProposal = options.cyclesPerProposal ?? 1;
+    this.admitRule = options.admitRule;
     this.lifecycle = new ProposalLifecycle(undefined, options.record);
+  }
+
+  /**
+   * Submit a rule proposal. Nothing is applied here — the declaration lands at
+   * the next boundary, exactly as a content proposal does, and a rule queue that
+   * is full *refuses loudly* rather than dropping the learned capability (§5.3).
+   */
+  submitRule(proposal: RuleProposal): boolean {
+    return this.lifecycle.submit(proposal);
   }
 
   /** Called from the cycle. Bounded, synchronous, and cheap: a queue push. */
@@ -127,13 +163,26 @@ export class LMProposalProducer implements ModelRuleWorkSink {
       const proposal = this.proposalOf(task, references[at] ?? []);
       if (this.lifecycle.submit(proposal)) landed.set(proposal.proposalId, task);
     }
-    return this.lifecycle.admit({ resolves: this.resolves }).flatMap((verdict) => {
-      if (!verdict.admitted) return [];
-      const task = landed.get(verdict.proposal.proposalId);
-      if (!task) return [];
+    const verdicts = this.lifecycle.admit({ resolves: this.resolves });
+    const tasks: Task[] = [];
+    for (const verdict of verdicts) {
+      if (!verdict.admitted) continue;
+      const { proposal } = verdict;
+      if (proposal.kind === 'rule') {
+        const revision = this.lifecycle.commit(verdict);
+        this.admitRule?.admit(this.declarationOf(proposal), {
+          revision,
+          baseRevision: proposal.baseRevision,
+          proposalId: proposal.proposalId,
+        });
+        continue;
+      }
+      const task = landed.get(proposal.proposalId);
+      if (!task) continue;
       this.lifecycle.commit(verdict, task.stamp.id);
-      return [task];
-    });
+      tasks.push(task);
+    }
+    return tasks;
   }
 
   stats(): StreamReasonerStats & typeof this.counters {
@@ -164,6 +213,22 @@ export class LMProposalProducer implements ModelRuleWorkSink {
         truth: task.truth ? { frequency: task.truth.f, confidence: task.truth.c } : undefined,
       },
       references: [...references],
+    };
+  }
+
+  /** A rule proposal as a table declaration: the payload without the envelope. */
+  private declarationOf(proposal: RuleProposal): RuleDeclaration {
+    return {
+      ruleId: proposal.payload.ruleId,
+      description: proposal.payload.name,
+      left: { op: proposal.payload.pattern.left.op },
+      right: { op: proposal.payload.pattern.right.op },
+      truthFn: proposal.payload.truthFn,
+      // A proposal carries a symbolic fallback *source*; the table resolves a body
+      // by name, so the proposal names the body it means and a name nothing
+      // implements is refused at load rather than admitted inert (§5.10).
+      body: proposal.payload.symbolicFallback,
+      priority: proposal.payload.priority,
     };
   }
 

@@ -16,6 +16,7 @@
 import { parseOrThrow } from '@senars/util';
 import { z } from 'zod';
 import { CognitiveEventBaseSchema, PROPOSER_ORIGIN } from './event-base.js';
+import { RuleDeclarationSchema } from './rule-table.js';
 import { TruthValueSchema } from './truth.js';
 
 /**
@@ -72,8 +73,8 @@ export const RuleProposalSchema = EnvelopeSchema.extend({
     ruleId: z.string().min(1),
     name: z.string().min(1),
     pattern: z.object({
-      left: z.object({ op: z.string().optional(), subject: z.string().optional() }),
-      right: z.object({ op: z.string().optional(), subject: z.string().optional() }),
+      left: z.object({ op: z.string().min(1) }),
+      right: z.object({ op: z.string().min(1) }),
     }),
     /** The named truth function the rule dispatches through. */
     truthFn: z.string().min(1),
@@ -128,6 +129,15 @@ export const ProposalAdmittedEventSchema = CognitiveEventBaseSchema.extend({
     baseRevision: z.number().int().nonnegative(),
     /** The revision this admission produced. The event is the source of truth for it. */
     resultingRevision: z.number().int().positive(),
+    /**
+     * A rule admission carries the declaration it admitted, so the table can be
+     * reconstructed from the log alone (TODO29.a §5.10). Absent for a content
+     * proposal, which changes no table: its payload travels with the task it
+     * admitted rather than in the table.
+     */
+    declaration: RuleDeclarationSchema.optional(),
+    /** The proposer that issued it, for the operator-facing audit surface. */
+    producer: z.string().optional(),
   }),
 });
 

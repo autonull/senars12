@@ -8,12 +8,11 @@
  * and it prints the bucket census so the hot cell is a number someone can quote
  * rather than a claim in a document.
  */
-import { RuleRegistry } from '../nar/src/rules/impls/rule-registry.js';
-// Side effect: the shipped rule table is registered by importing it.
-import '../nar/src/rules/impls/registration.js';
+import { loadBuiltinTable } from '../nar/src/rules/impls/builtin-table.js';
 import { bucketCensus, kindViolations } from './lib/dispatch-table.js';
 
-const rules = RuleRegistry.getAll();
+const table = loadBuiltinTable();
+const rules = table.entries();
 const violations = kindViolations(rules);
 
 if (violations.length > 0) {

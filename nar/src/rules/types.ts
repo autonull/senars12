@@ -108,11 +108,17 @@ export interface RegisteredRule {
   taskType?: 'belief' | 'goal' | 'question' | 'command';
 }
 
+/**
+ * A rule as declared. The body is a **name**, never a closure: the table's
+ * artifact has to be serialisable into an event log, and a rule is only real if
+ * its body resolves (TODO29.a §5.10).
+ */
 export interface RuleDef {
   readonly id: string;
   readonly description: string;
   readonly pattern: [Term['kind'], Term['kind']];
-  readonly build: RuleFn;
+  /** Namespaced body name: `nal:<fn>` or `nal.extended:<fn>`. */
+  readonly body: string;
   readonly truth: keyof typeof Truth;
   readonly priority: number;
 }
