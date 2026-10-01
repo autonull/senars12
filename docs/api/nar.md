@@ -92,7 +92,7 @@
 
 - `NALRules`
 
-- `RuleIndex`
+- `RuleIndex` — Dispatch, as an `InferenceTable`. One bucket per declared kind pair.
 
 - `RuleProcessor`
 
@@ -1208,7 +1208,7 @@ _Re-export barrel._
 
 - `inferRuleCategory`
 
-- `RuleIndex`
+- `RuleIndex` — Dispatch, as an `InferenceTable`. One bucket per declared kind pair.
 
 - `RuleRegistry`
 

@@ -27,7 +27,7 @@ import {
 } from '../../terms';
 import { operationTerm } from '../../terms/impls/operation-term.js';
 import type { RegisteredRule } from '../types.js';
-import type { RuleIndex } from './RuleIndex.js';
+import type { InferenceTable } from '../types.js';
 import { RuleRegistry } from './rule-registry.js';
 
 /** Semantic truth values for meta-rules (moderate confidence) */
@@ -249,11 +249,10 @@ export function buildMetaRules(): RegisteredRule[] {
 }
 
 /** Register meta-rules into the RuleRegistry */
-export function registerMetaRules(ruleIndex?: RuleIndex): void {
-  const metaRules = buildMetaRules();
-  for (const rule of metaRules) {
+export function registerMetaRules(table?: InferenceTable): void {
+  for (const rule of buildMetaRules()) {
     RuleRegistry.register(rule);
-    ruleIndex?.register(rule);
+    table?.register(rule);
   }
 }
 

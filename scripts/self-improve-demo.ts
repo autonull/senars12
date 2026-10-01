@@ -56,7 +56,7 @@ async function main() {
   // Register meta-rules
   logger.info('⚙️  Registering meta-rules with AIKR bounds...');
   const processor = nar.getProcessor();
-  registerMetaRules(processor.ruleIndex);
+  registerMetaRules(processor.getTable());
   logger.info('   Meta-rules registered');
 
   // Initialize NAR

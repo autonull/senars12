@@ -2,7 +2,7 @@
  * Rule registration: assembles RuleDef[] from the NAL/extended rule maps and
  * registers them on the RuleRegistry as a module side effect.
  */
-import { Truth } from '../../terms';
+import { Truth, type Term } from '../../terms';
 import { NALExtendedRules } from '../extended/index.js';
 import { NALRules } from '../nal/index.js';
 import type { RuleDef, RuleFn, TruthFn } from '../types.js';
@@ -17,8 +17,8 @@ const _rule = (
 
 const registerRule = (
   id: string,
-  left: string,
-  right: string,
+  left: Term['kind'],
+  right: Term['kind'],
   fn: RuleFn,
   truthFn: TruthFn,
   priority: number

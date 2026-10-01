@@ -21,6 +21,7 @@ export { RuleRegistry } from './impls/rule-registry.js';
 export { NALExtendedRules, NALRules } from './impls/rules-dsl.js';
 // Rule contract
 export type {
+  InferenceTable,
   RegisteredRule,
   RuleDef,
   RuleDependency,
@@ -29,7 +30,6 @@ export type {
   RuleInput,
   RulePattern,
   RuleResult,
-  RuleStatistics,
   TruthFn,
 } from './types.js';
 export { createRulePattern } from './types.js';

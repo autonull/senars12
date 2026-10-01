@@ -63,9 +63,7 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
 
     // Register meta-rules
     const processor = nar.getProcessor();
-    registerMetaRules(
-      (processor as unknown as { ruleIndex: Parameters<typeof registerMetaRules>[0] }).ruleIndex
-    );
+    registerMetaRules(processor.getTable());
 
     await nar.start();
 
@@ -137,9 +135,7 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
 
     await initializeMetaReasoning(nar);
     const processor = nar.getProcessor();
-    registerMetaRules(
-      (processor as unknown as { ruleIndex: Parameters<typeof registerMetaRules>[0] }).ruleIndex
-    );
+    registerMetaRules(processor.getTable());
 
     await nar.start();
 
@@ -181,9 +177,7 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
       await nar.believe(belief);
     }
     const processor = nar.getProcessor();
-    registerMetaRules(
-      (processor as unknown as { ruleIndex: Parameters<typeof registerMetaRules>[0] }).ruleIndex
-    );
+    registerMetaRules(processor.getTable());
 
     await nar.start();
 
@@ -228,9 +222,7 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
       await nar.believe(belief);
     }
     const processor = nar.getProcessor();
-    registerMetaRules(
-      (processor as unknown as { ruleIndex: Parameters<typeof registerMetaRules>[0] }).ruleIndex
-    );
+    registerMetaRules(processor.getTable());
 
     await nar.start();
 

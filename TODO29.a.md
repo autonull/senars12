@@ -105,6 +105,9 @@ do is make four README promises structurally true rather than aspirational, and 
    second link graph are gone, and the RL/parity baselines were re-established and committed here.
    **What is left is A3's eight protocol decisions** — the only unanswered thing in the queue — then
    A6, whose dispatch order A4's baselines are the reference for.
+8. ~~**A6**~~ — **done 2026-10-01** (§0.8.10): dispatch is an `InferenceTable` port, a rule declares
+   both kinds or it does not register, the tie-break that ordered nothing is gone, and
+   `dispatch:no-wildcard` is the gate. **Next is A10**, which needs this port to register through.
 
 ### 0.7 What this plan is not
 
@@ -920,6 +923,66 @@ test asserted all four events arrived from `admit` alone; the split is the corre
   hundreds of proposals this is the hot spot, and it is the shape A9's recorded-proposal path would
   replace anyway.
 
+### 0.8.10 A6 is done (2026-10-01) — dispatch is a port, and a rule declares its kinds
+
+The item that looked like a performance change and turned out to be three deletions and one
+interface. Findings 7 and 8, and the whole of §5.6's acceptance.
+
+| artefact | what it is |
+|---|---|
+| `InferenceTable` (`rules/types.ts`) | the dispatch port: `register`, `candidates(left, right)`, `clear`. `RuleProcessor` holds the interface, not `RuleIndex`, and takes one by injection |
+| `RulePattern` | `left.op` / `right.op` are now `Term['kind']` and **required**, so a wildcard does not compile |
+| `RuleIndex` | 150 → 52 lines: one bucket per pair, ordered at registration, and nothing else |
+| `RuleProcessor.getTable()` | the port is reachable without reaching into a private field — `registerMetaRules` and two callers used to cast through `as unknown as` |
+| `pnpm dispatch:no-wildcard` | the census, in `scripts/lib/dispatch-table.ts` as pure verdict logic, plus the histogram it prints |
+| `tests/nar/todo29a-a6.test.ts` | 11 tests: the gate's two failure modes first, then the port, then dispatch |
+
+**The tie-break is gone, and the reason it was there is the finding.** `recordRuleHit` had no
+caller outside tests, so the recency demotion and the `successRate` tie-break could not fire in
+production — a comparator wearing a comment that explains why it orders nothing, which §10.1's
+rule 2 names. Choosing "gone" over "made real" cost nothing observable: candidate order was already
+`priority` then registration order, because that is what a stable sort over a constant comparator
+gives. `hitStats`, the `ordered` memo, `rankingEpoch`, the 1s `TEMPORAL_WINDOW_MS` and
+`RuleStatistics` went with it — **the cache is deleted rather than invalidated**, which is only
+possible *because* the ordering no longer depends on state that moves. The alternative — wiring
+`recordRuleHit` into `applySyncRules` and keeping the machinery — would have made dispatch order
+a function of observed success, which is a **semantic** change to what the reasoner derives in a
+fixed episode. That belongs to A10, where a learned rule's provenance is a first-class fact.
+
+**`RulePattern.op` is typed `Term['kind']`, which is a stronger claim than "required string."**
+A rule cannot name a kind the term layer does not define, so `dispatch:no-wildcard`'s
+`unknown-kind` half is a property the compiler holds and the gate re-checks at runtime for
+*dynamically* registered rules — which A10's queue will be. `RuleDef.pattern` was already
+`[Term['kind'], Term['kind']]`; `registration.ts`'s `registerRule` widened it to `string` and has
+been narrowed back, which is what made the mismatch possible in the first place.
+
+**Rule-ordering behaviour: preserved, and the parity is the evidence.** Priority is still primary
+and the sort is stable, so a bucket's order is byte-identical to what the comparator produced when
+the other two branches were dead. All four parity suites (42 tests) and `test:unit` (326 files,
+2865 tests) are green, which is A6's gate.
+
+**Improvement opportunities A6 exposed, none of them blocking A10.**
+
+- **`InferenceTable` has one implementation.** That is the honest reason to keep it an interface
+  rather than delete it: it is the seam A10 registers *learned* rules through, and a second
+  implementation (a trie, a DAG) is TODO30 §6's choice from a measured workload. If A10 slips, this
+  interface becomes the thing §10.1 rule 3 is about — a correct, bounded, tested component nothing
+  calls. It is not nothing-called today: `RuleProcessor` reaches it and the spy test proves the
+  dependency is real.
+- **`RuleDependency` is the next dead component.** `addDependency` / `getRuleDependencies` have no
+  production caller either — the same shape as the tie-break, in the same file, and §5.6 did not
+  name it. It is **left in place deliberately**: it is a write surface A10's rule artifact needs,
+  and deleting it now would mean re-adding it with a schema. But it is the obvious candidate for
+  §8's next deletion, and it is *not* gated, which is the gap.
+- **`processors.getTable()` is how meta-rules register, which is one cast removed and one more
+  thing the interface has to keep.** If A10 lands, `registerMetaRules` and the learned-rule path
+  should both go through one `InferenceTable` the processor owns, and `getTable()` should become
+  `register(rule)` — the read case has no caller.
+- **`scripts/lib/dispatch-table.ts` imports `nar/src` for `OPERATORS` and a type.** The gate's
+  *rule* is pure; only the census is data. That coupling is the same one `terms-canonical.ts`
+  already has with the same two constants, and both are worth it — one definition of "a kind" that
+  the term layer and the dispatch gate cannot disagree about.
+
 ---
 
 ## 1. The contract
@@ -1458,8 +1521,8 @@ empty owner means the finding has no gate, and a finding with no gate is a findi
 | 4 | eviction measures concept count, not tasks, and its candidate filter is *anti-correlated* with pressure — the only evictable concepts are empty shells | `memory/pressure/consolidation.ts:24`; `memory.ts:519` | **A8** |
 | 5 | `getGoals()` mints a fresh `Stamp.createInput()` per goal per call, so anything keyed on stamp overlap reasons about an id that never repeats | `memory.ts:253` | **A4 — done 2026-10-01** (§0.8.8): stamps are minted at admission (`Concept.addTask`) and `TaskData.stamp` is non-optional, so two reads of one goal return the same identity |
 | 6 | `Concept.priority` has ten external and six internal writers; `linkedConcepts`/`subConcepts`/`parentConcepts` are written only by `mergeWith`, so `SpreadingActivation.prime` is a no-op wearing a real cost | call-site audit | **A4 — done 2026-10-01** (§0.8.8): no setter, seven named reasons, and `Concept`'s second link graph deleted; `SpreadingActivation` now reads the link *port*, so it spreads through links that exist |
-| 7 | two rules document a fix they did not get: `stepScalars` is never invalidated (a shadowed `resetMetaBudget` means the memo is process-stale), and the `RuleIndex` tie-break orders nothing because `recordRuleHit` has no callers | `rules/impls/processor.ts:156-181`; `nar-execution.ts:76,116,179,368`; `rules/impls/RuleIndex.ts:131-140` | **A1** (delete), **A6** (tie-break) |
-| 8 | three of four dispatch buckets are empty: 0 of 55 registered rules use a wildcard, 21 share one hot cell | census, §13 | **A6** |
+| 7 | two rules document a fix they did not get: `stepScalars` is never invalidated (a shadowed `resetMetaBudget` means the memo is process-stale), and the `RuleIndex` tie-break orders nothing because `recordRuleHit` has no callers | `rules/impls/processor.ts:156-181`; `nar-execution.ts:76,116,179,368`; `rules/impls/RuleIndex.ts:131-140` | **A1** (delete, done), **A6** (tie-break) — **both done 2026-10-01**: `stepScalars` deleted in A1, `recordRuleHit` and the whole ranking memo deleted in A6 (§0.8.10) |
+| 8 | three of four dispatch buckets are empty: 0 of 55 registered rules use a wildcard, 21 share one hot cell | census, §13 | **A6 — done 2026-10-01** (§0.8.10): the wildcard lookups and the optional parameters are deleted, the type requires both kinds, and `pnpm dispatch:no-wildcard` is the census as a gate. The gate prints the histogram: 55 rules, 22 buckets, hottest `inheritance:inheritance` at 21 |
 | 9 | **the seam exists, is bounded and gated, and has no caller.** `StreamReasoner` is committed, exported and tested; its only caller in the repository is a test. Meanwhile the cycle reaches the model by a different route — `processLMRules`, called synchronously, 33× per cycle | `stream/reasoner.ts`; `strategies/derivation/DefaultDerivation.ts:26,30`; `nar-execution.ts:234` `step(5000, …)` | **A1** |
 | 10 | the seam spends against the **process-global** `gateRegistry`, not the per-instance one `createGateRegistry()` exists to provide, so two NARs in one process share an LM budget | `stream/reasoner.ts:2,80`; `kernel/GateRegistry.ts:117,120` | **A1** |
 | 11 | a **present-but-hung** `J` at ingress is awaited with no timeout. Absence and throw are both handled correctly (absent ⇒ unjudged path; throw ⇒ fail closed, D1) | `kernel/KernelPerceptionGate.ts:72-73,117-118,154` | **A1** |
@@ -1805,7 +1868,7 @@ rather than by extraction — "storage is a port" is true as a *dependency* clai
 now.
 
 
-### 5.6 A6 — Define inference dispatch as an architectural port
+### 5.6 A6 — Define inference dispatch as an architectural port — **done 2026-10-01 (§0.8.10)**
 
 *For findings 7 and 8.*
 
@@ -1828,6 +1891,8 @@ Three decisions, none of them "make it faster", two of them already made by meas
 - the `RuleIndex` tie-break is either exercised by a test — `recordRuleHit` is called and the field
   has data — or deleted. It is currently a comparator that orders nothing, wearing a comment that
   explains why it orders nothing. This is the one decision left, and it is semantic, not structural.
+  **Decided: deleted** (§0.8.10). Making it real would make dispatch order a function of observed
+  success — a semantic change to a fixed episode — and it belongs to A10, where provenance exists.
 
 **Do not** require tries, DAGs, decision trees or generated code here. TODO30 §6 chooses among them
 from a measured workload, after measuring the candidate count that survives winnowing.
@@ -2365,7 +2430,7 @@ Every acceptance criterion above is demonstrated by a command and a gate. Gates 
 | **A3** | `pnpm proposal:protocol`, `pnpm test:unit` (new seam tests) — **done 2026-10-01** | `proposal:protocol` | **low** — the one item the plan expands rather than contracts |
 | **A4** | `pnpm run attention:write-surface`, `pnpm test:unit` + a diff on the committed baseline file — **done 2026-10-01** | `attention:write-surface` | **high, and confined to this item.** Every learned value moves: why it is alone, why it lands after A5, and why the baselines are regenerated here rather than left to drift through A6–A8 |
 | **A5** | `pnpm test:unit` + `pnpm memory:ports` — **done 2026-10-01** | `memory:ports` | **low** — mechanical, and the boundary was already implied by `MemoryView` |
-| **A6** | `pnpm test:unit` (NAL suites + dispatch tests) | `dispatch:no-wildcard` | **medium** — dispatch order changes, so parity is the gate |
+| **A6** | `pnpm run dispatch:no-wildcard`, NAL suites, `pnpm test:unit` — **done 2026-10-01** (§0.8.10) | `dispatch:no-wildcard` | **medium** — measured *low*: ordering was already `priority` then registration, so parity was never at risk and is green |
 | **A7** | `pnpm test:unit` (budget-enforcement tests) | — | **low-medium** — the behaviour change is "steps stop running by default" |
 | **A8** | `pnpm test:unit` (resource-policy tests) | `resource:policy` | **medium** — retention policy *is* behaviour; policy and structure together is how a semantic change hides inside a refactor |
 | **A9** | `pnpm test:hermetic` — the tier this item exists to make possible | `replay:proposal` (`slow`) | **low** — extends an existing reducer with new event kinds |
@@ -2417,10 +2482,10 @@ A0 ─▶ A1 ─▶ A2 ─▶ A3 ─▶ ~~A5~~ ─▶ A4 ─┬─▶ A6 ─▶ 
                     A12 §5.12.1 (grammar alignment) → A12 reducers, after A4's baselines
 ```
 
-**As of 2026-10-01: A0, A1, A2, A4 and A5 are done** (§0.8, §0.8.1, §0.8.6, §0.8.7, §0.8.8). A3's
-eight protocol *decisions* are the next unanswered thing in the queue and nothing else blocks on
-them; A3's *implementation* now waits only on A6's dispatch port, since the structural item it was
-waiting behind has landed.
+**As of 2026-10-01: A0, A1, A2, A3, A4, A5 and A6 are done** (§0.8, §0.8.1, §0.8.6, §0.8.9, §0.8.7,
+§0.8.8, §0.8.10). **A10 is next**: it needs A6's `InferenceTable` to register learned rules
+through and A3's boundary rule to admit them, and both now exist. A7 and A8 remain interleaveable;
+A11 still waits on A6's port contract existing, which it now does.
 
 **The ordering rule: structural before behavioural.** A5, A2 and A6 are mechanical — they move code
 and change no derived value. A1, A4 and A8 change what the system concludes or how fast it forgets.
@@ -2555,10 +2620,12 @@ Named, so the plan is falsifiable by diff:
   `SpreadingActivation.prime`, `Concept.updateLinks`, `findOrphanedLinks`~~ — **done (A4)**, on the
   *populate* branch: `SpreadingActivation` reads the link **port** instead of walking a graph only
   `mergeWith` wrote, and `findOrphanedLinks` reads `LinkManager`.
-- The three wildcard lookups in `RuleIndex.candidatesFor` — `*:right`, `left:*`, `*:*` — and
-  `createRulePattern`'s optional parameters. Measured safe: 0 of 55 registered rules use a wildcard
-  bucket (A6).
-- `RuleIndex.hitStats` with its tie-break, unless A6 makes them real.
+- ~~The three wildcard lookups in `RuleIndex.candidatesFor` — `*:right`, `left:*`, `*:*` — and
+  `createRulePattern`'s optional parameters.~~ **Done (A6, §0.8.10)**: the lookups, the catch-all,
+  the `Set` merge, the `rankingEpoch` memo, `hitStats` and `RuleStatistics` are all gone.
+  `RulePattern.op` is required and typed `Term['kind']`, and `dispatch:no-wildcard` is the gate.
+- ~~`RuleIndex.hitStats` with its tie-break, unless A6 makes them real.~~ **Done (A6)**: deleted
+  rather than made real — see §0.8.10 for why real would have been a semantic change.
 - The `totalTasks === 0` candidate filter in `evictUnderPressure` (A8).
 - The per-cycle `getGoals()` / `getStatistics()` calls from the summary and meta-goal steps, or their
   budgets (A7).
@@ -2615,7 +2682,7 @@ gate listed here and not wired is the exact failure mode this plan is about.
 | `deps:gate` +1 row | **landed, in `deps:direction` rather than `deps:gate`.** `deps:gate` counts cycles and compares a number; a layering rule is not a number, and `deps:direction` is already the gate that reads manifests and reports named violations. Both gates call one implementation (`scripts/lib/layer-boundary.ts`), so the rule has one body and two places it can be caught. `core` imports only `util` and its own schemas — already true and already checked | A2 | `gate` |
 | `memory:ports` | **landed 2026-10-01:** no cycle-path module imports `nar/src/memory/memory.ts` — by file, by directory or through the barrel — and the two sites that legitimately construct a store are declared in a ledger with reasons. §0.8.7 | A5 | `gate` |
 | `attention:write-surface` | **landed 2026-10-01, in a narrower form than stated:** the compiler holds the primary invariant (no setter) and the gate holds the rest — no `set priority` in the owner, every declared reason written with somewhere in `nar/src` + `src`, no reason the union lacks, `sample` / `sampleWindow` contain no write, and the decay sweep has exactly one call site. §0.8.8 | A4 | `gate` |
-| `dispatch:no-wildcard` | no registered rule sits under a wildcard bucket | A6 | `gate` |
+| `dispatch:no-wildcard` | **landed 2026-10-01:** every registered rule declares both kinds as a kind the term layer defines, and the gate prints the bucket histogram (55 rules, 22 buckets, hottest `inheritance:inheritance` at 21). The compiler holds the static half; this holds the *dynamic* half, which is what A10's rule queue will need. §0.8.10 | A6 | `gate` |
 | `resource:policy` | every production accumulator is in the ledger, and a memory at capacity with nothing evictable says so | A8 | `gate` |
 | `rules:loaded-data` | no module-side-effect registration survives; the table is enumerable, versioned, revertable; two revisions are diffable and a prior one is restorable; an empty table is a runnable state | A10 | `gate` |
 | `replay:proposal` | `replayCognitiveState` reconstructs the same state from `proposal.*` events, and a version mismatch fails loudly | A9 | `slow` |
@@ -2741,8 +2808,9 @@ the decision and its reasoning: *"mathematically forbidden from mutating factual
 A11's job is to make this reachable from the reasoning cycle and to gate it there, not to invent a
 rule.
 
-**Known-broken, inherited, not this plan's:** `docs/api/util.md` drifts from its generator on the
-unmodified tree, so `docs:drift` is red independently of §5; `test:load-sensitive` has a wall-clock
+**Known-broken, inherited, not this plan's:** `docs:drift` compares the committed docs against the
+generator, so a *legitimate* regeneration reads as drift until it is committed — A6's first run was
+red for exactly that reason and the commit is the fix; `test:load-sensitive` has a wall-clock
 assertion (`todo16-batching`, < 50 ms) that fails under load and passes in isolation; README names
 `nar/src/rules/registration.ts` as the source of truth for the rule matrix and that path does not
 exist (the real one is `nar/src/rules/impls/registration.ts`) — fixed in A2's documentation sweep,

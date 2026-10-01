@@ -75,10 +75,26 @@ export interface RuleEngine {
 
 export type TruthFn = (t1: Truth, t2: Truth) => Truth | null;
 
+/**
+ * A rule's dispatch cell. Both sides are required: a wildcard bucket had zero
+ * registered rules and three lookups on the innermost path, so a rule that does
+ * not declare its kinds does not register (TODO29.a §5.6).
+ */
 export type RulePattern = {
-  left: { op?: string; subject?: string };
-  right: { op?: string; subject?: string };
+  left: { op: Term['kind']; subject?: string };
+  right: { op: Term['kind']; subject?: string };
 };
+
+/**
+ * Dispatch, as a port: what inference code depends on, independent of how
+ * candidates are found. `RuleIndex` is one implementation, and replacing it is
+ * one file (TODO29.a §5.6).
+ */
+export interface InferenceTable {
+  register(rule: RegisteredRule): void;
+  candidates(left: Term['kind'], right: Term['kind']): readonly RegisteredRule[];
+  clear(): void;
+}
 
 export type RuleFn = (premises: [Term, Term]) => Term | undefined;
 
@@ -101,17 +117,13 @@ export interface RuleDef {
   readonly priority: number;
 }
 
-export const createRulePattern = (leftOp?: string, rightOp?: string): RulePattern => ({
+export const createRulePattern = (
+  leftOp: Term['kind'],
+  rightOp: Term['kind']
+): RulePattern => ({
   left: { op: leftOp },
   right: { op: rightOp },
 });
-
-export interface RuleStatistics {
-  hitCount: number;
-  lastHitTime: number;
-  successRate: number;
-  avgDuration: number;
-}
 
 export interface RuleDependency {
   ruleId: string;

@@ -13,6 +13,7 @@ import type { StampType, Term } from '../../terms';
 import { Truth, type Truth as TruthType } from '../../terms';
 import type { NarEventBus, Task } from '../../types';
 import type {
+  InferenceTable,
   ModelRule,
   ModelRuleWork,
   ModelRuleWorkSink,
@@ -53,7 +54,7 @@ interface MetaBudgetState {
 }
 
 export class RuleProcessor {
-  private readonly ruleIndex: RuleIndex;
+  private readonly table: InferenceTable;
   private readonly modelRules: ModelRule[] = [];
   /** Id index over `modelRules` — O(1) lookup instead of a linear scan per query. */
   private readonly modelRulesById = new Map<string, ModelRule>();
@@ -77,11 +78,15 @@ export class RuleProcessor {
     maxDerivationDepth: META_AIKR_BOUNDS.maxMetaDerivationDepth,
   };
 
-  constructor(rules?: RegisteredRule[]) {
-    this.ruleIndex = new RuleIndex();
+  constructor(rules?: RegisteredRule[], table: InferenceTable = new RuleIndex()) {
+    this.table = table;
     (rules ?? RuleRegistry.getAll()).forEach((rule) => {
-      this.ruleIndex.register(rule);
+      this.table.register(rule);
     });
+  }
+
+  getTable(): InferenceTable {
+    return this.table;
   }
 
   setConfig(config: {
@@ -258,7 +263,7 @@ export class RuleProcessor {
     const p1s = p1.term.toString();
     const p2s = p2.term.toString();
     this.recorder.begin(`${p1s}|${p2s}`, p1s);
-    const matched = this.ruleIndex.match(p1.term, p2.term);
+    const matched = this.table.candidates(p1.term.kind, p2.term.kind);
     const metaActive = this.metaActive(matched);
 
     for (const rule of matched) {
