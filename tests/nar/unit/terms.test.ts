@@ -90,9 +90,8 @@ describe('TermBuilder', () => {
   });
 
   describe('negation', () => {
-    test('handles undefined input', () => {
-      const t = TermBuilder.negation(undefined!);
-      expect(isAtomic(t)).toBe(true);
+    test('undefined input throws — negation requires exactly 1 argument', () => {
+      expect(() => TermBuilder.negation(undefined!)).toThrow('exactly 1 argument');
     });
 
     test('creates negation term', () => {

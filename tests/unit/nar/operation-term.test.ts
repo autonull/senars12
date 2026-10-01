@@ -29,10 +29,11 @@ describe('operation-term convention', () => {
   });
 
   it('several arguments are a product, which is what makes them several', () => {
-    const term = operationTerm('peek', { n: 1 });
+    const term = operationTerm('move', { dir: 'left', steps: 3 });
 
     expect(term.kind).toBe('operation');
-    expect(isCompound(term) && term.args[1]?.kind).toBe('inheritance');
+    expect(isCompound(term) && term.args[1]?.kind).toBe('product');
+    expect(isCompound(term) && term.args[1]?.args?.length).toBe(2);
   });
 
   it('names no operation for a term that is not one', () => {

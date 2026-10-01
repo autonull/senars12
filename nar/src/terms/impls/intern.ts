@@ -66,10 +66,37 @@ const canonicalOrder = (a: Term, b: Term): number =>
  */
 export const compoundOf = (kind: OperatorKey, args: Term[]): Term => {
   const valid = args.filter(Boolean);
-  if (valid.length === 0) return kind === 'disjunction' ? FALSE_ATOM : TRUE_ATOM;
-  // A variadic kind with one member *is* that member: `(&&,P)` must not exist,
-  // and `(a)` must not read back as a one-arg product that writes as `a`.
-  if (valid.length === 1 && NARY_OPS.has(kind)) return valid[0]!;
+  // Empty: only disjunction folds to FALSE; conjunction and product are real terms
+  if (valid.length === 0) {
+    if (kind === 'disjunction') return FALSE_ATOM;
+    // conjunction and product with 0 args are valid distinct terms
+  }
+  // Single argument: folds for disjunction, conjunction, parallel (n-ary kinds).
+  // Sequence is binary in SeNARS (arity=2) — throws on wrong arity.
+  // Product is GTEZero — 1-member is a real term, not a fold.
+  if (valid.length === 1) {
+    if (kind === 'disjunction' || kind === 'conjunction' || kind === 'parallel') return valid[0]!;
+  }
+
+  // Negation requires exactly 1 argument — reference throws on wrong arity
+  if (kind === 'negation' && valid.length !== 1) {
+    throw new Error(`Negation requires exactly 1 argument, got ${valid.length}`);
+  }
+
+  // Sequence is binary in SeNARS — reference throws on wrong arity
+  if (kind === 'sequence' && valid.length !== 2) {
+    throw new Error(`Sequence requires exactly 2 arguments, got ${valid.length}`);
+  }
+
+  // Operation requires exactly 2 arguments — reference throws on wrong arity
+  if (kind === 'operation' && valid.length !== 2) {
+    throw new Error(`Operation requires exactly 2 arguments, got ${valid.length}`);
+  }
+  // Operation requires its second argument to be a product (per Narsese grammar).
+  // If caller passed a bare term, wrap it. This ensures round-trip identity.
+  if (kind === 'operation' && valid.length === 2 && valid[1]?.kind !== 'product') {
+    valid[1] = compoundOf('product', [valid[1]!]);
+  }
 
   const sorted = COMMUTATIVE_OPS.has(kind) ? valid.toSorted(canonicalOrder) : valid;
 

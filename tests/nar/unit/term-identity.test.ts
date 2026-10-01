@@ -35,10 +35,16 @@ const distinct = [
 ] as const;
 
 describe('canonical term identity', () => {
-  it('a one-member variadic compound is that member', () => {
-    expect(TermBuilder.sequence(a)).toBe(a);
+  it('a one-member variadic compound folds for disjunction, conjunction, parallel', () => {
+    // Disjunction, conjunction, parallel fold 1-arg to the arg (n-ary kinds)
+    expect(TermBuilder.disjunction(a)).toBe(a);
     expect(TermBuilder.conjunction(a)).toBe(a);
-    expect(TermBuilder.product(a)).toBe(a);
+    expect(TermBuilder.parallel(a)).toBe(a);
+    // Product with 1 arg is a real 1-member product term, distinct from the atom
+    expect(TermBuilder.product(a)).not.toBe(a);
+    expect(TermBuilder.product(a).kind).toBe('product');
+    // Sequence is binary in SeNARS — throws on 1-arg
+    expect(() => TermBuilder.sequence(a)).toThrow('exactly 2');
   });
 
   it('no two distinct structures share a printed form', () => {

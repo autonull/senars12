@@ -83,11 +83,19 @@ export const canonicalFormFailures = (): string[] => {
   const a = TermBuilder.atom('a');
   const b = TermBuilder.atom('b');
   const c = TermBuilder.atom('c');
+  // Override arity for kinds where OPERATORS doesn't match actual requirement
+  const effectiveArity: Record<string, number> = {
+    sequence: 2,
+    operation: 2,
+    negation: 1,
+    // n-ary kinds use their declared arity (0 = use 2 for binary test)
+  };
   for (const [kind, { arity }] of Object.entries(OPERATORS) as [
     OperatorKey,
     { arity: number },
   ][]) {
-    const term = TermBuilder.compound(kind, [a, b].slice(0, Math.max(arity, 1)));
+    const testArity = effectiveArity[kind] ?? Math.max(arity, 1);
+    const term = TermBuilder.compound(kind, [a, b].slice(0, testArity));
     const text = serializeTerm(term);
     let parsed: string | null = null;
     try {
@@ -123,14 +131,18 @@ export const canonicalFormFailures = (): string[] => {
   };
 
   const members = [a, b, TermBuilder.atom('c'), TermBuilder.atom('d')];
-  for (const [kind, { arity: declared, nary }] of Object.entries(OPERATORS) as [
-    OperatorKey,
-    { arity: number; nary: boolean },
-  ][]) {
+  // Sequence is binary in SeNARS despite nary=true/arity=0 in OPERATORS
+  const isNary = (k: OperatorKey): boolean =>
+    k !== 'sequence' && OPERATORS[k].nary;
+  const effectiveDeclared = (k: OperatorKey): number =>
+    k === 'sequence' ? 2 : k === 'operation' ? 2 : k === 'negation' ? 1 : OPERATORS[k].arity;
+  for (const [kind] of Object.entries(OPERATORS) as [OperatorKey, typeof OPERATORS[OperatorKey]][]) {
+    const declared = effectiveDeclared(kind);
+    const nary = isNary(kind);
     // A binary kind has no reading at three members — `createCompound` keeps the
     // extra argument and the serialiser drops it, so the term is not the term
     // written. Only a variadic kind is asked for the arities it can hold.
-    const arities = nary ? [2, 3, members.length] : [Math.max(declared, 1)];
+    const arities = nary ? [2, 3, members.length] : [declared];
     for (const arity of arities) {
       const operands = members.slice(0, arity);
       // Nesting is only a shape a variadic kind can hold. `negation` applied to a
@@ -184,11 +196,10 @@ export const canonicalFormFailures = (): string[] => {
    * covered by construction rather than by remembering to add a case.
    */
   const canonicalCorpus: Term[] = [];
-  for (const [kind, { arity, nary }] of Object.entries(OPERATORS) as [
-    OperatorKey,
-    { arity: number; nary: boolean },
-  ][]) {
-    for (const n of nary ? [2, 3, 4] : [Math.max(arity, 1)]) {
+  for (const [kind] of Object.entries(OPERATORS) as [OperatorKey, typeof OPERATORS[OperatorKey]][]) {
+    const declared = effectiveDeclared(kind);
+    const nary = isNary(kind);
+    for (const n of nary ? [2, 3, 4] : [declared]) {
       const operands = members.slice(0, n);
       canonicalCorpus.push(TermBuilder.compound(kind, operands));
       if (nary)

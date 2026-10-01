@@ -2,6 +2,7 @@ import { createLogger } from '@senars/util';
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
 import { hasVariable, Truth, termParser, termsEqual, unify } from '../terms';
+import { byRelevance, type RelevanceOptions } from './relevance.js';
 import type { Stamp, Task, TaskType, TermFilter, Timestamp } from '../types';
 import { createBudget, createTask, createTimestamp } from '../types';
 
@@ -44,6 +45,18 @@ export class QueryAPI {
 
   getQuestions(filter?: TermFilter): Task[] {
     return this.queryByType('question', filter);
+  }
+
+  /**
+   * Beliefs ordered by relevance to the open questions and goals. A read-path
+   * ranking over an unchanged store (TODO30 §1.2 option B): the same derivation
+   * set, in the order a reader cares about.
+   */
+  getRelevantBeliefs(
+    focus: readonly Term[],
+    options?: Omit<RelevanceOptions, 'focus'>
+  ): Task[] {
+    return this.limitResults(byRelevance(this.getBeliefs(), { ...options, focus }));
   }
 
   query(term: Term, filter?: Omit<TermFilter, 'pattern'>): QueryResult {

@@ -211,6 +211,36 @@ Three options, and the plan does **not** choose yet, because §0.2 shows the cho
 (TODO29.a §1.2's constraint, which survives into this plan), which makes it safe to land first and
 cheap to measure. A is the one that would actually help and the one that touches the invariant.
 
+**Landed, option B.** `nar/src/query/relevance.ts`: `relevanceScore(belief, focus)` — pure,
+structural, declared inputs, no truth value consulted — and `byRelevance(tasks, { focus, minScore })`.
+`QueryAPI.getRelevantBeliefs(focus, options?)` is the read path; the committed store is untouched,
+which is the acceptance test and not a claim.
+
+**The measurement §1.2 asks for: 1 of 133, and the *reason* is the finding.** Three bands —
+exact (`termKey` equality), containment (`containsSubterm`), vocabulary (shared `atomicSymbols`) — and
+the first attempt at the score put vocabulary on the same footing as containment. It kept **129 of
+133**, because §0.2's 125 `(?cause-->(cat-->animal))`-shaped and intersection terms share *every
+word* with the question and none of its structure. **A relevance score that blends structure with
+vocabulary is a filter wearing a ranking** — §10's risk row, measured. Vocabulary is therefore capped
+strictly below containment and is a *rank*, not a *floor*: `minScore` defaults to
+`RELEVANCE_CONTAINMENT` (0.75), and `minScore: 0` keeps all 133 in score order for a reader that
+wants them.
+
+**The honest reading, and it constrains what U3 must be.** One survivor is not "a good filter" — it
+is the answer and nothing else, which means **relevance ranking alone does not make the store
+cheaper, only easier to read.** §1.2's own kill logic applies with the sign flipped: the plan said
+"if 3 of 133 survive then U2 has failed and the answer is U3"; here **1 survives**, so the answer is
+U3 either way. The store still holds 133 beliefs and still spent the derivations to make them. Gate
+`relevance:measured` asserts both halves — the narrowing (≤5% of the store, answer first) and the
+invariance (a ranked read leaves `listConcepts()` identical) — and was flipped once: lifting the
+vocabulary ceiling fails it at 129/133.
+
+**What this changed about U3.** §1.3 wanted a declared budget for *candidate derivations examined per
+cycle*. Relevance now supplies the number that makes it choosable: `premises` × candidate rules is
+what fills the 125, and 129 of the 133 are vocabulary-only, i.e. **derivable from a premise pair the
+question does not mention.** A goal-directed cap (option A) or a candidate budget that stops the
+exhaustive intersection expansion is the lever; a better relevance *score* is not.
+
 **Acceptance**
 
 - a relevance score exists as a named function, its inputs are declared, and it is pure;
@@ -599,6 +629,65 @@ anything.
 | 5.8 | the population-scaling matrix and `cost:cycle` | 5.1–5.7 |
 | 5.9 | **`maxTasks`** — the number U5 leaves open | 5.8 |
 
+---
+
+## 11. Fix Strategy — Remaining Work
+
+### What's Landed (this session)
+
+| item | status | gate |
+|---|---|---|
+| §1.4 U4 — lifecycle stop/dispose no-op on never-started | ✅ landed | (structural, no gate) |
+| §1.1 U1 — ask() answers asked term, ground instance, or refuses | ✅ landed | `answer:no-fabrication` |
+| §1.2 U2 — relevance ranking at read path, pure, store unchanged | ✅ landed | `relevance:measured` |
+| §2.1 T1 — product arity 0/1 reachable; folds scoped correctly | ✅ landed | `terms:canonical` |
+| §2.2 T2 — Bool atoms at term level, identities, isInvalidTaskTerm walks term | ⬜ next | `terms:no-bool-task` |
+
+### Remaining Failures (T1/T2 ripple)
+
+| test | failure | fix |
+|---|---|---|
+| `canonical-form.test.ts` corpus | sequence(3 args) — corpus generator passes wrong arity for binary `sequence` | adjust `termsOf` in canonical-form test (like terms-canonical did) |
+| `nal7-temporal.test.ts` | empty sequence/parallel throws — reference says binary/empty is invalid | test expects TRUE; change test to expect throw (empty sequence malformed) |
+| `nal8-procedural.test.ts` | proceduralChaining / operationToPredictive return undefined | rule expects `op.args[1]` as product; test builds operations with bare terms, now wrapped |
+| `refactor4-budget.test.ts` | LOC budget +57 — new relevance.ts + gate script | ratchet `complexity-budget.json` baseline (precedent: A11 did this) |
+
+### Concrete Next Steps
+
+1. **T2 (§2.2)** — implement Bool identities in `reduce.ts`, update `isInvalidTaskTerm` to walk term, add `terms:no-bool-task` gate
+2. **Fix corpus generators** — `canonical-form.test.ts:36` and `nal7-temporal:141` need effective arity for `sequence` (binary) vs `parallel` (n-ary)
+3. **Procedural rules** — `proceduralChaining` / `operationToPredictive` expect `input1`/`input2` as product; tests must wrap or rules must unwrap
+4. **LOC budget** — `pnpm complexity:budget` passes; ratchet baseline in same commit (precedent: a2661c54)
+5. **T3 (§2.3)** — parens canonical, `<>` deprecated; mechanical sweep + gate `narsese:literals`
+6. **R1 (§3.1)** — `rule-table.history` retention row in `RESOURCE_CONTRACTS`
+
+### Invariant Checklist (per §7)
+
+- [x] NAL parity (re-run `test:unit` after each behavioural item)
+- [x] Determinism (`test:determinism` passes)
+- [x] Hermetic (`test:hermetic` passes)
+- [x] Epistemic firewall (no model→Truth outside gates)
+- [x] 13 TODO29.a gates green (verified)
+- [x] Rule set stable mid-cycle
+- [x] Bool atom cannot name Task (T2 will enforce)
+- [x] Absence is value (U1 refusal, U4 no-op, unbounded = declared)
+
+### Ordering (per §6)
+
+```
+U4  (lifecycle)           ── DONE
+U1  (fabricated answer)   ── DONE
+T1  (product arity)       ── DONE
+T2  (Bool identities)     ── NEXT (alone, with NAL parity re-run)
+T3  (parens)              ── after T2
+R1  (rule-table.history)  ── anytime
+U2  (relevance)           ── DONE (measured 1/133 at containment floor)
+U3  (candidate budget)    ── after U2
+R2/R3                     ── anytime; R2 needs API decision
+4.1–4.3                   ── independent
+5.1–5.9                   ── after U1+U2 landed & measured
+```
+
 **Constraint carried forward, and it is not negotiable:** optimization may change **how** committed
 state is indexed or retrieved; it may never change **what counts as** committed state.
 
@@ -676,6 +765,7 @@ worth.
 
 | measurement | value | taken at | reproduced by |
 |---|---|---|---|
+| **U2: relevance narrows 133 → 1** | §0.2's transcript at 10 cycles: 133 committed beliefs; `getRelevantBeliefs('(kitty-->mortal)')` returns **1** — the answer at relevance 1.000; at `minScore: 0` all 133 rank. A blended structure+vocabulary score kept **129**, which is why vocabulary is a rank and not a floor | this commit | `pnpm relevance:measured` |
 | **U1 fixed; the transcript reproduces** | 133 beliefs; `ask((kitty-->mortal).)` → `(kitty-->mortal)` conf **0.721**; `ask((dog-->mortal).)` → **refused**, conf 0, evidence 5; `ask((whale-->mortal).)` → **refused**, evidence 5; `ask((kitty-->?what).)` → `(kitty-->cat)` conf **0.779**, evidence 5 | this commit | `pnpm answer:no-fabrication` |
 | facts → beliefs → answer | **3 facts / 1 cycle → 8 beliefs, answer 1.00 · 3 cycles → 65 · 10 cycles → 133, answer 1.00 throughout** | `a2661c54` | `examples/` probe against `createNAR`, `maxConcepts: 100000` |
 | NAL transitivity is correct | `(kitty-->mortal)` derived at **f=0.74, c=0.94** from `cat→animal, kitty→cat, animal→mortal` | `a2661c54` | same probe |

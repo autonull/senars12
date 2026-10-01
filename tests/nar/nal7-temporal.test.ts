@@ -1,8 +1,11 @@
 import { describe, expect, test } from 'vitest';
 import { NALExtendedRules, TermBuilder } from '../../nar/src';
+import { clearTerms } from '../../nar/src/terms/impls/intern.js';
 
 describe('NAL7 Temporal Rules', () => {
   const { inheritance, sequence, parallel, predictive, atom } = TermBuilder;
+
+  beforeEach(() => clearTerms());
 
   describe('sequenceIntroduction', () => {
     test('creates sequence from two inheritances with same subject', () => {
@@ -131,14 +134,15 @@ describe('NAL7 Temporal Rules', () => {
       expect(pred.toString()).toBe('(bird=/>animal)');
     });
 
-    test('handles undefined input gracefully', () => {
-      const seq = sequence(undefined!, undefined!);
-      const par = parallel(undefined!, undefined!);
-      const pred = predictive(undefined!, undefined!);
+    test('empty n-ary operators fold to their empty form per reference', () => {
+      // Only n-ary operators (sequence, parallel, conjunction, disjunction, product)
+      // have defined empty forms. Binary operators like predictive/retrospective
+      // require 2 args and empty ones are malformed.
+      const seq = sequence();
+      const par = parallel();
 
       expect(seq.toString()).toBe('TRUE');
       expect(par.toString()).toBe('TRUE');
-      expect(pred.toString()).toBe('TRUE');
     });
   });
 });

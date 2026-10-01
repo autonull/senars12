@@ -65,6 +65,11 @@ const NARY_SEPARATORS: Partial<Record<OperatorKey, string>> = {
 const EMPTY_COMPOUND: Partial<Record<OperatorKey, string>> = {
   conjunction: 'TRUE',
   disjunction: 'FALSE',
+  product: '()',
+  sequence: 'TRUE',
+  parallel: 'TRUE',
+  predictive: 'TRUE',
+  retrospective: 'TRUE',
 };
 
 const serialize = (term: Term): string => {
@@ -76,7 +81,12 @@ const serialize = (term: Term): string => {
   if (NARY_OPS_SET.has(term.kind)) {
     const args = term.args ?? ([] as readonly Term[]);
     if (args.length === 0) return EMPTY_COMPOUND[term.kind as OperatorKey] ?? '';
-    if (args.length === 1) return serialize(args[0] as Term);
+    if (args.length === 1) {
+      // Product with 1 arg is a real term, not a fold: (a) not a
+      if (term.kind === 'product') return `(${serialize(args[0] as Term)})`;
+      // Disjunction and conjunction fold 1-arg to the arg
+      return serialize(args[0] as Term);
+    }
     const sep = NARY_SEPARATORS[term.kind as OperatorKey] ?? ARGUMENT_SEPARATOR;
     // `product`'s copula is the comma itself, so `(a,b,c)` already *is* its
     // prefix form and there is no second spelling to choose between.
@@ -101,7 +111,7 @@ const serialize = (term: Term): string => {
   if (UNARY_OPS.has(term.kind)) {
     const args = term.args ?? ([] as readonly Term[]);
     const [prefix, suffix] = WRAPPERS[term.kind] ?? ['', ''];
-    if (args.length === 0) return '';
+    if (args.length === 0) return `${prefix}${suffix}`;
     return args.length === 1
       ? `${prefix}${serialize(args[0] as Term)}${suffix}`
       : `${prefix}${serializeArgs(args)}${suffix}`;

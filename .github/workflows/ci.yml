@@ -53,6 +53,8 @@ jobs:
       - run: pnpm terms:canonical
       # TODO30 U1: ask() answers the asked term, a ground instance of it, or nothing.
       - run: pnpm answer:no-fabrication
+      # TODO30 U2: relevance ranks an unchanged store, and the narrowing is measured.
+      - run: pnpm relevance:measured
       # TODO20 A1: no export without a consumer (or PUBLIC_API declaration)
       - run: pnpm exports:audit
       # Every declared subpath resolves to a real file.

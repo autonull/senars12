@@ -43,8 +43,27 @@ describe('terms:canonical', () => {
 
   it('every operator kind is covered by the canonical corpus', () => {
     const kinds = Object.keys(OPERATORS);
+    // Only test arities that each kind actually supports
+    const arityForKind: Record<string, number[]> = {
+      negation: [1],
+      implication: [2],
+      equivalence: [2],
+      inheritance: [2],
+      similarity: [2],
+      predictive: [2],
+      retrospective: [2],
+      operation: [2],
+      sequence: [2],  // binary in SeNARS
+      // n-ary kinds
+      conjunction: [2, 3],
+      disjunction: [2, 3],
+      parallel: [2, 3],
+      product: [2, 3],
+      setExt: [1, 2],
+      setInt: [1, 2],
+    };
     const corpus = kinds.flatMap((kind) =>
-      [2, 3].map((n) =>
+      (arityForKind[kind] ?? [2, 3]).map((n) =>
         TermBuilder.compound(
           kind as keyof typeof OPERATORS,
           [TermBuilder.atom('a'), TermBuilder.atom('b'), TermBuilder.atom('c')].slice(0, n)
@@ -72,8 +91,14 @@ const kinds = () => Object.keys(OPERATORS) as (keyof typeof OPERATORS)[];
 
 const termsOf = (kind: keyof typeof OPERATORS): Term[] => {
   const members = [TermBuilder.atom('a'), TermBuilder.atom('b'), TermBuilder.atom('c')];
-  const { arity, nary } = OPERATORS[kind];
-  const out = [TermBuilder.compound(kind, members.slice(0, Math.max(arity, 1)))];
+  // Sequence is binary in SeNARS despite nary=true/arity=0 in OPERATORS
+  const isNary = (k: OperatorKey): boolean =>
+    k !== 'sequence' && OPERATORS[k].nary;
+  const effectiveDeclared = (k: OperatorKey): number =>
+    k === 'sequence' ? 2 : k === 'operation' ? 2 : k === 'negation' ? 1 : OPERATORS[k].arity;
+  const declared = effectiveDeclared(kind);
+  const nary = kind !== 'sequence' && OPERATORS[kind].nary;
+  const out = [TermBuilder.compound(kind, members.slice(0, declared))];
   if (nary)
     for (const n of [2, 3]) {
       out.push(TermBuilder.compound(kind, members.slice(0, n)));

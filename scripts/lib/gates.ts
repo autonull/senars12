@@ -79,6 +79,9 @@ export const GATES: readonly Gate[] = [
   // TODO30 U1: an answer is the asked term, a ground instance of it, or nothing —
   // never a neighbour that merely looks similar.
   script('answer:no-fabrication'),
+  // TODO30 U2: relevance is a read path, and how much of a 133-belief store
+  // actually bears on the question is a number rather than an opinion.
+  script('relevance:measured'),
   script('exports:audit'),
   script('exports:check'),
   script('exports:barrels'),
