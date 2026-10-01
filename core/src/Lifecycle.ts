@@ -53,9 +53,7 @@ export abstract class BaseComponent implements BaseComponentContract {
   }
 
   async stop(): Promise<void> {
-    if (this._state !== 'started') {
-      throw new Error(`Cannot stop component in state: ${this._state}`);
-    }
+    if (this._state !== 'started') return;
     this.setState('stopped');
   }
 

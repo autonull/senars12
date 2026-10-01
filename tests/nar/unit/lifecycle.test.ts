@@ -98,6 +98,33 @@ describe('BaseComponent', () => {
     expect(component.state).toBe('disposed');
   });
 
+  it('should treat stop on a never-started component as a no-op', async () => {
+    const component = new TestComponent();
+
+    await component.initialize();
+    await component.stop();
+    expect(component.state).toBe('initialized');
+  });
+
+  it('should treat a second stop as a no-op', async () => {
+    const component = new TestComponent();
+
+    await component.initialize();
+    await component.start();
+    await component.stop();
+    await component.stop();
+    expect(component.state).toBe('stopped');
+  });
+
+  it('should dispose a component that was never started', async () => {
+    const component = new TestComponent();
+
+    await component.initialize();
+    await component.dispose();
+    expect(component.state).toBe('disposed');
+    expect(component.stopCount).toBe(0);
+  });
+
   it('should handle double dispose gracefully', async () => {
     const component = new TestComponent();
 

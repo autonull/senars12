@@ -2,7 +2,7 @@
  * Pure-NAL symbolic fallbacks for LM rules: zero LM dependency, safe on any model.
  * A fallback returning null skips the rule (no symbolic equivalent); [] degrades silently.
  */
-import { fromNarsese, type Term, Truth } from '../../terms';
+import { fromNarsese, hasVariable, type Term, Truth } from '../../terms';
 import { createBudget, createTask, type Task, type TaskType } from '../../types';
 
 export type SymbolicFallback = (
@@ -45,7 +45,7 @@ export const curiosityQuestionFallback: SymbolicFallback = (primary) =>
   task(`(${primary} --> ?x)`, 'question', 0.5, 0.5);
 
 /** Whether a term still carries a variable — the one lexical question a fallback may ask. */
-export const hasVariable = (term: Term): boolean => /\?[0-9a-zA-Z_]/.test(term.toString());
+export { hasVariable };
 
 /** Causal stand-in: name the missing cause rather than inventing one. */
 export const causalFallback: SymbolicFallback = (primary) =>

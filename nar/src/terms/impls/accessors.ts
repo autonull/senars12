@@ -1,5 +1,5 @@
 import type { CompoundTerm, OperatorKey, Term } from '../types.js';
-import { isAtomic } from '../types.js';
+import { isAtomic, isVariableSymbol } from '../types.js';
 
 export const isType = <K extends OperatorKey>(k: K, t: Term): t is CompoundTerm<K> => t.kind === k;
 
@@ -122,6 +122,7 @@ interface TermFacts {
   subterms?: ReadonlySet<string>;
   /** `null` once computed and found absent — distinct from "not yet looked at". */
   pair?: BareInheritance | null;
+  variable?: boolean;
 }
 
 const factsCache = new WeakMap<Term, TermFacts>();
@@ -189,6 +190,18 @@ export const sharesSymbol = (a: Term, b: Term): boolean => {
 
 export const mentionsSymbol = (term: Term, symbol: string): boolean =>
   atomicSymbols(term).has(symbol);
+
+/** Whether any atom anywhere in the term is a variable — structural, not a spelling test. */
+export const hasVariable = (term: Term): boolean => {
+  const facts = factsOf(term);
+  if (facts.variable !== undefined) return facts.variable;
+  let found = false;
+  walkTerms(term, (t) => {
+    if (!found && isAtomic(t) && isVariableSymbol(t.symbol)) found = true;
+  });
+  facts.variable = found;
+  return found;
+};
 
 /** The two symbols of a bare `a --> b` pair. */
 export interface BareInheritance {

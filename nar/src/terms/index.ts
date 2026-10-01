@@ -10,6 +10,7 @@ export {
   getConsequent,
   getPredicate,
   getSubject,
+  hasVariable,
   isConjunction,
   isDisjunction,
   isEquivalence,

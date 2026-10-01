@@ -140,6 +140,8 @@
 
 - `getTermArgs`
 
+- `hasVariable` — Whether any atom anywhere in the term is a variable — structural, not a spelling test.
+
 - `isAtomic`
 
 - `isCompound`
@@ -942,8 +944,6 @@ _Dynamic subpath (no single entry file)._
 
 - `curiosityQuestionFallback` — NAL question generation: ask for the missing variable.
 
-- `hasVariable` — Whether a term still carries a variable — the one lexical question a fallback may ask.
-
 - `causalFallback` — Causal stand-in: name the missing cause rather than inventing one.
 
 - `elaborationFallback` — Elaboration stand-in: ask for the property the elaboration would have supplied.
@@ -1275,6 +1275,8 @@ _Dynamic subpath (no single entry file)._
 - `getPredicate`
 
 - `getSubject`
+
+- `hasVariable` — Whether any atom anywhere in the term is a variable — structural, not a spelling test.
 
 - `isConjunction`
 

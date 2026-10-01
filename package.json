@@ -60,6 +60,7 @@
     "rule:has-fallback": "tsx scripts/rule-fallback.ts",
     "gates:one-cycle-path": "tsx scripts/gates-one-cycle-path.ts",
     "terms:canonical": "tsx scripts/terms-canonical.ts",
+    "answer:no-fabrication": "tsx scripts/answer-no-fabrication.ts",
     "config:model-matrix": "vitest run tests/nar/todo29a-model-matrix.test.ts",
     "induction:inventory": "tsx scripts/induction-inventory.ts",
     "deps:direction": "tsx scripts/deps-direction.ts",

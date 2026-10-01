@@ -129,6 +129,7 @@ export {
   getSubject,
   getTermArg,
   getTermArgs,
+  hasVariable,
   isAtomic,
   isCompound,
   isConjunction,

@@ -1,7 +1,7 @@
 import { createLogger } from '@senars/util';
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
-import { Truth, termParser, termsEqual } from '../terms';
+import { hasVariable, Truth, termParser, termsEqual, unify } from '../terms';
 import type { Stamp, Task, TaskType, TermFilter, Timestamp } from '../types';
 import { createBudget, createTask, createTimestamp } from '../types';
 
@@ -76,19 +76,32 @@ export class QueryAPI {
       return { question: questionStr, confidence: 0, evidence: [] };
     }
 
-    const matchingConcept = this.findConceptByTerm(questionTerm);
-    if (matchingConcept) {
-      const answer = this.tryAnswer(questionTerm, matchingConcept, true);
+    // An answer is the asked term, or — when the asked term carries variables
+    // and therefore names none — a ground instance of it. Never a neighbour
+    // that merely looks similar: TODO30 §0.2 measured that answering a question
+    // the system cannot with one it can, at high confidence.
+    const exact = this.findConceptByTerm(questionTerm);
+    if (exact) {
+      const answer = this.tryAnswer(questionTerm, exact);
       if (answer) return answer;
     }
 
-    const relatedConcepts = this.memory.findSimilarConcepts(questionTerm, 5);
-    for (const related of relatedConcepts) {
-      const answer = this.tryAnswer(questionTerm, related, false);
-      if (answer) return answer;
-    }
+    const neighbours = this.memory.findSimilarConcepts(questionTerm, 5);
+    const adjacent = neighbours.flatMap((concept) => this.evidenceFor(concept));
+    const grounded = hasVariable(questionTerm)
+      ? neighbours.find((concept) => concept.beliefBag.peek()?.truth && unify(questionTerm, concept.term))
+      : undefined;
+    const belief = grounded?.beliefBag.peek();
 
-    return { question: questionStr, confidence: 0, evidence: [] };
+    return belief?.truth
+      ? {
+          question: questionStr,
+          answer: grounded?.term.toString(),
+          confidence: belief.truth.f * belief.truth.c,
+          evidence: adjacent,
+          derivationPath: this.extractDerivationPath(belief.stamp),
+        }
+      : { question: questionStr, confidence: 0, evidence: adjacent };
   }
 
   private findConceptByTerm(term: Term): Concept | undefined {
@@ -98,24 +111,25 @@ export class QueryAPI {
     return undefined;
   }
 
-  private tryAnswer(
-    question: Term,
-    concept: Concept | undefined,
-    isExactMatch: boolean
-  ): Answer | null {
-    if (!concept) return null;
+  private tryAnswer(question: Term, concept: Concept): Answer | null {
     const belief = concept.beliefBag.peek();
     if (!belief?.truth) return null;
     const confidence = belief.truth.f * belief.truth.c;
-    const minConfidence = isExactMatch ? 0.01 : 0.05;
-    if (confidence < minConfidence) return null;
+    if (confidence < 0.01) return null;
     return {
       question: question.toString(),
-      answer: concept.term.toString(),
+      answer: question.toString(),
       confidence,
       evidence: [this.createTaskFromBelief(concept.term, belief, concept.priority)],
       derivationPath: this.extractDerivationPath(belief.stamp),
     };
+  }
+
+  private evidenceFor(concept: Concept): Task[] {
+    const belief = concept.beliefBag.peek();
+    return belief?.truth
+      ? [this.createTaskFromBelief(concept.term, belief, concept.priority)]
+      : [];
   }
 
   private createTaskFromBelief(

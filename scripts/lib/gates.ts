@@ -76,6 +76,9 @@ export const GATES: readonly Gate[] = [
   // TODO29.a A12 step 1: the operator table, the grammar and the serialiser are
   // one surface form, and every kind survives the round trip.
   script('terms:canonical'),
+  // TODO30 U1: an answer is the asked term, a ground instance of it, or nothing —
+  // never a neighbour that merely looks similar.
+  script('answer:no-fabrication'),
   script('exports:audit'),
   script('exports:check'),
   script('exports:barrels'),

@@ -1,7 +1,7 @@
 # TODO30: Make it answer, and make the terms say one thing
 
-**Version:** 1.1 · **Status:** drafted 2026-10-01 after TODO29.a closed every item. **Nothing in §1–§4 is
-started.** One change is landed (§1.5) ·
+**Version:** 1.2 · **Status:** drafted 2026-10-01 after TODO29.a closed every item. **§1.4 and §1.1 are
+landed** (§8's `answer:no-fabrication` gate with them) ·
 **Predecessor:** `TODO29.a.md` (v3.16 — the architecture plan; it is complete, and this document is
 unblocked by it) · **Successor:** none yet.
 
@@ -34,9 +34,10 @@ out of is not a system yet.**
 > | | item | state |
 > |---|---|---|
 > | landed | §1.5 `maxTasks` → `Infinity`, with `ResourceContract.unbounded` so a declared absence is distinguishable from an accidental one | in the tree, gated |
-> | not started | §1.1–§1.4, §2.1–§2.4, §3.1–§3.3, §4.1–§4.3, §5.1–§5.9 | — |
+> | **landed** | §1.4 `stop()` on a never-started component is a no-op — a lifecycle that throws on a legal call sequence teaches every caller to avoid it | `core/src/Lifecycle.ts`, `tests/nar/unit/lifecycle.test.ts` |
+> | **landed** | §1.1 `ask()` answers the asked term, a **ground instance of it** when the asked term carries variables, or nothing — and hands adjacency back as `evidence` | `nar/src/query/api.ts`, gate `answer:no-fabrication`, `tests/nar/todo30-u1.test.ts` |
+> | not started | §1.2, §1.3, §2.1–§2.4, §3.1–§3.3, §4.1–§4.3, §5.1–§5.9 | — |
 > | **measured, unfixed** | the five `(a-->TRUE)`-shaped rows in §2.2 that are wrongly `VALID` today | §2.2's test table |
-> | **measured, unfixed** | `nar.stop()` throws on a never-started component (§1.4) | §1.4 |
 >
 > §1 and §2 are independent of each other and of §5. §3 is bookkeeping on the predecessor's debt and
 > can be done at any point. §4 is the thesis and needs no §1–§3.
@@ -172,6 +173,22 @@ it is a different claim entirely.
 - the existing exact-match and `findConceptByTerm` paths are unchanged, and `tests/nar/unit/diagnostic.test.ts`
   — which asserts `(dog-->animal)` resolves — still passes for the case where the dog *is* known.
 
+**Landed, with one addition the plan did not foresee.** A *variable* question — `(cat --> ?what)?`,
+which `nar.ask` is asked by `cognitive-agent.ts` and by `AgentV6` — has no single asked term, so
+"the answer is the asked term or absent" would have emptied it. The rule that generalises without
+emptying it: **an answer is the asked term, or a ground instance of it when the asked term carries
+variables, or absent.** The instance is found by `unify` against the same neighbours, so
+`(cat-->?what)` is answered `(cat-->animal)` because it *is* one, and never because it is similar.
+`hasVariable` moved out of `lm/rule-templates/fallbacks.ts` — where it was a regex over
+`term.toString()`, i.e. a spelling test — into `terms/impls/accessors.ts` as a structural walk over
+the cached term facts. That is the plan's own rule ("use `termKey` for every structural claim")
+applied to a predicate that had been lexical all along.
+
+Refusal carries adjacency: `ask((dog-->mortal).)` returns `confidence: 0`, no `answer`, and the
+five neighbouring beliefs as `evidence`. Gate `answer:no-fabrication` asserts the shape over a live
+transcript, and was flipped once — reinstating the fallback makes it fail on exactly the two
+fabricated rows of §0.2.
+
 **The test that must exist first, before any of the fix:** the §0.2 transcript, as a table, with the
 two fabricated rows as failures. A test suite that currently encodes a fabricated answer as a pass is
 the same defect as a gate that cannot fail.
@@ -238,6 +255,13 @@ disposes without starting pays it; every caller that does the obvious thing gets
 
 **Acceptance** — `stop()` twice is a no-op; `dispose()` without `start()` is a no-op; a NAR built,
 initialised, queried and disposed without ever started, in a test named for exactly that.
+
+**Landed.** `stop()` returns early unless the component is `started`; everything else is untouched,
+and the three lifecycle rows plus the NAR row live in `tests/nar/todo30-u1.test.ts` and
+`tests/nar/unit/lifecycle.test.ts`. **Note for the record:** the second `stop()` still *calls* the
+subclass's `stop()` override, so an override with a side effect runs twice — the no-op is on the
+state transition, which is what the acceptance asked for and not a claim about idempotence of
+arbitrary overrides.
 
 ### 1.5 U5 — Measure `maxTasks`, or leave it absent — **landed 2026-10-01**
 
@@ -652,6 +676,7 @@ worth.
 
 | measurement | value | taken at | reproduced by |
 |---|---|---|---|
+| **U1 fixed; the transcript reproduces** | 133 beliefs; `ask((kitty-->mortal).)` → `(kitty-->mortal)` conf **0.721**; `ask((dog-->mortal).)` → **refused**, conf 0, evidence 5; `ask((whale-->mortal).)` → **refused**, evidence 5; `ask((kitty-->?what).)` → `(kitty-->cat)` conf **0.779**, evidence 5 | this commit | `pnpm answer:no-fabrication` |
 | facts → beliefs → answer | **3 facts / 1 cycle → 8 beliefs, answer 1.00 · 3 cycles → 65 · 10 cycles → 133, answer 1.00 throughout** | `a2661c54` | `examples/` probe against `createNAR`, `maxConcepts: 100000` |
 | NAL transitivity is correct | `(kitty-->mortal)` derived at **f=0.74, c=0.94** from `cat→animal, kitty→cat, animal→mortal` | `a2661c54` | same probe |
 | **the query path fabricates** | `ask((dog-->mortal).)` → **answer `(animal-->mortal)`, confidence 0.871**; same for `(whale-->mortal).` | `a2661c54` | `nar.query.ask`, §1.1's failing test |
