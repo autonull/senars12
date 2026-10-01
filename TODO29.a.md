@@ -1388,7 +1388,7 @@ memory dedup agree for free instead of agreeing by luck on whichever producer no
 
 | reducer | level | decided | note |
 |---|---|---|---|
-| `flatten-nested` | term | **yes** — conjunction, disjunction, sequence only | never implication or equivalence: nesting there is meaningful |
+| `flatten-nested` | term | **yes** — conjunction, disjunction, **parallel**, product only | never implication, equivalence, instance or property: nesting or membership there is meaningful |
 | `dedupe-args` | term | **yes** | `(a & a) → a`; one arg collapses to itself, zero to `TRUE`/`FALSE` as today |
 | `sort-args` | term | already exists | the one reducer that needs no new code |
 | `double-negation` | term | **yes** | `--x → x` |
@@ -1396,6 +1396,24 @@ memory dedup agree for free instead of agreeing by luck on whichever producer no
 | `frequency-extremes` | task | **yes** | `--x. f=1 |- x. f=0` and its three siblings |
 | `constant-folding` | task | **open** | `TRUE. %1%` and `FALSE. %0%` are identities; whether they are rewritten or dropped is a policy question, and dropping a `c=0` task is a *policy*, not a normalisation — A8's territory, not this item's |
 | `absorption` | task | **open** | `(a & --a) → FALSE` is a truth-level identity, not a syntactic one, and needs the truth function to be named |
+
+**The reference reducer suite is in the tree.** `docs/java/TermReductionsTest.java` is OpenNARS'
+`TermReductionsTest`, committed deliberately (2026-09-30) as the catalogue this item is measured
+against. Read rather than copied, because half of it is about operators this tree does not have — and
+knowing which half is the design. What it contributes:
+
+| from the reference | adopt? | note |
+|---|---|---|
+| `InterCONJxt/ntReduction1–3` — associativity for `&&` and `\|\|`, multi-level | **yes** | this is `flatten-nested`; our commutative n-ary set is `conjunction`, `disjunction`, `parallel` **and `product`** — `product` was missing from the catalogue above |
+| `IntExtEqual` — `CONJ(p, p) == p` | **yes** | idempotence, `dedupe-args` |
+| `InterCONJntReduction_to_one` — a compound of one distinct member *is* that member | **yes** | `(&&,P)` must not exist; ours collapses to `TRUE` on *zero* args today, and the one-arg case is the other half of the same rule |
+| `Multireduction` — reduction applied repeatedly reaches one form | **yes** | the acceptance property below; it is a *fixpoint* requirement, not a single pass |
+| `embeddedSetDontFlatten` — `{{1,2},3}` does **not** flatten | **yes, as a boundary** | the nearest equivalent here is that a unary `instance`/`property` is never entered. Recorded because it is the test that says *where flattening stops*, and a reducer with no stated boundary has one by accident |
+| `ConjunctionParallelWithConjunctionParallel` — `(&&,a,b,c)` ≡ `((b&|c)&|a)`, members sorted into a canonical grouping | **open** | we have `parallel`, so the operator exists; the canonical grouping rule for it is not decided, and getting it wrong makes the form non-unique rather than wrong |
+| `DisjunctionReduction1/2` — `(x:a \| x:b \| …)` ≡ `(a-->x \| b-->x \| …)` | **open, deliberately deferred** | a rewrite *across* operator kinds. Our rule table matches on inheritance patterns (§4 row 8's census), so collapsing product form into inheritance form can change which rules fire — that is A6's dispatch question wearing a term-layer costume. Record, do not implement here |
+| `Difference*`, `DifferenceSorted`, `DiffEqual` — `-,` normalisation, `diff(p,p) → FALSE` | **not applicable** | there is no difference operator in `OPERATORS` (`nar/src/terms/operators.ts:5`). If one is added, it arrives with its own reducer and its own boundary conditions — not by extending this item |
+| `TemporalConjunction*`, `RepeatInverseEquivalent` — `&&+k` intervals, `(x &&-1 x) == (x &&+1 x)` | **not applicable** | same: temporal intervals are a term-kind this tree does not have, and their identities need interval arithmetic rather than canonicalisation |
+| `TemporalConjunctionReduction2`, `DisallowInhAndSim…` — `@Disabled` | **kept as-is** | upstream keeps a diagnosis next to the missing behaviour rather than deleting it, which is §10.1's rule applied by someone else first |
 
 **Acceptance**
 
