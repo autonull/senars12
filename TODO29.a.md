@@ -1,6 +1,6 @@
 # TODO29.a: Runtime Architecture — S/J/P over a closed core
 
-**Version:** 3.5 · **Status:** A0, A1, A12 step 1 and its `^name` retirement landed; **§0.8.4's n-ary statement gap is closed** — A2–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
+**Version:** 3.6 · **Status:** A0, A1, A2, A12 step 1, its `^name` retirement and §0.8.4's n-ary gap landed — A3–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
 unchanged as the measurement and provenance record; §0.4 maps its sections onto this one) ·
 **Successor:** `TODO30.md`, blocked on this.
 
@@ -15,9 +15,9 @@ lifecycle.
 > **A fresh session reads §0.1 (two minutes), then §1.2 and §1.3 (the two invariants everything else
 > follows from), then §5.12 (the item summary — one command, one gate, one risk per item).** §4 row 16
 > is the finding that makes A11 cheap instead of an invention, and §12's two kill criteria should be
-> checked *before* anything is built. Start at A5 and A4; they need no decisions and they unblock
-> everything else. **§0.8.4 is done (2026-10-01)** — it was the cheapest open item and needed no
-> decision. **The next item is A2**, then A5 → A4.
+> checked *before* anything is built. **A2 is done (§0.8.6), so the next item is A5 → A4** — they need
+> no decisions and they unblock everything else. §0.6 item 2 (A3's eight protocol decisions) is still
+> unanswered and is the one thing worth deciding before A3 is written.
 
 ---
 
@@ -30,7 +30,7 @@ lifecycle.
 | **What am I changing?** | Where model reasoning is reachable from, and therefore which parts of the core depend on it; who owns each cycle-path quantity; what a proposal is and when it may land; whether the rule set is data or code | §5 |
 | **What must result?** | A closed synchronous cycle over committed state, with S / J / P composed through one seam and one set of gates | §1, §2 |
 | **What must not change?** | NAL parity, determinism, `test:hermetic`, one inference path, the six packages, the epistemic firewall | §7 |
-| **How do I know it worked?** | Twelve new gates, each landing with its item and each shipped with a test proving it can fail | §10 |
+| **How do I know it worked?** | Twelve new gates, each landing with its item and each shipped with a test proving it can fail. Four have landed (`cycle:no-provider`, `induction:inventory`, `core:no-lm`, `terms:canonical`'s A12 form) | §10 |
 | **What belongs to TODO30 instead?** | Every data-structure choice, every cost target, `k`, the index shapes, the scaling gates | §11.2 |
 
 ### 0.2 Decided, and load-bearing
@@ -72,11 +72,11 @@ do is make four README promises structurally true rather than aspirational, and 
 | question | blocks | where |
 |---|---|---|
 | ~~The in-cycle induction inventory~~ — **answered and landed with A0**; the dispositions were A1's to revise and were | A1 | §0.8, §0.8.1 |
-| A3's eight protocol decisions — unit of work, trigger, overflow per proposal kind, denied-batch behaviour, staleness, evicted references, versioning, cancellation | A1's cost, A2's contract shape | §5.3 |
+| A3's eight protocol decisions — unit of work, trigger, overflow per proposal kind, denied-batch behaviour, staleness, evicted references, versioning, cancellation | **A3's implementation**, and nothing else: A1 shipped against an assumed queue and A2 against an assumed contract | §5.3, §5.14 |
 | The `J` placement order and budget across the eight candidate sites | nothing architectural; TODO30 §1 measures it | §2.5 |
 | Q3's hypothesis — which arm should beat which, by how much, on which games, and what would count as "the model does not earn its place" | the plan's only falsifiable claim | §11.1 |
 | Is the induction layer ever a seventh workspace package (answered for the *contracts*; the rest open) | nothing | §11.1 |
-| A census test asserting the core's shipped table is exactly the registered NAL rules | A2 | §11.1 |
+| ~~A census test asserting the core's shipped table is exactly the registered NAL rules~~ — **answered and landed with A2**; the count (55) is the committed part. Its *other* half — the table growing only through a proposal — is §4 row 14, and belongs to A10 | A10 | §11.1, §0.8.6 |
 
 ### 0.6 Next actions, in order
 
@@ -87,11 +87,14 @@ do is make four README promises structurally true rather than aspirational, and 
    them. A3's **implementation** lands after A2, once the queue's real behaviour is known (§6).
 3. ~~**A1**~~ — **done 2026-09-30.** The cycle stages model-backed work and pumps it off-cycle; every
    provider await carries a deadline; every model-backed rule declares and runs a symbolic body.
-4. **A2** — the dependency inversion, with the seam contracts in `@senars/core/schemas`. **A12 §5.12.1
-   came first** and is **done** (§0.8.2), **its `^name` remainder is done too** (§0.8.3), and **§0.8.4
-   is done**: a three-premise conjunction reads back, and *readable* is now a gated property beside
-   *injective*. **What is left of A12 is the reducers**, and they wait for A4's baselines (§5.12).
-5. **A5 → A4** — the mechanical split, then the one deliberate behaviour change.
+4. ~~**A2**~~ — **done 2026-10-01** (§0.8.6): the cycle path imports the layer zero times and
+   `core:no-lm` is the gate that says so. **Not done, and now the item's largest remainder:** the
+   seam contracts were *not* moved to `@senars/core/schemas` — §0.8.6 explains why the narrower
+   thing was done instead and what it costs.
+5. **A12** — **step 1 is done** (§0.8.2), **its `^name` retirement is done** (§0.8.3) and **§0.8.4 is
+   done**: a three-premise conjunction reads back, and *readable* is now a gated property beside
+   *injective*. **What is left is the reducers**, and they wait for A4's baselines (§5.12).
+6. **A5 → A4** — the mechanical split, then the one deliberate behaviour change.
 
 ### 0.7 What this plan is not
 
@@ -391,6 +394,146 @@ matches nothing and a filter that was removed look identical from the outside �
 - `meta-rules.buildOperationTerm` passes `arg.toString()` as an *argument value*, so `(focused-->x)` becomes the sanitised atom `_focused_x_` and is re-parsed as a string, never as a term. `operationTerm` should take terms for compound arguments, or the rule should build the operation directly. The arg is round-tripped as text today and the tool receives a mangled name.
 - `OPERATOR_PATTERN` in the firewall is now `/[\w-]\s*\(/`, which blocks any `f(...)` in LLM input. That is the intent, but it also blocks a *quoted* atom inside an otherwise legitimate statement. Cheap to narrow (require the call to start a term), not done.
 - The `^`-sigil form has no deprecation story now that it is a parse error: a persisted goal written by an older build will not read back. Nothing in the tree persists a goal term across versions today, and `termParser` failure is already loud, so this is a note rather than a migration.
+
+### 0.8.6 A2 is done (2026-10-01) — the cycle path reaches the layer through four capabilities and a gate
+
+The induction census now prints the sentence A2 existed to make true: **"Of the cycle path: 0 edges
+across 0 files — 0 values, 0 types."** Nine cycle-path imports went to zero, and the remaining 49
+value imports across 17 files are all assembly.
+
+| artefact | what it is |
+|---|---|
+| `rules/types.ts` | **`ModelRule`** — id, name, category, priority, `condition`, `hasSymbolicFallback`, `canApply`, `apply`, `getStats`, `setEventBus`, `enable`, `disable`. What the cycle needs of a model-backed rule, in core vocabulary. `ModelRuleWork` / `ModelRuleWorkSink` replace `LMRuleWork` / `LMRuleWorkSink` |
+| `ports/text-generator.ts` | **`TextGenerator`** — one method, `generateText(prompt, opts?)`. `LMService` satisfies it structurally; a caller cannot demand an argument the core has no vocabulary for |
+| `memory/embedding.ts` | **`EmbeddingRuntime`** + `EmbeddingRuntimeSource`. The embedder takes a source *function*; it no longer reads provider settings |
+| `lm/embedding-runtime.ts` | the only module that answers one. `nar.ts`, `facade/system-one.ts` and `src/bin/lib/lifecycle.ts` bind it |
+| `lm/correction.ts` | `attemptLMCorrection` moved here from `cognitive/impls/analyzers/`. It is a provider call under a layer-owned grammar, and it had no production caller |
+| `util/src/utils/json.ts` | `extractJsonObject` / `parseJsonObject`, moved out of `lm/json.ts` because they are pure. The zod half stayed, re-exporting these |
+| `scripts/lib/layer-boundary.ts` | the rule, once: what is on the cycle path, what resolves into the layer, and what the violation reads like |
+| `scripts/core-no-lm.ts` | **`pnpm core:no-lm`** — six kinds of import fail, no type-only exemption |
+| `tests/nar/todo29a-a2.test.ts` | 18 tests: each rule failing first, plus the census |
+
+**Five decisions this item did not pre-answer.**
+
+1. **`enableLMRules` is gone, and "no model rules" became "no provider".** The flag gated
+   *execution* while the layer was always constructed and registered — §4 row 13's finding, 33
+   inducer invocations per cycle *with the flag off*. A `NARConfig` boolean that reads as "no model
+   reasoning" and means "model reasoning that runs and answers nothing" is the exact defect §9 lists.
+   Three places had to answer for what it used to say:
+   - **`NARBuilder`'s `lmRules` capability now *requires* `withLM()`**, on the `BuilderError` path
+     `self` and tier-2 System One already took. A profile claiming model rules without a provider is
+     a profile that is wrong, not a build that quietly derives less.
+   - **The S/J/P matrix drives `P` with whether a provider is registered.** Which is what `P` was
+     standing for; the flag was a proxy for it.
+   - **The no-bypass contract asserted `config.enableLMRules === false`.** It now asserts the absence
+     it meant: no provider, and `getModelRuleStats()` empty.
+   `LMConfig.enableLMRules` in `cognitive-parameters.ts` and the deprecated shadow `NARConfig` in
+   `util` were both unread — deleted, not mirrored.
+2. **`TextGenerator` is one method, and that is the whole argument.** `LMService` has `getModel`,
+   `generateObject`, `stream`, routing and a usage ledger, none of which the cycle path wants and all
+   of which the core would then be typed against. Structural typing means the extra members cost
+   nothing and the *port* cannot grow them: adding `generateObject` to `TextGenerator` is a decision
+   someone has to defend.
+3. **The embedding runtime is injected as a *function*, not a value, and its absence is a
+   deliberate `provider: 'none'`.** Two reasons, and the second is the dangerous one. A function, so
+   a settings change between two embeddings is picked up without rebuilding the generator. And the
+   default must be *no provider*: `Memory` constructs an `EmbeddingLayer` by default, so a default of
+   `'transformers'` would make a bare `new Memory()` pull a second heavy runtime into the process —
+   which is exactly the failure §0.8.4's embedding note describes. The core now degrades honestly to
+   `MockEmbeddingGenerator` and `nar.ts` binds the real one.
+4. **The census is a test, not a script.** `RuleRegistry` is populated by a module side effect, so
+   an out-of-process scan could only see the table by importing it — at which point it is a test. It
+   asserts the registered set equals the declared set, that the count is **55**, and that every rule
+   declares a truth function and a priority. The count is the committed part: a rule arriving is a
+   decision, and a decision in an array literal is easy to miss and hard to argue about afterwards.
+   *A10 removes the side effect and this can move to a script.*
+5. **The registry slot keys stayed `lmRule` / `lm-rule`.** A2's blast radius said the strategy slots
+   change together with the README's five-category table, and it would have been ~40 more sites:
+   `cognitive-parameters.ts`, `CognitiveRegistry.SLOT_KEY`, `src/config/schema.ts`,
+   `senars.config.json`, the agent capability surface, `dialogue/impls/consumers/adapt.ts`, and the
+   README table. Those are *configuration* vocabulary about a model's rules — a user's word, in a
+   user's file — and renaming them buys no boundary. **The contract is `ModelRuleSelector`; the slot
+   a user configures is still `lmRule`.** Deliberately left, in this commit, with the reasoning.
+
+**What is not done, and it is the item's largest remainder.**
+
+- **The seam contracts did not move to `@senars/core/schemas`.** §5.2 named `@senars/core/schemas/proposal`
+  as the home for `Proposal` / `ProposalSource`. What landed instead is narrower and, I think, better
+  for the cycle: `ModelRule` and `ModelRuleSelector` in `nar/src/rules/types.ts` and
+  `nar/src/strategies/types.ts`, `TextGenerator` in `nar/src/ports/`. Three reasons.
+  **(a)** `Proposal` *already* has its contract, and it is in the core: `nar/src/stream/reasoner.ts`
+  owns `LMRequest` / `ProvisionalBelief` with the provisional-truth discipline, the declared overflow
+  policy, the deadlines and the two bounded ledgers — and §5.2 itself says "generalised **in place**
+  rather than duplicated … it does not get a second class." Moving it to `core/schemas` would have
+  been the second class, in a different package. **(b)** `core` is a *different* system (§11's
+  Agent / SessionManager / bridge), and a proposal is NAR vocabulary: `RuleInput`, `Stamp`, `Term`.
+  Importing it into `core` would force `core` to know the terms its own package does not have.
+  **(c)** Nothing was blocked: the gate is a scan of `nar`, and `core`'s own imports are already
+  `util` + its own schemas, checked by `deps:direction`.
+  **So the acceptance criterion is met in substance (no layer type appears in a core extension
+  contract) and not in letter (the contracts are in `nar`, not in `core/schemas`).** Recorded rather
+  than quietly dropped. If `core` ever grows a proposal consumer, revisit it.
+- **"Green with the layer's directory removed from the build graph" is met as *cycle-path structural
+  independence*, not as literal directory removal.** `nar/src/index.ts` re-exports `createLMService`,
+  `LMRule` and the System One surface, and `src/bin/**` imports those by subpath. Deleting
+  `nar/src/lm/` would therefore break the *assembly* — which is the correct shape, and is also why
+  the honest claim is the narrower one. What is proven: a cycle-path module cannot reach the layer
+  (gated), and a NAR with no `lmService` reasons green (NAL suites, `test:unit`, `test:hermetic`,
+  `test:determinism`).
+- **"No provider implementation can reach private core state" is not asserted.** Half of it is
+  structural — a provider receives `ModelRule`-shaped data and a `GateRegistry`, never a closure over
+  NAR internals — but `facade/system-one.ts` hands the layer a live NAR, and asserting the *absence*
+  of private reach needs a boundary definition the plan has not written. Left for A11, which owns
+  `DecisionPort` and where the question is unavoidable.
+- **The census's "grows only through a proposal" half is A10's.** The table is still registered by an
+  import side effect, so nothing today could assert it.
+
+**Three findings the item produced, none of them in §4.**
+
+1. **The registry key and the contract type are different vocabularies and I conflated them for a
+   while.** `LMRuleSelector` was both a TypeScript interface in `nar/src/strategies/types.ts` and,
+   two directories over, the string `'lm-rule'` that `CognitiveRegistry` keys its slot map on. Only
+   the first was a cycle-path/layer coupling. Renaming the second would have been 40 sites of pure
+   churn against a user's config file. **A type and a configuration key that share a name are two
+   things, and only one of them is a boundary.**
+2. **Removing a flag is a distributed edit, and three of the five sites were the interesting ones.**
+   The mechanical ones are the call sites. The interesting ones are where the flag had become *the
+   mechanism* for something: the builder capability, the matrix axis, and the contract test. None of
+   them reads as "delete a boolean" once you ask what the boolean was standing in for. **For the
+   second one of those — `ModelRule` needed `category` and `condition` added** — the compiler found
+   two dependencies the port had been hiding: `DiverseSelector` buckets on `rule.category` and
+   `RuleGraph` matches on `rule.condition`. A contract declared from the call sites you can see is
+   declared from the wrong side; these two were only reachable from the implementations.
+3. **`ModelRuleStats` was already in `@senars/util`, and `LMRuleConfig` still is** — a config type for
+   the layer's rule class, living in the bottom package. The rename to `ModelRuleStats` was free and
+   correct; `LMRuleConfig` is the same problem one level over and is untouched. **Two types with the
+   same name and opposite owners is the shape that produced §4 row 9.**
+
+**Improvement opportunities A2 exposed, none of them blocking.**
+
+- **`nar/package.json` needed an export for each new module and lost one** (the `corrections`
+  subpath, whose only consumer was a bench script). Export subpaths 89 → 88, but the churn is a
+  signal: `nar/src/lm/` is a *directory with no barrel contract*, and every module inside it that
+  assembly needs is a manifest entry. `exports:barrels` passes and did not catch it, because the
+  question it asks is "does every directory have a barrel", not "is a barrel reachable".
+- **`IN_CYCLE_EDGE_ATTRIBUTIONS` is now an empty array with a long comment.** That is the correct
+  state and a bad shape: an empty constant plus prose is a comment with a type. The rule it feeds
+  (`unattributed-cycle-import`) is the part that matters and is what should have been kept. If a
+  future cycle-path edge appears, the gate fails — which is the test.
+- **`nar/src/index.ts` is the reason acceptance 2 could not be met literally**, and it is also the
+  reason `@senars/nar/lm` is imported by subpath in eleven places across `src/bin/`. A layer
+  subpath export per module is a wide public surface for a directory that is meant to be *beyond*
+  the core. Worth one pass when A10 lands and the layer's public shape is meant anyway.
+- **The four new capability types are exported from four different modules** (`rules/types`,
+  `strategies/types`, `ports/`, `memory/embedding`) and none from one place a reader would look.
+  `@senars/nar/ports` is a plausible home for all four; it was not done because `ModelRule` and
+  `ModelRuleSelector` sit next to the types they constrain, and moving them would have traded
+  locality for tidiness.
+- **`scripts/lib/layer-boundary.ts` reads the inventory's `CYCLE_PATH_PREFIXES` and
+  `induction-inventory.ts` reads the same file's `IN_CYCLE_EDGE_ATTRIBUTIONS`.** One list, two
+  readers, no duplication — but the dependency runs *from the gate into the layer it polices*, which
+  is correct (the ledger is data) and slightly unnerving.
+
 
 ---
 
@@ -913,8 +1056,8 @@ empty owner means the finding has no gate, and a finding with no gate is a findi
 | 9 | **the seam exists, is bounded and gated, and has no caller.** `StreamReasoner` is committed, exported and tested; its only caller in the repository is a test. Meanwhile the cycle reaches the model by a different route — `processLMRules`, called synchronously, 33× per cycle | `stream/reasoner.ts`; `strategies/derivation/DefaultDerivation.ts:26,30`; `nar-execution.ts:234` `step(5000, …)` | **A1** |
 | 10 | the seam spends against the **process-global** `gateRegistry`, not the per-instance one `createGateRegistry()` exists to provide, so two NARs in one process share an LM budget | `stream/reasoner.ts:2,80`; `kernel/GateRegistry.ts:117,120` | **A1** |
 | 11 | a **present-but-hung** `J` at ingress is awaited with no timeout. Absence and throw are both handled correctly (absent ⇒ unjudged path; throw ⇒ fail closed, D1) | `kernel/KernelPerceptionGate.ts:72-73,117-118,154` | **A1** |
-| 12 | the core's *strategy extension contract* is typed in terms of the induction layer's rule type, in **39** files | `strategies/types.ts:1,71` | **A2** |
-| 13 | optionality is not operational: `enableLMRules: false` still constructs and registers the layer — 33 invocations per cycle with the flag off | `nar.ts:762,823,837`; `facade/index.ts:98` | **A2** |
+| 12 | the core's *strategy extension contract* is typed in terms of the induction layer's rule type, in **39** files | `strategies/types.ts:1,71` | **A2** — **fixed 2026-10-01.** Nine cycle-path imports, not 39: the other 30 were assembly. `ModelRule`, `ModelRuleSelector`, `TextGenerator`, `EmbeddingRuntime`; census reads zero (§0.8.6) |
+| 13 | optionality is not operational: `enableLMRules: false` still constructs and registers the layer — 33 invocations per cycle with the flag off | `nar.ts:762,823,837`; `facade/index.ts:98` | **A2** — **fixed 2026-10-01.** The flag is deleted; no provider means no model rules, and there is no third state to misread (§0.8.6 decision 1) |
 | 14 | the rule set is a **module-global mutated by an import**, so it cannot be loaded, versioned, swapped or reverted, and a well-formed rule proposal has no path to becoming a rule | `rules/impls/registration.ts`; `rules/impls/rule-registry.ts` | **A10** |
 | 15 | the growth arithmetic: quadratic admission via `neighborsOf`, a linear-shift `TermCollection`, a full-map victim scan, a bounded-buffer `selectTopN` | `memory.ts:308-314`; `terms/impls/term-collection.ts:57-65`; `util/src/utils/bounded-map.ts:210-216` | **TODO30 §4, §7** |
 | 16 | **the decision layer is wired to the agent side, not the reasoning side.** A complete typed/calibrated layer — `classify`/`evaluate`/`synthesize`, `CognitiveAxis`, `abstainReason`, isotonic calibrators with a digest-pinned lock, `ConfidenceRouter`, `judgeCascade` — is attached to a **`GameFocus`**, while the reasoning cycle reaches a model only via the ingress judge and `processLMRules` | `facade/system-one.ts:337`; `nar.ts:571`; `types.ts:63-141` | **A11** |
@@ -1033,32 +1176,50 @@ and you cannot have a core-owned seam interface while the core imports the layer
   optional component must not shape a required one. It becomes plugin configuration, validated where
   the plugin is assembled.
 
-**Blast radius**, because finding it by `typecheck` wastes a day:
+**Blast radius**, because finding it by `typecheck` wastes a day. The last column is **what actually
+happened** (2026-10-01, §0.8.6); a plan that marks its own rows unverified is a plan whose next
+reader redoes the work.
 
-| surface | where | consequence |
-|---|---|---|
-| `NARConfig.enableLMRules` | `facade/config.ts`, README config block, `docs/api/nar.md` | removed, docs regenerated |
-| the `lm` config category | `config/cognitive-parameters.ts` | moves out of `CognitiveParameters` into plugin config |
-| the four presets | `DEFAULT_` / `FAST_` / `LM_HEAVY_` / `RESEARCH_COGNITIVE_CONFIG` | `FAST_COGNITIVE_CONFIG` and `LM_HEAVY_CONFIG` exist *because of* the layer; they leave or narrow |
-| the strategy slots | `cognitive/registrations.ts` + README's five-category table | `LMRuleSelector` ceases to be a cycle strategy; registry and README table change together |
-| the export index | README's "Complete API Export" block | `LMRule`, `LMRuleFactory`, `lmCommands` move to the plugin side |
+| surface | where | planned | landed |
+|---|---|---|---|
+| `NARConfig.enableLMRules` | `facade/config.ts`, README config block, `docs/api/nar.md` | removed, docs regenerated | **done** — plus `LMConfig.enableLMRules` and the deprecated shadow in `util/src/types/nar.ts`, both unread |
+| the `lm` config category | `config/cognitive-parameters.ts` | moves out of `CognitiveParameters` into plugin config | **not done.** Only the dead `enableLMRules` went. `callTimeoutMs` and the rest stay, and `LM_HEAVY_` / `FAST_` presets are untouched — the config is the layer's *own* vocabulary, not a core contract, so nothing about the boundary required moving it |
+| the four presets | `DEFAULT_` / `FAST_` / `LM_HEAVY_` / `RESEARCH_COGNITIVE_CONFIG` | `FAST_COGNITIVE_CONFIG` and `LM_HEAVY_CONFIG` leave or narrow | **not done**, deliberately — see the row above. Narrowing a preset changes behaviour and buys no boundary; it is TODO30's question about what an LM-free configuration should cost |
+| the strategy slots | `cognitive/registrations.ts` + README's five-category table | `LMRuleSelector` ceases to be a cycle strategy; registry and README table change together | **half done, deliberately.** The *contract* is `ModelRuleSelector` and selection is documented as a proposal-time concern. The *keys* stay `lmRule` / `'lm-rule'`: ~40 sites across `cognitive-parameters.ts`, `CognitiveRegistry`, `src/config/schema.ts`, `senars.config.json`, the agent surface and `dialogue/…/adapt.ts`, all of them a user's configuration word. §0.8.6 decision 5 |
+| the export index | README's "Complete API Export" block | `LMRule`, `LMRuleFactory`, `lmCommands` move to the plugin side | **not done**, and it is the reason acceptance 2 could not be met literally. `LMRule` and `LMRules` are still core-exported — *usable* is not *reachable from the cycle*, which is the distinction §0.8.6 leans on |
+| the seam contracts | `@senars/core/schemas/proposal` | declared there, dependency floor `util` | **not done, with three reasons** (§0.8.6 "What is not done"). `nar/src/stream/reasoner.ts` already holds the proposal contract, and §5.2's own bullet says generalise it *in place* |
 
 **Acceptance**
 
-1. `deps:gate` gains a row: `nar` core may not import `nar/src/lm/`. One line in a ledger, and it is
-   the only enforcement a well-meaning import cannot cross.
-1a. The seam contracts are in `@senars/core/schemas`, and `core`'s import list still contains only
-   `util` and its own schemas.
+1. `deps:gate` gains a row: `nar` core may not import `nar/src/lm/`. **Done, and in
+   `deps:direction` instead** — `deps:gate` counts cycles and compares a number, and a layering rule
+   is not a number. `core:no-lm` is the standalone gate; both call `scripts/lib/layer-boundary.ts`.
+   **DONE 2026-10-01.**
+1a. The seam contracts are in `@senars/core/schemas`. **NOT DONE, with reasons** (§0.8.6). The
+   *substance* — no layer-typed value in a core extension contract — is met: `ModelRule`,
+   `ModelRuleSelector`, `TextGenerator`, `EmbeddingRuntime`, all in `nar`. The *letter* is not.
+   `core`'s import list does still contain only `util` and its own schemas.
 2. A no-provider NAR reasons, green with the layer's directory removed from the build graph.
+   **PARTIAL.** A no-provider NAR reasons and every suite is green. Literal directory removal is not
+   claimed: `nar/src/index.ts` re-exports the layer for assembly, so deleting it breaks `src/bin/**`
+   — the correct shape, and a narrower claim than the criterion. What *is* gated is the thing that
+   matters: a cycle-path module cannot reach the layer at all.
 3. NAL parity green with no producer registered, and a census asserts the core's shipped table is
-   exactly the registered NAL rules and grows only through a proposal.
-4. `enableLMRules` is gone — replaced by absence, because a flag on an always-constructed component
-   is a comment.
+   exactly the registered NAL rules and grows only through a proposal. **HALF DONE.** Parity green;
+   the census is in `tests/nar/todo29a-a2.test.ts` (registered set == declared set, count 55, every
+   rule declares a truth function and a priority). "Grows only through a proposal" is A10's half —
+   the table is still an import side effect.
+4. `enableLMRules` is gone — replaced by absence. **DONE 2026-10-01.**
 5. No provider implementation can reach private core state, and no layer-typed value appears in a
-   core extension contract.
-6. `README.md`, `docs/api/nar.md` and the export index no longer advertise `enableLMRules` or an `lm`
-   config block; `pnpm docs:drift` is green. Every blast-radius row is either changed or consciously
-   left, in the same commit.
+   core extension contract. **HALF DONE.** The second clause is done and gated. The first is not
+   asserted: it needs a definition of the boundary that the plan has not written, and it is A11's
+   to write (`DecisionPort`).
+6. `README.md`, `docs/api/nar.md` and the export index no longer advertise `enableLMRules`…
+   **DONE for `enableLMRules`** — README, `docs/api/nar.md`, `docs/tech/cognitive-grounding.md`,
+   `docs/tech/rl-parity.md`, `src/config/defaults.ts`, seven scripts and 33 test files.
+   `pnpm docs:drift` green. **Not done: the `lm` config block**, which was never advertised in the
+   README to begin with; what it *does* still advertise is the layer's own vocabulary, which is
+   correct. Every blast-radius row above is changed or consciously left, in this commit.
 
 
 **Settled: no seventh package, for the contracts.** Moving `Proposal` / `ProposalSource` to
@@ -1066,6 +1227,17 @@ and you cannot have a core-owned seam interface while the core imports the layer
 directory. A seventh package would additionally force everything the layer *reads* — concepts,
 memory statistics, derivation chains — to become public API, a much larger change to a much larger
 surface. §11.1 keeps the question open for the day the layer needs to be genuinely un-buildable.
+
+**Correction to the paragraph above, after building it (2026-10-01).** The claim that moving the
+contracts to `core/schemas` "makes the boundary structural" turned out to be the wrong claim for the
+wrong reason. `Proposal` already has its contract, in `nar/src/stream/reasoner.ts`, and §5.2's own
+second bullet says to generalise it **in place** rather than duplicate it. So the two bullets above
+contradicted each other: the first says *move it out*, the second says *do not give it a second
+class*. What actually made the boundary structural was neither — it was **the core naming a
+capability** (`ModelRule`, `TextGenerator`, `EmbeddingRuntime`) and **a gate over the cycle path**.
+Moving a type between packages is not what stops a well-meaning import; a gate is. The seven-package
+question is now sharper and smaller: it is only worth asking if the layer must become *un-buildable*,
+and nothing so far asks for that.
 
 ### 5.3 A3 — Specify the proposal lifecycle
 
@@ -1748,7 +1920,7 @@ Every acceptance criterion above is demonstrated by a command and a gate. Gates 
 |---|---|---|---|
 | **A0** | `pnpm run cycle:no-provider && pnpm run induction:inventory && pnpm bench:cycle -- --selftest && pnpm test:hermetic` — **done 2026-09-30** | `cycle:no-provider`, `induction:inventory` (both landed in their A0 form; shared with A1) | **none** — pure instrumentation; no reasoning path touched |
 | **A1** | `pnpm run cycle:no-provider && pnpm run rule:has-fallback && pnpm run gates:one-cycle-path && pnpm run config:model-matrix`, `pnpm test:determinism`, NAL suites — **done 2026-09-30** | `cycle:no-provider`, `rule:has-fallback`, `config:model-matrix`, `gates:one-cycle-path`, `induction:inventory` | **medium** — the only item that changes reasoning behaviour: not the derivations, but the *timing* of when rules exist, which changes the sequence over a fixed episode |
-| **A2** | `pnpm run core:no-lm`, `pnpm run deps:gate`, `pnpm run docs:drift` | `core:no-lm`, `deps:gate` +1 row | **medium-high** — a large mechanical diff (39 files). The price of a boundary that cannot be crossed by accident, and it is mechanical: reviewable by the compiler |
+| **A2** | `pnpm run core:no-lm && pnpm run deps:direction && pnpm run docs:drift` — **done 2026-10-01** | `core:no-lm`, plus the same row inside `deps:direction` | **medium-high** — 51 files. The price of a boundary that cannot be crossed by accident, and it is mechanical: reviewable by the compiler |
 | **A3** | `pnpm test:unit` (new seam tests), `pnpm run core:no-provider` | — (gates land with A1/A9/A10) | **low** — the one item the plan expands rather than contracts |
 | **A4** | `pnpm test:unit` + a diff on the committed baseline file | `attention:write-surface` | **high, and confined to this item.** Every learned value moves: why it is alone, why it lands after A5, and why the baselines are regenerated here rather than left to drift through A6–A8 |
 | **A5** | `pnpm test:unit` — parity is the only gate, because this changes nothing | — | **low** — mechanical, and the boundary is already implied by `MemoryView` |
@@ -1803,6 +1975,10 @@ A0 ─▶ A1 ─▶ A2 ─▶ A3 ─▶ A5 ─▶ A4 ─┬─▶ A6 ─▶ A10 
                     A9 (after A3, parallel thereafter)
                     A12 §5.12.1 (grammar alignment) → A12 reducers, after A4's baselines
 ```
+
+**As of 2026-10-01: A0, A1 and A2 are done** (§0.8, §0.8.1, §0.8.6). A3's eight protocol
+*decisions* are the next unanswered thing in the queue and nothing else blocks on them; A3's
+*implementation* still waits for A5 → A4, since it registers through the dispatch port A6 owns.
 
 **The ordering rule: structural before behavioural.** A5, A2 and A6 are mechanical — they move code
 and change no derived value. A1, A4 and A8 change what the system concludes or how fast it forgets.
@@ -1981,8 +2157,8 @@ gate listed here and not wired is the exact failure mode this plan is about.
 | `config:model-matrix` | all four S/J/P configurations initialise, reason and pass NAL parity; a hung `J` is rejected on a timeout rather than awaited; every model call site is in the manifest with its profile, budget and position | A1, A11 | `gate` |
 | `gates:one-cycle-path` | exactly one `InferenceController` construction site and one `.step(` call site | A1 | `gate` |
 | `induction:inventory` | **A0 form (landed):** every cycle-path value import of the layer is a declared behaviour with a `boundary` / `synchronous` / `dropped` disposition and a *noticedBy*, and every declared `file:line` still holds its await. **A1 adds:** no disposition of `synchronous` claims a cycle-path dependence A1 has closed | A0 + A1 | `gate` |
-| `core:no-lm` | NAL suites plus a reasoning episode with **zero** producers, with the layer removed from the build graph; a census asserts the shipped table is exactly the registered NAL rules | A2 | `gate` |
-| `deps:gate` +1 row | `nar` core may not import the layer's directory; `core` imports only `util` and its own schemas | A2 | `gate` |
+| `core:no-lm` | **landed 2026-10-01, in a narrower form than stated:** no cycle-path module imports `nar/src/lm/` — relative, workspace-subpath, static, dynamic, value or type — and the shipped rule table is exactly the registered NAL rules (55, census in `tests/nar/todo29a-a2.test.ts`). **Not asserted:** literal removal of the layer directory from the build graph, since `nar/src/index.ts` re-exports it for assembly, which is the correct shape. See §0.8.6 | A2 | `gate` |
+| `deps:gate` +1 row | **landed, in `deps:direction` rather than `deps:gate`.** `deps:gate` counts cycles and compares a number; a layering rule is not a number, and `deps:direction` is already the gate that reads manifests and reports named violations. Both gates call one implementation (`scripts/lib/layer-boundary.ts`), so the rule has one body and two places it can be caught. `core` imports only `util` and its own schemas — already true and already checked | A2 | `gate` |
 | `attention:write-surface` | every `Concept.priority` write is inside the attention owner's module; a new one fails | A4 | `gate` |
 | `dispatch:no-wildcard` | no registered rule sits under a wildcard bucket | A6 | `gate` |
 | `resource:policy` | every production accumulator is in the ledger, and a memory at capacity with nothing evictable says so | A8 | `gate` |
