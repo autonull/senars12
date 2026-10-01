@@ -1,6 +1,6 @@
 # TODO29.a: Runtime Architecture — S/J/P over a closed core
 
-**Version:** 3.2 · **Status:** A0 and A1 landed 2026-09-30; A2–A12 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
+**Version:** 3.3 · **Status:** A0, A1 and A12 step 1 landed 2026-09-30; A2–A11 and A12's reducers not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
 unchanged as the measurement and provenance record; §0.4 maps its sections onto this one) ·
 **Successor:** `TODO30.md`, blocked on this.
 
@@ -86,10 +86,11 @@ do is make four README promises structurally true rather than aspirational, and 
    them. A3's **implementation** lands after A2, once the queue's real behaviour is known (§6).
 3. ~~**A1**~~ — **done 2026-09-30.** The cycle stages model-backed work and pumps it off-cycle; every
    provider await carries a deadline; every model-backed rule declares and runs a symbolic body.
-4. **A2** — the dependency inversion, with the seam contracts in `@senars/core/schemas`. **Or A12 §5.12.1
-   first** — the operator/grammar alignment — which needs no prior item and unblocks every canonical-form
-   work: six kinds do not round-trip today, and the round-trip property test cannot see it because its
-   generator lists the five that work. Correctness, not measurement, so it is not waiting on A4.
+4. **A2** — the dependency inversion, with the seam contracts in `@senars/core/schemas`. **A12 §5.12.1
+   came first** and is **done** (§0.8.2): the operator table, the grammar and the serialiser are one
+   surface form, `pnpm terms:canonical` gates it, and no canonical-form work can be written against a
+   grammar that cannot read its own output. **Then the `^name` retirement** (§0.8.3), which is the
+   remainder of step 1 and is a behaviour change in goal recognition, not a grammar change.
 5. **A5 → A4** — the mechanical split, then the one deliberate behaviour change.
 
 ### 0.7 What this plan is not
@@ -212,6 +213,56 @@ has meant four files for several passes, and A12's gate has to say which four.
   `lm-rule-derivation` moves from `synchronous` to `boundary`, and the gate will fail until it does
   not, because the attribution's file no longer imports the layer. That is the gate working.
 
+
+### 0.8.2 A12 step 1 is done (2026-09-30) — `7cef8635`
+
+The operator table, the grammar and the serialiser are one surface form, every
+kind round-trips, and the round-trip generator is derived rather than written
+down. §4 rows 19–21 are what it cost.
+
+| artefact | what it is |
+|---|---|
+| `nar/src/terms/operators.ts` | `OPERATORS[k].symbol` is **the Narsese spelling** — `==>`, `&|`, `=/>`, `=|`, `&/`, `{`, `[`, `,`, `^` — and the kinds named `instance`/`property` are `setExt`/`setInt`, the names Narsese and the grammar already used |
+| `nar/src/terms/narsese.peggy` | one token list (`OperatorToken`) behind both syntactic positions; `INFIX_KINDS` holds canonical spellings only and `LEGACY_KINDS` the older ones (`&&`, `||`, `=>`, `,/`), and an unmapped operator is a **parse error** rather than a kind |
+| `nar/src/terms/impls/serialize.ts` | derives every spelling from `OPERATORS`; **dense** — `(a-->b)`, `(a&b)`, `(a,b)`, `(a&/b)` — and always parenthesises an operation's arguments |
+| `nar/src/terms/impls/factory.ts` | `tuple` is gone: the comma copula is `product`, and the grammar splats it. A one-member variadic compound **is** its member |
+| `scripts/terms-canonical.ts`, `pnpm terms:canonical` | the gate: every kind round-trips, the grammar names no kind the table lacks, every table symbol is in the token list — wired into `pnpm gates` and `ci.yml` |
+| `tests/nar/property/narsese-roundtrip.test.ts` | one arbitrary per `OPERATORS` kind, plus the grammar-agreement property |
+
+**Five decisions this step did not pre-answer.**
+
+1. **Canonical Narsese is dense.** `(a-->b)`, `(a&b)`, `(a,b)`, `(a&/b)`, `(f^(x))` — for bytes, as §5.12.1 said, and this is the commit that spends them.
+2. **An operation is an operator atom and its arguments as a product**: `f^(x)` is one argument, `f^(x,y)` and `f^(x,y,z)` are several. `operation` stays a **binary** kind whose right side is the product, so `procedural.ts` and nal8 keep `args[0]`/`args[1]` and no one-member product is ever built.
+3. **`f(x,y)` and the legacy `^f(x,y)` parse to that term and are never written** — accepted-and-never-emitted, which is the same tie-break §5.12 uses for negation's two spellings.
+4. **`^` is an operation sigil, not an atom character.** Without that, `(a^b)` read as one atom named `a^b`; without a `OperationAtom` rule, `^move_north` stopped being an atom at all. Both exist, and the gate catches either regression.
+5. **A one-member variadic compound is its member**, which is the Java reference's `InterCONJxt_to_one` generalised. This is the first §5.12 reducer to land: it is not optional, because `(a)` parsed to a one-argument `product` that printed as `a`, and the round trip then produced a different term.
+
+**Two things step 1 found that are not §4 rows 20–21.**
+
+- **A canonical form is now injective, so `toString` is an identity.** `tests/nar/unit/term-identity.test.ts` used to record the opposite — three structures printing alike, held apart only by `termKey` — and rule 5 removes the collision. The test was rewritten to the stronger property: no two distinct terms print alike. **That is worth stating as a §7 invariant**, because every persisted key built from a printed form depends on it.
+- **`docs/java/Op.java` settles nothing about operations.** There is no `OPERATOR` and no `^` in `NarseseParser`; the reference's `buildCompound` default arm is `op(op).the(x)`, an operator built from its token. So `^op(…)` was always a SeNARS-local convention and the spelling question was ours to answer, not inherited.
+
+**Improvement opportunities, none blocking.**
+
+- The grammar's token list is still hand-written, and the gate checks agreement rather than generating it. Peggy can take a `--dependency`, which would let the initialiser import `OPERATORS` and make the token list derived — **not done**: peggy's initialiser counts braces naively, so the `{` and `[` wrapper symbols cannot appear in it at all, which is why `LEGACY_KINDS` and `INFIX_KINDS` are checked rather than shared.
+- ~460 test literals moved to dense form in one sweep, rewritten by a script that only substituted where the parser proved both spellings equal. **The script was deleted** rather than committed; the gate covers the property it was checking, and a second copy of the densifier is a second source of truth about the canonical form.
+- `nar/src/drives/impls/DriveManager.ts` and `bootstrap.ts` build Narsese by hand, so two of them still had padded spellings after the sweep. **Any remaining hand-built Narsese in `src/` is a place the dense form has to be remembered by hand**, and the round-trip gate only sees what goes through a term.
+
+### 0.8.3 The next step, and it is the `^name` retirement
+
+`^tool(a,b)` still decodes to `Inheritance(Product(args), Atom('^tool'))` while `(f^(x,y))` decodes to an `operation` — **two spellings, two terms, for one idea**. §5.12.1's decision 3 accepted `^f(x,y)` on input but did not retire it, because retiring it is not a grammar change and it changes *which goals the system recognises*.
+
+The work, and why it is its own commit:
+
+| site | what changes |
+|---|---|
+| `terms/impls/operation-term.ts` | `operationTerm` builds an `operation`; `readOperationTerm` reads one. The `OPERATION_MARK` and the `^name` atom go away |
+| `nar-execution.ts:507` | `isOperationGoal` tests `kind === 'operation'` and `args[0]`, not a predicate atom's sigil |
+| `nar/src/focus/Focus.ts:293` | same, for the agent-side arm reader |
+| `rules/impls/meta-rules.ts` | six rule strings carry `(^select_strategy($s))`-shaped goals; they parse unchanged under the legacy arm, so this is a read-through, not a rewrite |
+| `tick/bindings.ts`, `tools/impls/goal.ts`, `gates/tasks.ts` | callers; `gates/tasks.actionTerm` already builds the malformed `Operation` term this replaces |
+
+**The gate is the NAL suites plus `terms:canonical`**, because goal recognition is a behaviour change and the four parity suites are what say it did not move. **The hazard is a silent one**: every test that recognises a tool goal by `term.toString().startsWith('^')` — `no-bypass`, `goal-action`, `belief-perception`, `self-improvement-litmus`, `nar-execution.ts:442`, `self-report.ts` — stops recognising it and keeps passing if the filter merely returns nothing. Each of those should become a kind test, and that conversion is the actual deliverable, not the encoder.
 
 ---
 
@@ -741,7 +792,10 @@ empty owner means the finding has no gate, and a finding with no gate is a findi
 | 16 | **the decision layer is wired to the agent side, not the reasoning side.** A complete typed/calibrated layer — `classify`/`evaluate`/`synthesize`, `CognitiveAxis`, `abstainReason`, isotonic calibrators with a digest-pinned lock, `ConfidenceRouter`, `judgeCascade` — is attached to a **`GameFocus`**, while the reasoning cycle reaches a model only via the ingress judge and `processLMRules` | `facade/system-one.ts:337`; `nar.ts:571`; `types.ts:63-141` | **A11** |
 | 17 | the three primitives are `classify` / `evaluate` / `synthesize` — `Noul` was folded into `evaluate` because a yes/no is a frequency judgement with two anchors. The plan must not reintroduce `Noul` as a fourth primitive or restate it as three | `types.ts:66-89`; `TODO16.md` §2; `TODO16b.md` App. A | **A11** (terminology, enforced by the types) |
 | 18 | **`product` is declared commutative and is not.** `createCompound` sorts a commutative kind's arguments at construction, so `(*,bird,cat)` and `(*,cat,bird)` interned to **one** term and `termsEqual` answered yes for two different products. `docs/java/Op.java:110` builds `PROD` through the non-commutative constructor | `nar/src/terms/operators.ts:20`; `factory.ts:64` | **A12** — **fixed 2026-09-30**, one declaration and a test. Found while reading `Op.java` for A12's catalogue: a commutativity flag is not a formatting choice, it is a claim about equality |
-| 19 | **six of sixteen kinds do not round-trip through Narsese, and the round-trip test cannot see it.** `implication`, `parallel`, `predictive`, `retrospective` use symbols the grammar has never accepted; `instance`/`property` are not the kinds the grammar builds (`setExt`/`setInt`); `operation` loses its parens. `product` is worse than broken: `TermBuilder.tuple` builds it as a **conjunction**, so `(a,b)` and `(a&b)` are the same term | `nar/src/terms/operators.ts`; `narsese.peggy:4,118`; `factory.ts:107`; `tests/nar/property/narsese-roundtrip.test.ts:14-20` | **A12 step 1** (§5.12.1) — the symbols, the kinds, and a round-trip generator derived from `OPERATORS` instead of a list of what passes |
+| 19 | ~~**six of sixteen kinds do not round-trip through Narsese, and the round-trip test cannot see it.**~~ **Fixed 2026-09-30 by A12 step 1** (`7cef8635`); the round-trip generator now derives its kinds from `OPERATORS`, and `pnpm terms:canonical` gates the agreement. **six of sixteen kinds did not round-trip through Narsese, and the round-trip test could not see it.** `implication`, `parallel`, `predictive`, `retrospective` use symbols the grammar has never accepted; `instance`/`property` are not the kinds the grammar builds (`setExt`/`setInt`); `operation` loses its parens. `product` is worse than broken: `TermBuilder.tuple` builds it as a **conjunction**, so `(a,b)` and `(a&b)` are the same term | `nar/src/terms/operators.ts`; `narsese.peggy:4,118`; `factory.ts:107`; `tests/nar/property/narsese-roundtrip.test.ts:14-20` | **A12 step 1** (§5.12.1) — **done 2026-09-30**; the remaining item is the `^name` retirement in §0.8.2 |
+
+| 20 | **an operator token with no kind behind it builds a term whose `kind` is the symbol.** `narsese.peggy` resolved an infix token through `INFIX_KINDS[op] ?? op`, so `(penguin --> (-- fly))` produced a predicate of kind `'--'` that *serialised as `(fly)`* — the negation was gone from the term's identity while the surrounding belief looked negated — and `f(x)` produced a compound of kind `'atom'` carrying arguments. The grammar now fails an unmapped operator instead of inventing a kind | `narsese.peggy:132,140` (pre-fix); reproduced in §0.8.2 | **A12 step 1** — **fixed 2026-09-30** |
+| 21 | **the tree had two spellings for one idea.** `^tool(a,b)` decoded to `Inheritance(Product(args), Atom('^tool'))` — the convention with real traffic — while `(f^(x))` decoded to a compound of kind `operation`. Neither could read the other, and both were reachable from a cycle. Upstream settles nothing here: `docs/java/Op.java` has no `OPERATOR` and `NarseseParser` no `^`, so `^op(…)` is a SeNARS-local convention and the choice is ours | `terms/impls/operation-term.ts`; `rules/impls/registration.ts:359-371` | **A12 step 1** for the spelling (**done**); the `^name` retirement is §0.8.3 |
 
 **#15 is entirely TODO30's.** A4 fixes *who* may write `priority`, not with what structure it is
 read. **#14 is not justified by a finding at all** — it is justified by the thesis, and §1 has no
@@ -1356,6 +1410,10 @@ What is missing is everything that makes the form *canonical* rather than *inter
 same-kind compounds, dropping repeated args, pushing negations inward, and folding the frequency
 extremes. Each is a NAL axiom, so each is sound; none is implemented, and none is a TODO30 question.
 
+**Status: step 1 is done (§0.8.2), and one thing remains of it (§0.8.3).** The decisions below were
+made while landing it; the remaining work is the `^name` retirement, which is a behaviour change in
+goal recognition rather than a grammar change.
+
 **Sequencing within this item, and the two halves are not equal.** §5.12.1 — the grammar/symbol/kind
 alignment — is a **correctness fix whose baseline is "broken"**, so it needs no attribution window and no
 waiting on A4: six kinds cannot round-trip at all, and no measurement can be attributed to a change that
@@ -1709,7 +1767,9 @@ profile of the wrong system.
 16. **Only committed state is authoritative** (§1.2). Advisory computation and uncommitted producer
     state never become implicit cycle inputs, and a proposal has no authority until a committed,
     gated, recorded transition.
-17. **A term has exactly one canonical form, and a claim has one spelling** (A12). `(a | (a | c))` and
+17. **A term has exactly one canonical form, and a claim has one spelling** (A12). **A canonical form is
+   injective: no two distinct terms print alike**, which is what makes every key built from a printed form
+   a sound identity (§0.8.2). `(a | (a | c))` and
     `(a | c)` are one claim; `(--x).f = 1 − f_x`, so `--x. %0.8%` and `x. %0.2%` are one claim and
     `--x. %1%` is `x. %0%`. Canonicalisation happens at construction, so interning, equality and memory
     dedup agree by construction rather than by which producer remembered to normalise.
@@ -1799,7 +1859,7 @@ gate listed here and not wired is the exact failure mode this plan is about.
 | `resource:policy` | every production accumulator is in the ledger, and a memory at capacity with nothing evictable says so | A8 | `gate` |
 | `rules:loaded-data` | no module-side-effect registration survives; the table is enumerable, versioned, revertable; two revisions are diffable and a prior one is restorable; an empty table is a runnable state | A10 | `gate` |
 | `replay:proposal` | `replayCognitiveState` reconstructs the same state from `proposal.*` events, and a version mismatch fails loudly | A9 | `slow` |
-| `terms:canonical` | `canonical(canonical(t)) === canonical(t)`, already-canonical terms are returned unchanged, `(--x).f = 1 − f_x` across the range (`--x. %0.8%` ≡ `x. %0.2%`, `--x. %1%` ≡ `x. %0%`), and the NAL suites derive what they derived before | A12 | `gate` |
+| `terms:canonical` | **step 1 form (landed 2026-09-30):** every kind in `OPERATORS` round-trips through Narsese, the grammar names no kind the table lacks, and every table symbol is in the grammar's token list — the three tables cannot disagree. **Reducer form (A12):** `canonical(canonical(t)) === canonical(t)`, already-canonical terms are returned unchanged, `(--x).f = 1 − f_x` across the range (`--x. %0.8%` ≡ `x. %0.2%`, `--x. %1%` ≡ `x. %0%`), and the NAL suites derive what they derived before | A12 | `gate` |
 
 Deliberately **not** here, and in TODO30: `cost:cycle`, the population-scaling matrix, and the
 `bench:cycle` entry in the gate list. Note what that means for §5: **no item in this plan is verified
@@ -1979,6 +2039,7 @@ wall-clock figures are absent from this document and TODO30 §1 owns them.
 | per-cycle counts with the layer "disabled" | **33 inducer invocations**, 8.2 `decayAll`, 8.0 `sample`, 5.0 `forEachConcept`; decay rate tracks `maxSampledConcepts` (5.2 → 9.0 as the knob goes 5 → 40) | `eb394d4a` | `pnpm bench:cycle` (counts, not times) and `-- --knob-sweep` |
 | static facts, unchanged by this plan | 39 LM-importing core files · 10 external / 6 internal `priority` writers · 55 rules, 0 wildcard buckets, 21 in the hot cell · 1 `InferenceController` construction and 1 `.step(` call site | `919c21ab` | `grep`, call-site audit, `RuleRegistry.getAll()` census |
 | NARchy reference | pinned `f3a9bcc` (2026-08-25) | — | `github.com/narchy/narchy` |
+| term-layer round trip | **6 of 16 kinds could not be read back from their own output**; 3 further terms had a `kind` no operator declares (`'--'`, `'atom'` with arguments, and `('*',a,b)` and `(a&b)` interning to one term) | `919c21ab` | `pnpm terms:canonical` — one kind per entry, identity asserted |
 
 **`scripts/cycle-bench.ts` is committed, with `--selftest` proving each hook observes its own
 invocation** — because a hook that silently observes nothing produces a table of confident zeroes,
