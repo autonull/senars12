@@ -3,7 +3,7 @@
  */
 import { mean } from '@senars/util';
 
-import type { Concept } from '../../../memory';
+import type { Concept } from '../../../memory/concept.js';
 import type { MetricsCollector } from '../../../metrics';
 import type { SelfHost } from '../../../self/host.js';
 import type { ResourceUsage } from '../../types.js';

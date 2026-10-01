@@ -1,7 +1,7 @@
 import { maxBy, sortByDesc } from '@senars/util';
 
 import { type GateRegistry, gateRegistry } from '../kernel/GateRegistry.js';
-import type { Memory } from '../memory';
+import type { TaskAdmission } from '../memory/ports/index.js';
 import type { Budget, Task } from '../types';
 
 export type TaskLifecycle = 'pending' | 'running' | 'completed' | 'failed' | 'expired';
@@ -37,12 +37,12 @@ export class TaskManager {
   private pending = new Map<string, TaskWrapper>();
   private completed = new Map<string, TaskWrapper>();
   private failed = new Map<string, TaskWrapper>();
-  private memory: Memory;
+  private memory: TaskAdmission;
   private config: Required<TaskManagerConfig>;
   private gates: GateRegistry;
   private timeouts = new Map<string, NodeJS.Timeout>();
 
-  constructor(memory: Memory, config: TaskManagerConfig = {}) {
+  constructor(memory: TaskAdmission, config: TaskManagerConfig = {}) {
     this.memory = memory;
     this.config = { ...DEFAULT_CONFIG, ...config } as Required<TaskManagerConfig>;
     this.gates = config.gateRegistry ?? gateRegistry;

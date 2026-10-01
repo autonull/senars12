@@ -1,9 +1,7 @@
 import { BoundedRing, occupancy, selectTopN, sortBy, sortByDesc } from '@senars/util';
-import type { ResolvedBagSlot } from '../bag/registration';
 import { LINK, PRESSURE } from '../constants.js';
 import { NullAttentionModel } from '../strategies/attention/NullAttentionModel.js';
 import type { AttentionModel } from '../strategies/types.js';
-import type { Term } from '../terms';
 import {
   mentionsSymbol,
   Stamp,
@@ -11,6 +9,7 @@ import {
   type TermMapEntry,
   TermSet,
   Truth,
+  type Term,
   termKey,
 } from '../terms';
 import { atom } from '../terms/impls/factory.js';
@@ -19,60 +18,23 @@ import { NEUTRAL_BUDGET } from '../types';
 import { nextInt } from '../utils/random.js';
 import { AssociativeRegistry, GraphMemory } from './associative.js';
 import type { ConceptGraph } from './ConceptGraph.js';
-import { Concept, type ConceptMergeResult, type ConceptTaskType } from './concept.js';
-import { Focus } from './focus.js';
+import { Concept, type ConceptMergeResult, type ConceptTaskType, type TaskData } from './concept.js';
+import { DEFAULT_MEMORY_CONFIG, type MemoryConfig, type ResolvedMemoryConfig } from './config.js';
 import { type EmbeddingGenerator, MockEmbeddingGenerator } from './embedding.js';
+import { Focus } from './focus.js';
 import type { MemoryHealth } from './health.js';
-import type { ForgettingPolicy } from './lifecycle';
 import { Archive, Forgetting } from './lifecycle';
 import { LinkManager } from './links';
 import { EmbeddingLayer } from './links/EmbeddingLayer.js';
 import { LINK_LAYER } from './links/types.js';
 import { MemoryIndex } from './memory-index.js';
+import type { LinkPort } from './ports/links.js';
+import type { MemoryPorts } from './ports/index.js';
+import type { MemoryStatistics } from './ports/statistics-view.js';
 import { evictUnderPressure, MemoryScorer } from './pressure';
 import { selectSimilar } from './similarity.js';
 import { calculateConceptStats, tallyConcepts } from './state';
 import { filterByTerm } from './term-filter.js';
-
-export interface MemoryConfig {
-  maxConcepts?: number;
-  activationDecayRate?: number;
-  consolidationInterval?: number;
-  focusMaxConcepts?: number;
-  archiveMaxConcepts?: number;
-  enableIndexing?: boolean;
-  enableArchive?: boolean;
-  enableEmbeddingLayer?: boolean;
-  /** Which embedder the semantic link layer uses. Defaults to the deterministic one. */
-  embeddingGenerator?: EmbeddingGenerator;
-  forgettingPolicy?: ForgettingPolicy;
-  enablePressureDetection?: boolean;
-  linkCapacity?: number;
-  termLinkCapacity?: number;
-  semanticLinkCapacity?: number;
-  linkForgetPolicy?: 'priority' | 'lru' | 'fifo' | 'random';
-  linkDecayRate?: number;
-  bag?: ResolvedBagSlot;
-}
-
-const DEFAULT_CONFIG: Required<Omit<MemoryConfig, 'embeddingGenerator'>> = {
-  maxConcepts: 1000,
-  activationDecayRate: 0.01,
-  consolidationInterval: 10,
-  focusMaxConcepts: 50,
-  archiveMaxConcepts: 1000,
-  enableIndexing: true,
-  enableArchive: true,
-  enableEmbeddingLayer: true,
-  forgettingPolicy: 'fifo',
-  enablePressureDetection: true,
-  linkCapacity: 1000,
-  termLinkCapacity: 1000,
-  semanticLinkCapacity: 500,
-  linkForgetPolicy: 'priority',
-  linkDecayRate: 0.001,
-  bag: { implementation: 'priority' },
-};
 
 /** Stateless, so one instance serves every memory that was not given a model. */
 const NULL_ATTENTION = new NullAttentionModel();
@@ -90,25 +52,13 @@ export interface RevisionEntry {
   source: 'input' | 'derivation' | 'revision' | 'inference';
 }
 
-export interface MemoryStatistics {
-  totalConcepts: number;
-  totalTasks: number;
-  focusedConcepts: number;
-  archivedConcepts: number;
-  indexStats?: { atomic: number; temporal: number; activation: number };
-  archiveStats?: { size: number; capacity: number; utilization: number };
-  memoryPressure: number;
-  utilization: number;
-  conceptDistribution: { lowPriority: number; mediumPriority: number; highPriority: number };
-}
-
-export class Memory {
+export class Memory implements MemoryPorts {
   /** D17: bounded revision log capacity. */
   static readonly REVISION_LOG_CAP = 1000;
   #attentionModel: AttentionModel;
   private readonly concepts = new TermMap<Concept>();
   private readonly associative: AssociativeRegistry;
-  private readonly config: Required<Omit<MemoryConfig, 'embeddingGenerator'>>;
+  private readonly config: ResolvedMemoryConfig;
   private readonly index: MemoryIndex;
   private readonly focus: Focus;
   private readonly archive: Archive;
@@ -121,12 +71,12 @@ export class Memory {
   private lastTimestamp = Date.now();
 
   constructor(
-    config: MemoryConfig = DEFAULT_CONFIG,
+    config: MemoryConfig = DEFAULT_MEMORY_CONFIG,
     options?: {
       attentionModel?: AttentionModel;
     }
   ) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.config = { ...DEFAULT_MEMORY_CONFIG, ...config };
     this.#attentionModel = options?.attentionModel ?? NULL_ATTENTION;
     this.index = new MemoryIndex({
       enableAtomicIndex: this.config.enableIndexing,
@@ -176,6 +126,7 @@ export class Memory {
     return this.associative;
   }
 
+
   /** Publish the co-activation graph as the `graph` associative memory, replacing any prior one. */
   attachConceptGraph(graph: ConceptGraph): ConceptGraph {
     this.associative.register(new GraphMemory(graph));
@@ -192,6 +143,19 @@ export class Memory {
 
   getLinkManager(): LinkManager {
     return this.linkManager;
+  }
+
+  /** The link surface as a port, for consumers that need recall and nothing else. */
+  links(): LinkPort {
+    return this.linkManager;
+  }
+
+  beliefs(concept: Concept): TaskData[] {
+    return concept.getBeliefs();
+  }
+
+  taskCount(concept: Concept): number {
+    return concept.totalTasks;
   }
 
   /**

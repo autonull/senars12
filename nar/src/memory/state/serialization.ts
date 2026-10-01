@@ -15,7 +15,8 @@ import { decodeState, encodeState } from '../../state/codec.js';
 import { rehydrateTask, type TaskRecord } from '../../task/record.js';
 import { serializeStamp, type Term, termParser } from '../../terms';
 import type { Concept, ConceptTaskType, TaskData } from '../concept.js';
-import type { Memory } from '../memory.js';
+import type { ConceptWriter } from '../ports/concept-store.js';
+import type { StatisticsView } from '../ports/statistics-view.js';
 
 const logger = createLogger({ scope: 'Memory.State' });
 
@@ -47,7 +48,7 @@ export type { TaskRecord as SerializedTask } from '../../task/record.js';
 const MEMORY_STATE_KIND = 'memory.state';
 
 /** Schema-pinned, versioned persistence format for the memory dump (StateCodec, TODO20 X7). */
-export const encodeMemoryState = (memory: Memory): string =>
+export const encodeMemoryState = (memory: StatisticsView & ConceptWriter): string =>
   encodeState(MEMORY_STATE_KIND, MEMORY_VERSION, serialize(memory));
 
 /** Inverse of encodeMemoryState; accepts legacy bare SerializedMemory files. */
@@ -56,7 +57,7 @@ export const decodeMemoryState = (text: string): SerializedMemory =>
 
 type TaskTypeName = 'belief' | 'goal' | 'question';
 
-export function serialize(memory: Memory): SerializedMemory {
+export function serialize(memory: StatisticsView & ConceptWriter): SerializedMemory {
   const concepts: SerializedConcept[] = [];
 
   for (const concept of memory.listConcepts()) {
@@ -92,7 +93,10 @@ function serializeBag(bag: Bag<TaskData>): TaskRecord[] {
   return tasks;
 }
 
-export async function deserialize(data: SerializedMemory, memory: Memory): Promise<void> {
+export async function deserialize(
+  data: SerializedMemory,
+  memory: ConceptWriter
+): Promise<void> {
   if (data.version !== MEMORY_VERSION) {
     throw new Error(`Unsupported memory version: ${data.version}`);
   }

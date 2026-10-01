@@ -3,9 +3,14 @@
  */
 
 import { clamp01, sleep } from '@senars/util';
-import type { Memory } from '../memory';
+import type { MemoryView } from '../memory/view.js';
 import type { RuleProcessor } from '../rules';
-import type { DerivationContext, DerivationStrategy, SamplingStrategy } from '../strategies';
+import type {
+  AttentionModel,
+  DerivationContext,
+  DerivationStrategy,
+  SamplingStrategy,
+} from '../strategies';
 import type { Task } from '../types';
 import {
   createBeliefTaskFromConcept,
@@ -26,6 +31,13 @@ export interface InferenceConfig {
   onDerivation?: (chain: readonly Task[]) => void;
 }
 
+/**
+ * What the cycle reads: the memory read port, plus the attention slot's live
+ * model. `Memory` satisfies both structurally, so the composition root passes
+ * the facade and nothing here can name it (TODO29.a §5.5).
+ */
+export type InferenceMemory = MemoryView & { readonly attentionModel: AttentionModel };
+
 /** How one cycle is paced: a batch step is deadline-bounded, a stream yields cooperatively. */
 interface CyclePacing {
   maxResults: number;
@@ -40,7 +52,7 @@ export class InferenceController {
   private readonly circularDetector = createCircularDetector();
 
   constructor(
-    private readonly memory: Memory,
+    private readonly memory: InferenceMemory,
     private readonly processor: RuleProcessor,
     private samplingStrategy: SamplingStrategy,
     private strategy: Strategy,

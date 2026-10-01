@@ -1,5 +1,5 @@
 import type { DerivationRecord } from '@senars/core/schemas/derivation-records';
-import type { Memory } from '../../memory/memory.js';
+import type { TaskAdmission } from '../../memory/ports/index.js';
 import type { Term } from '../../terms/index.js';
 import { Truth, termParser } from '../../terms/index.js';
 
@@ -8,7 +8,7 @@ export interface HydrationResult {
   skipped: number;
 }
 
-export function hydrateRecord(memory: Memory, record: DerivationRecord): HydrationResult {
+export function hydrateRecord(memory: TaskAdmission, record: DerivationRecord): HydrationResult {
   let applied = 0;
   let skipped = 0;
   const seen = new Set<string>();

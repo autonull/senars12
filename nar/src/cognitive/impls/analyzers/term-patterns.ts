@@ -2,7 +2,7 @@
  * Term pattern analysis - extracted from SelfAnalyzerService
  */
 import { mean, selectTopN } from '@senars/util';
-import type { Concept } from '../../../memory';
+import type { Concept } from '../../../memory/concept.js';
 import type { TermPattern } from '../../types.js';
 
 interface TermFreqEntry {

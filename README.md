@@ -255,6 +255,7 @@ The neuro-symbolic handoff (LLM → Narsese candidates → Kernel Gates → NAL 
 - **Decoupled decay** — truth (`frequency`, `confidence`) decays only on temporal invalidation or contradiction; attention (`priority`) decays by LRU/access time
 - **Pressure-driven consolidation** — high `Bag` pressure triggers cognitive sleep and schema induction
 - **State persistence** — JSON snapshot layered over the event log
+- **Ports, not one god-object** — the reasoning cycle depends on nine named contracts in `nar/src/memory/ports/` (`ConceptReader`/`ConceptWriter`, `TaskAdmission`, `BeliefTable`, `GoalEnumeration`, `LinkPort`, `StatisticsView`, `SymbolIndex`, `MemoryClock`, `AttentionOwner`), composed as `MemoryPorts`; `MemoryView` is the read surface the strategy layer takes. `Memory` still composes them and still satisfies them, and `pnpm memory:ports` fails when a cycle-path module names it instead — so a widened dependency is a red gate rather than a review comment. A consumer can be driven by a different implementation; `tests/nar/todo29a-a5.test.ts` does exactly that with an array-backed store and no index.
 
 ```typescript
 import { Memory, EpisodicMemory, Concept } from '@senars/nar';

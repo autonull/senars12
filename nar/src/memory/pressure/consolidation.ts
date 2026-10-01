@@ -1,6 +1,6 @@
 import { sortBy } from '@senars/util';
 import { PRESSURE } from '../../constants.js';
-import type { Memory } from '../memory.js';
+import type { ConceptWriter, StatisticsView, SymbolIndex } from '../ports/index.js';
 
 /**
  * Share of the idle population shed per cycle, by how far past the rung
@@ -21,7 +21,9 @@ const FORGET_SHARE = 0.2;
  * `PRESSURE.CRITICAL`. Only concepts carrying no tasks are eligible: a concept
  * with an outstanding task has not been answered, so it is not debris.
  */
-export const evictUnderPressure = (memory: Memory): { archived: number; forgotten: number } => {
+export const evictUnderPressure = (
+  memory: StatisticsView & SymbolIndex & ConceptWriter
+): { archived: number; forgotten: number } => {
   const pressure = memory.capacityPressure();
   if (pressure <= PRESSURE.ARCHIVE) return { archived: 0, forgotten: 0 };
 

@@ -1,6 +1,6 @@
 # TODO29.a: Runtime Architecture — S/J/P over a closed core
 
-**Version:** 3.6 · **Status:** A0, A1, A2, A12 step 1, its `^name` retirement and §0.8.4's n-ary gap landed — A3–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
+**Version:** 3.7 · **Status:** A0, A1, A2, A5, A12 step 1, its `^name` retirement and §0.8.4's n-ary gap landed — A3's decisions, A4, A6–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
 unchanged as the measurement and provenance record; §0.4 maps its sections onto this one) ·
 **Successor:** `TODO30.md`, blocked on this.
 
@@ -15,8 +15,8 @@ lifecycle.
 > **A fresh session reads §0.1 (two minutes), then §1.2 and §1.3 (the two invariants everything else
 > follows from), then §5.12 (the item summary — one command, one gate, one risk per item).** §4 row 16
 > is the finding that makes A11 cheap instead of an invention, and §12's two kill criteria should be
-> checked *before* anything is built. **A2 is done (§0.8.6), so the next item is A5 → A4** — they need
-> no decisions and they unblock everything else. §0.6 item 2 (A3's eight protocol decisions) is still
+> checked *before* anything is built. **A5 is done (§0.8.7), so the next item is A4** — the one deliberate
+> behaviour change, and it lands against a structure that no longer moves under it. §0.6 item 2 (A3's eight protocol decisions) is still
 > unanswered and is the one thing worth deciding before A3 is written.
 
 ---
@@ -30,7 +30,7 @@ lifecycle.
 | **What am I changing?** | Where model reasoning is reachable from, and therefore which parts of the core depend on it; who owns each cycle-path quantity; what a proposal is and when it may land; whether the rule set is data or code | §5 |
 | **What must result?** | A closed synchronous cycle over committed state, with S / J / P composed through one seam and one set of gates | §1, §2 |
 | **What must not change?** | NAL parity, determinism, `test:hermetic`, one inference path, the six packages, the epistemic firewall | §7 |
-| **How do I know it worked?** | Twelve new gates, each landing with its item and each shipped with a test proving it can fail. Four have landed (`cycle:no-provider`, `induction:inventory`, `core:no-lm`, `terms:canonical`'s A12 form) | §10 |
+| **How do I know it worked?** | Twelve new gates, each landing with its item and each shipped with a test proving it can fail. Five have landed (`cycle:no-provider`, `induction:inventory`, `core:no-lm`, `memory:ports`, `terms:canonical`'s A12 form) | §10 |
 | **What belongs to TODO30 instead?** | Every data-structure choice, every cost target, `k`, the index shapes, the scaling gates | §11.2 |
 
 ### 0.2 Decided, and load-bearing
@@ -94,7 +94,9 @@ do is make four README promises structurally true rather than aspirational, and 
 5. **A12** — **step 1 is done** (§0.8.2), **its `^name` retirement is done** (§0.8.3) and **§0.8.4 is
    done**: a three-premise conjunction reads back, and *readable* is now a gated property beside
    *injective*. **What is left is the reducers**, and they wait for A4's baselines (§5.12).
-6. **A5 → A4** — the mechanical split, then the one deliberate behaviour change.
+6. ~~**A5**~~ — **done 2026-10-01** (§0.8.7): the cycle path reaches memory through nine named
+   ports, and `memory:ports` is the gate that says so. **What is left is A4** — the one deliberate
+   behaviour change, now against a structure that is not moving underneath it.
 
 ### 0.7 What this plan is not
 
@@ -545,6 +547,90 @@ value imports across 17 files are all assembly.
   is correct (the ledger is data) and slightly unnerving.
 
 
+### 0.8.7 A5 is done (2026-10-01) — the cycle path reaches memory through nine ports, and a gate says so
+
+The finding A5 answers is §4 row 2, and the shape of the answer is the one §1.1 asks for first: a
+**cycle-path module cannot import `nar/src/memory/memory.ts`**, and `memory:ports` fails when one
+does. `Memory` still composes the ports and still owns the nine responsibilities; what changed is that
+no consumer on the cycle path *names* it, so a widened dependency is now a red gate rather than a
+review comment.
+
+| artefact | what it is |
+|---|---|
+| `nar/src/memory/ports/` | nine contracts, one per responsibility: `ConceptReader`/`ConceptWriter`, `TaskAdmission`, `BeliefTable`, `GoalEnumeration`, `LinkPort`, `StatisticsView`, `SymbolIndex`, `MemoryClock`, `AttentionOwner`. Composed as `MemoryReader` / `MemoryWriter` / `MemoryPorts`, and `MemoryView` is now *composed from* them rather than redeclaring the read surface |
+| `nar/src/memory/config.ts` | `MemoryConfig` and its defaults, so a port implementation can take capacity and retention knobs without importing the facade |
+| `nar/src/memory/memory.ts` | `implements MemoryPorts`; `links()`, `beliefs()`, `taskCount()` added and the rest delegated. No behaviour moved |
+| `nar/src/reason/inference-controller.ts` | takes `InferenceMemory = MemoryView & { attentionModel }` — the two things the cycle actually reads |
+| `nar/src/task/manager.ts` | takes `TaskAdmission` and nothing else; it never needed the store |
+| `nar/src/rules/impls/processor.ts`, `nar/src/learning/schema-induction.ts`, `nar/src/rules/impls/hydration.ts`, `nar/src/cognitive/impls/CognitiveController.ts`, `nar/src/nar-execution.ts`, `nar/src/memory/pressure/consolidation.ts`, `nar/src/memory/state/serialization.ts` | each names the narrowest port: `MemoryReader`, `MemoryPorts`, `StatisticsView & ConceptWriter`, … |
+| `scripts/memory-ports.ts`, `pnpm memory:ports` | the gate, plus `scanCoreLayerSourceFiles` / `lineAt` in `scripts/lib/layer-boundary.ts` so the cycle-path path is read once and shared with `core:no-lm` |
+| `tests/nar/todo29a-a5.test.ts` | 5 tests, and the load-bearing one is `FakeStore` — an array-backed `MemoryPorts` with no index, no archive and no `Memory` in it, driving `InferenceController`, `TaskManager` and `RuleProcessor` |
+
+**Five decisions this item did not pre-answer.**
+
+1. **The gate is an import ban, not a conformance check.** "Cycle code depends on ports" has two
+   readings: *every consumer satisfies its port* (a type check, which the compiler already does) and
+   *no consumer names the facade* (a property of the source). Only the second can fail silently, so
+   it is the one that is gated — the same choice A2 made with `core:no-lm`, and for the same reason.
+2. **Composition sites are declared, not inferred.** `replay.ts` must construct a `Memory`; so must
+   `memory/index.ts`, which publishes it. Both are in a two-entry `COMPOSITION_SITES` ledger with
+   reasons, so the set is enumerable and a third site is a decision somebody writes down. **An empty
+   ledger would have been suspicious, not clean** — a rule with nothing to except is a rule nobody has
+   checked against a real composition root.
+3. **A directory specifier counts as naming the facade.** `'../memory'` resolves to the barrel, which
+   re-exports `Memory`, so the gate matches the file, the directory and either with `.js`. My first
+   version matched only `'../memory/memory.js'`, and **it passed while `inference-controller.ts`
+   imported the barrel** — §0.8.5's failure mode again, in the gate I was writing to catch it. Caught
+   by re-adding the violation by hand, which is the only reason it was caught.
+4. **`MemoryConfig` moved before it was needed.** The port implementations cannot take capacity knobs
+   without importing the facade they exist to avoid, so the config became its own module. It is a
+   mechanical move that removes the first reason a port would have had to name `Memory`.
+5. **`MemoryStatistics` moved to the port that produces it.** `game/types.ts` was the only other
+   importer and it was importing it *through the facade* to name a shape — the storage detail leaking
+   into a consumer, which is the item's own finding, in its smallest form.
+
+**Three findings the item produced, none of them in §4.**
+
+- **`MemoryView` was the seam, and it was also a leak.** It named `LinkManager`, `EmbeddingLayer`,
+  `AssociativeRegistry` and `Focus` — four concrete types. It now names `LinkPort` and a
+  `SemanticSimilarity` read surface, and reaches `links()` instead of `getLinkManager()`. **The seam
+  existed and was still a coupling**, which is worth stating because §5.5 predicted the opposite:
+  "the boundary is already implied by `MemoryView`". It was implied for the *facade* and not for the
+  types behind it.
+- **`getLinkManager()` is still on `Memory`,** because 15 test sites and `nar.ts` call it. So there
+  are now two names for the same surface, and only the strategies moved. **A5's acceptance is met
+  (no cycle-path module names the facade) and the god-object is still one class.** That is the honest
+  state of §12's wrapper risk: the wrapper half is closed, the god-object half is A4's and A8's.
+- **A test double is worth more here than the ports are.** `FakeStore` is 120 lines and it is what
+  makes the ports load-bearing: every consumer below runs against an array and no index. Without it,
+  "the contracts mention no concrete type" is a sentence about type declarations rather than a
+  statement about what the code does.
+
+**Improvement opportunities A5 exposed, none blocking.**
+
+- **`Memory` is now 9 interfaces deep and still one class.** The ports make the boundary *enforced*
+  and the split *declarative*; the extraction — `TermMapConceptStore`, a real `BeliefTable`, an
+  archive behind `ConceptWriter` — did not happen, because §5.5's "simplest correct implementation"
+  is satisfied by delegation. TODO30 §4 is where that becomes worth doing, and it can be measured
+  through these ports now.
+- **`Focus` is the last concrete type on `MemoryView`,** and A4 owns it: `MemoryView.getFocus()`
+  returns the attention owner's object until A4 replaces it with the port A4's interface implies.
+- **`COMPOSITION_SITES` is a hand-maintained file list,** with the rot risk §0.8 named for
+  `ProviderSeam.callSites`. Unlike that one, a stale entry is *harmless* — it exempts a file that may
+  no longer import the facade — so it fails open and never red for the wrong reason. Noted rather
+  than fixed.
+- **`nar/src/lm/`, `facade/`, `query/`, `tools/` and `nar.ts` still take `Memory`.** Those are
+  assembly and agent-side, which is the same exemption `core:no-lm` makes, and the reason the gate is
+  scoped to the declared cycle path rather than to `nar/src`. `query/memory-query.ts` is the one
+  borderline case: it is a read surface with a name that suggests it should be on `MemoryView`.
+
+**What A4 can now do that it could not before.** §5.4's acceptance is "the only module that can write
+`Concept.priority` is the attention owner's", and `attention:write-surface` is its backstop gate.
+`MemoryView` is the read surface the strategy layer takes, `MemoryClock.consolidate` is the *only*
+port that advances the decay clock, and `decayAll` is `private` in the one class that still holds it —
+so the write-surface enumeration A4 needs now starts from a port list rather than from a
+call-site grep. **A4 is the next item and it needs no decisions.**
+
 ---
 
 ## 1. The contract
@@ -907,6 +993,28 @@ DecisionPort               one optional port onto the *existing* decision layer;
                             level (§5.11). Reuses `JudgmentQuery` / `SynthesisQuery` verbatim
 ```
 
+**What A5 declared is more contracts than the list above, and less scope.** It did not ship one
+`ConceptStore` — it shipped the *split* the list implies, as nine contracts in
+`nar/src/memory/ports/`, plus `AttentionOwner` and the `MemoryClock` that `decayAll`'s single remaining
+caller implies:
+
+```text
+ConceptReader / ConceptWriter   the population: get · add · remove · archive · list · values · size · clear
+TaskAdmission                   addTask(term, type, truth, budget, stamp)
+BeliefTable                     beliefs(concept) · taskCount(concept)
+GoalEnumeration                 getGoals()
+LinkPort                        getLinks · getLinkPriority · addLink · remove* · layers · applyDecay
+StatisticsView                  capacityPressure · totals · getStatistics
+SymbolIndex                     queryBySymbol · queryByTimeRange · findConcepts · findSimilar · getRelated
+MemoryClock                     consolidate({ cycleCount })   — the only tick of the decay clock
+AttentionOwner                  attentionModel · setAttentionModel
+```
+
+Composed as `MemoryReader` / `MemoryWriter` / `MemoryPorts`, and `MemoryView` — the seam the strategy
+layer already took — is now *composed from* them rather than redeclaring the read surface. `InferenceTable`
+(A6) and `CycleExecutor` are the two that have not landed. `Attention` above is A4's, and
+`AttentionOwner` is the slice of it A5 needed to rewire `CognitiveController`.
+
 ### 3.2 The cycle
 
 The shape, with no cost claims attached:
@@ -1056,7 +1164,7 @@ empty owner means the finding has no gate, and a finding with no gate is a findi
 | # | finding | evidence | owner |
 |---|---|---|---|
 | 1 | a read mutates the heap: `sample()` calls `decayAll()`, so one cycle does ~8 decay writes and ~8 population rankings; the decay clock advances `min(sampleSize, N)` times per cycle | `memory/memory.ts:354,370` → `:557`; measured 8.2/8.0/5.0 per cycle | **A4** |
-| 2 | every memory read is a full scan and the index that exists is bypassed; the *default* premise source is a scan-and-sort | `memory.ts:216,206,244,471,542`; `strategies/premise/primitives.ts:56` | **A5**; structures → TODO30 §4 |
+| 2 | every memory read is a full scan and the index that exists is bypassed; the *default* premise source is a scan-and-sort | `memory.ts:216,206,244,471,542`; `strategies/premise/primitives.ts:56` | **A5 — dependency half done 2026-10-01** (§0.8.7): the cycle path reaches memory through nine ports and `memory:ports` gates the facade. **The read-shape half is untouched** — the scans are still scans, and the structures are TODO30 §4 |
 | 3 | the scorer is decorative: its only call site passes no context, so `novelty ≡ 1`, `relevance ≡ 0` and ranking by retrieval score *is* ranking by `priority` | `memory/pressure/scorer.ts:22-28,84-88`; one caller, `memory/lifecycle/forgetting.ts:46` | **A4** (the decision) |
 | 4 | eviction measures concept count, not tasks, and its candidate filter is *anti-correlated* with pressure — the only evictable concepts are empty shells | `memory/pressure/consolidation.ts:24`; `memory.ts:519` | **A8** |
 | 5 | `getGoals()` mints a fresh `Stamp.createInput()` per goal per call, so anything keyed on stamp overlap reasons about an id that never repeats | `memory.ts:253` | **A4** |
@@ -1364,14 +1472,28 @@ unattributable, because every learned value moves *and* every call site moves. S
 first costs nothing — it is mechanical and parity-guarded — and leaves A4 as a small diff against a
 structure that is already final.
 
-**Acceptance**
+**Acceptance** — all five **met 2026-10-01**, recorded here so the next reader does not re-derive them
+(§0.8.7 has what landed and what it cost):
 
-- cycle code depends on ports, not on `Memory`;
-- storage details do not leak into reasoning code;
-- each port has focused unit tests that construct it directly;
-- existing semantic tests still cover current behaviour through the ports;
+- cycle code depends on ports, not on `Memory` — **and gated**: `pnpm memory:ports` fails on a
+  cycle-path import of `nar/src/memory/memory.ts`, with two declared composition sites;
+- storage details do not leak into reasoning code — **with one honest exception**: `MemoryView` still
+  returns the concrete `Focus`, which is A4's to replace, and `Memory` still exposes
+  `getLinkManager()` for assembly and tests;
+- each port has focused unit tests that construct it directly — `FakeStore` in
+  `tests/nar/todo29a-a5.test.ts` implements every port over an array and drives the three real
+  consumers with no `Memory` in sight;
+- existing semantic tests still cover current behaviour through the ports — `pnpm test:unit` green
+  (324 files), no behaviour moved;
 - the port contracts mention no concrete type, so an implementation can be swapped without touching a
-  caller.
+  caller — **except `MemoryView.getFocus()`**, and the exception is A4's, not this item's.
+
+**The item's own half of §12's wrapper risk is closed and the other half is not.** The gate says no
+cycle-path module names the facade, so the cycle cannot be depending on a forwarding god-object. But
+`Memory` is still one class holding nine responsibilities, and the ports are satisfied by delegation
+rather than by extraction — "storage is a port" is true as a *dependency* claim and false as an
+*implementation* claim. The extraction is TODO30 §4's job, and it can be measured through these ports
+now.
 
 
 ### 5.6 A6 — Define inference dispatch as an architectural port
@@ -1933,7 +2055,7 @@ Every acceptance criterion above is demonstrated by a command and a gate. Gates 
 | **A2** | `pnpm run core:no-lm && pnpm run deps:direction && pnpm run docs:drift` — **done 2026-10-01** | `core:no-lm`, plus the same row inside `deps:direction` | **medium-high** — 51 files. The price of a boundary that cannot be crossed by accident, and it is mechanical: reviewable by the compiler |
 | **A3** | `pnpm test:unit` (new seam tests), `pnpm run core:no-provider` | — (gates land with A1/A9/A10) | **low** — the one item the plan expands rather than contracts |
 | **A4** | `pnpm test:unit` + a diff on the committed baseline file | `attention:write-surface` | **high, and confined to this item.** Every learned value moves: why it is alone, why it lands after A5, and why the baselines are regenerated here rather than left to drift through A6–A8 |
-| **A5** | `pnpm test:unit` — parity is the only gate, because this changes nothing | — | **low** — mechanical, and the boundary is already implied by `MemoryView` |
+| **A5** | `pnpm test:unit` + `pnpm memory:ports` — **done 2026-10-01** | `memory:ports` | **low** — mechanical, and the boundary was already implied by `MemoryView` |
 | **A6** | `pnpm test:unit` (NAL suites + dispatch tests) | `dispatch:no-wildcard` | **medium** — dispatch order changes, so parity is the gate |
 | **A7** | `pnpm test:unit` (budget-enforcement tests) | — | **low-medium** — the behaviour change is "steps stop running by default" |
 | **A8** | `pnpm test:unit` (resource-policy tests) | `resource:policy` | **medium** — retention policy *is* behaviour; policy and structure together is how a semantic change hides inside a refactor |
@@ -1980,13 +2102,13 @@ same seam. Neither gate is weakened and neither is skipped. A9 is where that lan
 ## 6. Sequencing
 
 ```
-A0 ─▶ A1 ─▶ A2 ─▶ A3 ─▶ A5 ─▶ A4 ─┬─▶ A6 ─▶ A10 ─▶ A11
+A0 ─▶ A1 ─▶ A2 ─▶ A3 ─▶ ~~A5~~ ─▶ A4 ─┬─▶ A6 ─▶ A10 ─▶ A11
                               └─▶ A7 ─▶ A8
                     A9 (after A3, parallel thereafter)
                     A12 §5.12.1 (grammar alignment) → A12 reducers, after A4's baselines
 ```
 
-**As of 2026-10-01: A0, A1 and A2 are done** (§0.8, §0.8.1, §0.8.6). A3's eight protocol
+**As of 2026-10-01: A0, A1, A2 and A5 are done** (§0.8, §0.8.1, §0.8.6, §0.8.7). A3's eight protocol
 *decisions* are the next unanswered thing in the queue and nothing else blocks on them; A3's
 *implementation* still waits for A5 → A4, since it registers through the dispatch port A6 owns.
 
@@ -2169,6 +2291,7 @@ gate listed here and not wired is the exact failure mode this plan is about.
 | `induction:inventory` | **A0 form (landed):** every cycle-path value import of the layer is a declared behaviour with a `boundary` / `synchronous` / `dropped` disposition and a *noticedBy*, and every declared `file:line` still holds its await. **A1 adds:** no disposition of `synchronous` claims a cycle-path dependence A1 has closed | A0 + A1 | `gate` |
 | `core:no-lm` | **landed 2026-10-01, in a narrower form than stated:** no cycle-path module imports `nar/src/lm/` — relative, workspace-subpath, static, dynamic, value or type — and the shipped rule table is exactly the registered NAL rules (55, census in `tests/nar/todo29a-a2.test.ts`). **Not asserted:** literal removal of the layer directory from the build graph, since `nar/src/index.ts` re-exports it for assembly, which is the correct shape. See §0.8.6 | A2 | `gate` |
 | `deps:gate` +1 row | **landed, in `deps:direction` rather than `deps:gate`.** `deps:gate` counts cycles and compares a number; a layering rule is not a number, and `deps:direction` is already the gate that reads manifests and reports named violations. Both gates call one implementation (`scripts/lib/layer-boundary.ts`), so the rule has one body and two places it can be caught. `core` imports only `util` and its own schemas — already true and already checked | A2 | `gate` |
+| `memory:ports` | **landed 2026-10-01:** no cycle-path module imports `nar/src/memory/memory.ts` — by file, by directory or through the barrel — and the two sites that legitimately construct a store are declared in a ledger with reasons. §0.8.7 | A5 | `gate` |
 | `attention:write-surface` | every `Concept.priority` write is inside the attention owner's module; a new one fails | A4 | `gate` |
 | `dispatch:no-wildcard` | no registered rule sits under a wildcard bucket | A6 | `gate` |
 | `resource:policy` | every production accumulator is in the ledger, and a memory at capacity with nothing evictable says so | A8 | `gate` |
@@ -2328,7 +2451,7 @@ retrieved; it may never change **what counts as** committed state (§1.2).
 |---|---|---|---|
 | **A1 is not the cheap change believed.** The committed channel is wired in and something *else* reaches the layer from the cycle | **medium** — the cycle path is `DefaultDerivation`, `RuleProcessor`, the tick bindings and `PerceptionGate`, and only part of it was traced | a cycle that does **not** complete with a hanging `J` and `P`, or derivations that change when a provider is added | widen A1 rather than declaring victory. The acceptance is a test and the test is the arbiter — not a call count, which §4 row 11 shows can be zero while a real dependency remains |
 | **A2 is a swamp.** 39 files, and the layer reaches into core internals | medium | the diff stops being mechanical and starts having semantic content | A2 is after A1, so the `Proposal` interface is known. If it is still hard, take Q8 (seventh package) early — a compiler error is a better boundary than a review convention |
-| **A4 or A5 land as wrappers.** A5 adds a layer without removing the god-object, and A4's "one owner" invariant survives only as a comment | medium | `Memory` keeps its responsibilities behind a forwarding interface; or a new external `priority` writer appears and no test fails | A5's acceptance is that the cycle depends on ports, and if `Memory` is still on the cycle path it is not done. A4's mitigation is the type-level removal of the setter, with `attention:write-surface` as the backstop landing in the same change. A4 is gated on NAL parity, and its baselines are re-established in the same change so later drift is attributable |
+| ~~**A4 or A5 land as wrappers.**~~ A5's half is **answered and gated** (§0.8.7): `Memory` is off the cycle path and a facade import fails the gate, so the cycle depends on ports rather than on a forwarding god-object. A4's half stands and is unaffected | ~~medium~~ | `Memory` keeps its responsibilities behind a forwarding interface; or a new external `priority` writer appears and no test fails | A5's acceptance is that the cycle depends on ports, and if `Memory` is still on the cycle path it is not done. A4's mitigation is the type-level removal of the setter, with `attention:write-surface` as the backstop landing in the same change. A4 is gated on NAL parity, and its baselines are re-established in the same change so later drift is attributable |
 | **A12's reducers are not sound and parity moves** | medium — six rewrites over every compound term the reasoner builds, and NAL axioms applied to truth-bearing terms are easy to get subtly wrong | any of the four parity suites changes what it derives | the gate is parity, and a parity change is a *finding about the reducer*, not a baseline to regenerate. Each reducer lands separately with the others disabled, so one soundness bug is one reducer |
 | **A10 never lands and the thesis stays prose** | **medium** — the largest item, last in sequence, and the easiest to defer because the other nine all look like progress | the plan closes with A1–A9 done and "the rule set is a learnable artifact" still describing a message format | if the sequence is cut, cut here *explicitly*: record in §7 and §8 that the rule set is code, and stop claiming otherwise. A floor delivered honestly beats a thesis claimed and not built |
 | **The thesis is negative.** S+J+P is not better than S alone | unknown — but no longer unknowable | the `nal` vs `manifold`/`lm` arcade run comes out flat or negative | Q3: write the hypothesis, run it with a seed count that survives the noise, publish the number either way. **A command, not a project** — but it needs A1 for a clean control and A10 for a meaningful with-`P` arm |

@@ -1,5 +1,5 @@
 import { sameStrategies, type CognitiveParameters, type StrategySlotParams } from '../../config/cognitive-parameters';
-import type { Memory } from '../../memory';
+import type { MemoryPorts } from '../../memory/ports/index.js';
 import type { MetricsCollector } from '../../metrics';
 import type { Strategy } from '../../reason';
 import type { Task } from '../../types';
@@ -23,7 +23,7 @@ export class CognitiveController {
 
   constructor(
     private readonly registry: CognitiveRegistry,
-    private readonly memory: Memory,
+    private readonly memory: MemoryPorts,
     private readonly processor: RuleProcessor,
     private readonly metrics: MetricsCollector,
     private readonly rlfp: RLFPLearner | undefined,

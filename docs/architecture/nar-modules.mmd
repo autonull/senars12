@@ -44,6 +44,7 @@ graph TD
   memory["memory"]
   memory_lifecycle["memory/lifecycle"]
   memory_links["memory/links"]
+  memory_ports["memory/ports"]
   memory_pressure["memory/pressure"]
   memory_state["memory/state"]
   meta["meta"]
@@ -100,6 +101,7 @@ graph TD
   _ --> lm
   _ --> lm_system-one
   _ --> memory
+  _ --> memory_ports
   _ --> meta
   _ --> nl
   _ --> proposal
@@ -135,6 +137,7 @@ graph TD
   cognitive_impls --> cognitive
   cognitive_impls --> cognitive_impls_analyzers
   cognitive_impls --> config
+  cognitive_impls --> memory_ports
   cognitive_impls --> metrics
   cognitive_impls --> reason
   cognitive_impls --> self
@@ -148,6 +151,7 @@ graph TD
   cognitive_impls --> utils
   cognitive_impls_analyzers --> cognitive
   cognitive_impls_analyzers --> cognitive_impls
+  cognitive_impls_analyzers --> memory
   cognitive_impls_analyzers --> self
   commands --> _
   commands --> memory
@@ -209,7 +213,7 @@ graph TD
   game --> config
   game --> focus
   game --> game_impls
-  game --> memory
+  game --> memory_ports
   game --> utils
   game_impls --> agent
   game_impls --> config
@@ -242,6 +246,7 @@ graph TD
   kernel --> cognitive_impls
   kernel --> config
   kernel --> memory
+  kernel --> memory_ports
   kernel --> memory_state
   kernel --> nl
   kernel --> strategies
@@ -252,6 +257,7 @@ graph TD
   learning --> bag
   learning --> focus
   learning --> kernel
+  learning --> memory_ports
   learning --> reflex
   learning --> types
   learning --> utils
@@ -305,6 +311,7 @@ graph TD
   memory --> learning
   memory --> memory_lifecycle
   memory --> memory_links
+  memory --> memory_ports
   memory --> memory_pressure
   memory --> memory_state
   memory --> strategies
@@ -317,10 +324,17 @@ graph TD
   memory_lifecycle --> memory_pressure
   memory_links --> memory
   memory_links --> types
+  memory_ports --> memory
+  memory_ports --> memory_links
+  memory_ports --> strategies
+  memory_ports --> terms
+  memory_ports --> types
   memory_pressure --> _
   memory_pressure --> memory
+  memory_pressure --> memory_ports
   memory_state --> bag
   memory_state --> memory
+  memory_state --> memory_ports
   memory_state --> state
   memory_state --> task
   meta --> bag
@@ -347,8 +361,10 @@ graph TD
   query --> memory
   query --> types
   query --> utils
+  reason --> memory
   reason --> strategies
   reason --> types
+  reason_strategies --> memory
   reason_strategies --> strategies
   reflex --> _
   reflex --> focus
@@ -379,7 +395,7 @@ graph TD
   rules_extended --> rules_nal
   rules_impls --> cognitive_impls
   rules_impls --> kernel
-  rules_impls --> memory
+  rules_impls --> memory_ports
   rules_impls --> rules
   rules_impls --> rules_extended
   rules_impls --> rules_nal
@@ -430,6 +446,7 @@ graph TD
   stream --> tick
   stream --> types
   task --> kernel
+  task --> memory_ports
   task --> terms
   task --> types
   telemetry --> metrics

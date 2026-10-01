@@ -48,6 +48,7 @@
     "deps:check": "dpdm --circular --warning false src/ core/src/ nar/src/ io/src/ metta/src/",
     "deps:gate": "tsx scripts/deps-gate.ts",
     "core:no-lm": "tsx scripts/core-no-lm.ts",
+    "memory:ports": "tsx scripts/memory-ports.ts",
     "cycle:no-provider": "tsx scripts/cycle-no-provider.ts",
     "rule:has-fallback": "tsx scripts/rule-fallback.ts",
     "gates:one-cycle-path": "tsx scripts/gates-one-cycle-path.ts",

@@ -1,4 +1,4 @@
-import type { Concept } from '../../memory';
+import type { Concept } from '../../memory/concept.js';
 import type { FilterSpec, SampleConfig } from '../../strategies/premise/primitives';
 import { samplePremisesFromConfig } from '../../strategies/premise/primitives';
 import type { Strategy } from '../../strategies/types.js';

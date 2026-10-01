@@ -10,9 +10,10 @@ export { Concept } from './concept.js';
 export { Focus } from './focus.js';
 export type { ArchiveConfig, ForgettingPolicy } from './lifecycle/index.js';
 export { Archive, Forgetting } from './lifecycle/index.js';
-export type { MemoryConfig, MemoryStatistics } from './memory.js';
+export type { MemoryConfig, ResolvedMemoryConfig } from './config.js';
 export { Memory } from './memory.js';
 export { MemoryIndex } from './memory-index.js';
+export type * from './ports/index.js';
 export type { ScorerConfig } from './pressure/index.js';
 export { evictUnderPressure, MemoryScorer } from './pressure/index.js';
 export type {

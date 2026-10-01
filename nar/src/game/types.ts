@@ -10,7 +10,7 @@ import type { FocusBag } from '../focus/FocusBag.js';
 import type { FocusStepReport } from '../focus/Focus.js';
 import type { ParameterTable } from '../config/parameter-table.js';
 import type { CapabilityTier } from '../agent/profiles.js';
-import type { MemoryStatistics } from '../memory/memory.js';
+import type { MemoryStatistics } from '../memory/ports/statistics-view.js';
 
 /** Structural NAR subset sensors may read (never mutate). */
 export interface NARState {

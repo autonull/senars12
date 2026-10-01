@@ -66,8 +66,7 @@ export const PREMISE_SOURCES = {
 } as const;
 
 function getLinkStrength(memory: MemoryView, primary: Term, target: Term): number {
-  const linkManager = memory.getLinkManager();
-  return linkManager.getLinkPriority(primary, target);
+  return memory.links().getLinkPriority(primary, target);
 }
 
 /**

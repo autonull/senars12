@@ -76,8 +76,12 @@ export const coreLayerViolations = (from: string, source: string): CoreLayerViol
     ];
   });
 
-const lineAt = (source: string, offset: number): number =>
+export const lineAt = (source: string, offset: number): number =>
   source.slice(0, offset).split('\n').length;
+
+/** Every cycle-path source file, so a rule over them is written once. */
+export const scanCoreLayerSourceFiles = (): string[] =>
+  sourceFiles(NAR_SRC).filter((file) => isCyclePath(file));
 
 /** Every violation on the tree, cycle path only. */
 export const scanCoreLayer = (): CoreLayerViolation[] =>

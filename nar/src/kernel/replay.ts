@@ -15,6 +15,7 @@ import { createDefaultRegistry, resolveSlot } from '../cognitive/impls/Cognitive
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { Concept, ConceptTaskType, TaskData } from '../memory/concept.js';
 import { Memory } from '../memory/memory.js';
+import type { MemoryPorts } from '../memory/ports/index.js';
 import { serialize as serializeMemory } from '../memory/state/serialization.js';
 import type { AttentionModel } from '../strategies/types.js';
 import { rehydrateTask } from '../task/record.js';
@@ -57,7 +58,8 @@ export interface FullReplayOptions {
 }
 
 export interface ReplayResult {
-  memory: Memory;
+  /** The reconstructed store, as a port: replay reads it, it does not own it. */
+  memory: MemoryPorts;
   gateSnapshot: ReturnType<typeof replayCognitiveState>;
   appliedTasks: number;
   appliedRevisions: number;

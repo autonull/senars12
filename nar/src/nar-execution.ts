@@ -4,7 +4,7 @@ import type { CognitiveController } from './cognitive';
 import type { DriveManager } from './drives';
 import type { NARConfig } from './facade/config.js';
 import type { GateRegistry } from './kernel/GateRegistry.js';
-import type { Memory } from './memory';
+import type { MemoryPorts } from './memory/ports/index.js';
 import { CycleTrace, type CycleStage } from './proposal/cycle-trace.js';
 import type { LMProposalProducer } from './proposal/lm-rule-producer.js';
 import type { PolicyOptimizer, RLFPLearner } from './rlfp';
@@ -62,7 +62,7 @@ const META_GOALS: readonly { driveId: string; threshold: number; term: Term }[] 
 const META_GOAL_BY_DRIVE_ID = new Map(META_GOALS.map((g) => [g.driveId, g]));
 
 export interface NARExecutionOptions {
-  memory: Memory;
+  memory: MemoryPorts;
   taskManager: TaskManager;
   config: NARConfig;
   rlfp?: RLFPLearner;
@@ -99,7 +99,7 @@ export class NARExecution {
     this.proposals = options.proposals;
   }
 
-  private readonly memory: Memory;
+  private readonly memory: MemoryPorts;
   private readonly taskManager: TaskManager;
   private readonly config: NARConfig;
   private readonly rlfp?: RLFPLearner;

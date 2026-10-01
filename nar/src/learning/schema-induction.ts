@@ -18,7 +18,7 @@ import {
   parseJsonObject,
 } from '@senars/util';
 import { type BagItem, PriorityBag } from '../bag/Bag.js';
-import type { Memory } from '../memory';
+import type { MemoryReader } from '../memory/ports/index.js';
 import type { TextGenerator } from '../ports';
 import type { Term } from '../terms';
 import { containsSubterm, getSubject, Truth, termKey } from '../terms';
@@ -84,7 +84,7 @@ const DEFAULT_CONFIG: SchemaInductionConfig = {
 };
 
 export class SchemaInductor {
-  private readonly memory: Memory;
+  private readonly memory: MemoryReader;
   private readonly lmClient: TextGenerator;
   private readonly config: SchemaInductionConfig;
   private readonly logger: Logger;
@@ -97,7 +97,7 @@ export class SchemaInductor {
   static readonly #SEEN_SIGNATURE_CAP = 4096;
   readonly #seenSignatures = new LruCache<string, true>(SchemaInductor.#SEEN_SIGNATURE_CAP);
 
-  constructor(memory: Memory, lmClient: TextGenerator, config: Partial<SchemaInductionConfig> = {}) {
+  constructor(memory: MemoryReader, lmClient: TextGenerator, config: Partial<SchemaInductionConfig> = {}) {
     this.memory = memory;
     this.lmClient = lmClient;
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -335,7 +335,7 @@ Respond with JSON:
 }
 
 export const createSchemaInductor = (
-  memory: Memory,
+  memory: MemoryReader,
   lmClient: TextGenerator,
   config?: Partial<SchemaInductionConfig>
 ): SchemaInductor => {

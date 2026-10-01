@@ -7,7 +7,7 @@ import { formatNarseseTruth, pushCapped, stopwatch, toError } from '@senars/util
 import { findConflicts } from '../../cognitive/impls/conflict-utils.js';
 import type { DriveManager } from '../../drives';
 import { GATE_LOG_CAPACITY } from '../../kernel/event-ring.js';
-import type { Memory } from '../../memory';
+import type { MemoryReader } from '../../memory/ports/index.js';
 import type { ModelRuleSelector } from '../../strategies/types.js';
 import type { StampType, Term } from '../../terms';
 import { Truth, type Truth as TruthType } from '../../terms';
@@ -59,7 +59,7 @@ export class RuleProcessor {
   private readonly modelRulesById = new Map<string, ModelRule>();
   private eventBus: NarEventBus | null = null;
   private resultBuffer: RuleResult[] = [];
-  private memory?: Memory;
+  private memory?: MemoryReader;
   private host?: RuleProcessorHost;
   private readonly recorder: DerivationRecorder = new DerivationRecorder();
   private modelRuleSelector: ModelRuleSelector | null = null;
@@ -85,7 +85,7 @@ export class RuleProcessor {
   }
 
   setConfig(config: {
-    memory?: Memory;
+    memory?: MemoryReader;
     host?: RuleProcessorHost;
     recorderEnabled?: boolean;
   }): void {
