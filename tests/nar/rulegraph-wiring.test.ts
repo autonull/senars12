@@ -178,8 +178,8 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     const termB = TermBuilder.atom('B');
     const conceptA = memory.addConcept(termA);
     const conceptB = memory.addConcept(termB);
-    conceptA.priority = 0.8;
-    conceptB.priority = 0.6;
+    conceptA.writeAttention({ reason: 'assign', value: 0.8 });
+    conceptB.writeAttention({ reason: 'assign', value: 0.6 });
 
     // Create co-activation in graph
     graph.activate(termA, termB);

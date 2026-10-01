@@ -2,7 +2,7 @@
  * Inference Controller - Orchestrates task sampling, secondary selection, and rule firing
  */
 
-import { clamp01, sleep } from '@senars/util';
+import { sleep } from '@senars/util';
 import type { MemoryView } from '../memory/view.js';
 import type { RuleProcessor } from '../rules';
 import type {
@@ -119,7 +119,7 @@ export class InferenceController {
         cycleCount: Date.now(),
         memory: this.memory,
       });
-      if (boost !== 0) concept.priority = clamp01(concept.priority + boost);
+      if (boost !== 0) concept.writeAttention({ reason: 'prime', amount: boost });
 
       const task = createBeliefTaskFromConcept(concept);
       if (!task) continue;

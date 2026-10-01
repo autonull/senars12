@@ -146,9 +146,9 @@ describe('premise strategy compositions apply their declared filters', () => {
   it('linear scorer combines link and priority weights', () => {
     seedBelief(TermBuilder.atom('cat'));
     const weak = memory.getConcept(atom('cat'))!;
-    weak.priority = 0.1;
+    weak.writeAttention({ reason: 'assign', value: 0.1 });
     seedBelief(TermBuilder.atom('feline'));
-    memory.getConcept(atom('feline'))!.priority = 0.9;
+    memory.getConcept(atom('feline'))!.writeAttention({ reason: 'assign', value: 0.9 });
     memory.getLinkManager().addLink(atom('cat'), atom('feline'), { priority: 1 });
 
     const scored = samplePremisesFromConfig(memory, taskFor(atom('cat')), {
@@ -172,7 +172,7 @@ describe('premise strategy compositions apply their declared filters', () => {
     
     // Boost concept priority so it passes minScore
     const felineConcept = memory.getConcept(atom('feline'))!;
-    felineConcept.priority = 0.9;
+    felineConcept.writeAttention({ reason: 'assign', value: 0.9 });
 
     const selected = premise('semantic').selectSecondary(taskFor(atom('cat')), memory);
     expect(selected.length).toBeGreaterThan(0);

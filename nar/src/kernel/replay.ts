@@ -184,7 +184,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
       try {
         const term = termParser.parse(event.payload.term);
         const concept = memory.getConcept(term) ?? memory.addConcept(term);
-        concept.priority = event.payload.priority;
+        concept.writeAttention({ reason: 'assign', value: event.payload.priority });
         appliedActivations++;
       } catch (e) {
         skipped++;

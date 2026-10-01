@@ -133,7 +133,7 @@ export class SelfOptimizer {
 
     for (const concept of this.nar.listConcepts()) {
       if (concept.priority < 0.1 && concept.totalTasks === 0) {
-        concept.priority = Math.min(concept.priority + 0.05, 0.15);
+        concept.writeAttention({ reason: 'self-tune', amount: 0.05, cap: 0.15 });
       }
     }
   }

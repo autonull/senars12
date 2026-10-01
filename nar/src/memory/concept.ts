@@ -1,17 +1,47 @@
 import { asBeliefTruth, clamp01, makeId } from '@senars/util';
 import { type Bag, type BagOptions, createBag } from '../bag/index.js';
 import type { ResolvedBagSlot } from '../bag/registration.js';
-import { LINK } from '../constants.js';
 import type { Term, Truth } from '../terms';
-import { calculateSimilarity, type Stamp, TermMap, TermSet, termKey, termsEqual } from '../terms';
+import { calculateSimilarity, Stamp, TermMap, TermSet, termKey, termsEqual } from '../terms';
 import { type IndependenceStatus, Truth as TruthOps } from '../terms/impls/Truth.js';
 import type { Budget, TaskType } from '../types';
 import { jaccard } from '../utils/similarity.js';
 
 export type { IndependenceStatus };
 
-const DECAY_TIME_CONSTANT = 60000;
-const { DECAY_RATE, MIN_PRIORITY: MIN_LINK_STRENGTH } = LINK;
+/**
+ * Why a concept's attention is being written, and by how much.
+ *
+ * `priority` has no public setter, so this union *is* the write surface: a
+ * writer names a reason and the compiler rejects anything outside the list. The
+ * reasons are the operations the plan enumerates — input touch, prime, related
+ * touch, decay and self-tune, each a delta, and `assign` / `merge`, which
+ * replace the value outright — and each has one caller, so a value's history is
+ * readable off its reason (TODO29.a §5.4).
+ */
+export type AttentionEvent =
+  /** A task was admitted, or an existing one re-observed. */
+  | { readonly reason: 'input' }
+  /**
+   * An absolute value, written verbatim: a deserialised dump, a replayed
+   * activation event, or a sensor that computed a priority of its own. The
+   * shared shape is that the writer already decided the value and attention is
+   * not a factor in it.
+   */
+  | { readonly reason: 'assign'; readonly value: number }
+  /** The attention slot primed this concept itself. */
+  | { readonly reason: 'prime'; readonly amount: number; readonly cap?: number }
+  /** A neighbour of this concept was primed, and the activation spread. */
+  | { readonly reason: 'related'; readonly amount: number; readonly cap?: number }
+  /** The consolidation clock deducted attention. */
+  | { readonly reason: 'decay'; readonly amount: number }
+  /** A self-tuning pass lifted a drained concept off the floor. */
+  | { readonly reason: 'self-tune'; readonly amount: number; readonly cap?: number }
+  /** A merge kept the strongest of the merged priorities. */
+  | { readonly reason: 'merge'; readonly value: number };
+
+/** What admitting a task is worth in attention, absent any other signal. */
+const INPUT_BOOST = 0.1;
 
 export type RevisionCallback = (entry: {
   termKey: string;
@@ -37,18 +67,13 @@ export interface TaskData {
   readonly truth?: Truth;
   readonly budget: Budget;
   readonly timestamp?: number;
-  readonly stamp?: Stamp;
+  /** Minted at admission when the caller had none, so a read never has to invent one. */
+  readonly stamp: Stamp;
   readonly occurrenceTime?: number;
   readonly derived?: boolean;
 }
 
 export type ConceptTaskType = TaskType;
-
-export interface ConceptLink {
-  concept: Concept;
-  strength: number;
-  lastUpdated: number;
-}
 
 export interface ConceptMergeResult {
   merged: Concept;
@@ -62,12 +87,6 @@ export class Concept {
   readonly questionBag: Bag<TaskData>;
   readonly createdAt: number;
   lastAccessedAt: number;
-  private activation = 0;
-  private useCount = 0;
-  private lastDecayTime: number;
-  private linkedConcepts = new TermMap<ConceptLink>();
-  private subConcepts = new Set<Concept>();
-  private parentConcepts = new Set<Concept>();
   private readonly onRevision?: RevisionCallback;
 
   constructor(term: Term, config: ConceptConfig = {}) {
@@ -81,37 +100,58 @@ export class Concept {
     this.questionBag = createBag<TaskData>({ ...baseOptions, capacity: config.maxQuestions ?? 20 });
     this.createdAt = Date.now();
     this.lastAccessedAt = Date.now();
-    this.lastDecayTime = Date.now();
     this.onRevision = config.onRevision;
   }
 
   private _priority = 0;
 
+  /** Read-only: {@link writeAttention} is the only way in. */
   get priority(): number {
     return this._priority;
   }
 
-  set priority(value: number) {
-    this._priority = clamp01(value);
+  /**
+   * The single write path for {@link priority}. Each arm is one named operation
+   * with one reason type, so a caller cannot move attention without saying why
+   * — and `attention:write-surface` can enumerate the reasons rather than grep
+   * for assignments that may rot (TODO29.a §5.4).
+   */
+  writeAttention(event: AttentionEvent): void {
+    switch (event.reason) {
+      case 'input':
+        this._priority = clamp01(this._priority + INPUT_BOOST);
+        return;
+      case 'prime':
+      case 'related':
+      case 'self-tune':
+        this._priority = Math.min(event.cap ?? 1, clamp01(this._priority + event.amount));
+        return;
+      case 'decay':
+        this._priority = Math.max(0, this._priority - event.amount);
+        return;
+      case 'assign':
+      case 'merge':
+        this._priority = clamp01(event.value);
+    }
   }
 
   get key(): Term {
     return this.term;
   }
 
-  get activationValue(): number {
-    return this.activation;
-  }
-
   get totalTasks(): number {
     return this.beliefBag.size() + this.goalBag.size() + this.questionBag.size();
   }
 
-  addTask(type: ConceptTaskType, data: Omit<TaskData, 'id' | 'priority'>): boolean {
-    if (type === 'belief') return this.addBeliefWithRevision(data as TaskData);
+  addTask(
+    type: ConceptTaskType,
+    data: Omit<TaskData, 'id' | 'priority' | 'stamp'> & { readonly stamp?: Stamp }
+  ): boolean {
+    const stamped = { ...data, stamp: data.stamp ?? Stamp.createInput() };
+    if (type === 'belief') return this.addBeliefWithRevision(stamped as TaskData);
 
     const bag = type === 'goal' ? this.goalBag : this.questionBag;
-    const item = { ...data, id: makeId(), priority: data.budget.priority } as TaskData;
+    const item = { ...stamped, id: makeId(), priority: data.budget.priority } as TaskData;
     const added = bag.add(item);
     added && this.recordAccess();
     return added;
@@ -133,26 +173,6 @@ export class Concept {
     return this.questionBag.toArray();
   }
 
-  boost(amount: number): void {
-    this.activation = clamp01(this.activation + amount);
-    this._priority = clamp01(this._priority + amount);
-  }
-
-  decay(rate: number): void {
-    this._priority *= 1 - rate;
-  }
-
-  decayAttention(baseRate = 0.01): void {
-    const elapsed = Date.now() - this.lastDecayTime;
-    const decayFactor = Math.exp((-baseRate * elapsed) / DECAY_TIME_CONSTANT);
-    this.activation = clamp01(this.activation * decayFactor);
-    this._priority = clamp01(this._priority * decayFactor);
-    if (this._priority > 0 && elapsed < 1) {
-      this._priority = clamp01(this._priority * (1 - baseRate));
-    }
-    this.lastDecayTime = Date.now();
-  }
-
   invalidateTruth(reason: 'temporal' | 'contradiction'): boolean {
     const beliefs = this.beliefBag.toArray().filter((b) => b.truth);
     if (beliefs.length === 0) return false;
@@ -165,56 +185,6 @@ export class Concept {
       }
     }
     return beliefs.length > 0;
-  }
-
-  addLink(concept: Concept, strength = 0.5): void {
-    if (concept === this) return;
-
-    const update = (target: Concept, source: Concept) => {
-      const existing = target.linkedConcepts.get(source.term);
-      if (existing) {
-        existing.strength = clamp01(existing.strength + strength * 0.1);
-        existing.lastUpdated = Date.now();
-      } else {
-        target.linkedConcepts.set(source.term, {
-          concept: source,
-          strength,
-          lastUpdated: Date.now(),
-        });
-      }
-    };
-
-    update(this, concept);
-    update(concept, this);
-  }
-
-  removeLink(concept: Concept): void {
-    this.linkedConcepts.delete(concept.term);
-    concept.linkedConcepts.delete(this.term);
-  }
-
-  getLinks(): ConceptLink[] {
-    return Array.from(this.linkedConcepts.values());
-  }
-
-  forEachLink(fn: (link: ConceptLink) => void): void {
-    for (const link of this.linkedConcepts.values()) {
-      fn(link);
-    }
-  }
-
-  getLinkedConcepts(): Concept[] {
-    return Array.from(this.linkedConcepts.values()).map((link) => link.concept);
-  }
-
-  updateLinks(): void {
-    const now = Date.now();
-
-    for (const [key, link] of this.linkedConcepts.items()) {
-      const elapsed = now - link.lastUpdated;
-      link.strength *= Math.exp((-DECAY_RATE * elapsed) / DECAY_TIME_CONSTANT);
-      if (link.strength < MIN_LINK_STRENGTH) this.linkedConcepts.delete(key);
-    }
   }
 
   canMergeWith(other: Concept, threshold = 0.85): boolean {
@@ -238,47 +208,20 @@ export class Concept {
       });
     }
 
-    for (const other of others) {
-      other.forEachLink((link) => {
-        if (link.concept !== this) this.addLink(link.concept, link.strength);
-      });
-    }
-
-    this.priority = Math.max(this.priority, ...others.map((c) => c.priority));
+    this.writeAttention({
+      reason: 'merge',
+      value: Math.max(this.priority, ...others.map((c) => c.priority)),
+    });
     return { merged: this, discarded: others };
   }
 
-  split(): Concept[] {
-    if (this.subConcepts.size === 0) return [this];
-    return [...this.subConcepts];
-  }
-
-  addChildConcept(concept: Concept): void {
-    this.subConcepts.add(concept);
-    concept.parentConcepts.add(this);
-  }
-
-  removeChildConcept(concept: Concept): void {
-    this.subConcepts.delete(concept);
-    concept.parentConcepts.delete(this);
-  }
-
-  getChildConcepts(): Concept[] {
-    return Array.from(this.subConcepts);
-  }
-
-  getParentConcepts(): Concept[] {
-    return Array.from(this.parentConcepts);
-  }
-
   private recordAccess(): void {
-    this.useCount++;
     this.lastAccessedAt = Date.now();
-    this._priority = clamp01(this._priority + 0.1);
+    this.writeAttention({ reason: 'input' });
   }
 
   private addBeliefWithRevision(
-    data: TaskData | Omit<TaskData, 'id' | 'priority'>,
+    data: TaskData,
     independence: IndependenceStatus = 'unknown'
   ): boolean {
     const existing = this.findMatchingBelief(data.term);

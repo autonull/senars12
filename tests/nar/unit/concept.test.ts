@@ -55,38 +55,44 @@ describe('Concept', () => {
       ${'clamps high'} | ${1.5}  | ${1}
       ${'clamps low'}  | ${-0.5} | ${0}
     `('$operation priority', ({ value, expected }) => {
-      concept.priority = value;
+      concept.writeAttention({ reason: 'assign', value });
       expect(concept.priority).toBe(expected);
     });
 
     it('boosts priority', () => {
-      concept.priority = 0.5;
-      concept.boost(0.3);
+      concept.writeAttention({ reason: 'assign', value: 0.5 });
+      concept.writeAttention({ reason: 'prime', amount: 0.3 });
       expect(concept.priority).toBeGreaterThan(0.5);
     });
 
     it('floors priority at 0 when a negative boost overshoots', () => {
-      concept.priority = 0.1;
-      concept.boost(-0.3);
+      concept.writeAttention({ reason: 'assign', value: 0.1 });
+      concept.writeAttention({ reason: 'prime', amount: -0.3 });
       expect(concept.priority).toBe(0);
     });
 
     it('caps priority at 1 when a boost overshoots', () => {
-      concept.priority = 0.9;
-      concept.boost(0.5);
+      concept.writeAttention({ reason: 'assign', value: 0.9 });
+      concept.writeAttention({ reason: 'prime', amount: 0.5 });
       expect(concept.priority).toBe(1);
     });
 
-    it('decays priority', () => {
-      concept.priority = 0.8;
-      concept.decay(0.2);
-      expect(concept.priority).toBeLessThan(0.8);
+    it('holds a boost under an explicit cap', () => {
+      concept.writeAttention({ reason: 'assign', value: 0.9 });
+      concept.writeAttention({ reason: 'prime', amount: 0.5, cap: 0.95 });
+      expect(concept.priority).toBe(0.95);
     });
 
-    it('applies time decay', () => {
-      concept.priority = 0.9;
-      concept.decayAttention(0.01);
-      expect(concept.priority).toBeLessThan(0.9);
+    it('decays priority by the amount the clock deducted', () => {
+      concept.writeAttention({ reason: 'assign', value: 0.8 });
+      concept.writeAttention({ reason: 'decay', amount: 0.16 });
+      expect(concept.priority).toBe(0.64);
+    });
+
+    it('never decays below zero', () => {
+      concept.writeAttention({ reason: 'assign', value: 0.1 });
+      concept.writeAttention({ reason: 'decay', amount: 5 });
+      expect(concept.priority).toBe(0);
     });
   });
 
@@ -166,42 +172,12 @@ describe('Concept', () => {
       concept2 = new Concept(term2);
     });
 
-    it('adds link between concepts', () => {
-      concept1.addLink(concept2, 0.7);
-      const links = concept1.getLinks();
-      expect(links).toHaveLength(1);
-      expect(links[0]!.concept).toBe(concept2);
-      expect(links[0]!.strength).toBe(0.7);
-    });
-
-    it('gets linked concepts', () => {
-      concept1.addLink(concept2, 0.8);
-      expect(concept1.getLinkedConcepts()).toEqual([concept2]);
-    });
-
-    it('removes link', () => {
-      concept1.addLink(concept2, 0.6);
-      expect(concept1.getLinks()).toHaveLength(1);
-
-      concept1.removeLink(concept2);
-      expect(concept1.getLinks()).toHaveLength(0);
-    });
-
-    it('updates links', () => {
-      concept1.addLink(concept2, 0.5);
-      concept1.updateLinks();
-      expect(concept1.getLinks()).toHaveLength(1);
-    });
-
-    it('does not link to self', () => {
-      concept1.addLink(concept1, 0.9);
-      expect(concept1.getLinks()).toHaveLength(0);
-    });
-
-    it('creates bidirectional links', () => {
-      concept1.addLink(concept2, 0.7);
-      expect(concept1.getLinks()).toHaveLength(1);
-      expect(concept2.getLinks()).toHaveLength(1);
+    it('has no link graph of its own', () => {
+      // Links live in `LinkManager` and are read through the link port. A second
+      // term-keyed store on the concept was written only by `mergeWith`, so
+      // every reader of it saw an empty graph (TODO29.a §5.4, finding 6).
+      expect(concept1).not.toHaveProperty('linkedConcepts');
+      expect(concept1).not.toHaveProperty('addLink');
     });
   });
 
@@ -266,51 +242,34 @@ describe('Concept', () => {
       child = new Concept(childTerm);
     });
 
-    it('adds child concept', () => {
-      parent.addChildConcept(child);
-      expect(parent.getChildConcepts()).toHaveLength(1);
-    });
-
-    it('tracks parent concepts', () => {
-      parent.addChildConcept(child);
-      expect(child.getParentConcepts()).toEqual([parent]);
-    });
-
-    it('removes child concept', () => {
-      parent.addChildConcept(child);
-      parent.removeChildConcept(child);
-      expect(parent.getChildConcepts()).toHaveLength(0);
-    });
-
-    it('splits concept', () => {
-      const result = parent.split();
-      expect(result).toEqual([parent]);
+    it('has no parent/child graph of its own', () => {
+      expect(parent).not.toHaveProperty('subConcepts');
+      expect(parent).not.toHaveProperty('addChildConcept');
     });
   });
 
-  describe('activation', () => {
+  describe('input touch', () => {
     beforeEach(() => {
       const term = TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'))!;
       concept = new Concept(term);
     });
 
-    it('has initial activation of 0', () => {
-      expect(concept.activationValue).toBe(0);
+    it('starts at zero attention', () => {
+      expect(concept.priority).toBe(0);
     });
 
-    it('boosts activation', () => {
-      concept.boost(0.3);
-      expect(concept.activationValue).toBeGreaterThan(0);
-      expect(concept.activationValue).toBeLessThanOrEqual(1);
+    it('lifts attention when a task is admitted', () => {
+      concept.writeAttention({ reason: 'input' });
+      expect(concept.priority).toBeGreaterThan(0);
+      expect(concept.priority).toBeLessThanOrEqual(1);
     });
 
-    it('floors activation at 0 when a negative boost overshoots', () => {
-      concept.boost(0.3);
-      concept.boost(-0.5);
-      expect(concept.activationValue).toBe(0);
+    it('never exceeds 1 across many inputs', () => {
+      for (let i = 0; i < 50; i++) concept.writeAttention({ reason: 'input' });
+      expect(concept.priority).toBe(1);
     });
 
-    it('tracks access count', () => {
+    it('admitting a task touches attention', () => {
       concept.addTask('belief', {
         term: concept.term,
         truth: Truth.create(0.9, 0.9),
@@ -326,7 +285,7 @@ describe('Concept', () => {
     it('serializes and deserializes', () => {
       const term = TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'))!;
       const concept = new Concept(term);
-      concept.priority = 0.75;
+      concept.writeAttention({ reason: 'assign', value: 0.75 });
 
       expect(concept.term).toBeDefined();
       expect(concept.priority).toBe(0.75);
@@ -352,12 +311,12 @@ describe('Concept', () => {
       expect(concept.getBeliefs().length).toBeGreaterThan(0);
     });
 
-    it('handles decay on old concepts', () => {
+    it('drains to zero under repeated decay and stays there', () => {
       const term = TermBuilder.inheritance(TermBuilder.atom('old'), TermBuilder.atom('concept'))!;
       const concept = new Concept(term);
-      concept.priority = 0.9;
+      concept.writeAttention({ reason: 'assign', value: 0.9 });
 
-      concept.decayAttention(0.1);
+      concept.writeAttention({ reason: 'decay', amount: 0.09 });
       expect(concept.priority).toBeLessThan(0.9);
     });
   });

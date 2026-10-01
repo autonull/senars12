@@ -1,6 +1,6 @@
 # TODO29.a: Runtime Architecture — S/J/P over a closed core
 
-**Version:** 3.10 · **Status:** A0, A1, A2, A5, A12 step 1, its `^name` retirement and §0.8.4's n-ary gap landed — A3's decisions, A4, A6–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
+**Version:** 3.11 · **Status:** A0, A1, A2, A4, A5, A12 step 1, its `^name` retirement and §0.8.4's n-ary gap landed — A3's decisions, A6–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
 unchanged as the measurement and provenance record; §0.4 maps its sections onto this one) ·
 **Successor:** `TODO30.md`, blocked on this.
 
@@ -15,9 +15,9 @@ lifecycle.
 > **A fresh session reads §0.1 (two minutes), then §1.2 and §1.3 (the two invariants everything else
 > follows from), then §5.12 (the item summary — one command, one gate, one risk per item).** §4 row 16
 > is the finding that makes A11 cheap instead of an invention, and §12's two kill criteria should be
-> checked *before* anything is built. **A5 is done (§0.8.7), so the next item is A4** — the one deliberate
-> behaviour change, and it lands against a structure that no longer moves under it. §0.6 item 2 (A3's eight protocol decisions) is still
-> unanswered and is the one thing worth deciding before A3 is written.
+> checked *before* anything is built. **A4 is done (§0.8.8)**, so the only unanswered thing in the
+> queue is §0.6 item 2 — A3's eight protocol decisions — and then A6, whose dispatch order A4's
+> re-established baselines are the reference for.
 
 ---
 
@@ -30,7 +30,7 @@ lifecycle.
 | **What am I changing?** | Where model reasoning is reachable from, and therefore which parts of the core depend on it; who owns each cycle-path quantity; what a proposal is and when it may land; whether the rule set is data or code | §5 |
 | **What must result?** | A closed synchronous cycle over committed state, with S / J / P composed through one seam and one set of gates | §1, §2 |
 | **What must not change?** | NAL parity, determinism, `test:hermetic`, one inference path, the six packages, the epistemic firewall | §7 |
-| **How do I know it worked?** | Twelve new gates, each landing with its item and each shipped with a test proving it can fail. Five have landed (`cycle:no-provider`, `induction:inventory`, `core:no-lm`, `memory:ports`, `terms:canonical`'s A12 form) | §10 |
+| **How do I know it worked?** | Twelve new gates, each landing with its item and each shipped with a test proving it can fail. Six have landed (`cycle:no-provider`, `induction:inventory`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `terms:canonical`'s A12 form) | §10 |
 | **What belongs to TODO30 instead?** | Every data-structure choice, every cost target, `k`, the index shapes, the scaling gates | §11.2 |
 
 ### 0.2 Decided, and load-bearing
@@ -95,8 +95,12 @@ do is make four README promises structurally true rather than aspirational, and 
    done**: a three-premise conjunction reads back, and *readable* is now a gated property beside
    *injective*. **What is left is the reducers**, and they wait for A4's baselines (§5.12).
 6. ~~**A5**~~ — **done 2026-10-01** (§0.8.7): the cycle path reaches memory through nine named
-   ports, and `memory:ports` is the gate that says so. **What is left is A4** — the one deliberate
-   behaviour change, now against a structure that is not moving underneath it.
+   ports, and `memory:ports` is the gate that says so.
+7. ~~**A4**~~ — **done 2026-10-01** (§0.8.8): `Concept.priority` has no setter and seven named
+   reasons, reads do not decay, `getGoals()` stopped minting stamps, the scorer and `Concept`'s
+   second link graph are gone, and the RL/parity baselines were re-established and committed here.
+   **What is left is A3's eight protocol decisions** — the only unanswered thing in the queue — then
+   A6, whose dispatch order A4's baselines are the reference for.
 
 ### 0.7 What this plan is not
 
@@ -735,7 +739,111 @@ thing in each** — and a sweep that renamed all of them would have been wrong:
 `MemoryView` is the read surface the strategy layer takes, `MemoryClock.consolidate` is the *only*
 port that advances the decay clock, and `decayAll` is `private` in the one class that still holds it —
 so the write-surface enumeration A4 needs now starts from a port list rather than from a
-call-site grep. **A4 is the next item and it needs no decisions.**
+call-site grep. **A4 landed on 2026-10-01 (§0.8.8) and needed no decisions.**
+
+---
+
+### 0.8.8 A4 is done (2026-10-01) — attention has one owner, one clock, and reads that do not write
+
+The one deliberate behaviour change in the plan. `Concept.priority` is no longer writable from
+outside its own class, the two sampling methods stopped being writes that happened to return
+something, and the two quantities that had two owners (goal stamps, focus priority) have one each.
+
+| artefact | what it is |
+|---|---|
+| `memory/concept.ts` | **`AttentionEvent`** — seven reasons, and `writeAttention` as the only way `priority` moves. The public setter, `boost`, `decay`, `decayAttention`, `activation`, `activationValue`, `useCount` and `lastDecayTime` are gone |
+| `memory/memory.ts` | `sample` and `sampleWindow` are pure reads; `decayAll` is private with one caller and takes the cycles elapsed; `getGoals()` reads a stored stamp |
+| `memory/pressure/scorer.ts` | **deleted**, with `ScorerConfig` and its two barrel exports |
+| `memory/focus.ts` | the stored `priority` copy is gone: Focus selects by `concept.priority`, it does not keep it |
+| `memory/lifecycle/forgetting.ts` | `selectVictim(concepts)` — the victim policies read priority directly, and take no scorer |
+| `strategies/attention/SpreadingActivation.ts` | spreads through `ctx.memory.links()`, not a graph only `mergeWith` wrote |
+| `scripts/lib/attention-surface.ts`, `scripts/attention-write-surface.ts` | **`pnpm attention:write-surface`** — the backstop the plan names by this name |
+| `tests/nar/todo29a-a4.test.ts` | 16 tests: every gate rule failing first, then the behaviour on real objects |
+| `nar/src/rl/parity-acceptance.ts`, `tests/nar/rl/parity-restoration.test.ts` | the re-measured baselines, committed |
+
+**Five decisions this item did not pre-answer.**
+
+1. **The write surface is a closed union of reasons, not a token only the owner holds.** §5.4 asks
+   for "a small set of named operations … each has one caller and one reason type", which is what a
+   discriminated union gives for free: the compiler rejects a caller naming a reason that does not
+   exist, and the gate can *enumerate* the reasons instead of grepping for assignments that rot.
+   A private module token would have failed to compile at every other call site — including the ones
+   the plan wants to exist, since deserialise, replay and a coverage sensor all legitimately write an
+   absolute value they computed themselves. Those three share **`assign`**: the writer decided the
+   value and attention is not a factor in it.
+2. **The scorer is deleted rather than wired.** The first attempt wired recency to `lastAccessedAt`
+   and it broke `tests/nar/todo27-seeded-sampling.test.ts` within the hour: two stores built in the
+   same millisecond ranked differently, because the ranking read the clock. **A ranking that reads
+   `lastAccessedAt` is not a pure function of the store, and the tree's determinism invariant is
+   worth more than a second factor.** So recency is out; novelty and relevance are out because no
+   scorer has a link port to read them through; and what remains — `0.3 + 0.2·priority` per call
+   shape — is a monotone function of `priority`, which is what `topConcepts` now reads directly.
+   `forgetting-curve` and `composite` read `c.priority` and are the two policies whose numbers moved
+   (§5.13's risk row said parity is the arbiter; it was, and it held).
+3. **A read that decays is not a decay rate.** `activationDecayRate` was reaching
+   `attentionModel.decay(concept, 1, rate)` with a literal `1` for the cycles elapsed, so the
+   configuration said "per consolidation" and the code said "per whatever asked". `consolidate` now
+   divides by the interval it waited and passes the quotient, which is the same number on the
+   default interval of 10 and a real one above it. **It also means the decay clock only moves when
+   consolidation fires**, so a store that is read but never consolidated no longer forgets at all.
+   That is the plan's claim, not a new one — §4 row 1 measured 8.2 sweeps per cycle, and now there
+   is one per ten.
+4. **The link graph was deleted, and that is the *populate* branch of §5.4's either/or.**
+   `Concept.linkedConcepts` was written by `mergeWith` alone, so `SpreadingActivation.prime` walked
+   an empty map on every primed concept and returned `SimpleAttention`'s boost under a longer name.
+   The alternative to deletion — populating a second term-keyed store beside `LinkManager` — would
+   have added a writer to fix a reader. Instead the model reads `ctx.memory.links()`, which is
+   where links actually live and which `mergeConcepts`/`createAbstractConcept`/the associative
+   registry already write. **`SpreadingActivation` now does what its metadata says**, which means it
+   is a behaviour change under the `spreading` slot — a slot that is not the default
+   (`strategies.attention` defaults to `simple`), so the baselines below do not see it.
+5. **`Focus` stores concepts, not priorities.** It kept a `priority` snapshot taken at insert time
+   and `adjustAttention` moved *that* copy, so focus ranked on a value that had not changed since
+   admission. The copy is gone; `adjustAttention` went with it (no callers), and `findOrphanedLinks`
+   — which used `forEachLink` — now asks `LinkManager`.
+
+**The baselines, re-established here as §5.4 requires.** 20 seeds × 20 episodes × 30 steps,
+`--mode both`, all three environments, measured on this change and committed to the two files that
+carry them:
+
+| environment | before (2026-09-28) | after (A4) | floor | verdict |
+|---|---|---|---|---|
+| gridworld | 0.6459 | **0.6459** | 0.60 | unmoved |
+| bandit | 0.8240 | **0.7206** | 0.60 | −0.10, passes |
+| non-stationary | 0.9565 | **0.8316** | 0.60 | −0.13, passes |
+
+Bandit was re-run from the same tree and reproduced 0.7206 exactly, so the harness is still
+deterministic and the deltas are A4's, not the harness's. **Why bandit and non-stationary fell and
+gridworld did not:** both reward dense, immediate feedback over a short horizon, and a store that
+forgets on a clock instead of once per read keeps concepts attention longer — which is the behaviour
+A4 asked for and the cost of it. Gridworld is a sparse-reward grid where the concept set barely
+changes, so it does not see the difference. The seed pass rates went *up* (0.70 / 0.85 / 0.90), so
+the aggregate fall is a ceiling effect on a few strong seeds rather than a wider spread.
+
+**Improvement opportunities A4 exposed, none of them blocking.**
+
+- **`GoalRelevanceAttention` is inert, and now provably so.** It boosts by word overlap with
+  `memory.getFocus().getActiveGoals()`, and nothing ever calls `setActiveGoals` — so the overlap is
+  always 0 and the model is `SimpleAttention × 1`. `Memory.getGoals()` is the real enumeration and is
+  one port away. **Not done here**: it changes the meaning of a registered strategy, which is A11's
+  question about who may reach what, and it wants the `GoalEnumeration` port to be the answer rather
+  than a patch.
+- **`Focus`'s topic-boost machinery is dead with it** — `boostTopic`, `getTopicBoosts`,
+  `clearTopicBoosts`, `adjustPriority`, `activeGoals`, `getActiveGoals`, `forEachFocus`,
+  `focusConcepts` and `capacity` have no production caller. `nar/src/focus/Focus.ts` is a different
+  class and is not affected. A delete pass with the gate running is cheap; it was left because
+  §5.4's scope is attention ownership and a second deletion in the same commit is a second thing to
+  attribute.
+- **`Memory.mergeConcepts` has no caller at all**, and `Concept.canMergeWith` exists only for it.
+  Its similarity threshold (0.85) is a tuning constant nothing reaches.
+- **`getGoals()` still reads `occurrenceTime ?? Date.now()`**, which is the same defect one field
+  over from the stamp: two reads of a goal admitted without an occurrence time return different
+  timestamps. The admission path mints one (`createTask`), so this is only reachable through
+  `rehydrateTask` on an old dump; A9's event reducer is the right place to close it.
+- **`writeAttention` takes a reason union rather than a policy object**, so `SpreadingActivation`
+  still knows it is allowed to write a *neighbour's* attention. A model that returned boosts instead
+  of applying them would move the write into the owner, which is where §5.4's `Attention` interface
+  puts it. Not done: it changes every model's signature for a rule that is currently satisfied.
 
 ---
 
@@ -1269,12 +1377,12 @@ empty owner means the finding has no gate, and a finding with no gate is a findi
 
 | # | finding | evidence | owner |
 |---|---|---|---|
-| 1 | a read mutates the heap: `sample()` calls `decayAll()`, so one cycle does ~8 decay writes and ~8 population rankings; the decay clock advances `min(sampleSize, N)` times per cycle | `memory/memory.ts:354,370` → `:557`; measured 8.2/8.0/5.0 per cycle | **A4** |
+| 1 | a read mutates the heap: `sample()` calls `decayAll()`, so one cycle does ~8 decay writes and ~8 population rankings; the decay clock advances `min(sampleSize, N)` times per cycle | `memory/memory.ts:354,370` → `:557`; measured 8.2/8.0/5.0 per cycle | **A4 — done 2026-10-01** (§0.8.8): `sample` / `sampleWindow` are pure reads and the sweep has one caller, `consolidate`, which now reports the interval it elapsed instead of a literal `1` |
 | 2 | every memory read is a full scan and the index that exists is bypassed; the *default* premise source is a scan-and-sort | `memory.ts:216,206,244,471,542`; `strategies/premise/primitives.ts:56` | **A5 — dependency half done 2026-10-01** (§0.8.7): the cycle path reaches memory through nine ports and `memory:ports` gates the facade. **The read-shape half is untouched** — the scans are still scans, and the structures are TODO30 §4 |
-| 3 | the scorer is decorative: its only call site passes no context, so `novelty ≡ 1`, `relevance ≡ 0` and ranking by retrieval score *is* ranking by `priority` | `memory/pressure/scorer.ts:22-28,84-88`; one caller, `memory/lifecycle/forgetting.ts:46` | **A4** (the decision) |
+| 3 | the scorer is decorative: its only call site passes no context, so `novelty ≡ 1`, `relevance ≡ 0` and ranking by retrieval score *is* ranking by `priority` | `memory/pressure/scorer.ts:22-28,84-88`; one caller, `memory/lifecycle/forgetting.ts:46` | **A4 — done 2026-10-01** (§0.8.8): the class is deleted. Its four factors were a constant plus a scaled priority, so retrieval ranks by attention order directly; `forgetting-curve` and `composite` read `concept.priority` |
 | 4 | eviction measures concept count, not tasks, and its candidate filter is *anti-correlated* with pressure — the only evictable concepts are empty shells | `memory/pressure/consolidation.ts:24`; `memory.ts:519` | **A8** |
-| 5 | `getGoals()` mints a fresh `Stamp.createInput()` per goal per call, so anything keyed on stamp overlap reasons about an id that never repeats | `memory.ts:253` | **A4** |
-| 6 | `Concept.priority` has ten external and six internal writers; `linkedConcepts`/`subConcepts`/`parentConcepts` are written only by `mergeWith`, so `SpreadingActivation.prime` is a no-op wearing a real cost | call-site audit | **A4** |
+| 5 | `getGoals()` mints a fresh `Stamp.createInput()` per goal per call, so anything keyed on stamp overlap reasons about an id that never repeats | `memory.ts:253` | **A4 — done 2026-10-01** (§0.8.8): stamps are minted at admission (`Concept.addTask`) and `TaskData.stamp` is non-optional, so two reads of one goal return the same identity |
+| 6 | `Concept.priority` has ten external and six internal writers; `linkedConcepts`/`subConcepts`/`parentConcepts` are written only by `mergeWith`, so `SpreadingActivation.prime` is a no-op wearing a real cost | call-site audit | **A4 — done 2026-10-01** (§0.8.8): no setter, seven named reasons, and `Concept`'s second link graph deleted; `SpreadingActivation` now reads the link *port*, so it spreads through links that exist |
 | 7 | two rules document a fix they did not get: `stepScalars` is never invalidated (a shadowed `resetMetaBudget` means the memo is process-stale), and the `RuleIndex` tie-break orders nothing because `recordRuleHit` has no callers | `rules/impls/processor.ts:156-181`; `nar-execution.ts:76,116,179,368`; `rules/impls/RuleIndex.ts:131-140` | **A1** (delete), **A6** (tie-break) |
 | 8 | three of four dispatch buckets are empty: 0 of 55 registered rules use a wildcard, 21 share one hot cell | census, §13 | **A6** |
 | 9 | **the seam exists, is bounded and gated, and has no caller.** `StreamReasoner` is committed, exported and tested; its only caller in the repository is a test. Meanwhile the cycle reaches the model by a different route — `processLMRules`, called synchronously, 33× per cycle | `stream/reasoner.ts`; `strategies/derivation/DefaultDerivation.ts:26,30`; `nar-execution.ts:234` `step(5000, …)` | **A1** |
@@ -1547,14 +1655,23 @@ The interface is not the important part; the important part is that callers stop
   `linkedConcepts` is written only by `mergeWith`, so today they are no-ops wearing a cost, and
   `inference-controller.ts:104-110` applies their boost regardless.
 
-**Acceptance**
+**Acceptance — all met 2026-10-01 (§0.8.8)**
 
-- `Concept.priority` has no public setter, and the only module that can write it is the attention
-  owner's — asserted by the compiler, with a test enumerating the surface as a backstop;
-- `decayAll` has exactly one call site, and `maxSampledConcepts` appears in no decay measurement;
-- reading a concept twice without an intervening write returns the same identity and the same stamp;
-- the attention and clock implementations are replaceable without changing any caller;
-- the RL/parity baselines are re-established **here, once**, and committed in the same change.
+- ~~`Concept.priority` has no public setter, and the only module that can write it is the attention
+  owner's~~ — the setter is gone; `writeAttention(AttentionEvent)` is the only write, and
+  `attention:write-surface` enumerates the reasons and asserts a setter has not come back;
+- ~~`decayAll` has exactly one call site, and `maxSampledConcepts` appears in no decay
+  measurement~~ — one call site (`consolidate`), and the sweep is passed the cycles elapsed rather
+  than a literal `1`;
+- ~~reading a concept twice without an intervening write returns the same identity and the same
+  stamp~~ — `getGoals()` reads a stamp minted at admission, and sampling moves nothing;
+- ~~the attention and clock implementations are replaceable without changing any caller~~ — already
+  true after A5, and now exercised: a store's decay is whatever the installed model says, and
+  swapping `SimpleAttention` for `NullAttentionModel` changes no caller;
+- ~~the RL/parity baselines are re-established **here, once**, and committed in the same
+  change~~ — measured and committed: gridworld **0.6459** (unchanged), bandit **0.7206** (was
+  0.8240), non-stationary **0.8316** (was 0.9565), all above the 0.60 floors, bandit reproduced
+  0.7206 exactly on a repeat.
 
 
 ### 5.5 A5 — Make `Memory` a set of ports
@@ -2160,14 +2277,14 @@ Every acceptance criterion above is demonstrated by a command and a gate. Gates 
 | **A1** | `pnpm run cycle:no-provider && pnpm run rule:has-fallback && pnpm run gates:one-cycle-path && pnpm run config:model-matrix`, `pnpm test:determinism`, NAL suites — **done 2026-09-30** | `cycle:no-provider`, `rule:has-fallback`, `config:model-matrix`, `gates:one-cycle-path`, `induction:inventory` | **medium** — the only item that changes reasoning behaviour: not the derivations, but the *timing* of when rules exist, which changes the sequence over a fixed episode |
 | **A2** | `pnpm run core:no-lm && pnpm run deps:direction && pnpm run docs:drift` — **done 2026-10-01** | `core:no-lm`, plus the same row inside `deps:direction` | **medium-high** — 51 files. The price of a boundary that cannot be crossed by accident, and it is mechanical: reviewable by the compiler |
 | **A3** | `pnpm test:unit` (new seam tests), `pnpm run core:no-provider` | — (gates land with A1/A9/A10) | **low** — the one item the plan expands rather than contracts |
-| **A4** | `pnpm test:unit` + a diff on the committed baseline file | `attention:write-surface` | **high, and confined to this item.** Every learned value moves: why it is alone, why it lands after A5, and why the baselines are regenerated here rather than left to drift through A6–A8 |
+| **A4** | `pnpm run attention:write-surface`, `pnpm test:unit` + a diff on the committed baseline file — **done 2026-10-01** | `attention:write-surface` | **high, and confined to this item.** Every learned value moves: why it is alone, why it lands after A5, and why the baselines are regenerated here rather than left to drift through A6–A8 |
 | **A5** | `pnpm test:unit` + `pnpm memory:ports` — **done 2026-10-01** | `memory:ports` | **low** — mechanical, and the boundary was already implied by `MemoryView` |
 | **A6** | `pnpm test:unit` (NAL suites + dispatch tests) | `dispatch:no-wildcard` | **medium** — dispatch order changes, so parity is the gate |
 | **A7** | `pnpm test:unit` (budget-enforcement tests) | — | **low-medium** — the behaviour change is "steps stop running by default" |
 | **A8** | `pnpm test:unit` (resource-policy tests) | `resource:policy` | **medium** — retention policy *is* behaviour; policy and structure together is how a semantic change hides inside a refactor |
 | **A9** | `pnpm test:hermetic` — the tier this item exists to make possible | `replay:proposal` (`slow`) | **low** — extends an existing reducer with new event kinds |
 | **A10** | `pnpm run rules:loaded-data`, `pnpm test:unit` | `rules:loaded-data` | **medium-high** — the only item that changes what the system can do rather than how it is arranged. Last in sequence for that reason |
-| **A12** | `pnpm run terms:canonical`, NAL suites, `pnpm test:unit` — **step 1 (§5.12.1) done 2026-09-30, `^name` retirement done 2026-10-01, §0.8.4's readability rule done 2026-10-01; the reducers remain and want A4's baselines** | `terms:canonical` (now also asserting *readable*, not only injective), plus the widened round-trip test |
+| **A12** | `pnpm run terms:canonical`, NAL suites, `pnpm test:unit` — **step 1 (§5.12.1) done 2026-09-30, `^name` retirement done 2026-10-01, §0.8.4's readability rule done 2026-10-01; the reducers remain, and A4's baselines they were waiting for now exist (§0.8.8)** | `terms:canonical` (now also asserting *readable*, not only injective), plus the widened round-trip test |
 | **A11** | `pnpm run config:model-matrix`, `pnpm test:unit` | `config:model-matrix` (re-landed, with the manifest) | **medium** — the item that can spread. A capability available everywhere is as safe as each call site, so its acceptance is mostly *declarations*, and an ungated declaration is a comment |
 
 ### 5.14 The questions A1–A3 will be decided by
@@ -2214,9 +2331,10 @@ A0 ─▶ A1 ─▶ A2 ─▶ A3 ─▶ ~~A5~~ ─▶ A4 ─┬─▶ A6 ─▶ 
                     A12 §5.12.1 (grammar alignment) → A12 reducers, after A4's baselines
 ```
 
-**As of 2026-10-01: A0, A1, A2 and A5 are done** (§0.8, §0.8.1, §0.8.6, §0.8.7). A3's eight protocol
-*decisions* are the next unanswered thing in the queue and nothing else blocks on them; A3's
-*implementation* still waits for A5 → A4, since it registers through the dispatch port A6 owns.
+**As of 2026-10-01: A0, A1, A2, A4 and A5 are done** (§0.8, §0.8.1, §0.8.6, §0.8.7, §0.8.8). A3's
+eight protocol *decisions* are the next unanswered thing in the queue and nothing else blocks on
+them; A3's *implementation* now waits only on A6's dispatch port, since the structural item it was
+waiting behind has landed.
 
 **The ordering rule: structural before behavioural.** A5, A2 and A6 are mechanical — they move code
 and change no derived value. A1, A4 and A8 change what the system concludes or how fast it forgets.
@@ -2274,7 +2392,10 @@ profile of the wrong system.
 5. **Each cycle-path quantity has one owner, and the type says so.** For `priority` this is
    representational — no public setter, writes confined to the attention owner's module — because an
    invariant that can only be enforced by review is not one. For everything else it is enumerable, and
-   a test enumerates it.
+   a test enumerates it. **Extended by A4, and now the tree's strongest invariant:** a quantity may
+   have exactly one owner *and one writer per reason*, and **a read is a read** — `sample`,
+   `sampleWindow` and `getGoals` return what is there and move nothing, so what a system concludes is
+   a function of what it was told rather than of how often it was asked (§0.8.8).
 6. **The core does not depend on the induction layer**, in either direction: `nar` core may not import
    the layer's directory, and the layer may not reach core internals by any route weaker than public
    API. Enforced by the dependency gate, not by review.
@@ -2332,13 +2453,22 @@ Named, so the plan is falsifiable by diff:
   summary field it fed — a field that always reported `0/5`.
 - `enableLMRules` and `lm` from the core config schema, plus the README and `docs/api` references
   (A2).
-- `MemoryScorer`'s `novelty` and `relevance` factors, or the whole class — A4's recorded decision.
-- `Stamp.createInput()` from any getter (A4).
-- The public `Concept.priority` setter itself, not just its external uses: the invariant is enforced
-  by the type, not by ten call sites (A4).
-- `Memory.sample` and `Memory.sampleWindow`, or their `decayAll` side effects (A4).
-- `Concept.linkedConcepts` / `subConcepts` / `parentConcepts`, and with them
-  `SpreadingActivation.prime`, `Concept.updateLinks`, `findOrphanedLinks` — unless A4 populates them.
+- ~~`MemoryScorer`'s `novelty` and `relevance` factors, or the whole class~~ — **done (A4,
+  §0.8.8): the whole class.** `addLink`, `removeLink`, `getLinks`, `forEachLink`,
+  `getLinkedConcepts`, `updateLinks`, `split`, `addChildConcept`, `removeChildConcept`,
+  `getChildConcepts`, `getParentConcepts` and `ConceptLink` went with it.
+- ~~`Stamp.createInput()` from any getter~~ — **done (A4)**: `TaskData.stamp` is non-optional and
+  minted in `Concept.addTask`.
+- ~~The public `Concept.priority` setter itself, not just its external uses~~ — **done (A4)**; the
+  invariant is enforced by the type, not by ten call sites. With it, `Concept.boost`,
+  `Concept.decay`, `Concept.decayAttention`, `activation`, `activationValue`, `useCount` and
+  `lastDecayTime`.
+- ~~`Memory.sample` and `Memory.sampleWindow`, or their `decayAll` side effects~~ — **done (A4)**: the
+  side effects, not the methods.
+- ~~`Concept.linkedConcepts` / `subConcepts` / `parentConcepts`, and with them
+  `SpreadingActivation.prime`, `Concept.updateLinks`, `findOrphanedLinks`~~ — **done (A4)**, on the
+  *populate* branch: `SpreadingActivation` reads the link **port** instead of walking a graph only
+  `mergeWith` wrote, and `findOrphanedLinks` reads `LinkManager`.
 - The three wildcard lookups in `RuleIndex.candidatesFor` — `*:right`, `left:*`, `*:*` — and
   `createRulePattern`'s optional parameters. Measured safe: 0 of 55 registered rules use a wildcard
   bucket (A6).
@@ -2398,7 +2528,7 @@ gate listed here and not wired is the exact failure mode this plan is about.
 | `core:no-lm` | **landed 2026-10-01, in a narrower form than stated:** no cycle-path module imports `nar/src/lm/` — relative, workspace-subpath, static, dynamic, value or type — and the shipped rule table is exactly the registered NAL rules (55, census in `tests/nar/todo29a-a2.test.ts`). **Not asserted:** literal removal of the layer directory from the build graph, since `nar/src/index.ts` re-exports it for assembly, which is the correct shape. See §0.8.6 | A2 | `gate` |
 | `deps:gate` +1 row | **landed, in `deps:direction` rather than `deps:gate`.** `deps:gate` counts cycles and compares a number; a layering rule is not a number, and `deps:direction` is already the gate that reads manifests and reports named violations. Both gates call one implementation (`scripts/lib/layer-boundary.ts`), so the rule has one body and two places it can be caught. `core` imports only `util` and its own schemas — already true and already checked | A2 | `gate` |
 | `memory:ports` | **landed 2026-10-01:** no cycle-path module imports `nar/src/memory/memory.ts` — by file, by directory or through the barrel — and the two sites that legitimately construct a store are declared in a ledger with reasons. §0.8.7 | A5 | `gate` |
-| `attention:write-surface` | every `Concept.priority` write is inside the attention owner's module; a new one fails | A4 | `gate` |
+| `attention:write-surface` | **landed 2026-10-01, in a narrower form than stated:** the compiler holds the primary invariant (no setter) and the gate holds the rest — no `set priority` in the owner, every declared reason written with somewhere in `nar/src` + `src`, no reason the union lacks, `sample` / `sampleWindow` contain no write, and the decay sweep has exactly one call site. §0.8.8 | A4 | `gate` |
 | `dispatch:no-wildcard` | no registered rule sits under a wildcard bucket | A6 | `gate` |
 | `resource:policy` | every production accumulator is in the ledger, and a memory at capacity with nothing evictable says so | A8 | `gate` |
 | `rules:loaded-data` | no module-side-effect registration survives; the table is enumerable, versioned, revertable; two revisions are diffable and a prior one is restorable; an empty table is a runnable state | A10 | `gate` |
@@ -2557,7 +2687,7 @@ retrieved; it may never change **what counts as** committed state (§1.2).
 |---|---|---|---|
 | **A1 is not the cheap change believed.** The committed channel is wired in and something *else* reaches the layer from the cycle | **medium** — the cycle path is `DefaultDerivation`, `RuleProcessor`, the tick bindings and `PerceptionGate`, and only part of it was traced | a cycle that does **not** complete with a hanging `J` and `P`, or derivations that change when a provider is added | widen A1 rather than declaring victory. The acceptance is a test and the test is the arbiter — not a call count, which §4 row 11 shows can be zero while a real dependency remains |
 | **A2 is a swamp.** 39 files, and the layer reaches into core internals | medium | the diff stops being mechanical and starts having semantic content | A2 is after A1, so the `Proposal` interface is known. If it is still hard, take Q8 (seventh package) early — a compiler error is a better boundary than a review convention |
-| ~~**A4 or A5 land as wrappers.**~~ A5's half is **answered and gated** (§0.8.7): `Memory` is off the cycle path and a facade import fails the gate, so the cycle depends on ports rather than on a forwarding god-object. A4's half stands and is unaffected | ~~medium~~ | `Memory` keeps its responsibilities behind a forwarding interface; or a new external `priority` writer appears and no test fails | A5's acceptance is that the cycle depends on ports, and if `Memory` is still on the cycle path it is not done. A4's mitigation is the type-level removal of the setter, with `attention:write-surface` as the backstop landing in the same change. A4 is gated on NAL parity, and its baselines are re-established in the same change so later drift is attributable |
+| ~~**A4 or A5 land as wrappers.**~~ **Both halves answered and gated.** A5: `Memory` is off the cycle path and a facade import fails the gate (§0.8.7). A4: the setter is gone, so an external writer does not compile, and `attention:write-surface` fails on a `set priority` returning, on a reason nothing writes, and on a read that writes (§0.8.8) | ~~medium~~ | `Memory` keeps its responsibilities behind a forwarding interface; or a new external `priority` writer appears and no test fails | The setter is a type, so the "new external writer" branch fails at compile time and the gate is the second line. Baselines were re-established and committed in the same change — gridworld unmoved, bandit −0.10, non-stationary −0.13, all above floor — so later drift is attributable to A6 and after |
 | **A12's reducers are not sound and parity moves** | medium — six rewrites over every compound term the reasoner builds, and NAL axioms applied to truth-bearing terms are easy to get subtly wrong | any of the four parity suites changes what it derives | the gate is parity, and a parity change is a *finding about the reducer*, not a baseline to regenerate. Each reducer lands separately with the others disabled, so one soundness bug is one reducer |
 | **A10 never lands and the thesis stays prose** | **medium** — the largest item, last in sequence, and the easiest to defer because the other nine all look like progress | the plan closes with A1–A9 done and "the rule set is a learnable artifact" still describing a message format | if the sequence is cut, cut here *explicitly*: record in §7 and §8 that the rule set is code, and stop claiming otherwise. A floor delivered honestly beats a thesis claimed and not built |
 | **The thesis is negative.** S+J+P is not better than S alone | unknown — but no longer unknowable | the `nal` vs `manifold`/`lm` arcade run comes out flat or negative | Q3: write the hypothesis, run it with a seed count that survives the noise, publish the number either way. **A command, not a project** — but it needs A1 for a clean control and A10 for a meaningful with-`P` arm |

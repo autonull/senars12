@@ -324,7 +324,7 @@ export class NARIO {
     // Boost priority of the concept itself
     const concept = this.memory.getConcept(term);
     if (concept) {
-      concept.priority = Math.min(maxPriority, concept.priority + primeBoost);
+      concept.writeAttention({ reason: 'prime', amount: primeBoost, cap: maxPriority });
     }
 
     // Also boost concepts that share terms (simple relevance propagation).
@@ -338,7 +338,7 @@ export class NARIO {
       this.memory.forEachConcept((c) => {
         if (c.term === term) return;
         if (sharesInheritanceEnd(term, c.term)) {
-          c.priority = Math.min(maxPriority, c.priority + relatedBoost);
+          c.writeAttention({ reason: 'related', amount: relatedBoost, cap: maxPriority });
         }
       });
     }

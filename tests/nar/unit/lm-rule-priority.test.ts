@@ -52,8 +52,8 @@ describe('RuleProcessor LM Rule Priority', () => {
     const termB = TermBuilder.atom('B');
     const conceptA = memory.addConcept(termA);
     const conceptB = memory.addConcept(termB);
-    conceptA.priority = 0.9;
-    conceptB.priority = 0.8;
+    conceptA.writeAttention({ reason: 'assign', value: 0.9 });
+    conceptB.writeAttention({ reason: 'assign', value: 0.8 });
 
     processor.registerModelRule(mockLMRule);
     await collectResults(processor.process(singlePremise(makeInput('A'), makeInput('B'))));
@@ -66,8 +66,8 @@ describe('RuleProcessor LM Rule Priority', () => {
     const termB = TermBuilder.atom('B');
     const conceptA = memory.addConcept(termA);
     const conceptB = memory.addConcept(termB);
-    conceptA.priority = 0.7;
-    conceptB.priority = 0.6;
+    conceptA.writeAttention({ reason: 'assign', value: 0.7 });
+    conceptB.writeAttention({ reason: 'assign', value: 0.6 });
 
     processor.registerModelRule(mockLMRule);
     await collectResults(processor.process(singlePremise(makeInput('A'), makeInput('B'))));
@@ -91,8 +91,8 @@ describe('RuleProcessor LM Rule Priority', () => {
     const termB = TermBuilder.atom('B');
     const conceptA = memory.addConcept(termA);
     const conceptB = memory.addConcept(termB);
-    conceptA.priority = 0.9;
-    conceptB.priority = 0.1;
+    conceptA.writeAttention({ reason: 'assign', value: 0.9 });
+    conceptB.writeAttention({ reason: 'assign', value: 0.1 });
 
     processor.registerModelRule(mockLMRule);
     await collectResults(processor.process(singlePremise(makeInput('A'), makeInput('B'))));
@@ -109,8 +109,8 @@ describe('RuleProcessor LM Rule Priority', () => {
     const termB = TermBuilder.atom('B');
     const conceptA = memory.addConcept(termA);
     const conceptB = memory.addConcept(termB);
-    conceptA.priority = 0.9;
-    conceptB.priority = 0.9;
+    conceptA.writeAttention({ reason: 'assign', value: 0.9 });
+    conceptB.writeAttention({ reason: 'assign', value: 0.9 });
 
     const failingRule: any = {
       id: 'failing-lm-rule',

@@ -28,8 +28,8 @@ describe('Bench 91 — test hygiene & monolith paydown (REFACTOR.todo3 Phase A)'
 
   it('Clock injection: MemoryQuery ranking deterministic under pinned time (100 runs)', async () => {
     const mem = new Memory({ maxConcepts: 100, activationDecayRate: 0.01 });
-    mem.addConcept(TermBuilder.atom('cat')).priority = 0.9;
-    mem.addConcept(TermBuilder.atom('catalog')).priority = 0.7;
+    mem.addConcept(TermBuilder.atom('cat')).writeAttention({ reason: 'assign', value: 0.9 });
+    mem.addConcept(TermBuilder.atom('catalog')).writeAttention({ reason: 'assign', value: 0.7 });
     const ep = new EpisodicMemory({
       basePath: await mkdtemp(join(tmpdir(), 'bench91-')).then((d) => (dirs.push(d), d)),
       clock: fixedClock(1_700_000_000_000),

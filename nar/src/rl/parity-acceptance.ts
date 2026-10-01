@@ -12,8 +12,12 @@
  * do so on most seeds rather than on one lucky one.
  *
  * Measured on the seeded harness, 20 seeds x 20 episodes x 30 steps
- * (TODO27 §16/§19): gridworld 0.646, bandit 0.824, nonstationary 0.957 — and
- * bit-identical on every repeat, so a red gate is a behaviour change.
+ * (TODO27 §16/§19), and re-baselined on 2026-10-01 by A4 — the one item in
+ * TODO29.a that is allowed to move a learned value: gridworld 0.646,
+ * bandit 0.721, nonstationary 0.832, bit-identical on a repeat of the same
+ * tree. Gridworld did not move at all; bandit and non-stationary lost ~0.10 and
+ * ~0.13, which is the price of a store that decays on its own clock rather than
+ * once per `sample()` (§5.4). A red gate is still a behaviour change.
  *
  * The gridworld floor was re-baselined from 0.70 to 0.60 on 2026-09-28. The old
  * 0.70 (TODO11 1E) was calibrated against a harness whose own spread on an

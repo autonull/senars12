@@ -40,6 +40,9 @@ export const GATES: readonly Gate[] = [
   // it actually has, and every declared bound is true.
   // TODO29.a A5: the cycle path reaches memory through its ports, not the facade.
   script('memory:ports'),
+  // TODO29.a A4: attention has one write surface, the decay sweep has one
+  // caller, and the two read paths contain no write.
+  script('attention:write-surface'),
   script('cycle:no-provider'),
   // TODO29.a A0: the in-cycle induction inventory, and its references still hold.
   script('induction:inventory'),

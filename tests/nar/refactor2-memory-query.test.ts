@@ -35,7 +35,7 @@ const makeMemory = (): Memory => {
   const mem = new Memory({ maxConcepts: 100, activationDecayRate: 0.01 });
   for (const symbol of ['cat', 'catalog', 'dog', 'catastrophe']) {
     const concept = mem.addConcept(TermBuilder.atom(symbol));
-    concept.priority = symbol === 'cat' ? 0.9 : symbol === 'catalog' ? 0.7 : 0.3;
+    concept.writeAttention({ reason: 'assign', value: symbol === 'cat' ? 0.9 : symbol === 'catalog' ? 0.7 : 0.3 });
   }
   return mem;
 };

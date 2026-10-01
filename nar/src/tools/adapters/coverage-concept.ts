@@ -62,7 +62,7 @@ export function createCoverageConceptTools(deps: CoverageConceptDeps = {}) {
               const term = TermBuilder.atom(`coverage_${fileName}`);
               const concept = deps.memory.getConcept(term) ?? deps.memory.addConcept(term);
               const priority = 1 - fc.lines.pct / 100;
-              concept.priority = Math.max(0.01, priority);
+              concept.writeAttention({ reason: 'assign', value: Math.max(0.01, priority) });
 
               const beliefTruth = Truth.create(fc.lines.pct / 100, 0.9);
               if (admit.admitTask(term, 'belief', beliefTruth, 'coverage-sensor').admitted) {

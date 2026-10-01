@@ -286,8 +286,10 @@ describe('todo7: full-state memory replay', () => {
       persistGateLogs(registry, gatePath);
       const result = await replayIntoMemory({ gateEventsPath: gatePath, cognitiveParams });
       const concept = result.memory.getConcept(termParser.parse('(a-->b)'))!;
-      concept.priority = 1;
-      result.memory.sample(1);
+      concept.writeAttention({ reason: 'assign', value: 1 });
+      // The decay clock is consolidation's, and consolidation fires on its
+      // interval — a read no longer advances it (TODO29.a §4 row 1).
+      for (let i = 0; i < 10; i++) result.memory.consolidate();
       return concept.priority;
     };
 
@@ -300,7 +302,8 @@ describe('todo7: full-state memory replay', () => {
     });
     const unconfigured = await replay(undefined);
 
-    // `simple` subtracts priority × activationDecayRate; `NullAttentionModel` subtracts nothing.
+    // `simple` deducts priority × activationDecayRate per elapsed cycle;
+    // `NullAttentionModel` deducts nothing.
     expect(configured).toBeLessThan(1);
     expect(unconfigured).toBe(1);
   });

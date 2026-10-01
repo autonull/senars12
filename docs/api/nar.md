@@ -990,7 +990,7 @@ _Dynamic subpath (no single entry file)._
 
 - `Concept`
 
-- `Focus`
+- `Focus` — The concepts attention is currently spent on, bounded by priority.
 
 - `Archive`
 
@@ -1001,8 +1001,6 @@ _Dynamic subpath (no single entry file)._
 - `MemoryIndex`
 
 - `evictUnderPressure` — The archive/forget policy — the only place concepts leave the live store
-
-- `MemoryScorer`
 
 - `calculateConceptStats`
 

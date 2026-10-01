@@ -48,7 +48,7 @@ describe('memory pressure', () => {
   it('restores an archived concept as the same live instance', () => {
     const memory = new Memory({ maxConcepts: 4 });
     const archived = memory.addConcept(idleTerm(0));
-    archived.priority = 0;
+    archived.writeAttention({ reason: 'assign', value: 0 });
     expect(memory.archiveConcept(archived)).toBe(true);
     expect(memory.getConcept(archived.term)).toBeUndefined();
 

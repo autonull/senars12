@@ -28,7 +28,7 @@ const memoryWithLinks = (): Memory => {
   const add = (name: string, priority: number) => {
     const term = atom(name);
     const concept = memory.addConcept(term);
-    concept.priority = priority;
+    concept.writeAttention({ reason: 'assign', value: priority });
     concept.addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createBudget(priority) });
   };
   add('cat', 0.1);

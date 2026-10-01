@@ -93,10 +93,7 @@ function serializeBag(bag: Bag<TaskData>): TaskRecord[] {
   return tasks;
 }
 
-export async function deserialize(
-  data: SerializedMemory,
-  memory: ConceptWriter
-): Promise<void> {
+export async function deserialize(data: SerializedMemory, memory: ConceptWriter): Promise<void> {
   if (data.version !== MEMORY_VERSION) {
     throw new Error(`Unsupported memory version: ${data.version}`);
   }
@@ -111,7 +108,9 @@ export async function deserialize(
       restoreBag(concept, 'goal', serialized.goals);
       restoreBag(concept, 'question', serialized.questions);
       // Last: task restore bumps priority via recordAccess; the dump wins.
-      if (typeof serialized.priority === 'number') concept.priority = serialized.priority;
+      if (typeof serialized.priority === 'number') {
+        concept.writeAttention({ reason: 'assign', value: serialized.priority });
+      }
     } catch {
       // expected: individual concept deserialization failure shouldn't abort memory load
       logger.warn('Failed to deserialize concept', { term: serialized.term });

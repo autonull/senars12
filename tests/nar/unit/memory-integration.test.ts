@@ -76,7 +76,7 @@ describe('Phase 5: Memory Integration', () => {
     });
   });
 
-  describe('MemoryScorer Integration', () => {
+  describe('attention-order sampling', () => {
     it('should use scorer for sampling', () => {
       const memory = new Memory();
 
@@ -89,14 +89,27 @@ describe('Phase 5: Memory Integration', () => {
       expect(sampled.length).toBeGreaterThan(0);
     });
 
-    it('should score concepts for consolidation', () => {
+    it('returns the highest-attention concepts first', () => {
       const memory = new Memory();
-      const term = TermBuilder.atom('scorable');
-      const concept = memory.addConcept(term);
+      for (const [name, priority] of [
+        ['low', 0.1],
+        ['high', 0.9],
+        ['mid', 0.5],
+      ] as const) {
+        memory.addConcept(TermBuilder.atom(name)).writeAttention({ reason: 'assign', value: priority });
+      }
 
-      const score = memory['scorer'].scoreForConsolidation(concept);
-      expect(score).toBeGreaterThanOrEqual(0);
-      expect(score).toBeLessThanOrEqual(1);
+      expect(memory.sample(3).map((c) => c.term.toString())).toEqual(['high', 'mid', 'low']);
+    });
+
+    it('does not move attention by being sampled', () => {
+      const memory = new Memory();
+      const concept = memory.addConcept(TermBuilder.atom('stable'));
+      concept.writeAttention({ reason: 'assign', value: 0.42 });
+
+      memory.sample(3);
+      memory.sample(3);
+      expect(concept.priority).toBe(0.42);
     });
   });
 

@@ -177,7 +177,7 @@ describe('C3 Hot-path benchmarks (bench 119+)', () => {
       // Add some concepts
       for (let i = 0; i < 100; i++) {
         const concept = memory.addConcept(atom(`concept${i}`));
-        concept.priority = 0.5 + Math.random() * 0.5;
+        concept.writeAttention({ reason: 'assign', value: 0.5 + Math.random() * 0.5 });
       }
 
       mockSamplingStrategy = {

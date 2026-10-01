@@ -5,11 +5,11 @@ import type { AttentionModel } from '../strategies/types.js';
 import {
   mentionsSymbol,
   Stamp,
+  type Term,
   TermMap,
   type TermMapEntry,
   TermSet,
   Truth,
-  type Term,
   termKey,
 } from '../terms';
 import { atom } from '../terms/impls/factory.js';
@@ -18,7 +18,12 @@ import { NEUTRAL_BUDGET } from '../types';
 import { nextInt } from '../utils/random.js';
 import { AssociativeRegistry, GraphMemory } from './associative.js';
 import type { ConceptGraph } from './ConceptGraph.js';
-import { Concept, type ConceptMergeResult, type ConceptTaskType, type TaskData } from './concept.js';
+import {
+  Concept,
+  type ConceptMergeResult,
+  type ConceptTaskType,
+  type TaskData,
+} from './concept.js';
 import { DEFAULT_MEMORY_CONFIG, type MemoryConfig, type ResolvedMemoryConfig } from './config.js';
 import { type EmbeddingGenerator, MockEmbeddingGenerator } from './embedding.js';
 import { Focus } from './focus.js';
@@ -28,10 +33,10 @@ import { LinkManager } from './links';
 import { EmbeddingLayer } from './links/EmbeddingLayer.js';
 import { LINK_LAYER } from './links/types.js';
 import { MemoryIndex } from './memory-index.js';
-import type { LinkPort } from './ports/links.js';
 import type { MemoryPorts } from './ports/index.js';
+import type { LinkPort } from './ports/links.js';
 import type { MemoryStatistics } from './ports/statistics-view.js';
-import { evictUnderPressure, MemoryScorer } from './pressure';
+import { evictUnderPressure } from './pressure';
 import { selectSimilar } from './similarity.js';
 import { calculateConceptStats, tallyConcepts } from './state';
 import { filterByTerm } from './term-filter.js';
@@ -62,7 +67,6 @@ export class Memory implements MemoryPorts {
   private readonly index: MemoryIndex;
   private readonly focus: Focus;
   private readonly archive: Archive;
-  private readonly scorer: MemoryScorer;
   private readonly forgetting: Forgetting;
   private readonly linkManager: LinkManager;
   private readonly revisionLog = new BoundedRing<RevisionEntry>(Memory.REVISION_LOG_CAP);
@@ -91,7 +95,6 @@ export class Memory implements MemoryPorts {
     this.archive = new Archive({
       maxArchivedConcepts: this.config.archiveMaxConcepts,
     });
-    this.scorer = new MemoryScorer();
     this.forgetting = new Forgetting(this.config.forgettingPolicy);
     this.linkManager = new LinkManager({
       defaultCapacity: config.linkCapacity ?? LINK.DEFAULT_CAPACITY,
@@ -125,7 +128,6 @@ export class Memory implements MemoryPorts {
   getAssociativeMemories(): AssociativeRegistry {
     return this.associative;
   }
-
 
   /** Publish the co-activation graph as the `graph` associative memory, replacing any prior one. */
   attachConceptGraph(graph: ConceptGraph): ConceptGraph {
@@ -209,20 +211,29 @@ export class Memory implements MemoryPorts {
     return this.focus;
   }
 
+  /**
+   * A pure read: the stored goals, as tasks.
+   *
+   * It used to mint `Stamp.createInput()` for any goal admitted without one,
+   * so a second call returned a different stamp for the same goal and
+   * `Stamp.overlaps` / `noStampOverlap` reasoned about an id that could never
+   * repeat. Stamps are minted once at admission (`Concept.addTask`) and read
+   * here, which makes two reads of one goal return the same identity
+   * (TODO29.a §4 row 5).
+   */
   getGoals(): Task[] {
     const goals: Task[] = [];
     for (const concept of this.concepts.values()) {
       for (const g of concept.goalBag.toArray()) {
-        const task: Task = {
+        goals.push({
           term: g.term,
           type: 'goal',
           truth: g.truth ?? Truth.NEUTRAL,
           budget: g.budget,
-          stamp: g.stamp ?? Stamp.createInput(),
+          stamp: g.stamp,
           occurrenceTime: (g.occurrenceTime ?? Date.now()) as Task['occurrenceTime'],
           derived: g.derived ?? false,
-        };
-        goals.push(task);
+        });
       }
     }
     return goals;
@@ -319,16 +330,37 @@ export class Memory implements MemoryPorts {
     return false;
   }
 
+  /**
+   * A pure read: the `n` highest-priority resident concepts.
+   *
+   * Sampling used to advance the decay clock as a side effect, so one inference
+   * cycle wrote the whole population several times and ranked it several times,
+   * and *how often you read* decided *what survived*. The clock now belongs to
+   * {@link consolidate} alone, which is called once per interval — so a read is
+   * a read, and forgetting is a function of time rather than of query volume
+   * (TODO29.a §4 row 1, §5.4).
+   */
   sample(limit: number): Concept[] {
-    this.decayAll();
     return this.topConcepts(limit);
   }
 
-  /** The `n` highest-priority resident concepts, ranked by the retrieval score. */
+  /**
+   * The `n` highest-attention resident concepts: attention order, which is what
+   * `topK` means to every consumer.
+   *
+   * This used to rank by `MemoryScorer.scoreForRetrieval`, a four-factor score
+   * whose novelty and relevance had no signals at any call site and whose
+   * recency was a literal `1` — so the score was a constant plus a scaled
+   * priority, and the ranking was attention order wearing an indirection. What
+   * replaced it is deliberately free of the clock: a ranking that read
+   * `lastAccessedAt` would make two stores built in the same millisecond order
+   * differently, which is the determinism invariant the scorer cannot have
+   * (TODO29.a §4 row 3, §5.4).
+   */
   private topConcepts(n: number): Concept[] {
-    return selectTopN(this.residentEntries(), n, (entry) =>
-      this.scorer.scoreForRetrieval(entry.value)
-    ).map((entry) => entry.value);
+    return selectTopN(this.residentEntries(), n, (entry) => entry.value.priority).map(
+      (entry) => entry.value
+    );
   }
 
   /**
@@ -336,7 +368,6 @@ export class Memory implements MemoryPorts {
    * Used by windowed-roulette sampling strategy for positional-local diversity.
    */
   sampleWindow(windowSize: number, rng: () => number = Math.random): Concept[] {
-    this.decayAll();
     const allConcepts = this.topConcepts(windowSize);
 
     if (allConcepts.length <= windowSize) return allConcepts;
@@ -347,14 +378,19 @@ export class Memory implements MemoryPorts {
   }
 
   consolidate(opts?: { cycleCount?: number }): void {
-    if (++this.cyclesSinceConsolidation < this.config.consolidationInterval) return;
+    const interval = this.config.consolidationInterval;
+    if (++this.cyclesSinceConsolidation < interval) return;
+    // The interval that actually elapsed, not a literal 1: `decay` takes the
+    // cycles it is to deduct over, and consolidation on an interval of 10 is a
+    // ten-cycle decay.
+    const cyclesElapsed = Math.max(1, Math.floor(this.cyclesSinceConsolidation / interval));
     this.cyclesSinceConsolidation = 0;
 
-    this.attentionModel.tick(this, opts?.cycleCount ?? this.cyclesSinceConsolidation);
+    this.attentionModel.tick(this, opts?.cycleCount ?? cyclesElapsed);
 
     const { linkDecayRate } = this.config;
 
-    this.decayAll();
+    this.decayAll(cyclesElapsed);
 
     evictUnderPressure(this);
 
@@ -522,19 +558,23 @@ export class Memory implements MemoryPorts {
     this.revisionLog.push({ ...entry, timestamp: ts });
   }
 
-  private decayAll(): void {
-    // Every `sample()` decays the whole population, and a concept that has
-    // already decayed to zero stays there: its decay is zero times the rate, so
-    // skipping it changes no value and saves the write. Under pressure the tail
-    // of drained concepts is the majority of the population.
+  /**
+   * The one decay sweep in the system, reached from {@link consolidate} and
+   * nowhere else — so what a concept forgets is a function of elapsed
+   * consolidation intervals rather than of how many times a sampler read the
+   * store (TODO29.a §5.4). A concept already at zero stays there: its decay is
+   * zero times the rate, so skipping it changes no value and saves the write.
+   * Under pressure the tail of drained concepts is the majority of the
+   * population.
+   */
+  private decayAll(cyclesElapsed: number): void {
     const rate = this.config.activationDecayRate;
     const concepts = this.residentEntries();
     for (let i = 0; i < concepts.length; i++) {
       const concept = concepts[i]!.value;
-      const priority = concept.priority;
-      if (priority <= 0) continue;
-      const decay = this.attentionModel.decay(concept, 1, rate);
-      if (decay !== 0) concept.priority = Math.max(0, priority - decay);
+      if (concept.priority <= 0) continue;
+      const decay = this.attentionModel.decay(concept, cyclesElapsed, rate);
+      if (decay !== 0) concept.writeAttention({ reason: 'decay', amount: decay });
     }
   }
 
@@ -563,7 +603,7 @@ export class Memory implements MemoryPorts {
   }
 
   private applyForgetting(): void {
-    const concept = this.forgetting.selectVictim(Array.from(this.concepts.values()), this.scorer);
+    const concept = this.forgetting.selectVictim(Array.from(this.concepts.values()));
     if (concept) this.removeConcept(concept.term);
   }
 
@@ -594,14 +634,11 @@ export class Memory implements MemoryPorts {
     };
   }
 
+  /** Resident concepts holding at least one link to a term that is no longer stored. */
   private findOrphanedLinks(): Concept[] {
-    return [...this.concepts.values()].filter((concept) => {
-      let hasOrphan = false;
-      concept.forEachLink((link) => {
-        if (!this.concepts.has(link.concept.key)) hasOrphan = true;
-      });
-      return hasOrphan;
-    });
+    return [...this.concepts.values()].filter((concept) =>
+      this.linkManager.getLinks(concept.term).some((link) => !this.concepts.has(link.targetTerm))
+    );
   }
 }
 

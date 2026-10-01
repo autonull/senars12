@@ -1,6 +1,5 @@
 import { containsSubterm, type Term, TermMap } from '../terms';
 import type { Task } from '../types';
-import { clamp01 } from '@senars/util';
 import type { Concept } from './concept.js';
 
 export interface FocusConfig {
@@ -11,8 +10,17 @@ const DEFAULT_CONFIG: FocusConfig = {
   maxConcepts: 50,
 };
 
+/**
+ * The concepts attention is currently spent on, bounded by priority.
+ *
+ * It stores the concepts and nothing else. It used to store a `priority` copy
+ * taken at insert time and let `adjustAttention` move that copy, which made a
+ * second owner of a quantity `Concept` already owns — one that drifted the
+ * moment anything was primed, decayed or restored. Focus *selects* by
+ * priority; it does not keep it (TODO29.a §5.4).
+ */
 export class Focus {
-  private concepts: TermMap<{ concept: Concept; priority: number }> = new TermMap();
+  private concepts: TermMap<Concept> = new TermMap();
   private config: FocusConfig;
   private topicBoosts = new Map<string, { factor: number; ttl: number }>();
   private activeGoals: Task[] = [];
@@ -44,7 +52,7 @@ export class Focus {
       if (lowestKey === undefined || lowestPriority >= concept.priority) return;
       this.concepts.delete(lowestKey);
     }
-    this.concepts.set(concept.term, { concept, priority: concept.priority });
+    this.concepts.set(concept.term, concept);
   }
 
   removeFromFocus(concept: Concept): boolean {
@@ -52,15 +60,13 @@ export class Focus {
   }
 
   forEachFocus(fn: (concept: Concept) => void): void {
-    for (const entry of this.concepts.values()) {
-      fn(entry.concept);
+    for (const concept of this.concepts.values()) {
+      fn(concept);
     }
   }
 
   *focusConcepts(): IterableIterator<Concept> {
-    for (const entry of this.concepts.values()) {
-      yield entry.concept;
-    }
+    yield* this.concepts.values();
   }
 
   getFocusSet(): Concept[] {
@@ -71,13 +77,6 @@ export class Focus {
 
   clearFocus(): void {
     this.concepts.clear();
-  }
-
-  adjustAttention(concept: Concept, delta: number): void {
-    const entry = this.concepts.get(concept.term);
-    if (!entry) return;
-
-    entry.priority = clamp01(entry.priority + delta);
   }
 
   boostTopic(topic: string, factor = 2.0, ttl = 50): void {

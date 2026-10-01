@@ -9,7 +9,9 @@
  * store and the action selectors, so a repeated run of an unchanged tree
  * reproduces the ratio exactly — measured 2026-09-28 at this configuration:
  * gridworld 0.6459, bandit 0.8240, nonstationary 0.9565, byte-identical on
- * every repeat.
+ * every repeat, and re-measured 2026-10-01 after A4 at gridworld 0.6459,
+ * bandit 0.7206, nonstationary 0.8316 (bandit reproduced 0.7206 exactly on a
+ * repeat).
  * The previous signal was load, not behaviour: the same commit measured
  * 0.44–0.91 across runs.
  *

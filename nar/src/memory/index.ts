@@ -7,15 +7,14 @@ export type { CoActivationEdge, ConceptGraphOptions } from './ConceptGraph.js';
 export { ConceptGraph } from './ConceptGraph.js';
 export type { ConceptTaskType } from './concept.js';
 export { Concept } from './concept.js';
+export type { MemoryConfig, ResolvedMemoryConfig } from './config.js';
 export { Focus } from './focus.js';
 export type { ArchiveConfig, ForgettingPolicy } from './lifecycle/index.js';
 export { Archive, Forgetting } from './lifecycle/index.js';
-export type { MemoryConfig, ResolvedMemoryConfig } from './config.js';
 export { Memory } from './memory.js';
 export { MemoryIndex } from './memory-index.js';
 export type * from './ports/index.js';
-export type { ScorerConfig } from './pressure/index.js';
-export { evictUnderPressure, MemoryScorer } from './pressure/index.js';
+export { evictUnderPressure } from './pressure/index.js';
 export type {
   ConceptStats,
   SerializedConcept,

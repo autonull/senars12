@@ -81,7 +81,7 @@ describe('Phase 5.4: Memory Serialization', () => {
     memory1.addTask(inh, 'belief', Truth.create(1, 0.9), createBudget(0.8), s2);
     memory1.addTask(TermBuilder.atom('goal1'), 'goal', Truth.create(1, 0.9), createBudget(0.7));
     memory1.addTask(TermBuilder.atom('q1'), 'question', undefined, createBudget(0.6));
-    memory1.getConcept(inh)!.priority = 0.75;
+    memory1.getConcept(inh)!.writeAttention({ reason: 'assign', value: 0.75 });
 
     const data = JSON.parse(JSON.stringify(serialize(memory1)));
     const memory2 = new Memory();
