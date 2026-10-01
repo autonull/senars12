@@ -1,7 +1,26 @@
 // Narsese Grammar for Peggy Parser - senars12 version
 // Based on proven senars11 parser design
+//
+// Every kind named here is an `OPERATORS` key, and every symbol is that key's
+// `OPERATORS[kind].symbol`. `pnpm terms:canonical` fails if the two tables
+// disagree, so the grammar cannot name a kind the term layer has no entry for.
 
-{{ const INFIX_KINDS = {'-->': 'inheritance', '<->': 'similarity', '==>': 'implication', '<=>': 'equivalence', '<~>': 'contrast', '=/>' : 'predictive', '=|': 'retrospective', '=/=': 'anti', '=': 'equality', '&&': 'conjunction', '||': 'disjunction', '&': 'conjunction', '|': 'disjunction', '&|': 'parallel', '&/': 'sequence'}; }}
+{{
+  // Canonical spelling only: one entry per `OPERATORS` key, and each value is the
+  // symbol the serialiser writes. `LEGACY_KINDS` are older spellings Narsese
+  // readers still meet; they resolve to the same kinds and nothing else.
+  const INFIX_KINDS = {'-->': 'inheritance', '<->': 'similarity', '==>': 'implication', '<=>': 'equivalence', '=/>': 'predictive', '=|': 'retrospective', '&': 'conjunction', '|': 'disjunction', '&|': 'parallel', '&/': 'sequence', '^': 'operation'};
+  // The wrapper operators are absent on purpose: `--`, the open brace and the
+  // open bracket are literals in the rules that spell them, and peggy's
+  // initializer counts braces, so those symbols cannot appear here at all.
+  const LEGACY_KINDS = {'&&': 'conjunction', '||': 'disjunction', '=>': 'implication', ',/': 'sequence'};
+  const kindOf = (symbol) => INFIX_KINDS[symbol] ?? LEGACY_KINDS[symbol];
+  const operatorKind = (symbol) => {
+    const kind = kindOf(symbol);
+    if (!kind) error(`'${symbol}' is not an operator`);
+    return kind;
+  };
+}}
 
 start = _ content:(Task / Term) _ { return content; }
 
@@ -40,6 +59,7 @@ TruthValue
 
 Term "term"
   = OperationTerm
+  / OperationAtom
   / Statement
   / CompactInheritance
   / NegationTerm
@@ -61,6 +81,12 @@ OperationTerm "operation term"
       return options.termFactory.inheritance(productTerm, opAtom);
     }
 
+// `^name(args)` is an operation term; `^name` on its own is an atom naming the
+// operation. The lookahead is what keeps the two apart, and it is why `^` is not
+// an atom character: `(a^b)` must reach the infix rule, not the atom rule.
+OperationAtom "operation atom"
+  = "^" name:OperationName ![(\[] { return options.termFactory.atom('^' + name); }
+
 OperationName "operation name"
   = chars:$([^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+) { return chars; }
 
@@ -76,7 +102,8 @@ OperationArgs "operation arguments"
     }
 
 OperationArg "operation argument"
-  = Statement
+  = OperationAtom
+  / Statement
   / CompactInheritance
   / NegationTerm
   / DeltaTerm
@@ -89,10 +116,10 @@ OperationArg "operation argument"
 OperationAtomicTerm "operation atomic term (allows colons)"
   = StringLiteral
   / ColonedAtom
-  / chars:$([^(){}[\]<>.,!%?;@ \t\n\r=&/|>-]+) { return options.termFactory.atom(chars); }
+  / chars:$([^(){}[\]<>.,!%?;@ \t\n\r=&/|>^-]+) { return options.termFactory.atom(chars); }
 
 ColonedAtom "namespaced atomic term with colons"
-  = head:$([^(){}[\]<>.,!%?;@ \t\n\r=&/|>-]+) tail:$(":" [^(){}[\]<>.,!%?;@ \t\n\r=&/|>-]+)+ {
+  = head:$([^(){}[\]<>.,!%?;@ \t\n\r=&/|>^-]+) tail:$(":" [^(){}[\]<>.,!%?;@ \t\n\r=&/|>-]+)+ {
       return options.termFactory.atom(head + tail.join(''));
     }
 
@@ -113,14 +140,24 @@ ImagePlaceholder
   / "/" { return options.termFactory.atom('/'); }
 
 CompoundTerm
-  = "(" _ op:Operator _ ","? _ components:TermList _ ")" {
-      return options.termFactory.create(op, components);
+  = "(" _ "--" _ term:Term _ ")" {
+      return options.termFactory.negation(term);
     }
-  / operator:AtomicTerm "(" _ components:TermList? _ ")" {
-      return options.termFactory.create(operator.kind, components || []);
+  / "(" _ symbol:OperatorSymbol _ ","? _ components:TermList _ ")" {
+      return options.termFactory.create(operatorKind(symbol), components);
+    }
+  // `f(x, y)` — the short-hand for an operation term. It is accepted and never
+  // written: the canonical spelling is `(f^(x,y))`, the one the serialiser emits
+  // and the one that says which operator is named rather than implying it.
+  / operator:OperationAtomicTerm "(" _ components:TermList? _ ")" {
+      const args = components || [];
+      return options.termFactory.operation(
+        operator,
+        args.length === 1 ? args[0] : options.termFactory.product(...args)
+      );
     }
   / "(" _ components:TermList? _ ")" {
-      return options.termFactory.tuple(components || []);
+      return options.termFactory.product(...(components || []));
     }
 
 Statement
@@ -129,23 +166,24 @@ Statement
 
 AngleBracketStatement
   = "<" _ subject:Term _ op:InfixOperator _? _ predicate:Term _ ">" {
-      return options.termFactory.create(INFIX_KINDS[op.trim()] ?? op.trim(), [subject, predicate]);
+      return options.termFactory.create(operatorKind(op.trim()), [subject, predicate]);
     }
 
 ParenthesizedStatement
   = "(" _ subject:Term _ op:InfixOperator _? _ predicate:Term _ ")" {
-      return options.termFactory.create(INFIX_KINDS[op.trim()] ?? op.trim(), [subject, predicate]);
+      return options.termFactory.create(operatorKind(op.trim()), [subject, predicate]);
     }
 
-Operator
-  = op:("-->" / "<->" / "==>" / "<=>" / "<~>" / "=/>" / "=|" / "=/=" / "=" / "&&" / "||" / "&|" / "&/" / "&," / "|," / "-->," / "<->," / "==>," / "<=>," / "--" / "=>" / "&" / "|") {
-      return op.endsWith(',') ? op.slice(0, -1) : op;
-    }
+// The two rules are the same token list read at two syntactic positions: after
+// a compound's opening paren, and between two terms. Trailing `,` is the
+// `<a, --> b>` shorthand, which the operator is written after in.
+OperatorSymbol = op:OperatorToken { return op.endsWith(',') ? op.slice(0, -1) : op; }
+InfixOperator = op:OperatorToken { return op; }
 
-InfixOperator
-  = op:("-->" / "<->" / "==>" / "<=>" / "<~>" / "=/>" / "=|" / "=/=" / "=" / "&&" / "||" / "&|" / "&/" / "&" / "|" / ",/") {
-      return op === ',/' ? '&/' : op;
-    }
+OperatorToken
+  = "-->" / "<->" / "==>" / "<=>" / "=/>" / "=|" / "&|" / "&/" / "^" / "&" / "|"
+  / "&&" / "||" / "=>" / ",/"
+  / "-->," / "<->," / "==>," / "<=>," / "&," / "|,"
 
 Set
   = "{" _ components:TermList? _ "}" { return options.termFactory.create('setExt', components || []); }
@@ -162,9 +200,11 @@ TermList
       return terms;
     }
 
+// A leading `^` is the operation sigil, never part of an atom name — it is the
+// only reason `(a^b)` reads as a compound and not as one atom named `a^b`.
 AtomicTerm "atomic term"
   = StringLiteral
-  / chars:$([^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+) { return options.termFactory.atom(chars); }
+  / chars:$([^(){}[\]<>.,!%?;:@ \t\n\r=&/|>^-]+) { return options.termFactory.atom(chars); }
 
 StringLiteral
   = '"' chars:$([^"]*) '"' { return options.termFactory.atom('"' + chars + '"'); }

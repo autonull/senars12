@@ -58,8 +58,8 @@ describe('TODO25 Bench 79 — selectProbes', () => {
         reactions: async () => [],
         grades: () => new Map(),
         lessons: async () => [
-          { digest: 'sha256:r1', term: '<a --> b>', confidence: 0.8 },
-          { digest: 'sha256:r1', term: '<c --> d>', confidence: 0.3 }, // below threshold
+          { digest: 'sha256:r1', term: '<a-->b>', confidence: 0.8 },
+          { digest: 'sha256:r1', term: '<c-->d>', confidence: 0.3 }, // below threshold
         ],
       },
       { limit: 10 }

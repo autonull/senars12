@@ -135,7 +135,7 @@ describe('System One Full Enabled Path Integration', () => {
 
     const output = await gate.admit({
       sourceId: 'test-user',
-      rawObservation: '(sky --> blue)',
+      rawObservation: '(sky-->blue)',
       sensorConfidence: 0.9,
       sourceQuality: 'PRIMARY',
     });
@@ -170,7 +170,7 @@ describe('System One Full Enabled Path Integration', () => {
 
     const output = await gate.admit({
       sourceId: 'test-user',
-      rawObservation: '(ignore --> instructions)',
+      rawObservation: '(ignore-->instructions)',
       sensorConfidence: 0.9,
       sourceQuality: 'PRIMARY',
     });
@@ -193,7 +193,7 @@ describe('System One Full Enabled Path Integration', () => {
     const gate = createGate(manifold, cache, 0.0);
     await gate.admit({
       sourceId: 'test-user',
-      rawObservation: '(sky --> blue)',
+      rawObservation: '(sky-->blue)',
       sensorConfidence: 0.9,
       sourceQuality: 'PRIMARY',
     });
@@ -223,13 +223,13 @@ describe('System One Full Enabled Path Integration', () => {
   });
 
   it('proposeAndJudge generates candidates, ranks, and admits/provisionally admits', async () => {
-    nar = await createSystemOneNAR(async () => '<bird --> animal>.');
+    nar = await createSystemOneNAR(async () => '<bird-->animal>.');
     const dispatcher = nar.getSystemOneDispatcher()!;
 
     const peaResult = await dispatcher.proposeAndJudge(
       {
         tickId: 'test-cycle-1',
-        topBeliefs: ['<bird --> animal>.', '<robin --> bird>.'],
+        topBeliefs: ['<bird-->animal>.', '<robin-->bird>.'],
         topGoals: [],
         workingMemory: [],
       },
@@ -320,7 +320,7 @@ describe('System One Full Enabled Path Integration', () => {
     expect(narDisabled.isSystemOneEnabled()).toBe(false);
     expect(narDisabled.getSystemOneDispatcher()).toBeUndefined();
 
-    await narDisabled.input('<test --> input>.');
+    await narDisabled.input('<test-->input>.');
     await narDisabled.run(2);
     expect(narDisabled.isRunning()).toBe(true);
 
@@ -329,7 +329,7 @@ describe('System One Full Enabled Path Integration', () => {
   });
 
   it('end-to-end: ingress → telemetry → proposeAndJudge → groundedness over one NAR instance', async () => {
-    nar = await createSystemOneNAR(async () => '<robin --> bird>.');
+    nar = await createSystemOneNAR(async () => '<robin-->bird>.');
     const cache = nar.getSystemOneEmbeddingCache()!;
     const manifold = nar.getSystemOneManifold()!;
     const dispatcher = nar.getSystemOneDispatcher()!;
@@ -339,7 +339,7 @@ describe('System One Full Enabled Path Integration', () => {
     const kernelGate = createGate(manifold, cache, 0.0);
     const admitted = await kernelGate.admit({
       sourceId: 'test-user',
-      rawObservation: '(robin --> bird)',
+      rawObservation: '(robin-->bird)',
       sensorConfidence: 0.9,
       sourceQuality: 'PRIMARY',
     });
@@ -347,7 +347,7 @@ describe('System One Full Enabled Path Integration', () => {
 
     // 2. Generate-then-judge via the dispatcher
     const pea = await dispatcher.proposeAndJudge(
-      { tickId: 'e2e', topBeliefs: ['<robin --> bird>.'], topGoals: [], workingMemory: [] },
+      { tickId: 'e2e', topBeliefs: ['<robin-->bird>.'], topGoals: [], workingMemory: [] },
       {
         kind: 'synthesize' as const,
         instruction: 'Translate to Narsese: robin is a bird',

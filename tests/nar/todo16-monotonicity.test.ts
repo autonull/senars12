@@ -100,7 +100,7 @@ describe('System One — Adversarial Monotonicity (Bench 8)', () => {
   });
 
   it('task_type classification is stable under perturbation', async () => {
-    const cleanInput = '<bird --> animal>.';
+    const cleanInput = '<bird-->animal>.';
     const cleanPointer = await cache.write(cleanInput);
 
     const queries: JudgmentQuery[] = [

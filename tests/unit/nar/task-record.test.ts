@@ -48,26 +48,26 @@ describe('InputProcessor task typing', () => {
   });
 
   it('honours the configured default when the mark is absent', () => {
-    expect(new InputProcessor({ defaultType: 'question' }).detectType('(a --> b)')).toBe(
+    expect(new InputProcessor({ defaultType: 'question' }).detectType('(a-->b)')).toBe(
       'question'
     );
   });
 
   it('an explicit type overrides the mark', () => {
-    expect(processor.process('(a --> b)!', 'belief').type).toBe('belief');
+    expect(processor.process('(a-->b)!', 'belief').type).toBe('belief');
   });
 });
 
 describe('rehydrateTask', () => {
   it('restores term, type, truth, and budget', () => {
     const task = rehydrateTask({
-      term: '(cat --> animal)',
+      term: '(cat-->animal)',
       type: 'belief',
       truth: { f: 0.9, c: 0.8 },
       budget: 0.7,
     });
 
-    expect(task?.term.toString()).toBe('(cat --> animal)');
+    expect(task?.term.toString()).toBe('(cat-->animal)');
     expect(task?.type).toBe('belief');
     expect(task?.truth).toEqual(Truth.create(0.9, 0.8));
     expect(task?.budget.priority).toBe(0.7);
@@ -120,7 +120,7 @@ describe('rehydrateTask', () => {
 describe('serializeTaskRecord', () => {
   it('round-trips a task through the record unchanged', () => {
     const original = createTask(
-      term('(a --> b)'),
+      term('(a-->b)'),
       'goal',
       Truth.create(0.7, 0.6),
       createBudget(0.42),

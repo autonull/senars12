@@ -12,13 +12,13 @@ describe('todo7: taskmanager preserves task types', () => {
     const memory = new Memory({ maxConcepts: 100 } as never);
     const manager = new TaskManager(memory);
     manager.addTask(
-      createTask(termParser.parse('(a --> b)'), 'belief', Truth.create(0.9, 0.8), NEUTRAL_BUDGET)
+      createTask(termParser.parse('(a-->b)'), 'belief', Truth.create(0.9, 0.8), NEUTRAL_BUDGET)
     );
     manager.addTask(
-      createTask(termParser.parse('(a --> b)'), 'goal', Truth.create(0.9, 0.8), NEUTRAL_BUDGET)
+      createTask(termParser.parse('(a-->b)'), 'goal', Truth.create(0.9, 0.8), NEUTRAL_BUDGET)
     );
     manager.addTask(
-      createTask(termParser.parse('(a --> ?)'), 'question', Truth.create(0.5, 0.5), NEUTRAL_BUDGET)
+      createTask(termParser.parse('(a-->?)'), 'question', Truth.create(0.5, 0.5), NEUTRAL_BUDGET)
     );
     const processed = await manager.processPending();
     expect(processed.map((t) => t.type).sort()).toEqual(['belief', 'goal', 'question']);

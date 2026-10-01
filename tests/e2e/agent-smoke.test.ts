@@ -72,7 +72,7 @@ describe('Agent-as-Kernel: smoke test (real WS + Agent + NAREngine)', () => {
   });
 
   it('Narsese input over WS grows the graph (new node + relation edge)', async () => {
-    send({ type: 'chat.user', content: '<cat --> mammal>.' });
+    send({ type: 'chat.user', content: '<cat-->mammal>.' });
     const nodeId = (o: { action: string; id?: string }): string | undefined =>
       'id' in o ? o.id : undefined;
     await waitForMessage(

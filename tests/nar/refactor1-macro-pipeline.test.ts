@@ -46,7 +46,7 @@ const makeHost = (overrides: Partial<ScriptedHost> = {}): ScriptedHost => {
       [
         'nar',
         {
-          reason: async () => [{ term: '<a --> b>', truth: { frequency: 1, confidence: 0.9 } }],
+          reason: async () => [{ term: '<a-->b>', truth: { frequency: 1, confidence: 0.9 } }],
         },
       ],
     ]),

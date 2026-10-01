@@ -2,16 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { termParser } from '../../../nar/src';
 
 describe('termParser.parseTask()', () => {
-  it('parses (cat --> animal). as belief', () => {
-    const r = termParser.parseTask('(cat --> animal).');
+  it('parses (cat-->animal). as belief', () => {
+    const r = termParser.parseTask('(cat-->animal).');
     expect(r).not.toBeNull();
     expect(r!.taskType).toBe('belief');
     expect(r!.punctuation).toBe('.');
     expect(r!.term.toString()).toContain('cat');
   });
 
-  it('parses (cat --> ?)? as question', () => {
-    const r = termParser.parseTask('(cat --> ?)?');
+  it('parses (cat-->?)? as question', () => {
+    const r = termParser.parseTask('(cat-->?)?');
     expect(r).not.toBeNull();
     expect(r!.taskType).toBe('question');
     expect(r!.punctuation).toBe('?');
@@ -31,8 +31,8 @@ describe('termParser.parseTask()', () => {
     expect(r!.punctuation).toBe(';');
   });
 
-  it('parses with truth values: (cat --> animal). %0.9;0.8%', () => {
-    const r = termParser.parseTask('(cat --> animal). %0.9;0.8%');
+  it('parses with truth values: (cat-->animal). %0.9;0.8%', () => {
+    const r = termParser.parseTask('(cat-->animal). %0.9;0.8%');
     expect(r).not.toBeNull();
     expect(r!.taskType).toBe('belief');
     expect(r!.truth).toBeDefined();
@@ -52,6 +52,6 @@ describe('termParser.parseTask()', () => {
 
   it('returns null for invalid Narsese', () => {
     expect(termParser.parseTask('(unclosed')).toBeNull();
-    expect(termParser.parseTask('(a --> b)X')).toBeNull();
+    expect(termParser.parseTask('(a-->b)X')).toBeNull();
   });
 });

@@ -18,6 +18,6 @@ describe('term serialization', () => {
       atom('a'),
       TermBuilder.conjunction(TermBuilder.negation(atom('b')), atom('c'))
     ) as ReturnType<typeof atom>;
-    expect(t.toString()).toBe('(a --> (c & --b))');
+    expect(t.toString()).toBe('(a-->(c&--b))');
   });
 });

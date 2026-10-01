@@ -1,15 +1,11 @@
 import { createLogger } from '@senars/util';
-import { OPERATORS } from '../operators.js';
-import type { Term } from '../types.js';
+import { NARY_OPS, OPERATORS } from '../operators.js';
+import type { OperatorKey, Term } from '../types.js';
 import { termParser } from './parser-peggy.js';
 
 const log = createLogger({ scope: 'serialize' });
 
-const NARY_OPS_SET = new Set(
-  Object.entries(OPERATORS)
-    .filter(([, v]) => v.nary)
-    .map(([k]) => k)
-);
+const NARY_OPS_SET: ReadonlySet<string> = NARY_OPS;
 const BINARY_OPS = new Set(
   Object.entries(OPERATORS)
     .filter(([, v]) => v.arity === 2 && !v.nary)
@@ -21,26 +17,45 @@ const UNARY_OPS = new Set(
     .map(([k]) => k)
 );
 
+const ARGUMENT_SEPARATOR = ',';
+
+/**
+ * An operation always parenthesises its arguments. `f^(x)` names one argument and
+ * `f^(x,y)` names several — the product is what makes the second several — so
+ * the parens are not decoration and the writer cannot drop them.
+ */
+const serializeOperation = (op: Term | undefined, args: Term | undefined): string => {
+  if (!op || !args) return '';
+  const body =
+    args.kind === 'product'
+      ? (args.args ?? []).map((arg: Term) => serialize(arg)).join(ARGUMENT_SEPARATOR)
+      : serialize(args);
+  return `(${serialize(op)}${OPERATORS.operation.symbol}(${body}))`;
+};
+
 const WRAPPERS: Record<string, [string, string]> = {
   negation: ['--', ''],
-  instance: ['{', '}'],
-  property: ['[', ']'],
+  setExt: ['{', '}'],
+  setInt: ['[', ']'],
 };
 
 /**
- * How a kind's arguments are written. The operator spellings keep their spaces
- * because they are read as symbols; a bare comma-separated list — and `product`,
- * whose `(*,a,b)` has the comma as its canonical short-hand — does not: `(a,b)`,
- * not `(a, b)`. One fewer byte per argument, and nothing that reads it is misled.
+ * What goes between an n-ary kind's arguments, verbatim: the operator symbol
+ * itself, no padding. Every space a serialiser emits is a byte in every
+ * serialised term, every key built from one and every log line, and this is the
+ * form that gets copied the most.
  */
-const NARY_SEPARATORS: Record<string, string> = {
-  conjunction: ' & ',
-  disjunction: ' | ',
-  sequence: ' ,/ ',
-  parallel: ' || ',
+const NARY_SEPARATORS: Partial<Record<OperatorKey, string>> = {
+  conjunction: OPERATORS.conjunction.symbol,
+  disjunction: OPERATORS.disjunction.symbol,
+  sequence: OPERATORS.sequence.symbol,
+  parallel: OPERATORS.parallel.symbol,
+  product: ARGUMENT_SEPARATOR,
 };
-
-const ARGUMENT_SEPARATOR = ',';
+const EMPTY_COMPOUND: Partial<Record<OperatorKey, string>> = {
+  conjunction: 'TRUE',
+  disjunction: 'FALSE',
+};
 
 const serialize = (term: Term): string => {
   if (term.kind === 'atom') return term.symbol;
@@ -50,17 +65,21 @@ const serialize = (term: Term): string => {
 
   if (NARY_OPS_SET.has(term.kind)) {
     const args = term.args ?? ([] as readonly Term[]);
-    const sep = NARY_SEPARATORS[term.kind] ?? ARGUMENT_SEPARATOR;
-    if (args.length === 0)
-      return term.kind === 'conjunction' ? 'TRUE' : term.kind === 'disjunction' ? 'FALSE' : '';
+    if (args.length === 0) return EMPTY_COMPOUND[term.kind as OperatorKey] ?? '';
     if (args.length === 1) return serialize(args[0] as Term);
+    const sep = NARY_SEPARATORS[term.kind as OperatorKey] ?? ARGUMENT_SEPARATOR;
     return `(${args.map((a: Term) => serialize(a)).join(sep)})`;
+  }
+
+  if (term.kind === 'operation') {
+    const [op, args] = term.args ?? ([] as readonly Term[]);
+    return serializeOperation(op, args);
   }
 
   if (BINARY_OPS.has(term.kind)) {
     const [a, b] = term.args ?? ([] as readonly Term[]);
-    const op = OPERATORS[term.kind]?.symbol ?? '';
-    return a && b ? `(${serialize(a as Term)} ${op} ${serialize(b as Term)})` : '';
+    const op = OPERATORS[term.kind as OperatorKey]?.symbol ?? '';
+    return a && b ? `(${serialize(a as Term)}${op}${serialize(b as Term)})` : '';
   }
 
   if (UNARY_OPS.has(term.kind)) {

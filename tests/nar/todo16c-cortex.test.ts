@@ -21,8 +21,8 @@ describe('Bench 16 — Cortex Ladder', () => {
 
   beforeEach(async () => {
     mockLMService = {
-      generateText: vi.fn().mockResolvedValue('(robin --> bird).\n(cat --> animal).\n(dog --> mammal).'),
-      tryGenerateText: vi.fn().mockResolvedValue('(robin --> bird).\n(cat --> animal).\n(dog --> mammal).'),
+      generateText: vi.fn().mockResolvedValue('(robin-->bird).\n(cat-->animal).\n(dog-->mammal).'),
+      tryGenerateText: vi.fn().mockResolvedValue('(robin-->bird).\n(cat-->animal).\n(dog-->mammal).'),
       getStats: vi.fn().mockReturnValue({}),
       setProgressCallback: vi.fn(),
     } as unknown as LMService;
@@ -63,7 +63,7 @@ describe('Bench 16 — Cortex Ladder', () => {
     // Test the cortex via proposeAndJudge which exercises the full pipeline
     const context: CognitiveContext = {
       tickId: 'test-1',
-      topBeliefs: ['(robin --> bird).'],
+      topBeliefs: ['(robin-->bird).'],
       topGoals: [],
       workingMemory: [],
     };
@@ -99,7 +99,7 @@ describe('Bench 16 — Cortex Ladder', () => {
 
     const context: CognitiveContext = {
       tickId: 'test-2',
-      topBeliefs: ['(cat --> animal).'],
+      topBeliefs: ['(cat-->animal).'],
       topGoals: [],
       workingMemory: [],
     };
@@ -135,7 +135,7 @@ describe('Bench 16 — Cortex Ladder', () => {
 
     const context: CognitiveContext = {
       tickId: 'test-3',
-      topBeliefs: ['(robin --> bird).'],
+      topBeliefs: ['(robin-->bird).'],
       topGoals: [],
       workingMemory: [],
     };
@@ -231,7 +231,7 @@ describe('Bench 16 — Cortex Ladder', () => {
 
     const context: CognitiveContext = {
       tickId: 'test-fallback',
-      topBeliefs: ['(test --> concept).'],
+      topBeliefs: ['(test-->concept).'],
       topGoals: [],
       workingMemory: [],
     };
@@ -279,7 +279,7 @@ describe('Bench 16 — Cortex Ladder', () => {
     if (process.env.LM_LLAMACPP_MODEL) {
       // If model is set, test the real path
       const { termParser } = await import('@senars/nar/terms');
-      const testNarsese = '(robin --> bird).';
+      const testNarsese = '(robin-->bird).';
       const parsed = termParser.parse(testNarsese);
       expect(parsed).not.toBeNull();
     } else {

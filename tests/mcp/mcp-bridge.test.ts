@@ -30,7 +30,7 @@ const makeTool = (overrides: Partial<Tool> = {}): Tool =>
 const makeFakeNAR = (toolManager: ToolManager): NAR =>
   ({
     tools: toolManager,
-    getBeliefs: () => [{ term: { toString: () => '<a --> b>.', truth: 0.9 } }],
+    getBeliefs: () => [{ term: { toString: () => '<a-->b>.', truth: 0.9 } }],
     attentionReport: () => ({ concepts: 1 }),
     run: async (steps: number) => steps,
     believe: async (s: string) => s,
@@ -153,7 +153,7 @@ describe('registerNARTools (agent-specific MCP surface)', () => {
   });
 
   it('agent_goal_progress estimates progress from matching beliefs and routing_reset clears demotions', async () => {
-    const goalTerm = '(cat --> animal)';
+    const goalTerm = '(cat-->animal)';
     const nar = {
       getGoals: () => [{ term: { toString: () => goalTerm }, truth: { f: 0.9, c: 0.9 } }],
       getBeliefs: () => [{ term: { toString: () => goalTerm }, truth: { f: 0.8, c: 0.5 } }],
@@ -195,7 +195,7 @@ describe('registerNARTools (agent-specific MCP surface)', () => {
         },
         execute: async () => ({
           success: true,
-          content: { term: '<a --> b>.', summary: 'derived' },
+          content: { term: '<a-->b>.', summary: 'derived' },
         }),
       })
     );
@@ -205,7 +205,7 @@ describe('registerNARTools (agent-specific MCP surface)', () => {
     const client = await connect(server);
     const res = await client.callTool({
       name: 'explain_belief',
-      arguments: { term: '<a --> b>.' },
+      arguments: { term: '<a-->b>.' },
     });
     expect((res.structuredContent as { derivation: string }).derivation).toContain('derived');
     await client.close();

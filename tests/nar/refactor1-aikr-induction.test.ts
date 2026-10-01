@@ -185,7 +185,7 @@ describe('Bench 83 — SchemaInductor as AIKR process', () => {
       truth: { f, c },
     }) as never;
 
-  const chain = [makeTask('<a --> b>'), makeTask('<b --> c>'), makeTask('<a --> c>')];
+  const chain = [makeTask('<a-->b>'), makeTask('<b-->c>'), makeTask('<a-->c>')];
 
   it('inert below pressure; admits accumulate in the bounded bag', async () => {
     const inductor = new SchemaInductor({} as never, {} as never, {

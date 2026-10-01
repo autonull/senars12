@@ -4,10 +4,10 @@ const proactiveNotification: Scenario = {
   name: 'proactive-notification',
   description: 'AutonomyEngine emits notifications on derivation/conflict',
   seedBeliefs: [
-    '<bird --> animal>. %1.0;0.9%',
-    '<penguin --> bird>. %1.0;0.9%',
-    '<penguin --> [fly]>. %0.0;0.9%',
-    '<bird --> [fly]>. %0.8;0.9%',
+    '<bird-->animal>. %1.0;0.9%',
+    '<penguin-->bird>. %1.0;0.9%',
+    '<penguin-->[fly]>. %0.0;0.9%',
+    '<bird-->[fly]>. %0.8;0.9%',
   ],
   probes: [
     {

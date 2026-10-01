@@ -57,7 +57,7 @@ describe('DriveManager', () => {
 
     expect(mockNar.input).toHaveBeenCalled();
     const call = mockNar.input.mock.calls[0]!;
-    expect(call[0]).toContain('(self --> curious)!');
+    expect(call[0]).toContain('(self-->curious)!');
     expect(call[1]).toBe('goal');
   });
 
@@ -72,7 +72,7 @@ describe('Bootstrap Goals', () => {
     const tasks = createBootstrapTasks();
 
     expect(tasks.length).toBe(3);
-    expect(tasks[0]!.term).toBe('(self --> curious)! :0.70:0.60');
+    expect(tasks[0]!.term).toBe('(self-->curious)! :0.70:0.60');
     expect(tasks[0]!.type).toBe('goal');
     expect(tasks[0]!.truth).toEqual({ f: 0.7, c: 0.6 });
   });

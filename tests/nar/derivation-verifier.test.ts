@@ -8,8 +8,8 @@ const step = (overrides: Record<string, unknown>): DerivationRecord['steps'][num
     stepId: '22222222-2222-4222-8222-222222222222',
     ruleId: 'deduction',
     ruleCategory: 'logic',
-    premises: ['(a --> b)', '(b --> c)'],
-    conclusion: '(a --> c)',
+    premises: ['(a-->b)', '(b-->c)'],
+    conclusion: '(a-->c)',
     truth: { frequency: 0.72, confidence: 0.72 },
     premiseTruths: [
       { frequency: 0.8, confidence: 0.9 },
@@ -26,7 +26,7 @@ const record = (
 ): DerivationRecord => ({
   derivationId: '33333333-3333-4333-8333-333333333333',
   taskId,
-  goalTerm: '(a --> c)',
+  goalTerm: '(a-->c)',
   steps,
   finalTruth,
   totalCycles: 1,
@@ -64,8 +64,8 @@ describe('standalone derivation verifier', () => {
       stepId: '55555555-5555-4555-8555-555555555555',
       ruleId: 'negation-intro',
       ruleCategory: 'propositional',
-      premises: ['(a --> b)'],
-      conclusion: '(- (a --> b))',
+      premises: ['(a-->b)'],
+      conclusion: '(- (a-->b))',
       truth: { frequency: 0.2, confidence: 0.9 },
       premiseTruths: [{ frequency: 0.8, confidence: 0.9 }],
       evidenceLineage: ['44444444-4444-4444-8444-444444444444'],
@@ -90,7 +90,7 @@ describe('standalone derivation verifier', () => {
   it('flags bad substitutions, passes unknown rules unless strict', () => {
     const badSub = step({
       substitution: { '?x': 'robin' },
-      conclusion: '(tweety --> bird)',
+      conclusion: '(tweety-->bird)',
     });
     const unknownRule = step({
       stepId: '66666666-6666-4666-8666-666666666666',

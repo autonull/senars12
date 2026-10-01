@@ -29,7 +29,7 @@ describe('Memory Operations', () => {
     });
 
     it('stores compound term concepts', async () => {
-      await nar.input('(bird --> animal)', 'belief');
+      await nar.input('(bird-->animal)', 'belief');
       const concept = nar.memory.getConcept(
         TermBuilder.inheritance(TermBuilder.atom('bird'), TermBuilder.atom('animal'))!
       );
@@ -79,7 +79,7 @@ describe('Memory Operations', () => {
 
   describe('Budget Management', () => {
     it('propagates budget through derivations', async () => {
-      await nar.input('(premise --> conclusion)', 'belief', Truth.create(0.8, 0.8));
+      await nar.input('(premise-->conclusion)', 'belief', Truth.create(0.8, 0.8));
       await nar.run(1);
       const concepts = nar.memory.listConcepts();
       expect(concepts.length).toBeGreaterThan(0);

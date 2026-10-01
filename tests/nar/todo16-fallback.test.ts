@@ -7,8 +7,8 @@ import type { CognitiveContext, ReasoningBudget } from '../../nar/src/lm/system-
 describe('System One — Thermodynamic Fallback (Bench 13)', () => {
   let dispatcher: ReturnType<typeof createDispatcher>;
   const mockContext: CognitiveContext = {
-    topBeliefs: ['<bird --> animal>. %1.00;0.90%'],
-    topGoals: ['<self --> fly>!'],
+    topBeliefs: ['<bird-->animal>. %1.00;0.90%'],
+    topGoals: ['<self-->fly>!'],
     workingMemory: [],
     tickId: 'test-tick-1',
   };
@@ -127,7 +127,7 @@ describe('System One — Thermodynamic Fallback (Bench 13)', () => {
     const gate = new KernelPerceptionGate();
     const input = {
       sourceId: 'test',
-      rawObservation: '<bird --> animal>.',
+      rawObservation: '<bird-->animal>.',
       sensorConfidence: 0.9,
       sourceQuality: 'PRIMARY' as const,
     };

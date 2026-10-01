@@ -50,7 +50,7 @@ describe('Bench 36 — Fail-Closed Integrity @load-sensitive', () => {
         },
       });
       const result = await gate.admit({
-        rawObservation: '(robin --> bird)',
+        rawObservation: '(robin-->bird)',
         sourceId: 'test',
         sensorConfidence: 1,
         sourceQuality: 'GENERAL',
@@ -71,7 +71,7 @@ describe('Bench 36 — Fail-Closed Integrity @load-sensitive', () => {
         },
       });
       const result = await gate.admit({
-        rawObservation: '(robin --> bird)',
+        rawObservation: '(robin-->bird)',
         sourceId: 'test',
         sensorConfidence: 1,
         sourceQuality: 'GENERAL',

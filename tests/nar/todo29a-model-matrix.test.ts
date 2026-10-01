@@ -106,13 +106,13 @@ describe('A1 — all four S/J/P configurations are complete systems', () => {
 describe('A1 — a configured-but-uncalibrated J refuses rather than admits', () => {
   it('refuses ingress without hanging', async () => {
     const nar = await build({ J: true, P: false, hung: false });
-    expect(await settling(nar.input('(robin --> bird).'), 5000)).not.toBe('hung');
+    expect(await settling(nar.input('(robin-->bird).'), 5000)).not.toBe('hung');
     expect(nar.query.getBeliefs()).toEqual([]);
   });
 
   it('the same input without J is admitted', async () => {
     const nar = await build({ J: false, P: false, hung: false });
-    await nar.input('(robin --> bird).');
+    await nar.input('(robin-->bird).');
 
     expect(nar.query.getBeliefs().length).toBeGreaterThan(0);
   });
@@ -134,7 +134,7 @@ describe('A1 — a hung provider is refused, not awaited', () => {
   it('a J judge that never answers refuses admission on its deadline', async () => {
     const nar = await build({ J: true, P: false, hung: true });
 
-    expect(await settling(nar.input('(robin --> bird).'), 5000)).not.toBe('hung');
+    expect(await settling(nar.input('(robin-->bird).'), 5000)).not.toBe('hung');
     expect(nar.query.getBeliefs()).toEqual([]);
   });
 });

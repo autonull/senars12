@@ -102,7 +102,7 @@ describe('NAR Parameter HUD (P6#1)', () => {
     narEngine.nar.setConfig({ activationDecayRate: 0.5 });
 
     // Import a belief and run cycles
-    await narEngine.nar.believe('<test_config --> test>.');
+    await narEngine.nar.believe('<test_config-->test>.');
     await narEngine.nar.run(10);
 
     // Verify belief was processed (NAR still works)

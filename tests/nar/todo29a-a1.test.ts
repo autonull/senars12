@@ -110,7 +110,7 @@ const rig = (respond: (prompt: string) => Promise<string>, callTimeoutMs = 100):
 
 describe('A1 — the live cycle has a stage vocabulary', () => {
   it('records every stage, in order, once per cycle', async () => {
-    const { execution } = rig(async () => '(x --> y).');
+    const { execution } = rig(async () => '(x-->y).');
     await execution.run(1);
 
     const begins = execution
@@ -129,7 +129,7 @@ describe('A1 — the live cycle has a stage vocabulary', () => {
   });
 
   it('never opens a stage inside another', async () => {
-    const { execution } = rig(async () => '(x --> y).');
+    const { execution } = rig(async () => '(x-->y).');
     await execution.run(3);
 
     expect(findStageOverlaps(execution.getCycleTrace().regions())).toEqual([]);
@@ -156,7 +156,7 @@ describe('A1 — a hung provider cannot hold a cycle open', () => {
   });
 
   it('completes with the same derivations as a provider that answers', async () => {
-    const answering = rig(async () => '(x --> y).');
+    const answering = rig(async () => '(x-->y).');
     const hung = rig(() => NEVER<string>(), 40);
     await answering.execution.run(2);
     await hung.execution.run(2);
@@ -166,7 +166,7 @@ describe('A1 — a hung provider cannot hold a cycle open', () => {
     // The rule's answer was the only thing a model would have added, so the
     // committed state must be the one a no-model run reaches.
     expect(memoryTerms(hung.memory)).toEqual(
-      memoryTerms(answering.memory).filter((term) => !term.includes('x --> y'))
+      memoryTerms(answering.memory).filter((term) => !term.includes('x-->y'))
     );
   });
 
@@ -177,7 +177,7 @@ describe('A1 — a hung provider cannot hold a cycle open', () => {
     const outcome = await settledWithin(
       gate.admit({
         sourceId: 'test',
-        rawObservation: '(a --> b)',
+        rawObservation: '(a-->b)',
         sensorConfidence: 0.5,
         sourceQuality: 'LLM_PRIOR',
       }),
@@ -192,8 +192,8 @@ describe('A1 — a hung provider cannot hold a cycle open', () => {
 
 describe('A1 — the causal model of a producer’s effect', () => {
   it('registering a producer does not change the cycle’s required progress', async () => {
-    const withProducer = rig(async () => '(x --> y).');
-    const withoutProducer = rig(async () => '(x --> y).');
+    const withProducer = rig(async () => '(x-->y).');
+    const withoutProducer = rig(async () => '(x-->y).');
     withoutProducer.processor.setLMWorkSink(null);
 
     const [withSink, withoutSink] = await Promise.all([
@@ -205,7 +205,7 @@ describe('A1 — the causal model of a producer’s effect', () => {
   });
 
   it('a producer that returns no proposal produces the same committed state', async () => {
-    const answering = rig(async () => '(x --> y).');
+    const answering = rig(async () => '(x-->y).');
     const silent = rig(() => NEVER<string>(), 40);
     await answering.execution.run(1);
     await silent.execution.run(1);
@@ -216,21 +216,21 @@ describe('A1 — the causal model of a producer’s effect', () => {
   });
 
   it('a proposal cannot affect state before the declared boundary', async () => {
-    const { execution, memory, producer } = rig(async () => '(a --> sky).');
+    const { execution, memory, producer } = rig(async () => '(a-->sky).');
     await execution.run(1);
     await execution.settleProposals();
 
     expect(producer.stats().applied).toBeGreaterThan(0);
-    expect(memoryTerms(memory)).not.toContain('(a --> sky)');
+    expect(memoryTerms(memory)).not.toContain('(a-->sky)');
   });
 
   it('after the boundary, the proposal is admitted like any other derivation', async () => {
-    const { execution, memory } = rig(async () => '(a --> sky).');
+    const { execution, memory } = rig(async () => '(a-->sky).');
     await execution.run(1);
     await execution.settleProposals();
     await execution.run(1);
 
-    expect(memoryTerms(memory)).toContain('(a --> sky)');
+    expect(memoryTerms(memory)).toContain('(a-->sky)');
   });
 });
 
@@ -305,18 +305,18 @@ describe('A1 — the no-producer configuration still reasons', () => {
 
     expect(await settledWithin(execution.run(2), 3000)).toBeGreaterThan(0);
     expect(processor.getLmRuleStats()).toEqual([]);
-    expect(memoryTerms(memory)).toContain('(a --> c)');
+    expect(memoryTerms(memory)).toContain('(a-->c)');
   });
 });
 
 describe('A1 — a derived task carries the terms the model produced, not the premise', () => {
   it('the rule’s answer is admitted as a belief with its own stamp', async () => {
-    const { execution, memory } = rig(async () => '(a --> sky).');
+    const { execution, memory } = rig(async () => '(a-->sky).');
     await execution.run(1);
     await execution.settleProposals();
     await execution.run(1);
 
-    const admitted = memoryBeliefs(memory).find((task) => task.term.toString() === '(a --> sky)');
+    const admitted = memoryBeliefs(memory).find((task) => task.term.toString() === '(a-->sky)');
     expect(admitted?.stamp?.id).toBeTruthy();
     expect(admitted?.truth?.c).toBeGreaterThan(0);
   });

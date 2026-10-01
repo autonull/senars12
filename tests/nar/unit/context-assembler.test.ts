@@ -69,7 +69,7 @@ describe('ContextAssembler', () => {
 
   test('includes relevant translation examples', () => {
     cache.record('birds are animals', {
-      beliefs: [{ narsese: '(bird --> animal). :1.0:0.9' }],
+      beliefs: [{ narsese: '(bird-->animal). :1.0:0.9' }],
       questions: [],
       goals: [],
       summary: 'test',
@@ -88,7 +88,7 @@ describe('ContextAssembler', () => {
 
   test('extracts active goals', () => {
     const mockGoal = {
-      term: { toString: () => '(self --> curious)!' },
+      term: { toString: () => '(self-->curious)!' },
     };
     const mockNar = {
       getBeliefs: () => [],
@@ -98,6 +98,6 @@ describe('ContextAssembler', () => {
 
     const ctx = assembler.assemble(mockNar, 'test');
 
-    expect(ctx.activeGoals).toContain('(self --> curious)!');
+    expect(ctx.activeGoals).toContain('(self-->curious)!');
   });
 });

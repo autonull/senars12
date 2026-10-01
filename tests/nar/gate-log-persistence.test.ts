@@ -14,13 +14,13 @@ describe('todo7: gate log persistence', () => {
     const registry = new GateRegistry();
     registry.getPerceptionGate().admit({
       sourceId: 's',
-      rawObservation: '(a --> b).',
+      rawObservation: '(a-->b).',
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });
     registry.getPerceptionGate().admit({
       sourceId: 's',
-      rawObservation: '(c --> d).',
+      rawObservation: '(c-->d).',
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });
@@ -31,7 +31,7 @@ describe('todo7: gate log persistence', () => {
     expect(invalid).toBe(0);
     expect(events).toHaveLength(3);
     const admissions = replayTaskAdmissions(events);
-    expect(admissions.map((a) => a.term)).toEqual(['(a --> b)', '(c --> d)']);
+    expect(admissions.map((a) => a.term)).toEqual(['(a-->b)', '(c-->d)']);
     expect(events.some((e) => e.type === 'autonomy.mode.changed')).toBe(true);
   });
   it('missing file loads empty; corrupt lines counted not thrown', () => {
@@ -42,7 +42,7 @@ describe('todo7: gate log persistence', () => {
     const fresh = new GateRegistry();
     fresh.getPerceptionGate().admit({
       sourceId: 's',
-      rawObservation: '(a --> b).',
+      rawObservation: '(a-->b).',
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });

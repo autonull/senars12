@@ -70,7 +70,7 @@ describe('Production loop: agent deltas reach the graph', () => {
     console.log('[TEST] it block started');
     console.log('[TEST] Sending chat message...');
     ws.send(
-      JSON.stringify({ type: 'chat.user', content: '(cat --> animal).', messageId: randomUUID() })
+      JSON.stringify({ type: 'chat.user', content: '(cat-->animal).', messageId: randomUUID() })
     );
     console.log('[TEST] ws.send returned');
 

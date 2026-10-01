@@ -168,7 +168,7 @@ describe('F2 — deterministic replay verification (C14)', () => {
         correlationId: `00000000-0000-4000-8000-00000000000${n}`,
         payload: {
           taskId: `00000000-0000-4000-8000-00000000001${n}`,
-          term: `(cat --> animal_${n})`,
+          term: `(cat-->animal_${n})`,
           taskType: 'belief',
           truth: { frequency: 1, confidence: 0.9 },
           source: 'user',
@@ -212,7 +212,7 @@ describe('F2 — deterministic replay verification (C14)', () => {
         correlationId: `00000000-0000-4000-8000-00000000000${n}`,
         payload: {
           taskId: `00000000-0000-4000-8000-00000000001${n}`,
-          term: `(cat --> animal_${n})`,
+          term: `(cat-->animal_${n})`,
           taskType: 'belief',
           truth: { frequency: 1, confidence: 0.9 },
           source: 'user',
@@ -246,7 +246,7 @@ describe('F2 — deterministic replay verification (C14)', () => {
         correlationId: `00000000-0000-4000-8000-00000000000${n}`,
         payload: {
           taskId: `00000000-0000-4000-8000-00000000001${n}`,
-          term: `(cat --> animal_${n})`,
+          term: `(cat-->animal_${n})`,
           taskType: 'belief',
           truth: { frequency: 1, confidence: 0.9 },
           source: 'user',

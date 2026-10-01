@@ -47,7 +47,7 @@ describe('TODO24 bench 73: retrospect diagnostic', () => {
     await seedSession(ep, 'sess-1');
     const r = await retrospect('sess-1', ep, {
       traceGrades: new Map([['sess-2', 0.9]]),
-      contradictionTerms: ['<a --> b>'],
+      contradictionTerms: ['<a-->b>'],
       proposals: [{ proposalId: '00000000-0000-4000-8000-000000000000', kind: 'focus-weight', riskTier: 'low', payload: {}, rewardDomain: 'epistemic' }],
     });
     expect(r.version).toBe('retrospective-v1');
@@ -68,7 +68,7 @@ describe('TODO24 bench 73: retrospect diagnostic', () => {
     const ep = await makeEpisodic();
     const d = new DialogueCapture({ episodic: ep, config: { enabled: true } });
     await d.onExchange({ correlationId: 'tiny', utterance: 'u', response: 'r' });
-    const r = await retrospect('tiny', ep, { contradictionTerms: ['<x --> y>'] });
+    const r = await retrospect('tiny', ep, { contradictionTerms: ['<x-->y>'] });
     expect(r.turnCount).toBe(1);
     expect(r.strategyAudit).toHaveLength(0);
     expect(r.contradictions).toHaveLength(0);
@@ -106,7 +106,7 @@ describe('TODO24 bench 73: retrospect diagnostic', () => {
 
   it('lessons require ≥2 supporting turns and confidence above the admission floor', () => {
     const lesson = {
-      term: '<good --> response>',
+      term: '<good-->response>',
       truth: { frequency: 0.9, confidence: 0.6 },
     };
     const full = {

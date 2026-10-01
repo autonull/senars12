@@ -96,7 +96,7 @@ export const buildSequenceRule = (builder: (p1: Term, p2: Term) => Term) =>
   });
 
 export const deductionFromType =
-  (typeKind: 'instance' | 'property', matchOn: 'subject' | 'predicate') =>
+  (typeKind: 'setExt' | 'setInt', matchOn: 'subject' | 'predicate') =>
   ([inh, term]: [Term, Term]): Term | undefined => {
     if (inh.kind !== 'inheritance' || term.kind !== typeKind) return undefined;
     const s = getSubject(inh),

@@ -29,7 +29,7 @@ describe('NAL8 Procedural Rules', () => {
       const result = NALExtendedRules.proceduralDecomposition([seq, op]);
 
       expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(a ,/ (b ^ c))');
+      expect(result?.toString()).toBe('(a&/(b^(c)))');
     });
 
     test('returns undefined for non-sequence', () => {
@@ -52,7 +52,7 @@ describe('NAL8 Procedural Rules', () => {
       const result = NALExtendedRules.proceduralChaining([op1, op2]);
 
       expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(a ,/ c)');
+      expect(result?.toString()).toBe('(a&/c)');
     });
 
     test('returns undefined when operations do not chain', () => {
@@ -78,7 +78,7 @@ describe('NAL8 Procedural Rules', () => {
       const result = NALExtendedRules.operationToPredictive([op, seq]);
 
       expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(a /> b)');
+      expect(result?.toString()).toBe('(a=/>b)');
     });
 
     test('returns undefined when operation and sequence do not match', () => {
@@ -99,15 +99,15 @@ describe('NAL8 Procedural Rules', () => {
       const input = atom('input');
       const operationTerm = operation(op, input);
 
-      expect(operationTerm.toString()).toBe('(op ^ input)');
+      expect(operationTerm.toString()).toBe('(op^(input))');
     });
 
-    test('handles f(x) syntax as (f ^ (x))', () => {
+    test('one argument is written f^(x)', () => {
       const f = atom('f');
       const x = atom('x');
       const fx = operation(f, x);
 
-      expect(fx.toString()).toBe('(f ^ x)');
+      expect(fx.toString()).toBe('(f^(x))');
     });
 
     test('handles undefined input gracefully', () => {

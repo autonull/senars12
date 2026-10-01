@@ -10,7 +10,7 @@ const record = (conclusions: string[]): DerivationRecord =>
   validateDerivationRecord({
     derivationId: uuidv4(),
     taskId: uuidv4(),
-    goalTerm: '(a --> c)',
+    goalTerm: '(a-->c)',
     timestamp: Date.now(),
     engine: 'nar',
     totalCycles: conclusions.length,
@@ -20,7 +20,7 @@ const record = (conclusions: string[]): DerivationRecord =>
       stepId: uuidv4(),
       ruleId: 'deduction',
       ruleCategory: 'logic',
-      premises: ['(a --> b)', '(b --> c)'],
+      premises: ['(a-->b)', '(b-->c)'],
       conclusion,
       truth: { frequency: 0.9, confidence: 0.8 },
       premiseTruths: [
@@ -35,10 +35,10 @@ const record = (conclusions: string[]): DerivationRecord =>
 describe('todo7: record hydration', () => {
   it('applies conclusions as beliefs; dedupes; skips unparseable', () => {
     const memory = new Memory({ maxConcepts: 100 } as never);
-    const result = hydrateRecord(memory, record(['(a --> c)', '(a --> c)', '(((not a term']));
+    const result = hydrateRecord(memory, record(['(a-->c)', '(a-->c)', '(((not a term']));
     expect(result.applied).toBe(1);
     expect(result.skipped).toBe(2);
-    expect(memory.getConcept(termParser.parse('(a --> c)'))).toBeDefined();
+    expect(memory.getConcept(termParser.parse('(a-->c)'))).toBeDefined();
   });
   it('empty record hydrates nothing', () => {
     const memory = new Memory({ maxConcepts: 100 } as never);

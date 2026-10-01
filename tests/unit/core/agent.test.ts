@@ -32,7 +32,7 @@ describe('Agent', () => {
     agent.registerEngine('nar', engine);
 
     const result = await agent.cycle({
-      text: '<bird --> animal>.',
+      text: '<bird-->animal>.',
       source: 'test',
       timestamp: Date.now(),
       correlationId: 'test-1',

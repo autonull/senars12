@@ -43,7 +43,7 @@ describe('Core Agent with MettaEngine - Conversational Scenarios', () => {
 
   it('processes Narsese input (no LM = empty response)', async () => {
     let response = '';
-    for await (const chunk of agent.chat('<test --> concept>.')) {
+    for await (const chunk of agent.chat('<test-->concept>.')) {
       if (chunk.kind === 'text-delta') {
         response += chunk.text;
       }

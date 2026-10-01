@@ -5,8 +5,8 @@ export const goalToolFeedbackScenario = createScenarioSpec({
   seed: 123,
   clockStart: 2000000,
   steps: [
-    { type: 'input', text: '(search --> tool).', taskType: 'belief', truth: { f: 0.9, c: 0.9 } },
-    { type: 'input', text: '(weather --> search).', taskType: 'belief', truth: { f: 0.8, c: 0.8 } },
+    { type: 'input', text: '(search-->tool).', taskType: 'belief', truth: { f: 0.9, c: 0.9 } },
+    { type: 'input', text: '(weather-->search).', taskType: 'belief', truth: { f: 0.8, c: 0.8 } },
     { type: 'input', text: 'weather.', taskType: 'goal', truth: { f: 0.9, c: 0.9 } },
     { type: 'run', cycles: 10 },
     { type: 'assert', check: (trace) => {

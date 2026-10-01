@@ -4,8 +4,8 @@ const constitution: Scenario = {
   name: 'constitution',
   description: 'Constitution violation blocked, corrected via self-correction',
   seedBeliefs: [
-    '<(*, harm, human) --> forbidden>. %1.0;0.99%',
-    '<(*, help, human) --> good>. %1.0;0.99%',
+    '<(*, harm, human)-->forbidden>. %1.0;0.99%',
+    '<(*, help, human)-->good>. %1.0;0.99%',
   ],
   probes: [
     {

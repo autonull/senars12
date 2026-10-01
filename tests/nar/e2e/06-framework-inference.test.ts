@@ -7,68 +7,68 @@ import { createPremise, describeReasoning, expectDerivation } from '../framework
 
 describeReasoning('Inference Rules', [
   {
-    name: 'deduction: (A --> B), (B --> C) |- (A --> C)',
+    name: 'deduction: (A-->B), (B-->C) |- (A-->C)',
     premises: [
-      createPremise('(bird --> animal)', 'belief', 0.9, 0.9),
-      createPremise('(animal --> living)', 'belief', 0.9, 0.9),
+      createPremise('(bird-->animal)', 'belief', 0.9, 0.9),
+      createPremise('(animal-->living)', 'belief', 0.9, 0.9),
     ],
     cycles: 5,
     expect: [
-      expectDerivation('(bird --> living)', {
+      expectDerivation('(bird-->living)', {
         minFrequency: 0.7,
         minConfidence: 0.7,
       }),
     ],
   },
   {
-    name: 'chained deduction: (dog --> mammal), (mammal --> animal), (animal --> living)',
+    name: 'chained deduction: (dog-->mammal), (mammal-->animal), (animal-->living)',
     premises: [
-      createPremise('(dog --> mammal)', 'belief', 0.95, 0.9),
-      createPremise('(mammal --> animal)', 'belief', 0.95, 0.9),
-      createPremise('(animal --> living)', 'belief', 0.95, 0.9),
+      createPremise('(dog-->mammal)', 'belief', 0.95, 0.9),
+      createPremise('(mammal-->animal)', 'belief', 0.95, 0.9),
+      createPremise('(animal-->living)', 'belief', 0.95, 0.9),
     ],
     cycles: 10,
     expect: [
-      expectDerivation('(dog --> living)', {
+      expectDerivation('(dog-->living)', {
         minFrequency: 0.6,
         minConfidence: 0.6,
       }),
     ],
   },
   {
-    name: 'induction: (canary --> bird), (sparrow --> bird) |- (canary --> sparrow)',
+    name: 'induction: (canary-->bird), (sparrow-->bird) |- (canary-->sparrow)',
     premises: [
-      createPremise('(canary --> bird)', 'belief', 0.9, 0.9),
-      createPremise('(sparrow --> bird)', 'belief', 0.9, 0.9),
+      createPremise('(canary-->bird)', 'belief', 0.9, 0.9),
+      createPremise('(sparrow-->bird)', 'belief', 0.9, 0.9),
     ],
     cycles: 5,
     expect: [
-      expectDerivation('(canary --> sparrow)', {
+      expectDerivation('(canary-->sparrow)', {
         minFrequency: 0.5,
         minConfidence: 0.5,
       }),
     ],
   },
   {
-    name: 'abduction: (smoke --> fire), (smoke --> observed) |- (observed --> fire) likely',
+    name: 'abduction: (smoke-->fire), (smoke-->observed) |- (observed-->fire) likely',
     premises: [
-      createPremise('(smoke --> fire)', 'belief', 0.9, 0.9),
-      createPremise('(smoke --> observed)', 'belief', 0.95, 0.95),
+      createPremise('(smoke-->fire)', 'belief', 0.9, 0.9),
+      createPremise('(smoke-->observed)', 'belief', 0.95, 0.95),
     ],
     cycles: 5,
     expect: [
-      expectDerivation('(observed --> fire)', {
+      expectDerivation('(observed-->fire)', {
         minFrequency: 0.5,
         minConfidence: 0.4,
       }),
     ],
   },
   {
-    name: 'similarity reasoning: (cat <-> feline)',
-    premises: [createPremise('(cat <-> feline)', 'belief', 0.95, 0.9)],
+    name: 'similarity reasoning: (cat<->feline)',
+    premises: [createPremise('(cat<->feline)', 'belief', 0.95, 0.9)],
     cycles: 3,
     expect: [
-      expectDerivation('(cat <-> feline)', {
+      expectDerivation('(cat<->feline)', {
         minFrequency: 0.8,
         minConfidence: 0.8,
         minPriority: 0.1,
@@ -78,32 +78,32 @@ describeReasoning('Inference Rules', [
   {
     name: 'conflicting beliefs: bird can fly vs penguin cannot fly',
     premises: [
-      createPremise('(bird --> fly)', 'belief', 0.9, 0.8),
-      createPremise('(penguin --> bird)', 'belief', 0.95, 0.9),
-      createPremise('(penguin --> (-- fly))', 'belief', 0.95, 0.9),
+      createPremise('(bird-->fly)', 'belief', 0.9, 0.8),
+      createPremise('(penguin-->bird)', 'belief', 0.95, 0.9),
+      createPremise('(penguin-->(-- fly))', 'belief', 0.95, 0.9),
     ],
     cycles: 10,
     expect: [
-      expectDerivation('(penguin --> bird)', {
+      expectDerivation('(penguin-->bird)', {
         minFrequency: 0.8,
         minConfidence: 0.8,
       }),
     ],
   },
   {
-    name: 'temporal reasoning: A ,/ B stored and retrieved',
+    name: 'temporal reasoning: A &/ B stored and retrieved',
     premises: [
-      createPremise('(A ,/ B)', 'belief', 0.9, 0.9),
-      createPremise('(B ,/ C)', 'belief', 0.9, 0.9),
+      createPremise('(A&/B)', 'belief', 0.9, 0.9),
+      createPremise('(B&/C)', 'belief', 0.9, 0.9),
     ],
     cycles: 3,
     expect: [
-      expectDerivation('(A ,/ B)', {
+      expectDerivation('(A&/B)', {
         minFrequency: 0.8,
         minConfidence: 0.8,
         minPriority: 0.1,
       }),
-      expectDerivation('(B ,/ C)', {
+      expectDerivation('(B&/C)', {
         minFrequency: 0.8,
         minConfidence: 0.8,
         minPriority: 0.1,
@@ -111,14 +111,14 @@ describeReasoning('Inference Rules', [
     ],
   },
   {
-    name: 'analogy: A --> B, B <-> C |- A --> C',
+    name: 'analogy: A-->B, B<->C |- A-->C',
     premises: [
-      createPremise('(cat --> mammal)', 'belief', 0.9, 0.9),
-      createPremise('(mammal <-> warm_blooded)', 'belief', 0.8, 0.8),
+      createPremise('(cat-->mammal)', 'belief', 0.9, 0.9),
+      createPremise('(mammal<->warm_blooded)', 'belief', 0.8, 0.8),
     ],
     cycles: 5,
     expect: [
-      expectDerivation('(cat --> warm_blooded)', {
+      expectDerivation('(cat-->warm_blooded)', {
         minFrequency: 0.5,
         minConfidence: 0.4,
       }),
@@ -127,12 +127,12 @@ describeReasoning('Inference Rules', [
   {
     name: 'revision: merge multiple sources of evidence',
     premises: [
-      createPremise('(X --> Y)', 'belief', 0.8, 0.7),
-      createPremise('(X --> Y)', 'belief', 0.9, 0.8),
+      createPremise('(X-->Y)', 'belief', 0.8, 0.7),
+      createPremise('(X-->Y)', 'belief', 0.9, 0.8),
     ],
     cycles: 3,
     expect: [
-      expectDerivation('(X --> Y)', {
+      expectDerivation('(X-->Y)', {
         minFrequency: 0.8,
         minConfidence: 0.85,
       }),
@@ -144,16 +144,16 @@ describeReasoning('Complex Reasoning Patterns', [
   {
     name: 'multi-step deduction chain',
     premises: [
-      createPremise('(A --> B)', 'belief', 0.95, 0.9),
-      createPremise('(B --> C)', 'belief', 0.95, 0.9),
-      createPremise('(C --> D)', 'belief', 0.95, 0.9),
-      createPremise('(D --> E)', 'belief', 0.95, 0.9),
+      createPremise('(A-->B)', 'belief', 0.95, 0.9),
+      createPremise('(B-->C)', 'belief', 0.95, 0.9),
+      createPremise('(C-->D)', 'belief', 0.95, 0.9),
+      createPremise('(D-->E)', 'belief', 0.95, 0.9),
     ],
     cycles: 15,
     expect: [
       // 3-hop depth is the engine's supported chained-deduction depth today;
-      // the 4-hop (A --> E) composition is tracked as a known limitation (TODO9).
-      expectDerivation('(A --> D)', {
+      // the 4-hop (A-->E) composition is tracked as a known limitation (TODO9).
+      expectDerivation('(A-->D)', {
         minFrequency: 0.6,
         minConfidence: 0.6,
       }),
@@ -162,12 +162,12 @@ describeReasoning('Complex Reasoning Patterns', [
   {
     name: 'bidirectional inference',
     premises: [
-      createPremise('(A --> B)', 'belief', 0.9, 0.9),
-      createPremise('(B --> A)', 'belief', 0.9, 0.9),
+      createPremise('(A-->B)', 'belief', 0.9, 0.9),
+      createPremise('(B-->A)', 'belief', 0.9, 0.9),
     ],
     cycles: 5,
     expect: [
-      expectDerivation('(A <-> B)', {
+      expectDerivation('(A<->B)', {
         minFrequency: 0.8,
         minConfidence: 0.8,
       }),
@@ -176,16 +176,16 @@ describeReasoning('Complex Reasoning Patterns', [
   {
     name: 'goal-directed reasoning',
     premises: [
-      createPremise('(A --> B)', 'belief', 0.9, 0.9),
-      createPremise('(B --> C)', 'belief', 0.9, 0.9),
+      createPremise('(A-->B)', 'belief', 0.9, 0.9),
+      createPremise('(B-->C)', 'belief', 0.9, 0.9),
     ],
     cycles: 5,
     expect: [
-      expectDerivation('(A --> C)', {
+      expectDerivation('(A-->C)', {
         minFrequency: 0.7,
         minConfidence: 0.7,
       }),
     ],
-    expectNot: [{ term: '(D --> E)' }],
+    expectNot: [{ term: '(D-->E)' }],
   },
 ]);

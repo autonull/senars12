@@ -3,7 +3,7 @@ import type { Scenario } from '../framework.js';
 const contradiction: Scenario = {
   name: 'contradiction',
   description: 'Conflicting beliefs and truth revision',
-  seedBeliefs: ['(bird --> fly). :0.9:0.9'],
+  seedBeliefs: ['(bird-->fly). :0.9:0.9'],
   probes: [
     {
       input: 'Penguins do not fly',
@@ -13,7 +13,7 @@ const contradiction: Scenario = {
       },
     },
     {
-      input: '(bird --> fly)?',
+      input: '(bird-->fly)?',
       expect: {
         expectNarseseParsed: true,
         maxDurationMs: 30_000,

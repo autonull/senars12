@@ -89,7 +89,7 @@ describe('Multi-line input detection', () => {
   });
 
   it('should detect non-JSON input as single line', () => {
-    const input = '<bird --> animal>.';
+    const input = '<bird-->animal>.';
     const isMultiLine = input.trim().startsWith('{');
     expect(isMultiLine).toBe(false);
   });
@@ -97,7 +97,7 @@ describe('Multi-line input detection', () => {
 
 describe('Input validation', () => {
   it('should handle belief input ending with period', () => {
-    const input = '<bird --> animal>.';
+    const input = '<bird-->animal>.';
     const isBelief = input.trim().endsWith('.');
     expect(isBelief).toBe(true);
   });

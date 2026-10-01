@@ -159,7 +159,7 @@ describe('Bench 68 — S4: LM response sanitization', () => {
     const { LMResponseParser } = await import('../../nar/src/lm/rule/response-parser.js');
     const invalid = LMResponseParser.parse('this is not narsese <<<');
     expect(invalid.valid).toBe(false);
-    const valid = LMResponseParser.parse('<a --> b>. %1.0;0.9%');
+    const valid = LMResponseParser.parse('<a-->b>. %1.0;0.9%');
     expect(valid.valid).toBe(true);
   });
 });

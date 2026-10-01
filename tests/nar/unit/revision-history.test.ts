@@ -77,10 +77,10 @@ describe('Pillar 1: revision history', () => {
   describe('NAR.getRevisionHistory', () => {
     it('exposes revision history through the engine', async () => {
       const nar = createMinimalNAR();
-      await nar.believe('<bird --> animal>.');
-      await nar.believe('<bird --> animal>. %0.3;0.8%');
+      await nar.believe('<bird-->animal>.');
+      await nar.believe('<bird-->animal>. %0.3;0.8%');
 
-      const rel = termParser.parse('<bird --> animal>')!;
+      const rel = termParser.parse('<bird-->animal>')!;
       const history = nar.getRevisionHistory(rel);
       expect(history.length).toBeGreaterThanOrEqual(2);
       expect(history[0]!.source).toBe('revision');
@@ -91,10 +91,10 @@ describe('Pillar 1: revision history', () => {
 
     it('latest revision entry matches the current concept belief', async () => {
       const nar = createMinimalNAR();
-      await nar.believe('<cat --> animal>.');
-      await nar.believe('<cat --> animal>. %0.2;0.9%');
+      await nar.believe('<cat-->animal>.');
+      await nar.believe('<cat-->animal>. %0.2;0.9%');
 
-      const rel = termParser.parse('<cat --> animal>')!;
+      const rel = termParser.parse('<cat-->animal>')!;
       const history = nar.getRevisionHistory(rel);
       const latest = history[0]!;
       const concept = nar.getConcept(rel)!;

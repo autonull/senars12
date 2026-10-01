@@ -9,17 +9,17 @@ export interface BootstrapGoal {
 
 export const BOOTSTRAP_GOALS: BootstrapGoal[] = [
   {
-    narsese: '(self --> curious)! :0.70:0.60',
+    narsese: '(self-->curious)! :0.70:0.60',
     driveId: 'curiosity',
     type: 'goal',
   },
   {
-    narsese: '(self --> competent)! :0.50:0.70',
+    narsese: '(self-->competent)! :0.50:0.70',
     driveId: 'competence',
     type: 'goal',
   },
   {
-    narsese: '(self --> coherent)! :0.30:0.80',
+    narsese: '(self-->coherent)! :0.30:0.80',
     driveId: 'coherence',
     type: 'goal',
   },

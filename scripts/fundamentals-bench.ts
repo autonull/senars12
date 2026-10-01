@@ -439,7 +439,7 @@ async function runScenario6(): Promise<boolean> {
 
   // 1. Kernel: structural skeleton via variable abstraction
   const skeleton = traceAbstractor.extractStructuralSkeleton('(cat --> animal)');
-  const isomorphic = skeleton === '(?A --> ?B)';
+  const isomorphic = skeleton === '(?A-->?B)';
   logger.info(`  ${isomorphic ? '✅' : '❌'} Skeleton: (cat --> animal) → ${skeleton}`);
 
   // 2. LLM mask-fill: single-word grammar constraint present in the rule def

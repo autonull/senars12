@@ -21,17 +21,17 @@ describe('Inference Rules', () => {
   });
 
   describe('Deduction', () => {
-    it('performs deduction: (A --> B), (B --> C) |- (A --> C)', async () => {
-      await nar.input('(bird --> animal)', 'belief', Truth.create(0.9, 0.9));
-      await nar.input('(animal --> living)', 'belief', Truth.create(0.9, 0.9));
+    it('performs deduction: (A-->B), (B-->C) |- (A-->C)', async () => {
+      await nar.input('(bird-->animal)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(animal-->living)', 'belief', Truth.create(0.9, 0.9));
       await nar.run(1);
       const concepts = nar.memory.listConcepts();
       expect(concepts.length).toBeGreaterThan(0);
     });
 
     it('chains multiple deduction steps', async () => {
-      await nar.input('(mammal --> animal)', 'belief', Truth.create(0.95, 0.9));
-      await nar.input('(dog --> mammal)', 'belief', Truth.create(0.95, 0.9));
+      await nar.input('(mammal-->animal)', 'belief', Truth.create(0.95, 0.9));
+      await nar.input('(dog-->mammal)', 'belief', Truth.create(0.95, 0.9));
       await nar.run(2);
       const concepts = nar.memory.listConcepts();
       expect(concepts.length).toBeGreaterThan(0);
@@ -40,7 +40,7 @@ describe('Inference Rules', () => {
 
   describe('Similarity', () => {
     it('handles similarity reasoning', async () => {
-      await nar.input('(cat <-> feline)', 'belief', Truth.create(0.95, 0.9));
+      await nar.input('(cat<->feline)', 'belief', Truth.create(0.95, 0.9));
       await nar.run(1);
       const concepts = nar.memory.listConcepts();
       expect(concepts.length).toBeGreaterThan(0);
@@ -49,8 +49,8 @@ describe('Inference Rules', () => {
 
   describe('Complex Reasoning', () => {
     it('manages conflicting beliefs', async () => {
-      await nar.input('(bird --> fly)', 'belief', Truth.create(0.9, 0.8));
-      await nar.input('(penguin --> bird)', 'belief', Truth.create(0.95, 0.9));
+      await nar.input('(bird-->fly)', 'belief', Truth.create(0.9, 0.8));
+      await nar.input('(penguin-->bird)', 'belief', Truth.create(0.95, 0.9));
       await nar.run(2);
       expect(nar.memory.size).toBeGreaterThan(0);
     });

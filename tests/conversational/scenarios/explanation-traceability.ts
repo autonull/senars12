@@ -4,10 +4,10 @@ const explanationTraceability: Scenario = {
   name: 'explanation-traceability',
   description: 'explainBelief/explainGoal/traceRule return valid chains',
   seedBeliefs: [
-    '<bird --> animal>. %1.0;0.9%',
-    '<robin --> bird>. %1.0;0.9%',
-    '<sparrow --> bird>. %1.0;0.8%',
-    '<can_fly --> (*, bird, _fly)>. %1.0;0.8%',
+    '<bird-->animal>. %1.0;0.9%',
+    '<robin-->bird>. %1.0;0.9%',
+    '<sparrow-->bird>. %1.0;0.8%',
+    '<can_fly-->(*, bird, _fly)>. %1.0;0.8%',
   ],
   probes: [
     {

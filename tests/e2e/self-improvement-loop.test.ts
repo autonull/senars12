@@ -43,7 +43,7 @@ describe('D1 — Self-Improvement Loop E2E', () => {
     ] as const) {
       await nar.believe(`(${premise} --> ${consequent}). %1.0;0.9%`);
     }
-    await nar.question('(bird --> ?what)?');
+    await nar.question('(bird-->?what)?');
 
     await nar.run(20);
 

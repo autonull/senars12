@@ -10,7 +10,7 @@ describe('TermParser', () => {
     });
 
     it('parses variables in inheritance', () => {
-      const term = termParser.parse('($x --> animal)');
+      const term = termParser.parse('($x-->animal)');
       expect(term.kind).toBe('inheritance');
       const args = (term as any).args ?? [];
       expect(args[0]).toBeDefined();
@@ -18,7 +18,7 @@ describe('TermParser', () => {
     });
 
     it('parses multiple variables', () => {
-      const term = termParser.parse('($x --> $y)');
+      const term = termParser.parse('($x-->$y)');
       expect(term.kind).toBe('inheritance');
       const args = (term as any).args ?? [];
       expect(args[0].symbol).toBe('$x');
@@ -39,7 +39,7 @@ describe('TermParser', () => {
     });
 
     it('parses inheritance with truth value', () => {
-      const result = termParser.parseWithTruth('(bird --> animal) %0.9; 0.95%');
+      const result = termParser.parseWithTruth('(bird-->animal) %0.9; 0.95%');
       expect(result.term.kind).toBe('inheritance');
       expect(result.truth).toBeDefined();
       expect(result.truth?.f).toBeCloseTo(0.9);
@@ -59,7 +59,7 @@ describe('TermParser', () => {
     });
 
     it('handles complex nested structures', () => {
-      const term = termParser.parse('((bird --> animal) ==> (flies --> action))');
+      const term = termParser.parse('((bird-->animal)==>(flies-->action))');
       expect(term.kind).toBe('implication');
     });
 
@@ -78,7 +78,7 @@ describe('TermParser', () => {
     });
 
     it('parses angle bracket statements', () => {
-      expect(termParser.parse('<a --> b>').kind).toBe('inheritance');
+      expect(termParser.parse('<a-->b>').kind).toBe('inheritance');
     });
   });
 
@@ -90,7 +90,7 @@ describe('TermParser', () => {
     });
 
     it('parses quoted atom in statement', () => {
-      const result = termParser.parse('(animal --> "living being")');
+      const result = termParser.parse('(animal-->"living being")');
       expect(result.kind).toBe('inheritance');
     });
 

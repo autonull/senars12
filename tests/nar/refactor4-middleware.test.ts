@@ -168,7 +168,7 @@ describe('Bench 95 — Middleware unification + ThreadScope', () => {
       const ctx = createMacroContext(host, stimulus);
       const phases: MacroPhase[] = [
         async (c: MacroContext, next: () => Promise<void>) => {
-          c.state.derivations.push({ term: '<test --> ok>.' } as any);
+          c.state.derivations.push({ term: '<test-->ok>.' } as any);
           await next();
         },
         async (c: MacroContext, next: () => Promise<void>) => {
@@ -307,7 +307,7 @@ describe('Bench 95 — Middleware unification + ThreadScope', () => {
 
       const phases: MacroPhase[] = [
         async (c: MacroContext, next: () => Promise<void>) => {
-          c.state.derivations.push({ term: '<a --> b>.' } as any);
+          c.state.derivations.push({ term: '<a-->b>.' } as any);
           await next();
         },
         async (c: MacroContext, next: () => Promise<void>) => {

@@ -4,8 +4,8 @@ const rlfp: Scenario = {
   name: 'rlfp',
   description: 'User feedback → reward → policy update → behavior change',
   seedBeliefs: [
-    '<(*, correct, answer) --> reward>. %1.0;0.9%',
-    '<(*, incorrect, answer) --> penalty>. %1.0;0.9%',
+    '<(*, correct, answer)-->reward>. %1.0;0.9%',
+    '<(*, incorrect, answer)-->penalty>. %1.0;0.9%',
   ],
   probes: [
     {

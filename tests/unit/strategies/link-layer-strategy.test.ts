@@ -50,7 +50,7 @@ describe('LinkLayerStrategy', () => {
     links.addLink(animal, whiskers, { type: 'inheritance', priority: 0.8 });
 
     const task = createBeliefTask(
-      { kind: 'inheritance', args: [whiskers, animal], toString: () => '<whiskers --> animal>' },
+      { kind: 'inheritance', args: [whiskers, animal], toString: () => '<whiskers-->animal>' },
       Truth.create(0.9, 0.9),
       0.9
     );

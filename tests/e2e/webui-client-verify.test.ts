@@ -40,7 +40,7 @@ const TRANSCRIPT: IncomingFromServer[] = [
   { type: 'lens.fields', fields: [] },
   {
     type: 'node.history',
-    term: '<bird --> animal>',
+    term: '<bird-->animal>',
     history: [
       { truth: { frequency: 1, confidence: 0.9 }, stampId: 's1', timestamp: 100, source: 'input' },
       {

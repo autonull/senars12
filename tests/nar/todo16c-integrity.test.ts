@@ -12,7 +12,7 @@ const QUERY: JudgmentQuery[] = [
 describe('B8/X20 — KernelPerceptionGate.eventLog is a bounded ring', () => {
   it('drops oldest events beyond capacity', () => {
     const gate = new KernelPerceptionGate();
-    const term = termParser.parse('(a --> b)');
+    const term = termParser.parse('(a-->b)');
     expect(term).not.toBeNull();
     for (let i = 0; i < 1100; i++) gate.admitTask(term!, 'belief');
     const log = gate.getEventLog();
@@ -21,7 +21,7 @@ describe('B8/X20 — KernelPerceptionGate.eventLog is a bounded ring', () => {
 
   it('clearEventLog resets the ring', () => {
     const gate = new KernelPerceptionGate();
-    const term = termParser.parse('(a --> b)');
+    const term = termParser.parse('(a-->b)');
     gate.admitTask(term!, 'belief');
     expect(gate.getEventLog().length).toBeGreaterThan(0);
     gate.clearEventLog();

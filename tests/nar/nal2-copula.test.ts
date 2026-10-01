@@ -2,7 +2,8 @@ import { describe, expect, test } from 'vitest';
 import { NALExtendedRules, TermBuilder } from '../../nar/src';
 
 describe('NAL2 Instance and Property Copula Rules', () => {
-  const { inheritance, instance, property, atom } = TermBuilder;
+  const { inheritance, setExt: instance, setInt: property, atom } = TermBuilder;
+
 
   describe('instanceConversion', () => {
     test('converts inheritance to instance form', () => {
@@ -13,7 +14,7 @@ describe('NAL2 Instance and Property Copula Rules', () => {
       const result = NALExtendedRules.instanceConversion([inh, inh]);
 
       expect(result).toBeDefined();
-      expect(result?.toString()).toBe('({bird} --> {animal})');
+      expect(result?.toString()).toBe('({bird}-->{animal})');
     });
 
     test('returns undefined for non-inheritance terms', () => {
@@ -31,7 +32,7 @@ describe('NAL2 Instance and Property Copula Rules', () => {
       const result = NALExtendedRules.propertyConversion([inh, inh]);
 
       expect(result).toBeDefined();
-      expect(result?.toString()).toBe('([bird] --> [animal])');
+      expect(result?.toString()).toBe('([bird]-->[animal])');
     });
 
     test('returns undefined for non-inheritance terms', () => {
@@ -50,7 +51,7 @@ describe('NAL2 Instance and Property Copula Rules', () => {
       const result = NALExtendedRules.instanceDeduction([inh, birdInst]);
 
       expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(bird --> animal)');
+      expect(result?.toString()).toBe('(bird-->animal)');
     });
 
     test('returns undefined when subject does not match', () => {
@@ -76,7 +77,7 @@ describe('NAL2 Instance and Property Copula Rules', () => {
       const result = NALExtendedRules.propertyInduction([inh, animalProp]);
 
       expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(bird --> animal)');
+      expect(result?.toString()).toBe('(bird-->animal)');
     });
 
     test('returns undefined when predicate does not match', () => {

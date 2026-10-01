@@ -26,7 +26,7 @@ describe('Belief import/export via test endpoints', () => {
   });
 
   it('imports Narsese beliefs and exports them back', async () => {
-    const statements = ['<cat --> animal>.', '<dog --> animal>.'];
+    const statements = ['<cat-->animal>.', '<dog-->animal>.'];
 
     const importResp = await fetch(`http://localhost:${port}/test/import-beliefs`, {
       method: 'POST',
@@ -62,7 +62,7 @@ describe('Belief import/export via test endpoints', () => {
     const resp = await fetch(`http://localhost:${p2}/test/import-beliefs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ statements: ['<bird --> animal>.'] }),
+      body: JSON.stringify({ statements: ['<bird-->animal>.'] }),
     });
     const body = (await resp.json()) as { success: boolean; error?: string };
     expect(body.success).toBe(false);

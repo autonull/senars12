@@ -22,8 +22,8 @@ describe('Bench 15 — Live Ingress Calibration', () => {
   beforeEach(async () => {
     // Create a mock LM service that returns deterministic responses
     mockLMService = {
-      generateText: vi.fn().mockResolvedValue('(robin --> bird).'),
-      tryGenerateText: vi.fn().mockResolvedValue('(robin --> bird).'),
+      generateText: vi.fn().mockResolvedValue('(robin-->bird).'),
+      tryGenerateText: vi.fn().mockResolvedValue('(robin-->bird).'),
       getStats: vi.fn().mockReturnValue({}),
       setProgressCallback: vi.fn(),
     } as unknown as LMService;
@@ -117,7 +117,7 @@ describe('Bench 15 — Live Ingress Calibration', () => {
 
   it('disabled flag uses legacy path', async () => {
     // Use Narsese format for both to ensure they parse identically
-    const input = '(robin --> bird).';
+    const input = '(robin-->bird).';
     
     await expect(narDisabled.input(input)).resolves.not.toThrow();
     await expect(nar.input(input)).resolves.not.toThrow();

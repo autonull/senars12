@@ -88,7 +88,7 @@ export class DriveManager implements IDriveManager {
   }
 
   private injectDriveGoal(spec: DriveSpec, truth: { f: number; c: number }): void {
-    const narsese = `(self --> ${spec.goalProperty})!${formatNarseseTruth(truth)}`;
+    const narsese = `(self-->${spec.goalProperty})!${formatNarseseTruth(truth)}`;
     this.nar.input(narsese, 'goal', Truth.create(truth.f, truth.c));
   }
 }

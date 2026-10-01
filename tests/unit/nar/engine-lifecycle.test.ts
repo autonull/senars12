@@ -39,7 +39,7 @@ describe('NAREngine lifecycle', () => {
     const derivations = await engine.reason(
       {
         correlationId: 'c1',
-        text: '<cat --> mammal>.',
+        text: '<cat-->mammal>.',
         source: 'chat',
         timestamp: Date.now(),
       },
@@ -50,7 +50,7 @@ describe('NAREngine lifecycle', () => {
 
   it('query returns results after initialization', async () => {
     await engine.initialize();
-    const results = await engine.query('<cat --> mammal>');
+    const results = await engine.query('<cat-->mammal>');
     expect(Array.isArray(results)).toBe(true);
   });
 });

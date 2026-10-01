@@ -180,7 +180,7 @@ describe('NARExecution', () => {
       const results: Task[] = [];
       for await (const task of streamed.runStream(5, 100)) results.push(task);
 
-      expect(results.map((t) => t.term.toString())).toContain('(A --> C)');
+      expect(results.map((t) => t.term.toString())).toContain('(A-->C)');
     });
 
     test('respects maxResults limit', async () => {

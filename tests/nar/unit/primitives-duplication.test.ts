@@ -35,17 +35,17 @@ describe('reward representation', () => {
   });
 
   it('builds the reward_<level> --> achieved belief', () => {
-    expect(rewardBeliefTerm(1).toString()).toBe('(reward_high --> achieved)');
-    expect(rewardBeliefTerm(0).toString()).toBe('(reward_neutral --> achieved)');
-    expect(rewardBeliefTerm(-1).toString()).toBe('(reward_low --> achieved)');
+    expect(rewardBeliefTerm(1).toString()).toBe('(reward_high-->achieved)');
+    expect(rewardBeliefTerm(0).toString()).toBe('(reward_neutral-->achieved)');
+    expect(rewardBeliefTerm(-1).toString()).toBe('(reward_low-->achieved)');
   });
 });
 
 describe('term substring filtering', () => {
   const items = [
-    { term: termOf('(Cat --> animal)') },
-    { term: termOf('(dog --> animal)') },
-    { term: termOf('(bird --> animal)') },
+    { term: termOf('(Cat-->animal)') },
+    { term: termOf('(dog-->animal)') },
+    { term: termOf('(bird-->animal)') },
   ];
 
   it('matches a pre-lowered needle against the lowercased term', () => {

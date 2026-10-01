@@ -26,12 +26,12 @@ describe('ToolDispatcher', () => {
       },
     };
     const result = await dispatchToolCalls(
-      [{ toolName: 'nar_believe', toolCallId: 'b1', args: { statement: '(cat --> animal).' } }],
+      [{ toolName: 'nar_believe', toolCallId: 'b1', args: { statement: '(cat-->animal).' } }],
       { tools }
     );
     const beliefArtifact = result.artifacts.find((a) => a.type === 'belief_added');
     expect(beliefArtifact).toBeDefined();
-    expect(beliefArtifact?.content).toBe('(cat --> animal).');
+    expect(beliefArtifact?.content).toBe('(cat-->animal).');
   });
 
   it('surfaces tool-not-found as an error', async () => {
@@ -77,7 +77,7 @@ describe('ToolDispatcher', () => {
   it('does not add belief_added for nar_believe with success=false', async () => {
     const tools = { nar_believe: { execute: async () => ({ success: false, error: 'nope' }) } };
     const result = await dispatchToolCalls(
-      [{ toolName: 'nar_believe', toolCallId: 'x', args: { statement: '(x --> y).' } }],
+      [{ toolName: 'nar_believe', toolCallId: 'x', args: { statement: '(x-->y).' } }],
       { tools }
     );
     expect(result.artifacts.find((a) => a.type === 'belief_added')).toBeUndefined();

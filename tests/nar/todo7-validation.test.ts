@@ -48,9 +48,9 @@ describe('TODO7 validation benchmarks', () => {
     const batch = toFormalizationBatch(
       'Cats may eat fish unless served meat, and never drink milk',
       {
-        beliefs: [{ narsese: '(cat --> fish-eater)', source: 'user' }],
-        questions: [{ narsese: '(cat --> ?diet)' }],
-        goals: [{ narsese: '(cat --> healthy)' }],
+        beliefs: [{ narsese: '(cat-->fish-eater)', source: 'user' }],
+        questions: [{ narsese: '(cat-->?diet)' }],
+        goals: [{ narsese: '(cat-->healthy)' }],
         meta: {
           detectedIntent: 'reasoning',
           ambiguities: [],

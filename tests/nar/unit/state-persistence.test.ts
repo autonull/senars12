@@ -129,9 +129,9 @@ describe('NAR State Persistence', () => {
     await nar.start();
 
     // Add some beliefs, goals, questions using correct methods
-    await nar.believe('(test_belief --> concept).');
-    await nar.goal('(test_goal --> concept)!');
-    await nar.question('(test_question --> ?what)?');
+    await nar.believe('(test_belief-->concept).');
+    await nar.goal('(test_goal-->concept)!');
+    await nar.question('(test_question-->?what)?');
 
     await nar.run(2);
     await nar.stop();

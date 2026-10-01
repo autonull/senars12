@@ -117,7 +117,7 @@ describe('C3 Hot-path benchmarks (bench 119+)', () => {
 
   describe('rankDerivations comparator allocation', () => {
     const mockDerivations = Array.from({ length: 100 }, (_, i) => ({
-      term: { toString: () => `(term${i} --> target)` },
+      term: { toString: () => `(term${i}-->target)` },
       truth: { f: 0.5 + (i % 50) * 0.01, c: 0.9 },
     }));
 
@@ -131,7 +131,7 @@ describe('C3 Hot-path benchmarks (bench 119+)', () => {
 
     test('rankDerivations (1000 derivations)', () => {
       const manyDerivations = Array.from({ length: 1000 }, (_, i) => ({
-        term: { toString: () => `(term${i} --> target)` },
+        term: { toString: () => `(term${i}-->target)` },
         truth: { f: 0.5 + (i % 50) * 0.01, c: 0.9 },
       }));
 

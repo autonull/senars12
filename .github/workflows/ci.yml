@@ -24,6 +24,9 @@ jobs:
       # TODO29.a A0: provider-dependency detection, and the in-cycle induction inventory.
       - run: pnpm cycle:no-provider
       - run: pnpm induction:inventory
+      # TODO29.a A12 step 1: the operator table, the grammar and the serialiser
+      # are one surface form, and every kind survives the round trip.
+      - run: pnpm terms:canonical
       # TODO20 A1: no export without a consumer (or PUBLIC_API declaration)
       - run: pnpm exports:audit
       # Every declared subpath resolves to a real file.

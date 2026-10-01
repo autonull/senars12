@@ -59,7 +59,7 @@ const rewardTerm = TermBuilder.inheritance(
   });
 
   test('Reward updates relevant state-action value belief', async () => {
-    // State-action value: ((*, state:s_3_4, ^move_north) --> predicts_reward)
+    // State-action value: ((*, state:s_3_4, ^move_north)-->predicts_reward)
     const state = TermBuilder.atom('state_s_3_4');
     const action = TermBuilder.atom('^move_north');
     const product = TermBuilder.product(state, action);
@@ -122,7 +122,7 @@ const rewardTerm = TermBuilder.inheritance(
   });
 
   test('State-action value uses native Product/Inheritance form', async () => {
-    // Verify the canonical form: ((*, state:s_3_4, ^move_north) --> predicts_reward)
+    // Verify the canonical form: ((*, state:s_3_4, ^move_north)-->predicts_reward)
     const state = TermBuilder.atom('state_s_3_4');
     const action = TermBuilder.atom('^move_north');
     const product = TermBuilder.product(state, action);

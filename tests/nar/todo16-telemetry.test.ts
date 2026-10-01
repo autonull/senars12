@@ -36,9 +36,9 @@ describe('System One — Telemetry Emission (R2)', () => {
     // The KernelPerceptionGate uses 6 hardcoded ingress queries
     const expectedIngressQueries = 6;
 
-    const pointer = await cache.write('(test --> observation).');
+    const pointer = await cache.write('(test-->observation).');
     const result = await gate.admit({
-      rawObservation: '(test --> observation).',
+      rawObservation: '(test-->observation).',
       sourceQuality: 'LLM_PRIOR',
       sensorConfidence: 1.0,
       sourceId: 'test-source',

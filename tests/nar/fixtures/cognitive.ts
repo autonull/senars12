@@ -34,7 +34,7 @@ export const createTestController = (
   );
 
 /**
- * Transitive inheritance: `(a --> b)` and `(b --> c)` give `(a --> c)`.
+ * Transitive inheritance: `(a-->b)` and `(b-->c)` give `(a-->c)`.
  *
  * A fresh `RuleProcessor` loads the NAL rules by module side effect, which is
  * convenient but not something a test should depend on — the rule it needs is

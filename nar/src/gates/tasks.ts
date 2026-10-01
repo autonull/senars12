@@ -45,11 +45,11 @@ export const stateTerm = (stateId: string): Term => TermBuilder.atom(toAtomSymbo
 
 /** `[score_3]` — a named feature observed at a value. */
 export const featureTerm = (feature: string, value: number): Term =>
-  TermBuilder.property(TermBuilder.atom(toAtomSymbol(`${feature}_${String(value)}`)));
+  TermBuilder.setInt(TermBuilder.atom(toAtomSymbol(`${feature}_${String(value)}`)));
 
 /** `[reward_positive]` — the sign of an outcome. */
 export const rewardTerm = (reward: number): Term =>
-  TermBuilder.property(TermBuilder.atom(reward >= 0 ? 'reward_positive' : 'reward_negative'));
+  TermBuilder.setInt(TermBuilder.atom(reward >= 0 ? 'reward_positive' : 'reward_negative'));
 
 /** `^move(left --> right)` — a reflex proposal as an executable operation term. */
 export const actionTerm = (action: string, args: Readonly<Record<string, unknown>>): Term =>

@@ -1,51 +1,76 @@
 import { describe, expect, it } from 'vitest';
-import { createBudget, Memory, TermBuilder, TermMap, TermSet, termKey, Truth } from '../../../nar/src';
+import {
+  createBudget,
+  Memory,
+  TermBuilder,
+  TermMap,
+  TermSet,
+  Truth,
+  termKey,
+} from '../../../nar/src';
 import { foldNary } from '../../../nar/src/rules/impls/builders.js';
 
 /**
- * `serializeTerm` collapses a 1-argument n-ary term onto its argument, so
- * `sequence(a)`, `conjunction(a)` and the atom `a` all print as `"a"`. The
- * printed form is a rendering, not an identity: `termKey` is the one structural
- * identity, and everything that maps, de-duplicates or looks terms up by it.
+ * A canonical form is injective: a term's printed form names exactly one term,
+ * and a term's structural key names it whatever it prints as.
+ *
+ * This used to be recorded the other way round — three structures (`a`,
+ * `sequence(a)`, `conjunction(a)`) printing alike and held apart only by
+ * `termKey`, which is the state a canonical form exists to remove. A variadic
+ * kind with one member now *is* that member, so the collision cannot be built.
+ * The property that made those tests necessary is kept, one level up: no two
+ * distinct terms print alike, so `toString` is usable as an identity too.
  */
 const a = TermBuilder.atom('a');
-const seqA = TermBuilder.sequence(a);
-const conjA = TermBuilder.conjunction(a);
-const colliding = [
+const b = TermBuilder.atom('b');
+const seqA = TermBuilder.sequence(a, b);
+const conjA = TermBuilder.conjunction(a, b);
+const inh = TermBuilder.inheritance(a, b)!;
+
+const distinct = [
   ['atom', a],
   ['sequence', seqA],
   ['conjunction', conjA],
+  ['inheritance', inh],
 ] as const;
 
 describe('canonical term identity', () => {
-  it('the serialized form collides across distinct structures', () => {
-    const printed = new Set(colliding.map(([, term]) => term.toString()));
-    expect(printed).toEqual(new Set(['a']));
+  it('a one-member variadic compound is that member', () => {
+    expect(TermBuilder.sequence(a)).toBe(a);
+    expect(TermBuilder.conjunction(a)).toBe(a);
+    expect(TermBuilder.product(a)).toBe(a);
   });
 
-  it('termKey separates every structure that shares a serialized form', () => {
-    const keys = new Set(colliding.map(([, term]) => termKey(term)));
-    expect(keys.size).toBe(colliding.length);
+  it('no two distinct structures share a printed form', () => {
+    const printed = new Set(distinct.map(([, term]) => term.toString()));
+    expect(printed.size).toBe(distinct.length);
+  });
+
+  it('termKey separates every structure', () => {
+    const keys = new Set(distinct.map(([, term]) => termKey(term)));
+    expect(keys.size).toBe(distinct.length);
   });
 
   it('TermSet holds each of them', () => {
     const set = new TermSet();
-    for (const [, term] of colliding) set.add(term);
-    expect(set.size).toBe(colliding.length);
-    for (const [, term] of colliding) expect(set.has(term)).toBe(true);
+    for (const [, term] of distinct) set.add(term);
+    expect(set.size).toBe(distinct.length);
+    for (const [, term] of distinct) expect(set.has(term)).toBe(true);
   });
 
   it('TermMap holds each of them, and a non-interned copy addresses the same entry', () => {
     const map = new TermMap<string>();
-    for (const [name, term] of colliding) map.set(term, name);
+    for (const [name, term] of distinct) map.set(term, name);
 
-    expect(map.size).toBe(colliding.length);
+    expect(map.size).toBe(distinct.length);
     expect(map.get(TermBuilder.atom('a'))).toBe('atom');
-    expect(map.get({ kind: 'sequence', args: [TermBuilder.atom('a')] } as never)).toBe('sequence');
+    expect(
+      map.get({ kind: 'sequence', args: [TermBuilder.atom('a'), TermBuilder.atom('b')] } as never)
+    ).toBe('sequence');
   });
 });
 
-describe('term-keyed consumers do not merge on the serialized form', () => {
+describe('term-keyed consumers do not merge on the printed form', () => {
   it('revision history is per term, not per printed form', () => {
     const memory = new Memory();
     memory.addTask(seqA, 'belief', Truth.create(0.9, 0.9), createBudget(0.9));
@@ -56,18 +81,21 @@ describe('term-keyed consumers do not merge on the serialized form', () => {
   });
 
   it('a union of n-ary terms keeps arguments that print alike', () => {
-    const union = foldNary('disjunction', true)([TermBuilder.disjunction(a), TermBuilder.disjunction(seqA)]);
+    const union = foldNary(
+      'disjunction',
+      true
+    )([TermBuilder.disjunction(a, b), TermBuilder.disjunction(b, seqA)]);
 
     expect(union).toBeDefined();
-    expect(union!.args).toHaveLength(2);
+    expect(union!.args).toHaveLength(3);
   });
 
   it('an intersection of n-ary terms keeps arguments that print alike', () => {
     const intersection = foldNary('conjunction')([
-      TermBuilder.conjunction(a, seqA),
-      TermBuilder.conjunction(seqA),
+      TermBuilder.conjunction(a, b, seqA),
+      TermBuilder.conjunction(a, b),
     ]);
 
-    expect(intersection?.args).toEqual([seqA]);
+    expect(intersection?.args).toEqual([a, b]);
   });
 });

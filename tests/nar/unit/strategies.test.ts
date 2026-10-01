@@ -30,8 +30,8 @@ describe('Core Strategies', () => {
     });
 
     it('should select secondary tasks for inference', async () => {
-      await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
-      await nar.input('(b --> c)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(a-->b)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(b-->c)', 'belief', Truth.create(0.9, 0.9));
 
       const task = nar.taskManager.peekTask();
       if (task) {
@@ -49,7 +49,7 @@ describe('Core Strategies', () => {
     });
 
     it('should filter for inheritance terms only', async () => {
-      await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(a-->b)', 'belief', Truth.create(0.9, 0.9));
       await nar.input('(&, a, b)', 'belief', Truth.create(0.9, 0.9));
 
       const concepts = nar.memory.listConcepts();
@@ -64,8 +64,8 @@ describe('Core Strategies', () => {
     });
 
     it('should prioritize high-confidence beliefs', async () => {
-      await nar.input('(important --> fact)', 'belief', Truth.create(0.95, 0.95));
-      await nar.input('(unimportant --> fact)', 'belief', Truth.create(0.3, 0.5));
+      await nar.input('(important-->fact)', 'belief', Truth.create(0.95, 0.95));
+      await nar.input('(unimportant-->fact)', 'belief', Truth.create(0.3, 0.5));
 
       const task = nar.taskManager.peekTask();
       if (task) {
@@ -81,8 +81,8 @@ describe('Core Strategies', () => {
     });
 
     it('should find concepts with overlapping terms', async () => {
-      await nar.input('(dog --> animal)', 'belief', Truth.create(0.9, 0.9));
-      await nar.input('(cat --> animal)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(dog-->animal)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(cat-->animal)', 'belief', Truth.create(0.9, 0.9));
 
       const task = nar.taskManager.peekTask();
       if (task) {
@@ -108,8 +108,8 @@ describe('Core Strategies', () => {
     });
 
     it('should link related terms', async () => {
-      await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
-      await nar.input('(b --> c)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(a-->b)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(b-->c)', 'belief', Truth.create(0.9, 0.9));
 
       const task = nar.taskManager.peekTask();
       if (task) {
@@ -127,7 +127,7 @@ describe('Core Strategies', () => {
     });
 
     it('should match tasks with similar terms', async () => {
-      await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(a-->b)', 'belief', Truth.create(0.9, 0.9));
 
       const task = nar.taskManager.peekTask();
       if (task) {
@@ -163,7 +163,7 @@ describe('Core Strategies', () => {
     });
 
     it('should return empty array for non-conjunction terms', async () => {
-      await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(a-->b)', 'belief', Truth.create(0.9, 0.9));
 
       const task = nar.taskManager.peekTask();
       if (task) {
@@ -181,7 +181,7 @@ describe('Core Strategies', () => {
     });
 
     it('should form beliefs from premises', async () => {
-      await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(a-->b)', 'belief', Truth.create(0.9, 0.9));
 
       const task = nar.taskManager.peekTask();
       if (task) {
@@ -202,7 +202,7 @@ describe('Composite Strategies', () => {
   it('should combine multiple strategies', async () => {
     const composite = new CompositeStrategy([premise('resolution'), premise('sampled')]);
 
-    await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
+    await nar.input('(a-->b)', 'belief', Truth.create(0.9, 0.9));
 
     const task = nar.taskManager.peekTask();
     if (task) {
@@ -214,7 +214,7 @@ describe('Composite Strategies', () => {
   it('should handle sequential mode', async () => {
     const composite = new CompositeStrategy([premise('resolution'), premise('sampled')], 'concatenate');
 
-    await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
+    await nar.input('(a-->b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
     if (task) {
       const results = composite.selectSecondary(task, nar.memory);
@@ -225,7 +225,7 @@ describe('Composite Strategies', () => {
   it('should handle parallel mode', async () => {
     const composite = new CompositeStrategy([premise('resolution'), premise('goal-driven')], 'concatenate');
 
-    await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
+    await nar.input('(a-->b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
     if (task) {
       const results = composite.selectSecondary(task, nar.memory);
@@ -239,7 +239,7 @@ describe('Composite Strategies', () => {
       'dedup'
     );
 
-    await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
+    await nar.input('(a-->b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
     if (task) {
       const results = composite.selectSecondary(task, nar.memory);
@@ -258,7 +258,7 @@ describe('Composite Strategies', () => {
 
     const composite = new CompositeStrategy([failingStrategy, premise('resolution')]);
 
-    await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
+    await nar.input('(a-->b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
     if (task) {
       const results = composite.selectSecondary(task, nar.memory);
@@ -312,7 +312,7 @@ describe('Strategy Performance', () => {
 
   it('should handle large concept spaces efficiently', async () => {
     for (let i = 0; i < 50; i++) {
-      await nar.input(`(concept${i} --> property)`, 'belief', Truth.create(0.9, 0.9));
+      await nar.input(`(concept${i}-->property)`, 'belief', Truth.create(0.9, 0.9));
     }
 
     const task = nar.taskManager.peekTask();

@@ -44,6 +44,9 @@ export const GATES: readonly Gate[] = [
   script('gates:one-cycle-path'),
   // TODO29.a A1: S / S+J / S+P / S+J+P are four complete systems.
   script('config:model-matrix'),
+  // TODO29.a A12 step 1: the operator table, the grammar and the serialiser are
+  // one surface form, and every kind survives the round trip.
+  script('terms:canonical'),
   script('exports:audit'),
   script('exports:check'),
   script('exports:barrels'),

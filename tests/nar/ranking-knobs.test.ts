@@ -22,7 +22,7 @@ describe('todo7: ranking knobs', () => {
     expect(params.inference.ranking?.maxAdmissions).toBe(1000);
     knobs['rankingMinScore']?.set(0.23);
     expect(params.inference.ranking?.minScore).toBeCloseTo(0.25);
-    const many = Array.from({ length: 30 }, (_, i) => t(`(t${i} --> u)`));
+    const many = Array.from({ length: 30 }, (_, i) => t(`(t${i}-->u)`));
     expect(rankDerivations(many, params.inference.ranking)).toHaveLength(30);
     knobs['rankingMaxAdmissions']?.set(23);
     expect(params.inference.ranking?.maxAdmissions).toBe(20);

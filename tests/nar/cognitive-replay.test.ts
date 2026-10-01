@@ -16,7 +16,7 @@ const driveAllGates = (): GateRegistry => {
   const registry = new GateRegistry();
   registry.getPerceptionGate().admit({
     sourceId: 's',
-    rawObservation: '(a --> b).',
+    rawObservation: '(a-->b).',
     sensorConfidence: 1,
     sourceQuality: 'PRIMARY',
   });
@@ -48,7 +48,7 @@ describe('todo7: cognitive state replay', () => {
     const { events, invalid } = loadGateEvents(path);
     expect(invalid).toBe(0);
     const first = replayCognitiveState(events);
-    expect(first.tasks.map((t) => t.term)).toEqual(['(a --> b)']);
+    expect(first.tasks.map((t) => t.term)).toEqual(['(a-->b)']);
     expect(first.violations).toHaveLength(2);
     expect(first.violations.map((v) => v.policyId).sort()).toEqual([
       'autonomy-mode',
@@ -73,7 +73,7 @@ describe('todo7: cognitive state replay', () => {
         timestamp: Date.now(),
         correlationId: uuidv4(),
         payload: {
-          term: '(a --> b)',
+          term: '(a-->b)',
           oldTruth,
           newTruth,
           evidenceLineage: [],
@@ -85,9 +85,9 @@ describe('todo7: cognitive state replay', () => {
       mk({ frequency: 0.85, confidence: 0.75 }, { frequency: 0.9, confidence: 0.8 }),
     ];
     const snapshot = replayCognitiveState(events);
-    expect(snapshot.beliefs['(a --> b)']).toEqual({ frequency: 0.9, confidence: 0.8 });
-    expect(snapshot.revisions['(a --> b)']).toHaveLength(2);
-    expect(snapshot.revisions['(a --> b)']?.[0]?.newTruth).toEqual({
+    expect(snapshot.beliefs['(a-->b)']).toEqual({ frequency: 0.9, confidence: 0.8 });
+    expect(snapshot.revisions['(a-->b)']).toHaveLength(2);
+    expect(snapshot.revisions['(a-->b)']?.[0]?.newTruth).toEqual({
       frequency: 0.85,
       confidence: 0.75,
     });

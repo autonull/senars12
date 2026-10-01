@@ -12,22 +12,22 @@ describe('todo7: unified translateCached path', () => {
     expect(await svc.understand('Cats are mammals.')).toBeNull();
     expect(cache.get('Cats are mammals.')).toBeNull();
     cache.record('Cats are mammals.', {
-      beliefs: [{ narsese: '(cat --> mammal)', truth: { f: 0.9, c: 0.9 } }],
-      questions: ['(whiskers --> ?what)?'],
-      goals: ['(cat --> happy)!'],
+      beliefs: [{ narsese: '(cat-->mammal)', truth: { f: 0.9, c: 0.9 } }],
+      questions: ['(whiskers-->?what)?'],
+      goals: ['(cat-->happy)!'],
       summary: 'cats',
     });
     const hit = await svc.understand('Cats are mammals.');
     expect(hit?.beliefs).toEqual([
-      { narsese: '(cat --> mammal)', truth: { f: 0.9, c: 0.9 }, source: 'user' },
+      { narsese: '(cat-->mammal)', truth: { f: 0.9, c: 0.9 }, source: 'user' },
     ]);
-    expect(hit?.questions).toEqual([{ narsese: '(whiskers --> ?what)?' }]);
-    expect(hit?.goals).toEqual([{ narsese: '(cat --> happy)!' }]);
+    expect(hit?.questions).toEqual([{ narsese: '(whiskers-->?what)?' }]);
+    expect(hit?.goals).toEqual([{ narsese: '(cat-->happy)!' }]);
     expect(hit?.meta.detectedIntent).toBe('chat');
   });
   it('string cache entries are skipped (unconvertible legacy shape)', async () => {
     const cache = new TranslationCache();
-    cache.record('old entry', '(cat --> mammal).');
+    cache.record('old entry', '(cat-->mammal).');
     expect(await service(cache).understand('old entry')).toBeNull();
   });
 });

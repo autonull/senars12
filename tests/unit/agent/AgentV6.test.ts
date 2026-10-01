@@ -48,8 +48,8 @@ describe('Agent (v6 harness)', () => {
   it('feeds Narsese belief directly to NAR without LM', async () => {
     const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
-    const text = await collectChat(agent, '(cat --> animal).');
-    expect(text).toContain('(cat --> animal)');
+    const text = await collectChat(agent, '(cat-->animal).');
+    expect(text).toContain('(cat-->animal)');
     expect(nar.getBeliefs().length).toBeGreaterThan(0);
     rmSync(basePath, { recursive: true, force: true });
   });
@@ -66,8 +66,8 @@ describe('Agent (v6 harness)', () => {
   it('parses question (?) and checks existing beliefs', async () => {
     const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
-    await nar.input('(cat --> animal).');
-    const text = await collectChat(agent, '(cat --> ?)?');
+    await nar.input('(cat-->animal).');
+    const text = await collectChat(agent, '(cat-->?)?');
     expect(text).toMatch(/cat/);
     rmSync(basePath, { recursive: true, force: true });
   });
@@ -135,8 +135,8 @@ describe('Agent (v6 harness)', () => {
 
   it('works without LM (Narsese only)', async () => {
     const agent = await createAgent({ nar });
-    const text = await collectChat(agent, '(cat --> animal).');
-    expect(text).toContain('(cat --> animal)');
+    const text = await collectChat(agent, '(cat-->animal).');
+    expect(text).toContain('(cat-->animal)');
   });
 
   it('works without NAR (LM only)', async () => {
@@ -156,7 +156,7 @@ describe('Agent (v6 harness)', () => {
   it('believe() parses Narsese and feeds NAR', async () => {
     const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, episodicMemory: ep });
-    await agent.believe('(cat --> animal).');
+    await agent.believe('(cat-->animal).');
     expect(nar.getBeliefs().length).toBeGreaterThan(0);
     rmSync(basePath, { recursive: true, force: true });
   });

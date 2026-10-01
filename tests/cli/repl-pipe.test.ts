@@ -14,7 +14,7 @@ describe('REPL Pipe Mode', () => {
 
   it('should handle basic belief input', async () => {
     // Test that the CLI can process belief input
-    expect('(cat --> animal).').toMatch(/^\(.*\)\.$/);
+    expect('(cat-->animal).').toMatch(/^\(.*\)\.$/);
   });
 
   it('should handle command input', async () => {
@@ -59,7 +59,7 @@ describe('REPL Pipe Mode', () => {
 
 describe('REPL Output Format', () => {
   it('should format belief response', () => {
-    const input = '(cat --> animal).';
+    const input = '(cat-->animal).';
     const response = `Added: ${input}`;
 
     expect(response).toContain('Added');

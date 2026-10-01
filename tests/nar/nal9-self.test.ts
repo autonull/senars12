@@ -49,7 +49,7 @@ describe('NAL9 Self/Control Rules', () => {
   describe('metacognitive term creation', () => {
     test('creates operation terms for metacognition', () => {
       const meta = operation(atom('meta'), atom('analyze'));
-      expect(meta.toString()).toBe('(meta ^ analyze)');
+      expect(meta.toString()).toBe('(meta^(analyze))');
     });
 
     test('handles complex metacognitive structures', () => {

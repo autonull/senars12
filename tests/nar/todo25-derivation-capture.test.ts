@@ -29,7 +29,7 @@ const controllerWith = (
       sample: () =>
         [
           {
-            term: termParser.parse('<sparrow --> bird>'),
+            term: termParser.parse('<sparrow-->bird>'),
             priority: 0.5,
             beliefBag: { peek: () => ({ truth: Truth.create(0.9, 0.9) }) },
           },
@@ -44,18 +44,18 @@ describe('TODO25 Bench 80 — derivation-chain capture', () => {
   it('onDerivation receives [primary, ...secondaries, derived] per derivation', async () => {
     const chains: Task[][] = [];
     const controller = controllerWith(async function* () {
-      yield task('<sparrow --> animal>');
+      yield task('<sparrow-->animal>');
     }, (chain) => chains.push([...chain]));
     await controller.step();
     expect(chains.length).toBe(1);
     expect(chains[0]!.length).toBe(2);
-    expect(chains[0]![0]!.term).toEqual(termParser.parse('<sparrow --> bird>'));
-    expect(chains[0]![1]!.term).toEqual(termParser.parse('<sparrow --> animal>'));
+    expect(chains[0]![0]!.term).toEqual(termParser.parse('<sparrow-->bird>'));
+    expect(chains[0]![1]!.term).toEqual(termParser.parse('<sparrow-->animal>'));
   });
 
   it('no sink ⇒ capture is inert (zero-cost default path)', async () => {
     const controller = controllerWith(async function* () {
-      yield task('<a --> b>');
+      yield task('<a-->b>');
     });
     await expect(controller.step()).resolves.toHaveLength(1);
   });
@@ -63,7 +63,7 @@ describe('TODO25 Bench 80 — derivation-chain capture', () => {
   it('captured chains round-trip through SchemaInductor (real Memory, deterministic LM double)', async () => {
     const lmDouble = {
       generateText: async () =>
-        JSON.stringify({ pattern: '(?A --> ?B) & (?B --> ?C) ==> (?A --> ?C)', type: 'transitivity', confidence: 0.8, variables: ['?A', '?B', '?C'] }),
+        JSON.stringify({ pattern: '(?A-->?B)&(?B-->?C)==>(?A-->?C)', type: 'transitivity', confidence: 0.8, variables: ['?A', '?B', '?C'] }),
     };
     const inductor = new SchemaInductor(
       new Memory(),

@@ -30,7 +30,7 @@ export const validateRuleOutput = (term: Term, _premises: [Term, Term]): boolean
     )
       return false;
     if (
-      (term.kind === 'negation' || term.kind === 'instance' || term.kind === 'property') &&
+      (term.kind === 'negation' || term.kind === 'setExt' || term.kind === 'setInt') &&
       argCount !== 1
     )
       return false;

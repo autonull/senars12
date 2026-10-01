@@ -14,22 +14,22 @@ import { NAR } from '../../../src';
 
 describe('Diagnostic: Tautology Detection', () => {
   it('should detect self-inheritance as tautology', () => {
-    const term = termParser.parse('<x --> x>');
+    const term = termParser.parse('<x-->x>');
     expect(isTautology(term)).toBe(true);
   });
 
   it('should detect self-similarity as tautology', () => {
-    const term = termParser.parse('<x <-> x>');
+    const term = termParser.parse('<x<->x>');
     expect(isTautology(term)).toBe(true);
   });
 
   it('should not detect normal inheritance as tautology', () => {
-    const term = termParser.parse('<cat --> animal>');
+    const term = termParser.parse('<cat-->animal>');
     expect(isTautology(term)).toBe(false);
   });
 
   it('should reject tautology as invalid task term', () => {
-    const term = termParser.parse('<x --> x>');
+    const term = termParser.parse('<x-->x>');
     const result = validateTaskTerm(term);
     expect(result.valid).toBe(false);
     if (!result.valid) {
@@ -50,7 +50,7 @@ describe('Diagnostic: Tautology Detection', () => {
   });
 
   it('should accept normal terms', () => {
-    const term = termParser.parse('<cat --> animal>');
+    const term = termParser.parse('<cat-->animal>');
     const result = validateTaskTerm(term);
     expect(result.valid).toBe(true);
   });
@@ -60,16 +60,16 @@ describe('Diagnostic: NAR Tautology Rejection', () => {
   it('should not add tautology to memory', async () => {
     const nar = new NAR();
     const before = nar.memory.listConcepts().length;
-    await nar.believe('<x --> x>.');
+    await nar.believe('<x-->x>.');
     await nar.run(1);
     // Check that the tautology itself wasn't added
-    const tautologyAdded = nar.getBeliefs().some((b) => b.term.toString().includes('x --> x'));
+    const tautologyAdded = nar.getBeliefs().some((b) => b.term.toString().includes('x-->x'));
     expect(tautologyAdded).toBe(false);
   });
 
   it('should not derive from tautology input', async () => {
     const nar = new NAR();
-    await nar.believe('<x --> x>.');
+    await nar.believe('<x-->x>.');
     const derived = await nar.run(3);
     // No derivations should come from the tautology itself
     expect(derived).toBe(0);
@@ -84,11 +84,11 @@ describe('Diagnostic: Revision vs New Derivation', () => {
   });
 
   it('should not report same-term revision as new derivation', async () => {
-    await nar.believe('<a --> b>.');
+    await nar.believe('<a-->b>.');
     await nar.run(1);
 
     const beliefsBefore = nar.getBeliefs().map((b) => b.term.toString());
-    await nar.believe('<a --> b>.');
+    await nar.believe('<a-->b>.');
     await nar.run(1);
     const beliefsAfter = nar.getBeliefs().map((b) => b.term.toString());
 
@@ -97,13 +97,13 @@ describe('Diagnostic: Revision vs New Derivation', () => {
   });
 
   it('should revise truth values for duplicate input', async () => {
-    await nar.believe('<a --> b>.');
+    await nar.believe('<a-->b>.');
     await nar.run(1);
-    const belief1 = nar.getBeliefs().find((b) => b.term.toString() === '(a --> b)');
+    const belief1 = nar.getBeliefs().find((b) => b.term.toString() === '(a-->b)');
 
-    await nar.believe('<a --> b>.');
+    await nar.believe('<a-->b>.');
     await nar.run(1);
-    const belief2 = nar.getBeliefs().find((b) => b.term.toString() === '(a --> b)');
+    const belief2 = nar.getBeliefs().find((b) => b.term.toString() === '(a-->b)');
 
     expect(belief2).toBeDefined();
     expect(belief2?.truth?.c).toBeGreaterThanOrEqual(belief1?.truth?.c ?? 0);
@@ -118,36 +118,36 @@ describe('Diagnostic: Query Answer Accuracy', () => {
   });
 
   it('should return exact match for queried term', async () => {
-    await nar.believe('<cat --> animal>.');
+    await nar.believe('<cat-->animal>.');
     await nar.run(1);
 
-    const answer = await nar.query.ask('<cat --> animal>');
-    expect(answer.answer).toBe('(cat --> animal)');
+    const answer = await nar.query.ask('<cat-->animal>');
+    expect(answer.answer).toBe('(cat-->animal)');
     expect(answer.confidence).toBeGreaterThan(0);
   });
 
   it('should return exact match after multiple queries', async () => {
-    await nar.believe('<cat --> animal>.');
-    await nar.believe('<dog --> animal>.');
+    await nar.believe('<cat-->animal>.');
+    await nar.believe('<dog-->animal>.');
     await nar.run(3);
 
-    await nar.question('<cat --> animal>?');
+    await nar.question('<cat-->animal>?');
     await nar.run(5);
 
-    await nar.question('<dog --> animal>?');
+    await nar.question('<dog-->animal>?');
     await nar.run(5);
 
-    const answer = await nar.query.ask('<dog --> animal>');
-    expect(answer.answer).toBe('(dog --> animal)');
+    const answer = await nar.query.ask('<dog-->animal>');
+    expect(answer.answer).toBe('(dog-->animal)');
   });
 
   it('should prefer exact match over similar concepts', async () => {
-    await nar.believe('<cat --> animal>.');
-    await nar.believe('<dog --> animal>.');
+    await nar.believe('<cat-->animal>.');
+    await nar.believe('<dog-->animal>.');
     await nar.run(3);
 
-    const answer = await nar.query.ask('<dog --> animal>');
-    expect(answer.answer).toBe('(dog --> animal)');
+    const answer = await nar.query.ask('<dog-->animal>');
+    expect(answer.answer).toBe('(dog-->animal)');
   });
 });
 
@@ -159,17 +159,17 @@ describe('Diagnostic: Derivation Chain Integrity', () => {
   });
 
   it('should derive transitive inheritance', async () => {
-    await nar.believe('<cat --> animal>.');
-    await nar.believe('<animal --> mammal>.');
+    await nar.believe('<cat-->animal>.');
+    await nar.believe('<animal-->mammal>.');
     await nar.run(5);
 
     const derived = nar.getBeliefs().map((b) => b.term.toString());
-    expect(derived).toContain('(cat --> mammal)');
+    expect(derived).toContain('(cat-->mammal)');
   });
 
   it('should not produce duplicate terms after multiple runs', async () => {
-    await nar.believe('<a --> b>.');
-    await nar.believe('<b --> c>.');
+    await nar.believe('<a-->b>.');
+    await nar.believe('<b-->c>.');
     await nar.run(5);
 
     const terms = nar.getBeliefs().map((b) => b.term.toString());
@@ -186,7 +186,7 @@ describe('[Phase 1] Operation Operator Misuse', () => {
   });
 
   it('should not produce ^ operator from pure declarative input', async () => {
-    await nar.believe('<cat --> animal>.');
+    await nar.believe('<cat-->animal>.');
     await nar.run(5);
 
     const beliefs = nar.getBeliefs().map((b) => b.term.toString());
@@ -195,8 +195,8 @@ describe('[Phase 1] Operation Operator Misuse', () => {
   });
 
   it('should not produce ^ operator from transitive chain', async () => {
-    await nar.believe('<cat --> animal>.');
-    await nar.believe('<animal --> mammal>.');
+    await nar.believe('<cat-->animal>.');
+    await nar.believe('<animal-->mammal>.');
     await nar.run(5);
 
     const beliefs = nar.getBeliefs().map((b) => b.term.toString());
@@ -223,13 +223,13 @@ describe('[Phase 1] Spurious Derivations', () => {
   });
 
   it('should produce limited derivations from single belief', async () => {
-    await nar.believe('<dog --> animal>.');
+    await nar.believe('<dog-->animal>.');
     const derived = await nar.run(3);
     expect(derived).toBeLessThanOrEqual(5);
   });
 
   it('should not derive unrelated concepts from single input', async () => {
-    await nar.believe('<cat --> animal>.');
+    await nar.believe('<cat-->animal>.');
     await nar.run(3);
 
     const beliefs = nar.getBeliefs().map((b) => b.term.toString());
@@ -247,9 +247,9 @@ describe('[Phase 3] Premise Selection', () => {
   });
 
   it('should select premises with shared atomic terms', async () => {
-    await nar.believe('<cat --> animal>.');
-    await nar.believe('<dog --> animal>.');
-    await nar.believe('<car --> vehicle>.');
+    await nar.believe('<cat-->animal>.');
+    await nar.believe('<dog-->animal>.');
+    await nar.believe('<car-->vehicle>.');
     await nar.run(3);
 
     const beliefs = nar.getBeliefs().map((b) => b.term.toString());
@@ -257,7 +257,7 @@ describe('[Phase 3] Premise Selection', () => {
   });
 
   it('should filter low-priority secondary premises', async () => {
-    await nar.believe('<a --> b>.');
+    await nar.believe('<a-->b>.');
     await nar.run(1);
 
     const beliefs = nar.getBeliefs();
@@ -266,8 +266,8 @@ describe('[Phase 3] Premise Selection', () => {
   });
 
   it('should not derive from completely unrelated concepts', async () => {
-    await nar.believe('<cat --> animal>.');
-    await nar.believe('<planet --> orbit>.');
+    await nar.believe('<cat-->animal>.');
+    await nar.believe('<planet-->orbit>.');
     await nar.run(3);
 
     const beliefs = nar.getBeliefs().map((b) => b.term.toString());

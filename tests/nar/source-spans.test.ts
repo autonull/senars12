@@ -23,8 +23,8 @@ describe('todo7: per-candidate source spans', () => {
     const input = 'Cats may be mammals. Dogs bark.';
     const batch = toFormalizationBatch(input, {
       beliefs: [
-        { narsese: '(cat --> mammal)', source: 'user', sourceText: 'Cats may be mammals.' },
-        { narsese: '(dog --> barker)', source: 'user', sourceText: 'Dogs bark.' },
+        { narsese: '(cat-->mammal)', source: 'user', sourceText: 'Cats may be mammals.' },
+        { narsese: '(dog-->barker)', source: 'user', sourceText: 'Dogs bark.' },
       ],
       questions: [],
       goals: [],
@@ -38,7 +38,7 @@ describe('todo7: per-candidate source spans', () => {
   });
   it('items without sourceText keep whole-input span (backward compatible)', () => {
     const batch = toFormalizationBatch('Cats sleep.', {
-      beliefs: [{ narsese: '(cat --> sleeper)', source: 'user' }],
+      beliefs: [{ narsese: '(cat-->sleeper)', source: 'user' }],
       questions: [],
       goals: [],
       meta,

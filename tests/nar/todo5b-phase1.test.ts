@@ -73,9 +73,9 @@ describe('TODO5b Phase 1', () => {
     const fw = new SymbolicFirewall({ allowedPredicates: ['cat', 'animal'] });
     expect(fw.checkTruth(0.8, 0.99).allowed).toBe(false);
     expect(fw.checkTruth(0.8, 0.5).allowed).toBe(true);
-    expect(fw.check('(cat --> animal). %1.0;0.99%').allowed).toBe(false);
-    expect(fw.check('(cat --> animal)').allowed).toBe(true);
-    expect(fw.check('(dog --> animal)').allowed).toBe(false);
+    expect(fw.check('(cat-->animal). %1.0;0.99%').allowed).toBe(false);
+    expect(fw.check('(cat-->animal)').allowed).toBe(true);
+    expect(fw.check('(dog-->animal)').allowed).toBe(false);
   });
 
   it('hooked pipeline mutates state through real hooks + reasoner fusion', async () => {
@@ -87,7 +87,7 @@ describe('TODO5b Phase 1', () => {
       ctx,
       createPipeline({
         perceive: (c) => {
-          if (firewall.check('(cat --> animal)').allowed)
+          if (firewall.check('(cat-->animal)').allowed)
             c.state.perceptions.push({ truth: t(1, 0.9) } as never);
         },
         recall: (c) => {

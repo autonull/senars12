@@ -11,7 +11,7 @@ describe('kernel gates', () => {
     const gate = new KernelPerceptionGate();
     const out = await gate.admit({
       sourceId: 'user-cli',
-      rawObservation: '(cat --> animal).',
+      rawObservation: '(cat-->animal).',
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });
@@ -102,8 +102,8 @@ describe('kernel gates', () => {
     );
     expect(detectAmbiguityFlags('Cats are mammals')).toHaveLength(0);
     const batch = toFormalizationBatch('Whiskers may be a cat', {
-      beliefs: [{ narsese: '(whiskers --> cat)', truth: { f: 0.8, c: 0.7 }, source: 'inferred' }],
-      questions: [{ narsese: '(whiskers --> ?what)' }],
+      beliefs: [{ narsese: '(whiskers-->cat)', truth: { f: 0.8, c: 0.7 }, source: 'inferred' }],
+      questions: [{ narsese: '(whiskers-->?what)' }],
       goals: [],
       meta: { detectedIntent: 'reasoning', ambiguities: [], coreferences: [], implicitContext: [] },
     });
@@ -117,7 +117,7 @@ describe('kernel gates', () => {
     const { toFormalizationBatch } = await import('../../nar/src/nl/understanding.js');
     const gate = new KernelPerceptionGate();
     const batch = toFormalizationBatch('Cats are mammals', {
-      beliefs: [{ narsese: '(cat --> mammal)', source: 'user' }],
+      beliefs: [{ narsese: '(cat-->mammal)', source: 'user' }],
       questions: [],
       goals: [],
       meta: { detectedIntent: 'learning', ambiguities: [], coreferences: [], implicitContext: [] },

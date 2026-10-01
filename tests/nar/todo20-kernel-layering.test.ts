@@ -58,7 +58,7 @@ describe('Bench 61b — Kernel Layering (X2)', () => {
       },
     });
     const result = await gate.admit({
-      rawObservation: '(robin --> bird)',
+      rawObservation: '(robin-->bird)',
       sourceId: 'test',
       sensorConfidence: 1,
       sourceQuality: 'GENERAL',

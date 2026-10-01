@@ -145,9 +145,9 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
     await nar.start();
 
     // Manually inject a low competence drive belief to trigger meta-rule
-    await nar.believe('(drive_competence --> low).');
-    await nar.believe('(situation --> requires_strategy).');
-    await nar.believe('(strategy --> focused).');
+    await nar.believe('(drive_competence-->low).');
+    await nar.believe('(situation-->requires_strategy).');
+    await nar.believe('(strategy-->focused).');
 
     await nar.run(1);
 

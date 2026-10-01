@@ -4,14 +4,14 @@ import { LMResponseParser } from '../../nar/src/lm';
 describe('LMResponseParser', () => {
   describe('parse', () => {
     test('parses valid Narsese inheritance', () => {
-      const result = LMResponseParser.parse('(A --> B)');
+      const result = LMResponseParser.parse('(A-->B)');
       expect(result.valid).toBe(true);
-      expect(result.raw).toBe('(A --> B)');
+      expect(result.raw).toBe('(A-->B)');
     });
 
     test('parses Narsese with truth in JSON', () => {
       const result = LMResponseParser.parse(
-        '{"narsese": "(A --> B)", "truth": {"f": 0.9, "c": 0.8}}'
+        '{"narsese": "(A-->B)", "truth": {"f": 0.9, "c": 0.8}}'
       );
       expect(result.valid).toBe(true);
     });
@@ -29,37 +29,37 @@ describe('LMResponseParser', () => {
     });
 
     test('extracts term from text with surrounding content', () => {
-      const result = LMResponseParser.parse('(bird --> animal)');
+      const result = LMResponseParser.parse('(bird-->animal)');
       expect(result.valid).toBe(true);
     });
 
     test('extracts similarity from text', () => {
-      const result = LMResponseParser.parse('(A <-> B)');
+      const result = LMResponseParser.parse('(A<->B)');
       expect(result.valid).toBe(true);
       expect(result.term.kind).toBe('similarity');
     });
 
     test('handles malformed JSON gracefully', () => {
-      const result = LMResponseParser.parse('(A --> B)');
+      const result = LMResponseParser.parse('(A-->B)');
       expect(result.valid).toBe(true);
     });
   });
 
   describe('validate', () => {
     test('validates Narsese inheritance', () => {
-      expect(LMResponseParser.validate('(A --> B)').valid).toBe(true);
+      expect(LMResponseParser.validate('(A-->B)').valid).toBe(true);
     });
 
     test('validates Narsese implication', () => {
-      expect(LMResponseParser.validate('(A ==> B)').valid).toBe(true);
+      expect(LMResponseParser.validate('(A==>B)').valid).toBe(true);
     });
 
     test('validates Narsese similarity', () => {
-      expect(LMResponseParser.validate('(A <-> B)').valid).toBe(true);
+      expect(LMResponseParser.validate('(A<->B)').valid).toBe(true);
     });
 
     test('validates valid JSON', () => {
-      expect(LMResponseParser.validate('{"narsese": "(A --> B)"}').valid).toBe(true);
+      expect(LMResponseParser.validate('{"narsese": "(A-->B)"}').valid).toBe(true);
     });
 
     test('rejects empty string', () => {

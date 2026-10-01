@@ -23,11 +23,11 @@ describe('F5 — §8 dispositions', () => {
     const mockLMService = {
       generateText: vi.fn(async () => {
         lmCalls++;
-        return '(mock --> response).';
+        return '(mock-->response).';
       }),
       tryGenerateText: vi.fn(async () => {
         lmCalls++;
-        return '(mock --> response).';
+        return '(mock-->response).';
       }),
       getStats: vi.fn().mockReturnValue({}),
       setProgressCallback: vi.fn(),
@@ -68,14 +68,14 @@ describe('F5 — §8 dispositions', () => {
   it('lm-meta-reasoning REPLACE: manifold scores derivation traces, no generative call', async () => {
     const rule = nar.getProcessor().getLMRule('lm-meta-reasoning');
     expect(rule).toBeDefined();
-    const primary = termParser.parse('(a --> b)')!;
+    const primary = termParser.parse('(a-->b)')!;
     const tasks = await rule!.apply(primary, undefined, {
-      recentDerivations: ['(c --> d)', '(e --> f)'],
+      recentDerivations: ['(c-->d)', '(e-->f)'],
     });
     expect(tasks.length).toBeGreaterThan(0);
     expect(tasks.length).toBeLessThanOrEqual(2);
     for (const t of tasks) {
-      expect(['(c --> d)', '(e --> f)']).toContain(t.term.toString());
+      expect(['(c-->d)', '(e-->f)']).toContain(t.term.toString());
       expect(t.type).toBe('belief');
     }
     expect(lmCalls).toBe(0);
@@ -83,18 +83,18 @@ describe('F5 — §8 dispositions', () => {
 
   it('lm-meta-reasoning with no traces degrades silently (no generative call)', async () => {
     const rule = nar.getProcessor().getLMRule('lm-meta-reasoning')!;
-    const tasks = await rule.apply(termParser.parse('(a --> b)')!, undefined, {});
+    const tasks = await rule.apply(termParser.parse('(a-->b)')!, undefined, {});
     expect(tasks).toEqual([]);
     expect(lmCalls).toBe(0);
   });
 
   it('lm-uncertainty-calibration REPLACE: identity calibration when unfitted, no generative call', async () => {
     const rule = nar.getProcessor().getLMRule('lm-uncertainty-calibration')!;
-    const tasks = await rule.apply(termParser.parse('(a --> b)')!, undefined, {
+    const tasks = await rule.apply(termParser.parse('(a-->b)')!, undefined, {
       truth: { f: 0.8, c: 0.4 },
     });
     expect(tasks).toHaveLength(1);
-    expect(tasks[0]!.term.toString()).toBe('(a --> b)');
+    expect(tasks[0]!.term.toString()).toBe('(a-->b)');
     expect(tasks[0]!.truth.c).toBeCloseTo(0.4, 5);
     expect(tasks[0]!.truth.f).toBeCloseTo(0.8, 5);
     expect(lmCalls).toBe(0);
@@ -111,7 +111,7 @@ describe('F5 — §8 dispositions', () => {
     });
     // Force unhealthy health (manual demote) via the drift-demotion manager.
     (nar.getSystemOneManifold() as unknown as { setDemoted(d: boolean): void }).setDemoted(true);
-    const [task] = await adapter.calibrateUncertainty(termParser.parse('(a --> b)')!, {
+    const [task] = await adapter.calibrateUncertainty(termParser.parse('(a-->b)')!, {
       truth: { f: 0.8, c: 0.5 },
     });
     expect(task!.truth.c).toBeCloseTo(0.4, 5); // 0.5 × 0.8
@@ -126,9 +126,9 @@ describe('F5 — §8 dispositions', () => {
         truth: Truth.create(f, 0.9),
         budget: { priority: 0.7, durability: 0.8, quality: 0.9, cycles: 10, depth: 5 },
       }) as never;
-    expect(await admitTasks(nar.memory, [mkTask('(x --> y)', 0.9)], 'llm')).toBe(1);
+    expect(await admitTasks(nar.memory, [mkTask('(x-->y)', 0.9)], 'llm')).toBe(1);
     // frequency delta 0.8 > 0.3 ⇒ rejected
-    expect(await admitTasks(nar.memory, [mkTask('(x --> y)', 0.1)], 'llm')).toBe(0);
+    expect(await admitTasks(nar.memory, [mkTask('(x-->y)', 0.1)], 'llm')).toBe(0);
   });
 
   it('proactive enrichment: novelty gate inactive while head unfitted (behavior preserved)', async () => {
@@ -143,7 +143,7 @@ describe('F5 — §8 dispositions', () => {
     const enricher = new ProactiveEnricher(
       nar.memory,
       {
-        generateText: async () => '(bridge --> link).',
+        generateText: async () => '(bridge-->link).',
       } as unknown as never,
       { enableProactiveEnrichment: true, enrichmentIntervalMs: 60000, maxConceptsPerCycle: 10, minConnectionsForEnrichment: 2, enableExplanationGeneration: false, enableQAService: false },
       { adapter }

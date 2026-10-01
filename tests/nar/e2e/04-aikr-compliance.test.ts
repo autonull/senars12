@@ -23,7 +23,7 @@ describe('AIKR Compliance', () => {
 
   describe('Anytime Execution', () => {
     it('produces results even if interrupted', async () => {
-      await nar.input('(x --> y)', 'belief');
+      await nar.input('(x-->y)', 'belief');
 
       const results: any[] = [];
       for (let i = 0; i < 3; i++) {
@@ -36,7 +36,7 @@ describe('AIKR Compliance', () => {
     });
 
     it('can be stopped at any cycle', async () => {
-      await nar.input('(a --> b)', 'belief');
+      await nar.input('(a-->b)', 'belief');
 
       let derived = 0;
       for (let i = 0; i < 5; i++) {
@@ -64,9 +64,9 @@ describe('AIKR Compliance', () => {
     });
 
     it('respects derivation depth limits', async () => {
-      await nar.input('(a --> b)', 'belief');
-      await nar.input('(b --> c)', 'belief');
-      await nar.input('(c --> d)', 'belief');
+      await nar.input('(a-->b)', 'belief');
+      await nar.input('(b-->c)', 'belief');
+      await nar.input('(c-->d)', 'belief');
 
       const results = await nar.run(5);
       expect(typeof results).toBe('number');
@@ -86,8 +86,8 @@ describe('AIKR Compliance', () => {
 
   describe('Knowledge-Grounded', () => {
     it('uses existing beliefs for reasoning', async () => {
-      await nar.input('(human --> mortal)', 'belief', Truth.create(0.99, 0.99));
-      await nar.input('(socrates --> human)', 'belief', Truth.create(0.99, 0.99));
+      await nar.input('(human-->mortal)', 'belief', Truth.create(0.99, 0.99));
+      await nar.input('(socrates-->human)', 'belief', Truth.create(0.99, 0.99));
       await nar.run(1);
 
       const concepts = nar.memory.listConcepts();
@@ -95,8 +95,8 @@ describe('AIKR Compliance', () => {
     });
 
     it('builds on established concepts', async () => {
-      await nar.input('(bird --> animal)', 'belief');
-      await nar.input('(animal --> living)', 'belief');
+      await nar.input('(bird-->animal)', 'belief');
+      await nar.input('(animal-->living)', 'belief');
 
       await nar.run(2);
 
@@ -138,7 +138,7 @@ describe('AIKR Compliance', () => {
 
       const letters = 'abcdefghijklmnopqrst'.split('');
       for (let i = 0; i < letters.length - 1; i++) {
-        await nar2.input(`(${letters[i]} --> ${letters[i + 1]})`, 'belief', Truth.create(0.9, 0.9));
+        await nar2.input(`(${letters[i]}-->${letters[i + 1]})`, 'belief', Truth.create(0.9, 0.9));
       }
 
       await nar2.run(20);
@@ -165,7 +165,7 @@ describe('AIKR Compliance', () => {
       } as NARConfig);
 
       for (let i = 0; i < 200; i++) {
-        await nar2.input(`(concept${i} --> property${i})`, 'belief', Truth.create(0.9, 0.9));
+        await nar2.input(`(concept${i}-->property${i})`, 'belief', Truth.create(0.9, 0.9));
       }
 
       await nar2.run(20);
@@ -180,7 +180,7 @@ describe('AIKR Compliance', () => {
       } as NARConfig);
 
       for (let i = 0; i < 50; i++) {
-        await nar2.input(`(item${i} --> attribute${i})`, 'belief', Truth.create(0.9, 0.9));
+        await nar2.input(`(item${i}-->attribute${i})`, 'belief', Truth.create(0.9, 0.9));
       }
 
       const controller = new AbortController();
@@ -205,7 +205,7 @@ describe('AIKR Compliance', () => {
       const startMem = process.memoryUsage?.()?.heapUsed ?? 0;
 
       for (let i = 0; i < 50; i++) {
-        await nar2.input(`(temp${i} --> prop${i})`, 'belief', Truth.create(0.9, 0.9));
+        await nar2.input(`(temp${i}-->prop${i})`, 'belief', Truth.create(0.9, 0.9));
         await nar2.run(1);
       }
 
@@ -222,9 +222,9 @@ describe('AIKR Compliance', () => {
 
   describe('Complete Reasoning Cycle', () => {
     it('executes full cognitive cycle from input to derived belief', async () => {
-      await nar.input('(bird --> animal)', 'belief', Truth.create(0.9, 0.9));
-      await nar.input('(animal --> living)', 'belief', Truth.create(0.9, 0.9));
-      await nar.input('(living --> "needs oxygen")', 'belief', Truth.create(0.95, 0.95));
+      await nar.input('(bird-->animal)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(animal-->living)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(living-->"needs oxygen")', 'belief', Truth.create(0.95, 0.95));
 
       const initialSize = nar.memory.size;
       expect(initialSize).toBeGreaterThan(0);
@@ -249,7 +249,7 @@ describe('AIKR Compliance', () => {
       ];
 
       for (const [from, to] of premises) {
-        await nar.input(`(${from} --> ${to})`, 'belief', Truth.create(0.85, 0.85));
+        await nar.input(`(${from}-->${to})`, 'belief', Truth.create(0.85, 0.85));
       }
 
       await nar.run(3);

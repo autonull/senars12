@@ -119,7 +119,7 @@ describe('MemoryIndex', () => {
       ranking.index(new Concept(mammal));
 
       const ranked = ranking.findSimilarConcepts(mammal);
-      expect(ranked.map((c) => c.term.toString())).toEqual(['(cat --> animal)', 'cat']);
+      expect(ranked.map((c) => c.term.toString())).toEqual(['(cat-->animal)', 'cat']);
       expect(ranking.findSimilarConcepts(TermBuilder.atom('missing'))).toEqual([]);
     });
 

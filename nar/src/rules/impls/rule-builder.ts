@@ -63,8 +63,8 @@ export const sim = termGuard('similarity');
 export const seq = termGuard('sequence');
 export const pred = termGuard('predictive');
 export const op = termGuard('operation');
-export const inst = termGuard('instance');
-export const prop = termGuard('property');
+export const setExt = termGuard('setExt');
+export const setInt = termGuard('setInt');
 
 export const getArg = (term: Term, index: number): Term | undefined => term.args?.[index];
 

@@ -4,10 +4,10 @@ const reasoningAnswer: Scenario = {
   name: 'reasoning-answer',
   description: 'Multi-hop reasoning with belief derivation — tests NAL inference chain',
   seedBeliefs: [
-    '<bird --> animal>. %1.0;0.9%',
-    '<robin --> bird>. %1.0;0.9%',
-    '<sparrow --> bird>. %1.0;0.9%',
-    '<can_fly --> (*, bird, _fly)>. %1.0;0.9%',
+    '<bird-->animal>. %1.0;0.9%',
+    '<robin-->bird>. %1.0;0.9%',
+    '<sparrow-->bird>. %1.0;0.9%',
+    '<can_fly-->(*, bird, _fly)>. %1.0;0.9%',
   ],
   probes: [
     {

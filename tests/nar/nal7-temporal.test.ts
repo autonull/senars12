@@ -15,7 +15,7 @@ describe('NAL7 Temporal Rules', () => {
       const result = NALExtendedRules.sequenceIntroduction([inh1, inh2]);
 
       expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(bird --> (animal ,/ living))');
+      expect(result?.toString()).toBe('(bird-->(animal&/living))');
     });
 
     test('returns undefined for different subjects', () => {
@@ -42,7 +42,7 @@ describe('NAL7 Temporal Rules', () => {
       const result = NALExtendedRules.parallelIntroduction([inh1, inh2]);
 
       expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(bird --> (animal || living))');
+      expect(result?.toString()).toBe('(bird-->(animal&|living))');
     });
 
     test('returns undefined for different subjects', () => {
@@ -66,7 +66,7 @@ describe('NAL7 Temporal Rules', () => {
       const result = NALExtendedRules.predictiveImplication([seq, inh]);
 
       expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(bird /> animal)');
+      expect(result?.toString()).toBe('(bird=/>animal)');
     });
 
     test('returns undefined when sequence does not match inheritance', () => {
@@ -91,7 +91,7 @@ describe('NAL7 Temporal Rules', () => {
       const result = NALExtendedRules.temporalDeduction([pred, seq]);
 
       expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(bird --> animal)');
+      expect(result?.toString()).toBe('(bird-->animal)');
     });
 
     test('returns undefined when predictive and sequence do not match', () => {
@@ -112,7 +112,7 @@ describe('NAL7 Temporal Rules', () => {
       const animal = atom('animal');
       const seq = sequence(bird, animal);
 
-      expect(seq.toString()).toBe('(bird ,/ animal)');
+      expect(seq.toString()).toBe('(bird&/animal)');
     });
 
     test('creates parallel terms', () => {
@@ -120,7 +120,7 @@ describe('NAL7 Temporal Rules', () => {
       const animal = atom('animal');
       const par = parallel(bird, animal);
 
-      expect(par.toString()).toBe('(animal || bird)');
+      expect(par.toString()).toBe('(animal&|bird)');
     });
 
     test('creates predictive terms', () => {
@@ -128,7 +128,7 @@ describe('NAL7 Temporal Rules', () => {
       const animal = atom('animal');
       const pred = predictive(bird, animal);
 
-      expect(pred.toString()).toBe('(bird /> animal)');
+      expect(pred.toString()).toBe('(bird=/>animal)');
     });
 
     test('handles undefined input gracefully', () => {

@@ -33,7 +33,7 @@ const mkTaskAdmitted = (
     correlationId: uuidv4(),
     payload: {
       taskId: uuidv4(),
-      term: overrides.term ?? '(a --> b)',
+      term: overrides.term ?? '(a-->b)',
       taskType: overrides.taskType ?? 'belief',
       truth: overrides.truth ?? { frequency: 1.0, confidence: 0.9 },
       source: 'user',
@@ -69,7 +69,7 @@ const mkDerivationRecord = (conclusions: string[]): ReturnType<typeof validateDe
   return validateDerivationRecord({
     derivationId: uuidv4(),
     taskId: uuidv4(),
-    goalTerm: '(a --> c)',
+    goalTerm: '(a-->c)',
     timestamp: now,
     engine: 'nar',
     totalCycles: conclusions.length,
@@ -79,7 +79,7 @@ const mkDerivationRecord = (conclusions: string[]): ReturnType<typeof validateDe
       stepId: uuidv4(),
       ruleId: 'deduction',
       ruleCategory: 'logic',
-      premises: ['(a --> b)', '(b --> c)'],
+      premises: ['(a-->b)', '(b-->c)'],
       conclusion,
       truth: { frequency: 0.9, confidence: 0.8 },
       premiseTruths: [
@@ -102,13 +102,13 @@ describe('todo7: full-state memory replay', () => {
     const registry = new GateRegistry();
     registry.getPerceptionGate().admit({
       sourceId: 's',
-      rawObservation: '(a --> b).',
+      rawObservation: '(a-->b).',
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });
     registry.getPerceptionGate().admit({
       sourceId: 's',
-      rawObservation: '(b --> c).',
+      rawObservation: '(b-->c).',
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });
@@ -123,7 +123,7 @@ describe('todo7: full-state memory replay', () => {
 
     persistGateLogs(registry, gatePath);
 
-    const records = [mkDerivationRecord(['(a --> c)'])];
+    const records = [mkDerivationRecord(['(a-->c)'])];
     persistDerivationRecords(records, derivPath);
 
     const result = await replayIntoMemory({
@@ -136,7 +136,7 @@ describe('todo7: full-state memory replay', () => {
     expect(result.gateSnapshot.tasks).toHaveLength(2);
     expect(result.gateSnapshot.autonomyMode).toBe('propose-only');
 
-    const conceptAtoC = result.memory.getConcept(termParser.parse('(a --> c)'));
+    const conceptAtoC = result.memory.getConcept(termParser.parse('(a-->c)'));
     expect(conceptAtoC).toBeDefined();
     expect(conceptAtoC!.getBeliefs()).toHaveLength(1);
     expect(conceptAtoC!.getBeliefs()[0]?.truth).toEqual({ f: 0.9, c: 0.8 });
@@ -155,7 +155,7 @@ describe('todo7: full-state memory replay', () => {
     const registry = new GateRegistry();
     registry.getPerceptionGate().admit({
       sourceId: 's',
-      rawObservation: '(a --> b).',
+      rawObservation: '(a-->b).',
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });
@@ -163,7 +163,7 @@ describe('todo7: full-state memory replay', () => {
 
     const { events } = loadGateEvents(gatePath);
     const rev = mkBeliefRevised(
-      '(a --> b)',
+      '(a-->b)',
       { frequency: 0.8, confidence: 0.7 },
       { frequency: 0.9, confidence: 0.85 }
     );
@@ -175,7 +175,7 @@ describe('todo7: full-state memory replay', () => {
     });
 
     expect(result.appliedRevisions).toBe(1);
-    const concept = result.memory.getConcept(termParser.parse('(a --> b)'));
+    const concept = result.memory.getConcept(termParser.parse('(a-->b)'));
     expect(concept).toBeDefined();
     const beliefs = concept!.getBeliefs();
     expect(beliefs).toHaveLength(1);
@@ -190,14 +190,14 @@ describe('todo7: full-state memory replay', () => {
     const registry = new GateRegistry();
     registry.getPerceptionGate().admit({
       sourceId: 's',
-      rawObservation: '(a --> b).',
+      rawObservation: '(a-->b).',
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });
     persistGateLogs(registry, gatePath);
 
     const { events } = loadGateEvents(gatePath);
-    const act = mkConceptActivated('(a --> b)', 0.75);
+    const act = mkConceptActivated('(a-->b)', 0.75);
     require('node:fs').appendFileSync(gatePath, JSON.stringify(act) + '\n');
 
     const result = await replayIntoMemory({
@@ -206,7 +206,7 @@ describe('todo7: full-state memory replay', () => {
     });
 
     expect(result.appliedActivations).toBe(1);
-    const concept = result.memory.getConcept(termParser.parse('(a --> b)'));
+    const concept = result.memory.getConcept(termParser.parse('(a-->b)'));
     expect(concept).toBeDefined();
     expect(concept!.priority).toBeCloseTo(0.75, 2);
   });
@@ -220,13 +220,13 @@ describe('todo7: full-state memory replay', () => {
     const registry = new GateRegistry();
     registry.getPerceptionGate().admit({
       sourceId: 's',
-      rawObservation: '(a --> b).',
+      rawObservation: '(a-->b).',
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });
     registry.getPerceptionGate().admit({
       sourceId: 's',
-      rawObservation: '(b --> c).',
+      rawObservation: '(b-->c).',
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });
@@ -242,7 +242,7 @@ describe('todo7: full-state memory replay', () => {
     registry.getBudgetGate().check({ operation: 'nal-step' });
     persistGateLogs(registry, gatePath);
 
-    const records = [mkDerivationRecord(['(a --> c)'])];
+    const records = [mkDerivationRecord(['(a-->c)'])];
     persistDerivationRecords(records, derivPath);
 
     const result1 = await replayIntoMemory({
@@ -264,8 +264,8 @@ describe('todo7: full-state memory replay', () => {
       result1.memory.getStatistics().totalTasks
     );
 
-    const c1 = result1.memory.getConcept(termParser.parse('(a --> c)'));
-    const c2 = result2.memory.getConcept(termParser.parse('(a --> c)'));
+    const c1 = result1.memory.getConcept(termParser.parse('(a-->c)'));
+    const c2 = result2.memory.getConcept(termParser.parse('(a-->c)'));
     expect(c1?.getBeliefs()[0]?.truth).toEqual(c2?.getBeliefs()[0]?.truth);
     expect(c1?.priority).toBeCloseTo(c2?.priority ?? -1, 2);
   });
@@ -279,13 +279,13 @@ describe('todo7: full-state memory replay', () => {
       const registry = new GateRegistry();
       registry.getPerceptionGate().admit({
         sourceId: 's',
-        rawObservation: '(a --> b).',
+        rawObservation: '(a-->b).',
         sensorConfidence: 1,
         sourceQuality: 'PRIMARY',
       });
       persistGateLogs(registry, gatePath);
       const result = await replayIntoMemory({ gateEventsPath: gatePath, cognitiveParams });
-      const concept = result.memory.getConcept(termParser.parse('(a --> b)'))!;
+      const concept = result.memory.getConcept(termParser.parse('(a-->b)'))!;
       concept.priority = 1;
       result.memory.sample(1);
       return concept.priority;
@@ -312,7 +312,7 @@ describe('todo7: full-state memory replay', () => {
     const registry = new GateRegistry();
     registry.getPerceptionGate().admit({
       sourceId: 's',
-      rawObservation: '(a --> b).',
+      rawObservation: '(a-->b).',
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });
@@ -325,6 +325,6 @@ describe('todo7: full-state memory replay', () => {
 
     expect(result.appliedTasks).toBe(1);
     expect(result.appliedDerivations).toBe(0);
-    expect(result.memory.getConcept(termParser.parse('(a --> b)'))).toBeDefined();
+    expect(result.memory.getConcept(termParser.parse('(a-->b)'))).toBeDefined();
   });
 });

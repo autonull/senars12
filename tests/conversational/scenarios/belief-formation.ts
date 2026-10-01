@@ -12,7 +12,7 @@ const beliefFormation: Scenario = {
       },
     },
     {
-      input: '(cat --> ?)?',
+      input: '(cat-->?)?',
       expect: {
         expectNarseseParsed: true,
         maxDurationMs: 30_000,

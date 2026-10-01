@@ -17,14 +17,14 @@ describe('TODO26 T1 — createCognitiveAgent demo @load-sensitive', () => {
 
   it('teach/ask/checkpoint/resume equivalence', async () => {
     const agent = await createCognitiveAgent({ preset: 'chat' });
-    await agent.teach('(cat --> animal). %1.00;0.90%');
-    const a = await agent.ask('(cat --> animal)?');
+    await agent.teach('(cat-->animal). %1.00;0.90%');
+    const a = await agent.ask('(cat-->animal)?');
 
     await agent.checkpoint();
     await agent.stop();
 
     const agent2 = await createCognitiveAgent({ preset: 'chat', resume: true });
-    const a2 = await agent2.ask('(cat --> animal)?');
+    const a2 = await agent2.ask('(cat-->animal)?');
     await agent2.stop();
 
     // Compare stripped answers (no provenance fields)

@@ -4,9 +4,9 @@ const goalDecomposition: Scenario = {
   name: 'goal-decomposition',
   description: 'Complex goal → subgoals via lm-goal-decomposition rule',
   seedBeliefs: [
-    '<(*, build, house) --> complex_goal>. %1.0;0.9%',
-    '<(*, gather, materials) --> (*, build, house)>. %1.0;0.8%',
-    '<(*, design, plan) --> (*, build, house)>. %1.0;0.8%',
+    '<(*, build, house)-->complex_goal>. %1.0;0.9%',
+    '<(*, gather, materials)-->(*, build, house)>. %1.0;0.8%',
+    '<(*, design, plan)-->(*, build, house)>. %1.0;0.8%',
   ],
   probes: [
     {

@@ -284,7 +284,7 @@ describe('walkTerms', () => {
       seen.push(String(t));
       return t.kind !== 'inheritance';
     });
-    expect(seen.map(String)).toEqual([String(tree()), 'flies', '(bird --> animal)']);
+    expect(seen.map(String)).toEqual([String(tree()), 'flies', '(bird-->animal)']);
   });
 });
 
@@ -326,7 +326,7 @@ describe('term metrics', () => {
   describe('bare inheritance pair', () => {
     const inheritance = (subj: string, pred: string) =>
       TermBuilder.inheritance(TermBuilder.atom(subj), TermBuilder.atom(pred))!;
-    const tuple = (...args: Term[]) => TermBuilder.tuple(args);
+    const tuple = (...args: Term[]) => TermBuilder.product(...args);
 
     test('reads the pair off the term itself', () => {
       expect(bareInheritancePair(inheritance('bird', 'animal'))).toEqual({

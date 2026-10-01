@@ -112,7 +112,7 @@ describe('Bench 90 — strategy composition algebra', () => {
     const tasks: string[] = [];
     for await (const t of s.derive(makeTask('p'), [], new RuleProcessor() as never, ctx()))
       tasks.push(String(t.term));
-    expect(tasks).toEqual(['(t0 --> X)', '(t0 --> X)', '(t1 --> X)']);
+    expect(tasks).toEqual(['(t0-->X)', '(t0-->X)', '(t1-->X)']);
   });
 
   it('parallel takes the first result exclusively', async () => {
@@ -123,13 +123,13 @@ describe('Bench 90 — strategy composition algebra', () => {
     const tasks: string[] = [];
     for await (const t of firstWins.derive(makeTask('p'), [], new RuleProcessor() as never, ctx()))
       tasks.push(String(t.term));
-    expect(tasks).toEqual(['(t0 --> X)', '(t1 --> X)']);
+    expect(tasks).toEqual(['(t0-->X)', '(t1-->X)']);
 
     const exclusive = composeStrategy({ op: 'parallel', branches: ['emit:1', 'emit:9'] }, resolver);
     const onlyOne: string[] = [];
     for await (const t of exclusive.derive(makeTask('p'), [], new RuleProcessor() as never, ctx()))
       onlyOne.push(String(t.term));
-    expect(onlyOne).toEqual(['(t0 --> X)']);
+    expect(onlyOne).toEqual(['(t0-->X)']);
   });
 
   it('conditional branches on the predicate', async () => {
@@ -150,8 +150,8 @@ describe('Bench 90 — strategy composition algebra', () => {
     const miss: string[] = [];
     for await (const t of s.derive(makeTask('q'), [], new RuleProcessor() as never, ctx()))
       miss.push(String(t.term));
-    expect(hit).toEqual(['(t0 --> X)']);
-    expect(miss).toEqual(['(t0 --> X)', '(t1 --> X)', '(t2 --> X)']);
+    expect(hit).toEqual(['(t0-->X)']);
+    expect(miss).toEqual(['(t0-->X)', '(t1-->X)', '(t2-->X)']);
   });
 
   it('loop is bounded and stops when the body yields nothing', async () => {
@@ -174,7 +174,7 @@ describe('Bench 90 — strategy composition algebra', () => {
     const tasks: string[] = [];
     for await (const t of s.derive(makeTask('p'), [], new RuleProcessor() as never, ctx()))
       tasks.push(String(t.term));
-    expect(tasks).toEqual(['(t0 --> X)']);
+    expect(tasks).toEqual(['(t0-->X)']);
   });
 
   it('combinators respect an already-aborted signal', async () => {

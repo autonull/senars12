@@ -128,7 +128,7 @@ describe('Bench 38 — Bounded Runtime', () => {
     const memory = new Memory();
     const record = (memory as unknown as { recordRevision(e: unknown): void }).recordRevision.bind(memory);
     for (let i = 0; i < 1010; i++) {
-      record({ term: '(a --> b)', type: 'revision', timestamp: i, truth: { f: 1, c: 0.9 } });
+      record({ term: '(a-->b)', type: 'revision', timestamp: i, truth: { f: 1, c: 0.9 } });
     }
     const log = (memory as unknown as { revisionLog: { size: number } }).revisionLog;
     expect(log.size).toBeLessThanOrEqual(1000);

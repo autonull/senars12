@@ -20,8 +20,8 @@ const captureWith = (formalize?: Formalizer) =>
 describe('TODO24 Bench 75 — Narsese-level correction formalization (DQ6)', () => {
   it('a correct reaction with a formalizer yields reaction-source lessons above the confidence floor', async () => {
     const capture = captureWith(async (text) => [
-      { narsese: '<sol_primary --> water>', confidence: 0.9 },
-      { narsese: '<noise --> junk>', confidence: 0.2 }, // below floor — dropped
+      { narsese: '<sol_primary-->water>', confidence: 0.9 },
+      { narsese: '<noise-->junk>', confidence: 0.2 }, // below floor — dropped
       { narsese: '', confidence: 0.9 }, // empty term — dropped
     ]);
     const turnId = await capture.onExchange({ correlationId: 'corr-1', utterance: 'what dissolves?', response: 'salt dissolves in oil' });
@@ -29,7 +29,7 @@ describe('TODO24 Bench 75 — Narsese-level correction formalization (DQ6)', () 
     await capture.bindReaction(turnId!, 'correct', 'salt dissolves in water, not oil');
     const lessons = capture.lessons;
     expect(lessons.length).toBe(1);
-    expect(lessons[0]!.term).toBe('<sol_primary --> water>');
+    expect(lessons[0]!.term).toBe('<sol_primary-->water>');
     expect(lessons[0]!.source).toBe('reaction');
     expect(lessons[0]!.truth).toEqual({ frequency: 1, confidence: 0.9 });
     expect(lessons[0]!.provenance.turnIds).toEqual([turnId]);
@@ -52,7 +52,7 @@ describe('TODO24 Bench 75 — Narsese-level correction formalization (DQ6)', () 
   });
 
   it('binding is idempotent — rebinding never duplicates lessons', async () => {
-    const capture = captureWith(async () => [{ narsese: '<a --> b>', confidence: 0.8 }]);
+    const capture = captureWith(async () => [{ narsese: '<a-->b>', confidence: 0.8 }]);
     const turnId = await capture.onExchange({ correlationId: 'corr-4', utterance: 'u', response: 'r' });
     await capture.bindReaction(turnId!, 'correct', 'fix one');
     await capture.bindReaction(turnId!, 'correct', 'fix two');
@@ -60,7 +60,7 @@ describe('TODO24 Bench 75 — Narsese-level correction formalization (DQ6)', () 
   });
 
   it('lessons are bounded (MAX_LESSONS) and disabled capture produces none', async () => {
-    const disabled = new DialogueCapture({ episodic: new InMemoryEpisodicMemory(), formalize: async () => [{ narsese: '<x --> y>', confidence: 0.9 }], config: { enabled: false } });
+    const disabled = new DialogueCapture({ episodic: new InMemoryEpisodicMemory(), formalize: async () => [{ narsese: '<x-->y>', confidence: 0.9 }], config: { enabled: false } });
     const turnId = await disabled.onExchange({ correlationId: 'corr-5', utterance: 'u', response: 'r' });
     await disabled.bindReaction(turnId ?? '', 'correct', 'correction');
     expect(disabled.lessons.length).toBe(0);

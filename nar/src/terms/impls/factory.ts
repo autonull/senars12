@@ -1,5 +1,5 @@
 import { LruCache } from '@senars/util';
-import { COMMUTATIVE_OPS, OPERATORS } from '../operators.js';
+import { COMMUTATIVE_OPS, NARY_OPS, OPERATORS } from '../operators.js';
 import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from '../types.js';
 import { VARIABLE_SYMBOL } from '../types.js';
 import { atomKey, containsSubterm, termKey } from './accessors.js';
@@ -60,6 +60,9 @@ export const compareForCanonicalOrder = (a: Term, b: Term): number =>
 const createCompound = (kind: OperatorKey, args: Term[]): Term => {
   const valid = args.filter(Boolean);
   if (valid.length === 0) return kind === 'disjunction' ? FALSE_ATOM : TRUE_ATOM;
+  // A variadic kind with one member *is* that member: `(&&,P)` must not exist,
+  // and `(a)` must not read back as a one-arg product that writes as `a`.
+  if (valid.length === 1 && NARY_OPS.has(kind)) return valid[0]!;
 
   const sorted = COMMUTATIVE_OPS.has(kind) ? valid.toSorted(compareForCanonicalOrder) : valid;
 
@@ -102,9 +105,8 @@ export const TermBuilder = {
 
   // Peggy parser compatibility aliases
   create: (kind: string, args: Term[]): Term => createCompound(kind as OperatorKey, args),
-  setExt: (components: Term[]): Term => createCompound('instance', components),
-  setInt: (components: Term[]): Term => createCompound('property', components),
-  tuple: (components: Term[]): Term => createCompound('conjunction', components),
+  setExt: (...components: Term[]): Term => createCompound('setExt', components),
+  setInt: (...components: Term[]): Term => createCompound('setInt', components),
   atomic: (symbol: string): AtomicTerm => createAtom(symbol),
   inheritance: (subj: Term, pred: Term): Term | undefined => {
     if (containsSubterm(subj, pred) || containsSubterm(pred, subj)) {

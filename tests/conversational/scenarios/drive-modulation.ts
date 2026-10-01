@@ -4,8 +4,8 @@ const driveModulation: Scenario = {
   name: 'drive-modulation',
   description: 'Drive changes trigger proactive reasoning',
   seedBeliefs: [
-    '<(*, curious, topic) --> learning_goal>. %1.0;0.8%',
-    '<(*, urgent, task) --> priority_goal>. %1.0;0.9%',
+    '<(*, curious, topic)-->learning_goal>. %1.0;0.8%',
+    '<(*, urgent, task)-->priority_goal>. %1.0;0.9%',
   ],
   probes: [
     {

@@ -79,7 +79,7 @@ describe('Bench 113 — one similarity read path', () => {
     store.addConcept(atom('unrelated'));
 
     expect(store.findSimilarConcepts(mammal).map((c) => c.term.toString())).toEqual([
-      '(cat --> animal)',
+      '(cat-->animal)',
       'cat',
     ]);
     expect(store.findSimilarConcepts(atom('missing'))).toEqual([]);
@@ -175,14 +175,14 @@ describe('Bench 116 — truth literals round-trip through their own writer', () 
       // identity on what was written — not on what was passed in.
       const written = { f: Number(truth.f.toFixed(digits)), c: Number(truth.c.toFixed(digits)) };
       expect(parseTruthLiteral(serializeTruth(truth, digits))).toEqual(written);
-      expect(parseNarseseTruth(`(cat --> animal)${formatNarseseTruth(truth, digits)}`)).toEqual(
+      expect(parseNarseseTruth(`(cat-->animal)${formatNarseseTruth(truth, digits)}`)).toEqual(
         written
       );
     }
   });
 
   it('a truth outside the term is not a truth', () => {
-    expect(parseNarseseTruth('(cat --> animal).')).toBeUndefined();
+    expect(parseNarseseTruth('(cat-->animal).')).toBeUndefined();
     expect(parseNarseseTruth('port:8080:9090')).toBeUndefined();
     expect(parseTruthLiteral('0.7 0.95')).toBeUndefined();
   });
