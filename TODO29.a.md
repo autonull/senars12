@@ -1,6 +1,6 @@
 # TODO29.a: Runtime Architecture — S/J/P over a closed core
 
-**Version:** 3.14 · **Status:** A0–A7, A10 and A12 landed — §0.8.13 · A8, A9 and A11 remain · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
+**Version:** 3.15 · **Status:** A0–A7, A10 and A12 landed — §0.8.13 · A8, A9 and A11 remain · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
 unchanged as the measurement and provenance record; §0.4 maps its sections onto this one) ·
 **Successor:** `TODO30.md`, blocked on this.
 
@@ -125,7 +125,19 @@ do is make four README promises structurally true rather than aspirational, and 
     structurally separate from the symbolic derivation scope and a test shows `S`'s derivation count does
     not move when it is zero; the shadowed `resetMetaBudget` and the meta-budget struct it reset are gone;
     the per-cycle `getGoals` / `getStatistics` callers and settled-proposal application are budgeted; and
-    `control-budgets` is the gate. **What remains is A8, A9 and A11** — A8 is the last behavioural item.
+    `control-budgets` is the gate.
+12. **Q3's hypothesis, before A11.** One paragraph, written before the arcade run so it cannot be a
+    rationalisation afterwards (§11.1). **This is the only thing on the list that is not an item**, and
+    the reason it goes here is that it changes what A11 is *for*: A11's acceptance as written is
+    structural — the port exists, the manifest is declared, the gates hold — and a system that passes
+    every structural criterion while no measured claim has been stated is exactly the state this plan
+    has been avoiding since §1. The arcade's `nal` and `manifold` arms, with a clean control, are built
+    and idle; writing the hypothesis costs one file and makes the run answerable.
+13. **A8** — the last behavioural item, and the last one that can move what the system derives. It
+    lands where A4's RL and parity baselines can attribute the delta. **A9** is orthogonal and cheap —
+    the lifecycle is already a pure reducer over an event log, so A9 adds event kinds and nothing else.
+    **A11 last**: it connects a capability that already works (§5.11), and it is worth more once Q3's
+    hypothesis says which call sites pay.
 
 ### 0.7 What this plan is not
 
@@ -2410,7 +2422,23 @@ The durable requirements, each testable:
 ### 5.11 A11 — make the decision layer reachable from the reasoning cycle
 
 *Small, and it is what makes §2's central claim true rather than aspirational. It follows A1,
-because the port is only safe once every call through it is bounded.*
+because the port is only safe once every call through it is bounded, and A7, because the separation
+it asserts — decision load may exhaust *its own* budget without touching `S` — is now structural
+(§0.8.13).*
+
+**What this item connects is something that already works, not something being built.** The decision
+layer is exercised today: `scripts/arcade.ts` runs `manifold` and `lm` arms through
+`SystemOneRuntime.attachManifoldReflex` (`facade/system-one.ts:342`) onto a `GameFocus`, with a real
+compact offline model answering game decisions Brier-scored against the same `EpsilonGreedyReflex`
+actuator, reaching parity with the RL arm. **A11 is a routing change, not a capability
+invention** — and the plan's own §12 kill criterion does not apply to it, because the thing it would
+connect has been measured rather than assumed.
+
+**The one thing A11 must not be confused with.** The ingress-judge path
+(`KernelPerceptionGate` → `SystemOneIngressJudge`) abstaining without calibrated heads is a *gate
+policy* question, not a question of whether the layer functions, and §11.1 records the current state
+honestly. A11's port does not require the ingress judge to admit; it requires the cycle to be able to
+*ask*. Those are different claims and only the first is this item's.
 
 **The premise of the earlier draft of this item was wrong, and the correction makes it cheaper.**
 The plan previously said the only model-reasoning capability reachable from core is the `J`
@@ -3105,8 +3133,8 @@ checks that they exist and that their references hold, not that they are right. 
 that *stays* synchronous by design is `ingress-judgment`: System One judging untrusted input before
 admission is **gating, not learning**, and A1 gives it a timeout without moving it.
 
-**Q3 — what is the falsifiable claim.** The experiment exists; the hypothesis, the aggregate and a
-clean control do not. `scripts/arcade.ts` runs `nal` and `manifold` arms with the **same actuator**
+**Q3 — what is the falsifiable claim. — WRITE THIS BEFORE A11.** The experiment exists; the hypothesis,
+the aggregate and a clean control do not. `scripts/arcade.ts` runs `nal` and `manifold` arms with the **same actuator**
 (`EpsilonGreedyReflex`, `numArms: 10, epsilon: 0.1`), Brier-scores every decision, and forces the
 `nal` arm into cognitive mode "so it is always a comparable row in the summary". So the controlled
 comparison is one command:
@@ -3141,7 +3169,16 @@ any producer, and `RuleTableStore.fromEvents` replays whatever they wrote. **The
 still empty**, and that is now the single largest remaining gap in the thesis: nothing synthesises
 a rule proposal, so the learned half is reachable and tested rather than populated.
 
-**Does a configured `J` admit anything yet? — NO, and A1 measured it (2026-09-30).** With System One
+**Is `J` reachable from the reasoning cycle? — NOT YET, and A11 is that item.** Do not read the
+entry below as "`J` does nothing": the decision layer judges game decisions today through
+`ManifoldReflex`, and the `manifold` / `lm` arcade arms reach parity with RL under a real offline model
+(§5.11). **The gap is reachability from the *reasoning cycle*** — the cycle reaches a model through the
+ingress judge and through `processLMRules`, and neither is the port. A11 adds the port; §0.6 puts
+Q3's hypothesis before it so the port is aimed at sites that pay.
+
+**Does a configured `J` admit anything yet? — NO, and A1 measured it (2026-09-30).** This is about the
+**ingress-judge path only** and is a gate-policy question, not a question of whether the layer
+functions: With System One
 enabled and no calibrated heads, `SystemOneIngressJudge` abstains and `KernelPerceptionGate` refuses the
 observation. That is D1 working, not a bug, but it means `config:model-matrix` currently asserts the
 four-way invariance on the `P` axis alone, and `S` and `S+J` do **not** commit the same state today.
