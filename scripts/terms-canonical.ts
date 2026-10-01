@@ -24,11 +24,13 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { termsEqual } from '../nar/src/terms/impls/accessors.js';
 import { TermBuilder } from '../nar/src/terms/impls/factory.js';
 import { operationTerm, readOperationTerm } from '../nar/src/terms/impls/operation-term.js';
 import { termParser } from '../nar/src/terms/impls/parser-peggy.js';
 import { serializeTerm } from '../nar/src/terms/impls/serialize.js';
 import { OPERATORS } from '../nar/src/terms/operators.js';
+import type { OperatorKey, Term } from '../nar/src/terms/types.js';
 import { ROOT } from './lib/root.js';
 
 const GRAMMAR = readFileSync(join(ROOT, 'nar/src/terms/narsese.peggy'), 'utf8');
@@ -83,6 +85,66 @@ for (const [kind, { arity }] of Object.entries(OPERATORS)) {
   }
   if (parsed !== text)
     failures.push(`${kind}: '${text}' reads back as ${parsed ?? 'a parse failure'}`);
+}
+
+/**
+ * A canonical form is **readable**, which is a second property from being
+ * injective and was the one nothing gated. Narsese spells an n-ary copula two
+ * ways and they are not interchangeable: `(a&b)` is infix and valid for **two**
+ * members only, and `(&,a,b,c)` is the prefix form for any arity —
+ * `docs/java/NarseseParser.java` draws the line itself, `CompoundInfix` being
+ * exactly `Term() op Term()` while `MultiArgTerm` with `initialOp` reads the
+ * operator first. A serialiser that wrote the repeated-infix form emitted terms
+ * its own reader could not accept, so this walks every variadic kind at 2, 3
+ * and 4 members, flat and nested, and compares the **term** as well as the
+ * text: a chain that folded where the canonical form is flat round-trips as
+ * text and is still a different term, which the text check alone would miss.
+ */
+const roundTrips = (term: Term): boolean => {
+  const text = serializeTerm(term);
+  try {
+    const read = termParser.parse(text);
+    return serializeTerm(read) === text && termsEqual(term, read);
+  } catch {
+    return false;
+  }
+};
+
+const members = [a, b, TermBuilder.atom('c'), TermBuilder.atom('d')];
+for (const [kind, { arity: declared, nary }] of Object.entries(OPERATORS) as [
+  OperatorKey,
+  { arity: number; nary: boolean },
+][]) {
+  // A binary kind has no reading at three members — `createCompound` keeps the
+  // extra argument and the serialiser drops it, so the term is not the term
+  // written. Only a variadic kind is asked for the arities it can hold.
+  const arities = nary ? [2, 3, members.length] : [Math.max(declared, 1)];
+  for (const arity of arities) {
+    const operands = members.slice(0, arity);
+    // Nesting is only a shape a variadic kind can hold. `negation` applied to a
+    // two-argument `negation` is `--a,a`, which no serialiser writes and no
+    // reader was ever asked for — the gate must not assert on a term the
+    // canonical form cannot reach.
+    const shapes: [string, Term][] = [
+      ['flat', TermBuilder.compound(kind, operands)],
+      ...(nary
+        ? ([
+            [
+              'nested',
+              TermBuilder.compound(
+                kind,
+                operands.map((m) => TermBuilder.compound(kind, [a, m]))
+              ),
+            ],
+          ] as [string, Term][])
+        : []),
+    ];
+    for (const [shape, term] of shapes)
+      if (!roundTrips(term))
+        failures.push(
+          `${kind} at ${arity} members (${shape}): ${serializeTerm(term)} does not read back as itself`
+        );
+  }
 }
 
 /**

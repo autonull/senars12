@@ -331,6 +331,12 @@ function peg$parse(input, options) {
     return options.termFactory.negation(term);
   }
   function peg$f14(symbol, components) {
+    // `^` is the operation sigil, not an infix copula: it cannot head a
+    // compound. `(^apply_fix-->patch)` used to read as a one-argument
+    // operation whose argument was a bare statement chain — a term no
+    // serialiser writes, which prints as the empty string. A `^` in the
+    // leading position is the retired `^name` form, and it is a parse error.
+    if (symbol === "^") error("'^' is the operation sigil and cannot open a compound");
     return options.termFactory.create(operatorKind(symbol), components);
   }
   function peg$f15(operator, components) {
@@ -351,9 +357,7 @@ function peg$parse(input, options) {
   }
   function peg$f19(op) {    return op.endsWith(',') ? op.slice(0, -1) : op;  }
   function peg$f20(op) {    return op;  }
-  function peg$f21(components) {    return options.termFactory.create('setExt', components || []);  }
-  function peg$f22(components) {    return options.termFactory.create('setInt', components || []);  }
-  function peg$f23(head, tail) {
+  function peg$f21(head, tail) {
     const terms = [head];
     if (tail) {
       for (const t of tail) {
@@ -362,6 +366,8 @@ function peg$parse(input, options) {
     }
     return terms;
   }
+  function peg$f22(components) {    return options.termFactory.create('setExt', components || []);  }
+  function peg$f23(components) {    return options.termFactory.create('setInt', components || []);  }
   function peg$f24(chars) {    return options.termFactory.atom(chars);  }
   function peg$f25(chars) {    return options.termFactory.atom('"' + chars + '"');  }
   function peg$f26(varName) {    return options.termFactory.atom(varName);  }
@@ -1619,81 +1625,6 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSet() {
-    let s0, s1, s2, s3, s4, s5;
-
-    s0 = peg$currPos;
-    if (input.charCodeAt(peg$currPos) === 123) {
-      s1 = peg$c31;
-      peg$currPos++;
-    } else {
-      s1 = peg$FAILED;
-      if (peg$silentFails === 0) { peg$fail(peg$e39); }
-    }
-    if (s1 !== peg$FAILED) {
-      s2 = peg$parse_();
-      s3 = peg$parseTermList();
-      if (s3 === peg$FAILED) {
-        s3 = null;
-      }
-      s4 = peg$parse_();
-      if (input.charCodeAt(peg$currPos) === 125) {
-        s5 = peg$c32;
-        peg$currPos++;
-      } else {
-        s5 = peg$FAILED;
-        if (peg$silentFails === 0) { peg$fail(peg$e40); }
-      }
-      if (s5 !== peg$FAILED) {
-        peg$savedPos = s0;
-        s0 = peg$f21(s3);
-      } else {
-        peg$currPos = s0;
-        s0 = peg$FAILED;
-      }
-    } else {
-      peg$currPos = s0;
-      s0 = peg$FAILED;
-    }
-    if (s0 === peg$FAILED) {
-      s0 = peg$currPos;
-      if (input.charCodeAt(peg$currPos) === 91) {
-        s1 = peg$c33;
-        peg$currPos++;
-      } else {
-        s1 = peg$FAILED;
-        if (peg$silentFails === 0) { peg$fail(peg$e41); }
-      }
-      if (s1 !== peg$FAILED) {
-        s2 = peg$parse_();
-        s3 = peg$parseTermList();
-        if (s3 === peg$FAILED) {
-          s3 = null;
-        }
-        s4 = peg$parse_();
-        if (input.charCodeAt(peg$currPos) === 93) {
-          s5 = peg$c34;
-          peg$currPos++;
-        } else {
-          s5 = peg$FAILED;
-          if (peg$silentFails === 0) { peg$fail(peg$e42); }
-        }
-        if (s5 !== peg$FAILED) {
-          peg$savedPos = s0;
-          s0 = peg$f22(s3);
-        } else {
-          peg$currPos = s0;
-          s0 = peg$FAILED;
-        }
-      } else {
-        peg$currPos = s0;
-        s0 = peg$FAILED;
-      }
-    }
-
-    return s0;
-  }
-
   function peg$parseTermList() {
     let s0, s1, s2, s3, s4, s5, s6, s7;
 
@@ -1751,10 +1682,85 @@ function peg$parse(input, options) {
         }
       }
       peg$savedPos = s0;
-      s0 = peg$f23(s1, s2);
+      s0 = peg$f21(s1, s2);
     } else {
       peg$currPos = s0;
       s0 = peg$FAILED;
+    }
+
+    return s0;
+  }
+
+  function peg$parseSet() {
+    let s0, s1, s2, s3, s4, s5;
+
+    s0 = peg$currPos;
+    if (input.charCodeAt(peg$currPos) === 123) {
+      s1 = peg$c31;
+      peg$currPos++;
+    } else {
+      s1 = peg$FAILED;
+      if (peg$silentFails === 0) { peg$fail(peg$e39); }
+    }
+    if (s1 !== peg$FAILED) {
+      s2 = peg$parse_();
+      s3 = peg$parseTermList();
+      if (s3 === peg$FAILED) {
+        s3 = null;
+      }
+      s4 = peg$parse_();
+      if (input.charCodeAt(peg$currPos) === 125) {
+        s5 = peg$c32;
+        peg$currPos++;
+      } else {
+        s5 = peg$FAILED;
+        if (peg$silentFails === 0) { peg$fail(peg$e40); }
+      }
+      if (s5 !== peg$FAILED) {
+        peg$savedPos = s0;
+        s0 = peg$f22(s3);
+      } else {
+        peg$currPos = s0;
+        s0 = peg$FAILED;
+      }
+    } else {
+      peg$currPos = s0;
+      s0 = peg$FAILED;
+    }
+    if (s0 === peg$FAILED) {
+      s0 = peg$currPos;
+      if (input.charCodeAt(peg$currPos) === 91) {
+        s1 = peg$c33;
+        peg$currPos++;
+      } else {
+        s1 = peg$FAILED;
+        if (peg$silentFails === 0) { peg$fail(peg$e41); }
+      }
+      if (s1 !== peg$FAILED) {
+        s2 = peg$parse_();
+        s3 = peg$parseTermList();
+        if (s3 === peg$FAILED) {
+          s3 = null;
+        }
+        s4 = peg$parse_();
+        if (input.charCodeAt(peg$currPos) === 93) {
+          s5 = peg$c34;
+          peg$currPos++;
+        } else {
+          s5 = peg$FAILED;
+          if (peg$silentFails === 0) { peg$fail(peg$e42); }
+        }
+        if (s5 !== peg$FAILED) {
+          peg$savedPos = s0;
+          s0 = peg$f23(s3);
+        } else {
+          peg$currPos = s0;
+          s0 = peg$FAILED;
+        }
+      } else {
+        peg$currPos = s0;
+        s0 = peg$FAILED;
+      }
     }
 
     return s0;

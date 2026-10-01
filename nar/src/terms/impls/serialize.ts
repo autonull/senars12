@@ -20,6 +20,20 @@ const UNARY_OPS = new Set(
 const ARGUMENT_SEPARATOR = ',';
 
 /**
+ * Narsese spells an n-ary copula two ways and they are not interchangeable:
+ * `(a&b)` is **infix and only valid for two members**, and `(&,a,b,c)` is the
+ * prefix form for any arity. `docs/java/NarseseParser.java` draws the line
+ * itself — `CompoundInfix` is exactly `Term() op Term()`, while `MultiArgTerm`
+ * with `initialOp` reads the operator first and then a comma-separated list.
+ *
+ * So the repeated-infix spelling `(a&b&c)` is not a third form, it is a
+ * malformed one, and a serialiser that emits it writes terms its own reader
+ * cannot accept. Two members stays infix because it is shorter and it is what
+ * Narsese authors write; three or more takes the prefix form.
+ */
+const PREFIX_ARITY_THRESHOLD = 2;
+
+/**
  * An operation always parenthesises its arguments. `f^(x)` names one argument and
  * `f^(x,y)` names several — the product is what makes the second several — so
  * the parens are not decoration and the writer cannot drop them.
@@ -68,6 +82,12 @@ const serialize = (term: Term): string => {
     if (args.length === 0) return EMPTY_COMPOUND[term.kind as OperatorKey] ?? '';
     if (args.length === 1) return serialize(args[0] as Term);
     const sep = NARY_SEPARATORS[term.kind as OperatorKey] ?? ARGUMENT_SEPARATOR;
+    // `product`'s copula is the comma itself, so `(a,b,c)` already *is* its
+    // prefix form and there is no second spelling to choose between.
+    if (args.length > PREFIX_ARITY_THRESHOLD && term.kind !== 'product') {
+      const symbol = OPERATORS[term.kind as OperatorKey]?.symbol ?? sep;
+      return `(${symbol}${ARGUMENT_SEPARATOR}${args.map((a: Term) => serialize(a)).join(ARGUMENT_SEPARATOR)})`;
+    }
     return `(${args.map((a: Term) => serialize(a)).join(sep)})`;
   }
 

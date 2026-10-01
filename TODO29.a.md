@@ -1,6 +1,6 @@
 # TODO29.a: Runtime Architecture — S/J/P over a closed core
 
-**Version:** 3.4 · **Status:** A0, A1 and A12 step 1 landed 2026-09-30; **A12 step 1's `^name` retirement landed** — A2–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
+**Version:** 3.5 · **Status:** A0, A1, A12 step 1 and its `^name` retirement landed; **§0.8.4's n-ary statement gap is closed** — A2–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
 unchanged as the measurement and provenance record; §0.4 maps its sections onto this one) ·
 **Successor:** `TODO30.md`, blocked on this.
 
@@ -16,8 +16,8 @@ lifecycle.
 > follows from), then §5.12 (the item summary — one command, one gate, one risk per item).** §4 row 16
 > is the finding that makes A11 cheap instead of an invention, and §12's two kill criteria should be
 > checked *before* anything is built. Start at A5 and A4; they need no decisions and they unblock
-> everything else. **§0.8.4 is the cheapest open item on this plan** and needs no decision: a
-> three-premise conjunction cannot be read back.
+> everything else. **§0.8.4 is done (2026-10-01)** — it was the cheapest open item and needed no
+> decision. **The next item is A2**, then A5 → A4.
 
 ---
 
@@ -88,9 +88,9 @@ do is make four README promises structurally true rather than aspirational, and 
 3. ~~**A1**~~ — **done 2026-09-30.** The cycle stages model-backed work and pumps it off-cycle; every
    provider await carries a deadline; every model-backed rule declares and runs a symbolic body.
 4. **A2** — the dependency inversion, with the seam contracts in `@senars/core/schemas`. **A12 §5.12.1
-   came first** and is **done** (§0.8.2), and **its `^name` remainder is done too** (§0.8.3): one
-   spelling per operation, recognised by `kind`. **§0.8.4 is what is left of A12** and it is a grammar
-   change, not an encoder change — no n-ary statement can be read back.
+   came first** and is **done** (§0.8.2), **its `^name` remainder is done too** (§0.8.3), and **§0.8.4
+   is done**: a three-premise conjunction reads back, and *readable* is now a gated property beside
+   *injective*. **What is left of A12 is the reducers**, and they wait for A4's baselines (§5.12).
 5. **A5 → A4** — the mechanical split, then the one deliberate behaviour change.
 
 ### 0.7 What this plan is not
@@ -296,20 +296,65 @@ Found by the generator change in §0.8.3, and **older than this gate and unrelat
 (a&|b&|c)    PARSE FAIL      parallel, three members
 (a&/b&/c)    PARSE FAIL      sequence, three members
 ((a&|b&|c)-->d)  PARSE FAIL  and therefore anything nesting one
+(&,a,b,c)    => (a&b&c)      the prefix form read fine all along
 (a,b,c)      => (a,b,c)      product: the comma copula has its own rule
 (a-->b)      => (a-->b)
 ```
 
-**Any conjunction of three or more premises — the ordinary shape of an NARS derivation — serialises to text its own grammar refuses.** Nothing in the tree noticed, because terms are built in memory and the printed form is rarely re-read.
+**Any conjunction of three or more premises — the ordinary shape of an NARS derivation — serialises to text its own grammar refuses.** Note the asymmetry: the *prefix* form `(&,a,b,c)` was readable at every arity and nested inside a statement, a negation and a set, so **the reader was never the broken half.** Nothing in the tree noticed, because terms are built in memory and the printed form is rarely re-read.
 
 The cause is structural. `Term` reaches a statement only through `Statement`, which requires a leading `<` or `(`; `CompoundTerm`'s product arm is `"(" TermList ")"` and `TermList` holds `Term`s, none of which can be a bare `a&b&c`. So the chain stops at the first operand and the rest is left over.
 
-The fix is a `BareStatement` rule on `Term`, and **it must not be `subject:Term op predicate:Term`** — that is left-recursive and peggy rejects the grammar outright (verified). The subject needs a restricted operand that cannot begin an operator chain, and the chain needs to fold left associatively so `(a&|b&|c,d)` stops before the comma. **Not done here**: it is a grammar change on a different invariant from this commit, and it should land with its own gate.
+**Status: DONE (2026-10-01), with its own gate. The fix was in the serialiser, not the grammar.**
 
-Two knock-on facts the retirement inherits:
+**Narsese spells an n-ary copula two ways, and they are not interchangeable:**
 
-- The round-trip property is capped at **two members and one level of nesting**, and the cap is named in the test. A deeper generator fails immediately on `(a&|b&|c)`, so the cap is the honest boundary and not a convenience.
-- §0.8.2's claim that "a canonical form is now injective, so `toString` is an identity" is **true of `termKey`, not of the grammar**. Two terms can still be written in a form the reader rejects; §0.8.2 conflated a canonical form with a readable one. Worth restating as two invariants: *a canonical form is injective* and *a canonical form is readable*, and only the first was ever gated.
+```text
+(a&b)          infix — valid for TWO members only
+(&,a,b,c)      prefix — the n-ary form, any arity >= 3
+(a,b,c)        product: its copula IS the comma, so this is already its prefix form
+```
+
+`docs/java/NarseseParser.java` draws the line itself: `CompoundInfix` is exactly
+`Term() op Term()` — two terms, one operator — while `MultiArgTerm(..., initialOp, ...)` reads the
+operator first and then a comma-separated list. **The repeated-infix form `(a&b&c)` is not a third
+spelling, it is a malformed one.** So the defect was that **`serialize` emitted it**: a three-premise
+conjunction — the ordinary shape of a NARS derivation — was written in a form the reader refused.
+The fix is `PREFIX_ARITY_THRESHOLD` in `serialize.ts`: two members stays infix because it is shorter
+and it is what Narsese authors write, three or more takes the prefix form.
+
+| artefact | what it is |
+|---|---|
+| `terms/impls/serialize.ts` | `PREFIX_ARITY_THRESHOLD` — the whole fix. `product` is exempt, because its copula is the comma |
+| `scripts/terms-canonical.ts` | a fourth rule: **a canonical form is readable**, not only injective |
+| `tests/nar/property/narsese-roundtrip.test.ts` | cap lifted to 2 levels x 3 members, variadic kinds at every arity |
+
+**Two decisions this did not pre-answer.**
+
+1. **The reader gets no new rule.** The prefix form already read back at every arity and nested inside
+   a statement, a negation and a set — so the honest change is one line in the writer. Adding a
+   `BareStatement` rule to accept repeated infix would have made the gate green while leaving the
+   serialiser emitting terms upstream cannot produce, which is §5.12.1's "accepted and never written"
+   in its worst form: **accepting our own mistake and calling it a grammar feature.**
+2. **The gate compares the term, not only the text.** `roundTrips` asserts `serialize(read) === text`
+   **and** `termsEqual`, because a fold that differs from the canonical form round-trips as text and
+   is still a different term. It also asks a binary kind for one arity and a variadic kind for three:
+   asserting `implication` at 4 members tests a term `createCompound` accepts and the serialiser
+   silently drops.
+
+**One correction, and it is about a test rather than the grammar.** `strategies.test.ts`'s "should
+decompose conjunctions into components" **had never asserted anything.** It ran two `if` branches and
+neither was reachable, because `(&, a, b, c)` produced no concepts at all — so it passed vacuously
+through many passes. Once the conjunction existed the assertion ran for the first time and failed,
+because decomposition maps a conjunction's arguments to their *concepts' beliefs* and no member had
+one. Fixed by asserting the members first, and the test now asserts `toHaveLength(3)` and the exact
+members. **A test that cannot fail is the same defect as a gate that cannot fail**, and this one had
+a green tick the whole time.
+
+Two knock-on facts now settled:
+
+- The round-trip property is capped at **two levels of nesting and three members**, and the cap is named in the test as `MAX_DEPTH` / `MAX_ARITY`. It is no longer hiding a hole; it is where the property stops being about canonical form and starts being about the parser's stack.
+- §0.8.2's claim that "a canonical form is now injective, so `toString` is an identity" is **true of `termKey`, not of the grammar**. Restated as two invariants, and now both gated: *a canonical form is injective* (`termsEqual` in `terms-canonical`) and *a canonical form is readable* (the new rule).
 
 ### 0.8.5 The failure mode the retirement was built to catch, caught
 
@@ -317,7 +362,29 @@ Two knock-on facts the retirement inherits:
 
 It now throws. A literal in that file is a constant, so it is either right or a build break, and a boot-time throw is the strongest mechanism available for a constant.
 
+**It happened again, one commit later, and that is the finding.** §0.8.4 closed the n-ary gap, and
+`pnpm test:unit` surfaced `(^apply_fix-->patch)` being **allowed** by the firewall: the chain made
+`apply_fix-->patch` a legal argument, so the retired empty-head `^` sigil parsed again — as a
+one-argument `operation` that serialises to the empty string. The firewall counts a parse failure as
+blocked, so making a parse *succeed* silently flipped a security assertion from true to false, and the
+only reason it was caught is that the round-trip gate was run in the same breath. **A filter that
+matches nothing and a filter that was removed look identical from the outside — and a filter that
+*used* to match nothing and now matches something looks identical to a filter that works.**
+
 **The generalisable finding.** §0.8.3 predicted this exact failure and named the files; what it did not predict is that the *prediction itself* was not the mitigation. Converting the readers is necessary and was not sufficient — the string literals the readers were matching against had to be found separately, and nothing in the compiler or the gates connects a literal to the parse that will reject it. **A rule that would have caught this: every narsese string literal in `src/` is parsed by a gate**, which is the natural companion to §0.8.2's note that `DriveManager.ts` and `bootstrap.ts` build Narsese by hand.
+
+**Improvement opportunities from §0.8.4, none blocking.**
+
+- **`&&` and `||` are still unreadable**, and always were: `(a&&b)` was a parse failure before this
+  change too, so `LEGACY_KINDS` advertises four legacy spellings of which only two (`=>`, `,/`) can
+  actually be read. Either the grammar accepts them or the table stops claiming them — a documented
+  compatibility that does not work is worse than a rejected one.
+- **The grammar is hand-regenerated.** `npx peggy -o …` is not in `package.json`, so nothing fails if
+  the grammar and the committed parser disagree. A `terms:grammar` script would make that a build
+  step; the plan's §10.1 rule applies and the gate cannot see it.
+- **One parser, two readers, one gate.** `terms-canonical` (the gate), `narsese-roundtrip.test.ts`
+  (the property) and `scripts/generate-architecture.ts` each read the grammar differently. Three
+  readings of one file is three chances to disagree.
 
 **Improvement opportunities, none blocking.**
 
@@ -1471,9 +1538,10 @@ What is missing is everything that makes the form *canonical* rather than *inter
 same-kind compounds, dropping repeated args, pushing negations inward, and folding the frequency
 extremes. Each is a NAL axiom, so each is sound; none is implemented, and none is a TODO30 question.
 
-**Status: step 1 is done (§0.8.2) and its `^name` remainder is done (§0.8.3).** The decisions below were
-made while landing it. What is left of A12 is §0.8.4 — no n-ary statement can be read back — and the
-reducers below.
+**Status: step 1 is done (§0.8.2), its `^name` remainder is done (§0.8.3), and §0.8.4's n-ary
+statement gap is closed.** The decisions below were made while landing it. **What is left of A12 is the
+reducers below** — the behavioural half, which waits for A4's baselines, as §5.12's own sequencing
+paragraph says.
 
 **Sequencing within this item, and the two halves are not equal.** §5.12.1 — the grammar/symbol/kind
 alignment — is a **correctness fix whose baseline is "broken"**, so it needs no attribution window and no
@@ -1689,7 +1757,7 @@ Every acceptance criterion above is demonstrated by a command and a gate. Gates 
 | **A8** | `pnpm test:unit` (resource-policy tests) | `resource:policy` | **medium** — retention policy *is* behaviour; policy and structure together is how a semantic change hides inside a refactor |
 | **A9** | `pnpm test:hermetic` — the tier this item exists to make possible | `replay:proposal` (`slow`) | **low** — extends an existing reducer with new event kinds |
 | **A10** | `pnpm run rules:loaded-data`, `pnpm test:unit` | `rules:loaded-data` | **medium-high** — the only item that changes what the system can do rather than how it is arranged. Last in sequence for that reason |
-| **A12** | `pnpm run terms:canonical`, NAL suites, `pnpm test:unit` — **step 1 (§5.12.1) first: the round-trip property test, and it must derive its kinds from `OPERATORS`** | `terms:canonical`, plus the widened round-trip test | **medium-high** — step 1 changes what six kinds *mean* (`product`, `parallel`, `implication`, `predictive`, `retrospective`, the sets) and every reducer after it changes derived terms. Two commits, semantics then whitespace, never together |
+| **A12** | `pnpm run terms:canonical`, NAL suites, `pnpm test:unit` — **step 1 (§5.12.1) done 2026-09-30, `^name` retirement done 2026-10-01, §0.8.4's readability rule done 2026-10-01; the reducers remain and want A4's baselines** | `terms:canonical` (now also asserting *readable*, not only injective), plus the widened round-trip test |
 | **A11** | `pnpm run config:model-matrix`, `pnpm test:unit` | `config:model-matrix` (re-landed, with the manifest) | **medium** — the item that can spread. A capability available everywhere is as safe as each call site, so its acceptance is mostly *declarations*, and an ungated declaration is a comment |
 
 ### 5.14 The questions A1–A3 will be decided by
@@ -1920,7 +1988,7 @@ gate listed here and not wired is the exact failure mode this plan is about.
 | `resource:policy` | every production accumulator is in the ledger, and a memory at capacity with nothing evictable says so | A8 | `gate` |
 | `rules:loaded-data` | no module-side-effect registration survives; the table is enumerable, versioned, revertable; two revisions are diffable and a prior one is restorable; an empty table is a runnable state | A10 | `gate` |
 | `replay:proposal` | `replayCognitiveState` reconstructs the same state from `proposal.*` events, and a version mismatch fails loudly | A9 | `slow` |
-| `terms:canonical` | **step 1 form (landed 2026-09-30):** every kind in `OPERATORS` round-trips through Narsese, the grammar names no kind the table lacks, and every table symbol is in the grammar's token list — the three tables cannot disagree. **Reducer form (A12):** `canonical(canonical(t)) === canonical(t)`, already-canonical terms are returned unchanged, `(--x).f = 1 − f_x` across the range (`--x. %0.8%` ≡ `x. %0.2%`, `--x. %1%` ≡ `x. %0%`), and the NAL suites derive what they derived before | A12 | `gate` |
+| `terms:canonical` | **step 1 form (landed 2026-09-30) + §0.8.4 (landed 2026-10-01):** every variadic kind round-trips at 2, 3 and 4 members, flat and nested one level deep, comparing the **term** as well as the text — a canonical form must be *readable*, not only injective. **Reducer form (A12, not started):** `canonical(canonical(t)) === canonical(t)`, already-canonical terms are returned unchanged, `(--x).f = 1 − f_x` across the range (`--x. %0.8%` ≡ `x. %0.2%`, `--x. %1%` ≡ `x. %0%`), and the NAL suites derive what they derived before | A12 | `gate` |
 
 Deliberately **not** here, and in TODO30: `cost:cycle`, the population-scaling matrix, and the
 `bench:cycle` entry in the gate list. Note what that means for §5: **no item in this plan is verified

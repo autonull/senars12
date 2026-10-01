@@ -11,10 +11,26 @@ const atomNameArb = fc
 
 const atomArb = atomNameArb.map((s) => TermBuilder.atom(s)!);
 
+/**
+ * Generator bounds. Two levels of nesting and three members: past that the
+ * property stops being about canonical form and starts being about the
+ * parser's stack, so the cap is named rather than discovered.
+ */
+const MAX_DEPTH = 2;
+const MAX_ARITY = 3;
+
 /** Kinds that take one argument whatever their declared arity. */
 const UNARY_KINDS = new Set<OperatorKey>(['negation', 'setExt', 'setInt']);
 
-/** A kind that takes exactly `arity` arguments, so a nested node can be placed. */
+/** Kinds that take any number of arguments, so any arity the generator picks. */
+const VARIADIC_KINDS = ['conjunction', 'disjunction', 'sequence', 'parallel', 'product'] as const;
+
+/**
+ * A kind that takes exactly `arity` arguments, so a nested node can be placed.
+ * The variadic kinds answer for every arity up to {@link MAX_ARITY} — a
+ * conjunction of three premises is the shape the serialiser actually writes,
+ * so it is the case that was missing.
+ */
 const KIND_BY_ARITY = new Map<number, OperatorKey>([
   ...([...UNARY_KINDS] as OperatorKey[]).map((kind) => [1, kind] as const),
   ...(
@@ -28,38 +44,34 @@ const KIND_BY_ARITY = new Map<number, OperatorKey>([
       'retrospective',
     ] as OperatorKey[]
   ).map((kind) => [2, kind] as const),
-  ...(['conjunction', 'disjunction', 'sequence', 'parallel'] as OperatorKey[]).map(
-    (kind) => [2, kind] as const
-  ),
-  [3, 'product'] as const,
 ] as [number, OperatorKey][]);
+for (let arity = 2; arity <= MAX_ARITY; arity++)
+  for (const kind of VARIADIC_KINDS) KIND_BY_ARITY.set(arity, kind);
 
 /**
- * Atoms at the leaves and one compound above them.
+ * Atoms at the leaves and compounds above them, two levels deep.
  *
  * This used to be atoms only, and that was the gate's blind spot: a failure that
  * needs a compound to reach it cannot be seen by a generator that never builds
  * one. With atomic arguments no product ever held a statement, so the printed
  * form of an operation with more than one argument was never tried at all.
  *
- * It stops at two members and one level of nesting because deeper runs into a
- * hole that is older
- * than this gate and is not about operators at all: **no n-ary statement can be
- * read back as an operand.** `(a&b&c)`, `(a&|b&|c)` and `(a&/b&/c)` are all
- * parse failures, so `((a&|b&|c)-->d)` is too, and no property over them can
- * hold. TODO29.a §0.8.4 records it; the grammar's `Term` has no rule for an
- * unparenthesised operator chain, so `CompoundTerm`'s product arm stops at the
- * first operand and the rest of the chain is left over.
+ * It is capped at two levels for the reason it was once capped at one: that is
+ * where the property stops being about canonical form and starts being about
+ * the parser's stack. The cap is named rather than discovered, and it is no
+ * longer hiding a hole — a three-member conjunction now serialises to the
+ * prefix form `(&,a,b,c)` and reads back, which is what made arity 3 worth
+ * generating at all.
  */
 const nestedAt = (depth: number): fc.Arbitrary<Term> =>
   depth === 0
     ? atomArb
     : fc
-        .integer({ min: 1, max: 2 })
+        .integer({ min: 1, max: MAX_ARITY })
         .chain((arity) => fc.array(nestedAt(depth - 1), { minLength: arity, maxLength: arity }))
         .map((args) => TermBuilder.compound(KIND_BY_ARITY.get(args.length)!, args));
 
-const nestedArb: fc.Arbitrary<Term> = nestedAt(1);
+const nestedArb: fc.Arbitrary<Term> = nestedAt(MAX_DEPTH);
 
 /**
  * One arbitrary per kind `OPERATORS` declares. It used to be a hand-written list

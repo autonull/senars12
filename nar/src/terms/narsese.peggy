@@ -102,6 +102,12 @@ CompoundTerm
       return options.termFactory.negation(term);
     }
   / "(" _ symbol:OperatorSymbol _ ","? _ components:TermList _ ")" {
+      // `^` is the operation sigil, not an infix copula: it cannot head a
+      // compound. `(^apply_fix-->patch)` used to read as a one-argument
+      // operation whose argument was a bare statement chain — a term no
+      // serialiser writes, which prints as the empty string. A `^` in the
+      // leading position is the retired `^name` form, and it is a parse error.
+      if (symbol === "^") error("'^' is the operation sigil and cannot open a compound");
       return options.termFactory.create(operatorKind(symbol), components);
     }
   / operator:OperationAtomicTerm "(" _ components:TermList? _ ")" {
@@ -140,10 +146,6 @@ OperatorToken
   / "&&" / "||" / "=>" / ",/"
   / "-->," / "<->," / "==>," / "<=>," / "&," / "|,"
 
-Set
-  = "{" _ components:TermList? _ "}" { return options.termFactory.create('setExt', components || []); }
-  / "[" _ components:TermList? _ "]" { return options.termFactory.create('setInt', components || []); }
-
 TermList
   = head:Term tail:(_ "," _ Term)* {
       const terms = [head];
@@ -154,6 +156,10 @@ TermList
       }
       return terms;
     }
+
+Set
+  = "{" _ components:TermList? _ "}" { return options.termFactory.create('setExt', components || []); }
+  / "[" _ components:TermList? _ "]" { return options.termFactory.create('setInt', components || []); }
 
 // `^` is an operator symbol and never an atom character — it is the only reason
 // `(a^b)` reads as a compound and not as one atom named `a^b`.

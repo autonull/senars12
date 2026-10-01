@@ -4,10 +4,11 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
+import { createDefaultRegistry } from '../../../nar/src/cognitive';
 import type { Strategy } from '../../../nar/src/reason';
 import { createStrategy } from '../../../nar/src/reason';
 import { CompositeStrategy, DecompositionStrategy } from '../../../nar/src/strategies/premise';
-import { createDefaultRegistry } from '../../../nar/src/cognitive';
+import { TermBuilder } from '../../../nar/src/terms/impls/factory.js';
 import { Truth } from '../../../nar/src/terms/impls/Truth.js';
 import { createTask, type Task } from '../../../nar/src/types/index.js';
 import { NAR } from '../../../src';
@@ -143,23 +144,24 @@ describe('Core Strategies', () => {
     });
 
     it('should decompose conjunctions into components', async () => {
+      // Each member needs a concept carrying a belief: decomposition maps a
+      // conjunction's arguments to their concepts' beliefs, so a conjunction
+      // whose members have never been asserted decomposes to nothing. This test
+      // asserted `results.length > 0` behind two `if` branches and passed
+      // vacuously for as long as neither branch was reachable.
+      for (const member of ['a', 'b', 'c'])
+        await nar.input(member, 'belief', Truth.create(0.9, 0.9));
       await nar.input('(&, a, b, c)', 'belief', Truth.create(0.9, 0.9));
 
-      const task = nar.taskManager.peekTask();
-      if (task && task.term.kind === 'conjunction') {
-        const results = new DecompositionStrategy().selectSecondary(task, nar.memory);
-        expect(Array.isArray(results)).toBe(true);
-        expect(results.length).toBeGreaterThan(0);
-      } else {
-        const concepts = nar.memory.listConcepts();
-        const conjunctionConcept = concepts.find((c) => c.term.kind === 'conjunction');
-        if (conjunctionConcept) {
-          const mockTask = createTask(conjunctionConcept.term, 'belief', Truth.create(0.9, 0.9));
-          const results = new DecompositionStrategy().selectSecondary(mockTask, nar.memory);
-          expect(Array.isArray(results)).toBe(true);
-          expect(results.length).toBeGreaterThan(0);
-        }
-      }
+      const conjunction =
+        nar.memory.listConcepts().find((concept) => concept.term.kind === 'conjunction')?.term ??
+        TermBuilder.compound('conjunction', ['a', 'b', 'c'].map(TermBuilder.atom));
+
+      const task = createTask(conjunction, 'belief', Truth.create(0.9, 0.9));
+      const results = new DecompositionStrategy().selectSecondary(task, nar.memory);
+
+      expect(results).toHaveLength(3);
+      expect(results.map((t) => t.term.toString()).toSorted()).toEqual(['a', 'b', 'c']);
     });
 
     it('should return empty array for non-conjunction terms', async () => {
@@ -212,7 +214,10 @@ describe('Composite Strategies', () => {
   });
 
   it('should handle sequential mode', async () => {
-    const composite = new CompositeStrategy([premise('resolution'), premise('sampled')], 'concatenate');
+    const composite = new CompositeStrategy(
+      [premise('resolution'), premise('sampled')],
+      'concatenate'
+    );
 
     await nar.input('(a-->b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
@@ -223,7 +228,10 @@ describe('Composite Strategies', () => {
   });
 
   it('should handle parallel mode', async () => {
-    const composite = new CompositeStrategy([premise('resolution'), premise('goal-driven')], 'concatenate');
+    const composite = new CompositeStrategy(
+      [premise('resolution'), premise('goal-driven')],
+      'concatenate'
+    );
 
     await nar.input('(a-->b)', 'belief', Truth.create(0.9, 0.9));
     const task = nar.taskManager.peekTask();
@@ -333,9 +341,13 @@ describe('Strategy Performance', () => {
   it('should handle empty memory gracefully', () => {
     const task = nar.taskManager.peekTask();
     if (task) {
-      const strategies: Strategy[] = ['resolution', 'goal-driven', 'analogical', 'sampled', 'default-formation'].map(
-        premise
-      );
+      const strategies: Strategy[] = [
+        'resolution',
+        'goal-driven',
+        'analogical',
+        'sampled',
+        'default-formation',
+      ].map(premise);
 
       for (const strategy of strategies) {
         const results = strategy.selectSecondary(task, nar.memory);
