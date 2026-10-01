@@ -11,6 +11,12 @@ are measured through exist. What stays here is what is testable on the tree in i
 dependency direction, proposal semantics, state ownership, read purity, and declared resource
 lifecycle.
 
+> **A fresh session reads §0.1 (two minutes), then §1.2 and §1.3 (the two invariants everything else
+> follows from), then §5.12 (the item summary — one command, one gate, one risk per item).** §4 row 16
+> is the finding that makes A11 cheap instead of an invention, and §12's two kill criteria should be
+> checked *before* anything is built. Start at A0 and A5; they need no decisions and they unblock
+> everything else.
+
 ---
 
 ## 0. Orientation
