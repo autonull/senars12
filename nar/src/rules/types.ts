@@ -14,14 +14,31 @@ export interface RuleResult {
   taskType?: 'belief' | 'goal' | 'question' | 'command';
 }
 
+/** A unit of model-backed rule work: staged by the cycle, applied outside it. */
+export interface LMRuleWork {
+  p1: RuleInput;
+  p2?: RuleInput;
+}
+
+/**
+ * Where staged work goes. One bounded backlog, owned by the seam the cycle
+ * reaches a provider through — a second queue would be a second account of the
+ * same backlog (TODO29.a A1).
+ */
+export interface LMRuleWorkSink {
+  /** `false` when the declared overflow policy refused the work. */
+  stage(work: LMRuleWork): boolean;
+}
+
 /** Engine port consumed by derivation strategies — keeps `strategies/` free of the processor implementation. */
 export interface RuleEngine {
   processSync(p1: RuleInput, p2: RuleInput): RuleResult[];
-  processLMRules(
-    p1: RuleInput,
-    p2?: RuleInput,
-    opts?: { signal?: AbortSignal; singlePremise?: boolean }
-  ): AsyncGenerator<RuleResult>;
+  /**
+   * Stage model-backed rule work for the off-cycle pass. Synchronous by
+   * construction: the cycle may not await a provider, and a strategy that could
+   * await one would put the cycle's progress behind a model again.
+   */
+  stageLMRules(p1: RuleInput, p2?: RuleInput): boolean;
 }
 
 export type TruthFn = (t1: Truth, t2: Truth) => Truth | null;

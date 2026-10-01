@@ -38,6 +38,12 @@ export const GATES: readonly Gate[] = [
   script('cycle:no-provider'),
   // TODO29.a A0: the in-cycle induction inventory, and its references still hold.
   script('induction:inventory'),
+  // TODO29.a A1: every model-backed rule declares a symbolic body, and it runs.
+  script('rule:has-fallback'),
+  // TODO29.a A1: one InferenceController, one cycle step call site.
+  script('gates:one-cycle-path'),
+  // TODO29.a A1: S / S+J / S+P / S+J+P are four complete systems.
+  script('config:model-matrix'),
   script('exports:audit'),
   script('exports:check'),
   script('exports:barrels'),

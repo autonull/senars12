@@ -3,7 +3,7 @@ import { GoalDecompositionSchema } from './schemas.js';
  * Goal-oriented LM rule definitions.
  */
 import type { LMRuleDefinition } from '../rule-builders.js';
-import { isComplexGoal } from '../rule-selectors/factory.js';
+import { isComplexGoal } from '../rule-selectors/conditions.js';
 import { symbolicFallbacks } from './fallbacks.js';
 
 export const goalRules: LMRuleDefinition[] = [

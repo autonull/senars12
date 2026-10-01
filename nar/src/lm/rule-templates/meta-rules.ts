@@ -9,6 +9,7 @@ import {
  * V2 preset LM rule definitions (merged from rule-factory-v2.ts).
  */
 import type { LMRuleDefinition } from '../rule-builders.js';
+import { symbolicFallbacks } from './fallbacks.js';
 
 export const metaRules: LMRuleDefinition[] = [
   {
@@ -19,6 +20,7 @@ export const metaRules: LMRuleDefinition[] = [
     taskType: 'belief',
     singlePremise: true,
     schema: HypothesisSchema,
+    fallback: symbolicFallbacks['lm-v2-hypothesis'],
     maxOutputTokens: 256,
   },
   {
@@ -29,6 +31,7 @@ export const metaRules: LMRuleDefinition[] = [
     taskType: 'belief',
     singlePremise: true,
     schema: ExplanationSchema,
+    fallback: symbolicFallbacks['lm-v2-explanation'],
     maxOutputTokens: 256,
   },
   {
@@ -38,6 +41,7 @@ export const metaRules: LMRuleDefinition[] = [
     priority: 0.8,
     taskType: 'belief',
     schema: AnalogySchema,
+    fallback: symbolicFallbacks['lm-v2-analogy'],
     maxOutputTokens: 256,
   },
   {
@@ -47,6 +51,7 @@ export const metaRules: LMRuleDefinition[] = [
     priority: 0.8,
     taskType: 'belief',
     schema: TemporalCausalSchema,
+    fallback: symbolicFallbacks['lm-v2-causal'],
     maxOutputTokens: 256,
   },
   {
@@ -57,6 +62,7 @@ export const metaRules: LMRuleDefinition[] = [
     taskType: 'belief',
     singlePremise: true,
     schema: SchemaInductionSchema,
+    fallback: symbolicFallbacks['lm-v2-schema'],
     maxOutputTokens: 256,
   },
 ];

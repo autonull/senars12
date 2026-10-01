@@ -938,6 +938,18 @@ _Dynamic subpath (no single entry file)._
 
 - `curiosityQuestionFallback` — NAL question generation: ask for the missing variable.
 
+- `hasVariable` — Whether a term still carries a variable — the one lexical question a fallback may ask.
+
+- `causalFallback` — Causal stand-in: name the missing cause rather than inventing one.
+
+- `elaborationFallback` — Elaboration stand-in: ask for the property the elaboration would have supplied.
+
+- `clarificationFallback` — Clarification stand-in: the question whose answer unblocks the term.
+
+- `groundingFallback` — Grounding stand-in: only a variable-bearing term has anything to ground.
+
+- `noSymbolicEquivalent` — No symbolic equivalent: the rule degrades to producing nothing rather than guessing.
+
 - `symbolicFallbacks` — Universal rule matrix: one prompt + one symbolic fallback per rule.
 
 ## `./lm/shadow-validation`

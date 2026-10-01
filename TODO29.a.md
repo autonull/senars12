@@ -1,11 +1,11 @@
 # TODO29.a: Runtime Architecture — S/J/P over a closed core
 
-**Version:** 3.1 · **Status:** A0 landed 2026-09-30; A1–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
+**Version:** 3.2 · **Status:** A0 and A1 landed 2026-09-30; A2–A12 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
 unchanged as the measurement and provenance record; §0.4 maps its sections onto this one) ·
 **Successor:** `TODO30.md`, blocked on this.
 
-**Scope: architecture and semantics. Of what this document specifies, only A0's instrumentation has
-landed, and it changes no reasoning path** (§0.8). No latency, throughput, complexity,
+**Scope: architecture and semantics. A0's instrumentation and A1's cycle closure have landed; A1
+changed *when* model-backed rules exist, not what the core derives from what** (§0.8). No latency, throughput, complexity,
 population-scaling or index-shape requirement appears in this document's acceptance criteria. Every
 one of those is `TODO30` §1–§10, deliberately, because they are measurable only after the seams they
 are measured through exist. What stays here is what is testable on the tree in its current state:
@@ -63,14 +63,14 @@ do is make four README promises structurally true rather than aspirational, and 
 ### 0.4 Section map from `TODO29.md`
 
 `TODO30` cross-references the old numbering. `§0 → §0 · §1 → §4 · §2 → §3.4 · §3 → §1–§3 ·
-§3.7 → §2 · §4 → §5 · §4.1 → §5.13 · §5 → §0.3 · §6 → §6 · §7 → §7 · §8 → §8 · §9 → §9 ·
+§3.7 → §2 · §4 → §5 · §4.1 → §5.14 · §5 → §0.3 · §6 → §6 · §7 → §7 · §8 → §8 · §9 → §9 ·
 §10 → §10 · §11 → §13 · §12 → §11 · §13 dropped · §14 → §4, §12 · §15 → §12`
 
 ### 0.5 Open, and needing a decision before the named item
 
 | question | blocks | where |
 |---|---|---|
-| The in-cycle induction inventory: which behaviours the layer performs *inside* a cycle, each with a disposition (`boundary` / `synchronous` / `dropped`) and a "who would notice its absence" column | A1 | §5.13 |
+| ~~The in-cycle induction inventory~~ — **answered and landed with A0**; the dispositions were A1's to revise and were | A1 | §0.8, §0.8.1 |
 | A3's eight protocol decisions — unit of work, trigger, overflow per proposal kind, denied-batch behaviour, staleness, evicted references, versioning, cancellation | A1's cost, A2's contract shape | §5.3 |
 | The `J` placement order and budget across the eight candidate sites | nothing architectural; TODO30 §1 measures it | §2.5 |
 | Q3's hypothesis — which arm should beat which, by how much, on which games, and what would count as "the model does not earn its place" | the plan's only falsifiable claim | §11.1 |
@@ -82,10 +82,10 @@ do is make four README promises structurally true rather than aspirational, and 
 1. ~~**A0**~~ — instrumentation, including provider-*dependency* detection, not presence detection.
    **Done**, except for one thing §0.8 finding 1 names: the live cycle has no tick stages, so A1's
    trace criterion has nothing to read. Do that before A1, or restate A1 criterion 2.
-2. **§5.13 + A3's eight protocol decisions** — *produced* before A1, because A1's acceptance depends on
+2. **§5.14 + A3's eight protocol decisions** — *produced* before A1, because A1's acceptance depends on
    them. A3's **implementation** lands after A2, once the queue's real behaviour is known (§6).
-3. **A1** — close the cycle's dependency on the model, bound the `J` profile, require a symbolic
-   fallback on every model-backed rule.
+3. ~~**A1**~~ — **done 2026-09-30.** The cycle stages model-backed work and pumps it off-cycle; every
+   provider await carries a deadline; every model-backed rule declares and runs a symbolic body.
 4. **A2** — the dependency inversion, with the seam contracts in `@senars/core/schemas`.
 5. **A5 → A4** — the mechanical split, then the one deliberate behaviour change.
 
@@ -96,8 +96,8 @@ the list. Read this as the floor, not the claim.
 
 ### 0.8 What has landed
 
-**A0 is done (2026-09-30).** Nothing else has, and nothing behavioural has changed — the tree's
-reasoning is byte-identical to where it was.
+**A0 is done (2026-09-30), and A1 (§0.8.1).** A0 changed no reasoning path; A1 changed *when* a
+model-backed rule exists in a cycle's life, not what the core derives from what.
 
 | artefact | what it is |
 |---|---|
@@ -140,6 +140,58 @@ to the gates themselves.
   that is indistinguishable from the seam moving.
 - The census prints; it does not store. Nothing commits the counts, so a regression from 3 value
   imports to 5 is visible in review but not in CI.
+
+### 0.8.1 A1 is done (2026-09-30)
+
+The cycle no longer awaits a model, and every provider await on any path carries a deadline. What
+changed is **when** a model-backed rule exists in a cycle's life, not what the core derives from what.
+
+| artefact | what it is |
+|---|---|
+| `nar/src/proposal/cycle-trace.ts` | the stage vocabulary the live cycle lacked (§0.8 finding 1). `NARExecution.run` now runs `perceive → attend → reason → authorize → propose → learn`, using `tick`'s stage names, and records each region; `findStageOverlaps` / `findInCycleProposals` are the pure predicates the tests read |
+| `nar/src/proposal/lm-rule-producer.ts` | `LMProposalProducer` — the cycle's only route to a provider. Stages into the `StreamReasoner`'s bounded queue, pumps it without being awaited, drains settled derivations at the next `authorize` stage |
+| `nar/src/stream/reasoner.ts` | the seam, generalised as far as it needed to be: `gates` are **injected** (the process global is gone), one flush is bounded by `backendTimeoutMs`, overflow is **drop-newest** with a counter, and a request may carry its own `derive` so a producer needs no second queue |
+| `nar/src/rules/impls/processor.ts` | `stageLMRules` (synchronous, the cycle's half) and `applyLMRules` (the off-cycle half); `stepScalars` deleted rather than invalidated |
+| `nar/src/lm/rule/LMRule.ts` | `callTimeoutMs` on every provider call, and `hasSymbolicFallback` — the declaration the gate reads |
+| `nar/src/kernel/KernelPerceptionGate.ts` | `judgeTimeoutMs`, and a **timeout that takes the same fail-closed path a fault takes**. Unjudged admission on expiry is not a degradation, it is a bypass of the injection veto |
+| `scripts/rule-fallback.ts`, `scripts/gates-one-cycle-path.ts` | two new gates; both wired into `pnpm gates` |
+| `tests/nar/todo29a-a1.test.ts`, `tests/nar/todo29a-model-matrix.test.ts` | A1's acceptance, and the four configurations |
+
+**Three decisions §5.13 did not pre-answer, made here.**
+
+1. **Unit of asynchronous work** — one premise pair, applied by one rule selector pass. That is
+   `processLMRulesImpl`'s own granularity, kept, because it is the unit the rules were written for.
+2. **Trigger** — the `propose` stage of every cycle calls `pump()`, which is a no-op when the queue is
+   empty. "Cycles per proposal" is therefore governed by how much work the cycle *stages*, which is
+   the derivation rate — one `stageLMRules` per premise pair, bounded by the queue's `maxPending`.
+3. **Overflow** — drop-newest, in the seam, counted in `stats().dropped`. The queued requests already
+   paid for their place; dropping them would refund a decision the system acted on.
+4. **A denied batch (budget refused)** — re-queued at the head and trimmed, which is the pre-existing
+   behaviour and is now the only path that can grow the backlog. It raises no `backpressure` reason of
+   its own; the budget gate already records `budget.exhausted` with `llm-budget`, which is A7's
+   vocabulary rather than a second one.
+5. **Staleness** — a proposal is applied at the **next** `authorize` stage, not whenever it arrives.
+   This is the decision that keeps the cycle closed, and it is now structural rather than a comment:
+   `pumpProposals` is not awaited and `takeDerived` is only read in `authorize`.
+
+**Two things A1 found that are not in §4:**
+
+- **A configured `J` is not yet functional.** With System One enabled and no calibrated heads,
+  `SystemOneIngressJudge` abstains, so `config:model-matrix` shows the `J` configurations *refusing
+  ingress* rather than admitting it. That is D1 working — the alternative is admitting unjudged input —
+  but it means §2.6's four-way invariance is asserted on the `P` axis today, and on the `J` axis only
+  once a judge that admits exists. Recorded in §11.1.
+- **`hasStructuralSimilarityNoOverlap` can never be true.** It asks for symbol-bag similarity above
+  0.6 *and* no shared symbol; a non-empty intersection is a precondition of a Jaccard score above 0,
+  so `lm-analogical-reasoning` never activates (`nar/src/lm/rule-selectors/connectivity.ts:17`). This
+  is §4 row 7's shape — a condition that documents an intent and cannot fire — and it is a layer
+  concern, so it belongs to A2 rather than here.
+
+**One correction to §7 invariant 1.** There is no `tests/nar/nal1-rules` file. The suites that exist are
+`nal2-copula`, `nal7-temporal`, `nal8-procedural`, `nal9-self`, plus `todo17b-nal-arm` — so "NAL parity"
+has meant four files for several passes, and A12's gate has to say which four.
+
+**Notes for A1 (superseded by the above, kept because §0.8's findings are the record):**
 
 **Notes for A1:**
 
@@ -566,7 +618,7 @@ The cycle has *no* prohibition on model calls in it; it has the invariant of §1
 
 **What the seam does not do.** It does not let the reasoner read the inducer's intermediate state,
 and it does not let a proposal land mid-cycle. A proposal applies at a declared boundary or not at
-all (§5.13).
+all — the next `authorize` stage, structurally rather than by convention (§5.14, decided in §0.8.1).
 
 **The seam runs through the kernel gates, not around them.** This is a README-level invariant the
 split must not erode: `PerceptionGate` admits, `BudgetGate` accounts, `RewardGate` holds the
@@ -696,7 +748,8 @@ carries the risk row.
 
 ## 5. The work
 
-Twelve items. **A0 first and separately** — it is the harness that decides whether the rest worked.
+Thirteen items — the twelve below plus A12 (§5.12), added after A1 found that the term layer has no
+canonical form. **A0 first and separately** — it is the harness that decides whether the rest worked.
 **A1 second, alone** — finding 9 makes it a wiring change and a one-line test makes it the cheapest
 behaviour change available. **A2 immediately after**, because the seam and the dependency direction
 are one change and only the first half is testable alone.
@@ -1275,7 +1328,98 @@ exists**, and leave the agent-side binding alone.
   is bound.
 
 
-### 5.12 Item summary — one command, one gate, one risk
+### 5.12 A12 — Canonical form: term reducers and task reducers
+
+*Not in the original twelve. Added 2026-09-30, because A1's model matrix made a redundancy visible that
+is not a performance problem and not a memory-structure problem: the term layer has no canonical form.*
+
+`(a | (a | c))` and `(a | c)` are the same claim, and they intern to different `termKey`s
+(`nar/src/terms/impls/factory.ts:61`), so they occupy two concepts and two derivation records. Two
+reductions in the same shape follow from the same omission:
+
+```text
+(a | (a | c))        ≡  (a | c)              associativity
+(a & a)              ≡  a                    idempotence
+--x. %1%             |-  x. %0%              frequency extreme folds negation
+x. %0%               |-  --x. %1%
+```
+
+`createCompound` already sorts commutative args and already collapses empty compounds to `TRUE`/`FALSE`.
+What is missing is everything that makes the form *canonical* rather than *interned*: flattening nested
+same-kind compounds, dropping repeated args, pushing negations inward, and folding the frequency
+extremes. Each is a NAL axiom, so each is sound; none is implemented, and none is a TODO30 question.
+
+**Why it is in this plan and not TODO30.** TODO30 owns *what the store does with* a term — indexes,
+containers, dedup of terms **already persisted**. It does not own *what a term is*, and a plan that
+leaves canonical form to a performance pass will either never do it or do it as an optimisation
+laundering a semantic change. It is also the same class of item as A4: a behaviour change whose
+attribution must be clean, which is why it is its own item rather than folded into A6's dispatch work.
+
+**The abstraction, because more reducers are coming.** Not a `switch` in `createCompound`, and not a
+per-call-site normalisation pass — §10.1's rule, in the shape this repository keeps hitting: a
+documented intent with no mechanism behind it. One registry, two levels:
+
+```ts
+/** nar/src/terms/reduce.ts */
+export interface TermReducer {
+  readonly id: string;
+  applies(term: Term): boolean;
+  reduce(term: Term): Term;
+}
+
+/** nar/src/terms/reduce-task.ts — the same shape over a claim rather than a formula. */
+export interface TaskReducer {
+  readonly id: string;
+  applies(task: Task): boolean;
+  reduce(task: Task): Task;
+}
+
+export const TERM_REDUCERS: readonly TermReducer[];
+export const TASK_REDUCERS: readonly TaskReducer[];
+export const canonicalTerm = (term: Term): Term;    // fixpoint over TERM_REDUCERS
+export const canonicalTask = (task: Task): Task;    // canonicalTerm, then fixpoint over TASK_REDUCERS
+```
+
+Applied at **construction** — `createCompound` canonicalises before it computes `termKey`, and
+`createTask` canonicalises before the task is stored — which is what makes `termsEqual`, interning and
+memory dedup agree for free instead of agreeing by luck on whichever producer normalised.
+
+**The catalogue, with what is decided and what is not.**
+
+| reducer | level | decided | note |
+|---|---|---|---|
+| `flatten-nested` | term | **yes** — conjunction, disjunction, sequence only | never implication or equivalence: nesting there is meaningful |
+| `dedupe-args` | term | **yes** | `(a & a) → a`; one arg collapses to itself, zero to `TRUE`/`FALSE` as today |
+| `sort-args` | term | already exists | the one reducer that needs no new code |
+| `double-negation` | term | **yes** | `--x → x` |
+| `negation-normal-form` | term | **yes** | De Morgan in both directions, plus the implication/equivalence contrapositive: `(a ==> --b) |- --(a ==> b)` and `(--a ==> b) |- (a ==> --b)` |
+| `frequency-extremes` | task | **yes** | `--x. f=1 |- x. f=0` and its three siblings |
+| `constant-folding` | task | **open** | `TRUE. %1%` and `FALSE. %0%` are identities; whether they are rewritten or dropped is a policy question, and dropping a `c=0` task is a *policy*, not a normalisation — A8's territory, not this item's |
+| `absorption` | task | **open** | `(a & --a) → FALSE` is a truth-level identity, not a syntactic one, and needs the truth function to be named |
+
+**Acceptance**
+
+- `canonical(canonical(t)) === canonical(t)` and `canonical(t)` equals `t` for already-canonical terms,
+  over the term corpus the NAL suites build — a property test, not a spot check;
+- the NAL suites are unchanged in what they derive: parity is the gate, and any difference is a finding
+  about a reducer that is not sound rather than a baseline to regenerate;
+- two spellings of one claim reach memory as one concept, asserted on a term pair rather than on a
+  statistic;
+- `--x. %1%` and `x. %0%` are the same task, asserted in both directions;
+- `canonicalTerm` is on the hot path, so a benchmark-free budget stands in its place: every reducer
+  returns `applies(t) === false` on a canonical term, so a fixed point costs one pass and no allocation
+  (asserted by object identity on the common path);
+- a persisted state written before the change still loads: this is the one place where the term layer's
+  change meets A9's version story, and a term key that no longer exists is a migration, not a detail —
+  **so the schema version is bumped in the same commit and TODO30 owns the re-keying of stored terms**.
+
+**Risk: medium, and it is entirely the parity risk.** Every reducer here changes derived terms, which
+is the one thing §7 invariant 1 protects. That is why it is its own item, in its own commit, after A4's
+baselines are re-established, and gated on the four suites that actually exist.
+
+---
+
+### 5.13 Item summary — one command, one gate, one risk
 
 Every acceptance criterion above is demonstrated by a command and a gate. Gates are wired into
 `pnpm gates` **with the item that needs them** (§10).
@@ -1283,7 +1427,7 @@ Every acceptance criterion above is demonstrated by a command and a gate. Gates 
 | item | verified by | gate lands with it | risk |
 |---|---|---|---|
 | **A0** | `pnpm run cycle:no-provider && pnpm run induction:inventory && pnpm bench:cycle -- --selftest && pnpm test:hermetic` — **done 2026-09-30** | `cycle:no-provider`, `induction:inventory` (both landed in their A0 form; shared with A1) | **none** — pure instrumentation; no reasoning path touched |
-| **A1** | `pnpm run cycle:no-provider`, `pnpm test:determinism`, NAL suites | `cycle:no-provider`, `rule:has-fallback`, `config:model-matrix`, `gates:one-cycle-path`, `induction:inventory` | **medium** — the only item that changes reasoning behaviour: not the derivations, but the *timing* of when rules exist, which changes the sequence over a fixed episode |
+| **A1** | `pnpm run cycle:no-provider && pnpm run rule:has-fallback && pnpm run gates:one-cycle-path && pnpm run config:model-matrix`, `pnpm test:determinism`, NAL suites — **done 2026-09-30** | `cycle:no-provider`, `rule:has-fallback`, `config:model-matrix`, `gates:one-cycle-path`, `induction:inventory` | **medium** — the only item that changes reasoning behaviour: not the derivations, but the *timing* of when rules exist, which changes the sequence over a fixed episode |
 | **A2** | `pnpm run core:no-lm`, `pnpm run deps:gate`, `pnpm run docs:drift` | `core:no-lm`, `deps:gate` +1 row | **medium-high** — a large mechanical diff (39 files). The price of a boundary that cannot be crossed by accident, and it is mechanical: reviewable by the compiler |
 | **A3** | `pnpm test:unit` (new seam tests), `pnpm run core:no-provider` | — (gates land with A1/A9/A10) | **low** — the one item the plan expands rather than contracts |
 | **A4** | `pnpm test:unit` + a diff on the committed baseline file | `attention:write-surface` | **high, and confined to this item.** Every learned value moves: why it is alone, why it lands after A5, and why the baselines are regenerated here rather than left to drift through A6–A8 |
@@ -1293,9 +1437,10 @@ Every acceptance criterion above is demonstrated by a command and a gate. Gates 
 | **A8** | `pnpm test:unit` (resource-policy tests) | `resource:policy` | **medium** — retention policy *is* behaviour; policy and structure together is how a semantic change hides inside a refactor |
 | **A9** | `pnpm test:hermetic` — the tier this item exists to make possible | `replay:proposal` (`slow`) | **low** — extends an existing reducer with new event kinds |
 | **A10** | `pnpm run rules:loaded-data`, `pnpm test:unit` | `rules:loaded-data` | **medium-high** — the only item that changes what the system can do rather than how it is arranged. Last in sequence for that reason |
+| **A12** | `pnpm run terms:canonical`, NAL suites, `pnpm test:unit` | `terms:canonical` | **medium** — every reducer here changes derived terms, which is exactly what §7 invariant 1 protects. Its own commit, after A4's baselines |
 | **A11** | `pnpm run config:model-matrix`, `pnpm test:unit` | `config:model-matrix` (re-landed, with the manifest) | **medium** — the item that can spread. A capability available everywhere is as safe as each call site, so its acceptance is mostly *declarations*, and an ungated declaration is a comment |
 
-### 5.13 The questions A1–A3 will be decided by
+### 5.14 The questions A1–A3 will be decided by
 
 The split is easy to half-do. These are the decisions a half-done split defers, listed so they get
 answered deliberately rather than by whoever next opens the queue.
@@ -1336,6 +1481,7 @@ same seam. Neither gate is weakened and neither is skipped. A9 is where that lan
 A0 ─▶ A1 ─▶ A2 ─▶ A3 ─▶ A5 ─▶ A4 ─┬─▶ A6 ─▶ A10 ─▶ A11
                               └─▶ A7 ─▶ A8
                     A9 (after A3, parallel thereafter)
+                    A12 (after A4's baselines — behavioural, so it needs a clean attribution)
 ```
 
 **The ordering rule: structural before behavioural.** A5, A2 and A6 are mechanical — they move code
@@ -1430,6 +1576,9 @@ profile of the wrong system.
 16. **Only committed state is authoritative** (§1.2). Advisory computation and uncommitted producer
     state never become implicit cycle inputs, and a proposal has no authority until a committed,
     gated, recorded transition.
+17. **A term has exactly one canonical form** (A12). `(a | (a | c))` and `(a | c)` are one claim, and
+    `--x. %1%` is `x. %0%`; canonicalisation happens at construction, so interning, equality and
+    memory dedup agree by construction rather than by which producer remembered to normalise.
 
 ---
 
@@ -1437,9 +1586,13 @@ profile of the wrong system.
 
 Named, so the plan is falsifiable by diff:
 
-- `processLMRulesImpl` from the cycle path, and its `await Promise.all` over model calls (A1).
-- `RuleProcessor.stepScalars` and the shadowed `resetMetaBudget` on both the port and `NARExecution`
-  (A1).
+- ~~`processLMRulesImpl` from the cycle path, and its `await Promise.all` over model calls~~ —
+  **done (A1)**: `DefaultDerivation` calls `stageLMRules`, and `processLMRulesImpl` survives only as
+  `applyLMRules`, reached from `LMProposalProducer.pump`.
+- ~~`RuleProcessor.stepScalars` and the shadowed `resetMetaBudget`~~ — **done (A1)**. The memo had no
+  invalidator, so it was deleted rather than fixed; `NARExecution`'s own `resetMetaBudget` was dead
+  with it, along with the `ruleProcessor` option nothing passed and the `meta_derivation_budget_used`
+  summary field it fed — a field that always reported `0/5`.
 - `enableLMRules` and `lm` from the core config schema, plus the README and `docs/api` references
   (A2).
 - `MemoryScorer`'s `novelty` and `relevance` factors, or the whole class — A4's recorded decision.
@@ -1456,6 +1609,9 @@ Named, so the plan is falsifiable by diff:
 - The `totalTasks === 0` candidate filter in `evictUnderPressure` (A8).
 - The per-cycle `getGoals()` / `getStatistics()` calls from the summary and meta-goal steps, or their
   budgets (A7).
+- **Canonical-form normalisation that does not exist** (A12): no flattening, no dedupe, no negation
+  normal form, no frequency-extreme folding. Named because the inverse is the risk — a *silent* `|-`
+  in the term factory would be worse than none.
 - **Module-side-effect rule registration** (A10). This is the only deletion here that removes a
   *convenience*, and it is worth doing anyway, because that convenience is why the rule set cannot be
   versioned.
@@ -1509,6 +1665,7 @@ gate listed here and not wired is the exact failure mode this plan is about.
 | `resource:policy` | every production accumulator is in the ledger, and a memory at capacity with nothing evictable says so | A8 | `gate` |
 | `rules:loaded-data` | no module-side-effect registration survives; the table is enumerable, versioned, revertable; two revisions are diffable and a prior one is restorable; an empty table is a runnable state | A10 | `gate` |
 | `replay:proposal` | `replayCognitiveState` reconstructs the same state from `proposal.*` events, and a version mismatch fails loudly | A9 | `slow` |
+| `terms:canonical` | `canonical(canonical(t)) === canonical(t)`, already-canonical terms are returned unchanged, `--x. %1%` and `x. %0%` are one task, and the NAL suites derive what they derived before | A12 | `gate` |
 
 Deliberately **not** here, and in TODO30: `cost:cycle`, the population-scaling matrix, and the
 `bench:cycle` entry in the gate list. Note what that means for §5: **no item in this plan is verified
@@ -1606,7 +1763,17 @@ Cheap; lands with A2.
 is how you get an interface that is really a call site. A rule-miner, a human author and a recorded
 fixture are cheap to name now and expensive to retrofit.
 
-**Is NAL3–6 tested anywhere?** There is no `nal3`–`nal6` file in the tree. Worth ten minutes before
+**Does a configured `J` admit anything yet? — NO, and A1 measured it (2026-09-30).** With System One
+enabled and no calibrated heads, `SystemOneIngressJudge` abstains and `KernelPerceptionGate` refuses the
+observation. That is D1 working, not a bug, but it means `config:model-matrix` currently asserts the
+four-way invariance on the `P` axis alone, and `S` and `S+J` do **not** commit the same state today.
+**What closes it:** a judge that admits — a calibrated head set (A11's manifest binds one) or a declared
+abstain-below-threshold path. Until then the honest statement is "the J profile is wired, bounded and
+fails closed; it has not yet been shown to admit", and §2.6's claim is asserted only where it is true.
+
+**Is NAL3–6 tested anywhere?** There is no `nal3`–`nal6` file in the tree, and — a correction A1 made —
+there is no `nal1-rules` file either. The parity suites are `nal2-copula`, `nal7-temporal`,
+`nal8-procedural`, `nal9-self`. Worth ten minutes before
 A6, not after — and if they are not covered, the parity claim is narrower than this plan's language
 has implied.
 
@@ -1653,6 +1820,7 @@ retrieved; it may never change **what counts as** committed state (§1.2).
 | **A1 is not the cheap change believed.** The committed channel is wired in and something *else* reaches the layer from the cycle | **medium** — the cycle path is `DefaultDerivation`, `RuleProcessor`, the tick bindings and `PerceptionGate`, and only part of it was traced | a cycle that does **not** complete with a hanging `J` and `P`, or derivations that change when a provider is added | widen A1 rather than declaring victory. The acceptance is a test and the test is the arbiter — not a call count, which §4 row 11 shows can be zero while a real dependency remains |
 | **A2 is a swamp.** 39 files, and the layer reaches into core internals | medium | the diff stops being mechanical and starts having semantic content | A2 is after A1, so the `Proposal` interface is known. If it is still hard, take Q8 (seventh package) early — a compiler error is a better boundary than a review convention |
 | **A4 or A5 land as wrappers.** A5 adds a layer without removing the god-object, and A4's "one owner" invariant survives only as a comment | medium | `Memory` keeps its responsibilities behind a forwarding interface; or a new external `priority` writer appears and no test fails | A5's acceptance is that the cycle depends on ports, and if `Memory` is still on the cycle path it is not done. A4's mitigation is the type-level removal of the setter, with `attention:write-surface` as the backstop landing in the same change. A4 is gated on NAL parity, and its baselines are re-established in the same change so later drift is attributable |
+| **A12's reducers are not sound and parity moves** | medium — six rewrites over every compound term the reasoner builds, and NAL axioms applied to truth-bearing terms are easy to get subtly wrong | any of the four parity suites changes what it derives | the gate is parity, and a parity change is a *finding about the reducer*, not a baseline to regenerate. Each reducer lands separately with the others disabled, so one soundness bug is one reducer |
 | **A10 never lands and the thesis stays prose** | **medium** — the largest item, last in sequence, and the easiest to defer because the other nine all look like progress | the plan closes with A1–A9 done and "the rule set is a learnable artifact" still describing a message format | if the sequence is cut, cut here *explicitly*: record in §7 and §8 that the rule set is code, and stop claiming otherwise. A floor delivered honestly beats a thesis claimed and not built |
 | **The thesis is negative.** S+J+P is not better than S alone | unknown — but no longer unknowable | the `nal` vs `manifold`/`lm` arcade run comes out flat or negative | Q3: write the hypothesis, run it with a seed count that survives the noise, publish the number either way. **A command, not a project** — but it needs A1 for a clean control and A10 for a meaningful with-`P` arm |
 | **"Judgment" re-imports the gate reading** | medium — the vocabulary invites it | `J` starts authorizing, filtering or scoring `P` | §2.1's anti-drift note, the Belief/Goal-typed `CycleDecisionRequest`, and a test in A11's acceptance |

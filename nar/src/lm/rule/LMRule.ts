@@ -1,4 +1,4 @@
-import { errMsg, stopwatch } from '@senars/util';
+import { errMsg, stopwatch, withTimeout } from '@senars/util';
 import type { ZodSchema } from 'zod';
 import type { Term } from '../../terms';
 import { Truth } from '../../terms';
@@ -13,6 +13,21 @@ import { createLMStats, recordLMCall } from '../stats.js';
 import { LMResponseParser } from './response-parser.js';
 import type { LMContext, ValidationResult } from './types.js';
 import type { LMRuleConfigV2 } from './types-v2.js';
+
+/**
+ * A provider call that missed its deadline. Named so the caller can tell a
+ * timeout from a refusal: both fall back to the symbolic body, and only one of
+ * them is worth retrying later.
+ */
+export class LmCallTimeout extends Error {
+  constructor(readonly ruleId: string, readonly timeoutMs: number) {
+    super(`LM rule ${ruleId} exceeded its ${timeoutMs}ms call deadline`);
+    this.name = 'LmCallTimeout';
+  }
+}
+
+/** The default bound on one rule's provider call — the config's `lm.callTimeoutMs`. */
+export const DEFAULT_CALL_TIMEOUT_MS = 8000;
 
 export type { ParsedLMResponse, StructuredLMOutput } from './response-parser.js';
 export { LMResponseParser } from './response-parser.js';
@@ -32,8 +47,11 @@ export class LMRule {
   private enabled: boolean;
   private readonly lm: LMService | null;
   private readonly baseConfig: LMRuleConfig;
+  /** Whether this rule declares a symbolic body — a model call that fails still derives. */
+  readonly hasSymbolicFallback: boolean;
   private readonly v2Config: LMRuleConfigV2;
   private readonly circuitBreaker: CircuitBreaker;
+  private readonly callTimeoutMs: number;
   private eventBus: NarEventBus | null;
   private systemEventBus: NarEventBus | null = null;
   private stats: LMExecutionStats = createLMStats();
@@ -78,6 +96,7 @@ export class LMRule {
     this.lm = lm;
     this.v2Config = v2;
     this.baseConfig = config as LMRuleConfig;
+    this.hasSymbolicFallback = typeof this.baseConfig.fallback === 'function';
     this.outputSchema = v2.outputSchema;
     this.inputSchema = v2.inputSchema;
     this.validateFn = v2.validate as ((output: unknown) => ValidationResult) | undefined;
@@ -95,6 +114,7 @@ export class LMRule {
       successThreshold: 1,
       quiet: true,
     });
+    this.callTimeoutMs = (config as LMRuleConfig).callTimeoutMs ?? DEFAULT_CALL_TIMEOUT_MS;
     this.eventBus = null;
     this.enableTools = v2.enableTools ?? false;
   }
@@ -355,6 +375,12 @@ export class LMRule {
     if (this.systemEventBus) this.systemEventBus.emit(event as string, data);
   }
 
+  /**
+   * One provider call, bounded. The circuit breaker bounds *failure count* and
+   * its `resetTimeoutMs` governs a half-open probe rather than an in-flight
+   * call, so a provider that never resolves hung every caller until this
+   * deadline existed (TODO29.a §0.8 finding 3).
+   */
   private async executeLM(prompt: string, signal?: AbortSignal): Promise<string | null> {
     if (!this.lm) throw new Error(`LM unavailable for rule ${this.id}`);
     const options = {
@@ -364,8 +390,12 @@ export class LMRule {
       maxOutputTokens: this.baseConfig.maxOutputTokens ?? this.baseConfig.lmOptions?.maxTokens,
     };
     // Universal failure escalation: attempt → temp+0.2 retry → null (symbolic fallback).
-    return await this.circuitBreaker.execute(
-      async () => await this.lm!.tryGenerateText(prompt, options)
+    return await this.circuitBreaker.execute(async () =>
+      withTimeout(
+        this.lm!.tryGenerateText(prompt, options),
+        this.callTimeoutMs,
+        () => new LmCallTimeout(this.id, this.callTimeoutMs)
+      )
     );
   }
 
@@ -375,7 +405,11 @@ export class LMRule {
     }
     return this.circuitBreaker.execute(async () =>
       JSON.stringify(
-        await this.lm!.generateObject(prompt, this.outputSchema as ZodSchema<unknown>, { signal })
+        await withTimeout(
+          this.lm!.generateObject(prompt, this.outputSchema as ZodSchema<unknown>, { signal }),
+          this.callTimeoutMs,
+          () => new LmCallTimeout(this.id, this.callTimeoutMs)
+        )
       )
     );
   }

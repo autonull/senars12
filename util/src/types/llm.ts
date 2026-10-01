@@ -100,6 +100,12 @@ export type LMRuleConfig = {
   };
   /** GBNF grammar for constrained decoding (llamacpp provider). */
   grammar?: string;
+  /**
+   * The bound on one provider call this rule makes. A rule without one hangs its
+   * caller forever on a provider that never answers, which is how a model ended
+   * up inside a cycle meant to close in microseconds (TODO29.a §5.1 step 7).
+   */
+  callTimeoutMs?: number;
   maxOutputTokens?: number;
   /** Pure-NAL symbolic fallback: null skips the rule, [] degrades silently. */
   fallback?: (

@@ -6,6 +6,8 @@ import { z } from 'zod';
 
 export const systemOneDefaults = {
   enabled: false,
+  /** The bound on one ingress judgment (TODO29.a A1): a judge that hangs is refused, not awaited. */
+  judgeTimeoutMs: 2000,
   manifold: {
     provider: 'off' as const,
     embeddingCacheSizeMB: 64,
@@ -50,6 +52,7 @@ export const systemOneDefaults = {
 
 export const systemOneSchema = z.object({
   enabled: z.boolean().default(systemOneDefaults.enabled),
+  judgeTimeoutMs: z.number().int().positive().default(systemOneDefaults.judgeTimeoutMs),
   manifold: z
     .object({
       provider: z

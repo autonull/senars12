@@ -70,6 +70,7 @@ Respond with JSON only:
         priority: config.priority,
         promptTemplate: config.promptTemplate,
         singlePremise: true,
+        fallback: this.baseConfig.fallback ?? (() => null),
       });
     } catch {
       return null;
@@ -91,6 +92,7 @@ Respond with JSON only:
       priority,
       promptTemplate,
       singlePremise: true,
+      fallback: this.baseConfig.fallback ?? (() => null),
     });
   }
 

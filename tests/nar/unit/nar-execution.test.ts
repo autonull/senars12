@@ -22,9 +22,7 @@ import { createTestController, inferenceParams, transitivity } from '../fixtures
 
 const createMockProcessor = () => ({
   processSync: () => [],
-  processLMRules: async function* () {
-    /* noop */
-  },
+  stageLMRules: () => false,
 });
 
 const createMockRLFP = (): RLFPLearner =>

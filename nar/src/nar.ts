@@ -42,6 +42,7 @@ import type { Concept } from './memory';
 import { Memory } from './memory';
 import { EpisodeConsolidator } from './memory/episode-consolidator.js';
 import { ProofMettaProposer, type ProofMettaProposerOptions } from './meta/index.js';
+import { LMProposalProducer } from './proposal/lm-rule-producer.js';
 import { MetricsCollector } from './metrics';
 import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
@@ -53,6 +54,7 @@ import { RuleProcessor } from './rules';
 import { ProofStreamRing } from './rules/impls/recorder.js';
 import { ReasoningAboutReasoning } from './self';
 import { wireSystemOne } from './system-one-wiring.js';
+import { StreamReasoner } from './stream/reasoner.js';
 import { TaskManager } from './task';
 import type { Term } from './terms';
 import {
@@ -111,6 +113,8 @@ export class NAR extends BaseComponent {
   private readonly lm: NARLM;
   private readonly config: NARConfig;
   private readonly processor: RuleProcessor;
+  /** The proposal seam this NAR's producers stage into (TODO29.a A1). */
+  readonly proposals: LMProposalProducer;
   private readonly _metricsCollector: MetricsCollector;
   private readonly _lmService?: LMService;
   private readonly _registry?: SeNARSRegistry;
@@ -252,6 +256,14 @@ export class NAR extends BaseComponent {
     });
     // D23 (TODO17b): ambiguity at ingress stimulates curiosity (A4 closure).
     this.gates.getPerceptionGate().setDriveManager(this.driveManager);
+    // TODO29.a A1: the cycle's only route to a provider. The seam holds this
+    // NAR's gates — not the process global — and the processor stages work into
+    // it rather than awaiting a rule, so `propose` cannot open inside `reason`.
+    this.proposals = new LMProposalProducer(
+      new StreamReasoner({ gates: this.gates, backendTimeoutMs: cognitiveParams.lm.callTimeoutMs }),
+      this.processor
+    );
+    this.processor.setLMWorkSink(this.proposals);
     this.execution = new NARExecution({
       memory: this.memory,
       taskManager: this.taskManager,
@@ -264,6 +276,7 @@ export class NAR extends BaseComponent {
       self: this.self,
       toolGoalExecutor: async (goalTerm) => this.tools.executeToolGoal(goalTerm),
       gates: this.gates,
+      proposals: this.proposals,
     });
     this.lm = new NARLM(
       this.memory,
@@ -835,7 +848,12 @@ export class NAR extends BaseComponent {
   }
 
   private initializeLMRules(lmService: LMService): void {
-    initializeLMRules(this, LMRules.createAll(lmService as never));
+    initializeLMRules(
+      this,
+      LMRules.createAll(lmService as never, {
+        callTimeoutMs: this.cognitiveController.getParams().lm.callTimeoutMs,
+      })
+    );
     this._lmInitialized = true;
   }
 

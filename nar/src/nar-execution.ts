@@ -5,6 +5,8 @@ import type { DriveManager } from './drives';
 import type { NARConfig } from './facade/config.js';
 import type { GateRegistry } from './kernel/GateRegistry.js';
 import type { Memory } from './memory';
+import { CycleTrace, type CycleStage } from './proposal/cycle-trace.js';
+import type { LMProposalProducer } from './proposal/lm-rule-producer.js';
 import type { PolicyOptimizer, RLFPLearner } from './rlfp';
 import { rankDerivations } from './rules/impls/ranking.js';
 import type { ReasoningAboutReasoning } from './self';
@@ -25,7 +27,6 @@ export interface CognitiveStateSummary {
   pending_tool_executions: string[];
   aikr_pressure: 'low' | 'medium' | 'high';
   rlfp_reward_avg: number;
-  meta_derivation_budget_used: string;
 }
 
 /** Drive → meta-goal mapping for homeostatic self-operation injection. */
@@ -72,19 +73,16 @@ export interface NARExecutionOptions {
   systemEventBus?: NarEventBus;
   self?: ReasoningAboutReasoning;
   toolGoalExecutor?: (goalTerm: Task['term']) => Promise<unknown>;
-  ruleProcessor?: {
-    resetMetaBudget(): void;
-    getMetaBudgetStatus(): { derivationsThisStep: number; currentDepth: number };
-    recordMetaDerivation(depth: number): void;
-  };
   gates: GateRegistry;
+  /** Absent in the no-producer configuration: the cycle then stages nothing. */
+  proposals?: LMProposalProducer;
 }
 
 export class NARExecution {
   private _cycleCount = 0;
   private readonly phaseTimer = new PhaseTimer();
-  private _metaDerivationsThisStep = 0;
-  private _metaDerivationDepth = 0;
+  private readonly cycleTrace = new CycleTrace();
+  private readonly cycleSignals = { testPassed: false, testFailed: false, contradictionDetected: false };
   private readonly _rlfpRewardHistory = new BoundedRing<number>(100);
 
   constructor(options: NARExecutionOptions) {
@@ -98,8 +96,8 @@ export class NARExecution {
     this.systemEventBus = options.systemEventBus;
     this.self = options.self;
     this.toolGoalExecutor = options.toolGoalExecutor;
-    this.ruleProcessor = options.ruleProcessor;
     this.gates = options.gates;
+    this.proposals = options.proposals;
   }
 
   private readonly memory: Memory;
@@ -112,12 +110,8 @@ export class NARExecution {
   private readonly systemEventBus?: NarEventBus;
   private readonly self?: ReasoningAboutReasoning;
   private readonly toolGoalExecutor?: (goalTerm: Task['term']) => Promise<unknown>;
-  private readonly ruleProcessor?: {
-    resetMetaBudget(): void;
-    getMetaBudgetStatus(): { derivationsThisStep: number; currentDepth: number };
-    recordMetaDerivation(depth: number): void;
-  };
   private readonly gates: GateRegistry;
+  private readonly proposals?: LMProposalProducer;
 
   /** Stimulate drives based on events — homeostatic regulation. Public so tool layer can report outcomes. */
   stimulateDrives(event: string, _data?: Record<string, unknown>): void {
@@ -169,18 +163,6 @@ export class NARExecution {
     this._rlfpRewardHistory.push(reward);
   }
 
-  /** Track meta-derivation budget */
-  trackMetaDerivation(depth: number): void {
-    this._metaDerivationsThisStep++;
-    this._metaDerivationDepth = Math.max(this._metaDerivationDepth, depth);
-  }
-
-  /** Reset per-step meta budget */
-  resetMetaBudget(): void {
-    this._metaDerivationsThisStep = 0;
-    this._metaDerivationDepth = 0;
-  }
-
   async run(steps = 1, signal?: AbortSignal): Promise<number> {
     let derived = 0;
     this.phaseTimer.clear();
@@ -193,27 +175,27 @@ export class NARExecution {
 
       this._cycleCount++;
       this.phaseTimer.begin('cycle', `cycle-${this._cycleCount}`);
+      this.cycleSignals.testPassed = false;
+      this.cycleSignals.testFailed = false;
+      this.cycleSignals.contradictionDetected = false;
 
-      // Dispatch pending `^tool(...)` goals to the tool layer (goal→tool wiring).
-      // Must run before processPending so tool goals are executed rather than
-      // being added to memory as plain goals.
-      await this.dispatchToolGoals();
+      await this.stage('perceive', 'task-manager', 'processPending', async () => {
+        // Dispatch pending `^tool(...)` goals to the tool layer (goal→tool wiring).
+        // Must run before processPending so tool goals are executed rather than
+        // being added to memory as plain goals.
+        await this.dispatchToolGoals();
+        const processed = await this.taskManager.processPending();
+        derived += processed.length;
+      });
 
-      this.phaseTimer.begin('task-manager', 'processPending');
-      const processed = await this.taskManager.processPending();
-      derived += processed.length;
-      this.phaseTimer.end();
-
-      // Update drive states before reasoning
-      this.phaseTimer.begin('drives', 'update');
-      this.driveManager?.updateCycle();
-      this.phaseTimer.end();
-
-      // Inject meta-goals from drive homeostasis (e.g. competence < threshold)
-      this.injectMetaGoals();
-
-      // Adaptation hook — allows CognitiveController to tune strategies at runtime
-      this.cognitiveController.adapt();
+      await this.stage('attend', 'drives', 'update', async () => {
+        // Update drive states before reasoning
+        this.driveManager?.updateCycle();
+        // Inject meta-goals from drive homeostasis (e.g. competence < threshold)
+        this.injectMetaGoals();
+        // Adaptation hook — allows CognitiveController to tune strategies at runtime
+        this.cognitiveController.adapt();
+      });
 
       // RLFP-driven reasoning decisions
       let effectiveSteps = 1;
@@ -228,12 +210,10 @@ export class NARExecution {
         effectiveSteps = Math.max(1, Math.round(1 + explorationRate * 4)); // 1-5 steps based on exploration
       }
 
-      this.phaseTimer.begin('reasoner', `step-${this._cycleCount}`);
-      const results = await this.cognitiveController
-        .getInferenceController()
-        .step(5000, effectiveSteps * 100, signal);
+      const results = await this.stage('reason', 'reasoner', `step-${this._cycleCount}`, () =>
+        this.cognitiveController.getInferenceController().step(5000, effectiveSteps * 100, signal)
+      );
       derived += results.length;
-      this.phaseTimer.end();
 
       // Emit reasoning cycle event
       if (this.systemEventBus) {
@@ -246,126 +226,72 @@ export class NARExecution {
         });
       }
 
-      this.phaseTimer.begin('memory', 'addTasks');
-      let testPassed = false;
-      let testFailed = false;
-      let contradictionDetected = false;
-      const gate = this.gates.getPerceptionGate();
-      // The controller owns the parameter graph, so a `reconfigure` between cycles
-      // changes admission ranking without a NAR rebuild.
-      const ranking = this.cognitiveController.getParams().inference.ranking;
-      for (const task of rankDerivations(results, ranking)) {
-        const result = gate.admitTask(
-          task.term,
-          task.type,
-          task.truth,
-          'derivation',
-          task.stamp.id
-        );
-
-        if (!result.admitted) {
-          logger.warn('Perception gate rejected derived task', {
-            reason: result.rejectionReason,
-            term: task.term.toString(),
-          });
-          continue;
-        }
-
-        this.memory.addTask(task.term, task.type, task.truth, task.budget, task.stamp);
-        // Emit derivation event for beliefs
-        if (task.type === 'belief' && this.systemEventBus) {
-          const confidence = task.truth?.c ?? 0;
-          this.systemEventBus.emit('nar:derivation', {
-            term: task.term.toString(),
-            confidence,
-            timestamp: Date.now(),
-          });
-          // Detect test results and contradictions via typed classification
-          const signals = classifyTask(task.term);
-          for (const signal of signals) {
-            switch (signal) {
-              case 'test-passed':
-                testPassed = true;
-                break;
-              case 'test-failed':
-                testFailed = true;
-                break;
-              case 'contradiction':
-                contradictionDetected = true;
-                // Phase C (REFACTOR.todo3 §10a M5): typed event alongside the drive
-                // stimulation — SelfMetaGame subscribes for resolution intake.
-                this.systemEventBus.emit('contradiction', {
-                  source: 'nal',
-                  term: task.term,
-                  mettaVote: false,
-                  nalVote: true,
-                  at: Date.now(),
-                });
-                break;
-              // Other signals (schema-promoted, capability-added, goal-achieved, goal-failed)
-              // are classified but not yet acted upon; they can drive future homeostatic responses.
-            }
-          }
-        }
-      }
-      this.phaseTimer.end();
+      // The one stage through which anything reaches state. Model-backed
+      // proposals settled by a previous pump land here too, so a producer's work
+      // is admitted at a declared boundary and by the same gate as a derivation.
+      await this.stage('authorize', 'memory', 'addTasks', async () => {
+        const ranking = this.cognitiveController.getParams().inference.ranking;
+        const settled = this.proposals?.takeDerived() ?? [];
+        for (const task of [...rankDerivations(results, ranking), ...settled]) this.admit(task);
+      });
 
       // Homeostatic drive stimulation based on events
-      if (testPassed) this.stimulateDrives('test_passed');
-      if (testFailed) this.stimulateDrives('test_failed');
-      if (contradictionDetected) this.stimulateDrives('contradiction_detected');
+      if (this.cycleSignals.testPassed) this.stimulateDrives('test_passed');
+      if (this.cycleSignals.testFailed) this.stimulateDrives('test_failed');
+      if (this.cycleSignals.contradictionDetected) this.stimulateDrives('contradiction_detected');
 
-      if (
-        this.rlfp &&
-        this._cycleCount %
-          (this.rlfp.optimizeInterval ?? this.config.rlfp?.optimizeInterval ?? 100) ===
-          0
-      ) {
-        this.phaseTimer.begin('rlfp', 'optimize');
-        this.rlfp.optimize();
-        this.rlfp.updateModel([]);
-        this.phaseTimer.end();
-      }
+      await this.stage('propose', 'proposals', 'pump', async () => {
+        this.pumpProposals(signal);
+      });
 
-      // Self-monitoring: assess quality and trigger self-improvement if low
-      if (this.self && this._cycleCount % 10 === 0) {
-        this.phaseTimer.begin('self', 'assessQuality');
-        try {
-          const quality = await this.self.assessQuality();
-          logger.debug('Self-assessment', {
-            quality: quality.overall,
-            cycle: this._cycleCount,
-          });
-          if (quality.overall < 0.4) {
-            this.phaseTimer.begin('self', 'performSelfCorrection');
-            await this.self.performSelfCorrection();
-            this.phaseTimer.end();
-          }
-        } catch (e) {
-          logger.warn('Self-assessment failed', { error: errMsg(e) });
+      await this.stage('learn', 'learn', 'update', async () => {
+        if (
+          this.rlfp &&
+          this._cycleCount %
+            (this.rlfp.optimizeInterval ?? this.config.rlfp?.optimizeInterval ?? 100) ===
+            0
+        ) {
+          this.phaseTimer.begin('rlfp', 'optimize');
+          this.rlfp.optimize();
+          this.rlfp.updateModel([]);
+          this.phaseTimer.end();
         }
-        this.phaseTimer.end();
-      }
 
-      // Emit cognitive state summary every 10 cycles (observability)
-      if (this._cycleCount % 10 === 0) {
-        this.emitCognitiveStateSummary();
-      }
+        // Self-monitoring: assess quality and trigger self-improvement if low
+        if (this.self && this._cycleCount % 10 === 0) {
+          this.phaseTimer.begin('self', 'assessQuality');
+          try {
+            const quality = await this.self.assessQuality();
+            logger.debug('Self-assessment', {
+              quality: quality.overall,
+              cycle: this._cycleCount,
+            });
+            if (quality.overall < 0.4) {
+              this.phaseTimer.begin('self', 'performSelfCorrection');
+              await this.self.performSelfCorrection();
+              this.phaseTimer.end();
+            }
+          } catch (e) {
+            logger.warn('Self-assessment failed', { error: errMsg(e) });
+          }
+          this.phaseTimer.end();
+        }
 
-      // Structured meta-reasoning log: budget usage, drive stimuli, meta-goal fires
+        // Emit cognitive state summary every 10 cycles (observability)
+        if (this._cycleCount % 10 === 0) {
+          this.emitCognitiveStateSummary();
+        }
+      });
+
+      // Structured meta-reasoning log: drive stimuli, meta-goal fires
       logger.debug('meta-reasoning', {
         cycle: this._cycleCount,
-        metaDerivationsThisStep: this._metaDerivationsThisStep,
-        metaDerivationDepth: this._metaDerivationDepth,
         driveStates: this.driveManager
           ? Object.fromEntries(
               this.driveManager.getAllStates().map((ds) => [ds.spec.id, ds.currentIntensity])
             )
           : undefined,
       });
-
-      // Reset meta-derivation budget for next cycle
-      this.resetMetaBudget();
 
       this.phaseTimer.end();
     }
@@ -376,6 +302,103 @@ export class NARExecution {
 
     logger.debug('run complete', { steps, cycles: this._cycleCount, derived });
     return derived;
+  }
+
+  /**
+   * Run `work` inside a named stage: the phase timer gets its span and the trace
+   * gets its region, from one call — a stage the trace cannot see is a stage
+   * nothing can assert about.
+   */
+  private async stage<T>(
+    stage: CycleStage,
+    phase: string,
+    detail: string,
+    work: () => Promise<T> | T
+  ): Promise<T> {
+    const cycle = this._cycleCount;
+    this.phaseTimer.begin(phase, detail);
+    this.cycleTrace.begin(cycle, stage);
+    try {
+      return await work();
+    } finally {
+      this.cycleTrace.end(cycle, stage);
+      this.phaseTimer.end();
+    }
+  }
+
+  /** The one path from a cycle's work into memory, and it goes through the gate. */
+  private admit(task: Task): void {
+    const result = this.gates.getPerceptionGate().admitTask(
+      task.term,
+      task.type,
+      task.truth,
+      'derivation',
+      task.stamp.id
+    );
+
+    if (!result.admitted) {
+      logger.warn('Perception gate rejected derived task', {
+        reason: result.rejectionReason,
+        term: task.term.toString(),
+      });
+      return;
+    }
+
+    this.memory.addTask(task.term, task.type, task.truth, task.budget, task.stamp);
+    if (task.type !== 'belief' || !this.systemEventBus) return;
+
+    this.systemEventBus.emit('nar:derivation', {
+      term: task.term.toString(),
+      confidence: task.truth?.c ?? 0,
+      timestamp: Date.now(),
+    });
+    for (const signal of classifyTask(task.term)) {
+      switch (signal) {
+        case 'test-passed':
+          this.cycleSignals.testPassed = true;
+          break;
+        case 'test-failed':
+          this.cycleSignals.testFailed = true;
+          break;
+        case 'contradiction':
+          this.cycleSignals.contradictionDetected = true;
+          // Phase C (REFACTOR.todo3 §10a M5): typed event alongside the drive
+          // stimulation — SelfMetaGame subscribes for resolution intake.
+          this.systemEventBus.emit('contradiction', {
+            source: 'nal',
+            term: task.term,
+            mettaVote: false,
+            nalVote: true,
+            at: Date.now(),
+          });
+          break;
+        // Other signals (schema-promoted, capability-added, goal-achieved, goal-failed)
+        // are classified but not yet acted upon; they can drive future homeostatic responses.
+      }
+    }
+  }
+
+  /**
+   * Kick the off-cycle proposal pass. Deliberately not awaited: a cycle's
+   * progress may not depend on a provider, and every await inside the pump is
+   * bounded — the error is logged and the cycle continues either way.
+   */
+  private pumpProposals(signal?: AbortSignal): void {
+    this.proposals
+      ?.pump(signal)
+      .catch((error: unknown) =>
+        logger.warn('Proposal pump failed', { error: errMsg(error) })
+      );
+  }
+
+  /** Resolves when no producer work is in flight — for the callers allowed to wait. */
+  settleProposals(): Promise<void> {
+    return this.proposals?.whenSettled() ?? Promise.resolve();
+  }
+
+  /** The live cycle's stage record; the trace A1's acceptance reads. */
+  getCycleTrace(): CycleTrace {
+    return this.cycleTrace;
   }
 
   getPhaseTimer(): PhaseTimer {
@@ -437,7 +460,6 @@ export class NARExecution {
       pending_tool_executions: [], // Would be populated by tool execution tracking
       aikr_pressure: aikrPressure,
       rlfp_reward_avg: roundTo(rlfpRewardAvg),
-      meta_derivation_budget_used: `${this._metaDerivationsThisStep}/5`,
     };
 
     this.systemEventBus.emit('cognitive:state:summary', summary);

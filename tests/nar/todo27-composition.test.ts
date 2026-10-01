@@ -71,9 +71,7 @@ describe('Bench 103 — uniform composition', () => {
         pairs.push(`${p1.term.toString()}|${p2.term.toString()}`);
         return [];
       },
-      processLMRules: async function* () {
-        /* no LM here */
-      },
+      stageLMRules: () => false,
     };
     for await (const _ of composed.derive(
       createBeliefTask(atom('p'), Truth.create(0.9, 0.9), 0.9),

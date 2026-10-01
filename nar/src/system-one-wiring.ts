@@ -12,6 +12,7 @@
  * whatever is current when it runs rather than what existed at build time.
  */
 
+import { systemOneDefaults } from '@senars/util/config';
 import { createSystemOneBudget } from './lm/system-one/types.js';
 import { SystemOneIngressJudge } from './lm/system-one/ingress-judge.js';
 import type { JudgmentProposition, JudgmentQuery } from './lm/system-one/types.js';
@@ -48,6 +49,7 @@ export function wireSystemOne(deps: SystemOneWiringDeps): SystemOneWiring {
     perceptionConfig: {
       systemOne: {
         enabled: true,
+        judgeTimeoutMs: config.systemOne.judgeTimeoutMs ?? systemOneDefaults.judgeTimeoutMs,
         judge: new SystemOneIngressJudge({
           manifold: manifold as NonNullable<typeof manifold>,
           embeddingCache: embeddingCache as NonNullable<typeof embeddingCache>,
@@ -60,6 +62,6 @@ export function wireSystemOne(deps: SystemOneWiringDeps): SystemOneWiring {
   };
 }
 
-function buildPerceptionConfig(judge: SystemOneIngressJudge) {
-  return { systemOne: { enabled: true as const, judge } };
+function buildPerceptionConfig(judge: SystemOneIngressJudge, judgeTimeoutMs: number) {
+  return { systemOne: { enabled: true as const, judge, judgeTimeoutMs } };
 }

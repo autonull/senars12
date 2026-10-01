@@ -26,6 +26,7 @@
  * observes nothing produces a table of confident zeroes (§4 rows 7 and 9).
  */
 
+import { createGateRegistry } from '../nar/src/kernel/GateRegistry.js';
 import { KernelPerceptionGate } from '../nar/src/kernel/KernelPerceptionGate.js';
 import { PROVIDER_SEAMS } from '../nar/src/lm/provider-seams.js';
 import { LMRule } from '../nar/src/lm/rule/LMRule.js';
@@ -64,6 +65,7 @@ const lmRuleApply = async (): Promise<SeamProbe> => {
     name: 'probe-hang',
     promptTemplate: 'probe',
     fallback: () => null,
+    callTimeoutMs: PROBE_TIMEOUT_MS / 5,
   });
   const primary = inheritance(atom('a'), atom('b'));
   const settled = await completesWithin(rule.apply(primary, primary));
@@ -82,6 +84,7 @@ const ingressJudge = async (): Promise<SeamProbe> => {
           return NEVER<never>();
         },
       },
+      judgeTimeoutMs: PROBE_TIMEOUT_MS / 5,
     },
   });
   const settled = await completesWithin(
@@ -98,7 +101,10 @@ const ingressJudge = async (): Promise<SeamProbe> => {
 /** The seam that already has the shape A1 wants, and still has no timeout. */
 const streamReasonerBackend = async (): Promise<SeamProbe> => {
   let entered = false;
-  const reasoner = new StreamReasoner();
+  const reasoner = new StreamReasoner({
+    gates: createGateRegistry(),
+    backendTimeoutMs: PROBE_TIMEOUT_MS / 5,
+  });
   reasoner.dispatch('probe');
   const backend = () => {
     entered = true;
@@ -136,6 +142,6 @@ if (failures.length > 0) {
 
 console.log(
   `cycle:no-provider ok — ${probes.length} seams reached, every declaration truthful.\n` +
-    "  The cycle is NOT yet closed: the rows above marked UNBOUNDED are A1's work, and the\n" +
-    "  gate becomes §1.3's invariant when they are bounded rather than merely declared."
+    '  Every declared seam interrupts a provider that never answers, and the cycle reaches\n' +
+    '  none of them from inside `reason` (tests/nar/todo29a-a1.test.ts).'
 );

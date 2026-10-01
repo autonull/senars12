@@ -8,7 +8,14 @@ import type {
   TaskAdmittedEvent,
 } from '@senars/core/schemas';
 import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/core/schemas';
-import { asBeliefTruth, errMsg, makeId, type TruthLike } from '@senars/util';
+import {
+  asBeliefTruth,
+  boundedSignal,
+  errMsg,
+  makeId,
+  raceDeadline,
+  type TruthLike,
+} from '@senars/util';
 import { normalizeNarsese } from '../nl/normalize.js';
 import { recordGateDecision } from '../telemetry/index.js';
 import type { TaskTypeName, Term } from '../terms';
@@ -31,10 +38,20 @@ export interface KernelPerceptionGateConfig {
     enabled: boolean;
     /** X2 (TODO20): injected ingress judge — kernel never imports proposer internals. */
     judge?: IngressJudge;
+    /**
+     * The bound on the judge. A judgment that misses it takes the same
+     * fail-closed path a fault takes: judging an untrusted observation is
+     * gating, and degrading to unjudged admission on expiry would bypass the
+     * very veto the judge exists to apply (TODO29.a §5.1 step 7).
+     */
+    judgeTimeoutMs?: number;
   };
   /** Phase E (REFACTOR.todo1): optional source-reputation ceiling (trust-not-truth). */
   reputation?: SourceReputation;
 }
+
+/** The bound on the ingress judgment when config declares none. */
+const DEFAULT_JUDGE_TIMEOUT_MS = 2000;
 
 export class KernelPerceptionGate extends KernelGate {
   private config: KernelPerceptionGateConfig;
@@ -76,6 +93,24 @@ export class KernelPerceptionGate extends KernelGate {
         this.#pushEvent(event as CognitiveEvent);
       });
     }
+  }
+
+  /** One refusal for both judge faults and judge deadlines. */
+  private judgeFault(
+    correlationId: string,
+    detail: string,
+    kind: 'error' | 'timeout'
+  ): PerceptionGateOutput {
+    recordPolicyViolation(this.eventLog, {
+      policyId: 'systemone-ingress',
+      violationType: 'epistemic-firewall',
+      detail: `systemone_ingress_${kind}: ${detail}`,
+      correlationId,
+    });
+    return {
+      admitted: false,
+      rejectionReason: 'System One ingress fault: admission rejected (fail-closed)',
+    };
   }
 
   #pushEvent(event: CognitiveEvent): void {
@@ -149,27 +184,35 @@ export class KernelPerceptionGate extends KernelGate {
         ? input.rawObservation
         : JSON.stringify(input.rawObservation);
 
+    const timeoutMs = this.config.systemOne?.judgeTimeoutMs ?? DEFAULT_JUDGE_TIMEOUT_MS;
+    // The signal is an ask, not the bound: a judge that ignores it is still
+    // bounded by the deadline, and one that honours it stops costing anything.
+    const bounded = boundedSignal(timeoutMs);
     let verdict: IngressVerdict;
     try {
-      verdict = await this.judge!.judge({
-        rawObservation,
-        sourceQuality,
-        baseConfidence,
-        taskType: initialTaskType,
-      });
+      const judged = await raceDeadline(
+        this.judge!.judge({
+          rawObservation,
+          sourceQuality,
+          baseConfidence,
+          taskType: initialTaskType,
+          signal: bounded.signal,
+        }),
+        timeoutMs
+      );
+      // Same outcome as a fault, and deliberately the same reason: both mean the
+      // judgment did not arrive, and neither may fall through to legacy
+      // admission — that is the injection veto, not a default.
+      if (judged.timedOut) {
+        return this.judgeFault(correlationId, `judge exceeded ${timeoutMs}ms`, 'timeout');
+      }
+      verdict = judged.value;
     } catch (error) {
       // Fail-closed (D1): a System One fault must never bypass the injection
       // veto via legacy admission — reject and emit ingress-error telemetry.
-      recordPolicyViolation(this.eventLog, {
-        policyId: 'systemone-ingress',
-        violationType: 'epistemic-firewall',
-        detail: `systemone_ingress_error: ${errMsg(error)}`,
-        correlationId,
-      });
-      return {
-        admitted: false,
-        rejectionReason: 'System One ingress fault: admission rejected (fail-closed)',
-      };
+      return this.judgeFault(correlationId, errMsg(error), 'error');
+    } finally {
+      bounded.done();
     }
 
     if (verdict.vetoReason) return { admitted: false, rejectionReason: verdict.vetoReason };

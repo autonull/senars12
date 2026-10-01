@@ -189,9 +189,7 @@ describe('Bench 101b — config changes behaviour in every stateless slot', () =
         pairs.push(`${p1.term.toString()} | ${p2.term.toString()}`);
         return [];
       },
-      processLMRules: async function* () {
-        /* no LM in this bench */
-      },
+      stageLMRules: () => false,
     };
   };
 

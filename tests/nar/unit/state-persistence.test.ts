@@ -223,7 +223,6 @@ describe('NARExecution Observability Emission', () => {
     expect(event).toHaveProperty('pending_tool_executions');
     expect(event).toHaveProperty('aikr_pressure');
     expect(event).toHaveProperty('rlfp_reward_avg');
-    expect(event).toHaveProperty('meta_derivation_budget_used');
   });
 
   test('does not emit before 10 cycles', async () => {

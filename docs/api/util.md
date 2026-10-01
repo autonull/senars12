@@ -362,6 +362,10 @@
 
 - `boundRange` — One row projected to its `{min,max,default}` triple.
 
+- `type BoundSpec`
+
+- `boundSpec` — One row projected to the `{min,max,step}` triple a tuner needs — {@link boundRange}
+
 - `type CognitiveBoundCategory`
 
 - `type CognitiveBoundKey`

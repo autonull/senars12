@@ -22,7 +22,7 @@
  * printed: a renamed method silently reporting zero is precisely the
  * failure this repository already has twice — `RuleIndex.recordRuleHit`
  * with no callers, `processLMRulesImpl`'s `stepScalars` with no
- * invalidator (TODO29 §1.8) — so a hook that never fires is an error
+ * invalidator (TODO29 §1.8, deleted in TODO29.a A1) — so a hook that never fires is an error
  * here, not a zero.
  *
  * A script, not a test. Latency assertions in the default suite are how
@@ -35,7 +35,7 @@
  */
 
 import { DEFAULT_COGNITIVE_PARAMETERS } from '../nar/src/config/cognitive-parameters.js';
-import { DEFAULT_CONFIG, TermBuilder, Truth } from '../nar/src/index.js';
+import { DEFAULT_CONFIG, Stamp, TermBuilder, Truth } from '../nar/src/index.js';
 import { Memory } from '../nar/src/memory/index.js';
 import { NAR } from '../nar/src/nar.js';
 import { RuleProcessor } from '../nar/src/rules/impls/processor.js';
@@ -54,7 +54,7 @@ const HOOKS = [
   { name: 'listConcepts', proto: Memory.prototype as object, method: 'listConcepts' },
   { name: 'getGoals', proto: Memory.prototype as object, method: 'getGoals' },
   { name: 'getStatistics', proto: Memory.prototype as object, method: 'getStatistics' },
-  { name: 'processLMRules', proto: RuleProcessor.prototype as object, method: 'processLMRules' },
+  { name: 'stageLMRules', proto: RuleProcessor.prototype as object, method: 'stageLMRules' },
 ] as const;
 
 /** Live hooks, in HOOKS order. Held in a list, not a Map, so resetting is a field write. */
@@ -279,12 +279,16 @@ const selftest = async (): Promise<void> => {
         case 'getStatistics':
           nar.memory.getStatistics();
           break;
-        case 'processLMRules':
-          // No LM is configured, so the only honest probe is that the hook is
-          // installed and callable; a real invocation is TODO29 A1's job.
+        case 'stageLMRules':
+          // Staging is the cycle's only call into model-backed rules (A1), and it
+          // happens whether or not an LM is configured: the queue is the NAR's.
+          nar.getProcessor().stageLMRules({
+            term: TermBuilder.atom('probe'),
+            truth: Truth.NEUTRAL,
+            stamp: Stamp.createInput(),
+          });
           break;
       }
-      if (counter.name === 'processLMRules') continue;
       if (counter.calls === before) {
         throw new Error(
           `cycle-bench self-test: hook '${counter.name}' did not observe its own invocation. ` +

@@ -1,5 +1,6 @@
 import { atom, createBudget, createTask, TermBuilder, Truth } from '@senars/nar';
 import { PriorityBag } from '@senars/nar/bag';
+import { createGateRegistry } from '@senars/nar/kernel';
 import { SymbolicFirewall } from '@senars/nar/nl/firewall.js';
 import { Negotiator } from '@senars/nar/reflex/Negotiator.js';
 import { RLFPLearner } from '@senars/nar/rlfp/RLFPLearner.js';
@@ -51,11 +52,11 @@ describe('TODO5b Phase 1', () => {
   });
 
   it('stream reasoner: provisional then revision, backpressure drops', async () => {
-    const r = new StreamReasoner({ maxBatch: 2, highPressure: 0.85 });
+    const r = new StreamReasoner({ gates: createGateRegistry(), maxBatch: 2, highPressure: 0.85 });
     const prov = r.dispatch('cats?', t(0.8, 0.9));
-    expect(prov.settled).toBe(false);
-    expect(prov.truth.c).toBeLessThan(0.5);
-    const initial = prov.truth.c;
+    expect(prov?.settled).toBe(false);
+    expect(prov?.truth.c).toBeLessThan(0.5);
+    const initial = prov!.truth.c;
     const settled = await r.flush(async (reqs) => {
       const m = new Map();
       for (const q of reqs) m.set(q.id, t(0.9, 0.9));
@@ -79,7 +80,7 @@ describe('TODO5b Phase 1', () => {
 
   it('hooked pipeline mutates state through real hooks + reasoner fusion', async () => {
     const firewall = new SymbolicFirewall();
-    const reasoner = new StreamReasoner();
+    const reasoner = new StreamReasoner({ gates: createGateRegistry() });
     reasoner.dispatch('cats?', t(0.8, 0.9));
     const ctx = createTickContext('t2', { cycles: 10 });
     await runTick(

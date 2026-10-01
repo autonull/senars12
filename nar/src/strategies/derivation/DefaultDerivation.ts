@@ -6,7 +6,7 @@ import type { DerivationContext, DerivationStrategy } from '../types.js';
 export class DefaultDerivation implements DerivationStrategy {
   readonly metadata = {
     name: 'default',
-    description: 'Iterate all secondaries, fire sync+LM per pair',
+    description: 'Iterate all secondaries, fire sync rules per pair, stage model-backed work',
   };
 
   async *derive(
@@ -23,15 +23,10 @@ export class DefaultDerivation implements DerivationStrategy {
         const p2 = toRuleInput(secondary);
 
         for (const result of processor.processSync(p1, p2)) yield createDerivedTask(result);
-        for await (const result of processor.processLMRules(p1, p2, { signal: ctx.signal }))
-          yield createDerivedTask(result);
+        processor.stageLMRules(p1, p2);
       }
     } else if (ctx.singlePremiseEnabled) {
-      for await (const result of processor.processLMRules(p1, undefined, {
-        signal: ctx.signal,
-        singlePremise: true,
-      }))
-        yield createDerivedTask(result);
+      processor.stageLMRules(p1);
     }
   }
 }

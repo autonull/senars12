@@ -51,6 +51,7 @@ graph TD
   nl["nl"]
   nl_prompts["nl/prompts"]
   otel["otel"]
+  proposal["proposal"]
   query["query"]
   reason["reason"]
   reason_strategies["reason/strategies"]
@@ -101,11 +102,13 @@ graph TD
   _ --> memory
   _ --> meta
   _ --> nl
+  _ --> proposal
   _ --> reason
   _ --> reflex
   _ --> rules
   _ --> rules_impls
   _ --> self
+  _ --> stream
   _ --> task
   _ --> terms
   _ --> terms_impls
@@ -338,6 +341,10 @@ graph TD
   nl --> types
   nl_prompts --> nl
   otel --> tick
+  proposal --> reason
+  proposal --> rules
+  proposal --> stream
+  proposal --> tick
   query --> _
   query --> memory
   query --> types

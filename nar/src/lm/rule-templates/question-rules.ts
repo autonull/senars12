@@ -27,6 +27,7 @@ export const questionRules: LMRuleDefinition[] = [
     priority: 0.7,
     taskType: 'question',
     budget: 0.65,
+    fallback: symbolicFallbacks['lm-interactive-clarification'],
     maxOutputTokens: 64,
   },
 ];

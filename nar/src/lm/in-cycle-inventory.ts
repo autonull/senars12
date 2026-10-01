@@ -41,13 +41,16 @@ export interface InCycleBehaviour {
 export const IN_CYCLE_INVENTORY: readonly InCycleBehaviour[] = [
   {
     id: 'lm-rule-derivation',
-    behaviour: 'A model-backed rule derives from a premise pair, inside the cycle.',
-    disposition: 'synchronous',
+    behaviour: 'A model-backed rule derives from a premise pair, outside the cycle.',
+    disposition: 'boundary',
     noticedBy:
-      'Any derivation a model rule produced. Measured at 33 inducer invocations per cycle (TODO29.a §13).',
+      'Any derivation a model rule produced, now admitted at the next cycle\'s `authorize` stage ' +
+      'through the perception gate. Was 33 inducer invocations per cycle (TODO29.a §13); the cycle ' +
+      'now stages work and pumps it off-cycle.',
     note:
-      'Target disposition is `boundary` (A1). It is `synchronous` today because DefaultDerivation ' +
-      'awaits `processor.processLMRules` inline, and nothing about that await is bounded.',
+      'Moved by A1. `DefaultDerivation` calls `processor.stageLMRules`, which is a bounded queue ' +
+      'push; the provider is reached only from `LMProposalProducer.pump`, which the cycle does ' +
+      'not await, and every await inside it is a deadline.',
   },
   {
     id: 'ingress-judgment',
@@ -84,10 +87,11 @@ export const IN_CYCLE_INVENTORY: readonly InCycleBehaviour[] = [
     behaviour: 'A batch of queued requests is answered by a provider outside the cycle.',
     disposition: 'boundary',
     noticedBy:
-      'Nothing today: the only caller of `StreamReasoner` in the repository is a test (§4 row 9).',
+      'The NAR\'s `proposals`: every model-backed derivation arrives through this queue, and the ' +
+      'backlog is `StreamReasoner.pending()` (TODO29.a §4 row 9 was "no production caller at all").',
     note:
-      'Already the shape A1 wants the cycle to use — bounded queue, budget gate, revisions. It ' +
-      'needs a production caller and an injected `GateRegistry`, not a new class.',
+      'A1 gave it both callers and a production caller: `LMProposalProducer` holds it, with this ' +
+      'NAR\'s injected `GateRegistry` — the process global it used to import is gone.',
   },
   {
     id: 'episode-consolidation',

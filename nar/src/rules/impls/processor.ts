@@ -13,7 +13,13 @@ import type { LMRuleSelector } from '../../strategies/types.js';
 import type { StampType, Term } from '../../terms';
 import { Truth, type Truth as TruthType } from '../../terms';
 import type { NarEventBus, Task } from '../../types';
-import type { RegisteredRule, RuleInput, RuleResult } from '../types.js';
+import type {
+  LMRuleWork,
+  LMRuleWorkSink,
+  RegisteredRule,
+  RuleInput,
+  RuleResult,
+} from '../types.js';
 import { META_AIKR_BOUNDS, shouldActivateMetaReasoning } from './meta-rules.js';
 import { RuleIndex } from './RuleIndex.js';
 import { DerivationRecorder } from './recorder.js';
@@ -63,12 +69,7 @@ export class RuleProcessor {
   // Reusable buffers to avoid allocations in hot paths
   private readonly seenBuffer = new Map<string, RuleResult>();
 
-  /** Meta-reasoning budget tracking */
-  private stepScalars: {
-    totalConcepts: number;
-    memoryPressure: number;
-    conflictCount: number;
-  } | null = null;
+  private lmWorkSink: LMRuleWorkSink | null = null;
   private metaBudget: MetaBudgetState = {
     derivationsThisStep: 0,
     currentDepth: 0,
@@ -156,29 +157,26 @@ export class RuleProcessor {
   resetMetaBudget(): void {
     this.metaBudget.derivationsThisStep = 0;
     this.metaBudget.currentDepth = 0;
-    this.stepScalars = null;
   }
 
   /**
-   * Memory-wide scalars handed to LM rule contexts. `getStatistics` sorts the
-   * full concept array and `getBeliefs` materializes every belief, so the
-   * whole set is computed at most once per inference step (prompt hints may be
-   * a step stale; the values are never load-bearing for admission).
+   * Memory-wide scalars handed to LM rule contexts. Prompt hints, never
+   * load-bearing for admission, and read on the off-cycle pass only — which is
+   * why there is no per-step memo: the memo's invalidator was never called
+   * (§4 row 7), so it was a process-stale cache, and the cycle it cost is gone.
    */
-  private stepMemoryScalars(): {
+  private ruleContextScalars(): {
     totalConcepts: number;
     memoryPressure: number;
     conflictCount: number;
   } {
-    if (this.stepScalars) return this.stepScalars;
     const stats = this.memory?.getStatistics();
     const beliefs = this.host?.getBeliefs();
-    this.stepScalars = {
+    return {
       totalConcepts: stats?.totalConcepts ?? 0,
       memoryPressure: stats?.memoryPressure ?? 0,
       conflictCount: beliefs ? findConflicts(beliefs).length : 0,
     };
-    return this.stepScalars;
   }
 
   private driveState(): Record<string, number> {
@@ -204,15 +202,25 @@ export class RuleProcessor {
     }
   }
 
-  async *processLMRules(
-    p1: RuleInput,
-    p2?: RuleInput,
-    opts?: {
-      signal?: AbortSignal;
-      singlePremise?: boolean;
-    }
-  ): AsyncGenerator<RuleResult> {
-    yield* this.processLMRulesImpl(p1, p2, opts);
+  /**
+   * Where staged model-backed work goes. `null` — the no-producer
+   * configuration — is a state the processor runs in, not an error.
+   */
+  setLMWorkSink(sink: LMRuleWorkSink | null): void {
+    this.lmWorkSink = sink;
+  }
+
+  /** Stage model-backed rule work. Synchronous: nothing here may await a provider. */
+  stageLMRules(p1: RuleInput, p2?: RuleInput): boolean {
+    return this.lmWorkSink?.stage({ p1, p2 }) ?? false;
+  }
+
+  /** Apply one staged unit of model-backed work. Off the cycle path by construction. */
+  async *applyLMRules(work: LMRuleWork, signal?: AbortSignal): AsyncGenerator<RuleResult> {
+    yield* this.processLMRulesImpl(work.p1, work.p2, {
+      signal,
+      singlePremise: work.p2 === undefined,
+    });
   }
 
   async *process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
@@ -220,7 +228,7 @@ export class RuleProcessor {
       for (const { ruleResult } of this.applySyncRules(p1, p2)) {
         yield ruleResult;
       }
-      yield* this.processLMRulesImpl(p1, p2);
+      yield* this.applyLMRules({ p1, p2 });
       this.recorder.finish();
     }
   }
@@ -355,7 +363,7 @@ export class RuleProcessor {
     this.lmRotationIndex = (this.lmRotationIndex + 1) % this.lmRules.length;
     if (selected.length === 0) return;
 
-    const { totalConcepts, memoryPressure, conflictCount } = this.stepMemoryScalars();
+    const { totalConcepts, memoryPressure, conflictCount } = this.ruleContextScalars();
     const driveState = this.driveState();
 
     const ruleContext: Record<string, unknown> = {

@@ -370,6 +370,16 @@ working from this table: several entries may disappear with the callers.
 | `LruCache` for the term interner (`nar/src/terms/impls/factory.ts:11`) | delete+set on every read | an interner wants a set, not a recency cache; `touchOnRead: false` is the honest setting | 4.0% in §1.1 |
 | `TermMap` key building | `termKey` walked per `set` | key computed once per `set` | |
 
+**Cross-plan note — canonical term form is NOT here (TODO29.a A12, added 2026-09-30).** A12 owns what
+a term *is*: flattening nested commutative compounds, dropping repeated args, negation normal form,
+`--x. %1% |- x. %0%`. It lands with the term layer's construction path and a `terms:canonical` gate,
+because a canonical form is a semantic contract and deferring it to a performance pass is how a
+correctness change ends up reviewed as an optimisation. **What belongs here is the storage
+consequence:** re-keying terms and concepts *already persisted* under the old canonicalisation, and the
+concept-count effect — `(a | (a | c))` and `(a | c)` are two concepts today, and a migration collapses
+them. Do not re-key anything before A12 has landed and bumped the term schema version; before that
+there is nothing to migrate *to*.
+
 **Acceptance**
 
 - every structure named above has a test that **fails on the current implementation and passes

@@ -11,6 +11,8 @@ export interface IngressJudgmentRequest {
   sourceQuality: SourceQuality;
   baseConfidence: number;
   taskType: TaskTypeName;
+  /** The gate's deadline, offered so a judge can stop rather than be abandoned. */
+  signal?: AbortSignal;
 }
 
 export interface IngressVerdict {

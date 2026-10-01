@@ -3,13 +3,13 @@
 **Dated:** 2026-09-30 · **Plan:** `TODO29.a.md` §11.1 (Q1′) · **Gate:** `pnpm induction:inventory` ·
 **Data:** [`nar/src/lm/in-cycle-inventory.ts`](../nar/src/lm/in-cycle-inventory.ts)
 
-The live cycle path (`NARExecution.run`) has **no tick stages**. `nar/src/tick/` declares the canonical
-stage vocabulary — `perceive, recall, attend, reason, propose, negotiate, authorize, act, validate,
-learn, consolidate` — and nothing in production calls it: the only callers are four test files. So a
-plan whose acceptance criteria speak of "no `propose`-stage work inside a `reason` stage" is asserting
-about a pipeline this tree does not run. `PhaseTimer` records free-form categories (`cycle`,
-`reasoner`, `drives`, …) and is the only cycle-wide attribution that exists. **A1's trace assertion
-needs a stage vocabulary on the live cycle first, and that is A0 work this inventory does not do.**
+**A1 gave the live cycle its stage vocabulary (2026-09-30).** `NARExecution.run` now runs
+`perceive → attend → reason → authorize → propose → learn`, using `tick`'s stage names, and records
+each region in a `CycleTrace` ([`nar/src/proposal/cycle-trace.ts`](../nar/src/proposal/cycle-trace.ts)).
+The trace is what makes "no `propose`-stage work inside a `reason` stage" assertable, and it is
+asserted in `tests/nar/todo29a-a1.test.ts`. What this page recorded before that — a cycle with no
+stages at all, and an acceptance criterion about a pipeline the tree does not run — was the
+instrument's own finding, and it is now closed.
 
 ## What the cycle path actually reaches
 
@@ -20,6 +20,8 @@ Of the layer's imports from outside `nar/src/lm/`:
 | cycle path (12 files) | 14 | **3** | 11 |
 | everything else (17 files) | 82 | 47 | 35 |
 | total | 96 | 50 | 46 |
+
+*(census as measured by A0 on 2026-09-30; re-run `pnpm induction:inventory` for the current numbers)*
 
 The cycle path already holds the layer as *data* almost everywhere. `RuleProcessor` — the one place
 the cycle applies a model rule — imports `LMRule` as a **type only** and receives instances through
@@ -43,11 +45,11 @@ direction, disagreeing with `deps:direction`, is worse than none.
 
 | behaviour | disposition | who would notice its absence |
 |---|---|---|
-| `lm-rule-derivation` | `synchronous` → target `boundary` | any derivation a model rule produced; measured at 33 inducer invocations per cycle |
+| `lm-rule-derivation` | `boundary` (A1, 2026-09-30) | any derivation a model rule produced, now admitted at the next cycle's `authorize` stage; was 33 inducer invocations per cycle |
 | `ingress-judgment` | `synchronous`, by design | the injection veto above 0.1 at `KernelPerceptionGate.admitViaJudge` |
 | `schema-induction-admission` | `synchronous` | the AIKR bag's pressure — `.schemas-induce` has nothing to work on |
 | `embedding-config-read` | `synchronous` | recall under a mock or CPU-only provider |
-| `stream-reasoner-flush` | `boundary` | nothing — its only caller in the repository is a test (§4 row 9) |
+| `stream-reasoner-flush` | `boundary` | the NAR's `proposals` — `LMProposalProducer` holds the queue, with this NAR's injected `GateRegistry` |
 | `episode-consolidation` | `boundary` | the lifecycle command, its only production caller |
 | `narsese-correction` | `dropped` | nobody — no callers, so the behaviour cannot be lost |
 

@@ -1120,7 +1120,6 @@ Structured cognitive state emitted every 10 cycles:
   "pending_tool_executions": ["apply_fix (shadow worktree .shadow/fix-42)"],
   "aikr_pressure": "low",
   "rlfp_reward_avg": 0.34,
-  "meta_derivation_budget_used": "2/5",
   "self_quality": 0.85
 }
 ```

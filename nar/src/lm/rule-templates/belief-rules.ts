@@ -96,6 +96,7 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.65,
     schema: MetaReasoningSchema,
+    fallback: symbolicFallbacks['lm-meta-reasoning'],
     maxOutputTokens: 64,
   },
   {
@@ -106,6 +107,7 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.6,
     schema: UncertaintySchema,
+    fallback: symbolicFallbacks['lm-uncertainty-calibration'],
     maxOutputTokens: 64,
   },
   {
@@ -127,6 +129,7 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.7,
     schema: TemporalCausalSchema,
+    fallback: symbolicFallbacks['lm-temporal-causal'],
     maxOutputTokens: 128,
   },
   {
@@ -138,6 +141,7 @@ export const beliefRules: LMRuleDefinition[] = [
     budget: 0.65,
     activationCondition: (p) => hasVariable(p),
     schema: VariableGroundingSchema,
+    fallback: symbolicFallbacks['lm-variable-grounding'],
     maxOutputTokens: 128,
   },
   {
@@ -149,6 +153,7 @@ export const beliefRules: LMRuleDefinition[] = [
     budget: 0.7,
     activationCondition: isUnderconnected,
     schema: ConceptElaborationSchema,
+    fallback: symbolicFallbacks['lm-concept-elaboration'],
     maxOutputTokens: 256,
   },
 ];

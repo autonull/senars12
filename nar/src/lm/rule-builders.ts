@@ -49,6 +49,8 @@ export interface LMRuleFactoryConfig {
     secondary?: Term,
     context?: Record<string, unknown>
   ) => boolean;
+  /** Pure-NAL symbolic body. Optional on a custom rule, which then declares "none". */
+  fallback?: (primary: Term, secondary?: Term, context?: Record<string, unknown>) => Task[] | null;
 }
 
 const NARSESE_INSTRUCTIONS = `
@@ -126,6 +128,7 @@ const createCustomRule = (
     singlePremise: config.singlePremise ?? true,
     activationCondition: asUnknownCondition(config.activationCondition),
     promptTemplate: config.promptTemplate ?? `Reason about: {{primaryTerm}}`,
+    fallback: (config.fallback ?? (() => null)) as LMRuleConfig['fallback'],
     taskGenerator: config.multiline
       ? (r: unknown) => parseResponse(String(r), taskType, budget)
       : createTaskGen(taskType, budget),
@@ -135,8 +138,9 @@ const createCustomRule = (
 const createRule = (
   lm: LMService | null,
   def: LMRuleDefinition,
-  config: Omit<Partial<LMRuleConfig>, 'activationCondition'> & {
+  config: Omit<Partial<LMRuleConfig>, 'activationCondition' | 'fallback'> & {
     activationCondition?: TermCondition;
+    fallback?: LMRuleDefinition['fallback'] | LMRuleConfig['fallback'];
   } = {}
 ): LMRule => {
   const taskType = def.taskType ?? 'belief';
@@ -155,7 +159,7 @@ const createRule = (
     constitutionAware: def.constitutionAware,
     grammar: def.grammar,
     maxOutputTokens: def.maxOutputTokens,
-    fallback: def.fallback as LMRuleConfig['fallback'],
+    fallback: (config.fallback ?? def.fallback) as LMRuleConfig['fallback'],
     taskGenerator: def.multiline
       ? (r: unknown) => parseResponse(String(r), taskType, budget)
       : createTaskGen(taskType, budget),
