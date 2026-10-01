@@ -86,7 +86,10 @@ do is make four README promises structurally true rather than aspirational, and 
    them. A3's **implementation** lands after A2, once the queue's real behaviour is known (§6).
 3. ~~**A1**~~ — **done 2026-09-30.** The cycle stages model-backed work and pumps it off-cycle; every
    provider await carries a deadline; every model-backed rule declares and runs a symbolic body.
-4. **A2** — the dependency inversion, with the seam contracts in `@senars/core/schemas`.
+4. **A2** — the dependency inversion, with the seam contracts in `@senars/core/schemas`. **Or A12 §5.12.1
+   first** — the operator/grammar alignment — which needs no prior item and unblocks every canonical-form
+   work: six kinds do not round-trip today, and the round-trip property test cannot see it because its
+   generator lists the five that work. Correctness, not measurement, so it is not waiting on A4.
 5. **A5 → A4** — the mechanical split, then the one deliberate behaviour change.
 
 ### 0.7 What this plan is not
@@ -1351,6 +1354,13 @@ What is missing is everything that makes the form *canonical* rather than *inter
 same-kind compounds, dropping repeated args, pushing negations inward, and folding the frequency
 extremes. Each is a NAL axiom, so each is sound; none is implemented, and none is a TODO30 question.
 
+**Sequencing within this item, and the two halves are not equal.** §5.12.1 — the grammar/symbol/kind
+alignment — is a **correctness fix whose baseline is "broken"**, so it needs no attribution window and no
+waiting on A4: six kinds cannot round-trip at all, and no measurement can be attributed to a change that
+makes an unreadable thing readable. The reducers below are the behavioural half and they wait for A4's
+baselines. Doing step 1 first also removes a hazard from every later item: a reducer written against a
+grammar that cannot read its own output is untestable, and the acceptance below depends on round-tripping.
+
 **Why it is in this plan and not TODO30.** TODO30 owns *what the store does with* a term — indexes,
 containers, dedup of terms **already persisted**. It does not own *what a term is*, and a plan that
 leaves canonical form to a performance pass will either never do it or do it as an optimisation
@@ -1386,6 +1396,17 @@ Applied at **construction** — `createCompound` canonicalises before it compute
 `createTask` canonicalises before the task is stored — which is what makes `termsEqual`, interning and
 memory dedup agree for free instead of agreeing by luck on whichever producer normalised.
 
+**How to add a reducer, so the next one is an append and not a redesign.** Four steps, and the registry
+is the only thing that changes: (1) implement `{ id, applies, reduce }`; (2) add it to `TERM_REDUCERS` or
+`TASK_REDUCERS`, **at most one step from a canonical term** — a reducer that needs two passes to see its
+own output is a fixpoint the pipeline cannot guarantee; (3) add its cases to the round-trip and
+canonical-form properties, including one already-canonical input that must come back *identical* (the
+no-allocation claim in acceptance depends on it); (4) run the NAL suites, where a parity change is a
+finding about that reducer rather than a baseline to regenerate. Reducers must be **commuting with each
+other** — `flatten ∘ dedupe ∘ sort` and `dedupe ∘ flatten ∘ sort` must agree — which the idempotence
+property above is what actually tests. A reducer that *removes* an operator kind is a §9 boundary
+decision, not an entry in a list.
+
 **The catalogue, with what is decided and what is not.**
 
 | reducer | level | decided | note |
@@ -1406,7 +1427,7 @@ knowing which half is the design. What it contributes:
 
 | from the reference | adopt? | note |
 |---|---|---|
-| `InterCONJxt/ntReduction1–3` — associativity for `&&` and `\|\|`, multi-level | **yes** | this is `flatten-nested`. Our commutative n-ary kinds are `conjunction`, `disjunction`, `parallel` — **`product` is n-ary but not commutative** (§4 row 18), so flattening it is an *associativity* reducer that must not sort |
+| `InterCONJxt/ntReduction1–3` — associativity for `&&` and `||`, multi-level | **yes** | this is `flatten-nested`. Our commutative n-ary kinds are `conjunction`, `disjunction`, `parallel` — **`product` is n-ary but not commutative** (§4 row 18), so flattening it is an *associativity* reducer that must not sort |
 | `IntExtEqual` — `CONJ(p, p) == p` | **yes** | idempotence, `dedupe-args` |
 | `InterCONJntReduction_to_one` — a compound of one distinct member *is* that member | **yes** | `(&&,P)` must not exist; ours collapses to `TRUE` on *zero* args today, and the one-arg case is the other half of the same rule |
 | `Multireduction` — reduction applied repeatedly reaches one form | **yes** | the acceptance property below; it is a *fixpoint* requirement, not a single pass |
