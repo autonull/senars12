@@ -14,13 +14,13 @@
  */
 
 import { createDerivedTask } from '../reason/inference-utils.js';
-import type { LMRuleWork, LMRuleWorkSink, RuleResult } from '../rules/types.js';
+import type { ModelRuleWork, ModelRuleWorkSink, RuleResult } from '../rules/types.js';
 import type { LMBackend, StreamReasoner, StreamReasonerStats } from '../stream/reasoner.js';
 import type { Task } from '../types';
 
 /** Applies one staged unit of work. Structurally `RuleProcessor`. */
-export interface LMRuleWorkApplicator {
-  applyLMRules(work: LMRuleWork, signal?: AbortSignal): AsyncGenerator<RuleResult>;
+export interface ModelRuleWorkApplicator {
+  applyModelRules(work: ModelRuleWork, signal?: AbortSignal): AsyncGenerator<RuleResult>;
 }
 
 export interface LMProposalProducerOptions {
@@ -31,9 +31,9 @@ export interface LMProposalProducerOptions {
 /** A batch backend that answers nothing — every production request carries a `derive`. */
 const NO_PROMPT_REQUESTS: LMBackend = async () => new Map();
 
-export class LMProposalProducer implements LMRuleWorkSink {
+export class LMProposalProducer implements ModelRuleWorkSink {
   private readonly reasoner: StreamReasoner;
-  private readonly applicator: LMRuleWorkApplicator;
+  private readonly applicator: ModelRuleWorkApplicator;
   private readonly backend: LMBackend;
   private readonly counters = { staged: 0, refused: 0, applied: 0 };
   private inFlight: Promise<void> = Promise.resolve();
@@ -41,7 +41,7 @@ export class LMProposalProducer implements LMRuleWorkSink {
 
   constructor(
     reasoner: StreamReasoner,
-    applicator: LMRuleWorkApplicator,
+    applicator: ModelRuleWorkApplicator,
     options: LMProposalProducerOptions = {}
   ) {
     this.reasoner = reasoner;
@@ -50,7 +50,7 @@ export class LMProposalProducer implements LMRuleWorkSink {
   }
 
   /** Called from the cycle. Bounded, synchronous, and cheap: a queue push. */
-  stage(work: LMRuleWork): boolean {
+  stage(work: ModelRuleWork): boolean {
     const queued = this.reasoner.dispatch(
       work.p1.term.toString(),
       work.p1.truth,
@@ -91,9 +91,9 @@ export class LMProposalProducer implements LMRuleWorkSink {
     return { ...this.reasoner.stats(), ...this.counters };
   }
 
-  private async applyWork(work: LMRuleWork): Promise<Task[]> {
+  private async applyWork(work: ModelRuleWork): Promise<Task[]> {
     const tasks: Task[] = [];
-    for await (const result of this.applicator.applyLMRules(work, this.signal)) {
+    for await (const result of this.applicator.applyModelRules(work, this.signal)) {
       tasks.push(createDerivedTask(result));
     }
     this.counters.applied += tasks.length;

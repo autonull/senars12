@@ -1,10 +1,10 @@
-import type { LMRule } from '../../lm';
-import type { LMRuleSelectionContext, LMRuleSelector } from '../types.js';
+import type { ModelRule } from '../../rules/types.js';
+import type { ModelRuleSelectionContext, ModelRuleSelector } from '../types.js';
 
-export class AllSelector implements LMRuleSelector {
+export class AllSelector implements ModelRuleSelector {
   readonly metadata = { name: 'all', description: 'Fire all eligible LM rules' };
 
-  select(rules: LMRule[], _ctx: LMRuleSelectionContext): LMRule[] {
+  select(rules: ModelRule[], _ctx: ModelRuleSelectionContext): ModelRule[] {
     return [...rules];
   }
 }

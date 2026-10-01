@@ -1,12 +1,12 @@
-import type { LMRule } from '../../lm';
 import { selectTopN } from '@senars/util';
-import type { LMRuleSelectionContext, LMRuleSelector } from '../types.js';
+import type { ModelRule } from '../../rules/types.js';
+import type { ModelRuleSelectionContext, ModelRuleSelector } from '../types.js';
 
-export class DiverseSelector implements LMRuleSelector {
+export class DiverseSelector implements ModelRuleSelector {
   readonly metadata = { name: 'diverse', description: 'One per category, then round-robin' };
 
-  select(rules: LMRule[], ctx: LMRuleSelectionContext): LMRule[] {
-    const byCat = new Map<string, LMRule[]>();
+  select(rules: ModelRule[], ctx: ModelRuleSelectionContext): ModelRule[] {
+    const byCat = new Map<string, ModelRule[]>();
     for (const r of rules) {
       const cat = r.category ?? 'general';
       if (!byCat.has(cat)) byCat.set(cat, []);

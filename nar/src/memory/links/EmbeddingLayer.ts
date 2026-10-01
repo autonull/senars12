@@ -1,10 +1,6 @@
 import { BoundedMap, selectTopN } from '@senars/util';
 import { type Term, termKey } from '../../terms';
-import {
-  cosineSimilarity,
-  createEmbeddingGenerator,
-  type EmbeddingGenerator,
-} from '../embedding.js';
+import { cosineSimilarity, type EmbeddingGenerator } from '../embedding.js';
 import { Layer } from './Layer.js';
 import { LINK_LAYER } from './types.js';
 
@@ -12,6 +8,9 @@ export interface EmbeddingLayerConfig {
   capacity: number;
   similarityThreshold: number;
   maxLinksPerConcept: number;
+  /** Injected: the core chooses which embedder by what it was given, not by
+   *  reading provider settings (TODO29.a §5.2). */
+  generator: EmbeddingGenerator;
 }
 
 interface IndexedEmbedding {
@@ -36,7 +35,7 @@ export class EmbeddingLayer extends Layer {
     super(LINK_LAYER.EMBEDDING, config.capacity, 'priority');
     this.similarityThreshold = config.similarityThreshold;
     this.maxLinksPerConcept = config.maxLinksPerConcept;
-    this.embeddingGenerator = createEmbeddingGenerator();
+    this.embeddingGenerator = config.generator;
     this.termEmbeddings = new BoundedMap<string, IndexedEmbedding>({
       maxSize: config.capacity,
       eviction: 'lru',

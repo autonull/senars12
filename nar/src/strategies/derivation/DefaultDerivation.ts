@@ -23,10 +23,10 @@ export class DefaultDerivation implements DerivationStrategy {
         const p2 = toRuleInput(secondary);
 
         for (const result of processor.processSync(p1, p2)) yield createDerivedTask(result);
-        processor.stageLMRules(p1, p2);
+        processor.stageModelRuleWork(p1, p2);
       }
     } else if (ctx.singlePremiseEnabled) {
-      processor.stageLMRules(p1);
+      processor.stageModelRuleWork(p1);
     }
   }
 }

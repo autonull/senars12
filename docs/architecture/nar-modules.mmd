@@ -148,10 +148,7 @@ graph TD
   cognitive_impls --> utils
   cognitive_impls_analyzers --> cognitive
   cognitive_impls_analyzers --> cognitive_impls
-  cognitive_impls_analyzers --> lm
-  cognitive_impls_analyzers --> lm_grammars
   cognitive_impls_analyzers --> self
-  cognitive_impls_analyzers --> terms
   commands --> _
   commands --> memory
   commands --> self
@@ -181,6 +178,7 @@ graph TD
   facade --> focus
   facade --> game_impls
   facade --> kernel
+  facade --> lm
   facade --> lm_rule
   facade --> lm_rule-selectors
   facade --> lm_system-one
@@ -254,7 +252,6 @@ graph TD
   learning --> bag
   learning --> focus
   learning --> kernel
-  learning --> lm
   learning --> reflex
   learning --> types
   learning --> utils
@@ -266,8 +263,10 @@ graph TD
   lm --> lm_rule-templates
   lm --> lm_service
   lm --> lm_system-one
+  lm --> memory
   lm --> metrics
   lm --> otel
+  lm --> terms
   lm --> utils
   lm_context --> terms
   lm_providers --> lm
@@ -304,7 +303,6 @@ graph TD
   memory --> _
   memory --> bag
   memory --> learning
-  memory --> lm
   memory --> memory_lifecycle
   memory --> memory_links
   memory --> memory_pressure
@@ -381,7 +379,6 @@ graph TD
   rules_extended --> rules_nal
   rules_impls --> cognitive_impls
   rules_impls --> kernel
-  rules_impls --> lm_rule
   rules_impls --> memory
   rules_impls --> rules
   rules_impls --> rules_extended
@@ -398,7 +395,6 @@ graph TD
   self --> memory
   self --> terms
   self --> types
-  strategies --> lm_rule
   strategies --> memory
   strategies --> reason
   strategies --> rules
@@ -415,11 +411,11 @@ graph TD
   strategies_derivation --> strategies
   strategies_derivation --> types
   strategies_derivation --> utils
-  strategies_lm-graph --> lm
   strategies_lm-graph --> memory
+  strategies_lm-graph --> rules
   strategies_lm-graph --> strategies
   strategies_lm-graph --> terms
-  strategies_lm-selectors --> lm
+  strategies_lm-selectors --> rules
   strategies_lm-selectors --> strategies
   strategies_premise --> memory
   strategies_premise --> memory_links

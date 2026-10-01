@@ -11,12 +11,8 @@ const EWMA_WEIGHT = 9;
 
 import { ConceptGraph, type CoActivationEdge } from '../../memory/ConceptGraph.js';
 
-import type {
-  ComponentMetadata,
-  LMRuleSelectionContext,
-  LMRuleSelector,
-} from '../types.js';
-import type { LMRule } from '../../lm/LMRule.js';
+import type { ModelRule } from '../../rules/types.js';
+import type { ComponentMetadata, ModelRuleSelectionContext, ModelRuleSelector } from '../types.js';
 import type { Term } from '../../terms/index.js';
 import { termsEqual } from '../../terms';
 
@@ -34,7 +30,7 @@ interface RulePerformance {
   lastUsed: number;
 }
 
-export class RuleGraph implements LMRuleSelector {
+export class RuleGraph implements ModelRuleSelector {
   readonly metadata: ComponentMetadata = { name: 'lm-graph', description: 'ConceptGraph-based LM rule selector with RLFPLearner rewards' };
   readonly name = 'lm-graph';
 
@@ -67,7 +63,7 @@ export class RuleGraph implements LMRuleSelector {
   }
 
   /** Select LM rules for a context using co-activation graph. */
-  select(rules: LMRule[], context: LMRuleSelectionContext): LMRule[] {
+  select(rules: ModelRule[], context: ModelRuleSelectionContext): ModelRule[] {
     if (rules.length === 0) return [];
 
     // Use focusTerm from context if provided, otherwise extract via heuristic
@@ -105,13 +101,13 @@ export class RuleGraph implements LMRuleSelector {
     return selected.length > 0 ? selected : this.fallbackSelect(rules);
   }
 
-  private fallbackSelect(rules: LMRule[]): LMRule[] {
+  private fallbackSelect(rules: ModelRule[]): ModelRule[] {
     // Return top-N rules by registration order (no priority field on LM rules)
     const limit = Math.max(1, Math.floor(rules.length * 0.3));
     return rules.slice(0, limit);
   }
 
-  private extractFocusTerm(_context: LMRuleSelectionContext, rules: LMRule[]): Term | null {
+  private extractFocusTerm(_context: ModelRuleSelectionContext, rules: ModelRule[]): Term | null {
     // Simple heuristic: use the highest priority rule's condition term as focus
     if (rules.length === 0) return null;
     const firstRule = rules[0];
@@ -119,7 +115,7 @@ export class RuleGraph implements LMRuleSelector {
     return firstRule.condition;
   }
 
-  private ruleMatchesEdge(rule: LMRule, edge: CoActivationEdge): boolean {
+  private ruleMatchesEdge(rule: ModelRule, edge: CoActivationEdge): boolean {
     return termsEqual(rule.condition, edge.targetTerm);
   }
 

@@ -8,11 +8,19 @@ import { createTask, type NAREventMap, type NarEventBus } from '../../types';
 import { createBudget } from '../../types/core.js';
 import { CircuitBreaker } from '../../utils/circuit-breaker.js';
 import { parseJsonObject } from '../json.js';
-import type { LMExecutionStats, LMRuleConfig, LMRuleStats, LMService } from '../lm-service.js';
+import type { LMExecutionStats, LMRuleConfig, LMService, ModelRuleStats } from '../lm-service.js';
 import { createLMStats, recordLMCall } from '../stats.js';
 import { LMResponseParser } from './response-parser.js';
 import type { LMContext, ValidationResult } from './types.js';
 import type { LMRuleConfigV2 } from './types-v2.js';
+
+/**
+ * Conformance with the core's contract is structural and is checked where it is
+ * relied on: `RuleProcessor.registerModelRule` takes a `ModelRule` and this
+ * class is what the layer hands it (`facade/index.ts` `initializeLMRules`), so a
+ * member added to `ModelRule` and not provided here fails the build at that
+ * call rather than at runtime (TODO29.a §5.2).
+ */
 
 /**
  * A provider call that missed its deadline. Named so the caller can tell a
@@ -305,7 +313,7 @@ export class LMRule {
     }
   }
 
-  getStats(): LMRuleStats {
+  getStats(): ModelRuleStats {
     return {
       id: this.id,
       name: this.name,

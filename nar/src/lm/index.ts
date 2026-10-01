@@ -1,3 +1,5 @@
+export { attemptLMCorrection } from './correction.js';
+export { embeddingRuntime } from './embedding-runtime.js';
 export { admitTasks } from './admit.js';
 export type { ContextBeliefOptions } from './context.js';
 export { topBeliefTasks } from './context.js';
@@ -56,7 +58,7 @@ export type {
   LMPromptGenerator,
   LMResponseProcessor,
   LMRuleConfig,
-  LMRuleStats,
+  ModelRuleStats,
   LMTaskGenerator,
 } from './lm-service.js';
 export {

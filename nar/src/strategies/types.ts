@@ -1,7 +1,6 @@
-import type { LMRule } from '../lm/rule/LMRule.js';
 import type { Concept } from '../memory/concept.js';
 import type { MemoryView } from '../memory/view.js';
-import type { RuleEngine } from '../rules/types.js';
+import type { ModelRule, RuleEngine } from '../rules/types.js';
 import type { Task } from '../types';
 import type { Term } from '../terms';
 
@@ -19,7 +18,7 @@ export type StrategyImpl =
   | SamplingStrategy
   | Strategy
   | DerivationStrategy
-  | LMRuleSelector
+  | ModelRuleSelector
   | AttentionModel;
 
 // ── 1. SamplingStrategy ──────────────────────
@@ -59,8 +58,8 @@ export interface DerivationStrategy {
   ): AsyncGenerator<Task>;
 }
 
-// ── 4. LMRuleSelector ─────────────────────────
-export interface LMRuleSelectionContext {
+// ── 4. ModelRuleSelector ──────────────────────
+export interface ModelRuleSelectionContext {
   maxRules: number;
   rotationIndex?: number;
   conceptPriority: number;
@@ -68,10 +67,17 @@ export interface LMRuleSelectionContext {
   focusTerm?: Term;
 }
 
-export interface LMRuleSelector {
+/**
+ * Which registered model-backed rules to apply, given the work budget.
+ *
+ * Selection is a *proposal-time* concern rather than a reasoning-cycle strategy:
+ * the cycle stages work unconditionally and the selector runs in the off-cycle
+ * pass, so nothing on the cycle path is decided here.
+ */
+export interface ModelRuleSelector {
   readonly metadata: ComponentMetadata;
 
-  select(rules: LMRule[], context: LMRuleSelectionContext): LMRule[];
+  select(rules: ModelRule[], context: ModelRuleSelectionContext): ModelRule[];
 }
 
 // ── 5. AttentionModel ─────────────────────────

@@ -33,6 +33,7 @@ import { SchemaInductor } from './learning/schema-induction.js';
 import type { LMService, SeNARSRegistry } from './lm';
 import { LMRules } from './lm';
 import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
+import { embeddingRuntime } from './lm/embedding-runtime.js';
 import { MiningBag, seedContrastiveMemory } from './lm/system-one/hard-negatives.js';
 import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
 import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
@@ -40,6 +41,7 @@ import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-gr
 import type { CognitiveDispatcher, JudgmentManifold } from './lm/system-one/types.js';
 import type { Concept } from './memory';
 import { Memory } from './memory';
+import { createEmbeddingGenerator, type EmbeddingGenerator } from './memory/embedding.js';
 import { EpisodeConsolidator } from './memory/episode-consolidator.js';
 import { ProofMettaProposer, type ProofMettaProposerOptions } from './meta/index.js';
 import { LMProposalProducer } from './proposal/lm-rule-producer.js';
@@ -148,6 +150,7 @@ export class NAR extends BaseComponent {
     this.memory = new Memory({
       ...this.config,
       bag: resolveBagSlot(cognitiveParams.strategies.bag, config.rng),
+      embeddingGenerator: config.embeddingGenerator ?? createEmbeddingGenerator(embeddingRuntime),
     });
     this.processor = new RuleProcessor();
     this.processor.setConfig({ memory: this.memory, host: this });
@@ -263,7 +266,7 @@ export class NAR extends BaseComponent {
       new StreamReasoner({ gates: this.gates, backendTimeoutMs: cognitiveParams.lm.callTimeoutMs }),
       this.processor
     );
-    this.processor.setLMWorkSink(this.proposals);
+    this.processor.setModelRuleWorkSink(this.proposals);
     this.execution = new NARExecution({
       memory: this.memory,
       taskManager: this.taskManager,
@@ -665,12 +668,12 @@ export class NAR extends BaseComponent {
     return this._lmService?.getStats?.();
   }
 
-  getLMRuleExecutionLog() {
-    return this.processor.getLMRuleExecutionLog();
+  getModelRuleExecutionLog() {
+    return this.processor.getModelRuleExecutionLog();
   }
 
-  clearLMRuleExecutionLog() {
-    this.processor.clearLMRuleExecutionLog();
+  clearModelRuleExecutionLog() {
+    this.processor.clearModelRuleExecutionLog();
   }
 
   getQualityModel() {

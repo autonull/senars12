@@ -23,7 +23,7 @@ import { createTestController, inferenceParams, transitivity } from '../fixtures
 
 const createMockProcessor = () => ({
   processSync: () => [],
-  stageLMRules: () => false,
+  stageModelRuleWork: () => false,
 });
 
 const createMockRLFP = (): RLFPLearner =>

@@ -95,7 +95,7 @@ export const initializeLMRules = (nar: NAR, lmRules: readonly LMRule[]): void =>
       rule.setSystemOneAdapter(systemOneAdapter);
     }
 
-    nar.getProcessor().registerLMRule(rule);
+    nar.getProcessor().registerModelRule(rule);
   }
   initialized.add(nar);
 };

@@ -4,7 +4,7 @@ import { type RuleInput, RuleProcessor } from '../../nar/src/rules';
 import { CognitiveRegistry } from '../../nar/src/cognitive/impls/CognitiveRegistry.js';
 import { RuleGraph } from '../../nar/src/strategies/lm-graph/RuleGraph.js';
 import type { LMRule } from '../../nar/src/lm/LMRule.js';
-import type { LMRuleSelector } from '../../nar/src/strategies/types.js';
+import type { ModelRuleSelector } from '../../nar/src/strategies/types.js';
 import type { Term } from '../../nar/src/terms';
 import { termsEqual } from '../../nar/src/terms';
 
@@ -59,14 +59,14 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     expect(ruleGraph).toBeInstanceOf(RuleGraph);
     expect(registry.has('lm-rule', 'lm-graph')).toBe(true);
     
-    const selector = registry.get<LMRuleSelector>('lm-rule', 'lm-graph');
+    const selector = registry.get<ModelRuleSelector>('lm-rule', 'lm-graph');
     expect(selector).toBe(ruleGraph);
     expect(selector.metadata.name).toBe('lm-graph');
   });
 
   test('lm-graph selector returns non-empty selection (fail-closed)', () => {
     const ruleGraph = registry.get<RuleGraph>('lm-rule', 'lm-graph');
-    processor.registerLMRule(mockLMRule);
+    processor.registerModelRule(mockLMRule);
     
     const rules = [mockLMRule];
     const context = {
@@ -112,8 +112,8 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
       getStats: vi.fn(() => ({ id: 'rule-2', enabled: true, circuitState: 'closed', totalCalls: 0, successfulCalls: 0, failedCalls: 0, avgLatencyMs: 0 })),
     } as unknown as LMRule;
 
-    processor.registerLMRule(rule1);
-    processor.registerLMRule(rule2);
+    processor.registerModelRule(rule1);
+    processor.registerModelRule(rule2);
 
     // First selection - both rules should have equal chance
     const rules = [rule1, rule2];
@@ -216,7 +216,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
 
   test('default path (non-lm-graph) remains byte-identical', () => {
     // Test that selecting 'priority' selector still works as before
-    const prioritySelector = registry.get<LMRuleSelector>('lm-rule', 'priority');
+    const prioritySelector = registry.get<ModelRuleSelector>('lm-rule', 'priority');
     expect(prioritySelector).toBeDefined();
     expect(prioritySelector.metadata.name).toBe('priority');
 

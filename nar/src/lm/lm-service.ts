@@ -6,7 +6,7 @@ export type {
   LMPromptGenerator,
   LMResponseProcessor,
   LMRuleConfig,
-  LMRuleStats,
+  ModelRuleStats,
   LMTask,
   LMTaskGenerator,
   MockLMConfig,

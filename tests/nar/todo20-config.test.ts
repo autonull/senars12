@@ -112,8 +112,8 @@ describe('Bench 66 — X7 StateCodec', () => {
       config: { persistState: true, statePath },
       memory: { addTask: () => {} } as never,
       processor: {
-        serializeLMRules: () => ({ rules: [] }),
-        deserializeLMRules: () => {},
+        serializeModelRules: () => ({ rules: [] }),
+        deserializeModelRules: () => {},
       },
       attentionReport: () => ({ concepts: [], total: 0 }),
       query: { getBeliefs: () => [], getGoals: () => [], getQuestions: () => [] },

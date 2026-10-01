@@ -132,7 +132,7 @@ export type {
   LMPromptGenerator,
   LMResponseProcessor,
   LMRuleConfig,
-  LMRuleStats,
+  ModelRuleStats,
   LMService,
   LMTask,
   LMTaskGenerator,
@@ -217,6 +217,7 @@ export {
 } from './utils/collections.js';
 export { formatIssues, type SchemaIssue } from './utils/diagnostics.js';
 export { errMsg, toError } from './utils/error.js';
+export { extractJsonObject, parseJsonObject } from './utils/json.js';
 /** @public Percent, divider, and progress-bar formatting for reports and CLI output. */
 export { bar, divider, pct, percentile, section, utcDate } from './utils/format.js';
 export type { JsonlLoadResult } from './utils/fs.js';

@@ -18,8 +18,8 @@ export interface StatePersisterDeps {
   config: Pick<NARConfig, 'persistState' | 'statePath'>;
   memory: Memory;
   processor: {
-    serializeLMRules(): unknown;
-    deserializeLMRules(state: unknown): void;
+    serializeModelRules(): unknown;
+    deserializeModelRules(state: unknown): void;
   };
   driveManager?: DriveManager;
   attentionReport: () => { concepts: unknown[]; total: number };
@@ -68,7 +68,7 @@ export class StatePersister {
         ['questions.json', 'nar.questions', query.getQuestions().map(serializeTaskRecord)],
         ['attention.json', 'nar.attention', attentionReport()],
         ['drives.json', 'nar.drives', drives],
-        ['lm-rules.json', 'nar.lm-rules', processor.serializeLMRules()],
+        ['lm-rules.json', 'nar.lm-rules', processor.serializeModelRules()],
       ];
 
       await ensureParentDir(this.getStatePath(files[0]![0]));
@@ -130,7 +130,7 @@ export class StatePersister {
         'lm-rules.json',
         'nar.lm-rules'
       );
-      if (lmRuleResult.ok && lmRuleResult.value) processor.deserializeLMRules(lmRuleResult.value);
+      if (lmRuleResult.ok && lmRuleResult.value) processor.deserializeModelRules(lmRuleResult.value);
 
       this.logger.info('NAR state loaded');
     } catch (e) {

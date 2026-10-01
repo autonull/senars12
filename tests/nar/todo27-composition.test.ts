@@ -7,7 +7,7 @@ import { ConfigurationError } from '@senars/nar/types';
 import type {
   AttentionModel,
   DerivationStrategy,
-  LMRuleSelector,
+  ModelRuleSelector,
   SamplingStrategy,
   Strategy,
 } from '../../nar/src/strategies/types.js';
@@ -71,7 +71,7 @@ describe('Bench 103 — uniform composition', () => {
         pairs.push(`${p1.term.toString()}|${p2.term.toString()}`);
         return [];
       },
-      stageLMRules: () => false,
+      stageModelRuleWork: () => false,
     };
     for await (const _ of composed.derive(
       createBeliefTask(atom('p'), Truth.create(0.9, 0.9), 0.9),
@@ -84,7 +84,7 @@ describe('Bench 103 — uniform composition', () => {
   });
 
   it('lm-rule composes to a union capped by maxRules', () => {
-    const composed = registry().resolve<LMRuleSelector>('lm-rule', ['priority', 'diverse']);
+    const composed = registry().resolve<ModelRuleSelector>('lm-rule', ['priority', 'diverse']);
     expect(composed).toBeInstanceOf(CompositeLMRuleSelector);
     const selected = composed.select(rules(), {
       maxRules: 2,

@@ -15,7 +15,7 @@ import { CompositeSampling } from '../../strategies/sampling/CompositeSampling.j
 import { CompositeStrategy } from '../../strategies/premise/selection-strategies.js';
 import type {
   AttentionModel,
-  LMRuleSelector,
+  ModelRuleSelector,
   SamplingStrategy,
   Strategy,
   StrategyImpl,
@@ -36,7 +36,7 @@ export const composedName = (spec: CompositeSpec): string => `${COMPOSED_PREFIX}
 const COMBINERS = {
   sampling: (parts: StrategyImpl[]) => new CompositeSampling(parts as SamplingStrategy[]),
   premise: (parts: StrategyImpl[]) => new CompositeStrategy(parts as Strategy[], 'dedup'),
-  'lm-rule': (parts: StrategyImpl[]) => new CompositeLMRuleSelector(parts as LMRuleSelector[]),
+  'lm-rule': (parts: StrategyImpl[]) => new CompositeLMRuleSelector(parts as ModelRuleSelector[]),
   attention: (parts: StrategyImpl[]) =>
     new CompositeAttention(
       (parts as AttentionModel[]).map((model) => ({ model, weight: 1 }))

@@ -50,7 +50,7 @@ export const PROVIDER_SEAMS: readonly ProviderSeam[] = [
   {
     id: 'lm-rule-apply',
     call: 'LMRule.apply',
-    callSites: [{ ref: 'nar/src/lm/rule/LMRule.ts:408', contains: 'await withTimeout(' }],
+    callSites: [{ ref: 'nar/src/lm/rule/LMRule.ts:416', contains: 'await withTimeout(' }],
     onCyclePath: false,
     bounded: true,
     bound: 'LMRule.callTimeoutMs — the deadline on one provider call, default 8s',

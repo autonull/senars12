@@ -13,7 +13,7 @@ import type { LMRule } from '../../nar/src/lm/LMRule.js';
 import type {
   AttentionModel,
   DerivationStrategy,
-  LMRuleSelector,
+  ModelRuleSelector,
   SamplingStrategy,
   Strategy,
 } from '../../nar/src/strategies/types.js';
@@ -98,7 +98,7 @@ describe('Bench 101 — resolution, memoization, telemetry', () => {
   it('a stateful strategy is a singleton and rejects config (Invariant S1)', () => {
     const r = registry();
     const graph = r.get<RuleGraph>('lm-rule', 'lm-graph');
-    expect(r.resolve<LMRuleSelector>('lm-rule', 'lm-graph')).toBe(graph);
+    expect(r.resolve<ModelRuleSelector>('lm-rule', 'lm-graph')).toBe(graph);
     expect(() => r.resolve('lm-rule', 'lm-graph', { anything: 1 })).toThrow(ConfigurationError);
   });
 
@@ -189,7 +189,7 @@ describe('Bench 101b — config changes behaviour in every stateless slot', () =
         pairs.push(`${p1.term.toString()} | ${p2.term.toString()}`);
         return [];
       },
-      stageLMRules: () => false,
+      stageModelRuleWork: () => false,
     };
   };
 
@@ -250,8 +250,8 @@ describe('Bench 101b — config changes behaviour in every stateless slot', () =
     const r = registry();
     const rules = ['a', 'b', 'c'].map((name) => rule(name));
     const context = { maxRules: 2, rotationIndex: 0, conceptPriority: 0.5, premiseCount: 2 as const };
-    const atZero = r.resolve<LMRuleSelector>('lm-rule', 'rotation', { offset: 0 });
-    const atOne = r.resolve<LMRuleSelector>('lm-rule', 'rotation', { offset: 1 });
+    const atZero = r.resolve<ModelRuleSelector>('lm-rule', 'rotation', { offset: 0 });
+    const atOne = r.resolve<ModelRuleSelector>('lm-rule', 'rotation', { offset: 1 });
     expect(atZero.select(rules, context).map((rule) => rule.name)).toEqual(['a', 'b']);
     expect(atOne.select(rules, context).map((rule) => rule.name)).toEqual(['b', 'c']);
   });

@@ -9,6 +9,7 @@ import type { GateRegistry } from '../kernel/GateRegistry.js';
 import type { LMService, SeNARSRegistry } from '../lm';
 import type { EmbeddingCache } from '../lm/system-one/embedding-cache.js';
 import type { JudgmentManifold } from '../lm/system-one/types.js';
+import type { EmbeddingGenerator } from '../memory/embedding.js';
 import { ConfigurationError, type CoreConfig } from '../types';
 import type { NarEventBus } from '../types/events.js';
 import type { RandomSource } from '../types/primitives.js';
@@ -91,6 +92,8 @@ export interface NARConfig extends CoreConfig {
   eventBus?: NarEventBus;
   /** Disable embedding layer for semantic similarity (saves resources when no embedding model). */
   enableEmbeddingLayer?: boolean;
+  /** Which embedder memory's semantic link layer uses. Unset reads provider settings. */
+  embeddingGenerator?: EmbeddingGenerator;
 }
 
 export function validateNarConfig(config: NARConfig): NARConfig {

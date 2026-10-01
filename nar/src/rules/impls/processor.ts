@@ -2,20 +2,20 @@
  * Rule processor for applying inference rules
  */
 
-import type { LMRuleStats } from '@senars/util';
+import type { ModelRuleStats } from '@senars/util';
 import { formatNarseseTruth, pushCapped, stopwatch, toError } from '@senars/util';
 import { findConflicts } from '../../cognitive/impls/conflict-utils.js';
 import type { DriveManager } from '../../drives';
 import { GATE_LOG_CAPACITY } from '../../kernel/event-ring.js';
-import type { LMRule } from '../../lm/rule/LMRule.js';
 import type { Memory } from '../../memory';
-import type { LMRuleSelector } from '../../strategies/types.js';
+import type { ModelRuleSelector } from '../../strategies/types.js';
 import type { StampType, Term } from '../../terms';
 import { Truth, type Truth as TruthType } from '../../terms';
 import type { NarEventBus, Task } from '../../types';
 import type {
-  LMRuleWork,
-  LMRuleWorkSink,
+  ModelRule,
+  ModelRuleWork,
+  ModelRuleWorkSink,
   RegisteredRule,
   RuleInput,
   RuleResult,
@@ -26,7 +26,7 @@ import { DerivationRecorder } from './recorder.js';
 import { RuleRegistry } from './rule-registry.js';
 import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils.js';
 
-interface LMRuleExecutionEntry {
+interface ModelRuleExecutionEntry {
   ruleName: string;
   status: 'fired' | 'skipped' | 'timeout' | 'aborted';
   durationMs: number;
@@ -54,22 +54,22 @@ interface MetaBudgetState {
 
 export class RuleProcessor {
   private readonly ruleIndex: RuleIndex;
-  private readonly lmRules: LMRule[] = [];
-  /** Id index over `lmRules` — O(1) lookup instead of a linear scan per query. */
-  private readonly lmRulesById = new Map<string, LMRule>();
+  private readonly modelRules: ModelRule[] = [];
+  /** Id index over `modelRules` — O(1) lookup instead of a linear scan per query. */
+  private readonly modelRulesById = new Map<string, ModelRule>();
   private eventBus: NarEventBus | null = null;
   private resultBuffer: RuleResult[] = [];
   private memory?: Memory;
   private host?: RuleProcessorHost;
   private readonly recorder: DerivationRecorder = new DerivationRecorder();
-  private lmSelector: LMRuleSelector | null = null;
-  private maxLMRulesPerStep = 13;
-  private lmRotationIndex = 0;
-  private executionLog: LMRuleExecutionEntry[] = [];
+  private modelRuleSelector: ModelRuleSelector | null = null;
+  private maxModelRulesPerStep = 13;
+  private modelRuleRotationIndex = 0;
+  private executionLog: ModelRuleExecutionEntry[] = [];
   // Reusable buffers to avoid allocations in hot paths
   private readonly seenBuffer = new Map<string, RuleResult>();
 
-  private lmWorkSink: LMRuleWorkSink | null = null;
+  private modelRuleWorkSink: ModelRuleWorkSink | null = null;
   private metaBudget: MetaBudgetState = {
     derivationsThisStep: 0,
     currentDepth: 0,
@@ -100,47 +100,47 @@ export class RuleProcessor {
 
   setEventBus(eventBus: NarEventBus): void {
     this.eventBus = eventBus;
-    this.lmRules.forEach((lmRule) => {
-      lmRule.setEventBus(eventBus);
+    this.modelRules.forEach((modelRule) => {
+      modelRule.setEventBus(eventBus);
     });
   }
 
-  registerLMRule(lmRule: LMRule): void {
-    this.lmRules.push(lmRule);
-    this.lmRulesById.set(lmRule.id, lmRule);
-    if (this.eventBus) lmRule.setEventBus(this.eventBus);
+  registerModelRule(modelRule: ModelRule): void {
+    this.modelRules.push(modelRule);
+    this.modelRulesById.set(modelRule.id, modelRule);
+    if (this.eventBus) modelRule.setEventBus(this.eventBus);
   }
 
-  setLMSelector(selector: LMRuleSelector, maxRules: number): void {
-    this.lmSelector = selector;
-    this.maxLMRulesPerStep = maxRules;
+  setModelRuleSelector(selector: ModelRuleSelector, maxRules: number): void {
+    this.modelRuleSelector = selector;
+    this.maxModelRulesPerStep = maxRules;
   }
 
-  getLMRuleExecutionLog(): LMRuleExecutionEntry[] {
+  getModelRuleExecutionLog(): ModelRuleExecutionEntry[] {
     return [...this.executionLog];
   }
 
-  getLMRule(id: string): LMRule | undefined {
-    return this.lmRulesById.get(id);
+  getModelRule(id: string): ModelRule | undefined {
+    return this.modelRulesById.get(id);
   }
 
-  getLmRuleStats(): LMRuleStats[] {
-    return this.lmRules.map((r) => r.getStats());
+  getModelRuleStats(): ModelRuleStats[] {
+    return this.modelRules.map((r) => r.getStats());
   }
 
-  clearLMRuleExecutionLog(): void {
+  clearModelRuleExecutionLog(): void {
     this.executionLog = [];
   }
 
-  serializeLMRules(): { rules: LMRuleStats[] } {
+  serializeModelRules(): { rules: ModelRuleStats[] } {
     return {
-      rules: this.lmRules.map((r) => r.getStats()),
+      rules: this.modelRules.map((r) => r.getStats()),
     };
   }
 
-  deserializeLMRules(data: { rules: LMRuleStats[] }): void {
+  deserializeModelRules(data: { rules: ModelRuleStats[] }): void {
     for (const ruleData of data.rules) {
-      const rule = this.lmRulesById.get(ruleData.id);
+      const rule = this.modelRulesById.get(ruleData.id);
       if (rule) {
         if (ruleData.enabled !== undefined) {
           if (ruleData.enabled) rule.enable();
@@ -160,7 +160,7 @@ export class RuleProcessor {
   }
 
   /**
-   * Memory-wide scalars handed to LM rule contexts. Prompt hints, never
+   * Memory-wide scalars handed to model-backed rule contexts. Prompt hints, never
    * load-bearing for admission, and read on the off-cycle pass only — which is
    * why there is no per-step memo: the memo's invalidator was never called
    * (§4 row 7), so it was a process-stale cache, and the cycle it cost is gone.
@@ -206,18 +206,18 @@ export class RuleProcessor {
    * Where staged model-backed work goes. `null` — the no-producer
    * configuration — is a state the processor runs in, not an error.
    */
-  setLMWorkSink(sink: LMRuleWorkSink | null): void {
-    this.lmWorkSink = sink;
+  setModelRuleWorkSink(sink: ModelRuleWorkSink | null): void {
+    this.modelRuleWorkSink = sink;
   }
 
   /** Stage model-backed rule work. Synchronous: nothing here may await a provider. */
-  stageLMRules(p1: RuleInput, p2?: RuleInput): boolean {
-    return this.lmWorkSink?.stage({ p1, p2 }) ?? false;
+  stageModelRuleWork(p1: RuleInput, p2?: RuleInput): boolean {
+    return this.modelRuleWorkSink?.stage({ p1, p2 }) ?? false;
   }
 
   /** Apply one staged unit of model-backed work. Off the cycle path by construction. */
-  async *applyLMRules(work: LMRuleWork, signal?: AbortSignal): AsyncGenerator<RuleResult> {
-    yield* this.processLMRulesImpl(work.p1, work.p2, {
+  async *applyModelRules(work: ModelRuleWork, signal?: AbortSignal): AsyncGenerator<RuleResult> {
+    yield* this.applyModelRulesImpl(work.p1, work.p2, {
       signal,
       singlePremise: work.p2 === undefined,
     });
@@ -228,7 +228,7 @@ export class RuleProcessor {
       for (const { ruleResult } of this.applySyncRules(p1, p2)) {
         yield ruleResult;
       }
-      yield* this.applyLMRules({ p1, p2 });
+      yield* this.applyModelRules({ p1, p2 });
       this.recorder.finish();
     }
   }
@@ -332,7 +332,7 @@ export class RuleProcessor {
     this.metaBudget.currentDepth = Math.max(this.metaBudget.currentDepth, depth);
   }
 
-  private async *processLMRulesImpl(
+  private async *applyModelRulesImpl(
     p1: RuleInput,
     p2?: RuleInput,
     opts?: {
@@ -340,7 +340,7 @@ export class RuleProcessor {
       singlePremise?: boolean;
     }
   ): AsyncGenerator<RuleResult> {
-    if (this.lmRules.length === 0 || opts?.signal?.aborted) return;
+    if (this.modelRules.length === 0 || opts?.signal?.aborted) return;
 
     const isSinglePremise = opts?.singlePremise ?? !p2;
     const effectiveP2 = p2 ?? p1;
@@ -350,17 +350,17 @@ export class RuleProcessor {
       this.memory?.getConcept(effectiveP2.term)?.priority ?? 0
     );
 
-    const selected = this.lmSelector
-      ? this.lmSelector.select(this.lmRules, {
-          maxRules: this.maxLMRulesPerStep,
+    const selected = this.modelRuleSelector
+      ? this.modelRuleSelector.select(this.modelRules, {
+          maxRules: this.maxModelRulesPerStep,
           conceptPriority: maxPriority,
-          rotationIndex: this.lmRotationIndex,
+          rotationIndex: this.modelRuleRotationIndex,
           premiseCount: isSinglePremise ? 1 : 2,
           focusTerm: p1.term,
         })
-      : this.lmRules;
+      : this.modelRules;
 
-    this.lmRotationIndex = (this.lmRotationIndex + 1) % this.lmRules.length;
+    this.modelRuleRotationIndex = (this.modelRuleRotationIndex + 1) % this.modelRules.length;
     if (selected.length === 0) return;
 
     const { totalConcepts, memoryPressure, conflictCount } = this.ruleContextScalars();
@@ -404,13 +404,13 @@ export class RuleProcessor {
     }
 
     const results = await Promise.all(
-      selected.map(async (lmRule) => {
+      selected.map(async (modelRule) => {
         if (opts?.signal?.aborted) return [];
         const elapsed = stopwatch();
         try {
           const tasks = isSinglePremise
-            ? await lmRule.apply(p1.term, p1.term, ruleContext, opts?.signal)
-            : await lmRule.apply(p1.term, effectiveP2.term, ruleContext, opts?.signal);
+            ? await modelRule.apply(p1.term, p1.term, ruleContext, opts?.signal)
+            : await modelRule.apply(p1.term, effectiveP2.term, ruleContext, opts?.signal);
           const derivedStamp = isSinglePremise ? p1.stamp : deriveStamp(p1, effectiveP2);
           const result = tasks.map(
             (task) =>
@@ -418,17 +418,17 @@ export class RuleProcessor {
                 term: task.term,
                 truth: task.truth ?? Truth.NEUTRAL,
                 stamp: derivedStamp,
-                priority: lmRule.priority,
+                priority: modelRule.priority,
               }) as RuleResult
           );
-          // Record LM rule derivations
+          // Record model-backed rule derivations
           for (const r of result) {
-            this.recorder.record(lmRule.id, p1, effectiveP2, r);
+            this.recorder.record(modelRule.id, p1, effectiveP2, r);
           }
           pushCapped(
             this.executionLog,
             {
-              ruleName: lmRule.name,
+              ruleName: modelRule.name,
               status: result.length > 0 ? 'fired' : 'timeout',
               durationMs: elapsed(),
               tasksProduced: result.length,
@@ -438,11 +438,11 @@ export class RuleProcessor {
           );
           return result;
         } catch (error) {
-          this.handleRuleError(error, lmRule.id);
+          this.handleRuleError(error, modelRule.id);
           pushCapped(
             this.executionLog,
             {
-              ruleName: lmRule.name,
+              ruleName: modelRule.name,
               status: 'timeout',
               durationMs: elapsed(),
               tasksProduced: 0,

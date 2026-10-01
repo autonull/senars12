@@ -66,7 +66,7 @@ describe('F5 — §8 dispositions', () => {
   });
 
   it('lm-meta-reasoning REPLACE: manifold scores derivation traces, no generative call', async () => {
-    const rule = nar.getProcessor().getLMRule('lm-meta-reasoning');
+    const rule = nar.getProcessor().getModelRule('lm-meta-reasoning');
     expect(rule).toBeDefined();
     const primary = termParser.parse('(a-->b)')!;
     const tasks = await rule!.apply(primary, undefined, {
@@ -82,14 +82,14 @@ describe('F5 — §8 dispositions', () => {
   });
 
   it('lm-meta-reasoning with no traces degrades silently (no generative call)', async () => {
-    const rule = nar.getProcessor().getLMRule('lm-meta-reasoning')!;
+    const rule = nar.getProcessor().getModelRule('lm-meta-reasoning')!;
     const tasks = await rule.apply(termParser.parse('(a-->b)')!, undefined, {});
     expect(tasks).toEqual([]);
     expect(lmCalls).toBe(0);
   });
 
   it('lm-uncertainty-calibration REPLACE: identity calibration when unfitted, no generative call', async () => {
-    const rule = nar.getProcessor().getLMRule('lm-uncertainty-calibration')!;
+    const rule = nar.getProcessor().getModelRule('lm-uncertainty-calibration')!;
     const tasks = await rule.apply(termParser.parse('(a-->b)')!, undefined, {
       truth: { f: 0.8, c: 0.4 },
     });

@@ -248,7 +248,7 @@ export function registerNARTools(
       annotations: ANNOTATIONS.set,
     },
     async ({ id }) => {
-      const rule = nar.getProcessor().getLMRule(id);
+      const rule = nar.getProcessor().getModelRule(id);
       if (!rule) {
         return createMCPResponse(`LM rule not found: ${id}`, { enabled: false, id });
       }
@@ -267,7 +267,7 @@ export function registerNARTools(
       annotations: ANNOTATIONS.set,
     },
     async ({ id }) => {
-      const rule = nar.getProcessor().getLMRule(id);
+      const rule = nar.getProcessor().getModelRule(id);
       if (!rule) {
         return createMCPResponse(`LM rule not found: ${id}`, { disabled: false, id });
       }
@@ -286,7 +286,7 @@ export function registerNARTools(
       annotations: ANNOTATIONS.read,
     },
     async () => {
-      const rules = nar.getProcessor().getLmRuleStats();
+      const rules = nar.getProcessor().getModelRuleStats();
       return createMCPResponse(stringifyMCP({ rules }), { rules });
     }
   );

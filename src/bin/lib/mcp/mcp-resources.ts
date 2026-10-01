@@ -43,7 +43,7 @@ const lmStatus = (nar: NAR) => {
 const benchmarks = (nar: NAR) => {
   const costlyDerivations = nar
     .getProcessor()
-    .getLmRuleStats()
+    .getModelRuleStats()
     .flatMap((lmStat) => {
       const { stats } = lmStat;
       return stats && stats.totalCalls > 0
@@ -193,7 +193,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
     'lm-rules://stats',
     'LM Rule Stats',
     'LM Rule statistics (calls, successes, failures, circuit state)',
-    () => nar.getProcessor()?.getLmRuleStats?.() ?? []
+    () => nar.getProcessor()?.getModelRuleStats?.() ?? []
   );
 
   json(
@@ -201,7 +201,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
     'lm-rules://execution-log',
     'LM Rule Log',
     'Recent LM Rule execution log',
-    () => nar.getProcessor()?.getLMRuleExecutionLog?.() ?? []
+    () => nar.getProcessor()?.getModelRuleExecutionLog?.() ?? []
   );
 
   json(

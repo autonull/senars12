@@ -57,7 +57,7 @@ export interface LMService {
   ): AsyncIterable<string>;
 }
 
-export type LMRuleStats = {
+export type ModelRuleStats = {
   id: string;
   name: string;
   enabled: boolean;

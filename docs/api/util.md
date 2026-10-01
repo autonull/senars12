@@ -192,6 +192,10 @@
 
 - `toError`
 
+- `extractJsonObject` — The first balanced top-level JSON object in `text`, or null.
+
+- `parseJsonObject` — Parse the first JSON object in `text`; null when absent or malformed.
+
 - `bar` — Unicode progress bar for a 0–1 fraction.
 
 - `divider` — Horizontal rule separating report sections.

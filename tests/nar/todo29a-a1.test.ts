@@ -20,7 +20,7 @@ import {
 import { LMProposalProducer } from '@senars/nar/proposal/lm-rule-producer.js';
 import { StreamReasoner } from '@senars/nar/stream/reasoner.js';
 import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
-import type { LMRuleWork } from '@senars/nar/rules/types';
+import type { ModelRuleWork } from '@senars/nar/rules/types';
 import { createBudget } from '@senars/nar/types';
 import { Stamp, Truth } from '@senars/nar/terms';
 import { createTestController, inferenceParams } from './fixtures/cognitive.js';
@@ -85,9 +85,9 @@ const rig = (respond: (prompt: string) => Promise<string>, callTimeoutMs = 100):
     new StreamReasoner({ gates, backendTimeoutMs: 200 }),
     processor
   );
-  processor.setLMWorkSink(producer);
+  processor.setModelRuleWorkSink(producer);
   const lm = { tryGenerateText: (prompt: string) => respond(prompt) } as unknown as LMService;
-  processor.registerLMRule(
+  processor.registerModelRule(
     new LMRule('lm-test-derivation', lm, {
       name: 'lm-test-derivation',
       promptTemplate: '{{primaryTerm}}',
@@ -194,7 +194,7 @@ describe('A1 — the causal model of a producer’s effect', () => {
   it('registering a producer does not change the cycle’s required progress', async () => {
     const withProducer = rig(async () => '(x-->y).');
     const withoutProducer = rig(async () => '(x-->y).');
-    withoutProducer.processor.setLMWorkSink(null);
+    withoutProducer.processor.setModelRuleWorkSink(null);
 
     const [withSink, withoutSink] = await Promise.all([
       settledWithin(withProducer.execution.run(1), 3000),
@@ -276,7 +276,7 @@ describe('A1 — a bounded queue drops the newest work, and says so', () => {
     const reasoner = new StreamReasoner({ gates, maxPending: 2 });
     const processor = new RuleProcessor();
     const producer = new LMProposalProducer(reasoner, processor);
-    const work = (): LMRuleWork => ({
+    const work = (): ModelRuleWork => ({
       p1: { term: inheritance(atom('a'), atom('b')) as Term, truth: Truth.TRUE, stamp: Stamp.createInput() },
     });
 
@@ -304,7 +304,7 @@ describe('A1 — the no-producer configuration still reasons', () => {
     seed(memory);
 
     expect(await settledWithin(execution.run(2), 3000)).toBeGreaterThan(0);
-    expect(processor.getLmRuleStats()).toEqual([]);
+    expect(processor.getModelRuleStats()).toEqual([]);
     expect(memoryTerms(memory)).toContain('(a-->c)');
   });
 });

@@ -7,7 +7,7 @@ import { InferenceController } from '../../reason/inference-controller';
 import type { RLFPLearner } from '../../rlfp';
 import type { RuleProcessor } from '../../rules';
 import type { StrategySpec, StrategyType } from '../../strategies/registration';
-import type { DerivationStrategy, LMRuleSelector, SamplingStrategy } from '../../strategies';
+import type { DerivationStrategy, ModelRuleSelector, SamplingStrategy } from '../../strategies';
 import type { AttentionModel } from '../../strategies/types.js';
 import { RuleGraph } from '../../strategies/lm-graph/RuleGraph.js';
 import type { CognitiveRegistry } from './CognitiveRegistry.js';
@@ -139,7 +139,7 @@ export class CognitiveController {
     // different one — a reconfigure that validates, stores, and does nothing.
     this.memory.setAttentionModel(this.resolve<AttentionModel>('attention', params));
 
-    this.processor.setLMSelector(lmRule.selector, params.strategies.lmRule.maxRules);
+    this.processor.setModelRuleSelector(lmRule.selector, params.strategies.lmRule.maxRules);
     if (lmRule.ruleGraph) this.#wireRuleGraphCallbacks(lmRule.ruleGraph);
 
     const inferenceConfig = {
@@ -186,12 +186,12 @@ export class CognitiveController {
    * graph stay here; selecting it is the registry's job.
    */
   private resolveLMRule(params: CognitiveParameters): {
-    selector: LMRuleSelector;
+    selector: ModelRuleSelector;
     ruleGraph: RuleGraph | null;
   } {
     const slot = params.strategies.lmRule as StrategySlotParams;
     if (slot.type !== 'lm-graph') {
-      return { selector: this.resolve<LMRuleSelector>('lm-rule', params), ruleGraph: null };
+      return { selector: this.resolve<ModelRuleSelector>('lm-rule', params), ruleGraph: null };
     }
 
     const ruleGraph = this.registry.get<RuleGraph>('lm-rule', 'lm-graph');
@@ -202,11 +202,11 @@ export class CognitiveController {
 
   #wireRuleGraphCallbacks(ruleGraph: RuleGraph): void {
     this.onAdapt(() => {
-      const log = this.processor.getLMRuleExecutionLog();
+      const log = this.processor.getModelRuleExecutionLog();
       for (const entry of log) {
         ruleGraph.recordPerformance(entry.ruleName, entry.status === 'fired', entry.durationMs);
       }
-      this.processor.clearLMRuleExecutionLog();
+      this.processor.clearModelRuleExecutionLog();
       ruleGraph.tick();
     });
 

@@ -8,11 +8,18 @@
  * - LM proposes, NARS validates, both adopt
  */
 
-import { clamp01, createLogger, errMsg, generateId, type Logger, LruCache } from '@senars/util';
+import {
+  clamp01,
+  createLogger,
+  errMsg,
+  generateId,
+  type Logger,
+  LruCache,
+  parseJsonObject,
+} from '@senars/util';
 import { type BagItem, PriorityBag } from '../bag/Bag.js';
-import { parseJsonObject } from '../lm/json.js';
-import type { LMService } from '../lm/lm-service.js';
 import type { Memory } from '../memory';
+import type { TextGenerator } from '../ports';
 import type { Term } from '../terms';
 import { containsSubterm, getSubject, Truth, termKey } from '../terms';
 import { createBudget, createTask, type Task } from '../types';
@@ -78,7 +85,7 @@ const DEFAULT_CONFIG: SchemaInductionConfig = {
 
 export class SchemaInductor {
   private readonly memory: Memory;
-  private readonly lmClient: LMService;
+  private readonly lmClient: TextGenerator;
   private readonly config: SchemaInductionConfig;
   private readonly logger: Logger;
   private schemas = new Map<string, SchemaPattern>();
@@ -90,7 +97,7 @@ export class SchemaInductor {
   static readonly #SEEN_SIGNATURE_CAP = 4096;
   readonly #seenSignatures = new LruCache<string, true>(SchemaInductor.#SEEN_SIGNATURE_CAP);
 
-  constructor(memory: Memory, lmClient: LMService, config: Partial<SchemaInductionConfig> = {}) {
+  constructor(memory: Memory, lmClient: TextGenerator, config: Partial<SchemaInductionConfig> = {}) {
     this.memory = memory;
     this.lmClient = lmClient;
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -329,7 +336,7 @@ Respond with JSON:
 
 export const createSchemaInductor = (
   memory: Memory,
-  lmClient: LMService,
+  lmClient: TextGenerator,
   config?: Partial<SchemaInductionConfig>
 ): SchemaInductor => {
   return new SchemaInductor(memory, lmClient, config);

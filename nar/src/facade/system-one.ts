@@ -17,6 +17,7 @@ import {
 import { createDispatcher, StubCortex } from '../lm/system-one/dispatcher.js';
 import { JudgmentDataset } from '../lm/system-one/distill.js';
 import { createEmbeddingCache, type EmbeddingCache } from '../lm/system-one/embedding-cache.js';
+import { embeddingRuntime } from '../lm/embedding-runtime.js';
 import { createGroundednessGate } from '../lm/system-one/groundedness-gate.js';
 import {
   type BeliefSource,
@@ -115,7 +116,7 @@ export class SystemOneRuntime {
       systemOneConfig.manifold && !('judgeBatch' in systemOneConfig.manifold)
         ? (systemOneConfig.manifold as SystemOneConfigSchema['manifold']).encoder
         : undefined;
-    const encoder = createEmbeddingGenerator(undefined, encoderConfig);
+    const encoder = createEmbeddingGenerator(embeddingRuntime, encoderConfig);
     const embeddingCache =
       systemOneConfig.embeddingCache ??
       createEmbeddingCache({

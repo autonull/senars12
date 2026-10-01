@@ -156,7 +156,7 @@ describe('Bench 64 — Result adoption (persistence)', () => {
     const persister = new StatePersister({
       config: { persistState: true, statePath: join(import.meta.dirname, 'tmp-does-not-exist') },
       memory: { addTask: () => {} } as never,
-      processor: { serializeLMRules: () => ({}), deserializeLMRules: () => {} },
+      processor: { serializeModelRules: () => ({}), deserializeModelRules: () => {} },
       attentionReport: () => ({ concepts: [], total: 0 }),
       query: { getBeliefs: () => [], getGoals: () => [], getQuestions: () => [] },
     });

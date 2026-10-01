@@ -12,14 +12,13 @@
  */
 
 import { createNAR } from '@senars/nar';
-import { createSeNARSRegistry } from '@senars/nar/lm';
+import { attemptLMCorrection, createSeNARSRegistry } from '@senars/nar/lm';
 import { createLMService, createMockLMService } from '@senars/nar/lm/lm-service';
 import { createRule } from '@senars/nar/lm/rule-builders';
 import { ruleDefs } from '@senars/nar/lm/rule-templates';
 import { symbolicFallbacks } from '@senars/nar/lm/rule-templates/fallbacks';
 import { traceAbstractor } from '@senars/nar/lm/context/trace-abstractor';
 import { ShadowValidator } from '@senars/nar/lm/shadow-validation';
-import { attemptLMCorrection } from '@senars/nar/cognitive/impls/analyzers/corrections';
 import { NLUnderstandingService } from '@senars/nar/nl';
 import { TranslationCache } from '@senars/nar/nl';
 import { createLogger } from '@senars/util';

@@ -1,5 +1,6 @@
 import { LruCache } from '@senars/util';
 import { TransformersEmbeddingGenerator } from '../../memory/embedding.js';
+import { embeddingRuntime } from '../embedding-runtime.js';
 import type { EmbeddingCache as EmbeddingCacheApi, EmbeddingPointer } from './types.js';
 
 const DIMENSION = 384;
@@ -65,7 +66,7 @@ export class EmbeddingCache {
       ttlMs: config.ttlMs ?? 300_000,
       dimension: config.dimension,
     };
-    this.#generator = config.generator ?? new TransformersEmbeddingGenerator();
+    this.#generator = config.generator ?? new TransformersEmbeddingGenerator(embeddingRuntime);
     this.#metricsSink = config.metricsSink;
     this.#cache = new LruCache({
       maxSize: this.#config.maxSize,

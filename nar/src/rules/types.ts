@@ -1,3 +1,5 @@
+import type { ModelRuleStats } from '@senars/util';
+import type { NarEventBus, Task } from '../types';
 import type { StampType, Term, Truth } from '../terms';
 
 export interface RuleInput {
@@ -14,8 +16,38 @@ export interface RuleResult {
   taskType?: 'belief' | 'goal' | 'question' | 'command';
 }
 
+/**
+ * What the cycle requires of a model-backed rule, in core vocabulary.
+ *
+ * The induction layer's `LMRule` satisfies this structurally and is never named
+ * by it: a core extension contract typed in the layer's vocabulary is the
+ * coupling a type boundary is supposed to remove (TODO29.a §5.2). Everything
+ * here is data or a term — no closure over NAR internals.
+ */
+export interface ModelRule {
+  readonly id: string;
+  readonly name: string;
+  readonly category: string;
+  readonly priority: number;
+  /** The term a selector matches this rule against. */
+  readonly condition: Term;
+  /** Whether the rule derives symbolically when its model call fails or is refused. */
+  readonly hasSymbolicFallback: boolean;
+  canApply(primary: Term, secondary?: Term, context?: Record<string, unknown>): boolean;
+  apply(
+    primary: Term,
+    secondary?: Term,
+    context?: Record<string, unknown>,
+    signal?: AbortSignal
+  ): Promise<Task[]>;
+  getStats(): ModelRuleStats;
+  setEventBus(eventBus: NarEventBus): void;
+  enable(): void;
+  disable(): void;
+}
+
 /** A unit of model-backed rule work: staged by the cycle, applied outside it. */
-export interface LMRuleWork {
+export interface ModelRuleWork {
   p1: RuleInput;
   p2?: RuleInput;
 }
@@ -25,9 +57,9 @@ export interface LMRuleWork {
  * reaches a provider through — a second queue would be a second account of the
  * same backlog (TODO29.a A1).
  */
-export interface LMRuleWorkSink {
+export interface ModelRuleWorkSink {
   /** `false` when the declared overflow policy refused the work. */
-  stage(work: LMRuleWork): boolean;
+  stage(work: ModelRuleWork): boolean;
 }
 
 /** Engine port consumed by derivation strategies — keeps `strategies/` free of the processor implementation. */
@@ -38,7 +70,7 @@ export interface RuleEngine {
    * construction: the cycle may not await a provider, and a strategy that could
    * await one would put the cycle's progress behind a model again.
    */
-  stageLMRules(p1: RuleInput, p2?: RuleInput): boolean;
+  stageModelRuleWork(p1: RuleInput, p2?: RuleInput): boolean;
 }
 
 export type TruthFn = (t1: Truth, t2: Truth) => Truth | null;

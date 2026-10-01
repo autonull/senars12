@@ -55,7 +55,7 @@ describe('RuleProcessor LM Rule Priority', () => {
     conceptA.priority = 0.9;
     conceptB.priority = 0.8;
 
-    processor.registerLMRule(mockLMRule);
+    processor.registerModelRule(mockLMRule);
     await collectResults(processor.process(singlePremise(makeInput('A'), makeInput('B'))));
 
     expect(mockLMRule.apply).toHaveBeenCalled();
@@ -69,7 +69,7 @@ describe('RuleProcessor LM Rule Priority', () => {
     conceptA.priority = 0.7;
     conceptB.priority = 0.6;
 
-    processor.registerLMRule(mockLMRule);
+    processor.registerModelRule(mockLMRule);
     await collectResults(processor.process(singlePremise(makeInput('A'), makeInput('B'))));
 
     expect(mockLMRule.apply).toHaveBeenCalled();
@@ -94,7 +94,7 @@ describe('RuleProcessor LM Rule Priority', () => {
     conceptA.priority = 0.9;
     conceptB.priority = 0.1;
 
-    processor.registerLMRule(mockLMRule);
+    processor.registerModelRule(mockLMRule);
     await collectResults(processor.process(singlePremise(makeInput('A'), makeInput('B'))));
 
     expect(mockLMRule.apply).toHaveBeenCalled();
@@ -121,7 +121,7 @@ describe('RuleProcessor LM Rule Priority', () => {
       canApply: vi.fn(() => true),
       setEventBus: vi.fn(),
     };
-    processor.registerLMRule(failingRule);
+    processor.registerModelRule(failingRule);
     expect(processor.process(singlePremise(makeInput('A'), makeInput('B')))).toBeDefined();
   });
 });

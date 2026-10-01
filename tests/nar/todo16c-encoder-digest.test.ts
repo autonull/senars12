@@ -68,11 +68,21 @@ describe('Bench 26 — Encoder Digest Binding', () => {
   });
 
   it('createEmbeddingGenerator parameterizes model id + dimension', () => {
-    const custom = createEmbeddingGenerator(false, { modelId: 'Xenova/all-mpnet-base-v2', dimension: 768 });
+    const transformers = () => ({ provider: 'transformers', device: 'cpu' });
+    const custom = createEmbeddingGenerator(transformers, {
+      modelId: 'Xenova/all-mpnet-base-v2',
+      dimension: 768,
+    });
     expect(custom).toBeInstanceOf(TransformersEmbeddingGenerator);
     expect(custom.dimension).toBe(768);
-    const mock = createEmbeddingGenerator(true, { dimension: 16 });
+    const mock = createEmbeddingGenerator(transformers, { dimension: 16, useMock: true });
     expect(mock).toBeInstanceOf(MockEmbeddingGenerator);
     expect(mock.dimension).toBe(16);
+  });
+
+  it('a runtime that is not transformers degrades to the deterministic generator', () => {
+    expect(createEmbeddingGenerator(() => ({ provider: 'ollama', device: 'cpu' }))).toBeInstanceOf(
+      MockEmbeddingGenerator
+    );
   });
 });

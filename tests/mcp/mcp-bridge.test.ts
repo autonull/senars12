@@ -126,8 +126,8 @@ describe('registerNARTools (agent-specific MCP surface)', () => {
     };
     const nar = {
       getProcessor: () => ({
-        getLMRule: (id: string) => (id === 'r1' ? rule : undefined),
-        getLmRuleStats: () => [{ id: 'r1', enabled: true }],
+        getModelRule: (id: string) => (id === 'r1' ? rule : undefined),
+        getModelRuleStats: () => [{ id: 'r1', enabled: true }],
       }),
       tools: new ToolManager(),
     };
@@ -157,7 +157,7 @@ describe('registerNARTools (agent-specific MCP surface)', () => {
     const nar = {
       getGoals: () => [{ term: { toString: () => goalTerm }, truth: { f: 0.9, c: 0.9 } }],
       getBeliefs: () => [{ term: { toString: () => goalTerm }, truth: { f: 0.8, c: 0.5 } }],
-      getProcessor: () => ({ getLMRule: () => undefined, getLmRuleStats: () => [] }),
+      getProcessor: () => ({ getModelRule: () => undefined, getModelRuleStats: () => [] }),
       tools: new ToolManager(),
     };
     const server = new McpServer({ name: 'test', version: '0.0.1' });

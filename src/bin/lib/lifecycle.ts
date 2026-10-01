@@ -13,6 +13,7 @@ import {
   createConfiguredLMRules,
   createLMService,
   createSeNARSRegistry,
+  embeddingRuntime,
   setRouting,
 } from '@senars/nar/lm';
 import { createEmbeddingGenerator } from '@senars/nar/memory/embedding';
@@ -130,7 +131,7 @@ export async function createAgentFromEnv(
   if (appConfig.bot.lmRules.enabled && appConfig.bot.lmRules.rules.length > 0) {
     const logger = createLogger({ scope: 'lifecycle' });
     const { rules, unknownIds } = createConfiguredLMRules(lmService, appConfig.bot.lmRules.rules);
-    for (const rule of rules) nar.getProcessor().registerLMRule(rule);
+    for (const rule of rules) nar.getProcessor().registerModelRule(rule);
     for (const id of unknownIds) logger.warn(`Unknown LM rule id in config: ${id}`);
   }
 
@@ -148,7 +149,7 @@ export async function createAgentFromEnv(
         {
           episodic: episodicMemory,
           lm: lmService,
-          embeddings: createEmbeddingGenerator(),
+          embeddings: createEmbeddingGenerator(embeddingRuntime),
           promote: async (content, provenance) => {
             logger.info(`Memory promoted with provenance: ${JSON.stringify(provenance)}`);
             const safeContent = content.replace(/["\\]/g, ' ').trim();

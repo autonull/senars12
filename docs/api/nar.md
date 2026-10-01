@@ -160,7 +160,13 @@
 
 - `mentionsSymbol`
 
+- `operationNameOf` — The operation a term names, or `undefined` when it names none.
+
+- `operationTerm` — `(move^(dir-->left,steps-->3))`. Keys are read in insertion order, so the
+
 - `parseTermToEdges`
+
+- `readOperationTerm` — The name and arguments a term calls, or `undefined` when it calls nothing.
 
 - `sameKind`
 
@@ -371,14 +377,6 @@ _Dynamic subpath (no single entry file)._
 - `resolveSlot` — Resolve one slot of a parameter graph to its instance. The single read path
 
 - `SLOT_KEY` — The slot's config key: `lmRule` in a parameter graph, `lm-rule` in the
-
-## `./cognitive/impls/analyzers/corrections`
-
-- `attemptLMCorrection` — Bidirectional correction: when a contradiction is traceable to an LLM
-
-- `identifyIssues`
-
-- `applyCorrections`
 
 ## `./commands`
 
@@ -706,6 +704,10 @@ _Dynamic subpath (no single entry file)._
 
 ## `./lm`
 
+- `attemptLMCorrection` — Returns null on model failure (escalation exhausted) — caller keeps the symbolic side.
+
+- `embeddingRuntime`
+
 - `admitTasks`
 
 - `topBeliefTasks`
@@ -1022,6 +1024,12 @@ _Dynamic subpath (no single entry file)._
 
 - `EmbeddingGeneratorConfig`
 
+- `EmbeddingRuntime` — What the embedding runtime is allowed to know about its host, in core
+
+- `EmbeddingRuntimeSource`
+
+- `DEFAULT_EMBEDDING_RUNTIME` — What the core can know with no composition root bound: no provider is
+
 - `DEFAULT_EMBEDDING_MODEL_ID`
 
 - `DEFAULT_EMBEDDING_DIMENSION`
@@ -1294,9 +1302,11 @@ _Dynamic subpath (no single entry file)._
 
 - `normalize`
 
-- `operationTerm` — `toolName(key --> value, ...)`; the `operation` kind, read by `readOperationTerm` and named by `operationNameOf`. Keys are read in insertion order, so the
+- `operationNameOf` — The operation a term names, or `undefined` when it names none.
 
-- `readOperationTerm` — The operation a term names, or `undefined` when it names none. Accepts the
+- `operationTerm` — `(move^(dir-->left,steps-->3))`. Keys are read in insertion order, so the
+
+- `readOperationTerm` — The name and arguments a term calls, or `undefined` when it calls nothing.
 
 - `ParseError`
 

@@ -21,6 +21,7 @@ import { AssociativeRegistry, GraphMemory } from './associative.js';
 import type { ConceptGraph } from './ConceptGraph.js';
 import { Concept, type ConceptMergeResult, type ConceptTaskType } from './concept.js';
 import { Focus } from './focus.js';
+import { type EmbeddingGenerator, MockEmbeddingGenerator } from './embedding.js';
 import type { MemoryHealth } from './health.js';
 import type { ForgettingPolicy } from './lifecycle';
 import { Archive, Forgetting } from './lifecycle';
@@ -42,6 +43,8 @@ export interface MemoryConfig {
   enableIndexing?: boolean;
   enableArchive?: boolean;
   enableEmbeddingLayer?: boolean;
+  /** Which embedder the semantic link layer uses. Defaults to the deterministic one. */
+  embeddingGenerator?: EmbeddingGenerator;
   forgettingPolicy?: ForgettingPolicy;
   enablePressureDetection?: boolean;
   linkCapacity?: number;
@@ -52,7 +55,7 @@ export interface MemoryConfig {
   bag?: ResolvedBagSlot;
 }
 
-const DEFAULT_CONFIG: Required<MemoryConfig> = {
+const DEFAULT_CONFIG: Required<Omit<MemoryConfig, 'embeddingGenerator'>> = {
   maxConcepts: 1000,
   activationDecayRate: 0.01,
   consolidationInterval: 10,
@@ -105,7 +108,7 @@ export class Memory {
   #attentionModel: AttentionModel;
   private readonly concepts = new TermMap<Concept>();
   private readonly associative: AssociativeRegistry;
-  private readonly config: Required<MemoryConfig>;
+  private readonly config: Required<Omit<MemoryConfig, 'embeddingGenerator'>>;
   private readonly index: MemoryIndex;
   private readonly focus: Focus;
   private readonly archive: Archive;
@@ -159,6 +162,7 @@ export class Memory {
         capacity: config.semanticLinkCapacity ?? LINK.SEMANTIC_LAYER_CAPACITY,
         similarityThreshold: 0.6,
         maxLinksPerConcept: 20,
+        generator: config.embeddingGenerator ?? new MockEmbeddingGenerator(),
       });
       this.linkManager.setLayer('embedding', embeddingLayer);
     }

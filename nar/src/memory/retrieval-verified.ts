@@ -1,5 +1,5 @@
 import type { Episode, EpisodeType } from '@senars/util';
-import type { LMService } from '../lm/lm-service.js';
+import type { TextGenerator } from '../ports';
 import type { EpisodicMemory } from './EpisodicMemory.js';
 import type { EmbeddingGenerator } from './embedding.js';
 import { cosineSimilarity } from './embedding.js';
@@ -24,7 +24,7 @@ export interface ConsolidationResult {
 
 export interface ConsolidatorDeps {
   episodic: EpisodicMemory;
-  lm: LMService;
+  lm: TextGenerator;
   embeddings: EmbeddingGenerator;
   /** Promote a verified belief to long-term storage. */
   promote: (content: string, provenance: Record<string, unknown>) => Promise<void> | void;

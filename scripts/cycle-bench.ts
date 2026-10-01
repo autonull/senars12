@@ -54,7 +54,7 @@ const HOOKS = [
   { name: 'listConcepts', proto: Memory.prototype as object, method: 'listConcepts' },
   { name: 'getGoals', proto: Memory.prototype as object, method: 'getGoals' },
   { name: 'getStatistics', proto: Memory.prototype as object, method: 'getStatistics' },
-  { name: 'stageLMRules', proto: RuleProcessor.prototype as object, method: 'stageLMRules' },
+  { name: 'stageModelRuleWork', proto: RuleProcessor.prototype as object, method: 'stageModelRuleWork' },
 ] as const;
 
 /** Live hooks, in HOOKS order. Held in a list, not a Map, so resetting is a field write. */
@@ -279,10 +279,10 @@ const selftest = async (): Promise<void> => {
         case 'getStatistics':
           nar.memory.getStatistics();
           break;
-        case 'stageLMRules':
+        case 'stageModelRuleWork':
           // Staging is the cycle's only call into model-backed rules (A1), and it
           // happens whether or not an LM is configured: the queue is the NAR's.
-          nar.getProcessor().stageLMRules({
+          nar.getProcessor().stageModelRuleWork({
             term: TermBuilder.atom('probe'),
             truth: Truth.NEUTRAL,
             stamp: Stamp.createInput(),

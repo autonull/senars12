@@ -48,7 +48,7 @@ export const IN_CYCLE_INVENTORY: readonly InCycleBehaviour[] = [
       'through the perception gate. Was 33 inducer invocations per cycle (TODO29.a §13); the cycle ' +
       'now stages work and pumps it off-cycle.',
     note:
-      'Moved by A1. `DefaultDerivation` calls `processor.stageLMRules`, which is a bounded queue ' +
+      'Moved by A1. `DefaultDerivation` calls `processor.stageModelRuleWork`, which is a bounded queue ' +
       'push; the provider is reached only from `LMProposalProducer.pump`, which the cycle does ' +
       'not await, and every await inside it is a deadline.',
   },
@@ -70,17 +70,22 @@ export const IN_CYCLE_INVENTORY: readonly InCycleBehaviour[] = [
       "The AIKR bag's pressure: an empty bag means `.schemas-induce` has nothing to work on.",
     note:
       'Admission is synchronous and bounded (an LruCache-keyed bag); the model call it fuels is ' +
-      'not, and lives in `induceIfPressured` — off the cycle path already.',
+      'not, and lives in `induceIfPressured` — off the cycle path already. A2 gave the ' +
+      'induction its own vocabulary: it holds a `TextGenerator` (`nar/src/ports`), not the ' +
+      'layer\'s `LMService`.',
   },
   {
     id: 'embedding-config-read',
-    behaviour: 'The embedding cache reads provider settings and the mock flag on the cycle path.',
+    behaviour: 'The embedding runtime reads provider settings and the mock flag on the cycle path.',
     disposition: 'synchronous',
     noticedBy:
       'Recall under a mock or CPU-only provider: the read decides whether embedding is mocked at all.',
     note:
-      'A configuration read, not a provider call — no await, no I/O. It stays, and A2 moves it out ' +
-      'of the core rather than off the cycle, because the cache needs it wherever it lives.',
+      'A configuration read, not a provider call — no await, no I/O, so it stays synchronous. ' +
+      'A2 moved the *read* off the cycle path instead: `nar/src/memory/embedding.ts` declares ' +
+      '`EmbeddingRuntime` and takes a source function, and `nar/src/lm/embedding-runtime.ts` is ' +
+      'the only module that answers it. The core can now say what it needs without naming who ' +
+      'provides it.',
   },
   {
     id: 'stream-reasoner-flush',
@@ -105,10 +110,13 @@ export const IN_CYCLE_INVENTORY: readonly InCycleBehaviour[] = [
     behaviour: 'A malformed term is re-prompted to the model as a correction.',
     disposition: 'dropped',
     noticedBy:
-      'Nobody: `attemptLMCorrection` has no callers in the repository, so the behaviour cannot be lost.',
+      'Nobody: `attemptLMCorrection` has no production caller — its only one is ' +
+      '`scripts/fundamentals-bench.ts` — so the behaviour cannot be lost.',
     note:
-      'Awaits `lm.tryGenerateText` and would be an unbounded seam if it were wired. Listed because ' +
-      'it is a value import of the layer from cycle-path code, and the audit is how it is shown dead.',
+      'Awaits `lm.tryGenerateText` and would be an unbounded seam if it were wired. A2 moved it ' +
+      'from `nar/src/cognitive/impls/analyzers/` to `nar/src/lm/correction.ts`: it is a provider ' +
+      'call under a layer-owned grammar, and the cycle path was carrying the edge for a bench ' +
+      'script alone.',
   },
 ];
 
@@ -132,17 +140,13 @@ export const CYCLE_PATH_PREFIXES: readonly string[] = [
 /**
  * Which declared behaviour owns each cycle-path file's imports of the layer.
  *
- * The census is the point, and it is a good one: of the cycle path's imports of
- * the layer, three are values and the rest are types. `RuleProcessor` reaches
- * the layer through an `LMRule` *parameter* and no value import at all, so the
- * cycle already holds the layer as data in most places — which is what makes
- * A1 a wiring change rather than a rewrite (§4 row 9).
+ * **Empty since A2 (2026-10-01).** The census it annotates now reads *zero*
+ * edges across zero files: no cycle-path module imports the induction layer at
+ * all, so there is nothing to attribute. The constant stays because the rule it
+ * feeds is the point — an edge that reappears must name a behaviour, and a rule
+ * with nothing to check is the kind that stops being read.
  */
 export const IN_CYCLE_EDGE_ATTRIBUTIONS: readonly {
   readonly file: string;
   readonly behaviour: string;
-}[] = [
-  { file: 'nar/src/cognitive/impls/analyzers/corrections.ts', behaviour: 'narsese-correction' },
-  { file: 'nar/src/learning/schema-induction.ts', behaviour: 'schema-induction-admission' },
-  { file: 'nar/src/memory/embedding.ts', behaviour: 'embedding-config-read' },
-];
+}[] = [];
