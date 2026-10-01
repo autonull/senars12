@@ -129,11 +129,25 @@ export const resourceViolations = async (): Promise<ResourceViolation[]> => {
     if (mentions < 2)
       fail('capacity-read', `${symbol} is named once under nar/src — declared and never read`);
 
-    // 2 — a bound is a finite positive number.
+    // 2 — a bound is a finite positive number, or a *declared* absence.
     const capacity = await resolveCapacity(contract.capacity);
     if (typeof capacity === 'string') fail('capacity-numeric', capacity);
-    else if (!Number.isFinite(capacity) || capacity <= 0)
+    else if (capacity === Number.POSITIVE_INFINITY) {
+      if (!contract.unbounded?.trim())
+        fail(
+          'capacity-unbounded',
+          `${symbol}${field ? `.${field}` : ''} is Infinity with no declared reason — that is a bug until it is a decision`
+        );
+    } else if (!Number.isFinite(capacity) || capacity <= 0) {
       fail('capacity-numeric', `${symbol} is ${capacity}, which is not a bound`);
+    }
+
+    // 2b — the declaration and the value must agree, in both directions.
+    if (contract.unbounded && capacity !== Number.POSITIVE_INFINITY)
+      fail(
+        'capacity-unbounded',
+        `${symbol}${field ? `.${field}` : ''} declares itself unbounded but is ${String(capacity)}`
+      );
   }
 
   // 5 — TODO28's ledger is covered by the stronger inventory.

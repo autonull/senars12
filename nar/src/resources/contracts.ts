@@ -68,6 +68,17 @@ export interface ResourceContract {
    * key space that never repeats, and a blank here would hide that.
    */
   readonly pressureSignal: string | null;
+  /**
+   * Present when the bound is **deliberately absent**, in which case `capacity`
+   * must resolve to `Infinity` and this says why.
+   *
+   * The declaration is the point. A gate reading `Infinity` cannot tell a
+   * decision from a bug — they are the same value — and a bound nobody measured
+   * is worse than no bound when it is *wrong*: pressure is the `max` over the
+   * bounds, so too low a `maxTasks` evicts concepts that are perfectly healthy,
+   * at exactly the moment the store has grown enough to be worth having.
+   */
+  readonly unbounded?: string;
 }
 
 const memory = (field: string): CapacitySource => ({
@@ -92,6 +103,8 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
     holds: 'tasks held across every resident concept — the dominant consumer, not the concept count',
     owner: 'nar/src/memory/memory.ts',
     capacity: memory('maxTasks'),
+    unbounded:
+      'no measured bound exists, and an unmeasured one is dangerous rather than merely absent: pressure is the max over the bounds, so too low a maxTasks evicts healthy concepts exactly when the store has grown enough to be useful. TODO30 §5.9 measures it; until then the absence is the honest default',
     retention: 'drop-lowest-value',
     overflow:
       'a concept ages out while holding tasks once nothing idle remains, ranked by age × value; a store at capacity with nothing eligible says so',
