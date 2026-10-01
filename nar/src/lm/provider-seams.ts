@@ -70,7 +70,7 @@ export const PROVIDER_SEAMS: readonly ProviderSeam[] = [
   {
     id: 'stream-reasoner-backend',
     call: 'LMBackend',
-    callSites: [{ ref: 'nar/src/stream/reasoner.ts:139', contains: 'await raceDeadline(' }],
+    callSites: [{ ref: 'nar/src/stream/reasoner.ts:147', contains: 'await raceDeadline(' }],
     onCyclePath: false,
     bounded: true,
     bound: 'StreamReasoner.backendTimeoutMs — the deadline on one flush, default 8s',

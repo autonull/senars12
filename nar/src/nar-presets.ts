@@ -10,10 +10,17 @@ import type { NARConfig, SystemOneConfig } from './nar.js';
 import { NAR } from './nar.js';
 import type { CoreConfig } from './types';
 import { DEFAULT_CONFIG, NarEventBus } from './types';
+import type { DecisionPort } from './ports/decision.js';
 
 export interface SeNARSOptions {
   core?: Partial<CoreConfig>;
   lmService?: LMService;
+  /**
+   * TODO29.a §5.11, A11: the decision layer's port into the cycle. Optional, and
+   * optional *per call site* — an absent port is the "no J, no P" configuration
+   * rather than a NAR that tries and gets nothing.
+   */
+  decision?: DecisionPort;
   providerRegistry?: SeNARSRegistry;
   eventBus?: NarEventBus;
   // Feature flags / config forwarded to NARConfig
@@ -62,6 +69,7 @@ export function createNAR(options: SeNARSOptions = {}): NAR {
       ? { strategyRegistry: options.strategyRegistry }
       : {}),
     ...(options.systemOne !== undefined ? { systemOne: options.systemOne } : {}),
+    ...(options.decision !== undefined ? { decision: options.decision } : {}),
     lmService: options.lmService ?? createLMService(),
     providerRegistry: options.providerRegistry ?? createSeNARSRegistry(),
     eventBus: options.eventBus ?? new NarEventBus(),

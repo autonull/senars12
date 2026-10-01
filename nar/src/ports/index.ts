@@ -8,4 +8,15 @@
  * turns from a lint rule into a structural fact.
  */
 
+export {
+  askSafely,
+  DECISION_ASK_TIMEOUT_MS,
+  type CycleDecisionRequest,
+  type DecisionAxis,
+  type DecisionPort,
+  type DecisionPosition,
+  type DecisionRequest,
+  type DecisionResult,
+  NO_DECISION_PORT,
+} from './decision.js';
 export type { TextGenerator, TextGenerationOptions } from './text-generator.js';

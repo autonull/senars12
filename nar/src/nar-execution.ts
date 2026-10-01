@@ -3,14 +3,20 @@ import { envBool } from '@senars/util/config';
 import type { CognitiveController } from './cognitive';
 import type { DriveManager } from './drives';
 import type { NARConfig } from './facade/config.js';
+import { DECISION_DERIVATIONS_SCOPE } from './kernel/budget-scopes.js';
 import { ControlBudgets } from './kernel/control-budgets.js';
 import type { GateRegistry } from './kernel/GateRegistry.js';
 import type { KernelBudgetGate } from './kernel/KernelBudgetGate.js';
 import type { MemoryPorts } from './memory/ports/index.js';
+import { askSafely, type DecisionPort } from './ports/index.js';
 import { CycleTrace, type CycleStage } from './proposal/cycle-trace.js';
 import type { LMProposalProducer } from './proposal/lm-rule-producer.js';
 import type { PolicyOptimizer, RLFPLearner } from './rlfp';
-import { rankDerivations } from './rules/impls/ranking.js';
+import {
+  type RankableDerivation,
+  type RankingOptions,
+  rankDerivations,
+} from './rules/impls/ranking.js';
 import type { ReasoningAboutReasoning } from './self';
 import type { TaskManager } from './task';
 import { classifyTask, type TaskSignal } from './task';
@@ -83,6 +89,17 @@ export interface NARExecutionOptions {
   budgets?: ControlBudgets;
   /** Absent in the no-producer configuration: the cycle then stages nothing. */
   proposals?: LMProposalProducer;
+  /**
+   * TODO29.a §5.11, A11: the decision layer, reached from the cycle. **Optional
+   * per call site** — a NAR built without one takes its own declared path, which
+   * is the four-configuration matrix in miniature.
+   *
+   * Read from `config` when not given, so binding a port is a configuration
+   * change rather than a wiring change: `nar.ts` is under a monolith budget that
+   * exists to keep composition out of the facade, and a port that has to be
+   * threaded through the constructor is a line of that budget spent on nothing.
+   */
+  decision?: DecisionPort;
 }
 
 export class NARExecution {
@@ -107,6 +124,7 @@ export class NARExecution {
     this.budgets =
       options.budgets ?? new ControlBudgets(options.gates.getBudgetGate() as KernelBudgetGate);
     this.proposals = options.proposals;
+    this.decision = options.decision ?? options.config.decision;
   }
 
   private readonly memory: MemoryPorts;
@@ -122,6 +140,7 @@ export class NARExecution {
   private readonly gates: GateRegistry;
   private readonly budgets: ControlBudgets;
   private readonly proposals?: LMProposalProducer;
+  private readonly decision?: DecisionPort;
 
   /** Stimulate drives based on events — homeostatic regulation. Public so tool layer can report outcomes. */
   stimulateDrives(event: string, _data?: Record<string, unknown>): void {
@@ -248,7 +267,7 @@ export class NARExecution {
         // `proposal-application` is a declared scope, so a spent budget and a full
         // queue are the same kind of event with the same kind of reason (§5.7).
         // Symbolic derivations are not charged here: only what arrived from the seam.
-        for (const task of rankDerivations(results, ranking)) this.admit(task);
+        for (const task of await this.rankForAdmission(results, ranking)) this.admit(task);
         // `proposal-application` is a declared scope, so a spent budget and a
         // full queue become the same kind of event with the same kind of reason
         // (§5.7). Symbolic derivations are not charged: only what the seam sent.
@@ -409,6 +428,51 @@ export class NARExecution {
    * progress may not depend on a provider, and every await inside the pump is
    * bounded — the error is logged and the cycle continues either way.
    */
+  /**
+   * The one stage that may consult a decision, and it is consulted for **order,
+   * not for admission**. `rankDerivations` truncates to `ranking.maxAdmissions`,
+   * so a decision that reorders the candidates changes which of them fit through
+   * a truncation the configuration already declared — it does not create an
+   * admission the symbolic ranking would have refused.
+   *
+   * Everything §5.11 requires of a bound port, in the order the code does it:
+   * absence, refusal, timeout, breaker-open and out-of-domain all arrive as *no
+   * decision* and fall through to the symbolic order, and every task either way
+   * still goes through {@link admit} — the same gate — so the port cannot bypass
+   * admission. It is `epistemic`, so a `Truth` conclusion stays confined to
+   * `Truth` through that gate rather than being written here.
+   *
+   * `SynthesisQuery` is not reachable from here: `position: 'cycle'` is excluded
+   * for it in `CycleDecisionRequest`, so `P` cannot be asked from a cycle stage at
+   * all. The exclusion is in the type, not in a comment.
+   */
+  private async rankForAdmission<T extends RankableDerivation>(
+    results: T[],
+    ranking: RankingOptions | undefined
+  ): Promise<T[]> {
+    const ranked = rankDerivations(results, ranking);
+    if (!this.decision || ranked.length === 0) return ranked;
+
+    const answer = await askSafely(this.decision, {
+      kind: 'classify',
+      instruction: 'Which of these conclusions should be admitted first?',
+      space: ranked.map((task) => task.term.toString()),
+      axis: 'epistemic',
+      budget: DECISION_DERIVATIONS_SCOPE,
+      position: 'cycle',
+    });
+    if (answer?.kind !== 'classify' || answer.abstained) return ranked;
+
+    // Restricted to the terms the decision was shown and the symbolic ranking
+    // already admitted, so an invented option cannot widen the set — only the
+    // order of the set that was on offer.
+    const weight = new Map(answer.distribution.map(({ option, p }) => [option, p]));
+    return ranked
+      .map((task, index) => ({ task, index, p: weight.get(task.term.toString()) ?? 0 }))
+      .sort((a, b) => b.p - a.p || a.index - b.index)
+      .map(({ task }) => task);
+  }
+
   private pumpProposals(signal?: AbortSignal): void {
     this.proposals
       ?.pump(signal)

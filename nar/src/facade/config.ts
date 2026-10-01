@@ -14,6 +14,7 @@ import type { EmbeddingGenerator } from '../memory/embedding.js';
 import { ConfigurationError, type CoreConfig } from '../types';
 import type { NarEventBus } from '../types/events.js';
 import type { RandomSource } from '../types/primitives.js';
+import type { DecisionPort } from '../ports/decision.js';
 
 export interface RLFPConfig {
   optimizeInterval?: number;
@@ -34,6 +35,15 @@ export type SystemOneConfig = SystemOneRuntimeConfig;
 
 export interface NARConfig extends CoreConfig {
   lmService?: LMService;
+  /**
+   * TODO29.a §5.11, A11: the decision layer's port into the cycle. **Declaring
+   * one is the whole configuration surface** — a bound port is consulted, an
+   * absent one is not, and nothing else about `J` or `P` is switchable here.
+   * `enableLMRules` was deleted in A2 precisely because a boolean that reads as
+   * "no model reasoning" and means "model reasoning that answers nothing" is the
+   * defect §9 lists; a port is the honest shape.
+   */
+  decision?: DecisionPort;
   providerRegistry?: SeNARSRegistry;
   enableTools?: boolean;
   enableSelf?: boolean;

@@ -9,6 +9,7 @@ graph TD
   commands["commands"]
   config["config"]
   cooperation["cooperation"]
+  decision["decision"]
   dialogue["dialogue"]
   dialogue_impls["dialogue/impls"]
   dialogue_impls_consumers["dialogue/impls/consumers"]
@@ -52,11 +53,13 @@ graph TD
   nl["nl"]
   nl_prompts["nl/prompts"]
   otel["otel"]
+  ports["ports"]
   proposal["proposal"]
   query["query"]
   reason["reason"]
   reason_strategies["reason/strategies"]
   reflex["reflex"]
+  resources["resources"]
   rl["rl"]
   rl_impls["rl/impls"]
   rl_impls_adapters["rl/impls/adapters"]
@@ -104,6 +107,7 @@ graph TD
   _ --> memory_ports
   _ --> meta
   _ --> nl
+  _ --> ports
   _ --> proposal
   _ --> reason
   _ --> reflex
@@ -158,6 +162,9 @@ graph TD
   commands --> memory
   commands --> self
   cooperation --> lm_system-one
+  decision --> kernel
+  decision --> ports
+  decision --> terms_impls
   dialogue --> dialogue_impls
   dialogue --> dialogue_impls_consumers
   dialogue --> lm_system-one
@@ -190,6 +197,7 @@ graph TD
   facade --> memory
   facade --> meta
   facade --> metrics
+  facade --> ports
   facade --> reflex
   facade --> state
   facade --> task
@@ -250,6 +258,7 @@ graph TD
   kernel --> memory_ports
   kernel --> memory_state
   kernel --> nl
+  kernel --> proposal
   kernel --> strategies
   kernel --> task
   kernel --> telemetry
@@ -294,6 +303,7 @@ graph TD
   lm_service --> otel
   lm_system-one --> bag
   lm_system-one --> capability
+  lm_system-one --> decision
   lm_system-one --> dialogue
   lm_system-one --> game
   lm_system-one --> kernel
@@ -330,6 +340,7 @@ graph TD
   memory_ports --> terms
   memory_ports --> types
   memory_pressure --> _
+  memory_pressure --> memory
   memory_pressure --> memory_ports
   memory_state --> bag
   memory_state --> memory
@@ -352,6 +363,8 @@ graph TD
   nl --> types
   nl_prompts --> nl
   otel --> tick
+  ports --> decision
+  ports --> kernel
   proposal --> reason
   proposal --> rules
   proposal --> stream
@@ -373,6 +386,10 @@ graph TD
   reflex --> otel
   reflex --> types
   reflex --> utils
+  resources --> kernel
+  resources --> memory
+  resources --> proposal
+  resources --> rl_impls
   rl --> game
   rl --> rl_impls
   rl --> rl_impls_adapters

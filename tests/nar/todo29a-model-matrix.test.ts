@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createNAR, type NAR } from '@senars/nar';
 import type { LMService } from '@senars/nar/lm';
+import { DECISION_CALL_SITES } from '@senars/nar/decision';
+import { manifestViolations } from '../../scripts/lib/decision-manifest.js';
 
 /**
  * TODO29.a A1 — the four S/J/P configurations, as one gate.
@@ -138,5 +140,38 @@ describe('A1 — a hung provider is refused, not awaited', () => {
 
     expect(await settling(nar.input('(robin-->bird).'), 5000)).not.toBe('hung');
     expect(nar.query.getBeliefs()).toEqual([]);
+  });
+});
+
+/**
+ * A11's gate half: the call-site manifest (§5.11). Re-landed here rather than as
+ * a separate script because `config:model-matrix` is already "the four
+ * configurations are complete systems", and an undeclared call site is a fourth
+ * configuration nobody configured.
+ */
+describe('A11 — every decision call site is declared', () => {
+  it('the manifest is clean', () => {
+    expect(manifestViolations()).toEqual([]);
+  });
+
+  it('and it is not empty — an empty manifest would pass the same way', () => {
+    expect(DECISION_CALL_SITES.length).toBeGreaterThan(0);
+  });
+
+  it('the four configurations still commit the same state with a decision port bound', async () => {
+    const decided = await createNAR({
+      maxConcepts: 200,
+      decision: {
+        ask: async () => null,
+      },
+    });
+    await decided.initialize();
+    const plain = await build({ J: false, P: false, hung: false });
+
+    const [withPort, without] = await Promise.all([
+      episode(decided),
+      episode(plain),
+    ]);
+    expect(withPort).toEqual(without);
   });
 });

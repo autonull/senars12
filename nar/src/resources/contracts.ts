@@ -193,6 +193,17 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
     pressureSignal: 'ProposalLifecycle.stats().rulesRefused',
   },
   {
+    id: 'decision.port-await',
+    holds: 'one in-flight decision ask, while its deadline runs',
+    owner: 'nar/src/ports/decision.ts',
+    capacity: { module: 'nar/src/ports/decision.ts', symbol: 'DECISION_ASK_TIMEOUT_MS' },
+    retention: 'drop-newest',
+    overflow:
+      'a decision that misses its deadline is abandoned and the caller takes its own path — a decision is advisory, so nothing is owed when one does not arrive',
+    pressureSignal:
+      'a cycle cannot be blocked by the port, which `tests/nar/todo29a-a11.test.ts` asserts with a never-settling port',
+  },
+  {
     id: 'proposal.log',
     holds: "the seam's own audit log of admissions and rejections",
     owner: 'nar/src/proposal/lifecycle.ts',
