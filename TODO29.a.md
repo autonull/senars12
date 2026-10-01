@@ -529,6 +529,16 @@ value imports across 17 files are all assembly.
   `@senars/nar/ports` is a plausible home for all four; it was not done because `ModelRule` and
   `ModelRuleSelector` sit next to the types they constrain, and moving them would have traded
   locality for tidiness.
+- **`test:load-sensitive` does not fit the budget its own docstring claims.**
+  `tests/nar/rl/parity-restoration.test.ts` says "costs ~6 minutes" for three environments at
+  20 seeds × 20 episodes × 30 steps. Measured 2026-10-01: it had not finished the third
+  environment at **25 minutes** and was still going when the run was abandoned — each environment
+  shells out to `scripts/rl-parity.ts` via `execSync`, so the cost is 3–6 sequential child
+  processes. It is `slow`-tier and opt-in, so nothing red, and this is a note rather than a gate
+  failure. It does mean the tier cannot be used as a pre-commit check, and §11.1's separate note
+  about `todo16-batching`'s wall-clock assertion is the same tier and probably the same cause.
+  **Whoever next needs it should split the file per environment** so one slow child does not gate
+  the other two.
 - **`scripts/lib/layer-boundary.ts` reads the inventory's `CYCLE_PATH_PREFIXES` and
   `induction-inventory.ts` reads the same file's `IN_CYCLE_EDGE_ATTRIBUTIONS`.** One list, two
   readers, no duplication — but the dependency runs *from the gate into the layer it polices*, which
