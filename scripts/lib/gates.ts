@@ -33,6 +33,9 @@ export const GATES: readonly Gate[] = [
   script('lint'),
   script('deps:gate'),
   script('deps:direction'),
+  // TODO29.a A2: the cycle path names a ModelRule, a TextGenerator and an
+  // EmbeddingRuntime — never the induction layer it was reaching into.
+  script('core:no-lm'),
   // TODO29.a A0: every cycle-path await on a provider is declared with the bound
   // it actually has, and every declared bound is true.
   script('cycle:no-provider'),

@@ -27,6 +27,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { importEdges } from './lib/imports.js';
+import { report, scanCoreLayer } from './lib/layer-boundary.js';
 import { readPackageJson } from './lib/pkg.js';
 import { ROOT } from './lib/root.js';
 
@@ -94,9 +95,14 @@ for (const pkg of LAYERS) {
   }
 }
 
-if (violations.length > 0) {
+// The `nar` core against its own induction layer: the same rule `core:no-lm`
+// runs on its own, reported here so one gate owns the whole layering.
+const coreLayer = scanCoreLayer();
+
+if (violations.length > 0 || coreLayer.length > 0) {
   console.error('deps:direction FAILED — a package import breaks the declared layering:');
   for (const violation of violations) console.error(violation);
+  if (coreLayer.length > 0) console.error(`\n${report(coreLayer)}`);
   console.error(
     `\n${LAYERS.join(' < ')}. Fix the import, or — if the seam is genuinely not ready — record\n` +
       'the edge in ALLOWED_UPWARD with the reason it cannot be broken yet.'
@@ -106,7 +112,8 @@ if (violations.length > 0) {
 
 const ledger = Object.entries(ALLOWED_UPWARD);
 console.log(
-  `deps:direction ok — every @senars import is declared, relative and downward` +
+  `deps:direction ok — every @senars import is declared, relative and downward, and the ` +
+    `nar cycle path does not reach nar/src/lm` +
     (ledger.length > 0 ? ` (${ledger.length} known inversion(s) in the ledger)` : '')
 );
 for (const [edge, reason] of ledger) console.log(`  known: ${edge} — ${reason}`);
