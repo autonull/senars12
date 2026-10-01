@@ -40,7 +40,7 @@ All environment observations enter SeNARS as **belief tasks** (`type: 'belief'`)
 | Contradictory observations detectable | Conflict analyzers detect inconsistent beliefs |
 | Temporal/source stamps preserved | `Stamp` with `source: 'input'`, `evidence` |
 | Beliefs queryable through memory | `nar.getBeliefs()`, `nar.queryTerm()`, `nar.getConcept()` |
-| Perception cannot execute actions | No `^tool` goals from perception adapter |
+| Perception cannot execute actions | No `tool(...)` goals from perception adapter |
 | No hidden policy side effects | Observation ingestion is pure belief input |
 
 ### 1.3 Prohibited Bypasses

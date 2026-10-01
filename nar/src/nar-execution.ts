@@ -12,7 +12,7 @@ import { rankDerivations } from './rules/impls/ranking.js';
 import type { ReasoningAboutReasoning } from './self';
 import type { TaskManager } from './task';
 import { classifyTask, type TaskSignal } from './task';
-import { getTermArgs, isAtomic, isCompound, type Term, TermSet, termParser } from './terms';
+import { getTermArgs, isCompound, operationNameOf, type Term, TermSet, termParser } from './terms';
 import { Truth } from './terms/impls/Truth.js';
 import { PhaseTimer } from './trace';
 import type { Task } from './types';
@@ -33,9 +33,9 @@ export interface CognitiveStateSummary {
 const META_GOAL_BY_DRIVE: Record<string, { threshold: number; narsese: string }> = {
   competence: {
     threshold: 0.3,
-    narsese: '^switch_strategy(strategy:focused, strategyType:derivation)',
+    narsese: 'switch_strategy((focused-->strategy),(derivation-->strategyType))',
   },
-  curiosity: { threshold: 0.3, narsese: '^run_scenario_shadow(profile:induction)' },
+  curiosity: { threshold: 0.3, narsese: 'run_scenario_shadow((induction-->profile))' },
 };
 
 const logger = createLogger({ scope: 'nar:execution' });
@@ -44,21 +44,20 @@ const logger = createLogger({ scope: 'nar:execution' });
  * The meta-goal table's parsed form. The narsese is a literal, so the parse is a
  * constant too: doing it per cycle re-parsed two unchanging strings and
  * re-emitted the same failure every cycle when one was malformed.
+ *
+ * A literal that does not parse throws, and it used to warn and drop the drive.
+ * That hid this retirement completely: the two literals stopped parsing, both
+ * drives vanished, and every test below still passed — a filter that matches
+ * nothing and a filter that was removed look identical from the outside. A
+ * literal in this file is a constant, so it is either right or a build break.
  */
 const META_GOALS: readonly { driveId: string; threshold: number; term: Term }[] = Object.entries(
   META_GOAL_BY_DRIVE
-).flatMap(([driveId, goal]) => {
-  try {
-    return [{ driveId, threshold: goal.threshold, term: termParser.parse(goal.narsese) }];
-  } catch (e) {
-    logger.warn('Failed to parse meta-goal narsese', {
-      driveId,
-      narsese: goal.narsese,
-      error: errMsg(e),
-    });
-    return [];
-  }
-});
+).map(([driveId, goal]) => ({
+  driveId,
+  threshold: goal.threshold,
+  term: termParser.parse(goal.narsese),
+}));
 
 const META_GOAL_BY_DRIVE_ID = new Map(META_GOALS.map((g) => [g.driveId, g]));
 
@@ -180,7 +179,7 @@ export class NARExecution {
       this.cycleSignals.contradictionDetected = false;
 
       await this.stage('perceive', 'task-manager', 'processPending', async () => {
-        // Dispatch pending `^tool(...)` goals to the tool layer (goal→tool wiring).
+        // Dispatch pending `tool(...)` goals to the tool layer (goal→tool wiring).
         // Must run before processPending so tool goals are executed rather than
         // being added to memory as plain goals.
         await this.dispatchToolGoals();
@@ -436,10 +435,10 @@ export class NARExecution {
       activeDrives[ds.spec.id] = ds.currentIntensity;
     }
 
-    // Get active meta-goals (goals starting with ^)
+    // Get active meta-goals (goals that call a tool)
     const goals = this.memory.getGoals?.() ?? [];
     const activeMetaGoals = goals
-      .filter((g) => g.term.toString().startsWith('^'))
+      .filter((g) => operationNameOf(g.term) !== undefined)
       .map((g) => g.term.toString())
       .slice(0, 10);
 
@@ -497,19 +496,14 @@ export class NARExecution {
     }
   }
 
-  /** Check if a term is a tool goal (Inheritance with predicate Atom starting with ^) */
+  /** A tool goal is an `operation`: `move(dir-->left)`, by kind and by nothing else. */
   private isToolGoal(term: Term): boolean {
-    if (!isCompound(term) || term.kind !== 'inheritance') return false;
-    const args = getTermArgs(term);
-    if (args?.length !== 2) return false;
-    const predicate = args[1];
-    if (!predicate) return false;
-    return isAtomic(predicate) && predicate.symbol.startsWith('^');
+    return operationNameOf(term) !== undefined;
   }
 
   /**
-   * Dispatch pending `^tool_name(args)` goals to the tool layer.
-   * Injected meta-goals (e.g. `^switch_strategy(...)`) are converted into real
+   * Dispatch pending `tool_name(args)` goals to the tool layer.
+   * Injected meta-goals (e.g. `switch_strategy(...)`) are converted into real
    * tool executions, closing the goal→tool loop. Non-tool goals are left to the
    * reasoner via TaskManager.processPending().
    */

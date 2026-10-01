@@ -1031,9 +1031,9 @@ The self-improvement loop operates at the kernel level: `Perceive → Recall →
 
 | Rule | Trigger | Action | AIKR Bounds |
 |------|---------|--------|-------------|
-| **Strategy Select** | `drive:competence --> low` | `^switch_strategy($s)!` | depth=2, budget=5/step, priority=0.1, threshold=0.6 |
+| **Strategy Select** | `drive:competence --> low` | `switch_strategy($s)!` | depth=2, budget=5/step, priority=0.1, threshold=0.6 |
 | **Knob Tune** | `rlfp:reward --> below_threshold` | `^tune_knob($k, $v)!` | depth=2, budget=5/step |
-| **Test Repair** | `test_failed & error_pattern & fix_pattern` | `^apply_fix($fix)!` | depth=2, budget=5/step |
+| **Test Repair** | `test_failed & error_pattern & fix_pattern` | `apply_fix($fix)!` | depth=2, budget=5/step |
 | **Schema Promote** | `confidence > 0.9 & frequency > 10` | `^promote_rule($s)!` | depth=2, budget=5/step |
 | **Capability Scaffold** | `capability & template` | `^scaffold($tmpl, $c)!` | depth=2, budget=5/step |
 
@@ -1059,9 +1059,9 @@ Self-modification is only acceptable if every change is isolated, tested, risk-c
 | `register_rule` | `(^promote_rule($schema))!` | Add schema to RuleRegistry |
 | `register_tool` | `(^add_capability($cap))!` | ToolManager.register() |
 | `scaffold_capability` | `(^scaffold($tmpl, $cap))!` | Fill template → `codemod` in shadow worktree |
-| `apply_fix` | `(^apply_fix($fix))!` | Lookup fix pattern → `codemod` in shadow worktree |
+| `apply_fix` | `(apply_fix^($fix))!` | Lookup fix pattern → `codemod` in shadow worktree |
 | `tune_knob` | `(^apply_tuning($knob, $val))!` | RLFPLearner.applyTuningUpdate() |
-| `switch_strategy` | `(^select_strategy($strat))!` | CognitiveController / StrategyRegistry |
+| `switch_strategy` | `(select_strategy^($strat))!` | CognitiveController / StrategyRegistry |
 | `run_tests_shadow` | Validation | Full CI (`pnpm test && pnpm typecheck && pnpm lint`) in shadow |
 | `run_scenario_shadow` | Validation | Cognitive scenarios in shadow |
 
@@ -1097,13 +1097,13 @@ reward = clamp(reward_extrinsic + 0.3 * reward_intrinsic, -1, 1);
 ### Goal→Tool Dispatch (Semantic, Native AST)
 
 ```typescript
-// Narsese operation goal: ^apply_fix(fix_pattern:null_check)
-// Parses to: Inheritance(Product(Atom('fix_pattern:null_check')), Atom('^apply_fix'))
+// Narsese operation goal: apply_fix(null_check-->fix_pattern)
+// Parses to: operation(Atom('apply_fix'), Inheritance(Atom('null_check'), Atom('fix_pattern')))
 async executeToolGoal(goalTerm: Term): Promise<ToolResult> {
-  // AST traversal extracts operator from predicate, args from Product subject
-  const op = goalTerm.predicate;        // Atom('^apply_fix')
-  const args = goalTerm.subject;        // Product([Atom('fix_pattern:null_check')])
-  return this.execute(op.symbol.slice(1), resolveSemanticArgs(args));
+  // The term's kind says it is a call; the operation's name and arguments say which
+  const call = readOperationTerm(goalTerm);   // { name: 'apply_fix', args: {...} }
+  if (!call) return errorResult('not an operation term');
+  return this.execute(call.name, await resolveSemanticArgs(call.name, call.args));
 }
 ```
 
@@ -1116,7 +1116,7 @@ Structured cognitive state emitted every 10 cycles:
   "timestamp": "2026-09-08T...",
   "cycle": 128,
   "active_drives": { "competence": 0.8, "curiosity": 0.2, "coherence": 0.9, "social": 0.1 },
-  "active_meta_goals": ["^apply_fix(fix_pattern:null_check)", "^promote_rule(schema_42)"],
+  "active_meta_goals": ["apply_fix((null_check-->fix_pattern))", "promote_rule((schema_42-->rule))"],
   "pending_tool_executions": ["apply_fix (shadow worktree .shadow/fix-42)"],
   "aikr_pressure": "low",
   "rlfp_reward_avg": 0.34,

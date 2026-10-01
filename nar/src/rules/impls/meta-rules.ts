@@ -84,7 +84,7 @@ function extractVariableBinding(term: Term, expectedPredicate: string): string |
   return parts.subject.symbol;
 }
 
-/** `^tool(arg, ...)` — the shared operation-term encoding. */
+/** `tool(arg, ...)` — the shared operation-term encoding. */
 const buildOperationTerm = (toolName: string, argTerms: Term[]): Term =>
   operationTerm(
     toolName,

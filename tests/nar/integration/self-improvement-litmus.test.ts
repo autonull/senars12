@@ -18,6 +18,7 @@ import {
   META_REASONING_BELIEFS,
   registerMetaRules,
 } from '../../../nar/src/rules/impls/meta-rules.js';
+import { operationNameOf, operationTerm } from '../../../nar/src/terms/index.js';
 import { initializeSelfConcept } from '../../../nar/src/tools/impls/self-concept.js';
 
 const logger = createLogger({ scope: 'self-improvement-litmus' });
@@ -153,7 +154,7 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
 
     // Check if meta-goal was injected
     const goals = nar.getGoals();
-    const metaGoals = goals.filter((g) => g.term.toString().startsWith('^'));
+    const metaGoals = goals.filter((g) => operationNameOf(g.term) !== undefined);
 
     // Meta-rules should fire when premises match
     // Note: In the current implementation, meta-rules need the drive states
@@ -193,12 +194,8 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
     // with a native AST operation term
     const { TermBuilder, atom, Truth, createTask } = await import('../../../nar/src/index.js');
 
-    // Build an operation term: ^switch_strategy(focused, derivation)
-    // -> Inheritance(Product(atom('focused'), atom('derivation')), Atom('^switch_strategy'))
-    const opTerm = TermBuilder.inheritance(
-      TermBuilder.create('product', [atom('focused'), atom('derivation')]),
-      atom('^switch_strategy')
-    );
+    // Build an operation term: switch_strategy(focused, derivation)
+    const opTerm = operationTerm('switch_strategy', { strategy: 'focused', mode: 'derivation' });
 
     // Create a task with this goal
     const task = createTask(opTerm!, 'goal', Truth.NEUTRAL);

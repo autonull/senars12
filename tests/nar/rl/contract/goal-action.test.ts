@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, test } from 'vitest';
-import { DEFAULT_CONFIG, NAR, TermBuilder, Truth, createBudget, createTask, termParser } from '../../../../nar/src';
+import {
+  createBudget,
+  createTask,
+  DEFAULT_CONFIG,
+  NAR,
+  TermBuilder,
+  Truth,
+  termParser,
+} from '../../../../nar/src';
+import { operationNameOf, readOperationTerm } from '../../../../nar/src/terms/index.js';
 
 describe('Goal/Action Contract', () => {
   let nar: NAR;
@@ -32,18 +41,14 @@ describe('Goal/Action Contract', () => {
     expect(matchingGoal?.type).toBe('goal');
   });
 
-  test('Correct native AST (Inheritance(Product, Atom(^op))) for argument-bearing operation', () => {
-    // termParser parses ^tool(args) into Inheritance(Product(args...), Atom('^tool'))
-    const goalTerm = termParser.parse('^move_to(state:s_3_4, direction:north)');
-    expect(goalTerm.kind).toBe('inheritance');
+  test('an argument-bearing operation is an `operation`, read by kind', () => {
+    const goalTerm = termParser.parse('move_to((state_s_3_4-->state),(north-->direction))');
 
-    const args = goalTerm.args!;
-    const subject = args[0]!;
-    const predicate = args[1]!;
-
-    expect(subject.kind).toBe('product');
-    expect(predicate.kind).toBe('atom');
-    expect(predicate.symbol).toBe('^move_to');
+    expect(goalTerm.kind).toBe('operation');
+    expect(readOperationTerm(goalTerm)).toEqual({
+      name: 'move_to',
+      args: { state: 'state_s_3_4', direction: 'north' },
+    });
   });
 
   test('Goals in native AST reach ToolManager.executeToolGoal() via nar.run()', async () => {
@@ -62,7 +67,7 @@ describe('Goal/Action Contract', () => {
     // Inject tool goal in native AST form into the pending queue
     nar.taskManager.addTask(
       createTask(
-        termParser.parse('^echo_goal(profile:test)'),
+        termParser.parse('echo_goal(profile:test)'),
         'goal',
         Truth.NEUTRAL,
         createBudget(0.9)
@@ -77,7 +82,7 @@ describe('Goal/Action Contract', () => {
 
   test('Invalid operations fail safely (returns ToolResult { success: false })', async () => {
     // Tool goal referencing a non-existent tool, in native AST form
-    const goalTerm = termParser.parse('^nonexistent_tool()');
+    const goalTerm = termParser.parse('nonexistent_tool()');
     const result = await nar.tools.executeToolGoal(goalTerm);
 
     expect(result.success).toBe(false);
@@ -106,10 +111,10 @@ describe('Goal/Action Contract', () => {
     });
 
     nar.taskManager.addTask(
-      createTask(termParser.parse('^low_prio()'), 'goal', Truth.NEUTRAL, createBudget(0.3))
+      createTask(termParser.parse('low_prio()'), 'goal', Truth.NEUTRAL, createBudget(0.3))
     );
     nar.taskManager.addTask(
-      createTask(termParser.parse('^high_prio()'), 'goal', Truth.NEUTRAL, createBudget(0.9))
+      createTask(termParser.parse('high_prio()'), 'goal', Truth.NEUTRAL, createBudget(0.9))
     );
 
     // Verify pending queue is priority-ordered (high priority dispatched first)
@@ -157,7 +162,7 @@ describe('Goal/Action Contract', () => {
 
     // No tool goals should be generated without explicit injection
     const goals = nar.getGoals();
-    const toolGoals = goals.filter((g) => g.term.toString().startsWith('^'));
+    const toolGoals = goals.filter((g) => operationNameOf(g.term) !== undefined);
 
     expect(toolGoals.length).toBe(0);
   });
@@ -177,7 +182,7 @@ describe('Goal/Action Contract', () => {
 
     // No tool goals should be generated from perception alone
     const goals = nar.getGoals();
-    const toolGoals = goals.filter((g) => g.term.toString().startsWith('^'));
+    const toolGoals = goals.filter((g) => operationNameOf(g.term) !== undefined);
 
     expect(toolGoals.length).toBe(0);
   });

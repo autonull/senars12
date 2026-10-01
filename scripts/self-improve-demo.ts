@@ -13,6 +13,7 @@
  */
 
 import { sleep } from '@senars/util';
+import { operationNameOf } from '../nar/src/index.js';
 import { createNAR } from '../nar/src/nar-presets.js';
 import { createSeNARSRegistry } from '../nar/src/lm/index.js';
 import { createLMService } from '../nar/src/lm/lm-service.js';
@@ -85,7 +86,7 @@ async function main() {
 
     // Check for meta-goals
     const goals = nar.getGoals();
-    const metaGoals = goals.filter((g) => g.term.toString().startsWith('^'));
+    const metaGoals = goals.filter((g) => operationNameOf(g.term) !== undefined);
     if (metaGoals.length > 0) {
       logger.info(`   Meta-goals: ${metaGoals.map((g) => g.term.toString()).join(', ')}`);
     }
@@ -112,7 +113,7 @@ async function main() {
 
   const goals = nar.getGoals();
   logger.info(`   Goals: ${goals.length}`);
-  const metaGoals = goals.filter((g) => g.term.toString().startsWith('^'));
+  const metaGoals = goals.filter((g) => operationNameOf(g.term) !== undefined);
   logger.info(`   Meta-goals: ${metaGoals.length}`);
 
   // Check RLFP

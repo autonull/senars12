@@ -1,5 +1,6 @@
 import { type Term, TermBuilder } from '../../../index.js';
 import type { NAR } from '../../../nar.js';
+import { operationTerm } from '../../../terms/impls/operation-term.js';
 import type { RandomSource } from '../../../types/primitives.js';
 import type { QBeliefStore } from '../QBeliefStore.js';
 import { RewardBeliefAdapter } from '../RewardBeliefAdapter.js';
@@ -77,7 +78,7 @@ export class NativeSenarsAgent {
     const result = env.step(action);
 
     // 5. Learn: update value beliefs with reward
-    const actionTerm = TermBuilder.atom(`^${actionName}`);
+    const actionTerm = operationTerm(actionName);
 
     if (this.useTDLearning && this.lastState !== null && this.lastAction !== null) {
       const nextAvailableActions = this.getAvailableActions(env);
@@ -188,9 +189,7 @@ export class BanditNativeAgent extends NativeSenarsAgent {
     const selector = new BanditSelector(numArms, 0.2, nar.rng);
     super(nar, { selector, maxDerivationsPerStep, useTDLearning: true, gamma: 0.99 });
     this.numArms = numArms;
-    this.actionTerms = Array.from({ length: numArms }, (_, i) =>
-      TermBuilder.atom(`^pull_arm_${i}`)
-    );
+    this.actionTerms = Array.from({ length: numArms }, (_, i) => operationTerm(`pull_arm_${i}`));
 
     this.registerTools(armTools(numArms));
   }
@@ -217,7 +216,7 @@ export class BanditNativeAgent extends NativeSenarsAgent {
  */
 export class GridWorldNativeAgent extends NativeSenarsAgent {
   private readonly actionNames = ['move_up', 'move_right', 'move_down', 'move_left'];
-  private readonly actionTerms = this.actionNames.map((name) => TermBuilder.atom(`^${name}`));
+  private readonly actionTerms = this.actionNames.map((name) => operationTerm(name));
 
   /**
    * `seed` is a number to pin exploration, or a `RandomSource` to share the
@@ -256,7 +255,7 @@ export class GridWorldNativeAgent extends NativeSenarsAgent {
 
     // GridWorld reward range: [-0.01, 1] -> normalize to [0, 1]
     const normalizedReward = (result.reward + 0.01) / 1.01;
-    const actionTerm = TermBuilder.atom(`^${actionName}`);
+    const actionTerm = operationTerm(actionName);
 
     if (this.useTDLearning && this.lastState !== null && this.lastAction !== null) {
       const nextAvailableActions = this.getAvailableActions(env);
@@ -324,9 +323,7 @@ export class NonStationaryNativeAgent extends NativeSenarsAgent {
     const selector = new NonStationarySelector(numArms, 0.3, 0.2, nar.rng);
     super(nar, { selector, maxDerivationsPerStep, useTDLearning: true, gamma: 0.99 });
     this.numArms = numArms;
-    this.actionTerms = Array.from({ length: numArms }, (_, i) =>
-      TermBuilder.atom(`^pull_arm_${i}`)
-    );
+    this.actionTerms = Array.from({ length: numArms }, (_, i) => operationTerm(`pull_arm_${i}`));
 
     this.registerTools(armTools(numArms));
   }

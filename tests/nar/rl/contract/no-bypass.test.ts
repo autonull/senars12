@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, test } from 'vitest';
-import { DEFAULT_CONFIG, NAR, TermBuilder, Truth, createBudget, createTask, termParser } from '../../../../nar/src';
+import {
+  createBudget,
+  createTask,
+  DEFAULT_CONFIG,
+  NAR,
+  TermBuilder,
+  Truth,
+  termParser,
+} from '../../../../nar/src';
+import { operationNameOf } from '../../../../nar/src/terms/index.js';
 
 describe('No-Bypass Contract', () => {
   let nar: NAR;
@@ -83,7 +92,7 @@ describe('No-Bypass Contract', () => {
     // Inject a tool goal -> environment accessed through operation execution
     nar.taskManager.addTask(
       createTask(
-        termParser.parse('^env_step(profile:test)'),
+        termParser.parse('env_step(profile:test)'),
         'goal',
         Truth.NEUTRAL,
         createBudget(0.9)
@@ -127,7 +136,7 @@ describe('No-Bypass Contract', () => {
     await nar.run(5);
 
     const goals = nar.getGoals();
-    const toolGoals = goals.filter((g) => g.term.toString().startsWith('^'));
+    const toolGoals = goals.filter((g) => operationNameOf(g.term) !== undefined);
     expect(toolGoals.length).toBe(0);
   });
 

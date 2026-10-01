@@ -1,12 +1,13 @@
 import { describe, expect, test } from 'vitest';
 import { DEFAULT_CONFIG, TermBuilder } from '../../../../nar/src';
+import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
 import { NAR } from '../../../../nar/src/nar';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
 } from '../../../../nar/src/rl/index.js';
-import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
+import { operationTerm } from '../../../../nar/src/terms/index.js';
 
 describe('RL Parity - Non-Stationary Environment', () => {
   test('SeNARS can track drifting reward means', async () => {
@@ -73,7 +74,7 @@ describe('RL Parity - Non-Stationary Environment', () => {
 
       // Update beliefs
       const stateTerm = TermBuilder.atom('bandit_state');
-      const actionTerm = TermBuilder.atom(`^pull_arm_${action}`);
+      const actionTerm = operationTerm(`pull_arm_${action}`);
       await rewardAdapter.processReward(stateTerm, actionTerm, reward);
     }
 
@@ -84,7 +85,7 @@ describe('RL Parity - Non-Stationary Environment', () => {
     // Verify value beliefs exist
     const stateTerm = TermBuilder.atom('bandit_state');
     for (let i = 0; i < 2; i++) {
-      const actionTerm = TermBuilder.atom(`^pull_arm_${i}`);
+      const actionTerm = operationTerm(`pull_arm_${i}`);
       const value = qStore.getValue(stateTerm, actionTerm);
       expect(value === null || typeof value === 'object').toBe(true);
     }

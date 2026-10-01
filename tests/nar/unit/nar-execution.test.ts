@@ -17,6 +17,7 @@ import { DEFAULT_COGNITIVE_PARAMETERS } from '../../../nar/src/config/cognitive-
 import { DriveManager } from '../../../nar/src/drives';
 import { createGateRegistry } from '../../../nar/src/kernel';
 import { NARExecution } from '../../../nar/src/nar-execution';
+import { operationNameOf } from '../../../nar/src/terms/index.js';
 import { ToolManager } from '../../../nar/src/tools';
 import { createTestController, inferenceParams, transitivity } from '../fixtures/cognitive';
 
@@ -238,11 +239,7 @@ describe('NARExecution', () => {
 
         // Meta-goals are injected as pending tasks, check there
         const pending = freshTaskManager.getPending?.() ?? [];
-        const metaGoal = pending.find(
-          (t) =>
-            t.term.toString().startsWith('^switch_strategy') ||
-            t.term.toString().includes('^switch_strategy')
-        );
+        const metaGoal = pending.find((t) => operationNameOf(t.term) === 'switch_strategy');
         expect(metaGoal).toBeDefined();
       });
 
@@ -271,11 +268,7 @@ describe('NARExecution', () => {
         await exec.run(1);
 
         const pending = freshTaskManager.getPending?.() ?? [];
-        const metaGoal = pending.find(
-          (t) =>
-            t.term.toString().startsWith('^switch_strategy') ||
-            t.term.toString().includes('^switch_strategy')
-        );
+        const metaGoal = pending.find((t) => operationNameOf(t.term) === 'switch_strategy');
         expect(metaGoal).toBeUndefined();
       });
     });
@@ -337,7 +330,7 @@ describe('NARExecution', () => {
 
       freshTaskManager.addTask(
         createTask(
-          termParser.parse('^echo_goal(profile:test)'),
+          termParser.parse('echo_goal(profile:test)'),
           'goal',
           Truth.NEUTRAL,
           createBudget(0.9)

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { DEFAULT_CONFIG, type Term, TermBuilder } from '../../../../nar/src';
+import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
 import { NAR } from '../../../../nar/src/nar';
 import {
   BeliefPerceptionAdapter,
@@ -7,8 +8,8 @@ import {
   QBeliefStore,
   RewardBeliefAdapter,
 } from '../../../../nar/src/rl/index.js';
+import { operationNameOf, operationTerm } from '../../../../nar/src/terms/index.js';
 import { EpsilonGreedy } from '../baselines/bandit';
-import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
 
 describe('RL Parity - Bandit Epsilon-Greedy @load-sensitive', () => {
   const banditConfig = {
@@ -75,7 +76,7 @@ describe('RL Parity - Bandit Epsilon-Greedy @load-sensitive', () => {
 
         // Process reward through NAR
         const stateTerm = TermBuilder.atom(`state_${actionIdx}`);
-        const actionTerm = TermBuilder.atom(`^pull_arm_${actionIdx}`);
+        const actionTerm = operationTerm(`pull_arm_${actionIdx}`);
         await rewardAdapter.processReward(stateTerm, actionTerm, reward);
 
         episodeReward += reward;
@@ -143,7 +144,7 @@ describe('RL Parity - Bandit Epsilon-Greedy @load-sensitive', () => {
         // Check for tool goals in pending queue
         const pendingGoals = nar.taskManager.getPending();
         const toolGoals = pendingGoals.filter(
-          (g) => g.type === 'goal' && g.term.toString().includes('^pull_arm')
+          (g) => g.type === 'goal' && operationNameOf(g.term)?.startsWith('pull_arm')
         );
 
         let selectedAction = 0;
@@ -166,7 +167,7 @@ describe('RL Parity - Bandit Epsilon-Greedy @load-sensitive', () => {
 
         // Update beliefs
         const stateTerm = TermBuilder.atom('bandit_state');
-        const actionTerm = TermBuilder.atom(`^pull_arm_${selectedAction}`);
+        const actionTerm = operationTerm(`pull_arm_${selectedAction}`);
         await rewardAdapter.processReward(stateTerm, actionTerm, reward);
 
         episodeReward += reward;
@@ -223,7 +224,7 @@ describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
       // Adapter-wrapped with same seed
       const env2 = new BanditGame({ ...banditConfig, seed });
       const nar = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -255,7 +256,7 @@ describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
           const { reward, terminal } = env2.step(actionIdx);
           adapterAgent.update(actionIdx, reward);
           const stateTerm = TermBuilder.atom(`state_${actionIdx}`);
-          const actionTerm = TermBuilder.atom(`^pull_arm_${actionIdx}`);
+          const actionTerm = operationTerm(`pull_arm_${actionIdx}`);
           await rewardAdapter.processReward(stateTerm, actionTerm, reward);
           episodeReward += reward;
           if (terminal) break;
@@ -290,7 +291,7 @@ describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
     for (let seed = 0; seed < numSeeds; seed++) {
       const env = new BanditGame({ ...banditConfig, seed });
       const nar = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -320,9 +321,9 @@ describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
 
       const nativeRewards: number[] = [];
       const actions = [
-        TermBuilder.atom('^pull_arm_0'),
-        TermBuilder.atom('^pull_arm_1'),
-        TermBuilder.atom('^pull_arm_2'),
+        operationTerm('pull_arm_0'),
+        operationTerm('pull_arm_1'),
+        operationTerm('pull_arm_2'),
       ];
       const stateTerm = TermBuilder.atom('bandit_state');
       // The arm index is known from the action terms themselves, so reading it
@@ -367,7 +368,7 @@ describe('RL Parity - Multi-Seed Validation @load-sensitive', () => {
           const goalTerm = actionAdapter.buildGoalTerm({ name: `pull_arm_${selectedAction}` });
           await nar.tools.executeToolGoal(goalTerm);
           const { reward, terminal } = env.step(selectedAction);
-          const actionTerm = TermBuilder.atom(`^pull_arm_${selectedAction}`);
+          const actionTerm = operationTerm(`pull_arm_${selectedAction}`);
           await rewardAdapter.processReward(stateTerm, actionTerm, reward);
           episodeReward += reward;
           if (terminal) break;
@@ -418,7 +419,7 @@ describe('QBeliefStore @load-sensitive', () => {
 
     const qStore = new QBeliefStore(nar);
     const state = TermBuilder.atom('state_s1');
-    const action = TermBuilder.atom('^move_north');
+    const action = operationTerm('move_north');
 
     // Initially no value
     expect(qStore.getValue(state, action)).toBeNull();
@@ -459,9 +460,9 @@ describe('QBeliefStore @load-sensitive', () => {
     const qStore = new QBeliefStore(nar);
     const state = TermBuilder.atom('state_s1');
     const actions = [
-      TermBuilder.atom('^move_north'),
-      TermBuilder.atom('^move_south'),
-      TermBuilder.atom('^move_east'),
+      operationTerm('move_north'),
+      operationTerm('move_south'),
+      operationTerm('move_east'),
     ];
 
     // Set different values
@@ -492,9 +493,9 @@ describe('QBeliefStore @load-sensitive', () => {
     const qStore = new QBeliefStore(nar);
     const state = TermBuilder.atom('state_s1');
     const actions = [
-      TermBuilder.atom('^action_a'), // High confidence
-      TermBuilder.atom('^action_b'), // Low confidence
-      TermBuilder.atom('^action_c'), // No belief (unknown)
+      operationTerm('action_a'), // High confidence
+      operationTerm('action_b'), // Low confidence
+      operationTerm('action_c'), // No belief (unknown)
     ];
 
     // Set high confidence for action_a

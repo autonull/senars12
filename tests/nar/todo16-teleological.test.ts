@@ -118,7 +118,7 @@ describe('System One — Teleological Purity (Bench 3)', () => {
     // Desire seeded goal-side only: the task enters as 'goal'
     nar.taskManager.addTask(
       createTask(
-        termParser.parse('^move_north()'),
+        termParser.parse('move_north()'),
         'goal',
         Truth.create(proposal.value, proposal.confidence),
         createBudget(0.9)

@@ -11,6 +11,7 @@ import { NARBuilder } from '@senars/nar/agent/builder';
 import { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
 import { createLogger } from '@senars/util';
 import { initializeMetaReasoning, registerMetaRules } from '@senars/nar/rules';
+import { operationNameOf } from '@senars/nar/terms';
 import { initializeSelfConcept } from '@senars/nar/tools';
 import { bar, divider, formatNarseseTruth, mean, pct } from '@senars/util';
 import { runEntrypoint } from './lib/fatal-error.js';
@@ -93,9 +94,9 @@ async function main() {
     }
   }
 
-  // Active meta-goals (goals starting with ^)
+  // Active meta-goals (goals that call a tool)
   const activeMetaGoals = goals
-    .filter((g) => g.term.toString().startsWith('^'))
+    .filter((g) => operationNameOf(g.term) !== undefined)
     .map((g) => g.term.toString())
     .slice(0, 10);
 
@@ -210,7 +211,7 @@ async function main() {
   // Stalled goals
   console.log('\n⏸️  STALLED GOALS');
   console.log(divider());
-  const pendingGoals = goals.filter((g) => g.term.toString().startsWith('^'));
+  const pendingGoals = goals.filter((g) => operationNameOf(g.term) !== undefined);
   if (pendingGoals.length === 0) {
     console.log('  (none)');
   } else {

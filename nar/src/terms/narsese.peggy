@@ -58,9 +58,7 @@ TruthValue
     }
 
 Term "term"
-  = OperationTerm
-  / OperationAtom
-  / Statement
+  = Statement
   / CompactInheritance
   / NegationTerm
   / DeltaTerm
@@ -70,49 +68,9 @@ Term "term"
   / ImagePlaceholder
   / AtomicTerm
 
-OperationTerm "operation term"
-  = "^" _ name:OperationName _ "(" _ args:OperationArgs? _ ")" {
-      // Parse ^tool(args) as Inheritance(Product(args...), Atom('^tool'))
-      const argsList = args || [];
-      const productTerm = argsList.length > 0 
-        ? options.termFactory.create('product', argsList)
-        : options.termFactory.atom('*');
-      const opAtom = options.termFactory.atom('^' + name);
-      return options.termFactory.inheritance(productTerm, opAtom);
-    }
-
-// `^name(args)` is an operation term; `^name` on its own is an atom naming the
-// operation. The lookahead is what keeps the two apart, and it is why `^` is not
-// an atom character: `(a^b)` must reach the infix rule, not the atom rule.
-OperationAtom "operation atom"
-  = "^" name:OperationName ![(\[] { return options.termFactory.atom('^' + name); }
-
-OperationName "operation name"
-  = chars:$([^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+) { return chars; }
-
-OperationArgs "operation arguments"
-  = head:OperationArg tail:(_ "," _ OperationArg)* {
-      const terms = [head];
-      if (tail) {
-        for (const t of tail) {
-          terms.push(t[3]);
-        }
-      }
-      return terms;
-    }
-
-OperationArg "operation argument"
-  = OperationAtom
-  / Statement
-  / CompactInheritance
-  / NegationTerm
-  / DeltaTerm
-  / CompoundTerm
-  / Set
-  / Variable
-  / ImagePlaceholder
-  / OperationAtomicTerm
-
+// The callee in `f(x, y)`. Colons are allowed because an operation name is an
+// atom in every other position, and `profile:test` has to name the same atom
+// here as it does there.
 OperationAtomicTerm "operation atomic term (allows colons)"
   = StringLiteral
   / ColonedAtom
@@ -146,9 +104,6 @@ CompoundTerm
   / "(" _ symbol:OperatorSymbol _ ","? _ components:TermList _ ")" {
       return options.termFactory.create(operatorKind(symbol), components);
     }
-  // `f(x, y)` — the short-hand for an operation term. It is accepted and never
-  // written: the canonical spelling is `(f^(x,y))`, the one the serialiser emits
-  // and the one that says which operator is named rather than implying it.
   / operator:OperationAtomicTerm "(" _ components:TermList? _ ")" {
       const args = components || [];
       return options.termFactory.operation(
@@ -200,8 +155,8 @@ TermList
       return terms;
     }
 
-// A leading `^` is the operation sigil, never part of an atom name — it is the
-// only reason `(a^b)` reads as a compound and not as one atom named `a^b`.
+// `^` is an operator symbol and never an atom character — it is the only reason
+// `(a^b)` reads as a compound and not as one atom named `a^b`.
 AtomicTerm "atomic term"
   = StringLiteral
   / chars:$([^(){}[\]<>.,!%?;:@ \t\n\r=&/|>^-]+) { return options.termFactory.atom(chars); }

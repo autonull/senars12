@@ -1,7 +1,7 @@
 import { BoundedRing, mean } from '@senars/util';
 import { type Term, TermBuilder, Truth } from '../../../index.js';
 import type { NAR } from '../../../nar.js';
-import { operationTerm } from '../../../terms/impls/operation-term.js';
+import { operationNameOf, operationTerm } from '../../../terms/impls/operation-term.js';
 import type { RandomSource } from '../../../types/primitives.js';
 import { nextInt, SeededRNG } from '../../../utils/random.js';
 import type { QBeliefStore } from '../QBeliefStore.js';
@@ -33,7 +33,7 @@ export class GoalActionAdapter {
     };
   }
 
-  /** Build a native AST goal term for an action: `^name(key --> value, ...)`. */
+  /** Build a native AST goal term for an action: `name(key --> value, ...)`. */
   buildGoalTerm(action: RLAction): Term {
     return operationTerm(action.name, action.args ?? {});
   }
@@ -75,19 +75,28 @@ export interface NativeActionSelector {
   onEpisodeEnd(): void;
 }
 
-/** Highest-priority pending tool goal matching `pattern`, as a term string. */
-function topPendingGoal(nar: NAR, pattern: string | RegExp): string | undefined {
-  const toolGoals = nar.taskManager
+/**
+ * Highest-priority pending tool goal naming an operation `accepts`, found by
+ * reading the operation rather than by matching its printed form — the printed
+ * form used to carry the sigil the policy is now selecting on.
+ */
+function topPendingOperation(nar: NAR, accepts: (name: string) => boolean): string | undefined {
+  return nar.taskManager
     .getPending()
-    .filter((g) => g.type === 'goal' && g.term.toString().match(pattern));
-  toolGoals.sort((a, b) => b.budget.priority - a.budget.priority);
-  return toolGoals[0]?.term.toString();
+    .filter((task) => task.type === 'goal')
+    .map((task) => ({ name: operationNameOf(task.term), priority: task.budget.priority }))
+    .filter((c): c is { name: string; priority: number } => c.name !== undefined && accepts(c.name))
+    .sort((a, b) => b.priority - a.priority)[0]?.name;
 }
 
-function armIndexOf(termStr: string): number | undefined {
-  const match = termStr.match(/pull_arm_(\d+)/);
-  return match ? parseInt(match[1]!, 10) : undefined;
-}
+/** An arm operation name, which is what the two bandit policies select over. */
+const isArmName = (name: string): boolean => /^pull_arm_\d+$/.test(name);
+
+/** The arm an operation name names, or `undefined` when it names none. */
+const armIndexOf = (name: string | undefined): number | undefined => {
+  const match = name?.match(/^pull_arm_(\d+)$/);
+  return match ? Number.parseInt(match[1]!, 10) : undefined;
+};
 
 /**
  * Bandit action selector (existing logic extracted)
@@ -104,7 +113,7 @@ export class BanditSelector implements NativeActionSelector {
     this.explorationRate = explorationRate;
     this.rng = rng;
     this.stateTerm = TermBuilder.atom('bandit_state');
-    this.actions = Array.from({ length: numArms }, (_, i) => TermBuilder.atom(`^pull_arm_${i}`));
+    this.actions = Array.from({ length: numArms }, (_, i) => operationTerm(`pull_arm_${i}`));
   }
 
   selectAction(
@@ -113,26 +122,23 @@ export class BanditSelector implements NativeActionSelector {
     qStore: QBeliefStore,
     actionAdapter: GoalActionAdapter
   ): number {
-    const pending = topPendingGoal(nar, /pull_arm_\d+/);
-    if (pending) {
-      const idx = armIndexOf(pending);
-      if (idx !== undefined) return idx;
-    }
+    const pending = armIndexOf(topPendingOperation(nar, isArmName));
+    if (pending !== undefined) return pending;
 
     const bestAction = qStore.getBestAction(this.stateTerm, this.actions);
     const lowConfidence = qStore.getLowConfidenceActions(this.stateTerm, this.actions, 0.4);
 
     if (bestAction && this.rng() > this.explorationRate) {
-      const idx = armIndexOf(bestAction.toString());
-      if (idx !== undefined) return idx;
+      const idx = this.actions.indexOf(bestAction);
+      if (idx >= 0) return idx;
     }
 
     if (lowConfidence.length > 0 && this.rng() < 0.5) {
       const exploreAction = lowConfidence[nextInt(this.rng, lowConfidence.length)];
       if (!exploreAction) return nextInt(this.rng, this.numArms);
-      const idx = armIndexOf(exploreAction.toString());
+      const idx = this.actions.indexOf(exploreAction);
       qStore.stimulateCuriosity(0.05);
-      if (idx !== undefined) return idx;
+      if (idx >= 0) return idx;
     }
 
     return nextInt(this.rng, this.numArms);
@@ -171,7 +177,7 @@ export class GridWorldSelector implements NativeActionSelector {
     this.explorationDecay = explorationDecay;
     this.explorationMin = explorationMin;
     this.wallPenalty = wallPenalty;
-    this.actions = this.actionNames.map((name) => TermBuilder.atom(`^${name}`));
+    this.actions = this.actionNames.map((name) => operationTerm(name));
     if (typeof seed === 'function') {
       this.rng = seed;
     } else {
@@ -198,13 +204,9 @@ export class GridWorldSelector implements NativeActionSelector {
     qStore: QBeliefStore,
     actionAdapter: GoalActionAdapter
   ): number {
-    const pending = topPendingGoal(nar, /^.*\^(move_up|move_right|move_down|move_left)/);
-    if (pending) {
-      for (let i = 0; i < this.actionNames.length; i++) {
-        if (pending.includes(`^${this.actionNames[i]}`)) {
-          return i;
-        }
-      }
+    const pending = topPendingOperation(nar, (name) => this.actionNames.includes(name));
+    if (pending !== undefined) {
+      return this.actionNames.indexOf(pending);
     }
 
     const stateTerm = TermBuilder.atom(stateId);
@@ -215,17 +217,11 @@ export class GridWorldSelector implements NativeActionSelector {
     let selectedAction = 0;
 
     if (bestAction && this.rng() > this.explorationRate) {
-      const match = bestAction.toString().match(/move_(up|right|down|left)/);
-      if (match) {
-        selectedAction = this.actionNames.indexOf(`move_${match[1]}`);
-      }
+      selectedAction = Math.max(0, this.actions.indexOf(bestAction));
     } else if (lowConfidence.length > 0 && this.rng() < 0.4) {
       const exploreAction = lowConfidence[nextInt(this.rng, lowConfidence.length)];
       if (!exploreAction) return nextInt(this.rng, 4);
-      const match = exploreAction.toString().match(/move_(up|right|down|left)/);
-      if (match) {
-        selectedAction = this.actionNames.indexOf(`move_${match[1]}`);
-      }
+      selectedAction = Math.max(0, this.actions.indexOf(exploreAction));
       qStore.stimulateCuriosity(0.03);
     } else {
       selectedAction = nextInt(this.rng, 4);
@@ -273,7 +269,7 @@ export class NonStationarySelector implements NativeActionSelector {
     this.explorationRate = explorationRate;
     this.rng = rng;
     this.stateTerm = TermBuilder.atom('bandit_state');
-    this.actions = Array.from({ length: numArms }, (_, i) => TermBuilder.atom(`^pull_arm_${i}`));
+    this.actions = Array.from({ length: numArms }, (_, i) => operationTerm(`pull_arm_${i}`));
     this.armPullCounts = new Array(numArms).fill(0);
     this.lastRewards = new Array(numArms).fill(0);
     this.predictionErrors = Array.from({ length: numArms }, () => new BoundedRing<number>(20));
@@ -285,11 +281,8 @@ export class NonStationarySelector implements NativeActionSelector {
     qStore: QBeliefStore,
     actionAdapter: GoalActionAdapter
   ): number {
-    const pending = topPendingGoal(nar, /pull_arm_\d+/);
-    if (pending) {
-      const idx = armIndexOf(pending);
-      if (idx !== undefined) return idx;
-    }
+    const pending = armIndexOf(topPendingOperation(nar, isArmName));
+    if (pending !== undefined) return pending;
 
     const bestAction = qStore.getBestAction(this.stateTerm, this.actions);
     const lowConfidence = qStore.getLowConfidenceActions(this.stateTerm, this.actions, 0.4);
@@ -309,16 +302,16 @@ export class NonStationarySelector implements NativeActionSelector {
     }
 
     if (bestAction && this.rng() > effectiveExplorationRate) {
-      const idx = armIndexOf(bestAction.toString());
-      if (idx !== undefined) return idx;
+      const idx = this.actions.indexOf(bestAction);
+      if (idx >= 0) return idx;
     }
 
     if (lowConfidence.length > 0 && this.rng() < 0.5) {
       const exploreAction = lowConfidence[nextInt(this.rng, lowConfidence.length)];
       if (!exploreAction) return nextInt(this.rng, this.numArms);
-      const idx = armIndexOf(exploreAction.toString());
+      const idx = this.actions.indexOf(exploreAction);
       qStore.stimulateCuriosity(0.05);
-      if (idx !== undefined) return idx;
+      if (idx >= 0) return idx;
     }
 
     return nextInt(this.rng, this.numArms);

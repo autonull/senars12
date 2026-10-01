@@ -1,12 +1,13 @@
 import { describe, expect, test } from 'vitest';
-import { DEFAULT_CONFIG, TermBuilder, Truth, createTask } from '../../../../nar/src';
+import { createTask, DEFAULT_CONFIG, TermBuilder, Truth } from '../../../../nar/src';
+import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
 import { NAR } from '../../../../nar/src/nar';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
 } from '../../../../nar/src/rl/index.js';
-import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
+import { operationTerm } from '../../../../nar/src/terms/index.js';
 
 describe('RL Parity - Trace Validation', () => {
   const banditConfig = {
@@ -52,8 +53,8 @@ describe('RL Parity - Trace Validation', () => {
     });
 
     const stateTerm = TermBuilder.atom('bandit_state');
-    const action0 = TermBuilder.atom('^pull_arm_0');
-    const action1 = TermBuilder.atom('^pull_arm_1');
+    const action0 = operationTerm('pull_arm_0');
+    const action1 = operationTerm('pull_arm_1');
     const actions = [action0, action1];
 
     // Step 1: Perceive initial state (creates belief)
@@ -180,7 +181,7 @@ describe('RL Parity - Trace Validation', () => {
     });
 
     const stateTerm = TermBuilder.atom('bandit_state');
-    const action0 = TermBuilder.atom('^pull_arm_0');
+    const action0 = operationTerm('pull_arm_0');
 
     // Perceive state
     await perception.perceive({ stateId: 'bandit_state', reward: 0 });
@@ -282,7 +283,7 @@ describe('RL Parity - Trace Validation', () => {
     const qStore = rewardAdapter.getQStore();
 
     const state = TermBuilder.atom('state_s1');
-    const action = TermBuilder.atom('^move_north');
+    const action = operationTerm('move_north');
 
     // Process reward
     await rewardAdapter.processReward(state, action, 1.0, 0.8);
@@ -368,7 +369,7 @@ describe('RL Parity - Trace Validation', () => {
 
       const { reward } = env.step(1);
       const stateTerm = TermBuilder.atom('bandit_state');
-      const actionTerm = TermBuilder.atom('^pull_arm_1');
+      const actionTerm = operationTerm('pull_arm_1');
       await rewardAdapter.processReward(stateTerm, actionTerm, reward);
     }
 

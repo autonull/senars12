@@ -42,7 +42,7 @@ const makeProposition = (
 });
 
 describe('System One — Teleological Transduction (Bench 11)', () => {
-  it('p > τ produces an authorized ^op(...) goal reaching dispatchToolGoals', async () => {
+  it('p > τ produces an authorized op(...) goal reaching dispatchToolGoals', async () => {
     const nar = new NAR({
       ...DEFAULT_CONFIG,
       activationDecayRate: 0.01,
@@ -75,7 +75,7 @@ describe('System One — Teleological Transduction (Bench 11)', () => {
     // Proposal → goal task → nar.run dispatches via toolGoalExecutor
     nar.taskManager.addTask(
       createTask(
-        termParser.parse('^move_to(direction:north)'),
+        termParser.parse('move_to(direction:north)'),
         'goal',
         Truth.create(proposal.value, proposal.confidence),
         createBudget(proposal.value * proposal.confidence)

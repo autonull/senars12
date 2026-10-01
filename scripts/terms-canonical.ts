@@ -25,6 +25,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { TermBuilder } from '../nar/src/terms/impls/factory.js';
+import { operationTerm, readOperationTerm } from '../nar/src/terms/impls/operation-term.js';
 import { termParser } from '../nar/src/terms/impls/parser-peggy.js';
 import { serializeTerm } from '../nar/src/terms/impls/serialize.js';
 import { OPERATORS } from '../nar/src/terms/operators.js';
@@ -82,6 +83,23 @@ for (const [kind, { arity }] of Object.entries(OPERATORS)) {
   }
   if (parsed !== text)
     failures.push(`${kind}: '${text}' reads back as ${parsed ?? 'a parse failure'}`);
+}
+
+/**
+ * The operation encoder, which is what the tool layer actually calls. Every kind
+ * round-trips as a *shape*, which says nothing about the encoder: `operationTerm`
+ * nests its arguments in inheritances and a product, and a product of statements
+ * is a form the grammar does not read. That was true before the `^` retirement
+ * and would have stayed true, because the shape check above only ever built
+ * `operation` out of atoms.
+ */
+for (const args of [{}, { a: 1 }, { a: 1, b: 'two' }, { a: 1, b: 'two', c: false }]) {
+  const term = operationTerm('tool', args);
+  const read = readOperationTerm(termParser.parse(serializeTerm(term)));
+  if (JSON.stringify(read) !== JSON.stringify({ name: 'tool', args }))
+    failures.push(
+      `operationTerm(${Object.keys(args).length} args): ${serializeTerm(term)} reads back as ${JSON.stringify(read)}`
+    );
 }
 
 if (failures.length > 0) {

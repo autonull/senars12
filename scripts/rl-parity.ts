@@ -14,7 +14,7 @@ import { mean, pct, stdDev } from '@senars/util';
 import { program } from 'commander';
 import { BanditGame } from '../nar/src/game/impls/BanditGame.js';
 import { GridWorldGame } from '../nar/src/game/impls/GridWorldGame.js';
-import { TermBuilder } from '../nar/src/index.js';
+import { operationTerm, TermBuilder } from '../nar/src/index.js';
 import { NAR } from '../nar/src/nar.js';
 import { mulberry32 } from '../nar/src/utils/random.js';
 import {
@@ -224,7 +224,7 @@ async function runAdapterWrapped(
       }
 
       const stateTerm = TermBuilder.atom(stateId);
-      const actionTerm = TermBuilder.atom(`^${actionName}`);
+      const actionTerm = operationTerm(actionName);
       rewardAdapter.processReward(stateTerm, actionTerm, reward);
 
       episodeReward += reward;

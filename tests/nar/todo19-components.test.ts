@@ -141,8 +141,8 @@ describe('Bench 43 — Component Contracts', () => {
     const game = new MetaGame({ id: 'meta', observesFocuses: ['f1', 'f2'] });
     const expected = describeMetaGameActions(['f1', 'f2']);
     expect(game.legalActions(game.state())).toEqual(expected);
-    expect(expected).toContain('^focus_weight(f1, 0.8)');
-    expect(expected).toContain('^knob_set(maxDerivationsPerStep, 500)');
+    expect(expected).toContain('focus_weight(f1, 0.8)');
+    expect(expected).toContain('knob_set(maxDerivationsPerStep, 500)');
   });
 
   it('registries are idempotent per id and fail loudly on missing requires', () => {

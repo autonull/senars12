@@ -1,12 +1,13 @@
 import { describe, expect, test } from 'vitest';
-import { DEFAULT_CONFIG, TermBuilder, Truth, createBudget, createTask } from '../../../../nar/src';
+import { createBudget, createTask, DEFAULT_CONFIG, TermBuilder, Truth } from '../../../../nar/src';
+import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
 import { NAR } from '../../../../nar/src/nar';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
 } from '../../../../nar/src/rl/index.js';
-import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
+import { operationNameOf, operationTerm } from '../../../../nar/src/terms/index.js';
 
 describe('RL Parity - Cognitive Advantage Experiments', () => {
   const banditConfig = {
@@ -29,7 +30,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
     test('SeNARS reduces exploration as confidence increases', async () => {
       const env = new BanditGame({ ...banditConfig, seed: 100 });
       const nar = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -58,9 +59,9 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       }
 
       const actions = [
-        TermBuilder.atom('^pull_arm_0'),
-        TermBuilder.atom('^pull_arm_1'),
-        TermBuilder.atom('^pull_arm_2'),
+        operationTerm('pull_arm_0'),
+        operationTerm('pull_arm_1'),
+        operationTerm('pull_arm_2'),
       ];
       const stateTerm = TermBuilder.atom('bandit_state');
 
@@ -81,7 +82,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
           let selectedAction = 0;
           const pendingGoals = nar.taskManager.getPending();
           const toolGoals = pendingGoals.filter(
-            (g) => g.type === 'goal' && g.term.toString().includes('^pull_arm')
+            (g) => g.type === 'goal' && operationNameOf(g.term)?.startsWith('pull_arm')
           );
 
           let didExplore = false;
@@ -110,7 +111,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
           const goalTerm = actionAdapter.buildGoalTerm({ name: `pull_arm_${selectedAction}` });
           await nar.tools.executeToolGoal(goalTerm);
           const { reward, terminal } = env.step(selectedAction);
-          const actionTerm = TermBuilder.atom(`^pull_arm_${selectedAction}`);
+          const actionTerm = operationTerm(`pull_arm_${selectedAction}`);
           await rewardAdapter.processReward(stateTerm, actionTerm, reward);
           if (terminal) break;
         }
@@ -130,7 +131,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
     test('confidence calibration: low confidence predictions are less trusted', async () => {
       const env = new BanditGame({ ...banditConfig, seed: 200 });
       const nar = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -159,9 +160,9 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       }
 
       const actions = [
-        TermBuilder.atom('^pull_arm_0'),
-        TermBuilder.atom('^pull_arm_1'),
-        TermBuilder.atom('^pull_arm_2'),
+        operationTerm('pull_arm_0'),
+        operationTerm('pull_arm_1'),
+        operationTerm('pull_arm_2'),
       ];
       const stateTerm = TermBuilder.atom('bandit_state');
 
@@ -197,7 +198,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       // This test demonstrates that sensor confidence affects observation beliefs
       // not value beliefs (which are updated from rewards)
       const nar1 = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -241,7 +242,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
   describe('Contradiction Handling Advantage', () => {
     test('contradictory observations create detectable conflict', async () => {
       const nar = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -259,7 +260,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       const rewardAdapter = new RewardBeliefAdapter(nar);
 
       const stateTerm = TermBuilder.atom('state_test');
-      const actionTerm = TermBuilder.atom('^test_action');
+      const actionTerm = operationTerm('test_action');
 
       // First observation: high reward
       await rewardAdapter.processReward(stateTerm, actionTerm, 1.0, 0.8);
@@ -281,7 +282,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
     test('conflict detection through truth value semantics', async () => {
       const nar = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -297,7 +298,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
       // Direct belief input with contradiction
       const term = TermBuilder.inheritance(
-        TermBuilder.product(TermBuilder.atom('state_test'), TermBuilder.atom('^action')),
+        TermBuilder.product(TermBuilder.atom('state_test'), operationTerm('action')),
         TermBuilder.atom('predicts_reward')
       )!;
 
@@ -331,7 +332,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
     test('full causal chain from observation to action is traceable', async () => {
       const env = new BanditGame({ ...banditConfig, seed: 400 });
       const nar = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -358,7 +359,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       });
 
       const stateTerm = TermBuilder.atom('bandit_state');
-      const action1 = TermBuilder.atom('^pull_arm_1');
+      const action1 = operationTerm('pull_arm_1');
       const actions = [action1];
 
       // Build up value belief for arm 1
@@ -403,7 +404,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
     test('explanation includes causal path: belief -> value -> goal -> execution', async () => {
       const nar = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -433,7 +434,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       });
 
       const state = TermBuilder.atom('state_s1');
-      const action = TermBuilder.atom('^test_action');
+      const action = operationTerm('test_action');
 
       // Create value belief
       await rewardAdapter.processReward(state, action, 1.0, 0.8);
@@ -481,7 +482,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       });
 
       const nar = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -509,7 +510,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
         });
       }
 
-      const actions = [TermBuilder.atom('^pull_arm_0'), TermBuilder.atom('^pull_arm_1')];
+      const actions = [operationTerm('pull_arm_0'), operationTerm('pull_arm_1')];
       const stateTerm = TermBuilder.atom('bandit_state');
 
       const optimalArmHistory: number[] = [];
@@ -527,7 +528,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
         let selectedAction = 0;
         const pendingGoals = nar.taskManager.getPending();
         const toolGoals = pendingGoals.filter(
-          (g) => g.type === 'goal' && g.term.toString().includes('^pull_arm')
+          (g) => g.type === 'goal' && operationNameOf(g.term)?.startsWith('pull_arm')
         );
 
         if (toolGoals.length > 0) {
@@ -552,7 +553,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
         const goalTerm = actionAdapter.buildGoalTerm({ name: `pull_arm_${selectedAction}` });
         await nar.tools.executeToolGoal(goalTerm);
         const { reward } = env.step(selectedAction);
-        const actionTerm = TermBuilder.atom(`^pull_arm_${selectedAction}`);
+        const actionTerm = operationTerm(`pull_arm_${selectedAction}`);
         await rewardAdapter.processReward(stateTerm, actionTerm, reward);
       }
 
@@ -575,7 +576,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       });
 
       const nar = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -603,7 +604,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
         });
       }
 
-      const actions = [TermBuilder.atom('^pull_arm_0'), TermBuilder.atom('^pull_arm_1')];
+      const actions = [operationTerm('pull_arm_0'), operationTerm('pull_arm_1')];
       const stateTerm = TermBuilder.atom('bandit_state');
 
       // Track value beliefs over time
@@ -623,7 +624,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
         let selectedAction = 0;
         const pendingGoals = nar.taskManager.getPending();
         const toolGoals = pendingGoals.filter(
-          (g) => g.type === 'goal' && g.term.toString().includes('^pull_arm')
+          (g) => g.type === 'goal' && operationNameOf(g.term)?.startsWith('pull_arm')
         );
 
         if (toolGoals.length > 0) {
@@ -646,7 +647,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
         const goalTerm = actionAdapter.buildGoalTerm({ name: `pull_arm_${selectedAction}` });
         await nar.tools.executeToolGoal(goalTerm);
         const { reward } = env.step(selectedAction);
-        const actionTerm = TermBuilder.atom(`^pull_arm_${selectedAction}`);
+        const actionTerm = operationTerm(`pull_arm_${selectedAction}`);
         await rewardAdapter.processReward(stateTerm, actionTerm, reward);
 
         // Record value beliefs
@@ -677,7 +678,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
   describe('Memory-Pressure Graceful Degradation Advantage', () => {
     test('high-priority concepts retained under memory pressure', async () => {
       const nar = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -695,8 +696,8 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       const qStore = rewardAdapter.getQStore();
 
       const state = TermBuilder.atom('state_important');
-      const action = TermBuilder.atom('^important_action');
-      const otherAction = TermBuilder.atom('^other_action');
+      const action = operationTerm('important_action');
+      const otherAction = operationTerm('other_action');
 
       // Create high-value concept (high priority through frequent updates)
       for (let i = 0; i < 20; i++) {
@@ -706,7 +707,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       // Create many low-priority concepts to fill memory
       for (let i = 0; i < 40; i++) {
         const s = TermBuilder.atom(`state_fill_${i}`);
-        const a = TermBuilder.atom(`^action_${i}`);
+        const a = operationTerm(`action_${i}`);
         await qStore.updateValue(s, a, 0.1, 0.2);
       }
 
@@ -722,7 +723,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
     test('memory statistics reflect pressure accurately', async () => {
       const nar = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -740,12 +741,12 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       const qStore = rewardAdapter.getQStore();
 
       const state = TermBuilder.atom('state_test');
-      const action = TermBuilder.atom('^action');
+      const action = operationTerm('action');
 
       // Add concepts until pressure
       for (let i = 0; i < 150; i++) {
         const s = TermBuilder.atom(`state_${i}`);
-        const a = TermBuilder.atom(`^action_${i}`);
+        const a = operationTerm(`action_${i}`);
         await qStore.updateValue(s, a, Math.random(), 0.5);
       }
 
@@ -770,7 +771,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
   describe('Schema Induction Advantage', () => {
     test('schema inductor can be instantiated and used', async () => {
       const nar = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -801,7 +802,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
     test('derivation chains can be recorded for schema induction', async () => {
       const nar = new NAR({
-      ...DEFAULT_CONFIG,
+        ...DEFAULT_CONFIG,
         activationDecayRate: 0.01,
         consolidationInterval: 5,
         cpuThrottleMs: 0,
@@ -834,7 +835,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       });
 
       const stateTerm = TermBuilder.atom('state_grid_0_0');
-      const actions = [TermBuilder.atom('^move_north'), TermBuilder.atom('^move_east')];
+      const actions = [operationTerm('move_north'), operationTerm('move_east')];
 
       // Run several episodes to build derivation history
       for (let ep = 0; ep < 5; ep++) {

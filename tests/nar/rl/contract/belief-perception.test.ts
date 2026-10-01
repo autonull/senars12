@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { DEFAULT_CONFIG, NAR, TermBuilder, Truth } from '../../../../nar/src';
+import { operationNameOf } from '../../../../nar/src/terms/index.js';
 
 describe('Belief/Perception Contract', () => {
   let nar: NAR;
@@ -192,12 +193,7 @@ describe('Belief/Perception Contract', () => {
 
     // Check no tool goals were generated from perception alone
     const goals = nar.getGoals();
-    const toolGoals = goals.filter((g) => {
-      const str = g.term.toString();
-      return (
-        str.startsWith('^') || (g.term.kind === 'inheritance' && g.term.toString().includes('^'))
-      );
-    });
+    const toolGoals = goals.filter((g) => operationNameOf(g.term) !== undefined);
 
     // Perception alone should not generate tool goals
     // (Tool goals should only come from drive-based goal injection or explicit nar.goal())

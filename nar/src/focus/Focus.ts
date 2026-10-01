@@ -16,6 +16,7 @@ import {
   isImplication,
   isInheritance,
   isOperation,
+  operationNameOf,
 } from '../terms/index.js';
 import type { Budget, ConceptLike, Task } from '../types/index.js';
 import { clamp01 } from '@senars/util';
@@ -287,11 +288,10 @@ export class Focus implements BagItem {
       const term = concept.term;
       if (!term || typeof term !== 'object') continue;
 
-      // Operation: `(^act, ...)` — the operator atom names the action.
+      // Operation: `act(...)` — the operator atom names the action.
       if (isOperation(term)) {
-        const op = term.args?.[0];
-        if (op && isAtomic(op) && op.symbol.startsWith('^') && op.symbol.length > 1)
-          record(op.symbol.slice(1), concept);
+        const action = operationNameOf(term);
+        if (action) record(action, concept);
         continue;
       }
 

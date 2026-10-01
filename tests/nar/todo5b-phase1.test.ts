@@ -9,6 +9,7 @@ import { createDefaultHooks } from '@senars/nar/tick/bindings.js';
 import { toCognitiveEvents } from '@senars/nar/tick/bridge.js';
 import { createPipeline, createTickContext, runTick } from '@senars/nar/tick/tick.js';
 import { describe, expect, it } from 'vitest';
+import { operationTerm } from '../../nar/src/terms/index.js';
 
 const t = (f: number, c: number): Truth => Truth.create(f, c);
 
@@ -113,10 +114,7 @@ describe('TODO5b Phase 1', () => {
   });
 
   it('default bindings: negotiate veto, policy deny, tool act', async () => {
-    const goalTerm = TermBuilder.inheritance(
-      TermBuilder.compound('product', [atom('fix_pattern_null_check')]),
-      atom('^apply_fix')
-    )!;
+    const goalTerm = operationTerm('apply_fix', { pattern: 'fix_pattern_null_check' });
     const goal = createTask(goalTerm, 'goal', t(1, 0.9), createBudget(0.9));
     const executed: string[] = [];
     const hooks = createDefaultHooks({

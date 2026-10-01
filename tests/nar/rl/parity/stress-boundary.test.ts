@@ -1,14 +1,15 @@
 import { describe, expect, test } from 'vitest';
 import { DEFAULT_CONFIG, TermBuilder } from '../../../../nar/src';
+import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
 import { NAR } from '../../../../nar/src/nar';
-import type { Term } from '../../../../nar/src/terms/index.js';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   type QBeliefStore,
   RewardBeliefAdapter,
 } from '../../../../nar/src/rl/index.js';
-import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
+import type { Term } from '../../../../nar/src/terms/index.js';
+import { operationNameOf, operationTerm } from '../../../../nar/src/terms/index.js';
 
 const NUM_ARMS = 3;
 const STATE_ID = 'bandit_state';
@@ -34,7 +35,7 @@ function createStressHarness(opts: {
 }): StressHarness {
   const env = new BanditGame({ numArms: NUM_ARMS, armMeans: [0.2, 0.5, 0.8], seed: opts.seed });
   const nar = new NAR({
-      ...DEFAULT_CONFIG,
+    ...DEFAULT_CONFIG,
     activationDecayRate: 0.01,
     consolidationInterval: 5,
     cpuThrottleMs: 0,
@@ -62,7 +63,7 @@ function createStressHarness(opts: {
     });
   }
 
-  const actions = Array.from({ length: NUM_ARMS }, (_, i) => TermBuilder.atom(`^pull_arm_${i}`));
+  const actions = Array.from({ length: NUM_ARMS }, (_, i) => operationTerm(`pull_arm_${i}`));
   const goalTerms = Array.from({ length: NUM_ARMS }, (_, i) =>
     actionAdapter.buildGoalTerm({ name: `pull_arm_${i}` })
   );
@@ -83,7 +84,7 @@ function createStressHarness(opts: {
 function selectStressAction(h: StressHarness, lowConfidenceThreshold: number): number {
   const pendingGoals = h.nar.taskManager.getPending();
   const toolGoals = pendingGoals.filter(
-    (g) => g.type === 'goal' && g.term.toString().includes('^pull_arm')
+    (g) => g.type === 'goal' && operationNameOf(g.term)?.startsWith('pull_arm')
   );
 
   if (toolGoals.length > 0) {

@@ -1294,7 +1294,7 @@ _Dynamic subpath (no single entry file)._
 
 - `normalize`
 
-- `operationTerm` — `^toolName(key --> value, ...)`. Keys are read in insertion order, so the
+- `operationTerm` — `toolName(key --> value, ...)`; the `operation` kind, read by `readOperationTerm` and named by `operationNameOf`. Keys are read in insertion order, so the
 
 - `readOperationTerm` — The operation a term names, or `undefined` when it names none. Accepts the
 

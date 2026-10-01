@@ -1,5 +1,11 @@
 import { clamp } from '@senars/util';
-import { atomicSymbols, type Term, termDepth } from '../terms/index.js';
+import {
+  atomicSymbols,
+  operationNameOf,
+  type Term,
+  termDepth,
+  visitTerms,
+} from '../terms/index.js';
 import { normalizeNarsese, parseNarseseLenient } from './normalize.js';
 
 export interface FirewallVerdict {
@@ -27,7 +33,13 @@ const BLOCKED_PATTERNS: RegExp[] = [
   /bypass[\s_]+(validation|firewall|policy)/i,
 ];
 
-const OPERATOR_PATTERN = /\^[\w-]+/;
+/**
+ * A tool invocation in the mintable surface syntax. `^tool(args)` used to be the
+ * only call syntax and this matched its sigil; `tool(args)` is the only one now,
+ * and `^` no longer parses at all, so a pattern that still looked for it would
+ * pass every tool call the model writes.
+ */
+const OPERATOR_PATTERN = /[\w-]\s*\(/;
 
 const DEFAULTS: Required<Omit<FirewallOptions, 'extraBlockedPatterns' | 'allowedPredicates'>> = {
   maxLength: 500,
@@ -67,7 +79,7 @@ export class SymbolicFirewall {
         return { allowed: false, reason: `blocked pattern ${pattern.source}` };
     }
     if (this.blockOperators && OPERATOR_PATTERN.test(cleaned)) {
-      return { allowed: false, reason: 'LLM may not mint ^operator goals directly' };
+      return { allowed: false, reason: 'LLM may not mint tool goals directly' };
     }
     const truthMatch = /%([\d.]+)\s*;\s*([\d.]+)%/.exec(cleaned);
     const confidence = truthMatch ? Number.parseFloat(truthMatch[2]!) : undefined;
@@ -86,7 +98,7 @@ export class SymbolicFirewall {
       return { allowed: false, reason: 'predicate outside whitelist' };
     }
     if (kind === 'goal' && !/[!]$/.test(narsese.trim()) && OPERATOR_PATTERN.test(cleaned)) {
-      return { allowed: false, reason: 'operator invocation outside goal position' };
+      return { allowed: false, reason: 'tool invocation outside goal position' };
     }
     return { allowed: true };
   }
@@ -103,8 +115,16 @@ export class SymbolicFirewall {
 
   private predicatesAllowed(term: Term): boolean {
     const allowed = this.allowedPredicates!;
+    // An operation's callee is exempt by structure, which is what the sigil used
+    // to express: a tool name is not a predicate, so the predicate whitelist has
+    // nothing to say about it.
+    const callees = new Set<string>();
+    visitTerms(term, (t) => {
+      const name = operationNameOf(t);
+      if (name !== undefined) callees.add(name);
+    });
     return [...atomicSymbols(term)].every(
-      (n) => n.startsWith('^') || n.startsWith('?') || allowed.has(n)
+      (n) => callees.has(n) || n.startsWith('?') || allowed.has(n)
     );
   }
 }

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   type OperationCall,
+  operationNameOf,
   operationTerm,
   readOperationTerm,
 } from '../../../nar/src/terms/impls/operation-term.js';
+import { termParser } from '../../../nar/src/terms/impls/parser-peggy.js';
 import { isCompound, TermBuilder } from '../../../nar/src/terms/index.js';
 
 describe('operation-term convention', () => {
@@ -26,19 +28,29 @@ describe('operation-term convention', () => {
     expect(readOperationTerm(operationTerm('wait'))).toEqual({ name: 'wait', args: {} });
   });
 
-  it('one argument needs no product wrapper', () => {
+  it('several arguments are a product, which is what makes them several', () => {
     const term = operationTerm('peek', { n: 1 });
 
-    expect(term.kind).toBe('inheritance');
-    expect(isCompound(term) && term.args[0]?.kind).toBe('inheritance');
-  });
-
-  it('reads a bare ^name atom, so an arm selector term reads as itself', () => {
-    expect(readOperationTerm(TermBuilder.atom('^snake'))).toEqual({ name: 'snake', args: {} });
+    expect(term.kind).toBe('operation');
+    expect(isCompound(term) && term.args[1]?.kind).toBe('inheritance');
   });
 
   it('names no operation for a term that is not one', () => {
     expect(readOperationTerm(TermBuilder.atom('plain'))).toBeUndefined();
+    expect(
+      operationNameOf(TermBuilder.inheritance(TermBuilder.atom('a'), TermBuilder.atom('b'))!)
+    ).toBeUndefined();
+  });
+
+  it('an operation reads back from the text the serialiser writes', () => {
+    const term = operationTerm('move', { dir: 'left', steps: 3 });
+
+    expect(readOperationTerm(termParser.parse(term.toString()))).toEqual(readOperationTerm(term));
+  });
+
+  it('the sigil form is not a spelling of anything', () => {
+    expect(() => termParser.parse('^move(dir-->left)')).toThrow();
+    expect(() => termParser.parse('^move')).toThrow();
   });
 
   it('every encoder produces a term the decoder reads back identically', () => {

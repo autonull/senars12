@@ -10,6 +10,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { isTautology, termParser, validateTaskTerm } from '../../../nar/src/terms';
+import { operationNameOf } from '../../../nar/src/terms/index.js';
 import { NAR } from '../../../src';
 
 describe('Diagnostic: Tautology Detection', () => {
@@ -185,22 +186,20 @@ describe('[Phase 1] Operation Operator Misuse', () => {
     nar = new NAR();
   });
 
-  it('should not produce ^ operator from pure declarative input', async () => {
+  it('should not derive an operation from pure declarative input', async () => {
     await nar.believe('<cat-->animal>.');
     await nar.run(5);
 
-    const beliefs = nar.getBeliefs().map((b) => b.term.toString());
-    const hasOperation = beliefs.some((b) => b.includes('^'));
+    const hasOperation = nar.getBeliefs().some((b) => operationNameOf(b.term) !== undefined);
     expect(hasOperation).toBe(false);
   });
 
-  it('should not produce ^ operator from transitive chain', async () => {
+  it('should not derive an operation from a transitive chain', async () => {
     await nar.believe('<cat-->animal>.');
     await nar.believe('<animal-->mammal>.');
     await nar.run(5);
 
-    const beliefs = nar.getBeliefs().map((b) => b.term.toString());
-    const hasOperation = beliefs.some((b) => b.includes('^'));
+    const hasOperation = nar.getBeliefs().some((b) => operationNameOf(b.term) !== undefined);
     expect(hasOperation).toBe(false);
   });
 

@@ -51,6 +51,6 @@ export const featureTerm = (feature: string, value: number): Term =>
 export const rewardTerm = (reward: number): Term =>
   TermBuilder.setInt(TermBuilder.atom(reward >= 0 ? 'reward_positive' : 'reward_negative'));
 
-/** `^move(left --> right)` — a reflex proposal as an executable operation term. */
+/** `move(left --> right)` — a reflex proposal as an executable operation term. */
 export const actionTerm = (action: string, args: Readonly<Record<string, unknown>>): Term =>
   operationTerm(action, args);

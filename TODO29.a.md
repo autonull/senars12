@@ -1,6 +1,6 @@
 # TODO29.a: Runtime Architecture — S/J/P over a closed core
 
-**Version:** 3.3 · **Status:** A0, A1 and A12 step 1 landed 2026-09-30; A2–A11 and A12's reducers not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
+**Version:** 3.4 · **Status:** A0, A1 and A12 step 1 landed 2026-09-30; **A12 step 1's `^name` retirement landed** — A2–A11 not started · **Predecessor:** `TODO29.md` (v2.5 — superseded as an execution plan, retained
 unchanged as the measurement and provenance record; §0.4 maps its sections onto this one) ·
 **Successor:** `TODO30.md`, blocked on this.
 
@@ -15,8 +15,9 @@ lifecycle.
 > **A fresh session reads §0.1 (two minutes), then §1.2 and §1.3 (the two invariants everything else
 > follows from), then §5.12 (the item summary — one command, one gate, one risk per item).** §4 row 16
 > is the finding that makes A11 cheap instead of an invention, and §12's two kill criteria should be
-> checked *before* anything is built. Start at A0 and A5; they need no decisions and they unblock
-> everything else.
+> checked *before* anything is built. Start at A5 and A4; they need no decisions and they unblock
+> everything else. **§0.8.4 is the cheapest open item on this plan** and needs no decision: a
+> three-premise conjunction cannot be read back.
 
 ---
 
@@ -87,10 +88,9 @@ do is make four README promises structurally true rather than aspirational, and 
 3. ~~**A1**~~ — **done 2026-09-30.** The cycle stages model-backed work and pumps it off-cycle; every
    provider await carries a deadline; every model-backed rule declares and runs a symbolic body.
 4. **A2** — the dependency inversion, with the seam contracts in `@senars/core/schemas`. **A12 §5.12.1
-   came first** and is **done** (§0.8.2): the operator table, the grammar and the serialiser are one
-   surface form, `pnpm terms:canonical` gates it, and no canonical-form work can be written against a
-   grammar that cannot read its own output. **Then the `^name` retirement** (§0.8.3), which is the
-   remainder of step 1 and is a behaviour change in goal recognition, not a grammar change.
+   came first** and is **done** (§0.8.2), and **its `^name` remainder is done too** (§0.8.3): one
+   spelling per operation, recognised by `kind`. **§0.8.4 is what is left of A12** and it is a grammar
+   change, not an encoder change — no n-ary statement can be read back.
 5. **A5 → A4** — the mechanical split, then the one deliberate behaviour change.
 
 ### 0.7 What this plan is not
@@ -218,7 +218,9 @@ has meant four files for several passes, and A12's gate has to say which four.
 
 The operator table, the grammar and the serialiser are one surface form, every
 kind round-trips, and the round-trip generator is derived rather than written
-down. §4 rows 19–21 are what it cost.
+down. §4 rows 19–21 are what it cost. **"Every kind round-trips" is true of the
+kind shapes and false of the grammar** — §0.8.4 is the hole, and §0.8.3 is the
+remaining half of this step.
 
 | artefact | what it is |
 |---|---|
@@ -248,21 +250,80 @@ down. §4 rows 19–21 are what it cost.
 - ~460 test literals moved to dense form in one sweep, rewritten by a script that only substituted where the parser proved both spellings equal. **The script was deleted** rather than committed; the gate covers the property it was checking, and a second copy of the densifier is a second source of truth about the canonical form.
 - `nar/src/drives/impls/DriveManager.ts` and `bootstrap.ts` build Narsese by hand, so two of them still had padded spellings after the sweep. **Any remaining hand-built Narsese in `src/` is a place the dense form has to be remembered by hand**, and the round-trip gate only sees what goes through a term.
 
-### 0.8.3 The next step, and it is the `^name` retirement
+### 0.8.3 The `^name` retirement is done (2026-10-01)
 
-`^tool(a,b)` still decodes to `Inheritance(Product(args), Atom('^tool'))` while `(f^(x,y))` decodes to an `operation` — **two spellings, two terms, for one idea**. §5.12.1's decision 3 accepted `^f(x,y)` on input but did not retire it, because retiring it is not a grammar change and it changes *which goals the system recognises*.
+A tool goal is the `operation` term `tool(args)`, recognised by `kind`, and `^tool` is a **parse error**. `f(x,y,z)` is shorthand for `(f^(x,y,z))`; `f()` is `(f^())`, the 0-ary product.
 
-The work, and why it is its own commit:
-
-| site | what changes |
+| artefact | what it is |
 |---|---|
-| `terms/impls/operation-term.ts` | `operationTerm` builds an `operation`; `readOperationTerm` reads one. The `OPERATION_MARK` and the `^name` atom go away |
-| `nar-execution.ts:507` | `isOperationGoal` tests `kind === 'operation'` and `args[0]`, not a predicate atom's sigil |
-| `nar/src/focus/Focus.ts:293` | same, for the agent-side arm reader |
-| `rules/impls/meta-rules.ts` | six rule strings carry `(^select_strategy($s))`-shaped goals; they parse unchanged under the legacy arm, so this is a read-through, not a rewrite |
-| `tick/bindings.ts`, `tools/impls/goal.ts`, `gates/tasks.ts` | callers; `gates/tasks.actionTerm` already builds the malformed `Operation` term this replaces |
+| `terms/impls/operation-term.ts` | `operationTerm` builds an `operation`; `readOperationTerm` reads one; **`operationNameOf`** is the recogniser every goal reader now shares. `OPERATION_MARK`, the `^name` atom and the `'true'` empty-args sentinel are gone — no args is `TermBuilder.product()`, the 0-ary product, and the decoder recognises that term rather than a string |
+| `terms/narsese.peggy` | `OperationTerm`, `OperationAtom`, `OperationName`, `OperationArgs` and `OperationArg` are **deleted**. `f(x,y)` was already the reader's arm; `^f(...)` no longer exists. `^` stays out of every atom character class, so `(a^b)` is still an `operation` |
+| `nar-execution.ts` | `isToolGoal` is `operationNameOf(term) !== undefined` |
+| `focus/Focus.ts`, `tools/impls/goal.ts`, `tick/bindings.ts`, `gates/tasks.ts`, `rules/impls/meta-rules.ts` | read the operation, or are callers of the one encoder |
+| `rl/impls/adapters/{action,agent}.ts`, `scripts/rl-parity.ts` | an RL action label is `operationTerm(name)`, not `Atom('^name')`. `action.ts` selects a pending goal by **reading the operation** (`topPendingOperation`) and an arm by `this.actions.indexOf(...)`, not by a regex over the printed form |
+| `task/classify.ts` | reads the operation's name instead of an atom's sigil |
+| `nl/firewall.ts` | **the mint pattern moved.** `/\^[\w-]+/` matched the sigil, so with `^` unparseable it would have waved through every `tool(args)` the model writes; it is now `/[\w-]\s*\(/`. The predicate whitelist exempts an operation's callee **by structure** (`visitTerms` + `operationNameOf`), which is what the sigil used to express |
+| `game/meta-spec.ts` | `describeMetaGameActions` emits `focus_weight(f1, 0.8)`. These are the strings a model is asked to emit, so they are in the surface syntax, and the sigil is no longer part of it |
+| `tests/nar/property/narsese-roundtrip.test.ts` | the generator's arguments are **compounds**, not only atoms (§0.8.4) |
+| `scripts/terms-canonical.ts` | a fourth rule: **`operationTerm` round-trips** at 0–3 arguments. The per-kind check builds `operation` out of atoms, so it says nothing about the encoder the tool layer actually calls |
 
-**The gate is the NAL suites plus `terms:canonical`**, because goal recognition is a behaviour change and the four parity suites are what say it did not move. **The hazard is a silent one**: every test that recognises a tool goal by `term.toString().startsWith('^')` — `no-bypass`, `goal-action`, `belief-perception`, `self-improvement-litmus`, `nar-execution.ts:442`, `self-report.ts` — stops recognising it and keeps passing if the filter merely returns nothing. Each of those should become a kind test, and that conversion is the actual deliverable, not the encoder.
+**Six decisions this step did not pre-answer.**
+
+1. **`^f(...)` is deleted rather than accepted-and-never-written.** §5.12.1 decision 3 chose "accepted and never written", the same tie-break it uses for negation's two spellings. The author overruled it: the form is nonsense, so a reader that still accepts it is a reader with a second grammar. **It is now a parse error**, which is the strongest mechanism the language has for "this is not a spelling".
+2. **No arguments is the 0-ary product, not `true`.** `f()` and `(f^())` already agreed on `TRUE` — the factory's identity for `product()` — while the encoder used a lowercase `true`. That is two spellings for one idea inside one commit, so `NO_ARGS = TermBuilder.product()` and the decoder compares *terms*. It also fixes a latent bug: `^tool()` used to decode to `{ arg0: '*' }`, not `{}`.
+3. **A compound argument needs its own parentheses**, in the shorthand as well as the canonical form: `move((left-->dir),(3-->steps))`. `(dir-->left,steps-->3)` is not a term (§0.8.4), so the bare comma list cannot appear as an argument list.
+4. **The serialiser needed no change**, despite a promising-looking hole. `serializeOperation` was already correct: each member is serialised with its own parentheses, and `operationTerm` nests its arguments in inheritances, so a product of inheritances never needs a bare-statement list. I diagnosed this backwards, added a `BareStatement` rule for it, and removed it — `nar/src/terms/impls/serialize.ts` is untouched.
+5. **A malformed `META_GOAL_BY_DRIVE` literal now throws** instead of logging a warning and dropping the drive (§0.8.5).
+6. **The two RL selectors dropped a regex over a printed form.** `GridWorldSelector` matched `/move_(up|right|down|left)/` against `bestAction.toString()`, which only worked while the printed form carried the sigil.
+
+**One correction to §0.8.3's own hazard list.** It named six readers that sniff `startsWith('^')` and predicted they "keep passing if the filter merely returns nothing". Nine did. Two of them were worse than predicted, and both are now kind tests:
+
+| site | was |
+|---|---|
+| `no-bypass`, `goal-action` ×2, `self-improvement-litmus`, `belief-perception`, `diagnostic`, `nar-execution.ts:442`, `self-report.ts`, `self-improve-demo.ts` | `toString().startsWith('^')` or `.includes('^pull_arm')` |
+| `bandit-epsilon-greedy`, `cognitive-advantage` ×4, `stress-boundary` | `toString().includes('^pull_arm')` |
+| `goal-action.test.ts` | asserted `kind === 'inheritance'` and `predicate.symbol === '^move_to'` — the *old* term, as the contract |
+| `reward-belief.test.ts` | asserted `['^move_north', 'state_s_3_4']` from a product's members |
+
+The gate was **the four NAL parity suites plus `terms:canonical`**, as §0.8.3 said, and it is not sufficient on its own: two of the failures were in `todo5b-phase1`, `nar-execution` and `cognitive-advantage`, none of which is a parity suite. `pnpm test:unit` is what says goal recognition did not move, because **all of the readers are the thing being changed**.
+
+### 0.8.4 The gate's blind spot: no n-ary statement can be read back
+
+Found by the generator change in §0.8.3, and **older than this gate and unrelated to operators**: a bare operator chain is not a term.
+
+```text
+(a&b&c)      PARSE FAIL      conjunction, three members
+(a&|b&|c)    PARSE FAIL      parallel, three members
+(a&/b&/c)    PARSE FAIL      sequence, three members
+((a&|b&|c)-->d)  PARSE FAIL  and therefore anything nesting one
+(a,b,c)      => (a,b,c)      product: the comma copula has its own rule
+(a-->b)      => (a-->b)
+```
+
+**Any conjunction of three or more premises — the ordinary shape of an NARS derivation — serialises to text its own grammar refuses.** Nothing in the tree noticed, because terms are built in memory and the printed form is rarely re-read.
+
+The cause is structural. `Term` reaches a statement only through `Statement`, which requires a leading `<` or `(`; `CompoundTerm`'s product arm is `"(" TermList ")"` and `TermList` holds `Term`s, none of which can be a bare `a&b&c`. So the chain stops at the first operand and the rest is left over.
+
+The fix is a `BareStatement` rule on `Term`, and **it must not be `subject:Term op predicate:Term`** — that is left-recursive and peggy rejects the grammar outright (verified). The subject needs a restricted operand that cannot begin an operator chain, and the chain needs to fold left associatively so `(a&|b&|c,d)` stops before the comma. **Not done here**: it is a grammar change on a different invariant from this commit, and it should land with its own gate.
+
+Two knock-on facts the retirement inherits:
+
+- The round-trip property is capped at **two members and one level of nesting**, and the cap is named in the test. A deeper generator fails immediately on `(a&|b&|c)`, so the cap is the honest boundary and not a convenience.
+- §0.8.2's claim that "a canonical form is now injective, so `toString` is an identity" is **true of `termKey`, not of the grammar**. Two terms can still be written in a form the reader rejects; §0.8.2 conflated a canonical form with a readable one. Worth restating as two invariants: *a canonical form is injective* and *a canonical form is readable*, and only the first was ever gated.
+
+### 0.8.5 The failure mode the retirement was built to catch, caught
+
+`nar-execution.ts` built its meta-goal table by parsing two narsese **literals** at module load, inside a `try` that warned and returned `[]`. When `^switch_strategy(...)` stopped parsing, both drives were silently dropped, the whole system ran with no meta-goal injection, and **every test still passed** — because a filter that matches nothing and a filter that was removed look identical from the outside. It surfaced only because `nar-execution.test.ts` was converted to `operationNameOf(t.term) === 'switch_strategy'`; the other five converted readers had the same shape and none of them failed.
+
+It now throws. A literal in that file is a constant, so it is either right or a build break, and a boot-time throw is the strongest mechanism available for a constant.
+
+**The generalisable finding.** §0.8.3 predicted this exact failure and named the files; what it did not predict is that the *prediction itself* was not the mitigation. Converting the readers is necessary and was not sufficient — the string literals the readers were matching against had to be found separately, and nothing in the compiler or the gates connects a literal to the parse that will reject it. **A rule that would have caught this: every narsese string literal in `src/` is parsed by a gate**, which is the natural companion to §0.8.2's note that `DriveManager.ts` and `bootstrap.ts` build Narsese by hand.
+
+**Improvement opportunities, none blocking.**
+
+- `meta-rules.buildOperationTerm` passes `arg.toString()` as an *argument value*, so `(focused-->x)` becomes the sanitised atom `_focused_x_` and is re-parsed as a string, never as a term. `operationTerm` should take terms for compound arguments, or the rule should build the operation directly. The arg is round-tripped as text today and the tool receives a mangled name.
+- `OPERATOR_PATTERN` in the firewall is now `/[\w-]\s*\(/`, which blocks any `f(...)` in LLM input. That is the intent, but it also blocks a *quoted* atom inside an otherwise legitimate statement. Cheap to narrow (require the call to start a term), not done.
+- The `^`-sigil form has no deprecation story now that it is a parse error: a persisted goal written by an older build will not read back. Nothing in the tree persists a goal term across versions today, and `termParser` failure is already loud, so this is a note rather than a migration.
 
 ---
 
@@ -792,10 +853,10 @@ empty owner means the finding has no gate, and a finding with no gate is a findi
 | 16 | **the decision layer is wired to the agent side, not the reasoning side.** A complete typed/calibrated layer — `classify`/`evaluate`/`synthesize`, `CognitiveAxis`, `abstainReason`, isotonic calibrators with a digest-pinned lock, `ConfidenceRouter`, `judgeCascade` — is attached to a **`GameFocus`**, while the reasoning cycle reaches a model only via the ingress judge and `processLMRules` | `facade/system-one.ts:337`; `nar.ts:571`; `types.ts:63-141` | **A11** |
 | 17 | the three primitives are `classify` / `evaluate` / `synthesize` — `Noul` was folded into `evaluate` because a yes/no is a frequency judgement with two anchors. The plan must not reintroduce `Noul` as a fourth primitive or restate it as three | `types.ts:66-89`; `TODO16.md` §2; `TODO16b.md` App. A | **A11** (terminology, enforced by the types) |
 | 18 | **`product` is declared commutative and is not.** `createCompound` sorts a commutative kind's arguments at construction, so `(*,bird,cat)` and `(*,cat,bird)` interned to **one** term and `termsEqual` answered yes for two different products. `docs/java/Op.java:110` builds `PROD` through the non-commutative constructor | `nar/src/terms/operators.ts:20`; `factory.ts:64` | **A12** — **fixed 2026-09-30**, one declaration and a test. Found while reading `Op.java` for A12's catalogue: a commutativity flag is not a formatting choice, it is a claim about equality |
-| 19 | ~~**six of sixteen kinds do not round-trip through Narsese, and the round-trip test cannot see it.**~~ **Fixed 2026-09-30 by A12 step 1** (`7cef8635`); the round-trip generator now derives its kinds from `OPERATORS`, and `pnpm terms:canonical` gates the agreement. **six of sixteen kinds did not round-trip through Narsese, and the round-trip test could not see it.** `implication`, `parallel`, `predictive`, `retrospective` use symbols the grammar has never accepted; `instance`/`property` are not the kinds the grammar builds (`setExt`/`setInt`); `operation` loses its parens. `product` is worse than broken: `TermBuilder.tuple` builds it as a **conjunction**, so `(a,b)` and `(a&b)` are the same term | `nar/src/terms/operators.ts`; `narsese.peggy:4,118`; `factory.ts:107`; `tests/nar/property/narsese-roundtrip.test.ts:14-20` | **A12 step 1** (§5.12.1) — **done 2026-09-30**; the remaining item is the `^name` retirement in §0.8.2 |
+| 19 | ~~**six of sixteen kinds do not round-trip through Narsese, and the round-trip test cannot see it.**~~ **Fixed 2026-09-30 by A12 step 1** (`7cef8635`); the round-trip generator now derives its kinds from `OPERATORS`, and `pnpm terms:canonical` gates the agreement. **six of sixteen kinds did not round-trip through Narsese, and the round-trip test could not see it.** `implication`, `parallel`, `predictive`, `retrospective` use symbols the grammar has never accepted; `instance`/`property` are not the kinds the grammar builds (`setExt`/`setInt`); `operation` loses its parens. `product` is worse than broken: `TermBuilder.tuple` builds it as a **conjunction**, so `(a,b)` and `(a&b)` are the same term | `nar/src/terms/operators.ts`; `narsese.peggy:4,118`; `factory.ts:107`; `tests/nar/property/narsese-roundtrip.test.ts:14-20` | **A12 step 1** (§5.12.1) — **done 2026-09-30**; the `^name` retirement is **done (§0.8.3)** and what remains is **§0.8.4**, the grammar cannot read a bare operator chain |
 
 | 20 | **an operator token with no kind behind it builds a term whose `kind` is the symbol.** `narsese.peggy` resolved an infix token through `INFIX_KINDS[op] ?? op`, so `(penguin --> (-- fly))` produced a predicate of kind `'--'` that *serialised as `(fly)`* — the negation was gone from the term's identity while the surrounding belief looked negated — and `f(x)` produced a compound of kind `'atom'` carrying arguments. The grammar now fails an unmapped operator instead of inventing a kind | `narsese.peggy:132,140` (pre-fix); reproduced in §0.8.2 | **A12 step 1** — **fixed 2026-09-30** |
-| 21 | **the tree had two spellings for one idea.** `^tool(a,b)` decoded to `Inheritance(Product(args), Atom('^tool'))` — the convention with real traffic — while `(f^(x))` decoded to a compound of kind `operation`. Neither could read the other, and both were reachable from a cycle. Upstream settles nothing here: `docs/java/Op.java` has no `OPERATOR` and `NarseseParser` no `^`, so `^op(…)` is a SeNARS-local convention and the choice is ours | `terms/impls/operation-term.ts`; `rules/impls/registration.ts:359-371` | **A12 step 1** for the spelling (**done**); the `^name` retirement is §0.8.3 |
+| 21 | **the tree had two spellings for one idea.** `^tool(a,b)` decoded to `Inheritance(Product(args), Atom('^tool'))` — the convention with real traffic — while `(f^(x))` decoded to a compound of kind `operation`. Neither could read the other, and both were reachable from a cycle. Upstream settles nothing here: `docs/java/Op.java` has no `OPERATOR` and `NarseseParser` no `^`, so `^op(…)` is a SeNARS-local convention and the choice is ours | `terms/impls/operation-term.ts`; `rules/impls/registration.ts:359-371` | **A12 step 1** for the spelling — **done, including the `^name` retirement (§0.8.3)**, which deleted the sigil form from the grammar rather than deprecating it |
 
 **#15 is entirely TODO30's.** A4 fixes *who* may write `priority`, not with what structure it is
 read. **#14 is not justified by a finding at all** — it is justified by the thesis, and §1 has no
@@ -1410,9 +1471,9 @@ What is missing is everything that makes the form *canonical* rather than *inter
 same-kind compounds, dropping repeated args, pushing negations inward, and folding the frequency
 extremes. Each is a NAL axiom, so each is sound; none is implemented, and none is a TODO30 question.
 
-**Status: step 1 is done (§0.8.2), and one thing remains of it (§0.8.3).** The decisions below were
-made while landing it; the remaining work is the `^name` retirement, which is a behaviour change in
-goal recognition rather than a grammar change.
+**Status: step 1 is done (§0.8.2) and its `^name` remainder is done (§0.8.3).** The decisions below were
+made while landing it. What is left of A12 is §0.8.4 — no n-ary statement can be read back — and the
+reducers below.
 
 **Sequencing within this item, and the two halves are not equal.** §5.12.1 — the grammar/symbol/kind
 alignment — is a **correctness fix whose baseline is "broken"**, so it needs no attribution window and no

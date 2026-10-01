@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { DEFAULT_CONFIG, NAR, TermBuilder, Truth } from '../../../../nar/src';
+import { operationNameOf, operationTerm } from '../../../../nar/src/terms/index.js';
 
 describe('Reward and Value Representation Contract', () => {
   let nar: NAR;
@@ -22,7 +23,7 @@ describe('Reward and Value Representation Contract', () => {
   });
 
   test('Positive reward represented correctly as reward belief', async () => {
-const rewardTerm = TermBuilder.inheritance(
+    const rewardTerm = TermBuilder.inheritance(
       TermBuilder.atom('reward_low'),
       TermBuilder.atom('achieved')
     )!;
@@ -41,7 +42,7 @@ const rewardTerm = TermBuilder.inheritance(
   });
 
   test('Negative reward represented correctly', async () => {
-const rewardTerm = TermBuilder.inheritance(
+    const rewardTerm = TermBuilder.inheritance(
       TermBuilder.atom('reward_high'),
       TermBuilder.atom('achieved')
     )!;
@@ -61,7 +62,7 @@ const rewardTerm = TermBuilder.inheritance(
   test('Reward updates relevant state-action value belief', async () => {
     // State-action value: ((*, state:s_3_4, ^move_north)-->predicts_reward)
     const state = TermBuilder.atom('state_s_3_4');
-    const action = TermBuilder.atom('^move_north');
+    const action = operationTerm('move_north');
     const product = TermBuilder.product(state, action);
     const predictsReward = TermBuilder.atom('predicts_reward');
     const valueTerm = TermBuilder.inheritance(product, predictsReward)!;
@@ -70,7 +71,7 @@ const rewardTerm = TermBuilder.inheritance(
     await nar.believe(valueTerm, Truth.create(0.5, 0.5));
 
     // Receive reward
-const rewardTerm = TermBuilder.inheritance(
+    const rewardTerm = TermBuilder.inheritance(
       TermBuilder.atom('reward_low'),
       TermBuilder.atom('achieved')
     )!;
@@ -88,7 +89,7 @@ const rewardTerm = TermBuilder.inheritance(
 
   test('Confidence reflects evidence (more observations = higher confidence)', async () => {
     const state = TermBuilder.atom('state_s_1_1');
-    const action = TermBuilder.atom('^move_north');
+    const action = operationTerm('move_north');
     const product = TermBuilder.product(state, action);
     const predictsReward = TermBuilder.atom('predicts_reward');
     const valueTerm = TermBuilder.inheritance(product, predictsReward)!;
@@ -124,7 +125,7 @@ const rewardTerm = TermBuilder.inheritance(
   test('State-action value uses native Product/Inheritance form', async () => {
     // Verify the canonical form: ((*, state:s_3_4, ^move_north)-->predicts_reward)
     const state = TermBuilder.atom('state_s_3_4');
-    const action = TermBuilder.atom('^move_north');
+    const action = operationTerm('move_north');
     const product = TermBuilder.product(state, action);
     const predictsReward = TermBuilder.atom('predicts_reward');
     const valueTerm = TermBuilder.inheritance(product, predictsReward)!;
@@ -141,16 +142,17 @@ const rewardTerm = TermBuilder.inheritance(
     expect(inh.args![0]!.kind).toBe('product');
     expect(inh.args![1]!.symbol).toBe('predicts_reward');
 
+    // The action is one of the two product members, and it is an operation:
+    // product is not commutative, so membership is not position.
     const productArgs = inh.args![0]!.args!;
     expect(productArgs.length).toBe(2);
-    // Product is commutative, args are sorted alphabetically
-    const symbols = productArgs.map((a: any) => a.symbol).sort();
-    expect(symbols).toEqual(['^move_north', 'state_s_3_4']);
+    expect(productArgs.map((a: any) => a.symbol)).toContain('state_s_3_4');
+    expect(productArgs.map(operationNameOf)).toContain('move_north');
   });
 
   test('truth.f represents estimated reward (frequency), truth.c represents confidence', async () => {
     const state = TermBuilder.atom('state_s_3_4');
-    const action = TermBuilder.atom('^move_north');
+    const action = operationTerm('move_north');
     const product = TermBuilder.product(state, action);
     const predictsReward = TermBuilder.atom('predicts_reward');
     const valueTerm = TermBuilder.inheritance(product, predictsReward)!;

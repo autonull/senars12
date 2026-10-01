@@ -10,7 +10,7 @@ export interface ToolExecutor {
   execute(name: string, args: Record<string, unknown>, context?: ToolContext): Promise<ToolResult>;
 }
 
-/** Execute a tool goal from NAR (goals as ^tool_name(args) parsed to Inheritance(Product(args...), Atom('^tool'))) */
+/** Execute a tool goal from NAR: a goal is the `operation` term `tool_name(args)`. */
 export async function executeToolGoal(
   manager: ToolExecutor,
   goalTerm: Term,
@@ -18,9 +18,7 @@ export async function executeToolGoal(
 ): Promise<ToolResult> {
   const call = readOperationTerm(goalTerm);
   if (!call) {
-    return errorResult(
-      'Tool goal must be an Inheritance term (AST form: ^tool(args) -> Inheritance(Product, Atom))'
-    );
+    return errorResult('Tool goal must be an operation term (AST form: tool(args))');
   }
 
   if (!manager.get(call.name)) {

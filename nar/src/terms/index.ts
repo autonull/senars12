@@ -33,7 +33,7 @@ export { getTermComplexity } from './impls/complexity.js';
 export { atom, TermBuilder, TermFactory } from './impls/factory.js';
 export { normalize } from './impls/normalize.js';
 export type { OperationCall } from './impls/operation-term.js';
-export { operationTerm, readOperationTerm } from './impls/operation-term.js';
+export { operationNameOf, operationTerm, readOperationTerm } from './impls/operation-term.js';
 export type { ParserResult, ParseTaskResult, TaskTypeName } from './impls/parser-peggy.js';
 export {
   ParseError,

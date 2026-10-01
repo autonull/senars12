@@ -1,5 +1,4 @@
 import { createFocus, createGameFocus, createMetaFocus, FocusBag } from '@senars/nar/focus';
-import { cognitiveBounds } from '@senars/util/config';
 import {
   createGridWorldGame,
   createMetaGame,
@@ -8,6 +7,7 @@ import {
   SelfMetaGameImpl,
 } from '@senars/nar/game';
 import { TabularQReflex } from '@senars/nar/reflex';
+import { cognitiveBounds } from '@senars/util/config';
 import { describe, expect, it } from 'vitest';
 
 describe('MetaGame Sandbox - Gate 5', () => {
@@ -98,8 +98,8 @@ describe('MetaGame Sandbox - Gate 5', () => {
 
       const actions = metaGame.legalActions(metaGame.state());
       expect(actions.length).toBeGreaterThan(0);
-      expect(actions.some((a) => a.includes('^focus_weight'))).toBe(true);
-      expect(actions.some((a) => a.includes('^knob_set'))).toBe(true);
+      expect(actions.some((a) => a.includes('focus_weight'))).toBe(true);
+      expect(actions.some((a) => a.includes('knob_set'))).toBe(true);
     });
   });
 

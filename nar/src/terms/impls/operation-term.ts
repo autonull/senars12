@@ -1,32 +1,25 @@
 /**
- * The `^tool(args...)` operation-term convention — one encoder, one decoder.
+ * The operation-term convention — one encoder, one decoder, one spelling.
  *
- * A tool goal is `Inheritance(Product(args...), Atom('^toolName'))`, where each
- * argument is `Inheritance(value, key)` so the pair survives the round trip
- * through Narsese. This module is the whole convention; the pieces that used to
- * spell it out separately disagreed with each other:
+ * An operation is the `operation` kind, so `move(dir-->left,steps-->3)` is a term
+ * like any other and the grammar reads it back without a special case. Its
+ * arguments are a product, so `move()` is the 0-ary product rather than a
+ * sentinel atom, and `(move^(x,y))` and `move(x,y)` are the same term.
  *
- *  - `rl/impls/adapters/action` and `rules/impls/meta-rules` each built the
- *    inheritance form, with different empty-argument atoms (`true` vs `*`).
- *  - `gates/tasks.actionTerm` built an `Operation(...)` term instead, which no
- *    reader of this convention could decode.
- *  - `tools/impls/goal` read arguments back as a key/value record while
- *    `tick/bindings.operationActionOf` read the same term back as
- *    `{ args: string[] }` — and handed that straight to `tools.execute`.
- *
- * Read through {@link readOperationTerm} and built through
- * {@link operationTerm}, the two can no longer drift.
+ * What this replaces was a second spelling for one idea: `^move(args)` decoded to
+ * `Inheritance(Product(args), Atom('^move'))`, which no reader of an `operation`
+ * term could see. Every recogniser of a tool goal therefore sniffed a predicate
+ * atom's sigil, in six files, and each could disagree with the next. `^move` is
+ * now a parse error and a term's `kind` is the recogniser.
  */
 
 import { isAtomic, isCompound, type Term } from '../types.js';
+import { termsEqual } from './accessors.js';
 import { TermBuilder } from './factory.js';
 import { isValidAtomSymbol, toAtomSymbol } from './valid-atom.js';
 
-/** The mark that distinguishes an operation atom from an ordinary one. */
-const OPERATION_MARK = '^';
-
-/** No arguments is `true` — the empty product's identity, and what a bare tool name decodes to. */
-const EMPTY_ARGS = 'true';
+/** No arguments is the 0-ary product, which is what the factory makes of `product()`. */
+const NO_ARGS = TermBuilder.product();
 
 /** An operation term read back into the name and arguments a tool receives. */
 export interface OperationCall {
@@ -34,11 +27,6 @@ export interface OperationCall {
   readonly args: Record<string, unknown>;
 }
 
-/**
- * A key is always written as itself; a value is coerced only when the grammar
- * would refuse it. An atom may hold `^` and alphanumerics, so a tool argument
- * like `left: true` becomes `left_true` rather than throwing at the gate.
- */
 /**
  * A quoted atom is how a value with punctuation in it stays one atom, so the
  * quote is checked before sanitising — otherwise `"hi"` would arrive as `_hi_`.
@@ -58,21 +46,19 @@ const argTerm = (key: string, value: unknown): Term =>
   TermBuilder.product(atomOf(value), atomOf(key));
 
 /**
- * `^toolName(key --> value, ...)`. Keys are read in insertion order, so the
+ * `(move^(dir-->left,steps-->3))`. Keys are read in insertion order, so the
  * encoder is deterministic and the decoder reproduces it.
  */
 export const operationTerm = (name: string, args: Readonly<Record<string, unknown>> = {}): Term => {
-  const entries = Object.entries(args);
-  const argTerms = entries.map(([key, value]) => argTerm(key, value));
-  const subject =
-    argTerms.length === 0
-      ? TermBuilder.atom(EMPTY_ARGS)
-      : argTerms.length === 1
-        ? argTerms[0]!
-        : TermBuilder.product(...argTerms);
-  const result = TermBuilder.inheritance(subject, atomOf(`${OPERATION_MARK}${name}`));
-  if (!result) throw new Error(`Cannot build an operation term for ${name}`);
-  return result;
+  const argTerms = Object.entries(args).map(([key, value]) => argTerm(key, value));
+  return TermBuilder.operation(atomOf(name), TermBuilder.product(...argTerms));
+};
+
+/** The operation a term names, or `undefined` when it names none. */
+export const operationNameOf = (term: Term): string | undefined => {
+  if (!isCompound(term) || term.kind !== 'operation') return undefined;
+  const name = term.args?.[0];
+  return name && isAtomic(name) ? name.symbol : undefined;
 };
 
 /** An atom decodes to the primitive it was written from, not to its text. */
@@ -102,32 +88,17 @@ const argEntry = (term: Term, index: number): [string, unknown] => {
   return [`arg${index}`, termValue(term)];
 };
 
-const argEntriesOf = (subject: Term | undefined): [string, unknown][] => {
-  if (!subject) return [];
-  if (isCompound(subject) && subject.kind === 'product') {
-    return (subject.args ?? []).map(argEntry);
+const argEntriesOf = (args: Term | undefined): [string, unknown][] => {
+  if (!args || termsEqual(args, NO_ARGS)) return [];
+  if (isCompound(args) && args.kind === 'product') {
+    return (args.args ?? []).map(argEntry);
   }
-  const first = argEntry(subject, 0);
-  return isAtomic(subject) && subject.symbol === EMPTY_ARGS ? [] : [first];
+  return [argEntry(args, 0)];
 };
 
-/**
- * The operation a term names, or `undefined` when it names none. Accepts the
- * bare `^name` atom, so an arm selector's action term reads as itself.
- */
+/** The name and arguments a term calls, or `undefined` when it calls nothing. */
 export const readOperationTerm = (term: Term): OperationCall | undefined => {
-  if (isAtomic(term)) {
-    return term.symbol.startsWith(OPERATION_MARK)
-      ? { name: term.symbol.slice(OPERATION_MARK.length), args: {} }
-      : undefined;
-  }
-  if (!isCompound(term) || term.kind !== 'inheritance') return undefined;
-  const [subject, predicate] = term.args ?? [];
-  if (!predicate || !isAtomic(predicate) || !predicate.symbol.startsWith(OPERATION_MARK)) {
-    return undefined;
-  }
-  return {
-    name: predicate.symbol.slice(OPERATION_MARK.length),
-    args: Object.fromEntries(argEntriesOf(subject)),
-  };
+  const name = operationNameOf(term);
+  if (name === undefined) return undefined;
+  return { name, args: Object.fromEntries(argEntriesOf(term.args?.[1])) };
 };

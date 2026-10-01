@@ -1,13 +1,14 @@
 import { describe, expect, test } from 'vitest';
 import { DEFAULT_CONFIG, TermBuilder } from '../../../../nar/src';
+import { GridWorldGame } from '../../../../nar/src/game/impls/GridWorldGame.js';
 import { NAR } from '../../../../nar/src/nar';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
 } from '../../../../nar/src/rl/index.js';
+import { operationTerm } from '../../../../nar/src/terms/index.js';
 import { QLearning } from '../baselines/gridworld';
-import { GridWorldGame } from '../../../../nar/src/game/impls/GridWorldGame.js';
 
 describe('RL Parity - GridWorld Q-Learning', () => {
   const gridConfig = {
@@ -102,7 +103,7 @@ describe('RL Parity - GridWorld Q-Learning', () => {
         await nar.run(1);
 
         // Execute a simple move
-        const action = step % 4 as 0 | 1 | 2 | 3;
+        const action = (step % 4) as 0 | 1 | 2 | 3;
         const goalTerm = actionAdapter.buildGoalTerm({
           name: `move_${['up', 'right', 'down', 'left'][action]}`,
         });
@@ -113,7 +114,7 @@ describe('RL Parity - GridWorld Q-Learning', () => {
 
         // Reward belief
         const stateTerm = TermBuilder.atom(stateId);
-        const actionTerm = TermBuilder.atom(`^move_${['up', 'right', 'down', 'left'][action]}`);
+        const actionTerm = operationTerm(`move_${['up', 'right', 'down', 'left'][action]}`);
         await rewardAdapter.processReward(stateTerm, actionTerm, result.reward);
 
         if (result.terminal) break;
@@ -123,7 +124,7 @@ describe('RL Parity - GridWorld Q-Learning', () => {
     // Verify value beliefs were created
     const qStore = rewardAdapter.getQStore();
     const state = TermBuilder.atom('s_0_0');
-    const action = TermBuilder.atom('^move_right');
+    const action = operationTerm('move_right');
     const value = qStore.getValue(state, action);
     // Just check structure works
     expect(typeof value === 'object' || value === null).toBe(true);

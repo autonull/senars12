@@ -1,6 +1,6 @@
 import type { Task } from '../types';
 import type { Term } from '../terms';
-import { isAtomic, isCompound, getTermArgs, getPredicate, getSubject, getConsequent } from '../terms';
+import { isAtomic, isCompound, getTermArgs, getPredicate, getSubject, getConsequent, operationNameOf } from '../terms';
 
 /** Typed semantic signals emitted by task classification. */
 export type TaskSignal =
@@ -19,6 +19,18 @@ export type TaskSignal =
 export function classifyTask(term: Term): TaskSignal[] {
   const signals: TaskSignal[] = [];
 
+  // A tool goal is an operation, and its name says whether the call achieved or
+  // failed. Read here, at the term, rather than by sniffing an atom's sigil.
+  const operation = operationNameOf(term);
+  if (operation !== undefined) {
+    if (operation.includes('achieved') || operation.includes('success')) {
+      signals.push('goal-achieved');
+    } else if (operation.includes('failed') || operation.includes('error')) {
+      signals.push('goal-failed');
+    }
+    return signals;
+  }
+
   if (isAtomic(term)) {
     const symbol = term.symbol;
     if (symbol === 'test_passed' || symbol === 'test.passed') {
@@ -31,13 +43,6 @@ export function classifyTask(term: Term): TaskSignal[] {
       signals.push('schema-promoted');
     } else if (symbol === 'capability_added' || symbol === 'capability.added') {
       signals.push('capability-added');
-    } else if (symbol.startsWith('^')) {
-      // Tool/goal atoms - check for achievement/failure patterns
-      if (symbol.includes('achieved') || symbol.includes('success')) {
-        signals.push('goal-achieved');
-      } else if (symbol.includes('failed') || symbol.includes('error')) {
-        signals.push('goal-failed');
-      }
     }
     return signals;
   }
