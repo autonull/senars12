@@ -171,6 +171,21 @@ By encoding NAL semantics at the type level:
 
 This eliminates entire classes of bugs at compile time and guarantees structural correctness by construction; AIKR bounds the remaining, resource-level dimension at runtime.
 
+### The Core and the Induction Layer
+
+The reasoning cycle — `cognitive/`, `kernel/`, `learning/`, `memory/`, `reason/`, `rules/`, `stream/`, `strategies/`, `terms/`, `nar-execution.ts` — **does not import `nar/src/lm/`**. Not as a convention and not as a lint rule: `pnpm core:no-lm` fails on a relative, workspace-subpath, static, dynamic, value or type import, and the prefix list it reads is the same `CYCLE_PATH_PREFIXES` the induction census prints.
+
+What the core names instead, is a capability it declares and the composition root satisfies:
+
+| the core declares | where | what it replaces |
+|---|---|---|
+| `ModelRule` | `nar/src/rules/types.ts` | `LMRule` — the layer's class satisfies it structurally, and `registerModelRule` is where that is checked |
+| `TextGenerator` | `nar/src/ports/` | `LMService` — one method, so a caller cannot demand an argument the core has no vocabulary for |
+| `EmbeddingRuntime` | `nar/src/memory/embedding.ts` | `getLMSettings()` — a source function the core injects; `lm/embedding-runtime.ts` is the only module that answers it |
+| `ModelRuleSelector` | `nar/src/strategies/types.ts` | `LMRuleSelector` — selection is a proposal-time concern, so it runs in the off-cycle pass |
+
+A NAR with no `lmService` has no model rules; there is no flag to read and no third state to misread. `facade/`, `nl/`, `agent/` and `system-one-wiring.ts` are assembly and may name the layer — they are what a provider is handed, and what hands it over.
+
 | Technique | Purpose |
 |-----------|---------|
 | **Branded Types** | Separate timestamps/units, prevent unit mixups |
@@ -314,7 +329,7 @@ const projected = Truth.deduction(truth1, truth2); // Inference
 ### NAL Inference Rules
 
 <details>
-<summary><b>Complete NAL Rule Matrix (registered rules — `nar/src/rules/registration.ts` is the source of truth)</b></summary>
+<summary><b>Complete NAL Rule Matrix (registered rules — `nar/src/rules/impls/registration.ts` is the source of truth)</b></summary>
 
 | Category | Rules |
 |----------|-------|
@@ -1619,7 +1634,8 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 | **Grounding** | `GroundingPipeline`, `SourceQuality` | `@senars/nar` (internal) |
 | **Streaming** | `StreamReasoner` (LM batching queue) | `@senars/nar/stream` |
 | **Commands** | `narCommands`, `rlfpCommands`, `selfCommands`, `configCommands`, `memoryCommands`, `lmCommands`, `episodesCommands` | `@senars/nar/commands` |
-| **LM Rules** | `LMRules`, `LMRule`, `LMRuleFactory`, `symbolicFallbacks`, `TraceAbstractor`, `ShadowValidator`, `attemptLMCorrection` | `@senars/nar/lm` |
+| **LM Rules** | `LMRules`, `LMRule`, `LMRuleFactory`, `symbolicFallbacks`, `TraceAbstractor`, `ShadowValidator`, `attemptLMCorrection`, `embeddingRuntime` | `@senars/nar/lm` |
+| **Cycle-path ports** | `ModelRule`, `ModelRuleSelector`, `TextGenerator`, `EmbeddingRuntime` | `@senars/nar/rules/types`, `@senars/nar/ports`, `@senars/nar/memory/embedding` — what the core names instead of the layer |
 | **Cooperation** | `CognitiveTaskDelegation`, `CognitiveTaskResult`, `createDelegation`, `handleDelegationMessage` | `@senars/nar/cooperation` |
 | **MeTTa** | `createMeTTa`, `parseMeTTa`, `EGraph`, `MeTTaRuntime` | `@senars/metta` |
 | **MeTTa (tool)** | `MettaEngine` (tool executor only), `MettaCommandParser` (chat command parsing) | `@senars/metta/agent` |
