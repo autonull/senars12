@@ -18,9 +18,9 @@ export interface PrefetchingReflex extends Reflex {
   prefetch?(context: unknown): void;
 }
 
-const duckPrefetch = (reflex: Reflex, args: unknown[]): void => {
+const duckPrefetch = (reflex: Reflex, args: unknown[]): unknown => {
   const p = (reflex as PrefetchingReflex).prefetch;
-  if (typeof p === 'function') (p as (...a: unknown[]) => unknown).apply(reflex, args);
+  return typeof p === 'function' ? (p as (...a: unknown[]) => unknown).apply(reflex, args) : undefined;
 };
 
 /** Forwards `prefetch` (all arguments) to the wrapped reflex. */
@@ -43,6 +43,7 @@ export const recordingReflex = (): ReflexWrapper => {
       return lastProposals;
     },
     learn: (e) => inner.learn(e),
+    prefetch: (...args: unknown[]) => duckPrefetch(inner, args),
     getLastProposals: () => [...lastProposals],
   });
 };
@@ -73,6 +74,7 @@ export const vetoAwareReflex =
           overridden.set(e.actionProposed, (overridden.get(e.actionProposed) ?? 0) + 1);
         inner.learn(e);
       },
+      prefetch: (...args: unknown[]) => duckPrefetch(inner, args),
     };
   };
 

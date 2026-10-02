@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync, mkdtempSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { wrapReflex, vetoAwareReflex, type AdapterReflex } from '../../nar/src/reflex/adapters.js';
+import { wrapReflex, recordingReflex, vetoAwareReflex, type AdapterReflex } from '../../nar/src/reflex/adapters.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../nar/src/reflex/Reflex.js';
 import { JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
 import { mcReturns, recordMcReturnLabels } from '../../nar/src/lm/system-one/mc-return.js';
@@ -194,5 +194,17 @@ describe('Bench 45 — Learning Closure', () => {
   it('L1 — vetoAware lands in reflex adapters (arcade plumbing), not per-reflex', () => {
     const source = readFileSync('nar/src/reflex/adapters.ts', 'utf8');
     expect(source).toContain('vetoAwareReflex');
+  });
+
+  it('arcade chain forwards prefetch to the wrapped reflex (lm/manifold arms)', async () => {
+    let settled = false;
+    const inner: Reflex = {
+      ...baseReflex([]),
+      prefetch: () =>
+        new Promise<void>((resolve) => setImmediate(() => ((settled = true), resolve()))),
+    } as Reflex & { prefetch: () => Promise<void> };
+    const reflex = wrapReflex(inner, vetoAwareReflex(), recordingReflex());
+    await (reflex as { prefetch: () => unknown }).prefetch();
+    expect(settled).toBe(true);
   });
 });
