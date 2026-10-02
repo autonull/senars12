@@ -50,7 +50,8 @@ out of is not a system yet.**
 > | **landed** | §3.3 R3 (A9) — `replay:proposal` promoted from `slow` to `gate` tier | `scripts/lib/gates.ts`, gate `replay:proposal` |
 > | **landed** | §3.3 R3 (A11) — `DECISION_CALL_SITES.at` now uses `file:line` + `contains` | `nar/src/decision/call-sites.ts`, gate `config:model-matrix` |
 > | **landed** | §3.3 R3 (A10: content/rule revision counter) — scope table owns the vocabulary | `nar/src/kernel/budget-scopes.ts`, gate `control-budgets` |
-> | not started | §4.1–§4.3, §5.1–§5.9 | — |
+> | **landed (mechanism)** | §4.1 T-Q3 `--seeds n` — runs the matrix n times (seeds `seed..seed+n-1`), prints per-seed macroBrier plus mean ± sd per arm | `scripts/arcade.ts`, smoke-verified `--seeds 2` on `random` (0.1863±0.0084) |
+> | not started | §4.2 (explicitly not next), §4.3, §5.1–§5.9 | — |
 >
 > §1 and §2 are independent of each other and of §5. §3 is bookkeeping on the predecessor's debt and
 > can be done at any point. §4 is the thesis and needs no §1–§3.
@@ -595,6 +596,13 @@ run has not happened, and §0.8.14 recorded why: **the harness has no seed varia
   survive seeds", which needs `--seeds n` and a spread.
 - **Acceptance** — `--seeds n` runs the matrix *n* times, the aggregate reports mean ± sd per arm, and
   the number is appended below the hypothesis's rule that forbids editing what is above it.
+- **Mechanism landed 2026-10-02** (`scripts/arcade.ts`): `--seeds n` loops seeds `seed..seed+n-1`
+  through a `runSeed` extraction, prints per-seed macroBrier plus `mean ± sd` of macro/microBrier per
+  arm; `--resume` in seed-loop mode starts fresh with a note (per-seed resume state was the old
+  single-seed shape and does not compose). Smoke-verified: `--seeds 2` on `random`,
+  `macroBrier=0.1863±0.0084`. The hypothesis run itself (nal/manifold/lm, seeds ≥ 5, numbers appended
+  to `docs/thesis-hypothesis.md`) is still open — blocked on `LM_LLAMACPP_MODEL` (lm arm) and §4.3
+  (manifold arm admits nothing today).
 
 ### 4.2 T-PROD — The rule producer
 
@@ -621,6 +629,21 @@ it.
 **Acceptance** — a calibrated head set bound through A11's manifest, or a declared
 abstain-below-threshold path. Whichever, `config:model-matrix` asserts the four-way invariance on the
 `J` axis as well.
+
+**Status 2026-10-02 (investigated, not landed — decision required before code).** Mechanism mapped:
+`wireSystemOne` (`nar/src/system-one-wiring.ts:41`) always builds a real `SystemOneIngressJudge`
+over the runtime manifold + embedding cache when enabled; the gate (`KernelPerceptionGate.admitViaJudge`)
+admits on any non-veto verdict and refuses only on veto/timeout/error — so the current "J refuses"
+behaviour in `todo29a-model-matrix.test.ts` comes from the judge path faulting (no encoder/heads that
+admit in that configuration), not from a deliberate abstain rule. Heads themselves are unfitted stubs
+(hash scorers in `[0.3, 0.9]`, `nar/src/lm/system-one/scoring.ts`) gated only by `abstainThreshold`.
+Two ways to close, and they are a product decision, not a chore: (a) fit a real calibration lock from
+labelled `JudgmentDataset` rows and bind it (needs the flywheel to produce labels first — nothing has);
+(b) declare the abstain-below-threshold path as the admitted behaviour (e.g. deterministic/stub
+embeddings + explicit threshold in test config) and extend `config:model-matrix` with a J-admits row.
+Either way the test change is: a J-enabled configuration whose ingress admits, asserting the same
+committed set as S. Do NOT "fix" by lowering thresholds silently — that is the exact spread §12 warns
+about, and the manifest (`DECISION_CALL_SITES`) is where the new binding must be declared.
 
 ---
 
@@ -691,8 +714,11 @@ anything.
    - ~~A9: `replay:proposal` promoted to `gate` tier~~ ✅
    - ~~A11: `DECISION_CALL_SITES.at` format updated~~ ✅
 10. **§1.3 U3 — candidate-derivations budget scope** — declared in `BUDGET_SCOPES`, charged in `RuleProcessor.applySyncRules`, default limit 16384/cycle, measured via `control-budgets` gate ✅
-11. **§4.1–4.3** — thesis items
-12. **§5.1–5.9** — cost items (after U1+U2 measured)
+11. **§4.1–4.3** — thesis items:
+    - §4.1 mechanism ✅ (`--seeds n` + mean ± sd, smoke-verified). The *experiment itself* (nal/manifold/lm arms, `--seeds 5+`) is NOT run — it needs `LM_LLAMACPP_MODEL` for the `lm` arm and a decision on §4.3 for the `manifold` arm. When run, append numbers below the rule in `docs/thesis-hypothesis.md` (never edit above it).
+    - §4.2 explicitly not next (plan's own verdict).
+    - §4.3 OPEN — investigation mapped the mechanism, decision required before code (see new note below).
+12. **§5.1–5.9** — cost items (after U1+U2 measured; §5.1 profiles a system that now answers)
 
 ### Invariant Checklist (per §7)
 

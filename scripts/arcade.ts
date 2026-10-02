@@ -5,6 +5,9 @@
  *
  * Usage:
  *   pnpm arcade -- --games snake,tetris --arms heuristic,random --episodes 5 --seed 7
+ *   pnpm exec tsx scripts/arcade.ts -- --games snake,bandit --arms nal,manifold --episodes 3 --seed 7 --seeds 5
+ *     # --seeds n runs the matrix n times (seeds seed..seed+n-1) and reports
+ *     # mean ± sd per arm (TODO30 §4.1 T-Q3 falsification condition 3).
  *   pnpm arcade -- --arms manifold           # local Judgment Manifold heads
  *   OPEN_REPLICA_ENDPOINT=... pnpm arcade -- --arms replica
  *   pnpm arcade -- --arms lm                 # real LM decisions (model-cached machines)
@@ -14,16 +17,10 @@
  * is a `Game` implementation + one GameSpec (name, description, actionLegend).
  */
 
-import { clamp01, parseFlags, pct } from '@senars/util';
+import { clamp01, mean, parseFlags, pct, stdDev } from '@senars/util';
 import { startArcadeTickSpan } from '../nar/src/eval/arcade-trace.js';
 import { BrierHarness } from '../nar/src/eval/brier-harness.js';
-import {
-  type ArcadeSession,
-  isResumable,
-  loadSession,
-  saveSession,
-  sessionKey,
-} from '../nar/src/eval/session-state.js';
+import { loadSession } from '../nar/src/eval/session-state.js';
 import { GameFocus } from '../nar/src/focus/GameFocus.js';
 import type { Game as GameInterface } from '../nar/src/game/Game.js';
 import { createArcadeRegistry, type Game, SeededRNG } from '../nar/src/game/index.js';
@@ -52,6 +49,7 @@ const parseArgs = (): {
   arms: Arm[];
   episodes: number;
   seed: number;
+  seeds: number;
   render: boolean;
   cognitive: boolean;
   resume: boolean;
@@ -67,6 +65,7 @@ const parseArgs = (): {
     arms,
     episodes: num('--episodes', 3),
     seed: num('--seed', 7),
+    seeds: num('--seeds', 1),
     render: has('--render'),
     cognitive: str('--mode', 'default') === 'cognitive',
     resume: has('--resume'),
@@ -202,7 +201,7 @@ async function buildCognitiveArm(
 }
 
 async function main(): Promise<void> {
-  const { games, arms, episodes, seed, render, cognitive, resume, sessionPath, otel, distill } =
+  const { games, arms, episodes, seed, seeds, render, cognitive, resume, sessionPath, otel, distill } =
     parseArgs();
   if (otel) {
     const { initOtel } = await import('../nar/src/otel/index.js');
@@ -211,9 +210,7 @@ async function main(): Promise<void> {
       otlpEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
     });
   }
-  const harness = new BrierHarness();
   const notes: string[] = [];
-  const rng = new SeededRNG(seed);
 
   // Unknown game names are skipped with a note (fail loud, never silent).
   const unknownGames = games.filter((g) => !gameRegistry.has(g));
@@ -233,33 +230,33 @@ async function main(): Promise<void> {
     notes.push('distill: lm arm records decisions → .reports/arcade-dataset.jsonl');
   }
 
-  // G3 session resume: progress is persisted per (arm, game); a mismatched
-  // config cannot resume (starts fresh with a note, never silently merged).
-  const run = { seed, games: playableGames, arms, targetEpisodes: episodes };
-  let completed: Record<string, number> = {};
   if (resume) {
     const saved = loadSession(sessionPath);
-    if (saved && isResumable(saved, run)) {
-      completed = saved.completed;
-      notes.push(
-        `resumed session: ${sessionPath} (${Object.entries(completed).reduce((a, [, n]) => a + n, 0)} episodes already done)`
-      );
-    } else {
-      notes.push(
-        `--resume: no resumable session at ${sessionPath} (missing or config mismatch) — starting fresh`
-      );
-    }
+    notes.push(
+      saved
+        ? `--resume: seed-loop runs start fresh (session at ${sessionPath} ignored)`
+        : `--resume: no resumable session at ${sessionPath} — starting fresh`
+    );
   }
-  const persistProgress = (completed: Record<string, number>): void => {
-    if (!resume) return;
-    saveSession(sessionPath, { version: 1, ...run, completed });
-  };
+
+  async function runSeed(
+  baseSeed: number,
+  games: string[],
+  arms: Arm[],
+  episodes: number,
+  render: boolean,
+  cognitive: boolean,
+  distill: boolean,
+  dataset: import('../nar/src/lm/system-one/distill.js').JudgmentDataset | undefined,
+  rng: SeededRNG,
+  notes: string[],
+  cognitiveRules: typeof cognitiveRules,
+  heuristics: typeof heuristics
+): Promise<BrierHarness> {
+  const harness = new BrierHarness();
 
   for (const arm of arms) {
-    for (const gameName of playableGames) {
-      const firstEpisode = completed[sessionKey(arm, gameName)] ?? 0;
-      if (firstEpisode >= episodes) continue;
-      if (firstEpisode > 0) notes.push(`${arm}/${gameName}: resuming at episode ${firstEpisode}`);
+    for (const gameName of games) {
       // Pure arms: no kernel gates — direct game play (baseline controls).
       if (arm === 'heuristic' || arm === 'random') {
         const heuristic = heuristics[gameName];
@@ -267,8 +264,8 @@ async function main(): Promise<void> {
           notes.push(`heuristic arm on ${gameName}: no baseline — skipped`);
           continue;
         }
-        for (let e = firstEpisode; e < episodes; e++) {
-          const game = gameRegistry.create(gameName, seed + e) as GameInterface<
+        for (let e = 0; e < episodes; e++) {
+          const game = gameRegistry.create(gameName, baseSeed + e) as GameInterface<
             unknown,
             string | number
           >;
@@ -308,8 +305,6 @@ async function main(): Promise<void> {
               console.log(renderGame(game));
             }
           }
-          completed[sessionKey(arm, gameName)] = e + 1;
-          persistProgress(completed);
         }
         continue;
       }
@@ -327,8 +322,8 @@ async function main(): Promise<void> {
       if (built.headLoaded) notes.push(`${arm}/${gameName}: distilled reflex_value head active`);
       const recording = wrapReflex(built.reflex, vetoAwareReflex(), recordingReflex());
       let promotedCount = 0;
-      for (let e = firstEpisode; e < episodes; e++) {
-        const game = gameRegistry.create(gameName, seed + e) as GameInterface<
+      for (let e = 0; e < episodes; e++) {
+        const game = gameRegistry.create(gameName, baseSeed + e) as GameInterface<
           unknown,
           string | number
         >;
@@ -397,8 +392,6 @@ async function main(): Promise<void> {
           }
         }
         focus.markEpisodeEnd();
-        completed[sessionKey(arm, gameName)] = e + 1;
-        persistProgress(completed);
         const reflexStats = built.reflex as {
           decisions?: number;
           failures?: number;
@@ -425,7 +418,22 @@ async function main(): Promise<void> {
     }
   }
 
-  // Train the distilled student head from this run's lm-arm play.
+  return harness;
+}
+
+  const seedCount = Math.max(1, Math.floor(seeds));
+  const perSeed: Array<{ seed: number; rows: ReturnType<BrierHarness['aggregate']> }> = [];
+  let lastHarness: BrierHarness | undefined;
+  for (let i = 0; i < seedCount; i++) {
+    const baseSeed = seed + i;
+    const seedRng = new SeededRNG(baseSeed);
+    const h = await runSeed(baseSeed, playableGames, arms, episodes, render, cognitive, distill, dataset, seedRng, notes, cognitiveRules, heuristics);
+    perSeed.push({ seed: baseSeed, rows: h.aggregate() });
+    lastHarness = h;
+    const line = h.aggregate().map((a) => `${a.arm}=${a.macroBrier.toFixed(4)}`).join(' ');
+    console.log(`[seed ${baseSeed}] ${line}`);
+  }
+
   if (dataset && dataset.size > 0) {
     const { mkdirSync, rmSync } = await import('node:fs');
     const datasetPath = '.reports/arcade-dataset.jsonl';
@@ -454,15 +462,28 @@ async function main(): Promise<void> {
     }
   }
 
-  await harness.writeReports();
+  await lastHarness!.writeReports();
   console.log('\n=== Arcade aggregate (macro over games — the Q3 number) ===');
-  for (const a of harness.aggregate()) {
+  for (const a of lastHarness!.aggregate()) {
     console.log(
       `${a.arm}: games=${a.games} ticks=${a.ticks} macroBrier=${a.macroBrier.toFixed(4)} microBrier=${a.microBrier.toFixed(4)} macroEce=${a.macroEce.toFixed(4)} macroReward=${a.macroReward.toFixed(4)} macroReturn=${a.macroReturn.toFixed(3)}`
     );
   }
-  console.log('\n=== Arcade summary ===');
-  for (const s of harness.summary()) {
+  if (seedCount > 1) {
+    console.log(`\n=== Across ${seedCount} seeds (mean ± sd of macroBrier) ===`);
+    const armNames = [...new Set(perSeed.flatMap((s) => s.rows.map((r) => r.arm)))].sort();
+    for (const arm of armNames) {
+      const vals = perSeed.map((s) => s.rows.find((r) => r.arm === arm)?.macroBrier).filter((v): v is number => typeof v === 'number');
+      const micros = perSeed.map((s) => s.rows.find((r) => r.arm === arm)?.microBrier).filter((v): v is number => typeof v === 'number');
+      const m = vals.length ? mean(vals, (v) => v) : NaN;
+      const sd = vals.length > 1 ? stdDev(vals, (v) => v) : 0;
+      const mm = micros.length ? mean(micros, (v) => v) : NaN;
+      const msd = micros.length > 1 ? stdDev(micros, (v) => v) : 0;
+      console.log(`${arm}: n=${vals.length} macroBrier=${m.toFixed(4)}±${sd.toFixed(4)} microBrier=${mm.toFixed(4)}±${msd.toFixed(4)}`);
+    }
+  }
+  console.log('\n=== Arcade summary (last seed) ===');
+  for (const s of lastHarness!.summary()) {
     console.log(
       `${s.arm}: ticks=${s.ticks} brier=${s.brier.toFixed(4)} ece=${s.ece.toFixed(4)} meanReward=${s.meanReward.toFixed(4)} return=${s.return.toFixed(3)} handover=${pct(s.handoverRate)}`
     );
