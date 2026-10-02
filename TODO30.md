@@ -54,8 +54,8 @@ out of is not a system yet.**
 > | **run 2026-10-02** | §4.1 experiment — snake,bandit,tictactoe × nal,manifold,lm × 5 seeds (embedded Qwen3.5-0.8B): macro lm 0.3452±0.0154 / manifold 0.2565±0.0078 / **nal 0.2292±0.0173** — thesis macro-falsified, micro disagrees (manifold 0.113 best); numbers appended to `docs/thesis-hypothesis.md` | full outcome + confounds in the hypothesis doc; rerun needs fitted J (§4.3) + symmetric arms |
 > | **measured** | §1.3 U3 acceptance — candidates-examined vs derivations-accepted at 1/3/10 cycles on the §0.2 transcript: 84/6, 1428/193, 28665/893 | throwaway probe (deleted), numbers in §9 |
 > | **profiled** | §5.1 first cut — 2000-cycle cpu-prof of `profile-scenario`: GC 7%, id generation ~10%, `applySyncRules` ~6%, telemetry+prom-client ~4% | `scripts/profile-scenario.ts` + `analyze-profile.ts`, numbers in §9 |
-> | **profiled** | §5.3 first cut — recall is a full-population scan; admission linear below cap, O(N)/admit at cap (§9) | `scripts/bench-similarity.ts`, numbers in §9 |
-| not started | §4.2 (explicitly not next), §4.3, §5.4–§5.9 | — |
+> | **profiled/answered** | §5.4 k-enumeration, §5.5 dispatch kept (O(1) cells), §5.6 weights recorded (unchanged), §5.7 one J site, §5.8 scaling matrix first cut | TODO30 §5 + §9 |
+| not started | §4.2 (explicitly not next), §4.3 (decision-gated), §5.6 experiment, §5.9 (experiment specified) | — |
 >
 > §1 and §2 are independent of each other and of §5. §3 is bookkeeping on the predecessor's debt and
 > can be done at any point. §4 is the thesis and needs no §1–§3.
@@ -669,12 +669,12 @@ anything.
 | 5.1 | a fresh profile of the *final* shape — TODO29.a §4 row 15 showed the old ordering came from a profile of the fused system | §1 landing, so the profile is of a system that answers. **First cut 2026-10-02**: 2000-cycle `node --cpu-prof` of `scripts/profile-scenario.ts` (5 beliefs + 1 question). Top exclusive: GC 7.0%, id generation (`util/src/utils/id.ts`) ~10% combined, `applySyncRules` ~5.7%, telemetry `recordGateDecision` + prom-client `setValue`/`fastHashObject` ~4.5%, `Stamp.derive` ~2.5%. No single bottleneck — the shape is death by a thousand allocations, which is what §5.2–§5.6 now order against |
 | 5.2 | which attention structure maintains the order `topK` reads, and at what population size | 5.1 — **first cut 2026-10-02**: `selectTopN` (bounded buffer) sub-ms to N=100k (0.61ms at K=20/100); full `sortByDesc` 45ms at 100k (70× — never full-sort); per-concept sorted-insert admit quadratic (0.05ms/100, 0.58ms/1k, 56ms/10k fill). Verdict: `selectTopN` stays the memory-level structure; Bag caps (100/50/20) are two orders below where splice-insert bites (~1k). §5.4's `k` now has a ceiling to work under |
 | 5.3 | which index answers similarity recall, and whether admission stays quadratic below some threshold | 5.1 + U1 — **first cut 2026-10-02: no index answers recall.** `findSimilarConcepts` is a full-population O(N·S) scan either way (N=1k: 1.52ms indexed / 0.33ms raw; N=10k: 7.51 / 4.37 — the index only dedups the candidate source, at extra cost; `getByAtomic`/`getBySubterm` exist and are never consulted). Admission ~20µs/concept below cap, **7× per-admit at cap** (500 admits: 76.2ms at cap=500 vs 11.2ms below — `applyForgetting`'s full scan + `minBy` per admission). The quadratic threshold *is* `maxConcepts`: a full store pays N per admission. Fix direction is consulting the existing atomic index as a prefilter, not a new structure |
-| 5.4 | what `k` is — the working-set size — before anyone claims O(k) anything | 5.2 |
-| 5.5 | the dispatch structure chosen from the measured candidate count after winnowing (trie, DAG, decision tree, or the union kept) | 5.1 |
-| 5.6 | the eviction container and **the retention weights** — the one `+1` constant in `conceptValue` stands in for this whole question | U2 (relevance decides what is worth keeping) |
-| 5.7 | which `J` call sites are worth their budget, in what order, and what each costs | 4.1's run |
-| 5.8 | the population-scaling matrix and `cost:cycle` | 5.1–5.7 |
-| 5.9 | **`maxTasks`** — the number U5 leaves open | 5.8 |
+| 5.4 | what `k` is — the working-set size — before anyone claims O(k) anything | 5.2 — **answered 2026-10-02, declared constants only.** Per-cycle pipeline: `premises` 64 → fan-out ~2.9k examined (U3) → `maxAdmissions`/`derivations` 100 admitted → per-concept bags 100/50/20; guardrails that never bind: `candidate-derivations` 16384, `proposal-application` 64, `control-work` 16, `decision-derivations` 8; store bounds: `maxConcepts` 1000, `consolidationInterval` 10, focus `taskCapacity` 1000. **Rule: every O(k) claim names its k from this row or it is not a claim** |
+| 5.5 | the dispatch structure chosen from the measured candidate count after winnowing (trie, DAG, decision tree, or the union kept) | 5.1 — **answered 2026-10-02: the union is kept.** Dispatch is an exact kind-pair `Map` lookup (`RuleIndex.candidates`, O(1) cell + linear bucket scan; 55 rules in 22 cells, hottest bucket 21) and costs 5.7% of the cycle (§5.1). No trie/DAG pays for itself at this rule count — revisit at 10× rules or when `applySyncRules` exceeds 15% of profile |
+| 5.6 | the eviction container and **the retention weights** — the one `+1` constant in `conceptValue` stands in for this whole question | U2 — **current state recorded 2026-10-02, weights unchanged (behavioural — §6).** `conceptValue = priority + (totalTasks>0 ? 1 : 0)` (`consolidation.ts:52-53`); eviction orders by `lastAccessedAt` then `conceptValue`. The experiment that would choose: retain-with-tasks vs retain-by-priority ablation on recall of the §0.2 answer under `maxConcepts` pressure. Not run — no claim made |
+| 5.7 | which `J` call sites are worth their budget, in what order, and what each costs | 4.1's run — **answered 2026-10-02: there is one.** `authorize.admission-order` (`call-sites.ts:62-75`), budget `decision-derivations`, cap 8 judgments/cycle. Worth-it test: arcade run with the site disabled vs enabled on Brier — not run; until then the single site stays because its ceiling (8/cycle) is two orders below derivation fan-out (2.9k/cycle) |
+| 5.8 | the population-scaling matrix and `cost:cycle` | 5.1–5.7 — **first cut 2026-10-02 (§9 matrix).** Per-cycle cost at population N (store below cap): derivations ~2.9k examined → ≤100 admitted (N-independent) + recall 0.75µs×N per query + topK sub-ms to N=100k + admission 20µs×admits. At cap: +N-scan per admission (quadratic fill). Dominant N-term is recall, and only on queries that miss exact match |
+| 5.9 | **`maxTasks`** — the number U5 leaves open | 5.8 — **still open, now with the experiment specified.** §5.8 bounds concepts, not tasks: the number needs task-pressure vs recall-loss at fixed concepts, sweeping `maxTasks` 1k→100k on the §0.2 transcript + recall probe. `Infinity` stays until that runs — an unmeasured cap evicts healthy tasks exactly when the store matters (U5's own argument) |
 
 ---
 
@@ -735,7 +735,7 @@ anything.
     - §4.1 mechanism ✅ + **experiment RUN 2026-10-02** (embedded Qwen3.5-0.8B, 5 seeds): macro lm 0.3452 / manifold 0.2565 / nal 0.2292 — conditions 1–2 falsified, ordering stable across seeds, micro disagrees. Numbers appended below the rule in `docs/thesis-hypothesis.md` (nothing above touched). Rerun is blocked on O5 (fitted J, symmetric arms), not on hardware.
     - §4.2 explicitly not next (plan's own verdict).
     - §4.3 OPEN — investigation mapped the mechanism, decision required before code (see new note below).
-12. **§5.1 (first cut ✅ 2026-10-02)** — 2000-cycle cpu-prof: no single bottleneck; GC 7%, id gen ~10%, telemetry ~4.5% (§9, §5.1 row). **§5.3 (first cut ✅ 2026-10-02)** — recall is an unpruned O(N) scan (index consulted nowhere); admission linear below cap, O(N)/admit at cap (§9). **§5.4–§5.9** remain — now ordered against all three profiles.
+12. **§5.1 (first cut ✅ 2026-10-02)** — 2000-cycle cpu-prof: no single bottleneck; GC 7%, id gen ~10%, telemetry ~4.5% (§9, §5.1 row). **§5.3 (first cut ✅ 2026-10-02)** — recall is an unpruned O(N) scan (index consulted nowhere); admission linear below cap, O(N)/admit at cap (§9). **§5.4 ✅ (k enumerated — O(k) claims must name theirs), §5.5 ✅ (dispatch kept: O(1) cells, 5.7% of cycle), §5.7 ✅ (one J site, ≤8/cycle), §5.8 ✅ (scaling matrix first cut, §9). §5.6 recorded, weights unchanged** (behavioural — needs the retention ablation); **§5.9 open with experiment specified** (task-pressure sweep at fixed concepts).
 
 ### New improvement opportunities (from the 2026-10-02 measurements)
 
@@ -773,7 +773,7 @@ U2  (relevance)           ── DONE (measured 1/133 at containment floor)
 **U3  (candidate budget)  ── DONE (mechanism + acceptance measurement 2026-10-02)**
 R2/R3                     ── anytime; R2 needs API decision
 4.1–4.3                   ── independent
-5.1                       ── first cut DONE (profile 2026-10-02); 5.2 first cut DONE (topK sweep 2026-10-02); 5.3 first cut DONE (recall/admission sweep 2026-10-02); 5.4–5.9 ordered against all three
+5.1                       ── first cut DONE (profile 2026-10-02); 5.2 first cut DONE (topK sweep 2026-10-02); 5.3 first cut DONE (recall/admission sweep 2026-10-02); 5.4 DONE (k enumerated) · 5.5 DONE (dispatch kept) · 5.6 RECORDED (ablation open) · 5.7 DONE (one J site) · 5.8 first cut DONE (matrix) · 5.9 OPEN (task-pressure sweep specified)
 ```
 
 **Constraint carried forward, and it is not negotiable:** optimization may change **how** committed
@@ -872,6 +872,7 @@ worth.
 | **U3: candidates vs accepted** | **1c: 84/6 · 3c: 1428/193 · 10c: 28665/893** (§0.2 transcript, beliefs 8/65/133; yield 7%→13.5%→3%; ~2.9k candidates/cycle at 10c vs 16384 cap) | 2026-10-02 | throwaway `ControlBudgets.charge`-counting probe, deleted; belief counts reproduce §0.2 exactly |
 | **§5.1 first profile** | 2000-cycle cpu-prof: **GC 7.0% · id.ts ~10% · applySyncRules ~5.7% · telemetry+prom-client ~4.5% · Stamp.derive ~2.5%** | 2026-10-02 | `scripts/profile-scenario.ts` + `analyze-profile.ts` |
 | **§5.3 recall/admission sweep** | recall: **N=1k 1.52/0.33ms (indexed/raw) · N=10k 7.51/4.37ms** — linear, index never prunes; admission: **~20µs below cap · 7× at cap** (500 admits 76.2ms at cap=500 vs 11.2ms below) | 2026-10-02 | `scripts/bench-similarity.ts` (kept) |
+| **§5.8 scaling matrix (first cut)** | cost/cycle below cap: **2.9k candidates examined → ≤100 admitted (N-independent) + recall ~0.75µs×N/query + topK sub-ms to 100k + admission ~20µs×admits**; at cap: +N-scan/admission; dispatch O(1) cell + ≤21-bucket scan (5.7% of cycle); J ≤8 judgments/cycle | 2026-10-02 | composes §5.1–§5.3 + U3 probes, no new run |
 
 **What was read of the reference versus inferred.** Read and quoted: `Op.java`'s `Args` table, `DISJ`
 fold, `EmptyProduct`, `Bool` handling in `EQ`/`DIFF`, and the deprecated statement delimiters. **Not
