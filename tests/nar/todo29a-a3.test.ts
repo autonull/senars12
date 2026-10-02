@@ -57,6 +57,7 @@ const rule = (id: string, overrides: Partial<RuleProposal> = {}): RuleProposal =
     pattern: { left: { op: 'atom' }, right: { op: 'atom' } },
     truthFn: 'deduction',
     priority: 0.5,
+    body: 'nal.deduction',
     symbolicFallback: 'cat',
   },
   ...overrides,
@@ -283,9 +284,20 @@ describe('A3 — the schema is the seam contract', () => {
     expect(PROPOSAL_KINDS).toEqual(['content', 'rule']);
   });
 
-  it('a rule proposal must declare a symbolic fallback', () => {
-    const { symbolicFallback: _dropped, ...payload } = rule('r1').payload;
-    expect(ProposalSchema.safeParse({ ...rule('r1'), payload }).success).toBe(false);
+  it('a rule proposal without body is accepted by schema but refused at boundary', () => {
+    const { body: _dropped, ...payload } = rule('r1').payload;
+    // Schema accepts it (optional in wire format)
+    expect(ProposalSchema.safeParse({ ...rule('r1'), payload }).success).toBe(true);
+    // But the boundary judge refuses it
+    const lifecycle = new ProposalLifecycle();
+    lifecycle.submit({ ...rule('r1'), payload });
+    const verdicts = lifecycle.admit({ resolves: () => true });
+    expect(verdicts).toHaveLength(1);
+    const verdict = verdicts[0]!;
+    expect(verdict.admitted).toBe(false);
+    if (!verdict.admitted) {
+      expect(verdict.reason).toBe('failed-schema');
+    }
   });
 
   it('a proposal missing a required envelope field is refused', () => {

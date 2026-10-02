@@ -218,16 +218,15 @@ export class LMProposalProducer implements ModelRuleWorkSink {
 
   /** A rule proposal as a table declaration: the payload without the envelope. */
   private declarationOf(proposal: RuleProposal): RuleDeclaration {
+    const body = proposal.payload.body;
+    if (!body) throw new Error('body required for rule declaration');
     return {
       ruleId: proposal.payload.ruleId,
       description: proposal.payload.name,
       left: { op: proposal.payload.pattern.left.op },
       right: { op: proposal.payload.pattern.right.op },
       truthFn: proposal.payload.truthFn,
-      // A proposal carries a symbolic fallback *source*; the table resolves a body
-      // by name, so the proposal names the body it means and a name nothing
-      // implements is refused at load rather than admitted inert (§5.10).
-      body: proposal.payload.symbolicFallback,
+      body,
       priority: proposal.payload.priority,
     };
   }

@@ -77,13 +77,14 @@ describe('System One — flow-level resource accounting (Bench 28)', () => {
     const cache = makeCache();
     await cache.warmup(['ctx']);
     const pointer = await cache.write('bench28 context');
+    const gate = new KernelBudgetGate();
     const dispatcher = new SystemOneDispatcher(
       new DeterministicManifold(),
       createManifold(cache, { abstainThreshold: 0.05 }),
       new Tier3SymbolicManifold(),
       new StubCortex(),
       true,
-      {}
+      { budgetGate: gate }
     );
     const results = await dispatcher.judge(pointer as EmbeddingPointer, QUERIES, { ...budget });
     expect(results.some((r) => r.tier === 1)).toBe(true);

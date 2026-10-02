@@ -2,6 +2,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate';
 import type { Perception } from '@senars/nar/game';
 import { actionGrammar } from '@senars/nar/lm/system-one/action-grammar.js';
 import { JudgmentDataset } from '@senars/nar/lm/system-one/distill.js';
@@ -18,6 +19,8 @@ const budget: ReasoningBudget = {
   maxLMCalls: 5,
   consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
 };
+
+const mockBudgetGate = new KernelBudgetGate();
 
 const ACTIONS = ['0', '1', '2', '3'];
 
@@ -179,7 +182,7 @@ describe.skipIf(!process.env.LM_LLAMACPP_MODEL)(
       const { createDispatcher } = await import('@senars/nar/lm/system-one/dispatcher.js');
       const lmService = createLMService();
       const cortex = createLMServiceCortex({ lmService });
-      const dispatcher = createDispatcher(true, {}, cortex);
+      const dispatcher = createDispatcher(true, { budgetGate: mockBudgetGate }, cortex);
       const reflex = lmReflexWith(dispatcher);
 
       const latencies: number[] = [];

@@ -1,5 +1,6 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
 import {
   createDispatcher,
   DeterministicManifold,
@@ -22,6 +23,8 @@ const mockBudget: ReasoningBudget = {
   maxLMCalls: 5,
   consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
 };
+
+const mockBudgetGate = new KernelBudgetGate();
 
 const queries: JudgmentQuery[] = [
   {
@@ -191,6 +194,7 @@ describe('System One — No-Cloud Device Profile E2E (H3)', () => {
     // createDispatcher creates Tier 0 and Tier 3 internally; we pass only tier1Manifold
     const dispatcher = createDispatcher(true, {
       tier1Manifold: manifold, // Local manifold only
+      budgetGate: mockBudgetGate,
     });
 
     // Verify dispatcher doesn't have cortex configured (provider='off' by default)

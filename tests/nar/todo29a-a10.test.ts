@@ -47,6 +47,7 @@ const ruleProposal = (overrides: Partial<RuleProposal> = {}): RuleProposal => ({
     pattern: { left: { op: 'inheritance' }, right: { op: 'inheritance' } },
     truthFn: 'deduction',
     priority: 0.5,
+    body: 'nal:deduction',
     symbolicFallback: 'nal:deduction',
   },
   ...overrides,

@@ -128,14 +128,12 @@ describe('RuleIndex dispatch', () => {
     expect(ids(index, 'inheritance', 'inheritance')).toEqual([]);
   });
 
-  it('clears its buckets and dependencies on clear()', () => {
+  it('clears its buckets on clear()', () => {
     const index = new RuleIndex();
     index.register(rule('alpha', 0.9, ['atom', 'atom']));
-    index.addDependency('alpha', ['beta'], ['gamma']);
 
     index.clear();
 
     expect(ids(index, 'atom', 'atom')).toEqual([]);
-    expect(index.getRuleDependencies().size).toBe(0);
   });
 });

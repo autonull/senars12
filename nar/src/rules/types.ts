@@ -130,9 +130,3 @@ export const createRulePattern = (
   left: { op: leftOp },
   right: { op: rightOp },
 });
-
-export interface RuleDependency {
-  ruleId: string;
-  dependsOn: string[];
-  producesFor: string[];
-}

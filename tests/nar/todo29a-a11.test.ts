@@ -63,7 +63,8 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
       manifestViolations([
         {
           id: 'bad',
-          at: 'x.ts',
+          at: 'x.ts:1',
+          contains: 'await askSafely(',
           query: 'synthesize',
           axis: 'none',
           position: 'cycle',
@@ -79,7 +80,8 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
       manifestViolations([
         {
           id: 'bad',
-          at: 'x.ts',
+          at: 'x.ts:1',
+          contains: 'await askSafely(',
           query: 'classify',
           axis: 'none',
           position: 'cycle',
@@ -95,7 +97,8 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
       manifestViolations([
         {
           id: 'bad',
-          at: 'x.ts',
+          at: 'x.ts:1',
+          contains: 'await askSafely(',
           query: 'classify',
           axis: 'epistemic',
           position: 'cycle',

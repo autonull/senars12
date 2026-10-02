@@ -28,8 +28,8 @@ export interface SystemOneWiringDeps {
   readonly onJudgmentResolved: (proposition: JudgmentProposition, query: JudgmentQuery) => void;
   /** Read at judge time, not at build time — attached after construction. */
   readonly reputation: () => SourceReputation | undefined;
-  /** A7: where a judgment's cost is charged. Absent ⇒ uncharged, as before. */
-  readonly budgetGate?: KernelBudgetGate;
+  /** A7: where a judgment's cost is charged. Required when System One is enabled. */
+  readonly budgetGate: KernelBudgetGate;
 }
 
 export interface SystemOneWiring {

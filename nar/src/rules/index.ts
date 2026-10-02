@@ -36,7 +36,6 @@ export type {
   InferenceTable,
   RegisteredRule,
   RuleDef,
-  RuleDependency,
   RuleEngine,
   RuleFn,
   RuleInput,

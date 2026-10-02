@@ -81,7 +81,7 @@ export interface DispatcherOptions {
    *  A7: the scope is the declared `decision-derivations` bound, not `'default'` —
    *  a judgment's cost is the decision layer's own, and sharing a counter with
    *  anything else would make symbolic derivations budget-dependent. */
-  budgetGate?: KernelBudgetGate;
+  budgetGate: KernelBudgetGate;
   budgetScopeId?: string;
   /** CLM contrastive routing: penalize candidates near stored hard negatives,
    *  and gate proposeAndJudge on in-domain-ness (OOD ⇒ provisional only). */
@@ -107,7 +107,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     tier3: JudgmentManifold,
     cortex: GenerativeCortex,
     enabled: boolean,
-    options: DispatcherOptions = {}
+    options: DispatcherOptions
   ) {
     this.#tier0 = tier0;
     this.tier1 = tier1;
@@ -117,7 +117,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     this.#embeddingCache = options.embeddingCache ?? null;
     this.#provisional = options.provisional ?? { cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30_000 };
     this.#rankingWeights = options.rankingWeights ?? { candidate_select: 1 };
-    this.#budgetGate = options.budgetGate ?? null;
+    this.#budgetGate = options.budgetGate;
     this.#budgetScopeId = options.budgetScopeId ?? DECISION_DERIVATIONS_SCOPE;
     this.#contrastive = options.contrastive ?? null;
   }
@@ -421,8 +421,8 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
 }
 
 export function createDispatcher(
-  enabled = false,
-  options: DispatcherOptions = {},
+  enabled: boolean,
+  options: DispatcherOptions,
   cortex?: GenerativeCortex
 ): CognitiveDispatcher {
   const tier0 = new DeterministicManifold();

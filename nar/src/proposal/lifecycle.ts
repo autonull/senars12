@@ -187,8 +187,8 @@ export class ProposalLifecycle {
     if (missing.length > 0) {
       return refused('evicted-reference', `unresolved: ${missing.join(', ')}`);
     }
-    if (proposal.kind === 'rule' && !proposal.payload.symbolicFallback) {
-      return refused('failed-schema', 'a rule proposal requires a symbolic fallback');
+    if (proposal.kind === 'rule' && !proposal.payload.body) {
+      return refused('failed-schema', 'a rule proposal requires a body');
     }
     return { admitted: true, proposal };
   }

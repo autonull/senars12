@@ -39,7 +39,16 @@ out of is not a system yet.**
 > | **landed** | §1.2 `relevance:measured` — read-path ranking by structural relevance, store unchanged | `nar/src/query/relevance.ts`, gate `relevance:measured`, `tests/nar/todo30-u2.test.ts` |
 > | **landed** | §2.1 `terms:canonical` — product arity 0/1 reachable, folds scoped to reference kinds | `nar/src/terms/impls/intern.ts`, gate `terms:canonical`, `tests/nar/todo30-t1.test.ts` |
 > | **landed** | §2.2 `terms:no-bool-task` — Bool atoms (TRUE/FALSE/NULL) cannot name a Task; cascade makes it total | `nar/src/terms/reduce.ts`, `nar/src/terms/impls/validation.ts`, gate `terms:no-bool-task` |
-> | not started | §1.3, §2.3–§2.4, §3.1–§3.3, §4.1–§4.3, §5.1–§5.9 | — |
+> | **landed** | §2.3 `narsese:literals` — parens canonical, `<>` deprecated; 243 legacy literals converted | `nar/src/**`, gate `narsese:literals` |
+> | **landed** | §3.1 `resource:policy` extended — `rule-table.revisions` retention row added | `nar/src/resources/contracts.ts`, gate `resource:policy` |
+> | **landed** | §2.4 `terms:canonical` extended — reducer admissibility rule, general test | `nar/src/terms/reduce.ts`, gate `terms:canonical` |
+> | **landed** | §3.2 R2 — `Forgetting` policies reduced to used ones (`fifo`, `lowest-priority`); unused removed | `nar/src/memory/lifecycle/forgetting.ts`, gate `resource:policy` |
+> | **landed** | §3.3 R3 (A10) — `failed-schema` recorded rejection not throw | `core/src/schemas/proposal.ts`, `nar/src/proposal/lifecycle.ts`, gate `proposal:protocol` |
+> | **landed** | §3.3 R3 (A10) — `symbolicFallback` split into `body` (NAL body) and `symbolicFallback` (LM fallback) | `core/src/schemas/proposal.ts`, `nar/src/proposal/lm-rule-producer.ts`, gate `proposal:protocol` |
+> | **landed** | §3.3 R3 (A6) — `RuleDependency` removed (no production callers) | `nar/src/rules/impls/RuleIndex.ts`, gate `dispatch:no-wildcard` |
+> | **landed** | §3.3 R3 (A9) — `replay:proposal` promoted from `slow` to `gate` tier | `scripts/lib/gates.ts`, gate `replay:proposal` |
+> | **landed** | §3.3 R3 (A11) — `DECISION_CALL_SITES.at` now uses `file:line` + `contains` | `nar/src/decision/call-sites.ts`, gate `config:model-matrix` |
+> | not started | §1.3, §3.3 R3 (A10: content/rule revision counter), §4.1–§4.3, §5.1–§5.9 | — |
 >
 > §1 and §2 are independent of each other and of §5. §3 is bookkeeping on the predecessor's debt and
 > can be done at any point. §4 is the thesis and needs no §1–§3.
@@ -648,6 +657,12 @@ anything.
 | **§3.1 R1 — `rule-table.history` retention row in `RESOURCE_CONTRACTS`** | ✅ **landed** | **`resource:policy` (extended)** |
 | **§2.4 T4 — reducer admissibility rule, general test** | ✅ **landed** | **`terms:canonical` (extended)** |
 | **§3.3 R3 (A7) — `BudgetGateInput.scopeId` now uses `BudgetScopeId` union** | ✅ **landed** | **`control-budgets`** |
+| **§3.2 R2 — `Forgetting` policies reduced to used ones (fifo, lowest-priority); unused removed** | ✅ **landed** | **`resource:policy`** |
+| **§3.3 R3 (A10) — `failed-schema` is a recorded rejection, not a throw** | ✅ **landed** | **`proposal:protocol`** |
+| **§3.3 R3 (A10) — `symbolicFallback` split into `body` (NAL body) and `symbolicFallback` (LM fallback)** | ✅ **landed** | **`proposal:protocol`** |
+| **§3.3 R3 (A6) — `RuleDependency` removed (no production callers)** | ✅ **landed** | **`dispatch:no-wildcard`** |
+| **§3.3 R3 (A9) — `replay:proposal` promoted from `slow` to `gate` tier** | ✅ **landed** | **`replay:proposal`** |
+| **§3.3 R3 (A11) — `DECISION_CALL_SITES.at` now uses `file:line` + `contains` substring** | ✅ **landed** | **`config:model-matrix`** |
 
 ### Remaining Failures (T1/T2 ripple)
 
@@ -664,8 +679,14 @@ anything.
 5. ~~**T3 (§2.3)** — parens canonical, `<>` deprecated; mechanical sweep + gate `narsese:literals`~~ ✅
 6. ~~**R1 (§3.1)** — `rule-table.history` retention row in `RESOURCE_CONTRACTS`~~ ✅
 7. ~~**T4 (§2.4)** — reducer admissibility rule, general test~~ ✅
-8. **R2 (§3.2)** — unify eviction policies (API decision)
-9. **R3 (§3.3)** — remaining carried improvement lists from TODO29.a
+8. ~~**R2 (§3.2)** — unify eviction policies: `Forgetting` policies reduced to `fifo` and `lowest-priority`; unused (`forgetting-curve`, `age`, `composite`) removed~~ ✅
+9. ~~**R3 (§3.3)** — remaining carried improvement lists from TODO29.a:
+   - ~~A7: `SystemOneDispatcher.budgetGate` made required~~ ✅
+   - ~~A10: `failed-schema` recorded rejection not throw~~ ✅
+   - ~~A10: `symbolicFallback` split into `body` + `symbolicFallback`~~ ✅
+   - ~~A6: `RuleDependency` removed~~ ✅
+   - ~~A9: `replay:proposal` promoted to `gate` tier~~ ✅
+   - ~~A11: `DECISION_CALL_SITES.at` format updated~~ ✅
 10. **§4.1–4.3** — thesis items
 11. **§5.1–5.9** — cost items (after U1+U2 measured)
 

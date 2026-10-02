@@ -85,8 +85,10 @@ export const RuleProposalSchema = EnvelopeSchema.extend({
     /** The named truth function the rule dispatches through. */
     truthFn: z.string().min(1),
     priority: z.number().min(0).max(1),
-    /** A rule proposal with no symbolic body is not admitted (§5.3). */
-    symbolicFallback: z.string().min(1),
+    /** The NAL rule body implementation name (e.g., 'nal.deduction'). Optional in wire format; validated at the boundary. */
+    body: z.string().optional(),
+    /** Pure-NAL symbolic fallback name for LM failure escalation (e.g., 'lm-narsese-translation'). Optional in wire format; validated at the boundary. */
+    symbolicFallback: z.string().optional(),
   }),
   kind: z.literal('rule'),
 });

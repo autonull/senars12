@@ -1,7 +1,7 @@
 import { getOrInsert } from '@senars/util';
 
 import type { Term } from '../../terms';
-import type { InferenceTable, RegisteredRule, RuleDependency } from '../types.js';
+import type { InferenceTable, RegisteredRule } from '../types.js';
 
 const bucketKey = (left: Term['kind'], right: Term['kind']): string => `${left}:${right}`;
 
@@ -16,7 +16,6 @@ const bucketKey = (left: Term['kind'], right: Term['kind']): string => `${left}:
  */
 export class RuleIndex implements InferenceTable {
   private rulesByType = new Map<string, RegisteredRule[]>();
-  private dependencies = new Map<string, RuleDependency>();
 
   register(rule: RegisteredRule): void {
     const bucket = getOrInsert(
@@ -28,25 +27,13 @@ export class RuleIndex implements InferenceTable {
     // Descending priority; `sort` is stable, so equal priorities keep the order
     // they were registered in.
     bucket.sort((a, b) => b.priority - a.priority);
-
-    this.dependencies.set(rule.id, { ruleId: rule.id, dependsOn: [], producesFor: [] });
   }
 
   candidates(left: Term['kind'], right: Term['kind']): readonly RegisteredRule[] {
     return this.rulesByType.get(bucketKey(left, right)) ?? [];
   }
 
-  addDependency(ruleId: string, dependsOn: string[], producesFor: string[]): void {
-    const dep = this.dependencies.get(ruleId);
-    if (dep) this.dependencies.set(ruleId, { ...dep, dependsOn, producesFor });
-  }
-
-  getRuleDependencies(): Map<string, RuleDependency> {
-    return new Map(this.dependencies);
-  }
-
   clear(): void {
     this.rulesByType.clear();
-    this.dependencies.clear();
   }
 }

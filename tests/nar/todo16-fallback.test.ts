@@ -1,5 +1,6 @@
 import { validateCognitiveEvent } from '@senars/core/schemas';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
 import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
 import { createDispatcher } from '../../nar/src/lm/system-one/dispatcher.js';
 import type { CognitiveContext, ReasoningBudget } from '../../nar/src/lm/system-one/types.js';
@@ -19,9 +20,10 @@ describe('System One — Thermodynamic Fallback (Bench 13)', () => {
     maxLMCalls: 5,
     consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
   };
+  const mockBudgetGate = new KernelBudgetGate();
 
   beforeEach(() => {
-    dispatcher = createDispatcher(false); // disabled = fallback only
+    dispatcher = createDispatcher(false, { budgetGate: mockBudgetGate }); // disabled = fallback only
   });
 
   it('degrades to Deterministic (Tier 0) when manifold disabled', async () => {
@@ -42,7 +44,7 @@ describe('System One — Thermodynamic Fallback (Bench 13)', () => {
   });
 
   it('degrades to Symbolic (Tier 3) when manifold throws', async () => {
-    const enabledDispatcher = createDispatcher(true);
+    const enabledDispatcher = createDispatcher(true, { budgetGate: mockBudgetGate });
     // Manually replace with a failing manifold
     (enabledDispatcher as any).tier1 = {
       async judgeBatch() {
@@ -181,8 +183,8 @@ describe('System One — Thermodynamic Fallback (Bench 13)', () => {
   it('config systemOne.enabled: false yields byte-identical baseline behavior', () => {
     // This is a structural test — the dispatcher with enabled=false
     // should route all judgment to Tier 0/3 without any System One code paths.
-    const disabledDispatcher = createDispatcher(false);
-    const enabledDispatcher = createDispatcher(true);
+    const disabledDispatcher = createDispatcher(false, { budgetGate: mockBudgetGate });
+    const enabledDispatcher = createDispatcher(true, { budgetGate: mockBudgetGate });
 
     // Both should have the same interface
     expect(typeof disabledDispatcher.judge).toBe('function');

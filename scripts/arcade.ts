@@ -29,6 +29,7 @@ import type { Game as GameInterface } from '../nar/src/game/Game.js';
 import { createArcadeRegistry, type Game, SeededRNG } from '../nar/src/game/index.js';
 import { renderGame } from '../nar/src/game/render.js';
 import { createSystemOneBudget } from '../nar/src/lm/system-one/types.js';
+import { KernelBudgetGate } from '../nar/src/kernel/KernelBudgetGate.js';
 import {
   recordedProposals,
   recordingReflex,
@@ -181,7 +182,7 @@ async function buildCognitiveArm(
   };
   const dispatcher = createDispatcher(
     true,
-    { tier1Manifold: manifold, embeddingCache: cache },
+    { tier1Manifold: manifold, embeddingCache: cache, budgetGate: new KernelBudgetGate() },
     createLMServiceCortex({ lmService })
   );
   return {

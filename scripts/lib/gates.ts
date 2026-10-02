@@ -59,7 +59,7 @@ export const GATES: readonly Gate[] = [
   // TODO29.a A9: a recorded proposal stream is a sufficient fixture — the
   // reduction is pure, the replay path reaches no provider, an incompatible
   // schema version fails loudly, and a stream recorded against R is stale at R+1.
-  script('replay:proposal', 'slow'),
+  script('replay:proposal'),
   // TODO29.a A8: every resource that can grow has a declared owner, a bound the
   // owner actually reads, a retention rule, an overflow behaviour, and a pressure
   // signal or an explicit null.

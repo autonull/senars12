@@ -1,5 +1,6 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import { describe, expect, it } from 'vitest';
+import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
 import { ContrastiveMemory } from '../../nar/src/lm/system-one/contrastive.js';
 import { createDispatcher } from '../../nar/src/lm/system-one/dispatcher.js';
 import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
@@ -17,6 +18,7 @@ import { EpsilonGreedyReflex } from '../../nar/src/reflex/EpsilonGreedyReflex.js
 import type { ActionProposal, Reflex } from '../../nar/src/reflex/Reflex.js';
 
 const dim = 32;
+const mockBudgetGate = new KernelBudgetGate();
 
 /** Bag-of-words embedding so shared words cluster (same geometry as todo22-contrastive). */
 const directional = (text: string): Float32Array => {
@@ -177,7 +179,7 @@ describe('TODO22 CLM — dispatcher contrastive routing', () => {
     };
     const dispatcher = createDispatcher(
       true,
-      { embeddingCache: cache, tier1Manifold: manifold, contrastive: memory },
+      { embeddingCache: cache, tier1Manifold: manifold, contrastive: memory, budgetGate: mockBudgetGate },
       cortex as never
     );
     const context = { tickId: 't1', topBeliefs: [], topGoals: ['pick'], workingMemory: [] };
@@ -195,7 +197,7 @@ describe('TODO22 CLM — dispatcher contrastive routing', () => {
 
   it('passes the contrastive option through createDispatcher', () => {
     const memory = new ContrastiveMemory();
-    const dispatcher = createDispatcher(true, { contrastive: memory });
+    const dispatcher = createDispatcher(true, { contrastive: memory, budgetGate: mockBudgetGate });
     expect(dispatcher).toBeDefined();
     expect(typeof dispatcher.proposeAndJudge).toBe('function');
   });

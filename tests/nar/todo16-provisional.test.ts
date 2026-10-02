@@ -1,5 +1,6 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import { describe, expect, it } from 'vitest';
+import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
 import { PriorityBag } from '../../nar/src/bag/Bag.js';
 import {
   DeterministicManifold,
@@ -27,6 +28,7 @@ const budget: ReasoningBudget = {
 };
 
 const context = { topBeliefs: ['b1'], topGoals: [], workingMemory: [], tickId: 't1' };
+const mockBudgetGate = new KernelBudgetGate();
 
 describe('System One — Provisional Stamps (Bench 5)', () => {
   it('decays exponentially to zero within TTL', () => {
@@ -49,7 +51,8 @@ describe('System One — Provisional Stamps (Bench 5)', () => {
       null,
       new DeterministicManifold(),
       new StubCortex(),
-      false
+      false,
+      { budgetGate: mockBudgetGate }
     );
     const result = await dispatcher.proposeAndJudge(
       context,
@@ -77,7 +80,7 @@ describe('System One — Provisional Stamps (Bench 5)', () => {
       new DeterministicManifold(),
       new StubCortex('stub', false),
       true,
-      { embeddingCache: cache }
+      { embeddingCache: cache, budgetGate: mockBudgetGate }
     );
     const result = await dispatcher.proposeAndJudge(
       context,
@@ -107,7 +110,7 @@ describe('System One — Provisional Stamps (Bench 5)', () => {
       new DeterministicManifold(),
       new StubCortex('stub', false),
       true,
-      { embeddingCache: cache }
+      { embeddingCache: cache, budgetGate: mockBudgetGate }
     );
     const result = await dispatcher.proposeAndJudge(
       context,
@@ -185,7 +188,7 @@ describe('System One — Provisional Stamps (Bench 5)', () => {
       new DeterministicManifold(),
       new StubCortex('stub', false),
       true,
-      { embeddingCache: cache }
+      { embeddingCache: cache, budgetGate: mockBudgetGate }
     );
     const result = await dispatcher.proposeAndJudge(
       context,

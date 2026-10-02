@@ -24,6 +24,8 @@ export interface DecisionCallSite {
   readonly id: string;
   /** `file:line` of the call, kept because a declaration with no address drifts. */
   readonly at: string;
+  /** The text that must still be on that line (like ProviderSeam.callSites). */
+  readonly contains: string;
   /** `classify` or `evaluate` for `J`; `synthesize` for `P`. */
   readonly query: 'classify' | 'evaluate' | 'synthesize';
   /**
@@ -57,7 +59,8 @@ export interface DecisionCallSite {
 export const DECISION_CALL_SITES: readonly DecisionCallSite[] = [
   {
     id: 'authorize.admission-order',
-    at: 'nar/src/nar-execution.ts',
+    at: 'nar/src/nar-execution.ts:456',
+    contains: 'await askSafely(this.decision,',
     query: 'classify',
     axis: 'epistemic',
     position: 'cycle',

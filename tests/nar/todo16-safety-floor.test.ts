@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
 import { createDispatcher } from '../../nar/src/lm/system-one/dispatcher.js';
 import type { ReasoningBudget, EvaluateProposition } from '../../nar/src/lm/system-one/types.js';
 
@@ -10,6 +11,7 @@ describe('System One — Explicit Safety Floor (R6)', () => {
     maxLMCalls: 5,
     consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
   };
+  const mockBudgetGate = new KernelBudgetGate();
 
   function assertSafetyFloorResult(result: EvaluateProposition) {
     expect(result.tier).toBe(1);
@@ -18,7 +20,7 @@ describe('System One — Explicit Safety Floor (R6)', () => {
   }
 
   it('injection query with criticality=critical fails closed even when manifold throws', async () => {
-    const enabledDispatcher = createDispatcher(true);
+    const enabledDispatcher = createDispatcher(true, { budgetGate: mockBudgetGate });
     // Replace with a failing manifold
     (enabledDispatcher as any).tier1 = {
       async judgeBatch() {
@@ -48,7 +50,7 @@ describe('System One — Explicit Safety Floor (R6)', () => {
   });
 
   it('injection query with criticality=high fails closed even when manifold throws', async () => {
-    const enabledDispatcher = createDispatcher(true);
+    const enabledDispatcher = createDispatcher(true, { budgetGate: mockBudgetGate });
     (enabledDispatcher as any).tier1 = {
       async judgeBatch() {
         throw new Error('Manifold unavailable');
@@ -77,7 +79,7 @@ describe('System One — Explicit Safety Floor (R6)', () => {
   });
 
   it('assertion query with criticality=critical fails closed even when manifold throws', async () => {
-    const enabledDispatcher = createDispatcher(true);
+    const enabledDispatcher = createDispatcher(true, { budgetGate: mockBudgetGate });
     (enabledDispatcher as any).tier1 = {
       async judgeBatch() {
         throw new Error('Manifold unavailable');
@@ -106,7 +108,7 @@ describe('System One — Explicit Safety Floor (R6)', () => {
   });
 
   it('non-safety-floor query falls back to Tier 3 when manifold throws', async () => {
-    const enabledDispatcher = createDispatcher(true);
+    const enabledDispatcher = createDispatcher(true, { budgetGate: mockBudgetGate });
     (enabledDispatcher as any).tier1 = {
       async judgeBatch() {
         throw new Error('Manifold unavailable');
@@ -138,7 +140,7 @@ describe('System One — Explicit Safety Floor (R6)', () => {
   });
 
   it('injection query with criticality=standard falls back to Tier 3 (not safety floor)', async () => {
-    const enabledDispatcher = createDispatcher(true);
+    const enabledDispatcher = createDispatcher(true, { budgetGate: mockBudgetGate });
     (enabledDispatcher as any).tier1 = {
       async judgeBatch() {
         throw new Error('Manifold unavailable');
