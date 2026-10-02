@@ -250,9 +250,7 @@ async function main(): Promise<void> {
   distill: boolean,
   dataset: import('../nar/src/lm/system-one/distill.js').JudgmentDataset | undefined,
   rng: SeededRNG,
-  notes: string[],
-  cognitiveRules: typeof cognitiveRules,
-  heuristics: typeof heuristics
+  notes: string[]
 ): Promise<BrierHarness> {
   const harness = new BrierHarness();
 
@@ -455,7 +453,7 @@ async function main(): Promise<void> {
   for (let i = 0; i < seedCount; i++) {
     const baseSeed = seed + i;
     const seedRng = new SeededRNG(baseSeed);
-    const h = await runSeed(baseSeed, playableGames, arms, episodes, render, cognitive, distill, dataset, seedRng, notes, cognitiveRules, heuristics);
+    const h = await runSeed(baseSeed, playableGames, arms, episodes, render, cognitive, distill, dataset, seedRng, notes);
     perSeed.push({ seed: baseSeed, rows: h.aggregate() });
     lastHarness = h;
     const line = h.aggregate().map((a) => `${a.arm}=${a.macroBrier.toFixed(4)}`).join(' ');
