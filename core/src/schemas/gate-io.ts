@@ -80,6 +80,7 @@ export const BudgetOperationSchema = z.enum([
   'systemone-judgment',
   'derivation',
   'premise-selection',
+  'candidate-derivation',
   'proposal-application',
   'control-work',
   'decision-derivation',

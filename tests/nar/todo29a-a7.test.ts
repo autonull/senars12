@@ -70,6 +70,7 @@ describe('the gate can fail', () => {
       'unspent-scope',
       'unspent-scope',
       'unspent-scope',
+      'unspent-scope',
     ]);
     expect(violations.find((v) => v.rule === 'unknown-scope')?.detail).toContain('invented-scope');
   });
@@ -79,6 +80,7 @@ describe('the gate can fail', () => {
 
     expect(violations.map((v) => v.detail)).toEqual([
       expect.stringContaining("scope 'derivations' declares operation 'derivation'"),
+      expect.stringContaining("scope 'candidate-derivations' declares operation 'candidate-derivation'"),
       expect.stringContaining("scope 'proposal-application' declares operation 'proposal-application'"),
       expect.stringContaining("scope 'control-work' declares operation 'control-work'"),
       expect.stringContaining("scope 'decision-derivations' declares operation 'decision-derivation'"),

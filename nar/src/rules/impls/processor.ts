@@ -263,6 +263,7 @@ export class RuleProcessor {
 
     for (const rule of matched) {
       if (!rule.sync) continue;
+      if (this.budgets && !this.budgets.charge('candidate-derivations')) return;
       if (this.isMetaRule(rule)) {
         if (!metaActive) continue;
         if (!this.checkMetaBudget(this.metaDepth.currentDepth + 1)) continue;

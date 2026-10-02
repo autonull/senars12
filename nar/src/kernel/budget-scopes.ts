@@ -70,6 +70,15 @@ export const BUDGET_SCOPES = {
     configSource: 'controlBudgets.premises',
     terminationReason: 'cycle-budget',
   },
+  'candidate-derivations': {
+    operation: 'candidate-derivation',
+    consumedKey: 'cycles',
+    limitKey: 'maxCycles',
+    owner: 'RuleProcessor.applySyncRules',
+    defaultLimit: 16384,
+    configSource: 'controlBudgets.candidate-derivations',
+    terminationReason: 'cycle-budget',
+  },
   'proposal-application': {
     operation: 'proposal-application',
     consumedKey: 'memoryOps',

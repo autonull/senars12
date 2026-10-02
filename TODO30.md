@@ -37,6 +37,7 @@ out of is not a system yet.**
 > | **landed** | §1.4 `stop()` on a never-started component is a no-op — a lifecycle that throws on a legal call sequence teaches every caller to avoid it | `core/src/Lifecycle.ts`, `tests/nar/unit/lifecycle.test.ts` |
 > | **landed** | §1.1 `ask()` answers the asked term, a **ground instance of it** when the asked term carries variables, or nothing — and hands adjacency back as `evidence` | `nar/src/query/api.ts`, gate `answer:no-fabrication`, `tests/nar/todo30-u1.test.ts` |
 > | **landed** | §1.2 `relevance:measured` — read-path ranking by structural relevance, store unchanged | `nar/src/query/relevance.ts`, gate `relevance:measured`, `tests/nar/todo30-u2.test.ts` |
+> | **landed** | §1.3 `control-budgets` extended — `candidate-derivations` scope declared, charged per rule application in `RuleProcessor.applySyncRules`, default 16384/cycle | `core/src/schemas/reasoning-budget.ts`, `nar/src/kernel/budget-scopes.ts`, `nar/src/rules/impls/processor.ts`, gate `control-budgets` |
 > | **landed** | §2.1 `terms:canonical` — product arity 0/1 reachable, folds scoped to reference kinds | `nar/src/terms/impls/intern.ts`, gate `terms:canonical`, `tests/nar/todo30-t1.test.ts` |
 > | **landed** | §2.2 `terms:no-bool-task` — Bool atoms (TRUE/FALSE/NULL) cannot name a Task; cascade makes it total | `nar/src/terms/reduce.ts`, `nar/src/terms/impls/validation.ts`, gate `terms:no-bool-task` |
 > | **landed** | §2.3 `narsese:literals` — parens canonical, `<>` deprecated; 243 legacy literals converted | `nar/src/**`, gate `narsese:literals` |
@@ -48,7 +49,8 @@ out of is not a system yet.**
 > | **landed** | §3.3 R3 (A6) — `RuleDependency` removed (no production callers) | `nar/src/rules/impls/RuleIndex.ts`, gate `dispatch:no-wildcard` |
 > | **landed** | §3.3 R3 (A9) — `replay:proposal` promoted from `slow` to `gate` tier | `scripts/lib/gates.ts`, gate `replay:proposal` |
 > | **landed** | §3.3 R3 (A11) — `DECISION_CALL_SITES.at` now uses `file:line` + `contains` | `nar/src/decision/call-sites.ts`, gate `config:model-matrix` |
-> | not started | §1.3, §3.3 R3 (A10: content/rule revision counter), §4.1–§4.3, §5.1–§5.9 | — |
+> | **landed** | §3.3 R3 (A10: content/rule revision counter) — scope table owns the vocabulary | `nar/src/kernel/budget-scopes.ts`, gate `control-budgets` |
+> | not started | §4.1–§4.3, §5.1–§5.9 | — |
 >
 > §1 and §2 are independent of each other and of §5. §3 is bookkeeping on the predecessor's debt and
 > can be done at any point. §4 is the thesis and needs no §1–§3.
@@ -651,6 +653,7 @@ anything.
 | §1.4 U4 — lifecycle stop/dispose no-op on never-started | ✅ landed | (structural, no gate) |
 | §1.1 U1 — ask() answers asked term, ground instance, or refuses | ✅ landed | `answer:no-fabrication` |
 | §1.2 U2 — relevance ranking at read path, pure, store unchanged | ✅ landed | `relevance:measured` |
+| **§1.3 U3 — candidate-derivations budget scope declared and enforced** | ✅ **landed** | **`control-budgets` (extended)** |
 | §2.1 T1 — product arity 0/1 reachable; folds scoped correctly | ✅ landed | `terms:canonical` |
 | §2.2 T2 — Bool atoms at term level, identities, isInvalidTaskTerm walks term | ✅ landed | `terms:no-bool-task` |
 | **§2.3 T3 — parens canonical, `<>` deprecated; `narsese:literals` gate** | ✅ **landed** | **`narsese:literals`** |
@@ -687,8 +690,9 @@ anything.
    - ~~A6: `RuleDependency` removed~~ ✅
    - ~~A9: `replay:proposal` promoted to `gate` tier~~ ✅
    - ~~A11: `DECISION_CALL_SITES.at` format updated~~ ✅
-10. **§4.1–4.3** — thesis items
-11. **§5.1–5.9** — cost items (after U1+U2 measured)
+10. **§1.3 U3 — candidate-derivations budget scope** — declared in `BUDGET_SCOPES`, charged in `RuleProcessor.applySyncRules`, default limit 16384/cycle, measured via `control-budgets` gate ✅
+11. **§4.1–4.3** — thesis items
+12. **§5.1–5.9** — cost items (after U1+U2 measured)
 
 ### Invariant Checklist (per §7)
 
@@ -711,7 +715,7 @@ T2  (Bool identities)     ── DONE (alone, with NAL parity re-run)
 T3  (parens)              ── DONE
 R1  (rule-table.history)  ── DONE
 U2  (relevance)           ── DONE (measured 1/133 at containment floor)
-U3  (candidate budget)    ── after U2
+**U3  (candidate budget)  ── DONE**
 R2/R3                     ── anytime; R2 needs API decision
 4.1–4.3                   ── independent
 5.1–5.9                   ── after U1+U2 landed & measured
@@ -732,7 +736,7 @@ T2  (Bool identities)         ── after T1: both touch compoundOf (DONE)
 T3  (parens)                  ── DONE
 R1  (rule-table.history)      ── DONE
 U2  (relevance)               ── after U1: U1 is the read path, U2 ranks within it
-U3  (candidate budget)        ── after U2: it caps what relevance then has to rank
+**U3  (candidate budget)      ── DONE (after U2: caps what relevance then has to rank)**
 R2  R3                        ── anytime; R2 needs an API decision
 4.1–4.3                       ── independent of all of the above
 5.1–5.9                       ── after U1 and U2 have landed and been measured

@@ -14,6 +14,7 @@ import { z } from 'zod';
 export const BUDGET_SCOPE_IDS = [
   'derivations',
   'premises',
+  'candidate-derivations',
   'proposal-application',
   'control-work',
   'decision-derivations',
