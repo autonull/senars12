@@ -9,7 +9,9 @@
 import { MiningBag } from '../lm/system-one/hard-negatives.js';
 import { EpisodeConsolidator } from '../memory/episode-consolidator.js';
 import { ProofMettaProposer } from '../meta/index.js';
-import type { NARConfig } from '../nar.js';
+// NARConfig, not NAR — importing the class here would close a type-only cycle
+// back to nar.ts, which `deps:gate` erases but the complexity ledger counts.
+import type { NARConfig } from './config.js';
 import { RLFPLearner } from '../rlfp';
 import type { RandomSource } from '../types/primitives.js';
 

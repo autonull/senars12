@@ -28,7 +28,7 @@ mostly *tests over existing machinery*, not new plumbing.
 | # | milestone | one-line test | status |
 |---|-----------|---------------|--------|
 | **M1** | **End-to-end pipeline** | NL → PerceptionGate → NAL → QueryAPI → NL, LM-optional, in-budget | ✅ done — tests/nar/e2e/07-full-pipeline.test.ts |
-| **M2** | **Egress judging** | System One judges NAL conclusions before admission (opt-in) | not started — **last** |
+| **M2** | **Egress judging** | System One judges NAL conclusions before admission (opt-in) | **not started — last**, seam read, see §Notes for M2 |
 | **M3** | **MeTTa verified** | `metta` tool executes a MeTTa program via ActionGate | ✅ done — tests/nar/e2e/08-metta-tool.test.ts |
 | **M4** | **Crash/recovery** | Kill/restart NAR, event-log-replay state = snapshot state | ✅ done — tests/nar/e2e/09-restart-equivalence.test.ts |
 | **M5** | **Reward→policy learning** | Reward changes a real policy observable, never Truth | ✅ done — tests/nar/e2e/11-reward-policy.test.ts |
@@ -437,47 +437,137 @@ plan names now exist:
 - Multiple test files: Added required `occurrenceTime` field to `RuleInput` objects
 - `nar/src/facade/config.ts` + `nar/src/nar-presets.ts`: Added `maxTasks` config option
 
-**New improvement opportunities:**
+### Pre-existing test failures — all six now resolved
 
-1. **`complexity:budget` fails on `productionLOC` (72 950 vs 72 624 baseline) and
-   `typecheck:bin` (2 errors in `scripts/arcade.ts`).** Both pre-date this session's
-   gate wiring — it adds 0 production LOC, since `scripts/` is outside the gate's
-   `SOURCE_ROOTS`. The `productionLOC` overage came from the TODO32 reducers
-   (`nar/src/terms/reduce.ts`). Ratchet rule: a metric that goes down gets its baseline
-   lowered in the same commit, so the honest repair is either paying the LOC back down
-   or moving the baseline to the number the work actually cost — not leaving it red.
-   `nar.ts` at 997 LOC (budget 940) is the same shape of debt.
-2. **`todo29a-a2` / `todo29a-a10` rule-count drift (51 vs the committed 55).** The rule
-   table and its two gates disagree about how many rules ship. One of them is the
-   truth; until they agree, the *rule matrix the README publishes* is not falsifiable.
-   Highest-value of the six, because it is a published claim.
-3. **`todo30-u2` belief count (91 vs 133).** Same shape: a measurement pinned as a
-   committed number has moved. The reducers plausibly pruned the transcript, so the
-   honest fix is to re-measure and re-pin — but confirm the pruning is intended first,
-   or the number is pinned against a store that should not exist.
-4. **M1 Variants B and C have never run green.** Both `skipIf` on
+Every failure this plan inherited is fixed. Two of the fixes are worth reading before
+anyone re-derives them, because both were a *passing test standing on a disabled system*.
+
+**1. The rule table was being faked (51 vs 55) — highest value of the six.**
+
+The shipped table and the README's published matrix both say **55** declarations. The M9
+pass had **commented out 4 temporal rules** (`sequenceIntroduction`, `parallelIntroduction`,
+`predictiveImplication`, `temporalDeduction`) and given two of them
+`pattern: ['*', '*']` — precisely the wildcard bucket `pnpm dispatch:no-wildcard`
+exists to forbid — *in order to make the M9 derivation-quality test pass*.
+
+Restoring all four with their correct exact kind-pairs (the cells the README already
+documents: `inheritance:inheritance` ×2, `sequence:inheritance`, `predictive:sequence`)
+shows **the test passes honestly anyway**. The reducers added in M9 already prevent the
+redundant and contradictory terms; disabling rules was never the fix. It was a test
+passing by deletion, and it is now load-bearing evidence for M9 again.
+
+> **The generalisable lesson, and the reason this is written down rather than just
+> committed:** a gate that goes green because the code under it was removed is not a
+> green gate. `dispatch:no-wildcard` did not catch this — the wildcards were inside a
+> comment — but `todo29a-a2`'s committed count of 55 did, which is exactly the
+> falsifiable published number that made the drift visible. Committing the count, rather
+> than the prose, is what caught it.
+
+**2. `stress-boundary` asserted a performance law the data denies.**
+
+`test('systematic sensor noise variation affects performance predictably')` ran **144
+real NAR episodes** to assert `avgReward >= 0` and `results.size === 3`. Measured at the
+committed seed:
+
+| sensor confidence | curiosity stimulations | mean return |
+|---|---|---|
+| 0.2 | 1 | 3.75 |
+| 0.6 | 1 | 4.00 |
+| 0.9 | 3 | 3.50 |
+
+Curiosity stimulation **rises with *higher*** confidence and return is **non-monotonic**
+in it. The claim in the test's name is not merely unasserted — it is false. The test now
+names the smoke it actually is, asserts the real invariants (finite, non-negative,
+non-empty at every level), and runs half the episodes. No threshold was invented to make
+the original name true. Its sibling assertion was softened the same way, and says why:
+exploration is not shown to *track* confidence downward, so the test holds only that a
+noisy sensor provokes curiosity at all.
+
+**3–6. The mechanical four.**
+
+- **`typecheck:bin`** — `runSeed` in `scripts/arcade.ts` took `cognitiveRules` / `heuristics`
+  parameters that shadowed module-level consts of the same name, making `typeof x`
+  self-referential (TS2502). Both were never mutated, so both are gone.
+- **`nar.ts` monolith budget** — 997 → **928** LOC against the 940 gate. Two extractions,
+  both following the facade rule the functions were written for: the M8 derivation join
+  became a **pure** `selectVerifiedDerivation` over drained records (testable with no NAR
+  at all, and where "an unverifiable trace is omitted, never shown" now lives as one rule
+  instead of a loop), and four config-gated constructions that share one shape moved to
+  `facade/optional-subsystems.ts`.
+- **`todo30-u2` belief count** — the test pinned 133 committed beliefs while the gate
+  written beside it says in its own comment that pinning the total is wrong, because it is
+  `maxAdmissions`-sensitive. The three observed values for one transcript are 133 (as
+  pinned), 91 with 51 rules, 139 with 55 — so the test now asserts the **narrowing**,
+  which is what §1.2 actually asks for. The gate keeps printing the measurement; neither
+  pretends to know it.
+- **The two timeouts** — `todo26-cognitive-agent` is `@load-sensitive`, measures ~5s alone
+  and exceeded the inherited 15s only under the full suite's parallel load; its sibling in
+  the same CI job already overrode the timeout for exactly that reason, and it now does
+  too.
+
+### The complexity ledger
+
+`complexity:budget` is green, and getting there surfaced a **type-only import cycle**
+this session introduced: `facade/optional-subsystems.ts` typed its parameter as `NAR`,
+which closes a cycle back to `nar.ts`. `deps:gate` did **not** catch it — that gate runs
+dpdm with `--transform`, which erases type-only edges — but the complexity ledger counts
+*all* edges, so it went 23 → 24 circular chains. Fixed by typing the parameter as
+`NARConfig` (from `facade/config.ts`), which is what it always should have been.
+
+> **Worth remembering:** the two gates disagree by design. `deps:gate` measures the real
+> runtime graph; the ledger measures the syntactic one. A cycle that only exists in types
+> is invisible to the first and fatal to the second. Neither is wrong; you need both.
+
+`productionLOC` was raised 72 624 → **72 993**. The gate is explicit that "the obligation
+to move the baseline is a commit-time one," and the +369 is M9's own delivered work — the
+term reducer registry and construction-time canonicalization that make `derivation:clean`
+pass. The baseline now sits exactly at the measurement, so the ratchet is armed for the
+next intentional change rather than permanently red.
+
+### Improvement opportunities
+
+1. **M1 Variants B and C have never run green.** Both `skipIf` on
    `LM_PROVIDER=llamacpp-embedded`, so the LM-fills-KB-gaps and heads-adjudicate claims
-   are asserted in the plan and **falsified by nothing**. The two most interesting
+   are asserted in this plan and **falsified by nothing**. The two most interesting
    properties of this system are the two CI never exercises. `docs/e2e-pipeline.md` (M1's
-   gate deliverable) does not exist.
-5. **Two 15s timeouts** (`todo26-cognitive-agent`, `rl/parity/stress-boundary`) are
-   excluded from `test:unit` and so only ever run in the load-sensitive job, where they
-   may flake rather than fail.
+   gate deliverable) does not exist. This is now the largest gap between what the plan
+   claims and what the gates check.
+2. **A gate that fails because code was commented out should fail as such.** The temporal
+   rules were disabled inside a comment, so `dispatch:no-wildcard` saw nothing. A check
+   that the shipped declaration count matches the matrix *at runtime* — rather than a
+   test that pins it — would have caught it the moment it was written rather than a
+   session later.
+3. **Cost-assertion smells.** `stress-boundary` burned 144 NAR episodes on two trivial
+   assertions. A test whose assertions are implied by its own setup is either missing its
+   real assertion or does not need the setup; worth a look when triaging slow suites,
+   because the failure mode is a test that can only fail for environmental reasons.
+4. **`productionLOC` baseline now sits exactly at its measurement** (72 993). Armed and
+   correct, but worth remembering that the M9 canonicalization work cost ~370 lines. If
+   that growth is ever revisited, this ledger entry is the receipt.
 
-**Notes for M2 (the remaining milestone):** Still last, still opt-in, still
-`egress:invariant` — and its `scripts/e2e-gates.ts` entry is not yet written, because
-the gate's assertion (flag-off committed set byte-identical to today's) needs the
-flag before the runner does. The invariance test it needs is already in
-`tests/nar/todo29a-a2.test.ts` / `todo29a-a10.test.ts`; M2's real work is the
-`admitDerived` veto beside `rankDerivations`, not a new admission path.
+### Notes for M2 (the remaining milestone)
 
-**Pre-existing test failures (outside TODO32 scope):**
-- `refactor3-hygiene.test.ts` / `todo20-monoliths.test.ts`: `nar.ts` at 997 LOC exceeds 940 budget (refactor task)
-- `refactor4-budget.test.ts`: `typecheck:bin` has 2 errors in `scripts/arcade.ts` (circular type refs)
-- `todo29a-a2.test.ts` / `todo29a-a10.test.ts`: Rule count expectations outdated (55 vs 51 actual)
-- `todo30-u2.test.ts`: Belief count expectation outdated (133 vs 91 actual)
-- `todo26-cognitive-agent.test.ts`: Test timeout (15s)
-- `rl/parity/stress-boundary.test.ts`: Test timeout (15s)
+Still last, still opt-in, still `egress:invariant`. Its `scripts/e2e-gates.ts` entry is
+not written, because the gate's assertion (flag-off committed set byte-identical to
+today's) needs the flag before the runner does.
+
+The seam is already proven and should be **mirrored, not invented**:
+
+- `KernelPerceptionGate` takes an opt-in `systemOne.judge` `IngressJudge` port with a
+  fail-closed timeout (`nar/src/kernel/KernelPerceptionGate.ts:37-92`). A judge that
+  faults *or* expires takes one refusal path, because judging an untrusted observation is
+  gating — degrading to unjudged admission on expiry would bypass the veto the judge
+  exists to apply. Egress judging should fail closed the same way.
+- The admission path is `rankDerivations` → `admit`, **one** committed transition (§7.6).
+  Egress sits beside it as a veto *input*; a second admission path is what re-opens
+  TODO29.a's gates.
+- **Open question to settle first:** the plan names `groundedness` as the egress head,
+  but `groundednessGate` already exists as a *narration* gate, and M2's test wants "a
+  bad-action derivation vetoes its own admission" — which is the ActionGate veto registry.
+  Confirm egress reuses that path rather than inventing a parallel one.
+- The invariance test it needs already exists in `tests/nar/todo29a-a2.test.ts` /
+  `todo29a-a10.test.ts`; M2's real work is the `admitDerived` veto beside
+  `rankDerivations`, not new plumbing.
 
 ## Invariant Checklist
 
@@ -494,6 +584,17 @@ flag before the runner does. The invariance test it needs is already in
 - [x] **Every answer carries a verifiable derivation** (M8)
 - [x] **Rewards change policy, never Truth** (M5)
 - [x] **Multi-agent delegation works with PEER_AGENT quality** (M6)
+- [x] **No contradictory or redundantly nested term reaches committed state** (M9)
+- [x] **The shipped rule table is the published rule table** — 55 declarations, all
+      loaded, matrix generated not transcribed, no wildcard bucket
+- [x] **Every milestone above is gated** — `e2e:pipeline`, `persistence:replay`,
+      `derivation:verifiable`, `reward:policy-only`, `derivation:clean`
+
+**Not yet asserted:**
+
+- [ ] **LM fills KB gaps** (M1 Variant B) — `skipIf` on `llamacpp-embedded`; never run green
+- [ ] **System One heads adjudicate** (M1 Variant C) — same
+- [ ] **Egress judging is gate-invariant** (M2) — not started
 
 ---
 
@@ -511,3 +612,6 @@ flag before the runner does. The invariance test it needs is already in
 M2, M3, M5 are *capability depth* — valuable, sequenced after the exit criteria, and each lands
 with the gate discipline (in `gates.ts` + `ci.yml`, same commit, flippable) the whole programme runs
 on.
+
+**All six exit criteria met, each by a gate in `ci.yml` rather than by a file that exists.**
+M3 and M5 have since landed and are gated too, so the only outstanding milestone is M2.
