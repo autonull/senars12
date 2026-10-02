@@ -63,6 +63,7 @@
     "answer:no-fabrication": "tsx scripts/answer-no-fabrication.ts",
     "relevance:measured": "tsx scripts/relevance-measured.ts",
     "terms:no-bool-task": "tsx scripts/terms-no-bool-task.ts",
+    "narsese:literals": "tsx scripts/narsese-literals.ts",
     "config:model-matrix": "vitest run tests/nar/todo29a-model-matrix.test.ts",
     "induction:inventory": "tsx scripts/induction-inventory.ts",
     "deps:direction": "tsx scripts/deps-direction.ts",

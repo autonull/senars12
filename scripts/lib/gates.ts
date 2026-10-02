@@ -84,6 +84,8 @@ export const GATES: readonly Gate[] = [
   // TODO30 U2: relevance is a read path, and how much of a 133-belief store
   // actually bears on the question is a number rather than an opinion.
   script('relevance:measured'),
+  // TODO30 T3: every narsese string literal parses and re-serialises to itself
+  script('narsese:literals'),
   script('exports:audit'),
   script('exports:check'),
   script('exports:barrels'),

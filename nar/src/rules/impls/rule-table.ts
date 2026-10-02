@@ -1,4 +1,12 @@
 /**
+ * Maximum rule table history revisions retained.
+ * The rule table has 55 built-in rules; keeping 50 revisions bounds memory
+ * while preserving ample revert capability. Declared here so the resource
+ * inventory can reference it.
+ */
+export const RULE_TABLE_MAX_HISTORY = 50;
+
+/**
  * The rule table: admitted data, not an import side effect (TODO29.a §5.10).
  *
  * **What this replaces.** `registration.ts` used to push 55 rules onto a
@@ -339,6 +347,11 @@ export class RuleTableStore {
     if (faults.length > 0) throw new RuleTableError(faults);
     this.current = { ...next, entries };
     this.history.push(this.current);
+    // Retain only the most recent revisions per the declared bound (RULE_TABLE_MAX_HISTORY).
+    // This bounds the unbounded history that TODO30 §3.1 identified.
+    if (this.history.length > RULE_TABLE_MAX_HISTORY) {
+      this.history.splice(0, this.history.length - RULE_TABLE_MAX_HISTORY);
+    }
     const rebuilt = new RuleIndex();
     for (const rule of rules) rebuilt.register(rule);
     this.dispatch = rebuilt;

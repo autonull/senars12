@@ -27,6 +27,7 @@ import { GATE_LOG_CAPACITY } from '../kernel/event-ring.js';
 import { DEFAULT_REPUTATION_CAPACITY } from '../kernel/source-reputation.js';
 import { DEFAULT_QUEUE_LIMITS, PROPOSAL_LOG_CAPACITY } from '../proposal/lifecycle.js';
 import { DEFAULT_QBELIEF_CAPACITY } from '../rl/impls/QBeliefStore.js';
+import { RULE_TABLE_MAX_HISTORY } from '../rules/impls/rule-table.js';
 
 /** Where a bound is *declared*, rather than a copy of it. */
 export interface CapacitySource {
@@ -232,6 +233,15 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
     capacity: { module: 'nar/src/rl/impls/QBeliefStore.ts', symbol: 'DEFAULT_QBELIEF_CAPACITY' },
     retention: 'drop-oldest',
     overflow: 'LruCache evicts the least recently used state',
+    pressureSignal: null,
+  },
+  {
+    id: 'rule-table.revisions',
+    holds: 'past rule table artifacts for revert capability',
+    owner: 'nar/src/rules/impls/rule-table.ts',
+    capacity: { module: 'nar/src/rules/impls/rule-table.ts', symbol: 'RULE_TABLE_MAX_HISTORY' },
+    retention: 'drop-oldest',
+    overflow: 'oldest revision is dropped when history exceeds RULE_TABLE_MAX_HISTORY; revert to a dropped revision fails with artifact-version error',
     pressureSignal: null,
   },
 ] as const satisfies readonly ResourceContract[];

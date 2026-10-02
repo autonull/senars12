@@ -42,19 +42,19 @@ export const META_AIKR_BOUNDS = {
 /** Meta-rule definitions in Narsese format */
 export const META_RULES_NARSESE = [
   // Strategy selection (only when competence drive low)
-  '<(drive:competence --> low) & (situation --> requires_strategy) & (strategy --> $s) ==> (^select_strategy($s))!>',
+  '((drive:competence --> low) & (situation --> requires_strategy) & (strategy --> $s) ==> (^select_strategy($s))!)',
 
   // Knob tuning (only when reward < threshold)
-  '<(rlfp:reward --> below_threshold) & (knob --> $k) & (tune --> improves $k) & (^tune($k, $v))! ==> (^apply_tuning($k, $v))!>',
+  '((rlfp:reward --> below_threshold) & (knob --> $k) & (tune --> improves $k) & (^tune($k, $v))! ==> (^apply_tuning($k, $v))!)',
 
   // Test repair (semantic fix pattern)
-  '<(test_failed --> $t) & (error_pattern --> $e) & (fix_pattern($e) --> $fix) & (^repair($t, $fix))! ==> (^apply_fix($fix))!>',
+  '((test_failed --> $t) & (error_pattern --> $e) & (fix_pattern($e) --> $fix) & (^repair($t, $fix))! ==> (^apply_fix($fix))!)',
 
   // Schema promotion (high confidence + frequency)
-  '<(schema --> $s) & (confidence($s) > 0.9) & (frequency($s) > 10) ==> (^promote_rule($s))!>',
+  '((schema --> $s) & (confidence($s) > 0.9) & (frequency($s) > 10) ==> (^promote_rule($s))!)',
 
   // Capability scaffolding
-  '<(capability --> $c) & (template($c) --> $tmpl) & (^add_capability($c))! ==> (^scaffold($tmpl, $c))!>',
+  '((capability --> $c) & (template($c) --> $tmpl) & (^add_capability($c))! ==> (^scaffold($tmpl, $c))!)',
 ] as const;
 
 /** Check if term is an Inheritance (A --> B) */

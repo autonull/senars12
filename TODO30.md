@@ -644,6 +644,8 @@ anything.
 | §1.2 U2 — relevance ranking at read path, pure, store unchanged | ✅ landed | `relevance:measured` |
 | §2.1 T1 — product arity 0/1 reachable; folds scoped correctly | ✅ landed | `terms:canonical` |
 | §2.2 T2 — Bool atoms at term level, identities, isInvalidTaskTerm walks term | ✅ landed | `terms:no-bool-task` |
+| **§2.3 T3 — parens canonical, `<>` deprecated; `narsese:literals` gate** | ✅ **landed** | **`narsese:literals`** |
+| **§3.1 R1 — `rule-table.history` retention row in `RESOURCE_CONTRACTS`** | ✅ **landed** | **`resource:policy` (extended)** |
 
 ### Remaining Failures (T1/T2 ripple)
 
@@ -657,8 +659,13 @@ anything.
 2. ~~**Fix corpus generators** — `canonical-form.test.ts:36` and `nal7-temporal:141` need effective arity for `sequence` (binary) vs `parallel` (n-ary)~~ ✅
 3. ~~**Procedural rules** — `proceduralChaining` / `operationToPredictive` expect `input1`/`input2` as product; tests must wrap or rules must unwrap~~ ✅
 4. ~~**LOC budget** — `pnpm complexity:budget` passes; ratchet baseline in same commit (precedent: a2661c54)~~ ✅
-5. **T3 (§2.3)** — parens canonical, `<>` deprecated; mechanical sweep + gate `narsese:literals`
-6. **R1 (§3.1)** — `rule-table.history` retention row in `RESOURCE_CONTRACTS`
+5. ~~**T3 (§2.3)** — parens canonical, `<>` deprecated; mechanical sweep + gate `narsese:literals`~~ ✅
+6. ~~**R1 (§3.1)** — `rule-table.history` retention row in `RESOURCE_CONTRACTS`~~ ✅
+7. **T4 (§2.4)** — reducer admissibility rule, general test
+8. **R2 (§3.2)** — unify eviction policies (API decision)
+9. **R3 (§3.3)** — carried improvement lists from TODO29.a
+10. **§4.1–4.3** — thesis items
+11. **§5.1–5.9** — cost items (after U1+U2 measured)
 
 ### Invariant Checklist (per §7)
 
@@ -678,8 +685,8 @@ U4  (lifecycle)           ── DONE
 U1  (fabricated answer)   ── DONE
 T1  (product arity)       ── DONE
 T2  (Bool identities)     ── DONE (alone, with NAL parity re-run)
-T3  (parens)              ── after T2
-R1  (rule-table.history)  ── anytime
+T3  (parens)              ── DONE
+R1  (rule-table.history)  ── DONE
 U2  (relevance)           ── DONE (measured 1/133 at containment floor)
 U3  (candidate budget)    ── after U2
 R2/R3                     ── anytime; R2 needs API decision
@@ -699,8 +706,8 @@ U4  (lifecycle lies)          ── alone, trivial, first
 U1  (fabricated answer)       ── alone, behavioural, with U2's measurement
 T1  (product arity)           ── alone, behavioural, against the four NAL suites
 T2  (Bool identities)         ── after T1: both touch compoundOf (DONE)
-T3  (parens)                  ── mechanical; a gate lands first so the sweep is checked
-R1  (rule-table.history)      ── mechanical, and it is a predecessor's debt
+T3  (parens)                  ── DONE
+R1  (rule-table.history)      ── DONE
 U2  (relevance)               ── after U1: U1 is the read path, U2 ranks within it
 U3  (candidate budget)        ── after U2: it caps what relevance then has to rank
 R2  R3                        ── anytime; R2 needs an API decision
@@ -775,6 +782,8 @@ worth.
 | product arity is unreachable | `(a)==a` true · `()==TRUE` true · `(a,)` **PARSE FAIL** | `a2661c54` | `termKey` |
 | reference arity table | `PROD("*",1,Args.GTEZero)` · `CONJ("&&",true,5,Args.GTETwo)` · `Op.DISJ` `case 0->True; case 1->x[0]` · `Op.EmptyProduct` exists | `docs/java/Op.java:110,126,611-616,287` | read, not inferred |
 | `<>` is deprecated upstream | `COMPOUND_OPEN='('` with `@Deprecated OLD_STATEMENT_OPENER='<'` | `docs/java/Op.java:250-255` | read |
+| **T3: legacy syntax eliminated from source** | 5 legacy `<...>` literals in `meta-rules.ts` converted to `(...)`; `narsese:literals` gate passes with 13 canonical literals round-tripping, 0 legacy | this commit | `pnpm narsese:literals` |
+| **R1: rule-table.history bounded** | `RULE_TABLE_MAX_HISTORY=50` declared; `rule-table.revisions` added to `RESOURCE_CONTRACTS` with `drop-oldest` retention; `resource:policy` green | this commit | `pnpm resource:policy` |
 | **task validity is a symbol check that misses every nesting** | `(a-->TRUE)` **VALID** · `(a-->FALSE)` **VALID** · `(a-->(b\|TRUE))` **VALID** · `(--TRUE)` **VALID** · `NULL` **VALID** — while `TRUE` alone is INVALID, the one case that can never be a task | `a2661c54` | `validateTaskTerm`, §2.2's test table |
 | the cascade makes it total | `(a-->(b\|TRUE))` → `(a-->TRUE)` invalid · `(a-->(b&FALSE))` → `(a-->FALSE)` invalid · **`(a-->(b&TRUE))` → `(a-->b)` valid** · `(--TRUE)` → `FALSE` invalid | follows from §2.1's two folds | by construction, once T1 lands |
 | `maxTasks` now unbounded | pressure contributes `{concepts:1, tasks:0}` at 400 concepts / `maxConcepts:50` | this commit | `Memory.pressureBreakdown()` |
