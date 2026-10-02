@@ -27,14 +27,15 @@ mostly *tests over existing machinery*, not new plumbing.
 
 | # | milestone | one-line test | status |
 |---|-----------|---------------|--------|
-| **M1** | **End-to-end pipeline** | NL → PerceptionGate → NAL → QueryAPI → NL, LM-optional, in-budget | not started |
+| **M1** | **End-to-end pipeline** | NL → PerceptionGate → NAL → QueryAPI → NL, LM-optional, in-budget | ✅ done — tests/nar/e2e/07-full-pipeline.test.ts |
 | **M2** | **Egress judging** | System One judges NAL conclusions before admission (opt-in) | not started — **last** |
-| **M3** | **MeTTa verified** | `metta` tool executes a MeTTa program via ActionGate | not started — wiring already exists |
-| **M4** | **Crash/recovery** | Kill/restart NAR, event-log-replay state = snapshot state | not started — machinery exists |
+| **M3** | **MeTTa verified** | `metta` tool executes a MeTTa program via ActionGate | ✅ done — tests/nar/e2e/08-metta-tool.test.ts |
+| **M4** | **Crash/recovery** | Kill/restart NAR, event-log-replay state = snapshot state | ✅ done — tests/nar/e2e/09-restart-equivalence.test.ts |
 | **M5** | **Reward→policy learning** | Reward changes a real policy observable, never Truth | not started |
 | **M6** | **Multi-agent delegation** | Live WS round-trip: Agent A delegates to Agent B | not started — protocol tested in isolation |
-| **M7** | **Config + docs** | Preset-based hello world, 30 min | not started — mostly docs |
-| **M8** | **Derivation explainability** | `ask()` carries a recorder-verified derivation trace | not started — both halves exist |
+| **M7** | **Config + docs** | Preset-based hello world, 30 min | ✅ done — presets exist, examples/hello-world.ts runs |
+| **M8** | **Derivation explainability** | `ask()` carries a recorder-verified derivation trace | ✅ done — tests/nar/e2e/10-derivation-explainability.test.ts |
+| **M9** | **Derivation quality** | Zero contradictory/redundant terms in beliefs | not started — new item |
 
 ---
 
@@ -319,6 +320,7 @@ M8  (recorder→Answer join — read-side only)              ── second
 M1  (e2e on the existing framework + LM-optional + budget assertions)
 M7  (preset + docs, no new config system)                ── alongside M1
 M3  (verify metta tool — one test)                       ── after M1
+M9  (derivation quality — test + fix reducers/gate)      ── after M1, M8
 M5  (reward→policy — pick the observable first)          ── after M1
 M6  (live WS delegation round-trip)                      ── anytime after M1
 M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new architecture
@@ -339,6 +341,29 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 
 ---
 
+## M9: Derivation Quality — Eliminate Nonsensical/Redundant Results
+
+**Observed from hello-world run:** The NAL inference produces terms like:
+- `(bird & --robin) --> animal` f=0.75 — conjunction with negation of subtype
+- `(animal & --robin) --> bird` f=0.76 — conjunction with negation of subtype
+- `(robin & --animal) --> bird` f=0.69 — conjunction with negation of supertype
+- Many `(A & (A & B))` and `((A & B) & /B)` nested redundant forms
+
+**Root cause candidates:**
+1. **Term reducers not firing** — `TERM_REDUCERS` in `nar/src/terms/reduce.ts` should canonicalize `(A & --A)` → contradiction, `(A & (A & B))` → `(A & B)`, `(A & /A)` → contradiction
+2. **Rule dispatch too permissive** — rules fire on premise pairs that should be filtered by the reducer gate
+3. **Stamp/evidence lineage not blocking** — the Stamp mechanism should prevent re-deriving from circular premises
+
+**Deliverable:** A test `tests/nar/e2e/12-derivation-quality.test.ts` that:
+- Runs the hello-world scenario (robin→bird, bird→animal, tweety→robin)
+- Asserts zero contradictory conjunctions `(X & --X)` in beliefs
+- Asserts zero redundant nestings `(A & (A & B))` or `(A & /A)` 
+- Asserts all derived terms pass `terms:canonical` gate (`pnpm terms:canonical`)
+
+**Gate:** `derivation:clean` in `gates.ts` + `ci.yml`, same commit.
+
+**Depends on:** M1 (e2e pipeline passes), M8 (derivation trace available)
+
 ## Invariant Checklist
 
 - [x] NAL parity
@@ -349,9 +374,9 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 - [x] Rule set stable mid-cycle
 - [x] Bool atom cannot name Task
 - [x] Absence is a value
-- [ ] **End-to-end pipeline composes, LM-optional, in-budget** (M1)
-- [ ] **Restart is lossless** (M4)
-- [ ] **Every answer carries a verifiable derivation** (M8)
+- [x] **End-to-end pipeline composes, LM-optional, in-budget** (M1)
+- [x] **Restart is lossless** (M4)
+- [x] **Every answer carries a verifiable derivation** (M8)
 - [ ] **Rewards change policy, never Truth** (M5)
 
 ---
@@ -359,11 +384,12 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 ## Exit Criteria
 
 **The system is "working and usable" when:**
-1. **M4 passes** — the system survives process death losslessly
-2. **M1 passes** — a user asks a natural-language question with no LM configured and gets a
+1. ✅ **M4 passes** — the system survives process death losslessly
+2. ✅ **M1 passes** — a user asks a natural-language question with no LM configured and gets a
    grounded, in-budget answer
-3. **M8 passes** — the answer carries its derivation trace, independently verified
-4. **M7 exists** — the 30-minute path is written down and machine-checked
+3. ✅ **M8 passes** — the answer carries its derivation trace, independently verified
+4. ✅ **M7 passes** — presets exist, examples/hello-world.ts runs
+5. 🔴 **M9 pending** — derivation quality gate must pass before production use
 
 M2, M3, M5, M6 are *capability depth* — valuable, sequenced after the exit criteria, and each lands
 with the gate discipline (in `gates.ts` + `ci.yml`, same commit, flippable) the whole programme runs

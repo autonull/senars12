@@ -1,10 +1,12 @@
 import { createLogger } from '@senars/util';
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
-import { hasVariable, Truth, termParser, termsEqual, unify } from '../terms';
+import { hasVariable, Truth, termParser, termsEqual, unify, termKey } from '../terms';
 import { byRelevance, type RelevanceOptions } from './relevance.js';
 import type { Stamp, Task, TaskType, TermFilter, Timestamp } from '../types';
 import { createBudget, createTask, createTimestamp } from '../types';
+import type { DerivationRecord } from '@senars/core/schemas';
+import { verifyRecord } from '@senars/core/verify-derivation';
 
 const logger = createLogger({ scope: 'QueryAPI' });
 
@@ -20,6 +22,17 @@ export interface Answer {
   confidence: number;
   evidence: Task[];
   derivationPath?: string[];
+  derivation?: VerifiedDerivation;
+}
+
+export interface VerifiedDerivation {
+  record: DerivationRecord;
+  verification: {
+    ok: boolean;
+    errors: string[];
+    truthVerified: number;
+    truthSkipped: number;
+  };
 }
 
 export interface MemoryRef {

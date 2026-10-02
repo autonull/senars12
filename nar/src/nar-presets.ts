@@ -34,6 +34,8 @@ export interface SeNARSOptions {
   strategyRegistry?: CognitiveRegistry;
   // System One configuration
   systemOne?: Partial<SystemOneConfig>;
+  // MeTTa engine seam
+  metta?: import('@senars/core/metta-port').MettaPort;
 }
 
 const MINIMAL_CONFIG: CoreConfig = {
@@ -70,6 +72,7 @@ export function createNAR(options: SeNARSOptions = {}): NAR {
       : {}),
     ...(options.systemOne !== undefined ? { systemOne: options.systemOne } : {}),
     ...(options.decision !== undefined ? { decision: options.decision } : {}),
+    ...(options.metta !== undefined ? { metta: options.metta } : {}),
     lmService: options.lmService ?? createLMService(),
     providerRegistry: options.providerRegistry ?? createSeNARSRegistry(),
     eventBus: options.eventBus ?? new NarEventBus(),

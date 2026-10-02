@@ -25,6 +25,8 @@ export interface ControlBudgetPort {
   charge(scopeId: BudgetScopeId, cost?: number): boolean;
   /** Re-open every declared scope from its declared ceilings. */
   beginCycle(): void;
+  /** Get spend summary for all scopes. */
+  getSpendSummary(): Record<string, { ceiling: number; spent: number; terminationReason: string }>;
 }
 
 export type ControlBudgetOverrides = Partial<Record<BudgetScopeId, number>>;
@@ -63,5 +65,44 @@ export class ControlBudgets implements ControlBudgetPort {
 
   private reopen(scopeId: BudgetScopeId): void {
     this.gate.createScope(scopeId, scopeBudget(scopeId, this.gate.getBudget(), this.overrides));
+  }
+
+  getSpendSummary(): Record<string, { ceiling: number; spent: number; terminationReason: string }> {
+    const summary: Record<string, { ceiling: number; spent: number; terminationReason: string }> = {};
+    const mainBudget = this.gate.getBudget();
+    
+    for (const scopeId of BUDGET_SCOPE_IDS) {
+      const scopeBudget_ = this.gate.getScopeBudget(scopeId);
+      if (scopeBudget_) {
+        const spec = scopeSpec(scopeId);
+        const consumed = scopeBudget_.consumed[spec.consumedKey] ?? 0;
+        const ceiling = scopeBudget_[spec.limitKey] ?? 0;
+        summary[scopeId] = {
+          ceiling,
+          spent: consumed,
+          terminationReason: scopeBudget_.terminationReason ?? 'none',
+        };
+      }
+    }
+    
+    // Also include main budget scopes
+    const mainSpecs = [
+      { id: 'cycles', consumedKey: 'cycles' as const, limitKey: 'maxCycles' as const },
+      { id: 'depth', consumedKey: 'depth' as const, limitKey: 'maxDepth' as const },
+      { id: 'memory', consumedKey: 'memoryOps' as const, limitKey: 'maxMemoryOps' as const },
+      { id: 'llm', consumedKey: 'llmCalls' as const, limitKey: 'maxLMCalls' as const },
+    ];
+    
+    for (const s of mainSpecs) {
+      const consumed = mainBudget.consumed[s.consumedKey] ?? 0;
+      const ceiling = mainBudget[s.limitKey] ?? 0;
+      summary[s.id] = {
+        ceiling,
+        spent: consumed,
+        terminationReason: mainBudget.terminationReason ?? 'none',
+      };
+    }
+    
+    return summary;
   }
 }

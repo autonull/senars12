@@ -52,7 +52,9 @@ import { MetricsCollector } from './metrics';
 import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';
-import { QueryAPI, ReasoningTrace } from './query';
+import { QueryAPI, ReasoningTrace, type Answer } from './query';
+import type { DerivationRecord } from '@senars/core/schemas';
+import { verifyRecord } from '@senars/core/verify-derivation';
 import type { Reflex } from './reflex/Reflex.js';
 import { RLFPLearner } from './rlfp';
 import { loadBuiltinTable, RuleProcessor, RuleTableStore } from './rules';
@@ -69,6 +71,7 @@ import {
   Truth,
   type TruthType,
   termParser,
+  termKey,
   termsEqual,
 } from './terms';
 import type { Tool, ToolResult } from './tools';
@@ -171,7 +174,7 @@ export class NAR extends BaseComponent {
     });
     this.ruleTable = loadBuiltinTable();
     this.processor = new RuleProcessor(undefined, this.ruleTable.index());
-    this.processor.setConfig({ memory: this.memory, host: this, budgets: this.controlBudgets });
+    this.processor.setConfig({ memory: this.memory, host: this, budgets: this.controlBudgets, recorderEnabled: true });
     this.processor.setEventBus(eventBus);
     this.taskManager = new TaskManager(this.memory, { gateRegistry: this.gates });
     this.query = new QueryAPI(this.memory);
@@ -811,6 +814,50 @@ export class NAR extends BaseComponent {
 
   ask(question: string | Term) {
     return this.query.ask(question);
+  }
+
+  /**
+   * Ask a question and attach a verified derivation trace if available.
+   * Drains the derivation recorder, finds records matching the answer's termKey
+   * (by comparing the last step's conclusion), verifies them, and attaches
+   * the first valid one to the answer.
+   */
+  async askWithDerivation(question: string | Term): Promise<Answer> {
+    const answer = await this.query.ask(question);
+    if (!answer.answer) return answer;
+
+    const recorder = this.processor.getRecorder();
+    const records = recorder.drain();
+    if (records.length === 0) return answer;
+
+    const answerTermKey = termKey(termParser.parse(answer.answer));
+    for (const record of records) {
+      // The recorder's goalTerm is the first premise; the actual conclusion
+      // is in the last step's conclusion field.
+      const lastStep = record.steps[record.steps.length - 1];
+      if (!lastStep) continue;
+      const conclusionTermKey = termKey(termParser.parse(lastStep.conclusion));
+      if (conclusionTermKey === answerTermKey) {
+        const verification = verifyRecord(record, { strict: true, epsilon: 1e-6 });
+        if (verification.ok) {
+          return {
+            ...answer,
+            derivation: {
+              record,
+              verification: {
+                ok: verification.ok,
+                errors: verification.errors,
+                truthVerified: verification.truthVerified,
+                truthSkipped: verification.truthSkipped,
+              },
+            },
+          };
+        }
+        // If verification fails, omit the derivation (never show unverified trace)
+        return answer;
+      }
+    }
+    return answer;
   }
 
   getDerivationHistory(task: Task) {

@@ -8,6 +8,7 @@ import { errorResult } from '../types';
   name: 'explain',
   description: 'Generate human-readable explanation for a belief or derivation',
   capabilities: { pure: false, readOnly: true },
+  dependencies: ['memory'],
 })
 export class ExplainTool implements Tool {
   readonly name = 'explain';
@@ -63,6 +64,17 @@ export class ExplainTool implements Tool {
   }
 
   private findConcept(termStr: string): Concept | undefined {
+    try {
+      const parsed = termParser.parse(termStr);
+      if (parsed) {
+        // Search by canonical term string
+        const canonicalStr = parsed.toString();
+        const concepts = this.memory.findConcepts(canonicalStr, 1);
+        return concepts[0];
+      }
+    } catch {
+      // Fall back to string search if parsing fails
+    }
     const concepts = this.memory.findConcepts(termStr, 1);
     return concepts[0];
   }
