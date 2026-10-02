@@ -21,7 +21,8 @@
  *   genuinely new (TODO30 measures what they should be).
  */
 
-import type { BudgetOperation, ReasoningBudget, TerminationReason } from '@senars/core/schemas';
+import type { BudgetOperation, ReasoningBudget, TerminationReason, BudgetScopeId } from '@senars/core/schemas';
+import { BUDGET_SCOPE_IDS } from '@senars/core/schemas';
 
 /** One budget dimension, spelled the way `ReasoningBudget` spells it. */
 export type BudgetDimension = keyof ReasoningBudget['consumed'];
@@ -29,15 +30,7 @@ export type BudgetDimension = keyof ReasoningBudget['consumed'];
 export type BudgetLimitKey = 'maxCycles' | 'maxDepth' | 'maxMemoryOps' | 'maxLMCalls';
 
 /** The five bounds §5.7 names. The order is the plan's. */
-export const BUDGET_SCOPE_IDS = [
-  'derivations',
-  'premises',
-  'proposal-application',
-  'control-work',
-  'decision-derivations',
-] as const;
-
-export type BudgetScopeId = (typeof BUDGET_SCOPE_IDS)[number];
+export { BUDGET_SCOPE_IDS, type BudgetScopeId } from '@senars/core/schemas';
 
 export interface BudgetScopeSpec {
   readonly operation: BudgetOperation;

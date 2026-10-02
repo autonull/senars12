@@ -646,6 +646,8 @@ anything.
 | §2.2 T2 — Bool atoms at term level, identities, isInvalidTaskTerm walks term | ✅ landed | `terms:no-bool-task` |
 | **§2.3 T3 — parens canonical, `<>` deprecated; `narsese:literals` gate** | ✅ **landed** | **`narsese:literals`** |
 | **§3.1 R1 — `rule-table.history` retention row in `RESOURCE_CONTRACTS`** | ✅ **landed** | **`resource:policy` (extended)** |
+| **§2.4 T4 — reducer admissibility rule, general test** | ✅ **landed** | **`terms:canonical` (extended)** |
+| **§3.3 R3 (A7) — `BudgetGateInput.scopeId` now uses `BudgetScopeId` union** | ✅ **landed** | **`control-budgets`** |
 
 ### Remaining Failures (T1/T2 ripple)
 
@@ -661,9 +663,9 @@ anything.
 4. ~~**LOC budget** — `pnpm complexity:budget` passes; ratchet baseline in same commit (precedent: a2661c54)~~ ✅
 5. ~~**T3 (§2.3)** — parens canonical, `<>` deprecated; mechanical sweep + gate `narsese:literals`~~ ✅
 6. ~~**R1 (§3.1)** — `rule-table.history` retention row in `RESOURCE_CONTRACTS`~~ ✅
-7. **T4 (§2.4)** — reducer admissibility rule, general test
+7. ~~**T4 (§2.4)** — reducer admissibility rule, general test~~ ✅
 8. **R2 (§3.2)** — unify eviction policies (API decision)
-9. **R3 (§3.3)** — carried improvement lists from TODO29.a
+9. **R3 (§3.3)** — remaining carried improvement lists from TODO29.a
 10. **§4.1–4.3** — thesis items
 11. **§5.1–5.9** — cost items (after U1+U2 measured)
 

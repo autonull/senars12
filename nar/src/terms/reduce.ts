@@ -10,9 +10,17 @@ import { compoundOf, isBoolAtom, atomOf } from './impls/intern.js';
  * single pass and allocates nothing; and reducers commute, which the fixed point
  * below is what tests. A reducer that cannot see its own effect from a canonical
  * term does not terminate.
+ *
+ * **Admissibility (TODO30 §2.4):** a reducer may fire only when the two terms are
+ * the **same claim** — same readback (serialised form), same injectivity class
+ * (`termKey`), and for Boolean laws, an exact structural identity rather than a
+ * truth-function coincidence. A reducer that fires "usually" is a heuristic in a
+ * place the architecture promised it would not be one.
  */
 export interface TermReducer {
   readonly id: string;
+  /** Human-readable justification citing the NAL identity or reference rule. */
+  readonly justification: string;
   applies(term: Term): boolean;
   reduce(term: Term): Term;
 }
@@ -37,6 +45,7 @@ const distinct = (args: readonly Term[]): Term[] =>
 
 const flattenNested: TermReducer = {
   id: 'flatten-nested',
+  justification: 'Nested conjunction/disjunction/parallel/product is structurally identical to flat form (associativity); Op.java DISJ/CONJ/PROD n-ary definitions',
   applies: (term) => FLATTENED.has(term.kind) && argsOf(term).some((arg) => arg.kind === term.kind),
   reduce: (term) =>
     compoundOf(
@@ -47,13 +56,14 @@ const flattenNested: TermReducer = {
 
 const dedupeArgs: TermReducer = {
   id: 'dedupe-args',
-  // `compoundOf` folds the single-distinct-member case into the member itself.
+  justification: 'Duplicate arguments in commutative n-ary kinds do not change the claim (idempotence); Op.java CONJ/DISJ/PAR semantics',
   applies: (term) => DEDUPED.has(term.kind) && distinct(argsOf(term)).length !== argsOf(term).length,
   reduce: (term) => compoundOf(kindOf(term), distinct(argsOf(term))),
 };
 
 const doubleNegation: TermReducer = {
   id: 'double-negation',
+  justification: '--(--x) ≡ x (double negation elimination); NAL negation semantics, symmetric with negate-true/negate-false',
   applies: (term) => term.kind === 'negation' && argsOf(term)[0]?.kind === 'negation',
   reduce: (term) => argsOf(argsOf(term)[0] as Term)[0] as Term,
 };
@@ -61,6 +71,7 @@ const doubleNegation: TermReducer = {
 /** `--TRUE = FALSE` — symmetric with double-negation. */
 const negateTrue: TermReducer = {
   id: 'negate-true',
+  justification: '--TRUE = FALSE (negation of truth constant); Op.java Bool atom semantics, NOT operator on TRUE',
   applies: (term) =>
     term.kind === 'negation' && argsOf(term)[0]?.kind === 'atom' && argsOf(term)[0]!.symbol === 'TRUE',
   reduce: (term) => atomOf('FALSE'),
@@ -69,6 +80,7 @@ const negateTrue: TermReducer = {
 /** `--FALSE = TRUE` */
 const negateFalse: TermReducer = {
   id: 'negate-false',
+  justification: '--FALSE = TRUE (negation of false constant); Op.java Bool atom semantics, NOT operator on FALSE',
   applies: (term) =>
     term.kind === 'negation' && argsOf(term)[0]?.kind === 'atom' && argsOf(term)[0]!.symbol === 'FALSE',
   reduce: (term) => atomOf('TRUE'),
@@ -77,6 +89,7 @@ const negateFalse: TermReducer = {
 /** `a & TRUE = a` — TRUE is the identity for conjunction. */
 const conjunctionTrue: TermReducer = {
   id: 'conjunction-true',
+  justification: 'a & TRUE = a (TRUE is conjunction identity); Op.java CONJ Args.GTETwo with TRUE absorption',
   applies: (term) =>
     term.kind === 'conjunction' &&
     argsOf(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'TRUE'),
@@ -90,6 +103,7 @@ const conjunctionTrue: TermReducer = {
 /** `a & FALSE = FALSE` — FALSE absorbs conjunction. */
 const conjunctionFalse: TermReducer = {
   id: 'conjunction-false',
+  justification: 'a & FALSE = FALSE (FALSE absorbs conjunction); Op.java CONJ Args.GTETwo with FALSE absorption',
   applies: (term) =>
     term.kind === 'conjunction' &&
     argsOf(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'FALSE'),
@@ -99,6 +113,7 @@ const conjunctionFalse: TermReducer = {
 /** `a | TRUE = TRUE` — TRUE absorbs disjunction. */
 const disjunctionTrue: TermReducer = {
   id: 'disjunction-true',
+  justification: 'a | TRUE = TRUE (TRUE absorbs disjunction); Op.java DISJ case 0->True with TRUE absorption',
   applies: (term) =>
     term.kind === 'disjunction' &&
     argsOf(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'TRUE'),
@@ -108,6 +123,7 @@ const disjunctionTrue: TermReducer = {
 /** `a | FALSE = a` — FALSE is the identity for disjunction. */
 const disjunctionFalse: TermReducer = {
   id: 'disjunction-false',
+  justification: 'a | FALSE = a (FALSE is disjunction identity); Op.java DISJ case 1->x[0] with FALSE absorption',
   applies: (term) =>
     term.kind === 'disjunction' &&
     argsOf(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'FALSE'),

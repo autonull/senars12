@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { TaskAdmittedEventSchema } from './cognitive-events.js';
 import { RewardDomainSchema } from './governance.js';
-import { ReasoningBudgetSchema, TerminationReasonSchema } from './reasoning-budget.js';
+import { ReasoningBudgetSchema, TerminationReasonSchema, BUDGET_SCOPE_IDS } from './reasoning-budget.js';
 import { SourceQualitySchema } from './truth.js';
 
 export const PerceptionGateInputSchema = z.object({
@@ -89,7 +89,7 @@ export const BudgetGateInputSchema = z.object({
   budget: ReasoningBudgetSchema.optional(),
   operation: BudgetOperationSchema,
   estimatedCost: z.number().int().positive().optional(),
-  scopeId: z.string().optional(),
+  scopeId: z.union([z.enum(BUDGET_SCOPE_IDS), z.string()]).optional(),
   correlationId: z.string().optional(),
 });
 

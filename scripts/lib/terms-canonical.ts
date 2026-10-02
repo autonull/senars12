@@ -225,6 +225,65 @@ export const canonicalFormFailures = (): string[] => {
         failures.push(`term reducer '${reducer.id}' still applies to canonical ${serializeTerm(term)}`);
   }
 
+  /**
+   * Reducer admissibility (TODO30 §2.4). A reducer may fire only when the two terms
+   * are the **same claim** — same readback (serialised form), same injectivity class
+   * (`termKey`). A reducer that changes the claim is a heuristic, not a NAL rewrite.
+   * The corpus covers every kind at the arities it can hold, so a new reducer or
+   * kind is covered by construction.
+   */
+  const admissibilityCorpus: Term[] = [];
+  for (const [kind] of Object.entries(OPERATORS) as [OperatorKey, typeof OPERATORS[OperatorKey]][]) {
+    const declared = effectiveDeclared(kind);
+    const nary = isNary(kind);
+    for (const n of nary ? [2, 3, 4] : [declared]) {
+      const operands = members.slice(0, n);
+      admissibilityCorpus.push(TermBuilder.compound(kind, operands));
+      if (nary)
+        admissibilityCorpus.push(
+          TermBuilder.compound(kind, operands.map((m) => TermBuilder.compound(kind, [a, m])))
+        );
+    }
+  }
+  // Also test terms that reducers actually apply to (non-canonical forms)
+  for (const text of [
+    '(a&b&b)',       // dedupe-args
+    '(&,a,(&,b,c))', // flatten-nested
+    '(--(--a))',     // double-negation
+    '(--TRUE)',      // negate-true
+    '(--FALSE)',     // negate-false
+    '(a&TRUE)',      // conjunction-true
+    '(a&FALSE)',     // conjunction-false
+    '(a|TRUE)',      // disjunction-true
+    '(a|FALSE)',     // disjunction-false
+  ]) {
+    try {
+      admissibilityCorpus.push(termParser.parse(text) as Term);
+    } catch {
+      // ignore parse failures
+    }
+  }
+
+  for (const term of admissibilityCorpus) {
+    for (const reducer of TERM_REDUCERS) {
+      if (reducer.applies(term)) {
+        const reduced = reducer.reduce(term);
+        const originalText = serializeTerm(term);
+        const reducedText = serializeTerm(reduced);
+        if (originalText !== reducedText) {
+          failures.push(
+            `reducer '${reducer.id}' changes readback: ${originalText} → ${reducedText} (justification: ${reducer.justification})`
+          );
+        }
+        if (termKey(term) !== termKey(reduced)) {
+          failures.push(
+            `reducer '${reducer.id}' changes termKey: ${termKey(term)} → ${termKey(reduced)} (justification: ${reducer.justification})`
+          );
+        }
+      }
+    }
+  }
+
   // The negation rule is a function over the whole range, not two endpoints: a claim
   // and its negated spelling are one claim, confidence and stamp carried through.
   const stamp = Stamp.createInput();

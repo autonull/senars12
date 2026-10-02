@@ -141,7 +141,8 @@ export {
   RuleTableSchema,
   validateRuleTable,
 } from './rule-table.js';
-export type { ReasoningBudget, TerminationReason } from './reasoning-budget.js';
+export type { ReasoningBudget, TerminationReason, BudgetScopeId } from './reasoning-budget.js';
+export { BUDGET_SCOPE_IDS } from './reasoning-budget.js';
 export {
   ReasoningBudgetSchema,
   TerminationReasonSchema,

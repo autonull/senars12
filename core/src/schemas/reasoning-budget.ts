@@ -10,6 +10,17 @@
 import { parseOrThrow } from '@senars/util';
 import { z } from 'zod';
 
+/** The five declared budget scopes (TODO29.a §5.7). */
+export const BUDGET_SCOPE_IDS = [
+  'derivations',
+  'premises',
+  'proposal-application',
+  'control-work',
+  'decision-derivations',
+] as const;
+
+export type BudgetScopeId = (typeof BUDGET_SCOPE_IDS)[number];
+
 export const TerminationReasonSchema = z.enum([
   'cycle-budget',
   'depth-budget',
