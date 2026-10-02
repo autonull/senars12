@@ -17,6 +17,8 @@ import { seedContrastiveMemory } from '../lm/system-one/hard-negatives.js';
 import { createSystemOneLMRuleAdapter } from '../lm/system-one/rule-adapter.js';
 import type { ProofMettaProposer } from '../meta/index.js';
 import type { NAR } from '../nar.js';
+import type { Answer } from '../query/api';
+import { selectVerifiedDerivation } from '../query/derivation.js';
 import { containsSubterm, getSubject, type Term, Truth, termParser, termsEqual } from '../terms';
 import type { Tool } from '../tools';
 import { discoverTools } from '../tools';
@@ -272,6 +274,20 @@ const adoptLearnedMettaRules = async (nar: NAR, proposer: ProofMettaProposer): P
   });
   logger.debug('Metta rule adoption resolved', { applied: decision.applied, mode });
   if (decision.applied) for (const rule of rules) proposer.recordApplication(rule.id);
+};
+
+/**
+ * TODO32 M8: answer the question, then attach the derivation the recorder
+ * captured for that exact conclusion — verified, or not attached at all.
+ */
+export const askWithDerivation = async (nar: NAR, question: string): Promise<Answer> => {
+  const answer = await nar.query.ask(question);
+  if (!answer.answer) return answer;
+  const derivation = selectVerifiedDerivation(
+    nar.getProcessor().getRecorder().drain(),
+    answer.answer
+  );
+  return derivation ? { ...answer, derivation } : answer;
 };
 
 export const askNaturalLanguage = async (nar: NAR, question: string): Promise<string> => {

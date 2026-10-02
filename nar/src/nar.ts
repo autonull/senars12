@@ -13,6 +13,7 @@ import { type NARConfig, validateNarConfig } from './facade/config.js';
 import { type GameAttachOptions, GameManager } from './facade/games.js';
 import {
   askNaturalLanguage,
+  askWithDerivation,
   consolidateLearning,
   contradicts,
   getModelWithFallback,
@@ -21,6 +22,7 @@ import {
   injectBootstrapGoals,
 } from './facade/index.js';
 import { StatePersister } from './facade/persistence.js';
+import { createOptionalSubsystems } from './facade/optional-subsystems.js';
 import type { SystemOneRuntime } from './facade/system-one.js';
 import type { FocusBag } from './focus/FocusBag.js';
 import type { GameFocus, GameFocusOptions, ReflexBindable } from './focus/GameFocus.js';
@@ -36,7 +38,7 @@ import type { LMService, SeNARSRegistry } from './lm';
 import { LMRules } from './lm';
 import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
 import { embeddingRuntime } from './lm/embedding-runtime.js';
-import { MiningBag, seedContrastiveMemory } from './lm/system-one/hard-negatives.js';
+import type { MiningBag } from './lm/system-one/hard-negatives.js';
 import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
 import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
 import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-grader.js';
@@ -44,8 +46,8 @@ import type { CognitiveDispatcher, JudgmentManifold } from './lm/system-one/type
 import type { Concept } from './memory';
 import { Memory } from './memory';
 import { createEmbeddingGenerator, type EmbeddingGenerator } from './memory/embedding.js';
-import { EpisodeConsolidator } from './memory/episode-consolidator.js';
-import { ProofMettaProposer, type ProofMettaProposerOptions } from './meta/index.js';
+import type { EpisodeConsolidator } from './memory/episode-consolidator.js';
+import type { ProofMettaProposer } from './meta/index.js';
 import { PROPOSAL_LOG_CAPACITY } from './proposal/lifecycle.js';
 import { LMProposalProducer } from './proposal/lm-rule-producer.js';
 import { MetricsCollector } from './metrics';
@@ -54,9 +56,8 @@ import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';
 import { QueryAPI, ReasoningTrace, type Answer } from './query';
 import type { DerivationRecord } from '@senars/core/schemas';
-import { verifyRecord } from '@senars/core/verify-derivation';
 import type { Reflex } from './reflex/Reflex.js';
-import { RLFPLearner } from './rlfp';
+import type { RLFPLearner } from './rlfp';
 import { loadBuiltinTable, RuleProcessor, RuleTableStore } from './rules';
 import { ProofStreamRing } from './rules/impls/recorder.js';
 import { ReasoningAboutReasoning } from './self';
@@ -70,8 +71,6 @@ import {
   getSubject,
   Truth,
   type TruthType,
-  termParser,
-  termKey,
   termsEqual,
 } from './terms';
 import type { Tool, ToolResult } from './tools';
@@ -187,39 +186,11 @@ export class NAR extends BaseComponent {
     this._lmService = this.config.lmService;
     this._registry = this.config.providerRegistry;
 
-    if (this.config.enableRLFP)
-      this.rlfp = new RLFPLearner({
-        optimizeInterval: this.config.rlfp?.optimizeInterval,
-        rng: config.rng,
-      });
-
-    if (this.config.episodeConsolidation?.enabled) {
-      const cfg = this.config.episodeConsolidation;
-      this.#episodeConsolidator = new EpisodeConsolidator({
-        capacity: cfg.capacity,
-        budget: cfg.budget,
-        rng: config.rng,
-      });
-    }
-
-    if (this.config.hardNegativeMining?.bounded) {
-      const cfg = this.config.hardNegativeMining;
-      this.#miningBag = new MiningBag({
-        capacity: cfg.capacity,
-        budget: cfg.budget,
-        marginFloor: cfg.marginFloor,
-        rng: config.rng,
-      });
-    }
-
-    if (this.config.proofMettaProposer?.enabled) {
-      const cfg = this.config.proofMettaProposer;
-      this.#proofMettaProposer = new ProofMettaProposer({
-        maxRules: cfg.maxRules,
-        minConfidence: cfg.minConfidence,
-        patternMinSupport: cfg.patternMinSupport,
-      });
-    }
+    const optional = createOptionalSubsystems(this.config, config.rng);
+    this.rlfp = optional.rlfp;
+    this.#episodeConsolidator = optional.episodeConsolidator;
+    this.#miningBag = optional.miningBag;
+    this.#proofMettaProposer = optional.proofMettaProposer;
 
     this.cognitiveController = new CognitiveController(
       registry,
@@ -827,48 +798,9 @@ export class NAR extends BaseComponent {
     return this.query.ask(question);
   }
 
-  /**
-   * Ask a question and attach a verified derivation trace if available.
-   * Drains the derivation recorder, finds records matching the answer's termKey
-   * (by comparing the last step's conclusion), verifies them, and attaches
-   * the first valid one to the answer.
-   */
+  /** Ask a question and attach a verified derivation trace when one exists (M8). */
   async askWithDerivation(question: string | Term): Promise<Answer> {
-    const answer = await this.query.ask(question);
-    if (!answer.answer) return answer;
-
-    const recorder = this.processor.getRecorder();
-    const records = recorder.drain();
-    if (records.length === 0) return answer;
-
-    const answerTermKey = termKey(termParser.parse(answer.answer));
-    for (const record of records) {
-      // The recorder's goalTerm is the first premise; the actual conclusion
-      // is in the last step's conclusion field.
-      const lastStep = record.steps[record.steps.length - 1];
-      if (!lastStep) continue;
-      const conclusionTermKey = termKey(termParser.parse(lastStep.conclusion));
-      if (conclusionTermKey === answerTermKey) {
-        const verification = verifyRecord(record, { strict: true, epsilon: 1e-6 });
-        if (verification.ok) {
-          return {
-            ...answer,
-            derivation: {
-              record,
-              verification: {
-                ok: verification.ok,
-                errors: verification.errors,
-                truthVerified: verification.truthVerified,
-                truthSkipped: verification.truthSkipped,
-              },
-            },
-          };
-        }
-        // If verification fails, omit the derivation (never show unverified trace)
-        return answer;
-      }
-    }
-    return answer;
+    return askWithDerivation(this, question as string);
   }
 
   getDerivationHistory(task: Task) {
