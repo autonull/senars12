@@ -35,7 +35,7 @@ mostly *tests over existing machinery*, not new plumbing.
 | **M6** | **Multi-agent delegation** | Live WS round-trip: Agent A delegates to Agent B | not started — protocol tested in isolation |
 | **M7** | **Config + docs** | Preset-based hello world, 30 min | ✅ done — presets exist, examples/hello-world.ts runs |
 | **M8** | **Derivation explainability** | `ask()` carries a recorder-verified derivation trace | ✅ done — tests/nar/e2e/10-derivation-explainability.test.ts |
-| **M9** | **Derivation quality** | Zero contradictory/redundant terms in beliefs | 🟡 in progress — tests/nar/e2e/12-derivation-quality.test.ts created; reducers for contradiction/tautology/flatten/dedupe added to TERM_REDUCERS; recursive canonicalization implemented; deep nested checks in compound conclusions need further work |
+| **M9** | **Derivation quality** | Zero contradictory/redundant terms in beliefs | ✅ done — tests/nar/e2e/12-derivation-quality.test.ts passes |
 
 ---
 
@@ -360,7 +360,15 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 - ✅ Added `disjunctionTautology` reducer (`a | --a = TRUE`)
 - ✅ Implemented recursive `canonicalTerm` that canonicalizes subterms before applying top-level reducers
 - ✅ `pnpm terms:canonical` passes (11 term reducers)
-- 🟡 Test passes but deep nested conjunctions inside inheritance conclusions (e.g., `(bird-->(animal&(animal&/tweety)))`) not yet reduced — need to ensure `canonicalizeRecursive` is called on all construction paths including rule builders
+- ✅ Deep nested conjunctions inside inheritance conclusions now reduced via `canonicalizeRecursive` called at all construction paths (TermBuilder factory, rule builders)
+- ✅ Test passes: zero contradictory conjunctions, zero redundant nestings, zero self-negating conjunctions, zero complex redundant forms
+
+**Deliverable:** A test `tests/nar/e2e/12-derivation-quality.test.ts` that:
+- Runs the hello-world scenario (robin→bird, bird→animal, tweety→robin)
+- Asserts zero contradictory conjunctions `(X & --X)` in beliefs (reduction gate)
+- Asserts zero redundant nestings `(A & (A & B))` or `(A & /A)` (normalization at construction)
+- Asserts zero derivations with overlapping evidence lineage (Stamp non-overlap)
+- Asserts all derived terms pass `terms:canonical` gate (`pnpm terms:canonical`)
 
 **Deliverable:** A test `tests/nar/e2e/12-derivation-quality.test.ts` that:
 - Runs the hello-world scenario (robin→bird, bird→animal, tweety→robin)
@@ -403,7 +411,7 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
    grounded, in-budget answer
 3. ✅ **M8 passes** — the answer carries its derivation trace, independently verified
 4. ✅ **M7 passes** — presets exist, examples/hello-world.ts runs
-5. 🟡 **M9 in progress** — derivation quality test created, reducers added, recursive canonicalization implemented; deep nested checks in compound conclusions need further work before gate can pass
+5. ✅ **M9 passes** — derivation quality test passes, no contradictory/redundant terms in beliefs
 
 M2, M3, M5, M6 are *capability depth* — valuable, sequenced after the exit criteria, and each lands
 with the gate discipline (in `gates.ts` + `ci.yml`, same commit, flippable) the whole programme runs

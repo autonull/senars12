@@ -15,6 +15,7 @@ export const toRuleInput = (task: Task): RuleInput => ({
   term: task.term,
   truth: task.truth,
   stamp: task.stamp,
+  occurrenceTime: task.occurrenceTime,
 });
 
 /**

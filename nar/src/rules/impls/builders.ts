@@ -88,7 +88,12 @@ export const conversionRule = (wrap: (t: Term) => Term) =>
   });
 
 export const buildSequenceRule = (builder: (p1: Term, p2: Term) => Term) =>
-  buildBinaryInhRule(sameSubject, (inh1, inh2) => {
+  buildBinaryInhRule(sameSubject, (inh1, inh2, inputs?: [RuleInput, RuleInput]) => {
+    // Check temporal ordering: p1 must occur before p2 for sequence
+    if (inputs) {
+      const [p1, p2] = inputs;
+      if (p1.occurrenceTime >= p2.occurrenceTime) return undefined;
+    }
     const s = getSubject(inh1);
     const p1 = getPredicate(inh1),
       p2 = getPredicate(inh2);

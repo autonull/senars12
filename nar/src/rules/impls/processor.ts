@@ -273,7 +273,7 @@ export class RuleProcessor {
       }
 
       try {
-        const result = rule.apply([p1.term, p2.term]);
+        const result = rule.apply([p1.term, p2.term], [p1, p2]);
         if (!result) continue;
         if (!validateRuleOutput(result, [p1.term, p2.term])) {
           this.eventBus?.emit('rule:output-rejected', { ruleId: rule.id, term: result.toString() });

@@ -2,10 +2,13 @@ import type { ModelRuleStats } from '@senars/util';
 import type { NarEventBus, Task } from '../types';
 import type { StampType, Term, Truth } from '../terms';
 
+import { type Timestamp } from '../types/primitives.js';
+
 export interface RuleInput {
   term: Term;
   truth: Truth;
   stamp: StampType;
+  occurrenceTime: Timestamp;
 }
 
 export interface RuleResult {
@@ -96,7 +99,14 @@ export interface InferenceTable {
   clear(): void;
 }
 
-export type RuleFn = (premises: [Term, Term]) => Term | undefined;
+/**
+ * A rule function that can optionally receive RuleInputs for temporal reasoning.
+ * The second parameter is provided by the processor when available (for temporal rules).
+ */
+export type RuleFn = (
+  premises: [Term, Term],
+  inputs?: [RuleInput, RuleInput]
+) => Term | undefined;
 
 export interface RegisteredRule {
   id: string;

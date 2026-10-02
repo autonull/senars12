@@ -337,14 +337,15 @@ const NAL_EXTENDED_RULES: RuleDef[] = [
     truth: 'induction',
     priority: 0.75,
   }),
+  /* DISABLED: temporal rules (sequence/parallel introduction, predictive implication, temporal deduction)
   _rule('nal.sequenceIntroduction', 'Sequence introduction', {
-    pattern: ['inheritance', 'inheritance'],
+    pattern: ['*', '*'],
     body: 'nal.extended:sequenceIntroduction',
     truth: 'deduction',
     priority: 0.75,
   }),
   _rule('nal.parallelIntroduction', 'Parallel introduction', {
-    pattern: ['inheritance', 'inheritance'],
+    pattern: ['*', '*'],
     body: 'nal.extended:parallelIntroduction',
     truth: 'deduction',
     priority: 0.7,
@@ -361,6 +362,7 @@ const NAL_EXTENDED_RULES: RuleDef[] = [
     truth: 'deduction',
     priority: 0.85,
   }),
+*/
   _rule('nal.proceduralDecomposition', 'Procedural decomposition', {
     pattern: ['sequence', 'operation'],
     body: 'nal.extended:proceduralDecomposition',
