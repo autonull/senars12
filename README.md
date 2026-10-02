@@ -356,14 +356,12 @@ const projected = Truth.deduction(truth1, truth2); // Inference
 | `disjunction:disjunction` | 1 | `nal.union` (union) |
 | `implication:implication` | 8 | `nal.equivalenceIntro` (intersection), `nal.negationIntro` (deduction), `nal.higherOrderDeduction` (deduction), `nal.higherOrderAbduction` (abduction), `nal.higherOrderInduction` (induction), `nal.contrapositionRule` (contraposition), `nal.implicationDeduction` (deduction), `nal.equivalence` (intersection) |
 | `implication:inheritance` | 1 | `nal.contrapositive` (contraposition) |
-| `inheritance:inheritance` | 21 | `nal.deduction` (deduction), `nal.induction` (induction), `nal.abduction` (abduction), `nal.similarity` (resemblance), `nal.conjunctionIntro` (intersection), `nal.comparison` (sameness), `nal.exemplification` (exemplification), `nal.conversion` (conversion), `nal.extended.analogy` (analogy), `nal.extended.comparison` (resemblance), `nal.structuralReduction` (structuralReduction), `nal.intersectionComposition` (intersection), `nal.unionComposition` (union), `nal.difference` (deduction), `nal.variableIntroduction` (deduction), `nal.variableDependency` (deduction), `nal.sameness` (sameness), `nal.revisionWeak` (revision), `nal.extended.exemplification` (exemplification), `nal.sequenceIntroduction` (deduction), `nal.parallelIntroduction` (deduction) |
+| `inheritance:inheritance` | 12 | `nal.deduction` (deduction), `nal.induction` (induction), `nal.abduction` (abduction), `nal.similarity` (resemblance), `nal.exemplification` (exemplification), `nal.extended.analogy` (analogy), `nal.extended.comparison` (resemblance), `nal.variableIntroduction` (deduction), `nal.variableDependency` (deduction), `nal.sameness` (sameness), `nal.revisionWeak` (revision), `nal.extended.exemplification` (exemplification) |
 | `inheritance:similarity` | 2 | `nal.analogy` (analogy), `nal.instantiation` (deduction) |
 | `disjunction:negation` | 1 | `nal.disjunctiveSyllogism` (deduction) |
 | `implication:negation` | 1 | `nal.modusTollens` (contraposition) |
 | `inheritance:negation` | 1 | `nal.implicationIntro` (deduction) |
-| `sequence:inheritance` | 1 | `nal.predictiveImplication` (deduction) |
 | `operation:operation` | 1 | `nal.proceduralChaining` (deduction) |
-| `predictive:sequence` | 1 | `nal.temporalDeduction` (deduction) |
 | `inheritance:setExt` | 2 | `nal.instanceConversion` (conversion), `nal.instanceDeduction` (deduction) |
 | `inheritance:setInt` | 2 | `nal.propertyConversion` (conversion), `nal.propertyInduction` (induction) |
 | `operation:sequence` | 1 | `nal.operationToPredictive` (deduction) |
@@ -374,7 +372,7 @@ const projected = Truth.deduction(truth1, truth2); // Inference
 | `implication:atom` | 2 | `nal.implicationElim` (deduction), `nal.modusPonens` (deduction) |
 | `atom:atom` | 1 | `nal.disjunctionIntro` (union) |
 
-_55 declarations in 22 cells, loaded at revision 0 with `artifactVersion` `builtin/1`. Every cell is an exact kind pair: a rule declares both kinds or it does not register, and `pnpm dispatch:no-wildcard` is the gate._
+_44 declarations in 20 cells, loaded at revision 0 with `artifactVersion` `builtin/1`. Every cell is an exact kind pair: a rule declares both kinds or it does not register, and `pnpm dispatch:no-wildcard` is the gate._
 
 <!-- rule-matrix:end -->
 

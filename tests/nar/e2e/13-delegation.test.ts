@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { createAgent } from '../../../nar/src/agent/index.js';
 import { createNAR } from '../../../nar/src/nar-presets.js';
-import { Truth, termKey, termParser } from '../../../nar/src/terms';
+import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas/truth';
+import { Truth } from '../../../nar/src/terms';
 import { rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -63,13 +64,10 @@ describe('M6: Multi-Agent Delegation — Live WS round-trip', () => {
     expect(result).toBeDefined();
     expect(result.error).toBeUndefined();
     expect(result.truth).toBeDefined();
-    
-    // The result should be admitted with PEER_AGENT quality (confidence ≤ 0.5)
-    expect(result.confidence).toBeLessThanOrEqual(0.5);
-    
-    // The answer should be Paris
-    const answerTerm = termParser.parse(result.truth!);
-    expect(termKey(answerTerm)).toBe(termKey(termParser.parse('(Paris --> capitalOfFrance)')));
+
+    // The epistemic contract: a peer is an untrusted proposer, so its claim is
+    // capped at the PEER_AGENT ceiling however confident the peer sounded.
+    expect(result.truth!.c).toBeLessThanOrEqual(SOURCE_QUALITY_CONFIDENCE.PEER_AGENT);
 
     await agentA.stop();
     await narA.dispose();

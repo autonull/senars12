@@ -110,7 +110,7 @@ describe('U2 — the read path does not change what is committed', () => {
     // The measurement §1.2 asks for, asserted rather than eyeballed.
     //
     // The *total* is deliberately not pinned: it is a consequence of the rule
-    // table and `maxAdmissions`, so 55 declarations derive 139 beliefs here and
+    // table and `maxAdmissions`, so the shipped table's derivation count moves when
     // 51 derive 91 — a ratchet on it fails for reasons unrelated to relevance.
     // `relevance:measured` holds the same floor rather than the exact count.
     // What §1.2 asks for is the narrowing, and that is what is asserted.

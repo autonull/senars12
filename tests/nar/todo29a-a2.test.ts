@@ -158,7 +158,7 @@ describe(A2_TABLE, () => {
   });
 
   it('the table is a committed count, so a rule cannot arrive unnoticed', () => {
-    expect(declared).toHaveLength(55);
+    expect(declared).toHaveLength(44);
   });
 
   it('every rule declares a truth function, a priority and a resolvable body — a rule that derives nothing is a comment', () => {
@@ -170,7 +170,7 @@ describe(A2_TABLE, () => {
   });
 
   it('importing the rule modules registers nothing — the table is loaded, not imported', () => {
-    expect(declared.length).toBe(55);
+    expect(declared.length).toBe(44);
     // A store built with no artifact is the empty table, not the shipped one.
     expect(RuleTableStore.empty(RULE_BODIES).entries()).toEqual([]);
   });

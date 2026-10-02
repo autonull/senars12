@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { BUILTIN_DECLARATIONS, RULE_BODIES } from '../../nar/src/rules';
+import { BUILTIN_DECLARATIONS, DISABLED_RULES, NAL_EXTENDED_RULES, RULE_BODIES } from '../../nar/src/rules';
+
+const bodyOfDisabled = (ruleId: string): string | undefined =>
+  NAL_EXTENDED_RULES.find((rule) => rule.id === ruleId)?.body;
 
 describe('Extended NAL Rules — declared, not registered', () => {
   it('should declare all extended rules with resolvable truth functions', () => {
-    const extendedRuleIds = [
+    // Every rule body still resolves — including for rules that are declared but
+    // not shipped, because a disabled rule with a broken body is a trap for
+    // whoever re-enables it. Shipping is asserted separately.
+    const ruleIds = [
       'nal.structuralInheritance',
       'nal.structuralReduction',
       'nal.intersectionComposition',
@@ -20,10 +26,16 @@ describe('Extended NAL Rules — declared, not registered', () => {
     ];
 
     const declared = new Map(BUILTIN_DECLARATIONS.map((rule) => [rule.ruleId, rule]));
-    for (const ruleId of extendedRuleIds) {
-      const rule = declared.get(ruleId);
-      expect(rule, ruleId).toBeDefined();
-      expect(RULE_BODIES[rule!.body], `${ruleId} body ${rule!.body}`).toBeTypeOf('function');
+    for (const ruleId of ruleIds) {
+      const body = declared.get(ruleId)?.body ?? bodyOfDisabled(ruleId);
+      if (!body) throw new Error(`${ruleId} declares no body`);
+      expect(RULE_BODIES[body], `${ruleId} body ${body}`).toBeTypeOf('function');
+    }
+
+    // Every rule that is off says why, in data, so the reason cannot rot into a
+    // comment nobody reads.
+    for (const ruleId of Object.keys(DISABLED_RULES)) {
+      expect(DISABLED_RULES[ruleId]?.trim().length, `${ruleId} reason`).toBeGreaterThan(10);
     }
   });
 

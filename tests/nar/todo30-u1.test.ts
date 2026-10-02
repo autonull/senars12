@@ -26,7 +26,7 @@ describe('U1 — ask() answers only the question it was asked', () => {
     const answer = await nar.query.ask('(kitty-->mortal).');
 
     expect(answer.answer).toBe('(kitty-->mortal)');
-    expect(answer.confidence).toBeGreaterThan(0);
+    expect(answer.truth?.f).toBeGreaterThan(0);
     expect(answer.evidence.length).toBeGreaterThan(0);
 
     await nar.dispose();
@@ -39,7 +39,7 @@ describe('U1 — ask() answers only the question it was asked', () => {
       const answer = await nar.query.ask(asked);
 
       expect(answer.answer).toBeUndefined();
-      expect(answer.confidence).toBe(0);
+      expect(answer.truth).toBeUndefined();
     }
 
     await nar.dispose();

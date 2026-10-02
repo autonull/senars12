@@ -5,7 +5,7 @@
  * Four claims, three of which no runtime test can reach:
  *
  * 1. **No module-side-effect registration.** `registration.ts` used to register
- *    55 rules by being imported, so "which rules are loaded" was a property of
+ *    44 rules by being imported, so "which rules are loaded" was a property of
  *    the import graph. Legal TypeScript, invisible to the compiler, and now a
  *    gate failure.
  * 2. **No module-global rule set.** `RuleRegistry` was exactly A1's hidden-global

@@ -35,7 +35,10 @@ describe('M1: End-to-End Pipeline — NL → PerceptionGate → NAL → QueryAPI
 
     // Verify answer
     expect(answer.answer).toBeDefined();
-    expect(answer.confidence).toBeGreaterThan(0.35); // minFrequency * minConfidence = 0.7 * 0.5
+    // A derived conclusion, not a restatement: f must have moved off the 0.5 of
+    // an unknown. This is the assertion that failed while the f*c product made a
+    // confident guess look like knowledge.
+    expect(answer.truth?.f).toBeGreaterThan(0.5);
 
     // Verify derivation trace is available
     const answerWithDerivation = await nar.askWithDerivation('(whiskers --> mammal)?');

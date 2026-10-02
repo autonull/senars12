@@ -25,6 +25,7 @@ import { WSConnection } from '@senars/io/connections/ws';
 import type { ConnectionConfig } from '@senars/util/types/transport';
 import { handleDelegationMessage, createDelegation } from '../cooperation/delegation.js';
 import type { DelegationPeer, CognitiveTaskDelegation, CognitiveTaskResult } from '../cooperation/delegation.js';
+import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas/truth';
 import { Truth } from '../terms';
 import { WebSocket } from 'ws';
 
@@ -116,7 +117,7 @@ interface NarAgentApi {
     target: string;           // ws://host:port
     task: { type: string; term: string };
     ruleId: string;
-  }): Promise<{ truth?: any; confidence?: number; error?: string }>;
+  }): Promise<{ truth?: Truth; confidence?: number; error?: string }>;
 
   // Bin layer extensions (narrow public accessors per REFACTOR.todo4 Phase C)
   start(): Promise<void>;
@@ -433,7 +434,7 @@ function attachNarApi(
         // Get NARS answer
         const answer = await narEngine.nar.ask(trimmed);
         const narsTruth = answer?.answer
-          ? `NARS: ${answer.answer} f=${answer.confidence.toFixed(2)}`
+          ? `NARS: ${answer.answer} ${answer.truth ? `f=${answer.truth.f.toFixed(2)};c=${answer.truth.c.toFixed(2)}` : ''}`
           : 'No answer yet';
         // Get manifold judgment if System One is enabled
         let manifoldJudgment = '';
@@ -545,7 +546,7 @@ function attachNarApi(
     target: string;
     task: { type: string; term: string };
     ruleId: string;
-  }): Promise<{ truth?: any; confidence?: number; error?: string }> => {
+  }): Promise<{ truth?: Truth; confidence?: number; error?: string }> => {
     const { target, task, ruleId } = params;
     
     // Parse target URL
@@ -596,12 +597,17 @@ function attachNarApi(
                 
                 // Query the result
                 const answer = await nar.ask(task.term);
-                if (answer?.answer) {
-                  resolve({ truth: answer.answer, confidence: answer.confidence });
+                if (answer?.truth) {
+                  resolve({
+                    truth: answer.truth,
+                    confidence: Truth.expectation(answer.truth),
+                  });
                   return;
                 }
               }
-              resolve({ truth: result.resultNarsese[0], confidence: 0.5 });
+              // The fallback admits at the PEER_AGENT ceiling, so it says so as a
+              // pair rather than a bare 0.5 that read like a measurement.
+              resolve({ truth: Truth.create(1.0, SOURCE_QUALITY_CONFIDENCE.PEER_AGENT) });
             } else {
               resolve({ error: result.error ?? 'Delegation failed' });
             }

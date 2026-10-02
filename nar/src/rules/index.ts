@@ -29,6 +29,8 @@ export {
   BUILTIN_DECLARATIONS,
   NALExtendedRules,
   NALRules,
+  DISABLED_RULES,
+  NAL_EXTENDED_RULES,
   RULE_BODIES,
 } from './impls/rules-dsl.js';
 // Rule contract

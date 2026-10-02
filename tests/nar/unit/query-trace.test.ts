@@ -105,9 +105,13 @@ describe('QueryAPI', () => {
       expect(answer.question).toBeDefined();
     });
 
-    it('should return low confidence for unknown question', async () => {
+    it('refuses an unknown question with no truth at all', async () => {
       const answer = await queryAPI.ask('(unknown-->fact)');
-      expect(answer.confidence).toBeLessThanOrEqual(0.5);
+      // Not a low score — no claim. A scalar could not tell "nothing here"
+      // apart from "I am quite sure it is false"; the pair can, and it says
+      // nothing rather than reporting 0.
+      expect(answer.truth).toBeUndefined();
+      expect(answer.answer).toBeUndefined();
     });
 
     it('should handle invalid question format', async () => {
@@ -343,7 +347,7 @@ describe('QueryAPI and ReasoningTrace Integration', () => {
     const answer = await queryAPI.ask('(workflow-->example)');
     expect(answer).toBeDefined();
 
-    if (answer.confidence > 0.5) {
+    if (answer.truth && Truth.expectation(answer.truth) > 0.5) {
       expect(answer.answer).toBeDefined();
       expect(answer.evidence.length).toBeGreaterThan(0);
     }

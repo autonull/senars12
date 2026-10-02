@@ -35,7 +35,7 @@ async function main() {
 
   if (answer.answer) {
     console.log(`\nAnswer: ${answer.answer}`);
-    console.log(`Confidence: ${answer.confidence.toFixed(2)}`);
+    console.log(`Truth: ${Truth.format(answer.truth)}`);
     console.log(`Evidence: ${answer.evidence.length} supporting tasks`);
   } else {
     console.log('\nNo answer derived yet — try more cycles');
@@ -48,7 +48,7 @@ async function main() {
   const answer2 = await nar.ask('(tweety --> animal)?');
   if (answer2.answer) {
     console.log(`\nAnswer: ${answer2.answer}`);
-    console.log(`Confidence: ${answer2.confidence.toFixed(2)}`);
+    console.log(`Truth: ${Truth.format(answer2.truth)}`);
   } else {
     console.log('\nNo answer derived yet');
   }

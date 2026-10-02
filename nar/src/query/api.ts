@@ -19,7 +19,25 @@ export interface QueryResult {
 export interface Answer {
   question: string;
   answer?: string;
-  confidence: number;
+  /**
+   * The belief's truth as a **pair**. This is the answer's epistemic content:
+   * `f` is how true it is, `c` is how much the estimate is worth.
+   *
+   * It was a bare `confidence: number` holding `f * c`, which is a third
+   * quantity — neither `c` nor `Truth.expectation` (`c*(f-0.5)+0.5`) — and it
+   * is lossy in the one direction that matters. `(f=0.50, c=0.90)` and
+   * `(f=0.45, c=1.00)` both reported `0.45`, so "I do not know this" and "I am
+   * certain it is false" were indistinguishable at the read surface. For a
+   * system whose claim is that it separates belief from ignorance, that is the
+   * wrong place to lose the distinction.
+   */
+  truth?: Truth;
+  /**
+   * Signed, centred on 0.5, derived from `truth` — never stored. A caller that
+   * needs one number reads `Truth.expectation(answer.truth)`; a caller that
+   * needs to know whether the system knows anything reads the pair.
+   */
+  readonly confidence?: number;
   evidence: Task[];
   derivationPath?: string[];
   derivation?: VerifiedDerivation;
@@ -123,11 +141,11 @@ export class QueryAPI {
       ? {
           question: questionStr,
           answer: grounded?.term.toString(),
-          confidence: belief.truth.f * belief.truth.c,
+          truth: belief.truth,
           evidence: adjacent,
           derivationPath: this.extractDerivationPath(belief.stamp),
         }
-      : { question: questionStr, confidence: 0, evidence: adjacent };
+      : { question: questionStr, evidence: adjacent };
   }
 
   private findConceptByTerm(term: Term): Concept | undefined {
@@ -140,12 +158,14 @@ export class QueryAPI {
   private tryAnswer(question: Term, concept: Concept): Answer | null {
     const belief = concept.beliefBag.peek();
     if (!belief?.truth) return null;
-    const confidence = belief.truth.f * belief.truth.c;
-    if (confidence < 0.01) return null;
+    // Refuse on the pair, not on the product: an almost-certain negative
+    // (`f≈0.45, c=1.0`) and a confident non-answer both scored low before, but
+    // only one of them is an answer.
+    if (Truth.expectation(belief.truth) <= 0.5) return null;
     return {
       question: question.toString(),
       answer: question.toString(),
-      confidence,
+      truth: belief.truth,
       evidence: [this.createTaskFromBelief(concept.term, belief, concept.priority)],
       derivationPath: this.extractDerivationPath(belief.stamp),
     };

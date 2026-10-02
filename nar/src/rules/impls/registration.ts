@@ -382,9 +382,52 @@ const NAL_EXTENDED_RULES: RuleDef[] = [
 ];
 
 /**
- * The shipped table. 55 declarations, all at revision 0, all `builtin`
- * provenance — nothing was admitted, so nothing has a parent revision.
+ * Rules that are registered but **not shipped**, each with the reason it is off.
+ *
+ * Disabled rather than deleted, and declared here rather than commented out, for
+ * two reasons learned the hard way. Commenting a rule out is invisible to
+ * `dispatch:no-wildcard` (a commented `pattern: ['*','*']` is not a bucket), so
+ * the table silently lost four temporal rules to make one test pass — and the
+ * README's published matrix kept claiming them. A declared set is greppable,
+ * reviewable, and re-enterable by deleting one line.
+ *
+ * The common cause is that these rules fire on *candidate* terms and admit
+ * whatever they build. In NARS such results are weighed and usually rejected;
+ * here `rankDerivations` scores them and they win often enough to bury the
+ * store. Four facts produced 96 beliefs, among them `(france --> germany)` at
+ * f=0.98 — confidently false, and unauditable in practice.
  */
-export const BUILTIN_DECLARATIONS = [...NAL_RULES, ...NAL_EXTENDED_RULES].map(declarationOf);
+const DISABLED: Readonly<Record<string, string>> = {
+  // Temporal — unfinished, not merely noisy: the ordering these need lives in
+  // `RuleInput.occurrenceTime`, and nothing populates it reliably yet.
+  'nal.sequenceIntroduction': 'temporal reasoning is not correct yet',
+  'nal.parallelIntroduction': 'temporal reasoning is not correct yet',
+  'nal.predictiveImplication': 'temporal reasoning is not correct yet',
+  'nal.temporalDeduction': 'temporal reasoning is not correct yet',
+  // Structural noise — each manufactures a term no reader asked for.
+  'nal.conversion': '197 applications to invert a handful of facts',
+  'nal.comparison': 'invents <-> sameness between unrelated subjects',
+  'nal.structuralReduction': 'produces conjunction terms no rule asked for',
+  'nal.difference': 'manufactures (A & --B) contradictions-as-beliefs',
+  'nal.conjunctionIntro': 'floods the store with (A & B) variants',
+  'nal.intersectionComposition': 'floods the store with (A & B) variants',
+  'nal.unionComposition': 'floods the store with (A | B) variants',
+  // Fire on inheritance:inheritance with no subsumption guard, so two facts
+  // sharing a predicate derive a relation between their subjects:
+  // (france-->countryInEurope), (germany-->countryInEurope) => (france-->germany).
+};
+
+/**
+ * The shipped table. Every declaration at revision 0 with `builtin` provenance —
+ * nothing was admitted, so nothing has a parent revision. Disabled rules are
+ * dropped here and nowhere else, so `BUILTIN_DECLARATIONS` is the single answer
+ * to "what does this NAR actually run".
+ */
+export const BUILTIN_DECLARATIONS = [...NAL_RULES, ...NAL_EXTENDED_RULES]
+  .map(declarationOf)
+  .filter((declaration) => !(declaration.ruleId in DISABLED));
+
+/** Why a rule is not shipped — for a gate, a status report, or the next attempt. */
+export const DISABLED_RULES = DISABLED;
 
 export { NAL_EXTENDED_RULES, NAL_RULES };

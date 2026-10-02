@@ -72,7 +72,7 @@ async function runBootSelfTest(nar: NARType): Promise<void> {
   await nar.run(20);
 
   const answer = await nar.ask(questionTerm);
-  if (!answer?.answer || answer.confidence < 0.1) {
+  if (!answer?.answer || !answer.truth || Truth.expectation(answer.truth) <= 0.5) {
     throw new Error('Boot POST failed: syllogism derivation did not produce expected conclusion');
   }
 
@@ -162,7 +162,10 @@ export async function createCognitiveAgent(config: CognitiveAgentConfig): Promis
 
     return {
       conclusion: answer?.answer ?? '',
-      truth: answer ? { f: answer.confidence, c: 1 } : { f: 0, c: 0 },
+      // Was `{ f: answer.confidence, c: 1 }` — the answer's f*c product read as a
+      // frequency, with confidence hardcoded to 1. That reported a truth value the
+      // engine never derived. Now it is the belief's own pair.
+      truth: answer?.truth ?? { f: 0, c: 0 },
       reputation,
     };
   };

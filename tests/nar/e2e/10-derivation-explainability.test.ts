@@ -43,7 +43,7 @@ describe('M8: Derivation Explainability — Answer carries verifiable derivation
 
     // Verify answer structure
     expect(answer.answer).toBeDefined();
-    expect(answer.confidence).toBeGreaterThan(0);
+    expect(answer.truth?.f).toBeGreaterThan(0);
 
     // Verify derivation is attached and verified
     expect(answer.derivation).toBeDefined();
@@ -115,7 +115,7 @@ describe('M8: Derivation Explainability — Answer carries verifiable derivation
 
     // Answer should exist
     expect(answer.answer).toBeDefined();
-    expect(answer.confidence).toBeGreaterThan(0);
+    expect(answer.truth?.f).toBeGreaterThan(0);
 
     // Derivation may be absent (no derivation cycles ran)
     // This is acceptable - derivation is only attached when recorder has matching records

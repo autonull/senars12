@@ -124,7 +124,7 @@ describe('Diagnostic: Query Answer Accuracy', () => {
 
     const answer = await nar.query.ask('<cat-->animal>');
     expect(answer.answer).toBe('(cat-->animal)');
-    expect(answer.confidence).toBeGreaterThan(0);
+    expect(answer.truth?.f).toBeGreaterThan(0);
   });
 
   it('should return exact match after multiple queries', async () => {
