@@ -94,7 +94,12 @@
     "rule:matrix": "tsx scripts/generate-rule-matrix.ts",
     "docs:drift": "pnpm docs:api && pnpm docs:architecture && pnpm rule:matrix && git diff --exit-code docs/api docs/architecture README.md",
     "exports:audit": "tsx scripts/exports-audit.ts",
-    "complexity:budget": "tsx scripts/complexity-budget.ts"
+    "complexity:budget": "tsx scripts/complexity-budget.ts",
+    "e2e:pipeline": "tsx scripts/e2e-gates.ts e2e:pipeline",
+    "persistence:replay": "tsx scripts/e2e-gates.ts persistence:replay",
+    "derivation:verifiable": "tsx scripts/e2e-gates.ts derivation:verifiable",
+    "reward:policy-only": "tsx scripts/e2e-gates.ts reward:policy-only",
+    "derivation:clean": "tsx scripts/e2e-gates.ts derivation:clean"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.43",

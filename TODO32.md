@@ -403,6 +403,32 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 
 **M2 (Egress judging)** remains explicitly **not started — last**, per plan ordering.
 
+### Gate wiring (this session) — the milestones were proven but ungated
+
+Every milestone above had a passing e2e file and **no gate**. A test nobody runs on the
+way through is a comment (`scripts/lib/gates.ts`'s own premise), so the five gates this
+plan names now exist:
+
+| gate | milestone | what it runs |
+|------|-----------|--------------|
+| `e2e:pipeline` | M1 · M3 · M6 · M7 | `07`, `08`, `13` + `examples/hello-world.ts` |
+| `persistence:replay` | M4 | `09-restart-equivalence.test.ts` |
+| `derivation:verifiable` | M8 | `10-derivation-explainability.test.ts` |
+| `reward:policy-only` | M5 | `11-reward-policy.test.ts` |
+| `derivation:clean` | M9 | `12-derivation-quality.test.ts` |
+
+- **`scripts/e2e-gates.ts`** holds the gate→files table once. Per-gate `vitest run <paths>`
+  in the manifest would spell every filename a second time, in `scripts/lib/gates.ts`;
+  the table is the only place a filename appears. Unknown gate name exits 2 rather than
+  running nothing, so a typo is loud.
+- All five registered in `scripts/lib/gates.ts` **and** `.github/workflows/ci.yml` in the
+  same commit, per the plan's gate discipline. `missingGateScripts` returns `[]` — every
+  gate in the list has a manifest script.
+- `examples/hello-world.ts` rides `e2e:pipeline`, so M7's deliverable cannot rot without
+  turning CI red.
+
+**All five gates verified green.** `pnpm lint` and `pnpm typecheck` clean.
+
 **TypeScript errors fixed in this session:**
 - `nar/src/rules/impls/builders.ts`: Added missing `RuleInput` import
 - `tests/nar/e2e/11-reward-policy.test.ts`: Fixed `maxTasksPerConcept` → `maxTasks`, fixed `nar.ask()` return type usage
@@ -410,6 +436,40 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 - `tests/nar/e2e/13-delegation.test.ts`: Fixed `agent.believe()` call signature
 - Multiple test files: Added required `occurrenceTime` field to `RuleInput` objects
 - `nar/src/facade/config.ts` + `nar/src/nar-presets.ts`: Added `maxTasks` config option
+
+**New improvement opportunities:**
+
+1. **`complexity:budget` fails on `productionLOC` (72 950 vs 72 624 baseline) and
+   `typecheck:bin` (2 errors in `scripts/arcade.ts`).** Both pre-date this session's
+   gate wiring — it adds 0 production LOC, since `scripts/` is outside the gate's
+   `SOURCE_ROOTS`. The `productionLOC` overage came from the TODO32 reducers
+   (`nar/src/terms/reduce.ts`). Ratchet rule: a metric that goes down gets its baseline
+   lowered in the same commit, so the honest repair is either paying the LOC back down
+   or moving the baseline to the number the work actually cost — not leaving it red.
+   `nar.ts` at 997 LOC (budget 940) is the same shape of debt.
+2. **`todo29a-a2` / `todo29a-a10` rule-count drift (51 vs the committed 55).** The rule
+   table and its two gates disagree about how many rules ship. One of them is the
+   truth; until they agree, the *rule matrix the README publishes* is not falsifiable.
+   Highest-value of the six, because it is a published claim.
+3. **`todo30-u2` belief count (91 vs 133).** Same shape: a measurement pinned as a
+   committed number has moved. The reducers plausibly pruned the transcript, so the
+   honest fix is to re-measure and re-pin — but confirm the pruning is intended first,
+   or the number is pinned against a store that should not exist.
+4. **M1 Variants B and C have never run green.** Both `skipIf` on
+   `LM_PROVIDER=llamacpp-embedded`, so the LM-fills-KB-gaps and heads-adjudicate claims
+   are asserted in the plan and **falsified by nothing**. The two most interesting
+   properties of this system are the two CI never exercises. `docs/e2e-pipeline.md` (M1's
+   gate deliverable) does not exist.
+5. **Two 15s timeouts** (`todo26-cognitive-agent`, `rl/parity/stress-boundary`) are
+   excluded from `test:unit` and so only ever run in the load-sensitive job, where they
+   may flake rather than fail.
+
+**Notes for M2 (the remaining milestone):** Still last, still opt-in, still
+`egress:invariant` — and its `scripts/e2e-gates.ts` entry is not yet written, because
+the gate's assertion (flag-off committed set byte-identical to today's) needs the
+flag before the runner does. The invariance test it needs is already in
+`tests/nar/todo29a-a2.test.ts` / `todo29a-a10.test.ts`; M2's real work is the
+`admitDerived` veto beside `rankDerivations`, not a new admission path.
 
 **Pre-existing test failures (outside TODO32 scope):**
 - `refactor3-hygiene.test.ts` / `todo20-monoliths.test.ts`: `nar.ts` at 997 LOC exceeds 940 budget (refactor task)

@@ -90,6 +90,20 @@ export const GATES: readonly Gate[] = [
   script('exports:check'),
   script('exports:barrels'),
   script('complexity:budget'),
+  // TODO32: the integration milestones, each its own gate so a red one names the
+  // milestone rather than "tests failed". e2e:pipeline is M1/M3/M6/M7 and rides
+  // the committed example, so the getting-started docs cannot drift from reality.
+  script('e2e:pipeline'),
+  // TODO32 M4: a second NAR on the same statePath reconstructs the same committed
+  // state — snapshot plus event-log replay, at rest and under eviction pressure.
+  script('persistence:replay'),
+  // TODO32 M8: every answer carries a derivation that the standalone verifier
+  // accepts. An unverifiable trace is omitted rather than shown.
+  script('derivation:verifiable'),
+  // TODO32 M5: reward moves a policy observable and never a Truth value.
+  script('reward:policy-only'),
+  // TODO32 M9: no contradictory or redundantly nested term reaches committed state.
+  script('derivation:clean'),
   // Generated docs must match the committed output. A diff rather than a red
   // test, which is why it survived being red for a pass.
   script('docs:drift'),

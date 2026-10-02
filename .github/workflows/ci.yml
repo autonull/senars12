@@ -70,6 +70,19 @@ jobs:
       # TODO28 §8.10: every gate in scripts/lib/gates.ts, including this one.
       - run: pnpm complexity:budget
       - run: pnpm test:unit
+      # TODO32 integration milestones. Each gate is its own step so a red build
+      # names the milestone rather than "tests failed".
+      # M1/M3/M6/M7 — composition, the MeTTa tool leg, live WS delegation, and
+      # the committed hello-world the getting-started docs are derived from.
+      - run: pnpm e2e:pipeline
+      # M4 — restart reconstructs the same committed state, at rest and at capacity.
+      - run: pnpm persistence:replay
+      # M8 — every answer carries a derivation the standalone verifier accepts.
+      - run: pnpm derivation:verifiable
+      # M5 — reward moves policy, never Truth.
+      - run: pnpm reward:policy-only
+      # M9 — no contradictory or redundantly nested term reaches committed state.
+      - run: pnpm derivation:clean
   determinism:
     runs-on: ubuntu-latest
     steps:
