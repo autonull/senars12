@@ -54,7 +54,7 @@ out of is not a system yet.**
 > | **run 2026-10-02** | §4.1 experiment — snake,bandit,tictactoe × nal,manifold,lm × 5 seeds (embedded Qwen3.5-0.8B): macro lm 0.3452±0.0154 / manifold 0.2565±0.0078 / **nal 0.2292±0.0173** — thesis macro-falsified, micro disagrees (manifold 0.113 best); numbers appended to `docs/thesis-hypothesis.md` | full outcome + confounds in the hypothesis doc; rerun needs fitted J (§4.3) + symmetric arms |
 > | **measured** | §1.3 U3 acceptance — candidates-examined vs derivations-accepted at 1/3/10 cycles on the §0.2 transcript: 84/6, 1428/193, 28665/893 | throwaway probe (deleted), numbers in §9 |
 > | **profiled** | §5.1 first cut — 2000-cycle cpu-prof of `profile-scenario`: GC 7%, id generation ~10%, `applySyncRules` ~6%, telemetry+prom-client ~4% | `scripts/profile-scenario.ts` + `analyze-profile.ts`, numbers in §9 |
-> | **profiled/answered** | §5.4 k-enumeration, §5.5 dispatch kept (O(1) cells), §5.6 weights recorded (unchanged), §5.7 one J site, §5.8 scaling matrix first cut | TODO30 §5 + §9 |
+> | **landed** | RL baseline arms `qlearning` (tabular Q) + `policygradient` (REINFORCE) in the arcade matrix — coverage, not thesis (Reframe 2026-10-02) | `scripts/lib/rl-arms.ts`, `scripts/arcade.ts`, smoke bandit q 0.19/pg 0.26/random 0.28 |
 | not started | §4.2 (explicitly not next), §4.3 (decision-gated), §5.6 experiment, §5.9 (experiment specified) | — |
 >
 > §1 and §2 are independent of each other and of §5. §3 is bookkeeping on the predecessor's debt and
@@ -741,12 +741,12 @@ anything.
 
 | # | opportunity | evidence | shape of fix |
 |---|---|---|---|
-| O1 | **ID generation is ~10% of cycle time** (`crypto.randomUUID` per `makeId`) | §5.1 cpu-prof | DEFERRED with cause: schemas validate UUID format at untrusted boundaries and seeded runs need the counter-shaped source — a faster source must preserve both, which is a design item, not a patch. Next: measure callers-per-cycle first; if events dominate, batch the ledger differently |
+| O1 | **ID generation is ~10% of cycle time** (`crypto.randomUUID` per `makeId`) | §5.1 cpu-prof | **CLOSED 2026-10-02 — native wins, do not replace.** A/B in-process (200k mints): `randomUUID` 30–39ms vs buffered `getRandomValues`+manual base64url 75ms vs btoa variants 273–715ms. The C++ formatting path is unbeatable from JS, so a "faster minter" is not a direction. The actual lever is *fewer IDs minted* (call volume — events per derivation), not a faster source |
 | O2 | **Telemetry on the cycle path** — `decisionSpan` now early-returns when no provider is registered (the Noop-tracer churn is gone) ✅ 2026-10-02; remaining measured cost is prom-client label hashing (`inc` per verdict), which feeds `/status` and stays | §5.1 cpu-prof | if a future profile still shows it hot, the lever is fewer label values, not sampling (sampling breaks counters) |
 | O3 | **Acceptance yield 3% at 10 cycles** — 28.6k candidates examined for 893 accepted, 133 committed | U3 measurement §9 | goal-directed derivation (option A, §1.2) or a candidate budget that stops the exhaustive intersection expansion; a better relevance *score* is not the lever (§1.2's own note) |
 | O4 | **R3 leftovers**: per-site ask timeout ✅ 2026-10-02 (`DecisionCallSite.timeoutMs` + `ask-timeout` manifest rule, caller reads `ADMISSION_ORDER_CALL_SITE`); snapshot-version check ✅ already satisfied — `StateCodec.decodeState` fails loudly on version mismatch, and `CognitiveStateSnapshot.version` has no file-read path (nothing reads it from disk) | §3.3 table | R3 fully closed |
 | O7 | **llama hang — root-caused and fixed 2026-10-02**: `llama-runtime.dispose()` dropped references without releasing native handles, so the embedded session kept the loop alive after reports were written (arcade idled on GPU power indefinitely). Now releases context→model→llama; arcade disposes at end and exits naturally (verified: 28s bandit run returns). Regression: `tests/nar/llama-runtime-dispose.test.ts` | §4.1 | the `process.exit(0)` band-aid was removed again once disposal proved sufficient |
-| O5 | **Q3 rerun preconditions (2026-10-02 run macro-falsified the thesis)** | hypothesis doc Result section | fit J (§4.3) before rerunning `manifold`; run all arms in the same mode (today `nal` alone gets cognitive veto — an arm asymmetry that may explain its edge); consider a larger model than 0.8B. Do NOT rerun the same matrix hoping for a better number |
+| O5 | **Q3 rerun preconditions (2026-10-02 run retired the falsification framing — coverage, not thesis)** | hypothesis doc Reframe 2026-10-02 | fit J (§4.3) before rerunning `manifold`; run all arms in the same mode (today `nal` alone gets cognitive veto); consider a larger model than 0.8B; RL baselines `qlearning`/`policygradient` now in the matrix (`scripts/lib/rl-arms.ts`, smoke-verified on bandit). A losing row is a repair ticket, not a verdict |
 | O6 | **Distillation claim needs re-verification** — "distilled student matches teacher" was measured while the `lm` arm never served an LM decision (prefetch bug, now fixed); the teacher was epsilon-greedy | `fix(arcade)` commit | rerun `demo:arcade -- --distill` and check the student learns anything beyond the incumbent |
 
 ### Invariant Checklist (per §7)
@@ -848,8 +848,11 @@ means anything.
 
 ## 9. Provenance
 
-**A number with no commit in it is not evidence.** Every measurement in this document, and what it is
-worth.
+**A number with no commit in it is not evidence — and a number from one machine is not a
+constant.** Every ms below was taken on a single uncontrolled host. What transfers across
+hardware is the *shape* (linear vs quadratic, which term dominates) and the *ratios* (70×,
+7×); absolute thresholds in decision rows ("revisit at N rules / M% of profile") are
+re-measure conditions, not constants — re-run the kept probe on the new host before acting.
 
 | measurement | value | taken at | reproduced by |
 |---|---|---|---|

@@ -145,3 +145,15 @@ Confounds, recorded so the next run knows what it must remove rather than what i
   epsilon-greedy fallback, and (b) hid proposals from the recorder so `predicted ≡ 0.5` and every
   Brier was exactly 0.25. Fixed in the `fix(arcade)` commit (adapters forward `prefetch`
   awaitably; recording sits outermost); the void numbers were never written here.
+
+## Reframe 2026-10-02 — coverage, not thesis (appended without touching the above)
+
+The falsification framing is retired. Every arm must work — NAL, manifold, LM,
+and the RL baselines (`qlearning`, `policygradient`, added to the arcade matrix
+2026-10-02 in `scripts/lib/rl-arms.ts`: tabular Q-learning and REINFORCE over
+state keys, honest predicted probabilities, no kernel gates since they are
+baseline controls). The matrix compares approaches to find what each is good
+for; a "falsified" row is a repair ticket, not a verdict. Smoke 2026-10-02
+(bandit, 2 episodes, seed 7): qlearning 0.1899 / policygradient 0.2630 /
+random 0.2811 macroBrier — the learners learn, and the comparison is against
+real baselines now.

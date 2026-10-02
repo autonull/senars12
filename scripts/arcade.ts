@@ -39,8 +39,9 @@ import { game2048HeuristicAction } from '../tests/nar/rl/baselines/2048.js';
 import { snakeHeuristicAction } from '../tests/nar/rl/baselines/snake.js';
 import { tetrisHeuristicPlacement } from '../tests/nar/rl/baselines/tetris.js';
 import { ticTacToeHeuristicAction } from '../tests/nar/rl/baselines/tictactoe.js';
+import { ReinforceLearner, TabularQLearner, type RLLearner } from './lib/rl-arms.js';
 
-type Arm = 'manifold' | 'lm' | 'replica' | 'heuristic' | 'random' | 'nal';
+type Arm = 'manifold' | 'lm' | 'replica' | 'heuristic' | 'random' | 'nal' | 'qlearning' | 'policygradient';
 
 const gameRegistry = createArcadeRegistry();
 
@@ -258,12 +259,18 @@ async function main(): Promise<void> {
   for (const arm of arms) {
     for (const gameName of games) {
       // Pure arms: no kernel gates — direct game play (baseline controls).
-      if (arm === 'heuristic' || arm === 'random') {
+      if (arm === 'heuristic' || arm === 'random' || arm === 'qlearning' || arm === 'policygradient') {
         const heuristic = heuristics[gameName];
         if (arm === 'heuristic' && !heuristic) {
           notes.push(`heuristic arm on ${gameName}: no baseline — skipped`);
           continue;
         }
+        const learner: RLLearner | null =
+          arm === 'qlearning'
+            ? new TabularQLearner(new SeededRNG(baseSeed + games.indexOf(gameName)))
+            : arm === 'policygradient'
+              ? new ReinforceLearner(new SeededRNG(baseSeed + games.indexOf(gameName) + 1))
+              : null;
         for (let e = 0; e < episodes; e++) {
           const game = gameRegistry.create(gameName, baseSeed + e) as GameInterface<
             unknown,
@@ -277,11 +284,31 @@ async function main(): Promise<void> {
             const legal = (game.legalActions(game.state()) as Array<string | number>).map(String);
             if (legal.length === 0) break;
             const t0 = performance.now();
-            const action =
-              arm === 'random' ? legal[rng.nextInt(legal.length)]! : String(heuristic!(game));
+            let action: string;
+            let predicted: number;
+            if (arm === 'random') {
+              action = legal[rng.nextInt(legal.length)]!;
+              predicted = 1 / legal.length;
+            } else if (arm === 'heuristic') {
+              action = String(heuristic!(game));
+              predicted = 0.8;
+            } else {
+              const key =
+                (game as { stateKey?: () => string }).stateKey?.() ?? String(steps);
+              ({ action, predicted } = learner!.act(key, legal));
+            }
             const latencyMs = performance.now() - t0;
             const outcome = game.step(action as never);
             steps++;
+            if (learner) {
+              const over = outcome.terminal;
+              learner.feedback(
+                outcome.reward,
+                over ? '' : ((game as { stateKey?: () => string }).stateKey?.() ?? String(steps)),
+                over ? [] : (game.legalActions(game.state()) as Array<string | number>).map(String),
+                over
+              );
+            }
             startArcadeTickSpan(arm, gameName, steps).finish({
               action,
               latencyMs,
@@ -294,7 +321,7 @@ async function main(): Promise<void> {
               game: gameName,
               stateId: (game as { stateKey?: () => string }).stateKey?.() ?? String(steps),
               action,
-              predicted: arm === 'heuristic' ? 0.8 : 1 / legal.length,
+              predicted,
               observed: clamp01(outcome.reward),
               reward: outcome.reward,
               latencyMs,
@@ -305,6 +332,7 @@ async function main(): Promise<void> {
               console.log(renderGame(game));
             }
           }
+          learner?.endEpisode();
         }
         continue;
       }

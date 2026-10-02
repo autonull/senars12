@@ -25,6 +25,8 @@ silently substituted.
 |---|---|---|
 | `heuristic` | per-game baselines (flood-fill snake, lines+holes tetris, corner-greedy 2048, minimax ttt) | always |
 | `random` | seeded random policy (the control the community taught us to never demo without) | always |
+| `qlearning` | tabular Q-learning over state keys (`scripts/lib/rl-arms.ts`), ε-greedy act, softmax-over-Q predicted | always |
+| `policygradient` | REINFORCE with running-mean baseline over state keys, softmax-sampled act, π(a\|s) predicted | always |
 | `manifold` | local Judgment Manifold heads via `ManifoldReflex`; tetris uses `PlacementCascadeReflex` (two-stage placement fan-out: one coarse batch over all placements, fine `reflex_value` on top-K) | always (deterministic heads) |
 | `lm` | `LMReflex` — GBNF-constrained LM proposals judged by the manifold | `LM_LLAMACPP_MODEL` set |
 | `replica` | `createOpenSystemOneManifold` — community `{state, questions}` wire | `OPEN_REPLICA_ENDPOINT` set |
