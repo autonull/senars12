@@ -350,15 +350,21 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 - Many `(A & (A & B))` and `((A & B) & /B)` nested redundant forms
 
 **Root cause candidates:**
-1. **Term reducers not firing** — `TERM_REDUCERS` in `nar/src/terms/reduce.ts` should canonicalize `(A & --A)` → contradiction, `(A & (A & B))` → `(A & B)`, `(A & /A)` → contradiction
-2. **Rule dispatch too permissive** — rules fire on premise pairs that should be filtered by the reducer gate
-3. **Stamp/evidence lineage not blocking** — the Stamp mechanism should prevent re-deriving from circular premises
+1. **Term reducers not firing** — `TERM_REDUCERS` in `nar/src/terms/reduce.ts` should canonicalize at **Term construction time**: `(A & --A)` → contradiction, `(A & (A & B))` → `(A & B)`, `(A & /A)` → contradiction. Reduction is the normalization gate; if a term reaches the bag unreduced, the reducer registry is incomplete or the gate is bypassed.
+2. **Stamp non-overlap not enforced** — the Stamp mechanism (`nar/src/terms/impls/Stamp.ts`) is the primary guard against circular derivations. A derivation whose conclusion shares evidence lineage with a premise must be rejected at admission (`Stamp.checkOverlap` / `evidenceLineage` intersection). If loopy results appear, the Stamp check is either missing from the admission path or the `independence` flag is not being set/checked.
+3. **Rule dispatch too permissive** — rules fire on premise pairs that should be filtered by the reducer gate before they reach the rule table.
 
 **Deliverable:** A test `tests/nar/e2e/12-derivation-quality.test.ts` that:
 - Runs the hello-world scenario (robin→bird, bird→animal, tweety→robin)
-- Asserts zero contradictory conjunctions `(X & --X)` in beliefs
-- Asserts zero redundant nestings `(A & (A & B))` or `(A & /A)` 
+- Asserts zero contradictory conjunctions `(X & --X)` in beliefs (reduction gate)
+- Asserts zero redundant nestings `(A & (A & B))` or `(A & /A)` (normalization at construction)
+- Asserts zero derivations with overlapping evidence lineage (Stamp non-overlap)
 - Asserts all derived terms pass `terms:canonical` gate (`pnpm terms:canonical`)
+
+**Fix targets (in order):**
+1. `nar/src/terms/reduce.ts` — ensure `TERM_REDUCERS` reaches fixed point for conjunction/disjunction/negation (add missing reducers, verify `pnpm terms:canonical` passes)
+2. `nar/src/terms/impls/Stamp.ts` — verify `checkOverlap` is called on every admission path; `independence` flag propagated from premises
+3. `nar/src/rules/ranking.ts` / admission — filter premise pairs whose stamps overlap before rule application
 
 **Gate:** `derivation:clean` in `gates.ts` + `ci.yml`, same commit.
 
