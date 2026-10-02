@@ -11,7 +11,7 @@ import { GATE_LOG_CAPACITY } from '../../kernel/event-ring.js';
 import type { MemoryReader } from '../../memory/ports/index.js';
 import type { ModelRuleSelector } from '../../strategies/types.js';
 import type { StampType, Term } from '../../terms';
-import { Truth, type Truth as TruthType } from '../../terms';
+import { termDepth, Truth, type Truth as TruthType } from '../../terms';
 import type { NarEventBus, Task } from '../../types';
 import type {
   InferenceTable,
@@ -75,6 +75,7 @@ export class RuleProcessor {
   private readonly seenBuffer = new Map<string, RuleResult>();
 
   private modelRuleWorkSink: ModelRuleWorkSink | null = null;
+  private limitConclusionGrowth = false;
   private metaDepth: MetaDepthState = {
     currentDepth: 0,
     maxDepth: META_AIKR_BOUNDS.maxMetaDerivationDepth,
@@ -103,10 +104,12 @@ export class RuleProcessor {
     host?: RuleProcessorHost;
     recorderEnabled?: boolean;
     budgets?: ControlBudgetPort;
+    limitConclusionGrowth?: boolean;
   }): void {
     if (config.memory) this.memory = config.memory;
     if (config.host) this.host = config.host;
     if (config.budgets) this.budgets = config.budgets;
+    if (config.limitConclusionGrowth !== undefined) this.limitConclusionGrowth = config.limitConclusionGrowth;
     if (config.recorderEnabled !== undefined) this.recorder.setEnabled(config.recorderEnabled);
   }
 
@@ -279,6 +282,11 @@ export class RuleProcessor {
         if (this.isMetaRule(rule)) this.recordMetaDerivation(this.metaDepth.currentDepth + 1);
         const conclusion = result.toString();
         if (conclusion === p1s || conclusion === p2s) continue;
+        if (
+          this.limitConclusionGrowth &&
+          termDepth(result as Term) > Math.max(termDepth(p1.term), termDepth(p2.term))
+        )
+          continue;
         const ruleResult = buildResult(
           result as Term,
           rule.truthFn ?? NEUTRAL_FN,
