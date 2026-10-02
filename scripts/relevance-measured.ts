@@ -12,7 +12,7 @@
  * a different name.
  *
  * **The number.** §1.2 asks for a measurement before it asks for a mechanism:
- * how many of the §0.2 transcript's 133 beliefs bear on the one question. It is
+ * how many of the §0.2 transcript's beliefs bear on the one question. It is
  * printed, and the gate holds the *floor* rather than the exact count — 133 is
  * `maxAdmissions`-sensitive, so a ratchet on the total would fail for an
  * unrelated reason — but the answer being first is not negotiable.
