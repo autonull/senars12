@@ -133,11 +133,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
     return { scopeId: rest.slice(0, sep), action: rest.slice(sep + 1) };
   }
 
-  private authorizeScoped(
-    scopeId: string,
-    action: string,
-    _correlationId: string
-  ): ActionGateOutput {
+  private authorizeScoped(scopeId: string, action: string): ActionGateOutput {
     const mode = this.scopeModes.get(scopeId);
     if (mode === undefined)
       return {
@@ -171,19 +167,14 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
   }
 
   private decideAuthorization(input: ActionGateInput): ActionGateOutput {
-    const correlationId = this.correlationOf(input.correlationId);
-
-    // Scoped (game) operations authorize against their own scope — the global
-    // autonomy mode and allowlist are never consulted nor mutated (A3).
     const scoped = KernelActionGate.parseScopedOperation(input.operation);
-    if (scoped) return this.authorizeScoped(scoped.scopeId, scoped.action, correlationId);
-
+    if (scoped) return this.authorizeScoped(scoped.scopeId, scoped.action);
     if (this.autonomyMode === 'observe-only' || this.autonomyMode === 'propose-only') {
       recordPolicyViolation(this.eventLog, {
         policyId: 'autonomy-mode',
         violationType: 'unauthorized-tool',
         detail: `Action not permitted in ${this.autonomyMode} mode`,
-        correlationId,
+        correlationId: this.correlationOf(input.correlationId),
       });
       return {
         authorized: false,
@@ -199,7 +190,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
           policyId: 'nal-veto',
           violationType: 'unauthorized-tool',
           detail: `NAL derivation ${input.nalDerivationId} vetoes action: ${derivation.conclusion}`,
-          correlationId,
+          correlationId: this.correlationOf(input.correlationId),
         });
         return {
           authorized: false,
@@ -213,7 +204,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
         policyId: 'allowed-operations',
         violationType: 'unauthorized-tool',
         detail: `Operation '${input.operation}' not in allowed operations list`,
-        correlationId,
+        correlationId: this.correlationOf(input.correlationId),
       });
       return {
         authorized: false,
