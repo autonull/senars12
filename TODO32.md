@@ -47,32 +47,61 @@ accounting, and LM-absence** in one run.
 
 ```typescript
 // tests/nar/e2e/07-full-pipeline.test.ts
-describeReasoning('Full pipeline — NL in, grounded answer out, no LM required', [
+describeReasoning('Full pipeline — NL in, grounded answer out', [
+  // Variant A: LM-optional (byte-identical path, no LM credentials)
   {
-    name: 'natural language → PerceptionGate → NAL → answer',
+    name: 'natural language → PerceptionGate → NAL → answer (LM off)',
     premises: [createPremise('Cats are mammals. Whiskers is a cat.', 'belief', 0.9, 0.9)],
     cycles: 10,
     expect: [expectDerivation('(whiskers --> mammal)', { minFrequency: 0.7, minConfidence: 0.5 })],
+    config: { lmProvider: 'none', systemOne: { enabled: false } },
+  },
+
+  // Variant B: LM contributes background knowledge NAL lacks (llamacpp-embedded)
+  {
+    name: 'LM formalizes missing premise → NAL derives answer (LM on)',
+    // Question requires "water is wet" — NOT in seed KB
+    premises: [],  // empty KB
+    cycles: 5,
+    // With LM: PerceptionGate admits LM-formalized (water --> wet) via admitFormalization
+    // NAL then uses it as premise; trace shows lm-narsese-translation → revision/deduction
+    expect: [expectDerivation('(water --> wet)', { minConfidence: 0.5 })],
+    config: { lmProvider: 'llamacpp-embedded', systemOne: { enabled: true } },
+    // Derivation trace must show: ruleId 'lm-narsese-translation' produced the premise,
+    // sourceQuality 'LLM_PRIOR', confidence ≤ 0.5 (LM ceiling)
+    traceMustContain: ['lm-narsese-translation', 'LLM_PRIOR'],
+  },
+
+  // Variant C: System One heads actually adjudicate — they change the outcome
+  {
+    name: 'System One heads filter/route — ambiguous input gets clarification, not belief',
+    premises: [],
+    cycles: 3,
+    // Ambiguous NL: "The bank is closed" — could be river or financial
+    // Heads: ambiguity → high, task_type → question, source_quality → LLM_PRIOR
+    // Without heads: admitted as belief (wrong)
+    // With heads: ambiguity head abstains → clarification Question injected + curiosity drive
+    expect: [
+      { kind: 'question-injected', term: '(bank --> ?ambiguity)?' },
+    ],
+    config: { lmProvider: 'llamacpp-embedded', systemOne: { enabled: true } },
+    // Trace must show: manifold judged, ambiguity head abstained, clarification injected
+    traceMustContain: ['ambiguity', 'abstained', 'clarification'],
   },
 ]);
 ```
 
-**Three assertions beyond today's e2e (each is a gap named by review, not new architecture):**
+**Four assertions beyond today's e2e (each is a gap named by review, not new architecture):**
 
-1. **LM-optional** — the run above must pass with **no LM credentials** (`LM_PROVIDER=none`). The
-   epistemic firewall's public promise is "every cognitive function has a symbolic path; none depends
-   on LM availability" (`README`, §Neuro-Symbolic) — it is asserted nowhere at pipeline level.
-2. **Budget-in-bounds** — after the run, `ControlBudgets` spend summary must show every scope within
-   its declared limit. §5.8's matrix *predicts* the shape; nothing *asserts* it. Cheap: one read of
-   the spend summary.
-3. **Tool leg** — one `nar.tools.execute('explain', { term })` call inside the same run, asserting
-   the tool sees the derived belief. ActionGate → tool → observation loop has no pipeline-level test.
+1. **LM-optional** — Variant A must pass with **no LM credentials** (`LM_PROVIDER=none`, System One off). The epistemic firewall's public promise is "every cognitive function has a symbolic path; none depends on LM availability" (`README`, §Neuro-Symbolic) — it is asserted nowhere at pipeline level.
+2. **LM fills KB gaps** — Variant B passes *only* with `llamacpp-embedded` on. Same question fails in Variant A. The derivation trace (`M8`) shows the LM's fingerprints: `lm-narsese-translation` → `admitFormalization` (source `LLM_PRIOR`, ceiling 0.5) → NAL revision/deduction. No comparison run needed — the trace *is* the proof.
+3. **System One heads adjudicate** — Variant C proves the 19-head manifold does useful work: `ambiguity` head detects ambiguity → abstains → `PerceptionGate` injects a clarification Question + curiosity drive instead of admitting a malformed belief. With heads disabled, the same input is admitted as a belief. The trace shows the head's decision changing the pipeline outcome.
+4. **Budget-in-bounds** — after each run, `ControlBudgets` spend summary must show every scope within its declared limit. §5.8's matrix *predicts* the shape; nothing *asserts* it. Cheap: one read of the spend summary.
+5. **Tool leg** — one `nar.tools.execute('explain', { term })` call inside the same run, asserting the tool sees the derived belief. ActionGate → tool → observation loop has no pipeline-level test.
 
-**Depends on:** §4.3 T-J only when `systemOne.enabled: true` — M1's default config must run with
-System One **off** (that is the byte-identical path TODO29.a guaranteed) and, optionally, a second
-variant with it on once §4.3 is decided.
+**Depends on:** §4.3 T-J (J must admit for System One ingress) — M1 Variant B/C run with System One **on** only after §4.3 is decided. Variant A runs with System One **off** (the byte-identical path TODO29.a guaranteed) and is the default CI gate.
 
-**Gate:** `e2e:pipeline` in `scripts/lib/gates.ts` + `ci.yml`, same commit.
+**Gate:** `e2e:pipeline` in `scripts/lib/gates.ts` + `ci.yml`, same commit. CI matrix runs Variant A always; Variants B/C only when `LM_PROVIDER=llamacpp-embedded` is available (skipped otherwise, results appended to `docs/e2e-pipeline.md`).
 
 ---
 
