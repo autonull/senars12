@@ -89,3 +89,59 @@ the point.
 ## Outcome
 
 _(not yet run — see `TODO29.a.md` §11.1)_
+
+---
+
+## Result 2026-10-02 — macro-falsified, micro-disagrees (5 seeds, appended without touching the above)
+
+Command (nothing above this line was edited to favour it):
+
+```text
+LM_PROVIDER=llamacpp-embedded LM_LLAMACPP_MODEL=.models/Qwen3.5-0.8B-Q4_0.gguf \
+pnpm exec tsx scripts/arcade.ts -- --games snake,bandit,tictactoe \
+  --arms nal,manifold,lm --episodes 3 --seed 7 --seeds 5
+```
+
+Per-seed macroBrier (`[seed N] lm manifold nal` as printed):
+
+| seed | lm | manifold | nal |
+|---|---|---|---|
+| 7 | 0.3742 | 0.2447 | 0.2013 |
+| 8 | 0.3338 | 0.2498 | 0.2183 |
+| 9 | 0.3324 | 0.2635 | 0.2505 |
+| 10 | 0.3386 | 0.2633 | 0.2384 |
+| 11 | 0.3473 | 0.2611 | 0.2375 |
+
+Aggregate (mean ± sd over seeds):
+
+| arm | macroBrier | microBrier |
+|---|---|---|
+| lm | 0.3452±0.0154 | 0.2692±0.0013 |
+| manifold | 0.2565±0.0078 | 0.1132±0.0050 |
+| nal | 0.2292±0.0173 | 0.2745±0.0158 |
+
+Against the four pre-registered conditions:
+
+1. **`lm` below `nal`: NO — falsified.** 0.345 vs 0.229, same ordering on all 5 seeds.
+2. **`manifold` below `nal`: NO — falsified.** 0.257 vs 0.229, same ordering on all 5 seeds.
+3. **Survives seeds: yes, in the wrong direction.** The ordering `nal < manifold < lm` holds on
+   every seed; the gap is real and it is not the thesis's.
+4. **Moot** — neither beats `nal`.
+
+The doc's own measurement rule fires as well: microBrier says `manifold` (0.113) beats both,
+macro says `nal`. A difference surviving only one of the two is a difference about tick counts,
+not decisions — so the honest reading is macro-falsified *and* measurement-disagreeing.
+
+Confounds, recorded so the next run knows what it must remove rather than what it must find:
+
+- **J was never fitted.** The manifold arm ran on untrained stub heads (TODO30 §4.3 open) —
+  `manifold` here is hash scores plus an abstain threshold, not a calibrated layer.
+- **Arm asymmetry.** `nal` forces cognitive mode (seeded rules + NAL veto shaping play);
+  `lm`/`manifold` run without it. The control gets symbolic help the challengers don't.
+- **Small model, small games.** Qwen3.5-0.8B; snake/bandit/tictactoe. Nothing here generalises
+  beyond this harness.
+- **The first attempt at this run was void** and is not evidence: the arcade wrapped reflexes
+  in adapters that (a) dropped `prefetch` so `lm`/`manifold` never consulted anything but the
+  epsilon-greedy fallback, and (b) hid proposals from the recorder so `predicted ≡ 0.5` and every
+  Brier was exactly 0.25. Fixed in the `fix(arcade)` commit (adapters forward `prefetch`
+  awaitably; recording sits outermost); the void numbers were never written here.

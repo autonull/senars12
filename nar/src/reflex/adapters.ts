@@ -75,6 +75,7 @@ export const vetoAwareReflex =
         inner.learn(e);
       },
       prefetch: (...args: unknown[]) => duckPrefetch(inner, args),
+      getLastProposals: () => (inner as AdapterReflex).getLastProposals?.() ?? [],
     };
   };
 

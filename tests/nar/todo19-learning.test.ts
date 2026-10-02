@@ -203,8 +203,22 @@ describe('Bench 45 — Learning Closure', () => {
       prefetch: () =>
         new Promise<void>((resolve) => setImmediate(() => ((settled = true), resolve()))),
     } as Reflex & { prefetch: () => Promise<void> };
-    const reflex = wrapReflex(inner, vetoAwareReflex(), recordingReflex());
+    const reflex = wrapReflex(inner, recordingReflex(), vetoAwareReflex());
     await (reflex as { prefetch: () => unknown }).prefetch();
     expect(settled).toBe(true);
+  });
+
+  it('arcade chain exposes the post-veto proposals actually decided on', () => {
+    const proposals: ActionProposal[] = [
+      { action: 'a', value: 0.9, confidence: 0.9, source: 'base' },
+      { action: 'b', value: 0.5, confidence: 0.4, source: 'base' },
+    ];
+    const reflex = wrapReflex(baseReflex(proposals), recordingReflex(), vetoAwareReflex());
+    const decided = reflex.propose({}, []);
+    expect(decided.map((p) => p.action)).toEqual(['a', 'b']);
+    const recorded =
+      (reflex as { getLastProposals?: () => ActionProposal[] }).getLastProposals?.() ?? [];
+    expect(recorded.map((p) => p.action)).toEqual(['a', 'b']);
+    expect(recorded.length).toBeGreaterThan(0);
   });
 });

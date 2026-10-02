@@ -320,7 +320,7 @@ async function main(): Promise<void> {
         continue;
       }
       if (built.headLoaded) notes.push(`${arm}/${gameName}: distilled reflex_value head active`);
-      const recording = wrapReflex(built.reflex, vetoAwareReflex(), recordingReflex());
+      const recording = wrapReflex(built.reflex, recordingReflex(), vetoAwareReflex());
       let promotedCount = 0;
       for (let e = 0; e < episodes; e++) {
         const game = gameRegistry.create(gameName, baseSeed + e) as GameInterface<
@@ -490,6 +490,9 @@ async function main(): Promise<void> {
   }
   for (const note of notes) console.log(`note: ${note}`);
   console.log('reports → .reports/arcade.{json,md}');
+  // Batch script: native handles (embedded llama session) keep the loop alive
+  // after the reports are written — exit rather than idle on GPU power.
+  process.exit(0);
 }
 
 main().catch((e) => {

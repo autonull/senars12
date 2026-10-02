@@ -51,6 +51,7 @@ out of is not a system yet.**
 > | **landed** | §3.3 R3 (A11) — `DECISION_CALL_SITES.at` now uses `file:line` + `contains` | `nar/src/decision/call-sites.ts`, gate `config:model-matrix` |
 > | **landed** | §3.3 R3 (A10: content/rule revision counter) — scope table owns the vocabulary | `nar/src/kernel/budget-scopes.ts`, gate `control-budgets` |
 > | **landed (mechanism)** | §4.1 T-Q3 `--seeds n` — runs the matrix n times (seeds `seed..seed+n-1`), prints per-seed macroBrier plus mean ± sd per arm | `scripts/arcade.ts`, smoke-verified `--seeds 2` on `random` (0.1863±0.0084) |
+> | **run 2026-10-02** | §4.1 experiment — snake,bandit,tictactoe × nal,manifold,lm × 5 seeds (embedded Qwen3.5-0.8B): macro lm 0.3452±0.0154 / manifold 0.2565±0.0078 / **nal 0.2292±0.0173** — thesis macro-falsified, micro disagrees (manifold 0.113 best); numbers appended to `docs/thesis-hypothesis.md` | full outcome + confounds in the hypothesis doc; rerun needs fitted J (§4.3) + symmetric arms |
 > | **measured** | §1.3 U3 acceptance — candidates-examined vs derivations-accepted at 1/3/10 cycles on the §0.2 transcript: 84/6, 1428/193, 28665/893 | throwaway probe (deleted), numbers in §9 |
 > | **profiled** | §5.1 first cut — 2000-cycle cpu-prof of `profile-scenario`: GC 7%, id generation ~10%, `applySyncRules` ~6%, telemetry+prom-client ~4% | `scripts/profile-scenario.ts` + `analyze-profile.ts`, numbers in §9 |
 > | not started | §4.2 (explicitly not next), §4.3, §5.2–§5.9 | — |
@@ -700,6 +701,8 @@ anything.
 | **§3.3 R3 (A11) — `DECISION_CALL_SITES.at` now uses `file:line` + `contains` substring** | ✅ **landed** | **`config:model-matrix`** |
 | **§1.3 U3 acceptance — candidates/accepted measured 84/6, 1428/193, 28665/893** | ✅ **measured** | **`control-budgets` (numbers in §9)** |
 | **§5.1 first profile — 2000-cycle cpu-prof, no single bottleneck (§9)** | ✅ **profiled** | **(measurement, no gate)** |
+| **§4.1 Q3 run — 5 seeds, thesis macro-falsified (nal 0.229 < manifold 0.257 < lm 0.345)** | ✅ **run + recorded** | **hypothesis doc Result 2026-10-02** |
+| **arcade harness: adapters forward `prefetch` awaitably; recording outermost; `process.exit(0)` after reports** | ✅ **fixed** | **todo19-learning (11 tests)** |
 
 ### Remaining Failures (T1/T2 ripple)
 
@@ -726,7 +729,7 @@ anything.
    - ~~A11: `DECISION_CALL_SITES.at` format updated~~ ✅
 10. **§1.3 U3 — candidate-derivations budget scope** — declared in `BUDGET_SCOPES`, charged in `RuleProcessor.applySyncRules`, default limit 16384/cycle, measured via `control-budgets` gate ✅ **plus acceptance measurement 2026-10-02**: 84/6, 1428/193, 28665/893 examined/accepted at 1/3/10 cycles (§9). Cap is a guardrail, not a lever — mean ~2.9k/cycle never nears it.
 11. **§4.1–4.3** — thesis items:
-    - §4.1 mechanism ✅ (`--seeds n` + mean ± sd, smoke-verified). The *experiment itself* (nal/manifold/lm arms, `--seeds 5+`) is NOT run — it needs `LM_LLAMACPP_MODEL` for the `lm` arm and a decision on §4.3 for the `manifold` arm. When run, append numbers below the rule in `docs/thesis-hypothesis.md` (never edit above it).
+    - §4.1 mechanism ✅ + **experiment RUN 2026-10-02** (embedded Qwen3.5-0.8B, 5 seeds): macro lm 0.3452 / manifold 0.2565 / nal 0.2292 — conditions 1–2 falsified, ordering stable across seeds, micro disagrees. Numbers appended below the rule in `docs/thesis-hypothesis.md` (nothing above touched). Rerun is blocked on O5 (fitted J, symmetric arms), not on hardware.
     - §4.2 explicitly not next (plan's own verdict).
     - §4.3 OPEN — investigation mapped the mechanism, decision required before code (see new note below).
 12. **§5.1 (first cut ✅ 2026-10-02)** — 2000-cycle cpu-prof: no single bottleneck; GC 7%, id gen ~10%, telemetry ~4.5% (§9, §5.1 row). **§5.2–§5.9** remain — now ordered against this profile, not the fused-system one.
@@ -739,6 +742,8 @@ anything.
 | O2 | **Telemetry costs ~4.5% on the cycle path** (`recordGateDecision` + prom-client `setValue`/`fastHashObject`) | §5.1 cpu-prof | gate the per-decision recording behind a sample rate or move label-hashing out of the hot path |
 | O3 | **Acceptance yield 3% at 10 cycles** — 28.6k candidates examined for 893 accepted, 133 committed | U3 measurement §9 | goal-directed derivation (option A, §1.2) or a candidate budget that stops the exhaustive intersection expansion; a better relevance *score* is not the lever (§1.2's own note) |
 | O4 | **R3 leftovers still open**: `DECISION_ASK_TIMEOUT_MS` flat 500ms with no per-site variance; no snapshot-version check on read | §3.3 table | both tiny, independent, still unowned — next session may take either without touching §5 |
+| O5 | **Q3 rerun preconditions (2026-10-02 run macro-falsified the thesis)** | hypothesis doc Result section | fit J (§4.3) before rerunning `manifold`; run all arms in the same mode (today `nal` alone gets cognitive veto — an arm asymmetry that may explain its edge); consider a larger model than 0.8B. Do NOT rerun the same matrix hoping for a better number |
+| O6 | **Distillation claim needs re-verification** — "distilled student matches teacher" was measured while the `lm` arm never served an LM decision (prefetch bug, now fixed); the teacher was epsilon-greedy | `fix(arcade)` commit | rerun `demo:arcade -- --distill` and check the student learns anything beyond the incumbent |
 
 ### Invariant Checklist (per §7)
 
