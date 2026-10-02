@@ -28,7 +28,7 @@ mostly *tests over existing machinery*, not new plumbing.
 | # | milestone | one-line test | status |
 |---|-----------|---------------|--------|
 | **M1** | **End-to-end pipeline** | NL → PerceptionGate → NAL → QueryAPI → NL, LM-optional, in-budget | ✅ done — tests/nar/e2e/07-full-pipeline.test.ts |
-| **M2** | **Egress judging** | System One judges NAL conclusions before admission (opt-in) | **not started — last**, seam read, see §Notes for M2 |
+| **M2** | **Egress judging** | System One judges NAL conclusions before admission (opt-in) | ✅ done — tests/nar/e2e/14-egress-invariant.test.ts |
 | **M3** | **MeTTa verified** | `metta` tool executes a MeTTa program via ActionGate | ✅ done — tests/nar/e2e/08-metta-tool.test.ts |
 | **M4** | **Crash/recovery** | Kill/restart NAR, event-log-replay state = snapshot state | ✅ done — tests/nar/e2e/09-restart-equivalence.test.ts |
 | **M5** | **Reward→policy learning** | Reward changes a real policy observable, never Truth | ✅ done — tests/nar/e2e/11-reward-policy.test.ts |
@@ -106,43 +106,106 @@ describeReasoning('Full pipeline — NL in, grounded answer out', [
 
 ---
 
-## M2: Egress Judging — **last, opt-in, gate-invariant**
+## M2: Egress Judging — **done**, opt-in, gate-invariant
 
-**The only genuinely new architecture in this plan.** System One judges *ingress* (raw NL); NAL
-conclusions are admitted by `rankDerivations`' symbolic score alone. TODO30 §7's invariant —
-"optimization may never change **what counts as** committed state" — makes this a **decision**, and
-the decision is: behind a config flag (`systemOne.egressJudging: true`, default false), or not at all.
+System One judges *ingress* (raw NL); NAL conclusions were admitted by `rankDerivations`' symbolic
+score alone. TODO30 §7's invariant — "optimization may never change **what counts as** committed
+state" — makes this a **decision**, and the decision was: behind a config flag
+(`systemOne.egressJudging`, default **false**), or not at all.
 
-**Corrections from review (the v1.0 draft understated this):**
+**Gate:** `egress:invariant` — `tests/nar/e2e/14-egress-invariant.test.ts`.
 
-- **`coherence` is not a head.** The 19-head registry (`HEAD_SPECS`) has `groundedness` and `risk`;
-  the v1.0 sketch named a head that does not exist. The viable v1 shape: judge derived conclusions
-  through the **existing** `groundedness` head (does the derivation support the conclusion?) and the
-  existing veto registry — adding a head is a separate, later decision.
-- **This re-opens TODO29.a's gates if landed carelessly.** The admission path is
-  `rankDerivations` → `admit` — one committed transition (§7.6). Egress judging must sit *beside*
-  that as a veto input, never as a second admission path.
+### Three properties, and each is load-bearing
+
+- **It only ever *removes*.** The candidates are the ones `rankDerivations` is about to select, so
+  a veto can shrink the committed set and never widen it. §7's invariant holds **by construction
+  rather than by review**. It runs *before* ranking, so a vetoed candidate never consumes an
+  admission slot it would not have taken anyway.
+- **It is not a second admission path.** Survivors go through `admit()` — the same gate, the same
+  event, the same committed transition. There is no other route into memory.
+- **Absence means no veto, and is recorded** — deliberately the **opposite** of ingress, which
+  fails *closed*. The baselines differ, and that is the whole reason: ingress would otherwise let
+  an injection through unjudged, whereas here the symbolic ranking **has already run**, so a dead
+  judge costs the extra safety net and nothing else. Failing closed would halt cognition on a
+  provider fault, which is the one thing a bounded runtime may not do. A fault, an abstention and
+  a timeout therefore all return the candidate unchanged — and log, because a silently dropped
+  veto is the failure mode worth avoiding.
+
+### Three corrections to this section, all found by reading the code
+
+The v1.1 sketch was wrong in three ways. Each was caught by reading, not by a failing test, which
+is the argument for reading:
+
+1. **`risk` is declared `axis: 'teleological'`.** Using it to judge admission would **cross the
+   epistemic firewall rather than enforce it** — the plan's own central claim, violated by its own
+   suggestion. The head is **`conflict`** (`nar/src/lm/system-one/head-specs.ts:155`): epistemic,
+   `evaluate`, levels `support → strong-conflict`, and the one head that asks the right question of
+   a *conclusion*. The `zod` schema pins the literal, so the wrong axis is unrepresentable.
+2. **`manifold.judgeBatch` does not take `{ space, candidates }`.** It takes an `EmbeddingPointer`
+   and a list of queries — it judges *embeddings*, not NAL terms. So an `evaluate` query had **no
+   way to name what it judged**, and the sketch's N candidate judgments would have been N identical
+   judgments of the ambient context. `EvaluateQuery` gained a `target` field, mirroring the one
+   `ClassifyQuery` already had. This is the change that makes the feature *mean* anything.
+3. **The plan put the veto on `KernelPerceptionGate`.** Putting it there would have been exactly
+   the second admission path §7.6 forbids. It lives in `nar-execution.ts` beside the existing
+   `rankForAdmission` — the same stage, the same gate, the same declared budget scope — because
+   that is where a decision may already be consulted without becoming a new route in.
+
+### What else changed to make the declaration load-bearing
+
+- **`DecisionCallSite` is now a discriminated union** (`JudgmentCallSite | SynthesisCallSite`).
+  `position` is the literal `'cycle'` for a `J` site, so a caller can read its own declaration
+  straight back into the request the declaration describes. Typed loosely, the manifest and the
+  request type disagreed about `position` — the declaration and the code, two stories about one fact.
+- **`manifestViolations` takes an `UntrustedCallSite`.** With the union in place, a gate typed on
+  `DecisionCallSite` cannot be tested on the shapes it exists to catch — the type rejects them
+  first. The gate's contract is with data it did not compile, so it now says so.
+- The stale `at:` addresses in the manifest were corrected (462/518); one had already drifted.
+
+### Configuration
 
 ```typescript
-// nar/src/kernel/KernelPerceptionGate.ts — opt-in, default off
-async admitDerived(conclusion: Task, record: DerivationRecord): Promise<AdmitVerdict> {
-  if (!this.config.egressJudging) return { admitted: true };  // byte-identical path
-  const judgment = await this.manifold.judgeBatch({
-    space: 'epistemic',
-    candidates: [{ term: conclusion.term, derivationId: record.derivationId }],
-  });  // groundedness + risk only — no invented heads
-  return judgment.verdicts[0];
+systemOne: {
+  egressJudging: {
+    enabled: false,       // opt-in; the default is off at the schema level
+    rubric: 'conflict',   // z.literal — a teleological head is unrepresentable
+    maxCandidates: 4,     // bounded: one embedding per candidate
+    vetoThreshold: 0.75,  // the rubric legend is ordered, so score *is* the level
+  },
 }
 ```
 
-**Test:** with the flag on and the veto registry seeded, a bad-action derivation vetoes its own
-admission; with the flag off, the committed set is byte-identical to today's (the TODO29.a
-invariance shape).
+`maxCandidates` is bounded on purpose: an `evaluate` head judges one embedding, so an unbounded
+sweep would make cognition's cost track `ranking.maxAdmissions` instead of the configuration that
+declared it. The gate asserts the bound (`≤ cycles × maxCandidates`) *and* that the judge was
+consulted at all — otherwise the bound is satisfied by a veto that never runs, which is the vacuous
+way to pass it.
 
-**Gate:** `egress:invariant` — flag-off runs assert the identical committed set; in `gates.ts` +
-`ci.yml`, same commit.
+### Test
 
----
+Five tests, and the first is the one that matters:
+
+- **flag off** — a NAR with the port bound commits exactly what a NAR with no port commits
+- **flag off** — the schema default is off, so upgrading cannot silently grant a veto
+- **flag on** — a high-conflict conclusion is vetoed; the committed set is a strict **subset** of
+  the baseline, never a superset
+- **flag on** — `null`, an abstention and a timeout all mean no veto, and cost the symbolic path
+  nothing
+- **flag on** — the judge is consulted, and bounded
+
+Both veto tests were verified to **fail** with the implementation removed. The first three failures
+found while writing it were the test's own fault, and instructive: the fake port also receives the
+pre-existing `admission-order` asks, which have no `target` and are not bounded by
+`maxCandidates`. A test about egress must select its asks out of the traffic rather than assume it
+is the only caller.
+
+### Still open
+
+No production code binds a `DecisionPort` — it is exercised today only by tests. The veto is
+therefore a no-op in a default deployment, which is the correct posture (opt-in) but means **M2's
+value is not yet realized end to end**. Binding the manifold as the port in the composition root is
+the natural next step, and is a separate decision: it turns an opt-in flag into a live filter, so
+it deserves its own commit and its own gate.
 
 ## M3: MeTTa Verified — **wiring already exists**
 
@@ -401,7 +464,10 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 - M8: `tests/nar/e2e/10-derivation-explainability.test.ts` ✅
 - M9: `tests/nar/e2e/12-derivation-quality.test.ts` ✅ (fixed TypeScript errors)
 
-**M2 (Egress judging)** remains explicitly **not started — last**, per plan ordering.
+**M2 (Egress judging) landed this session** — opt-in, bounded, gate-invariant, gated by
+`egress:invariant`. All nine milestones are now complete and gated. The one thing M2 does
+*not* do is run in a default deployment: no production code binds a `DecisionPort`, so see
+§M2 **Still open**.
 
 ### Gate wiring (this session) — the milestones were proven but ungated
 
@@ -541,33 +607,10 @@ next intentional change rather than permanently red.
    assertions. A test whose assertions are implied by its own setup is either missing its
    real assertion or does not need the setup; worth a look when triaging slow suites,
    because the failure mode is a test that can only fail for environmental reasons.
-4. **`productionLOC` baseline now sits exactly at its measurement** (72 993). Armed and
-   correct, but worth remembering that the M9 canonicalization work cost ~370 lines. If
-   that growth is ever revisited, this ledger entry is the receipt.
-
-### Notes for M2 (the remaining milestone)
-
-Still last, still opt-in, still `egress:invariant`. Its `scripts/e2e-gates.ts` entry is
-not written, because the gate's assertion (flag-off committed set byte-identical to
-today's) needs the flag before the runner does.
-
-The seam is already proven and should be **mirrored, not invented**:
-
-- `KernelPerceptionGate` takes an opt-in `systemOne.judge` `IngressJudge` port with a
-  fail-closed timeout (`nar/src/kernel/KernelPerceptionGate.ts:37-92`). A judge that
-  faults *or* expires takes one refusal path, because judging an untrusted observation is
-  gating — degrading to unjudged admission on expiry would bypass the veto the judge
-  exists to apply. Egress judging should fail closed the same way.
-- The admission path is `rankDerivations` → `admit`, **one** committed transition (§7.6).
-  Egress sits beside it as a veto *input*; a second admission path is what re-opens
-  TODO29.a's gates.
-- **Open question to settle first:** the plan names `groundedness` as the egress head,
-  but `groundednessGate` already exists as a *narration* gate, and M2's test wants "a
-  bad-action derivation vetoes its own admission" — which is the ActionGate veto registry.
-  Confirm egress reuses that path rather than inventing a parallel one.
-- The invariance test it needs already exists in `tests/nar/todo29a-a2.test.ts` /
-  `todo29a-a10.test.ts`; M2's real work is the `admitDerived` veto beside
-  `rankDerivations`, not new plumbing.
+4. **`productionLOC` baseline moves with the work** (72 624 → 73 078). M9's canonicalization
+   cost ~370 lines and M2's egress judging ~85. Armed at each measurement, so the ratchet
+   catches *unintentional* growth; if either feature's size is ever revisited, this ledger
+   entry is the receipt.
 
 ## Invariant Checklist
 
@@ -594,7 +637,7 @@ The seam is already proven and should be **mirrored, not invented**:
 
 - [ ] **LM fills KB gaps** (M1 Variant B) — `skipIf` on `llamacpp-embedded`; never run green
 - [ ] **System One heads adjudicate** (M1 Variant C) — same
-- [ ] **Egress judging is gate-invariant** (M2) — not started
+- [x] **Egress judging is opt-in, bounded, and can only remove** (M2)
 
 ---
 
@@ -613,5 +656,19 @@ M2, M3, M5 are *capability depth* — valuable, sequenced after the exit criteri
 with the gate discipline (in `gates.ts` + `ci.yml`, same commit, flippable) the whole programme runs
 on.
 
-**All six exit criteria met, each by a gate in `ci.yml` rather than by a file that exists.**
-M3 and M5 have since landed and are gated too, so the only outstanding milestone is M2.
+**All nine milestones are complete and each is gated.** Six gates, in `scripts/e2e-gates.ts`
+(one table), `scripts/lib/gates.ts` and `.github/workflows/ci.yml`:
+
+| gate | milestones |
+|------|-----------|
+| `egress:invariant` | M2 |
+| `e2e:pipeline` | M1 · M3 · M6 · M7 |
+| `persistence:replay` | M4 |
+| `derivation:verifiable` | M8 |
+| `reward:policy-only` | M5 |
+| `derivation:clean` | M9 |
+
+**What is *not* done is narrower than what is:** M1 Variants B and C have never executed (§M1,
+`skipIf` on `LM_PROVIDER=llamacpp-embedded`), and M2's veto has no production port bound (§M2,
+**Still open**). Both are the same shape of gap — machinery proven against a test double, with no
+production wiring behind it yet.
