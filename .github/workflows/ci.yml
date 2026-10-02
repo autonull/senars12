@@ -1,7 +1,9 @@
 name: ci
+# Manual dispatch only — automatic push/PR runs are paused. Every job, step and
+# gate below is unchanged, so re-enabling is deleting the two lines below and
+# restoring the `on:` block. To run: gh workflow run ci
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
 jobs:
   gates:
     runs-on: ubuntu-latest

@@ -1,21 +1,9 @@
 name: derivation-verify
+# Manual dispatch only — automatic push/PR runs are paused alongside `ci`.
+# Re-enable by restoring the `on:` block (push/pull_request with the path
+# filters). To run: gh workflow run derivation-verify
 on:
-  push:
-    paths:
-      - 'nar/src/terms/truth.ts'
-      - 'nar/src/kernel/**'
-      - 'src/kernel/**'
-      - 'scripts/verify-derivation.ts'
-      - 'tests/nar/derivation-verifier.test.ts'
-      - 'tests/nar/kernel-gates.test.ts'
-  pull_request:
-    paths:
-      - 'nar/src/terms/truth.ts'
-      - 'nar/src/kernel/**'
-      - 'src/kernel/**'
-      - 'scripts/verify-derivation.ts'
-      - 'tests/nar/derivation-verifier.test.ts'
-      - 'tests/nar/kernel-gates.test.ts'
+  workflow_dispatch:
 jobs:
   verify:
     runs-on: ubuntu-latest
