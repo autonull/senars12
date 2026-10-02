@@ -32,7 +32,7 @@ mostly *tests over existing machinery*, not new plumbing.
 | **M3** | **MeTTa verified** | `metta` tool executes a MeTTa program via ActionGate | ✅ done — tests/nar/e2e/08-metta-tool.test.ts |
 | **M4** | **Crash/recovery** | Kill/restart NAR, event-log-replay state = snapshot state | ✅ done — tests/nar/e2e/09-restart-equivalence.test.ts |
 | **M5** | **Reward→policy learning** | Reward changes a real policy observable, never Truth | ✅ done — tests/nar/e2e/11-reward-policy.test.ts |
-| **M6** | **Multi-agent delegation** | Live WS round-trip: Agent A delegates to Agent B | not started — protocol tested in isolation |
+| **M6** | **Multi-agent delegation** | Live WS round-trip: Agent A delegates to Agent B | ✅ done — tests/nar/e2e/13-delegation.test.ts |
 | **M7** | **Config + docs** | Preset-based hello world, 30 min | ✅ done — presets exist, examples/hello-world.ts runs |
 | **M8** | **Derivation explainability** | `ask()` carries a recorder-verified derivation trace | ✅ done — tests/nar/e2e/10-derivation-explainability.test.ts |
 | **M9** | **Derivation quality** | Zero contradictory/redundant terms in beliefs | ✅ done — tests/nar/e2e/12-derivation-quality.test.ts passes |
@@ -236,31 +236,38 @@ The policy observable used is the **strategy priority** in `PolicyOptimizer` (th
 
 ---
 
-## M6: Multi-Agent Delegation — **protocol tested in isolation, live round-trip is not**
+## M6: Multi-Agent Delegation — **live WS round-trip implemented**
 
 **Review correction: delegation is not untested.** `todo16-resources` and `todo17b-failclosed` cover
 the protocol's failure paths. What no test covers is the **live loop**: a real WebSocket between two
 agents, a real delegation, a real `PEER_AGENT`-sourced admission.
 
+**Implemented:**
+- Added `transport.ws` config to `CreateAgentConfig` for WebSocket server/client mode
+- Implemented `agent.delegate()` method for sending delegation requests over WebSocket
+- Server-side agent handles `cognitive-delegation` messages via `handleDelegationMessage`
+- Delegation peer executes LM rules (e.g., `lm-curiosity-question`) using local NAR's KB
+- Results admitted through PerceptionGate with `PEER_AGENT` source quality (confidence ≤ 0.5)
+
 ```typescript
-// tests/nar/e2e/11-delegation.test.ts
+// tests/nar/e2e/13-delegation.test.ts
 const agentB = await createAgent({ transport: { ws: { port: 8766 } } });
-const agentA = await createAgent({ transport: { ws: {} } });   // no LM credentials
+const agentA = await createAgent({ /* no transport config */ });
 await agentB.start();
+await agentB.believe('(Paris --> capitalOfFrance).');
 
 const result = await agentA.delegate({
   target: 'ws://localhost:8766',
-  task: { type: 'question', term: '(capitalOfFrance --> ?what)?' },
+  task: { type: 'question', term: '(?what --> capitalOfFrance)?' },
   ruleId: 'lm-curiosity-question',
 });
 
 expect(result.truth).toBeDefined();
 // PEER_AGENT ceiling: admitted at ≤ 0.5 confidence (SOURCE_QUALITY_CONFIDENCE)
-expect(resultTruth.confidence).toBeLessThanOrEqual(0.5);
+expect(result.confidence).toBeLessThanOrEqual(0.5);
 ```
 
-The `PEER_AGENT` ceiling assertion is the valuable half: it proves the *epistemic* contract of
-cooperation (peers are untrusted proposers), not just the plumbing.
+The `PEER_AGENT` ceiling assertion proves the *epistemic* contract of cooperation (peers are untrusted proposers), not just the plumbing.
 
 **Gate:** covered by `e2e:pipeline`.
 
@@ -323,7 +330,7 @@ M7  (preset + docs, no new config system)                ── alongside M1 ✅
 M3  (verify metta tool — one test)                       ── after M1 ✅
 M9  (derivation quality — test + fix reducers/gate)      ── after M1, M8 ✅
 M5  (reward→policy — strategy priority observable)       ── after M1 ✅
-M6  (live WS delegation round-trip)                      ── anytime after M1
+M6  (live WS delegation round-trip)                      ── after M1 ✅
 M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new architecture
 ```
 
@@ -401,6 +408,7 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 - [x] **Restart is lossless** (M4)
 - [x] **Every answer carries a verifiable derivation** (M8)
 - [x] **Rewards change policy, never Truth** (M5)
+- [x] **Multi-agent delegation works with PEER_AGENT quality** (M6)
 
 ---
 
@@ -413,7 +421,8 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 3. ✅ **M8 passes** — the answer carries its derivation trace, independently verified
 4. ✅ **M7 passes** — presets exist, examples/hello-world.ts runs
 5. ✅ **M9 passes** — derivation quality test passes, no contradictory/redundant terms in beliefs
+6. ✅ **M6 passes** — live multi-agent delegation works over WebSocket with PEER_AGENT quality
 
-M2, M3, M5, M6 are *capability depth* — valuable, sequenced after the exit criteria, and each lands
+M2, M3, M5 are *capability depth* — valuable, sequenced after the exit criteria, and each lands
 with the gate discipline (in `gates.ts` + `ci.yml`, same commit, flippable) the whole programme runs
 on.

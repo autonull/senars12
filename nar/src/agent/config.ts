@@ -3,6 +3,7 @@ import type { PersistableSessionManager } from '@senars/core/memory';
 import type { MettaPort } from '@senars/core/metta-port';
 import type { EpisodicMemory, LMService, NAR } from '../index.js';
 import type { ThreadScope } from '../kernel/thread-scope.js';
+import type { ConnectionConfig } from '@senars/util/types/transport';
 
 export interface CreateAgentConfig {
   nar?: NAR;
@@ -34,4 +35,6 @@ export interface CreateAgentConfig {
   sessionManager?: PersistableSessionManager;
   /** Phase A (REFACTOR.todo4): per-correlationId scope for ContrastiveMemory isolation. */
   threadScope?: ThreadScope;
+  /** Transport configuration for multi-agent communication (e.g., WebSocket). */
+  transport?: { ws?: { port?: number; host?: string } };
 }
