@@ -1,6 +1,7 @@
 import { BoundedRing, createLogger, errMsg, mean, roundTo } from '@senars/util';
 import { envBool } from '@senars/util/config';
 import type { CognitiveController } from './cognitive';
+import { ADMISSION_ORDER_CALL_SITE } from './decision/call-sites.js';
 import type { DriveManager } from './drives';
 import type { NARConfig } from './facade/config.js';
 import { DECISION_DERIVATIONS_SCOPE } from './kernel/budget-scopes.js';
@@ -453,14 +454,18 @@ export class NARExecution {
     const ranked = rankDerivations(results, ranking);
     if (!this.decision || ranked.length === 0) return ranked;
 
-    const answer = await askSafely(this.decision, {
-      kind: 'classify',
-      instruction: 'Which of these conclusions should be admitted first?',
-      space: ranked.map((task) => task.term.toString()),
-      axis: 'epistemic',
-      budget: DECISION_DERIVATIONS_SCOPE,
-      position: 'cycle',
-    });
+    const answer = await askSafely(
+      this.decision,
+      {
+        kind: 'classify',
+        instruction: 'Which of these conclusions should be admitted first?',
+        space: ranked.map((task) => task.term.toString()),
+        axis: 'epistemic',
+        budget: DECISION_DERIVATIONS_SCOPE,
+        position: 'cycle',
+      },
+      ADMISSION_ORDER_CALL_SITE.timeoutMs
+    );
     if (answer?.kind !== 'classify' || answer.abstained) return ranked;
 
     // Restricted to the terms the decision was shown and the symbolic ranking

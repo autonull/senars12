@@ -702,7 +702,9 @@ anything.
 | **§1.3 U3 acceptance — candidates/accepted measured 84/6, 1428/193, 28665/893** | ✅ **measured** | **`control-budgets` (numbers in §9)** |
 | **§5.1 first profile — 2000-cycle cpu-prof, no single bottleneck (§9)** | ✅ **profiled** | **(measurement, no gate)** |
 | **§4.1 Q3 run — 5 seeds, thesis macro-falsified (nal 0.229 < manifold 0.257 < lm 0.345)** | ✅ **run + recorded** | **hypothesis doc Result 2026-10-02** |
-| **arcade harness: adapters forward `prefetch` awaitably; recording outermost; `process.exit(0)` after reports** | ✅ **fixed** | **todo19-learning (11 tests)** |
+| **arcade harness: adapters forward `prefetch` awaitably; recording outermost; llama disposed at end (natural exit)** | ✅ **fixed** | **todo19-learning (11 tests)** |
+| **R3 closed: per-site `timeoutMs` + `ask-timeout` rule; snapshot-version already enforced by `StateCodec`** | ✅ **landed** | **`config:model-matrix` (todo29a-a11: 32 tests across 3 files)** |
+| **O2: `decisionSpan` early-returns with no provider; O7 llama `dispose()` releases handles** | ✅ **landed** | **llama-runtime-dispose (2 tests), otel suites green** |
 
 ### Remaining Failures (T1/T2 ripple)
 
@@ -738,10 +740,11 @@ anything.
 
 | # | opportunity | evidence | shape of fix |
 |---|---|---|---|
-| O1 | **ID generation is ~10% of cycle time** (`util/src/utils/id.ts`, two anonymous frames at 4.9% + 4.3% exclusive) | §5.1 cpu-prof | cache/reuse ids on the hot path or narrow the call sites; profile again after (§5.1 loop) |
-| O2 | **Telemetry costs ~4.5% on the cycle path** (`recordGateDecision` + prom-client `setValue`/`fastHashObject`) | §5.1 cpu-prof | gate the per-decision recording behind a sample rate or move label-hashing out of the hot path |
+| O1 | **ID generation is ~10% of cycle time** (`crypto.randomUUID` per `makeId`) | §5.1 cpu-prof | DEFERRED with cause: schemas validate UUID format at untrusted boundaries and seeded runs need the counter-shaped source — a faster source must preserve both, which is a design item, not a patch. Next: measure callers-per-cycle first; if events dominate, batch the ledger differently |
+| O2 | **Telemetry on the cycle path** — `decisionSpan` now early-returns when no provider is registered (the Noop-tracer churn is gone) ✅ 2026-10-02; remaining measured cost is prom-client label hashing (`inc` per verdict), which feeds `/status` and stays | §5.1 cpu-prof | if a future profile still shows it hot, the lever is fewer label values, not sampling (sampling breaks counters) |
 | O3 | **Acceptance yield 3% at 10 cycles** — 28.6k candidates examined for 893 accepted, 133 committed | U3 measurement §9 | goal-directed derivation (option A, §1.2) or a candidate budget that stops the exhaustive intersection expansion; a better relevance *score* is not the lever (§1.2's own note) |
-| O4 | **R3 leftovers still open**: `DECISION_ASK_TIMEOUT_MS` flat 500ms with no per-site variance; no snapshot-version check on read | §3.3 table | both tiny, independent, still unowned — next session may take either without touching §5 |
+| O4 | **R3 leftovers**: per-site ask timeout ✅ 2026-10-02 (`DecisionCallSite.timeoutMs` + `ask-timeout` manifest rule, caller reads `ADMISSION_ORDER_CALL_SITE`); snapshot-version check ✅ already satisfied — `StateCodec.decodeState` fails loudly on version mismatch, and `CognitiveStateSnapshot.version` has no file-read path (nothing reads it from disk) | §3.3 table | R3 fully closed |
+| O7 | **llama hang — root-caused and fixed 2026-10-02**: `llama-runtime.dispose()` dropped references without releasing native handles, so the embedded session kept the loop alive after reports were written (arcade idled on GPU power indefinitely). Now releases context→model→llama; arcade disposes at end and exits naturally (verified: 28s bandit run returns). Regression: `tests/nar/llama-runtime-dispose.test.ts` | §4.1 | the `process.exit(0)` band-aid was removed again once disposal proved sufficient |
 | O5 | **Q3 rerun preconditions (2026-10-02 run macro-falsified the thesis)** | hypothesis doc Result section | fit J (§4.3) before rerunning `manifold`; run all arms in the same mode (today `nal` alone gets cognitive veto — an arm asymmetry that may explain its edge); consider a larger model than 0.8B. Do NOT rerun the same matrix hoping for a better number |
 | O6 | **Distillation claim needs re-verification** — "distilled student matches teacher" was measured while the `lm` arm never served an LM decision (prefetch bug, now fixed); the teacher was epsilon-greedy | `fix(arcade)` commit | rerun `demo:arcade -- --distill` and check the student learns anything beyond the incumbent |
 

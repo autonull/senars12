@@ -6,7 +6,7 @@
  * about the wiring, and the wiring's *behaviour* is asserted in
  * `tests/nar/todo29a-a11.test.ts`.
  *
- * Four rules:
+ * Five rules:
  *
  *  1. **Every call site is declared.** A caller the manifest does not name is a
  *     capability reachable from somewhere nobody audited — the exact spread §12
@@ -19,6 +19,8 @@
  *     candidates rather than admissions.
  *  4. **Every declared site names a budget scope that exists** — an id no
  *     `BUDGET_SCOPES` row has is an unbounded call wearing a scope.
+ *  5. **Every site declares a positive finite ask timeout** — a zero or
+ *     negative bound disables the deadline the port exists to enforce.
  */
 
 import { DECISION_AXES, DECISION_CALL_SITES, DECISION_POSITIONS, DECISION_QUERIES } from '../../nar/src/decision/call-sites.js';
@@ -65,6 +67,10 @@ export const manifestViolations = (
 
     if (!site.at.trim()) fail('declared', 'no address: a declaration with no site drifts');
     if (!site.rationale.trim()) fail('declared', 'no rationale for why this site earns a call');
+
+    // 5 — the deadline is a number, not an intention.
+    if (!Number.isFinite(site.timeoutMs) || site.timeoutMs <= 0)
+      fail('ask-timeout', `timeoutMs ${site.timeoutMs} disables the ask deadline`);
   }
 
   return violations;

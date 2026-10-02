@@ -201,7 +201,12 @@ describe('Bench 45 — Learning Closure', () => {
     const inner: Reflex = {
       ...baseReflex([]),
       prefetch: () =>
-        new Promise<void>((resolve) => setImmediate(() => ((settled = true), resolve()))),
+        new Promise<void>((resolve) =>
+          setImmediate(() => {
+            settled = true;
+            resolve();
+          })
+        ),
     } as Reflex & { prefetch: () => Promise<void> };
     const reflex = wrapReflex(inner, recordingReflex(), vetoAwareReflex());
     await (reflex as { prefetch: () => unknown }).prefetch();

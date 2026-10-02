@@ -16,7 +16,7 @@
  * eight call sites.
  */
 
-import type { DecisionAxis, DecisionPosition } from '../ports/decision.js';
+import { DECISION_ASK_TIMEOUT_MS, type DecisionAxis, type DecisionPosition } from '../ports/decision.js';
 import type { BudgetScopeId } from '../kernel/budget-scopes.js';
 
 export interface DecisionCallSite {
@@ -36,6 +36,9 @@ export interface DecisionCallSite {
   readonly axis: DecisionAxis | 'none';
   readonly position: DecisionPosition;
   readonly budget: BudgetScopeId;
+  /** Per-site bound on one ask in ms — a second site with different latency
+   *  needs gets its own number rather than sharing a flat one. */
+  readonly timeoutMs: number;
   /** One line on why this site is worth a call — TODO30 §1 measures which pay. */
   readonly rationale: string;
 }
@@ -65,6 +68,7 @@ export const DECISION_CALL_SITES: readonly DecisionCallSite[] = [
     axis: 'epistemic',
     position: 'cycle',
     budget: 'decision-derivations',
+    timeoutMs: DECISION_ASK_TIMEOUT_MS,
     rationale:
       'the only stage through which anything reaches state, and the only truncation that decides what fits — `ranking.maxAdmissions`. A decision reorders the candidates; it never creates an admission',
   },
@@ -72,6 +76,11 @@ export const DECISION_CALL_SITES: readonly DecisionCallSite[] = [
 
 /** Ids, for a gate's failure message and for a test to assert against. */
 export const DECISION_CALL_SITE_IDS = DECISION_CALL_SITES.map((site) => site.id);
+
+/** The admission-order site, so its caller reads the declared timeout rather than a flat one. */
+export const ADMISSION_ORDER_CALL_SITE = DECISION_CALL_SITES.find(
+  (s) => s.id === 'authorize.admission-order'
+)!;
 
 /** The declared vocabulary, so a gate reads one table rather than three literals. */
 export const DECISION_QUERIES = ['classify', 'evaluate', 'synthesize'] as const;

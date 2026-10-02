@@ -90,18 +90,15 @@ export function isLoaded(): boolean {
 }
 
 export async function dispose(): Promise<void> {
-  if (contextP) {
-    await contextP.catch(() => undefined);
-    contextP = undefined;
-  }
-  if (modelP) {
-    await modelP.catch(() => undefined);
-    modelP = undefined;
-  }
-  if (llamaP) {
-    await llamaP.catch(() => undefined);
-    llamaP = undefined;
-  }
+  const context = await contextP?.catch(() => undefined);
+  contextP = undefined;
+  await context?.dispose().catch(() => undefined);
+  const model = await modelP?.catch(() => undefined);
+  modelP = undefined;
+  await model?.dispose().catch(() => undefined);
+  const llama = await llamaP?.catch(() => undefined);
+  llamaP = undefined;
+  await llama?.dispose().catch(() => undefined);
   wrapper = undefined;
   currentConfig = undefined;
 }

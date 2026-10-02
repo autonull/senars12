@@ -9,13 +9,19 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  ADMISSION_ORDER_CALL_SITE,
   DECISION_CALL_SITE_IDS,
   DECISION_CALL_SITES,
   DECISION_POSITIONS,
   DECISION_QUERIES,
 } from '@senars/nar/decision';
 import { manifestViolations } from '../../scripts/lib/decision-manifest.js';
-import { askSafely, type CycleDecisionRequest, type DecisionPort } from '@senars/nar/ports';
+import {
+  askSafely,
+  DECISION_ASK_TIMEOUT_MS,
+  type CycleDecisionRequest,
+  type DecisionPort,
+} from '@senars/nar/ports';
 import { PROPOSAL_SCHEMA_VERSION } from '@senars/core/schemas';
 import { rankDerivations } from '@senars/nar/rules/impls/ranking.js';
 import { BUDGET_SCOPE_IDS } from '@senars/nar/kernel/budget-scopes';
@@ -70,6 +76,7 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
           position: 'cycle',
           budget: 'decision-derivations',
           rationale: 'why not',
+          timeoutMs: 500,
         },
       ])
     ).toContainEqual({ id: 'bad', rule: 'synthesis-at-boundary', detail: expect.any(String) });
@@ -87,9 +94,33 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
           position: 'cycle',
           budget: 'decision-derivations',
           rationale: 'why not',
+          timeoutMs: 500,
         },
       ])
     ).toContainEqual({ id: 'bad', rule: 'judgment-axis', detail: expect.any(String) });
+  });
+
+  it('refuses a site whose timeout disables the ask deadline', () => {
+    expect(
+      manifestViolations([
+        {
+          id: 'bad',
+          at: 'x.ts:1',
+          contains: 'await askSafely(',
+          query: 'classify',
+          axis: 'epistemic',
+          position: 'cycle',
+          budget: 'decision-derivations',
+          rationale: 'why not',
+          timeoutMs: 0,
+        },
+      ])
+    ).toContainEqual({ id: 'bad', rule: 'ask-timeout', detail: expect.any(String) });
+  });
+
+  it('every declared site carries a positive ask timeout of its own', () => {
+    for (const site of DECISION_CALL_SITES) expect(site.timeoutMs, site.id).toBeGreaterThan(0);
+    expect(ADMISSION_ORDER_CALL_SITE.timeoutMs).toBe(DECISION_ASK_TIMEOUT_MS);
   });
 
   it('refuses a budget scope no declared scope has', () => {
@@ -104,6 +135,7 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
           position: 'cycle',
           budget: 'made-up' as never,
           rationale: 'why not',
+          timeoutMs: 500,
         },
       ])
     ).toContainEqual({ id: 'bad', rule: 'budget-scope', detail: expect.any(String) });

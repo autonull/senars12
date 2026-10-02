@@ -90,6 +90,9 @@ export function withSpan<T>(name: string, attributes: Attributes = {}, fn: (span
 
 /** O1/O4 helper: fire-and-forget span for high-frequency decisions (gate verdicts). */
 export function decisionSpan(name: string, attributes: Attributes): void {
+  // §5.1 profile: a span per gate verdict is object churn on the hot path when
+  // nobody collects — the Noop tracer still pays for creation and attributes.
+  if (provider === null) return;
   const tracer = getTracer('senars.nar');
   const span = tracer.startSpan(name, { kind: SpanKind.INTERNAL, attributes });
   span.setStatus({ code: SpanStatusCode.OK });

@@ -490,9 +490,10 @@ async function main(): Promise<void> {
   }
   for (const note of notes) console.log(`note: ${note}`);
   console.log('reports → .reports/arcade.{json,md}');
-  // Batch script: native handles (embedded llama session) keep the loop alive
-  // after the reports are written — exit rather than idle on GPU power.
-  process.exit(0);
+  // Release the embedded model/context/session handles so the process exits
+  // instead of idling on GPU power (`llama-runtime.dispose` is a no-op when
+  // the lm arm never loaded).
+  await (await import('../nar/src/lm/runtime/llama-runtime.js')).dispose();
 }
 
 main().catch((e) => {
