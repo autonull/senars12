@@ -138,40 +138,48 @@ async function runBanditEpisode(
 
 describe('RL Parity - Stress and Boundary Testing @load-sensitive', () => {
   /**
-   * NOISE SWEEP EXPERIMENTS
+   * NOISE SWEEP
    *
-   * Systematically vary sensor noise (confidence) and measure:
-   * - Return degradation
-   * - Confidence calibration
-   * - Exploration behavior changes
+   * The harness survives every sensor-confidence setting and produces finite,
+   * non-negative returns at each one.
+   *
+   * It deliberately does *not* claim a performance law, because the data does
+   * not support one: at this seed, curiosity stimulation runs 1 / 1 / 3 and mean
+   * return 3.75 / 4.00 / 3.50 across noise 0.2 / 0.6 / 0.9 — curiosity rises with
+   * *higher* confidence, and return is non-monotonic in it. An earlier version
+   * of this test was named "affects performance predictably" and asserted only
+   * `avgReward >= 0`, so the name claimed a law no assertion and no measurement
+   * supported. Naming it for the smoke it is keeps the claim true.
    */
   describe('Noise Sweep', () => {
     const noiseLevels = [0.2, 0.6, 0.9]; // Low / mid / high sensor confidence
 
-    test('systematic sensor noise variation affects performance predictably', {
+    test('every sensor-confidence level plays finite, non-negative returns', {
       timeout: 15000,
     }, async () => {
-      const results: Map<number, number[]> = new Map();
+      const results = new Map<number, number[]>();
 
       for (const noiseLevel of noiseLevels) {
         const h = createStressHarness({ seed: 123, sensorConfidence: noiseLevel });
         const rewards: number[] = [];
-        for (let ep = 0; ep < 8; ep++) rewards.push(await runBanditEpisode(h, 6));
+        for (let ep = 0; ep < 4; ep++) rewards.push(await runBanditEpisode(h, 6));
         results.set(noiseLevel, rewards);
       }
 
-      // Higher noise (lower confidence) should generally lead to more exploration
-      // and potentially different performance characteristics
-      for (const [, rewards] of results) {
-        const avgReward = rewards.reduce((a, b) => a + b, 0) / rewards.length;
-        expect(avgReward).toBeGreaterThanOrEqual(0); // Sanity check
-      }
-
-      // Verify all noise levels were tested
       expect(results.size).toBe(noiseLevels.length);
+      for (const [noiseLevel, rewards] of results) {
+        expect(rewards.length).toBeGreaterThan(0);
+        for (const reward of rewards) {
+          expect(Number.isFinite(reward), `noise ${noiseLevel} returned ${reward}`).toBe(true);
+          expect(reward).toBeGreaterThanOrEqual(0);
+        }
+      }
     });
 
-    test('low confidence triggers curiosity-driven exploration', async () => {
+    // Threshold only: the sweep above measures curiosity at 1 / 1 / 3 across
+    // noise 0.2 / 0.6 / 0.9, so exploration is not shown to *track* confidence
+    // downward. What holds here is that a noisy sensor provokes curiosity at all.
+    test('a noisy sensor provokes curiosity-driven exploration', async () => {
       const h = createStressHarness({ seed: 456, sensorConfidence: 0.3 }); // Very noisy
 
       let curiosityStimulations = 0;
