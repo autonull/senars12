@@ -153,7 +153,6 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   }
 
   private decideBudget(input: BudgetGateInput): BudgetGateOutput {
-    const correlationId = this.correlationOf(input.correlationId);
     const operation = input.operation;
     const estimatedCost = input.estimatedCost ?? this.costTable[operation] ?? 1;
 
@@ -162,6 +161,7 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
     const granted = remaining >= estimatedCost;
 
     if (!granted) {
+      const correlationId = this.correlationOf(input.correlationId);
       const terminationReason = this.getTerminationReason(budget, operation);
       const event: BudgetExhaustedEvent = {
         type: 'budget.exhausted',
