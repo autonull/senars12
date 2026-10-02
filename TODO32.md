@@ -1,8 +1,25 @@
 # TODO32: Integration Milestones — A Working, Usable System
 
-**Version:** 1.0 · **Status:** drafted 2026-10-02 · **Predecessor:** `TODO30.md` (v1.2 — correctness items landed) / `TODO31.md` (v1.0 — subsystem items) · **Supersedes:** both for execution purposes.
+**Version:** 1.1 · **Status:** drafted 2026-10-02, reviewed same day (premises checked against the tree) ·
+**Predecessor:** `TODO30.md` (v1.2 — correctness items landed) / `TODO31.md` (v1.0 — subsystem items) ·
+**Supersedes:** both for execution purposes.
 
-**Philosophy:** The architecture exists. Every subsystem has a green gate. What does not exist is *verified composition*. This plan replaces "fix the parts" with "connect the parts and prove they work together."
+**Philosophy:** The architecture exists. Every subsystem has a green gate. What does not exist is
+*verified composition*. This plan replaces "fix the parts" with "connect the parts and prove they
+work together" — and **v1.1's review found most of the connections already built**: the work is
+mostly *tests over existing machinery*, not new plumbing.
+
+> ### For a fresh session, in this order
+>
+> 1. **M4** — cheapest, highest value: the persistence machinery exists and has never been proven
+>    lossless. ~40-line test.
+> 2. **M8** — read-side join of two things that already exist (`DerivationRecorder`, `Answer`).
+> 3. **M1** — on the existing `tests/nar/framework`, with **LM-optional** and **budget-in-bounds**
+>    assertions baked in from the start.
+> 4. **M7** — a preset + docs, **not** a second config system.
+>
+> **Do not start M2 until everything else is green.** It is the only genuinely new architecture in
+> this plan, and it touches the admission path (TODO30 §7's invariant).
 
 ---
 
@@ -10,271 +27,273 @@
 
 | # | milestone | one-line test | status |
 |---|-----------|---------------|--------|
-| **M1** | **End-to-end pipeline** | NL input → PerceptionGate → NAL → QueryAPI → NL output | not started |
-| **M2** | **Egress judging** | System One judges NAL conclusions before admission | not started |
-| **M3** | **MeTTa wired** | `metta` tool executes MeTTa program via ActionGate | not started |
-| **M4** | **Crash/recovery** | Kill/restart NAR, verify event-log-replay = snapshot | not started |
-| **M5** | **Reward→policy learning** | Reward signal changes action selection (not beliefs) | not started |
-| **M6** | **Multi-agent delegation** | Agent A delegates cognitive task to Agent B | not started |
-| **M7** | **Single config + docs** | One config file, 30-min "hello world" | not started |
-| **M8** | **Derivation explainability** | `ask()` returns trace + premises + rules fired | not started |
+| **M1** | **End-to-end pipeline** | NL → PerceptionGate → NAL → QueryAPI → NL, LM-optional, in-budget | not started |
+| **M2** | **Egress judging** | System One judges NAL conclusions before admission (opt-in) | not started — **last** |
+| **M3** | **MeTTa verified** | `metta` tool executes a MeTTa program via ActionGate | not started — wiring already exists |
+| **M4** | **Crash/recovery** | Kill/restart NAR, event-log-replay state = snapshot state | not started — machinery exists |
+| **M5** | **Reward→policy learning** | Reward changes a real policy observable, never Truth | not started |
+| **M6** | **Multi-agent delegation** | Live WS round-trip: Agent A delegates to Agent B | not started — protocol tested in isolation |
+| **M7** | **Config + docs** | Preset-based hello world, 30 min | not started — mostly docs |
+| **M8** | **Derivation explainability** | `ask()` carries a recorder-verified derivation trace | not started — both halves exist |
 
 ---
 
 ## M1: End-to-End Pipeline
 
-**The smoke test for the whole architecture.**
+**The smoke test for the whole architecture — built on the existing declarative framework, not a
+bespoke test.** `tests/nar/e2e/` already has `describeReasoning` + `createPremise` + `expectDerivation`
+with truth floors; the gap is that no e2e file exercises **NL ingress, tool execution, budget
+accounting, and LM-absence** in one run.
 
 ```typescript
-// tests/nar/todo32-m1.test.ts
-const nar = createNAR({ enableTools: true, systemOne: { enabled: true } });
-await nar.start();
-
-// 1. Natural language in
-await nar.input("Cats are mammals. Whiskers is a cat.", 'belief');
-
-// 2. PerceptionGate admits → NAL derives
-await nar.run(10);
-
-// 3. QueryAPI answers
-const answer = await nar.askNaturalLanguage("What is Whiskers?");
-
-// 4. Assert: answer contains "mammal", confidence > 0.5
-expect(answer.text).toContain('mammal');
-expect(answer.confidence).toBeGreaterThan(0.5);
-
-// 5. Tool execution (bonus)
-await nar.tools.execute('explain', { term: '(whiskers --> mammal)' });
+// tests/nar/e2e/07-full-pipeline.test.ts
+describeReasoning('Full pipeline — NL in, grounded answer out, no LM required', [
+  {
+    name: 'natural language → PerceptionGate → NAL → answer',
+    premises: [createPremise('Cats are mammals. Whiskers is a cat.', 'belief', 0.9, 0.9)],
+    cycles: 10,
+    expect: [expectDerivation('(whiskers --> mammal)', { minFrequency: 0.7, minConfidence: 0.5 })],
+  },
+]);
 ```
 
-**What this exposes:** PerceptionGate config, NL understanding service wiring, QueryAPI → NL generation, tool routing, System One ingress calibration.
+**Three assertions beyond today's e2e (each is a gap named by review, not new architecture):**
 
-**Depends on:** §4.3 T-J (J must admit for System One ingress), O6 (distillation not required but NL generation must work).
+1. **LM-optional** — the run above must pass with **no LM credentials** (`LM_PROVIDER=none`). The
+   epistemic firewall's public promise is "every cognitive function has a symbolic path; none depends
+   on LM availability" (`README`, §Neuro-Symbolic) — it is asserted nowhere at pipeline level.
+2. **Budget-in-bounds** — after the run, `ControlBudgets` spend summary must show every scope within
+   its declared limit. §5.8's matrix *predicts* the shape; nothing *asserts* it. Cheap: one read of
+   the spend summary.
+3. **Tool leg** — one `nar.tools.execute('explain', { term })` call inside the same run, asserting
+   the tool sees the derived belief. ActionGate → tool → observation loop has no pipeline-level test.
+
+**Depends on:** §4.3 T-J only when `systemOne.enabled: true` — M1's default config must run with
+System One **off** (that is the byte-identical path TODO29.a guaranteed) and, optionally, a second
+variant with it on once §4.3 is decided.
+
+**Gate:** `e2e:pipeline` in `scripts/lib/gates.ts` + `ci.yml`, same commit.
 
 ---
 
-## M2: Egress Judging
+## M2: Egress Judging — **last, opt-in, gate-invariant**
 
-**System One currently judges *ingress* (raw NL → task). It must also judge *egress* (NAL conclusion → belief).**
+**The only genuinely new architecture in this plan.** System One judges *ingress* (raw NL); NAL
+conclusions are admitted by `rankDerivations`' symbolic score alone. TODO30 §7's invariant —
+"optimization may never change **what counts as** committed state" — makes this a **decision**, and
+the decision is: behind a config flag (`systemOne.egressJudging: true`, default false), or not at all.
+
+**Corrections from review (the v1.0 draft understated this):**
+
+- **`coherence` is not a head.** The 19-head registry (`HEAD_SPECS`) has `groundedness` and `risk`;
+  the v1.0 sketch named a head that does not exist. The viable v1 shape: judge derived conclusions
+  through the **existing** `groundedness` head (does the derivation support the conclusion?) and the
+  existing veto registry — adding a head is a separate, later decision.
+- **This re-opens TODO29.a's gates if landed carelessly.** The admission path is
+  `rankDerivations` → `admit` — one committed transition (§7.6). Egress judging must sit *beside*
+  that as a veto input, never as a second admission path.
 
 ```typescript
-// nar/src/kernel/KernelPerceptionGate.ts (add)
-// Admit NAL-derived conclusions through the manifold before they become beliefs
-async admitDerived(conclusion: Term, truth: Truth, derivation: DerivationRecord): Promise<JudgmentVerdict> {
+// nar/src/kernel/KernelPerceptionGate.ts — opt-in, default off
+async admitDerived(conclusion: Task, record: DerivationRecord): Promise<AdmitVerdict> {
+  if (!this.config.egressJudging) return { admitted: true };  // byte-identical path
   const judgment = await this.manifold.judgeBatch({
     space: 'epistemic',
-    axis: 'groundedness',      // is this conclusion supported by the derivation?
-    axis: 'risk',              // does it violate safety?
-    axis: 'coherence',         // does it contradict existing beliefs?
-    candidates: [{ term: conclusion, truth, derivation }],
-  });
+    candidates: [{ term: conclusion.term, derivationId: record.derivationId }],
+  });  // groundedness + risk only — no invented heads
   return judgment.verdicts[0];
 }
 ```
 
-**Why this matters:** Without egress judging, the neural-symbolic loop is one-way. NAL derives → belief stored. With egress: NAL derives → manifold judges → *admitted/refused/revised* → belief stored. This is the "neural-assisted formalization" loop closed.
+**Test:** with the flag on and the veto registry seeded, a bad-action derivation vetoes its own
+admission; with the flag off, the committed set is byte-identical to today's (the TODO29.a
+invariance shape).
 
-**Test:** Derive a contradiction via NAL → manifold vetoes admission. Derive a sound conclusion → manifold admits with calibrated truth.
+**Gate:** `egress:invariant` — flag-off runs assert the identical committed set; in `gates.ts` +
+`ci.yml`, same commit.
 
 ---
 
-## M3: MeTTa Wired
+## M3: MeTTa Verified — **wiring already exists**
 
-**The "exact computation substrate" is disconnected. `createAgent` declares `metta` tool but ActionGate doesn't route to MeTTa runtime.**
+**Review correction: the v1.0 premise ("disconnected, wire from scratch") was wrong.** The seam is
+built and the composition root exists:
+
+- `nar/src/facade/config.ts:60` and `nar/src/agent/config.ts` accept an injected `MettaPort`
+- `nar/src/agent/builder.ts:163` — `withMetta(metta)` seam, JSDoc states the layering rule
+- `src/bin/lib/metta.ts` — the composition root's memoized port (`createMettaPort()`)
+- MeTTa itself has its own test suite (`metta/tests/` — egraph, interpreter, parser, reduce, JIT)
+
+**What is missing is one test that the *NAR-side* leg works end to end:**
 
 ```typescript
-// nar/src/tools/registry.ts (add)
-import { createMeTTa } from '@senars/metta';
-
-const mettaRuntime = createMeTTa();
-
-toolRegistry.register({
-  name: 'metta',
-  schema: { program: z.string() },
-  async execute({ program }) {
-    const result = await mettaRuntime.evaluate(parseMeTTa(program));
-    return { result: result.toString() };
-  },
-});
+// tests/nar/e2e/08-metta-tool.test.ts
+const nar = await createAgent({ /* metta wired */ });
+const result = await nar.tools.execute('metta', { program: '(add (succ 0) (succ 0))' });
+expect(result).toContain('(succ (succ 0))');
 ```
 
-**Test:** `nar.tools.execute('metta', { program: '(add 1 2)' })` → returns `"3"`.
+If `createAgent`'s builtin tool routing already reaches the injected port, this test is green in an
+hour. If it does not, the gap is in `ToolManager` routing — a one-line fix, not a redesign.
 
-**Why this matters:** MeTTa provides *equality saturation* and *dependent types* — exact computation for when NAL's uncertain inference isn't enough. The ActionGate is the only path; if it doesn't route, MeTTa is dead code.
+**Gate:** none needed (e2e file is its own proof) — but it runs in the `e2e:pipeline` job.
 
 ---
 
-## M4: Crash/Recovery
+## M4: Crash/Recovery — **machinery exists, proof does not**
 
-**Event sourcing is the source of truth. The JSON snapshot (`nar-state`) is a checkpoint. Neither is tested.**
+**Review correction: the v1.0 premise ("neither is tested") was half wrong.** The persistence layer
+is built and *unit*-tested (`StateCodec` versioning, `rehydrateTask`, `NAR_STATE_VERSION`,
+`gate-log-persistence`, `todo16-dataset-persistence`). What has never been asserted is
+**restart equivalence**: that a second NAR, pointed at the same `statePath`, reconstructs the same
+committed state.
 
 ```typescript
-// tests/nar/todo32-m4.test.ts
-const nar1 = createNAR({ persistState: true, statePath: '/tmp/test-state' });
+// tests/nar/e2e/09-restart-equivalence.test.ts
+const nar1 = createNAR({ persistState: true, statePath: tmp });
 await nar1.start();
-await nar1.input('(cat --> animal).', 'belief', Truth.create(0.9, 0.9));
+await nar1.believe('(cat --> animal). %1.0;0.9%');
 await nar1.run(5);
-const beliefs1 = nar1.getBeliefs().map(b => b.term.toString());
+const state1 = committedStateKey(nar1);          // termKeys of beliefs/goals/questions
 await nar1.dispose();
 
-// Kill process, restart
-const nar2 = createNAR({ persistState: true, statePath: '/tmp/test-state' });
-await nar2.initialize(); // loads snapshot, replays event log
-const beliefs2 = nar2.getBeliefs().map(b => b.term.toString());
+const nar2 = createNAR({ persistState: true, statePath: tmp });
+await nar2.start();                              // loads snapshot, replays event log
+const state2 = committedStateKey(nar2);
 
-expect(beliefs2).toEqual(beliefs1); // identical committed state
+expect(state2).toEqual(state1);                  // identical committed state
 ```
 
-**What this validates:** Event log integrity, snapshot consistency, `StateCodec` versioning, concept/task serialization, `Memory` reconstruction.
+**`committedStateKey` is termKey sets, not `toString()`** — §0.4's trap #1 applies to the test too.
+
+**Two things this will stress, which is why it is first:**
+- **O8/retention** — a restart with a store *at* `maxConcepts` exercises the eviction path and the
+  archive, both of which are serialization-adjacent and untested together.
+- **§5.9/maxTasks** — same argument at task pressure.
+
+**~40 lines. Existing `decodeState` version checks do the heavy lifting.**
+
+**Gate:** `persistence:replay` in `gates.ts` + `ci.yml`, same commit.
 
 ---
 
-## M5: Reward→Policy Learning
+## M5: Reward→Policy Learning — **the v1.0 test was unrunnable**
 
-**The epistemic firewall blocks reward→Truth mutation. Learning *must* go through goals/policy. This has never been verified end-to-end.**
+**Review correction: `getActionStats` does not exist, and asserting belief *equality* is the wrong
+invariant.** The epistemic firewall blocks reward→Truth *writes*; belief *revision* from evidence is
+legal and expected. The real invariants are:
+
+1. a reward signal changes a **policy observable** (`RLFPLearner.currentParams`, or the reflex
+   selection a `ManifoldRLAgent` would make);
+2. Truth values of pre-existing beliefs are **not written by the reward path** (assert the exact
+   f/c of a pinned belief is unchanged *by the reward*, not unchanged period).
 
 ```typescript
-// tests/nar/todo32-m5.test.ts
-const nar = createNAR({ enableRLFP: true });
-await nar.start();
-
-// 1. Establish a goal
-await nar.goal('(system --> operational)!');
-
-// 2. Run cycles, observe action selection
-const actionsBefore = await nar.tools.execute('getActionStats', {});
-
-// 3. Deliver negative reward for the chosen action
-await nar.input('(action-1 --> reward: -1.0).', 'belief', Truth.create(1.0, 0.9));
-
-// 4. Run more cycles
+// tests/nar/e2e/10-reward-policy.test.ts
+const before = learner.currentParams.inference.rankingMaxAdmissions;
+await nar.input('(action-1 --> reward).', 'belief', Truth.create(0.0, 0.9));  // negative outcome
 await nar.run(20);
-
-// 5. Assert: action selection changed (policy updated), beliefs unchanged
-const actionsAfter = await nar.tools.execute('getActionStats', {});
-expect(actionsAfter.distribution).not.toEqual(actionsBefore.distribution);
-expect(nar.getBeliefs()).toEqual(originalBeliefs); // epistemic firewall held
+const after = learner.currentParams.inference.rankingMaxAdmissions;
+expect(after).not.toBe(before);                  // policy moved
+expect(pinnedBelief.truth).toEqual(originalTruth); // firewall held on that belief
 ```
 
-**What this exposes:** RewardGate → goal revision → policy update → action selection. The `RLFPLearner` must actually change behaviour.
+The policy observable must be a real one — `RLFPLearner`'s knobs (`rlfp/knobs.ts` lists them) or the
+`RetrospectiveAdapter`'s switch set. **Pick the observable first, then write the test.**
+
+**Gate:** `reward:policy-only` in `gates.ts` + `ci.yml`, same commit.
 
 ---
 
-## M6: Multi-Agent Delegation
+## M6: Multi-Agent Delegation — **protocol tested in isolation, live round-trip is not**
 
-**Protocol exists (`nar/src/cooperation/delegation.ts`). No test of Agent A ↔ Agent B.**
+**Review correction: delegation is not untested.** `todo16-resources` and `todo17b-failclosed` cover
+the protocol's failure paths. What no test covers is the **live loop**: a real WebSocket between two
+agents, a real delegation, a real `PEER_AGENT`-sourced admission.
 
 ```typescript
-// tests/nar/todo32-m6.test.ts
-const agentA = await createAgent({ port: 8765, name: 'A' });
-const agentB = await createAgent({ port: 8766, name: 'B' });
-
-await agentA.start();
+// tests/nar/e2e/11-delegation.test.ts
+const agentB = await createAgent({ transport: { ws: { port: 8766 } } });
+const agentA = await createAgent({ transport: { ws: {} } });   // no LM credentials
 await agentB.start();
 
-// A delegates to B: "What is the capital of France?"
 const result = await agentA.delegate({
   target: 'ws://localhost:8766',
   task: { type: 'question', term: '(capitalOfFrance --> ?what)?' },
   ruleId: 'lm-curiosity-question',
 });
 
-// B runs the same LM rule with its local model, returns Narsese + truth
-expect(result.term).toBeDefined();
 expect(result.truth).toBeDefined();
-
-// Result admitted through PerceptionGate with PEER_AGENT source quality
-const beliefs = agentA.getBeliefs();
-expect(beliefs.some(b => b.term.toString().includes('capitalOfFrance'))).toBe(true);
+// PEER_AGENT ceiling: admitted at ≤ 0.5 confidence (SOURCE_QUALITY_CONFIDENCE)
+expect(resultTruth.confidence).toBeLessThanOrEqual(0.5);
 ```
 
-**What this exposes:** WebSocket transport, `CognitiveTaskDelegation` serialization, `PEER_AGENT` source quality, shadow validation, callback endpoints.
+The `PEER_AGENT` ceiling assertion is the valuable half: it proves the *epistemic* contract of
+cooperation (peers are untrusted proposers), not just the plumbing.
+
+**Gate:** covered by `e2e:pipeline`.
 
 ---
 
-## M7: Single Config + Docs
+## M7: Config + Docs — **a preset, not a second config system**
 
-**Today: 15 env vars + presets + CLI flags + 5 config files. A new user cannot start in <30 min.**
-
-```typescript
-// senars.config.ts (NEW — single source of truth)
-export default {
-  nar: {
-    maxConcepts: 10000,
-    maxTasksPerConcept: 100,
-    persistState: true,
-    statePath: '.cache/nar-state',
-  },
-  systemOne: {
-    enabled: true,
-    manifold: { provider: 'local' },  // or 'http' for remote
-    heads: { calibrationLock: '.cache/calibration-lock.json' },
-  },
-  lm: {
-    provider: 'llamacpp',  // or 'openai', 'transformers'
-    model: 'qwen2.5-7b',
-  },
-  tools: { enabled: ['fs', 'shell', 'web', 'metta'] },
-  memory: { maxConcepts: 100000, consolidationInterval: 10 },
-} as const;
-```
+**Review correction: do not build `senars.config.ts` as a new layer.** `nar-presets.ts` already ships
+typed presets, and §0.8.2's standing rule applies with full force: *a second config system is a
+second source of truth about what the canonical configuration is.*
 
 **Deliverables:**
-- `senars.config.ts` — typed, validated (Zod), single file
-- `pnpm config:check` — validates config at startup
-- `docs/getting-started.md` — 30-min hello world: install → config → `pnpm start` → ask a question
-- `docs/architecture.md` — one diagram + one paragraph per subsystem
+- **`docs/getting-started.md`** — 30-minute hello world: `pnpm install` → copy a preset from
+  `nar-presets.ts` into a 10-line script → `nar.question(...)` → answer. **The example script is
+  committed under `examples/` and runs in the e2e job**, so the docs cannot rot.
+- **`docs/architecture.md`** — one diagram + one paragraph per subsystem (the README's diagram plus
+  the gate table, tightened).
+- **`pnpm doctor` already validates config** — point the docs at it rather than adding
+  `config:check` as a new command.
+
+**No gate** (docs), but the `examples/` script rides the `e2e:pipeline` job.
 
 ---
 
-## M8: Derivation Explainability
+## M8: Derivation Explainability — **both halves exist; the join is missing**
 
-**`nar.ask()` returns answer + confidence. "Auditable" requires *why*.**
+**Review correction: the v1.0 draft assumed capture was missing. It is not.** `DerivationRecorder`
+is built, bounded, and drained today (`nar.getProcessor().getRecorder().drain()`), records carry
+`steps[{ruleId, premises, conclusion, premiseTruths, ...}]`, and `verifyRecord` re-computes the NAL
+truth algebra standalone. What is missing is that **`Answer` carries none of it**.
 
 ```typescript
-// nar/src/query/api.ts (extend Answer type)
+// nar/src/query/api.ts — Answer grows one optional field
 interface Answer {
   answer: Term | undefined;
   confidence: number;
-  evidence: Task[];           // already exists
-  derivation?: DerivationTrace;  // NEW
+  evidence: Task[];
+  derivation?: VerifiedDerivation;   // recorder output for this answer, verifyRecord-clean
 }
-
-interface DerivationTrace {
-  steps: DerivationStep[];
-  premises: Task[];
-  rulesFired: string[];
-  finalTruth: Truth;
-}
-
-const answer = await nar.ask('(whiskers --> mammal)?');
-// answer.derivation.steps → [{ rule: 'nal.deduction', premises: [...], conclusion: ..., truth: ... }]
-// answer.derivation.rulesFired → ['nal.deduction', 'nal.revision']
 ```
 
-**Test:** Ask a question → verify `derivation.steps` length > 0 → verify each step re-computes to the same truth (use `verifyRecord` from `@senars/core/verify-derivation`).
+**The join:** after the cycle that answered, filter drained records by conclusion `termKey ===
+answer.termKey`, attach, and run `verifyRecord({ strict: true })` over it. A record that fails
+verification is **omitted, never shown** — an unverifiable trace is worse than none.
+
+**Test:** ask the §0.2 question → `derivation.steps.length > 0` → every step re-verifies via
+`@senars/core/verify-derivation`. This is the auditable claim, finally asserted.
+
+**Gate:** `derivation:verifiable` in `gates.ts` + `ci.yml`, same commit.
 
 ---
 
-## Ordering & Dependencies
+## Ordering & Dependencies (v1.1 — leverage ÷ effort)
 
 ```
-M1 (pipeline) ──→ M2 (egress)     // M1 needs §4.3; M2 needs M1
-   │
-   ├─→ M3 (MeTTa)                  // independent, tool wiring
-   │
-   ├─→ M4 (crash/recovery)         // independent, persistence
-   │
-   ├─→ M5 (reward→policy)          // needs M1 (goal + reward flow)
-   │
-   ├─→ M6 (multi-agent)            // needs M1 (delegation uses same pipeline)
-   │
-   ├─→ M7 (config)                 // do early — unblocks manual testing of M1-M6
-   │
-   └─→ M8 (explainability)         // builds on derivation recorder (already exists)
+M4  (restart equivalence — ~40 lines, machinery exists)   ── FIRST
+M8  (recorder→Answer join — read-side only)              ── second
+M1  (e2e on the existing framework + LM-optional + budget assertions)
+M7  (preset + docs, no new config system)                ── alongside M1
+M3  (verify metta tool — one test)                       ── after M1
+M5  (reward→policy — pick the observable first)          ── after M1
+M6  (live WS delegation round-trip)                      ── anytime after M1
+M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new architecture
 ```
-
-**Suggested execution order:** M7 → M1 → M2 → M3/M4 (parallel) → M5 → M6 → M8.
 
 ---
 
@@ -282,16 +301,16 @@ M1 (pipeline) ──→ M2 (egress)     // M1 needs §4.3; M2 needs M1
 
 | item | subsumed by | note |
 |------|-------------|------|
-| §4.3 T-J | M1 | J must admit for PerceptionGate ingress |
-| O5 (Q3 rerun) | — | thesis coverage, not integration; do after M1-M4 |
-| O6 (distill) | — | arcade demo, not core; do after M1 |
-| O8 (retention) | M4 | crash/recovery test will stress retention |
-| §5.9 (maxTasks) | M4 | crash/recovery test will stress task pressure |
-| O3 (growth limit) | M1 | verify it doesn't break M1 pipeline |
+| §4.3 T-J | M1 (variant run) | only when `systemOne.enabled: true`; M1's default runs with it off |
+| O5 (Q3 rerun) | — | thesis coverage, not integration; after M1–M4 |
+| O6 (distill) | — | arcade demo, not core; after M1 |
+| O8 (retention) | M4 | restart-at-capacity stresses the eviction/archive path |
+| §5.9 (maxTasks) | M4 | same argument at task pressure |
+| O3 (growth limit) | M1 | M1 asserts the pipeline answer survives with the gate on |
 
 ---
 
-## Invariant Checklist (unchanged)
+## Invariant Checklist
 
 - [x] NAL parity
 - [x] Determinism
@@ -301,18 +320,22 @@ M1 (pipeline) ──→ M2 (egress)     // M1 needs §4.3; M2 needs M1
 - [x] Rule set stable mid-cycle
 - [x] Bool atom cannot name Task
 - [x] Absence is a value
-- [ ] **End-to-end pipeline composes** (M1)
-- [ ] **Crash/recovery is lossless** (M4)
-- [ ] **Rewards change policy, not beliefs** (M5)
+- [ ] **End-to-end pipeline composes, LM-optional, in-budget** (M1)
+- [ ] **Restart is lossless** (M4)
+- [ ] **Every answer carries a verifiable derivation** (M8)
+- [ ] **Rewards change policy, never Truth** (M5)
 
 ---
 
 ## Exit Criteria
 
 **The system is "working and usable" when:**
-1. M1 passes — a user can ask a natural language question and get a grounded answer
-2. M4 passes — the system survives process death
-3. M7 passes — a new user can configure and run it in 30 minutes
-4. M8 passes — every answer carries its derivation trace
+1. **M4 passes** — the system survives process death losslessly
+2. **M1 passes** — a user asks a natural-language question with no LM configured and gets a
+   grounded, in-budget answer
+3. **M8 passes** — the answer carries its derivation trace, independently verified
+4. **M7 exists** — the 30-minute path is written down and machine-checked
 
-Everything else (M2, M3, M5, M6) is *capability depth* — valuable, but not required for "usable."
+M2, M3, M5, M6 are *capability depth* — valuable, sequenced after the exit criteria, and each lands
+with the gate discipline (in `gates.ts` + `ci.yml`, same commit, flippable) the whole programme runs
+on.
