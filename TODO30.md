@@ -51,7 +51,9 @@ out of is not a system yet.**
 > | **landed** | §3.3 R3 (A11) — `DECISION_CALL_SITES.at` now uses `file:line` + `contains` | `nar/src/decision/call-sites.ts`, gate `config:model-matrix` |
 > | **landed** | §3.3 R3 (A10: content/rule revision counter) — scope table owns the vocabulary | `nar/src/kernel/budget-scopes.ts`, gate `control-budgets` |
 > | **landed (mechanism)** | §4.1 T-Q3 `--seeds n` — runs the matrix n times (seeds `seed..seed+n-1`), prints per-seed macroBrier plus mean ± sd per arm | `scripts/arcade.ts`, smoke-verified `--seeds 2` on `random` (0.1863±0.0084) |
-> | not started | §4.2 (explicitly not next), §4.3, §5.1–§5.9 | — |
+> | **measured** | §1.3 U3 acceptance — candidates-examined vs derivations-accepted at 1/3/10 cycles on the §0.2 transcript: 84/6, 1428/193, 28665/893 | throwaway probe (deleted), numbers in §9 |
+> | **profiled** | §5.1 first cut — 2000-cycle cpu-prof of `profile-scenario`: GC 7%, id generation ~10%, `applySyncRules` ~6%, telemetry+prom-client ~4% | `scripts/profile-scenario.ts` + `analyze-profile.ts`, numbers in §9 |
+> | not started | §4.2 (explicitly not next), §4.3, §5.2–§5.9 | — |
 >
 > §1 and §2 are independent of each other and of §5. §3 is bookkeeping on the predecessor's debt and
 > can be done at any point. §4 is the thesis and needs no §1–§3.
@@ -284,7 +286,14 @@ number of candidate rules, and that product is not declared anywhere.
 - `control-budgets` fails on a scope nothing spends and on a spend naming no scope — it already does
   both, so this is one more row and no new rule;
 - a measurement of candidates-examined against derivations-accepted at three cycle counts, committed
-  to `docs/` as the number §5's structures then get chosen against.
+  to `docs/` as the number §5's structures then get chosen against. **Measured 2026-10-02**
+  (§0.2 transcript, `maxConcepts: 100000`, counted via a `ControlBudgets.charge` decorator in a
+  throwaway probe, since deleted): **1 cycle → 84 examined / 6 accepted (8 beliefs); 3 cycles →
+  1428 / 193 (65 beliefs); 10 cycles → 28665 / 893 (133 beliefs).** Acceptance yield collapses
+  7% → 13.5% → 3% while candidates grow ~340× for 16× beliefs — the exhaustive intersection
+  expansion §1.2 blamed, now with a number. Mean ~2.9k candidates/cycle at 10 cycles, well under
+  the 16384/cycle default cap, so the cap is a guardrail, not a lever: the lever is still a
+  goal-directed (option A) stop to the expansion itself.
 
 ### 1.4 U4 — The lifecycle lies about being stopped
 
@@ -655,7 +664,7 @@ anything.
 
 | # | question | blocked on |
 |---|---|---|
-| 5.1 | a fresh profile of the *final* shape — TODO29.a §4 row 15 showed the old ordering came from a profile of the fused system | §1 landing, so the profile is of a system that answers |
+| 5.1 | a fresh profile of the *final* shape — TODO29.a §4 row 15 showed the old ordering came from a profile of the fused system | §1 landing, so the profile is of a system that answers. **First cut 2026-10-02**: 2000-cycle `node --cpu-prof` of `scripts/profile-scenario.ts` (5 beliefs + 1 question). Top exclusive: GC 7.0%, id generation (`util/src/utils/id.ts`) ~10% combined, `applySyncRules` ~5.7%, telemetry `recordGateDecision` + prom-client `setValue`/`fastHashObject` ~4.5%, `Stamp.derive` ~2.5%. No single bottleneck — the shape is death by a thousand allocations, which is what §5.2–§5.6 now order against |
 | 5.2 | which attention structure maintains the order `topK` reads, and at what population size | 5.1 |
 | 5.3 | which index answers similarity recall, and whether admission stays quadratic below some threshold | 5.1 — **and U1**, because `findSimilarConcepts` is what the fabricated answer came out of |
 | 5.4 | what `k` is — the working-set size — before anyone claims O(k) anything | 5.2 |
@@ -689,6 +698,8 @@ anything.
 | **§3.3 R3 (A6) — `RuleDependency` removed (no production callers)** | ✅ **landed** | **`dispatch:no-wildcard`** |
 | **§3.3 R3 (A9) — `replay:proposal` promoted from `slow` to `gate` tier** | ✅ **landed** | **`replay:proposal`** |
 | **§3.3 R3 (A11) — `DECISION_CALL_SITES.at` now uses `file:line` + `contains` substring** | ✅ **landed** | **`config:model-matrix`** |
+| **§1.3 U3 acceptance — candidates/accepted measured 84/6, 1428/193, 28665/893** | ✅ **measured** | **`control-budgets` (numbers in §9)** |
+| **§5.1 first profile — 2000-cycle cpu-prof, no single bottleneck (§9)** | ✅ **profiled** | **(measurement, no gate)** |
 
 ### Remaining Failures (T1/T2 ripple)
 
@@ -713,12 +724,21 @@ anything.
    - ~~A6: `RuleDependency` removed~~ ✅
    - ~~A9: `replay:proposal` promoted to `gate` tier~~ ✅
    - ~~A11: `DECISION_CALL_SITES.at` format updated~~ ✅
-10. **§1.3 U3 — candidate-derivations budget scope** — declared in `BUDGET_SCOPES`, charged in `RuleProcessor.applySyncRules`, default limit 16384/cycle, measured via `control-budgets` gate ✅
+10. **§1.3 U3 — candidate-derivations budget scope** — declared in `BUDGET_SCOPES`, charged in `RuleProcessor.applySyncRules`, default limit 16384/cycle, measured via `control-budgets` gate ✅ **plus acceptance measurement 2026-10-02**: 84/6, 1428/193, 28665/893 examined/accepted at 1/3/10 cycles (§9). Cap is a guardrail, not a lever — mean ~2.9k/cycle never nears it.
 11. **§4.1–4.3** — thesis items:
     - §4.1 mechanism ✅ (`--seeds n` + mean ± sd, smoke-verified). The *experiment itself* (nal/manifold/lm arms, `--seeds 5+`) is NOT run — it needs `LM_LLAMACPP_MODEL` for the `lm` arm and a decision on §4.3 for the `manifold` arm. When run, append numbers below the rule in `docs/thesis-hypothesis.md` (never edit above it).
     - §4.2 explicitly not next (plan's own verdict).
     - §4.3 OPEN — investigation mapped the mechanism, decision required before code (see new note below).
-12. **§5.1–5.9** — cost items (after U1+U2 measured; §5.1 profiles a system that now answers)
+12. **§5.1 (first cut ✅ 2026-10-02)** — 2000-cycle cpu-prof: no single bottleneck; GC 7%, id gen ~10%, telemetry ~4.5% (§9, §5.1 row). **§5.2–§5.9** remain — now ordered against this profile, not the fused-system one.
+
+### New improvement opportunities (from the 2026-10-02 measurements)
+
+| # | opportunity | evidence | shape of fix |
+|---|---|---|---|
+| O1 | **ID generation is ~10% of cycle time** (`util/src/utils/id.ts`, two anonymous frames at 4.9% + 4.3% exclusive) | §5.1 cpu-prof | cache/reuse ids on the hot path or narrow the call sites; profile again after (§5.1 loop) |
+| O2 | **Telemetry costs ~4.5% on the cycle path** (`recordGateDecision` + prom-client `setValue`/`fastHashObject`) | §5.1 cpu-prof | gate the per-decision recording behind a sample rate or move label-hashing out of the hot path |
+| O3 | **Acceptance yield 3% at 10 cycles** — 28.6k candidates examined for 893 accepted, 133 committed | U3 measurement §9 | goal-directed derivation (option A, §1.2) or a candidate budget that stops the exhaustive intersection expansion; a better relevance *score* is not the lever (§1.2's own note) |
+| O4 | **R3 leftovers still open**: `DECISION_ASK_TIMEOUT_MS` flat 500ms with no per-site variance; no snapshot-version check on read | §3.3 table | both tiny, independent, still unowned — next session may take either without touching §5 |
 
 ### Invariant Checklist (per §7)
 
@@ -741,10 +761,10 @@ T2  (Bool identities)     ── DONE (alone, with NAL parity re-run)
 T3  (parens)              ── DONE
 R1  (rule-table.history)  ── DONE
 U2  (relevance)           ── DONE (measured 1/133 at containment floor)
-**U3  (candidate budget)  ── DONE**
+**U3  (candidate budget)  ── DONE (mechanism + acceptance measurement 2026-10-02)**
 R2/R3                     ── anytime; R2 needs API decision
 4.1–4.3                   ── independent
-5.1–5.9                   ── after U1+U2 landed & measured
+5.1                       ── first cut DONE (profile 2026-10-02); 5.2–5.9 ordered against it
 ```
 
 **Constraint carried forward, and it is not negotiable:** optimization may change **how** committed
@@ -840,6 +860,8 @@ worth.
 | **task validity is a symbol check that misses every nesting** | `(a-->TRUE)` **VALID** · `(a-->FALSE)` **VALID** · `(a-->(b\|TRUE))` **VALID** · `(--TRUE)` **VALID** · `NULL` **VALID** — while `TRUE` alone is INVALID, the one case that can never be a task | `a2661c54` | `validateTaskTerm`, §2.2's test table |
 | the cascade makes it total | `(a-->(b\|TRUE))` → `(a-->TRUE)` invalid · `(a-->(b&FALSE))` → `(a-->FALSE)` invalid · **`(a-->(b&TRUE))` → `(a-->b)` valid** · `(--TRUE)` → `FALSE` invalid | follows from §2.1's two folds | by construction, once T1 lands |
 | `maxTasks` now unbounded | pressure contributes `{concepts:1, tasks:0}` at 400 concepts / `maxConcepts:50` | this commit | `Memory.pressureBreakdown()` |
+| **U3: candidates vs accepted** | **1c: 84/6 · 3c: 1428/193 · 10c: 28665/893** (§0.2 transcript, beliefs 8/65/133; yield 7%→13.5%→3%; ~2.9k candidates/cycle at 10c vs 16384 cap) | 2026-10-02 | throwaway `ControlBudgets.charge`-counting probe, deleted; belief counts reproduce §0.2 exactly |
+| **§5.1 first profile** | 2000-cycle cpu-prof: **GC 7.0% · id.ts ~10% · applySyncRules ~5.7% · telemetry+prom-client ~4.5% · Stamp.derive ~2.5%** | 2026-10-02 | `scripts/profile-scenario.ts` + `analyze-profile.ts` |
 
 **What was read of the reference versus inferred.** Read and quoted: `Op.java`'s `Args` table, `DISJ`
 fold, `EmptyProduct`, `Bool` handling in `EQ`/`DIFF`, and the deprecated statement delimiters. **Not
