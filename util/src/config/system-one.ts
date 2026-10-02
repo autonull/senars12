@@ -46,6 +46,32 @@ export const systemOneDefaults = {
     riskFloor: 0.8,
     labelOutcomes: true,
   },
+  egressJudging: {
+    /**
+     * TODO32 M2. Off by default: with it off the committed set is byte-identical
+     * to a NAR that has never heard of egress judging, and that invariance is the
+     * gate (`egress:invariant`), not a claim.
+     */
+    enabled: false,
+    /**
+     * `conflict` by default — it is the one epistemic evaluate head that asks the
+     * right question of a *conclusion* ("does this contradict what is already
+     * committed?"). `risk` is the tempting alternative and is **wrong**: it is
+     * declared `axis: 'teleological'`, and a teleological head judging admission
+     * is the firewall crossed rather than enforced.
+     */
+    rubric: 'conflict' as const,
+    /**
+     * How many ranked candidates one cycle may put to the judge. Bounded because
+     * an `evaluate` head judges one embedding, so this is one embedding plus one
+     * head evaluation per candidate — an unbounded sweep would make cognition cost
+     * scale with `ranking.maxAdmissions`.
+     */
+    maxCandidates: 4,
+    /** Score at or above which a conclusion is vetoed. The rubric's legend is
+     *  ordered, so the score *is* the level: 0 is the lowest, 1 the highest. */
+    vetoThreshold: 0.75,
+  },
   lmReflex: { grammarActions: true, maxCandidates: 3 },
   handover: { reviewAction: 'escalate-baseline' as const, minBaselineConfidence: 0.5 },
 } as const;
@@ -182,6 +208,22 @@ export const systemOneSchema = z.object({
       labelOutcomes: z.boolean().default(systemOneDefaults.rl.labelOutcomes),
     })
     .default(systemOneDefaults.rl),
+  egressJudging: z
+    .object({
+      enabled: z.boolean().default(systemOneDefaults.egressJudging.enabled),
+      rubric: z.literal('conflict').default(systemOneDefaults.egressJudging.rubric),
+      maxCandidates: z
+        .number()
+        .int()
+        .positive()
+        .default(systemOneDefaults.egressJudging.maxCandidates),
+      vetoThreshold: z
+        .number()
+        .min(0)
+        .max(1)
+        .default(systemOneDefaults.egressJudging.vetoThreshold),
+    })
+    .default(systemOneDefaults.egressJudging),
   lmReflex: z
     .object({
       grammarActions: z.boolean().default(systemOneDefaults.lmReflex.grammarActions),

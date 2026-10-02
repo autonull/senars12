@@ -32,8 +32,29 @@ export interface ManifestViolation {
   readonly detail: string;
 }
 
+/**
+ * The shape the gate *checks*, which is deliberately looser than
+ * `DecisionCallSite`. The manifest type now forbids the combinations this gate
+ * exists to catch (a `synthesize` at `cycle`, a judgment query with no axis), so
+ * typing the input as `DecisionCallSite` would make those checks unreachable and
+ * untestable. The gate's contract is with data it did not compile — a manifest
+ * loaded from config or a fixture — so it takes untrusted shapes and reports.
+ * Compile-time callers are still held to the real type by `DECISION_CALL_SITES`.
+ */
+export interface UntrustedCallSite {
+  readonly id: string;
+  readonly at: string;
+  readonly contains: string;
+  readonly query: string;
+  readonly axis: string;
+  readonly position: string;
+  readonly budget: string;
+  readonly timeoutMs: number;
+  readonly rationale: string;
+}
+
 export const manifestViolations = (
-  sites: readonly (typeof DECISION_CALL_SITES)[number][] = DECISION_CALL_SITES
+  sites: readonly UntrustedCallSite[] = DECISION_CALL_SITES
 ): ManifestViolation[] => {
   const violations: ManifestViolation[] = [];
   const seen = new Set<string>();

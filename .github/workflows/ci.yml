@@ -85,6 +85,9 @@ jobs:
       - run: pnpm reward:policy-only
       # M9 — no contradictory or redundantly nested term reaches committed state.
       - run: pnpm derivation:clean
+      # M2 — egress judging is opt-in, bounded, and can only remove: with the
+      # flag off the committed set is what an unjudged NAR commits.
+      - run: pnpm egress:invariant
   determinism:
     runs-on: ubuntu-latest
     steps:

@@ -23,6 +23,9 @@ const GATES: Record<string, readonly string[]> = {
   'reward:policy-only': [`${E2E}/11-reward-policy.test.ts`],
   // M9: no contradictory or redundantly nested terms reach committed state.
   'derivation:clean': [`${E2E}/12-derivation-quality.test.ts`],
+  // M2: egress judging is opt-in and gate-invariant — flag off commits exactly
+  // what an unjudged NAR commits, flag on only ever removes.
+  'egress:invariant': [`${E2E}/14-egress-invariant.test.ts`],
 };
 
 const gate = process.argv[2];

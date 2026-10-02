@@ -99,7 +99,8 @@
     "persistence:replay": "tsx scripts/e2e-gates.ts persistence:replay",
     "derivation:verifiable": "tsx scripts/e2e-gates.ts derivation:verifiable",
     "reward:policy-only": "tsx scripts/e2e-gates.ts reward:policy-only",
-    "derivation:clean": "tsx scripts/e2e-gates.ts derivation:clean"
+    "derivation:clean": "tsx scripts/e2e-gates.ts derivation:clean",
+    "egress:invariant": "tsx scripts/e2e-gates.ts egress:invariant"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.43",

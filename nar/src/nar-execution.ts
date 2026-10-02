@@ -1,7 +1,7 @@
 import { BoundedRing, createLogger, errMsg, mean, roundTo } from '@senars/util';
 import { envBool } from '@senars/util/config';
 import type { CognitiveController } from './cognitive';
-import { ADMISSION_ORDER_CALL_SITE } from './decision/call-sites.js';
+import { ADMISSION_ORDER_CALL_SITE, EGRESS_VETO_CALL_SITE } from './decision/call-sites.js';
 import type { DriveManager } from './drives';
 import type { NARConfig } from './facade/config.js';
 import { DECISION_DERIVATIONS_SCOPE } from './kernel/budget-scopes.js';
@@ -269,7 +269,11 @@ export class NARExecution {
         // `proposal-application` is a declared scope, so a spent budget and a full
         // queue are the same kind of event with the same kind of reason (§5.7).
         // Symbolic derivations are not charged here: only what arrived from the seam.
-        for (const task of await this.rankForAdmission(results, ranking)) this.admit(task);
+        for (const task of await this.rankForAdmission(
+          await this.vetoAtEgress(results),
+          ranking
+        ))
+          this.admit(task);
         // `proposal-application` is a declared scope, so a spent budget and a
         // full queue become the same kind of event with the same kind of reason
         // (§5.7). Symbolic derivations are not charged: only what the seam sent.
@@ -477,6 +481,73 @@ export class NARExecution {
       .map((task, index) => ({ task, index, p: weight.get(task.term.toString()) ?? 0 }))
       .sort((a, b) => b.p - a.p || a.index - b.index)
       .map(({ task }) => task);
+  }
+
+  /**
+   * TODO32 M2: egress judging — opt-in, bounded, and a **veto**, not an order.
+   *
+   * Three properties, and each is load-bearing:
+   *
+   * - **It only ever removes.** The candidates are the same ones
+   *   `rankDerivations` is about to select, so a veto can shrink what is
+   *   committed and never widen it. TODO30 §7's invariant — optimization may
+   *   never change *what counts as* committed state — holds by construction
+   *   rather than by review. It runs *before* ranking so that a vetoed
+   *   candidate never consumes an admission slot it would not have taken.
+   * - **It is not a second admission path.** Survivors go through {@link admit},
+   *   the same gate, the same event. There is no other route into memory.
+   * - **Absence means no veto, and is recorded.** This is deliberately the
+   *   opposite of ingress, which fails *closed*. The baselines differ: ingress
+   *   would otherwise let an injection through unjudged, whereas here the
+   *   baseline is the symbolic ranking that already ran, so a dead judge costs
+   *   the extra safety net and nothing else. Failing closed would halt cognition
+   *   on a provider fault — the one thing a bounded runtime may not do — so a
+   *   fault, an abstention and a timeout all return the candidate unchanged and
+   *   log, because a silently dropped veto is the failure mode worth avoiding.
+   */
+  private async vetoAtEgress<T extends RankableDerivation>(candidates: T[]): Promise<T[]> {
+    const egress = this.config.systemOne?.egressJudging;
+    if (!egress?.enabled || !this.decision || candidates.length === 0) return candidates;
+
+    // Bounded on purpose: an evaluate head judges one embedding, so this is one
+    // embedding per candidate. Unbounded, cognition's cost would track
+    // `ranking.maxAdmissions` instead of the configuration that declared it.
+    const judged = candidates.slice(0, egress.maxCandidates);
+    const scores = await Promise.all(
+      judged.map((task) =>
+        askSafely(
+          this.decision,
+          {
+            kind: 'evaluate',
+            instruction:
+              'Does this conclusion contradict what is already committed? Score 0 for support, 1 for strong conflict.',
+            rubric: egress.rubric,
+            axis: 'epistemic',
+            target: task.term.toString(),
+            budget: EGRESS_VETO_CALL_SITE.budget,
+            position: EGRESS_VETO_CALL_SITE.position,
+          },
+          EGRESS_VETO_CALL_SITE.timeoutMs
+        )
+      )
+    );
+
+    const vetoed = new Set<T>();
+    for (const [index, task] of judged.entries()) {
+      const verdict = scores[index];
+      // null, abstained, or a different query kind all read the same way: the
+      // judgment did not arrive, so this candidate is not vetoed.
+      if (verdict?.kind !== 'evaluate' || verdict.abstained) continue;
+      if (verdict.score < egress.vetoThreshold) continue;
+      vetoed.add(task);
+      logger.warn('Egress judging vetoed a derived conclusion', {
+        term: task.term.toString(),
+        score: verdict.score,
+        threshold: egress.vetoThreshold,
+      });
+    }
+
+    return vetoed.size === 0 ? candidates : candidates.filter((task) => !vetoed.has(task));
   }
 
   private pumpProposals(signal?: AbortSignal): void {

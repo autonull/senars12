@@ -93,6 +93,17 @@ export interface EvaluateQuery {
   instruction: string;
   rubric: RubricId;
   axis: CognitiveAxis;
+  /**
+   * What is being evaluated. An `evaluate` head scores *an embedding*, so
+   * without a target the query is only meaningful against the shared context —
+   * and asking the same context N times yields the same N answers.
+   *
+   * `ClassifyQuery` already had `target`; this is the same field on the other
+   * query kind, so a caller can name a specific candidate in both. TODO32 M2
+   * needs it: egress judging asks about *this* derived conclusion, not about
+   * whatever the ambient context happens to embed.
+   */
+  target?: string;
   levels?: readonly string[];
   criticality?: CriticalityLevel;
 }

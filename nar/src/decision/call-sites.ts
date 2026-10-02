@@ -19,29 +19,45 @@
 import { DECISION_ASK_TIMEOUT_MS, type DecisionAxis, type DecisionPosition } from '../ports/decision.js';
 import type { BudgetScopeId } from '../kernel/budget-scopes.js';
 
-export interface DecisionCallSite {
+interface DecisionCallSiteBase {
   /** Stable id, and the symbol a caller names in a violation message. */
   readonly id: string;
   /** `file:line` of the call, kept because a declaration with no address drifts. */
   readonly at: string;
   /** The text that must still be on that line (like ProviderSeam.callSites). */
   readonly contains: string;
-  /** `classify` or `evaluate` for `J`; `synthesize` for `P`. */
-  readonly query: 'classify' | 'evaluate' | 'synthesize';
-  /**
-   * What the decision is about. `epistemic` reaches `Truth` through
-   * `PerceptionGate`; `teleological` is confined to `Desire`. A `synthesize` call
-   * declares neither: it produces candidates, not admissions.
-   */
-  readonly axis: DecisionAxis | 'none';
-  readonly position: DecisionPosition;
-  readonly budget: BudgetScopeId;
   /** Per-site bound on one ask in ms — a second site with different latency
    *  needs gets its own number rather than sharing a flat one. */
   readonly timeoutMs: number;
   /** One line on why this site is worth a call — TODO30 §1 measures which pay. */
   readonly rationale: string;
 }
+
+/**
+ * A `J` call site — `classify` or `evaluate`, inline in a cycle, about one axis.
+ *
+ * `position` is the **literal** `'cycle'`, not `DecisionPosition`, and that is the
+ * point: a caller reads `SITE.budget` / `SITE.position` straight into a
+ * `CycleDecisionRequest`, so the declaration has to be as narrow as the thing it
+ * declares. Typed loosely, the manifest could describe a site the request type
+ * then rejects — the declaration and the code disagreeing about one fact.
+ */
+export interface JudgmentCallSite extends DecisionCallSiteBase {
+  readonly query: 'classify' | 'evaluate';
+  readonly axis: DecisionAxis;
+  readonly position: 'cycle';
+  readonly budget: BudgetScopeId;
+}
+
+/** A `P` call site — open generation, at a boundary, about neither axis. */
+export interface SynthesisCallSite extends DecisionCallSiteBase {
+  readonly query: 'synthesize';
+  readonly axis: 'none';
+  readonly position: 'boundary';
+  readonly budget: BudgetScopeId;
+}
+
+export type DecisionCallSite = JudgmentCallSite | SynthesisCallSite;
 
 /**
  * The sites bound today. **One, on purpose, and the reason is recorded rather
@@ -62,7 +78,7 @@ export interface DecisionCallSite {
 export const DECISION_CALL_SITES: readonly DecisionCallSite[] = [
   {
     id: 'authorize.admission-order',
-    at: 'nar/src/nar-execution.ts:456',
+    at: 'nar/src/nar-execution.ts:462',
     contains: 'await askSafely(this.decision,',
     query: 'classify',
     axis: 'epistemic',
@@ -72,15 +88,39 @@ export const DECISION_CALL_SITES: readonly DecisionCallSite[] = [
     rationale:
       'the only stage through which anything reaches state, and the only truncation that decides what fits — `ranking.maxAdmissions`. A decision reorders the candidates; it never creates an admission',
   },
+{
+    id: 'authorize.egress-veto',
+    at: 'nar/src/nar-execution.ts:518',
+    contains: 'await askSafely(this.decision,',
+    query: 'evaluate',
+    axis: 'epistemic',
+    position: 'cycle',
+    budget: 'decision-derivations',
+    timeoutMs: DECISION_ASK_TIMEOUT_MS,
+    rationale:
+      'TODO32 M2: opt-in veto on a derived conclusion before admission. Same stage and same gate as admission-order, and same budget scope — it only ever *removes* a candidate the symbolic ranking had already selected, so the committed set can shrink and never grow',
+  },
 ] as const satisfies readonly DecisionCallSite[];
 
 /** Ids, for a gate's failure message and for a test to assert against. */
 export const DECISION_CALL_SITE_IDS = DECISION_CALL_SITES.map((site) => site.id);
 
+/**
+ * One accessor for both J sites, and typed as a `JudgmentCallSite` rather than
+ * as whatever `find` returns. `find` over a union widens `position` back to
+ * `'cycle' | 'boundary'`, which the request type rejects — so reading a
+ * declaration back into the thing it declares needs the declaration typed as
+ * narrowly as the thing. The `!` is honest: every id here is in this table, and
+ * a gate fails on an unregistered site.
+ */
+const judgmentSite = (id: string): JudgmentCallSite =>
+  DECISION_CALL_SITES.find((s): s is JudgmentCallSite => s.id === id)!;
+
 /** The admission-order site, so its caller reads the declared timeout rather than a flat one. */
-export const ADMISSION_ORDER_CALL_SITE = DECISION_CALL_SITES.find(
-  (s) => s.id === 'authorize.admission-order'
-)!;
+export const ADMISSION_ORDER_CALL_SITE = judgmentSite('authorize.admission-order');
+
+/** The egress-veto site (TODO32 M2), same way. */
+export const EGRESS_VETO_CALL_SITE = judgmentSite('authorize.egress-veto');
 
 /** The declared vocabulary, so a gate reads one table rather than three literals. */
 export const DECISION_QUERIES = ['classify', 'evaluate', 'synthesize'] as const;
