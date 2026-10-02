@@ -13,6 +13,9 @@ export interface RewardFeatures {
   completionLength: number;
   uniqueTools: number;
   avgToolResponseLength: number;
+  /** Explicit reward from reward_feedback steps (rlfp.reward()) */
+  explicitReward?: number;
+  hasExplicitReward?: boolean;
 }
 
 export interface RewardModelConfig {
@@ -54,6 +57,11 @@ export class RewardModel {
   }
 
   computeRewardFromFeatures(features: RewardFeatures): number {
+    // If there's an explicit reward from reward_feedback, use it directly
+    if (features.hasExplicitReward && features.explicitReward !== undefined) {
+      return features.explicitReward;
+    }
+
     let reward = 0;
 
     reward += features.trajectoryLength * this.config.lengthWeight!;
@@ -79,6 +87,8 @@ export class RewardModel {
     let completionLength = 0;
     let totalToolResponseLength = 0;
     let toolResponseCount = 0;
+    let explicitReward = 0;
+    let hasExplicitReward = false;
 
     trajectory.forEach((step) => {
       if (step.type === 'lm_response') {
@@ -93,6 +103,14 @@ export class RewardModel {
           toolResponseCount++;
         }
       }
+      // Check for explicit reward feedback (from rlfp.reward())
+      if (step.type === 'reward_feedback') {
+        const data = step.data as Record<string, unknown>;
+        if (data && typeof data.reward === 'number') {
+          explicitReward = data.reward;
+          hasExplicitReward = true;
+        }
+      }
     });
 
     return {
@@ -105,6 +123,8 @@ export class RewardModel {
       uniqueTools: uniqueTools.size,
       avgToolResponseLength:
         toolResponseCount > 0 ? totalToolResponseLength / toolResponseCount : 0,
+      explicitReward,
+      hasExplicitReward,
     };
   }
 

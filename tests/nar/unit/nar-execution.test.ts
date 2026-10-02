@@ -30,6 +30,7 @@ const createMockRLFP = (): RLFPLearner =>
   ({
     optimize: vi.fn(),
     updateModel: vi.fn(),
+    reward: vi.fn(),
     policyOptimizerPublic: {} as any,
   }) as unknown as RLFPLearner;
 

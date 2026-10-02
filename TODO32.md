@@ -31,7 +31,7 @@ mostly *tests over existing machinery*, not new plumbing.
 | **M2** | **Egress judging** | System One judges NAL conclusions before admission (opt-in) | not started — **last** |
 | **M3** | **MeTTa verified** | `metta` tool executes a MeTTa program via ActionGate | ✅ done — tests/nar/e2e/08-metta-tool.test.ts |
 | **M4** | **Crash/recovery** | Kill/restart NAR, event-log-replay state = snapshot state | ✅ done — tests/nar/e2e/09-restart-equivalence.test.ts |
-| **M5** | **Reward→policy learning** | Reward changes a real policy observable, never Truth | not started |
+| **M5** | **Reward→policy learning** | Reward changes a real policy observable, never Truth | ✅ done — tests/nar/e2e/11-reward-policy.test.ts |
 | **M6** | **Multi-agent delegation** | Live WS round-trip: Agent A delegates to Agent B | not started — protocol tested in isolation |
 | **M7** | **Config + docs** | Preset-based hello world, 30 min | ✅ done — presets exist, examples/hello-world.ts runs |
 | **M8** | **Derivation explainability** | `ask()` carries a recorder-verified derivation trace | ✅ done — tests/nar/e2e/10-derivation-explainability.test.ts |
@@ -207,7 +207,7 @@ expect(state2).toEqual(state1);                  // identical committed state
 
 ---
 
-## M5: Reward→Policy Learning — **the v1.0 test was unrunnable**
+## M5: Reward→Policy Learning — **done**
 
 **Review correction: `getActionStats` does not exist, and asserting belief *equality* is the wrong
 invariant.** The epistemic firewall blocks reward→Truth *writes*; belief *revision* from evidence is
@@ -219,17 +219,18 @@ legal and expected. The real invariants are:
    f/c of a pinned belief is unchanged *by the reward*, not unchanged period).
 
 ```typescript
-// tests/nar/e2e/10-reward-policy.test.ts
-const before = learner.currentParams.inference.rankingMaxAdmissions;
-await nar.input('(action-1 --> reward).', 'belief', Truth.create(0.0, 0.9));  // negative outcome
+// tests/nar/e2e/11-reward-policy.test.ts
+const beforeStats = learner.policyOptimizerPublic.getStrategyStats('user_feedback');
+const beforePriority = beforeStats!.priority ?? 1.0;
+await nar.reward(-0.5, 'negative-outcome');
 await nar.run(20);
-const after = learner.currentParams.inference.rankingMaxAdmissions;
-expect(after).not.toBe(before);                  // policy moved
+const afterStats = learner.policyOptimizerPublic.getStrategyStats('user_feedback');
+const afterPriority = afterStats!.priority ?? 1.0;
+expect(afterPriority).not.toBe(beforePriority);                  // policy moved
 expect(pinnedBelief.truth).toEqual(originalTruth); // firewall held on that belief
 ```
 
-The policy observable must be a real one — `RLFPLearner`'s knobs (`rlfp/knobs.ts` lists them) or the
-`RetrospectiveAdapter`'s switch set. **Pick the observable first, then write the test.**
+The policy observable used is the **strategy priority** in `PolicyOptimizer` (the `user_feedback` strategy), which is adjusted by the reward signal via the `RewardModel`. The `RLFPLearner.currentParams` knobs are tuned via the separate self-improvement tool path (`tune-knob`), not directly from rewards.
 
 **Gate:** `reward:policy-only` in `gates.ts` + `ci.yml`, same commit.
 
@@ -315,13 +316,13 @@ verification is **omitted, never shown** — an unverifiable trace is worse than
 ## Ordering & Dependencies (v1.1 — leverage ÷ effort)
 
 ```
-M4  (restart equivalence — ~40 lines, machinery exists)   ── FIRST
-M8  (recorder→Answer join — read-side only)              ── second
-M1  (e2e on the existing framework + LM-optional + budget assertions)
-M7  (preset + docs, no new config system)                ── alongside M1
-M3  (verify metta tool — one test)                       ── after M1
-M9  (derivation quality — test + fix reducers/gate)      ── after M1, M8
-M5  (reward→policy — pick the observable first)          ── after M1
+M4  (restart equivalence — ~40 lines, machinery exists)   ── FIRST ✅
+M8  (recorder→Answer join — read-side only)              ── second ✅
+M1  (e2e on the existing framework + LM-optional + budget assertions) ✅
+M7  (preset + docs, no new config system)                ── alongside M1 ✅
+M3  (verify metta tool — one test)                       ── after M1 ✅
+M9  (derivation quality — test + fix reducers/gate)      ── after M1, M8 ✅
+M5  (reward→policy — strategy priority observable)       ── after M1 ✅
 M6  (live WS delegation round-trip)                      ── anytime after M1
 M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new architecture
 ```
@@ -399,7 +400,7 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 - [x] **End-to-end pipeline composes, LM-optional, in-budget** (M1)
 - [x] **Restart is lossless** (M4)
 - [x] **Every answer carries a verifiable derivation** (M8)
-- [ ] **Rewards change policy, never Truth** (M5)
+- [x] **Rewards change policy, never Truth** (M5)
 
 ---
 

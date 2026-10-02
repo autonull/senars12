@@ -255,6 +255,7 @@ export class NAR extends BaseComponent {
     this.io = new NARIO(this.memory, this.taskManager, this.config, this.gates);
     this.io.setEventBus(eventBus);
     this.io.setCognitiveParams(cognitiveParams);
+    this.io.setRLFP(this.rlfp);
     this.systemEventBus = new NarEventBus();
     this.io.setSystemEventBus(this.systemEventBus);
     this.emitJudgmentResolved = createTelemetryEmitter(
@@ -714,6 +715,16 @@ export class NAR extends BaseComponent {
 
   setRLFP(rlfp: RLFPLearner): void {
     this.rlfp = rlfp;
+  }
+
+  /**
+   * Provide external reward feedback to update policy.
+   * Goes through the RewardGate (epistemic firewall) and if accepted, updates the RLFPLearner.
+   * @param reward - Reward value between -1 and 1
+   * @param context - Optional context about what the reward is for
+   */
+  async reward(reward: number, context?: string): Promise<import('@senars/core/schemas').RewardGateOutput> {
+    return this.io.reward(reward, context);
   }
 
   inputTask(task: Task): void {

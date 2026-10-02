@@ -82,6 +82,9 @@ export class RLFPLearner {
     this.ledger = config.ledger;
     this.rewardModel = config.rewardModel ?? new RewardModel({ rng: config.rng });
     this.policyOptimizer = new PolicyOptimizer(this.rewardModel, { rng: config.rng });
+    // Add strategies so the optimizer has something to optimize
+    this.policyOptimizer.addStrategy('default', new Map([['rankingMaxAdmissions', 100]]));
+    this.policyOptimizer.addStrategy('user_feedback', new Map());
     this._preferenceCollector = config.preferenceCollector ?? new PreferenceCollector();
     this.currentParams = config.currentParams ?? buildDefaults();
     this.knobs = createKnobSet(this.currentParams);

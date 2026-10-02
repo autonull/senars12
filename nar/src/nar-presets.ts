@@ -27,6 +27,7 @@ export interface SeNARSOptions {
   enableTools?: boolean;
   enableSelf?: boolean;
   enableRLFP?: boolean;
+  rlfp?: NARConfig['rlfp'];
   persistState?: boolean;
   statePath?: string;
   maxConcepts?: number;
@@ -63,6 +64,7 @@ export function createNAR(options: SeNARSOptions = {}): NAR {
     ...(options.enableTools !== undefined ? { enableTools: options.enableTools } : {}),
     ...(options.enableSelf !== undefined ? { enableSelf: options.enableSelf } : {}),
     ...(options.enableRLFP !== undefined ? { enableRLFP: options.enableRLFP } : {}),
+    ...(options.rlfp !== undefined ? { rlfp: options.rlfp } : {}),
     ...(options.persistState !== undefined ? { persistState: options.persistState } : {}),
     ...(options.statePath !== undefined ? { statePath: options.statePath } : {}),
     ...(options.maxConcepts !== undefined ? { maxConcepts: options.maxConcepts } : {}),

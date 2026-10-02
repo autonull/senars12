@@ -2,14 +2,18 @@ import { promises as fs } from 'node:fs';
 import type {
   PerceptionGateInput,
   PerceptionGateOutput,
+  RewardGateInput,
+  RewardGateOutput,
   SourceQuality,
 } from '@senars/core/schemas';
 import { makeId, writeJsonFile } from '@senars/util';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';
 import type { NARConfig } from './facade/config.js';
-import type { GateRegistry, IPerceptionGate } from './kernel';
+import type { GateRegistry, IPerceptionGate, IRewardGate } from './kernel';
+import { ExternalRewardGate } from './kernel/KernelRewardGate.js';
 import { seedTruth } from './lm/system-one/seed.js';
 import type { Memory } from './memory';
+import type { RLFPLearner } from './rlfp';
 import type { TaskManager } from './task';
 import type { Term } from './terms';
 import {
@@ -41,6 +45,8 @@ export class NARIO {
   private _systemEventBus: NarEventBus | null = null;
   private cognitiveParams?: CognitiveParameters;
   private perceptionGate: IPerceptionGate;
+  private rewardGate: IRewardGate;
+  private rlfp?: RLFPLearner;
 
   constructor(
     private readonly memory: Memory,
@@ -49,6 +55,12 @@ export class NARIO {
     gates: GateRegistry
   ) {
     this.perceptionGate = gates.getPerceptionGate();
+    this.rewardGate = gates.getRewardGate();
+    this.rlfp = config.enableRLFP ? undefined : undefined; // Will be set via setRLFP
+  }
+
+  setRLFP(rlfp: RLFPLearner | undefined): void {
+    this.rlfp = rlfp;
   }
 
   setCognitiveParams(params: CognitiveParameters): void {
@@ -169,6 +181,30 @@ export class NARIO {
 
   async question(input: string | Term): Promise<void> {
     return this.input(input, 'question');
+  }
+
+  /**
+   * Provide external reward feedback to update policy.
+   * Goes through the RewardGate (epistemic firewall) and if accepted, updates the RLFPLearner.
+   * @param reward - Reward value between -1 and 1
+   * @param context - Optional context about what the reward is for
+   */
+  async reward(reward: number, context?: string): Promise<RewardGateOutput> {
+    const clampedReward = Math.max(-1, Math.min(1, reward));
+    const result = this.rewardGate.process({
+      eventId: makeId(),
+      rewardSignal: clampedReward,
+      rewardType: 'extrinsic',
+      targetType: 'policy-weights',
+      targetId: context ?? 'external-reward',
+      domain: 'external-reflex',
+    });
+
+    if (result.accepted && result.mutationApplied && this.rlfp) {
+      this.rlfp.reward(clampedReward, context);
+    }
+
+    return result;
   }
 
   export(): SerializedNARState {

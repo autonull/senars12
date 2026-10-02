@@ -188,9 +188,10 @@ export class NARExecution {
     }
   }
 
-  /** Record RLFP reward for averaging */
-  recordRLFPReward(reward: number): void {
+  /** Record RLFP reward for averaging and pass to learner */
+  recordRLFPReward(reward: number, context?: string): void {
     this._rlfpRewardHistory.push(reward);
+    this.rlfp?.reward(reward, context);
   }
 
   async run(steps = 1, signal?: AbortSignal): Promise<number> {
@@ -627,10 +628,10 @@ export class NARExecution {
           error: result?.error,
         });
         if (ok) {
-          this.recordRLFPReward(0.7);
+          this.recordRLFPReward(0.7, 'tool-goal-success');
           this.driveManager?.stimulate('competence', 0.1);
         } else {
-          this.recordRLFPReward(-0.3);
+          this.recordRLFPReward(-0.3, 'tool-goal-failure');
           this.driveManager?.stimulate('competence', -0.1);
         }
       } catch (e) {
@@ -638,7 +639,7 @@ export class NARExecution {
           goal: task.term.toString(),
           error: errMsg(e),
         });
-        this.recordRLFPReward(-0.5);
+        this.recordRLFPReward(-0.5, 'tool-goal-error');
         this.driveManager?.stimulate('competence', -0.15);
       }
     }
