@@ -102,7 +102,7 @@ describe('M9: Derivation Quality — Zero contradictory/redundant terms', () => 
       const args = term.args;
       const argKeys = new Set(args.map((a) => termKey(a)));
       for (const arg of args) {
-        if (arg.kind === 'negation') {
+        if (arg.kind === 'negation' && arg.args[0]) {
           const negatedKey = termKey(arg.args[0]);
           if (argKeys.has(negatedKey)) {
             return true;
@@ -127,7 +127,7 @@ describe('M9: Derivation Quality — Zero contradictory/redundant terms', () => 
         if (arg.kind === 'conjunction') {
           const nestedArgs = arg.args;
           for (const nested of nestedArgs) {
-            if (nested.kind === 'negation') {
+            if (nested.kind === 'negation' && nested.args[0]) {
               const negated = nested.args[0];
               // Check if negated is also a direct arg or in another nested conjunction
               const allArgs = [...args];

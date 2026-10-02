@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Memory, TermBuilder, Truth } from '../../nar/src';
+import { createTimestamp } from '../../nar/src/types';
 import { type RuleInput, RuleProcessor } from '../../nar/src/rules';
 import { CognitiveRegistry } from '../../nar/src/cognitive/impls/CognitiveRegistry.js';
 import { RuleGraph } from '../../nar/src/strategies/lm-graph/RuleGraph.js';
@@ -13,6 +14,7 @@ const makeInput = (termStr: string): RuleInput => ({
   term: TermBuilder.atom(termStr),
   truth: Truth.create(1.0, 0.9),
   stamp: { id: 'test', created: [Date.now()], source: 'test' } as any,
+  occurrenceTime: createTimestamp(),
 });
 
 // Helper to create premise pairs

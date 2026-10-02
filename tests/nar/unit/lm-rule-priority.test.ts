@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Memory, TermBuilder, Truth } from '../../../nar/src';
+import { createTimestamp } from '../../../nar/src/types';
 import { type RuleInput, RuleProcessor } from '../../../nar/src/rules';
 
 // Helper to create a RuleInput from a term string
@@ -7,6 +8,7 @@ const makeInput = (termStr: string): RuleInput => ({
   term: TermBuilder.atom(termStr),
   truth: Truth.create(1.0, 0.9),
   stamp: { id: 'test', created: [Date.now()], source: 'test' } as any,
+  occurrenceTime: createTimestamp(),
 });
 
 // Helper to iterate async generator

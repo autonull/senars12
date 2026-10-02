@@ -8,7 +8,7 @@ describe('M5: Reward → Policy Learning', () => {
       enableRLFP: true,
       rlfp: { optimizeInterval: 5 }, // Optimize every 5 cycles for test
       maxConcepts: 1000,
-      maxTasksPerConcept: 50,
+      maxTasks: 5000,
     });
 
     await nar.start();
@@ -24,7 +24,9 @@ describe('M5: Reward → Policy Learning', () => {
     // Pin a belief to verify epistemic firewall holds
     const pinnedTerm = '(pinned --> belief)';
     await nar.believe(`${pinnedTerm}. %0.8;0.9%`);
-    const originalTruth = nar.ask(pinnedTerm)?.truth;
+    const beliefs = nar.getBeliefs();
+    const pinnedBelief = beliefs.find(b => b.term.toString() === pinnedTerm);
+    const originalTruth = pinnedBelief?.truth;
 
     // Record baseline strategy priority (policy observable)
     const beforeStats = learner.policyOptimizerPublic.getStrategyStats('user_feedback');
@@ -47,8 +49,9 @@ describe('M5: Reward → Policy Learning', () => {
     expect(afterPriority).not.toBe(beforePriority);
 
     // Verify epistemic firewall: pinned belief's truth unchanged by reward path
-    const pinnedBelief = nar.ask(pinnedTerm);
-    expect(pinnedBelief?.truth).toEqual(originalTruth);
+    const beliefsAfter = nar.getBeliefs();
+    const pinnedBeliefAfter = beliefsAfter.find(b => b.term.toString() === pinnedTerm);
+    expect(pinnedBeliefAfter?.truth).toEqual(originalTruth);
 
     await nar.dispose();
   });
@@ -58,7 +61,7 @@ describe('M5: Reward → Policy Learning', () => {
       enableRLFP: true,
       rlfp: { optimizeInterval: 5 }, // Optimize every 5 cycles for test
       maxConcepts: 1000,
-      maxTasksPerConcept: 50,
+      maxTasks: 5000,
     });
 
     await nar.start();
@@ -95,7 +98,7 @@ describe('M5: Reward → Policy Learning', () => {
     const nar = await createNAR({
       enableRLFP: true,
       maxConcepts: 1000,
-      maxTasksPerConcept: 50,
+      maxTasks: 5000,
     });
 
     await nar.start();

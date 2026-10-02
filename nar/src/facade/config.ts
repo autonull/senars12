@@ -111,6 +111,8 @@ export interface NARConfig extends CoreConfig {
   enableEmbeddingLayer?: boolean;
   /** Which embedder memory's semantic link layer uses. Unset reads provider settings. */
   embeddingGenerator?: EmbeddingGenerator;
+  /** Maximum total tasks across all concepts (memory pressure bound). */
+  maxTasks?: number;
 }
 
 export function validateNarConfig(config: NARConfig): NARConfig {

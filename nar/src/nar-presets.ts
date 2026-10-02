@@ -31,6 +31,7 @@ export interface SeNARSOptions {
   persistState?: boolean;
   statePath?: string;
   maxConcepts?: number;
+  maxTasks?: number;
   cognitiveParams?: NARConfig['cognitiveParams'];
   strategyRegistry?: CognitiveRegistry;
   // System One configuration
@@ -68,6 +69,7 @@ export function createNAR(options: SeNARSOptions = {}): NAR {
     ...(options.persistState !== undefined ? { persistState: options.persistState } : {}),
     ...(options.statePath !== undefined ? { statePath: options.statePath } : {}),
     ...(options.maxConcepts !== undefined ? { maxConcepts: options.maxConcepts } : {}),
+    ...(options.maxTasks !== undefined ? { maxTasks: options.maxTasks } : {}),
     ...(options.cognitiveParams !== undefined ? { cognitiveParams: options.cognitiveParams } : {}),
     ...(options.strategyRegistry !== undefined
       ? { strategyRegistry: options.strategyRegistry }

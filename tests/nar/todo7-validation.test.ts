@@ -12,6 +12,7 @@ import {
   TermBuilder,
   Truth,
 } from '../../nar/src/index.js';
+import { createTimestamp } from '../../nar/src/types';
 import { gateRegistry } from '../../nar/src/kernel/GateRegistry.js';
 import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
 import { KernelRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
@@ -97,11 +98,13 @@ describe('TODO7 validation benchmarks', () => {
       term: TermBuilder.inheritance(atom('A'), atom('B'))!,
       truth: Truth.create(0.9, 0.9),
       stamp: Stamp.createInput(),
+      occurrenceTime: createTimestamp(),
     };
     const p2 = {
       term: TermBuilder.inheritance(atom('B'), atom('C'))!,
       truth: Truth.create(0.8, 0.9),
       stamp: Stamp.createInput(),
+      occurrenceTime: createTimestamp(),
     };
     const results = processor.processSync(p1, p2);
     expect(results.length).toBeGreaterThan(0);

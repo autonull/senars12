@@ -1,4 +1,5 @@
 import { atom, RuleProcessor, Stamp, TermBuilder, Truth, termsEqual } from '../../nar/src';
+import { createTimestamp } from '../../nar/src/types';
 
 describe('Performance benchmarks', () => {
   test('term comparison benchmark <100ns', () => {
@@ -22,11 +23,13 @@ describe('Performance benchmarks', () => {
       term: TermBuilder.inheritance(atom('A'), atom('B'))!,
       truth: Truth.TRUE,
       stamp: Stamp.createInput(),
+      occurrenceTime: createTimestamp(),
     };
     const t2 = {
       term: TermBuilder.inheritance(atom('B'), atom('C'))!,
       truth: Truth.TRUE,
       stamp: Stamp.createInput(),
+      occurrenceTime: createTimestamp(),
     };
 
     const iterations = 1000;

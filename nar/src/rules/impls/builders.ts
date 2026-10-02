@@ -3,7 +3,7 @@
  */
 import type { Term } from '../../terms';
 import { getPredicate, getSubject, TermBuilder, TermSet, termsEqual } from '../../terms';
-import type { RuleFn } from '../types.js';
+import type { RuleFn, RuleInput } from '../types.js';
 import { ID, sameSubject } from './extractors.js';
 import { buildBinaryInhRule, buildInhRule } from './rule-builder.js';
 

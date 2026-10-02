@@ -21,7 +21,7 @@ import { LMProposalProducer } from '@senars/nar/proposal/lm-rule-producer.js';
 import { StreamReasoner } from '@senars/nar/stream/reasoner.js';
 import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
 import type { ModelRuleWork } from '@senars/nar/rules/types';
-import { createBudget } from '@senars/nar/types';
+import { createBudget, createTimestamp } from '@senars/nar/types';
 import { Stamp, Truth } from '@senars/nar/terms';
 import { createTestController, inferenceParams } from './fixtures/cognitive.js';
 
@@ -277,7 +277,7 @@ describe('A1 — a bounded queue drops the newest work, and says so', () => {
     const processor = new RuleProcessor();
     const producer = new LMProposalProducer(reasoner, processor);
     const work = (): ModelRuleWork => ({
-      p1: { term: inheritance(atom('a'), atom('b')) as Term, truth: Truth.TRUE, stamp: Stamp.createInput() },
+      p1: { term: inheritance(atom('a'), atom('b')) as Term, truth: Truth.TRUE, stamp: Stamp.createInput(), occurrenceTime: createTimestamp() },
     });
 
     expect(producer.stage(work())).toBe(true);

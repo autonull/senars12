@@ -5,6 +5,7 @@ import { createRulePattern } from '@senars/nar/rules/types';
 import type { InferenceTable, RegisteredRule } from '@senars/nar/rules/types';
 import { bucketCensus, kindViolations } from '../../scripts/lib/dispatch-table.js';
 import { OPERATORS, Stamp, TermBuilder, Truth, type Term } from '@senars/nar/terms';
+import { createTimestamp } from '@senars/nar/types';
 
 const rule = (id: string, priority: number, ops: [Term['kind'], Term['kind']]): RegisteredRule => ({
   id,
@@ -84,7 +85,7 @@ describe('dispatch is a port', () => {
     };
     const processor = new RuleProcessor([rule('noop', 1, ['atom', 'atom'])], spy);
 
-    const input = (term: Term) => ({ term, truth: Truth.NEUTRAL, stamp: Stamp.createInput() });
+    const input = (term: Term) => ({ term, truth: Truth.NEUTRAL, stamp: Stamp.createInput(), occurrenceTime: createTimestamp() });
     processor.processSync(
       input(TermBuilder.atom('a')),
       input(TermBuilder.inheritance(TermBuilder.atom('x'), TermBuilder.atom('y'))!)

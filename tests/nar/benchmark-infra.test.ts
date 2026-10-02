@@ -10,6 +10,7 @@ import {
   Truth,
   termsEqual,
 } from '../../nar/src';
+import { createTimestamp } from '../../nar/src/types';
 import { fromNarsese, serializeTerm } from '../../nar/src/terms';
 
 function time(name: string, iterations: number, fn: (i: number) => void): number {
@@ -45,11 +46,13 @@ describe('Performance benchmarks (infrastructure)', () => {
       term: TermBuilder.inheritance(atom('A'), atom('B'))!,
       truth: Truth.TRUE,
       stamp: Stamp.createInput(),
+      occurrenceTime: createTimestamp(),
     };
     const t2 = {
       term: TermBuilder.inheritance(atom('B'), atom('C'))!,
       truth: Truth.TRUE,
       stamp: Stamp.createInput(),
+      occurrenceTime: createTimestamp(),
     };
     const iterations = 1000;
     for (let i = 0; i < 100; i++) processor.processSync(t1, t2);

@@ -36,7 +36,7 @@ describe('M6: Multi-Agent Delegation — Live WS round-trip', () => {
     await agentB.start();
 
     // Pre-load Agent B with knowledge: Paris is the capital of France
-    await agentB.believe('(Paris --> capitalOfFrance).', Truth.create(0.9, 0.9));
+    await agentB.believe('(Paris --> capitalOfFrance). %0.9;0.9%');
     await narB.run(5);
 
     // Agent A: no transport config (client mode - delegate() creates its own connection)

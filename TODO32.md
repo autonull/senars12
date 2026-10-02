@@ -378,13 +378,6 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 - Asserts zero derivations with overlapping evidence lineage (Stamp non-overlap)
 - Asserts all derived terms pass `terms:canonical` gate (`pnpm terms:canonical`)
 
-**Deliverable:** A test `tests/nar/e2e/12-derivation-quality.test.ts` that:
-- Runs the hello-world scenario (robin→bird, bird→animal, tweety→robin)
-- Asserts zero contradictory conjunctions `(X & --X)` in beliefs (reduction gate)
-- Asserts zero redundant nestings `(A & (A & B))` or `(A & /A)` (normalization at construction)
-- Asserts zero derivations with overlapping evidence lineage (Stamp non-overlap)
-- Asserts all derived terms pass `terms:canonical` gate (`pnpm terms:canonical`)
-
 **Fix targets (in order):**
 1. `nar/src/terms/reduce.ts` — ensure `TERM_REDUCERS` reaches fixed point for conjunction/disjunction/negation (add missing reducers, verify `pnpm terms:canonical` passes) ✅
 2. `nar/src/terms/impls/Stamp.ts` — verify `checkOverlap` is called on every admission path; `independence` flag propagated from premises
@@ -393,6 +386,38 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 **Gate:** `derivation:clean` in `gates.ts` + `ci.yml`, same commit.
 
 **Depends on:** M1 (e2e pipeline passes), M8 (derivation trace available)
+
+---
+
+## Progress Summary (2026-10-02)
+
+**All TODO32 integration milestones M1, M3–M9 are complete.** Their e2e tests pass:
+- M1: `tests/nar/e2e/07-full-pipeline.test.ts` ✅
+- M3: `tests/nar/e2e/08-metta-tool.test.ts` ✅
+- M4: `tests/nar/e2e/09-restart-equivalence.test.ts` ✅
+- M5: `tests/nar/e2e/11-reward-policy.test.ts` ✅ (fixed TypeScript errors)
+- M6: `tests/nar/e2e/13-delegation.test.ts` ✅ (fixed TypeScript errors)
+- M7: presets exist, `examples/hello-world.ts` runs ✅
+- M8: `tests/nar/e2e/10-derivation-explainability.test.ts` ✅
+- M9: `tests/nar/e2e/12-derivation-quality.test.ts` ✅ (fixed TypeScript errors)
+
+**M2 (Egress judging)** remains explicitly **not started — last**, per plan ordering.
+
+**TypeScript errors fixed in this session:**
+- `nar/src/rules/impls/builders.ts`: Added missing `RuleInput` import
+- `tests/nar/e2e/11-reward-policy.test.ts`: Fixed `maxTasksPerConcept` → `maxTasks`, fixed `nar.ask()` return type usage
+- `tests/nar/e2e/12-derivation-quality.test.ts`: Fixed `Term | undefined` type narrowing
+- `tests/nar/e2e/13-delegation.test.ts`: Fixed `agent.believe()` call signature
+- Multiple test files: Added required `occurrenceTime` field to `RuleInput` objects
+- `nar/src/facade/config.ts` + `nar/src/nar-presets.ts`: Added `maxTasks` config option
+
+**Pre-existing test failures (outside TODO32 scope):**
+- `refactor3-hygiene.test.ts` / `todo20-monoliths.test.ts`: `nar.ts` at 997 LOC exceeds 940 budget (refactor task)
+- `refactor4-budget.test.ts`: `typecheck:bin` has 2 errors in `scripts/arcade.ts` (circular type refs)
+- `todo29a-a2.test.ts` / `todo29a-a10.test.ts`: Rule count expectations outdated (55 vs 51 actual)
+- `todo30-u2.test.ts`: Belief count expectation outdated (133 vs 91 actual)
+- `todo26-cognitive-agent.test.ts`: Test timeout (15s)
+- `rl/parity/stress-boundary.test.ts`: Test timeout (15s)
 
 ## Invariant Checklist
 
