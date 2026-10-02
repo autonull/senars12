@@ -43,6 +43,46 @@ const kindOf = (term: Term): OperatorKey => term.kind as OperatorKey;
 const distinct = (args: readonly Term[]): Term[] =>
   args.filter((arg, index) => args.findIndex((other) => termsEqual(arg, other)) === index);
 
+/** `a & --a = FALSE` — contradiction in conjunction. */
+const conjunctionContradiction: TermReducer = {
+  id: 'conjunction-contradiction',
+  justification: 'a & --a = FALSE (self-contradiction in conjunction); NAL negation semantics',
+  applies: (term) => {
+    if (term.kind !== 'conjunction') return false;
+    const args = argsOf(term);
+    for (const arg of args) {
+      if (arg.kind === 'negation') {
+        const negated = arg.args[0];
+        if (args.some((a) => termsEqual(a, negated))) {
+          return true;
+        }
+      }
+    }
+    return false;
+  },
+  reduce: () => atomOf('FALSE'),
+};
+
+/** `a | --a = TRUE` — tautology in disjunction. */
+const disjunctionTautology: TermReducer = {
+  id: 'disjunction-tautology',
+  justification: 'a | --a = TRUE (tautology in disjunction); NAL negation semantics',
+  applies: (term) => {
+    if (term.kind !== 'disjunction') return false;
+    const args = argsOf(term);
+    for (const arg of args) {
+      if (arg.kind === 'negation') {
+        const negated = arg.args[0];
+        if (args.some((a) => termsEqual(a, negated))) {
+          return true;
+        }
+      }
+    }
+    return false;
+  },
+  reduce: () => atomOf('TRUE'),
+};
+
 const flattenNested: TermReducer = {
   id: 'flatten-nested',
   justification: 'Nested conjunction/disjunction/parallel/product is structurally identical to flat form (associativity); Op.java DISJ/CONJ/PROD n-ary definitions',
@@ -137,6 +177,8 @@ const disjunctionFalse: TermReducer = {
 export const TERM_REDUCERS: readonly TermReducer[] = Object.freeze([
   flattenNested,
   dedupeArgs,
+  conjunctionContradiction,
+  disjunctionTautology,
   doubleNegation,
   negateTrue,
   negateFalse,
@@ -149,8 +191,18 @@ export const TERM_REDUCERS: readonly TermReducer[] = Object.freeze([
 /** Three reducers need two passes; the ceiling turns a non-terminating reducer into one loud error rather than a hang in the reasoning cycle. */
 const MAX_PASSES = 8;
 
-export const canonicalTerm = (term: Term): Term => {
-  let current = term;
+/** Recursively apply reducers to all subterms, then to the term itself. */
+const canonicalizeRecursive = (term: Term): Term => {
+  if (term.kind === 'atom') return term;
+  
+  // First canonicalize all arguments
+  const canonicalArgs = term.args.map(canonicalizeRecursive);
+  
+  // Rebuild the term with canonicalized args (bypassing factory to avoid re-canonicalizing)
+  const rebuilt = compoundOf(term.kind as OperatorKey, canonicalArgs);
+  
+  // Now apply reducers to this rebuilt term
+  let current = rebuilt;
   for (let pass = 0; pass < MAX_PASSES; pass++) {
     const next = TERM_REDUCERS.reduce(
       (acc, reducer) => (reducer.applies(acc) ? reducer.reduce(acc) : acc),
@@ -161,3 +213,5 @@ export const canonicalTerm = (term: Term): Term => {
   }
   throw new Error(`canonicalTerm did not reach a fixed point in ${MAX_PASSES} passes: ${term}`);
 };
+
+export const canonicalTerm = (term: Term): Term => canonicalizeRecursive(term);

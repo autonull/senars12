@@ -35,7 +35,7 @@ mostly *tests over existing machinery*, not new plumbing.
 | **M6** | **Multi-agent delegation** | Live WS round-trip: Agent A delegates to Agent B | not started — protocol tested in isolation |
 | **M7** | **Config + docs** | Preset-based hello world, 30 min | ✅ done — presets exist, examples/hello-world.ts runs |
 | **M8** | **Derivation explainability** | `ask()` carries a recorder-verified derivation trace | ✅ done — tests/nar/e2e/10-derivation-explainability.test.ts |
-| **M9** | **Derivation quality** | Zero contradictory/redundant terms in beliefs | not started — new item |
+| **M9** | **Derivation quality** | Zero contradictory/redundant terms in beliefs | 🟡 in progress — tests/nar/e2e/12-derivation-quality.test.ts created; reducers for contradiction/tautology/flatten/dedupe added to TERM_REDUCERS; recursive canonicalization implemented; deep nested checks in compound conclusions need further work |
 
 ---
 
@@ -354,6 +354,14 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 2. **Stamp non-overlap not enforced** — the Stamp mechanism (`nar/src/terms/impls/Stamp.ts`) is the primary guard against circular derivations. A derivation whose conclusion shares evidence lineage with a premise must be rejected at admission (`Stamp.checkOverlap` / `evidenceLineage` intersection). If loopy results appear, the Stamp check is either missing from the admission path or the `independence` flag is not being set/checked.
 3. **Rule dispatch too permissive** — rules fire on premise pairs that should be filtered by the reducer gate before they reach the rule table.
 
+**Progress (v1.1):**
+- ✅ Created `tests/nar/e2e/12-derivation-quality.test.ts` with hello-world scenario + unit tests
+- ✅ Added `conjunctionContradiction` reducer (`a & --a = FALSE`)
+- ✅ Added `disjunctionTautology` reducer (`a | --a = TRUE`)
+- ✅ Implemented recursive `canonicalTerm` that canonicalizes subterms before applying top-level reducers
+- ✅ `pnpm terms:canonical` passes (11 term reducers)
+- 🟡 Test passes but deep nested conjunctions inside inheritance conclusions (e.g., `(bird-->(animal&(animal&/tweety)))`) not yet reduced — need to ensure `canonicalizeRecursive` is called on all construction paths including rule builders
+
 **Deliverable:** A test `tests/nar/e2e/12-derivation-quality.test.ts` that:
 - Runs the hello-world scenario (robin→bird, bird→animal, tweety→robin)
 - Asserts zero contradictory conjunctions `(X & --X)` in beliefs (reduction gate)
@@ -362,7 +370,7 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
 - Asserts all derived terms pass `terms:canonical` gate (`pnpm terms:canonical`)
 
 **Fix targets (in order):**
-1. `nar/src/terms/reduce.ts` — ensure `TERM_REDUCERS` reaches fixed point for conjunction/disjunction/negation (add missing reducers, verify `pnpm terms:canonical` passes)
+1. `nar/src/terms/reduce.ts` — ensure `TERM_REDUCERS` reaches fixed point for conjunction/disjunction/negation (add missing reducers, verify `pnpm terms:canonical` passes) ✅
 2. `nar/src/terms/impls/Stamp.ts` — verify `checkOverlap` is called on every admission path; `independence` flag propagated from premises
 3. `nar/src/rules/ranking.ts` / admission — filter premise pairs whose stamps overlap before rule application
 
@@ -395,7 +403,7 @@ M2  (egress judging — opt-in flag, existing heads only)  ── LAST: new arch
    grounded, in-budget answer
 3. ✅ **M8 passes** — the answer carries its derivation trace, independently verified
 4. ✅ **M7 passes** — presets exist, examples/hello-world.ts runs
-5. 🔴 **M9 pending** — derivation quality gate must pass before production use
+5. 🟡 **M9 in progress** — derivation quality test created, reducers added, recursive canonicalization implemented; deep nested checks in compound conclusions need further work before gate can pass
 
 M2, M3, M5, M6 are *capability depth* — valuable, sequenced after the exit criteria, and each lands
 with the gate discipline (in `gates.ts` + `ci.yml`, same commit, flippable) the whole programme runs
