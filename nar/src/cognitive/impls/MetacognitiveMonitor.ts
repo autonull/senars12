@@ -4,7 +4,7 @@
  * Migrated from: nar/src/self/MetacognitiveMonitor.ts
  */
 
-import { mean, periodic, pushCapped, stdDev } from '@senars/util';
+import { mean, periodic, perSecond, pushCapped, stdDev } from '@senars/util';
 import type { SelfHost } from '../../self/host.js';
 import type { ReasoningStep } from '../types.js';
 
@@ -269,7 +269,7 @@ export class MetacognitiveMonitor {
       processedCount++;
       const now = Date.now();
       if (now - lastThroughputTime > 1000) {
-        lastThroughput = processedCount / ((now - lastThroughputTime) / 1000);
+        lastThroughput = perSecond(processedCount, now - lastThroughputTime);
         processedCount = 0;
         lastThroughputTime = now;
       }

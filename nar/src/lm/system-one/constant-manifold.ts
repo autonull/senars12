@@ -14,6 +14,7 @@ import type {
   QueryId,
   ReasoningBudget,
 } from './types.js';
+import { NO_COST } from './types.js';
 
 interface ConstantManifoldConfig {
   tier: 0 | 3;
@@ -76,7 +77,7 @@ export class ConstantManifold implements JudgmentManifold {
       modelDigest,
       calibration: { version: calibrationVersion, ece },
       latencyMs,
-      cost: { tokensIn: 0, tokensOut: 0, computeMs: latencyMs, memoryMb: 0 },
+      cost: { ...NO_COST, computeMs: latencyMs },
       tier,
       abstained: false,
     };

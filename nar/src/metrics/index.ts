@@ -1,5 +1,5 @@
 import type { Metrics as CoreMetrics } from '@senars/util';
-import { safeRatio, weightedMean } from '@senars/util';
+import { perSecond, safeRatio, weightedMean } from '@senars/util';
 import type { BaseStats as CoreBaseStats } from '../types/core.js';
 
 // Public: performance metric type for external consumers
@@ -143,11 +143,8 @@ export class MetricsCollector implements CoreMetrics {
   }
 
   updateThroughput(derivations: number, duration: number): void {
-    const now = Date.now();
-    const elapsed = (now - this.startTime) / 1000;
-
     this.throughputStats = {
-      derivationsPerSecond: safeRatio(derivations, elapsed),
+      derivationsPerSecond: perSecond(derivations, Date.now() - this.startTime),
       tasksProcessed: derivations,
       averageStepDuration: duration,
     };

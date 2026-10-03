@@ -1,4 +1,13 @@
-import { clamp, generateId, mapToRecord, safeRatio, sigmoid, softmax, sumBy } from '@senars/util';
+import {
+  clamp,
+  clampSigned,
+  generateId,
+  mapToRecord,
+  safeRatio,
+  sigmoid,
+  softmax,
+  sumBy,
+} from '@senars/util';
 import type { Bag, BagItem } from '../../bag/Bag.js';
 import { createBag } from '../../bag/index.js';
 import { AIKRProcessor, PrioritySampling } from '../../learning/aikr-processor.js';
@@ -59,8 +68,8 @@ export function fitInfoNCE(
     loss = 0;
     for (const { query, positive, negatives } of pairs) {
       const q = normalize(query);
-      const cosPos = clamp(cosineNormalized(q, positive), -1, 1);
-      const cosNegs = negatives.map((n) => clamp(cosineNormalized(q, n), -1, 1));
+      const cosPos = clampSigned(cosineNormalized(q, positive));
+      const cosNegs = negatives.map((n) => clampSigned(cosineNormalized(q, n)));
       const logits = [scale * cosPos + bias, ...cosNegs.map((c) => scale * c + bias)];
       const probs = softmax(logits);
       loss += -Math.log(probs[0]!);

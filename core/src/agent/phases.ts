@@ -266,18 +266,18 @@ const announce = (ctx: MacroContext): void => {
     );
   }
   for (const tr of state.toolResults) {
-    host.emit({
-      engine: 'nar',
-      type: 'skill.executed',
-      timestamp: Date.now(),
-      correlationId: stimulus.correlationId,
-      payload: {
-        skill: tr.command,
-        args: [],
-        result: tr.result.success ? 'success' : (tr.result.error ?? 'error'),
-        durationMs: 0,
-      },
-    });
+    host.emit(
+      mintCognitiveEvent('skill.executed', {
+        engine: 'nar',
+        correlationId: stimulus.correlationId,
+        payload: {
+          skill: tr.command,
+          args: [],
+          result: tr.result.success ? 'success' : (tr.result.error ?? 'error'),
+          durationMs: 0,
+        },
+      })
+    );
   }
 };
 

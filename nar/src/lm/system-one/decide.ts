@@ -365,7 +365,12 @@ function adjustDistribution(
     option: d.option,
     p: d.p * (1 - (penalties[d.option] ?? 0)),
   }));
-  return renormalize(adjusted, (d) => d.p, (d, share) => ({ ...d, p: share }), base);
+  return renormalize(
+    adjusted,
+    (d) => d.p,
+    (d, share) => ({ ...d, p: share }),
+    base
+  );
 }
 
 export interface ChooseRequest {

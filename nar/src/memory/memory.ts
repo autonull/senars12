@@ -549,8 +549,9 @@ export class Memory implements MemoryPorts {
     );
 
     toRemove.push(...this.findOrphanedLinks());
-    const removeCount = Math.ceil(this.concepts.size * 0.1);
-    for (const concept of toRemove.slice(0, removeCount)) {
+    // 10% of the store, not of the removal list: the two differ whenever the
+    // list is the smaller pool, and shrinking the store is what bounds it.
+    for (const concept of toRemove.slice(0, Math.ceil(this.concepts.size * 0.1))) {
       this.removeConcept(concept.term);
     }
     this.updateAllFocus();

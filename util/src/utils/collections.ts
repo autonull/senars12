@@ -15,6 +15,83 @@ export const chunk = <T>(items: readonly T[], size: number): T[][] => {
 export const edgeKey = (source: string, target: string): string => `${source}->${target}`;
 
 /**
+ * Composite keys: the join and the split, so a key that is written in two places
+ * is parsed in one.
+ *
+ * A `scope::name` or `action::kind` pair appeared as a template literal at the
+ * write and a hand-rolled `split(sep)[i]` at the read, in each case with the
+ * separator written out again. Changing the separator then meant finding every
+ * reader of every key, and a reader that split on the wrong index got a plausible
+ * wrong answer instead of an error. Here the separator and the arity live in one
+ * declaration, and {@link splitKey} takes the count so it cannot silently accept
+ * a key of the wrong shape. A part must not itself contain the separator — the
+ * pair is a split, not a quote, and {@link splitKey} reports the arity it found
+ * rather than quietly returning a part with the separator still in it.
+ */
+export const KEY_SEPARATOR = '::';
+
+export const joinKey = (...parts: readonly string[]): string => parts.join(KEY_SEPARATOR);
+
+/**
+ * The `parts` of a key {@link joinKey} wrote. Throws rather than returning
+ * `undefined` for a key that was not written that way: a malformed key reaching a
+ * consumer is a bug in the writer, and a `undefined` component would travel on as
+ * a plausible string.
+ */
+export const splitKey = (key: string, parts: number): string[] => {
+  const split = key.split(KEY_SEPARATOR);
+  if (split.length !== parts) {
+    throw new Error(`key '${key}' has ${split.length} parts, expected ${parts}`);
+  }
+  return split;
+};
+
+/**
+ * The first `limit` items `accept` admits, and nothing past them.
+ *
+ * The AIKR read primitive: a scan over an unbounded source that must not become
+ * unbounded work, because the cost of a query is not allowed to scale with the
+ * size of what it may return. Ten call sites had written the loop —
+ * `push` then `if (length >= limit) break` — and the two ways it was wrong were
+ * the two ways a hand-written loop is wrong: forgetting the break and scanning
+ * the whole source anyway, and `break`ing on the *source* count so a run of
+ * rejects could exhaust a large input for a short answer.
+ *
+ * A `limit` of zero collects nothing, which is the honest reading and the reason
+ * this is one function rather than a `break` a caller may or may not reach.
+ */
+export const collectUpTo = <T, R = T>(
+  items: Iterable<T>,
+  limit: number,
+  accept: (item: T) => R | undefined
+): R[] => {
+  const out: R[] = [];
+  if (limit <= 0) return out;
+  for (const item of items) {
+    const admitted = accept(item);
+    if (admitted !== undefined) {
+      out.push(admitted);
+      if (out.length >= limit) break;
+    }
+  }
+  return out;
+};
+
+/**
+ * The first `fraction` of `items`, at least `count` and never all of them.
+ *
+ * Pressure relief always wants a *share* of a pool, and every site computed it as
+ * `min(size, ceil(size * share))` followed by a slice — which is a cap and a
+ * rounding rule, spelled out four times with the rounding left to differ. A share
+ * of zero must yield nothing rather than the `count` floor, or a container under
+ * no pressure sheds its minimum anyway.
+ */
+export const shareOf = <T>(items: readonly T[], fraction: number, count: number = 0): T[] => {
+  const target = Math.min(items.length, Math.max(count, Math.ceil(items.length * fraction)));
+  return items.slice(0, Math.max(0, target));
+};
+
+/**
  * The read surface every consumer of a keyed container needs and no more —
  * `Map`, `BoundedMap`, and any bounded projection all satisfy it, so a caller
  * that only looks keys up does not have to name a container.

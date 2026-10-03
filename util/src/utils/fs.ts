@@ -175,6 +175,25 @@ export function readJsonl<T>(
   return collectJsonl(readFileSync(path, 'utf8'), parse);
 }
 
+/**
+ * {@link readJsonl} for the case where every row must satisfy one schema.
+ *
+ * Every persisted log — the event log, the derivation records — validates each
+ * row against a schema and drops what fails, and each had written the same
+ * `safeParse` ternary as its parse function. That ternary is the definition of
+ * the round trip: a row that parses back differently from what was written is a
+ * row that never existed, and it belongs in `invalid`, not in `rows`.
+ */
+export function readJsonlWith<T>(
+  path: string,
+  schema: { safeParse: (value: unknown) => { success: true; data: T } | { success: false } }
+): JsonlLoadResult<T> {
+  return readJsonl(path, (value) => {
+    const parsed = schema.safeParse(value);
+    return parsed.success ? parsed.data : null;
+  });
+}
+
 export async function readJsonlAsync<T>(
   path: string,
   parse: (value: unknown) => T | null

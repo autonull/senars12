@@ -1,4 +1,4 @@
-import { clamp01, getOrInsert } from '@senars/util';
+import { clamp01, getOrInsert, weightedMean } from '@senars/util';
 import { SATURATION_COUNT } from '../constants.js';
 import { type ActionProposal, byExpectedValue, type LearningEvent } from './Reflex.js';
 
@@ -68,7 +68,7 @@ export abstract class BanditReflex<O extends BanditReflexOptions = BanditReflexO
       event.perception.stateId,
       Number.parseInt(event.actionExecuted, 10)
     );
-    entry.value += (event.reward - entry.value) / (entry.count + 1);
+    entry.value = weightedMean(entry.value, entry.count, event.reward);
     entry.count++;
     this.totalSteps++;
   }

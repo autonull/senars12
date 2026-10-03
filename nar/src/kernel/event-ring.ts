@@ -4,7 +4,7 @@
  */
 
 import type { CognitiveEvent, PolicyViolationEvent } from '@senars/core/schemas';
-import { validateCognitiveEvent } from '@senars/core/schemas';
+import { mintCognitiveEvent, validateCognitiveEvent } from '@senars/core/schemas';
 import { BoundedRing } from '@senars/util';
 
 export const GATE_LOG_CAPACITY = 1000;
@@ -27,13 +27,11 @@ export function recordPolicyViolation(
   log: BoundedSink<CognitiveEvent>,
   { policyId, violationType, detail, correlationId, severity = 'block' }: PolicyViolationInput
 ): PolicyViolationEvent {
-  const event: PolicyViolationEvent = {
-    type: 'policy.violation',
+  const event = mintCognitiveEvent('policy.violation', {
     engine: 'kernel',
-    timestamp: Date.now(),
     correlationId,
     payload: { policyId, violationType, detail, severity },
-  };
+  });
   validateCognitiveEvent(event);
   log.push(event);
   return event;

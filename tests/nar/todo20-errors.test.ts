@@ -15,6 +15,8 @@ import {
   SchemaInductionError,
   SenarsError,
 } from '../../nar/src/errors/index.js';
+import { StatePersister } from '../../nar/src/facade/persistence.js';
+import { ConnectionConfigSchema, ToolSpecSchema } from '../../nar/src/tools/schemas.js';
 import {
   attempt,
   err,
@@ -25,8 +27,6 @@ import {
   ok,
   unwrapOrThrow,
 } from '../../nar/src/utils/result.js';
-import { ConnectionConfigSchema, ToolSpecSchema } from '../../nar/src/tools/schemas.js';
-import { StatePersister } from '../../nar/src/facade/persistence.js';
 
 /** Bench 64 — Error Taxonomy & Result (TODO20 Phase 3). */
 
@@ -51,7 +51,11 @@ describe('Bench 64 — Error Taxonomy (E1)', () => {
         'DIGEST_MISMATCH',
         { expected: 'aaa', actual: 'bbb', artifact: 'snapshot' },
       ],
-      [new SchemaInductionError('boom', 'candidate-generation'), 'SCHEMA_INDUCTION', { phase: 'candidate-generation' }],
+      [
+        new SchemaInductionError('boom', 'candidate-generation'),
+        'SCHEMA_INDUCTION',
+        { phase: 'candidate-generation' },
+      ],
       [
         new BoundaryValidationError('bad', 'config', [{ path: ['x'], message: 'required' }]),
         'VALIDATION_ERROR',
@@ -139,7 +143,9 @@ describe('Bench 64 — Result (E2)', () => {
 
 describe('Bench 64 — Zod strict boundaries (E3)', () => {
   it('ToolSpecSchema rejects unknown keys', () => {
-    expect(ToolSpecSchema.safeParse({ name: 't', description: 'd', inputSchema: {} }).success).toBe(true);
+    expect(ToolSpecSchema.safeParse({ name: 't', description: 'd', inputSchema: {} }).success).toBe(
+      true
+    );
     const r = ToolSpecSchema.safeParse({ name: 't', description: 'd', inputSchema: {}, rogue: 1 });
     expect(r.success).toBe(false);
   });
@@ -162,17 +168,5 @@ describe('Bench 64 — Result adoption (persistence)', () => {
     });
     // load() must not throw on missing files (ENOENT → ok(null) path)
     await expect(persister.load()).resolves.toBeUndefined();
-  });
-});
-
-// BoundaryValidationError.fromZod smoke (zod v3/v4 shape)
-describe('Bench 64 — BoundaryValidationError.fromZod', () => {
-  it('captures path and issues from a zod error', () => {
-    const parsed = z.object({ a: z.string() }).strict().safeParse({ a: 1, rogue: 2 });
-    expect(parsed.success).toBe(false);
-    const validationError = BoundaryValidationError.fromZod('agent-options', parsed.error!);
-    expect(validationError.path).toBe('agent-options');
-    expect(validationError.issues.length).toBeGreaterThan(0);
-    expect(validationError).toBeInstanceOf(SenarsError);
   });
 });

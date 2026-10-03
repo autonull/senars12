@@ -17,7 +17,6 @@ import {
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { PriorityBag } from '../../nar/src/bag/Bag.js';
-import { BoundaryValidationError } from '../../nar/src/errors/index.js';
 import { SingleFlight } from '../../nar/src/nl/singleflight.js';
 
 /**
@@ -147,9 +146,6 @@ describe('Bench 115 — one rendering of a schema failure', () => {
 
     expect(new SchemaValidationError('agent-options', parsed.error.issues).message).toBe(
       `Invalid agent-options: ${rendered}`
-    );
-    expect(BoundaryValidationError.fromZod('agent-options', parsed.error).message).toBe(
-      `Validation failed at agent-options: ${rendered}`
     );
   });
 

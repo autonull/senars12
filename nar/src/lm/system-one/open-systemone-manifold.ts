@@ -9,6 +9,7 @@ import type {
   JudgmentQuery,
   ModelDigest,
 } from './types.js';
+import { NO_COST } from './types.js';
 
 export const OPEN_REPLICA_BACKEND = 'open-systemone' as BackendId;
 
@@ -60,7 +61,7 @@ const buildProposition = (
     modelDigest: `open:${model}` as ModelDigest,
     calibration: { version: `open-replica:${model}`, ece: -1 },
     latencyMs: 0,
-    cost: { tokensIn: 0, tokensOut: 0, computeMs: 0, memoryMb: 0 },
+    cost: NO_COST,
     tier: 1 as const,
     abstained: answer.abstained,
   };

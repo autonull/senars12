@@ -1,4 +1,4 @@
-import { sortBy } from '@senars/util';
+import { shareOf, sortBy } from '@senars/util';
 import { PRESSURE } from '../../constants.js';
 import type { Concept } from '../concept.js';
 import type { ConceptWriter, StatisticsView, SymbolIndex } from '../ports/index.js';
@@ -118,11 +118,7 @@ export const evictUnderPressure = (
     (concept) => conceptValue(concept)
   );
 
-  const archiveTarget = Math.min(
-    idle.length,
-    Math.ceil(idle.length * Math.min(ARCHIVE_SHARE, pressure - PRESSURE.NEUTRAL))
-  );
-  const archivedNow = idle.slice(0, archiveTarget);
+  const archivedNow = shareOf(idle, Math.min(ARCHIVE_SHARE, pressure - PRESSURE.NEUTRAL));
   const archivedSet = new Set(archivedNow);
   const archived = archivedNow.filter((concept) => memory.archiveConcept(concept)).length;
 
@@ -146,11 +142,7 @@ export const evictUnderPressure = (
     ),
   ].sort(evictionOrder);
 
-  const forgetTarget = Math.min(
-    remainder.length,
-    Math.ceil(remainder.length * Math.min(FORGET_SHARE, pressure - PRESSURE.ARCHIVE))
-  );
-  const victims = remainder.slice(0, forgetTarget);
+  const victims = shareOf(remainder, Math.min(FORGET_SHARE, pressure - PRESSURE.ARCHIVE));
   const forgotten = victims.filter((concept) => memory.removeConcept(concept.term)).length;
   const taskHolders = victims.filter((concept) => concept.totalTasks > 0).length;
 

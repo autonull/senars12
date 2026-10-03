@@ -7,6 +7,7 @@
  * check, same amplification rule, same cap. A helper named after one of its two
  * callers is a file whose ownership reads wrong.
  */
+import { collectUpTo } from '@senars/util';
 import type { NegotiationInput, ProposerContribution } from './Negotiator.js';
 import type { ActionProposal } from './Reflex.js';
 
@@ -35,13 +36,9 @@ export function agreeByExactAlgebra(
     maxProposals?: number;
   }
 ): ProposerContribution {
-  const reflex: ActionProposal[] = [];
-  for (const p of input.reflexProposals) {
-    if (reflex.length >= maxProposals) break;
+  const reflex = collectUpTo(input.reflexProposals, maxProposals, (p) => {
     const expr = toExpression(p.action);
-    if (expr !== undefined && evaluate(expr) === true) {
-      reflex.push({ ...p, confidence, source });
-    }
-  }
+    return expr !== undefined && evaluate(expr) === true ? { ...p, confidence, source } : undefined;
+  });
   return reflex.length > 0 ? { reflex } : {};
 }

@@ -8,7 +8,7 @@
  * pure functions over `CycleTrace.regions()`.
  */
 
-import { pct, removeBy, weightedMean } from '@senars/util';
+import { flooredRatio, pct, removeBy, weightedMean } from '@senars/util';
 import type { CycleStageEvent, TraceRegion } from '../proposal/cycle-trace.js';
 
 export interface PhaseEntry {
@@ -74,7 +74,7 @@ export const formatFlameChart = (summary: PhaseTimerSummary): string => {
   const lines: string[] = [`=== Temporal Trace (${summary.totalDurationMs}ms total) ===`, ''];
   for (const phase of summary.phases) {
     const bar = '#'.repeat(Math.max(1, Math.round(phase.durationMs / 10)));
-    const share = pct(phase.durationMs / Math.max(1, summary.totalDurationMs));
+    const share = pct(flooredRatio(phase.durationMs, summary.totalDurationMs));
     lines.push(
       ` [${phase.region.padEnd(20)}] cycle ${phase.cycle} ${String(phase.durationMs).padStart(6)}ms (${share}) ${bar}`
     );
@@ -83,7 +83,7 @@ export const formatFlameChart = (summary: PhaseTimerSummary): string => {
     lines.push('');
     lines.push('By Region:');
     for (const [region, stats] of Object.entries(summary.byRegion)) {
-      const share = pct(stats.totalMs / Math.max(1, summary.totalDurationMs));
+      const share = pct(flooredRatio(stats.totalMs, summary.totalDurationMs));
       lines.push(
         ` ${region.padEnd(20)} ${stats.count} calls, ${stats.totalMs}ms total (${share}), avg ${Math.round(stats.avgMs)}ms`
       );

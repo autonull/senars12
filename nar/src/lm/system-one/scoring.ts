@@ -1,4 +1,4 @@
-import { djb2, djb2Step, LruCache } from '@senars/util';
+import { djb2, djb2Step, LruCache, lerp } from '@senars/util';
 import type { JudgmentQuery } from './types.js';
 
 export interface ScoringOptions {
@@ -30,7 +30,7 @@ export function computeDeterministicScore(
   const instructionHash = djb2(query.instruction, opts.salt);
 
   const combined = (Math.abs(hash + instructionHash) % 10000) / 10000;
-  return opts.minScore + combined * (opts.maxScore - opts.minScore);
+  return lerp(opts.minScore, opts.maxScore, combined);
 }
 
 export function createScorer(salt: number, minScore = 0.3, maxScore = 0.9) {

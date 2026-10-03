@@ -1,3 +1,4 @@
+import { collectUpTo } from '@senars/util';
 import { GRAPH_MEMORY, type RecallHit } from '../../memory/associative.js';
 import type { Concept } from '../../memory/concept.js';
 import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';
@@ -396,13 +397,11 @@ export function samplePremisesFromConfig(
   }
   scored.sort((a, b) => b.score - a.score);
 
-  for (const { concept } of scored) {
+  return collectUpTo(scored, merged.limit, ({ concept }) => {
     const belief = concept.beliefBag.peek();
-    if (!belief?.truth) continue;
-    if (merged.whereTruth && !merged.whereTruth(task, belief.truth)) continue;
-    results.push(createSecondaryTask(concept.term, concept.priority, belief.truth));
-    if (results.length >= merged.limit) break;
-  }
-
-  return results;
+    if (!belief?.truth || (merged.whereTruth && !merged.whereTruth(task, belief.truth))) {
+      return undefined;
+    }
+    return createSecondaryTask(concept.term, concept.priority, belief.truth);
+  });
 }

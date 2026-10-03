@@ -10,7 +10,14 @@ import {
   validateCognitiveEvent,
   validateDerivationRecord,
 } from '@senars/core/schemas';
-import { appendJsonl, errMsg, keyedBy, readJsonl, sha256Hex, writeJsonFileSync } from '@senars/util';
+import {
+  appendJsonl,
+  errMsg,
+  keyedBy,
+  readJsonlWith,
+  sha256Hex,
+  writeJsonFileSync,
+} from '@senars/util';
 import { createDefaultRegistry, resolveSlot } from '../cognitive/impls/CognitiveRegistry.js';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { Concept, ConceptTaskType, TaskData } from '../memory/concept.js';
@@ -121,10 +128,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
   }
 
   const derivationRecords: DerivationRecord[] = derivationRecordsPath
-    ? readJsonl(derivationRecordsPath, (value) => {
-        const parsed = DerivationRecordSchema.safeParse(value);
-        return parsed.success ? parsed.data : null;
-      }).rows
+    ? readJsonlWith(derivationRecordsPath, DerivationRecordSchema).rows
     : [];
 
   const { cognitiveParams, strategyRegistry } = options;
@@ -267,7 +271,11 @@ export async function computeReplayStateHash(result: ReplayResult): Promise<stri
   const canonicalMemory = { ...serializeMemory(result.memory), timestamp: 0 };
   return sha256Hex(
     JSON.stringify({
-      counters: keyedBy(HASHED_FIELDS, (field) => field, (field) => result[field]),
+      counters: keyedBy(
+        HASHED_FIELDS,
+        (field) => field,
+        (field) => result[field]
+      ),
       memory: canonicalMemory,
     })
   );
@@ -351,9 +359,6 @@ export function loadDerivationRecords(path: string): {
   records: DerivationRecord[];
   invalid: number;
 } {
-  const { rows, invalid } = readJsonl(path, (value) => {
-    const parsed = DerivationRecordSchema.safeParse(value);
-    return parsed.success ? parsed.data : null;
-  });
+  const { rows, invalid } = readJsonlWith(path, DerivationRecordSchema);
   return { records: rows, invalid };
 }

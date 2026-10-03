@@ -1,6 +1,12 @@
-import { mean } from '@senars/util';
+import { flooredRatio, mean } from '@senars/util';
 
-import { clamp01, failClosed, type CognitionContext, type Sensor, type SensorReading } from './types.js';
+import {
+  type CognitionContext,
+  clamp01,
+  failClosed,
+  type Sensor,
+  type SensorReading,
+} from './types.js';
 
 /** C2-S1: capacity pressure + utilization from memory statistics. */
 export class BagPressureSensor implements Sensor {
@@ -11,8 +17,13 @@ export class BagPressureSensor implements Sensor {
       const pressure = stats?.memoryPressure ?? 0;
       const utilization = stats?.utilization ?? 0;
       const bagPressure = focusBag ? clamp01(focusBag.pressure()) : 0;
-      return { features: { memoryPressure: pressure, utilization, bagOccupancy: bagPressure }, confidence: (stats || focusBag) ? 1 : 0 };
-    } catch (e) { return failClosed(this.id, e); }
+      return {
+        features: { memoryPressure: pressure, utilization, bagOccupancy: bagPressure },
+        confidence: stats || focusBag ? 1 : 0,
+      };
+    } catch (e) {
+      return failClosed(this.id, e);
+    }
   }
 }
 
@@ -21,13 +32,23 @@ export class TaskTypeMixSensor implements Sensor {
   readonly id = 'task-type-mix';
   read({ nar }: CognitionContext): SensorReading {
     try {
-      const d = nar?.getStatistics()?.conceptDistribution ?? { lowPriority: 0, mediumPriority: 0, highPriority: 0 };
+      const d = nar?.getStatistics()?.conceptDistribution ?? {
+        lowPriority: 0,
+        mediumPriority: 0,
+        highPriority: 0,
+      };
       const total = Math.max(1, d.lowPriority + d.mediumPriority + d.highPriority);
       return {
-        features: { lowShare: d.lowPriority / total, mediumShare: d.mediumPriority / total, highShare: d.highPriority / total },
+        features: {
+          lowShare: d.lowPriority / total,
+          mediumShare: d.mediumPriority / total,
+          highShare: d.highPriority / total,
+        },
         confidence: nar ? 1 : 0,
       };
-    } catch (e) { return failClosed(this.id, e); }
+    } catch (e) {
+      return failClosed(this.id, e);
+    }
   }
 }
 
@@ -38,8 +59,17 @@ export class DerivationBacklogSensor implements Sensor {
     try {
       const tasksProcessed = report?.tasksProcessed ?? 0;
       const derivations = report?.derivations ?? 0;
-      return { features: { tasksProcessed, derivations, backlogRatio: derivations / Math.max(1, tasksProcessed) }, confidence: report ? 1 : 0 };
-    } catch (e) { return failClosed(this.id, e); }
+      return {
+        features: {
+          tasksProcessed,
+          derivations,
+          backlogRatio: flooredRatio(derivations, tasksProcessed),
+        },
+        confidence: report ? 1 : 0,
+      };
+    } catch (e) {
+      return failClosed(this.id, e);
+    }
   }
 }
 
@@ -52,9 +82,11 @@ export class VetoHandoverRateSensor implements Sensor {
         features: {
           vetoRate: vetoRate ?? outcome?.vetoes ?? 0,
         },
-        confidence: (vetoRate !== undefined || outcome) ? 1 : 0,
+        confidence: vetoRate !== undefined || outcome ? 1 : 0,
       };
-    } catch (e) { return failClosed(this.id, e); }
+    } catch (e) {
+      return failClosed(this.id, e);
+    }
   }
 }
 
@@ -64,14 +96,22 @@ export class HeadHealthSensor implements Sensor {
   read({ headHealth }: CognitionContext): SensorReading {
     try {
       const entries = Object.entries(headHealth ?? {});
-      if (!entries.length) return { features: { healthyCount: 0, totalCount: 0, healthRatio: 1 }, confidence: 0 };
+      if (!entries.length)
+        return { features: { healthyCount: 0, totalCount: 0, healthRatio: 1 }, confidence: 0 };
       const healthyCount = entries.filter(([, h]) => h.healthy).length;
       const avgScore = mean(entries, ([, h]) => h.score ?? (h.healthy ? 1 : 0));
       return {
-        features: { healthyCount, totalCount: entries.length, healthRatio: healthyCount / entries.length, avgScore },
+        features: {
+          healthyCount,
+          totalCount: entries.length,
+          healthRatio: healthyCount / entries.length,
+          avgScore,
+        },
         confidence: 1,
       };
-    } catch (e) { return failClosed(this.id, e); }
+    } catch (e) {
+      return failClosed(this.id, e);
+    }
   }
 }
 
@@ -81,8 +121,13 @@ export class SpendSensor implements Sensor {
   read({ outcome }: CognitionContext): SensorReading {
     try {
       const tokens = outcome?.tokens ?? 0;
-      return { features: { tokens, spendRate: tokens / Math.max(1, tokens + 1000) }, confidence: outcome ? 1 : 0 };
-    } catch (e) { return failClosed(this.id, e); }
+      return {
+        features: { tokens, spendRate: flooredRatio(tokens, tokens + 1000) },
+        confidence: outcome ? 1 : 0,
+      };
+    } catch (e) {
+      return failClosed(this.id, e);
+    }
   }
 }
 
@@ -92,8 +137,17 @@ export class GovernanceQueueSensor implements Sensor {
   read({ governanceQueues }: CognitionContext): SensorReading {
     try {
       const q = governanceQueues ?? { validation: 0, approval: 0 };
-      return { features: { validation: q.validation, approval: q.approval, total: q.validation + q.approval }, confidence: governanceQueues ? 1 : 0 };
-    } catch (e) { return failClosed(this.id, e); }
+      return {
+        features: {
+          validation: q.validation,
+          approval: q.approval,
+          total: q.validation + q.approval,
+        },
+        confidence: governanceQueues ? 1 : 0,
+      };
+    } catch (e) {
+      return failClosed(this.id, e);
+    }
   }
 }
 

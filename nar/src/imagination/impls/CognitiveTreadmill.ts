@@ -1,5 +1,15 @@
 import type { CognitiveEvent } from '@senars/core/schemas';
-import { clamp, nextInt, percentile, sleep, stdDev, stopwatch } from '@senars/util';
+import {
+  clamp,
+  clamp01,
+  flooredRatio,
+  nextInt,
+  percentile,
+  perSecond,
+  sleep,
+  stdDev,
+  stopwatch,
+} from '@senars/util';
 import type { NAR } from '../../nar.js';
 import { Truth } from '../../terms/impls/Truth.js';
 import { termParser } from '../../terms/index.js';
@@ -185,9 +195,9 @@ export class CognitiveTreadmill {
     const p95 = percentile(this.stepLatencies, 0.95);
     const p99 = percentile(this.stepLatencies, 0.99);
 
-    const throughput = steps / (durationMs / 1000);
-    const contradictionRate = contradictions / Math.max(steps, 1);
-    const derivationQuality = clamp(derivations / Math.max(steps * 0.5, 1), 0, 1);
+    const throughput = perSecond(steps, durationMs);
+    const contradictionRate = flooredRatio(contradictions, steps);
+    const derivationQuality = clamp01(flooredRatio(derivations, steps * 0.5));
 
     let priorityOscillation = 0;
     const priorityChanges: number[] = [];

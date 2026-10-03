@@ -5,7 +5,7 @@ import type {
   AutonomyModeChangedEvent,
   PolicyViolationEvent,
 } from '@senars/core/schemas';
-import { AutonomyModeChangedEventSchema, AutonomyModeSchema } from '@senars/core/schemas';
+import { AutonomyModeChangedEventSchema, AutonomyModeSchema, mintCognitiveEvent } from '@senars/core/schemas';
 import { addToSet, BoundedMap, makeId, pushCapped } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
@@ -112,13 +112,13 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
         reason: 'Escalation beyond sandbox-execute requires human or external-governance approval',
       };
     this.autonomyMode = newMode;
-    const event: AutonomyModeChangedEvent = AutonomyModeChangedEventSchema.parse({
-      type: 'autonomy.mode.changed',
-      engine: 'kernel',
-      timestamp: Date.now(),
-      correlationId,
-      payload: { previousMode: prev, newMode, authorizedBy },
-    });
+    const event = AutonomyModeChangedEventSchema.parse(
+      mintCognitiveEvent('autonomy.mode.changed', {
+        engine: 'kernel',
+        correlationId,
+        payload: { previousMode: prev, newMode, authorizedBy },
+      })
+    );
     pushCapped(this.autonomyLog, event, GATE_LOG_CAPACITY);
     return { changed: true };
   }

@@ -1,4 +1,4 @@
-import { incrementCount, mean, pushCapped } from '@senars/util';
+import { flooredRatio, incrementCount, mean, pushCapped } from '@senars/util';
 import type { MetricsCollector } from '../../../metrics';
 /**
  * Policy management - extracted from SelfAnalyzerService
@@ -59,12 +59,10 @@ export const createPolicyManager = (recencyEpisodes: number): PolicyManager => {
       for (const t of recentTools) incrementCount(toolCounts, t);
       const toolSelectionBias: Record<string, number> = {};
       for (const [name, count] of toolCounts)
-        toolSelectionBias[name] = Math.max(0.1, count / Math.max(1, recentTools.length));
+        toolSelectionBias[name] = Math.max(0.1, flooredRatio(count, recentTools.length));
 
       const ruleStats = metrics?.getRuleStats?.();
-      const avgDuration = Array.isArray(ruleStats)
-        ? mean(ruleStats, (r) => r.averageDuration)
-        : 0;
+      const avgDuration = Array.isArray(ruleStats) ? mean(ruleStats, (r) => r.averageDuration) : 0;
       const budget = avgDuration > 50 ? 1024 : 2048;
 
       policy = {

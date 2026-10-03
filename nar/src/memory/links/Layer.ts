@@ -1,5 +1,5 @@
 import type { EvictionOrder } from '@senars/util';
-import { addToSet, BoundedMap, occupancy, removeFromSet } from '@senars/util';
+import { addToSet, BoundedMap, collectUpTo, occupancy, removeFromSet } from '@senars/util';
 import { type Term, termKey } from '../../terms';
 import type { RandomSource } from '../../types/primitives.js';
 import type { LinkEntry, LinkForgetPolicy, LinkInput, LinkQuery, LinkType } from './types.js';
@@ -139,17 +139,14 @@ export class Layer {
 
   private collect(ids: Iterable<string>, query: LinkQuery): LinkEntry[] {
     const { type, minPriority = 0, maxResults = Number.POSITIVE_INFINITY } = query;
-    const results: LinkEntry[] = [];
-
-    for (const id of ids) {
+    return collectUpTo(ids, maxResults, (id) => {
       const entry = this.links.get(id);
-      if (!entry || (type && entry.type !== type) || entry.priority < minPriority) continue;
+      if (!entry || (type && entry.type !== type) || entry.priority < minPriority) {
+        return undefined;
+      }
       entry.lastAccessedAt = Date.now();
-      results.push(entry);
-      if (results.length >= maxResults) break;
-    }
-
-    return results;
+      return entry;
+    });
   }
 
   /** Drop every index reference to a link. */

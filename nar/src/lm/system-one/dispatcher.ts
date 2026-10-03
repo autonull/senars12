@@ -30,6 +30,7 @@ import type {
   SynthesisProposition,
   SynthesisQuery,
 } from './types.js';
+import { NO_COST } from './types.js';
 
 export { DeterministicManifold, Tier3SymbolicManifold };
 
@@ -53,7 +54,7 @@ export class StubCortex implements GenerativeCortex {
     yield {
       kind: 'synthesize',
       candidates: cands,
-      cost: { tokensIn: 0, tokensOut: 0, computeMs: 0, memoryMb: 0 },
+      cost: NO_COST,
     };
   }
 
@@ -240,7 +241,10 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     string,
     { calls: number; totalMs: number; judgments: number; meanMs: number }
   > {
-    const stats: Record<string, { calls: number; totalMs: number; judgments: number; meanMs: number }> = {};
+    const stats: Record<
+      string,
+      { calls: number; totalMs: number; judgments: number; meanMs: number }
+    > = {};
     for (const [tier, s] of this.#tierLatency) {
       stats[`L${tier}`] = { ...s, meanMs: safeRatio(s.totalMs, s.calls) };
     }
@@ -252,7 +256,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     const maxCost = results.reduce(
       (best, r) =>
         r.cost && resourceCostToLmCalls(r.cost) > resourceCostToLmCalls(best) ? r.cost : best,
-      results[0]?.cost ?? { tokensIn: 0, tokensOut: 0, computeMs: 0, memoryMb: 0 }
+      results[0]?.cost ?? NO_COST
     );
     return chargeJudgment(gate, this.#budgetScopeId, maxCost).granted;
   }

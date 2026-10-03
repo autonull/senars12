@@ -3,7 +3,7 @@
  * Provides O(k) lookup where k = term depth, with fallback edges for non-regression.
  */
 
-import { BoundedMap, selectTopN } from '@senars/util';
+import { BoundedMap, collectUpTo, selectTopN } from '@senars/util';
 import type { Term } from '../terms/index.js';
 import { atom, getArgs, termKey } from '../terms/index.js';
 
@@ -132,12 +132,7 @@ export class ConceptGraph {
     const node = this.traversePath(term);
     if (!node) return [];
 
-    const fallbacks: Term[] = [];
-    for (const [, child] of node.children) {
-      fallbacks.push(child.term);
-      if (fallbacks.length >= 5) break;
-    }
-    return fallbacks;
+    return collectUpTo(node.children.values(), 5, (child) => child.term);
   }
 
   /** Decay all edge weights and prune weak edges. */

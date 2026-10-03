@@ -1,4 +1,16 @@
-import { clampSigned, decayCurve, lerp, saturationRamp, safeRatio } from '@senars/util';
+import {
+  clampSigned,
+  decayCurve,
+  flooredRatio,
+  lerp,
+  normalizeToSum,
+  perSecond,
+  renormalize,
+  safeRatio,
+  saturationRamp,
+  softSquash,
+  sumBy,
+} from '@senars/util';
 import { describe, expect, it } from 'vitest';
 
 describe('clampSigned', () => {
@@ -86,5 +98,99 @@ describe('safeRatio', () => {
   it('treats a negative denominator as empty, not as a signed rate', () => {
     expect(safeRatio(3, -4)).toBe(0);
     expect(safeRatio(3, -4, 0.5)).toBe(0.5);
+  });
+});
+
+describe('flooredRatio', () => {
+  it('divides by the population when there is one', () => {
+    expect(flooredRatio(3, 4)).toBe(0.75);
+    expect(flooredRatio(0, 0)).toBe(0);
+  });
+
+  it('floors the denominator rather than calling the rate unmeasurable', () => {
+    // The whole reason this is not safeRatio: an empty population is 0% used,
+    // not an absent measurement.
+    expect(safeRatio(3, 0, 0.5)).toBe(0.5);
+    expect(flooredRatio(3, 0)).toBe(3);
+  });
+
+  it('takes the floor as a parameter, for a ratio over a smaller space', () => {
+    expect(flooredRatio(2, 1, 10)).toBe(0.2);
+  });
+});
+
+describe('perSecond', () => {
+  it('normalizes an elapsed duration in ms to a per-second rate', () => {
+    expect(perSecond(60, 1000)).toBeCloseTo(60, 12);
+    expect(perSecond(60, 500)).toBeCloseTo(120, 12);
+    expect(perSecond(1, 250)).toBeCloseTo(4, 12);
+  });
+
+  it('reports the empty answer rather than infinity at the first sample', () => {
+    expect(perSecond(5, 0)).toBe(0);
+    expect(perSecond(5, 0, -1)).toBe(-1);
+  });
+});
+
+describe('softSquash', () => {
+  it('is bounded by 1 and strictly increasing', () => {
+    expect(softSquash(0)).toBe(0);
+    expect(softSquash(1)).toBe(0.5);
+    expect(softSquash(1000)).toBeLessThan(1);
+    expect(softSquash(5)).toBeGreaterThan(softSquash(1));
+  });
+
+  it('takes the scale as a parameter, which is what makes it the weakening rule', () => {
+    expect(softSquash(1, 10)).toBeCloseTo(1 / 11, 12);
+    expect(softSquash(1, 1)).toBe(0.5);
+  });
+});
+
+describe('renormalize', () => {
+  const items = [
+    { option: 'a', p: 1 },
+    { option: 'b', p: 3 },
+  ];
+
+  it('keeps the payload while rescaling the mass, which normalizeToSum cannot', () => {
+    const out = renormalize(
+      items,
+      (d) => d.p,
+      (d, p) => ({ ...d, p })
+    );
+    expect(out).toEqual([
+      { option: 'a', p: 0.25 },
+      { option: 'b', p: 0.75 },
+    ]);
+    expect(sumBy(out, (d) => d.p)).toBeCloseTo(1, 12);
+  });
+
+  it('falls back to the input when the mass cannot be normalized', () => {
+    expect(
+      renormalize(
+        [{ p: 0 }, { p: 0 }],
+        (d) => d.p,
+        (d, p) => ({ ...d, p })
+      )
+    ).toEqual([{ p: 0 }, { p: 0 }]);
+    const zero: { p: number }[] = [];
+    expect(
+      renormalize(
+        zero,
+        (d) => d.p,
+        (d, p) => ({ ...d, p }),
+        zero
+      )
+    ).toBe(zero);
+  });
+
+  it('agrees with normalizeToSum on the mass it produces', () => {
+    const masses = [1, 3, 6];
+    const out = renormalize(
+      masses,
+      (m) => m,
+      (_m, share) => share
+    );
+    expect(out).toEqual(normalizeToSum(masses, (m) => m));
   });
 });

@@ -7,7 +7,7 @@ import type {
   SourceQuality,
   TaskAdmittedEvent,
 } from '@senars/core/schemas';
-import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas';
+import { mintCognitiveEvent, SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas';
 import {
   asBeliefTruth,
   boundedSignal,
@@ -362,13 +362,11 @@ export class KernelPerceptionGate extends KernelGate {
         depth: defaults.depth,
       },
     };
-    const event: TaskAdmittedEvent = {
-      type: 'task.admitted',
+    const event = mintCognitiveEvent('task.admitted', {
       engine: 'kernel',
-      timestamp: Date.now(),
       correlationId,
       payload: task,
-    };
+    });
     this.emitEvent(event);
     // recordGateDecision is called by decideAndRecord after this returns
     return { admitted: true, task };

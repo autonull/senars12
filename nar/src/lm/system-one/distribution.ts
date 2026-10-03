@@ -1,4 +1,4 @@
-import { maxBy, normalizeToSum } from '@senars/util';
+import { flooredRatio, maxBy, normalizeToSum } from '@senars/util';
 import type { ScoreDistribution } from '../../decision/types.js';
 import type { ScoreLegend } from './types.js';
 
@@ -15,7 +15,7 @@ export const topOption = (
 
 /** Flat mass over an option space — what a head returns when it has nothing to discriminate. */
 export const uniformDistribution = (options: readonly string[]): ScoreDistribution[] =>
-  options.map((option) => ({ option, p: 1 / Math.max(1, options.length) }));
+  options.map((option) => ({ option, p: flooredRatio(1, options.length) }));
 
 /** All mass on `dominantIdx`, the remainder spread evenly over the rest. */
 export const dominantDistribution = (
@@ -23,7 +23,7 @@ export const dominantDistribution = (
   score: number,
   dominantIdx: number
 ): ScoreDistribution[] => {
-  const rest = (1 - score) / Math.max(1, options.length - 1);
+  const rest = flooredRatio(1 - score, options.length - 1);
   return options.map((option, i) => ({ option, p: i === dominantIdx ? score : rest }));
 };
 

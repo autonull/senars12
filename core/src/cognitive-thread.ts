@@ -19,11 +19,14 @@ import {
 } from './budget.js';
 import { emitDomainEvent } from './event-sink.js';
 
+/** Why a send was admitted or refused — and the pairing is exact: `allowed ⇔ reason !== refusal`. */
+export type BackpressureReason = 'budget-exhausted' | 'mailbox-full' | 'ok';
+
 /** One backpressure decision, as a trace event. Core reaches the tracer through the sink. */
 const emitBackpressureDecision = (attributes: {
   threadId: string;
   allowed: boolean;
-  reason: 'budget-exhausted' | 'mailbox-full' | 'ok';
+  reason: BackpressureReason;
   budgetRemaining: number;
   mailboxSize: number;
   mailboxCapacity: number;
@@ -142,58 +145,41 @@ export class CognitiveThread {
     return { thread: child, remainingBudget: remainingAll(this.budget) };
   }
 
+  /**
+   * Record a backpressure decision. Every reason a send can be refused or
+   * admitted reports the same five facts, so the reporting is one call and the
+   * only thing a branch chooses is the verdict.
+   */
+  #backpressure(allowed: boolean, reason: BackpressureReason): void {
+    emitBackpressureDecision({
+      threadId: this.id,
+      allowed,
+      reason,
+      budgetRemaining: remainingCycles(this.budget),
+      mailboxSize: this.mailbox.size(),
+      mailboxCapacity: this.mailbox.capacity,
+    });
+  }
+
   /** Send a message to this thread's mailbox with budget-gated backpressure. */
   send(message: Omit<ThreadMessage, 'id' | 'timestamp'>): boolean {
     // Check budget before enqueueing
     if (isExhausted(this.budget)) {
-      emitBackpressureDecision({
-        threadId: this.id,
-        allowed: false,
-        reason: 'budget-exhausted',
-        budgetRemaining: remainingCycles(this.budget),
-        mailboxSize: this.mailbox.size(),
-        mailboxCapacity: this.mailbox.capacity,
-      });
+      this.#backpressure(false, 'budget-exhausted');
       return false;
     }
     // Consume 1 cycle for message handling overhead
     if (!consumeCycles(this.budget, 1)) {
-      emitBackpressureDecision({
-        threadId: this.id,
-        allowed: false,
-        reason: 'budget-exhausted',
-        budgetRemaining: remainingCycles(this.budget),
-        mailboxSize: this.mailbox.size(),
-        mailboxCapacity: this.mailbox.capacity,
-      });
+      this.#backpressure(false, 'budget-exhausted');
       return false;
     }
 
-    const fullMessage: ThreadMessage = {
+    const enqueued = this.mailbox.enqueue({
       ...message,
       id: makeId(),
       timestamp: Date.now(),
-    };
-    const enqueued = this.mailbox.enqueue(fullMessage);
-    if (!enqueued) {
-      emitBackpressureDecision({
-        threadId: this.id,
-        allowed: false,
-        reason: 'mailbox-full',
-        budgetRemaining: remainingCycles(this.budget),
-        mailboxSize: this.mailbox.size(),
-        mailboxCapacity: this.mailbox.capacity,
-      });
-    } else {
-      emitBackpressureDecision({
-        threadId: this.id,
-        allowed: true,
-        reason: 'ok',
-        budgetRemaining: remainingCycles(this.budget),
-        mailboxSize: this.mailbox.size(),
-        mailboxCapacity: this.mailbox.capacity,
-      });
-    }
+    });
+    this.#backpressure(enqueued, enqueued ? 'ok' : 'mailbox-full');
     return enqueued;
   }
 

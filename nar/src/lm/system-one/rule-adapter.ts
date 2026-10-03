@@ -149,7 +149,12 @@ export class SystemOneLMRuleAdapter {
         const term = termParser.parse(trace);
         if (!term) continue;
         tasks.push(
-          createTask(term, 'belief', Truth.create(clamp(0.5 + score / 2, 0.5, 0.9), 0.7), systemOneTaskWeight(clamp01(score)))
+          createTask(
+            term,
+            'belief',
+            Truth.create(clamp(0.5 + score / 2, 0.5, 0.9), 0.7),
+            systemOneTaskWeight(clamp01(score))
+          )
         );
       }
       this.#logger?.debug?.('System One meta-reasoning', {
@@ -182,9 +187,7 @@ export class SystemOneLMRuleAdapter {
       let cPrime = best ? best.calibrate(c) : c;
       if (manifold && !manifold.health().ready) cPrime *= 0.8; // drift demotion
       const calibrated = Truth.normalize(f, clamp(cPrime, 0.01, 0.99));
-      return [
-        createTask(primary, 'belief', calibrated, systemOneTaskWeight(cPrime)),
-      ];
+      return [createTask(primary, 'belief', calibrated, systemOneTaskWeight(cPrime))];
     } catch (e) {
       this.#logger?.warn?.('System One uncertainty calibration failed', { error: e });
       return [createTask(primary, 'belief', Truth.create(f, c))];

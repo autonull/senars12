@@ -1,4 +1,4 @@
-import { formatNarseseTruth, selectTopN, tokenizeWords } from '@senars/util';
+import { flooredRatio, formatNarseseTruth, selectTopN, tokenizeWords } from '@senars/util';
 
 import { estimateTokens } from '../lm/context/context-budget.js';
 import type { NAR } from '../nar.js';
@@ -122,7 +122,7 @@ export class ContextAssembler {
       return {
         term,
         truth: b.truth,
-        score: (overlap / Math.max(1, words.size)) * 0.4 + attentionPriority * 0.6,
+        score: flooredRatio(overlap, words.size) * 0.4 + attentionPriority * 0.6,
       };
     });
 

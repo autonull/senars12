@@ -3,7 +3,7 @@
  * (code + context + wrap) lives in `@senars/util/errors` — single definition;
  * every class here adds typed, grep-able context for its failure mode.
  */
-import { formatIssues, type SchemaIssue } from '@senars/util';
+import type { SchemaIssue } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 
 export { SenarsError } from '@senars/util/errors';
@@ -74,14 +74,6 @@ export class BoundaryValidationError extends SenarsError {
     super(message, 'VALIDATION_ERROR', { path, issues, ...context });
     this.name = 'BoundaryValidationError';
   }
-
-  static fromZod(path: string, error: { issues: readonly SchemaIssue[] }) {
-    return new BoundaryValidationError(
-      `Validation failed at ${path}: ${formatIssues(error.issues)}`,
-      path,
-      error.issues.map((i) => ({ path: [...i.path], message: i.message }))
-    );
-  }
 }
 
 /** E1: reasoning budget exhausted for a scope/operation. */
@@ -113,7 +105,11 @@ export class DigestMismatch extends SenarsError {
 
 /** E1: schema induction phase failure with its cause attached. */
 export class SchemaInductionError extends SenarsError {
-  constructor(message: string, readonly phase: string, options?: ErrorOptions) {
+  constructor(
+    message: string,
+    readonly phase: string,
+    options?: ErrorOptions
+  ) {
     super(message, 'SCHEMA_INDUCTION', { phase }, options);
     this.name = 'SchemaInductionError';
   }

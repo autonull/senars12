@@ -122,6 +122,8 @@
 
 - `BeliefTruthSchema` — The runtime guard for {@link BeliefTruth}, and the one place a truth value's
 
+- `confidenceToWeight` — The weight a confidence `c` carries — the odds ratio, saturated at {@link WEIGHT_AT_CERTAINTY}.
+
 - `formatNarseseTruth` — Narsese inline truth suffix ` :f:c` (empty when absent) — the single
 
 - `formatTruth` — The single human/LLM-readable truth rendering — prompt text must not drift between call sites.
@@ -137,6 +139,12 @@
 - `toConfidence`
 
 - `toFrequency`
+
+- `WEIGHT_AT_CERTAINTY` — Weight a confidence of exactly 1 would carry, which is unbounded. Revision
+
+- `weakenConfidence` — A confidence reduced toward zero by `factor` and re-clamped — the NAL
+
+- `weightToConfidence` — The confidence a weight `w` carries — the exact inverse of {@link confidenceToWeight}.
 
 - `assertDefined`
 
@@ -176,6 +184,8 @@
 
 - `chunk` — Fixed-size slices for batched work — the one chunking primitive.
 
+- `collectUpTo` — The first `limit` items `accept` admits, and nothing past them.
+
 - `edgeKey` — The one edge identity between two term keys.
 
 - `flatUnique` — {@link unique} across several collections — the union an index query needs.
@@ -187,6 +197,10 @@
 - `incrementCount` — Accumulate a per-key count; returns the new total.
 
 - `insertByScoreDesc` — Insert into a descending-sorted list in O(n) — no full re-sort, unlike
+
+- `joinKey`
+
+- `KEY_SEPARATOR` — Composite keys: the join and the split, so a key that is written in two places
 
 - `keyedBy` — Index `items` by a derived key into a plain object — the record a lookup
 
@@ -212,9 +226,13 @@
 
 - `selectTopN` — Top `n` items from an iterable ranked by `score`, descending. Single-pass with
 
+- `shareOf` — The first `fraction` of `items`, at least `count` and never all of them.
+
 - `sortBy` — Ascending copy sorted by a derived numeric key — never mutates the input.
 
 - `sortByDesc`
+
+- `splitKey` — The `parts` of a key {@link joinKey} wrote. Throws rather than returning
 
 - `trimCapped` — Keep the newest `capacity` entries of a plain array, dropping from the front.
 
@@ -265,6 +283,8 @@
 - `readJsonl` — Read a JSONL file, keeping rows that `parse` accepts and counting the rest.
 
 - `readJsonlAsync`
+
+- `readJsonlWith` — {@link readJsonl} for the case where every row must satisfy one schema.
 
 - `writeJsonFile` — Write a JSON file, creating parent directories.
 
@@ -334,6 +354,8 @@
 
 - `finiteOr` — {@link toFiniteNumber} with the fallback applied, for call sites that must yield a number.
 
+- `flooredRatio` — `num / max(floor, den)` — the ratio whose denominator is a *population*, not a
+
 - `lerp` — Move `fraction` of the way from `from` toward `to`.
 
 - `mean` — Arithmetic mean of a projection; 0 for an empty collection (rates, scores, sums).
@@ -348,6 +370,10 @@
 
 - `pearson` — Pearson correlation over the leading `min(xs, ys)` samples. The single
 
+- `perSecond` — `count` per second over `elapsedMs` — the one rate a benchmark reports.
+
+- `renormalize` — Rescale each item *in place of its mass* so the masses sum to 1, keeping the
+
 - `roundTo` — Round to `digits` decimal places — the one float-noise guard for reported values.
 
 - `safeDiv`
@@ -359,6 +385,8 @@
 - `sigmoid` — Logistic function; the single sigmoid used by scoring and gradient descent.
 
 - `softmax`
+
+- `softSquash` — `x / (x + k)` — the reciprocal saturation curve, for a quantity with a natural
 
 - `stdDev` — Population standard deviation — `sqrt(variance)`.
 
@@ -449,6 +477,16 @@
 - `wordOverlap`
 
 - `Unifier`
+
+- `formatWitness` — `file:contains` — one line per witness, for a report that reads as a ledger.
+
+- `type Witness`
+
+- `type WitnessList`
+
+- `witnessFiles` — Every file a witness list names, deduplicated. Reading the ledger needs the
+
+- `witnessHolds` — Whether `source` still holds the witness text. A missing file never holds.
 
 ## `./commands`
 

@@ -1,4 +1,4 @@
-import { clamp01, selectTopN, weightedMean } from '@senars/util';
+import { clamp01, flooredRatio, selectTopN, weightedMean } from '@senars/util';
 
 /** Newest sample carries 10% of the mean; the rest is the retained 90%. */
 const EWMA_WEIGHT = 9;
@@ -9,12 +9,12 @@ const EWMA_WEIGHT = 9;
  * Fallback edges guarantee non-regression when LM rules fail.
  */
 
-import { ConceptGraph, type CoActivationEdge } from '../../memory/ConceptGraph.js';
+import { type CoActivationEdge, ConceptGraph } from '../../memory/ConceptGraph.js';
 
 import type { ModelRule } from '../../rules/types.js';
-import type { ComponentMetadata, ModelRuleSelectionContext, ModelRuleSelector } from '../types.js';
-import type { Term } from '../../terms/index.js';
 import { termsEqual } from '../../terms';
+import type { Term } from '../../terms/index.js';
+import type { ComponentMetadata, ModelRuleSelectionContext, ModelRuleSelector } from '../types.js';
 
 export interface RuleGraphOptions {
   maxNodes?: number;
@@ -31,7 +31,10 @@ interface RulePerformance {
 }
 
 export class RuleGraph implements ModelRuleSelector {
-  readonly metadata: ComponentMetadata = { name: 'lm-graph', description: 'ConceptGraph-based LM rule selector with RLFPLearner rewards' };
+  readonly metadata: ComponentMetadata = {
+    name: 'lm-graph',
+    description: 'ConceptGraph-based LM rule selector with RLFPLearner rewards',
+  };
   readonly name = 'lm-graph';
 
   /** Published so a `Memory` can adopt it as its `graph` associative memory. */
@@ -78,7 +81,7 @@ export class RuleGraph implements ModelRuleSelector {
       const perf = this.rulePerformance.get(rule.id);
       if (perf) {
         score += perf.successRate * 0.6;
-        score += clamp01(100 / Math.max(1, perf.avgLatencyMs)) * 0.2;
+        score += clamp01(flooredRatio(100, perf.avgLatencyMs)) * 0.2;
       }
       for (const edge of coActivations) {
         if (this.ruleMatchesEdge(rule, edge)) {
@@ -88,9 +91,11 @@ export class RuleGraph implements ModelRuleSelector {
       return { rule, score };
     });
 
-    const selected = selectTopN(scoredRules, Math.max(1, Math.floor(rules.length * 0.5)), (s) => s.score).map(
-      (s) => s.rule
-    );
+    const selected = selectTopN(
+      scoredRules,
+      Math.max(1, Math.floor(rules.length * 0.5)),
+      (s) => s.score
+    ).map((s) => s.rule);
 
     // Activate focus term and selected rule condition terms for future co-activation learning
     this.graph.activate(focusTerm);

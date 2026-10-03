@@ -1,6 +1,6 @@
+import { joinKey, readJsonFileSync, splitKey, writeJsonFileSync } from '@senars/util';
 import { withSpan } from '../otel/index.js';
 import { recordSchemaPromotion } from '../telemetry/index.js';
-import { readJsonFileSync, writeJsonFileSync } from '@senars/util';
 import type { PromotedSchema } from './episode-schemas.js';
 
 /**
@@ -20,7 +20,7 @@ export class SchemaStore {
 
   /** Key = (scope, action, kind): re-promotion refreshes the entry. */
   private static key(scope: string, s: PromotedSchema): string {
-    return `${scope}::${s.action}::${s.kind}`;
+    return joinKey(scope, s.action, s.kind);
   }
 
   /** Promote one episode's induced schemas into the store. */
@@ -68,7 +68,7 @@ export class SchemaStore {
     const payload = {
       episode: this.episode,
       schemas: [...this.schemas.entries()].map(([key, schema]) => ({
-        scope: key.split('::')[0]!,
+        scope: splitKey(key, 3)[0]!,
         schema,
       })),
     };

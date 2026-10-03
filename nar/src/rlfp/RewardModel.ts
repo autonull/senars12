@@ -1,4 +1,4 @@
-import { nextInt, normalizeToSum, type RandomSource, safeRatio } from '@senars/util';
+import { flooredRatio, nextInt, normalizeToSum, type RandomSource, safeRatio } from '@senars/util';
 
 import type { PreferenceData } from './PreferenceCollector.js';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
@@ -203,8 +203,7 @@ export class RewardModel {
     const rewardA = this.computeReward(trajectoryA);
     const rewardB = this.computeReward(trajectoryB);
     const diff = Math.abs(rewardA - rewardB);
-    const maxDiff = Math.max(Math.abs(rewardA), Math.abs(rewardB), 1);
-    const confidence = diff / maxDiff;
+    const confidence = flooredRatio(diff, Math.max(Math.abs(rewardA), Math.abs(rewardB), 1));
 
     return {
       rewardA,

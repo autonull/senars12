@@ -7,6 +7,7 @@ import type {
   SynthesisProposition,
   SynthesisQuery,
 } from './types.js';
+import { NO_COST } from './types.js';
 
 export interface LMServiceCortexConfig {
   lmService: LMService;
@@ -63,14 +64,14 @@ export class LMServiceCortex implements GenerativeCortex {
       yield {
         kind: 'synthesize',
         candidates,
-        cost: { tokensIn: 0, tokensOut: 0, computeMs: 0, memoryMb: 0 },
+        cost: NO_COST,
       };
     } catch (_error) {
       const stubCandidates = Array.from({ length: maxCandidates }, (_, i) => `candidate_${i + 1}`);
       yield {
         kind: 'synthesize',
         candidates: stubCandidates,
-        cost: { tokensIn: 0, tokensOut: 0, computeMs: 0, memoryMb: 0 },
+        cost: NO_COST,
       };
     }
   }

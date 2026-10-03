@@ -8,7 +8,7 @@
  * C3/Phase-B benches).
  */
 
-import { clamp } from '@senars/util';
+import { clamp, joinKey, splitKey } from '@senars/util';
 
 import type { ParameterLedger, ParameterRecord } from './parameter-ledger.js';
 
@@ -40,7 +40,7 @@ export class ParameterScopeError extends Error {
 
 export class ParameterTable {
   private readonly entries = new Map<string, ParameterSpec>();
-  private readonly key = (scope: ParameterScope, name: string) => `${scope}::${name}`;
+  private readonly key = (scope: ParameterScope, name: string) => joinKey(scope, name);
   private ledger?: ParameterLedger;
   private ledgerWriter = 'parameter-table';
 
@@ -116,7 +116,7 @@ export class ParameterTable {
   list(scope?: ParameterScope): Map<string, number> {
     const out = new Map<string, number>();
     for (const [key, spec] of this.entries)
-      if (!scope || spec.scope === scope) out.set(key.split('::')[1]!, spec.value);
+      if (!scope || spec.scope === scope) out.set(splitKey(key, 2)[1]!, spec.value);
     return out;
   }
 }

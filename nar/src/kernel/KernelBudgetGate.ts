@@ -19,7 +19,7 @@ import type {
   ReasoningBudget,
   TerminationReason,
 } from '@senars/core/schemas';
-import { validateReasoningBudget } from '@senars/core/schemas';
+import { mintCognitiveEvent, validateReasoningBudget } from '@senars/core/schemas';
 import { keyedBy } from '@senars/util';
 import { BUDGET_SCOPES, type BudgetScopeId, scopeBudget } from './budget-scopes.js';
 import { KernelGate } from './gate-base.js';
@@ -164,10 +164,8 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
       // reads `terminationReason` per scope, and an event nobody joins reports 'none'
       // for a scope that just refused a charge (TODO33 §5.P3.10).
       budget.terminationReason = terminationReason;
-      const event: BudgetExhaustedEvent = {
-        type: 'budget.exhausted',
+      const event = mintCognitiveEvent('budget.exhausted', {
         engine: 'kernel',
-        timestamp: Date.now(),
         correlationId,
         payload: {
           budgetType: spec.budgetType,
@@ -176,8 +174,8 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
           terminationReason:
             terminationReason as BudgetExhaustedEvent['payload']['terminationReason'],
         },
-      };
-      this.emitEvent(event as CognitiveEvent);
+      });
+      this.emitEvent(event);
 
       return {
         granted: false,

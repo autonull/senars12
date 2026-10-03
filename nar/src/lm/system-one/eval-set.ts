@@ -113,7 +113,10 @@ export function evalMetrics(rows: readonly FrozenEvalRow[]): EvalMetrics {
 }
 
 export function headMetrics(rows: readonly FrozenEvalRow[]): Record<string, EvalMetrics> {
-  return mapToRecord(groupBy(rows, (row) => row.headId), evalMetrics);
+  return mapToRecord(
+    groupBy(rows, (row) => row.headId),
+    evalMetrics
+  );
 }
 
 export async function writeEvalSet(set: FrozenEvalSet, path: string): Promise<void> {

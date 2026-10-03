@@ -1,3 +1,4 @@
+import { clamp01 } from '@senars/util';
 import { containsSubterm, type Term, TermMap } from '../terms';
 import type { Task } from '../types';
 import type { Concept } from './concept.js';
@@ -111,7 +112,7 @@ export class Focus {
 
     if (concept.lastAccessedAt > Date.now() - 60000) p *= 1.2;
 
-    return Math.min(p, 1.0);
+    return clamp01(p);
   }
 
   getTopicBoosts(): Map<string, { factor: number; ttl: number }> {

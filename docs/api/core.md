@@ -770,6 +770,8 @@ _Dynamic subpath (no single entry file)._
 
 ## `./cognitive-thread`
 
+- `BackpressureReason` — Why a send was admitted or refused — and the pairing is exact: `allowed ⇔ reason !== refusal`.
+
 - `ThreadStatus`
 
 - `ThreadMessage`

@@ -1,3 +1,5 @@
+import { collectUpTo } from '@senars/util';
+
 /** Shared case-insensitive term-substring matching (concepts, beliefs, goals). */
 export interface TermBearing {
   readonly term: { toString(): string };
@@ -13,12 +15,5 @@ export const filterByTerm = <T extends TermBearing>(
   limit = Number.POSITIVE_INFINITY
 ): T[] => {
   const lower = pattern.toLowerCase();
-  const results: T[] = [];
-  for (const item of items) {
-    if (termMatches(item, lower)) {
-      results.push(item);
-      if (results.length >= limit) break;
-    }
-  }
-  return results;
+  return collectUpTo(items, limit, (item) => (termMatches(item, lower) ? item : undefined));
 };

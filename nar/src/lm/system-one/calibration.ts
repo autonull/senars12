@@ -1,4 +1,4 @@
-import { maxScore, safeRatio, sortBy, sumBy, trimCapped } from '@senars/util';
+import { lerp, maxScore, safeRatio, sortBy, sumBy, trimCapped } from '@senars/util';
 import type { CalibrationVersion, RubricId } from './types.js';
 
 /** Fitted points retained per calibrator; older points stop steering the fit. */
@@ -132,8 +132,7 @@ export function createIsotonicCalibrator(
       const v1 = isotonicMap[idx] ?? 1;
 
       if (p1 === p0) return v0;
-      const t = (score - p0) / (p1 - p0);
-      return v0 + t * (v1 - v0);
+      return lerp(v0, v1, (score - p0) / (p1 - p0));
     },
 
     update(newPoints: CalibrationPoint[]): void {
