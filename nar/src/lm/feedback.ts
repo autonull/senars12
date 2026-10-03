@@ -4,7 +4,8 @@ import type { GateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { TermMap, Truth } from '../terms';
-import { createTask, createTaskWeight, type Task } from '../types';
+import { createTask, type Task } from '../types';
+import { lmTaskWeight } from './task-weights.js';
 import { admitTasks } from './admit.js';
 import { topBeliefTasks } from './context.js';
 import { parseEnrichmentResponse } from './enrichment.js';
@@ -228,7 +229,7 @@ Provide a JSON response:
         { kind: 'atom' as const, symbol: obj.revisedNarsese } as Term,
         'belief',
         Truth.create(obj.revisedTruth.f, obj.revisedTruth.c),
-        createTaskWeight(0.7, 0.8)
+        lmTaskWeight('revision')
       );
     }
 
@@ -430,7 +431,7 @@ Respond with JSON:
         validation.originalHypothesis.term,
         'belief',
         validation.revisedTruth,
-        createTaskWeight(0.7, 0.8)
+        lmTaskWeight('revision')
       );
       await admitTasks(this.memory, [revisedTask], 'llm', this.gates);
     }

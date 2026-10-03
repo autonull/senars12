@@ -48,8 +48,11 @@ export class FenwickBag<T extends BagItem> extends BaseBag<T> {
 
   private rebuildTree(): void {
     this.tree.fill(0);
-    for (let i = 0; i < this.list.length; i++) {
-      this.addToTree(i, this.list[i]!.item.priority);
+    const n = this.list.length;
+    for (let i = 0; i < n; i++) this.tree[i + 1] = this.list[i]!.item.priority;
+    for (let i = 1; i < this.tree.length; i++) {
+      const parent = i + (i & -i);
+      if (parent < this.tree.length) this.tree[parent] = this.tree[parent]! + this.tree[i]!;
     }
   }
 

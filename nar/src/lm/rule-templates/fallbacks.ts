@@ -3,7 +3,8 @@
  * A fallback returning null skips the rule (no symbolic equivalent); [] degrades silently.
  */
 import { fromNarsese, hasVariable, type Term, Truth } from '../../terms';
-import { createTask, createTaskWeight, type Task, type TaskType } from '../../types';
+import { createTask, type Task, type TaskType } from '../../types';
+import { lmTaskWeight } from '../task-weights.js';
 
 export type SymbolicFallback = (
   primary: Term,
@@ -14,7 +15,7 @@ export type SymbolicFallback = (
 const task = (term: Term | string, type: TaskType, f = 0.5, c = 0.6): Task[] => {
   const parsed = typeof term === 'string' ? fromNarsese(term) : term;
   if (!parsed) return [];
-  return [createTask(parsed, type, Truth.create(f, c), createTaskWeight(0.7))];
+  return [createTask(parsed, type, Truth.create(f, c), lmTaskWeight('fallback'))];
 };
 
 /** "X is Y" → (X --> Y). Template parser standing in for constrained JSON translation. */

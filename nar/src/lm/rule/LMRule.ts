@@ -5,7 +5,7 @@ import { Truth } from '../../terms';
 import type { Truth as TruthType } from '../../terms/impls/Truth.js';
 import type { Budget, Task, TaskType } from '../../types';
 import { createTask, type NAREventMap, type NarEventBus } from '../../types';
-import { createTaskWeight } from '../../types/core.js';
+import { lmTaskWeight } from '../task-weights.js';
 import { CircuitBreaker } from '../../utils/circuit-breaker.js';
 import { parseJsonObject } from '../json.js';
 import type { LMExecutionStats, LMRuleConfig, LMService, ModelRuleStats } from '../lm-service.js';
@@ -623,7 +623,7 @@ export class LMRule {
             parsed.term,
             this.taskType,
             parsed.truth,
-            parsed.confidence != null ? createTaskWeight(parsed.confidence) : undefined
+            parsed.confidence != null ? lmTaskWeight('fallback', parsed.confidence) : undefined
           ),
           primary
         );

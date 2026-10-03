@@ -1,23 +1,12 @@
-import { sortBy } from '@senars/util';
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import type { SamplingStrategy } from '../types.js';
+import { stratifiedSample } from './scored.js';
 
 export class DiverseSampling implements SamplingStrategy {
   readonly metadata = { name: 'diverse', description: 'Stratified sample across priority bands' };
 
   sample(memory: MemoryView, count: number): Concept[] {
-    const concepts = memory.listConcepts();
-    const bands = 4;
-    const perBand = Math.max(1, Math.ceil(count / bands));
-    const sorted = sortBy(concepts, (c) => c.priority);
-    const bandSize = Math.max(1, Math.floor(sorted.length / bands));
-    const result: Concept[] = [];
-    for (let b = 0; b < bands; b++) {
-      const start = b * bandSize;
-      const band = sorted.slice(start, start + bandSize);
-      result.push(...band.slice(0, perBand));
-    }
-    return result.slice(0, count);
+    return stratifiedSample(memory.listConcepts(), count, (c) => c.priority);
   }
 }

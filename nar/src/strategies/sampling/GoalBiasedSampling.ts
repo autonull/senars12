@@ -1,8 +1,13 @@
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
-import { selectTopN } from '@senars/util';
-import { containsSubterm } from '../../terms';
+import { containsSubterm, type Term } from '../../terms';
 import type { SamplingStrategy } from '../types.js';
+import { rankedSample } from './scored.js';
+
+export const goalBiasScore =
+  (goals: readonly { term: Term }[]) =>
+  (c: Concept): number =>
+    c.priority * (goals.some((g) => containsSubterm(c.term, g.term) || containsSubterm(g.term, c.term)) ? 1.5 : 1.0);
 
 export class GoalBiasedSampling implements SamplingStrategy {
   readonly metadata = {
@@ -11,15 +16,6 @@ export class GoalBiasedSampling implements SamplingStrategy {
   };
 
   sample(memory: MemoryView, count: number): Concept[] {
-    const goals = memory.getGoals();
-    return selectTopN(
-      memory.listConcepts(),
-      count,
-      (c) =>
-        c.priority *
-        (goals.some((g) => containsSubterm(c.term, g.term) || containsSubterm(g.term, c.term))
-          ? 1.5
-          : 1.0)
-    );
+    return rankedSample(memory.listConcepts(), count, goalBiasScore(memory.getGoals()));
   }
 }

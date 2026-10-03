@@ -2,7 +2,8 @@ import { clamp, clamp01, minBy, selectTopN } from '@senars/util';
 import type { Term } from '../../terms';
 import { Truth, termParser } from '../../terms';
 import type { Budget, Task, TruthType } from '../../types';
-import { createTask, createTaskWeight } from '../../types/core.js';
+import { createTask } from '../../types/core.js';
+import { systemOneTaskWeight } from '../task-weights.js';
 import type { CognitiveDispatcher, EvaluateQuery, JudgmentProposition } from './types.js';
 import { createSystemOneBudget } from './types.js';
 
@@ -74,7 +75,10 @@ export class SystemOneLMRuleAdapter {
       for (const admitted of peaResult.admitted) {
         const parsed = termParser.parse(admitted.candidate);
         if (parsed) {
-          const taskBudget: Budget = createTaskWeight(admitted.truth.c, 0.8, 0.9, 10, 5);
+          const taskBudget: Budget = systemOneTaskWeight(admitted.truth.c, {
+            durability: 0.8,
+            quality: 0.9,
+          });
           tasks.push(
             createTask(parsed, 'belief', admitted.truth as TruthType, taskBudget, {
               stamp: admitted.stamp,
@@ -145,13 +149,7 @@ export class SystemOneLMRuleAdapter {
         const term = termParser.parse(trace);
         if (!term) continue;
         tasks.push(
-          createTask(term, 'belief', Truth.create(clamp(0.5 + score / 2, 0.5, 0.9), 0.7), {
-            priority: clamp01(score),
-            durability: 0.7,
-            quality: 0.8,
-            cycles: 10,
-            depth: 5,
-          })
+          createTask(term, 'belief', Truth.create(clamp(0.5 + score / 2, 0.5, 0.9), 0.7), systemOneTaskWeight(clamp01(score)))
         );
       }
       this.#logger?.debug?.('System One meta-reasoning', {
@@ -185,13 +183,7 @@ export class SystemOneLMRuleAdapter {
       if (manifold && !manifold.health().ready) cPrime *= 0.8; // drift demotion
       const calibrated = Truth.normalize(f, clamp(cPrime, 0.01, 0.99));
       return [
-        createTask(primary, 'belief', calibrated, {
-          priority: cPrime,
-          durability: 0.7,
-          quality: 0.8,
-          cycles: 10,
-          depth: 5,
-        }),
+        createTask(primary, 'belief', calibrated, systemOneTaskWeight(cPrime)),
       ];
     } catch (e) {
       this.#logger?.warn?.('System One uncertainty calibration failed', { error: e });

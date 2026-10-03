@@ -1,6 +1,7 @@
 import type { Memory } from '../memory';
 import { Truth } from '../terms';
-import { createTask, createTaskWeight, type Task } from '../types';
+import { createTask, type Task } from '../types';
+import { lmTaskWeight } from './task-weights.js';
 
 export interface ContextBeliefOptions {
   limit?: number;
@@ -16,7 +17,7 @@ export function topBeliefTasks(memory: Memory, opts?: ContextBeliefOptions): Tas
     if (!belief?.truth || !belief.stamp) continue;
     if (Truth.attention(belief.truth) < minConfidence) continue;
     tasks.push(
-      createTask(c.term, 'belief', belief.truth, createTaskWeight(0.5, 0.8), {
+      createTask(c.term, 'belief', belief.truth, lmTaskWeight('context'), {
         stamp: belief.stamp,
       })
     );

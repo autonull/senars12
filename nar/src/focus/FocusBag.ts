@@ -1,13 +1,13 @@
+import { sumBy } from '@senars/util';
+import type { BagOptions } from '../bag/Bag.js';
 import { PriorityBag } from '../bag/Bag.js';
-import type { RandomSource } from '../types/primitives.js';
 import { Focus, type FocusOptions } from './Focus.js';
 
-export interface FocusBagOptions {
-  capacity: number;
-  decayRate?: number;
-  /** TODO20 §5s: injectable RNG for deterministic focus selection. */
-  rng?: RandomSource;
-}
+export interface FocusBagOptions
+  extends Pick<
+    BagOptions,
+    'capacity' | 'decayRate' | 'forgetRate' | 'rng' | 'implementation' | 'clock' | 'id'
+  > {}
 
 export interface SerializedFocusBag {
   weights: Record<string, number>;
@@ -20,30 +20,24 @@ export class FocusBag extends PriorityBag<Focus> {
     super({
       capacity: options.capacity,
       decayRate: options.decayRate ?? 0.005,
+      forgetRate: options.forgetRate,
       rng: options.rng,
+      implementation: options.implementation,
+      clock: options.clock,
+      id: options.id,
     });
   }
 
   allocateBudget(focus: Focus, totalBudget: number): number {
-    const totalWeight = this.getTotalWeight();
-    if (totalWeight === 0) return 0;
-    return Math.floor((focus.weight / totalWeight) * totalBudget);
+    return allocateFocusBudget(focus, focusTotalWeight(this.all()), totalBudget);
   }
 
   getTotalWeight(): number {
-    let total = 0;
-    for (const focus of this.all()) {
-      total += focus.weight;
-    }
-    return total;
+    return focusTotalWeight(this.all());
   }
 
   getFocusWeights(): Map<string, number> {
-    const weights = new Map<string, number>();
-    for (const focus of this.all()) {
-      weights.set(focus.id, focus.weight);
-    }
-    return weights;
+    return focusWeightMap(this.all());
   }
 
   rebalanceWeights(targetWeights: Map<string, number>): void {
@@ -81,3 +75,18 @@ export class FocusBag extends PriorityBag<Focus> {
 export function createFocus(options: FocusOptions): Focus {
   return new Focus(options);
 }
+
+export const focusTotalWeight = (foci: Iterable<Focus>): number => sumBy(foci, (f) => f.weight);
+
+export const allocateFocusBudget = (
+  focus: Focus,
+  totalWeight: number,
+  totalBudget: number
+): number =>
+  totalWeight === 0 ? 0 : Math.floor((focus.weight / totalWeight) * totalBudget);
+
+export const focusWeightMap = (foci: Iterable<Focus>): Map<string, number> => {
+  const weights = new Map<string, number>();
+  for (const focus of foci) weights.set(focus.id, focus.weight);
+  return weights;
+};
