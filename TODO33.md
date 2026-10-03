@@ -1,7 +1,7 @@
 # TODO33: Delete the Lies, Fix the Bugs, Make It Traceable
 
 **Replaces v1–v5, which were an audit rather than a plan.**
-Status: **in progress** (§1, §2, §3, §5.P1.2–P1.3 landed) · Predecessor: TODO32
+Status: **§1, §2, §3 and §5.P1–P2 done; P3.10 and the parse-tolerant router landed** · Predecessor: TODO32
 
 Scope: nothing here touches drives, meta-goals, or homeostasis. That work is deferred by decision and its code is left untouched. See *Not done*.
 
@@ -32,48 +32,64 @@ Scope: nothing here touches drives, meta-goals, or homeostasis. That work is def
 | §2 `createBudget` rename | **done** | `createTaskWeight` in `nar/src/types/core.ts`; `core/budget.ts` keeps `createBudget(limits)`. The `typeof` test and the cast in `manager.ts` are gone. |
 | §3 `correlationId` | **done** | optional id on `run`/`runStream`, on `input`/`believe`/`goal`/`question`, through `CycleStageEvent`, and from the agent's Narsese ingress and `NAREngine.reason`. |
 | §3 `/metrics` | **done** | `handleMetricsRequest` (`nar/src/metrics/http.ts`) serves `/metrics` and `/metrics.json` from the Web UI server; `ENABLE_WEB_UI` is the only switch. |
-| §5.P1.1 `validatePayload` | **blocked — see notes** | the ordering is inverted. |
+| §5.P1.1 `validatePayload` | **done** (with P2.4) | the 157-line re-implementation is gone; `append` validates once, through the schema every producer now satisfies. |
 | §5.P1.2 `Episode` | **done** | core re-exports util's. |
 | §5.P1.3 the gate claim | **done** | README states ingress-only; the dead branch says why it is dead. |
+| §5.P2.4 `CognitiveEvent` merge | **done** | `core/src/schemas/nar-events.ts` carries the `engine: 'nar'` family as zod; `CognitiveEventSchema` is one union over both families. `util`'s hand-written union, `CognitiveEventBase`, `isNarEvent` and `isEventType` are gone — they moved to `core/schemas` with the validator. |
+| §5.P2.5 two timer systems | **done** | `PhaseTimer`'s stack is gone; `summarizeRegions` is a pure projection over `CycleTrace.regions()`. Auxiliary regions (`cycle`, `rlfp.optimize`, `self.assess`, `self.correct`, `memory.consolidate`) are trace regions, typed by `AUXILIARY_REGIONS`, so a subsystem's work is assertable and not just measurable. `nar.getPhaseTimer()` → `execution.getPhaseSummary()`. |
+| §5.P2.6 `sample()` | **done** | `Memory.sample` → `topConcepts`; the aikr interface is `BagSamplingStrategy`; `sampleWindow`'s `rng` is required on the port. |
+| §5.P2.7 `gateRegistry` | **done** | the singleton and `resetGateRegistry()` are deleted; `createGateRegistry()` is the only source and every consumer takes one as a required argument. |
+| §5.P3.10 budget engine | **done, partly** | the live bug is fixed (a refusal writes `terminationReason` onto the scope budget) and the gate's operation→dimension table now derives from `core/budget`'s `BUDGET_RESOURCES`. The two engines are still two engines — see notes. |
+| §5 P3.9 option (b) | **done** | the router is parse-tolerant (four punctuations, the gate's own set) and returns `null` for Narsese-shaped text the parser rejects. |
 
-**Verification:** `pnpm typecheck`, `pnpm lint`, `pnpm test:unit` (341 files, 3002 tests) green after every commit above.
+**Verification:** `pnpm typecheck`, `pnpm typecheck:bin`, `pnpm lint`, `pnpm test:unit` (342 files,
+3013 tests) green after every commit above.
 
 ---
 
 ## 0.1 Notes for the remaining work
 
-**§5.P1.1 must move after §5.P2.4, not before.** Deleting
-`AbstractEventLog.validatePayload` and calling `validateCognitiveEvent(event)` in `append` was
-implemented and reverted: it fails 32 tests, because the core zod union does not accept the util-side
-events the repo actually mints (`core` events carry `engine`/`correlationId`; `concept.activated`
-needs an `activationSource` it never has). The two validators cannot be unified by deleting one —
-they have to be merged first, and then there is only one to delete. Same for the "util becomes a
-type-only re-export, direction `core → util`" step in P2.4: `nar` and `core` both mint events, so
-the merge has to keep both producers' variants or migrate every producer in one commit.
+**P2.4 landed by merging, not by deleting — and it needed three relaxations the plan did not
+anticipate.** The two unions had to become one *superset*: `belief.revised`'s `evidenceLineage` and
+`revisionRule`, and `concept.activated`'s `activationSource`, are now optional, because the NAR
+bridge has no such fields to record. The direction could not be `core → util` as planned — `util`
+cannot import `core` — so the union *moved* rather than re-exported: `util/src/types/cognitive.ts`
+keeps only `ENGINE_ORIGINS`/`EngineOrigin`, and `CognitiveEvent`/`isNarEvent`/`isEventType` are
+imported from `@senars/core/schemas` everywhere (with a deprecated re-export on the core root).
 
-**`isNarsese` is a shape heuristic, not a parser oracle.** Tightening it to the parser's alphabet is
-the real fix and it is not free: `a --> b.` and `a==>b!` are routed as Narsese and still fail to
-parse. Options are (a) accept it and rely on the ingress catch, which is what landed, or (b) make the
-router parse-tolerant the way `admit()` already is (`parseTaskTolerant` tries four punctuations) —
-option (b) is probably worth doing, and it belongs with P3.9 rather than here.
+**Two schema fields were lies the merge exposed.** `CognitiveEventBaseSchema.id` demanded a UUID,
+but `AbstractEventLog.generateId()` is a ULID because both logs range-scan on it — every append
+threw. And `nar/src/health/index.ts` appended a `health.probe` event that was in *no* union; it
+appends a real `health` event now. Neither was a defect in a single module; both were the two
+definitions disagreeing.
 
-**Two things found while working, not in the plan.** `nar/src/agent/index.ts` asked the manifold for
-rubrics `'entailment'` and `'quality'`, which are not `RubricId`s — the `as any` hid it and the
-judgments were meaningless; they are now `relevance`/`groundedness`/`plausibility`. And
-`SelfReport`'s `memoryPressure ?? 0` had the same "no measurement reads as no pressure" bug the plan
-attributes to `nar-execution.ts`.
+**`CycleTrace` is bounded at 512 regions, so `getPhaseSummary()` is a bounded window, not a
+lifetime total.** A long `run(100)` evicts its first cycles. That is the right trade for a trace
+meant to be read, but a caller wanting lifetime totals must accumulate as it goes — no such caller
+exists yet.
 
-**Where §5.P2 stands.** P2.4 is unblocked from a sequencing point of view but is the largest item
-(~270 LOC, every producer) and should be its own commit with the test suite as its safety net. P2.5
-(PhaseTimer as a projection over `CycleTrace.regions()`) is now easier than it was — the trace carries
-`correlationId` and every stage already goes through `stage()`. P2.6 (`sample`) and P2.7
-(`gateRegistry` global) are untouched and carry no live bug.
+**The `PhaseTimer` → trace change made auxiliary regions *typed*, which the plan listed as an
+optional tidy.** `AUXILIARY_REGIONS` exists because the four bare `begin`/`end` pairs now go through
+`region()`; the benefit is that `findStageOverlaps` had to learn to ignore non-stages (otherwise
+"stages never nest" reads as false the moment a cycle frame encloses them), and the vocabulary can
+no longer drift from the type.
 
-**P3.9's premise is settled.** §5.P1.3 landed with the "ingress-only" reading, so a refusal policy for
-the tick path is now a feature with a dead branch waiting for it (`nar-execution.ts:397`) rather than a
-correction of a claim the system was already honouring.
+**The remaining duplicate in P3.10 is `BUDGET_SCOPES`, which restates `BUDGET_RESOURCES` per scope.**
+Each row carries `limitKey` and `terminationReason` that `BUDGET_RESOURCES[consumedKey]` already
+says. The gate no longer restates them; the scope table still does, because the table is six
+declared questions per row and reads better as data. Deleting two columns is mechanical and safe
+whenever someone wants the last copy gone.
 
----
+**P2.7 changed what a few benches mean.** The isolation benches used to assert "the process-global
+registry is untouched"; they now assert the property that replaces it — two focuses sharing one
+registry keep their action scopes apart, and a bystander registry sees nothing. `tests/setup` no
+longer resets anything, which is the point: there is nothing global left to reset.
+
+**Still open, unchanged, and separable.** §5.P3.8 (thread `IActionGate` + a `control-work` charge
+through the tool path) and §5.P3.9 proper (a refusal policy for the tick path). P3.8's blocker is a
+product decision, not a refactor: making the gate refuse changes what the chat REPL can do at the
+default autonomy mode, so it wants a decision about the default before an implementation.
+Architecture B (`GameFocus`, `FocusScheduler`) is still deferred by decision and untouched.
 
 ## 1. Delete what lies
 
@@ -132,7 +148,7 @@ Unreachable but harmless. No budget pressure, and it's raw material if deferred 
 
 ## 5. Collapse the duplicates — prioritized
 
-Ordered by value ÷ risk. P1 needs no design decision and **reduces** LOC. P2 are migrations with real semantic surface. P3 are features, costed and separable. One hard dependency: **P2.4 requires P1.1**, because unifying two validators means first choosing one.
+Ordered by value ÷ risk. P1 needs no design decision and **reduces** LOC. P2 are migrations with real semantic surface. P3 are features, costed and separable. P1–P2 and P3.10 are done (see §0); P3.8, P3.9 and Architecture B are not. The stated dependency **P2.4 requires P1.1** turned out to be circular: P1.1 could not land alone because its validator rejected the events the repo mints, so P2.4 landed first as a *merge* and P1.1 fell out of it as the deletion of the now-redundant second validator.
 
 ### P1 — mechanical, no decision required
 
@@ -180,6 +196,6 @@ Delete or merge; not costed here. **Needs a forcing function**: `wiring:declared
 
 §1 first — the type move unblocks the rest, and the README can't be corrected while contradicting live code. §3 before §5.P2, since deciding whether anything is *observably* duplicated (P2.4, P2.7) needs the trace join first. §5.P1.1 before §5.P2.4 — unifying two validators means picking one, and the zod union is the answer.
 
-**Done when:** nothing in the repo asserts something untrue about how the system works; the eleven bugs are fixed (one was falsified, one was already true, one landed differently); given a term and a `correlationId` you can say which cycle admitted it, under which gate decision, for which stimulus; one validator exists instead of two; and three `CognitiveEvent` definitions are one.
+**Done when:** nothing in the repo asserts something untrue about how the system works; the eleven bugs are fixed (one was falsified, one was already true, one landed differently); given a term and a `correlationId` you can say which cycle admitted it, under which gate decision, for which stimulus; one validator exists instead of two; and three `CognitiveEvent` definitions are one. **Met, except that P3.8 (the tool path's missing kernel gate) and P3.9's refusal policy are not, and Architecture B is deferred by decision.**
 
 **Not done:** unattended operation, drive/meta-goal homeostasis, negotiation, reflexes, multiple operating modes, and Architecture B's fate.
