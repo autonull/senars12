@@ -1,11 +1,22 @@
+import { getOrInsert } from '@senars/util';
 import { AbstractEventLog } from './AbstractEventLog.js';
 import type { CognitiveEvent, EventLogConfig, EventLogQuery } from './EventLog.js';
 
 export class InMemoryEventLog extends AbstractEventLog {
   #events: CognitiveEvent[] = [];
+  #snapshots = new Map<string, Map<number, unknown>>();
 
   constructor(config: EventLogConfig = {}) {
     super(config);
+  }
+
+  getSnapshot<T>(projectionName: string, version: number): Promise<T | null> {
+    return Promise.resolve((this.#snapshots.get(projectionName)?.get(version) as T) ?? null);
+  }
+
+  saveSnapshot<T>(projectionName: string, version: number, data: T): Promise<void> {
+    getOrInsert(this.#snapshots, projectionName, () => new Map()).set(version, data);
+    return Promise.resolve();
   }
 
   get size(): number {

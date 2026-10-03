@@ -58,6 +58,7 @@ export { EventBus } from './events/event-bus.js';
 export { PushQueue } from './events/push-queue.js';
 /** @public Single-subject fan-out with isolated listeners. */
 export { Signal } from './events/signal.js';
+export { ListenerBag } from './events/listener-bag.js';
 /** @public Tool feedback observer for unified statistics tracking. */
 export {
   DefaultToolFeedbackObserver,

@@ -1,4 +1,4 @@
-import { getOrInsert, sortableIdSource } from '@senars/util';
+import { sortableIdSource } from '@senars/util';
 import { PushQueue } from '@senars/util/events';
 import { validateCognitiveEvent } from '../schemas/cognitive-events.js';
 import type { CognitiveEvent, EventLog } from './EventLog.js';
@@ -13,7 +13,6 @@ const DEFAULT_LIMITS: EventLogLimits = { maxEvents: 100_000, maxEventSize: 1024 
 
 export abstract class AbstractEventLog implements EventLog {
   #subscribers = new Set<Subscription>();
-  #snapshots = new Map<string, Map<number, unknown>>();
   #closed = false;
   readonly #ids = sortableIdSource();
   protected readonly limits: EventLogLimits;
@@ -47,6 +46,8 @@ export abstract class AbstractEventLog implements EventLog {
 
   async close(): Promise<void> {
     this.markClosed();
+    for (const sub of this.#subscribers) sub.queue.close();
+    this.#subscribers.clear();
   }
 
   abstract get size(): number;
@@ -66,7 +67,7 @@ export abstract class AbstractEventLog implements EventLog {
 
   async append(event: Omit<CognitiveEvent, 'id' | 'timestamp'>): Promise<CognitiveEvent> {
     if (this.#closed) {
-      throw new Error('Event log is closed');
+      throw new EventLogError('UNAVAILABLE', 'Event log is closed');
     }
     const full = validateCognitiveEvent({
       ...event,
@@ -85,12 +86,14 @@ export abstract class AbstractEventLog implements EventLog {
   }): AsyncIterable<CognitiveEvent> {
     const typesSet = options?.types ? new Set(options.types) : undefined;
 
+    const queue = new PushQueue<CognitiveEvent>();
     const subscription: Subscription = {
       filter: options?.filter,
       fromId: options?.fromId,
       types: typesSet,
-      queue: new PushQueue<CognitiveEvent>(),
+      queue,
     };
+    queue.onClose = () => this.#subscribers.delete(subscription);
 
     this.#subscribers.add(subscription);
 
@@ -104,25 +107,12 @@ export abstract class AbstractEventLog implements EventLog {
       });
     }
 
-    return {
-      [Symbol.asyncIterator]: () => ({
-        next: () => subscription.queue.next(),
-        return: async () => {
-          subscription.queue.close();
-          return { value: undefined, done: true };
-        },
-      }),
-    };
+    return subscription.queue;
   }
 
-  getSnapshot<T>(projectionName: string, version: number): Promise<T | null> {
-    return Promise.resolve((this.#snapshots.get(projectionName)?.get(version) as T) ?? null);
-  }
+  abstract getSnapshot<T>(projectionName: string, version: number): Promise<T | null>;
 
-  saveSnapshot<T>(projectionName: string, version: number, data: T): Promise<void> {
-    getOrInsert(this.#snapshots, projectionName, () => new Map()).set(version, data);
-    return Promise.resolve();
-  }
+  abstract saveSnapshot<T>(projectionName: string, version: number, data: T): Promise<void>;
 
   notify(event: CognitiveEvent): void {
     for (const sub of this.#subscribers) {

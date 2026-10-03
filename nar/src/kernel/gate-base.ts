@@ -1,4 +1,5 @@
 import type { CognitiveEvent } from '@senars/core/schemas/cognitive-events';
+import { validateCognitiveEvent } from '@senars/core/schemas';
 import { makeId } from '@senars/util';
 import { gateLog } from './event-ring.js';
 
@@ -11,6 +12,12 @@ export abstract class KernelGate<TEvent extends CognitiveEvent = CognitiveEvent>
 
   protected correlationOf(correlationId?: string): string {
     return correlationId ?? makeId();
+  }
+
+  /** Validate then append to the gate's bounded log — every gate event goes through one funnel. */
+  protected emitEvent(event: CognitiveEvent): void {
+    validateCognitiveEvent(event);
+    this.eventLog.push(event as TEvent);
   }
 
   getEventLog(): ReadonlyArray<TEvent> {

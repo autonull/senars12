@@ -7,7 +7,7 @@ import type {
   SourceQuality,
   TaskAdmittedEvent,
 } from '@senars/core/schemas';
-import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/core/schemas';
+import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas';
 import {
   asBeliefTruth,
   boundedSignal,
@@ -355,8 +355,7 @@ export class KernelPerceptionGate extends KernelGate {
       correlationId,
       payload: task,
     };
-    validateCognitiveEvent(event);
-    this.#pushEvent(event);
+    this.emitEvent(event);
     recordGateDecision('perception', 'admit', true, undefined, correlationId);
     return { admitted: true, task };
   }

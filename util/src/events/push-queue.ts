@@ -7,6 +7,7 @@ export class PushQueue<T> {
   readonly #items: T[] = [];
   readonly #waiters: ((result: IteratorResult<T>) => void)[] = [];
   #closed = false;
+  onClose?: () => void;
 
   get closed(): boolean {
     return this.#closed;
@@ -27,6 +28,7 @@ export class PushQueue<T> {
     if (this.#closed) return;
     this.#closed = true;
     for (const waiter of this.#waiters.splice(0)) waiter({ value: undefined, done: true });
+    this.onClose?.();
   }
 
   next(): Promise<IteratorResult<T>> {

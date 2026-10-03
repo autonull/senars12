@@ -19,7 +19,7 @@ import type {
   ReasoningBudget,
   TerminationReason,
 } from '@senars/core/schemas';
-import { validateCognitiveEvent, validateReasoningBudget } from '@senars/core/schemas';
+import { validateReasoningBudget } from '@senars/core/schemas';
 import { keyedBy } from '@senars/util';
 import { recordGateDecision } from '../telemetry/index.js';
 import { BUDGET_SCOPES, type BudgetScopeId, scopeBudget } from './budget-scopes.js';
@@ -167,8 +167,7 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
             terminationReason as BudgetExhaustedEvent['payload']['terminationReason'],
         },
       };
-      validateCognitiveEvent(event);
-      this.eventLog.push(event);
+      this.emitEvent(event as CognitiveEvent);
 
       return {
         granted: false,

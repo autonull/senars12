@@ -25,7 +25,11 @@ export type ErrorCode =
   | 'BUDGET_EXCEEDED'
   | 'DIGEST_MISMATCH'
   | 'SCHEMA_INDUCTION'
-  | 'LM_OUTPUT_TOO_LARGE';
+  | 'LM_OUTPUT_TOO_LARGE'
+  | 'FULL'
+  | 'UNAVAILABLE'
+  | 'INVALID_EVENT'
+  | 'SERIALIZATION_FAILED';
 
 export class SenarsError extends Error {
   constructor(

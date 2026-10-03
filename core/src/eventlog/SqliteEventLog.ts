@@ -128,6 +128,21 @@ export class SqliteEventLog extends AbstractEventLog {
     `);
   }
 
+  async getSnapshot<T>(projectionName: string, version: number): Promise<T | null> {
+    const row = this.#db
+      .prepare('SELECT data FROM snapshots WHERE name = ? AND version = ?')
+      .get(projectionName, version) as { data: string } | undefined;
+    return row ? (JSON.parse(row.data) as T) : null;
+  }
+
+  async saveSnapshot<T>(projectionName: string, version: number, data: T): Promise<void> {
+    this.#db
+      .prepare(
+        'INSERT INTO snapshots (name, version, data) VALUES (?, ?, ?) ON CONFLICT(name, version) DO UPDATE SET data = excluded.data'
+      )
+      .run(projectionName, version, JSON.stringify(data));
+  }
+
   #rowToEvent(row: Row): CognitiveEvent {
     return {
       id: row.id,

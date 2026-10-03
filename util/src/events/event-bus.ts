@@ -1,16 +1,11 @@
 import { defaultLogger, type Logger } from '../logger.js';
-import { getOrInsert } from '../utils/collections.js';
+import { ListenerBag } from './listener-bag.js';
 
 export type EventReceiver<T> = (params: T) => void;
 export type EventUnsubscribe = () => void;
 
-interface Listener<T = unknown> {
-  fn: EventReceiver<T>;
-  once: boolean;
-}
-
 export class EventBus<T extends Record<string, unknown> = Record<string, unknown>> {
-  private listeners = new Map<string, Listener[]>();
+  private bags = new Map<string, ListenerBag<unknown>>();
   private readonly logger: Logger;
 
   constructor(logger: Logger = defaultLogger) {
@@ -18,54 +13,41 @@ export class EventBus<T extends Record<string, unknown> = Record<string, unknown
   }
 
   on<K extends keyof T>(eventName: K & string, fn: EventReceiver<T[K]>): EventUnsubscribe {
-    return this.#add(eventName as string, fn as EventReceiver<unknown>, false);
+    return this.#bag(eventName).on(fn as EventReceiver<unknown>);
   }
 
   once<K extends keyof T>(eventName: K & string, fn: EventReceiver<T[K]>): EventUnsubscribe {
-    return this.#add(eventName as string, fn as EventReceiver<unknown>, true);
+    return this.#bag(eventName).once(fn as EventReceiver<unknown>);
   }
 
-  #add(name: string, fn: EventReceiver<unknown>, once: boolean): EventUnsubscribe {
-    getOrInsert(this.listeners, name, () => []).push({ fn, once });
-    return () => this.off(name, fn);
+  #bag(name: string): ListenerBag<unknown> {
+    let bag = this.bags.get(name);
+    if (!bag) {
+      bag = new ListenerBag(this.logger);
+      this.bags.set(name, bag);
+    }
+    return bag;
   }
 
   off(eventName: string, fn: EventReceiver<unknown>): void {
-    const listeners = this.listeners.get(eventName);
-    if (!listeners) return;
-    const filtered = listeners.filter((l) => l.fn !== fn);
-    if (filtered.length === 0) {
-      this.listeners.delete(eventName);
-    } else {
-      this.listeners.set(eventName, filtered);
-    }
+    const bag = this.bags.get(eventName);
+    if (!bag) return;
+    bag.off(fn);
+    if (bag.size === 0) this.bags.delete(eventName);
   }
 
   emit<K extends keyof T>(eventName: K & string, params: T[K]): void {
-    const listeners = this.listeners.get(eventName as string);
-    if (!listeners) return;
-
-    for (const listener of listeners) {
-      try {
-        listener.fn(params);
-      } catch (error) {
-        this.logger.error(`Event listener error for ${eventName}:`, error as Error);
-      }
-    }
-
-    const remaining = listeners.filter((l) => !l.once);
-    if (remaining.length === 0) {
-      this.listeners.delete(eventName as string);
-    } else {
-      this.listeners.set(eventName as string, remaining);
-    }
+    const bag = this.bags.get(eventName as string);
+    if (!bag) return;
+    bag.emit(params);
+    if (bag.size === 0) this.bags.delete(eventName as string);
   }
 
   clear(): void {
-    this.listeners.clear();
+    this.bags.clear();
   }
 
   listenerCount(eventName: string): number {
-    return this.listeners.get(eventName)?.length ?? 0;
+    return this.bags.get(eventName)?.size ?? 0;
   }
 }

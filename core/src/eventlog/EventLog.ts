@@ -1,3 +1,5 @@
+import { SenarsError } from '@senars/util';
+
 export type { CognitiveEvent } from '../schemas/cognitive-events.js';
 
 import type { CognitiveEvent } from '../schemas/cognitive-events.js';
@@ -29,13 +31,13 @@ export interface EventLog {
   saveSnapshot<T>(projectionName: string, version: number, data: T): Promise<void>;
 }
 
-export class EventLogError extends Error {
+export class EventLogError extends SenarsError {
   constructor(
-    public readonly code: 'FULL' | 'UNAVAILABLE' | 'INVALID_EVENT' | 'SERIALIZATION_FAILED',
+    code: 'FULL' | 'UNAVAILABLE' | 'INVALID_EVENT' | 'SERIALIZATION_FAILED',
     message: string,
-    public override readonly cause?: Error
+    cause?: Error
   ) {
-    super(message, { cause });
+    super(message, code, undefined, { cause });
     this.name = 'EventLogError';
   }
 }
