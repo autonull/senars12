@@ -365,28 +365,38 @@ export class NAR extends BaseComponent {
     return this.systemEventBus;
   }
 
-  async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
-    return this.io.input(input, type, truth);
+  async input(
+    input: string | Term,
+    type: TaskType = 'belief',
+    truth?: TruthType,
+    correlationId?: string
+  ): Promise<void> {
+    return this.io.input(input, type, truth, correlationId);
   }
 
-  async believe(input: string | Term, truth?: TruthType): Promise<void> {
-    return this.io.believe(input, truth);
+  async believe(input: string | Term, truth?: TruthType, correlationId?: string): Promise<void> {
+    return this.io.believe(input, truth, correlationId);
   }
 
-  async goal(input: string | Term, truth?: TruthType): Promise<void> {
-    return this.io.goal(input, truth);
+  async goal(input: string | Term, truth?: TruthType, correlationId?: string): Promise<void> {
+    return this.io.goal(input, truth, correlationId);
   }
 
-  async question(input: string | Term): Promise<void> {
-    return this.io.question(input);
+  async question(input: string | Term, correlationId?: string): Promise<void> {
+    return this.io.question(input, correlationId);
   }
 
-  async run(steps = 1, signal?: AbortSignal): Promise<number> {
-    return this.execution.run(steps, signal);
+  async run(steps = 1, signal?: AbortSignal, correlationId?: string): Promise<number> {
+    return this.execution.run(steps, signal, correlationId);
   }
 
-  async *runStream(steps = 1, maxResults = 100, signal?: AbortSignal): AsyncGenerator<Task> {
-    yield* this.execution.runStream(steps, maxResults, signal);
+  async *runStream(
+    steps = 1,
+    maxResults = 100,
+    signal?: AbortSignal,
+    correlationId?: string
+  ): AsyncGenerator<Task> {
+    yield* this.execution.runStream(steps, maxResults, signal, correlationId);
   }
 
   getConcept(term: Term): Concept | undefined {

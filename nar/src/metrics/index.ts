@@ -265,6 +265,7 @@ export const createMetricsCollector = (): MetricsCollector => {
 };
 
 // Prometheus metrics
+export { handleMetricsRequest } from './http.js';
 export {
   prometheusRegistry,
   lmProbeTotal,

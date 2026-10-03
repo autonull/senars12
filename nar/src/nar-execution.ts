@@ -195,9 +195,15 @@ export class NARExecution {
     this.rlfp?.reward(reward, context);
   }
 
-  async run(steps = 1, signal?: AbortSignal): Promise<number> {
+  /**
+   * `correlationId` names the stimulus that drove the run; every traced region and
+   * every gate decision the run makes joins on it, which is what makes "which cycle
+   * admitted this belief, for which utterance" answerable.
+   */
+  async run(steps = 1, signal?: AbortSignal, correlationId?: string): Promise<number> {
     let derived = 0;
     this.phaseTimer.clear();
+    this.cycleTrace.setCorrelationId(correlationId);
 
     // Check RLFP enablement via env var
     const rlfpEnabled = envBool('RLFP_ENABLED') && this.policyOptimizer;
@@ -579,7 +585,13 @@ export class NARExecution {
    * `stream/pipeline` was a parallel engine that sampled memory directly and
    * ignored them.
    */
-  async *runStream(steps = 1, maxResults = 100, signal?: AbortSignal): AsyncGenerator<Task> {
+  async *runStream(
+    steps = 1,
+    maxResults = 100,
+    signal?: AbortSignal,
+    correlationId?: string
+  ): AsyncGenerator<Task> {
+    this.cycleTrace.setCorrelationId(correlationId);
     const inference = this.cognitiveController.getInferenceController();
     let count = 0;
     for await (const task of inference.run(maxResults, signal)) {

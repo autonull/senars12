@@ -136,6 +136,29 @@ describe('A1 — the live cycle has a stage vocabulary', () => {
     expect(findInCycleProposals(execution.getCycleTrace().regions())).toEqual([]);
   });
 
+  it('every traced region joins to the correlationId that drove the run', async () => {
+    const { execution } = rig(async () => '(x-->y).');
+    await execution.run(2, undefined, 'corr-1');
+    await execution.run(1, undefined, 'corr-2');
+
+    const regions = execution.getCycleTrace().regions();
+    expect(regions.length).toBeGreaterThan(0);
+    const ids = new Set(regions.map((r) => r.correlationId));
+    expect(ids).toEqual(new Set(['corr-1', 'corr-2']));
+    // The join answers "which cycle ran for which utterance", so the last run's
+    // regions all carry the last declared id.
+    const lastCycle = regions[regions.length - 1]?.cycle;
+    expect(
+      regions.filter((r) => r.cycle === lastCycle).every((r) => r.correlationId === 'corr-2')
+    ).toBe(true);
+  });
+
+  it('a run with no declared stimulus leaves regions unlabelled rather than mislabelled', async () => {
+    const { execution } = rig(async () => '(x-->y).');
+    await execution.run(1);
+    expect(execution.getCycleTrace().regions().every((r) => r.correlationId === undefined)).toBe(true);
+  });
+
   it('detects a proposal opened inside a reason stage', () => {
     const nested: readonly CycleStageEvent[] = [
       { cycle: 1, stage: 'reason', phase: 'begin', at: 0 },

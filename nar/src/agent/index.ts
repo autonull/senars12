@@ -411,22 +411,26 @@ const createDelegateRunner =
   };
 
 /** The Narsese ingress answer: belief / goal acknowledgement, question plus manifold judgment. */
-const answerNarsese = async (narEngine: NAREngine, intent: NarseseIntent): Promise<string> => {
+const answerNarsese = async (
+  narEngine: NAREngine,
+  intent: NarseseIntent,
+  correlationId: string
+): Promise<string> => {
   const { text } = intent;
   if (intent.kind === 'goal') {
-    await narEngine.nar.goal(text);
-    await narEngine.nar.run(3);
+    await narEngine.nar.goal(text, undefined, correlationId);
+    await narEngine.nar.run(3, undefined, correlationId);
     return `+ ${text}`;
   }
   if (intent.kind === 'belief') {
-    await narEngine.nar.believe(text);
-    await narEngine.nar.run(3);
+    await narEngine.nar.believe(text, undefined, correlationId);
+    await narEngine.nar.run(3, undefined, correlationId);
     const beliefs = narEngine.nar.getBeliefs();
     const last = beliefs[beliefs.length - 1];
     return last ? `+ ${last.term}.` : `+ ${text}`;
   }
-  await narEngine.nar.question(text);
-  await narEngine.nar.run(5);
+  await narEngine.nar.question(text, correlationId);
+  await narEngine.nar.run(5, undefined, correlationId);
   const answer = await narEngine.nar.ask(text);
   const narsTruth = answer?.answer
     ? `NARS: ${answer.answer} ${answer.truth ? `f=${answer.truth.f.toFixed(2)};c=${answer.truth.c.toFixed(2)}` : ''}`
@@ -480,7 +484,8 @@ function attachNarApi(
 
     const intent = narEngine ? dispatchNarseseIntent(trimmed) : null;
     if (intent) {
-      const result = await answerNarsese(narEngine, intent).catch((e: unknown) => {
+      const correlationId = makeId();
+      const result = await answerNarsese(narEngine, intent, correlationId).catch((e: unknown) => {
         // Narsese the term parser rejects falls through to the LM path rather than
         // faulting the turn — the router said Narsese, the parser disagreed, and the
         // sentence still deserves an answer.

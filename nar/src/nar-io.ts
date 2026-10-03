@@ -107,7 +107,13 @@ export class NARIO {
     }
   }
 
-  async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
+  /** `correlationId` names the stimulus; the gate stamps its admission with it. */
+  async input(
+    input: string | Term,
+    type: TaskType = 'belief',
+    truth?: TruthType,
+    correlationId: string = makeId()
+  ): Promise<void> {
     const gate = this.perceptionGate;
     const systemOneEnabled = this.config.systemOne?.enabled ?? false;
 
@@ -119,7 +125,7 @@ export class NARIO {
         rawObservation: input,
         sensorConfidence: 1.0,
         sourceQuality: 'GENERAL',
-        correlationId: makeId(),
+        correlationId,
       });
 
       if (!result.admitted || !result.task) {
@@ -168,19 +174,19 @@ export class NARIO {
       return;
     }
 
-    await this.addTask(parsedTerm, type, truth ?? parsedTruth ?? Truth.TRUE);
+    await this.addTask(parsedTerm, type, truth ?? parsedTruth ?? Truth.TRUE, correlationId);
   }
 
-  async believe(input: string | Term, truth?: TruthType): Promise<void> {
-    return this.input(input, 'belief', truth);
+  async believe(input: string | Term, truth?: TruthType, correlationId?: string): Promise<void> {
+    return this.input(input, 'belief', truth, correlationId);
   }
 
-  async goal(input: string | Term, truth?: TruthType): Promise<void> {
-    return this.input(input, 'goal', truth);
+  async goal(input: string | Term, truth?: TruthType, correlationId?: string): Promise<void> {
+    return this.input(input, 'goal', truth, correlationId);
   }
 
-  async question(input: string | Term): Promise<void> {
-    return this.input(input, 'question');
+  async question(input: string | Term, correlationId?: string): Promise<void> {
+    return this.input(input, 'question', undefined, correlationId);
   }
 
   /**
@@ -273,7 +279,8 @@ export class NARIO {
   private async addTask(
     term: Term,
     type: TaskType,
-    truth: TruthType = Truth.NEUTRAL
+    truth: TruthType = Truth.NEUTRAL,
+    correlationId: string = makeId()
   ): Promise<void> {
     const gate = this.perceptionGate;
     const systemOneEnabled = this.config.systemOne?.enabled ?? false;
@@ -286,7 +293,7 @@ export class NARIO {
         rawObservation: term.toString(),
         sensorConfidence: truth.c ?? 0.5,
         sourceQuality: 'GENERAL',
-        correlationId: makeId(),
+        correlationId,
       });
 
       if (!result.admitted || !result.task) {

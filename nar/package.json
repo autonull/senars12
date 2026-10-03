@@ -164,6 +164,10 @@
       "types": "./src/stream/*.ts",
       "import": "./src/stream/*.ts"
     },
+    "./metrics": {
+      "types": "./src/metrics/index.ts",
+      "import": "./src/metrics/index.ts"
+    },
     "./terms": {
       "types": "./src/terms/index.ts",
       "import": "./src/terms/index.ts"

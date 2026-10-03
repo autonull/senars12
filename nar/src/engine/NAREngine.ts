@@ -42,12 +42,13 @@ export class NAREngine extends BaseEngine {
     if (!intent) return [];
 
     const clean = intent.text;
+    const correlationId = stimulus.correlationId;
     try {
       const timestamp = Date.now();
 
       if (intent.kind === 'question') {
-        await this.#nar.question(clean);
-        await this.#nar.run(5);
+        await this.#nar.question(clean, correlationId);
+        await this.#nar.run(5, undefined, correlationId);
         const beliefs = this.#nar.getBeliefs();
         return beliefs.slice(-5).map((b) => ({
           term: b.term.toString(),
@@ -57,13 +58,13 @@ export class NAREngine extends BaseEngine {
       }
 
       if (intent.kind === 'goal') {
-        await this.#nar.goal(clean);
-        await this.#nar.run(3);
+        await this.#nar.goal(clean, undefined, correlationId);
+        await this.#nar.run(3, undefined, correlationId);
         return [{ term: clean, timestamp }];
       }
 
-      await this.#nar.believe(clean);
-      await this.#nar.run(3);
+      await this.#nar.believe(clean, undefined, correlationId);
+      await this.#nar.run(3, undefined, correlationId);
       const beliefs = this.#nar.getBeliefs();
       const derivations = beliefs.slice(-3).map((b) => ({
         term: b.term.toString(),

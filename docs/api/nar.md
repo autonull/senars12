@@ -1070,6 +1070,8 @@ _Dynamic subpath (no single entry file)._
 
 - `generateClarificationWithLM`
 
+- `dispatchNarseseIntent` — The intent of `input`, or `null` when it is prose and belongs to the LM path.
+
 - `classify`
 
 - `ContextAssembler`
@@ -1249,6 +1251,62 @@ _Dynamic subpath (no single entry file)._
 ## `./stream/*`
 
 _Dynamic subpath (no single entry file)._
+
+## `./metrics`
+
+- `PerformanceMetric`
+
+- `RuleStats`
+
+- `MetricsCollector`
+
+- `createMetricsCollector`
+
+- `handleMetricsRequest` — Answer `/metrics` (`text`) or `/metrics.json`, or return `false` for any other
+
+- `prometheusRegistry`
+
+- `lmProbeTotal`
+
+- `lmCircuitState`
+
+- `lmCallsTotal`
+
+- `lmCallDurationMs`
+
+- `lmTokensTotal`
+
+- `memoryEpisodesTotal`
+
+- `memoryRetrievalHitRate`
+
+- `derivationsTotal`
+
+- `derivationDurationMs`
+
+- `systemUptimeSeconds`
+
+- `systemErrorsTotal`
+
+- `systemWarningsTotal`
+
+- `recordLmProbe`
+
+- `recordCircuitBreakerState`
+
+- `recordLmCall`
+
+- `recordLmSpend`
+
+- `recordDerivation`
+
+- `updateMemoryMetrics`
+
+- `updateSystemMetrics`
+
+- `getMetricsAsText`
+
+- `getMetricsAsJson`
 
 ## `./terms`
 

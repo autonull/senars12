@@ -18,6 +18,8 @@ export interface CycleStageEvent {
   readonly stage: CycleStage;
   readonly phase: 'begin' | 'end';
   readonly at: number;
+  /** The stimulus that drove the cycle, when the caller declared one. */
+  readonly correlationId?: string;
 }
 
 export interface StageOverlap {
@@ -32,16 +34,32 @@ const DEPTH = 512;
 export class CycleTrace {
   private readonly events = new BoundedRing<CycleStageEvent>(DEPTH);
   private readonly open: CycleStage[] = [];
+  #correlationId?: string;
+
+  /** Join every later region to one stimulus — set by `run()` for the call's duration. */
+  setCorrelationId(correlationId?: string): void {
+    this.#correlationId = correlationId;
+  }
 
   begin(cycle: number, stage: CycleStage): void {
     this.open.push(stage);
-    this.events.push({ cycle, stage, phase: 'begin', at: Date.now() });
+    this.events.push(this.#record(cycle, stage, 'begin'));
   }
 
   end(cycle: number, stage: CycleStage): void {
     const at = this.open.lastIndexOf(stage);
     if (at >= 0) this.open.splice(at, 1);
-    this.events.push({ cycle, stage, phase: 'end', at: Date.now() });
+    this.events.push(this.#record(cycle, stage, 'end'));
+  }
+
+  #record(cycle: number, stage: CycleStage, phase: 'begin' | 'end'): CycleStageEvent {
+    return {
+      cycle,
+      stage,
+      phase,
+      at: Date.now(),
+      ...(this.#correlationId ? { correlationId: this.#correlationId } : {}),
+    };
   }
 
   /** The deepest stage currently open, if any. */

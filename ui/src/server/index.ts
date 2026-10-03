@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import type { Agent, CognitiveEvent, GraphNodeData, IncomingFromServer } from '@senars/core';
 import { isNarsese } from '@senars/core';
 import { DEFAULT_CONFIG, parseTermToEdges, termParser } from '@senars/nar';
+import { handleMetricsRequest } from '@senars/nar/metrics';
 import { type WebSocket, WebSocketServer } from 'ws';
 import { applyConfigField, buildConfigSchema } from './config-schema.js';
 import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
@@ -328,6 +329,7 @@ function createServerWithProjection(agent?: Agent): {
   }
 
   const httpServer = createServer(async (req, res) => {
+    if (await handleMetricsRequest(req, res)) return;
     if (handleTestEndpoints(req, res, projection, agent)) return;
     if (await serveStatic(req, res)) return;
     try {
