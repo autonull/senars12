@@ -159,7 +159,7 @@ describe('A7 — windowed-roulette sampling', () => {
     };
 
     const rouletteRanks = ranksOf(() => roulette.sample(memory, 5));
-    const priorityRanks = ranksOf(() => memory.sample(5));
+    const priorityRanks = ranksOf(() => memory.topConcepts(5));
     const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
 
     // Locality bias means the sliding window reaches concepts that global

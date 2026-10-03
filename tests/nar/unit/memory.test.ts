@@ -116,7 +116,7 @@ describe('Memory', () => {
       mem.addTask(b, 'belief', Truth.TRUE, createTaskWeight(0.5));
       mem.addTask(b, 'belief', Truth.TRUE, createTaskWeight(0.5));
 
-      const top = mem.sample(2);
+      const top = mem.topConcepts(2);
       expect(top).toHaveLength(2);
       const topTerm = top[0];
       expect(topTerm && getAtom(topTerm.term)).toBe('b');

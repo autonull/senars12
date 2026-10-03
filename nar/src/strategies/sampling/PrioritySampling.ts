@@ -9,6 +9,6 @@ export class PrioritySampling implements SamplingStrategy {
   };
 
   sample(memory: MemoryView, count: number): Concept[] {
-    return memory.sample(count);
+    return memory.topConcepts(count);
   }
 }

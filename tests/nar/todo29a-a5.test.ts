@@ -210,7 +210,7 @@ class FakeStore implements MemoryPorts {
   getEmbeddingIndex() {
     return undefined;
   }
-  sample(limit: number): Concept[] {
+  topConcepts(limit: number): Concept[] {
     return this.listConcepts().slice(0, limit);
   }
   sampleWindow(windowSize: number): Concept[] {
@@ -236,7 +236,7 @@ describe('A5 — memory is a set of ports', () => {
     const view: MemoryView = memory;
 
     expect(ports.size).toBe(0);
-    expect(view.sample(1)).toEqual([]);
+    expect(view.topConcepts(1)).toEqual([]);
     expect(memory.capacityPressure()).toBe(0);
   });
 

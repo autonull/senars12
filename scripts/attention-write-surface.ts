@@ -8,7 +8,7 @@
  * attention owner's" — is a type, not a review convention. This gate is the
  * backstop the plan asks for by name, and it says the things a type cannot:
  * which reasons exist, that each is written with, that the decay sweep has one
- * caller, and that `sample` / `sampleWindow` contain no write.
+ * caller, and that `topConcepts` / `sampleWindow` contain no write.
  *
  * It reads the tree's text rather than importing `Concept`, because a rule about
  * *where a value is written* cannot be checked by asking the value's class.

@@ -53,7 +53,7 @@ const strengthIndexFor = (
 };
 
 export const PREMISE_SOURCES = {
-  bag: (task: Task, memory: MemoryView, n = 10): Concept[] => memory.sample(n),
+  bag: (task: Task, memory: MemoryView, n = 10): Concept[] => memory.topConcepts(n),
   concepts: (task: Task, memory: MemoryView): Concept[] => memory.listConcepts(),
   links: (task: Task, memory: MemoryView, n = 20): Concept[] =>
     conceptsFrom(memory, LINK_LAYER.TERM, task.term, n),

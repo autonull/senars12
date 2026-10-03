@@ -164,7 +164,7 @@ export const methodBody = (source: string, name: string): string => {
 
 /** The two read paths must contain no write at all — a read that mutates is finding 1. */
 const readPurityViolations = ({ files }: SurfaceSubject): SurfaceViolation[] =>
-  ['sample', 'sampleWindow'].flatMap((name) =>
+  ['topConcepts', 'sampleWindow'].flatMap((name) =>
     files
       .filter(({ path }) => path === MEMORY_OWNER)
       .flatMap(({ path, source }) => {

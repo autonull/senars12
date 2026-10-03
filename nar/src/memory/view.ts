@@ -37,10 +37,10 @@ export interface MemoryView
   getAssociativeMemories(): AssociativeRegistry;
   /** Absent when no semantic layer is configured — a deployment choice, not an error. */
   getEmbeddingIndex(): SemanticSimilarity | undefined;
-  /** The `n` highest-priority resident concepts. */
-  sample(limit: number): Concept[];
+  /** The `n` highest-attention resident concepts, in attention order. */
+  topConcepts(limit: number): Concept[];
   /** A contiguous window of the priority order, for positional-local sampling. */
-  sampleWindow(windowSize: number, rng?: RandomSource): Concept[];
+  sampleWindow(windowSize: number, rng: RandomSource): Concept[];
 }
 
 export type { AssociativeRegistry, Focus, LinkPort };

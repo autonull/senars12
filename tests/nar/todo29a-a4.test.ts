@@ -89,7 +89,7 @@ describe('A4 — reads are observational', () => {
       files: [
         {
           path: 'nar/src/memory/memory.ts',
-          source: memorySource('sample(limit: number) { this.decayAll(); return []; }'),
+          source: memorySource('topConcepts(limit: number) { this.decayAll(); return []; }'),
         },
       ],
     });
@@ -103,7 +103,7 @@ describe('A4 — reads are observational', () => {
           {
             path: 'nar/src/memory/memory.ts',
             source: memorySource(
-              `sample(limit: number) { return this.topConcepts(limit); } sampleWindow(size: number) { return []; }`
+              `topConcepts(limit: number) { return this.topConcepts(limit); } sampleWindow(size: number) { return []; }`
             ),
           },
           {
@@ -145,8 +145,8 @@ describe('A4 — reads are observational', () => {
     const other = memory.addConcept(term('b'));
     other.writeAttention({ reason: 'assign', value: 0.1 });
 
-    expect(memory.sample(2)).toEqual([concept, other]);
-    expect(memory.sample(2)).toEqual([concept, other]);
+    expect(memory.topConcepts(2)).toEqual([concept, other]);
+    expect(memory.topConcepts(2)).toEqual([concept, other]);
     expect(concept.priority).toBe(0.42);
     expect(other.priority).toBe(0.1);
   });
@@ -161,7 +161,7 @@ describe('A4 — reads are observational', () => {
       ] as const) {
         memory.addConcept(term(name)).writeAttention({ reason: 'assign', value: priority });
       }
-      return memory.sample(3).map((c) => c.term.toString());
+      return memory.topConcepts(3).map((c) => c.term.toString());
     };
     expect(build()).toEqual(build());
   });
@@ -176,7 +176,7 @@ describe('A4 — the decay clock is consolidation and it says how much elapsed',
     const concept = memory.addConcept(term('a'));
     concept.writeAttention({ reason: 'assign', value: 1 });
 
-    memory.sample(5);
+    memory.topConcepts(5);
     expect(concept.priority).toBe(1);
 
     for (let i = 0; i < 10; i++) memory.consolidate();

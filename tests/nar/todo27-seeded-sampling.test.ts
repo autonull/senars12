@@ -26,7 +26,7 @@ const memoryWith = (rng?: () => number): Memory => {
 };
 
 const sample = (memory: Memory, count: number): string[] =>
-  memory.sample(count).map((c) => c.term.toString());
+  memory.topConcepts(count).map((c) => c.term.toString());
 
 describe('Bench 110 — one seed, one stochastic path', () => {
   it('two memories on the same seed draw the same sample', () => {

@@ -11,7 +11,7 @@ import type { Bag, BagItem } from '../bag/Bag.js';
 import type { RandomSource } from '../types/primitives.js';
 import { weightedSample, weightedSampleBy } from '../utils/random.js';
 
-export interface SamplingStrategy<T extends BagItem> {
+export interface BagSamplingStrategy<T extends BagItem> {
   readonly name: string;
   /** Select up to `budget` items; never mutates the source array. */
   select(items: T[], budget: number, rng: RandomSource): T[];
@@ -46,7 +46,7 @@ const softmaxWeights = <T>(
  * Softmax over priority with temperature (default T=1.0). Controllable
  * exploration/exploitation: T→∞ uniform, T→0 greedy.
  */
-export class PrioritySampling<T extends BagItem> implements SamplingStrategy<T> {
+export class PrioritySampling<T extends BagItem> implements BagSamplingStrategy<T> {
   readonly name = 'priority-softmax';
   constructor(private readonly temperature = 1.0) {}
   select(items: T[], budget: number, rng: RandomSource): T[] {
@@ -60,7 +60,7 @@ export class PrioritySampling<T extends BagItem> implements SamplingStrategy<T> 
 }
 
 /** Power-law weights `priority^α` — α>1 exploits the tail, α<1 explores. */
-export class PowerLawSampling<T extends BagItem> implements SamplingStrategy<T> {
+export class PowerLawSampling<T extends BagItem> implements BagSamplingStrategy<T> {
   readonly name = 'power-law';
   constructor(private readonly alpha = 1.5) {}
   select(items: T[], budget: number, rng: RandomSource): T[] {
@@ -77,7 +77,7 @@ export class PowerLawSampling<T extends BagItem> implements SamplingStrategy<T> 
  * cyclesSinceLastSample)`. Guarantees stale items eventually reappear
  * (Proof Obligation #6, scheduler fairness).
  */
-export class FairnessSampling<T extends BagItem> implements SamplingStrategy<T> {
+export class FairnessSampling<T extends BagItem> implements BagSamplingStrategy<T> {
   readonly name = 'fairness';
   #sinceSampled = new Map<string, number>();
   constructor(
@@ -112,7 +112,7 @@ export class FairnessSampling<T extends BagItem> implements SamplingStrategy<T> 
 }
 
 /** Truncate to the top-k priorities, then softmax within the truncated set. */
-export class TopKSampling<T extends BagItem> implements SamplingStrategy<T> {
+export class TopKSampling<T extends BagItem> implements BagSamplingStrategy<T> {
   readonly name = 'top-k';
   constructor(
     private readonly temperature = 1.0,
@@ -131,7 +131,7 @@ export class TopKSampling<T extends BagItem> implements SamplingStrategy<T> {
 }
 
 /** Legacy raw proportional sampling — exact `PriorityBag.sample()` parity. */
-export class PriorityProportional<T extends BagItem> implements SamplingStrategy<T> {
+export class PriorityProportional<T extends BagItem> implements BagSamplingStrategy<T> {
   readonly name = 'priority-proportional';
   select(items: T[], budget: number, rng: RandomSource): T[] {
     return weightedSample(items, budget, (item) => item.priority, rng);
@@ -142,7 +142,7 @@ export interface AIKRProcessorOptions<TIn extends BagItem, TOut = unknown> {
   /** The bounded, decaying accumulation bag. */
   bag: Bag<TIn>;
   /** Sampling strategy for the process stage (default softmax T=1.0). */
-  samplingStrategy?: SamplingStrategy<TIn>;
+  samplingStrategy?: BagSamplingStrategy<TIn>;
   /** Pressure threshold below which `processIfPressured` is inert (default 0.7). */
   pressureThreshold?: number;
   rng?: RandomSource;
@@ -157,7 +157,7 @@ export interface ProcessOptions {
 
 export class AIKRProcessor<TIn extends BagItem, TOut> {
   readonly #bag: Bag<TIn>;
-  readonly #strategy: SamplingStrategy<TIn>;
+  readonly #strategy: BagSamplingStrategy<TIn>;
   readonly #threshold: number;
   readonly #rng: RandomSource;
   readonly #process: (items: TIn[], signal?: AbortSignal) => Promise<TOut[]> | TOut[];

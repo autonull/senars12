@@ -48,7 +48,7 @@ interface Counter {
 /** The operations TODO30 §2 forbids from being O(population), plus the inducer's cycle-path cost. */
 const HOOKS = [
   { name: 'decayAll', proto: Memory.prototype as object, method: 'decayAll' },
-  { name: 'memory.sample', proto: Memory.prototype as object, method: 'sample' },
+  { name: 'memory.topConcepts', proto: Memory.prototype as object, method: 'topConcepts' },
   { name: 'sampleWindow', proto: Memory.prototype as object, method: 'sampleWindow' },
   { name: 'forEachConcept', proto: Memory.prototype as object, method: 'forEachConcept' },
   { name: 'listConcepts', proto: Memory.prototype as object, method: 'listConcepts' },
@@ -258,13 +258,13 @@ const selftest = async (): Promise<void> => {
       switch (counter.name) {
         case 'decayAll':
           nar.getProcessor();
-          nar.memory.sample(1);
+          nar.memory.topConcepts(1);
           break;
-        case 'memory.sample':
-          nar.memory.sample(1);
+        case 'memory.topConcepts':
+          nar.memory.topConcepts(1);
           break;
         case 'sampleWindow':
-          nar.memory.sampleWindow(2);
+          nar.memory.sampleWindow(2, Math.random);
           break;
         case 'forEachConcept':
           nar.memory.forEachConcept(() => {});

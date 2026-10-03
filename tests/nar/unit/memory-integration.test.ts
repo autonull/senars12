@@ -84,7 +84,7 @@ describe('Phase 5: Memory Integration', () => {
         memory.addConcept(TermBuilder.atom(`concept${i}`));
       }
 
-      const sampled = memory.sample(5);
+      const sampled = memory.topConcepts(5);
       expect(sampled.length).toBeLessThanOrEqual(5);
       expect(sampled.length).toBeGreaterThan(0);
     });
@@ -99,7 +99,7 @@ describe('Phase 5: Memory Integration', () => {
         memory.addConcept(TermBuilder.atom(name)).writeAttention({ reason: 'assign', value: priority });
       }
 
-      expect(memory.sample(3).map((c) => c.term.toString())).toEqual(['high', 'mid', 'low']);
+      expect(memory.topConcepts(3).map((c) => c.term.toString())).toEqual(['high', 'mid', 'low']);
     });
 
     it('does not move attention by being sampled', () => {
@@ -107,8 +107,8 @@ describe('Phase 5: Memory Integration', () => {
       const concept = memory.addConcept(TermBuilder.atom('stable'));
       concept.writeAttention({ reason: 'assign', value: 0.42 });
 
-      memory.sample(3);
-      memory.sample(3);
+      memory.topConcepts(3);
+      memory.topConcepts(3);
       expect(concept.priority).toBe(0.42);
     });
   });

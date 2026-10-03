@@ -334,20 +334,6 @@ export class Memory implements MemoryPorts {
   }
 
   /**
-   * A pure read: the `n` highest-priority resident concepts.
-   *
-   * Sampling used to advance the decay clock as a side effect, so one inference
-   * cycle wrote the whole population several times and ranked it several times,
-   * and *how often you read* decided *what survived*. The clock now belongs to
-   * {@link consolidate} alone, which is called once per interval — so a read is
-   * a read, and forgetting is a function of time rather than of query volume
-   * (TODO29.a §4 row 1, §5.4).
-   */
-  sample(limit: number): Concept[] {
-    return this.topConcepts(limit);
-  }
-
-  /**
    * The `n` highest-attention resident concepts: attention order, which is what
    * `topK` means to every consumer.
    *
@@ -360,7 +346,7 @@ export class Memory implements MemoryPorts {
    * differently, which is the determinism invariant the scorer cannot have
    * (TODO29.a §4 row 3, §5.4).
    */
-  private topConcepts(n: number): Concept[] {
+  topConcepts(n: number): Concept[] {
     return selectTopN(this.residentEntries(), n, (entry) => entry.value.priority).map(
       (entry) => entry.value
     );
@@ -370,7 +356,7 @@ export class Memory implements MemoryPorts {
    * Sample a random contiguous window of concepts from the priority-sorted array.
    * Used by windowed-roulette sampling strategy for positional-local diversity.
    */
-  sampleWindow(windowSize: number, rng: () => number = Math.random): Concept[] {
+  sampleWindow(windowSize: number, rng: () => number): Concept[] {
     const allConcepts = this.topConcepts(windowSize);
 
     if (allConcepts.length <= windowSize) return allConcepts;
