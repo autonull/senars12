@@ -9,9 +9,11 @@
 
 import type { DerivationRecord, DerivationStep } from '@senars/core/schemas/derivation-records';
 import { BoundedMap, incrementCount, mean } from '@senars/util';
-import { substituteVariables } from '../terms/impls/substitute.js';
+import { agreeByExactAlgebra } from '../reflex/algebra-vote.js';
+import type { IProposer, NegotiationInput, ProposerContribution } from '../reflex/Negotiator.js';
+import type { ActionProposal, LearningEvent } from '../reflex/Reflex.js';
 import type { Term } from '../terms/index.js';
-import { serializeTerm, TermBuilder, termKey, termParser, walkTerms } from '../terms/index.js';
+import { applySubstitution, serializeTerm, TermBuilder, termKey, termParser, walkTerms } from '../terms/index.js';
 
 /** Every atomic symbol in a term, counted — the canonical walk, not a second one. */
 const collectAtoms = (term: Term, counts: Map<string, number>): void => {
@@ -19,10 +21,6 @@ const collectAtoms = (term: Term, counts: Map<string, number>): void => {
     if (t.kind === 'atom') incrementCount(counts, t.symbol);
   });
 };
-
-import { agreeByExactAlgebra } from '../reflex/algebra-vote.js';
-import type { IProposer, NegotiationInput, ProposerContribution } from '../reflex/Negotiator.js';
-import type { ActionProposal, LearningEvent } from '../reflex/Reflex.js';
 
 export interface MettaRule {
   readonly id: string;
@@ -172,8 +170,8 @@ export class ProofMettaProposer implements IProposer {
     }
 
     // Apply substitutions to get generalized terms
-    const generalizedPremises = premises.map((p) => substituteVariables(p, varBindings));
-    const generalizedConclusion = substituteVariables(conclusionParsed, varBindings);
+    const generalizedPremises = premises.map((p) => applySubstitution(p, varBindings));
+    const generalizedConclusion = applySubstitution(conclusionParsed, varBindings);
 
     return {
       premises: generalizedPremises,

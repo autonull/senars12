@@ -1,4 +1,4 @@
-import { atom, isVariableSymbol, substituteVariables, unify } from '../../nar/src/terms/index.js';
+import { applySubstitution, atom, isVariableSymbol, unify } from '../../nar/src/terms/index.js';
 import { describe, expect, it } from 'vitest';
 
 describe('variable recognition', () => {
@@ -18,14 +18,14 @@ describe('variable recognition', () => {
       const varTerm = atom(symbol);
       const bound = unify(varTerm, atom('cat'));
       expect(bound, `${symbol} should bind to cat`).toBeDefined();
-      expect(bound?.[symbol]).toEqual(atom('cat'));
+      expect(bound?.get(symbol)).toEqual(atom('cat'));
     }
   });
 
-  it('substituteVariables agrees with the unifier on the same bindings', () => {
+  it('applySubstitution grounds every variable the unifier binds', () => {
     const varTerm = atom('$y');
     const bindings = new Map([['$y', atom('cat')]]);
-    expect(String(substituteVariables(varTerm, bindings))).toBe('cat');
-    expect(String(substituteVariables(atom('cat'), bindings))).toBe('cat');
+    expect(String(applySubstitution(varTerm, bindings))).toBe('cat');
+    expect(String(applySubstitution(atom('cat'), bindings))).toBe('cat');
   });
 });

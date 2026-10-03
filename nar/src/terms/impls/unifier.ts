@@ -4,7 +4,7 @@ import { isVariableSymbol } from '../types.js';
 import { getArgs, sameKind, termKey, termsEqual } from './accessors.js';
 import { TermBuilder } from './factory.js';
 
-export type Substitution = Record<string, Term>;
+export type Substitution = ReadonlyMap<string, Term>;
 
 /** How the generic unifier reads a Narsese term. */
 const DIALECT: UnifierDialect<Term> = {
@@ -25,19 +25,15 @@ const unifier = new Unifier(DIALECT);
 export function unify(
   a: Term,
   b: Term,
-  subst: Substitution = {},
+  subst: Substitution = new Map(),
   enableOccursCheck = true
-): Substitution | undefined {
-  const result = unifier.unify(a, b, new Map(Object.entries(subst)), {
+): Map<string, Term> | undefined {
+  const result = unifier.unify(a, b, subst, {
     occursCheck: enableOccursCheck,
   });
-  return result ? Object.fromEntries(result) : undefined;
+  return result ?? undefined;
 }
 
-/** Substitute through `term` until no bound variable remains. */
-export const applyBindings = (term: Term, bindings: ReadonlyMap<string, Term>): Term =>
-  unifier.apply(term, bindings);
-
-/** {@link applyBindings} over the object-literal substitution this module exports. */
+/** Substitute through `term` until no bound variable remains. Idempotent. */
 export const applySubstitution = (term: Term, subst: Substitution): Term =>
-  applyBindings(term, new Map(Object.entries(subst)));
+  unifier.apply(term, subst);

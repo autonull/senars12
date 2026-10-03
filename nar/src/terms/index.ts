@@ -49,7 +49,6 @@ export {
 export type { SerializedStamp, Source, Stamp as StampType } from './impls/Stamp.js';
 export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './impls/Stamp.js';
 export { serializeTerm, toNarsese } from './impls/serialize.js';
-export { substituteVariables } from './impls/substitute.js';
 export type { Truth as TruthType } from './impls/Truth.js';
 export { isTruthEqual, Truth } from './impls/Truth.js';
 export { TermCollection } from './impls/term-collection.js';
@@ -58,7 +57,7 @@ export type { TermMapEntry } from './impls/term-map.js';
 export { TermMap } from './impls/term-map.js';
 export { TermSet } from './impls/term-set.js';
 export type { Substitution } from './impls/unifier.js';
-export { unify } from './impls/unifier.js';
+export { applySubstitution, unify } from './impls/unifier.js';
 export { calculateSimilarity } from './impls/utils.js';
 export {
   INVALID_ATOM_CHARS_REGEX,

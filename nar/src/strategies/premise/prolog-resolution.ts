@@ -6,8 +6,7 @@
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import type { Term } from '../../terms';
-import { getTermArgs, unify } from '../../terms';
-import { applySubstitution, type Substitution } from '../../terms/impls/unifier.js';
+import { applySubstitution, getTermArgs, unify, type Substitution } from '../../terms';
 import type { Task, TaskType } from '../../types';
 import { createSecondaryTask } from '../../types';
 import type { ComponentMetadata, Strategy } from '../types';
@@ -30,11 +29,6 @@ interface ResolutionState {
   derivation: Clause[];
 }
 
-/**
- * SLD resolution carries an accumulated substitution, so both clauses are
- * ground-ed through it before the shared unifier (which owns the occurs check)
- * runs.
- */
 /**
  * SLD resolution carries an accumulated substitution, so both clauses are
  * ground-ed through it before the shared unifier (which owns the occurs check)
@@ -142,7 +136,7 @@ export class PrologResolutionStrategy implements Strategy {
     const results: Task[] = [];
     const initialState: ResolutionState = {
       goals: [task.term],
-      substitution: {},
+      substitution: new Map(),
       depth: 0,
       derivation: [],
     };

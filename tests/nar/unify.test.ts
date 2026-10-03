@@ -8,7 +8,7 @@ test('unify binds variable and enforces consistency', () => {
   const s1 = unify(x, A);
   expect(s1).toBeDefined();
   if (!s1) return;
-  const binding = s1['$x'];
+  const binding = s1.get('$x');
   expect(binding).toBeDefined();
   if (binding) {
     expect(termsEqual(binding, A)).toBe(true);
