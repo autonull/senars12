@@ -11,7 +11,7 @@ import type { KernelBudgetGate } from './kernel/KernelBudgetGate.js';
 import type { MemoryPorts } from './memory/ports/index.js';
 import { askSafely, type DecisionPort } from './ports/index.js';
 import { CycleTrace } from './proposal/cycle-trace.js';
-import type { CycleStage } from './proposal/stages.js';
+import type { CycleStage, TraceRegion } from './proposal/stages.js';
 import type { LMProposalProducer } from './proposal/lm-rule-producer.js';
 import type { PolicyOptimizer, RLFPLearner } from './rlfp';
 import {
@@ -24,7 +24,7 @@ import type { TaskManager } from './task';
 import { classifyTask, type TaskSignal } from './task';
 import { getTermArgs, isCompound, operationNameOf, type Term, TermSet, termParser } from './terms';
 import { Truth } from './terms/impls/Truth.js';
-import { PhaseTimer } from './trace';
+import { summarizeRegions, type PhaseTimerSummary } from './trace';
 import type { Task } from './types';
 import { createTask } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';
@@ -106,7 +106,6 @@ export interface NARExecutionOptions {
 
 export class NARExecution {
   private _cycleCount = 0;
-  private readonly phaseTimer = new PhaseTimer();
   private readonly cycleTrace = new CycleTrace();
   private readonly cycleSignals = { testPassed: false, testFailed: false, contradictionDetected: false };
   private readonly _rlfpRewardHistory = new BoundedRing<number>(100);
@@ -202,7 +201,6 @@ export class NARExecution {
    */
   async run(steps = 1, signal?: AbortSignal, correlationId?: string): Promise<number> {
     let derived = 0;
-    this.phaseTimer.clear();
     this.cycleTrace.setCorrelationId(correlationId);
 
     // Check RLFP enablement via env var
@@ -212,175 +210,170 @@ export class NARExecution {
       if (signal?.aborted) break;
 
       this._cycleCount++;
-      this.phaseTimer.begin('cycle', `cycle-${this._cycleCount}`);
-      // Four of the five declared scopes are per cycle, so they are re-opened
-      // here rather than left to exhaust once over the NAR's life (§5.7).
-      this.budgets.beginCycle();
-      this.cycleSignals.testPassed = false;
-      this.cycleSignals.testFailed = false;
-      this.cycleSignals.contradictionDetected = false;
+      await this.region('cycle', async () => {
+        // Four of the five declared scopes are per cycle, so they are re-opened
+        // here rather than left to exhaust once over the NAR's life (§5.7).
+        this.budgets.beginCycle();
+        this.cycleSignals.testPassed = false;
+        this.cycleSignals.testFailed = false;
+        this.cycleSignals.contradictionDetected = false;
 
-      await this.stage('perceive', 'task-manager', 'processPending', async () => {
-        // Dispatch pending `tool(...)` goals to the tool layer (goal→tool wiring).
-        // Must run before processPending so tool goals are executed rather than
-        // being added to memory as plain goals.
-        await this.dispatchToolGoals();
-        const processed = await this.taskManager.processPending();
-        derived += processed.length;
-      });
-
-      await this.stage('attend', 'drives', 'update', async () => {
-        // Update drive states before reasoning
-        this.driveManager?.updateCycle();
-        // Inject meta-goals from drive homeostasis (e.g. competence < threshold)
-        this.injectMetaGoals();
-        // Adaptation hook — allows CognitiveController to tune strategies at runtime
-        this.cognitiveController.adapt();
-      });
-
-      // RLFP-driven reasoning decisions
-      let effectiveSteps = 1;
-      let strategyPriority: string | null = null;
-
-      if (rlfpEnabled && this.policyOptimizer) {
-        // Select strategy priority based on learned policy
-        strategyPriority = this.policyOptimizer.getBestStrategy();
-
-        // Scale step count by exploration rate (high exploration = more steps)
-        const explorationRate = this.policyOptimizer.getConfig().explorationRate ?? 0.1;
-        effectiveSteps = Math.max(1, Math.round(1 + explorationRate * 4)); // 1-5 steps based on exploration
-      }
-
-      const results = await this.stage('reason', 'reasoner', `step-${this._cycleCount}`, () =>
-        this.cognitiveController.getInferenceController().step(5000, effectiveSteps * 100, signal)
-      );
-      derived += results.length;
-
-      // Emit reasoning cycle event
-      if (this.systemEventBus) {
-        this.systemEventBus.emit('nar:reasoning:cycle', {
-          cycle: this._cycleCount,
-          derived: results.length,
-          strategyPriority,
-          effectiveSteps,
-          timestamp: Date.now(),
+        await this.stage('perceive', async () => {
+          // Dispatch pending `tool(...)` goals to the tool layer (goal→tool wiring).
+          // Must run before processPending so tool goals are executed rather than
+          // being added to memory as plain goals.
+          await this.dispatchToolGoals();
+          const processed = await this.taskManager.processPending();
+          derived += processed.length;
         });
-      }
 
-      // The one stage through which anything reaches state. Model-backed
-      // proposals settled by a previous pump land here too, so a producer's work
-      // is admitted at a declared boundary and by the same gate as a derivation.
-      await this.stage('authorize', 'memory', 'addTasks', async () => {
-        const ranking = this.cognitiveController.getParams().inference.ranking;
-        const settled = this.proposals?.takeDerived() ?? [];
-        // `proposal-application` is a declared scope, so a spent budget and a full
-        // queue are the same kind of event with the same kind of reason (§5.7).
-        // Symbolic derivations are not charged here: only what arrived from the seam.
-        for (const task of await this.rankForAdmission(
-          await this.vetoAtEgress(results),
-          ranking
-        ))
-          this.admit(task);
-        // `proposal-application` is a declared scope, so a spent budget and a
-        // full queue become the same kind of event with the same kind of reason
-        // (§5.7). Symbolic derivations are not charged: only what the seam sent.
-        for (const task of settled) {
-          if (!this.budgets.charge('proposal-application')) {
-            logger.warn('Proposal application budget exhausted; the rest stay queued');
-            break;
-          }
-          this.admit(task);
-        }
-      });
+        await this.stage('attend', async () => {
+          // Update drive states before reasoning
+          this.driveManager?.updateCycle();
+          // Inject meta-goals from drive homeostasis (e.g. competence < threshold)
+          this.injectMetaGoals();
+          // Adaptation hook — allows CognitiveController to tune strategies at runtime
+          this.cognitiveController.adapt();
+        });
 
-      // Homeostatic drive stimulation based on events
-      if (this.cycleSignals.testPassed) this.stimulateDrives('test_passed');
-      if (this.cycleSignals.testFailed) this.stimulateDrives('test_failed');
-      if (this.cycleSignals.contradictionDetected) this.stimulateDrives('contradiction_detected');
+        // RLFP-driven reasoning decisions
+        let effectiveSteps = 1;
+        let strategyPriority: string | null = null;
 
-      await this.stage('propose', 'proposals', 'pump', async () => {
-        this.pumpProposals(signal);
-      });
+        if (rlfpEnabled && this.policyOptimizer) {
+          // Select strategy priority based on learned policy
+          strategyPriority = this.policyOptimizer.getBestStrategy();
 
-      await this.stage('learn', 'learn', 'update', async () => {
-        if (
-          this.rlfp &&
-          this._cycleCount %
-            (this.rlfp.optimizeInterval ?? this.config.rlfp?.optimizeInterval ?? 100) ===
-            0
-        ) {
-          this.phaseTimer.begin('rlfp', 'optimize');
-          this.rlfp.optimize();
-          this.rlfp.updateModel([]);
-          this.phaseTimer.end();
+          // Scale step count by exploration rate (high exploration = more steps)
+          const explorationRate = this.policyOptimizer.getConfig().explorationRate ?? 0.1;
+          effectiveSteps = Math.max(1, Math.round(1 + explorationRate * 4)); // 1-5 steps based on exploration
         }
 
-        // Self-monitoring: assess quality and trigger self-improvement if low
-        if (this.self && this._cycleCount % 10 === 0) {
-          this.phaseTimer.begin('self', 'assessQuality');
-          try {
-            const quality = await this.self.assessQuality();
-            logger.debug('Self-assessment', {
-              quality: quality.overall,
-              cycle: this._cycleCount,
-            });
-            if (quality.overall < 0.4) {
-              this.phaseTimer.begin('self', 'performSelfCorrection');
-              await this.self.performSelfCorrection();
-              this.phaseTimer.end();
+        const results = await this.stage('reason', () =>
+          this.cognitiveController.getInferenceController().step(5000, effectiveSteps * 100, signal)
+        );
+        derived += results.length;
+
+        // Emit reasoning cycle event
+        if (this.systemEventBus) {
+          this.systemEventBus.emit('nar:reasoning:cycle', {
+            cycle: this._cycleCount,
+            derived: results.length,
+            strategyPriority,
+            effectiveSteps,
+            timestamp: Date.now(),
+          });
+        }
+
+        // The one stage through which anything reaches state. Model-backed
+        // proposals settled by a previous pump land here too, so a producer's work
+        // is admitted at a declared boundary and by the same gate as a derivation.
+        await this.stage('authorize', async () => {
+          const ranking = this.cognitiveController.getParams().inference.ranking;
+          const settled = this.proposals?.takeDerived() ?? [];
+          // `proposal-application` is a declared scope, so a spent budget and a full
+          // queue are the same kind of event with the same kind of reason (§5.7).
+          // Symbolic derivations are not charged here: only what arrived from the seam.
+          for (const task of await this.rankForAdmission(
+            await this.vetoAtEgress(results),
+            ranking
+          ))
+            this.admit(task);
+          // `proposal-application` is a declared scope, so a spent budget and a
+          // full queue become the same kind of event with the same kind of reason
+          // (§5.7). Symbolic derivations are not charged: only what the seam sent.
+          for (const task of settled) {
+            if (!this.budgets.charge('proposal-application')) {
+              logger.warn('Proposal application budget exhausted; the rest stay queued');
+              break;
             }
-          } catch (e) {
-            logger.warn('Self-assessment failed', { error: errMsg(e) });
+            this.admit(task);
           }
-          this.phaseTimer.end();
-        }
+        });
 
-        // Emit cognitive state summary every 10 cycles (observability)
-        if (this._cycleCount % 10 === 0) {
-          this.emitCognitiveStateSummary();
-        }
+        // Homeostatic drive stimulation based on events
+        if (this.cycleSignals.testPassed) this.stimulateDrives('test_passed');
+        if (this.cycleSignals.testFailed) this.stimulateDrives('test_failed');
+        if (this.cycleSignals.contradictionDetected) this.stimulateDrives('contradiction_detected');
+
+        await this.stage('propose', async () => {
+          this.pumpProposals(signal);
+        });
+
+        await this.stage('learn', async () => {
+          const rlfp = this.rlfp;
+          if (
+            rlfp &&
+            this._cycleCount % (rlfp.optimizeInterval ?? this.config.rlfp?.optimizeInterval ?? 100) ===
+              0
+          ) {
+            await this.region('rlfp.optimize', () => {
+              rlfp.optimize();
+              rlfp.updateModel([]);
+            });
+          }
+
+          // Self-monitoring: assess quality and trigger self-improvement if low
+          const self = this.self;
+          if (self && this._cycleCount % 10 === 0) {
+            await this.region('self.assess', async () => {
+              try {
+                const quality = await self.assessQuality();
+                logger.debug('Self-assessment', {
+                  quality: quality.overall,
+                  cycle: this._cycleCount,
+                });
+                if (quality.overall < 0.4) {
+                  await this.region('self.correct', () => self.performSelfCorrection());
+                }
+              } catch (e) {
+                logger.warn('Self-assessment failed', { error: errMsg(e) });
+              }
+            });
+          }
+
+          // Emit cognitive state summary every 10 cycles (observability)
+          if (this._cycleCount % 10 === 0) {
+            this.emitCognitiveStateSummary();
+          }
+        });
+
+        // Structured meta-reasoning log: drive stimuli, meta-goal fires
+        logger.debug('meta-reasoning', {
+          cycle: this._cycleCount,
+          driveStates: this.driveManager
+            ? Object.fromEntries(
+                this.driveManager.getAllStates().map((ds) => [ds.spec.id, ds.currentIntensity])
+              )
+            : undefined,
+        });
       });
-
-      // Structured meta-reasoning log: drive stimuli, meta-goal fires
-      logger.debug('meta-reasoning', {
-        cycle: this._cycleCount,
-        driveStates: this.driveManager
-          ? Object.fromEntries(
-              this.driveManager.getAllStates().map((ds) => [ds.spec.id, ds.currentIntensity])
-            )
-          : undefined,
-      });
-
-      this.phaseTimer.end();
     }
 
-    this.phaseTimer.begin('memory', 'consolidate');
-    this.memory.consolidate({ cycleCount: this._cycleCount });
-    this.phaseTimer.end();
+    this.region('memory.consolidate', () =>
+      this.memory.consolidate({ cycleCount: this._cycleCount })
+    );
 
     logger.debug('run complete', { steps, cycles: this._cycleCount, derived });
     return derived;
   }
 
   /**
-   * Run `work` inside a named stage: the phase timer gets its span and the trace
-   * gets its region, from one call — a stage the trace cannot see is a stage
-   * nothing can assert about.
+   * Run `work` inside a named stage of the current cycle. Timing is a projection
+   * over this trace, so one record is the correctness record and the measurement.
    */
-  private async stage<T>(
-    stage: CycleStage,
-    phase: string,
-    detail: string,
-    work: () => Promise<T> | T
-  ): Promise<T> {
+  private async stage<T>(stage: CycleStage, work: () => Promise<T> | T): Promise<T> {
+    return this.region(stage, work);
+  }
+
+  /** Open a trace region around `work`, closing it even if the work throws. */
+  private async region<T>(region: TraceRegion, work: () => Promise<T> | T): Promise<T> {
     const cycle = this._cycleCount;
-    this.phaseTimer.begin(phase, detail);
-    this.cycleTrace.begin(cycle, stage);
+    this.cycleTrace.begin(cycle, region);
     try {
       return await work();
     } finally {
-      this.cycleTrace.end(cycle, stage);
-      this.phaseTimer.end();
+      this.cycleTrace.end(cycle, region);
     }
   }
 
@@ -579,8 +572,9 @@ export class NARExecution {
     return this.cycleTrace;
   }
 
-  getPhaseTimer(): PhaseTimer {
-    return this.phaseTimer;
+  /** Timing as a projection over the live trace — the same record, read as spans. */
+  getPhaseSummary(): PhaseTimerSummary {
+    return summarizeRegions(this.cycleTrace.regions());
   }
 
   /**

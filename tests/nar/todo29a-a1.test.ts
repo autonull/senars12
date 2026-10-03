@@ -17,6 +17,7 @@ import {
   findInCycleProposals,
   findStageOverlaps,
 } from '@senars/nar/proposal/cycle-trace.js';
+import { CYCLE_STAGES } from '@senars/nar/proposal/stages.js';
 import { LMProposalProducer } from '@senars/nar/proposal/lm-rule-producer.js';
 import { StreamReasoner } from '@senars/nar/stream/reasoner.js';
 import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
@@ -116,7 +117,7 @@ describe('A1 — the live cycle has a stage vocabulary', () => {
     const begins = execution
       .getCycleTrace()
       .regions()
-      .filter((event) => event.phase === 'begin')
+      .filter((event) => event.phase === 'begin' && (CYCLE_STAGES as readonly string[]).includes(event.stage))
       .map((event) => event.stage);
     expect(begins).toEqual([
       'perceive',

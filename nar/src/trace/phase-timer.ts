@@ -1,85 +1,94 @@
+/**
+ * Timing as a projection over the cycle trace (TODO33 §5.P2.5).
+ *
+ * There is one clock. `PhaseTimer` used to keep a second one — its own stack, its
+ * own `begin`/`end` — and `end()` popped blindly, so an unbalanced pair
+ * mis-attributed a span while the trace's name-matched record stayed correct.
+ * There is nothing to time here that the trace did not already record; these are
+ * pure functions over `CycleTrace.regions()`.
+ */
+
 import { pct, weightedMean } from '@senars/util';
+import type { CycleStageEvent, TraceRegion } from '../proposal/cycle-trace.js';
+
 export interface PhaseEntry {
-  name: string;
-  category: string;
-  startTime: number;
-  endTime: number;
-  durationMs: number;
-  data?: Record<string, unknown>;
+  readonly region: TraceRegion;
+  readonly cycle: number;
+  readonly startTime: number;
+  readonly endTime: number;
+  readonly durationMs: number;
+  readonly correlationId?: string;
 }
 
 export interface PhaseTimerSummary {
-  totalDurationMs: number;
-  phases: PhaseEntry[];
-  byCategory: Record<string, { count: number; totalMs: number; avgMs: number }>;
+  readonly totalDurationMs: number;
+  readonly phases: readonly PhaseEntry[];
+  readonly byRegion: Record<string, { count: number; totalMs: number; avgMs: number }>;
 }
 
-export class PhaseTimer {
-  private phases: PhaseEntry[] = [];
-  private stack: PhaseEntry[] = [];
-  private startTime = 0;
+/**
+ * Pair each region's `end` with the innermost open region of the same name, the
+ * way the trace closes them. A region still open at the end of the record — the
+ * process died, or the window evicted its `end` — is omitted rather than
+ * measured to an arbitrary timestamp.
+ */
+export const summarizeRegions = (regions: readonly CycleStageEvent[]): PhaseTimerSummary => {
+  const open: CycleStageEvent[] = [];
+  const phases: PhaseEntry[] = [];
 
-  begin(category: string, name: string, data?: Record<string, unknown>): void {
-    const now = Date.now();
-    if (this.stack.length === 0) this.startTime = now;
-    this.stack.push({ name, category, startTime: now, endTime: 0, durationMs: 0, data });
-  }
-
-  end(): void {
-    const entry = this.stack.pop();
-    if (!entry) return;
-    entry.endTime = Date.now();
-    entry.durationMs = entry.endTime - entry.startTime;
-    this.phases.push(entry);
-  }
-
-  getSummary(): PhaseTimerSummary {
-    const totalDurationMs =
-      this.phases.length > 0
-        ? Math.max(...this.phases.map((p) => p.endTime)) -
-          Math.min(...this.phases.map((p) => p.startTime))
-        : 0;
-    const byCategory: Record<string, { count: number; totalMs: number; avgMs: number }> = {};
-    for (const p of this.phases) {
-      if (!byCategory[p.category]) byCategory[p.category] = { count: 0, totalMs: 0, avgMs: 0 };
-      const bucket = byCategory[p.category]!;
-      bucket.totalMs += p.durationMs;
-      bucket.avgMs = weightedMean(bucket.avgMs, bucket.count, p.durationMs);
-      bucket.count++;
+  for (const event of regions) {
+    if (event.phase === 'begin') {
+      open.push(event);
+      continue;
     }
-    return { totalDurationMs, phases: [...this.phases], byCategory };
+    const at = open.findIndex((b) => b.stage === event.stage && b.cycle === event.cycle);
+    if (at < 0) continue;
+    const begin = open.splice(at, 1)[0]!;
+    phases.push({
+      region: event.stage,
+      cycle: event.cycle,
+      startTime: begin.at,
+      endTime: event.at,
+      durationMs: event.at - begin.at,
+      ...(begin.correlationId ? { correlationId: begin.correlationId } : {}),
+    });
   }
 
-  formatFlameChart(): string {
-    const summary = this.getSummary();
-    const lines: string[] = [`=== Temporal Trace (${summary.totalDurationMs}ms total) ===`, ''];
-    for (const p of summary.phases) {
-      const bar = '#'.repeat(Math.max(1, Math.round(p.durationMs / 10)));
-      const share = pct(p.durationMs / summary.totalDurationMs);
+  const byRegion: Record<string, { count: number; totalMs: number; avgMs: number }> = {};
+  for (const phase of phases) {
+    const bucket = byRegion[phase.region] ?? { count: 0, totalMs: 0, avgMs: 0 };
+    byRegion[phase.region] = bucket;
+    bucket.totalMs += phase.durationMs;
+    bucket.avgMs = weightedMean(bucket.avgMs, bucket.count, phase.durationMs);
+    bucket.count++;
+  }
+
+  const totalDurationMs =
+    phases.length > 0
+      ? Math.max(...phases.map((p) => p.endTime)) - Math.min(...phases.map((p) => p.startTime))
+      : 0;
+
+  return { totalDurationMs, phases, byRegion };
+};
+
+export const formatFlameChart = (summary: PhaseTimerSummary): string => {
+  const lines: string[] = [`=== Temporal Trace (${summary.totalDurationMs}ms total) ===`, ''];
+  for (const phase of summary.phases) {
+    const bar = '#'.repeat(Math.max(1, Math.round(phase.durationMs / 10)));
+    const share = pct(phase.durationMs / Math.max(1, summary.totalDurationMs));
+    lines.push(
+      ` [${phase.region.padEnd(20)}] cycle ${phase.cycle} ${String(phase.durationMs).padStart(6)}ms (${share}) ${bar}`
+    );
+  }
+  if (Object.keys(summary.byRegion).length > 0) {
+    lines.push('');
+    lines.push('By Region:');
+    for (const [region, stats] of Object.entries(summary.byRegion)) {
+      const share = pct(stats.totalMs / Math.max(1, summary.totalDurationMs));
       lines.push(
-        ` [${p.category}] ${p.name.padEnd(40)} ${String(p.durationMs).padStart(6)}ms (${share}) ${bar}`
+        ` ${region.padEnd(20)} ${stats.count} calls, ${stats.totalMs}ms total (${share}), avg ${Math.round(stats.avgMs)}ms`
       );
     }
-    if (Object.keys(summary.byCategory).length > 0) {
-      lines.push('');
-      lines.push('By Category:');
-      for (const [cat, stats] of Object.entries(summary.byCategory)) {
-        const share = pct(stats.totalMs / summary.totalDurationMs);
-        lines.push(
-          ` ${cat.padEnd(20)} ${stats.count} calls, ${stats.totalMs}ms total (${share}), avg ${Math.round(stats.avgMs)}ms`
-        );
-      }
-    }
-    return lines.join('\n');
   }
-
-  clear(): void {
-    this.phases = [];
-    this.stack = [];
-    this.startTime = 0;
-  }
-
-  getPhases(): readonly PhaseEntry[] {
-    return this.phases;
-  }
-}
+  return lines.join('\n');
+};

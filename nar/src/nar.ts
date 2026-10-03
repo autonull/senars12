@@ -723,8 +723,8 @@ export class NAR extends BaseComponent {
     this.taskManager.addTask(task);
   }
 
-  getPhaseTimer() {
-    return this.execution.getPhaseTimer();
+  getPhaseSummary() {
+    return this.execution.getPhaseSummary();
   }
 
   getLMClientStats() {

@@ -9,13 +9,13 @@
 
 import { BoundedRing } from '@senars/util';
 
-import type { CycleStage } from './stages.js';
+import { CYCLE_STAGES, type TraceRegion } from './stages.js';
 
-export type { CycleStage } from './stages.js';
+export type { CycleStage, TraceRegion } from './stages.js';
 
 export interface CycleStageEvent {
   readonly cycle: number;
-  readonly stage: CycleStage;
+  readonly stage: TraceRegion;
   readonly phase: 'begin' | 'end';
   readonly at: number;
   /** The stimulus that drove the cycle, when the caller declared one. */
@@ -24,16 +24,18 @@ export interface CycleStageEvent {
 
 export interface StageOverlap {
   readonly cycle: number;
-  readonly outer: CycleStage;
-  readonly inner: CycleStage;
+  readonly outer: TraceRegion;
+  readonly inner: TraceRegion;
 }
+
+const STAGES = new Set<string>(CYCLE_STAGES);
 
 const DEPTH = 512;
 
 /** Bounded record of stage regions, oldest evicted first. */
 export class CycleTrace {
   private readonly events = new BoundedRing<CycleStageEvent>(DEPTH);
-  private readonly open: CycleStage[] = [];
+  private readonly open: TraceRegion[] = [];
   #correlationId?: string;
 
   /** Join every later region to one stimulus — set by `run()` for the call's duration. */
@@ -41,18 +43,18 @@ export class CycleTrace {
     this.#correlationId = correlationId;
   }
 
-  begin(cycle: number, stage: CycleStage): void {
+  begin(cycle: number, stage: TraceRegion): void {
     this.open.push(stage);
     this.events.push(this.#record(cycle, stage, 'begin'));
   }
 
-  end(cycle: number, stage: CycleStage): void {
+  end(cycle: number, stage: TraceRegion): void {
     const at = this.open.lastIndexOf(stage);
     if (at >= 0) this.open.splice(at, 1);
     this.events.push(this.#record(cycle, stage, 'end'));
   }
 
-  #record(cycle: number, stage: CycleStage, phase: 'begin' | 'end'): CycleStageEvent {
+  #record(cycle: number, stage: TraceRegion, phase: 'begin' | 'end'): CycleStageEvent {
     return {
       cycle,
       stage,
@@ -63,7 +65,7 @@ export class CycleTrace {
   }
 
   /** The deepest stage currently open, if any. */
-  current(): CycleStage | undefined {
+  current(): TraceRegion | undefined {
     return this.open[this.open.length - 1];
   }
 
@@ -81,8 +83,11 @@ export const findStageOverlaps = (
   events: readonly CycleStageEvent[]
 ): readonly StageOverlap[] => {
   const overlaps: StageOverlap[] = [];
-  const open: CycleStage[] = [];
+  const open: TraceRegion[] = [];
   for (const event of events) {
+    // Only stage regions nest: an auxiliary region is the frame its subsystem's
+    // work opens inside, so `cycle` enclosing `reason` is the shape, not a fault.
+    if (!STAGES.has(event.stage)) continue;
     if (event.phase === 'begin') {
       const outer = open[open.length - 1];
       if (outer && outer !== event.stage) overlaps.push({ cycle: event.cycle, outer, inner: event.stage });
