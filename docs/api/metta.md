@@ -6,7 +6,7 @@
 
 - `ConceptBag`
 
-- `createConfig`
+- `createConfig` — Overrides over the defaults, at any depth.
 
 - `type MeTTaConfig`
 
@@ -15,6 +15,8 @@
 - `ErrorCode`
 
 - `MeTTaError`
+
+- `atomKey` — String form of {@link hashAtom}, for the map and set keys that need one. Two
 
 - `equalAtoms`
 

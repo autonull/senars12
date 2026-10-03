@@ -82,16 +82,17 @@ graph TD
   telemetry["telemetry"]
   terms["terms"]
   terms_impls["terms/impls"]
-  tick["tick"]
   tools["tools"]
   tools_adapters["tools/adapters"]
   tools_adapters_self["tools/adapters/self"]
   tools_impls["tools/impls"]
+  trace["trace"]
   types["types"]
   utils["utils"]
   _ --> bag
   _ --> cognitive
   _ --> config
+  _ --> decision
   _ --> errors
   _ --> facade
   _ --> focus
@@ -122,19 +123,20 @@ graph TD
   agent --> _
   agent --> cognitive_impls
   agent --> config
+  agent --> cooperation
   agent --> engine
   agent --> errors
   agent --> kernel
   agent --> lm
   agent --> lm_system-one
   agent --> memory
+  agent --> nl
   agent --> otel
   agent --> rlfp
   agent --> terms
   agent --> types
   bag --> _
   bag --> types
-  bag --> utils
   capability --> tools
   cognitive --> cognitive_impls
   cognitive --> strategies
@@ -153,7 +155,6 @@ graph TD
   cognitive_impls --> strategies_premise
   cognitive_impls --> strategies_sampling
   cognitive_impls --> types
-  cognitive_impls --> utils
   cognitive_impls_analyzers --> cognitive
   cognitive_impls_analyzers --> cognitive_impls
   cognitive_impls_analyzers --> memory
@@ -183,6 +184,7 @@ graph TD
   engine --> _
   engine --> events
   engine --> memory
+  engine --> nl
   engine --> types
   eval --> lm_system-one
   events --> types
@@ -198,6 +200,7 @@ graph TD
   facade --> meta
   facade --> metrics
   facade --> ports
+  facade --> query
   facade --> reflex
   facade --> state
   facade --> task
@@ -216,14 +219,12 @@ graph TD
   focus --> telemetry
   focus --> terms
   focus --> types
-  focus --> utils
   game --> _
   game --> agent
   game --> config
   game --> focus
   game --> game_impls
   game --> memory_ports
-  game --> utils
   game_impls --> agent
   game_impls --> config
   game_impls --> focus
@@ -233,7 +234,6 @@ graph TD
   game_impls --> learning
   game_impls --> meta
   game_impls --> types
-  game_impls --> utils
   gates --> focus
   gates --> game
   gates --> reflex
@@ -251,7 +251,6 @@ graph TD
   imagination_impls --> terms
   imagination_impls --> terms_impls
   imagination_impls --> types
-  imagination_impls --> utils
   kernel --> cognitive_impls
   kernel --> config
   kernel --> memory
@@ -270,7 +269,6 @@ graph TD
   learning --> memory_ports
   learning --> reflex
   learning --> types
-  learning --> utils
   lm --> kernel
   lm --> lm_grammars
   lm --> lm_providers
@@ -362,14 +360,11 @@ graph TD
   nl --> terms
   nl --> types
   nl_prompts --> nl
-  otel --> tick
   ports --> decision
   ports --> kernel
   proposal --> reason
   proposal --> rules
   proposal --> stream
-  proposal --> tick
-  query --> _
   query --> memory
   query --> terms
   query --> types
@@ -386,28 +381,26 @@ graph TD
   reflex --> lm_system-one
   reflex --> otel
   reflex --> types
-  reflex --> utils
   resources --> kernel
   resources --> memory
   resources --> proposal
   resources --> rl_impls
+  resources --> rules_impls
   rl --> game
   rl --> rl_impls
   rl --> rl_impls_adapters
   rl_impls --> _
   rl_impls --> drives_impls
   rl_impls --> types
-  rl_impls --> utils
   rl_impls_adapters --> _
   rl_impls_adapters --> rl_impls
   rl_impls_adapters --> terms
   rl_impls_adapters --> terms_impls
   rl_impls_adapters --> types
-  rl_impls_adapters --> utils
   rlfp --> config
   rlfp --> types
-  rlfp --> utils
   rules --> rules_impls
+  rules --> types
   rules_extended --> rules
   rules_extended --> rules_impls
   rules_extended --> rules_nal
@@ -444,7 +437,6 @@ graph TD
   strategies_derivation --> rules
   strategies_derivation --> strategies
   strategies_derivation --> types
-  strategies_derivation --> utils
   strategies_lm-graph --> memory
   strategies_lm-graph --> rules
   strategies_lm-graph --> strategies
@@ -457,11 +449,8 @@ graph TD
   strategies_premise --> terms_impls
   strategies_sampling --> memory
   strategies_sampling --> strategies
-  strategies_sampling --> types
-  strategies_sampling --> utils
   stream --> kernel
   stream --> terms_impls
-  stream --> tick
   stream --> types
   task --> kernel
   task --> memory_ports
@@ -474,10 +463,6 @@ graph TD
   terms_impls --> terms
   terms_impls --> types
   terms_impls --> utils
-  tick --> otel
-  tick --> stream
-  tick --> terms_impls
-  tick --> types
   tools --> tools_impls
   tools_adapters --> capability
   tools_adapters --> lm
@@ -495,8 +480,7 @@ graph TD
   tools_impls --> terms_impls
   tools_impls --> tools
   tools_impls --> types
-  tools_impls --> utils
+  trace --> proposal
   types --> terms
   types --> terms_impls
   types --> utils
-  utils --> types

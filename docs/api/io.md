@@ -80,8 +80,6 @@
 
 - `CLICommand`
 
-- `QUIT_SENTINEL`
-
 - `CLIConnection`
 
 ## `./connections/ws`

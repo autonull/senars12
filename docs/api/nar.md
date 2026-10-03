@@ -444,7 +444,7 @@ _Dynamic subpath (no single entry file)._
 
 - `validateParameters` — Validate cognitive parameters.
 
-- `mergeParameters`
+- `mergeParameters` — Partial parameters over the frozen defaults.
 
 - `sameStrategies` — Per-slot strategy change detection — avoids serializing the whole strategy graph to compare it.
 
@@ -514,75 +514,11 @@ _Dynamic subpath (no single entry file)._
 
 ## `./game`
 
-- `BanditGame` — Multi-armed bandit as a `Game` (DQ2: no Environment layer). Bernoulli rewards;
-
-- `createBanditGame`
-
-- `ArithmeticGame` — Arithmetic quiz: answer `a+b` or `a−b` by picking among shuffled candidates
-
-- `createArithmeticGame`
-
-- `CatchGame` — Catch: a target falls one row per step from a random column; the paddle
-
-- `createCatchGame`
-
-- `createRPSGame`
-
-- `RPSGame` — Repeated rock-paper-scissors against a deterministic rotating opponent —
-
-- `createGame2048`
-
-- `Game2048`
-
-- `createGridWorldGame`
-
-- `GridWorldGame` — Gridworld as a plain `Game` — ASCII `grid` with `S` start, `G` goal, `#` walls.
-
-- `SeededRNG` — Stateful handle over the canonical `mulberry32` stream — the same PRNG as a
-
-- `createSnakeGame`
-
-- `SnakeGame`
-
-- `createTicTacToeGame`
-
-- `minimax` — Perfect-play minimax (the game-theoretic parity anchor). Scores from X's perspective.
-
-- `TicTacToeGame`
-
-- `createTetrisGame`
-
-- `TetrisGame`
-
-- `renderGame` — Render any game that exposes a `render()` method; falls back to the state key.
-
-- `createArcadeRegistry` — The default arcade collection: every shipped game with its demo config.
-
-- `GameRegistry` — Open registry of playable games — adding a game is implementing `Game` + one spec.
-
-- `UnknownGameError` — Thrown for an unknown game name; callers fail loudly, never silently skip.
-
-- `createMetaGame`
-
-- `MetaGameClass`
-
-- `createSelfMetaGame`
-
-- `SelfMetaGameImpl`
-
-- `createReasoningGame` — Assemble a spec: absent sensor/action/reward lists default to the library seeds.
-
-- `REASONING_SPECS` — Domain presets (R1): per-domain spec data.
-
-- `ReasoningGame`
-
-- `describeMetaGameActions` — Operation strings are domain-tagged for kernel ActionGate enforcement.
-
-- `FOCUS_WEIGHT_STEPS` — C5: the per-game MetaGame as a thin spec over the component library —
-
-- `KNOB_SET_VALUES`
+- `SeededRNG`
 
 - `ASK_LM`
+
+- `actionsForTier` — Tier filtering: a tier-N context only offers actions with tier ≤ N.
 
 - `CLARIFY`
 
@@ -598,13 +534,89 @@ _Dynamic subpath (no single entry file)._
 
 - `SPAWN_SUBGOAL`
 
-- `actionsForTier` — Tier filtering: a tier-N context only offers actions with tier ≤ N.
-
 - `tuneAction`
+
+- `ArithmeticGame` — Arithmetic quiz: answer `a+b` or `a−b` by picking among shuffled candidates
+
+- `createArithmeticGame`
+
+- `BanditGame` — Multi-armed bandit as a `Game` (DQ2: no Environment layer). Bernoulli rewards;
+
+- `createBanditGame`
+
+- `CatchGame` — Catch: a target falls one row per step from a random column; the paddle
+
+- `createCatchGame`
+
+- `createGame2048`
+
+- `Game2048`
+
+- `createGridWorldGame`
+
+- `GridWorldGame` — Gridworld as a plain `Game` — ASCII `grid` with `S` start, `G` goal, `#` walls.
+
+- `createMetaGame`
+
+- `MetaGameClass`
+
+- `createReasoningGame` — Assemble a spec: absent sensor/action/reward lists default to the library seeds.
+
+- `REASONING_SPECS` — Domain presets (R1): per-domain spec data.
+
+- `ReasoningGame`
+
+- `createRPSGame`
+
+- `RPSGame` — Repeated rock-paper-scissors against a deterministic rotating opponent —
+
+- `createSelfMetaGame`
+
+- `SelfMetaGameImpl`
+
+- `createSnakeGame`
+
+- `SnakeGame`
+
+- `createTetrisGame`
+
+- `TetrisGame`
+
+- `createTicTacToeGame`
+
+- `minimax` — Perfect-play minimax (the game-theoretic parity anchor). Scores from X's perspective.
+
+- `TicTacToeGame`
+
+- `describeMetaGameActions` — Operation strings are domain-tagged for kernel ActionGate enforcement.
+
+- `FOCUS_WEIGHT_STEPS` — C5: the per-game MetaGame as a thin spec over the component library —
+
+- `KNOB_SET_VALUES`
+
+- `ActionRegistry`
+
+- `ComponentRegistry` — C1: component registries. Named, seeded, addressable; games compose specs
+
+- `createCognitionRegistries`
+
+- `RewardRegistry`
+
+- `SensorRegistry`
+
+- `createArcadeRegistry` — The default arcade collection: every shipped game with its demo config.
+
+- `GameRegistry` — Open registry of playable games — adding a game is implementing `Game` + one spec.
+
+- `UnknownGameError` — Thrown for an unknown game name; callers fail loudly, never silently skip.
+
+- `renderGame` — Render any game that exposes a `render()` method; falls back to the state key.
 
 - `AMBIGUITY_REDUCTION_REWARD`
 
 - `CONSOLIDATION_REWARD`
+
+- `composeReward` — Weighted reward composition; weights are game parameters.
 
 - `DEFAULT_REWARDS`
 
@@ -615,8 +627,6 @@ _Dynamic subpath (no single entry file)._
 - `TASK_SETTLED_REWARD`
 
 - `VETO_PENALTY`
-
-- `composeReward` — Weighted reward composition; weights are game parameters.
 
 - `BagPressureSensor` — C2-S1: capacity pressure + utilization from memory statistics.
 
@@ -633,16 +643,6 @@ _Dynamic subpath (no single entry file)._
 - `TaskTypeMixSensor` — C2-S2: task/demographic mix from aggregate statistics (low/medium/high priority).
 
 - `VetoHandoverRateSensor` — C2-S4: veto + handover telemetry.
-
-- `ActionRegistry`
-
-- `ComponentRegistry` — C1: component registries. Named, seeded, addressable; games compose specs
-
-- `RewardRegistry`
-
-- `SensorRegistry`
-
-- `createCognitionRegistries`
 
 - `clamp01`
 
@@ -678,12 +678,6 @@ _Dynamic subpath (no single entry file)._
 
 ## `./dialogue`
 
-- `DialogueCapture` — TODO24: the single fan-out point of the Dialogue Flywheel. One instance per
-
-- `sha256`
-
-- `DialogueTextStore` — I6 relaxation sidecar (TODO24): raw exchange text for opted-in sessions.
-
 - `inferReactionFromUtterance` — Infer the reaction the utterance implies toward the previous turn, or
 
 - `RetrospectiveAdapter`
@@ -691,6 +685,12 @@ _Dynamic subpath (no single entry file)._
 - `selectProbes`
 
 - `Reconsolidator`
+
+- `DialogueCapture` — TODO24: the single fan-out point of the Dialogue Flywheel. One instance per
+
+- `sha256`
+
+- `DialogueTextStore` — I6 relaxation sidecar (TODO24): raw exchange text for opted-in sessions.
 
 - `digestPin`
 
@@ -702,19 +702,19 @@ _Dynamic subpath (no single entry file)._
 
 - `retrospect` — TODO24 Phase C: session-level diagnostic aggregation over captured dialogue
 
-- `REACTION_KINDS`
-
 - `emptyReactionDistribution`
 
+- `REACTION_KINDS`
+
 ## `./lm`
-
-- `attemptLMCorrection` — Returns null on model failure (escalation exhausted) — caller keeps the symbolic side.
-
-- `embeddingRuntime`
 
 - `admitTasks`
 
 - `topBeliefTasks`
+
+- `attemptLMCorrection` — Returns null on model failure (escalation exhausted) — caller keeps the symbolic side.
+
+- `embeddingRuntime`
 
 - `createProactiveEnricher`
 
@@ -1070,8 +1070,6 @@ _Dynamic subpath (no single entry file)._
 
 - `generateClarificationWithLM`
 
-- `dispatchNarseseIntent` — The intent of `input`, or `null` when it is prose and belongs to the LM path.
-
 - `classify`
 
 - `ContextAssembler`
@@ -1081,6 +1079,8 @@ _Dynamic subpath (no single entry file)._
 - `SymbolicFirewall`
 
 - `NLGenerationService`
+
+- `dispatchNarseseIntent` — The intent of `input`, or `null` when it is prose — or unparseable Narsese — and belongs to the LM path.
 
 - `AmbiguitySchema`
 
@@ -1146,14 +1146,6 @@ _Dynamic subpath (no single entry file)._
 
 ## `./reflex`
 
-- `NalVetoArbitration` — Extracted Negotiator default: reflex best-of with the NAL trap veto (Bench-15).
-
-- `WeightedQuorum` — Consensus arbitration (opt-in): NAL derivations vote on proposed actions
-
-- `agreeByExactAlgebra` — The one MeTTa-agreement vote: re-propose every reflex action the exact engine
-
-- `MettaProposer`
-
 - `forwardingReflex` — Forwards `prefetch` (all arguments) to the wrapped reflex.
 
 - `type PrefetchingReflex`
@@ -1168,13 +1160,21 @@ _Dynamic subpath (no single entry file)._
 
 - `wrapReflex` — Compose a wrapper chain around a base reflex: `wrapReflex(base, recordingReflex(), vetoAwareReflex())`.
 
+- `agreeByExactAlgebra` — The one MeTTa-agreement vote: re-propose every reflex action the exact engine
+
 - `EpsilonGreedyReflex` — ε-greedy: the mean estimate, with bounded random exploration of young arms.
+
+- `MettaProposer`
 
 - `Negotiator`
 
 - `TabularQReflex`
 
 - `UCBReflex` — UCB1: optimistic untried arms, confidence-scaled exploration thereafter.
+
+- `NalVetoArbitration` — Extracted Negotiator default: reflex best-of with the NAL trap veto (Bench-15).
+
+- `WeightedQuorum` — Consensus arbitration (opt-in): NAL derivations vote on proposed actions
 
 ## `./rlfp`
 
@@ -1486,6 +1486,28 @@ _Re-export barrel._
 
 ## `./kernel`
 
+- `BUDGET_SCOPE_IDS`
+
+- `BUDGET_SCOPES`
+
+- `type BudgetDimension`
+
+- `type BudgetScopeId`
+
+- `type BudgetScopeSpec`
+
+- `scopeBudget` — Resolve a scope's ceilings over a base budget: the dimension the scope spends
+
+- `scopeLimit` — The declared limit for one scope, or the override configuration supplies.
+
+- `scopeSpec`
+
+- `type ControlBudgetOverrides`
+
+- `type ControlBudgetPort`
+
+- `ControlBudgets`
+
 - `loadGateEvents`
 
 - `persistGateLogs`
@@ -1494,41 +1516,15 @@ _Re-export barrel._
 
 - `replayTaskAdmissions`
 
-- `createGateRegistry` — Per-instance gate registry factory (TODO19 F2): each NAR/agent owns its own registry, enabling gate isolation in one process.
+- `createGateRegistry` — The only way to obtain gates (TODO19 F2, TODO33 §5.P2.7). There is no process-global registry: a singleton with a `reset()` that existed solely for test isolation let a NAR with an isolated registry share the global's budget and autonomy mode with any separately-built `Focus`. Every consumer is handed one.
 
 - `GateRegistry`
-
-- `gateRegistry`
-
-- `resetGateRegistry` — Resets the process-global registry singleton (test isolation: suites mutating autonomy/allowlists must not leak across files).
 
 - `KernelGate`
 
 - `KernelActionGate`
 
 - `NALVetoError` — Typed NAL-veto error for callers that convert a gate veto result
-
-- `BUDGET_SCOPES`
-
-- `BUDGET_SCOPE_IDS`
-
-- `scopeBudget` — Resolve a scope's ceilings over a base budget: the dimension the scope spends
-
-- `scopeLimit` — The declared limit for one scope, or the override configuration supplies.
-
-- `scopeSpec`
-
-- `type BudgetDimension`
-
-- `type BudgetScopeId`
-
-- `type BudgetScopeSpec`
-
-- `ControlBudgets`
-
-- `type ControlBudgetOverrides`
-
-- `type ControlBudgetPort`
 
 - `createDefaultReasoningBudget`
 

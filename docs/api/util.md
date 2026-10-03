@@ -4,6 +4,16 @@
 
 - `CommandRegistry`
 
+- `isQuitResult` — Whether a command result asks the transport to close.
+
+- `QUIT_SENTINEL` — The one value a command returns to mean "the transport should close".
+
+- `type CommandContext`
+
+- `type CommandDefinition`
+
+- `type CommandHandler`
+
 - `AgentOptionsValidationError`
 
 - `agentOptionsSchema`
@@ -98,10 +108,6 @@
 
 - `ENGINE_ORIGINS` — Every origin a cognitive event may claim. One list, so the zod boundary in
 
-- `isEventType`
-
-- `isNarEvent`
-
 - `toolError` — A failed outcome; anything thrown is stringified at this boundary.
 
 - `toolOk` — A successful outcome.
@@ -128,9 +134,11 @@
 
 - `assertDefined`
 
-- `invariant`
+- `invariant` — Failure-on-missing for lookups whose absence is a programming error rather
 
 - `boundedSignal` — Abort signal that fires after `timeoutMs`; call `done()` in a `finally` to release the timer.
+
+- `deadline` — Run `onExpire` once after `timeoutMs`, unless the returned disposer runs first
 
 - `monotonicNow` — Monotonic millisecond clock: sub-millisecond resolution, and immune to wall-clock
 
@@ -150,19 +158,35 @@
 
 - `parseFlags` — Parses `argv` once into flag lookups. `--flag value` consumes the next token
 
+- `fixedClock` — Frozen at `at` — the deterministic-test clock. Refusing to advance is the
+
+- `systemClock` — The production default. A zero-cost `Date.now` wrapper rather than a reference
+
 - `addToSet` — Add to a per-key set, creating the set on first use.
 
 - `BoundedRing` — Drop-oldest bounded buffer — the single AIKR ring behind every bounded log
+
+- `buckets` — {@link groupBy} without the keys — for the caller that buckets each group but
 
 - `chunk` — Fixed-size slices for batched work — the one chunking primitive.
 
 - `edgeKey` — The one edge identity between two term keys.
 
+- `flatUnique` — {@link unique} across several collections — the union an index query needs.
+
 - `getOrInsert` — Lazily-created map entry — the single get-or-create primitive for nested maps.
+
+- `groupBy` — Bucket `items` by a derived key, preserving encounter order within each
 
 - `incrementCount` — Accumulate a per-key count; returns the new total.
 
 - `insertByScoreDesc` — Insert into a descending-sorted list in O(n) — no full re-sort, unlike
+
+- `keyedBy` — Index `items` by a derived key into a plain object — the record a lookup
+
+- `mapToRecord` — A map as a plain object, optionally projecting each value. A map's keys are
+
+- `mapValues` — Re-key a record's values while keeping its keys — the `Object.fromEntries(
 
 - `maxBy`
 
@@ -170,9 +194,13 @@
 
 - `minBy` — Extremum pick over a collection. `initial`/`initialScore` seed the running
 
-- `pushCapped`
+- `pushCapped` — Drop-oldest push for plain arrays. One `shift()` per overflow — no `splice`
+
+- `removeBy` — Remove and return the first match, or `undefined` when nothing matched — and
 
 - `removeFromSet` — Remove from a per-key set, dropping the key once its set empties — otherwise an
+
+- `removeLastBy` — {@link removeBy} scanning backwards, for a stack discipline: the most recent
 
 - `selectByPriority` — Greedy budget selection over `{ priority, id }` items: highest priority
 
@@ -184,6 +212,8 @@
 
 - `trimCapped` — Keep the newest `capacity` entries of a plain array, dropping from the front.
 
+- `unique` — Value-level dedup, first occurrence wins. For "the set of concepts this event
+
 - `formatIssues` — The monorepo's one rendering of a schema failure. Four validators used to
 
 - `type SchemaIssue`
@@ -191,10 +221,6 @@
 - `errMsg` — The one coercion pair for values that reach an `Error` boundary from anywhere.
 
 - `toError`
-
-- `extractJsonObject` — The first balanced top-level JSON object in `text`, or null.
-
-- `parseJsonObject` — Parse the first JSON object in `text`; null when absent or malformed.
 
 - `bar` — Unicode progress bar for a 0–1 fraction.
 
@@ -280,6 +306,10 @@
 
 - `sortableIdSource` — The event log's id source: ULID, monotonic and lexicographically sortable.
 
+- `extractJsonObject` — The first balanced top-level JSON object in `text`, or null.
+
+- `parseJsonObject` — Parse the first JSON object in `text`; null when absent or malformed.
+
 - `LruCache`
 
 - `CHARS_PER_TOKEN` — Characters per token in {@link estimateTokens} — its inverse, for budgeting characters from a token allowance.
@@ -290,7 +320,15 @@
 
 - `estimateTokens` — Rough token count: ~4 characters per token. Single source for every budget.
 
+- `finiteOr` — {@link toFiniteNumber} with the fallback applied, for call sites that must yield a number.
+
 - `mean` — Arithmetic mean of a projection; 0 for an empty collection (rates, scores, sums).
+
+- `meanOf` — Arithmetic mean over a projection — {@link safeRatio} with the count as denominator.
+
+- `nearlyEqual` — Float equality within `eps`. The one guard for "these two accumulated truth
+
+- `normalizeToSum` — Rescale values so they sum to 1. `empty` is returned when they cannot — the
 
 - `occupancy` — Occupancy of a bounded resource in `0..1` — the AIKR pressure signal every
 
@@ -300,11 +338,17 @@
 
 - `safeDiv`
 
+- `safeRatio` — `num / den`, with the empty-denominator answer supplied rather than implied.
+
 - `sigmoid` — Logistic function; the single sigmoid used by scoring and gradient descent.
 
 - `softmax`
 
 - `stdDev` — Population standard deviation — `sqrt(variance)`.
+
+- `sumBy` — Sum of a projection — the numerator half of every {@link safeRatio}.
+
+- `toFiniteNumber` — Finite number from a value of unknown provenance, or `undefined` when it is not
 
 - `ucb1` — UCB1 exploration term: `c · sqrt(ln(total) / visits)`, with untried arms
 
@@ -322,6 +366,32 @@
 
 - `extractLastUserMessage` — Extract the concatenated text of the last user message in an AI-SDK prompt.
 
+- `choice` — Random element; throws on empty input.
+
+- `createLCG` — Numerical-Recipes LCG — a second algorithm, not a second PRNG *policy*. It is
+
+- `holdoutSplit` — Deterministic train/holdout partition — shuffles uniformly, then cuts a
+
+- `mulberry32` — mulberry32: fast, well-distributed 32-bit seeded PRNG.
+
+- `nextInt` — Random integer in [0, max).
+
+- `type RandomSource`
+
+- `SeededRNG` — Stateful handle over the canonical `mulberry32` stream — the same PRNG as a
+
+- `type SeededStream`
+
+- `seededStream` — mulberry32 as a resumable stream. The state word is the only thing separating
+
+- `shuffleInPlace` — In-place Fisher–Yates shuffle — the single uniform-shuffle primitive (sampling, bags, exploration).
+
+- `weightedPick` — One weight-proportional item draw — the primitive behind every weighted
+
+- `weightedSample` — Weighted sampling without replacement (roulette wheel) — the single
+
+- `weightedSampleBy` — Weighted sampling over pre-computed weights — the O(n) draw behind `weightedSample`.
+
 - `SlidingWindowRateLimiter`
 
 - `withRetry` — Retry `fn` with exponential backoff; rethrows the last failure.
@@ -338,6 +408,8 @@
 
 - `weightedMean` — The weighted running mean, in one place.
 
+- `escapeRegExp` — Escape every regexp metacharacter in `text`, so untrusted text becomes a
+
 - `extractTerm` — The leading run of atom characters in `content`, or nothing if it starts with none.
 
 - `isNarsese` — Whether `text` is Narsese rather than prose — the router between the two parsers.
@@ -345,6 +417,8 @@
 - `limitList` — `items` through `format`, with a trailing count of what the limit hid.
 
 - `NARSESE_ATOM_CHARS` — The characters a bare Narsese atom symbol may contain. The grammar's authority on
+
+- `splitWords` — Case-preserving word tokens. The one split: an empty or whitespace-only string
 
 - `tokenizeWords` — Lowercased word-token set — the tokenizer behind every text-similarity path.
 
@@ -360,13 +434,23 @@
 
 - `CommandRegistry`
 
+- `isQuitResult` — Whether a command result asks the transport to close.
+
+- `QUIT_SENTINEL` — The one value a command returns to mean "the transport should close".
+
+- `type CommandContext`
+
+- `type CommandDefinition`
+
+- `type CommandHandler`
+
 ## `./config`
 
 - `type BoundRange`
 
-- `boundRange` — One row projected to its `{min,max,default}` triple.
-
 - `type BoundSpec`
+
+- `boundRange` — One row projected to its `{min,max,default}` triple.
 
 - `boundSpec` — One row projected to the `{min,max,step}` triple a tuner needs — {@link boundRange}
 
@@ -435,6 +519,10 @@
 - `narCoreBounds`
 
 - `narCoreDefaultedNumber` — The same row as a zod number carrying its default.
+
+- `narCoreDefaults` — Every bound's default, keyed by knob — the projection the engine's `DEFAULT_CONFIG`
+
+- `narCoreDefaultsSchema` — The whole table as one zod object, defaults attached — so the schema is the bounds
 
 - `narCoreNumber` — A zod number constrained by a `narCoreBounds` row — the schema never restates a limit.
 
@@ -522,10 +610,6 @@
 
 - `EngineOrigin`
 
-- `CognitiveEventBase`
-
-- `CognitiveEvent`
-
 - `CognitiveStimulus`
 
 - `Context`
@@ -535,10 +619,6 @@
 - `ChatOptions`
 
 - `ChatStreamEvent`
-
-- `isNarEvent`
-
-- `isEventType`
 
 ## `./types/memory`
 
@@ -566,7 +646,7 @@
 
 ## `./utils/assert`
 
-- `invariant`
+- `invariant` — Failure-on-missing for lookups whose absence is a programming error rather
 
 - `assertDefined`
 

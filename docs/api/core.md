@@ -24,10 +24,6 @@
 
 - `generateId`
 
-- `isEventType`
-
-- `isNarEvent`
-
 - `isNarsese`
 
 - `isNil`
@@ -215,6 +211,10 @@
 - `MettaSkillNode`
 
 - `NarConceptNode`
+
+- `isEventType`
+
+- `isNarEvent`
 
 - `ConnectionError`
 
@@ -514,13 +514,17 @@ _Re-export barrel._
 
 - `BudgetExhaustedEventSchema`
 
-- `CognitiveEventSchema` — Every event the kernel admits, plus the proposal seam's two from `proposal.ts`
+- `CognitiveEventSchema` — Every event the log admits: the kernel's own families, the two the proposal
 
 - `ConceptActivatedEventSchema`
 
 - `DerivationAcceptedEventSchema`
 
 - `EgressGateRejectedEventSchema`
+
+- `isEventType`
+
+- `isNarEvent`
 
 - `JudgmentResolvedEventSchema`
 
@@ -540,6 +544,12 @@ _Re-export barrel._
 
 - `validateDerivationRecord`
 
+- `CognitiveEventBaseSchema`
+
+- `EngineOriginSchema`
+
+- `PROPOSER_ORIGIN` — The one origin permitted to append proposal events.
+
 - `AmbiguityFlagSchema`
 
 - `FormalizationBatchSchema`
@@ -558,9 +568,9 @@ _Re-export barrel._
 
 - `BudgetGateInputSchema`
 
-- `BudgetOperationSchema` — Every operation the budget gate accounts. The five A7 control scopes are the
-
 - `BudgetGateOutputSchema`
+
+- `BudgetOperationSchema` — Every operation the budget gate accounts. The five A7 control scopes are the
 
 - `PerceptionGateInputSchema`
 
@@ -588,11 +598,7 @@ _Re-export barrel._
 
 - `SelfImprovementProposalSchema`
 
-- `CognitiveEventBaseSchema`
-
-- `EngineOriginSchema`
-
-- `PROPOSER_ORIGIN` — The one origin permitted to append proposal events.
+- `NarEventSchemas`
 
 - `ContentProposalSchema` — A formalized claim about a term. It is **not** a truth value to be written: it
 
@@ -612,6 +618,14 @@ _Re-export barrel._
 
 - `validateProposal`
 
+- `BUDGET_SCOPE_IDS` — The five declared budget scopes (TODO29.a §5.7).
+
+- `ReasoningBudgetSchema`
+
+- `TerminationReasonSchema`
+
+- `validateReasoningBudget`
+
 - `BUILTIN_RULE_ARTIFACT_VERSION` — The shipped built-in table's own version, independent of the schema shape.
 
 - `RULE_TABLE_REJECTIONS` — Why a table could not be loaded. Each is a loud failure, never a coercion.
@@ -627,14 +641,6 @@ _Re-export barrel._
 - `RuleTableSchema` — A whole table at a revision: the unit that is loaded, recorded and restored.
 
 - `validateRuleTable`
-
-- `BUDGET_SCOPE_IDS` — The five declared budget scopes (TODO29.a §5.7).
-
-- `ReasoningBudgetSchema`
-
-- `TerminationReasonSchema`
-
-- `validateReasoningBudget`
 
 - `SOURCE_QUALITY_CONFIDENCE` — Confidence ceiling by source quality — single source of truth.
 
@@ -662,11 +668,35 @@ _Dynamic subpath (no single entry file)._
 
 - `BudgetSliceOptions`
 
+- `zeroConsumed` — A zeroed consumption record. Every fresh budget and every reopened scope starts
+
 - `createBudget` — The one budget constructor. Every ceiling in the system — the gate's default,
 
 - `createBudgetSlice`
 
 - `sliceBudget`
+
+- `BUDGET_RESOURCES` — The four AIKR dimensions, each with its consumed key, total key, and exhaustion reason.
+
+- `BudgetResource`
+
+- `BUDGET_TYPES` — Each dimension's event-level name, derived from the resource table rather than
+
+- `ALL_RESOURCES`
+
+- `budgetLimitsOf` — The four dimensions with their ceilings in one snapshot — the shape every
+
+- `budgetLimit` — One dimension's ceiling.
+
+- `budgetRemaining` — Unconsumed capacity in one dimension; negative once a charge over-spent it.
+
+- `budgetAffords` — Whether `amount` fits in what is left of one dimension — the single grant test.
+
+- `budgetPressure` — Fraction of one dimension consumed, in `0..1`. An unlimited dimension is unpressured.
+
+- `budgetRefusal` — The reason a refused charge on `resource` raises: the dimension's own when it is
+
+- `chargeBudget` — The one accumulation. Refusal is the caller's decision — a slice and a gate
 
 - `BudgetAllocation` — A partial budget request across the four AIKR dimensions.
 
@@ -723,6 +753,8 @@ _Dynamic subpath (no single entry file)._
 - `VerifyOptions`
 
 - `VERIFIER_TRUTH_TABLE` — The transcribed table, exported so the drift test can compare it against the
+
+- `resolveTruthFn` — The truth function a step was derived with: the operation its rule declared,
 
 - `formatFinding`
 

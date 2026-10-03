@@ -1,7 +1,7 @@
 # TODO33: Delete the Lies, Fix the Bugs, Make It Traceable
 
 **Replaces v1–v5, which were an audit rather than a plan.**
-Status: **§1, §2, §3 and §5.P1–P2 done; P3.10 and the parse-tolerant router landed** · Predecessor: TODO32
+Status: **§1, §2, §3, §5.P1–P2 and §5.P3.10 done; the parse-tolerant router landed** · Predecessor: TODO32
 
 Scope: nothing here touches drives, meta-goals, or homeostasis. That work is deferred by decision and its code is left untouched. See *Not done*.
 
@@ -39,7 +39,7 @@ Scope: nothing here touches drives, meta-goals, or homeostasis. That work is def
 | §5.P2.5 two timer systems | **done** | `PhaseTimer`'s stack is gone; `summarizeRegions` is a pure projection over `CycleTrace.regions()`. Auxiliary regions (`cycle`, `rlfp.optimize`, `self.assess`, `self.correct`, `memory.consolidate`) are trace regions, typed by `AUXILIARY_REGIONS`, so a subsystem's work is assertable and not just measurable. `nar.getPhaseTimer()` → `execution.getPhaseSummary()`. |
 | §5.P2.6 `sample()` | **done** | `Memory.sample` → `topConcepts`; the aikr interface is `BagSamplingStrategy`; `sampleWindow`'s `rng` is required on the port. |
 | §5.P2.7 `gateRegistry` | **done** | the singleton and `resetGateRegistry()` are deleted; `createGateRegistry()` is the only source and every consumer takes one as a required argument. |
-| §5.P3.10 budget engine | **done, partly** | the live bug is fixed (a refusal writes `terminationReason` onto the scope budget) and the gate's operation→dimension table now derives from `core/budget`'s `BUDGET_RESOURCES`. The two engines are still two engines — see notes. |
+| §5.P3.10 budget engine | **done** | the live bug is fixed (a refusal writes `terminationReason` onto the scope budget), and the two engines are one: `core/budget` exports the per-dimension arithmetic (`budgetLimit`/`budgetRemaining`/`budgetAffords`/`budgetPressure`/`budgetRefusal`/`chargeBudget`, over `BUDGET_RESOURCES` + `BUDGET_TYPES`) and `KernelBudgetGate` now *reads* it rather than re-deriving `limit − consumed`, the exhaustion test and the event-level names. What remains separate is honest: a slice emits `budget:slice:*` and has a termination policy, the gate emits `budget.exhausted` and mints a `CognitiveEvent`. |
 | §5 P3.9 option (b) | **done** | the router is parse-tolerant (four punctuations, the gate's own set) and returns `null` for Narsese-shaped text the parser rejects. |
 
 **Verification:** `pnpm typecheck`, `pnpm typecheck:bin`, `pnpm lint`, `pnpm test:unit` (342 files,
@@ -74,11 +74,25 @@ optional tidy.** `AUXILIARY_REGIONS` exists because the four bare `begin`/`end` 
 "stages never nest" reads as false the moment a cycle frame encloses them), and the vocabulary can
 no longer drift from the type.
 
-**The remaining duplicate in P3.10 is `BUDGET_SCOPES`, which restates `BUDGET_RESOURCES` per scope.**
-Each row carries `limitKey` and `terminationReason` that `BUDGET_RESOURCES[consumedKey]` already
-says. The gate no longer restates them; the scope table still does, because the table is six
-declared questions per row and reads better as data. Deleting two columns is mechanical and safe
-whenever someone wants the last copy gone.
+**P3.10 finished the way the plan wanted and one step past it.** `BUDGET_SCOPES` no longer
+restates `BUDGET_RESOURCES`: a row declares `consumedKey` and nothing else about the dimension,
+and `scopeLimitKey` / `scopeTerminationReason` derive the ceiling key and the overflow reason from
+it. `ControlBudgets.getSpendSummary` likewise stopped carrying a hand-written four-row
+`mainSpecs` table and reads `BUDGET_TYPES` — so the spend summary, the gate's event and the scope
+table can no longer disagree about what `memoryOps` is called. The zeroed `consumed` record had
+three literal copies and now has one (`zeroConsumed()`).
+
+**The gate also stopped guessing for an operation it does not declare.** `BudgetOperation` is a
+closed zod enum, so the old `?? 'depth'` fallback was only reachable from a cast — and it was
+incoherent anyway: an unknown operation was granted *and* charged `depth`, refused with
+`backpressure`, and reported as `cycles`. It is now granted and charged nothing, which is the
+honest answer for an operation with no declared dimension.
+
+**The verifier was deliberately left alone.** `core/src/verify-derivation.ts` still carries its own
+`c2w`/`w2c` and its own divide guard rather than importing `util`'s `safeRatio`. The transcribed
+truth table is the point of the module — a verifier bug must not be able to hide behind an engine
+bug — and a stylistic dedup that narrows that independence is a bad trade. `pnpm test:unit` keeps
+`tests/unit/core/verifier-drift.test.ts` pinning the divergences either way.
 
 **P2.7 changed what a few benches mean.** The isolation benches used to assert "the process-global
 registry is untouched"; they now assert the property that replaces it — two focuses sharing one

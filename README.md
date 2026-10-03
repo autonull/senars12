@@ -113,6 +113,29 @@ Four gates mediate every state mutation. Every subsystem — inference, RL, self
 
 All gates emit typed `CognitiveEvent`s to an append-only JSONL log; pure reducers (`replayCognitiveState`) reconstruct gate-level state for pause/serialize/replay.
 
+**One budget, four dimensions, one arithmetic.** The AIKR budget has exactly four spendable
+dimensions, and `core/budget`'s `BUDGET_RESOURCES` is the only table that says what each one is
+called, which ceiling key limits it, and which `TerminationReason` it raises. Everything that
+spends reads that table rather than re-deriving `limit − consumed`: the budget gate, the focus
+slice (`BudgetSlice`), and the control-scope table, where a row now declares *which dimension* it
+spends and nothing else — `scopeLimitKey` and `scopeTerminationReason` derive the rest. So a
+scope cannot spend `memoryOps` under a `cycle-budget` reason, and the spend summary, the gate's
+`budget.exhausted` event and the scope table cannot disagree about what `memoryOps` is called
+(`BUDGET_TYPES` maps each dimension to its event-level name).
+
+```typescript
+import { budgetAffords, budgetRefusal, chargeBudget } from '@senars/core/budget';
+
+// The grant test, the refusal reason and the accumulation, once each.
+if (budgetAffords(budget, 'llmCalls', cost)) chargeBudget(budget, 'llmCalls', cost);
+else budget.terminationReason = budgetRefusal(budget, 'llmCalls'); // 'llm-budget' | 'backpressure'
+```
+
+A refusal names the dimension only once that dimension *is* spent; a charge that merely does not
+fit in what was left is `backpressure`. An operation the gate does not declare — only reachable
+from a cast, since `BudgetOperation` is a closed enum — is granted and charged nothing, rather
+than guessed onto one.
+
 ### Event Sourcing & Provenance
 
 The kernel is **event-sourced**: the SQLite/JSONL Event Log is the cryptographic source of truth. The JSON state file (`nar-state`) serves as a **checkpoint/snapshot** for fast bootstrapping, allowing the system to resume without replaying the entire event history from genesis. `persistState: true` enables this snapshot layer; it does not replace the event log.
@@ -243,6 +266,13 @@ LLMs dangerously conflate **what is** (beliefs) with **what should be** (goals).
 - **Corrigibility** — Goals are revisable via evidence about feasibility, not via persuasion
 - **Interpretability** — Every derivation step is tagged: is this *reasoning about reality* or *planning for action*?
 - **Constitutional enforcement** — Invariants (e.g., "never believe falsehoods") apply only to beliefs; goals are optimized, not verified
+
+The axis itself is one type. `CognitiveAxis` (`'epistemic' | 'teleological'`) is what a decision is
+*about*, and `DecisionAxis` is that same type under the name the decision port reads by — so a
+value cannot be `epistemic` on one side of a boundary and something else on the other. Likewise
+`BeliefTruth` is the one declared shape for a `{ frequency, confidence }` pair: nineteen interfaces
+spelled it inline, and none of them carried the `0..1` bound that `BeliefTruthSchema` enforces at
+the boundaries where truth actually crosses an untrusted edge.
 
 The neuro-symbolic handoff (LLM → Narsese candidates → Kernel Gates → NAL → NL) makes this separation **enforceable**: the LLM translates, but the symbolic engine *decides* which slot each proposition occupies. The separation is a structural guarantee, not a prompt-level convention.
 
@@ -756,6 +786,24 @@ provider registry — Tavily → Brave → DuckDuckGo, whichever is configured �
 `brave_search`, and the read-only `web_fetch`), memory (`remember`, `query`, `episodes` —
 episodic memory; fail honestly when no backend), `metta` (delegates to the MeTTa engine), plus
 approval/timer/sleep utilities.
+
+**Every tool outcome is built by `toolOk` / `toolError`.** `ToolResult` has one constructor pair in
+`@senars/util`, and a tool returns through it rather than by spelling `{ success, content }`. The
+second argument is where the parts that are optional go — `partial` output, `metadata` — so
+`content: null` and a populated `metadata` cannot drift apart:
+
+```typescript
+import { toolError, toolOk } from '@senars/util';
+
+return toolOk(explanation, { metadata: { term: concept.term.toString() } });
+return toolError(e);                       // anything thrown, stringified at the boundary
+return toolError('not configured', { partial: true });
+```
+
+This matters more than tidiness. `toolError` takes `unknown` and coerces, so a rejected string or a
+thrown non-`Error` produces a tool failure instead of a second throw inside the catch block — which
+is what `(e as Error).message` did at every one of the sites it appeared in. A tool that reports a
+failure must never fail while reporting it.
 
 ### NAR Commands — CLI & Programmatic Control
 
