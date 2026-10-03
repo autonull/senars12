@@ -36,6 +36,8 @@ export {
   SelfModProposalEventSchema,
   ShadowValidationDropEventSchema,
   TaskAdmittedEventSchema,
+  isEventType,
+  isNarEvent,
   validateCognitiveEvent,
 } from './cognitive-events.js';
 export type { DerivationRecord, DerivationStep } from './derivation-records.js';
@@ -103,6 +105,7 @@ export {
   SelfImprovementProposalSchema,
 } from './governance.js';
 export { CognitiveEventBaseSchema, EngineOriginSchema, PROPOSER_ORIGIN } from './event-base.js';
+export { NarEventSchemas } from './nar-events.js';
 export type {
   ContentProposal,
   Proposal,

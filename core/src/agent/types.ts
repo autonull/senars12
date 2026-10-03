@@ -21,7 +21,7 @@ export interface CorrelationScopeStore {
   get(correlationId: string): { contrastiveMemory?: object; sourceKey?: string };
 }
 
-import type { CognitiveEvent } from '@senars/util/types/cognitive';
+import type { CognitiveEvent } from '@senars/core/schemas';
 import type { LLMCortex } from '../cortex/LLMCortex.js';
 import type {
   CognitiveStimulus,

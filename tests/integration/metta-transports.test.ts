@@ -2,7 +2,8 @@ import { CLIConnection } from '@senars/io/connections/cli';
 import { WSConnection } from '@senars/io/connections/ws';
 import { createTestNAR } from '@senars/nar';
 import { createAgent } from '@senars/nar/agent';
-import type { CognitiveEvent, ConnectionConfig, ConnectionDeps } from '@senars/util';
+import type { ConnectionConfig, ConnectionDeps } from '@senars/util';
+import type { CognitiveEvent } from '@senars/core/schemas';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const noopLogger = {

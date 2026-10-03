@@ -1,4 +1,4 @@
-import type { CognitiveEvent } from '@senars/util/types/cognitive';
+import type { CognitiveEvent } from '@senars/core/schemas';
 import type { Agent } from './Agent.js';
 import type { Engine, EngineId } from './engine/Engine.js';
 import type { LensSpec } from './lens-schema.js';

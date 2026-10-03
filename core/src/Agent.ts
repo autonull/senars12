@@ -1,5 +1,5 @@
 import { type EpisodicMemory, generateId, makeId } from '@senars/util';
-import type { CognitiveEvent } from '@senars/util/types/cognitive';
+import type { CognitiveEvent } from '@senars/core/schemas';
 import { ApprovalService } from './ApprovalService.js';
 import { type CycleHost, runCycle, runCycleStream } from './agent/phases.js';
 import type { MacroPhase } from './agent/pipeline.js';

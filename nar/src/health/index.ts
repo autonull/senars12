@@ -62,7 +62,14 @@ const checkGates = ({ gates }: HealthCheckDeps): HealthCheckResult => {
 const checkEventLog = ({ eventLog }: HealthCheckDeps): Promise<HealthCheckResult> => {
   if (!eventLog) return Promise.resolve({ ok: true, detail: 'no event log' });
   try {
-    return Promise.resolve(eventLog.append({ type: 'health.probe', timestamp: Date.now() })).then(
+    return Promise.resolve(
+      eventLog.append({
+        engine: 'nar',
+        type: 'health',
+        correlationId: 'probe',
+        payload: { status: 'probe', cycleCount: 0, errorRate: 0 },
+      })
+    ).then(
       () => ({ ok: true, detail: 'appendable' }),
       (e: unknown) => ({ ok: false, detail: errMsg(e) })
     );

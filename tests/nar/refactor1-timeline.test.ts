@@ -92,6 +92,7 @@ describe('Bench 84 — EventLog.query', () => {
     {
       id: 'a1',
       type: 'input.user',
+      engine: 'nar',
       timestamp: base + 100,
       correlationId: 'q1',
       payload: { text: 'hi', source: 'cycle' },
@@ -99,6 +100,7 @@ describe('Bench 84 — EventLog.query', () => {
     {
       id: 'a2',
       type: 'tool.request',
+      engine: 'nar',
       timestamp: base + 200,
       correlationId: 'q1',
       payload: { toolName: 't', args: {}, timeoutMs: 1 },
@@ -106,6 +108,7 @@ describe('Bench 84 — EventLog.query', () => {
     {
       id: 'a3',
       type: 'input.user',
+      engine: 'nar',
       timestamp: base + 300,
       correlationId: 'q2',
       payload: { text: 'yo', source: 'cycle' },

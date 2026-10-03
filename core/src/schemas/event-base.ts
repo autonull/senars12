@@ -18,7 +18,12 @@ export const CognitiveEventBaseSchema = z.object({
   timestamp: z.number().int().positive(),
   correlationId: z.string(),
   causationId: z.string().optional(),
-  id: z.string().uuid().optional(),
+  /**
+   * The log's own append-order key — a ULID, not a UUID, because both logs
+   * range-scan on it. Opaque to the schema and never minted as a payload field,
+   * which is where the UUID requirement below belongs.
+   */
+  id: z.string().optional(),
 });
 
 /** The one origin permitted to append proposal events. */

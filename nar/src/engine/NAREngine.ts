@@ -7,7 +7,7 @@ import type {
 } from '@senars/core/engine';
 import { BaseEngine } from '@senars/core/engine/base';
 import { asBeliefTruth, createLogger, errMsg } from '@senars/util';
-import type { CognitiveEvent } from '@senars/util/types/cognitive';
+import type { CognitiveEvent } from '@senars/core/schemas';
 import { MAPPED_NAR_EVENTS, narEventToCognitive } from '../events/bridge.js';
 import { filterByTerm } from '../memory/term-filter.js';
 import { dispatchNarseseIntent } from '../nl/narsese-intent.js';

@@ -87,16 +87,13 @@ export type {
   SkillDefinition,
 } from './types/agent.js';
 export type {
-  CognitiveEvent,
-  CognitiveEventBase,
   CognitiveStimulus,
   Context,
   Derivation,
   EngineOrigin,
 } from './types/cognitive.js';
 /** @public The one list of event origins; `EngineOrigin` is derived from it. */
-/** @public Runtime guards for cognitive event discrimination. */
-export { ENGINE_ORIGINS, isEventType, isNarEvent } from './types/cognitive.js';
+export { ENGINE_ORIGINS } from './types/cognitive.js';
 /** @public Engine contract and identifiers. */
 export type { Engine, EngineId } from './types/engine.js';
 /** @public The one tool outcome shape and its two constructors. */

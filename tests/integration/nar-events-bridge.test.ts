@@ -1,6 +1,6 @@
 import { MAPPED_NAR_EVENTS, narEventToCognitive } from '@senars/nar/events/bridge';
 import type { NAREventMap } from '@senars/nar/types/events.js';
-import type { CognitiveEvent } from '@senars/util/types/cognitive';
+import type { CognitiveEvent } from '@senars/core/schemas';
 import { describe, expect, it } from 'vitest';
 
 function term(s: string): { toString: () => string } {

@@ -1,6 +1,6 @@
 import { createTestNAR } from '@senars/nar';
 import { createAgent } from '@senars/nar/agent';
-import type { CognitiveEvent } from '@senars/util';
+import type { CognitiveEvent } from '@senars/core/schemas';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 describe('Core Agent with MettaEngine - Conversational Scenarios', () => {

@@ -8,6 +8,7 @@ import { parseOrThrow } from '@senars/util';
 import { z } from 'zod';
 import { CognitiveEventBaseSchema } from './event-base.js';
 import { AutonomyModeSchema, PatchProposalSchema } from './governance.js';
+import { NarEventSchemas } from './nar-events.js';
 import { TerminationReasonSchema } from './reasoning-budget.js';
 import { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal.js';
 import { TruthValueSchema } from './truth.js';
@@ -51,8 +52,9 @@ export const BeliefRevisedEventSchema = CognitiveEventBaseSchema.extend({
     term: z.string(),
     oldTruth: TruthValueSchema,
     newTruth: TruthValueSchema,
-    evidenceLineage: z.array(z.string().uuid()),
-    revisionRule: z.string(),
+    /** Absent on the nar family's revision events: the engine records the rule, not the log. */
+    evidenceLineage: z.array(z.string().uuid()).optional(),
+    revisionRule: z.string().optional(),
   }),
 });
 
@@ -61,7 +63,8 @@ export const ConceptActivatedEventSchema = CognitiveEventBaseSchema.extend({
   payload: z.object({
     term: z.string(),
     priority: z.number(),
-    activationSource: z.enum(['perception', 'goal', 'derivation', 'decay', 'associative']),
+    /** Which subsystem woke the concept. Absent on `engine: 'nar'` events, which are minted by the bridge from a term's creation. */
+    activationSource: z.enum(['perception', 'goal', 'derivation', 'decay', 'associative']).optional(),
   }),
 });
 
@@ -156,9 +159,11 @@ export const ShadowValidationDropEventSchema = CognitiveEventBaseSchema.extend({
 });
 
 /**
- * Every event the kernel admits, plus the proposal seam's two from `proposal.ts`
- * — so one log carries both families and a replay reducer reads one stream. They
- * are the only two variants an origin of `proposer` may append.
+ * Every event the log admits: the kernel's own families, the two the proposal
+ * seam may append as an origin of `proposer`, and the `engine: 'nar'` family the
+ * NAR event bridge mints. One union and one validator — an event the repo can
+ * emit is an event the schema admits, and `engine` remains the provenance
+ * discriminant that makes "the seam proposes, the kernel admits" checkable.
  */
 export const CognitiveEventSchema = z.discriminatedUnion('type', [
   TaskAdmittedEventSchema,
@@ -174,6 +179,7 @@ export const CognitiveEventSchema = z.discriminatedUnion('type', [
   ShadowValidationDropEventSchema,
   ProposalAdmittedEventSchema,
   ProposalRejectedEventSchema,
+  ...NarEventSchemas,
 ]);
 
 export type CognitiveEvent = z.infer<typeof CognitiveEventSchema>;
@@ -190,3 +196,11 @@ export type SelfModProposalEvent = z.infer<typeof SelfModProposalEventSchema>;
 
 export const validateCognitiveEvent = (event: unknown): CognitiveEvent =>
   parseOrThrow(CognitiveEventSchema, 'CognitiveEvent', event);
+
+export const isNarEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { engine: 'nar' }> =>
+  e.engine === 'nar';
+
+export const isEventType =
+  <T extends CognitiveEvent['type']>(type: T) =>
+  (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: T }> =>
+    e.type === type;

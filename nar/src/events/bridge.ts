@@ -1,5 +1,5 @@
 import { generateId } from '@senars/util';
-import type { CognitiveEvent } from '@senars/util/types/cognitive';
+import type { CognitiveEvent } from '@senars/core/schemas';
 import type { NAREventMap } from '../types/events.js';
 
 /**

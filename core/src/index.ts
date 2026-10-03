@@ -14,7 +14,7 @@
  * @deprecated Use `import type { ComponentState, ComponentContext, Metrics, EventBus } from '@senars/util'`
  */
 /**
- * @deprecated Use `import type { CognitiveEvent, CognitiveEventBase, EngineOrigin } from '@senars/util'` and runtime `isNarEvent, isEventType` from `@senars/util`
+ * @deprecated Use `import type { EngineOrigin } from '@senars/util'` and `CognitiveEvent`, `isNarEvent`, `isEventType` from `@senars/core/schemas`
  */
 /**
  * @deprecated Use `import type { Connection, ConnectionState, ConnectionFactory, ConnectionConfig, ConnectionDeps, TransportDeps, IOMessage, MessageClassification } from '@senars/util'`
@@ -22,8 +22,6 @@
 export type {
   AgentOptions,
   BridgeOptions,
-  CognitiveEvent,
-  CognitiveEventBase,
   CognitiveStimulus,
   ComponentContext,
   ComponentState,
@@ -66,8 +64,6 @@ export {
   estimateTokens,
   extractTerm,
   generateId,
-  isEventType,
-  isNarEvent,
   isNarsese,
   isNil,
   Logger,
@@ -245,3 +241,6 @@ export {
 /** Stats manager. @public */
 /** Transport-level connection error. @public */
 export { ConnectionError } from './Transport.js';
+/** The one cognitive event union, and the two runtime guards over it. @public */
+export type { CognitiveEvent } from './schemas/cognitive-events.js';
+export { isEventType, isNarEvent } from './schemas/cognitive-events.js';
