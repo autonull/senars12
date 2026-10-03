@@ -1,6 +1,6 @@
-import { sumBy } from '@senars/util';
+import { safeRatio, sumBy } from '@senars/util';
 import { SATURATION_COUNT } from '../constants.js';
-import { clamp01, type CognitionContext, type Reward } from './types.js';
+import { type CognitionContext, clamp01, type Reward } from './types.js';
 
 /**
  * C4: seed rewards, firewall-classified. `extrinsic` rewards flow to
@@ -21,7 +21,7 @@ export const TASK_SETTLED_REWARD: Reward = {
   classification: 'extrinsic',
   score({ outcome }) {
     const attempted = outcome?.attempted ?? 0;
-    return attempted > 0 ? clamp01((outcome?.settled ?? 0) / attempted) : 0;
+    return clamp01(safeRatio(outcome?.settled ?? 0, attempted));
   },
 };
 
@@ -41,7 +41,7 @@ export const SPEND_EFFICIENCY_REWARD: Reward = {
   score({ outcome }) {
     const tokens = outcome?.tokens ?? 0;
     const settled = outcome?.settled ?? 0;
-    return tokens > 0 ? clamp01(settled / tokens) : 0;
+    return clamp01(safeRatio(settled, tokens));
   },
 };
 
@@ -49,7 +49,7 @@ export const VETO_PENALTY: Reward = {
   id: 'veto-penalty',
   classification: 'extrinsic',
   score({ outcome }) {
-    return -(clamp01(outcome?.vetoes ?? 0));
+    return -clamp01(outcome?.vetoes ?? 0);
   },
 };
 
@@ -75,5 +75,4 @@ export const composeReward = (
   rewards: readonly Reward[],
   weights: Record<string, number>,
   context: CognitionContext
-): number =>
-  sumBy(rewards, (r) => (weights[r.id] ?? 0) * r.score(context));
+): number => sumBy(rewards, (r) => (weights[r.id] ?? 0) * r.score(context));

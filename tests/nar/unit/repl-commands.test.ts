@@ -5,14 +5,14 @@
 
 import { createNAR } from '../../../nar/src';
 import type { NAR } from '../../../src';
-import { DEFAULT_NAR_CONFIG } from '../../../src/config';
+import { DEFAULT_NAR_CORE_CONFIG } from '../../../src/config';
 
 describe('SeNARSCLI Command Handlers', () => {
   let nar: NAR;
 
   beforeEach(() => {
     nar = createNAR({
-      ...DEFAULT_NAR_CONFIG,
+      ...DEFAULT_NAR_CORE_CONFIG,
     });
   });
 

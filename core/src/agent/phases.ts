@@ -4,6 +4,7 @@
  * step sequence exactly; narration streams through the phase chain via
  * `MacroContext.stream`.
  */
+import { mintCognitiveEvent } from '@senars/core/schemas';
 import { createLogger, errMsg, type LMTask, toolError } from '@senars/util';
 
 import type { ChatStreamEvent } from '../chat.js';
@@ -29,23 +30,23 @@ const gateVerdict = (
 ): { grounded: boolean; score?: number } => (typeof v === 'boolean' ? { grounded: v } : v);
 
 const reportEgressRejection = (host: CycleHost, correlationId: string, score?: number): void => {
-  host.emit({
-    engine: 'nar',
-    type: 'egress.gate.rejected',
-    timestamp: Date.now(),
-    correlationId,
-    payload: { gate: 'groundedness', score },
-  });
+  host.emit(
+    mintCognitiveEvent('egress.gate.rejected', {
+      engine: 'nar',
+      correlationId,
+      payload: { gate: 'groundedness', score },
+    })
+  );
 };
 
 const perceive = (host: CycleHost, stimulus: CognitiveStimulus): void => {
-  host.emit({
-    engine: 'nar',
-    type: 'input.user',
-    timestamp: Date.now(),
-    correlationId: stimulus.correlationId,
-    payload: { text: stimulus.text, source: 'cycle' },
-  });
+  host.emit(
+    mintCognitiveEvent('input.user', {
+      engine: 'nar',
+      correlationId: stimulus.correlationId,
+      payload: { text: stimulus.text, source: 'cycle' },
+    })
+  );
 };
 
 const recall = async (
@@ -256,13 +257,13 @@ const record = async (ctx: MacroContext): Promise<void> => {
 const announce = (ctx: MacroContext): void => {
   const { host, stimulus, state } = ctx;
   for (const d of state.derivations) {
-    host.emit({
-      engine: 'nar',
-      type: 'derivation.made',
-      timestamp: Date.now(),
-      correlationId: stimulus.correlationId,
-      payload: { rule: '', premises: [], conclusion: d.term },
-    });
+    host.emit(
+      mintCognitiveEvent('derivation.made', {
+        engine: 'nar',
+        correlationId: stimulus.correlationId,
+        payload: { rule: '', premises: [], conclusion: d.term },
+      })
+    );
   }
   for (const tr of state.toolResults) {
     host.emit({

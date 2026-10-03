@@ -1,23 +1,18 @@
-/**
- * The `strategies.bag` slot's contract (TODO27 §11.4 — the last slot without one).
- *
- * A bag is not a strategy: bags are constructed per concept, so there is no
- * instance for a registry to hold. What the slot *does* have is a name and a
- * configuration bag, and those are the two things this module validates. The
- * per-concept construction stays in `createBag`; only the choice and the knobs
- * come from here, so a typo is a `ConfigurationError` at the boundary rather
- * than a silent fallback to the default implementation.
- */
-
 import { formatIssues } from '@senars/util';
 import { z } from 'zod';
 import { ConfigurationError } from '../types';
 import type { RandomSource } from '../types/primitives.js';
-import type { BagImplementation } from './Bag.js';
 
-export const BAG_IMPLEMENTATIONS = ['priority', 'fenwick'] as const satisfies readonly BagImplementation[];
-
-export type { BagImplementation };
+/**
+ * The `strategies.bag` slot's contract (TODO27 §11.4 — the last slot without one).
+ *
+ * A bag is not a strategy: bags are constructed per concept, so there is no
+ * instance for a registry to hold. What the slot *does* have is its
+ * configuration, and that is what this module validates — a typo is a
+ * `ConfigurationError` at the boundary rather than a silently dropped knob.
+ * There is no `type` to choose: `PriorityBag` is the only AIKR queue, so a name
+ * for the choice would be a knob that cannot turn anything.
+ */
 
 const bagConfig = z
   .object({
@@ -27,12 +22,10 @@ const bagConfig = z
   .strict();
 
 export interface BagSlotParams {
-  type: BagImplementation;
   config?: Record<string, unknown>;
 }
 
 export interface ResolvedBagSlot {
-  implementation: BagImplementation;
   decayRate?: number;
   forgetRate?: number;
   /**
@@ -43,27 +36,14 @@ export interface ResolvedBagSlot {
   rng?: RandomSource;
 }
 
-const unknownImplementation = (name: string) =>
-  `strategies.bag.type: no bag implementation named '${name}' (available: ${BAG_IMPLEMENTATIONS.join(', ')})`;
-
 /** Every error a `strategies.bag` slot can carry, phrased for `validateParameters`. */
 export const bagSlotErrors = (slot: Partial<BagSlotParams> | undefined): string[] => {
-  if (!slot) return [];
-  const errors: string[] = [];
-  if (!(BAG_IMPLEMENTATIONS as readonly string[]).includes(String(slot.type))) {
-    errors.push(unknownImplementation(String(slot.type)));
-    return errors;
-  }
-  if (slot.config === undefined) return errors;
+  if (slot?.config === undefined) return [];
   const parsed = bagConfig.safeParse(slot.config);
-  if (!parsed.success) {
-    errors.push(`strategies.bag.config: ${formatIssues(parsed.error.issues)}`);
-    return errors;
-  }
-  return errors;
+  return parsed.success ? [] : [`strategies.bag.config: ${formatIssues(parsed.error.issues)}`];
 };
 
-/** The single read path for the slot: a validated `{ implementation, …knobs, rng }`. */
+/** The single read path for the slot: validated decay/forget knobs plus the memory's stream. */
 export const resolveBagSlot = (
   slot: Partial<BagSlotParams> | undefined,
   rng?: RandomSource
@@ -71,10 +51,5 @@ export const resolveBagSlot = (
   const errors = bagSlotErrors(slot);
   if (errors.length) throw new ConfigurationError(errors.join('; '));
   const parsed = slot?.config === undefined ? undefined : bagConfig.parse(slot.config);
-  return {
-    implementation: (slot?.type ?? 'priority') as BagImplementation,
-    decayRate: parsed?.decayRate,
-    forgetRate: parsed?.forgetRate,
-    rng,
-  };
+  return { decayRate: parsed?.decayRate, forgetRate: parsed?.forgetRate, rng };
 };

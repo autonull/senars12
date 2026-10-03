@@ -64,7 +64,7 @@ export interface ConceptConfig {
   maxGoals?: number;
   maxQuestions?: number;
   onRevision?: RevisionCallback;
-  /** The validated `strategies.bag` slot: implementation plus decay knobs. */
+  /** The validated `strategies.bag` slot: the decay knobs plus the memory's stream. */
   bag?: ResolvedBagSlot;
 }
 

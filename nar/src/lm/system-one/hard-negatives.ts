@@ -9,7 +9,12 @@ import {
   shortSha256Hex,
   unique,
 } from '@senars/util';
-import { AIKRProcessor, type AikrBagOptions, AikrShell, createAikrBag } from '../../learning/aikr-processor.js';
+import {
+  AIKRProcessor,
+  type AikrBagOptions,
+  AikrShell,
+  createAikrBag,
+} from '../../learning/aikr-processor.js';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import type { Task } from '../../types';
 import type { ContrastiveMemory } from './contrastive.js';
@@ -138,7 +143,6 @@ export class MiningBag extends AikrShell<
       capacity: options.capacity ?? 128,
       forgetRate: options.forgetRate,
       rng: options.rng,
-      implementation: options.implementation,
     });
     super({
       bag,

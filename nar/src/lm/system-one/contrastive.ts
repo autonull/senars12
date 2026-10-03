@@ -1,5 +1,5 @@
 import { clamp, generateId, mapToRecord, safeRatio, sigmoid, softmax, sumBy } from '@senars/util';
-import { type Bag, type BagImplementation, type BagItem } from '../../bag/Bag.js';
+import type { Bag, BagItem } from '../../bag/Bag.js';
 import { createBag } from '../../bag/index.js';
 import { AIKRProcessor, PrioritySampling } from '../../learning/aikr-processor.js';
 import {
@@ -86,8 +86,6 @@ export interface ContrastiveMemoryConfig {
   positiveShare?: number;
   /** Zero-shot logit scale before calibration. */
   scale?: number;
-  /** Bag backend for the per-rubric exemplar pools; default 'priority'. */
-  implementation?: BagImplementation;
 }
 
 export interface RubricExemplarStats {
@@ -119,7 +117,6 @@ export class ContrastiveMemory {
   readonly #maxPerRubric: number;
   readonly #positiveShare: number;
   readonly #zeroShotScale: number;
-  readonly #implementation: BagImplementation | undefined;
   /** Phase C: per-rubric exemplar bags (priority eviction, decay, 40/60 caps). */
   readonly #rubrics = new Map<string, RubricState>();
   #calibrations = new Map<string, InfoNCECalibration>();
@@ -128,7 +125,6 @@ export class ContrastiveMemory {
     this.#maxPerRubric = config.maxPerRubric ?? 128;
     this.#positiveShare = config.positiveShare ?? 0.6;
     this.#zeroShotScale = config.scale ?? 10;
-    this.#implementation = config.implementation;
   }
 
   /** Add exemplar texts (embedded via the shared cache) under a rubric; returns added count. */
@@ -316,9 +312,9 @@ export class ContrastiveMemory {
     if (!state) {
       const posCap = Math.max(1, Math.round(this.#maxPerRubric * this.#positiveShare));
       const negCap = Math.max(1, this.#maxPerRubric - posCap);
-      const pos = createBag<ExemplarItem>({ capacity: posCap, implementation: this.#implementation });
-      const neg = createBag<ExemplarItem>({ capacity: negCap, implementation: this.#implementation });
-      const pending = createBag<ExemplarItem>({ capacity: 64, implementation: this.#implementation });
+      const pos = createBag<ExemplarItem>({ capacity: posCap });
+      const neg = createBag<ExemplarItem>({ capacity: negCap });
+      const pending = createBag<ExemplarItem>({ capacity: 64 });
       // Phase C: the second AIKRProcessor instantiation — pending judgments
       // promote into the exemplar bags under pressure (flywheel closure).
       const maintainer = new AIKRProcessor<ExemplarItem, number>({

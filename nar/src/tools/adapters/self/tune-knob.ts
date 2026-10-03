@@ -1,6 +1,7 @@
+import { safeRatio } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { type SelfToolsContext, applyAndValidate } from './context.js';
+import { applyAndValidate, type SelfToolsContext } from './context.js';
 
 export const tuneKnobTool = (ctx: SelfToolsContext) => {
   const { deps } = ctx;
@@ -38,7 +39,7 @@ export const tuneKnobTool = (ctx: SelfToolsContext) => {
             taskType: 'knob_tune',
             success: true,
             metrics: {
-              passRate: testResult.total > 0 ? testResult.passed / testResult.total : 0,
+              passRate: safeRatio(testResult.passed, testResult.total),
               avgTestDuration: 0,
               coverageDelta: 0,
               memoryOverage: 0,

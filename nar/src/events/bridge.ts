@@ -1,5 +1,4 @@
-import { generateId } from '@senars/util';
-import type { CognitiveEvent } from '@senars/core/schemas';
+import { type CognitiveEvent, mintCognitiveEvent as mint } from '@senars/core/schemas';
 import type { NAREventMap } from '../types/events.js';
 
 /**
@@ -7,6 +6,11 @@ import type { NAREventMap } from '../types/events.js';
  * nar discriminant, not a parameter: `kernel` and `proposer` events are minted
  * at their own construction sites, and threading an origin through here could
  * only ever have produced a `'kernel'` event the nar type does not admit.
+ *
+ * Each handler below is a one-line `mintCognitiveEvent` — the payload is checked
+ * against the schema's own variant, and the timestamp and correlation id are
+ * stamped by the mint rather than restated per handler. A tool event keeps the
+ * timestamp it was raised at, because that is the latency being measured.
  */
 type Handler = (data: unknown) => CognitiveEvent | null;
 
@@ -15,26 +19,20 @@ const handlers = new Map<keyof NAREventMap, Handler>([
     'cycle:start',
     (data) => {
       const d = data as NAREventMap['cycle:start'];
-      return {
-        type: 'cycle',
+      return mint('cycle', {
         engine: 'nar',
-        timestamp: Date.now(),
-        correlationId: generateId('corr'),
         cycle: d.cycle,
         derived: 0,
         payload: { cycle: d.cycle, derived: 0 },
-      };
+      });
     },
   ],
   [
     'rule:applied',
     (data) => {
       const d = data as NAREventMap['rule:applied'];
-      return {
-        type: 'derivation.made',
+      return mint('derivation.made', {
         engine: 'nar',
-        timestamp: Date.now(),
-        correlationId: generateId('corr'),
         payload: {
           rule: d.ruleId,
           premises: d.premises.map(String),
@@ -43,106 +41,89 @@ const handlers = new Map<keyof NAREventMap, Handler>([
           lmCalls: d.lmCalls,
           lmTokens: d.lmTokens,
         },
-      };
+      });
     },
   ],
   [
     'concept:created',
     (data) => {
       const d = data as NAREventMap['concept:created'];
-      return {
-        type: 'concept.activated',
+      return mint('concept.activated', {
         engine: 'nar',
-        timestamp: Date.now(),
-        correlationId: generateId('corr'),
         payload: { term: String(d.term), priority: d.priority },
-      };
+      });
     },
   ],
   [
     'concept:removed',
     (data) => {
       const d = data as NAREventMap['concept:removed'];
-      return {
-        type: 'belief.retracted',
+      return mint('belief.retracted', {
         engine: 'nar',
-        timestamp: Date.now(),
-        correlationId: generateId('corr'),
         payload: { term: String(d.term) },
-      };
+      });
     },
   ],
   [
     'cognitive:state-change',
     (data) => {
       const d = data as NAREventMap['cognitive:state-change'];
-      return {
-        type: 'drive.changed',
+      return mint('drive.changed', {
         engine: 'nar',
-        timestamp: Date.now(),
-        correlationId: generateId('corr'),
         payload: { drive: `cognitive:${d.action}`, urgency: 0.5 },
-      };
+      });
     },
   ],
   [
     'tool:call',
     (data) => {
       const d = data as NAREventMap['tool:call'];
-      return {
-        type: 'tool.request',
+      return mint('tool.request', {
         engine: 'nar',
         timestamp: d.timestamp,
-        correlationId: generateId('corr'),
         payload: { toolName: d.name, args: d.args as Record<string, unknown> },
-      };
+      });
     },
   ],
   [
     'tool:result',
     (data) => {
       const d = data as NAREventMap['tool:result'];
-      return {
-        type: 'tool.response',
+      return mint('tool.response', {
         engine: 'nar',
         timestamp: d.timestamp,
-        correlationId: generateId('corr'),
         payload: {
           requestId: `${d.type}:${d.name}`,
           toolName: d.name,
           result: d.result,
           durationMs: d.duration,
         },
-      };
+      });
     },
   ],
   [
     'tool:error',
     (data) => {
       const d = data as NAREventMap['tool:error'];
-      return {
-        type: 'tool.response',
+      return mint('tool.response', {
         engine: 'nar',
         timestamp: d.timestamp,
-        correlationId: generateId('corr'),
         payload: {
           requestId: `${d.type}:${d.name}`,
           toolName: d.name,
           error: String(d.result),
           durationMs: d.duration,
         },
-      };
+      });
     },
   ],
   [
     'lm:start',
-    (_data) => ({
-      type: 'skill.executed',
-      engine: 'nar',
-      timestamp: Date.now(),
-      correlationId: generateId('corr'),
-      payload: { skill: 'lm.generate', args: [], result: '', durationMs: 0 },
-    }),
+    (_data) =>
+      mint('skill.executed', {
+        engine: 'nar',
+        payload: { skill: 'lm.generate', args: [], result: '', durationMs: 0 },
+      }),
   ],
 ]);
 

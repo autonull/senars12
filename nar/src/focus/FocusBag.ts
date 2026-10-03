@@ -2,19 +2,16 @@ import type { BagOptions } from '../bag/Bag.js';
 import { PriorityBag } from '../bag/Bag.js';
 import { Focus, type FocusOptions } from './Focus.js';
 import {
-  focusTotalWeight,
   allocateFocusBudget,
+  deserializeFocusWeights,
+  focusTotalWeight,
   focusWeightMap,
   rebalanceFocusWeights,
   serializeFocusWeights,
-  deserializeFocusWeights,
 } from './weight-allocation.js';
 
 export interface FocusBagOptions
-  extends Pick<
-    BagOptions,
-    'capacity' | 'decayRate' | 'forgetRate' | 'rng' | 'implementation' | 'clock' | 'id'
-  > {}
+  extends Pick<BagOptions, 'capacity' | 'decayRate' | 'forgetRate' | 'rng' | 'clock' | 'id'> {}
 
 export interface SerializedFocusBag {
   weights: Record<string, number>;
@@ -29,7 +26,6 @@ export class FocusBag extends PriorityBag<Focus> {
       decayRate: options.decayRate ?? 0.005,
       forgetRate: options.forgetRate,
       rng: options.rng,
-      implementation: options.implementation,
       clock: options.clock,
       id: options.id,
     });

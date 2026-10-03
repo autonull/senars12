@@ -1,6 +1,6 @@
 /** Application config read/write commands (`.config-*`). Mutates `rt.appConfig` in place. */
 
-import { writeFile } from 'node:fs/promises';
+import { writeJsonFile } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import { coerce, flagsOf, setPath, tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
@@ -33,7 +33,7 @@ export const configCommandsFor = (rt: BotRuntime) => [
   }),
   cmd('config-save', 'Save config to file', async (args = '') => {
     const path = configPath(args);
-    await writeFile(path, JSON.stringify(rt.appConfig, null, 2));
+    await writeJsonFile(path, rt.appConfig);
     return `Saved to ${path}`;
   }),
   cmd('config-reload', 'Reload config from file', async () => {

@@ -528,6 +528,8 @@ _Re-export barrel._
 
 - `JudgmentResolvedEventSchema`
 
+- `mintCognitiveEvent` — Construct an event from the schema, not from a hand-written literal.
+
 - `PolicyViolationEventSchema`
 
 - `SelfModProposalEventSchema`
@@ -599,6 +601,12 @@ _Re-export barrel._
 - `SelfImprovementProposalSchema`
 
 - `NarEventSchemas`
+
+- `HistoryEntrySchema` — One turn of conversation history, as persisted by session ledgers.
+
+- `RulePatternSchema` — A rule pattern as data: both kinds are required, because a wildcard
+
+- `RulePatternSideSchema` — One side of a rule pattern: the term kind the dispatch cell keys on.
 
 - `ContentProposalSchema` — A formalized claim about a term. It is **not** a truth value to be written: it
 

@@ -1,4 +1,4 @@
-import { cachePath, clamp, createLogger, errMsg, roundTo } from '@senars/util';
+import { cachePath, clamp, clampSigned, createLogger, errMsg, roundTo } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 import { buildDefaults, type CognitiveParameters } from '../config/cognitive-parameters.js';
@@ -206,7 +206,7 @@ export class RLFPLearner {
    * Calculate reward from generic task outcome with intrinsic rewards
    * Extrinsic: 0.5 * passRate + 0.3 * clamp(baseline/current, 0, 2)/2 + 0.2 * coverageDelta - AIKR penalties
    * Intrinsic: 0.4 * derivationDepthReduction + 0.3 * selfModelAccuracy + 0.3 * contradictionReduction
-   * Total: clamp(extrinsic + 0.3 * intrinsic, -1, 1)
+   * Total: clampSigned(extrinsic + 0.3 * intrinsic)
    * CI penalties: heavy negative reward for typecheck/lint failures
    */
   calculateRewardFromTask(outcome: TaskOutcome): number {
@@ -237,7 +237,7 @@ export class RLFPLearner {
 
     // Combined reward
     const combined = extrinsic + 0.3 * rewardIntrinsic - ciPenalty;
-    const total = clamp(combined, -1, 1);
+    const total = clampSigned(combined);
 
     // Structured reward breakdown logging (extrinsic vs intrinsic per task)
     this.logger.debug('reward breakdown', {
@@ -300,7 +300,7 @@ export class RLFPLearner {
    * @param context - Optional context about what the reward is for
    */
   reward(reward: number, context?: string): void {
-    const clampedReward = clamp(reward, -1, 1);
+    const clampedReward = clampSigned(reward);
     // Create a minimal trajectory step for the reward
     const trajectory: TrajectoryStep[] = [
       {

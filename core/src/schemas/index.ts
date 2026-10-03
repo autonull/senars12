@@ -23,6 +23,7 @@ export type {
   ShadowValidationDropEvent,
   TaskAdmittedEvent,
 } from './cognitive-events.js';
+export type { CognitiveEventOf } from './cognitive-events.js';
 export {
   AutonomyModeChangedEventSchema,
   BeliefRevisedEventSchema,
@@ -34,6 +35,7 @@ export {
   isEventType,
   isNarEvent,
   JudgmentResolvedEventSchema,
+  mintCognitiveEvent,
   PolicyViolationEventSchema,
   SelfModProposalEventSchema,
   ShadowValidationDropEventSchema,

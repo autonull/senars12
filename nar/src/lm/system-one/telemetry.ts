@@ -1,5 +1,8 @@
 import { trace } from '@opentelemetry/api';
-import type { JudgmentResolvedEvent } from '@senars/core/schemas/cognitive-events';
+import {
+  type JudgmentResolvedEvent,
+  mintCognitiveEvent,
+} from '@senars/core/schemas/cognitive-events';
 import { makeId } from '@senars/util';
 import type { CognitiveAxis } from '../../decision/types.js';
 import { recordJudgmentMetric } from '../../metrics/prometheus.js';
@@ -45,10 +48,8 @@ export function createTelemetryEmitter(sinks: TelemetrySinks = {}) {
   ): void {
     try {
       if (emitEvent) {
-        const event: JudgmentResolvedEvent = {
-          type: 'judgment.resolved',
+        const event: JudgmentResolvedEvent = mintCognitiveEvent('judgment.resolved', {
           engine: 'proposer',
-          timestamp: Date.now(),
           correlationId: makeId(),
           payload: {
             queryId: proposition.queryId,
@@ -67,7 +68,7 @@ export function createTelemetryEmitter(sinks: TelemetrySinks = {}) {
             decisionBand: provenance?.decisionBand,
             cost: proposition.cost,
           },
-        };
+        });
         emitEvent(event);
       }
 

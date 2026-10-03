@@ -6,7 +6,7 @@ import type {
   RewardGateOutput,
   SourceQuality,
 } from '@senars/core/schemas';
-import { clamp, makeId, writeJsonFile } from '@senars/util';
+import { clamp, clampSigned, makeId, writeJsonFile } from '@senars/util';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';
 import type { NARConfig } from './facade/config.js';
 import type { GateRegistry, IPerceptionGate, IRewardGate } from './kernel';
@@ -188,7 +188,7 @@ export class NARIO {
    * @param context - Optional context about what the reward is for
    */
   async reward(reward: number, context?: string): Promise<RewardGateOutput> {
-    const clampedReward = clamp(reward, -1, 1);
+    const clampedReward = clampSigned(reward);
     const result = this.rewardGate.process({
       eventId: makeId(),
       rewardSignal: clampedReward,

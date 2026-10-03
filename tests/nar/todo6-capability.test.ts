@@ -2,7 +2,7 @@
  * REFACTOR.todo6 close-out falsifiers (C24) — the items that shipped with a wired
  * consumer but no test that could have failed:
  *   A3 injected clock drives eviction order
- *   A4 `strategies.bag.type` knob selects the bag implementation
+ *   A4 every concept bag is the one AIKR queue
  *   A7 `windowed-roulette` determinism + diversity vs `priority`
  *   E1 `ProofMettaProposer` contributions reach the Negotiator
  *   E2 `GovernanceResolver` audit trail + restore
@@ -11,7 +11,7 @@
 
 import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
 import type { Bag } from '@senars/nar/bag';
-import { FenwickBag, PriorityBag } from '@senars/nar/bag';
+import { PriorityBag, resolveBagSlot } from '@senars/nar/bag';
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
 import { Memory, TermBuilder, Truth } from '../../nar/src';
@@ -32,15 +32,13 @@ interface Item {
   priority: number;
 }
 
-const makeBag = (impl: 'priority' | 'fenwick', clock: () => number): Bag<Item> => {
-  const options = { capacity: 3, rng: lcg(42), clock };
-  return impl === 'priority' ? new PriorityBag<Item>(options) : new FenwickBag<Item>(options);
-};
+const makeBag = (clock: () => number): Bag<Item> =>
+  new PriorityBag<Item>({ capacity: 3, rng: lcg(42), clock });
 
 describe('A3 — injected clock drives LRU eviction order', () => {
   it('a frozen clock makes eviction order a pure function of the rng', () => {
-    for (const impl of ['priority', 'fenwick'] as const) {
-      const frozen = makeBag(impl, () => 1_000_000);
+    {
+      const frozen = makeBag(() => 1_000_000);
       for (const id of ['a', 'b', 'c']) frozen.add({ id, priority: 0.5 });
       frozen.evict('LRU');
       expect([...frozen.toArray()].map((i) => i.id).sort()).toEqual(['b', 'c']);
@@ -48,9 +46,9 @@ describe('A3 — injected clock drives LRU eviction order', () => {
   });
 
   it('an advancing clock evicts the concept it has not touched', () => {
-    for (const impl of ['priority', 'fenwick'] as const) {
+    {
       let now = 1_000_000;
-      const bag = makeBag(impl, () => now);
+      const bag = makeBag(() => now);
 
       bag.add({ id: 'a', priority: 0.9 });
       now += 1000;
@@ -68,7 +66,7 @@ describe('A3 — injected clock drives LRU eviction order', () => {
   });
 });
 
-describe('A4 — strategies.bag knob selects the implementation', () => {
+describe('A4 — one bag implementation for every concept', () => {
   const seed = (memory: Memory): void => {
     for (const symbol of ['alpha', 'beta', 'gamma', 'delta']) {
       memory.addTask(
@@ -81,32 +79,20 @@ describe('A4 — strategies.bag knob selects the implementation', () => {
     }
   };
 
-  it('defaults to PriorityBag', () => {
+  it('builds a PriorityBag for every seeded concept', () => {
     const memory = new Memory();
     seed(memory);
-    expect(memory.getConcept(TermBuilder.atom('alpha'))!.beliefBag).toBeInstanceOf(PriorityBag);
-  });
-
-  it('honors the bag slot: fenwick', () => {
-    const memory = new Memory({ bag: { implementation: 'fenwick' } });
-    seed(memory);
     for (const symbol of ['alpha', 'beta', 'gamma', 'delta']) {
-      expect(memory.getConcept(TermBuilder.atom(symbol))!.beliefBag).toBeInstanceOf(FenwickBag);
+      expect(memory.getConcept(TermBuilder.atom(symbol))!.beliefBag).toBeInstanceOf(PriorityBag);
     }
+    expect(memory.getStatistics()).toBeTruthy();
   });
 
-  it('both implementations return the same concept for the same task', () => {
-    const task = TermBuilder.atom('alpha');
-    const priority = new Memory();
-    const fenwick = new Memory({ bag: { implementation: 'fenwick' } });
-    seed(priority);
-    seed(fenwick);
-
-    expect(priority.getConcept(task)!.term.toString()).toBe(
-      fenwick.getConcept(task)!.term.toString()
-    );
-    expect(priority.getStatistics()).toBeTruthy();
-    expect(fenwick.getStatistics()).toBeTruthy();
+  it('the slot reaches the bags it builds, and there is no second backend to pick', () => {
+    const tuned = new Memory({ bag: resolveBagSlot({ config: { decayRate: 0.5 } }) });
+    seed(tuned);
+    expect(tuned.getConcept(TermBuilder.atom('alpha'))!.beliefBag.decayRateValue).toBe(0.5);
+    expect(tuned.getConcept(TermBuilder.atom('alpha'))!.beliefBag).toBeInstanceOf(PriorityBag);
   });
 });
 

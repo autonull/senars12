@@ -1,4 +1,4 @@
-import { mean } from '@senars/util';
+import { mean, safeRatio } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { parseVitestResult, type VitestResult } from './vitest-json.js';
@@ -113,7 +113,7 @@ export function createTestRunnerTools(deps: TestRunnerDeps = {}) {
             ? result.coverage.lines.pct / 100 - 0.5 // baseline 50%
             : 0;
           reward = deps.rlfpLearner.calculateReward({
-            testPassRate: result.total > 0 ? result.passed / result.total : 0,
+            testPassRate: safeRatio(result.passed, result.total),
             avgTestDuration: result.tests.length > 0 ? mean(result.tests, (v) => v.duration) : 0,
             coverageDelta,
             memoryOverage: 0,

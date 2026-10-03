@@ -1,4 +1,11 @@
-import { getOrInsert, maxScore, type RandomSource, shuffleInPlace } from '@senars/util';
+import {
+  getOrInsert,
+  lerp,
+  maxScore,
+  type RandomSource,
+  saturationRamp,
+  shuffleInPlace,
+} from '@senars/util';
 import type { Perception } from '../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from './Reflex.js';
 import { byExpectedValue } from './Reflex.js';
@@ -68,7 +75,7 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
 
       const value = entry.value;
       // Confidence based on visit count (more visits = more confident)
-      const confidence = 1 - Math.exp(-entry.visits / this.confidenceScale);
+      const confidence = saturationRamp(entry.visits, this.confidenceScale);
 
       proposals.push({
         action: actionKey,
@@ -103,7 +110,7 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
     const reward = event.reward;
     const maxNextQ = event.terminal ? 0 : this.getMaxQ(nextStateKey);
 
-    entry.value = oldValue + this.alpha * (reward + this.gamma * maxNextQ - oldValue);
+    entry.value = lerp(oldValue, reward + this.gamma * maxNextQ, this.alpha);
     entry.visits++;
     qState.set(actionKey, entry);
   }

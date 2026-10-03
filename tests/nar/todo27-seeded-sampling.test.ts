@@ -21,7 +21,7 @@ const terms = (count: number) =>
   Array.from({ length: count }, (_, i) => TermBuilder.atom(`entity_${i}`));
 
 const memoryWith = (rng?: () => number): Memory => {
-  const memory = new Memory({ maxConcepts: 50, bag: resolveBagSlot({ type: 'priority' }, rng) });
+  const memory = new Memory({ maxConcepts: 50, bag: resolveBagSlot(undefined, rng) });
   for (const term of terms(12)) memory.addConcept(term);
   return memory;
 };
@@ -40,7 +40,6 @@ describe('Bench 110 — one seed, one stochastic path', () => {
     const draw = (rng: () => number) => {
       const bag = createBag<{ id: string; priority: number }>({
         capacity: 4,
-        implementation: 'priority',
         rng,
       });
       for (let i = 0; i < 4; i++) bag.add({ id: `i_${i}`, priority: 1 });

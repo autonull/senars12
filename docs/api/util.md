@@ -4,15 +4,15 @@
 
 - `CommandRegistry`
 
-- `isQuitResult` — Whether a command result asks the transport to close.
-
-- `QUIT_SENTINEL` — The one value a command returns to mean "the transport should close".
-
 - `type CommandContext`
 
 - `type CommandDefinition`
 
 - `type CommandHandler`
+
+- `isQuitResult` — Whether a command result asks the transport to close.
+
+- `QUIT_SENTINEL` — The one value a command returns to mean "the transport should close".
 
 - `AgentOptionsValidationError`
 
@@ -76,15 +76,21 @@
 
 - `EventBus`
 
+- `ListenerBag` — One subject's listener set — the shared core of {@link EventBus} and
+
 - `PushQueue` — Single-writer push buffer exposed as an async iterator — the one bridge
 
 - `Signal` — One subject, any number of listeners — the unnamed case {@link EventBus} generalises.
 
 - `DefaultToolFeedbackObserver`
 
+- `type SkillFeedback`
+
 - `type ToolFeedback`
 
 - `type ToolFeedbackObserver`
+
+- `toSkillFeedback`
 
 - `createLogger`
 
@@ -286,6 +292,8 @@
 
 - `SHA256_PINNED` — Canonical pinned-digest shape (`sha256:<64 lowercase hex>`) — ModelDigest, lock files.
 
+- `seededStringHash` — Murmur3-finalizer fold of a string onto a caller seed — the string→u32 path
+
 - `sha256Hex` — SHA-256 hex digest — the single hashing entry point for digests and provenance keys.
 
 - `sha256HexParts` — Streaming SHA-256 hex digest over an ordered list of parts (no intermediate concat).
@@ -318,9 +326,15 @@
 
 - `clamp01`
 
+- `clampSigned` — Clamp to `[-bound, bound]` — the bound a reward, a score or a policy signal
+
+- `decayCurve` — `initial · exp(-rate · elapsed)` — how much of a confidence survives `elapsed`
+
 - `estimateTokens` — Rough token count: ~4 characters per token. Single source for every budget.
 
 - `finiteOr` — {@link toFiniteNumber} with the fallback applied, for call sites that must yield a number.
+
+- `lerp` — Move `fraction` of the way from `from` toward `to`.
 
 - `mean` — Arithmetic mean of a projection; 0 for an empty collection (rates, scores, sums).
 
@@ -339,6 +353,8 @@
 - `safeDiv`
 
 - `safeRatio` — `num / den`, with the empty-denominator answer supplied rather than implied.
+
+- `saturationRamp` — `1 - exp(-x / scale)` — how much of a thing `x` has been seen, saturating at 1.
 
 - `sigmoid` — Logistic function; the single sigmoid used by scoring and gradient descent.
 
@@ -370,6 +386,8 @@
 
 - `createLCG` — Numerical-Recipes LCG — a second algorithm, not a second PRNG *policy*. It is
 
+- `fillSeededUnitRange` — Fill `out` with `[-1, 1)` draws from `seededStream` — the deterministic
+
 - `holdoutSplit` — Deterministic train/holdout partition — shuffles uniformly, then cuts a
 
 - `mulberry32` — mulberry32: fast, well-distributed 32-bit seeded PRNG.
@@ -377,6 +395,8 @@
 - `nextInt` — Random integer in [0, max).
 
 - `type RandomSource`
+
+- `rngFrom` — A seed-or-source parameter resolved to a draw function: a bare function
 
 - `SeededRNG` — Stateful handle over the canonical `mulberry32` stream — the same PRNG as a
 
@@ -580,9 +600,15 @@
 
 - `Signal` — One subject, any number of listeners — the unnamed case {@link EventBus} generalises.
 
+- `ListenerBag` — One subject's listener set — the shared core of {@link EventBus} and
+
 ## `./feedback`
 
 - `ToolFeedback`
+
+- `SkillFeedback`
+
+- `toSkillFeedback`
 
 - `ToolFeedbackObserver`
 

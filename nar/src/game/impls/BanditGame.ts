@@ -1,4 +1,4 @@
-import { clamp01, SeededRNG } from '@senars/util';
+import { clamp01, SeededRNG, safeRatio } from '@senars/util';
 import type { Game, GameOutcome, Perception } from '../Game.js';
 
 export interface BanditDriftConfig {
@@ -41,8 +41,7 @@ export class BanditGame implements Game<number, number> {
     const features: Record<string, number> = { step: this.stepCount };
     for (let i = 0; i < this.armMeans.length; i++) {
       features[`arm${i}_pulls`] = this.pulls[i] ?? 0;
-      features[`arm${i}_avg`] =
-        (this.pulls[i] ?? 0) > 0 ? (this.rewardSum[i] ?? 0) / this.pulls[i]! : 0.5;
+      features[`arm${i}_avg`] = safeRatio(this.rewardSum[i] ?? 0, this.pulls[i] ?? 0, 0.5);
     }
     return { stateId: 'bandit', features, confidence: 1.0, terminal: false };
   }

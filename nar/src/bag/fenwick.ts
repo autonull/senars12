@@ -7,23 +7,16 @@ export function highestBit(n: number): number {
   return mask;
 }
 
-/** Fenwick tree (Binary Indexed Tree) for priority-weighted sampling. */
+/**
+ * Fenwick tree (Binary Indexed Tree) for priority-weighted sampling. Sized once
+ * to the bag's capacity and mutated in place: the store never exceeds capacity,
+ * so the tree never has to grow.
+ */
 export class FenwickTree<T extends InternalEntry<BagItem>> {
-  private tree: number[];
+  private readonly tree: number[];
 
   constructor(capacity: number) {
     this.tree = new Array<number>(capacity + 1).fill(0);
-  }
-
-  /** Resize the tree to accommodate a new capacity. */
-  resize(newCapacity: number): void {
-    if (newCapacity + 1 > this.tree.length) {
-      const newTree = new Array<number>(newCapacity + 1).fill(0);
-      for (let i = 0; i < this.tree.length; i++) {
-        newTree[i] = this.tree[i] ?? 0;
-      }
-      this.tree = newTree;
-    }
   }
 
   /** Add `delta` at `index` (0-indexed). */

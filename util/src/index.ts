@@ -5,7 +5,13 @@
 export { CommandRegistry } from './commands/registry.js';
 // Commands
 /** @public Command system types. */
-export { isQuitResult, QUIT_SENTINEL, type CommandContext, type CommandDefinition, type CommandHandler } from './commands/types.js';
+export {
+  type CommandContext,
+  type CommandDefinition,
+  type CommandHandler,
+  isQuitResult,
+  QUIT_SENTINEL,
+} from './commands/types.js';
 // Config
 /** @public Shared configuration types, validation, and env mapping. */
 export type { ConfigCapability, ConfigEvent, ConfigSchema, ConfigView } from './config/index.js';
@@ -54,11 +60,11 @@ export type { EventReceiver, EventUnsubscribe } from './events/event-bus.js';
 // Events
 /** @public Generic typed event bus runtime. */
 export { EventBus } from './events/event-bus.js';
+export { ListenerBag } from './events/listener-bag.js';
 /** @public Push-to-async-iterator bridge shared by config views and event logs. */
 export { PushQueue } from './events/push-queue.js';
 /** @public Single-subject fan-out with isolated listeners. */
 export { Signal } from './events/signal.js';
-export { ListenerBag } from './events/listener-bag.js';
 /** @public Tool feedback observer for unified statistics tracking. */
 export {
   DefaultToolFeedbackObserver,
@@ -197,7 +203,7 @@ export { parseFlags } from './utils/cli.js';
 /** @public The one injectable time source; every bounded container and cache takes one. */
 export type { Clock } from './utils/clock.js';
 export { fixedClock, systemClock } from './utils/clock.js';
-export type { ReadOnlyLookup, BoundedContainer } from './utils/collections.js';
+export type { BoundedContainer, ReadOnlyLookup } from './utils/collections.js';
 // Collections
 /** @public Drop-oldest bounded ring buffer. */
 export {
@@ -262,8 +268,8 @@ export {
   fnv1a,
   fnv1aCombine,
   mul32,
-  seededStringHash,
   SHA256_PINNED,
+  seededStringHash,
   sha256Hex,
   sha256HexParts,
   sha256Prefixed,
@@ -286,8 +292,11 @@ export {
   CHARS_PER_TOKEN,
   clamp,
   clamp01,
+  clampSigned,
+  decayCurve,
   estimateTokens,
   finiteOr,
+  lerp,
   mean,
   meanOf,
   nearlyEqual,
@@ -297,6 +306,7 @@ export {
   roundTo,
   safeDiv,
   safeRatio,
+  saturationRamp,
   sigmoid,
   softmax,
   stdDev,

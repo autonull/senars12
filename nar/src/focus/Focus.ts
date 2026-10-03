@@ -1,4 +1,5 @@
-import type { Bag, BagImplementation, BagItem } from '../bag/Bag.js';
+import { clamp01, getOrInsert } from '@senars/util';
+import type { Bag, BagItem } from '../bag/Bag.js';
 import { createBag } from '../bag/index.js';
 import type { Game, GameOutcome, Perception } from '../game/Game.js';
 import { ActionGate } from '../gates/ActionGate.js';
@@ -8,7 +9,6 @@ import type { GateRegistry } from '../kernel/index.js';
 import type { NALDerivation } from '../reflex/Negotiator.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../reflex/Reflex.js';
 import type { Term } from '../terms/index.js';
-import type { RandomSource } from '../types/primitives.js';
 import {
   getAntecedent,
   getSubject,
@@ -19,7 +19,7 @@ import {
   operationNameOf,
 } from '../terms/index.js';
 import type { Budget, ConceptLike, Task } from '../types/index.js';
-import { clamp01, getOrInsert } from '@senars/util';
+import type { RandomSource } from '../types/primitives.js';
 
 export interface FocusTask extends BagItem {
   term: Term;
@@ -66,8 +66,6 @@ export interface FocusOptions {
   gateRegistry: GateRegistry;
   /** P1 (TODO20): injectable RNG for deterministic replay of task/memory sampling. */
   rng?: RandomSource;
-  /** Bag backend for the task/concept pools (`strategies.bag.implementation`); default 'priority'. */
-  implementation?: BagImplementation;
 }
 
 export class Focus implements BagItem {
@@ -94,14 +92,12 @@ export class Focus implements BagItem {
       capacity: options.taskCapacity ?? 1000,
       decayRate: options.taskDecayRate ?? 0.01,
       rng: options.rng,
-      implementation: options.implementation,
     });
 
     this.memory = createBag<FocusConcept>({
       capacity: options.conceptCapacity ?? 500,
       decayRate: options.conceptDecayRate ?? 0.005,
       rng: options.rng,
-      implementation: options.implementation,
     });
 
     this.perceptionGate = new PerceptionGate();

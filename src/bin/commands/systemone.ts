@@ -1,7 +1,7 @@
 /** System One Judgment Manifold commands (`.judge`, `.cortex`, `.reflex`, `.ground`, `.s1-config`, …). */
 
 import { existsSync, statSync } from 'node:fs';
-import { writeFile } from 'node:fs/promises';
+import { writeJsonFile } from '@senars/util';
 import { createSystemOneBudget } from '@senars/nar/lm/system-one';
 import { errMsg, finiteOr, incrementCount } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
@@ -667,7 +667,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
             },
             save: async ([path]) => {
               const target = path || process.env.SENARS_CONFIG || 'senars.config.json';
-              await writeFile(target, JSON.stringify(rt.appConfig, null, 2));
+              await writeJsonFile(target, rt.appConfig);
               return `Saved to ${target}`;
             },
             reload: async () => {

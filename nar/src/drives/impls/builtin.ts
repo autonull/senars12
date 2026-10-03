@@ -1,5 +1,5 @@
+import { clamp, saturationRamp } from '@senars/util';
 import { Truth } from '../../terms';
-import { clamp } from '@senars/util';
 import type { DriveSpec } from '../types.js';
 
 export const BUILTIN_DRIVES: DriveSpec[] = [
@@ -52,7 +52,7 @@ export const BUILTIN_DRIVES: DriveSpec[] = [
     activationThreshold: 0.2,
     computeTruth: (state) => {
       const hoursSince = (Date.now() - state.lastStimulation) / 3.6e6;
-      const f = clamp(1 - Math.exp(-hoursSince / 24), 0.1, 0.8);
+      const f = clamp(saturationRamp(hoursSince, 24), 0.1, 0.8);
       return Truth.create(f, 0.5);
     },
   },

@@ -3,6 +3,7 @@ import type { DerivationRecord, ReasoningBudget } from '@senars/core/schemas';
 import {
   asBeliefTruth,
   clamp,
+  clampSigned,
   ensureDirSync,
   makeId,
   maxBy,
@@ -539,7 +540,7 @@ export class GameFocus {
       // REWARD: epistemic firewall — reward may only tune policy, never truth
       const firewall = this.gates.getRewardGate().process({
         eventId: makeId(),
-        rewardSignal: clamp(t.gameOutcome.reward, -1, 1),
+        rewardSignal: clampSigned(t.gameOutcome.reward),
         rewardType: 'extrinsic',
         targetType: 'policy-weights',
         targetId: this.focus.id,

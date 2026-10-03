@@ -2,7 +2,7 @@
 
 ## `.`
 
-- `PriorityBag`
+- `PriorityBag` — The AIKR priority bag: a priority-descending entry store with a Fenwick tree
 
 - `runCounterfactual`
 
@@ -286,19 +286,13 @@ _Dynamic subpath (no single entry file)._
 
 ## `./bag`
 
-- `createBag` — Factory to create a Bag instance based on the implementation option.
+- `createBag` — The one construction path for an AIKR bag: capacity is the caller's bound, the rest is knobs.
 
-- `BaseBag`
-
-- `PriorityBag`
-
-- `FenwickBag` — Fenwick-tree priority bag: weighted sampling in O(log n) over a
-
-- `BAG_IMPLEMENTATIONS`
+- `PriorityBag` — The AIKR priority bag: a priority-descending entry store with a Fenwick tree
 
 - `bagSlotErrors` — Every error a `strategies.bag` slot can carry, phrased for `validateParameters`.
 
-- `resolveBagSlot` — The single read path for the slot: a validated `{ implementation, …knobs, rng }`.
+- `resolveBagSlot` — The single read path for the slot: validated decay/forget knobs plus the memory's stream.
 
 ## `./capability`
 
@@ -1264,15 +1258,21 @@ _Dynamic subpath (no single entry file)._
 
 - `handleMetricsRequest` — Answer `/metrics` (`text`) or `/metrics.json`, or return `false` for any other
 
-- `prometheusRegistry`
+- `derivationDurationMs`
 
-- `lmProbeTotal`
+- `derivationsTotal`
 
-- `lmCircuitState`
+- `getMetricsAsJson`
+
+- `getMetricsAsText`
+
+- `lmCallDurationMs`
 
 - `lmCallsTotal`
 
-- `lmCallDurationMs`
+- `lmCircuitState`
+
+- `lmProbeTotal`
 
 - `lmTokensTotal`
 
@@ -1280,33 +1280,27 @@ _Dynamic subpath (no single entry file)._
 
 - `memoryRetrievalHitRate`
 
-- `derivationsTotal`
-
-- `derivationDurationMs`
-
-- `systemUptimeSeconds`
-
-- `systemErrorsTotal`
-
-- `systemWarningsTotal`
-
-- `recordLmProbe`
+- `prometheusRegistry`
 
 - `recordCircuitBreakerState`
 
+- `recordDerivation`
+
 - `recordLmCall`
+
+- `recordLmProbe`
 
 - `recordLmSpend`
 
-- `recordDerivation`
+- `systemErrorsTotal`
+
+- `systemUptimeSeconds`
+
+- `systemWarningsTotal`
 
 - `updateMemoryMetrics`
 
 - `updateSystemMetrics`
-
-- `getMetricsAsText`
-
-- `getMetricsAsJson`
 
 ## `./terms`
 
@@ -1420,8 +1414,6 @@ _Dynamic subpath (no single entry file)._
 
 - `toNarsese` — Canonical term → Narsese string API. Delegates to {@link serializeTerm}.
 
-- `substituteVariables` — Substitute `bindings` through `term`. Thin alias over the unifier's
-
 - `isTruthEqual` — The one epsilon-tolerant truth comparison; `Truth.equals` is the member form.
 
 - `Truth`
@@ -1435,6 +1427,8 @@ _Dynamic subpath (no single entry file)._
 - `TermMap`
 
 - `TermSet`
+
+- `applySubstitution` — Substitute through `term` until no bound variable remains. Idempotent.
 
 - `unify` — Unify two terms, extending `subst`. Returns the extended substitution, or
 

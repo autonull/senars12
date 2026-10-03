@@ -1,5 +1,5 @@
 import type { Metrics as CoreMetrics } from '@senars/util';
-import { weightedMean } from '@senars/util';
+import { safeRatio, weightedMean } from '@senars/util';
 import type { BaseStats as CoreBaseStats } from '../types/core.js';
 
 // Public: performance metric type for external consumers
@@ -147,7 +147,7 @@ export class MetricsCollector implements CoreMetrics {
     const elapsed = (now - this.startTime) / 1000;
 
     this.throughputStats = {
-      derivationsPerSecond: elapsed > 0 ? derivations / elapsed : 0,
+      derivationsPerSecond: safeRatio(derivations, elapsed),
       tasksProcessed: derivations,
       averageStepDuration: duration,
     };
@@ -267,26 +267,26 @@ export const createMetricsCollector = (): MetricsCollector => {
 // Prometheus metrics
 export { handleMetricsRequest } from './http.js';
 export {
-  prometheusRegistry,
-  lmProbeTotal,
-  lmCircuitState,
-  lmCallsTotal,
+  derivationDurationMs,
+  derivationsTotal,
+  getMetricsAsJson,
+  getMetricsAsText,
   lmCallDurationMs,
+  lmCallsTotal,
+  lmCircuitState,
+  lmProbeTotal,
   lmTokensTotal,
   memoryEpisodesTotal,
   memoryRetrievalHitRate,
-  derivationsTotal,
-  derivationDurationMs,
-  systemUptimeSeconds,
-  systemErrorsTotal,
-  systemWarningsTotal,
-  recordLmProbe,
+  prometheusRegistry,
   recordCircuitBreakerState,
-  recordLmCall,
-  recordLmSpend,
   recordDerivation,
+  recordLmCall,
+  recordLmProbe,
+  recordLmSpend,
+  systemErrorsTotal,
+  systemUptimeSeconds,
+  systemWarningsTotal,
   updateMemoryMetrics,
   updateSystemMetrics,
-  getMetricsAsText,
-  getMetricsAsJson,
 } from './prometheus.js';

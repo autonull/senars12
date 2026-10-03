@@ -1,4 +1,4 @@
-import { clamp01, LruCache, maxScore, nextInt, type RandomSource } from '@senars/util';
+import { clamp01, LruCache, lerp, maxScore, nextInt, type RandomSource } from '@senars/util';
 import type { DriveManager } from '../../drives/impls/DriveManager.js';
 import { atom, type Term, TermBuilder, TermSet, Truth, termKey } from '../../index.js';
 import type { NAR } from '../../nar.js';
@@ -130,7 +130,7 @@ export class QBeliefStore {
     return this.#writeValue(
       state,
       action,
-      current ? (1 - alpha) * decodeQExpectation(current) + alpha * tdTarget : tdTarget,
+      current ? lerp(decodeQExpectation(current), tdTarget, alpha) : tdTarget,
       confidence
     );
   }

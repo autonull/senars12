@@ -3,6 +3,7 @@
  * This is the ONLY place head spaces/levels/instructions are written down.
  */
 
+import { SourceQualitySchema } from '@senars/core/schemas';
 import { createIsotonicCalibrator } from './calibration.js';
 import { dominantDistribution, legendFrom, uniformDistribution } from './distribution.js';
 import type { HeadFactoryOptions } from './heads/factory.js';
@@ -83,7 +84,10 @@ export const HEAD_SPECS = {
     rubric: 'source_quality',
     axis: 'epistemic',
     kind: 'classify',
-    space: ['PRIMARY', 'SECONDARY', 'GENERAL', 'TERTIARY', 'LLM_PRIOR', 'PEER_AGENT'],
+    // The provenance space, not a transcription of it: a source quality the
+    // PerceptionGate accepts but this head cannot name is a class nothing can be
+    // assigned to, which is how `SELF_METTA` (MeTTa-proved facts) went missing.
+    space: SourceQualitySchema.options,
     instruction: 'Classify the source quality',
     group: 'ingress',
   },

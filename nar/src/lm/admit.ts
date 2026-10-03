@@ -1,4 +1,7 @@
-import type { ShadowValidationDropEvent } from '@senars/core/schemas/cognitive-events';
+import {
+  mintCognitiveEvent,
+  type ShadowValidationDropEvent,
+} from '@senars/core/schemas/cognitive-events';
 import { makeId } from '@senars/util';
 import type { GateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
@@ -23,19 +26,20 @@ export async function admitTasks(
       const validation = await shadowValidator.validateWithHead(task, beliefs);
       if (!validation.valid) {
         // Record the shadow validation drop in the decision path (REFACTOR.todo4 Phase D)
-        const dropEvent: ShadowValidationDropEvent = {
-          engine: 'nar',
-          timestamp: Date.now(),
-          correlationId: task.stamp?.id ?? makeId(),
-          type: 'shadow.validation.dropped',
-          payload: {
-            candidateTerm: task.term.toString(),
-            source: source.includes('bridge') ? 'bridge-llm' : 'llm',
-            conflictType: validation.conflictType ?? 'frequency',
-            frequencyDelta: validation.frequencyDelta,
-            semanticScore: validation.semanticScore,
-          },
-        };
+        const dropEvent: ShadowValidationDropEvent = mintCognitiveEvent(
+          'shadow.validation.dropped',
+          {
+            engine: 'nar',
+            correlationId: task.stamp?.id ?? makeId(),
+            payload: {
+              candidateTerm: task.term.toString(),
+              source: source.includes('bridge') ? 'bridge-llm' : 'llm',
+              conflictType: validation.conflictType ?? 'frequency',
+              frequencyDelta: validation.frequencyDelta,
+              semanticScore: validation.semanticScore,
+            },
+          }
+        );
         perceptionGate.emitShadowValidationDrop(dropEvent);
         continue;
       }

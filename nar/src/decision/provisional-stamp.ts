@@ -1,3 +1,4 @@
+import { decayCurve } from '@senars/util';
 import type { Stamp } from '../terms/impls/Stamp.js';
 
 export interface ProvisionalStamp {
@@ -28,7 +29,7 @@ export function createProvisionalStamp(
     confidence(now: number): number {
       if (now > this.expiresAt) return 0;
       const elapsed = (now - this.createdAt) / 1000;
-      return this.cInitial * Math.exp(-this.decayRate * elapsed);
+      return decayCurve(this.cInitial, this.decayRate, elapsed);
     },
   };
 }

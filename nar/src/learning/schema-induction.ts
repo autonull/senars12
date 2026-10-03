@@ -17,12 +17,12 @@ import {
   LruCache,
   parseJsonObject,
 } from '@senars/util';
-import { type BagItem } from '../bag/Bag.js';
+import type { BagItem } from '../bag/Bag.js';
 import type { MemoryReader } from '../memory/ports/index.js';
 import type { TextGenerator } from '../ports';
 import type { Term } from '../terms';
 import { containsSubterm, getSubject, Truth, termKey } from '../terms';
-import { createTaskWeight, createTask, type Task } from '../types';
+import { createTask, createTaskWeight, type Task } from '../types';
 import type { RandomSource } from '../types/primitives.js';
 
 /** Serialized chain terms — the single rendering behind signatures, templates, and instances. */
@@ -39,9 +39,9 @@ const chainIdentity = (chain: readonly Task[]): string =>
 import {
   AIKRProcessor,
   type AikrBagOptions,
+  createAikrBag,
   PrioritySampling,
   type ProcessOptions,
-  createAikrBag,
 } from './aikr-processor.js';
 
 export interface SchemaPattern {
@@ -98,7 +98,11 @@ export class SchemaInductor {
   static readonly #SEEN_SIGNATURE_CAP = 4096;
   readonly #seenSignatures = new LruCache<string, true>(SchemaInductor.#SEEN_SIGNATURE_CAP);
 
-  constructor(memory: MemoryReader, lmClient: TextGenerator, config: Partial<SchemaInductionConfig> = {}) {
+  constructor(
+    memory: MemoryReader,
+    lmClient: TextGenerator,
+    config: Partial<SchemaInductionConfig> = {}
+  ) {
     this.memory = memory;
     this.lmClient = lmClient;
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -108,7 +112,6 @@ export class SchemaInductor {
       capacity: this.config.capacity ?? 256,
       forgetRate: this.config.forgetRate,
       rng: this.rng,
-      implementation: this.config.implementation,
     });
     this.#processor = new AIKRProcessor<DerivationChainItem, InductionResult>({
       bag: this.#chainBag,

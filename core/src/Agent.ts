@@ -1,4 +1,4 @@
-import type { CognitiveEvent } from '@senars/core/schemas';
+import { type CognitiveEvent, mintCognitiveEvent } from '@senars/core/schemas';
 import { type EpisodicMemory, generateId, incrementCount, makeId, type LMTask } from '@senars/util';
 import { ApprovalService } from './ApprovalService.js';
 import { type CycleHost, runCycle, runCycleStream } from './agent/phases.js';
@@ -119,13 +119,13 @@ export class Agent {
   }
 
   submit(input: string, correlationId: string): void {
-    this.#emitCognitive({
-      engine: 'nar',
-      type: 'input.user',
-      timestamp: Date.now(),
-      correlationId,
-      payload: { text: input, source: 'transport' },
-    });
+    this.#emitCognitive(
+      mintCognitiveEvent('input.user', {
+        engine: 'nar',
+        correlationId,
+        payload: { text: input, source: 'transport' },
+      })
+    );
   }
 
   mount(transport: Connection): void {

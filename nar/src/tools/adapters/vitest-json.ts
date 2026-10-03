@@ -4,6 +4,8 @@
  * "find the first `{` line" fence scan and the same four counter reductions.
  */
 
+import { safeRatio } from '@senars/util';
+
 export type CoverageMetrics = {
   total: number;
   covered: number;
@@ -44,7 +46,7 @@ type MetricKey = (typeof METRIC_KEYS)[number];
 const pct = (c: Counters): CoverageMetrics => ({
   total: c.total,
   covered: c.covered,
-  pct: c.total > 0 ? (c.covered / c.total) * 100 : 0,
+  pct: safeRatio(c.covered, c.total) * 100,
 });
 
 const emptyCounters = (): Counters => ({ total: 0, covered: 0 });

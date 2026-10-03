@@ -1,14 +1,13 @@
 import type { AIKRBudget } from '@senars/core/budget';
 import { emitDomainEvent } from '@senars/core/event-sink';
 import {
+  type BoundedContainer,
   type Clock,
   clamp01,
   makeId,
   nextInt,
   occupancy,
   type RandomSource,
-  weightedPick,
-  BoundedContainer,
 } from '@senars/util';
 import { PRESSURE } from '../constants.js';
 import { FenwickTree } from './fenwick.js';
@@ -17,16 +16,12 @@ import type { BagItem, InternalEntry } from './types.js';
 export type { RandomSource } from '@senars/util';
 export type { BagItem, InternalEntry } from './types.js';
 
-export type BagImplementation = 'priority' | 'fenwick';
-
 export interface BagOptions {
   capacity: number;
   decayRate?: number;
   forgetRate?: number;
   /** Injected randomness for sampling/eviction (default Math.random). */
   rng?: RandomSource;
-  /** Bag implementation to use (default 'priority'). */
-  implementation?: BagImplementation;
   /** Injected clock for createdAt/lastAccessedAt (default Date.now). */
   clock?: Clock;
   /** Optional identifier for observability. */
@@ -61,11 +56,15 @@ export interface Bag<T extends BagItem> {
 }
 
 /**
- * Shared `Bag<T>` policy: capacity admission, decay, eviction, pressure, and
- * sampling bookkeeping. Subclasses supply only the storage and the derived
- * indexes (splice, weighted-pick, reindex) their backend maintains.
+ * The AIKR priority bag: a priority-descending entry store with a Fenwick tree
+ * over it. Capacity admission, decay, eviction, pressure and sampling are one
+ * policy; the tree makes a weighted pick O(log n) and an append or a tail drop a
+ * single point update. The tree is sized to `capacity + 1` once and mutated in
+ * place — any other insert shifts a range of prefix sums, which a Fenwick tree
+ * cannot express, so those set a staleness flag and the next read pays one
+ * rebuild for the whole batch rather than one per insert.
  */
-export abstract class BaseBag<T extends BagItem> implements Bag<T>, BoundedContainer<T> {
+export class PriorityBag<T extends BagItem> implements Bag<T>, BoundedContainer<T> {
   /** Increments on every structural mutation — consumers use it to invalidate derived indexes. */
   version = 0;
   readonly capacity: number;
@@ -77,20 +76,15 @@ export abstract class BaseBag<T extends BagItem> implements Bag<T>, BoundedConta
   protected readonly id: string;
   protected lastPressureLevel: 'normal' | 'high' | 'critical' = 'normal';
 
-  /** Priority-descending entry store — the single source of ordering truth. */
-  protected abstract get store(): InternalEntry<T>[];
-  /** Insert into priority-descending order, maintaining any derived indexes. */
-  protected abstract insertEntry(entry: InternalEntry<T>): void;
-  /** Remove and return the entry at `index`, maintaining any derived indexes. */
-  protected abstract eraseAt(index: number): InternalEntry<T>;
-  /** Drop the lowest-priority tail entry, maintaining any derived indexes. */
-  protected abstract dropLast(): void;
-  /** Wholesale replacement after a bulk filter, maintaining any derived indexes. */
-  protected abstract replaceAll(entries: InternalEntry<T>[]): void;
-  /** Locate an entry by id or identity; -1 when absent. */
-  protected abstract indexOf(idOrItem: string | T): number;
-  /** Priority-weighted pick over the current store; no total-priority precheck. */
-  protected abstract pickWeighted(): InternalEntry<T> | undefined;
+  /** The priority-descending entry store — the single source of ordering truth. */
+  private list: InternalEntry<T>[] = [];
+  private readonly fenwick: FenwickTree<InternalEntry<T>>;
+  /** Set by a mutation the tree cannot absorb; cleared by the read that needs it. */
+  private treeStale = true;
+
+  private get store(): InternalEntry<T>[] {
+    return this.list;
+  }
 
   get decayRateValue(): number {
     return this.decayRate;
@@ -109,10 +103,66 @@ export abstract class BaseBag<T extends BagItem> implements Bag<T>, BoundedConta
     // Identity, not a sample: drawn from the *id* seam so that constructing a
     // bag cannot shift the seeded stream that sampling and eviction replay from.
     this.id = options.id ?? makeId();
+    this.fenwick = new FenwickTree<InternalEntry<T>>(options.capacity);
+  }
+
+  /** Fold every mutation since the last rebuild into one pass over the store. */
+  private syncTree(): void {
+    if (!this.treeStale) return;
+    this.fenwick.rebuild(this.list);
+    this.treeStale = false;
+  }
+
+  /**
+   * An append is one new element at the tail, so a fresh tree takes a point
+   * update. Any other insert shifts a *range* of prefix sums by the new
+   * priority, and a Fenwick tree has no range-shift operation for that — a
+   * prepend is not `add(0, p)`, which raises the head element instead of moving
+   * the store down. Those defer the rebuild to the next pick, so a cycle that
+   * admits many tasks pays it once.
+   */
+  private insertEntry(entry: InternalEntry<T>): void {
+    const idx = this.insertIndex(entry.item.priority);
+    this.list.splice(idx, 0, entry);
+    if (!this.treeStale && idx === this.list.length - 1) this.fenwick.add(idx, entry.item.priority);
+    else this.treeStale = true;
+  }
+
+  private eraseAt(index: number): InternalEntry<T> {
+    const [removed] = this.list.splice(index, 1);
+    this.treeStale = true;
+    return removed!;
+  }
+
+  private dropLast(): void {
+    const removed = this.list.pop()!;
+    // Dropping the tail shifts no surviving index, so a fresh tree takes a point
+    // update; the id map is stale-flagged either way and rebuilt by `remove`.
+    this.syncTree();
+    this.fenwick.add(this.list.length, -removed.item.priority);
+  }
+
+  private replaceAll(entries: InternalEntry<T>[]): void {
+    this.list = entries;
+    this.treeStale = true;
+  }
+
+  private indexOf(idOrItem: string | T): number {
+    return typeof idOrItem === 'string'
+      ? this.list.findIndex((e) => e.item.id === idOrItem)
+      : this.list.findIndex((e) => e.item === idOrItem);
+  }
+
+  /** Priority-weighted pick over the current store; no total-priority precheck. */
+  private pickWeighted(): InternalEntry<T> | undefined {
+    this.syncTree();
+    const target = this.rng() * this.totalPriority;
+    const idx = this.fenwick.findByPrefixSum(target, this.list.length);
+    return this.list[idx] ?? this.list[0];
   }
 
   /** First index whose priority is below `priority` (binary search over the sorted store). */
-  protected insertIndex(priority: number): number {
+  private insertIndex(priority: number): number {
     const store = this.store;
     let lo = 0;
     let hi = store.length;
@@ -307,53 +357,5 @@ export abstract class BaseBag<T extends BagItem> implements Bag<T>, BoundedConta
 
   toArray(): T[] {
     return this.store.map((e) => e.item);
-  }
-}
-
-export class PriorityBag<T extends BagItem> extends BaseBag<T> {
-  private heap: InternalEntry<T>[] = [];
-  private fenwick = new FenwickTree<InternalEntry<T>>(0);
-
-  protected get store(): InternalEntry<T>[] {
-    return this.heap;
-  }
-
-  protected insertEntry(entry: InternalEntry<T>): void {
-    const idx = this.insertIndex(entry.item.priority);
-    this.heap.splice(idx, 0, entry);
-    this.fenwick.resize(this.heap.length);
-    this.fenwick.rebuild(this.heap);
-  }
-
-  protected eraseAt(index: number): InternalEntry<T> {
-    const [removed] = this.heap.splice(index, 1);
-    this.fenwick.resize(this.heap.length);
-    this.fenwick.rebuild(this.heap);
-    return removed!;
-  }
-
-  protected dropLast(): void {
-    const removed = this.heap.pop()!;
-    this.fenwick.resize(this.heap.length);
-    this.fenwick.rebuild(this.heap);
-  }
-
-  protected replaceAll(entries: InternalEntry<T>[]): void {
-    this.heap = entries;
-    this.fenwick.resize(this.heap.length);
-    this.fenwick.rebuild(this.heap);
-  }
-
-  protected indexOf(idOrItem: string | T): number {
-    return typeof idOrItem === 'string'
-      ? this.heap.findIndex((e) => e.item.id === idOrItem)
-      : this.heap.findIndex((e) => e.item === idOrItem);
-  }
-
-  protected pickWeighted(): InternalEntry<T> | undefined {
-    if (this.heap.length === 0 || this.totalPriority <= 0) return undefined;
-    const target = this.rng() * this.totalPriority;
-    const idx = this.fenwick.findByPrefixSum(target, this.heap.length);
-    return this.heap[idx] ?? this.heap[0];
   }
 }

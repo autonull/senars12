@@ -15,6 +15,13 @@ export const clamp = (v: number, min: number, max: number): number =>
 export const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
 
 /**
+ * Clamp to `[-bound, bound]` — the bound a reward, a score or a policy signal
+ * carries. Signed, unlike {@link clamp01}: a negative reward is information, and
+ * a clamp that floored it at zero would report every loss as neutrality.
+ */
+export const clampSigned = (v: number, bound = 1): number => clamp(v, -bound, bound);
+
+/**
  * Finite number from a value of unknown provenance, or `undefined` when it is not
  * one — the coercion behind env parsing, CLI flags, restored records, and labels
  * that may be categorical.
@@ -61,6 +68,32 @@ export const roundTo = (v: number, digits = 2): number => {
 
 /** Logistic function; the single sigmoid used by scoring and gradient descent. */
 export const sigmoid = (z: number): number => 1 / (1 + Math.exp(-z));
+
+/**
+ * Move `fraction` of the way from `from` toward `to`.
+ *
+ * The step form and the convex-combination form are the same algebra written
+ * twice, and which one a line uses says nothing about the policy: an RL update
+ * and a Q-belief write are both "trust the new sample this much".
+ */
+export const lerp = (from: number, to: number, fraction: number): number =>
+  from + (to - from) * fraction;
+
+/**
+ * `1 - exp(-x / scale)` — how much of a thing `x` has been seen, saturating at 1.
+ * Visit-count confidence and drive intensity are the same curve over different
+ * units; {@link decayCurve} is its inverse.
+ */
+export const saturationRamp = (x: number, scale: number): number =>
+  scale > 0 ? 1 - Math.exp(-x / scale) : x > 0 ? 1 : 0;
+
+/**
+ * `initial · exp(-rate · elapsed)` — how much of a confidence survives `elapsed`
+ * units of time. The inverse of {@link saturationRamp}: where that answers "how
+ * much have I seen", this answers "how much do I still hold".
+ */
+export const decayCurve = (initial: number, rate: number, elapsed: number): number =>
+  initial * Math.exp(-rate * elapsed);
 
 /**
  * `num / den`, with the empty-denominator answer supplied rather than implied.

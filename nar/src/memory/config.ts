@@ -63,5 +63,5 @@ export const DEFAULT_MEMORY_CONFIG: ResolvedMemoryConfig = {
   semanticLinkCapacity: 500,
   linkForgetPolicy: 'priority',
   linkDecayRate: 0.001,
-  bag: { implementation: 'priority' },
+  bag: {},
 };

@@ -19,8 +19,8 @@ import {
   AIKRProcessor,
   type AikrBagOptions,
   AikrShell,
-  type ProcessOptions,
   createAikrBag,
+  type ProcessOptions,
 } from '../learning/aikr-processor.js';
 import type { RandomSource } from '../types/primitives.js';
 
@@ -107,7 +107,6 @@ export class EpisodeConsolidator extends AikrShell<
       forgetRate: options.forgetRate,
       rng: options.rng,
       clock: options.clock,
-      implementation: options.implementation,
     });
     super({
       bag,

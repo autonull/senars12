@@ -12,8 +12,8 @@ import {
   AIKRProcessor,
   type AikrBagOptions,
   AikrShell,
-  type ProcessOptions,
   createAikrBag,
+  type ProcessOptions,
 } from '../learning/aikr-processor.js';
 import type { RandomSource } from '../types/primitives.js';
 
@@ -73,7 +73,6 @@ export class ProposalBag {
       capacity: options.capacity ?? 64,
       forgetRate: options.forgetRate,
       rng: options.rng,
-      implementation: options.implementation,
     });
     this.#shell = new AikrShell<
       ProposalCandidate,

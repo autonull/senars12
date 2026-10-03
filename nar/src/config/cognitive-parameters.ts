@@ -1,6 +1,5 @@
-import { createLogger } from '@senars/util';
+import { createLogger, deepEqual, deepFreeze, deepMerge, errMsg } from '@senars/util';
 import { boundRange, cognitiveBounds, getCognitiveBound } from '@senars/util/config';
-import { deepEqual, deepFreeze, deepMerge, errMsg } from '@senars/util';
 import { type BagSlotParams, bagSlotErrors } from '../bag/registration';
 import {
   type StrategyCatalog,
@@ -66,8 +65,9 @@ export interface CognitiveParameters {
  * that pair into a validated, memoized instance (TODO27 §2.2). A list names
  * several strategies composed into one.
  *
- * The bag slot is the exception: it names a per-concept data structure, so it has
- * a contract (`bag/registration.ts`) rather than a registry.
+ * The bag slot is the exception: there is no strategy to name, because
+ * `PriorityBag` is the only AIKR queue. The slot is its configuration, and it
+ * carries a contract (`bag/registration.ts`) rather than a registry.
  */
 export interface StrategySlotParams {
   type: StrategySpec;
@@ -263,7 +263,7 @@ export function buildDefaults(): CognitiveParameters {
       derivation: { type: 'default' },
       lmRule: { type: 'priority', maxRules: 5 },
       attention: { type: 'simple' },
-      bag: { type: 'priority' },
+      bag: {},
     },
   };
 }
@@ -389,7 +389,7 @@ export function validateParameters(
     }
   }
 
-  // The bag slot carries its own contract, so it validates without a catalog.
+  // The bag slot names no strategy, so it validates its own config.
   if (params.strategies) errors.push(...bagSlotErrors(params.strategies.bag));
 
   return {
@@ -409,9 +409,8 @@ export function validateParameters(
  * branches safe rather than quietly mutable: this is ESM, so such a write throws
  * at the call site instead of polluting `isolate:false` state.
  */
-export const mergeParameters = (
-  partial: Partial<CognitiveParameters>
-): CognitiveParameters => deepMerge(DEFAULT_COGNITIVE_PARAMETERS, partial);
+export const mergeParameters = (partial: Partial<CognitiveParameters>): CognitiveParameters =>
+  deepMerge(DEFAULT_COGNITIVE_PARAMETERS, partial);
 
 /** Per-slot strategy change detection — avoids serializing the whole strategy graph to compare it. */
 export function sameStrategies(

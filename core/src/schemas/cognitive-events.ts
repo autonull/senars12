@@ -4,7 +4,7 @@
  * gates. Every variant below is admitted by exactly one gate.
  */
 
-import { parseOrThrow } from '@senars/util';
+import { generateId, parseOrThrow } from '@senars/util';
 import { z } from 'zod';
 import { CognitiveEventBaseSchema } from './event-base.js';
 import { AutonomyModeSchema, PatchProposalSchema } from './governance.js';
@@ -195,6 +195,48 @@ export type BudgetExhaustedEvent = z.infer<typeof BudgetExhaustedEventSchema>;
 export type PolicyViolationEvent = z.infer<typeof PolicyViolationEventSchema>;
 export type AutonomyModeChangedEvent = z.infer<typeof AutonomyModeChangedEventSchema>;
 export type SelfModProposalEvent = z.infer<typeof SelfModProposalEventSchema>;
+
+export type CognitiveEventOf<T extends CognitiveEvent['type']> = Extract<
+  CognitiveEvent,
+  { type: T }
+>;
+
+/**
+ * What a minting site supplies: the event's own fields minus the ones every
+ * event gets anyway, which are stamped here rather than at each call site.
+ */
+type Mintable<T extends CognitiveEvent['type']> = Omit<
+  CognitiveEventOf<T>,
+  'type' | 'engine' | 'timestamp' | 'correlationId' | 'causationId'
+> & {
+  engine: CognitiveEvent['engine'];
+  timestamp?: number;
+  correlationId?: string;
+  causationId?: string;
+};
+
+/**
+ * Construct an event from the schema, not from a hand-written literal.
+ *
+ * `T` is inferred from `type`, so the payload is checked at compile time against
+ * the same variant {@link CognitiveEventSchema} parses — a site that would emit
+ * an event the log rejects is a type error rather than a throw at append time.
+ * Stamping the timestamp and correlation id here is what makes "every event is
+ * stamped and joinable" an invariant of the constructor instead of a convention
+ * nine call sites happened to follow.
+ *
+ * `engine` stays explicit: it is the provenance discriminant, and the type is
+ * what makes "the seam proposes; the kernel admits" checkable.
+ */
+export const mintCognitiveEvent = <T extends CognitiveEvent['type']>(
+  type: T,
+  draft: Mintable<T>
+): CognitiveEventOf<T> => ({
+  ...draft,
+  type,
+  timestamp: draft.timestamp ?? Date.now(),
+  correlationId: draft.correlationId ?? generateId('corr'),
+} as CognitiveEventOf<T>);
 
 export const validateCognitiveEvent = (event: unknown): CognitiveEvent =>
   parseOrThrow(CognitiveEventSchema, 'CognitiveEvent', event);

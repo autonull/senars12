@@ -1,4 +1,4 @@
-import { clamp } from '@senars/util';
+import { clampSigned, safeRatio } from '@senars/util';
 import type { FocusStepReport } from './Focus.js';
 
 /**
@@ -7,4 +7,6 @@ import type { FocusStepReport } from './Focus.js';
  * behind every scheduler adapter (focus tree, scheduler loop, self-meta game).
  */
 export const schedulerReward = (report: FocusStepReport): number =>
-  report.tasksProcessed <= 0 ? 0 : clamp((report.derivations / report.tasksProcessed - 0.5) * 2, -1, 1);
+  report.tasksProcessed <= 0
+    ? 0
+    : clampSigned((safeRatio(report.derivations, report.tasksProcessed) - 0.5) * 2);
