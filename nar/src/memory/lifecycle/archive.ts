@@ -20,7 +20,7 @@ export class Archive {
   }
 
   get size(): number {
-    return this.archived.size;
+    return this.archived.size();
   }
 
   get capacity(): number {
@@ -29,9 +29,9 @@ export class Archive {
 
   get stats(): { size: number; capacity: number; utilization: number } {
     return {
-      size: this.archived.size,
+      size: this.archived.size(),
       capacity: this.config.maxArchivedConcepts,
-      utilization: occupancy(this.archived.size, this.config.maxArchivedConcepts),
+      utilization: occupancy(this.archived.size(), this.config.maxArchivedConcepts),
     };
   }
 

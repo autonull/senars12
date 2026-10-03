@@ -242,7 +242,7 @@ Answer the question based on the available knowledge. If the answer cannot be de
 
     return {
       enrichmentCycles: this.enrichmentCycle,
-      totalConceptsEnriched: this.results.size,
+      totalConceptsEnriched: this.results.size(),
       totalHypothesesGenerated: totalHypotheses,
       totalBridgesCreated: totalBridges,
     };

@@ -73,7 +73,7 @@ describe('BoundedMap', () => {
     now = 1400;
 
     expect(map.purgeExpired()).toBe(1);
-    expect(map.size).toBe(0);
+    expect(map.size()).toBe(0);
   });
 
   it('reports every removal through onEvict except an explicit delete', () => {

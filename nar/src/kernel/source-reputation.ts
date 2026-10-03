@@ -121,7 +121,7 @@ export class SourceReputation {
   }
 
   get size(): number {
-    return this.#entries.size;
+    return this.#entries.size();
   }
 
   /** Current capacity bound (for diagnostics/tests). */

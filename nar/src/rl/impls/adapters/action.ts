@@ -286,7 +286,7 @@ export class NonStationarySelector implements NativeActionSelector {
     if (bestAction) {
       const bestIdx = this.actions.indexOf(bestAction);
       const bestErrors = bestIdx >= 0 ? this.predictionErrors[bestIdx] : undefined;
-      if (bestErrors && bestErrors.size > 5) {
+      if (bestErrors && bestErrors.size() > 5) {
         const recentErrors = bestErrors.tail(5);
         const avgError = mean(recentErrors);
         if (avgError > this.changeDetectionThreshold) {

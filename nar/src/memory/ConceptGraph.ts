@@ -244,7 +244,7 @@ export class ConceptGraph {
   }
 
   private countEdges(node: ConceptNode): number {
-    let count = node.coActivations.size;
+    let count = node.coActivations.size();
     for (const child of node.children.values()) {
       count += this.countEdges(child);
     }

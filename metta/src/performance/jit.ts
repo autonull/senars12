@@ -64,9 +64,9 @@ export class JITCompiler {
 
   getStats(): { hotPatterns: number; compiled: number; cacheSize: number } {
     return {
-      hotPatterns: this.hotPatterns.size,
-      compiled: this.cache.size,
-      cacheSize: this.cache.size,
+      hotPatterns: this.hotPatterns.size(),
+      compiled: this.cache.size(),
+      cacheSize: this.cache.size(),
     };
   }
 

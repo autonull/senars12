@@ -189,7 +189,7 @@ export class CognitiveRegistry implements StrategyRegistry {
 
   /** Total memoized (tier 1 + tier 2) instances held for a slot — bounded, not a leak. */
   memoizedSize(type: StrategyType): number {
-    return this.composed[type].size + this.configured[type].size;
+    return this.composed[type].size() + this.configured[type].size();
   }
 
   clear(type?: StrategyType): void {

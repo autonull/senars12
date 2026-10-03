@@ -265,7 +265,7 @@ export class Ledger<T extends BaseLedgerEntry> {
 
   /** Get hot cache size. */
   getHotCacheSize(): number {
-    return this.#hotCache.size;
+    return this.#hotCache.size();
   }
 
   /** Release the hot cache. Every entry is already durable on disk. */

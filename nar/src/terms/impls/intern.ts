@@ -137,4 +137,4 @@ export const rawCompoundCtors = compoundCtors;
 
 export const evictTerm = (key: string): boolean => termCache.delete(key);
 export const clearTerms = (): void => termCache.clear();
-export const termCacheSize = (): number => termCache.size;
+export const termCacheSize = (): number => termCache.size();

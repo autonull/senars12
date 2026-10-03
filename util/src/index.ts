@@ -197,7 +197,7 @@ export { parseFlags } from './utils/cli.js';
 /** @public The one injectable time source; every bounded container and cache takes one. */
 export type { Clock } from './utils/clock.js';
 export { fixedClock, systemClock } from './utils/clock.js';
-export type { ReadOnlyLookup } from './utils/collections.js';
+export type { ReadOnlyLookup, BoundedContainer } from './utils/collections.js';
 // Collections
 /** @public Drop-oldest bounded ring buffer. */
 export {

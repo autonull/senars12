@@ -91,7 +91,7 @@ export class NalVetoArbitration implements ArbitrationStrategy {
 
   /** Memo size surface (Negotiator.memoStats parity, P3/TODO20). */
   memoSize(): number {
-    return this.#vetoMemo.size;
+    return this.#vetoMemo.size();
   }
 
   #isVetoingAction(derivation: NALDerivation, proposedAction: string): boolean {

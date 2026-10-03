@@ -7,7 +7,7 @@
     "aikrProcessorCoverage": 5,
     "unboundedAccumulatorSites": 0,
     "accumulatorsAudited": 2,
-    "circularChains": 23,
+    "circularChains": 24,
     "typecheckBinErrors": 0,
     "workspaceCount": 6
   },

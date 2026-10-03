@@ -118,13 +118,13 @@ export class StreamReasoner {
 
   /** Occupancy of the deepest backlog — the signal a caller backpressures on. */
   pressure(): number {
-    return occupancy(Math.max(this.queue.length, this.provisionals.size), this.maxPending);
+    return occupancy(Math.max(this.queue.length, this.provisionals.size()), this.maxPending);
   }
 
   stats(): StreamReasonerStats {
     return {
       queued: this.queue.length,
-      provisionals: this.provisionals.size,
+      provisionals: this.provisionals.size(),
       derived: this.derivedTasks.length,
       dropped: this.dropped,
       timedOut: this.timedOut,

@@ -25,6 +25,22 @@ export interface ReadOnlyLookup<K, V> extends Iterable<[K, V]> {
 }
 
 /**
+ * Common interface for all bounded containers — captures the shared operations
+ * across `BoundedRing`, `BoundedMap`, `Bag`, and other capacity-limited structures.
+ * Enables generic utilities that work with any bounded container.
+ */
+export interface BoundedContainer<T> {
+  /** Hard capacity limit. */
+  readonly capacity: number;
+  /** Current number of live items. */
+  size(): number;
+  /** Occupancy ratio in `0..1` — the AIKR pressure signal. */
+  pressure(): number;
+  /** Remove all items. */
+  clear(): void;
+}
+
+/**
  * Drop-oldest push for plain arrays. One `shift()` per overflow — no `splice`
  * reallocation and no cap arithmetic repeated at the call site. Returns the
  * displaced item, which is what a sliding-window caller needs and what every
@@ -366,15 +382,19 @@ export function removeFromSet<K, T>(map: KeyedSetStore<K, T>, key: K, value: T):
  * (revision history, decision logs, execution history, reward history). O(1)
  * amortized: one `shift()` per push.
  */
-export class BoundedRing<T> {
+export class BoundedRing<T> implements BoundedContainer<T> {
   readonly #items: T[] = [];
 
   constructor(readonly capacity: number) {
     if (capacity < 1) throw new RangeError(`BoundedRing capacity must be ≥1, got ${capacity}`);
   }
 
-  get size(): number {
+  size(): number {
     return this.#items.length;
+  }
+
+  pressure(): number {
+    return this.size() / this.capacity;
   }
 
   /** Append, dropping the oldest item past capacity. Returns what was displaced. */

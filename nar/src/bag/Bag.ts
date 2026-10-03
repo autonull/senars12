@@ -8,6 +8,7 @@ import {
   occupancy,
   type RandomSource,
   weightedPick,
+  BoundedContainer,
 } from '@senars/util';
 import { PRESSURE } from '../constants.js';
 
@@ -72,7 +73,7 @@ export interface InternalEntry<T extends BagItem> {
  * sampling bookkeeping. Subclasses supply only the storage and the derived
  * indexes (splice, weighted-pick, reindex) their backend maintains.
  */
-export abstract class BaseBag<T extends BagItem> implements Bag<T> {
+export abstract class BaseBag<T extends BagItem> implements Bag<T>, BoundedContainer<T> {
   /** Increments on every structural mutation — consumers use it to invalidate derived indexes. */
   version = 0;
   readonly capacity: number;
@@ -187,6 +188,11 @@ export abstract class BaseBag<T extends BagItem> implements Bag<T> {
 
   size(): number {
     return this.store.length;
+  }
+
+  /** Iterate items in priority order (highest first) to satisfy {@link BoundedContainer}. */
+  [Symbol.iterator](): IterableIterator<T> {
+    return this.all();
   }
 
   find(predicate: (item: T) => boolean): T | undefined {

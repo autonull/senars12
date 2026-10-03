@@ -220,6 +220,6 @@ export class QBeliefStore {
 
   /** Current number of tracked states (for diagnostics/tests). */
   get size(): number {
-    return this.stateActions.size;
+    return this.stateActions.size();
   }
 }

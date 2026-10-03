@@ -27,6 +27,6 @@ export class SingleFlight {
   }
 
   get size(): number {
-    return this.inflight.size;
+    return this.inflight.size();
   }
 }

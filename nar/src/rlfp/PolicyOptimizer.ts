@@ -162,7 +162,7 @@ export class PolicyOptimizer {
   optimize(iterations = 100): PolicyUpdate[] {
     const updates: PolicyUpdate[] = [];
 
-    if (this.trajectoryHistory.size < 10) {
+    if (this.trajectoryHistory.size() < 10) {
       return updates;
     }
 

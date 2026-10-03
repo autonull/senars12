@@ -126,15 +126,15 @@ export class Layer {
 
   getStats(): { size: number; capacity: number; utilization: number } {
     return {
-      size: this.links.size,
+      size: this.links.size(),
       capacity: this.capacity,
-      utilization: occupancy(this.links.size, this.capacity),
+      utilization: occupancy(this.links.size(), this.capacity),
     };
   }
 
   /** Occupancy in `0..1` — the AIKR pressure signal; a zero-capacity layer is under full pressure. */
   pressure(): number {
-    return occupancy(this.links.size, this.capacity);
+    return occupancy(this.links.size(), this.capacity);
   }
 
   private collect(ids: Iterable<string>, query: LinkQuery): LinkEntry[] {

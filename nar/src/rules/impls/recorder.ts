@@ -166,7 +166,7 @@ export class DerivationRecorder {
   }
 
   pending(): number {
-    return this.completed.size;
+    return this.completed.size();
   }
 
   clear(): void {

@@ -14,6 +14,7 @@
 import type { Clock } from './clock.js';
 import { systemClock } from './clock.js';
 import { occupancy } from './numeric.js';
+import { BoundedContainer } from './collections.js';
 
 interface Entry<V> {
   value: V;
@@ -55,9 +56,15 @@ export interface BoundedMapOptions<K = unknown, V = unknown> {
   rng?: () => number;
 }
 
-export class BoundedMap<K, V> {
+export class BoundedMap<K, V> implements BoundedContainer<V> {
   readonly #entries = new Map<K, Entry<V>>();
   public readonly maxSize: number;
+
+  /** Alias for {@link maxSize} to satisfy {@link BoundedContainer}. */
+  get capacity(): number {
+    return this.maxSize;
+  }
+
   readonly #ttlMs: number;
   readonly #now: Clock;
   readonly #onEvict?: (value: V, key: K) => void;
@@ -84,13 +91,13 @@ export class BoundedMap<K, V> {
     this.#rng = rng ?? Math.random;
   }
 
-  get size(): number {
+  size(): number {
     return this.#entries.size;
   }
 
   /** Occupancy in `0..1` — the AIKR pressure signal the bounded containers report. */
   pressure(): number {
-    return occupancy(this.#entries.size, this.maxSize);
+    return occupancy(this.size(), this.maxSize);
   }
 
   evict(key: K): boolean {

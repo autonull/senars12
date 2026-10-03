@@ -188,7 +188,7 @@ export class IRCConnection extends BaseConnection {
   }
 
   private drainQueue(): void {
-    while (this.messageQueue.size > 0) {
+    while (this.messageQueue.size() > 0) {
       const next = this.messageQueue.first();
       if (!next) break;
       const pending = this.pendingMessages.get(next.target) ?? [];

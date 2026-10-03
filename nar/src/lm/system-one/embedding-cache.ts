@@ -84,7 +84,7 @@ export class EmbeddingCache {
   }
 
   #emit(event: 'hit' | 'miss' | 'eviction'): void {
-    this.#metricsSink?.(event, this.#cache.size);
+    this.#metricsSink?.(event, this.#cache.size());
   }
 
   async write(text: string): Promise<EmbeddingPointer> {
@@ -142,7 +142,7 @@ export class EmbeddingCache {
   }
 
   size(): number {
-    return this.#cache.size;
+    return this.#cache.size();
   }
 
   clear(): void {
@@ -167,7 +167,7 @@ export class EmbeddingCache {
 
   /** P2 (TODO20): cache effectiveness metrics. */
   metrics(): EmbeddingCacheMetrics {
-    return { ...this.#metrics, size: this.#cache.size };
+    return { ...this.#metrics, size: this.#cache.size() };
   }
 
   /** Fraction of write() calls served from cache (0 when nothing was written yet). */

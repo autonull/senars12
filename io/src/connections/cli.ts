@@ -140,7 +140,7 @@ export class CLIConnection extends BaseConnection {
   }
 
   private processQueue(): void {
-    if (this.cmdQueue.size === 0) {
+    if (this.cmdQueue.size() === 0) {
       this.cmdRunning = false;
       this.rl?.prompt();
       return;

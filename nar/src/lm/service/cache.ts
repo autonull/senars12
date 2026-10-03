@@ -37,7 +37,7 @@ export class ResponseCache {
 
   /** Live (unexpired) entries — the bound the sweep maintains. */
   get size(): number {
-    return this.#cache.size;
+    return this.#cache.size();
   }
 
   get(key: string): string | undefined {

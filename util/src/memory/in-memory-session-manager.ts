@@ -48,7 +48,7 @@ export class SessionStore {
   }
 
   size(): number {
-    return this.#sessions.size;
+    return this.#sessions.size();
   }
 
   /** Live sessions, least-recently-used first. */
