@@ -8,7 +8,7 @@ import {
 import { createDefaultRegistry } from '../../../nar/src/cognitive';
 import type { Strategy } from '../../../nar/src/strategies/types';
 import { atom, Truth, type Term } from '../../../nar/src/terms';
-import { createBeliefTask, createBudget } from '../../../nar/src/types';
+import { createBeliefTask, createTaskWeight } from '../../../nar/src/types';
 
 /** The premise slot, by name — the registry is the only way to get a strategy. */
 const premise = (name: string): Strategy => createDefaultRegistry().get<Strategy>('premise', name);
@@ -23,7 +23,7 @@ const memoryWith = (): Memory => {
   for (const term of [cat, animal, whiskers]) {
     memory
       .addConcept(term)
-      .addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createBudget(0.9) });
+      .addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createTaskWeight(0.9) });
   }
   return memory;
 };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createBudget, Memory, TermBuilder, Truth, termParser } from '../../../nar/src';
+import { createTaskWeight, Memory, TermBuilder, Truth, termParser } from '../../../nar/src';
 import { createMinimalNAR } from '../../../nar/src/nar-presets.js';
 
 describe('Pillar 1: revision history', () => {
@@ -8,8 +8,8 @@ describe('Pillar 1: revision history', () => {
       const memory = new Memory();
       const term = TermBuilder.atom('bird');
 
-      memory.addTask(term, 'belief', Truth.create(1, 0.9), createBudget(0.9));
-      memory.addTask(term, 'belief', Truth.create(0.2, 0.8), createBudget(0.9));
+      memory.addTask(term, 'belief', Truth.create(1, 0.9), createTaskWeight(0.9));
+      memory.addTask(term, 'belief', Truth.create(0.2, 0.8), createTaskWeight(0.9));
 
       const history = memory.getRevisionHistory(term);
       expect(history.length).toBeGreaterThanOrEqual(2);
@@ -19,9 +19,9 @@ describe('Pillar 1: revision history', () => {
       const memory = new Memory();
       const term = TermBuilder.atom('cat');
 
-      memory.addTask(term, 'belief', Truth.create(1, 0.9), createBudget(0.9));
-      memory.addTask(term, 'belief', Truth.create(0.3, 0.8), createBudget(0.9));
-      memory.addTask(term, 'belief', Truth.create(0.6, 0.7), createBudget(0.9));
+      memory.addTask(term, 'belief', Truth.create(1, 0.9), createTaskWeight(0.9));
+      memory.addTask(term, 'belief', Truth.create(0.3, 0.8), createTaskWeight(0.9));
+      memory.addTask(term, 'belief', Truth.create(0.6, 0.7), createTaskWeight(0.9));
 
       const history = memory.getRevisionHistory(term);
       for (let i = 1; i < history.length; i++) {
@@ -33,8 +33,8 @@ describe('Pillar 1: revision history', () => {
       const memory = new Memory();
       const term = TermBuilder.atom('dog');
 
-      memory.addTask(term, 'belief', Truth.create(1, 0.9), createBudget(0.9));
-      memory.addTask(term, 'belief', Truth.create(0.4, 0.85), createBudget(0.9));
+      memory.addTask(term, 'belief', Truth.create(1, 0.9), createTaskWeight(0.9));
+      memory.addTask(term, 'belief', Truth.create(0.4, 0.85), createTaskWeight(0.9));
 
       const history = memory.getRevisionHistory(term);
       const latest = history[0]!;
@@ -48,7 +48,7 @@ describe('Pillar 1: revision history', () => {
     it('source reflects input for direct belief additions', () => {
       const memory = new Memory();
       const term = TermBuilder.atom('fish');
-      memory.addTask(term, 'belief', Truth.create(0.9, 0.9), createBudget(0.9));
+      memory.addTask(term, 'belief', Truth.create(0.9, 0.9), createTaskWeight(0.9));
       const history = memory.getRevisionHistory(term);
       expect(history[0]!.source).toBe('input');
       expect(history[0]!.stampId).toBeTruthy();
@@ -56,8 +56,8 @@ describe('Pillar 1: revision history', () => {
 
     it('only returns entries for the requested term', () => {
       const memory = new Memory();
-      memory.addTask(TermBuilder.atom('a'), 'belief', Truth.create(1, 0.9), createBudget(0.9));
-      memory.addTask(TermBuilder.atom('b'), 'belief', Truth.create(0.5, 0.9), createBudget(0.9));
+      memory.addTask(TermBuilder.atom('a'), 'belief', Truth.create(1, 0.9), createTaskWeight(0.9));
+      memory.addTask(TermBuilder.atom('b'), 'belief', Truth.create(0.5, 0.9), createTaskWeight(0.9));
       const a = TermBuilder.atom('a');
       const b = TermBuilder.atom('b');
       expect(memory.getRevisionHistory(a).length).toBe(1);
@@ -68,8 +68,8 @@ describe('Pillar 1: revision history', () => {
     it('ignores non-belief tasks', () => {
       const memory = new Memory();
       const term = TermBuilder.atom('g');
-      memory.addTask(term, 'goal', undefined, createBudget(0.8));
-      memory.addTask(term, 'question', undefined, createBudget(0.7));
+      memory.addTask(term, 'goal', undefined, createTaskWeight(0.8));
+      memory.addTask(term, 'question', undefined, createTaskWeight(0.7));
       expect(memory.getRevisionHistory(term).length).toBe(0);
     });
   });

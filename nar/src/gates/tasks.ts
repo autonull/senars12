@@ -6,7 +6,7 @@
 import type { FocusTask } from '../focus/Focus.js';
 import type { Term } from '../terms';
 import { operationTerm, TermBuilder, toAtomSymbol } from '../terms';
-import { createBudget } from '../types/core.js';
+import { createTaskWeight } from '../types/core.js';
 
 interface TaskSpec {
   id: string;
@@ -35,7 +35,7 @@ export const focusTask = ({
   type,
   priority,
   truth: { f, c },
-  budget: createBudget(budgetPriority),
+  budget: createTaskWeight(budgetPriority),
   stamp,
   derived: false,
 });

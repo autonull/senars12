@@ -4,7 +4,7 @@ import type { Term } from '../terms';
 import { hasVariable, Truth, termParser, termsEqual, unify, termKey } from '../terms';
 import { byRelevance, type RelevanceOptions } from './relevance.js';
 import type { Stamp, Task, TaskType, TermFilter, Timestamp } from '../types';
-import { createBudget, createTask, createTimestamp } from '../types';
+import { createTaskWeight, createTask, createTimestamp } from '../types';
 import type { DerivationRecord } from '@senars/core/schemas';
 import { verifyRecord } from '@senars/core/verify-derivation';
 
@@ -190,7 +190,7 @@ export class QueryAPI {
       term,
       'belief',
       belief.truth ? Truth.create(belief.truth.f, belief.truth.c) : Truth.NEUTRAL,
-      createBudget(priority),
+      createTaskWeight(priority),
       { ...(belief.stamp ? { stamp: belief.stamp } : {}), occurrenceTime: createTimestamp(0) }
     );
   }
@@ -241,7 +241,7 @@ export class QueryAPI {
         concept.term,
         type,
         item.truth ?? Truth.NEUTRAL,
-        item.budget ?? createBudget(concept.priority),
+        item.budget ?? createTaskWeight(concept.priority),
         {
           stamp: item.stamp,
           occurrenceTime: (item.occurrenceTime || Date.now()) as Timestamp,

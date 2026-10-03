@@ -1,7 +1,7 @@
 /**
  * Unified middleware primitive (REFACTOR.todo4 Phase A).
- * Replaces duplicate dispatch loops in `core/src/agent/pipeline.ts` and `nar/src/tick/tick.ts`.
- * Both `TickMiddleware` and `MacroPhase` share the same type signature and dispatch logic.
+ * Replaces the duplicate dispatch loop in `core/src/agent/pipeline.ts`.
+ * `MacroPhase` uses this signature and dispatch logic.
  */
 
 export type Middleware<C> = (ctx: C, next: () => Promise<void>) => Promise<void>;

@@ -2,7 +2,7 @@ import { clamp, clamp01 } from '@senars/util';
 import { Truth } from '../../terms/impls/Truth.js';
 import { type Term, termParser } from '../../terms/index.js';
 import type { Task } from '../../types/core.js';
-import { createBudget, createTask } from '../../types/core.js';
+import { createTaskWeight, createTask } from '../../types/core.js';
 import { mulberry32, nextInt } from '../../utils/random.js';
 import type { GeneratorConfig, HiddenRule, Scenario, ScenarioProfile } from '../types.js';
 import { createOracleFromScenario, HiddenModelOracle } from './HiddenModelOracle.js';
@@ -102,7 +102,7 @@ export class ScenarioGenerator {
     }
 
     const term = this.parseTerm(termStr);
-    return term ? createTask(term, 'belief', truth, createBudget(0.5)) : null;
+    return term ? createTask(term, 'belief', truth, createTaskWeight(0.5)) : null;
   }
 
   private generateQuestionEvent(hiddenRules: HiddenRule[]): Task | null {
@@ -115,7 +115,7 @@ export class ScenarioGenerator {
     const questionTermStr = termStr.replace(/^(\(.+\))$/, '($1)?');
 
     const term = this.parseTerm(questionTermStr);
-    return term ? createTask(term, 'question', Truth.create(0.5, 0.5), createBudget(0.5)) : null;
+    return term ? createTask(term, 'question', Truth.create(0.5, 0.5), createTaskWeight(0.5)) : null;
   }
 
   private generateGoalEvent(hiddenRules: HiddenRule[]): Task | null {
@@ -129,7 +129,7 @@ export class ScenarioGenerator {
 
     const term = this.parseTerm(termStr);
     return term
-      ? createTask(term, 'goal', Truth.create(priority, 0.8), createBudget(priority))
+      ? createTask(term, 'goal', Truth.create(priority, 0.8), createTaskWeight(priority))
       : null;
   }
 

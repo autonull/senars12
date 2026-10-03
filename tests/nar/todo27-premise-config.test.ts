@@ -5,7 +5,7 @@ import { PREMISE_PRIMITIVES } from '@senars/nar/strategies/premise';
 import { validateParameters } from '@senars/nar/config/cognitive-parameters';
 import { Memory } from '@senars/nar/memory';
 import { atom, Truth } from '../../nar/src/terms/index.js';
-import { createBeliefTask, createBudget } from '../../nar/src/types/index.js';
+import { createBeliefTask, createTaskWeight } from '../../nar/src/types/index.js';
 import type { Strategy } from '../../nar/src/strategies/types.js';
 
 /**
@@ -29,7 +29,7 @@ const memoryWithLinks = (): Memory => {
     const term = atom(name);
     const concept = memory.addConcept(term);
     concept.writeAttention({ reason: 'assign', value: priority });
-    concept.addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createBudget(priority) });
+    concept.addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createTaskWeight(priority) });
   };
   add('cat', 0.1);
   add('animal', 0.1);
@@ -90,7 +90,7 @@ describe('Bench 105 — premise source, scorer, filters, minScore', () => {
     const memory = new Memory({ enableEmbeddingLayer: false });
     for (const [name, kind] of [['cat', 'atom'], ['dog', 'atom'], ['poodle', 'inheritance']] as const) {
       const term = kind === 'atom' ? atom(name) : { kind: 'inheritance' as const, args: [atom('dog'), atom(name)] };
-      memory.addConcept(term).addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createBudget(0.5) });
+      memory.addConcept(term).addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createTaskWeight(0.5) });
     }
     const all = selected(registry(), { source: 'concepts', filters: [], limit: 10 }, memory);
     const inherited = selected(registry(), { source: 'concepts', filters: ['inheritanceOnly'], limit: 10 }, memory);

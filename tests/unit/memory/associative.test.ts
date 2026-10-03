@@ -5,7 +5,7 @@ import { Layer, LinkManager } from '../../../nar/src/memory/links';
 import { LINK_LAYER } from '../../../nar/src/memory/links/types.js';
 import { Memory } from '../../../nar/src/memory/memory.js';
 import { atom, Truth } from '../../../nar/src/terms';
-import { createBeliefTask, createBudget } from '../../../nar/src/types';
+import { createBeliefTask, createTaskWeight } from '../../../nar/src/types';
 
 const cat = atom('cat');
 const animal = atom('animal');
@@ -15,7 +15,7 @@ const belief = (term: typeof cat) => createBeliefTask(term, Truth.create(0.9, 0.
 const memoryWith = (): Memory => {
   const memory = new Memory({ enableEmbeddingLayer: false });
   for (const term of [cat, animal]) {
-    memory.addConcept(term).addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createBudget(0.9) });
+    memory.addConcept(term).addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createTaskWeight(0.9) });
   }
   return memory;
 };

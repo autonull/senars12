@@ -1032,10 +1032,10 @@ SeNARS runs a **self-improvement loop** where the cognitive architecture reasons
 
 **The Cognitive Loop — Two Levels:**
 
-- **Kernel Micro-Tick** (the 11 OpenTelemetry-observed stages): `perceive | recall | attend | reason | propose | negotiate | authorize | act | validate | learn | consolidate` — the kernel's inner loop, running inside `NARExecution.run()`.
-- **Agent Macro-Cycle** (defined in *Ecosystem & Integration Layer*): `Perceive → Recall → Reason → Narrate → Act → Consolidate` — the Agent wraps the Kernel, adding "Narrate" (LLM Cortex synthesis) to the loop.
+- **Kernel Micro-Tick** (the 6 traced stages, `CYCLE_STAGES`): `perceive | attend | reason | authorize | propose | learn` — the kernel's inner loop, running inside `NARExecution.run()`; each region is recorded by `CycleTrace`.
+- **Agent Macro-Cycle** (`DEFAULT_MACRO_PIPELINE`, 8 phases): `Perceive → Recall → Reason → Narrate → Consolidate → Act → Record → Announce` — the Agent wraps the Kernel, adding "Narrate" (LLM Cortex synthesis) and the Record/Announce tail.
 
-The self-improvement loop operates at the kernel level: `Perceive → Recall → Reason (meta-rules + drives) → Act (tools) → Validate → Consolidate`.
+The self-improvement loop operates at the kernel level: `Perceive → Recall → Reason (meta-rules + drives) → Act (tools) → Record → Consolidate`.
 
 ### Self-Concept Vocabulary
 
@@ -1205,7 +1205,7 @@ These capabilities build on the existing shadow execution safety (git worktree +
 
 ### Core Agent Runtime (`@senars/core`)
 
-The **Agent** class is the central orchestrator — a multi-engine cognitive runtime. The Agent wraps the Kernel, executing the **Agent Macro-Cycle**: `Perceive → Recall → Reason → Narrate → Act → Consolidate` (the Kernel's 11-stage Micro-Tick runs inside "Reason").
+The **Agent** class is the central orchestrator — a multi-engine cognitive runtime. The Agent wraps the Kernel, executing the **Agent Macro-Cycle**: `Perceive → Recall → Reason → Narrate → Consolidate → Act → Record → Announce` (`DEFAULT_MACRO_PIPELINE`) — the Kernel's 6-stage Micro-Tick runs inside "Reason".
 
 ```typescript
 import { Agent, LLMCortex, createCortexFromLM, SqliteEventLog, JsonlSessionManager } from '@senars/core';
@@ -1246,8 +1246,10 @@ agent.capabilities(); // { engine: 'metta', supports: { chat: true, skills: true
 | **Recall** | Retrieve working/episodic/semantic memory |
 | **Reason** | Query all registered engines (NAR) — wraps the Kernel Micro-Tick |
 | **Narrate** | Synthesize response via LLMCortex or raw derivations |
+| **Consolidate** | Merge/decay episodic memory — runs *before* Act |
 | **Act** | Parse commands, check policy, execute tools |
-| **Consolidate** | Persist to episodic memory |
+| **Record** | Append the turn's outcome to the event log |
+| **Announce** | Emit the cycle's outward-facing events |
 
 **Key Subsystems:**
 
@@ -1409,12 +1411,12 @@ Real-time WebSocket protocol for UI synchronization:
 
 ### Observability (OpenTelemetry)
 
-Every Kernel Micro-Tick stage emits an OpenTelemetry span:
+Kernel stage regions are recorded by `CycleTrace` (`@senars/nar/proposal/cycle-trace`) and can be
+exported to OpenTelemetry by wrapping them:
 
 ```typescript
-import { initOtel, instrumentPipeline, runTick, createTickContext, DEFAULT_PIPELINE } from '@senars/nar/tick';
+import { initOtel, getTracer } from '@senars/nar/otel';
 
-// Initialize OTel (once at startup)
 initOtel({
   serviceName: 'senars-cognitive-kernel',
   otlpEndpoint: 'http://localhost:4318/v1/traces',  // optional
@@ -1422,27 +1424,10 @@ initOtel({
   enabled: true,
 });
 
-// Wrap pipeline for automatic per-stage spans
-const instrumented = instrumentPipeline(DEFAULT_PIPELINE);
-
-// Run ticks — spans auto-created for each of 11 stages
-const ctx = createTickContext('tick-1', { cycles: 10 });
-await runTick(ctx, instrumented);
+getTracer().addEvent('cycle.stage', { stage: 'reason', cycle: 12 });
 ```
 
-**Span Attributes (per middleware stage):**
-
-| Attribute | Description |
-|-----------|-------------|
-| `tick.id` | Unique tick identifier |
-| `cognitive.stage` | Stage name: `perceive` \| `recall` \| `attend` \| `reason` \| `propose` \| `negotiate` \| `authorize` \| `act` \| `validate` \| `learn` \| `consolidate` |
-| `cognitive.budget.cycles` | Budget cycles allocated |
-| `cognitive.budget.depth` | Max derivation depth (if set) |
-| `cognitive.duration_ms` | Stage execution time |
-
-**Events as Span Events:** `ctx.events` (stage timestamps) are emitted as span events with `event.stage`, `event.detail`, `event.at`.
-
-**Exports:** `initOtel`, `shutdownOtel`, `instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent`, `getTracer`, types `OtelConfig`, `CognitiveStage` from `@senars/nar/tick`.
+**Exports:** `initOtel`, `shutdownOtel`, `emitEvent`, `getTracer`, type `OtelConfig` from `@senars/nar/otel`.
 
 ### WASI Sandbox — Secure Capability Execution
 
@@ -1692,8 +1677,8 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 | **Arcade (TODO17)** | `FocusScheduler`, `LMReflex`, `actionGrammar`, `BrierHarness`, `createOpenSystemOneManifold`, `open-systemone` manifold provider | `@senars/nar/focus`, `@senars/nar/lm/system-one`, `@senars/nar/eval/*` |
 | **RL Library** | `QBeliefStore`, `RewardBeliefAdapter`, `BeliefPerceptionAdapter`, `GoalActionAdapter`, `RLParityHarness`, `ManifoldReflex`, `ManifoldUCBReflex`, `ManifoldRLAgent` | `@senars/nar/rl` |
 | **System One** | `HEAD_SPECS`, `createHeadById`, `ConfidenceRouter`, `truthProbability`, `compositeScore`, `judgeCascade`, `createWakeGate`, `createTraceGrader`, `SystemOneManifold`, `EmbeddingCache` | `@senars/nar/lm/system-one` |
-| **Tick Pipeline** | `createTickContext`, `runTick`, `createPipeline`, `DEFAULT_PIPELINE`, `createDefaultHooks`, `operationActionOf`, `fuseStreamReasoner`, `initOtel`, `instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent` | `@senars/nar/tick` |
-| **Observability (OTel)** | `initOtel`, `shutdownOtel`, `instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent`, `getTracer`, `OtelConfig`, `CognitiveStage` | `@senars/nar/tick` |
+| **Cycle Trace** | `CycleTrace`, `CYCLE_STAGES`, `CycleStage`, `findStageOverlaps`, `findInCycleProposals` | `@senars/nar/proposal/cycle-trace` |
+| **Observability (OTel)** | `initOtel`, `shutdownOtel`, `emitEvent`, `getTracer`, `OtelConfig` | `@senars/nar/otel` |
 | **WASI Sandbox** | `CapabilitySpace`, `createWasiSandbox`, `createWasmModuleSandbox`, `createNodeVMSandbox`, `WasiSandboxOptions`, `WasmModuleOptions` | `@senars/nar/capability` |
 | **Core Agent** | `Agent`, `createAgent`, `LLMCortex`, `MemoryService` | `@senars/core` |
 | **Agent Subsystems** | `ToolRegistry`, `PolicyEngine`, `ApprovalService`, `KnowledgeManager` | `@senars/core` |

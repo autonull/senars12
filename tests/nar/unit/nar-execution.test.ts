@@ -1,7 +1,7 @@
 import type { RLFPLearner } from '@senars/nar/rlfp';
 import { describe, expect, test, vi } from 'vitest';
 import {
-  createBudget,
+  createTaskWeight,
   createTask,
   DEFAULT_CONFIG,
   Memory,
@@ -62,7 +62,7 @@ describe('NARExecution', () => {
 
   describe('run', () => {
     test('processes pending tasks', async () => {
-      const task = createTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
+      const task = createTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createTaskWeight(0.9));
       taskManager.addTask(task);
 
       const derived = await execution.run(1);
@@ -72,8 +72,8 @@ describe('NARExecution', () => {
     });
 
     test('runs reasoning step', async () => {
-      memory.addTask(TermBuilder.atom('A'), 'belief', Truth.TRUE, createBudget(0.9));
-      memory.addTask(TermBuilder.atom('B'), 'belief', Truth.TRUE, createBudget(0.9));
+      memory.addTask(TermBuilder.atom('A'), 'belief', Truth.TRUE, createTaskWeight(0.9));
+      memory.addTask(TermBuilder.atom('B'), 'belief', Truth.TRUE, createTaskWeight(0.9));
 
       const derived = await execution.run(1);
 
@@ -82,7 +82,7 @@ describe('NARExecution', () => {
 
     test('calls memory.consolidate()', async () => {
       const consolidateSpy = vi.spyOn(memory, 'consolidate');
-      memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
+      memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createTaskWeight(0.9));
 
       await execution.run(1);
 
@@ -99,7 +99,7 @@ describe('NARExecution', () => {
         config: DEFAULT_CONFIG,
       });
 
-      memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
+      memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createTaskWeight(0.9));
 
       const derived = await exec.run(1);
 
@@ -116,7 +116,7 @@ describe('NARExecution', () => {
         config: configWithThrottle,
       });
 
-      memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
+      memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createTaskWeight(0.9));
 
       const start = Date.now();
       await exec.run(1);
@@ -136,8 +136,8 @@ describe('NARExecution', () => {
         rlfp,
       });
 
-      memory.addTask(TermBuilder.atom('A'), 'belief', Truth.TRUE, createBudget(0.9));
-      memory.addTask(TermBuilder.atom('B'), 'belief', Truth.TRUE, createBudget(0.9));
+      memory.addTask(TermBuilder.atom('A'), 'belief', Truth.TRUE, createTaskWeight(0.9));
+      memory.addTask(TermBuilder.atom('B'), 'belief', Truth.TRUE, createTaskWeight(0.9));
 
       await execWithRLFP.run(2);
 
@@ -145,9 +145,9 @@ describe('NARExecution', () => {
     });
 
     test('returns total derived count', async () => {
-      memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
+      memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createTaskWeight(0.9));
       taskManager.addTask(
-        createTask(TermBuilder.atom('added'), 'belief', Truth.TRUE, createBudget(0.9))
+        createTask(TermBuilder.atom('added'), 'belief', Truth.TRUE, createTaskWeight(0.9))
       );
 
       const derived = await execution.run(1);
@@ -176,8 +176,8 @@ describe('NARExecution', () => {
       });
       const ab = TermBuilder.inheritance(TermBuilder.atom('A')!, TermBuilder.atom('B')!)!;
       const bc = TermBuilder.inheritance(TermBuilder.atom('B')!, TermBuilder.atom('C')!)!;
-      memory.addTask(ab, 'belief', Truth.TRUE, createBudget(0.9));
-      memory.addTask(bc, 'belief', Truth.TRUE, createBudget(0.9));
+      memory.addTask(ab, 'belief', Truth.TRUE, createTaskWeight(0.9));
+      memory.addTask(bc, 'belief', Truth.TRUE, createTaskWeight(0.9));
 
       const results: Task[] = [];
       for await (const task of streamed.runStream(5, 100)) results.push(task);
@@ -187,7 +187,7 @@ describe('NARExecution', () => {
 
     test('respects maxResults limit', async () => {
       for (let i = 0; i < 10; i++) {
-        memory.addTask(TermBuilder.atom(`T${i}`), 'belief', Truth.TRUE, createBudget(0.9));
+        memory.addTask(TermBuilder.atom(`T${i}`), 'belief', Truth.TRUE, createTaskWeight(0.9));
       }
 
       const results: any[] = [];
@@ -205,7 +205,7 @@ describe('NARExecution', () => {
     });
 
     test('increments after run', async () => {
-      memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
+      memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createTaskWeight(0.9));
       await execution.run(1);
       expect(execution.getCycleCount()).toBe(1);
     });
@@ -334,7 +334,7 @@ describe('NARExecution', () => {
           termParser.parse('echo_goal(profile:test)'),
           'goal',
           Truth.NEUTRAL,
-          createBudget(0.9)
+          createTaskWeight(0.9)
         )
       );
 
@@ -380,7 +380,7 @@ describe('NARExecution', () => {
       });
 
       freshTaskManager.addTask(
-        createTask(TermBuilder.atom('regular_goal'), 'goal', Truth.NEUTRAL, createBudget(0.9))
+        createTask(TermBuilder.atom('regular_goal'), 'goal', Truth.NEUTRAL, createTaskWeight(0.9))
       );
 
       await exec.run(1);

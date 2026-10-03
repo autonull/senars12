@@ -23,7 +23,7 @@ import type { AttentionModel } from '../strategies/types.js';
 import { rehydrateTask } from '../task/record.js';
 import { Stamp, Truth, termParser, termsEqual } from '../terms/index.js';
 import type { Budget, Timestamp } from '../types/index.js';
-import { createBudget } from '../types/index.js';
+import { createTaskWeight } from '../types/index.js';
 import {
   loadGateEvents,
   persistGateLogs,
@@ -218,7 +218,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
         const existing = concept.getBeliefs().find((b) => termsEqual(b.term, term));
         if (!existing) {
           const truth = Truth.create(step.truth.frequency, step.truth.confidence);
-          const budget = createBudget(0.5);
+          const budget = createTaskWeight(0.5);
           const parent = Stamp.createInput();
           const parents =
             step.evidenceLineage.length > 0 ? step.evidenceLineage.map(makeDerivedStamp) : [parent];

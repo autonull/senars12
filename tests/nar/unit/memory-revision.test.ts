@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { Concept, createBudget, Memory, TermBuilder, Truth } from '../../../nar/src';
+import { Concept, createTaskWeight, Memory, TermBuilder, Truth } from '../../../nar/src';
 
 describe('Phase 5.5: Belief Revision and Deduplication', () => {
   it('should add belief to concept', () => {
     const memory = new Memory();
     const term = TermBuilder.atom('test');
-    memory.addTask(term, 'belief', Truth.TRUE, createBudget(0.9));
+    memory.addTask(term, 'belief', Truth.TRUE, createTaskWeight(0.9));
 
     const concept = memory.getConcept(term);
     expect(concept).toBeDefined();
@@ -17,12 +17,12 @@ describe('Phase 5.5: Belief Revision and Deduplication', () => {
     const term = TermBuilder.atom('revised');
 
     // Add first belief
-    memory.addTask(term, 'belief', Truth.TRUE, createBudget(0.9));
+    memory.addTask(term, 'belief', Truth.TRUE, createTaskWeight(0.9));
     const concept1 = memory.getConcept(term);
     const initialBeliefs = concept1?.getBeliefs().length || 0;
 
     // Add second belief about same term
-    memory.addTask(term, 'belief', Truth.FALSE, createBudget(0.9));
+    memory.addTask(term, 'belief', Truth.FALSE, createTaskWeight(0.9));
     const finalBeliefs = concept1?.getBeliefs().length || 0;
 
     // Should have revised, not duplicated
@@ -34,7 +34,7 @@ describe('Phase 5.5: Belief Revision and Deduplication', () => {
     concept.addTask('belief', {
       term: TermBuilder.atom('test'),
       truth: Truth.TRUE,
-      budget: createBudget(0.9),
+      budget: createTaskWeight(0.9),
     });
 
     expect(concept.hasMatchingBelief(TermBuilder.atom('test'))).toBe(true);
@@ -47,17 +47,17 @@ describe('Phase 5.5: Belief Revision and Deduplication', () => {
     concept.addTask('belief', {
       term: TermBuilder.atom('belief'),
       truth: Truth.TRUE,
-      budget: createBudget(0.9),
+      budget: createTaskWeight(0.9),
     });
 
     concept.addTask('goal', {
       term: TermBuilder.atom('goal'),
-      budget: createBudget(0.8),
+      budget: createTaskWeight(0.8),
     });
 
     concept.addTask('question', {
       term: TermBuilder.atom('question'),
-      budget: createBudget(0.7),
+      budget: createTaskWeight(0.7),
     });
 
     expect(concept.getBeliefs().length).toBe(1);
@@ -76,9 +76,9 @@ describe('Phase 5.5: Belief Revision and Deduplication', () => {
     const memory = new Memory();
     const term = TermBuilder.atom('same');
 
-    memory.addTask(term, 'belief', Truth.TRUE, createBudget(0.9));
-    memory.addTask(term, 'belief', Truth.TRUE, createBudget(0.9));
-    memory.addTask(term, 'belief', Truth.TRUE, createBudget(0.9));
+    memory.addTask(term, 'belief', Truth.TRUE, createTaskWeight(0.9));
+    memory.addTask(term, 'belief', Truth.TRUE, createTaskWeight(0.9));
+    memory.addTask(term, 'belief', Truth.TRUE, createTaskWeight(0.9));
 
     const concept = memory.getConcept(term);
     const beliefs = concept?.getBeliefs() || [];

@@ -4,7 +4,7 @@ import type { NAR } from '../../nar.js';
 import { Truth } from '../../terms/impls/Truth.js';
 import { termParser } from '../../terms/index.js';
 import type { Task } from '../../types/core.js';
-import { createBudget, createTask } from '../../types/core.js';
+import { createTaskWeight, createTask } from '../../types/core.js';
 import { nextInt } from '../../utils/random.js';
 import type {
   DegradationCurve,
@@ -240,14 +240,14 @@ export class CognitiveTreadmill {
     const { belief, goal, question } = this.config.mixedEventRatio;
     if (r < belief) {
       const term = termParser.parse('(burst_fact --> pattern)');
-      return createTask(term, 'belief', Truth.create(0.5, 0.5), createBudget(0.5));
+      return createTask(term, 'belief', Truth.create(0.5, 0.5), createTaskWeight(0.5));
     }
     if (r < belief + goal) {
       const term = termParser.parse('(^burst_action)');
-      return createTask(term, 'goal', Truth.create(0.5, 0.5), createBudget(0.5));
+      return createTask(term, 'goal', Truth.create(0.5, 0.5), createTaskWeight(0.5));
     }
     const term = termParser.parse('(burst_fact --> ?what)?');
-    return createTask(term, 'question', Truth.create(0.5, 0.5), createBudget(0.5));
+    return createTask(term, 'question', Truth.create(0.5, 0.5), createTaskWeight(0.5));
   }
 
   private rng(): number {

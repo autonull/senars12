@@ -6,7 +6,7 @@ import { FocusBag } from '../../nar/src/focus/FocusBag.js';
 import {
   atom,
   Concept,
-  createBudget,
+  createTaskWeight,
   RuleProcessor,
   Stamp,
   TermBuilder,
@@ -28,7 +28,7 @@ describe('TODO7 validation benchmarks', () => {
       concept.addTask('belief', {
         term,
         truth,
-        budget: createBudget(0.5),
+        budget: createTaskWeight(0.5),
         stamp: Stamp.createInput(),
       })
     ).toBe(true);
@@ -37,7 +37,7 @@ describe('TODO7 validation benchmarks', () => {
       concept.addTask('belief', {
         term,
         truth,
-        budget: createBudget(0.5),
+        budget: createTaskWeight(0.5),
         stamp: Stamp.createInput(),
       });
     }
@@ -74,7 +74,7 @@ describe('TODO7 validation benchmarks', () => {
       concept.addTask('belief', {
         term,
         truth: Truth.create(0.9, 0.9),
-        budget: createBudget(0.5),
+        budget: createTaskWeight(0.5),
         stamp: Stamp.createInput(),
       })
     ).toBe(true);
@@ -82,7 +82,7 @@ describe('TODO7 validation benchmarks', () => {
       concept.addTask('belief', {
         term: negated,
         truth: Truth.create(0.1, 0.7),
-        budget: createBudget(0.5),
+        budget: createTaskWeight(0.5),
         stamp: Stamp.createInput(),
       })
     ).toBe(true);

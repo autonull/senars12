@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { createBudget, createTask, DEFAULT_CONFIG, TermBuilder, Truth } from '../../../../nar/src';
+import { createTaskWeight, createTask, DEFAULT_CONFIG, TermBuilder, Truth } from '../../../../nar/src';
 import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
 import { NAR } from '../../../../nar/src/nar';
 import {
@@ -434,7 +434,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
       // Input goal via inputTask
       const goalTerm = actionAdapter.buildGoalTerm({ name: 'test_action' });
-      const task = createTask(goalTerm, 'goal', Truth.create(1.0, 0.8), createBudget(0.8));
+      const task = createTask(goalTerm, 'goal', Truth.create(1.0, 0.8), createTaskWeight(0.8));
       nar.inputTask(task);
 
       // Run NAR cycle - should dispatch the goal

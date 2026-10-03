@@ -2,7 +2,7 @@ import {
   atom,
   type Budget,
   ConfigurationError,
-  createBudget,
+  createTaskWeight,
   createTask,
   DEFAULT_CONFIG,
   err,
@@ -27,10 +27,10 @@ describe('Budget', () => {
     ${1.0}   | ${1.0}     | ${1.0}  | ${10}  | ${5}
     ${0.0}   | ${0.0}     | ${0.0}  | ${0}   | ${0}
   `(
-    'createBudget with priority=$priority, durability=$durability, quality=$quality',
+    'createTaskWeight with priority=$priority, durability=$durability, quality=$quality',
     ({ priority, durability, quality, cycles, depth }) => {
       test('creates frozen budget with correct values', () => {
-        const budget = createBudget(priority, durability, quality, cycles, depth);
+        const budget = createTaskWeight(priority, durability, quality, cycles, depth);
         expect(budget.priority).toBeCloseTo(priority);
         expect(budget.durability).toBeCloseTo(durability);
         expect(budget.quality).toBeCloseTo(quality);
@@ -41,8 +41,8 @@ describe('Budget', () => {
     }
   );
 
-  test('createBudget uses defaults when only priority provided', () => {
-    const budget = createBudget(0.5);
+  test('createTaskWeight uses defaults when only priority provided', () => {
+    const budget = createTaskWeight(0.5);
     expect(budget.priority).toBe(0.5);
     expect(budget.durability).toBe(0.8);
     expect(budget.quality).toBe(0.9);
@@ -50,7 +50,7 @@ describe('Budget', () => {
     expect(budget.depth).toBe(0);
   });
 
-  test('createBudget handles edge cases', () => {
+  test('createTaskWeight handles edge cases', () => {
     const edgeCases = [
       { priority: -0.5, expected: -0.5 },
       { priority: 1.5, expected: 1.5 },
@@ -58,7 +58,7 @@ describe('Budget', () => {
     ];
 
     edgeCases.forEach(({ priority, expected }) => {
-      const budget = createBudget(priority);
+      const budget = createTaskWeight(priority);
       expect(budget.priority).toBe(expected);
     });
   });
@@ -86,7 +86,7 @@ describe('Task', () => {
 
   test('createTask accepts custom budget', () => {
     const term = atom('test');
-    const budget: Budget = createBudget(0.7);
+    const budget: Budget = createTaskWeight(0.7);
     const task = createTask(term, 'goal', Truth.NEUTRAL, budget);
 
     expect(task.budget).toBe(budget);

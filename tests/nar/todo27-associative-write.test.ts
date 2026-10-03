@@ -6,7 +6,7 @@ import { LINK_LAYER } from '@senars/nar/memory/links';
 import { Layer } from '../../nar/src/memory/links/Layer.js';
 import { Memory } from '@senars/nar/memory';
 import { atom } from '../../nar/src/terms/index.js';
-import { createBeliefTask, createBudget } from '../../nar/src/types/index.js';
+import { createBeliefTask, createTaskWeight } from '../../nar/src/types/index.js';
 import { Truth } from '../../nar/src/terms/index.js';
 import { TermLinkStrategy } from '@senars/nar/strategies/premise/term-link.js';
 import type { Strategy } from '../../nar/src/strategies/types.js';
@@ -55,7 +55,7 @@ describe('Bench 104 — the associative port is read-write', () => {
     const strategy = new TermLinkStrategy({ minStrength: 0, limit: 10 });
     const m = new Memory({ enableEmbeddingLayer: false });
     for (const term of [atom('cat'), atom('animal')]) {
-      m.addConcept(term).addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createBudget(0.9) });
+      m.addConcept(term).addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createTaskWeight(0.9) });
     }
     const task = createBeliefTask(atom('cat'), Truth.create(0.9, 0.9), 0.9);
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  createBudget,
+  createTaskWeight,
   Memory,
   TermBuilder,
   TermMap,
@@ -79,7 +79,7 @@ describe('canonical term identity', () => {
 describe('term-keyed consumers do not merge on the printed form', () => {
   it('revision history is per term, not per printed form', () => {
     const memory = new Memory();
-    memory.addTask(seqA, 'belief', Truth.create(0.9, 0.9), createBudget(0.9));
+    memory.addTask(seqA, 'belief', Truth.create(0.9, 0.9), createTaskWeight(0.9));
 
     expect(memory.getRevisionHistory(seqA)).toHaveLength(1);
     expect(memory.getRevisionHistory(a)).toHaveLength(0);

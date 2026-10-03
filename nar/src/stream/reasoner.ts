@@ -1,7 +1,6 @@
 import { BoundedMap, occupancy, raceDeadline, trimCapped } from '@senars/util';
 import type { GateRegistry } from '../kernel/index.js';
 import { type IndependenceStatus, Truth } from '../terms/impls/Truth.js';
-import type { TickContext } from '../tick/tick.js';
 import type { Task, TruthType } from '../types/core.js';
 
 export type { IndependenceStatus };
@@ -170,14 +169,6 @@ export class StreamReasoner {
   /** Derivations settled since the last boundary; the outbox the cycle drains. */
   takeDerived(): Task[] {
     return this.derivedTasks.splice(0, this.derivedTasks.length);
-  }
-
-  reasonHook(backend: LMBackend, pressureOf?: () => number): (ctx: TickContext) => Promise<void> {
-    return async (ctx) => {
-      const settled = await this.flush(backend, pressureOf?.() ?? 0);
-      for (const prov of settled) ctx.state.derivations.push(prov as unknown as Task);
-      for (const task of this.takeDerived()) ctx.state.derivations.push(task);
-    };
   }
 
   private async runBatch(

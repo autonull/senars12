@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CognitiveRegistry } from '@senars/nar/cognitive';
 import { Memory } from '@senars/nar/memory';
 import { atom, Truth } from '../../nar/src/terms/index.js';
-import { createBeliefTask, createBudget } from '../../nar/src/types/index.js';
+import { createBeliefTask, createTaskWeight } from '../../nar/src/types/index.js';
 import { ConfigurationError } from '@senars/nar/types';
 import type {
   AttentionModel,
@@ -33,7 +33,7 @@ const registry = () => {
 const memory = () => {
   const m = new Memory({ enableEmbeddingLayer: false });
   for (const term of [atom('cat'), atom('animal'), atom('whiskers')]) {
-    m.addConcept(term).addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createBudget(0.9) });
+    m.addConcept(term).addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createTaskWeight(0.9) });
   }
   m.getLinkManager().addLink(atom('cat'), atom('animal'), { priority: 0.8 });
   return m;

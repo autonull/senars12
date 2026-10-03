@@ -3,7 +3,7 @@ import { BoundedMap } from '@senars/util';
 import type { RuleInput, RuleResult } from '../rules';
 import { termKey } from '../terms';
 import type { Task } from '../types';
-import { createBeliefTask, createBudget, createTask } from '../types';
+import { createBeliefTask, createTaskWeight, createTask } from '../types';
 
 const MAX_RECENT_CONCLUSIONS = 1000;
 
@@ -44,7 +44,7 @@ export const createCircularDetector = () => {
 };
 
 export const createDerivedTask = (result: RuleResult, taskType: Task['type'] = 'belief'): Task =>
-  createTask(result.term, taskType, result.truth, createBudget(result.priority), {
+  createTask(result.term, taskType, result.truth, createTaskWeight(result.priority), {
     stamp: result.stamp,
     derived: true,
   });

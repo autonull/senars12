@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import {
-  createBudget,
+  createTaskWeight,
   createTask,
   DEFAULT_CONFIG,
   NAR,
@@ -94,7 +94,7 @@ describe('No-Bypass Contract', () => {
         termParser.parse('env_step(profile:test)'),
         'goal',
         Truth.NEUTRAL,
-        createBudget(0.9)
+        createTaskWeight(0.9)
       )
     );
     await nar.run(1);

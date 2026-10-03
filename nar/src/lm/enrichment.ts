@@ -9,7 +9,7 @@ import {
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { Truth } from '../terms';
-import { createBudget, createTask, type Task } from '../types';
+import { createTaskWeight, createTask, type Task } from '../types';
 import { admitTasks } from './admit.js';
 import { topBeliefTasks } from './context.js';
 import { LMResponseParser } from './LMRule.js';
@@ -83,7 +83,7 @@ export function parseEnrichmentResponse(
     const parsed = LMResponseParser.parse(line);
     if (parsed.valid && parsed.term) {
       const taskTruth = parsed.truth ?? truth;
-      const task = createTask(parsed.term, 'belief', taskTruth, createBudget(0.4, 0.8));
+      const task = createTask(parsed.term, 'belief', taskTruth, createTaskWeight(0.4, 0.8));
 
       if (line.includes('-->') || line.includes('<->')) {
         hypotheses.push(task);

@@ -22,7 +22,7 @@ import {
 } from '../terms/index.js';
 import type { TaskOverrides } from '../types/core.js';
 import {
-  createBudget,
+  createTaskWeight,
   createTask,
   NEUTRAL_BUDGET,
   type Task,
@@ -91,7 +91,7 @@ export const rehydrateTask = (
     term,
     record.type ?? fallbackType,
     record.truth ? Truth.create(record.truth.f, record.truth.c) : Truth.NEUTRAL,
-    createBudget(finiteOr(record.budget, NEUTRAL_BUDGET.priority)),
+    createTaskWeight(finiteOr(record.budget, NEUTRAL_BUDGET.priority)),
     overrides
   );
 };

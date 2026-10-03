@@ -47,38 +47,33 @@ transition: slide-up
 
 ```mermaid
 graph TD
-    subgraph "System Core"
-        A[System API]
-        F[SystemFactory]
-        I[Introspection API]
-        EB[EventBus]
+    subgraph "Composition Root"
+        A[createAgent / createNAR]
+        BT[bot.ts]
     end
 
-    subgraph "Cognitive Components"
-        M[Memory]
-        R[Reasoner]
-        L[LM - Neural Services]
-        P[Planner]
-        AE[Action Executor]
-        C[Cycle]
-        MC[MetaCognition]
-        PR[PriorityManager]
+    subgraph "Trusted Kernel"
+        PG[PerceptionGate]
+        AG[ActionGate]
+        RG[RewardGate]
+        BG[BudgetGate]
+        EL[(Append-Only Event Log)]
     end
 
-    subgraph "Specialized Modules"
-        TR[Temporal Reasoner]
-        CA[Contradiction Analyzer]
-        TFA[Task Factory]
-        NLP[NLP & Parsing]
+    subgraph "Cognitive Cycle"
+        EX[NARExecution]
+        M[Memory / bounded Bags]
+        RP[Rules]
+        PR[LM rules]
     end
 
-    F -- Assembles --> A
-    A -- Exposes --> I
-    A -- Delegates to --> C
-    C -- Orchestrates --> M & R & L & P & AE & MC
-    C -- Coordinates with --> PR & EB
-    R -- Utilizes --> TR & CA
-    L -- Integrates with --> NLP & TFA
+    BT -- builds --> A
+    A -- assembles --> EX
+    EX -- admits through --> PG & AG & RG & BG
+    PG & AG & RG & BG -- append --> EL
+    EX -- reads and writes --> M
+    EX -- infers with --> RP
+    PR -- proposes through --> PG
 ```
 
 **Realizable Potential:**
@@ -121,24 +116,25 @@ objectives.
 
 ```mermaid
 flowchart TD
-    A[Perception & Ingestion] --> B(Prioritization<br/>Economic Attention Model)
-    B --> C{Meta-Cognition<br/>Contradiction & Quality Analysis}
-    C --> D[Symbolic Reasoning<br/>Inference on Salient Tasks]
-    D --> E(Neural Enrichment<br/>LM Services & Creative Input)
-    E --> F{Planning & Action<br/>Goal Achievement & Execution}
-    F --> G[Learning & Integration<br/>Experience Processing]
-    G --> A
+    A[perceive] --> B[attend]
+    B --> C[reason]
+    C --> D[authorize]
+    D --> E[propose]
+    E --> F[learn]
+    F --> A
 ```
 
 | Phase                      | Description                                                                                                                            | Cognitive Load | Output                                         |
 |----------------------------|----------------------------------------------------------------------------------------------------------------------------------------|----------------|------------------------------------------------|
-| **Perception & Ingestion** | Ingests new information from the environment into `Task`s using `TaskFactory`. Handles multiple input types and validation.            | Low to Medium  | New `Task` objects with initial state          |
-| **Prioritization**         | Calculates the priority of all `Task`s in `Memory` using sophisticated algorithms considering relevance, urgency, and cognitive value. | Medium         | Prioritized task queues and focus sets         |
-| **Meta-Cognition**         | Scans for contradictions, reasoning failures, and knowledge gaps, generating goals to address inconsistencies.                         | High           | Contradiction reports and repair goals         |
-| **Symbolic Reasoning**     | Applies formal inference rules to high-priority `Task`s to derive new knowledge with complete transparency.                            | High           | Derived `Task`s with reasoning traces          |
-| **Neural Enrichment**      | Triggers LM services for creative input, similarity searches, and natural language processing.                                         | Variable       | Enriched knowledge and semantic insights       |
-| **Planning & Action**      | For goal tasks, executes planning algorithms and action execution for goal achievement.                                                | Medium to High | Action plans and execution results             |
-| **Learning & Integration** | Processes experience, updates beliefs, and consolidates learning for future use.                                                       | Medium         | Updated knowledge base and improved strategies |
+| **perceive** | Ingest the stimulus through the PerceptionGate into `Task`s. | Low to Medium | Admitted `Task`s |
+| **attend** | Select salient `Task`s from the bounded bags. | Medium | Prioritized task selection |
+| **reason** | Apply NAL rules to selected tasks; each derivation is gated and recorded. | High | Derived `Task`s with traces |
+| **authorize** | Policy/autonomy check before any side effect. | Low | Gate decision |
+| **propose** | Off-cycle producer work (LM-backed candidates) at a boundary. | Variable | Proposals for admission |
+| **learn** | Decay, revision and consolidation of memory. | Medium | Updated knowledge base |
+
+Each region is timed by `CycleTrace` (`CYCLE_STAGES`), so "no `propose` work inside `reason`" is an
+assertable property (`findInCycleProposals`) rather than a convention.
 
 **Realizable Potential:**
 This cyclical approach enables SeNARS to operate continuously while adapting to new information and changing goals. The

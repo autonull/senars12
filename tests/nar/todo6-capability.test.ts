@@ -22,7 +22,7 @@ import { ProofMettaProposer } from '../../nar/src/meta/ProofMettaProposer.js';
 import { PrioritySampling } from '../../nar/src/strategies/sampling/PrioritySampling.js';
 import { WindowedRouletteStrategy } from '../../nar/src/strategies/sampling/WindowedRoulette.js';
 import { Stamp } from '../../nar/src/terms/index.js';
-import { createBudget } from '../../nar/src/types/index.js';
+import { createTaskWeight } from '../../nar/src/types/index.js';
 import { createLCG } from '../helpers/rng.js';
 
 const lcg = createLCG;
@@ -75,7 +75,7 @@ describe('A4 — strategies.bag knob selects the implementation', () => {
         TermBuilder.atom(symbol),
         'belief',
         Truth.create(0.9, 0.9),
-        createBudget(0.5),
+        createTaskWeight(0.5),
         Stamp.createInput()
       );
     }
@@ -118,7 +118,7 @@ describe('A7 — windowed-roulette sampling', () => {
         TermBuilder.atom(`c${String(i).padStart(3, '0')}`),
         'belief',
         Truth.create(0.9, 0.9),
-        createBudget(0.1 + i / count)
+        createTaskWeight(0.1 + i / count)
       );
     }
     return memory;

@@ -1,5 +1,5 @@
 import type { Memory } from '../memory';
-import { createBudget, createTask, type Task } from '../types';
+import { createTaskWeight, createTask, type Task } from '../types';
 
 export interface ContextBeliefOptions {
   limit?: number;
@@ -15,7 +15,7 @@ export function topBeliefTasks(memory: Memory, opts?: ContextBeliefOptions): Tas
     if (!belief?.truth || !belief.stamp) continue;
     if (belief.truth.f * belief.truth.c < minConfidence) continue;
     tasks.push(
-      createTask(c.term, 'belief', belief.truth, createBudget(0.5, 0.8), { stamp: belief.stamp })
+      createTask(c.term, 'belief', belief.truth, createTaskWeight(0.5, 0.8), { stamp: belief.stamp })
     );
   }
   return tasks;

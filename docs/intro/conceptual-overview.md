@@ -142,62 +142,36 @@ hypergraph with intelligent management capabilities.
 
 ## The Cognitive Cycle 🔄: The Rhythm of Intelligence
 
-The system "thinks" through a discrete, continuous, and highly optimized loop defined in the **`Cycle`** module. Each
-cognitive cycle represents a single moment of integrated "thought," coordinating multiple cognitive processes in
-harmonious sequence.
+The system "thinks" through a discrete, bounded loop in **`nar/src/nar-execution.ts`** (`NARExecution`),
+whose stage vocabulary is the `CYCLE_STAGES` tuple. Each cycle is a set of traced regions, so what the system was
+doing at any moment is a record, not an inference.
 
 ```mermaid
 flowchart TD
-    A[Perception & Ingestion] --> B[Attention & Prioritization]
-    B --> C[Symbolic Reasoning & Inference]
-    C --> D[Meta-Cognitive Analysis]
-    D --> E[Neural Enrichment & Planning]
-    E --> F[Action Execution & Learning]
+    A[perceive] --> B[attend]
+    B --> C[reason]
+    C --> D[authorize]
+    D --> E[propose]
+    E --> F[learn]
     F --> A
 ```
 
 **Detailed Cognitive Cycle Process:**
 
-1. **Perception & Ingestion**: The **`Perception`** module ingests external events, data streams, and user inputs. The
-   sophisticated **`TaskFactory`** converts this raw information into structured `Task` objects, applying validation and
-   initial processing to ensure coherence.
+1. **perceive**: the stimulus enters through **`KernelPerceptionGate.admit`**, which calibrates truth from source
+   quality and appends an event. Nothing bypasses the gate.
 
-2. **Attention & Prioritization**: The **`PriorityManager`** updates priority scores for all tasks using comprehensive
-   algorithms considering:
-    * Goal relevance and strategic importance
-    * Temporal urgency and recency factors
-    * Truth value certainty and confidence levels
-    * Potential for generating valuable insights
-    * System resource allocation policies The `Cycle`'s `_selectFocusSet` method then selects the top-priority tasks to
-      form the cognitive focus for the current cycle.
+2. **attend**: salience selection over the bounded bags (`MemoryView` / the memory ports), under AIKR pressure.
 
-3. **Symbolic Reasoning & Inference**: The **`Reasoner`** module processes the `focusSet`, applying its extensive
-   library of inference rules (from `core/reasoner/rules`) to derive new `Task`s (conclusions). This includes:
-    * Logical deduction using multiple rule types
-    * Temporal reasoning across time dimensions
-    * Causal analysis and pattern detection
-    * Strategic planning and goal decomposition
+3. **reason**: the loaded NAL rule table (`nar/src/rules/impls/registration.ts`) is applied to the selected tasks.
+   Every conclusion is ranked, gated, and recorded with its derivation steps.
 
-4. **Meta-Cognitive Analysis**: The **`MetaCognition`** module performs comprehensive analysis including:
-    * **Contradiction Detection**: The **`ContradictionAnalyzer`** examines newly derived knowledge to detect
-      inconsistencies or contradictions with existing beliefs
-    * **Reasoning Quality Assessment**: Evaluation of inference chains for logical validity and completeness
-    * **Cognitive Resource Management**: Assessment of reasoning efficiency and resource allocation effectiveness
+4. **authorize**: policy and autonomy-mode checks gate any side effect before it is attempted.
 
-5. **Neural Enrichment & Planning**: The **`LM`** module is invoked for advanced cognitive functions:
-    * **Creative Enrichment**: The **`HypothesisGenerator`** suggests novel ideas and hypotheses when symbolic reasoning
-      reaches boundaries
-    * **Strategic Planning**: The **`Planner`** creates detailed action sequences for actionable goals
-    * **Knowledge Integration**: The **`ProactiveEnricher`** discovers new connections and relationships in existing
-      knowledge
-    * **Plan Repair**: The **`PlanRepairer`** generates alternative strategies when plans encounter obstacles
+5. **propose**: LM-backed producer work runs at a boundary, never inside `reason` — enforced by
+   `findInCycleProposals` over `CycleTrace.regions()`.
 
-6. **Action Execution & Learning**: The cognitive cycle concludes with:
-    * **Action Execution**: The **`ActionExecutor`** carries out concrete operations based on achieved goals
-    * **Learning Integration**: New insights and experiences are integrated back into the memory system
-    * **Performance Monitoring**: Assessment of cognitive performance for future optimization
-
----
+6. **learn**: decay, revision and consolidation of memory under the configured budget.
 
 ## Neuro-Symbolic Synergy 🤝: A Revolutionary Integration
 

@@ -94,7 +94,7 @@ export {
 } from '../utils/result.js';
 
 // Create Budget object - optimized with defaults
-export const createBudget = (
+export const createTaskWeight = (
   priority: number,
   durability = 0.8,
   quality = 0.9,
@@ -103,7 +103,7 @@ export const createBudget = (
 ): Budget => Object.freeze({ priority, durability, quality, cycles, depth });
 
 // Pre-allocated neutral budget for performance
-export const NEUTRAL_BUDGET = createBudget(0.5);
+export const NEUTRAL_BUDGET = createTaskWeight(0.5);
 
 /** Fields a caller may pin when the defaults (input stamp, now, not derived) are wrong. */
 export interface TaskOverrides {
@@ -136,7 +136,7 @@ export const createBeliefTask = (
   truth: TruthType,
   priority: number,
   stamp?: Stamp
-): Task => createTask(term, 'belief', truth, createBudget(priority), stamp ? { stamp } : {});
+): Task => createTask(term, 'belief', truth, createTaskWeight(priority), stamp ? { stamp } : {});
 
 // Create secondary task from concept or belief - unified replacement for createTaskFromBelief/createTaskFromConcept
 export const createSecondaryTask = (
@@ -149,7 +149,7 @@ export const createSecondaryTask = (
     term,
     type,
     truth: (truth as TruthType) ?? Truth.NEUTRAL,
-    budget: createBudget(priority),
+    budget: createTaskWeight(priority),
     stamp: Stamp.createInput(),
     occurrenceTime: createTimestamp(0),
     derived: false,

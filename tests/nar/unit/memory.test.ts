@@ -1,4 +1,4 @@
-import { createBudget, isAtomic, Memory, type Term, TermBuilder, Truth } from '../../../nar/src';
+import { createTaskWeight, isAtomic, Memory, type Term, TermBuilder, Truth } from '../../../nar/src';
 
 describe('Memory', () => {
   let mem: Memory;
@@ -46,14 +46,14 @@ describe('Memory', () => {
   describe('addTask', () => {
     test('adds belief task', () => {
       const term = TermBuilder.atom('bird');
-      const result = mem.addTask(term, 'belief', Truth.TRUE, createBudget(0.8));
+      const result = mem.addTask(term, 'belief', Truth.TRUE, createTaskWeight(0.8));
       expect(result).toBe(true);
       expect(mem.getConcept(term)?.beliefBag.size()).toBe(1);
     });
 
     test('adds goal task', () => {
       const term = TermBuilder.atom('fly');
-      const result = mem.addTask(term, 'goal', undefined, createBudget(0.9));
+      const result = mem.addTask(term, 'goal', undefined, createTaskWeight(0.9));
       expect(result).toBe(true);
       expect(mem.getConcept(term)?.goalBag.size()).toBe(1);
     });
@@ -76,7 +76,7 @@ describe('Memory', () => {
   describe('consolidate', () => {
     test('decays and removes low priority after interval', () => {
       const term = TermBuilder.atom('bird');
-      mem.addTask(term, 'belief', Truth.TRUE, createBudget(0.1));
+      mem.addTask(term, 'belief', Truth.TRUE, createTaskWeight(0.1));
 
       for (let i = 0; i < 50; i++) mem.consolidate();
 
@@ -85,7 +85,7 @@ describe('Memory', () => {
 
     test('keeps high priority concepts', () => {
       const term = TermBuilder.atom('bird');
-      mem.addTask(term, 'belief', Truth.TRUE, createBudget(0.9));
+      mem.addTask(term, 'belief', Truth.TRUE, createTaskWeight(0.9));
 
       for (let i = 0; i < 50; i++) mem.consolidate();
 
@@ -101,8 +101,8 @@ describe('Memory', () => {
         consolidationInterval: 10,
         forgettingPolicy: 'lowest-priority',
       });
-      smallMem.addTask(TermBuilder.atom('a'), 'belief', Truth.TRUE, createBudget(0.3));
-      smallMem.addTask(TermBuilder.atom('b'), 'belief', Truth.TRUE, createBudget(0.7));
+      smallMem.addTask(TermBuilder.atom('a'), 'belief', Truth.TRUE, createTaskWeight(0.3));
+      smallMem.addTask(TermBuilder.atom('b'), 'belief', Truth.TRUE, createTaskWeight(0.7));
 
       expect(smallMem.size).toBe(1);
     });
@@ -112,9 +112,9 @@ describe('Memory', () => {
     test('returns concepts sorted by priority', () => {
       const a = TermBuilder.atom('a');
       const b = TermBuilder.atom('b');
-      mem.addTask(a, 'belief', Truth.TRUE, createBudget(0.5));
-      mem.addTask(b, 'belief', Truth.TRUE, createBudget(0.5));
-      mem.addTask(b, 'belief', Truth.TRUE, createBudget(0.5));
+      mem.addTask(a, 'belief', Truth.TRUE, createTaskWeight(0.5));
+      mem.addTask(b, 'belief', Truth.TRUE, createTaskWeight(0.5));
+      mem.addTask(b, 'belief', Truth.TRUE, createTaskWeight(0.5));
 
       const top = mem.sample(2);
       expect(top).toHaveLength(2);

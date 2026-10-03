@@ -4,7 +4,7 @@ import { PerceptionGate } from '../../nar/src/gates/PerceptionGate.js';
 import { RewardGate } from '../../nar/src/gates/RewardGate.js';
 import { toAtomSymbol } from '../../nar/src/terms/impls/valid-atom.js';
 import { isValidAtomSymbol } from '../../nar/src/terms/impls/valid-atom.js';
-import { createBudget } from '../../nar/src/types/core.js';
+import { createTaskWeight } from '../../nar/src/types/core.js';
 
 describe('toAtomSymbol', () => {
   it('collapses reserved runs to a single underscore', () => {
@@ -26,7 +26,7 @@ describe('focus gate task construction', () => {
     expect(tasks.every((t) => t.type === 'belief' && !t.derived)).toBe(true);
     expect(tasks[0]?.truth).toEqual({ f: 1, c: 0.8 });
     expect(tasks[1]?.priority).toBeCloseTo(2.4);
-    expect(tasks[1]?.budget.priority).toBe(createBudget(3).priority);
+    expect(tasks[1]?.budget.priority).toBe(createTaskWeight(3).priority);
   });
 
   it('records terminal outcomes as a sign belief plus a terminal flag', () => {

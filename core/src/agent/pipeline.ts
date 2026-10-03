@@ -19,8 +19,7 @@ import type { CorrelationScopeStore } from './types.js';
 
 /**
  * Shared macro-cycle pipeline (REFACTOR.todo1 Phase A).
- * The Agent macro-cycle uses the kernel's `TickMiddleware` onion shape
- * (`nar/src/tick/tick.ts`) adapted for the `CycleHost` context: ordered
+ * The Agent macro-cycle uses an onion shape adapted for the `CycleHost` context: ordered
  * `MacroPhase`s with cooperative `next()` dispatch, streamed narration
  * preserved via the middleware chain.
  */

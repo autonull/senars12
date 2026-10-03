@@ -1,6 +1,6 @@
 import type { Term } from '../terms';
 import { Truth, termParser } from '../terms';
-import { createBudget, createTask, type Task, type TaskType } from '../types';
+import { createTaskWeight, createTask, type Task, type TaskType } from '../types';
 import { PUNCTUATION_BY_TASK_TYPE, taskTypeFromPunctuation } from './record.js';
 
 export interface InputProcessorConfig {
@@ -41,7 +41,7 @@ export class InputProcessor {
       term,
       this.determineTaskType(punctuation, type),
       truth,
-      createBudget(truth.f * truth.c)
+      createTaskWeight(truth.f * truth.c)
     );
   }
 
@@ -52,7 +52,7 @@ export class InputProcessor {
       term,
       this.determineTaskType(punctuation, type),
       truth,
-      createBudget(truth.f * truth.c)
+      createTaskWeight(truth.f * truth.c)
     );
   }
 

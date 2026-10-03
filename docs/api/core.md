@@ -628,6 +628,8 @@ _Re-export barrel._
 
 - `validateRuleTable`
 
+- `BUDGET_SCOPE_IDS` — The five declared budget scopes (TODO29.a §5.7).
+
 - `ReasoningBudgetSchema`
 
 - `TerminationReasonSchema`

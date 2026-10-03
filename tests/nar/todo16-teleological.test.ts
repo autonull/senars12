@@ -1,6 +1,6 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import { describe, expect, it } from 'vitest';
-import { createBudget, createTask, DEFAULT_CONFIG, NAR, Truth, termParser } from '../../nar/src';
+import { createTaskWeight, createTask, DEFAULT_CONFIG, NAR, Truth, termParser } from '../../nar/src';
 import { PriorityBag } from '../../nar/src/bag/Bag.js';
 import { KernelRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
 import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
@@ -120,7 +120,7 @@ describe('System One — Teleological Purity (Bench 3)', () => {
         termParser.parse('move_north()'),
         'goal',
         Truth.create(proposal.value, proposal.confidence),
-        createBudget(0.9)
+        createTaskWeight(0.9)
       )
     );
     await nar.run(1);

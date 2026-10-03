@@ -25,7 +25,7 @@ import {
 } from './terms';
 import type { Truth as TruthType } from './terms/impls/Truth.js';
 import type { TaskType } from './types';
-import { createBudget, type EventBus } from './types';
+import { createTaskWeight, type EventBus } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';
 
 function toTruth(t: TruthType | { frequency: number; confidence: number } | undefined): Truth {
@@ -88,7 +88,7 @@ export class NARIO {
     prime: boolean;
   }): void {
     const { term, label, type, truth, prime } = opts;
-    const budget = createBudget(truth.f * truth.c);
+    const budget = createTaskWeight(truth.f * truth.c);
     const wasNew = !this.memory.getConcept(term);
 
     this.memory.addTask(term, type, truth, budget);
@@ -312,7 +312,7 @@ export class NARIO {
     }
 
     // Legacy path (System One disabled)
-    const budget = createBudget(truth.f * truth.c);
+    const budget = createTaskWeight(truth.f * truth.c);
     const wasNew = !this.memory.getConcept(term);
 
     const result: PerceptionGateOutput = await this.perceptionGate.admit({

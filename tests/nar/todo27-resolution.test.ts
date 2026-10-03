@@ -8,7 +8,7 @@ import { RuleGraph } from '@senars/nar/strategies/lm-graph/RuleGraph.js';
 import { TermLinkStrategy } from '@senars/nar/strategies/premise/term-link.js';
 import { Memory } from '@senars/nar/memory';
 import { atom, Truth } from '../../nar/src/terms/index.js';
-import { createBeliefTask, createBudget } from '../../nar/src/types/index.js';
+import { createBeliefTask, createTaskWeight } from '../../nar/src/types/index.js';
 import type { LMRule } from '../../nar/src/lm/LMRule.js';
 import type {
   AttentionModel,
@@ -25,7 +25,7 @@ const memoryWithLinks = (): Memory => {
   for (const term of [atom('cat'), atom('animal'), atom('whiskers')]) {
     memory
       .addConcept(term)
-      .addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createBudget(0.9) });
+      .addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createTaskWeight(0.9) });
   }
   memory.getLinkManager().addLink(atom('cat'), atom('animal'), { priority: 0.8 });
   memory.getLinkManager().addLink(atom('cat'), atom('whiskers'), { priority: 0.2 });

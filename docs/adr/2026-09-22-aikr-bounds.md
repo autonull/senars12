@@ -52,4 +52,5 @@ Attention allocation is hierarchical: `focus/focus-scheduler.ts`
 - `nar/src/memory/concept.ts`
 - `nar/src/focus/focus-scheduler.ts`
 - `nar/src/focus/FocusBag.ts`
-- `nar/src/tick/tick.ts`
+- `nar/src/nar-execution.ts`
+- `nar/src/proposal/cycle-trace.ts`

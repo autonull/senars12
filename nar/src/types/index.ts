@@ -26,7 +26,7 @@ export {
   attemptAsync,
   ConfigurationError,
   createBeliefTask,
-  createBudget,
+  createTaskWeight,
   createDuration,
   createSecondaryTask,
   createTask,

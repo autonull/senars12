@@ -21,7 +21,7 @@ import { LMProposalProducer } from '@senars/nar/proposal/lm-rule-producer.js';
 import { StreamReasoner } from '@senars/nar/stream/reasoner.js';
 import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
 import type { ModelRuleWork } from '@senars/nar/rules/types';
-import { createBudget, createTimestamp } from '@senars/nar/types';
+import { createTaskWeight, createTimestamp } from '@senars/nar/types';
 import { Stamp, Truth } from '@senars/nar/terms';
 import { createTestController, inferenceParams } from './fixtures/cognitive.js';
 
@@ -56,7 +56,7 @@ const chain = (): [Term, Term] => [
 ];
 
 const seed = (memory: Memory): void => {
-  for (const term of chain()) memory.addTask(term, 'belief', Truth.TRUE, createBudget(0.9));
+  for (const term of chain()) memory.addTask(term, 'belief', Truth.TRUE, createTaskWeight(0.9));
 };
 
 const memoryBeliefs = (memory: Memory) =>

@@ -210,7 +210,7 @@
 
 - `ConfigurationError`
 
-- `createBudget`
+- `createTaskWeight`
 
 - `createSecondaryTask`
 
@@ -1138,15 +1138,7 @@ _Dynamic subpath (no single entry file)._
 
 - `decisionSpan` — O1/O4 helper: fire-and-forget span for high-frequency decisions (gate verdicts).
 
-- `wrapMiddlewareWithSpan`
-
-- `instrumentPipeline`
-
 - `emitEvent` — The one event emitter. A nested payload is flattened into dotted attribute
-
-- `emitSpanEvent`
-
-- `recordCognitiveEvents`
 
 - `shutdownOtel`
 
@@ -1226,11 +1218,15 @@ _Re-export barrel._
 
 - `tableArtifact`
 
-- `BUILTIN_DECLARATIONS` — The shipped table. 55 declarations, all at revision 0, all `builtin`
+- `BUILTIN_DECLARATIONS` — The shipped table. Every declaration at revision 0 with `builtin` provenance —
 
 - `NALExtendedRules`
 
 - `NALRules`
+
+- `DISABLED_RULES` — Why a rule is not shipped — for a gate, a status report, or the next attempt.
+
+- `NAL_EXTENDED_RULES`
 
 - `RULE_BODIES` — Namespaced so the three colliding names stay distinct bodies.
 
@@ -1412,38 +1408,6 @@ _Dynamic subpath (no single entry file)._
 
 - `OPERATORS` — Operator definitions - standalone to avoid circular dependencies
 
-## `./tick`
-
-- `emitSpanEvent`
-
-- `getTracer`
-
-- `initOtel`
-
-- `instrumentPipeline`
-
-- `recordCognitiveEvents`
-
-- `shutdownOtel`
-
-- `wrapMiddlewareWithSpan`
-
-- `createDefaultHooks`
-
-- `operationActionOf`
-
-- `toCognitiveEvents`
-
-- `// Phase F (audit M6): the `@deprecated` createPipeline alias no longer
-  // re-exports from the barrel; consumers import createTickPipeline directly.
-  createTickContext`
-
-- `createTickPipeline`
-
-- `DEFAULT_PIPELINE`
-
-- `runTick`
-
 ## `./tools`
 
 _Re-export barrel._
@@ -1488,7 +1452,7 @@ _Re-export barrel._
 
 - `BUDGET_SCOPES`
 
-- `BUDGET_SCOPE_IDS` — The five bounds §5.7 names. The order is the plan's.
+- `BUDGET_SCOPE_IDS`
 
 - `scopeBudget` — Resolve a scope's ceilings over a base budget: the dimension the scope spends
 

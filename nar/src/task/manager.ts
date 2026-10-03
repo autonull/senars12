@@ -2,7 +2,7 @@ import { maxBy, sortByDesc } from '@senars/util';
 
 import { type GateRegistry, gateRegistry } from '../kernel/GateRegistry.js';
 import type { TaskAdmission } from '../memory/ports/index.js';
-import type { Budget, Task } from '../types';
+import type { Task } from '../types';
 
 export type TaskLifecycle = 'pending' | 'running' | 'completed' | 'failed' | 'expired';
 
@@ -19,18 +19,12 @@ export interface TaskWrapper {
 
 export interface TaskManagerConfig {
   defaultTimeout?: number;
-  maxRetries?: number;
-  retryBackoffMs?: number;
-  enablePriorityScheduling?: boolean;
   /** TODO19 F2: per-instance gate registry (defaults to the process-global singleton). */
   gateRegistry?: GateRegistry;
 }
 
 const DEFAULT_CONFIG: Omit<Required<TaskManagerConfig>, 'gateRegistry'> = {
   defaultTimeout: 30000,
-  maxRetries: 3,
-  retryBackoffMs: 1000,
-  enablePriorityScheduling: true,
 };
 
 export class TaskManager {
@@ -94,7 +88,7 @@ export class TaskManager {
       createdAt: Date.now(),
       retries: 0,
       timeout: timeout ?? this.config.defaultTimeout,
-      priority: typeof task.budget === 'number' ? task.budget : task.budget.priority,
+      priority: task.budget.priority,
     };
 
     const taskId = task.stamp.id;
@@ -105,7 +99,6 @@ export class TaskManager {
       this.timeouts.set(taskId, id);
     }
 
-    if (this.config.enablePriorityScheduling) this.reschedulePending();
   }
 
   async processPending(): Promise<Task[]> {
@@ -147,7 +140,7 @@ export class TaskManager {
         wrapper.task.term,
         wrapper.task.type,
         wrapper.task.truth,
-        wrapper.task.budget as Budget,
+        wrapper.task.budget,
         wrapper.task.stamp
       );
 
@@ -205,11 +198,5 @@ export class TaskManager {
     wrapper.completedAt = Date.now();
     this.pending.delete(taskId);
     this.failed.set(taskId, wrapper);
-  }
-
-  private reschedulePending(): void {
-    const items = this.byPriority();
-    this.pending.clear();
-    for (const w of items) this.pending.set(w.task.stamp.id, w);
   }
 }

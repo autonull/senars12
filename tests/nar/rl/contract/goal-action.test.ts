@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import {
-  createBudget,
+  createTaskWeight,
   createTask,
   DEFAULT_CONFIG,
   NAR,
@@ -69,7 +69,7 @@ describe('Goal/Action Contract', () => {
         termParser.parse('echo_goal(profile:test)'),
         'goal',
         Truth.NEUTRAL,
-        createBudget(0.9)
+        createTaskWeight(0.9)
       )
     );
 
@@ -110,10 +110,10 @@ describe('Goal/Action Contract', () => {
     });
 
     nar.taskManager.addTask(
-      createTask(termParser.parse('low_prio()'), 'goal', Truth.NEUTRAL, createBudget(0.3))
+      createTask(termParser.parse('low_prio()'), 'goal', Truth.NEUTRAL, createTaskWeight(0.3))
     );
     nar.taskManager.addTask(
-      createTask(termParser.parse('high_prio()'), 'goal', Truth.NEUTRAL, createBudget(0.9))
+      createTask(termParser.parse('high_prio()'), 'goal', Truth.NEUTRAL, createTaskWeight(0.9))
     );
 
     // Verify pending queue is priority-ordered (high priority dispatched first)

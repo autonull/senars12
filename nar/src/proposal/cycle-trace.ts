@@ -1,31 +1,17 @@
 /**
- * The live cycle's stage vocabulary (TODO29.a A1).
- *
- * `nar/src/tick/` declared this vocabulary and nothing in production called it:
- * the live cycle timed free-form `PhaseTimer` categories, so "no `propose` work
- * inside a `reason` stage" had no trace to be asserted against (§0.8 finding 1).
- * The stage names are therefore `TickHook`'s keys — one vocabulary, not two — and
- * what this module adds is the *record* of which stage was open when.
+ * The live cycle's stage regions (TODO29.a A1).
  *
  * A stage region is `begin` … `end`, and nesting is what the property is about:
  * a producer's work opening inside `reason` is the cycle depending on a model,
- * whatever the trace says the work was called.
+ * whatever the trace says the work was called. The stage vocabulary itself lives
+ * in `stages.ts`.
  */
 
 import { BoundedRing } from '@senars/util';
-import type { TickHooks } from '../tick/tick.js';
 
-export type CycleStage = keyof TickHooks;
+import type { CycleStage } from './stages.js';
 
-/** Every stage a cycle may run, in the order a cycle runs them. */
-export const CYCLE_STAGES: readonly CycleStage[] = [
-  'authorize',
-  'perceive',
-  'attend',
-  'reason',
-  'propose',
-  'learn',
-];
+export type { CycleStage } from './stages.js';
 
 export interface CycleStageEvent {
   readonly cycle: number;

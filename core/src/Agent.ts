@@ -1,5 +1,5 @@
 import { type EpisodicMemory, generateId, makeId } from '@senars/util';
-import type { CognitiveEvent as _CE, CognitiveEvent } from '@senars/util/types/cognitive';
+import type { CognitiveEvent } from '@senars/util/types/cognitive';
 import { ApprovalService } from './ApprovalService.js';
 import { type CycleHost, runCycle, runCycleStream } from './agent/phases.js';
 import type { MacroPhase } from './agent/pipeline.js';
@@ -10,7 +10,6 @@ import type {
   ParsedCommand,
   SkillDefinition,
 } from './agent/types.js';
-import { AgentBridge } from './bridge/AgentBridge.js';
 import type { ChatOptions, ChatStreamEvent } from './chat.js';
 import type { LLMCortex } from './cortex/LLMCortex.js';
 import type { CognitiveStimulus, Derivation, Engine } from './engine/Engine.js';
@@ -29,8 +28,6 @@ export type {
   AgentPresetDeps,
   AgentPresetName,
   AgentPresetResult,
-  BridgeContext,
-  BridgeOptions,
   HealthStatus,
   ParsedCommand,
   SkillDefinition,
@@ -43,7 +40,6 @@ export class Agent {
   readonly memory: MemoryService;
   readonly engines: Map<string, Engine> = new Map();
   readonly policy: PolicyEngine;
-  readonly bridge: AgentBridge;
   readonly motor: ToolRegistry;
   readonly approval: ApprovalService;
   readonly cortex?: LLMCortex;
@@ -80,7 +76,6 @@ export class Agent {
     this.log = opts.log ?? new InMemoryEventLog();
     this.memory = new MemoryService();
     this.policy = new PolicyEngine();
-    this.bridge = new AgentBridge(this);
     this.motor = new ToolRegistry(opts.feedbackObserver);
     this.cortex = opts.cortex;
     this.episodicMemory = opts.episodicMemory;
@@ -180,7 +175,7 @@ export class Agent {
         ltm: true,
         rlfp: false,
         selfReasoning: false,
-        autonomyLoop: true,
+        autonomyLoop: false,
       },
     };
   }
@@ -215,7 +210,8 @@ export class Agent {
     this.#started = false;
     await this.sessionManager?.snapshot();
     await this.memory.persist();
-    for (const transport of this.#transports.values()) {
+    for (const [id, transport] of this.#transports) {
+      this.unmount(id);
       await transport.disconnect('agent stopping');
     }
     for (const engine of this.engines.values()) {
@@ -253,10 +249,6 @@ export class Agent {
     }
     yield { kind: 'finish', text: finalText };
     return finalText;
-  }
-
-  async replaySession(events: _CE[]): Promise<void> {
-    for (const evt of events) await this.log.append(evt);
   }
 
   getRecentDerivations(): Derivation[] {

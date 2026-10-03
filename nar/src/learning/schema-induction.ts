@@ -22,7 +22,7 @@ import type { MemoryReader } from '../memory/ports/index.js';
 import type { TextGenerator } from '../ports';
 import type { Term } from '../terms';
 import { containsSubterm, getSubject, Truth, termKey } from '../terms';
-import { createBudget, createTask, type Task } from '../types';
+import { createTaskWeight, createTask, type Task } from '../types';
 import type { RandomSource } from '../types/primitives.js';
 
 /** Serialized chain terms — the single rendering behind signatures, templates, and instances. */

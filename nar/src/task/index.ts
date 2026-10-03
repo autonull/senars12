@@ -1,6 +1,6 @@
 // Task types and creators
 export type { Budget, Task, TaskType } from '../types/core.js';
-export { createBudget, createTask } from '../types/core.js';
+export { createTaskWeight, createTask } from '../types/core.js';
 export type { InputProcessorConfig } from './input.js';
 
 // Task input handling

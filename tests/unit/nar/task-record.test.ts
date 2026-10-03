@@ -7,7 +7,7 @@ import {
   taskTypeFromPunctuation,
 } from '../../../nar/src/task/record.js';
 import { Truth, termParser } from '../../../nar/src/terms/index.js';
-import { createBudget, createTask } from '../../../nar/src/types/index.js';
+import { createTaskWeight, createTask } from '../../../nar/src/types/index.js';
 
 const term = (source: string) => termParser.parse(source);
 
@@ -82,7 +82,7 @@ describe('rehydrateTask', () => {
     const task = rehydrateTask({ term: 'a' });
 
     expect(task?.truth).toEqual(Truth.NEUTRAL);
-    expect(task?.budget).toEqual(createBudget(0.5));
+    expect(task?.budget).toEqual(createTaskWeight(0.5));
   });
 
   it('a non-finite budget falls back instead of poisoning the bag', () => {
@@ -98,7 +98,7 @@ describe('rehydrateTask', () => {
   });
 
   it('a restored stamp keeps its id and lineage', () => {
-    const original = createTask(term('a'), 'belief', Truth.NEUTRAL, createBudget(0.5), {
+    const original = createTask(term('a'), 'belief', Truth.NEUTRAL, createTaskWeight(0.5), {
       stamp: { id: 'seed', creationTime: 0 as never, source: 'INPUT', derivations: ['parent'] },
     });
 
@@ -109,7 +109,7 @@ describe('rehydrateTask', () => {
   });
 
   it('preserves the occurrence time so a replayed task is not aged to now', () => {
-    const original = createTask(term('a'), 'belief', Truth.NEUTRAL, createBudget(0.5), {
+    const original = createTask(term('a'), 'belief', Truth.NEUTRAL, createTaskWeight(0.5), {
       occurrenceTime: 1234 as never,
     });
 
@@ -123,7 +123,7 @@ describe('serializeTaskRecord', () => {
       term('(a-->b)'),
       'goal',
       Truth.create(0.7, 0.6),
-      createBudget(0.42),
+      createTaskWeight(0.42),
       {
         occurrenceTime: 99 as never,
       }
@@ -140,7 +140,7 @@ describe('serializeTaskRecord', () => {
 
   it('records the priority, not the whole budget', () => {
     const record = serializeTaskRecord(
-      createTask(term('a'), 'belief', Truth.NEUTRAL, createBudget(0.3, 0.1, 0.2))
+      createTask(term('a'), 'belief', Truth.NEUTRAL, createTaskWeight(0.3, 0.1, 0.2))
     );
 
     expect(record.budget).toBe(0.3);

@@ -180,7 +180,7 @@ export type {
 /** Core builders, task factories, and NAR error hierarchy. @public */
 export {
   ConfigurationError,
-  createBudget,
+  createTaskWeight,
   createSecondaryTask,
   createTask,
   DEFAULT_CONFIG,

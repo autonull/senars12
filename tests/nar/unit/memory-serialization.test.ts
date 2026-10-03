@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createBudget, Stamp, TermBuilder, Truth } from '../../../nar/src';
+import { createTaskWeight, Stamp, TermBuilder, Truth } from '../../../nar/src';
 import { deserialize, Memory, repair, serialize, validate } from '../../../nar/src/memory';
 
 describe('Phase 5.4: Memory Serialization', () => {
@@ -63,7 +63,7 @@ describe('Phase 5.4: Memory Serialization', () => {
   it('should preserve truth values during serialization', async () => {
     const memory = new Memory();
     const term = TermBuilder.atom('withTruth');
-    memory.addTask(term, 'belief', Truth.TRUE, createBudget(0.9));
+    memory.addTask(term, 'belief', Truth.TRUE, createTaskWeight(0.9));
 
     const data = serialize(memory);
     const concept = data.concepts[0];
@@ -78,9 +78,9 @@ describe('Phase 5.4: Memory Serialization', () => {
     const s1 = Stamp.derive([s0], 'DERIVED')!;
     const s2 = Stamp.derive([s1], 'DERIVED')!;
     const inh = TermBuilder.inheritance(TermBuilder.atom('bird'), TermBuilder.atom('animal'))!;
-    memory1.addTask(inh, 'belief', Truth.create(1, 0.9), createBudget(0.8), s2);
-    memory1.addTask(TermBuilder.atom('goal1'), 'goal', Truth.create(1, 0.9), createBudget(0.7));
-    memory1.addTask(TermBuilder.atom('q1'), 'question', undefined, createBudget(0.6));
+    memory1.addTask(inh, 'belief', Truth.create(1, 0.9), createTaskWeight(0.8), s2);
+    memory1.addTask(TermBuilder.atom('goal1'), 'goal', Truth.create(1, 0.9), createTaskWeight(0.7));
+    memory1.addTask(TermBuilder.atom('q1'), 'question', undefined, createTaskWeight(0.6));
     memory1.getConcept(inh)!.writeAttention({ reason: 'assign', value: 0.75 });
 
     const data = JSON.parse(JSON.stringify(serialize(memory1)));

@@ -1,6 +1,6 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import { describe, expect, it } from 'vitest';
-import { createBudget, createTask, DEFAULT_CONFIG, NAR, Truth, termParser } from '../../nar/src';
+import { createTaskWeight, createTask, DEFAULT_CONFIG, NAR, Truth, termParser } from '../../nar/src';
 import type { Perception } from '../../nar/src/game/Game.js';
 import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
@@ -77,7 +77,7 @@ describe('System One — Teleological Transduction (Bench 11)', () => {
         termParser.parse('move_to(direction:north)'),
         'goal',
         Truth.create(proposal.value, proposal.confidence),
-        createBudget(proposal.value * proposal.confidence)
+        createTaskWeight(proposal.value * proposal.confidence)
       )
     );
     await nar.run(1);

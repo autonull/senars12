@@ -7,7 +7,7 @@ import {
 } from '@senars/nar/config/cognitive-parameters';
 import { Memory } from '@senars/nar/memory';
 import { atom, Truth } from '../../nar/src/terms/index.js';
-import { createBudget } from '../../nar/src/types/index.js';
+import { createTaskWeight } from '../../nar/src/types/index.js';
 
 /**
  * TODO27 Bench 107 — the bag slot is a contract.
@@ -70,7 +70,7 @@ describe('Bench 107 — the bag slot validates and reaches the bag', () => {
   it('a belief survives a decay pass, so the bag still holds what it was given', () => {
     const memory = new Memory({ bag: resolveBagSlot({ type: 'fenwick' }) });
     const term = atom('cat');
-    memory.addConcept(term).addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createBudget(0.9) });
+    memory.addConcept(term).addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createTaskWeight(0.9) });
     expect(memory.getConcept(term)!.beliefBag.peek()!.truth!.f).toBe(0.9);
   });
 });

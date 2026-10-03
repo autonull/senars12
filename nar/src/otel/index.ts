@@ -10,8 +10,7 @@ import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { registerLogEnricher } from '@senars/core';
 import { setDomainEventSink } from '@senars/core/event-sink';
-import { errMsg, stopwatch } from '@senars/util';
-import type { CognitiveEvent, TickContext } from '../tick/tick.js';
+import { errMsg } from '@senars/util';
 
 let provider: NodeTracerProvider | null = null;
 let initialized = false;
@@ -107,62 +106,6 @@ function registerLogTraceEnricher(): void {
   });
 }
 
-const COGNITIVE_STAGES = [
-  'perceive',
-  'recall',
-  'attend',
-  'reason',
-  'propose',
-  'negotiate',
-  'authorize',
-  'act',
-  'validate',
-  'learn',
-  'consolidate',
-] as const;
-
-type CognitiveStage = (typeof COGNITIVE_STAGES)[number];
-
-export function wrapMiddlewareWithSpan(
-  stage: CognitiveStage,
-  middleware: (ctx: TickContext, next: () => Promise<void>) => Promise<void>
-) {
-  const tracer = getTracer('senars.cognitive-tick');
-  return async (ctx: TickContext, next: () => Promise<void>) => {
-    return tracer.startActiveSpan(
-      `cognitive.${stage}`,
-      { kind: SpanKind.INTERNAL },
-      async (span) => {
-        const elapsed = stopwatch();
-        span.setAttribute('tick.id', ctx.tickId);
-        span.setAttribute('cognitive.stage', stage);
-        span.setAttribute('cognitive.budget.cycles', ctx.budget.cycles);
-        if (ctx.budget.depth) span.setAttribute('cognitive.budget.depth', ctx.budget.depth);
-        try {
-          await middleware(ctx, next);
-          span.setStatus({ code: SpanStatusCode.OK });
-        } catch (error) {
-          span.setStatus({
-            code: SpanStatusCode.ERROR,
-            message: errMsg(error),
-          });
-          span.recordException(error as Error);
-          throw error;
-        } finally {
-          span.setAttribute('cognitive.duration_ms', elapsed());
-          span.end();
-        }
-      }
-    );
-  };
-}
-
-export function instrumentPipeline(
-  pipeline: Array<(ctx: TickContext, next: () => Promise<void>) => Promise<void>>
-): Array<(ctx: TickContext, next: () => Promise<void>) => Promise<void>> {
-  return pipeline.map((mw, i) => wrapMiddlewareWithSpan(COGNITIVE_STAGES[i] as CognitiveStage, mw));
-}
-
 /**
  * The one event emitter. A nested payload is flattened into dotted attribute
  * names, so `{ consumed: { memoryOps: 1 } }` under the prefix `budget.slice`
@@ -190,26 +133,6 @@ export function emitEvent(name: string, prefix: string, payload: Record<string, 
   span.addEvent(name, attributes);
 }
 
-export function emitSpanEvent(
-  ctx: TickContext,
-  name: string,
-  attributes: Record<string, unknown> = {}
-): void {
-  emitEvent(name, '', { 'tick.id': ctx.tickId, ...attributes });
-}
-
-export function recordCognitiveEvents(ctx: TickContext): void {
-  if (!ctx.events.length) return;
-  for (const event of ctx.events) {
-    emitEvent(event.stage, '', {
-      'tick.id': ctx.tickId,
-      'event.stage': event.stage,
-      'event.detail': event.detail ?? '',
-      'event.at': event.at,
-    });
-  }
-}
-
 export async function shutdownOtel(): Promise<void> {
   if (provider) {
     await provider.shutdown();
@@ -218,5 +141,4 @@ export async function shutdownOtel(): Promise<void> {
   }
 }
 
-export type { CognitiveStage };
-export { SpanKind, SpanStatusCode };
+export { SpanStatusCode };

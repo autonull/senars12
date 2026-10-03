@@ -46,7 +46,7 @@ import { TaskManager } from '../../nar/src/task/manager.js';
 import { Stamp, Truth, type Term } from '../../nar/src/terms';
 import { atom } from '../../nar/src/terms/impls/factory.js';
 import type { Budget, Task } from '../../nar/src/types';
-import { createBudget, createTask } from '../../nar/src/types';
+import { createTaskWeight, createTask } from '../../nar/src/types';
 
 import { isCyclePath, resolveInNar } from '../../scripts/lib/layer-boundary.js';
 import { ROOT } from '../../scripts/lib/root.js';
@@ -104,7 +104,7 @@ class FakeStore implements MemoryPorts {
     term: Term,
     type: ConceptTaskType,
     truth?: Truth,
-    budget: Budget = createBudget(0.5),
+    budget: Budget = createTaskWeight(0.5),
     stamp?: Stamp
   ): boolean {
     return this.addConcept(term).addTask(type, { term, truth, budget, stamp });
@@ -246,7 +246,7 @@ describe('A5 — memory is a set of ports', () => {
     const cat = atom('cat');
 
     expect(store.size).toBe(0);
-    manager.addTask(createTask(cat, 'belief', Truth.TRUE, createBudget(0.9)));
+    manager.addTask(createTask(cat, 'belief', Truth.TRUE, createTaskWeight(0.9)));
     await manager.processPending();
 
     expect(store.size).toBe(1);

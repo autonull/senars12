@@ -5,7 +5,7 @@
 import type { Term } from '../terms';
 import { Truth } from '../terms';
 import type { Task, TaskType } from '../types';
-import { createBudget, createTask } from '../types';
+import { createTaskWeight, createTask } from '../types';
 import { LMResponseParser, LMRule } from './LMRule.js';
 import type { LMRuleConfig, LMService } from './lm-service.js';
 import { prompts, ruleDefs } from './rule-templates/index.js';
@@ -73,16 +73,16 @@ const responseToTask = (response: string, type: TaskType, budget: number): Task 
       { kind: 'atom' as const, symbol: 'TRUE' },
       type,
       Truth.NEUTRAL,
-      createBudget(budget)
+      createTaskWeight(budget)
     );
   const parsed = LMResponseParser.parse(response);
   return parsed.valid && parsed.term
-    ? createTask(parsed.term, type, parsed.truth, createBudget(budget))
+    ? createTask(parsed.term, type, parsed.truth, createTaskWeight(budget))
     : createTask(
         { kind: 'atom' as const, symbol: response.trim() },
         type,
         Truth.NEUTRAL,
-        createBudget(budget)
+        createTaskWeight(budget)
       );
 };
 

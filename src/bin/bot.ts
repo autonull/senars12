@@ -405,7 +405,7 @@ async function main(): Promise<void> {
         lmReflex: true,
         proposers: [new MettaProposer(evaluateMetta, { toExpression: () => undefined })],
       });
-      if (conversationGame) logger.info('ConversationGameFocus attached with reflexes');
+      if (conversationGame) logger.info('ConversationGameFocus attached (not stepped)');
     } catch (e) {
       logger.warn('Failed to attach ConversationGameFocus', { error: errMsg(e) });
     }

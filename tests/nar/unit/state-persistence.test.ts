@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { EventBus } from '@senars/util/events';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
-  createBudget,
+  createTaskWeight,
   createNAR,
   DEFAULT_CONFIG,
   Memory,
@@ -206,7 +206,7 @@ describe('NARExecution Observability Emission', () => {
       emittedEvents.push(event);
     });
 
-    memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
+    memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createTaskWeight(0.9));
 
     // Run 15 cycles - should emit at cycle 10
     for (let i = 0; i < 15; i++) {
@@ -233,7 +233,7 @@ describe('NARExecution Observability Emission', () => {
       emittedEvents.push(event);
     });
 
-    memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
+    memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createTaskWeight(0.9));
 
     // Run 5 cycles - should not emit yet
     for (let i = 0; i < 5; i++) {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { createBudget, createTask, Memory, TermBuilder, Truth } from '../../../nar/src';
+import { createTaskWeight, createTask, Memory, TermBuilder, Truth } from '../../../nar/src';
 import type { RuleStats } from '../../../nar/src/metrics';
 import { MetricsCollector } from '../../../nar/src/metrics';
 import { QueryAPI, ReasoningTrace } from '../../../nar/src/query';
@@ -38,8 +38,8 @@ describe('NAR Query and Metrics', () => {
 
   describe('Query API', () => {
     test('getBeliefs returns beliefs', () => {
-      memory.addTask(TermBuilder.atom('A'), 'belief', Truth.TRUE, createBudget(0.9));
-      memory.addTask(TermBuilder.atom('B'), 'belief', Truth.FALSE, createBudget(0.7));
+      memory.addTask(TermBuilder.atom('A'), 'belief', Truth.TRUE, createTaskWeight(0.9));
+      memory.addTask(TermBuilder.atom('B'), 'belief', Truth.FALSE, createTaskWeight(0.7));
 
       const beliefs = query.getBeliefs();
 
@@ -52,7 +52,7 @@ describe('NAR Query and Metrics', () => {
     });
 
     test('getGoals returns goal tasks', () => {
-      memory.addTask(TermBuilder.atom('goal1'), 'goal', Truth.TRUE, createBudget(0.8));
+      memory.addTask(TermBuilder.atom('goal1'), 'goal', Truth.TRUE, createTaskWeight(0.8));
 
       const goals = query.getGoals();
 
@@ -60,7 +60,7 @@ describe('NAR Query and Metrics', () => {
     });
 
     test('getQuestions returns question tasks', () => {
-      memory.addTask(TermBuilder.atom('question1'), 'question', Truth.NEUTRAL, createBudget(0.6));
+      memory.addTask(TermBuilder.atom('question1'), 'question', Truth.NEUTRAL, createTaskWeight(0.6));
 
       const questions = query.getQuestions();
 
@@ -68,7 +68,7 @@ describe('NAR Query and Metrics', () => {
     });
 
     test('query returns result for term', () => {
-      memory.addTask(TermBuilder.atom('querytest'), 'belief', Truth.TRUE, createBudget(0.8));
+      memory.addTask(TermBuilder.atom('querytest'), 'belief', Truth.TRUE, createTaskWeight(0.8));
 
       const result = query.query(TermBuilder.atom('querytest'));
 
@@ -78,7 +78,7 @@ describe('NAR Query and Metrics', () => {
 
   describe('ReasoningTrace', () => {
     test('getDerivationHistory returns history', () => {
-      const task = createTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.8));
+      const task = createTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createTaskWeight(0.8));
 
       const history = traceAPI.getDerivationHistory(task);
 

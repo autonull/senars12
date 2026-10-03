@@ -10,7 +10,8 @@ import type { GateRegistry } from './kernel/GateRegistry.js';
 import type { KernelBudgetGate } from './kernel/KernelBudgetGate.js';
 import type { MemoryPorts } from './memory/ports/index.js';
 import { askSafely, type DecisionPort } from './ports/index.js';
-import { CycleTrace, type CycleStage } from './proposal/cycle-trace.js';
+import { CycleTrace } from './proposal/cycle-trace.js';
+import type { CycleStage } from './proposal/stages.js';
 import type { LMProposalProducer } from './proposal/lm-rule-producer.js';
 import type { PolicyOptimizer, RLFPLearner } from './rlfp';
 import {

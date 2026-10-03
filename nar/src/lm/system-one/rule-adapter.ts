@@ -2,7 +2,7 @@ import { clamp, clamp01, selectTopN } from '@senars/util';
 import type { Term } from '../../terms';
 import { Truth, termParser } from '../../terms';
 import type { Budget, Task, TruthType } from '../../types';
-import { createBudget, createTask } from '../../types/core.js';
+import { createTaskWeight, createTask } from '../../types/core.js';
 import type { CognitiveDispatcher, EvaluateQuery, JudgmentProposition } from './types.js';
 import { createSystemOneBudget } from './types.js';
 
@@ -74,7 +74,7 @@ export class SystemOneLMRuleAdapter {
       for (const admitted of peaResult.admitted) {
         const parsed = termParser.parse(admitted.candidate);
         if (parsed) {
-          const taskBudget: Budget = createBudget(admitted.truth.c, 0.8, 0.9, 10, 5);
+          const taskBudget: Budget = createTaskWeight(admitted.truth.c, 0.8, 0.9, 10, 5);
           tasks.push(
             createTask(parsed, 'belief', admitted.truth as TruthType, taskBudget, {
               stamp: admitted.stamp,

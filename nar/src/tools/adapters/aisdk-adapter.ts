@@ -41,14 +41,14 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
     try {
       // Parse the statement to create a task for checking
       const { termParser, Truth } = await import('../../terms/index.js');
-      const { createTask, createBudget } = await import('../../types');
+      const { createTask, createTaskWeight } = await import('../../types');
       const parsed = termParser.parseTask(statement);
       if (parsed?.term) {
         const task = createTask(
           parsed.term,
           type as 'belief' | 'goal',
           parsed.truth ?? Truth.NEUTRAL,
-          createBudget(0.5)
+          createTaskWeight(0.5)
         );
         const violation = nar.checkConstitutionViolation(task);
         return { violation, clause: violation ? 'constitution conflict' : undefined };
