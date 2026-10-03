@@ -17,7 +17,7 @@ import {
   LruCache,
   parseJsonObject,
 } from '@senars/util';
-import { type BagItem, PriorityBag } from '../bag/Bag.js';
+import { type BagItem } from '../bag/Bag.js';
 import type { MemoryReader } from '../memory/ports/index.js';
 import type { TextGenerator } from '../ports';
 import type { Term } from '../terms';
@@ -41,6 +41,7 @@ import {
   type AikrBagOptions,
   PrioritySampling,
   type ProcessOptions,
+  createAikrBag,
 } from './aikr-processor.js';
 
 export interface SchemaPattern {
@@ -92,7 +93,7 @@ export class SchemaInductor {
   private lastInductionTime = 0;
   private readonly rng: RandomSource;
   /** Phase C (REFACTOR.todo1): AIKR-bounded chain accumulation + processing. */
-  readonly #chainBag = new PriorityBag<DerivationChainItem>({ capacity: 256 });
+  readonly #chainBag = createAikrBag<DerivationChainItem>({ capacity: 256 });
   readonly #processor: AIKRProcessor<DerivationChainItem, InductionResult>;
   static readonly #SEEN_SIGNATURE_CAP = 4096;
   readonly #seenSignatures = new LruCache<string, true>(SchemaInductor.#SEEN_SIGNATURE_CAP);
@@ -103,10 +104,11 @@ export class SchemaInductor {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.rng = config.rng ?? Math.random;
     this.logger = createLogger({ scope: 'learning:schema-induction' });
-    this.#chainBag = new PriorityBag<DerivationChainItem>({
+    this.#chainBag = createAikrBag<DerivationChainItem>({
       capacity: this.config.capacity ?? 256,
       forgetRate: this.config.forgetRate,
       rng: this.rng,
+      implementation: this.config.implementation,
     });
     this.#processor = new AIKRProcessor<DerivationChainItem, InductionResult>({
       bag: this.#chainBag,

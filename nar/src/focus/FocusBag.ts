@@ -58,9 +58,7 @@ export class FocusBag extends PriorityBag<Focus> {
   /** Serialize FocusBag weights for persistence */
   serialize(): SerializedFocusBag {
     const weights: Record<string, number> = {};
-    for (const [id, weight] of this.getFocusWeights()) {
-      weights[id] = weight;
-    }
+    for (const focus of this.all()) weights[focus.id] = focus.weight;
     return {
       weights,
       decayRate: this.decayRateValue,

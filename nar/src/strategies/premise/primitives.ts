@@ -321,6 +321,19 @@ export function resolveScorer(
   throw noSuch('scorer', JSON.stringify(scorer), candidates);
 }
 
+/** Strongest claim per canonical term — the shared dedup behind composite premise/sampling unions. */
+export const keepStrongestByTerm = <T extends { term: Term }>(
+  candidates: readonly T[],
+  scoreOf: (item: T) => number
+): T[] => {
+  const strongest = new TermMap<T>();
+  for (const candidate of candidates) {
+    const held = strongest.get(candidate.term);
+    if (!held || scoreOf(candidate) > scoreOf(held)) strongest.set(candidate.term, candidate);
+  }
+  return [...strongest.values()];
+};
+
 /** The config merged over {@link PREMISE_SAMPLE_FALLBACK}, with its filters already bound. */
 interface ResolvedPipeline {
   readonly config: ResolvedSampleConfig;

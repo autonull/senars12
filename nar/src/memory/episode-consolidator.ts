@@ -15,12 +15,12 @@ import {
   sha256Prefixed,
   shortSha256Hex,
 } from '@senars/util';
-import { PriorityBag } from '../bag/Bag.js';
 import {
   AIKRProcessor,
   type AikrBagOptions,
   AikrShell,
   type ProcessOptions,
+  createAikrBag,
 } from '../learning/aikr-processor.js';
 import type { RandomSource } from '../types/primitives.js';
 
@@ -102,11 +102,12 @@ export class EpisodeConsolidator extends AikrShell<
   readonly #clock: () => number;
 
   constructor(options: EpisodeConsolidatorOptions = {}) {
-    const bag = new PriorityBag<EpisodeCandidate>({
+    const bag = createAikrBag<EpisodeCandidate>({
       capacity: options.capacity ?? 256,
       forgetRate: options.forgetRate,
       rng: options.rng,
       clock: options.clock,
+      implementation: options.implementation,
     });
     super({
       bag,

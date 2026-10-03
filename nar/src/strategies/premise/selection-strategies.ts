@@ -1,13 +1,11 @@
 import { createLogger } from '@senars/util';
-import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
-import { createStrategy, type StrategyConfig } from '../../reason/strategies/base';
-import { type Term, TermMap, type Truth } from '../../terms';
+import { createBeliefTaskFromConcept } from '../../reason/inference-utils.js';
+import { createStrategy } from '../../reason/strategies/base';
 import type { Task } from '../../types';
-import { createBeliefTask } from '../../types';
 import type { ComponentMetadata, Strategy } from '../types.js';
-import type { PremiseOverrides } from './config.js';
-import type { FilterSpec } from './primitives.js';
+import type { PremiseOverrides, PremiseSampleSpec } from './config.js';
+import { type FilterSpec, keepStrongestByTerm } from './primitives.js';
 import {
   EmbeddingLinkStrategy as RealEmbeddingLinkStrategy,
   TermLinkStrategy as RealTermLinkStrategy,
@@ -15,10 +13,11 @@ import {
 
 const logger = createLogger({ scope: 'Strategies' });
 
-export type PremisePrimitiveSpec = { description: string } & Omit<
-  StrategyConfig,
-  'name' | 'description' | 'filter' | 'truthFilter' | 'sampleSize' | 'limit'
-> & { sampleSize: number; limit: number };
+export type PremisePrimitiveSpec = PremiseSampleSpec & {
+  description: string;
+  sampleSize: number;
+  limit: number;
+};
 
 /**
  * The primitive premise strategies, declared once.
@@ -105,10 +104,7 @@ export class DecompositionStrategy implements Strategy {
     return task.term.args
       .map((arg) => {
         const concept = memory.getConcept(arg);
-        if (!concept) return null;
-        const belief = concept.beliefBag.peek();
-        if (!belief?.truth) return null;
-        return createBeliefTask(arg, belief.truth, concept.priority);
+        return concept ? createBeliefTaskFromConcept(concept) : null;
       })
       .filter((t): t is Task => t !== null);
   }
@@ -146,13 +142,7 @@ export class CompositeStrategy implements Strategy {
     if (this.mode !== 'dedup') return contributions;
 
     // Highest link/priority wins, deduped on the canonical structural identity.
-    const strongest = new TermMap<Task>();
-    for (const candidate of contributions) {
-      const held = strongest.get(candidate.term);
-      if (!held || candidate.budget.priority > held.budget.priority)
-        strongest.set(candidate.term, candidate);
-    }
-    return [...strongest.values()];
+    return keepStrongestByTerm(contributions, (candidate) => candidate.budget.priority);
   }
 }
 

@@ -13,7 +13,8 @@ import {
   weightedSample,
   weightedSampleBy,
 } from '@senars/util';
-import type { Bag, BagItem } from '../bag/Bag.js';
+import { type Bag, type BagImplementation, type BagItem, type BagOptions } from '../bag/Bag.js';
+import { createBag } from '../bag/index.js';
 
 export interface BagSamplingStrategy<T extends BagItem> {
   readonly name: string;
@@ -33,7 +34,22 @@ export interface AikrBagOptions {
   budget?: number;
   /** Injected randomness for sampling (default Math.random). */
   rng?: RandomSource;
+  /** Bag backend (`strategies.bag.implementation`); default 'priority'. */
+  implementation?: BagImplementation;
 }
+
+/** One construction path for every AIKR-bounded bag — capacity is the caller's bound, the rest threads through. */
+export const createAikrBag = <T extends BagItem>(
+  options: AikrBagOptions & Pick<BagOptions, 'clock' | 'id'> & { capacity: number }
+): Bag<T> =>
+  createBag<T>({
+    capacity: options.capacity,
+    forgetRate: options.forgetRate,
+    rng: options.rng,
+    implementation: options.implementation,
+    ...(options.clock ? { clock: options.clock } : {}),
+    ...(options.id ? { id: options.id } : {}),
+  });
 
 const softmaxWeights = <T>(
   items: T[],

@@ -1,5 +1,5 @@
-import type { BagItem } from '../bag/Bag.js';
-import { PriorityBag } from '../bag/Bag.js';
+import type { Bag, BagImplementation, BagItem } from '../bag/Bag.js';
+import { createBag } from '../bag/index.js';
 import type { Game, GameOutcome, Perception } from '../game/Game.js';
 import { ActionGate } from '../gates/ActionGate.js';
 import { PerceptionGate } from '../gates/PerceptionGate.js';
@@ -22,8 +22,6 @@ import type { Budget, ConceptLike, Task } from '../types/index.js';
 import { clamp01, getOrInsert } from '@senars/util';
 
 export interface FocusTask extends BagItem {
-  id: string;
-  priority: number;
   term: Term;
   type: 'belief' | 'goal' | 'question';
   truth: { f: number; c: number };
@@ -33,8 +31,6 @@ export interface FocusTask extends BagItem {
 }
 
 export interface FocusConcept extends BagItem {
-  id: string;
-  priority: number;
   term: Term;
   /** Truth of the belief that created the concept (drives NAL derivation truth). */
   truth?: { f: number; c: number };
@@ -70,12 +66,14 @@ export interface FocusOptions {
   gateRegistry: GateRegistry;
   /** P1 (TODO20): injectable RNG for deterministic replay of task/memory sampling. */
   rng?: RandomSource;
+  /** Bag backend for the task/concept pools (`strategies.bag.implementation`); default 'priority'. */
+  implementation?: BagImplementation;
 }
 
 export class Focus implements BagItem {
   readonly id: string;
-  readonly tasks: PriorityBag<FocusTask>;
-  readonly memory: PriorityBag<FocusConcept>;
+  readonly tasks: Bag<FocusTask>;
+  readonly memory: Bag<FocusConcept>;
   weight: number;
 
   private cycle = 0;
@@ -92,16 +90,18 @@ export class Focus implements BagItem {
     this.weight = options.weight ?? 1.0;
     this.gates = options.gateRegistry;
 
-    this.tasks = new PriorityBag<FocusTask>({
+    this.tasks = createBag<FocusTask>({
       capacity: options.taskCapacity ?? 1000,
       decayRate: options.taskDecayRate ?? 0.01,
       rng: options.rng,
+      implementation: options.implementation,
     });
 
-    this.memory = new PriorityBag<FocusConcept>({
+    this.memory = createBag<FocusConcept>({
       capacity: options.conceptCapacity ?? 500,
       decayRate: options.conceptDecayRate ?? 0.005,
       rng: options.rng,
+      implementation: options.implementation,
     });
 
     this.perceptionGate = new PerceptionGate();
@@ -226,10 +226,7 @@ export class Focus implements BagItem {
   }
 
   private findConcept(id: string): FocusConcept | undefined {
-    for (const c of this.memory.all()) {
-      if (c.id === id) return c;
-    }
-    return undefined;
+    return this.memory.find((c) => c.id === id);
   }
 
   getPerceptionGate(): PerceptionGate {

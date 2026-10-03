@@ -8,12 +8,12 @@
  */
 import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
 import { selectByPriority } from '@senars/util';
-import { PriorityBag } from '../bag/Bag.js';
 import {
   AIKRProcessor,
   type AikrBagOptions,
   AikrShell,
   type ProcessOptions,
+  createAikrBag,
 } from '../learning/aikr-processor.js';
 import type { RandomSource } from '../types/primitives.js';
 
@@ -69,10 +69,11 @@ export class ProposalBag {
   readonly #alignmentOf: (proposal: SelfImprovementProposal) => number;
 
   constructor(options: ProposalBagOptions = {}) {
-    const bag = new PriorityBag<ProposalCandidate>({
+    const bag = createAikrBag<ProposalCandidate>({
       capacity: options.capacity ?? 64,
       forgetRate: options.forgetRate,
       rng: options.rng,
+      implementation: options.implementation,
     });
     this.#shell = new AikrShell<
       ProposalCandidate,

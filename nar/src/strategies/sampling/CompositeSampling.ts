@@ -2,7 +2,7 @@ import { selectTopN } from '@senars/util';
 
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
-import { TermMap } from '../../terms';
+import { keepStrongestByTerm } from '../premise/primitives.js';
 import type { ComponentMetadata, SamplingStrategy } from '../types.js';
 
 /**
@@ -20,13 +20,8 @@ export class CompositeSampling implements SamplingStrategy {
 
   sample(memory: MemoryView, count: number): Concept[] {
     if (count <= 0) return [];
-    const strongest = new TermMap<Concept>();
-    for (const sampler of this.samplers) {
-      for (const concept of sampler.sample(memory, count)) {
-        const held = strongest.get(concept.term);
-        if (!held || concept.priority > held.priority) strongest.set(concept.term, concept);
-      }
-    }
-    return selectTopN(strongest.values(), count, (concept) => concept.priority);
+    const candidates = this.samplers.flatMap((sampler) => sampler.sample(memory, count));
+    const deduped = keepStrongestByTerm(candidates, (concept) => concept.priority);
+    return selectTopN(deduped, count, (concept) => concept.priority);
   }
 }
