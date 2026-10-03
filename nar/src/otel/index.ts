@@ -24,8 +24,7 @@ export interface OtelConfig {
   spanProcessors?: SpanProcessor[];
 }
 
-export function initOtel(config: OtelConfig = {}): void {
-  if (initialized) return;
+export async function initOtel(config: OtelConfig = {}): Promise<void> {
   const {
     serviceName = 'senars-cognitive-kernel',
     otlpEndpoint,
@@ -33,6 +32,8 @@ export function initOtel(config: OtelConfig = {}): void {
     enabled = true,
     spanProcessors: extraProcessors = [],
   } = config;
+  if (initialized && extraProcessors.length === 0 && !otlpEndpoint) return;
+  if (initialized) await shutdownOtel();
   initialized = true;
   if (!enabled) return;
   registerLogTraceEnricher();
@@ -52,7 +53,6 @@ export function initOtel(config: OtelConfig = {}): void {
     spanProcessors,
   });
   provider.register();
-  initialized = true;
 }
 
 export function getTracer(name: string) {

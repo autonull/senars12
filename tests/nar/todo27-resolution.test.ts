@@ -56,7 +56,7 @@ const capture = <T>(run: () => T): T => {
   return withSpan('tick', {}, run);
 };
 
-beforeAll(() => initOtel({ otlpEndpoint: undefined, spanProcessors: [processor] }));
+beforeAll(async () => { await initOtel({ otlpEndpoint: undefined, spanProcessors: [processor] }); });
 afterAll(async () => {
   await shutdownOtel();
 });

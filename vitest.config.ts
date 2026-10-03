@@ -22,14 +22,12 @@ export default defineConfig({
     testTimeout: 15000,
     teardownTimeout: 5000,
     coverage: { provider: 'v8', reporter: ['text', 'json', 'html'] },
-    // Forks pool: per-file process isolation (TODO20 T3) — hermetic module state,
-    // and native modules (onnxruntime-node) load once per process.
-    pool: 'forks',
+    // Forks pool for E2E (native modules); threads for unit tests (shared module cache).
+    pool: process.env.VITEST_E2E ? 'forks' : 'threads',
     maxConcurrency: 16,
-    // Full module isolation per test file (TODO20 T3) — surfaces cross-file
-    // module-state coupling; provider runtime state is scoped per instance (X3).
-    isolate: true,
-    // Cache transformed modules on disk; reuse across reruns/cold starts (slower transform phase)
+    // Isolation only for E2E; unit tests share module cache to avoid 354x import overhead.
+    isolate: !!process.env.VITEST_E2E,
+    // Cache transformed modules on disk; reuse across reruns/cold starts.
     fsModuleCache: true,
   },
 });
