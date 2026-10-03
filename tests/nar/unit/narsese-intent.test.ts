@@ -26,12 +26,16 @@ describe('the Narsese ingress router', () => {
     }
   });
 
-  it('routed Narsese that the parser rejects is a fall-through, not a fault', () => {
-    // The router is a shape heuristic and the parser is stricter; the ingress path
-    // catches the disagreement rather than throwing at the caller.
-    const intent = dispatchNarseseIntent('{a --> b}.');
-    expect(intent).not.toBeNull();
-    expect(() => termParser.parse(intent?.text ?? '')).toThrow();
+  it('Narsese-shaped text the parser rejects goes to the LM path, not to a throw', () => {
+    expect(() => termParser.parse('{a --> b}.')).toThrow();
+    expect(dispatchNarseseIntent('{a --> b}.')).toBeNull();
+  });
+
+  it('routes a statement that only parses once a punctuation is supplied', () => {
+    expect(dispatchNarseseIntent('(cat --> animal)')).toEqual({
+      kind: 'belief',
+      text: '(cat --> animal)',
+    });
   });
 
   it('says "not Narsese" for prose rather than throwing', () => {

@@ -215,13 +215,13 @@ Entry: `NARExecution.run(steps = 1, signal?)` — `nar/src/nar-execution.ts:197`
 
 ```mermaid
 flowchart TB
-  START(["NARExecution.run&#40;steps, signal&#41;"]) --> CLR["phaseTimer.clear&#40;&#41;"]
+  START(["NARExecution.run&#40;steps, signal&#41;"]) --> CLR["cycleTrace.setCorrelationId&#40;&#41;"]
   CLR --> RLFP{"RLFP_ENABLED env<br/>AND policyOptimizer?"}
   RLFP --> LOOP
 
   LOOP{{"for i = 0 … steps-1"}} --> ABORT{"signal?.aborted?"}
   ABORT -- yes --> POST
-  ABORT -- no --> CNT["_cycleCount++<br/>phaseTimer.begin cycle"]
+  ABORT -- no --> CNT["_cycleCount++<br/>cycleTrace.begin cycle region"]
   CNT --> BUD["budgets.beginCycle&#40;&#41;<br/>reset 6 control scopes"]
   BUD --> SIG["cycleSignals = all false"]
 
@@ -266,7 +266,7 @@ flowchart TB
   S5["STAGE propose<br/>pumpProposals — DETACHED"] --> S6["STAGE learn"]
   S6 --> LEARN{"periodic branches"}
   LEARN --> LOG["logger.debug meta-reasoning"]
-  LOG --> ENDT["phaseTimer.end&#40;&#41;"]
+  LOG --> ENDT["cycleTrace.end&#40;&#41;"]
   ENDT --> LOOP
 
   LOOP -- "loop exhausted" --> POST
@@ -1041,10 +1041,10 @@ sequenceDiagram
 
 | Trace | Records | Accessed via | Used by |
 |---|---|---|---|
-| `PhaseTimer` | stack-disciplined `begin/end` of free-form `category`+`name` | `nar.getPhaseTimer()` — `nar.ts:716` | flame charts; `formatFlameChart()` |
-| `CycleTrace` | `begin`/`end` of the 6 typed `CycleStage`s, `BoundedRing` depth 512 | `nar.getCycleTrace()` — `nar-execution.ts:567` | the no-nested-`propose` invariant (§12.2) |
+| `CycleTrace` | `begin`/`end` of the 6 typed `CycleStage`s plus the auxiliary regions, `BoundedRing` depth 512 | `nar.getCycleTrace()` — `nar-execution.ts` | the no-nested-`propose` invariant (§12.2); the timing projection |
+| `summarizeRegions` | a pure projection over `CycleTrace.regions()`; no clock of its own | `execution.getPhaseSummary()` | spans per region; `formatFlameChart()` |
 
-`CycleTrace` is the one that matters for reasoning about the control flow, because stage names are typed. `PhaseTimer` names are strings, so a typo is a silent split of one phase into two.
+There is one trace and one clock (TODO33 §5.P2.5). `PhaseTimer`'s second stack is gone: its `end()` popped blindly, so an unbalanced pair mis-attributed a span the trace had attributed correctly. Region names are typed — `TraceRegion`, the union of `CycleStage` and `AUXILIARY_REGIONS` — so a typo is a compile error rather than a silent split of one phase into two.
 
 `findStageOverlaps()` and `findInCycleProposals()` (`cycle-trace.ts:76`, `:98`) are pure functions over the event list — the gate, the tests and a human reading a trace all agree on what "nested" means.
 
@@ -1133,7 +1133,7 @@ From the source comments, in the words of the code:
 | bound new control work | add a `BUDGET_SCOPES` row | auto-reopened per cycle |
 | add an observation source | call `perceptionGate.admit()` | inherits judge + reputation + fail-closed |
 | gate a new decision | reuse `askSafely` with `position:'cycle'` | inherits timeout/breaker/budget |
-| observe a new cycle phase | call `phaseTimer.begin/end` **via `stage()`** | — |
+| observe a new cycle phase | add it to `CYCLE_STAGES`/`AUXILIARY_REGIONS` and call `stage()`/`region()` | the type derives from the array |
 
 ### 13.3 Structural gaps — no seam exists
 
@@ -1210,7 +1210,7 @@ This is layer-structured for progressive drilling. To go deeper:
 | **Cycle** / **Micro-Tick** | Loop B — `NARExecution.run()`'s 6 stages |
 | **Macro-Cycle** | Loop A — the Agent's 8-phase pipeline |
 | **Stage** | A typed `CycleStage` region in Loop B, traced by `CycleTrace` |
-| **Phase** | Loop A's onion middleware unit. Also the `PhaseTimer` category — the two uses collide |
+| **Phase** | Loop A's onion middleware unit. Also a trace region name — the two uses collide |
 | **Scope** | A named `ReasoningBudget` ceiling with its own dimension, re-opened per cycle |
 | **Admit** | The decision to write into memory. One method: `NARExecution.admit` |
 | **Veto** | Remove-only egress judging. The opposite of admission |
