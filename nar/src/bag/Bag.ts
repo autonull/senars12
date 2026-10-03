@@ -318,27 +318,69 @@ export abstract class BaseBag<T extends BagItem> implements Bag<T>, BoundedConta
   }
 }
 
+function highestBit(n: number): number {
+  let mask = 1;
+  while (mask * 2 <= n) mask *= 2;
+  return mask;
+}
+
+function fenwickFindByPrefixSum(tree: number[], target: number): number {
+  let idx = 0;
+  const n = tree.length - 1;
+  for (let step = highestBit(n); step > 0; step >>= 1) {
+    const next = idx + step;
+    if (next < n && tree[next] < target) {
+      idx = next;
+      target -= tree[idx];
+    }
+  }
+  return idx;
+}
+
 export class PriorityBag<T extends BagItem> extends BaseBag<T> {
   private heap: InternalEntry<T>[] = [];
+  private fenwick: number[] = [0]; // 1-indexed, initialized with size 1
 
   protected get store(): InternalEntry<T>[] {
     return this.heap;
   }
 
   protected insertEntry(entry: InternalEntry<T>): void {
-    this.heap.splice(this.insertIndex(entry.item.priority), 0, entry);
+    const idx = this.insertIndex(entry.item.priority);
+    this.heap.splice(idx, 0, entry);
+    if (this.fenwick.length <= this.heap.length) {
+      this.rebuildFenwick();
+    } else if (idx === this.heap.length - 1) {
+      this.fenwickAdd(idx, entry.item.priority);
+    } else {
+      this.rebuildFenwick();
+    }
   }
 
   protected eraseAt(index: number): InternalEntry<T> {
-    return this.heap.splice(index, 1)[0]!;
+    const [removed] = this.heap.splice(index, 1);
+    if (this.fenwick.length <= this.heap.length + 1) {
+      this.rebuildFenwick();
+    } else if (index === this.heap.length) {
+      this.fenwickAdd(index, -removed.item.priority);
+    } else {
+      this.rebuildFenwick();
+    }
+    return removed!;
   }
 
   protected dropLast(): void {
-    this.heap.pop();
+    const removed = this.heap.pop()!;
+    if (this.fenwick.length > this.heap.length + 1) {
+      this.fenwickAdd(this.heap.length, -removed.item.priority);
+    } else {
+      this.rebuildFenwick();
+    }
   }
 
   protected replaceAll(entries: InternalEntry<T>[]): void {
     this.heap = entries;
+    this.rebuildFenwick();
   }
 
   protected indexOf(idOrItem: string | T): number {
@@ -348,6 +390,23 @@ export class PriorityBag<T extends BagItem> extends BaseBag<T> {
   }
 
   protected pickWeighted(): InternalEntry<T> | undefined {
-    return weightedPick(this.heap, (entry) => entry.item.priority, this.rng);
+    if (this.heap.length === 0 || this.totalPriority <= 0) return undefined;
+    const target = this.rng() * this.totalPriority;
+    const idx = fenwickFindByPrefixSum(this.fenwick, target);
+    return this.heap[idx] ?? this.heap[0];
+  }
+
+  private rebuildFenwick(): void {
+    const n = this.heap.length;
+    this.fenwick = new Array<number>(n + 1).fill(0);
+    for (let i = 0; i < n; i++) this.fenwick[i + 1] = this.heap[i]!.item.priority;
+    for (let i = 1; i <= n; i++) {
+      const parent = i + (i & -i);
+      if (parent <= n) this.fenwick[parent] += this.fenwick[i];
+    }
+  }
+
+  private fenwickAdd(idx: number, delta: number): void {
+    for (let i = idx + 1; i < this.fenwick.length; i += i & -i) this.fenwick[i] += delta;
   }
 }

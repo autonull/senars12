@@ -293,6 +293,7 @@ export class NAR extends BaseComponent {
       gates: this.gates,
       budgets: this.controlBudgets,
       proposals: this.proposals,
+      onCycleEnd: (cycleCount, config) => this.maybeConsolidateLearning(cycleCount, config),
     });
     this.lm = new NARLM(
       this.memory,
@@ -584,7 +585,12 @@ export class NAR extends BaseComponent {
   async consolidateLearning(options: { budget?: number } = {}): Promise<void> {
     return consolidateLearning(this, options);
   }
-
+  /** Phase C (REFACTOR.todo1): periodic learning consolidation with interval check. */
+  private async maybeConsolidateLearning(cycleCount: number, config: NARConfig): Promise<void> {
+    const lc = config.learningConsolidation;
+    if (!lc?.enabled || cycleCount % (lc.interval ?? 1) !== 0) return;
+    await this.consolidateLearning({ budget: lc.budget });
+  }
   /** Phase D (REFACTOR.todo2): the bounded mining bag, when config opts in. */
   getMiningBag(): MiningBag | undefined {
     return this.#miningBag;
@@ -890,45 +896,19 @@ export class NAR extends BaseComponent {
     return this.lm.getFeedbackStats();
   }
 
-  private stopLM(): void {
-    this.lm.getEnricher()?.stop();
-  }
-
-  private getModelWithFallback(prefix: string) {
-    return getModelWithFallback(this, prefix);
-  }
-
+  private stopLM(): void { this.lm.getEnricher()?.stop(); }
+  private getModelWithFallback(prefix: string) { return getModelWithFallback(this, prefix); }
   private initializeOptionalFeatures(): void {
-    if (this.config.lmService) {
-      this.initializeLMRules(this.config.lmService);
-    }
-    if (this.config.enableTools) {
-      this.initializeTools();
-    }
-    if (this.config.enableSelf) {
-      this.self = new ReasoningAboutReasoning(this, {});
-    }
+    if (this.config.lmService) this.initializeLMRules(this.config.lmService);
+    if (this.config.enableTools) this.initializeTools();
+    if (this.config.enableSelf) this.self = new ReasoningAboutReasoning(this, {});
   }
-
-  private async injectBootstrapGoals(): Promise<void> {
-    return injectBootstrapGoals(this);
-  }
-
+  private async injectBootstrapGoals(): Promise<void> { return injectBootstrapGoals(this); }
   private initializeLMRules(lmService: LMService): void {
-    initializeLMRules(
-      this,
-      LMRules.createAll(lmService as never, {
-        callTimeoutMs: this.cognitiveController.getParams().lm.callTimeoutMs,
-      })
-    );
+    initializeLMRules(this, LMRules.createAll(lmService as never, { callTimeoutMs: this.cognitiveController.getParams().lm.callTimeoutMs }));
     this._lmInitialized = true;
   }
-
-  private initializeTools(): void {
-    initializeTools(this);
-  }
-
-  private contradicts(a: Term, b: Term): boolean {
-    return contradicts(a, b);
-  }
+  private initializeTools(): void { initializeTools(this); }
+  private contradicts(a: Term, b: Term): boolean { return contradicts(a, b); }
 }
+
