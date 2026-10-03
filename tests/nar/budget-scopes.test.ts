@@ -18,6 +18,28 @@ describe('todo7: scoped budgets', () => {
     expect(gate.check({ operation: 'nal-step', scopeId: 'b' }).granted).toBe(true);
     expect(gate.check({ operation: 'nal-step' }).granted).toBe(true);
   });
+  it('a refusal leaves its reason on the scope the operator reads', () => {
+    // The spend summary reports `terminationReason` per scope; an event nobody
+    // joins reported 'none' for a scope that had just refused a charge.
+    const gate = new KernelBudgetGate({
+      defaultBudget: {
+        maxCycles: 1,
+        maxDepth: 10,
+        maxMemoryOps: 10,
+        maxLMCalls: 1,
+        consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+      },
+    });
+    expect(gate.check({ operation: 'nal-step', scopeId: 'a' }).granted).toBe(true);
+    expect(gate.getScopeBudget('a')?.terminationReason).toBeUndefined();
+    const refusal = gate.check({ operation: 'nal-step', scopeId: 'a' });
+    expect(refusal.granted).toBe(false);
+    expect(gate.getScopeBudget('a')?.terminationReason).toBe(refusal.terminationReason);
+    // A later grant clears it again: the reason describes the current spend, not history.
+    gate.check({ operation: 'nal-step', scopeId: 'b' });
+    expect(gate.getScopeBudget('b')?.terminationReason).toBeUndefined();
+  });
+
   it('releaseScope drops counters; resetBudget clears all scopes', () => {
     const gate = new KernelBudgetGate({
       defaultBudget: {

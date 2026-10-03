@@ -1,4 +1,4 @@
-import { type BudgetLimits, createBudget } from '@senars/core/budget';
+import { BUDGET_RESOURCES, type BudgetLimits, createBudget } from '@senars/core/budget';
 import type {
   BudgetExhaustedEvent,
   BudgetGateInput,
@@ -28,14 +28,19 @@ const DEFAULT_COST_TABLE: Record<string, number> = {
   ),
 };
 
-/** Which budget dimension an operation spends, and how exhaustion is reported. Single source for
- *  consumption, remaining/limit reads, budget type, and termination reason. */
+/** Which budget dimension an operation spends. The dimension, its ceiling key and its
+ *  exhaustion reason all come from `core/budget`'s one table, so the gate cannot
+ *  charge a dimension the engine does not; only the event's own name is the gate's. */
 interface OperationSpec {
-  readonly consumedKey: keyof ReasoningBudget['consumed'];
-  readonly maxKey: 'maxCycles' | 'maxDepth' | 'maxMemoryOps' | 'maxLMCalls';
+  readonly resource: keyof ReasoningBudget['consumed'];
   readonly budgetType: BudgetExhaustedEvent['payload']['budgetType'];
-  readonly exhaustedReason: TerminationReason;
 }
+
+const dimensionOf = (spec: OperationSpec) => ({
+  consumedKey: spec.resource,
+  maxKey: BUDGET_RESOURCES[spec.resource].total,
+  exhaustedReason: BUDGET_RESOURCES[spec.resource].reason,
+});
 
 /** Each consumed dimension's event-level name — the schema owns the vocabulary. */
 const BUDGET_TYPES = {
@@ -48,14 +53,12 @@ const BUDGET_TYPES = {
 /** The A7 control scopes, derived rather than restated: the scope table owns the
  *  dimension, the ceiling key and the overflow reason, so a new scope cannot be
  *  declared without them. */
-const SCOPE_SPECS: Record<string, OperationSpec> = Object.fromEntries(
+const SCOPE_SPECS: Record<string, OperationSpec & { scopeId?: BudgetScopeId }> = Object.fromEntries(
   Object.entries(BUDGET_SCOPES).map(([scopeId, spec]) => [
     spec.operation,
     {
-      consumedKey: spec.consumedKey,
-      maxKey: spec.limitKey,
+      resource: spec.consumedKey,
       budgetType: BUDGET_TYPES[spec.consumedKey],
-      exhaustedReason: spec.terminationReason,
       scopeId: scopeId as BudgetScopeId,
     },
   ])
@@ -63,36 +66,11 @@ const SCOPE_SPECS: Record<string, OperationSpec> = Object.fromEntries(
 
 const OPERATION_SPECS: Record<string, OperationSpec & { scopeId?: BudgetScopeId }> = {
   ...SCOPE_SPECS,
-  'nal-step': {
-    consumedKey: 'cycles',
-    maxKey: 'maxCycles',
-    budgetType: 'cycles',
-    exhaustedReason: 'cycle-budget',
-  },
-  'lm-call': {
-    consumedKey: 'llmCalls',
-    maxKey: 'maxLMCalls',
-    budgetType: 'llm',
-    exhaustedReason: 'llm-budget',
-  },
-  'memory-op': {
-    consumedKey: 'memoryOps',
-    maxKey: 'maxMemoryOps',
-    budgetType: 'memory',
-    exhaustedReason: 'memory-budget',
-  },
-  'derivation-depth': {
-    consumedKey: 'depth',
-    maxKey: 'maxDepth',
-    budgetType: 'depth',
-    exhaustedReason: 'depth-budget',
-  },
-  'systemone-judgment': {
-    consumedKey: 'llmCalls',
-    maxKey: 'maxLMCalls',
-    budgetType: 'llm',
-    exhaustedReason: 'llm-budget',
-  },
+  'nal-step': { resource: 'cycles', budgetType: 'cycles' },
+  'lm-call': { resource: 'llmCalls', budgetType: 'llm' },
+  'memory-op': { resource: 'memoryOps', budgetType: 'memory' },
+  'derivation-depth': { resource: 'depth', budgetType: 'depth' },
+  'systemone-judgment': { resource: 'llmCalls', budgetType: 'llm' },
 };
 
 /** The one budget a NAR starts from; the gate's own default and every NAR's initial budget. */
@@ -163,6 +141,10 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
     if (!granted) {
       const correlationId = this.correlationOf(input.correlationId);
       const terminationReason = this.getTerminationReason(budget, operation);
+      // The refusal lives on the budget, not only on the event: `getSpendSummary`
+      // reads `terminationReason` per scope, and an event nobody joins reports 'none'
+      // for a scope that just refused a charge (TODO33 §5.P3.10).
+      budget.terminationReason = terminationReason;
       const event: BudgetExhaustedEvent = {
         type: 'budget.exhausted',
         engine: 'kernel',
@@ -187,7 +169,7 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
       };
     }
 
-    budget.consumed[OPERATION_SPECS[operation]?.consumedKey ?? 'depth'] += estimatedCost;
+    budget.consumed[OPERATION_SPECS[operation]?.resource ?? 'depth'] += estimatedCost;
 
     budget.terminationReason = undefined;
 
@@ -196,12 +178,14 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
 
   private getRemaining(budget: ReasoningBudget, operation: string, estimatedCost: number): number {
     const spec = OPERATION_SPECS[operation];
-    return spec ? budget[spec.maxKey] - budget.consumed[spec.consumedKey] : Infinity;
+    if (!spec) return Infinity;
+    const { consumedKey, maxKey } = dimensionOf(spec);
+    return budget[maxKey] - budget.consumed[consumedKey];
   }
 
   private getLimit(budget: ReasoningBudget, operation: string): number {
     const spec = OPERATION_SPECS[operation];
-    return spec ? budget[spec.maxKey] : 0;
+    return spec ? budget[dimensionOf(spec).maxKey] : 0;
   }
 
   private toBudgetType(operation: string): BudgetExhaustedEvent['payload']['budgetType'] {
@@ -211,9 +195,8 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   private getTerminationReason(budget: ReasoningBudget, operation: string): TerminationReason {
     const spec = OPERATION_SPECS[operation];
     if (!spec) return 'backpressure';
-    return budget.consumed[spec.consumedKey] >= budget[spec.maxKey]
-      ? spec.exhaustedReason
-      : 'backpressure';
+    const { consumedKey, maxKey, exhaustedReason } = dimensionOf(spec);
+    return budget.consumed[consumedKey] >= budget[maxKey] ? exhaustedReason : 'backpressure';
   }
 
   getBudget(): Readonly<ReasoningBudget> {

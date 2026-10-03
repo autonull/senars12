@@ -142,8 +142,10 @@ function announce<K extends keyof BudgetEventMap>(
   announceBudgetTrace(event, payload);
 }
 
-/** The four AIKR dimensions, each with its consumed key, total key, and exhaustion reason. */
-const RESOURCES = {
+/** The four AIKR dimensions, each with its consumed key, total key, and exhaustion reason.
+ *  Exported because the operation→dimension table has one home: a second copy is how
+ *  a gate ends up charging `cycles` where the engine charges `llmCalls`. */
+export const BUDGET_RESOURCES = {
   cycles: { total: 'maxCycles', reason: 'cycle-budget' },
   depth: { total: 'maxDepth', reason: 'depth-budget' },
   memoryOps: { total: 'maxMemoryOps', reason: 'memory-budget' },
@@ -153,9 +155,9 @@ const RESOURCES = {
   { total: keyof BudgetLimits; reason: TerminationReason }
 >;
 
-type BudgetResource = keyof typeof RESOURCES;
+type BudgetResource = keyof typeof BUDGET_RESOURCES;
 
-const ALL_RESOURCES = Object.keys(RESOURCES) as BudgetResource[];
+const ALL_RESOURCES = Object.keys(BUDGET_RESOURCES) as BudgetResource[];
 
 /** A partial budget request across the four AIKR dimensions. */
 export type BudgetAllocation = Partial<ConsumedBudget>;
@@ -178,7 +180,7 @@ const limitsOf = (budget: BudgetSlice): BudgetLimits => ({
 });
 
 const totalOf = (budget: BudgetSlice, resource: BudgetResource): number =>
-  budget[RESOURCES[resource].total];
+  budget[BUDGET_RESOURCES[resource].total];
 
 /** Fraction of one dimension consumed, in `0..1`. An unlimited dimension is unpressured. */
 const pressureOf = (budget: BudgetSlice, resource: BudgetResource): number =>
@@ -196,7 +198,7 @@ function consume(
   amount: number,
   eventBus?: BudgetEventBus
 ): boolean {
-  const { reason } = RESOURCES[resource];
+  const { reason } = BUDGET_RESOURCES[resource];
   const total = totalOf(budget, resource);
   if (budget.consumed[resource] + amount > total) {
     budget.terminationReason = reason;
