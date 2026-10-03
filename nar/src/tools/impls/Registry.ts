@@ -1,7 +1,6 @@
-import { errMsg, isPlainObject, toolError } from '@senars/util';
+import { errMsg, toolError } from '@senars/util';
 import { ToolError } from '../../types';
 import type {
-  Schema,
   Tool,
   ToolCapabilities,
   ToolChainResult,
@@ -11,6 +10,7 @@ import type {
   ToolRegistry,
   ToolResult,
 } from '../types';
+import { validateToolArgs } from './validation';
 
 export interface ToolDescriptor {
   name: string;
@@ -53,9 +53,11 @@ export class Registry implements ToolRegistry {
     }
 
     try {
-      this.validateArgs(tool.parameters, args);
+      validateToolArgs(tool.parameters, args);
       const result = await tool.execute(args, context);
-      return this.validateResult(result, tool);
+      return result.partial && result.success && !result.metadata?.hasMore
+        ? { ...result, partial: false }
+        : result;
     } catch (error) {
       return toolError(errMsg(error));
     }
@@ -70,10 +72,8 @@ export class Registry implements ToolRegistry {
 
       for (const [key, value] of Object.entries(args)) {
         if (typeof value === 'string' && value.startsWith('$')) {
-          const varName = value.slice(1);
-          if (outputVars[varName]) {
-            args[key] = outputVars[varName];
-          }
+          const resolved = outputVars[value.slice(1)];
+          if (resolved !== undefined) args[key] = resolved;
         }
       }
 
@@ -101,109 +101,6 @@ export class Registry implements ToolRegistry {
   }
 
   getCapabilities(name: string): ToolCapabilities | undefined {
-    const tool = this.tools.get(name);
-    return tool?.capabilities;
-  }
-
-  private validateResult(result: ToolResult, _tool: Tool): ToolResult {
-    if (result.partial && result.success) {
-      if (!result.metadata?.hasMore) {
-        result.partial = false;
-      }
-    }
-    return result;
-  }
-
-  private validateArgs(schema: Schema, args: Record<string, unknown>): void {
-    if (!schema) return;
-
-    if (schema.required) {
-      for (const required of schema.required) {
-        if (!(required in args)) {
-          throw new ToolError(`Missing required parameter: ${required}`, {
-            tool: schema.type,
-            parameter: required,
-          });
-        }
-      }
-    }
-
-    // Unknown-key rejection is schema-driven (S1): a tool that declares no
-    // properties is a documented passthrough; a tool that declares parameters
-    // rejects undeclared keys at the boundary.
-    const declared = schema.properties ?? {};
-    if (Object.keys(declared).length > 0) {
-      for (const [key, value] of Object.entries(args)) {
-        const prop = declared[key];
-        if (!prop) {
-          throw new ToolError(`Unknown parameter: ${key}`, { tool: schema.type, parameter: key });
-        }
-        this.validateType(key, value, prop);
-      }
-    }
-  }
-
-  private validateType(key: string, value: unknown, prop: Schema['properties'][string]): void {
-    const typeChecks: Record<string, () => boolean> = {
-      string: () => typeof value === 'string',
-      number: () => typeof value === 'number',
-      boolean: () => typeof value === 'boolean',
-      array: () => Array.isArray(value),
-      object: () => isPlainObject(value),
-    };
-
-    const check = typeChecks[prop.type];
-    if (check && !check()) {
-      throw new ToolError(`Invalid type for ${key}: expected ${prop.type}`, {
-        parameter: key,
-        expected: prop.type,
-        actual: typeof value,
-      });
-    }
-
-    if (prop.type === 'number') {
-      if (prop.minimum !== undefined && (value as number) < prop.minimum) {
-        throw new ToolError(`Value for ${key} is below minimum: ${prop.minimum}`, {
-          parameter: key,
-          minimum: prop.minimum,
-        });
-      }
-      if (prop.maximum !== undefined && (value as number) > prop.maximum) {
-        throw new ToolError(`Value for ${key} exceeds maximum: ${prop.maximum}`, {
-          parameter: key,
-          maximum: prop.maximum,
-        });
-      }
-    }
-
-    if (prop.type === 'string' && typeof value === 'string') {
-      if (prop.minLength !== undefined && value.length < prop.minLength) {
-        throw new ToolError(`String ${key} is too short`, {
-          parameter: key,
-          minLength: prop.minLength,
-        });
-      }
-      if (prop.maxLength !== undefined && value.length > prop.maxLength) {
-        throw new ToolError(`String ${key} is too long`, {
-          parameter: key,
-          maxLength: prop.maxLength,
-        });
-      }
-      if (prop.pattern) {
-        const regex = new RegExp(prop.pattern);
-        if (!regex.test(value)) {
-          throw new ToolError(`String ${key} does not match pattern: ${prop.pattern}`, {
-            parameter: key,
-            pattern: prop.pattern,
-          });
-        }
-      }
-      if (prop.enum && !prop.enum.includes(value)) {
-        throw new ToolError(`String ${key} is not in allowed values`, {
-          parameter: key,
-          allowed: prop.enum,
-        });
-      }
-    }
+    return this.tools.get(name)?.capabilities;
   }
 }

@@ -62,8 +62,10 @@ export { ListenerBag } from './events/listener-bag.js';
 /** @public Tool feedback observer for unified statistics tracking. */
 export {
   DefaultToolFeedbackObserver,
+  type SkillFeedback,
   type ToolFeedback,
   type ToolFeedbackObserver,
+  toSkillFeedback,
 } from './feedback/ToolFeedbackObserver.js';
 /** @public The monorepo's one logger. */
 export { createLogger, defaultLogger, Logger, registerLogEnricher } from './logger.js';

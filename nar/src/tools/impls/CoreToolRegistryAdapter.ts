@@ -1,13 +1,8 @@
 import type { SkillFeedback, ToolSpec } from '@senars/core/motor';
+import { toSkillFeedback } from '@senars/util';
 import type { Tool, ToolContext, ToolResult } from '../types';
 import type { ToolManager } from './ToolManager';
 
-/**
- * `ToolSpec` and `SkillFeedback` are core's — this used to carry private copies
- * of both so the delegation could name them locally. What remains is the one
- * adaptation core actually needs: nar's `execute(args, context)` against core's
- * positional-correlator signature.
- */
 const toSpec = (tool: Tool): ToolSpec => ({
   name: tool.name,
   description: tool.description,
@@ -16,20 +11,6 @@ const toSpec = (tool: Tool): ToolSpec => ({
   tags: tool.tags,
   execute: (args, correlationId, signal) =>
     tool.execute(args, { chainId: correlationId, signal } as ToolContext),
-});
-
-const toFeedback = (fb: {
-  name: string;
-  lastResult?: string;
-  successRate: number;
-  totalCalls: number;
-  lastError?: string;
-}): SkillFeedback => ({
-  skill: fb.name,
-  lastResult: fb.lastResult ?? '',
-  successRate: fb.successRate,
-  callCount: fb.totalCalls,
-  lastError: fb.lastError,
 });
 
 /** Adapter to make nar's ToolManager compatible with core's ToolRegistryDelegate interface. */
@@ -71,11 +52,11 @@ export class CoreToolRegistryAdapter {
 
   getFeedback(name: string): SkillFeedback | undefined {
     const fb = this.manager.getFeedback(name);
-    return fb ? toFeedback(fb) : undefined;
+    return fb ? toSkillFeedback(fb) : undefined;
   }
 
   getAllFeedback(): SkillFeedback[] {
-    return this.manager.getAllFeedback().map(toFeedback);
+    return this.manager.getAllFeedback().map(toSkillFeedback);
   }
 
   getRecentResults(limit: number): string {

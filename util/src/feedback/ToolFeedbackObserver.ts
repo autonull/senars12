@@ -14,6 +14,22 @@ export interface ToolFeedback {
   lastError?: string;
 }
 
+export interface SkillFeedback {
+  skill: string;
+  lastResult: string;
+  successRate: number;
+  callCount: number;
+  lastError?: string;
+}
+
+export const toSkillFeedback = (fb: ToolFeedback): SkillFeedback => ({
+  skill: fb.name,
+  lastResult: fb.lastResult,
+  successRate: fb.successRate,
+  callCount: fb.totalCalls,
+  lastError: fb.lastError,
+});
+
 export interface ToolFeedbackObserver {
   recordCall(name: string, result: ToolResult, duration: number): void;
   getFeedback(name: string): ToolFeedback | undefined;
