@@ -1,9 +1,77 @@
 # TODO33: Delete the Lies, Fix the Bugs, Make It Traceable
 
 **Replaces v1–v5, which were an audit rather than a plan.**
-Status: proposed · Predecessor: TODO32
+Status: **in progress** (§1, §2, §3, §5.P1.2–P1.3 landed) · Predecessor: TODO32
 
 Scope: nothing here touches drives, meta-goals, or homeostasis. That work is deferred by decision and its code is left untouched. See *Not done*.
+
+
+---
+
+## 0. Progress
+
+| Item | State | Note |
+|---|---|---|
+| §1.1 `nar/src/tick/` | **done** | deleted (511 LOC + 6 test files); `CycleStage` moved to `nar/src/proposal/stages.ts`, derived from the `CYCLE_STAGES` tuple. OTel's tick instrumentation (`instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent`, `CognitiveStage`) went with it — it was the only other consumer of `TickContext` — and `StreamReasoner.reasonHook` (0 callers) with it. `@senars/nar/otel` keeps the live surface. |
+| §1.2–1.3 README/docs | **done** | 6 traced stages and the 8-phase `DEFAULT_MACRO_PIPELINE` (`Consolidate` precedes `Act`); the two mermaid diagrams now describe the real graph. |
+| §1.4 `bot.ts:403` | **done** | log no longer claims reflexes it never steps. |
+| §1.5 `capabilities()` | **done** | `autonomyLoop: false`. `drives: false` is true of `Agent` (it holds no `DriveManager`), so it stands. |
+| §1.6 retry config | **done** | `maxRetries`, `retryBackoffMs` and — discovered here — `enablePriorityScheduling` removed; the last existed only to call the deleted `reschedulePending`. |
+| §1.7 `AgentBridge` | **done** | deleted with `core/src/bridge/AgentBridge.ts`. |
+| §1.8 `replaySession()` | **done** | deleted. |
+| §2 `askSafely` signal | **done** | `DecisionPort.ask(request, signal?)`; the signal is now handed over. |
+| §2 two Narsese sniffs | **done, differently** | `isLikelyNarsese` is gone and `dispatchNarseseIntent` (`nar/src/nl/narsese-intent.ts`) is the one router, but the agreed predicate is still looser than the parser: `isNarsese` matches `-->` anywhere, so `{a --> b}.` still routes to Narsese. The throw is gone — the agent's ingress catches the router/parser disagreement and falls through to the LM path. See *notes*. |
+| §2 `reschedulePending` | **done** | `addTask` is O(1) again. |
+| §2 `LmCallTimeout` | **falsified** | it *is* caught: `LMRule.apply`'s catch treats it as a failure, records it and returns `applyFallback`. Pinned by `tests/nar/unit/lm-rule-timeout.test.ts`. |
+| §2 `Agent.unmount()` | **done** | `Agent.stop()` unmounts each transport before disconnecting it — one choke point rather than a call at each disconnect site. |
+| §2 silent `catch {}` + `errorRate` | **done** | engine faults in `reason`/`absorb` are logged and tallied per engine via `CycleHost.onEngineError`; `health()` reports `errorRate` and `byEngine`. |
+| §2 gate telemetry | **done** | `recordGateDecision` takes `correlationId` (span attribute, not a label — a per-utterance label is a series per utterance); `admit()` is metered through `emitAdmitted`, the judge-fault path and the veto path, not only `admitTask`. |
+| §2 refusals emit events | **already true** | egress veto emits `egress.gate.rejected`; the action gate emits `tool.request` + the failure is recorded as a `tool_result`; budget refusal emits `budget.exhausted`. |
+| §2 `memoryPressure` → `'unknown'` | **done** | `CognitiveStateSummary.aikr_pressure` and `self-report` both distinguish unmeasured from zero. |
+| §2 two `dispatchNarseseIntent` | **done** (merged with the row above) | one router, three call sites. |
+| §2 `createBudget` rename | **done** | `createTaskWeight` in `nar/src/types/core.ts`; `core/budget.ts` keeps `createBudget(limits)`. The `typeof` test and the cast in `manager.ts` are gone. |
+| §3 `correlationId` | **done** | optional id on `run`/`runStream`, on `input`/`believe`/`goal`/`question`, through `CycleStageEvent`, and from the agent's Narsese ingress and `NAREngine.reason`. |
+| §3 `/metrics` | **done** | `handleMetricsRequest` (`nar/src/metrics/http.ts`) serves `/metrics` and `/metrics.json` from the Web UI server; `ENABLE_WEB_UI` is the only switch. |
+| §5.P1.1 `validatePayload` | **blocked — see notes** | the ordering is inverted. |
+| §5.P1.2 `Episode` | **done** | core re-exports util's. |
+| §5.P1.3 the gate claim | **done** | README states ingress-only; the dead branch says why it is dead. |
+
+**Verification:** `pnpm typecheck`, `pnpm lint`, `pnpm test:unit` (341 files, 3002 tests) green after every commit above.
+
+---
+
+## 0.1 Notes for the remaining work
+
+**§5.P1.1 must move after §5.P2.4, not before.** Deleting
+`AbstractEventLog.validatePayload` and calling `validateCognitiveEvent(event)` in `append` was
+implemented and reverted: it fails 32 tests, because the core zod union does not accept the util-side
+events the repo actually mints (`core` events carry `engine`/`correlationId`; `concept.activated`
+needs an `activationSource` it never has). The two validators cannot be unified by deleting one —
+they have to be merged first, and then there is only one to delete. Same for the "util becomes a
+type-only re-export, direction `core → util`" step in P2.4: `nar` and `core` both mint events, so
+the merge has to keep both producers' variants or migrate every producer in one commit.
+
+**`isNarsese` is a shape heuristic, not a parser oracle.** Tightening it to the parser's alphabet is
+the real fix and it is not free: `a --> b.` and `a==>b!` are routed as Narsese and still fail to
+parse. Options are (a) accept it and rely on the ingress catch, which is what landed, or (b) make the
+router parse-tolerant the way `admit()` already is (`parseTaskTolerant` tries four punctuations) —
+option (b) is probably worth doing, and it belongs with P3.9 rather than here.
+
+**Two things found while working, not in the plan.** `nar/src/agent/index.ts` asked the manifold for
+rubrics `'entailment'` and `'quality'`, which are not `RubricId`s — the `as any` hid it and the
+judgments were meaningless; they are now `relevance`/`groundedness`/`plausibility`. And
+`SelfReport`'s `memoryPressure ?? 0` had the same "no measurement reads as no pressure" bug the plan
+attributes to `nar-execution.ts`.
+
+**Where §5.P2 stands.** P2.4 is unblocked from a sequencing point of view but is the largest item
+(~270 LOC, every producer) and should be its own commit with the test suite as its safety net. P2.5
+(PhaseTimer as a projection over `CycleTrace.regions()`) is now easier than it was — the trace carries
+`correlationId` and every stage already goes through `stage()`. P2.6 (`sample`) and P2.7
+(`gateRegistry` global) are untouched and carry no live bug.
+
+**P3.9's premise is settled.** §5.P1.3 landed with the "ingress-only" reading, so a refusal policy for
+the tick path is now a feature with a dead branch waiting for it (`nar-execution.ts:397`) rather than a
+correction of a claim the system was already honouring.
 
 ---
 
@@ -112,6 +180,6 @@ Delete or merge; not costed here. **Needs a forcing function**: `wiring:declared
 
 §1 first — the type move unblocks the rest, and the README can't be corrected while contradicting live code. §3 before §5.P2, since deciding whether anything is *observably* duplicated (P2.4, P2.7) needs the trace join first. §5.P1.1 before §5.P2.4 — unifying two validators means picking one, and the zod union is the answer.
 
-**Done when:** nothing in the repo asserts something untrue about how the system works; the eleven bugs are fixed; given a term and a `correlationId` you can say which cycle admitted it, under which gate decision, for which stimulus; one validator exists instead of two; and three `CognitiveEvent` definitions are one.
+**Done when:** nothing in the repo asserts something untrue about how the system works; the eleven bugs are fixed (one was falsified, one was already true, one landed differently); given a term and a `correlationId` you can say which cycle admitted it, under which gate decision, for which stimulus; one validator exists instead of two; and three `CognitiveEvent` definitions are one.
 
 **Not done:** unattended operation, drive/meta-goal homeostasis, negotiation, reflexes, multiple operating modes, and Architecture B's fate.
