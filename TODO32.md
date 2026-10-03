@@ -594,10 +594,11 @@ next intentional change rather than permanently red.
 
 1. **M1 Variants B and C have never run green.** Both `skipIf` on
    `LM_PROVIDER=llamacpp-embedded`, so the LM-fills-KB-gaps and heads-adjudicate claims
-   are asserted in this plan and **falsified by nothing**. The two most interesting
-   properties of this system are the two CI never exercises. `docs/e2e-pipeline.md` (M1's
-   gate deliverable) does not exist. This is now the largest gap between what the plan
-   claims and what the gates check.
+   were asserted in this plan and **falsified by nothing**. **Update 2026-10-03:** they
+   were run with `LM_PROVIDER=llamacpp-embedded` and **both fail** — B: LM never produces
+   a `lm-narsese-translation` premise (`answer.answer` undefined); C: no clarification
+   Question is injected. The fix is real feature work, not a test tweak.
+   `docs/e2e-pipeline.md` now exists and records this.
 2. **A gate that fails because code was commented out should fail as such.** The temporal
    rules were disabled inside a comment, so `dispatch:no-wildcard` saw nothing. A check
    that the shipped declaration count matches the matrix *at runtime* — rather than a
@@ -635,8 +636,8 @@ next intentional change rather than permanently red.
 
 **Not yet asserted:**
 
-- [ ] **LM fills KB gaps** (M1 Variant B) — `skipIf` on `llamacpp-embedded`; never run green
-- [ ] **System One heads adjudicate** (M1 Variant C) — same
+- [ ] **LM fills KB gaps** (M1 Variant B) — `skipIf` on `llamacpp-embedded`; **now verified failing** when run with `LM_PROVIDER=llamacpp-embedded` (no `lm-narsese-translation` premise). See `docs/e2e-pipeline.md`.
+- [ ] **System One heads adjudicate** (M1 Variant C) — same env; **now verified failing** (no clarification Question injected). See `docs/e2e-pipeline.md`.
 - [x] **Egress judging is opt-in, bounded, and can only remove** (M2)
 
 ---
