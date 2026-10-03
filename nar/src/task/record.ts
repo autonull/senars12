@@ -87,7 +87,7 @@ export const rehydrateTask = (
   return createTask(
     term,
     record.type ?? fallbackType,
-    record.truth ? Truth.create(record.truth.f, record.truth.c) : Truth.NEUTRAL,
+    Truth.fromUnknown(record.truth, Truth.NEUTRAL),
     createTaskWeight(finiteOr(record.budget, NEUTRAL_BUDGET.priority)),
     overrides
   );

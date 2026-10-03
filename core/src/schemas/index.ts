@@ -106,6 +106,8 @@ export {
   SelfImprovementProposalSchema,
 } from './governance.js';
 export { NarEventSchemas } from './nar-events.js';
+export type { HistoryEntry, RulePattern, RulePatternSide } from './common.js';
+export { HistoryEntrySchema, RulePatternSchema, RulePatternSideSchema } from './common.js';
 export type {
   ContentProposal,
   Proposal,

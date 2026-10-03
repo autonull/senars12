@@ -27,7 +27,7 @@ const ATTENTION_MODELS = {
   'goal-relevance': (boost: number) => new GoalRelevanceAttention(boost),
 } as const satisfies Record<string, (boost: number) => AttentionModel>;
 
-import { mulberry32 } from '@senars/util';
+import { rngFrom } from '@senars/util';
 import {
   AllSelector,
   AnytimeDerivation,
@@ -71,7 +71,7 @@ import type { Strategy, StrategyType } from '../../strategies/types.js';
  * samples (TODO27 §16). One PRNG for the repository, not one per module.
  */
 const strategyRng = (seed: number | undefined, ambient: () => number): (() => number) =>
-  seed === undefined ? ambient : mulberry32(seed);
+  rngFrom(seed, ambient);
 
 const LINK_CONFIG = configSchema({
   minStrength: z.number().min(0).max(1).default(0.3),

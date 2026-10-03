@@ -15,6 +15,7 @@
 
 import { parseOrThrow } from '@senars/util';
 import { z } from 'zod';
+import { RulePatternSchema } from './common.js';
 import { CognitiveEventBaseSchema, PROPOSER_ORIGIN } from './event-base.js';
 import { RuleDeclarationSchema } from './rule-table.js';
 import { TruthValueSchema } from './truth.js';
@@ -78,10 +79,7 @@ export const RuleProposalSchema = EnvelopeSchema.extend({
   payload: z.object({
     ruleId: z.string().min(1),
     name: z.string().min(1),
-    pattern: z.object({
-      left: z.object({ op: z.string().min(1) }),
-      right: z.object({ op: z.string().min(1) }),
-    }),
+    pattern: RulePatternSchema,
     /** The named truth function the rule dispatches through. */
     truthFn: z.string().min(1),
     priority: z.number().min(0).max(1),

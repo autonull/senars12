@@ -7,6 +7,7 @@ import {
 } from '@senars/util/memory';
 import type { ConversationSession, SessionManager } from '@senars/util/types/memory';
 import { z } from 'zod';
+import { HistoryEntrySchema } from '../schemas/common.js';
 
 /**
  * @deprecated Will be removed in next major version.
@@ -18,23 +19,15 @@ export interface JsonlSessionManagerConfig {
   basePath: string;
 }
 
-function getSessionRecordSchema() {
-  return BaseLedgerEntrySchema.extend({
-    key: z.string(),
-    history: z.array(
-      z.object({
-        role: z.enum(['user', 'agent', 'system']),
-        content: z.string(),
-        timestamp: z.number(),
-      })
-    ),
-    createdAt: z.number(),
-    lastSeenAt: z.number(),
-    metadata: z.record(z.string(), z.unknown()),
-  });
-}
+const SessionRecordSchema = BaseLedgerEntrySchema.extend({
+  key: z.string(),
+  history: z.array(HistoryEntrySchema),
+  createdAt: z.number(),
+  lastSeenAt: z.number(),
+  metadata: z.record(z.string(), z.unknown()),
+});
 
-export type SessionLedgerEntry = z.infer<ReturnType<typeof getSessionRecordSchema>>;
+export type SessionLedgerEntry = z.infer<typeof SessionRecordSchema>;
 
 /** Bounded in-memory sessions with a JSONL ledger snapshot on close. */
 export class JsonlSessionManager implements SessionManager {
@@ -42,7 +35,7 @@ export class JsonlSessionManager implements SessionManager {
   readonly #store = new SessionStore();
 
   constructor(config: JsonlSessionManagerConfig) {
-    this.#ledger = createLedger<SessionLedgerEntry>(config.basePath, getSessionRecordSchema(), {
+    this.#ledger = createLedger<SessionLedgerEntry>(config.basePath, SessionRecordSchema, {
       rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
     });
   }

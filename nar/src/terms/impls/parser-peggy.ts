@@ -122,7 +122,7 @@ export class TermParser {
 
     return {
       term: this.parse(body.replace(/[.!?@;]+$/, '').trim()),
-      truth: parsed && Truth.create(parsed.f, parsed.c),
+      truth: parsed ? Truth.fromUnknown(parsed) : undefined,
     };
   }
 
@@ -144,7 +144,7 @@ export class TermParser {
       if (!taskType) return null;
 
       const rawTruth = r.truthValue;
-      const truth = rawTruth ? Truth.create(rawTruth.frequency, rawTruth.confidence) : undefined;
+      const truth = rawTruth ? Truth.fromUnknown(rawTruth) : undefined;
 
       return { term: r.term, taskType, truth, punctuation: punc as ParseTaskResult['punctuation'] };
     } catch {

@@ -20,6 +20,7 @@
 
 import { parseOrThrow } from '@senars/util';
 import { z } from 'zod';
+import { RulePatternSchema } from './common.js';
 
 /**
  * The wire version of the rule-table artifact. A table recorded against one
@@ -58,8 +59,7 @@ export type RuleProvenance = z.infer<typeof RuleProvenanceSchema>;
 export const RuleDeclarationSchema = z.object({
   ruleId: z.string().min(1),
   description: z.string(),
-  left: z.object({ op: z.string().min(1) }),
-  right: z.object({ op: z.string().min(1) }),
+  ...RulePatternSchema.shape,
   /** The name of the truth function the rule dispatches through, e.g. `deduction`. */
   truthFn: z.string().min(1),
   /** The name the body resolves under, e.g. `deduction` in `NALRules`. */

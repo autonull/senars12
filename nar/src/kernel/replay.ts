@@ -181,10 +181,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
         const beliefs = concept.getBeliefs();
         const matching = beliefs.find((b) => termsEqual(b.term, term));
         if (matching) {
-          const updatedTruth = Truth.create(
-            event.payload.newTruth.frequency,
-            event.payload.newTruth.confidence
-          );
+          const updatedTruth = Truth.fromUnknown(event.payload.newTruth);
           concept.beliefBag.remove(matching);
           concept.addTask('belief', { ...matching, truth: updatedTruth, timestamp: Date.now() });
           appliedRevisions++;
@@ -215,7 +212,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
         const concept = memory.getConcept(term) ?? memory.addConcept(term);
         const existing = concept.getBeliefs().find((b) => termsEqual(b.term, term));
         if (!existing) {
-          const truth = Truth.create(step.truth.frequency, step.truth.confidence);
+          const truth = Truth.fromUnknown(step.truth);
           const budget = createTaskWeight(0.5);
           const parent = Stamp.createInput();
           const parents =
@@ -224,7 +221,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
           concept.addTask('belief', { term, truth, budget, stamp, derived: true });
           appliedDerivations++;
         } else if (step.independence !== 'unknown') {
-          const updatedTruth = Truth.create(step.truth.frequency, step.truth.confidence);
+          const updatedTruth = Truth.fromUnknown(step.truth);
           concept.beliefBag.remove(existing);
           concept.addTask('belief', { ...existing, truth: updatedTruth, timestamp: Date.now() });
           appliedDerivations++;

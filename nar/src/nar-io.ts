@@ -6,7 +6,7 @@ import type {
   RewardGateOutput,
   SourceQuality,
 } from '@senars/core/schemas';
-import { type BeliefTruth, clamp, makeId, writeJsonFile } from '@senars/util';
+import { clamp, makeId, writeJsonFile } from '@senars/util';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';
 import type { NARConfig } from './facade/config.js';
 import type { GateRegistry, IPerceptionGate, IRewardGate } from './kernel';
@@ -27,12 +27,6 @@ import type { Truth as TruthType } from './terms/impls/Truth.js';
 import type { TaskType } from './types';
 import { createTaskWeight, type EventBus } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';
-
-function toTruth(t: TruthType | BeliefTruth | undefined): Truth {
-  if (!t) return Truth.NEUTRAL;
-  if ('f' in t && 'c' in t) return t as Truth;
-  return Truth.create(t.frequency, t.confidence);
-}
 
 interface SerializedNARState {
   concepts: Array<{ term: string; priority: number; sourceQuality?: SourceQuality }>;
@@ -73,6 +67,10 @@ export class NARIO {
 
   setSystemEventBus(bus: NarEventBus): void {
     this._systemEventBus = bus;
+  }
+
+  private warn(message: string, term?: string): void {
+    this._eventBus?.emit('warning', term === undefined ? { message } : { message, term });
   }
 
   /**
@@ -129,15 +127,12 @@ export class NARIO {
       });
 
       if (!result.admitted || !result.task) {
-        this._eventBus?.emit('warning', {
-          message: result.rejectionReason ?? 'Perception gate rejected input',
-          term: input,
-        });
+        this.warn(result.rejectionReason ?? 'Perception gate rejected input', input);
         return;
       }
 
       // Adopt gate's calibrated truth and taskType
-      const calibratedTruth = toTruth(
+      const calibratedTruth = Truth.fromUnknown(
         result.task.truth ?? (result.task.taskType === 'belief' ? Truth.TRUE : undefined)
       );
       const calibratedType = result.task.taskType as TaskType;
@@ -145,10 +140,7 @@ export class NARIO {
       // Parse the term for memory storage
       const parsedTerm = termParser.parse(result.task.term);
       if (!parsedTerm) {
-        this._eventBus?.emit('warning', {
-          message: 'Failed to parse admitted term',
-          term: result.task.term,
-        });
+        this.warn('Failed to parse admitted term', result.task.term);
         return;
       }
 
@@ -170,7 +162,7 @@ export class NARIO {
 
     const validation = validateTaskTerm(parsedTerm);
     if (!validation.valid) {
-      this._eventBus?.emit('warning', { message: validation.reason, term: parsedTerm.toString() });
+      this.warn(validation.reason, parsedTerm.toString());
       return;
     }
 
@@ -243,10 +235,7 @@ export class NARIO {
         });
 
         if (!result.admitted) {
-          this._eventBus?.emit('warning', {
-            message: result.rejectionReason ?? 'Perception gate rejected import',
-            term: concept.term,
-          });
+          this.warn(result.rejectionReason ?? 'Perception gate rejected import', concept.term);
           continue;
         }
 
@@ -297,15 +286,12 @@ export class NARIO {
       });
 
       if (!result.admitted || !result.task) {
-        this._eventBus?.emit('warning', {
-          message: result.rejectionReason ?? 'Perception gate rejected task',
-          term: term.toString(),
-        });
+        this.warn(result.rejectionReason ?? 'Perception gate rejected task', term.toString());
         return;
       }
 
       // Adopt gate's calibrated truth and taskType
-      const calibratedTruth = toTruth(result.task.truth ?? truth);
+      const calibratedTruth = Truth.fromUnknown(result.task.truth ?? truth);
       const calibratedType = result.task.taskType as TaskType;
 
       this.commitAdmitted({
@@ -330,10 +316,7 @@ export class NARIO {
     });
 
     if (!result.admitted || !result.task) {
-      this._eventBus?.emit('warning', {
-        message: result.rejectionReason ?? 'Perception gate rejected task',
-        term: term.toString(),
-      });
+      this.warn(result.rejectionReason ?? 'Perception gate rejected task', term.toString());
       return;
     }
 

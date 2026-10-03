@@ -63,6 +63,11 @@ const createTruth = (f: number, c: number): Truth => {
 const c2w = (c: number): number => (c === 1 ? 1e10 : c / (1 - c));
 const w2c = (w: number): number => w / (w + 1);
 
+const NEUTRAL_TRUTH: Truth = Object.freeze({
+  f: 0.5 as Frequency,
+  c: 0.9 as Confidence,
+});
+
 export type IndependenceStatus = 'independent' | 'dependent' | 'unknown';
 
 const truthOps = {
@@ -100,9 +105,16 @@ const truthOps = {
 export const Truth = {
   create: createTruth,
   normalize: normalizeTruth,
+  fromUnknown: (
+    t: { f: number; c: number } | { frequency: number; confidence: number } | undefined,
+    fallback: Truth = NEUTRAL_TRUTH
+  ): Truth => {
+    if (!t) return fallback;
+    return 'f' in t && 'c' in t ? (t as Truth) : normalizeTruth(t.frequency, t.confidence);
+  },
   TRUE: Object.freeze({ f: 1.0 as Frequency, c: 0.9 as Confidence }) as Truth,
   FALSE: Object.freeze({ f: 0.0 as Frequency, c: 0.9 as Confidence }) as Truth,
-  NEUTRAL: Object.freeze({ f: 0.5 as Frequency, c: 0.9 as Confidence }) as Truth,
+  NEUTRAL: NEUTRAL_TRUTH,
   MAX_CONFIDENCE,
   negation: truthOps.unary((f, c) => [1 - f, c]),
   conversion: truthOps.unary((f, c) => [f, f * c]),

@@ -316,6 +316,7 @@ export {
   mulberry32,
   nextInt,
   type RandomSource,
+  rngFrom,
   SeededRNG,
   type SeededStream,
   seededStream,

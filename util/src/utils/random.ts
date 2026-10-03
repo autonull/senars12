@@ -42,6 +42,18 @@ export const seededStream = (seed: number): SeededStream => {
 export const mulberry32 = (seed: number): RandomSource => seededStream(seed).next;
 
 /**
+ * A seed-or-source parameter resolved to a draw function: a bare function
+ * passes through, a number pins a fresh mulberry32 stream, and `undefined`
+ * falls back to `ambient`. One spelling for every `seed?: number | RandomSource`
+ * constructor in the NAR (strategies, RL adapters, imagination, games).
+ */
+export const rngFrom = (
+  seed: number | RandomSource | undefined,
+  ambient: RandomSource = Math.random
+): RandomSource =>
+  seed === undefined ? ambient : typeof seed === 'function' ? seed : mulberry32(seed);
+
+/**
  * Numerical-Recipes LCG — a second algorithm, not a second PRNG *policy*. It is
  * kept because the test suites pin `Math.random` to it and changing the stream
  * would silently move every seeded expectation; it lives here rather than in a

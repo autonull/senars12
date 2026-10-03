@@ -1,4 +1,4 @@
-import { BoundedRing, maxBy, mean, nextInt, type RandomSource, SeededRNG } from '@senars/util';
+import { BoundedRing, maxBy, mean, nextInt, type RandomSource, rngFrom } from '@senars/util';
 import { type Term, TermBuilder, Truth } from '../../../index.js';
 import type { NAR } from '../../../nar.js';
 import { operationNameOf, operationTerm } from '../../../terms/impls/operation-term.js';
@@ -178,12 +178,7 @@ export class GridWorldSelector implements NativeActionSelector {
     this.explorationMin = explorationMin;
     this.wallPenalty = wallPenalty;
     this.actions = this.actionNames.map((name) => operationTerm(name));
-    if (typeof seed === 'function') {
-      this.rng = seed;
-    } else {
-      const seeded = new SeededRNG(seed);
-      this.rng = () => seeded.next();
-    }
+    this.rng = rngFrom(seed, Math.random);
   }
 
   onEpisodeEnd(): void {
