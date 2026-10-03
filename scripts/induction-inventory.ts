@@ -8,10 +8,10 @@
  *     inventory names behaviours rather than call sites, because a behaviour the
  *     cycle reaches by three routes is one row and three rows would each look
  *     complete while the behaviour was half-declared.
- *  2. **Every declared reference still holds.** `file:line` in a ledger reads
- *     exactly like a live reference whether or not it is one, which is the
- *     accumulator ledger's failure mode inverted: there, a declared site that
- *     did not exist counted as unbounded; here, a call site that moved counts as
+ *  2. **Every declared witness still holds.** A ledger entry reads exactly like
+ *     a live reference whether or not it is one, which is the accumulator
+ *     ledger's failure mode inverted: there, a declared site that did not exist
+ *     counted as unbounded; here, a call site whose await was deleted counts as
  *     a live one. Both pass silently.
  *
  * Non-cycle-path files importing the layer are counted and printed. They are
@@ -27,6 +27,7 @@ import {
   IN_CYCLE_EDGE_ATTRIBUTIONS,
   IN_CYCLE_INVENTORY,
 } from '../nar/src/lm/in-cycle-inventory.js';
+import { witnessFiles } from '../util/src/index.js';
 import { PROVIDER_SEAMS } from '../nar/src/lm/provider-seams.js';
 import { importEdges } from './lib/imports.js';
 import {
@@ -76,9 +77,7 @@ const edges = layerEdges();
 const isCyclePath = (file: string): boolean =>
   CYCLE_PATH_PREFIXES.some((prefix) => file.startsWith(prefix));
 const cyclePathFiles = [...new Set(edges.filter((e) => isCyclePath(e.file)).map((e) => e.file))];
-const seamFiles = PROVIDER_SEAMS.flatMap((seam) =>
-  seam.callSites.map((site) => site.ref.split(':')[0])
-);
+const seamFiles = witnessFiles(PROVIDER_SEAMS.flatMap((seam) => seam.callSites));
 const sources = new Map(
   [...new Set([...cyclePathFiles, ...seamFiles])].map(
     (file) => [file as string, readFileSync(join(ROOT, file as string), 'utf-8')] as const

@@ -1,4 +1,4 @@
-import { type CognitiveEvent, mintCognitiveEvent } from '@senars/core/schemas';
+import { type CognitiveEvent, mintCognitiveEvent } from './schemas/index.js';
 import { type EpisodicMemory, generateId, incrementCount, makeId, type LMTask } from '@senars/util';
 import { ApprovalService } from './ApprovalService.js';
 import { type CycleHost, runCycle, runCycleStream } from './agent/phases.js';

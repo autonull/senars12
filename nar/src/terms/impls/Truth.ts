@@ -1,4 +1,5 @@
 import {
+  confidenceToWeight,
   type Confidence,
   clamp,
   type Frequency,
@@ -7,6 +8,9 @@ import {
   parseTruthLiteral,
   safeDiv,
   serializeTruth,
+  softSquash,
+  weightToConfidence,
+  weakenConfidence,
 } from '@senars/util';
 
 export interface Truth {
@@ -60,8 +64,8 @@ const createTruth = (f: number, c: number): Truth => {
   return normalizeTruth(f, c);
 };
 
-const c2w = (c: number): number => (c === 1 ? 1e10 : c / (1 - c));
-const w2c = (w: number): number => w / (w + 1);
+const c2w = confidenceToWeight;
+const w2c = weightToConfidence;
 
 const NEUTRAL_TRUTH: Truth = Object.freeze({
   f: 0.5 as Frequency,
@@ -155,22 +159,16 @@ export const Truth = {
   diff: truthOps.binary((f1, f2, c1, c2) => [Math.abs(f1 - f2), c1 * c2]),
   exemplification: truthOps.binary((f1, f2, c1, c2) => [
     f1 * f2,
-    (c1 / (c1 + 1)) * c1 * c2 * f1 * f2,
+    softSquash(c1) * c1 * c2 * f1 * f2,
   ]),
   sameness: truthOps.binary((f1, f2, c1, c2) => [1 - Math.abs(f1 - f2), c1 * c2]),
   deduction: truthOps.binary((f1, f2, c1, c2) => [f1 * f2, c1 * c2]),
   deductionWeak: (t1: Truth, t2: Truth): Truth | null => {
     const res = Truth.deduction(t1, t2);
-    return res ? createTruth(res.f, res.c / (res.c + WEAKENING_FACTOR)) : null;
+    return res ? createTruth(res.f, softSquash(res.c, WEAKENING_FACTOR)) : null;
   },
-  induction: truthOps.binary((f1, f2, c1, c2) => {
-    const w = f2 * c1 * c2;
-    return [f2, w / (w + 1)];
-  }),
-  abduction: truthOps.binary((f1, f2, c1, c2) => {
-    const w = f1 * c1 * c2;
-    return [f1, w / (w + 1)];
-  }),
+  induction: truthOps.binary((f1, f2, c1, c2) => [f2, softSquash(f2 * c1 * c2)]),
+  abduction: truthOps.binary((f1, f2, c1, c2) => [f1, softSquash(f1 * c1 * c2)]),
   detachment: truthOps.binary((f1, f2, c1, c2) => [f2, f1 * c1 * c2]),
   revision: truthOps.binary((f1, f2, c1, c2) => {
     const w1 = c2w(c1),
@@ -184,8 +182,8 @@ export const Truth = {
   }),
   choice: (t1: Truth, t2: Truth): Truth =>
     Truth.expectation(t1) > Truth.expectation(t2) ? t1 : t2,
-  structuralDeduction: truthOps.unary((f, c) => [f * f, (c / (c + 1)) * c]),
-  structuralReduction: truthOps.unary((f, c) => [f, c / (c + WEAKENING_FACTOR)]),
+  structuralDeduction: truthOps.unary((f, c) => [f * f, softSquash(c) * c]),
+  structuralReduction: truthOps.unary((f, c) => [f, softSquash(c, WEAKENING_FACTOR)]),
   revisionWeak: truthOps.binary((f1, f2, c1, c2) => {
     const w1 = c2w(c1) / WEAKENING_FACTOR,
       w2 = c2w(c2) / WEAKENING_FACTOR,
@@ -218,7 +216,7 @@ export const Truth = {
   contradict: truthOps.unary((f, c) => [f * CONTRADICT_DECAY, c + OUTCOME_GAIN]),
 
   isStronger: (t1: Truth, t2: Truth): boolean => Truth.expectation(t1) > Truth.expectation(t2),
-  weak: (c: number): number => clamp(c / (c + WEAKENING_FACTOR), 0, 1),
+  weak: (c: number): number => weakenConfidence(c, WEAKENING_FACTOR),
   c2w,
   w2c,
 

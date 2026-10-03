@@ -112,6 +112,26 @@ export const decayCurve = (initial: number, rate: number, elapsed: number): numb
 export const safeRatio = (num: number, den: number, empty: number = 0): number =>
   den > 0 ? num / den : empty;
 
+/**
+ * `num / max(floor, den)` — the ratio whose denominator is a *population*, not a
+ * guard.
+ *
+ * Distinct from {@link safeRatio} on purpose, because the two disagree and both
+ * are right. A rate over a population it cannot exceed — a share of slots used,
+ * a fraction of options carrying mass — divides by how many there could have
+ * been, and answers `0` when there are none. {@link safeRatio} instead treats a
+ * non-positive denominator as "unmeasurable" and hands back `empty`. Folding
+ * the floor into `safeRatio` would silently turn every unmeasurable rate into
+ * zero; folding these into open-coded `Math.max(1, den)` leaves the shared
+ * vocabulary with a hole in it that each new rate re-invents.
+ */
+export const flooredRatio = (num: number, den: number, floor = 1): number =>
+  num / Math.max(floor, den);
+
+/** `count` per second over `elapsedMs` — the one rate a benchmark reports. */
+export const perSecond = (count: number, elapsedMs: number, empty: number = 0): number =>
+  safeRatio(count * 1000, elapsedMs, empty);
+
 /** Sum of a projection — the numerator half of every {@link safeRatio}. */
 export const sumBy = <T>(
   items: Iterable<T>,
@@ -141,10 +161,40 @@ export const normalizeToSum = <T>(
   items: readonly T[],
   value: (item: T) => number,
   empty: readonly number[] = []
-): readonly number[] => {
-  const total = sumBy(items, value);
-  return total > 0 ? items.map((item) => value(item) / total) : empty;
+): readonly number[] =>
+  renormalize<number>(items as readonly number[], value as (item: number) => number, (_, share) => share, empty);
+
+/**
+ * Rescale each item *in place of its mass* so the masses sum to 1, keeping the
+ * items. {@link normalizeToSum} is this with the item thrown away; where the
+ * payload rides along with the number — a score and the option it is for — the
+ * throwaway form is not usable and the guard would otherwise be re-written.
+ * `fallback` is returned when the masses cannot be normalized, and defaults to
+ * the input: an un-normalizable set is already whatever the caller had.
+ */
+export const renormalize = <T>(
+  items: readonly T[],
+  mass: (item: T) => number,
+  rescale: (item: T, share: number) => T,
+  fallback: readonly T[] = items
+): readonly T[] => {
+  const total = sumBy(items, mass);
+  return total > 0 ? items.map((item) => rescale(item, mass(item) / total)) : fallback;
 };
+
+/**
+ * `x / (x + k)` — the reciprocal saturation curve, for a quantity with a natural
+ * ceiling that has no natural top (a visit count, an uncertainty, a completion
+ * length).
+ *
+ * Unrelated to {@link saturationRamp}: that answers "how much have I seen" and
+ * saturates on elapsed time, this answers "how much of a magnitude is this" and
+ * is unchanged by scaling `x` up. It is the form the whole truth mapping uses —
+ * every confidence→weight and weight→confidence step, every `c / (c + k)`
+ * weakening — so those steps have one definition rather than one per call site,
+ * and a change to the curve cannot land in a third of them.
+ */
+export const softSquash = (x: number, k = 1): number => x / (x + k);
 
 /**
  * Float equality within `eps`. The one guard for "these two accumulated truth

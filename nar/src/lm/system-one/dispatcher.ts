@@ -26,6 +26,7 @@ import type {
   JudgmentQuery,
   PEAResult,
   RubricId,
+  ScoreDistribution,
   SynthesisProposition,
   SynthesisQuery,
 } from './types.js';
@@ -350,7 +351,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
 
     // R5: Re-judge each candidate over the shared context; declared extra ranking
     // weights (E2) add per-candidate evaluate queries.
-    let ranking: readonly { option: string; p: number }[] | undefined;
+    let ranking: readonly ScoreDistribution[] | undefined;
     if (selectUsable && selectQ) {
       const extraRubrics = Object.keys(this.#rankingWeights).filter(
         (k) => k !== 'candidate_select'

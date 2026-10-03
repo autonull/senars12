@@ -6,13 +6,13 @@ import {
 } from '../../nar/src/lm/in-cycle-inventory.js';
 import { PROVIDER_SEAMS } from '../../nar/src/lm/provider-seams.js';
 import {
-  callSiteHolds,
   checkInventory,
   type DiscoveredEdge,
   isTypeOnlyImport,
   lineOf,
 } from '../../scripts/lib/induction-inventory.js';
 import { checkSeams } from '../../scripts/lib/provider-dependency.js';
+import { type WitnessList, witnessFiles, witnessHolds } from '../../util/src/index.js';
 
 /**
  * TODO29.a A0 — the two gates' rules, and the declarations they read.
@@ -78,7 +78,7 @@ describe('TODO29.a — the inventory must account for the cycle path', () => {
     attributions?: readonly { file: string; behaviour: string }[];
     cyclePathFiles?: readonly string[];
     sources?: Record<string, string>;
-    callSites?: readonly { ref: string; contains: string }[];
+    callSites?: WitnessList;
   }) =>
     checkInventory({
       edges: subject.edges ?? [],
@@ -132,34 +132,43 @@ describe('TODO29.a — the inventory must account for the cycle path', () => {
     ).toEqual(['unattributed-behaviour']);
   });
 
-  it('fails a call site whose line has moved', () => {
+  it('fails a call site whose file no longer holds the call', () => {
     expect(
-      check({
-        callSites: [{ ref: 'a.ts:3', contains: 'await x(' }],
-        sources: { 'a.ts': 'a\nb\nc' },
-      })
+      check({ callSites: [{ file: 'a.ts', contains: 'await x(' }], sources: { 'a.ts': 'a\nb\nc' } })
     ).toEqual(['dead-call-site']);
   });
 
   it('fails a call site whose file is gone', () => {
-    expect(check({ callSites: [{ ref: 'gone.ts:1', contains: 'await x(' }] })).toEqual([
+    expect(check({ callSites: [{ file: 'gone.ts', contains: 'await x(' }] })).toEqual([
       'dead-call-site',
     ]);
   });
 
-  it('accepts a call site that still holds', () => {
+  it('fails a call site that names no text to hold', () => {
+    expect(
+      check({ callSites: [{ file: 'a.ts', contains: '' }], sources: { 'a.ts': 'await x()' } })
+    ).toEqual(['dead-call-site']);
+  });
+
+  it('accepts a call site wherever in the file the call has moved to', () => {
     expect(
       check({
-        callSites: [{ ref: 'a.ts:2', contains: 'await x(' }],
-        sources: { 'a.ts': 'a\nawait x()' },
+        callSites: [{ file: 'a.ts', contains: 'await x(' }],
+        sources: { 'a.ts': 'a\nb\nc\nd\nawait x()' },
       })
     ).toEqual([]);
   });
 
-  it('reads a call site and a line number the way a reader would', () => {
+  it('reads a call site and an offset the way a reader would', () => {
     expect(lineOf('a\nbb\nccc', 5)).toBe(3);
-    expect(callSiteHolds('a\nbb', 2, 'b')).toBe(true);
-    expect(callSiteHolds(undefined, 1, 'b')).toBe(false);
+    expect(witnessHolds('a\nbb', 'b')).toBe(true);
+    expect(witnessHolds(undefined, 'b')).toBe(false);
+    expect(
+      witnessFiles([
+        { file: 'a.ts', contains: 'x' },
+        { file: 'a.ts', contains: 'y' },
+      ])
+    ).toEqual(['a.ts']);
   });
 });
 

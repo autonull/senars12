@@ -1,4 +1,4 @@
-import type { CognitiveEvent } from '@senars/core/schemas';
+import type { CognitiveEvent } from './schemas/index.js';
 import { errMsg } from '@senars/util';
 import type { Agent } from './Agent.js';
 import type { Engine, EngineId } from './engine/Engine.js';

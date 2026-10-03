@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { clamp01 } from '../utils/numeric.js';
+import { clamp, clamp01, softSquash } from '../utils/numeric.js';
 
 export type Frequency = number & { readonly __brand: unique symbol };
 export type Confidence = number & { readonly __brand: unique symbol };
@@ -13,6 +13,47 @@ export function toConfidence(value: number): Confidence {
 }
 
 export type BeliefTruth = { frequency: number; confidence: number };
+
+/**
+ * The confidence ↔ weight mapping, in both directions.
+ *
+ * NAL aggregates confidence additively by converting it to a non-negative
+ * weight, summing, and converting back — an interval sum on the weights is what
+ * makes revision associative, and nothing of the kind exists on the confidences
+ * themselves. Both directions used to be written out twice, once in the engine's
+ * truth algebra and once in the verifier that checks the engine's own derivation
+ * records, and the duplication was worse than the maintenance: the two copies
+ * carried a shared sentinel — the stand-in for a confidence of exactly 1, whose
+ * weight is unbounded — and a sentinel transcribed twice is a divergence waiting
+ * for the first revision that saturates.
+ *
+ * Sharing the curves costs the verifier nothing. It still transcribes the whole
+ * truth table, which is where the independence a verifier needs actually lives;
+ * a shared `w / (w + 1)` says both sides perform one multiplication, and says
+ * nothing about whether they read the same rules.
+ */
+
+/**
+ * Weight a confidence of exactly 1 would carry, which is unbounded. Revision
+ * with a certain premise saturates here rather than at infinity, so the sum
+ * stays finite and the round trip back lands on a confidence the domain accepts.
+ */
+export const WEIGHT_AT_CERTAINTY = 1e10;
+
+/** The weight a confidence `c` carries — the odds ratio, saturated at {@link WEIGHT_AT_CERTAINTY}. */
+export const confidenceToWeight = (c: number): number =>
+  c === 1 ? WEIGHT_AT_CERTAINTY : c / (1 - c);
+
+/** The confidence a weight `w` carries — the exact inverse of {@link confidenceToWeight}. */
+export const weightToConfidence = (w: number): number => softSquash(w);
+
+/**
+ * A confidence reduced toward zero by `factor` and re-clamped — the NAL
+ * weakening rule `c / (c + k)`. Ageing and weakening both land here, so the
+ * curve they share is stated once rather than in each rule that uses it.
+ */
+export const weakenConfidence = (c: number, factor: number): number =>
+  clamp(softSquash(c, factor), 0, 1);
 
 /** A `Truth` value in plain fields — the `{ f, c }` shape the engine speaks before
  *  `Truth` wraps it, and the half of {@link TruthLike} that has no declared name. */

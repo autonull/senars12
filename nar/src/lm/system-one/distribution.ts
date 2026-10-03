@@ -1,10 +1,6 @@
 import { maxBy, normalizeToSum } from '@senars/util';
+import type { ScoreDistribution } from '../../decision/types.js';
 import type { ScoreLegend } from './types.js';
-
-export interface ScoreDistribution {
-  readonly option: string;
-  readonly p: number;
-}
 
 /** Shannon entropy in bits (log2). */
 export const shannonEntropy = (distribution: readonly ScoreDistribution[]): number => {

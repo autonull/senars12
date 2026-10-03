@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { resourceCostSchema, scoreDistributionSchema } from '../../decision/types.js';
 import { createRemoteManifold } from './remote-manifold.js';
 import type {
   BackendId,
@@ -30,12 +31,7 @@ const propositionBase = z
     modelDigest: z.string(),
     calibration: z.object({ version: z.string(), ece: z.number() }),
     latencyMs: z.number(),
-    cost: z.object({
-      tokensIn: z.number(),
-      tokensOut: z.number(),
-      computeMs: z.number(),
-      memoryMb: z.number(),
-    }),
+    cost: resourceCostSchema,
     tier: z.number(),
     abstained: z.boolean(),
     abstainReason: z.string().optional(),
@@ -45,8 +41,8 @@ const propositionBase = z
 const propositionSchema = z.discriminatedUnion('kind', [
   propositionBase.extend({
     kind: z.literal('classify'),
-    distribution: z.array(z.object({ option: z.string(), p: z.number() })),
-    top: z.object({ option: z.string(), p: z.number() }),
+    distribution: z.array(scoreDistributionSchema),
+    top: scoreDistributionSchema,
     entropy: z.number(),
   }),
   propositionBase.extend({ kind: z.literal('evaluate'), score: z.number() }),

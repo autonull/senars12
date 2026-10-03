@@ -16,6 +16,7 @@
  * eight call sites.
  */
 
+import type { Witness } from '@senars/util';
 import type { BudgetScopeId } from '../kernel/budget-scopes.js';
 import {
   DECISION_ASK_TIMEOUT_MS,
@@ -23,13 +24,9 @@ import {
   type DecisionPosition,
 } from '../ports/decision.js';
 
-interface DecisionCallSiteBase {
+interface DecisionCallSiteBase extends Witness {
   /** Stable id, and the symbol a caller names in a violation message. */
   readonly id: string;
-  /** `file:line` of the call, kept because a declaration with no address drifts. */
-  readonly at: string;
-  /** The text that must still be on that line (like ProviderSeam.callSites). */
-  readonly contains: string;
   /** Per-site bound on one ask in ms — a second site with different latency
    *  needs gets its own number rather than sharing a flat one. */
   readonly timeoutMs: number;
@@ -82,7 +79,7 @@ export type DecisionCallSite = JudgmentCallSite | SynthesisCallSite;
 export const DECISION_CALL_SITES: readonly DecisionCallSite[] = [
   {
     id: 'authorize.admission-order',
-    at: 'nar/src/nar-execution.ts:462',
+    file: 'nar/src/nar-execution.ts',
     contains: 'await askSafely(this.decision,',
     query: 'classify',
     axis: 'epistemic',
@@ -94,7 +91,7 @@ export const DECISION_CALL_SITES: readonly DecisionCallSite[] = [
   },
   {
     id: 'authorize.egress-veto',
-    at: 'nar/src/nar-execution.ts:518',
+    file: 'nar/src/nar-execution.ts',
     contains: 'await askSafely(this.decision,',
     query: 'evaluate',
     axis: 'epistemic',

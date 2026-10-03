@@ -43,7 +43,7 @@ export interface ManifestViolation {
  */
 export interface UntrustedCallSite {
   readonly id: string;
-  readonly at: string;
+  readonly file: string;
   readonly contains: string;
   readonly query: string;
   readonly axis: string;
@@ -86,7 +86,8 @@ export const manifestViolations = (
     if (!(BUDGET_SCOPE_IDS as readonly string[]).includes(site.budget))
       fail('budget-scope', `${site.budget} is not a declared budget scope`);
 
-    if (!site.at.trim()) fail('declared', 'no address: a declaration with no site drifts');
+    if (!site.file.trim() || !site.contains.trim())
+      fail('declared', 'no address: a declaration with no file and text drifts');
     if (!site.rationale.trim()) fail('declared', 'no rationale for why this site earns a call');
 
     // 5 — the deadline is a number, not an intention.

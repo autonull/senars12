@@ -1,4 +1,4 @@
-import type { CognitiveEvent } from '@senars/core/schemas';
+import type { CognitiveEvent } from '../schemas/index.js';
 import {
   dispatch,
   type EpisodicMemory,

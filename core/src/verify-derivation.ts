@@ -13,9 +13,17 @@
  * independence is enforced by the dependency graph rather than by convention.
  */
 
-import { formatIssues } from '@senars/util';
+import {
+  confidenceToWeight as c2w,
+  formatIssues,
+  safeRatio,
+  softSquash,
+  weightToConfidence as w2c,
+} from '@senars/util';
 import type { DerivationRecord, DerivationStep, TruthValue } from './schemas/index.js';
 import { DerivationRecordSchema } from './schemas/index.js';
+
+const div = safeRatio;
 
 /** One defect, tagged with the check that caught it. */
 export interface VerificationFinding {
@@ -60,9 +68,6 @@ export interface VerifyOptions {
 
 const DEFAULT_EPSILON = 1e-6;
 
-const c2w = (c: number): number => (c === 1 ? 1e10 : c / (1 - c));
-const w2c = (w: number): number => w / (w + 1);
-const div = (n: number, d: number): number => (d === 0 ? 0 : n / d);
 
 type BinaryTruthFn = (f1: number, f2: number, c1: number, c2: number) => [number, number];
 type UnaryTruthFn = (f: number, c: number) => [number, number];
@@ -71,18 +76,24 @@ type UnaryTruthFn = (f: number, c: number) => [number, number];
  * NAL truth functions, transcribed from the algebra in NAL_IR.md §Truth Value
  * Algebra. Revision caps confidence at the engine's `MAX_CONFIDENCE` so a
  * saturating revision compares equal to the clamped value the engine stores.
+ *
+ * The *table* is transcribed; the scalar curves its entries are written with are
+ * not, and sharing them does not weaken the check. `w / (w + 1)` being the same
+ * function on both sides of the verifier says the verifier and the engine
+ * perform one multiplication; it says nothing about whether they read the same
+ * rules, which is what this table exists to decide independently.
  */
 const BINARY_TRUTH: Record<string, BinaryTruthFn> = {
   deduction: (f1, f2, c1, c2) => [f1 * f2, c1 * c2],
   induction: (f1, f2, c1, c2) => {
     const w = f2 * c1 * c2;
-    return [f2, w / (w + 1)];
+    return [f2, softSquash(w)];
   },
   abduction: (f1, f2, c1, c2) => {
     const w = f1 * c1 * c2;
-    return [f1, w / (w + 1)];
+    return [f1, softSquash(w)];
   },
-  exemplification: (f1, f2, c1, c2) => [f1 * f2, (c1 / (c1 + 1)) * c1 * c2 * f1 * f2],
+  exemplification: (f1, f2, c1, c2) => [f1 * f2, softSquash(c1) * c1 * c2 * f1 * f2],
   comparison: (f1, f2, c1, c2) => {
     const p = f1 * f2;
     return [div(p, p + (1 - f1) * (1 - f2)), c1 * c2];
@@ -92,8 +103,9 @@ const BINARY_TRUTH: Record<string, BinaryTruthFn> = {
   intersection: (f1, f2, c1, c2) => [f1 * f2, c1 * c2],
   union: (f1, f2, c1, c2) => [1 - (1 - f1) * (1 - f2), c1 * c2],
   revision: (f1, f2, c1, c2) => {
-    const w = c2w(c1) + c2w(c2);
-    return [(f1 * c2w(c1) + f2 * c2w(c2)) / w, Math.min(w2c(w), 0.999)];
+    const w1 = c2w(c1);
+    const w2 = c2w(c2);
+    return [div(f1 * w1 + f2 * w2, w1 + w2), Math.min(w2c(w1 + w2), 0.999)];
   },
   detachment: (f1, f2, c1, c2) => [f2, f1 * c1 * c2],
   contraposition: (f1, f2, c1, c2) => {

@@ -4,7 +4,7 @@
  * step sequence exactly; narration streams through the phase chain via
  * `MacroContext.stream`.
  */
-import { mintCognitiveEvent } from '@senars/core/schemas';
+import { mintCognitiveEvent } from '../schemas/index.js';
 import { createLogger, errMsg, type LMTask, toolError } from '@senars/util';
 
 import type { ChatStreamEvent } from '../chat.js';

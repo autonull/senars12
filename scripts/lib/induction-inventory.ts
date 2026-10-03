@@ -8,9 +8,10 @@
  *  - **an unaccounted cycle-path import fails.** A new `import` from the cycle
  *    into the layer is undeclared behaviour by definition, and behaviour is the
  *    unit the plan reasons in.
- *  - **a call site that has moved fails.** `file:line` is a reference, not a
- *    promise; a dead reference in a ledger reads exactly like a live one, which
- *    is the accumulator ledger's own failure mode in reverse.
+ *  - **a call site whose file lost the call fails.** The witness is the call's
+ *    own text, so a seam whose await was deleted cannot survive as a
+ *    declaration; a witness that no longer holds reads exactly like one that
+ *    does, which is the accumulator ledger's failure mode in reverse.
  *  - **a seam naming no declared behaviour fails.** Otherwise the provider
  *    seams and the inventory are two documents about the same cycle.
  *  - **a behaviour with no attribution fails.** A row in the inventory that no
@@ -20,6 +21,7 @@
  * a type is erased, so a type import is a vocabulary dependency and A2's
  * subject, not a behaviour.
  */
+import { type WitnessList, witnessHolds } from '../../util/src/index.js';
 
 export interface DiscoveredEdge {
   /** Repo-relative source path. */
@@ -81,8 +83,8 @@ export interface InventorySubject {
   readonly edges: readonly DiscoveredEdge[];
   /** Declared behaviours, by id. */
   readonly behaviours: readonly { id: string }[];
-  /** Declared call sites, `file:line`, with the text each must still contain. */
-  readonly callSites: readonly { ref: string; contains: string }[];
+  /** Declared call sites: the file each lives in and the text it must still hold. */
+  readonly callSites: WitnessList;
   /** File contents by repo-relative path — enough to resolve a call site. */
   readonly sources: ReadonlyMap<string, string>;
   /** Which declared behaviour owns each cycle-path file's imports. */
@@ -90,18 +92,6 @@ export interface InventorySubject {
   /** Which cycle-path files import the layer at all. */
   readonly cyclePathFiles: readonly string[];
 }
-
-const parseRef = (ref: string): { file: string; line: number } | null => {
-  const match = /^(.*):(\d+)$/.exec(ref);
-  return match ? { file: match[1]!, line: Number(match[2]) } : null;
-};
-
-/** Whether `file:line` still holds the text the ledger says it does. */
-export const callSiteHolds = (
-  source: string | undefined,
-  line: number,
-  contains: string
-): boolean => source !== undefined && (source.split('\n')[line - 1] ?? '').includes(contains);
 
 export const checkInventory = (subject: InventorySubject): InventoryFailure[] => {
   const failures: InventoryFailure[] = [];
@@ -137,22 +127,21 @@ export const checkInventory = (subject: InventorySubject): InventoryFailure[] =>
     }
   }
 
-  for (const seam of subject.callSites) {
-    const parsed = parseRef(seam.ref);
-    const source = parsed ? subject.sources.get(parsed.file) : undefined;
-    if (!parsed || !seam.contains || source === undefined) {
+  for (const { file, contains } of subject.callSites) {
+    const source = subject.sources.get(file);
+    if (!contains) {
       failures.push({
         kind: 'dead-call-site',
-        subject: seam.ref,
-        detail: parsed
-          ? `no source at ${parsed.file}`
-          : 'a call site must be `file:line` plus the text it must still contain',
+        subject: file,
+        detail: 'a call site must name the text it must still contain',
       });
-    } else if (!callSiteHolds(source, parsed.line, seam.contains)) {
+    } else if (source === undefined) {
+      failures.push({ kind: 'dead-call-site', subject: file, detail: `no source at ${file}` });
+    } else if (!witnessHolds(source, contains)) {
       failures.push({
         kind: 'dead-call-site',
-        subject: seam.ref,
-        detail: `line ${parsed.line} no longer contains '${seam.contains}'`,
+        subject: file,
+        detail: `no longer contains '${contains}'`,
       });
     }
   }

@@ -167,6 +167,7 @@ export type { BeliefTruth, Confidence, Frequency, TermTruth, TruthLike } from '.
 export {
   asBeliefTruth,
   BeliefTruthSchema,
+  confidenceToWeight,
   formatNarseseTruth,
   formatTruth,
   parseNarseseTruth,
@@ -175,6 +176,9 @@ export {
   stripTruthSuffix,
   toConfidence,
   toFrequency,
+  WEIGHT_AT_CERTAINTY,
+  weakenConfidence,
+  weightToConfidence,
 } from './types/truth.js';
 // Utils
 /** @public Assertion helpers. */
@@ -296,6 +300,7 @@ export {
   decayCurve,
   estimateTokens,
   finiteOr,
+  flooredRatio,
   lerp,
   mean,
   meanOf,
@@ -303,12 +308,15 @@ export {
   normalizeToSum,
   occupancy,
   pearson,
+  perSecond,
+  renormalize,
   roundTo,
   safeDiv,
   safeRatio,
   saturationRamp,
   sigmoid,
   softmax,
+  softSquash,
   stdDev,
   sumBy,
   toFiniteNumber,
@@ -372,3 +380,11 @@ export type {
   UnifyOptions,
 } from './utils/unify.js';
 export { Unifier } from './utils/unify.js';
+/** @public Source-anchored call-site declarations for the seam ledgers. */
+export {
+  formatWitness,
+  type Witness,
+  type WitnessList,
+  witnessFiles,
+  witnessHolds,
+} from './utils/witness.js';

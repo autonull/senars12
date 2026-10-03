@@ -2,7 +2,7 @@
 
 import { existsSync, statSync } from 'node:fs';
 import { writeJsonFile } from '@senars/util';
-import { createSystemOneBudget } from '@senars/nar/lm/system-one';
+import { createSystemOneBudget, type ScoreDistribution } from '@senars/nar/lm/system-one';
 import { errMsg, finiteOr, incrementCount } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import { type ReflexView, reflexesOf } from '../../cli/conversation-game.js';
@@ -262,7 +262,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
             if (r.kind === 'classify') {
               const cp = r as {
                 kind: 'classify';
-                top: { option: string; p: number };
+                top: ScoreDistribution;
                 entropy: number;
                 tier: number;
               };

@@ -13,6 +13,7 @@
 
 import { type BudgetLimits, createBudget } from '@senars/core/budget';
 import type { ReasoningBudget, SourceQuality } from '@senars/core/schemas';
+import { z } from 'zod';
 import type { ProvisionalStamp } from './provisional-stamp.js';
 
 export type { ReasoningBudget, SourceQuality };
@@ -44,9 +45,23 @@ export interface ScoreLegend {
   readonly weights: readonly number[];
 }
 
+/**
+ * One option of a head's answer and the mass it carries. The shape every head,
+ * every wire format and every proposition reports, so it is named once here: a
+ * type and a schema, because the same pair crosses both a compile-time edge and
+ * an untrusted one, and a declaration that did not cover both is how a wire
+ * format and a type drift into disagreeing about what a distribution is.
+ */
+export interface ScoreDistribution {
+  readonly option: string;
+  readonly p: number;
+}
+
+export const scoreDistributionSchema = z.object({ option: z.string(), p: z.number() });
+
 export interface HeadResult {
   score: number;
-  distribution?: readonly { option: string; p: number }[];
+  distribution?: readonly ScoreDistribution[];
   legend?: ScoreLegend;
   abstained: boolean;
   abstainReason?: 'low-confidence' | 'out-of-domain' | 'timeout' | 'breaker-open';
@@ -127,6 +142,27 @@ export interface ResourceCost {
   memoryMb: number;
 }
 
+/** The untrusted-boundary twin of {@link ResourceCost}; the two must not drift. */
+export const resourceCostSchema = z.object({
+  tokensIn: z.number(),
+  tokensOut: z.number(),
+  computeMs: z.number(),
+  memoryMb: z.number(),
+});
+
+/**
+ * A cost of nothing, for the paths where a head is local or declined and the
+ * spend ledger still wants a row. Spelled as one constant because the literal
+ * has four fields and appears on every such path; a site that remembered three
+ * of them was a type error only until a field was added.
+ */
+export const NO_COST: ResourceCost = Object.freeze({
+  tokensIn: 0,
+  tokensOut: 0,
+  computeMs: 0,
+  memoryMb: 0,
+});
+
 export interface Calibration {
   version: CalibrationVersion;
   ece: number;
@@ -148,8 +184,8 @@ export interface PropositionBase {
 export interface ClassifyProposition extends PropositionBase {
   kind: 'classify';
   axis: CognitiveAxis;
-  distribution: readonly { option: string; p: number }[];
-  top: { option: string; p: number };
+  distribution: readonly ScoreDistribution[];
+  top: ScoreDistribution;
   entropy: number;
 }
 

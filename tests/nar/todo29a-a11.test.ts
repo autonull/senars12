@@ -58,7 +58,8 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
 
   it('names each site with an address and a reason', () => {
     for (const site of DECISION_CALL_SITES) {
-      expect(site.at, site.id).toBeTruthy();
+      expect(site.file, site.id).toBeTruthy();
+      expect(site.contains, site.id).toBeTruthy();
       expect(site.rationale, site.id).toBeTruthy();
       expect(BUDGET_SCOPE_IDS, site.id).toContain(site.budget);
     }
@@ -69,7 +70,7 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
       manifestViolations([
         {
           id: 'bad',
-          at: 'x.ts:1',
+          file: 'x.ts',
           contains: 'await askSafely(',
           query: 'synthesize',
           axis: 'none',
@@ -87,7 +88,7 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
       manifestViolations([
         {
           id: 'bad',
-          at: 'x.ts:1',
+          file: 'x.ts',
           contains: 'await askSafely(',
           query: 'classify',
           axis: 'none',
@@ -105,7 +106,7 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
       manifestViolations([
         {
           id: 'bad',
-          at: 'x.ts:1',
+          file: 'x.ts',
           contains: 'await askSafely(',
           query: 'classify',
           axis: 'epistemic',
@@ -128,7 +129,7 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
       manifestViolations([
         {
           id: 'bad',
-          at: 'x.ts:1',
+          file: 'x.ts',
           contains: 'await askSafely(',
           query: 'classify',
           axis: 'epistemic',

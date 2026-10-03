@@ -25,13 +25,15 @@
  * budget scopes and A3's protocol — only whether one exists.
  */
 
+import type { WitnessList } from '@senars/util';
+
 /** A cycle-path await on something outside the process's own computation. */
 export interface ProviderSeam {
   readonly id: string;
   /** What the consumer calls, in the consumer's own terms. */
   readonly call: string;
-  /** Where the await happens, and the text that must still be on that line. */
-  readonly callSites: readonly { readonly ref: string; readonly contains: string }[];
+  /** Where the await happens — content-anchored, so it survives an edit above it. */
+  readonly callSites: WitnessList;
   /** Whether a cycle reaches this await. */
   readonly onCyclePath: boolean;
   /**
@@ -50,7 +52,7 @@ export const PROVIDER_SEAMS: readonly ProviderSeam[] = [
   {
     id: 'lm-rule-apply',
     call: 'LMRule.apply',
-    callSites: [{ ref: 'nar/src/lm/rule/LMRule.ts:416', contains: 'await withTimeout(' }],
+    callSites: [{ file: 'nar/src/lm/rule/LMRule.ts', contains: 'await withTimeout(' }],
     onCyclePath: false,
     bounded: true,
     bound: 'LMRule.callTimeoutMs — the deadline on one provider call, default 8s',
@@ -60,7 +62,7 @@ export const PROVIDER_SEAMS: readonly ProviderSeam[] = [
     id: 'ingress-judge',
     call: 'IngressJudge.judge',
     callSites: [
-      { ref: 'nar/src/kernel/KernelPerceptionGate.ts:193', contains: 'await raceDeadline(' },
+      { file: 'nar/src/kernel/KernelPerceptionGate.ts', contains: 'await raceDeadline(' },
     ],
     onCyclePath: true,
     bounded: true,
@@ -71,7 +73,7 @@ export const PROVIDER_SEAMS: readonly ProviderSeam[] = [
   {
     id: 'stream-reasoner-backend',
     call: 'LMBackend',
-    callSites: [{ ref: 'nar/src/stream/reasoner.ts:147', contains: 'await raceDeadline(' }],
+    callSites: [{ file: 'nar/src/stream/reasoner.ts', contains: 'await raceDeadline(' }],
     onCyclePath: false,
     bounded: true,
     bound: 'StreamReasoner.backendTimeoutMs — the deadline on one flush, default 8s',

@@ -4,7 +4,7 @@
  * contrastive layer. A thin facade — all inference logic lives in the
  * manifold heads, contrastive memory, and policy utilities it composes.
  */
-import { chunk, sha256Hex, sortByDesc, sumBy } from '@senars/util';
+import { chunk, renormalize, sha256Hex, sortByDesc } from '@senars/util';
 import type { CognitiveAxis } from '../../decision/types.js';
 import { type ContrastiveMemory, rubricOf } from './contrastive.js';
 import {
@@ -22,6 +22,7 @@ import type {
   JudgmentQuery,
   ReasoningBudget,
   RubricId,
+  ScoreDistribution,
 } from './types.js';
 
 const DEFAULT_CONFIDENCE_BANDS: ConfidenceBands = { act: 0.8, review: 0.5, block: 0 };
@@ -356,16 +357,15 @@ function propositionScore(p: JudgmentProposition | undefined): number | undefine
 
 /** Contrastive-penalized, re-normalized distribution (vetoed candidates stay listed). */
 function adjustDistribution(
-  base: readonly { option: string; p: number }[] | undefined,
+  base: readonly ScoreDistribution[] | undefined,
   penalties: Record<string, number>
-): readonly { option: string; p: number }[] {
+): readonly ScoreDistribution[] {
   if (!base || base.length === 0) return [];
   const adjusted = base.map((d) => ({
     option: d.option,
     p: d.p * (1 - (penalties[d.option] ?? 0)),
   }));
-  const total = sumBy(adjusted, (d) => d.p);
-  return total > 0 ? adjusted.map((d) => ({ ...d, p: d.p / total })) : base;
+  return renormalize(adjusted, (d) => d.p, (d, share) => ({ ...d, p: share }), base);
 }
 
 export interface ChooseRequest {
@@ -380,14 +380,14 @@ export interface ChooseRequest {
   /** Pre-scored ranking (e.g. an upstream judge's ordered candidates). When
    *  supplied, `choose()` applies only contrastive penalties/vetoes — no
    *  candidate_select head invocation. */
-  preScored?: readonly { option: string; p: number }[];
+  preScored?: readonly ScoreDistribution[];
 }
 
 export interface ChooseResult {
   selected?: string;
-  distribution: readonly { option: string; p: number }[];
+  distribution: readonly ScoreDistribution[];
   /** Distribution sorted by adjusted score descending (the selection order). */
-  ranked: readonly { option: string; p: number }[];
+  ranked: readonly ScoreDistribution[];
   abstained: boolean;
   abstainReason?: 'low-confidence' | 'verification-veto' | 'no-candidates';
   contrastive: { penalties: Record<string, number>; vetoes: readonly string[] };

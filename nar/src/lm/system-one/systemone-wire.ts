@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { scoreDistributionSchema } from '../../decision/types.js';
 
 /**
  * TODO17 D1: the community System One wire shape (`{state, questions}` —
@@ -24,7 +25,7 @@ export const openRequestSchema = z.object({
 export const openAnswerSchema = z.object({
   id: z.string(),
   choice: z.string().optional(),
-  distribution: z.array(z.object({ option: z.string(), p: z.number() })).optional(),
+  distribution: z.array(scoreDistributionSchema).optional(),
   score: z.number().optional(),
   boolean: z.boolean().optional(),
   abstained: z.boolean().default(false),
