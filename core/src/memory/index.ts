@@ -6,4 +6,4 @@ export {
   InMemorySessionManager,
   JsonlSessionManager,
 } from './SessionManager.js';
-export type { MemoryEntry, MemoryQuery, PersistableSessionManager } from './types.js';
+export type { Episode, MemoryEntry, MemoryQuery, PersistableSessionManager } from './types.js';

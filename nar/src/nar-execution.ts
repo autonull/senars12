@@ -394,6 +394,10 @@ export class NARExecution {
       task.stamp.id
     );
 
+    // Unreachable while `decideAdmission` always admits: the gate is an ingress
+    // filter, and on the tick's write path it is an event emitter with source
+    // calibration. Kept because a future refusal policy (TODO33 P3.9) has exactly
+    // one place to land — and a branch that is never taken must say why.
     if (!result.admitted) {
       logger.warn('Perception gate rejected derived task', {
         reason: result.rejectionReason,

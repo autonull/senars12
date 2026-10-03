@@ -102,11 +102,11 @@ pnpm exec tsx scripts/rl-parity.ts --env nonstationary --mode native --seeds 5
 
 ### Kernel Gates — Trusted Boundary
 
-Four gates mediate every state mutation. Every subsystem — inference, RL, self-improvement, tools — operates through them; none can bypass them.
+Four gates mediate every state mutation. Every subsystem — inference, RL, self-improvement, tools — operates through them; none can bypass them. **Scope, honestly:** the PerceptionGate is an *ingress* filter — it refuses external stimuli (unparseable observations, an injection veto, a fault), not the system's own derivations, which it stamps and admits. `admitTask` always admits; the branch that would refuse a derived task is unreachable.
 
 | Gate | Responsibility | Key Guarantees |
 |------|----------------|----------------|
-| **PerceptionGate** | Admit observations → belief/goal/question tasks | Source-quality → confidence mapping; lossless `admitTask(term, type, truth, source)`; provisional multi-candidate admission from LLM (`admitFormalization`) |
+| **PerceptionGate** | Admit external stimuli → belief/goal/question tasks | Source-quality → confidence mapping; lossless `admitTask(term, type, truth, source)`; provisional multi-candidate admission from LLM (`admitFormalization`) |
 | **ActionGate** | Authorize tool executions | Autonomy-mode state machine (`observe-only → propose-only → sandbox-execute → low-risk-auto-merge → human-approved-production`); NAL veto registry; operation allow-list |
 | **RewardGate** | Accept reward signals → mutate attention/policy only | **Epistemic firewall** rejects any attempt to mutate `Truth.frequency`/`confidence`; domain split (`external-reflex` direct, `self-*` → proposal) |
 | **BudgetGate** | Account CPU/derivation/LM/memory budgets | Per-focus `scopeId` budgets; explicit `TerminationReason` enums (`cycle-budget`, `depth-budget`, `llm-budget`, `deadline`, `backpressure`) |

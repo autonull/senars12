@@ -15,14 +15,8 @@ export interface MemoryQuery {
   readonly to?: number;
 }
 
+export type { Episode } from '@senars/util';
 export type { ConversationSession, SessionManager } from '@senars/util/types/memory';
-
-export interface Episode {
-  timestamp: number;
-  type: string;
-  content: string;
-  metadata: Record<string, unknown>;
-}
 
 export interface PersistableSessionManager extends SessionManager {
   restore(): Promise<void>;
