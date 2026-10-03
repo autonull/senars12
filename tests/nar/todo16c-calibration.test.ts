@@ -1,20 +1,19 @@
-import { describe, it, expect } from 'vitest';
-import { JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
-import {
-  fitCalibrationLock,
-  writeCalibrationLock,
-  readCalibrationLock,
-  assertLockMatches,
-  extractLabeledDataWithDerivedOutcomes,
-} from '../../nar/src/lm/system-one/calibration-fit.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { validateHeadCandidate } from '../../nar/src/lm/system-one/distill.js';
-import type { ModelDigest } from '../../nar/src/lm/system-one/types.js';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { mulberry32 } from '../../nar/src/utils/random.js';
 import { join } from 'node:path';
+import { mulberry32 } from '@senars/util';
+import { describe, expect, it } from 'vitest';
+import {
+  assertLockMatches,
+  extractLabeledDataWithDerivedOutcomes,
+  fitCalibrationLock,
+  readCalibrationLock,
+  writeCalibrationLock,
+} from '../../nar/src/lm/system-one/calibration-fit.js';
+import { JudgmentDataset, validateHeadCandidate } from '../../nar/src/lm/system-one/distill.js';
+import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
+import type { ModelDigest } from '../../nar/src/lm/system-one/types.js';
 
 /** Synthetic miscalibrated head: predicted systematically inflated by 0.25 over a noisy truth. */
 function miscalibratedDataset(rows: number): JudgmentDataset {
@@ -42,7 +41,10 @@ describe('Calibration from Labels (Bench 22)', () => {
     const data = extractLabeledDataWithDerivedOutcomes(dataset, ['risk']);
     expect(data.length).toBe(400);
 
-    const { lock, perHead, improved } = fitCalibrationLock(dataset, { headIds: ['risk'], minRows: 8 });
+    const { lock, perHead, improved } = fitCalibrationLock(dataset, {
+      headIds: ['risk'],
+      minRows: 8,
+    });
     expect(improved).toBe(true);
     const entry = lock.heads.find((e) => e.headId === 'risk')!;
     expect(entry.fitted).toBe(true);
@@ -84,7 +86,7 @@ describe('Calibration from Labels (Bench 22)', () => {
     const dataset = miscalibratedDataset(200);
     const { lock } = fitCalibrationLock(dataset, { headIds: ['risk'] });
 
-    const modelDigest = 'sha256:' + 'a'.repeat(64) as ModelDigest;
+    const modelDigest = ('sha256:' + 'a'.repeat(64)) as ModelDigest;
     const pinned = { ...lock, modelDigest };
     const manifold = createManifold(cache, { modelDigest, calibrationLock: pinned });
     expect(manifold.getCalibrationLock()).toBeDefined();
@@ -95,8 +97,12 @@ describe('Calibration from Labels (Bench 22)', () => {
     expect(calibrator.fitted).toBe(true);
     expect(calibrator.getECE()).toBeGreaterThan(0);
 
-    expect(() => createManifold(cache, { modelDigest, calibrationLock: { ...lock, modelDigest: 'sha256:' + 'b'.repeat(64) } }))
-      .toThrow(/Digest mismatch/);
+    expect(() =>
+      createManifold(cache, {
+        modelDigest,
+        calibrationLock: { ...lock, modelDigest: 'sha256:' + 'b'.repeat(64) },
+      })
+    ).toThrow(/Digest mismatch/);
     assertLockMatches(pinned, modelDigest as ModelDigest); // matching digest passes
   });
 });

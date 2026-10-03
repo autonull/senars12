@@ -51,8 +51,10 @@ export type DecisionResult = JudgmentProposition | SynthesisProposition;
  */
 export type DecisionPosition = 'cycle' | 'boundary';
 
-/** What a decision is about. `CognitiveAxis`'s two values mean exactly this. */
-export type DecisionAxis = 'epistemic' | 'teleological';
+import type { CognitiveAxis } from '../decision/types.js';
+
+/** What a decision is about — the epistemic firewall's own axis, named once. */
+export type DecisionAxis = CognitiveAxis;
 
 /**
  * A cycle-scoped request. The budget is a *declared scope* (A7), not a number, so

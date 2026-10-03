@@ -1,11 +1,17 @@
 import type { AIKRBudget } from '@senars/core/budget';
 import { emitDomainEvent } from '@senars/core/event-sink';
-import { clamp01, makeId, occupancy } from '@senars/util';
+import {
+  type Clock,
+  clamp01,
+  makeId,
+  nextInt,
+  occupancy,
+  type RandomSource,
+  weightedPick,
+} from '@senars/util';
 import { PRESSURE } from '../constants.js';
-import type { RandomSource } from '../types/primitives.js';
-import { nextInt, weightedPick } from '../utils/random.js';
 
-export type { RandomSource } from '../types/primitives.js';
+export type { RandomSource } from '@senars/util';
 
 export interface BagItem {
   id: string;
@@ -23,7 +29,7 @@ export interface BagOptions {
   /** Bag implementation to use (default 'priority'). */
   implementation?: BagImplementation;
   /** Injected clock for createdAt/lastAccessedAt (default Date.now). */
-  clock?: () => number;
+  clock?: Clock;
   /** Optional identifier for observability. */
   id?: string;
 }

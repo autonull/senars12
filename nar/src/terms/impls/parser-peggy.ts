@@ -2,7 +2,7 @@
 // This replaces the hand-written recursive descent parser
 
 import { createRequire } from 'node:module';
-import { createLogger, errMsg, stripTruthSuffix } from '@senars/util';
+import { type BeliefTruth, createLogger, errMsg, stripTruthSuffix } from '@senars/util';
 import type { TaskType } from '../../types/core.js';
 import type { Term } from '../types.js';
 import { TermFactory } from './factory.js';
@@ -135,7 +135,7 @@ export class TermParser {
       const r = result as {
         term?: Term;
         punctuation?: string;
-        truthValue?: { frequency: number; confidence: number };
+        truthValue?: BeliefTruth;
       } | null;
       if (!r || !r.term || !r.punctuation) return null;
 
@@ -172,11 +172,7 @@ export class TermParser {
         }
       : { line: 1, column: 1, offset: 0 };
 
-    return new ParseError(
-      `TermParser parsing failed: ${(error as Error).message}`,
-      position,
-      error
-    );
+    return new ParseError(`TermParser parsing failed: ${errMsg(error)}`, position, error);
   }
 }
 

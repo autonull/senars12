@@ -80,9 +80,7 @@ const buildProposition = (
   return { ...base, kind: 'evaluate', axis: query.axis, score } as unknown as JudgmentProposition;
 };
 
-export function createOpenSystemOneManifold(
-  config: OpenSystemOneManifoldConfig
-): JudgmentManifold {
+export function createOpenSystemOneManifold(config: OpenSystemOneManifoldConfig): JudgmentManifold {
   return createRemoteManifold({
     backendId: OPEN_REPLICA_BACKEND,
     endpoint: config.endpoint,

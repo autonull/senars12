@@ -79,6 +79,7 @@ export function createHttpManifold(config: HttpManifoldConfig): JudgmentManifold
       queries,
       trusted: false,
     }),
-    parseResponse: (body) => responseSchema.parse(body).propositions as unknown as JudgmentProposition[],
+    parseResponse: (body) =>
+      responseSchema.parse(body).propositions as unknown as JudgmentProposition[],
   });
 }

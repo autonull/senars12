@@ -1,6 +1,6 @@
 import type { AutonomyMode, CognitiveEvent, TaskAdmittedEvent } from '@senars/core/schemas';
 import { CognitiveEventSchema } from '@senars/core/schemas';
-import { appendJsonl, readJsonl, sortBy } from '@senars/util';
+import { appendJsonl, type BeliefTruth, readJsonl, sortBy } from '@senars/util';
 import type { GateRegistry } from './GateRegistry.js';
 
 export function persistGateLogs(registry: GateRegistry, path: string): { appended: number } {
@@ -43,21 +43,21 @@ export interface CognitiveStateSnapshot {
   tasks: Array<{
     term: string;
     taskType: string;
-    truth?: { frequency: number; confidence: number };
+    truth?: BeliefTruth;
   }>;
-  beliefs: Record<string, { frequency: number; confidence: number }>;
+  beliefs: Record<string, BeliefTruth>;
   revisions: Record<
     string,
     Array<{
-      oldTruth: { frequency: number; confidence: number };
-      newTruth: { frequency: number; confidence: number };
+      oldTruth: BeliefTruth;
+      newTruth: BeliefTruth;
     }>
   >;
   derivations: Array<{
     derivationId: string;
     ruleId: string;
     conclusion: string;
-    truth: { frequency: number; confidence: number };
+    truth: BeliefTruth;
   }>;
   priorities: Record<string, number>;
   violations: Array<{ policyId: string; violationType: string; severity: string }>;

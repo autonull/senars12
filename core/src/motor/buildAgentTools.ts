@@ -1,3 +1,4 @@
+import { errMsg, toolError, toolOk } from '@senars/util';
 import type { AgentToolDeps } from '../memory/types.js';
 import type { ToolRegistry, ToolSpec } from './ToolRegistry.js';
 
@@ -13,7 +14,7 @@ const AGENT_TOOL_SPECS = (deps: AgentToolDeps): ToolSpec[] => [
     execute: async (args) => {
       const { key, value } = args as { key: string; value: string };
       deps.know(key, value);
-      return { success: true, content: { stored: true, key } };
+      return toolOk({ stored: true, key });
     },
   },
   {
@@ -26,17 +27,14 @@ const AGENT_TOOL_SPECS = (deps: AgentToolDeps): ToolSpec[] => [
     },
     execute: async (args) => {
       const value = deps.knowGet((args as { key: string }).key);
-      return {
-        success: true,
-        content: value !== undefined ? { found: true, value } : { found: false },
-      };
+      return toolOk(value !== undefined ? { found: true, value } : { found: false });
     },
   },
   {
     name: 'know_list',
     description: 'List all entries in agent memory',
     parameters: { type: 'object', properties: {} },
-    execute: async () => ({ success: true, content: { entries: deps.knowList() } }),
+    execute: async () => toolOk({ entries: deps.knowList() }),
   },
   {
     name: 'recall',
@@ -47,7 +45,7 @@ const AGENT_TOOL_SPECS = (deps: AgentToolDeps): ToolSpec[] => [
     },
     execute: async (args) => {
       const { query, limit } = args as { query?: string; limit?: number };
-      return { success: true, content: await deps.recall(query, limit) };
+      return toolOk(await deps.recall(query, limit));
     },
   },
   {
@@ -64,17 +62,15 @@ const AGENT_TOOL_SPECS = (deps: AgentToolDeps): ToolSpec[] => [
     execute: async (args) => {
       const { mode, instructions } = args as { mode: 'append' | 'replace'; instructions: string };
       deps.setInstructions?.(mode, instructions);
-      return { success: true, content: { ok: true, mode } };
+      return toolOk({ ok: true, mode });
     },
   },
   {
     name: 'get_session_info',
     description: 'Get current session info',
     parameters: { type: 'object', properties: {} },
-    execute: async () => ({
-      success: true,
-      content: deps.getSessionInfo?.() ?? { messageCount: 0, createdAt: 0, pinnedBeliefs: [] },
-    }),
+    execute: async () =>
+      toolOk(deps.getSessionInfo?.() ?? { messageCount: 0, createdAt: 0, pinnedBeliefs: [] }),
   },
   {
     name: 'delegate',
@@ -87,12 +83,12 @@ const AGENT_TOOL_SPECS = (deps: AgentToolDeps): ToolSpec[] => [
     execute: async (args) => {
       const { prompt } = args as { prompt: string };
       if (!deps.delegate) {
-        return { success: false, content: null, error: 'delegation not available in this context' };
+        return toolError('delegation not available in this context');
       }
       try {
-        return { success: true, content: { result: await deps.delegate(prompt) } };
+        return toolOk({ result: await deps.delegate(prompt) });
       } catch (e) {
-        return { success: false, content: null, error: (e as Error).message };
+        return toolError(e);
       }
     },
   },

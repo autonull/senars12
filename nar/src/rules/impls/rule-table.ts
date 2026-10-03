@@ -52,6 +52,7 @@ import {
   RULE_TABLE_SCHEMA_VERSION,
   validateRuleTable,
 } from '@senars/core/schemas';
+import { pushCapped } from '@senars/util';
 
 import { Truth, type Term } from '../../terms';
 import type { InferenceTable, RegisteredRule, RuleFn, TruthFn } from '../types.js';
@@ -147,6 +148,7 @@ export const resolveTable = (
       sync: true,
       priority: entry.priority,
       truthFn: Truth[entry.truthFn as keyof typeof Truth] as TruthFn,
+      truthFnName: entry.truthFn,
       taskType: entry.taskType,
     });
   }
@@ -346,12 +348,7 @@ export class RuleTableStore {
     const { rules, entries, faults } = resolveTable(next, this.bodies);
     if (faults.length > 0) throw new RuleTableError(faults);
     this.current = { ...next, entries };
-    this.history.push(this.current);
-    // Retain only the most recent revisions per the declared bound (RULE_TABLE_MAX_HISTORY).
-    // This bounds the unbounded history that TODO30 §3.1 identified.
-    if (this.history.length > RULE_TABLE_MAX_HISTORY) {
-      this.history.splice(0, this.history.length - RULE_TABLE_MAX_HISTORY);
-    }
+    pushCapped(this.history, this.current, RULE_TABLE_MAX_HISTORY);
     const rebuilt = new RuleIndex();
     for (const rule of rules) rebuilt.register(rule);
     this.dispatch = rebuilt;

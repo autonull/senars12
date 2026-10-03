@@ -9,7 +9,7 @@ import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
 import type { CognitiveParameters } from '@senars/nar/config/cognitive-parameters';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters';
-import { RLFPLearner, createKnobSet } from '@senars/nar/rlfp';
+import { createKnobSet, RLFPLearner } from '@senars/nar/rlfp';
 import { parseFlags, pct, section, sleep } from '@senars/util';
 import { runEntrypoint } from './fatal-error.js';
 

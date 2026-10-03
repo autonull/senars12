@@ -8,13 +8,18 @@
 
 import { join } from 'node:path';
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
-import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
-import { ensureDirSync, periodic, utcDate } from '@senars/util';
 import type { LMTask } from '@senars/util';
+import { ensureDirSync, periodic, utcDate } from '@senars/util';
+import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
 import { recordCircuitBreakerState } from '../metrics/index.js';
 import { getTracer } from '../otel/index.js';
+import {
+  CircuitBreaker,
+  type CircuitBreakerSettings,
+  type TransitionReason,
+} from '../utils/circuit-breaker.js';
 import {
   type CircuitState,
   type LMProviderName,
@@ -22,11 +27,6 @@ import {
   type LMSettingsInput,
   resolveLMSettings,
 } from './env-config.js';
-import {
-  CircuitBreaker,
-  type CircuitBreakerSettings,
-  type TransitionReason,
-} from '../utils/circuit-breaker.js';
 
 export type { CircuitState, LMProviderName };
 export type CircuitBreakerConfig = CircuitBreakerSettings;
@@ -133,7 +133,10 @@ export class ProviderRuntime {
   readonly demotions = new Map<string, { reason: string; at: number }>();
   readonly circuitBreakers = new Map<LMProviderName, CircuitBreaker>();
   /** Out-of-band probe bookkeeping — not part of the breaker state machine. */
-  readonly #probes = new Map<LMProviderName, { lastProbe: number | null; probeResult: boolean | null }>();
+  readonly #probes = new Map<
+    LMProviderName,
+    { lastProbe: number | null; probeResult: boolean | null }
+  >();
   /** Disposer owned by start/stopHealthProbes (providers.ts). */
   healthProbeInterval: (() => void) | null = null;
 
@@ -347,4 +350,3 @@ let defaultRuntime: ProviderRuntime | undefined;
 
 /** Process-wide default instance backing the module-level provider API. */
 export const getProviderRuntime = (): ProviderRuntime => (defaultRuntime ??= new ProviderRuntime());
-

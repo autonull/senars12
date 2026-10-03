@@ -10,13 +10,11 @@
 
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { mean, pct, stdDev } from '@senars/util';
+import { mean, mulberry32, pct, stdDev } from '@senars/util';
 import { program } from 'commander';
 import { BanditGame } from '../nar/src/game/impls/BanditGame.js';
 import { GridWorldGame } from '../nar/src/game/impls/GridWorldGame.js';
-import { operationTerm, TermBuilder } from '../nar/src/index.js';
-import { NAR } from '../nar/src/nar.js';
-import { mulberry32 } from '../nar/src/utils/random.js';
+import { NAR, operationTerm, TermBuilder } from '../nar/src/index.js';
 import {
   BanditNativeAgent,
   BeliefPerceptionAdapter,
@@ -26,9 +24,13 @@ import {
   NonStationaryNativeAgent,
   RewardBeliefAdapter,
 } from '../nar/src/rl/index.js';
+import {
+  computeSeedPassRate,
+  meetsParityAcceptance,
+  PER_SEED_RATIO_FLOOR,
+} from '../nar/src/rl/parity-acceptance.js';
 import { EpsilonGreedy, UCB1 } from '../tests/nar/rl/baselines/bandit.js';
 import { QLearning, SARSA } from '../tests/nar/rl/baselines/gridworld.js';
-import { computeSeedPassRate, meetsParityAcceptance, PER_SEED_RATIO_FLOOR } from '../nar/src/rl/parity-acceptance.js';
 
 program
   .name('rl-parity')

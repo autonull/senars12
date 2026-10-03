@@ -12,12 +12,9 @@
  * cannot drift into two budgets — §7 invariant 12.
  */
 
-import {
-  BUDGET_SCOPE_IDS,
-  scopeBudget,
-  scopeSpec,
-  type BudgetScopeId,
-} from './budget-scopes.js';
+import { ALL_RESOURCES, BUDGET_TYPES, type BudgetResource, budgetLimit } from '@senars/core/budget';
+import type { ReasoningBudget } from '@senars/core/schemas';
+import { BUDGET_SCOPE_IDS, type BudgetScopeId, scopeBudget, scopeSpec } from './budget-scopes.js';
 import type { KernelBudgetGate } from './KernelBudgetGate.js';
 
 export interface ControlBudgetPort {
@@ -39,8 +36,11 @@ export class ControlBudgets implements ControlBudgetPort {
 
   charge(scopeId: BudgetScopeId, cost = 1): boolean {
     this.open(scopeId);
-    return this.gate.check({ operation: scopeSpec(scopeId).operation, scopeId, estimatedCost: cost })
-      .granted;
+    return this.gate.check({
+      operation: scopeSpec(scopeId).operation,
+      scopeId,
+      estimatedCost: cost,
+    }).granted;
   }
 
   /**
@@ -68,41 +68,23 @@ export class ControlBudgets implements ControlBudgetPort {
   }
 
   getSpendSummary(): Record<string, { ceiling: number; spent: number; terminationReason: string }> {
-    const summary: Record<string, { ceiling: number; spent: number; terminationReason: string }> = {};
-    const mainBudget = this.gate.getBudget();
-    
-    for (const scopeId of BUDGET_SCOPE_IDS) {
-      const scopeBudget_ = this.gate.getScopeBudget(scopeId);
-      if (scopeBudget_) {
-        const spec = scopeSpec(scopeId);
-        const consumed = scopeBudget_.consumed[spec.consumedKey] ?? 0;
-        const ceiling = scopeBudget_[spec.limitKey] ?? 0;
-        summary[scopeId] = {
-          ceiling,
-          spent: consumed,
-          terminationReason: scopeBudget_.terminationReason ?? 'none',
-        };
-      }
-    }
-    
-    // Also include main budget scopes
-    const mainSpecs = [
-      { id: 'cycles', consumedKey: 'cycles' as const, limitKey: 'maxCycles' as const },
-      { id: 'depth', consumedKey: 'depth' as const, limitKey: 'maxDepth' as const },
-      { id: 'memory', consumedKey: 'memoryOps' as const, limitKey: 'maxMemoryOps' as const },
-      { id: 'llm', consumedKey: 'llmCalls' as const, limitKey: 'maxLMCalls' as const },
-    ];
-    
-    for (const s of mainSpecs) {
-      const consumed = mainBudget.consumed[s.consumedKey] ?? 0;
-      const ceiling = mainBudget[s.limitKey] ?? 0;
-      summary[s.id] = {
-        ceiling,
-        spent: consumed,
-        terminationReason: mainBudget.terminationReason ?? 'none',
+    const summary: Record<string, { ceiling: number; spent: number; terminationReason: string }> =
+      {};
+    const spend = (id: string, budget: ReasoningBudget, resource: BudgetResource): void => {
+      summary[id] = {
+        ceiling: budgetLimit(budget, resource),
+        spent: budget.consumed[resource],
+        terminationReason: budget.terminationReason ?? 'none',
       };
+    };
+
+    for (const scopeId of BUDGET_SCOPE_IDS) {
+      const scope = this.gate.getScopeBudget(scopeId);
+      if (scope) spend(scopeId, scope, scopeSpec(scopeId).consumedKey);
     }
-    
+    for (const resource of ALL_RESOURCES)
+      spend(BUDGET_TYPES[resource], this.gate.getBudget(), resource);
+
     return summary;
   }
 }

@@ -1,7 +1,6 @@
-import { sleep } from '@senars/util';
-import { tool } from './decorator.js';
+import { sleep, toolError, toolOk } from '@senars/util';
 import type { Schema, Tool, ToolResult } from '../types';
-import { errorResult } from '../types';
+import { tool } from './decorator.js';
 
 @tool({
   name: 'sleep',
@@ -28,9 +27,9 @@ export class SleepTool implements Tool {
     const { duration } = args as { duration: number };
     try {
       await sleep(duration);
-      return { success: true, content: { slept: duration } };
+      return toolOk({ slept: duration });
     } catch (error) {
-      return errorResult(error);
+      return toolError(error);
     }
   }
 }

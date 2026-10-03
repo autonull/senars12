@@ -8,7 +8,7 @@
  *  used to miss is the canonical example). */
 
 import { trace } from '@opentelemetry/api';
-import { type LMExecutionStats, type LMTask, stopwatch } from '@senars/util';
+import { incrementCount, type LMExecutionStats, type LMTask, stopwatch } from '@senars/util';
 import type { LMProviderName, LMSettings } from '../env-config.js';
 import type { GrammarName } from '../grammars/index.js';
 import { loadGrammar } from '../grammars/index.js';
@@ -201,8 +201,7 @@ export class CallAccounting {
   #noteFailure(): void {
     const id = this.runtime.lastDecision?.modelId;
     if (!id) return;
-    const n = (this.#failures.get(id) ?? 0) + 1;
-    this.#failures.set(id, n);
+    const n = incrementCount(this.#failures, id);
     if (n >= 2) this.runtime.demoteModel(id, `repeated transport failures (${n})`);
   }
 

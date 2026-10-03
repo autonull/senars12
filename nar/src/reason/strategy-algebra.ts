@@ -7,7 +7,7 @@
  * plain-name configs resolve exactly as before; expressions activate only
  * where a caller names one (`CognitiveParameters.strategies.derivation.type`).
  */
-import { raceDeadline } from '@senars/util';
+import { clamp, raceDeadline } from '@senars/util';
 import type { Task } from '../types/core.js';
 
 /**
@@ -163,7 +163,7 @@ const conditionalRun =
 const loopRun =
   (body: CompositionStrategy, maxIterations: number): CompositionRun =>
   async function* (primary, secondaries, processor, ctx) {
-    const bound = Math.min(Math.max(1, Math.floor(maxIterations)), LOOP_HARD_CAP);
+    const bound = clamp(Math.floor(maxIterations), 1, LOOP_HARD_CAP);
     for (let i = 0; i < bound; i++) {
       if (ctx.signal?.aborted) return;
       let produced = 0;

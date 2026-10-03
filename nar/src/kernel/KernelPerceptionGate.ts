@@ -142,13 +142,7 @@ export class KernelPerceptionGate extends KernelGate {
 
     const term = this.rawObservationToTerm(input.rawObservation);
     if (!term) {
-      recordGateDecision(
-        'perception',
-        'admit',
-        false,
-        'unparseable-observation',
-        correlationId
-      );
+      recordGateDecision('perception', 'admit', false, 'unparseable-observation', correlationId);
       return {
         admitted: false,
         rejectionReason: 'Failed to parse observation into valid Narsese term',

@@ -2,6 +2,7 @@ import type { Agent, PromptBuilder } from '@senars/core';
 import type { MettaPort } from '@senars/core/metta-port';
 import type { LMService } from '../lm';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
+import { errMsg } from '@senars/util';
 import type { SystemOneConfig } from '@senars/util/config';
 import { BuilderError } from '../errors/index.js';
 import { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from '../config/cognitive-parameters.js';
@@ -323,7 +324,7 @@ export class NARBuilder {
     const deviceHead = this.deviceHeadSpec
       ? await loadHeadBundle(this.deviceHeadSpec).catch((cause: unknown) => {
           throw new BuilderError(
-            cause instanceof Error ? cause.message : 'sandboxed head load failed',
+            errMsg(cause, 'sandboxed head load failed'),
             'deviceHead'
           );
         })

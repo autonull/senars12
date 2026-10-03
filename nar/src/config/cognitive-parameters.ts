@@ -1,6 +1,6 @@
 import { createLogger } from '@senars/util';
 import { boundRange, cognitiveBounds, getCognitiveBound } from '@senars/util/config';
-import { deepEqual, deepFreeze, errMsg } from '@senars/util';
+import { deepEqual, deepFreeze, deepMerge, errMsg } from '@senars/util';
 import { type BagSlotParams, bagSlotErrors } from '../bag/registration';
 import {
   type StrategyCatalog,
@@ -399,46 +399,19 @@ export function validateParameters(
 }
 
 /**
- * Merge partial parameters with defaults
+ * Partial parameters over the frozen defaults.
+ *
+ * One deep merge, so a nested knob is reachable at any depth. The previous
+ * spelling named every section and then named, again, which nested leaves had to
+ * be copied by hand (`ranking`, `ruleCategories`) — a list that goes stale the
+ * moment a section gains a sub-object, at which point a knob writes through a
+ * shared reference. Freezing the defaults is what makes the shared untouched
+ * branches safe rather than quietly mutable: this is ESM, so such a write throws
+ * at the call site instead of polluting `isolate:false` state.
  */
-/**
- * Shallow-merge over defaults, copying the named mutable nested leaves — a knob
- * writing through a shared `ranking`/`ruleCategories` reference would otherwise
- * mutate the module default (isolate:false test pollution, F5 ParameterTable seeds).
- */
-function mergeSection<T extends object>(
-  base: T,
-  over: Partial<T> | undefined,
-  nested: (keyof T)[] = []
-): T {
-  const out: T = { ...base, ...over };
-  for (const k of nested) {
-    const v = out[k];
-    if (v && typeof v === 'object' && !Array.isArray(v)) out[k] = { ...(v as object) } as never;
-  }
-  return out;
-}
-
-export function mergeParameters(partial: Partial<CognitiveParameters>): CognitiveParameters {
-  const d = DEFAULT_COGNITIVE_PARAMETERS;
-  const strategies = d.strategies;
-  return {
-    priority: mergeSection(d.priority, partial.priority),
-    lm: mergeSection(d.lm, partial.lm, ['ruleCategories']),
-    attention: mergeSection(d.attention, partial.attention),
-    inference: mergeSection(d.inference, partial.inference, ['ranking']),
-    modelRunner: mergeSection(d.modelRunner, partial.modelRunner),
-    memory: mergeSection(d.memory, partial.memory),
-    strategies: mergeSection(strategies, partial.strategies, [
-      'sampling',
-      'premise',
-      'derivation',
-      'lmRule',
-      'attention',
-      'bag',
-    ]),
-  };
-}
+export const mergeParameters = (
+  partial: Partial<CognitiveParameters>
+): CognitiveParameters => deepMerge(DEFAULT_COGNITIVE_PARAMETERS, partial);
 
 /** Per-slot strategy change detection — avoids serializing the whole strategy graph to compare it. */
 export function sameStrategies(

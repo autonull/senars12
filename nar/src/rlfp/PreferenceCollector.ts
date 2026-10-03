@@ -1,5 +1,5 @@
-import { clamp01, writeJsonFile } from '@senars/util';
 import { promises as fs } from 'node:fs';
+import { clamp01, errMsg, writeJsonFile } from '@senars/util';
 import { OperationError } from '../types';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import { extractTrajectoryFeatures } from './utils.js';
@@ -22,7 +22,7 @@ export class PreferenceCollector {
       trajectoryA = await this.loadTrajectory(pathA);
       trajectoryB = await this.loadTrajectory(pathB);
     } catch (error) {
-      throw new OperationError(`Error loading trajectories: ${(error as Error).message}`, {
+      throw new OperationError(`Error loading trajectories: ${errMsg(error)}`, {
         pathA,
         pathB,
       });
@@ -60,10 +60,9 @@ export class PreferenceCollector {
       const data = await fs.readFile(path, 'utf-8');
       return JSON.parse(data) as TrajectoryStep[];
     } catch (error) {
-      throw new OperationError(
-        `Failed to load trajectory from ${path}: ${(error as Error).message}`,
-        { path }
-      );
+      throw new OperationError(`Failed to load trajectory from ${path}: ${errMsg(error)}`, {
+        path,
+      });
     }
   }
 

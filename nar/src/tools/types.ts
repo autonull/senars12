@@ -63,7 +63,6 @@ export interface ToolChainResult {
 }
 
 export type { ToolResult } from '@senars/util';
-export { toolError as errorResult } from '@senars/util';
 
 export interface Schema {
   type: 'object';

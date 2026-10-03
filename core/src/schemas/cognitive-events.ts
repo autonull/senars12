@@ -9,8 +9,8 @@ import { z } from 'zod';
 import { CognitiveEventBaseSchema } from './event-base.js';
 import { AutonomyModeSchema, PatchProposalSchema } from './governance.js';
 import { NarEventSchemas } from './nar-events.js';
-import { TerminationReasonSchema } from './reasoning-budget.js';
 import { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal.js';
+import { TerminationReasonSchema } from './reasoning-budget.js';
 import { TruthValueSchema } from './truth.js';
 
 export { CognitiveEventBaseSchema, EngineOriginSchema } from './event-base.js';
@@ -64,7 +64,9 @@ export const ConceptActivatedEventSchema = CognitiveEventBaseSchema.extend({
     term: z.string(),
     priority: z.number(),
     /** Which subsystem woke the concept. Absent on `engine: 'nar'` events, which are minted by the bridge from a term's creation. */
-    activationSource: z.enum(['perception', 'goal', 'derivation', 'decay', 'associative']).optional(),
+    activationSource: z
+      .enum(['perception', 'goal', 'derivation', 'decay', 'associative'])
+      .optional(),
   }),
 });
 

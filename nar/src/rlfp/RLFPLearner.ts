@@ -1,4 +1,4 @@
-import { cachePath, clamp, createLogger, roundTo } from '@senars/util';
+import { cachePath, clamp, createLogger, errMsg, roundTo } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 import { buildDefaults, type CognitiveParameters } from '../config/cognitive-parameters.js';
@@ -286,7 +286,7 @@ export class RLFPLearner {
           this.appendToFile(entry);
           count++;
         } catch (e) {
-          lastError = (e as Error).message;
+          lastError = errMsg(e);
         }
       }
     }
@@ -357,7 +357,7 @@ export class RLFPLearner {
     try {
       this.#trainingLedger.append({ ...entry, at: entry.timestamp } as TrainingLedgerEntry);
     } catch (error) {
-      throw new OperationError(`RLFPLearner write error: ${(error as Error).message}`, {
+      throw new OperationError(`RLFPLearner write error: ${errMsg(error)}`, {
         file: this.outputFile,
       });
     }

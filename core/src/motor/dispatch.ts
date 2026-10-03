@@ -1,3 +1,4 @@
+import { errMsg } from '@senars/util';
 export interface DispatchCall {
   toolName: string;
   toolCallId: string;
@@ -54,7 +55,7 @@ export async function dispatchToolCalls(
         metadata: { toolName: call.toolName, toolCallId: call.toolCallId },
       });
     } catch (e: unknown) {
-      errors.push({ message: (e as Error).message });
+      errors.push({ message: errMsg(e) });
     }
   }
 

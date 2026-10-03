@@ -16,8 +16,12 @@
  * eight call sites.
  */
 
-import { DECISION_ASK_TIMEOUT_MS, type DecisionAxis, type DecisionPosition } from '../ports/decision.js';
 import type { BudgetScopeId } from '../kernel/budget-scopes.js';
+import {
+  DECISION_ASK_TIMEOUT_MS,
+  type DecisionAxis,
+  type DecisionPosition,
+} from '../ports/decision.js';
 
 interface DecisionCallSiteBase {
   /** Stable id, and the symbol a caller names in a violation message. */
@@ -88,7 +92,7 @@ export const DECISION_CALL_SITES: readonly DecisionCallSite[] = [
     rationale:
       'the only stage through which anything reaches state, and the only truncation that decides what fits — `ranking.maxAdmissions`. A decision reorders the candidates; it never creates an admission',
   },
-{
+  {
     id: 'authorize.egress-veto',
     at: 'nar/src/nar-execution.ts:518',
     contains: 'await askSafely(this.decision,',

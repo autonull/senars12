@@ -1,3 +1,4 @@
+import { assertDefined } from '../utils/assert.js';
 import type { CommandContext, CommandDefinition } from './types.js';
 
 export class CommandRegistry {
@@ -15,10 +16,7 @@ export class CommandRegistry {
   }
 
   async execute(name: string, args: string[], context: CommandContext): Promise<string> {
-    const cmd = this._commands.get(name);
-    if (!cmd) {
-      throw new Error(`Unknown command: ${name}`);
-    }
+    const cmd = assertDefined(this._commands.get(name), `Unknown command: ${name}`);
     return cmd.execute(args, context);
   }
 

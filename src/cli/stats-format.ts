@@ -5,8 +5,8 @@
 
 import type { NAR } from '@senars/nar';
 import type { BinAgentApi as Agent } from '@senars/nar/agent';
-import { formatTruth, limitList } from '@senars/util';
 import type { LMExecutionStats } from '@senars/util';
+import { formatTruth, limitList } from '@senars/util';
 import type { LMHandle } from './commands.js';
 
 export interface FormattedStats {

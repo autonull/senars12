@@ -1,32 +1,25 @@
+import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
 import {
   dialogueDefaults,
   dialogueSchema,
   lmSettingsSchema,
-  type NarCoreBoundKey,
   narCoreBounds,
-  narCoreDefaultedNumber,
+  narCoreDefaults,
+  narCoreDefaultsSchema,
   narCoreNumber,
   type SystemOneConfig,
   systemOneDefaults,
   systemOneSchema,
 } from '@senars/util/config';
 import { z } from 'zod';
-import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
 
 // System One schema/defaults live in @senars/util/config (single definition —
 // also consumed by @senars/nar); re-exported here for the app config surface.
 export { type SystemOneConfig, systemOneDefaults, systemOneSchema };
 
-const narCoreDefaults = Object.fromEntries(
-  Object.keys(narCoreBounds).map((key) => [key, narCoreBounds[key as NarCoreBoundKey].default])
-) as Record<NarCoreBoundKey, number>;
-
-/** Every core knob is table-driven — a limit is written once, in `narCoreBounds`. */
-export const narCoreSchema = z.object(
-  Object.fromEntries(
-    Object.keys(narCoreBounds).map((key) => [key, narCoreDefaultedNumber(key as NarCoreBoundKey)])
-  ) as { [K in NarCoreBoundKey]: ReturnType<typeof narCoreDefaultedNumber> }
-);
+/** Every core knob is table-driven — a limit is written once, in `narCoreBounds`, and
+ *  both its default record and its zod shape are projections of that one table. */
+export const narCoreSchema = z.object(narCoreDefaultsSchema);
 
 const lmDefaults = { enabled: true, provider: 'llamacpp-embedded' } as const;
 

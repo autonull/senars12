@@ -25,7 +25,11 @@ export function agreeByExactAlgebra(
   input: NegotiationInput,
   toExpression: MettaFactSource,
   evaluate: MettaEvaluator,
-  { source, confidence, maxProposals = Number.POSITIVE_INFINITY }: {
+  {
+    source,
+    confidence,
+    maxProposals = Number.POSITIVE_INFINITY,
+  }: {
     source: string;
     confidence: number;
     maxProposals?: number;
@@ -41,4 +45,3 @@ export function agreeByExactAlgebra(
   }
   return reflex.length > 0 ? { reflex } : {};
 }
-

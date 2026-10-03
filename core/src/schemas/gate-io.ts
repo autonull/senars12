@@ -6,7 +6,11 @@
 import { z } from 'zod';
 import { TaskAdmittedEventSchema } from './cognitive-events.js';
 import { RewardDomainSchema } from './governance.js';
-import { ReasoningBudgetSchema, TerminationReasonSchema, BUDGET_SCOPE_IDS } from './reasoning-budget.js';
+import {
+  BUDGET_SCOPE_IDS,
+  ReasoningBudgetSchema,
+  TerminationReasonSchema,
+} from './reasoning-budget.js';
 import { SourceQualitySchema } from './truth.js';
 
 export const PerceptionGateInputSchema = z.object({

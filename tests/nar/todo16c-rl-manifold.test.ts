@@ -2,6 +2,7 @@ import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { SeededRNG } from '@senars/util';
 import { describe, expect, it } from 'vitest';
 import type { GridWorldState } from '../../nar/src/game/impls/GridWorldGame.js';
 import { GridWorldGame } from '../../nar/src/game/impls/GridWorldGame.js';
@@ -10,7 +11,6 @@ import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { ManifoldRLAgent } from '../../nar/src/lm/system-one/manifold-rl-agent.js';
 import { recordReflexOutcome } from '../../nar/src/lm/system-one/reflex-label-source.js';
 import type { JudgmentHead, JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
-import { SeededRNG } from '../../nar/src/utils/random.js';
 import { QLearning } from './rl/baselines/gridworld.js';
 
 const budget: ReasoningBudget = {

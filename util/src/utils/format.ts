@@ -3,6 +3,8 @@
  * the single implementation of percent, rule, and progress-bar rendering.
  */
 
+import { clamp } from './numeric.js';
+
 /** Fraction → percentage string (`pct(0.6123)` → `'61.2%'`). */
 export const pct = (fraction: number, digits = 1): string => `${(fraction * 100).toFixed(digits)}%`;
 
@@ -24,7 +26,7 @@ export const section = (title: string, width = 50, rule = '='): string =>
 export const percentile = (values: readonly number[], p: number): number => {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * p)))] ?? 0;
+  return sorted[clamp(Math.floor(sorted.length * p), 0, sorted.length - 1)] ?? 0;
 };
 
 /** UTC calendar day as `YYYY-MM-DD` — the one date key for daily ledger files. */

@@ -64,7 +64,8 @@ export const PROVIDER_SEAMS: readonly ProviderSeam[] = [
     ],
     onCyclePath: true,
     bounded: true,
-    bound: 'KernelPerceptionGate systemOne.judgeTimeoutMs — the deadline on one judgment, default 2s',
+    bound:
+      'KernelPerceptionGate systemOne.judgeTimeoutMs — the deadline on one judgment, default 2s',
     behaviour: 'ingress-judgment',
   },
   {

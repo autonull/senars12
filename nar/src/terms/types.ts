@@ -40,9 +40,12 @@ export type Term = AtomicTerm | CompoundTerm;
 /**
  * Narsese variable sigils. This is the single definition: the atom factory
  * stamps `isVariable` from it, and every variable test — rules, complexity,
- * substitution, the unifier — reads it. The unifier previously used a
- * `$`-only test while the factory accepted all five, so `atom('?x')` was built
- * as a variable that the unifier then refused to bind.
+ * substitution, the unifier — agrees with it. Two of those read the stamped
+ * flag rather than this regex, so they hold only while every atom came from the
+ * factory; {@link isVariableSymbol} is the form to reach for when that is not
+ * guaranteed. The unifier previously used a `$`-only test while the factory
+ * accepted all five, so `atom('?x')` was built as a variable that the unifier
+ * then refused to bind.
  */
 export const VARIABLE_SYMBOL = /^[?$#*%]/;
 

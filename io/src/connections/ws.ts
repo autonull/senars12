@@ -1,6 +1,5 @@
-import { makeId } from '@senars/util';
+import { createLogger, errMsg, makeId } from '@senars/util';
 import { type WebSocket, WebSocketServer } from 'ws';
-import { createLogger } from '@senars/util';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { startWSServer } from '../utils/http.js';
 import {
@@ -40,9 +39,7 @@ export class WSConnection extends BaseConnection {
       this.setState('connected');
       this.logger.info(`WebSocket server listening on port ${this.port}`);
     } catch (err) {
-      this.handleError(
-        this.createError((err as Error).message, 'WS_SERVER_ERROR', true, err as Error)
-      );
+      this.handleError(this.createError(errMsg(err), 'WS_SERVER_ERROR', true, err as Error));
       throw err;
     }
   }

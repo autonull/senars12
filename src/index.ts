@@ -11,7 +11,6 @@ export type {
 export {
   ApiKeyManager,
   AuthManager,
-  createAuthCommands,
   BaseConnection,
   broadcastToSubscribers,
   CLIConnection,
@@ -20,6 +19,7 @@ export {
   ConnectionManager,
   cleanupWSClient,
   connectionCommands,
+  createAuthCommands,
   createWSClient,
   HTTPConnection,
   IRCConnection,

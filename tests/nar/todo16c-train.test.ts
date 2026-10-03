@@ -1,22 +1,25 @@
-import { describe, it, expect } from 'vitest';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { mulberry32 } from '@senars/util';
+import { describe, expect, it } from 'vitest';
 import { JudgmentDataset, runBakeOff } from '../../nar/src/lm/system-one/distill.js';
-import { recordClarificationLabel, recordApprovalLabel } from '../../nar/src/lm/system-one/label-sources.js';
-import {
-  loadTrainingData,
-  trainHead,
-  writeHeadArtifacts,
-  loadHeadArtifacts,
-  TrainedLinearHead,
-} from '../../nar/src/lm/system-one/train.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { createHeadById } from '../../nar/src/lm/system-one/head-specs.js';
-import { loadHeadRuntime, DigestMismatchError } from '../../nar/src/lm/system-one/wasi-runtime.js';
-import { mkdtempSync, existsSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { mulberry32 } from '../../nar/src/utils/random.js';
-import { join } from 'node:path';
+import {
+  recordApprovalLabel,
+  recordClarificationLabel,
+} from '../../nar/src/lm/system-one/label-sources.js';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
+import {
+  loadHeadArtifacts,
+  loadTrainingData,
+  TrainedLinearHead,
+  trainHead,
+  writeHeadArtifacts,
+} from '../../nar/src/lm/system-one/train.js';
 import type { JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
+import { DigestMismatchError, loadHeadRuntime } from '../../nar/src/lm/system-one/wasi-runtime.js';
 
 /** Synthetic labeled fixtures: risk head where observed outcomes follow a learnable pattern. */
 function buildLabeledDataset(rows: number, basePath: string): JudgmentDataset {
@@ -64,23 +67,52 @@ describe('Training Round-Trip (Bench 24)', () => {
     // Round-trip load verifies weights hash; wrong pin fails closed
     const head = await loadHeadArtifacts(outDir, bundle.modelDigest);
     expect(head.fitted).toBe(true);
-    await expect(loadHeadArtifacts(outDir, 'sha256:' + 'c'.repeat(64))).rejects.toThrow(DigestMismatchError);
+    await expect(loadHeadArtifacts(outDir, 'sha256:' + 'c'.repeat(64))).rejects.toThrow(
+      DigestMismatchError
+    );
 
     // Sandboxed runtime path: digest-pinned load succeeds, mismatched pin throws
     const cache = new EmbeddingCache({ maxSize: 100, ttlMs: 600_000 });
     const manifold = createManifold(cache);
-    expect(() => loadHeadRuntime(manifold, { provider: 'off', modelDigest: bundle.modelDigest }, bundle.modelDigest)).not.toThrow();
-    expect(() => loadHeadRuntime(manifold, { provider: 'off', modelDigest: bundle.modelDigest }, 'sha256:' + 'd'.repeat(64))).toThrow(DigestMismatchError);
+    expect(() =>
+      loadHeadRuntime(
+        manifold,
+        { provider: 'off', modelDigest: bundle.modelDigest },
+        bundle.modelDigest
+      )
+    ).not.toThrow();
+    expect(() =>
+      loadHeadRuntime(
+        manifold,
+        { provider: 'off', modelDigest: bundle.modelDigest },
+        'sha256:' + 'd'.repeat(64)
+      )
+    ).toThrow(DigestMismatchError);
 
     // Trained head beats the incumbent hash head on Brier over the labeled fixtures
-    const incumbent = createHeadById('risk', { calibrationVersion: 'v2.4.1' as never, embeddingCache: cache, abstainThreshold: 0 });
-    const query = { kind: 'evaluate', instruction: '', rubric: 'risk', axis: 'teleological' } as JudgmentQuery;
+    const incumbent = createHeadById('risk', {
+      calibrationVersion: 'v2.4.1' as never,
+      embeddingCache: cache,
+      abstainThreshold: 0,
+    });
+    const query = {
+      kind: 'evaluate',
+      instruction: '',
+      rubric: 'risk',
+      axis: 'teleological',
+    } as JudgmentQuery;
     const bakeOffCases: { truth: number; incumbent: number; candidate: number }[] = [];
-    let trainedBrier = 0, incumbentBrier = 0;
+    let trainedBrier = 0,
+      incumbentBrier = 0;
     for (const row of rows.slice(0, 100)) {
       const action = row.action.split(':')[0]!;
       const trained = head.score(row.embedding, action);
-      const base = (await incumbent.evaluate(row.embedding, { ...query, instruction: `Assess risk of action ${action}` })).score;
+      const base = (
+        await incumbent.evaluate(row.embedding, {
+          ...query,
+          instruction: `Assess risk of action ${action}`,
+        })
+      ).score;
       trainedBrier += (trained - row.target) ** 2;
       incumbentBrier += (base - row.target) ** 2;
       bakeOffCases.push({ truth: row.target, incumbent: base, candidate: trained });
@@ -91,7 +123,13 @@ describe('Training Round-Trip (Bench 24)', () => {
 
     const bakeOff = runBakeOff(
       undefined,
-      { headId: 'risk', modelDigest: bundle.modelDigest, calibrationVersion: 'v2.4.1', abstainThreshold: 0.3, enabled: true },
+      {
+        headId: 'risk',
+        modelDigest: bundle.modelDigest,
+        calibrationVersion: 'v2.4.1',
+        abstainThreshold: 0.3,
+        enabled: true,
+      },
       bakeOffCases
     );
     // Trained candidate strictly improves on the untrained incumbent (runBakeOff's
@@ -143,7 +181,11 @@ describe('Training Round-Trip (Bench 24)', () => {
     expect(maxDelta).toBeLessThan(1e-5);
 
     await expect(
-      loadHeadBundle({ wasmPath, modelDigest: 'sha256:' + 'e'.repeat(64), dimension: model.embeddingDim })
+      loadHeadBundle({
+        wasmPath,
+        modelDigest: 'sha256:' + 'e'.repeat(64),
+        dimension: model.embeddingDim,
+      })
     ).rejects.toThrow(DigestMismatchError);
   }, 120_000);
 

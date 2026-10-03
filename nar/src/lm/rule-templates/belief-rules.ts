@@ -1,3 +1,14 @@
+/**
+ * Belief-oriented LM rule definitions.
+ */
+import type { LMRuleDefinition } from '../rule-builders.js';
+import { hasConflictingBeliefs, hasLowConfidence } from '../rule-selectors/confidence.js';
+import {
+  hasStructuralSimilarityNoOverlap,
+  isUnderconnected,
+} from '../rule-selectors/connectivity.js';
+import { hasVariable } from '../rule-selectors/factory.js';
+import { symbolicFallbacks } from './fallbacks.js';
 import {
   AnalogySchema,
   BeliefRevisionSchema,
@@ -11,17 +22,6 @@ import {
   UncertaintySchema,
   VariableGroundingSchema,
 } from './schemas.js';
-/**
- * Belief-oriented LM rule definitions.
- */
-import type { LMRuleDefinition } from '../rule-builders.js';
-import { hasConflictingBeliefs, hasLowConfidence } from '../rule-selectors/confidence.js';
-import {
-  hasStructuralSimilarityNoOverlap,
-  isUnderconnected,
-} from '../rule-selectors/connectivity.js';
-import { hasVariable } from '../rule-selectors/factory.js';
-import { symbolicFallbacks } from './fallbacks.js';
 
 export const beliefRules: LMRuleDefinition[] = [
   {

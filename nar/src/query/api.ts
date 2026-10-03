@@ -257,7 +257,7 @@ export class QueryAPI {
     return tasks.filter((task) => {
       if (filter.truthRange) {
         const [min, max] = filter.truthRange;
-        const confidence = task.truth.f * task.truth.c;
+        const confidence = Truth.attention(task.truth);
         if (confidence < min || confidence > max) return false;
       }
       if (filter.recency && Date.now() - task.occurrenceTime > filter.recency) return false;

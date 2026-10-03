@@ -1,3 +1,4 @@
+import { removeBy } from '@senars/util';
 import { matches } from './pattern-match.js';
 import type { MeTTaAtom } from '../types/ast.js';
 
@@ -45,10 +46,7 @@ export abstract class ArraySpace implements Space {
   }
 
   remove(atom: MeTTaAtom): boolean {
-    const index = this._atoms.indexOf(atom as never);
-    if (index === -1) return false;
-    this._atoms.splice(index, 1);
-    return true;
+    return removeBy(this._atoms, (candidate) => candidate === atom) !== undefined;
   }
 
   *query(pattern: MeTTaAtom): Generator<MeTTaAtom> {

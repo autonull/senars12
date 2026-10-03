@@ -1,14 +1,14 @@
 import { readFileSync } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkCycleBudget } from '../../scripts/lib/cycles.js';
-import { fixedClock, SystemClock } from '@senars/nar/clock.js';
 import { Memory } from '@senars/nar/memory';
 import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
 import { MemoryQuery } from '@senars/nar/query/memory-query.js';
 import { TermBuilder } from '@senars/nar/terms';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { fixedClock, systemClock } from '@senars/util';
 import { afterAll, describe, expect, it } from 'vitest';
+import { checkCycleBudget } from '../../scripts/lib/cycles.js';
 
 const NAR_DIR = join(import.meta.dirname, '../../nar/src');
 const loc = (p: string) => readFileSync(p, 'utf-8').split('\n').length;
@@ -48,21 +48,20 @@ describe('Bench 91 — test hygiene & monolith paydown (REFACTOR.todo3 Phase A)'
     }
   });
 
-  it('SystemClock is the zero-cost production default', () => {
+  it('the system clock is the zero-cost production default', () => {
     const before = Date.now();
-    const t = SystemClock.now();
+    const t = systemClock();
     expect(t).toBeGreaterThanOrEqual(before);
-    expect(fixedClock(42).now()).toBe(42);
+    expect(fixedClock(42)()).toBe(42);
   });
 
-it('the cycle ratchet fails in both directions — new cycles and forgotten slack', () => {
+  it('the cycle ratchet fails in both directions — new cycles and forgotten slack', () => {
     expect(checkCycleBudget(4, 4)).toEqual({ ok: true });
     expect(checkCycleBudget(3, 4)).toEqual({ ok: false, reason: 'slack', slack: 1 });
     const regression = checkCycleBudget(6, 4, ['a', 'b', 'c', 'd', 'e', 'f']);
     expect(regression).toMatchObject({ ok: false, reason: 'regression', over: 2 });
-    expect(regression.ok === false && regression.reason === 'regression' && regression.chains).toEqual([
-      'e',
-      'f',
-    ]);
+    expect(
+      regression.ok === false && regression.reason === 'regression' && regression.chains
+    ).toEqual(['e', 'f']);
   });
 });

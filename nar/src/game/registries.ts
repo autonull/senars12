@@ -1,3 +1,4 @@
+import { assertDefined } from '@senars/util';
 import type { CognitionAction, CognitionContext, Reward, Sensor } from './types.js';
 
 /**
@@ -17,9 +18,7 @@ export class ComponentRegistry<T extends { readonly id: string }> {
   }
 
   require(id: string): T {
-    const c = this.components.get(id);
-    if (!c) throw new Error(`component not registered: ${id}`);
-    return c;
+    return assertDefined(this.components.get(id), `component not registered: ${id}`);
   }
 
   all(): T[] {

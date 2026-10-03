@@ -1,7 +1,6 @@
-import { clamp } from '@senars/util';
+import { clamp, SeededRNG } from '@senars/util';
 import type { Game, GameOutcome, Perception } from '../Game.js';
 import { renderGrid } from '../render.js';
-import { SeededRNG } from '../../utils/random.js';
 
 export interface CatchGameConfig {
   seed: number;
@@ -53,7 +52,13 @@ export class CatchGame implements Game<CatchState, 0 | 1 | 2> {
   }
 
   state(): CatchState {
-    return { paddleC: this.paddleC, targetR: this.targetR, targetC: this.targetC, step: this.stepCount, terminal: this.terminal_ };
+    return {
+      paddleC: this.paddleC,
+      targetR: this.targetR,
+      targetC: this.targetC,
+      step: this.stepCount,
+      terminal: this.terminal_,
+    };
   }
 
   legalActions(): Array<0 | 1 | 2> {

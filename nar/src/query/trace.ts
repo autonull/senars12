@@ -1,7 +1,8 @@
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
+import { Truth } from '../terms';
 import type { Budget, Stamp, Task } from '../types';
-import { BoundedMap, pct } from '@senars/util';
+import { BoundedMap, pct, unique } from '@senars/util';
 
 export interface DerivationNode {
   task: Task;
@@ -102,7 +103,7 @@ export class ReasoningTrace {
   explain(conclusion: Task): ExplainResult {
     const premises: Task[] = [];
     const rules: string[] = [];
-    const confidence = conclusion.truth.f * conclusion.truth.c;
+    const confidence = Truth.attention(conclusion.truth);
 
     const history = this.getDerivationHistory(conclusion);
     premises.push(...history.filter((t) => t.stamp.id !== conclusion.stamp.id));
@@ -118,7 +119,7 @@ export class ReasoningTrace {
     return {
       conclusion,
       premises,
-      rules: [...new Set(rules)],
+      rules: unique(rules),
       confidence,
       why: this.generateExplanation(conclusion, premises, confidence),
     };

@@ -1,22 +1,24 @@
 import { consumeCycles, createBudgetSlice, pressure } from '@senars/core/budget';
 import { Memory } from '@senars/nar/memory';
+import { atom, TermBuilder, Truth } from '@senars/nar/terms';
 import {
   BoundedMap,
   formatIssues,
   formatNarseseTruth,
+  mulberry32,
   occupancy,
   parseNarseseTruth,
   parseTruthLiteral,
   SchemaValidationError,
   serializeTruth,
+  weightedPick,
+  weightedSampleBy,
 } from '@senars/util';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { PriorityBag } from '../../nar/src/bag/Bag.js';
 import { BoundaryValidationError } from '../../nar/src/errors/index.js';
 import { SingleFlight } from '../../nar/src/nl/singleflight.js';
-import { atom, TermBuilder, Truth } from '../../nar/src/terms/index.js';
-import { mulberry32, weightedPick, weightedSampleBy } from '../../nar/src/utils/random.js';
 
 /**
  * TODO27 Benches 112–114 — the primitives every other selection path defers to.

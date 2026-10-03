@@ -1,8 +1,9 @@
-import type { BinAgentApi as Agent } from '@senars/nar/agent';
 import type { CLICommand } from '@senars/io/connections/cli';
 import { QUIT_SENTINEL } from '@senars/io/connections/cli';
 import type { NAR } from '@senars/nar';
-import { type LMExecutionStats, truncate } from '@senars/util';
+import type { BinAgentApi as Agent } from '@senars/nar/agent';
+import type { LMTask } from '@senars/util';
+import { type LMExecutionStats, splitWords, truncate } from '@senars/util';
 import type { ConversationSession, SessionManager } from '@senars/util/types/memory';
 import {
   formatAgentStatus,
@@ -48,7 +49,7 @@ Commands:
 Just type natural language to chat, or Narsese to feed NAR directly!
 `;
 
-export type ChatTier = 'quality' | 'fast' | 'structured';
+export type ChatTier = LMTask;
 
 export interface TierControl {
   get(): ChatTier;
@@ -79,7 +80,7 @@ export function buildCommands(
       return lines.join('\n');
     }),
     cmd('know', 'Get/set/list knowledge', (args) => {
-      const parts = (args ?? '').trim().split(/\s+/);
+      const parts = splitWords(args ?? '');
       if (!parts[0]) {
         const entries = agent.knowList();
         if (!entries.length) return '\n  (empty)';

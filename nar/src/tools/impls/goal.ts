@@ -1,7 +1,7 @@
+import { toolError } from '@senars/util';
 import type { Term } from '../../terms';
 import { readOperationTerm } from '../../terms/impls/operation-term.js';
 import type { Tool, ToolContext, ToolResult } from '../types';
-import { errorResult } from '../types';
 import { getFixPatternMapping } from './self-concept.js';
 
 /** Minimal manager surface needed for goal execution. */
@@ -18,11 +18,11 @@ export async function executeToolGoal(
 ): Promise<ToolResult> {
   const call = readOperationTerm(goalTerm);
   if (!call) {
-    return errorResult('Tool goal must be an operation term (AST form: tool(args))');
+    return toolError('Tool goal must be an operation term (AST form: tool(args))');
   }
 
   if (!manager.get(call.name)) {
-    return errorResult(`Tool '${call.name}' not found`);
+    return toolError(`Tool '${call.name}' not found`);
   }
 
   // Semantic resolution: fix_pattern_id → actual codemod strings, etc.

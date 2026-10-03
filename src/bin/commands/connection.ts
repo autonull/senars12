@@ -1,6 +1,6 @@
 /** Connection lifecycle (`.connect`/`.disconnect`/`.connections`) and per-connection auth secrets. */
 
-import { errMsg } from '@senars/util';
+import { errMsg, finiteOr } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import { flagsOf, tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
@@ -26,7 +26,8 @@ export const connectionCommandsFor = (rt: BotRuntime) => [
     const [kind, ...rest] = positional;
     try {
       if (kind?.toLowerCase() === 'irc') {
-        const [server = 'irc.libera.chat', port = '6697', nick = 'senars-bot', chans = '#senars'] = rest;
+        const [server = 'irc.libera.chat', port = '6697', nick = 'senars-bot', chans = '#senars'] =
+          rest;
         const password = str('--password', '');
         return await rt.attach({
           id: `irc-${Date.now()}`,
@@ -34,7 +35,7 @@ export const connectionCommandsFor = (rt: BotRuntime) => [
           config: {
             name: 'IRC',
             server,
-            port: Number(port),
+            port: finiteOr(port, 6697),
             nick,
             channels: chans
               .split(',')
@@ -52,7 +53,7 @@ export const connectionCommandsFor = (rt: BotRuntime) => [
           type: 'websocket',
           config: {
             name: 'WS',
-            port: Number(rest[0] ?? '8765'),
+            port: finiteOr(rest[0], 8765),
             ...(greeting ? { greeting } : {}),
           },
         });
@@ -64,7 +65,7 @@ export const connectionCommandsFor = (rt: BotRuntime) => [
           type: 'http',
           config: {
             name: 'HTTP',
-            port: Number(rest[0] ?? '3000'),
+            port: finiteOr(rest[0], 3000),
             ...(apiKey ? { apiKey } : {}),
             cors: has('--cors'),
           },
@@ -81,7 +82,7 @@ export const connectionCommandsFor = (rt: BotRuntime) => [
             transport: rest[0] ?? 'stdio',
             ...(has('--approval') ? { approval: true } : {}),
             ...(apiKey ? { apiKey } : {}),
-            ...(rateLimit ? { rateLimit: Number(rateLimit) } : {}),
+            ...(rateLimit ? { rateLimit: finiteOr(rateLimit, 30) } : {}),
           },
         });
       }

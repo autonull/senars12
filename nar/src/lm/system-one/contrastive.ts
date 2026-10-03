@@ -1,7 +1,12 @@
-import { clamp, generateId, sigmoid, softmax } from '@senars/util';
+import { clamp, generateId, mapToRecord, safeRatio, sigmoid, softmax, sumBy } from '@senars/util';
 import { type BagItem, PriorityBag } from '../../bag/Bag.js';
 import { AIKRProcessor, PrioritySampling } from '../../learning/aikr-processor.js';
-import { cosine, cosineNormalized, normalize, type NormalizedVector } from '../../utils/similarity.js';
+import {
+  cosine,
+  cosineNormalized,
+  type NormalizedVector,
+  normalize,
+} from '../../utils/similarity.js';
 import { embedCached } from './embedding-cache.js';
 import type { EmbeddingCache, JudgmentQuery } from './types.js';
 
@@ -70,7 +75,7 @@ export function fitInfoNCE(
     scale = clamp(scale - (lr * dScale) / n, 0.1, 100);
     bias = clamp(bias - (lr * dBias) / n, -10, 10);
   }
-  return { scale, bias, loss: loss / (pairs.length || 1) };
+  return { scale, bias, loss: safeRatio(loss, pairs.length) };
 }
 
 export interface ContrastiveMemoryConfig {
@@ -245,16 +250,11 @@ export class ContrastiveMemory {
   }
 
   stats(): Record<string, RubricExemplarStats> {
-    return Object.fromEntries(
-      [...this.#rubrics.entries()].map(([rubric, s]) => [
-        rubric,
-        {
-          positives: s.pos.size(),
-          negatives: s.neg.size(),
-          calibrated: this.#calibrations.has(rubric),
-        },
-      ])
-    );
+    return mapToRecord(this.#rubrics, (s, rubric) => ({
+      positives: s.pos.size(),
+      negatives: s.neg.size(),
+      calibrated: this.#calibrations.has(rubric),
+    }));
   }
 
   clear(): void {
@@ -301,7 +301,7 @@ export class ContrastiveMemory {
     let promoted = 0;
     for (const state of this.#rubrics.values()) {
       const counts = await state.maintainer.processIfPressured(options);
-      promoted += counts.reduce((a, b) => a + b, 0);
+      promoted += sumBy(counts, (count) => count);
     }
     return promoted;
   }
@@ -362,10 +362,7 @@ export class ContrastiveMemory {
    * `query` carries its precomputed norm so the same embedding scored against
    * two bags (or a whole routing sweep) is measured once.
    */
-  #maxCosine(
-    bag: { all(): IterableIterator<ExemplarItem> },
-    query: NormalizedVector
-  ): number {
+  #maxCosine(bag: { all(): IterableIterator<ExemplarItem> }, query: NormalizedVector): number {
     let best = -1;
     for (const item of bag.all()) best = Math.max(best, cosineNormalized(query, item.embedding));
     return best;
@@ -388,7 +385,6 @@ export class ContrastiveMemory {
     if (!state) return [];
     return [...state.neg.all()].map((e) => e.embedding);
   }
-
 }
 
 export function createContrastiveMemory(config?: ContrastiveMemoryConfig): ContrastiveMemory {

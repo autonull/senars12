@@ -5,7 +5,7 @@
  */
 
 import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
-
+import type { CognitiveAxis } from '../../decision/types.js';
 import {
   type CalibrationVersion,
   createHead,
@@ -17,6 +17,7 @@ import {
   HeadSpec,
   type JudgmentQuery,
 } from './head-specs.js';
+import type { BandDecision } from './policy.js';
 
 export interface PipelineStage {
   readonly group: HeadGroup;
@@ -28,7 +29,7 @@ export interface PipelineStage {
 export interface BandConfig {
   readonly name: string;
   readonly threshold: number;
-  readonly action: 'act' | 'review' | 'block' | 'abstain';
+  readonly action: BandDecision;
 }
 
 export interface CalibratorConfig {
@@ -65,7 +66,7 @@ export interface PipelineHeadResult {
   readonly legend?: any;
   readonly abstained: boolean;
   readonly abstainReason?: string;
-  readonly axis: 'epistemic' | 'teleological';
+  readonly axis: CognitiveAxis;
   readonly decisionBand?: string;
 }
 

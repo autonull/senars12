@@ -1,4 +1,9 @@
-import {Ledger, createLedger, BaseLedgerEntrySchema, type LedgerQuery} from '@senars/util/ledger';
+import {
+  BaseLedgerEntrySchema,
+  createLedger,
+  type Ledger,
+  type LedgerQuery,
+} from '@senars/util/ledger';
 import { z } from 'zod';
 
 export interface DialogueTextRecord {

@@ -1,12 +1,16 @@
-import { addToSet, getOrInsert, insertByScoreDesc, removeFromSet } from '@senars/util';
+import {
+  addToSet,
+  getOrInsert,
+  insertByScoreDesc,
+  removeBy,
+  removeFromSet,
+  unique,
+} from '@senars/util';
 
 import type { Term } from '../terms';
 import { atomKey, TermMap, termKey } from '../terms';
 import type { Concept } from './concept.js';
 import { selectSimilar } from './similarity.js';
-
-const getOrInsertTermSet = (map: TermMap<Set<Concept>>, term: Term): Set<Concept> =>
-  getOrInsert(map, term, () => new Set<Concept>());
 
 const getOrInsertCluster = (map: TermMap<SimilarityCluster>, term: Term, seed: Concept) =>
   getOrInsert(map, term, (): SimilarityCluster => ({ term, concepts: [], representative: seed }));
@@ -151,8 +155,7 @@ export class MemoryIndex {
       }
     }
 
-    const unique = new Set(results);
-    return Array.from(unique);
+    return unique(results);
   }
 
   getByInverse(term: Term): Concept[] {
@@ -165,10 +168,8 @@ export class MemoryIndex {
     const entry = this.inverseIndex.get(term);
     if (!entry) return [];
     const results = new Set(entry.concepts);
-    entry.subtermIndices.get(term)?.forEach((c) => {
-      results.add(c);
-    });
-    return Array.from(results);
+    for (const c of entry.subtermIndices.get(term) ?? []) results.add(c);
+    return [...results];
   }
 
   /** Every concept the similarity families hold, as one candidate stream. */
@@ -207,17 +208,13 @@ export class MemoryIndex {
     if (entry) {
       entry.concepts.delete(concept);
       for (const subterm of footprint.subterms) {
-        const bucket = entry.subtermIndices.get(subterm);
-        if (!bucket) continue;
-        bucket.delete(concept);
-        if (bucket.size === 0) entry.subtermIndices.delete(subterm);
+        removeFromSet(entry.subtermIndices, subterm, concept);
       }
       if (entry.concepts.size === 0) this.inverseIndex.delete(entry.term);
     }
 
     for (const cluster of footprint.clusters) {
-      const at = cluster.concepts.indexOf(concept);
-      if (at >= 0) cluster.concepts.splice(at, 1);
+      removeBy(cluster.concepts, (member) => member === concept);
       if (cluster.concepts.length === 0) this.similarityIndex.delete(cluster.term);
     }
   }
@@ -246,7 +243,7 @@ export class MemoryIndex {
     footprint: ConceptFootprint
   ): void {
     for (const term of terms) {
-      getOrInsertTermSet(entry.subtermIndices, term).add(concept);
+      addToSet(entry.subtermIndices, term, concept);
       footprint.subterms.push(term);
       if (term.kind !== 'atom' && term.args?.length) {
         this.indexSubterms(term.args, concept, entry, footprint);

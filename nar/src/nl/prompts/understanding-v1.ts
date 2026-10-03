@@ -1,5 +1,5 @@
-import type { TranslationCacheEntry } from '../cache.js';
 import { serializeTruth } from '@senars/util';
+import type { TranslationCacheEntry } from '../cache.js';
 
 const NARSESE_GRAMMAR = `Narsese syntax:
   (A --> B) inheritance (most common)

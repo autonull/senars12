@@ -5,7 +5,7 @@
  * low trace-quality turns. Digests only (I6); deterministic ordering (stable
  * sort, digest tie-break); frozen-eval rows are never in this data (I1).
  */
-import type { Episode, ReadOnlyLookup } from '@senars/util';
+import { buckets, type Episode, type ReadOnlyLookup } from '@senars/util';
 
 export type ProbeKind = 'correction' | 'low-grade' | 'lesson';
 
@@ -76,9 +76,8 @@ export const selectProbes = async (
   }
 
   // Deterministic: score desc, digest tie-break, deduped by id (corrections win).
-  const byId = new Map<string, Probe>();
-  for (const p of probes) if (!byId.has(p.id)) byId.set(p.id, p);
-  return [...byId.values()]
+  return buckets(probes, (p) => p.id)
+    .map((sameId) => sameId[0]!)
     .sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1))
     .slice(0, limit);
 };

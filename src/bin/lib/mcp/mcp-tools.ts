@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ChatStreamEvent } from '@senars/core';
 import { withinWorkspace } from '@senars/core';
 import type { NAR } from '@senars/nar';
+import { Truth } from '@senars/nar';
 import type { ExtendedAgent as Agent } from '@senars/nar/agent';
 import { resetDemotions } from '@senars/nar/lm';
 import { evaluateExpression } from '@senars/util/utils/eval';
@@ -332,11 +333,7 @@ export function registerNARTools(
       const estimate = (term: string): number => {
         let best = 0;
         for (const b of nar.getBeliefs()) {
-          if (String(b.term) === term) {
-            const f = b.truth?.f ?? 0;
-            const c = b.truth?.c ?? 0;
-            best = Math.max(best, f * c);
-          }
+          if (String(b.term) === term && b.truth) best = Math.max(best, Truth.attention(b.truth));
         }
         return best;
       };

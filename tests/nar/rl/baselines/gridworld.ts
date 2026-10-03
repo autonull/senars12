@@ -1,6 +1,6 @@
-import type { EpisodeGame } from '../../../../nar/src/rl/types.js';
+import { SeededRNG } from '@senars/util';
 import type { GridAction, GridWorldState } from '../../../../nar/src/game/impls/GridWorldGame.js';
-import { SeededRNG } from '../../../../nar/src/utils/random.js';
+import type { EpisodeGame } from '../../../../nar/src/rl/types.js';
 
 /**
  * Q-Learning for GridWorld

@@ -197,6 +197,33 @@ describe('Truth', () => {
     });
   });
 
+  describe('normalize', () => {
+    test.each`
+      frequency      | confidence     | expectedF | expectedC
+      ${1.5}         | ${0.95}        | ${1.0}    | ${0.95}
+      ${-0.5}        | ${-0.1}        | ${0.0}    | ${0.0}
+      ${0.9}         | ${1.0}         | ${0.9}    | ${Truth.MAX_CONFIDENCE}
+      ${0.9}         | ${1.5}         | ${0.9}    | ${Truth.MAX_CONFIDENCE}
+      ${Number.NaN}  | ${Number.NaN}  | ${0.5}    | ${0.9}
+    `(
+      'brings an out-of-domain value into the domain',
+      ({ frequency, confidence, expectedF, expectedC }) => {
+        const t = Truth.normalize(frequency, confidence);
+        expect(t.f).toBe(expectedF);
+        expect(t.c).toBe(expectedC);
+      }
+    );
+
+    // The reason the two exist. Every boundary that reads a number off a wire,
+    // a schema or a model reply clamps to `0..1` and stops — and `1` is past
+    // the ceiling, so `Truth.create` threw mid-feedback-turn on a value the
+    // caller had already done its best with.
+    test('a confidence a boundary could legitimately produce is absorbed, not thrown on', () => {
+      expect(() => Truth.create(0.9, 1.0)).toThrow('Confidence');
+      expect(Truth.normalize(0.9, 1.0).c).toBe(Truth.MAX_CONFIDENCE);
+    });
+  });
+
   describe('deduction', () => {
     test.each`
       f1     | c1      | f2     | c2      | minF   | minC
@@ -255,6 +282,92 @@ describe('Truth', () => {
 
       expect(result.f).toBeGreaterThan(Math.min(t1.f, t2.f));
       expect(result.c).toBeGreaterThan(Math.max(t1.c, t2.c));
+    });
+  });
+
+  describe('attention', () => {
+    test('is exactly f * c', () => {
+      for (const [f, c] of [
+        [0.5, 0.9],
+        [0.01, 0.999],
+        [1, 0.5],
+        [0, 0.9],
+      ] as const)
+        expect(Truth.attention(Truth.create(f, c))).toBeCloseTo(f * c, 12);
+    });
+
+    test('is not expectation, and the difference is load-bearing', () => {
+      // Same salience, different epistemic content: one is "I know nothing",
+      // the other leans false. expectation separates them; attention does not.
+      const knowsNothing = Truth.create(0.5, 0.8);
+      const leansFalse = Truth.create(0.8, 0.5);
+
+      expect(Truth.attention(knowsNothing)).toBeCloseTo(Truth.attention(leansFalse), 12);
+      expect(Truth.expectation(knowsNothing)).not.toBeCloseTo(Truth.expectation(leansFalse), 6);
+    });
+
+    test('ranks a confidently-false belief above a weakly-true one', () => {
+      const certainFalse = Truth.create(0.0, 0.95);
+      const slightlyTrue = Truth.create(0.6, 0.2);
+
+      expect(Truth.attention(certainFalse)).toBe(0);
+      expect(Truth.attention(slightlyTrue)).toBeCloseTo(0.12, 12);
+      expect(Truth.expectation(certainFalse)).toBeLessThan(Truth.expectation(slightlyTrue));
+    });
+  });
+
+  describe('outcome nudges', () => {
+    test('reinforce raises frequency and confidence', () => {
+      const t = Truth.create(0.5, 0.6);
+      const r = Truth.reinforce(t);
+
+      expect(r.f).toBeCloseTo(0.55, 10);
+      expect(r.c).toBeCloseTo(0.7, 10);
+    });
+
+    test('contradict lowers frequency and raises confidence', () => {
+      const t = Truth.create(0.5, 0.6);
+      const r = Truth.contradict(t);
+
+      expect(r.f).toBeCloseTo(0.45, 10);
+      expect(r.c).toBeCloseTo(0.7, 10);
+    });
+
+    // A 0.9-confidence belief is the default everywhere. Written inline, the
+    // `+ 0.1` step produced a confidence of exactly 1, past the ceiling.
+    test.each([
+      ['reinforce', (t: Truth) => Truth.reinforce(t)],
+      ['contradict', (t: Truth) => Truth.contradict(t)],
+    ])('%s saturates instead of throwing at the confidence ceiling', (_name, nudge) => {
+      const atDefault = nudge(Truth.create(0.9, 0.9));
+      expect(atDefault.c).toBe(Truth.MAX_CONFIDENCE);
+
+      const atCeiling = nudge(Truth.create(0.9, Truth.MAX_CONFIDENCE));
+      expect(atCeiling.c).toBe(Truth.MAX_CONFIDENCE);
+    });
+
+    test('frequency stays in range at the boundaries', () => {
+      expect(Truth.reinforce(Truth.create(1, 0.5)).f).toBe(1);
+      expect(Truth.contradict(Truth.create(0, 0.5)).f).toBe(0);
+    });
+  });
+
+  describe('damp', () => {
+    test('scales confidence and leaves frequency alone', () => {
+      const t = Truth.create(0.7, 0.8);
+      const d = Truth.damp(t, 0.5);
+
+      expect(d.f).toBe(t.f);
+      expect(d.c).toBeCloseTo(0.4, 10);
+    });
+
+    test('does not exceed the confidence ceiling for amplifying factors', () => {
+      expect(Truth.damp(Truth.create(0.7, Truth.MAX_CONFIDENCE), 2).c).toBe(Truth.MAX_CONFIDENCE);
+    });
+
+    test('differs from the NAL weakening rule', () => {
+      const t = Truth.create(0.7, 0.8);
+      expect(Truth.damp(t, 0.5).c).not.toBeCloseTo(Truth.weak(t.c), 6);
     });
   });
 });

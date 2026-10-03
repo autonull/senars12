@@ -1,5 +1,5 @@
 import { ucb1 } from '@senars/util';
-import { type QEntry, BanditReflex } from './BanditReflex.js';
+import { BanditReflex, type QEntry } from './BanditReflex.js';
 import type { Reflex } from './Reflex.js';
 
 interface UCBOptions {

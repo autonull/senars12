@@ -1,6 +1,6 @@
 /** Episodic + concept memory commands (`.consolidate`, `.memory-*`, `.recall`). */
 
-import { errMsg, readJsonlAsync, writeJsonl } from '@senars/util';
+import { errMsg, finiteOr, incrementCount, readJsonlAsync, writeJsonl } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import { flagsOf, tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
@@ -28,7 +28,7 @@ export const memoryCommandsFor = (rt: BotRuntime) => [
   cmd('memory-stats', 'Episodic memory stats', async () => {
     const eps = await rt.wired.episodicMemory.getEpisodes({ limit: 100000 });
     const byType = new Map<string, number>();
-    for (const e of eps) byType.set(e.type, (byType.get(e.type) ?? 0) + 1);
+    for (const e of eps) incrementCount(byType, e.type, 1);
     return `episodes=${eps.length} path=${rt.wired.episodicMemory.basePath}\n${[...byType].map(([t, n]) => `  ${t}: ${n}`).join('\n') || '  (empty)'}`;
   }),
   cmd('memory-clear', 'Clear episodic memory (requires --yes)', async (args = '') => {
@@ -50,7 +50,11 @@ export const memoryCommandsFor = (rt: BotRuntime) => [
       let n = 0;
       for (const e of rows) {
         if (typeof e.content === 'string') {
-          await rt.wired.episodicMemory.log((e.type as never) ?? 'input', e.content, e.metadata ?? {});
+          await rt.wired.episodicMemory.log(
+            (e.type as never) ?? 'input',
+            e.content,
+            e.metadata ?? {}
+          );
           n++;
         }
       }
@@ -63,7 +67,7 @@ export const memoryCommandsFor = (rt: BotRuntime) => [
     const [term, nRaw] = tokenize(args);
     if (!term) return 'Usage: .recall <term> [n]';
     const results = await rt.memoryQuery
-      .search({ concept: term, limit: Number(nRaw ?? 8) || 8 })
+      .search({ concept: term, limit: finiteOr(nRaw, 8) })
       .catch((e: unknown) => {
         throw new Error(`recall failed: ${errMsg(e)}`);
       });

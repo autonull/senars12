@@ -8,6 +8,7 @@
  * came through, and a parse failure was caught (or not) once per caller.
  */
 
+import { finiteOr } from '@senars/util';
 import {
   deserializeStamp,
   PUNCTUATION_BY_TASK_TYPE,
@@ -61,11 +62,7 @@ export const serializeTaskRecord = (task: Task): TaskRecord => ({
   occurrenceTime: task.occurrenceTime,
 });
 
-const finiteOr = (value: number | undefined, fallback: number): number =>
-  typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-
-/**
- * Live task from its record, or `null` when the term no longer parses. Restoring a
+/** Live task from its record, or `null` when the term no longer parses. Restoring a
  * stamp also advances the mint counter past its id, so a reloaded stamp can never
  * collide with a newly minted one.
  */

@@ -1,5 +1,4 @@
-import { pearson } from '@senars/util';
-import { SeededRNG } from '../../utils/random.js';
+import { pearson, SeededRNG, safeRatio } from '@senars/util';
 
 /**
  * Main harness for running RL parity experiments
@@ -59,7 +58,7 @@ export class RLParityHarness {
       total++;
     }
 
-    return total > 0 ? agreements / total : 0;
+    return safeRatio(agreements, total);
   }
 
   /** Compute value correlation between two Q-tables */

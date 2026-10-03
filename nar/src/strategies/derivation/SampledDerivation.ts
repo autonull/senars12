@@ -1,9 +1,9 @@
+import { shuffleInPlace } from '@senars/util';
 import type { RuleEngine } from '../../rules/types.js';
-import type { RandomSource } from '../../types/primitives.js';
 import type { Task } from '../../types';
+import type { RandomSource } from '../../types/primitives.js';
 import type { DerivationContext } from '../types.js';
 import { DefaultDerivation } from './DefaultDerivation.js';
-import { shuffleInPlace } from '../../utils/random.js';
 
 export class SampledDerivation extends DefaultDerivation {
   override readonly metadata = { name: 'sampled', description: 'Random subset of secondaries' };

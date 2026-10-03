@@ -11,7 +11,7 @@ import {
 } from './impls/self-concept.js';
 import { TimerTool } from './impls/TimerTool.js';
 import { CoreToolRegistryAdapter, Registry, ToolManager } from './impls/tool-registry.js';
-import { createToolEvent, errorResult } from './types.js';
+import { createToolEvent } from './types.js';
 
 // Type re-exports for TypeScript consumers
 export type {
@@ -33,7 +33,6 @@ export {
   createToolEvent,
   discoverTools,
   ExplainTool,
-  errorResult,
   FIX_PATTERN_MAPPINGS,
   type FixPatternMapping,
   getFixPatternConcepts,

@@ -1,4 +1,4 @@
-import { clamp01, formatNarseseTruth, maxScore } from '@senars/util';
+import { clamp01, formatNarseseTruth, maxScore, meanOf } from '@senars/util';
 import type { IDriveManager } from '../../kernel/interfaces.js';
 import { Truth, type Truth as TruthType } from '../../terms/impls/Truth.js';
 import type { EventBus as InternalEventBus } from '../../types/events.js';
@@ -76,15 +76,10 @@ export class DriveManager implements IDriveManager {
   }
 
   getUrgency(): number {
-    let total = 0;
-    let count = 0;
-    for (const [, state] of this.states) {
-      if (state.isActive) {
-        total += state.currentIntensity;
-        count++;
-      }
-    }
-    return count > 0 ? total / count : 0;
+    return meanOf(
+      [...this.states.values()].filter((s) => s.isActive),
+      (s) => s.currentIntensity
+    );
   }
 
   private injectDriveGoal(spec: DriveSpec, truth: { f: number; c: number }): void {

@@ -2,7 +2,7 @@ import { exec } from 'node:child_process';
 import { access, appendFile, readFile, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import type { EpisodicMemory } from '@senars/util';
-import { errMsg } from '@senars/util';
+import { errMsg, toolError, toolOk } from '@senars/util';
 import { z } from 'zod';
 import type { ApprovalService } from '../ApprovalService.js';
 import type { ToolResult } from '../engine/Engine.js';
@@ -18,14 +18,6 @@ import {
 import { withinWorkspace } from './workspace.js';
 
 export type CmdArgSet = Record<string, unknown>;
-
-function ok(content: unknown): ToolResult {
-  return { success: true, content };
-}
-
-function fail(error: string): ToolResult {
-  return { success: false, content: null, error };
-}
 
 function parseJsonArg(raw: string): string {
   try {
@@ -55,11 +47,11 @@ async function keyedProvider(
   run: (query: string, apiKey: string) => Promise<WebSearchResult[]>
 ): Promise<ToolResult> {
   const query = parseJsonArg(rawQuery);
-  if (!apiKey) return ok({ query, results: [], note: `${via.toUpperCase()}_API_KEY not set` });
+  if (!apiKey) return toolOk({ query, results: [], note: `${via.toUpperCase()}_API_KEY not set` });
   try {
-    return ok({ query, via, results: await run(query, apiKey) });
+    return toolOk({ query, via, results: await run(query, apiKey) });
   } catch (e) {
-    return fail(`${via}_search failed: ${errMsg(e)}`);
+    return toolError(`${via}_search failed: ${errMsg(e)}`);
   }
 }
 
@@ -98,13 +90,13 @@ function createRequestApprovalTool(approvalService: ApprovalService): ToolSpec {
           risk: parsed.riskLevel,
           timeoutMs: parsed.timeoutMs,
         });
-        return ok({
+        return toolOk({
           success: result.approved,
           approved: result.approved,
           feedback: result.feedback,
         });
       } catch (err: unknown) {
-        return fail(`Approval error: ${errMsg(err)}`);
+        return toolError(`Approval error: ${errMsg(err)}`);
       }
     },
   };
@@ -123,7 +115,7 @@ export interface PinStore {
 }
 
 const within = (filename: string): ToolResult | null =>
-  withinWorkspace(filename) ? null : fail(`Path outside workspace rejected: ${filename}`);
+  withinWorkspace(filename) ? null : toolError(`Path outside workspace rejected: ${filename}`);
 
 export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
   {
@@ -135,8 +127,8 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const first = getFirstArg(args);
-      if (!first) return fail('send requires text');
-      return ok({ text: parseJsonArg(first) });
+      if (!first) return toolError('send requires text');
+      return toolOk({ text: parseJsonArg(first) });
     },
   },
   {
@@ -148,11 +140,11 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const first = getFirstArg(args);
-      if (!first) return fail('remember requires content');
+      if (!first) return toolError('remember requires content');
       const content = parseJsonArg(first);
-      if (!deps.episodic) return fail('episodic memory not configured');
+      if (!deps.episodic) return toolError('episodic memory not configured');
       await deps.episodic.log('input', content, { via: 'remember' });
-      return ok({ stored: true, content });
+      return toolOk({ stored: true, content });
     },
   },
   {
@@ -164,11 +156,11 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const first = getFirstArg(args);
-      if (!first) return fail('query requires a search term');
+      if (!first) return toolError('query requires a search term');
       const query = parseJsonArg(first);
-      if (!deps.episodic) return fail('episodic memory not configured');
+      if (!deps.episodic) return toolError('episodic memory not configured');
       const episodes = await deps.episodic.search(query, 10);
-      return ok({ query, episodes });
+      return toolOk({ query, episodes });
     },
   },
   {
@@ -181,8 +173,8 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const first = getFirstArg(args);
       const limit = first ? Number.parseInt(parseJsonArg(first), 10) : 10;
-      if (!deps.episodic) return fail('episodic memory not configured');
-      return ok({ episodes: await deps.episodic.getRecent(limit), limit });
+      if (!deps.episodic) return toolError('episodic memory not configured');
+      return toolOk({ episodes: await deps.episodic.getRecent(limit), limit });
     },
   },
   {
@@ -194,16 +186,16 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const first = getFirstArg(args);
-      if (!first) return fail('read_file requires a filename');
+      if (!first) return toolError('read_file requires a filename');
       const filename = parseJsonArg(first);
       const sandbox = within(filename);
       if (sandbox) return sandbox;
       try {
         await access(filename);
         const content = await readFile(filename, 'utf-8');
-        return ok({ filename, size: content.length, content });
+        return toolOk({ filename, size: content.length, content });
       } catch (e) {
-        return fail(`Cannot read file: ${(e as Error).message}`);
+        return toolError(`Cannot read file: ${errMsg(e)}`);
       }
     },
   },
@@ -217,15 +209,15 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const filename = getFirstArg(args);
       const content = getSecondArg(args);
-      if (!filename || !content) return fail('write_file requires filename and content');
+      if (!filename || !content) return toolError('write_file requires filename and content');
       const target = parseJsonArg(filename);
       const sandbox = within(target);
       if (sandbox) return sandbox;
       try {
         await writeFile(target, content, 'utf-8');
-        return ok({ filename: target, written: content.length });
+        return toolOk({ filename: target, written: content.length });
       } catch (e) {
-        return fail(`Cannot write file: ${(e as Error).message}`);
+        return toolError(`Cannot write file: ${errMsg(e)}`);
       }
     },
   },
@@ -239,15 +231,15 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const filename = getFirstArg(args);
       const content = getSecondArg(args);
-      if (!filename || !content) return fail('append_file requires filename and content');
+      if (!filename || !content) return toolError('append_file requires filename and content');
       const target = parseJsonArg(filename);
       const sandbox = within(target);
       if (sandbox) return sandbox;
       try {
         await appendFile(target, content, 'utf-8');
-        return ok({ filename: target, appended: content.length });
+        return toolOk({ filename: target, appended: content.length });
       } catch (e) {
-        return fail(`Cannot append to file: ${(e as Error).message}`);
+        return toolError(`Cannot append to file: ${errMsg(e)}`);
       }
     },
   },
@@ -260,8 +252,8 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const first = getFirstArg(args);
-      if (!first) return fail('search requires a query');
-      return ok(await searchWeb(parseJsonArg(first)));
+      if (!first) return toolError('search requires a query');
+      return toolOk(await searchWeb(parseJsonArg(first)));
     },
   },
   {
@@ -273,15 +265,15 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const first = getFirstArg(args);
-      if (!first) return fail('shell requires a command');
+      if (!first) return toolError('shell requires a command');
       const cmd = parseJsonArg(first);
       const run = promisify(exec);
       try {
         const { stdout } = await run(cmd, { encoding: 'utf-8', timeout: 30000 });
-        return ok({ command: cmd, exitCode: 0, stdout: stdout.trimEnd() });
+        return toolOk({ command: cmd, exitCode: 0, stdout: stdout.trimEnd() });
       } catch (e: unknown) {
         const err = e as Error & { stdout?: string; stderr?: string; killed?: boolean };
-        return ok({
+        return toolOk({
           command: cmd,
           exitCode: err.killed ? 124 : -1,
           stdout: ((err.stdout as string) ?? '').trimEnd(),
@@ -301,10 +293,10 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const first = getFirstArg(args);
-      if (!first) return fail('metta requires an expression');
+      if (!first) return toolError('metta requires an expression');
       const expression = parseJsonArg(first);
-      if (!deps.metta) return fail('metta engine not configured');
-      return ok({ expression, result: await deps.metta(expression) });
+      if (!deps.metta) return toolError('metta engine not configured');
+      return toolOk({ expression, result: await deps.metta(expression) });
     },
   },
   {
@@ -317,22 +309,22 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const [first, second] = getArgs(args);
-      if (!deps.pins) return fail('pin store not configured');
+      if (!deps.pins) return toolError('pin store not configured');
       if (!first || parseJsonArg(first) === '--list') {
         const entries = [...deps.pins.recallAll().entries()].map(([key, value]) => ({
           key,
           value,
         }));
-        return ok({ pinned: entries });
+        return toolOk({ pinned: entries });
       }
       const key = parseJsonArg(first);
       if (second === undefined) {
         deps.pins.unpin(key);
-        return ok({ unpinned: key });
+        return toolOk({ unpinned: key });
       }
       const value = parseJsonArg(second);
       deps.pins.pin(key, value);
-      return ok({ pinned: key, value });
+      return toolOk({ pinned: key, value });
     },
   },
   {
@@ -344,7 +336,7 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const first = getFirstArg(args);
-      if (!first) return fail('tavily_search requires a query');
+      if (!first) return toolError('tavily_search requires a query');
       return keyedProvider(first, 'tavily', process.env.TAVILY_API_KEY, tavilySearch);
     },
   },
@@ -357,7 +349,7 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const first = getFirstArg(args);
-      if (!first) return fail('brave_search requires a query');
+      if (!first) return toolError('brave_search requires a query');
       return keyedProvider(first, 'brave', braveApiKey(), braveSearch);
     },
   },
@@ -370,11 +362,11 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const first = getFirstArg(args);
-      if (!first) return fail('web_fetch requires a URL');
+      if (!first) return toolError('web_fetch requires a URL');
       try {
-        return ok(await webFetch(parseJsonArg(first)));
+        return toolOk(await webFetch(parseJsonArg(first)));
       } catch (e) {
-        return fail((e as Error).message);
+        return toolError(e);
       }
     },
   },

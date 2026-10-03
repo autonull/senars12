@@ -9,14 +9,17 @@
 import type { AuthManager, CommandRegistry, ConnectionManager } from '@senars/io';
 import type { ParameterLedger } from '@senars/nar/config';
 import type { DialogueCapture, RetrospectiveAdapter } from '@senars/nar/dialogue';
-import type { JudgmentDataset } from '@senars/nar/lm/system-one';
-import type { TraceGradeInput, TraceGradeResult } from '@senars/nar/lm/system-one';
-import type { EmbeddingCache } from '@senars/nar/lm/system-one';
+import type {
+  EmbeddingCache,
+  JudgmentDataset,
+  TraceGradeInput,
+  TraceGradeResult,
+} from '@senars/nar/lm/system-one';
 import type { MemoryQuery } from '@senars/nar/query';
 import type { ReadOnlyLookup } from '@senars/util';
-import type { AppConfig, BotProfile } from '../../config/index.js';
-import type { AttachedGame } from '../../cli/conversation-game.js';
 import type { ChatTier } from '../../cli/commands.js';
+import type { AttachedGame } from '../../cli/conversation-game.js';
+import type { AppConfig, BotProfile } from '../../config/index.js';
 import type { AgentFromEnvResult } from '../lib/lifecycle.js';
 
 export interface GroundednessState {

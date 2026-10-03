@@ -1,10 +1,12 @@
 import {
   type BridgeOptions,
   errMsg,
+  isQuitResult,
   type IOMessage,
   type Logger,
   type SessionManager,
   SlidingWindowRateLimiter,
+  splitWords,
 } from '@senars/util';
 import type { CommandRegistry } from '../commands/registry.js';
 import {
@@ -38,7 +40,7 @@ export function createAuthMiddleware(auth: BridgeAuth): MessageMiddleware {
 }
 
 export interface CommandInterceptorOptions {
-  /** Invoked after acknowledging the `__CLI_QUIT__` sentinel, to tear the connection down. */
+  /** Invoked after acknowledging the {@link QUIT_SENTINEL}, to tear the connection down. */
   onQuit?: () => void;
 }
 
@@ -51,7 +53,7 @@ export function createCommandInterceptor(
       await next();
       return;
     }
-    const parts = msg.text.slice(1).split(/\s+/);
+    const parts = splitWords(msg.text.slice(1));
     const name = parts.at(0) ?? '';
     const args = parts.slice(1);
     try {
@@ -60,7 +62,7 @@ export function createCommandInterceptor(
         manager: ctx.manager,
         nar: ctx.nar,
       });
-      if (result === '__CLI_QUIT__') {
+      if (isQuitResult(result)) {
         await respondTo(ctx, 'Goodbye!');
         options.onQuit?.();
         return;

@@ -1,7 +1,12 @@
 import { createInterface, type Interface } from 'node:readline';
-import { errMsg } from '@senars/util';
-import { BoundedRing } from '@senars/util';
-import { createLogger } from '@senars/util';
+import {
+  BoundedRing,
+  createLogger,
+  errMsg,
+  isQuitResult,
+  QUIT_SENTINEL,
+  splitWords,
+} from '@senars/util';
 import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../types.js';
 import { BaseConnection } from './base.js';
 
@@ -11,9 +16,7 @@ export interface CLICommand {
   readonly execute: (args: string) => string | Promise<string>;
 }
 
-export const QUIT_SENTINEL = '__CLI_QUIT__';
-
-const isQuit = (result: string): boolean => result === QUIT_SENTINEL;
+export { QUIT_SENTINEL };
 
 /** Deepest command backlog the REPL holds while the previous command is still running. */
 const MAX_QUEUED_COMMANDS = 1000;
@@ -48,8 +51,8 @@ export class CLIConnection extends BaseConnection {
       prompt: 'senars> ',
       terminal: process.stdin.isTTY,
       completer: (line: string): [string[], string] => {
-        const parts = line.split(/\s+/);
-        const lastPart = parts[parts.length - 1] || '';
+        const parts = splitWords(line);
+        const lastPart = line.endsWith(' ') ? '' : (parts.at(-1) ?? '');
         const dotCmds = Array.from(this.commands.keys()).map((c) => `.${c}`);
         const dotMatches = dotCmds.filter((cmd) => cmd.startsWith(lastPart));
         const all = dotMatches.length ? dotMatches : [lastPart];
@@ -113,8 +116,9 @@ export class CLIConnection extends BaseConnection {
   };
 
   private async tryCommand(rest: string): Promise<void> {
-    const parts = rest.split(/\s+/);
+    const parts = splitWords(rest);
     const cmdName = parts[0] ?? '';
+    if (!cmdName) return;
     const args = parts.slice(1).join(' ');
     const cmd = this.commands.get(cmdName);
     if (!cmd) {
@@ -124,7 +128,7 @@ export class CLIConnection extends BaseConnection {
 
     try {
       const result = await cmd.execute(args);
-      if (isQuit(result)) {
+      if (isQuitResult(result)) {
         this.sendFn('Goodbye!');
         await this.disconnect('quit');
         return;

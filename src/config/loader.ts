@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
-import { readEnvOverrides } from '@senars/util/config';
 import { deepMerge } from '@senars/util';
+import { readEnvOverrides } from '@senars/util/config';
 import {
   CURRENT_CONFIG_VERSION,
   type MigrationOutcome,

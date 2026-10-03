@@ -1,14 +1,14 @@
-import type { Episode, EpisodicMemory, EpisodeType } from '@senars/util';
-import { shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
+import type { Episode, EpisodeType, EpisodicMemory } from '@senars/util';
+import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
+import type { DialogueConfig } from '@senars/util/config';
 import type { ContrastiveMemory } from '../../lm/system-one/contrastive.js';
 import type { JudgmentDataset } from '../../lm/system-one/distill.js';
 import { embedCached } from '../../lm/system-one/embedding-cache.js';
-import type { EmbeddingCache } from '../../lm/system-one/types.js';
 import { recordReactionLabel } from '../../lm/system-one/label-sources.js';
+import type { EmbeddingCache } from '../../lm/system-one/types.js';
 import type { DialogueTurn, Lesson, Reaction, ReactionKind } from '../types.js';
 import { inferReactionFromUtterance } from './attribution.js';
-import type { DialogueConfig } from '@senars/util/config';
-import { DialogueTextStore, type DialogueTextRecord } from './DialogueTextStore.js';
+import { type DialogueTextRecord, DialogueTextStore } from './DialogueTextStore.js';
 
 export const sha256 = sha256Prefixed;
 
@@ -34,7 +34,9 @@ export interface DialogueCaptureDeps {
    * (available only at bind time, I6) to formalization candidates. Optional;
    * without it corrections stay embedding-level (the DQ6 default).
    */
-  formalize?: (correctionText: string) => Promise<readonly { narsese: string; confidence: number }[]>;
+  formalize?: (
+    correctionText: string
+  ) => Promise<readonly { narsese: string; confidence: number }[]>;
   /** I6 relaxation sidecar — only written when retention === 'with-text'. */
   textStore?: DialogueTextStore;
   /**
@@ -93,7 +95,9 @@ export class DialogueCapture {
     // Lazily constructed when retention is opted in; deps.textStore wins.
     this.#textStore =
       deps.textStore ??
-      (this.#config.retention === 'with-text' ? new DialogueTextStore(this.#config.textStorePath) : undefined);
+      (this.#config.retention === 'with-text'
+        ? new DialogueTextStore(this.#config.textStorePath)
+        : undefined);
   }
 
   get enabled(): boolean {
@@ -126,7 +130,11 @@ export class DialogueCapture {
       if (prior && !prior.reaction && !this.#bound.has(prior.turnId)) {
         const kind = inferReactionFromUtterance(input.utterance);
         if (kind) {
-          await this.bindReaction(prior.turnId, kind, kind === 'correct' ? input.utterance : undefined);
+          await this.bindReaction(
+            prior.turnId,
+            kind,
+            kind === 'correct' ? input.utterance : undefined
+          );
         }
       }
     }
@@ -256,8 +264,10 @@ export class DialogueCapture {
     let correctionEmbedding: Float32Array | undefined;
     let responseEmbedding: Float32Array | undefined;
     if (embeddingCache && kind !== 'clarify' && kind !== 'redirect') {
-      if (correctionText?.trim()) correctionEmbedding = await embedCached(embeddingCache, correctionText);
-      if (turn.responseDigest) responseEmbedding = await embedCached(embeddingCache, turn.responseDigest);
+      if (correctionText?.trim())
+        correctionEmbedding = await embedCached(embeddingCache, correctionText);
+      if (turn.responseDigest)
+        responseEmbedding = await embedCached(embeddingCache, turn.responseDigest);
     }
 
     if (dataset) {

@@ -1,5 +1,5 @@
 import type { RandomSource } from '../types/primitives.js';
-import { type QEntry, BanditReflex } from './BanditReflex.js';
+import { BanditReflex, type QEntry } from './BanditReflex.js';
 import type { Reflex } from './Reflex.js';
 
 interface EpsilonGreedyOptions {
@@ -11,7 +11,10 @@ interface EpsilonGreedyOptions {
 }
 
 /** ε-greedy: the mean estimate, with bounded random exploration of young arms. */
-export class EpsilonGreedyReflex extends BanditReflex<EpsilonGreedyOptions> implements Reflex<string, number> {
+export class EpsilonGreedyReflex
+  extends BanditReflex<EpsilonGreedyOptions>
+  implements Reflex<string, number>
+{
   private readonly epsilon: number;
   private readonly rng: RandomSource;
 

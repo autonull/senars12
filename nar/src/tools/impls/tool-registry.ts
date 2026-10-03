@@ -4,5 +4,5 @@
  */
 export { CoreToolRegistryAdapter } from './CoreToolRegistryAdapter.js';
 export { executeToolGoal, type ToolExecutor } from './goal.js';
-export { ToolManager } from './ToolManager.js';
 export { Registry, type ToolDescriptor } from './Registry.js';
+export { ToolManager } from './ToolManager.js';

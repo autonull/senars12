@@ -10,7 +10,7 @@ import type { PersistableSessionManager } from '@senars/core/memory';
 import { registerAgentTools } from '@senars/core/motor';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
-import { clamp, createLogger, errMsg, makeId } from '@senars/util';
+import { clamp, createLogger, deadline, errMsg, makeId } from '@senars/util';
 import { NAREngine } from '../engine/NAREngine.js';
 import type { EpisodicMemory, LMService, NAR } from '../index.js';
 import { dispatchNarseseIntent, type NarseseIntent } from '../nl/narsese-intent.js';
@@ -30,6 +30,9 @@ import { Truth } from '../terms';
 import { WebSocket } from 'ws';
 
 const logger = createLogger({ scope: 'nar-agent', level: 'warn' });
+
+/** How long a peer has to answer a delegated cognitive task before it is abandoned. */
+const DELEGATION_TIMEOUT_MS = 30_000;
 
 /** Delegation peer that executes LM rules using the local NAR's LM service. */
 class NARDelegationPeer implements DelegationPeer {
@@ -83,7 +86,7 @@ class NARDelegationPeer implements DelegationPeer {
         taskId,
         resultNarsese: [],
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errMsg(error),
       };
     }
   }
@@ -563,10 +566,10 @@ function attachNarApi(
     const ws = new WebSocket(wsUrl);
     
     return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
+      const disarmDeadline = deadline(DELEGATION_TIMEOUT_MS, () => {
         resolve({ error: 'Delegation timeout' });
         ws.close();
-      }, 30000);
+      });
       
       ws.on('open', () => {
         // Send delegation message
@@ -586,7 +589,7 @@ function attachNarApi(
         try {
           const message = JSON.parse(data.toString());
           if (message.type === 'cognitive-delegation-result' && message.result) {
-            clearTimeout(timeout);
+            disarmDeadline();
             ws.close();
             
             const result = message.result;
@@ -622,12 +625,12 @@ function attachNarApi(
       });
       
       ws.on('error', (err) => {
-        clearTimeout(timeout);
+        disarmDeadline();
         resolve({ error: `WebSocket error: ${err.message}` });
       });
       
       ws.on('close', () => {
-        clearTimeout(timeout);
+        disarmDeadline();
       });
     });
   };

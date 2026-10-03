@@ -4,9 +4,9 @@
  * left here is the part that needs a schema.
  */
 
+import { extractJsonObject, parseJsonObject } from '@senars/util';
 import type { ZodType } from 'zod';
 import { z } from 'zod';
-import { extractJsonObject, parseJsonObject } from '@senars/util';
 
 export { extractJsonObject, parseJsonObject };
 

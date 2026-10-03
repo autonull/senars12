@@ -11,6 +11,8 @@
  * the container.
  */
 
+import type { Clock } from './clock.js';
+import { systemClock } from './clock.js';
 import { occupancy } from './numeric.js';
 
 interface Entry<V> {
@@ -34,7 +36,7 @@ export interface BoundedMapOptions<K = unknown, V = unknown> {
   /** Entry lifetime in ms. Omit for no expiry. */
   ttlMs?: number;
   /** Injected clock (deterministic tests). */
-  now?: () => number;
+  now?: Clock;
   /**
    * Called once per entry removed by capacity eviction, TTL expiry, purge, or
    * `clear()` — the hook through which callers release side resources
@@ -57,7 +59,7 @@ export class BoundedMap<K, V> {
   readonly #entries = new Map<K, Entry<V>>();
   public readonly maxSize: number;
   readonly #ttlMs: number;
-  readonly #now: () => number;
+  readonly #now: Clock;
   readonly #onEvict?: (value: V, key: K) => void;
   readonly #order: EvictionOrder<V>;
   readonly #touchOnRead: boolean;
@@ -67,7 +69,7 @@ export class BoundedMap<K, V> {
     const {
       maxSize = 1000,
       ttlMs = Infinity,
-      now = Date.now,
+      now = systemClock,
       onEvict,
       eviction = 'lru',
       rng,

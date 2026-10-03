@@ -1,4 +1,4 @@
-import { SeededRNG } from '../../../utils/random.js';
+import { SeededRNG } from '@senars/util';
 import { Truth } from '../../../index.js';
 import type { NAR } from '../../../nar.js';
 import { TermBuilder } from '../../../terms/index.js';
@@ -52,7 +52,8 @@ export class BeliefPerceptionAdapter {
         const featureTerm = TermBuilder.atom(`feature_${feature}`);
         const valueTerm = TermBuilder.atom(value > 0 ? 'present' : 'absent');
         const featureInheritance = TermBuilder.inheritance(featureTerm, valueTerm);
-        if (!featureInheritance) throw new Error(`Invalid inheritance: ${featureTerm} --> ${valueTerm}`);
+        if (!featureInheritance)
+          throw new Error(`Invalid inheritance: ${featureTerm} --> ${valueTerm}`);
         await this.nar.believe(
           featureInheritance,
           Truth.create(1.0, this.config.featureConfidence)

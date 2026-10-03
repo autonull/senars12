@@ -1,7 +1,7 @@
+import { errMsg } from '@senars/util';
 import type { Term } from '../../terms';
 import { Truth, termParser } from '../../terms';
 import type { Truth as TruthType } from '../../terms/impls/Truth.js';
-import { errMsg } from '@senars/util';
 import { parseJsonObject } from '../json.js';
 
 export interface ParsedLMResponse {
@@ -56,7 +56,9 @@ const fromStructured = (
     const { term, truth } = termParser.parseWithTruth(narsese);
     return {
       term,
-      truth: explicitTruth ? Truth.create(explicitTruth.f, explicitTruth.c) : (truth ?? Truth.NEUTRAL),
+      truth: explicitTruth
+        ? Truth.create(explicitTruth.f, explicitTruth.c)
+        : (truth ?? Truth.NEUTRAL),
       confidence,
       raw,
       valid: true,

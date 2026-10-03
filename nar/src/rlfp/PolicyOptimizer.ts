@@ -1,6 +1,13 @@
-import { BoundedRing, maxBy, mean, selectTopN, weightedMean } from '@senars/util';
-import type { RandomSource } from '../types/primitives.js';
-import { nextInt } from '../utils/random.js';
+import {
+  BoundedRing,
+  maxBy,
+  mean,
+  nextInt,
+  type RandomSource,
+  selectTopN,
+  weightedMean,
+} from '@senars/util';
+
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import type { RewardModel } from './RewardModel.js';
 import { findCommonFeatures } from './utils.js';

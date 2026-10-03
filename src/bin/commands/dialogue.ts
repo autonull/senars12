@@ -2,7 +2,7 @@
 
 import { OutcomeLinker } from '@senars/nar/config';
 import { episodeQualitySurface } from '@senars/nar/query';
-import { errMsg, makeId } from '@senars/util';
+import { errMsg, finiteOr, makeId, unique } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import { tokenize } from './args.js';
 import { type BotRuntime, systemOneOf } from './context.js';
@@ -33,7 +33,9 @@ export const runSessionRetrospective = async (
     limit: 16,
     ...(miningBag ? { into: miningBag } : {}),
   }).catch(() => []);
-  const contradictionTerms = negatives.filter((n) => n.source === 'contradiction').map((n) => n.text);
+  const contradictionTerms = negatives
+    .filter((n) => n.source === 'contradiction')
+    .map((n) => n.text);
   const reactionEpisodes = await wired.episodicMemory.getEpisodes({ type: 'reaction', limit: 500 });
   const sessionReactions = reactionEpisodes.filter(
     (e) => (e.metadata as { sessionId?: string }).sessionId === sessionId
@@ -41,7 +43,8 @@ export const runSessionRetrospective = async (
   const corrections = sessionReactions.filter(
     (e) => (e.metadata as { kind?: string }).kind === 'correct'
   ).length;
-  const correctionDominates = sessionReactions.length >= 2 && corrections * 2 >= sessionReactions.length;
+  const correctionDominates =
+    sessionReactions.length >= 2 && corrections * 2 >= sessionReactions.length;
   const proposal = {
     proposalId: makeId(),
     kind: 'focus-weight' as const,
@@ -76,36 +79,32 @@ export const runSessionRetrospective = async (
 };
 
 export const dialogueCommandsFor = (rt: BotRuntime) => [
-  cmd(
-    'react',
-    `Bind a reaction to the last turn: ${REACTION_USAGE}`,
-    async (args = '') => {
-      const [kind, ...rest] = tokenize(args);
-      const turn = rt.dialogue.latestTurn();
-      if (!turn) return 'No captured turn to react to (capture disabled or no exchange yet).';
-      if (!kind || !REACTION_SET.has(kind)) return `Usage: ${REACTION_USAGE}`;
-      const correction = kind === 'correct' ? rest.join(' ') : undefined;
-      if (kind === 'correct' && !correction) return 'Usage: .react correct <correction text>';
-      try {
-        await rt.dialogue.bindReaction(turn.turnId, kind as never, correction);
-        // Reactions are verification signals for the user channel: trust-not-truth.
-        rt.wired.nar
-          .getSourceReputation?.()
-          ?.record('user', isCorrection(kind) ? 'contradicted' : 'confirmed');
-        return `Reaction ${kind} bound to ${turn.turnId}${kind === 'correct' ? ' (embedded + labeled, text discarded)' : ''}`;
-      } catch (e) {
-        return `react failed: ${errMsg(e)}`;
-      }
+  cmd('react', `Bind a reaction to the last turn: ${REACTION_USAGE}`, async (args = '') => {
+    const [kind, ...rest] = tokenize(args);
+    const turn = rt.dialogue.latestTurn();
+    if (!turn) return 'No captured turn to react to (capture disabled or no exchange yet).';
+    if (!kind || !REACTION_SET.has(kind)) return `Usage: ${REACTION_USAGE}`;
+    const correction = kind === 'correct' ? rest.join(' ') : undefined;
+    if (kind === 'correct' && !correction) return 'Usage: .react correct <correction text>';
+    try {
+      await rt.dialogue.bindReaction(turn.turnId, kind as never, correction);
+      // Reactions are verification signals for the user channel: trust-not-truth.
+      rt.wired.nar
+        .getSourceReputation?.()
+        ?.record('user', isCorrection(kind) ? 'contradicted' : 'confirmed');
+      return `Reaction ${kind} bound to ${turn.turnId}${kind === 'correct' ? ' (embedded + labeled, text discarded)' : ''}`;
+    } catch (e) {
+      return `react failed: ${errMsg(e)}`;
     }
-  ),
+  }),
   cmd('turns', 'Show captured dialogue turns: [session-id] [n]', async (args = '') => {
     const [sid, nRaw] = tokenize(args);
-    const limit = Number(nRaw ?? 10) || 10;
+    const limit = finiteOr(nRaw, 10);
     const episodes = await rt.wired.episodicMemory.getEpisodes({ type: 'dialogue', limit: 500 });
     const sessionIds = new Set(
       episodes.map((e) => (e.metadata as { sessionId?: string }).sessionId)
     );
-    const target = sid ?? [...sessionIds].pop();
+    const target = sid ?? unique(sessionIds).at(-1);
     const rows = episodes
       .filter((e) => (e.metadata as { sessionId?: string }).sessionId === target)
       .slice(-limit);
@@ -162,19 +161,17 @@ export const dialogueCommandsFor = (rt: BotRuntime) => [
     const explicit = args.trim();
     const sid =
       explicit ||
-      [
-        ...new Set(
-          (await rt.wired.episodicMemory.getEpisodes({ type: 'dialogue', limit: 500 })).map(
-            (e) => (e.metadata as { sessionId?: string }).sessionId
-          )
-        ),
-      ].pop();
+      unique(
+        (await rt.wired.episodicMemory.getEpisodes({ type: 'dialogue', limit: 500 })).map(
+          (e) => (e.metadata as { sessionId?: string }).sessionId
+        )
+      ).at(-1);
     if (!sid) return 'No captured sessions.';
     return runSessionRetrospective(rt, sid);
   }),
   cmd('retrospectives', 'List past retrospectives: [n]', async (args = '') => {
     const { loadRetrospectives } = await import('@senars/nar/dialogue');
-    const limit = Number(args.trim() || 10) || 10;
+    const limit = finiteOr(args.trim(), 10);
     const rs = await loadRetrospectives(limit);
     if (rs.length === 0) return 'No retrospectives.';
     return rs
@@ -184,34 +181,41 @@ export const dialogueCommandsFor = (rt: BotRuntime) => [
       )
       .join('\n');
   }),
-  cmd('lessons', 'Show lessons extracted from retrospectives + formalized corrections', async () => {
-    const { extractLessons, loadRetrospectives } = await import('@senars/nar/dialogue');
-    const retrospectLessons = (await loadRetrospectives(50)).flatMap((r) =>
-      extractLessons(r, { term: 'dialogue_performance', truth: { frequency: 0.9, confidence: 0.6 } })
-    );
-    // Lessons from formalized corrections join the same ingestion path.
-    const lessons = [...rt.dialogue.lessons, ...retrospectLessons];
-    if (lessons.length === 0) {
-      return 'No lessons (require ≥2 supporting turns per retrospective, or formalized corrections).';
+  cmd(
+    'lessons',
+    'Show lessons extracted from retrospectives + formalized corrections',
+    async () => {
+      const { extractLessons, loadRetrospectives } = await import('@senars/nar/dialogue');
+      const retrospectLessons = (await loadRetrospectives(50)).flatMap((r) =>
+        extractLessons(r, {
+          term: 'dialogue_performance',
+          truth: { frequency: 0.9, confidence: 0.6 },
+        })
+      );
+      // Lessons from formalized corrections join the same ingestion path.
+      const lessons = [...rt.dialogue.lessons, ...retrospectLessons];
+      if (lessons.length === 0) {
+        return 'No lessons (require ≥2 supporting turns per retrospective, or formalized corrections).';
+      }
+      // Ingest as Narsese self-beliefs (seeded truth, no LM) so they answer `.ask`.
+      await Promise.all(
+        lessons.map((l) =>
+          rt.wired.nar
+            .input(`<${l.term}>.`, 'belief', {
+              f: l.truth.frequency,
+              c: l.truth.confidence,
+            } as never)
+            .catch(() => undefined)
+        )
+      );
+      return lessons
+        .map(
+          (l) =>
+            `  ${l.term} f=${l.truth.frequency} c=${l.truth.confidence} turns=${l.provenance.turnIds.length}`
+        )
+        .join('\n');
     }
-    // Ingest as Narsese self-beliefs (seeded truth, no LM) so they answer `.ask`.
-    await Promise.all(
-      lessons.map((l) =>
-        rt.wired.nar
-          .input(`<${l.term}>.`, 'belief', {
-            f: l.truth.frequency,
-            c: l.truth.confidence,
-          } as never)
-          .catch(() => undefined)
-      )
-    );
-    return lessons
-      .map(
-        (l) =>
-          `  ${l.term} f=${l.truth.frequency} c=${l.truth.confidence} turns=${l.provenance.turnIds.length}`
-      )
-      .join('\n');
-  }),
+  ),
   cmd(
     'reconsolidate',
     'Ingest retrospective lessons as self-beliefs (one-shot per digest, survives restarts)',
@@ -244,31 +248,43 @@ export const dialogueCommandsFor = (rt: BotRuntime) => [
           grades: () => systemOneOf(rt)?.traceGradeHistory ?? new Map<string, number>(),
         },
         // The curriculum trains on the least-reliable sources first.
-        { sourceReputation: { multiplier: (key) => rt.wired.nar.getSourceReputation?.()?.multiplier(key) ?? 1 } }
+        {
+          sourceReputation: {
+            multiplier: (key) => rt.wired.nar.getSourceReputation?.()?.multiplier(key) ?? 1,
+          },
+        }
       );
       if (probes.length === 0) return 'No probes yet (requires corrected or low-graded turns).';
       return probes.map((p) => `  ${p.kind} ${p.id} score=${p.score.toFixed(2)}`).join('\n');
     }
   ),
-  cmd('adaptations', 'Show retrospective-driven strategy adaptations: [.restore]', async (args = '') => {
-    const { strategyAdapter } = rt;
-    if (!strategyAdapter) return 'Strategy adaptation unavailable (no kernel controller).';
-    if (args.trim() === 'restore') {
-      return strategyAdapter.restore() ? 'Restored pre-adaptation strategies.' : 'Nothing to restore.';
+  cmd(
+    'adaptations',
+    'Show retrospective-driven strategy adaptations: [.restore]',
+    async (args = '') => {
+      const { strategyAdapter } = rt;
+      if (!strategyAdapter) return 'Strategy adaptation unavailable (no kernel controller).';
+      if (args.trim() === 'restore') {
+        return strategyAdapter.restore()
+          ? 'Restored pre-adaptation strategies.'
+          : 'Nothing to restore.';
+      }
+      const ledger = strategyAdapter.ledger;
+      if (ledger.length === 0) {
+        return 'No adaptations yet (correction-dominated retrospectives drive them).';
+      }
+      return ledger
+        .map(
+          (a) =>
+            `  ${a.at ? new Date(a.at).toISOString() : ''} ${a.retrospectiveDigest.slice(0, 19)} ${Object.entries(
+              a.to
+            )
+              .map(([k, v]) => `${k}→${v}`)
+              .join(', ')}`
+        )
+        .join('\n');
     }
-    const ledger = strategyAdapter.ledger;
-    if (ledger.length === 0) {
-      return 'No adaptations yet (correction-dominated retrospectives drive them).';
-    }
-    return ledger
-      .map(
-        (a) =>
-          `  ${a.at ? new Date(a.at).toISOString() : ''} ${a.retrospectiveDigest.slice(0, 19)} ${Object.entries(a.to)
-            .map(([k, v]) => `${k}→${v}`)
-            .join(', ')}`
-      )
-      .join('\n');
-  }),
+  ),
   cmd('schemas-induce', 'Induce schemas from captured derivation chains (LM-backed)', async () => {
     const { nar, lmService } = rt.wired;
     const chains = nar.getDerivationChains(64);
@@ -288,7 +304,10 @@ export const dialogueCommandsFor = (rt: BotRuntime) => [
       return `No schemas induced from ${chains.length} chains (below confidence/steps bar).`;
     }
     return results
-      .map((r) => `  ${r.schema.template} conf=${r.confidence.toFixed(2)} instances=${r.instances.length}`)
+      .map(
+        (r) =>
+          `  ${r.schema.template} conf=${r.confidence.toFixed(2)} instances=${r.instances.length}`
+      )
       .join('\n');
   }),
 ];

@@ -1,11 +1,10 @@
-import { periodic, raceDeadline } from '@senars/util';
+import { periodic, type RandomSource, raceDeadline, SeededRNG, weightedPick } from '@senars/util';
 import type { MetaGame } from '../game/impls/MetaGame.js';
-import { SeededRNG, weightedPick } from '../utils/random.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
 import type { FocusStepReport } from './Focus.js';
 import type { FocusBag } from './FocusBag.js';
-import { schedulerReward } from './scheduler-reward.js';
 import type { GameFocus } from './GameFocus.js';
+import { schedulerReward } from './scheduler-reward.js';
 
 export interface FocusSchedulerOptions {
   bag: FocusBag;

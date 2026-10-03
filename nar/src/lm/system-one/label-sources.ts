@@ -1,6 +1,6 @@
+import type { ReactionKind } from '../../dialogue/types.js';
 import { computeEvidenceId, type JudgmentDataset } from './distill.js';
 import { REACTION_SOURCE } from './eval-set.js';
-import type { ReactionKind } from '../../dialogue/types.js';
 
 export interface CorrectionLabelInput {
   originalNL: string;
@@ -111,10 +111,7 @@ export interface ReactionLabelInput {
  * embedding-level preference pair (original observed: 0, correction observed: 1).
  * `clarify`/`redirect` produce metadata, not labels.
  */
-export function recordReactionLabel(
-  dataset: JudgmentDataset,
-  input: ReactionLabelInput
-): number {
+export function recordReactionLabel(dataset: JudgmentDataset, input: ReactionLabelInput): number {
   const { kind } = input;
   if (kind === 'clarify' || kind === 'redirect') return 0;
   if (kind === 'correct') {

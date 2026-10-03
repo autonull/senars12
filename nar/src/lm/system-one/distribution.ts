@@ -1,4 +1,4 @@
-import { maxBy } from '@senars/util';
+import { maxBy, normalizeToSum } from '@senars/util';
 import type { ScoreLegend } from './types.js';
 
 export interface ScoreDistribution {
@@ -44,6 +44,5 @@ export const legendFrom = (
   if (!levels || levels.length < 2) return undefined;
   const n = levels.length;
   const weights = levels.map((_, i) => Math.max(0, 1 - Math.abs(score - i / (n - 1)) * (n - 1)));
-  const total = weights.reduce((a: number, b: number) => a + b, 0) || 1;
-  return { levels, weights: weights.map((w) => w / total) };
+  return { levels, weights: normalizeToSum(weights, (w) => w, weights) };
 };

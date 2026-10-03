@@ -23,7 +23,7 @@ export function seedTruth(
   const ceiling = reputation && sourceKey ? reputation.effectiveCeiling(base, sourceKey) : base;
   const authority = calibrateAuthority(p.calibration.ece);
   const f = p.kind === 'evaluate' ? p.score : p.top.p;
-  return Truth.create(f, Math.min(authority, ceiling, Truth.MAX_CONFIDENCE));
+  return Truth.normalize(f, Math.min(authority, ceiling));
 }
 
 /** Teleological: identical math, goal-side storage target. Callers MUST inject as type 'goal'. */

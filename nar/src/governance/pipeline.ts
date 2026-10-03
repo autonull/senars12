@@ -287,7 +287,10 @@ export class SandboxValidator {
         approved: false,
         reason: `Unknown ${knobName.startsWith('systemOne.') ? 'systemOne ' : ''}knob '${knobName}'`,
       };
-    if (typeof value !== 'number' || Number.isNaN(value))
+    // The `typeof` narrows `unknown` for the range test below; `Number.isFinite`
+    // then closes what the `isNaN` pair let through — `Infinity` passed as
+    // "numeric" and was only rejected later by accident of the range compare.
+    if (typeof value !== 'number' || !Number.isFinite(value))
       return { approved: false, reason: `Non-numeric value for '${spec.name}'` };
     if (value < spec.min || value > spec.max)
       return {

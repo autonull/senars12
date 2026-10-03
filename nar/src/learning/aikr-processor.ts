@@ -6,10 +6,14 @@
  * under pressure (AIKR); processing is interruptible via AbortSignal and
  * deterministic under an injected RandomSource.
  */
-import { selectTopN, softmax } from '@senars/util';
+import {
+  type RandomSource,
+  selectTopN,
+  softmax,
+  weightedSample,
+  weightedSampleBy,
+} from '@senars/util';
 import type { Bag, BagItem } from '../bag/Bag.js';
-import type { RandomSource } from '../types/primitives.js';
-import { weightedSample, weightedSampleBy } from '../utils/random.js';
 
 export interface BagSamplingStrategy<T extends BagItem> {
   readonly name: string;
@@ -264,7 +268,10 @@ export class AikrShell<TIn extends BagItem, TOut, TView = TOut, TAdmit = TIn> {
 
   /** Inert below the pressure threshold (AIKR budget conservation). */
   drainIfPressured(options: ProcessOptions = {}): Promise<TOut[]> {
-    return this.processor.processIfPressured({ ...options, budget: options.budget ?? this.#budget });
+    return this.processor.processIfPressured({
+      ...options,
+      budget: options.budget ?? this.#budget,
+    });
   }
 
   /** Stage 6 — decay (forget stale accumulation). */

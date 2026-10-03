@@ -1,7 +1,5 @@
+import { clamp01, SeededRNG, shuffleInPlace } from '@senars/util';
 import type { Game, GameOutcome, Perception } from '../Game.js';
-import { SeededRNG } from '../../utils/random.js';
-import { shuffleInPlace } from '../../utils/random.js';
-import { clamp01 } from '@senars/util';
 
 /** Placement action: 'place:r<rotation>:c<column>' (hard drop). */
 export type TetrisPlacement = string;
@@ -60,7 +58,8 @@ const SHAPES: number[][][] = [
   ], // L
 ];
 
-const rotateCW = (m: number[][]): number[][] => m[0]!.map((_, i) => m.map((row) => row[i]!).reverse());
+const rotateCW = (m: number[][]): number[][] =>
+  m[0]!.map((_, i) => m.map((row) => row[i]!).reverse());
 
 const cellsOf = (type: number, rot: number): Array<[number, number]> => {
   let m = SHAPES[type]!;
@@ -90,7 +89,13 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
     this.placementCap = config.placementCap ?? 64;
     this.pieceCap = config.pieceCap ?? 100;
     this.rng = new SeededRNG(config.seed ?? 1);
-    this.state_ = { grid: this.emptyGrid(), piece: null, piecesPlaced: 0, linesCleared: 0, terminal: false };
+    this.state_ = {
+      grid: this.emptyGrid(),
+      piece: null,
+      piecesPlaced: 0,
+      linesCleared: 0,
+      terminal: false,
+    };
     this.spawn();
   }
 
@@ -100,7 +105,13 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
 
   reset(): void {
     this.bag.length = 0;
-    this.state_ = { grid: this.emptyGrid(), piece: null, piecesPlaced: 0, linesCleared: 0, terminal: false };
+    this.state_ = {
+      grid: this.emptyGrid(),
+      piece: null,
+      piecesPlaced: 0,
+      linesCleared: 0,
+      terminal: false,
+    };
     this.spawn();
   }
 
@@ -138,7 +149,12 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
     return this.bag.shift()!;
   }
 
-  private collides(cells: Array<[number, number]>, row: number, col: number, grid: number[][]): boolean {
+  private collides(
+    cells: Array<[number, number]>,
+    row: number,
+    col: number,
+    grid: number[][]
+  ): boolean {
     for (const [dr, dc] of cells) {
       const r = row + dr;
       const c = col + dc;
@@ -286,7 +302,9 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
         if (r >= 0 && r < this.height && !grid[r]![c]) grid[r]![c] = 2;
       }
     }
-    return grid.map((row) => row.map((v) => (v === 1 ? '#' : v === 2 ? '>' : '.')).join(' ')).join('\n');
+    return grid
+      .map((row) => row.map((v) => (v === 1 ? '#' : v === 2 ? '>' : '.')).join(' '))
+      .join('\n');
   }
 }
 

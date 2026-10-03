@@ -1,9 +1,8 @@
-import { clamp, clamp01 } from '@senars/util';
+import { mulberry32, nextInt } from '@senars/util';
 import { Truth } from '../../terms/impls/Truth.js';
 import { type Term, termParser } from '../../terms/index.js';
 import type { Task } from '../../types/core.js';
-import { createTaskWeight, createTask } from '../../types/core.js';
-import { mulberry32, nextInt } from '../../utils/random.js';
+import { createTask, createTaskWeight } from '../../types/core.js';
 import type { GeneratorConfig, HiddenRule, Scenario, ScenarioProfile } from '../types.js';
 import { createOracleFromScenario, HiddenModelOracle } from './HiddenModelOracle.js';
 
@@ -92,13 +91,13 @@ export class ScenarioGenerator {
 
     if (noise) {
       termStr = this.corruptTerm(rule.term);
-      truth = Truth.create(
-        clamp01(rule.truth.f + (this.rng() - 0.5) * 0.6),
-        clamp(rule.truth.c + (this.rng() - 0.5) * 0.6, 0, Truth.MAX_CONFIDENCE)
+      truth = Truth.normalize(
+        rule.truth.f + (this.rng() - 0.5) * 0.6,
+        rule.truth.c + (this.rng() - 0.5) * 0.6
       );
     } else {
       termStr = rule.term;
-      truth = Truth.create(clamp01(rule.truth.f), clamp(rule.truth.c, 0, Truth.MAX_CONFIDENCE));
+      truth = Truth.normalize(rule.truth.f, rule.truth.c);
     }
 
     const term = this.parseTerm(termStr);
@@ -115,7 +114,9 @@ export class ScenarioGenerator {
     const questionTermStr = termStr.replace(/^(\(.+\))$/, '($1)?');
 
     const term = this.parseTerm(questionTermStr);
-    return term ? createTask(term, 'question', Truth.create(0.5, 0.5), createTaskWeight(0.5)) : null;
+    return term
+      ? createTask(term, 'question', Truth.create(0.5, 0.5), createTaskWeight(0.5))
+      : null;
   }
 
   private generateGoalEvent(hiddenRules: HiddenRule[]): Task | null {

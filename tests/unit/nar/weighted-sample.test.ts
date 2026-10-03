@@ -1,4 +1,4 @@
-import { mulberry32, weightedSample, weightedSampleBy } from '@senars/nar/utils/random';
+import { mulberry32, weightedSample, weightedSampleBy } from '@senars/util';
 import { describe, expect, it } from 'vitest';
 
 const items = [

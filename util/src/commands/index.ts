@@ -1,2 +1,8 @@
 export { CommandRegistry } from './registry.js';
-export type { CommandContext, CommandDefinition, CommandHandler } from './types.js';
+export {
+  isQuitResult,
+  QUIT_SENTINEL,
+  type CommandContext,
+  type CommandDefinition,
+  type CommandHandler,
+} from './types.js';

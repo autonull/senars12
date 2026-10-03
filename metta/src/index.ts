@@ -1,7 +1,7 @@
 export { Concept, ConceptBag } from './core/concept-bag.js';
 export { createConfig, type MeTTaConfig, presets } from './core/config.js';
 export { ErrorCode, MeTTaError } from './core/errors.js';
-export { equalAtoms, hashAtom } from './core/hash.js';
+export { atomKey, equalAtoms, hashAtom } from './core/hash.js';
 export { type InternOptions, SymbolInterner } from './core/intern.js';
 export { clearOps, defineOp, type GroundedOp, getOp, hasOp, registerOp } from './core/ops.js';
 export { InMemorySpace } from './core/space.js';

@@ -26,24 +26,11 @@ const ATTENTION_MODELS = {
   spreading: (boost: number) => new SpreadingActivation(boost),
   'goal-relevance': (boost: number) => new GoalRelevanceAttention(boost),
 } as const satisfies Record<string, (boost: number) => AttentionModel>;
-import { CompositeLMRuleSelector } from '../../strategies/lm-selectors/CompositeLMRuleSelector.js';
-import { RuleGraph } from '../../strategies/lm-graph/RuleGraph.js';
-import { CompositeSampling } from '../../strategies/sampling/CompositeSampling.js';
+
+import { mulberry32 } from '@senars/util';
 import {
-  CompositeStrategy,
-  createPremiseStrategy,
-  DecompositionStrategy,
-  PREMISE_PRIMITIVES,
-} from '../../strategies/premise/selection-strategies.js';
-import {
-  EmbeddingLinkStrategy,
-  TermLinkStrategy,
-} from '../../strategies/premise/term-link.js';
-import { PrologResolutionStrategy } from '../../strategies/premise/prolog-resolution.js';
-import { premiseSampleShape, type PremiseOverrides } from '../../strategies/premise/config.js';
-import {
-  AnytimeDerivation,
   AllSelector,
+  AnytimeDerivation,
   DefaultDerivation,
   DiverseSampling,
   DiverseSelector,
@@ -57,15 +44,26 @@ import {
   TopNSampling,
   WindowedRouletteStrategy,
 } from '../../strategies/index.js';
+import { RuleGraph } from '../../strategies/lm-graph/RuleGraph.js';
+import { CompositeLMRuleSelector } from '../../strategies/lm-selectors/CompositeLMRuleSelector.js';
+import { type PremiseOverrides, premiseSampleShape } from '../../strategies/premise/config.js';
+import { PrologResolutionStrategy } from '../../strategies/premise/prolog-resolution.js';
 import {
-  configurable,
+  CompositeStrategy,
+  createPremiseStrategy,
+  DecompositionStrategy,
+  PREMISE_PRIMITIVES,
+} from '../../strategies/premise/selection-strategies.js';
+import { EmbeddingLinkStrategy, TermLinkStrategy } from '../../strategies/premise/term-link.js';
+import {
   configSchema,
-  stateful,
+  configurable,
   fixed,
   type StrategyRegistration,
+  stateful,
 } from '../../strategies/registration.js';
+import { CompositeSampling } from '../../strategies/sampling/CompositeSampling.js';
 import type { Strategy, StrategyType } from '../../strategies/types.js';
-import { mulberry32 } from '../../utils/random.js';
 
 /**
  * A `seed` in the config pins a strategy's own stream; absent one it draws from
@@ -82,16 +80,21 @@ const LINK_CONFIG = configSchema({
 
 type LinkCtor = new (config?: { minStrength?: number; limit?: number }) => Strategy;
 
-const premise = (registration: StrategyRegistration): StrategySlotEntry => ['premise', registration];
+const premise = (registration: StrategyRegistration): StrategySlotEntry => [
+  'premise',
+  registration,
+];
 
 const linkRegistration = (name: string, description: string, Ctor: LinkCtor) =>
-  premise(configurable({
-    name,
-    description,
-    schema: LINK_CONFIG,
-    factory: (config) =>
-      new Ctor({ minStrength: config.minStrength as number, limit: config.limit as number }),
-  }));
+  premise(
+    configurable({
+      name,
+      description,
+      schema: LINK_CONFIG,
+      factory: (config) =>
+        new Ctor({ minStrength: config.minStrength as number, limit: config.limit as number }),
+    })
+  );
 
 /**
  * The premise primitives' whole sampling pipeline is their configuration: the
@@ -125,7 +128,6 @@ const SAMPLED_CONFIG = configSchema({
 });
 
 const ROTATION_CONFIG = configSchema({ offset: z.number().int().min(0).default(0) });
-
 
 /**
  * The one built-in that composes *other registered strategies by name*. Its
@@ -296,7 +298,14 @@ export const DEFAULT_REGISTRATIONS: StrategySlot = [
   ],
 
   // ── lm-rule ─────────────────────────────────────────────────────────────
-  ['lm-rule', fixed({ name: 'all', description: 'Fire all eligible LM rules', factory: () => new AllSelector() })],
+  [
+    'lm-rule',
+    fixed({
+      name: 'all',
+      description: 'Fire all eligible LM rules',
+      factory: () => new AllSelector(),
+    }),
+  ],
   [
     'lm-rule',
     fixed({
@@ -363,7 +372,10 @@ export const DEFAULT_REGISTRATIONS: StrategySlot = [
         return [
           ...models
             .filter(({ name }) => !COMPOSABLE_ATTENTION.includes(name))
-            .map(({ name }) => `config.models[].name: no attention strategy named '${name}' (available: ${COMPOSABLE_ATTENTION.join(', ')})`),
+            .map(
+              ({ name }) =>
+                `config.models[].name: no attention strategy named '${name}' (available: ${COMPOSABLE_ATTENTION.join(', ')})`
+            ),
           ...(models.every(({ weight }) => weight === 0)
             ? ['config.models: at least one weight must be positive']
             : []),

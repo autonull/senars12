@@ -6,6 +6,7 @@
  */
 
 import { BoundedMap, type BoundedMapOptions } from './bounded-map.js';
+import { safeRatio } from './numeric.js';
 
 export type LruCacheOptions<K = unknown, V = unknown> = BoundedMapOptions<K, V>;
 
@@ -26,8 +27,7 @@ export class LruCache<K, V> extends BoundedMap<K, V> {
   }
 
   get hitRate(): number {
-    const total = this.#hits + this.#misses;
-    return total > 0 ? this.#hits / total : 0;
+    return safeRatio(this.#hits, this.#hits + this.#misses);
   }
 
   override get(key: K): V | undefined {

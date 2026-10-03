@@ -1,4 +1,4 @@
-import { deepMerge, sigmoid, softmax } from '@senars/util';
+import { deepFreeze, deepMerge, finiteOr, sigmoid, softmax, toFiniteNumber } from '@senars/util';
 import { describe, expect, it } from 'vitest';
 
 describe('sigmoid', () => {
@@ -74,5 +74,50 @@ describe('deepMerge', () => {
 
   it('lets a primitive override replace an object wholesale', () => {
     expect(deepMerge({ a: { b: 1 } }, { a: 5 })).toEqual({ a: 5 });
+  });
+
+  it('shares no branch with the base, at any depth the override does not reach', () => {
+    const base = deepFreeze({ touched: { n: 1 }, untouched: { deep: { n: 2 } } });
+    const merged = deepMerge(base, { touched: { n: 9 } });
+
+    expect(merged).toEqual({ touched: { n: 9 }, untouched: { deep: { n: 2 } } });
+    expect(merged.untouched).not.toBe(base.untouched);
+    expect(merged.untouched.deep).not.toBe(base.untouched.deep);
+    merged.untouched.deep.n = 3;
+    expect(base.untouched.deep.n).toBe(2);
+  });
+});
+
+describe('toFiniteNumber', () => {
+  it('passes finite numbers through unchanged', () => {
+    expect(toFiniteNumber(0)).toBe(0);
+    expect(toFiniteNumber(-1.5)).toBe(-1.5);
+  });
+
+  it('parses numeric strings, including fractions', () => {
+    expect(toFiniteNumber('1.5')).toBe(1.5);
+    expect(toFiniteNumber(' 42 ')).toBe(42);
+    expect(toFiniteNumber('-0.25')).toBe(-0.25);
+  });
+
+  it('rejects values that survive arithmetic as NaN or Infinity', () => {
+    for (const bad of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])
+      expect(toFiniteNumber(bad)).toBeUndefined();
+    for (const bad of ['abc', '1,5', 'Infinity', '-Infinity', '0x'])
+      expect(toFiniteNumber(bad)).toBeUndefined();
+  });
+
+  it('treats an absent value as absent, not as zero', () => {
+    // Number(null), Number([]), and Number('') are all 0, which made a missing
+    // setting indistinguishable from a setting of zero.
+    for (const absent of [undefined, null, '', '   ', [], {}, true, false])
+      expect(toFiniteNumber(absent)).toBeUndefined();
+  });
+
+  it('finiteOr substitutes the fallback only when the value is not finite', () => {
+    expect(finiteOr('7', 1)).toBe(7);
+    expect(finiteOr('nope', 1)).toBe(1);
+    expect(finiteOr(Number.NaN, 1)).toBe(1);
+    expect(finiteOr(0, 1)).toBe(0);
   });
 });

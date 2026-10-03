@@ -2,8 +2,13 @@
  * Rule processor for applying inference rules
  */
 
-import type { ModelRuleStats } from '@senars/util';
-import { formatNarseseTruth, pushCapped, stopwatch, toError } from '@senars/util';
+import {
+  formatNarseseTruth,
+  type ModelRuleStats,
+  pushCapped,
+  stopwatch,
+  toError,
+} from '@senars/util';
 import { findConflicts } from '../../cognitive/impls/conflict-utils.js';
 import type { DriveManager } from '../../drives';
 import type { ControlBudgetPort } from '../../kernel/control-budgets.js';
@@ -11,7 +16,7 @@ import { GATE_LOG_CAPACITY } from '../../kernel/event-ring.js';
 import type { MemoryReader } from '../../memory/ports/index.js';
 import type { ModelRuleSelector } from '../../strategies/types.js';
 import type { StampType, Term } from '../../terms';
-import { termDepth, Truth, type Truth as TruthType } from '../../terms';
+import { Truth, type Truth as TruthType, termDepth, termKey } from '../../terms';
 import type { NarEventBus, Task } from '../../types';
 import type {
   InferenceTable,
@@ -22,10 +27,10 @@ import type {
   RuleInput,
   RuleResult,
 } from '../types.js';
+import { loadBuiltinTable } from './builtin-table.js';
 import { META_AIKR_BOUNDS, shouldActivateMetaReasoning } from './meta-rules.js';
 import { RuleIndex } from './RuleIndex.js';
 import { DerivationRecorder } from './recorder.js';
-import { loadBuiltinTable } from './builtin-table.js';
 import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils.js';
 
 interface ModelRuleExecutionEntry {
@@ -109,7 +114,8 @@ export class RuleProcessor {
     if (config.memory) this.memory = config.memory;
     if (config.host) this.host = config.host;
     if (config.budgets) this.budgets = config.budgets;
-    if (config.limitConclusionGrowth !== undefined) this.limitConclusionGrowth = config.limitConclusionGrowth;
+    if (config.limitConclusionGrowth !== undefined)
+      this.limitConclusionGrowth = config.limitConclusionGrowth;
     if (config.recorderEnabled !== undefined) this.recorder.setEnabled(config.recorderEnabled);
   }
 
@@ -202,7 +208,8 @@ export class RuleProcessor {
 
   /** How deep a meta derivation may nest. The *spend* is `control-work`; this is the chain depth. */
   configureMetaAikr(bounds: { maxDerivationDepth?: number }): void {
-    if (bounds.maxDerivationDepth !== undefined) this.metaDepth.maxDepth = bounds.maxDerivationDepth;
+    if (bounds.maxDerivationDepth !== undefined)
+      this.metaDepth.maxDepth = bounds.maxDerivationDepth;
   }
 
   /**
@@ -260,6 +267,14 @@ export class RuleProcessor {
   ): Generator<{ conclusion: string; ruleResult: RuleResult }> {
     const p1s = p1.term.toString();
     const p2s = p2.term.toString();
+    // Premise identity for the whole rule sweep, resolved once: `termKey` is the
+    // canonical structural key every other term-keyed container in the engine
+    // uses, and it is memoised on the term. The Narsese text form was the older
+    // answer and it is lossy — an atom holding `,` re-serialises exactly like a
+    // compound — so two distinct terms that print alike could silence each
+    // other's rule.
+    const p1k = termKey(p1.term);
+    const p2k = termKey(p2.term);
     this.recorder.begin(`${p1s}|${p2s}`, p1s);
     const matched = this.table.candidates(p1.term.kind, p2.term.kind);
     const metaActive = this.metaActive(matched);
@@ -280,8 +295,8 @@ export class RuleProcessor {
           continue;
         }
         if (this.isMetaRule(rule)) this.recordMetaDerivation(this.metaDepth.currentDepth + 1);
-        const conclusion = result.toString();
-        if (conclusion === p1s || conclusion === p2s) continue;
+        const conclusion = termKey(result);
+        if (conclusion === p1k || conclusion === p2k) continue;
         if (
           this.limitConclusionGrowth &&
           termDepth(result as Term) > Math.max(termDepth(p1.term), termDepth(p2.term))
@@ -296,7 +311,7 @@ export class RuleProcessor {
         );
         (ruleResult as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType =
           rule.taskType;
-        this.recorder.record(rule.id, p1, p2, ruleResult);
+        this.recorder.record(rule.id, p1, p2, ruleResult, rule.truthFnName);
         // Emit rule:applied event for cost tracking
         this.eventBus?.emit('rule:applied', {
           ruleId: rule.id,

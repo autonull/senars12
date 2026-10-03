@@ -2,10 +2,11 @@
  * Shared builders for LM rules: prompt constants, response parsing, and the
  * `createRule` / `createCustomRule` factories used by the LMRuleFactory.
  */
+import { assertDefined } from '@senars/util';
 import type { Term } from '../terms';
 import { Truth } from '../terms';
 import type { Task, TaskType } from '../types';
-import { createTaskWeight, createTask } from '../types';
+import { createTask, createTaskWeight } from '../types';
 import { LMResponseParser, LMRule } from './LMRule.js';
 import type { LMRuleConfig, LMService } from './lm-service.js';
 import { prompts, ruleDefs } from './rule-templates/index.js';
@@ -167,9 +168,10 @@ const createRule = (
 };
 
 const getRuleDef = (id: string): LMRuleDefinition => {
-  const def = ruleDefs.find((d) => d.id === id);
-  if (!def) throw new Error(`Rule definition '${id}' not found`);
-  return def;
+  return assertDefined(
+    ruleDefs.find((d) => d.id === id),
+    `Rule definition '${id}' not found`
+  );
 };
 
 export {

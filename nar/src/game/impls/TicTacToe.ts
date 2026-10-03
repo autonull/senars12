@@ -1,5 +1,5 @@
 import type { Game, GameOutcome, Perception } from '../Game.js';
-import { SeededRNG } from '../../utils/random.js';
+import { SeededRNG } from '@senars/util';
 
 export type Player = 'X' | 'O';
 export type CellValue = Player | '.';

@@ -112,6 +112,32 @@ describe('standalone derivation verifier', () => {
     expect(result?.computedTruth?.confidence).toBeCloseTo(0.72, 12);
   });
 
+  it('checks the truth function the rule declared, not one guessed from its id', () => {
+    // `nal.modusPonens` is a deduction, but nothing in that id says so — the
+    // substring scan the verifier used to fall back on cannot resolve it, and
+    // the step was skipped: the proof passed with the step unexamined. The
+    // declared name is the whole point of carrying it.
+    const declared = step({ ruleId: 'nal.modusPonens', truthFn: 'deduction' });
+    const verified = verifyRecord(record([declared]));
+    expect(verified.truthVerified).toBe(1);
+    expect(verified.findings).toEqual([]);
+
+    const sameIdWithoutTheName = step({
+      stepId: '77777777-7777-4777-8777-777777777777',
+      ruleId: 'nal.modusPonens',
+    });
+    expect(verifyRecord(record([sameIdWithoutTheName])).truthVerified).toBe(0);
+  });
+
+  it('rejects a step whose declared truth function contradicts its rule id', () => {
+    // The name is authoritative, so a record that claims one algebra operation
+    // and computes another is a tamper, not an ambiguity.
+    const forged = step({ ruleId: 'nal.modusTollens', truthFn: 'abduction' });
+    const result = verifyRecord(record([forged], { frequency: 0.72, confidence: 0.72 }));
+    expect(result.ok).toBe(false);
+    expect(result.findings.some((f) => f.check === 'truth-algebra')).toBe(true);
+  });
+
   it('rejects a record the schema cannot admit, before reading any of it', () => {
     const result = verifyRecord({ ...record([step({})]), derivationId: 'not-a-uuid' });
     expect(result.ok).toBe(false);

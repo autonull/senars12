@@ -4,6 +4,7 @@
  * text never persists; content survives as sha256 digests + embeddings.
  */
 import type { FormalizationCandidate } from '@senars/core/schemas/formalization';
+import { type BeliefTruth, keyedBy } from '@senars/util';
 import type { JudgmentProvenance } from '../lm/system-one/decide.js';
 
 export type ReactionKind = 'accept' | 'correct' | 'reject' | 'clarify' | 'redirect' | 'abandon';
@@ -100,7 +101,7 @@ export interface Retrospective {
 export interface Lesson {
   /** Narsese self-belief term. */
   term: string;
-  truth: { frequency: number; confidence: number };
+  truth: BeliefTruth;
   /** 'retrospect' = session consolidation; 'reaction' = DQ6 formalized correction (bound at bindReaction). */
   source: 'retrospect' | 'reaction';
   provenance: { turnIds: readonly string[] };
@@ -116,4 +117,4 @@ export const REACTION_KINDS: readonly ReactionKind[] = [
 ];
 
 export const emptyReactionDistribution = (): Record<ReactionKind, number> =>
-  Object.fromEntries(REACTION_KINDS.map((k) => [k, 0])) as Record<ReactionKind, number>;
+  keyedBy(REACTION_KINDS, (kind) => kind, () => 0);

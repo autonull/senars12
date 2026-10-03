@@ -4,6 +4,7 @@
  * `compositeScore` (normalized weighted aggregation), `judgeCascade`
  * (two-stage dependency). Code owns composition — weights are declared, never learned.
  */
+import { assertDefined, sumBy } from '@senars/util';
 import type {
   EmbeddingPointer,
   EvaluateProposition,
@@ -123,13 +124,13 @@ export function compositeScore(
   weights: Record<string, number>
 ): CompositeScore | undefined {
   const active = entries.filter((e) => !e.abstained);
-  const totalWeight = active.reduce((sum, e) => sum + (weights[e.key] ?? 0), 0);
+  const totalWeight = sumBy(active, (e) => weights[e.key] ?? 0);
   if (!active.length || totalWeight <= 0) return undefined;
   const contributions = active.map((e) => {
     const weight = (weights[e.key] ?? 0) / totalWeight;
     return { key: e.key, weight, p: e.p };
   });
-  return { score: contributions.reduce((sum, c) => sum + c.weight * c.p, 0), contributions };
+  return { score: sumBy(contributions, (c) => c.weight * c.p), contributions };
 }
 
 export interface CascadeJudge {
@@ -157,9 +158,9 @@ export async function judgeCascade(
   budget: ReasoningBudget
 ): Promise<CascadeResult> {
   const [first] = await judge.judgeBatch(sharedContext, [stage1], budget);
-  if (!first) throw new Error('judgeCascade: stage-1 produced no proposition');
-  const stage2 = stage2Factory(first);
-  if (!stage2) return { stage1: first };
+  const stage1Result = assertDefined(first, 'judgeCascade: stage-1 produced no proposition');
+  const stage2 = stage2Factory(stage1Result);
+  if (!stage2) return { stage1: stage1Result };
   const [second] = await judge.judgeBatch(sharedContext, [stage2], budget);
-  return { stage1: first, stage2: second };
+  return { stage1: stage1Result, stage2: second };
 }

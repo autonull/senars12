@@ -2,7 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { createLogger } from '@senars/util';
+import { createLogger, errMsg } from '@senars/util';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { BaseConnection } from './base.js';
 
@@ -90,7 +90,7 @@ export class MCPConnection extends BaseConnection {
       return { content, isError: result.isError === true };
     } catch (e) {
       return {
-        content: [{ type: 'text', text: JSON.stringify({ error: (e as Error).message }) }],
+        content: [{ type: 'text', text: JSON.stringify({ error: errMsg(e) }) }],
         isError: true,
       };
     }

@@ -6,7 +6,7 @@ import type {
   PolicyViolationEvent,
 } from '@senars/core/schemas';
 import { AutonomyModeChangedEventSchema, AutonomyModeSchema } from '@senars/core/schemas';
-import { addToSet, makeId, pushCapped } from '@senars/util';
+import { addToSet, BoundedMap, makeId, pushCapped } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import { recordGateDecision } from '../telemetry/index.js';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
@@ -54,7 +54,15 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
   private autonomyLog: AutonomyModeChangedEvent[] = [];
   private autonomyMode: AutonomyMode;
   private allowedOperations: ReadonlySet<string>;
-  private nalDerivations: Map<string, { conclusion: string; veto: boolean }> = new Map();
+  /**
+   * NAL conclusions keyed by derivation id. Bounded at kernel-log capacity for
+   * the same reason `autonomyLog` and `eventLog` are: derivation ids arrive on
+   * every reasoning step and nothing retires them, so an unbounded map grew for
+   * the lifetime of the process. A veto beyond the cap falls off, and the action
+   * then faces the allow-list alone — the same post-expiry posture a dropped
+   * gate-log entry leaves behind.
+   */
+  private nalDerivations: BoundedMap<string, { conclusion: string; veto: boolean }>;
   /** Per-scope autonomy modes + allowlists (game:<scopeId>:<action> operations). Additive. */
   private scopeModes: Map<string, AutonomyMode> = new Map();
   private scopeOperations: Map<string, Set<string>> = new Map();
@@ -63,6 +71,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
     super();
     this.autonomyMode = config?.autonomyMode ?? DEFAULT_AUTONOMY_MODE;
     this.allowedOperations = config?.allowedOperations ?? DEFAULT_ALLOWED_OPS;
+    this.nalDerivations = new BoundedMap({ maxSize: GATE_LOG_CAPACITY });
   }
 
   setAutonomyMode(mode: AutonomyMode): void {
@@ -162,7 +171,13 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
 
   authorize(input: ActionGateInput): ActionGateOutput {
     const out = this.decideAuthorization(input);
-    recordGateDecision('action', input.operation, out.authorized, out.vetoReason, input.correlationId);
+    recordGateDecision(
+      'action',
+      input.operation,
+      out.authorized,
+      out.vetoReason,
+      input.correlationId
+    );
     return out;
   }
 
@@ -183,20 +198,20 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
       };
     }
 
-    if (input.nalDerivationId && this.nalDerivations.has(input.nalDerivationId)) {
-      const derivation = this.nalDerivations.get(input.nalDerivationId)!;
-      if (derivation.veto) {
-        recordPolicyViolation(this.eventLog, {
-          policyId: 'nal-veto',
-          violationType: 'unauthorized-tool',
-          detail: `NAL derivation ${input.nalDerivationId} vetoes action: ${derivation.conclusion}`,
-          correlationId: this.correlationOf(input.correlationId),
-        });
-        return {
-          authorized: false,
-          vetoReason: `NAL veto: ${derivation.conclusion}`,
-        };
-      }
+    const derivation = input.nalDerivationId
+      ? this.nalDerivations.get(input.nalDerivationId)
+      : undefined;
+    if (derivation?.veto) {
+      recordPolicyViolation(this.eventLog, {
+        policyId: 'nal-veto',
+        violationType: 'unauthorized-tool',
+        detail: `NAL derivation ${input.nalDerivationId} vetoes action: ${derivation.conclusion}`,
+        correlationId: this.correlationOf(input.correlationId),
+      });
+      return {
+        authorized: false,
+        vetoReason: `NAL veto: ${derivation.conclusion}`,
+      };
     }
 
     if (!this.allowedOperations.has(input.operation)) {

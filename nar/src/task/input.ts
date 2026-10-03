@@ -1,3 +1,4 @@
+import { escapeRegExp, unique } from '@senars/util';
 import type { Term } from '../terms';
 import { Truth, termParser } from '../terms';
 import { createTaskWeight, createTask, type Task, type TaskType } from '../types';
@@ -12,8 +13,8 @@ const DEFAULT_CONFIG: InputProcessorConfig = {
 };
 
 /** The marks the grammar recognises as sentence punctuation — one source. */
-const SENTENCE_MARKS = [...new Set(Object.values(PUNCTUATION_BY_TASK_TYPE))]
-  .map((mark) => mark.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+const SENTENCE_MARKS = unique(Object.values(PUNCTUATION_BY_TASK_TYPE))
+  .map(escapeRegExp)
   .join('');
 
 const SENTENCE_END = new RegExp(`^(.+?)([${SENTENCE_MARKS}])?\\s*$`);
@@ -41,7 +42,7 @@ export class InputProcessor {
       term,
       this.determineTaskType(punctuation, type),
       truth,
-      createTaskWeight(truth.f * truth.c)
+      createTaskWeight(Truth.attention(truth))
     );
   }
 
@@ -52,7 +53,7 @@ export class InputProcessor {
       term,
       this.determineTaskType(punctuation, type),
       truth,
-      createTaskWeight(truth.f * truth.c)
+      createTaskWeight(Truth.attention(truth))
     );
   }
 

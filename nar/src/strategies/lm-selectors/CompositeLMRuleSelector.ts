@@ -1,4 +1,4 @@
-import { selectTopN } from '@senars/util';
+import { groupBy, mapToRecord, selectTopN } from '@senars/util';
 
 import type { ModelRule } from '../../rules/types.js';
 import { termKey } from '../../terms';
@@ -18,10 +18,11 @@ export class CompositeLMRuleSelector implements ModelRuleSelector {
   constructor(private readonly selectors: ModelRuleSelector[]) {}
 
   select(rules: ModelRule[], ctx: ModelRuleSelectionContext): ModelRule[] {
-    const union = new Map<string, ModelRule>();
-    for (const selector of this.selectors) {
-      for (const rule of selector.select(rules, ctx)) if (!union.has(rule.id)) union.set(rule.id, rule);
-    }
-    return selectTopN(union.values(), ctx.maxRules, (rule) => rule.priority);
+    const proposed = this.selectors.flatMap((selector) => selector.select(rules, ctx));
+    const union = mapToRecord(
+      groupBy(proposed, (rule) => rule.id),
+      (sameRule) => sameRule[0]!
+    );
+    return selectTopN(Object.values(union), ctx.maxRules, (rule) => rule.priority);
   }
 }

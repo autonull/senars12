@@ -8,7 +8,7 @@
  * pure functions over `CycleTrace.regions()`.
  */
 
-import { pct, weightedMean } from '@senars/util';
+import { pct, removeBy, weightedMean } from '@senars/util';
 import type { CycleStageEvent, TraceRegion } from '../proposal/cycle-trace.js';
 
 export interface PhaseEntry {
@@ -41,9 +41,8 @@ export const summarizeRegions = (regions: readonly CycleStageEvent[]): PhaseTime
       open.push(event);
       continue;
     }
-    const at = open.findIndex((b) => b.stage === event.stage && b.cycle === event.cycle);
-    if (at < 0) continue;
-    const begin = open.splice(at, 1)[0]!;
+    const begin = removeBy(open, (b) => b.stage === event.stage && b.cycle === event.cycle);
+    if (!begin) continue;
     phases.push({
       region: event.stage,
       cycle: event.cycle,

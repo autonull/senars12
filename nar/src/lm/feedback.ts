@@ -4,7 +4,7 @@ import type { GateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { TermMap, Truth } from '../terms';
-import { createTaskWeight, createTask, type Task } from '../types';
+import { createTask, createTaskWeight, type Task } from '../types';
 import { admitTasks } from './admit.js';
 import { topBeliefTasks } from './context.js';
 import { parseEnrichmentResponse } from './enrichment.js';
@@ -175,12 +175,10 @@ export class BidirectionalFeedbackLoop {
     current: Truth | undefined,
     result: 'confirmed' | 'contradicted' | 'inconclusive'
   ): Truth | undefined {
-    if (revised) return Truth.create(clamp01(revised.f), clamp01(revised.c));
+    if (revised) return Truth.normalize(revised.f, revised.c);
     if (!current) return undefined;
-    if (result === 'confirmed')
-      return Truth.create(Math.min(current.f * 1.1, 1.0), Math.min(current.c + 0.1, 1.0));
-    if (result === 'contradicted')
-      return Truth.create(Math.max(current.f * 0.9, 0.0), Math.min(current.c + 0.1, 1.0));
+    if (result === 'confirmed') return Truth.reinforce(current);
+    if (result === 'contradicted') return Truth.contradict(current);
     return undefined;
   }
 

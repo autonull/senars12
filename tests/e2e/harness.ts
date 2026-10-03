@@ -1,12 +1,10 @@
-import { sequentialIdSource } from '@senars/util';
-import { SeededRNG } from '@senars/nar/utils/random';
-import { Clock, SystemClock, fixedClock } from '@senars/nar/clock.js';
-import { NarEventBus } from '@senars/nar/types/events.js';
-import type { Task } from '@senars/nar/types/core.js';
+import type { NARConfig } from '@senars/nar/facade/config.js';
 import { Truth } from '@senars/nar/index.js';
 import { NAR } from '@senars/nar/nar.js';
-import type { NARConfig } from '@senars/nar/facade/config.js';
 import type { StrategyRegistry } from '@senars/nar/strategies/registration.js';
+import type { Task } from '@senars/nar/types/core.js';
+import { NarEventBus } from '@senars/nar/types/events.js';
+import { type Clock, fixedClock, SeededRNG, sequentialIdSource, systemClock } from '@senars/util';
 import { e2eNARConfig } from './fixtures.js';
 
 export interface ScenarioSpec {
@@ -19,7 +17,12 @@ export interface ScenarioSpec {
 }
 
 export type ScenarioStep =
-  | { type: 'input'; text: string; taskType?: 'belief' | 'goal' | 'question'; truth?: { f: number; c: number } }
+  | {
+      type: 'input';
+      text: string;
+      taskType?: 'belief' | 'goal' | 'question';
+      truth?: { f: number; c: number };
+    }
   | { type: 'run'; cycles?: number }
   | { type: 'assert'; check: (trace: NormalizedTrace) => void | Promise<void> };
 
@@ -97,20 +100,25 @@ export class ScenarioHarness {
   constructor(spec: ScenarioSpec) {
     this.spec = spec;
     this.rng = new SeededRNG(spec.seed);
-    this.clock = spec.clockStart !== undefined ? fixedClock(spec.clockStart) : SystemClock;
+    this.clock = spec.clockStart !== undefined ? fixedClock(spec.clockStart) : systemClock;
     this.eventBus = new NarEventBus();
     this.setupEventTap();
   }
 
   private setupEventTap(): void {
     const eventMap = this.eventBus as unknown as Record<string, unknown>;
-    const originalEmit = (this.eventBus as { emit: (channel: string, payload: unknown) => void }).emit.bind(this.eventBus);
+    const originalEmit = (
+      this.eventBus as { emit: (channel: string, payload: unknown) => void }
+    ).emit.bind(this.eventBus);
 
-    (this.eventBus as { emit: (channel: string, payload: unknown) => void }).emit = (channel: string, payload: unknown) => {
+    (this.eventBus as { emit: (channel: string, payload: unknown) => void }).emit = (
+      channel: string,
+      payload: unknown
+    ) => {
       this.eventLog.push({
         channel,
         payload,
-        timestamp: this.clock.now(),
+        timestamp: this.clock(),
         cycle: this.cycleCount,
       });
       originalEmit(channel, payload);
@@ -141,7 +149,12 @@ export class ScenarioHarness {
       const trace = this.normalizeTrace();
       const passed = this.verifyExpectations(trace);
 
-      return { trace, spec: this.spec!, passed, error: passed ? undefined : new Error('Expectations not met') };
+      return {
+        trace,
+        spec: this.spec!,
+        passed,
+        error: passed ? undefined : new Error('Expectations not met'),
+      };
     } finally {
       if (this.nar) {
         await this.nar.stop();
@@ -240,7 +253,10 @@ export class ScenarioHarness {
 
     const concepts = this.nar.listConcepts();
     const sorted = concepts
-      .map((c) => `${c.term.toString()}:${c.priority.toFixed(6)}:${c.beliefBag.peek()?.truth?.f ?? 0}:${c.beliefBag.peek()?.truth?.c ?? 0}`)
+      .map(
+        (c) =>
+          `${c.term.toString()}:${c.priority.toFixed(6)}:${c.beliefBag.peek()?.truth?.f ?? 0}:${c.beliefBag.peek()?.truth?.c ?? 0}`
+      )
       .sort()
       .join('|');
 
@@ -257,9 +273,12 @@ export class ScenarioHarness {
     const { expected } = this.spec;
 
     if (expected.tasks !== undefined && trace.tasks.length !== expected.tasks) return false;
-    if (expected.derivations !== undefined && trace.derivations.length !== expected.derivations) return false;
-    if (expected.budgetEvents !== undefined && trace.budgetEvents.length !== expected.budgetEvents) return false;
-    if (expected.adaptations !== undefined && trace.adaptations.length !== expected.adaptations) return false;
+    if (expected.derivations !== undefined && trace.derivations.length !== expected.derivations)
+      return false;
+    if (expected.budgetEvents !== undefined && trace.budgetEvents.length !== expected.budgetEvents)
+      return false;
+    if (expected.adaptations !== undefined && trace.adaptations.length !== expected.adaptations)
+      return false;
     if (expected.stateHash !== undefined && trace.stateHash !== expected.stateHash) return false;
 
     return true;
@@ -279,7 +298,9 @@ export async function runScenario(spec: ScenarioSpec): Promise<ScenarioResult> {
   return harness.run();
 }
 
-export function createScenarioSpec(partial: Partial<ScenarioSpec> & { name: string; seed: number; steps: ScenarioStep[] }): ScenarioSpec {
+export function createScenarioSpec(
+  partial: Partial<ScenarioSpec> & { name: string; seed: number; steps: ScenarioStep[] }
+): ScenarioSpec {
   return {
     name: partial.name,
     seed: partial.seed,

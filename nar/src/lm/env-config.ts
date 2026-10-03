@@ -199,7 +199,8 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
     llamacppHost: envFirst('LM_LLAMACPP_HOST') ?? file?.llamacppHost,
     llamacppModelPath: envFirst('LM_LLAMACPP_MODEL') ?? file?.llamacppModelPath,
     llamacppGpu:
-      (envFirst('LM_LLAMACPP_GPU') as 'auto' | 'cuda' | 'metal' | 'vulkan' | false) ?? file?.llamacppGpu,
+      (envFirst('LM_LLAMACPP_GPU') as 'auto' | 'cuda' | 'metal' | 'vulkan' | false) ??
+      file?.llamacppGpu,
     llamacppGpuLayers: envNumOr('LM_LLAMACPP_GPU_LAYERS') ?? file?.llamacppGpuLayers,
     llamacppContextSize: envNumOr('LM_LLAMACPP_CTX') ?? file?.llamacppContextSize,
     llamacppBatchSize: envNumOr('LM_LLAMACPP_BATCH') ?? file?.llamacppBatchSize,
@@ -216,8 +217,10 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
     offline: isTruthy(envFirst('LM_OFFLINE')) || file?.offline === true,
     dtype: (envFirst('LM_DTYPE') as LMSettings['dtype'] | undefined) ?? file?.dtype,
     qualityDtype:
-      (envFirst('LM_QUALITY_DTYPE') as LMSettings['qualityDtype'] | undefined) ?? file?.qualityDtype,
-    fastDtype: (envFirst('LM_FAST_DTYPE') as LMSettings['fastDtype'] | undefined) ?? file?.fastDtype,
+      (envFirst('LM_QUALITY_DTYPE') as LMSettings['qualityDtype'] | undefined) ??
+      file?.qualityDtype,
+    fastDtype:
+      (envFirst('LM_FAST_DTYPE') as LMSettings['fastDtype'] | undefined) ?? file?.fastDtype,
     disableThinking: isTruthy(envFirst('LM_DISABLE_THINKING')) || file?.disableThinking === true,
     circuitBreaker: file?.circuitBreaker,
   };

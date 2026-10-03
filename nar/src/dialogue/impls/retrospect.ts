@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import {
+  type BeliefTruth,
   cachePath,
   type Episode,
   mean,
@@ -268,7 +269,7 @@ export async function loadRetrospectives(
  */
 export function extractLessons(
   r: Retrospective,
-  seed: { term: string; truth: { frequency: number; confidence: number } }
+  seed: { term: string; truth: BeliefTruth }
 ): Lesson[] {
   const supporting = r.reactionDistribution['accept'] ?? 0;
   if (supporting < 2 || !seed.term.trim() || seed.truth.confidence < LESSON_CONFIDENCE_FLOOR)

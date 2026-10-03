@@ -1,7 +1,7 @@
 import { BaseComponent } from '@senars/core';
-import type { CognitiveEvent } from '@senars/core/schemas';
+import type { CognitiveEvent, DerivationRecord } from '@senars/core/schemas';
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import type { Episode } from '@senars/util';
+import type { BeliefTruth, Episode } from '@senars/util';
 import { BoundedRing, createLogger, errMsg, installIdSource, selectTopN } from '@senars/util';
 import { resolveBagSlot } from './bag/registration.js';
 import { CognitiveController, createDefaultRegistry } from './cognitive';
@@ -21,8 +21,8 @@ import {
   initializeTools,
   injectBootstrapGoals,
 } from './facade/index.js';
-import { StatePersister } from './facade/persistence.js';
 import { createOptionalSubsystems } from './facade/optional-subsystems.js';
+import { StatePersister } from './facade/persistence.js';
 import type { SystemOneRuntime } from './facade/system-one.js';
 import type { FocusBag } from './focus/FocusBag.js';
 import type { GameFocus, GameFocusOptions, ReflexBindable } from './focus/GameFocus.js';
@@ -32,12 +32,12 @@ import type { SelfMetaGameEvidence } from './governance/pipeline.js';
 import { GovernanceResolver } from './governance/pipeline.js';
 import { ControlBudgets } from './kernel/control-budgets.js';
 import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js';
-import { createDefaultReasoningBudget, KernelBudgetGate } from './kernel/KernelBudgetGate.js';
+import { createDefaultReasoningBudget, type KernelBudgetGate } from './kernel/KernelBudgetGate.js';
 import { SchemaInductor } from './learning/schema-induction.js';
 import type { LMService, SeNARSRegistry } from './lm';
 import { LMRules } from './lm';
-import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
 import { embeddingRuntime } from './lm/embedding-runtime.js';
+import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
 import type { MiningBag } from './lm/system-one/hard-negatives.js';
 import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
 import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
@@ -48,21 +48,20 @@ import { Memory } from './memory';
 import { createEmbeddingGenerator, type EmbeddingGenerator } from './memory/embedding.js';
 import type { EpisodeConsolidator } from './memory/episode-consolidator.js';
 import type { ProofMettaProposer } from './meta/index.js';
-import { PROPOSAL_LOG_CAPACITY } from './proposal/lifecycle.js';
-import { LMProposalProducer } from './proposal/lm-rule-producer.js';
 import { MetricsCollector } from './metrics';
 import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';
-import { QueryAPI, ReasoningTrace, type Answer } from './query';
-import type { DerivationRecord } from '@senars/core/schemas';
+import { PROPOSAL_LOG_CAPACITY } from './proposal/lifecycle.js';
+import { LMProposalProducer } from './proposal/lm-rule-producer.js';
+import { type Answer, QueryAPI, ReasoningTrace } from './query';
 import type { Reflex } from './reflex/Reflex.js';
 import type { RLFPLearner } from './rlfp';
-import { loadBuiltinTable, RuleProcessor, RuleTableStore } from './rules';
+import { loadBuiltinTable, RuleProcessor, type RuleTableStore } from './rules';
 import { ProofStreamRing } from './rules/impls/recorder.js';
 import { ReasoningAboutReasoning } from './self';
-import { wireSystemOne } from './system-one-wiring.js';
 import { StreamReasoner } from './stream/reasoner.js';
+import { wireSystemOne } from './system-one-wiring.js';
 import { TaskManager } from './task';
 import type { Term } from './terms';
 import {
@@ -781,7 +780,7 @@ export class NAR extends BaseComponent {
   }
 
   getRevisionHistory(term: Term): Array<{
-    truth: { frequency: number; confidence: number };
+    truth: BeliefTruth;
     stampId: string;
     timestamp: number;
     source: 'input' | 'derivation' | 'revision' | 'inference';

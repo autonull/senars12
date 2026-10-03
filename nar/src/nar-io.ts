@@ -6,7 +6,7 @@ import type {
   RewardGateOutput,
   SourceQuality,
 } from '@senars/core/schemas';
-import { makeId, writeJsonFile } from '@senars/util';
+import { type BeliefTruth, clamp, makeId, writeJsonFile } from '@senars/util';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';
 import type { NARConfig } from './facade/config.js';
 import type { GateRegistry, IPerceptionGate, IRewardGate } from './kernel';
@@ -28,7 +28,7 @@ import type { TaskType } from './types';
 import { createTaskWeight, type EventBus } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';
 
-function toTruth(t: TruthType | { frequency: number; confidence: number } | undefined): Truth {
+function toTruth(t: TruthType | BeliefTruth | undefined): Truth {
   if (!t) return Truth.NEUTRAL;
   if ('f' in t && 'c' in t) return t as Truth;
   return Truth.create(t.frequency, t.confidence);
@@ -88,7 +88,7 @@ export class NARIO {
     prime: boolean;
   }): void {
     const { term, label, type, truth, prime } = opts;
-    const budget = createTaskWeight(truth.f * truth.c);
+    const budget = createTaskWeight(Truth.attention(truth));
     const wasNew = !this.memory.getConcept(term);
 
     this.memory.addTask(term, type, truth, budget);
@@ -196,7 +196,7 @@ export class NARIO {
    * @param context - Optional context about what the reward is for
    */
   async reward(reward: number, context?: string): Promise<RewardGateOutput> {
-    const clampedReward = Math.max(-1, Math.min(1, reward));
+    const clampedReward = clamp(reward, -1, 1);
     const result = this.rewardGate.process({
       eventId: makeId(),
       rewardSignal: clampedReward,
@@ -318,10 +318,8 @@ export class NARIO {
       return;
     }
 
-    // Legacy path (System One disabled)
-    const budget = createTaskWeight(truth.f * truth.c);
-    const wasNew = !this.memory.getConcept(term);
-
+    // Legacy path (System One disabled) — the gate still filters, but its calibrated
+    // truth and task type are advisory here, so the caller's own values are committed.
     const result: PerceptionGateOutput = await this.perceptionGate.admit({
       sourceId: 'nar-io',
       source: 'derivation',
@@ -339,23 +337,7 @@ export class NARIO {
       return;
     }
 
-    this.memory.addTask(term, type, truth, budget);
-
-    if (wasNew && this._eventBus) {
-      this._eventBus.emit('concept:created', {
-        term,
-        priority: budget.priority,
-      });
-      this._systemEventBus?.emit('nar:derivation', {
-        term: term.toString(),
-        confidence: truth.f,
-        timestamp: Date.now(),
-      });
-    }
-
-    if (this.cognitiveParams?.attention.autoPrime ?? true) {
-      this.primeAttention(term);
-    }
+    this.commitAdmitted({ term, label: term.toString(), type, truth, prime: true });
   }
 
   private primeAttention(term: Term): void {

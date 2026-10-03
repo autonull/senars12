@@ -9,6 +9,7 @@
  * the limiter without limit.
  */
 
+import { type Clock, systemClock } from './clock.js';
 import { BoundedRing } from './collections.js';
 import { LruCache } from './lru-cache.js';
 
@@ -20,7 +21,7 @@ export interface RateLimiterOptions {
   /** Distinct keys retained; the least recently used window is dropped past it. Default: 1024. */
   maxKeys?: number;
   /** Injected clock (deterministic tests). */
-  now?: () => number;
+  now?: Clock;
 }
 
 const DEFAULT_MAX_KEYS = 1024;
@@ -28,13 +29,13 @@ const DEFAULT_MAX_KEYS = 1024;
 export class SlidingWindowRateLimiter {
   readonly #limit: number;
   readonly #windowMs: number;
-  readonly #now: () => number;
+  readonly #now: Clock;
   readonly #windows: LruCache<string, BoundedRing<number>>;
 
   constructor(options: RateLimiterOptions) {
     this.#limit = Math.max(1, options.limit);
     this.#windowMs = options.windowMs;
-    this.#now = options.now ?? Date.now;
+    this.#now = options.now ?? systemClock;
     this.#windows = new LruCache({ maxSize: options.maxKeys ?? DEFAULT_MAX_KEYS });
   }
 

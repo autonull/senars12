@@ -33,9 +33,26 @@ export const limitList = <T>(
   return lines;
 };
 
+/**
+ * Case-preserving word tokens. The one split: an empty or whitespace-only string
+ * yields no tokens, which `String.split(/\s+/)` does not do — it yields `['']`,
+ * and every caller that read `parts[0]` off that had to guard against the empty
+ * string instead of against absence.
+ */
+export const splitWords = (text: string, splitPattern: RegExp = /\s+/): string[] =>
+  text.trim().split(splitPattern).filter(Boolean);
+
+/**
+ * Escape every regexp metacharacter in `text`, so untrusted text becomes a
+ * literal match instead of a pattern. Building a `RegExp` from unescaped input
+ * is not a formatting convenience — it lets the input widen the match past its
+ * own bounds — so this exists as the one spelling of "literal".
+ */
+export const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /** Lowercased word-token set — the tokenizer behind every text-similarity path. */
 export const tokenizeWords = (text: string, splitPattern: RegExp = /\s+/): Set<string> =>
-  new Set(text.toLowerCase().split(splitPattern).filter(Boolean));
+  new Set(splitWords(text.toLowerCase(), splitPattern));
 
 export const wordOverlap = (a: string, b: string, splitPattern?: RegExp): number => {
   const aWords = tokenizeWords(a, splitPattern);
@@ -57,7 +74,8 @@ export const wordOverlap = (a: string, b: string, splitPattern?: RegExp): number
  * Variables (`? $ # * %`) and quoted atoms are grammar concerns, not alphabet concerns,
  * so neither appears here.
  */
-export const NARSESE_ATOM_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_^';
+export const NARSESE_ATOM_CHARS =
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_^';
 
 /** Character class over {@link NARSESE_ATOM_CHARS}, hoisted so the pattern is not
  * recompiled per call. Only safe to derive while the alphabet holds no `]`, `\` or `-`. */

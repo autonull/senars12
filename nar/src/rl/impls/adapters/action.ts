@@ -1,9 +1,7 @@
-import { BoundedRing, mean } from '@senars/util';
+import { BoundedRing, maxBy, mean, nextInt, type RandomSource, SeededRNG } from '@senars/util';
 import { type Term, TermBuilder, Truth } from '../../../index.js';
 import type { NAR } from '../../../nar.js';
 import { operationNameOf, operationTerm } from '../../../terms/impls/operation-term.js';
-import type { RandomSource } from '../../../types/primitives.js';
-import { nextInt, SeededRNG } from '../../../utils/random.js';
 import type { QBeliefStore } from '../QBeliefStore.js';
 
 /**
@@ -81,12 +79,14 @@ export interface NativeActionSelector {
  * form used to carry the sigil the policy is now selecting on.
  */
 function topPendingOperation(nar: NAR, accepts: (name: string) => boolean): string | undefined {
-  return nar.taskManager
+  const stage = nar.taskManager
     .getPending()
     .filter((task) => task.type === 'goal')
     .map((task) => ({ name: operationNameOf(task.term), priority: task.budget.priority }))
-    .filter((c): c is { name: string; priority: number } => c.name !== undefined && accepts(c.name))
-    .sort((a, b) => b.priority - a.priority)[0]?.name;
+    .filter(
+      (c): c is { name: string; priority: number } => c.name !== undefined && accepts(c.name)
+    );
+  return maxBy(stage, (candidate) => candidate.priority)?.name;
 }
 
 /** An arm operation name, which is what the two bandit policies select over. */

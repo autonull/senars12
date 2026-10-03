@@ -2,6 +2,8 @@
  * Typed accessor over `--flag value` style argv arrays.
  */
 
+import { finiteOr } from './numeric.js';
+
 /** Typed accessor over `--flag value` style argv arrays. */
 export interface Flags {
   /** Raw argv (defaults to `process.argv.slice(2)`). */
@@ -44,11 +46,7 @@ export function parseFlags(argv: readonly string[] = process.argv.slice(2)): Fla
     positional,
     has: (...names) => names.some((name) => flags.has(name)),
     str: (flag, fallback) => get(flag) ?? fallback,
-    num: (flag, fallback) => {
-      const raw = get(flag);
-      const parsed = raw === undefined ? Number.NaN : Number(raw);
-      return Number.isFinite(parsed) ? parsed : fallback;
-    },
+    num: (flag, fallback) => finiteOr(get(flag), fallback),
     list: (flag, fallback) => (get(flag) ?? fallback.join(',')).split(',').filter(Boolean),
   };
 }

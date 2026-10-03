@@ -45,20 +45,15 @@ export class InMemoryApprovalManager implements ApprovalManager {
 
   createRequest(request: string, metadata: Record<string, unknown> = {}): ApprovalRequest {
     const id = makeId();
-    let resolveFn!: (result: ApprovalResult) => void;
-    let rejectFn!: (error: Error) => void;
-    const result = new Promise<ApprovalResult>((resolve, reject) => {
-      resolveFn = resolve;
-      rejectFn = reject;
-    });
+    const { promise: result, resolve, reject } = Promise.withResolvers<ApprovalResult>();
     const req: ApprovalRequest = {
       id,
       request,
       metadata,
       createdAt: Date.now(),
       result,
-      resolve: resolveFn,
-      reject: rejectFn,
+      resolve,
+      reject,
     };
     this.pending.set(id, req);
     this.opts.onRequest?.(req);

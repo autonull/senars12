@@ -1,9 +1,10 @@
 import type { PromptBuilder } from '@senars/core';
 import type { PersistableSessionManager } from '@senars/core/memory';
 import type { MettaPort } from '@senars/core/metta-port';
+import type { LMTask } from '@senars/util';
+import type { ConnectionConfig } from '@senars/util/types/transport';
 import type { EpisodicMemory, LMService, NAR } from '../index.js';
 import type { ThreadScope } from '../kernel/thread-scope.js';
-import type { ConnectionConfig } from '@senars/util/types/transport';
 
 export interface CreateAgentConfig {
   nar?: NAR;
@@ -22,7 +23,7 @@ export interface CreateAgentConfig {
   profile?: {
     name?: string;
     personality?: string;
-    narrateTier?: 'quality' | 'fast' | 'structured';
+    narrateTier?: LMTask;
   };
   /** Composable skill package: instructions injected into the system prompt. */
   skills?: Array<{ id: string; description?: string; instructions: string; enabled?: boolean }>;

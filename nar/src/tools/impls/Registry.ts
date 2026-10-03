@@ -1,5 +1,5 @@
+import { errMsg, isPlainObject, toolError } from '@senars/util';
 import { ToolError } from '../../types';
-import { errMsg, isPlainObject } from '@senars/util';
 import type {
   Schema,
   Tool,
@@ -57,11 +57,7 @@ export class Registry implements ToolRegistry {
       const result = await tool.execute(args, context);
       return this.validateResult(result, tool);
     } catch (error) {
-      return {
-        success: false,
-        content: null,
-        error: errMsg(error),
-      };
+      return toolError(errMsg(error));
     }
   }
 

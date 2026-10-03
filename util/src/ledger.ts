@@ -8,14 +8,9 @@ import { existsSync, promises as fs, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { z } from 'zod';
 import { BoundedMap } from './utils/bounded-map.js';
+import { errMsg } from './utils/error.js';
 import { utcDate } from './utils/format.js';
-import {
-  appendJsonl,
-  ensureDir,
-  ensureDirSync,
-  readJsonlAsync,
-  writeJsonl,
-} from './utils/fs.js';
+import { appendJsonl, ensureDir, ensureDirSync, readJsonlAsync, writeJsonl } from './utils/fs.js';
 
 /**
  * Ledger entry schema — all entries carry a timestamp and correlation context.
@@ -346,7 +341,7 @@ export class Ledger<T extends BaseLedgerEntry> {
       appendJsonl(targetFile, [entry]);
       this.#currentEntries++;
     } catch (error) {
-      throw new Error(`Ledger write failed: ${(error as Error).message}`);
+      throw new Error(`Ledger write failed: ${errMsg(error)}`);
     }
   }
 

@@ -1,3 +1,4 @@
+import { toolOk } from '@senars/util';
 import { type Term, TermBuilder } from '../../../index.js';
 import type { NAR } from '../../../nar.js';
 import { operationTerm } from '../../../terms/impls/operation-term.js';
@@ -174,7 +175,7 @@ function gridStateId(env: any): string | null {
 function armTools(numArms: number): { name: string; execute: () => Promise<any> }[] {
   return Array.from({ length: numArms }, (_, i) => ({
     name: `pull_arm_${i}`,
-    execute: async () => ({ success: true, content: { arm: i } }),
+    execute: async () => toolOk({ arm: i }),
   }));
 }
 
@@ -228,10 +229,10 @@ export class GridWorldNativeAgent extends NativeSenarsAgent {
     super(nar, { selector, maxDerivationsPerStep, useTDLearning: true, gamma: 0.99 });
 
     const toolConfigs = [
-      { name: 'move_up', execute: async () => ({ success: true, content: { dir: 0 } }) },
-      { name: 'move_right', execute: async () => ({ success: true, content: { dir: 1 } }) },
-      { name: 'move_down', execute: async () => ({ success: true, content: { dir: 2 } }) },
-      { name: 'move_left', execute: async () => ({ success: true, content: { dir: 3 } }) },
+      { name: 'move_up', execute: async () => toolOk({ dir: 0 }) },
+      { name: 'move_right', execute: async () => toolOk({ dir: 1 }) },
+      { name: 'move_down', execute: async () => toolOk({ dir: 2 }) },
+      { name: 'move_left', execute: async () => toolOk({ dir: 3 }) },
     ];
     this.registerTools(toolConfigs);
   }

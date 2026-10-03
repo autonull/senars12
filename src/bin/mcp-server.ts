@@ -10,8 +10,15 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { DialogueCapture } from '@senars/nar/dialogue';
-import { createLogger } from '@senars/util';
-import { BoundedMap, generateId, parseFlags, setupGracefulShutdown } from '@senars/util';
+import {
+  BoundedMap,
+  createLogger,
+  generateId,
+  parseFlags,
+  setupGracefulShutdown,
+} from '@senars/util';
+import { envNum } from '@senars/util/config';
+import { runEntrypoint } from './lib/fatal-error.js';
 import { HttpGuard, rejectWithStatus } from './lib/http-guards.js';
 import { createAgentFromEnv } from './lib/lifecycle.js';
 import { JobManager } from './lib/mcp/job-manager.js';
@@ -35,15 +42,24 @@ type TransportType = 'stdio' | 'sse' | 'http';
 const flags = parseFlags();
 
 const getTransportType = (): TransportType =>
-  (flags.str('--transport', process.env.MCP_TRANSPORT ?? 'stdio') as TransportType);
+  flags.str('--transport', process.env.MCP_TRANSPORT ?? 'stdio') as TransportType;
 
-const getHttpPort = (): number => flags.num('--port', Number(process.env.MCP_PORT ?? 8766));
+/**
+ * `flags.num` guards the flag it reads; guarding the *fallback* is the other
+ * half. `Number(process.env.MCP_PORT ?? 8766)` is `NaN` for a mistyped
+ * `MCP_PORT`, which `finiteOr` then dutifully passes through — so the flag
+ * parser's own protection was bypassed by the default beside it.
+ */
+const getHttpPort = (): number => flags.num('--port', envNum('MCP_PORT', 8766));
 
 /** Concurrent SSE sessions one HTTP transport keeps before recycling the least recently used. */
 const MAX_SSE_SESSIONS = 64;
 
 const startSse = (port: number, guard: HttpGuard): void => {
-  const sessions = new BoundedMap<string, SSEServerTransport>({ maxSize: MAX_SSE_SESSIONS, eviction: 'lru' });
+  const sessions = new BoundedMap<string, SSEServerTransport>({
+    maxSize: MAX_SSE_SESSIONS,
+    eviction: 'lru',
+  });
 
   const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? '/', `http://localhost:${port}`);
@@ -159,7 +175,4 @@ async function initialize() {
   }
 }
 
-initialize().catch((err) => {
-  logger.error('Failed to initialize MCP server', err as Error);
-  process.exit(1);
-});
+runEntrypoint(initialize);

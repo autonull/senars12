@@ -1,5 +1,5 @@
 import { ConnectionError } from '@senars/core';
-import { generateId, Signal, toError, withRetry as retry } from '@senars/util';
+import { generateId, type Logger, withRetry as retry, Signal, toError } from '@senars/util';
 import type {
   Connection,
   ConnectionConfig,
@@ -7,7 +7,6 @@ import type {
   ConnectionState,
   IOMessage,
 } from '../types.js';
-import type { Logger } from '@senars/util';
 
 export abstract class BaseConnection implements Connection {
   id: string;
@@ -145,6 +144,6 @@ export abstract class BaseConnection implements Connection {
   }
 
   protected withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
-    return retry(fn, { retries: maxRetries, baseMs: 100, maxMs: 1000 });
+    return retry(fn, { retries: maxRetries });
   }
 }

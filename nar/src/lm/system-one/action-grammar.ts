@@ -1,4 +1,5 @@
 import { LruCache } from '@senars/util';
+
 const escapeGbnf = (literal: string): string =>
   `"${literal.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 

@@ -1,7 +1,6 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { getOrInsert, incrementCount, maxBy, ucb1 } from '@senars/util';
+import { getOrInsert, incrementCount, maxBy, nextInt, ucb1 } from '@senars/util';
 import type { Game, GameOutcome } from '../../game/Game.js';
-import { nextInt } from '../../utils/random.js';
 import type { Decider } from './decide.js';
 import type { JudgmentDataset } from './distill.js';
 import { recordReflexOutcome } from './reflex-label-source.js';

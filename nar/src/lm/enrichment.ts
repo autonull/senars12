@@ -5,12 +5,13 @@ import {
   type Logger,
   periodic,
   sortBy,
+  sumBy,
 } from '@senars/util';
 import type { GateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { Truth } from '../terms';
-import { createTaskWeight, createTask, type Task } from '../types';
+import { createTask, createTaskWeight, type Task } from '../types';
 import { admitTasks } from './admit.js';
 import { topBeliefTasks } from './context.js';
 import { LMResponseParser } from './LMRule.js';
@@ -235,8 +236,8 @@ Answer the question based on the available knowledge. If the answer cannot be de
     totalHypothesesGenerated: number;
     totalBridgesCreated: number;
   } {
-    const totalHypotheses = this.results.reduce((sum, r) => sum + r.hypotheses.length, 0);
-    const totalBridges = this.results.reduce((sum, r) => sum + r.bridges.length, 0);
+    const totalHypotheses = sumBy(this.results, (r) => r.hypotheses.length);
+    const totalBridges = sumBy(this.results, (r) => r.bridges.length);
 
     return {
       enrichmentCycles: this.enrichmentCycle,

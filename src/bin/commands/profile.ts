@@ -1,7 +1,8 @@
 /** Persona profile and the bot skill registry (`.profile`, `.skill-*`). */
 
-import type { BotConfig } from '../../config/index.js';
+import { removeBy } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
+import type { BotConfig } from '../../config/index.js';
 import { tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
 
@@ -55,7 +56,8 @@ export const profileCommandsFor = (rt: BotRuntime) => [
   cmd('skill-add', 'Add a skill: <id> <description> <instructions>', (args = '') => {
     const [id, ...rest] = tokenize(args);
     const instructions = rest.pop();
-    if (!id || !instructions || !rest.length) return 'Usage: .skill-add <id> <description> <instructions>';
+    if (!id || !instructions || !rest.length)
+      return 'Usage: .skill-add <id> <description> <instructions>';
     const skills = skillsOf(rt);
     if (skills.some((s) => s.id === id)) return `Skill exists: ${id}`;
     skills.push({ id, description: rest.join(' '), instructions, enabled: true });
@@ -64,9 +66,7 @@ export const profileCommandsFor = (rt: BotRuntime) => [
   cmd('skill-remove', 'Remove a skill', (args = '') => {
     const id = args.trim();
     const skills = skillsOf(rt);
-    const i = skills.findIndex((s) => s.id === id || s.name === id);
-    if (i < 0) return `Unknown skill: ${id}`;
-    skills.splice(i, 1);
+    if (!removeBy(skills, (s) => s.id === id || s.name === id)) return `Unknown skill: ${id}`;
     return `Removed ${id} (persist with .config-save)`;
   }),
   cmd('skill-edit', 'Edit a skill field: <id> <field> <value>', (args = '') => {
@@ -77,7 +77,8 @@ export const profileCommandsFor = (rt: BotRuntime) => [
     const s = findSkill(rt, id);
     if (!s) return `Unknown skill: ${id}`;
     if (!(field in s)) return `Unknown field: ${field}`;
-    (s as Record<string, unknown>)[field] = field === 'enabled' ? rest[0] !== 'false' : rest.join(' ');
+    (s as Record<string, unknown>)[field] =
+      field === 'enabled' ? rest[0] !== 'false' : rest.join(' ');
     return `Updated ${id}.${field} (persist with .config-save)`;
   }),
 ];

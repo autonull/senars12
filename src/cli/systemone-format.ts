@@ -70,7 +70,8 @@ export async function formatSystemOneHeads(nar: NAR): Promise<string> {
 
   const calibrators = manifold.getCalibrators?.() ?? new Map();
   const abstainThresholds = manifold.getAbstainThresholds?.() ?? new Map();
-  const heads = manifold.getHeads?.() ?? (manifold as { heads?: Map<string, unknown> }).heads ?? new Map();
+  const heads =
+    manifold.getHeads?.() ?? (manifold as { heads?: Map<string, unknown> }).heads ?? new Map();
 
   if (heads.size === 0 && calibrators.size === 0) return 'No heads registered';
 
@@ -162,7 +163,9 @@ export function formatSystemOneReflexes(nar: NAR): string {
     const reflexes = reflexesOf(entry);
     lines.push(`  ${gameId}:`);
     for (const reflex of reflexes) {
-      lines.push(`    ${reflex.id}: arms=${reflex.numArms ?? '—'} epsilon=${reflex.epsilon ?? '—'}`);
+      lines.push(
+        `    ${reflex.id}: arms=${reflex.numArms ?? '—'} epsilon=${reflex.epsilon ?? '—'}`
+      );
     }
     if (reflexes.length === 0) lines.push('    (no reflexes)');
   }

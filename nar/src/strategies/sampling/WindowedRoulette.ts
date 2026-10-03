@@ -1,9 +1,7 @@
-import { sortByDesc } from '@senars/util';
+import { type RandomSource, sortByDesc, weightedSample } from '@senars/util';
 
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
-import type { RandomSource } from '../../types/primitives.js';
-import { weightedSample } from '../../utils/random.js';
 import type { SamplingStrategy } from '../types.js';
 
 export interface WindowedRouletteConfig {
@@ -48,6 +46,5 @@ export class WindowedRouletteStrategy implements SamplingStrategy {
   }
 }
 
-export const createWindowedRouletteStrategy = (
-  config?: WindowedRouletteConfig
-): SamplingStrategy => new WindowedRouletteStrategy(config);
+export const createWindowedRouletteStrategy = (config?: WindowedRouletteConfig): SamplingStrategy =>
+  new WindowedRouletteStrategy(config);

@@ -1,3 +1,5 @@
+import { deepMerge } from '@senars/util';
+
 export interface MeTTaConfig {
   readonly maxSteps: number;
   readonly timeout: number;
@@ -83,15 +85,12 @@ export const presets = {
   },
 } as const;
 
-export function createConfig(overrides: Partial<MeTTaConfig> = {}): MeTTaConfig {
-  return {
-    ...defaultConfig,
-    ...overrides,
-    caching: { ...defaultConfig.caching, ...overrides.caching },
-    interning: { ...defaultConfig.interning, ...overrides.interning },
-    jit: { ...defaultConfig.jit, ...overrides.jit },
-    concurrency: { ...defaultConfig.concurrency, ...overrides.concurrency },
-    types: { ...defaultConfig.types, ...overrides.types },
-    debug: { ...defaultConfig.debug, ...overrides.debug },
-  } satisfies MeTTaConfig;
-}
+/**
+ * Overrides over the defaults, at any depth.
+ *
+ * A deep merge rather than one spread per section: the section list was a second
+ * copy of {@link MeTTaConfig}'s shape, and a section added to the interface but
+ * not here silently dropped its override instead of failing.
+ */
+export const createConfig = (overrides: Partial<MeTTaConfig> = {}): MeTTaConfig =>
+  deepMerge(defaultConfig, overrides) satisfies MeTTaConfig;

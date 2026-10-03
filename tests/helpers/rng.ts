@@ -3,17 +3,15 @@
  * stream to a seeded LCG so Bag sampling and exploratory policies stop
  * depending on module-load order — and restores it afterwards.
  *
- * The LCG itself lives in `nar/src/utils/random.ts`: a production entrypoint
+ * The LCG itself lives in `@senars/util`: a production entrypoint
  * (`scripts/fuzz-narsese.ts`) seeds from it too, and that script must not pull
  * vitest in through a test helper.
  */
-import { createLCG } from '../../nar/src/utils/random.js';
+import { createLCG, type RandomSource } from '@senars/util';
 import { vi } from 'vitest';
-import type { RandomSource } from '../../nar/src/types/primitives.js';
-
-export { createLCG };
 
 export type { RandomSource };
+export { createLCG };
 
 let unpinned: (() => void) | null = null;
 

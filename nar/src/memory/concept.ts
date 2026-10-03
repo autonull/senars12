@@ -1,4 +1,4 @@
-import { asBeliefTruth, clamp01, makeId } from '@senars/util';
+import { asBeliefTruth, type BeliefTruth, clamp01, makeId } from '@senars/util';
 import { type Bag, type BagOptions, createBag } from '../bag/index.js';
 import type { ResolvedBagSlot } from '../bag/registration.js';
 import type { Term, Truth } from '../terms';
@@ -43,9 +43,17 @@ export type AttentionEvent =
 /** What admitting a task is worth in attention, absent any other signal. */
 const INPUT_BOOST = 0.1;
 
+/**
+ * Tolerance for "is this the *same* truth?", as opposed to "is this the same
+ * belief to within a rounding step". Three orders of magnitude tighter than
+ * {@link TruthOps.equals}'s default, because the question is whether re-input
+ * carries any new evidence at all.
+ */
+const TRUTH_IDENTITY_EPSILON = 1e-9;
+
 export type RevisionCallback = (entry: {
   termKey: string;
-  truth: { frequency: number; confidence: number };
+  truth: BeliefTruth;
   stampId: string;
   timestamp: number;
   source: 'input' | 'revision';
@@ -173,20 +181,6 @@ export class Concept {
     return this.questionBag.toArray();
   }
 
-  invalidateTruth(reason: 'temporal' | 'contradiction'): boolean {
-    const beliefs = this.beliefBag.toArray().filter((b) => b.truth);
-    if (beliefs.length === 0) return false;
-    if (reason === 'temporal') {
-      for (const b of beliefs) {
-        if (!b.truth) continue;
-        const aged = { ...b, truth: { ...b.truth, confidence: Math.max(0, b.truth.c * 0.95) } };
-        this.beliefBag.remove(b);
-        this.beliefBag.add(aged);
-      }
-    }
-    return beliefs.length > 0;
-  }
-
   canMergeWith(other: Concept, threshold = 0.85): boolean {
     return (
       this !== other &&
@@ -230,11 +224,10 @@ export class Concept {
       if (!data.truth || !existing.truth) return false;
 
       // Evidence laundering guard: identical re-input cannot inflate confidence —
-      // only independent evidence (differing truth) earns a revision.
-      if (
-        Math.abs(data.truth.f - existing.truth.f) < 1e-9 &&
-        Math.abs(data.truth.c - existing.truth.c) < 1e-9
-      ) {
+      // only independent evidence (differing truth) earns a revision. The
+      // tolerance is far tighter than the algebra's, because this compares
+      // re-input of one belief rather than two derivations of it.
+      if (TruthOps.equals(data.truth, existing.truth, TRUTH_IDENTITY_EPSILON)) {
         this.recordAccess();
         return true;
       }

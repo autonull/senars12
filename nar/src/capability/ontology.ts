@@ -277,7 +277,8 @@ export class CapabilityOntology {
 
   /** Get all capabilities of a specific type. */
   getByType(type: CapabilityType): CapabilityOntologyEntry[] {
-    const ids = this.typeIndex.get(type) ?? new Set();
+    const ids = this.typeIndex.get(type);
+    if (!ids) return [];
     return [...ids].map((id) => this.entries.get(id)!).filter(Boolean);
   }
 

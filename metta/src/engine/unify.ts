@@ -1,7 +1,7 @@
 import { Unifier, type UnifierDialect } from '@senars/util';
 import type { ExpressionAtom, GroundedAtom, MeTTaAtom } from '../types/ast.js';
 import { AtomKind, isVariable } from '../types/ast.js';
-import { equalAtoms, hashAtom } from '../core/hash.js';
+import { atomKey, equalAtoms } from '../core/hash.js';
 
 export type Substitution = Map<string, MeTTaAtom>;
 
@@ -12,7 +12,7 @@ export type Substitution = Map<string, MeTTaAtom>;
  */
 const DIALECT: UnifierDialect<MeTTaAtom> = {
   variableName: (a) => (isVariable(a) ? a.name : null),
-  key: (a) => `${a.kind}#${hashAtom(a)}`,
+  key: atomKey,
   equal: equalAtoms,
   sameHead: (a, b) => a.kind === b.kind,
   children: (a) =>

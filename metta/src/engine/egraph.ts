@@ -1,6 +1,6 @@
-import { minBy } from '@senars/util';
+import { assertDefined, minBy } from '@senars/util';
 import { Map as ImmMap, Set as ImmSet } from 'immutable';
-import { hashAtom } from '../core/hash.js';
+import { atomKey } from '../core/hash.js';
 import type { MeTTaAtom } from '../types/ast.js';
 
 interface EClass {
@@ -24,7 +24,7 @@ export class EGraph {
   private nextIdCounter = 0;
 
   add(atom: MeTTaAtom): number {
-    const key = this.hashKey(atom);
+    const key = atomKey(atom);
     const existing = this.hashCons.get(key);
 
     if (existing !== undefined) {
@@ -62,12 +62,8 @@ export class EGraph {
   }
 
   extract(root: number, costFn: (atom: MeTTaAtom) => number): MeTTaAtom {
-    const best = this.eclasses.get(root);
-    if (!best) throw new Error(`EClass ${root} not found`);
-
-    const bestAtom = minBy([...best.nodes], costFn);
-    if (!bestAtom) throw new Error(`EClass ${root} is empty`);
-    return bestAtom;
+    const best = assertDefined(this.eclasses.get(root), `EClass ${root} not found`);
+    return assertDefined(minBy([...best.nodes], costFn), `EClass ${root} is empty`);
   }
 
   private applyRule(rule: RewriteRule): boolean {
@@ -80,7 +76,7 @@ export class EGraph {
         const replacement = rule.match(atom);
         if (!replacement) continue;
 
-        const repKey = this.hashKey(replacement);
+        const repKey = atomKey(replacement);
         if (!this.hashCons.has(repKey)) {
           this.eclasses = this.eclasses.set(id, {
             ...eclass,
@@ -92,10 +88,6 @@ export class EGraph {
       }
     }
     return changed;
-  }
-
-  private hashKey(atom: MeTTaAtom): string {
-    return String(hashAtom(atom));
   }
 
   private nextId(): number {

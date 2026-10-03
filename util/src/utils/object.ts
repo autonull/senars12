@@ -9,16 +9,40 @@ import { isPlainObject } from './guards.js';
  * Recursively merge `override` onto `base`. Plain objects merge key-by-key;
  * arrays and primitives replace wholesale, so a partial config narrows a list
  * rather than interleaving with the default. `undefined` overrides are skipped.
+ *
+ * The result shares **no plain-object branch** with `base`: every object the
+ * override does not mention is copied, at any depth. That is the whole contract,
+ * because a caller writes into what it gets back — `mergeParameters` feeds the
+ * result to a tuner that sets dotted paths through it, and `loadConfig` stamps a
+ * version onto it. Sharing an untouched branch would write into a frozen default,
+ * or into another caller's config, and the damage would surface as state that
+ * changes between two constructions that read identically.
+ *
+ * A previous spelling of this merged shallowly and copied a hand-listed set of
+ * nested leaves, so the guarantee held only for the leaves someone remembered.
  */
 export const deepMerge = <T>(base: T, override: unknown): T => {
   if (!isPlainObject(base) || !isPlainObject(override)) return override as T;
-  const merged: Record<string, unknown> = { ...base };
-  for (const [key, value] of Object.entries(override)) {
-    if (value === undefined) continue;
-    merged[key] = key in merged ? deepMerge(merged[key], value) : value;
+  const over = override as Record<string, unknown>;
+  const baseKeys = new Set(Object.keys(base));
+  const merged: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(base)) {
+    const own = over[key];
+    merged[key] = own === undefined ? freshBranch(value) : deepMerge(value, own);
+  }
+  for (const [key, value] of Object.entries(over)) {
+    if (value !== undefined && !baseKeys.has(key)) merged[key] = value;
   }
   return merged as T;
 };
+
+/**
+ * A base branch the override never mentions, taken as a fresh object graph. Arrays
+ * and primitives pass through: this system treats them as immutable, and a partial
+ * config is not permitted to interleave with a default list.
+ */
+const freshBranch = (value: unknown): unknown =>
+  isPlainObject(value) ? deepMerge(value, {}) : value;
 
 /** Dotted-path read; missing or non-object segments yield `undefined`. */
 export const getNested = (obj: unknown, path: string): unknown =>

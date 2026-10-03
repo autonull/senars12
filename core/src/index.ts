@@ -238,9 +238,9 @@ export {
   MettaSkillNode,
   NarConceptNode,
 } from './protocol/index.js';
-/** Stats manager. @public */
-/** Transport-level connection error. @public */
-export { ConnectionError } from './Transport.js';
 /** The one cognitive event union, and the two runtime guards over it. @public */
 export type { CognitiveEvent } from './schemas/cognitive-events.js';
 export { isEventType, isNarEvent } from './schemas/cognitive-events.js';
+/** Stats manager. @public */
+/** Transport-level connection error. @public */
+export { ConnectionError } from './Transport.js';

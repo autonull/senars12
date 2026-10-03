@@ -6,9 +6,8 @@
 
 import type { NAR } from '@senars/nar';
 import { createNAR, DEFAULT_CONFIG } from '@senars/nar';
-import { ScenarioGenerator } from '@senars/nar/imagination';
-import { CognitiveTreadmill } from '@senars/nar/imagination';
 import type { ScenarioProfile } from '@senars/nar/imagination';
+import { CognitiveTreadmill, ScenarioGenerator } from '@senars/nar/imagination';
 import { ArchitectureDriver } from '@senars/nar/self';
 import { divider, parseFlags, pct, section } from '@senars/util';
 import { runEntrypoint } from './lib/fatal-error.js';

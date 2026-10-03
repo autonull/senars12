@@ -4,6 +4,8 @@
  * are the same kind of number.
  */
 
+import { type Clock, systemClock } from './clock.js';
+
 /** Raised by {@link withTimeout} unless a domain error is supplied. */
 export class TimeoutError extends Error {
   constructor(readonly timeoutMs: number) {
@@ -33,9 +35,9 @@ export const monotonicNow = (): number => performance.now();
  * operation disagree. Here the elapsed time is read once and reused.
  *
  * Pass {@link monotonicNow} where sub-millisecond resolution matters. The default is
- * `Date.now`, which fake timers can drive.
+ * the system clock, which fake timers drive.
  */
-export const stopwatch = (now: () => number = Date.now): (() => number) => {
+export const stopwatch = (now: Clock = systemClock): (() => number) => {
   const startedAt = now();
   return () => now() - startedAt;
 };
@@ -66,6 +68,16 @@ export function withTimeout<T>(
 }
 
 /**
+ * A timer that never holds the process open, handed back as an idempotent
+ * disposer — the shared shape behind {@link periodic} and {@link deadline}, so
+ * neither of them re-derives "unref it, and let `stop` be safe to call twice".
+ */
+const disarmed = (timer: ReturnType<typeof setTimeout>): (() => void) => {
+  timer.unref?.();
+  return () => clearTimeout(timer);
+};
+
+/**
  * Repeat `task` every `intervalMs` until the returned disposer is called.
  *
  * The timer is unref'd, so a periodic task never holds the process open — the one
@@ -74,11 +86,25 @@ export function withTimeout<T>(
  * path call needs no guard, and assigning the result to a field replaces any
  * previous timer rather than leaking it.
  */
-export const periodic = (task: () => void, intervalMs: number): (() => void) => {
-  const timer = setInterval(task, intervalMs);
-  timer.unref?.();
-  return () => clearInterval(timer);
-};
+export const periodic = (task: () => void, intervalMs: number): (() => void) =>
+  disarmed(setInterval(task, intervalMs));
+
+/**
+ * Run `onExpire` once after `timeoutMs`, unless the returned disposer runs first
+ * — the "settle on the event or on the clock" shape.
+ *
+ * Every connect and startup path is this shape: a `setTimeout` that rejects *and*
+ * tears down (dispose the client, close the server), plus a `clearTimeout` repeated
+ * on each success branch. Spelled by hand that is where the two failure modes live
+ * — a timer left armed after a fast success (it fires later and closes a socket
+ * that is already closed) and a `clearTimeout` missing from one of the branches.
+ * Here there is one call to make and one to undo, and the unref is inherited, so
+ * the clock cannot delay exit.
+ *
+ * `dispose()` twice, or once the deadline has already fired, is a no-op.
+ */
+export const deadline = (timeoutMs: number, onExpire: () => void): (() => void) =>
+  disarmed(setTimeout(onExpire, timeoutMs));
 
 /**
  * Cooperative deadline: resolves `{ timedOut: true }` when `timeoutMs` elapses,
@@ -90,10 +116,10 @@ export function raceDeadline<T>(
   timeoutMs: number
 ): Promise<{ value: T; timedOut: false } | { value?: undefined; timedOut: true }> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const deadline = new Promise<{ value?: undefined; timedOut: true }>((resolve) => {
-    timer = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
-    timer.unref?.();
-  });
+  const { promise: deadline, resolve: expire } =
+    Promise.withResolvers<{ value?: undefined; timedOut: true }>();
+  timer = setTimeout(() => expire({ timedOut: true }), timeoutMs);
+  timer.unref?.();
   return Promise.race([
     work.then((value) => ({ value, timedOut: false as const })),
     deadline,

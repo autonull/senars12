@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { EpisodicMemory } from '@senars/nar';
 import type { DialogueCapture as DialogueCaptureType } from '@senars/nar/dialogue';
 import { retrospect, selectProbes } from '@senars/nar/dialogue';
-import type { ReadOnlyLookup } from '@senars/util';
+import { type ReadOnlyLookup, unique } from '@senars/util';
 import { z } from 'zod';
 import { ANNOTATIONS, createMCPResponse, stringifyMCP } from './mcp-response.js';
 
@@ -90,7 +90,10 @@ export function registerDialogueTools(server: McpServer, options: DialogueToolsO
       if (!episodic) return createMCPResponse('Episodic memory not available.', { turns: [] });
       const episodes = await episodic.getEpisodes({ type: 'dialogue', limit: 500 });
       const session =
-        sessionId ?? [...new Set(episodes.map((e) => sessionIdOf(e) ?? ''))].filter(Boolean).pop();
+        sessionId ??
+        unique(episodes.map((e) => sessionIdOf(e) ?? ''))
+          .filter(Boolean)
+          .pop();
       const turns = episodes
         .filter((e) => sessionIdOf(e) === session)
         .map((e) => parseTurnRow(e.content))

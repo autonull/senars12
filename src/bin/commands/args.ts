@@ -1,9 +1,9 @@
 /** Raw-token access for CLI commands — the single argv-shape toolkit. */
 
-import { type Flags, getNested, parseEnvValue, parseFlags } from '@senars/util';
+import { type Flags, getNested, parseEnvValue, parseFlags, splitWords } from '@senars/util';
 
 /** Split a command tail into positional tokens; an empty tail yields no tokens. */
-export const tokenize = (args = ''): string[] => args.trim().split(/\s+/).filter(Boolean);
+export const tokenize = (args = ''): string[] => splitWords(args);
 
 /**
  * Flag-aware view of a command tail. Positional tokens exclude both the flag
@@ -55,11 +55,15 @@ export const dispatchSub = (
 /** Parse a bounded 0-1 ratio, or report why it is out of range. */
 export const ratioArg = (raw: string, label: string): { value: number } | { error: string } => {
   const value = Number(raw);
-  return Number.isNaN(value) || value < 0 || value > 1 ? { error: `${label} must be 0-1` } : { value };
+  return Number.isNaN(value) || value < 0 || value > 1
+    ? { error: `${label} must be 0-1` }
+    : { value };
 };
 
 /** Parse a positive integer, or report why it is out of range. */
 export const positiveArg = (raw: string, label: string): { value: number } | { error: string } => {
   const value = Number(raw);
-  return Number.isNaN(value) || value < 1 ? { error: `${label} must be a positive number` } : { value };
+  return Number.isNaN(value) || value < 1
+    ? { error: `${label} must be a positive number` }
+    : { value };
 };

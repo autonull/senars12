@@ -32,7 +32,7 @@ import type {
   ProposalRejection,
 } from '@senars/core/schemas';
 import { PROPOSAL_SCHEMA_VERSION, validateProposal } from '@senars/core/schemas';
-import { BoundedRing, makeId } from '@senars/util';
+import { BoundedRing, incrementCount, makeId, pushCapped, removeBy } from '@senars/util';
 
 /** Bounded depth of a seam's own log, matching the kernel gates' rings. */
 export const PROPOSAL_LOG_CAPACITY = 1000;
@@ -142,12 +142,12 @@ export class ProposalLifecycle {
       this.rules.push(parsed);
       return true;
     }
-    this.content.push(parsed);
-    const over = this.content.length - this.limits.maxPendingContent;
-    for (let i = 0; i < over; i++) {
-      const displaced = this.content.shift();
+    // Drop-oldest, not refuse: the queue is already at or below capacity on entry
+    // (each submit leaves it so), so at most one entry is ever displaced.
+    const displaced = pushCapped(this.content, parsed, this.limits.maxPendingContent);
+    if (displaced) {
       this.contentDropped++;
-      if (displaced) this.refuse(displaced, 'queue-overflow', 'content drop-oldest');
+      this.refuse(displaced, 'queue-overflow', 'content drop-oldest');
     }
     return true;
   }
@@ -164,7 +164,10 @@ export class ProposalLifecycle {
    * base is a different failure from an evicted reference and an operator needs
    * to tell them apart.
    */
-  judge(proposal: Proposal, boundary: ProposalBoundary = { resolves: () => true }): AdmissionVerdict {
+  judge(
+    proposal: Proposal,
+    boundary: ProposalBoundary = { resolves: () => true }
+  ): AdmissionVerdict {
     const refused = (reason: ProposalRejection, detail: string): AdmissionVerdict => ({
       admitted: false,
       proposal,
@@ -251,9 +254,8 @@ export class ProposalLifecycle {
   }
 
   private withdraw(queue: Proposal[], proposalId: string): boolean {
-    const at = queue.findIndex((proposal) => proposal.proposalId === proposalId);
-    const [proposal] = queue.splice(at, 1);
-    if (at < 0 || !proposal) return false;
+    const proposal = removeBy(queue, ({ proposalId: id }) => id === proposalId);
+    if (!proposal) return false;
     this.refuse(proposal, 'cancelled', 'cancelled before the boundary');
     return true;
   }
@@ -295,6 +297,6 @@ export class ProposalLifecycle {
 
   private countRejection(reason: ProposalRejection): void {
     this.rejected++;
-    this.rejections.set(reason, (this.rejections.get(reason) ?? 0) + 1);
+    incrementCount(this.rejections, reason, 1);
   }
 }

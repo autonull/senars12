@@ -34,7 +34,7 @@ export class LMUnavailableError extends SenarsError {
 }
 
 export const isTransportError = (e: unknown): boolean => {
-  const msg = e instanceof Error ? e.message.toLowerCase() : String(e).toLowerCase();
+  const msg = errMsg(e).toLowerCase();
   return (
     /\b(fetch|network|econn|timeout|aborted|socket|rate.?limit|5\d\d)\b/.test(msg) ||
     /failed to (fetch|connect)/.test(msg)
@@ -53,10 +53,7 @@ export const withRetry = async <T>(
     isRetryable: isTransportError,
     mapError: (error) =>
       new LMUnavailableError(
-        withHint(
-          `LM provider unavailable (${provider ?? 'unknown'}): ${errMsg(error)}`,
-          provider
-        ),
+        withHint(`LM provider unavailable (${provider ?? 'unknown'}): ${errMsg(error)}`, provider),
         provider,
         task,
         error

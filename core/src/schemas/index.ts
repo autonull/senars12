@@ -31,13 +31,13 @@ export {
   ConceptActivatedEventSchema,
   DerivationAcceptedEventSchema,
   EgressGateRejectedEventSchema,
+  isEventType,
+  isNarEvent,
   JudgmentResolvedEventSchema,
   PolicyViolationEventSchema,
   SelfModProposalEventSchema,
   ShadowValidationDropEventSchema,
   TaskAdmittedEventSchema,
-  isEventType,
-  isNarEvent,
   validateCognitiveEvent,
 } from './cognitive-events.js';
 export type { DerivationRecord, DerivationStep } from './derivation-records.js';
@@ -46,6 +46,7 @@ export {
   DerivationStepSchema,
   validateDerivationRecord,
 } from './derivation-records.js';
+export { CognitiveEventBaseSchema, EngineOriginSchema, PROPOSER_ORIGIN } from './event-base.js';
 export type {
   AmbiguityFlag,
   FormalizationBatch,
@@ -64,8 +65,8 @@ export type {
   ActionGateInput,
   ActionGateOutput,
   BudgetGateInput,
-  BudgetOperation,
   BudgetGateOutput,
+  BudgetOperation,
   PerceptionGateInput,
   PerceptionGateOutput,
   RewardGateInput,
@@ -75,8 +76,8 @@ export {
   ActionGateInputSchema,
   ActionGateOutputSchema,
   BudgetGateInputSchema,
-  BudgetOperationSchema,
   BudgetGateOutputSchema,
+  BudgetOperationSchema,
   PerceptionGateInputSchema,
   PerceptionGateOutputSchema,
   RewardGateInputSchema,
@@ -104,7 +105,6 @@ export {
   RiskLevelSchema,
   SelfImprovementProposalSchema,
 } from './governance.js';
-export { CognitiveEventBaseSchema, EngineOriginSchema, PROPOSER_ORIGIN } from './event-base.js';
 export { NarEventSchemas } from './nar-events.js';
 export type {
   ContentProposal,
@@ -125,6 +125,13 @@ export {
   RuleProposalSchema,
   validateProposal,
 } from './proposal.js';
+export type { BudgetScopeId, ReasoningBudget, TerminationReason } from './reasoning-budget.js';
+export {
+  BUDGET_SCOPE_IDS,
+  ReasoningBudgetSchema,
+  TerminationReasonSchema,
+  validateReasoningBudget,
+} from './reasoning-budget.js';
 export type {
   RuleArtifactEntry,
   RuleDeclaration,
@@ -144,12 +151,5 @@ export {
   RuleTableSchema,
   validateRuleTable,
 } from './rule-table.js';
-export type { ReasoningBudget, TerminationReason, BudgetScopeId } from './reasoning-budget.js';
-export { BUDGET_SCOPE_IDS } from './reasoning-budget.js';
-export {
-  ReasoningBudgetSchema,
-  TerminationReasonSchema,
-  validateReasoningBudget,
-} from './reasoning-budget.js';
 export type { SourceQuality, TruthValue } from './truth.js';
 export { SOURCE_QUALITY_CONFIDENCE, SourceQualitySchema, TruthValueSchema } from './truth.js';

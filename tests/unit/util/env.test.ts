@@ -161,4 +161,10 @@ describe('parseEnvValue', () => {
     for (const value of ['true', '1', 'yes', 'on', 'ON']) expect(parseEnvValue(value)).toBe(true);
     for (const value of ['false', '0', 'no', 'off', 'Off']) expect(parseEnvValue(value)).toBe(false);
   });
+
+  it('leaves a blank or non-finite value as a string, so an absent setting is not a real one', () => {
+    for (const value of ['', '   ']) expect(parseEnvValue(value)).toBe(value);
+    for (const value of ['Infinity', '-Infinity', 'NaN']) expect(parseEnvValue(value)).toBe(value);
+    expect(parseEnvValue(' 42 ')).toBe(42);
+  });
 });

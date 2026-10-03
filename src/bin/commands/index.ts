@@ -8,13 +8,13 @@
 
 import type { CLICommand } from '@senars/io';
 import { configCommandsFor } from './config.js';
+import { connectionCommandsFor } from './connection.js';
 import type { BotRuntime } from './context.js';
 import { diagnosticCommandsFor } from './diagnostics.js';
 import { dialogueCommandsFor } from './dialogue.js';
 import { lmCommandsFor } from './lm.js';
 import { memoryCommandsFor } from './memory.js';
 import { profileCommandsFor } from './profile.js';
-import { connectionCommandsFor } from './connection.js';
 import { runtimeCommandsFor } from './runtime.js';
 import { systemOneCommandsFor } from './systemone.js';
 

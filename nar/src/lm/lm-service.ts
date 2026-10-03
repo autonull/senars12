@@ -6,10 +6,10 @@ export type {
   LMPromptGenerator,
   LMResponseProcessor,
   LMRuleConfig,
-  ModelRuleStats,
   LMTask,
   LMTaskGenerator,
   MockLMConfig,
+  ModelRuleStats,
 } from '@senars/util';
 export { createMockLanguageModel } from './providers/model-factory.js';
 export { buildCacheKey, ResponseCache } from './service/cache.js';

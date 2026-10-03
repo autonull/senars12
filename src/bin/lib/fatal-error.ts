@@ -4,6 +4,7 @@
  */
 import { basename } from 'node:path';
 import { initOtel, shutdownOtel, withSpan } from '@senars/nar/otel';
+import { errMsg } from '@senars/util';
 import { ConfigurationError } from '@senars/util/errors';
 
 interface Remediation {
@@ -15,12 +16,12 @@ const REMEDIATIONS: Remediation[] = [
   {
     match: (err) => err instanceof Error && err.name === 'LMUnavailableError',
     hint: (err) =>
-      `${(err as Error).message}\n  Check provider availability, or run 'pnpm doctor' for a connectivity probe.\n  Offline fallback: set LM_PROVIDER=mock (no LM calls) or LM_OFFLINE=1 (skip all probes).`,
+      `${errMsg(err)}\n  Check provider availability, or run 'pnpm doctor' for a connectivity probe.\n  Offline fallback: set LM_PROVIDER=mock (no LM calls) or LM_OFFLINE=1 (skip all probes).`,
   },
   {
     match: (err) => err instanceof ConfigurationError,
     hint: (err) =>
-      `${(err as Error).message}\n  Validate your config: 'pnpm config:validate'. Effective settings: 'pnpm status'.`,
+      `${errMsg(err)}\n  Validate your config: 'pnpm config:validate'. Effective settings: 'pnpm status'.`,
   },
 ];
 

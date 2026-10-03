@@ -17,7 +17,11 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import { BUDGET_SCOPE_IDS, BUDGET_SCOPES } from '../nar/src/kernel/budget-scopes.js';
+import {
+  BUDGET_SCOPE_IDS,
+  BUDGET_SCOPES,
+  scopeTerminationReason,
+} from '../nar/src/kernel/budget-scopes.js';
 import {
   budgetViolations,
   type BudgetSpend,
@@ -87,7 +91,7 @@ for (const scopeId of BUDGET_SCOPE_IDS) {
   const spec = BUDGET_SCOPES[scopeId];
   console.log(
     `  ${scopeId.padEnd(22)} ${spec.operation.padEnd(20)} ${spec.consumedKey.padEnd(10)} ` +
-      `default ${String(spec.defaultLimit).padEnd(5)} ${spec.terminationReason.padEnd(14)} ${spec.owner}`
+      `default ${String(spec.defaultLimit).padEnd(5)} ${scopeTerminationReason(scopeId).padEnd(14)} ${spec.owner}`
   );
 }
 console.log(`\nspend sites: ${[...sites].map(([scope, n]) => `${scope} ×${n}`).join(' · ')}`);

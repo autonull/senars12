@@ -19,7 +19,7 @@ import {
   operationNameOf,
 } from '../terms/index.js';
 import type { Budget, ConceptLike, Task } from '../types/index.js';
-import { clamp01 } from '@senars/util';
+import { clamp01, getOrInsert } from '@senars/util';
 
 export interface FocusTask extends BagItem {
   id: string;
@@ -274,14 +274,12 @@ export class Focus implements BagItem {
   private buildDerivationIndex(): Map<string, NALDerivation[]> {
     const index = new Map<string, NALDerivation[]>();
     const record = (action: string, concept: FocusConcept): void => {
-      const derivations = index.get(action) ?? [];
-      derivations.push({
+      getOrInsert(index, action, () => []).push({
         action,
         truth: concept.truth ?? { f: concept.activation, c: clamp01(concept.priority) },
         source: 'focus-memory',
         premise: concept.term.toString(),
       });
-      index.set(action, derivations);
     };
 
     for (const concept of this.memory.all()) {

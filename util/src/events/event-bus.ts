@@ -1,4 +1,5 @@
 import { defaultLogger, type Logger } from '../logger.js';
+import { getOrInsert } from '../utils/collections.js';
 
 export type EventReceiver<T> = (params: T) => void;
 export type EventUnsubscribe = () => void;
@@ -17,17 +18,16 @@ export class EventBus<T extends Record<string, unknown> = Record<string, unknown
   }
 
   on<K extends keyof T>(eventName: K & string, fn: EventReceiver<T[K]>): EventUnsubscribe {
-    const listeners = this.listeners.get(eventName as string) ?? [];
-    listeners.push({ fn: fn as unknown as EventReceiver<unknown>, once: false });
-    this.listeners.set(eventName as string, listeners);
-    return () => this.off(eventName as string, fn as EventReceiver<unknown>);
+    return this.#add(eventName as string, fn as EventReceiver<unknown>, false);
   }
 
   once<K extends keyof T>(eventName: K & string, fn: EventReceiver<T[K]>): EventUnsubscribe {
-    const listeners = this.listeners.get(eventName as string) ?? [];
-    listeners.push({ fn: fn as unknown as EventReceiver<unknown>, once: true });
-    this.listeners.set(eventName as string, listeners);
-    return () => this.off(eventName as string, fn as EventReceiver<unknown>);
+    return this.#add(eventName as string, fn as EventReceiver<unknown>, true);
+  }
+
+  #add(name: string, fn: EventReceiver<unknown>, once: boolean): EventUnsubscribe {
+    getOrInsert(this.listeners, name, () => []).push({ fn, once });
+    return () => this.off(name, fn);
   }
 
   off(eventName: string, fn: EventReceiver<unknown>): void {

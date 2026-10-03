@@ -1,4 +1,5 @@
 import { createLogger } from '@senars/core';
+import { assertDefined } from '@senars/util';
 import type { Connection, ConnectionConfig, ConnectionDeps, ConnectionFactory } from './types.js';
 
 export class ConnectionManager {
@@ -95,8 +96,6 @@ export class ConnectionManager {
   }
 
   private getConnectionOrThrow(id: string): Connection {
-    const connection = this.connections.get(id);
-    if (!connection) throw new Error(`Connection not found: ${id}`);
-    return connection;
+    return assertDefined(this.connections.get(id), `Connection not found: ${id}`);
   }
 }

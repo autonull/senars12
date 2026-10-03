@@ -115,6 +115,14 @@ export interface RegisteredRule {
   sync: boolean;
   priority: number;
   truthFn?: TruthFn;
+  /**
+   * The declared name of {@link truthFn}, kept beside it rather than recovered
+   * from it. A derivation step has to name the algebra operation it applied for
+   * the standalone verifier to recompute it, and the closure is not
+   * serialisable — so the table's string artifact is carried through to the
+   * record instead of being resolved by matching the rule id.
+   */
+  truthFnName?: string;
   taskType?: 'belief' | 'goal' | 'question' | 'command';
 }
 

@@ -1,4 +1,4 @@
-import { formatTruth, stableStringify } from '@senars/util';
+import { type BeliefTruth, formatTruth, stableStringify, unique } from '@senars/util';
 import { getModelForTask } from '../lm';
 import type { ILMService } from '../lm/interfaces.js';
 import { buildGenerationPrompt } from './prompts/generation-v1.js';
@@ -7,7 +7,7 @@ import { SingleFlight } from './singleflight.js';
 
 export interface BeliefInfo {
   term: string;
-  truth?: { frequency: number; confidence: number };
+  truth?: BeliefTruth;
 }
 
 export interface DerivationTrace {
@@ -55,7 +55,7 @@ function findKnowledgeGaps(beliefs: BeliefInfo[]): string[] {
       gaps.push(`more evidence about ${b.term}`);
     }
   }
-  return Array.from(new Set(gaps)).slice(0, 3);
+  return unique(gaps).slice(0, 3);
 }
 
 export class NLGenerationService {

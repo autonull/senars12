@@ -12,10 +12,14 @@ export function toConfidence(value: number): Confidence {
   return clamp01(value) as Confidence;
 }
 
-/** Either truth shape in the system: a `Truth` value (f/c) or a belief's truth (frequency/confidence). */
-export type TruthLike = { f: number; c: number } | { frequency: number; confidence: number };
-
 export type BeliefTruth = { frequency: number; confidence: number };
+
+/** A `Truth` value in plain fields — the `{ f, c }` shape the engine speaks before
+ *  `Truth` wraps it, and the half of {@link TruthLike} that has no declared name. */
+export type TermTruth = { f: number; c: number };
+
+/** Either truth shape in the system: a `Truth` value (f/c) or a belief's truth (frequency/confidence). */
+export type TruthLike = TermTruth | BeliefTruth;
 
 /**
  * The runtime guard for {@link BeliefTruth}, and the one place a truth value's

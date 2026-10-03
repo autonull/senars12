@@ -7,7 +7,7 @@
  * in `stages.ts`.
  */
 
-import { BoundedRing } from '@senars/util';
+import { BoundedRing, removeLastBy } from '@senars/util';
 
 import { CYCLE_STAGES, type TraceRegion } from './stages.js';
 
@@ -49,8 +49,7 @@ export class CycleTrace {
   }
 
   end(cycle: number, stage: TraceRegion): void {
-    const at = this.open.lastIndexOf(stage);
-    if (at >= 0) this.open.splice(at, 1);
+    removeLastBy(this.open, (open) => open === stage);
     this.events.push(this.#record(cycle, stage, 'end'));
   }
 
@@ -79,9 +78,7 @@ export class CycleTrace {
  * model mid-thought. Pure, so the gate, the tests and a reader of a trace all
  * agree on what "nested" means.
  */
-export const findStageOverlaps = (
-  events: readonly CycleStageEvent[]
-): readonly StageOverlap[] => {
+export const findStageOverlaps = (events: readonly CycleStageEvent[]): readonly StageOverlap[] => {
   const overlaps: StageOverlap[] = [];
   const open: TraceRegion[] = [];
   for (const event of events) {
@@ -90,11 +87,11 @@ export const findStageOverlaps = (
     if (!STAGES.has(event.stage)) continue;
     if (event.phase === 'begin') {
       const outer = open[open.length - 1];
-      if (outer && outer !== event.stage) overlaps.push({ cycle: event.cycle, outer, inner: event.stage });
+      if (outer && outer !== event.stage)
+        overlaps.push({ cycle: event.cycle, outer, inner: event.stage });
       open.push(event.stage);
     } else {
-      const at = open.lastIndexOf(event.stage);
-      if (at >= 0) open.splice(at, 1);
+      removeLastBy(open, (pending) => pending === event.stage);
     }
   }
   return overlaps;
@@ -104,9 +101,7 @@ export const findStageOverlaps = (
  * The one property the trace exists to carry: model-backed proposal work is
  * staged and pumped at a boundary, never opened inside the reasoning stage.
  */
-export const findInCycleProposals = (
-  events: readonly CycleStageEvent[]
-): readonly StageOverlap[] =>
+export const findInCycleProposals = (events: readonly CycleStageEvent[]): readonly StageOverlap[] =>
   findStageOverlaps(events).filter(
     (overlap) => overlap.outer === 'reason' && overlap.inner === 'propose'
   );

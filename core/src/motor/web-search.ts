@@ -11,6 +11,7 @@
  * are handled here rather than re-implemented per tool.
  */
 
+import { errMsg } from '@senars/util';
 import { envFirst } from '@senars/util/config';
 
 const FETCH_TIMEOUT_MS = 15_000;
@@ -218,7 +219,7 @@ export async function searchWeb(
     try {
       return { query, via: provider.name, results: await provider.search(query, maxResults) };
     } catch (e) {
-      failures.push(`${provider.name}: ${(e as Error).message}`);
+      failures.push(`${provider.name}: ${errMsg(e)}`);
     }
   }
   return { query, via: 'none', results: [], note: `all providers failed (${failures.join('; ')})` };

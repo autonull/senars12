@@ -1,5 +1,5 @@
-import type { RandomSource } from '../types/primitives.js';
-import { nextInt } from '../utils/random.js';
+import { nextInt, normalizeToSum, type RandomSource, safeRatio } from '@senars/util';
+
 import type { PreferenceData } from './PreferenceCollector.js';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import { extractTrajectoryFeatures } from './utils.js';
@@ -121,8 +121,7 @@ export class RewardModel {
       errorCount: errors.length,
       completionLength,
       uniqueTools: uniqueTools.size,
-      avgToolResponseLength:
-        toolResponseCount > 0 ? totalToolResponseLength / toolResponseCount : 0,
+      avgToolResponseLength: safeRatio(totalToolResponseLength, toolResponseCount),
       explicitReward,
       hasExplicitReward,
     };
@@ -234,24 +233,16 @@ export class RewardModel {
       validCount++;
     }
 
-    return validCount > 0 ? totalLoss / validCount : 0;
+    return safeRatio(totalLoss, validCount);
   }
 
   private normalizeWeights(): void {
-    let sum = 0;
-    const weights: Array<[string, number]> = [];
-
-    for (const [key, value] of Object.entries(this.config)) {
-      if (value !== undefined && value > 0) {
-        weights.push([key, value]);
-        sum += value;
-      }
-    }
-
-    if (sum > 0) {
-      for (const [key, value] of weights) {
-        this.config[key as keyof Omit<RewardModelConfig, 'rng'>] = value / sum;
-      }
+    const positive = Object.entries(this.config).filter(
+      (entry): entry is [string, number] => entry[1] !== undefined && entry[1] > 0
+    );
+    const shares = normalizeToSum(positive, ([, value]) => value);
+    for (const [i, [key]] of positive.entries()) {
+      this.config[key as keyof Omit<RewardModelConfig, 'rng'>] = shares[i]!;
     }
   }
 }

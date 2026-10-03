@@ -1,6 +1,6 @@
+import type { ContrastiveMemory } from './contrastive.js';
 import { createDecider, type Decider } from './decide.js';
 import type { EmbeddingCache, JudgmentManifold, JudgmentQuery } from './types.js';
-import type { ContrastiveMemory } from './contrastive.js';
 import { createSystemOneBudget } from './types.js';
 
 export interface GroundednessGateOptions {
@@ -31,7 +31,10 @@ export function createGroundednessGate(
 ): (narration: string, correlationId: string) => Promise<{ grounded: boolean; score?: number }> {
   const { manifold, embeddingCache, threshold = 0.7, getContrastive } = options;
 
-  return async (narration: string, correlationId: string): Promise<{ grounded: boolean; score?: number }> => {
+  return async (
+    narration: string,
+    correlationId: string
+  ): Promise<{ grounded: boolean; score?: number }> => {
     try {
       const contrastive = getContrastive?.(correlationId);
       const decider: Decider = createDecider({

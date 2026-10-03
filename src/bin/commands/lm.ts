@@ -1,10 +1,14 @@
 /** LM provider/model/routing/circuit-breaker commands (`.lm-*`, `.routing*`, `.circuit-*`). */
 
-import { formatLMConfig, resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
-import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
-import { errMsg } from '@senars/util';
-import type { BotConfig } from '../../config/index.js';
+import {
+  formatLMConfig,
+  LM_PROVIDER_NAMES,
+  resolveLMConfig,
+  resolveLMSettings,
+} from '@senars/nar/lm';
+import { errMsg, removeBy } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
+import type { BotConfig } from '../../config/index.js';
 import { tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
 
@@ -78,9 +82,7 @@ export const lmCommandsFor = (rt: BotRuntime) => {
     cmd('lm-rule-disable', 'Disable an LM rule id', (args = '') => {
       const id = args.trim();
       if (!id) return 'Usage: .lm-rule-disable <id>';
-      const i = lmRulesOf(rt).findIndex((r) => r.id === id);
-      if (i < 0) return `Not configured: ${id}`;
-      lmRulesOf(rt).splice(i, 1);
+      if (!removeBy(lmRulesOf(rt), (r) => r.id === id)) return `Not configured: ${id}`;
       return `Disabled ${id} (restart bot to deregister; persist with .config-save)`;
     }),
     cmd('routing', 'Show routing matrix', async () => {

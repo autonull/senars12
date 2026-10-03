@@ -36,6 +36,17 @@ export function hashAtom(atom: MeTTaAtom): number {
   }
 }
 
+/**
+ * String form of {@link hashAtom}, for the map and set keys that need one. Two
+ * atoms with equal hashes are candidates for identity and still need
+ * {@link equalAtoms} to confirm — this is the bucket key, not the comparison.
+ *
+ * Kind-tagged so that two atoms of different kinds can never share a bucket on
+ * the strength of a hash collision alone; this is the only atom key in the
+ * package, and every caller hashes to the same string.
+ */
+export const atomKey = (atom: MeTTaAtom): string => `${atom.kind}#${hashAtom(atom)}`;
+
 export function equalAtoms(a: MeTTaAtom, b: MeTTaAtom): boolean {
   if (a.kind !== b.kind) return false;
   switch (a.kind) {

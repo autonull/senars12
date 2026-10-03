@@ -2,10 +2,12 @@
  * The control budgets, declared (TODO29.a §5.7 / §7 invariant 12).
  *
  * A bound is a `ReasoningBudget` scope with a **named** `scopeId` — not a number
- * somebody reads in a hot loop. Every entry answers six questions in one row:
- * what it bounds, which dimension of the budget it spends, who owns it, what it
- * defaults to, where configuration overrides the default, and the
- * `TerminationReason` its overflow raises.
+ * somebody reads in a hot loop. Every entry answers four questions in one row:
+ * what it bounds, which dimension of the budget it spends, who owns it, and what it
+ * defaults to. The other two answers are *derived* — a dimension's ceiling key and
+ * the `TerminationReason` its overflow raises are `core/budget`'s to say, and a row
+ * that restated them is how a scope ends up spending `memoryOps` under a
+ * `cycle-budget` reason.
  *
  * Three things this table is *not*, and each was the alternative:
  *
@@ -21,13 +23,19 @@
  *   genuinely new (TODO30 measures what they should be).
  */
 
-import type { BudgetOperation, ReasoningBudget, TerminationReason, BudgetScopeId } from '@senars/core/schemas';
+import {
+  BUDGET_RESOURCES,
+  type BudgetLimits,
+  type BudgetResource,
+  zeroConsumed,
+} from '@senars/core/budget';
+import type { BudgetOperation, BudgetScopeId, ReasoningBudget } from '@senars/core/schemas';
 import { BUDGET_SCOPE_IDS } from '@senars/core/schemas';
 
 /** One budget dimension, spelled the way `ReasoningBudget` spells it. */
-export type BudgetDimension = keyof ReasoningBudget['consumed'];
+export type BudgetDimension = BudgetResource;
 
-export type BudgetLimitKey = 'maxCycles' | 'maxDepth' | 'maxMemoryOps' | 'maxLMCalls';
+export type BudgetLimitKey = keyof BudgetLimits;
 
 /** The five bounds §5.7 names. The order is the plan's. */
 export { BUDGET_SCOPE_IDS, type BudgetScopeId } from '@senars/core/schemas';
@@ -35,14 +43,12 @@ export { BUDGET_SCOPE_IDS, type BudgetScopeId } from '@senars/core/schemas';
 export interface BudgetScopeSpec {
   readonly operation: BudgetOperation;
   readonly consumedKey: BudgetDimension;
-  readonly limitKey: BudgetLimitKey;
   /** The module that spends this scope, so "unbounded" has an address. */
   readonly owner: string;
   /** The declared default, used unless configuration overrides it. */
   readonly defaultLimit: number;
   /** Where a limit comes from when it is not the default. */
   readonly configSource: string;
-  readonly terminationReason: TerminationReason;
   /**
    * The exported symbol a caller names instead of `charge(...)` — a scope spent
    * outside the cycle path, where the id is a value rather than a literal. The
@@ -55,61 +61,57 @@ export const BUDGET_SCOPES = {
   derivations: {
     operation: 'derivation',
     consumedKey: 'cycles',
-    limitKey: 'maxCycles',
     owner: 'InferenceController',
     defaultLimit: 100,
     configSource: 'inference.maxDerivationsPerStep, or controlBudgets.derivations',
-    terminationReason: 'cycle-budget',
   },
   premises: {
     operation: 'premise-selection',
     consumedKey: 'cycles',
-    limitKey: 'maxCycles',
     owner: 'InferenceController',
     defaultLimit: 64,
     configSource: 'controlBudgets.premises',
-    terminationReason: 'cycle-budget',
   },
   'candidate-derivations': {
     operation: 'candidate-derivation',
     consumedKey: 'cycles',
-    limitKey: 'maxCycles',
     owner: 'RuleProcessor.applySyncRules',
     defaultLimit: 16384,
     configSource: 'controlBudgets.candidate-derivations',
-    terminationReason: 'cycle-budget',
   },
   'proposal-application': {
     operation: 'proposal-application',
     consumedKey: 'memoryOps',
-    limitKey: 'maxMemoryOps',
     owner: 'NARExecution.authorize',
     defaultLimit: 64,
     configSource: 'controlBudgets.proposal-application',
-    terminationReason: 'memory-budget',
   },
   'control-work': {
     operation: 'control-work',
     consumedKey: 'cycles',
-    limitKey: 'maxCycles',
     owner: 'NARExecution control and observability steps',
     defaultLimit: 16,
     configSource: 'controlBudgets.control-work',
-    terminationReason: 'cycle-budget',
   },
   'decision-derivations': {
     operation: 'decision-derivation',
     consumedKey: 'llmCalls',
-    limitKey: 'maxLMCalls',
     owner: 'the decision layer (A11 binds the port)',
     defaultLimit: 8,
     configSource: 'controlBudgets.decision-derivations',
-    terminationReason: 'llm-budget',
     referenceSymbol: 'DECISION_DERIVATIONS_SCOPE',
   },
 } as const satisfies Record<BudgetScopeId, BudgetScopeSpec>;
 
 export const scopeSpec = (scopeId: BudgetScopeId): BudgetScopeSpec => BUDGET_SCOPES[scopeId];
+
+/** The ceiling key a scope's dimension is limited by — derived, never declared. */
+export const scopeLimitKey = (scopeId: BudgetScopeId): BudgetLimitKey =>
+  BUDGET_RESOURCES[BUDGET_SCOPES[scopeId].consumedKey].total;
+
+/** The `TerminationReason` a scope raises when its dimension overflows. */
+export const scopeTerminationReason = (scopeId: BudgetScopeId) =>
+  BUDGET_RESOURCES[BUDGET_SCOPES[scopeId].consumedKey].reason;
 
 /**
  * The decision layer's judgment cost, charged through the kernel gate under this
@@ -134,12 +136,9 @@ export const scopeBudget = (
   scopeId: BudgetScopeId,
   base: ReasoningBudget,
   overrides: Partial<Record<BudgetScopeId, number>> = {}
-): ReasoningBudget => {
-  const spec = scopeSpec(scopeId);
-  return {
-    ...base,
-    [spec.limitKey]: scopeLimit(scopeId, overrides),
-    consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-    terminationReason: undefined,
-  };
-};
+): ReasoningBudget => ({
+  ...base,
+  [scopeLimitKey(scopeId)]: scopeLimit(scopeId, overrides),
+  consumed: zeroConsumed(),
+  terminationReason: undefined,
+});

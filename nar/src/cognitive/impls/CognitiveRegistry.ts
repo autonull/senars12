@@ -13,6 +13,7 @@
 import { emitDomainEvent } from '@senars/core/event-sink';
 
 import { ConfigurationError } from '../../types';
+import { keyedBy } from '@senars/util';
 import type { RandomSource } from '../../types/primitives.js';
 import { recordStrategyMemoSize } from '../../metrics/prometheus.js';
 import {
@@ -73,9 +74,11 @@ export const resolveSlot = <T>(
 const MAX_MEMOIZED_INSTANCES = 64;
 
 const memoStores = <V>(): Record<StrategyType, LruCache<string, V>> =>
-  Object.fromEntries(
-    SLOT_TYPES.map((type) => [type, new LruCache<string, V>(MAX_MEMOIZED_INSTANCES)])
-  ) as Record<StrategyType, LruCache<string, V>>;
+  keyedBy(
+    SLOT_TYPES,
+    (type) => type,
+    () => new LruCache<string, V>(MAX_MEMOIZED_INSTANCES)
+  );
 
 /**
  * A registry with every built-in registration loaded.
@@ -91,10 +94,11 @@ export const createDefaultRegistry = ({ rng }: { rng?: RandomSource } = {}): Cog
 };
 
 const emptyStores = <V>(): Record<StrategyType, Map<string, V>> =>
-  Object.fromEntries(SLOT_TYPES.map((type) => [type, new Map<string, V>()])) as Record<
-    StrategyType,
-    Map<string, V>
-  >;
+  keyedBy(
+    SLOT_TYPES,
+    (type) => type,
+    () => new Map<string, V>()
+  );
 
 export class CognitiveRegistry implements StrategyRegistry {
   private readonly stores: Record<StrategyType, Slot> = emptyStores();

@@ -1,11 +1,10 @@
-import { clamp, percentile, sleep, stdDev, stopwatch } from '@senars/util';
 import type { CognitiveEvent } from '@senars/core/schemas';
+import { clamp, nextInt, percentile, sleep, stdDev, stopwatch } from '@senars/util';
 import type { NAR } from '../../nar.js';
 import { Truth } from '../../terms/impls/Truth.js';
 import { termParser } from '../../terms/index.js';
 import type { Task } from '../../types/core.js';
-import { createTaskWeight, createTask } from '../../types/core.js';
-import { nextInt } from '../../utils/random.js';
+import { createTask, createTaskWeight } from '../../types/core.js';
 import type {
   DegradationCurve,
   DegradationPoint,

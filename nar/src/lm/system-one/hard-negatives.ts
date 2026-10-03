@@ -1,18 +1,21 @@
 import type { Episode } from '@senars/util';
 import {
   getOrInsert,
+  groupBy,
+  mapToRecord,
   selectByPriority,
   sha256Hex,
   sha256Prefixed,
   shortSha256Hex,
+  unique,
 } from '@senars/util';
-import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import { PriorityBag } from '../../bag/Bag.js';
-import { AIKRProcessor, AikrShell, type AikrBagOptions } from '../../learning/aikr-processor.js';
-import { cosineF32 } from './contrastive.js';
-import type { ContrastiveMemory } from './contrastive.js';
-import type { EmbeddingCache } from './types.js';
+import { AIKRProcessor, type AikrBagOptions, AikrShell } from '../../learning/aikr-processor.js';
+import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import type { Task } from '../../types';
+import type { ContrastiveMemory } from './contrastive.js';
+import { cosineF32 } from './contrastive.js';
+import type { EmbeddingCache } from './types.js';
 
 /** Read-only belief view a miner needs — keeps System One independent of the NAR facade. */
 export interface BeliefSource {
@@ -39,8 +42,7 @@ export interface MineHardNegativesOptions {
 }
 
 /** Stable hash identity for mined negatives (joins the Z1 sidecar convention). */
-export const hardNegativeId = (text: string): string =>
-  shortSha256Hex(`hard-neg::${text}`);
+export const hardNegativeId = (text: string): string => shortSha256Hex(`hard-neg::${text}`);
 
 /**
  * Hard-negative mining (CLM) from existing SeNARS signals:
@@ -125,7 +127,12 @@ export interface MiningBagOptions extends AikrBagOptions {
   marginFloor?: number;
 }
 
-export class MiningBag extends AikrShell<HardNegativeCandidate, MinedNegative, MinedNegative, MinedNegative> {
+export class MiningBag extends AikrShell<
+  HardNegativeCandidate,
+  MinedNegative,
+  MinedNegative,
+  MinedNegative
+> {
   constructor(options: MiningBagOptions = {}) {
     const marginFloor = options.marginFloor ?? 0;
     const bag = new PriorityBag<HardNegativeCandidate>({
@@ -175,13 +182,12 @@ export async function seedContrastiveMemory(
   memory: ContrastiveMemory,
   cache: EmbeddingCache
 ): Promise<number> {
-  const byRubric = new Map<string, string[]>();
-  for (const neg of negatives) {
-    const list = getOrInsert(byRubric, neg.rubric, () => []);
-    if (!list.includes(neg.text)) list.push(neg.text);
-  }
+  const byRubric = mapToRecord(
+    groupBy(negatives, (neg) => neg.rubric),
+    (bucket) => unique(bucket.map((neg) => neg.text))
+  );
   let added = 0;
-  for (const [rubric, texts] of byRubric) {
+  for (const [rubric, texts] of Object.entries(byRubric)) {
     added += await memory.add(rubric, { negatives: texts }, cache);
   }
   return added;

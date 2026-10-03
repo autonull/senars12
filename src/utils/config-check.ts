@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { cloudApiKey, formatLMConfig, resolveLMConfig } from '@senars/nar/lm';
-import { createLogger } from '@senars/util';
+import { createLogger, errMsg } from '@senars/util';
 
 const logger = createLogger({ scope: 'config:check' });
 
@@ -32,7 +32,7 @@ const main = (): void => {
   try {
     cfg = resolveLMConfig();
   } catch (err) {
-    logger.error((err as Error).message);
+    logger.error(errMsg(err));
     process.exit(1);
   }
   console.log('=== Resolved LM Configuration ===');

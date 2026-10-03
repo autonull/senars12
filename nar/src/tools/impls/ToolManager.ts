@@ -1,11 +1,18 @@
-import { BoundedRing, createLogger, errMsg, maxBy, stopwatch } from '@senars/util';
+import {
+  BoundedRing,
+  createLogger,
+  errMsg,
+  maxBy,
+  nextInt,
+  stopwatch,
+  toolError,
+} from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import type { ToolFeedback, ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
 import type { Term } from '../../terms';
 import type { EventBus, NAREventMap } from '../../types';
 import type { RandomSource } from '../../types/primitives.js';
-import { nextInt } from '../../utils/random.js';
 import type {
   Tool,
   ToolChainResult,
@@ -15,7 +22,6 @@ import type {
   ToolFilter,
   ToolResult,
 } from '../types';
-import { errorResult } from '../types';
 import { executeToolGoal } from './goal';
 import { Registry, type ToolDescriptor } from './Registry';
 
@@ -179,17 +185,17 @@ export class ToolManager {
   ): Promise<ToolResult> {
     const elapsed = stopwatch();
     const tool = this.get(name);
-    if (!tool) return errorResult(`Tool '${name}' not found`);
+    if (!tool) return toolError(`Tool '${name}' not found`);
 
     const state = this.lifecycleState.get(name);
     if (state !== 'running' && state !== 'initialized') {
-      return errorResult(`Tool '${name}' is not running (state: ${state})`);
+      return toolError(`Tool '${name}' is not running (state: ${state})`);
     }
 
     if (this.sandboxMode && context?.permissions) {
       const required = tool.capabilities?.requiresPermissions || [];
       if (!required.every((p) => context.permissions?.has(p))) {
-        return errorResult(`Missing required permissions: ${required.join(', ')}`);
+        return toolError(`Missing required permissions: ${required.join(', ')}`);
       }
     }
 
@@ -197,13 +203,13 @@ export class ToolManager {
     if (budget) {
       budget.executions = (budget.executions || 0) + 1;
       if (budget.maxExecutions && budget.executions > budget.maxExecutions) {
-        return errorResult('Execution budget exceeded');
+        return toolError('Execution budget exceeded');
       }
     }
 
     // Check for abort signal
     if (context?.signal?.aborted) {
-      return errorResult('Execution aborted');
+      return toolError('Execution aborted');
     }
 
     const baseEvent = { name, args, timestamp: Date.now(), context } as const;
@@ -235,7 +241,7 @@ export class ToolManager {
       return result;
     } catch (error) {
       const duration = elapsed();
-      const result = { success: false, content: null, error: errMsg(error) };
+      const result = toolError(errMsg(error));
       const errorEvent: ToolEvent = {
         type: 'tool_error',
         ...baseEvent,

@@ -1,16 +1,12 @@
-import { fixedClock } from '@senars/nar/clock.js';
-import { Memory } from '@senars/nar/memory';
-import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
-import {
-  episodeQualitySurface,
-  MemoryQuery,
-} from '@senars/nar/query/memory-query.js';
-import { retrospect } from '@senars/nar/dialogue/impls/retrospect.js';
-import { TermBuilder } from '@senars/nar/terms';
-import type { Episode } from '@senars/util';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { retrospect } from '@senars/nar/dialogue/impls/retrospect.js';
+import { Memory } from '@senars/nar/memory';
+import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
+import { episodeQualitySurface, MemoryQuery } from '@senars/nar/query/memory-query.js';
+import { TermBuilder } from '@senars/nar/terms';
+import { type Episode, fixedClock } from '@senars/util';
 import { afterAll, describe, expect, it } from 'vitest';
 
 const dirs: string[] = [];
@@ -26,8 +22,7 @@ afterAll(async () => {
 /** Deterministic 4-dim embedder: word-hash buckets (no randomness). */
 const embed = (text: string): Float32Array => {
   const v = new Float32Array(4);
-  for (const w of text.toLowerCase().split(/\W+/).filter(Boolean))
-    v[w.charCodeAt(0) % 4]! += 1;
+  for (const w of text.toLowerCase().split(/\W+/).filter(Boolean)) v[w.charCodeAt(0) % 4]! += 1;
   return v;
 };
 
@@ -35,7 +30,10 @@ const makeMemory = (): Memory => {
   const mem = new Memory({ maxConcepts: 100, activationDecayRate: 0.01 });
   for (const symbol of ['cat', 'catalog', 'dog', 'catastrophe']) {
     const concept = mem.addConcept(TermBuilder.atom(symbol));
-    concept.writeAttention({ reason: 'assign', value: symbol === 'cat' ? 0.9 : symbol === 'catalog' ? 0.7 : 0.3 });
+    concept.writeAttention({
+      reason: 'assign',
+      value: symbol === 'cat' ? 0.9 : symbol === 'catalog' ? 0.7 : 0.3,
+    });
   }
   return mem;
 };
@@ -47,14 +45,23 @@ const makeEpisodes = async (): Promise<EpisodicMemory> => {
   const mem = new EpisodicMemory({ basePath: await tmpBase(), clock: fixedClock(PINNED) });
   await mem.log('dialogue', 'cat saga', { correlationId: 'c1', sessionId: 's1', id: 'ep-cat' });
   await mem.log('input', 'dog walk', { correlationId: 'c1', sessionId: 's1', id: 'ep-dog' });
-  await mem.log('error', 'unrelated failure', { correlationId: 'c2', sessionId: 's2', id: 'ep-err' });
+  await mem.log('error', 'unrelated failure', {
+    correlationId: 'c2',
+    sessionId: 's2',
+    id: 'ep-err',
+  });
   return mem;
 };
 
 describe('Bench 88 — MemoryQuery fan-out + ranking', () => {
   it('merges concept and episodic legs, ranked by weighted relevance', async () => {
     const episodic = await makeEpisodes();
-    const q = new MemoryQuery({ memory: makeMemory(), episodic, weights: { concept: 2 }, clock: fixedClock(PINNED) });
+    const q = new MemoryQuery({
+      memory: makeMemory(),
+      episodic,
+      weights: { concept: 2 },
+      clock: fixedClock(PINNED),
+    });
     const results = await q.search({ concept: 'cat', limit: 10 });
     const sources = new Set(results.map((r) => r.source));
     expect(sources.has('concept')).toBe(true);
@@ -166,9 +173,9 @@ describe('Bench 88 — consumers', () => {
     });
     expect(r.sessionContext).toBeDefined();
     expect(r.sessionContext!.length).toBeGreaterThan(0);
-    expect(r.sessionContext!.some((s) => s.startsWith('episode:') || s.startsWith('concept:'))).toBe(
-      true
-    );
+    expect(
+      r.sessionContext!.some((s) => s.startsWith('episode:') || s.startsWith('concept:'))
+    ).toBe(true);
   });
 
   it('episodeQualitySurface: groundedness turns + reaction fallback mapping', () => {

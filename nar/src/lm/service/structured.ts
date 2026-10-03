@@ -1,7 +1,7 @@
 import type { LMTask } from '@senars/util';
 import { toError } from '@senars/util';
-import { parseJsonOrThrow, toCachedJsonSchema } from '../json.js';
 import type { ZodSchema } from 'zod';
+import { parseJsonOrThrow, toCachedJsonSchema } from '../json.js';
 
 type GenerateText = (
   prompt: string,

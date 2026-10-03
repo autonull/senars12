@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { tool } from 'ai';
+import { unique } from '@senars/util';
 import { z } from 'zod';
 import { runProcess } from './proc.js';
 
@@ -82,7 +83,7 @@ export async function runCodemod(
 
   try {
     const matches = (stdout ? JSON.parse(stdout) : []) as AstGrepMatch[];
-    const files = [...new Set(matches.map((m) => m.file))].filter((f) => f !== 'STDIN');
+    const files = unique(matches.map((m) => m.file)).filter((f) => f !== 'STDIN');
     const diff = matches
       .map(({ file, range, lines, replacement }) => {
         const { start, end: stop } = range;

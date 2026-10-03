@@ -3,7 +3,7 @@
  * A fallback returning null skips the rule (no symbolic equivalent); [] degrades silently.
  */
 import { fromNarsese, hasVariable, type Term, Truth } from '../../terms';
-import { createTaskWeight, createTask, type Task, type TaskType } from '../../types';
+import { createTask, createTaskWeight, type Task, type TaskType } from '../../types';
 
 export type SymbolicFallback = (
   primary: Term,

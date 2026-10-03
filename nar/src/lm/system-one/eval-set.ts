@@ -5,18 +5,18 @@
  * rows (TODO22 auto-capture) are excluded by construction.
  */
 
+import { promises as fs } from 'node:fs';
 import {
-  getOrInsert,
+  groupBy,
+  mapToRecord,
   sha256Hex,
   sha256Prefixed,
   shortSha256Hex,
   writeJsonFile,
 } from '@senars/util';
-
-import { promises as fs } from 'node:fs';
 import { identityECE, meanBrier } from './calibration-fit.js';
-import { frozenRegression } from './metrics.js';
 import type { JudgmentDataset } from './distill.js';
+import { frozenRegression } from './metrics.js';
 import { DigestMismatchError } from './wasi-runtime.js';
 
 /** TODO22 auto-capture source — never eligible for the frozen set. */
@@ -113,11 +113,7 @@ export function evalMetrics(rows: readonly FrozenEvalRow[]): EvalMetrics {
 }
 
 export function headMetrics(rows: readonly FrozenEvalRow[]): Record<string, EvalMetrics> {
-  const byHead = new Map<string, FrozenEvalRow[]>();
-  for (const row of rows) {
-    getOrInsert(byHead, row.headId, () => []).push(row);
-  }
-  return Object.fromEntries([...byHead.entries()].map(([headId, r]) => [headId, evalMetrics(r)]));
+  return mapToRecord(groupBy(rows, (row) => row.headId), evalMetrics);
 }
 
 export async function writeEvalSet(set: FrozenEvalSet, path: string): Promise<void> {
@@ -146,5 +142,3 @@ export function assertFrozenNonRegression(
     throw new EvalRegressionError(baseline.brier, candidate.brier, tolerance);
   }
 }
-
-

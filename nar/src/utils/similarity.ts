@@ -1,3 +1,5 @@
+import { safeRatio } from '@senars/util';
+
 /** The membership-and-size surface a set-overlap score needs; `Set` and `TermSet` both satisfy it. */
 export interface ReadonlySetLike<T> {
   readonly size: number;
@@ -13,7 +15,7 @@ export const jaccard = <T>(a: ReadonlySetLike<T>, b: ReadonlySetLike<T>): number
   small.forEach((x) => {
     if (large.has(x)) inter++;
   });
-  return inter / (a.size + b.size - inter || 1);
+  return safeRatio(inter, a.size + b.size - inter);
 };
 
 /** Cosine similarity over any numeric vectors (dense embeddings, feature blocks).
@@ -31,7 +33,7 @@ export const cosine = (a: ArrayLike<number>, b: ArrayLike<number>): number => {
     normA += x * x;
     normB += y * y;
   }
-  return normA === 0 || normB === 0 ? 0 : dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  return safeRatio(dot, Math.sqrt(normA) * Math.sqrt(normB));
 };
 
 /** Unit-length copy of `v`; a zero vector passes through unchanged. */
@@ -70,5 +72,5 @@ export const cosineNormalized = (a: NormalizedVector, b: ArrayLike<number>): num
     dot += (a.values[i] ?? 0) * y;
     normB += y * y;
   }
-  return normB === 0 ? 0 : dot / (a.norm * Math.sqrt(normB));
+  return safeRatio(dot, a.norm * Math.sqrt(normB));
 };

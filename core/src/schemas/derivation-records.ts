@@ -26,6 +26,12 @@ export const DerivationStepSchema = z.object({
   premises: z.array(z.string()), // Term strings
   conclusion: z.string(), // Term string
   truth: TruthValueSchema,
+  /**
+   * The truth function the producing rule *declared*, as its name in the NAL
+   * algebra. Optional because records written before the name was carried do
+   * not have one; when present it is authoritative and needs no rule-id guess.
+   */
+  truthFn: z.string().optional(),
   substitution: z.record(z.string(), z.string()).optional(), // Variable bindings
   premiseTruths: z.array(TruthValueSchema).optional(), // Truth of each premise, in order — enables standalone truth-algebra verification
   evidenceLineage: z.array(z.string().uuid()), // Parent derivation IDs

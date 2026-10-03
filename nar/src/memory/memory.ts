@@ -1,4 +1,12 @@
-import { BoundedRing, occupancy, selectTopN, sortBy, sortByDesc } from '@senars/util';
+import {
+  type BeliefTruth,
+  BoundedRing,
+  nextInt,
+  occupancy,
+  selectTopN,
+  sortBy,
+  sortByDesc,
+} from '@senars/util';
 import { LINK, PRESSURE } from '../constants.js';
 import { NullAttentionModel } from '../strategies/attention/NullAttentionModel.js';
 import type { AttentionModel } from '../strategies/types.js';
@@ -15,7 +23,6 @@ import {
 import { atom } from '../terms/impls/factory.js';
 import type { Budget, Task } from '../types';
 import { NEUTRAL_BUDGET } from '../types';
-import { nextInt } from '../utils/random.js';
 import { AssociativeRegistry, GraphMemory } from './associative.js';
 import type { ConceptGraph } from './ConceptGraph.js';
 import {
@@ -52,7 +59,7 @@ export interface RevisionEntry {
    * than a serialized form that two distinct terms can share.
    */
   termKey: string;
-  truth: { frequency: number; confidence: number };
+  truth: BeliefTruth;
   stampId: string;
   timestamp: number;
   source: 'input' | 'derivation' | 'revision' | 'inference';

@@ -7,8 +7,7 @@
  * nothing (C2').
  */
 
-import { type Episode, sortBy } from '@senars/util';
-import { type Clock, SystemClock } from '../clock.js';
+import { type Clock, type Episode, sortBy, systemClock } from '@senars/util';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import { causalConnections, episodeSalience } from '../memory/episode-consolidator.js';
 import type { Concept, Memory } from '../memory/index.js';
@@ -42,7 +41,7 @@ export interface MemoryQueryOptions {
   /** Text → embedding; absent ⇒ structural/leg-only scoring. */
   embed?: (text: string) => Promise<Float32Array | undefined> | Float32Array | undefined;
   weights?: { concept?: number; episodic?: number; semantic?: number };
-  /** Injected time source (C8); defaults to `SystemClock`. */
+  /** Injected time source (C8); defaults to the system clock. */
   clock?: Clock;
 }
 
@@ -102,14 +101,14 @@ export class MemoryQuery {
     this.#episodic = options.episodic;
     this.#embed = options.embed;
     this.#weights = { ...DEFAULT_WEIGHTS, ...options.weights };
-    this.#clock = options.clock ?? SystemClock;
+    this.#clock = options.clock ?? systemClock;
   }
 
   /** Merged, ranked, bounded results across the wired subsystems. */
   async search(filter: MemoryQueryFilter = {}): Promise<MemoryResult[]> {
     const limit = Math.max(filter.limit ?? DEFAULT_LIMIT, 0);
     if (limit === 0) return [];
-    const now = this.#clock.now();
+    const now = this.#clock();
     const anchor = filter.embedding !== undefined && this.#embed ? filter.embedding : undefined;
     const threshold = filter.similarityThreshold ?? 0;
 

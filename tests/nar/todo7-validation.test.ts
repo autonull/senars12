@@ -114,6 +114,10 @@ describe('TODO7 validation benchmarks', () => {
       const verdict = verifyRecord(record);
       expect(verdict.findings).toEqual([]);
       expect(verdict.ok).toBe(true);
+      // Nothing unexamined. A step the verifier cannot resolve is a skip, and a
+      // skip passes — so a step with no truth function named is an unverified
+      // proof wearing a verified proof's report.
+      for (const step of record.steps) expect(step.truthFn).toBeTruthy();
     }
   });
 

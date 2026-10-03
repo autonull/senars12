@@ -1,3 +1,5 @@
+import type { LMTask } from '@senars/util';
+
 /**
  * The chat option and event vocabulary — canonical, and the only thing left
  * of the old `ChatService`. The interactive path is
@@ -11,5 +13,5 @@ export interface ChatOptions {
   readonly signal?: AbortSignal;
   readonly sessionId?: string;
   readonly stream?: boolean;
-  readonly tier?: 'quality' | 'fast' | 'structured';
+  readonly tier?: LMTask;
 }

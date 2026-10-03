@@ -15,9 +15,9 @@
  */
 import { clamp, maxScore, occupancy } from '@senars/util';
 import { announceBudgetTrace } from './budget-otel.js';
-import type { ReasoningBudget, TerminationReason } from './schemas/index.js';
+import type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason } from './schemas/index.js';
 
-export type { ReasoningBudget, TerminationReason };
+export type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason };
 
 /** Budget slice consumed resources. */
 export type ConsumedBudget = ReasoningBudget['consumed'];
@@ -85,13 +85,24 @@ export type BudgetSliceOptions = BudgetLimits & {
 };
 
 /**
+ * A zeroed consumption record. Every fresh budget and every reopened scope starts
+ * from this one, so the four keys are named here rather than in three literals.
+ */
+export const zeroConsumed = (): ConsumedBudget => ({
+  cycles: 0,
+  depth: 0,
+  memoryOps: 0,
+  llmCalls: 0,
+});
+
+/**
  * The one budget constructor. Every ceiling in the system — the gate's default,
  * a System One pass, a focus child — is `createBudget(limits)` over its own
  * limit table, so none of them can drift on the `consumed` reset.
  */
 export const createBudget = (limits: BudgetLimits): ReasoningBudget => ({
   ...limits,
-  consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+  consumed: zeroConsumed(),
 });
 
 export function createBudgetSlice(
@@ -155,9 +166,73 @@ export const BUDGET_RESOURCES = {
   { total: keyof BudgetLimits; reason: TerminationReason }
 >;
 
-type BudgetResource = keyof typeof BUDGET_RESOURCES;
+export type BudgetResource = keyof typeof BUDGET_RESOURCES;
 
-const ALL_RESOURCES = Object.keys(BUDGET_RESOURCES) as BudgetResource[];
+/**
+ * Each dimension's event-level name, derived from the resource table rather than
+ * spelled beside it. Two vocabularies describe one dimension — the `consumed` key
+ * (`memoryOps`) and the schema's `budgetType` (`memory`) — and a gate that picks
+ * one by hand can report `memory` for a charge against `cycles`.
+ */
+export const BUDGET_TYPES = {
+  cycles: 'cycles',
+  depth: 'depth',
+  memoryOps: 'memory',
+  llmCalls: 'llm',
+} as const satisfies Record<BudgetResource, BudgetExhaustedEvent['payload']['budgetType']>;
+
+export const ALL_RESOURCES = Object.keys(BUDGET_RESOURCES) as BudgetResource[];
+
+/**
+ * The four dimensions with their ceilings in one snapshot — the shape every
+ * summary reports, so a caller cannot read a `max*` key the resource table does
+ * not name.
+ */
+export const budgetLimitsOf = (budget: ReasoningBudget): BudgetLimits => ({
+  maxCycles: budget.maxCycles,
+  maxDepth: budget.maxDepth,
+  maxMemoryOps: budget.maxMemoryOps,
+  maxLMCalls: budget.maxLMCalls,
+});
+
+/** One dimension's ceiling. */
+export const budgetLimit = (budget: ReasoningBudget, resource: BudgetResource): number =>
+  budget[BUDGET_RESOURCES[resource].total];
+
+/** Unconsumed capacity in one dimension; negative once a charge over-spent it. */
+export const budgetRemaining = (budget: ReasoningBudget, resource: BudgetResource): number =>
+  budgetLimit(budget, resource) - budget.consumed[resource];
+
+/** Whether `amount` fits in what is left of one dimension — the single grant test. */
+export const budgetAffords = (
+  budget: ReasoningBudget,
+  resource: BudgetResource,
+  amount: number
+): boolean => budgetRemaining(budget, resource) >= amount;
+
+/** Fraction of one dimension consumed, in `0..1`. An unlimited dimension is unpressured. */
+export const budgetPressure = (budget: ReasoningBudget, resource: BudgetResource): number =>
+  occupancy(budget.consumed[resource], budgetLimit(budget, resource), 0);
+
+/**
+ * The reason a refused charge on `resource` raises: the dimension's own when it is
+ * spent, `backpressure` when the charge simply did not fit in what was left.
+ */
+export const budgetRefusal = (
+  budget: ReasoningBudget,
+  resource: BudgetResource
+): TerminationReason =>
+  budgetRemaining(budget, resource) <= 0 ? BUDGET_RESOURCES[resource].reason : 'backpressure';
+
+/** The one accumulation. Refusal is the caller's decision — a slice and a gate
+ *  answer it from `budgetAffords` and then own their own event and policy. */
+export const chargeBudget = (
+  budget: ReasoningBudget,
+  resource: BudgetResource,
+  amount: number
+): void => {
+  budget.consumed[resource] += amount;
+};
 
 /** A partial budget request across the four AIKR dimensions. */
 export type BudgetAllocation = Partial<ConsumedBudget>;
@@ -172,20 +247,6 @@ const sliceAnnouncement = (slice: BudgetSlice): BudgetEventMap['budget:slice:cre
   maxLMCalls: slice.maxLMCalls,
 });
 
-const limitsOf = (budget: BudgetSlice): BudgetLimits => ({
-  maxCycles: budget.maxCycles,
-  maxDepth: budget.maxDepth,
-  maxMemoryOps: budget.maxMemoryOps,
-  maxLMCalls: budget.maxLMCalls,
-});
-
-const totalOf = (budget: BudgetSlice, resource: BudgetResource): number =>
-  budget[BUDGET_RESOURCES[resource].total];
-
-/** Fraction of one dimension consumed, in `0..1`. An unlimited dimension is unpressured. */
-const pressureOf = (budget: BudgetSlice, resource: BudgetResource): number =>
-  occupancy(budget.consumed[resource], totalOf(budget, resource), 0);
-
 /**
  * Charge `amount` to one budget dimension, or terminate the slice when the
  * charge would exceed its total. The single accounting path: exhaustion sets
@@ -198,28 +259,27 @@ function consume(
   amount: number,
   eventBus?: BudgetEventBus
 ): boolean {
-  const { reason } = BUDGET_RESOURCES[resource];
-  const total = totalOf(budget, resource);
-  if (budget.consumed[resource] + amount > total) {
+  if (!budgetAffords(budget, resource, amount)) {
+    const reason = BUDGET_RESOURCES[resource].reason;
     budget.terminationReason = reason;
     const snapshot = {
       sliceId: budget.id,
       reason,
       consumed: { ...budget.consumed },
-      total: limitsOf(budget),
+      total: budgetLimitsOf(budget),
     };
     announce('budget:slice:exhausted', snapshot, eventBus);
     return false;
   }
-  budget.consumed[resource] += amount;
+  chargeBudget(budget, resource, amount);
   const consumed = budget.consumed[resource];
   const payload = {
     sliceId: budget.id,
     resource,
     amount,
     consumed,
-    total,
-    pressure: pressureOf(budget, resource),
+    total: budgetLimit(budget, resource),
+    pressure: budgetPressure(budget, resource),
   };
   announce('budget:slice:consumed', payload, eventBus);
   return true;
@@ -251,7 +311,7 @@ export const consumeLMCalls = (
 
 /** Unconsumed capacity in one dimension, floored at zero. */
 const remainingOf = (budget: BudgetSlice, resource: BudgetResource): number =>
-  clamp(totalOf(budget, resource) - budget.consumed[resource], 0, Number.POSITIVE_INFINITY);
+  clamp(budgetRemaining(budget, resource), 0, Number.POSITIVE_INFINITY);
 
 export const remainingCycles = (budget: BudgetSlice): number => remainingOf(budget, 'cycles');
 
@@ -342,7 +402,7 @@ export function mergeConsumption(
 export function isExhausted(budget: BudgetSlice): boolean {
   return (
     budget.terminationReason !== undefined ||
-    ALL_RESOURCES.some((resource) => budget.consumed[resource] >= totalOf(budget, resource)) ||
+    ALL_RESOURCES.some((resource) => budgetRemaining(budget, resource) <= 0) ||
     Boolean(budget.wallclockDeadlineMs && Date.now() > budget.wallclockDeadlineMs) ||
     Boolean(budget.abortSignal?.aborted)
   );
@@ -350,5 +410,5 @@ export function isExhausted(budget: BudgetSlice): boolean {
 
 /** Worst per-dimension pressure — the slice's overall load. */
 export function pressure(budget: BudgetSlice): number {
-  return maxScore(ALL_RESOURCES, (resource) => pressureOf(budget, resource));
+  return maxScore(ALL_RESOURCES, (resource) => budgetPressure(budget, resource));
 }

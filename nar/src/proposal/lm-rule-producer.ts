@@ -36,11 +36,11 @@ import type {
   RuleProposal,
 } from '@senars/core/schemas';
 import { PROPOSAL_SCHEMA_VERSION } from '@senars/core/schemas';
-import { ProposalLifecycle } from './lifecycle.js';
 import { createDerivedTask } from '../reason/inference-utils.js';
 import type { ModelRuleWork, ModelRuleWorkSink, RuleResult } from '../rules/types.js';
 import type { LMBackend, StreamReasoner, StreamReasonerStats } from '../stream/reasoner.js';
 import type { Task } from '../types';
+import { ProposalLifecycle } from './lifecycle.js';
 
 /** Applies one staged unit of work. Structurally `RuleProcessor`. */
 export interface ModelRuleWorkApplicator {
@@ -118,10 +118,8 @@ export class LMProposalProducer implements ModelRuleWorkSink {
 
   /** Called from the cycle. Bounded, synchronous, and cheap: a queue push. */
   stage(work: ModelRuleWork): boolean {
-    const queued = this.reasoner.dispatch(
-      work.p1.term.toString(),
-      work.p1.truth,
-      async () => this.applyWork(work)
+    const queued = this.reasoner.dispatch(work.p1.term.toString(), work.p1.truth, async () =>
+      this.applyWork(work)
     );
     if (!queued) {
       this.counters.refused++;

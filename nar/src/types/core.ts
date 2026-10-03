@@ -7,7 +7,7 @@ import type { Term } from '../terms';
 import { Stamp, Truth } from '../terms';
 import { canonicalTask } from '../terms/reduce-task.js';
 import type { Truth as TruthType } from '../terms/impls/Truth.js';
-import { type NarCoreBoundKey, narCoreBounds } from '@senars/util/config';
+import { narCoreBounds, narCoreDefaults } from '@senars/util/config';
 import { createTimestamp, DEPTH_MAX, type Timestamp } from './primitives.js';
 
 export type { Source, Stamp } from '../terms/impls/Stamp.js';
@@ -66,11 +66,7 @@ export interface CoreConfig {
 }
 
 // Default configuration values — one table, so a limit and its default can never disagree.
-export const DEFAULT_CONFIG: CoreConfig = Object.freeze(
-  Object.fromEntries(
-    Object.keys(narCoreBounds).map((key) => [key, narCoreBounds[key as NarCoreBoundKey].default])
-  ) as unknown as CoreConfig
-);
+export const DEFAULT_CONFIG: CoreConfig = Object.freeze(narCoreDefaults);
 
 // Utility types
 export type Nullable<T> = T | null;

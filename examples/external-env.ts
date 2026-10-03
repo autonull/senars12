@@ -6,12 +6,12 @@
  * Run: `pnpm tsx examples/external-env.ts`
  */
 
+import { SeededRNG } from '@senars/util';
 import { NARBuilder } from '../nar/src/agent/builder.js';
 import { GameFocus } from '../nar/src/focus/GameFocus.js';
 import type { Game, GameOutcome, Perception } from '../nar/src/game/Game.js';
 import { GameRegistry } from '../nar/src/game/registry.js';
 import { TabularQReflex } from '../nar/src/reflex/TabularQReflex.js';
-import { SeededRNG } from '../nar/src/utils/random.js';
 
 interface ThermostatState {
   temp: number;

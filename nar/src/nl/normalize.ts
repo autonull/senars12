@@ -1,4 +1,4 @@
-import { LruCache } from '@senars/util';
+import { LruCache, splitWords } from '@senars/util';
 import type { Term } from '../terms';
 import { isValidAtomSymbol, termParser, toAtomSymbol } from '../terms';
 
@@ -6,12 +6,7 @@ const COPULA = /(-->|<->|==>|<=>)/;
 const BINARY_OPS = ['-->', '<->', '==>', '<=>', '&&'] as const;
 
 const snakeCaseWords = (operand: string): string =>
-  operand
-    .trim()
-    .split(/\s+/)
-    .map(toAtomSymbol)
-    .filter(Boolean)
-    .join('_');
+  splitWords(operand).map(toAtomSymbol).filter(Boolean).join('_');
 
 /** Normalize each top-level operand (split on binary operators at depth 0). */
 const normalizeOperands = (t: string): string => {
@@ -34,7 +29,9 @@ const normalizeOperands = (t: string): string => {
   }
   parts.push(t.slice(start));
   if (parts.length <= 1) return t;
-  return parts.map((p) => ((BINARY_OPS as readonly string[]).includes(p) ? p : snakeCaseWords(p))).join(' ');
+  return parts
+    .map((p) => ((BINARY_OPS as readonly string[]).includes(p) ? p : snakeCaseWords(p)))
+    .join(' ');
 };
 
 /**
@@ -52,7 +49,7 @@ export const normalizeNarsese = (input: string): string => {
   // inner statements with copulas get their operands normalized too
   t = t.replace(/\(([^()]*)\)/g, (m, inner: string) => {
     if (COPULA.test(inner)) return `(${normalizeOperands(inner.trim())})`;
-    const words = inner.trim().split(/\s+/).filter(Boolean);
+    const words = splitWords(inner);
     if (words.length === 0) return m;
     if (words.length === 1 && isValidAtomSymbol(words[0]!)) return m;
     return `(${words.map(toAtomSymbol).join('_')})`;

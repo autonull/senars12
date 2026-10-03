@@ -1,8 +1,7 @@
-import { getOrInsert, maxScore } from '@senars/util';
+import { getOrInsert, maxScore, type RandomSource, shuffleInPlace } from '@senars/util';
 import type { Perception } from '../game/Game.js';
-import type { RandomSource } from '../types/primitives.js';
-import { type ActionProposal, byExpectedValue, type LearningEvent, type Reflex } from './Reflex.js';
-import { shuffleInPlace } from '../utils/random.js';
+import type { ActionProposal, LearningEvent, Reflex } from './Reflex.js';
+import { byExpectedValue } from './Reflex.js';
 
 interface QEntry {
   value: number;

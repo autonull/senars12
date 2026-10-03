@@ -1,11 +1,13 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import {
+  assertDefined,
   clamp,
   estimateTokens,
   makeId,
   mean,
   monotonicNow,
   stopwatch,
+  unique,
   variance,
 } from '@senars/util';
 import { validateBatchQueries } from './algebra.js';
@@ -251,14 +253,12 @@ export class SystemOneManifold implements JudgmentManifold {
       runs.push(batch);
     }
 
-    const first = runs[0]?.[0];
-    if (!first) throw new Error('manifold ensemble produced no verdict');
+    const first = assertDefined(runs[0]?.[0], 'manifold ensemble produced no verdict');
     let agreement = 1.0;
 
     if (first.kind === 'classify') {
       const topOptions = runs.map((r) => (r[0]! as ClassifyProposition).top.option);
-      const unique = new Set(topOptions);
-      agreement = 1 / unique.size;
+      agreement = 1 / unique(topOptions).length;
     } else {
       const scores = runs.map((r) => (r[0]! as EvaluateProposition).score);
       agreement = Math.max(0, 1 - variance(scores) * 4);

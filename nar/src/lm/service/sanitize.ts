@@ -20,10 +20,7 @@ export class LMOutputTooLargeError extends SenarsError {
 }
 
 /** S4 (TODO20): size limit on all LM outputs. Throws LMOutputTooLargeError past the limit. */
-export function enforceLMOutputSize(
-  text: string,
-  limit: number = maxLMOutputChars()
-): string {
+export function enforceLMOutputSize(text: string, limit: number = maxLMOutputChars()): string {
   if (text.length > limit) throw new LMOutputTooLargeError(text.length, limit);
   return text;
 }

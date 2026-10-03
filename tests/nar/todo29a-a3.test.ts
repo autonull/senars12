@@ -274,6 +274,40 @@ describe('A3 — D8: replay reads the log, and a cancellation is not a silence',
     expect(reasons(events)).toEqual(['cancelled']);
     expect(lifecycle.admit()).toEqual([]);
   });
+
+  it('cancelling an unknown id destroys nothing, in either queue', () => {
+    const { events, lifecycle } = ledger();
+    lifecycle.submit(content('c1'));
+    lifecycle.submit(rule('r1'));
+
+    // `withdraw` searched for `at` and then spliced before checking it, so a miss
+    // ran `splice(-1, 1)` — which removes the *last* entry. Cancelling an id that
+    // was never queued silently deleted one proposal from each queue and reported
+    // that nothing happened. Only an empty second queue hid it.
+    expect(lifecycle.cancel('nope')).toBe(false);
+    expect(lifecycle.pending()).toBe(2);
+    expect(reasons(events)).toEqual([]);
+    expect(lifecycle.admit().map((verdict) => verdict.proposal.proposalId).sort()).toEqual(['c1', 'r1']);
+  });
+
+  it('a miss leaves the tail intact, which is what the splice(-1, 1) bug ate', () => {
+    const { lifecycle } = ledger({ maxPendingContent: 4, maxPendingRules: 4 });
+    for (const id of ['c1', 'c2', 'c3']) lifecycle.submit(content(id));
+
+    expect(lifecycle.cancel('absent')).toBe(false);
+    expect(lifecycle.admit().map((verdict) => verdict.proposal.proposalId)).toEqual(['c1', 'c2', 'c3']);
+  });
+
+  it('cancelling one queue leaves the other queue alone', () => {
+    const { events, lifecycle } = ledger();
+    lifecycle.submit(content('c1'));
+    lifecycle.submit(rule('r1'));
+
+    expect(lifecycle.cancel('c1')).toBe(true);
+    expect(reasons(events)).toEqual(['cancelled']);
+    expect(lifecycle.pending()).toBe(1);
+    expect(lifecycle.admit().map((verdict) => verdict.proposal.proposalId)).toEqual(['r1']);
+  });
 });
 
 describe('A3 — the schema is the seam contract', () => {

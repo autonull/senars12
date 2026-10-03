@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * SeNARS12 Post-NARS Fundamentals Benchmark
  *
@@ -11,20 +12,27 @@
  *   LM_PROVIDER=mock pnpm exec tsx scripts/fundamentals-bench.ts  # CI
  */
 
-import { createNAR } from '@senars/nar';
+import { strict as assert } from 'node:assert';
+import {
+  createNAR,
+  Stamp,
+  type Task,
+  type TaskType,
+  type Term,
+  Truth,
+  type TruthType,
+  termParser,
+} from '@senars/nar';
+import { KernelPerceptionGate } from '@senars/nar/kernel';
 import { attemptLMCorrection, createSeNARSRegistry } from '@senars/nar/lm';
+import { traceAbstractor } from '@senars/nar/lm/context/trace-abstractor';
 import { createLMService, createMockLMService } from '@senars/nar/lm/lm-service';
 import { createRule } from '@senars/nar/lm/rule-builders';
 import { ruleDefs } from '@senars/nar/lm/rule-templates';
 import { symbolicFallbacks } from '@senars/nar/lm/rule-templates/fallbacks';
-import { traceAbstractor } from '@senars/nar/lm/context/trace-abstractor';
 import { ShadowValidator } from '@senars/nar/lm/shadow-validation';
-import { NLUnderstandingService } from '@senars/nar/nl';
-import { TranslationCache } from '@senars/nar/nl';
+import { NLUnderstandingService, TranslationCache } from '@senars/nar/nl';
 import { createLogger } from '@senars/util';
-import { KernelPerceptionGate } from '@senars/nar/kernel';
-import { termParser, Truth, Stamp, type Term, type TaskType, type Task, type TruthType } from '@senars/nar';
-import { strict as assert } from 'node:assert';
 
 const logger = createLogger({ scope: 'fundamentals-bench' });
 
@@ -54,7 +62,8 @@ async function runScenario1(
 ): Promise<boolean> {
   logger.info('\n🧠 Scenario 1: Multi-Candidate Ambiguity ("unless" / disjunction)');
 
-  const input = 'The server will crash unless the backup generator kicks in. The backup generator did not kick in.';
+  const input =
+    'The server will crash unless the backup generator kicks in. The backup generator did not kick in.';
 
   // 1. Get multi-candidate formalization
   const cache = new TranslationCache({ maxSize: 100 });
@@ -82,7 +91,9 @@ async function runScenario1(
   // 2. Admit via PerceptionGate (provisional)
   const gate = new KernelPerceptionGate();
   const admitted = gate.admitFormalization(batch);
-  logger.info(`  ✅ PerceptionGate admitted ${admitted.admitted.length} candidate(s) provisionally`);
+  logger.info(
+    `  ✅ PerceptionGate admitted ${admitted.admitted.length} candidate(s) provisionally`
+  );
 
   if (admitted.admitted.length === 0) {
     logger.error('  ❌ No candidates admitted by PerceptionGate');
@@ -131,7 +142,11 @@ async function runScenario1(
 
   // Success criteria: multiple candidates admitted, NAR runs without error, beliefs retained
   const success = batch.candidates.length > 1 && admitted.admitted.length > 0 && beliefs.length > 0;
-  logger.info(success ? '  ✅ PASS: Multi-candidate pipeline works (candidates admitted, NAR processes)' : '  ❌ FAIL: Pipeline broken');
+  logger.info(
+    success
+      ? '  ✅ PASS: Multi-candidate pipeline works (candidates admitted, NAR processes)'
+      : '  ❌ FAIL: Pipeline broken'
+  );
   return success;
 }
 
@@ -220,13 +235,13 @@ async function runScenario2(
   // Check derivation trace for LM rule firing (only for real providers)
   const recorder = nar.getProcessor().getRecorder();
   const records = recorder.drain();
-  const lmHypothesisSteps = records.flatMap(r => 
-    r.steps.filter(s => s.ruleId === 'lm-hypothesis-generation')
+  const lmHypothesisSteps = records.flatMap((r) =>
+    r.steps.filter((s) => s.ruleId === 'lm-hypothesis-generation')
   );
-  const lmGoalDecompSteps = records.flatMap(r => 
-    r.steps.filter(s => s.ruleId === 'lm-goal-decomposition')
+  const lmGoalDecompSteps = records.flatMap((r) =>
+    r.steps.filter((s) => s.ruleId === 'lm-goal-decomposition')
   );
-  
+
   logger.info(`  📊 LM Hypothesis steps: ${lmHypothesisSteps.length}`);
   logger.info(`  📊 LM Goal Decomposition steps: ${lmGoalDecompSteps.length}`);
   for (const step of [...lmHypothesisSteps, ...lmGoalDecompSteps].slice(0, 5)) {
@@ -237,16 +252,20 @@ async function runScenario2(
   const isMock = config.provider === 'mock';
   const lmRulesExpected = !isMock;
   const lmRulesFired = lmHypothesisSteps.length > 0 || lmGoalDecompSteps.length > 0;
-  
+
   if (lmRulesExpected && !lmRulesFired) {
-    logger.warn('  ⚠️  LM rules expected but none fired (may need real model with structured output)');
+    logger.warn(
+      '  ⚠️  LM rules expected but none fired (may need real model with structured output)'
+    );
   }
 
   // Check that all three inputs were formalized and admitted
   const success = totalAdmitted >= 3 && beliefs.length > 0;
-  logger.info(success 
-    ? '  ✅ PASS: Multi-input pipeline works (all inputs formalized, admitted, NAR processes)' 
-    : '  ❌ FAIL: Some inputs not admitted or NAR error');
+  logger.info(
+    success
+      ? '  ✅ PASS: Multi-input pipeline works (all inputs formalized, admitted, NAR processes)'
+      : '  ❌ FAIL: Some inputs not admitted or NAR error'
+  );
   return success;
 }
 
@@ -258,21 +277,27 @@ async function runScenario3(
 ): Promise<boolean> {
   logger.info('\n🧠 Scenario 3: Epistemic Firewall (Belief vs Goal separation)');
 
-  const input = 'I want the database to be offline for maintenance. The database is currently online and processing 500 requests a second.';
+  const input =
+    'I want the database to be offline for maintenance. The database is currently online and processing 500 requests a second.';
 
-  const input3 = 'I want the database to be offline for maintenance. The database is currently online and processing 500 requests a second.';
+  const input3 =
+    'I want the database to be offline for maintenance. The database is currently online and processing 500 requests a second.';
   const cache3 = new TranslationCache({ maxSize: 100 });
   const understanding3 = new NLUnderstandingService(lmService, cache3, { structuredOnly: true });
 
   const taskBatch3 = await understanding3.understand(input3);
-  logger.info(`  🔍 DB TaskBatch: beliefs=${taskBatch3?.beliefs.length ?? 0}, goals=${taskBatch3?.goals.length ?? 0}, questions=${taskBatch3?.questions.length ?? 0}`);
+  logger.info(
+    `  🔍 DB TaskBatch: beliefs=${taskBatch3?.beliefs.length ?? 0}, goals=${taskBatch3?.goals.length ?? 0}, questions=${taskBatch3?.questions.length ?? 0}`
+  );
 
   // Debug: Check firewall for goal from direct LM result
   const firewall3 = (understanding3 as any).firewall;
   if (taskBatch3) {
     for (const g of taskBatch3.goals) {
       const verdict = firewall3.check(g.narsese, 'goal');
-      logger.info(`    firewall check goal "${g.narsese}": allowed=${verdict.allowed} ${verdict.reason ? `(${verdict.reason})` : ''}`);
+      logger.info(
+        `    firewall check goal "${g.narsese}": allowed=${verdict.allowed} ${verdict.reason ? `(${verdict.reason})` : ''}`
+      );
     }
   }
   if (taskBatch3) {
@@ -283,7 +308,7 @@ async function runScenario3(
       logger.info(`    goal: ${g.narsese} priority=${g.priority}`);
     }
   }
-  
+
   const batch3 = await understanding3.understandCandidates(input3);
 
   if (!batch3) {
@@ -356,19 +381,22 @@ async function runScenario3(
   logger.info(`  🔍 Final beliefs: ${finalBeliefs.length}, goals: ${finalGoals.length}`);
 
   // Check that both belief and goal were admitted (at least one of each type in final state or admitted)
-  const hasBelief = finalBeliefs.some(b => b.term.toString().includes('database'));
-  const hasGoal = finalGoals.some(g => g.term.toString().includes('database'));
+  const hasBelief = finalBeliefs.some((b) => b.term.toString().includes('database'));
+  const hasGoal = finalGoals.some((g) => g.term.toString().includes('database'));
 
   logger.info(`  📊 Database belief: ${hasBelief ? 'RETAINED' : 'EVICTED (memory pressure)'}`);
   logger.info(`  🎯 Database goal: ${hasGoal ? 'RETAINED' : 'EVICTED (memory pressure)'}`);
 
   // Success criteria: both belief and goal admitted by PerceptionGate (firewall separation works)
   // Note: Retention after cycles is subject to memory pressure in AIKR architecture
-  const success = admitted.admitted.some(t => t.taskType === 'belief') && 
-                  admitted.admitted.some(t => t.taskType === 'goal');
-  logger.info(success 
-    ? '  ✅ PASS: Epistemic firewall works (belief/goal correctly separated at admission)' 
-    : '  ❌ FAIL: Firewall breached at admission');
+  const success =
+    admitted.admitted.some((t) => t.taskType === 'belief') &&
+    admitted.admitted.some((t) => t.taskType === 'goal');
+  logger.info(
+    success
+      ? '  ✅ PASS: Epistemic firewall works (belief/goal correctly separated at admission)'
+      : '  ❌ FAIL: Firewall breached at admission'
+  );
   return success;
 }
 
@@ -382,9 +410,10 @@ async function runScenario4(): Promise<boolean> {
   const def = ruleDefs.find((d) => d.id === 'lm-explanation-generation')!;
   const captured: string[] = [];
   const rule = createRule(deadLM, def);
-  (rule as unknown as { eventBus: { emit: (n: string, d: { prompt: string }) => void } }).eventBus = {
-    emit: (_n: string, d: { prompt: string }) => captured.push(d.prompt),
-  };
+  (rule as unknown as { eventBus: { emit: (n: string, d: { prompt: string }) => void } }).eventBus =
+    {
+      emit: (_n: string, d: { prompt: string }) => captured.push(d.prompt),
+    };
 
   const cat = termParser.parse('cat') as Term;
   const tasks = await rule.apply(cat, undefined, { relatedBeliefs: ['animal'] });
@@ -490,7 +519,9 @@ async function runScenario7(): Promise<boolean> {
 
   // Every planned rule has a fallback registered
   const allCovered = fallbackIds.every((id) => typeof symbolicFallbacks[id] === 'function');
-  logger.info(`  ${allCovered ? '✅' : '❌'} All ${fallbackIds.length} rules have symbolic fallbacks`);
+  logger.info(
+    `  ${allCovered ? '✅' : '❌'} All ${fallbackIds.length} rules have symbolic fallbacks`
+  );
 
   // Fallbacks produce valid NAL tasks with the LM dead
   const server = termParser.parse('server') as Term;
@@ -519,12 +550,13 @@ async function runScenario7(): Promise<boolean> {
     for (let i = 0; i < 5; i++) derived += await nar.run(1);
   } catch (e) {
     crashed = true;
-    logger.error(`  ❌ NAR crashed: ${(e as Error).message}`);
+    logger.error(`  ❌ NAR crashed: ${errMsg(e)}`);
   } finally {
     await nar.stop();
   }
 
-  const symbolicTasks = (translation?.length ?? 0) + (analogy?.length ?? 0) + (curiosity?.length ?? 0);
+  const symbolicTasks =
+    (translation?.length ?? 0) + (analogy?.length ?? 0) + (curiosity?.length ?? 0);
   logger.info(`  📊 Symbolic fallback tasks: ${symbolicTasks}, derivations: ${derived}`);
   const success = allCovered && !crashed && symbolicTasks >= 3 && derived >= 0;
   logger.info(success ? '  ✅ PASS: NAL fallbacks take over when the LLM dies' : '  ❌ FAIL');
@@ -538,7 +570,9 @@ import { pct, serializeTruth } from '@senars/util';
 
 async function main() {
   const config = loadConfig();
-  logger.info(`🚀 Fundamentals Benchmark — Provider: ${config.provider}, Fast: ${config.fastModel}, Quality: ${config.qualityModel}`);
+  logger.info(
+    `🚀 Fundamentals Benchmark — Provider: ${config.provider}, Fast: ${config.fastModel}, Quality: ${config.qualityModel}`
+  );
 
   // Enable routing telemetry for model selection audit
   enableRoutingTelemetry({ logDir: 'logs', flushIntervalMs: 1000 });
@@ -555,57 +589,147 @@ async function main() {
       generateObjectFn: async (prompt: string, _schema: any) => {
         // Match only the actual input (the prompt embeds few-shot examples
         // that contain the scenario sentences verbatim).
-        const input =
-          prompt.split('Translate this to Narsese tasks:').pop()?.trim() ?? prompt;
-        const hasUnless = input.includes('The server will crash unless the backup generator kicks in');
-        const hasSeniorDev = input.includes('Alice is a senior developer') || input.includes('senior developer');
+        const input = prompt.split('Translate this to Narsese tasks:').pop()?.trim() ?? prompt;
+        const hasUnless = input.includes(
+          'The server will crash unless the backup generator kicks in'
+        );
+        const hasSeniorDev =
+          input.includes('Alice is a senior developer') || input.includes('senior developer');
         const hasAccessPriv = input.includes('same access privileges');
         const hasLeadEng = input.includes('Lead engineers can access');
-        const hasDatabase = input.includes('want the database') || input.includes('database to be offline');
-        
+        const hasDatabase =
+          input.includes('want the database') || input.includes('database to be offline');
+
         if (hasUnless) {
           return {
             beliefs: [
-              { narsese: '(backup_generator_kicks_in ==> server_crash)', truth: { f: 0.9, c: 0.8 }, source: 'user', sourceText: 'The server will crash unless the backup generator kicks in' },
-              { narsese: '(backup_generator_kicks_in || server_crash)', truth: { f: 0.7, c: 0.6 }, source: 'user', sourceText: 'The server will crash unless the backup generator kicks in' },
-              { narsese: '(backup_generator_kicks_in ==> --server_crash)', truth: { f: 0.5, c: 0.4 }, source: 'inferred', sourceText: 'The server will crash unless the backup generator kicks in' },
-              { narsese: '(--backup_generator_kicks_in)', truth: { f: 1.0, c: 0.9 }, source: 'user', sourceText: 'The backup generator did not kick in' },
+              {
+                narsese: '(backup_generator_kicks_in ==> server_crash)',
+                truth: { f: 0.9, c: 0.8 },
+                source: 'user',
+                sourceText: 'The server will crash unless the backup generator kicks in',
+              },
+              {
+                narsese: '(backup_generator_kicks_in || server_crash)',
+                truth: { f: 0.7, c: 0.6 },
+                source: 'user',
+                sourceText: 'The server will crash unless the backup generator kicks in',
+              },
+              {
+                narsese: '(backup_generator_kicks_in ==> --server_crash)',
+                truth: { f: 0.5, c: 0.4 },
+                source: 'inferred',
+                sourceText: 'The server will crash unless the backup generator kicks in',
+              },
+              {
+                narsese: '(--backup_generator_kicks_in)',
+                truth: { f: 1.0, c: 0.9 },
+                source: 'user',
+                sourceText: 'The backup generator did not kick in',
+              },
             ],
             goals: [],
             questions: [],
-            meta: { detectedIntent: 'reasoning', ambiguities: [], coreferences: [], implicitContext: [] },
+            meta: {
+              detectedIntent: 'reasoning',
+              ambiguities: [],
+              coreferences: [],
+              implicitContext: [],
+            },
           };
         }
         if (hasSeniorDev && !hasAccessPriv && !hasLeadEng) {
           return {
-            beliefs: [ { narsese: '(alice --> senior_developer)', truth: { f: 1.0, c: 0.9 }, source: 'user', sourceText: 'Alice is a senior developer' } ],
-            goals: [], questions: [],
-            meta: { detectedIntent: 'learning', ambiguities: [], coreferences: [], implicitContext: [] },
+            beliefs: [
+              {
+                narsese: '(alice --> senior_developer)',
+                truth: { f: 1.0, c: 0.9 },
+                source: 'user',
+                sourceText: 'Alice is a senior developer',
+              },
+            ],
+            goals: [],
+            questions: [],
+            meta: {
+              detectedIntent: 'learning',
+              ambiguities: [],
+              coreferences: [],
+              implicitContext: [],
+            },
           };
         }
         if (hasAccessPriv) {
           return {
-            beliefs: [ { narsese: '(senior_developer <-> lead_engineer)', truth: { f: 0.8, c: 0.7 }, source: 'user', sourceText: 'Senior developers have the same access privileges as lead engineers' } ],
-            goals: [], questions: [],
-            meta: { detectedIntent: 'learning', ambiguities: [], coreferences: [], implicitContext: [] },
+            beliefs: [
+              {
+                narsese: '(senior_developer <-> lead_engineer)',
+                truth: { f: 0.8, c: 0.7 },
+                source: 'user',
+                sourceText: 'Senior developers have the same access privileges as lead engineers',
+              },
+            ],
+            goals: [],
+            questions: [],
+            meta: {
+              detectedIntent: 'learning',
+              ambiguities: [],
+              coreferences: [],
+              implicitContext: [],
+            },
           };
         }
         if (hasLeadEng) {
           return {
-            beliefs: [ { narsese: '(lead_engineer ==> access_mainframe)', truth: { f: 1.0, c: 0.9 }, source: 'user', sourceText: 'Lead engineers can access the mainframe' } ],
-            goals: [], questions: [],
-            meta: { detectedIntent: 'learning', ambiguities: [], coreferences: [], implicitContext: [] },
+            beliefs: [
+              {
+                narsese: '(lead_engineer ==> access_mainframe)',
+                truth: { f: 1.0, c: 0.9 },
+                source: 'user',
+                sourceText: 'Lead engineers can access the mainframe',
+              },
+            ],
+            goals: [],
+            questions: [],
+            meta: {
+              detectedIntent: 'learning',
+              ambiguities: [],
+              coreferences: [],
+              implicitContext: [],
+            },
           };
         }
         if (hasDatabase) {
           return {
-            beliefs: [ { narsese: '(database_online && processing_500_rps)', truth: { f: 1.0, c: 0.9 }, source: 'user', sourceText: 'The database is currently online and processing 500 requests a second' } ],
-            goals: [ { narsese: 'database_offline', priority: 0.9, sourceText: 'I want the database to be offline for maintenance' } ],
+            beliefs: [
+              {
+                narsese: '(database_online && processing_500_rps)',
+                truth: { f: 1.0, c: 0.9 },
+                source: 'user',
+                sourceText: 'The database is currently online and processing 500 requests a second',
+              },
+            ],
+            goals: [
+              {
+                narsese: 'database_offline',
+                priority: 0.9,
+                sourceText: 'I want the database to be offline for maintenance',
+              },
+            ],
             questions: [],
-            meta: { detectedIntent: 'reasoning', ambiguities: [], coreferences: [], implicitContext: [] },
+            meta: {
+              detectedIntent: 'reasoning',
+              ambiguities: [],
+              coreferences: [],
+              implicitContext: [],
+            },
           };
         }
-        return { beliefs: [], goals: [], questions: [], meta: { detectedIntent: 'chat', ambiguities: [], coreferences: [], implicitContext: [] } };
+        return {
+          beliefs: [],
+          goals: [],
+          questions: [],
+          meta: { detectedIntent: 'chat', ambiguities: [], coreferences: [], implicitContext: [] },
+        };
       },
       available: true,
       provider: 'mock',
@@ -616,9 +740,12 @@ async function main() {
     lmService = createLMService(registry);
     // Surface transformers.js model download/init progress (otherwise the first
     // generation silently blocks with no output while the ONNX weights load).
-    if (config.provider !== 'mock' && typeof (lmService as any).setProgressCallback === 'function') {
+    if (
+      config.provider !== 'mock' &&
+      typeof (lmService as any).setProgressCallback === 'function'
+    ) {
       (lmService as any).setProgressCallback((p: number) => {
-        logger.info(`  📥 model load ${pct(p , 0)}`);
+        logger.info(`  📥 model load ${pct(p, 0)}`);
       });
     }
   }
@@ -694,7 +821,9 @@ async function main() {
   // Export derivation traces for verification
   logger.info('\n📁 Derivation traces exported to logs/routing-*.jsonl');
   const routingStatus = getRoutingLogStatus();
-  logger.info(`  Routing telemetry: ${routingStatus.enabled ? 'enabled' : 'disabled'}, buffer: ${routingStatus.bufferSize}, log: ${routingStatus.logPath}`);
+  logger.info(
+    `  Routing telemetry: ${routingStatus.enabled ? 'enabled' : 'disabled'}, buffer: ${routingStatus.bufferSize}, log: ${routingStatus.logPath}`
+  );
 
   if (!allPass) process.exit(1);
 }

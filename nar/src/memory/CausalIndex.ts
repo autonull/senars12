@@ -5,11 +5,10 @@
  * build pass; mirrors the lazy metadata-index pattern on `EpisodicMemory`.
  */
 import type { Episode } from '@senars/util';
+import { getOrInsert } from '@senars/util';
 
 const push = (index: Map<string, Episode[]>, key: string, episode: Episode): void => {
-  const bucket = index.get(key);
-  if (bucket) bucket.push(episode);
-  else index.set(key, [episode]);
+  getOrInsert(index, key, () => []).push(episode);
 };
 
 export class CausalIndex {

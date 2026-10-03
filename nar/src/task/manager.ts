@@ -1,4 +1,4 @@
-import { maxBy, sortByDesc } from '@senars/util';
+import { deadline, maxBy, sortByDesc } from '@senars/util';
 
 import type { GateRegistry } from '../kernel/GateRegistry.js';
 import type { TaskAdmission } from '../memory/ports/index.js';
@@ -32,7 +32,7 @@ export class TaskManager {
   private memory: TaskAdmission;
   private readonly defaultTimeout: number;
   private gates: GateRegistry;
-  private timeouts = new Map<string, NodeJS.Timeout>();
+  private timeouts = new Map<string, () => void>();
 
   constructor(memory: TaskAdmission, private readonly config: TaskManagerConfig) {
     this.memory = memory;
@@ -71,11 +71,7 @@ export class TaskManager {
     const wrapper = this.pending.get(taskId);
     if (!wrapper) return false;
     this.pending.delete(taskId);
-    const timeoutId = this.timeouts.get(taskId);
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      this.timeouts.delete(taskId);
-    }
+    this.disarm(taskId);
     return true;
   }
 
@@ -93,8 +89,7 @@ export class TaskManager {
     this.pending.set(taskId, wrapper);
 
     if (wrapper.timeout && wrapper.timeout > 0) {
-      const id = setTimeout(() => this.expireTask(taskId), wrapper.timeout);
-      this.timeouts.set(taskId, id);
+      this.timeouts.set(taskId, deadline(wrapper.timeout, () => this.expireTask(taskId)));
     }
 
   }
@@ -108,11 +103,7 @@ export class TaskManager {
         break;
 
       const taskId = wrapper.task.stamp.id;
-      const timeoutId = this.timeouts.get(taskId);
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        this.timeouts.delete(taskId);
-      }
+      this.disarm(taskId);
 
       wrapper.lifecycle = 'running';
       wrapper.startedAt = Date.now();
@@ -168,11 +159,7 @@ export class TaskManager {
     this.pending.delete(taskId);
     this.failed.set(taskId, wrapper);
 
-    const timeoutId = this.timeouts.get(taskId);
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      this.timeouts.delete(taskId);
-    }
+    this.disarm(taskId);
     return true;
   }
 
@@ -180,8 +167,14 @@ export class TaskManager {
     return this.pending.get(taskId) ?? this.completed.get(taskId) ?? this.failed.get(taskId);
   }
 
+  /** Cancel a task's expiry deadline. Safe once it has already fired. */
+  private disarm(taskId: string): void {
+    this.timeouts.get(taskId)?.();
+    this.timeouts.delete(taskId);
+  }
+
   clear(): void {
-    for (const id of this.timeouts.values()) clearTimeout(id);
+    for (const disarm of this.timeouts.values()) disarm();
     this.timeouts.clear();
     this.pending.clear();
     this.completed.clear();

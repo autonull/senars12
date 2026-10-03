@@ -5,8 +5,8 @@
  * command groups need.
  */
 export {
-  CommandRegistry,
   type CommandContext,
   type CommandDefinition,
   type CommandHandler,
+  CommandRegistry,
 } from '@senars/util';

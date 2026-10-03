@@ -1,5 +1,5 @@
 import http, { type IncomingMessage } from 'node:http';
-import type { Logger } from '@senars/util';
+import { deadline, type Logger } from '@senars/util';
 import type { WebSocketServer } from 'ws';
 
 export interface ServerStartupOptions {
@@ -39,13 +39,13 @@ const listenWithDeadline = <T extends StartupServer>(
   timeout: number
 ): Promise<T> =>
   new Promise<T>((resolve, reject) => {
-    const failTimeout = setTimeout(() => {
+    const disarmDeadline = deadline(timeout, () => {
       reject(new Error(`${what} server startup timeout`));
       server.close();
-    }, timeout);
+    });
 
     server.on('listening', () => {
-      clearTimeout(failTimeout);
+      disarmDeadline();
       resolve(server);
     });
 

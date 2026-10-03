@@ -101,9 +101,7 @@ export const recordedSchemaVersions = (events: readonly CognitiveEvent[]): numbe
  * version this build does not speak — a stream from a future commit must not
  * replay against incompatible state.
  */
-export function replayProposalStream(
-  events: readonly CognitiveEvent[]
-): ProposalReplayState {
+export function replayProposalStream(events: readonly CognitiveEvent[]): ProposalReplayState {
   const versions = recordedSchemaVersions(events);
   const incompatible = versions.filter((version) => version !== PROPOSAL_SCHEMA_VERSION);
   if (incompatible.length > 0) {
@@ -136,8 +134,7 @@ export function replayProposalStream(
         reason: event.payload.reason,
         observedRevision: event.payload.observedRevision,
       });
-      rejectedByReason[event.payload.reason] =
-        (rejectedByReason[event.payload.reason] ?? 0) + 1;
+      rejectedByReason[event.payload.reason] = (rejectedByReason[event.payload.reason] ?? 0) + 1;
     }
   }
 

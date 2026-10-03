@@ -3,17 +3,20 @@ import { join } from 'node:path';
 import {
   clamp01,
   ensureDir,
-  writeJsonFile,
+  groupBy,
+  holdoutSplit,
+  mulberry32,
   pearson,
   readJsonlAsync,
   sha256HexParts,
   sha256Prefixed,
   sigmoid,
+  writeJsonFile,
 } from '@senars/util';
 
 export { pearson };
+
 import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL_ID } from '../../memory/embedding.js';
-import { holdoutSplit, mulberry32 } from '../../utils/random.js';
 import { decodeVector } from './distill.js';
 import { meanBrierOf } from './metrics.js';
 import type { CognitiveAxis, JudgmentHead, JudgmentQuery, RubricId } from './types.js';
@@ -67,7 +70,10 @@ interface RawLabel {
 }
 
 export async function loadTrainingData(options: LoadTrainingDataOptions): Promise<TrainingRow[]> {
-  const { rows: rawRows } = await readJsonlAsync<RawLabel>(options.datasetPath, (value) => value as RawLabel);
+  const { rows: rawRows } = await readJsonlAsync<RawLabel>(
+    options.datasetPath,
+    (value) => value as RawLabel
+  );
 
   const grouped = new Map<string, { sum: number; count: number; action: string; vector: string }>();
   for (const label of rawRows) {
@@ -129,7 +135,6 @@ export interface TrainedHeadModel {
     valueCorrelation?: number;
   };
 }
-
 
 /** Gaussian elimination with partial pivoting (A square, nonsingular). */
 export function solveLinearSystem(A: number[][], b: number[]): number[] {
@@ -373,23 +378,21 @@ export function bakeOffSharedHead(
   meta: { headId: string; rubric: string; axis: string },
   options: SharedHeadBakeOffOptions = {}
 ): SharedHeadBakeOffResult {
-  const byGame = new Map<string, TrainingRow[]>();
-  for (const row of rows) {
-    if (!row.game) throw new Error('Bake-off rows must carry a `game` tag');
-    (byGame.get(row.game) ?? byGame.set(row.game, []).get(row.game)!).push(row);
-  }
+  if (rows.some((row) => !row.game)) throw new Error('Bake-off rows must carry a `game` tag');
+  const byGame = groupBy(rows, (row) => row.game!);
   if (byGame.size < 2) throw new Error(`Bake-off requires ≥2 games, got ${byGame.size}`);
 
   const rng = mulberry32(options.seed ?? 42);
-  const train = new Map<string, TrainingRow[]>();
-  const holdout = new Map<string, TrainingRow[]>();
+  // One map, not a train/holdout pair: each game contributes one split, and a
+  // shared `rng` makes the iteration order part of the result — so this stays a
+  // `Map`, whose order is insertion order. An object would reorder integer-like
+  // game names and silently reshuffle which rows land in which half.
+  const splits = new Map<string, { holdout: TrainingRow[]; train: TrainingRow[] }>();
   for (const [game, gameRows] of byGame) {
-    const split = holdoutSplit(gameRows, options.holdoutFraction ?? 0.2, rng);
-    holdout.set(game, split.holdout);
-    train.set(game, split.train);
+    splits.set(game, holdoutSplit(gameRows, options.holdoutFraction ?? 0.2, rng));
   }
 
-  const pooledTrain = [...train.values()].flat();
+  const pooledTrain = [...splits.values()].flatMap((split) => split.train);
   const shared = trainHead(pooledTrain, meta, {
     ...options,
     gameFeatureDim: options.gameFeatureDim ?? 8,
@@ -397,16 +400,16 @@ export function bakeOffSharedHead(
   const perGame: Record<string, TrainedHeadModel> = {};
   const scores: SharedHeadBakeOffResult['scores'] = {};
   let sharedWinsAll = true;
-  for (const [game, gameTrain] of train) {
-    perGame[game] = trainHead(gameTrain, meta, {
+  for (const [game, split] of splits) {
+    perGame[game] = trainHead(split.train, meta, {
       ...options,
       gameFeatureDim: 0,
       seed: (options.seed ?? 42) ^ game.length,
     });
     const sharedHead = toHead(shared);
     const gameHead = toHead(perGame[game]!);
-    const sharedBrier = brierOn((e, a) => sharedHead.score(e, a, game), holdout.get(game)!);
-    const perGameBrier = brierOn((e, a) => gameHead.score(e, a), holdout.get(game)!);
+    const sharedBrier = brierOn((e, a) => sharedHead.score(e, a, game), split.holdout);
+    const perGameBrier = brierOn((e, a) => gameHead.score(e, a), split.holdout);
     scores[game] = { shared: sharedBrier, perGame: perGameBrier };
     if (sharedBrier > perGameBrier) sharedWinsAll = false;
   }
@@ -568,4 +571,3 @@ export async function loadHeadArtifacts(
   }
   return new TrainedLinearHead(config, weightsBytes, modelDigest);
 }
-

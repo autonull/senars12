@@ -2,6 +2,7 @@ import type {
   EpisodicMemory,
   HealthStatus,
   LMService,
+  LMTask,
   NAR,
   SkillDefinition,
   BridgeOptions as UtilBridgeOptions,
@@ -69,7 +70,7 @@ export interface AgentOptions {
     correlationId: string;
   }) => Promise<unknown>;
   /** H2: default narration tier for chat cycles when the caller passes none. */
-  narrateTier?: 'quality' | 'fast' | 'structured';
+  narrateTier?: LMTask;
   /** Phase A (REFACTOR.todo1): custom macro-cycle phases; default `DEFAULT_MACRO_PIPELINE`. */
   macroPipeline?: MacroPhase[];
   /** Phase A (REFACTOR.todo2): end-of-cycle learning consolidation (pressure-gated, inert below threshold). */

@@ -4,7 +4,7 @@
  * step sequence exactly; narration streams through the phase chain via
  * `MacroContext.stream`.
  */
-import { createLogger, errMsg } from '@senars/util';
+import { createLogger, errMsg, type LMTask, toolError } from '@senars/util';
 
 import type { ChatStreamEvent } from '../chat.js';
 import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
@@ -183,11 +183,7 @@ const act = async (ctx: MacroContext): Promise<Array<{ command: string; result: 
 
       const policyCheck = host.policy.checkCommand(cmd.command);
       if (!policyCheck.allowed) {
-        const result: ToolResult = {
-          success: false,
-          content: null,
-          error: policyCheck.reason ?? 'Blocked by policy',
-        };
+        const result: ToolResult = toolError(policyCheck.reason ?? 'Blocked by policy');
         toolResults.push({ command: cmd.command, result });
         continue;
       }
@@ -353,7 +349,7 @@ export async function* runCycleStream(
   stimulus: CognitiveStimulus,
   opts?: {
     signal?: AbortSignal;
-    tier?: 'quality' | 'fast' | 'structured';
+    tier?: LMTask;
     pipeline?: readonly MacroPhase[];
   }
 ): AsyncGenerator<ChatStreamEvent, string> {

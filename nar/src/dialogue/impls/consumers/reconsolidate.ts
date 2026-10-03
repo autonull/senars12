@@ -6,7 +6,9 @@
  *
  * REFACTOR.todo4 Phase B: now backed by the generic `Ledger<T>` primitive.
  */
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/util/ledger';
+
+import type { BeliefTruth } from '@senars/util';
+import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 import type { Retrospective } from '../../types.js';
 import { extractLessons } from '../retrospect.js';
@@ -22,7 +24,7 @@ export interface ReconsolidationSink {
 
 export interface LessonSeed {
   term: string;
-  truth: { frequency: number; confidence: number };
+  truth: BeliefTruth;
 }
 
 const ReconsolidatedEntrySchema = BaseLedgerEntrySchema.extend({

@@ -1,7 +1,7 @@
 /** Host-surface commands that shell out or own a long-lived handle (`.webui`, `.arcade`, `.multiagent`). */
 
 import { execFile } from 'node:child_process';
-import { errMsg } from '@senars/util';
+import { errMsg, finiteOr } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import { tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
@@ -19,7 +19,7 @@ export const runtimeCommandsFor = (rt: BotRuntime) => [
       return 'Web UI stopped';
     }
     if (rt.webuiHandle) return 'Web UI already running';
-    const port = Number(sub) || 3001;
+    const port = finiteOr(sub, 3001);
     const { startAgentUI } = await import('../../../ui/src/server/index.js');
     rt.webuiHandle = await startAgentUI(rt.wired.agent as never, { port } as never);
     return `Web UI on :${port}`;
@@ -27,17 +27,17 @@ export const runtimeCommandsFor = (rt: BotRuntime) => [
   cmd('arcade', 'Run arcade games: [games] [arms] [episodes] [seed]', async (args = '') => {
     const [games = 'snake', arms = 'heuristic,random', episodes = '2', seed = '7'] = tokenize(args);
     const passthrough = ['--games', games, '--arms', arms, '--episodes', episodes, '--seed', seed];
-    return new Promise<string>((resolve) => {
-      execFile(
-        'pnpm',
-        ['exec', 'tsx', 'scripts/arcade.ts', ...passthrough],
-        { timeout: ARCADE_TIMEOUT_MS, maxBuffer: ARCADE_MAX_BUFFER },
-        (_e, stdout, stderr) =>
-          resolve(
-            ((stdout || '') + (stderr || '')).slice(-ARCADE_OUTPUT_TAIL) || 'arcade produced no output'
-          )
-      );
-    });
+    const { promise, resolve } = Promise.withResolvers<string>();
+    execFile(
+      'pnpm',
+      ['exec', 'tsx', 'scripts/arcade.ts', ...passthrough],
+      { timeout: ARCADE_TIMEOUT_MS, maxBuffer: ARCADE_MAX_BUFFER },
+      (_e, stdout, stderr) =>
+        resolve(
+          ((stdout || '') + (stderr || '')).slice(-ARCADE_OUTPUT_TAIL) || 'arcade produced no output'
+        )
+    );
+    return promise;
   }),
   cmd('multiagent', 'MeTTa multi-agent status', async (args = '') => {
     const verb = args.trim().toLowerCase();

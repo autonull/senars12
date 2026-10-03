@@ -1,6 +1,6 @@
-import { tool } from './decorator.js';
+import { toolError, toolOk } from '@senars/util';
 import type { Schema, Tool, ToolContext, ToolResult } from '../types';
-import { errorResult } from '../types';
+import { tool } from './decorator.js';
 
 @tool({
   name: 'timer',
@@ -50,19 +50,19 @@ export class TimerTool implements Tool {
     try {
       switch (action) {
         case 'start':
-          if (!name || !callback) return errorResult('Timer name and callback required');
+          if (!name || !callback) return toolError('Timer name and callback required');
           return this.startTimer(name, delay, repeat, callback);
         case 'stop':
         case 'cancel':
-          if (!name) return errorResult('Timer name required');
+          if (!name) return toolError('Timer name required');
           return action === 'stop' ? this.stopTimer(name) : this.cancelTimer(name);
         case 'list':
           return this.listTimers();
         default:
-          return errorResult(`Unknown action: ${action}`);
+          return toolError(`Unknown action: ${action}`);
       }
     } catch (error) {
-      return errorResult(error);
+      return toolError(error);
     }
   }
 
@@ -95,25 +95,18 @@ export class TimerTool implements Tool {
     timeout.unref();
     this.timers.set(name, timeout);
 
-    return {
-      success: true,
-      content: {
-        name,
-        delay,
-        repeat,
-        callback,
-        status: 'started',
-      },
-      metadata: { timerId: name },
-    };
+    return toolOk(
+      { name, delay, repeat, callback, status: 'started' },
+      { metadata: { timerId: name } }
+    );
   }
 
   private stopTimer(name: string): ToolResult {
     const config = this.timerConfig.get(name);
-    if (!config) return errorResult(`Timer '${name}' not found`);
+    if (!config) return toolError(`Timer '${name}' not found`);
     this.clearTimer(name);
     this.timerConfig.delete(name);
-    return { success: true, content: { name, status: 'stopped' } };
+    return toolOk({ name, status: 'stopped' });
   }
 
   private cancelTimer(name: string): ToolResult {
@@ -130,13 +123,10 @@ export class TimerTool implements Tool {
       });
     }
 
-    return {
-      success: true,
-      content: {
-        count: timers.length,
-        timers,
-      },
-    };
+    return toolOk({
+      count: timers.length,
+      timers,
+    });
   }
 
   private clearTimer(name: string): void {

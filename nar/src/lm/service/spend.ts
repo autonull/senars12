@@ -13,8 +13,8 @@ export interface ProviderSpend {
 }
 
 const spendCapUsd = (): number | undefined => {
-  const cap = envPositive('LM_MAX_SPEND_USD', Number.NaN);
-  return Number.isNaN(cap) ? undefined : cap;
+  const cap = envPositive('LM_MAX_SPEND_USD', 0);
+  return cap > 0 ? cap : undefined;
 };
 
 /** H3: per-provider spend ledger (token totals from AI-SDK usage + capability table). */

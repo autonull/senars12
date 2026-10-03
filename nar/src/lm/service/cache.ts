@@ -1,4 +1,4 @@
-import { djb2, type LMTask, LruCache } from '@senars/util';
+import { type Clock, djb2, type LMTask, LruCache } from '@senars/util';
 
 const CACHE_TTL_MS = 60_000;
 
@@ -28,8 +28,11 @@ export function buildCacheKey(
 export class ResponseCache {
   readonly #cache: LruCache<string, string>;
 
-  constructor(opts: { ttlMs?: number; now?: () => number } = {}) {
-    this.#cache = new LruCache<string, string>({ ttlMs: opts.ttlMs ?? CACHE_TTL_MS, now: opts.now });
+  constructor(opts: { ttlMs?: number; now?: Clock } = {}) {
+    this.#cache = new LruCache<string, string>({
+      ttlMs: opts.ttlMs ?? CACHE_TTL_MS,
+      now: opts.now,
+    });
   }
 
   /** Live (unexpired) entries — the bound the sweep maintains. */

@@ -3,9 +3,10 @@
  * `NalVetoArbitration` is the extracted default (byte-identical to the former
  * inline `decide()`); `WeightedQuorum` is the opt-in consensus alternative.
  */
+
+import { incrementCount, LruCache } from '@senars/util';
 import type { NALDerivation, NegotiationDecision } from './negotiation-types.js';
 import type { ActionProposal } from './Reflex.js';
-import { LruCache } from '@senars/util';
 
 export interface ArbitrationStrategy {
   decide(
@@ -133,12 +134,16 @@ export class WeightedQuorum implements ArbitrationStrategy {
 
     const quorum = new Map<string, number>();
     for (const p of reflexProposals) {
-      quorum.set(p.action, (quorum.get(p.action) ?? 0) + p.value * p.confidence);
+      incrementCount(quorum, p.action, p.value * p.confidence);
     }
     for (const d of nalDerivations) {
       if (!quorum.has(d.action)) continue;
       const vote =
-        d.truth.f >= 0.5 ? d.truth.c : d.truth.f < 0.3 && d.truth.c >= this.#vetoThreshold ? -d.truth.c : 0;
+        d.truth.f >= 0.5
+          ? d.truth.c
+          : d.truth.f < 0.3 && d.truth.c >= this.#vetoThreshold
+            ? -d.truth.c
+            : 0;
       quorum.set(d.action, quorum.get(d.action)! + vote);
     }
 
@@ -147,7 +152,8 @@ export class WeightedQuorum implements ArbitrationStrategy {
       .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0];
     if (!winner) return none('weighted-quorum');
     const best = bestOf(reflexProposals.filter((p) => p.action === winner[0]));
-    if (!best || best.value * best.confidence < this.#reflexThreshold) return none('weighted-quorum');
+    if (!best || best.value * best.confidence < this.#reflexThreshold)
+      return none('weighted-quorum');
     return {
       action: winner[0],
       actionExecuted: winner[0],

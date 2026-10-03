@@ -1,6 +1,15 @@
 import { join } from 'node:path';
 import type { DerivationRecord, ReasoningBudget } from '@senars/core/schemas';
-import { asBeliefTruth, clamp, ensureDirSync, makeId, maxBy, pushCapped } from '@senars/util';
+import {
+  asBeliefTruth,
+  clamp,
+  ensureDirSync,
+  makeId,
+  maxBy,
+  pushCapped,
+  safeRatio,
+  sumBy,
+} from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 import { PriorityBag } from '../bag/Bag.js';
@@ -732,11 +741,11 @@ export class GameFocus {
   } {
     const totalEpisodes = this.episodeVetoCounts.length + (this.currentEpisodeVetos > 0 ? 1 : 0);
     const totalVetosInEpisodes =
-      this.episodeVetoCounts.reduce((a, b) => a + b, 0) + this.currentEpisodeVetos;
+      sumBy(this.episodeVetoCounts, (count) => count) + this.currentEpisodeVetos;
     return {
       totalVetos: this.vetoCount,
       episodeVetoCounts: [...this.episodeVetoCounts, this.currentEpisodeVetos].filter((v) => v > 0),
-      vetoRate: totalEpisodes > 0 ? totalVetosInEpisodes / totalEpisodes : 0,
+      vetoRate: safeRatio(totalVetosInEpisodes, totalEpisodes),
       vetoDetails: [...this.vetoDetails],
     };
   }

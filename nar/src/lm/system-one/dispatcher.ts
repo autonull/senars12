@@ -1,5 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { monotonicNow, stopwatch } from '@senars/util';
+import { monotonicNow, safeRatio, stopwatch } from '@senars/util';
 import { DECISION_DERIVATIONS_SCOPE } from '../../kernel/budget-scopes.js';
 import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
 import { Stamp } from '../../terms/impls/Stamp.js';
@@ -239,12 +239,11 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     string,
     { calls: number; totalMs: number; judgments: number; meanMs: number }
   > {
-    return Object.fromEntries(
-      [...this.#tierLatency.entries()].map(([tier, s]) => [
-        `L${tier}`,
-        { ...s, meanMs: s.calls > 0 ? s.totalMs / s.calls : 0 },
-      ])
-    );
+    const stats: Record<string, { calls: number; totalMs: number; judgments: number; meanMs: number }> = {};
+    for (const [tier, s] of this.#tierLatency) {
+      stats[`L${tier}`] = { ...s, meanMs: safeRatio(s.totalMs, s.calls) };
+    }
+    return stats;
   }
 
   #chargeBatch(gate: KernelBudgetGate | null, results: readonly JudgmentProposition[]): boolean {

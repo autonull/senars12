@@ -1,15 +1,24 @@
-import { describe, expect, it } from 'vitest';
-import { readFileSync, mkdtempSync, existsSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { wrapReflex, recordingReflex, vetoAwareReflex, type AdapterReflex } from '../../nar/src/reflex/adapters.js';
-import type { ActionProposal, LearningEvent, Reflex } from '../../nar/src/reflex/Reflex.js';
-import { JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
-import { mcReturns, recordMcReturnLabels } from '../../nar/src/lm/system-one/mc-return.js';
-import { actionFeatures, bakeOffSharedHead, type TrainingRow } from '../../nar/src/lm/system-one/train.js';
+import { mulberry32 } from '@senars/util';
+import { describe, expect, it } from 'vitest';
 import { induceEpisodeSchemas } from '../../nar/src/focus/episode-schemas.js';
 import { SchemaStore } from '../../nar/src/focus/schema-store.js';
-import { mulberry32 } from '../../nar/src/utils/random.js';
+import { JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
+import { mcReturns, recordMcReturnLabels } from '../../nar/src/lm/system-one/mc-return.js';
+import {
+  actionFeatures,
+  bakeOffSharedHead,
+  type TrainingRow,
+} from '../../nar/src/lm/system-one/train.js';
+import {
+  type AdapterReflex,
+  recordingReflex,
+  vetoAwareReflex,
+  wrapReflex,
+} from '../../nar/src/reflex/adapters.js';
+import type { ActionProposal, LearningEvent, Reflex } from '../../nar/src/reflex/Reflex.js';
 
 /**
  * Bench 45 — Learning Closure (TODO19 Phase C)
@@ -90,8 +99,17 @@ describe('Bench 45 — Learning Closure', () => {
       return e;
     };
     // Shared action preference (transferable across games) + a modest game offset.
-    const actionPref: Record<string, number> = { cycle: 0.35, revise: 0.1, rest: -0.2, ask_lm: 0.25 };
-    const gameOffset: Record<string, number> = { conversation: 0.05, 'tool-use': -0.05, research: 0 };
+    const actionPref: Record<string, number> = {
+      cycle: 0.35,
+      revise: 0.1,
+      rest: -0.2,
+      ask_lm: 0.25,
+    };
+    const gameOffset: Record<string, number> = {
+      conversation: 0.05,
+      'tool-use': -0.05,
+      research: 0,
+    };
     const rows: TrainingRow[] = [];
     let n = 0;
     for (const game of Object.keys(gameOffset)) {
@@ -101,7 +119,15 @@ describe('Bench 45 — Learning Closure', () => {
         const e = state(n * 7919);
         let signal = 0;
         for (let j = 0; j < dim; j++) signal += e[j]! * h[j]!;
-        rows.push({ embedding: e, action, game, target: Math.min(1, Math.max(0, 0.5 + signal * 0.3 + actionPref[action]! + gameOffset[game]!)) });
+        rows.push({
+          embedding: e,
+          action,
+          game,
+          target: Math.min(
+            1,
+            Math.max(0, 0.5 + signal * 0.3 + actionPref[action]! + gameOffset[game]!)
+          ),
+        });
       }
     }
     const meta = { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' };
@@ -113,7 +139,9 @@ describe('Bench 45 — Learning Closure', () => {
       expect(bakeOff.perGame[game]).toBeDefined();
     }
     // Verdict is derived from the recorded scores, never asserted a priori.
-    const expectVerdict = Object.values(bakeOff.scores).every((s) => s.shared <= s.perGame) ? 'shared' : 'per-game';
+    const expectVerdict = Object.values(bakeOff.scores).every((s) => s.shared <= s.perGame)
+      ? 'shared'
+      : 'per-game';
     expect(bakeOff.verdict).toBe(expectVerdict);
   });
 
@@ -135,21 +163,38 @@ describe('Bench 45 — Learning Closure', () => {
         const h = actionFeatures(action, dim);
         let signal = 0;
         for (let j = 0; j < dim; j++) signal += e[j]! * h[j]!;
-        rows.push({ embedding: e, action, game, target: Math.min(1, Math.max(0, 0.5 + sign * signal * 0.6)) });
+        rows.push({
+          embedding: e,
+          action,
+          game,
+          target: Math.min(1, Math.max(0, 0.5 + sign * signal * 0.6)),
+        });
       }
     }
-    const bakeOff = bakeOffSharedHead(rows, { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' }, { seed: 7, holdoutFraction: 0.25 });
+    const bakeOff = bakeOffSharedHead(
+      rows,
+      { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' },
+      { seed: 7, holdoutFraction: 0.25 }
+    );
     expect(bakeOff.verdict).toBe('per-game');
   });
 
   it('L3 — bake-off rejects rows without a game tag and single-game pools', () => {
     const e = new Float32Array(4);
-    expect(() => bakeOffSharedHead([{ embedding: e, action: 'a', target: 0.5 }], { headId: 'r', rubric: 'r', axis: 'x' })).toThrow();
+    expect(() =>
+      bakeOffSharedHead([{ embedding: e, action: 'a', target: 0.5 }], {
+        headId: 'r',
+        rubric: 'r',
+        axis: 'x',
+      })
+    ).toThrow();
     const tagged = [
       { embedding: e, action: 'a', target: 0.5, game: 'g1' },
       { embedding: e, action: 'b', target: 0.4, game: 'g1' },
     ];
-    expect(() => bakeOffSharedHead(tagged, { headId: 'r', rubric: 'r', axis: 'x' })).toThrow(/≥2 games/);
+    expect(() => bakeOffSharedHead(tagged, { headId: 'r', rubric: 'r', axis: 'x' })).toThrow(
+      /≥2 games/
+    );
   });
 
   it('L4 — SchemaStore: second run starts with the first run schema count and improves', () => {

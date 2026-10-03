@@ -1,4 +1,4 @@
-import { clamp01, createLogger, stopwatch } from '@senars/util';
+import { clamp01, createLogger, safeRatio, stopwatch } from '@senars/util';
 import type { ILMService } from '../../lm/interfaces.js';
 import { NLUnderstandingService } from '../../nl/understanding.js';
 import type { ScenarioProfile, ScenarioTemplateProfile } from './scenario-profiles.js';
@@ -145,7 +145,7 @@ export function calculateScenarioReward(result: ScenarioResult, spec: ScenarioSp
     totalWeight += weight;
   }
 
-  const baseReward = totalWeight > 0 ? totalScore / totalWeight : 0;
+  const baseReward = safeRatio(totalScore, totalWeight);
   const stepBonus = clamp01(result.steps_executed / spec.duration_steps) * 0.2;
   const eventBonus = clamp01(result.cognitive_events / 100) * 0.1;
 

@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import type { BudgetSubject } from '../../scripts/lib/control-budgets.js';
 import { budgetViolations, sharedOperations, spentScopeIds } from '../../scripts/lib/control-budgets.js';
+import { BUDGET_RESOURCES } from '@senars/core/budget';
 import {
   BUDGET_SCOPE_IDS,
   BUDGET_SCOPES,
   DECISION_DERIVATIONS_SCOPE,
   scopeBudget,
+  scopeLimitKey,
   scopeSpec,
+  scopeTerminationReason,
   type BudgetScopeId,
 } from '@senars/nar/kernel/budget-scopes';
 import { ControlBudgets, type ControlBudgetOverrides } from '@senars/nar/kernel/control-budgets';
@@ -104,8 +107,20 @@ describe('A7 — every declared scope is one ReasoningBudget scope', () => {
   it('each carries an owner, a default, a configuration source and an overflow reason', () => {
     for (const scopeId of BUDGET_SCOPE_IDS) {
       const spec = scopeSpec(scopeId);
-      expect([spec.owner, spec.configSource, spec.terminationReason].every(Boolean)).toBe(true);
+      expect([spec.owner, spec.configSource, scopeTerminationReason(scopeId)].every(Boolean)).toBe(true);
       expect(spec.defaultLimit).toBeGreaterThan(0);
+    }
+  });
+
+  it('the reason a scope raises is its dimension\'s, not a restated one', () => {
+    // The scope table declares which dimension it spends; the ceiling key and the
+    // overflow reason are `core/budget`'s to say, so a row cannot claim a reason
+    // that belongs to another dimension.
+    for (const scopeId of BUDGET_SCOPE_IDS) {
+      expect(scopeTerminationReason(scopeId)).toBe(
+        BUDGET_RESOURCES[scopeSpec(scopeId).consumedKey].reason
+      );
+      expect(scopeLimitKey(scopeId)).toBe(BUDGET_RESOURCES[scopeSpec(scopeId).consumedKey].total);
     }
   });
 

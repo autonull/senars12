@@ -5,8 +5,8 @@
 
 export {
   type BoundRange,
-  boundRange,
   type BoundSpec,
+  boundRange,
   boundSpec,
   type CognitiveBoundCategory,
   type CognitiveBoundKey,
@@ -41,6 +41,8 @@ export {
   type NarCoreBounds,
   narCoreBounds,
   narCoreDefaultedNumber,
+  narCoreDefaults,
+  narCoreDefaultsSchema,
   narCoreNumber,
 } from './nar-core-bounds.js';
 export { CACHE_DIR, cachePath } from './paths.js';

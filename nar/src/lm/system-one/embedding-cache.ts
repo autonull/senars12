@@ -1,4 +1,4 @@
-import { LruCache } from '@senars/util';
+import { LruCache, safeRatio } from '@senars/util';
 import { TransformersEmbeddingGenerator } from '../../memory/embedding.js';
 import { embeddingRuntime } from '../embedding-runtime.js';
 import type { EmbeddingCache as EmbeddingCacheApi, EmbeddingPointer } from './types.js';
@@ -172,8 +172,7 @@ export class EmbeddingCache {
 
   /** Fraction of write() calls served from cache (0 when nothing was written yet). */
   hitRate(): number {
-    const total = this.#metrics.hits + this.#metrics.misses;
-    return total === 0 ? 0 : this.#metrics.hits / total;
+    return safeRatio(this.#metrics.hits, this.#metrics.hits + this.#metrics.misses);
   }
 
   get generator(): TransformersEmbeddingGenerator | NonNullable<EmbeddingCacheConfig['generator']> {

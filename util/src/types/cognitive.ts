@@ -1,3 +1,4 @@
+import type { BeliefTruth } from './truth.js';
 /**
  * Every origin a cognitive event may claim. One list, so the zod boundary in
  * `core` cannot admit an origin the types do not carry — the gates mint
@@ -43,4 +44,3 @@ export interface ChatStreamEvent {
   /** The correlationId minted for this message (on `finish`), joining turns ↔ trace grades ↔ episodes. */
   readonly correlationId?: string;
 }
-

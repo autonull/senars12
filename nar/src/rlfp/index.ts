@@ -5,9 +5,21 @@ import { ReasoningTrajectoryLogger, type TrajectoryStep } from './ReasoningTraje
 import { RewardModel } from './RewardModel.js';
 import type { TaskOutcome } from './RLFPLearner.js';
 import { RLFPLearner } from './RLFPLearner.js';
-import { TrajectoryStore, type CycleGrades, type CycleTrajectory, type TrajectoryPair } from './trajectory-store.js';
+import {
+  type CycleGrades,
+  type CycleTrajectory,
+  type TrajectoryPair,
+  TrajectoryStore,
+} from './trajectory-store.js';
 
-export type { TaskOutcome, TrajectoryStep, TunableKnob, CycleGrades, CycleTrajectory, TrajectoryPair };
+export type {
+  CycleGrades,
+  CycleTrajectory,
+  TaskOutcome,
+  TrajectoryPair,
+  TrajectoryStep,
+  TunableKnob,
+};
 export {
   createKnobSet,
   PolicyOptimizer,

@@ -1,16 +1,21 @@
-import { sameStrategies, type CognitiveParameters, type StrategySlotParams } from '../../config/cognitive-parameters';
+import { removeBy } from '@senars/util';
+import {
+  type CognitiveParameters,
+  type StrategySlotParams,
+  sameStrategies,
+} from '../../config/cognitive-parameters';
 import type { ControlBudgetPort } from '../../kernel/control-budgets.js';
 import type { MemoryPorts } from '../../memory/ports/index.js';
 import type { MetricsCollector } from '../../metrics';
 import type { Strategy } from '../../reason';
-import type { Task } from '../../types';
 import { InferenceController } from '../../reason/inference-controller';
 import type { RLFPLearner } from '../../rlfp';
 import type { RuleProcessor } from '../../rules';
-import type { StrategySpec, StrategyType } from '../../strategies/registration';
 import type { DerivationStrategy, ModelRuleSelector, SamplingStrategy } from '../../strategies';
+import type { RuleGraph } from '../../strategies/lm-graph/RuleGraph.js';
+import type { StrategySpec, StrategyType } from '../../strategies/registration';
 import type { AttentionModel } from '../../strategies/types.js';
-import { RuleGraph } from '../../strategies/lm-graph/RuleGraph.js';
+import type { Task } from '../../types';
 import type { CognitiveRegistry } from './CognitiveRegistry.js';
 import { SLOT_KEY } from './CognitiveRegistry.js';
 
@@ -81,8 +86,7 @@ export class CognitiveController {
   onAdapt(fn: () => void): () => void {
     this.onAdaptCallbacks.push(fn);
     return () => {
-      const idx = this.onAdaptCallbacks.indexOf(fn);
-      if (idx >= 0) this.onAdaptCallbacks.splice(idx, 1);
+      removeBy(this.onAdaptCallbacks, (callback) => callback === fn);
     };
   }
 
@@ -90,8 +94,7 @@ export class CognitiveController {
   onDerivation(fn: (chain: readonly Task[]) => void): () => void {
     this.onDerivationCallbacks.push(fn);
     return () => {
-      const idx = this.onDerivationCallbacks.indexOf(fn);
-      if (idx >= 0) this.onDerivationCallbacks.splice(idx, 1);
+      removeBy(this.onDerivationCallbacks, (callback) => callback === fn);
     };
   }
 
@@ -203,7 +206,6 @@ export class CognitiveController {
     const ruleGraph = this.registry.get<RuleGraph>('lm-rule', 'lm-graph');
     this.memory.attachConceptGraph(ruleGraph.graph);
     return { selector: ruleGraph, ruleGraph };
-
   }
 
   #wireRuleGraphCallbacks(ruleGraph: RuleGraph): void {

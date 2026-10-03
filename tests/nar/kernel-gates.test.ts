@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
 import { KernelActionGate } from '../../nar/src/kernel/KernelActionGate.js';
+import { GATE_LOG_CAPACITY } from '../../nar/src/kernel/event-ring.js';
 import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
 import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
 import { KernelRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
@@ -149,5 +150,36 @@ describe('kernel gates', () => {
     });
     expect(out.authorized).toBe(false);
     expect(out.vetoReason).toMatch(/NAL veto/);
+  });
+
+  it('action gate keeps the NAL veto registry bounded', () => {
+    const gate = new KernelActionGate({
+      autonomyMode: 'sandbox-execute',
+      allowedOperations: new Set(['fire']),
+    });
+    // Derivation ids arrive every reasoning step and nothing retires them, so an
+    // unbounded registry grew for the life of the process.
+    for (let i = 0; i < GATE_LOG_CAPACITY + 500; i++)
+      gate.registerNALDerivation(`d${i}`, `conclusion ${i}`, false);
+
+    // The oldest registrations fall off...
+    const evicted = gate.authorize({
+      proposalId: uuidv4(),
+      operation: 'fire',
+      args: {},
+      nalDerivationId: 'd0',
+    });
+    expect(evicted.authorized).toBe(true);
+
+    // ...while recent ones still apply, including a veto.
+    gate.registerNALDerivation('recent-veto', 'still a trap', true);
+    const held = gate.authorize({
+      proposalId: uuidv4(),
+      operation: 'fire',
+      args: {},
+      nalDerivationId: 'recent-veto',
+    });
+    expect(held.authorized).toBe(false);
+    expect(held.vetoReason).toMatch(/still a trap/);
   });
 });

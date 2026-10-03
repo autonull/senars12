@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createIsotonicCalibrator } from '../lm/system-one/calibration.js';
 import { identityECE, meanBrier } from '../lm/system-one/metrics.js';
-import { ensureDir, incrementCount, mean, pct } from '@senars/util';
+import { ensureDir, incrementCount, mean, pct, sumBy, unique } from '@senars/util';
 
 export interface ArcadeTickRecord {
   arm: string;
@@ -104,7 +104,7 @@ export class BrierHarness {
   }
 
   handoverTotal(game?: string): number {
-    if (game === undefined) return [...this.handoverByGame.values()].reduce((a, b) => a + b, 0);
+    if (game === undefined) return sumBy(this.handoverByGame.values(), (count) => count);
     return this.handoverByGame.get(game) ?? 0;
   }
 
@@ -117,7 +117,7 @@ export class BrierHarness {
 
   /** Games this arm actually played — the denominator a macro mean rests on. */
   gamesByArm(arm: string): string[] {
-    return [...new Set(this.byArm(arm).map((r) => r.game))].sort();
+    return unique(this.byArm(arm).map((r) => r.game)).sort();
   }
 
   /** Per-game Brier for one arm, so an aggregate can be a mean of means. */
@@ -131,7 +131,7 @@ export class BrierHarness {
 
   /** The seed-comparable aggregate: one row per arm, macro means over games. */
   aggregate(): ArmAggregate[] {
-    const arms = [...new Set(this.records.map((r) => r.arm))].sort();
+    const arms = unique(this.records.map((r) => r.arm)).sort();
     return arms.map((arm) => {
       const perGame = this.brierByGame(arm);
       const rows = this.byArm(arm);
@@ -152,14 +152,17 @@ export class BrierHarness {
           mean(rows.filter((r) => r.game === game), (r) => r.reward)
         ),
         macroReturn: mean(this.gamesByArm(arm), (game) =>
-          rows.filter((r) => r.game === game).reduce((a, r) => a + r.reward, 0)
+          sumBy(
+            rows.filter((r) => r.game === game),
+            (r) => r.reward
+          )
         ),
       };
     });
   }
 
   summary(): ArmSummary[] {
-    const arms = [...new Set(this.records.map((r) => r.arm))];
+    const arms = unique(this.records.map((r) => r.arm));
     return arms.map((arm) => {
       const rows = this.byArm(arm);
       return {

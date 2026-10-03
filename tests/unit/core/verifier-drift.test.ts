@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { safeDiv } from '@senars/util';
 import { Truth } from '@senars/nar/terms';
-import { VERIFIER_TRUTH_TABLE } from '@senars/core/verify-derivation';
+import { resolveTruthFn, VERIFIER_TRUTH_TABLE } from '@senars/core/verify-derivation';
+import { BUILTIN_DECLARATIONS } from '../../../nar/src/rules/impls/registration.js';
 
 /**
  * TODO28 §4.1 — the verifier's transcribed truth table, pinned against the
@@ -135,5 +136,25 @@ describe('the derivation verifier is independent, and its independence is measur
       ...Object.keys(VERIFIER_TRUTH_TABLE.UNARY_TRUTH),
     ];
     expect(tableNames.filter((name) => engineOp(name) === null)).toEqual([]);
+  });
+
+  it('every shipped rule resolves to an entry this table can compute', () => {
+    // The other direction, and the one that was missing. A table entry with no
+    // shipped rule is dead weight; a *shipped rule* with no table entry is a
+    // derivation the verifier cannot check at all — it counts as a skip, so the
+    // proof passes with the step unexamined. Before steps carried their
+    // declared truth function, resolution was a substring scan over rule ids
+    // and 23 of 44 shipped rules resolved to nothing.
+    const unresolved = BUILTIN_DECLARATIONS.filter(
+      (declaration) =>
+        !declaration.truthFn || resolveTruthFn(declaration.ruleId, declaration.truthFn) === null
+    ).map((declaration) => `${declaration.ruleId} (${declaration.truthFn ?? 'no truth fn'})`);
+
+    expect(unresolved).toEqual([]);
+  });
+
+  it('every declared truth function is one the engine implements', () => {
+    const declared = [...new Set(BUILTIN_DECLARATIONS.map((d) => d.truthFn).filter(Boolean))];
+    expect(declared.filter((name) => engineOp(name as string) === null)).toEqual([]);
   });
 });

@@ -1,3 +1,5 @@
+import { splitWords } from '@senars/util';
+
 export const LLM_COMMANDS = [
   'send',
   'remember',
@@ -129,7 +131,7 @@ export class MettaCommandParser {
     let normalized = line.trim();
     while (normalized.startsWith('(')) normalized = normalized.slice(1).trimStart();
     while (normalized.endsWith(')')) normalized = normalized.slice(0, -1).trimEnd();
-    return normalized.split(/\s+/)[0] ?? '';
+    return splitWords(normalized)[0] ?? '';
   }
 
   #isKnownCommand(line: string): boolean {

@@ -1,3 +1,4 @@
+import { sumBy } from '@senars/util';
 import { SATURATION_COUNT } from '../constants.js';
 import { clamp01, type CognitionContext, type Reward } from './types.js';
 
@@ -75,4 +76,4 @@ export const composeReward = (
   weights: Record<string, number>,
   context: CognitionContext
 ): number =>
-  rewards.reduce((total, r) => total + (weights[r.id] ?? 0) * r.score(context), 0);
+  sumBy(rewards, (r) => (weights[r.id] ?? 0) * r.score(context));

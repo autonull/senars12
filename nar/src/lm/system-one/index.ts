@@ -6,17 +6,17 @@ export * from './calibration-fit.js';
 export * from './cascade-reflex.js';
 export * from './contrastive.js';
 export * from './decide.js';
-export * from './hard-negatives.js';
 export * from './desire.js';
 export * from './dispatcher.js';
 export * from './distill.js';
-export * from './eval-set.js';
 export {
   createEmbeddingCache,
   EmbeddingCache,
   type EmbeddingCacheConfig,
 } from './embedding-cache.js';
+export * from './eval-set.js';
 export * from './groundedness-gate.js';
+export * from './hard-negatives.js';
 export * from './heads/index.js';
 export * from './http-endpoint.js';
 export * from './http-manifold.js';

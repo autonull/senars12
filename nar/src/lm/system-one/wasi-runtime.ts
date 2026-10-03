@@ -1,4 +1,4 @@
-import { SHA256_PINNED, shortSha256Hex, sha256Hex, sha256Prefixed } from '@senars/util';
+import { SHA256_PINNED, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
 
 import { createWasiSandbox } from '../../capability/wasi-sandbox.js';
 import type {

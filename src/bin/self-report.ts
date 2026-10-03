@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Self-Report CLI — Pretty-print cognitive state summary
  *
@@ -6,15 +7,14 @@
  *        pnpm exec tsx src/bin/self-report.ts
  */
 
-import { mettaPort } from './lib/metta.js';
 import { NARBuilder } from '@senars/nar/agent/builder';
 import { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
-import { createLogger } from '@senars/util';
 import { initializeMetaReasoning, registerMetaRules } from '@senars/nar/rules';
 import { operationNameOf } from '@senars/nar/terms';
 import { initializeSelfConcept } from '@senars/nar/tools';
-import { bar, divider, formatNarseseTruth, mean, pct } from '@senars/util';
+import { bar, createLogger, divider, formatNarseseTruth, mean, pct } from '@senars/util';
 import { runEntrypoint } from './lib/fatal-error.js';
+import { mettaPort } from './lib/metta.js';
 
 const logger = createLogger({ scope: 'self-report' });
 
@@ -156,7 +156,9 @@ async function main() {
 
   console.log('\n📊 AIKR PRESSURE');
   console.log(divider());
-  console.log(`  ${formatAikrPressure(aikrPressure)} (memory: ${memoryPressure === undefined ? 'unmeasured' : pct(memoryPressure)})`);
+  console.log(
+    `  ${formatAikrPressure(aikrPressure)} (memory: ${memoryPressure === undefined ? 'unmeasured' : pct(memoryPressure)})`
+  );
 
   console.log('\n🎰 RLFP REWARD');
   console.log(divider());

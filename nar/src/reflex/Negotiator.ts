@@ -3,12 +3,12 @@ import type { Perception } from '../game/Game.js';
 import { withSpan } from '../otel/index.js';
 import { TermBuilder } from '../terms';
 import type { ContradictionEvent, NarEventBus } from '../types/events.js';
-import type { ActionProposal, LearningEvent } from './Reflex.js';
 import type { NALDerivation, NegotiationDecision } from './negotiation-types.js';
-import { NalVetoArbitration, type ArbitrationStrategy } from './weighted-quorum.js';
+import type { ActionProposal, LearningEvent } from './Reflex.js';
+import { type ArbitrationStrategy, NalVetoArbitration } from './weighted-quorum.js';
 
-export type { ArbitrationStrategy } from './weighted-quorum.js';
 export type { NALDerivation, NegotiationDecision } from './negotiation-types.js';
+export type { ArbitrationStrategy } from './weighted-quorum.js';
 
 export interface NegotiatorOptions {
   nalVetoThreshold?: number;
@@ -67,7 +67,9 @@ export class Negotiator {
 
   /** P3 (TODO20): veto-memo hit-rate surface (size only; 0 with custom arbitration). */
   memoStats(): { size: number } {
-    return { size: this.arbitration instanceof NalVetoArbitration ? this.arbitration.memoSize() : 0 };
+    return {
+      size: this.arbitration instanceof NalVetoArbitration ? this.arbitration.memoSize() : 0,
+    };
   }
 
   resolve(reflexProposals: ActionProposal[], nalDerivations: NALDerivation[]): NegotiationDecision {
@@ -103,7 +105,10 @@ export class Negotiator {
    * action → typed `contradiction` event (MeTTa votes yes, NAL lacks a
    * supporting derivation). Inert without an eventBus (C10: wired consumers only).
    */
-  #emitContradictions(reflexProposals: readonly ActionProposal[], nalDerivations: readonly NALDerivation[]): void {
+  #emitContradictions(
+    reflexProposals: readonly ActionProposal[],
+    nalDerivations: readonly NALDerivation[]
+  ): void {
     if (!this.eventBus) return;
     const at = Date.now();
     for (const p of reflexProposals) {

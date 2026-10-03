@@ -1,5 +1,13 @@
-import { clamp, formatTruth, parseTruthLiteral, safeDiv, serializeTruth } from '@senars/util';
-import type { Confidence, Frequency } from '@senars/util';
+import {
+  type Confidence,
+  clamp,
+  type Frequency,
+  formatTruth,
+  nearlyEqual,
+  parseTruthLiteral,
+  safeDiv,
+  serializeTruth,
+} from '@senars/util';
 
 export interface Truth {
   readonly f: Frequency;
@@ -8,6 +16,12 @@ export interface Truth {
 
 const WEAKENING_FACTOR = 10;
 const MAX_CONFIDENCE = 0.999;
+/** Frequency multiplier on a confirmed feedback result. */
+const CONFIRM_GAIN = 1.1;
+/** Frequency multiplier on a contradicted feedback result. */
+const CONTRADICT_DECAY = 0.9;
+/** Confidence added by either outcome — how much a human or LM verdict is worth. */
+const OUTCOME_GAIN = 0.1;
 
 class TruthError extends Error {
   constructor(msg: string) {
@@ -16,15 +30,34 @@ class TruthError extends Error {
   }
 }
 
+/**
+ * Bring a value into the `Truth` domain: frequency in `0..1`, confidence in
+ * `0..MAX_CONFIDENCE`, non-numeric input replaced by the unopinionated default
+ * (`0.5`/`0.9`).
+ *
+ * Total by construction. This is what every rule op and every untrusted
+ * boundary routes through, because the algebra saturates by design — a
+ * confidence-weighted merge can exceed the cap, a saturating revision reaches
+ * it — and a throw in the middle of a rule would abort a derivation over a
+ * value the rule was always going to clamp.
+ */
+const normalizeTruth = (f: number, c: number): Truth =>
+  Object.freeze({
+    f: clamp(isNaN(f) ? 0.5 : f, 0, 1) as Frequency,
+    c: clamp(isNaN(c) ? 0.9 : c, 0, MAX_CONFIDENCE) as Confidence,
+  });
+
+/**
+ * The validating constructor: a confidence above the ceiling is a caller that
+ * did not mean to produce it, not a value to be absorbed. Held separately from
+ * {@link normalizeTruth} so that distinction survives — callers reading a
+ * number off the wire, a schema, or a model reply use {@link Truth.normalize}.
+ */
 const createTruth = (f: number, c: number): Truth => {
-  const clampedC = clamp(isNaN(c) ? 0.9 : c, 0, MAX_CONFIDENCE);
   if (c > MAX_CONFIDENCE) {
     throw new TruthError(`Confidence ${c} exceeds maximum ${MAX_CONFIDENCE}`);
   }
-  return Object.freeze({
-    f: clamp(isNaN(f) ? 0.5 : f, 0, 1) as Frequency,
-    c: clampedC as Confidence,
-  });
+  return normalizeTruth(f, c);
 };
 
 const c2w = (c: number): number => (c === 1 ? 1e10 : c / (1 - c));
@@ -37,13 +70,13 @@ const truthOps = {
     <F extends (f1: number, f2: number, c1: number, c2: number) => [number, number]>(fn: F) =>
     (t1: Truth, t2: Truth): Truth => {
       const [f, c] = fn(t1.f, t2.f, t1.c, t2.c);
-      return createTruth(f, c);
+      return normalizeTruth(f, c);
     },
   unary:
     <F extends (f: number, c: number) => [number, number]>(fn: F) =>
     (t: Truth): Truth => {
       const [f, c] = fn(t.f, t.c);
-      return createTruth(f, c);
+      return normalizeTruth(f, c);
     },
   chain: (op: (t1: Truth, t2: Truth) => Truth, t1: Truth, t2: Truth, steps: number): Truth => {
     let result = op(t1, t2);
@@ -66,12 +99,28 @@ const truthOps = {
 
 export const Truth = {
   create: createTruth,
+  normalize: normalizeTruth,
   TRUE: Object.freeze({ f: 1.0 as Frequency, c: 0.9 as Confidence }) as Truth,
   FALSE: Object.freeze({ f: 0.0 as Frequency, c: 0.9 as Confidence }) as Truth,
   NEUTRAL: Object.freeze({ f: 0.5 as Frequency, c: 0.9 as Confidence }) as Truth,
   MAX_CONFIDENCE,
   negation: truthOps.unary((f, c) => [1 - f, c]),
   conversion: truthOps.unary((f, c) => [f, f * c]),
+
+  /**
+   * Salience: how much attention a truth earns, as `f · c`. This is the ordering
+   * key for bags, budgets, and relevance gates — not a claim about how true
+   * something is.
+   *
+   * It is deliberately not {@link Truth.expectation} and must never be read as
+   * one. `expectation` is `c · (f - 0.5) + 0.5`, so it is signed around the
+   * neutral midpoint and separates "I am certain it is false" from "I know
+   * nothing"; `attention` collapses both, scoring `(f=0.50, c=0.80)` and
+   * `(f=0.80, c=0.50)` identically. Ranking by it is right — a confidently-false
+   * belief deserves attention too. Reporting it as confidence is wrong.
+   */
+  attention: (t: Truth): number => t.f * t.c,
+
   expectation: (t: Truth): number => t.c * (t.f - 0.5) + 0.5,
   harshness: (t: Truth): number => {
     const exp = Truth.expectation(t);
@@ -132,6 +181,30 @@ export const Truth = {
     return [(f1 * w1 + f2 * w2) / w, w2c(w)];
   }),
 
+  /**
+   * Confidence decay by `factor`, frequency unchanged. Ageing a belief and
+   * weakening a hypothetical both scale how much the evidence is worth while
+   * leaving what it says alone.
+   *
+   * Distinct from {@link Truth.weak}, which is the NAL weakening rule
+   * `c / (c + 10)` — a principled reduction, not a decay rate.
+   */
+  damp: (t: Truth, factor: number): Truth => truthOps.unary((f, c) => [f, c * factor])(t),
+
+  /**
+   * Outcome nudges from the feedback loop, not inference rules: a confirmed or
+   * contradicted prediction shifts the belief and adds confidence, because a
+   * checkable verdict is itself evidence.
+   *
+   * Heuristic by construction. A `c` already at the ceiling simply does not
+   * move: `reinforce` and `contradict` land in {@link Truth.normalize}, so
+   * `c + OUTCOME_GAIN` on a `0.9` belief saturates at
+   * {@link Truth.MAX_CONFIDENCE} rather than escaping as `1.0` and failing the
+   * domain check inside a feedback turn.
+   */
+  reinforce: truthOps.unary((f, c) => [f * CONFIRM_GAIN, c + OUTCOME_GAIN]),
+  contradict: truthOps.unary((f, c) => [f * CONTRADICT_DECAY, c + OUTCOME_GAIN]),
+
   isStronger: (t1: Truth, t2: Truth): boolean => Truth.expectation(t1) > Truth.expectation(t2),
   weak: (c: number): number => clamp(c / (c + WEAKENING_FACTOR), 0, 1),
   c2w,
@@ -172,4 +245,4 @@ export const Truth = {
 
 /** The one epsilon-tolerant truth comparison; `Truth.equals` is the member form. */
 export const isTruthEqual = (a: Truth, b: Truth, epsilon = 1e-3): boolean =>
-  Math.abs(a.f - b.f) < epsilon && Math.abs(a.c - b.c) < epsilon;
+  nearlyEqual(a.f, b.f, epsilon) && nearlyEqual(a.c, b.c, epsilon);

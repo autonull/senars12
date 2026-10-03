@@ -1,3 +1,4 @@
+import { incrementCount } from '@senars/util';
 import { type ActionProposal, byExpectedValue, type LearningEvent, type Reflex } from './Reflex.js';
 
 /**
@@ -20,7 +21,9 @@ export interface PrefetchingReflex extends Reflex {
 
 const duckPrefetch = (reflex: Reflex, args: unknown[]): unknown => {
   const p = (reflex as PrefetchingReflex).prefetch;
-  return typeof p === 'function' ? (p as (...a: unknown[]) => unknown).apply(reflex, args) : undefined;
+  return typeof p === 'function'
+    ? (p as (...a: unknown[]) => unknown).apply(reflex, args)
+    : undefined;
 };
 
 /** Forwards `prefetch` (all arguments) to the wrapped reflex. */
@@ -70,8 +73,7 @@ export const vetoAwareReflex =
           .sort(byExpectedValue);
       },
       learn: (e: LearningEvent) => {
-        if (e.overriddenBy && e.actionProposed)
-          overridden.set(e.actionProposed, (overridden.get(e.actionProposed) ?? 0) + 1);
+        if (e.overriddenBy && e.actionProposed) incrementCount(overridden, e.actionProposed, 1);
         inner.learn(e);
       },
       prefetch: (...args: unknown[]) => duckPrefetch(inner, args),

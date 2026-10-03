@@ -26,6 +26,8 @@
  * above nothing else; treat a gridworld ratio below it as real.
  */
 
+import { safeRatio } from '@senars/util';
+
 export const PER_SEED_RATIO_FLOOR = 0.5;
 
 export const PARITY_ACCEPTANCE: Record<
@@ -63,4 +65,4 @@ export const computeSeedPassRate = <T extends SeedRatio>(
   results: readonly T[],
   floor: number = PER_SEED_RATIO_FLOOR
 ): number =>
-  results.length === 0 ? 0 : results.filter((r) => r.ratio >= floor).length / results.length;
+  safeRatio(results.filter((r) => r.ratio >= floor).length, results.length);

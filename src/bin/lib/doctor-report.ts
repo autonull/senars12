@@ -33,7 +33,7 @@ import {
   resolveOfflineTier,
   setRouting,
 } from '@senars/nar/lm';
-import { createLogger, parseFlags } from '@senars/util';
+import { createLogger, errMsg, keyedBy, mapValues, parseFlags } from '@senars/util';
 import { loadConfig } from '../../config/index.js';
 
 const logger = createLogger({ scope: 'doctor' });
@@ -162,7 +162,7 @@ const main = async (): Promise<void> => {
     };
     if (config.routing) setRouting(config.routing as never);
   } catch (e) {
-    output.config = { valid: false, error: (e as Error).message };
+    output.config = { valid: false, error: errMsg(e) };
   }
 
   // Routing matrix
@@ -210,14 +210,12 @@ const main = async (): Promise<void> => {
     output.degradation = {
       activeProvider: lmConfig.provider,
       effectiveChains: output.routingMatrix,
-      circuitBreakers: Object.fromEntries(
-        Object.entries(output.circuitBreakers).map(([k, v]) => [
-          k,
-          { state: v.state, failures: v.failures },
-        ])
-      ),
+      circuitBreakers: mapValues(output.circuitBreakers, (v) => ({
+        state: v.state,
+        failures: v.failures,
+      })),
       offlineTier: output.offlineTier,
-      credentials: Object.fromEntries(creds.map((c) => [c.key, c.present])),
+      credentials: keyedBy(creds, (c) => c.key, (c) => c.present),
     };
   }
 
@@ -236,9 +234,7 @@ const main = async (): Promise<void> => {
       });
       output.deep = {
         ready: report.ready,
-        checks: Object.fromEntries(
-          Object.entries(report.checks).map(([k, v]) => [k, { ok: v.ok, detail: v.detail ?? '' }])
-        ),
+        checks: mapValues(report.checks, (v) => ({ ok: v.ok, detail: v.detail ?? '' })),
       };
     } finally {
       await nar.dispose();

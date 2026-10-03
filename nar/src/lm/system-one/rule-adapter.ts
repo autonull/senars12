@@ -1,8 +1,8 @@
-import { clamp, clamp01, selectTopN } from '@senars/util';
+import { clamp, clamp01, minBy, selectTopN } from '@senars/util';
 import type { Term } from '../../terms';
 import { Truth, termParser } from '../../terms';
 import type { Budget, Task, TruthType } from '../../types';
-import { createTaskWeight, createTask } from '../../types/core.js';
+import { createTask, createTaskWeight } from '../../types/core.js';
 import type { CognitiveDispatcher, EvaluateQuery, JudgmentProposition } from './types.js';
 import { createSystemOneBudget } from './types.js';
 
@@ -180,10 +180,10 @@ export class SystemOneLMRuleAdapter {
       const fitted = manifold
         ? [...manifold.getCalibrators().values()].filter((cal) => cal.fitted)
         : [];
-      const best = fitted.sort((a, b) => a.getECE() - b.getECE())[0];
+      const best = minBy(fitted, (head) => head.getECE());
       let cPrime = best ? best.calibrate(c) : c;
       if (manifold && !manifold.health().ready) cPrime *= 0.8; // drift demotion
-      const calibrated = Truth.create(f, clamp(cPrime, 0.01, 0.99));
+      const calibrated = Truth.normalize(f, clamp(cPrime, 0.01, 0.99));
       return [
         createTask(primary, 'belief', calibrated, {
           priority: cPrime,

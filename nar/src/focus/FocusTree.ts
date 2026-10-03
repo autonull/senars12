@@ -14,15 +14,13 @@ import {
   mergeConsumption,
   sliceBudget,
 } from '@senars/core/budget';
-import { raceDeadline } from '@senars/util';
+import { type RandomSource, raceDeadline, SeededRNG, weightedPick } from '@senars/util';
 import type { Focus, FocusOptions, FocusStepReport } from '../focus/Focus.js';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { FocusScheduler, FocusSchedulerOptions } from '../focus/focus-scheduler.js';
 import type { GameFocus } from '../focus/GameFocus.js';
 import type { MetaGame } from '../game/impls/MetaGame.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
-import type { RandomSource } from '../types/primitives.js';
-import { SeededRNG, weightedPick } from '../utils/random.js';
 import { schedulerReward } from './scheduler-reward.js';
 
 export interface FocusTreeNode {

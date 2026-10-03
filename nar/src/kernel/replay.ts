@@ -10,15 +10,15 @@ import {
   validateCognitiveEvent,
   validateDerivationRecord,
 } from '@senars/core/schemas';
-import { appendJsonl, errMsg, readJsonl, sha256Hex, writeJsonFileSync } from '@senars/util';
+import { appendJsonl, errMsg, keyedBy, readJsonl, sha256Hex, writeJsonFileSync } from '@senars/util';
 import { createDefaultRegistry, resolveSlot } from '../cognitive/impls/CognitiveRegistry.js';
-import { isProposalStream, replayProposalStream } from '../proposal/replay.js';
-import type { ProposalReplayState } from '../proposal/replay.js';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { Concept, ConceptTaskType, TaskData } from '../memory/concept.js';
 import { Memory } from '../memory/memory.js';
 import type { MemoryPorts } from '../memory/ports/index.js';
 import { serialize as serializeMemory } from '../memory/state/serialization.js';
+import type { ProposalReplayState } from '../proposal/replay.js';
+import { isProposalStream, replayProposalStream } from '../proposal/replay.js';
 import type { AttentionModel } from '../strategies/types.js';
 import { rehydrateTask } from '../task/record.js';
 import { Stamp, Truth, termParser, termsEqual } from '../terms/index.js';
@@ -147,9 +147,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
   // A9: reduce the proposal seam's events before touching memory, so a stream
   // recorded under an incompatible schema version fails here rather than
   // producing a half-reconstructed store that looks like a successful replay.
-  const proposalState = isProposalStream(gateEvents)
-    ? replayProposalStream(gateEvents)
-    : undefined;
+  const proposalState = isProposalStream(gateEvents) ? replayProposalStream(gateEvents) : undefined;
   const appliedProposals = proposalState?.admissions.length ?? 0;
 
   const admittedTasks = replayTaskAdmissions(gateEvents);
@@ -272,7 +270,7 @@ export async function computeReplayStateHash(result: ReplayResult): Promise<stri
   const canonicalMemory = { ...serializeMemory(result.memory), timestamp: 0 };
   return sha256Hex(
     JSON.stringify({
-      counters: Object.fromEntries(HASHED_FIELDS.map((field) => [field, result[field]])),
+      counters: keyedBy(HASHED_FIELDS, (field) => field, (field) => result[field]),
       memory: canonicalMemory,
     })
   );

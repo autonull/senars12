@@ -5,7 +5,8 @@
  */
 
 import { clamp, sha256Hex } from '@senars/util';
-
+import { type JudgmentProvenance, stageProvenance } from './decide.js';
+import type { BandDecision } from './policy.js';
 import {
   type CascadeJudge,
   type ConfidenceBands,
@@ -21,9 +22,9 @@ import type {
   JudgmentQuery,
   ReasoningBudget,
 } from './types.js';
-import { type JudgmentProvenance, stageProvenance } from './decide.js';
 
-export type VerifyDecision = 'act' | 'review' | 'block' | 'abstain';
+/** The router's four bands, under the name the verification stage reports them by. */
+type VerifyDecision = BandDecision;
 
 export interface VerifyResult {
   decision: VerifyDecision;
@@ -34,7 +35,6 @@ export interface VerifyResult {
   /** Provenance matching Decider's JudgmentProvenance for auditability. */
   provenance: JudgmentProvenance;
 }
-
 
 /** Stage-2 query space derived from stage-1 uncertainty: evidential support, not plausibility. */
 const verifyQuery = (statement: string, p: number): EvaluateQuery => ({
@@ -77,7 +77,12 @@ export async function verifyCascade(
     decision,
     p: prop.abstained ? undefined : prop.score,
     verification: result.stage2,
-    provenance: stageProvenance([result.stage1, result.stage2], inputDigest, decision === 'abstain' ? 'abstain' : decision, prop.abstained),
+    provenance: stageProvenance(
+      [result.stage1, result.stage2],
+      inputDigest,
+      decision === 'abstain' ? 'abstain' : decision,
+      prop.abstained
+    ),
   };
 }
 

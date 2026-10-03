@@ -5,7 +5,7 @@
 export { CommandRegistry } from './commands/registry.js';
 // Commands
 /** @public Command system types. */
-export type { CommandContext, CommandDefinition, CommandHandler } from './commands/types.js';
+export { isQuitResult, QUIT_SENTINEL, type CommandContext, type CommandDefinition, type CommandHandler } from './commands/types.js';
 // Config
 /** @public Shared configuration types, validation, and env mapping. */
 export type { ConfigCapability, ConfigEvent, ConfigSchema, ConfigView } from './config/index.js';
@@ -129,11 +129,11 @@ export type {
   LMPromptGenerator,
   LMResponseProcessor,
   LMRuleConfig,
-  ModelRuleStats,
   LMService,
   LMTask,
   LMTaskGenerator,
   MockLMConfig,
+  ModelRuleStats,
 } from './types/llm.js';
 /** @public Session/memory manager contracts. */
 export type { ConversationSession, SessionManager } from './types/memory.js';
@@ -153,7 +153,7 @@ export type {
   TransportDeps,
 } from './types/transport.js';
 /** @public Truth value branded types. */
-export type { Confidence, Frequency, TruthLike } from './types/truth.js';
+export type { BeliefTruth, Confidence, Frequency, TermTruth, TruthLike } from './types/truth.js';
 /** @public Truth value constructors. */
 export {
   asBeliefTruth,
@@ -177,6 +177,7 @@ export { assertDefined, invariant } from './utils/assert.js';
  */
 export {
   boundedSignal,
+  deadline,
   monotonicNow,
   periodic,
   raceDeadline,
@@ -190,31 +191,42 @@ export type { BoundedMapOptions, EvictionOrder } from './utils/bounded-map.js';
 export { BoundedMap } from './utils/bounded-map.js';
 export type { Flags } from './utils/cli.js';
 export { parseFlags } from './utils/cli.js';
+/** @public The one injectable time source; every bounded container and cache takes one. */
+export type { Clock } from './utils/clock.js';
+export { fixedClock, systemClock } from './utils/clock.js';
 export type { ReadOnlyLookup } from './utils/collections.js';
 // Collections
 /** @public Drop-oldest bounded ring buffer. */
 export {
   addToSet,
   BoundedRing,
+  buckets,
   chunk,
   edgeKey,
+  flatUnique,
   getOrInsert,
+  groupBy,
   incrementCount,
   insertByScoreDesc,
+  keyedBy,
+  mapToRecord,
+  mapValues,
   maxBy,
   maxScore,
   minBy,
   pushCapped,
+  removeBy,
   removeFromSet,
+  removeLastBy,
   selectByPriority,
   selectTopN,
   sortBy,
   sortByDesc,
   trimCapped,
+  unique,
 } from './utils/collections.js';
 export { formatIssues, type SchemaIssue } from './utils/diagnostics.js';
 export { errMsg, toError } from './utils/error.js';
-export { extractJsonObject, parseJsonObject } from './utils/json.js';
 /** @public Percent, divider, and progress-bar formatting for reports and CLI output. */
 export { bar, divider, pct, percentile, section, utcDate } from './utils/format.js';
 export type { JsonlLoadResult } from './utils/fs.js';
@@ -262,6 +274,7 @@ export {
   sequentialIdSource,
   sortableIdSource,
 } from './utils/id.js';
+export { extractJsonObject, parseJsonObject } from './utils/json.js';
 export type { LruCacheOptions } from './utils/lru-cache.js';
 /** @public Bounded recency-ordered cache with optional TTL. */
 export { LruCache } from './utils/lru-cache.js';
@@ -270,19 +283,42 @@ export {
   clamp,
   clamp01,
   estimateTokens,
+  finiteOr,
   mean,
+  meanOf,
+  nearlyEqual,
+  normalizeToSum,
   occupancy,
   pearson,
   roundTo,
   safeDiv,
+  safeRatio,
   sigmoid,
   softmax,
   stdDev,
+  sumBy,
+  toFiniteNumber,
   ucb1,
   variance,
 } from './utils/numeric.js';
 export { deepEqual, deepFreeze, deepMerge, getNested, setNested } from './utils/object.js';
 export { extractLastUserMessage } from './utils/prompt.js';
+/** @public The seeded PRNG, weighted sampling, and the deterministic split primitive. */
+export {
+  choice,
+  createLCG,
+  holdoutSplit,
+  mulberry32,
+  nextInt,
+  type RandomSource,
+  SeededRNG,
+  type SeededStream,
+  seededStream,
+  shuffleInPlace,
+  weightedPick,
+  weightedSample,
+  weightedSampleBy,
+} from './utils/random.js';
 export type { RateLimiterOptions } from './utils/rate-limit.js';
 /** @public Keyed sliding-window rate limiter for transports and guards. */
 export { SlidingWindowRateLimiter } from './utils/rate-limit.js';
@@ -302,10 +338,12 @@ export {
 export { setupGracefulShutdown } from './utils/shutdown.js';
 export { weightedMean } from './utils/stats.js';
 export {
+  escapeRegExp,
   extractTerm,
   isNarsese,
   limitList,
   NARSESE_ATOM_CHARS,
+  splitWords,
   tokenizeWords,
   truncate,
   truncateBytes,

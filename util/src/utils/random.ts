@@ -1,9 +1,16 @@
 /**
  * Deterministic seeded randomness — the single PRNG for reproducible sampling,
  * dataset splits, and imagination scenarios.
+ *
+ * Lives in `@senars/util` rather than beside its largest consumer because a
+ * seeded source is a dependency of *every* layer that must be reproducible:
+ * bag eviction, rate windows, dataset splits and imagination scenarios all draw
+ * from one, and a layer below the reasoning engine had to reimplement mulberry32
+ * or reach up to `nar` for it.
  */
 
-import type { RandomSource } from '../types/primitives.js';
+/** Injectable randomness — a seeded stream, an LCG, or `Math.random`. */
+export type RandomSource = () => number;
 
 /** A resumable mulberry32 stream: the draw function plus its live 32-bit state word. */
 export interface SeededStream {
@@ -132,7 +139,12 @@ export const weightedSample = <T>(
   count: number,
   weightOf: (item: T) => number,
   rng: RandomSource
-): T[] => weightedSampleBy(items.map((item) => ({ item, weight: weightOf(item) })), count, rng);
+): T[] =>
+  weightedSampleBy(
+    items.map((item) => ({ item, weight: weightOf(item) })),
+    count,
+    rng
+  );
 
 /**
  * The index of a weight-proportional draw over `count` slots, or -1 when the
@@ -140,7 +152,11 @@ export const weightedSample = <T>(
  * total is read off the pool itself rather than a cached scalar, so a stale
  * aggregate cannot skew the draw. Non-positive weights are never drawn.
  */
-const weightedScan = (count: number, weightAt: (index: number) => number, rng: RandomSource): number => {
+const weightedScan = (
+  count: number,
+  weightAt: (index: number) => number,
+  rng: RandomSource
+): number => {
   let total = 0;
   for (let i = 0; i < count; i++) {
     const weight = weightAt(i);

@@ -1,12 +1,12 @@
 import { isDeepStrictEqual } from 'node:util';
-import { deepEqual, stableStringify } from '@senars/util';
-import { describe, expect, it } from 'vitest';
 import {
+  deepEqual,
   holdoutSplit,
   mulberry32,
   SeededRNG,
   seededStream,
-} from '../../../nar/src/utils/random.js';
+  stableStringify,
+} from '@senars/util';
 
 describe('stableStringify', () => {
   it('is independent of key insertion order', () => {

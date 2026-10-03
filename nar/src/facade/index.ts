@@ -7,7 +7,7 @@
  */
 
 import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
-import { createLogger, errMsg, makeId, truncate } from '@senars/util';
+import { createLogger, errMsg, makeId, toolError, toolOk, truncate } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { createBootstrapTasks } from '../drives';
 import type { LMService, SeNARSRegistry } from '../lm';
@@ -125,13 +125,13 @@ export const initializeTools = (nar: NAR): void => {
       required: ['program'],
     },
     execute: async (args: { program: string }) => {
-      if (!metta) return { success: false, content: null, error: METTA_UNCONFIGURED };
+      if (!metta) return toolError(METTA_UNCONFIGURED);
       try {
         // Running the program is the point: the source is returned as the
         // engine's confirmation that it loaded.
-        return { success: true, content: await metta.loadProgram(args.program) };
+        return toolOk(await metta.loadProgram(args.program));
       } catch (e) {
-        return { success: false, content: null, error: errMsg(e) };
+        return toolError(errMsg(e));
       }
     },
   } as Tool);

@@ -1,5 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
+import { clamp, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
 import type { ContrastiveMemory } from './contrastive.js';
 import type { DistillationLabel, JudgmentDataset } from './distill.js';
 import { HEAD_SPECS, specToQuery } from './head-specs.js';
@@ -64,7 +64,7 @@ const evidenceId = (kind: string, text: string): string => sha256Hex(`trace::${k
 
 const labelBand = (score: number, levels: readonly string[]): string => {
   if (!levels.length) return score.toFixed(2);
-  const idx = Math.min(levels.length - 1, Math.max(0, Math.round(score * (levels.length - 1))));
+  const idx = clamp(Math.round(score * (levels.length - 1)), 0, levels.length - 1);
   return levels[idx] ?? score.toFixed(2);
 };
 

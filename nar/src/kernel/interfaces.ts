@@ -17,6 +17,7 @@ import type {
   ShadowValidationDropEvent,
   SourceQuality,
 } from '@senars/core/schemas';
+import type { BeliefTruth } from '@senars/util';
 import type { TaskTypeName, Term } from '../terms';
 import type { IngressJudge } from './ingress.js';
 
@@ -63,7 +64,7 @@ export interface IPerceptionGate extends GateEventLog<CognitiveEvent> {
   admitTask(
     term: Term,
     taskType: TaskTypeName,
-    truth?: { frequency: number; confidence: number } | { f: number; c: number },
+    truth?: BeliefTruth | { f: number; c: number },
     source?: string,
     correlationId?: string
   ): PerceptionGateOutput;

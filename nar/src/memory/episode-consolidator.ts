@@ -7,9 +7,21 @@
  * deleted (I6-style: the summary is an index, not a replacement).
  */
 import type { Episode, EpisodeType } from '@senars/util';
-import { selectByPriority, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
-import { AIKRProcessor, AikrShell, type ProcessOptions, type AikrBagOptions } from '../learning/aikr-processor.js';
+import {
+  type Clock,
+  groupBy,
+  selectByPriority,
+  sha256Hex,
+  sha256Prefixed,
+  shortSha256Hex,
+} from '@senars/util';
 import { PriorityBag } from '../bag/Bag.js';
+import {
+  AIKRProcessor,
+  type AikrBagOptions,
+  AikrShell,
+  type ProcessOptions,
+} from '../learning/aikr-processor.js';
 import type { RandomSource } from '../types/primitives.js';
 
 /** Bag item: an episode awaiting consolidation. */
@@ -42,12 +54,16 @@ const SALIENCE: Record<EpisodeType, number> = {
 
 /** Causal fan-in/out degree (Phase B, REFACTOR.todo3): shared ranking prior. */
 export const causalConnections = (episode: Episode): number =>
-  (episode.causes?.length ?? 0) + (episode.consequences?.length ?? 0) + (episode.context?.length ?? 0);
+  (episode.causes?.length ?? 0) +
+  (episode.consequences?.length ?? 0) +
+  (episode.context?.length ?? 0);
 
 /** Type-level salience (Phase B, REFACTOR.todo3): shared ranking prior. */
 export const episodeSalience = (episode: Episode): number => {
   const kind = (episode.metadata as { kind?: unknown } | undefined)?.kind;
-  return episode.type === 'reaction' && kind === 'correct' ? SALIENCE.reaction * 1.25 : SALIENCE[episode.type];
+  return episode.type === 'reaction' && kind === 'correct'
+    ? SALIENCE.reaction * 1.25
+    : SALIENCE[episode.type];
 };
 
 export interface EpisodeConsolidatorOptions extends AikrBagOptions {
@@ -58,7 +74,7 @@ export interface EpisodeConsolidatorOptions extends AikrBagOptions {
   /** Optional LM summarizer; null/exception ⇒ symbolic fallback. */
   summarizeWithLM?: (group: readonly Episode[]) => Promise<string>;
   /** Injected clock for deterministic timestamps (default Date.now). */
-  clock?: () => number;
+  clock?: Clock;
 }
 
 /**
@@ -68,20 +84,18 @@ export interface EpisodeConsolidatorOptions extends AikrBagOptions {
  * Priority-ordered and id-tiebroken: fully deterministic.
  */
 const groupable = (items: readonly EpisodeCandidate[]): Map<string, EpisodeCandidate[]> => {
-  const byKey = new Map<string, EpisodeCandidate[]>();
-  for (const c of items) {
-    const key = signature(c.episode);
-    const bucket = byKey.get(key);
-    if (bucket) bucket.push(c);
-    else byKey.set(key, [c]);
-  }
-  return byKey;
+  return groupBy(items, (c) => signature(c.episode));
 };
 
 const signature = (e: Episode): string =>
   `${e.type}|${String((e.metadata as { correlationId?: unknown } | undefined)?.correlationId ?? '')}`;
 
-export class EpisodeConsolidator extends AikrShell<EpisodeCandidate, ConsolidationResult, string, Episode> {
+export class EpisodeConsolidator extends AikrShell<
+  EpisodeCandidate,
+  ConsolidationResult,
+  string,
+  Episode
+> {
   readonly #maxMerged: number;
   #emit?: (summary: Episode) => Promise<void> | void;
   readonly #summarizeWithLM?: (group: readonly Episode[]) => Promise<string>;

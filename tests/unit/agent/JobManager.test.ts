@@ -32,4 +32,23 @@ describe('JobManager', () => {
     }
     expect(jm.list().length).toBeLessThanOrEqual(3);
   });
+
+  it('never sheds a running job, and sheds the oldest finished one first', async () => {
+    const jm = new JobManager(2);
+    const settle = () => new Promise((r) => setTimeout(r, 1));
+
+    const held = jm.submit('held', () => new Promise(() => {}));
+    await settle();
+    const first = jm.submit('belief', () => 'a');
+    await settle();
+    const second = jm.submit('belief', () => 'b');
+    await settle();
+    const third = jm.submit('belief', () => 'c');
+    await settle();
+
+    expect(jm.get(held)?.status).toBe('running');
+    expect(jm.list().map((job) => job.id)).toEqual([held, third]);
+    expect(jm.get(first)).toBeUndefined();
+    expect(jm.get(second)).toBeUndefined();
+  });
 });

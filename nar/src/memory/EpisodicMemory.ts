@@ -5,7 +5,15 @@ import type {
   EpisodicMemoryConfig,
   EpisodicMemory as UtilEpisodicMemory,
 } from '@senars/util';
-import { cachePath, sortableIdSource, sortByDesc } from '@senars/util';
+import {
+  type Clock,
+  cachePath,
+  flatUnique,
+  getOrInsert,
+  sortableIdSource,
+  sortByDesc,
+  systemClock,
+} from '@senars/util';
 import {
   BaseLedgerEntrySchema,
   createLedger,
@@ -13,7 +21,6 @@ import {
   type LedgerQuery,
 } from '@senars/util/ledger';
 import { z } from 'zod';
-import { type Clock, SystemClock } from '../clock.js';
 import { CausalIndex } from './CausalIndex.js';
 
 export type { EpisodicMemoryConfig } from '@senars/util';
@@ -109,13 +116,13 @@ export class EpisodicMemory implements UtilEpisodicMemory {
       basePath: string;
       retentionDays: number;
       maxEntriesPerFile: number;
-      /** Injected time source (C8); defaults to `SystemClock`. */
+      /** Injected time source (C8); defaults to the system clock. */
       clock: Clock;
     }> = {}
   ) {
     const { clock, ...rest } = config;
     this.#config = { ...DEFAULT_CONFIG, ...rest };
-    this.#clock = clock ?? SystemClock;
+    this.#clock = clock ?? systemClock;
 
     this.#ledger = createLedger<LedgerEpisode>(this.#config.basePath, EpisodeSchema, {
       rollover: {
@@ -149,7 +156,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     // Phase D: reserved causal keys lift onto the Episode; everything else stays in metadata.
     const { id: causalId, causes, consequences, context, ...meta } = metadata;
     const episode: Episode = {
-      timestamp: this.#clock.now(),
+      timestamp: this.#clock(),
       type,
       content,
       metadata: meta,
@@ -222,12 +229,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     const sources: Episode[][] = [];
     if (options.causedBy) sources.push(causal.causedBy(options.causedBy));
     if (options.leadingTo) sources.push(causal.leadingTo(options.leadingTo));
-    const candidates = sources.length === 1 ? sources[0]! : [...new Set(sources.flat())];
-    let matches = candidates.filter((e) => matchesFilter(e, options));
-    if (options.limit !== undefined && matches.length > options.limit) {
-      matches = matches.slice(-options.limit); // most recent wins, matching scan semantics
-    }
-    return matches;
+    return this.#resolve(sources, options);
   }
 
   /** Phase D: indexed path — O(matches) after a one-time index build. */
@@ -242,7 +244,12 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     const sources: Episode[][] = [];
     if (options.correlationId) sources.push(index.get(`cid:${options.correlationId}`) ?? []);
     if (options.sessionId) sources.push(index.get(`sid:${options.sessionId}`) ?? []);
-    const candidates = sources.length === 1 ? sources[0]! : [...new Set(sources.flat())]; // conjunction of provided keys
+    return this.#resolve(sources, options);
+  }
+
+  /** Conjunction over the index keys a filter provided, then the shared tail. */
+  #resolve(sources: Episode[][], options: EpisodeFilter): Episode[] {
+    const candidates = sources.length === 1 ? sources[0]! : flatUnique(sources);
     let matches = candidates.filter((e) => matchesFilter(e, options));
     if (options.limit !== undefined && matches.length > options.limit) {
       matches = matches.slice(-options.limit); // most recent wins, matching scan semantics
@@ -265,16 +272,10 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     for (const entry of entries) {
       const episode = toEpisode(entry);
       const meta = episode.metadata as { correlationId?: unknown; sessionId?: unknown } | undefined;
-      if (typeof meta?.correlationId === 'string') {
-        const bucket = index.get(`cid:${meta.correlationId}`) ?? [];
-        bucket.push(episode);
-        index.set(`cid:${meta.correlationId}`, bucket);
-      }
-      if (typeof meta?.sessionId === 'string') {
-        const bucket = index.get(`sid:${meta.sessionId}`) ?? [];
-        bucket.push(episode);
-        index.set(`sid:${meta.sessionId}`, bucket);
-      }
+      if (typeof meta?.correlationId === 'string')
+        getOrInsert(index, `cid:${meta.correlationId}`, () => []).push(episode);
+      if (typeof meta?.sessionId === 'string')
+        getOrInsert(index, `sid:${meta.sessionId}`, () => []).push(episode);
     }
     this.#index = index;
   }

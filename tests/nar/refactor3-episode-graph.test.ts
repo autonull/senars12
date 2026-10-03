@@ -1,12 +1,12 @@
-import { fixedClock } from '@senars/nar/clock.js';
-import { DialogueCapture } from '@senars/nar/dialogue';
-import { causalConnections, episodeSalience } from '@senars/nar/memory/episode-consolidator.js';
-import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
-import { MemoryQuery } from '@senars/nar/query/memory-query.js';
-import { Memory } from '@senars/nar/memory';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { DialogueCapture } from '@senars/nar/dialogue';
+import { Memory } from '@senars/nar/memory';
+import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
+import { causalConnections, episodeSalience } from '@senars/nar/memory/episode-consolidator.js';
+import { MemoryQuery } from '@senars/nar/query/memory-query.js';
+import { fixedClock } from '@senars/util';
 import { afterAll, describe, expect, it } from 'vitest';
 
 const PINNED = 1_700_000_000_000;
@@ -18,7 +18,10 @@ afterAll(async () => {
 });
 
 const makeEpisodic = async (): Promise<EpisodicMemory> =>
-  new EpisodicMemory({ basePath: await mkdtemp(join(tmpdir(), 'bench92-')).then((d) => (dirs.push(d), d)), clock });
+  new EpisodicMemory({
+    basePath: await mkdtemp(join(tmpdir(), 'bench92-')).then((d) => (dirs.push(d), d)),
+    clock,
+  });
 
 const makeCapture = (episodic?: EpisodicMemory): DialogueCapture =>
   new DialogueCapture({ episodic, config: { enabled: true } });
@@ -47,7 +50,11 @@ describe('Bench 92 — episode graph completeness & MemoryQuery hardening (REFAC
     const episodic = await makeEpisodic();
     // Same recency, different causal degree + type salience.
     await episodic.log('dialogue', 'plain turn', { id: 'plain' });
-    await episodic.log('error', 'causal error', { id: 'linked', causes: ['plain'], consequences: ['x'] });
+    await episodic.log('error', 'causal error', {
+      id: 'linked',
+      causes: ['plain'],
+      consequences: ['x'],
+    });
     const mem = new Memory({ maxConcepts: 10 });
     const q = new MemoryQuery({ memory: mem, episodic, clock });
     const results = await q.search({ limit: 10 });
@@ -78,8 +85,13 @@ describe('Bench 92 — episode graph completeness & MemoryQuery hardening (REFAC
       route: () => routed.length,
     };
     const drained: unknown[] = [];
-    (game as never as { proposalBag: { drainIfPressured: (r: unknown, o: { budget: number }) => Promise<unknown[]> } }).proposalBag =
-      { drainIfPressured: (_r, o) => (drained.push(o.budget), Promise.resolve([])) };
+    (
+      game as never as {
+        proposalBag: {
+          drainIfPressured: (r: unknown, o: { budget: number }) => Promise<unknown[]>;
+        };
+      }
+    ).proposalBag = { drainIfPressured: (_r, o) => (drained.push(o.budget), Promise.resolve([])) };
     await (game as never as { routeProposals: () => Promise<void> }).routeProposals();
     expect(drained).toEqual([7]);
   });

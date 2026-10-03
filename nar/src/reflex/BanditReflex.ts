@@ -64,7 +64,10 @@ export abstract class BanditReflex<O extends BanditReflexOptions = BanditReflexO
 
   learn(event: LearningEvent): void {
     if (!event.actionExecuted) return;
-    const entry = this.entryFor(event.perception.stateId, Number.parseInt(event.actionExecuted, 10));
+    const entry = this.entryFor(
+      event.perception.stateId,
+      Number.parseInt(event.actionExecuted, 10)
+    );
     entry.value += (event.reward - entry.value) / (entry.count + 1);
     entry.count++;
     this.totalSteps++;

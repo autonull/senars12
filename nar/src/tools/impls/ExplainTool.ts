@@ -1,8 +1,8 @@
+import { toolError, toolOk } from '@senars/util';
 import type { Concept, Memory } from '../../memory';
 import { termParser } from '../../terms';
-import { tool } from './decorator.js';
 import type { Schema, Tool, ToolContext, ToolResult } from '../types';
-import { errorResult } from '../types';
+import { tool } from './decorator.js';
 
 @tool({
   name: 'explain',
@@ -41,25 +41,16 @@ export class ExplainTool implements Tool {
       const concept = this.findConcept(termStr);
 
       if (!concept) {
-        return {
-          success: false,
-          content: null,
-          error: `Concept '${termStr}' not found in memory`,
-        };
+        return toolError(`Concept '${termStr}' not found in memory`);
       }
 
       const explanation = this.generateExplanation(concept, includeDerivations, includeEvidence);
 
-      return {
-        success: true,
-        content: explanation,
-        metadata: {
-          term: concept.term.toString(),
-          priority: concept.priority,
-        },
-      };
+      return toolOk(explanation, {
+        metadata: { term: concept.term.toString(), priority: concept.priority },
+      });
     } catch (error) {
-      return errorResult(error);
+      return toolError(error);
     }
   }
 

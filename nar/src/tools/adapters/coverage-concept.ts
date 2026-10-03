@@ -54,8 +54,8 @@ export function createCoverageConceptTools(deps: CoverageConceptDeps = {}) {
             const { TermBuilder } = await import('../terms/index.js');
             // @ts-expect-error - dynamic import resolution
             const { Truth } = await import('../terms/impls/Truth.js');
-            const { gateRegistry } = await import('../../kernel/index.js');
-            const admit = gateRegistry.getPerceptionGate();
+            const { createGateRegistry } = await import('../../kernel/index.js');
+            const admit = createGateRegistry().getPerceptionGate();
 
             for (const fc of lowCoverageFiles) {
               const fileName = fc.path.split('/').pop()?.replace(/\.ts$/, '') || 'unknown';

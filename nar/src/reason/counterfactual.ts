@@ -12,6 +12,13 @@ export interface CounterfactualHost {
   run(steps?: number): Promise<void>;
 }
 
+/**
+ * A counterfactual is a hypothesis, not an observation, so its confidence is
+ * damped below the original's — the question is what *would* hold, and a probe
+ * answer is weak evidence even when the arithmetic is clean.
+ */
+const COUNTERFACTUAL_DAMPING = 0.5;
+
 export interface CounterfactualReport {
   possible: boolean;
   original?: string;
@@ -43,7 +50,7 @@ export async function counterfactual(
 
   const originalTruth = originalBelief.truth;
   const negatedTruth: Truth = originalTruth
-    ? Truth.create(negate ? 1 - originalTruth.f : originalTruth.f, originalTruth.c * 0.5)
+    ? Truth.damp(negate ? Truth.negation(originalTruth) : originalTruth, COUNTERFACTUAL_DAMPING)
     : Truth.create(negate ? 0 : 1, 0.5);
 
   try {

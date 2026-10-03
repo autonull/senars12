@@ -1,8 +1,13 @@
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import { URL } from 'node:url';
-import { makeId } from '@senars/util';
-import { createLogger } from '@senars/util';
-import { BoundedMap, type HealthReport } from '@senars/util';
+import {
+  BoundedMap,
+  createLogger,
+  deadline,
+  errMsg,
+  type HealthReport,
+  makeId,
+} from '@senars/util';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { ApiKeyManager, parseHttpBody, setCORSHeaders, startHttpServer } from '../utils/http.js';
 import { BaseConnection } from './base.js';
@@ -42,9 +47,7 @@ export class HTTPConnection extends BaseConnection {
       this.setState('connected');
       this.logger.info(`HTTP server listening on port ${this.port}`);
     } catch (err) {
-      this.handleError(
-        this.createError((err as Error).message, 'HTTP_SERVER_ERROR', true, err as Error)
-      );
+      this.handleError(this.createError(errMsg(err), 'HTTP_SERVER_ERROR', true, err as Error));
       throw err;
     }
   }
@@ -134,36 +137,31 @@ export class HTTPConnection extends BaseConnection {
       }
     );
 
-    const responsePromise = new Promise<string>((resolve) => {
-      this.pendingRequests.set(requestId, resolve);
-    });
+    const { promise: responsePromise, resolve: respond } = Promise.withResolvers<string>();
+    this.pendingRequests.set(requestId, respond);
 
     this.handleMessage(ioMessage);
 
-    const timeout = setTimeout(() => {
-      if (this.pendingRequests.has(requestId)) {
-        this.pendingRequests.delete(requestId);
-        if (!res.writableEnded) {
-          res.statusCode = 408;
-          res.end(JSON.stringify({ error: { code: 'TIMEOUT', message: 'Handler timeout' } }));
-        }
+    const disarmDeadline = deadline(REQUEST_TIMEOUT_MS, () => {
+      this.pendingRequests.delete(requestId);
+      if (!res.writableEnded) {
+        res.statusCode = 408;
+        res.end(JSON.stringify({ error: { code: 'TIMEOUT', message: 'Handler timeout' } }));
       }
-    }, REQUEST_TIMEOUT_MS);
+    });
 
     try {
       const responseText = await responsePromise;
-      clearTimeout(timeout);
+      disarmDeadline();
       if (!res.writableEnded) {
         res.statusCode = 200;
         res.end(JSON.stringify({ type: 'response', data: responseText, timestamp: Date.now() }));
       }
     } catch (e) {
-      clearTimeout(timeout);
+      disarmDeadline();
       if (!res.writableEnded) {
         res.statusCode = 500;
-        res.end(
-          JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: (e as Error).message } })
-        );
+        res.end(JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: errMsg(e) } }));
       }
     }
   }

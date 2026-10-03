@@ -7,29 +7,55 @@
  * Or: pnpm exec tsx scripts/fuzz-narsese.ts [iterations] [--seed N]
  */
 
-import { errMsg, serializeTruth } from '@senars/util';
+import { choice, createLCG, errMsg, nextInt, serializeTruth } from '@senars/util';
 import { createNAR } from '../nar/src/nar-presets.js';
 import { termParser } from '../nar/src/terms/impls/parser-peggy.js';
 import { Truth } from '../nar/src/terms/impls/Truth.js';
 import type { Term } from '../nar/src/terms/types.js';
-import { choice, createLCG, nextInt } from '../nar/src/utils/random.js';
 
 const ATOMS = [
-  'cat', 'dog', 'animal', 'mammal', 'bird', 'fish',
-  'red', 'blue', 'green', 'big', 'small', 'fast', 'slow',
-  'eat', 'sleep', 'run', 'fly', 'swim', 'walk',
-  'john', 'mary', 'bob', 'alice', 'tom', 'jerry',
-  'apple', 'banana', 'car', 'house', 'tree', 'water',
-  '?x', '?y', '?z', '$var', '$value', '$item',
-  'TRUE', 'FALSE',
+  'cat',
+  'dog',
+  'animal',
+  'mammal',
+  'bird',
+  'fish',
+  'red',
+  'blue',
+  'green',
+  'big',
+  'small',
+  'fast',
+  'slow',
+  'eat',
+  'sleep',
+  'run',
+  'fly',
+  'swim',
+  'walk',
+  'john',
+  'mary',
+  'bob',
+  'alice',
+  'tom',
+  'jerry',
+  'apple',
+  'banana',
+  'car',
+  'house',
+  'tree',
+  'water',
+  '?x',
+  '?y',
+  '?z',
+  '$var',
+  '$value',
+  '$item',
+  'TRUE',
+  'FALSE',
 ];
 
-const OPERATORS = [
-  '-->', '<->', '==>', '<=>',
-  '&', '|',
-  '*', '|',
-  '-',
-];
+const OPERATORS = ['-->', '<->', '==>', '<=>', '&', '|', '*', '|', '-'];
 
 const PUNCTUATION = ['.', '?', '!', ';'];
 
@@ -93,7 +119,11 @@ function mutateString(input: string): string {
     () => input.replace(/[a-z]/gi, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))),
     () => {
       const pos = Math.floor(Math.random() * input.length);
-      return input.slice(0, pos) + choice(Math.random, ['(', ')', '&', '|', '-', '*', '-->', '<->', '==>', '<=>']) + input.slice(pos);
+      return (
+        input.slice(0, pos) +
+        choice(Math.random, ['(', ')', '&', '|', '-', '*', '-->', '<->', '==>', '<=>']) +
+        input.slice(pos)
+      );
     },
     () => {
       if (input.length < 2) return input;
@@ -133,7 +163,7 @@ async function runFuzz(iterations: number, seed?: number): Promise<void> {
   let parseFail = 0;
   let admitSuccess = 0;
   let admitFail = 0;
-  let kernelCrashes = 0;
+  const kernelCrashes = 0;
   const errors: Map<string, number> = new Map();
 
   const corpus: string[] = [];
@@ -177,7 +207,9 @@ async function runFuzz(iterations: number, seed?: number): Promise<void> {
     }
 
     if (i % 1000 === 0 && i > 0) {
-      console.log(`Progress: ${i}/${iterations} - Parse: ${parseSuccess}/${parseFail} - Admit: ${admitSuccess}/${admitFail}`);
+      console.log(
+        `Progress: ${i}/${iterations} - Parse: ${parseSuccess}/${parseFail} - Admit: ${admitSuccess}/${admitFail}`
+      );
     }
   }
 
@@ -210,7 +242,7 @@ async function runFuzz(iterations: number, seed?: number): Promise<void> {
 
 const args = process.argv.slice(2);
 const iterations = parseInt(args[0] || '10000', 10);
-const seedArg = args.find(a => a.startsWith('--seed='));
+const seedArg = args.find((a) => a.startsWith('--seed='));
 const seed = seedArg ? parseInt(seedArg.split('=')[1], 10) : undefined;
 
 runFuzz(iterations, seed).catch((e) => {

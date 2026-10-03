@@ -10,8 +10,8 @@
 
 export {
   askSafely,
-  DECISION_ASK_TIMEOUT_MS,
   type CycleDecisionRequest,
+  DECISION_ASK_TIMEOUT_MS,
   type DecisionAxis,
   type DecisionPort,
   type DecisionPosition,
@@ -19,4 +19,4 @@ export {
   type DecisionResult,
   NO_DECISION_PORT,
 } from './decision.js';
-export type { TextGenerator, TextGenerationOptions } from './text-generator.js';
+export type { TextGenerationOptions, TextGenerator } from './text-generator.js';

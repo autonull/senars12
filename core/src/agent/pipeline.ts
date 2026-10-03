@@ -1,6 +1,11 @@
-import type { EpisodicMemory } from '@senars/util';
-import { dispatch, type Middleware, PushQueue } from '@senars/util';
 import type { CognitiveEvent } from '@senars/core/schemas';
+import {
+  dispatch,
+  type EpisodicMemory,
+  type LMTask,
+  type Middleware,
+  PushQueue,
+} from '@senars/util';
 import type { ChatOptions, ChatStreamEvent } from '../chat.js';
 import type { LLMCortex } from '../cortex/LLMCortex.js';
 import type {
@@ -47,7 +52,7 @@ export interface CycleHost {
     egress?: { grounded: boolean; score?: number };
   }) => Promise<unknown>;
   /** H2: default narration tier when the caller passes none. */
-  readonly narrateTier?: 'quality' | 'fast' | 'structured';
+  readonly narrateTier?: LMTask;
   /** Phase A: custom macro-cycle phase list; default is `DEFAULT_MACRO_PIPELINE`. */
   readonly macroPipeline?: readonly MacroPhase[];
   /** Phase A (REFACTOR.todo2): end-of-cycle learning consolidation — pressure-gated, inert below threshold. */

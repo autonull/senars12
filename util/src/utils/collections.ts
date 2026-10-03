@@ -15,12 +15,6 @@ export const chunk = <T>(items: readonly T[], size: number): T[][] => {
 export const edgeKey = (source: string, target: string): string => `${source}->${target}`;
 
 /**
- * Drop-oldest push for plain arrays. One `shift()` per overflow — no `splice`
- * reallocation and no cap arithmetic repeated at the call site. Returns the
- * displaced item, which is what a sliding-window caller needs and what every
- * other caller ignores.
- */
-/**
  * The read surface every consumer of a keyed container needs and no more —
  * `Map`, `BoundedMap`, and any bounded projection all satisfy it, so a caller
  * that only looks keys up does not have to name a container.
@@ -30,6 +24,12 @@ export interface ReadOnlyLookup<K, V> extends Iterable<[K, V]> {
   has(key: K): boolean;
 }
 
+/**
+ * Drop-oldest push for plain arrays. One `shift()` per overflow — no `splice`
+ * reallocation and no cap arithmetic repeated at the call site. Returns the
+ * displaced item, which is what a sliding-window caller needs and what every
+ * other caller ignores.
+ */
 export function pushCapped<T>(log: T[], item: T, capacity: number): T | undefined {
   log.push(item);
   return log.length > capacity ? log.shift() : undefined;
@@ -201,6 +201,129 @@ export function getOrInsert<K, V>(map: KeyedStore<K, V>, key: K, factory: () => 
   return created;
 }
 
+/**
+ * Bucket `items` by a derived key, preserving encounter order within each
+ * bucket. The lazy-bucket-plus-`getOrInsert` pair is the shape every
+ * group-by-key site was hand-writing; expressed once, the call site is a single
+ * declaration and the bucket type is inferred rather than repeated.
+ */
+export function groupBy<T, K>(items: Iterable<T>, key: (item: T) => K): Map<K, T[]> {
+  const buckets = new Map<K, T[]>();
+  for (const item of items) {
+    const k = key(item);
+    const bucket = buckets.get(k);
+    if (bucket) bucket.push(item);
+    else buckets.set(k, [item]);
+  }
+  return buckets;
+}
+
+/**
+ * {@link groupBy} without the keys — for the caller that buckets each group but
+ * never looks a group up by its key, where keeping the map alive would be a
+ * whole index retained for nothing. Each bucket keeps encounter order, so
+ * `bucket[0]` is the first item seen for that key.
+ */
+export function buckets<T, K>(items: Iterable<T>, key: (item: T) => K): T[][] {
+  return [...groupBy(items, key).values()];
+}
+
+/**
+ * A map as a plain object, optionally projecting each value. A map's keys are
+ * already unique and already the identity, so unlike {@link keyedBy} there is no
+ * collision question — this is only ever the `Object.fromEntries(map)` copy,
+ * which exists to hand a keyed container to an API that speaks `Record`.
+ */
+export function mapToRecord<K extends PropertyKey, V, W = V>(
+  map: ReadonlyMap<K, V>,
+  project: (value: V, key: K) => W = (value) => value as unknown as W
+): Record<K, W> {
+  const record = {} as Record<K, W>;
+  for (const [key, value] of map) record[key] = project(value, key);
+  return record;
+}
+
+/**
+ * Index `items` by a derived key into a plain object — the record a lookup
+ * table, a scope table or a per-name dispatch map is spelled by hand as
+ * `Object.fromEntries(items.map(i => [i.id, i]))`. `PropertyKey` rather than
+ * `string` so numeric keys keep object semantics instead of needing a cast,
+ * and the value is `V` rather than `T` so a projection (`(r) => r.head`)
+ * does not need a second pass.
+ */
+export function keyedBy<T, K extends PropertyKey, V = T>(
+  items: Iterable<T>,
+  key: (item: T) => K,
+  value: (item: T) => V = (item) => item as unknown as V
+): Record<K, V> {
+  const record = {} as Record<K, V>;
+  for (const item of items) record[key(item)] = value(item);
+  return record;
+}
+
+/**
+ * Re-key a record's values while keeping its keys — the `Object.fromEntries(
+ * Object.entries(r).map(([k, v]) => [k, project(v)]))` pair, which is a projection
+ * wearing a copy's clothes: the keys are already right, only the values change.
+ */
+export function mapValues<K extends PropertyKey, V, W>(
+  record: Readonly<Record<K, V>>,
+  project: (value: V, key: K) => W
+): Record<K, W> {
+  const out = {} as Record<K, W>;
+  for (const key of Object.keys(record) as K[]) out[key] = project(record[key]!, key);
+  return out;
+}
+
+/**
+ * Value-level dedup, first occurrence wins. For "the set of concepts this event
+ * touched" over a bag that may already hold duplicates — `[...new Set(xs)]` is
+ * correct but says nothing about intent, and at seven call sites it read as a
+ * different operation each time.
+ */
+export function unique<T>(items: Iterable<T>): T[] {
+  return [...new Set(items)];
+}
+
+/** {@link unique} across several collections — the union an index query needs. */
+export function flatUnique<T>(collections: Iterable<readonly T[]>): T[] {
+  return unique(collect(collections));
+}
+
+function* collect<T>(collections: Iterable<readonly T[]>): Generator<T> {
+  for (const collection of collections) yield* collection;
+}
+
+/**
+ * Remove and return the first match, or `undefined` when nothing matched — and
+ * leave the array untouched when nothing did.
+ *
+ * The `findIndex`-then-`splice` pair, hand-written at every site that also needs
+ * the removed item, discovers "absent" only *after* mutating: `splice(-1, 1)`
+ * removes the **last** element, so a miss silently destroyed an unrelated entry
+ * while the caller reported that nothing happened. Returning the entry is what
+ * makes the correct order expressible — decide, then mutate — and it spares the
+ * caller a second search over the array it just changed.
+ */
+export function removeBy<T>(items: T[], predicate: (item: T) => boolean): T | undefined {
+  return removeByFrom(items, predicate, false);
+}
+
+/** {@link removeBy} scanning backwards, for a stack discipline: the most recent
+ *  match, so a stage opened twice closes in the order it was opened. */
+export function removeLastBy<T>(items: T[], predicate: (item: T) => boolean): T | undefined {
+  return removeByFrom(items, predicate, true);
+}
+
+function removeByFrom<T>(
+  items: T[],
+  predicate: (item: T) => boolean,
+  fromLast: boolean
+): T | undefined {
+  const index = fromLast ? items.findLastIndex(predicate) : items.findIndex(predicate);
+  return index < 0 ? undefined : items.splice(index, 1)[0];
+}
+
 /** Accumulate a per-key count; returns the new total. */
 export function incrementCount<K>(map: Map<K, number>, key: K, delta = 1): number {
   const next = (map.get(key) ?? 0) + delta;
@@ -208,14 +331,30 @@ export function incrementCount<K>(map: Map<K, number>, key: K, delta = 1): numbe
   return next;
 }
 
-/** Add to a per-key set, creating the set on first use. */
-export function addToSet<K, T>(map: Map<K, Set<T>>, key: K, value: T): void {
+/**
+ * A keyed store that can also drop a key — what {@link removeFromSet} needs and
+ * {@link KeyedStore} deliberately does not promise, since populating a map must
+ * not require the ability to empty it.
+ */
+export interface KeyedSetStore<K, T> extends KeyedStore<K, Set<T>> {
+  delete(key: K): unknown;
+}
+
+/**
+ * Add to a per-key set, creating the set on first use.
+ *
+ * Takes {@link KeyedStore} rather than `Map` so a structurally-keyed store can
+ * use it — `TermMap` keys by structural term equality and is the memory
+ * system's primary index, so requiring a `Map` here left it re-implementing the
+ * lazy-bucket-plus-add that this exists to be.
+ */
+export function addToSet<K, T>(map: KeyedStore<K, Set<T>>, key: K, value: T): void {
   getOrInsert(map, key, () => new Set<T>()).add(value);
 }
 
 /** Remove from a per-key set, dropping the key once its set empties — otherwise an
  *  index over concepts or links accumulates a bucket per key ever seen. */
-export function removeFromSet<K, T>(map: Map<K, Set<T>>, key: K, value: T): void {
+export function removeFromSet<K, T>(map: KeyedSetStore<K, T>, key: K, value: T): void {
   const bucket = map.get(key);
   if (!bucket) return;
   bucket.delete(value);
@@ -275,5 +414,14 @@ export class BoundedRing<T> {
 
   reduce<A>(accumulator: (acc: A, item: T) => A, initial: A): A {
     return this.#items.reduce(accumulator, initial);
+  }
+
+  /**
+   * Oldest first, live. A ring that exposes `reduce` but not iteration is a
+   * container every collection primitive has to be re-fed from `toArray()` —
+   * so the bounded-log sites either copied or took the whole ring to count it.
+   */
+  *[Symbol.iterator](): IterableIterator<T> {
+    yield* this.#items;
   }
 }

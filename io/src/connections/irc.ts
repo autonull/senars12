@@ -1,5 +1,4 @@
-import { createLogger } from '@senars/util';
-import { BoundedRing, periodic } from '@senars/util';
+import { BoundedRing, createLogger, deadline, periodic, removeBy } from '@senars/util';
 import irc, { type Client as IRCClient } from 'irc';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { BaseConnection } from './base.js';
@@ -32,12 +31,16 @@ interface QueuedMessage {
 /** Deepest outbound backlog a connection keeps while the peer is rate-limiting. */
 const MAX_QUEUED_MESSAGES = 1000;
 
+/** How long a registration handshake may take before the attempt is abandoned. */
+const CONNECT_TIMEOUT_MS = 10_000;
+
 export class IRCConnection extends BaseConnection {
   override readonly type = 'irc';
   override readonly logger = createLogger({ scope: 'io:irc' });
   private client: IRCClient | null = null;
   /** Every default resolved in the constructor, so no read has to re-apply `??`. */
-  private readonly ircConfig: IRCConnectionConfig & Required<Pick<IRCConnectionConfig, 'floodProtectionDelay'>>;
+  private readonly ircConfig: IRCConnectionConfig &
+    Required<Pick<IRCConnectionConfig, 'floodProtectionDelay'>>;
   private pendingMessages: Map<string, string[]> = new Map();
   private readonly messageQueue: BoundedRing<QueuedMessage>;
   private stopQueueDrain: (() => void) | null = null;
@@ -105,13 +108,13 @@ export class IRCConnection extends BaseConnection {
         retryDelay: 2000,
       });
 
-      const failTimeout = setTimeout(() => {
+      const disarmDeadline = deadline(CONNECT_TIMEOUT_MS, () => {
         reject(new Error('Connection timeout'));
         this.dispose();
-      }, 10000);
+      });
 
       this.client.on('registered', () => {
-        clearTimeout(failTimeout);
+        disarmDeadline();
         this.connected = true;
         this.scheduleJoin();
         this.startQueueDrain();
@@ -180,9 +183,7 @@ export class IRCConnection extends BaseConnection {
   }
 
   private completeDispatch(target: string, message: string): void {
-    const current = this.pendingMessages.get(target) ?? [];
-    const idx = current.indexOf(message);
-    if (idx >= 0) current.splice(idx, 1);
+    removeBy(this.pendingMessages.get(target) ?? [], (m) => m === message);
     this.drainQueue();
   }
 

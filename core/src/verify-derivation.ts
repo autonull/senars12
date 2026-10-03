@@ -96,6 +96,11 @@ const BINARY_TRUTH: Record<string, BinaryTruthFn> = {
     return [(f1 * c2w(c1) + f2 * c2w(c2)) / w, Math.min(w2c(w), 0.999)];
   },
   detachment: (f1, f2, c1, c2) => [f2, f1 * c1 * c2],
+  contraposition: (f1, f2, c1, c2) => {
+    const cf = f2 * (1 - f1);
+    return [div(cf, cf + (1 - f2) * f1), c1 * c2];
+  },
+  sameness: (f1, f2, c1, c2) => [1 - Math.abs(f1 - f2), c1 * c2],
 };
 
 const UNARY_TRUTH: Record<string, UnaryTruthFn> = {
@@ -113,19 +118,36 @@ const UNARY_TRUTH: Record<string, UnaryTruthFn> = {
  */
 export const VERIFIER_TRUTH_TABLE = { BINARY_TRUTH, UNARY_TRUTH };
 
-/**
- * Map a rule id onto its truth function. Rule ids are namespaced
- * (`nal.deduction`, `structural.conversion`, …), so an exact hit is tried
- * before a substring match. An unmatched id is a skip, never a proof.
- */
-const resolveTruthFn = (
-  ruleId: string
-): { arity: 1 | 2; fn: (f: number[], c: number[]) => [number, number] } | null => {
-  const key = ruleId.toLowerCase().replace(/_/g, '-');
-  const binary = BINARY_TRUTH[key];
+/** A resolved truth function, or `null` when nothing in the table applies. */
+type ResolvedTruthFn = { arity: 1 | 2; fn: (f: number[], c: number[]) => [number, number] } | null;
+
+/** Exact table lookup for an algebra operation name — no guessing. */
+const declaredTruthFn = (name: string | undefined): ResolvedTruthFn => {
+  if (!name) return null;
+  const binary = BINARY_TRUTH[name];
   if (binary) return { arity: 2, fn: (f, c) => binary(f[0]!, f[1]!, c[0]!, c[1]!) };
-  const unary = UNARY_TRUTH[key];
+  const unary = UNARY_TRUTH[name];
   if (unary) return { arity: 1, fn: (f, c) => unary(f[0]!, c[0]!) };
+  return null;
+};
+
+/**
+ * Infer a truth function from a rule id, for records that predate the declared
+ * name on the step. Rule ids are namespaced (`nal.deduction`,
+ * `structural.conversion`, …), so an exact hit is tried before a substring
+ * match, and an unmatched id is a skip rather than a proof.
+ *
+ * A guess, and deliberately kept behind {@link resolveTruthFn}: a substring scan
+ * both misses shipped rules whose id does not contain an operation name
+ * (`nal.modusPonens`) and can land on the wrong entry when one name is a suffix
+ * of another. New records name the operation; only old ones are guessed for.
+ */
+const inferTruthFnFromRuleId = (ruleId: string): ResolvedTruthFn => {
+  const key = ruleId.toLowerCase().replace(/_/g, '-');
+  return declaredTruthFn(key) ?? bySubstring(key);
+};
+
+const bySubstring = (key: string): ResolvedTruthFn => {
   const binaryName = Object.keys(BINARY_TRUTH).find((name) => key.includes(name));
   if (binaryName !== undefined) {
     const fn = BINARY_TRUTH[binaryName]!;
@@ -138,6 +160,19 @@ const resolveTruthFn = (
   }
   return null;
 };
+
+/**
+ * The truth function a step was derived with: the operation its rule declared,
+ * or — for a record written before steps carried that name — a guess from the
+ * rule id.
+ *
+ * Exported beside {@link VERIFIER_TRUTH_TABLE} so the drift test can ask the
+ * question the verifier actually asks of it — "does every shipped rule resolve
+ * to something this table can compute?" — against this resolver rather than a
+ * copy of it.
+ */
+export const resolveTruthFn = (ruleId: string, declaredName?: string): ResolvedTruthFn =>
+  declaredTruthFn(declaredName) ?? inferTruthFnFromRuleId(ruleId);
 
 const close = (a: number, b: number, epsilon: number): boolean => Math.abs(a - b) <= epsilon;
 
@@ -184,7 +219,7 @@ const verifyStep = (
     );
 
   let computedTruth: TruthValue | undefined;
-  const resolved = resolveTruthFn(step.ruleId);
+  const resolved = resolveTruthFn(step.ruleId, step.truthFn);
   if (!resolved) {
     state.skipped++;
     if (options.strict) fail('unknown-rule', `No truth function for ruleId '${step.ruleId}'`);

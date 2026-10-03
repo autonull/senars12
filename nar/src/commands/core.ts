@@ -1,4 +1,4 @@
-import type { CommandDefinition } from '@senars/util';
+import { type CommandDefinition, QUIT_SENTINEL } from '@senars/util';
 import { NAR_UNCONFIGURED, narOf } from './utils.js';
 
 export const coreCommands: CommandDefinition[] = [
@@ -67,7 +67,7 @@ export const coreCommands: CommandDefinition[] = [
     description: 'Exit the CLI / disconnect',
     usage: '/quit',
     execute: async () => {
-      return '__CLI_QUIT__';
+      return QUIT_SENTINEL;
     },
   },
 ];

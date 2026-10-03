@@ -1,14 +1,17 @@
-import { describe, expect, it } from 'vitest';
 import {
   addToSet,
   getOrInsert,
   incrementCount,
   maxBy,
   minBy,
+  mulberry32,
+  removeFromSet,
   selectByPriority,
+  shuffleInPlace,
 } from '@senars/util';
-import { mulberry32, shuffleInPlace } from '../../../nar/src/utils/random.js';
+import { describe, expect, it } from 'vitest';
 import { schedulerReward } from '../../../nar/src/focus/scheduler-reward.js';
+import { TermBuilder, TermMap } from '../../../nar/src/terms';
 
 const items = [
   { id: 'b', priority: 2 },
@@ -93,5 +96,29 @@ describe('map helpers', () => {
     addToSet(sets, 'a', 1);
     addToSet(sets, 'a', 2);
     expect(sets.get('a')).toEqual(new Set([1, 2]));
+  });
+
+  it('addToSet/removeFromSet key structurally, not by Map', () => {
+    const sets = new TermMap<Set<string>>();
+    const key = TermBuilder.atom('a');
+    addToSet(sets, key, 'x');
+    addToSet(sets, TermBuilder.atom('a'), 'x');
+    expect(sets.get(key)).toEqual(new Set(['x']));
+
+    removeFromSet(sets, key, 'x');
+    expect(sets.has(key)).toBe(false);
+  });
+
+  it('removeFromSet leaves a non-empty bucket and forgets an absent one', () => {
+    const sets = new Map<string, Set<number>>();
+    addToSet(sets, 'a', 1);
+    addToSet(sets, 'a', 2);
+
+    removeFromSet(sets, 'a', 1);
+    expect(sets.get('a')).toEqual(new Set([2]));
+    expect(() => removeFromSet(sets, 'missing', 1)).not.toThrow();
+
+    removeFromSet(sets, 'a', 2);
+    expect(sets.has('a')).toBe(false);
   });
 });

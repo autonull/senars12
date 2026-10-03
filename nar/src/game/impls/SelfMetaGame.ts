@@ -1,4 +1,4 @@
-import { clamp01, makeId } from '@senars/util';
+import { assertDefined, clamp01, makeId } from '@senars/util';
 import { type BoundRange, boundRange } from '@senars/util/config';
 import type { ParameterLedger } from '../../config/parameter-ledger.js';
 import {
@@ -249,11 +249,10 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   }
 
   disableReflex(focusId: string, reflexId: string): void {
-    const gameFocus = this.gameFocuses.get(focusId);
-    if (!gameFocus) {
-      throw new Error(`GameFocus not found: ${focusId}`);
-    }
-    const focus = gameFocus.getFocus();
+    const focus = assertDefined(
+      this.gameFocuses.get(focusId),
+      `GameFocus not found: ${focusId}`
+    ).getFocus();
     focus.disableReflex(reflexId);
   }
 

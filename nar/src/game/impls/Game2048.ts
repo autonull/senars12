@@ -1,6 +1,5 @@
+import { clamp01, SeededRNG } from '@senars/util';
 import type { Game, GameOutcome, Perception } from '../Game.js';
-import { SeededRNG } from '../../utils/random.js';
-import { clamp01 } from '@senars/util';
 
 export type Move2048 = 0 | 1 | 2 | 3; // left, up, right, down
 
@@ -47,7 +46,11 @@ export class Game2048 implements Game<Game2048State, Move2048> {
   /** Deep copy for baseline lookahead. */
   clone(): Game2048 {
     const copy = new Game2048({ id: this.id, size: this.size, seed: 1, target: this.target });
-    copy.state_ = { board: this.state_.board.map((row) => [...row]), steps: this.state_.steps, terminal: this.state_.terminal };
+    copy.state_ = {
+      board: this.state_.board.map((row) => [...row]),
+      steps: this.state_.steps,
+      terminal: this.state_.terminal,
+    };
     copy.rng.setState(this.rng.getState());
     return copy;
   }
@@ -119,7 +122,8 @@ export class Game2048 implements Game<Game2048State, Move2048> {
     const state = this.state_;
     if (state.terminal) return { reward: 0, terminal: true };
     const { board: next, gained } = this.apply(state.board, action);
-    if (!this.moved(state.board, next)) return { reward: -1, terminal: true, info: { reason: 'illegal' } };
+    if (!this.moved(state.board, next))
+      return { reward: -1, terminal: true, info: { reason: 'illegal' } };
 
     state.board = next;
     state.steps++;
@@ -134,7 +138,11 @@ export class Game2048 implements Game<Game2048State, Move2048> {
   observe(): Perception {
     return {
       stateId: this.stateKey(),
-      features: { emptyCells: this.state_.board.flat().filter((v) => v === 0).length, steps: this.state_.steps, maxTile: Math.max(...this.state_.board.flat()) },
+      features: {
+        emptyCells: this.state_.board.flat().filter((v) => v === 0).length,
+        steps: this.state_.steps,
+        maxTile: Math.max(...this.state_.board.flat()),
+      },
       confidence: 1,
       terminal: this.state_.terminal,
     };
@@ -145,7 +153,9 @@ export class Game2048 implements Game<Game2048State, Move2048> {
   }
 
   render(): string {
-    return this.state_.board.map((row) => row.map((v) => String(v || '.').padStart(4)).join(' ')).join('\n');
+    return this.state_.board
+      .map((row) => row.map((v) => String(v || '.').padStart(4)).join(' '))
+      .join('\n');
   }
 }
 

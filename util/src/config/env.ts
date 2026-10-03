@@ -4,6 +4,7 @@
  * @public
  */
 
+import { toFiniteNumber } from '../utils/numeric.js';
 import { setNested } from '../utils/object.js';
 
 export const SENARS_ENV_MAP: Readonly<Record<string, string>> = {
@@ -59,12 +60,8 @@ export const envInt = (key: string, fallback: number): number => {
  * absent, empty, or unparseable. This is the `?? file?.field` shape: a typo'd env
  * value falls through to the file instead of installing `NaN` into typed settings.
  */
-export const envNumOr = (...keys: string[]): number | undefined => {
-  const value = envFirst(...keys);
-  if (value === undefined) return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-};
+export const envNumOr = (...keys: string[]): number | undefined =>
+  toFiniteNumber(envFirst(...keys));
 
 /** Finite real number from the environment, else `fallback`. Unlike `envInt`
  *  this keeps fractional values and rejects `NaN`/`Infinity` — the shape caps
@@ -86,8 +83,11 @@ export const envCsv = (fallback: readonly string[], ...keys: string[]): string[]
 export function parseEnvValue(value: string): unknown {
   if (isTruthy(value)) return true;
   if (isFalsy(value)) return false;
-  const num = Number(value);
-  return Number.isNaN(num) ? value : num;
+  // `toFiniteNumber`, not `Number()`: `Number('')` is 0 and `Number('Infinity')`
+  // is Infinity, so an unset-looking or non-finite value installed a real number
+  // into typed settings. This also makes a blank value agree with `envFirst`,
+  // which already treats it as absent.
+  return toFiniteNumber(value) ?? value;
 }
 
 export function readEnvOverrides(env: NodeJS.ProcessEnv = process.env): Record<string, unknown> {

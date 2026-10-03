@@ -9,11 +9,26 @@ import type { ReactionKind } from '../types.js';
 
 /** Priority order: high-value negatives first, weak positives last. */
 const CUES: readonly (readonly [ReactionKind, RegExp])[] = [
-  ['reject', /(?:\b(?:that|this|it)['’]?(?:s|\s+is)\s+(?:completely\s+)?(?:wrong|incorrect|useless|nonsense|garbage)\b)|(?:\bno,?\s+(?:that|this)\s+is\s+not\s+(?:right|correct)\b)|(?:\bthat['’]?s\s+not\s+right\b)/i],
-  ['correct', /\b(?:actually|i meant|not quite|should be|rather than|instead of|that['’]?s not|is not right|no,)\b/i],
-  ['redirect', /\b(?:anyway|moving on|never mind|new (?:question|topic)|let['’]?s talk about|forget that)\b/i],
-  ['clarify', /\b(?:what do you mean|what did you mean|can you (?:clarify|explain)|explain that)\b/i],
-  ['accept', /\b(?:thanks|thank you|exactly|perfect|that['’]?s right|good answer|spot on|nice work)\b/i],
+  [
+    'reject',
+    /(?:\b(?:that|this|it)['’]?(?:s|\s+is)\s+(?:completely\s+)?(?:wrong|incorrect|useless|nonsense|garbage)\b)|(?:\bno,?\s+(?:that|this)\s+is\s+not\s+(?:right|correct)\b)|(?:\bthat['’]?s\s+not\s+right\b)/i,
+  ],
+  [
+    'correct',
+    /\b(?:actually|i meant|not quite|should be|rather than|instead of|that['’]?s not|is not right|no,)\b/i,
+  ],
+  [
+    'redirect',
+    /\b(?:anyway|moving on|never mind|new (?:question|topic)|let['’]?s talk about|forget that)\b/i,
+  ],
+  [
+    'clarify',
+    /\b(?:what do you mean|what did you mean|can you (?:clarify|explain)|explain that)\b/i,
+  ],
+  [
+    'accept',
+    /\b(?:thanks|thank you|exactly|perfect|that['’]?s right|good answer|spot on|nice work)\b/i,
+  ],
 ];
 
 /**

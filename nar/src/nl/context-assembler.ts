@@ -119,7 +119,11 @@ export class ContextAssembler {
       const attentionPriority =
         typeof nar.getConcept === 'function' ? (nar.getConcept(b.term)?.priority ?? 0) : 0;
       // Score formula: overlapScore * 0.4 + attentionPriority * 0.6
-      return { term, truth: b.truth, score: (overlap / Math.max(1, words.size)) * 0.4 + attentionPriority * 0.6 };
+      return {
+        term,
+        truth: b.truth,
+        score: (overlap / Math.max(1, words.size)) * 0.4 + attentionPriority * 0.6,
+      };
     });
 
     return selectTopN(

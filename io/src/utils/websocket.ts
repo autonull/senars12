@@ -1,4 +1,4 @@
-import { addToSet, makeId, periodic, toError } from '@senars/util';
+import { addToSet, makeId, periodic, removeFromSet, toError } from '@senars/util';
 import { WebSocket } from 'ws';
 
 export interface WSClient {
@@ -93,7 +93,7 @@ export const unsubscribeFromEvents = (
   events: string[]
 ): void => {
   for (const event of events) {
-    subscriptions.get(event)?.delete(client.ws);
+    removeFromSet(subscriptions, event, client.ws);
     client.subscriptions.delete(event);
   }
 };

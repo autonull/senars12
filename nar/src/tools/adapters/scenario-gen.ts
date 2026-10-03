@@ -1,3 +1,4 @@
+import { safeRatio, sumBy } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
 
@@ -112,9 +113,10 @@ export function createScenarioGenTools(deps: ScenarioGenDeps = {}) {
           summary: {
             passed: results.filter((r) => r.success).length,
             failed: results.filter((r) => !r.success).length,
-            avg_reward:
-              results.reduce((sum, r, idx) => sum + calculateScenarioReward(r, specs[idx]!), 0) /
-              Math.max(results.length, 1),
+            avg_reward: safeRatio(
+              sumBy(results.map((result, index) => calculateScenarioReward(result, specs[index]!))),
+              results.length
+            ),
           },
         };
       },

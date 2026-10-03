@@ -1,5 +1,4 @@
-import { sortBy } from '@senars/util';
-import { SeededRNG } from '../../utils/random.js';
+import { SeededRNG, sortBy } from '@senars/util';
 import type { Game, GameOutcome, Perception } from '../Game.js';
 
 export interface ArithmeticGameConfig {

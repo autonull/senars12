@@ -4,6 +4,7 @@
 import type { MetricsCollector } from '../../../metrics';
 import type { SelfHost } from '../../../self/host.js';
 import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
+import { safeRatio } from '@senars/util';
 import type { CorrectionResult, IdentifiedIssues } from '../../types.js';
 import { analyzeTaskPatterns } from './performance.js';
 import { detectInefficientChains } from './reasoning-patterns.js';
@@ -22,7 +23,10 @@ export const identifyIssues = async (
   if (!nar) return issues;
 
   const concepts = nar.listConcepts();
-  const lowPriorityRatio = concepts.filter((c) => c.priority < 0.2).length / (concepts.length || 1);
+  const lowPriorityRatio = safeRatio(
+    concepts.filter((c) => c.priority < 0.2).length,
+    concepts.length
+  );
 
   if (lowPriorityRatio > 0.5) {
     issues.resourceIssues.push({

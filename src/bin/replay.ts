@@ -15,22 +15,22 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
-import { createLogger } from '@senars/util';
+import { fileURLToPath } from 'node:url';
+import {
+  type CognitiveParameters,
+  readCognitiveParams as readParamsFile,
+} from '@senars/nar/config/cognitive-parameters';
 import {
   computeReplayStateHash,
+  type FullReplayOptions,
+  type ReplaySnapshotFile,
   replayIntoMemory,
   serializeReplayResult,
   verifyReplayStateHash,
-  type FullReplayOptions,
-  type ReplaySnapshotFile,
 } from '@senars/nar/kernel';
-import {
-  readCognitiveParams as readParamsFile,
-  type CognitiveParameters,
-} from '@senars/nar/config/cognitive-parameters';
-import { errMsg, parseFlags } from '@senars/util';
+import { createLogger, parseFlags } from '@senars/util';
+import { runEntrypoint } from './lib/fatal-error.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -116,17 +116,23 @@ Examples:
 
 async function runReplay(opts: ReplayCliOptions): Promise<void> {
   const projectRoot = resolve(__dirname, '../../..');
-  const gateEventsPath = opts.gateEventsPath ?? join(projectRoot, '.cache/events/gate-events.jsonl');
-  const derivationRecordsPath = opts.derivationRecordsPath ?? join(projectRoot, '.cache/events/derivations.jsonl');
+  const gateEventsPath =
+    opts.gateEventsPath ?? join(projectRoot, '.cache/events/gate-events.jsonl');
+  const derivationRecordsPath =
+    opts.derivationRecordsPath ?? join(projectRoot, '.cache/events/derivations.jsonl');
 
   if (!existsSync(gateEventsPath)) {
     logger.error(`Gate events file not found: ${gateEventsPath}`);
     process.exit(1);
   }
 
-  const cognitiveParams = opts.cognitiveParamsPath ? readCognitiveParams(opts.cognitiveParamsPath) : undefined;
+  const cognitiveParams = opts.cognitiveParamsPath
+    ? readCognitiveParams(opts.cognitiveParamsPath)
+    : undefined;
 
-  const rangeInfo = opts.fromId ? { fromId: opts.fromId, toId: opts.toId } : { from: opts.from, to: opts.to };
+  const rangeInfo = opts.fromId
+    ? { fromId: opts.fromId, toId: opts.toId }
+    : { from: opts.from, to: opts.to };
   logger.info('Starting replay', { ...rangeInfo, gateEventsPath });
 
   const replayOpts: FullReplayOptions = {
@@ -168,7 +174,10 @@ async function runReplay(opts: ReplayCliOptions): Promise<void> {
       console.log('✅ VERIFICATION PASSED');
       process.exit(0);
     } else {
-      logger.error('VERIFICATION FAILED: State hash mismatch', undefined, { expected: snapshot.stateHash, actual });
+      logger.error('VERIFICATION FAILED: State hash mismatch', undefined, {
+        expected: snapshot.stateHash,
+        actual,
+      });
       console.log('❌ VERIFICATION FAILED');
       console.log(`Expected: ${snapshot.stateHash}`);
       console.log(`Actual:   ${actual}`);
@@ -193,10 +202,7 @@ async function runReplay(opts: ReplayCliOptions): Promise<void> {
 }
 
 const opts = parseArgs(process.argv.slice(2));
-runReplay(opts).catch((err) => {
-  logger.error('Replay failed', err instanceof Error ? err : undefined, { error: errMsg(err) });
-  process.exit(1);
-});
+runEntrypoint(() => runReplay(opts));
 
 /** A run's parameters have to survive the process that produced them. */
 function readCognitiveParams(path: string): { params: CognitiveParameters; errors: string[] } {

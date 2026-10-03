@@ -27,10 +27,11 @@ export const toolOk = (content: unknown, extra?: Partial<ToolResult>): ToolResul
 });
 
 /** A failed outcome; anything thrown is stringified at this boundary. */
-export const toolError = (error: unknown): ToolResult => ({
+export const toolError = (error: unknown, extra?: Partial<ToolResult>): ToolResult => ({
   success: false,
   content: null,
   error: errMsg(error),
+  ...extra,
 });
 
 export interface Engine {

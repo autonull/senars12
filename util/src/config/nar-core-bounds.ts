@@ -5,6 +5,7 @@
  * Avoids drift between validation limits, engine defaults and UI control ranges.
  */
 import { z } from 'zod';
+import { keyedBy } from '../utils/collections.js';
 
 export const narCoreBounds = {
   maxConcepts: { min: 100, max: 10000, default: 1000, step: 100 },
@@ -36,3 +37,21 @@ export const narCoreNumber = <K extends NarCoreBoundKey>(key: K) => {
 /** The same row as a zod number carrying its default. */
 export const narCoreDefaultedNumber = <K extends NarCoreBoundKey>(key: K) =>
   narCoreNumber(key).default(narCoreBounds[key].default);
+
+const BOUND_ROWS = Object.entries(narCoreBounds) as [NarCoreBoundKey, NarCoreBounds[NarCoreBoundKey]][];
+
+/** Every bound's default, keyed by knob — the projection the engine's `DEFAULT_CONFIG`
+ *  and the config-file schema's `narCoreDefaults` both wanted and each re-derived. */
+export const narCoreDefaults: Record<NarCoreBoundKey, number> = keyedBy(
+  BOUND_ROWS,
+  ([key]) => key,
+  ([, bound]) => bound.default
+);
+
+/** The whole table as one zod object, defaults attached — so the schema is the bounds
+ *  rather than a hand-maintained transcription of them. */
+export const narCoreDefaultsSchema = keyedBy(
+  BOUND_ROWS,
+  ([key]) => key,
+  ([key]) => narCoreDefaultedNumber(key)
+) as { [K in NarCoreBoundKey]: ReturnType<typeof narCoreDefaultedNumber> };

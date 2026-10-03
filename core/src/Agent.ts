@@ -1,5 +1,5 @@
-import { type EpisodicMemory, generateId, makeId } from '@senars/util';
 import type { CognitiveEvent } from '@senars/core/schemas';
+import { type EpisodicMemory, generateId, incrementCount, makeId, type LMTask } from '@senars/util';
 import { ApprovalService } from './ApprovalService.js';
 import { type CycleHost, runCycle, runCycleStream } from './agent/phases.js';
 import type { MacroPhase } from './agent/pipeline.js';
@@ -62,7 +62,7 @@ export class Agent {
     correlationId: string;
     egress?: { grounded: boolean; score?: number };
   }) => Promise<unknown>;
-  #narrateTier?: 'quality' | 'fast' | 'structured';
+  #narrateTier?: LMTask;
   #macroPipeline?: MacroPhase[];
   #consolidateLearning?: (options: { budget?: number }) => Promise<void>;
   #consolidation?: { enabled?: boolean; budget?: number };
@@ -196,7 +196,7 @@ export class Agent {
   /** Per-engine fault tally for `health()`; a cycle with no faults reports zero. */
   onEngineError(engineId: string): void {
     this.#engineErrorCount++;
-    this.#engineErrors.set(engineId, (this.#engineErrors.get(engineId) ?? 0) + 1);
+    incrementCount(this.#engineErrors, engineId);
   }
 
   async start(): Promise<void> {

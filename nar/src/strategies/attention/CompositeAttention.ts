@@ -1,3 +1,4 @@
+import { sumBy } from '@senars/util';
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import { ConfigurationError } from '../../types';
@@ -32,7 +33,7 @@ export class CompositeAttention implements AttentionModel {
     if (models.length === 0) {
       throw new ConfigurationError('CompositeAttention needs at least one model');
     }
-    const total = models.reduce((sum, m) => sum + m.weight, 0);
+    const total = sumBy(models, (m) => m.weight);
     if (!(total > 0)) {
       throw new ConfigurationError('CompositeAttention needs at least one positive weight');
     }
@@ -53,6 +54,6 @@ export class CompositeAttention implements AttentionModel {
   }
 
   #weighted(read: (model: AttentionModel) => number): number {
-    return this.members.reduce((sum, m) => sum + read(m.model) * m.weight, 0) / this.totalWeight;
+    return sumBy(this.members, (m) => read(m.model) * m.weight) / this.totalWeight;
   }
 }

@@ -27,27 +27,34 @@ import {
 import { createMeTTa, parseMeTTa } from '@senars/metta';
 import { DEFAULT_LEDGER_PATH, ParameterLedger } from '@senars/nar/config';
 import { DialogueCapture, RetrospectiveAdapter } from '@senars/nar/dialogue';
-import { providerKey } from '@senars/nar/kernel';
-import { DEFAULT_REPUTATION_PATH, SourceReputation } from '@senars/nar/kernel';
+import { DEFAULT_REPUTATION_PATH, providerKey, SourceReputation } from '@senars/nar/kernel';
 import { resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
 import { computeEvidenceId } from '@senars/nar/lm/system-one';
-import { createLogger } from '@senars/util';
-import { NLUnderstandingService } from '@senars/nar/nl';
-import { TranslationCache } from '@senars/nar/nl';
+import { NLUnderstandingService, TranslationCache } from '@senars/nar/nl';
 import { MemoryQuery } from '@senars/nar/query';
 import { MettaProposer } from '@senars/nar/reflex';
-import { ensureDir, errMsg, type Flags, makeId, parseFlags, setupGracefulShutdown } from '@senars/util';
+import type { LMTask } from '@senars/util';
+import {
+  createLogger,
+  ensureDir,
+  errMsg,
+  type Flags,
+  makeId,
+  parseFlags,
+  setupGracefulShutdown,
+  unique,
+} from '@senars/util';
 import { envBool } from '@senars/util/config';
 import { Effect } from 'effect';
-import { reflexesOf } from '../cli/conversation-game.js';
 import { buildCommands } from '../cli/commands.js';
+import { reflexesOf } from '../cli/conversation-game.js';
 import { assertValidEnv } from '../utils/env-validate.js';
 import {
   type BotRuntime,
   buildBotCommands,
   type ConnectSpec,
-  gpuSummary,
   type GroundednessState,
+  gpuSummary,
   runSessionRetrospective,
   type SystemOneBag,
   type TraceState,
@@ -114,11 +121,7 @@ const captureDistillation = async (
   }
 };
 
-async function collectChat(
-  rt: BotRuntime,
-  input: string,
-  tier: 'quality' | 'fast' | 'structured'
-): Promise<void> {
+async function collectChat(rt: BotRuntime, input: string, tier: LMTask): Promise<void> {
   const { agent } = rt.wired;
   const { ground, trace } = rt;
   const ctl = new AbortController();
@@ -191,9 +194,10 @@ async function main(): Promise<void> {
   }
 
   let currentSession = sessionManager.getOrCreate('default');
-  let tier: 'quality' | 'fast' | 'structured' = profile.narrateTier;
+  let tier: LMTask = profile.narrateTier;
   const embeddingCache = nar.getSystemOneEmbeddingCache?.();
-  const systemOne: SystemOneBag | undefined = (nar as unknown as { systemOne?: SystemOneBag }).systemOne;
+  const systemOne: SystemOneBag | undefined = (nar as unknown as { systemOne?: SystemOneBag })
+    .systemOne;
   const systemOneGate = nar.getSystemOneGroundednessGate?.();
   // Phase E: egress-gate verdicts are verification signals for the narration channel.
   // Phase F (audit M2): record under the fine provider:<name> key the ingress
@@ -288,9 +292,13 @@ async function main(): Promise<void> {
           // so the span is the honest join available without threading ids
           // through the Focus cycle. Vetoes stay cumulative (running counter).
           const since = input.at ?? 0;
-          const windowed = reflexesOf(conversationGame).flatMap((r) =>
-            (r as { decisionsSince?(t: number): Array<{ proposed: string[]; selected?: unknown }> })
-              .decisionsSince?.(since) ?? []
+          const windowed = reflexesOf(conversationGame).flatMap(
+            (r) =>
+              (
+                r as {
+                  decisionsSince?(t: number): Array<{ proposed: string[]; selected?: unknown }>;
+                }
+              ).decisionsSince?.(since) ?? []
           );
           const selected = windowed.at(-1)?.selected;
           const vetoes =
@@ -306,7 +314,7 @@ async function main(): Promise<void> {
             ...(windowed.length && selected
               ? {
                   reflex: {
-                    proposed: [...new Set(windowed.flatMap((d) => d.proposed))],
+                    proposed: unique(windowed.flatMap((d) => d.proposed)),
                     selected,
                     vetoes,
                   },
@@ -420,13 +428,17 @@ async function main(): Promise<void> {
   const registry = createRemoteRegistry(auth);
   const secretIds = new Set<string>();
   const bindTo = (conn: Connection): void => {
-    bindAgentToConnection(agent as never, conn as never, {
-      auth,
-      commandRegistry: registry,
-      sessionManager,
-      episodicMemory,
-      manager: cm,
-    } as never);
+    bindAgentToConnection(
+      agent as never,
+      conn as never,
+      {
+        auth,
+        commandRegistry: registry,
+        sessionManager,
+        episodicMemory,
+        manager: cm,
+      } as never
+    );
   };
   const rt: BotRuntime = {
     wired,

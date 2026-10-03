@@ -1,7 +1,9 @@
 import { trace } from '@opentelemetry/api';
 import type { JudgmentResolvedEvent } from '@senars/core/schemas/cognitive-events';
 import { makeId } from '@senars/util';
+import type { CognitiveAxis } from '../../decision/types.js';
 import { recordJudgmentMetric } from '../../metrics/prometheus.js';
+import type { BandDecision } from './policy.js';
 import type { JudgmentProposition, JudgmentQuery } from './types.js';
 
 export interface TelemetrySinks {
@@ -38,7 +40,7 @@ export function createTelemetryEmitter(sinks: TelemetrySinks = {}) {
     provenance?: {
       inputDigest?: string;
       calibrationDigest?: string;
-      decisionBand?: 'act' | 'review' | 'block' | 'abstain';
+      decisionBand?: BandDecision;
     }
   ): void {
     try {

@@ -1,14 +1,14 @@
-import { formatTruth } from '@senars/util';
+import { type BeliefTruth, formatTruth } from '@senars/util';
 
 export interface ConflictInfo {
-  belief: { term: string; truth?: { frequency: number; confidence: number } };
-  conflictWith: { term: string; truth?: { frequency: number; confidence: number } };
+  belief: { term: string; truth?: BeliefTruth };
+  conflictWith: { term: string; truth?: BeliefTruth };
   type: 'direct' | 'frequency' | 'implication';
 }
 
 export function buildGenerationPrompt(opts: {
   query: string;
-  beliefs: Array<{ term: string; truth?: { frequency: number; confidence: number } }>;
+  beliefs: Array<{ term: string; truth?: BeliefTruth }>;
   conflicts: ConflictInfo[];
   derivationSteps?: number;
   reasoningType?: string;

@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * `senars config validate` — validate senars.config.json against the schema.
  *
@@ -8,12 +9,10 @@
  *   senars config validate --json             # output machine-readable JSON
  */
 
+import { resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
 import { parseFlags } from '@senars/util';
-import { createLogger } from '@senars/util';
 import { appConfigSchema, loadConfig } from '../config/index.js';
-import { resolveLMSettings, resolveLMConfig } from '@senars/nar/lm';
-
-const logger = createLogger({ scope: 'config:validate' });
+import { runEntrypoint } from './lib/fatal-error.js';
 
 interface ValidateOptions {
   configPath?: string;
@@ -74,13 +73,15 @@ async function main(): Promise<void> {
       console.log(`  LM Provider: ${lmConfig.provider}`);
       console.log(`  LM Model: ${lmConfig.model}`);
       console.log(`  NAR Enabled: ${config.backends.nar.enabled}`);
-          console.log(`  Config Version: ${config.configVersion ?? 'not set'}`);
+      console.log(`  Config Version: ${config.configVersion ?? 'not set'}`);
     }
   } catch (error) {
     if (error instanceof Error) {
       // Try to extract Zod error details
       if ('issues' in error) {
-        const zodError = error as { issues: Array<{ path: (string | number)[]; message: string; code: string }> };
+        const zodError = error as {
+          issues: Array<{ path: (string | number)[]; message: string; code: string }>;
+        };
         result.errors = zodError.issues.map((issue) => ({
           path: issue.path.map(String).join('.'),
           message: issue.message,
@@ -105,7 +106,4 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
-  logger.error('config validate failed', err as Error);
-  process.exit(1);
-});
+runEntrypoint(main);

@@ -182,7 +182,7 @@ export class SchemaInductor {
     const terms = chainTerms(chain);
     const variables = terms.map((_, i) => `?V${i + 1}`);
     const template = terms.map((t, i) => `${variables[i]}:${t}`).join(' → ');
-    const confidences = chain.map((t) => (t.truth ? t.truth.f * t.truth.c : 0));
+    const confidences = chain.map((t) => (t.truth ? Truth.attention(t.truth) : 0));
     const confidence = clamp01(Math.min(...confidences));
     if (confidence < this.config.minConfidenceForInduction) return null;
     const id = generateId('schema-sym', this.rng);
@@ -237,7 +237,7 @@ export class SchemaInductor {
 
     for (const d of derivations) {
       if (!d.truth) continue;
-      const confidence = d.truth.f * d.truth.c;
+      const confidence = Truth.attention(d.truth);
       if (confidence < this.config.minConfidenceForInduction) continue;
 
       if (current.length > 0) {

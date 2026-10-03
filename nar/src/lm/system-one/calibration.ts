@@ -1,4 +1,4 @@
-import { maxScore, sortBy, trimCapped } from '@senars/util';
+import { maxScore, safeRatio, sortBy, sumBy, trimCapped } from '@senars/util';
 import type { CalibrationVersion, RubricId } from './types.js';
 
 /** Fitted points retained per calibrator; older points stop steering the fit. */
@@ -155,7 +155,7 @@ export function createIsotonicCalibrator(
         ece += Math.abs(calibrated - p.observed) * p.weight;
         totalWeight += p.weight;
       }
-      return totalWeight > 0 ? ece / totalWeight : 0;
+      return safeRatio(ece, totalWeight);
     },
 
     getPoints(): ReadonlyArray<CalibrationPoint> {
@@ -192,16 +192,15 @@ export class RollingECEMonitor {
   getRollingECE(): number {
     this.#prune(Date.now());
     if (this.#samples.length === 0) return 0;
-    const totalWeight = this.#samples.reduce((sum, s) => sum + (s.sampleCount ?? 0), 0);
-    if (totalWeight === 0) return 0;
-    return (
-      this.#samples.reduce((sum, s) => sum + (s.ece ?? 0) * (s.sampleCount ?? 0), 0) / totalWeight
+    return safeRatio(
+      sumBy(this.#samples, (s) => (s.ece ?? 0) * (s.sampleCount ?? 0)),
+      sumBy(this.#samples, (s) => s.sampleCount ?? 0)
     );
   }
 
   getSampleCount(): number {
     this.#prune(Date.now());
-    return this.#samples.reduce((sum, s) => sum + (s.sampleCount ?? 0), 0);
+    return sumBy(this.#samples, (s) => s.sampleCount ?? 0);
   }
 
   isDriftDetected(): boolean {

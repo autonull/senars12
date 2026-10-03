@@ -1,4 +1,4 @@
-import { errMsg, truncate as truncateText } from '@senars/util';
+import { errMsg, truncate as truncateText, type LMTask } from '@senars/util';
 import {
   generateText,
   type LanguageModel,
@@ -29,7 +29,8 @@ export interface ReasoningArtifact {
   metadata?: Record<string, unknown>;
 }
 
-export type ModelTier = 'quality' | 'fast' | 'structured';
+/** `LMTask` under the name the model runner reads by — one tier vocabulary. */
+export type ModelTier = LMTask;
 
 export interface ComposedRequest {
   system: string;

@@ -1,6 +1,14 @@
 import { promises as fs } from 'node:fs';
-import { cachePath, getOrInsert, sha256HexParts, sortBy, writeJsonFile } from '@senars/util';
-import { holdoutSplit, mulberry32 } from '../../utils/random.js';
+import {
+  cachePath,
+  groupBy,
+  holdoutSplit,
+  mulberry32,
+  sha256HexParts,
+  sortBy,
+  toFiniteNumber,
+  writeJsonFile,
+} from '@senars/util';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration.js';
 import type { JudgmentDataset } from './distill.js';
 import { identityECE, meanBrier, meanBrierOf } from './metrics.js';
@@ -76,9 +84,7 @@ export function extractLabeledData(
 }
 
 function observedFor(label: string): number | undefined {
-  if (OBSERVED_BY_LABEL[label] !== undefined) return OBSERVED_BY_LABEL[label];
-  const numeric = Number(label);
-  return Number.isFinite(numeric) ? numeric : undefined;
+  return OBSERVED_BY_LABEL[label] ?? toFiniteNumber(label);
 }
 
 /** Dataset rows that only carry a categorical label get their observed value derived. */
@@ -147,10 +153,7 @@ export function fitCalibrationLock(
   const version = (options.calibrationVersion ?? 'v2.4.1') as CalibrationVersion;
 
   const data = extractLabeledDataWithDerivedOutcomes(dataset, options.headIds);
-  const byHead = new Map<string, LabeledDatum[]>();
-  for (const d of data) {
-    getOrInsert(byHead, d.headId, () => []).push(d);
-  }
+  const byHead = groupBy(data, (d) => d.headId);
 
   const perHead = new Map<string, IsotonicCalibrator>();
   const entries: CalibrationLockEntry[] = [];

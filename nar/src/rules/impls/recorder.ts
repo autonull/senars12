@@ -90,7 +90,13 @@ export class DerivationRecorder {
     };
   }
 
-  record(ruleId: string, p1: RuleInput, p2: RuleInput, result: RuleResult): void {
+  record(
+    ruleId: string,
+    p1: RuleInput,
+    p2: RuleInput,
+    result: RuleResult,
+    truthFnName?: string
+  ): void {
     if (!this.enabled || !this.open) return;
     if (this.open.steps.length >= this.maxStepsPerRecord) return;
     const stepId = makeId();
@@ -115,6 +121,7 @@ export class DerivationRecorder {
       premises: [p1.term.toString(), p2.term.toString()],
       conclusion: result.term.toString(),
       truth: asBeliefTruth(result.truth),
+      truthFn: truthFnName,
       premiseTruths: [asBeliefTruth(p1.truth), asBeliefTruth(p2.truth)],
       evidenceLineage: lineage,
       independence,

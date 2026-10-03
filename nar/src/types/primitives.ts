@@ -8,4 +8,4 @@ export const createDuration = (ms: number): Duration => ms as Duration;
 export const DEPTH_MAX = 10 as const;
 
 /** Injectable randomness — deterministic tests/simulations seed an LCG here. */
-export type RandomSource = () => number;
+export type { RandomSource } from '@senars/util';
