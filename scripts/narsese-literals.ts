@@ -11,12 +11,37 @@
  * Only validates actual string literals (single/double quoted) that represent
  * complete Narsese terms or tasks — not template strings, not compound rule
  * patterns, not operator symbol definitions.
+ *
+ * This file is the process boundary. The rule and its verdicts live in
+ * `scripts/lib/narsese-literals.ts` so a test can call the gate and prove it can
+ * fail — §10.1's rule, which `scripts/terms-canonical.ts` states and this gate
+ * had been quietly violating by keeping its only logic inline.
+ *
+ * **It reads `parseTask`, not `parse`.** A literal like `(robin --> bird).` is a
+ * *task*: the trailing `.` is what makes it a judgment, and it is not part of a
+ * `Term` at all. The gate was handing task literals to a term parser and a term
+ * serialiser, which cannot represent the mark, so every literal with a judgment
+ * mark was guaranteed to fail — the gate was asserting a property the types made
+ * impossible rather than reporting one. `parseTask` keeps the punctuation and the
+ * truth, so the round trip it checks is the round trip that actually happens.
+ *
+ * **"Itself" means up to insignificant whitespace.** Whitespace is only
+ * insignificant *between* a word character and a non-word one — around a copula,
+ * inside brackets — and significant between two word characters, so `[long cat]`
+ * stays one atom and never becomes `[longcat]`. A gate that compared raw strings
+ * was not asking whether a literal round-trips; it was asking whether the author
+ * had omitted the author's spaces. That is not a property of Narsese, and it had
+ * gone red on a worked example written the way the README writes them.
+ *
+ * The structural property — that the serialiser is a fixed point — is checked
+ * separately and is not optional, because that one *is* a real defect when it
+ * fails: a serialiser that changes its own output on a second pass is one whose
+ * round trip a downstream reader cannot rely on.
  */
 
-import { readFileSync, readdirSync } from 'node:fs';
-import { join, extname, relative } from 'node:path';
-import { termParser } from '../nar/src/terms/index.js';
-import { serializeTerm } from '../nar/src/terms/impls/serialize.js';
+import { readdirSync, readFileSync } from 'node:fs';
+import { extname, join, relative } from 'node:path';
+import { roundTrip } from './lib/narsese-literals.js';
 
 const ROOT = process.cwd();
 const TARGET_DIRS = ['nar/src', 'src', 'scripts', 'examples'];
@@ -44,18 +69,18 @@ const EXCLUDE_FILES = new Set([
   'src/bin/commands/lm.ts',
   'src/bin/commands/profile.ts',
   'src/bin/lib/doctor-report.ts',
-  'nar/src/learning/schema-induction.ts',  // rule pattern templates
-  'nar/src/nl/normalize.ts',               // operator symbols, patterns
+  'nar/src/learning/schema-induction.ts', // rule pattern templates
+  'nar/src/nl/normalize.ts', // operator symbols, patterns
   'nar/src/nl/prompts/understanding-v1.ts', // prompt templates
-  'nar/src/rules/impls/meta-rules.ts',      // rule templates with variables
-  'nar/src/tools/impls/self-concept.ts',    // belief templates
+  'nar/src/rules/impls/meta-rules.ts', // rule templates with variables
+  'nar/src/tools/impls/self-concept.ts', // belief templates
   'nar/src/tools/adapters/scenario-execute.ts', // scenario templates
-  'nar/src/tools/adapters/aisdk-adapter.ts',    // example literals
+  'nar/src/tools/adapters/aisdk-adapter.ts', // example literals
   'nar/src/imagination/impls/CognitiveTreadmill.ts', // test fixtures
   'nar/src/imagination/impls/ScenarioGenerator.ts', // test fixtures
   'nar/src/imagination/impls/HiddenModelOracle.ts', // test data
-  'nar/src/agent/cognitive-agent.ts',       // test fixtures
-  'nar/src/lm/rule-builders.ts',            // rule builder examples
+  'nar/src/agent/cognitive-agent.ts', // test fixtures
+  'nar/src/lm/rule-builders.ts', // rule builder examples
 ]);
 
 // Match single/double quoted string literals that look like complete Narsese terms/tasks
@@ -64,10 +89,12 @@ const EXCLUDE_FILES = new Set([
 // - No template variables $identifier
 // - Single term/task (not compound with & or ==> at top level)
 // - Start with ( and contain a copula, end with ) + optional punctuation/truth
-const STRING_LITERAL_PATTERN = /(["'])((?:\((?:(?!\1|[\$&]).)*?(?:-->|<->|==>|<=>|=\/>|=&\||&|\\||&\/|\^)(?:(?!\1|[\$&]).)*?\))[.!?@;]?(?:%[^%]*%)?)\1/g;
+const STRING_LITERAL_PATTERN =
+  /(["'])((?:\((?:(?!\1|[$&]).)*?(?:-->|<->|==>|<=>|=\/>|=&\||&|\\||&\/|\^)(?:(?!\1|[$&]).)*?\))[.!?@;]?(?:%[^%]*%)?)\1/g;
 
 // Legacy syntax pattern: <...> with complete statement inside
-const LEGACY_PATTERN = /(["'])((?:<\((?:(?!\1|[\$&]).)*?(?:-->|<->|==>|<=>|=\/>|=&\||&|\\||&\/|\^)(?:(?!\1|[\$&]).)*?\)>)[.!?@;]?(?:%[^%]*%)?)\1/g;
+const LEGACY_PATTERN =
+  /(["'])((?:<\((?:(?!\1|[$&]).)*?(?:-->|<->|==>|<=>|=\/>|=&\||&|\\||&\/|\^)(?:(?!\1|[$&]).)*?\)>)[.!?@;]?(?:%[^%]*%)?)\1/g;
 
 function walkDir(dir: string): string[] {
   const files: string[] = [];
@@ -94,7 +121,9 @@ function shouldExclude(file: string): boolean {
   return EXCLUDE_FILES.has(rel);
 }
 
-function extractNarseseLiterals(content: string): { literal: string; quote: string; index: number }[] {
+function extractNarseseLiterals(
+  content: string
+): { literal: string; quote: string; index: number }[] {
   const results: { literal: string; quote: string; index: number }[] = [];
   const matches = content.matchAll(STRING_LITERAL_PATTERN);
   for (const match of matches) {
@@ -110,7 +139,9 @@ function extractNarseseLiterals(content: string): { literal: string; quote: stri
   return results;
 }
 
-function extractLegacyLiterals(content: string): { literal: string; quote: string; index: number }[] {
+function extractLegacyLiterals(
+  content: string
+): { literal: string; quote: string; index: number }[] {
   const results: { literal: string; quote: string; index: number }[] = [];
   const matches = content.matchAll(LEGACY_PATTERN);
   for (const match of matches) {
@@ -150,20 +181,12 @@ async function main() {
 
       // Check round-trip for canonical syntax
       const literals = extractNarseseLiterals(content);
-      for (const { literal, quote, index } of literals) {
+      for (const { literal, index } of literals) {
         totalLiterals++;
-        try {
-          const parsed = termParser.parse(literal);
-          const reserialized = serializeTerm(parsed);
-          if (reserialized !== literal) {
-            failedLiterals++;
-            const relPath = relative(ROOT, file);
-            failures.push(`${relPath}:${index} — '${literal}' re-serialises as '${reserialized}'`);
-          }
-        } catch (e) {
+        const verdict = roundTrip(literal);
+        if (verdict.failure) {
           failedLiterals++;
-          const relPath = relative(ROOT, file);
-          failures.push(`${relPath}:${index} — '${literal}' parse failed: ${e instanceof Error ? e.message : String(e)}`);
+          failures.push(`${relative(ROOT, file)}:${index} — ${verdict.failure}`);
         }
       }
     }
@@ -181,7 +204,9 @@ async function main() {
 
   if (failures.length > 0) {
     hasErrors = true;
-    console.error(`narsese:literals — ${failedLiterals}/${totalLiterals} literal(s) failed round-trip`);
+    console.error(
+      `narsese:literals — ${failedLiterals}/${totalLiterals} literal(s) failed round-trip`
+    );
     for (const failure of failures) {
       console.error(`  ${failure}`);
     }

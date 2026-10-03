@@ -10,10 +10,18 @@
  *
  * - an answer is either the asked term, or an instance of it when the asked
  *   term carries variables, or absent;
- * - a question the system cannot ground returns `confidence: 0` with no answer.
+ * - a question the system cannot ground carries **no truth**, which is the
+ *   shape a refusal now has.
  *
  * The gate asserts the shape over a live transcript rather than over the source,
  * because the defect was a behaviour and a source reading cannot see it.
+ *
+ * It reads `Answer.truth` rather than the `confidence` it replaced: a refusal is
+ * the *absence* of epistemic content, and the scalar this gate used to compare
+ * against zero was lossy in exactly the direction that mattered — `f=0.45, c=1.0`
+ * and `f=0.50, c=0.90` both reported `0.45`, so "I do not know" and "I am certain
+ * it is false" read alike. A gate asserting over a number that cannot tell those
+ * apart was not asserting much.
  */
 
 import { createNAR } from '../nar/src/nar-presets.js';
@@ -29,6 +37,15 @@ const transcriptNAR = async (cycles: number) => {
   for (let i = 0; i < cycles; i++) await nar.run(1);
   return nar;
 };
+
+/** One answer as the gate reads it: the shape, and the belief behind it. */
+const readAnswer = ({ answer, truth, evidence }: Awaited<ReturnType<typeof nar.query.ask>>) => ({
+  answer,
+  truth,
+  evidenceCount: evidence.length,
+  /** The one number a report may show, and only when there is a truth to show. */
+  reported: truth === undefined ? '(none)' : Truth.expectation(truth).toFixed(3),
+});
 
 interface Case {
   readonly asked: string;
@@ -60,10 +77,13 @@ const nar = await transcriptNAR(10);
 console.log(`answer:no-fabrication — ${nar.query.getBeliefs().length} beliefs in the store\n`);
 
 for (const testCase of CASES) {
-  const answer = await nar.query.ask(testCase.asked);
+  const answer = readAnswer(await nar.query.ask(testCase.asked));
   const refused = answer.answer === undefined;
-  if (refused && answer.confidence !== 0) {
-    failures.push(`${testCase.asked} refused but reported confidence ${answer.confidence}`);
+  if (refused && answer.truth !== undefined) {
+    failures.push(`${testCase.asked} refused but reported truth ${JSON.stringify(answer.truth)}`);
+  }
+  if (!refused && answer.truth === undefined) {
+    failures.push(`${testCase.asked} answered ${answer.answer} with no truth behind it`);
   }
   if (!refused && answer.answer !== testCase.expectAnswer) {
     failures.push(
@@ -72,17 +92,17 @@ for (const testCase of CASES) {
   }
   console.log(
     `  ${testCase.asked.padEnd(18)} → ${(answer.answer ?? '(refused)').padEnd(20)}` +
-      `conf=${answer.confidence.toFixed(3)} evidence=${answer.evidence.length}  ${testCase.note}`
+      `f/c=${answer.reported} evidence=${answer.evidenceCount}  ${testCase.note}`
   );
 }
 
-const variables = await nar.query.ask('(kitty-->?what).');
+const variables = readAnswer(await nar.query.ask('(kitty-->?what).'));
 if (variables.answer && variables.answer === '(kitty-->?what).') {
   failures.push('a variable question answered with its own unbound term');
 }
 console.log(
   `\n  ${'(kitty-->?what).'.padEnd(18)} → ${(variables.answer ?? '(refused)').padEnd(20)}` +
-    `conf=${variables.confidence.toFixed(3)} evidence=${variables.evidence.length}  ` +
+    `f/c=${variables.reported} evidence=${variables.evidenceCount}  ` +
     'a variable question is answered by a ground instance of it, or not at all'
 );
 

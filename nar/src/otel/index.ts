@@ -55,8 +55,21 @@ export async function initOtel(config: OtelConfig = {}): Promise<void> {
   provider.register();
 }
 
+/**
+ * The tracer this module traces through.
+ *
+ * It comes from *this module's* provider, not from `trace.getTracer`. The global
+ * registration the API exposes is a once-per-process latch: a second
+ * `provider.register()` is silently ignored, and a `shutdown()` disables the
+ * provider that latch points at permanently. So any second `initOtel` in a
+ * process — a second test file, a reconfigure at runtime — left the module
+ * tracing through a dead global and every span it emitted went nowhere while
+ * `initOtel` reported success. Reading the provider directly makes the tracer
+ * follow this module's lifecycle, and the global stays what it is good for:
+ * spans emitted by *other* code, which have no other handle on it.
+ */
 export function getTracer(name: string) {
-  return trace.getTracer(name);
+  return provider?.getTracer(name) ?? trace.getTracer(name);
 }
 
 /** O1 helper: run `fn` inside an active span; attributes settable via the handle. */

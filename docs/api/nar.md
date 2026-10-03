@@ -1128,7 +1128,7 @@ _Dynamic subpath (no single entry file)._
 
 - `initOtel`
 
-- `getTracer`
+- `getTracer` — The tracer this module traces through.
 
 - `withSpan` — O1 helper: run `fn` inside an active span; attributes settable via the handle.
 
