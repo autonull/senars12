@@ -1,5 +1,4 @@
-import type { InternalEntry } from './Bag.js';
-import type { BagItem } from './Bag.js';
+import type { BagItem, InternalEntry } from './types.js';
 
 /** Largest power of two ≤ `n` (the binary-lifting descent start). */
 export function highestBit(n: number): number {
@@ -14,11 +13,6 @@ export class FenwickTree<T extends InternalEntry<BagItem>> {
 
   constructor(capacity: number) {
     this.tree = new Array<number>(capacity + 1).fill(0);
-  }
-
-  /** Get the underlying tree array for direct manipulation. */
-  getArray(): number[] {
-    return this.tree;
   }
 
   /** Resize the tree to accommodate a new capacity. */
@@ -39,17 +33,15 @@ export class FenwickTree<T extends InternalEntry<BagItem>> {
     }
   }
 
-  /** Find the index whose prefix sum reaches `target`. */
+  /** Find the index whose prefix sum reaches `target`, by binary lifting over the tree. */
   findByPrefixSum(target: number, length: number): number {
     let idx = 0;
     let remaining = target;
     for (let step = highestBit(length); step > 0; step >>= 1) {
       const next = idx + step;
-      const nextVal = this.tree[next] ?? 0;
-      const idxVal = this.tree[idx] ?? 0;
-      if (next < length && nextVal < remaining) {
+      if (next < length && (this.tree[next] ?? 0) < remaining) {
         idx = next;
-        remaining -= idxVal;
+        remaining -= this.tree[idx] ?? 0;
       }
     }
     return idx;
@@ -64,14 +56,5 @@ export class FenwickTree<T extends InternalEntry<BagItem>> {
       const parent = i + (i & -i);
       if (parent <= n) this.tree[parent]! += this.tree[i]!;
     }
-  }
-
-  /** Get the total sum (prefix sum up to length). */
-  total(length: number): number {
-    let sum = 0;
-    for (let i = length; i > 0; i -= i & -i) {
-      sum += this.tree[i] ?? 0;
-    }
-    return sum;
   }
 }

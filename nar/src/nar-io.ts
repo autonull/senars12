@@ -261,7 +261,7 @@ export class NARIO {
 
   async loadMemoryState(state: SerializedNARState): Promise<void> {
     if (state.concepts) {
-      this.import(state);
+      await this.import(state);
     }
   }
 

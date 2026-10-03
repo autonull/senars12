@@ -12,13 +12,10 @@ import {
 } from '@senars/util';
 import { PRESSURE } from '../constants.js';
 import { FenwickTree } from './fenwick.js';
+import type { BagItem, InternalEntry } from './types.js';
 
 export type { RandomSource } from '@senars/util';
-
-export interface BagItem {
-  id: string;
-  priority: number;
-}
+export type { BagItem, InternalEntry } from './types.js';
 
 export type BagImplementation = 'priority' | 'fenwick';
 
@@ -61,12 +58,6 @@ export interface Bag<T extends BagItem> {
   clear(): void;
   peek(): T | undefined;
   toArray(): T[];
-}
-
-export interface InternalEntry<T extends BagItem> {
-  item: T;
-  createdAt: number;
-  lastAccessedAt: number;
 }
 
 /**
