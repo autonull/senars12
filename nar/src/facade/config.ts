@@ -96,6 +96,8 @@ export interface NARConfig extends CoreConfig {
     minConfidence?: number;
     patternMinSupport?: number;
   };
+  /** Phase C (REFACTOR.todo1): periodic AIKR-bounded learning consolidation (SchemaInductor, ContrastiveMemory, MiningBag, ProofMettaProposer). */
+  learningConsolidation?: { enabled?: boolean; budget?: number; interval?: number };
   /** Initial autonomy mode for the action gate (default: 'observe-only'). */
   initialAutonomyMode?: AutonomyMode;
   /**

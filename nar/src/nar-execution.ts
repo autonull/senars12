@@ -102,6 +102,8 @@ export interface NARExecutionOptions {
    * threaded through the constructor is a line of that budget spent on nothing.
    */
   decision?: DecisionPort;
+  /** Optional callback invoked at the end of each cycle for learning consolidation (Phase C REFACTOR.todo1). */
+  onCycleEnd?: (cycleCount: number, config: NARConfig) => Promise<void>;
 }
 
 export class NARExecution {
@@ -126,6 +128,7 @@ export class NARExecution {
       options.budgets ?? new ControlBudgets(options.gates.getBudgetGate() as KernelBudgetGate);
     this.proposals = options.proposals;
     this.decision = options.decision ?? options.config.decision;
+    this.onCycleEnd = options.onCycleEnd;
   }
 
   private readonly memory: MemoryPorts;
@@ -142,6 +145,7 @@ export class NARExecution {
   private readonly budgets: ControlBudgets;
   private readonly proposals?: LMProposalProducer;
   private readonly decision?: DecisionPort;
+  private readonly onCycleEnd?: (cycleCount: number, config: NARConfig) => Promise<void>;
 
   /** Stimulate drives based on events — homeostatic regulation. Public so tool layer can report outcomes. */
   stimulateDrives(event: string, _data?: Record<string, unknown>): void {
@@ -347,6 +351,11 @@ export class NARExecution {
               )
             : undefined,
         });
+
+        // Phase C (REFACTOR.todo1): learning consolidation at end of cycle
+        if (this.onCycleEnd) {
+          await this.onCycleEnd(this._cycleCount, this.config);
+        }
       });
     }
 
