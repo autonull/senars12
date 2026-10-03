@@ -21,6 +21,16 @@ export const fnv1a = (str: string): number => {
 export const fnv1aCombine = (acc: number, val: number): number =>
   mul32(acc ^ val, 0x01000193) >>> 0;
 
+/** Murmur3-finalizer fold of a string onto a caller seed — the string→u32 path
+ *  behind seeded feature blocks. Kept beside `fnv1a` so seeded and unseeded
+ *  string hashing share one home rather than one hand-rolled loop per caller. */
+export const seededStringHash = (value: string, seed: number): number => {
+  let hash = seed >>> 0;
+  for (let i = 0; i < value.length; i++)
+    hash = mul32(hash ^ value.charCodeAt(i), 0x85ebca6b) >>> 0;
+  return hash;
+};
+
 /** One djb2 step — for folding non-string values (floats, salts) into a hash. */
 export const djb2Step = (hash: number, value: number): number => ((hash << 5) - hash + value) | 0;
 

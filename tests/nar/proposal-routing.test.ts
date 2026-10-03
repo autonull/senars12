@@ -1,3 +1,4 @@
+import { clamp01 } from '@senars/util';
 import { describe, expect, it } from 'vitest';
 import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
 import { SelfRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
@@ -16,7 +17,7 @@ describe('todo7: proposal routing', () => {
     const applied: Array<[string, number]> = [];
     const p = gate.propose('focus-weight', { focusId: 'f1', weight: 9 }, 'self-scheduler');
     const r = router.route(p, 'sandbox-execute', {
-      applyFocusWeight: (id, w) => applied.push([id, Math.max(0, Math.min(1, w))]),
+      applyFocusWeight: (id, w) => applied.push([id, clamp01(w)]),
     });
     expect(r).toMatchObject({ route: 'auto-apply', applied: true });
     expect(applied).toEqual([['f1', 1]]);

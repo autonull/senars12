@@ -3,11 +3,13 @@ import { join } from 'node:path';
 import {
   clamp01,
   ensureDir,
+  fillSeededUnitRange,
   groupBy,
   holdoutSplit,
   mulberry32,
   pearson,
   readJsonlAsync,
+  seededStringHash,
   sha256HexParts,
   sha256Prefixed,
   sigmoid,
@@ -26,17 +28,7 @@ import { composeModelDigest, DigestMismatchError, encoderDigest } from './wasi-r
 
 /** Deterministic per-action feature block so one head can score (state, action) pairs. */
 export function actionFeatures(action: string, dim: number, seed = 0x9e3779b9): Float32Array {
-  let h = seed ^ dim;
-  for (let i = 0; i < action.length; i++) h = Math.imul(h ^ action.charCodeAt(i), 0x85ebca6b) >>> 0;
-  const features = new Float32Array(dim);
-  let state = h || 1;
-  for (let i = 0; i < dim; i++) {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    features[i] = (((t ^ (t >>> 14)) >>> 0) / 4294967296) * 2 - 1;
-  }
-  return features;
+  return fillSeededUnitRange(new Float32Array(dim), seededStringHash(action, seed ^ dim));
 }
 
 export function parseActionFromInstruction(instruction: string): string {

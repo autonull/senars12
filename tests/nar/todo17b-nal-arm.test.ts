@@ -10,6 +10,7 @@ import { createBanditGame, createGridWorldGame, type Game } from '@senars/nar/ga
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
 import { Negotiator } from '@senars/nar/reflex';
 import { describe, expect, it } from 'vitest';
+import { clamp01 } from '@senars/util';
 import { pinDeterministicRNG, restoreRNG } from '../helpers/rng.js';
 import { createGateRegistry } from '@senars/nar/kernel';
 
@@ -146,7 +147,7 @@ describe('TODO17b: NAL arcade arm falsification', () => {
       });
       for (const s of schemas)
         focus.seedRule(s.action, s.kind === 'bad' ? 'bad_outcome' : 'good_outcome', {
-          f: Math.max(0, Math.min(1, s.meanReward)),
+          f: clamp01(s.meanReward),
           c: 0.9,
         });
       focus.bindReflex(new FixedActionReflex('0'));

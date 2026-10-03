@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { mulberry32 } from '@senars/util';
+import { clamp01, mulberry32 } from '@senars/util';
 import { describe, expect, it } from 'vitest';
 import {
   assertLockMatches,
@@ -21,7 +21,7 @@ function miscalibratedDataset(rows: number): JudgmentDataset {
   const rand = mulberry32(12345);
   for (let i = 0; i < rows; i++) {
     const truth = rand();
-    const predicted = Math.min(1, Math.max(0, truth + 0.25 + (rand() - 0.5) * 0.1));
+    const predicted = clamp01(truth + 0.25 + (rand() - 0.5) * 0.1);
     dataset.record({
       evidenceId: `e${i}`,
       rubric: 'risk',

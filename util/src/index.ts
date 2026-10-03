@@ -262,6 +262,7 @@ export {
   fnv1a,
   fnv1aCombine,
   mul32,
+  seededStringHash,
   SHA256_PINNED,
   sha256Hex,
   sha256HexParts,
@@ -310,6 +311,7 @@ export { extractLastUserMessage } from './utils/prompt.js';
 export {
   choice,
   createLCG,
+  fillSeededUnitRange,
   holdoutSplit,
   mulberry32,
   nextInt,

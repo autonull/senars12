@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
 import type { EmbeddingPointer } from '@senars/nar/lm/system-one/types.js';
+import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
 
 /**
  * Bench 17 — Cache Correctness at Scale
@@ -16,18 +17,7 @@ describe('Bench 17 — Cache Correctness at Scale', () => {
   let cache: ReturnType<typeof createEmbeddingCache>;
   const DIMENSION = 384;
 
-  const fakeGenerator = {
-    generate: async (text: string) => {
-      const vec = new Array<number>(DIMENSION).fill(0);
-      let h = 2166136261;
-      for (let i = 0; i < text.length; i++) {
-        h ^= text.charCodeAt(i);
-        h = Math.imul(h, 16777619);
-        vec[i % DIMENSION] = ((h >>> 0) % 1000) / 1000;
-      }
-      return vec;
-    },
-  };
+  const fakeGenerator = fakeEmbeddingGenerator(DIMENSION);
 
   beforeEach(() => {
     cache = createEmbeddingCache({

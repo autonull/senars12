@@ -2,6 +2,7 @@ import { mkdtempSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { clamp01 } from '@senars/util';
 import { describe, expect, it } from 'vitest';
 import type { GridWorldState } from '../../nar/src/game/impls/GridWorldGame.js';
 import { GridWorldGame } from '../../nar/src/game/impls/GridWorldGame.js';
@@ -66,8 +67,6 @@ function randomEpisode(game: GridWorldGame, maxSteps = 30): number {
   }
   return total;
 }
-
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 /** Play the tabular-Q baseline, recording (state, action, MC-return) labels with state embeddings. */
 async function collectDistillationDataset(

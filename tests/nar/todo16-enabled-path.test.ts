@@ -1,5 +1,6 @@
 import type { JudgmentResolvedEvent } from '@senars/core/schemas';
 import { validateCognitiveEvent } from '@senars/core/schemas';
+import { fnv1aCombine } from '@senars/util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
 import { createMockLMService } from '../../nar/src/lm/lm-service.js';
@@ -20,8 +21,7 @@ const fakeGenerator = {
     const vec = new Array<number>(384).fill(0);
     let h = 2166136261;
     for (let i = 0; i < text.length; i++) {
-      h ^= text.charCodeAt(i);
-      h = Math.imul(h, 16777619);
+      h = fnv1aCombine(h, text.charCodeAt(i));
       vec[i % 384] = ((h >>> 0) % 1000) / 1000;
     }
     return vec;

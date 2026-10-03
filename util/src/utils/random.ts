@@ -112,6 +112,15 @@ export const shuffleInPlace = <T>(items: T[], rng: RandomSource): T[] => {
   return items;
 };
 
+/** Fill `out` with `[-1, 1)` draws from `seededStream` — the deterministic
+ *  feature-block expansion behind per-action embeddings. A zero seed falls back
+ *  to 1, matching the historical guard against a stuck all-zero stream. */
+export const fillSeededUnitRange = (out: Float32Array, seed: number): Float32Array => {
+  const next = seededStream(seed || 1).next;
+  for (let i = 0; i < out.length; i++) out[i] = next() * 2 - 1;
+  return out;
+};
+
 /**
  * Deterministic train/holdout partition — shuffles uniformly, then cuts a
  * `fraction`-sized holdout of at least one row. The single split primitive
