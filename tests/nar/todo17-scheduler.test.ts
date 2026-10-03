@@ -4,6 +4,7 @@ import type { FocusStepReport } from '@senars/nar/focus';
 import type { GameFocus as GameFocusType } from '@senars/nar/focus';
 import { createGridWorldGame } from '@senars/nar/game';
 import { describe, expect, it } from 'vitest';
+import { createGateRegistry } from '@senars/nar/kernel';
 
 const report = (focusId: string, derivations: number, tasksProcessed: number): FocusStepReport => ({
   focusId,
@@ -21,7 +22,8 @@ const report = (focusId: string, derivations: number, tasksProcessed: number): F
 /** Focus stub whose step returns a canned report (no kernel simulation needed). */
 const stubFocus = (id: string, weight: number, step: () => Promise<unknown>): GameFocusType =>
   ({
-    focus: createFocus({ id, weight }),
+    focus: createFocus({
+      gateRegistry: createGateRegistry(), id, weight }),
     step,
   }) as unknown as GameFocusType;
 
@@ -95,7 +97,8 @@ describe('TODO17 Bench 29 — FocusScheduler fairness', () => {
   it('registers and drives real GameFocuses end-to-end', async () => {
     const bag = new FocusBag({ capacity: 8 });
     const game = createGridWorldGame({ id: 'sched-grid', grid: ['S.', '.G'], seed: 3 });
-    const focus = new GameFocus({ focusId: 'grid', game });
+    const focus = new GameFocus({
+      gateRegistry: createGateRegistry(), focusId: 'grid', game });
     bag.add(focus.focus);
     const scheduler = new FocusScheduler({ bag, seed: 5 });
     scheduler.register(focus);

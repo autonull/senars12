@@ -1,5 +1,6 @@
 import { BoundedRing, clamp01, createLogger, errMsg, formatTruth } from '@senars/util';
 import { z } from 'zod';
+import type { GateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { TermMap, Truth } from '../terms';
@@ -88,7 +89,12 @@ export class BidirectionalFeedbackLoop {
     for (const pattern of patterns) this.recentPatterns.push(pattern);
   }
 
-  constructor(memory: Memory, lmService: LMService, config: Partial<FeedbackConfig> = {}) {
+  constructor(
+    memory: Memory,
+    lmService: LMService,
+    private readonly gates: GateRegistry,
+    config: Partial<FeedbackConfig> = {}
+  ) {
     this.memory = memory;
     this.lmService = lmService;
     this.logger = createLogger({ scope: 'lm:feedback' });
@@ -310,7 +316,7 @@ Respond with JSON:
         });
         const bridgingHypotheses = parseEnrichmentResponse(response).hypotheses;
 
-        await admitTasks(this.memory, bridgingHypotheses, 'llm');
+        await admitTasks(this.memory, bridgingHypotheses, 'llm', this.gates);
       } catch (error) {
         this.logger.warn(`Failed to enrich context for concept: ${errMsg(error)}`);
       }
@@ -428,7 +434,7 @@ Respond with JSON:
         validation.revisedTruth,
         createTaskWeight(0.7, 0.8)
       );
-      await admitTasks(this.memory, [revisedTask], 'llm');
+      await admitTasks(this.memory, [revisedTask], 'llm', this.gates);
     }
   }
 
@@ -445,7 +451,8 @@ Respond in Narsese format, one per line.`;
 export const createBidirectionalFeedbackLoop = (
   memory: Memory,
   lmService: LMService,
+  gates: GateRegistry,
   config?: Partial<FeedbackConfig>
 ): BidirectionalFeedbackLoop => {
-  return new BidirectionalFeedbackLoop(memory, lmService, config);
+  return new BidirectionalFeedbackLoop(memory, lmService, gates, config);
 };

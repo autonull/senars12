@@ -5,12 +5,7 @@ export {
   replayCognitiveState,
   replayTaskAdmissions,
 } from './EventLogPersistence.js';
-export {
-  createGateRegistry,
-  GateRegistry,
-  gateRegistry,
-  resetGateRegistry,
-} from './GateRegistry.js';
+export { createGateRegistry, GateRegistry } from './GateRegistry.js';
 export { KernelGate } from './gate-base.js';
 export type {
   IActionGate,

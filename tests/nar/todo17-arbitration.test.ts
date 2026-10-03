@@ -1,4 +1,4 @@
-import { gateRegistry } from '@senars/nar/kernel';
+import { createGateRegistry } from '@senars/nar/kernel';
 import { GameFocus } from '@senars/nar/focus';
 import type { Game } from '@senars/nar/game';
 import { createGridWorldGame } from '@senars/nar/game';
@@ -44,7 +44,7 @@ const last = (legal: number[]) => [legal[legal.length - 1]!];
 describe('TODO17 Bench 30 — Arbitration & Gate Isolation', () => {
   it('(a) second reflex strictly-better proposal wins; winner + vetoed proposer both learn', async () => {
     const game = createGridWorldGame({ id: 'arb-grid', grid: ['S..', '..G'], seed: 11 });
-    const focus = new GameFocus({ focusId: 'arb', game });
+    const focus = new GameFocus({ focusId: 'arb', game, gateRegistry: createGateRegistry() });
     const weak = new ScriptedReflex('weak', first, 0.1, 0.5); // score 0.05
     const strong = new ScriptedReflex('strong', last, 0.9, 0.9); // score 0.81
     focus.bindReflex(weak);
@@ -59,7 +59,7 @@ describe('TODO17 Bench 30 — Arbitration & Gate Isolation', () => {
   it('(a) identical decisions with a single reflex (merge-over-one is the identity)', async () => {
     const mk = () => {
       const game = createGridWorldGame({ id: 'single-grid', grid: ['S..', '..G'], seed: 21 });
-      const focus = new GameFocus({ focusId: 'single', game });
+      const focus = new GameFocus({ focusId: 'single', game, gateRegistry: createGateRegistry() });
       const reflex = new ScriptedReflex('only', first, 0.9, 0.9);
       focus.bindReflex(reflex);
       return { game, focus, reflex };
@@ -75,18 +75,27 @@ describe('TODO17 Bench 30 — Arbitration & Gate Isolation', () => {
     expect(b.reflex.learned.length).toBe(1);
   });
 
-  it('(b) game actions are scoped; global autonomy + allowlist untouched', () => {
-    gateRegistry.reset();
-    const beforeMode = gateRegistry.getActionGate().getAutonomyMode();
+  it('(b) game actions are scoped per focus, and another registry is untouched', () => {
+    const registry = createGateRegistry();
+    const bystander = createGateRegistry();
+    const beforeMode = bystander.getActionGate().getAutonomyMode();
 
     const gameA = createGridWorldGame({ id: 'iso-a', grid: ['S.', '.G'], seed: 1 });
     const gameB = fakeGame('iso-b', ['warp']);
-    new GameFocus({ focusId: 'focus-a', game: gameA });
-    new GameFocus({ focusId: 'focus-b', game: gameB });
+    new GameFocus({ focusId: 'focus-a', game: gameA, gateRegistry: registry });
+    new GameFocus({ focusId: 'focus-b', game: gameB, gateRegistry: registry });
 
-    const gate = gateRegistry.getActionGate();
-    // Global mode and shared allowlist untouched by game construction
+    const gate = registry.getActionGate();
+    // Constructing two focuses authorizes nothing and changes no autonomy mode,
+    // in this registry or any other.
     expect(gate.getAutonomyMode()).toBe(beforeMode);
+    expect(bystander.getActionGate().getAutonomyMode()).toBe(beforeMode);
+    expect(
+      bystander
+        .getActionGate()
+        .authorize({ proposalId: 'x', args: {}, operation: `game:focus-a:${gameA.legalActions(gameA.state())[0]}` })
+        .authorized
+    ).toBe(false);
     expect(gate.authorize({ proposalId: 'x', args: {}, operation: '0' }).authorized).toBe(false);
 
     // Game A's legal action authorized within its own scope…
@@ -109,9 +118,8 @@ describe('TODO17 Bench 30 — Arbitration & Gate Isolation', () => {
     );
   });
 
-  it('(b) kernel-wide sabotage-gate behavior passes unmodified', () => {
-    gateRegistry.reset();
-    const gate = gateRegistry.getActionGate();
+  it('(c) kernel-wide sabotage-gate behavior passes unmodified', () => {
+    const gate = createGateRegistry().getActionGate();
     gate.setAutonomyMode('sandbox-execute');
     gate.addAllowedOperation('move');
 

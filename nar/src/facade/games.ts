@@ -7,7 +7,7 @@ import {
   type ConversationState,
 } from '../game/impls/ConversationGame.js';
 import { createSelfMetaGame, type SelfMetaGameImpl } from '../game/impls/SelfMetaGame.js';
-import type { GateRegistry } from '../kernel/index.js';
+import { createGateRegistry, type GateRegistry } from '../kernel/index.js';
 import type { EmbeddingCache } from '../lm/system-one/embedding-cache.js';
 import type { JudgmentManifold } from '../lm/system-one/types.js';
 import type { ProofMettaProposer } from '../meta/index.js';
@@ -98,7 +98,7 @@ export class GameManager {
       observesFocuses: [...this.attachedGames.keys()],
       focusBag: this.getFocusBag(),
       gameFocuses: this.metaGameFocuses,
-      ...(this.gates ? { gates: this.gates } : {}),
+      gates: this.gates ?? createGateRegistry(),
       // Phase D (REFACTOR.todo2): bounded proposal bag (opt-in) — priority-ordered
       // governance routing; default (absent) preserves arrival-order routing.
       ...(this.proposals
@@ -156,6 +156,7 @@ export class GameManager {
       focusId: id,
       game,
       focusOptions: { weight: options.weight ?? 1.0, rng: this.rng },
+      gateRegistry: this.gates ?? createGateRegistry(),
       ...(mergedProposers ? { proposers: mergedProposers } : {}),
       ...(options.eventBus ? { eventBus: options.eventBus } : {}),
     });

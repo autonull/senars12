@@ -1,6 +1,6 @@
 import { maxBy, sortByDesc } from '@senars/util';
 
-import { type GateRegistry, gateRegistry } from '../kernel/GateRegistry.js';
+import type { GateRegistry } from '../kernel/GateRegistry.js';
 import type { TaskAdmission } from '../memory/ports/index.js';
 import type { Task } from '../types';
 
@@ -19,27 +19,25 @@ export interface TaskWrapper {
 
 export interface TaskManagerConfig {
   defaultTimeout?: number;
-  /** TODO19 F2: per-instance gate registry (defaults to the process-global singleton). */
-  gateRegistry?: GateRegistry;
+  /** Required (TODO19 F2, TODO33 §5.P2.7): the manager admits through the owner's gates. */
+  gateRegistry: GateRegistry;
 }
 
-const DEFAULT_CONFIG: Omit<Required<TaskManagerConfig>, 'gateRegistry'> = {
-  defaultTimeout: 30000,
-};
+const DEFAULT_TIMEOUT_MS = 30000;
 
 export class TaskManager {
   private pending = new Map<string, TaskWrapper>();
   private completed = new Map<string, TaskWrapper>();
   private failed = new Map<string, TaskWrapper>();
   private memory: TaskAdmission;
-  private config: Required<TaskManagerConfig>;
+  private readonly defaultTimeout: number;
   private gates: GateRegistry;
   private timeouts = new Map<string, NodeJS.Timeout>();
 
-  constructor(memory: TaskAdmission, config: TaskManagerConfig = {}) {
+  constructor(memory: TaskAdmission, private readonly config: TaskManagerConfig) {
     this.memory = memory;
-    this.config = { ...DEFAULT_CONFIG, ...config } as Required<TaskManagerConfig>;
-    this.gates = config.gateRegistry ?? gateRegistry;
+    this.defaultTimeout = config.defaultTimeout ?? DEFAULT_TIMEOUT_MS;
+    this.gates = config.gateRegistry;
   }
 
   get size(): number {
@@ -87,7 +85,7 @@ export class TaskManager {
       lifecycle: 'pending',
       createdAt: Date.now(),
       retries: 0,
-      timeout: timeout ?? this.config.defaultTimeout,
+      timeout: timeout ?? this.defaultTimeout,
       priority: task.budget.priority,
     };
 

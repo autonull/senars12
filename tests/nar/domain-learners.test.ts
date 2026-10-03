@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Focus } from '../../nar/src/focus/Focus.js';
 import { FocusBag } from '../../nar/src/focus/FocusBag.js';
 import { SelfRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
+import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
 import {
   ConfigOptimizer,
   CrossDomainError,
@@ -14,7 +15,8 @@ import {
 
 const focusBagWith = (id: string, weight: number): FocusBag => {
   const bag = new FocusBag({ capacity: 10 });
-  bag.add(new Focus({ id, weight }));
+  bag.add(new Focus({
+    gateRegistry: createGateRegistry(), id, weight }));
   return bag;
 };
 

@@ -114,12 +114,5 @@ export class GateRegistry implements IGateRegistry {
   }
 }
 
-export const gateRegistry = new GateRegistry();
-
-/** Per-instance gate registry factory (TODO19 F2): each NAR/agent owns its own registry, enabling gate isolation in one process. */
+/** The only way to obtain gates (TODO19 F2, TODO33 §5.P2.7). There is no process-global registry: a singleton with a `reset()` that existed solely for test isolation let a NAR with an isolated registry share the global's budget and autonomy mode with any separately-built `Focus`. Every consumer is handed one. */
 export const createGateRegistry = (): GateRegistry => new GateRegistry();
-
-/** Resets the process-global registry singleton (test isolation: suites mutating autonomy/allowlists must not leak across files). */
-export function resetGateRegistry(): void {
-  gateRegistry.reset();
-}

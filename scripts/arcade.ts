@@ -27,6 +27,7 @@ import { createArcadeRegistry, type Game, SeededRNG } from '../nar/src/game/inde
 import { renderGame } from '../nar/src/game/render.js';
 import { createSystemOneBudget } from '../nar/src/lm/system-one/types.js';
 import { KernelBudgetGate } from '../nar/src/kernel/KernelBudgetGate.js';
+import { createGateRegistry } from '../nar/src/kernel/GateRegistry.js';
 import {
   recordedProposals,
   recordingReflex,
@@ -358,6 +359,7 @@ async function main(): Promise<void> {
           game,
           cognitive: armCognitive,
           schemaInduction: armCognitive,
+          gateRegistry: createGateRegistry(),
         });
         if (armCognitive)
           for (const [action, consequence, truth] of cognitiveRules[gameName] ?? [])

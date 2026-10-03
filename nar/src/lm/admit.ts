@@ -1,6 +1,6 @@
 import type { ShadowValidationDropEvent } from '@senars/core/schemas/cognitive-events';
 import { makeId } from '@senars/util';
-import { type GateRegistry, gateRegistry } from '../kernel/index.js';
+import type { GateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
 import type { Task } from '../types';
 import { type ShadowValidationResult, shadowValidator } from './shadow-validation.js';
@@ -9,7 +9,7 @@ export async function admitTasks(
   memory: Memory,
   tasks: Task[],
   source: string,
-  gates: GateRegistry = gateRegistry
+  gates: GateRegistry
 ): Promise<number> {
   // Shadow validation (3.3): LLM-originated tasks must not contradict current beliefs.
   const shadow = source.includes('llm');

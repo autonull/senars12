@@ -5,6 +5,7 @@ import { FocusBag } from '../../nar/src/focus/FocusBag.js';
 import { schedulerReward } from '../../nar/src/focus/scheduler-reward.js';
 import { createSelfMetaGame, SelfMetaGameImpl } from '../../nar/src/game/impls/SelfMetaGame.js';
 import { SelfRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
+import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
 import { LearnerRegistry, SchedulerAdapter } from '../../nar/src/learning/domain-learners.js';
 
 const report = (focusId: string, derivations: number, tasksProcessed: number): FocusStepReport => ({
@@ -22,8 +23,10 @@ const report = (focusId: string, derivations: number, tasksProcessed: number): F
 
 const setup = (weight: number) => {
   const focusBag = new FocusBag({ capacity: 10 });
-  focusBag.add(new Focus({ id: 'f1', weight }));
+  focusBag.add(new Focus({
+    gateRegistry: createGateRegistry(), id: 'f1', weight }));
   const game = createSelfMetaGame({
+    gates: createGateRegistry(),
     id: 'self',
     observesFocuses: ['f1'],
     focusBag,

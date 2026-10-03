@@ -305,7 +305,8 @@ export class NAR extends BaseComponent {
         getDispatcher: () => this.getSystemOneDispatcher(),
         getManifold: () => this.getSystemOneManifold(),
         getEmbeddingCache: () => this.getSystemOneEmbeddingCache(),
-      }
+      },
+      this.gates
     );
     this._metricsCollector = metrics;
 
@@ -721,10 +722,6 @@ export class NAR extends BaseComponent {
     }
 
     this.taskManager.addTask(task);
-  }
-
-  getPhaseSummary() {
-    return this.execution.getPhaseSummary();
   }
 
   getLMClientStats() {

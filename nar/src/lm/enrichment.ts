@@ -6,6 +6,7 @@ import {
   periodic,
   sortBy,
 } from '@senars/util';
+import type { GateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { Truth } from '../terms';
@@ -111,6 +112,7 @@ export class ProactiveEnricher {
   constructor(
     memory: Memory,
     lmService: LMService,
+    private readonly gates: GateRegistry,
     config: Partial<EnricherConfig> = {},
     systemOne?: EnricherSystemOneDeps
   ) {
@@ -279,8 +281,8 @@ Answer the question based on the available knowledge. If the answer cannot be de
       );
     }
 
-    await admitTasks(this.memory, hypotheses, 'llm');
-    await admitTasks(this.memory, bridges, 'bridge-llm');
+    await admitTasks(this.memory, hypotheses, 'llm', this.gates);
+    await admitTasks(this.memory, bridges, 'bridge-llm', this.gates);
 
     return { concept: term, hypotheses, bridges, explanations: [] };
   }
@@ -297,8 +299,9 @@ Respond in Narsese format, one statement per line.`;
 export const createProactiveEnricher = (
   memory: Memory,
   lmService: LMService,
+  gates: GateRegistry,
   config?: Partial<EnricherConfig>,
   systemOne?: EnricherSystemOneDeps
 ): ProactiveEnricher => {
-  return new ProactiveEnricher(memory, lmService, config, systemOne);
+  return new ProactiveEnricher(memory, lmService, gates, config, systemOne);
 };

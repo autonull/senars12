@@ -4,7 +4,7 @@ import type { Game, GameOutcome, Perception } from '../game/Game.js';
 import { ActionGate } from '../gates/ActionGate.js';
 import { PerceptionGate } from '../gates/PerceptionGate.js';
 import { RewardGate } from '../gates/RewardGate.js';
-import { type GateRegistry, gateRegistry } from '../kernel/index.js';
+import type { GateRegistry } from '../kernel/index.js';
 import type { NALDerivation } from '../reflex/Negotiator.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../reflex/Reflex.js';
 import type { Term } from '../terms/index.js';
@@ -66,8 +66,8 @@ export interface FocusOptions {
   taskDecayRate?: number;
   conceptDecayRate?: number;
   weight?: number;
-  /** TODO19 F2: per-instance gate registry (defaults to the process-global singleton). */
-  gateRegistry?: GateRegistry;
+  /** Required: a focus admits and rewards through gates the owner chose (TODO19 F2, TODO33 §5.P2.7). */
+  gateRegistry: GateRegistry;
   /** P1 (TODO20): injectable RNG for deterministic replay of task/memory sampling. */
   rng?: RandomSource;
 }
@@ -90,7 +90,7 @@ export class Focus implements BagItem {
   constructor(options: FocusOptions) {
     this.id = options.id;
     this.weight = options.weight ?? 1.0;
-    this.gates = options.gateRegistry ?? gateRegistry;
+    this.gates = options.gateRegistry;
 
     this.tasks = new PriorityBag<FocusTask>({
       capacity: options.taskCapacity ?? 1000,

@@ -1,3 +1,4 @@
+import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
 /**
  * A5's boundary (TODO29.a §5.5) — every case failing first, per §10.1.
  *
@@ -242,7 +243,7 @@ describe('A5 — memory is a set of ports', () => {
 
   it('TaskManager admits tasks through TaskAdmission alone', async () => {
     const store = new FakeStore();
-    const manager = new TaskManager(store);
+    const manager = new TaskManager(store, { gateRegistry: createGateRegistry() });
     const cat = atom('cat');
 
     expect(store.size).toBe(0);

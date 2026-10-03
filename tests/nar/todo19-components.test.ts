@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
 import { readFileSync } from 'node:fs';
 import { cognitiveBounds } from '@senars/util/config';
 import {
@@ -112,6 +113,7 @@ describe('Bench 43 — Component Contracts', () => {
     expect(source).not.toMatch(/private applyKnob/);
 
     const game = createSelfMetaGame({
+      gates: createGateRegistry(),
       id: 'self',
       observesFocuses: [],
       focusBag: { all: () => [], decayRateValue: 0 } as never,

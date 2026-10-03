@@ -126,9 +126,9 @@ describe('F5 — §8 dispositions', () => {
         truth: Truth.create(f, 0.9),
         budget: { priority: 0.7, durability: 0.8, quality: 0.9, cycles: 10, depth: 5 },
       }) as never;
-    expect(await admitTasks(nar.memory, [mkTask('(x-->y)', 0.9)], 'llm')).toBe(1);
+    expect(await admitTasks(nar.memory, [mkTask('(x-->y)', 0.9)], 'llm', nar.gates)).toBe(1);
     // frequency delta 0.8 > 0.3 ⇒ rejected
-    expect(await admitTasks(nar.memory, [mkTask('(x-->y)', 0.1)], 'llm')).toBe(0);
+    expect(await admitTasks(nar.memory, [mkTask('(x-->y)', 0.1)], 'llm', nar.gates)).toBe(0);
   });
 
   it('proactive enrichment: novelty gate inactive while head unfitted (behavior preserved)', async () => {
@@ -145,6 +145,7 @@ describe('F5 — §8 dispositions', () => {
       {
         generateText: async () => '(bridge-->link).',
       } as unknown as never,
+      nar.gates,
       { enableProactiveEnrichment: true, enrichmentIntervalMs: 60000, maxConceptsPerCycle: 10, minConnectionsForEnrichment: 2, enableExplanationGeneration: false, enableQAService: false },
       { adapter }
     );

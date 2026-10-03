@@ -17,6 +17,7 @@ import {
   type SystemOneManifold,
 } from '@senars/nar/lm/system-one';
 import { describe, expect, it } from 'vitest';
+import { createGateRegistry } from '@senars/nar/kernel';
 
 const EPISODES = 200;
 const MAX_STEPS = 120;
@@ -215,7 +216,8 @@ describe('TODO17 W7 — Tetris placement cascade (judgeCascade consumer)', () =>
   it('tetris + cascade reflex inside GameFocus plays legal placements', async () => {
     const { manifold, cache } = countingManifold();
     const game = createTetrisGame({ seed: 9, width: 10, height: 10, pieceCap: 5 });
-    const focus = new GameFocus({ focusId: 'tetris-cascade', game });
+    const focus = new GameFocus({
+      gateRegistry: createGateRegistry(), focusId: 'tetris-cascade', game });
     focus.bindReflex(new PlacementCascadeReflex(new EpsilonGreedyReflex('fb', { numArms: 10 })));
     focus.setReflexPrefetchContext({ manifold, embeddingCache: cache, budget });
     for (let t = 0; t < 30 && !game.state().terminal; t++) await focus.step(10);

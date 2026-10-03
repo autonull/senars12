@@ -5,7 +5,7 @@ import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/l
 import { z } from 'zod';
 import { PriorityBag } from '../bag/Bag.js';
 import type { Game, GameOutcome, Perception } from '../game/Game.js';
-import { type GateRegistry, gateRegistry } from '../kernel/index.js';
+import type { GateRegistry } from '../kernel/index.js';
 import type { ConfidenceRouter } from '../lm/system-one/policy.js';
 import type { EmbeddingCache, JudgmentManifold } from '../lm/system-one/types.js';
 import {
@@ -50,7 +50,7 @@ export interface GameFocusOptions {
   /** G2: promote per-action reward patterns into advisory focus beliefs at episode end. */
   schemaInduction?: boolean;
   /** TODO19 F2: per-instance gate registry (defaults to the process-global singleton). */
-  gateRegistry?: GateRegistry;
+  gateRegistry: GateRegistry;
   /** Phase C (REFACTOR.todo3): extra negotiation proposers (e.g. MettaProposer) + bus for contradiction events. */
   proposers?: IProposer[];
   eventBus?: NarEventBus;
@@ -139,7 +139,7 @@ export class GameFocus {
   private readonly gates: GateRegistry;
 
   constructor(options: GameFocusOptions) {
-    this.gates = options.gateRegistry ?? gateRegistry;
+    this.gates = options.gateRegistry;
     this.game = options.game;
     this.handover = options.handover;
     this.cognitive = options.cognitive ?? false;

@@ -182,7 +182,7 @@ describe('NARExecution Observability Emission', () => {
       activationDecayRate: 0.01,
       consolidationInterval: 10,
     });
-    taskManager = new TaskManager(memory);
+    taskManager = new TaskManager(memory, { gateRegistry: createGateRegistry() });
     reasoner = createTestController(memory);
     rlfp = createMockRLFP();
     eventBus = new EventBus();

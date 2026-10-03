@@ -1,3 +1,4 @@
+import type { GateRegistry } from './kernel/index.js';
 import type { LMService, SeNARSRegistry } from './lm';
 import { BidirectionalFeedbackLoop, getQualityModel, ProactiveEnricher, shadowValidator } from './lm';
 import type { Memory } from './memory';
@@ -31,7 +32,8 @@ export class NARLM {
     lmService?: LMService,
     enableBidirectionalFeedback?: boolean,
     enableProactiveEnrichment?: boolean,
-    systemOneDeps?: NARLMSystemOneDeps
+    systemOneDeps?: NARLMSystemOneDeps,
+    private readonly gates?: GateRegistry
   ) {
     if (lmService) {
       const systemOne =
@@ -48,11 +50,12 @@ export class NARLM {
             }
           : undefined;
       if (systemOne) shadowValidator.setSystemOne(systemOne);
-      if (enableBidirectionalFeedback) {
-        this.feedbackLoop = new BidirectionalFeedbackLoop(memory, lmService);
+      // Both loops admit through the owner's gates; without one they admit nowhere.
+      if (enableBidirectionalFeedback && this.gates) {
+        this.feedbackLoop = new BidirectionalFeedbackLoop(memory, lmService, this.gates);
       }
-      if (enableProactiveEnrichment) {
-        this.enricher = new ProactiveEnricher(memory, lmService, {}, systemOne);
+      if (enableProactiveEnrichment && this.gates) {
+        this.enricher = new ProactiveEnricher(memory, lmService, this.gates, {}, systemOne);
       }
     }
   }

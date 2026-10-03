@@ -27,7 +27,6 @@ import type { Memory } from '@senars/nar/memory';
 import type { NAR } from '@senars/nar/nar.js';
 import type { GateRegistry } from '@senars/nar/kernel/index.js';
 import type { Task } from '@senars/nar/types';
-import { gateRegistry } from '@senars/nar/kernel/index.js';
 import { EpisodeConsolidatorOptions } from '@senars/nar';
 import { ProposalBagOptions } from '@senars/nar/meta';
 import { MiningBagOptions } from '@senars/nar/lm/system-one/hard-negatives.js';

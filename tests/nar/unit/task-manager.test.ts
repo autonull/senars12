@@ -1,3 +1,4 @@
+import { createGateRegistry } from '../../../nar/src/kernel/GateRegistry.js';
 import {
   createTaskWeight,
   createTask,
@@ -17,7 +18,7 @@ describe('TaskManager', () => {
       activationDecayRate: 0.01,
       consolidationInterval: 10,
     });
-    manager = new TaskManager(mem);
+    manager = new TaskManager(mem, { gateRegistry: createGateRegistry() });
   });
 
   describe('addTask', () => {

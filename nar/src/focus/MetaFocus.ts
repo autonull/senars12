@@ -19,6 +19,7 @@ export class MetaFocus extends Focus {
       weight: options.weight ?? 0.1,
       taskDecayRate: options.taskDecayRate ?? 0.005,
       conceptDecayRate: options.conceptDecayRate ?? 0.002,
+      gateRegistry: options.gateRegistry,
     });
     this.selfMetaGame = options.selfMetaGame;
   }

@@ -15,6 +15,7 @@ import { NARLM } from '../../../nar/src/nar-lm.js';
 import type { InferenceController } from '../../../nar/src/reason/inference-controller.js';
 import { createTask } from '../../../nar/src/types/index.js';
 import { NAR } from '../../../src';
+import { createGateRegistry } from '@senars/nar/kernel';
 
 describe('InferenceController', () => {
   let nar: NAR;
@@ -90,7 +91,8 @@ describe('NARIO', () => {
 
   beforeEach(() => {
     nar = new NAR();
-    taskManager = new TaskManager(nar.memory, {});
+    taskManager = new TaskManager(nar.memory, {
+      gateRegistry: createGateRegistry(),});
     nario = new NARIO(nar.memory, taskManager, nar.getConfig(), nar.gates);
   });
 
@@ -245,7 +247,8 @@ describe('Integration: inference + NARIO', () => {
 
   beforeEach(() => {
     nar = new NAR();
-    taskManager = new TaskManager(nar.memory, {});
+    taskManager = new TaskManager(nar.memory, {
+      gateRegistry: createGateRegistry(),});
     inference = nar.cognitiveController.getInferenceController();
     nario = new NARIO(nar.memory, taskManager, nar.getConfig(), nar.gates);
   });

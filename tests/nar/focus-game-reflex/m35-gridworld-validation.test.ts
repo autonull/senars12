@@ -2,6 +2,7 @@ import { createGameFocus } from '@senars/nar/focus';
 import { createGridWorldGame } from '@senars/nar/game';
 import { TabularQReflex } from '@senars/nar/reflex';
 import { describe, expect, it } from 'vitest';
+import { createGateRegistry } from '@senars/nar/kernel';
 
 describe('M3.5 GridWorld Validation - New Architecture', () => {
   const gridConfig = {
@@ -13,6 +14,7 @@ describe('M3.5 GridWorld Validation - New Architecture', () => {
   it('should solve GridWorld with TabularQReflex in GameFocus (parity with Q-learning baseline)', async () => {
     const game = createGridWorldGame(gridConfig);
     const gameFocus = createGameFocus({
+      gateRegistry: createGateRegistry(),
       focusId: 'gridworld-focus',
       game,
       focusOptions: {
@@ -74,6 +76,7 @@ describe('M3.5 GridWorld Validation - New Architecture', () => {
   it('should learn optimal policy with greedy execution after training', async () => {
     const game = createGridWorldGame(gridConfig);
     const gameFocus = createGameFocus({
+      gateRegistry: createGateRegistry(),
       focusId: 'gridworld-greedy',
       game,
     });
@@ -126,6 +129,7 @@ describe('M3.5 GridWorld Validation - New Architecture', () => {
   it('should demonstrate NAL veto capability when trap is learned', async () => {
     const game = createGridWorldGame(gridConfig);
     const gameFocus = createGameFocus({
+      gateRegistry: createGateRegistry(),
       focusId: 'gridworld-veto',
       game,
     });

@@ -1,4 +1,5 @@
 import type { RLFPLearner } from '@senars/nar/rlfp';
+import { createGateRegistry } from '../../../nar/src/kernel/GateRegistry.js';
 import { describe, expect, test, vi } from 'vitest';
 import {
   createTaskWeight,
@@ -15,7 +16,6 @@ import {
 import type { CognitiveController } from '../../../nar/src/cognitive';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '../../../nar/src/config/cognitive-parameters';
 import { DriveManager } from '../../../nar/src/drives';
-import { createGateRegistry } from '../../../nar/src/kernel';
 import { NARExecution } from '../../../nar/src/nar-execution';
 import { operationNameOf } from '../../../nar/src/terms/index.js';
 import { ToolManager } from '../../../nar/src/tools';
@@ -47,7 +47,7 @@ describe('NARExecution', () => {
       activationDecayRate: 0.01,
       consolidationInterval: 10,
     });
-    taskManager = new TaskManager(memory);
+    taskManager = new TaskManager(memory, { gateRegistry: createGateRegistry() });
     controller = createTestController(memory);
     rlfp = createMockRLFP();
     execution = new NARExecution({
@@ -224,7 +224,7 @@ describe('NARExecution', () => {
           activationDecayRate: 0.01,
           consolidationInterval: 10,
         });
-        const freshTaskManager = new TaskManager(freshMemory);
+        const freshTaskManager = new TaskManager(freshMemory, { gateRegistry: createGateRegistry() });
         const freshController = createTestController(freshMemory, inferenceParams(10));
         const exec = new NARExecution({
           gates: createGateRegistry(),
@@ -254,7 +254,7 @@ describe('NARExecution', () => {
           activationDecayRate: 0.01,
           consolidationInterval: 10,
         });
-        const freshTaskManager = new TaskManager(freshMemory);
+        const freshTaskManager = new TaskManager(freshMemory, { gateRegistry: createGateRegistry() });
         const freshController = createTestController(freshMemory, inferenceParams(10));
         const exec = new NARExecution({
           gates: createGateRegistry(),
@@ -317,7 +317,7 @@ describe('NARExecution', () => {
         activationDecayRate: 0.01,
         consolidationInterval: 10,
       });
-      const freshTaskManager = new TaskManager(freshMemory);
+      const freshTaskManager = new TaskManager(freshMemory, { gateRegistry: createGateRegistry() });
       const freshController = createTestController(freshMemory, inferenceParams(10));
       const exec = new NARExecution({
         gates: createGateRegistry(),
@@ -367,7 +367,7 @@ describe('NARExecution', () => {
         activationDecayRate: 0.01,
         consolidationInterval: 10,
       });
-      const freshTaskManager = new TaskManager(freshMemory);
+      const freshTaskManager = new TaskManager(freshMemory, { gateRegistry: createGateRegistry() });
       const freshController = createTestController(freshMemory, inferenceParams(10));
       const exec = new NARExecution({
         gates: createGateRegistry(),

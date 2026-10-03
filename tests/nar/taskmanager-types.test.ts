@@ -1,6 +1,6 @@
-import type { TaskAdmittedEvent } from '@senars/core/schemas/cognitive-events';
+import { isEventType, type TaskAdmittedEvent } from '@senars/core/schemas/cognitive-events';
 import { describe, expect, it } from 'vitest';
-import { gateRegistry } from '../../nar/src/kernel/GateRegistry.js';
+import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
 import { Memory } from '../../nar/src/memory/memory.js';
 import { TaskManager } from '../../nar/src/task/manager.js';
 import { Truth, termParser } from '../../nar/src/terms/index.js';
@@ -8,9 +8,9 @@ import { createTask, NEUTRAL_BUDGET } from '../../nar/src/types/core.js';
 
 describe('todo7: taskmanager preserves task types', () => {
   it('goals/questions admitted as such, not beliefs', async () => {
-    gateRegistry.reset();
     const memory = new Memory({ maxConcepts: 100 } as never);
-    const manager = new TaskManager(memory);
+    const registry = createGateRegistry();
+    const manager = new TaskManager(memory, { gateRegistry: registry });
     manager.addTask(
       createTask(termParser.parse('(a-->b)'), 'belief', Truth.create(0.9, 0.8), NEUTRAL_BUDGET)
     );
@@ -22,13 +22,12 @@ describe('todo7: taskmanager preserves task types', () => {
     );
     const processed = await manager.processPending();
     expect(processed.map((t) => t.type).sort()).toEqual(['belief', 'goal', 'question']);
-    const admitted = gateRegistry
+    const admitted = registry
       .getPerceptionGate()
       .getEventLog()
-      .filter((e): e is TaskAdmittedEvent => e.type === 'task.admitted')
-      .map((e) => e.payload.taskType)
+      .filter(isEventType('task.admitted'))
+      .map((e: TaskAdmittedEvent) => e.payload.taskType)
       .sort();
     expect(admitted).toEqual(['belief', 'goal', 'question']);
-    gateRegistry.reset();
   });
 });

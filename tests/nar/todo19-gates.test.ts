@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { createGateRegistry, gateRegistry } from '../../nar/src/kernel/index.js';
+import { describe, expect, it } from 'vitest';
+import { createGateRegistry } from '../../nar/src/kernel/index.js';
 import { NAR } from '../../nar/src/nar.js';
 import { GameFocus } from '../../nar/src/focus/GameFocus.js';
 import { createArcadeRegistry } from '../../nar/src/game/index.js';
@@ -7,14 +7,10 @@ import { createArcadeRegistry } from '../../nar/src/game/index.js';
 /**
  * Bench 42 — Gate Isolation (TODO19 F2)
  * Two agents/registries in one process: autonomy/allowlist/veto changes in A
- * don't affect B. Reset helper retained only for suites that share the global.
+ * don't affect B. Nothing is global any more, so there is no reset between cases.
  */
 
 const gameRegistry = createArcadeRegistry();
-
-afterEach(() => {
-  gateRegistry.reset();
-});
 
 describe('Bench 42 — Gate Isolation', () => {
   it('F2 — per-instance registries: autonomy mode change in A leaves B untouched', () => {

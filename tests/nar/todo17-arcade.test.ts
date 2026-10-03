@@ -3,6 +3,7 @@ import { ConfidenceRouter } from '@senars/nar/lm/system-one/policy';
 import { GameFocus } from '@senars/nar/focus';
 import { createGridWorldGame, SeededRNG, type Game } from '@senars/nar/game';
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
+import { createGateRegistry } from '@senars/nar/kernel';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { verifyRecord } from '@senars/core/verify-derivation';
@@ -86,6 +87,7 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
     const baselineCalls: string[] = [];
     const game: Game = createGridWorldGame({ id: 'handover-grid', grid: ['S..', '..G'], seed: 3 });
     const focus = new GameFocus({
+      gateRegistry: createGateRegistry(),
       focusId: 'handover-focus',
       game,
       handover: {
@@ -106,6 +108,7 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
 
     // confidence 0.9 → act band → no handover
     const focus2 = new GameFocus({
+      gateRegistry: createGateRegistry(),
       focusId: 'act-focus',
       game: createGridWorldGame({ id: 'act-grid', grid: ['S..', '..G'], seed: 3 }),
       handover: {
@@ -119,6 +122,7 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
 
     // block band → AIKR yield, no forced move
     const focus3 = new GameFocus({
+      gateRegistry: createGateRegistry(),
       focusId: 'block-focus',
       game: createGridWorldGame({ id: 'block-grid', grid: ['S..', '..G'], seed: 3 }),
       handover: {
@@ -133,7 +137,8 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
 
   it('E7 cognitive mode: belief seeding → NAL veto with recorder-verified justification + per-tick panel', async () => {
     const game = createGridWorldGame({ id: 'cog-grid', grid: ['S..', '..G'], seed: 5 });
-    const focus = new GameFocus({ focusId: 'cog-focus', game, cognitive: true });
+    const focus = new GameFocus({
+      gateRegistry: createGateRegistry(), focusId: 'cog-focus', game, cognitive: true });
     focus.bindReflex(new FixedConfidenceReflex(0.9));
     // Domain rule: gridworld 'S..' starts on the top row — moving up (0) bumps the wall.
     focus.seedRule('0', 'wall_bump', { f: 0.1, c: 0.95 });
@@ -269,7 +274,8 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
     // Integration: real tetris episode; promoted beliefs land as NAL-derivable content
     const { createTetrisGame } = await import('@senars/nar/game');
     const game = createTetrisGame({ seed: 21, width: 6, height: 8, pieceCap: 20 });
-    const focus = new GameFocus({ focusId: 'schema-focus', game, schemaInduction: true });
+    const focus = new GameFocus({
+      gateRegistry: createGateRegistry(), focusId: 'schema-focus', game, schemaInduction: true });
     let reflexI = 0;
     const cycle = {
       id: 'cycle',

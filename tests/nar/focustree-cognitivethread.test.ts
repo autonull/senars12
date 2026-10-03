@@ -15,9 +15,11 @@ import {
 import { createFocusTree, type FocusTree, type FocusTreeOptions } from '@senars/nar/focus';
 import { Focus } from '@senars/nar/focus/Focus.js';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { createGateRegistry } from '@senars/nar/kernel';
 
 function createMockFocusOptions(id: string): FocusTreeOptions['rootFocus'] {
   return {
+    gateRegistry: createGateRegistry(),
     id,
     taskCapacity: 100,
     conceptCapacity: 50,

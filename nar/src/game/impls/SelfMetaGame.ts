@@ -13,7 +13,7 @@ import type { FocusBag } from '../../focus/FocusBag.js';
 import type { GameFocus } from '../../focus/GameFocus.js';
 import { schedulerReward } from '../../focus/scheduler-reward.js';
 import { ProposalRouter } from '../../governance/pipeline.js';
-import { type GateRegistry, gateRegistry } from '../../kernel/index.js';
+import type { GateRegistry } from '../../kernel/index.js';
 import type { SelfRewardGate } from '../../kernel/KernelRewardGate.js';
 import type { LearnerRegistry } from '../../learning/domain-learners.js';
 import type { ProposalBag } from '../../meta/proposal-bag.js';
@@ -50,7 +50,7 @@ export interface SelfMetaGameConfig extends MetaGameConfig {
   /** Phase B (REFACTOR.todo3): bag-drain budget (was hardcoded 4; `proposals.budget`). */
   drainBudget?: number;
   /** Gate authority for proposal routing; defaults to the process-global registry. */
-  gates?: GateRegistry;
+  gates: GateRegistry;
 }
 
 export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
@@ -73,7 +73,7 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
     super(config);
     this.focusBag = config.focusBag;
     this.gameFocuses = config.gameFocuses;
-    this.gates = config.gates ?? gateRegistry;
+    this.gates = config.gates;
     this.proposalBag = config.proposalBag;
     this.drainBudget = config.drainBudget ?? 4;
     this.parameterTable = createParameterTable();

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
 import { createReasoningGame, generateEvalTasks, ReasoningGame, type ReasoningGameOptions } from '../../nar/src/game/impls/ReasoningGame.js';
 import { ReasoningMetaGame } from '../../nar/src/game/impls/ReasoningMetaGame.js';
 import { REASONING_SPECS } from '../../nar/src/game/impls/ReasoningGame.js';
@@ -101,7 +102,8 @@ describe('Bench 44 — ReasoningGame Falsification', () => {
 
     const runFocus = async (seeded: boolean): Promise<GameFocus> => {
       const game = createReasoningGame(createSpec(), 7);
-      const focus = new GameFocus({ focusId: 'reasoning-nal', game, cognitive: true });
+      const focus = new GameFocus({
+        gateRegistry: createGateRegistry(), focusId: 'reasoning-nal', game, cognitive: true });
       if (seeded) focus.seedRule('ask_lm', 'costly_op', { f: 0.1, c: 0.95 });
       focus.bindReflex(new FixedActionReflex('ask_lm'));
       for (let t = 0; t < 20; t++) await focus.step(10);
@@ -143,7 +145,8 @@ describe('Bench 44 — ReasoningGame Falsification', () => {
       },
     };
     const game = createReasoningGame(createSpec(), 7);
-    const focus = new GameFocus({ focusId: 'reasoning-fault', game, cognitive: true });
+    const focus = new GameFocus({
+      gateRegistry: createGateRegistry(), focusId: 'reasoning-fault', game, cognitive: true });
     focus.setReflexPrefetchContext({
       manifold: faulted as never,
       embeddingCache: { write: async () => ({ digest: 'x' }) } as never,

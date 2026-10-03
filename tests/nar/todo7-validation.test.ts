@@ -13,7 +13,7 @@ import {
   Truth,
 } from '../../nar/src/index.js';
 import { createTimestamp } from '../../nar/src/types';
-import { gateRegistry } from '../../nar/src/kernel/GateRegistry.js';
+import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
 import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
 import { KernelRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
 import { toFormalizationBatch } from '../../nar/src/nl/understanding.js';
@@ -119,8 +119,8 @@ describe('TODO7 validation benchmarks', () => {
 
   it('6. scheduler fairness: low-priority focus keeps a nonzero share', () => {
     const bag = new FocusBag({ capacity: 10 });
-    const hot = new Focus({ id: 'hot', weight: 1.0 });
-    const cold = new Focus({ id: 'cold', weight: 0.01 });
+    const hot = new Focus({ id: 'hot', weight: 1.0, gateRegistry: createGateRegistry() });
+    const cold = new Focus({ id: 'cold', weight: 0.01, gateRegistry: createGateRegistry() });
     bag.add(hot);
     bag.add(cold);
     expect(bag.allocateBudget(cold, 10000)).toBeGreaterThan(0);
@@ -186,13 +186,13 @@ describe('TODO7 validation benchmarks', () => {
   });
 
   it('3b. focus survives global budget exhaustion', async () => {
-    const registryGate = gateRegistry.getBudgetGate();
+    const registry = createGateRegistry();
+    const registryGate = registry.getBudgetGate();
     while (registryGate.check({ operation: 'nal-step', estimatedCost: 1 }).granted) {
       /* drain */
     }
-    const focus = new Focus({ id: 'degraded' });
+    const focus = new Focus({ id: 'degraded', gateRegistry: registry });
     const report = await focus.step(5);
     expect(report.tasksProcessed).toBe(0);
-    gateRegistry.reset();
   });
 });

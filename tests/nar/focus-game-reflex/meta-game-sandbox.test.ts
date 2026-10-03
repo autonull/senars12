@@ -9,6 +9,7 @@ import {
 import { TabularQReflex } from '@senars/nar/reflex';
 import { cognitiveBounds } from '@senars/util/config';
 import { describe, expect, it } from 'vitest';
+import { createGateRegistry } from '@senars/nar/kernel';
 
 describe('MetaGame Sandbox - Gate 5', () => {
   describe('MetaGame', () => {
@@ -106,16 +107,20 @@ describe('MetaGame Sandbox - Gate 5', () => {
   describe('SelfMetaGame', () => {
     it('should create SelfMetaGame with focus bag and game focuses', () => {
       const focusBag = new FocusBag({ capacity: 10 });
-      const focus1 = createFocus({ id: 'gridworld', weight: 0.7 });
-      const focus2 = createFocus({ id: 'bandit', weight: 0.3 });
+      const focus1 = createFocus({
+        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.7 });
+      const focus2 = createFocus({
+        gateRegistry: createGateRegistry(), id: 'bandit', weight: 0.3 });
       focusBag.add(focus1);
       focusBag.add(focus2);
 
       const gameFocus1 = createGameFocus({
+        gateRegistry: createGateRegistry(),
         focusId: 'gridworld',
         game: createGridWorldGame({ id: 'gw', grid: ['S..', '...', '..G'], seed: 42 }),
       });
       const gameFocus2 = createGameFocus({
+        gateRegistry: createGateRegistry(),
         focusId: 'bandit',
         game: createGridWorldGame({ id: 'bandit', grid: ['S..', '...', '..G'], seed: 42 }),
       });
@@ -126,6 +131,7 @@ describe('MetaGame Sandbox - Gate 5', () => {
       ]);
 
       const selfMetaGame = createSelfMetaGame({
+        gates: createGateRegistry(),
         id: 'self-meta',
         observesFocuses: ['gridworld', 'bandit'],
         focusBag,
@@ -138,14 +144,17 @@ describe('MetaGame Sandbox - Gate 5', () => {
 
     it('should set focus weight via ^focus_weight', () => {
       const focusBag = new FocusBag({ capacity: 10 });
-      const focus1 = createFocus({ id: 'gridworld', weight: 0.7 });
-      const focus2 = createFocus({ id: 'bandit', weight: 0.3 });
+      const focus1 = createFocus({
+        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.7 });
+      const focus2 = createFocus({
+        gateRegistry: createGateRegistry(), id: 'bandit', weight: 0.3 });
       focusBag.add(focus1);
       focusBag.add(focus2);
 
       const gameFocuses = new Map<string, any>();
 
       const selfMetaGame = createSelfMetaGame({
+        gates: createGateRegistry(),
         id: 'self-meta',
         observesFocuses: ['gridworld', 'bandit'],
         focusBag,
@@ -161,10 +170,12 @@ describe('MetaGame Sandbox - Gate 5', () => {
 
     it('should clamp focus weight to [0, 1]', () => {
       const focusBag = new FocusBag({ capacity: 10 });
-      const focus1 = createFocus({ id: 'gridworld', weight: 0.5 });
+      const focus1 = createFocus({
+        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.5 });
       focusBag.add(focus1);
 
       const selfMetaGame = createSelfMetaGame({
+        gates: createGateRegistry(),
         id: 'self-meta',
         observesFocuses: ['gridworld'],
         focusBag,
@@ -180,10 +191,12 @@ describe('MetaGame Sandbox - Gate 5', () => {
 
     it('should set knob values via ^knob_set', () => {
       const focusBag = new FocusBag({ capacity: 10 });
-      const focus1 = createFocus({ id: 'gridworld', weight: 0.5 });
+      const focus1 = createFocus({
+        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.5 });
       focusBag.add(focus1);
 
       const selfMetaGame = createSelfMetaGame({
+        gates: createGateRegistry(),
         id: 'self-meta',
         observesFocuses: ['gridworld'],
         focusBag,
@@ -199,10 +212,12 @@ describe('MetaGame Sandbox - Gate 5', () => {
 
     it('should clamp knob values to configured range', () => {
       const focusBag = new FocusBag({ capacity: 10 });
-      const focus1 = createFocus({ id: 'gridworld', weight: 0.5 });
+      const focus1 = createFocus({
+        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.5 });
       focusBag.add(focus1);
 
       const selfMetaGame = createSelfMetaGame({
+        gates: createGateRegistry(),
         id: 'self-meta',
         observesFocuses: ['gridworld'],
         focusBag,
@@ -220,10 +235,12 @@ describe('MetaGame Sandbox - Gate 5', () => {
 
     it('should throw for unknown knobs', () => {
       const focusBag = new FocusBag({ capacity: 10 });
-      const focus1 = createFocus({ id: 'gridworld', weight: 0.5 });
+      const focus1 = createFocus({
+        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.5 });
       focusBag.add(focus1);
 
       const selfMetaGame = createSelfMetaGame({
+        gates: createGateRegistry(),
         id: 'self-meta',
         observesFocuses: ['gridworld'],
         focusBag,
@@ -235,17 +252,20 @@ describe('MetaGame Sandbox - Gate 5', () => {
 
     it('should disable reflex in a GameFocus', () => {
       const focusBag = new FocusBag({ capacity: 10 });
-      const focus1 = createFocus({ id: 'gridworld', weight: 0.5 });
+      const focus1 = createFocus({
+        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.5 });
       focusBag.add(focus1);
 
       const game = createGridWorldGame({ id: 'gw', grid: ['S..', '...', '..G'], seed: 42 });
-      const gameFocus = createGameFocus({ focusId: 'gridworld', game });
+      const gameFocus = createGameFocus({
+        gateRegistry: createGateRegistry(), focusId: 'gridworld', game });
       const reflex = new TabularQReflex('tabular-q', { epsilon: 0.1 });
       gameFocus.bindReflex(reflex);
 
       const gameFocuses = new Map([['gridworld', gameFocus]]);
 
       const selfMetaGame = createSelfMetaGame({
+        gates: createGateRegistry(),
         id: 'self-meta',
         observesFocuses: ['gridworld'],
         focusBag,
@@ -259,10 +279,12 @@ describe('MetaGame Sandbox - Gate 5', () => {
 
     it('should throw when disabling reflex in non-existent focus', () => {
       const focusBag = new FocusBag({ capacity: 10 });
-      const focus1 = createFocus({ id: 'gridworld', weight: 0.5 });
+      const focus1 = createFocus({
+        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.5 });
       focusBag.add(focus1);
 
       const selfMetaGame = createSelfMetaGame({
+        gates: createGateRegistry(),
         id: 'self-meta',
         observesFocuses: ['gridworld'],
         focusBag,
@@ -278,12 +300,14 @@ describe('MetaGame Sandbox - Gate 5', () => {
   describe('MetaFocus', () => {
     it('should create MetaFocus with SelfMetaGame', () => {
       const focusBag = new FocusBag({ capacity: 10 });
-      const focus1 = createFocus({ id: 'gridworld', weight: 0.7 });
+      const focus1 = createFocus({
+        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.7 });
       focusBag.add(focus1);
 
       const gameFocuses = new Map<string, any>();
 
       const selfMetaGame = createSelfMetaGame({
+        gates: createGateRegistry(),
         id: 'self-meta',
         observesFocuses: ['gridworld'],
         focusBag,
@@ -291,6 +315,7 @@ describe('MetaGame Sandbox - Gate 5', () => {
       });
 
       const metaFocus = createMetaFocus({
+        gateRegistry: createGateRegistry(),
         id: 'meta-focus',
         selfMetaGame,
       });
@@ -301,17 +326,20 @@ describe('MetaGame Sandbox - Gate 5', () => {
 
     it('should step and incorporate focus reports into tasks', async () => {
       const focusBag = new FocusBag({ capacity: 10 });
-      const focus1 = createFocus({ id: 'gridworld', weight: 0.7 });
+      const focus1 = createFocus({
+        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.7 });
       focusBag.add(focus1);
 
       const game = createGridWorldGame({ id: 'gw', grid: ['S..', '...', '..G'], seed: 42 });
-      const gameFocus = createGameFocus({ focusId: 'gridworld', game });
+      const gameFocus = createGameFocus({
+        gateRegistry: createGateRegistry(), focusId: 'gridworld', game });
       const reflex = new TabularQReflex('tabular-q', { epsilon: 0.1 });
       gameFocus.bindReflex(reflex);
 
       const gameFocuses = new Map([['gridworld', gameFocus]]);
 
       const selfMetaGame = createSelfMetaGame({
+        gates: createGateRegistry(),
         id: 'self-meta',
         observesFocuses: ['gridworld'],
         focusBag,
@@ -319,6 +347,7 @@ describe('MetaGame Sandbox - Gate 5', () => {
       });
 
       const metaFocus = createMetaFocus({
+        gateRegistry: createGateRegistry(),
         id: 'meta-focus',
         selfMetaGame,
       });
@@ -335,14 +364,17 @@ describe('MetaGame Sandbox - Gate 5', () => {
   describe('Integration: SelfMetaGame controlling FocusBag', () => {
     it('should rebalance focus weights and affect budget allocation', () => {
       const focusBag = new FocusBag({ capacity: 10 });
-      const focus1 = createFocus({ id: 'gridworld', weight: 0.5 });
-      const focus2 = createFocus({ id: 'bandit', weight: 0.5 });
+      const focus1 = createFocus({
+        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.5 });
+      const focus2 = createFocus({
+        gateRegistry: createGateRegistry(), id: 'bandit', weight: 0.5 });
       focusBag.add(focus1);
       focusBag.add(focus2);
 
       const gameFocuses = new Map<string, any>();
 
       const selfMetaGame = createSelfMetaGame({
+        gates: createGateRegistry(),
         id: 'self-meta',
         observesFocuses: ['gridworld', 'bandit'],
         focusBag,
@@ -366,6 +398,7 @@ describe('MetaGame Sandbox - Gate 5', () => {
     it('should apply knob changes to focus bags', () => {
       const focusBag = new FocusBag({ capacity: 10, decayRate: 0.01 });
       const focus1 = createFocus({
+        gateRegistry: createGateRegistry(),
         id: 'gridworld',
         weight: 0.5,
         taskDecayRate: 0.01,
@@ -376,6 +409,7 @@ describe('MetaGame Sandbox - Gate 5', () => {
       const gameFocuses = new Map<string, any>();
 
       const selfMetaGame = createSelfMetaGame({
+        gates: createGateRegistry(),
         id: 'self-meta',
         observesFocuses: ['gridworld'],
         focusBag,

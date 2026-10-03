@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { NARBuilder, BuilderError, resolveProfile } from '../../nar/src/agent/builder.js';
 import type { WiredNAR } from '../../nar/src/agent/builder.js';
-import { gateRegistry } from '../../nar/src/kernel/index.js';
 import { NAR } from '../../nar/src/nar.js';
 
 /**
@@ -55,12 +54,11 @@ describe('Bench 41 — Assembly Integrity', () => {
     expect(full.describe().steps.map((s) => s.step)).toContain('lm');
   });
 
-  it('F2 — each build owns an isolated gate registry (never the process-global singleton)', async () => {
+  it('F2 — each build owns an isolated gate registry', async () => {
     const a = await new NARBuilder().build();
     const b = await new NARBuilder().build();
     built.push(a, b);
     expect(a.gates).not.toBe(b.gates);
-    expect(a.gates).not.toBe(gateRegistry);
     expect(a.nar.gates).toBe(a.gates);
   });
 
@@ -84,7 +82,6 @@ describe('Bench 41 — Assembly Integrity', () => {
     const a = new NAR();
     const b = new NAR();
     expect(a.gates).not.toBe(b.gates);
-    expect(a.gates).not.toBe(gateRegistry);
   });
 
   it('grep-guard — entry points build via NARBuilder; no bespoke RecordingReflex in arcade', () => {

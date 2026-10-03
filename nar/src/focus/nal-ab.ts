@@ -1,3 +1,4 @@
+import { createGateRegistry } from '../kernel/index.js';
 import { GameFocus } from './GameFocus.js';
 import type { Game } from '../game/Game.js';
 import type { Reflex } from '../reflex/Reflex.js';
@@ -17,7 +18,12 @@ export interface NalABResult {
 }
 
 const playEpisode = async (game: Game, reflex: Reflex, seedRule: boolean, ticks: number): Promise<{ focus: GameFocus; total: number }> => {
-  const focus = new GameFocus({ focusId: 'nal-ab', game, cognitive: true });
+  const focus = new GameFocus({
+    focusId: 'nal-ab',
+    game,
+    cognitive: true,
+    gateRegistry: createGateRegistry(),
+  });
   if (seedRule) focus.seedRule(reflex.propose(game.state(), game.legalActions(game.state()))[0]!.action, 'nal_ab', { f: 0.1, c: 0.95 });
   focus.bindReflex(reflex);
   let total = 0;

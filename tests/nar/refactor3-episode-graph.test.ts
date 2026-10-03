@@ -64,7 +64,9 @@ describe('Bench 92 — episode graph completeness & MemoryQuery hardening (REFAC
   it('SelfMetaGame drain budget reads `proposals.budget` from config', async () => {
     const { createSelfMetaGame } = await import('@senars/nar/game/impls/SelfMetaGame.js');
     const { FocusBag } = await import('@senars/nar/focus/FocusBag.js');
+    const { createGateRegistry } = await import('@senars/nar/kernel/index.js');
     const game = createSelfMetaGame({
+      gates: createGateRegistry(),
       id: 'g',
       focusBag: new FocusBag({ capacity: 16 }),
       gameFocuses: new Map(),

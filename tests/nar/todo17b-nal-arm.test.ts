@@ -11,6 +11,7 @@ import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
 import { Negotiator } from '@senars/nar/reflex';
 import { describe, expect, it } from 'vitest';
 import { pinDeterministicRNG, restoreRNG } from '../helpers/rng.js';
+import { createGateRegistry } from '@senars/nar/kernel';
 
 /** Scripted reflex that always proposes one action at high confidence. */
 class FixedActionReflex implements Reflex {
@@ -29,7 +30,8 @@ class FixedActionReflex implements Reflex {
 const playTicks = async (game: Game, seeded: boolean, ticks = 20): Promise<GameFocus> => {
   pinDeterministicRNG();
   try {
-    const focus = new GameFocus({ focusId: 'nal-arm', game, cognitive: true });
+    const focus = new GameFocus({
+      gateRegistry: createGateRegistry(), focusId: 'nal-arm', game, cognitive: true });
     if (seeded) focus.seedRule('0', 'wall_bump', { f: 0.1, c: 0.95 });
     focus.bindReflex(new FixedActionReflex('0'));
     for (let t = 0; t < ticks; t++) await focus.step(10);
@@ -78,7 +80,8 @@ describe('TODO17b: NAL arcade arm falsification', () => {
     const game = createBanditGame({ seed: 7, armMeans: [0.2, 0.5, 0.8], numArms: 3 });
     pinDeterministicRNG();
     try {
-      const focus = new GameFocus({ focusId: 'nal-bandit', game, cognitive: true });
+      const focus = new GameFocus({
+        gateRegistry: createGateRegistry(), focusId: 'nal-bandit', game, cognitive: true });
       focus.seedRule('0', 'low_reward', { f: 0.1, c: 0.95 });
       focus.bindReflex(new FixedActionReflex('0'));
       for (let t = 0; t < 15; t++) await focus.step(10);
@@ -136,6 +139,7 @@ describe('TODO17b: NAL arcade arm falsification', () => {
     pinDeterministicRNG();
     try {
       const focus = new GameFocus({
+        gateRegistry: createGateRegistry(),
         focusId: 'nal-induced',
         game: createGridWorldGame({ id: 'nal-induced-grid', grid: ['S..', '..G'], seed: 5 }),
         cognitive: true,
