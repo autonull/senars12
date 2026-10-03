@@ -107,7 +107,7 @@ export class KernelPerceptionGate extends KernelGate {
       detail: `systemone_ingress_${kind}: ${detail}`,
       correlationId,
     });
-    recordGateDecision('perception', 'admit', false, `ingress-${kind}`, correlationId);
+    // recordGateDecision is called by decideAndRecord after this returns
     return {
       admitted: false,
       rejectionReason: 'System One ingress fault: admission rejected (fail-closed)',
@@ -124,8 +124,19 @@ export class KernelPerceptionGate extends KernelGate {
   }
 
   async admit(input: PerceptionGateInput): Promise<PerceptionGateOutput> {
-    const correlationId = this.correlationOf(input.correlationId);
+    return this.decideAndRecord(
+      'perception',
+      'admit',
+      input,
+      async (inp, correlationId) => this.decideAdmission(inp, correlationId),
+      (inp) => inp.correlationId
+    );
+  }
 
+  private async decideAdmission(
+    input: PerceptionGateInput,
+    correlationId: string
+  ): Promise<PerceptionGateOutput> {
     const sourceQuality = input.sourceQuality;
     // Phase E: reputation multiplier lowers the trust ceiling for sources with
     // a contradiction-dominated track record; default (no record) is neutral.
@@ -142,7 +153,6 @@ export class KernelPerceptionGate extends KernelGate {
 
     const term = this.rawObservationToTerm(input.rawObservation);
     if (!term) {
-      recordGateDecision('perception', 'admit', false, 'unparseable-observation', correlationId);
       return {
         admitted: false,
         rejectionReason: 'Failed to parse observation into valid Narsese term',
@@ -218,7 +228,7 @@ export class KernelPerceptionGate extends KernelGate {
     }
 
     if (verdict.vetoReason) {
-      recordGateDecision('perception', 'admit', false, verdict.vetoReason, correlationId);
+      // recordGateDecision is called by decideAndRecord after this returns
       return { admitted: false, rejectionReason: verdict.vetoReason };
     }
 
@@ -297,12 +307,16 @@ export class KernelPerceptionGate extends KernelGate {
     source = 'derivation',
     correlationId?: string
   ): PerceptionGateOutput {
-    const out = this.decideAdmission(term, taskType, truth, source, correlationId);
-    recordGateDecision('perception', 'admitTask', out.admitted, out.rejectionReason, correlationId);
-    return out;
+    return this.decideAndRecord(
+      'perception',
+      'admitTask',
+      { term, taskType, truth, source, correlationId },
+      ({ term, taskType, truth, source, correlationId }) => this.decideTaskAdmission(term, taskType, truth, source, correlationId),
+      ({ correlationId }) => correlationId
+    );
   }
 
-  private decideAdmission(
+  private decideTaskAdmission(
     term: Term,
     taskType: TaskTypeName,
     truth?: TruthLike,
@@ -356,7 +370,7 @@ export class KernelPerceptionGate extends KernelGate {
       payload: task,
     };
     this.emitEvent(event);
-    recordGateDecision('perception', 'admit', true, undefined, correlationId);
+    // recordGateDecision is called by decideAndRecord after this returns
     return { admitted: true, task };
   }
 
@@ -385,7 +399,7 @@ export class KernelPerceptionGate extends KernelGate {
       const confidence =
         (candidate.truth?.confidence ?? candidate.confidence) *
         this.sourceQualityToConfidence(sourceQuality);
-      const out = this.decideAdmission(
+      const out = this.decideTaskAdmission(
         parsed.term,
         candidate.taskType,
         candidate.truth

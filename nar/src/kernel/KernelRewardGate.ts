@@ -7,7 +7,6 @@ import type {
 } from '@senars/core/schemas';
 import { SelfImprovementProposalSchema } from '@senars/core/schemas';
 import { makeId } from '@senars/util';
-import { recordGateDecision } from '../telemetry/index.js';
 import { recordPolicyViolation } from './event-ring.js';
 import { KernelGate } from './gate-base.js';
 
@@ -41,22 +40,34 @@ export class KernelRewardGate extends KernelGate<PolicyViolationEvent> {
     this.allowedTargets = config?.allowedTargets ?? DEFAULT_ALLOWED_TARGETS;
   }
 
-  process(input: RewardGateInput): RewardGateOutput {
-    const out = this.decideReward(input);
-    // A proposal is a restriction, not a grant: nothing was mutated, so it
-    // counts as denied with the reason a caller would need to act on.
-    recordGateDecision(
-      'reward',
-      input.targetType,
-      out.accepted && !out.requiresProposal,
-      out.requiresProposal ? 'requires-proposal' : out.rejectionReason,
-      input.correlationId
-    );
-    return out;
+  protected override extractAdmitted(output: unknown): boolean {
+    if (output && typeof output === 'object') {
+      const o = output as Record<string, unknown>;
+      // A proposal is a restriction, not a grant: nothing was mutated
+      return Boolean(o.accepted && !o.requiresProposal);
+    }
+    return false;
   }
 
-  private decideReward(input: RewardGateInput): RewardGateOutput {
-    const correlationId = this.correlationOf(input.correlationId);
+  protected override extractReason(output: unknown): string | undefined {
+    if (output && typeof output === 'object') {
+      const o = output as Record<string, unknown>;
+      return (o.requiresProposal ? 'requires-proposal' : o.rejectionReason) as string | undefined;
+    }
+    return undefined;
+  }
+
+  process(input: RewardGateInput): RewardGateOutput {
+    return this.decideAndRecord(
+      'reward',
+      input.targetType,
+      input,
+      (inp, correlationId) => this.decideReward(inp, correlationId),
+      (inp) => inp.correlationId
+    );
+  }
+
+  private decideReward(input: RewardGateInput, correlationId: string): RewardGateOutput {
     const domain: RewardDomain = input.domain ?? 'external-reflex';
 
     if (!this.allowedTargets.has(input.targetType)) {

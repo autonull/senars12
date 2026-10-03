@@ -8,7 +8,6 @@ import type {
 import { AutonomyModeChangedEventSchema, AutonomyModeSchema } from '@senars/core/schemas';
 import { addToSet, BoundedMap, makeId, pushCapped } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
-import { recordGateDecision } from '../telemetry/index.js';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
 import { KernelGate } from './gate-base.js';
 
@@ -66,6 +65,20 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
   /** Per-scope autonomy modes + allowlists (game:<scopeId>:<action> operations). Additive. */
   private scopeModes: Map<string, AutonomyMode> = new Map();
   private scopeOperations: Map<string, Set<string>> = new Map();
+
+  protected override extractAdmitted(output: unknown): boolean {
+    if (output && typeof output === 'object') {
+      return Boolean((output as Record<string, unknown>).authorized);
+    }
+    return false;
+  }
+
+  protected override extractReason(output: unknown): string | undefined {
+    if (output && typeof output === 'object') {
+      return (output as Record<string, unknown>).vetoReason as string | undefined;
+    }
+    return undefined;
+  }
 
   constructor(config?: Partial<KernelActionGateConfig>) {
     super();
@@ -170,18 +183,16 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
   }
 
   authorize(input: ActionGateInput): ActionGateOutput {
-    const out = this.decideAuthorization(input);
-    recordGateDecision(
+    return this.decideAndRecord(
       'action',
       input.operation,
-      out.authorized,
-      out.vetoReason,
-      input.correlationId
+      input,
+      (inp, correlationId) => this.decideAuthorization(inp, correlationId),
+      (inp) => inp.correlationId
     );
-    return out;
   }
 
-  private decideAuthorization(input: ActionGateInput): ActionGateOutput {
+  private decideAuthorization(input: ActionGateInput, correlationId: string): ActionGateOutput {
     const scoped = KernelActionGate.parseScopedOperation(input.operation);
     if (scoped) return this.authorizeScoped(scoped.scopeId, scoped.action);
     if (this.autonomyMode === 'observe-only' || this.autonomyMode === 'propose-only') {
@@ -189,7 +200,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
         policyId: 'autonomy-mode',
         violationType: 'unauthorized-tool',
         detail: `Action not permitted in ${this.autonomyMode} mode`,
-        correlationId: this.correlationOf(input.correlationId),
+        correlationId: this.correlationOf(correlationId),
       });
       return {
         authorized: false,

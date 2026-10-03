@@ -21,7 +21,6 @@ import type {
 } from '@senars/core/schemas';
 import { validateReasoningBudget } from '@senars/core/schemas';
 import { keyedBy } from '@senars/util';
-import { recordGateDecision } from '../telemetry/index.js';
 import { BUDGET_SCOPES, type BudgetScopeId, scopeBudget } from './budget-scopes.js';
 import { KernelGate } from './gate-base.js';
 
@@ -93,6 +92,20 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   private scopes = new Map<string, ReasoningBudget>();
   private costTable: Record<string, number>;
 
+  protected override extractAdmitted(output: unknown): boolean {
+    if (output && typeof output === 'object') {
+      return Boolean((output as Record<string, unknown>).granted);
+    }
+    return false;
+  }
+
+  protected override extractReason(output: unknown): string | undefined {
+    if (output && typeof output === 'object') {
+      return (output as Record<string, unknown>).terminationReason as string | undefined;
+    }
+    return undefined;
+  }
+
   constructor(config?: Partial<KernelBudgetGateConfig>) {
     super();
     this.costTable = { ...DEFAULT_COST_TABLE, ...config?.costTable };
@@ -126,18 +139,16 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   }
 
   check(input: BudgetGateInput): BudgetGateOutput {
-    const out = this.decideBudget(input);
-    recordGateDecision(
+    return this.decideAndRecord(
       'budget',
       input.operation,
-      out.granted,
-      out.terminationReason,
-      input.correlationId
+      input,
+      (inp, correlationId) => this.decideBudget(inp, correlationId),
+      (inp) => inp.correlationId
     );
-    return out;
   }
 
-  private decideBudget(input: BudgetGateInput): BudgetGateOutput {
+  private decideBudget(input: BudgetGateInput, correlationId: string): BudgetGateOutput {
     const operation = input.operation;
     const estimatedCost = input.estimatedCost ?? this.costTable[operation] ?? 1;
     const spec = specOf(operation);
@@ -148,7 +159,6 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
     budget.terminationReason = undefined;
 
     if (!granted && resource) {
-      const correlationId = this.correlationOf(input.correlationId);
       const terminationReason = budgetRefusal(budget, resource);
       // The refusal lives on the budget, not only on the event: `getSpendSummary`
       // reads `terminationReason` per scope, and an event nobody joins reports 'none'
