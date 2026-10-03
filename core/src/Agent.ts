@@ -68,6 +68,8 @@ export class Agent {
   #consolidation?: { enabled?: boolean; budget?: number };
   #started = false;
   #cycleCount = 0;
+  #engineErrors = new Map<string, number>();
+  #engineErrorCount = 0;
   #lastCycleTime = 0;
   #lastResponse = '';
 
@@ -181,12 +183,20 @@ export class Agent {
   }
 
   health(): HealthStatus {
+    const byEngine = Object.fromEntries(this.#engineErrors);
     return {
       status: this.#started ? 'healthy' : 'stuck',
       lastCycle: this.#lastCycleTime,
       cycleCount: this.#cycleCount,
-      errorRate: 0,
+      errorRate: this.#cycleCount ? this.#engineErrorCount / this.#cycleCount : 0,
+      byEngine,
     };
+  }
+
+  /** Per-engine fault tally for `health()`; a cycle with no faults reports zero. */
+  onEngineError(engineId: string): void {
+    this.#engineErrorCount++;
+    this.#engineErrors.set(engineId, (this.#engineErrors.get(engineId) ?? 0) + 1);
   }
 
   async start(): Promise<void> {
@@ -276,6 +286,7 @@ export class Agent {
       consolidation: this.#consolidation,
       threadScope: this.threadScope,
       emit: (e) => this.#emitCognitive(e),
+      onEngineError: (engineId) => this.onEngineError(engineId),
       getLastResponse: () => this.#lastResponse,
       setLastResponse: (v) => {
         this.#lastResponse = v;

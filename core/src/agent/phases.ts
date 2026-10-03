@@ -1,10 +1,12 @@
-import type { ChatStreamEvent } from '../chat.js';
 /**
  * Agent reasoning cycle as a `MacroPhase` middleware pipeline (REFACTOR.todo1
  * Phase A): `DEFAULT_MACRO_PIPELINE` reproduces the original `runCycleStream`
  * step sequence exactly; narration streams through the phase chain via
  * `MacroContext.stream`.
  */
+import { createLogger, errMsg } from '@senars/util';
+
+import type { ChatStreamEvent } from '../chat.js';
 import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
 import {
   type CycleHost,
@@ -17,6 +19,8 @@ import {
 
 export type { CycleHost, MacroContext, MacroPhase } from './pipeline.js';
 export { createCapturePhase, createReflectPhase } from './pipeline.js';
+
+const logger = createLogger({ scope: 'agent-phases', level: 'warn' });
 
 const EMPTY_CONTEXT: Context = { working: [], episodic: [], semantic: [] };
 
@@ -69,12 +73,15 @@ const reason = async (
   context: Context
 ): Promise<Derivation[]> => {
   const derivations: Derivation[] = [];
-  for (const engine of host.engines.values()) {
+  for (const [id, engine] of host.engines) {
     try {
-      const result = await engine.reason(stimulus, context);
-      derivations.push(...result);
-    } catch {
-      // engine unavailable, continue
+      derivations.push(...(await engine.reason(stimulus, context)));
+    } catch (e) {
+      // One engine down is a degraded cycle, not a fault — but silence here reads
+      // as a healthy cycle with zero derivations, so the fault is logged, tallied
+      // and surfaced by `Agent.health().errorRate`.
+      logger.warn('engine.reason failed', { engine: id, error: errMsg(e) });
+      host.onEngineError?.(id, errMsg(e));
     }
   }
   return derivations;
@@ -199,11 +206,12 @@ const act = async (ctx: MacroContext): Promise<Array<{ command: string; result: 
         correlationId: stimulus.correlationId,
         causationId: state.cid?.id ?? '',
       });
-      for (const engine of host.engines.values()) {
+      for (const [id, engine] of host.engines) {
         try {
           engine.absorb?.(result);
-        } catch {
-          /* ignore */
+        } catch (e) {
+          logger.warn('engine.absorb failed', { engine: id, error: errMsg(e) });
+          host.onEngineError?.(id, errMsg(e));
         }
       }
     }

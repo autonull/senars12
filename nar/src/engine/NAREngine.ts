@@ -6,10 +6,11 @@ import type {
   ToolResult,
 } from '@senars/core/engine';
 import { BaseEngine } from '@senars/core/engine/base';
-import { asBeliefTruth, createLogger, errMsg, isNarsese } from '@senars/util';
+import { asBeliefTruth, createLogger, errMsg } from '@senars/util';
 import type { CognitiveEvent } from '@senars/util/types/cognitive';
 import { MAPPED_NAR_EVENTS, narEventToCognitive } from '../events/bridge.js';
 import { filterByTerm } from '../memory/term-filter.js';
+import { dispatchNarseseIntent } from '../nl/narsese-intent.js';
 import { NAR } from '../nar.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
 
@@ -36,17 +37,15 @@ export class NAREngine extends BaseEngine {
   }
 
   async reason(stimulus: CognitiveStimulus, context: Context): Promise<Derivation[]> {
-    const text = stimulus.text;
-    // One parse of the router decision: it gates the whole method, and the
-    // previous shape tested it twice and serialized the input to say so.
-    if (!isNarsese(text)) return [];
+    // One router for the whole repo: Narsese of which kind, or prose.
+    const intent = dispatchNarseseIntent(stimulus.text);
+    if (!intent) return [];
 
-    // Strip tense/truth markers before parsing: "statement. :|:" or "statement. :!:"
-    const clean = text.replace(/\.\s*:\|:\s*$/, '.').replace(/\.\s*:!:\s*$/, '.');
+    const clean = intent.text;
     try {
       const timestamp = Date.now();
 
-      if (clean.endsWith('?') || clean.endsWith('？')) {
+      if (intent.kind === 'question') {
         await this.#nar.question(clean);
         await this.#nar.run(5);
         const beliefs = this.#nar.getBeliefs();
@@ -57,7 +56,7 @@ export class NAREngine extends BaseEngine {
         }));
       }
 
-      if (clean.endsWith('!')) {
+      if (intent.kind === 'goal') {
         await this.#nar.goal(clean);
         await this.#nar.run(3);
         return [{ term: clean, timestamp }];

@@ -59,6 +59,10 @@ export interface CycleHost {
 
   emit(event: CognitiveEvent): void;
 
+  /** An engine or tool-absorb step faulted inside the cycle. Optional: a host that
+   *  does not tally simply keeps no per-engine error count. */
+  onEngineError?(engineId: string, error: string): void;
+
   getLastResponse(): string;
 
   setLastResponse(value: string): void;

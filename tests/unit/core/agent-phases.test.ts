@@ -119,4 +119,15 @@ describe('Agent cycle phases (extracted)', () => {
     await runCycle(host, stimulus);
     expect(host.memory.consolidate).toHaveBeenCalled();
   });
+  it('an engine that throws is tallied, not silently skipped', async () => {
+    const onEngineError = vi.fn();
+    const host = makeHost({
+      engines: new Map([
+        ['broken', { id: 'broken', reason: () => Promise.reject(new Error('engine down')) } as never],
+      ]),
+      onEngineError,
+    });
+    await runCycle(host, stimulus);
+    expect(onEngineError).toHaveBeenCalledWith('broken', expect.stringContaining('engine down'));
+  });
 });

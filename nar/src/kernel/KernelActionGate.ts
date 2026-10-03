@@ -162,7 +162,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
 
   authorize(input: ActionGateInput): ActionGateOutput {
     const out = this.decideAuthorization(input);
-    recordGateDecision('action', input.operation, out.authorized, out.vetoReason);
+    recordGateDecision('action', input.operation, out.authorized, out.vetoReason, input.correlationId);
     return out;
   }
 

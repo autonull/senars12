@@ -107,6 +107,7 @@ export class KernelPerceptionGate extends KernelGate {
       detail: `systemone_ingress_${kind}: ${detail}`,
       correlationId,
     });
+    recordGateDecision('perception', 'admit', false, `ingress-${kind}`, correlationId);
     return {
       admitted: false,
       rejectionReason: 'System One ingress fault: admission rejected (fail-closed)',
@@ -141,6 +142,13 @@ export class KernelPerceptionGate extends KernelGate {
 
     const term = this.rawObservationToTerm(input.rawObservation);
     if (!term) {
+      recordGateDecision(
+        'perception',
+        'admit',
+        false,
+        'unparseable-observation',
+        correlationId
+      );
       return {
         admitted: false,
         rejectionReason: 'Failed to parse observation into valid Narsese term',
@@ -215,7 +223,10 @@ export class KernelPerceptionGate extends KernelGate {
       bounded.done();
     }
 
-    if (verdict.vetoReason) return { admitted: false, rejectionReason: verdict.vetoReason };
+    if (verdict.vetoReason) {
+      recordGateDecision('perception', 'admit', false, verdict.vetoReason, correlationId);
+      return { admitted: false, rejectionReason: verdict.vetoReason };
+    }
 
     const taskType = verdict.taskType ?? initialTaskType;
 
@@ -293,7 +304,7 @@ export class KernelPerceptionGate extends KernelGate {
     correlationId?: string
   ): PerceptionGateOutput {
     const out = this.decideAdmission(term, taskType, truth, source, correlationId);
-    recordGateDecision('perception', 'admitTask', out.admitted, out.rejectionReason);
+    recordGateDecision('perception', 'admitTask', out.admitted, out.rejectionReason, correlationId);
     return out;
   }
 
@@ -352,6 +363,7 @@ export class KernelPerceptionGate extends KernelGate {
     };
     validateCognitiveEvent(event);
     this.#pushEvent(event);
+    recordGateDecision('perception', 'admit', true, undefined, correlationId);
     return { admitted: true, task };
   }
 

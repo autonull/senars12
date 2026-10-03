@@ -8,12 +8,12 @@ import { Agent, InMemoryEventLog, SqliteEventLog } from '@senars/core';
 import { createCortexFromLM } from '@senars/core/cortex';
 import type { PersistableSessionManager } from '@senars/core/memory';
 import { registerAgentTools } from '@senars/core/motor';
-import { isNarsese } from '@senars/util';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
-import { clamp, makeId } from '@senars/util';
+import { clamp, createLogger, errMsg, makeId } from '@senars/util';
 import { NAREngine } from '../engine/NAREngine.js';
 import type { EpisodicMemory, LMService, NAR } from '../index.js';
+import { dispatchNarseseIntent, type NarseseIntent } from '../nl/narsese-intent.js';
 import type { ThreadScope } from '../kernel/thread-scope.js';
 import { createSystemOneBudget } from '../lm/system-one/types.js';
 import { TrajectoryStore } from '../rlfp/trajectory-store.js';
@@ -28,6 +28,8 @@ import type { DelegationPeer, CognitiveTaskDelegation, CognitiveTaskResult } fro
 import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas/truth';
 import { Truth } from '../terms';
 import { WebSocket } from 'ws';
+
+const logger = createLogger({ scope: 'nar-agent', level: 'warn' });
 
 /** Delegation peer that executes LM rules using the local NAR's LM service. */
 class NARDelegationPeer implements DelegationPeer {
@@ -408,6 +410,56 @@ const createDelegateRunner =
     }
   };
 
+/** The Narsese ingress answer: belief / goal acknowledgement, question plus manifold judgment. */
+const answerNarsese = async (narEngine: NAREngine, intent: NarseseIntent): Promise<string> => {
+  const { text } = intent;
+  if (intent.kind === 'goal') {
+    await narEngine.nar.goal(text);
+    await narEngine.nar.run(3);
+    return `+ ${text}`;
+  }
+  if (intent.kind === 'belief') {
+    await narEngine.nar.believe(text);
+    await narEngine.nar.run(3);
+    const beliefs = narEngine.nar.getBeliefs();
+    const last = beliefs[beliefs.length - 1];
+    return last ? `+ ${last.term}.` : `+ ${text}`;
+  }
+  await narEngine.nar.question(text);
+  await narEngine.nar.run(5);
+  const answer = await narEngine.nar.ask(text);
+  const narsTruth = answer?.answer
+    ? `NARS: ${answer.answer} ${answer.truth ? `f=${answer.truth.f.toFixed(2)};c=${answer.truth.c.toFixed(2)}` : ''}`
+    : 'No answer yet';
+  const judgment = await judgeOnManifold(narEngine, text);
+  return `${narsTruth}${judgment ? `\nManifold: ${judgment}` : ''}`;
+};
+
+/** The manifold's verdict on the query, or `null` when System One is off or silent. */
+const judgeOnManifold = async (narEngine: NAREngine, text: string): Promise<string | null> => {
+  if (!narEngine.nar.isSystemOneEnabled?.()) return null;
+  const manifold = narEngine.nar.getSystemOneManifold?.();
+  const embeddingCache = narEngine.nar.getSystemOneEmbeddingCache?.();
+  if (!manifold || !embeddingCache) return null;
+  try {
+    const pointer = await embeddingCache.write(text);
+    const queries = (['relevance', 'groundedness', 'plausibility'] as const).map((rubric) => ({
+      kind: 'evaluate' as const,
+      instruction: `Evaluate ${rubric}`,
+      rubric,
+      axis: 'epistemic' as const,
+    }));
+    const results = await manifold.judgeBatch(pointer, queries, createSystemOneBudget());
+    return results
+      .map((r, i) =>
+        r.kind === 'evaluate' ? `${queries[i]!.rubric}=${r.score.toFixed(2)}` : `${queries[i]!.rubric}=abstained`
+      )
+      .join(' ');
+  } catch {
+    return 'manifold error';
+  }
+};
+
 function attachNarApi(
   agent: ExtendedAgent,
   config: CreateAgentConfig,
@@ -426,74 +478,20 @@ function attachNarApi(
     const trimmed = text.trim();
     if (!trimmed) return '';
 
-    if (isNarsese(trimmed) && narEngine) {
-      let result = '';
-      if (trimmed.endsWith('?') || trimmed.endsWith('？')) {
-        await narEngine.nar.question(trimmed);
-        await narEngine.nar.run(5);
-        // Get NARS answer
-        const answer = await narEngine.nar.ask(trimmed);
-        const narsTruth = answer?.answer
-          ? `NARS: ${answer.answer} ${answer.truth ? `f=${answer.truth.f.toFixed(2)};c=${answer.truth.c.toFixed(2)}` : ''}`
-          : 'No answer yet';
-        // Get manifold judgment if System One is enabled
-        let manifoldJudgment = '';
-        if (narEngine.nar.isSystemOneEnabled?.()) {
-          const manifold = narEngine.nar.getSystemOneManifold?.();
-          const embeddingCache = narEngine.nar.getSystemOneEmbeddingCache?.();
-          if (manifold && embeddingCache) {
-            try {
-              const budget = createSystemOneBudget();
-              const pointer = await embeddingCache.write(trimmed);
-              const queries = [
-                {
-                  kind: 'evaluate' as const,
-                  instruction: 'Evaluate entailment',
-                  rubric: 'entailment' as any,
-                  axis: 'epistemic' as const,
-                },
-                {
-                  kind: 'evaluate' as const,
-                  instruction: 'Evaluate groundedness',
-                  rubric: 'groundedness' as any,
-                  axis: 'epistemic' as const,
-                },
-                {
-                  kind: 'evaluate' as const,
-                  instruction: 'Evaluate quality',
-                  rubric: 'plausibility' as any,
-                  axis: 'epistemic' as const,
-                },
-              ];
-              const results = await manifold.judgeBatch(pointer as any, queries, budget);
-              manifoldJudgment = results
-                .map((r, i) => {
-                  const q = queries[i];
-                  const rubric = q && 'rubric' in q ? q.rubric : 'unknown';
-                  if (r.kind === 'evaluate') return `${rubric}=${r.score.toFixed(2)}`;
-                  return `${rubric}=abstained`;
-                })
-                .join(' ');
-            } catch {
-              manifoldJudgment = 'manifold error';
-            }
-          }
-        }
-        result = `${narsTruth}${manifoldJudgment ? `\nManifold: ${manifoldJudgment}` : ''}`;
-      } else if (trimmed.endsWith('!')) {
-        await narEngine.nar.goal(trimmed);
-        await narEngine.nar.run(3);
-        result = `+ ${trimmed}`;
-      } else {
-        await narEngine.nar.believe(trimmed);
-        await narEngine.nar.run(3);
-        const beliefs = narEngine.nar.getBeliefs();
-        const last = beliefs[beliefs.length - 1];
-        result = last ? `+ ${last.term}.` : `+ ${trimmed}`;
+    const intent = narEngine ? dispatchNarseseIntent(trimmed) : null;
+    if (intent) {
+      const result = await answerNarsese(narEngine, intent).catch((e: unknown) => {
+        // Narsese the term parser rejects falls through to the LM path rather than
+        // faulting the turn — the router said Narsese, the parser disagreed, and the
+        // sentence still deserves an answer.
+        logger.warn('narsese ingress failed; falling through to the LM path', { error: errMsg(e) });
+        return null;
+      });
+      if (result !== null) {
+        yield { kind: 'text-delta', text: result };
+        yield { kind: 'finish', text: result };
+        return result;
       }
-      yield { kind: 'text-delta', text: result };
-      yield { kind: 'finish', text: result };
-      return result;
     }
 
     const originalResult = yield* originalChat(trimmed, opts);
@@ -502,8 +500,9 @@ function attachNarApi(
   agent.chat = chatOverride.bind(agent);
 
   agent.believe = async (text: string) => {
-    if (isNarsese(text) && narEngine) {
-      await narEngine.nar.believe(text);
+    const intent = narEngine ? dispatchNarseseIntent(text) : null;
+    if (intent?.kind === 'belief' && narEngine) {
+      await narEngine.nar.believe(intent.text);
       await narEngine.nar.run(3);
     }
   };

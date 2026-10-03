@@ -71,13 +71,7 @@ export const extractTerm = (content: string): string | undefined =>
 export function isNarsese(text: string): boolean {
   const trimmed = text.trim();
   if (!trimmed) return false;
-  if (
-    trimmed.startsWith('(') ||
-    trimmed.startsWith('<') ||
-    trimmed.startsWith('{') ||
-    trimmed.startsWith('[')
-  )
-    return true;
+  if (trimmed.startsWith('(') || trimmed.startsWith('<') || trimmed.startsWith('[')) return true;
   if (
     trimmed.includes('-->') ||
     trimmed.includes('<->') ||

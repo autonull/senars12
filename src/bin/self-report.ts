@@ -36,8 +36,8 @@ function formatToolExecutions(executions: string[]): string {
   return executions.map((e) => `  ⚙ ${e}`).join('\n');
 }
 
-function formatAikrPressure(pressure: 'low' | 'medium' | 'high'): string {
-  const colors = { low: '🟢', medium: '🟡', high: '🔴' };
+function formatAikrPressure(pressure: 'unknown' | 'low' | 'medium' | 'high'): string {
+  const colors = { unknown: '⚪', low: '🟢', medium: '🟡', high: '🔴' };
   return `${colors[pressure]} ${pressure.toUpperCase()}`;
 }
 
@@ -101,10 +101,10 @@ async function main() {
     .slice(0, 10);
 
   // AIKR pressure
-  const memoryPressure = stats.memoryPressure ?? 0;
-  let aikrPressure: 'low' | 'medium' | 'high' = 'low';
-  if (memoryPressure > 0.8) aikrPressure = 'high';
-  else if (memoryPressure > 0.5) aikrPressure = 'medium';
+  const memoryPressure = stats?.memoryPressure;
+  let aikrPressure: 'unknown' | 'low' | 'medium' | 'high' = 'unknown';
+  if (memoryPressure !== undefined)
+    aikrPressure = memoryPressure > 0.8 ? 'high' : memoryPressure > 0.5 ? 'medium' : 'low';
 
   // RLFP reward average (would need access to internal history)
   let rlfpRewardAvg = 0;
@@ -156,7 +156,7 @@ async function main() {
 
   console.log('\n📊 AIKR PRESSURE');
   console.log(divider());
-  console.log(`  ${formatAikrPressure(aikrPressure)} (memory: ${pct(memoryPressure)}})`);
+  console.log(`  ${formatAikrPressure(aikrPressure)} (memory: ${memoryPressure === undefined ? 'unmeasured' : pct(memoryPressure)})`);
 
   console.log('\n🎰 RLFP REWARD');
   console.log(divider());

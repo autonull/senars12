@@ -2,6 +2,8 @@ export type { TranslationCacheEntry } from './cache.js';
 export { TranslationCache } from './cache.js';
 export type { ClarificationRequest } from './clarification.js';
 export { ClarificationHandler, generateClarificationWithLM } from './clarification.js';
+export type { NarseseIntent } from './narsese-intent.js';
+export { dispatchNarseseIntent } from './narsese-intent.js';
 export type { InputType } from './classifier.js';
 export { classify } from './classifier.js';
 export type { ContextAssemblerOpts } from './context-assembler.js';

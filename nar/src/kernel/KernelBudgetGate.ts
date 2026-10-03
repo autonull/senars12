@@ -148,7 +148,7 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
 
   check(input: BudgetGateInput): BudgetGateOutput {
     const out = this.decideBudget(input);
-    recordGateDecision('budget', input.operation, out.granted, out.terminationReason);
+    recordGateDecision('budget', input.operation, out.granted, out.terminationReason, input.correlationId);
     return out;
   }
 

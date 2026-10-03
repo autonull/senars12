@@ -49,7 +49,8 @@ export class KernelRewardGate extends KernelGate<PolicyViolationEvent> {
       'reward',
       input.targetType,
       out.accepted && !out.requiresProposal,
-      out.requiresProposal ? 'requires-proposal' : out.rejectionReason
+      out.requiresProposal ? 'requires-proposal' : out.rejectionReason,
+      input.correlationId
     );
     return out;
   }

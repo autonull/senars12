@@ -79,7 +79,8 @@ export type CycleDecisionRequest =
  * needs the reason reads the proposition and a caller that does not gets `null`.
  */
 export interface DecisionPort {
-  ask(request: CycleDecisionRequest): Promise<DecisionResult | null>;
+  /** `signal` aborts at the ask deadline; an implementation that ignores it is bounded by `raceDeadline` anyway. */
+  ask(request: CycleDecisionRequest, signal?: AbortSignal): Promise<DecisionResult | null>;
 }
 
 /** The absence. A value, so a bound port and an unbound one are the same question. */
@@ -121,7 +122,7 @@ export const askSafely = async (
   if (!port) return null;
   const signal = boundedSignal(timeoutMs);
   try {
-    const outcome = await raceDeadline(port.ask(request), timeoutMs);
+    const outcome = await raceDeadline(port.ask(request, signal.signal), timeoutMs);
     return outcome.timedOut ? null : outcome.value;
   } catch {
     return null;

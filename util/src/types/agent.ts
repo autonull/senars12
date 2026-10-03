@@ -8,7 +8,10 @@ export interface HealthStatus {
   readonly status: 'healthy' | 'degraded' | 'stuck' | 'crashed';
   readonly lastCycle: number;
   readonly cycleCount: number;
+  /** Engine faults per completed cycle, counted since start. */
   readonly errorRate: number;
+  /** Per-engine fault counts behind `errorRate`; absent when nothing has faulted. */
+  readonly byEngine?: Record<string, number>;
 }
 
 export interface SkillDefinition {

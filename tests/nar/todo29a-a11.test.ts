@@ -170,6 +170,19 @@ describe('TODO29.a A11 — absence is a value, and a fault is not an exception',
     expect(await askSafely(faulty, request)).toBeNull();
   });
 
+  it('the ask is handed a signal that aborts at the deadline, so work can cancel', async () => {
+    let seen: AbortSignal | undefined;
+    const observed: DecisionPort = {
+      ask: async (_request, signal) => {
+        seen = signal;
+        return null;
+      },
+    };
+    expect(await askSafely(observed, request)).toBeNull();
+    expect(seen?.aborted).toBe(false);
+    expect(await askSafely({ ...observed, ask: async () => NEVER() }, request)).toBeNull();
+  });
+
   it('a refusal arrives in-band, so a caller that needs the reason can read it', async () => {
     const abstained: DecisionPort = { ask: async () => null };
     expect(await askSafely(abstained, request)).toBeNull();

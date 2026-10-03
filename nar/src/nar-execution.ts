@@ -35,7 +35,7 @@ export interface CognitiveStateSummary {
   active_drives: Record<string, number>;
   active_meta_goals: string[];
   pending_tool_executions: string[];
-  aikr_pressure: 'low' | 'medium' | 'high';
+  aikr_pressure: 'unknown' | 'low' | 'medium' | 'high';
   rlfp_reward_avg: number;
 }
 
@@ -614,10 +614,14 @@ export class NARExecution {
 
     // Calculate AIKR pressure
     const stats = this.budgets.charge('control-work') ? this.memory.getStatistics?.() : undefined;
-    const memoryPressure = stats?.memoryPressure ?? 0;
-    let aikrPressure: 'low' | 'medium' | 'high' = 'low';
-    if (memoryPressure > 0.8) aikrPressure = 'high';
-    else if (memoryPressure > 0.5) aikrPressure = 'medium';
+    // An exhausted `control-work` budget means *unmeasured*, and "no pressure" and
+    // "no measurement" are different answers — reporting 'low' for both makes a
+    // bounded system look healthy precisely when it is going blind.
+    const memoryPressure = stats?.memoryPressure;
+    let aikrPressure: CognitiveStateSummary['aikr_pressure'] = 'unknown';
+    if (memoryPressure !== undefined) {
+      aikrPressure = memoryPressure > 0.8 ? 'high' : memoryPressure > 0.5 ? 'medium' : 'low';
+    }
 
     // Average RLFP reward
     const rlfpRewardAvg = mean(this._rlfpRewardHistory.toArray());
