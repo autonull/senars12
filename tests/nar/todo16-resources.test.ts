@@ -206,7 +206,7 @@ describe('System One — AIKR Resource Accounting (Bench 12)', () => {
     // The registry is process-global, so the reading is a delta: asserting an
     // absolute counter made this test fail whenever another file in the worker had
     // already recorded a judgment.
-    const valueOf = async (
+    const metricValue = async (
       name: string,
       labels: Record<string, string>
     ): Promise<number | undefined> => {
@@ -222,14 +222,14 @@ describe('System One — AIKR Resource Accounting (Bench 12)', () => {
     const judgments = { axis: 'epistemic', shape: 'evaluate', tier: '1', abstained: 'false' };
     const latency = { tier: '1' };
     const before = [
-      await valueOf('senars_systemone_judgments_total', judgments),
-      await valueOf('senars_systemone_judgment_latency_ms', latency),
+      await metricValue('senars_systemone_judgments_total', judgments),
+      await metricValue('senars_systemone_judgment_latency_ms', latency),
     ];
 
     recordJudgmentMetric('epistemic', 'evaluate', 1, false, 12);
 
-    expect(await valueOf('senars_systemone_judgments_total', judgments)).toBe((before[0] ?? 0) + 1);
-    expect(await valueOf('senars_systemone_judgment_latency_ms', latency)).toBe(
+    expect(await metricValue('senars_systemone_judgments_total', judgments)).toBe((before[0] ?? 0) + 1);
+    expect(await metricValue('senars_systemone_judgment_latency_ms', latency)).toBe(
       (before[1] ?? 0) + 12
     );
   });
