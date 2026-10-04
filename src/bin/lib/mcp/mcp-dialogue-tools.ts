@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { EpisodicMemory } from '@senars/nar';
 import type { DialogueCapture as DialogueCaptureType } from '@senars/nar/dialogue';
 import { retrospect, selectProbes } from '@senars/nar/dialogue';
-import { type ReadOnlyLookup, takeLast, unique } from '@senars/util';
+import { parseJsonOr, takeLast, type ReadOnlyLookup, unique } from '@senars/util';
 import { z } from 'zod';
 import { ANNOTATIONS, createMCPResponse, stringifyMCP } from './mcp-response.js';
 
@@ -29,12 +29,8 @@ interface TurnRow {
 }
 
 const parseTurnRow = (content: string): TurnRow | undefined => {
-  try {
-    const row = JSON.parse(content) as TurnRow;
-    return row.turnId && row.sessionId ? row : undefined;
-  } catch {
-    return undefined;
-  }
+  const row = parseJsonOr<Partial<TurnRow> | undefined>(content, undefined);
+  return row?.turnId && row.sessionId ? (row as TurnRow) : undefined;
 };
 
 const sessionIdOf = (episode: { metadata: unknown }): string | undefined =>

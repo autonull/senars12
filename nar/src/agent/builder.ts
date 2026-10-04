@@ -8,7 +8,7 @@ import {
   DEFAULT_COGNITIVE_PARAMETERS,
 } from '../config/cognitive-parameters.js';
 import { BuilderError } from '../errors/index.js';
-import type { GateRegistry } from '../kernel/GateRegistry.js';
+import type { GateRegistry, GateRegistryInit } from '../kernel/GateRegistry.js';
 import { createGateRegistry } from '../kernel/GateRegistry.js';
 import type { ThreadScope } from '../kernel/thread-scope.js';
 import type { LMService } from '../lm';
@@ -22,7 +22,7 @@ import { resolveProfile } from './profiles.js';
 export type { CapabilityTier, NARProfileName, NARProfileSpec } from './profiles.js';
 export { NAR_PROFILES, resolveProfile } from './profiles.js';
 
-type GateInitConfig = Parameters<GateRegistry['initialize']>[0];
+
 
 import { NAR, type NARConfig } from '../nar.js';
 import type { CreateAgentConfig } from './config.js';
@@ -80,7 +80,7 @@ export class NARBuilder {
   private capabilities: CapabilitySurface = {};
   private cognitiveParams?: CognitiveParameters;
   private gates?: GateRegistry;
-  private gateConfig?: GateInitConfig;
+  private gateConfig?: GateRegistryInit;
   private persistence?: { path: string };
   private episodicMemory?: EpisodicMemory;
   private metta?: MettaPort;
@@ -144,13 +144,13 @@ export class NARBuilder {
   }
 
   /** Per-instance kernel gates (F2) — a fresh `createGateRegistry()` (isolation) or init config. */
-  withGates(spec?: GateRegistry | GateInitConfig): this {
+  withGates(spec?: GateRegistry | GateRegistryInit): this {
     this.gates =
       spec instanceof Object && 'initialize' in spec
         ? (spec as GateRegistry)
         : createGateRegistry();
     this.gateConfig =
-      spec instanceof Object && 'initialize' in spec ? undefined : (spec as GateInitConfig);
+      spec instanceof Object && 'initialize' in spec ? undefined : (spec as GateRegistryInit);
     return this.record('gates', true);
   }
 

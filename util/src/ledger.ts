@@ -29,20 +29,10 @@ export type BaseLedgerEntry = z.infer<typeof BaseLedgerEntrySchema>;
 
 /**
  * Rotation/rollover policy — parameterized from EpisodicMemory's load-bearing behavior.
+ * Every field optional: each is a bound on disk growth with a default, so a
+ * caller states a different one deliberately or says nothing.
  */
 export interface RolloverPolicy {
-  /** Daily rollover: new file per date. */
-  daily: boolean;
-  /** Per-file entry cap; rolls to `<date>-<n>.jsonl` when reached. */
-  maxEntriesPerFile: number;
-  /** Retention: delete files older than this many days. */
-  retentionDays: number;
-  /** Custom path template. Default: `<basePath>/<date>[-<n>].jsonl`. */
-  pathTemplate: (date: string, index: number) => string;
-}
-
-/** Factory options for rollover policy (all optional, defaults applied). */
-export interface RolloverPolicyOptions {
   /** Daily rollover: new file per date. */
   daily?: boolean;
   /** Per-file entry cap; rolls to `<date>-<n>.jsonl` when reached. */
@@ -52,6 +42,9 @@ export interface RolloverPolicyOptions {
   /** Custom path template. Default: `<basePath>/<date>[-<n>].jsonl`. */
   pathTemplate?: (date: string, index: number) => string;
 }
+
+/** Rollover with every field filled — what the ledger actually runs on. */
+type ResolvedRollover = Required<RolloverPolicy>;
 
 /**
  * The ledger's default rollover: one file per day, ten thousand entries in it,
@@ -88,7 +81,7 @@ export interface LedgerConfig<T extends BaseLedgerEntry> {
   /** Zod schema for entry validation (extends BaseLedgerEntrySchema). */
   schema: z.ZodType<T>;
   /** Rotation/rollover policy (all fields optional, defaults applied). */
-  rollover?: Partial<RolloverPolicy>;
+  rollover?: RolloverPolicy;
   /** In-memory retention window for hot queries (ms). Default: 5 minutes; `0` disables the hot cache. */
   hotRetentionMs?: number;
   /** Hard cap on hot-cache entries, so a burst inside one retention window cannot grow without bound. Default: 10 000. */
@@ -102,7 +95,7 @@ export interface LedgerConfig<T extends BaseLedgerEntry> {
 /** Factory options for createLedger (excludes basePath and schema which are separate params). */
 export interface CreateLedgerOptions<T extends BaseLedgerEntry> {
   /** Rotation/rollover policy (all fields optional, defaults applied). */
-  rollover?: RolloverPolicyOptions;
+  rollover?: RolloverPolicy;
   /** In-memory retention window for hot queries (ms). Default: 5 minutes. Set to 0 to disable hot cache. */
   hotRetentionMs?: number;
   /** Hard cap on hot-cache entries, so a burst inside one retention window cannot grow without bound. Default: 10 000. */
@@ -113,11 +106,11 @@ export interface CreateLedgerOptions<T extends BaseLedgerEntry> {
   onRead?: (entry: T) => void | Promise<void>;
 }
 
-/** Internal config with all rollover fields required. */
+/** Internal config with every default applied. */
 interface ResolvedLedgerConfig<T extends BaseLedgerEntry> {
   basePath: string;
   schema: z.ZodType<T>;
-  rollover: RolloverPolicy;
+  rollover: ResolvedRollover;
   hotRetentionMs: number;
   hotCacheMaxSize: number;
   onWrite: (entry: T) => void | Promise<void>;
@@ -144,12 +137,10 @@ export class Ledger<T extends BaseLedgerEntry> {
       basePath: config.basePath,
       schema: config.schema,
       rollover: {
-        daily: rollover.daily ?? DEFAULT_ROLLOVER.daily,
-        maxEntriesPerFile: rollover.maxEntriesPerFile ?? DEFAULT_ROLLOVER.maxEntriesPerFile,
-        retentionDays: rollover.retentionDays ?? DEFAULT_ROLLOVER.retentionDays,
+        ...DEFAULT_ROLLOVER,
+        ...rollover,
         pathTemplate:
-          rollover.pathTemplate ??
-          ((date, index) => (index === 0 ? `${date}.jsonl` : `${date}-${index}.jsonl`)),
+          rollover.pathTemplate ?? ((date, index) => (index === 0 ? `${date}.jsonl` : `${date}-${index}.jsonl`)),
       },
       hotRetentionMs,
       hotCacheMaxSize: Math.max(1, config.hotCacheMaxSize ?? 10_000),

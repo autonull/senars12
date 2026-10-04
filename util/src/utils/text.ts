@@ -46,6 +46,14 @@ export const splitWords = (text: string, splitPattern: RegExp = /\s+/): string[]
   text.trim().split(splitPattern).filter(Boolean);
 
 /**
+ * Trimmed, non-empty lines. The one line split: `String.split('\n')` yields a
+ * trailing `''` for text ending in a newline and leaves indentation on every
+ * other line, so four sites each re-stated "trim each, drop the blanks".
+ */
+export const splitLines = (text: string): string[] =>
+  text.split('\n').map((line) => line.trim()).filter(Boolean);
+
+/**
  * Escape every regexp metacharacter in `text`, so untrusted text becomes a
  * literal match instead of a pattern. Building a `RegExp` from unescaped input
  * is not a formatting convenience — it lets the input widen the match past its

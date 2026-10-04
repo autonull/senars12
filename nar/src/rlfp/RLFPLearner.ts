@@ -1,4 +1,4 @@
-import { cachePath, clamp, clampSigned, createLogger, errMsg, roundTo } from '@senars/util';
+import { cachePath, clamp, clampSigned, createLogger, ensureArray, errMsg, roundTo } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 import { buildDefaults, type CognitiveParameters } from '../config/cognitive-parameters.js';
@@ -272,7 +272,7 @@ export class RLFPLearner {
     count: number;
     error?: string;
   } {
-    const prefs = Array.isArray(preferences) ? preferences : [preferences];
+    const prefs = ensureArray(preferences);
     const validPrefs = prefs.filter((p) => p?.preference && p.preference !== 'SKIP');
     if (!validPrefs.length) return { success: true, count: 0 };
     console.info(`RLFPLearner: Processing ${validPrefs.length} preference(s)...`);

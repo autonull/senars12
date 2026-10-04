@@ -331,7 +331,8 @@ export {
   sequentialIdSource,
   sortableIdSource,
 } from './utils/id.js';
-export { extractJsonObject, parseJsonObject } from './utils/json.js';
+/** @public Deterministic JSON with sorted object keys — the one serializer behind every cache key and content digest. */
+export { extractJsonObject, parseJsonObject, stableStringify } from './utils/json.js';
 export type { LruCacheOptions } from './utils/lru-cache.js';
 /** @public Bounded recency-ordered cache with optional TTL. */
 export { LruCache } from './utils/lru-cache.js';
@@ -412,15 +413,6 @@ export {
 export type { RetryOptions } from './utils/retry.js';
 // Caching
 export { withRetry } from './utils/retry.js';
-/** @public Serialization contracts for stateful components. */
-export type { Serializable, Versioned } from './utils/serialization.js';
-/** @public Uniform-contract adapters bridging legacy serialize/deserialize shapes. */
-export {
-  asSerializable,
-  factorySerializable,
-  inPlaceSerializable,
-  stableStringify,
-} from './utils/serialization.js';
 /** @public Process signal → graceful shutdown for every binary; returns its own uninstall. */
 export { setupGracefulShutdown } from './utils/shutdown.js';
 export { weightedMean } from './utils/stats.js';
@@ -434,6 +426,7 @@ export {
   limitList,
   NARSESE_ATOM_CHARS,
   overlapCount,
+  splitLines,
   splitWords,
   TERM_SEPARATORS,
   tokenizeWords,

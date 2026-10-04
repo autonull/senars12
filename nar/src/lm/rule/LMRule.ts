@@ -1,6 +1,7 @@
 import {
   createLMStats,
   errMsg,
+  parseJsonOr,
   recordLMCall,
   stopwatch,
   type TermTruth,
@@ -438,12 +439,7 @@ export class LMRule {
     context: Record<string, unknown> | undefined,
     signal?: AbortSignal
   ): Promise<string | null> {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(response);
-    } catch {
-      return null;
-    }
+    const parsed = parseJsonOr<unknown>(response, null);
     if (!parsed || typeof parsed !== 'object' || !('tool' in parsed) || !('args' in parsed))
       return null;
     const { tool, args } = parsed as { tool: unknown; args: unknown };

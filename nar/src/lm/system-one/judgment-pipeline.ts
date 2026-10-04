@@ -5,7 +5,7 @@
  */
 
 import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
-import type { CognitiveAxis } from '../../decision/types.js';
+import type { CognitiveAxis, HeadResult } from '../../decision/types.js';
 import {
   type CalibrationVersion,
   createHead,
@@ -59,16 +59,12 @@ export interface PipelineModelDigest {
   readonly createdAt: number;
 }
 
-export interface PipelineHeadResult {
-  readonly rubric: HeadId;
-  readonly score: number;
-  readonly distribution?: any;
-  readonly legend?: any;
-  readonly abstained: boolean;
-  readonly abstainReason?: string;
-  readonly axis: CognitiveAxis;
-  readonly decisionBand?: string;
-}
+/** A head's verdict with the routing context the pipeline adds. One shape: the pipeline
+ * annotated a re-declared copy of `HeadResult` with `any`, which is how its abstain
+ * reason drifted to `string` and grew a value the rubric union had never heard of. */
+export type PipelineHeadResult = Readonly<
+  Required<Pick<HeadResult, 'rubric' | 'axis'>> & HeadResult
+>;
 
 export interface JudgmentPipelineResult {
   readonly propositions: PipelineHeadResult[];
@@ -197,13 +193,7 @@ export class JudgmentPipeline {
 
   private toResult(
     rubric: HeadId,
-    result: {
-      score: number;
-      distribution?: any;
-      legend?: any;
-      abstained: boolean;
-      abstainReason?: string;
-    },
+    result: Omit<HeadResult, 'rubric' | 'axis' | 'decisionBand'>,
     query: JudgmentQuery
   ): PipelineHeadResult {
     return {

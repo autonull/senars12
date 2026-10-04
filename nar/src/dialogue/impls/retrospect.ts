@@ -1,14 +1,15 @@
 import { join } from 'node:path';
 import {
-  type BeliefTruth,
   cachePath,
-  type Episode,
   mean,
-  type ReadOnlyLookup,
+  parseJsonOr,
   sha256Hex,
   sha256Prefixed,
   shortSha256Hex,
   sortBy,
+  type BeliefTruth,
+  type Episode,
+  type ReadOnlyLookup,
 } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
@@ -72,28 +73,20 @@ export interface SessionReaction {
 }
 
 const parseTurn = (e: Episode): SessionTurn | undefined => {
-  try {
-    const d = JSON.parse(e.content) as SessionTurn;
-    return d.turnId && d.sessionId ? d : undefined;
-  } catch {
-    return undefined;
-  }
+  const d = parseJsonOr<Partial<SessionTurn> | undefined>(e.content, undefined);
+  return d?.turnId && d.sessionId ? (d as SessionTurn) : undefined;
 };
 
 const parseReaction = (e: Episode): SessionReaction | undefined => {
-  try {
-    const d = JSON.parse(e.content) as SessionReaction;
-    return d.turnId && d.kind
-      ? {
-          ...d,
-          at: e.timestamp,
-          ...(e.id ? { id: e.id } : {}),
-          ...(Array.isArray(e.causes) ? { causes: e.causes } : {}),
-        }
-      : undefined;
-  } catch {
-    return undefined;
-  }
+  const d = parseJsonOr<Partial<SessionReaction> | undefined>(e.content, undefined);
+  return d?.turnId && d.kind
+    ? {
+        ...(d as SessionReaction),
+        at: e.timestamp,
+        ...(e.id ? { id: e.id } : {}),
+        ...(Array.isArray(e.causes) ? { causes: e.causes } : {}),
+      }
+    : undefined;
 };
 
 export const digestPin = (

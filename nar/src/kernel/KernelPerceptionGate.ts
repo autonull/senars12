@@ -1,4 +1,5 @@
 import type {
+  Budget,
   CognitiveEvent,
   FormalizationBatch,
   GateOutcome,
@@ -28,13 +29,7 @@ import { domainKey } from './reputation-keys.js';
 import type { SourceReputation } from './source-reputation.js';
 
 export interface KernelPerceptionGateConfig {
-  defaultBudget: {
-    priority: number;
-    durability: number;
-    quality: number;
-    cycles: number;
-    depth: number;
-  };
+  defaultBudget: Budget;
   systemOne?: {
     enabled: boolean;
     /** X2 (TODO20): injected ingress judge — kernel never imports proposer internals. */

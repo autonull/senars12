@@ -24,14 +24,10 @@ export { createDuration, createTimestamp, DEPTH_MAX } from './primitives.js';
 export type Hash = number;
 export type TermSymbol = string;
 
-// Budget and priority system
-export interface Budget {
-  readonly priority: number;
-  readonly durability: number;
-  readonly quality: number;
-  readonly cycles: number;
-  readonly depth: number;
-}
+// Budget and priority system — one shape, validated by the schema that admits it
+import type { Budget } from '@senars/core/schemas';
+
+export type { Budget };
 
 // Task types
 export type TaskType = 'belief' | 'goal' | 'question' | 'command';

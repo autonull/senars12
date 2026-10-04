@@ -73,12 +73,11 @@ export class NalVetoArbitration implements ArbitrationStrategy {
         arbitration: 'nal-veto',
       };
     }
-    const fallback = reflexProposals
-      .filter((p) => !nalDerivations.some((d) => this.#isVetoingAction(d, p.action)))
-      .reduce<ActionProposal | null>(
-        (best, p) => (!best || p.value * p.confidence > best.value * best.confidence ? p : best),
-        null
-      );
+    const fallback = bestOf(
+      reflexProposals.filter(
+        (p) => !nalDerivations.some((d) => this.#isVetoingAction(d, p.action))
+      )
+    );
     return {
       action: bestReflex.action,
       actionExecuted: fallback?.action ?? null,
@@ -141,7 +140,7 @@ export class WeightedQuorum implements ArbitrationStrategy {
           : d.truth.f < 0.3 && d.truth.c >= this.#vetoThreshold
             ? -d.truth.c
             : 0;
-      quorum.set(d.action, quorum.get(d.action)! + vote);
+      incrementCount(quorum, d.action, vote);
     }
 
     const winner = [...quorum.entries()]

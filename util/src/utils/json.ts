@@ -50,3 +50,31 @@ export function parseJsonObject<T = unknown>(text: string): T | null {
     return null;
   }
 }
+
+/**
+ * Deterministic JSON with object keys emitted in sorted order — the single
+ * serializer behind every cache key and content digest, so two structurally
+ * equal values always digest identically regardless of insertion order.
+ * `undefined` members are dropped, matching `JSON.stringify`.
+ *
+ * `sortArrays` treats array order as non-semantic, so `{ filters: ['b','a'] }`
+ * and `{ filters: ['a','b'] }` are one value. Use it only where a list is a
+ * set — strategy config, filters, tags — never for an ordered sequence.
+ *
+ * For *equality* rather than a digest, use `deepEqual`, which answers the same
+ * question without serializing the graph.
+ */
+export function stableStringify(value: unknown, sortArrays = false): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
+  if (ArrayBuffer.isView(value)) {
+    return JSON.stringify(Array.from(value as unknown as ArrayLike<number>));
+  }
+  if (Array.isArray(value)) {
+    const items = value.map((item) => stableStringify(item, sortArrays));
+    return `[${sortArrays ? items.sort() : items.join(',')}]`;
+  }
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v, sortArrays)}`).join(',')}}`;
+}

@@ -52,10 +52,6 @@
       "types": "./src/utils/eval.ts",
       "import": "./src/utils/eval.ts"
     },
-    "./utils/serialization": {
-      "types": "./src/utils/serialization.ts",
-      "import": "./src/utils/serialization.ts"
-    },
     "./ledger": {
       "types": "./src/ledger.ts",
       "import": "./src/ledger.ts"

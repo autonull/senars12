@@ -4,7 +4,7 @@
  * Agent B runs the same universal LM rule locally; Agent A admits the result
  * through its PerceptionGate with PEER_AGENT source quality and shadow-validates.
  */
-import { errMsg, makeId } from '@senars/util';
+import { errMsg, makeId, parseJsonOr } from '@senars/util';
 import type { JudgmentQuery } from '../lm/system-one/types.js';
 
 export interface CognitiveTaskDelegation {
@@ -53,13 +53,8 @@ export const handleDelegationMessage = async (
   raw: string,
   reply: (result: CognitiveTaskResult) => void
 ): Promise<void> => {
-  let msg: { type?: string; delegation?: CognitiveTaskDelegation };
-  try {
-    msg = JSON.parse(raw) as { type?: string; delegation?: CognitiveTaskDelegation };
-  } catch {
-    return; // malformed message: ignore
-  }
-  if (msg.type !== 'cognitive-delegation' || !msg.delegation) return;
+  const msg = parseJsonOr<{ type?: string; delegation?: CognitiveTaskDelegation } | null>(raw, null);
+  if (msg?.type !== 'cognitive-delegation' || !msg.delegation) return;
   try {
     reply(await peer.executeTask(msg.delegation));
   } catch (error) {

@@ -56,6 +56,28 @@ export class NativeSenarsAgent {
     this.qStore = this.rewardAdapter.getQStore();
   }
 
+  /**
+   * The reward as the truth function sees it. Identity unless an environment's
+   * range differs from NAL truth's `[0, 1]` — GridWorld pays in `[-0.01, 1]`.
+   */
+  protected rewardForTruth(raw: number): number {
+    return raw;
+  }
+
+  /** Whether a first visit credits the step when there is no earlier pair to credit. */
+  protected creditFirstVisit(): boolean {
+    return true;
+  }
+
+  /**
+   * Whether the terminal reward is also attributed to the pair that earned it.
+   * The delayed scheme below only ever credits the previous pair, so an
+   * environment whose terminal signal is its only reward needs this.
+   */
+  protected creditTerminalPair(): boolean {
+    return false;
+  }
+
   /** Run a single step: perceive → reason → act → learn */
   async step(
     env: any,
@@ -80,19 +102,30 @@ export class NativeSenarsAgent {
 
     // 5. Learn: update value beliefs with reward
     const actionTerm = operationTerm(actionName);
+    const reward = this.rewardForTruth(result.reward);
 
     if (this.useTDLearning && this.lastState !== null && this.lastAction !== null) {
-      const nextAvailableActions = this.getAvailableActions(env);
       await this.rewardAdapter.processRewardTD(
         this.lastState,
         this.lastAction,
         this.lastReward,
         stateTerm,
-        nextAvailableActions,
+        this.getAvailableActions(env),
         result.terminal
       );
-    } else {
-      await this.rewardAdapter.processReward(stateTerm, actionTerm, result.reward);
+    } else if (this.creditFirstVisit()) {
+      await this.rewardAdapter.processReward(stateTerm, actionTerm, reward);
+    }
+
+    if (result.terminal && this.creditTerminalPair()) {
+      await this.rewardAdapter.processRewardTD(
+        stateTerm,
+        actionTerm,
+        reward,
+        stateTerm,
+        this.getAvailableActions(env),
+        true
+      );
     }
 
     // Store current for next TD update
@@ -100,7 +133,7 @@ export class NativeSenarsAgent {
     this.lastAction = actionTerm;
     this.lastStateId = stateId;
     this.lastActionIdx = action;
-    this.lastReward = result.reward;
+    this.lastReward = reward;
 
     // Notify selector of reward for change detection/adaptation
     this.selector.onReward(stateId, action, result.reward);
@@ -242,61 +275,18 @@ export class GridWorldNativeAgent extends NativeSenarsAgent {
     this.registerTools(toolConfigs);
   }
 
-  /** Override step to normalize rewards for NAL truth values (must be in [0, 1]) */
-  override async step(
-    env: any,
-    stateId: string
-  ): Promise<{ action: number; reward: number; done: boolean }> {
-    const stateTerm = TermBuilder.atom(stateId);
+  /** GridWorld pays in [-0.01, 1]; NAL truth is [0, 1]. */
+  protected override rewardForTruth(raw: number): number {
+    return (raw + 0.01) / 1.01;
+  }
 
-    await this.perception.perceive({ stateId, reward: 0 });
-    await this.nar.run(this.maxDerivationsPerStep);
+  /** Delayed TD only: a first visit has no earlier pair to credit. */
+  protected override creditFirstVisit(): boolean {
+    return false;
+  }
 
-    const action = this.selector.selectAction(stateId, this.nar, this.qStore, this.actionAdapter);
-    const actionName = this.getActionName(action);
-    const goalTerm = this.actionAdapter.buildGoalTerm({ name: actionName });
-    await this.nar.tools.executeToolGoal(goalTerm);
-
-    const result = env.step(action);
-
-    // GridWorld reward range: [-0.01, 1] -> normalize to [0, 1]
-    const normalizedReward = (result.reward + 0.01) / 1.01;
-    const actionTerm = operationTerm(actionName);
-
-    if (this.useTDLearning && this.lastState !== null && this.lastAction !== null) {
-      const nextAvailableActions = this.getAvailableActions(env);
-      await this.rewardAdapter.processRewardTD(
-        this.lastState,
-        this.lastAction,
-        this.lastReward,
-        stateTerm,
-        nextAvailableActions,
-        result.terminal
-      );
-    }
-
-    // Terminal transition: the delayed-TD scheme above only ever credits the
-    // previous pair; attribute the terminal reward to the pair that earned it.
-    if (result.terminal) {
-      await this.rewardAdapter.processRewardTD(
-        stateTerm,
-        actionTerm,
-        normalizedReward,
-        stateTerm,
-        this.actionTerms,
-        true
-      );
-    }
-
-    this.lastState = stateTerm;
-    this.lastAction = actionTerm;
-    this.lastStateId = stateId;
-    this.lastActionIdx = action;
-    this.lastReward = normalizedReward;
-
-    this.selector.onReward(stateId, action, result.reward);
-
-    return { action, reward: result.reward, done: result.terminal };
+  protected override creditTerminalPair(): boolean {
+    return true;
   }
 
   override getAvailableActions(env: any): Term[] {

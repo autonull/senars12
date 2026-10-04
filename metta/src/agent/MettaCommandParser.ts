@@ -1,4 +1,4 @@
-import { splitWords } from '@senars/util';
+import { parseJsonOr, splitLines, splitWords } from '@senars/util';
 
 export const LLM_COMMANDS = [
   'send',
@@ -26,10 +26,7 @@ export class MettaCommandParser {
   parse(llmOutput: string): ParsedCommand[] {
     const normalized = llmOutput.replace(/_quote_/g, '"').replace(/_newline_/g, '\n');
 
-    const lines = normalized
-      .split('\n')
-      .map((l) => l.trim())
-      .filter((l): l is string => Boolean(l)) as string[];
+    const lines = splitLines(normalized);
     const merged = this.#mergeSendContinuations(lines);
 
     return merged
@@ -139,11 +136,7 @@ export class MettaCommandParser {
   }
 
   #decodeQuoted(text: string): string | null {
-    try {
-      return JSON.parse(text);
-    } catch {
-      return null;
-    }
+    return parseJsonOr(text, null);
   }
 
   #findClosingQuote(str: string, start: number): number {

@@ -1,15 +1,56 @@
-import type { AutonomyMode, ReasoningBudget } from '@senars/core/schemas';
+import type {
+  AutonomyMode,
+  AutonomyModeChangedEvent,
+  BudgetExhaustedEvent,
+  CognitiveEvent,
+  PolicyViolationEvent,
+  ReasoningBudget,
+} from '@senars/core/schemas';
 import type {
   IActionGate,
   IBudgetGate,
-  IGateRegistry,
   IPerceptionGate,
   IRewardGate,
 } from './interfaces.js';
-import { KernelActionGate } from './KernelActionGate.js';
-import { KernelBudgetGate } from './KernelBudgetGate.js';
-import { KernelPerceptionGate } from './KernelPerceptionGate.js';
-import { KernelRewardGate } from './KernelRewardGate.js';
+import { KernelActionGate, type KernelActionGateConfig } from './KernelActionGate.js';
+import { KernelBudgetGate, type KernelBudgetGateConfig } from './KernelBudgetGate.js';
+import {
+  KernelPerceptionGate,
+  type KernelPerceptionGateConfig,
+} from './KernelPerceptionGate.js';
+import { KernelRewardGate, type KernelRewardGateConfig } from './KernelRewardGate.js';
+
+/**
+ * The four gate configs, as each gate accepts them, plus the two registry-wide
+ * settings. Spelled with the gate modules' own config types so a field can
+ * never exist on a gate and be missing here.
+ */
+export interface GateRegistryInit {
+  perceptionConfig?: Partial<KernelPerceptionGateConfig>;
+  actionConfig?: Partial<KernelActionGateConfig>;
+  rewardConfig?: Partial<KernelRewardGateConfig>;
+  budgetConfig?: Partial<KernelBudgetGateConfig>;
+  initialBudget?: ReasoningBudget;
+  initialAutonomyMode?: AutonomyMode;
+}
+
+export interface IGateRegistry {
+  getPerceptionGate(): IPerceptionGate;
+  getActionGate(): IActionGate;
+  getRewardGate(): IRewardGate;
+  getBudgetGate(): IBudgetGate;
+  initialize(config?: GateRegistryInit): void;
+  isInitialized(): boolean;
+  reset(): void;
+  getAllEventLogs(): {
+    perception: ReadonlyArray<CognitiveEvent>;
+    action: ReadonlyArray<PolicyViolationEvent>;
+    autonomy: ReadonlyArray<AutonomyModeChangedEvent>;
+    reward: ReadonlyArray<PolicyViolationEvent>;
+    budget: ReadonlyArray<BudgetExhaustedEvent>;
+  };
+  clearAllEventLogs(): void;
+}
 
 export class GateRegistry implements IGateRegistry {
   private perceptionGate: IPerceptionGate;
@@ -46,14 +87,7 @@ export class GateRegistry implements IGateRegistry {
     return this.budgetGate;
   }
 
-  initialize(config?: {
-    perceptionConfig?: ConstructorParameters<typeof KernelPerceptionGate>[0];
-    actionConfig?: ConstructorParameters<typeof KernelActionGate>[0];
-    rewardConfig?: ConstructorParameters<typeof KernelRewardGate>[0];
-    budgetConfig?: ConstructorParameters<typeof KernelBudgetGate>[0];
-    initialBudget?: ReasoningBudget;
-    initialAutonomyMode?: AutonomyMode;
-  }): void {
+  initialize(config?: GateRegistryInit): void {
     if (this.initialized) return;
 
     if (config?.perceptionConfig) {

@@ -11,7 +11,7 @@
  * are handled here rather than re-implemented per tool.
  */
 
-import { collectUpTo, errMsg, withDeadline } from '@senars/util';
+import { collectUpTo, errMsg, splitLines, withDeadline } from '@senars/util';
 import { envFirst } from '@senars/util/config';
 
 const FETCH_TIMEOUT_MS = 15_000;
@@ -94,12 +94,7 @@ const htmlToText = (html: string): string =>
     .replace(/<br\s*\/?>/gi, '\n');
 
 /** Collapses the blank lines `htmlToText` leaves behind. */
-const collapseBlankLines = (s: string): string =>
-  s
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0)
-    .join('\n');
+const collapseBlankLines = (s: string): string => splitLines(s).join('\n');
 
 export const tavilySearch = async (
   query: string,

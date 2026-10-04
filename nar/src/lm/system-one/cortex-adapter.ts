@@ -1,5 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { collectUpTo } from '@senars/util';
+import { collectUpTo, splitLines } from '@senars/util';
 import type { LMService } from '../lm-service.js';
 import type {
   CognitiveContext,
@@ -105,10 +105,7 @@ Generate up to ${maxCandidates} Narsese candidates. One per line, no extra text.
   }
 
   private parseCandidates(text: string, maxCandidates: number): string[] {
-    const lines = text
-      .split('\n')
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0 && !l.startsWith('#') && !l.startsWith('//'));
+    const lines = splitLines(text).filter((l) => !l.startsWith('#') && !l.startsWith('//'));
 
     // Strip potential markdown code fences
     const candidates = collectUpTo(lines, maxCandidates, (line) => {

@@ -3,6 +3,7 @@ import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { NAR } from '@senars/nar';
 import type { ExtendedAgent as Agent } from '@senars/nar/agent';
 import { cloudApiKey, getRoutingStatus } from '@senars/nar/lm';
+import { sumBy } from '@senars/util';
 import type { JobManager } from './job-manager.js';
 import {
   formatBeliefsForMCP,
@@ -60,17 +61,15 @@ const benchmarks = (nar: NAR) => {
         : [];
     })
     .sort((a, b) => b.cpuMs - a.cpuMs);
-  const sum = (pick: (d: (typeof costlyDerivations)[number]) => number) =>
-    costlyDerivations.reduce((total, d) => total + pick(d), 0);
 
   return {
     history: [],
     costlyDerivations: costlyDerivations.slice(0, 10),
     totals: {
-      totalDerivations: sum((d) => d.count),
-      totalCpuMs: sum((d) => d.cpuMs),
-      totalLmCalls: sum((d) => d.lmCalls),
-      totalLmTokens: sum((d) => d.lmTokens),
+      totalDerivations: sumBy(costlyDerivations, (d) => d.count),
+      totalCpuMs: sumBy(costlyDerivations, (d) => d.cpuMs),
+      totalLmCalls: sumBy(costlyDerivations, (d) => d.lmCalls),
+      totalLmTokens: sumBy(costlyDerivations, (d) => d.lmTokens),
     },
   };
 };

@@ -1,4 +1,5 @@
 import {
+  ensureArray,
   flooredRatio,
   nextInt,
   normalizeToSum,
@@ -54,7 +55,7 @@ export class RewardModel {
   private readonly rng: RandomSource;
 
   addPreferences(prefs: PreferenceData | PreferenceData[]): void {
-    const newPrefs = Array.isArray(prefs) ? prefs : [prefs];
+    const newPrefs = ensureArray(prefs);
     this.preferences.push(...newPrefs);
   }
 

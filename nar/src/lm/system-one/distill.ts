@@ -14,7 +14,7 @@ import {
   BaseLedgerEntrySchema,
   createLedger,
   type Ledger,
-  type RolloverPolicyOptions,
+  type RolloverPolicy,
 } from '@senars/util/ledger';
 import { z } from 'zod';
 
@@ -91,7 +91,7 @@ export class JudgmentDataset {
   #labels: DistillationLabel[] = [];
   #vectors = new Map<string, Float32Array>();
 
-  constructor(basePath: string, options: { rollover?: RolloverPolicyOptions } = {}) {
+  constructor(basePath: string, options: { rollover?: RolloverPolicy } = {}) {
     this.#basePath = basePath;
     this.#ledger = createLedger<DistillationLabelEntry>(basePath, DistillationLabelEntrySchema, {
       rollover: options.rollover,

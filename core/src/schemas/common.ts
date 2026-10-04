@@ -26,6 +26,22 @@ export const RulePatternSchema = z.object({
 
 export type RulePattern = z.infer<typeof RulePatternSchema>;
 
+/**
+ * The task budget — the five numbers that cross every boundary. The zod form
+ * validates what an untrusted proposer sends on `task.admitted`; the inferred
+ * type is the shape the engine holds, so the validator and the domain type
+ * cannot name different fields.
+ */
+export const BudgetSchema = z.object({
+  priority: z.number().min(0).max(1),
+  durability: z.number().min(0).max(1),
+  quality: z.number().min(0).max(1),
+  cycles: z.number().int().nonnegative(),
+  depth: z.number().int().nonnegative(),
+});
+
+export type Budget = Readonly<z.infer<typeof BudgetSchema>>;
+
 /** One turn of conversation history, as persisted by session ledgers. */
 export const HistoryEntrySchema = z.object({
   role: z.enum(['user', 'agent', 'system']),

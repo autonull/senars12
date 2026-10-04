@@ -1,4 +1,5 @@
 import type { Episode, EpisodeType } from '@senars/util';
+import { parseJsonOr } from '@senars/util';
 import type { TextGenerator } from '../ports';
 import type { EpisodicMemory } from './EpisodicMemory.js';
 import type { EmbeddingGenerator } from './embedding.js';
@@ -35,12 +36,8 @@ const DEFAULTS = { limit: 50, relevanceThreshold: 0.5, dedupeThreshold: 0.9 };
 const extractRelevance = (reply: string, count: number): number[] => {
   const match = /\[[\s\S]*\]/.exec(reply);
   if (!match) return [];
-  try {
-    const parsed = JSON.parse(match[0]) as unknown[];
-    return parsed.slice(0, count).map((v) => (typeof v === 'number' && v >= 0 && v <= 1 ? v : 0));
-  } catch {
-    return [];
-  }
+  const parsed = parseJsonOr<unknown[]>(match[0], []);
+  return parsed.slice(0, count).map((v) => (typeof v === 'number' && v >= 0 && v <= 1 ? v : 0));
 };
 
 /**

@@ -11,7 +11,7 @@
  * strategies→lm→nar SCC.
  */
 
-import { formatIssues, sha256Hex, stableStringify } from '@senars/util';
+import { ensureArray, formatIssues, sha256Hex, stableStringify } from '@senars/util';
 import { z, type ZodError } from 'zod';
 import { describeStrategyExpression, type StrategyExpression } from '../reason/strategy-algebra.js';
 import type { RandomSource } from '../types/primitives.js';
@@ -190,7 +190,7 @@ export const strategySpecErrors = (
     return errors;
   }
 
-  const names = Array.isArray(spec) ? spec : [spec];
+  const names = ensureArray(spec);
   if (names.length === 0) errors.push(`strategies.${slot}.type: a composed slot needs at least one strategy name`);
 
   for (const [index, name] of names.entries()) {

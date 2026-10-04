@@ -59,12 +59,25 @@ export interface ScoreDistribution {
 
 export const scoreDistributionSchema = z.object({ option: z.string(), p: z.number() });
 
+/** Why a head declined to answer. Named once so a router that invents a reason declares it here. */
+export type AbstainReason =
+  | 'low-confidence'
+  | 'out-of-domain'
+  | 'timeout'
+  | 'breaker-open'
+  | 'cascade-threshold';
+
 export interface HeadResult {
+  /** Which rubric judged; absent when the caller already knows. */
+  rubric?: RubricId;
   score: number;
   distribution?: readonly ScoreDistribution[];
   legend?: ScoreLegend;
   abstained: boolean;
-  abstainReason?: 'low-confidence' | 'out-of-domain' | 'timeout' | 'breaker-open';
+  abstainReason?: AbstainReason;
+  /** The router's band for `score`, once a router has run. */
+  decisionBand?: string;
+  axis?: CognitiveAxis;
 }
 
 export type RubricId =
@@ -178,7 +191,7 @@ export interface PropositionBase {
   cost: ResourceCost;
   tier: 0 | 1 | 2 | 3;
   abstained: boolean;
-  abstainReason?: 'low-confidence' | 'out-of-domain' | 'timeout' | 'breaker-open';
+  abstainReason?: AbstainReason;
 }
 
 export interface ClassifyProposition extends PropositionBase {

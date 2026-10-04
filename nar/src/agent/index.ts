@@ -10,7 +10,7 @@ import type { PersistableSessionManager } from '@senars/core/memory';
 import { registerAgentTools } from '@senars/core/motor';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
-import { clamp, createLogger, deadline, errMsg, makeId } from '@senars/util';
+import { clamp, createLogger, deadline, errMsg, makeId, parseJsonOr } from '@senars/util';
 import { NAREngine } from '../engine/NAREngine.js';
 import type { EpisodicMemory, LMService, NAR } from '../index.js';
 import { dispatchNarseseIntent, type NarseseIntent } from '../nl/narsese-intent.js';
@@ -340,8 +340,8 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
       // Server mode: set up custom handler for delegation messages
       const peer = new NARDelegationPeer(narInstance);
       const delegationHandler = async (message: { text: string; sender: string }) => {
-        try {
-          const parsed = JSON.parse(message.text);
+        {
+          const parsed = parseJsonOr<{ type?: string; delegation?: unknown }>(message.text, {});
           if (parsed.type === 'cognitive-delegation' && parsed.delegation) {
             await handleDelegationMessage(peer, message.text, (result) => {
               // Reply directly to the client that sent the request - send raw JSON
@@ -355,8 +355,6 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
             });
             return;
           }
-        } catch {
-          // Not a delegation message, ignore
         }
         // Fall through to default handler
         agent.submit(message.text, makeId());
@@ -586,8 +584,8 @@ function attachNarApi(
       });
       
       ws.on('message', async (data) => {
-        try {
-          const message = JSON.parse(data.toString());
+        {
+          const message = parseJsonOr<{ type?: string; result?: any }>(data.toString(), {});
           if (message.type === 'cognitive-delegation-result' && message.result) {
             disarmDeadline();
             ws.close();
@@ -619,8 +617,6 @@ function attachNarApi(
               resolve({ error: result.error ?? 'Delegation failed' });
             }
           }
-        } catch {
-          // Ignore parse errors
         }
       });
       

@@ -7,7 +7,7 @@ import type { Agent, CognitiveEvent, GraphNodeData, IncomingFromServer } from '@
 import { isNarsese } from '@senars/core';
 import { DEFAULT_CONFIG, parseTermToEdges, termParser } from '@senars/nar';
 import { handleMetricsRequest } from '@senars/nar/metrics';
-import { envBool, envPositive, makeId } from '@senars/util';
+import { envBool, envPositive, makeId, splitLines } from '@senars/util';
 import { type WebSocket, WebSocketServer } from 'ws';
 import { applyConfigField, buildConfigSchema } from './config-schema.js';
 import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
@@ -178,13 +178,8 @@ function handleTestEndpoints(
     });
     req.on('end', async () => {
       try {
-        const { statements } = JSON.parse(body) as { statements?: string[]; narsese?: string };
-        const lines =
-          statements ??
-          (JSON.parse(body) as { narsese: string }).narsese
-            .split('\n')
-            .map((s) => s.trim())
-            .filter(Boolean);
+        const { statements, narsese } = JSON.parse(body) as { statements?: string[]; narsese?: string };
+        const lines = statements ?? splitLines(narsese ?? '');
         const narEngine = agent?.engines.get('nar') as
           | { nar?: { believe: (s: string) => Promise<void>; run: (n: number) => void } }
           | undefined;

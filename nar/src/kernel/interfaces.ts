@@ -19,45 +19,6 @@ import type {
 } from '@senars/core/schemas';
 import type { TruthLike } from '@senars/util';
 import type { TaskTypeName, Term } from '../terms';
-import type { IngressJudge } from './ingress.js';
-
-/** Structural init configs — no concrete kernel-gate imports (keeps this module a leaf). */
-export interface PerceptionGateInitConfig {
-  defaultBudget?: {
-    priority: number;
-    durability: number;
-    quality: number;
-    cycles: number;
-    depth: number;
-  };
-  systemOne?: {
-    enabled: boolean;
-    judge?: IngressJudge;
-  };
-}
-
-export interface ActionGateInitConfig {
-  autonomyMode?: AutonomyMode;
-  allowedOperations?: ReadonlySet<string>;
-}
-
-export interface RewardGateInitConfig {
-  allowedTargets?: ReadonlySet<string>;
-}
-
-export interface BudgetGateInitConfig {
-  defaultBudget?: ReasoningBudget;
-  costTable?: Record<string, number>;
-}
-
-export interface GateInitConfig {
-  perceptionConfig?: PerceptionGateInitConfig;
-  actionConfig?: ActionGateInitConfig;
-  rewardConfig?: RewardGateInitConfig;
-  budgetConfig?: BudgetGateInitConfig;
-  initialBudget?: ReasoningBudget;
-  initialAutonomyMode?: AutonomyMode;
-}
 
 export interface IPerceptionGate extends GateEventLog<CognitiveEvent> {
   admit(input: PerceptionGateInput): Promise<PerceptionGateOutput>;
@@ -119,24 +80,6 @@ export interface IBudgetGate extends GateEventLog<BudgetExhaustedEvent> {
 export interface GateEventLog<TEvent> {
   getEventLog(): ReadonlyArray<TEvent>;
   clearEventLog(): void;
-}
-
-export interface IGateRegistry {
-  getPerceptionGate(): IPerceptionGate;
-  getActionGate(): IActionGate;
-  getRewardGate(): IRewardGate;
-  getBudgetGate(): IBudgetGate;
-  initialize(config?: GateInitConfig): void;
-  isInitialized(): boolean;
-  reset(): void;
-  getAllEventLogs(): {
-    perception: ReadonlyArray<CognitiveEvent>;
-    action: ReadonlyArray<PolicyViolationEvent>;
-    autonomy: ReadonlyArray<AutonomyModeChangedEvent>;
-    reward: ReadonlyArray<PolicyViolationEvent>;
-    budget: ReadonlyArray<BudgetExhaustedEvent>;
-  };
-  clearAllEventLogs(): void;
 }
 
 export interface IDriveManager {

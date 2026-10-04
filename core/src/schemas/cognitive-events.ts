@@ -6,6 +6,7 @@
 
 import { generateId, parseOrThrow } from '@senars/util';
 import { z } from 'zod';
+import { BudgetSchema } from './common.js';
 import { CognitiveEventBaseSchema } from './event-base.js';
 import { AutonomyModeSchema, PatchProposalSchema } from './governance.js';
 import { NarEventSchemas } from './nar-events.js';
@@ -23,13 +24,7 @@ export const TaskAdmittedEventSchema = CognitiveEventBaseSchema.extend({
     taskType: z.enum(['belief', 'goal', 'question', 'command']),
     truth: TruthValueSchema.optional(),
     source: z.enum(['user', 'llm', 'derivation', 'reflex', 'sensor']),
-    budget: z.object({
-      priority: z.number().min(0).max(1),
-      durability: z.number().min(0).max(1),
-      quality: z.number().min(0).max(1),
-      cycles: z.number().int().nonnegative(),
-      depth: z.number().int().nonnegative(),
-    }),
+    budget: BudgetSchema,
   }),
 });
 
