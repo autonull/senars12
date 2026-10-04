@@ -155,7 +155,7 @@ describe('Bench 64 — Result adoption (persistence)', () => {
       memory: { addTask: () => {} } as never,
       processor: { serializeModelRules: () => ({}), deserializeModelRules: () => {} },
       attentionReport: () => ({ concepts: [], total: 0 }),
-      query: { getBeliefs: () => [], getGoals: () => [], getQuestions: () => [] },
+      query: { getTasksByKind: () => ({ belief: [], goal: [], question: [] }) },
     });
     // load() must not throw on missing files (ENOENT → ok(null) path)
     await expect(persister.load()).resolves.toBeUndefined();

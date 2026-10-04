@@ -12,9 +12,10 @@ import {
 import { SenarsError } from '@senars/util/errors';
 import type { DriveManager } from '../drives';
 import type { Memory } from '../memory';
+import type { QueryAPI } from '../query/api.js';
 import { decodeState, encodeState } from '../state/codec.js';
 import { rehydrateTask, serializeTaskRecord, type TaskRecord } from '../task/record.js';
-import type { Task, TaskType } from '../types';
+import type { TaskType } from '../types';
 import type { NARConfig } from './config.js';
 
 /** Snapshot envelope version (StateCodec, TODO20 X7). */
@@ -30,11 +31,10 @@ export interface StatePersisterDeps {
   };
   driveManager?: DriveManager;
   attentionReport: () => { concepts: unknown[]; total: number };
-  query: {
-    getBeliefs(): Task[];
-    getGoals(): Task[];
-    getQuestions(): Task[];
-  };
+  /** The one read the save path makes, named off `QueryAPI` itself rather than
+   *  re-spelled here — a fourth declaration of the query surface is how the save
+   *  path kept calling three of them. */
+  query: Pick<QueryAPI, 'getTasksByKind'>;
   logger?: ReturnType<typeof createLogger>;
 }
 
@@ -69,10 +69,11 @@ export class StatePersister {
       const drives: Record<string, number> = {};
       for (const ds of driveStates) drives[ds.spec.id] = ds.currentIntensity;
 
+      const tasks = query.getTasksByKind();
       const files: Array<[string, string, unknown]> = [
-        ['beliefs.json', 'nar.beliefs', query.getBeliefs().map(serializeTaskRecord)],
-        ['goals.json', 'nar.goals', query.getGoals().map(serializeTaskRecord)],
-        ['questions.json', 'nar.questions', query.getQuestions().map(serializeTaskRecord)],
+        ['beliefs.json', 'nar.beliefs', tasks.belief.map(serializeTaskRecord)],
+        ['goals.json', 'nar.goals', tasks.goal.map(serializeTaskRecord)],
+        ['questions.json', 'nar.questions', tasks.question.map(serializeTaskRecord)],
         ['attention.json', 'nar.attention', attentionReport()],
         ['drives.json', 'nar.drives', drives],
         ['lm-rules.json', 'nar.lm-rules', processor.serializeModelRules()],

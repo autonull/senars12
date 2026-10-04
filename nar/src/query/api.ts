@@ -10,6 +10,17 @@ import { verifyRecord } from '@senars/core/verify-derivation';
 
 const logger = createLogger({ scope: 'QueryAPI' });
 
+/** The bags a concept carries, in the order a store walk reads them. */
+const TASK_KINDS = ['belief', 'goal', 'question'] as const satisfies readonly TaskType[];
+
+/** The three bags a concept carries. `command` tasks live in the question bag's
+ *  siblings rather than a fourth bag, so the kind set here is the bag set. */
+export interface TasksByKind {
+  readonly belief: Task[];
+  readonly goal: Task[];
+  readonly question: Task[];
+}
+
 export interface QueryResult {
   beliefs: Task[];
   questions: Task[];
@@ -76,6 +87,22 @@ export class QueryAPI {
 
   getQuestions(filter?: TermFilter): Task[] {
     return this.queryByType('question', filter);
+  }
+
+  /**
+   * All three task kinds in one walk of the store. A caller that wants beliefs and
+   * goals and questions — the persistence save is the one that runs every cycle —
+   * read them one kind at a time, and each read walked every concept and built a
+   * `Task` for every task in the bag it wanted.
+   */
+  getTasksByKind(): TasksByKind {
+    const byKind: TasksByKind = { belief: [], goal: [], question: [] };
+    for (const concept of this.memory.listConcepts()) {
+      for (const kind of TASK_KINDS) {
+        byKind[kind].push(...this.extractTasks(concept, kind));
+      }
+    }
+    return byKind;
   }
 
   /**

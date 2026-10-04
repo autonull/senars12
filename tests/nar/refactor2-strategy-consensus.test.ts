@@ -4,6 +4,10 @@
  * the reputation-fed probe curriculum. C7: plain-name strategy configs stay
  * byte-identical; C1/C6: every new path is opt-in.
  */
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { Effect } from 'effect';
 import { atom, createMinimalNAR, createTask, TermBuilder, Truth } from '@senars/nar';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters';
@@ -26,6 +30,12 @@ import type { Task } from '@senars/nar/types';
 import type { JudgmentManifold, JudgmentProposition } from '@senars/nar/lm/system-one/types.js';
 import { createMeTTa, parseMeTTa } from '@senars/metta';
 import { describe, expect, it } from 'vitest';
+
+/** A reputation ledger of this test's own: the default path is the repo's cache, so
+ *  instances that took it shared rows, and a multiplier could arrive from another
+ *  file's recording. */
+const reputation = (options: { floor?: number } = {}): SourceReputation =>
+  new SourceReputation({ ...options, path: mkdtempSync(join(tmpdir(), 'reputation-')) });
 
 // ── fixtures ──────────────────────────────────────────────────────────────
 
@@ -406,7 +416,7 @@ describe('Bench 90 — reputation keys', () => {
   });
 
   it('per-key isolation: one provider’s contradictions don’t move another’s ceiling', () => {
-    const rep = new SourceReputation({ floor: 0.4 });
+    const rep = reputation({ floor: 0.4 });
     for (let i = 0; i < 4; i++) rep.record('provider:anthropic', 'contradicted');
     expect(rep.multiplier('provider:anthropic')).toBeLessThan(1);
     expect(rep.multiplier('provider:llamacpp')).toBe(1);
@@ -414,7 +424,7 @@ describe('Bench 90 — reputation keys', () => {
   });
 
   it('legacy fallback parity: no provider ⇒ the system-one key governs; with one ⇒ finer key', async () => {
-    const rep = new SourceReputation({ floor: 0.2 });
+    const rep = reputation({ floor: 0.2 });
     rep.record('system-one', 'contradicted');
     rep.record('system-one', 'contradicted');
     rep.record('provider:llamacpp', 'confirmed');
@@ -448,7 +458,7 @@ describe('Bench 90 — reputation keys', () => {
   });
 
   it('perception gate keys URL-bearing source ids by domain; plain ids unchanged', async () => {
-    const rep = new SourceReputation({ floor: 0.1 });
+    const rep = reputation({ floor: 0.1 });
     rep.record('domain:bad.example', 'contradicted');
     rep.record('domain:bad.example', 'contradicted');
     const gate = new KernelPerceptionGate();
@@ -488,7 +498,7 @@ describe('Bench 90 — reputation keys', () => {
   });
 
   it('ingress judge without provider keeps the exact legacy key path (byte parity)', async () => {
-    const rep = new SourceReputation();
+    const rep = reputation();
     const judge = new SystemOneIngressJudge({
       manifold: stubManifold(),
       embeddingCache: new EmbeddingCache({ maxSize: 10, ttlMs: 60_000 }),
@@ -534,7 +544,7 @@ describe('Bench 90 — curriculum reputation feed', () => {
   });
 
   it('probes target low-reputation keys: degraded sources float to the head', async () => {
-    const rep = new SourceReputation({ floor: 0.2 });
+    const rep = reputation({ floor: 0.2 });
     rep.record('provider:flaky', 'contradicted');
     rep.record('provider:flaky', 'contradicted');
     const reactions = [
@@ -567,7 +577,7 @@ describe('Bench 90 — curriculum reputation feed', () => {
   it('audit M2/M3 join: a degraded provider’s corrections rank first when keys match end-to-end', async () => {
     // Producers (M2) write provider:<name> keys; episodes (M3) carry the same
     // keys; the curriculum reads them — one degraded provider surfaces first.
-    const rep = new SourceReputation({ floor: 0.2 });
+    const rep = reputation({ floor: 0.2 });
     rep.record('provider:flaky-lm', 'contradicted');
     rep.record('provider:flaky-lm', 'contradicted');
     rep.record('provider:flaky-lm', 'contradicted');

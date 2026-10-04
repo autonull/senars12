@@ -16,7 +16,13 @@ export interface ConsolidationOptions {
   type?: EpisodeType;
 }
 
-export interface ConsolidationResult {
+/**
+ * What one retrieval-verified pass promoted. Named for what it reports: the
+ * consolidator's own `ConsolidationResult` is a summary episode plus the ids merged
+ * into it, and two results with one name in the same package meant a caller holding
+ * one could not say which it had.
+ */
+export interface PromotionResult {
   considered: number;
   relevant: number;
   promoted: Array<{ content: string; provenance: Record<string, unknown> }>;
@@ -49,7 +55,7 @@ const extractRelevance = (reply: string, count: number): number[] => {
 export const consolidateEpisodes = async (
   deps: ConsolidatorDeps,
   options?: Partial<ConsolidationOptions>
-): Promise<ConsolidationResult> => {
+): Promise<PromotionResult> => {
   const { limit = 50, relevanceThreshold = 0.5, dedupeThreshold = 0.9, type } = options ?? {};
   const episodes = await deps.episodic.getEpisodes({ limit, type });
   if (episodes.length === 0) {
@@ -71,7 +77,7 @@ export const consolidateEpisodes = async (
     .map((e, i) => ({ episode: e, relevance: relevances[i] ?? 0 }))
     .filter((c) => c.relevance >= relevanceThreshold);
 
-  const promoted: ConsolidationResult['promoted'] = [];
+  const promoted: PromotionResult['promoted'] = [];
   const keptVectors: number[][] = [];
   let deduped = 0;
 

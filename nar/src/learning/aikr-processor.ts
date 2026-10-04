@@ -22,6 +22,8 @@ export interface BagSamplingStrategy<T extends BagItem> {
   select(items: T[], budget: number, rng: RandomSource): T[];
 }
 
+const idsOf = (items: readonly BagItem[]): string[] => items.map((item) => item.id);
+
 /** Shared options for AIKR-bounded bags (capacity, pressure, decay, budget). */
 export interface AikrBagOptions {
   /** Bag capacity (AIKR bound). */
@@ -206,9 +208,7 @@ export class AIKRProcessor<TIn extends BagItem, TOut> {
     if (sampled.length === 0) return [];
     const results = await this.#process(sampled, options.signal);
     // An aborted batch is not consumed — items stay for a later pass.
-    if (!options.signal?.aborted) {
-      for (const item of sampled) this.#bag.remove(item.id);
-    }
+    if (!options.signal?.aborted) this.#bag.removeAll(idsOf(sampled));
     return results;
   }
 

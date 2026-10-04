@@ -31,10 +31,8 @@ export const RELEVANCE_CONTAINMENT = 0.75;
 /** How far into the vocabulary band a perfect share of words can reach. */
 const VOCABULARY_CEILING = 0.9;
 
-/** How much of `belief`'s vocabulary a focus term names, in `[0, 1]`. */
-const coverage = (belief: Term, focus: Term): number => {
-  const beliefSymbols = atomicSymbols(belief);
-  if (beliefSymbols.size === 0) return 0;
+/** How much of a belief's vocabulary a focus term names, in `[0, 1]`. */
+const coverage = (beliefSymbols: ReadonlySet<string>, focus: Term): number => {
   let shared = 0;
   for (const symbol of atomicSymbols(focus)) if (beliefSymbols.has(symbol)) shared++;
   return shared / beliefSymbols.size;
@@ -64,8 +62,11 @@ export const relevanceScore = (belief: Term, focus: readonly Term[]): number => 
 
   // Vocabulary is capped strictly below containment, or a belief sharing every
   // word with the focus would clear the containment floor.
+  // The belief's vocabulary is one walk of the belief, and it was re-derived for each
+  // focus term rather than read once per belief.
+  const beliefSymbols = atomicSymbols(belief);
   const ceiling = RELEVANCE_CONTAINMENT * VOCABULARY_CEILING;
-  return maxScore(focus, (term) => coverage(belief, term) * ceiling);
+  return maxScore(focus, (term) => coverage(beliefSymbols, term) * ceiling);
 };
 
 export interface RelevanceOptions {

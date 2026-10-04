@@ -1,5 +1,6 @@
 import { PriorityBag } from '@senars/nar/bag';
 import { describe, expect, it } from 'vitest';
+import { createLCG } from '../../helpers/rng.js';
 
 describe('PriorityBag', () => {
   it('should add and sample items by priority', () => {
@@ -74,6 +75,43 @@ describe('PriorityBag', () => {
     bag.remove('a');
     expect(bag.size()).toBe(1);
     expect(bag.sample()?.id).toBe('b');
+  });
+
+  it('removeAll drops a named set in one pass and leaves the rest intact', () => {
+    const bag = new PriorityBag<{ id: string; priority: number }>({ capacity: 10 });
+    for (const [id, priority] of Object.entries({ a: 0.5, b: 0.4, c: 0.3, d: 0.2 })) {
+      bag.add({ id, priority });
+    }
+
+    // Sampled before and after: a drain must leave the surviving priorities weighted
+    // exactly as they were, not merely present.
+    expect(bag.removeAll(['b', 'missing', 'd'])).toBe(2);
+    expect(bag.size()).toBe(2);
+    expect(bag.removeAll([])).toBe(0);
+    expect(bag.removeAll(['a', 'c'])).toBe(2);
+    expect(bag.size()).toBe(0);
+    expect(bag.sample()).toBeUndefined();
+  });
+
+  it('removeAll keeps sampling priority-proportional', () => {
+    const bag = new PriorityBag<{ id: string; priority: number }>({
+      capacity: 10,
+      rng: createLCG(7),
+    });
+    for (const [id, priority] of Object.entries({ a: 0.6, b: 0.3, c: 0.1, d: 0.9 })) {
+      bag.add({ id, priority });
+    }
+    bag.removeAll(['d']);
+
+    const counts: Record<string, number> = {};
+    for (let i = 0; i < 4000; i++) {
+      const item = bag.sample();
+      if (item) counts[item.id] = (counts[item.id] ?? 0) + 1;
+    }
+    const share = (id: string) => counts[id]! / 4000;
+    expect(share('a')).toBeCloseTo(0.6, 1);
+    expect(share('b')).toBeCloseTo(0.3, 1);
+    expect(share('c')).toBeCloseTo(0.1, 1);
   });
 
   it('should iterate all items', () => {

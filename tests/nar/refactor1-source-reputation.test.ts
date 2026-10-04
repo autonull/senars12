@@ -1,3 +1,4 @@
+import { mkdtempSync } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -16,6 +17,12 @@ afterAll(async () => {
   for (const d of dirs) await rm(d, { recursive: true, force: true });
 });
 
+/** A reputation ledger of this test's own: the default path is the repo's cache, so
+ *  instances that took it shared rows, and a multiplier could arrive from another
+ *  file's recording. */
+const reputation = (options: { floor?: number } = {}): SourceReputation =>
+  new SourceReputation({ ...options, path: mkdtempSync(join(tmpdir(), 'reputation-')) });
+
 const proposition = {
   kind: 'classify' as const,
   top: { option: 'belief', p: 0.95 },
@@ -24,7 +31,7 @@ const proposition = {
 
 describe('Bench 85 — source reputation', () => {
   it('neutral by default; clamps at the floor with contradictions', () => {
-    const rep = new SourceReputation({ floor: 0.3 });
+    const rep = reputation({ floor: 0.3 });
     expect(rep.multiplier('peer-a')).toBe(1);
     rep.record('peer-a', 'contradicted');
     expect(rep.multiplier('peer-a')).toBe(1); // below the decay gate (2)
@@ -43,7 +50,7 @@ describe('Bench 85 — source reputation', () => {
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });
-    const rep = new SourceReputation({ floor: 0.2 });
+    const rep = reputation({ floor: 0.2 });
     rep.record('peer-b', 'contradicted');
     rep.record('peer-b', 'contradicted');
     gate.setReputation(rep);
@@ -65,7 +72,7 @@ describe('Bench 85 — source reputation', () => {
   });
 
   it('firewall: reputation never mutates Truth values, only the ceiling', () => {
-    const rep = new SourceReputation({ floor: 0.1 });
+    const rep = reputation({ floor: 0.1 });
     rep.record('src', 'contradicted');
     rep.record('src', 'contradicted');
     const base = seedTruth(proposition, 'PRIMARY');

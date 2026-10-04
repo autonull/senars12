@@ -250,7 +250,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     return this.#queryViaIndex(
       options,
       () => this.#causal,
-      () => this.#buildCausalIndex(),
+      () => this.#buildIndexes(),
       (causal, filter) => {
         const sources: Episode[][] = [];
         if (filter.causedBy) sources.push(causal.causedBy(filter.causedBy));
@@ -265,7 +265,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     return this.#queryViaIndex(
       options,
       () => this.#index,
-      () => this.#buildIndex(),
+      () => this.#buildIndexes(),
       (index, filter) => {
         const sources: Episode[][] = [];
         if (filter.correlationId) sources.push(index.get(`cid:${filter.correlationId}`) ?? []);
@@ -282,36 +282,26 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     return options.limit === undefined ? matches : takeLast(matches, options.limit);
   }
 
-  /** One-pass read of every persisted episode — both index builds share the traversal. */
-  async #readAllEpisodes(visit: (episode: Episode) => void): Promise<void> {
-    const entries = await this.#ledger.query({});
-    for (const entry of entries) {
-      visit(toEpisode(entry));
-    }
-  }
-
-  /** One-time pass over all files, bucketing episodes by sessionId/correlationId. */
-  async #buildIndex(): Promise<void> {
+  /**
+   * One-time pass over all files, filling both indexes: episodes bucketed by
+   * sessionId/correlationId, and episodes bucketed by causal edge. They are built
+   * from the same rows and the ledger read validates every one of them, so building
+   * them on demand meant whichever query arrived second paid for a second full read
+   * of the store.
+   */
+  async #buildIndexes(): Promise<void> {
     const index = new Map<string, Episode[]>();
-    const entries = await this.#ledger.query({});
-    for (const entry of entries) {
+    const causal = new CausalIndex();
+    for (const entry of await this.#ledger.query({})) {
       const episode = toEpisode(entry);
       const meta = episode.metadata as { correlationId?: unknown; sessionId?: unknown } | undefined;
       if (typeof meta?.correlationId === 'string')
         getOrInsert(index, `cid:${meta.correlationId}`, () => []).push(episode);
       if (typeof meta?.sessionId === 'string')
         getOrInsert(index, `sid:${meta.sessionId}`, () => []).push(episode);
+      causal.add(episode);
     }
     this.#index = index;
-  }
-
-  /** Phase A: one-time pass bucketing episodes by causal edges. */
-  async #buildCausalIndex(): Promise<void> {
-    const causal = new CausalIndex();
-    const entries = await this.#ledger.query({});
-    for (const entry of entries) {
-      causal.add(toEpisode(entry));
-    }
     this.#causal = causal;
   }
 

@@ -9,6 +9,7 @@ import {
   occupancy,
   type RandomSource,
   retain,
+  sumBy,
 } from '@senars/util';
 import { PRESSURE } from '../constants.js';
 import { FenwickTree } from './fenwick.js';
@@ -41,6 +42,9 @@ export interface Bag<T extends BagItem> {
   sample(): T | undefined;
   sampleMany(budget: AIKRBudget | number): T[];
   remove(idOrItem: string | T): boolean;
+  /** Drop every entry named by `ids` in one pass. A drain of k items is one walk of
+   *  the store, not k of them. */
+  removeAll(ids: Iterable<string>): number;
   decay(rate?: number): void;
   evict(strategy?: EvictStrategy): void;
   pressure(): number;
@@ -137,8 +141,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T>, BoundedContainer<
 
   private dropLast(): void {
     const removed = this.list.pop()!;
-    // Dropping the tail shifts no surviving index, so a fresh tree takes a point
-    // update; the id map is stale-flagged either way and rebuilt by `remove`.
+    // Dropping the tail shifts no surviving index, so a fresh tree takes a point update.
     this.syncTree();
     this.fenwick.add(this.list.length, -removed.item.priority);
   }
@@ -201,6 +204,24 @@ export class PriorityBag<T extends BagItem> implements Bag<T>, BoundedContainer<
   remove(idOrItem: string | T): boolean {
     const idx = this.indexOf(idOrItem);
     return idx < 0 ? false : this.dropAt(idx);
+  }
+
+  /**
+   * Drop a named set of entries in one pass. The AIKR drain is the reason: a
+   * processor removes each sampled item by id, and an id lookup is a linear scan of
+   * the whole store, so draining a budget's worth of items from a full bag walked the
+   * bag once per item. One filter, one tree rebuild, one version bump.
+   */
+  removeAll(ids: Iterable<string>): number {
+    const doomed = new Set(ids);
+    if (doomed.size === 0 || this.list.length === 0) return 0;
+    const kept = this.list.filter((entry) => !doomed.has(entry.item.id));
+    const dropped = this.list.length - kept.length;
+    if (dropped === 0) return 0;
+    this.totalPriority = sumBy(kept, (entry) => entry.item.priority);
+    this.replaceAll(kept);
+    this.version++;
+    return dropped;
   }
 
   private dropAt(index: number): boolean {

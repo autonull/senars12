@@ -116,7 +116,7 @@ describe('Bench 66 — X7 StateCodec', () => {
         deserializeModelRules: () => {},
       },
       attentionReport: () => ({ concepts: [], total: 0 }),
-      query: { getBeliefs: () => [], getGoals: () => [], getQuestions: () => [] },
+      query: { getTasksByKind: () => ({ belief: [], goal: [], question: [] }) },
     });
     await persister.save();
     const written = readFileSync(join(statePath, 'beliefs.json'), 'utf-8');

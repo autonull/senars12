@@ -1054,7 +1054,7 @@ _Dynamic subpath (no single entry file)._
 
 - `ConsolidationOptions`
 
-- `ConsolidationResult`
+- `PromotionResult` — What one retrieval-verified pass promoted. Named for what it reports: the
 
 - `ConsolidatorDeps`
 

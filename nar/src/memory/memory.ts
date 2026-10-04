@@ -5,6 +5,7 @@ import {
   nextInt,
   occupancy,
   rankBy,
+  type RandomSource,
   selectTopN,
   shareOf,
   sortBy,
@@ -361,17 +362,19 @@ export class Memory implements MemoryPorts {
   }
 
   /**
-   * Sample a random contiguous window of concepts from the priority-sorted array.
-   * Used by windowed-roulette sampling strategy for positional-local diversity.
+   * A random contiguous window of the priority-sorted store — the windowed-roulette
+   * strategy's positional-local diversity.
+   *
+   * The window is taken from the whole sorted store rather than from `topConcepts`,
+   * which returns *at most* `windowSize` concepts and so made the window the whole
+   * result: the start offset was computed from an array that could not be longer
+   * than the window, and the strategy's defining property never fired.
    */
-  sampleWindow(windowSize: number, rng: () => number): Concept[] {
-    const allConcepts = this.topConcepts(windowSize);
-
-    if (allConcepts.length <= windowSize) return allConcepts;
-
-    const maxStart = allConcepts.length - windowSize;
-    const start = nextInt(rng, maxStart + 1);
-    return allConcepts.slice(start, start + windowSize);
+  sampleWindow(windowSize: number, rng: RandomSource): Concept[] {
+    if (windowSize <= 0) return [];
+    const sorted = sortBy(this.residentEntries(), (entry) => -entry.value.priority);
+    const start = sorted.length > windowSize ? nextInt(rng, sorted.length - windowSize + 1) : 0;
+    return sorted.slice(start, start + windowSize).map((entry) => entry.value);
   }
 
   consolidate(opts?: { cycleCount?: number }): void {

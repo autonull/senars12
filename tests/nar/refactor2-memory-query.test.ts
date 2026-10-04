@@ -3,9 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { retrospect } from '@senars/nar/dialogue/impls/retrospect.js';
 import { Memory } from '@senars/nar/memory';
+import { createQueryAPI } from '@senars/nar/query/api.js';
 import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
 import { episodeQualitySurface, MemoryQuery } from '@senars/nar/query/memory-query.js';
 import { TermBuilder } from '@senars/nar/terms';
+import { Truth } from '@senars/nar/terms';
 import { type Episode, fixedClock } from '@senars/util';
 import { afterAll, describe, expect, it } from 'vitest';
 
@@ -209,5 +211,57 @@ describe('Bench 88 — consumers', () => {
       { at: now - 30, quality: 0.8 },
       { at: now - 20, quality: 1 },
     ]);
+  });
+});
+
+describe('Store-wide task reads', () => {
+  const queryOf = (memory: Memory) => createQueryAPI(memory);
+
+  const seeded = (): Memory => {
+    const memory = new Memory({ maxConcepts: 100, activationDecayRate: 0.01 });
+    for (const symbol of ['cat', 'dog', 'bird']) {
+      memory.addConcept(TermBuilder.atom(symbol));
+    }
+    const cat = memory.getConcept(TermBuilder.atom('cat'))!;
+    memory.addTask(cat.term, 'belief', Truth.create(0.9, 0.8));
+    memory.addTask(cat.term, 'goal', Truth.NEUTRAL);
+    memory.addTask(cat.term, 'question', Truth.NEUTRAL);
+    memory.addTask(memory.getConcept(TermBuilder.atom('dog'))!.term, 'belief', Truth.NEUTRAL);
+    return memory;
+  };
+
+  it('reads all three kinds in one pass, answering what the three reads answered', () => {
+    const memory = seeded();
+    const query = queryOf(memory);
+
+    const kinds = query.getTasksByKind();
+    // The store read the persistence save makes: three lists, one walk of the store.
+    expect(kinds.belief.map((t) => t.term.toString()).sort()).toEqual(
+      query.getBeliefs().map((t) => t.term.toString()).sort()
+    );
+    expect(kinds.goal.map((t) => t.type)).toEqual(query.getGoals().map((t) => t.type));
+    expect(kinds.question.map((t) => t.type)).toEqual(query.getQuestions().map((t) => t.type));
+    expect(kinds.belief).toHaveLength(2);
+    expect(kinds.goal).toHaveLength(1);
+    expect(kinds.question).toHaveLength(1);
+  });
+
+  it('a window can start anywhere in the sorted store, not only at its head', () => {
+    const memory = seeded();
+    for (let i = 0; i < 20; i++) memory.addConcept(TermBuilder.atom(`sym${i}`));
+
+    const sorted = memory
+      .sampleWindow(memory.listConcepts().length, () => 0)
+      .map((c) => c.term.toString());
+    const at = (rng: () => number) => memory.sampleWindow(3, rng).map((c) => c.term.toString());
+
+    // `topConcepts(windowSize)` can only ever return the window itself, so every start
+    // index resolved to the head and the window never slid: the strategy's whole
+    // point was inert, and both ends were the same three concepts.
+    expect(at(() => 0)).toEqual(sorted.slice(0, 3));
+    expect(at(() => 0.999_999)).toEqual(sorted.slice(-3));
+    expect(at(() => 0.999_999)).not.toEqual(at(() => 0));
+    expect(memory.sampleWindow(0, () => 0)).toEqual([]);
+    expect(memory.sampleWindow(1000, () => 0.5)).toHaveLength(memory.listConcepts().length);
   });
 });

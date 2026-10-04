@@ -19,7 +19,7 @@ import {
 import { createEmbeddingGenerator } from '@senars/nar/memory/embedding';
 import { EpisodicMemory } from '@senars/nar/memory/episodic';
 import {
-  type ConsolidationResult,
+  type PromotionResult,
   consolidateEpisodes,
 } from '@senars/nar/memory/retrieval-verified';
 import { cachePath, createLogger, envStr, setupGracefulShutdown } from '@senars/util';
@@ -46,7 +46,7 @@ export interface AgentFromEnvResult {
     limit?: number;
     relevanceThreshold?: number;
     dedupeThreshold?: number;
-  }) => Promise<ConsolidationResult>;
+  }) => Promise<PromotionResult>;
 }
 
 /** Maps config-file memory/inference blocks onto NARConfig core keys. */
