@@ -1,4 +1,4 @@
-import { BoundedMap, pct, type TermTruth, unique } from '@senars/util';
+import { BoundedMap, maxScore, pct, type TermTruth, unique } from '@senars/util';
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
 import { Truth } from '../terms';
@@ -203,7 +203,7 @@ export class ReasoningTrace {
     }
 
     const childDepths = node.children.map((child) => this.calculateDepth(child));
-    return 1 + Math.max(...childDepths);
+    return 1 + maxScore(childDepths, (d) => d);
   }
 
   private countNodes(node: DerivationNode): number {

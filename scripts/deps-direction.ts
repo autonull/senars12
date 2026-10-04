@@ -24,12 +24,13 @@
  * but a package naming a package above it is the layering claim being made,
  * and the tree needs no exemption from one.
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { importEdges } from './lib/imports.js';
 import { report, scanCoreLayer } from './lib/layer-boundary.js';
 import { readPackageJson } from './lib/pkg.js';
 import { ROOT } from './lib/root.js';
+import { lineAt, sourceFiles } from './lib/source-scan.js';
 
 /** Bottom of the stack first. A package may import anything at or below itself. */
 const LAYERS = ['util', 'core', 'io', 'nar', 'metta'] as const;
@@ -44,18 +45,10 @@ const layerOf = (pkg: string): number => LAYERS.indexOf(pkg as Layer);
  */
 const ALLOWED_UPWARD: Record<string, string> = {};
 
-const sourceFiles = (dir: string): string[] =>
-  readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry);
-    return statSync(path).isDirectory() ? sourceFiles(path) : path.endsWith('.ts') ? [path] : [];
-  });
-
 const specifierPkg = (specifier: string): Layer | undefined => {
   const pkg = /^@senars\/([a-z]+)(?:\/|$)/.exec(specifier)?.[1];
   return pkg && (LAYERS as readonly string[]).includes(pkg) ? (pkg as Layer) : undefined;
 };
-
-const lineAt = (source: string, offset: number): number => source.slice(0, offset).split('\n').length;
 
 const violations: string[] = [];
 

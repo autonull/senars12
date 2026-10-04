@@ -3,6 +3,8 @@
  * bounded logs, bags, and priority ordering.
  */
 
+import { occupancy } from './numeric.js';
+
 /** Fixed-size slices for batched work — the one chunking primitive. */
 export const chunk = <T>(items: readonly T[], size: number): T[][] => {
   const step = Math.max(1, Math.floor(size));
@@ -85,9 +87,18 @@ export const collectUpTo = <T, R = T>(
  * rounding rule, spelled out four times with the rounding left to differ. A share
  * of zero must yield nothing rather than the `count` floor, or a container under
  * no pressure sheds its minimum anyway.
+ *
+ * `population` is the pool the share is taken of when it is not `items` itself —
+ * the case that made every site re-derive the arithmetic: "a tenth of the store",
+ * cut from a candidate list that is smaller than the store.
  */
-export const shareOf = <T>(items: readonly T[], fraction: number, count: number = 0): T[] => {
-  const target = Math.min(items.length, Math.max(count, Math.ceil(items.length * fraction)));
+export const shareOf = <T>(
+  items: readonly T[],
+  fraction: number,
+  count: number = 0,
+  population: number = items.length
+): T[] => {
+  const target = Math.min(items.length, Math.max(count, Math.ceil(population * fraction)));
   return items.slice(0, Math.max(0, target));
 };
 
@@ -160,12 +171,17 @@ export function trimCapped<T>(log: T[], capacity: number): number {
 }
 
 /**
- * Extremum pick over a collection. `initial`/`initialScore` seed the running
+ * Extremum pick over an iterable. `initial`/`initialScore` seed the running
  * best, so callers can carry a floor (e.g. `maxBy(items, score, item, -1)`)
  * through the same single O(n) scan.
+ *
+ * Takes any iterable rather than an array because the collections these run over
+ * are usually a container's own values — a pending-task map, a Q-table row, a
+ * concept store — and requiring an array meant `[...map.values()]` at every call
+ * site, an allocation per query that the pick itself never needed.
  */
 export function minBy<T>(
-  items: readonly T[],
+  items: Iterable<T>,
   score: (item: T) => number,
   initial?: T,
   initialScore = Number.POSITIVE_INFINITY
@@ -183,7 +199,7 @@ export function minBy<T>(
 }
 
 export function maxBy<T>(
-  items: readonly T[],
+  items: Iterable<T>,
   score: (item: T) => number,
   initial?: T,
   initialScore = Number.NEGATIVE_INFINITY
@@ -205,14 +221,35 @@ export function maxBy<T>(
  * with no intermediate array and no second evaluation of `score` — `maxBy`
  * returns the winning item instead, which forces callers that only want the
  * number to either re-derive it or copy the collection first.
+ *
+ * `floor` is the floor the caller carries into the scan, the way `maxBy` takes
+ * its seed: a quantity the collection does not contain but the answer cannot be
+ * less than (a concept's own priority among its merges, a floor on a score that
+ * no observation reached).
  */
-export function maxScore<T>(items: Iterable<T>, score: (item: T) => number): number {
-  let max = 0;
+export function maxScore<T>(items: Iterable<T>, score: (item: T) => number, floor = 0): number {
+  let max = floor;
   for (const item of items) {
     const value = score(item);
     if (value > max) max = value;
   }
   return max;
+}
+
+/**
+ * Lowest `score` over `items`, {@link maxScore} read the other way — and unlike
+ * it not floored, because a floor of 0 is an assertion about the score while the
+ * floor of a *minimum* is nearly always a claim about the collection instead (a
+ * board's leftmost column, a phase's start). Empty input answers `+Infinity`,
+ * the only number that loses to every real one.
+ */
+export function minScore<T>(items: Iterable<T>, score: (item: T) => number): number {
+  let min = Number.POSITIVE_INFINITY;
+  for (const item of items) {
+    const value = score(item);
+    if (value < min) min = value;
+  }
+  return min;
 }
 
 /** Insert into a descending-sorted list in O(n) — no full re-sort, unlike
@@ -288,12 +325,23 @@ const keyedRank = <T>(
 /**
  * Top `n` items from an iterable ranked by `score`, descending. Single-pass with
  * a bounded buffer — avoids materializing or sorting the full input.
+ *
+ * `where` is the caller's own filter, applied during the scan rather than as a
+ * `.filter()` ahead of it: the sites that needed one were all reading a
+ * container's values and wanted the threshold on the same key the ranking uses,
+ * so a pre-filter meant copying the whole source to hand it to this.
  */
-export function selectTopN<T>(items: Iterable<T>, n: number, score: (item: T) => number): T[] {
+export function selectTopN<T>(
+  items: Iterable<T>,
+  n: number,
+  score: (item: T) => number,
+  where: (item: T) => boolean = () => true
+): T[] {
   if (n <= 0) return [];
   const result: T[] = [];
   const scores: number[] = [];
   for (const item of items) {
+    if (!where(item)) continue;
     const s = score(item);
     if (result.length < n) {
       result.push(item);
@@ -544,7 +592,7 @@ export class BoundedRing<T> implements BoundedContainer<T> {
   }
 
   pressure(): number {
-    return this.size() / this.capacity;
+    return occupancy(this.size(), this.capacity);
   }
 
   /** Append, dropping the oldest item past capacity. Returns what was displaced. */

@@ -52,9 +52,9 @@ import {
   RULE_TABLE_SCHEMA_VERSION,
   validateRuleTable,
 } from '@senars/core/schemas';
-import { pushCapped } from '@senars/util';
+import { maxScore, pushCapped } from '@senars/util';
 
-import { Truth, type Term } from '../../terms';
+import { type Term, Truth } from '../../terms';
 import type { InferenceTable, RegisteredRule, RuleFn, TruthFn } from '../types.js';
 import { createRulePattern } from '../types.js';
 import { RuleIndex } from './RuleIndex.js';
@@ -90,7 +90,7 @@ export const builtinEntries = (declarations: readonly RuleDeclaration[]): RuleAr
 export const tableArtifact = (entries: readonly RuleArtifactEntry[]): RuleTableArtifact => ({
   schemaVersion: RULE_TABLE_SCHEMA_VERSION,
   artifactVersion: BUILTIN_RULE_ARTIFACT_VERSION,
-  revision: entries.reduce((highest, entry) => Math.max(highest, entry.ruleSetRevision), 0),
+  revision: maxScore(entries, (entry) => entry.ruleSetRevision),
   entries: [...entries],
 });
 
@@ -267,11 +267,16 @@ export class RuleTableStore {
    * The caller passes the revision the *event* stated rather than computing one
    * here, because the log is the source of truth for what revision exists.
    */
-  admit(declaration: RuleDeclaration, revision: number, parentRevision: number | null, admitted: {
-    proposalId: string;
-    producer?: string;
-    eventId?: string;
-  }): RuleArtifactEntry {
+  admit(
+    declaration: RuleDeclaration,
+    revision: number,
+    parentRevision: number | null,
+    admitted: {
+      proposalId: string;
+      producer?: string;
+      eventId?: string;
+    }
+  ): RuleArtifactEntry {
     if (revision <= this.current.revision) {
       throw new RuleTableError([
         {
@@ -287,7 +292,11 @@ export class RuleTableStore {
       ruleSetRevision: revision,
       parentRevision,
       ruleSchemaVersion: RULE_TABLE_SCHEMA_VERSION,
-      provenance: { kind: 'proposal', proposalId: admitted.proposalId, producer: admitted.producer },
+      provenance: {
+        kind: 'proposal',
+        proposalId: admitted.proposalId,
+        producer: admitted.producer,
+      },
       eventId: admitted.eventId,
     };
     const next = { ...this.current, revision, entries: [...this.current.entries, entry] };
@@ -301,7 +310,7 @@ export class RuleTableStore {
    * the retained revisions *are* the history.
    */
   revert(revision: number): RuleTableArtifact {
-    const target = [...this.history].reverse().find((snap) => snap.revision === revision);
+    const target = this.history.findLast((snap) => snap.revision === revision);
     if (!target) {
       throw new RuleTableError([
         {
@@ -335,10 +344,14 @@ export class RuleTableStore {
   }
 
   diff(revision: number): RuleTableDiff {
-    const from = [...this.history].reverse().find((snap) => snap.revision === revision);
+    const from = this.history.findLast((snap) => snap.revision === revision);
     if (!from) {
       throw new RuleTableError([
-        { ruleId: '(table)', reason: 'artifact-version', detail: `no retained revision r${revision}` },
+        {
+          ruleId: '(table)',
+          reason: 'artifact-version',
+          detail: `no retained revision r${revision}`,
+        },
       ]);
     }
     return diffArtifacts(from, this.current);

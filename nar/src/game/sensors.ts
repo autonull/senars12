@@ -1,4 +1,4 @@
-import { flooredRatio, mean } from '@senars/util';
+import { flooredRatio, mean, safeRatio, sumBy } from '@senars/util';
 
 import {
   type CognitionContext,
@@ -37,12 +37,12 @@ export class TaskTypeMixSensor implements Sensor {
         mediumPriority: 0,
         highPriority: 0,
       };
-      const total = Math.max(1, d.lowPriority + d.mediumPriority + d.highPriority);
+      const total = sumBy([d.lowPriority, d.mediumPriority, d.highPriority]);
       return {
         features: {
-          lowShare: d.lowPriority / total,
-          mediumShare: d.mediumPriority / total,
-          highShare: d.highPriority / total,
+          lowShare: flooredRatio(d.lowPriority, total),
+          mediumShare: flooredRatio(d.mediumPriority, total),
+          highShare: flooredRatio(d.highPriority, total),
         },
         confidence: nar ? 1 : 0,
       };
@@ -104,7 +104,7 @@ export class HeadHealthSensor implements Sensor {
         features: {
           healthyCount,
           totalCount: entries.length,
-          healthRatio: healthyCount / entries.length,
+          healthRatio: safeRatio(healthyCount, entries.length),
           avgScore,
         },
         confidence: 1,

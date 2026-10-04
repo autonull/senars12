@@ -14,7 +14,7 @@
  * honoured* cannot be checked by asking the module that makes them.
  */
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 import {
@@ -23,24 +23,19 @@ import {
   scopeTerminationReason,
 } from '../nar/src/kernel/budget-scopes.js';
 import {
-  budgetViolations,
   type BudgetSpend,
   type BudgetSubject,
+  budgetViolations,
   spentScopeIds,
 } from './lib/control-budgets.js';
 import { ROOT } from './lib/root.js';
+import { productionSources } from './lib/source-scan.js';
 
 /** The production trees a declared bound's spend may live in. */
 const SCAN_ROOTS = ['nar/src', 'src'] as const;
 
-const sourceFiles = (dir: string): string[] =>
-  readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry);
-    return statSync(path).isDirectory() ? sourceFiles(path) : path.endsWith('.ts') ? [path] : [];
-  });
-
 const sources = (): { at: string; lines: string[] }[] =>
-  SCAN_ROOTS.flatMap((root) => sourceFiles(join(ROOT, root))).map((path) => {
+  productionSources(SCAN_ROOTS).map((path) => {
     const at = relative(ROOT, path);
     return { at, lines: readFileSync(path, 'utf8').split('\n') };
   });

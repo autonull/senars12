@@ -2,10 +2,12 @@ import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import {
   assertDefined,
   clamp,
+  clamp01,
   estimateTokens,
   makeId,
   mean,
   monotonicNow,
+  safeRatio,
   stopwatch,
   unique,
   variance,
@@ -258,10 +260,10 @@ export class SystemOneManifold implements JudgmentManifold {
 
     if (first.kind === 'classify') {
       const topOptions = runs.map((r) => (r[0]! as ClassifyProposition).top.option);
-      agreement = 1 / unique(topOptions).length;
+      agreement = safeRatio(1, unique(topOptions).length);
     } else {
       const scores = runs.map((r) => (r[0]! as EvaluateProposition).score);
-      agreement = Math.max(0, 1 - variance(scores) * 4);
+      agreement = clamp01(1 - variance(scores) * 4);
     }
 
     return {

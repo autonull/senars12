@@ -7,7 +7,7 @@
  * arrival-order.
  */
 import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
-import { selectByPriority } from '@senars/util';
+import { retain, selectByPriority } from '@senars/util';
 import {
   AIKRProcessor,
   type AikrBagOptions,
@@ -100,7 +100,7 @@ export class ProposalBag {
   admit(proposal: SelfImprovementProposal): boolean {
     const scope = proposalScope(proposal);
     for (const candidate of this.#shell.bag.all()) {
-      if (candidate.scope === scope) candidate.priority *= 0.5;
+      if (candidate.scope === scope) candidate.priority = retain(candidate.priority, 0.5);
     }
     return this.#shell.admit({
       id: proposal.proposalId,

@@ -430,10 +430,6 @@ _Dynamic subpath (no single entry file)._
 
 - `FAST_COGNITIVE_CONFIG` — Fast inference configuration - minimal LM usage
 
-- `LM_HEAVY_CONFIG` — LM-heavy configuration - maximum enhancement
-
-- `RESEARCH_COGNITIVE_CONFIG` — Research configuration - all tracing enabled
-
 - `PARAMETER_SPACE` — Parameter space for optimization — the tunable subset of `cognitiveBounds`,
 
 - `validateParameters` — Validate cognitive parameters.

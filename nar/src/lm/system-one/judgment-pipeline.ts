@@ -281,5 +281,3 @@ export class JudgmentPipeline {
 export function createJudgmentPipeline(overrides: Partial<PipelineSpec> = {}): JudgmentPipeline {
   return new JudgmentPipeline(overrides);
 }
-
-export const defaultJudgmentPipeline = createJudgmentPipeline();

@@ -22,6 +22,7 @@
  * subject, not a behaviour.
  */
 import { type WitnessList, witnessHolds } from '../../util/src/index.js';
+import { lineAt } from './source-scan.js';
 
 export interface DiscoveredEdge {
   /** Repo-relative source path. */
@@ -43,8 +44,7 @@ export interface InventoryFailure {
 }
 
 /** Byte offset → 1-based line number. */
-export const lineOf = (source: string, offset: number): number =>
-  source.slice(0, offset).split('\n').length;
+export { lineAt as lineOf };
 
 /**
  * Whether an import clause binds only types.

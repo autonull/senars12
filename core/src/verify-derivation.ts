@@ -16,6 +16,7 @@
 import {
   confidenceToWeight as c2w,
   formatIssues,
+  nearlyEqual,
   safeRatio,
   softSquash,
   weightToConfidence as w2c,
@@ -67,7 +68,6 @@ export interface VerifyOptions {
 }
 
 const DEFAULT_EPSILON = 1e-6;
-
 
 type BinaryTruthFn = (f1: number, f2: number, c1: number, c2: number) => [number, number];
 type UnaryTruthFn = (f: number, c: number) => [number, number];
@@ -186,8 +186,6 @@ const bySubstring = (key: string): ResolvedTruthFn => {
 export const resolveTruthFn = (ruleId: string, declaredName?: string): ResolvedTruthFn =>
   declaredTruthFn(declaredName) ?? inferTruthFnFromRuleId(ruleId);
 
-const close = (a: number, b: number, epsilon: number): boolean => Math.abs(a - b) <= epsilon;
-
 export const formatFinding = (finding: VerificationFinding): string =>
   `[${finding.check}]${finding.stepId ? ` step ${finding.stepId}` : ''}: ${finding.detail}`;
 
@@ -244,8 +242,8 @@ const verifyStep = (
     );
     computedTruth = { frequency: f, confidence: c };
     if (
-      close(f, step.truth.frequency, options.epsilon) &&
-      close(c, step.truth.confidence, options.epsilon)
+      nearlyEqual(f, step.truth.frequency, options.epsilon) &&
+      nearlyEqual(c, step.truth.confidence, options.epsilon)
     )
       state.verified++;
     else
@@ -302,8 +300,8 @@ export function verifyRecord(
     const last = toVerify[toVerify.length - 1];
     if (last) {
       if (
-        !close(last.truth.frequency, finalTruth.frequency, epsilon) ||
-        !close(last.truth.confidence, finalTruth.confidence, epsilon)
+        !nearlyEqual(last.truth.frequency, finalTruth.frequency, epsilon) ||
+        !nearlyEqual(last.truth.confidence, finalTruth.confidence, epsilon)
       )
         fail('final-truth', 'finalTruth does not match last step truth');
     } else if (totalCycles > 0) {

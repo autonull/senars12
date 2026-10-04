@@ -4,9 +4,10 @@ import {
   getOrInsert,
   nextInt,
   occupancy,
-  selectTopN,
-  sortBy,
   rankBy,
+  selectTopN,
+  shareOf,
+  sortBy,
 } from '@senars/util';
 import { LINK, PRESSURE } from '../constants.js';
 import { NullAttentionModel } from '../strategies/attention/NullAttentionModel.js';
@@ -551,7 +552,7 @@ export class Memory implements MemoryPorts {
     toRemove.push(...this.findOrphanedLinks());
     // 10% of the store, not of the removal list: the two differ whenever the
     // list is the smaller pool, and shrinking the store is what bounds it.
-    for (const concept of toRemove.slice(0, Math.ceil(this.concepts.size * 0.1))) {
+    for (const concept of shareOf(toRemove, 0.1, 0, this.concepts.size)) {
       this.removeConcept(concept.term);
     }
     this.updateAllFocus();
@@ -628,7 +629,7 @@ export class Memory implements MemoryPorts {
   }
 
   private applyForgetting(): void {
-    const concept = this.forgetting.selectVictim(Array.from(this.concepts.values()));
+    const concept = this.forgetting.selectVictim(this.concepts.values());
     if (concept) this.removeConcept(concept.term);
   }
 

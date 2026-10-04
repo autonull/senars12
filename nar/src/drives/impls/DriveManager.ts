@@ -1,4 +1,12 @@
-import { clamp01, formatNarseseTruth, lerp, maxScore, meanOf, type TermTruth } from '@senars/util';
+import {
+  clamp01,
+  formatNarseseTruth,
+  lerp,
+  maxScore,
+  meanOf,
+  retain,
+  type TermTruth,
+} from '@senars/util';
 import type { IDriveManager } from '../../kernel/interfaces.js';
 import { Truth, type Truth as TruthType } from '../../terms/impls/Truth.js';
 import type { EventBus as InternalEventBus } from '../../types/events.js';
@@ -36,7 +44,7 @@ export class DriveManager implements IDriveManager {
 
       const error = state.spec.targetIntensity - state.currentIntensity;
       state.currentIntensity = lerp(state.currentIntensity, state.spec.targetIntensity, 0.1);
-      state.currentIntensity *= 1 - state.spec.decayRate;
+      state.currentIntensity = retain(state.currentIntensity, state.spec.decayRate);
       state.currentIntensity = clamp01(state.currentIntensity);
 
       state.isActive = state.currentIntensity >= state.spec.activationThreshold;

@@ -12,25 +12,14 @@
  * version, an enumerable table, a revert. This file asserts the *shape of the
  * code*, which no amount of runtime testing can reach.
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { importEdges, maskNonCode } from './imports.js';
+import { lineAt, scanSubject } from './source-scan.js';
 
-import { ROOT } from './root.js';
+export { lineAt };
 
 const SCAN_ROOTS = ['nar/src', 'src'] as const;
 
-const sourceFiles = (dir: string): string[] =>
-  readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry);
-    return statSync(path).isDirectory() ? sourceFiles(path) : path.endsWith('.ts') ? [path] : [];
-  });
-
-/** Every production source file, repo-relative. One reader, so gate and test cannot disagree. */
-export const scanSubject = (): { path: string; source: string }[] =>
-  SCAN_ROOTS.flatMap((root) => sourceFiles(join(ROOT, root))).map((path) => ({
-    path: path.slice(ROOT.length + 1),
-    source: readFileSync(path, 'utf8'),
-  }));
+export { scanSubject };
 
 export interface LoadedDataViolation {
   readonly at: string;
@@ -41,33 +30,13 @@ export interface LoadedDataViolation {
 /** The modules allowed to call the old global by name — it is deleted, so this is empty. */
 export const RETIRED_GLOBALS = ['RuleRegistry'] as const;
 
-/** Import statements, so a *dynamic* or type-only edge to a global is caught too. */
-const importEdges = (source: string): { specifier: string; offset: number }[] => {
-  const edges: { specifier: string; offset: number }[] = [];
-  const pattern = /(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g;
-  for (const match of source.matchAll(pattern)) {
-    edges.push({ specifier: match[1]!, offset: match.index ?? 0 });
-  }
-  return edges;
-};
-
-const lineAt = (source: string, offset: number): number => source.slice(0, offset).split('\n').length;
-
-/**
- * Comments are not code. Two of these modules name the retired global in a
- * comment explaining that it is gone, and a gate that fired on its own
- * explanation would be a gate nobody keeps — so the text is stripped of
- * comments before it is matched, preserving offsets by replacing comment
- * characters with spaces.
- */
-export const stripComments = (source: string): string =>
-  source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (comment) => ' '.repeat(comment.length));
-
 /** Every module-side-effect registration: a bare `import './x.js'` with no binding. */
 const sideEffectImports = (source: string): { specifier: string; offset: number }[] =>
   importEdges(source).filter((edge) => {
     const line = source.slice(edge.offset).split('\n')[0] ?? '';
-    return new RegExp(`^\\s*(import|require)\\s*\\(?\\s*['"]${edge.specifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]\\s*\\)?\\s*;`).test(line);
+    return new RegExp(
+      `^\\s*(import|require)\\s*\\(?\\s*['"]${edge.specifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]\\s*\\)?\\s*;`
+    ).test(line);
   });
 
 export const loadedDataViolations = (
@@ -75,7 +44,7 @@ export const loadedDataViolations = (
 ): LoadedDataViolation[] => {
   const violations: LoadedDataViolation[] = [];
   for (const { path, source: raw } of files) {
-    const file = { path, source: stripComments(raw) };
+    const file = { path, source: maskNonCode(raw) };
     // 1. No module may import a rule module purely for its side effect.
     for (const edge of sideEffectImports(file.source)) {
       if (!/(^|\/)(rules|rule-table|registration)($|\/|\.js)/.test(edge.specifier)) continue;

@@ -1,5 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { monotonicNow, rankBy, safeRatio, stopwatch } from '@senars/util';
+import { clamp01, maxBy, monotonicNow, rankBy, retain, safeRatio, stopwatch } from '@senars/util';
 import { DECISION_DERIVATIONS_SCOPE } from '../../kernel/budget-scopes.js';
 import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
 import { Stamp } from '../../terms/impls/Stamp.js';
@@ -253,11 +253,9 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
 
   #chargeBatch(gate: KernelBudgetGate | null, results: readonly JudgmentProposition[]): boolean {
     if (!gate) return true;
-    const maxCost = results.reduce(
-      (best, r) =>
-        r.cost && resourceCostToLmCalls(r.cost) > resourceCostToLmCalls(best) ? r.cost : best,
-      results[0]?.cost ?? NO_COST
-    );
+    const maxCost =
+      maxBy(results, (r) => (r.cost ? resourceCostToLmCalls(r.cost) : Number.NEGATIVE_INFINITY))
+        ?.cost ?? NO_COST;
     return chargeJudgment(gate, this.#budgetScopeId, maxCost).granted;
   }
 
@@ -389,7 +387,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
         });
         const composite = compositeScore(entries, this.#rankingWeights);
         const penalty = negativePenalty.get(c) ?? 0;
-        return { option: c, p: Math.max(0, (composite?.score ?? base.top.p) * (1 - penalty)) };
+        return { option: c, p: clamp01(retain(composite?.score ?? base.top.p, penalty)) };
       });
     } else {
       ranking = selectUsable ? (select as ClassifyProposition).distribution : undefined;

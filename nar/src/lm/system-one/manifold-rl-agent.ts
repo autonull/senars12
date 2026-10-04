@@ -1,5 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { getOrInsert, incrementCount, maxBy, nextInt, ucb1 } from '@senars/util';
+import { maxBy, nextInt, QTable, ucb } from '@senars/util';
 import type { Game, GameOutcome } from '../../game/Game.js';
 import type { Decider } from './decide.js';
 import type { JudgmentDataset } from './distill.js';
@@ -62,8 +62,9 @@ export class ManifoldRLAgent {
   readonly #rng: () => number;
   readonly #decider?: Decider;
   readonly #verificationFloor: number;
-  readonly #visits = new Map<string, Map<string, number>>();
-  #totalVisits = 0;
+  /** Exposure, not utility: the manifold's value heads are the estimate, this
+   *  is only what UCB needs its denominator from. */
+  readonly #visits = new QTable();
 
   constructor(options: ManifoldRLAgentOptions) {
     this.#cache = options.cache;
@@ -219,11 +220,13 @@ export class ManifoldRLAgent {
       return candidates[nextInt(this.#rng, candidates.length)]!;
     }
 
+    const ucbScore = ucb(this.#ucbC);
+    const { totalVisits } = this.#visits;
     const scoreOf = (a: A): number => {
       const base = values.get(String(a)) ?? 0;
       if (this.#policy !== 'ucb') return base;
-      const visits = this.#visits.get(stateId)?.get(String(a)) ?? 0;
-      return ucb1(base, visits, this.#totalVisits, this.#ucbC);
+      const { count } = this.#visits.read(stateId, String(a));
+      return ucbScore({ value: base, count }, totalVisits);
     };
 
     return maxBy(candidates, scoreOf)!;
@@ -234,11 +237,7 @@ export class ManifoldRLAgent {
     const { action, values, feasible, risks, pointer, stateId } = await this.decide(game);
     const outcome = game.step(action);
 
-    incrementCount(
-      getOrInsert(this.#visits, stateId, () => new Map<string, number>()),
-      String(action)
-    );
-    this.#totalVisits++;
+    this.#visits.visit(stateId, String(action));
 
     if (this.#dataset && this.#labelOutcomes) {
       recordReflexOutcome(this.#dataset, {
@@ -265,9 +264,5 @@ export class ManifoldRLAgent {
       if (decision.outcome.terminal) break;
     }
     return totalReward;
-  }
-
-  getVisitCounts(): ReadonlyMap<string, ReadonlyMap<string, number>> {
-    return this.#visits;
   }
 }

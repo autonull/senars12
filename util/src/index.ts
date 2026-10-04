@@ -203,6 +203,20 @@ export {
   withDeadline,
   withTimeout,
 } from './utils/async.js';
+// Bandit substrate
+/** @public One `(state, action)` estimate store for every tabular policy. */
+export type { ConfidenceCurve, Exploration, QEntry, QUpdate } from './utils/bandit.js';
+export {
+  greedy,
+  isYoung,
+  lerpUpdate,
+  meanUpdate,
+  QTable,
+  rampConfidence,
+  UNVISITED,
+  ucb,
+  visitConfidence,
+} from './utils/bandit.js';
 /** @public Bounded map with pluggable eviction order and optional TTL. */
 export type { BoundedMapOptions, EvictionOrder } from './utils/bounded-map.js';
 export { BoundedMap } from './utils/bounded-map.js';
@@ -212,6 +226,7 @@ export { parseFlags } from './utils/cli.js';
 export type { Clock } from './utils/clock.js';
 export { fixedClock, systemClock } from './utils/clock.js';
 export type { BoundedContainer, ReadOnlyLookup } from './utils/collections.js';
+
 // Collections
 /** @public Drop-oldest bounded ring buffer. */
 export {
@@ -234,6 +249,7 @@ export {
   maxBy,
   maxScore,
   minBy,
+  minScore,
   pushCapped,
   type RankOptions,
   rankBy,
@@ -306,6 +322,7 @@ export type { LruCacheOptions } from './utils/lru-cache.js';
 /** @public Bounded recency-ordered cache with optional TTL. */
 export { LruCache } from './utils/lru-cache.js';
 export {
+  anneal,
   CHARS_PER_TOKEN,
   clamp,
   clamp01,
@@ -314,6 +331,7 @@ export {
   estimateTokens,
   finiteOr,
   flooredRatio,
+  forget,
   lerp,
   mean,
   meanOf,
@@ -323,13 +341,14 @@ export {
   pearson,
   perSecond,
   renormalize,
+  retain,
   roundTo,
   safeDiv,
   safeRatio,
   saturationRamp,
   sigmoid,
-  softmax,
   softFalloff,
+  softmax,
   softSquash,
   stdDev,
   sumBy,
@@ -381,7 +400,9 @@ export {
   isNarsese,
   limitList,
   NARSESE_ATOM_CHARS,
+  overlapCount,
   splitWords,
+  TERM_SEPARATORS,
   tokenizeWords,
   truncate,
   truncateBytes,

@@ -20,15 +20,15 @@
  * `deps:direction` with a different opinion.
  */
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import {
   CYCLE_PATH_PREFIXES,
   IN_CYCLE_EDGE_ATTRIBUTIONS,
   IN_CYCLE_INVENTORY,
 } from '../nar/src/lm/in-cycle-inventory.js';
-import { witnessFiles } from '../util/src/index.js';
 import { PROVIDER_SEAMS } from '../nar/src/lm/provider-seams.js';
+import { witnessFiles } from '../util/src/index.js';
 import { importEdges } from './lib/imports.js';
 import {
   checkInventory,
@@ -37,19 +37,10 @@ import {
   lineOf,
 } from './lib/induction-inventory.js';
 import { ROOT } from './lib/root.js';
+import { sourceFiles } from './lib/source-scan.js';
 
 const NAR_SRC = join(ROOT, 'nar/src');
 const LAYER_DIR = join(NAR_SRC, 'lm');
-
-const sourceFiles = (dir: string): readonly string[] =>
-  readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry);
-    return statSync(path).isDirectory()
-      ? sourceFiles(path)
-      : entry.endsWith('.ts') && !entry.endsWith('.test.ts')
-        ? [path]
-        : [];
-  });
 
 const repoRelative = (path: string): string => relative(ROOT, path).replaceAll('\\', '/');
 

@@ -1,4 +1,4 @@
-import { getOrInsert, wordOverlap } from '@senars/util';
+import { getOrInsert } from '@senars/util';
 import type { Term } from '../../terms';
 import { TermMap } from '../../terms';
 import type { Task } from '../../types';
@@ -32,6 +32,3 @@ export const findConflicts = (beliefs: Task[], gap = DEFAULT_DIVERGENCE_GAP): Co
 
 export const countContradictions = (beliefs: Task[], gap = DEFAULT_DIVERGENCE_GAP): number =>
   findConflicts(beliefs, gap).length;
-
-export const termOverlap = (a: string, b: string): number =>
-  wordOverlap(a, b, /[\s_()[\]<>\-/=>]+/);

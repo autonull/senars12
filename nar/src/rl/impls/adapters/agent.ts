@@ -187,7 +187,7 @@ export class BanditNativeAgent extends NativeSenarsAgent {
   private readonly actionTerms: Term[];
 
   constructor(nar: NAR, numArms: number = 3, maxDerivationsPerStep: number = 3) {
-    const selector = new BanditSelector(numArms, 0.2, nar.rng);
+    const selector = new BanditSelector({ numArms, explorationRate: 0.2, rng: nar.rng });
     super(nar, { selector, maxDerivationsPerStep, useTDLearning: true, gamma: 0.99 });
     this.numArms = numArms;
     this.actionTerms = Array.from({ length: numArms }, (_, i) => operationTerm(`pull_arm_${i}`));
@@ -225,7 +225,12 @@ export class GridWorldNativeAgent extends NativeSenarsAgent {
    * omitted seed is not a request for entropy.
    */
   constructor(nar: NAR, maxDerivationsPerStep: number = 3, seed: number | RandomSource = 42) {
-    const selector = new GridWorldSelector(0.3, -0.1, 0.99, 0.01, seed);
+    const selector = new GridWorldSelector({
+      explorationRate: 0.3,
+      explorationDecay: 0.99,
+      explorationMin: 0.01,
+      seed,
+    });
     super(nar, { selector, maxDerivationsPerStep, useTDLearning: true, gamma: 0.99 });
 
     const toolConfigs = [
@@ -321,7 +326,12 @@ export class NonStationaryNativeAgent extends NativeSenarsAgent {
   private readonly actionTerms: Term[];
 
   constructor(nar: NAR, numArms: number = 2, maxDerivationsPerStep: number = 3) {
-    const selector = new NonStationarySelector(numArms, 0.3, 0.2, nar.rng);
+    const selector = new NonStationarySelector({
+      numArms,
+      changeDetectionThreshold: 0.3,
+      explorationRate: 0.2,
+      rng: nar.rng,
+    });
     super(nar, { selector, maxDerivationsPerStep, useTDLearning: true, gamma: 0.99 });
     this.numArms = numArms;
     this.actionTerms = Array.from({ length: numArms }, (_, i) => operationTerm(`pull_arm_${i}`));

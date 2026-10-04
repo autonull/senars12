@@ -174,6 +174,24 @@
 
 - `withTimeout` — Rejects with `error()` when `timeoutMs` elapses. The losing promise is not
 
+- `greedy` — No exploration at all: the proposal score is the estimate.
+
+- `isYoung` — True when an arm has been pulled few enough times to still be worth trying.
+
+- `lerpUpdate` — A Q-learning step: move `alpha` of the way toward a bootstrapped target.
+
+- `meanUpdate` — The exact running mean: every sample counts equally, so `count` is the weight.
+
+- `QTable` — A sparse `(state, action) -> QEntry` table with a running observation count.
+
+- `rampConfidence` — Confidence on the saturating exponential ramp, for estimators whose early
+
+- `UNVISITED` — A never-updated arm. The zero value is deliberate: the mean of nothing is nothing.
+
+- `ucb` — UCB1: the estimate plus `c · sqrt(ln(total) / count)`. `untried` is what an
+
+- `visitConfidence` — Confidence proportional to visits, saturating at `scale`.
+
 - `BoundedMap`
 
 - `parseFlags` — Parses `argv` once into flag lookups. `--flag value` consumes the next token
@@ -218,7 +236,9 @@
 
 - `maxScore` — Highest `score` over `items`, floored at 0. Single pass over the iterable
 
-- `minBy` — Extremum pick over a collection. `initial`/`initialScore` seed the running
+- `minBy` — Extremum pick over an iterable. `initial`/`initialScore` seed the running
+
+- `minScore` — Lowest `score` over `items`, {@link maxScore} read the other way — and unlike
 
 - `pushCapped` — Drop-oldest push for plain arrays. One `shift()` per overflow — no `splice`
 
@@ -352,6 +372,8 @@
 
 - `LruCache`
 
+- `anneal` — A rate annealing toward a floor: `clamp(value · survival, floor, ceiling)` —
+
 - `CHARS_PER_TOKEN` — Characters per token in {@link estimateTokens} — its inverse, for budgeting characters from a token allowance.
 
 - `clamp`
@@ -368,11 +390,13 @@
 
 - `flooredRatio` — `num / max(floor, den)` — the ratio whose denominator is a *population*, not a
 
+- `forget` — `value · rate` — the amount one forgetting step removes. The deduction
+
 - `lerp` — Move `fraction` of the way from `from` toward `to`.
 
 - `mean` — Arithmetic mean of a projection; 0 for an empty collection (rates, scores, sums).
 
-- `meanOf` — Arithmetic mean over a projection — {@link safeRatio} with the count as denominator.
+- `meanOf` — Arithmetic mean over a projection — {@link safeRatio} with the count as
 
 - `nearlyEqual` — Float equality within `eps`. The one guard for "these two accumulated truth
 
@@ -386,6 +410,8 @@
 
 - `renormalize` — Rescale each item *in place of its mass* so the masses sum to 1, keeping the
 
+- `retain` — `value · (1 − rate)` — what survives one forgetting step. The retention
+
 - `roundTo` — Round to `digits` decimal places — the one float-noise guard for reported values.
 
 - `safeDiv`
@@ -396,9 +422,9 @@
 
 - `sigmoid` — Logistic function; the single sigmoid used by scoring and gradient descent.
 
-- `softmax`
-
 - `softFalloff` — `1 / (1 + x)` — the decay-from-one curve, for a quantity that is strongest at
+
+- `softmax`
 
 - `softSquash` — `x / (x + k)` — the reciprocal saturation curve, for a quantity with a natural
 
@@ -480,11 +506,15 @@
 
 - `NARSESE_ATOM_CHARS` — The characters a bare Narsese atom symbol may contain. The grammar's authority on
 
+- `overlapCount` — How many of `needle`'s words appear in `haystack` — the numerator every
+
 - `splitWords` — Case-preserving word tokens. The one split: an empty or whitespace-only string
+
+- `TERM_SEPARATORS` — The separators between the words of a *term* rather than of prose. Three
 
 - `tokenizeWords` — Lowercased word-token set — the tokenizer behind every text-similarity path.
 
-- `truncate` — Text measurement, tokenizing, and truncation. The three questions — how big
+- `truncate` — Cut to `maxLength`, marking what the cut hid — the shortest of the three.
 
 - `truncateBytes` — Byte-safe truncation for tool output — never splits a multi-byte character.
 

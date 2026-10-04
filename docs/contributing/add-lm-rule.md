@@ -43,10 +43,6 @@ through `processStructuredResponse` → `validateFn` → the same parser for eac
 2. **Custom one-off** — `createCustomRule(id, lm, config)` from
    `rule-builders.ts`, then `processor.registerLMRule(rule)`.
 3. **Direct** — `new LMRule(id, lmService, config)` + `registerLMRule`.
-4. **Dynamic/composite** — `nar/src/lm/dynamic-rule.ts`
-   (`DynamicLMRuleGenerator`, `CompositeLMRule`, `createDynamicRuleGenerator`,
-   `createCompositeRule`) for rules generated or fused at runtime.
-
 Selection per step is governed by an `LMRuleSelector` (see
 `nar/src/lm/rule-selectors/` — `hasLowConfidence`, `hasConflictingBeliefs`,
 `hasHighCuriosity`, `isUnderconnected`, ...) via

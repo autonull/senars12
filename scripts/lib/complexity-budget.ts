@@ -30,13 +30,14 @@
  */
 
 import { execFile } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { ACCUMULATOR_LEDGER } from './accumulator-ledger.js';
 import { circularChainsAsync } from './dpdm.js';
 import { readExports } from './pkg.js';
 import { ROOT } from './root.js';
+import { ALL_SOURCE_ROOTS, productionSources } from './source-scan.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -75,29 +76,10 @@ export interface Verdict {
 
 const PACKAGES = ['nar', 'util', 'core', 'io', 'metta'];
 
-/** Production source roots — the same set cloc and the grep metrics read. */
-const SOURCE_ROOTS = ['nar/src', 'core/src', 'metta/src', 'util/src', 'io/src', 'src'];
+const SOURCE_ROOTS = ALL_SOURCE_ROOTS;
 
 export const readBudget = (path: string): BudgetConfig =>
   JSON.parse(readFileSync(path, 'utf-8')) as BudgetConfig;
-
-/** Every `.ts` file under the production roots, test files excluded. */
-const productionSources = (roots: readonly string[] = SOURCE_ROOTS): string[] => {
-  const files: string[] = [];
-  const walk = (dir: string): void => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const path = join(dir, entry.name);
-      if (entry.isDirectory()) walk(path);
-      else if (entry.name.endsWith('.ts') && !/\.(test|spec)\.ts$/.test(entry.name))
-        files.push(path);
-    }
-  };
-  for (const root of roots) {
-    const dir = join(ROOT, root);
-    if (existsSync(dir)) walk(dir);
-  }
-  return files;
-};
 
 /**
  * Matching lines across a set of sources. Three of the metrics below are

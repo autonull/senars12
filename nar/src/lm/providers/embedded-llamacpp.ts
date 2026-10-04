@@ -6,7 +6,14 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
-import { envBool, envStr, errMsg, extractLastUserMessage, type LMTask } from '@senars/util';
+import {
+  envBool,
+  envStr,
+  errMsg,
+  extractLastUserMessage,
+  type LMTask,
+  mapValues,
+} from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import {
@@ -88,9 +95,7 @@ function visibleText(response: ChatModelResponse['response']): string {
 function withNonEmptyArrays(schema: unknown): unknown {
   const props = (schema as { properties?: Record<string, { type?: string }> })?.properties;
   if (!props) return schema;
-  const patched = Object.fromEntries(
-    Object.entries(props).map(([k, v]) => [k, v?.type === 'array' ? { ...v, minItems: 1 } : v])
-  );
+  const patched = mapValues(props, (v) => (v?.type === 'array' ? { ...v, minItems: 1 } : v));
   return { ...(schema as object), properties: patched };
 }
 

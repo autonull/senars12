@@ -1,4 +1,4 @@
-import { type CommandDefinition, QUIT_SENTINEL } from '@senars/util';
+import { type CommandDefinition, QUIT_SENTINEL, sumBy } from '@senars/util';
 import { NAR_UNCONFIGURED, narOf } from './utils.js';
 
 export const coreCommands: CommandDefinition[] = [
@@ -37,11 +37,7 @@ export const coreCommands: CommandDefinition[] = [
       if (args[0] === 'detail') {
         const metrics = nar.getMetrics();
         if (metrics) {
-          const ruleExecs =
-            metrics.rules?.reduce(
-              (sum: number, r: { executions: number }) => sum + r.executions,
-              0
-            ) ?? 0;
+          const ruleExecs = sumBy(metrics.rules ?? [], (r) => r.executions);
           const derivs = metrics.system?.totalDerivations ?? 0;
           result += `\nRule Executions: ${ruleExecs}, Derivations: ${derivs}`;
         }

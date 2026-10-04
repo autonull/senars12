@@ -1,4 +1,4 @@
-import { clamp01, SeededRNG, shuffleInPlace } from '@senars/util';
+import { clamp01, maxScore, minScore, SeededRNG, shuffleInPlace } from '@senars/util';
 import type { Game, GameOutcome, Perception } from '../Game.js';
 
 /** Placement action: 'place:r<rotation>:c<column>' (hard drop). */
@@ -194,8 +194,8 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
     const placements: TetrisPlacement[] = [];
     for (let rot = 0; rot < rotationCount(type); rot++) {
       const cells = cellsOf(type, rot);
-      const maxCol = Math.max(...cells.map(([, c]) => c));
-      const minCol = Math.min(...cells.map(([, c]) => c));
+      const maxCol = maxScore(cells, ([, c]) => c);
+      const minCol = minScore(cells, ([, c]) => c);
       for (let col = -minCol; col < this.width - maxCol; col++) {
         const row = this.landingRow(cells, col, state.grid);
         if (this.collides(cells, row, col, state.grid)) continue;

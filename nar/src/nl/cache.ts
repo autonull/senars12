@@ -1,8 +1,10 @@
 import { join } from 'node:path';
 import {
+  collectUpTo,
   createLogger,
   errMsg,
   LruCache,
+  overlapCount,
   periodic,
   readJsonFileSync,
   type TermTruth,
@@ -65,10 +67,9 @@ export class TranslationCache {
 
   getRelevant(nl: string, max = 3): TranslationCacheEntry[] {
     const words = tokenizeWords(nl);
-    return this.#cache
-      .toArray()
-      .filter((entry) => [...tokenizeWords(entry.nl)].some((word) => words.has(word)))
-      .slice(0, max);
+    return collectUpTo(this.#cache.values(), max, (entry) =>
+      overlapCount(words, tokenizeWords(entry.nl)) > 0 ? entry : undefined
+    );
   }
 
   serialize(): SerializedCache {

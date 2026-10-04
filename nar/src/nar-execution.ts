@@ -1,4 +1,4 @@
-import { BoundedRing, createLogger, errMsg, mean, rankBy, roundTo } from '@senars/util';
+import { BoundedRing, createLogger, errMsg, keyedBy, mean, rankBy, roundTo } from '@senars/util';
 import { envBool } from '@senars/util/config';
 import type { CognitiveController } from './cognitive';
 import { ADMISSION_ORDER_CALL_SITE, EGRESS_VETO_CALL_SITE } from './decision/call-sites.js';
@@ -11,8 +11,8 @@ import type { KernelBudgetGate } from './kernel/KernelBudgetGate.js';
 import type { MemoryPorts } from './memory/ports/index.js';
 import { askSafely, type DecisionPort } from './ports/index.js';
 import { CycleTrace } from './proposal/cycle-trace.js';
-import type { CycleStage, TraceRegion } from './proposal/stages.js';
 import type { LMProposalProducer } from './proposal/lm-rule-producer.js';
+import type { CycleStage, TraceRegion } from './proposal/stages.js';
 import type { PolicyOptimizer, RLFPLearner } from './rlfp';
 import {
   type RankableDerivation,
@@ -24,7 +24,7 @@ import type { TaskManager } from './task';
 import { classifyTask, type TaskSignal } from './task';
 import { getTermArgs, isCompound, operationNameOf, type Term, TermSet, termParser } from './terms';
 import { Truth } from './terms/impls/Truth.js';
-import { summarizeRegions, type PhaseTimerSummary } from './trace';
+import { type PhaseTimerSummary, summarizeRegions } from './trace';
 import type { Task } from './types';
 import { createTask } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';
@@ -109,7 +109,11 @@ export interface NARExecutionOptions {
 export class NARExecution {
   private _cycleCount = 0;
   private readonly cycleTrace = new CycleTrace();
-  private readonly cycleSignals = { testPassed: false, testFailed: false, contradictionDetected: false };
+  private readonly cycleSignals = {
+    testPassed: false,
+    testFailed: false,
+    contradictionDetected: false,
+  };
   private readonly _rlfpRewardHistory = new BoundedRing<number>(100);
 
   constructor(options: NARExecutionOptions) {
@@ -278,10 +282,7 @@ export class NARExecution {
           // `proposal-application` is a declared scope, so a spent budget and a full
           // queue are the same kind of event with the same kind of reason (§5.7).
           // Symbolic derivations are not charged here: only what arrived from the seam.
-          for (const task of await this.rankForAdmission(
-            await this.vetoAtEgress(results),
-            ranking
-          ))
+          for (const task of await this.rankForAdmission(await this.vetoAtEgress(results), ranking))
             this.admit(task);
           // `proposal-application` is a declared scope, so a spent budget and a
           // full queue become the same kind of event with the same kind of reason
@@ -308,7 +309,8 @@ export class NARExecution {
           const rlfp = this.rlfp;
           if (
             rlfp &&
-            this._cycleCount % (rlfp.optimizeInterval ?? this.config.rlfp?.optimizeInterval ?? 100) ===
+            this._cycleCount %
+              (rlfp.optimizeInterval ?? this.config.rlfp?.optimizeInterval ?? 100) ===
               0
           ) {
             await this.region('rlfp.optimize', () => {
@@ -346,8 +348,10 @@ export class NARExecution {
         logger.debug('meta-reasoning', {
           cycle: this._cycleCount,
           driveStates: this.driveManager
-            ? Object.fromEntries(
-                this.driveManager.getAllStates().map((ds) => [ds.spec.id, ds.currentIntensity])
+            ? keyedBy(
+                this.driveManager.getAllStates(),
+                (ds) => ds.spec.id,
+                (ds) => ds.currentIntensity
               )
             : undefined,
         });
@@ -388,13 +392,9 @@ export class NARExecution {
 
   /** The one path from a cycle's work into memory, and it goes through the gate. */
   private admit(task: Task): void {
-    const result = this.gates.getPerceptionGate().admitTask(
-      task.term,
-      task.type,
-      task.truth,
-      'derivation',
-      task.stamp.id
-    );
+    const result = this.gates
+      .getPerceptionGate()
+      .admitTask(task.term, task.type, task.truth, 'derivation', task.stamp.id);
 
     // Unreachable while `decideAdmission` always admits: the gate is an ingress
     // filter, and on the tick's write path it is an event emitter with source
@@ -563,9 +563,7 @@ export class NARExecution {
   private pumpProposals(signal?: AbortSignal): void {
     this.proposals
       ?.pump(signal)
-      .catch((error: unknown) =>
-        logger.warn('Proposal pump failed', { error: errMsg(error) })
-      );
+      .catch((error: unknown) => logger.warn('Proposal pump failed', { error: errMsg(error) }));
   }
 
   /** Resolves when no producer work is in flight — for the callers allowed to wait. */
@@ -640,7 +638,7 @@ export class NARExecution {
     }
 
     // Average RLFP reward
-    const rlfpRewardAvg = mean(this._rlfpRewardHistory.toArray());
+    const rlfpRewardAvg = mean(this._rlfpRewardHistory);
 
     const summary: CognitiveStateSummary = {
       timestamp: new Date().toISOString(),

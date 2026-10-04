@@ -34,7 +34,10 @@ export class TaskManager {
   private gates: GateRegistry;
   private timeouts = new Map<string, () => void>();
 
-  constructor(memory: TaskAdmission, private readonly config: TaskManagerConfig) {
+  constructor(
+    memory: TaskAdmission,
+    private readonly config: TaskManagerConfig
+  ) {
     this.memory = memory;
     this.defaultTimeout = config.defaultTimeout ?? DEFAULT_TIMEOUT_MS;
     this.gates = config.gateRegistry;
@@ -58,7 +61,7 @@ export class TaskManager {
   }
 
   peekTask(): Task | undefined {
-    return maxBy([...this.pending.values()], (w) => w.priority)?.task;
+    return maxBy(this.pending.values(), (w) => w.priority)?.task;
   }
 
   /** All pending tasks, highest priority first. */
@@ -89,9 +92,11 @@ export class TaskManager {
     this.pending.set(taskId, wrapper);
 
     if (wrapper.timeout && wrapper.timeout > 0) {
-      this.timeouts.set(taskId, deadline(wrapper.timeout, () => this.expireTask(taskId)));
+      this.timeouts.set(
+        taskId,
+        deadline(wrapper.timeout, () => this.expireTask(taskId))
+      );
     }
-
   }
 
   async processPending(): Promise<Task[]> {

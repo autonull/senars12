@@ -8,12 +8,19 @@
  */
 
 import type { DerivationRecord, DerivationStep } from '@senars/core/schemas/derivation-records';
-import { BoundedMap, incrementCount, mean } from '@senars/util';
+import { BoundedMap, incrementCount, mean, rankBy } from '@senars/util';
 import { agreeByExactAlgebra } from '../reflex/algebra-vote.js';
 import type { IProposer, NegotiationInput, ProposerContribution } from '../reflex/Negotiator.js';
 import type { ActionProposal, LearningEvent } from '../reflex/Reflex.js';
 import type { Term } from '../terms/index.js';
-import { applySubstitution, serializeTerm, TermBuilder, termKey, termParser, walkTerms } from '../terms/index.js';
+import {
+  applySubstitution,
+  serializeTerm,
+  TermBuilder,
+  termKey,
+  termParser,
+  walkTerms,
+} from '../terms/index.js';
 
 /** Every atomic symbol in a term, counted — the canonical walk, not a second one. */
 const collectAtoms = (term: Term, counts: Map<string, number>): void => {
@@ -233,9 +240,7 @@ export class ProofMettaProposer implements IProposer {
 
   /** Highest-scoring rules first; the map is already capacity-bounded. */
   private pruneAndRank(): MettaRule[] {
-    return [...this.rules.values()].sort(
-      (a, b) => b.confidence * b.applications - a.confidence * a.applications
-    );
+    return rankBy(this.rules.values(), (rule) => rule.confidence * rule.applications);
   }
 
   /** Get all learned rules. */

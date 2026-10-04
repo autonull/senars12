@@ -1,4 +1,4 @@
-import { pearson, SeededRNG, safeRatio } from '@senars/util';
+import { maxScore, pearson, SeededRNG, safeRatio } from '@senars/util';
 
 /**
  * Main harness for running RL parity experiments
@@ -51,8 +51,8 @@ export class RLParityHarness {
       const senarsQVals = senarsQ.get(stateKey);
       if (!senarsQVals) continue;
 
-      const baselineAction = baselineQVals.indexOf(Math.max(...baselineQVals));
-      const senarsAction = senarsQVals.indexOf(Math.max(...senarsQVals));
+      const baselineAction = baselineQVals.indexOf(maxScore(baselineQVals, (q) => q));
+      const senarsAction = senarsQVals.indexOf(maxScore(senarsQVals, (q) => q));
 
       if (baselineAction === senarsAction) agreements++;
       total++;

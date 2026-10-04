@@ -4,7 +4,7 @@
  * contrastive layer. A thin facade — all inference logic lives in the
  * manifold heads, contrastive memory, and policy utilities it composes.
  */
-import { chunk, renormalize, sha256Hex, rankBy } from '@senars/util';
+import { chunk, rankBy, renormalize, retain, sha256Hex } from '@senars/util';
 import type { CognitiveAxis } from '../../decision/types.js';
 import { type ContrastiveMemory, rubricOf } from './contrastive.js';
 import {
@@ -170,7 +170,7 @@ export function stageProvenance(
   abstained: boolean,
   overrides: ProvenanceOverrides = {}
 ): JudgmentProvenance {
-  const winner = [...stages].reverse().find((p) => p !== undefined);
+  const winner = stages.findLast((p) => p !== undefined);
   return provenanceFrom(winner, inputDigest, band, abstained, {
     ...overrides,
     fitted: overrides.fitted ?? stages.some(isFitted),
@@ -363,7 +363,7 @@ function adjustDistribution(
   if (!base || base.length === 0) return [];
   const adjusted = base.map((d) => ({
     option: d.option,
-    p: d.p * (1 - (penalties[d.option] ?? 0)),
+    p: retain(d.p, penalties[d.option] ?? 0),
   }));
   return renormalize(
     adjusted,

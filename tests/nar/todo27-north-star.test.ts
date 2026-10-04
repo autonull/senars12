@@ -26,7 +26,6 @@ const CONSTRUCTION_SITES: Record<string, string> = {
   'cognitive/impls/registrations.ts': 'the catalogue — every built-in registration',
   'cognitive/impls/composition.ts': 'tier-2 composition, driven by a resolved spec',
   'reason/strategy-algebra.ts': 'the derivation expression algebra (D4)',
-  'lm/dynamic-rule.ts': 'CompositeLMRule is an LM rule body, not an lm-rule selector',
   // The three below are not strategy *slots*. They are private samplers for
   // components that own their whole strategy stack and never consult the
   // cognitive registry — so there is no slot to declare them in, and the
@@ -76,7 +75,9 @@ describe('Bench 109 — nothing outside the catalogue constructs a strategy', ()
     // that primes nothing is not a choice of model (§15.5 — a fallback here
     // would be the regression).
     const offenders = files
-      .filter((path) => !CONSTRUCTION_SITES[relative(path)] && relative(path) !== 'memory/memory.ts')
+      .filter(
+        (path) => !CONSTRUCTION_SITES[relative(path)] && relative(path) !== 'memory/memory.ts'
+      )
       .filter((path) => /strategies\/attention\/(?!types)/.test(readFileSync(path, 'utf8')))
       .map(relative);
 

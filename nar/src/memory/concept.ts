@@ -1,4 +1,4 @@
-import { asBeliefTruth, type BeliefTruth, clamp01, makeId } from '@senars/util';
+import { asBeliefTruth, type BeliefTruth, clamp01, makeId, maxScore } from '@senars/util';
 import { type Bag, type BagOptions, createBag } from '../bag/index.js';
 import type { ResolvedBagSlot } from '../bag/registration.js';
 import type { Term, Truth } from '../terms';
@@ -204,7 +204,7 @@ export class Concept {
 
     this.writeAttention({
       reason: 'merge',
-      value: Math.max(this.priority, ...others.map((c) => c.priority)),
+      value: maxScore(others, (c) => c.priority, this.priority),
     });
     return { merged: this, discarded: others };
   }

@@ -201,7 +201,6 @@ export const HEAD_SPECS = {
 
 export type HeadId = keyof typeof HEAD_SPECS;
 export type HeadGroup = HeadSpec['group'];
-export const HEAD_GROUPS = ['ingress', 'action', 'synthesis', 'memory'] as const;
 
 /** Build one JudgmentHead from its spec entry (sole implementation; factory.ts delegates). */
 const ALL_SPECS: readonly HeadSpec[] = Object.values(HEAD_SPECS);

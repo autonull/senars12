@@ -1,4 +1,4 @@
-import { clamp01, SeededRNG, safeRatio } from '@senars/util';
+import { clamp01, maxScore, SeededRNG, safeRatio } from '@senars/util';
 import type { Game, GameOutcome, Perception } from '../Game.js';
 
 export interface BanditDriftConfig {
@@ -83,7 +83,7 @@ export class BanditGame implements Game<number, number> {
   }
 
   getOptimalArm(): number {
-    return this.armMeans.indexOf(Math.max(...this.armMeans));
+    return this.armMeans.indexOf(maxScore(this.armMeans, (mean) => mean));
   }
 
   getStepCount(): number {

@@ -3,6 +3,9 @@
  * is this, what words are in it, and how do I show the first `n` of it — had one
  * answer each across the repo rather than one each here.
  */
+import { safeRatio } from './numeric.js';
+
+/** Cut to `maxLength`, marking what the cut hid — the shortest of the three. */
 export const truncate = (text: string, maxLength = 60): string =>
   text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
 
@@ -54,14 +57,29 @@ export const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|
 export const tokenizeWords = (text: string, splitPattern: RegExp = /\s+/): Set<string> =>
   new Set(splitWords(text.toLowerCase(), splitPattern));
 
+/**
+ * The separators between the words of a *term* rather than of prose. Three
+ * similarity paths each declared their own character class and none agreed on
+ * whether a Narsese arrow is one word or two; a term's words are the grammar's,
+ * so the set is the grammar's and the three read it from here.
+ */
+export const TERM_SEPARATORS = /[\s_()[\]<>\-/=>]+/;
+
+/** How many of `needle`'s words appear in `haystack` — the numerator every
+ *  overlap ratio is, and the form a caller holding one precomputed set needs. */
+export const overlapCount = (
+  needle: ReadonlySet<string>,
+  haystack: ReadonlySet<string>
+): number => {
+  let overlap = 0;
+  for (const word of needle) if (haystack.has(word)) overlap++;
+  return overlap;
+};
+
 export const wordOverlap = (a: string, b: string, splitPattern?: RegExp): number => {
   const aWords = tokenizeWords(a, splitPattern);
   const bWords = tokenizeWords(b, splitPattern);
-  const denominator = Math.max(aWords.size, bWords.size);
-  if (denominator === 0) return 0;
-  let overlap = 0;
-  for (const word of aWords) if (bWords.has(word)) overlap++;
-  return overlap / denominator;
+  return safeRatio(overlapCount(aWords, bWords), Math.max(aWords.size, bWords.size));
 };
 
 /**

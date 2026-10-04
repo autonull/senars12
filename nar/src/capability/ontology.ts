@@ -4,11 +4,10 @@
  * Consumers: delegation, curriculum probes (.probes), self-report.
  */
 
-import { addToSet, shortSha256Hex } from '@senars/util';
-
-import { CapabilitySpace, type CapabilityDef } from './space.js';
 import type { ToolSpec } from '@senars/core/motor';
-import type { Tool as NarTool, Schema as NarSchema } from '../tools/types.js';
+import { addToSet, mapValues, shortSha256Hex } from '@senars/util';
+import type { Schema as NarSchema, Tool as NarTool } from '../tools/types.js';
+import { type CapabilityDef, CapabilitySpace } from './space.js';
 
 export type CapabilityType = 'tool' | 'rule' | 'metta' | 'skill';
 
@@ -85,7 +84,9 @@ export class CapabilityOntology {
     // Validate parentId if present
     if (entry.provenance.parentId) {
       if (!this.entries.has(entry.provenance.parentId)) {
-        throw new Error(`Parent capability '${entry.provenance.parentId}' not found for capability '${entry.id}'`);
+        throw new Error(
+          `Parent capability '${entry.provenance.parentId}' not found for capability '${entry.id}'`
+        );
       }
     }
 
@@ -112,12 +113,11 @@ export class CapabilityOntology {
     // Convert NAR's Schema to the flat format expected by CapabilitySchema.input
     const required = new Set(tool.parameters?.required ?? []);
     const inputSchema = tool.parameters
-      ? Object.fromEntries(
-          Object.entries(tool.parameters.properties).map(([k, v]) => [
-            k,
-            { type: v.type, required: required.has(k), description: v.description },
-          ])
-        )
+      ? mapValues(tool.parameters.properties, (v, k) => ({
+          type: v.type,
+          required: required.has(k),
+          description: v.description,
+        }))
       : {};
     this.register({
       id: `tool:${tool.name}`,
@@ -293,7 +293,10 @@ export class CapabilityOntology {
   }
 
   /** Execute a capability by ID. */
-  async execute(id: string, args: Record<string, unknown> = {}): Promise<{ success: boolean; result?: unknown; error?: string }> {
+  async execute(
+    id: string,
+    args: Record<string, unknown> = {}
+  ): Promise<{ success: boolean; result?: unknown; error?: string }> {
     const entry = this.entries.get(id);
     if (!entry) {
       return { success: false, error: `Capability '${id}' not found` };
@@ -318,7 +321,9 @@ export class CapabilityOntology {
 
   /** Get capabilities suitable for delegation (low risk, no unmet prerequisites). */
   getDelegatable(): CapabilityOntologyEntry[] {
-    return this.getAll().filter((c) => c.risk === 'low' && c.prerequisites.every((p) => this.entries.has(p)));
+    return this.getAll().filter(
+      (c) => c.risk === 'low' && c.prerequisites.every((p) => this.entries.has(p))
+    );
   }
 
   /** Get curriculum probes — capabilities with corrections/low grades. */

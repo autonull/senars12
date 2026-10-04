@@ -1,4 +1,4 @@
-import { sumBy } from '@senars/util';
+import { safeRatio, sumBy } from '@senars/util';
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import { ConfigurationError } from '../../types';
@@ -54,6 +54,9 @@ export class CompositeAttention implements AttentionModel {
   }
 
   #weighted(read: (model: AttentionModel) => number): number {
-    return sumBy(this.members, (m) => read(m.model) * m.weight) / this.totalWeight;
+    return safeRatio(
+      sumBy(this.members, (m) => read(m.model) * m.weight),
+      this.totalWeight
+    );
   }
 }

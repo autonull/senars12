@@ -1,4 +1,4 @@
-import { clamp01, SeededRNG } from '@senars/util';
+import { clamp01, maxScore, SeededRNG } from '@senars/util';
 import type { Game, GameOutcome, Perception } from '../Game.js';
 
 export type Move2048 = 0 | 1 | 2 | 3; // left, up, right, down
@@ -136,12 +136,13 @@ export class Game2048 implements Game<Game2048State, Move2048> {
   }
 
   observe(): Perception {
+    const cells = this.state_.board.flat();
     return {
       stateId: this.stateKey(),
       features: {
-        emptyCells: this.state_.board.flat().filter((v) => v === 0).length,
+        emptyCells: cells.filter((v) => v === 0).length,
         steps: this.state_.steps,
-        maxTile: Math.max(...this.state_.board.flat()),
+        maxTile: maxScore(cells, (v) => v),
       },
       confidence: 1,
       terminal: this.state_.terminal,

@@ -66,8 +66,6 @@ export const op = termGuard('operation');
 export const setExt = termGuard('setExt');
 export const setInt = termGuard('setInt');
 
-export const getArg = (term: Term, index: number): Term | undefined => term.args?.[index];
-
 export const builders = {
   unary:
     <T>(guard: (t: Term) => boolean, transform: (t: Term) => T | undefined) =>

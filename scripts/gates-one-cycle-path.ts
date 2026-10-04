@@ -14,8 +14,9 @@
  * that does not look like the one in `nar-execution.ts` is the thing to look at.
  */
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
+
+import { productionSources } from './lib/source-scan.js';
 
 const ROOTS = ['nar/src', 'src', 'core/src'] as const;
 const CONSTRUCT = /new InferenceController\(/g;
@@ -27,27 +28,18 @@ export interface CyclePathSite {
   readonly text: string;
 }
 
-const sources = (root: string): string[] => {
-  const out: string[] = [];
-  const walk = (dir: string): void => {
-    for (const entry of readdirSync(dir)) {
-      const path = join(dir, entry);
-      if (statSync(path).isDirectory()) walk(path);
-      else if (path.endsWith('.ts') && !path.endsWith('.d.ts')) out.push(path);
-    }
-  };
-  walk(root);
-  return out;
-};
-
 /** Every site in `roots` matching `pattern`, as `file:line` references. */
 export const findSites = (roots: readonly string[], pattern: RegExp): readonly CyclePathSite[] =>
   roots.flatMap((root) =>
-    sources(root).flatMap((file) =>
+    productionSources([root]).flatMap((file) =>
       readFileSync(file, 'utf8')
         .split('\n')
         .flatMap((text, index) =>
-          [...text.matchAll(pattern)].map(() => ({ ref: `${file}:${index + 1}`, line: index + 1, text: text.trim() }))
+          [...text.matchAll(pattern)].map(() => ({
+            ref: `${file}:${index + 1}`,
+            line: index + 1,
+            text: text.trim(),
+          }))
         )
     )
   );
@@ -61,7 +53,9 @@ for (const site of steps) console.log(`  step       ${site.ref}  ${site.text}`);
 console.log();
 
 const failures = [
-  ...(constructions.length === 1 ? [] : [`${constructions.length} InferenceController construction sites, expected exactly 1`]),
+  ...(constructions.length === 1
+    ? []
+    : [`${constructions.length} InferenceController construction sites, expected exactly 1`]),
   ...(steps.length === 1 ? [] : [`${steps.length} inference step call sites, expected exactly 1`]),
 ];
 

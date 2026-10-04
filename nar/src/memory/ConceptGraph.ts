@@ -3,7 +3,7 @@
  * Provides O(k) lookup where k = term depth, with fallback edges for non-regression.
  */
 
-import { BoundedMap, collectUpTo, selectTopN } from '@senars/util';
+import { BoundedMap, collectUpTo, retain, selectTopN } from '@senars/util';
 import type { Term } from '../terms/index.js';
 import { atom, getArgs, termKey } from '../terms/index.js';
 
@@ -121,9 +121,10 @@ export class ConceptGraph {
     if (!node) return [];
 
     return selectTopN(
-      [...node.coActivations.values()].filter((e) => e.weight >= this.minEdgeWeight),
+      node.coActivations.values(),
       limit,
-      (e) => e.weight
+      (e) => e.weight,
+      (e) => e.weight >= this.minEdgeWeight
     );
   }
 
@@ -139,7 +140,7 @@ export class ConceptGraph {
   decay(): void {
     for (const node of this.allNodes()) {
       for (const [key, edge] of node.coActivations) {
-        edge.weight *= 1 - this.decayRate;
+        edge.weight = retain(edge.weight, this.decayRate);
         if (edge.weight < this.minEdgeWeight) {
           node.coActivations.delete(key);
           this.edgeCount--;

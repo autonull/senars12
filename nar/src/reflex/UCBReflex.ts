@@ -1,27 +1,26 @@
-import { ucb1 } from '@senars/util';
-import { BanditReflex, type QEntry } from './BanditReflex.js';
+import { ucb, visitConfidence } from '@senars/util';
+import { SATURATION_COUNT } from '../constants.js';
+import { BanditReflex } from './BanditReflex.js';
 import type { Reflex } from './Reflex.js';
 
 interface UCBOptions {
   numArms: number;
   c?: number;
-  initialValue?: number;
 }
 
 /** UCB1: optimistic untried arms, confidence-scaled exploration thereafter. */
 export class UCBReflex extends BanditReflex<UCBOptions> implements Reflex<string, number> {
-  private readonly c: number;
-
   constructor(id: string, options: UCBOptions = { numArms: 10 }) {
-    super(id, options);
-    this.c = options.c ?? 1.414;
-  }
-
-  protected override confidenceOf(entry: QEntry): number {
-    return entry.count === 0 ? 0.1 : super.confidenceOf(entry);
-  }
-
-  protected explore(entry: QEntry): number {
-    return entry.count === 0 ? 1.0 : ucb1(entry.value, entry.count, this.totalSteps + 1, this.c);
+    const confidence = visitConfidence(SATURATION_COUNT);
+    const score = ucb(options.c ?? 1.414, 1.0);
+    // `+ 1`: the pull being scored counts in the denominator, so a table with no
+    // observations yet still scores an untried arm optimistically rather than
+    // dividing by a logarithm of zero.
+    super(
+      id,
+      options,
+      (entry, totalVisits) => score(entry, totalVisits + 1),
+      (count) => (count === 0 ? 0.1 : confidence(count))
+    );
   }
 }

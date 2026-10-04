@@ -1,7 +1,7 @@
 /**
  * Term pattern analysis - extracted from SelfAnalyzerService
  */
-import { mean, selectTopN } from '@senars/util';
+import { getOrInsert, mean, selectTopN } from '@senars/util';
 import type { Concept } from '../../../memory/concept.js';
 import type { TermPattern } from '../../types.js';
 
@@ -19,12 +19,17 @@ export const analyzeTermPatterns = (concepts: Concept[]): TermPattern[] => {
   const termFreq = new Map<string, TermFreqEntry>();
 
   for (const concept of concepts) {
-    const termStr = concept.term.toString();
-    const existing = termFreq.get(termStr);
-    const data: TermFreqEntry = existing ?? { count: 0, priorities: [], coOccurrences: new Map() };
+    const data = getOrInsert(
+      termFreq,
+      concept.term.toString(),
+      (): TermFreqEntry => ({
+        count: 0,
+        priorities: [],
+        coOccurrences: new Map(),
+      })
+    );
     data.count++;
     data.priorities.push(concept.priority);
-    termFreq.set(termStr, data);
   }
 
   const results: TermPattern[] = [];

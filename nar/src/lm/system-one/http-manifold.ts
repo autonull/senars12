@@ -1,13 +1,7 @@
 import { z } from 'zod';
 import { resourceCostSchema, scoreDistributionSchema } from '../../decision/types.js';
 import { createRemoteManifold } from './remote-manifold.js';
-import type {
-  BackendId,
-  EmbeddingCache,
-  JudgmentManifold,
-  JudgmentProposition,
-  ModelDigest,
-} from './types.js';
+import type { BackendId, EmbeddingCache, JudgmentManifold, JudgmentProposition } from './types.js';
 
 /**
  * D4/X (§0.4): remote manifold client for `provider: 'http'`. POSTs
@@ -19,7 +13,6 @@ import type {
 
 /** The local manifold digest is meaningless for a remote judge; the client
  *  records its own identity so digest-pinned governance stays local. */
-export const REMOTE_MANIFOLD_DIGEST = 'sha256:remote-manifold-client' as ModelDigest;
 export const REMOTE_MANIFOLD_BACKEND = 'http-remote' as BackendId;
 
 /** Structural validation of a proposition on the wire (kind-specific payloads). */

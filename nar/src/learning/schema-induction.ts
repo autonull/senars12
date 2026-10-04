@@ -15,7 +15,9 @@ import {
   generateId,
   type Logger,
   LruCache,
+  minBy,
   parseJsonObject,
+  sortBy,
 } from '@senars/util';
 import type { BagItem } from '../bag/Bag.js';
 import type { MemoryReader } from '../memory/ports/index.js';
@@ -188,7 +190,7 @@ export class SchemaInductor {
     const variables = terms.map((_, i) => `?V${i + 1}`);
     const template = terms.map((t, i) => `${variables[i]}:${t}`).join(' → ');
     const confidences = chain.map((t) => (t.truth ? Truth.attention(t.truth) : 0));
-    const confidence = clamp01(Math.min(...confidences));
+    const confidence = clamp01(minBy(confidences, (c) => c)!);
     if (confidence < this.config.minConfidenceForInduction) return null;
     const id = generateId('schema-sym', this.rng);
     const schema: SchemaPattern = {
@@ -329,9 +331,7 @@ Respond with JSON:
 
   private enforceMaxSchemas(): void {
     if (this.schemas.size <= this.config.maxSchemas) return;
-    const sorted = Array.from(this.schemas.values()).sort(
-      (a, b) => a.usageCount - b.usageCount || a.confidence - b.confidence
-    );
+    const sorted = sortBy(this.schemas.values(), (s) => s.usageCount - s.confidence);
     const toRemove = sorted.slice(0, this.schemas.size - this.config.maxSchemas);
     for (const s of toRemove) {
       this.schemas.delete(s.id);

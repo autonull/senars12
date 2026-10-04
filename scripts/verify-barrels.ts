@@ -26,21 +26,14 @@
  * thing that can be measured and the public surface is the thing the barrel
  * already declares.
  */
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { importEdges } from './lib/imports.js';
 import { entryTargets, readPackageJson } from './lib/pkg.js';
 import { ROOT } from './lib/root.js';
+import { moduleSource, sourceFiles } from './lib/source-scan.js';
 
 const PACKAGES = ['util', 'core', 'nar', 'io', 'metta'];
-const isModule = (name: string): boolean =>
-  name.endsWith('.ts') && !name.endsWith('.test.ts') && !name.endsWith('.d.ts');
-
-const sourceFiles = (dir: string): string[] =>
-  readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry);
-    return statSync(path).isDirectory() ? sourceFiles(path) : isModule(entry) ? [path] : [];
-  });
 
 /** Every module in a package, keyed by its path relative to the package's `src`. */
 const moduleIndex = (pkg: string): Map<string, string[]> => {
@@ -49,13 +42,20 @@ const moduleIndex = (pkg: string): Map<string, string[]> => {
   const index = new Map<string, string[]>();
   for (const file of sourceFiles(root)) {
     const key = relative(root, file).replace(/\.ts$/, '');
-    index.set(key, importEdges(readFileSync(file, 'utf-8')).map((edge) => edge.specifier));
+    index.set(
+      key,
+      importEdges(readFileSync(file, 'utf-8')).map((edge) => edge.specifier)
+    );
   }
   return index;
 };
 
 /** Resolves a relative specifier to a key in the index, or undefined if it leaves the package. */
-const resolve = (from: string, specifier: string, index: Map<string, string[]>): string | undefined => {
+const resolve = (
+  from: string,
+  specifier: string,
+  index: Map<string, string[]>
+): string | undefined => {
   if (!specifier.startsWith('.')) return undefined;
   const segments = from.split('/');
   segments.pop();
@@ -108,7 +108,7 @@ for (const pkg of PACKAGES) {
     }
 
     const named = new Set(importEdges(barrel).map((e) => e.specifier));
-    for (const file of readdirSync(join(srcRoot, dir)).filter(isModule)) {
+    for (const file of readdirSync(join(srcRoot, dir)).filter(moduleSource)) {
       if (file === 'index.ts') continue;
       const key = `${dir}/${file.replace(/\.ts$/, '')}`;
       if (isClaimed(key)) continue;

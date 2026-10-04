@@ -1,24 +1,10 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
-
-import { ROOT } from './root.js';
+import { lineAt, scanSubject as readSubject } from './source-scan.js';
 
 /** The production trees the surface is declared over. */
 const SCAN_ROOTS = ['nar/src', 'src'] as const;
 
-const sourceFiles = (dir: string): string[] =>
-  readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry);
-    return statSync(path).isDirectory() ? sourceFiles(path) : path.endsWith('.ts') ? [path] : [];
-  });
-
-/** Every production source file, repo-relative. One reader, so gate and test cannot disagree. */
-export const scanSubject = (): SurfaceSubject => ({
-  files: SCAN_ROOTS.flatMap((root) => sourceFiles(join(ROOT, root))).map((path) => ({
-    path: path.slice(ROOT.length + 1),
-    source: readFileSync(path, 'utf8'),
-  })),
-});
+/** Every production source file with its text. One reader, so gate and test cannot disagree. */
+export const scanSubject = (): SurfaceSubject => ({ files: readSubject() });
 
 /**
  * The attention write surface: who may write `Concept.priority`, and what else
@@ -89,7 +75,7 @@ export interface SurfaceViolation {
 export const writeSites = ({ files }: SurfaceSubject): WriteSite[] =>
   files.flatMap(({ path, source }) =>
     [...source.matchAll(WRITE_ATTENTION)].map((match) => ({
-      at: `${path}:${source.slice(0, match.index).split('\n').length}`,
+      at: `${path}:${lineAt(source, match.index)}`,
       reason: match[1] ?? '',
     }))
   );

@@ -4,22 +4,15 @@
  * internals plus a public-surface view (barrels → top-level folders). Checked
  * into docs/architecture/ so drift is reviewable; CI can diff the output.
  */
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { ROOT } from './lib/root.js';
+import { excludingGenerated, sourceFiles } from './lib/source-scan.js';
 
 const NAR_SRC = join(ROOT, 'nar/src');
 const OUT_DIR = join(ROOT, 'docs/architecture');
 
-const walk = (dir: string): string[] =>
-  readdirSync(dir).flatMap((entry) => {
-    const p = join(dir, entry);
-    return statSync(p).isDirectory() && !p.includes('peggy-generated')
-      ? walk(p)
-      : p.endsWith('.ts')
-        ? [p]
-        : [];
-  });
+const walk = (dir: string): string[] => sourceFiles(dir, excludingGenerated('peggy-generated'));
 
 const IMPORT_RE = /from\s+['"](\.[^'"]+)['"]/g;
 

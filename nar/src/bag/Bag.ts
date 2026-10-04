@@ -8,6 +8,7 @@ import {
   nextInt,
   occupancy,
   type RandomSource,
+  retain,
 } from '@senars/util';
 import { PRESSURE } from '../constants.js';
 import { FenwickTree } from './fenwick.js';
@@ -210,12 +211,12 @@ export class PriorityBag<T extends BagItem> implements Bag<T>, BoundedContainer<
   }
 
   decay(rate?: number): void {
-    const factor = 1 - (rate ?? this.decayRate);
+    const decayRate = rate ?? this.decayRate;
     const kept: InternalEntry<T>[] = [];
     let newTotal = 0;
 
     for (const entry of this.store) {
-      entry.item.priority *= factor;
+      entry.item.priority = retain(entry.item.priority, decayRate);
       if (entry.item.priority < this.forgetRate) entry.item.priority = 0;
       if (entry.item.priority > 0) {
         kept.push(entry);

@@ -96,6 +96,36 @@ export const decayCurve = (initial: number, rate: number, elapsed: number): numb
   initial * Math.exp(-rate * elapsed);
 
 /**
+ * `value · (1 − rate)` — what survives one forgetting step. The retention
+ * algebra: every container that ages a weight out of existence composes this
+ * same factor, so a rate means the same thing in the bag, the link layer, the
+ * concept graph and a drive.
+ *
+ * Related but distinct from {@link decayCurve}, which answers "how much of a
+ * confidence survives `elapsed` units of time" and is the only exponential
+ * form in the tree. Composing `retain` `n` times is the discrete equivalent.
+ */
+export const retain = (value: number, rate: number): number => value * (1 - rate);
+
+/**
+ * A rate annealing toward a floor: `clamp(value · survival, floor, ceiling)` —
+ * the shape of every exploration schedule that decays and then refuses to decay
+ * further. The counterpart of {@link retain}: a schedule is configured by what
+ * fraction *survives* each episode, while a forgetting step is configured by
+ * what fraction is *lost*, and the two schedules each spelled the multiply and
+ * the floor out themselves.
+ */
+export const anneal = (value: number, survival: number, floor = 0, ceiling = 1): number =>
+  clamp(value * survival, floor, ceiling);
+
+/**
+ * `value · rate` — the amount one forgetting step removes. The deduction
+ * algebra, the exact complement of {@link retain}: a model that reports what
+ * it subtracts must not also scale by the survivor.
+ */
+export const forget = (value: number, rate: number): number => value * rate;
+
+/**
  * `num / den`, with the empty-denominator answer supplied rather than implied.
  *
  * Every rate in the system is "something over how much of it there was" — a hit
@@ -142,12 +172,25 @@ export const sumBy = <T>(
   return total;
 };
 
-/** Arithmetic mean over a projection — {@link safeRatio} with the count as denominator. */
+/**
+ * Arithmetic mean over a projection — {@link safeRatio} with the count as
+ * denominator, counted in the same pass rather than read off `items.length`, so
+ * a container's own values (`map.values()`, a ring's items) can be averaged
+ * without being materialized into an array first.
+ */
 export const meanOf = <T>(
-  items: readonly T[],
+  items: Iterable<T>,
   value: (item: T) => number,
   empty: number = 0
-): number => safeRatio(sumBy(items, value), items.length, empty);
+): number => {
+  let total = 0;
+  let count = 0;
+  for (const item of items) {
+    total += value(item);
+    count++;
+  }
+  return safeRatio(total, count, empty);
+};
 
 export const safeDiv = (num: number, den: number): number => clamp01(safeRatio(num, den));
 
@@ -162,7 +205,12 @@ export const normalizeToSum = <T>(
   value: (item: T) => number,
   empty: readonly number[] = []
 ): readonly number[] =>
-  renormalize<number>(items as readonly number[], value as (item: number) => number, (_, share) => share, empty);
+  renormalize<number>(
+    items as readonly number[],
+    value as (item: number) => number,
+    (_, share) => share,
+    empty
+  );
 
 /**
  * Rescale each item *in place of its mass* so the masses sum to 1, keeping the
@@ -172,14 +220,15 @@ export const normalizeToSum = <T>(
  * `fallback` is returned when the masses cannot be normalized, and defaults to
  * the input: an un-normalizable set is already whatever the caller had.
  */
-export const renormalize = <T>(
+export const renormalize = <T, R = T>(
   items: readonly T[],
   mass: (item: T) => number,
-  rescale: (item: T, share: number) => T,
-  fallback: readonly T[] = items
-): readonly T[] => {
+  rescale: (item: T, share: number) => R,
+  fallback?: readonly R[]
+): readonly R[] => {
   const total = sumBy(items, mass);
-  return total > 0 ? items.map((item) => rescale(item, mass(item) / total)) : fallback;
+  if (total <= 0) return fallback ?? (items as unknown as readonly R[]);
+  return items.map((item) => rescale(item, mass(item) / total));
 };
 
 /**
@@ -226,7 +275,7 @@ export const softmax = (values: readonly number[]): number[] => {
 
 /** Arithmetic mean of a projection; 0 for an empty collection (rates, scores, sums). */
 export const mean = <T>(
-  items: readonly T[],
+  items: Iterable<T>,
   value: (item: T) => number = (item) => item as unknown as number
 ): number => meanOf(items, value);
 

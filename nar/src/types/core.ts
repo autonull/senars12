@@ -3,11 +3,11 @@
  * Single source of truth for foundational types
  */
 
+import { narCoreBounds, narCoreDefaults } from '@senars/util/config';
 import type { Term } from '../terms';
 import { Stamp, Truth } from '../terms';
-import { canonicalTask } from '../terms/reduce-task.js';
 import type { Truth as TruthType } from '../terms/impls/Truth.js';
-import { narCoreBounds, narCoreDefaults } from '@senars/util/config';
+import { canonicalTask } from '../terms/reduce-task.js';
 import { createTimestamp, DEPTH_MAX, type Timestamp } from './primitives.js';
 
 export type { Source, Stamp } from '../terms/impls/Stamp.js';
@@ -151,25 +151,20 @@ export const createSecondaryTask = (
     derived: false,
   });
 
-// Runtime assertion for belief tasks — crash early instead of silently fabricating values
-export function assertBeliefTask(task: Task): asserts task is Task & { truth: TruthType } {
-  if (task.type !== 'question' && !task.truth) {
-    throw new Error(`Bug: ${task.type} task missing truth: ${task.term}`);
-  }
-}
-
 // Error types for better error handling — the taxonomy lives in `@senars/util`;
 // these aliases are the legacy spelling the `types` barrel and its importers use.
 /** @deprecated since 0.6.0 — use `SenarsError` from `@senars/util/errors`. */
 export { SenarsError as NARError } from '@senars/util';
 /** @deprecated since 0.6.0 — use `ValidationError` from `@senars/util/errors`. */
-export { ValidationError } from '@senars/util/errors';
 /** @deprecated since 0.6.0 — use `ConfigurationError` from `@senars/util/errors`. */
-export { ConfigurationError } from '@senars/util/errors';
 /** @deprecated since 0.6.0 — use `OperationError` from `@senars/util/errors`. */
-export { OperationError } from '@senars/util/errors';
 /** @deprecated since 0.6.0 — use `ToolError` from `@senars/util/errors`. */
-export { ToolError } from '@senars/util/errors';
+export {
+  ConfigurationError,
+  OperationError,
+  ToolError,
+  ValidationError,
+} from '@senars/util/errors';
 
 // Query filter types
 export interface TermFilter {

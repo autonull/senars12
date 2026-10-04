@@ -4,6 +4,7 @@
 
 import {
   formatNarseseTruth,
+  keyedBy,
   type ModelRuleStats,
   pushCapped,
   stopwatch,
@@ -201,8 +202,10 @@ export class RuleProcessor {
   private driveState(): Record<string, number> {
     const driveManager = this.host?.getDriveManager();
     if (!driveManager) return {};
-    return Object.fromEntries(
-      driveManager.getAllStates().map((ds) => [ds.spec.id, ds.currentIntensity])
+    return keyedBy(
+      driveManager.getAllStates(),
+      (ds) => ds.spec.id,
+      (ds) => ds.currentIntensity
     );
   }
 

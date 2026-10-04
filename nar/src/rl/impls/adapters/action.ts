@@ -1,4 +1,12 @@
-import { BoundedRing, maxBy, mean, nextInt, type RandomSource, rngFrom } from '@senars/util';
+import {
+  anneal,
+  BoundedRing,
+  maxBy,
+  mean,
+  nextInt,
+  type RandomSource,
+  rngFrom,
+} from '@senars/util';
 import { type Term, TermBuilder, Truth } from '../../../index.js';
 import type { NAR } from '../../../nar.js';
 import { operationNameOf, operationTerm } from '../../../terms/impls/operation-term.js';
@@ -73,6 +81,25 @@ export interface NativeActionSelector {
   onEpisodeEnd(): void;
 }
 
+/** Beliefs weaker than this are eligible for curiosity-driven exploration. */
+const LOW_CONFIDENCE = 0.4;
+/** How likely an exploration branch is once the estimate is weak. */
+const EXPLORE_BIAS = 0.5;
+/** Curiosity driven for an arm chosen on low confidence rather than on merit. */
+const CURIOSITY_BOOST = 0.05;
+
+/** How an ε-greedy policy selects. The three native policies share every field
+ *  except the defaults, so the differences are declared, not inherited. */
+export interface ArmQSelectorOptions {
+  /** Arms, as operation names. */
+  armNames: string[];
+  explorationRate: number;
+  rng: RandomSource;
+  /** How likely the low-confidence branch is once the estimate is weak. */
+  exploreBias?: number;
+  curiosityBoost?: number;
+}
+
 /**
  * Highest-priority pending tool goal naming an operation `accepts`, found by
  * reading the operation rather than by matching its printed form — the printed
@@ -98,53 +125,82 @@ const armIndexOf = (name: string | undefined): number | undefined => {
   return match ? Number.parseInt(match[1]!, 10) : undefined;
 };
 
-/**
- * Bandit action selector (existing logic extracted)
- */
-export class BanditSelector implements NativeActionSelector {
-  private readonly numArms: number;
-  private readonly actions: Term[];
-  private readonly stateTerm: Term;
-  private readonly explorationRate: number;
-  private readonly rng: RandomSource;
+/** The four moves a grid position offers. */
+const ACTION_NAMES = ['move_up', 'move_right', 'move_down', 'move_left'];
 
-  constructor(numArms: number = 3, explorationRate: number = 0.2, rng: RandomSource = Math.random) {
-    this.numArms = numArms;
-    this.explorationRate = explorationRate;
-    this.rng = rng;
-    this.stateTerm = TermBuilder.atom('bandit_state');
-    this.actions = Array.from({ length: numArms }, (_, i) => operationTerm(`pull_arm_${i}`));
+/** The arm names a bandit of `numArms` arms offers. */
+const pullArmNames = (numArms: number): string[] =>
+  Array.from({ length: numArms }, (_, i) => `pull_arm_${i}`);
+
+/**
+ * ε-greedy over a `QBeliefStore`: exploit the strongest expectation unless the
+ * dice say explore, prefer an arm whose belief is still weak, otherwise draw
+ * uniformly. Every native policy in this file selects that way — the only
+ * things they differ on are which state they read, how their exploration rate
+ * moves, and what they override.
+ */
+abstract class ArmQSelector implements NativeActionSelector {
+  protected explorationRate: number;
+  protected readonly actions: Term[];
+  protected readonly armNames: string[];
+  protected readonly rng: RandomSource;
+  private readonly exploreBias: number;
+  private readonly curiosityBoost: number;
+
+  protected constructor(options: ArmQSelectorOptions) {
+    this.armNames = options.armNames;
+    this.actions = options.armNames.map((name) => operationTerm(name));
+    this.explorationRate = options.explorationRate;
+    this.rng = options.rng;
+    this.exploreBias = options.exploreBias ?? EXPLORE_BIAS;
+    this.curiosityBoost = options.curiosityBoost ?? CURIOSITY_BOOST;
+  }
+
+  /** The belief key this policy reads. A bandit has one state; a world has one per position. */
+  protected stateTermFor(_stateId: string): Term {
+    return TermBuilder.atom('bandit_state');
+  }
+
+  /** An action already queued as a goal wins over the policy's own choice. */
+  protected pendingOverride(_nar: NAR, _stateId: string): number | undefined {
+    return undefined;
+  }
+
+  /** Exploration this arm's recent rewards have earned it beyond the base rate. */
+  protected driftExploration(_qStore: QBeliefStore, _bestIndex: number): number {
+    return 0;
   }
 
   selectAction(
     stateId: string,
     nar: NAR,
     qStore: QBeliefStore,
-    actionAdapter: GoalActionAdapter
+    _actionAdapter: GoalActionAdapter
   ): number {
-    const pending = armIndexOf(topPendingOperation(nar, isArmName));
+    const pending = this.pendingOverride(nar, stateId);
     if (pending !== undefined) return pending;
 
-    const bestAction = qStore.getBestAction(this.stateTerm, this.actions);
-    const lowConfidence = qStore.getLowConfidenceActions(this.stateTerm, this.actions, 0.4);
+    const stateTerm = this.stateTermFor(stateId);
+    const actions = this.actions;
+    const bestAction = qStore.getBestAction(stateTerm, actions);
+    const bestIndex = bestAction ? actions.indexOf(bestAction) : -1;
+    const rate = this.explorationRate + this.driftExploration(qStore, bestIndex);
 
-    if (bestAction && this.rng() > this.explorationRate) {
-      const idx = this.actions.indexOf(bestAction);
-      if (idx >= 0) return idx;
-    }
+    if (bestIndex >= 0 && this.rng() > rate) return bestIndex;
 
-    if (lowConfidence.length > 0 && this.rng() < 0.5) {
+    const lowConfidence = qStore.getLowConfidenceActions(stateTerm, actions, LOW_CONFIDENCE);
+    if (lowConfidence.length > 0 && this.rng() < this.exploreBias) {
       const exploreAction = lowConfidence[nextInt(this.rng, lowConfidence.length)];
-      if (!exploreAction) return nextInt(this.rng, this.numArms);
-      const idx = this.actions.indexOf(exploreAction);
-      qStore.stimulateCuriosity(0.05);
-      if (idx >= 0) return idx;
+      if (!exploreAction) return nextInt(this.rng, actions.length);
+      const index = actions.indexOf(exploreAction);
+      qStore.stimulateCuriosity(this.curiosityBoost);
+      if (index >= 0) return index;
     }
 
-    return nextInt(this.rng, this.numArms);
+    return nextInt(this.rng, actions.length);
   }
 
-  onReward(stateId: string, action: number, reward: number): void {}
+  onReward(_stateId: string, _action: number, _reward: number): void {}
 
   onEpisodeStart(): void {}
 
@@ -152,167 +208,115 @@ export class BanditSelector implements NativeActionSelector {
 }
 
 /**
- * GridWorld action selector - state-dependent policy with 4 actions per state
+ * Bandit action selector (existing logic extracted)
  */
-export class GridWorldSelector implements NativeActionSelector {
-  private readonly actions: Term[];
-  private readonly actionNames = ['move_up', 'move_right', 'move_down', 'move_left'];
-  private explorationRate: number;
-  private readonly explorationDecay: number;
-  private readonly explorationMin: number;
-  private readonly wallPenalty: number;
-  private lastStateId: string | null = null;
-  private lastAction: number | null = null;
-  private episodeCount: number = 0;
-  private readonly rng: RandomSource;
+export interface BanditSelectorOptions {
+  numArms?: number;
+  explorationRate?: number;
+  rng?: RandomSource;
+}
 
-  constructor(
-    explorationRate: number = 0.3,
-    wallPenalty: number = -0.1,
-    explorationDecay: number = 0.99,
-    explorationMin: number = 0.01,
-    seed: number | RandomSource = 42
-  ) {
-    this.explorationRate = explorationRate;
-    this.explorationDecay = explorationDecay;
-    this.explorationMin = explorationMin;
-    this.wallPenalty = wallPenalty;
-    this.actions = this.actionNames.map((name) => operationTerm(name));
-    this.rng = rngFrom(seed, Math.random);
+export class BanditSelector extends ArmQSelector {
+  constructor({
+    numArms = 3,
+    explorationRate = 0.2,
+    rng = Math.random,
+  }: BanditSelectorOptions = {}) {
+    super({ armNames: pullArmNames(numArms), explorationRate, rng });
   }
 
-  onEpisodeEnd(): void {
-    this.episodeCount++;
-    this.explorationRate = Math.max(
-      this.explorationMin,
-      this.explorationRate * this.explorationDecay
-    );
+  protected override pendingOverride(nar: NAR): number | undefined {
+    return armIndexOf(topPendingOperation(nar, isArmName));
+  }
+}
+
+/**
+ * GridWorld action selector - state-dependent policy with 4 actions per state
+ */
+export interface GridWorldSelectorOptions {
+  explorationRate?: number;
+  explorationDecay?: number;
+  explorationMin?: number;
+  seed?: number | RandomSource;
+}
+
+export class GridWorldSelector extends ArmQSelector {
+  private readonly explorationDecay: number;
+  private readonly explorationMin: number;
+
+  constructor({
+    explorationRate = 0.3,
+    explorationDecay = 0.99,
+    explorationMin = 0.01,
+    seed = 42,
+  }: GridWorldSelectorOptions = {}) {
+    super({
+      armNames: ACTION_NAMES,
+      explorationRate,
+      rng: rngFrom(seed, Math.random),
+      exploreBias: 0.4,
+      curiosityBoost: 0.03,
+    });
+    this.explorationDecay = explorationDecay;
+    this.explorationMin = explorationMin;
+  }
+
+  override onEpisodeEnd(): void {
+    this.explorationRate = anneal(this.explorationRate, this.explorationDecay, this.explorationMin);
   }
 
   getExplorationRate(): number {
     return this.explorationRate;
   }
 
-  selectAction(
-    stateId: string,
-    nar: NAR,
-    qStore: QBeliefStore,
-    actionAdapter: GoalActionAdapter
-  ): number {
-    const pending = topPendingOperation(nar, (name) => this.actionNames.includes(name));
-    if (pending !== undefined) {
-      return this.actionNames.indexOf(pending);
-    }
-
-    const stateTerm = TermBuilder.atom(stateId);
-
-    const bestAction = qStore.getBestAction(stateTerm, this.actions);
-    const lowConfidence = qStore.getLowConfidenceActions(stateTerm, this.actions, 0.4);
-
-    let selectedAction = 0;
-
-    if (bestAction && this.rng() > this.explorationRate) {
-      selectedAction = Math.max(0, this.actions.indexOf(bestAction));
-    } else if (lowConfidence.length > 0 && this.rng() < 0.4) {
-      const exploreAction = lowConfidence[nextInt(this.rng, lowConfidence.length)];
-      if (!exploreAction) return nextInt(this.rng, 4);
-      selectedAction = Math.max(0, this.actions.indexOf(exploreAction));
-      qStore.stimulateCuriosity(0.03);
-    } else {
-      selectedAction = nextInt(this.rng, 4);
-    }
-
-    this.lastStateId = stateId;
-    this.lastAction = selectedAction;
-    return selectedAction;
+  protected override stateTermFor(stateId: string): Term {
+    return TermBuilder.atom(stateId);
   }
 
-  onReward(stateId: string, action: number, reward: number): void {
-    if (reward === this.wallPenalty && this.lastStateId && this.lastAction !== null) {
-      // Could add additional logic here for wall learning
-    }
-  }
-
-  onEpisodeStart(): void {
-    this.lastStateId = null;
-    this.lastAction = null;
+  protected override pendingOverride(nar: NAR): number | undefined {
+    const pending = topPendingOperation(nar, (name) => this.armNames.includes(name));
+    return pending === undefined ? undefined : this.armNames.indexOf(pending);
   }
 }
 
 /**
  * Non-stationary bandit selector with change detection via confidence monitoring
  */
-export class NonStationarySelector implements NativeActionSelector {
-  private readonly numArms: number;
-  private readonly actions: Term[];
-  private readonly stateTerm: Term;
+export interface NonStationarySelectorOptions {
+  numArms?: number;
+  changeDetectionThreshold?: number;
+  explorationRate?: number;
+  rng?: RandomSource;
+}
+
+export class NonStationarySelector extends ArmQSelector {
   private readonly changeDetectionThreshold: number;
-  private readonly explorationRate: number;
-  private readonly rng: RandomSource;
   private armPullCounts: number[] = [];
   private lastRewards: number[] = [];
   private predictionErrors: BoundedRing<number>[] = [];
 
-  constructor(
-    numArms: number = 2,
-    changeDetectionThreshold: number = 0.3,
-    explorationRate: number = 0.2,
-    rng: RandomSource = Math.random
-  ) {
-    this.numArms = numArms;
+  constructor({
+    numArms = 2,
+    changeDetectionThreshold = 0.3,
+    explorationRate = 0.2,
+    rng = Math.random,
+  }: NonStationarySelectorOptions = {}) {
+    super({ armNames: pullArmNames(numArms), explorationRate, rng });
     this.changeDetectionThreshold = changeDetectionThreshold;
-    this.explorationRate = explorationRate;
-    this.rng = rng;
-    this.stateTerm = TermBuilder.atom('bandit_state');
-    this.actions = Array.from({ length: numArms }, (_, i) => operationTerm(`pull_arm_${i}`));
     this.armPullCounts = new Array(numArms).fill(0);
     this.lastRewards = new Array(numArms).fill(0);
     this.predictionErrors = Array.from({ length: numArms }, () => new BoundedRing<number>(20));
   }
 
-  selectAction(
-    stateId: string,
-    nar: NAR,
-    qStore: QBeliefStore,
-    actionAdapter: GoalActionAdapter
-  ): number {
-    const pending = armIndexOf(topPendingOperation(nar, isArmName));
-    if (pending !== undefined) return pending;
-
-    const bestAction = qStore.getBestAction(this.stateTerm, this.actions);
-    const lowConfidence = qStore.getLowConfidenceActions(this.stateTerm, this.actions, 0.4);
-
-    let effectiveExplorationRate = this.explorationRate;
-    if (bestAction) {
-      const bestIdx = this.actions.indexOf(bestAction);
-      const bestErrors = bestIdx >= 0 ? this.predictionErrors[bestIdx] : undefined;
-      if (bestErrors && bestErrors.size() > 5) {
-        const recentErrors = bestErrors.tail(5);
-        const avgError = mean(recentErrors);
-        if (avgError > this.changeDetectionThreshold) {
-          effectiveExplorationRate = Math.min(0.5, this.explorationRate * 2);
-          qStore.stimulateCuriosity(0.1);
-        }
-      }
-    }
-
-    if (bestAction && this.rng() > effectiveExplorationRate) {
-      const idx = this.actions.indexOf(bestAction);
-      if (idx >= 0) return idx;
-    }
-
-    if (lowConfidence.length > 0 && this.rng() < 0.5) {
-      const exploreAction = lowConfidence[nextInt(this.rng, lowConfidence.length)];
-      if (!exploreAction) return nextInt(this.rng, this.numArms);
-      const idx = this.actions.indexOf(exploreAction);
-      qStore.stimulateCuriosity(0.05);
-      if (idx >= 0) return idx;
-    }
-
-    return nextInt(this.rng, this.numArms);
+  protected override driftExploration(qStore: QBeliefStore, bestIndex: number): number {
+    const errors = bestIndex >= 0 ? this.predictionErrors[bestIndex] : undefined;
+    if (!errors || errors.size() <= 5) return 0;
+    if (mean(errors.tail(5)) <= this.changeDetectionThreshold) return 0;
+    qStore.stimulateCuriosity(0.1);
+    return Math.min(0.5, this.explorationRate * 2) - this.explorationRate;
   }
 
-  onReward(stateId: string, action: number, reward: number): void {
+  override onReward(stateId: string, action: number, reward: number): void {
     this.armPullCounts[action] = (this.armPullCounts[action] ?? 0) + 1;
     this.lastRewards[action] = reward;
 
@@ -320,14 +324,9 @@ export class NonStationarySelector implements NativeActionSelector {
       const errors = this.predictionErrors[action] ?? new BoundedRing<number>(20);
       const recentRewards = errors.tail(10);
       if (recentRewards.length > 0) {
-        const avgRecent = mean(recentRewards);
-        errors.push(Math.abs(reward - avgRecent));
+        errors.push(Math.abs(reward - mean(recentRewards)));
         this.predictionErrors[action] = errors;
       }
     }
   }
-
-  onEpisodeStart(): void {}
-
-  onEpisodeEnd(): void {}
 }

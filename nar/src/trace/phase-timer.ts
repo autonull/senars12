@@ -8,7 +8,7 @@
  * pure functions over `CycleTrace.regions()`.
  */
 
-import { flooredRatio, pct, removeBy, weightedMean } from '@senars/util';
+import { flooredRatio, maxScore, minScore, pct, removeBy, weightedMean } from '@senars/util';
 import type { CycleStageEvent, TraceRegion } from '../proposal/cycle-trace.js';
 
 export interface PhaseEntry {
@@ -64,7 +64,7 @@ export const summarizeRegions = (regions: readonly CycleStageEvent[]): PhaseTime
 
   const totalDurationMs =
     phases.length > 0
-      ? Math.max(...phases.map((p) => p.endTime)) - Math.min(...phases.map((p) => p.startTime))
+      ? maxScore(phases, (p) => p.endTime) - minScore(phases, (p) => p.startTime)
       : 0;
 
   return { totalDurationMs, phases, byRegion };

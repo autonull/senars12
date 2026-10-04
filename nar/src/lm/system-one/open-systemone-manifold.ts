@@ -1,3 +1,5 @@
+import { roundTo } from '@senars/util';
+
 import { shannonEntropy, topOption } from './distribution.js';
 import { createRemoteManifold } from './remote-manifold.js';
 import { type OpenRequest, type OpenResponse, openResponseSchema } from './systemone-wire.js';
@@ -30,7 +32,7 @@ export interface OpenSystemOneManifoldConfig {
 
 /** Canonical perception state text: stable JSON of the context embedding. */
 export const canonicalState = (embedding: Float32Array): string =>
-  JSON.stringify(Array.from(embedding, (v) => +v.toFixed(4)));
+  JSON.stringify(Array.from(embedding, (v) => roundTo(v, 4)));
 
 export const toOpenQuestions = (queries: readonly JudgmentQuery[]): OpenRequest['questions'] =>
   queries.map((query, i) => {

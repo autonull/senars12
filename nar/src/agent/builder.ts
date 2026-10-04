@@ -1,22 +1,26 @@
 import type { Agent, PromptBuilder } from '@senars/core';
 import type { MettaPort } from '@senars/core/metta-port';
-import type { LMService } from '../lm';
-import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import { errMsg } from '@senars/util';
 import type { SystemOneConfig } from '@senars/util/config';
+import { CognitiveRegistry } from '../cognitive/impls/CognitiveRegistry.js';
+import {
+  type CognitiveParameters,
+  DEFAULT_COGNITIVE_PARAMETERS,
+} from '../config/cognitive-parameters.js';
 import { BuilderError } from '../errors/index.js';
-import { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from '../config/cognitive-parameters.js';
 import type { GateRegistry } from '../kernel/GateRegistry.js';
 import { createGateRegistry } from '../kernel/GateRegistry.js';
 import type { ThreadScope } from '../kernel/thread-scope.js';
-import type { CapabilityTier } from './profiles.js';
-import { resolveProfile } from './profiles.js';
+import type { LMService } from '../lm';
 import type { LoadedHeadBundle } from '../lm/system-one/wasi-head-bundle.js';
 import { loadHeadBundle } from '../lm/system-one/wasi-head-bundle.js';
+import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import { withSpan } from '../otel/index.js';
-import { CognitiveRegistry } from '../cognitive/impls/CognitiveRegistry.js';
-export { NAR_PROFILES, resolveProfile } from './profiles.js';
+import type { CapabilityTier } from './profiles.js';
+import { resolveProfile } from './profiles.js';
+
 export type { CapabilityTier, NARProfileName, NARProfileSpec } from './profiles.js';
+export { NAR_PROFILES, resolveProfile } from './profiles.js';
 
 type GateInitConfig = Parameters<GateRegistry['initialize']>[0];
 
@@ -102,8 +106,8 @@ export class NARBuilder {
     if (spec.tier > 0)
       b.withSystemOne({ tier: spec.tier, params: { enabled: true, ...spec.systemOneParams } });
     const caps = Object.fromEntries(
-      Object.entries(spec.capabilities ?? {}).map(([k, v]) => [k, { enabled: v }])
-    ) as NARBuilder['capabilities'];
+      Object.entries(spec.capabilities ?? {}).map(([name, enabled]) => [name, { enabled }])
+    ) as CapabilitySurface;
     if (Object.keys(caps).length > 0) b.withCapabilities(caps);
     if (spec.deviceHead) b.withDeviceHead(spec.deviceHead);
     return b;
@@ -323,10 +327,7 @@ export class NARBuilder {
 
     const deviceHead = this.deviceHeadSpec
       ? await loadHeadBundle(this.deviceHeadSpec).catch((cause: unknown) => {
-          throw new BuilderError(
-            errMsg(cause, 'sandboxed head load failed'),
-            'deviceHead'
-          );
+          throw new BuilderError(errMsg(cause, 'sandboxed head load failed'), 'deviceHead');
         })
       : undefined;
 

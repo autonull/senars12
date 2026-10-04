@@ -4,6 +4,7 @@ import type {
   LMService,
   LMTask,
   NAR,
+  ParsedCommand,
   SkillDefinition,
   BridgeOptions as UtilBridgeOptions,
 } from '@senars/util';
@@ -22,7 +23,6 @@ export interface CorrelationScopeStore {
   get(correlationId: string): { contrastiveMemory?: object; sourceKey?: string };
 }
 
-import type { CognitiveEvent } from '../schemas/index.js';
 import type { LLMCortex } from '../cortex/LLMCortex.js';
 import type {
   CognitiveStimulus,
@@ -39,10 +39,12 @@ import type {
 } from '../memory/types.js';
 import type { PinStore } from '../motor/builtin-tools.js';
 import type { AgentCapabilities } from '../protocol/index.js';
+import type { CognitiveEvent } from '../schemas/index.js';
 import type { Connection } from '../Transport.js';
 import type { MacroPhase } from './pipeline.js';
 
-export type { CognitiveStimulus, Context, Derivation, ToolResult };
+/** `util` owns the shape; re-exported so `core` importers keep one spelling. */
+export type { CognitiveStimulus, Context, Derivation, ParsedCommand, ToolResult };
 
 export interface AgentOptions {
   log?: EventLog;
@@ -79,12 +81,6 @@ export interface AgentOptions {
   consolidation?: { enabled?: boolean; budget?: number };
   /** Phase A (REFACTOR.todo4): per-correlationId scope for ContrastiveMemory isolation. */
   threadScope?: CorrelationScopeStore;
-}
-
-export interface ParsedCommand {
-  command: string;
-  args: string[];
-  raw: string;
 }
 
 export type AgentPresetName = 'chat' | 'reasoning' | 'autonomous' | 'irc-bot';

@@ -1,4 +1,4 @@
-import { clamp01 } from '@senars/util';
+import { clamp01, minBy } from '@senars/util';
 import { containsSubterm, type Term, TermMap } from '../terms';
 import type { Task } from '../types';
 import type { Concept } from './concept.js';
@@ -40,18 +40,9 @@ export class Focus {
 
   addToFocus(concept: Concept): void {
     if (this.concepts.size >= this.config.maxConcepts && !this.concepts.has(concept.term)) {
-      // Single zero-allocation pass: TermMap is a structural-sharing collection,
-      // so minBy would materialise an entry array on every capacity overflow.
-      let lowestKey: Term | undefined;
-      let lowestPriority = Infinity;
-      for (const [key, entry] of this.concepts) {
-        if (entry.priority < lowestPriority) {
-          lowestPriority = entry.priority;
-          lowestKey = key;
-        }
-      }
-      if (lowestKey === undefined || lowestPriority >= concept.priority) return;
-      this.concepts.delete(lowestKey);
+      const lowest = minBy(this.concepts, ([, entry]) => entry.priority);
+      if (!lowest || lowest[1].priority >= concept.priority) return;
+      this.concepts.delete(lowest[0]);
     }
     this.concepts.set(concept.term, concept);
   }

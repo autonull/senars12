@@ -1,3 +1,4 @@
+import { forget } from '@senars/util';
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import type { AttentionContext, AttentionModel } from '../types.js';
@@ -12,7 +13,7 @@ export class SimpleAttention implements AttentionModel {
   }
 
   decay(concept: Concept, _cycles: number, baseDecayRate: number): number {
-    return concept.priority * baseDecayRate;
+    return forget(concept.priority, baseDecayRate);
   }
 
   tick(_memory: MemoryView, _cycleCount: number): void {}

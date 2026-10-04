@@ -1,6 +1,6 @@
+import { maxScore, TERM_SEPARATORS, wordOverlap } from '@senars/util';
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
-import { maxScore, wordOverlap } from '@senars/util';
 import type { AttentionContext } from '../types.js';
 import { SimpleAttention } from './SimpleAttention.js';
 
@@ -9,8 +9,6 @@ export class GoalRelevanceAttention extends SimpleAttention {
     name: 'goal-relevance',
     description: 'Boost proportional to goal term overlap',
   };
-
-  private readonly SPLIT_PATTERN = /[\s_()<>]+/;
 
   override prime(concept: Concept, ctx: AttentionContext): number {
     const boost = super.prime(concept, ctx);
@@ -23,7 +21,7 @@ export class GoalRelevanceAttention extends SimpleAttention {
     const goals = memory.getFocus().getActiveGoals();
     if (goals.length === 0) return 0;
     return maxScore(goals, (goal) =>
-      wordOverlap(termStr, goal.term.toString().toLowerCase(), this.SPLIT_PATTERN)
+      wordOverlap(termStr, goal.term.toString().toLowerCase(), TERM_SEPARATORS)
     );
   }
 }

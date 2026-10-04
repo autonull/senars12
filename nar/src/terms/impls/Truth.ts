@@ -1,6 +1,7 @@
 import {
   type Confidence,
   clamp,
+  clamp01,
   confidenceToWeight,
   type Frequency,
   formatTruth,
@@ -153,7 +154,7 @@ export const Truth = {
   }),
   intersection: truthOps.binary((f1, f2, c1, c2) => [f1 * f2, c1 * c2]),
   union: truthOps.binary((f1, f2, c1, c2) => [1 - (1 - f1) * (1 - f2), c1 * c2]),
-  subtract: truthOps.binary((f1, f2, c1, c2) => [Math.max(0, f1 - f2), c1 * c2]),
+  subtract: truthOps.binary((f1, f2, c1, c2) => [clamp01(f1 - f2), c1 * c2]),
   diff: truthOps.binary((f1, f2, c1, c2) => [Math.abs(f1 - f2), c1 * c2]),
   exemplification: truthOps.binary((f1, f2, c1, c2) => [
     f1 * f2,

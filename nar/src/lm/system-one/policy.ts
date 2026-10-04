@@ -4,7 +4,7 @@
  * `compositeScore` (normalized weighted aggregation), `judgeCascade`
  * (two-stage dependency). Code owns composition — weights are declared, never learned.
  */
-import { assertDefined, sumBy } from '@senars/util';
+import { assertDefined, renormalize, sumBy } from '@senars/util';
 import type {
   EmbeddingPointer,
   EvaluateProposition,
@@ -110,9 +110,16 @@ export interface CompositeEntry {
   abstained?: boolean;
 }
 
+export interface CompositeContribution {
+  key: string;
+  /** The entry's share of the total weight — already normalized. */
+  weight: number;
+  p: number;
+}
+
 export interface CompositeScore {
   score: number;
-  contributions: readonly { key: string; weight: number; p: number }[];
+  contributions: readonly CompositeContribution[];
 }
 
 /**
@@ -123,13 +130,13 @@ export function compositeScore(
   entries: readonly CompositeEntry[],
   weights: Record<string, number>
 ): CompositeScore | undefined {
-  const active = entries.filter((e) => !e.abstained);
-  const totalWeight = sumBy(active, (e) => weights[e.key] ?? 0);
-  if (!active.length || totalWeight <= 0) return undefined;
-  const contributions = active.map((e) => {
-    const weight = (weights[e.key] ?? 0) / totalWeight;
-    return { key: e.key, weight, p: e.p };
-  });
+  const contributions = renormalize<CompositeEntry, CompositeContribution>(
+    entries.filter((e) => !e.abstained),
+    (e) => weights[e.key] ?? 0,
+    (e, weight) => ({ key: e.key, weight, p: e.p }),
+    []
+  );
+  if (!contributions.length) return undefined;
   return { score: sumBy(contributions, (c) => c.weight * c.p), contributions };
 }
 

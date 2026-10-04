@@ -1,61 +1,52 @@
-import { clamp01, getOrInsert, weightedMean } from '@senars/util';
+import {
+  type ConfidenceCurve,
+  type Exploration,
+  greedy,
+  meanUpdate,
+  QTable,
+  visitConfidence,
+} from '@senars/util';
 import { SATURATION_COUNT } from '../constants.js';
 import { type ActionProposal, byExpectedValue, type LearningEvent } from './Reflex.js';
 
-/** Incremental mean estimator for one (state, action) pair. */
-export interface QEntry {
-  value: number;
-  count: number;
-}
+export type { QEntry } from '@senars/util';
 
 export interface BanditReflexOptions {
   numArms: number;
-  initialValue?: number;
 }
 
 /**
  * Shared tabular-bandit substrate: per-state Q-vectors, incremental reward
- * updates, and proposal assembly. Subclasses supply only the exploration term
- * that turns an estimate into a proposal value.
+ * updates, and proposal assembly. A subclass contributes two policies and
+ * nothing else — the exploration term that turns an estimate into a proposal
+ * value, and the curve that turns a visit count into confidence.
  */
 export abstract class BanditReflex<O extends BanditReflexOptions = BanditReflexOptions> {
   readonly id: string;
-  protected readonly numArms: number;
-  protected totalSteps = 0;
-  private readonly qTable = new Map<string, QEntry[]>();
+  protected readonly qTable = new QTable(meanUpdate);
+  protected readonly explore: Exploration;
+  protected readonly confidenceOf: ConfidenceCurve;
 
   protected constructor(
     id: string,
-    protected readonly options: O
+    options: O,
+    explore: Exploration = greedy,
+    confidenceOf: ConfidenceCurve = visitConfidence(SATURATION_COUNT)
   ) {
     this.id = id;
-    this.numArms = options.numArms;
-  }
-
-  /** Exploration-adjusted value for one arm's current estimate. */
-  protected abstract explore(entry: QEntry, state: string, action: number): number;
-
-  /** Proposal confidence from visit count — optimistic floors live in subclasses. */
-  protected confidenceOf(entry: QEntry): number {
-    return clamp01(entry.count / SATURATION_COUNT);
-  }
-
-  protected entryFor(state: string, action: number): QEntry {
-    const qState = getOrInsert(this.qTable, state, () =>
-      Array.from({ length: this.numArms }, () => ({ value: 0, count: 0 }))
-    );
-    qState[action] ??= { value: 0, count: 0 };
-    return qState[action]!;
+    this.explore = explore;
+    this.confidenceOf = confidenceOf;
   }
 
   propose(state: string, legalActions: number[]): ActionProposal[] {
+    const { totalVisits } = this.qTable;
     return legalActions
       .map((action) => {
-        const entry = this.entryFor(state, action);
+        const entry = this.qTable.read(state, String(action));
         return {
           action: String(action),
-          value: this.explore(entry, state, action),
-          confidence: this.confidenceOf(entry),
+          value: this.explore(entry, totalVisits),
+          confidence: this.confidenceOf(entry.count),
           source: this.id,
         };
       })
@@ -64,21 +55,14 @@ export abstract class BanditReflex<O extends BanditReflexOptions = BanditReflexO
 
   learn(event: LearningEvent): void {
     if (!event.actionExecuted) return;
-    const entry = this.entryFor(
-      event.perception.stateId,
-      Number.parseInt(event.actionExecuted, 10)
-    );
-    entry.value = weightedMean(entry.value, entry.count, event.reward);
-    entry.count++;
-    this.totalSteps++;
+    this.qTable.observe(event.perception.stateId, event.actionExecuted, event.reward);
   }
 
   getQValue(state: string, action: number): number {
-    return this.qTable.get(state)?.[action]?.value ?? 0;
+    return this.qTable.read(state, String(action)).value;
   }
 
   reset(): void {
     this.qTable.clear();
-    this.totalSteps = 0;
   }
 }

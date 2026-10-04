@@ -392,8 +392,6 @@ _Dynamic subpath (no single entry file)._
 
 - `AgentOptions`
 
-- `ParsedCommand`
-
 - `AgentPresetName`
 
 - `AgentPresetDeps`

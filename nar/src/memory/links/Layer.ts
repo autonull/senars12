@@ -1,5 +1,5 @@
 import type { EvictionOrder } from '@senars/util';
-import { addToSet, BoundedMap, collectUpTo, occupancy, removeFromSet } from '@senars/util';
+import { addToSet, BoundedMap, collectUpTo, occupancy, removeFromSet, retain } from '@senars/util';
 import { type Term, termKey } from '../../terms';
 import type { RandomSource } from '../../types/primitives.js';
 import type { LinkEntry, LinkForgetPolicy, LinkInput, LinkQuery, LinkType } from './types.js';
@@ -115,7 +115,7 @@ export class Layer {
   applyDecay(decayRate: number): void {
     const doomed: string[] = [];
     for (const [id, entry] of this.links.entries()) {
-      entry.priority = Math.max(0, entry.priority * (1 - decayRate));
+      entry.priority = retain(entry.priority, decayRate);
       if (entry.priority < DECAY_FLOOR) doomed.push(id);
     }
     for (const id of doomed) {

@@ -1,17 +1,15 @@
-import { sumBy } from '@senars/util';
+import { safeRatio, sumBy } from '@senars/util';
 import type { Focus } from './Focus.js';
 
 /** Compute the total weight across all foci. */
-export const focusTotalWeight = (foci: Iterable<Focus>): number =>
-  sumBy(foci, (f) => f.weight);
+export const focusTotalWeight = (foci: Iterable<Focus>): number => sumBy(foci, (f) => f.weight);
 
 /** Allocate budget to a focus proportionally to its weight. */
 export const allocateFocusBudget = (
   focus: Focus,
   totalWeight: number,
   totalBudget: number
-): number =>
-  totalWeight === 0 ? 0 : Math.floor((focus.weight / totalWeight) * totalBudget);
+): number => Math.floor(safeRatio(focus.weight, totalWeight) * totalBudget);
 
 /** Focus id to weight. The projection both containers are built from, so the
  *  in-memory view and the persisted one cannot name different weights. */

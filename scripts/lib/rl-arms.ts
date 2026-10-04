@@ -1,4 +1,5 @@
-import { SeededRNG } from '../../nar/src/game/index.js';
+import { getOrInsert, lerpUpdate, maxBy, QTable, softmax } from '@senars/util';
+import type { SeededRNG } from '../../nar/src/game/index.js';
 
 export interface RLStep {
   action: string;
@@ -7,61 +8,55 @@ export interface RLStep {
 
 export interface RLLearner {
   act(stateKey: string, legal: string[]): RLStep;
-  feedback(reward: number, nextKey: string, nextLegal: string[], terminal: boolean): void;
+  feedback(reward: number, nextKey: string, _nextLegal: string[], terminal: boolean): void;
   endEpisode(): void;
 }
 
+/** A preference row holding every legal action, defaulting the unpulled ones. */
 const row = (
-  table: Map<string, Map<string, number>>,
+  prefs: Map<string, Map<string, number>>,
   key: string,
   legal: string[]
 ): Map<string, number> => {
-  let m = table.get(key);
-  if (!m) {
-    m = new Map(legal.map((a) => [a, 0]));
-    table.set(key, m);
-  }
-  for (const a of legal) if (!m.has(a)) m.set(a, 0);
-  return m;
-};
-
-const softmax = (values: number[]): number[] => {
-  const m = Math.max(...values);
-  const ex = values.map((v) => Math.exp(v - m));
-  const s = ex.reduce((a, b) => a + b, 0);
-  return ex.map((e) => e / s);
+  const weights = getOrInsert(prefs, key, () => new Map<string, number>());
+  for (const action of legal) if (!weights.has(action)) weights.set(action, 0);
+  return weights;
 };
 
 export class TabularQLearner implements RLLearner {
-  private readonly table = new Map<string, Map<string, number>>();
+  private readonly table: QTable;
   private pending: { key: string; action: string } | null = null;
 
   constructor(
     private readonly rng: SeededRNG,
-    private readonly alpha = 0.1,
+    alpha = 0.1,
     private readonly gamma = 0.99,
     private readonly epsilon = 0.1
-  ) {}
+  ) {
+    this.table = new QTable(lerpUpdate(alpha));
+  }
 
   act(key: string, legal: string[]): RLStep {
-    const q = row(this.table, key, legal);
+    const qOf = (action: string): number => this.table.read(key, action).value;
     const action =
       this.rng.next() < this.epsilon
         ? legal[this.rng.nextInt(legal.length)]!
-        : [...q.entries()].reduce((a, b) => (b[1] > a[1] ? b : a))[0];
-    const probs = softmax(legal.map((a) => q.get(a)!));
+        : maxBy(legal, qOf, legal[0])!;
+    const probs = softmax(legal.map(qOf));
     this.pending = { key, action };
     return { action, predicted: probs[legal.indexOf(action)]! };
   }
 
-  feedback(reward: number, nextKey: string, nextLegal: string[], terminal: boolean): void {
+  feedback(reward: number, nextKey: string, _nextLegal: string[], terminal: boolean): void {
     const p = this.pending;
     this.pending = null;
     if (!p) return;
-    const q = row(this.table, p.key, [p.action]);
-    const vals = terminal ? [] : [...row(this.table, nextKey, nextLegal).values()];
-    const target = reward + (vals.length ? this.gamma * Math.max(...vals) : 0);
-    q.set(p.action, q.get(p.action)! + this.alpha * (target - q.get(p.action)!));
+    // A negative Q must stay negative here, so this is `maxBy` and not the
+    // zero-floored `maxScore`: the bootstrap target is the estimate, not a rate.
+    const best = terminal
+      ? undefined
+      : maxBy(this.table.arms(nextKey).values(), (e) => e.value)?.value;
+    this.table.revise(p.key, p.action, reward + this.gamma * (best ?? 0));
   }
 
   endEpisode(): void {
@@ -114,7 +109,10 @@ export class ReinforceLearner implements RLLearner {
         const entries = [...th.entries()];
         const probs = softmax(entries.map(([, p]) => p));
         entries.forEach(([a, p], i) => {
-          th.set(a, p + this.alpha * (returns[t]! - this.baseline) * ((a === s.action ? 1 : 0) - probs[i]!));
+          th.set(
+            a,
+            p + this.alpha * (returns[t]! - this.baseline) * ((a === s.action ? 1 : 0) - probs[i]!)
+          );
         });
       });
       this.traj.length = 0;

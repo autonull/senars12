@@ -282,30 +282,6 @@ export const FAST_COGNITIVE_CONFIG: CognitiveParameters = deepFreeze({
 });
 
 /**
- * LM-heavy configuration - maximum enhancement
- */
-export const LM_HEAVY_CONFIG: CognitiveParameters = deepFreeze({
-  ...DEFAULT_COGNITIVE_PARAMETERS,
-  lm: {
-    ...DEFAULT_COGNITIVE_PARAMETERS.lm,
-    maxRulesPerCycle: 13,
-    callTimeoutMs: 8000,
-  },
-});
-
-/**
- * Research configuration - all tracing enabled
- */
-export const RESEARCH_COGNITIVE_CONFIG: CognitiveParameters = deepFreeze({
-  ...DEFAULT_COGNITIVE_PARAMETERS,
-  inference: {
-    ...DEFAULT_COGNITIVE_PARAMETERS.inference,
-    enableTraceCollection: true,
-    maxDerivationsPerStep: 100, // Limit for detailed analysis
-  },
-});
-
-/**
  * Parameter space for optimization — the tunable subset of `cognitiveBounds`,
  * named rather than mirrored.
  *

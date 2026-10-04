@@ -1,6 +1,8 @@
 import {
   flooredRatio,
   formatNarseseTruth,
+  overlapCount,
+  safeRatio,
   selectTopN,
   takeLast,
   tokenizeWords,
@@ -86,7 +88,7 @@ export class ContextAssembler {
     }
 
     // Prune proportionally
-    const ratio = availableBudget / currentTokens;
+    const ratio = safeRatio(availableBudget, currentTokens);
     return {
       beliefs: this.pruneArray(
         context.beliefs ?? [],
@@ -118,9 +120,7 @@ export class ContextAssembler {
 
     const scored = allBeliefs.map((b) => {
       const term = b.term.toString();
-      const termWords = tokenizeWords(term);
-      let overlap = 0;
-      for (const word of words) if (termWords.has(word)) overlap++;
+      const overlap = overlapCount(words, tokenizeWords(term));
       // Handle mock NARs that may not have getConcept
       const attentionPriority =
         typeof nar.getConcept === 'function' ? (nar.getConcept(b.term)?.priority ?? 0) : 0;

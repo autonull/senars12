@@ -1,4 +1,4 @@
-import { rankBy } from '@senars/util';
+import { maxScore, rankBy } from '@senars/util';
 import { atomicSymbols, containsSubterm, type Term, termKey } from '../terms/index.js';
 
 /**
@@ -57,18 +57,15 @@ export const relevanceScore = (belief: Term, focus: readonly Term[]): number => 
   const beliefKey = termKey(belief);
   if (focus.some((term) => termKey(term) === beliefKey)) return RELEVANCE_EXACT;
 
-  const contained = focus.reduce(
-    (best, term) => Math.max(best, containsSubterm(belief, term) ? RELEVANCE_CONTAINMENT : 0),
-    0
+  const contained = maxScore(focus, (term) =>
+    containsSubterm(belief, term) ? RELEVANCE_CONTAINMENT : 0
   );
   if (contained > 0) return contained;
 
   // Vocabulary is capped strictly below containment, or a belief sharing every
   // word with the focus would clear the containment floor.
   const ceiling = RELEVANCE_CONTAINMENT * VOCABULARY_CEILING;
-  let covered = 0;
-  for (const term of focus) covered = Math.max(covered, coverage(belief, term) * ceiling);
-  return covered;
+  return maxScore(focus, (term) => coverage(belief, term) * ceiling);
 };
 
 export interface RelevanceOptions {
