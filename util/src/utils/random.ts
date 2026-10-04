@@ -20,8 +20,12 @@ export type RandomSource = () => number;
  * "which subsystems reach for ambient entropy" was an answer only a grep could
  * give, and a determinism gate had no single seam to assert against. One named
  * default is both stubbable in a test and readable in a diff.
+ *
+ * Forwards to `Math.random` rather than aliasing it, because the determinism
+ * harness pins the global (`tests/helpers/rng.ts`) and an alias captured at
+ * module load would silently opt those seventeen subsystems out of the pin.
  */
-export const ambientRng: RandomSource = Math.random;
+export const ambientRng: RandomSource = () => Math.random();
 
 /** A resumable mulberry32 stream: the draw function plus its live 32-bit state word. */
 export interface SeededStream {

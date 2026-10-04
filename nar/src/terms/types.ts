@@ -16,7 +16,7 @@
 import type { OperatorKey } from './operators.js';
 
 export type { OperatorKey, OperatorSymbol } from './operators.js';
-export { COMMUTATIVE_OPS, NARY_OPS, OPERATORS } from './operators.js';
+export { COMMUTATIVE_OPS, COPULA_SYMBOLS, hasCopula, NARY_OPS, OPERATORS } from './operators.js';
 
 export interface AtomicTerm {
   readonly kind: 'atom';

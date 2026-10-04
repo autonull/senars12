@@ -1,9 +1,12 @@
 import { getOrInsert, LruCache, splitWords } from '@senars/util';
 import type { Term } from '../terms';
-import { isValidAtomSymbol, termParser, toAtomSymbol } from '../terms';
+import { COPULA_SYMBOLS, isValidAtomSymbol, termParser, toAtomSymbol } from '../terms';
 
-const COPULA = /(-->|<->|==>|<=>)/;
-const BINARY_OPS = ['-->', '<->', '==>', '<=>', '&&'] as const;
+/** Built once from the operator table; every symbol here is regex-significant. */
+const escaped = COPULA_SYMBOLS.map((symbol) => symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+const COPULA = new RegExp(`(?:${escaped.join('|')})`);
+const BARE_COPULA = new RegExp(`\\)\\s*(?:${escaped.join('|')})\\s*\\(`);
+const BINARY_OPS = COPULA_SYMBOLS;
 
 const snakeCaseWords = (operand: string): string =>
   splitWords(operand).map(toAtomSymbol).filter(Boolean).join('_');
@@ -56,7 +59,7 @@ export const normalizeNarsese = (input: string): string => {
   });
 
   // "(A) --> (B)" → "((A) --> (B))"; bare "A && B" → "(A && B)"
-  if (/\)\s*(-->|<->|==>|<=>)\s*\(/.test(t) && !t.startsWith('((')) t = `(${t})`;
+  if (BARE_COPULA.test(t) && !t.startsWith('((')) t = `(${t})`;
   const normalized = normalizeOperands(t);
   return BINARY_OPS.some((o) => normalized.includes(o)) && !normalized.startsWith('(')
     ? `(${normalized})`

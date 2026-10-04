@@ -36,6 +36,24 @@ export const OPERATORS = {
 export type OperatorKey = keyof typeof OPERATORS;
 export type OperatorSymbol = (typeof OPERATORS)[OperatorKey]['symbol'];
 
+/**
+ * The infix binary operators — a statement's copulas, longest symbol first so a
+ * scanner that tests prefixes cannot take `==>` for `=|` or `=/>` for `=>`.
+ *
+ * Derived from {@link OPERATORS} rather than written out, because three modules
+ * were spelling out their own list of them: `nl/normalize.ts` carried one that
+ * included `'&&'`, which is not a Narsese copula at all (conjunction is `'&'`),
+ * and omitted the predictive, retrospective, sequence and operation forms.
+ */
+export const COPULA_SYMBOLS: readonly string[] = Object.values(OPERATORS)
+  .filter((operator) => operator.arity === 2)
+  .map((operator) => operator.symbol)
+  .toSorted((a, b) => b.length - a.length);
+
+/** Whether `text` contains any copula — the one "is this a statement?" test. */
+export const hasCopula = (text: string): boolean =>
+  COPULA_SYMBOLS.some((symbol) => text.includes(symbol));
+
 export const COMMUTATIVE_OPS = new Set<OperatorKey>();
 export const NARY_OPS = new Set<OperatorKey>();
 for (const [k, v] of Object.entries(OPERATORS) as [

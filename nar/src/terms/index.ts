@@ -68,8 +68,10 @@ export {
 export { isInvalidTaskTerm, isTautology, validateTaskTerm } from './impls/validation.js';
 export type { AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol, Term } from './types.js';
 export {
+  COPULA_SYMBOLS,
   getTermArg,
   getTermArgs,
+  hasCopula,
   isAtomic,
   isCompound,
   isVariableSymbol,

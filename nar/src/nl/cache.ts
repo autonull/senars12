@@ -7,10 +7,10 @@ import {
   overlapCount,
   periodic,
   readJsonFileSync,
-  type TermTruth,
   tokenizeWords,
   writeJsonFileSync,
 } from '@senars/util';
+import type { TranslationResult as SchemaTranslationResult } from '../lm/rule-templates/schemas.js';
 
 export interface TranslationCacheEntry {
   nl: string;
@@ -18,12 +18,14 @@ export interface TranslationCacheEntry {
   timestamp: number;
 }
 
-export interface TranslationResult {
-  beliefs: Array<{ narsese: string; truth?: TermTruth }>;
-  questions: string[];
-  goals: string[];
-  summary: string;
-}
+/**
+ * What a translation cached: the LM rule's own output shape.
+ *
+ * Was written out here as a second declaration of `TranslationSchema`'s inferred
+ * type — identical field for field, and free to drift from it. The cache holds
+ * what the translation seam produced, so it holds what that seam produces.
+ */
+export type TranslationResult = SchemaTranslationResult;
 
 export interface SerializedCache {
   entries: TranslationCacheEntry[];

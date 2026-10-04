@@ -1,7 +1,7 @@
 import { createLogger, takeFirst, type TermTruth } from '@senars/util';
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
-import { hasVariable, Stamp, Truth, termParser, unify, termKey } from '../terms';
+import { hasCopula, hasVariable, Stamp, Truth, termParser, unify, termKey } from '../terms';
 import { byRelevance, type RelevanceOptions } from './relevance.js';
 import type { Task, TaskType, TermFilter, Timestamp } from '../types';
 import { createTaskWeight, createTask, createTimestamp } from '../types';
@@ -224,9 +224,7 @@ export class QueryAPI {
   }
   private parseQuestion(question: string): Term | null {
     try {
-      if (question.includes('-->') || question.includes('<->') || question.includes('=>')) {
-        return termParser.parse(question);
-      }
+      if (hasCopula(question)) return termParser.parse(question);
       return null;
     } catch (error) {
       logger.warn(`Failed to parse question: ${question} - ${error}`);
