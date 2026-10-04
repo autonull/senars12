@@ -21,7 +21,7 @@ import { PriorityBag } from '../bag/Bag.js';
 import type { Game, GameOutcome, Perception } from '../game/Game.js';
 import type { GateRegistry } from '../kernel/index.js';
 import type { ConfidenceRouter } from '../lm/system-one/policy.js';
-import type { EmbeddingCache, JudgmentManifold } from '../lm/system-one/types.js';
+import type { EmbeddingCache, EmbeddingPointer, JudgmentManifold } from '../lm/system-one/types.js';
 import {
   type IProposer,
   type NALDerivation,
@@ -96,7 +96,8 @@ interface TickState {
   /** String-normalized legal actions: numeric actions (bandit/gridworld) must
    *  not reach reflexes typed for strings (and 0 must not be falsy). */
   legalActionStrings: string[];
-  /** Observation snapshotted once per tick — the world is static until `actStage`. */
+  /** Observation snapshotted once per tick — the world is static until `actStage`.
+   *  Stages read it rather than re-observing: `observe()` rebuilds the board. */
   observation: Perception;
   prevWeight: number;
   deliveringReflexes: Set<Reflex>;
@@ -316,6 +317,13 @@ export class GameFocus {
     if (!this.reflexPrefetchContext) return;
     const { manifold, embeddingCache, budget } = this.reflexPrefetchContext;
     const { observation, legalActionStrings: legalActions } = t;
+    // One embedding for the whole stage, and only if some reflex asks for one:
+    // `observation` is fixed across the loop, so serializing it per reflex wrote
+    // the same text under a freshly-allocated string and read back the same
+    // pointer every time.
+    let embedded: Promise<EmbeddingPointer> | undefined;
+    const embed = (): Promise<EmbeddingPointer> =>
+      (embedded ??= embeddingCache.write(JSON.stringify(observation.features ?? observation.stateId)));
     for (const reflex of this.focus.reflexes) {
       const p = reflex as { prefetch?: unknown };
       if (typeof p.prefetch === 'function') {
@@ -330,7 +338,7 @@ export class GameFocus {
           ) => Promise<void>
         )(
           observation.stateId,
-          await embeddingCache.write(JSON.stringify(observation.features ?? observation.stateId)),
+          await embed(),
           legalActions,
           manifold,
           budget,
@@ -521,13 +529,16 @@ export class GameFocus {
           {
             reward: 0,
             terminal: false,
-            perception: this.game.observe(),
+            // The gate refused before `game.step`, so the world is the one the
+            // tick opened with — reading it back from the game rebuilt the grid
+            // to produce the value `t.observation` already holds, and the
+            // re-read assigned `previousPerception` its own unchanged value.
+            perception: t.observation,
             previousPerception: this.previousPerception,
           }
         );
         for (const reflex of t.deliveringReflexes) reflex.learn(learningEvent);
         t.suppressPanel = true;
-        this.previousPerception = this.game.observe();
         return;
       }
       const previousPerception = this.game.observe();
@@ -589,7 +600,7 @@ export class GameFocus {
       const learningEvent = this.negotiator.createLearningEvent(this.focus, t.decision, {
         reward: 0,
         terminal: false,
-        perception: this.game.observe(),
+        perception: t.perceptionPair?.nextPerception ?? t.observation,
         previousPerception: this.previousPerception,
       });
       for (const reflex of t.deliveringReflexes) reflex.learn(learningEvent);
@@ -689,7 +700,7 @@ export class GameFocus {
           t.gameOutcome?.terminal ?? false
         )
       );
-      this.previousPerception = this.game.observe();
+      this.previousPerception = t.perceptionPair?.nextPerception ?? t.observation;
     }
     return { focusReport: { ...t.focusReport, cycle: this.cycle }, gameOutcome: t.gameOutcome };
   }

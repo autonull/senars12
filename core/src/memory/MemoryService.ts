@@ -1,7 +1,7 @@
 import { generateId, pushCapped, takeLast } from '@senars/util';
 import type { Engine } from '../engine/Engine.js';
 import type { EventLog } from '../eventlog/EventLog.js';
-import type { ToolRegistry } from '../motor/ToolRegistry.js';
+import type { SkillFeedback, ToolRegistry } from '../motor/ToolRegistry.js';
 import type { MemoryEntry, MemoryQuery } from './types.js';
 
 export class MemoryService {
@@ -115,7 +115,7 @@ export class MemoryService {
   }
 
   /** Tier 3: Procedural memory — tool feedback */
-  getProceduralFeedback(): import('../motor/ToolRegistry.js').SkillFeedback[] {
+  getProceduralFeedback(): SkillFeedback[] {
     return this.#motor?.getAllFeedback() ?? [];
   }
 

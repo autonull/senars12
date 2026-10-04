@@ -49,7 +49,10 @@ export class ControlBudgets implements ControlBudgetPort {
    * bound wearing a per-cycle name.
    */
   beginCycle(): void {
-    for (const scopeId of BUDGET_SCOPE_IDS) this.reopen(scopeId);
+    for (const scopeId of BUDGET_SCOPE_IDS) {
+      this.open(scopeId);
+      this.gate.resetConsumption(scopeId);
+    }
   }
 
   /**

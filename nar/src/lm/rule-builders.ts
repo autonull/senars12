@@ -9,10 +9,12 @@ import type { Task, TaskType } from '../types';
 import { createTask, createTaskWeight } from '../types';
 import { LMResponseParser, LMRule } from './LMRule.js';
 import type { LMRuleConfig, LMService } from './lm-service.js';
-import { prompts, ruleDefs } from './rule-templates/index.js';
+import { ruleDefs } from './rule-templates/index.js';
 
 export interface LMRuleDefinition {
   id: string;
+  /** The rule's prompt, before the shared Narsese preamble. */
+  prompt: string;
   name: string;
   description: string;
   priority: number;
@@ -153,7 +155,7 @@ const createRule = (
     priority: def.priority,
     singlePremise: def.singlePremise ?? true,
     activationCondition: asUnknownCondition(config.activationCondition ?? def.activationCondition),
-    promptTemplate: `${NARSESE_INSTRUCTIONS}\n\n${prompts[def.id]}`,
+    promptTemplate: `${NARSESE_INSTRUCTIONS}\n\n${def.prompt}`,
     taskType,
     outputSchema: def.schema,
     enableTools: def.enableTools,

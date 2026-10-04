@@ -1,5 +1,5 @@
 import type { ConfigFieldType } from '@senars/core';
-import { type Debounced, debounce } from '@senars/util';
+import { type Debounced, debounce, getOrInsert } from '@senars/util';
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
@@ -98,11 +98,9 @@ export class ConfigHUD extends BaseComponent {
   private readonly commits = new Map<string, Debounced<[unknown]>>();
 
   private commitFor(key: string): Debounced<[unknown]> {
-    const existing = this.commits.get(key);
-    if (existing) return existing;
-    const commit = debounce((value: unknown) => updateConfig(key, value), 300);
-    this.commits.set(key, commit);
-    return commit;
+    return getOrInsert(this.commits, key, () =>
+      debounce((value: unknown) => updateConfig(key, value), 300)
+    );
   }
 
   override connectedCallback() {

@@ -22,7 +22,7 @@ import type {
 } from '@senars/core/schemas';
 import { mintCognitiveEvent, validateReasoningBudget } from '@senars/core/schemas';
 import { keyedBy } from '@senars/util';
-import { BUDGET_SCOPES, type BudgetScopeId, scopeBudget } from './budget-scopes.js';
+import { BUDGET_SCOPES, type BudgetScopeId } from './budget-scopes.js';
 import { KernelGate, projectOutcome } from './gate-base.js';
 
 export interface KernelBudgetGateConfig {
@@ -196,6 +196,22 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
 
   createScope(scopeId: string, budget?: ReasoningBudget): void {
     this.scopes.set(scopeId, budget ? this.adopt(budget) : this.freshCounters());
+  }
+
+  /**
+   * Zero an open scope's consumption, keeping the ceilings it was opened with.
+   *
+   * A per-cycle bound is re-opened every cycle, and re-opening went through
+   * `createScope` with a budget rebuilt from the gate's own — two copies to read
+   * it, one spread to reshape it, and a zod validation of an object the gate had
+   * just constructed, six times per cycle. The ceilings are fixed when a scope
+   * opens, so only the counters move.
+   */
+  resetConsumption(scopeId: string): void {
+    const scope = this.scopes.get(scopeId);
+    if (!scope) return;
+    scope.consumed = zeroConsumed();
+    scope.terminationReason = undefined;
   }
 
   releaseScope(scopeId: string): void {

@@ -4,7 +4,7 @@ import { DECISION_DERIVATIONS_SCOPE } from '../../kernel/budget-scopes.js';
 import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
 import { Stamp } from '../../terms/impls/Stamp.js';
 import { Truth } from '../../terms/impls/Truth.js';
-import { validateBatchQueries } from './algebra.js';
+import { failClosed, isSafetyFloor, validateBatchQueries } from './algebra.js';
 import { DeterministicManifold, Tier3SymbolicManifold } from './constant-manifold.js';
 import type { ContrastiveMemory } from './contrastive.js';
 import { selectQuery as buildSelectQuery } from './head-specs.js';
@@ -171,25 +171,9 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
         const tier0Result = tier0Results[i];
         const query = queries[i];
 
-        // R6: Explicit safety floor — queries with criticality ∈ {high, critical}
-        // and rubric ∈ {injection, assertion} that abstain MUST fail closed.
-        // They never fall back to Tier 0 defaults.
-        const isSafetyFloorQuery =
-          query &&
-          (query.criticality === 'high' || query.criticality === 'critical') &&
-          query.kind === 'evaluate' &&
-          (query.rubric === 'injection' || query.rubric === 'assertion');
-
-        if (isSafetyFloorQuery && r.abstained) {
-          // Return a hard-veto proposition: score > threshold triggers veto
-          const vetoScore = 0.99;
-          return {
-            ...r,
-            score: vetoScore,
-            abstained: false,
-            tier: 1,
-          } as any;
-        }
+        // R6: a safety-floor query that abstained MUST fail closed — never
+        // Tier 0 defaults.
+        if (r.abstained && isSafetyFloor(query)) return failClosed(r);
 
         return r.abstained || (r.kind === 'classify' && r.top.p < 0.5) ? tier0Result! : r;
       });
@@ -204,25 +188,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
       // Tier 1 failed, fall through to Tier 3
       // But safety-floor queries still fail closed
       const tier3Results = await this.#tier3.judgeBatch(sharedContext, queries, budget);
-      return tier3Results.map((r, i) => {
-        const query = queries[i];
-        const isSafetyFloorQuery =
-          query &&
-          (query.criticality === 'high' || query.criticality === 'critical') &&
-          query.kind === 'evaluate' &&
-          (query.rubric === 'injection' || query.rubric === 'assertion');
-
-        if (isSafetyFloorQuery) {
-          // Return a hard-veto proposition: score > threshold triggers veto
-          return {
-            ...r,
-            score: 0.99,
-            abstained: false,
-            tier: 1,
-          } as any;
-        }
-        return r;
-      });
+      return tier3Results.map((r, i) => (isSafetyFloor(queries[i]) ? failClosed(r) : r));
     }
   }
 

@@ -1,5 +1,5 @@
 import type { DerivationRecord, DerivationStep, TruthValue } from '@senars/core/schemas';
-import { asBeliefTruth, BoundedRing, makeId, PushQueue, Signal } from '@senars/util';
+import { asBeliefTruth, BoundedMap, BoundedRing, makeId, PushQueue, Signal } from '@senars/util';
 import type { RuleInput, RuleResult } from '../types.js';
 
 type Independence = DerivationStep['independence'];
@@ -22,12 +22,25 @@ const CATEGORY_KEYWORDS: Array<[RuleCategory, RegExp]> = [
   ['logic', /deduction|induction|abduction|exemplification/],
 ];
 
+/** How many distinct rule ids to remember; the table itself is the realistic bound. */
+const RULE_ID_CACHE = 1024;
+
+/**
+ * Rule ids are loaded data, so the set is small and closed and the answer never
+ * changes — but this ran a `toLowerCase` and up to eleven regex tests per
+ * recorded derivation step, which is the field's hottest writer. Read with
+ * `peek`: the answer should stay cached for the life of the table, not be
+ * evicted by how often derivations mention it.
+ */
+const CATEGORY_BY_ID = new BoundedMap<string, RuleCategory>({ maxSize: RULE_ID_CACHE });
+
 export function inferRuleCategory(ruleId: string): RuleCategory {
+  const known = CATEGORY_BY_ID.peek(ruleId);
+  if (known) return known;
   const key = ruleId.toLowerCase();
-  for (const [category, pattern] of CATEGORY_KEYWORDS) {
-    if (pattern.test(key)) return category;
-  }
-  return 'logic';
+  const category = CATEGORY_KEYWORDS.find(([, pattern]) => pattern.test(key))?.[0] ?? 'logic';
+  CATEGORY_BY_ID.set(ruleId, category);
+  return category;
 }
 
 const ancestorsOf = (input: RuleInput): Set<string> => {

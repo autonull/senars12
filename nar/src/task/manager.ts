@@ -1,4 +1,4 @@
-import { deadline, maxBy, rankBy } from '@senars/util';
+import { BoundedMap, deadline, maxBy, rankBy } from '@senars/util';
 
 import type { GateRegistry } from '../kernel/GateRegistry.js';
 import type { TaskAdmission } from '../memory/ports/index.js';
@@ -25,10 +25,25 @@ export interface TaskManagerConfig {
 
 const DEFAULT_TIMEOUT_MS = 30000;
 
+/**
+ * How many retired task wrappers stay readable. `getTask` and `stats` are the
+ * only readers of the settled maps, and both are "what happened recently" — an
+ * unbounded map answered those at any age, in a process that admits tasks every
+ * cycle and never stops, so the retirement record was the one container in the
+ * manager that only ever grew.
+ */
+const RETIRED_HISTORY = 1024;
+
 export class TaskManager {
   private pending = new Map<string, TaskWrapper>();
-  private completed = new Map<string, TaskWrapper>();
-  private failed = new Map<string, TaskWrapper>();
+  private readonly completed = new BoundedMap<string, TaskWrapper>({
+    maxSize: RETIRED_HISTORY,
+    eviction: 'fifo',
+  });
+  private readonly failed = new BoundedMap<string, TaskWrapper>({
+    maxSize: RETIRED_HISTORY,
+    eviction: 'fifo',
+  });
   private memory: TaskAdmission;
   private readonly defaultTimeout: number;
   private gates: GateRegistry;
@@ -50,8 +65,8 @@ export class TaskManager {
   get stats() {
     return {
       pending: this.pending.size,
-      completed: this.completed.size,
-      failed: this.failed.size,
+      completed: this.completed.size(),
+      failed: this.failed.size(),
     };
   }
 

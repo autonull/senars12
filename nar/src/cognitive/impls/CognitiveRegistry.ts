@@ -32,23 +32,16 @@ import { DEFAULT_REGISTRATIONS } from './registrations.js';
 import { composedName, composeSpec } from './composition.js';
 import { LruCache } from '@senars/util';
 import type { CognitiveParameters, StrategySlotParams } from '../../config/cognitive-parameters.js';
+import { STRATEGY_SLOTS } from '../../config/cognitive-parameters.js';
 
 type Slot = Map<string, StrategyRegistration>;
 
-const SLOT_TYPES = ['sampling', 'premise', 'derivation', 'lm-rule', 'attention'] as const;
-
 /**
- * The slot's config key: `lmRule` in a parameter graph, `lm-rule` in the
- * registry. Declared once here and read by everyone who resolves a slot, so a
- * slot cannot be spelled one way by the controller and another by a caller.
+ * Every slot the registry resolves, read from the one slot table. The list used
+ * to be spelled out here as well as in that table, so a slot added to one was
+ * invisible to the other.
  */
-export const SLOT_KEY = {
-  sampling: 'sampling',
-  premise: 'premise',
-  derivation: 'derivation',
-  'lm-rule': 'lmRule',
-  attention: 'attention',
-} as const satisfies Record<StrategyType, keyof CognitiveParameters['strategies']>;
+const SLOT_TYPES = Object.keys(STRATEGY_SLOTS) as StrategyType[];
 
 /**
  * Resolve one slot of a parameter graph to its instance. The single read path
@@ -61,7 +54,7 @@ export const resolveSlot = <T>(
   params: CognitiveParameters,
   type: StrategyType
 ): T => {
-  const slot = params.strategies[SLOT_KEY[type]] as StrategySlotParams;
+  const slot = params.strategies[STRATEGY_SLOTS[type].key] as StrategySlotParams;
   return registry.resolve<T>(type, slot.type, slot.config);
 };
 

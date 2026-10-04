@@ -1,4 +1,4 @@
-import { percentile } from '@senars/util';
+import { percentiles } from '@senars/util';
 import type { Concept } from '../concept.js';
 
 export interface ConceptStats {
@@ -10,9 +10,9 @@ export interface ConceptStats {
 }
 
 /**
- * Totals only. The tercile split below costs two percentile sorts, so a caller
- * that discards the distribution — persistence does — pays for a sort it never
- * reads unless it asks for totals on their own.
+ * Totals only. The tercile split below costs a sort, so a caller that discards
+ * the distribution — persistence does — pays for a sort it never reads unless it
+ * asks for totals on their own.
  */
 export const tallyConcepts = (
   concepts: Iterable<Concept>
@@ -33,8 +33,7 @@ export const calculateConceptStats = (concepts: Iterable<Concept>): ConceptStats
     totalTasks += concept.totalTasks;
     priorities.push(concept.priority);
   }
-  const p33 = percentile(priorities, 0.33);
-  const p67 = percentile(priorities, 0.67);
+  const [p33 = 0, p67 = 0] = percentiles(priorities, [0.33, 0.67]);
 
   // One pass over the sample. The terciles are inclusive-low / exclusive-high,
   // so every concept lands in exactly one band and the third count is implied —

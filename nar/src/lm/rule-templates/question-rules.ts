@@ -9,6 +9,7 @@ import { QuestionGenerationSchema } from './schemas.js';
 export const questionRules: LMRuleDefinition[] = [
   {
     id: 'lm-curiosity-question',
+    prompt: 'Given "{{primaryTerm}}" and curiosity drive, what questions should be asked? Generate Narsese questions. Respond with JSON: {"questions": [{"narsese": "?term", "relevance": 0.8, "rationale": "..."}]}',
     name: 'LMCuriosityQuestionRule',
     description: 'Generates questions driven by curiosity',
     priority: 0.7,
@@ -22,6 +23,7 @@ export const questionRules: LMRuleDefinition[] = [
   },
   {
     id: 'lm-interactive-clarification',
+    prompt: 'What clarification is needed for "{{primaryTerm}}"?',
     name: 'LMInteractiveClarificationRule',
     description: 'Seeks clarification for ambiguous inputs',
     priority: 0.7,

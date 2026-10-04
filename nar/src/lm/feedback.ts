@@ -7,7 +7,7 @@ import {
   type TermTruth,
   TermTruthSchema,
 } from '@senars/util';
-import { z } from 'zod';
+import { type ZodSchema, z } from 'zod';
 import type { GateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
@@ -16,7 +16,6 @@ import { createTask, type Task } from '../types';
 import { admitTasks } from './admit.js';
 import { topBeliefTasks } from './context.js';
 import { parseEnrichmentResponse } from './enrichment.js';
-import { parseJsonWith } from './json.js';
 import type { LMService } from './lm-service.js';
 import { lmTaskWeight } from './task-weights.js';
 
@@ -120,6 +119,46 @@ export class BidirectionalFeedbackLoop {
     };
   }
 
+  /**
+   * The one structured-output ladder, which is why each site below says only
+   * `generateObject`: `LMService.generateObject` already retries structured
+   * output as a JSON-mode text round trip when a provider's native path fails,
+   * so the `catch → generateText → reparse` arm each of these three sites
+   * spelled out was a third layer over it — a weaker parser, and an extra
+   * provider call on every failure. What is left to express is the last resort
+   * only validation has: reading a verdict out of prose.
+   *
+   * The try covers the call and nothing else. Before, a throw from a local
+   * transform on the way out was caught here and answered with a second LM call
+   * through a different parser.
+   */
+  private async structured<T>(prompt: string, schema: ZodSchema<T>, onFailure: string): Promise<T | null> {
+    try {
+      return await this.lmService.generateObject(prompt, schema, { task: 'structured' });
+    } catch (error) {
+      this.logger.warn(`${onFailure}: ${errMsg(error)}`);
+      return null;
+    }
+  }
+
+  /** The prose last resort: read a verdict out of a reply that ignored the schema. */
+  private async legacyValidation(
+    prompt: string,
+    hypothesis: Task,
+    context: Task[]
+  ): Promise<ValidationFeedback | null> {
+    try {
+      return this.parseLegacyValidation(
+        await this.lmService.generateText(prompt),
+        hypothesis,
+        context
+      );
+    } catch (error) {
+      this.logger.warn(`Failed to validate hypothesis (degraded): ${errMsg(error)}`);
+      return null;
+    }
+  }
+
   async processHypothesis(hypothesis: Task): Promise<ValidationFeedback | null> {
     if (!this.config.enableBidirectionalFeedback || !this.config.enableValidation) {
       return null;
@@ -128,34 +167,19 @@ export class BidirectionalFeedbackLoop {
     const context = this.getContextBeliefs();
     const validationPrompt = this.buildStructuredValidationPrompt(hypothesis, context);
 
-    try {
-      const obj = await this.lmService.generateObject(validationPrompt, ValidationSchema, {
-        task: 'structured',
-      });
-      const validation = this.applyValidation(obj, hypothesis, context);
-
-      if (validation) {
-        await this.injectValidationResult(validation);
-        this.pendingValidations.set(hypothesis.term, validation);
-      }
-
-      return validation;
-    } catch {
-      try {
-        const response = await this.lmService.generateText(validationPrompt);
-        const validation = this.parseStructuredValidation(response, hypothesis, context);
-
-        if (validation) {
-          await this.injectValidationResult(validation);
-          this.pendingValidations.set(hypothesis.term, validation);
-        }
-
-        return validation;
-      } catch (error) {
-        this.logger.warn(`Failed to validate hypothesis: ${errMsg(error)}`);
-        return null;
-      }
+    const obj = await this.structured(
+      validationPrompt,
+      ValidationSchema,
+      'Failed to validate hypothesis'
+    );
+    const validation = obj
+      ? this.applyValidation(obj, hypothesis, context)
+      : await this.legacyValidation(validationPrompt, hypothesis, context);
+    if (validation) {
+      await this.injectValidationResult(validation);
+      this.pendingValidations.set(hypothesis.term, validation);
     }
+    return validation;
   }
 
   private applyValidation(
@@ -210,20 +234,12 @@ Provide a JSON response:
   "revisedTruth": {"f": 0.8, "c": 0.7}
 }`;
 
-    try {
-      const obj = await this.lmService.generateObject(prompt, ContradictionSchema, {
-        task: 'structured',
-      });
-      return this.applyContradiction(obj, beliefA, beliefB);
-    } catch {
-      try {
-        const response = await this.lmService.generateText(prompt);
-        return this.parseContradictionExplanation(response, beliefA, beliefB);
-      } catch (error) {
-        this.logger.warn(`Failed to explain contradiction: ${errMsg(error)}`);
-        return null;
-      }
-    }
+    const obj = await this.structured(
+      prompt,
+      ContradictionSchema,
+      'Failed to explain contradiction'
+    );
+    return obj ? this.applyContradiction(obj, beliefA, beliefB) : null;
   }
 
   private applyContradiction(
@@ -271,24 +287,11 @@ Respond with JSON:
   ]
 }`;
 
-    try {
-      const obj = await this.lmService.generateObject(prompt, PatternsSchema, {
-        task: 'structured',
-      });
-      const patterns = this.applyPatterns(obj.patterns);
-      this.recordPatterns(patterns);
-      return patterns;
-    } catch {
-      try {
-        const response = await this.lmService.generateText(prompt);
-        const patterns = this.parsePatterns(response);
-        this.recordPatterns(patterns);
-        return patterns;
-      } catch (error) {
-        this.logger.warn(`Failed to extract patterns: ${errMsg(error)}`);
-        return [];
-      }
-    }
+    const obj = await this.structured(prompt, PatternsSchema, 'Failed to extract patterns');
+    if (!obj) return [];
+    const patterns = this.applyPatterns(obj.patterns);
+    this.recordPatterns(patterns);
+    return patterns;
   }
 
   private applyPatterns(
@@ -376,19 +379,6 @@ Respond with JSON:
 }`;
   }
 
-  private parseStructuredValidation(
-    response: string,
-    hypothesis: Task,
-    context: Task[]
-  ): ValidationFeedback | null {
-    try {
-      const parsed = parseJsonWith(response, ValidationSchema);
-      if (!parsed) return this.parseLegacyValidation(response, hypothesis, context);
-      return this.applyValidation(parsed, hypothesis, context);
-    } catch {
-      return this.parseLegacyValidation(response, hypothesis, context);
-    }
-  }
   private parseLegacyValidation(
     response: string,
     hypothesis: Task,
@@ -408,29 +398,6 @@ Respond with JSON:
       revisedTruth: this.reviseTruth(undefined, hypothesis.truth, result),
       derivationChain: [hypothesis.term.toString()],
     };
-  }
-
-  private parseContradictionExplanation(
-    response: string,
-    beliefA: Task,
-    beliefB: Task
-  ): ContradictionExplanation | null {
-    try {
-      const parsed = parseJsonWith(response, ContradictionSchema);
-      return parsed ? this.applyContradiction(parsed, beliefA, beliefB) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  private parsePatterns(response: string): ExtractedPattern[] {
-    try {
-      const parsed = parseJsonWith(response, PatternsSchema);
-      if (!parsed || !Array.isArray(parsed.patterns)) return [];
-      return this.applyPatterns(parsed.patterns);
-    } catch {
-      return [];
-    }
   }
 
   private async injectValidationResult(validation: ValidationFeedback): Promise<void> {

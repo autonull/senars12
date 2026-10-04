@@ -236,7 +236,7 @@ export class Memory implements MemoryPorts {
   getGoals(): Task[] {
     const goals: Task[] = [];
     for (const concept of this.concepts.values()) {
-      for (const g of concept.goalBag.toArray()) {
+      for (const g of concept.goalBag.all()) {
         goals.push({
           term: g.term,
           type: 'goal',
@@ -483,11 +483,9 @@ export class Memory implements MemoryPorts {
   /** The two bounds behind {@link capacityPressure}, so a report names both. */
   pressureBreakdown(): { concepts: number; tasks: number; capacity: number } {
     const { totalConcepts, totalTasks } = this.totals();
-    return {
-      concepts: occupancy(totalConcepts, this.config.maxConcepts),
-      tasks: occupancy(totalTasks, this.config.maxTasks),
-      capacity: this.capacityPressure(),
-    };
+    const concepts = occupancy(totalConcepts, this.config.maxConcepts);
+    const tasks = occupancy(totalTasks, this.config.maxTasks);
+    return { concepts, tasks, capacity: Math.max(concepts, tasks) };
   }
 
   /** Totals without the tercile pass; what persistence serializes. */

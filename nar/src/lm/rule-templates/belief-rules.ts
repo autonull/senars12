@@ -26,6 +26,7 @@ import {
 export const beliefRules: LMRuleDefinition[] = [
   {
     id: 'lm-narsese-translation',
+    prompt: 'Translate the following sentence into Narsese logic. Sentence: "{{taskTerm}}"',
     name: 'LMNarseseTranslationRule',
     description: 'Translates natural language to Narsese',
     priority: 0.9,
@@ -37,6 +38,7 @@ export const beliefRules: LMRuleDefinition[] = [
   },
   {
     id: 'lm-belief-revision',
+    prompt: 'Given "{{primaryTerm}}", should its confidence be revised?',
     name: 'LMBeliefRevisionRule',
     description: 'Revises belief confidence based on context',
     priority: 0.8,
@@ -50,6 +52,7 @@ export const beliefRules: LMRuleDefinition[] = [
   },
   {
     id: 'lm-hypothesis-generation',
+    prompt: 'Given "{{primaryTerm}}", what are possible explanations?',
     name: 'LMHypothesisGenerationRule',
     description: 'Generates hypotheses from observations',
     priority: 0.75,
@@ -65,6 +68,7 @@ export const beliefRules: LMRuleDefinition[] = [
   },
   {
     id: 'lm-explanation-generation',
+    prompt: 'Complete this sentence naturally, under 20 words: "I believe {{primaryTerm}} because {{premise1}} and {{premise2}}."',
     name: 'LMExplanationGenerationRule',
     description: 'Generates explanations for beliefs',
     priority: 0.7,
@@ -76,6 +80,7 @@ export const beliefRules: LMRuleDefinition[] = [
   },
   {
     id: 'lm-analogical-reasoning',
+    prompt: 'Concept A is "{{primaryTerm}}". Concept B is "{{premise1}}". Concept X is "{{secondaryTerm}}". Concept Y is "[MASK]". Fill the mask with exactly one word.',
     name: 'LMAnalogicalReasoningRule',
     description: 'Performs analogical reasoning between concepts',
     priority: 0.8,
@@ -90,6 +95,7 @@ export const beliefRules: LMRuleDefinition[] = [
   },
   {
     id: 'lm-meta-reasoning',
+    prompt: 'Analyze the reasoning for "{{primaryTerm}}".',
     name: 'LMMetaReasoningGuidanceRule',
     description: 'Provides meta-level reasoning guidance',
     priority: 0.75,
@@ -101,6 +107,7 @@ export const beliefRules: LMRuleDefinition[] = [
   },
   {
     id: 'lm-uncertainty-calibration',
+    prompt: 'For "{{primaryTerm}}", what confidence level is appropriate?',
     name: 'LMUncertaintyCalibrationRule',
     description: 'Calibrates uncertainty in beliefs',
     priority: 0.7,
@@ -112,6 +119,7 @@ export const beliefRules: LMRuleDefinition[] = [
   },
   {
     id: 'lm-schema-induction',
+    prompt: 'From "{{primaryTerm}}", what schema can be induced?',
     name: 'LMSchemaInductionRule',
     description: 'Induces schemas from examples',
     priority: 0.75,
@@ -123,6 +131,7 @@ export const beliefRules: LMRuleDefinition[] = [
   },
   {
     id: 'lm-temporal-causal',
+    prompt: 'What temporal/causal relationships involve "{{primaryTerm}}"?',
     name: 'LMTemporalCausalModelingRule',
     description: 'Models temporal and causal relationships',
     priority: 0.8,
@@ -134,6 +143,7 @@ export const beliefRules: LMRuleDefinition[] = [
   },
   {
     id: 'lm-variable-grounding',
+    prompt: 'What concrete instances ground "{{primaryTerm}}"?',
     name: 'LMVariableGroundingRule',
     description: 'Grounds variables in concrete instances',
     priority: 0.7,
@@ -146,6 +156,7 @@ export const beliefRules: LMRuleDefinition[] = [
   },
   {
     id: 'lm-concept-elaboration',
+    prompt: 'Elaborate on "{{primaryTerm}}". What are its properties?',
     name: 'LMConceptElaborationRule',
     description: 'Elaborates on concept properties',
     priority: 0.75,

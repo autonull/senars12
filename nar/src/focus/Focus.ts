@@ -182,26 +182,22 @@ export class Focus implements BagItem {
 
   private addConcept(term: Term, truth: TermTruth, priority: number): void {
     const id = term.toString();
-    let concept = this.findConcept(id);
-    if (concept) {
-      concept.priority = Math.max(concept.priority, priority);
-      concept.activation = clamp01(concept.activation + 0.1);
-      concept.totalTasks++;
-    } else {
-      concept = {
-        id,
-        priority,
-        term,
-        truth,
-        activation: priority,
-        totalTasks: 1,
-      };
-      this.memory.add(concept);
+    this.rebuildIndexes();
+    const known = this.conceptsById.get(id);
+    if (known) {
+      known.priority = Math.max(known.priority, priority);
+      known.activation = clamp01(known.activation + 0.1);
+      known.totalTasks++;
+      return;
     }
-  }
-
-  private findConcept(id: string): FocusConcept | undefined {
-    return this.memory.find((c) => c.id === id);
+    const concept: FocusConcept = { id, priority, term, truth, activation: priority, totalTasks: 1 };
+    // `add` either takes the entry or refuses it — it never evicts — so a taken
+    // entry leaves the index current and the guard below stays valid. Rebuilding
+    // per insert instead would have made admitting a tick's worth of new beliefs
+    // cost one full pass each, which is what the linear scan it replaced cost.
+    if (!this.memory.add(concept)) return;
+    this.conceptsById.set(id, concept);
+    this.indexVersion = this.memory.version;
   }
 
   bindGame(game: Game): void {
@@ -216,49 +212,54 @@ export class Focus implements BagItem {
     this.reflexes = this.reflexes.filter((r) => r.id !== reflexId);
   }
 
-  private derivationIndexVersion = -1;
-  private derivationIndex = new Map<string, NALDerivation[]>();
+  private readonly conceptsById = new Map<string, FocusConcept>();
+  private readonly derivationsByAction = new Map<string, NALDerivation[]>();
+  private indexVersion = -1;
 
   /**
-   * Derivations relevant to an action, served from an index rebuilt only when
-   * the focus memory mutates (X23 hot-path fix) instead of scanning per call.
+   * Both views of the focus memory, from one pass, rebuilt only when it mutates.
+   *
+   * The version guard was here for derivations alone (X23); the by-id lookup was
+   * still a linear scan of the whole memory for every belief a tick admitted, so
+   * the two views shared a trigger and a rebuild and were not built together.
    */
-  getNALDerivations(action: string): NALDerivation[] {
-    if (this.derivationIndexVersion !== this.memory.version) {
-      this.derivationIndexVersion = this.memory.version;
-      this.derivationIndex = this.buildDerivationIndex();
-    }
-    return this.derivationIndex.get(action) ?? [];
-  }
-
-  private buildDerivationIndex(): Map<string, NALDerivation[]> {
-    const index = new Map<string, NALDerivation[]>();
-    const record = (action: string, concept: FocusConcept): void => {
-      getOrInsert(index, action, () => []).push({
-        action,
-        truth: concept.truth ?? { f: concept.activation, c: clamp01(concept.priority) },
-        source: 'focus-memory',
-        premise: concept.term.toString(),
-      });
-    };
-
+  private rebuildIndexes(): void {
+    if (this.indexVersion === this.memory.version) return;
+    this.indexVersion = this.memory.version;
+    this.conceptsById.clear();
+    this.derivationsByAction.clear();
     for (const concept of this.memory.all()) {
+      this.conceptsById.set(concept.id, concept);
       const term = concept.term;
       if (!term || typeof term !== 'object') continue;
 
       // Operation: `act(...)` — the operator atom names the action.
       if (isOperation(term)) {
         const action = operationNameOf(term);
-        if (action) record(action, concept);
+        if (action) this.recordDerivations(action, concept);
         continue;
       }
 
       // Implication/inheritance: the antecedent/subject atom names the action.
       if (isImplication(term) || isInheritance(term)) {
         const subject = getAntecedent(term) ?? getSubject(term);
-        if (subject && isAtomic(subject) && subject.symbol) record(subject.symbol, concept);
+        if (subject && isAtomic(subject) && subject.symbol) this.recordDerivations(subject.symbol, concept);
       }
     }
-    return index;
+  }
+
+  private recordDerivations(action: string, concept: FocusConcept): void {
+    getOrInsert(this.derivationsByAction, action, () => []).push({
+      action,
+      truth: concept.truth ?? { f: concept.activation, c: clamp01(concept.priority) },
+      source: 'focus-memory',
+      premise: concept.term.toString(),
+    });
+  }
+
+  /** Derivations relevant to an action, served from the index, not by scanning. */
+  getNALDerivations(action: string): NALDerivation[] {
+    this.rebuildIndexes();
+    return this.derivationsByAction.get(action) ?? [];
   }
 }

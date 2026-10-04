@@ -9,6 +9,7 @@ import { GoalDecompositionSchema } from './schemas.js';
 export const goalRules: LMRuleDefinition[] = [
   {
     id: 'lm-goal-decomposition',
+    prompt: 'Decompose the goal "{{primaryTerm}}" into simpler subgoals.',
     name: 'LMGoalDecompositionRule',
     description: 'Decomposes complex goals into subgoals',
     priority: 0.85,

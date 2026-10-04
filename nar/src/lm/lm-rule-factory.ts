@@ -78,82 +78,6 @@ export class LMRuleFactory {
     return this;
   }
 
-  narseseTranslation(): LMRule {
-    return this.preset('lm-narsese-translation');
-  }
-
-  beliefRevision(): LMRule {
-    return this.preset('lm-belief-revision');
-  }
-
-  goalDecomposition(): LMRule {
-    return this.preset('lm-goal-decomposition');
-  }
-
-  hypothesisGeneration(): LMRule {
-    return this.preset('lm-hypothesis-generation');
-  }
-
-  explanationGeneration(): LMRule {
-    return this.preset('lm-explanation-generation');
-  }
-
-  analogicalReasoning(): LMRule {
-    return this.preset('lm-analogical-reasoning');
-  }
-
-  metaReasoning(): LMRule {
-    return this.preset('lm-meta-reasoning');
-  }
-
-  uncertaintyCalibration(): LMRule {
-    return this.preset('lm-uncertainty-calibration');
-  }
-
-  schemaInduction(): LMRule {
-    return this.preset('lm-schema-induction');
-  }
-
-  temporalCausal(): LMRule {
-    return this.preset('lm-temporal-causal');
-  }
-
-  variableGrounding(): LMRule {
-    return this.preset('lm-variable-grounding');
-  }
-
-  conceptElaboration(): LMRule {
-    return this.preset('lm-concept-elaboration');
-  }
-
-  interactiveClarification(): LMRule {
-    return this.preset('lm-interactive-clarification');
-  }
-
-  curiosityQuestion(): LMRule {
-    return this.preset('lm-curiosity-question');
-  }
-
-  v2Hypothesis(): LMRule {
-    return this.preset('lm-v2-hypothesis');
-  }
-
-  v2Explanation(): LMRule {
-    return this.preset('lm-v2-explanation');
-  }
-
-  v2Analogy(): LMRule {
-    return this.preset('lm-v2-analogy');
-  }
-
-  v2Causal(): LMRule {
-    return this.preset('lm-v2-causal');
-  }
-
-  v2Schema(): LMRule {
-    return this.preset('lm-v2-schema');
-  }
-
   createAll(): LMRule[] {
     return ruleDefs.map((d) => createRule(this.lm, d));
   }
@@ -166,7 +90,13 @@ export class LMRuleFactory {
     return createCustomRule(id, this.lm, this.config);
   }
 
-  private preset(id: string): LMRule {
+  /**
+   * Build one of the shipped rules by id, with this factory's overrides applied.
+   * There were nineteen named wrappers over this call and eighteen of them had
+   * no caller in the tree; the id is the rule's own name, and a wrapper per rule
+   * is a list to keep in step with {@link ruleDefs}.
+   */
+  preset(id: string): LMRule {
     return createRule(this.lm, getRuleDef(id), this.config);
   }
 }

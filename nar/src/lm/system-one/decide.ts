@@ -7,6 +7,7 @@
 import { chunk, rankBy, renormalize, retain, sha256Hex } from '@senars/util';
 import type { CognitiveAxis } from '../../decision/types.js';
 import { type ContrastiveMemory, rubricOf } from './contrastive.js';
+import { isSafetyFloor } from './algebra.js';
 import {
   type BandDecision,
   bandOrdinal,
@@ -175,15 +176,6 @@ export function stageProvenance(
     ...overrides,
     fitted: overrides.fitted ?? stages.some(isFitted),
   });
-}
-
-/** R6 safety floor: injection/assertion at high criticality must fail closed. */
-function isSafetyFloor(query: JudgmentQuery): boolean {
-  return (
-    query.kind === 'evaluate' &&
-    (query.rubric === 'injection' || query.rubric === 'assertion') &&
-    (query.criticality === 'high' || query.criticality === 'critical')
-  );
 }
 
 export function createDecider(deps: DecideDeps): Decider {

@@ -1,7 +1,15 @@
 import { stopwatch, type ToolCapabilities, toolError, toSkillFeedback } from '@senars/util';
-import type { ToolFeedbackObserver } from '@senars/util/feedback';
+import type { SkillFeedback, ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
 import type { ToolResult } from '../engine/Engine.js';
+
+/**
+ * The feedback shape is util's: the observer that produces it and the mapping
+ * onto it already live there, and this file was carrying a second, field-for-
+ * field identical declaration of it. Two copies of a five-field record that a
+ * tool result crosses on every call is two places to forget a field.
+ */
+export type { SkillFeedback };
 
 export type ToolFn = (
   args: Record<string, unknown>,
@@ -19,14 +27,6 @@ export interface ToolSpec {
   capabilities?: ToolCapabilities;
   tags?: string[];
   execute: ToolFn;
-}
-
-export interface SkillFeedback {
-  skill: string;
-  lastResult: string;
-  successRate: number;
-  callCount: number;
-  lastError?: string;
 }
 
 /** Delegate interface for the unified tool registry (nar's ToolManager). */

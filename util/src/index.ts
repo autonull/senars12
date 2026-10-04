@@ -281,6 +281,7 @@ export {
   formatDuration,
   pct,
   percentile,
+  percentiles,
   section,
   utcDate,
 } from './utils/format.js';

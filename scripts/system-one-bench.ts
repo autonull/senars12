@@ -103,7 +103,7 @@ async function runLeg(enabled: boolean): Promise<LegResult> {
     );
     return s;
   };
-  const rule = new LMRuleFactory(nar.getLMClient() ?? null).narseseTranslation();
+  const rule = new LMRuleFactory(nar.getLMClient() ?? null).preset('lm-narsese-translation');
   if (enabled) {
     const dispatcher = nar.getSystemOneDispatcher();
     if (dispatcher) {

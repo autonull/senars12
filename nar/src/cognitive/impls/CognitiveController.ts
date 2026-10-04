@@ -1,6 +1,7 @@
 import { removeBy } from '@senars/util';
 import {
   type CognitiveParameters,
+  STRATEGY_SLOTS,
   type StrategySlotParams,
   sameStrategies,
 } from '../../config/cognitive-parameters';
@@ -17,7 +18,6 @@ import type { StrategySpec, StrategyType } from '../../strategies/registration';
 import type { AttentionModel } from '../../strategies/types.js';
 import type { Task } from '../../types';
 import type { CognitiveRegistry } from './CognitiveRegistry.js';
-import { SLOT_KEY } from './CognitiveRegistry.js';
 
 export class CognitiveController {
   private currentParams: CognitiveParameters;
@@ -49,8 +49,8 @@ export class CognitiveController {
 
   /** Every slot is checked before any strategy is built (TODO27 §2.4). */
   private validateSlots(params: CognitiveParameters): void {
-    for (const [type, key] of Object.entries(SLOT_KEY) as Array<
-      [StrategyType, (typeof SLOT_KEY)[StrategyType]]
+    for (const [type, { key }] of Object.entries(STRATEGY_SLOTS) as Array<
+      [StrategyType, (typeof STRATEGY_SLOTS)[StrategyType]]
     >) {
       const slot = params.strategies[key] as StrategySlotParams;
       this.registry.validate(type, slot.type, slot.config, key);
@@ -100,7 +100,7 @@ export class CognitiveController {
 
   /** Get the current spec for a strategy type; a composed slot has several names. */
   getStrategy(type: StrategyType): StrategySpec | undefined {
-    return this.currentParams.strategies[SLOT_KEY[type]]?.type;
+    return this.currentParams.strategies[STRATEGY_SLOTS[type].key]?.type;
   }
 
   adapt(): void {
@@ -127,8 +127,8 @@ export class CognitiveController {
    * only place any of them is interpreted.
    */
   setStrategy(type: StrategyType, spec: StrategySpec, config?: Record<string, unknown>): void {
-    this.registry.validate(type, spec, config, SLOT_KEY[type]);
-    const slot = this.currentParams.strategies[SLOT_KEY[type]] as StrategySlotParams;
+    this.registry.validate(type, spec, config, STRATEGY_SLOTS[type].key);
+    const slot = this.currentParams.strategies[STRATEGY_SLOTS[type].key] as StrategySlotParams;
     slot.type = spec;
     if (config) slot.config = config;
     else delete slot.config;
@@ -185,7 +185,7 @@ export class CognitiveController {
 
   /** The one resolution call every slot makes. */
   private resolve<T>(type: StrategyType, params: CognitiveParameters): T {
-    const slot = params.strategies[SLOT_KEY[type]] as StrategySlotParams;
+    const slot = params.strategies[STRATEGY_SLOTS[type].key] as StrategySlotParams;
     return this.registry.resolve<T>(type, slot.type, slot.config);
   }
 

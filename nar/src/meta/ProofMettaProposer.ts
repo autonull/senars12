@@ -8,7 +8,7 @@
  */
 
 import type { DerivationRecord, DerivationStep } from '@senars/core/schemas/derivation-records';
-import { BoundedMap, incrementCount, mean, rankBy } from '@senars/util';
+import { BoundedMap, BoundedRing, incrementCount, mean, pushCapped, rankBy } from '@senars/util';
 import { agreeByExactAlgebra } from '../reflex/algebra-vote.js';
 import type { IProposer, NegotiationInput, ProposerContribution } from '../reflex/Negotiator.js';
 import type { ActionProposal, LearningEvent } from '../reflex/Reflex.js';
@@ -62,6 +62,17 @@ interface GeneralizedPattern {
   ruleId: string; // Abstracted rule identifier
 }
 
+/**
+ * What the learner retains between derivations. The proof stream, the pattern
+ * table and each pattern's examples all grew for the life of the process, and
+ * `extractPatterns` re-walks the pattern table on every derivation to promote
+ * frequent patterns — so the cost of learning rose with uptime rather than with
+ * the derivation in hand. `rules` was already bounded; these are the other three.
+ */
+const PROOF_STREAM_CAPACITY = 512;
+const MAX_TRACKED_PATTERNS = 2000;
+const MAX_PATTERNS_PER_EXAMPLE = 8;
+
 export class ProofMettaProposer implements IProposer {
   private readonly maxRules: number;
   private readonly rules: BoundedMap<string, MettaRule>;
@@ -70,12 +81,12 @@ export class ProofMettaProposer implements IProposer {
   private readonly mettaEvaluator?: (expression: string) => boolean | null;
   private readonly actionToExpression?: (action: string) => string | undefined;
   private ruleCounter = 0;
-  private readonly proofStream: ProofStreamEntry[] = [];
+  private readonly proofStream: BoundedRing<ProofStreamEntry>;
   // Persistent pattern counts across all derivations, keyed by serialized pattern
-  private readonly patternCounts = new Map<
+  private readonly patternCounts: BoundedMap<
     string,
     { count: number; confidence: number; examples: string[]; pattern: GeneralizedPattern }
-  >();
+  >;
 
   constructor(options: ProofMettaProposerOptions = {}) {
     this.maxRules = options.maxRules ?? 100;
@@ -83,6 +94,8 @@ export class ProofMettaProposer implements IProposer {
       maxSize: this.maxRules,
       eviction: { by: (rule: MettaRule) => rule.confidence },
     });
+    this.proofStream = new BoundedRing(PROOF_STREAM_CAPACITY);
+    this.patternCounts = new BoundedMap({ maxSize: MAX_TRACKED_PATTERNS, eviction: 'fifo' });
     this.minConfidence = options.minConfidence ?? 0.7;
     this.patternMinSupport = options.patternMinSupport ?? 3;
     this.mettaEvaluator = options.mettaEvaluator;
@@ -105,6 +118,10 @@ export class ProofMettaProposer implements IProposer {
     return this.pruneAndRank();
   }
 
+  private exampleOf(step: DerivationStep): string {
+    return `${step.ruleId}: ${step.premises.join(', ')} => ${step.conclusion}`;
+  }
+
   /** Extract rewrite patterns from a derivation, accumulating counts across all derivations. */
   private extractPatterns(derivation: DerivationRecord): void {
     for (const step of derivation.steps) {
@@ -116,12 +133,12 @@ export class ProofMettaProposer implements IProposer {
       if (existing) {
         existing.count++;
         existing.confidence = Math.max(existing.confidence, step.truth.confidence);
-        existing.examples.push(`${step.ruleId}: ${step.premises.join(', ')} => ${step.conclusion}`);
+        pushCapped(existing.examples, this.exampleOf(step), MAX_PATTERNS_PER_EXAMPLE);
       } else {
         this.patternCounts.set(patternKey, {
           count: 1,
           confidence: step.truth.confidence,
-          examples: [`${step.ruleId}: ${step.premises.join(', ')} => ${step.conclusion}`],
+          examples: [this.exampleOf(step)],
           pattern: generalized,
         });
       }
@@ -276,7 +293,7 @@ export class ProofMettaProposer implements IProposer {
     const rules = this.getRules();
     return {
       totalRules: rules.length,
-      proofStreamLength: this.proofStream.length,
+      proofStreamLength: this.proofStream.size(),
       avgConfidence: mean(rules, (r) => r.confidence),
     };
   }

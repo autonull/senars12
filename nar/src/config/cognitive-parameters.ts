@@ -1,4 +1,4 @@
-import { createLogger, deepEqual, deepFreeze, deepMerge, errMsg } from '@senars/util';
+import { createLogger, deepEqual, deepFreeze, deepMerge, errMsg, keyedBy } from '@senars/util';
 import { boundRange, cognitiveBounds, getCognitiveBound } from '@senars/util/config';
 import { type BagSlotParams, bagSlotErrors } from '../bag/registration';
 import {
@@ -74,17 +74,34 @@ export interface StrategySlotParams {
   config?: StrategyConfig;
 }
 
-/** Slot key ↔ registry type: the config uses `lmRule`, the registry `lm-rule`. */
+/**
+ * Every strategy slot, as the pair that the two sides of the system spell
+ * differently: the config graph says `lmRule`, the registry says `lm-rule`.
+ *
+ * Declared once and keyed by the registry type, because that direction is the
+ * lossless one — indexing it yields the slot's config key at its literal type,
+ * so a fifth slot added here reaches the controller, the registry and the
+ * validation walk together. It was three hand-written copies of these five pairs
+ * in two files (`SLOT_KEY`, `SLOT_TYPES` in the registry, this table), and they
+ * were already free to disagree.
+ */
 export const STRATEGY_SLOTS = {
   sampling: { key: 'sampling', type: 'sampling' },
   premise: { key: 'premise', type: 'premise' },
   derivation: { key: 'derivation', type: 'derivation' },
-  lmRule: { key: 'lmRule', type: 'lm-rule' },
+  'lm-rule': { key: 'lmRule', type: 'lm-rule' },
   attention: { key: 'attention', type: 'attention' },
 } as const satisfies Record<
-  string,
+  StrategyType,
   { key: keyof CognitiveParameters['strategies']; type: StrategyType }
 >;
+
+/** The same slots read from the config side, for a caller holding a slot key. */
+export const STRATEGY_SLOTS_BY_KEY = keyedBy(
+  Object.values(STRATEGY_SLOTS),
+  ({ key }) => key,
+  ({ type }) => type
+);
 
 export interface PriorityConfig {
   /** Initial priority for new concepts */

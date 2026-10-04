@@ -23,10 +23,19 @@ export const section = (title: string, width = 50, rule = '='): string =>
  * This is `floor`, not the nearest-rank `ceil(p * n) - 1`, so on an even-sized
  * sample p50 reads the upper of the two middle values.
  */
-export const percentile = (values: readonly number[], p: number): number => {
-  if (values.length === 0) return 0;
+export const percentile = (values: readonly number[], p: number): number =>
+  percentiles(values, [p])[0] ?? 0;
+
+/**
+ * Several percentiles of one sample from a single sort. A caller reading two
+ * terciles off the same array paid for two copies and two sorts of it; the
+ * definition of the percentile is unchanged, so this is {@link percentile}
+ * applied once to a list.
+ */
+export const percentiles = (values: readonly number[], ps: readonly number[]): number[] => {
+  if (values.length === 0) return ps.map(() => 0);
   const sorted = [...values].sort((a, b) => a - b);
-  return sorted[clamp(Math.floor(sorted.length * p), 0, sorted.length - 1)] ?? 0;
+  return ps.map((p) => sorted[clamp(Math.floor(sorted.length * p), 0, sorted.length - 1)] ?? 0);
 };
 
 /** UTC calendar day as `YYYY-MM-DD` — the one date key for daily ledger files. */
