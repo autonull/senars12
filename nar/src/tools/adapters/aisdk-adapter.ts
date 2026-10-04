@@ -1,4 +1,4 @@
-import { serializeTruth, type TruthLike } from '@senars/util';
+import { serializeTruth, type TruthLike, takeLast } from '@senars/util';
 import { evaluateExpression } from '@senars/util/utils/eval';
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -161,7 +161,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
         return {
           derived,
           stats: nar.getStatistics(),
-          beliefs: nar.getBeliefs().slice(-5),
+          beliefs: takeLast(nar.getBeliefs(), 5),
         };
       },
     }),

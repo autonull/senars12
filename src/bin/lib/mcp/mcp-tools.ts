@@ -5,6 +5,7 @@ import type { NAR } from '@senars/nar';
 import { Truth } from '@senars/nar';
 import type { ExtendedAgent as Agent } from '@senars/nar/agent';
 import { resetDemotions } from '@senars/nar/lm';
+import { takeLast } from '@senars/util';
 import { evaluateExpression } from '@senars/util/utils/eval';
 import { z } from 'zod';
 import type { JobManager } from './job-manager.js';
@@ -132,7 +133,7 @@ export function registerNARTools(
     },
     async ({ steps }) => {
       const derived = await nar.run(steps);
-      const recentBeliefs = formatBeliefsForMCP(nar.getBeliefs().slice(-10));
+      const recentBeliefs = formatBeliefsForMCP(takeLast(nar.getBeliefs(), 10));
       return createMCPResponse(stringifyMCP({ derived, beliefs: recentBeliefs }), {
         derived,
         beliefs: recentBeliefs,

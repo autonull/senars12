@@ -1,10 +1,11 @@
 /**
  * Reasoning pattern analysis - extracted from SelfAnalyzerService
  */
+import { takeLast } from '@senars/util';
 import type { MetricsCollector } from '../../../metrics';
 import type { SelfHost } from '../../../self/host.js';
-import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
 import type { InferenceChain, PatternAnalysis, ReasoningStep } from '../../types.js';
+import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
 import { EMPTY_PATTERN } from './constants.js';
 import {
   analyzePerformancePatterns,
@@ -34,9 +35,8 @@ export const analyzeReasoningPatterns = async (
 export const detectInefficientChains = (monitor: MetacognitiveMonitor): InferenceChain[] => {
   const monitorState = monitor.getMonitorState();
   if (!monitorState?.reasoningTrace) return [];
-  return monitorState.reasoningTrace
-    .slice(-100)
-    .reduce<InferenceChain[]>((acc, entry: ReasoningStep) => {
+  return takeLast(monitorState.reasoningTrace, 100).reduce<InferenceChain[]>(
+    (acc, entry: ReasoningStep) => {
       if (entry.stepData?.duration !== undefined && entry.stepData.duration > 1000) {
         acc.push({
           startTerm: entry.stepData.startTerm || 'unknown',
@@ -47,5 +47,7 @@ export const detectInefficientChains = (monitor: MetacognitiveMonitor): Inferenc
         });
       }
       return acc;
-    }, []);
+    },
+    []
+  );
 };

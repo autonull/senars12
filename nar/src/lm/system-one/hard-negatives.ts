@@ -1,5 +1,6 @@
 import type { Episode } from '@senars/util';
 import {
+  collectUpTo,
   getOrInsert,
   groupBy,
   mapToRecord,
@@ -70,12 +71,16 @@ export async function mineHardNegatives(
     const key = belief.term.toString();
     getOrInsert(byTerm, key, () => []).push({ f: belief.truth.f });
   }
-  for (const [term, truths] of byTerm) {
-    if (negatives.length >= limit / 2) break;
-    if (hasDivergence(truths.map((t) => t.f), conflictGap)) {
-      negatives.push({ rubric: 'conflict', text: term, source: 'contradiction' });
-    }
-  }
+  negatives.push(
+    ...collectUpTo(byTerm, limit / 2, ([term, truths]) =>
+      hasDivergence(
+        truths.map((t) => t.f),
+        conflictGap
+      )
+        ? { rubric: 'conflict', text: term, source: 'contradiction' as const }
+        : undefined
+    )
+  );
 
   if (episodic) {
     try {

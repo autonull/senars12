@@ -24,11 +24,11 @@
 
 - `contextOptsSchema`
 
-- `envBool`
+- `envBool` — The boolean grammar, applied to one key. `LM_OFFLINE=0` is off; a bare
 
 - `envCsv`
 
-- `envFirst` — First defined value among `keys`, or `undefined`.
+- `envFirst` — First defined, non-empty value among `keys`, or `undefined`.
 
 - `envInt`
 
@@ -36,9 +36,11 @@
 
 - `envPositive` — Positive finite number from the environment, else `fallback` — the guard for
 
-- `envStr`
+- `envSet` — True when the key carries a value — the "is it configured?" test.
 
-- `envStrOr`
+- `envStr` — {@link envFirst} under the name a value read is usually wanted by.
+
+- `envStrOr` — {@link envStr} with a fallback for the caller that wants a value, not a fact.
 
 - `isTruthy` — Canonical truthiness for env-sourced strings — every `=== 'true'` check funnels here.
 
@@ -240,6 +242,10 @@
 
 - `splitKey` — The `parts` of a key {@link joinKey} wrote. Throws rather than returning
 
+- `takeFirst` — The oldest `count` items — {@link takeLast} read from the other end.
+
+- `takeLast` — The newest `count` items, reading from the end.
+
 - `trimCapped` — Keep the newest `capacity` entries of a plain array, dropping from the front.
 
 - `unique` — Value-level dedup, first occurrence wins. For "the set of concepts this event
@@ -392,6 +398,8 @@
 
 - `softmax`
 
+- `softFalloff` — `1 / (1 + x)` — the decay-from-one curve, for a quantity that is strongest at
+
 - `softSquash` — `x / (x + k)` — the reciprocal saturation curve, for a quantity with a natural
 
 - `stdDev` — Population standard deviation — `sqrt(variance)`.
@@ -536,11 +544,13 @@
 
 - `dialogueSchema`
 
-- `envBool`
+- `type EnvKey`
+
+- `envBool` — The boolean grammar, applied to one key. `LM_OFFLINE=0` is off; a bare
 
 - `envCsv`
 
-- `envFirst` — First defined value among `keys`, or `undefined`.
+- `envFirst` — First defined, non-empty value among `keys`, or `undefined`.
 
 - `envInt`
 
@@ -550,9 +560,11 @@
 
 - `envPositive` — Positive finite number from the environment, else `fallback` — the guard for
 
-- `envStr`
+- `envSet` — True when the key carries a value — the "is it configured?" test.
 
-- `envStrOr`
+- `envStr` — {@link envFirst} under the name a value read is usually wanted by.
+
+- `envStrOr` — {@link envStr} with a fallback for the caller that wants a value, not a fact.
 
 - `isBooleanSpelling` — True only for a spelling both halves accept — the acceptance test a validator wants.
 

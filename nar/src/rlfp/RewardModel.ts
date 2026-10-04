@@ -1,4 +1,11 @@
-import { flooredRatio, nextInt, normalizeToSum, type RandomSource, safeRatio } from '@senars/util';
+import {
+  flooredRatio,
+  nextInt,
+  normalizeToSum,
+  type RandomSource,
+  safeRatio,
+  softFalloff,
+} from '@senars/util';
 
 import type { PreferenceData } from './PreferenceCollector.js';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
@@ -70,7 +77,7 @@ export class RewardModel {
     reward += features.errorCount * this.config.errorPenalty!;
 
     if (features.completionLength > 0) {
-      const conciseness = 1 / (1 + Math.log(features.completionLength + 1));
+      const conciseness = softFalloff(Math.log(features.completionLength + 1));
       reward += conciseness * this.config.concisenessWeight!;
     }
 

@@ -1,3 +1,4 @@
+import { unique } from '@senars/util';
 import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
 
 export const SUPPORT_3D: Set<Channel> = new Set(['color', 'opacity', 'size', 'label', 'z']);
@@ -12,7 +13,7 @@ export function checkUnsupportedChannels(delta: Delta, isEdge: (id: string) => b
       if (!supported.has(ch)) unsupported.push(ch);
     }
   }
-  return [...new Set(unsupported)];
+  return unique(unsupported);
 }
 
 function applyNodeVisuals(

@@ -1,3 +1,4 @@
+import { getOrInsert } from '@senars/util';
 import type { Term } from '../../terms';
 import type { RandomSource } from '../../types/primitives.js';
 import { Layer } from './Layer.js';
@@ -34,11 +35,11 @@ export class LinkManager {
   }
 
   registerLayer(name: string, capacity: number): Layer {
-    const existing = this.layers.get(name);
-    if (existing) return existing;
-    const layer = new Layer(name, capacity, this.config.forgetPolicy, this.config.rng);
-    this.layers.set(name, layer);
-    return layer;
+    return getOrInsert(
+      this.layers,
+      name,
+      () => new Layer(name, capacity, this.config.forgetPolicy, this.config.rng)
+    );
   }
 
   setLayer(name: string, layer: Layer): void {

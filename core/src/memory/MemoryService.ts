@@ -1,4 +1,4 @@
-import { generateId, pushCapped } from '@senars/util';
+import { generateId, pushCapped, takeLast } from '@senars/util';
 import type { Engine } from '../engine/Engine.js';
 import type { EventLog } from '../eventlog/EventLog.js';
 import type { ToolRegistry } from '../motor/ToolRegistry.js';
@@ -54,7 +54,7 @@ export class MemoryService {
 
   recent(limit: number, type?: string): MemoryEntry[] {
     const entries = type ? this.#working.filter((e) => e.type === type) : this.#working;
-    return entries.slice(-limit);
+    return takeLast(entries, limit);
   }
 
   query(q: MemoryQuery): MemoryEntry[] {
@@ -64,8 +64,7 @@ export class MemoryService {
     if (from !== undefined) result = result.filter((e) => e.timestamp >= from);
     const to = q.to;
     if (to !== undefined) result = result.filter((e) => e.timestamp <= to);
-    const limit = q.limit ?? result.length;
-    return result.slice(-limit);
+    return takeLast(result, q.limit ?? result.length);
   }
 
   queryTimeRange(from: number, to: number): MemoryEntry[] {

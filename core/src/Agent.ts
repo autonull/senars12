@@ -1,5 +1,11 @@
-import { type CognitiveEvent, mintCognitiveEvent } from './schemas/index.js';
-import { type EpisodicMemory, generateId, incrementCount, makeId, type LMTask } from '@senars/util';
+import {
+  type EpisodicMemory,
+  generateId,
+  incrementCount,
+  type LMTask,
+  makeId,
+  mapToRecord,
+} from '@senars/util';
 import { ApprovalService } from './ApprovalService.js';
 import { type CycleHost, runCycle, runCycleStream } from './agent/phases.js';
 import type { MacroPhase } from './agent/pipeline.js';
@@ -21,6 +27,7 @@ import { registerBuiltinTools } from './motor/builtin-tools.js';
 import { ToolRegistry } from './motor/ToolRegistry.js';
 import { PolicyEngine } from './PolicyEngine.js';
 import type { AgentCapabilities } from './protocol/index.js';
+import { type CognitiveEvent, mintCognitiveEvent } from './schemas/index.js';
 import type { Connection } from './Transport.js';
 
 export type {
@@ -183,7 +190,7 @@ export class Agent {
   }
 
   health(): HealthStatus {
-    const byEngine = Object.fromEntries(this.#engineErrors);
+    const byEngine = mapToRecord(this.#engineErrors);
     return {
       status: this.#started ? 'healthy' : 'stuck',
       lastCycle: this.#lastCycleTime,

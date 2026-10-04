@@ -11,7 +11,7 @@
  * are handled here rather than re-implemented per tool.
  */
 
-import { errMsg, withDeadline } from '@senars/util';
+import { collectUpTo, errMsg, withDeadline } from '@senars/util';
 import { envFirst } from '@senars/util/config';
 
 const FETCH_TIMEOUT_MS = 15_000;
@@ -155,21 +155,20 @@ export const duckDuckGoSearch = async (
   );
   if (!res.ok) throw new Error(`duckduckgo ${res.status}`);
   const html = await readBody(res);
-  const results: WebSearchResult[] = [];
   const linkRe = /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
   const snippetRe = /class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/g;
   const snippets = [...html.matchAll(snippetRe)].map((m) => stripTags(m[1] ?? ''));
-  for (;;) {
-    const m = linkRe.exec(html);
-    if (!m || results.length >= maxResults) break;
+  // Snippets pair with the *admitted* index, not the match index, so the pairing
+  // survives a rejected href.
+  let admitted = 0;
+  return collectUpTo(html.matchAll(linkRe), maxResults, (m) => {
     const [, href, titleHtml] = m;
-    if (!href || !titleHtml) continue;
+    if (!href || !titleHtml) return undefined;
     const url = resolveDDGHref(decodeEntities(href));
-    if (!url) continue;
-    const snippet = snippets[results.length];
-    results.push({ title: stripTags(titleHtml).trim(), url, ...(snippet ? { snippet } : {}) });
-  }
-  return results;
+    if (!url) return undefined;
+    const snippet = snippets[admitted++];
+    return { title: stripTags(titleHtml).trim(), url, ...(snippet ? { snippet } : {}) };
+  });
 };
 
 /**

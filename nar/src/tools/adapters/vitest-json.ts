@@ -4,7 +4,7 @@
  * "find the first `{` line" fence scan and the same four counter reductions.
  */
 
-import { safeRatio } from '@senars/util';
+import { parseJsonObject, safeRatio } from '@senars/util';
 
 export type CoverageMetrics = {
   total: number;
@@ -88,13 +88,7 @@ const metricsAdd = (a: Counters, b: Counters): Counters => ({
 
 /** Parse the JSON document vitest writes, ignoring any leading plain-text lines. */
 export function parseVitestJson(output: string): Record<string, any> | null {
-  const start = output.split('\n').findIndex((line) => line.trim().startsWith('{'));
-  if (start === -1) return null;
-  try {
-    return JSON.parse(output.split('\n').slice(start).join('\n'));
-  } catch {
-    return null;
-  }
+  return parseJsonObject(output);
 }
 
 export function parseCoverageFiles(output: string): FileCoverage[] {

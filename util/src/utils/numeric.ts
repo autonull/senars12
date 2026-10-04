@@ -197,6 +197,20 @@ export const renormalize = <T>(
 export const softSquash = (x: number, k = 1): number => x / (x + k);
 
 /**
+ * `1 / (1 + x)` — the decay-from-one curve, for a quantity that is strongest at
+ * zero distance and vanishes asymptotically instead of settling on a floor: a
+ * stability read off a dispersion, a recency read off an age, a conciseness read
+ * off a log length.
+ *
+ * The mirror of {@link softSquash}, not a variant of it: that answers "how much
+ * of a magnitude is this" for a quantity with a natural ceiling, this answers
+ * "how close is this to now". Both were open-coded as `1 / (1 + …)` at every site
+ * that wanted one, so the shape of a decay was re-derived per call and no single
+ * edit could tune all of them. `x` must exceed `-1`; `clamp01` it first if it can.
+ */
+export const softFalloff = (x: number): number => 1 / (1 + x);
+
+/**
  * Float equality within `eps`. The one guard for "these two accumulated truth
  * values are the same number", where `===` fails on accumulated rounding.
  */

@@ -10,9 +10,10 @@ import {
   cachePath,
   flatUnique,
   getOrInsert,
-  sortableIdSource,
   rankBy,
+  sortableIdSource,
   systemClock,
+  takeLast,
 } from '@senars/util';
 import {
   BaseLedgerEntrySchema,
@@ -277,11 +278,8 @@ export class EpisodicMemory implements UtilEpisodicMemory {
   /** Conjunction over the index keys a filter provided, then the shared tail. */
   #resolve(sources: Episode[][], options: EpisodeFilter): Episode[] {
     const candidates = sources.length === 1 ? sources[0]! : flatUnique(sources);
-    let matches = candidates.filter((e) => matchesFilter(e, options));
-    if (options.limit !== undefined && matches.length > options.limit) {
-      matches = matches.slice(-options.limit); // most recent wins, matching scan semantics
-    }
-    return matches;
+    const matches = candidates.filter((e) => matchesFilter(e, options));
+    return options.limit === undefined ? matches : takeLast(matches, options.limit);
   }
 
   /** One-pass read of every persisted episode — both index builds share the traversal. */

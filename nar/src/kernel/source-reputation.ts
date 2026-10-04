@@ -8,7 +8,7 @@
  * REFACTOR.todo4 Phase B: now backed by the generic `Ledger<T>` primitive from `@senars/io`.
  */
 
-import { cachePath, clamp01, LruCache } from '@senars/util';
+import { cachePath, clamp01, flooredRatio, LruCache } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 
@@ -97,7 +97,7 @@ export class SourceReputation {
     const entry = this.#entries.get(key);
     if (!entry) return 1;
     if (entry.contradicted < this.#decayGate) return 1;
-    const share = entry.contradicted / Math.max(entry.confirmed + entry.contradicted, 1);
+    const share = flooredRatio(entry.contradicted, entry.confirmed + entry.contradicted);
     return Math.max(this.#floor, clamp01(1 - share));
   }
 

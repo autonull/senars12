@@ -118,6 +118,26 @@ export interface BoundedContainer<T> {
 }
 
 /**
+ * The newest `count` items, reading from the end.
+ *
+ * `slice(-n)` is the idiom for this and its twin `slice(0, n)` is the idiom for
+ * the *oldest* `n`. They are the same length, one argument apart, and nothing at
+ * the call site says which one is meant — so both were written in production code
+ * and a reader could not tell a "most recent" read from a "first found" read
+ * without counting the minus sign. The name is the point; `takeFirst` is the
+ * other half.
+ *
+ * `count <= 0` yields nothing, matching {@link collectUpTo} and {@link shareOf}:
+ * a limit of zero is a refusal to read, not a request for the whole list.
+ */
+export const takeLast = <T>(items: readonly T[], count: number): T[] =>
+  count <= 0 ? [] : items.slice(Math.max(0, items.length - count));
+
+/** The oldest `count` items — {@link takeLast} read from the other end. */
+export const takeFirst = <T>(items: readonly T[], count: number): T[] =>
+  count <= 0 ? [] : items.slice(0, count);
+
+/**
  * Drop-oldest push for plain arrays. One `shift()` per overflow — no `splice`
  * reallocation and no cap arithmetic repeated at the call site. Returns the
  * displaced item, which is what a sliding-window caller needs and what every
@@ -130,8 +150,8 @@ export function pushCapped<T>(log: T[], item: T, capacity: number): T | undefine
 
 /**
  * Keep the newest `capacity` entries of a plain array, dropping from the front.
- * Returns how many were dropped, for the callers that report it. The list
- * counterpart of {@link pushCapped} for the callers that cannot push through it.
+ * Returns how many were dropped, for the callers that report it. The in-place
+ * counterpart of {@link takeLast}, for the callers that own the array.
  */
 export function trimCapped<T>(log: T[], capacity: number): number {
   const dropped = Math.max(0, log.length - capacity);

@@ -1,4 +1,4 @@
-import { shuffleInPlace } from '@senars/util';
+import { shareOf, shuffleInPlace } from '@senars/util';
 import type { RuleEngine } from '../../rules/types.js';
 import type { Task } from '../../types';
 import type { RandomSource } from '../../types/primitives.js';
@@ -22,11 +22,7 @@ export class SampledDerivation extends DefaultDerivation {
     processor: RuleEngine,
     ctx: DerivationContext
   ): AsyncGenerator<Task> {
-    const maxPairs = Math.min(
-      secondaries.length,
-      Math.max(1, Math.ceil(secondaries.length * this.fraction))
-    );
     const pool = shuffleInPlace([...secondaries], this.rng);
-    yield* super.derive(primary, pool.slice(0, maxPairs), processor, ctx);
+    yield* super.derive(primary, shareOf(pool, this.fraction, 1), processor, ctx);
   }
 }

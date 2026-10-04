@@ -1,4 +1,4 @@
-import { envPositive, type LMTask } from '@senars/util';
+import { envPositive, type LMTask, mapToRecord } from '@senars/util';
 import { recordLmSpend } from '../../metrics/index.js';
 import { getModelCapability } from '../providers.js';
 import { LMUnavailableError, withHint } from './errors.js';
@@ -22,7 +22,7 @@ export class SpendLedger {
   private spend = new Map<string, ProviderSpend>();
 
   snapshot(): Record<string, ProviderSpend> {
-    return Object.fromEntries(this.spend);
+    return mapToRecord(this.spend);
   }
 
   /** Record usage tokens + capability-table cost against the provider; throws

@@ -4,6 +4,7 @@
  */
 
 import { SourceQualitySchema } from '@senars/core/schemas';
+import { getOrInsert } from '@senars/util';
 import { createIsotonicCalibrator } from './calibration.js';
 import { dominantDistribution, legendFrom, uniformDistribution } from './distribution.js';
 import type { HeadFactoryOptions } from './heads/factory.js';
@@ -305,13 +306,8 @@ export function groupQueries(group: HeadGroup): JudgmentQuery[] {
 
 /** Static, read-only query sets — built once; callers must not mutate them. */
 const QUERY_GROUPS = new Map<HeadGroup, JudgmentQuery[]>();
-const queriesFor = (group: HeadGroup): readonly JudgmentQuery[] => {
-  const cached = QUERY_GROUPS.get(group);
-  if (cached) return cached;
-  const built = groupQueries(group);
-  QUERY_GROUPS.set(group, built);
-  return built;
-};
+const queriesFor = (group: HeadGroup): readonly JudgmentQuery[] =>
+  getOrInsert(QUERY_GROUPS, group, () => groupQueries(group));
 
 export const ingressQueries = (): readonly JudgmentQuery[] => queriesFor('ingress');
 export const actionQueries = (): readonly JudgmentQuery[] => queriesFor('action');

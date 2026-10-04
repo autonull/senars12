@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { EpisodicMemory } from '@senars/nar';
 import type { DialogueCapture as DialogueCaptureType } from '@senars/nar/dialogue';
 import { retrospect, selectProbes } from '@senars/nar/dialogue';
-import { type ReadOnlyLookup, unique } from '@senars/util';
+import { type ReadOnlyLookup, takeLast, unique } from '@senars/util';
 import { z } from 'zod';
 import { ANNOTATIONS, createMCPResponse, stringifyMCP } from './mcp-response.js';
 
@@ -97,13 +97,13 @@ export function registerDialogueTools(server: McpServer, options: DialogueToolsO
       const turns = episodes
         .filter((e) => sessionIdOf(e) === session)
         .map((e) => parseTurnRow(e.content))
-        .filter((t): t is TurnRow => t !== undefined)
-        .slice(-limit);
+        .filter((t): t is TurnRow => t !== undefined);
+      const recent = takeLast(turns, limit);
       return createMCPResponse(
-        turns.length === 0
+        recent.length === 0
           ? 'No captured turns.'
-          : `${turns.length} turn(s) for session ${session}`,
-        { sessionId: session ?? null, turns }
+          : `${recent.length} turn(s) for session ${session}`,
+        { sessionId: session ?? null, turns: recent }
       );
     }
   );

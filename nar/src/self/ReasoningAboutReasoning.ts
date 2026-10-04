@@ -1,4 +1,4 @@
-import { createLogger, errMsg, periodic, type TermTruth } from '@senars/util';
+import { createLogger, errMsg, periodic, type TermTruth, takeLast } from '@senars/util';
 import { MetacognitiveMonitor, MONITOR_DEFAULTS } from '../cognitive/impls/MetacognitiveMonitor.js';
 import {
   type MetaCognitiveResult,
@@ -114,7 +114,7 @@ export class ReasoningAboutReasoning {
     const isRunning = this.nar.isRunning();
 
     return {
-      reasoningTrace: this.monitor.getReasoningTrace().slice(-10),
+      reasoningTrace: takeLast(this.monitor.getReasoningTrace(), 10),
       performanceTrend: this.monitor.getPerformanceTrend(),
       currentContext: {
         memorySize: memory?.size ?? 0,

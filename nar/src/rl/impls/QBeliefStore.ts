@@ -1,4 +1,12 @@
-import { clamp01, LruCache, lerp, maxScore, nextInt, type RandomSource } from '@senars/util';
+import {
+  clamp01,
+  LruCache,
+  lerp,
+  maxScore,
+  nearlyEqual,
+  nextInt,
+  type RandomSource,
+} from '@senars/util';
 import type { DriveManager } from '../../drives/impls/DriveManager.js';
 import { atom, type Term, TermBuilder, TermSet, Truth, termKey } from '../../index.js';
 import type { NAR } from '../../nar.js';
@@ -169,7 +177,7 @@ export class QBeliefStore {
         if (expectation > bestExpectation + 1e-9) {
           bestExpectation = expectation;
           ties = [action];
-        } else if (Math.abs(expectation - bestExpectation) <= 1e-9) {
+        } else if (nearlyEqual(expectation, bestExpectation, 1e-9)) {
           ties.push(action);
         }
       }

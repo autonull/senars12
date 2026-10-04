@@ -1,4 +1,4 @@
-import { djb2, djb2Step, LruCache, lerp } from '@senars/util';
+import { djb2, djb2Step, getOrInsert, LruCache, lerp } from '@senars/util';
 import type { JudgmentQuery } from './types.js';
 
 export interface ScoringOptions {
@@ -44,9 +44,5 @@ const SCORER_CACHE_MAX = 256;
 const scorerRegistry = new LruCache<string, ReturnType<typeof createScorer>>(SCORER_CACHE_MAX);
 
 export function getScorer(rubric: string): ReturnType<typeof createScorer> {
-  const cached = scorerRegistry.get(rubric);
-  if (cached) return cached;
-  const scorer = createScorer(djb2(rubric));
-  scorerRegistry.set(rubric, scorer);
-  return scorer;
+  return getOrInsert(scorerRegistry, rubric, () => createScorer(djb2(rubric)));
 }

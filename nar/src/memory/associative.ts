@@ -11,6 +11,7 @@
  * stays a one-way acyclic edge (same rule as `view.ts`).
  */
 
+import { getOrInsert } from '@senars/util';
 import type { ConceptGraph } from './ConceptGraph.js';
 import type { Layer } from './links/Layer.js';
 import type { LinkType } from './links/types.js';
@@ -118,9 +119,7 @@ export class AssociativeRegistry {
 
     // Memoized, but the memo resolves the layer per recall, so replacing the
     // layer behind the name is still observed.
-    const derived = new LinkLayerMemory(name, () => this.layers?.(name));
-    this.memories.set(name, derived);
-    return derived;
+    return getOrInsert(this.memories, name, () => new LinkLayerMemory(name, () => this.layers?.(name)));
   }
 
   names(): string[] {

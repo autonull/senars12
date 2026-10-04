@@ -1,4 +1,4 @@
-import { collectUpTo, type TermTruth } from '@senars/util';
+import { collectUpTo, getOrInsert, type TermTruth } from '@senars/util';
 import { GRAPH_MEMORY, type RecallHit } from '../../memory/associative.js';
 import type { Concept } from '../../memory/concept.js';
 import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';
@@ -352,14 +352,11 @@ interface ResolvedPipeline {
  */
 const PIPELINES = new WeakMap<SampleConfig, ResolvedPipeline>();
 
-const resolvePipeline = (config: SampleConfig): ResolvedPipeline => {
-  const cached = PIPELINES.get(config);
-  if (cached) return cached;
-  const merged: ResolvedSampleConfig = { ...PREMISE_SAMPLE_FALLBACK, ...config };
-  const pipeline: ResolvedPipeline = { config: merged, filters: resolveFilters(merged.filters) };
-  PIPELINES.set(config, pipeline);
-  return pipeline;
-};
+const resolvePipeline = (config: SampleConfig): ResolvedPipeline =>
+  getOrInsert(PIPELINES, config, () => {
+    const merged: ResolvedSampleConfig = { ...PREMISE_SAMPLE_FALLBACK, ...config };
+    return { config: merged, filters: resolveFilters(merged.filters) };
+  });
 
 export function samplePremisesFromConfig(
   memory: MemoryView,

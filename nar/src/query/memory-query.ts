@@ -7,7 +7,7 @@
  * nothing (C2').
  */
 
-import { type Clock, type Episode, rankBy, sortBy, systemClock } from '@senars/util';
+import { type Clock, type Episode, rankBy, softFalloff, sortBy, systemClock } from '@senars/util';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import { causalConnections, episodeSalience } from '../memory/episode-consolidator.js';
 import type { Concept, Memory } from '../memory/index.js';
@@ -48,8 +48,9 @@ export interface MemoryQueryOptions {
 const DEFAULT_LIMIT = 20;
 const DEFAULT_WEIGHTS = { concept: 1, episodic: 1, semantic: 1 } as const;
 
-/** Recency score ∈ (0, 1]: `1 / (1 + ageHours)`. */
-const recency = (timestamp: number, now: number): number => 1 / (1 + (now - timestamp) / 3_600_000);
+/** Recency score ∈ (0, 1]: `softFalloff` of the age in hours. */
+const recency = (timestamp: number, now: number): number =>
+  softFalloff((now - timestamp) / 3_600_000);
 
 /**
  * Outcome surface from episodic quality signals (Phase C): groundedness

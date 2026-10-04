@@ -1,8 +1,8 @@
 import type { CognitiveEvent } from '@senars/core/schemas';
 import {
+  BoundedRing,
   clamp,
   clamp01,
-  BoundedRing,
   flooredRatio,
   nextInt,
   percentile,
@@ -230,7 +230,7 @@ export class CognitiveTreadmill {
     if (this.nar.getMemoryState) {
       const stats = await this.nar.getMemoryState();
       if (stats?.conceptCount && stats?.maxConcepts) {
-        return stats.conceptCount / Math.max(stats.maxConcepts, 1);
+        return flooredRatio(stats.conceptCount, stats.maxConcepts);
       }
     }
     return 0.5;

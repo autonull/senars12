@@ -74,18 +74,10 @@ export class ShadowWorktreeManager {
     const lintSuccess = lintResult.code === 0;
 
     // Parse vitest JSON output for test counts
-    let passed = 0,
-      failed = 0,
-      total = 0;
-    try {
-      const jsonStart = testResult.stdout.indexOf('{');
-      if (jsonStart >= 0) {
-        const data = JSON.parse(testResult.stdout.slice(jsonStart));
-        passed = data.numPassedTests ?? 0;
-        failed = data.numFailedTests ?? 0;
-        total = data.numTotalTests ?? 0;
-      }
-    } catch {}
+    const counts = parseJsonObject<Record<string, number>>(testResult.stdout);
+    const passed = counts?.numPassedTests ?? 0;
+    const failed = counts?.numFailedTests ?? 0;
+    const total = counts?.numTotalTests ?? 0;
 
     return {
       success: testSuccess && typecheckSuccess && lintSuccess,
@@ -142,4 +134,4 @@ export class ShadowWorktreeManager {
   }
 }
 
-import { ensureParentDir } from '@senars/util';
+import { ensureParentDir, parseJsonObject } from '@senars/util';

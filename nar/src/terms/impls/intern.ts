@@ -1,4 +1,4 @@
-import { LruCache } from '@senars/util';
+import { getOrInsert, LruCache } from '@senars/util';
 import { COMMUTATIVE_OPS, NARY_OPS, OPERATORS } from '../operators.js';
 import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from '../types.js';
 import { VARIABLE_SYMBOL } from '../types.js';
@@ -109,23 +109,19 @@ export const compoundOf = (kind: OperatorKey, args: Term[]): Term => {
   // containing `,` alias a different arity.
   const shape = { kind, args: sorted } as CompoundTerm;
   const key = termKey(shape);
-  const cached = termCache.get(key);
-  if (cached) return cached;
+  return getOrInsert(termCache, key, () => {
+    // Compute serialized form once during creation (cache key is NOT the full serialized form)
+    const serialized = serializeTerm(shape);
 
-  // Compute serialized form once during creation (cache key is NOT the full serialized form)
-  const serialized = serializeTerm(shape);
-
-  return cache(
-    Object.freeze({
+    return Object.freeze({
       kind,
       args: sorted as readonly Term[],
       _serialized: serialized,
       toString() {
         return (this as any)._serialized ?? serializeTerm(this as CompoundTerm);
       },
-    } as CompoundTerm & { _serialized?: string }),
-    key
-  );
+    } as CompoundTerm & { _serialized?: string });
+  });
 };
 
 const compoundCtors = {} as Record<OperatorKey, (...args: Term[]) => Term>;

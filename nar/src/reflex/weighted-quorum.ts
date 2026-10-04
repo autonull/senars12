@@ -4,7 +4,7 @@
  * inline `decide()`); `WeightedQuorum` is the opt-in consensus alternative.
  */
 
-import { incrementCount, LruCache } from '@senars/util';
+import { getOrInsert, incrementCount, LruCache } from '@senars/util';
 import type { NALDerivation, NegotiationDecision } from './negotiation-types.js';
 import type { ActionProposal } from './Reflex.js';
 
@@ -96,14 +96,11 @@ export class NalVetoArbitration implements ArbitrationStrategy {
 
   #isVetoingAction(derivation: NALDerivation, proposedAction: string): boolean {
     const key = `${derivation.action}|${derivation.truth.f}|${derivation.truth.c}|${proposedAction}`;
-    const cached = this.#vetoMemo.get(key);
-    if (cached !== undefined) return cached;
-    const result =
+    return getOrInsert(this.#vetoMemo, key, () =>
       derivation.action === proposedAction &&
       derivation.truth.f < 0.3 &&
-      derivation.truth.c >= this.#nalVetoThreshold;
-    this.#vetoMemo.set(key, result);
-    return result;
+      derivation.truth.c >= this.#nalVetoThreshold
+    );
   }
 }
 

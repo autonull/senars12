@@ -4,7 +4,7 @@
  * Migrated from: nar/src/self/MetacognitiveMonitor.ts
  */
 
-import { mean, periodic, perSecond, pushCapped, stdDev } from '@senars/util';
+import { mean, periodic, perSecond, pushCapped, softFalloff, stdDev, takeLast } from '@senars/util';
 import type { SelfHost } from '../../self/host.js';
 import type { ReasoningStep } from '../types.js';
 
@@ -160,7 +160,7 @@ export class MetacognitiveMonitor {
       return 'insufficient_data';
     }
 
-    const recent = this.performanceHistory.slice(-10);
+    const recent = takeLast(this.performanceHistory, 10);
     const avgThroughput = mean(recent, (m: (typeof recent)[number]) => m.throughput || 0);
 
     const earlier = this.performanceHistory.slice(
@@ -316,7 +316,7 @@ export class MetacognitiveMonitor {
 
         if (currentMonitor.history.length > 1) {
           const values = currentMonitor.history.map((h) => h.value);
-          currentMonitor.stability = 1 / (1 + stdDev(values));
+          currentMonitor.stability = softFalloff(stdDev(values));
         }
 
         currentMonitor.currentValue = value;

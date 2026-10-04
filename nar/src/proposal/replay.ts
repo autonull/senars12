@@ -30,6 +30,7 @@
 
 import type { CognitiveEvent, ProposalRejection, RuleDeclaration } from '@senars/core/schemas';
 import { PROPOSAL_SCHEMA_VERSION } from '@senars/core/schemas';
+import { unique } from '@senars/util';
 
 /** One admission, as the log states it. */
 export interface ReplayedAdmission {
@@ -85,13 +86,11 @@ export const isProposalStream = (events: readonly CognitiveEvent[]): boolean =>
  * legitimate replay at revision 0.
  */
 export const recordedSchemaVersions = (events: readonly CognitiveEvent[]): number[] =>
-  [
-    ...new Set(
-      events
-        .filter((e) => e.type === 'proposal.admitted')
-        .map((e) => (e as { payload: { schemaVersion: number } }).payload.schemaVersion)
-    ),
-  ].sort((a, b) => a - b);
+  unique(
+    events
+      .filter((e) => e.type === 'proposal.admitted')
+      .map((e) => (e as { payload: { schemaVersion: number } }).payload.schemaVersion)
+  ).sort((a, b) => a - b);
 
 /**
  * The reduction. Pure: given the same log it returns the same value, twice, in

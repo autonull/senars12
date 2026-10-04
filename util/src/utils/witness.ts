@@ -1,3 +1,5 @@
+import { unique } from './collections.js';
+
 /**
  * A source-anchored declaration that a call still lives where a ledger says it does.
  *
@@ -35,9 +37,8 @@ export const witnessHolds = (source: string | undefined, contains: string): bool
  * Every file a witness list names, deduplicated. Reading the ledger needs the
  * sources of these files and no others, so this is the read set.
  */
-export const witnessFiles = (witnesses: WitnessList): readonly string[] => [
-  ...new Set(witnesses.map((witness) => witness.file)),
-];
+export const witnessFiles = (witnesses: WitnessList): readonly string[] =>
+  unique(witnesses.map((witness) => witness.file));
 
 /** `file:contains` — one line per witness, for a report that reads as a ledger. */
 export const formatWitness = ({ file, contains }: Witness): string => `${file} — ${contains}`;

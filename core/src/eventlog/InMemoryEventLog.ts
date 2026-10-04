@@ -1,4 +1,4 @@
-import { getOrInsert } from '@senars/util';
+import { getOrInsert, takeLast } from '@senars/util';
 import { AbstractEventLog } from './AbstractEventLog.js';
 import type { CognitiveEvent, EventLogConfig, EventLogQuery } from './EventLog.js';
 
@@ -28,7 +28,7 @@ export class InMemoryEventLog extends AbstractEventLog {
   }
 
   async query(query: EventLogQuery): Promise<CognitiveEvent[]> {
-    let matches = this.#events.filter((e) => {
+    const matches = this.#events.filter((e) => {
       if (query.correlationId && e.correlationId !== query.correlationId) return false;
       if (query.types && !query.types.includes(e.type)) return false;
       if (query.timeRange) {
@@ -37,10 +37,7 @@ export class InMemoryEventLog extends AbstractEventLog {
       }
       return true;
     });
-    if (query.limit !== undefined && matches.length > query.limit) {
-      matches = matches.slice(-query.limit);
-    }
-    return matches;
+    return query.limit === undefined ? matches : takeLast(matches, query.limit);
   }
 
   async getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]> {

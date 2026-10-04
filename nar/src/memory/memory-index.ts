@@ -167,9 +167,7 @@ export class MemoryIndex {
   getBySubterm(term: Term): Concept[] {
     const entry = this.inverseIndex.get(term);
     if (!entry) return [];
-    const results = new Set(entry.concepts);
-    for (const c of entry.subtermIndices.get(term) ?? []) results.add(c);
-    return [...results];
+    return unique([...entry.concepts, ...(entry.subtermIndices.get(term) ?? [])]);
   }
 
   /** Every concept the similarity families hold, as one candidate stream. */

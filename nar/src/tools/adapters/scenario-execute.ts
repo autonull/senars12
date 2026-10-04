@@ -1,4 +1,11 @@
-import { clamp01, createLogger, safeRatio, stopwatch, type TermTruth } from '@senars/util';
+import {
+  clamp01,
+  createLogger,
+  flooredRatio,
+  safeRatio,
+  stopwatch,
+  type TermTruth,
+} from '@senars/util';
 import type { ILMService } from '../../lm/interfaces.js';
 import { NLUnderstandingService } from '../../nl/understanding.js';
 import type { ScenarioProfile, ScenarioTemplateProfile } from './scenario-profiles.js';
@@ -97,7 +104,7 @@ export const validators: ScenarioValidator[] = [
     name: 'latency_p95',
     validate(result: ScenarioResult, spec: ScenarioSpec) {
       const threshold = spec.success_criteria.response_latency_p95 ?? 100;
-      const avgLatency = result.duration_ms / Math.max(result.steps_executed, 1);
+      const avgLatency = flooredRatio(result.duration_ms, result.steps_executed);
       const passed = avgLatency <= threshold;
       return {
         passed,

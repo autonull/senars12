@@ -6,6 +6,7 @@
  * otherwise have to carry a second, console-only implementation of this surface.
  */
 
+import { getOrInsert } from './utils/collections.js';
 import type { LogEntry, LoggerConfig, LogLevel } from './types/lifecycle.js';
 
 const LOG_LEVELS: readonly LogLevel[] = ['debug', 'info', 'warn', 'error'];
@@ -38,15 +39,15 @@ export class Logger {
   }
 
   child(scope: string): Logger {
-    const existing = this.children.get(scope);
-    if (existing) return existing;
-
-    const child = new Logger({
-      ...this.config,
-      scope: this.config.scope ? `${this.config.scope}:${scope}` : scope,
-    });
-    this.children.set(scope, child);
-    return child;
+    return getOrInsert(
+      this.children,
+      scope,
+      () =>
+        new Logger({
+          ...this.config,
+          scope: this.config.scope ? `${this.config.scope}:${scope}` : scope,
+        })
+    );
   }
 
   debug(message: string, context?: Record<string, unknown>): void {

@@ -1,4 +1,4 @@
-import { LruCache } from '@senars/util';
+import { getOrInsert, LruCache } from '@senars/util';
 import { sym } from '../types/ast.js';
 
 export interface InternOptions {
@@ -15,11 +15,7 @@ export class SymbolInterner implements Disposable {
   }
 
   intern(name: string): ReturnType<typeof sym> {
-    const cached = this.#cache.get(name);
-    if (cached) return cached;
-    const symbol = sym(name);
-    this.#cache.set(name, symbol);
-    return symbol;
+    return getOrInsert(this.#cache, name, () => sym(name));
   }
 
   get(name: string): ReturnType<typeof sym> | undefined {

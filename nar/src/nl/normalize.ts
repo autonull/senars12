@@ -1,4 +1,4 @@
-import { LruCache, splitWords } from '@senars/util';
+import { getOrInsert, LruCache, splitWords } from '@senars/util';
 import type { Term } from '../terms';
 import { isValidAtomSymbol, termParser, toAtomSymbol } from '../terms';
 
@@ -75,17 +75,16 @@ const parseCache = new LruCache<string, Term | null>(PARSE_CACHE_CAP);
 /** Parse with normalization; cached for firewall hot paths. Null when unparseable. */
 export const parseNarseseLenient = (narsese: string): Term | null => {
   const key = narsese.trim();
-  const hit = parseCache.get(key);
-  if (hit !== undefined) return hit;
-  let term: Term | null = null;
-  for (const candidate of [key, normalizeNarsese(key)]) {
-    try {
-      term = termParser.parse(candidate.replace(/[.?!]$/, ''));
-      break;
-    } catch {
-      /* try next form */
+  return getOrInsert(parseCache, key, () => {
+    let term: Term | null = null;
+    for (const candidate of [key, normalizeNarsese(key)]) {
+      try {
+        term = termParser.parse(candidate.replace(/[.?!]$/, ''));
+        break;
+      } catch {
+        /* try next form */
+      }
     }
-  }
-  parseCache.set(key, term);
-  return term;
+    return term;
+  });
 };

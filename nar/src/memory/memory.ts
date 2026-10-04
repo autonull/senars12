@@ -1,6 +1,7 @@
 import {
   type BeliefTruth,
   BoundedRing,
+  getOrInsert,
   nextInt,
   occupancy,
   selectTopN,
@@ -276,17 +277,16 @@ export class Memory implements MemoryPorts {
   }
 
   addConcept(term: Term): Concept {
-    const existing = this.concepts.get(term);
-    if (existing) return existing;
+    return getOrInsert(this.concepts, term, () => {
+      if (this.concepts.size >= this.config.maxConcepts) this.applyForgetting();
 
-    if (this.concepts.size >= this.config.maxConcepts) this.applyForgetting();
-
-    return this.adoptConcept(
-      new Concept(term, {
-        onRevision: (entry) => this.recordRevision(entry),
-        bag: this.config.bag,
-      })
-    );
+      return this.adoptConcept(
+        new Concept(term, {
+          onRevision: (entry) => this.recordRevision(entry),
+          bag: this.config.bag,
+        })
+      );
+    });
   }
 
   /**

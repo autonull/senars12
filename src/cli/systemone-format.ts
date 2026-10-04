@@ -5,7 +5,7 @@
 
 import type { NAR } from '@senars/nar';
 import { readCalibrationLockOrNull } from '@senars/nar/lm/system-one';
-import { pct } from '@senars/util';
+import { flooredRatio, pct } from '@senars/util';
 import { type AttachedGame, reflexesOf } from './conversation-game.js';
 
 export function formatSystemOneStatus(nar: NAR, conversationGame: AttachedGame | null): string {
@@ -47,7 +47,7 @@ export function formatSystemOneStatus(nar: NAR, conversationGame: AttachedGame |
     `  Cortex: ${cortexHealth.provider} (breaker: ${cortexHealth.breakerOpen ? 'open' : 'closed'})`,
     `  Groundedness Gate: ${groundednessGate ? 'enabled' : 'disabled'}`,
     `  Trace Grader: ${traceGrader ? 'enabled' : 'disabled'}`,
-    `  Embedding Cache: ${cacheMetrics.size} entries, hit rate: ${pct(cacheMetrics.hits / (cacheMetrics.hits + cacheMetrics.misses || 1))}`,
+    `  Embedding Cache: ${cacheMetrics.size} entries, hit rate: ${pct(flooredRatio(cacheMetrics.hits, cacheMetrics.hits + cacheMetrics.misses))}`,
     `  Contrastive: ${totals.p}P/${totals.n}N across ${cStats.length} rubric(s), ${totals.c} calibrated (refresh: .calibrate refresh)`,
     `  Contrastive Vetoes (LMReflex): ${vetoes}`,
     ...(() => {

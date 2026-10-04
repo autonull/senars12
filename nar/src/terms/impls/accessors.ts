@@ -1,3 +1,4 @@
+import { getOrInsert } from '@senars/util';
 import type { CompoundTerm, OperatorKey, Term } from '../types.js';
 import { isAtomic, isVariableSymbol } from '../types.js';
 
@@ -127,13 +128,7 @@ interface TermFacts {
 
 const factsCache = new WeakMap<Term, TermFacts>();
 
-const factsOf = (term: Term): TermFacts => {
-  const cached = factsCache.get(term);
-  if (cached) return cached;
-  const fresh: TermFacts = {};
-  factsCache.set(term, fresh);
-  return fresh;
-};
+const factsOf = (term: Term): TermFacts => getOrInsert(factsCache, term, () => ({}));
 
 /** An atom's key without building the term — the read side of `termKey` for callers holding a symbol. */
 export const atomKey = (symbol: string): string => `atom:${symbol}`;

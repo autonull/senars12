@@ -1,4 +1,4 @@
-import { LruCache } from '@senars/util';
+import { getOrInsert, LruCache } from '@senars/util';
 
 const escapeGbnf = (literal: string): string =>
   `"${literal.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
@@ -13,10 +13,9 @@ const grammarCache = new LruCache<string, string>(GRAMMAR_CACHE_MAX);
  */
 export function actionGrammar(legalActions: readonly string[]): string {
   const signature = legalActions.join('\u0000');
-  let grammar = grammarCache.get(signature);
-  if (!grammar) {
-    grammar = `root ::= ${legalActions.map(escapeGbnf).join(' | ')}`;
-    grammarCache.set(signature, grammar);
-  }
-  return grammar;
+  return getOrInsert(
+    grammarCache,
+    signature,
+    () => `root ::= ${legalActions.map(escapeGbnf).join(' | ')}`
+  );
 }

@@ -36,8 +36,12 @@ export function extractJsonObject(text: string): string | null {
   return null;
 }
 
-/** Parse the first JSON object in `text`; null when absent or malformed. */
-export function parseJsonObject(text: string): unknown | null {
+/**
+ * Parse the first JSON object in `text`; null when absent or malformed.
+ * `T` names what the caller expects — it is asserted, not checked, so it belongs
+ * on a boundary that already validates the document it read.
+ */
+export function parseJsonObject<T = unknown>(text: string): T | null {
   const slice = extractJsonObject(text);
   if (slice === null) return null;
   try {
