@@ -26,7 +26,7 @@ import {
 } from '../providers.js';
 import { CallAccounting, type CallEnvelope, type Gate, textCodec } from './accounting.js';
 import { buildCacheKey } from './cache.js';
-import { LMUnavailableError } from './errors.js';
+import { LMUnavailableError, temperatureLadder } from './errors.js';
 import { enforceLMOutputSize, LMOutputTooLargeError, maxLMOutputChars } from './sanitize.js';
 import type { ProviderSpend } from './spend.js';
 import { generateObjectViaText } from './structured.js';
@@ -173,7 +173,7 @@ export class LMService implements ILMService {
     );
   }
 
-  /** Universal LLM failure escalation: attempt → retry once at temp+0.2 → null.
+  /** Universal LLM failure escalation: attempt → retry once at `temperatureLadder`'s top rung → null.
    *  Callers activate their pure-NAL symbolic fallback on null. */
   async tryGenerateText(
     prompt: string,
@@ -186,7 +186,7 @@ export class LMService implements ILMService {
       if (opts?.signal?.aborted) return null;
       return this.generateText(prompt, {
         ...opts,
-        temperature: (opts?.temperature ?? 0) + 0.2,
+        temperature: temperatureLadder(opts?.temperature ?? 0)[1]!,
       }).catch(() => null);
     }
   }

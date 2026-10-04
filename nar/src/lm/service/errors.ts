@@ -59,3 +59,18 @@ export const withRetry = async <T>(
         error
       ),
   });
+
+/** How much hotter a retried generation runs. The documented escalation step. */
+export const RETRY_TEMPERATURE_STEP = 0.2;
+
+/**
+ * The temperatures a failed generation is retried at, hottest last.
+ *
+ * One ladder for the escalation path: `tryGenerateText` and the structured-output
+ * fallback each wrote their own, and they had drifted — the JSON-mode fallback
+ * stepped by `0.3` where every other escalation stepped by `0.2`, so a
+ * structured-output failure escalated further than the contract says. Retrying
+ * hotter is a *different* axis from retrying later, which is why this sits
+ * beside `withRetry` rather than inside it.
+ */
+export const temperatureLadder = (base = 0): readonly number[] => [base, base + RETRY_TEMPERATURE_STEP];

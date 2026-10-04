@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { envStrOr, errMsg } from '@senars/util';
+import { withBodyPatch } from './body-patch.js';
 import { probeReachable } from './probe.js';
 import { withThinkingDisabled } from './thinking.js';
 
@@ -23,6 +24,9 @@ export interface LlamaCppFetchOptions {
 
 /** Placeholder model id; substituted with the server's loaded alias on first request. */
 export const MODEL_PLACEHOLDER = 'local-model';
+
+/** Ceiling for one generation. Uncapped small-model runs wander, and burn GPU time. */
+const DEFAULT_MAX_TOKENS = 768;
 
 let resolvedModel: Promise<string> | undefined;
 
@@ -60,30 +64,23 @@ const resolveModelId = (origin: string): Promise<string> => {
  * the placeholder model id for the server's loaded alias.
  */
 export const createLlamaCppFetch = (opts: LlamaCppFetchOptions = {}): typeof fetch => {
-  const dispatch = opts.disableThinking ? withThinkingDisabled(fetch) : fetch;
-  return async (input, init) => {
-    const grammar = grammarScope.getStore();
-    if (typeof init?.body !== 'string') return fetch(input, init);
-    try {
-      const body = JSON.parse(init.body);
+  return withBodyPatch(
+    async (body, input) => {
       // Bounded generation: uncapped small-model runs wander (and burn GPU time).
-      body.max_tokens ??= 768;
+      body.max_tokens ??= DEFAULT_MAX_TOKENS;
+      const grammar = grammarScope.getStore();
       if (grammar) body.grammar = grammar;
-      if (!body.model || body.model === MODEL_PLACEHOLDER) {
-        const origin =
-          typeof input === 'string'
-            ? new URL(input).origin
-            : input instanceof URL
-              ? input.origin
-              : '';
-        if (origin) body.model = await resolveModelId(origin);
-      }
-      init = { ...init, body: JSON.stringify(body) };
-    } catch {
-      /* non-JSON body: pass through untouched */
-    }
-    return dispatch(input, init);
-  };
+      if (body.model && body.model !== MODEL_PLACEHOLDER) return;
+      const origin =
+        typeof input === 'string'
+          ? new URL(input).origin
+          : input instanceof URL
+            ? input.origin
+            : '';
+      if (origin) body.model = await resolveModelId(origin);
+    },
+    opts.disableThinking ? withThinkingDisabled(fetch) : fetch
+  );
 };
 
 /** Probe llama-server's native /health endpoint. */

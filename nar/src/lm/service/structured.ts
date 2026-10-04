@@ -2,6 +2,7 @@ import type { LMTask } from '@senars/util';
 import { toError } from '@senars/util';
 import type { ZodSchema } from 'zod';
 import { parseJsonOrThrow, toCachedJsonSchema } from '../json.js';
+import { temperatureLadder } from './errors.js';
 
 type GenerateText = (
   prompt: string,
@@ -22,10 +23,8 @@ export async function generateObjectViaText<T>(
   const enriched =
     `${prompt}\n\nRespond with ONLY a single JSON object matching this JSON Schema` +
     ` (no markdown fences, no commentary):\n${JSON.stringify(jsonSchema)}`;
-  const base = opts?.temperature ?? 0;
-  const temperatures = base === 0 ? [0, 0.2] : [base, base + 0.3];
   let lastError: unknown = nativeError;
-  for (const temperature of temperatures) {
+  for (const temperature of temperatureLadder(opts?.temperature ?? 0)) {
     if (opts?.signal?.aborted) break;
     try {
       const text = await generateText(enriched, {
