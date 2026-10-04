@@ -1,7 +1,7 @@
 import { toolError, toolOk } from '@senars/util';
 import type { Concept, Memory } from '../../memory';
 import { termParser } from '../../terms';
-import type { Schema, Tool, ToolContext, ToolResult } from '../types';
+import type { ToolSchema, Tool, ToolContext, ToolResult } from '../types';
 import { tool } from './decorator.js';
 
 @tool({
@@ -13,7 +13,7 @@ import { tool } from './decorator.js';
 export class ExplainTool implements Tool {
   readonly name = 'explain';
   readonly description = 'Generate human-readable explanation for a belief or derivation';
-  readonly parameters: Schema = {
+  readonly parameters: ToolSchema = {
     type: 'object',
     properties: {
       term: { type: 'string', description: 'Term or concept to explain' },

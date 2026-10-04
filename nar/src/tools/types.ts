@@ -1,31 +1,29 @@
-import type { ToolCapabilities, ToolResult } from '@senars/util';
+import type {
+  ToolCapabilities,
+  ToolContext,
+  ToolResult,
+  ToolSpec as Tool,
+} from '@senars/util';
 
-export interface Tool {
-  readonly name: string;
-  readonly description: string;
-  readonly parameters: Schema;
-  capabilities?: ToolCapabilities;
-  tags?: string[];
-
-  execute(args: Record<string, unknown>, context?: ToolContext): Promise<ToolResult>;
-}
-
-export type { ToolCapabilities };
-
-export interface ToolContext {
-  permissions?: Set<string>;
-  budget?: ToolBudget;
-  parent?: ToolContext;
-  chainId?: string;
-  signal?: AbortSignal;
-}
-
-export interface ToolBudget {
-  maxExecutions?: number;
-  maxTotalDuration?: number;
-  executions?: number;
-  totalDuration?: number;
-}
+/**
+ * The tool contract is util's — one declaration of identity, argument schema,
+ * declared guarantees, and execution. `core`'s registry delegate and this
+ * module's registry hand out the same type, so the adapter between them adapts
+ * a call rather than re-listing five fields and casting `parameters` twice.
+ *
+ * `ToolSpec` answers to `Tool` here because that is the name the registry port,
+ * the `@tool` decorator, and every tool implementation in this workspace speak.
+ */
+export type {
+  ToolBudget,
+  ToolCapabilities,
+  ToolContext,
+  ToolFn,
+  ToolResult,
+  ToolSchema,
+  ToolSchemaProperty,
+  ToolSpec as Tool,
+} from '@senars/util';
 
 export interface ToolRegistry {
   register(tool: Tool): void;
@@ -60,27 +58,6 @@ export interface ToolChainResult {
   results: ToolResult[];
   finalContent?: unknown;
   error?: string;
-}
-
-export type { ToolResult } from '@senars/util';
-
-export interface Schema {
-  type: 'object';
-  properties: Record<string, SchemaProperty>;
-  required?: string[];
-}
-
-export interface SchemaProperty {
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
-  description?: string;
-  items?: SchemaProperty;
-  properties?: Record<string, SchemaProperty>;
-  minimum?: number;
-  maximum?: number;
-  minLength?: number;
-  maxLength?: number;
-  pattern?: string;
-  enum?: unknown[];
 }
 
 export interface ToolEvent {

@@ -2,7 +2,7 @@ import { exec } from 'node:child_process';
 import { access, appendFile, readFile, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import type { EpisodicMemory } from '@senars/util';
-import { envStr, errMsg, toolError, toolOk } from '@senars/util';
+import { envStr, errMsg, type ToolSchema, toolError, toolOk } from '@senars/util';
 import { z } from 'zod';
 import type { ApprovalService } from '../ApprovalService.js';
 import type { ToolResult } from '../engine/Engine.js';
@@ -19,10 +19,10 @@ import { withinWorkspace } from './workspace.js';
 
 export type CmdArgSet = Record<string, unknown>;
 
-const ARGS_SCHEMA = {
+const ARGS_SCHEMA: ToolSchema = {
   type: 'object',
   properties: { args: { type: 'array', items: { type: 'string' } } },
-} as unknown as Record<string, unknown>;
+};
 
 const cmdArgs = (args: CmdArgSet): string[] => (args.args as string[]) ?? [];
 const argAt = (args: CmdArgSet, index: number): string | undefined => cmdArgs(args)[index];

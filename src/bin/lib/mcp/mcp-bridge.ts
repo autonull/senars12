@@ -1,10 +1,10 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { NAR } from '@senars/nar';
-import type { Schema, SchemaProperty, Tool, ToolResult } from '@senars/nar/tools';
+import type { ToolSchema, ToolSchemaProperty, Tool, ToolResult } from '@senars/nar/tools';
 import { type ZodTypeAny, z } from 'zod';
 import { createMCPResponse, stringifyMCP } from './mcp-response.js';
 
-const zodFromProperty = (p: SchemaProperty): ZodTypeAny => {
+const zodFromProperty = (p: ToolSchemaProperty): ZodTypeAny => {
   let base: ZodTypeAny;
   switch (p.type) {
     case 'number':
@@ -32,7 +32,7 @@ const zodFromProperty = (p: SchemaProperty): ZodTypeAny => {
   return base;
 };
 
-export const zodFromSchema = (schema: Schema): Record<string, ZodTypeAny> =>
+export const zodFromSchema = (schema: ToolSchema): Record<string, ZodTypeAny> =>
   Object.fromEntries(Object.entries(schema.properties).map(([k, v]) => [k, zodFromProperty(v)]));
 
 export const toolAnnotations = (tool: Tool) => ({

@@ -105,7 +105,7 @@ describe('Agent cycle phases (extracted)', () => {
       ],
     });
     await runCycle(host, stimulus);
-    expect(execute).toHaveBeenCalledWith('allowed', expect.any(Object), 'c1');
+    expect(execute).toHaveBeenCalledWith('allowed', expect.any(Object), { chainId: 'c1' });
     expect(checkCommand).toHaveBeenCalledWith('forbidden');
   });
 

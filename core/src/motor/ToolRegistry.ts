@@ -1,7 +1,15 @@
-import { stopwatch, type ToolCapabilities, toolError, toSkillFeedback } from '@senars/util';
+import {
+  stopwatch,
+  type ToolCapabilities,
+  type ToolContext,
+  type ToolFn,
+  type ToolSpec,
+  toolError,
+  type ToolResult,
+  toSkillFeedback,
+} from '@senars/util';
 import type { SkillFeedback, ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
-import type { ToolResult } from '../engine/Engine.js';
 
 /**
  * The feedback shape is util's: the observer that produces it and the mapping
@@ -11,23 +19,15 @@ import type { ToolResult } from '../engine/Engine.js';
  */
 export type { SkillFeedback };
 
-export type ToolFn = (
-  args: Record<string, unknown>,
-  correlationId?: string,
-  signal?: AbortSignal
-) => Promise<ToolResult> | ToolResult;
-
-export type { ToolCapabilities };
-
-export interface ToolSpec {
-  name: string;
-  description: string;
-  /** JSON schema (object type with properties/required) — matches nar's `Tool` contract */
-  parameters: Record<string, unknown>;
-  capabilities?: ToolCapabilities;
-  tags?: string[];
-  execute: ToolFn;
-}
+/**
+ * The tool contract is util's too. It was declared here *and* in nar's tools
+ * module with the same five fields and two different `execute` signatures — one
+ * taking `(correlationId, signal)`, the other a `ToolContext` — so crossing the
+ * delegation seam cost a hand-written mapping in both directions plus two casts
+ * over `parameters`. A call now carries its provenance and cancellation in the
+ * context, so the two registries speak one type and the adapter adapts a call.
+ */
+export type { ToolCapabilities, ToolContext, ToolFn, ToolSpec };
 
 /** Delegate interface for the unified tool registry (nar's ToolManager). */
 export interface ToolRegistryDelegate {
@@ -35,12 +35,7 @@ export interface ToolRegistryDelegate {
   unregister(name: string): void;
   get(name: string): ToolSpec | undefined;
   list(): ToolSpec[];
-  execute(
-    name: string,
-    args: Record<string, unknown>,
-    correlationId?: string,
-    signal?: AbortSignal
-  ): Promise<ToolResult>;
+  execute(name: string, args: Record<string, unknown>, context?: ToolContext): Promise<ToolResult>;
   getFeedback(name: string): SkillFeedback | undefined;
   getAllFeedback(): SkillFeedback[];
   getRecentResults(limit: number): string;
@@ -75,8 +70,7 @@ export class ToolRegistry {
         unregister: (name) => void this.#tools.delete(name),
         get: (name) => this.#tools.get(name),
         list: () => [...this.#tools.values()],
-        execute: (name, args, correlationId, signal) =>
-          this.executeLocal(name, args, correlationId, signal),
+        execute: (name, args, context) => this.executeLocal(name, args, context),
         getFeedback: (name) => {
           const fb = this.#feedbackObserver.getFeedback(name);
           return fb ? toSkillFeedback(fb) : undefined;
@@ -110,27 +104,25 @@ export class ToolRegistry {
   async execute(
     name: string,
     args: Record<string, unknown>,
-    correlationId?: string,
-    signal?: AbortSignal
+    context?: ToolContext
   ): Promise<ToolResult> {
-    if (signal?.aborted) {
+    if (context?.signal?.aborted) {
       return toolError('Execution aborted');
     }
-    return this.target().execute(name, args, correlationId, signal);
+    return this.target().execute(name, args, context);
   }
 
   private async executeLocal(
     name: string,
     args: Record<string, unknown>,
-    correlationId?: string,
-    signal?: AbortSignal
+    context?: ToolContext
   ): Promise<ToolResult> {
     const tool = this.#tools.get(name);
     if (!tool) return toolError(`Unknown tool: ${name}`);
 
     const elapsed = stopwatch();
     try {
-      const result = await tool.execute(args, correlationId, signal);
+      const result = await tool.execute(args, context);
       this.#feedbackObserver.recordCall(name, result, elapsed());
       return result;
     } catch (err) {

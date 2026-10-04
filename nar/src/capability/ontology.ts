@@ -6,7 +6,7 @@
 
 import type { ToolSpec } from '@senars/core/motor';
 import { addToSet, mapValues, shortSha256Hex } from '@senars/util';
-import type { Schema as NarSchema, Tool as NarTool } from '../tools/types.js';
+import type { Tool as NarTool, ToolSchema as NarSchema } from '../tools/types.js';
 import { type CapabilityDef, CapabilitySpace } from './space.js';
 
 export type CapabilityType = 'tool' | 'rule' | 'metta' | 'skill';

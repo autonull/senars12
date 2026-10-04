@@ -1,6 +1,6 @@
 import { isPlainObject } from '@senars/util';
 import { ToolError } from '../../types';
-import type { Schema, SchemaProperty } from '../types';
+import type { ToolSchema, ToolSchemaProperty } from '../types';
 
 const checkers: Record<string, (value: unknown) => boolean> = {
   string: (v) => typeof v === 'string',
@@ -10,7 +10,7 @@ const checkers: Record<string, (value: unknown) => boolean> = {
   object: (v) => isPlainObject(v),
 };
 
-const checkRange = (key: string, value: number, prop: SchemaProperty): void => {
+const checkRange = (key: string, value: number, prop: ToolSchemaProperty): void => {
   if (prop.minimum !== undefined && value < prop.minimum)
     throw new ToolError(`Value for ${key} is below minimum: ${prop.minimum}`, {
       parameter: key,
@@ -23,7 +23,7 @@ const checkRange = (key: string, value: number, prop: SchemaProperty): void => {
     });
 };
 
-const checkText = (key: string, value: string, prop: SchemaProperty): void => {
+const checkText = (key: string, value: string, prop: ToolSchemaProperty): void => {
   if (prop.minLength !== undefined && value.length < prop.minLength)
     throw new ToolError(`String ${key} is too short`, { parameter: key, minLength: prop.minLength });
   if (prop.maxLength !== undefined && value.length > prop.maxLength)
@@ -40,7 +40,7 @@ const checkText = (key: string, value: string, prop: SchemaProperty): void => {
     });
 };
 
-export const validateProp = (key: string, value: unknown, prop: SchemaProperty): void => {
+export const validateProp = (key: string, value: unknown, prop: ToolSchemaProperty): void => {
   if (checkers[prop.type]?.(value) === false)
     throw new ToolError(`Invalid type for ${key}: expected ${prop.type}`, {
       parameter: key,
@@ -51,7 +51,7 @@ export const validateProp = (key: string, value: unknown, prop: SchemaProperty):
   if (prop.type === 'string' && typeof value === 'string') checkText(key, value, prop);
 };
 
-export const validateToolArgs = (schema: Schema, args: Record<string, unknown>): void => {
+export const validateToolArgs = (schema: ToolSchema, args: Record<string, unknown>): void => {
   if (!schema) return;
   for (const required of schema.required ?? [])
     if (!(required in args))

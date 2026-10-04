@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { Registry } from '../../nar/src/tools/impls/Registry.js';
-import type { Schema } from '../../nar/src/tools/types.js';
+import type { ToolSchema } from '../../nar/src/tools/types.js';
 import {
   createCodeExecTools,
   shellAllowlistFromEnv,
@@ -44,7 +44,7 @@ describe('Bench 68 — S1: tool input validation', () => {
 
   it('Registry rejects unknown parameters at the boundary', async () => {
     const registry = new Registry();
-    const schema: Schema = {
+    const schema: ToolSchema = {
       type: 'object',
       properties: { known: { type: 'string' } },
       required: ['known'],

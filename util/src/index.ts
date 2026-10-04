@@ -156,7 +156,17 @@ export type { ConversationSession, SessionManager } from './types/memory.js';
 /** @public NAR agent contracts. @deprecated — re-exported from `@senars/nar`. */
 export type { NAR, NARConfig } from './types/nar.js';
 /** @public Tool contracts. */
-export type { Tool, ToolCapabilities, ToolResult } from './types/tools.js';
+export type {
+  ToolBudget,
+  ToolCapabilities,
+  ToolContext,
+  ToolDescriptor,
+  ToolFn,
+  ToolResult,
+  ToolSchema,
+  ToolSchemaProperty,
+  ToolSpec,
+} from './types/tools.js';
 /** @public Transport/connection contracts shared by io and core. */
 export type {
   Connection,

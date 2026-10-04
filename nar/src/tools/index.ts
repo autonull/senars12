@@ -15,8 +15,6 @@ import { createToolEvent } from './types.js';
 
 // Type re-exports for TypeScript consumers
 export type {
-  Schema,
-  SchemaProperty,
   Tool,
   ToolBudget,
   ToolCapabilities,
@@ -25,8 +23,11 @@ export type {
   ToolContext,
   ToolEvent,
   ToolFilter,
+  ToolFn,
   ToolRegistry,
   ToolResult,
+  ToolSchema,
+  ToolSchemaProperty,
 } from './types.js';
 export {
   CoreToolRegistryAdapter,

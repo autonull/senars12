@@ -1,5 +1,5 @@
 import { toolError, toolOk } from '@senars/util';
-import type { Schema, Tool, ToolContext, ToolResult } from '../types';
+import type { ToolSchema, Tool, ToolContext, ToolResult } from '../types';
 import { tool } from './decorator.js';
 
 @tool({
@@ -10,7 +10,7 @@ import { tool } from './decorator.js';
 export class TimerTool implements Tool {
   readonly name = 'timer';
   readonly description = 'Schedule delayed or recurring actions';
-  readonly parameters: Schema = {
+  readonly parameters: ToolSchema = {
     type: 'object',
     properties: {
       action: {

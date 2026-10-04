@@ -7,7 +7,7 @@ export function motorToToolSet(motor: Pick<ToolRegistry, 'list' | 'execute'>): T
   for (const spec of specs) {
     set[spec.name] = tool({
       description: spec.description,
-      inputSchema: jsonSchema(spec.parameters as Record<string, unknown>),
+      inputSchema: jsonSchema(spec.parameters as unknown as Record<string, unknown>),
       execute: async (args) => {
         const result = await motor.execute(spec.name, (args ?? {}) as Record<string, unknown>);
         return result.success ? result.content : { error: result.error };

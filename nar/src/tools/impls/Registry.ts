@@ -12,13 +12,7 @@ import type {
 } from '../types';
 import { validateToolArgs } from './validation';
 
-export interface ToolDescriptor {
-  name: string;
-  description: string;
-  capabilities?: ToolCapabilities;
-  tags?: string[];
-  version?: string;
-}
+export type { ToolDescriptor } from '@senars/util';
 
 export class Registry implements ToolRegistry {
   private tools: Map<string, Tool> = new Map();

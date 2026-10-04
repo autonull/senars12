@@ -1,5 +1,5 @@
 import { sleep, toolError, toolOk } from '@senars/util';
-import type { Schema, Tool, ToolResult } from '../types';
+import type { ToolSchema, Tool, ToolResult } from '../types';
 import { tool } from './decorator.js';
 
 @tool({
@@ -10,7 +10,7 @@ import { tool } from './decorator.js';
 export class SleepTool implements Tool {
   readonly name = 'sleep';
   readonly description = 'Delay execution for specified milliseconds';
-  readonly parameters: Schema = {
+  readonly parameters: ToolSchema = {
     type: 'object',
     properties: {
       duration: {

@@ -15,7 +15,14 @@ export {
   type DispatchError,
   dispatchToolCalls,
 } from './dispatch.js';
-export { type SkillFeedback, type ToolFn, ToolRegistry, type ToolSpec } from './ToolRegistry.js';
+export {
+  type SkillFeedback,
+  type ToolContext,
+  type ToolFn,
+  ToolRegistry,
+  type ToolRegistryDelegate,
+  type ToolSpec,
+} from './ToolRegistry.js';
 export { motorToToolSet } from './toToolSet.js';
 /** Bounded web search + read-only fetch, shared by every web-capable tool. */
 export {

@@ -460,9 +460,13 @@ _Re-export barrel._
 
 - `type SkillFeedback`
 
+- `type ToolContext`
+
 - `type ToolFn`
 
 - `ToolRegistry`
+
+- `type ToolRegistryDelegate`
 
 - `type ToolSpec`
 

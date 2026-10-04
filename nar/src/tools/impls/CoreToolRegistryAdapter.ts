@@ -1,31 +1,22 @@
-import type { SkillFeedback, ToolSpec } from '@senars/core/motor';
+import type { SkillFeedback, ToolRegistryDelegate, ToolSpec } from '@senars/core/motor';
 import { toSkillFeedback } from '@senars/util';
-import type { Tool, ToolContext, ToolResult } from '../types';
+import type { ToolContext, ToolResult } from '@senars/util';
 import type { ToolManager } from './ToolManager';
 
-const toSpec = (tool: Tool): ToolSpec => ({
-  name: tool.name,
-  description: tool.description,
-  parameters: tool.parameters as unknown as Record<string, unknown>,
-  capabilities: tool.capabilities,
-  tags: tool.tags,
-  execute: (args, correlationId, signal) =>
-    tool.execute(args, { chainId: correlationId, signal } as ToolContext),
-});
-
-/** Adapter to make nar's ToolManager compatible with core's ToolRegistryDelegate interface. */
-export class CoreToolRegistryAdapter {
+/**
+ * Makes nar's `ToolManager` satisfy core's `ToolRegistryDelegate`.
+ *
+ * There is no record mapping here, because there is no second record to map:
+ * both sides declare util's `ToolSpec`, so a nar tool *is* a core spec and a
+ * core spec *is* a nar tool. What the delegate's old signature could not carry
+ * — the correlation id beside the abort signal — rides in the `ToolContext` the
+ * contract already defines, so a call crosses with its provenance intact.
+ */
+export class CoreToolRegistryAdapter implements ToolRegistryDelegate {
   constructor(private readonly manager: ToolManager) {}
 
   register(spec: ToolSpec): void {
-    this.manager.register({
-      name: spec.name,
-      description: spec.description,
-      parameters: spec.parameters as unknown as Tool['parameters'],
-      capabilities: spec.capabilities,
-      tags: spec.tags,
-      execute: async (args, context) => spec.execute(args, context?.chainId, context?.signal),
-    });
+    this.manager.register(spec);
   }
 
   unregister(name: string): void {
@@ -33,21 +24,19 @@ export class CoreToolRegistryAdapter {
   }
 
   get(name: string): ToolSpec | undefined {
-    const tool = this.manager.get(name);
-    return tool ? toSpec(tool) : undefined;
+    return this.manager.get(name);
   }
 
   list(): ToolSpec[] {
-    return this.manager.list().map(toSpec);
+    return this.manager.list();
   }
 
-  async execute(
+  execute(
     name: string,
     args: Record<string, unknown>,
-    correlationId?: string,
-    signal?: AbortSignal
+    context?: ToolContext
   ): Promise<ToolResult> {
-    return this.manager.execute(name, args, { chainId: correlationId, signal } as ToolContext);
+    return this.manager.execute(name, args, context);
   }
 
   getFeedback(name: string): SkillFeedback | undefined {
