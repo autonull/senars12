@@ -148,11 +148,11 @@ export class QueryAPI {
       : { question: questionStr, evidence: adjacent };
   }
 
+  // `MemoryRef.getConcept` is the canonical `termKey` lookup; this was a
+  // whole-store scan beside it, comparing structurally what a memoized key answers
+  // in one read.
   private findConceptByTerm(term: Term): Concept | undefined {
-    for (const concept of this.memory.listConcepts()) {
-      if (termsEqual(concept.term, term)) return concept;
-    }
-    return undefined;
+    return this.memory.getConcept(term);
   }
 
   private tryAnswer(question: Term, concept: Concept): Answer | null {

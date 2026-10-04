@@ -38,14 +38,20 @@ import type {
 import { PROPOSAL_SCHEMA_VERSION } from '@senars/core/schemas';
 import { SerialQueue } from '@senars/util';
 import { createDerivedTask } from '../reason/inference-utils.js';
-import type { ModelRuleWork, ModelRuleWorkSink, RuleResult } from '../rules/types.js';
+import type { ModelRuleWork, ModelRuleWorkSink, RulePromptContext, RuleResult } from '../rules/types.js';
 import type { LMBackend, StreamReasoner, StreamReasonerStats } from '../stream/reasoner.js';
 import type { Task } from '../types';
 import { ProposalLifecycle } from './lifecycle.js';
 
 /** Applies one staged unit of work. Structurally `RuleProcessor`. */
 export interface ModelRuleWorkApplicator {
-  applyModelRules(work: ModelRuleWork, signal?: AbortSignal): AsyncGenerator<RuleResult>;
+  /** The memory-wide prompt scalars, read at the pump's boundary rather than per work item. */
+  rulePromptContext(): RulePromptContext;
+  applyModelRules(
+    work: ModelRuleWork,
+    signal?: AbortSignal,
+    context?: RulePromptContext
+  ): AsyncGenerator<RuleResult>;
 }
 
 /**
@@ -93,6 +99,8 @@ export class LMProposalProducer implements ModelRuleWorkSink {
   private counters = { staged: 0, refused: 0, applied: 0 };
   private readonly flushes = new SerialQueue();
   private signal?: AbortSignal;
+  /** The flush's prompt context, handed to every unit of work that flush applies. */
+  #prompt?: RulePromptContext;
 
   constructor(
     reasoner: StreamReasoner,
@@ -138,7 +146,9 @@ export class LMProposalProducer implements ModelRuleWorkSink {
   pump(signal?: AbortSignal): Promise<void> {
     this.signal = signal;
     return this.flushes.run(async () => {
+      this.#prompt = this.applicator.rulePromptContext();
       await this.reasoner.flush(this.backend, this.reasoner.pressure());
+      this.#prompt = undefined;
     });
   }
 
@@ -234,7 +244,7 @@ export class LMProposalProducer implements ModelRuleWorkSink {
     const read = [work.p1.term.toString(), work.p2?.term.toString()].filter(
       (term): term is string => term !== undefined
     );
-    for await (const result of this.applicator.applyModelRules(work, this.signal)) {
+    for await (const result of this.applicator.applyModelRules(work, this.signal, this.#prompt)) {
       tasks.push(createDerivedTask(result));
       this.premises.push(read);
     }

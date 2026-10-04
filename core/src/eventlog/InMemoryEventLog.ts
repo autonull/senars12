@@ -53,8 +53,8 @@ export class InMemoryEventLog extends AbstractEventLog {
     return this.#events.slice(startIdx, endIdx);
   }
 
-  protected async doAppend(fullEvent: CognitiveEvent): Promise<void> {
-    this.assertAppendable(fullEvent, this.#events.length >= this.limits.maxEvents);
+  protected async doAppend(fullEvent: CognitiveEvent, payloadJson: string): Promise<void> {
+    this.assertAppendable(payloadJson, this.#events.length >= this.limits.maxEvents);
     this.#events.push(fullEvent);
   }
 }

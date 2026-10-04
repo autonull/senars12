@@ -92,19 +92,15 @@ export interface LedgerConfig<T extends BaseLedgerEntry> {
   onRead?: (entry: T) => void | Promise<void>;
 }
 
-/** Factory options for createLedger (excludes basePath and schema which are separate params). */
-export interface CreateLedgerOptions<T extends BaseLedgerEntry> {
-  /** Rotation/rollover policy (all fields optional, defaults applied). */
-  rollover?: RolloverPolicy;
-  /** In-memory retention window for hot queries (ms). Default: 5 minutes. Set to 0 to disable hot cache. */
-  hotRetentionMs?: number;
-  /** Hard cap on hot-cache entries, so a burst inside one retention window cannot grow without bound. Default: 10 000. */
-  hotCacheMaxSize?: number;
-  /** Optional pre-write hook (e.g., for sidecar updates like JudgmentDataset vectors). */
-  onWrite?: (entry: T) => void | Promise<void>;
-  /** Optional post-read hook for enriching entries (e.g., loading sidecar vectors). */
-  onRead?: (entry: T) => void | Promise<void>;
-}
+/**
+ * Factory options for `createLedger`: {@link LedgerConfig} without the two fields
+ * it takes as its own parameters. They were a second field-for-field copy of the
+ * optional half, with a doc line each to keep in step.
+ */
+export type CreateLedgerOptions<T extends BaseLedgerEntry> = Omit<
+  LedgerConfig<T>,
+  'basePath' | 'schema'
+>;
 
 /** Internal config with every default applied. */
 interface ResolvedLedgerConfig<T extends BaseLedgerEntry> {

@@ -56,6 +56,18 @@ export interface ModelRuleWork {
 }
 
 /**
+ * The memory-wide half of a model rule's prompt: concept count, memory pressure,
+ * conflict count, drive intensity. Identical for every task in one pump, so the
+ * flush reads it once and passes it down. Prompt hints, never load-bearing.
+ */
+export interface RulePromptContext {
+  totalConcepts: number;
+  memoryPressure: number;
+  conflictCount: number;
+  driveState: Record<string, number>;
+}
+
+/**
  * Where staged work goes. One bounded backlog, owned by the seam the cycle
  * reaches a provider through — a second queue would be a second account of the
  * same backlog (TODO29.a A1).

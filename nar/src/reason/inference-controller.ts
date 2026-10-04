@@ -118,6 +118,18 @@ export class InferenceController {
 
     const concepts = this.samplingStrategy.sample(this.memory, this.config.sampleSize);
 
+    // Every sampled concept derives through the same bounds, so the context is
+    // built once. `onDerivation` is absent in the common configuration, and the
+    // chain it takes is allocated only when it is there.
+    const ctx: DerivationContext = {
+      maxDerivations: this.config.maxDerivationsPerStep,
+      maxDepth,
+      cpuThrottleMs: paceMs,
+      singlePremiseEnabled: this.config.singlePremiseLMRules ?? true,
+      signal,
+    };
+    const onDerivation = this.config.onDerivation;
+
     for (const concept of concepts) {
       if (signal?.aborted || emitted >= maxResults || outOfTime()) return;
 
@@ -137,14 +149,6 @@ const task = createBeliefTaskFromConcept(concept);
         if (!consider) return;
         const secondaries = this.strategy.selectSecondary(task, this.memory);
 
-      const ctx: DerivationContext = {
-        maxDerivations: this.config.maxDerivationsPerStep,
-        maxDepth,
-        cpuThrottleMs: paceMs,
-        singlePremiseEnabled: this.config.singlePremiseLMRules ?? true,
-        signal,
-      };
-
       for await (const derived of this.derivationStrategy.derive(
         task,
         secondaries,
@@ -155,7 +159,7 @@ const task = createBeliefTaskFromConcept(concept);
         if (exceedsDepthLimit(derived, maxDepth) || this.isCircular(derived)) continue;
 
         this.derivationCount++;
-        this.config.onDerivation?.([task, ...secondaries, derived]);
+        if (onDerivation) onDerivation([task, ...secondaries, derived]);
         yield derived;
 
         if (++emitted >= maxResults || this.derivationBudgetSpent()) return;

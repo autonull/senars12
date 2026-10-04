@@ -154,28 +154,32 @@ export class BoundedMap<K, V> implements BoundedContainer<V> {
     this.#entries.clear();
   }
 
+  /**
+   * Live entries, least-recently-used first, iterated in place: the only mutation
+   * an iteration performs is `evict` of the entry it stands on, and a `Map`
+   * iterator tolerates deletion of the current key. Snapshotting first allocated
+   * an array of the whole map per iteration, on every cache scan and layer sweep.
+   */
+  *#liveEntries(): Generator<[K, V]> {
+    for (const [key, entry] of this.#entries) {
+      if (this.#expired(entry)) this.evict(key);
+      else yield [key, entry.value];
+    }
+  }
+
   /** Live keys, least-recently-used first. */
   *keys(): Generator<K> {
-    for (const [key, entry] of [...this.#entries]) {
-      if (this.#expired(entry)) this.evict(key);
-      else yield key;
-    }
+    for (const [key] of this.#liveEntries()) yield key;
   }
 
   /** Live values, least-recently-used first. */
   *values(): IterableIterator<V> {
-    for (const [key, entry] of [...this.#entries]) {
-      if (this.#expired(entry)) this.evict(key);
-      else yield entry.value;
-    }
+    for (const [, value] of this.#liveEntries()) yield value;
   }
 
   /** Live pairs, least-recently-used first. */
   *entries(): Generator<[K, V]> {
-    for (const [key, entry] of [...this.#entries]) {
-      if (this.#expired(entry)) this.evict(key);
-      else yield [key, entry.value];
-    }
+    yield* this.#liveEntries();
   }
 
   /** Iteration alias of {@link entries}, so a bounded map is a drop-in for a `Map` read. */

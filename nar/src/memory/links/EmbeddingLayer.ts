@@ -1,6 +1,7 @@
 import { BoundedMap, selectTopN } from '@senars/util';
 import { type Term, termKey } from '../../terms';
-import { cosineSimilarity, type EmbeddingGenerator } from '../embedding.js';
+import { cosineNormalized, normalize } from '../../utils/similarity.js';
+import type { EmbeddingGenerator } from '../embedding.js';
 import { Layer } from './Layer.js';
 import { LINK_LAYER } from './types.js';
 
@@ -47,8 +48,7 @@ export class EmbeddingLayer extends Layer {
     const key = termKey(term);
     this.termEmbeddings.set(key, { term, embedding });
 
-    for (const neighbor of this.neighborsOf(key, embedding, this.maxLinksPerConcept)) {
-      if (neighbor.similarity < this.similarityThreshold) continue;
+    for (const neighbor of this.neighborsOf(key, embedding, this.maxLinksPerConcept, this.similarityThreshold)) {
       this.addLink({
         sourceTerm: term,
         targetTerm: neighbor.term,
@@ -66,17 +66,25 @@ export class EmbeddingLayer extends Layer {
     return this.neighborsOf(termKey(queryTerm), embedding, topK);
   }
 
+  /**
+   * The nearest indexed terms to one embedding. The query's norm is measured
+   * once — inside the comparison it was re-derived per candidate, which is the
+   * whole of the loop — and `minSimilarity` is applied before a candidate is
+   * allocated, so the scan spends nothing on neighbours it discards.
+   */
   private neighborsOf(
     exclude: string,
     queryEmbedding: number[],
-    topK: number
+    topK: number,
+    minSimilarity = 0
   ): Array<{ term: Term; similarity: number }> {
     const results: Array<{ term: Term; similarity: number }> = [];
+    const query = normalize(queryEmbedding);
 
-    for (const [key, indexed] of this.termEmbeddings.entries()) {
+    for (const [key, indexed] of this.termEmbeddings) {
       if (key === exclude) continue;
-      const similarity = cosineSimilarity(queryEmbedding, indexed.embedding);
-      if (similarity > 0) results.push({ term: indexed.term, similarity });
+      const similarity = cosineNormalized(query, indexed.embedding);
+      if (similarity > minSimilarity) results.push({ term: indexed.term, similarity });
     }
 
     return selectTopN(results, topK, (r) => r.similarity);
@@ -86,7 +94,7 @@ export class EmbeddingLayer extends Layer {
     const embeddingA = this.termEmbeddings.get(termKey(termA))?.embedding;
     const embeddingB = this.termEmbeddings.get(termKey(termB))?.embedding;
     if (!embeddingA || !embeddingB) return 0;
-    return cosineSimilarity(embeddingA, embeddingB);
+    return cosineNormalized(normalize(embeddingA), embeddingB);
   }
 
   async removeConcept(term: Term): Promise<void> {

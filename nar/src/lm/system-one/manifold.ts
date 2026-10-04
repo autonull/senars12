@@ -158,6 +158,9 @@ export class SystemOneManifold implements JudgmentManifold {
 
     this.#health.queueDepth = queries.length;
     const results: JudgmentProposition[] = [];
+    // The batch's calibration reading, taken once: nothing in the loop records a
+    // sample, so every query would otherwise recompute one number.
+    const batchECE = this.#rollingECEMonitor.getRollingECE();
 
     for (const query of queries) {
       const rubric = rubricOf(query);
@@ -199,7 +202,7 @@ export class SystemOneManifold implements JudgmentManifold {
         modelDigest: this.#config.modelDigest,
         calibration: {
           version: this.#config.calibrationVersion,
-          ece: this.#rollingECEMonitor.getRollingECE(),
+          ece: batchECE,
           fitted:
             head?.fitted === true ||
             (this.#calibrators.get(query.kind === 'classify' ? 'classify' : query.rubric)?.fitted ??

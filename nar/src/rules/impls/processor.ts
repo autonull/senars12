@@ -26,6 +26,7 @@ import type {
   ModelRuleWorkSink,
   RegisteredRule,
   RuleInput,
+  RulePromptContext,
   RuleResult,
 } from '../types.js';
 import { loadBuiltinTable } from './builtin-table.js';
@@ -180,33 +181,27 @@ export class RuleProcessor {
   }
 
   /**
-   * Memory-wide scalars handed to model-backed rule contexts. Prompt hints, never
-   * load-bearing for admission, and read on the off-cycle pass only — which is
-   * why there is no per-step memo: the memo's invalidator was never called
-   * (§4 row 7), so it was a process-stale cache, and the cycle it cost is gone.
+   * The memory-wide half of a model rule's prompt context. Read once per pump;
+   * read per unit of work it was a full-store statistics sweep, a percentile sort
+   * and a pairwise conflict scan in front of every premise pair, describing a
+   * memory that had not changed between them.
    */
-  private ruleContextScalars(): {
-    totalConcepts: number;
-    memoryPressure: number;
-    conflictCount: number;
-  } {
+  rulePromptContext(): RulePromptContext {
     const stats = this.memory?.getStatistics();
     const beliefs = this.host?.getBeliefs();
+    const driveManager = this.host?.getDriveManager();
     return {
       totalConcepts: stats?.totalConcepts ?? 0,
       memoryPressure: stats?.memoryPressure ?? 0,
       conflictCount: beliefs ? findConflicts(beliefs).length : 0,
+      driveState: driveManager
+        ? keyedBy(
+            driveManager.getAllStates(),
+            (ds) => ds.spec.id,
+            (ds) => ds.currentIntensity
+          )
+        : {},
     };
-  }
-
-  private driveState(): Record<string, number> {
-    const driveManager = this.host?.getDriveManager();
-    if (!driveManager) return {};
-    return keyedBy(
-      driveManager.getAllStates(),
-      (ds) => ds.spec.id,
-      (ds) => ds.currentIntensity
-    );
   }
 
   /** How deep a meta derivation may nest. The *spend* is `control-work`; this is the chain depth. */
@@ -229,10 +224,15 @@ export class RuleProcessor {
   }
 
   /** Apply one staged unit of model-backed work. Off the cycle path by construction. */
-  async *applyModelRules(work: ModelRuleWork, signal?: AbortSignal): AsyncGenerator<RuleResult> {
+  async *applyModelRules(
+    work: ModelRuleWork,
+    signal?: AbortSignal,
+    context?: RulePromptContext
+  ): AsyncGenerator<RuleResult> {
     yield* this.applyModelRulesImpl(work.p1, work.p2, {
       signal,
       singlePremise: work.p2 === undefined,
+      context,
     });
   }
 
@@ -269,7 +269,6 @@ export class RuleProcessor {
     p2: RuleInput
   ): Generator<{ conclusion: string; ruleResult: RuleResult }> {
     const p1s = p1.term.toString();
-    const p2s = p2.term.toString();
     // Premise identity for the whole rule sweep, resolved once: `termKey` is the
     // canonical structural key every other term-keyed container in the engine
     // uses, and it is memoised on the term. The Narsese text form was the older
@@ -278,7 +277,7 @@ export class RuleProcessor {
     // other's rule.
     const p1k = termKey(p1.term);
     const p2k = termKey(p2.term);
-    this.recorder.begin(`${p1s}|${p2s}`, p1s);
+    this.recorder.begin(p1s);
     const matched = this.table.candidates(p1.term.kind, p2.term.kind);
     const metaActive = this.metaActive(matched);
 
@@ -361,6 +360,7 @@ export class RuleProcessor {
     opts?: {
       signal?: AbortSignal;
       singlePremise?: boolean;
+      context?: RulePromptContext;
     }
   ): AsyncGenerator<RuleResult> {
     if (this.modelRules.length === 0 || opts?.signal?.aborted) return;
@@ -386,8 +386,8 @@ export class RuleProcessor {
     this.modelRuleRotationIndex = (this.modelRuleRotationIndex + 1) % this.modelRules.length;
     if (selected.length === 0) return;
 
-    const { totalConcepts, memoryPressure, conflictCount } = this.ruleContextScalars();
-    const driveState = this.driveState();
+    const { totalConcepts, memoryPressure, conflictCount, driveState } =
+      opts?.context ?? this.rulePromptContext();
 
     const ruleContext: Record<string, unknown> = {
       priority: maxPriority,

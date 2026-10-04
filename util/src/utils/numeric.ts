@@ -270,7 +270,10 @@ export const softmax = (values: readonly number[]): number[] => {
   if (values.length === 0) return [];
   const max = Math.max(...values);
   const exps = values.map((v) => Math.exp(v - max));
-  return exps.map((e) => safeRatio(e, sumBy(exps)));
+  // One denominator, not one per element: recomputing it inside the map made
+  // this quadratic, and it runs over a whole bag on every selection.
+  const total = sumBy(exps);
+  return exps.map((e) => safeRatio(e, total));
 };
 
 /** Arithmetic mean of a projection; 0 for an empty collection (rates, scores, sums). */

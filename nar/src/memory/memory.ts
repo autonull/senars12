@@ -473,11 +473,7 @@ export class Memory implements MemoryPorts {
    * monotone in each bound, which is the property §5.8's acceptance asks for.
    */
   capacityPressure(): number {
-    const { totalConcepts, totalTasks } = this.totals();
-    return Math.max(
-      occupancy(totalConcepts, this.config.maxConcepts),
-      occupancy(totalTasks, this.config.maxTasks)
-    );
+    return this.pressureBreakdown().capacity;
   }
 
   /** The two bounds behind {@link capacityPressure}, so a report names both. */
@@ -495,8 +491,11 @@ export class Memory implements MemoryPorts {
 
   getStatistics(): MemoryStatistics {
     const stats = calculateConceptStats(this.concepts.values());
-    const pressureBreakdown = this.pressureBreakdown();
-    const pressure = pressureBreakdown.capacity;
+    // One tally, not two: the bounds read the counts the pass above already
+    // made rather than sweeping the store a second time to re-derive them.
+    const concepts = occupancy(stats.totalConcepts, this.config.maxConcepts);
+    const tasks = occupancy(stats.totalTasks, this.config.maxTasks);
+    const pressure = Math.max(concepts, tasks);
     const result: MemoryStatistics = {
       totalConcepts: stats.totalConcepts,
       totalTasks: stats.totalTasks,
@@ -504,7 +503,7 @@ export class Memory implements MemoryPorts {
       archivedConcepts: this.config.enableArchive ? this.archive.size : 0,
       memoryPressure: pressure,
       utilization: pressure,
-      pressureByBound: { concepts: pressureBreakdown.concepts, tasks: pressureBreakdown.tasks },
+      pressureByBound: { concepts, tasks },
       conceptDistribution: {
         lowPriority: stats.lowPriority,
         mediumPriority: stats.mediumPriority,

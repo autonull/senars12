@@ -89,9 +89,14 @@ export class DerivationRecorder {
     this.enabled = enabled;
   }
 
-  begin(taskKey: string, goalTerm: string): void {
+  /**
+   * Open a record for the rule sweep on one task. Only the task's Narsese form is
+   * kept: a record names the goal it derived, and the premise identity a second
+   * argument used to carry was discarded on arrival — built per premise pair, and
+   * spent on nothing.
+   */
+  begin(goalTerm: string): void {
     if (!this.enabled) return;
-    void taskKey;
     this.open = {
       derivationId: makeId(),
       taskId: makeId(),

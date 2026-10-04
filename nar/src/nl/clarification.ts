@@ -45,11 +45,11 @@ export class ClarificationHandler {
   resolveClarification(userResponse: string): string | null {
     if (!this.pendingClarification) return null;
 
-    const option = this.pendingClarification.options.find(
-      (o) =>
-        o.toLowerCase().includes(userResponse.toLowerCase()) ||
-        userResponse.toLowerCase().includes(o.toLowerCase())
-    );
+    const response = userResponse.toLowerCase();
+    const option = this.pendingClarification.options.find((o) => {
+      const candidate = o.toLowerCase();
+      return candidate.includes(response) || response.includes(candidate);
+    });
 
     if (option) {
       this.pendingClarification = null;

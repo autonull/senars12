@@ -93,8 +93,11 @@ export function createIsotonicCalibrator(
   let isotonicMap: number[] | null = null;
   let sortedPredicted: number[] | null = null;
   let fitted = initialPoints.length > 0 && initialPoints.some((p) => p.observed !== p.predicted);
+  /** ECE depends on nothing but `points`, and every reader asks per batch. */
+  let cachedECE: number | null = null;
 
   function rebuild(): void {
+    cachedECE = null;
     if (points.length < 2) {
       isotonicMap = null;
       sortedPredicted = null;
@@ -146,6 +149,7 @@ export function createIsotonicCalibrator(
     },
 
     getECE(): number {
+      if (cachedECE !== null) return cachedECE;
       if (points.length === 0) return 0;
       let ece = 0;
       let totalWeight = 0;
@@ -154,7 +158,8 @@ export function createIsotonicCalibrator(
         ece += Math.abs(calibrated - p.observed) * p.weight;
         totalWeight += p.weight;
       }
-      return safeRatio(ece, totalWeight);
+      cachedECE = safeRatio(ece, totalWeight);
+      return cachedECE;
     },
 
     getPoints(): ReadonlyArray<CalibrationPoint> {
@@ -165,6 +170,7 @@ export function createIsotonicCalibrator(
       points.length = 0;
       isotonicMap = null;
       sortedPredicted = null;
+      cachedECE = null;
       fitted = false;
     },
   };
@@ -215,7 +221,14 @@ export class RollingECEMonitor {
 
   #prune(now: number): void {
     const cutoff = now - this.#config.windowSize * 60_000;
-    this.#samples = this.#samples.filter((s) => s.timestamp > cutoff);
+    // Compacted in place: a read prunes, and a read happens once per query, so
+    // reallocating and refiltering the whole window to answer "is anything stale"
+    // was a copy of a hundred samples per question asked.
+    let kept = 0;
+    for (const sample of this.#samples) {
+      if (sample.timestamp > cutoff) this.#samples[kept++] = sample;
+    }
+    this.#samples.length = kept;
   }
 }
 

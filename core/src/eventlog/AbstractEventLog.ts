@@ -21,13 +21,21 @@ export abstract class AbstractEventLog implements EventLog {
     this.limits = { ...DEFAULT_LIMITS, ...limits };
   }
 
-  /** Shared append preconditions: closed log, oversized event, or full store. */
-  protected assertAppendable(fullEvent: CognitiveEvent, isFull: boolean): void {
+  /**
+   * Shared append preconditions: closed log, oversized event, or full store.
+   *
+   * `payloadJson` is the serialization this append already performed, so the size
+   * guard costs no second pass over the event and reports the number the durable
+   * log stores. The envelope around a payload — a UUID id, a type name, two
+   * integers — is bounded by construction and by `maxEvents`, so the payload is
+   * what a size limit can actually be exceeded by.
+   */
+  protected assertAppendable(payloadJson: string, isFull: boolean): void {
     if (this.#closed) {
       throw new EventLogError('UNAVAILABLE', 'Event log is closed');
     }
 
-    const eventSize = JSON.stringify(fullEvent).length;
+    const eventSize = payloadJson.length;
     if (eventSize > this.limits.maxEventSize) {
       throw new EventLogError(
         'INVALID_EVENT',
@@ -74,7 +82,7 @@ export abstract class AbstractEventLog implements EventLog {
       id: this.generateId(),
       timestamp: Date.now(),
     });
-    await this.doAppend(full);
+    await this.doAppend(full, JSON.stringify(full.payload));
     this.notify(full);
     return full;
   }
@@ -128,7 +136,7 @@ export abstract class AbstractEventLog implements EventLog {
     }
   }
 
-  protected abstract doAppend(event: CognitiveEvent): Promise<void>;
+  protected abstract doAppend(event: CognitiveEvent, payloadJson: string): Promise<void>;
 }
 
 interface Subscription {
