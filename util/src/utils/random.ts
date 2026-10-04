@@ -12,6 +12,17 @@
 /** Injectable randomness — a seeded stream, an LCG, or `Math.random`. */
 export type RandomSource = () => number;
 
+/**
+ * The source a component falls back to when its caller names none.
+ *
+ * Seventeen constructors defaulted to `Math.random` inline, spread across the
+ * registry, the bags, the reflexes, the RLFP learners and the tool manager — so
+ * "which subsystems reach for ambient entropy" was an answer only a grep could
+ * give, and a determinism gate had no single seam to assert against. One named
+ * default is both stubbable in a test and readable in a diff.
+ */
+export const ambientRng: RandomSource = Math.random;
+
 /** A resumable mulberry32 stream: the draw function plus its live 32-bit state word. */
 export interface SeededStream {
   readonly next: RandomSource;

@@ -1,4 +1,4 @@
-import { type RandomSource, rankBy, weightedSample } from '@senars/util';
+import { ambientRng, type RandomSource, rankBy, weightedSample } from '@senars/util';
 
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
@@ -30,7 +30,7 @@ export class WindowedRouletteStrategy implements SamplingStrategy {
 
   constructor(config: WindowedRouletteConfig = {}) {
     this.windowSize = config.windowSize ?? 10;
-    this.rng = config.rng ?? Math.random;
+    this.rng = config.rng ?? ambientRng;
   }
 
   sample(memory: MemoryView, count: number): Concept[] {

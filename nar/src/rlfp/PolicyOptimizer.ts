@@ -1,12 +1,4 @@
-import {
-  BoundedRing,
-  maxBy,
-  mean,
-  nextInt,
-  type RandomSource,
-  selectTopN,
-  weightedMean,
-} from '@senars/util';
+import { ambientRng, BoundedRing, maxBy, mean, nextInt, type RandomSource, selectTopN, weightedMean } from '@senars/util';
 
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import type { RewardModel } from './RewardModel.js';
@@ -70,7 +62,7 @@ export class PolicyOptimizer {
       maxIterations: config.maxIterations ?? 1000,
       convergenceThreshold: config.convergenceThreshold ?? 0.001,
     };
-    this.rng = config.rng ?? Math.random;
+    this.rng = config.rng ?? ambientRng;
     this.trajectoryHistory = new BoundedRing<TrajectoryRecord>(config.maxHistory ?? 1000);
   }
 

@@ -6,7 +6,8 @@
  * under pressure (AIKR); processing is interruptible via AbortSignal and
  * deterministic under an injected RandomSource.
  */
-import {
+import { 
+  ambientRng,
   LruCache,
   type RandomSource,
   selectTopN,
@@ -14,7 +15,7 @@ import {
   type Weighted,
   weightedSample,
   weightedSampleBy,
-} from '@senars/util';
+ } from '@senars/util';
 import type { Bag, BagItem, BagOptions } from '../bag/Bag.js';
 import { createBag } from '../bag/index.js';
 
@@ -34,7 +35,7 @@ export interface AikrBagOptions {
   forgetRate?: number;
   /** Default items examined per pass (default 4). */
   budget?: number;
-  /** Injected randomness for sampling (default Math.random). */
+  /** Injected randomness for sampling (default `ambientRng`). */
   rng?: RandomSource;
 }
 
@@ -64,7 +65,7 @@ export const FAIRNESS_TRACKED_CAPACITY = 1024;
  * Softmax over priority with temperature (default T=1.0). Controllable
  * exploration/exploitation: T→∞ uniform, T→0 greedy.
  */
-export class PrioritySampling<T extends BagItem> implements BagSamplingStrategy<T> {
+export class BagPrioritySampling<T extends BagItem> implements BagSamplingStrategy<T> {
   readonly name = 'priority-softmax';
   constructor(private readonly temperature = 1.0) {}
   select(items: T[], budget: number, rng: RandomSource): T[] {
@@ -171,9 +172,9 @@ export class AIKRProcessor<TIn extends BagItem, TOut> {
 
   constructor(options: AIKRProcessorOptions<TIn, TOut>) {
     this.#bag = options.bag;
-    this.#strategy = options.samplingStrategy ?? new PrioritySampling();
+    this.#strategy = options.samplingStrategy ?? new BagPrioritySampling();
     this.#threshold = options.pressureThreshold ?? 0.7;
-    this.#rng = options.rng ?? Math.random;
+    this.#rng = options.rng ?? ambientRng;
     this.#process = options.process;
   }
 

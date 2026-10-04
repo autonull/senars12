@@ -1,6 +1,7 @@
 import { safeRatio, sumBy } from '@senars/util';
 import { SATURATION_COUNT } from '../constants.js';
-import { type CognitionContext, clamp01, type Reward } from './types.js';
+import { clamp01 } from '@senars/util';
+import type { CognitionContext, Reward } from './types.js';
 
 /**
  * C4: seed rewards, firewall-classified. `extrinsic` rewards flow to

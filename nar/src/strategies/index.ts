@@ -3,7 +3,7 @@ export { AnytimeDerivation, DefaultDerivation, FocusedDerivation, SampledDerivat
 export { RuleGraph } from './lm-graph/RuleGraph.js';
 export type { RuleGraphOptions } from './lm-graph/RuleGraph.js';
 export { AllSelector, DiverseSelector, PrioritySelector, RotationSelector } from './lm-selectors/index.js';
-export { DiverseSampling, GoalBiasedSampling, NoveltySampling, PrioritySampling, TopNSampling, WindowedRouletteStrategy, createWindowedRouletteStrategy } from './sampling/index.js';
+export { DiverseSampling, GoalBiasedSampling, NoveltySampling, PrioritySampling, WindowedRouletteStrategy, createWindowedRouletteStrategy } from './sampling/index.js';
 
 export type {
   AttentionContext,

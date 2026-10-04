@@ -19,7 +19,6 @@ import type { CapabilitySchema } from '../../nar/src/capability/ontology.js';
 import { createCapabilityOntology } from '../../nar/src/capability/ontology.js';
 import { GovernanceResolver } from '../../nar/src/governance/pipeline.js';
 import { ProofMettaProposer } from '../../nar/src/meta/ProofMettaProposer.js';
-import { PrioritySampling } from '../../nar/src/strategies/sampling/PrioritySampling.js';
 import { WindowedRouletteStrategy } from '../../nar/src/strategies/sampling/WindowedRoulette.js';
 import { Stamp } from '../../nar/src/terms/index.js';
 import { createTaskWeight } from '../../nar/src/types/index.js';

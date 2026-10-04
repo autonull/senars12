@@ -1,13 +1,14 @@
-import {
+import { 
+  ambientRng,
   anneal,
   lerpUpdate,
   maxScore,
   type QEntry,
   QTable,
-  type RandomSource,
   rampConfidence,
+  type RandomSource,
   shuffleInPlace,
-} from '@senars/util';
+ } from '@senars/util';
 import type { Perception } from '../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from './Reflex.js';
 import { byExpectedValue } from './Reflex.js';
@@ -54,7 +55,7 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
     this.confidenceOf = rampConfidence(options.confidenceScale ?? 5);
     this.epsilonDecay = options.epsilonDecay ?? 0.99;
     this.epsilonMin = options.epsilonMin ?? 0.01;
-    this.rng = options.rng ?? Math.random;
+    this.rng = options.rng ?? ambientRng;
     this.qTable = new QTable(lerpUpdate(this.alpha));
   }
 

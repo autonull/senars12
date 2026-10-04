@@ -1,4 +1,4 @@
-import { type BeliefTruth, formatTruth, stableStringify, unique } from '@senars/util';
+import { ambientRng, type BeliefTruth, formatTruth, stableStringify, unique } from '@senars/util';
 import { getModelForTask } from '../lm';
 import type { ILMService } from '../lm/interfaces.js';
 import { buildGenerationPrompt } from './prompts/generation-v1.js';
@@ -71,7 +71,7 @@ export class NLGenerationService {
     try {
       key = stableStringify(input);
     } catch {
-      key = `${Date.now()}:${Math.random()}`;
+      key = `${Date.now()}:${ambientRng()}`;
     }
     return this.flight.run(key, () => this.generateInner(input));
   }

@@ -1,12 +1,4 @@
-import {
-  BoundedRing,
-  createLogger,
-  errMsg,
-  maxBy,
-  nextInt,
-  stopwatch,
-  toolError,
-} from '@senars/util';
+import { ambientRng, BoundedRing, createLogger, maxBy, nextInt, toolError, errMsg, stopwatch } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import type { ToolFeedback, ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
@@ -54,7 +46,7 @@ export class ToolManager {
     this.sandboxMode = options?.sandboxMode ?? false;
     this.eventBus = options?.eventBus;
     this.feedback = options?.feedbackObserver ?? new DefaultToolFeedbackObserver();
-    this.rng = options?.rng ?? Math.random;
+    this.rng = options?.rng ?? ambientRng;
     for (const p of options?.allowedPermissions ?? []) {
       this.allowedPermissions.add(p);
     }

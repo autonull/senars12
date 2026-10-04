@@ -1,4 +1,4 @@
-import { isYoung, type RandomSource } from '@senars/util';
+import { ambientRng, isYoung, type RandomSource } from '@senars/util';
 import { BanditReflex } from './BanditReflex.js';
 import type { Reflex } from './Reflex.js';
 
@@ -19,7 +19,7 @@ export class EpsilonGreedyReflex
 {
   constructor(id: string, options: EpsilonGreedyOptions = { numArms: 10 }) {
     const epsilon = options.epsilon ?? 0.1;
-    const rng = options.rng ?? Math.random;
+    const rng = options.rng ?? ambientRng;
     super(id, options, (entry) =>
       isYoung(entry, YOUNG_VISITS) && rng() < epsilon ? rng() : entry.value
     );

@@ -402,6 +402,7 @@ export { deepEqual, deepFreeze, deepMerge, getNested, setNested } from './utils/
 export { extractLastUserMessage } from './utils/prompt.js';
 /** @public The seeded PRNG, weighted sampling, and the deterministic split primitive. */
 export {
+  ambientRng,
   choice,
   createLCG,
   fillSeededUnitRange,

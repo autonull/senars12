@@ -1,12 +1,13 @@
-import {
-  ensureArray,
+import { 
+  ambientRng,
   flooredRatio,
   nextInt,
   normalizeToSum,
+  ensureArray,
   type RandomSource,
   safeRatio,
   softFalloff,
-} from '@senars/util';
+ } from '@senars/util';
 
 import type { PreferenceData } from './PreferenceCollector.js';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
@@ -49,7 +50,7 @@ export class RewardModel {
       concisenessWeight: config.concisenessWeight ?? 0.2,
       diversityWeight: config.diversityWeight ?? 0.2,
     };
-    this.rng = config.rng ?? Math.random;
+    this.rng = config.rng ?? ambientRng;
   }
 
   private readonly rng: RandomSource;

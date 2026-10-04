@@ -1,7 +1,7 @@
 import { BaseComponent } from '@senars/core';
 import type { CognitiveEvent, DerivationRecord } from '@senars/core/schemas';
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import type { BeliefTruth, Episode } from '@senars/util';
+import { ambientRng, type BeliefTruth, type Episode } from '@senars/util';
 import { BoundedRing, createLogger, errMsg, installIdSource, selectTopN } from '@senars/util';
 import { resolveBagSlot } from './bag/registration.js';
 import { CognitiveController, createDefaultRegistry } from './cognitive';
@@ -457,7 +457,7 @@ export class NAR extends BaseComponent {
 
   /** The instance's randomness — the one stream memory bags, link layers and strategies draw from. */
   get rng(): RandomSource {
-    return this.config.rng ?? Math.random;
+    return this.config.rng ?? ambientRng;
   }
 
   getController(): CognitiveController | undefined {

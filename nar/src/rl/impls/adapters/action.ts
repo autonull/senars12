@@ -1,12 +1,4 @@
-import {
-  anneal,
-  BoundedRing,
-  maxBy,
-  mean,
-  nextInt,
-  type RandomSource,
-  rngFrom,
-} from '@senars/util';
+import { ambientRng, anneal, BoundedRing, maxBy, mean, nextInt, type RandomSource, rngFrom } from '@senars/util';
 import { type Term, TermBuilder, Truth } from '../../../index.js';
 import type { NAR } from '../../../nar.js';
 import { operationNameOf, operationTerm } from '../../../terms/impls/operation-term.js';
@@ -220,7 +212,7 @@ export class BanditSelector extends ArmQSelector {
   constructor({
     numArms = 3,
     explorationRate = 0.2,
-    rng = Math.random,
+    rng = ambientRng,
   }: BanditSelectorOptions = {}) {
     super({ armNames: pullArmNames(numArms), explorationRate, rng });
   }
@@ -253,7 +245,7 @@ export class GridWorldSelector extends ArmQSelector {
     super({
       armNames: ACTION_NAMES,
       explorationRate,
-      rng: rngFrom(seed, Math.random),
+      rng: rngFrom(seed, ambientRng),
       exploreBias: 0.4,
       curiosityBoost: 0.03,
     });
@@ -299,7 +291,7 @@ export class NonStationarySelector extends ArmQSelector {
     numArms = 2,
     changeDetectionThreshold = 0.3,
     explorationRate = 0.2,
-    rng = Math.random,
+    rng = ambientRng,
   }: NonStationarySelectorOptions = {}) {
     super({ armNames: pullArmNames(numArms), explorationRate, rng });
     this.changeDetectionThreshold = changeDetectionThreshold;

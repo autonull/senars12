@@ -212,14 +212,12 @@ export const strategySpecErrors = (
     if (parsed.success) {
       errors.push(...(registration.validate?.(parsed.data) ?? []));
     } else {
-      errors.push(`strategies.${slot}.config: ${describeIssues(parsed.error)}`);
+      errors.push(`strategies.${slot}.config: ${formatIssues(parsed.error.issues)}`);
     }
   }
 
   return errors;
 };
-
-const describeIssues = (error: ZodError): string => formatIssues(error.issues);
 
 /** Read-only registry surface that validation needs — the registry itself would cycle. */
 export interface StrategyCatalog {

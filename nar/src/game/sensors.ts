@@ -1,8 +1,7 @@
-import { flooredRatio, mean, safeRatio, sumBy } from '@senars/util';
+import { clamp01, flooredRatio, mean, safeRatio, sumBy } from '@senars/util';
 
 import {
   type CognitionContext,
-  clamp01,
   failClosed,
   type Sensor,
   type SensorReading,

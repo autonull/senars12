@@ -87,4 +87,4 @@ export type {
   Sensor,
   SensorReading,
 } from './types.js';
-export { clamp01, failClosed } from './types.js';
+export { failClosed } from './types.js';

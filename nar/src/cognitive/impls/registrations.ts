@@ -41,7 +41,6 @@ import {
   PrioritySelector,
   RotationSelector,
   SampledDerivation,
-  TopNSampling,
   WindowedRouletteStrategy,
 } from '../../strategies/index.js';
 import { RuleGraph } from '../../strategies/lm-graph/RuleGraph.js';
@@ -63,6 +62,7 @@ import {
   stateful,
 } from '../../strategies/registration.js';
 import { CompositeSampling } from '../../strategies/sampling/CompositeSampling.js';
+import { defineScoredSampling } from '../../strategies/sampling/scored.js';
 import type { Strategy, StrategyType } from '../../strategies/types.js';
 
 /**
@@ -170,7 +170,16 @@ export const DEFAULT_REGISTRATIONS: StrategySlot = [
     fixed({
       name: 'top-n',
       description: 'Take the N highest-priority concepts',
-      factory: () => new TopNSampling(),
+      // Its own class spelled out `rankedSample(..., c => c.priority)` — which is
+      // what the factory it already exported declares. `priority` stays a class
+      // because it reads through `memory.topConcepts`, the one reader that keeps
+      // the store's own admission order for ties.
+      factory: () =>
+        defineScoredSampling({
+          name: 'top-n',
+          description: 'Take the N highest-priority concepts',
+          score: (concept) => concept.priority,
+        }),
     }),
   ],
   [

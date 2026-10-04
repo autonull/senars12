@@ -1,12 +1,4 @@
-import {
-  clamp01,
-  LruCache,
-  lerp,
-  maxScore,
-  nearlyEqual,
-  nextInt,
-  type RandomSource,
-} from '@senars/util';
+import { ambientRng, clamp01, lerp, LruCache, maxScore, nearlyEqual, nextInt, type RandomSource } from '@senars/util';
 import type { DriveManager } from '../../drives/impls/DriveManager.js';
 import { atom, type Term, TermBuilder, TermSet, Truth, termKey } from '../../index.js';
 import type { NAR } from '../../nar.js';
@@ -49,7 +41,7 @@ export class QBeliefStore {
   private readonly stateActions: LruCache<string, TermSet>;
   private readonly rng: RandomSource;
 
-  constructor(nar: NAR, rng: RandomSource = Math.random, options: QBeliefStoreOptions = {}) {
+  constructor(nar: NAR, rng: RandomSource = ambientRng, options: QBeliefStoreOptions = {}) {
     this.nar = nar;
     this.rng = rng;
     this.stateActions = new LruCache({ maxSize: options.capacity ?? DEFAULT_QBELIEF_CAPACITY });

@@ -16,7 +16,6 @@ export {
   SampledDerivation,
   SimpleAttention,
   SpreadingActivation,
-  TopNSampling,
 } from '../strategies/index.js';
 export type {
   AttentionContext,

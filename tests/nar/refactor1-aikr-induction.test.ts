@@ -4,7 +4,7 @@ import {
   FairnessSampling,
   PowerLawSampling,
   PriorityProportional,
-  PrioritySampling,
+  BagPrioritySampling,
   TopKSampling,
 } from '@senars/nar/learning/aikr-processor.js';
 import { SchemaInductor } from '@senars/nar/learning/schema-induction.js';
@@ -22,10 +22,10 @@ describe('Bench 83 — SamplingStrategy distributions', () => {
   const items = [item('a', 0.9), item('b', 0.5), item('c', 0.1)];
 
   it('softmax temperature sweep: T→0 greedy, high T flattens', () => {
-    const greedy = new PrioritySampling<BagItem>(0.01).select(items, 1, Math.random);
+    const greedy = new BagPrioritySampling<BagItem>(0.01).select(items, 1, Math.random);
     expect(greedy).toEqual([items[0]]);
     // T=1000 → near-uniform: all items reachable across many draws.
-    const flattener = new PrioritySampling<BagItem>(1000);
+    const flattener = new BagPrioritySampling<BagItem>(1000);
     const seen = new Set<string>();
     for (let i = 0; i < 300; i++) {
       const pick = flattener.select(items, 1, lcg(i + 1));
@@ -86,7 +86,7 @@ describe('Bench 83 — SamplingStrategy distributions', () => {
   });
 
   it('selection never mutates the source order and respects budget', () => {
-    const strategy = new PrioritySampling<BagItem>(1.0);
+    const strategy = new BagPrioritySampling<BagItem>(1.0);
     const before = items.map((i) => i.id);
     const picked = strategy.select(items, 2, lcg(5));
     expect(picked).toHaveLength(2);

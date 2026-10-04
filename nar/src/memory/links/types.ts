@@ -46,6 +46,6 @@ export interface LinkManagerConfig {
   layers: Record<string, number>;
   globalDecayRate: number;
   forgetPolicy: LinkForgetPolicy;
-  /** Injected randomness for the random-forget policy (default Math.random). */
+  /** Injected randomness for the random-forget policy (default `ambientRng`). */
   rng?: RandomSource;
 }

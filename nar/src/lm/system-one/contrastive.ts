@@ -11,7 +11,7 @@ import {
 import type { Bag, BagItem } from '../../bag/Bag.js';
 import { createBag } from '../../bag/index.js';
 import type { EmbeddingPointer } from '../../decision/types.js';
-import { AIKRProcessor, PrioritySampling } from '../../learning/aikr-processor.js';
+import { AIKRProcessor, BagPrioritySampling } from '../../learning/aikr-processor.js';
 import {
   cosine,
   cosineNormalized,
@@ -339,7 +339,7 @@ export class ContrastiveMemory {
       // promote into the exemplar bags under pressure (flywheel closure).
       const maintainer = new AIKRProcessor<ExemplarItem, number>({
         bag: pending,
-        samplingStrategy: new PrioritySampling(1.0),
+        samplingStrategy: new BagPrioritySampling(1.0),
         pressureThreshold: 0.7,
         process: (items) => {
           let promoted = 0;

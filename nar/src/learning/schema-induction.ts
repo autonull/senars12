@@ -8,17 +8,18 @@
  * - LM proposes, NARS validates, both adopt
  */
 
-import {
+import { 
+  ambientRng,
+  parseJsonObject,
   clamp01,
   createLogger,
-  errMsg,
   generateId,
   type Logger,
   LruCache,
   minBy,
-  parseJsonObject,
+  errMsg,
   sortBy,
-} from '@senars/util';
+ } from '@senars/util';
 import type { BagItem } from '../bag/Bag.js';
 import type { MemoryReader } from '../memory/ports/index.js';
 import type { TextGenerator } from '../ports';
@@ -42,7 +43,7 @@ import {
   AIKRProcessor,
   type AikrBagOptions,
   createAikrBag,
-  PrioritySampling,
+  BagPrioritySampling,
   type ProcessOptions,
 } from './aikr-processor.js';
 
@@ -108,7 +109,7 @@ export class SchemaInductor {
     this.memory = memory;
     this.lmClient = lmClient;
     this.config = { ...DEFAULT_CONFIG, ...config };
-    this.rng = config.rng ?? Math.random;
+    this.rng = config.rng ?? ambientRng;
     this.logger = createLogger({ scope: 'learning:schema-induction' });
     this.#chainBag = createAikrBag<DerivationChainItem>({
       capacity: this.config.capacity ?? 256,
@@ -117,7 +118,7 @@ export class SchemaInductor {
     });
     this.#processor = new AIKRProcessor<DerivationChainItem, InductionResult>({
       bag: this.#chainBag,
-      samplingStrategy: new PrioritySampling(1.0),
+      samplingStrategy: new BagPrioritySampling(1.0),
       pressureThreshold: this.config.pressureThreshold ?? 0.7,
       rng: this.rng,
       process: (items, signal) => this.#induceChains(items, signal),

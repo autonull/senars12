@@ -1,4 +1,4 @@
-import { shareOf, shuffleInPlace } from '@senars/util';
+import { ambientRng, shareOf, shuffleInPlace } from '@senars/util';
 import type { RuleEngine } from '../../rules/types.js';
 import type { Task } from '../../types';
 import type { RandomSource } from '../../types/primitives.js';
@@ -9,7 +9,7 @@ export class SampledDerivation extends DefaultDerivation {
   override readonly metadata = { name: 'sampled', description: 'Random subset of secondaries' };
 
   constructor(
-    private readonly rng: RandomSource = Math.random,
+    private readonly rng: RandomSource = ambientRng,
     /** Fraction of secondaries to draw; the rest is the budget the slot gives back. */
     private readonly fraction = 0.3
   ) {

@@ -1,5 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { maxBy, nextInt, QTable, ucb } from '@senars/util';
+import { ambientRng, maxBy, nextInt, QTable, ucb } from '@senars/util';
 import type { Game, GameOutcome } from '../../game/Game.js';
 import type { Decider } from './decide.js';
 import type { JudgmentDataset } from './distill.js';
@@ -24,7 +24,7 @@ export interface ManifoldRLAgentOptions {
   /** Deny actions whose risk exceeds this floor — engages only when fitted (Z2). */
   riskFloor?: number;
   labelOutcomes?: boolean;
-  /** Exploration RNG — injectable for deterministic tests (defaults to Math.random). */
+  /** Exploration RNG — injectable for deterministic tests (defaults to `ambientRng`). */
   rng?: () => number;
   /** TODO23 Phase 6: unified decision facade — final selection re-judged via
    *  `choose()` (contrastive penalties + vetoes on top of head eligibility).
@@ -77,7 +77,7 @@ export class ManifoldRLAgent {
     this.#feasibilityMask = options.feasibilityMask ?? true;
     this.#riskFloor = options.riskFloor ?? 0.8;
     this.#labelOutcomes = options.labelOutcomes ?? true;
-    this.#rng = options.rng ?? Math.random;
+    this.#rng = options.rng ?? ambientRng;
     this.#decider = options.decider;
     this.#verificationFloor = options.verificationFloor ?? 0;
   }

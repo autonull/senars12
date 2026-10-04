@@ -14,7 +14,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SourceReputation } from '@senars/nar/kernel/source-reputation.js';
 import { QBeliefStore } from '../../nar/src/rl/impls/QBeliefStore.js';
-import { AIKRProcessor, AikrBagOptions, ProcessOptions, PrioritySampling } from '@senars/nar/learning/aikr-processor.js';
+import { AIKRProcessor, AikrBagOptions, ProcessOptions, BagPrioritySampling } from '@senars/nar/learning/aikr-processor.js';
 import { PriorityBag } from '@senars/nar/bag/Bag.js';
 import { shadowValidator, ShadowValidationResult } from '@senars/nar/lm/shadow-validation.js';
 import { verifyCascade } from '@senars/nar/lm/system-one/verify.js';

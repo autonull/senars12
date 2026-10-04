@@ -77,5 +77,3 @@ export const failClosed = (id: string, e: unknown): SensorReading => ({
   features: { [`error.${id}`]: 1 },
   confidence: 0,
 });
-
-export { clamp01 } from '@senars/util';

@@ -13,7 +13,7 @@ export interface RewardBeliefAdapterConfig {
   tdConfidence?: number;
   tdAlpha?: number;
   tdQLearningConfidence?: number;
-  /** Injected randomness for value-belly exploration (default Math.random). */
+  /** Injected randomness for value-belly exploration (default `ambientRng`). */
   rng?: RandomSource;
   /** Reward transitions retained for retrospective analysis (default 1000). */
   maxHistory?: number;

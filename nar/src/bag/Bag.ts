@@ -1,16 +1,17 @@
 import type { AIKRBudget } from '@senars/core/budget';
 import { emitDomainEvent } from '@senars/core/event-sink';
-import {
+import { 
+  ambientRng,
   type BoundedContainer,
-  type Clock,
   clamp01,
+  type Clock,
   makeId,
   nextInt,
   occupancy,
   type RandomSource,
   retain,
   sumBy,
-} from '@senars/util';
+ } from '@senars/util';
 import { PRESSURE } from '../constants.js';
 import { FenwickTree } from './fenwick.js';
 import type { BagItem, InternalEntry } from './types.js';
@@ -22,7 +23,7 @@ export interface BagOptions {
   capacity: number;
   decayRate?: number;
   forgetRate?: number;
-  /** Injected randomness for sampling/eviction (default Math.random). */
+  /** Injected randomness for sampling/eviction (default `ambientRng`). */
   rng?: RandomSource;
   /** Injected clock for createdAt/lastAccessedAt (default Date.now). */
   clock?: Clock;
@@ -103,7 +104,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T>, BoundedContainer<
     this.capacity = options.capacity;
     this.decayRate = options.decayRate ?? 0.01;
     this.forgetRate = options.forgetRate ?? 0.001;
-    this.rng = options.rng ?? Math.random;
+    this.rng = options.rng ?? ambientRng;
     this.clock = options.clock ?? Date.now;
     // Identity, not a sample: drawn from the *id* seam so that constructing a
     // bag cannot shift the seeded stream that sampling and eviction replay from.

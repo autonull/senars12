@@ -13,7 +13,7 @@
 import { emitDomainEvent } from '@senars/core/event-sink';
 
 import { ConfigurationError } from '../../types';
-import { keyedBy } from '@senars/util';
+import { ambientRng, keyedBy } from '@senars/util';
 import type { RandomSource } from '../../types/primitives.js';
 import { recordStrategyMemoSize } from '../../metrics/prometheus.js';
 import {
@@ -107,7 +107,7 @@ export class CognitiveRegistry implements StrategyRegistry {
   private readonly rng: RandomSource;
 
   constructor({ rng }: { rng?: RandomSource } = {}) {
-    this.rng = rng ?? Math.random;
+    this.rng = rng ?? ambientRng;
   }
 
   register(type: StrategyType, registration: StrategyRegistration): void;
