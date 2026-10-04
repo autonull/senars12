@@ -8,10 +8,11 @@
  * satisfies it structurally and the direction of the edge is one-way.
  */
 
-import type { Concept } from '../memory/concept.js';
 import type { LMService } from '../lm/service/LMService.js';
-import type { CoreConfig, Task } from '../types/index.js';
+import type { Concept } from '../memory/concept.js';
+import type { MetricsSummary } from '../metrics/index.js';
 import type { Term, Truth } from '../terms/index.js';
+import type { CoreConfig, Task } from '../types/index.js';
 
 export interface SelfHostEventBus {
   on(event: string, handler: (...args: unknown[]) => void): void;
@@ -30,7 +31,7 @@ export interface SelfHost {
   goal(input: string | Term, truth?: Truth): Promise<void>;
   getBeliefs(filter?: Record<string, unknown>): Task[];
   getStatistics(): unknown;
-  getMetrics(): { throughput?: { averageStepDuration?: number } | null };
+  getMetrics(): MetricsSummary;
   getConstitution(): Task[];
   getGoals(filter?: Record<string, unknown>): Task[];
   getQuestions(filter?: Record<string, unknown>): Task[];

@@ -1,11 +1,12 @@
 /**
  * Issue identification and corrections - extracted from SelfAnalyzerService
  */
+
+import { safeRatio } from '@senars/util';
 import type { MetricsCollector } from '../../../metrics';
 import type { SelfHost } from '../../../self/host.js';
-import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
-import { safeRatio } from '@senars/util';
 import type { CorrectionResult, IdentifiedIssues } from '../../types.js';
+import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
 import { analyzeTaskPatterns } from './performance.js';
 import { detectInefficientChains } from './reasoning-patterns.js';
 
@@ -66,7 +67,7 @@ export const identifyIssues = async (
     });
   }
 
-  const taskPatterns = analyzeTaskPatterns(nar, metrics);
+  const taskPatterns = analyzeTaskPatterns(nar);
   if (taskPatterns.dropRate > 0.1) {
     issues.performanceIssues.push({
       type: 'high_task_drop_rate',

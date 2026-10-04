@@ -14,7 +14,6 @@ export interface EventPublisher {
 /** The observability bundle every long-lived component is constructed with. */
 export interface ComponentContext {
   readonly logger: ScopedLogger;
-  readonly metrics: Metrics;
   readonly eventBus: EventPublisher;
 }
 
@@ -70,16 +69,4 @@ export interface ScopedLogger {
   error(message: string, error?: Error, context?: Record<string, unknown>): void;
 
   child(scope: string): ScopedLogger;
-}
-
-export interface Metrics {
-  increment(name: string, value?: number, tags?: Record<string, unknown>): void;
-
-  decrement(name: string, value?: number, tags?: Record<string, unknown>): void;
-
-  gauge(name: string, value: number, tags?: Record<string, unknown>): void;
-
-  histogram(name: string, value: number, tags?: Record<string, unknown>): void;
-
-  timing(name: string, value: number, tags?: Record<string, unknown>): void;
 }

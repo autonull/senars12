@@ -1,18 +1,26 @@
 import type { LanguageModel } from 'ai';
 
+import { type CallTally, createCallTally, recordCall } from '../utils/tally.js';
+
 export type LMTask = 'quality' | 'fast' | 'structured';
 
-export interface LMExecutionStats {
-  totalCalls: number;
-  successfulCalls: number;
-  failedCalls: number;
-  totalDuration: number;
+/** A {@link CallTally} plus the token count — what every LM path accumulates. */
+export interface LMExecutionStats extends CallTally {
   totalTokens: number;
-  averageDuration: number;
-  successRate: number;
-  totalCost: number;
-  averageCost: number;
 }
+
+export const createLMStats = (): LMExecutionStats => ({ ...createCallTally(), totalTokens: 0 });
+
+/** Fold one LM attempt into `stats` — the `recordCall` counters plus the tokens it spent. */
+export const recordLMCall = (
+  stats: LMExecutionStats,
+  success: boolean,
+  durationMs: number,
+  tokens = 0
+): void => {
+  recordCall(stats, success, durationMs);
+  stats.totalTokens += tokens;
+};
 
 /** The single per-call generation option bag — shared by every LM service interface. */
 export interface LMGenerateOptions {

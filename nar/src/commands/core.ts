@@ -37,7 +37,7 @@ export const coreCommands: CommandDefinition[] = [
       if (args[0] === 'detail') {
         const metrics = nar.getMetrics();
         if (metrics) {
-          const ruleExecs = sumBy(metrics.rules ?? [], (r) => r.executions);
+          const ruleExecs = sumBy(metrics.rules, (r) => r.totalCalls);
           const derivs = metrics.system?.totalDerivations ?? 0;
           result += `\nRule Executions: ${ruleExecs}, Derivations: ${derivs}`;
         }

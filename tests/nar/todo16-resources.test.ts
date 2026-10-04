@@ -201,13 +201,21 @@ describe('System One — AIKR Resource Accounting (Bench 12)', () => {
     );
   });
 
-  it('systemone_* metrics record judgments and head ECE', async () => {
+  it('recordJudgmentMetric labels the judgment and stamps its latency', async () => {
     recordJudgmentMetric('epistemic', 'evaluate', 1, false, 12);
-    const json = (await prometheusRegistry.getMetricsAsJSON()) as Array<{ name: string }>;
-    const names = json.map((m) => m.name);
-    expect(names).toContain('senars_systemone_judgments_total');
-    expect(names).toContain('senars_systemone_judgment_latency_ms');
-    expect(names).toContain('senars_systemone_provisional_active');
-    expect(names).toContain('senars_systemone_head_ece');
+    const json = (await prometheusRegistry.getMetricsAsJSON()) as Array<{
+      name: string;
+      values: Array<{ labels: Record<string, string>; value: number }>;
+    }>;
+    const series = (name: string) => json.find((m) => m.name === name)?.values ?? [];
+
+    expect(series('senars_systemone_judgments_total')).toContainEqual({
+      labels: { axis: 'epistemic', shape: 'evaluate', tier: '1', abstained: 'false' },
+      value: 1,
+    });
+    expect(series('senars_systemone_judgment_latency_ms')).toContainEqual({
+      labels: { tier: '1' },
+      value: 12,
+    });
   });
 });

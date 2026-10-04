@@ -5,13 +5,19 @@
 export function setupGracefulShutdown(
   shutdownFn: () => Promise<void>,
   logger?: { info: (msg: string) => void }
-): void {
-  const handleShutdown = async (signal: string) => {
+): () => void {
+  const handleShutdown = (signal: string) => {
     logger?.info(`Received ${signal}, shutting down...`);
-    await shutdownFn();
-    process.exit(0);
+    void shutdownFn().finally(() => process.exit(0));
   };
+  const onInterrupt = (): void => handleShutdown('SIGINT');
+  const onTerminate = (): void => handleShutdown('SIGTERM');
 
-  process.on('SIGINT', () => handleShutdown('SIGINT'));
-  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+  process.on('SIGINT', onInterrupt);
+  process.on('SIGTERM', onTerminate);
+
+  return () => {
+    process.off('SIGINT', onInterrupt);
+    process.off('SIGTERM', onTerminate);
+  };
 }

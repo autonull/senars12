@@ -30,10 +30,6 @@ export abstract class BaseComponent implements BaseComponentContract {
     return this._context?.logger;
   }
 
-  get metrics(): ComponentContext['metrics'] | undefined {
-    return this._context?.metrics;
-  }
-
   get eventBus(): ComponentContext['eventBus'] | undefined {
     return this._context?.eventBus;
   }

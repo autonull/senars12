@@ -1,15 +1,21 @@
-import { errMsg, stopwatch, type TermTruth, withTimeout } from '@senars/util';
+import {
+  createLMStats,
+  errMsg,
+  recordLMCall,
+  stopwatch,
+  type TermTruth,
+  withTimeout,
+} from '@senars/util';
 import type { ZodSchema } from 'zod';
 import type { Term } from '../../terms';
 import { Truth } from '../../terms';
 import type { Truth as TruthType } from '../../terms/impls/Truth.js';
 import type { Budget, Task, TaskType } from '../../types';
 import { createTask, type NAREventMap, type NarEventBus } from '../../types';
-import { lmTaskWeight } from '../task-weights.js';
 import { CircuitBreaker } from '../../utils/circuit-breaker.js';
 import { parseJsonObject } from '../json.js';
 import type { LMExecutionStats, LMRuleConfig, LMService, ModelRuleStats } from '../lm-service.js';
-import { createLMStats, recordLMCall } from '../stats.js';
+import { lmTaskWeight } from '../task-weights.js';
 import { LMResponseParser } from './response-parser.js';
 import type { LMContext, ValidationResult } from './types.js';
 import type { LMRuleConfigV2 } from './types-v2.js';
@@ -28,7 +34,10 @@ import type { LMRuleConfigV2 } from './types-v2.js';
  * them is worth retrying later.
  */
 export class LmCallTimeout extends Error {
-  constructor(readonly ruleId: string, readonly timeoutMs: number) {
+  constructor(
+    readonly ruleId: string,
+    readonly timeoutMs: number
+  ) {
     super(`LM rule ${ruleId} exceeded its ${timeoutMs}ms call deadline`);
     this.name = 'LmCallTimeout';
   }
@@ -244,7 +253,7 @@ export class LMRule {
       }
 
       if (!response) {
-        this.recordFailure(elapsed());
+        recordLMCall(this.stats, false, elapsed());
         return this.applyFallback(primary, secondary, context);
       }
 
@@ -287,7 +296,7 @@ export class LMRule {
       });
 
       const tasks = this.processAndGenerate(response, primary, secondary, lmContext, context);
-      this.recordSuccess(duration, prompt.length + response.length);
+      recordLMCall(this.stats, true, duration, prompt.length + response.length);
       this.emitSystemEvent('system:lm.rule:applied', {
         ruleId: this.id,
         ruleName: this.name,
@@ -308,7 +317,7 @@ export class LMRule {
         timestamp: Date.now(),
       });
       if ((error as Error).name === 'AbortError') throw error;
-      this.recordFailure(duration);
+      recordLMCall(this.stats, false, duration);
       return this.applyFallback(primary, secondary, context);
     }
   }
@@ -558,16 +567,14 @@ export class LMRule {
 
   private generateTasksFromStructured(output: Record<string, unknown>, primary: Term): Task[] {
     if (Array.isArray(output?.tasks)) {
-      return (output.tasks as Array<{ narsese: string; truth?: TermTruth }>).map(
-        (t) => {
-          const parsed = LMResponseParser.parse(t.narsese);
-          return createTask(
-            parsed.valid && parsed.term ? parsed.term : primary,
-            this.taskType,
-            parsed.truth
-          );
-        }
-      );
+      return (output.tasks as Array<{ narsese: string; truth?: TermTruth }>).map((t) => {
+        const parsed = LMResponseParser.parse(t.narsese);
+        return createTask(
+          parsed.valid && parsed.term ? parsed.term : primary,
+          this.taskType,
+          parsed.truth
+        );
+      });
     }
     const narsese =
       (output?.narsese as string) ?? (output?.response as string) ?? primary.toString();
@@ -636,13 +643,5 @@ export class LMRule {
     const budget = (processed as Partial<Task> & { budget?: Budget }).budget;
 
     return this.checkConstitution(createTask(term, type, truth, budget ?? undefined), primary);
-  }
-
-  private recordSuccess(duration: number, tokens: number): void {
-    recordLMCall(this.stats, true, duration, tokens);
-  }
-
-  private recordFailure(duration: number): void {
-    recordLMCall(this.stats, false, duration, 0);
   }
 }

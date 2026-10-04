@@ -127,4 +127,3 @@ export type {
   ShadowValidationResult,
 } from './shadow-validation.js';
 export { ShadowValidator, shadowValidator } from './shadow-validation.js';
-export { createLMStats, recordLMCall } from './stats.js';

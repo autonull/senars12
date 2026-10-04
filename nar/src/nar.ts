@@ -152,7 +152,7 @@ export class NAR extends BaseComponent {
     const logger = createLogger({ scope: 'NAR' });
     const metrics = new MetricsCollector();
 
-    super({ logger, metrics, eventBus });
+    super({ logger, eventBus });
 
     this.config = { ...validateNarConfig(config) };
     this.gates = config.gateRegistry ?? createGateRegistry();
@@ -172,7 +172,12 @@ export class NAR extends BaseComponent {
     });
     this.ruleTable = loadBuiltinTable();
     this.processor = new RuleProcessor(undefined, this.ruleTable.index());
-    this.processor.setConfig({ memory: this.memory, host: this, budgets: this.controlBudgets, recorderEnabled: true });
+    this.processor.setConfig({
+      memory: this.memory,
+      host: this,
+      budgets: this.controlBudgets,
+      recorderEnabled: true,
+    });
     this.processor.setEventBus(eventBus);
     this.taskManager = new TaskManager(this.memory, { gateRegistry: this.gates });
     this.query = new QueryAPI(this.memory);
@@ -269,12 +274,9 @@ export class NAR extends BaseComponent {
         // processor's index, so dispatch and the artifact cannot disagree.
         admitRule: {
           admit: (declaration, admitted) =>
-            this.ruleTable.admit(
-              declaration,
-              admitted.revision,
-              admitted.baseRevision,
-              { proposalId: admitted.proposalId }
-            ),
+            this.ruleTable.admit(declaration, admitted.revision, admitted.baseRevision, {
+              proposalId: admitted.proposalId,
+            }),
         },
       }
     );
@@ -710,7 +712,10 @@ export class NAR extends BaseComponent {
    * @param reward - Reward value between -1 and 1
    * @param context - Optional context about what the reward is for
    */
-  async reward(reward: number, context?: string): Promise<import('@senars/core/schemas').RewardGateOutput> {
+  async reward(
+    reward: number,
+    context?: string
+  ): Promise<import('@senars/core/schemas').RewardGateOutput> {
     return this.io.reward(reward, context);
   }
 
@@ -831,12 +836,12 @@ export class NAR extends BaseComponent {
     this._metricsCollector.recordRuleExecution(ruleId, success, duration);
   }
 
-  incrementDerivations(count?: number) {
-    this._metricsCollector.incrementDerivations(count);
+  recordDerivations(count?: number) {
+    this._metricsCollector.recordDerivations(count);
   }
 
-  incrementSteps(count?: number) {
-    this._metricsCollector.incrementSteps(count);
+  recordSteps(count?: number) {
+    this._metricsCollector.recordSteps(count);
   }
 
   getMetrics() {
@@ -896,19 +901,33 @@ export class NAR extends BaseComponent {
     return this.lm.getFeedbackStats();
   }
 
-  private stopLM(): void { this.lm.getEnricher()?.stop(); }
-  private getModelWithFallback(prefix: string) { return getModelWithFallback(this, prefix); }
+  private stopLM(): void {
+    this.lm.getEnricher()?.stop();
+  }
+  private getModelWithFallback(prefix: string) {
+    return getModelWithFallback(this, prefix);
+  }
   private initializeOptionalFeatures(): void {
     if (this.config.lmService) this.initializeLMRules(this.config.lmService);
     if (this.config.enableTools) this.initializeTools();
     if (this.config.enableSelf) this.self = new ReasoningAboutReasoning(this, {});
   }
-  private async injectBootstrapGoals(): Promise<void> { return injectBootstrapGoals(this); }
+  private async injectBootstrapGoals(): Promise<void> {
+    return injectBootstrapGoals(this);
+  }
   private initializeLMRules(lmService: LMService): void {
-    initializeLMRules(this, LMRules.createAll(lmService as never, { callTimeoutMs: this.cognitiveController.getParams().lm.callTimeoutMs }));
+    initializeLMRules(
+      this,
+      LMRules.createAll(lmService as never, {
+        callTimeoutMs: this.cognitiveController.getParams().lm.callTimeoutMs,
+      })
+    );
     this._lmInitialized = true;
   }
-  private initializeTools(): void { initializeTools(this); }
-  private contradicts(a: Term, b: Term): boolean { return contradicts(a, b); }
+  private initializeTools(): void {
+    initializeTools(this);
+  }
+  private contradicts(a: Term, b: Term): boolean {
+    return contradicts(a, b);
+  }
 }
-

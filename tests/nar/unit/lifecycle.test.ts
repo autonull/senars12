@@ -1,7 +1,6 @@
 import { createLogger } from '@senars/util';
 import { describe, expect, it } from 'vitest';
 import { BaseComponent, Container } from '../../../nar/src';
-import { MetricsCollector } from '../../../nar/src/metrics';
 import { EventBus } from '../../../nar/src/types';
 
 class TestComponent extends BaseComponent {
@@ -66,22 +65,19 @@ describe('BaseComponent', () => {
     expect(component.disposeCount).toBe(1);
   });
 
-  it('should provide logger, metrics, and eventBus', () => {
+  it('should provide logger and eventBus', () => {
     const logger = createLogger({ scope: 'Test' });
-    const metrics = new MetricsCollector();
     const eventBus = new EventBus();
 
-    const component = new TestComponent({ logger, metrics, eventBus });
+    const component = new TestComponent({ logger, eventBus });
 
     expect(component.logger).toBe(logger);
-    expect(component.metrics).toBe(metrics);
     expect(component.eventBus).toBe(eventBus);
   });
 
   it('should have undefined context if not provided', () => {
     const component = new TestComponent();
     expect(component.logger).toBeUndefined();
-    expect(component.metrics).toBeUndefined();
     expect(component.eventBus).toBeUndefined();
   });
 

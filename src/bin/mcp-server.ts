@@ -18,6 +18,7 @@ import {
   generateId,
   parseFlags,
   setupGracefulShutdown,
+  type Teardown,
 } from '@senars/util';
 import { envNum } from '@senars/util/config';
 import { runEntrypoint } from './lib/fatal-error.js';
@@ -57,7 +58,7 @@ const getHttpPort = (): number => flags.num('--port', envNum('MCP_PORT', 8766));
 /** Concurrent SSE sessions one HTTP transport keeps before recycling the least recently used. */
 const MAX_SSE_SESSIONS = 64;
 
-const startSse = (port: number, guard: HttpGuard): void => {
+const startSse = (port: number, guard: HttpGuard): Teardown => {
   const sessions = new BoundedMap<string, SSEServerTransport>({
     maxSize: MAX_SSE_SESSIONS,
     eviction: 'lru',
@@ -93,12 +94,12 @@ const startSse = (port: number, guard: HttpGuard): void => {
   httpServer.listen(port, () => {
     logger.info(`SeNARS MCP Server started with SSE at http://localhost:${port}/mcp/sse`);
   });
-  setupGracefulShutdown(async () => {
+  return async () => {
     await httpServer.close();
-  }, logger);
+  };
 };
 
-const startHttp = (port: number, guard: HttpGuard): void => {
+const startHttp = (port: number, guard: HttpGuard): Teardown => {
   const httpTransport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => generateId('session'),
   });
@@ -120,10 +121,10 @@ const startHttp = (port: number, guard: HttpGuard): void => {
   httpServer.listen(port, () => {
     logger.info(`SeNARS MCP Server started on Streamable HTTP at http://localhost:${port}/mcp`);
   });
-  setupGracefulShutdown(async () => {
+  return async () => {
     await httpTransport.close();
     await httpServer.close();
-  }, logger);
+  };
 };
 
 async function initialize() {
@@ -153,13 +154,17 @@ async function initialize() {
 
   const transportType = getTransportType();
   const port = getHttpPort();
+  // One signal handler for whichever transport started. The three branches used
+  // to install their own, which meant the close path had to be written three
+  // times and could not name a resource the branch that started it did not know.
+  let closeTransport: Teardown;
 
   switch (transportType) {
     case 'stdio': {
       const transport = new StdioServerTransport();
       await server.connect(transport);
       logger.info('SeNARS MCP Server started on stdio');
-      setupGracefulShutdown(async () => server.close(), logger);
+      closeTransport = () => server.close();
       break;
     }
     case 'sse':
@@ -168,13 +173,16 @@ async function initialize() {
       const apiKey = envStr(mcpConfig?.apiKeyEnv) ?? mcpConfig?.apiKey;
       const guard = new HttpGuard({ apiKey, rateLimitPerMinute: mcpConfig?.rateLimitPerMinute });
       if (!apiKey) logger.info(`MCP API key (client x-api-key header): ${guard.activeKey}`);
-      if (transportType === 'sse') startSse(port, guard);
-      else startHttp(port, guard);
+      closeTransport = transportType === 'sse' ? startSse(port, guard) : startHttp(port, guard);
       break;
     }
     default:
       throw new Error(`Unknown transport: ${transportType}`);
   }
+
+  setupGracefulShutdown(async () => {
+    await closeTransport();
+  }, logger);
 }
 
 runEntrypoint(initialize);

@@ -11,7 +11,7 @@
  * @deprecated Use `import type { Engine, EngineId, CognitiveStimulus, Context, Derivation, ToolResult } from '@senars/util'`
  */
 /**
- * @deprecated Use `import type { ComponentState, ComponentContext, Metrics, EventBus } from '@senars/util'`
+ * @deprecated Use `import type { ComponentState, ComponentContext, EventBus } from '@senars/util'`
  */
 /**
  * @deprecated Use `import type { EngineOrigin } from '@senars/util'` and `CognitiveEvent`, `isNarEvent`, `isEventType` from `@senars/core/schemas`
@@ -43,7 +43,6 @@ export type {
   LoggerConfig,
   LogLevel,
   MessageClassification,
-  Metrics,
   ParsedCommand,
   SessionManager,
   SkillDefinition,

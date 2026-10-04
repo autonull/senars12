@@ -1,7 +1,7 @@
 /**
  * Performance pattern analysis - extracted from SelfAnalyzerService
  */
-import { mean } from '@senars/util';
+import { mean, rankBy, safeRatio } from '@senars/util';
 
 import type { MetricsCollector } from '../../../metrics';
 import type { SelfHost } from '../../../self/host.js';
@@ -40,24 +40,19 @@ export const analyzePerformancePatterns = (
 
 export const identifySuccessfulStrategies = (metrics: MetricsCollector | null): string[] => {
   const ruleStats = metrics?.getRuleStats();
-  const stats = Array.isArray(ruleStats) ? ruleStats : [];
-  if (!stats.length) return [];
+  if (!ruleStats?.length) return [];
 
-  return stats
-    .filter((s) => s.successes > 0 && s.executions > 0)
-    .sort((a, b) => b.successes / b.executions - a.successes / a.executions)
-    .slice(0, 5)
-    .map((s) => s.id);
+  return rankBy(ruleStats, (r) => r.successRate, {
+    where: (r) => r.successfulCalls > 0,
+    limit: 5,
+  }).map((r) => r.id);
 };
 
-export const analyzeTaskPatterns = (nar: SelfHost | null, metrics: MetricsCollector | null) => {
-  if (!nar || !metrics) {
-    return { avgProcessingTime: 0, queueDepth: 0, dropRate: 0 };
-  }
-  const summary = nar.getMetrics?.();
-  return {
-    avgProcessingTime: summary?.throughput?.averageStepDuration ?? 0,
-    queueDepth: 0,
-    dropRate: 0,
-  };
+/** Elapsed time per derivation, from the counters the kernel actually bumps.
+ *  Queue depth and drop rate are still unmeasured, and report 0 rather than a
+ *  guess. */
+export const analyzeTaskPatterns = (nar: SelfHost | null) => {
+  if (!nar) return { avgProcessingTime: 0, queueDepth: 0, dropRate: 0 };
+  const { uptime, totalDerivations } = nar.getMetrics().system;
+  return { avgProcessingTime: safeRatio(uptime, totalDerivations), queueDepth: 0, dropRate: 0 };
 };

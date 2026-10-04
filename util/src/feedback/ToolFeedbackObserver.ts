@@ -1,15 +1,9 @@
 import type { ToolResult } from '../types/engine.js';
 import { selectTopN } from '../utils/collections.js';
+import { type CallTally, CallTallySeries, createCallTally } from '../utils/tally.js';
 
-export interface ToolFeedback {
+export interface ToolFeedback extends CallTally {
   name: string;
-  totalCalls: number;
-  successfulCalls: number;
-  failedCalls: number;
-  successRate: number;
-  totalDuration: number;
-  averageDuration: number;
-  lastCalled: number;
   lastResult: string;
   lastError?: string;
 }
@@ -38,32 +32,19 @@ export interface ToolFeedbackObserver {
   resetFeedback(name?: string): void;
 }
 
+/** Tool names arrive out of model output, so the series is capacity-bounded. */
+const MAX_TRACKED_TOOLS = 256;
+
 export class DefaultToolFeedbackObserver implements ToolFeedbackObserver {
-  private feedback = new Map<string, ToolFeedback>();
+  private readonly feedback = new CallTallySeries<string, ToolFeedback>({
+    maxSize: MAX_TRACKED_TOOLS,
+    create: (name) => ({ ...createCallTally(), name, lastResult: '' }),
+  });
 
   recordCall(name: string, result: ToolResult, duration: number): void {
-    const existing = this.feedback.get(name);
-    const totalCalls = (existing?.totalCalls ?? 0) + 1;
-    const successfulCalls = (existing?.successfulCalls ?? 0) + (result.success ? 1 : 0);
-    const failedCalls = (existing?.failedCalls ?? 0) + (result.success ? 0 : 1);
-    const successRate = successfulCalls / totalCalls;
-    const totalDuration = (existing?.totalDuration ?? 0) + duration;
-    const averageDuration = totalDuration / totalCalls;
-    const lastResult = result.success ? String(result.content ?? '') : '';
-    const lastError = result.success ? undefined : (result.error ?? 'Unknown error');
-
-    this.feedback.set(name, {
-      name,
-      totalCalls,
-      successfulCalls,
-      failedCalls,
-      successRate,
-      totalDuration,
-      averageDuration,
-      lastCalled: Date.now(),
-      lastResult,
-      lastError,
-    });
+    const feedback = this.feedback.record(name, result.success, duration);
+    feedback.lastResult = result.success ? String(result.content ?? '') : '';
+    feedback.lastError = result.success ? undefined : (result.error ?? 'Unknown error');
   }
 
   getFeedback(name: string): ToolFeedback | undefined {
@@ -71,7 +52,7 @@ export class DefaultToolFeedbackObserver implements ToolFeedbackObserver {
   }
 
   getAllFeedback(): ToolFeedback[] {
-    return Array.from(this.feedback.values());
+    return [...this.feedback.values()];
   }
 
   getFeedbackString(limit: number): string {
@@ -81,10 +62,6 @@ export class DefaultToolFeedbackObserver implements ToolFeedbackObserver {
   }
 
   resetFeedback(name?: string): void {
-    if (name) {
-      this.feedback.delete(name);
-    } else {
-      this.feedback.clear();
-    }
+    this.feedback.reset(name);
   }
 }

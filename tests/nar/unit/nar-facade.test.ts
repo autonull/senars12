@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { createTaskWeight, createTask, Memory, TermBuilder, Truth } from '../../../nar/src';
+import { createTask, createTaskWeight, Memory, TermBuilder, Truth } from '../../../nar/src';
 import type { RuleStats } from '../../../nar/src/metrics';
 import { MetricsCollector } from '../../../nar/src/metrics';
 import { QueryAPI, ReasoningTrace } from '../../../nar/src/query';
@@ -60,7 +60,12 @@ describe('NAR Query and Metrics', () => {
     });
 
     test('getQuestions returns question tasks', () => {
-      memory.addTask(TermBuilder.atom('question1'), 'question', Truth.NEUTRAL, createTaskWeight(0.6));
+      memory.addTask(
+        TermBuilder.atom('question1'),
+        'question',
+        Truth.NEUTRAL,
+        createTaskWeight(0.6)
+      );
 
       const questions = query.getQuestions();
 
@@ -78,7 +83,12 @@ describe('NAR Query and Metrics', () => {
 
   describe('ReasoningTrace', () => {
     test('getDerivationHistory returns history', () => {
-      const task = createTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createTaskWeight(0.8));
+      const task = createTask(
+        TermBuilder.atom('test'),
+        'belief',
+        Truth.TRUE,
+        createTaskWeight(0.8)
+      );
 
       const history = traceAPI.getDerivationHistory(task);
 
@@ -129,25 +139,27 @@ describe('NAR Query and Metrics', () => {
 
       const stats = metrics.getRuleStats('test-rule') as RuleStats | null;
       expect(stats).toBeDefined();
-      expect(stats!.executions).toBe(1);
-      expect(stats!.successes).toBe(1);
+      expect(stats!.totalCalls).toBe(1);
+      expect(stats!.successfulCalls).toBe(1);
+      expect(stats!.averageDuration).toBe(10);
+      expect(stats!.successRate).toBe(1);
     });
 
     test('records failed execution', () => {
       metrics.recordRuleExecution('fail-rule', false, 5);
 
       const stats = metrics.getRuleStats('fail-rule') as RuleStats | null;
-      expect(stats!.failures).toBe(1);
+      expect(stats!.failedCalls).toBe(1);
     });
 
     test('increments derivation count', () => {
-      metrics.incrementDerivations(5);
+      metrics.recordDerivations(5);
       const summary = metrics.getSummary();
       expect(summary.system.totalDerivations).toBe(5);
     });
 
     test('increments step count', () => {
-      metrics.incrementSteps(3);
+      metrics.recordSteps(3);
       const summary = metrics.getSummary();
       expect(summary.system.totalSteps).toBe(3);
     });

@@ -6,12 +6,12 @@ import type {
   ToolResult,
 } from '@senars/core/engine';
 import { BaseEngine } from '@senars/core/engine/base';
-import { asBeliefTruth, createLogger, errMsg } from '@senars/util';
 import type { CognitiveEvent } from '@senars/core/schemas';
+import { asBeliefTruth, createLogger, DisposalRegistry, errMsg } from '@senars/util';
 import { MAPPED_NAR_EVENTS, narEventToCognitive } from '../events/bridge.js';
 import { filterByTerm } from '../memory/term-filter.js';
-import { dispatchNarseseIntent } from '../nl/narsese-intent.js';
 import { NAR } from '../nar.js';
+import { dispatchNarseseIntent } from '../nl/narsese-intent.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
 
 export type CognitiveEventEmitter = (event: CognitiveEvent) => void;
@@ -24,7 +24,8 @@ export class NAREngine extends BaseEngine {
 
   #nar: NAR;
   #emitCognitive?: CognitiveEventEmitter;
-  readonly #unwire: Array<() => void> = [];
+  /** Present exactly while the bridge is wired — its absence is the idempotency guard. */
+  #unwire?: DisposalRegistry;
 
   constructor(nar?: NAR, emitCognitive?: CognitiveEventEmitter) {
     super();
@@ -103,7 +104,7 @@ export class NAREngine extends BaseEngine {
   }
 
   protected async doShutdown(): Promise<void> {
-    this.#unwireEventBridge();
+    await this.#unwireEventBridge();
     if (this.#nar.isRunning()) {
       await this.#nar.stop();
     }
@@ -119,7 +120,9 @@ export class NAREngine extends BaseEngine {
    * therefore a paired unbind rather than a bare registration loop.
    */
   #wireEventBridge(): void {
-    if (this.#unwire.length > 0) return;
+    if (this.#unwire) return;
+    const unwire = new DisposalRegistry();
+    this.#unwire = unwire;
     const eventBus = this.#nar.getEventBus();
     const systemEventBus = this.#nar.getSystemEventBus();
     const emitter = this.#emitCognitive;
@@ -131,15 +134,15 @@ export class NAREngine extends BaseEngine {
       };
       eventBus.on(eventKey as string, handler);
       systemEventBus.on(eventKey as string, handler);
-      this.#unwire.push(() => {
+      unwire.add(() => {
         eventBus.off(eventKey as string, handler);
         systemEventBus.off(eventKey as string, handler);
       });
     }
   }
 
-  #unwireEventBridge(): void {
-    for (const off of this.#unwire) off();
-    this.#unwire.length = 0;
+  async #unwireEventBridge(): Promise<void> {
+    await this.#unwire?.disposeAll();
+    this.#unwire = undefined;
   }
 }

@@ -2,6 +2,7 @@ import { createInterface, type Interface } from 'node:readline';
 import {
   BoundedRing,
   createLogger,
+  DisposalRegistry,
   errMsg,
   isQuitResult,
   QUIT_SENTINEL,
@@ -25,6 +26,9 @@ export class CLIConnection extends BaseConnection {
   override readonly type = 'cli';
   override readonly logger = createLogger({ scope: 'io:cli' });
   private rl: Interface | null = null;
+  /** Rebuilt per connect cycle: a disposed registry would take the next cycle's
+   *  listeners down with it. */
+  private disposal = new DisposalRegistry();
   private readonly sendFn: (text: string) => void;
   private readonly commands: Map<string, CLICommand>;
   private readonly cmdQueue: BoundedRing<() => Promise<void>>;
@@ -84,8 +88,14 @@ export class CLIConnection extends BaseConnection {
       this.setState('disconnected');
     });
 
-    process.on('SIGINT', () => {
+    // Named so it can be taken back off the process: an anonymous handler here
+    // survived every disconnect and accumulated one per connect.
+    const onSigint = (): void => {
       this.rl?.close();
+    };
+    process.on('SIGINT', onSigint);
+    this.disposal.add(() => {
+      process.off('SIGINT', onSigint);
     });
 
     this.setState('connected');
@@ -98,6 +108,8 @@ export class CLIConnection extends BaseConnection {
     this.setState('disconnecting');
     this.rl?.close();
     this.rl = null;
+    void this.disposal.disposeAll();
+    this.disposal = new DisposalRegistry();
     this.setState('disconnected');
     this.logger.info(`CLI connection ${this.id} disconnected: ${reason ?? 'normal'}`);
   }

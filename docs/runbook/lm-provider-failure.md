@@ -8,7 +8,6 @@
 - Metrics (`nar/src/metrics/prometheus.ts`):
   - `senars_lm_circuit_state{provider=...}` stuck at `open`
   - `senars_lm_probe_total` showing consecutive probe failures
-  - `senars_lm_calls_total{status="error"}` rising
 - Agent falls back to `transformers`/`mock` — degraded output quality, `LM_PROVIDER` in
   effect not the one configured.
 

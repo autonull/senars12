@@ -129,7 +129,6 @@ export type {
   LogEntry,
   LoggerConfig,
   LogLevel,
-  Metrics,
   ScopedLogger,
 } from './types/lifecycle.js';
 /** @public LM service contract. */
@@ -145,6 +144,7 @@ export type {
   MockLMConfig,
   ModelRuleStats,
 } from './types/llm.js';
+export { createLMStats, recordLMCall } from './types/llm.js';
 /** @public Session/memory manager contracts. */
 export type { ConversationSession, SessionManager } from './types/memory.js';
 /** @public NAR agent contracts. @deprecated — re-exported from `@senars/nar`. */
@@ -267,6 +267,9 @@ export {
   unique,
 } from './utils/collections.js';
 export { formatIssues, type SchemaIssue } from './utils/diagnostics.js';
+/** @public The registry every component records its teardown in. */
+export type { Teardown } from './utils/disposal.js';
+export { DisposalRegistry } from './utils/disposal.js';
 export { errMsg, toError } from './utils/error.js';
 /** @public Percent, divider, and progress-bar formatting for reports and CLI output. */
 export { bar, divider, pct, percentile, section, utcDate } from './utils/format.js';
@@ -391,9 +394,12 @@ export {
   inPlaceSerializable,
   stableStringify,
 } from './utils/serialization.js';
-/** @public Process signal → graceful shutdown for every binary. */
+/** @public Process signal → graceful shutdown for every binary; returns its own uninstall. */
 export { setupGracefulShutdown } from './utils/shutdown.js';
 export { weightedMean } from './utils/stats.js';
+/** @public One tally of attempts, and the bounded per-key series of them. */
+export type { CallTally, CallTallySeriesOptions } from './utils/tally.js';
+export { CallTallySeries, createCallTally, recordCall } from './utils/tally.js';
 export {
   escapeRegExp,
   extractTerm,

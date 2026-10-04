@@ -1,4 +1,4 @@
-import { safeRatio, trimCapped } from '@senars/util';
+import { trimCapped } from '@senars/util';
 import type { MetricsCollector } from '../metrics';
 import type { SelfHost } from '../self/host.js';
 
@@ -107,13 +107,10 @@ export class SelfOptimizer {
     if (!metrics) return;
 
     const config = this.nar.getConfig();
-    const { throughput, system } = metrics;
-    const throughputValue = throughput?.derivationsPerSecond ?? 0;
-    const _errorRate = safeRatio(system?.errors ?? 0, system?.totalDerivations ?? 0);
     const memoryUsage = process.memoryUsage?.().heapUsed ?? 0;
     const conceptCount = this.nar.listConcepts().length;
 
-    if (throughputValue < 10 && config.maxDerivationsPerStep > 50) {
+    if (metrics.system.derivationsPerSecond < 10 && config.maxDerivationsPerStep > 50) {
       this.nar.setConfig({
         ...config,
         maxDerivationsPerStep: Math.max(50, config.maxDerivationsPerStep - 10),

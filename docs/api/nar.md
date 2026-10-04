@@ -864,10 +864,6 @@ _Dynamic subpath (no single entry file)._
 
 - `shadowValidator`
 
-- `createLMStats`
-
-- `recordLMCall`
-
 ## `./lm/context/trace-abstractor`
 
 - `CriticalPathStep`
@@ -1258,37 +1254,19 @@ _Dynamic subpath (no single entry file)._
 
 ## `./metrics`
 
-- `PerformanceMetric`
+- `RuleStats` — Per-rule execution tallies.
 
-- `RuleStats`
+- `SystemStats` — What the kernel counts about itself. Every field is bumped in place.
+
+- `MetricsSummary`
 
 - `MetricsCollector`
 
-- `createMetricsCollector`
-
 - `handleMetricsRequest` — Answer `/metrics` (`text`) or `/metrics.json`, or return `false` for any other
-
-- `derivationDurationMs`
-
-- `derivationsTotal`
 
 - `getMetricsAsJson`
 
 - `getMetricsAsText`
-
-- `lmCallDurationMs`
-
-- `lmCallsTotal`
-
-- `lmCircuitState`
-
-- `lmProbeTotal`
-
-- `lmTokensTotal`
-
-- `memoryEpisodesTotal`
-
-- `memoryRetrievalHitRate`
 
 - `prometheusRegistry`
 
@@ -1296,21 +1274,9 @@ _Dynamic subpath (no single entry file)._
 
 - `recordDerivation`
 
-- `recordLmCall`
-
 - `recordLmProbe`
 
 - `recordLmSpend`
-
-- `systemErrorsTotal`
-
-- `systemUptimeSeconds`
-
-- `systemWarningsTotal`
-
-- `updateMemoryMetrics`
-
-- `updateSystemMetrics`
 
 ## `./terms`
 

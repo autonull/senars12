@@ -28,7 +28,7 @@ export const analyzeReasoningPatterns = async (
     successfulStrategies: identifySuccessfulStrategies(metrics),
     performancePatterns: analyzePerformancePatterns(metrics),
     resourceUsage: analyzeResourceUsage(concepts),
-    taskProcessingPatterns: analyzeTaskPatterns(nar, metrics),
+    taskProcessingPatterns: analyzeTaskPatterns(nar),
   };
 };
 

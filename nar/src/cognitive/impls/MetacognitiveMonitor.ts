@@ -4,7 +4,16 @@
  * Migrated from: nar/src/self/MetacognitiveMonitor.ts
  */
 
-import { mean, periodic, perSecond, pushCapped, softFalloff, stdDev, takeLast } from '@senars/util';
+import {
+  DisposalRegistry,
+  mean,
+  periodic,
+  perSecond,
+  pushCapped,
+  softFalloff,
+  stdDev,
+  takeLast,
+} from '@senars/util';
 import type { SelfHost } from '../../self/host.js';
 import type { ReasoningStep } from '../types.js';
 
@@ -55,9 +64,8 @@ export const MONITOR_DEFAULTS = {
 
 export class MetacognitiveMonitor {
   private nar: SelfHost | null;
-  /** D13: teardown state — the interval disposer + subscribed listeners. */
-  private stopMonitorInterval: (() => void) | undefined;
-  private registeredListeners: Array<[string, (...args: unknown[]) => void]> = [];
+  /** The interval disposer and every subscribed listener, undone by one call. */
+  private readonly disposal = new DisposalRegistry();
   private config: Required<MetacognitiveMonitorConfig>;
   private reasoningTrace: ReasoningStep[];
   private performanceHistory: PerformanceData[];
@@ -203,18 +211,7 @@ export class MetacognitiveMonitor {
     this.reasoningTrace = [];
     this.performanceHistory = [];
     this.performanceMonitors.clear();
-    // D13: full teardown — clear the interval, release listeners.
-    if (this.stopMonitorInterval) {
-      this.stopMonitorInterval();
-      this.stopMonitorInterval = undefined;
-    }
-    const eventBus = this.nar?.eventBus;
-    if (eventBus) {
-      for (const [event, handler] of this.registeredListeners) {
-        eventBus.off(event, handler);
-      }
-      this.registeredListeners = [];
-    }
+    void this.disposal.disposeAll();
   }
 
   private setupMonitoring(): void {
@@ -224,7 +221,7 @@ export class MetacognitiveMonitor {
 
     const subscribe = (event: string, handler: (...args: unknown[]) => void): void => {
       eventBus.on(event, handler);
-      this.registeredListeners.push([event, handler]);
+      this.disposal.add(() => eventBus.off(event, handler));
     };
 
     subscribe('task:processed', (task: unknown) => {
@@ -275,15 +272,16 @@ export class MetacognitiveMonitor {
       }
     });
 
-    // D13: stored disposer — no unstoppable timers.
-    this.stopMonitorInterval = periodic(() => {
-      const memoryUsage = process.memoryUsage ? process.memoryUsage().heapUsed : 0;
-      this.analyzePerformance({
-        throughput: lastThroughput,
-        memoryUsage,
-        timestamp: Date.now(),
-      });
-    }, 5000);
+    this.disposal.add(
+      periodic(() => {
+        const memoryUsage = process.memoryUsage ? process.memoryUsage().heapUsed : 0;
+        this.analyzePerformance({
+          throughput: lastThroughput,
+          memoryUsage,
+          timestamp: Date.now(),
+        });
+      }, 5000)
+    );
   }
 
   private updatePerformanceMonitors(metrics: Partial<PerformanceData>): void {

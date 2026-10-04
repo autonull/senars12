@@ -120,6 +120,10 @@
 
 - `toolOk` — A successful outcome.
 
+- `createLMStats`
+
+- `recordLMCall` — Fold one LM attempt into `stats` — the `recordCall` counters plus the tokens it spent.
+
 - `asBeliefTruth` — Belief-shaped truth from either truth representation; absent truth stays absent.
 
 - `BeliefTruthSchema` — The runtime guard for {@link BeliefTruth}, and the one place a truth value's
@@ -273,6 +277,8 @@
 - `formatIssues` — The monorepo's one rendering of a schema failure. Four validators used to
 
 - `type SchemaIssue`
+
+- `DisposalRegistry` — Every undo a component owes, in one list — teardown is a single `disposeAll()`.
 
 - `errMsg` — The one coercion pair for values that reach an `Error` boundary from anywhere.
 
@@ -495,6 +501,12 @@
 - `setupGracefulShutdown` — Process lifecycle — the single signal → shutdown path for every SeNARS binary.
 
 - `weightedMean` — The weighted running mean, in one place.
+
+- `CallTallySeries` — A capacity-bounded map of per-key tallies.
+
+- `createCallTally` — The zeroed counters — the state before the first recorded attempt.
+
+- `recordCall` — Fold one attempt into `tally`, in place, and hand it back for chaining.
 
 - `escapeRegExp` — Escape every regexp metacharacter in `text`, so untrusted text becomes a
 
