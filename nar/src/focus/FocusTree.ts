@@ -14,7 +14,7 @@ import {
   mergeConsumption,
   sliceBudget,
 } from '@senars/core/budget';
-import { type RandomSource, raceDeadline, SeededRNG, systemClock, weightedPick } from '@senars/util';
+import { type RandomSource, SeededRNG, systemClock, weightedPick } from '@senars/util';
 import type { Focus, FocusOptions, FocusStepReport } from '../focus/Focus.js';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { FocusScheduler, FocusSchedulerOptions } from '../focus/focus-scheduler.js';
@@ -22,6 +22,7 @@ import type { GameFocus } from '../focus/GameFocus.js';
 import type { MetaGame } from '../game/impls/MetaGame.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
 import { publishFocusStepReport } from './scheduler-reward.js';
+import { DEFAULT_FOCUS_DEADLINE_MS, stepFocusUnderDeadline } from './step.js';
 
 export interface FocusTreeNode {
   readonly id: string;
@@ -72,7 +73,7 @@ export class FocusTree {
 
   constructor(options: FocusTreeOptions) {
     this.hz = options.hz ?? 10;
-    this.deadlineMs = options.deadlineMs ?? 50;
+    this.deadlineMs = options.deadlineMs ?? DEFAULT_FOCUS_DEADLINE_MS;
     this.rng = new SeededRNG(options.seed ?? 1);
     this.schedulerAdapter = options.schedulerAdapter;
     this.metaGame = options.metaGame;
@@ -205,15 +206,13 @@ export class FocusTree {
     const budget = leaf.budget;
     const focus = leaf.focus;
 
-    let yielded = false;
-    const stepped = await raceDeadline(
+    const { report, yielded } = await stepFocusUnderDeadline(
       focus.step(budget.consumed.cycles < budget.maxCycles ? 10 : 0),
       this.deadlineMs
     );
 
-    const report = stepped.value;
     if (report) {
-      this.emitReport(leaf.id, report);
+      publishFocusStepReport(this.metaGame, this.schedulerAdapter, leaf.id, report);
       // Merge consumption back up the tree
       this.mergeConsumptionUp(leaf, {
         cycles: 1,
@@ -221,12 +220,10 @@ export class FocusTree {
         memoryOps: report.tasksProcessed,
         llmCalls: 0,
       });
-    } else {
-      yielded = true;
     }
 
     this.ticks++;
-    return { nodeId: leaf.id, report: report ?? null, yielded };
+    return { nodeId: leaf.id, report, yielded };
   }
 
   /** Weighted sample a leaf node across all roots. */
@@ -245,10 +242,6 @@ export class FocusTree {
     };
     for (const root of this.roots) collect(root);
     return leaves;
-  }
-
-  private emitReport(nodeId: string, report: FocusStepReport): void {
-    publishFocusStepReport(this.metaGame, this.schedulerAdapter, nodeId, report);
   }
 
   private mergeConsumptionUp(node: FocusTreeNode, consumption: ConsumedBudget): void {

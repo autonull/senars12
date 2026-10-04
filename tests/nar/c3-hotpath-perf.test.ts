@@ -3,6 +3,7 @@ import { ConceptGraph } from '@senars/nar/memory';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { atom, Stamp, type Term, TermBuilder, Truth, type TruthType } from '../../nar/src';
 import { createDefaultRegistry } from '../../nar/src/cognitive';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '../../nar/src/config/cognitive-parameters.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { Memory } from '../../nar/src/memory';
 import { LinkManager } from '../../nar/src/memory/links';
@@ -210,12 +211,12 @@ describe('C3 Hot-path benchmarks (bench 119+)', () => {
         mockStrategy,
         mockDerivationStrategy,
         {
+          ...DEFAULT_COGNITIVE_PARAMETERS.inference,
           maxDerivationsPerStep: 100,
           maxDerivationDepth: 10,
-          enableCircularDetection: true,
           cpuThrottleMs: 0,
           singlePremiseLMRules: false,
-          sampleSize: 100,
+          maxSampledConcepts: 100,
         }
       );
     });

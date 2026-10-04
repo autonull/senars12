@@ -19,18 +19,22 @@ import {
   exceedsDepthLimit,
 } from './inference-utils.js';
 import type { Strategy } from '../strategies/types.js';
+import type { InferenceConfig as CognitiveInferenceConfig } from '../config/cognitive-parameters.js';
 
-export interface InferenceConfig {
-  maxDerivationsPerStep: number;
-  maxDerivationDepth: number;
-  enableCircularDetection: boolean;
-  cpuThrottleMs: number;
-  singlePremiseLMRules: boolean;
-  /** Concepts sampled per cycle — `CognitiveParameters.inference.maxSampledConcepts`. */
-  sampleSize: number;
+/**
+ * What one cycle reads, plus the derivation-chain sink.
+ *
+ * The parameter graph's own `inference` section, extended — not a second
+ * declaration of the same six knobs, one of which had been renamed on the way in
+ * (`sampleSize` for `maxSampledConcepts`). The restatement meant every
+ * reconfigure spelled out the field-by-field mapping and a knob renamed on one
+ * side silently stopped reaching the cycle; deriving it means a new `inference`
+ * entry arrives here by being added to the graph at all.
+ */
+export type InferenceConfig = CognitiveInferenceConfig & {
   /** Optional derivation-chain sink (TODO25 follow-on: SchemaInductor fuel). */
   onDerivation?: (chain: readonly Task[]) => void;
-}
+};
 
 /**
  * What the cycle reads: the memory read port, plus the attention slot's live
@@ -116,7 +120,7 @@ export class InferenceController {
     const outOfTime = () => deadlineMs !== undefined && Date.now() > deadlineMs;
     let emitted = 0;
 
-    const concepts = this.samplingStrategy.sample(this.memory, this.config.sampleSize);
+    const concepts = this.samplingStrategy.sample(this.memory, this.config.maxSampledConcepts);
 
     // Every sampled concept derives through the same bounds, so the context is
     // built once. `onDerivation` is absent in the common configuration, and the

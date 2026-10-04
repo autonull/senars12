@@ -163,11 +163,14 @@ export {
 } from '@senars/util/errors';
 
 // Query filter types
+/**
+ * The filters `QueryAPI.applyFilters` actually honours. It also declared
+ * `contains` / `startsWith` / `endsWith` / `pattern`, which it silently ignored:
+ * a caller narrowing by text got an unfiltered list back and no signal why.
+ * Substring matching has one implementation — `filterByTerm` in
+ * `memory/term-filter.ts` — and callers reach it directly.
+ */
 export interface TermFilter {
-  contains?: string;
-  startsWith?: string;
-  endsWith?: string;
-  pattern?: RegExp;
   limit?: number;
   truthRange?: [number, number];
   recency?: number;

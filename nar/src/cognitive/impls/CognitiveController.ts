@@ -151,12 +151,8 @@ export class CognitiveController {
     if (lmRule.ruleGraph) this.#wireRuleGraphCallbacks(lmRule.ruleGraph);
 
     const inferenceConfig = {
-      maxDerivationsPerStep: params.inference.maxDerivationsPerStep,
-      maxDerivationDepth: params.inference.maxDerivationDepth,
-      enableCircularDetection: params.inference.enableCircularDetection ?? true,
-      cpuThrottleMs: params.inference.cpuThrottleMs ?? 0,
+      ...params.inference,
       singlePremiseLMRules: params.lm.singlePremiseEnabled ?? true,
-      sampleSize: params.inference.maxSampledConcepts,
       onDerivation: (chain: readonly Task[]) => {
         for (const cb of this.onDerivationCallbacks) cb(chain);
       },

@@ -1,9 +1,9 @@
-import { createLogger, type TermTruth } from '@senars/util';
+import { createLogger, takeFirst, type TermTruth } from '@senars/util';
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
-import { hasVariable, Truth, termParser, termsEqual, unify, termKey } from '../terms';
+import { hasVariable, Stamp, Truth, termParser, unify, termKey } from '../terms';
 import { byRelevance, type RelevanceOptions } from './relevance.js';
-import type { Stamp, Task, TaskType, TermFilter, Timestamp } from '../types';
+import type { Task, TaskType, TermFilter, Timestamp } from '../types';
 import { createTaskWeight, createTask, createTimestamp } from '../types';
 import type { DerivationRecord } from '@senars/core/schemas';
 import { verifyRecord } from '@senars/core/verify-derivation';
@@ -50,7 +50,8 @@ export interface Answer {
    */
   readonly confidence?: number;
   evidence: Task[];
-  derivationPath?: string[];
+  /** The answering belief's full lineage, root-most first — see {@link Stamp.lineage}. */
+  derivationLineage?: string[];
   derivation?: VerifiedDerivation;
 }
 
@@ -117,7 +118,7 @@ export class QueryAPI {
     return this.limitResults(byRelevance(this.getBeliefs(), { ...options, focus }));
   }
 
-  query(term: Term, filter?: Omit<TermFilter, 'pattern'>): QueryResult {
+  query(term: Term, filter?: TermFilter): QueryResult {
     const concepts = this.memory.findSimilarConcepts(term);
     const beliefs: Task[] = [];
     const questions: Task[] = [];
@@ -170,7 +171,7 @@ export class QueryAPI {
           answer: grounded?.term.toString(),
           truth: belief.truth,
           evidence: adjacent,
-          derivationPath: this.extractDerivationPath(belief.stamp),
+          derivationLineage: Stamp.lineage(belief.stamp),
         }
       : { question: questionStr, evidence: adjacent };
   }
@@ -194,7 +195,7 @@ export class QueryAPI {
       answer: question.toString(),
       truth: belief.truth,
       evidence: [this.createTaskFromBelief(concept.term, belief, concept.priority)],
-      derivationPath: this.extractDerivationPath(belief.stamp),
+      derivationLineage: Stamp.lineage(belief.stamp),
     };
   }
 
@@ -221,20 +222,6 @@ export class QueryAPI {
       { ...(belief.stamp ? { stamp: belief.stamp } : {}), occurrenceTime: createTimestamp(0) }
     );
   }
-  private extractDerivationPath(stamp?: Stamp): string[] {
-    const path: string[] = [];
-    let currentStamp: Stamp | undefined = stamp;
-
-    while (currentStamp && path.length < 10) {
-      path.push(currentStamp.id);
-      const derivations = currentStamp.derivations;
-      if (!derivations || derivations.length === 0) break;
-      currentStamp = undefined;
-    }
-
-    return path;
-  }
-
   private parseQuestion(question: string): Term | null {
     try {
       if (question.includes('-->') || question.includes('<->') || question.includes('=>')) {
@@ -293,14 +280,8 @@ export class QueryAPI {
     });
   }
 
-  private matchesPattern(task: Task, pattern: string): boolean {
-    const parsed = termParser.parse(pattern);
-    return parsed ? termsEqual(task.term, parsed) : task.term.toString() === pattern;
-  }
-
   private limitResults(tasks: Task[], limit?: number): Task[] {
-    if (!limit || limit >= tasks.length) return tasks;
-    return tasks.slice(0, limit);
+    return limit === undefined ? tasks : takeFirst(tasks, limit);
   }
 }
 

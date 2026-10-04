@@ -2,8 +2,8 @@ import { BoundedMap, maxScore, pct, type TermTruth, unique } from '@senars/util'
 import type { Concept } from '../memory';
 import type { MemoryReader } from '../memory/ports/index.js';
 import type { Term } from '../terms';
-import { Truth } from '../terms';
-import type { Budget, Stamp, Task } from '../types';
+import { Stamp, Truth } from '../terms';
+import type { Budget, Task } from '../types';
 
 export interface DerivationNode {
   task: Task;
@@ -150,27 +150,15 @@ export class ReasoningTrace {
     };
   }
 
+  /**
+   * How this task was reached: its stamp's full lineage, root-most first.
+   *
+   * A second walk over `derivationHistory` answered this once and could only
+   * follow a single parent chain; the stamp already carries every ancestor, so
+   * one reader answers it for an input task and a deeply derived one alike.
+   */
   getDerivationPath(task: Task): string[] {
-    const path: string[] = [];
-    let currentStamp = task.stamp;
-
-    while (currentStamp && path.length < 20) {
-      path.push(currentStamp.id);
-
-      // Find parent from derivation history
-      const node = this.derivationHistory.get(currentStamp.id);
-      if (!node || !node.children || node.children.length === 0) {
-        break;
-      }
-
-      // Get first child as parent in derivation chain
-      const parentNode = node.children[0];
-      if (!parentNode) break;
-
-      currentStamp = parentNode.task.stamp;
-    }
-
-    return path.reverse();
+    return Stamp.lineage(task.stamp);
   }
 
   private populateChildren(node: DerivationNode, visited: Set<string>): void {

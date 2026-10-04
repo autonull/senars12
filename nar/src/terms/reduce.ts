@@ -1,5 +1,5 @@
 import type { OperatorKey, Term } from './types.js';
-import { termsEqual } from './impls/accessors.js';
+import { termKey } from './impls/accessors.js';
 import { compoundOf, isBoolAtom, atomOf } from './impls/intern.js';
 
 /**
@@ -40,8 +40,27 @@ const argsOf = (term: Term): readonly Term[] => (term.kind === 'atom' ? [] : ter
 /** `Term` is a union over two interfaces rather than a discriminated one, so narrowing `term.kind` does not narrow the term. */
 const kindOf = (term: Term): OperatorKey => term.kind as OperatorKey;
 
-const distinct = (args: readonly Term[]): Term[] =>
-  args.filter((arg, index) => args.findIndex((other) => termsEqual(arg, other)) === index);
+/**
+ * Structural equality by `termKey` membership rather than by pairwise
+ * `termsEqual`. The dedupe predicate ran inside `applies`, so it ran on every
+ * canonical term too — `compoundOf` does not dedupe — and `termsEqual` is a
+ * recursive tree walk, making argument deduplication quadratic in the arity of
+ * every compound the reasoning cycle ever builds. `termKey` is memoised per
+ * term and its equality *is* structural equality, so one `Set` settles the pair.
+ */
+const distinct = (args: readonly Term[]): Term[] => {
+  const seen = new Set<string>();
+  return args.filter((arg) => {
+    const key = termKey(arg);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+/** Whether any two arguments of `args` are the same term. */
+const hasRepeatedArg = (args: readonly Term[]): boolean =>
+  args.length !== new Set(args.map(termKey)).size;
 
 /**
  * Whether a `conjunction` or `disjunction` of `kind` contains both `a` and `--a`.
@@ -53,9 +72,12 @@ const distinct = (args: readonly Term[]): Term[] =>
 const containsNegatedPair = (term: Term, kind: 'conjunction' | 'disjunction'): boolean => {
   if (term.kind !== kind) return false;
   const args = argsOf(term);
-  return args.some(
-    (arg) => arg.kind === 'negation' && args.some((other) => termsEqual(other, arg.args[0]))
-  );
+  const keys = new Set(args.map(termKey));
+  return args.some((arg) => {
+    if (arg.kind !== 'negation') return false;
+    const operand = argsOf(arg)[0];
+    return operand !== undefined && keys.has(termKey(operand));
+  });
 };
 
 /** `a & --a = FALSE` — contradiction in conjunction. */
@@ -88,7 +110,7 @@ const flattenNested: TermReducer = {
 const dedupeArgs: TermReducer = {
   id: 'dedupe-args',
   justification: 'Duplicate arguments in commutative n-ary kinds do not change the claim (idempotence); Op.java CONJ/DISJ/PAR semantics',
-  applies: (term) => DEDUPED.has(term.kind) && distinct(argsOf(term)).length !== argsOf(term).length,
+  applies: (term) => DEDUPED.has(term.kind) && hasRepeatedArg(argsOf(term)),
   reduce: (term) => compoundOf(kindOf(term), distinct(argsOf(term))),
 };
 
@@ -182,27 +204,48 @@ export const TERM_REDUCERS: readonly TermReducer[] = Object.freeze([
 /** Three reducers need two passes; the ceiling turns a non-terminating reducer into one loud error rather than a hang in the reasoning cycle. */
 const MAX_PASSES = 8;
 
+/**
+ * Memo of `subterm → its canonical form`.
+ *
+ * Every public construction path canonicalises, and interning makes structurally
+ * equal terms one object — so the second `canonicalTerm` of a given compound has
+ * the same answer as the first, and the answer is already in hand. Keyed on
+ * identity and holding only terms, so an evicted compound takes its entry with
+ * it, and a term built outside the factory simply misses.
+ */
+const canonicalCache = new WeakMap<Term, Term>();
+
 /** Recursively apply reducers to all subterms, then to the term itself. */
 const canonicalizeRecursive = (term: Term): Term => {
   if (term.kind === 'atom') return term;
-  
-  // First canonicalize all arguments
-  const canonicalArgs = term.args.map(canonicalizeRecursive);
-  
-  // Rebuild the term with canonicalized args (bypassing factory to avoid re-canonicalizing)
-  const rebuilt = compoundOf(term.kind as OperatorKey, canonicalArgs);
-  
-  // Now apply reducers to this rebuilt term
-  let current = rebuilt;
+  const memo = canonicalCache.get(term);
+  if (memo) return memo;
+
+  // Rebuild with canonicalized args (raw factory, so a reducer's own output does
+  // not re-enter the reducer pipeline)
+  let current = compoundOf(kindOf(term), term.args.map(canonicalizeRecursive));
+
+  let settled = false;
   for (let pass = 0; pass < MAX_PASSES; pass++) {
     const next = TERM_REDUCERS.reduce(
       (acc, reducer) => (reducer.applies(acc) ? reducer.reduce(acc) : acc),
       current
     );
-    if (next === current) return current;
+    if (next === current) {
+      settled = true;
+      break;
+    }
     current = next;
   }
-  throw new Error(`canonicalTerm did not reach a fixed point in ${MAX_PASSES} passes: ${term}`);
+  if (!settled) {
+    throw new Error(`canonicalTerm did not reach a fixed point in ${MAX_PASSES} passes: ${term}`);
+  }
+
+  // The canonical form answers for itself, so a term that has been through here
+  // once is a hit on every later construction of the same claim.
+  canonicalCache.set(current, current);
+  if (current !== term) canonicalCache.set(term, current);
+  return current;
 };
 
 export const canonicalTerm = (term: Term): Term => canonicalizeRecursive(term);

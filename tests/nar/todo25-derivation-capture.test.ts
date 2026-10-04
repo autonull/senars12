@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SchemaInductor } from '@senars/nar/learning';
 import { InferenceController } from '../../nar/src/reason/inference-controller.js';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '../../nar/src/config/cognitive-parameters.js';
 import type { Task } from '../../nar/src/types/index.js';
 import { createTask } from '../../nar/src/types/index.js';
 import { termParser, Truth } from '../../nar/src/terms/index.js';
@@ -37,7 +38,7 @@ const controllerWith = (
     } as never,
     { selectSecondary: () => [] } as never,
     { derive: derivation } as never,
-    { maxDerivationsPerStep: 10, maxDerivationDepth: 5, sampleSize: 10, enableCircularDetection: true, cpuThrottleMs: 0, singlePremiseLMRules: true, ...(onDerivation ? { onDerivation } : {}) }
+    { ...DEFAULT_COGNITIVE_PARAMETERS.inference, maxDerivationsPerStep: 10, maxDerivationDepth: 5, maxSampledConcepts: 10, cpuThrottleMs: 0, singlePremiseLMRules: true, ...(onDerivation ? { onDerivation } : {}) }
   );
 
 describe('TODO25 Bench 80 — derivation-chain capture', () => {

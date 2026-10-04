@@ -1,10 +1,11 @@
-import { periodic, type RandomSource, raceDeadline, SeededRNG, weightedPick } from '@senars/util';
+import { periodic, type RandomSource, SeededRNG, weightedPick } from '@senars/util';
 import type { MetaGame } from '../game/impls/MetaGame.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
 import type { FocusStepReport } from './Focus.js';
 import type { FocusBag } from './FocusBag.js';
 import type { GameFocus } from './GameFocus.js';
 import { publishFocusStepReport } from './scheduler-reward.js';
+import { DEFAULT_FOCUS_DEADLINE_MS, stepFocusUnderDeadline } from './step.js';
 
 export interface FocusSchedulerOptions {
   bag: FocusBag;
@@ -47,7 +48,7 @@ export class FocusScheduler {
   constructor(options: FocusSchedulerOptions) {
     this.bag = options.bag;
     this.hz = options.hz ?? 10;
-    this.deadlineMs = options.deadlineMs ?? 50;
+    this.deadlineMs = options.deadlineMs ?? DEFAULT_FOCUS_DEADLINE_MS;
     this.rng = new SeededRNG(options.seed ?? 1);
     this.schedulerAdapter = options.schedulerAdapter;
     this.metaGame = options.metaGame;
@@ -75,21 +76,13 @@ export class FocusScheduler {
     const focus = this.sample();
     if (!focus) return null;
     const budget = this.bag.allocateBudget(focus.focus, 100);
-    let yielded = false;
-    const stepped = await raceDeadline(
+    const { report, yielded } = await stepFocusUnderDeadline(
       focus.step(budget).then((r) => r.focusReport as FocusStepReport),
       this.deadlineMs
     );
-    const report = stepped.value ?? null;
-    if (report) this.emitReport(report);
-    else yielded = true;
+    if (report) publishFocusStepReport(this.metaGame, this.schedulerAdapter, report.focusId, report);
     this.ticks++;
     return { focusId: focus.focus.id, report, yielded };
-  }
-
-  private emitReport(report: FocusStepReport): void {
-    if (typeof report.focusId !== 'string') return;
-    publishFocusStepReport(this.metaGame, this.schedulerAdapter, report.focusId, report);
   }
 
   run(ticks: number): Promise<SchedulerTickResult[]> {

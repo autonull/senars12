@@ -19,6 +19,7 @@ import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
  */
 
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '../../nar/src/config/cognitive-parameters.js';
 
 import { AssociativeRegistry } from '../../nar/src/memory/associative.js';
 import type { ConceptGraph } from '../../nar/src/memory/ConceptGraph.js';
@@ -269,12 +270,12 @@ describe('A5 — memory is a set of ports', () => {
       { name: 'none', selectSecondary: () => [] },
       { metadata: { name: 'empty', version: '1', description: 'derives nothing' }, derive: async function* () {} } as never,
       {
+        ...DEFAULT_COGNITIVE_PARAMETERS.inference,
         maxDerivationsPerStep: 10,
         maxDerivationDepth: 3,
-        enableCircularDetection: true,
         cpuThrottleMs: 0,
         singlePremiseLMRules: false,
-        sampleSize: 5,
+        maxSampledConcepts: 5,
       }
     );
 

@@ -21,13 +21,18 @@ export const schedulerReward = (report: FocusStepReport): number =>
  * fed here because both drivers — the tree and the flat loop — otherwise spelled
  * the pair out, and a driver that learned the reward without recording the step
  * would teach the scheduler from reports it cannot reconstruct.
+ *
+ * A report that names no focus is not evidence about any focus: the flat loop
+ * reads the id off the report and the tree off the node it stepped, and the
+ * guard both used to write is here once.
  */
 export const publishFocusStepReport = (
   metaGame: MetaGame | undefined,
   adapter: SchedulerAdapter | undefined,
-  focusId: string,
+  focusId: string | undefined,
   report: FocusStepReport
 ): void => {
+  if (typeof focusId !== 'string') return;
   metaGame?.recordFocusStepReport(report);
   adapter?.learn({ domain: 'self-scheduler', reward: schedulerReward(report), focusId });
 };

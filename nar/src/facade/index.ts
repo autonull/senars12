@@ -85,7 +85,6 @@ export const initializeLMRules = (nar: NAR, lmRules: readonly LMRule[]): void =>
     : null;
 
   for (const rule of lmRules) {
-    rule.setSystemEventBus(nar.getSystemEventBus());
     rule.setEventBus(nar.getSystemEventBus());
     rule.setNAR(nar);
     rule.setToolDispatcher(toolDispatcher);

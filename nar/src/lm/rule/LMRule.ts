@@ -71,7 +71,6 @@ export class LMRule {
   private readonly circuitBreaker: CircuitBreaker;
   private readonly callTimeoutMs: number;
   private eventBus: NarEventBus | null;
-  private systemEventBus: NarEventBus | null = null;
   private stats: LMExecutionStats = createLMStats();
   private toolDispatcher?: (tool: string, args: Record<string, unknown>) => Promise<unknown>;
   private readonly enableTools: boolean;
@@ -139,10 +138,6 @@ export class LMRule {
 
   setEventBus(eventBus: NarEventBus): void {
     this.eventBus = eventBus;
-  }
-
-  setSystemEventBus(bus: NarEventBus): void {
-    this.systemEventBus = bus;
   }
 
   setNAR(nar: {
@@ -389,8 +384,16 @@ export class LMRule {
     if (this.eventBus) this.eventBus.emit(eventName, data);
   }
 
+  /**
+   * The `system:` half of the same bus, keeping its compile-time key check.
+   *
+   * This class held two bus fields, two setters and two emitters for one bus —
+   * the composition root assigned the same object to both — so a rule wired by
+   * one setter and read by the other published nothing. One field, one emit
+   * path; only the key vocabulary differs.
+   */
   private emitSystemEvent(event: keyof NAREventMap, data: unknown): void {
-    if (this.systemEventBus) this.systemEventBus.emit(event as string, data);
+    this.emitEvent(event as string, data);
   }
 
   /**
