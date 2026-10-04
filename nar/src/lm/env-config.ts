@@ -23,7 +23,6 @@ export type ResolvedProvider = LMProviderName;
 import type { CircuitBreakerSettings } from '../utils/circuit-breaker.js';
 
 export type { CircuitState } from '../utils/circuit-breaker.js';
-export type CircuitBreakerConfig = CircuitBreakerSettings;
 
 export interface LMSettings {
   provider: LMProviderName;
@@ -66,7 +65,7 @@ export interface LMSettings {
   /** Inject chat_template_kwargs {enable_thinking:false} per request (Qwen3 reasoning models via llama.cpp). */
   disableThinking?: boolean;
   /** Per-provider circuit breaker settings. */
-  circuitBreaker?: Partial<Record<LMProviderName, Partial<CircuitBreakerConfig>>>;
+  circuitBreaker?: Partial<Record<LMProviderName, Partial<CircuitBreakerSettings>>>;
 }
 
 export interface ResolvedLMConfig {
@@ -125,7 +124,8 @@ export const defaultLocalProvider = (): LMProviderName => {
   return 'mock';
 };
 
-const _credentialEnvFor = (provider: LMProviderName): string | undefined =>
+/** The env var a cloud provider's key lives in, or `undefined` for a local provider. */
+const credentialEnvFor = (provider: LMProviderName): string | undefined =>
   CLOUD_CREDENTIALS.find(([p]) => p === provider)?.[1];
 
 /**
@@ -176,7 +176,7 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
     );
   }
   const provider = normalized as LMProviderName;
-  const cloudCredentialEnv = CLOUD_CREDENTIALS.find(([p]) => p === provider)?.[1] ?? undefined;
+  const cloudCredentialEnv = credentialEnvFor(provider);
   const flashAttentionEnv = envFirst('LM_LLAMACPP_FLASH_ATTN');
   return {
     provider,

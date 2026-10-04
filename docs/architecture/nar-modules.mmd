@@ -29,7 +29,6 @@ graph TD
   imagination_impls["imagination/impls"]
   kernel["kernel"]
   learning["learning"]
-  lifecycle["lifecycle"]
   lm["lm"]
   lm_context["lm/context"]
   lm_grammars["lm/grammars"]
@@ -100,7 +99,6 @@ graph TD
   _ --> imagination
   _ --> kernel
   _ --> learning
-  _ --> lifecycle
   _ --> lm
   _ --> lm_system-one
   _ --> memory
@@ -358,6 +356,7 @@ graph TD
   proposal --> rules
   proposal --> stream
   query --> memory
+  query --> memory_ports
   query --> terms
   query --> types
   query --> utils

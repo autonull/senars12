@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { BoundedMap } from './utils/bounded-map.js';
 import { errMsg } from './utils/error.js';
 import { utcDate } from './utils/format.js';
-import { appendJsonl, ensureDir, ensureDirSync, readJsonlAsync, writeJsonl } from './utils/fs.js';
+import { appendJsonlRow, ensureDir, ensureDirSync, readJsonlAsync, writeJsonl } from './utils/fs.js';
 
 /**
  * Ledger entry schema — all entries carry a timestamp and correlation context.
@@ -340,7 +340,7 @@ export class Ledger<T extends BaseLedgerEntry> {
     }
 
     try {
-      appendJsonl(targetFile, [entry]);
+      appendJsonlRow(targetFile, entry);
       this.#currentEntries++;
     } catch (error) {
       throw new Error(`Ledger write failed: ${errMsg(error)}`);

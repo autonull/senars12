@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import {
   appendJsonl,
   appendJsonlAsync,
+  appendJsonlRow,
+  appendJsonlRowAsync,
   containsPath,
   parseJsonOr,
   readJsonFile,
@@ -87,6 +89,22 @@ describe('fs primitives', () => {
       expect(appendJsonl(path, [])).toBe(0);
 
       expect(readJsonl(path, number).rows).toEqual([0, 1, 2]);
+    });
+
+    it('frames a single row identically from the row and batch appenders', async () => {
+      const row = { n: 0 };
+
+      appendJsonlRow(join(dir, 'row.jsonl'), row);
+      await appendJsonlRowAsync(join(dir, 'row-async.jsonl'), row);
+      appendJsonl(join(dir, 'batch.jsonl'), [row]);
+
+      expect(readFileSync(join(dir, 'row.jsonl'), 'utf8')).toBe(
+        readFileSync(join(dir, 'row-async.jsonl'), 'utf8')
+      );
+      expect(readFileSync(join(dir, 'row.jsonl'), 'utf8')).toBe(
+        readFileSync(join(dir, 'batch.jsonl'), 'utf8')
+      );
+      expect(appendJsonlRow(join(dir, 'row.jsonl'), row)).toBe(1);
     });
 
     it('rewrites a compacted file and empties an empty one', async () => {

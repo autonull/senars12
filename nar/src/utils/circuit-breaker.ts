@@ -1,9 +1,9 @@
 /**
  * The single circuit-breaker state machine.
  *
- * Both the generic promise wrapper (`CircuitBreaker.execute`) and the
- * per-provider routing health in `lm/provider-runtime.ts` are built on this
- * class; neither re-implements closed → open → half-open → closed.
+ * `CircuitBreaker.execute` is the one await path — admission, outcome, state
+ * transition — and the per-provider routing health in `lm/provider-runtime.ts` is
+ * built on this class; neither re-implements closed → open → half-open → closed.
  */
 
 import { createLogger, OperationError } from '@senars/util';
@@ -37,6 +37,7 @@ export type CircuitBreakerSettings = Pick<
   'failureThreshold' | 'resetTimeoutMs' | 'successThreshold'
 >;
 
+/** The counters a health read reports — the state machine's, plus nothing derived. */
 export interface CircuitSnapshot {
   state: CircuitState;
   consecutiveFailures: number;
@@ -120,12 +121,25 @@ export class CircuitBreaker {
     this.#to('half-open', reason);
   }
 
-  execute<T>(fn: () => Promise<T>): Promise<T> {
+  /**
+   * Run `fn` under this breaker: one admission test, then the outcome recorded
+   * either way. The single await path — the free function it replaces tested
+   * `canRequest()` and then re-tested it inside, so a state that flipped between
+   * the two checks admitted work the breaker had already refused.
+   */
+  async execute<T>(fn: () => Promise<T>): Promise<T> {
     if (!this.canRequest()) {
       this.log('Circuit breaker execution rejected: circuit is open', 'warn');
       throw new OperationError('Circuit breaker is open', { state: this.#state });
     }
-    return withCircuitBreaker(this, fn);
+    try {
+      const result = await fn();
+      this.record(true);
+      return result;
+    } catch (err) {
+      this.record(false);
+      throw err;
+    }
   }
 
   reset(): void {
@@ -162,23 +176,5 @@ export class CircuitBreaker {
     if (this.config.quiet) logger.debug(msg);
     else if (level === 'warn') logger.warn(msg);
     else logger.info(msg);
-  }
-}
-
-/** Run `fn` under a breaker, recording the outcome. */
-export async function withCircuitBreaker<T>(
-  breaker: CircuitBreaker,
-  fn: () => Promise<T>
-): Promise<T> {
-  if (!breaker.canRequest()) {
-    throw new OperationError('Circuit breaker is open', { state: breaker.state });
-  }
-  try {
-    const result = await fn();
-    breaker.record(true);
-    return result;
-  } catch (err) {
-    breaker.record(false);
-    throw err;
   }
 }

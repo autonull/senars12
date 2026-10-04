@@ -296,6 +296,8 @@ export type { JsonlLoadResult } from './utils/fs.js';
 export {
   appendJsonl,
   appendJsonlAsync,
+  appendJsonlRow,
+  appendJsonlRowAsync,
   containsPath,
   ensureDir,
   ensureDirSync,

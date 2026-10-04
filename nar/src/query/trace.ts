@@ -1,5 +1,6 @@
 import { BoundedMap, maxScore, pct, type TermTruth, unique } from '@senars/util';
 import type { Concept } from '../memory';
+import type { MemoryReader } from '../memory/ports/index.js';
 import type { Term } from '../terms';
 import { Truth } from '../terms';
 import type { Budget, Stamp, Task } from '../types';
@@ -40,17 +41,18 @@ interface BeliefEntry {
   derived?: boolean;
 }
 
-export interface MemoryReader {
-  getConcept(term: Term): Concept | undefined;
-
-  getRelatedConcepts(term: Term, limit?: number): Concept[];
-}
+/**
+ * What a trace reads: one concept by term, and its neighbours. A slice of the
+ * one memory port rather than a second `MemoryReader` that a widened
+ * `ConceptReader` or `StatisticsView` would silently leave behind.
+ */
+export type TraceMemory = Pick<MemoryReader, 'getConcept' | 'getRelatedConcepts'>;
 
 export class ReasoningTrace {
-  private readonly memory: MemoryReader;
+  private readonly memory: TraceMemory;
   private readonly derivationHistory: BoundedMap<string, DerivationNode>;
 
-  constructor(memory: MemoryReader, maxDerivations = 1000) {
+  constructor(memory: TraceMemory, maxDerivations = 1000) {
     this.memory = memory;
     this.derivationHistory = new BoundedMap<string, DerivationNode>({
       maxSize: maxDerivations,
@@ -238,6 +240,6 @@ export class ReasoningTrace {
   }
 }
 
-export const createReasoningTrace = (memory: MemoryReader): ReasoningTrace => {
+export const createReasoningTrace = (memory: TraceMemory): ReasoningTrace => {
   return new ReasoningTrace(memory);
 };

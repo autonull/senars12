@@ -1,4 +1,4 @@
-import { appendJsonlAsync, mean, readJsonlAsync } from '@senars/util';
+import { appendJsonlRowAsync, mean, readJsonlAsync } from '@senars/util';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 
 /** Grades from one completed agent cycle (E4 trace grading). */
@@ -41,7 +41,7 @@ export class TrajectoryStore {
   async recordCycle(cycle: CycleTrajectory): Promise<void> {
     this.#cycles.push(cycle);
     if (!this.#path) return;
-    await appendJsonlAsync(this.#path, [cycle]);
+    await appendJsonlRowAsync(this.#path, cycle);
   }
 
   async load(): Promise<void> {

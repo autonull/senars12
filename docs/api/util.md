@@ -312,6 +312,10 @@
 
 - `appendJsonlAsync`
 
+- `appendJsonlRow` — {@link appendJsonl} for the one-row append — the event log's write, the
+
+- `appendJsonlRowAsync` — {@link appendJsonlRow}, awaited.
+
 - `containsPath` — True when `candidate` is `root` itself or lies beneath it. Separators are
 
 - `ensureDir`

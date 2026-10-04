@@ -80,7 +80,7 @@ export {
 export { fetchBounded, probeModelsEndpoint } from './providers/probe.js';
 export type {
   CandidateScore,
-  CircuitBreakerConfig,
+  CircuitBreakerSettings,
   LMTask,
   ModelCapability,
   QualityObjective,

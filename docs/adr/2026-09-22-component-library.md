@@ -20,7 +20,9 @@ subsystem drifts behavior and multiplies maintenance.
 Shared primitives live in three places and are consumed by all subsystems:
 
 - `core/src/Lifecycle.ts` — `BaseComponent` lifecycle base; registration via
-  `cognitive/registry.ts` / `lifecycle/Container.ts`.
+  `cognitive/impls/CognitiveRegistry.ts`, which is the *only* registry. The DI
+  container that used to sit beside it had no production consumer and was
+  removed, so there is no second spelling of register/resolve/initialize/start/stop.
 - `nar/src/config/cognitive-parameters.ts` — single source of default
   parameters (`DEFAULT_COGNITIVE_PARAMETERS`, deep-frozen) with grouped
   interfaces (`AttentionConfig`, `InferenceConfig`, `MemoryConfig`,
@@ -48,7 +50,6 @@ swappable reasoners, and bag behavior itself is parameterized
 ## References
 
 - `core/src/Lifecycle.ts`
-- `nar/src/lifecycle/Container.ts`
 - `nar/src/cognitive/impls/CognitiveRegistry.ts`
 - `nar/src/config/cognitive-parameters.ts`
 - `nar/src/strategies/types.ts`

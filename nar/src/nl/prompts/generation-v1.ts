@@ -1,14 +1,12 @@
-import { type BeliefTruth, formatTruth } from '@senars/util';
-
-export interface ConflictInfo {
-  belief: { term: string; truth?: BeliefTruth };
-  conflictWith: { term: string; truth?: BeliefTruth };
-  type: 'direct' | 'frequency' | 'implication';
-}
+import { formatTruth } from '@senars/util';
+// Type-only, so the pair stays acyclic at runtime: `generation.ts` imports this
+// builder, and this borrows the belief/conflict shapes rather than spelling a
+// second copy that a widened field would leave behind.
+import type { BeliefInfo, ConflictInfo } from '../generation.js';
 
 export function buildGenerationPrompt(opts: {
   query: string;
-  beliefs: Array<{ term: string; truth?: BeliefTruth }>;
+  beliefs: BeliefInfo[];
   conflicts: ConflictInfo[];
   derivationSteps?: number;
   reasoningType?: string;

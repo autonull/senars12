@@ -43,12 +43,8 @@ export {
   type StressMetrics,
   type TreadmillConfig,
 } from './imagination/index.js';
-export type {
-  ComponentDefinition,
-  Definition,
-  ValueDefinition,
-} from './lifecycle/index.js';
-export { BaseComponent, Container } from './lifecycle/index.js';
+/** The one component lifecycle state machine (`NAR` extends it). @public */
+export { BaseComponent } from '@senars/core';
 // LLM Service
 /** LLM service + factory/mock. @public */
 export { createLMService, createMockLMService, LMService } from './lm/lm-service.js';

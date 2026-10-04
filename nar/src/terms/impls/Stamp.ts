@@ -9,16 +9,11 @@ const maxDepthOf = (stamps: readonly Stamp[]): number =>
 const nowMicroseconds = (): Timestamp => (Date.now() * 1000) as Timestamp;
 
 // Monotonic stamp-ID counter. Atomics-backed so IDs stay unique when the
-// underlying buffer is shared across worker threads (see shareStampCounterBuffer);
-// the `threadId` prefix keeps per-isolate counters distinct without sharing.
-let counterView = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
+// underlying buffer is shared across worker threads; the `threadId` prefix keeps
+// per-isolate counters distinct without sharing.
+const counterView = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
 
 const nextStampId = (): string => `${threadId}:${Atomics.add(counterView, 0, 1)}`;
-
-/** Adopt a shared counter buffer created elsewhere (e.g. received from the main thread). */
-export const shareStampCounterBuffer = (sab: SharedArrayBuffer): void => {
-  counterView = new Int32Array(sab);
-};
 
 /**
  * Advance the ID counter past a persisted ID so reloaded stamps never collide

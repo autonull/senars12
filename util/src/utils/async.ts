@@ -107,19 +107,16 @@ export function withDeadline<T>(
 /**
  * Rejects with `error()` when `timeoutMs` elapses. The losing promise is not
  * cancelled — it keeps running; use only where orphaned work is safe.
+ *
+ * {@link withDeadline} for a promise already in flight: the same timer, abort and
+ * disposal, one implementation. The distinction is what the callee receives (an
+ * `AbortSignal` it can honour, or nothing at all), not how the clock is armed.
  */
-export function withTimeout<T>(
+export const withTimeout = <T>(
   promise: Promise<T>,
   timeoutMs: number,
   error: () => Error = () => new TimeoutError(timeoutMs)
-): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const deadline = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(error()), timeoutMs);
-    timer.unref?.();
-  });
-  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
-}
+): Promise<T> => withDeadline(() => promise, timeoutMs, error);
 
 /**
  * A timer that never holds the process open, handed back as an idempotent
@@ -169,15 +166,13 @@ export function raceDeadline<T>(
   work: Promise<T>,
   timeoutMs: number
 ): Promise<{ value: T; timedOut: false } | { value?: undefined; timedOut: true }> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const { promise: deadline, resolve: expire } =
+  const { promise: armed, resolve: expire } =
     Promise.withResolvers<{ value?: undefined; timedOut: true }>();
-  timer = setTimeout(() => expire({ timedOut: true }), timeoutMs);
-  timer.unref?.();
+  const dispose = disarmed(setTimeout(() => expire({ timedOut: true }), timeoutMs));
   return Promise.race([
     work.then((value) => ({ value, timedOut: false as const })),
-    deadline,
-  ]).finally(() => clearTimeout(timer));
+    armed,
+  ]).finally(dispose);
 }
 
 /**

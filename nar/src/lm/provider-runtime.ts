@@ -28,8 +28,7 @@ import {
   resolveLMSettings,
 } from './env-config.js';
 
-export type { CircuitState, LMProviderName };
-export type CircuitBreakerConfig = CircuitBreakerSettings;
+export type { CircuitState, CircuitBreakerSettings, LMProviderName };
 
 /** Browser-side WebLLM runtime, injected by the UI layer (nar never imports browser code). */
 export interface WebLLMRuntime {
@@ -52,7 +51,7 @@ export interface RoutingPolicy {
   offlineLadder?: string[];
 }
 
-export const DEFAULT_CIRCUIT_CONFIG: CircuitBreakerConfig = {
+export const DEFAULT_CIRCUIT_CONFIG: CircuitBreakerSettings = {
   failureThreshold: 5,
   resetTimeoutMs: 30_000,
   successThreshold: 2,
@@ -74,7 +73,7 @@ export interface RoutingDecision {
 
 /** Sensible per-provider defaults. */
 export const PROVIDER_CIRCUIT_DEFAULTS: Partial<
-  Record<LMProviderName, Partial<CircuitBreakerConfig>>
+  Record<LMProviderName, Partial<CircuitBreakerSettings>>
 > = {
   anthropic: { failureThreshold: 3, resetTimeoutMs: 60_000, successThreshold: 2 },
   openai: { failureThreshold: 3, resetTimeoutMs: 60_000, successThreshold: 2 },
@@ -205,7 +204,7 @@ export class ProviderRuntime {
   }
 
   /** Effective circuit breaker config for a provider (settings > provider defaults > global defaults). */
-  getEffectiveCircuitConfig(provider: LMProviderName, settings?: LMSettings): CircuitBreakerConfig {
+  getEffectiveCircuitConfig(provider: LMProviderName, settings?: LMSettings): CircuitBreakerSettings {
     const s = settings ?? this.getLMSettings();
     const fileCfg = s.circuitBreaker?.[provider];
     const providerDefaults = PROVIDER_CIRCUIT_DEFAULTS[provider] ?? {};

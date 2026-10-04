@@ -14,7 +14,7 @@ export type { LMTask } from '@senars/util';
 export type { LMSettings } from './env-config.js';
 export { cloudApiKey, formatLMConfig } from './env-config.js';
 export type {
-  CircuitBreakerConfig,
+  CircuitBreakerSettings,
   CircuitState,
   LMProviderName,
   ProviderHealth,

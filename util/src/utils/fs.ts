@@ -59,8 +59,32 @@ export const parseJsonOr = <T>(text: string, fallback: T): T => {
 const jsonDocument = (value: unknown): string => JSON.stringify(value, null, 2);
 
 /** The on-disk shape of every JSONL append: one row per line, trailing newline. */
-const jsonlPayload = (rows: readonly unknown[]): string =>
-  `${rows.map((row) => JSON.stringify(row)).join('\n')}\n`;
+const jsonlPayload = (rows: readonly unknown[]): string => {
+  let payload = '';
+  for (const row of rows) payload += `${JSON.stringify(row)}\n`;
+  return payload;
+};
+
+/** One row is one line — the payload of a single-row append, with no array to build. */
+const jsonLine = (row: unknown): string => `${JSON.stringify(row)}\n`;
+
+/**
+ * The one append: ensure the parent, write the framed payload, report the rows.
+ * Every JSONL appender below is this plus a framing choice, so the repository has
+ * a single place that writes to an append-only file.
+ */
+function writeRows(path: string, payload: string, rows: number): number {
+  ensureParentDirSync(path);
+  appendFileSync(path, payload);
+  return rows;
+}
+
+/** {@link writeRows}, awaited. */
+async function writeRowsAsync(path: string, payload: string, rows: number): Promise<number> {
+  await ensureParentDir(path);
+  await appendFile(path, payload);
+  return rows;
+}
 
 /** Read and parse a JSON file. A missing or unreadable file yields `fallback`. */
 export async function readJsonFile<T>(path: string, fallback: T): Promise<T> {
@@ -92,11 +116,22 @@ export function writeJsonFileSync(path: string, value: unknown): void {
 
 /** Append `rows` as one JSON object per line. Returns the number appended. */
 export function appendJsonl(path: string, rows: readonly unknown[]): number {
-  if (rows.length === 0) return 0;
-  ensureParentDirSync(path);
-  appendFileSync(path, jsonlPayload(rows));
-  return rows.length;
+  return rows.length === 0 ? 0 : writeRows(path, jsonlPayload(rows), rows.length);
 }
+
+/**
+ * {@link appendJsonl} for the one-row append — the event log's write, the
+ * ledger's append, a trajectory cycle. Each of those spelled the batch call as
+ * `appendJsonl(path, [row])`, so every single append built a row array, mapped
+ * it to strings and joined it back to one line: three allocations and a callback
+ * per event to emit one line. Here the payload is the line.
+ */
+export const appendJsonlRow = (path: string, row: unknown): number =>
+  writeRows(path, jsonLine(row), 1);
+
+/** {@link appendJsonlRow}, awaited. */
+export const appendJsonlRowAsync = async (path: string, row: unknown): Promise<number> =>
+  writeRowsAsync(path, jsonLine(row), 1);
 
 /** Rewrite a JSONL file from `rows` (compaction path). */
 export async function writeJsonl(path: string, rows: readonly unknown[]): Promise<void> {
@@ -108,11 +143,11 @@ export async function writeJsonl(path: string, rows: readonly unknown[]): Promis
   await writeFile(path, jsonlPayload(rows), 'utf8');
 }
 
-export async function appendJsonlAsync(path: string, rows: readonly unknown[]): Promise<number> {
-  if (rows.length === 0) return 0;
-  await ensureParentDir(path);
-  await appendFile(path, jsonlPayload(rows));
-  return rows.length;
+export async function appendJsonlAsync(
+  path: string,
+  rows: readonly unknown[]
+): Promise<number> {
+  return rows.length === 0 ? 0 : writeRowsAsync(path, jsonlPayload(rows), rows.length);
 }
 
 /** Parse one JSONL line; `null` marks a line `parse` rejects, `FAIL` a syntax error. */

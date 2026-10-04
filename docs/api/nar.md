@@ -54,8 +54,6 @@
 
 - `BaseComponent`
 
-- `Container`
-
 - `createLMService`
 
 - `createMockLMService`
