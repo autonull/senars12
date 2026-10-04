@@ -51,11 +51,6 @@ export interface MetacognitiveMonitorConfig {
   maxMemoryUsage?: number;
 }
 
-interface EventBus {
-  on(event: string, handler: (...args: unknown[]) => void): void;
-  off(event: string, handler: (...args: unknown[]) => void): void;
-}
-
 /** Shared bounds for the reasoning trace and the performance-history ring. */
 export const MONITOR_DEFAULTS = {
   maxTraceSize: 1000,

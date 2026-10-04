@@ -2,7 +2,7 @@
  * Graph node schemas (engine-specific)
  */
 import { z } from 'zod';
-import { TruthValue } from './chat.js';
+import { TruthValueSchema } from '../schemas/truth.js';
 
 /** Optional UI lens attributes attached to any graph node. */
 export const LensData = z.object({ score: z.number(), color: z.string(), size: z.number() });
@@ -21,7 +21,7 @@ export const lensShape = { lensData: LensData.optional(), layout: NodeLayout.opt
 
 /** Truth/attention annotations carried by every cognitively meaningful node. */
 export const cognitionShape = {
-  truth: TruthValue.optional(),
+  truth: TruthValueSchema.optional(),
   isContradiction: z.boolean().optional(),
   occurrenceTime: z.number().optional(),
   goalRelevance: z.number().optional(),

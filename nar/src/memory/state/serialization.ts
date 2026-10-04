@@ -14,7 +14,7 @@ import type { Bag } from '../../bag/Bag.js';
 import { decodeState, encodeState } from '../../state/codec.js';
 import { rehydrateTask, type TaskRecord } from '../../task/record.js';
 import { serializeStamp, type Term, termParser } from '../../terms';
-import type { Concept, ConceptTaskType, TaskData } from '../concept.js';
+import type { Concept, TaskData } from '../concept.js';
 import type { ConceptWriter } from '../ports/concept-store.js';
 
 const logger = createLogger({ scope: 'Memory.State' });
@@ -54,7 +54,13 @@ export const encodeMemoryState = (memory: ConceptWriter): string =>
 export const decodeMemoryState = (text: string): SerializedMemory =>
   decodeState<SerializedMemory>(text, MEMORY_STATE_KIND, MEMORY_VERSION);
 
-type TaskTypeName = 'belief' | 'goal' | 'question';
+/**
+ * The bags a dump persists: the task kinds a concept *retains*. `command` is a
+ * `TaskType` with no bag of its own, so it is deliberately not one of these —
+ * naming the local union `TaskTypeName` said otherwise, shadowing the four-kind
+ * `TaskTypeName` from the parser with a three-kind subset of it.
+ */
+type PersistedBagKind = 'belief' | 'goal' | 'question';
 
 export function serialize(memory: ConceptWriter): SerializedMemory {
   const concepts: SerializedConcept[] = [];
@@ -125,7 +131,7 @@ export async function deserialize(data: SerializedMemory, memory: ConceptWriter)
   }
 }
 
-function restoreBag(concept: Concept, type: TaskTypeName, tasks?: TaskRecord[]): void {
+function restoreBag(concept: Concept, type: PersistedBagKind, tasks?: TaskRecord[]): void {
   for (const record of tasks ?? []) {
     const task = rehydrateTask(record, type);
     if (task) {

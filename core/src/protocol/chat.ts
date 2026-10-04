@@ -1,7 +1,6 @@
 /**
  * Chat protocol schemas
  */
-import { BeliefTruthSchema } from '@senars/util';
 import { z } from 'zod';
 import { TruthValueSchema } from '../schemas/truth.js';
 
@@ -12,7 +11,7 @@ export const ChatMessage = z.object({
   html: z.string().optional(),
   timestamp: z.number(),
   term: z.string().optional(),
-  truth: BeliefTruthSchema.optional(),
+  truth: TruthValueSchema.optional(),
   punctuation: z.enum(['.', '!', '?']).optional(),
   parentId: z.string().nullable(),
   threadRootId: z.string(),
@@ -21,10 +20,6 @@ export const ChatMessage = z.object({
   derivesFrom: z.array(z.string()),
 });
 export type ChatMessage = z.infer<typeof ChatMessage>;
-
-/** The shared `0..1` truth pair, under this protocol's name. */
-export const TruthValue = TruthValueSchema;
-export type TruthValue = z.infer<typeof TruthValue>;
 
 export const ChatUserMsg = z.object({
   type: z.literal('chat.user'),

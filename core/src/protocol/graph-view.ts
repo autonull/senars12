@@ -2,7 +2,6 @@
  * Graph node data (UI flat view) + lens
  */
 import { z } from 'zod';
-import { TruthValue } from './chat.js';
 import { cognitionShape, lensShape } from './graph-nodes.js';
 
 export const GraphNodeDataView = z.object({

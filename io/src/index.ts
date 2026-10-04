@@ -14,7 +14,7 @@ export {
   createSessionBinder,
   originExtractor,
   resolveSessionKey,
-} from './bridge.js';
+} from './bridge/index.js';
 /** Builtin auth commands. @public */
 export { createAuthCommands } from './commands/auth.js';
 /** Builtin connection-management commands. @public */

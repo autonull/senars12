@@ -1,5 +1,9 @@
+import { execFileSync } from 'node:child_process';
+import { join } from 'node:path';
 import { boundedDeadline, TimeoutError, withDeadline } from '@senars/util';
 import { describe, expect, it } from 'vitest';
+
+const ROOT = join(import.meta.dirname, '../../..');
 
 /** A promise that never settles, for asserting the deadline is what resolves. */
 const never = <T>(): Promise<T> => new Promise<T>(() => {});
@@ -120,5 +124,25 @@ describe('withDeadline', () => {
     } finally {
       process.off('unhandledRejection', onUnhandled);
     }
+  });
+});
+
+describe('raceDeadline', () => {
+  it('reports the timeout when nothing else holds the event loop open', () => {
+    // A child process, because that is the only place the claim is observable:
+    // work that never settles holds no handle, so a deadline timer that does
+    // not hold one either empties the loop and the process exits 13 before the
+    // deadline it was asked for can fire. In-process, the test runner's own
+    // handles mask it.
+    const source =
+      `import('@senars/util').then(async ({ raceDeadline }) => {` +
+      `  const outcome = await raceDeadline(new Promise(() => {}), 100);` +
+      `  process.stdout.write('timedOut=' + outcome.timedOut);` +
+      `});`;
+    const stdout = execFileSync(process.execPath, ['--import', 'tsx', '--eval', source], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    });
+    expect(stdout).toBe('timedOut=true');
   });
 });

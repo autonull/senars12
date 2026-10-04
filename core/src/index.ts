@@ -158,11 +158,11 @@ export {
   createSession,
   InMemorySessionManager,
   JsonlSessionManager,
+  type JsonlSessionManagerConfig,
 } from './memory/SessionManager.js';
 export type {
   AgentToolDeps,
   Episode,
-  JsonlSessionManagerConfig,
   MemoryEntry,
   MemoryQuery,
   PersistableSessionManager,

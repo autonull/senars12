@@ -19,7 +19,6 @@ export {
   ChatAgentStream,
   ChatMessage,
   ChatUserMsg,
-  TruthValue,
 } from './chat.js';
 export { ConfigField, ConfigSchemaMsg, ConfigSetMsg } from './config.js';
 export {

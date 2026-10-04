@@ -24,10 +24,6 @@ export interface PersistableSessionManager extends SessionManager {
   snapshot(): Promise<void>;
 }
 
-export interface JsonlSessionManagerConfig {
-  basePath: string;
-}
-
 export interface AgentToolDeps {
   know: (key: string, value: string) => void;
   knowGet: (key: string) => string | undefined;

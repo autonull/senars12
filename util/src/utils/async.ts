@@ -129,6 +129,22 @@ const disarmed = (timer: ReturnType<typeof setTimeout>): (() => void) => {
 };
 
 /**
+ * The inverse of {@link disarmed}, for the timer a caller is *blocked on* rather
+ * than one running in the background.
+ *
+ * An unref'd deadline is a deadline that fires only if something else happens to
+ * keep the process alive, and in the one place it is the whole answer — a
+ * cooperative `raceDeadline` — that is the common case rather than the rare one:
+ * work that never settles is precisely the work a deadline exists for, and it
+ * holds no handle of its own. `await raceDeadline(neverSettling, 200)` at the
+ * top level of a script then emptied the event loop and exited 13 ("unsettled
+ * top-level await") rather than reporting the timeout it had just been asked
+ * for, which took `pnpm cycle:no-provider` — a gate whose entire subject is
+ * never-resolving providers — down with it.
+ */
+const blocking = (timer: ReturnType<typeof setTimeout>): (() => void) => () => clearTimeout(timer);
+
+/**
  * Repeat `task` every `intervalMs` until the returned disposer is called.
  *
  * The timer is unref'd, so a periodic task never holds the process open — the one
@@ -161,6 +177,10 @@ export const deadline = (timeoutMs: number, onExpire: () => void): (() => void) 
  * Cooperative deadline: resolves `{ timedOut: true }` when `timeoutMs` elapses,
  * leaving `work` running. The interruptible-execution primitive — pair with
  * `AbortSignal` when the loser must stop.
+ *
+ * The timer is the one in {@link blocking}, not {@link disarmed}: `timedOut` is
+ * this call's *result*, so a caller awaiting it is blocked on that timer and the
+ * timer has to be able to end the wait on its own.
  */
 export function raceDeadline<T>(
   work: Promise<T>,
@@ -168,7 +188,7 @@ export function raceDeadline<T>(
 ): Promise<{ value: T; timedOut: false } | { value?: undefined; timedOut: true }> {
   const { promise: armed, resolve: expire } =
     Promise.withResolvers<{ value?: undefined; timedOut: true }>();
-  const dispose = disarmed(setTimeout(() => expire({ timedOut: true }), timeoutMs));
+  const dispose = blocking(setTimeout(() => expire({ timedOut: true }), timeoutMs));
   return Promise.race([
     work.then((value) => ({ value, timedOut: false as const })),
     armed,
