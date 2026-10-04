@@ -203,9 +203,11 @@ describe('System One — AIKR Resource Accounting (Bench 12)', () => {
   });
 
   it('recordJudgmentMetric labels the judgment and stamps its latency', async () => {
-    // The registry is process-global, so the reading is a delta: asserting an
-    // absolute counter made this test fail whenever another file in the worker had
-    // already recorded a judgment.
+    // The registry is process-global and outlives the test, so the counter is read as
+    // a delta — an absolute reading failed whenever anything in the worker had
+    // already recorded a judgment. The latency series is a gauge that `set`s, so the
+    // recording *is* its value: a delta there would fail on the second run in a
+    // worker, where the reading is already 12 and `set` leaves it there.
     const metricValue = async (
       name: string,
       labels: Record<string, string>
@@ -220,17 +222,11 @@ describe('System One — AIKR Resource Accounting (Bench 12)', () => {
     };
 
     const judgments = { axis: 'epistemic', shape: 'evaluate', tier: '1', abstained: 'false' };
-    const latency = { tier: '1' };
-    const before = [
-      await metricValue('senars_systemone_judgments_total', judgments),
-      await metricValue('senars_systemone_judgment_latency_ms', latency),
-    ];
+    const judged = await metricValue('senars_systemone_judgments_total', judgments);
 
     recordJudgmentMetric('epistemic', 'evaluate', 1, false, 12);
 
-    expect(await metricValue('senars_systemone_judgments_total', judgments)).toBe((before[0] ?? 0) + 1);
-    expect(await metricValue('senars_systemone_judgment_latency_ms', latency)).toBe(
-      (before[1] ?? 0) + 12
-    );
+    expect(await metricValue('senars_systemone_judgments_total', judgments)).toBe((judged ?? 0) + 1);
+    expect(await metricValue('senars_systemone_judgment_latency_ms', { tier: '1' })).toBe(12);
   });
 });
