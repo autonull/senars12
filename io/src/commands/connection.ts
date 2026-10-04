@@ -1,3 +1,4 @@
+import { silentLogger } from '@senars/util';
 import type { ConnectionManager } from '../connection-manager.js';
 import type { CommandDefinition } from './registry.js';
 
@@ -34,23 +35,7 @@ export const connectionCommands: CommandDefinition[] = [
       );
       await m.addConnection(
         { id, type, enabled: true, config },
-        {
-          emit: () => {},
-          logger: {
-            debug: () => {},
-            info: () => {},
-            warn: () => {},
-            error: () => {},
-            child: () =>
-              ({
-                debug: () => {},
-                info: () => {},
-                warn: () => {},
-                error: () => {},
-                child: () => ({}) as never,
-              }) as never,
-          },
-        }
+        { emit: () => {}, logger: silentLogger() }
       );
       return `Connection ${id} (${type}) created and connected`;
     },

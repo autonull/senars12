@@ -12,7 +12,13 @@
  */
 
 import { SourceQualitySchema } from '@senars/core/schemas';
-import type { CognitiveAxis, CriticalityLevel, RubricId } from './types.js';
+import type {
+  CognitiveAxis,
+  CriticalityLevel,
+  EvaluateQuery,
+  JudgmentQuery,
+  RubricId,
+} from './types.js';
 
 export interface HeadSpec {
   readonly rubric: RubricId;
@@ -197,3 +203,43 @@ export const headSpecsInGroup = (group: HeadGroup): readonly HeadSpec[] =>
 
 /** One rubric per head, in declaration order: everything a calibrator is built for. */
 export const headRubrics = (): readonly RubricId[] => ALL_HEAD_SPECS.map((spec) => spec.rubric);
+
+/** Shared query builders (X10) — single construction sites for judgment queries. */
+export function specToQuery(spec: HeadSpec): JudgmentQuery {
+  return spec.kind === 'classify'
+    ? {
+        kind: 'classify',
+        instruction: spec.instruction,
+        space: spec.space ?? [],
+        axis: spec.axis,
+        criticality: spec.criticality ?? 'standard',
+      }
+    : {
+        kind: 'evaluate',
+        instruction: spec.instruction,
+        rubric: spec.rubric,
+        axis: spec.axis,
+        levels: spec.levels,
+        criticality: spec.criticality ?? 'standard',
+      };
+}
+
+/**
+ * An epistemic evaluate query over one rubric. Six call sites rebuilt this shape by
+ * hand, each casting the rubric with `as never` — which is how a rubric that no head
+ * has, and three different sets of default rubrics, all typechecked. Typed on the
+ * rubric, the cast is the only thing a caller can no longer do by accident.
+ */
+export const evaluateQuery = (
+  rubric: RubricId,
+  instruction = `Evaluate ${rubric}`
+): EvaluateQuery => ({ kind: 'evaluate', rubric, axis: 'epistemic', instruction });
+
+/**
+ * The rubric a name denotes, when it is one of them. A `--head` flag and any other
+ * free-text rubric reaches the judge as a string; the calls that used to cast it with
+ * `as never` also accepted names no head has, and one of them shipped a default list
+ * containing one.
+ */
+export const asRubricId = (name: string): RubricId | undefined =>
+  (headRubrics() as readonly string[]).includes(name) ? (name as RubricId) : undefined;

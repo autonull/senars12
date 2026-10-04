@@ -33,8 +33,9 @@ import {
   resolveOfflineTier,
   setRouting,
 } from '@senars/nar/lm';
-import { createLogger, envSet, errMsg, keyedBy, mapValues, parseFlags } from '@senars/util';
+import { createLogger, errMsg, keyedBy, mapValues, parseFlags } from '@senars/util';
 import { loadConfig } from '../../config/index.js';
+import { credentialReport } from './doctor-checks.js';
 
 const logger = createLogger({ scope: 'doctor' });
 
@@ -55,14 +56,6 @@ const probeProviderReachable = async (): Promise<boolean> => {
     3000
   );
 };
-
-const checkCredentials = (): { key: string; present: boolean }[] =>
-  ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'LM_API_KEY', 'TAVILY_API_KEY', 'BRAVE_API_KEY'].map(
-    (key) => ({
-      key,
-      present: envSet(key),
-    })
-  );
 
 const probeOllama = async (host: string): Promise<string> => {
   const res = await fetchBounded(`${host.replace(/\/$/, '')}/api/tags`, { timeoutMs: 3000 });
@@ -141,7 +134,7 @@ const main = async (): Promise<void> => {
       stats: {},
       routing: {},
     },
-    credentials: checkCredentials(),
+    credentials: credentialReport(),
     ollama: await probeOllama(settings.ollamaHost ?? 'http://localhost:11434'),
     embeddedLlama: await probeEmbeddedLlama(),
     cpus: cpus().length,
@@ -173,7 +166,7 @@ const main = async (): Promise<void> => {
       output.routingMatrix[task] = chain;
       if (!jsonOutput) console.log(`  ${task}: ${chain.join(' → ')}`);
     }
-    const offline = resolveOfflineTier(resolveLMSettings());
+    const offline = resolveOfflineTier(settings);
     output.offlineTier = offline ?? null;
     if (!jsonOutput && offline) console.log(`offline tier: ${offline}`);
     const routing = getRoutingStatus();
@@ -206,7 +199,7 @@ const main = async (): Promise<void> => {
 
   // Degradation posture
   if (showDegradation) {
-    const creds = checkCredentials();
+    const creds = credentialReport();
     output.degradation = {
       activeProvider: lmConfig.provider,
       effectiveChains: output.routingMatrix,

@@ -15,6 +15,7 @@ import {
   type HeadId,
   type HeadSpec,
   headSpecsInGroup,
+  specToQuery,
 } from './head-ontology.js';
 import type { HeadFactoryOptions } from './heads/factory.js';
 import { getScorer } from './scoring.js';
@@ -110,26 +111,6 @@ export function createHeadById(id: HeadId, options: HeadFactoryOptions) {
 /** Every head in one map, in ontology order — what the manifold judges with. */
 export function createAllHeads(options: HeadFactoryOptions): Map<RubricId, JudgmentHead> {
   return new Map(ALL_HEAD_SPECS.map((spec) => [spec.rubric, createHead(spec, options)]));
-}
-
-/** Shared query builders (X10) — single construction site for judgment queries. */
-export function specToQuery(spec: HeadSpec): JudgmentQuery {
-  return spec.kind === 'classify'
-    ? {
-        kind: 'classify',
-        instruction: spec.instruction,
-        space: spec.space ?? [],
-        axis: spec.axis,
-        criticality: spec.criticality ?? 'standard',
-      }
-    : {
-        kind: 'evaluate',
-        instruction: spec.instruction,
-        rubric: spec.rubric,
-        axis: spec.axis,
-        levels: spec.levels,
-        criticality: spec.criticality ?? 'standard',
-      };
 }
 
 export function groupQueries(group: HeadGroup): JudgmentQuery[] {

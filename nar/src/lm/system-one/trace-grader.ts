@@ -2,8 +2,7 @@ import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import { clamp, sha256Hex } from '@senars/util';
 import type { ContrastiveMemory } from './contrastive.js';
 import type { DistillationLabel, JudgmentDataset } from './distill.js';
-import { HEAD_SPECS } from './head-ontology.js';
-import { specToQuery } from './head-specs.js';
+import { HEAD_SPECS, specToQuery } from './head-ontology.js';
 import type {
   EmbeddingCache,
   EmbeddingPointer,

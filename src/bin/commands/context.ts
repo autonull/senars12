@@ -25,7 +25,17 @@ import type { AgentFromEnvResult } from '../lib/lifecycle.js';
 export interface GroundednessState {
   enabled: boolean;
   threshold: number;
-  gate: ((text: string) => Promise<boolean | { grounded: boolean; score?: number }>) | undefined;
+  /**
+   * Judge one piece of output. `reputationKeys` are resolved once per turn by the
+   * caller: they name the provider that produced the whole turn, and resolving them
+   * per streamed delta meant a full environment read and a second id per token.
+   */
+  gate:
+    | ((
+        text: string,
+        reputationKeys: readonly string[]
+      ) => Promise<boolean | { grounded: boolean; score?: number }>)
+    | undefined;
 }
 
 export interface TraceState {

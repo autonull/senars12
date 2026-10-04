@@ -7,7 +7,7 @@
  */
 
 import { getOrInsert } from './utils/collections.js';
-import type { LogEntry, LoggerConfig, LogLevel } from './types/lifecycle.js';
+import type { LogEntry, LoggerConfig, LogLevel, ScopedLogger } from './types/lifecycle.js';
 
 const LOG_LEVELS: readonly LogLevel[] = ['debug', 'info', 'warn', 'error'];
 
@@ -141,3 +141,20 @@ const formatText = (entry: LogEntry): string => {
 
 export const createLogger = (config?: Partial<LoggerConfig>): Logger => new Logger(config);
 export const defaultLogger = createLogger({ scope: 'root' });
+
+/**
+ * A logger that discards everything. For the composition sites that must hand a
+ * logger to a component which will not use it — a transport's deps, an agent's
+ * optional WS mount — where three call sites each wrote their own object literal of
+ * no-op methods, one of them with a `child` that returned `{}` cast to the interface.
+ */
+export const silentLogger = (): ScopedLogger => {
+  const logger: ScopedLogger = {
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+    child: () => logger,
+  };
+  return logger;
+};

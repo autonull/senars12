@@ -75,7 +75,13 @@ export {
   toSkillFeedback,
 } from './feedback/ToolFeedbackObserver.js';
 /** @public The monorepo's one logger. */
-export { createLogger, defaultLogger, Logger, registerLogEnricher } from './logger.js';
+export {
+  createLogger,
+  defaultLogger,
+  Logger,
+  registerLogEnricher,
+  silentLogger,
+} from './logger.js';
 export type { SessionStoreOptions } from './memory/in-memory-session-manager.js';
 // Memory
 /** @public Bounded session store and the in-memory session manager over it. */

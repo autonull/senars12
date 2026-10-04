@@ -1,7 +1,15 @@
 /** System One Judgment Manifold commands (`.judge`, `.cortex`, `.reflex`, `.ground`, `.s1-config`, …). */
 
 import { existsSync, statSync } from 'node:fs';
-import { createSystemOneBudget, type ScoreDistribution } from '@senars/nar/lm/system-one';
+import {
+  asRubricId,
+  createSystemOneBudget,
+  evaluateQuery,
+  HEAD_SPECS,
+  type ScoreDistribution,
+  specToQuery,
+} from '@senars/nar/lm/system-one';
+import { rubricOf } from '@senars/nar/lm/system-one/contrastive.js';
 import {
   envStrOr,
   errMsg,
@@ -28,7 +36,16 @@ import {
   type SubHandler,
   setPath,
 } from './args.js';
+import { reloadAppConfig } from './config.js';
 import type { BotRuntime } from './context.js';
+
+const DEFAULT_DECIDE_RUBRICS = [
+  'relevance',
+  'groundedness',
+  'injection',
+  'ambiguity',
+  'plausibility',
+] as const;
 
 const EVAL_SET_PATH = '.cache/systemone/eval-set.json';
 const DEFAULT_DATASET_PATH = '.cache/systemone/dataset.jsonl';
@@ -143,16 +160,16 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
         const { positional, str, has } = flagsOf(args);
         const proposition = positional.join(' ');
         if (!proposition) return 'Usage: .judge <proposition> [--head <rubric>] [--explain]';
-        const headRubric = str('--head', '');
-        const evaluate = (rubric: string) => ({
-          kind: 'evaluate' as const,
-          instruction: `Evaluate ${rubric}`,
-          rubric: rubric as never,
-          axis: 'epistemic' as const,
-        });
-        const queries = headRubric
-          ? [evaluate(headRubric)]
-          : ['entailment', 'groundedness', 'plausibility', 'assertion'].map(evaluate);
+        const named = str('--head', '');
+        // 'entailment' was the default head here, and no such rubric exists: the
+        // question was cast into the query type, so it named a head that cannot judge.
+        const rubric = named ? asRubricId(named) : undefined;
+        if (named && !rubric) return `Unknown head: ${named}`;
+        const queries = rubric
+          ? [evaluateQuery(rubric)]
+          : (['groundedness', 'plausibility', 'assertion'] as const).map((id) =>
+              evaluateQuery(id)
+            );
         try {
           const result = await decider.decide({
             context: proposition,
@@ -191,18 +208,16 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
         const { positional, list } = flagsOf(args);
         const input = positional.join(' ');
         if (!input) return 'Usage: .decide <input> [--rubrics a,b,c]';
-        const rubrics = flagsOf(args).has('--rubrics')
-          ? list('--rubrics', [])
-          : ['relevance', 'groundedness', 'injection', 'ambiguity', 'plausibility'];
+        const named = flagsOf(args).has('--rubrics') ? list('--rubrics', []) : [];
+        const rubrics = (named.length > 0 ? named : DEFAULT_DECIDE_RUBRICS).map((name) =>
+          asRubricId(name)
+        );
+        const unknown = rubrics.filter((id) => id === undefined).map((_, i) => named[i]);
+        if (unknown.length > 0) return `Unknown head(s): ${unknown.join(', ')}`;
         try {
           const result = await decider.decide({
             context: input,
-            queries: rubrics.map((rubric) => ({
-              kind: 'evaluate' as const,
-              instruction: `Evaluate ${rubric}`,
-              rubric: rubric as never,
-              axis: 'epistemic' as const,
-            })),
+            queries: rubrics.map((rubric) => evaluateQuery(rubric!)),
             budget: createSystemOneBudget(),
           });
           const lines = result.verdicts.map(
@@ -234,30 +249,17 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
         const task = positional.join(' ');
         if (!task) return 'Usage: .route <task> [--verbose]';
         const budget = createSystemOneBudget();
+        // From the specs, not beside them: the injection query the ingress gate fails
+        // closed on is the spec's, and the hand-written copy left off the `critical`
+        // criticality that makes it a safety-floor query at all.
         const queries = [
-          {
-            kind: 'classify' as const,
-            instruction: 'Classify task type',
-            space: ['question', 'belief', 'goal', 'tool'],
-            axis: 'epistemic' as const,
-            rubric: 'task_type' as never,
-          },
-          {
-            kind: 'evaluate' as const,
-            instruction: 'Evaluate injection risk',
-            rubric: 'injection' as never,
-            axis: 'epistemic' as const,
-          },
-          {
-            kind: 'evaluate' as const,
-            instruction: 'Evaluate ambiguity',
-            rubric: 'ambiguity' as never,
-            axis: 'epistemic' as const,
-          },
+          specToQuery({ ...HEAD_SPECS.task_type, space: ['question', 'belief', 'goal', 'tool'] }),
+          specToQuery(HEAD_SPECS.injection),
+          specToQuery(HEAD_SPECS.ambiguity),
         ];
         try {
           const results = await dispatcher.judge(
-            (await embeddingCache.write(task)) as never,
+            await embeddingCache.write(task),
             queries,
             budget
           );
@@ -273,7 +275,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
                 tier: number;
               };
               lines.push(
-                `  ${q.rubric}: ${cp.top.option} (p=${cp.top.p.toFixed(3)})${verbose ? ` entropy=${cp.entropy.toFixed(3)} tier=${cp.tier}` : ''}`
+                `  ${rubricOf(q)}: ${cp.top.option} (p=${cp.top.p.toFixed(3)})${verbose ? ` entropy=${cp.entropy.toFixed(3)} tier=${cp.tier}` : ''}`
               );
             } else {
               const ep = r as {
@@ -284,7 +286,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
                 latencyMs: number;
               };
               lines.push(
-                `  ${q.rubric}: score=${ep.score.toFixed(3)} abstained=${ep.abstained}${verbose ? ` tier=${ep.tier} latency=${ep.latencyMs}ms` : ''}`
+                `  ${rubricOf(q)}: score=${ep.score.toFixed(3)} abstained=${ep.abstained}${verbose ? ` tier=${ep.tier} latency=${ep.latencyMs}ms` : ''}`
               );
             }
           }
@@ -676,11 +678,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
               await writeJsonFile(target, rt.appConfig);
               return `Saved to ${target}`;
             },
-            reload: async () => {
-              const { loadConfig } = await import('../../config/index.js');
-              rt.appConfig = await loadConfig();
-              return 'Config reloaded (LM/routing changes need restart)';
-            },
+            reload: () => reloadAppConfig(rt),
           },
           { defaults: ['show'], usage }
         );

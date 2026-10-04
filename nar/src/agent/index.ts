@@ -10,11 +10,20 @@ import type { PersistableSessionManager } from '@senars/core/memory';
 import { registerAgentTools } from '@senars/core/motor';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
-import { clamp, createLogger, deadline, errMsg, makeId, parseJsonOr } from '@senars/util';
+import {
+  clamp,
+  createLogger,
+  deadline,
+  errMsg,
+  makeId,
+  parseJsonOr,
+  silentLogger,
+} from '@senars/util';
 import { NAREngine } from '../engine/NAREngine.js';
 import type { EpisodicMemory, LMService, NAR } from '../index.js';
 import { dispatchNarseseIntent, type NarseseIntent } from '../nl/narsese-intent.js';
 import type { ThreadScope } from '../kernel/thread-scope.js';
+import { evaluateQuery } from '../lm/system-one/head-ontology.js';
 import { createSystemOneBudget } from '../lm/system-one/types.js';
 import { TrajectoryStore } from '../rlfp/trajectory-store.js';
 import { CoreToolRegistryAdapter } from '../tools';
@@ -306,14 +315,6 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
   const narEngine = new NAREngine(narInstance, agent.emitCognitive.bind(agent));
   if (config.engines?.nar !== false) agent.registerEngine('nar', narEngine);
 
-  const makeLogger = () => {
-    const base = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} };
-    return {
-      ...base,
-      child: () => makeLogger(),
-    };
-  };
-
   await agent.start();
 
   // Mount WebSocket transport if configured
@@ -331,7 +332,7 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
     };
     const wsConn = new WSConnection(wsConfig, {
       emit: () => {},
-      logger: makeLogger(),
+      logger: silentLogger(),
       getSessionSpaceId: () => 'delegation',
     });
     await wsConn.connect();
@@ -448,12 +449,9 @@ const judgeOnManifold = async (narEngine: NAREngine, text: string): Promise<stri
   if (!manifold || !embeddingCache) return null;
   try {
     const pointer = await embeddingCache.write(text);
-    const queries = (['relevance', 'groundedness', 'plausibility'] as const).map((rubric) => ({
-      kind: 'evaluate' as const,
-      instruction: `Evaluate ${rubric}`,
-      rubric,
-      axis: 'epistemic' as const,
-    }));
+    const queries = (['relevance', 'groundedness', 'plausibility'] as const).map((rubric) =>
+      evaluateQuery(rubric)
+    );
     const results = await manifold.judgeBatch(pointer, queries, createSystemOneBudget());
     return results
       .map((r, i) =>

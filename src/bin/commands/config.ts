@@ -10,6 +10,17 @@ const DEFAULT_CONFIG_PATH = 'senars.config.json';
 const configPath = (args = ''): string =>
   args.trim() || envStrOr(DEFAULT_CONFIG_PATH, 'SENARS_CONFIG');
 
+/**
+ * Reload the app config from disk and install it on the runtime. `.config-reload` and
+ * `.s1-config reload` are the same operation under two names, and each had its own
+ * copy of it — the dynamic import and the message included.
+ */
+export const reloadAppConfig = async (rt: BotRuntime): Promise<string> => {
+  const { loadConfig } = await import('../../config/index.js');
+  rt.appConfig = await loadConfig();
+  return 'Config reloaded (LM/routing changes need restart)';
+};
+
 export const configCommandsFor = (rt: BotRuntime) => [
   cmd('config-show', 'Show effective config', () =>
     JSON.stringify(
@@ -36,11 +47,7 @@ export const configCommandsFor = (rt: BotRuntime) => [
     await writeJsonFile(path, rt.appConfig);
     return `Saved to ${path}`;
   }),
-  cmd('config-reload', 'Reload config from file', async () => {
-    const { loadConfig } = await import('../../config/index.js');
-    rt.appConfig = await loadConfig();
-    return 'Config reloaded (LM/routing changes need restart)';
-  }),
+  cmd('config-reload', 'Reload config from file', () => reloadAppConfig(rt)),
   cmd('config-reset', 'Reset config to defaults (requires --yes)', async (args = '') => {
     if (!flagsOf(args).has('--yes')) {
       return 'Destructive. Re-run as .config-reset --yes to confirm';

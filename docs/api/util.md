@@ -102,6 +102,8 @@
 
 - `registerLogEnricher`
 
+- `silentLogger` — A logger that discards everything. For the composition sites that must hand a
+
 - `abortSession`
 
 - `createSession`

@@ -29,6 +29,7 @@ import { DEFAULT_LEDGER_PATH, ParameterLedger } from '@senars/nar/config';
 import { DialogueCapture, RetrospectiveAdapter } from '@senars/nar/dialogue';
 import { DEFAULT_REPUTATION_PATH, providerKey, SourceReputation } from '@senars/nar/kernel';
 import { resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
+import { evaluateQuery } from '@senars/nar/lm/system-one';
 import { computeEvidenceId } from '@senars/nar/lm/system-one';
 import { NLUnderstandingService, TranslationCache } from '@senars/nar/nl';
 import { MemoryQuery } from '@senars/nar/query';
@@ -121,6 +122,22 @@ const captureDistillation = async (
   }
 };
 
+/**
+ * Phase E: egress-gate verdicts are verification signals for the narration channel.
+ * Phase F (audit M2): record under the fine provider:<name> key the ingress judge
+ * reads — legacy llm-narration key kept alongside during transition.
+ */
+const narrationKeys = (): string[] => {
+  let provider: string | undefined;
+  try {
+    provider = resolveLMSettings().provider;
+  } catch {
+    provider = undefined;
+  }
+  const key = providerKey(provider);
+  return key ? ['llm-narration', key] : ['llm-narration'];
+};
+
 async function collectChat(rt: BotRuntime, input: string, tier: LMTask): Promise<void> {
   const { agent } = rt.wired;
   const { ground, trace } = rt;
@@ -129,11 +146,14 @@ async function collectChat(rt: BotRuntime, input: string, tier: LMTask): Promise
   process.once('SIGINT', onSigint);
   try {
     let response = '';
+    // One set of reputation keys for the turn: the provider cannot change between a
+    // turn's first delta and its last, and the gate used to resolve them per delta.
+    const reputationKeys = narrationKeys();
     for await (const evt of agent.chat(input, { signal: ctl.signal, tier } as never)) {
       if (evt.kind === 'text-delta' && evt.text) {
         response += evt.text;
         if (ground.enabled && ground.gate) {
-          const ok = await ground.gate(evt.text);
+          const ok = await ground.gate(evt.text, reputationKeys);
           process.stdout.write(ok ? evt.text : '[filtered]');
         } else {
           process.stdout.write(evt.text);
@@ -199,28 +219,15 @@ async function main(): Promise<void> {
   const systemOne: SystemOneBag | undefined = (nar as unknown as { systemOne?: SystemOneBag })
     .systemOne;
   const systemOneGate = nar.getSystemOneGroundednessGate?.();
-  // Phase E: egress-gate verdicts are verification signals for the narration channel.
-  // Phase F (audit M2): record under the fine provider:<name> key the ingress
-  // judge reads — legacy llm-narration key kept alongside during transition.
-  const narrationKeys = (): string[] => {
-    let provider: string | undefined;
-    try {
-      provider = resolveLMSettings().provider;
-    } catch {
-      provider = undefined;
-    }
-    const key = providerKey(provider);
-    return key ? ['llm-naration', key] : ['llm-naration'];
-  };
   const sourceReputation = new SourceReputation({ path: DEFAULT_REPUTATION_PATH });
   nar.setSourceReputation(sourceReputation);
   const ground: GroundednessState = {
     enabled: wired.appConfig.systemOne?.enabled === true,
     threshold: 0.7,
     gate: systemOneGate
-      ? async (text: string) => {
+      ? async (text: string, reputationKeys: readonly string[]) => {
           const ok = await systemOneGate(text, makeId());
-          for (const key of narrationKeys()) {
+          for (const key of reputationKeys) {
             sourceReputation.record(key, ok ? 'confirmed' : 'contradicted');
           }
           return ok;
@@ -269,12 +276,7 @@ async function main(): Promise<void> {
               ? decider.decide({
                   context: input.utterance,
                   queries: [
-                    {
-                      kind: 'evaluate' as const,
-                      instruction: 'Evaluate groundedness of the dialogue turn',
-                      rubric: 'groundedness' as never,
-                      axis: 'epistemic' as const,
-                    },
+                    evaluateQuery('groundedness', 'Evaluate groundedness of the dialogue turn'),
                   ],
                   budget: {
                     maxCycles: 10,

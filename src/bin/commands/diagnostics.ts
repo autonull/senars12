@@ -1,36 +1,21 @@
 /** Health, telemetry and micro-benchmark commands (`.doctor`, `.health`, `.spend`, `.benchmarks`, …). */
 
 import { resolveLMSettings } from '@senars/nar/lm';
-import { clamp, envSet, errMsg, finiteOr, perSecond, stopwatch } from '@senars/util';
+import { clamp, errMsg, finiteOr, perSecond, stopwatch } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
+import { configValidity, credentialSummary, embeddedProbe } from '../lib/doctor-checks.js';
 import { flagsOf } from './args.js';
 import type { BotRuntime } from './context.js';
-
-const CREDENTIAL_KEYS = ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'LM_API_KEY'];
 
 export const diagnosticCommandsFor = (rt: BotRuntime) => [
   cmd('doctor', 'Lightweight health check', async (args = '') => {
     const s = resolveLMSettings();
-    const creds = CREDENTIAL_KEYS.map((k) => `${k}=${envSet(k) ? 'set' : 'unset'}`).join(' ');
-    let embedded = 'n/a';
-    if (s.provider === 'llamacpp-embedded') {
-      try {
-        const { probeEmbeddedLlama } = await import(
-          '@senars/nar/lm/providers/embedded-llamacpp.js'
-        );
-        const r = await probeEmbeddedLlama();
-        embedded = `${r.available ? 'ok' : 'FAIL'}: ${r.detail}`;
-      } catch (e) {
-        embedded = `probe failed: ${errMsg(e)}`;
-      }
-    }
-    let configValid = true;
-    try {
-      const { loadConfig } = await import('../../config/index.js');
-      await loadConfig();
-    } catch {
-      configValid = false;
-    }
+    // The same reads `bot --doctor` makes, at one-line granularity: the credential
+    // list, the embedded probe and the config read were each written twice, and the
+    // two credential lists had already drifted apart.
+    const creds = credentialSummary();
+    const embedded = await embeddedProbe(s.provider);
+    const { valid: configValid } = await configValidity();
     if (flagsOf(args).has('--json')) {
       return JSON.stringify(
         { provider: s.provider, model: s.model ?? 'default', embedded, configValid, creds },
