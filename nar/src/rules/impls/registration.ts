@@ -16,7 +16,7 @@
  * absent: a future extended `analogy` that *differs* would be a distinct body
  * instead of a silent shadow of the NAL one.
  */
-import { Truth, type Term } from '../../terms';
+import { type Term, Truth } from '../../terms';
 import { NALExtendedRules } from '../extended/index.js';
 import { NALRules } from '../nal/index.js';
 import type { RuleDef, RuleFn } from '../types.js';
@@ -431,4 +431,4 @@ export const BUILTIN_DECLARATIONS = [...NAL_RULES, ...NAL_EXTENDED_RULES]
 /** Why a rule is not shipped — for a gate, a status report, or the next attempt. */
 export const DISABLED_RULES = DISABLED;
 
-export { NAL_EXTENDED_RULES, NAL_RULES };
+export { NAL_EXTENDED_RULES };

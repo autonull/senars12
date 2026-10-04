@@ -28,13 +28,7 @@ import {
 } from './calibration-fit.js';
 import { type ContrastiveMemory, rubricOf } from './contrastive.js';
 import { shannonEntropy as entropy, legendFrom, topOption } from './distribution.js';
-import {
-  createAllActionHeads,
-  createAllIngressHeads,
-  createAllMemoryHeads,
-  createAllSynthesisHeads,
-  type PerHeadConfig,
-} from './heads/index.js';
+import { createAllHeads, type PerHeadConfig } from './heads/index.js';
 import type {
   BackendId,
   CalibrationVersion,
@@ -352,8 +346,9 @@ export class SystemOneManifold implements JudgmentManifold {
     // Until then, they remain in unfitted state (fitted: false) and report ECE honestly.
 
     const totalSamples = results.length;
-    const avgECE =
-      mean(Array.from(this.#calibrators.values()), (c) => c.getECE()) / this.#calibrators.size;
+    // `mean` already divides by the count: dividing again reported the mean
+    // calibration error as its square, for every head.
+    const avgECE = mean(this.#calibrators.values(), (c) => c.getECE());
     this.#rollingECEMonitor.record(avgECE, totalSamples);
   }
 
@@ -412,21 +407,12 @@ export function createManifold(
   const modelDigest = (config.modelDigest ?? 'sha256:all-MiniLM-L6-v2-heads-v1') as ModelDigest;
   const calibrationVersion = (config.calibrationVersion ?? 'v2.4.1') as CalibrationVersion;
 
-  const heads = new Map<RubricId, JudgmentHead>();
   const abstainThreshold = config.abstainThreshold ?? 0.3;
   const perHeadConfig = config.perHeadConfig ?? {};
 
   const factoryOptions = { calibrationVersion, embeddingCache, abstainThreshold, perHeadConfig };
 
-  const ingressHeads = createAllIngressHeads(factoryOptions);
-  const actionHeads = createAllActionHeads(factoryOptions);
-  const synthesisHeads = createAllSynthesisHeads(factoryOptions);
-  const memoryHeads = createAllMemoryHeads(factoryOptions);
-
-  for (const [key, head] of ingressHeads) heads.set(key, head);
-  for (const [key, head] of actionHeads) heads.set(key, head);
-  for (const [key, head] of synthesisHeads) heads.set(key, head);
-  for (const [key, head] of memoryHeads) heads.set(key, head);
+  const heads = createAllHeads(factoryOptions);
 
   const manifoldConfig: ManifoldConfig = {
     backendId,

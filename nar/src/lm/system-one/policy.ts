@@ -5,6 +5,7 @@
  * (two-stage dependency). Code owns composition — weights are declared, never learned.
  */
 import { assertDefined, renormalize, sumBy } from '@senars/util';
+import { HEAD_SPECS } from './head-ontology.js';
 import type {
   EmbeddingPointer,
   EvaluateProposition,
@@ -14,13 +15,14 @@ import type {
   ReasoningBudget,
 } from './types.js';
 
-/** Jev `Noul`: an Evaluate over the boolean anchor pair ["false", "true"]. */
+/** Jev `Noul`: an Evaluate over the boolean anchor pair, read off the head that owns it. */
 export function truthProbability(statement: string): EvaluateQuery {
+  const { rubric, axis, levels } = HEAD_SPECS.plausibility;
   return {
     kind: 'evaluate',
-    rubric: 'plausibility',
-    axis: 'epistemic',
-    levels: ['false', 'true'],
+    rubric,
+    axis,
+    levels,
     instruction: `Probability the statement is true: ${statement}`,
   };
 }
@@ -42,6 +44,12 @@ export interface ConfidenceBands {
   /** p < review ⇒ block */
   readonly block: number;
 }
+
+/** The routing bands a router gets when nothing else says: `act` is the top rung, so
+ *  it is also the threshold at which a decision is no longer in doubt — which is why
+ *  the decider's safety-floor short-circuit and the pipeline's band table both read
+ *  it rather than restating a number. */
+export const DEFAULT_CONFIDENCE_BANDS: ConfidenceBands = { act: 0.8, review: 0.5, block: 0 };
 
 /** Monotone band routing: p ≥ act → act; p ≥ review → review; else block. */
 export function routeConfidence(

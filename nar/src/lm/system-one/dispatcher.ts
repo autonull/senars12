@@ -6,7 +6,7 @@ import { Stamp } from '../../terms/impls/Stamp.js';
 import { Truth } from '../../terms/impls/Truth.js';
 import { failClosed, isSafetyFloor, validateBatchQueries } from './algebra.js';
 import { DeterministicManifold, Tier3SymbolicManifold } from './constant-manifold.js';
-import type { ContrastiveMemory } from './contrastive.js';
+import { type ContrastiveMemory, candidateProximity } from './contrastive.js';
 import { selectQuery as buildSelectQuery } from './head-specs.js';
 import { compositeScore } from './policy.js';
 import { createProvisionalStamp } from './provisional-stamp.js';
@@ -248,24 +248,6 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
 
   #stubCortex = new StubCortex('tier3-fallback');
 
-  /** CLM hard-negative proximity per candidate (0 = clean, 1 = maximal penalty). */
-  async #contrastivePenalties(candidates: readonly string[]): Promise<Map<string, number>> {
-    const penalties = new Map<string, number>();
-    const memory = this.#contrastive;
-    if (!memory || memory.isEmpty() || !this.#embeddingCache) return penalties;
-    for (const candidate of candidates) {
-      try {
-        const pointer = await this.#embeddingCache.write(candidate);
-        const embedding = this.#embeddingCache.read(pointer);
-        const score = embedding ? memory.score(embedding) : undefined;
-        if (score !== undefined) penalties.set(candidate, 1 - score);
-      } catch {
-        // Unembeddable candidate — no penalty
-      }
-    }
-    return penalties;
-  }
-
   async #resolveContextPointer(context: CognitiveContext): Promise<EmbeddingPointer> {
     if (!this.#embeddingCache) return 0 as EmbeddingPointer;
     const text = context.topBeliefs.length > 0 ? context.topBeliefs.join(' ') : context.tickId;
@@ -342,7 +324,11 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
       const candidateJudgments = await this.judge(sharedContext, perCandidateQueries, budget);
       // CLM contrastive routing: candidates near stored hard negatives are
       // penalized proportionally to their negative-proximity (0..1).
-      const negativePenalty = await this.#contrastivePenalties(candidates);
+      const { penalties: negativePenalty } = await candidateProximity(
+        this.#contrastive,
+        this.#embeddingCache,
+        candidates
+      );
       const stride = 1 + extraRubrics.length;
       ranking = candidates.map((c, i) => {
         const base = candidateJudgments[i * stride] as ClassifyProposition;

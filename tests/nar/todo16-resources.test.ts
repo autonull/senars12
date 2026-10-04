@@ -1,4 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { stableStringify } from '@senars/util';
 import { describe, expect, it } from 'vitest';
 import {
   createJudgmentDelegation,
@@ -202,20 +203,34 @@ describe('System One — AIKR Resource Accounting (Bench 12)', () => {
   });
 
   it('recordJudgmentMetric labels the judgment and stamps its latency', async () => {
-    recordJudgmentMetric('epistemic', 'evaluate', 1, false, 12);
-    const json = (await prometheusRegistry.getMetricsAsJSON()) as Array<{
-      name: string;
-      values: Array<{ labels: Record<string, string>; value: number }>;
-    }>;
-    const series = (name: string) => json.find((m) => m.name === name)?.values ?? [];
+    // The registry is process-global, so the reading is a delta: asserting an
+    // absolute counter made this test fail whenever another file in the worker had
+    // already recorded a judgment.
+    const valueOf = async (
+      name: string,
+      labels: Record<string, string>
+    ): Promise<number | undefined> => {
+      const json = (await prometheusRegistry.getMetricsAsJSON()) as Array<{
+        name: string;
+        values: Array<{ labels: Record<string, string>; value: number }>;
+      }>;
+      return json
+        .find((m) => m.name === name)
+        ?.values.find((v) => stableStringify(v.labels) === stableStringify(labels))?.value;
+    };
 
-    expect(series('senars_systemone_judgments_total')).toContainEqual({
-      labels: { axis: 'epistemic', shape: 'evaluate', tier: '1', abstained: 'false' },
-      value: 1,
-    });
-    expect(series('senars_systemone_judgment_latency_ms')).toContainEqual({
-      labels: { tier: '1' },
-      value: 12,
-    });
+    const judgments = { axis: 'epistemic', shape: 'evaluate', tier: '1', abstained: 'false' };
+    const latency = { tier: '1' };
+    const before = [
+      await valueOf('senars_systemone_judgments_total', judgments),
+      await valueOf('senars_systemone_judgment_latency_ms', latency),
+    ];
+
+    recordJudgmentMetric('epistemic', 'evaluate', 1, false, 12);
+
+    expect(await valueOf('senars_systemone_judgments_total', judgments)).toBe((before[0] ?? 0) + 1);
+    expect(await valueOf('senars_systemone_judgment_latency_ms', latency)).toBe(
+      (before[1] ?? 0) + 12
+    );
   });
 });

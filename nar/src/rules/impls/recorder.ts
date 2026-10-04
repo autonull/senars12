@@ -5,22 +5,29 @@ import type { RuleInput, RuleResult } from '../types.js';
 type Independence = DerivationStep['independence'];
 type RuleCategory = DerivationStep['ruleCategory'];
 
-const CATEGORY_KEYWORDS: Array<[RuleCategory, RegExp]> = [
-  ['core', /revision|choice|structural-syllogism/],
-  ['propositional', /negation|conjunction|disjunction/],
-  ['comparison', /comparison|analogy/],
-  ['classical', /modus|hypothetical|disjunctive/],
-  ['structural', /composition|decomposition|conversion/],
-  ['temporal', /temporal|sequence/],
-  ['procedural', /operation|goal-achievement|procedure/],
-  [
-    'meta-cognitive',
+/**
+ * One row per category the derivation-record schema admits, keyed by that category
+ * — so the vocabulary is the schema's union and the compiler answers whether every
+ * category is reachable from a rule id, which the parallel list could not: it had
+ * eleven rows over the same eleven names in a different order, and a miss fell
+ * through to `logic` without saying so.
+ */
+const CATEGORY_KEYWORDS = {
+  core: /revision|choice|structural-syllogism/,
+  propositional: /negation|conjunction|disjunction/,
+  comparison: /comparison|analogy/,
+  classical: /modus|hypothetical|disjunctive/,
+  structural: /composition|decomposition|conversion/,
+  temporal: /temporal|sequence/,
+  procedural: /operation|goal-achievement|procedure/,
+  'meta-cognitive':
     /error-pattern|metacognitive|resource-allocation|strategy-effectiveness|self-model|utility-estimation|goal-execution/,
-  ],
-  ['variable', /variable|substitution|unification/],
-  ['higher-order', /higher-order/],
-  ['logic', /deduction|induction|abduction|exemplification/],
-];
+  variable: /variable|substitution|unification/,
+  'higher-order': /higher-order/,
+  logic: /deduction|induction|abduction|exemplification/,
+} as const satisfies Record<RuleCategory, RegExp>;
+
+const CATEGORY_PATTERNS = Object.entries(CATEGORY_KEYWORDS) as [RuleCategory, RegExp][];
 
 /** How many distinct rule ids to remember; the table itself is the realistic bound. */
 const RULE_ID_CACHE = 1024;
@@ -38,7 +45,7 @@ export function inferRuleCategory(ruleId: string): RuleCategory {
   const known = CATEGORY_BY_ID.peek(ruleId);
   if (known) return known;
   const key = ruleId.toLowerCase();
-  const category = CATEGORY_KEYWORDS.find(([, pattern]) => pattern.test(key))?.[0] ?? 'logic';
+  const category = CATEGORY_PATTERNS.find(([, pattern]) => pattern.test(key))?.[0] ?? 'logic';
   CATEGORY_BY_ID.set(ruleId, category);
   return category;
 }
@@ -87,6 +94,13 @@ export class DerivationRecorder {
 
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
+  }
+
+  /** Whether a record is being kept. The sweep reads it before serializing the first
+   *  premise, which is the only thing `begin` needs and which the recorder itself
+   *  would otherwise have thrown away. */
+  get isRecording(): boolean {
+    return this.enabled;
   }
 
   /**

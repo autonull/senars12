@@ -237,11 +237,16 @@ export class RuleProcessor {
   }
 
   async *process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
+    // The flush reads the memory-wide half of a model rule's prompt once, at its own
+    // boundary, and hands it down: every premise pair in one flush is judged against
+    // the same store, and reading it per pair put a statistics sweep, a percentile
+    // sort and a pairwise conflict scan in front of each of them.
+    const context = this.modelRules.length > 0 ? this.rulePromptContext() : undefined;
     for await (const [p1, p2] of premises) {
       for (const { ruleResult } of this.applySyncRules(p1, p2)) {
         yield ruleResult;
       }
-      yield* this.applyModelRules({ p1, p2 });
+      yield* this.applyModelRules({ p1, p2 }, undefined, context);
       this.recorder.finish();
     }
   }
@@ -268,7 +273,8 @@ export class RuleProcessor {
     p1: RuleInput,
     p2: RuleInput
   ): Generator<{ conclusion: string; ruleResult: RuleResult }> {
-    const p1s = p1.term.toString();
+    // The record names the first premise in its text form; the recorder is opt-in,
+    // so the serialization is paid only when something will read it.
     // Premise identity for the whole rule sweep, resolved once: `termKey` is the
     // canonical structural key every other term-keyed container in the engine
     // uses, and it is memoised on the term. The Narsese text form was the older
@@ -277,9 +283,11 @@ export class RuleProcessor {
     // other's rule.
     const p1k = termKey(p1.term);
     const p2k = termKey(p2.term);
-    this.recorder.begin(p1s);
+    if (this.recorder.isRecording) this.recorder.begin(p1.term.toString());
     const matched = this.table.candidates(p1.term.kind, p2.term.kind);
     const metaActive = this.metaActive(matched);
+    // Premise depth is a property of the pair, not of the rule concluding over it.
+    const premiseDepth = Math.max(termDepth(p1.term), termDepth(p2.term));
 
     for (const rule of matched) {
       if (!rule.sync) continue;
@@ -299,11 +307,7 @@ export class RuleProcessor {
         if (this.isMetaRule(rule)) this.recordMetaDerivation(this.metaDepth.currentDepth + 1);
         const conclusion = termKey(result);
         if (conclusion === p1k || conclusion === p2k) continue;
-        if (
-          this.limitConclusionGrowth &&
-          termDepth(result as Term) > Math.max(termDepth(p1.term), termDepth(p2.term))
-        )
-          continue;
+        if (this.limitConclusionGrowth && termDepth(result as Term) > premiseDepth) continue;
         const ruleResult = buildResult(
           result as Term,
           rule.truthFn ?? NEUTRAL_FN,

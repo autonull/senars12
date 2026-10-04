@@ -10,6 +10,7 @@ import {
 } from '@senars/util';
 import type { Bag, BagItem } from '../../bag/Bag.js';
 import { createBag } from '../../bag/index.js';
+import type { EmbeddingPointer } from '../../decision/types.js';
 import { AIKRProcessor, PrioritySampling } from '../../learning/aikr-processor.js';
 import {
   cosine,
@@ -217,18 +218,25 @@ export class ContrastiveMemory {
    * (cross-rubric in-domain-ness). Undefined when no exemplars exist.
    */
   score(embedding: Float32Array, rubric?: string): number | undefined {
+    if (rubric !== undefined && !this.has(rubric)) return undefined;
+    // Normalized once per call: the cross-rubric branch below scored every rubric,
+    // and each of those scores normalized the same vector again.
+    const query = normalize(embedding);
     if (rubric === undefined) {
       let best: number | undefined;
       for (const r of this.#rubrics.keys()) {
-        const s = this.score(embedding, r);
+        const s = this.#scoreNormalized(query, r);
         if (s !== undefined && (best === undefined || s > best)) best = s;
       }
       return best;
     }
+    return this.#scoreNormalized(query, rubric);
+  }
+
+  #scoreNormalized(query: NormalizedVector, rubric: string): number | undefined {
     const state = this.#rubrics.get(rubric);
     if (!state || (state.pos.size() === 0 && state.neg.size() === 0)) return undefined;
 
-    const query = normalize(embedding);
     const maxPos = this.#maxCosine(state.pos, query);
     const maxNeg = this.#maxCosine(state.neg, query);
     const calibration = this.#calibrations.get(rubric);
@@ -256,7 +264,10 @@ export class ContrastiveMemory {
   }
 
   isEmpty(): boolean {
-    return [...this.#rubrics.values()].every((s) => s.pos.size() === 0 && s.neg.size() === 0);
+    for (const state of this.#rubrics.values()) {
+      if (state.pos.size() > 0 || state.neg.size() > 0) return false;
+    }
+    return true;
   }
 
   stats(): Record<string, RubricExemplarStats> {
@@ -395,6 +406,44 @@ export class ContrastiveMemory {
     if (!state) return [];
     return [...state.neg.all()].map((e) => e.embedding);
   }
+}
+
+/**
+ * Hard-negative proximity per candidate, and the candidates that fell below a
+ * verification floor. The decider (which vetoes) and the dispatcher (which only
+ * penalizes) each wrote this loop, embedding every candidate and reading the
+ * cross-rubric score for it; the copies had already drifted, since only the
+ * decider's honoured the floor.
+ */
+export interface CandidateProximity {
+  /** `1 - score` per candidate that could be embedded. */
+  readonly penalties: ReadonlyMap<string, number>;
+  /** Candidates scoring under `floor`, in candidate order. */
+  readonly belowFloor: readonly string[];
+}
+
+export async function candidateProximity(
+  memory: ContrastiveMemory | null | undefined,
+  cache: EmbeddingCache | null | undefined,
+  candidates: readonly string[],
+  floor = 0
+): Promise<CandidateProximity> {
+  const penalties = new Map<string, number>();
+  const belowFloor: string[] = [];
+  if (!memory || memory.isEmpty() || !cache) return { penalties, belowFloor };
+  for (const candidate of candidates) {
+    try {
+      const pointer = (await cache.write(candidate)) as EmbeddingPointer;
+      const embedding = cache.read(pointer);
+      const score = embedding ? memory.score(embedding) : undefined;
+      if (score === undefined) continue;
+      penalties.set(candidate, 1 - score);
+      if (score < floor) belowFloor.push(candidate);
+    } catch {
+      // Unembeddable candidate — no penalty, no veto
+    }
+  }
+  return { penalties, belowFloor };
 }
 
 export function createContrastiveMemory(config?: ContrastiveMemoryConfig): ContrastiveMemory {

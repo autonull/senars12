@@ -6,6 +6,7 @@
 
 import { clamp, sha256Hex } from '@senars/util';
 import { type JudgmentProvenance, stageProvenance } from './decide.js';
+import { HEAD_SPECS } from './head-ontology.js';
 import type { BandDecision } from './policy.js';
 import {
   type CascadeJudge,
@@ -36,12 +37,16 @@ export interface VerifyResult {
   provenance: JudgmentProvenance;
 }
 
-/** Stage-2 query space derived from stage-1 uncertainty: evidential support, not plausibility. */
+/** Stage-2 query space derived from stage-1 uncertainty: evidential support, not
+ *  plausibility. The plausibility head answers it on the assertion head's support
+ *  scale — read from that spec rather than spelled here, where the two had drifted. */
+const VERIFY_LEVELS = HEAD_SPECS.assertion.levels;
+
 const verifyQuery = (statement: string, p: number): EvaluateQuery => ({
   kind: 'evaluate',
   rubric: 'plausibility',
   axis: 'epistemic',
-  levels: ['unsupported', 'supported'],
+  levels: VERIFY_LEVELS,
   instruction: `Independent verification (stage-1 p=${p.toFixed(2)}): assess evidential support for: ${statement}`,
 });
 

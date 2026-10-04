@@ -1,4 +1,5 @@
 import { lerp, maxScore, safeRatio, sortBy, sumBy, trimCapped } from '@senars/util';
+import { headRubrics } from './head-ontology.js';
 import type { CalibrationVersion, RubricId } from './types.js';
 
 /** Fitted points retained per calibrator; older points stop steering the fit. */
@@ -334,42 +335,11 @@ export function createCalibrationSuite(
   return calibrators;
 }
 
-const INGRESS_RUBRICS: (RubricId | 'classify')[] = [
-  'task_type',
-  'illocution',
-  'injection',
-  'ambiguity',
-  'tense',
-  'source_quality',
-];
-
-const SYNTHESIS_RUBRICS: (RubricId | 'classify')[] = [
-  'candidate_select',
-  'conflict',
-  'groundedness',
-];
-
-const ACTION_RUBRICS: (RubricId | 'classify')[] = [
-  'tool_dispatch',
-  'risk',
-  'feasibility',
-  'strategy',
-  'reflex_value',
-];
-
-export const ALL_RUBRICS: (RubricId | 'classify')[] = [
-  ...INGRESS_RUBRICS,
-  ...SYNTHESIS_RUBRICS,
-  ...ACTION_RUBRICS,
-  'relevance',
-  'novelty',
-  'plausibility',
-  'assertion',
-  'feasibility',
-];
-
 export function createDefaultCalibrationSuite(
   version: CalibrationVersion
 ): Map<string, IsotonicCalibrator> {
-  return createCalibrationSuite(version, ALL_RUBRICS);
+  // One rubric per head, read off the ontology: the hand-written list this replaced
+  // named `feasibility` twice and had never heard of `episodic_match`, so a head
+  // existed with no calibrator and a rubric had two.
+  return createCalibrationSuite(version, [...headRubrics()]);
 }

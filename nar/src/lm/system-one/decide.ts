@@ -6,8 +6,8 @@
  */
 import { chunk, rankBy, renormalize, retain, sha256Hex } from '@senars/util';
 import type { CognitiveAxis } from '../../decision/types.js';
-import { type ContrastiveMemory, rubricOf } from './contrastive.js';
 import { isSafetyFloor } from './algebra.js';
+import { type ContrastiveMemory, candidateProximity, rubricOf } from './contrastive.js';
 import {
   type BandDecision,
   bandOrdinal,
@@ -15,6 +15,7 @@ import {
   type ConfidenceBands,
   ConfidenceRouter,
   compositeScore,
+  DEFAULT_CONFIDENCE_BANDS,
 } from './policy.js';
 import type {
   EmbeddingCache,
@@ -25,8 +26,6 @@ import type {
   RubricId,
   ScoreDistribution,
 } from './types.js';
-
-const DEFAULT_CONFIDENCE_BANDS: ConfidenceBands = { act: 0.8, review: 0.5, block: 0 };
 
 export interface JudgmentProvenance {
   modelDigest?: string;
@@ -185,25 +184,26 @@ export function createDecider(deps: DecideDeps): Decider {
   const decide = async (request: DecideRequest): Promise<DecideResult> => {
     const contextPointer = (await deps.embeddingCache.write(request.context)) as EmbeddingPointer;
     // Phase 5 short-circuit at the query-composition layer: once a safety-floor
-    // head (injection/assertion, high/critical criticality) crosses the veto
-    // trigger, no remaining query can change the router decision (block) —
-    // they are omitted from the judge call and reported `skipped: true`.
-    const VETO_TRIGGER = 0.8;
+    // head (injection/assertion, high/critical criticality) reaches the top
+    // confidence band, no remaining query can change the router decision (block) —
+    // they are omitted from the judge call and reported `skipped: true`. The
+    // trigger is the band's own threshold rather than a number spelled here, so
+    // the short-circuit cannot sit below the band it exists to reach.
     const propositions: JudgmentProposition[] = [];
     let shortCircuited = false;
-    for (const [i, slice] of chunk(request.queries, chunkSize).entries()) {
+    for (const slice of chunk(request.queries, chunkSize)) {
       if (shortCircuited) break;
-      const end = i + slice.length;
       const batch = await deps.judge(contextPointer, slice, request.budget);
       propositions.push(...batch);
-      shortCircuited = request.queries
-        .slice(i, end)
-        .some(
-          (q, j) =>
-            isSafetyFloor(q) &&
-            !batch[j]?.abstained &&
-            (batch[j] as { score: number }).score >= VETO_TRIGGER
-        );
+      // Over the chunk just judged, not a re-slice of the whole request: `i` was a
+      // chunk index used as a query offset, so from the second chunk on this tested
+      // the wrong queries against the wrong propositions.
+      shortCircuited = slice.some(
+        (query, j) =>
+          isSafetyFloor(query) &&
+          !batch[j]?.abstained &&
+          (batch[j] as { score: number }).score >= DEFAULT_CONFIDENCE_BANDS.act
+      );
     }
     const embedding = deps.embeddingCache.read(contextPointer);
     const contrastive = contrastiveScore(deps.contrastive, embedding, request.contrastiveRubric);
@@ -216,7 +216,7 @@ export function createDecider(deps: DecideDeps): Decider {
         !proposition.abstained &&
         proposition.kind === 'evaluate' &&
         isSafetyFloor(query) &&
-        proposition.score >= VETO_TRIGGER;
+        proposition.score >= DEFAULT_CONFIDENCE_BANDS.act;
       return {
         query,
         proposition,
@@ -292,21 +292,14 @@ export function createDecider(deps: DecideDeps): Decider {
       : await deps.judge(contextPointer, [query], request.budget);
 
     // Per-candidate contrastive penalties (CLM hard-negative proximity).
-    const penalties: Record<string, number> = {};
-    const vetoes: string[] = [];
-    const floor = request.verificationFloor ?? 0;
-    for (const candidate of candidates) {
-      try {
-        const pointer = (await deps.embeddingCache.write(candidate)) as EmbeddingPointer;
-        const verdict = contrastiveScore(deps.contrastive, deps.embeddingCache.read(pointer));
-        if (verdict.penalty !== undefined) {
-          penalties[candidate] = verdict.penalty;
-          if (verdict.score !== undefined && verdict.score < floor) vetoes.push(candidate);
-        }
-      } catch {
-        // Unembeddable candidate — no penalty, no veto
-      }
-    }
+    const { penalties: proximity, belowFloor } = await candidateProximity(
+      deps.contrastive,
+      deps.embeddingCache,
+      candidates,
+      request.verificationFloor ?? 0
+    );
+    const penalties = Object.fromEntries(proximity);
+    const vetoes = [...belowFloor];
 
     const base =
       preScored ?? (proposition?.kind === 'classify' ? proposition.distribution : undefined);

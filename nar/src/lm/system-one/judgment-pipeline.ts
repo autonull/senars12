@@ -4,20 +4,19 @@
  * HEAD_SPECS already declarative; pipeline adds composition + digest, does not replace the table.
  */
 
-import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
-import type { CognitiveAxis, HeadResult } from '../../decision/types.js';
+import { shortSha256Hex } from '@senars/util';
+import type { HeadResult } from '../../decision/types.js';
+import { HEAD_SPECS, headSpecsInGroup } from './head-ontology.js';
 import {
   type CalibrationVersion,
   createHead,
   type EmbeddingCache,
-  HEAD_SPECS,
   type HeadFactoryOptions,
   type HeadGroup,
   type HeadId,
-  HeadSpec,
   type JudgmentQuery,
 } from './head-specs.js';
-import type { BandDecision } from './policy.js';
+import { type BandDecision, DEFAULT_CONFIDENCE_BANDS } from './policy.js';
 
 export interface PipelineStage {
   readonly group: HeadGroup;
@@ -72,31 +71,36 @@ export interface JudgmentPipelineResult {
   readonly stageResults: Map<HeadGroup, PipelineHeadResult[]>;
 }
 
-/** Default pipeline stages matching HEAD_SPECS groups. */
-export const DEFAULT_PIPELINE_STAGES: readonly PipelineStage[] = [
-  {
-    group: 'ingress',
-    heads: ['task_type', 'illocution', 'injection', 'ambiguity', 'tense', 'source_quality'],
-    router: 'confidence',
-  },
-  {
-    group: 'action',
-    heads: ['tool_dispatch', 'risk', 'feasibility', 'strategy', 'reflex_value'],
-    router: 'cascade',
-    cascadeThreshold: 0.7,
-  },
-  {
-    group: 'synthesis',
-    heads: ['candidate_select', 'plausibility', 'assertion', 'conflict', 'groundedness'],
-    router: 'consensus',
-  },
-  { group: 'memory', heads: ['relevance', 'episodic_match', 'novelty'], router: 'confidence' },
-] as const;
+/** Scores below this in a cascade stage abstain instead of being judged. */
+const CASCADE_THRESHOLD = 0.7;
 
-/** Default bands for router. */
+const stageFor = (
+  group: HeadGroup,
+  router: NonNullable<PipelineStage['router']>,
+  cascadeThreshold?: number
+): PipelineStage => ({
+  group,
+  heads: headSpecsInGroup(group).map((spec) => spec.rubric as HeadId),
+  router,
+  cascadeThreshold,
+});
+
+/** One stage per head group, in ontology order. The stage heads were a hand-written
+ *  list of every rubric beside the table that already groups them, so a head added to
+ *  a group joined the ontology and not the pipeline. */
+export const DEFAULT_PIPELINE_STAGES: readonly PipelineStage[] = [
+  stageFor('ingress', 'confidence'),
+  stageFor('action', 'cascade', CASCADE_THRESHOLD),
+  stageFor('synthesis', 'consensus'),
+  stageFor('memory', 'confidence'),
+];
+
+/** Default bands for router. The two graded rungs are the confidence router's own
+ *  thresholds; below `review` this pipeline abstains rather than blocking, which is
+ *  its own policy and the reason it keeps a rung of its own. */
 export const DEFAULT_PIPELINE_BANDS: readonly BandConfig[] = [
-  { name: 'act', threshold: 0.8, action: 'act' },
-  { name: 'review', threshold: 0.5, action: 'review' },
+  { name: 'act', threshold: DEFAULT_CONFIDENCE_BANDS.act, action: 'act' },
+  { name: 'review', threshold: DEFAULT_CONFIDENCE_BANDS.review, action: 'review' },
   { name: 'block', threshold: 0.3, action: 'block' },
   { name: 'abstain', threshold: 0, action: 'abstain' },
 ] as const;
@@ -161,7 +165,7 @@ export class JudgmentPipeline {
       const stageQueries = queries.filter((q) => stage.heads.includes(q.rubric as HeadId));
       if (stageQueries.length === 0) continue;
 
-      const stageProps = await this.judgeStage(stage, embedding, stageQueries);
+      const stageProps = await this.judgeStage(embedding, stageQueries);
       stageResults.set(stage.group, stageProps);
       allPropositions.push(...stageProps);
     }
@@ -177,7 +181,6 @@ export class JudgmentPipeline {
   }
 
   private async judgeStage(
-    stage: PipelineStage,
     embedding: Float32Array,
     queries: JudgmentQuery[]
   ): Promise<PipelineHeadResult[]> {
@@ -216,7 +219,7 @@ export class JudgmentPipeline {
     });
 
     if (type === 'cascade') {
-      const threshold = this.spec.router.cascadeThreshold ?? 0.7;
+      const threshold = this.spec.router.cascadeThreshold ?? CASCADE_THRESHOLD;
       return propositions.map((p) =>
         p.abstained || p.score < threshold
           ? {

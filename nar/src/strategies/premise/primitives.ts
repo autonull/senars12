@@ -5,7 +5,7 @@ import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';
 import { LINK_LAYER } from '../../memory/links/types.js';
 import type { MemoryView } from '../../memory/view.js';
 import type { Term } from '../../terms';
-import { getPredicate, getSubject, Stamp, sharesSymbol, TermMap, termsEqual } from '../../terms';
+import { Stamp, sharesSymbol, TermMap, termsEqual } from '../../terms';
 import type { Task } from '../../types';
 import { ConfigurationError, createSecondaryTask } from '../../types';
 

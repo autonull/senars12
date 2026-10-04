@@ -17,6 +17,7 @@ export {
 export * from './eval-set.js';
 export * from './groundedness-gate.js';
 export * from './hard-negatives.js';
+export * from './head-ontology.js';
 export * from './heads/index.js';
 export * from './http-endpoint.js';
 export * from './http-manifold.js';

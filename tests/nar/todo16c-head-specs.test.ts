@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  HEAD_SPECS,
+  createAllHeads,
   createHead,
   createHeadsForGroup,
   createHeadById,
@@ -8,12 +8,20 @@ import {
   actionQueries,
   selectQuery,
 } from '../../nar/src/lm/system-one/head-specs.js';
+import {
+  ALL_HEAD_SPECS,
+  headRubrics,
+  HEAD_SPECS,
+  headSpecsInGroup,
+} from '../../nar/src/lm/system-one/head-ontology.js';
+import { createDefaultCalibrationSuite } from '../../nar/src/lm/system-one/calibration.js';
+import { DEFAULT_PIPELINE_STAGES } from '../../nar/src/lm/system-one/judgment-pipeline.js';
 import * as headsNs from '../../nar/src/lm/system-one/heads/index.js';
 import * as systemOneNs from '../../nar/src/lm/system-one/index.js';
 import { findKnobSpec, KNOB_SPECS, createKnobSet } from '../../nar/src/rlfp/knobs.js';
 import type { HeadFactoryOptions } from '../../nar/src/lm/system-one/heads/factory.js';
 import type { JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
-import type { HeadSpec } from '../../nar/src/lm/system-one/head-specs.js';
+import type { HeadSpec } from '../../nar/src/lm/system-one/head-ontology.js';
 
 const makeOptions = (): HeadFactoryOptions => ({
   calibrationVersion: 'v1.0.0' as never,
@@ -101,6 +109,27 @@ describe('Bench 25 — Declarative Registry Equivalence', () => {
     expect((queries[2] as { rubric: string }).rubric).toBe('injection');
     expect((queries[2] as { criticality: string }).criticality).toBe('critical');
     expect(actionQueries()).toHaveLength(5);
+  });
+
+  it('one calibrator per head, and every head in exactly one pipeline stage', () => {
+    // The calibration suite and the pipeline stages used to carry hand-written lists
+    // of the rubrics beside this table. Those had already drifted: `feasibility` was
+    // listed twice and `episodic_match` not at all, so a head had no calibrator and a
+    // rubric had two.
+    const rubrics = headRubrics();
+    expect(new Set(rubrics).size).toBe(rubrics.length);
+    expect([...rubrics].sort()).toEqual(Object.keys(HEAD_SPECS).sort());
+
+    const suite = createDefaultCalibrationSuite('v1.0.0' as never);
+    expect(suite.size).toBe(rubrics.length);
+    for (const rubric of rubrics) expect(suite.has(rubric)).toBe(true);
+
+    const staged = DEFAULT_PIPELINE_STAGES.flatMap((stage) => stage.heads);
+    expect([...staged].sort()).toEqual(rubrics.slice().sort());
+    for (const spec of ALL_HEAD_SPECS) {
+      const owning = headSpecsInGroup(spec.group);
+      expect(owning.some((s) => s.rubric === spec.rubric)).toBe(true);
+    }
   });
 
   it('selectQuery builds a teleological classify query from the candidate space', () => {
