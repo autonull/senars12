@@ -1,3 +1,4 @@
+import type { TermTruth } from '@senars/util';
 import type { Truth } from '../terms/impls/Truth.js';
 import type { Task } from '../types/core.js';
 
@@ -17,7 +18,7 @@ export type ScenarioProfile =
 export interface OracleExpectation {
   targetTerm: string;
   expectedTruth: Truth;
-  tolerance: { f: number; c: number };
+  tolerance: TermTruth;
   stepsToConverge: number;
   validator: string;
 }

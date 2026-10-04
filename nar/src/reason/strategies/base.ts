@@ -1,3 +1,4 @@
+import type { TermTruth } from '@senars/util';
 import type { Concept } from '../../memory/concept.js';
 import type { FilterSpec, SampleConfig } from '../../strategies/premise/primitives';
 import { samplePremisesFromConfig } from '../../strategies/premise/primitives';
@@ -14,7 +15,7 @@ type StrategyConfig = Pick<
   /** One-off concept predicate, composed with `filters`. */
   filter?: (concept: Concept, task: Task) => boolean;
   /** One-off truth predicate, composed with the pipeline. */
-  truthFilter?: (truth: { f: number; c: number }, task: Task) => boolean;
+  truthFilter?: (truth: TermTruth, task: Task) => boolean;
 };
 
 /** Named premise strategies are compositions of the source/scorer/filter primitives. */

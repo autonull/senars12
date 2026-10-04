@@ -1,4 +1,4 @@
-import { errMsg, stopwatch, withTimeout } from '@senars/util';
+import { errMsg, stopwatch, type TermTruth, withTimeout } from '@senars/util';
 import type { ZodSchema } from 'zod';
 import type { Term } from '../../terms';
 import { Truth } from '../../terms';
@@ -558,7 +558,7 @@ export class LMRule {
 
   private generateTasksFromStructured(output: Record<string, unknown>, primary: Term): Task[] {
     if (Array.isArray(output?.tasks)) {
-      return (output.tasks as Array<{ narsese: string; truth?: { f: number; c: number } }>).map(
+      return (output.tasks as Array<{ narsese: string; truth?: TermTruth }>).map(
         (t) => {
           const parsed = LMResponseParser.parse(t.narsese);
           return createTask(

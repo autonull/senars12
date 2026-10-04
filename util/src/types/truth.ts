@@ -59,6 +59,19 @@ export const weakenConfidence = (c: number, factor: number): number =>
  *  `Truth` wraps it, and the half of {@link TruthLike} that has no declared name. */
 export type TermTruth = { f: number; c: number };
 
+/**
+ * The runtime guard for {@link TermTruth}, paired with {@link BeliefTruthSchema}.
+ *
+ * The `f`/`c` pair crosses an untrusted boundary wherever an LM's structured
+ * output or a remote manifold's reply carries truth, and those crossings had
+ * spelled the object out inline — twice in one validator, without the `0..1`
+ * bound the belief side has always declared.
+ */
+export const TermTruthSchema = z.object({
+  f: z.number().min(0).max(1),
+  c: z.number().min(0).max(1),
+});
+
 /** Either truth shape in the system: a `Truth` value (f/c) or a belief's truth (frequency/confidence). */
 export type TruthLike = TermTruth | BeliefTruth;
 
@@ -109,7 +122,7 @@ const TRUTH_LITERAL = /%\s*(\d*\.?\d+)\s*;\s*(\d*\.?\d+)\s*%/;
  * not a grammar — the leading space is presentation and any number of decimals
  * parses — so a caller must not be stricter than the writer is.
  */
-export function parseNarseseTruth(text: string): { f: number; c: number } | undefined {
+export function parseNarseseTruth(text: string): TermTruth | undefined {
   const match = text.match(NARSESE_TRUTH);
   return match?.[1] && match[2] ? { f: Number(match[1]), c: Number(match[2]) } : undefined;
 }
@@ -121,7 +134,7 @@ export function serializeTruth(truth: TruthLike, fractionDigits = 4): string {
 }
 
 /** Reads back what {@link serializeTruth} writes, tolerating the whitespace a term's punctuation leaves. */
-export function parseTruthLiteral(text: string): { f: number; c: number } | undefined {
+export function parseTruthLiteral(text: string): TermTruth | undefined {
   const match = text.match(TRUTH_LITERAL);
   return match?.[1] && match[2] ? { f: Number(match[1]), c: Number(match[2]) } : undefined;
 }
@@ -133,7 +146,7 @@ export function parseTruthLiteral(text: string): { f: number; c: number } | unde
  */
 export function stripTruthSuffix(text: string): {
   text: string;
-  truth?: { f: number; c: number };
+  truth?: TermTruth;
 } {
   const literal = text.match(TRUTH_LITERAL);
   if (literal) {

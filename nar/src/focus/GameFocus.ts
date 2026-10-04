@@ -3,15 +3,16 @@ import type { DerivationRecord, ReasoningBudget } from '@senars/core/schemas';
 import {
   asBeliefTruth,
   BoundedRing,
+  type Clock,
   clamp,
   clampSigned,
-  type Clock,
   ensureDirSync,
   makeId,
   maxBy,
   safeRatio,
   sumBy,
   systemClock,
+  type TermTruth,
 } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
@@ -30,9 +31,9 @@ import { type ActionProposal, LearningEvent, type Reflex } from '../reflex/Refle
 import { recordBagPressure, recordHandover } from '../telemetry/index.js';
 import type { NarEventBus } from '../types/events.js';
 import { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding.js';
-import { outcomeTasks, proposalTasks } from './task.js';
 import { induceEpisodeSchemas, type PromotedSchema } from './episode-schemas.js';
 import { Focus, type FocusOptions } from './Focus.js';
+import { outcomeTasks, proposalTasks } from './task.js';
 
 const GameTraceEntrySchema = BaseLedgerEntrySchema.extend({
   cycle: z.number(),
@@ -145,7 +146,7 @@ export class GameFocus {
     cycle: number;
     action: string;
     vetoReason: string;
-    derivation: { action: string; truth: { f: number; c: number }; source: string };
+    derivation: { action: string; truth: TermTruth; source: string };
   }> = [];
   private episodeVetoCounts: number[] = [];
   private currentEpisodeVetos = 0;
@@ -237,12 +238,7 @@ export class GameFocus {
   }
 
   /** E7: seed a rule belief `(action ==> consequence)` into the focus's task bag. */
-  seedRule(
-    action: string,
-    consequence: string,
-    truth: { f: number; c: number },
-    priority?: number
-  ): void {
+  seedRule(action: string, consequence: string, truth: TermTruth, priority?: number): void {
     seedBelief(this.focus, actionRuleBelief(action, consequence, truth, priority));
   }
 
@@ -740,7 +736,7 @@ export class GameFocus {
       cycle: number;
       action: string;
       vetoReason: string;
-      derivation: { action: string; truth: { f: number; c: number }; source: string };
+      derivation: { action: string; truth: TermTruth; source: string };
     }>;
   } {
     const totalEpisodes = this.episodeVetoCounts.length + (this.currentEpisodeVetos > 0 ? 1 : 0);

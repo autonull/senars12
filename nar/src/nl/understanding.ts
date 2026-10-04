@@ -10,6 +10,7 @@ import {
   makeId,
   pct,
   stableStringify,
+  type TermTruth,
   withDeadline,
 } from '@senars/util';
 import type { ZodSchema } from 'zod';
@@ -245,7 +246,7 @@ export class NLUnderstandingService {
   private extractNarseseFromText(text: string, input: string): TaskBatch {
     const beliefs: Array<{
       narsese: string;
-      truth?: { f: number; c: number };
+      truth?: TermTruth;
       source: 'user' | 'inferred';
     }> = [];
     const questions: Array<{ narsese: string; context?: string }> = [];

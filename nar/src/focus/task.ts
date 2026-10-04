@@ -9,7 +9,7 @@
  * and all three projections so the vocabulary has a single home.
  */
 
-import { type Clock, clamp01, systemClock } from '@senars/util';
+import { type Clock, clamp01, systemClock, type TermTruth } from '@senars/util';
 import type { BagItem } from '../bag/Bag.js';
 import type { GameOutcome, Perception } from '../game/Game.js';
 import type { ActionProposal } from '../reflex/Reflex.js';
@@ -21,7 +21,7 @@ import type { Budget } from '../types/index.js';
 export interface FocusTask extends BagItem {
   term: Term;
   type: 'belief' | 'goal' | 'question';
-  truth: { f: number; c: number };
+  truth: TermTruth;
   budget: Budget;
   stamp: string;
   derived: boolean;
@@ -30,7 +30,7 @@ export interface FocusTask extends BagItem {
 export interface FocusConcept extends BagItem {
   term: Term;
   /** Truth of the belief that created the concept (drives NAL derivation truth). */
-  truth?: { f: number; c: number };
+  truth?: TermTruth;
   activation: number;
   totalTasks: number;
 }
@@ -96,13 +96,15 @@ const batch = (clock: Clock, source: string) => {
   const now = clock();
   return {
     stamp: (...parts: string[]): string => [source, ...parts, String(now)].join('-'),
-    id: (prefix: string, key?: string): string =>
-      (key ? `${prefix}-${key}` : prefix) + `-${now}`,
+    id: (prefix: string, key?: string): string => (key ? `${prefix}-${key}` : prefix) + `-${now}`,
   };
 };
 
 /** A game observation as the state belief plus one belief per numeric feature. */
-export const perceptionTasks = (perception: Perception, clock: Clock = systemClock): FocusTask[] => {
+export const perceptionTasks = (
+  perception: Perception,
+  clock: Clock = systemClock
+): FocusTask[] => {
   const { id, stamp } = batch(clock, 'perception');
   const confidence = perception.confidence ?? DEFAULT_PERCEPTION_CONFIDENCE;
   const tasks: FocusTask[] = [

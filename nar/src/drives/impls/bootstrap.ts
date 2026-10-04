@@ -1,4 +1,4 @@
-import { parseNarseseTruth } from '@senars/util';
+import { parseNarseseTruth, type TermTruth } from '@senars/util';
 import type { TaskType } from '../../types';
 
 export interface BootstrapGoal {
@@ -28,7 +28,7 @@ export const BOOTSTRAP_GOALS: BootstrapGoal[] = [
 export function createBootstrapTasks(): Array<{
   term: string;
   type: TaskType;
-  truth?: { f: number; c: number };
+  truth?: TermTruth;
 }> {
   return BOOTSTRAP_GOALS.map((g) => ({
     term: g.narsese,

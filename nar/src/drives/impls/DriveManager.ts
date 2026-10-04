@@ -1,4 +1,4 @@
-import { clamp01, formatNarseseTruth, lerp, maxScore, meanOf } from '@senars/util';
+import { clamp01, formatNarseseTruth, lerp, maxScore, meanOf, type TermTruth } from '@senars/util';
 import type { IDriveManager } from '../../kernel/interfaces.js';
 import { Truth, type Truth as TruthType } from '../../terms/impls/Truth.js';
 import type { EventBus as InternalEventBus } from '../../types/events.js';
@@ -82,7 +82,7 @@ export class DriveManager implements IDriveManager {
     );
   }
 
-  private injectDriveGoal(spec: DriveSpec, truth: { f: number; c: number }): void {
+  private injectDriveGoal(spec: DriveSpec, truth: TermTruth): void {
     const narsese = `(self-->${spec.goalProperty})!${formatNarseseTruth(truth)}`;
     this.nar.input(narsese, 'goal', Truth.create(truth.f, truth.c));
   }

@@ -1,5 +1,5 @@
 import { verifyRecord } from '@senars/core/verify-derivation';
-import { cachePath, createLogger } from '@senars/util';
+import { cachePath, createLogger, type TermTruth } from '@senars/util';
 import {
   type CognitiveParameters,
   FAST_COGNITIVE_CONFIG,
@@ -31,7 +31,7 @@ export interface CognitiveAgentConfig {
 
 export interface AnswerEnvelope {
   conclusion: string;
-  truth: { f: number; c: number };
+  truth: TermTruth;
   reputation: number;
 }
 

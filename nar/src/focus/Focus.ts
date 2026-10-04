@@ -1,4 +1,4 @@
-import { type Clock, clamp01, getOrInsert, systemClock } from '@senars/util';
+import { type Clock, clamp01, getOrInsert, systemClock, type TermTruth } from '@senars/util';
 import type { Bag, BagItem } from '../bag/Bag.js';
 import { createBag } from '../bag/index.js';
 import type { Game } from '../game/Game.js';
@@ -180,7 +180,7 @@ export class Focus implements BagItem {
     return { count: processed, derivations, beliefs, goals, questions };
   }
 
-  private addConcept(term: Term, truth: { f: number; c: number }, priority: number): void {
+  private addConcept(term: Term, truth: TermTruth, priority: number): void {
     const id = term.toString();
     let concept = this.findConcept(id);
     if (concept) {

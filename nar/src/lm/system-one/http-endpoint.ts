@@ -1,3 +1,4 @@
+import type { TermTruth } from '@senars/util';
 import { z } from 'zod';
 import { seedTruth } from './seed.js';
 import type {
@@ -81,7 +82,7 @@ export async function handleSystemOneRequest(
 export function admitRemotePropositions(
   propositions: readonly JudgmentProposition[],
   sourceQuality: 'LLM_PRIOR' | 'GENERAL' | 'PEER_AGENT'
-): { proposition: JudgmentProposition; truth?: { f: number; c: number } }[] {
+): { proposition: JudgmentProposition; truth?: TermTruth }[] {
   return propositions.map((p) => ({
     proposition: p,
     // Abstained propositions carry no seeded truth (§6.4)

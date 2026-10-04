@@ -1,4 +1,5 @@
 import type { BudgetEventMap } from '@senars/core/budget';
+import type { TermTruth } from '@senars/util';
 import type { Term, Truth } from '../terms';
 
 /**
@@ -35,7 +36,7 @@ export interface Coreference {
 export interface TaskBatch {
   beliefs: Array<{
     narsese: string;
-    truth?: { f: number; c: number };
+    truth?: TermTruth;
     source: 'user' | 'inferred';
     sourceText?: string;
   }>;

@@ -1,4 +1,4 @@
-import { serializeTruth } from '@senars/util';
+import { serializeTruth, type TermTruth } from '@senars/util';
 import type { TranslationCacheEntry } from '../cache.js';
 
 const NARSESE_GRAMMAR = `Narsese syntax:
@@ -53,7 +53,7 @@ const SEED_EXAMPLES: TranslationCacheEntry[] = [
     timestamp: 0,
   },
 ];
-const truthSuffix = (t?: { f: number; c: number }): string => (t ? ` ${serializeTruth(t)}` : '');
+const truthSuffix = (t?: TermTruth): string => (t ? ` ${serializeTruth(t)}` : '');
 
 function formatExamples(entries: TranslationCacheEntry[]): string {
   if (entries.length === 0) return '';

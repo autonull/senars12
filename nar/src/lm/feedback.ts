@@ -1,16 +1,24 @@
-import { BoundedRing, clamp01, createLogger, errMsg, formatTruth } from '@senars/util';
+import {
+  BoundedRing,
+  clamp01,
+  createLogger,
+  errMsg,
+  formatTruth,
+  type TermTruth,
+  TermTruthSchema,
+} from '@senars/util';
 import { z } from 'zod';
 import type { GateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { TermMap, Truth } from '../terms';
 import { createTask, type Task } from '../types';
-import { lmTaskWeight } from './task-weights.js';
 import { admitTasks } from './admit.js';
 import { topBeliefTasks } from './context.js';
 import { parseEnrichmentResponse } from './enrichment.js';
 import { parseJsonWith } from './json.js';
 import type { LMService } from './lm-service.js';
+import { lmTaskWeight } from './task-weights.js';
 
 /** Drop-oldest bound on the pattern history kept for later LM context. */
 const RECENT_PATTERN_LIMIT = 20;
@@ -20,14 +28,14 @@ const ValidationSchema = z.object({
   novelty: z.number().optional(),
   utility: z.number().optional(),
   explanation: z.string().optional(),
-  revisedTruth: z.object({ f: z.number(), c: z.number() }).optional(),
+  revisedTruth: TermTruthSchema.optional(),
 });
 
 const ContradictionSchema = z.object({
   explanation: z.string().optional(),
   resolution: z.enum(['merge', 'reject-one', 'keep-both', 'revise']),
   revisedNarsese: z.string().optional(),
-  revisedTruth: z.object({ f: z.number(), c: z.number() }).optional(),
+  revisedTruth: TermTruthSchema.optional(),
 });
 
 const PatternsSchema = z.object({
@@ -172,7 +180,7 @@ export class BidirectionalFeedbackLoop {
   }
 
   private reviseTruth(
-    revised: { f: number; c: number } | undefined,
+    revised: TermTruth | undefined,
     current: Truth | undefined,
     result: 'confirmed' | 'contradicted' | 'inconclusive'
   ): Truth | undefined {

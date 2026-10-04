@@ -1,4 +1,4 @@
-import { collectUpTo } from '@senars/util';
+import { collectUpTo, type TermTruth } from '@senars/util';
 import { GRAPH_MEMORY, type RecallHit } from '../../memory/associative.js';
 import type { Concept } from '../../memory/concept.js';
 import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';
@@ -233,7 +233,7 @@ export interface SampleConfig {
   /** Escape hatch for one-off predicates; composed with `filters`, never replaces them. */
   where?: (task: Task, concept: Concept) => boolean;
   /** Escape hatch for truth-value predicates. */
-  whereTruth?: (task: Task, truth: { f: number; c: number }) => boolean;
+  whereTruth?: (task: Task, truth: TermTruth) => boolean;
 }
 
 /**

@@ -2,6 +2,7 @@
  * System One ingress — natural language in, calibrated judgments out.
  * Run: `pnpm tsx examples/systemone-ingress.ts`
  */
+import type { TermTruth } from '@senars/util';
 import { createNAR } from '../nar/src/nar-presets.js';
 
 const nar = createNAR({
@@ -22,7 +23,7 @@ console.log('Feeding a raw English sentence through the perception gate...');
 await nar.input('the robin is a bird');
 
 for (const belief of nar.getBeliefs()) {
-  const t = (belief as { term: { toString(): string }; truth?: { f: number; c: number } }).truth;
+  const t = (belief as { term: { toString(): string }; truth?: TermTruth }).truth;
   const term = (belief as { term: { toString(): string } }).term.toString();
   console.log(`belief: ${term} f=${t?.f.toFixed(2)} c=${t?.c.toFixed(2)}`);
 }

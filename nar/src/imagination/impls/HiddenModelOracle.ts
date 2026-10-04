@@ -1,4 +1,4 @@
-import { mulberry32 } from '@senars/util';
+import { mulberry32, type TermTruth } from '@senars/util';
 import { isTruthEqual, Truth } from '../../terms/impls/Truth.js';
 import type { HiddenRule, OracleExpectation, ScenarioProfile } from '../types.js';
 
@@ -39,7 +39,7 @@ export class HiddenModelOracle {
   evaluateRecovery(
     derivedTruth: Truth,
     expectedTruth: Truth,
-    tolerance: { f: number; c: number }
+    tolerance: TermTruth
   ): {
     passed: boolean;
     fError: number;

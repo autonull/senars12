@@ -1,4 +1,5 @@
 import type { SourceQuality } from '@senars/core/schemas/truth';
+import type { TermTruth } from '@senars/util';
 import type { TaskTypeName } from '../terms';
 
 /**
@@ -24,7 +25,7 @@ export interface IngressVerdict {
   sourceQuality?: SourceQuality;
   /** Final admission confidence (source-quality ceiling applied). */
   confidence: number;
-  truth: { f: number; c: number };
+  truth: TermTruth;
 }
 
 export interface IngressJudge {

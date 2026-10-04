@@ -1,4 +1,4 @@
-import { clamp01, createLogger, safeRatio, stopwatch } from '@senars/util';
+import { clamp01, createLogger, safeRatio, stopwatch, type TermTruth } from '@senars/util';
 import type { ILMService } from '../../lm/interfaces.js';
 import { NLUnderstandingService } from '../../nl/understanding.js';
 import type { ScenarioProfile, ScenarioTemplateProfile } from './scenario-profiles.js';
@@ -13,7 +13,7 @@ export interface ScenarioInjectEvent {
   interval?: number;
   maxDerivationsPerStep?: number;
   narsese?: string;
-  truth?: { f: number; c: number };
+  truth?: TermTruth;
   priority?: number;
 }
 

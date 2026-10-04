@@ -136,6 +136,8 @@
 
 - `stripTruthSuffix` — A Narsese sentence split into its term and the truth suffix it carries, if
 
+- `TermTruthSchema` — The runtime guard for {@link TermTruth}, paired with {@link BeliefTruthSchema}.
+
 - `toConfidence`
 
 - `toFrequency`
@@ -218,6 +220,10 @@
 
 - `pushCapped` — Drop-oldest push for plain arrays. One `shift()` per overflow — no `splice`
 
+- `type RankOptions`
+
+- `rankBy` — Descending copy ranked by a derived numeric key — never mutates the input.
+
 - `removeBy` — Remove and return the first match, or `undefined` when nothing matched — and
 
 - `removeFromSet` — Remove from a per-key set, dropping the key once its set empties — otherwise an
@@ -231,10 +237,6 @@
 - `shareOf` — The first `fraction` of `items`, at least `count` and never all of them.
 
 - `sortBy` — Ascending copy sorted by a derived numeric key — never mutates the input.
-
-- `rankBy` — Descending copy ranked by a derived numeric key — never mutates the input.
-
-- `type RankOptions`
 
 - `splitKey` — The `parts` of a key {@link joinKey} wrote. Throws rather than returning
 

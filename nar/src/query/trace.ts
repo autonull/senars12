@@ -1,8 +1,8 @@
+import { BoundedMap, pct, type TermTruth, unique } from '@senars/util';
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
 import { Truth } from '../terms';
 import type { Budget, Stamp, Task } from '../types';
-import { BoundedMap, pct, unique } from '@senars/util';
 
 export interface DerivationNode {
   task: Task;
@@ -33,7 +33,7 @@ export interface ExplainResult {
 }
 
 interface BeliefEntry {
-  truth?: { f: number; c: number };
+  truth?: TermTruth;
   budget?: Budget;
   stamp?: Stamp;
   occurrenceTime?: number;

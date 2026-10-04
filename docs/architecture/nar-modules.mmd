@@ -23,7 +23,6 @@ graph TD
   focus["focus"]
   game["game"]
   game_impls["game/impls"]
-  gates["gates"]
   governance["governance"]
   health["health"]
   imagination["imagination"]
@@ -211,7 +210,6 @@ graph TD
   focus --> bag
   focus --> game
   focus --> game_impls
-  focus --> gates
   focus --> kernel
   focus --> learning
   focus --> lm_system-one
@@ -235,10 +233,6 @@ graph TD
   game_impls --> learning
   game_impls --> meta
   game_impls --> types
-  gates --> focus
-  gates --> game
-  gates --> reflex
-  gates --> types
   governance --> focus
   governance --> game_impls
   governance --> rlfp

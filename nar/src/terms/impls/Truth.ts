@@ -1,7 +1,7 @@
 import {
-  confidenceToWeight,
   type Confidence,
   clamp,
+  confidenceToWeight,
   type Frequency,
   formatTruth,
   nearlyEqual,
@@ -9,8 +9,9 @@ import {
   safeDiv,
   serializeTruth,
   softSquash,
-  weightToConfidence,
+  type TruthLike,
   weakenConfidence,
+  weightToConfidence,
 } from '@senars/util';
 
 export interface Truth {
@@ -109,10 +110,7 @@ const truthOps = {
 export const Truth = {
   create: createTruth,
   normalize: normalizeTruth,
-  fromUnknown: (
-    t: { f: number; c: number } | { frequency: number; confidence: number } | undefined,
-    fallback: Truth = NEUTRAL_TRUTH
-  ): Truth => {
+  fromUnknown: (t: TruthLike | undefined, fallback: Truth = NEUTRAL_TRUTH): Truth => {
     if (!t) return fallback;
     return 'f' in t && 'c' in t ? (t as Truth) : normalizeTruth(t.frequency, t.confidence);
   },

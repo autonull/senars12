@@ -1,12 +1,12 @@
-import { makeId } from '@senars/util';
-import { focusTask } from './task.js';
+import { makeId, type TermTruth } from '@senars/util';
 import { termParser } from '../terms/index.js';
 import type { Focus, FocusTask } from './Focus.js';
+import { focusTask } from './task.js';
 
 export interface SeededBelief {
   /** Narsese, e.g. `(up ==> wall_bump)`. The antecedent atom names the action. */
   narsese: string;
-  truth: { f: number; c: number };
+  truth: TermTruth;
   priority?: number;
 }
 
@@ -31,6 +31,6 @@ export function seedBelief(focus: Focus, belief: SeededBelief): FocusTask | null
 export const actionRuleBelief = (
   action: string,
   consequence: string,
-  truth: { f: number; c: number },
+  truth: TermTruth,
   priority?: number
 ): SeededBelief => ({ narsese: `(${action} ==> ${consequence})`, truth, priority });

@@ -1,4 +1,4 @@
-import { createLogger } from '@senars/util';
+import { createLogger, type TermTruth } from '@senars/util';
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
 import { hasVariable, Truth, termParser, termsEqual, unify, termKey } from '../terms';
@@ -181,7 +181,7 @@ export class QueryAPI {
   private createTaskFromBelief(
     term: Term,
     belief: {
-      truth?: { f: number; c: number };
+      truth?: TermTruth;
       stamp?: Stamp;
     },
     priority: number

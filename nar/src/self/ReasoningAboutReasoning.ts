@@ -1,4 +1,4 @@
-import { createLogger, errMsg, periodic } from '@senars/util';
+import { createLogger, errMsg, periodic, type TermTruth } from '@senars/util';
 import { MetacognitiveMonitor, MONITOR_DEFAULTS } from '../cognitive/impls/MetacognitiveMonitor.js';
 import {
   type MetaCognitiveResult,
@@ -10,7 +10,7 @@ import type { SelfHost } from '../self/host.js';
 
 export interface GapReport {
   missingRules: string[];
-  lowConfidenceBeliefs: Array<{ term: string; f: number; c: number }>;
+  lowConfidenceBeliefs: Array<{ term: string } & TermTruth>;
   repeatedFailures: string[];
 }
 

@@ -1,8 +1,8 @@
-import { selectTopN } from '@senars/util';
+import { selectTopN, type TermTruth } from '@senars/util';
 
 export interface RankableDerivation {
   term: { toString(): string };
-  truth?: { f: number; c: number } | null;
+  truth?: TermTruth | null;
 }
 
 export interface RankingOptions {

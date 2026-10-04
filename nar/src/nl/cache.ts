@@ -5,6 +5,7 @@ import {
   LruCache,
   periodic,
   readJsonFileSync,
+  type TermTruth,
   tokenizeWords,
   writeJsonFileSync,
 } from '@senars/util';
@@ -16,7 +17,7 @@ export interface TranslationCacheEntry {
 }
 
 export interface TranslationResult {
-  beliefs: Array<{ narsese: string; truth?: { f: number; c: number } }>;
+  beliefs: Array<{ narsese: string; truth?: TermTruth }>;
   questions: string[];
   goals: string[];
   summary: string;

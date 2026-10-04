@@ -1,12 +1,13 @@
 /**
- * Phase E (REFACTOR.todo2 §3): shared negotiation types — a dependency leaf
- * (no imports) so arbitration strategies, proposers, and the Negotiator can
- * interoperate without joining the Focus/Game import cycle.
+ * Phase E (REFACTOR.todo2 §3): shared negotiation types — a dependency leaf (no
+ * nar-internal imports) so arbitration strategies, proposers, and the Negotiator
+ * can interoperate without joining the Focus/Game import cycle.
  */
+import type { TermTruth } from '@senars/util';
 
 export interface NALDerivation {
   action: string;
-  truth: { f: number; c: number };
+  truth: TermTruth;
   source: string;
   /** Serialized premise term the derivation was indexed from (belief seeding, E7). */
   premise?: string;

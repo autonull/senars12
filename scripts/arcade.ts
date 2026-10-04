@@ -17,7 +17,7 @@
  * is a `Game` implementation + one GameSpec (name, description, actionLegend).
  */
 
-import { clamp01, mean, parseFlags, pct, stdDev } from '@senars/util';
+import { clamp01, mean, parseFlags, pct, stdDev, type TermTruth } from '@senars/util';
 import { startArcadeTickSpan } from '../nar/src/eval/arcade-trace.js';
 import { BrierHarness } from '../nar/src/eval/brier-harness.js';
 import { loadSession } from '../nar/src/eval/session-state.js';
@@ -83,7 +83,7 @@ const parseArgs = (): {
  * state-conditional (their legalActions already exclude illegal moves), so
  * they run rule-free and grow their own via schema induction (G2) instead.
  */
-const cognitiveRules: Partial<Record<string, Array<[string, string, { f: number; c: number }]>>> = {
+const cognitiveRules: Partial<Record<string, Array<[string, string, TermTruth]>>> = {
   // GridWorld 'S..' starts on the top row: moving up (0) bumps the wall.
   gridworld: [['0', 'wall_bump', { f: 0.1, c: 0.95 }]],
   // Bandit arm 0 is the known-worst arm (mean 0.2 vs 0.5/0.8): honest prior.
