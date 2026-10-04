@@ -94,7 +94,7 @@ export class JudgmentDataset {
   constructor(basePath: string, options: { rollover?: RolloverPolicyOptions } = {}) {
     this.#basePath = basePath;
     this.#ledger = createLedger<DistillationLabelEntry>(basePath, DistillationLabelEntrySchema, {
-      rollover: options.rollover ?? { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
+      rollover: options.rollover,
       hotRetentionMs: 5 * 60 * 1000,
     });
   }

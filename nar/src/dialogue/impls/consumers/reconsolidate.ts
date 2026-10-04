@@ -45,9 +45,7 @@ export class Reconsolidator {
     private readonly seed: LessonSeed,
     ledgerPath = './.cache/dialogue/reconsolidated'
   ) {
-    this.#ledger = createLedger<ReconsolidatedLedgerEntry>(ledgerPath, ReconsolidatedEntrySchema, {
-      rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
-    });
+    this.#ledger = createLedger<ReconsolidatedLedgerEntry>(ledgerPath, ReconsolidatedEntrySchema);
   }
 
   /** Load the digest ledger; missing/corrupt lines are skipped (best-effort). */

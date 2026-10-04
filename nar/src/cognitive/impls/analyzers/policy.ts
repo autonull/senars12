@@ -1,9 +1,10 @@
-import { flooredRatio, incrementCount, mean, pushCapped } from '@senars/util';
+import { flooredRatio, incrementCount, pushCapped } from '@senars/util';
 import type { MetricsCollector } from '../../../metrics';
 /**
  * Policy management - extracted from SelfAnalyzerService
  */
 import type { AgentPolicy } from '../../types.js';
+import { averageRuleDuration } from './performance.js';
 
 export interface PolicyManager {
   recordRoute(kind: string): void;
@@ -61,8 +62,7 @@ export const createPolicyManager = (recencyEpisodes: number): PolicyManager => {
       for (const [name, count] of toolCounts)
         toolSelectionBias[name] = Math.max(0.1, flooredRatio(count, recentTools.length));
 
-      const ruleStats = metrics?.getRuleStats?.();
-      const avgDuration = Array.isArray(ruleStats) ? mean(ruleStats, (r) => r.averageDuration) : 0;
+      const avgDuration = averageRuleDuration(metrics);
       const budget = avgDuration > 50 ? 1024 : 2048;
 
       policy = {

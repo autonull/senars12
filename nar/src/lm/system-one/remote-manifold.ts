@@ -1,4 +1,4 @@
-import { boundedSignal } from '@senars/util';
+import { withDeadline } from '@senars/util';
 import type {
   BackendId,
   ConsensusResult,
@@ -62,14 +62,17 @@ export function createRemoteManifold({
     const embedding = embeddingCache.read(sharedContext);
     if (!embedding) throw new Error(`Embedding not found for pointer ${sharedContext}`);
 
-    const { signal, done } = boundedSignal(timeoutMs);
     try {
-      const res = await fetchImpl(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(buildRequest(embedding, queries)),
-        signal,
-      });
+      const res = await withDeadline(
+        (signal) =>
+          fetchImpl(url, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(buildRequest(embedding, queries)),
+            signal,
+          }),
+        timeoutMs
+      );
       if (!res.ok) throw new Error(`${errorLabel} HTTP ${res.status}`);
       const propositions = parseResponse(await res.json(), queries);
       health.ready = true;
@@ -79,8 +82,6 @@ export function createRemoteManifold({
       health.ready = false;
       health.breakerOpen = true;
       throw e;
-    } finally {
-      done();
     }
   };
 

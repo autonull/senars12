@@ -296,8 +296,7 @@ export class ProviderRuntime {
       ensureDirSync(this.routingLogDir);
       (this as any).#routingLedger = createLedger<RoutingTelemetryLedgerEntry>(
         this.routingLogDir,
-        RoutingTelemetryEntrySchema,
-        { rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 } }
+        RoutingTelemetryEntrySchema
       );
     } catch {
       // Silently fail

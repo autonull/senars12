@@ -47,23 +47,6 @@ export interface ToolRegistryDelegate {
   clear(): void;
 }
 
-interface RegistryTarget {
-  register(spec: ToolSpec): void;
-  unregister(name: string): void;
-  get(name: string): ToolSpec | undefined;
-  list(): ToolSpec[];
-  execute(
-    name: string,
-    args: Record<string, unknown>,
-    correlationId?: string,
-    signal?: AbortSignal
-  ): Promise<ToolResult>;
-  getFeedback(name: string): SkillFeedback | undefined;
-  getAllFeedback(): SkillFeedback[];
-  getRecentResults(limit: number): string;
-  clear(): void;
-}
-
 export class ToolRegistry {
   #tools = new Map<string, ToolSpec>();
   #feedbackObserver: ToolFeedbackObserver;
@@ -85,7 +68,7 @@ export class ToolRegistry {
     this.#tools.clear();
   }
 
-  private target(): RegistryTarget {
+  private target(): ToolRegistryDelegate {
     return (
       this.#delegate ?? {
         register: (spec) => void this.#tools.set(spec.name, spec),

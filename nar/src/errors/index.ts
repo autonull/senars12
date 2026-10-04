@@ -3,6 +3,7 @@
  * (code + context + wrap) lives in `@senars/util/errors` — single definition;
  * every class here adds typed, grep-able context for its failure mode.
  */
+import type { GateName } from '@senars/core/schemas/gate-io';
 import type { SchemaIssue } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 
@@ -25,7 +26,7 @@ export class BuilderError extends SenarsError {
 export class GateError extends SenarsError {
   constructor(
     message: string,
-    readonly gate: 'perception' | 'action' | 'reward' | 'budget',
+    readonly gate: GateName,
     readonly reason: string,
     readonly operation: string,
     context?: Record<string, unknown>

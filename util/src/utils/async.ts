@@ -42,13 +42,67 @@ export const stopwatch = (now: Clock = systemClock): (() => number) => {
   return () => now() - startedAt;
 };
 
-/** Abort signal that fires after `timeoutMs`; call `done()` in a `finally` to release the timer. */
-export const boundedSignal = (timeoutMs: number): { signal: AbortSignal; done: () => void } => {
+/**
+ * A deadline a caller can await, hand to the callee, and dispose of.
+ *
+ * `AbortSignal.timeout` covers the signal and nothing else: it cannot be
+ * disposed, so using it leaves a timer armed until the process exits and a
+ * deadline in the tree that no fake timer owns. This is the whole primitive —
+ * one timer, one abort, one rejection, one idempotent dispose.
+ */
+export interface Deadline {
+  /** Hand to the operation being bounded; aborts when the deadline elapses. */
+  readonly signal: AbortSignal;
+  /** Rejects with the timeout error when the deadline elapses. Never resolves. */
+  readonly expired: Promise<never>;
+  /** Idempotent. A deadline outlived is a live timer otherwise. */
+  dispose(): void;
+}
+
+export const boundedDeadline = (
+  timeoutMs: number,
+  error: () => Error = () => new TimeoutError(timeoutMs)
+): Deadline => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(new TimeoutError(timeoutMs)), timeoutMs);
+  let expire!: (error: Error) => void;
+  const expired = new Promise<never>((_, reject) => {
+    expire = reject;
+  });
+  const timer = setTimeout(() => {
+    const failure = error();
+    controller.abort(failure);
+    expire(failure);
+  }, timeoutMs);
   timer.unref?.();
-  return { signal: controller.signal, done: () => clearTimeout(timer) };
+  return { signal: controller.signal, expired, dispose: () => clearTimeout(timer) };
 };
+
+/**
+ * Await `work` under a deadline: the callee receives a signal that aborts when
+ * the clock runs out, and the caller stops waiting at the same instant.
+ *
+ * `work` is handed the signal rather than it being threaded in, so a bounded
+ * await and the cancellation it implies cannot come apart. The timer is disposed
+ * on every exit path — resolve, reject, the deadline winning, or `work` throwing
+ * before it returns a promise — which is the one obligation a caller spelling
+ * this out by hand has to remember.
+ *
+ * The deadline rejects rather than resolving a sentinel, so a caller that wants
+ * "unreachable is `null`" says so once with `catch`, not at every await.
+ */
+export function withDeadline<T>(
+  work: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number,
+  error?: () => Error
+): Promise<T> {
+  const { signal, expired, dispose } = boundedDeadline(timeoutMs, error);
+  try {
+    return Promise.race([work(signal), expired]).finally(dispose);
+  } catch (failure) {
+    dispose();
+    throw failure;
+  }
+}
 
 /**
  * Rejects with `error()` when `timeoutMs` elapses. The losing promise is not

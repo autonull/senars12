@@ -13,12 +13,14 @@ export const allocateFocusBudget = (
 ): number =>
   totalWeight === 0 ? 0 : Math.floor((focus.weight / totalWeight) * totalBudget);
 
+/** Focus id to weight. The projection both containers are built from, so the
+ *  in-memory view and the persisted one cannot name different weights. */
+export const focusWeightEntries = (foci: Iterable<Focus>): [string, number][] =>
+  [...foci].map((focus) => [focus.id, focus.weight]);
+
 /** Create a map of focus id to weight. */
-export const focusWeightMap = (foci: Iterable<Focus>): Map<string, number> => {
-  const weights = new Map<string, number>();
-  for (const focus of foci) weights.set(focus.id, focus.weight);
-  return weights;
-};
+export const focusWeightMap = (foci: Iterable<Focus>): Map<string, number> =>
+  new Map(focusWeightEntries(foci));
 
 /** Rebalance focus weights to match target weights. */
 export const rebalanceFocusWeights = (
@@ -34,11 +36,8 @@ export const rebalanceFocusWeights = (
 };
 
 /** Serialize focus weights for persistence. */
-export const serializeFocusWeights = (foci: Iterable<Focus>): Record<string, number> => {
-  const weights: Record<string, number> = {};
-  for (const focus of foci) weights[focus.id] = focus.weight;
-  return weights;
-};
+export const serializeFocusWeights = (foci: Iterable<Focus>): Record<string, number> =>
+  Object.fromEntries(focusWeightEntries(foci));
 
 /** Deserialize focus weights from persistence. */
 export const deserializeFocusWeights = (

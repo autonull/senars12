@@ -112,7 +112,7 @@ export class ArchitectureDriver {
     const architectureGaps: ArchitectureGap[] = [];
 
     if (gapReport.missingRules.length > 0) {
-      const gap = this.createGapFromReport(
+      const gap = this.createGap(
         'missing_rules',
         `Missing rules: ${gapReport.missingRules.join(', ')}`,
         'medium',
@@ -126,7 +126,7 @@ export class ArchitectureDriver {
     }
 
     if (gapReport.lowConfidenceBeliefs.length > 0) {
-      const gap = this.createGapFromReport(
+      const gap = this.createGap(
         'low_confidence',
         `Low confidence beliefs: ${gapReport.lowConfidenceBeliefs.length}`,
         'medium',
@@ -140,7 +140,7 @@ export class ArchitectureDriver {
     }
 
     if (gapReport.repeatedFailures.length > 0) {
-      const gap = this.createGapFromReport(
+      const gap = this.createGap(
         'repeated_failures',
         `Repeated failures: ${gapReport.repeatedFailures.join(', ')}`,
         'high',
@@ -168,7 +168,6 @@ export class ArchitectureDriver {
     proposedFix: string,
     confidence: number
   ): ArchitectureGap {
-    const confPct = Math.round(confidence * 100);
     return {
       id: `${id}_${Date.now()}`,
       description,
@@ -247,25 +246,6 @@ Implement \`${gap.proposedFix}\` to address the detected architecture gap.
 `;
   }
 
-  private createGapFromReport(
-    id: string,
-    description: string,
-    severity: ArchitectureGap['severity'],
-    trigger: string,
-    proposedFix: string,
-    confidence: number
-  ): ArchitectureGap {
-    return {
-      id: `${id}_${Date.now()}`,
-      description,
-      severity,
-      trigger,
-      proposedFix,
-      confidence,
-      narseseBelief: `(${trigger} --> gap_${proposedFix}). ${serializeTruth({ f: confidence, c: confidence }, 2)}`,
-      narseseGoal: `(^implement_${proposedFix})!`,
-    };
-  }
 }
 
 export function createArchitectureDriver(nar: SelfHost, proposalsDir?: string): ArchitectureDriver {

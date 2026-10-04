@@ -188,8 +188,9 @@ export { assertDefined, invariant } from './utils/assert.js';
  * deadlines, argv, bounded buffers, scalar arithmetic, object graphs, digests,
  * text measurement, schema-failure rendering, and error coercion.
  */
+export type { Deadline } from './utils/async.js';
 export {
-  boundedSignal,
+  boundedDeadline,
   deadline,
   monotonicNow,
   periodic,
@@ -197,6 +198,7 @@ export {
   sleep,
   stopwatch,
   TimeoutError,
+  withDeadline,
   withTimeout,
 } from './utils/async.js';
 /** @public Bounded map with pluggable eviction order and optional TTL. */

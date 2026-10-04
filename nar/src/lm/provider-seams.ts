@@ -62,7 +62,7 @@ export const PROVIDER_SEAMS: readonly ProviderSeam[] = [
     id: 'ingress-judge',
     call: 'IngressJudge.judge',
     callSites: [
-      { file: 'nar/src/kernel/KernelPerceptionGate.ts', contains: 'await raceDeadline(' },
+      { file: 'nar/src/kernel/KernelPerceptionGate.ts', contains: 'await withDeadline(' },
     ],
     onCyclePath: true,
     bounded: true,

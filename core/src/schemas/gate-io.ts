@@ -104,6 +104,29 @@ export const BudgetGateOutputSchema = z.object({
   terminationReason: TerminationReasonSchema.optional(),
 });
 
+/**
+ * The four kernel gates, named once. `recordGateDecision` keys every gate's
+ * telemetry by it and `GateError` reports it, so a fifth gate is a new member
+ * here rather than another hand-written copy of the same union.
+ */
+export type GateName = 'perception' | 'action' | 'reward' | 'budget';
+
+/**
+ * The one gate decision: a grant, and why not when refused.
+ *
+ * Each gate's *output* keeps the grant and reason names of its own domain —
+ * `admitted`/`rejectionReason`, `authorized`/`vetoReason`, `granted`/`terminationReason` —
+ * because those are wire contracts and event payloads. This is the vocabulary
+ * everything downstream of a gate reads: telemetry, the veto counters, and the
+ * decision span. A gate declares its projection once, so a refusal can never be
+ * reported under a different rule than the one its own output states.
+ */
+export interface GateOutcome {
+  granted: boolean;
+  /** Refusal reason; undefined when granted. */
+  reason?: string;
+}
+
 export type PerceptionGateInput = z.infer<typeof PerceptionGateInputSchema>;
 export type PerceptionGateOutput = z.infer<typeof PerceptionGateOutputSchema>;
 export type ActionGateInput = z.infer<typeof ActionGateInputSchema>;

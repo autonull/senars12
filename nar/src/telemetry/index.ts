@@ -1,3 +1,4 @@
+import type { GateName, GateOutcome } from '@senars/core/schemas/gate-io';
 import { decisionSpan } from '../otel/index.js';
 import {
   bagPressure,
@@ -15,22 +16,20 @@ import {
  * it is the thing §2 of TODO33 set out to fix.
  */
 export function recordGateDecision(
-  gate: 'perception' | 'action' | 'budget' | 'reward',
+  gate: GateName,
   operation: string,
-  granted: boolean,
-  vetoReason?: string,
+  { granted, reason }: GateOutcome,
   correlationId?: string
 ): void {
-  const decision = granted ? 'granted' : 'denied';
-  gateDecisionsTotal.inc({ gate, decision });
+  gateDecisionsTotal.inc({ gate, decision: granted ? 'granted' : 'denied' });
   decisionSpan(`gate.${gate}.${operation}`, {
     'gate.type': gate,
     'gate.operation': operation,
     'gate.granted': granted,
-    ...(vetoReason ? { 'gate.veto_reason': vetoReason } : {}),
+    ...(reason ? { 'gate.veto_reason': reason } : {}),
     ...(correlationId ? { 'correlation.id': correlationId } : {}),
   });
-  if (!granted && vetoReason) gateVetoesTotal.inc({ gate, reason: vetoReason });
+  if (!granted && reason) gateVetoesTotal.inc({ gate, reason });
 }
 
 export function recordSchemaPromotion(scope: string, count: number): void {

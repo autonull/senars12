@@ -17,6 +17,7 @@ import {
 import {
   BaseLedgerEntrySchema,
   createLedger,
+  DEFAULT_ROLLOVER,
   type Ledger,
   type LedgerQuery,
 } from '@senars/util/ledger';
@@ -37,8 +38,8 @@ const episodeIds = sortableIdSource();
 const DEFAULT_CONFIG = {
   enabled: true,
   basePath: cachePath('episodes'),
-  retentionDays: 30,
-  maxEntriesPerFile: 10000,
+  retentionDays: DEFAULT_ROLLOVER.retentionDays,
+  maxEntriesPerFile: DEFAULT_ROLLOVER.maxEntriesPerFile,
 } as const;
 
 /**
@@ -217,34 +218,60 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     return this.#scanEpisodes(options);
   }
 
-  /** Phase A: indexed causal path — O(matches) after a one-time index build. */
-  async #queryCausal(options: EpisodeFilter): Promise<Episode[] | null> {
+  /**
+   * One indexed query shape: build the index if it is missing, collect the
+   * episode sets the filter's keys select, and resolve them.
+   *
+   * Both index paths differ only in which index they need and which keys they
+   * read, so the failure policy — a build that throws falls back to the scan
+   * rather than failing the query — is stated once here instead of once per
+   * index, which is where the two copies could disagree about it.
+   */
+  async #queryViaIndex<TIndex>(
+    options: EpisodeFilter,
+    index: () => TIndex | null,
+    build: () => Promise<void>,
+    select: (index: NonNullable<TIndex>, options: EpisodeFilter) => Episode[][]
+  ): Promise<Episode[] | null> {
     try {
-      if (!this.#causal) await this.#buildCausalIndex();
+      if (!index()) await build();
     } catch {
       return null; // fall back to the scan path
     }
-    const causal = this.#causal;
-    if (!causal) return null;
-    const sources: Episode[][] = [];
-    if (options.causedBy) sources.push(causal.causedBy(options.causedBy));
-    if (options.leadingTo) sources.push(causal.leadingTo(options.leadingTo));
-    return this.#resolve(sources, options);
+    // Read after the build: the field the getter names is what the build fills.
+    const built = index();
+    if (!built) return null;
+    return this.#resolve(select(built, options), options);
+  }
+
+  /** Phase A: indexed causal path — O(matches) after a one-time index build. */
+  #queryCausal(options: EpisodeFilter): Promise<Episode[] | null> {
+    return this.#queryViaIndex(
+      options,
+      () => this.#causal,
+      () => this.#buildCausalIndex(),
+      (causal, filter) => {
+        const sources: Episode[][] = [];
+        if (filter.causedBy) sources.push(causal.causedBy(filter.causedBy));
+        if (filter.leadingTo) sources.push(causal.leadingTo(filter.leadingTo));
+        return sources;
+      }
+    );
   }
 
   /** Phase D: indexed path — O(matches) after a one-time index build. */
-  async #queryIndexed(options: EpisodeFilter): Promise<Episode[] | null> {
-    try {
-      if (!this.#index) await this.#buildIndex();
-    } catch {
-      return null; // fall back to the scan path
-    }
-    const index = this.#index;
-    if (!index) return null;
-    const sources: Episode[][] = [];
-    if (options.correlationId) sources.push(index.get(`cid:${options.correlationId}`) ?? []);
-    if (options.sessionId) sources.push(index.get(`sid:${options.sessionId}`) ?? []);
-    return this.#resolve(sources, options);
+  #queryIndexed(options: EpisodeFilter): Promise<Episode[] | null> {
+    return this.#queryViaIndex(
+      options,
+      () => this.#index,
+      () => this.#buildIndex(),
+      (index, filter) => {
+        const sources: Episode[][] = [];
+        if (filter.correlationId) sources.push(index.get(`cid:${filter.correlationId}`) ?? []);
+        if (filter.sessionId) sources.push(index.get(`sid:${filter.sessionId}`) ?? []);
+        return sources;
+      }
+    );
   }
 
   /** Conjunction over the index keys a filter provided, then the shared tail. */

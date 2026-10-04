@@ -1,4 +1,4 @@
-import { safeRatio } from '@senars/util';
+import { safeRatio, trimCapped } from '@senars/util';
 import type { MetricsCollector } from '../metrics';
 import type { SelfHost } from '../self/host.js';
 
@@ -25,6 +25,9 @@ export interface Optimizations {
   }>;
   performanceImprovements: Optimization[];
 }
+
+/** The retained optimization history; older entries fall off rather than accumulate. */
+const OPTIMIZATION_HISTORY_CAPACITY = 100;
 
 export class SelfOptimizer {
   private readonly nar: SelfHost | null;
@@ -144,8 +147,7 @@ export class SelfOptimizer {
 
   trackOptimization(optimizations: Optimizations): void {
     this.optimizationHistory.performanceImprovements.push(...optimizations.performanceImprovements);
-    this.optimizationHistory.performanceImprovements =
-      this.optimizationHistory.performanceImprovements.slice(-100);
+    trimCapped(this.optimizationHistory.performanceImprovements, OPTIMIZATION_HISTORY_CAPACITY);
   }
 
   private async performMemoryCleanup(): Promise<void> {

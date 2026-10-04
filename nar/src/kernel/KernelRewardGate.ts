@@ -1,4 +1,5 @@
 import type {
+  GateOutcome,
   PolicyViolationEvent,
   RewardDomain,
   RewardGateInput,
@@ -8,7 +9,7 @@ import type {
 import { SelfImprovementProposalSchema } from '@senars/core/schemas';
 import { makeId } from '@senars/util';
 import { recordPolicyViolation } from './event-ring.js';
-import { KernelGate } from './gate-base.js';
+import { KernelGate, projectOutcome } from './gate-base.js';
 
 export class EpistemicFirewallViolation extends Error {
   public readonly targetType: string;
@@ -40,21 +41,13 @@ export class KernelRewardGate extends KernelGate<PolicyViolationEvent> {
     this.allowedTargets = config?.allowedTargets ?? DEFAULT_ALLOWED_TARGETS;
   }
 
-  protected override extractAdmitted(output: unknown): boolean {
-    if (output && typeof output === 'object') {
-      const o = output as Record<string, unknown>;
-      // A proposal is a restriction, not a grant: nothing was mutated
-      return Boolean(o.accepted && !o.requiresProposal);
-    }
-    return false;
-  }
-
-  protected override extractReason(output: unknown): string | undefined {
-    if (output && typeof output === 'object') {
-      const o = output as Record<string, unknown>;
-      return (o.requiresProposal ? 'requires-proposal' : o.rejectionReason) as string | undefined;
-    }
-    return undefined;
+  protected override outcomeOf(output: unknown): GateOutcome {
+    return projectOutcome<RewardGateOutput>(
+      output,
+      // A proposal requirement is a restriction, not a grant: nothing was mutated.
+      (o) => o.accepted && !o.requiresProposal,
+      (o) => (o.requiresProposal ? 'requires-proposal' : o.rejectionReason)
+    );
   }
 
   process(input: RewardGateInput): RewardGateOutput {

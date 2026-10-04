@@ -59,9 +59,7 @@ export class SourceReputation {
     this.#entries = new LruCache({ maxSize: options.capacity ?? DEFAULT_REPUTATION_CAPACITY });
 
     const path = options.path ?? DEFAULT_REPUTATION_PATH;
-    this.#ledger = createLedger<ReputationDeltaEntry>(path, ReputationDeltaSchema, {
-      rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
-    });
+    this.#ledger = createLedger<ReputationDeltaEntry>(path, ReputationDeltaSchema);
 
     this.ready = this.#ledger
       .query({})

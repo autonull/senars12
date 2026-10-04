@@ -90,8 +90,7 @@ export class RLFPLearner {
     this.knobs = createKnobSet(this.currentParams);
     this.#trainingLedger = createLedger<TrainingLedgerEntry>(
       config.trainingDataPath ?? cachePath('rlfp', 'training'),
-      TrainingEntrySchema,
-      { rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 } }
+      TrainingEntrySchema
     );
   }
 

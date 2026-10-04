@@ -43,23 +43,26 @@ const kindOf = (term: Term): OperatorKey => term.kind as OperatorKey;
 const distinct = (args: readonly Term[]): Term[] =>
   args.filter((arg, index) => args.findIndex((other) => termsEqual(arg, other)) === index);
 
+/**
+ * Whether a `conjunction` or `disjunction` of `kind` contains both `a` and `--a`.
+ *
+ * One predicate for both self-contradiction laws: the two rewrites differ only in
+ * the constant they reduce to, so the pair test is stated once and each reducer
+ * declares its own result.
+ */
+const containsNegatedPair = (term: Term, kind: 'conjunction' | 'disjunction'): boolean => {
+  if (term.kind !== kind) return false;
+  const args = argsOf(term);
+  return args.some(
+    (arg) => arg.kind === 'negation' && args.some((other) => termsEqual(other, arg.args[0]))
+  );
+};
+
 /** `a & --a = FALSE` — contradiction in conjunction. */
 const conjunctionContradiction: TermReducer = {
   id: 'conjunction-contradiction',
   justification: 'a & --a = FALSE (self-contradiction in conjunction); NAL negation semantics',
-  applies: (term) => {
-    if (term.kind !== 'conjunction') return false;
-    const args = argsOf(term);
-    for (const arg of args) {
-      if (arg.kind === 'negation') {
-        const negated = arg.args[0];
-        if (args.some((a) => termsEqual(a, negated))) {
-          return true;
-        }
-      }
-    }
-    return false;
-  },
+  applies: (term) => containsNegatedPair(term, 'conjunction'),
   reduce: () => atomOf('FALSE'),
 };
 
@@ -67,19 +70,7 @@ const conjunctionContradiction: TermReducer = {
 const disjunctionTautology: TermReducer = {
   id: 'disjunction-tautology',
   justification: 'a | --a = TRUE (tautology in disjunction); NAL negation semantics',
-  applies: (term) => {
-    if (term.kind !== 'disjunction') return false;
-    const args = argsOf(term);
-    for (const arg of args) {
-      if (arg.kind === 'negation') {
-        const negated = arg.args[0];
-        if (args.some((a) => termsEqual(a, negated))) {
-          return true;
-        }
-      }
-    }
-    return false;
-  },
+  applies: (term) => containsNegatedPair(term, 'disjunction'),
   reduce: () => atomOf('TRUE'),
 };
 

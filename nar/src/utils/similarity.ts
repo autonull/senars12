@@ -36,11 +36,16 @@ export const cosine = (a: ArrayLike<number>, b: ArrayLike<number>): number => {
   return safeRatio(dot, Math.sqrt(normA) * Math.sqrt(normB));
 };
 
+/** Euclidean length of `v`; a zero vector measures 0. */
+const normOf = (v: ArrayLike<number>): number => {
+  let sum = 0;
+  for (let i = 0; i < v.length; i++) sum += (v[i] ?? 0) ** 2;
+  return Math.sqrt(sum);
+};
+
 /** Unit-length copy of `v`; a zero vector passes through unchanged. */
 export const l2Normalize = <V extends ArrayLike<number>>(v: V): number[] => {
-  let norm = 0;
-  for (let i = 0; i < v.length; i++) norm += (v[i] ?? 0) ** 2;
-  const scale = Math.sqrt(norm) || 1;
+  const scale = normOf(v) || 1;
   return Array.from({ length: v.length }, (_, i) => (v[i] ?? 0) / scale);
 };
 
@@ -54,11 +59,10 @@ export interface NormalizedVector {
   readonly norm: number;
 }
 
-export const normalize = (v: ArrayLike<number>): NormalizedVector => {
-  let norm = 0;
-  for (let i = 0; i < v.length; i++) norm += (v[i] ?? 0) ** 2;
-  return { values: v, norm: Math.sqrt(norm) };
-};
+export const normalize = (v: ArrayLike<number>): NormalizedVector => ({
+  values: v,
+  norm: normOf(v),
+});
 
 /** Cosine against a pre-measured query — identical to {@link cosine}, minus the
  *  query's redundant norm pass. A zero query or candidate scores 0. */

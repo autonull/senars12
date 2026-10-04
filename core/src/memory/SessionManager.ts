@@ -35,9 +35,7 @@ export class JsonlSessionManager implements SessionManager {
   readonly #store = new SessionStore();
 
   constructor(config: JsonlSessionManagerConfig) {
-    this.#ledger = createLedger<SessionLedgerEntry>(config.basePath, SessionRecordSchema, {
-      rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
-    });
+    this.#ledger = createLedger<SessionLedgerEntry>(config.basePath, SessionRecordSchema);
   }
 
   getOrCreate(key: string): ConversationSession {

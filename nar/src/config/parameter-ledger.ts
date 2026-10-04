@@ -62,13 +62,7 @@ export class ParameterLedger {
 
   constructor(options: ParameterLedgerOptions = {}) {
     const basePath = options.path ? dirname(options.path) : DEFAULT_LEDGER_PATH;
-    this.#ledger = createLedger<ParameterLedgerEntry>(basePath, ParameterRecordSchema, {
-      rollover: {
-        daily: true,
-        maxEntriesPerFile: 10_000,
-        retentionDays: 30,
-      },
-    });
+    this.#ledger = createLedger<ParameterLedgerEntry>(basePath, ParameterRecordSchema);
   }
 
   get size(): number {

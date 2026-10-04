@@ -16,13 +16,14 @@ import type {
   BudgetGateInput,
   BudgetGateOutput,
   CognitiveEvent,
+  GateOutcome,
   ReasoningBudget,
   TerminationReason,
 } from '@senars/core/schemas';
 import { mintCognitiveEvent, validateReasoningBudget } from '@senars/core/schemas';
 import { keyedBy } from '@senars/util';
 import { BUDGET_SCOPES, type BudgetScopeId, scopeBudget } from './budget-scopes.js';
-import { KernelGate } from './gate-base.js';
+import { KernelGate, projectOutcome } from './gate-base.js';
 
 export interface KernelBudgetGateConfig {
   defaultBudget: ReasoningBudget;
@@ -92,18 +93,8 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   private scopes = new Map<string, ReasoningBudget>();
   private costTable: Record<string, number>;
 
-  protected override extractAdmitted(output: unknown): boolean {
-    if (output && typeof output === 'object') {
-      return Boolean((output as Record<string, unknown>).granted);
-    }
-    return false;
-  }
-
-  protected override extractReason(output: unknown): string | undefined {
-    if (output && typeof output === 'object') {
-      return (output as Record<string, unknown>).terminationReason as string | undefined;
-    }
-    return undefined;
+  protected override outcomeOf(output: unknown): GateOutcome {
+    return projectOutcome<BudgetGateOutput>(output, (o) => o.granted, (o) => o.terminationReason);
   }
 
   constructor(config?: Partial<KernelBudgetGateConfig>) {

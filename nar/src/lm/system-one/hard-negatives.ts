@@ -17,6 +17,7 @@ import {
 } from '../../learning/aikr-processor.js';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import type { Task } from '../../types';
+import { DEFAULT_DIVERGENCE_GAP, hasDivergence } from '../../utils/divergence.js';
 import type { ContrastiveMemory } from './contrastive.js';
 import { cosineF32 } from './contrastive.js';
 import type { EmbeddingCache } from './types.js';
@@ -60,7 +61,7 @@ export async function mineHardNegatives(
   options: MineHardNegativesOptions = {}
 ): Promise<MinedNegative[]> {
   const limit = options.limit ?? 64;
-  const conflictGap = options.conflictGap ?? 0.3;
+  const conflictGap = options.conflictGap ?? DEFAULT_DIVERGENCE_GAP;
   const negatives: MinedNegative[] = [];
 
   const byTerm = new Map<string, { f: number }[]>();
@@ -71,16 +72,7 @@ export async function mineHardNegatives(
   }
   for (const [term, truths] of byTerm) {
     if (negatives.length >= limit / 2) break;
-    let divergent = false;
-    for (let i = 0; i < truths.length && !divergent; i++) {
-      for (let j = i + 1; j < truths.length; j++) {
-        if (Math.abs(truths[i]!.f - truths[j]!.f) > conflictGap) {
-          divergent = true;
-          break;
-        }
-      }
-    }
-    if (divergent) {
+    if (hasDivergence(truths.map((t) => t.f), conflictGap)) {
       negatives.push({ rubric: 'conflict', text: term, source: 'contradiction' });
     }
   }

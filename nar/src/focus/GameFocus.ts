@@ -2,12 +2,12 @@ import { join } from 'node:path';
 import type { DerivationRecord, ReasoningBudget } from '@senars/core/schemas';
 import {
   asBeliefTruth,
+  BoundedRing,
   clamp,
   clampSigned,
   ensureDirSync,
   makeId,
   maxBy,
-  pushCapped,
   safeRatio,
   sumBy,
 } from '@senars/util';
@@ -126,8 +126,8 @@ export class GameFocus {
   private readonly handover: GameFocusOptions['handover'];
   private readonly cognitive: boolean;
   private readonly schemaInduction: boolean;
-  private panelLog: TickPanelEntry[] = [];
-  private vetoJustifications: DerivationRecord[] = [];
+  private readonly panelLog = new BoundedRing<TickPanelEntry>(FOCUS_LOG_CAPACITY);
+  private readonly vetoJustifications = new BoundedRing<DerivationRecord>(FOCUS_LOG_CAPACITY);
   private episodeHistory: Array<{ action: string; reward: number }> = [];
   private promotedSchemas: PromotedSchema[] = [];
   private handoverCount = 0;
@@ -184,8 +184,7 @@ export class GameFocus {
         ensureDirSync(logDir);
         (this as any).#gameTraceLedger = createLedger<GameTraceLedgerEntry>(
           logDir,
-          GameTraceEntrySchema,
-          { rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 } }
+          GameTraceEntrySchema
         );
       } catch {
         this.gameTraceEnabled = false;
@@ -248,16 +247,16 @@ export class GameFocus {
 
   /** E7: per-tick cognition snapshots (cognitive mode only). */
   getPanelLog(): readonly TickPanelEntry[] {
-    return this.panelLog;
+    return this.panelLog.toArray();
   }
 
   /** E7: recorder-verifiable justification record for every NAL veto. */
   getVetoJustifications(): readonly DerivationRecord[] {
-    return this.vetoJustifications;
+    return this.vetoJustifications.toArray();
   }
 
   private recordPanel(entry: TickPanelEntry): void {
-    if (this.cognitive) pushCapped(this.panelLog, entry, FOCUS_LOG_CAPACITY);
+    if (this.cognitive) this.panelLog.push(entry);
   }
 
   /** E7: build a DerivationRecord for a veto from the matched NAL derivation. */
@@ -653,10 +652,8 @@ export class GameFocus {
         : { action: '', truth: { f: 0, c: 0 }, source: 'none' },
     });
     if (vetoDerivation)
-      pushCapped(
-        this.vetoJustifications,
-        this.buildVetoJustification(this.cycle, t.decision.action!, vetoDerivation),
-        FOCUS_LOG_CAPACITY
+      this.vetoJustifications.push(
+        this.buildVetoJustification(this.cycle, t.decision.action!, vetoDerivation)
       );
   }
 
@@ -757,7 +754,7 @@ export class GameFocus {
     this.vetoDetails = [];
     this.episodeVetoCounts = [];
     this.currentEpisodeVetos = 0;
-    this.vetoJustifications = [];
+    this.vetoJustifications.clear();
   }
 
   private parseAction(actionStr: string): any {

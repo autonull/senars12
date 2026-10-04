@@ -1,15 +1,42 @@
 import type { CognitiveEvent } from '@senars/core/schemas/cognitive-events';
+import type { GateName, GateOutcome } from '@senars/core/schemas/gate-io';
 import { validateCognitiveEvent } from '@senars/core/schemas';
 import { makeId } from '@senars/util';
 import { gateLog } from './event-ring.js';
 import { recordGateDecision } from '../telemetry/index.js';
 
 /**
+ * Read one gate's own output as the single outcome vocabulary. Each gate names
+ * its grant flag and refusal reason for its own domain — `admitted` /
+ * `rejectionReason`, `authorized` / `vetoReason`, `granted` / `terminationReason`
+ * — because those names are part of that gate's wire contract. The base class
+ * needs only the *decision*, so each gate projects its output once, here, with
+ * the accessors checked against the declared type rather than guessed at runtime.
+ */
+export const projectOutcome = <TOutput>(
+  output: unknown,
+  granted: (output: TOutput) => boolean,
+  reason: (output: TOutput) => string | undefined
+): GateOutcome => {
+  const typed = output as TOutput;
+  return { granted: granted(typed), reason: reason(typed) };
+};
+
+/**
  * Shared skeleton for the four kernel gates: one bounded event ring, one
- * correlation-id mint, and the log accessors every gate exposes.
+ * correlation-id mint, the one decision funnel, and the log accessors every gate
+ * exposes.
  */
 export abstract class KernelGate<TEvent extends CognitiveEvent = CognitiveEvent> {
   readonly eventLog = gateLog<TEvent>();
+
+  /**
+   * How this gate's output reads as a grant or a refusal. Required rather than
+   * defaulted: a default that inspected the output for familiar field names
+   * reported `granted: false` for any shape it did not recognise, so a gate that
+   * forgot to override it would meter a denial that never happened.
+   */
+  protected abstract outcomeOf(output: unknown): GateOutcome;
 
   protected correlationOf(correlationId?: string): string {
     return correlationId ?? makeId();
@@ -23,11 +50,11 @@ export abstract class KernelGate<TEvent extends CognitiveEvent = CognitiveEvent>
 
   /**
    * Unified decision funnel: generates correlationId, invokes the decision
-   * function, records the gate decision, and returns the result. Subclasses
-   * implement `decide` with their specific logic.
+   * function, meters it as one outcome, and returns the gate's own output
+   * unchanged. Subclasses implement `decide` with their specific logic.
    */
   protected decideAndRecord<TInput, TOutput>(
-    gateName: 'perception' | 'action' | 'reward' | 'budget',
+    gateName: GateName,
     operation: string,
     input: TInput,
     decide: (input: TInput, correlationId: string) => TOutput,
@@ -35,28 +62,8 @@ export abstract class KernelGate<TEvent extends CognitiveEvent = CognitiveEvent>
   ): TOutput {
     const correlationId = this.correlationOf(getCorrelationId(input));
     const output = decide(input, correlationId);
-    const admitted = this.extractAdmitted(output);
-    const reason = this.extractReason(output);
-    recordGateDecision(gateName, operation, admitted, reason, correlationId);
+    recordGateDecision(gateName, operation, this.outcomeOf(output), correlationId);
     return output;
-  }
-
-  /** Extract the admitted/granted/accepted flag from gate output. Override if output shape differs. */
-  protected extractAdmitted(output: unknown): boolean {
-    if (output && typeof output === 'object') {
-      const o = output as Record<string, unknown>;
-      return Boolean(o.admitted ?? o.granted ?? o.accepted);
-    }
-    return false;
-  }
-
-  /** Extract the rejection/termination/veto reason from gate output. Override if output shape differs. */
-  protected extractReason(output: unknown): string | undefined {
-    if (output && typeof output === 'object') {
-      const o = output as Record<string, unknown>;
-      return (o.rejectionReason ?? o.terminationReason ?? o.vetoReason) as string | undefined;
-    }
-    return undefined;
   }
 
   getEventLog(): ReadonlyArray<TEvent> {

@@ -150,7 +150,7 @@
 
 - `invariant` — Failure-on-missing for lookups whose absence is a programming error rather
 
-- `boundedSignal` — Abort signal that fires after `timeoutMs`; call `done()` in a `finally` to release the timer.
+- `boundedDeadline`
 
 - `deadline` — Run `onExpire` once after `timeoutMs`, unless the returned disposer runs first
 
@@ -165,6 +165,8 @@
 - `stopwatch` — Elapsed milliseconds since the call — the one stopwatch, so every subsystem
 
 - `TimeoutError` — Raised by {@link withTimeout} unless a domain error is supplied.
+
+- `withDeadline` — Await `work` under a deadline: the callee receives a signal that aborts when
 
 - `withTimeout` — Rejects with `error()` when `timeoutMs` elapses. The losing promise is not
 
@@ -745,6 +747,8 @@
 - `RolloverPolicy` — Rotation/rollover policy — parameterized from EpisodicMemory's load-bearing behavior.
 
 - `RolloverPolicyOptions` — Factory options for rollover policy (all optional, defaults applied).
+
+- `DEFAULT_ROLLOVER` — The ledger's default rollover: one file per day, ten thousand entries in it,
 
 - `LedgerQuery` — Query filter for ledger entries.
 

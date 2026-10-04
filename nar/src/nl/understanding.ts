@@ -4,7 +4,14 @@ import type {
   FormalizationCandidate,
 } from '@senars/core/schemas';
 import { validateFormalizationBatch } from '@senars/core/schemas';
-import { asBeliefTruth, errMsg, makeId, pct, stableStringify } from '@senars/util';
+import {
+  asBeliefTruth,
+  errMsg,
+  makeId,
+  pct,
+  stableStringify,
+  withDeadline,
+} from '@senars/util';
 import type { ZodSchema } from 'zod';
 import { getModelForTask } from '../lm';
 import type { ILMService } from '../lm/interfaces.js';
@@ -13,6 +20,9 @@ import { type FirewallOptions, SymbolicFirewall } from './firewall.js';
 import { buildUnderstandingPrompt } from './prompts/understanding-v1.js';
 import { TaskBatchSchema } from './schemas.js';
 import { SingleFlight } from './singleflight.js';
+
+/** The LM fallback paths are the last resort; a slow one must not outlast the cycle. */
+const LM_FALLBACK_TIMEOUT_MS = 30_000;
 
 /** Canonical definitions live in types/events (EventMap depends on them); re-exported here for the nl surface. */
 export type { Ambiguity, Coreference, TaskBatch } from '../types/events.js';
@@ -163,12 +173,17 @@ export class NLUnderstandingService {
 
   private async jsonFallbackTranslate(prompt: string): Promise<TaskBatch | null> {
     try {
-      if (!this.lm) return null;
-      const text = await this.lm.generateText(prompt + '\n\nRespond with valid JSON only.', {
-        task: 'structured',
-        maxOutputTokens: 120,
-        signal: AbortSignal.timeout(30000),
-      });
+      const lm = this.lm;
+      if (!lm) return null;
+      const text = await withDeadline(
+        (signal) =>
+          lm.generateText(prompt + '\n\nRespond with valid JSON only.', {
+            task: 'structured',
+            maxOutputTokens: 120,
+            signal,
+          }),
+        LM_FALLBACK_TIMEOUT_MS
+      );
       return (parseJsonWith(text, TaskBatchSchema) as TaskBatch | null) ?? null;
     } catch {
       return null;
@@ -177,14 +192,16 @@ export class NLUnderstandingService {
 
   private async narseseFallbackTranslate(prompt: string, input: string): Promise<TaskBatch | null> {
     try {
-      if (!this.lm) return null;
-      const text = await this.lm.generateText(
-        prompt + '\n\nRespond with Narsese statements only.',
-        {
-          task: 'structured',
-          maxOutputTokens: 120,
-          signal: AbortSignal.timeout(30000),
-        }
+      const lm = this.lm;
+      if (!lm) return null;
+      const text = await withDeadline(
+        (signal) =>
+          lm.generateText(prompt + '\n\nRespond with Narsese statements only.', {
+            task: 'structured',
+            maxOutputTokens: 120,
+            signal,
+          }),
+        LM_FALLBACK_TIMEOUT_MS
       );
       return this.extractNarseseFromText(text, input);
     } catch {

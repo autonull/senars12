@@ -21,7 +21,7 @@ import type { FocusScheduler, FocusSchedulerOptions } from '../focus/focus-sched
 import type { GameFocus } from '../focus/GameFocus.js';
 import type { MetaGame } from '../game/impls/MetaGame.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
-import { schedulerReward } from './scheduler-reward.js';
+import { publishFocusStepReport } from './scheduler-reward.js';
 
 export interface FocusTreeNode {
   readonly id: string;
@@ -251,13 +251,7 @@ export class FocusTree {
   }
 
   private emitReport(nodeId: string, report: FocusStepReport): void {
-    this.metaGame?.recordFocusStepReport(report);
-    if (!this.schedulerAdapter) return;
-    this.schedulerAdapter.learn({
-      domain: 'self-scheduler',
-      reward: schedulerReward(report),
-      focusId: nodeId,
-    });
+    publishFocusStepReport(this.metaGame, this.schedulerAdapter, nodeId, report);
   }
 
   private mergeConsumptionUp(node: FocusTreeNode, consumption: ConsumedBudget): void {

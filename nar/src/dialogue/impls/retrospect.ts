@@ -44,9 +44,7 @@ const RetrospectiveSchema = BaseLedgerEntrySchema.extend({
 type RetrospectiveLedgerEntry = z.infer<typeof RetrospectiveSchema>;
 
 function getRetrospectiveLedger(dir = RETROSPECTIVE_DIR): Ledger<RetrospectiveLedgerEntry> {
-  return createLedger<RetrospectiveLedgerEntry>(dir, RetrospectiveSchema, {
-    rollover: { daily: true, maxEntriesPerFile: 10_000, retentionDays: 30 },
-  });
+  return createLedger<RetrospectiveLedgerEntry>(dir, RetrospectiveSchema);
 }
 /** Minimum viable session for a full analysis (below ⇒ skeleton report). */
 const MIN_TURNS = 10;

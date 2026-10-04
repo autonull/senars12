@@ -11,7 +11,7 @@
  * are handled here rather than re-implemented per tool.
  */
 
-import { errMsg } from '@senars/util';
+import { errMsg, withDeadline } from '@senars/util';
 import { envFirst } from '@senars/util/config';
 
 const FETCH_TIMEOUT_MS = 15_000;
@@ -34,9 +34,17 @@ export interface SearchProvider {
   search: (query: string, maxResults: number) => Promise<WebSearchResult[]>;
 }
 
-const bounded = (timeoutMs = FETCH_TIMEOUT_MS): { signal: AbortSignal } => ({
-  signal: AbortSignal.timeout(timeoutMs),
-});
+/**
+ * One bounded HTTP request. The deadline both aborts the request and stops the
+ * caller waiting, and its timer is released on every exit path — which a bare
+ * `AbortSignal.timeout` in a spread could not be, so each provider call left one
+ * timer armed until the process exited.
+ */
+const boundedFetch = (
+  url: string | URL,
+  init: RequestInit,
+  timeoutMs = FETCH_TIMEOUT_MS
+): Promise<Response> => withDeadline((signal) => fetch(url, { ...init, signal }), timeoutMs);
 
 /**
  * Buffered response text, truncated at {@link MAX_BODY_BYTES}. The cap applies
@@ -98,11 +106,10 @@ export const tavilySearch = async (
   apiKey: string,
   maxResults = 5
 ): Promise<WebSearchResult[]> => {
-  const res = await fetch('https://api.tavily.com/search', {
+  const res = await boundedFetch('https://api.tavily.com/search', {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({ query, max_results: maxResults, search_depth: 'basic' }),
-    ...bounded(),
   });
   if (!res.ok) throw new Error(`tavily ${res.status}`);
   const data = (await res.json()) as {
@@ -121,9 +128,8 @@ export const braveSearch = async (
   const url = new URL('https://api.search.brave.com/res/v1/web/search');
   url.searchParams.set('q', query);
   url.searchParams.set('count', String(maxResults));
-  const res = await fetch(url.toString(), {
+  const res = await boundedFetch(url.toString(), {
     headers: { accept: 'application/json', 'x-subscription-token': apiKey },
-    ...bounded(),
   });
   if (!res.ok) throw new Error(`brave ${res.status}`);
   const data = (await res.json()) as {
@@ -143,10 +149,10 @@ export const duckDuckGoSearch = async (
   query: string,
   maxResults = 5
 ): Promise<WebSearchResult[]> => {
-  const res = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
-    headers: { 'user-agent': 'Mozilla/5.0 (SeNARS web-fetch; +https://github.com/senars)' },
-    ...bounded(),
-  });
+  const res = await boundedFetch(
+    `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`,
+    { headers: { 'user-agent': 'Mozilla/5.0 (SeNARS web-fetch; +https://github.com/senars)' } }
+  );
   if (!res.ok) throw new Error(`duckduckgo ${res.status}`);
   const html = await readBody(res);
   const results: WebSearchResult[] = [];
@@ -232,10 +238,9 @@ export const webFetch = async (
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error(`web-fetch refuses non-http protocol: ${parsed.protocol}`);
   }
-  const res = await fetch(parsed, {
+  const res = await boundedFetch(parsed, {
     headers: { accept: 'text/html,text/plain,application/json;q=0.9,*/*;q=0.5' },
     redirect: 'follow',
-    ...bounded(),
   });
   // `redirect: 'follow'` can land on a scheme the allowlist just rejected, so
   // the *final* URL is re-checked rather than only the requested one.

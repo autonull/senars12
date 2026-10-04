@@ -69,6 +69,8 @@ export type {
   BudgetGateInput,
   BudgetGateOutput,
   BudgetOperation,
+  GateName,
+  GateOutcome,
   PerceptionGateInput,
   PerceptionGateOutput,
   RewardGateInput,

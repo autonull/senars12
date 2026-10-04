@@ -2,6 +2,7 @@ import type { CognitiveEvent } from '@senars/core/schemas';
 import {
   clamp,
   clamp01,
+  BoundedRing,
   flooredRatio,
   nextInt,
   percentile,
@@ -27,8 +28,8 @@ import { ScenarioGenerator } from './ScenarioGenerator.js';
 export class CognitiveTreadmill {
   private readonly nar: NAR;
   private readonly config: TreadmillConfig;
-  private readonly eventLog: CognitiveEvent[] = [];
-  private readonly stepLatencies: number[] = [];
+  private readonly eventLog: BoundedRing<CognitiveEvent>;
+  private readonly stepLatencies: BoundedRing<number>;
 
   constructor(nar: NAR, config: Partial<TreadmillConfig> = {}) {
     this.nar = nar;
@@ -39,6 +40,10 @@ export class CognitiveTreadmill {
       maxSteps: config.maxSteps ?? 1000,
       mixedEventRatio: config.mixedEventRatio ?? { belief: 0.6, goal: 0.2, question: 0.2 },
     };
+    // Bounded by the scenario's own step budget, so a run cannot grow the log
+    // past the work it is describing.
+    this.eventLog = new BoundedRing<CognitiveEvent>(this.config.maxSteps);
+    this.stepLatencies = new BoundedRing<number>(this.config.maxSteps);
   }
 
   async runScenario(scenario: Scenario): Promise<{
@@ -48,8 +53,8 @@ export class CognitiveTreadmill {
     metrics: StressMetrics;
     cognitiveEvents: CognitiveEvent[];
   }> {
-    this.eventLog.length = 0;
-    this.stepLatencies.length = 0;
+    this.eventLog.clear();
+    this.stepLatencies.clear();
 
     const elapsedRun = stopwatch();
     let stepsExecuted = 0;
@@ -108,7 +113,7 @@ export class CognitiveTreadmill {
         stepsExecuted,
         durationMs,
         metrics,
-        cognitiveEvents: [...this.eventLog],
+        cognitiveEvents: this.eventLog.toArray(),
       };
     } catch (error) {
       const durationMs = elapsedRun();
@@ -122,7 +127,7 @@ export class CognitiveTreadmill {
           contradictionsDetected,
           derivedBeliefs.length
         ),
-        cognitiveEvents: [...this.eventLog],
+        cognitiveEvents: this.eventLog.toArray(),
       };
     } finally {
       if (this.nar.getSystemEventBus) {
@@ -164,12 +169,12 @@ export class CognitiveTreadmill {
   }
 
   getEventLog(): CognitiveEvent[] {
-    return [...this.eventLog];
+    return this.eventLog.toArray();
   }
 
   clearLog(): void {
-    this.eventLog.length = 0;
-    this.stepLatencies.length = 0;
+    this.eventLog.clear();
+    this.stepLatencies.clear();
   }
 
   private scaleEvents(events: Task[], multiplier: number): Task[] {
@@ -191,9 +196,10 @@ export class CognitiveTreadmill {
     contradictions: number,
     derivations: number
   ): Promise<StressMetrics> {
-    const p50 = percentile(this.stepLatencies, 0.5);
-    const p95 = percentile(this.stepLatencies, 0.95);
-    const p99 = percentile(this.stepLatencies, 0.99);
+    const latencies = this.stepLatencies.toArray();
+    const p50 = percentile(latencies, 0.5);
+    const p95 = percentile(latencies, 0.95);
+    const p99 = percentile(latencies, 0.99);
 
     const throughput = perSecond(steps, durationMs);
     const contradictionRate = flooredRatio(contradictions, steps);

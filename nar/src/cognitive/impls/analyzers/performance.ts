@@ -8,13 +8,20 @@ import type { SelfHost } from '../../../self/host.js';
 import type { PerformancePatterns } from '../../types.js';
 import { getMemory } from './constants.js';
 
+/** Mean per-rule duration, or 0 when the collector reports no rules. An
+ *  unmeasured mean is not a fast mean: every caller thresholds on it, so 0 is
+ *  the honest answer for "nothing to average". */
+export const averageRuleDuration = (
+  metrics: Pick<MetricsCollector, 'getRuleStats'> | null | undefined
+): number => {
+  const ruleStats = metrics?.getRuleStats();
+  return Array.isArray(ruleStats) ? mean(ruleStats, (r) => r.averageDuration) : 0;
+};
+
 export const analyzePerformancePatterns = (
   metrics: MetricsCollector | null
 ): PerformancePatterns => {
-  const ruleStats = metrics?.getRuleStats();
-  const avgDuration = Array.isArray(ruleStats)
-    ? mean(ruleStats.map((s) => s.averageDuration))
-    : 0;
+  const avgDuration = averageRuleDuration(metrics);
 
   let memoryUsage = 0;
   try {

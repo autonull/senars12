@@ -3,13 +3,14 @@ import type {
   ActionGateOutput,
   AutonomyMode,
   AutonomyModeChangedEvent,
+  GateOutcome,
   PolicyViolationEvent,
 } from '@senars/core/schemas';
 import { AutonomyModeChangedEventSchema, AutonomyModeSchema, mintCognitiveEvent } from '@senars/core/schemas';
 import { addToSet, BoundedMap, makeId, pushCapped } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
-import { KernelGate } from './gate-base.js';
+import { KernelGate, projectOutcome } from './gate-base.js';
 
 const MODE_ORDER = AutonomyModeSchema.options;
 
@@ -66,18 +67,8 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
   private scopeModes: Map<string, AutonomyMode> = new Map();
   private scopeOperations: Map<string, Set<string>> = new Map();
 
-  protected override extractAdmitted(output: unknown): boolean {
-    if (output && typeof output === 'object') {
-      return Boolean((output as Record<string, unknown>).authorized);
-    }
-    return false;
-  }
-
-  protected override extractReason(output: unknown): string | undefined {
-    if (output && typeof output === 'object') {
-      return (output as Record<string, unknown>).vetoReason as string | undefined;
-    }
-    return undefined;
+  protected override outcomeOf(output: unknown): GateOutcome {
+    return projectOutcome<ActionGateOutput>(output, (o) => o.authorized, (o) => o.vetoReason);
   }
 
   constructor(config?: Partial<KernelActionGateConfig>) {

@@ -1,6 +1,7 @@
 import type {
   CognitiveEvent,
   FormalizationBatch,
+  GateOutcome,
   PerceptionGateInput,
   PerceptionGateOutput,
   ShadowValidationDropEvent,
@@ -10,18 +11,18 @@ import type {
 import { mintCognitiveEvent, SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas';
 import {
   asBeliefTruth,
-  boundedSignal,
   errMsg,
   makeId,
-  raceDeadline,
+  TimeoutError,
   type TruthLike,
+  withDeadline,
 } from '@senars/util';
 import { normalizeNarsese } from '../nl/normalize.js';
 import { recordGateDecision } from '../telemetry/index.js';
 import type { TaskTypeName, Term } from '../terms';
 import { termParser } from '../terms';
 import { recordPolicyViolation } from './event-ring.js';
-import { KernelGate } from './gate-base.js';
+import { KernelGate, projectOutcome } from './gate-base.js';
 import type { IngressJudge, IngressVerdict } from './ingress.js';
 import { domainKey } from './reputation-keys.js';
 import type { SourceReputation } from './source-reputation.js';
@@ -58,6 +59,10 @@ export class KernelPerceptionGate extends KernelGate {
   private judge: IngressJudge | null = null;
   /** D23: optional DriveManager hook — ambiguity stimulates curiosity. */
   private driveManager: { stimulate(driveId: string, amount: number): void } | null = null;
+
+  protected override outcomeOf(output: unknown): GateOutcome {
+    return projectOutcome<PerceptionGateOutput>(output, (o) => o.admitted, (o) => o.rejectionReason);
+  }
 
   /** Wire the DriveManager so ambiguity-driven curiosity stimulation works. */
   setDriveManager(dm: { stimulate(driveId: string, amount: number): void }): void {
@@ -197,34 +202,32 @@ export class KernelPerceptionGate extends KernelGate {
         : JSON.stringify(input.rawObservation);
 
     const timeoutMs = this.config.systemOne?.judgeTimeoutMs ?? DEFAULT_JUDGE_TIMEOUT_MS;
-    // The signal is an ask, not the bound: a judge that ignores it is still
-    // bounded by the deadline, and one that honours it stops costing anything.
-    const bounded = boundedSignal(timeoutMs);
     let verdict: IngressVerdict;
     try {
-      const judged = await raceDeadline(
-        this.judge!.judge({
-          rawObservation,
-          sourceQuality,
-          baseConfidence,
-          taskType: initialTaskType,
-          signal: bounded.signal,
-        }),
+      // The signal is an ask, not the bound: a judge that ignores it is still
+      // bounded by the deadline, and one that honours it stops costing anything.
+      verdict = await withDeadline(
+        (signal) =>
+          this.judge!.judge({
+            rawObservation,
+            sourceQuality,
+            baseConfidence,
+            taskType: initialTaskType,
+            signal,
+          }),
         timeoutMs
       );
-      // Same outcome as a fault, and deliberately the same reason: both mean the
-      // judgment did not arrive, and neither may fall through to legacy
-      // admission — that is the injection veto, not a default.
-      if (judged.timedOut) {
-        return this.judgeFault(correlationId, `judge exceeded ${timeoutMs}ms`, 'timeout');
-      }
-      verdict = judged.value;
     } catch (error) {
       // Fail-closed (D1): a System One fault must never bypass the injection
-      // veto via legacy admission — reject and emit ingress-error telemetry.
-      return this.judgeFault(correlationId, errMsg(error), 'error');
-    } finally {
-      bounded.done();
+      // veto via legacy admission — reject and emit ingress-error telemetry. A
+      // deadline is reported as such rather than as a fault: only one of the two
+      // is worth retrying.
+      const expired = error instanceof TimeoutError;
+      return this.judgeFault(
+        correlationId,
+        expired ? `judge exceeded ${timeoutMs}ms` : errMsg(error),
+        expired ? 'timeout' : 'error'
+      );
     }
 
     if (verdict.vetoReason) {

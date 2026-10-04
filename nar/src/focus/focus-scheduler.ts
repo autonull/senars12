@@ -4,7 +4,7 @@ import type { SchedulerAdapter } from '../learning/domain-learners.js';
 import type { FocusStepReport } from './Focus.js';
 import type { FocusBag } from './FocusBag.js';
 import type { GameFocus } from './GameFocus.js';
-import { schedulerReward } from './scheduler-reward.js';
+import { publishFocusStepReport } from './scheduler-reward.js';
 
 export interface FocusSchedulerOptions {
   bag: FocusBag;
@@ -89,13 +89,7 @@ export class FocusScheduler {
 
   private emitReport(report: FocusStepReport): void {
     if (typeof report.focusId !== 'string') return;
-    this.metaGame?.recordFocusStepReport(report);
-    if (!this.schedulerAdapter) return;
-    this.schedulerAdapter.learn({
-      domain: 'self-scheduler',
-      reward: schedulerReward(report),
-      focusId: report.focusId,
-    });
+    publishFocusStepReport(this.metaGame, this.schedulerAdapter, report.focusId, report);
   }
 
   run(ticks: number): Promise<SchedulerTickResult[]> {

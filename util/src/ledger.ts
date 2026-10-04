@@ -54,6 +54,21 @@ export interface RolloverPolicyOptions {
 }
 
 /**
+ * The ledger's default rollover: one file per day, ten thousand entries in it,
+ * thirty days of history. Every field is a bound on disk growth rather than a
+ * preference, so a caller states a different one deliberately or takes this.
+ *
+ * Declared here because the constructor reads it: the value a `Ledger` gets for
+ * an omitted field and the value a caller can name are the same number, not two
+ * that can drift.
+ */
+export const DEFAULT_ROLLOVER = Object.freeze({
+  daily: true,
+  maxEntriesPerFile: 10_000,
+  retentionDays: 30,
+});
+
+/**
  * Query filter for ledger entries.
  */
 export interface LedgerQuery {
@@ -129,9 +144,9 @@ export class Ledger<T extends BaseLedgerEntry> {
       basePath: config.basePath,
       schema: config.schema,
       rollover: {
-        daily: rollover.daily ?? true,
-        maxEntriesPerFile: rollover.maxEntriesPerFile ?? 10_000,
-        retentionDays: rollover.retentionDays ?? 30,
+        daily: rollover.daily ?? DEFAULT_ROLLOVER.daily,
+        maxEntriesPerFile: rollover.maxEntriesPerFile ?? DEFAULT_ROLLOVER.maxEntriesPerFile,
+        retentionDays: rollover.retentionDays ?? DEFAULT_ROLLOVER.retentionDays,
         pathTemplate:
           rollover.pathTemplate ??
           ((date, index) => (index === 0 ? `${date}.jsonl` : `${date}-${index}.jsonl`)),

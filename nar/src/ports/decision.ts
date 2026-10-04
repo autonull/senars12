@@ -29,7 +29,7 @@
  *     rather than merely to get it wrong.
  */
 
-import { boundedSignal, raceDeadline } from '@senars/util';
+import { withDeadline } from '@senars/util';
 import type {
   JudgmentProposition,
   JudgmentQuery,
@@ -122,13 +122,9 @@ export const askSafely = async (
   timeoutMs: number = DECISION_ASK_TIMEOUT_MS
 ): Promise<DecisionResult | null> => {
   if (!port) return null;
-  const signal = boundedSignal(timeoutMs);
   try {
-    const outcome = await raceDeadline(port.ask(request, signal.signal), timeoutMs);
-    return outcome.timedOut ? null : outcome.value;
+    return await withDeadline((signal) => port.ask(request, signal), timeoutMs);
   } catch {
     return null;
-  } finally {
-    signal.done();
   }
 };
