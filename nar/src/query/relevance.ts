@@ -1,3 +1,4 @@
+import { rankBy } from '@senars/util';
 import { atomicSymbols, containsSubterm, type Term, termKey } from '../terms/index.js';
 
 /**
@@ -87,9 +88,7 @@ export const byRelevance = <T extends { term: Term }>(
   options: RelevanceOptions
 ): T[] => {
   const floor = options.minScore ?? RELEVANCE_CONTAINMENT;
-  return tasks
-    .map((task, index) => ({ task, index, score: relevanceScore(task.term, options.focus) }))
-    .filter(({ score }) => score >= floor)
-    .sort((a, b) => b.score - a.score || a.index - b.index)
-    .map(({ task }) => task);
+  return rankBy(tasks, (task) => relevanceScore(task.term, options.focus), {
+    where: (_task, score) => score >= floor,
+  });
 };

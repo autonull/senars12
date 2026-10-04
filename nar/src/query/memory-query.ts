@@ -7,7 +7,7 @@
  * nothing (C2').
  */
 
-import { type Clock, type Episode, sortBy, systemClock } from '@senars/util';
+import { type Clock, type Episode, rankBy, sortBy, systemClock } from '@senars/util';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import { causalConnections, episodeSalience } from '../memory/episode-consolidator.js';
 import type { Concept, Memory } from '../memory/index.js';
@@ -158,13 +158,15 @@ export class MemoryQuery {
       }
     }
 
-    results.sort(
-      (a, b) =>
-        b.score - a.score ||
-        this.#tiebreak(a) - this.#tiebreak(b) ||
-        this.#label(a).localeCompare(this.#label(b))
+    return rankBy(
+      results,
+      (r) => r.score,
+      {
+        tiebreak: (a, b) =>
+          this.#tiebreak(a) - this.#tiebreak(b) || this.#label(a).localeCompare(this.#label(b)),
+        limit,
+      }
     );
-    return results.slice(0, limit);
   }
 
   async #conceptsFor(filter: MemoryQueryFilter, budget: number): Promise<Concept[]> {

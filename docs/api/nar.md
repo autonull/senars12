@@ -470,6 +470,20 @@ _Dynamic subpath (no single entry file)._
 
 - `Focus`
 
+- `featureTerm` — `[score_3]` — a named feature observed at a value.
+
+- `focusTask`
+
+- `outcomeTasks` — An outcome as a reward-sign belief, plus a terminal flag when the episode ended.
+
+- `perceptionTasks` — A game observation as the state belief plus one belief per numeric feature.
+
+- `proposalTasks` — Reflex proposals as executable goals, ranked by the caller but weighted as `value × confidence`.
+
+- `rewardTerm` — `[reward_positive]` — the sign of an outcome.
+
+- `stateTerm` — `snake` — the game state as a plain belief.
+
 - `createFocus`
 
 - `FocusBag`

@@ -204,6 +204,28 @@ export function insertByScoreDesc<T>(items: T[], item: T, score: (item: T) => nu
   items.splice(i, 0, item);
 }
 
+/**
+ * The narrowing a ranker may do around its sort.
+ *
+ * Each field removes a chained array stage that every caller otherwise spells
+ * as its own `.filter().sort().slice()` pipeline.
+ */
+export interface RankOptions<T> {
+  /**
+   * Drop items before ranking. Receives the already-computed key, so a floor on
+   * that key costs no second pass over the source.
+   */
+  readonly where?: (item: T, key: number) => boolean;
+  /**
+   * Secondary order for equal keys — the deterministic tie-break a caller needs
+   * when the result must not depend on input order. Returning `0` falls back to
+   * input order, so a partial tie-break is still stable.
+   */
+  readonly tiebreak?: (a: T, b: T) => number;
+  /** Keep at most this many of the ranked items. */
+  readonly limit?: number;
+}
+
 /** Ascending copy sorted by a derived numeric key — never mutates the input. */
 export function sortBy<T>(items: Iterable<T>, score: (item: T) => number): T[] {
   return keyedRank(items, score, (a, b) => a - b);
@@ -217,19 +239,30 @@ export function sortBy<T>(items: Iterable<T>, score: (item: T) => number): T[] {
  * `Array.prototype.sort` is stable — so a caller never has to decorate with an
  * index to reproduce the order it started with.
  */
-export function rankBy<T>(items: Iterable<T>, score: (item: T) => number): T[] {
-  return keyedRank(items, score, (a, b) => b - a);
+export function rankBy<T>(
+  items: Iterable<T>,
+  score: (item: T) => number,
+  options?: RankOptions<T>
+): T[] {
+  return keyedRank(items, score, (a, b) => b - a, options);
 }
 
 /** Decorate-sort-undecorate on a derived key — the shape both rankers share. */
 const keyedRank = <T>(
   items: Iterable<T>,
   score: (item: T) => number,
-  byKey: (a: number, b: number) => number
+  byKey: (a: number, b: number) => number,
+  { where, tiebreak, limit }: RankOptions<T> = {}
 ): T[] => {
-  const keyed = [...items].map((item) => ({ item, key: score(item) }));
-  keyed.sort((a, b) => byKey(a.key, b.key));
-  return keyed.map(({ item }) => item);
+  const keyed: Array<{ item: T; key: number }> = [];
+  for (const item of items) {
+    const key = score(item);
+    if (where !== undefined && !where(item, key)) continue;
+    keyed.push({ item, key });
+  }
+  keyed.sort((a, b) => byKey(a.key, b.key) || (tiebreak?.(a.item, b.item) ?? 0));
+  const kept = limit === undefined ? keyed : keyed.slice(0, Math.max(0, limit));
+  return kept.map(({ item }) => item);
 };
 
 /**

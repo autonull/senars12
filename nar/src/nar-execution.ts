@@ -1,4 +1,4 @@
-import { BoundedRing, createLogger, errMsg, mean, roundTo } from '@senars/util';
+import { BoundedRing, createLogger, errMsg, mean, rankBy, roundTo } from '@senars/util';
 import { envBool } from '@senars/util/config';
 import type { CognitiveController } from './cognitive';
 import { ADMISSION_ORDER_CALL_SITE, EGRESS_VETO_CALL_SITE } from './decision/call-sites.js';
@@ -490,10 +490,7 @@ export class NARExecution {
     // already admitted, so an invented option cannot widen the set — only the
     // order of the set that was on offer.
     const weight = new Map(answer.distribution.map(({ option, p }) => [option, p]));
-    return ranked
-      .map((task, index) => ({ task, index, p: weight.get(task.term.toString()) ?? 0 }))
-      .sort((a, b) => b.p - a.p || a.index - b.index)
-      .map(({ task }) => task);
+    return rankBy(ranked, (task) => weight.get(task.term.toString()) ?? 0);
   }
 
   /**

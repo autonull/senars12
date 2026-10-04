@@ -1,5 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { LruCache } from '@senars/util';
+import { LruCache, rankBy } from '@senars/util';
 import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
 import type { Truth } from '../../terms/impls/Truth.js';
@@ -207,10 +207,7 @@ export class LMReflex extends DecisionReadout implements Reflex<Perception, stri
     });
     const verification = (candidate: string): number =>
       1 - (result.contrastive.penalties[candidate] ?? 0);
-    return ranked
-      .map((entry, index) => ({ entry, index, verification: verification(entry.candidate) }))
-      .sort((a, b) => b.verification - a.verification || a.index - b.index)
-      .map((s) => s.entry);
+    return rankBy(ranked, (entry) => verification(entry.candidate));
   }
 
   learn(event: LearningEvent): void {

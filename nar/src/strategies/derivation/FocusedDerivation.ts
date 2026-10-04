@@ -1,3 +1,4 @@
+import { rankBy } from '@senars/util';
 import type { RuleEngine } from '../../rules/types.js';
 import { sharesSymbol } from '../../terms';
 import type { Task } from '../../types';
@@ -17,18 +18,9 @@ export class FocusedDerivation extends DefaultDerivation {
     ctx: DerivationContext
   ): AsyncGenerator<Task> {
     // Scored once each, not once per comparison: `sharesSymbol` walks both term
-    // trees. Decorate-sort-undecorate keeps the order — same scores, stable sort.
-    const scored = secondaries.map((task) => ({
-      task,
-      score: task.budget.priority + this.sharedAtomScore(primary, task),
-    }));
-    scored.sort((a, b) => b.score - a.score);
-    yield* super.derive(
-      primary,
-      scored.map(({ task }) => task),
-      processor,
-      ctx
-    );
+    // trees. rankBy is stable, so equal scores keep the order they arrived in.
+    const ranked = rankBy(secondaries, (task) => task.budget.priority + this.sharedAtomScore(primary, task));
+    yield* super.derive(primary, ranked, processor, ctx);
   }
 
   private sharedAtomScore(a: Task, b: Task): number {

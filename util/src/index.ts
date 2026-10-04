@@ -241,6 +241,7 @@ export {
   shareOf,
   sortBy,
   rankBy,
+  type RankOptions,
   splitKey,
   trimCapped,
   unique,

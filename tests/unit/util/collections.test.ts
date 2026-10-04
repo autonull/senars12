@@ -83,6 +83,53 @@ describe('sortBy / rankBy', () => {
   it('accepts any iterable', () => {
     expect(rankBy(new Set([1, 4, 2]), (n) => n)).toEqual([4, 2, 1]);
   });
+
+  it('keeps tied items in input order, so no index decoration is needed', () => {
+    const tagged = [1, 2, 3].map((key) => ({ key, score: 5 }));
+    expect(rankBy(tagged, (t) => t.score).map((t) => t.key)).toEqual([1, 2, 3]);
+  });
+
+  it('computes the key once per item', () => {
+    const seen: number[] = [];
+    rankBy([3, 1, 2], (n) => {
+      seen.push(n);
+      return n;
+    });
+    expect(seen.sort()).toEqual([1, 2, 3]);
+  });
+
+  describe('where / tiebreak / limit', () => {
+    const scored = [
+      { id: 'c', score: 1 },
+      { id: 'a', score: 5 },
+      { id: 'b', score: 5 },
+      { id: 'd', score: 9 },
+    ];
+
+    it('drops below the floor before ranking, reusing the computed key', () => {
+      expect(
+        rankBy(scored, (r) => r.score, { where: (_r, key) => key >= 5 }).map((r) => r.id)
+      ).toEqual(['d', 'a', 'b']);
+    });
+
+    it('breaks ties by name rather than input order, falling back to it otherwise', () => {
+      const byId = (a: (typeof scored)[number], b: (typeof scored)[number]): number =>
+        a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+
+      expect(rankBy(scored, (r) => r.score, { tiebreak: byId }).map((r) => r.id)).toEqual([
+        'd',
+        'a',
+        'b',
+        'c',
+      ]);
+    });
+
+    it('caps the ranked result, and treats a non-positive limit as none', () => {
+      expect(rankBy(scored, (r) => r.score, { limit: 2 }).map((r) => r.id)).toEqual(['d', 'a']);
+      expect(rankBy(scored, (r) => r.score, { limit: 0 })).toEqual([]);
+      expect(rankBy(scored, (r) => r.score, { limit: -1 })).toEqual([]);
+    });
+  });
 });
 
 describe('insertByScoreDesc', () => {

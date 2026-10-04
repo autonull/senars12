@@ -1,5 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { monotonicNow, safeRatio, stopwatch } from '@senars/util';
+import { monotonicNow, rankBy, safeRatio, stopwatch } from '@senars/util';
 import { DECISION_DERIVATIONS_SCOPE } from '../../kernel/budget-scopes.js';
 import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
 import { Stamp } from '../../terms/impls/Stamp.js';
@@ -397,11 +397,13 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
 
     const pByOption = new Map((ranking ?? []).map((d) => [d.option, d.p] as const));
     const authority = selectUsable ? seedTruth(select as ClassifyProposition).c : 0;
-    const ranked = candidates.map((candidate) => ({
-      candidate,
-      truth: ranking ? Truth.create(pByOption.get(candidate) ?? 0, authority) : Truth.NEUTRAL,
-    }));
-    ranked.sort((a, b) => b.truth.f - a.truth.f);
+    const ranked = rankBy(
+      candidates.map((candidate) => ({
+        candidate,
+        truth: ranking ? Truth.create(pByOption.get(candidate) ?? 0, authority) : Truth.NEUTRAL,
+      })),
+      (entry) => entry.truth.f
+    );
 
     const provisional = [];
     const admitted = [];
