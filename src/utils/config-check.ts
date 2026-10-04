@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { cloudApiKey, formatLMConfig, resolveLMConfig } from '@senars/nar/lm';
-import { createLogger, errMsg } from '@senars/util';
+import { createLogger, envSet, envStr, errMsg } from '@senars/util';
 
 const logger = createLogger({ scope: 'config:check' });
 
@@ -15,9 +15,9 @@ const REMOTE_OPTIONAL_KEY = new Set(['openai-compatible']);
 
 const checkProviderSecrets = (provider: string): string[] => {
   const required = REQUIRED_SECRETS[provider] ?? [];
-  const missing = required.filter((key) => !process.env[key]);
+  const missing = required.filter((key) => !envSet(key));
   if (missing.length === 0 && REMOTE_OPTIONAL_KEY.has(provider)) {
-    const hasKey = Boolean(cloudApiKey(process.env.LM_API_KEY_ENV));
+    const hasKey = Boolean(cloudApiKey(envStr('LM_API_KEY_ENV')));
     if (!hasKey) {
       console.log(
         `  ⚠ ${provider}: no API key set — fine for local daemons, required for hosted endpoints`
@@ -48,11 +48,11 @@ const main = (): void => {
   console.log(`✓ Secrets present for provider "${cfg.provider}"`);
 
   // Spend cap visibility (hard cap enforced by lm/service/spend.ts SpendLedger).
-  const cap = process.env.LM_MAX_SPEND_USD;
+  const cap = envStr('LM_MAX_SPEND_USD');
   console.log(`  Spend cap (LM_MAX_SPEND_USD): ${cap ?? 'unset (no cap)'}`);
 
   // Model file presence for the embedded provider.
-  const embeddedModel = process.env.LM_LLAMACPP_MODEL;
+  const embeddedModel = envStr('LM_LLAMACPP_MODEL');
   if (cfg.provider === 'llamacpp-embedded' && embeddedModel && !existsSync(embeddedModel)) {
     console.error(`✗ Embedded model file not found: ${embeddedModel}`);
     process.exit(1);

@@ -53,6 +53,7 @@
     "@monaco-editor/loader": "^1.7.0",
     "@senars/core": "workspace:*",
     "@senars/nar": "workspace:*",
+    "@senars/util": "workspace:*",
     "chart.js": "^4.5.1",
     "cytoscape": "^3.34.2",
     "dompurify": "^3.4.14",

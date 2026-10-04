@@ -1,7 +1,7 @@
 /** Health, telemetry and micro-benchmark commands (`.doctor`, `.health`, `.spend`, `.benchmarks`, …). */
 
 import { resolveLMSettings } from '@senars/nar/lm';
-import { clamp, errMsg, finiteOr, perSecond, stopwatch } from '@senars/util';
+import { clamp, envSet, errMsg, finiteOr, perSecond, stopwatch } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import { flagsOf } from './args.js';
 import type { BotRuntime } from './context.js';
@@ -11,7 +11,7 @@ const CREDENTIAL_KEYS = ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'LM_API_KEY'];
 export const diagnosticCommandsFor = (rt: BotRuntime) => [
   cmd('doctor', 'Lightweight health check', async (args = '') => {
     const s = resolveLMSettings();
-    const creds = CREDENTIAL_KEYS.map((k) => `${k}=${process.env[k] ? 'set' : 'unset'}`).join(' ');
+    const creds = CREDENTIAL_KEYS.map((k) => `${k}=${envSet(k) ? 'set' : 'unset'}`).join(' ');
     let embedded = 'n/a';
     if (s.provider === 'llamacpp-embedded') {
       try {

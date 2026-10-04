@@ -3,7 +3,7 @@
 import { existsSync, statSync } from 'node:fs';
 import { writeJsonFile } from '@senars/util';
 import { createSystemOneBudget, type ScoreDistribution } from '@senars/nar/lm/system-one';
-import { errMsg, finiteOr, incrementCount } from '@senars/util';
+import { envStrOr, errMsg, finiteOr, incrementCount } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import { type ReflexView, reflexesOf } from '../../cli/conversation-game.js';
 import {
@@ -666,7 +666,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
                 : `Unknown path: systemOne.${path}`;
             },
             save: async ([path]) => {
-              const target = path || process.env.SENARS_CONFIG || 'senars.config.json';
+              const target = path || envStrOr('senars.config.json', 'SENARS_CONFIG');
               await writeJsonFile(target, rt.appConfig);
               return `Saved to ${target}`;
             },

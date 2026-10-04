@@ -6,7 +6,7 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
-import { errMsg, extractLastUserMessage, type LMTask } from '@senars/util';
+import { envBool, envStr, errMsg, extractLastUserMessage, type LMTask } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import {
@@ -116,7 +116,7 @@ async function buildGrammar(
 async function ensureRuntimeLoaded(): Promise<void> {
   if (isLoaded()) return;
   const settings = getLMSettings();
-  const modelPath = settings.llamacppModelPath ?? process.env.LM_LLAMACPP_MODEL;
+  const modelPath = settings.llamacppModelPath ?? envStr('LM_LLAMACPP_MODEL');
   if (!modelPath) {
     throw new Error('LM_LLAMACPP_MODEL not set. Run `pnpm exec tsx scripts/fetch-model.ts` first.');
   }
@@ -218,7 +218,7 @@ export function createEmbeddedLlamaCppLanguageModel(task: LMTask | 'compact'): L
       outputTokens = sequence.tokenMeter.usedOutputTokens;
       session.dispose({ disposeSequence: true });
     }
-    if (process.env.LM_LLAMACPP_DEBUG) {
+    if (envBool('LM_LLAMACPP_DEBUG')) {
       const seg = (i: ChatModelResponse['response'][number]) =>
         typeof i === 'string'
           ? `str(${i.length})`
@@ -291,7 +291,7 @@ export function createEmbeddedLlamaCppLanguageModel(task: LMTask | 'compact'): L
 }
 
 export async function probeEmbeddedLlama(): Promise<{ available: boolean; detail: string }> {
-  const modelPath = process.env.LM_LLAMACPP_MODEL;
+  const modelPath = envStr('LM_LLAMACPP_MODEL');
   if (!modelPath) return { available: false, detail: 'LM_LLAMACPP_MODEL not set' };
   if (!existsSync(modelPath)) return { available: false, detail: `Model not found: ${modelPath}` };
   try {

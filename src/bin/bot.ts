@@ -59,7 +59,7 @@ import {
   type SystemOneBag,
   type TraceState,
 } from './commands/index.js';
-import { readAuthConfig } from './lib/env-config.js';
+import { readAppEnvConfig, readAuthConfig } from './lib/env-config.js';
 import { runEntrypoint } from './lib/fatal-error.js';
 import { createAgentFromEnv } from './lib/lifecycle.js';
 import { createRemoteRegistry } from './lib/remote-registry.js';
@@ -528,7 +528,7 @@ async function main(): Promise<void> {
   }
 
   await agent.start();
-  if (process.env.ENABLE_WEB_UI) {
+  if (readAppEnvConfig().enableWebUI) {
     const { startAgentUI } = await import('../../ui/src/server/index.js');
     startAgentUI(agent as never).catch((err: unknown) => {
       logger.error('Web UI failed to start', err as Error);

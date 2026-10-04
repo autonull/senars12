@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { errMsg } from '@senars/util';
+import { envStrOr, errMsg } from '@senars/util';
 import { probeReachable } from './probe.js';
 import { withThinkingDisabled } from './thinking.js';
 
@@ -88,7 +88,7 @@ export const createLlamaCppFetch = (opts: LlamaCppFetchOptions = {}): typeof fet
 
 /** Probe llama-server's native /health endpoint. */
 export const probeLlamaCpp = async (host?: string): Promise<boolean> => {
-  const base = (host ?? process.env.LM_LLAMACPP_HOST ?? LLAMACPP_HOST_DEFAULT).replace(
+  const base = (host ?? envStrOr(LLAMACPP_HOST_DEFAULT, 'LM_LLAMACPP_HOST')).replace(
     /\/v1\/?$/,
     ''
   );

@@ -6,6 +6,7 @@ import {
   type Clock,
   clamp,
   clampSigned,
+  envBool,
   ensureDirSync,
   makeId,
   maxBy,
@@ -340,7 +341,7 @@ export class GameFocus {
     }
   }
 
-  private gameTraceEnabled = process.env.SENARS_GAME_TRACE === '1';
+  private gameTraceEnabled = envBool('SENARS_GAME_TRACE');
   readonly #gameTraceLedger: Ledger<GameTraceLedgerEntry> | null = null;
 
   private initGameTrace(): void {

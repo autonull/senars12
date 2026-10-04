@@ -341,6 +341,9 @@ importers:
       '@senars/nar':
         specifier: workspace:*
         version: link:../nar
+      '@senars/util':
+        specifier: workspace:*
+        version: link:../util
       chart.js:
         specifier: ^4.5.1
         version: 4.5.1

@@ -22,7 +22,7 @@ import {
   type ConsolidationResult,
   consolidateEpisodes,
 } from '@senars/nar/memory/retrieval-verified';
-import { cachePath, createLogger, setupGracefulShutdown } from '@senars/util';
+import { cachePath, createLogger, envStr, setupGracefulShutdown } from '@senars/util';
 import { type AppConfig, loadConfig } from '../../config/index.js';
 import { readEpisodicConfig } from './env-config.js';
 import { mettaPort } from './metta.js';
@@ -72,7 +72,7 @@ export async function createAgentFromEnv(
   const appConfig = await loadConfig();
 
   // `production` block: alternate LM settings activated via LM_PROFILE=production.
-  if (appConfig.production && process.env.LM_PROFILE === 'production') {
+  if (appConfig.production && envStr('LM_PROFILE') === 'production') {
     configureLM({ ...appConfig.lm, ...appConfig.production });
   } else if (appConfig.lm) {
     configureLM(appConfig.lm);

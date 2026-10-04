@@ -4,7 +4,7 @@
  * (`@senars/io`) — the single source of truth for `ENABLE_*` gates.
  */
 
-import { cachePath, envBool, envCsv, envInt, envStrOr } from '@senars/util/config';
+import { cachePath, envBool, envCsv, envInt, envStr, envStrOr } from '@senars/util/config';
 
 export interface EpisodicConfig {
   memoryPath: string;
@@ -36,7 +36,7 @@ export function readEpisodicConfig(): EpisodicConfig {
 
 export function readAuthConfig(): AuthConfig {
   return {
-    secret: process.env.AUTH_SECRET,
+    secret: envStr('AUTH_SECRET'),
     connectionIds: envCsv(['irc-main', 'http-main', 'ws-main'], 'AUTH_CONNECTION_IDS'),
   };
 }

@@ -33,7 +33,7 @@ import {
   resolveOfflineTier,
   setRouting,
 } from '@senars/nar/lm';
-import { createLogger, errMsg, keyedBy, mapValues, parseFlags } from '@senars/util';
+import { createLogger, envSet, errMsg, keyedBy, mapValues, parseFlags } from '@senars/util';
 import { loadConfig } from '../../config/index.js';
 
 const logger = createLogger({ scope: 'doctor' });
@@ -60,7 +60,7 @@ const checkCredentials = (): { key: string; present: boolean }[] =>
   ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'LM_API_KEY', 'TAVILY_API_KEY', 'BRAVE_API_KEY'].map(
     (key) => ({
       key,
-      present: Boolean(process.env[key]),
+      present: envSet(key),
     })
   );
 

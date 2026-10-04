@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { homedir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { tool } from 'ai';
 import { unique } from '@senars/util';
 import { z } from 'zod';
@@ -29,12 +30,8 @@ export interface CodemodOptions {
 }
 
 function findAstGrep(): string {
-  const candidates = [
-    'ast-grep',
-    'sg',
-    `${process.env.HOME}/.cargo/bin/ast-grep`,
-    `${process.env.HOME}/.cargo/bin/sg`,
-  ];
+  const cargo = join(homedir(), '.cargo', 'bin');
+  const candidates = ['ast-grep', 'sg', join(cargo, 'ast-grep'), join(cargo, 'sg')];
   for (const cmd of candidates) {
     try {
       const result = spawnSync(cmd, ['--version'], { stdio: 'pipe' });

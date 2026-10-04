@@ -6,6 +6,7 @@ import { extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Agent, CognitiveEvent, GraphNodeData, IncomingFromServer } from '@senars/core';
 import { isNarsese } from '@senars/core';
+import { envBool, envPositive } from '@senars/util';
 import { DEFAULT_CONFIG, parseTermToEdges, termParser } from '@senars/nar';
 import { handleMetricsRequest } from '@senars/nar/metrics';
 import { type WebSocket, WebSocketServer } from 'ws';
@@ -14,7 +15,7 @@ import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const DIST_DIR = resolve(__dirname, '../../dist/client');
-const DEFAULT_PORT = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
+const DEFAULT_PORT = envPositive('PORT', 3000);
 
 const mimeTypes: Record<string, string> = {
   '.html': 'text/html',
@@ -541,7 +542,7 @@ export async function startUI(agent?: Agent, opts: StartUIOptions = {}): Promise
   const port = opts.port ?? DEFAULT_PORT;
   return new Promise((resolve) => {
     const { server, projection, wss } = createServerWithProjection(agent);
-    const host = process.env.CI ? '0.0.0.0' : 'localhost';
+    const host = envBool('CI') ? '0.0.0.0' : 'localhost';
     server.listen({ port, host, reusePort: true }, () => {
       const addr = server.address();
       const actualPort = addr && typeof addr === 'object' ? addr.port : port;

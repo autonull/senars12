@@ -31,6 +31,7 @@ export {
   envPositive,
   envStr,
   envStrOr,
+  envSet,
   isTruthy,
   parseEnvValue,
   parseOrThrow,

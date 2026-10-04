@@ -17,6 +17,7 @@ export {
 } from './cognitive-bounds.js';
 export { type DialogueConfig, dialogueDefaults, dialogueSchema } from './dialogue.js';
 export {
+  type EnvKey,
   envBool,
   envCsv,
   envFirst,
@@ -24,6 +25,7 @@ export {
   envNum,
   envNumOr,
   envPositive,
+  envSet,
   envStr,
   envStrOr,
   isBooleanSpelling,

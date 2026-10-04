@@ -1,5 +1,5 @@
 import { basename, resolve } from 'node:path';
-import { stopwatch, truncateBytes } from '@senars/util';
+import { envStr, stopwatch, truncateBytes } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { containsPath } from '../../capability/wasi-sandbox.js';
@@ -130,7 +130,7 @@ function createWasiTool(
 
 export function createCodeExecTools(deps: CodeExecDeps = {}) {
   if (!deps.enabled) return {};
-  const allowlist = deps.allowlist ?? shellAllowlistFromEnv(process.env.SHELL_ALLOWLIST);
+  const allowlist = deps.allowlist ?? shellAllowlistFromEnv(envStr('SHELL_ALLOWLIST'));
   const shellDeps = {
     allowlist,
     workspaceRoot: deps.workspaceRoot || process.cwd(),

@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { LMExecutionStats } from '@senars/util';
-import { cachePath, clamp01 } from '@senars/util';
+import { cachePath, clamp01, envStr } from '@senars/util';
 import type { LMSettings } from '../env-config.js';
 import {
   getProviderRuntime,
@@ -137,7 +137,7 @@ export const resolveOfflineTier = (
   settings?: LMSettings,
   rt: ProviderRuntime = getProviderRuntime()
 ): string | undefined => {
-  const envModel = process.env.LM_LOCAL_MODEL;
+  const envModel = envStr('LM_LOCAL_MODEL');
   if (envModel) return envModel;
   const ladder = rt.routing?.offlineLadder;
   if (!ladder?.length) return undefined;

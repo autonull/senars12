@@ -13,6 +13,8 @@ import { DialogueCapture } from '@senars/nar/dialogue';
 import {
   BoundedMap,
   createLogger,
+  envStr,
+  envStrOr,
   generateId,
   parseFlags,
   setupGracefulShutdown,
@@ -42,7 +44,7 @@ type TransportType = 'stdio' | 'sse' | 'http';
 const flags = parseFlags();
 
 const getTransportType = (): TransportType =>
-  flags.str('--transport', process.env.MCP_TRANSPORT ?? 'stdio') as TransportType;
+  flags.str('--transport', envStrOr('stdio', 'MCP_TRANSPORT')) as TransportType;
 
 /**
  * `flags.num` guards the flag it reads; guarding the *fallback* is the other
@@ -163,7 +165,7 @@ async function initialize() {
     case 'sse':
     case 'http': {
       const mcpConfig = appConfig.connections?.mcp;
-      const apiKey = mcpConfig?.apiKeyEnv ? process.env[mcpConfig.apiKeyEnv] : mcpConfig?.apiKey;
+      const apiKey = envStr(mcpConfig?.apiKeyEnv) ?? mcpConfig?.apiKey;
       const guard = new HttpGuard({ apiKey, rateLimitPerMinute: mcpConfig?.rateLimitPerMinute });
       if (!apiKey) logger.info(`MCP API key (client x-api-key header): ${guard.activeKey}`);
       if (transportType === 'sse') startSse(port, guard);

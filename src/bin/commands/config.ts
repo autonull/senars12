@@ -1,6 +1,6 @@
 /** Application config read/write commands (`.config-*`). Mutates `rt.appConfig` in place. */
 
-import { writeJsonFile } from '@senars/util';
+import { envStrOr, writeJsonFile } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import { coerce, flagsOf, setPath, tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
@@ -8,7 +8,7 @@ import type { BotRuntime } from './context.js';
 const DEFAULT_CONFIG_PATH = 'senars.config.json';
 
 const configPath = (args = ''): string =>
-  args.trim() || process.env.SENARS_CONFIG || DEFAULT_CONFIG_PATH;
+  args.trim() || envStrOr(DEFAULT_CONFIG_PATH, 'SENARS_CONFIG');
 
 export const configCommandsFor = (rt: BotRuntime) => [
   cmd('config-show', 'Show effective config', () =>

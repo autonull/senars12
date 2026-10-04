@@ -29,22 +29,48 @@ export const isFalsy = (value: string | undefined): boolean =>
 export const isBooleanSpelling = (value: string | undefined): boolean =>
   isTruthy(value) || isFalsy(value);
 
-/** First defined value among `keys`, or `undefined`. */
-export const envFirst = (...keys: string[]): string | undefined => {
+/**
+ * A key the caller may not have. The env name of an API key or a transport is
+ * usually *config*, so the lookup is `envStr(settings.apiKeyEnv, 'LM_API_KEY')`
+ * — which needs the absent case to be spelled, and spelling it at each call site
+ * is what produced `apiKeyEnv ? process.env[apiKeyEnv] : undefined` in six
+ * modules, with `undefined` reaching `process.env[undefined]` in the rest.
+ */
+export type EnvKey = string | undefined;
+
+/**
+ * First defined, non-empty value among `keys`, or `undefined`.
+ *
+ * **Empty is absent.** A var declared but blank (`LM_API_KEY=` in a CI template,
+ * an unset optional in a `.env` many files carry) is the *absence* of a value,
+ * and reading it as `''` is what made `Boolean(process.env.KEY)` report a
+ * credential that does not exist. The one accessor means one answer.
+ */
+export const envFirst = (...keys: readonly EnvKey[]): string | undefined => {
   for (const key of keys) {
+    if (key === undefined) continue;
     const value = process.env[key];
     if (value !== undefined && value !== '') return value;
   }
   return undefined;
 };
 
-export const envStr = (...keys: string[]): string | undefined => envFirst(...keys);
+/** {@link envFirst} under the name a value read is usually wanted by. */
+export const envStr = (...keys: readonly EnvKey[]): string | undefined => envFirst(...keys);
 
-export const envStrOr = (fallback: string, ...keys: string[]): string =>
+/** {@link envStr} with a fallback for the caller that wants a value, not a fact. */
+export const envStrOr = (fallback: string, ...keys: readonly EnvKey[]): string =>
   envFirst(...keys) ?? fallback;
 
-export const envBool = (key: string, fallback = false): boolean => {
-  const value = process.env[key];
+/** True when the key carries a value — the "is it configured?" test. */
+export const envSet = (...keys: readonly EnvKey[]): boolean => envFirst(...keys) !== undefined;
+
+/**
+ * The boolean grammar, applied to one key. `LM_OFFLINE=0` is off; a bare
+ * `if (process.env.LM_OFFLINE)` would read every non-empty spelling as on.
+ */
+export const envBool = (key: EnvKey, fallback = false): boolean => {
+  const value = envFirst(key);
   return value === undefined ? fallback : isTruthy(value);
 };
 

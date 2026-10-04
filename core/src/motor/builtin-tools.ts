@@ -2,7 +2,7 @@ import { exec } from 'node:child_process';
 import { access, appendFile, readFile, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import type { EpisodicMemory } from '@senars/util';
-import { errMsg, toolError, toolOk } from '@senars/util';
+import { envStr, errMsg, toolError, toolOk } from '@senars/util';
 import { z } from 'zod';
 import type { ApprovalService } from '../ApprovalService.js';
 import type { ToolResult } from '../engine/Engine.js';
@@ -254,7 +254,7 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
   defineCmd('tavily_search', 'Search the web via Tavily API (requires TAVILY_API_KEY)', (args) => {
     const first = argAt(args, 0);
     if (!first) return missing('tavily_search', 'a query');
-    return keyedProvider(first, 'tavily', process.env.TAVILY_API_KEY, tavilySearch);
+    return keyedProvider(first, 'tavily', envStr('TAVILY_API_KEY'), tavilySearch);
   }),
   defineCmd('brave_search', 'Search the web via Brave Search API (requires BRAVE_API_KEY)', (args) => {
     const first = argAt(args, 0);

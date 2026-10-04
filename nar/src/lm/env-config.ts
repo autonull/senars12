@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { envFirst, envNumOr, isTruthy } from '@senars/util/config';
+import { envFirst, envNumOr, envSet, envStr, isTruthy } from '@senars/util/config';
 
 export const LM_PROVIDER_NAMES = [
   'transformers',
@@ -93,8 +93,7 @@ const isResolvedProvider = (v: string): v is ResolvedProvider =>
  * generic key, then the provider-specific cloud keys.
  */
 export const cloudApiKey = (apiKeyEnv?: string): string | undefined =>
-  (apiKeyEnv ? process.env[apiKeyEnv] : undefined) ??
-  envFirst('LM_API_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY');
+  envStr(apiKeyEnv, 'LM_API_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY');
 
 /** File/config-facing settings: provider may be any string (validated at resolve time). */
 export type LMSettingsInput = Omit<Partial<LMSettings>, 'provider'> & { provider?: string };
@@ -109,11 +108,11 @@ const CLOUD_CREDENTIALS: readonly (readonly [LMProviderName, string])[] = [
 
 /** First cloud provider with a credential present in the environment. */
 export const detectCloudProvider = (): LMProviderName | undefined =>
-  CLOUD_CREDENTIALS.find(([, key]) => Boolean(process.env[key]))?.[0];
+  CLOUD_CREDENTIALS.find(([, key]) => envSet(key))?.[0];
 
 /** Sync cheap check: an embedded-llama GGUF model is configured and present on disk. */
 export const embeddedLlamaConfigured = (): boolean => {
-  const p = process.env.LM_LLAMACPP_MODEL;
+  const p = envStr('LM_LLAMACPP_MODEL');
   return Boolean(p && existsSync(p));
 };
 
@@ -122,7 +121,7 @@ export const embeddedLlamaConfigured = (): boolean => {
  *  transformers.js is explicit opt-in only (LM_PROVIDER=transformers) — never the default. */
 export const defaultLocalProvider = (): LMProviderName => {
   if (embeddedLlamaConfigured()) return 'llamacpp-embedded';
-  if (process.env.LM_LLAMACPP_HOST) return 'llamacpp';
+  if (envStr('LM_LLAMACPP_HOST')) return 'llamacpp';
   return 'mock';
 };
 

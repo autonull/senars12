@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
-import { deepMerge } from '@senars/util';
+import { deepMerge, envStrOr } from '@senars/util';
 import { readEnvOverrides } from '@senars/util/config';
 import {
   CURRENT_CONFIG_VERSION,
@@ -45,7 +45,7 @@ const validateConfigVersion = (version: unknown): MigrationWarning | null => {
 
 export const loadConfig = async (path?: string): Promise<AppConfig> => {
   let raw_config: Record<string, unknown> = {};
-  const filePath = path ?? process.env.SENARS_CONFIG ?? 'senars.config.json';
+  const filePath = path ?? envStrOr('senars.config.json', 'SENARS_CONFIG');
   let outcome: MigrationOutcome | null = null;
   try {
     const absolutePath = resolve(process.cwd(), filePath);

@@ -20,6 +20,12 @@ const ENV_VAR_KINDS: Record<string, EnvKind> = {
   LM_API_KEY_ENV: 'string',
   LM_LLAMACPP_MODEL: 'string',
   LM_LLAMACPP_GPU: 'string',
+  LM_LLAMACPP_HOST: 'string',
+  LM_LOCAL_MODEL: 'string',
+  MCP_TRANSPORT: 'string',
+  SHELL_ALLOWLIST: 'string',
+  AUTH_SECRET: 'string',
+  TAVILY_API_KEY: 'string',
   OLLAMA_HOST: 'string',
   OLLAMA_MODEL: 'string',
   EPISODIC_MEMORY_PATH: 'string',
@@ -34,9 +40,6 @@ const ENV_VAR_KINDS: Record<string, EnvKind> = {
   SENARS_LM_PROVIDER: 'string',
   SENARS_LM_MODEL: 'string',
   DEBUG: 'string',
-  NODE_ENV: 'string',
-  NODE_NO_WARNINGS: 'string',
-  NODE_OPTIONS: 'string',
   ANTHROPIC_API_KEY: 'string',
   OPENAI_API_KEY: 'string',
   LM_API_KEY: 'string',
@@ -54,6 +57,7 @@ const ENV_VAR_KINDS: Record<string, EnvKind> = {
   LM_LLAMACPP_SEQS: 'int',
 
   REASONING_THRESHOLD: 'number',
+  LM_MAX_SPEND_USD: 'number',
   SENARS_REASONING_TRIGGER_THRESHOLD: 'number',
 
   AUTO_TRIGGER_REASONING: 'bool',
@@ -70,6 +74,8 @@ const ENV_VAR_KINDS: Record<string, EnvKind> = {
   SENARS_TUI_TYPING_INDICATOR: 'bool',
   SENARS_CLI_ENABLED: 'bool',
   LM_LLAMACPP_FLASH_ATTN: 'bool',
+  LM_LLAMACPP_DEBUG: 'bool',
+  SENARS_GAME_TRACE: 'bool',
   LM_OFFLINE: 'bool',
   BOT_CLI_ONLY: 'bool',
   ENABLE_IRC: 'bool',
@@ -79,7 +85,9 @@ const ENV_VAR_KINDS: Record<string, EnvKind> = {
   ENABLE_WEB_UI: 'bool',
 };
 
-/** Only vars under these prefixes are ours to judge; the rest belong to the host. */
+/** Only vars under these prefixes are ours to judge; the rest belong to the host. A
+ *  prefix here claims the table below can answer for every var under it, which is
+ *  why `ENABLE_` is listed: the transport gates are declared, so they are checked. */
 const SCOPED_PREFIXES = [
   'SENARS_',
   'LM_',
@@ -89,6 +97,7 @@ const SCOPED_PREFIXES = [
   'AUTO_',
   'REASONING_',
   'MAX_',
+  'ENABLE_',
 ] as const;
 
 const inScope = (name: string): boolean =>
@@ -104,6 +113,9 @@ export interface ValidationResult {
   readonly mistyped: ReadonlyArray<{ name: string; reason: string }>;
 }
 
+/** Names sorted: the iteration source is the env table, whose order is whoever
+ *  populated it — a shell, `--env-file`, a test that deletes and re-sets. A report
+ *  that reorders between runs of the same config cannot be diffed. */
 export const validateEnv = (): ValidationResult => {
   const unknown: string[] = [];
   const mistyped: { name: string; reason: string }[] = [];
@@ -123,7 +135,7 @@ export const validateEnv = (): ValidationResult => {
     }
   }
 
-  return { unknown, mistyped };
+  return { unknown: unknown.sort(), mistyped: mistyped.sort((a, b) => a.name.localeCompare(b.name)) };
 };
 
 export const assertValidEnv = (): void => {

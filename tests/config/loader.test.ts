@@ -2,6 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { readAppEnvConfig } from '../../src/bin/lib/env-config.js';
 import { loadConfig } from '../../src/config/loader.js';
 import { validateEnv } from '../../src/utils/env-validate.js';
 
@@ -17,6 +18,9 @@ const PROBED = [
   'SENARS_IRC_PORT',
   'REASONING_THRESHOLD',
   'SENARS_TOTALLY_MADE_UP',
+  'ENABLE_WEB_UI',
+  'LM_LLAMACPP_DEBUG',
+  'SENARS_GAME_TRACE',
 ] as const;
 
 const saved = new Map<string, string | undefined>();
@@ -93,8 +97,8 @@ describe('validateEnv', () => {
     setEnv('REASONING_THRESHOLD', 'high');
     const { mistyped } = validateEnv();
     expect(mistyped).toEqual([
-      { name: 'SENARS_IRC_PORT', reason: 'expected int, got "6697.5"' },
       { name: 'REASONING_THRESHOLD', reason: 'expected number, got "high"' },
+      { name: 'SENARS_IRC_PORT', reason: 'expected int, got "6697.5"' },
     ]);
   });
 
@@ -110,5 +114,26 @@ describe('validateEnv', () => {
         reason: 'expected boolean (true/false/1/0/yes/no/on/off), got "perhaps"',
       },
     ]);
+  });
+
+  it('declares a kind for every var the product code reads as a flag', () => {
+    for (const key of PROBED) delete process.env[key];
+    setEnv('ENABLE_WEB_UI', 'false');
+    setEnv('LM_LLAMACPP_DEBUG', '0');
+    setEnv('SENARS_GAME_TRACE', 'on');
+
+    expect(validateEnv()).toMatchObject({ unknown: [], mistyped: [] });
+  });
+
+  it('reads a disabled flag as disabled — every spelling, including the falsy ones', () => {
+    for (const key of PROBED) delete process.env[key];
+    for (const value of ['false', '0', 'no', 'off', '']) {
+      setEnv('ENABLE_WEB_UI', value);
+      expect(readAppEnvConfig().enableWebUI).toBe(false);
+    }
+    for (const value of ['true', '1', 'yes', 'on']) {
+      setEnv('ENABLE_WEB_UI', value);
+      expect(readAppEnvConfig().enableWebUI).toBe(true);
+    }
   });
 });
