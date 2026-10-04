@@ -10,6 +10,7 @@ import type { JudgmentDataset } from './distill.js';
 import { recordReflexOutcome } from './reflex-label-source.js';
 import { DecisionReadout } from './reflex-readout.js';
 import type { CognitiveDispatcher, EmbeddingCache, EmbeddingPointer } from './types.js';
+import { DEFAULT_SYNTHESIS_CANDIDATES } from './types.js';
 
 export interface LMReflexOptions {
   /** Incumbent reflex served when the LM is cold, failed, or breaker-open (C2). */
@@ -82,7 +83,7 @@ export class LMReflex extends DecisionReadout implements Reflex<Perception, stri
     this.#dataset = options.dataset;
     this.#actionLegend = options.actionLegend;
     this.#promptTemplate = options.promptTemplate;
-    this.#maxCandidates = options.maxCandidates ?? 3;
+    this.#maxCandidates = options.maxCandidates ?? DEFAULT_SYNTHESIS_CANDIDATES;
     this.#contrastive = options.contrastive;
     this.#decider = createDecider({
       judge: (pointer, queries, budget) => options.dispatcher.judge(pointer, queries, budget),

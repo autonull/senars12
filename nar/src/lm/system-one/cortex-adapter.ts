@@ -8,7 +8,7 @@ import type {
   SynthesisProposition,
   SynthesisQuery,
 } from './types.js';
-import { NO_COST } from './types.js';
+import { candidateSlots, nextCandidateSlot, NO_COST, synthesisCandidateCount } from './types.js';
 
 export interface LMServiceCortexConfig {
   lmService: LMService;
@@ -47,7 +47,7 @@ export class LMServiceCortex implements GenerativeCortex {
     query: SynthesisQuery,
     _budget: ReasoningBudget
   ): AsyncGenerator<SynthesisProposition> {
-    const maxCandidates = query.maxCandidates ?? 3;
+    const maxCandidates = synthesisCandidateCount(query);
     const grammar = query.grammar ?? this.#defaultGrammar;
 
     const prompt =
@@ -68,7 +68,7 @@ export class LMServiceCortex implements GenerativeCortex {
         cost: NO_COST,
       };
     } catch (_error) {
-      const stubCandidates = Array.from({ length: maxCandidates }, (_, i) => `candidate_${i + 1}`);
+      const stubCandidates = candidateSlots(maxCandidates);
       yield {
         kind: 'synthesize',
         candidates: stubCandidates,
@@ -117,7 +117,7 @@ Generate up to ${maxCandidates} Narsese candidates. One per line, no extra text.
     });
 
     while (candidates.length < maxCandidates) {
-      candidates.push(`candidate_${candidates.length + 1}`);
+      candidates.push(nextCandidateSlot(candidates.length));
     }
 
     return candidates.slice(0, maxCandidates);

@@ -5,7 +5,7 @@ import type { Budget, Task, TruthType } from '../../types';
 import { createTask } from '../../types/core.js';
 import { systemOneTaskWeight } from '../task-weights.js';
 import type { CognitiveDispatcher, EvaluateQuery, JudgmentProposition } from './types.js';
-import { createSystemOneBudget } from './types.js';
+import { createSystemOneBudget, DEFAULT_SYNTHESIS_CANDIDATES } from './types.js';
 
 export interface SystemOneLMRuleAdapterConfig {
   dispatcher: CognitiveDispatcher;
@@ -42,7 +42,7 @@ export class SystemOneLMRuleAdapter {
         kind: 'synthesize' as const,
         instruction: `Translate to Narsese: ${input}`,
         grammar: 'narsese-term',
-        maxCandidates: 3,
+        maxCandidates: DEFAULT_SYNTHESIS_CANDIDATES,
       };
 
       const judgmentQueries = [

@@ -30,7 +30,7 @@ import type {
   SynthesisProposition,
   SynthesisQuery,
 } from './types.js';
-import { NO_COST } from './types.js';
+import { candidateSlots, NO_COST, synthesisCandidateCount } from './types.js';
 
 export { DeterministicManifold, Tier3SymbolicManifold };
 
@@ -49,11 +49,9 @@ export class StubCortex implements GenerativeCortex {
     query: SynthesisQuery,
     _budget: ReasoningBudget
   ): AsyncGenerator<SynthesisProposition> {
-    const candidates = query.maxCandidates ?? 3;
-    const cands = Array.from({ length: candidates }, (_, i) => `candidate_${i + 1}`);
     yield {
       kind: 'synthesize',
-      candidates: cands,
+      candidates: candidateSlots(synthesisCandidateCount(query)),
       cost: NO_COST,
     };
   }

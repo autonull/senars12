@@ -41,7 +41,7 @@ export interface CognitiveParameters {
   modelRunner: ModelRunnerConfig;
 
   /** Memory Control */
-  memory: MemoryConfig;
+  memory: MemoryParams;
 
   /** Pluggable strategy configuration */
   strategies: {
@@ -214,7 +214,12 @@ export interface ModelRunnerConfig {
   maxLoops: number;
 }
 
-export interface MemoryConfig {
+/**
+ * The tunable half of memory. Named `...Params`, not `MemoryConfig`, because
+ * `memory/config.ts` owns the component's own forty-field `MemoryConfig` and the
+ * two shared a name while sharing no fields.
+ */
+export interface MemoryParams {
   /** Activation decay rate per cycle */
   activationDecayRate: number;
 }

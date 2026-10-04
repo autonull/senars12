@@ -148,6 +148,29 @@ export interface SynthesisQuery {
   promptOverride?: string;
 }
 
+/** How many candidates a synthesis request proposes when it names no count. */
+export const DEFAULT_SYNTHESIS_CANDIDATES = 3;
+
+/** The resolved candidate count for `query` — one default, not one per proposer. */
+export const synthesisCandidateCount = (query: SynthesisQuery): number =>
+  query.maxCandidates ?? DEFAULT_SYNTHESIS_CANDIDATES;
+
+/**
+ * The slot names a synthesis request proposes into: `candidate_1` … `candidate_n`.
+ *
+ * A candidate that names no slot is an LM proposal the cortex never parsed, and
+ * the ladder-tiers, the synthesizer and the stub fallback all have to agree on
+ * the spelling for a downstream judge to line a proposal up with the query it
+ * answers — they each wrote `candidate_${i + 1}` beside their own loop, and the
+ * top-up path numbered by list length instead, so a short parse could repeat a
+ * name it already held.
+ */
+export const candidateSlots = (count: number): string[] =>
+  Array.from({ length: Math.max(0, count) }, (_, i) => `candidate_${i + 1}`);
+
+/** The slot after `filled` are taken. */
+export const nextCandidateSlot = (filled: number): string => `candidate_${filled + 1}`;
+
 export interface ResourceCost {
   tokensIn: number;
   tokensOut: number;

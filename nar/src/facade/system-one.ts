@@ -41,7 +41,7 @@ import type {
   JudgmentProposition,
   JudgmentQuery,
 } from '../lm/system-one/types.js';
-import { createSystemOneBudget } from '../lm/system-one/types.js';
+import { createSystemOneBudget, DEFAULT_SYNTHESIS_CANDIDATES } from '../lm/system-one/types.js';
 import { composeModelDigest, encoderDigest } from '../lm/system-one/wasi-runtime.js';
 import { createEmbeddingGenerator } from '../memory/embedding.js';
 import { recordEmbeddingCacheEvent } from '../metrics/prometheus.js';
@@ -379,7 +379,8 @@ export class SystemOneRuntime {
       embeddingCache: this.embeddingCache,
       budget: this.s1Budget,
       dataset: this.dataset,
-      maxCandidates: options.maxCandidates ?? this.config.systemOne?.lmReflex?.maxCandidates ?? 3,
+      maxCandidates:
+        options.maxCandidates ?? this.config.systemOne?.lmReflex?.maxCandidates ?? DEFAULT_SYNTHESIS_CANDIDATES,
       contrastive: this.getContrastive('default'),
     });
     gameFocus.bindReflex(lmReflex);
