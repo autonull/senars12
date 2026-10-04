@@ -101,6 +101,31 @@ export const SelfImprovementProposalSchema = z.object({
 });
 export type SelfImprovementProposal = z.infer<typeof SelfImprovementProposalSchema>;
 
+/**
+ * What kind of change each proposal kind makes, and therefore what governance it
+ * needs: `high` waits for a human, `medium` is held for sandbox validation, `low`
+ * may auto-apply. The tiers live with the kinds because the router reads the tier and
+ * nothing else — a producer that writes its own tier is choosing its own route, and
+ * two of them had: a schema promotion declared `low` where this says `medium`, so it
+ * auto-applied a change to the reasoning substrate without the validation the table
+ * asks for.
+ */
+export const PROPOSAL_RISK = {
+  'focus-weight': 'low',
+  'strategy-switch': 'low',
+  'knob-tune': 'medium',
+  'schema-promotion': 'medium',
+  'test-generate': 'medium',
+  'patch-apply': 'high',
+  'schema-evolution': 'low',
+  'metta-rule-adoption': 'low',
+} as const satisfies Record<SelfImprovementProposal['kind'], SelfImprovementProposal['riskTier']>;
+
+/** The tier a proposal of this kind carries. */
+export const proposalRisk = (
+  kind: SelfImprovementProposal['kind']
+): SelfImprovementProposal['riskTier'] => PROPOSAL_RISK[kind];
+
 export const RiskAssessmentSchema = z.object({
   risk: RiskLevelSchema,
   score: z.number().int().nonnegative(),

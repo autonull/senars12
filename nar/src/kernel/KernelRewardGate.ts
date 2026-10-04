@@ -6,7 +6,7 @@ import type {
   RewardGateOutput,
   SelfImprovementProposal,
 } from '@senars/core/schemas';
-import { SelfImprovementProposalSchema } from '@senars/core/schemas';
+import { proposalRisk, SelfImprovementProposalSchema } from '@senars/core/schemas';
 import { makeId } from '@senars/util';
 import { recordPolicyViolation } from './event-ring.js';
 import { KernelGate, projectOutcome } from './gate-base.js';
@@ -119,18 +119,6 @@ export class ExternalRewardGate extends KernelRewardGate {
   }
 }
 
-const PROPOSAL_RISK: Record<SelfImprovementProposal['kind'], SelfImprovementProposal['riskTier']> =
-  {
-    'focus-weight': 'low',
-    'strategy-switch': 'low',
-    'knob-tune': 'medium',
-    'schema-promotion': 'medium',
-    'test-generate': 'medium',
-    'patch-apply': 'high',
-    'schema-evolution': 'low',
-    'metta-rule-adoption': 'low',
-  };
-
 export class SelfRewardGate extends KernelRewardGate {
   private queue: SelfImprovementProposal[] = [];
 
@@ -143,7 +131,7 @@ export class SelfRewardGate extends KernelRewardGate {
     return SelfImprovementProposalSchema.parse({
       proposalId: makeId(),
       kind,
-      riskTier: PROPOSAL_RISK[kind],
+      riskTier: proposalRisk(kind),
       payload,
       rewardDomain,
       correlationId,

@@ -1,5 +1,5 @@
-import { clamp01, minBy } from '@senars/util';
-import { containsSubterm, type Term, TermMap } from '../terms';
+import { minBy } from '@senars/util';
+import { type Term, TermMap } from '../terms';
 import type { Task } from '../types';
 import type { Concept } from './concept.js';
 
@@ -23,8 +23,11 @@ const DEFAULT_CONFIG: FocusConfig = {
 export class Focus {
   private concepts: TermMap<Concept> = new TermMap();
   private config: FocusConfig;
-  private topicBoosts = new Map<string, { factor: number; ttl: number }>();
-  private activeGoals: Task[] = [];
+  /** The goals attention is steered by, empty until a caller sets them. Read through
+   *  {@link Focus.getActiveGoals}, which is the only accessor: the topic-boost and
+   *  priority-adjust path this pair served had no caller left, so both fields spent a
+   *  turn copying an array nobody read. */
+  private activeGoals: readonly Task[] = [];
 
   constructor(config: FocusConfig = DEFAULT_CONFIG) {
     this.config = config;
@@ -71,46 +74,12 @@ export class Focus {
     this.concepts.clear();
   }
 
-  boostTopic(topic: string, factor = 2.0, ttl = 50): void {
-    this.topicBoosts.set(topic.toLowerCase(), { factor, ttl });
+  /** The goals attention is steered by; the same array, not a copy per read. */
+  getActiveGoals(): readonly Task[] {
+    return this.activeGoals;
   }
 
-  getActiveGoals(): Task[] {
-    return [...this.activeGoals];
-  }
-
-  setActiveGoals(goals: Task[]): void {
+  setActiveGoals(goals: readonly Task[]): void {
     this.activeGoals = goals;
-  }
-
-  adjustPriority(concept: Concept, basePriority: number): number {
-    let p = basePriority;
-    const termStr = concept.term.toString().toLowerCase();
-
-    for (const [topic, boost] of this.topicBoosts) {
-      if (termStr.includes(topic)) {
-        p *= boost.factor;
-        boost.ttl--;
-        if (boost.ttl <= 0) this.topicBoosts.delete(topic);
-      }
-    }
-
-    for (const goal of this.activeGoals) {
-      if (containsSubterm(concept.term, goal.term) || containsSubterm(goal.term, concept.term)) {
-        p *= 1.5;
-      }
-    }
-
-    if (concept.lastAccessedAt > Date.now() - 60000) p *= 1.2;
-
-    return clamp01(p);
-  }
-
-  getTopicBoosts(): Map<string, { factor: number; ttl: number }> {
-    return this.topicBoosts;
-  }
-
-  clearTopicBoosts(): void {
-    this.topicBoosts.clear();
   }
 }

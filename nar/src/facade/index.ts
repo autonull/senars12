@@ -6,7 +6,7 @@
  * WeakSet so per-instance semantics survive the extraction.
  */
 
-import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
+import { proposalRisk, type SelfImprovementProposal } from '@senars/core/schemas/governance';
 import { createLogger, errMsg, makeId, toolError, toolOk, truncate } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { createBootstrapTasks } from '../drives';
@@ -179,7 +179,7 @@ export const consolidateLearning = async (
         const proposal: SelfImprovementProposal = {
           proposalId: makeId(),
           kind: 'schema-promotion',
-          riskTier: 'low',
+          riskTier: proposalRisk('schema-promotion'),
           payload: {
             schemaId: result.schema.id,
             template: result.schema.template,
@@ -260,7 +260,7 @@ const adoptLearnedMettaRules = async (nar: NAR, proposer: ProofMettaProposer): P
   const proposal: SelfImprovementProposal = {
     proposalId: makeId(),
     kind: 'metta-rule-adoption',
-    riskTier: 'low',
+    riskTier: proposalRisk('metta-rule-adoption'),
     payload: {
       mettaProgram: rewritten,
       sourceDerivationIds: rules.map((r) => r.sourceDerivation),

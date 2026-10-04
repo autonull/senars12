@@ -102,10 +102,12 @@ export type {
 export {
   AutonomyModeSchema,
   GameDomainSchema,
+  PROPOSAL_RISK,
   GovernanceDecisionSchema,
   GovernanceEventSchema,
   PatchProposalSchema,
   permitsExecution,
+  proposalRisk,
   RewardDomainSchema,
   RiskAssessmentSchema,
   RiskLevelSchema,

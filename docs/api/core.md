@@ -586,6 +586,8 @@ _Re-export barrel._
 
 - `GameDomainSchema`
 
+- `PROPOSAL_RISK` — What kind of change each proposal kind makes, and therefore what governance it
+
 - `GovernanceDecisionSchema`
 
 - `GovernanceEventSchema`
@@ -593,6 +595,8 @@ _Re-export barrel._
 - `PatchProposalSchema`
 
 - `permitsExecution`
+
+- `proposalRisk` — The tier a proposal of this kind carries.
 
 - `RewardDomainSchema`
 
