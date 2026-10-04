@@ -16,6 +16,7 @@ import {
   keyedBy,
   readJsonlWith,
   sha256Hex,
+  stableStringify,
   writeJsonFileSync,
 } from '@senars/util';
 import { createDefaultRegistry, resolveSlot } from '../cognitive/impls/CognitiveRegistry.js';
@@ -33,7 +34,6 @@ import type { Budget, Timestamp } from '../types/index.js';
 import { createTaskWeight } from '../types/index.js';
 import {
   loadGateEvents,
-  persistGateLogs,
   replayCognitiveState,
   replayTaskAdmissions,
 } from './EventLogPersistence.js';
@@ -87,13 +87,6 @@ export interface ReplayResult {
 
 function taskTypeFromEvent(type: TaskAdmittedEvent['payload']['taskType']): ConceptTaskType {
   return type as ConceptTaskType;
-}
-
-function stampFromEvent(event: TaskAdmittedEvent): Stamp {
-  const derivations = event.payload.budget?.depth ? [event.correlationId] : [];
-  const parent = Stamp.createInput();
-  const parents = derivations.length > 0 ? derivations.map(makeDerivedStamp) : [parent];
-  return Stamp.derive(parents, 'DERIVED') ?? Stamp.createInput();
 }
 
 export async function replayIntoMemory(options: FullReplayOptions): Promise<ReplayResult> {
@@ -265,12 +258,20 @@ const HASHED_FIELDS = [
   'proposalState',
 ] as const satisfies readonly (keyof ReplayResult)[];
 
-/** Deterministic content hash of a replay outcome — the C14 replay verification token. */
-export async function computeReplayStateHash(result: ReplayResult): Promise<string> {
+/**
+ * Deterministic content hash of a replay outcome — the C14 replay verification token.
+ * `serializedMemory` is the caller's own serialization: writing a snapshot already
+ * holds one, and serializing the store again is a full walk of every concept and
+ * every task in each of its three bags.
+ */
+export function computeReplayStateHash(
+  result: ReplayResult,
+  serializedMemory?: ReturnType<typeof serializeMemory>
+): string {
   // Canonicalize: drop the timestamp so the hash is deterministic across runs.
-  const canonicalMemory = { ...serializeMemory(result.memory), timestamp: 0 };
+  const canonicalMemory = { ...(serializedMemory ?? serializeMemory(result.memory)), timestamp: 0 };
   return sha256Hex(
-    JSON.stringify({
+    stableStringify({
       counters: keyedBy(
         HASHED_FIELDS,
         (field) => field,
@@ -281,11 +282,11 @@ export async function computeReplayStateHash(result: ReplayResult): Promise<stri
   );
 }
 
-export async function verifyReplayStateHash(
+export function verifyReplayStateHash(
   result: ReplayResult,
   expectedHash: string
-): Promise<{ valid: boolean; actual: string }> {
-  const actual = await computeReplayStateHash(result);
+): { valid: boolean; actual: string } {
+  const actual = computeReplayStateHash(result);
   return { valid: actual === expectedHash, actual };
 }
 
@@ -331,7 +332,7 @@ export async function serializeReplayResult(
   const snapshot: ReplaySnapshotFile = {
     version: 2,
     timestamp: Date.now(),
-    stateHash: await computeReplayStateHash(result),
+    stateHash: computeReplayStateHash(result, memorySerialized),
     gateSnapshot,
     proposalState,
     memory: canonicalMemory,
@@ -355,10 +356,3 @@ export function persistDerivationRecords(
   return { appended: appendJsonl(path, records) };
 }
 
-export function loadDerivationRecords(path: string): {
-  records: DerivationRecord[];
-  invalid: number;
-} {
-  const { rows, invalid } = readJsonlWith(path, DerivationRecordSchema);
-  return { records: rows, invalid };
-}

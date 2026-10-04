@@ -67,9 +67,8 @@ export class SourceReputation {
         for (const r of entries) {
           const entry = this.#entries.get(r.key) ?? { confirmed: 0, contradicted: 0 };
           this.#entries.set(r.key, {
-            confirmed: (this.#entries.peek(r.key)?.confirmed ?? 0) + (r.delta.confirmed ?? 0),
-            contradicted:
-              (this.#entries.peek(r.key)?.contradicted ?? 0) + (r.delta.contradicted ?? 0),
+            confirmed: entry.confirmed + (r.delta.confirmed ?? 0),
+            contradicted: entry.contradicted + (r.delta.contradicted ?? 0),
           });
         }
       })

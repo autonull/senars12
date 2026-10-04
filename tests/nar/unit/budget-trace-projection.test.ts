@@ -54,14 +54,17 @@ describe('budget trace projection', () => {
   it('renames the nested counters on exhaustion, not just the top-level keys', () => {
     setDomainEventSink(record);
     const budget = slice({ maxCycles: 1, maxDepth: 1, maxMemoryOps: 1, maxLMCalls: 0 });
-    expect(consumeCycles(budget, 2)).toBe(false);
+    // Spend the dimension, then over-spend it: the dimension's own reason is what an
+    // exhausted dimension reports, and a charge that merely did not fit is the other one.
+    consumeCycles(budget, 1);
+    expect(consumeCycles(budget, 1)).toBe(false);
 
     const exhausted = collected.at(-1)!;
     expect(exhausted.name).toBe('budget.slice.exhausted');
     expect(exhausted.payload).toMatchObject({
       id: 'root',
       reason: 'cycle-budget',
-      consumed: { cycles: 0, depth: 0, memory_ops: 0, llm_calls: 0 },
+      consumed: { cycles: 1, depth: 0, memory_ops: 0, llm_calls: 0 },
       total: { cycles: 1, depth: 1, memory_ops: 1, llm_calls: 0 },
     });
   });

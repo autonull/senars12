@@ -10,13 +10,17 @@
  * budget becomes a comment) and **two scopes claiming one operation** (which
  * makes the documented ceiling not the ceiling that is read).
  *
- * It reads the tree's text, because a rule about *which declarations are
- * honoured* cannot be checked by asking the module that makes them.
+ * It reads the tree's text for the spend sites, because a rule about *which
+ * declarations are honoured* cannot be checked by asking the module that makes
+ * them. The operation vocabulary it checks those sites against is imported, not
+ * scraped: reading the enum's source text also read the `GateName` union beside
+ * it, so a scope naming an operation that did not exist passed.
  */
 
 import { readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { relative } from 'node:path';
 
+import { BUDGET_OPERATIONS } from '../core/src/schemas/index.js';
 import {
   BUDGET_SCOPE_IDS,
   BUDGET_SCOPES,
@@ -63,18 +67,11 @@ const scanSpends = (): BudgetSpend[] =>
     })
   );
 
-/** The gate's operation vocabulary, read from the schema enum that owns it. */
-const declaredOperations = (): string[] => {
-  const source = readFileSync(join(ROOT, 'core/src/schemas/gate-io.ts'), 'utf8');
-  const body = source.slice(source.indexOf('BudgetOperationSchema = z.enum(['));
-  return [...body.matchAll(/'([a-z-]+)'/g)].map(([, operation]) => operation!);
-};
-
 const spends = scanSpends();
 const subject: BudgetSubject = {
   scopeIds: BUDGET_SCOPE_IDS,
   spends,
-  declaredOperations: declaredOperations(),
+  declaredOperations: BUDGET_OPERATIONS,
 };
 const violations = budgetViolations(subject);
 

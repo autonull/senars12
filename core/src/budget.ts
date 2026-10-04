@@ -241,10 +241,7 @@ export type BudgetAllocation = Partial<ConsumedBudget>;
 const sliceAnnouncement = (slice: BudgetSlice): BudgetEventMap['budget:slice:created'] => ({
   sliceId: slice.id,
   parentId: slice.parentId,
-  maxCycles: slice.maxCycles,
-  maxDepth: slice.maxDepth,
-  maxMemoryOps: slice.maxMemoryOps,
-  maxLMCalls: slice.maxLMCalls,
+  ...budgetLimitsOf(slice),
 });
 
 /**
@@ -260,7 +257,7 @@ function consume(
   eventBus?: BudgetEventBus
 ): boolean {
   if (!budgetAffords(budget, resource, amount)) {
-    const reason = BUDGET_RESOURCES[resource].reason;
+    const reason = budgetRefusal(budget, resource);
     budget.terminationReason = reason;
     const snapshot = {
       sliceId: budget.id,
@@ -315,19 +312,12 @@ const remainingOf = (budget: BudgetSlice, resource: BudgetResource): number =>
 
 export const remainingCycles = (budget: BudgetSlice): number => remainingOf(budget, 'cycles');
 
-export const remainingDepth = (budget: BudgetSlice): number => remainingOf(budget, 'depth');
-
-export const remainingMemoryOps = (budget: BudgetSlice): number => remainingOf(budget, 'memoryOps');
-
-export const remainingLMCalls = (budget: BudgetSlice): number => remainingOf(budget, 'llmCalls');
-
 /** All four remaining dimensions in one snapshot — the shape budget consumers hand around. */
-export const remainingAll = (budget: BudgetSlice): ConsumedBudget => ({
-  cycles: remainingCycles(budget),
-  depth: remainingDepth(budget),
-  memoryOps: remainingMemoryOps(budget),
-  llmCalls: remainingLMCalls(budget),
-});
+export const remainingAll = (budget: BudgetSlice): ConsumedBudget => {
+  const remaining = {} as ConsumedBudget;
+  for (const resource of ALL_RESOURCES) remaining[resource] = remainingOf(budget, resource);
+  return remaining;
+};
 
 /**
  * Resolve a requested child allocation against the parent's unconsumed capacity
@@ -399,10 +389,19 @@ export function mergeConsumption(
   );
 }
 
+/**
+ * Whether any dimension has nothing left. The one capacity test, so a gate and a
+ * slice cannot answer it differently: the budget gate reads it over its own
+ * `ReasoningBudget`, and a slice adds the three things a plain budget does not carry.
+ */
+export function isCapacityExhausted(budget: ReasoningBudget): boolean {
+  return ALL_RESOURCES.some((resource) => budgetRemaining(budget, resource) <= 0);
+}
+
 export function isExhausted(budget: BudgetSlice): boolean {
   return (
     budget.terminationReason !== undefined ||
-    ALL_RESOURCES.some((resource) => budgetRemaining(budget, resource) <= 0) ||
+    isCapacityExhausted(budget) ||
     Boolean(budget.wallclockDeadlineMs && Date.now() > budget.wallclockDeadlineMs) ||
     Boolean(budget.abortSignal?.aborted)
   );

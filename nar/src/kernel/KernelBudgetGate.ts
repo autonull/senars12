@@ -1,5 +1,4 @@
 import {
-  ALL_RESOURCES,
   BUDGET_TYPES,
   type BudgetLimits,
   type BudgetResource,
@@ -9,6 +8,7 @@ import {
   budgetRemaining,
   chargeBudget,
   createBudget,
+  isCapacityExhausted,
   zeroConsumed,
 } from '@senars/core/budget';
 import type {
@@ -21,8 +21,8 @@ import type {
   TerminationReason,
 } from '@senars/core/schemas';
 import { mintCognitiveEvent, validateReasoningBudget } from '@senars/core/schemas';
-import { keyedBy } from '@senars/util';
-import { BUDGET_SCOPES, type BudgetScopeId } from './budget-scopes.js';
+import { keyedBy, mapValues } from '@senars/util';
+import { BUDGET_SCOPES } from './budget-scopes.js';
 import { KernelGate, projectOutcome } from './gate-base.js';
 
 export interface KernelBudgetGateConfig {
@@ -30,45 +30,41 @@ export interface KernelBudgetGateConfig {
   costTable: Record<string, number>;
 }
 
-const DEFAULT_COST_TABLE: Record<string, number> = {
-  'nal-step': 1,
-  'lm-call': 10,
-  'memory-op': 1,
-  'derivation-depth': 1,
-  'systemone-judgment': 5,
-  ...keyedBy(Object.values(BUDGET_SCOPES), (scope) => scope.operation, () => 1),
-};
-
-/** Which budget dimension an operation spends. The dimension, its ceiling key and its
- *  exhaustion reason all come from `core/budget`'s one table, so the gate cannot
- *  charge a dimension the engine does not; only the event's own name is the gate's. */
+/** What an operation spends: which budget dimension, the event's own name for that
+ *  dimension, and its default cost. The dimension, its ceiling key and its exhaustion
+ *  reason all come from `core/budget`'s one table, so the gate cannot charge a
+ *  dimension the engine does not; only the event's name and the price are its own. */
 interface OperationSpec {
   readonly resource: BudgetResource;
   readonly budgetType: BudgetExhaustedEvent['payload']['budgetType'];
+  readonly cost: number;
 }
 
-/** The A7 control scopes, derived rather than restated: the scope table owns the
- *  dimension, the ceiling key and the overflow reason, so a new scope cannot be
- *  declared without them. */
-const SCOPE_SPECS: Record<string, OperationSpec & { scopeId?: BudgetScopeId }> = Object.fromEntries(
-  Object.entries(BUDGET_SCOPES).map(([scopeId, spec]) => [
-    spec.operation,
-    {
-      resource: spec.consumedKey,
-      budgetType: BUDGET_TYPES[spec.consumedKey],
-      scopeId: scopeId as BudgetScopeId,
-    },
-  ])
-);
-
-const OPERATION_SPECS: Record<string, OperationSpec & { scopeId?: BudgetScopeId }> = {
-  ...SCOPE_SPECS,
-  'nal-step': { resource: 'cycles', budgetType: 'cycles' },
-  'lm-call': { resource: 'llmCalls', budgetType: 'llm' },
-  'memory-op': { resource: 'memoryOps', budgetType: 'memory' },
-  'derivation-depth': { resource: 'depth', budgetType: 'depth' },
-  'systemone-judgment': { resource: 'llmCalls', budgetType: 'llm' },
+/**
+ * The operation table: one row per operation, stating what it spends and what it
+ * costs. The A7 control scopes are derived rather than restated — the scope table
+ * owns the dimension, the ceiling key and the overflow reason — so an operation was
+ * previously declared twice: once to price it and once to say what it spends.
+ */
+const OPERATION_SPECS: Record<string, OperationSpec> = {
+  ...keyedBy(
+    Object.values(BUDGET_SCOPES),
+    (scope) => scope.operation,
+    (scope) => ({
+      resource: scope.consumedKey,
+      budgetType: BUDGET_TYPES[scope.consumedKey],
+      cost: 1,
+    })
+  ),
+  'nal-step': { resource: 'cycles', budgetType: 'cycles', cost: 1 },
+  'lm-call': { resource: 'llmCalls', budgetType: 'llm', cost: 10 },
+  'memory-op': { resource: 'memoryOps', budgetType: 'memory', cost: 1 },
+  'derivation-depth': { resource: 'depth', budgetType: 'depth', cost: 1 },
+  'systemone-judgment': { resource: 'llmCalls', budgetType: 'llm', cost: 5 },
 };
+
+/** The price of every operation, read off the table that says what each one spends. */
+const DEFAULT_COST_TABLE: Record<string, number> = mapValues(OPERATION_SPECS, (spec) => spec.cost);
 
 /**
  * What an operation spends. `BudgetOperation` is a closed enum, so an absent spec
@@ -79,7 +75,7 @@ const OPERATION_SPECS: Record<string, OperationSpec & { scopeId?: BudgetScopeId 
 const specOf = (operation: string): OperationSpec | undefined => OPERATION_SPECS[operation];
 
 /** The one budget a NAR starts from; the gate's own default and every NAR's initial budget. */
-export const NAR_BUDGET_LIMITS = {
+const NAR_BUDGET_LIMITS = {
   maxCycles: 1000,
   maxDepth: 100,
   maxMemoryOps: 10000,
@@ -141,8 +137,8 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
 
   private decideBudget(input: BudgetGateInput, correlationId: string): BudgetGateOutput {
     const operation = input.operation;
-    const estimatedCost = input.estimatedCost ?? this.costTable[operation] ?? 1;
     const spec = specOf(operation);
+    const estimatedCost = input.estimatedCost ?? this.costTable[operation] ?? 1;
     const resource = spec?.resource;
 
     const budget = this.resolveBudget(input);
@@ -225,7 +221,7 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   isExhausted(operation?: string): boolean {
     return operation
       ? this.getRemaining(this.budget, operation) <= 0
-      : ALL_RESOURCES.some((resource) => budgetRemaining(this.budget, resource) <= 0);
+      : isCapacityExhausted(this.budget);
   }
 
   private getRemaining(budget: ReasoningBudget, operation: string): number {

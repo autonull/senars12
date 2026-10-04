@@ -6,6 +6,7 @@ import type {
   RiskAssessment,
   SelfImprovementProposal,
 } from '@senars/core/schemas';
+import { permitsExecution } from '@senars/core/schemas';
 import { makeId } from '@senars/util';
 import type { FocusStepReport } from '../focus/Focus.js';
 import type { SelfMetaGameImpl } from '../game/impls/SelfMetaGame.js';
@@ -321,7 +322,7 @@ export class ProposalRouter {
     }
     if (proposal.riskTier === 'medium') {
       const verdict = validator?.validate(proposal);
-      const executable = mode !== 'observe-only' && mode !== 'propose-only';
+      const executable = permitsExecution(mode);
       if (
         verdict?.approved &&
         executable &&
@@ -349,7 +350,7 @@ export class ProposalRouter {
           : `Medium-risk ${proposal.kind} requires sandbox validation`,
       };
     }
-    if (mode === 'observe-only' || mode === 'propose-only') {
+    if (!permitsExecution(mode)) {
       this.awaitingApproval.push(proposal);
       return {
         route: 'human-approval',

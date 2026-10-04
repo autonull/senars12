@@ -1,6 +1,7 @@
 import {
   clamp01,
   createLogger,
+  errMsg,
   flooredRatio,
   formatDuration,
   safeRatio,

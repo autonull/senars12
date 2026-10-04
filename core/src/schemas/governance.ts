@@ -17,6 +17,19 @@ export const AutonomyModeSchema = z.enum([
 ]);
 export type AutonomyMode = z.infer<typeof AutonomyModeSchema>;
 
+/**
+ * The modes that may not execute. Four readers asked this of the enum by hand —
+ * the action gate on a scope and on the global mode, and the proposal router on
+ * its own route — and the four copies had room to disagree about which modes
+ * count, which is the one question a mode exists to answer.
+ */
+const NON_EXECUTING_MODES: ReadonlySet<AutonomyMode> = new Set<AutonomyMode>([
+  'observe-only',
+  'propose-only',
+]);
+
+export const permitsExecution = (mode: AutonomyMode): boolean => !NON_EXECUTING_MODES.has(mode);
+
 export const RiskLevelSchema = z.enum(['LOW', 'MEDIUM', 'HIGH']);
 export type RiskLevel = z.infer<typeof RiskLevelSchema>;
 

@@ -16,7 +16,6 @@ import { rehydrateTask, type TaskRecord } from '../../task/record.js';
 import { serializeStamp, type Term, termParser } from '../../terms';
 import type { Concept, ConceptTaskType, TaskData } from '../concept.js';
 import type { ConceptWriter } from '../ports/concept-store.js';
-import type { StatisticsView } from '../ports/statistics-view.js';
 
 const logger = createLogger({ scope: 'Memory.State' });
 
@@ -48,7 +47,7 @@ export type { TaskRecord as SerializedTask } from '../../task/record.js';
 const MEMORY_STATE_KIND = 'memory.state';
 
 /** Schema-pinned, versioned persistence format for the memory dump (StateCodec, TODO20 X7). */
-export const encodeMemoryState = (memory: StatisticsView & ConceptWriter): string =>
+export const encodeMemoryState = (memory: ConceptWriter): string =>
   encodeState(MEMORY_STATE_KIND, MEMORY_VERSION, serialize(memory));
 
 /** Inverse of encodeMemoryState; accepts legacy bare SerializedMemory files. */
@@ -57,16 +56,24 @@ export const decodeMemoryState = (text: string): SerializedMemory =>
 
 type TaskTypeName = 'belief' | 'goal' | 'question';
 
-export function serialize(memory: StatisticsView & ConceptWriter): SerializedMemory {
+export function serialize(memory: ConceptWriter): SerializedMemory {
   const concepts: SerializedConcept[] = [];
+  // The statistics are the counts of the walk below, so they are accumulated by it
+  // rather than read back through `totals()`, which sweeps every concept a second
+  // time to derive what the first pass already passed over.
+  let totalTasks = 0;
 
-  for (const concept of memory.listConcepts()) {
+  for (const concept of memory.conceptValues()) {
+    const beliefs = serializeBag(concept.beliefBag);
+    const goals = serializeBag(concept.goalBag);
+    const questions = serializeBag(concept.questionBag);
+    totalTasks += beliefs.length + goals.length + questions.length;
     concepts.push({
       term: concept.term.toString(),
       priority: concept.priority,
-      beliefs: serializeBag(concept.beliefBag),
-      goals: serializeBag(concept.goalBag),
-      questions: serializeBag(concept.questionBag),
+      beliefs,
+      goals,
+      questions,
     });
   }
 
@@ -74,7 +81,7 @@ export function serialize(memory: StatisticsView & ConceptWriter): SerializedMem
     version: MEMORY_VERSION,
     timestamp: Date.now(),
     concepts,
-    statistics: memory.totals(),
+    statistics: { totalConcepts: concepts.length, totalTasks },
   };
 }
 

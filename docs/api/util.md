@@ -162,11 +162,15 @@
 
 - `deadline` — Run `onExpire` once after `timeoutMs`, unless the returned disposer runs first
 
+- `debounce`
+
 - `monotonicNow` — Monotonic millisecond clock: sub-millisecond resolution, and immune to wall-clock
 
 - `periodic` — Repeat `task` every `intervalMs` until the returned disposer is called.
 
 - `raceDeadline` — Cooperative deadline: resolves `{ timedOut: true }` when `timeoutMs` elapses,
+
+- `SerialQueue` — Run work one at a time, in submission order — the mutual exclusion primitive
 
 - `sleep`
 
@@ -288,9 +292,15 @@
 
 - `divider` — Horizontal rule separating report sections.
 
+- `formatBytes` — Bytes → `1.4MB`. The previous spelling was `existsSync(p) ? \`${statSync(p).size}B\``
+
+- `formatDuration` — Milliseconds → the shortest honest unit. A latency table that renders every
+
 - `pct` — Fraction → percentage string (`pct(0.6123)` → `'61.2%'`).
 
 - `percentile` — Percentile of an unsorted sample at index `floor(p * n)`, clamped; 0 for an empty one.
+
+- `percentiles` — Several percentiles of one sample from a single sort. A caller reading two
 
 - `section` — Section banner: rule, title, rule.
 
@@ -375,6 +385,8 @@
 - `extractJsonObject` — The first balanced top-level JSON object in `text`, or null.
 
 - `parseJsonObject` — Parse the first JSON object in `text`; null when absent or malformed.
+
+- `stableStringify` — Deterministic JSON with object keys emitted in sorted order — the single
 
 - `LruCache`
 
@@ -488,15 +500,31 @@
 
 - `SlidingWindowRateLimiter`
 
+- `attempt` — Run a sync fallible fn, capturing thrown errors into a Result.
+
+- `attemptAsync` — Run an async fallible fn, capturing rejections into a Result.
+
+- `err`
+
+- `flatMap`
+
+- `getOrElse`
+
+- `isErr`
+
+- `isOk`
+
+- `map`
+
+- `mapErr`
+
+- `match` — Fold both arms into one value — the terminal operation, so a caller
+
+- `ok`
+
+- `unwrapOrThrow`
+
 - `withRetry` — Retry `fn` with exponential backoff; rethrows the last failure.
-
-- `asSerializable` — Wraps an object that already fulfills the instance-side contract
-
-- `factorySerializable`
-
-- `inPlaceSerializable` — Bridges a class whose instance `serialize()` pairs with an *in-place*
-
-- `stableStringify` — Deterministic JSON with object keys emitted in sorted order — the single
 
 - `setupGracefulShutdown` — Process lifecycle — the single signal → shutdown path for every SeNARS binary.
 
@@ -519,6 +547,8 @@
 - `NARSESE_ATOM_CHARS` — The characters a bare Narsese atom symbol may contain. The grammar's authority on
 
 - `overlapCount` — How many of `needle`'s words appear in `haystack` — the numerator every
+
+- `splitLines` — Trimmed, non-empty lines. The one line split: `String.split('\n')` yields a
 
 - `splitWords` — Case-preserving word tokens. The one split: an empty or whitespace-only string
 
@@ -780,22 +810,6 @@
 
 - `evaluateExpression` — Evaluate an arithmetic expression; throws `ExpressionError` on malformed input.
 
-## `./utils/serialization`
-
-- `Serializable`
-
-- `Versioned`
-
-- `asSerializable` — Wraps an object that already fulfills the instance-side contract
-
-- `inPlaceSerializable` — Bridges a class whose instance `serialize()` pairs with an *in-place*
-
-- `FactorySerializable` — Bridges a class whose instance `serialize()` pairs with a *static factory*
-
-- `factorySerializable`
-
-- `stableStringify` — Deterministic JSON with object keys emitted in sorted order — the single
-
 ## `./ledger`
 
 - `BaseLedgerEntrySchema` — Ledger entry schema — all entries carry a timestamp and correlation context.
@@ -804,15 +818,13 @@
 
 - `RolloverPolicy` — Rotation/rollover policy — parameterized from EpisodicMemory's load-bearing behavior.
 
-- `RolloverPolicyOptions` — Factory options for rollover policy (all optional, defaults applied).
-
 - `DEFAULT_ROLLOVER` — The ledger's default rollover: one file per day, ten thousand entries in it,
 
 - `LedgerQuery` — Query filter for ledger entries.
 
 - `LedgerConfig` — Ledger configuration.
 
-- `CreateLedgerOptions` — Factory options for createLedger (excludes basePath and schema which are separate params).
+- `CreateLedgerOptions` — Factory options for `createLedger`: {@link LedgerConfig} without the two fields
 
 - `Ledger` — Generic append-only ledger with JSONL backing, rotation, retention, and in-memory hot cache.
 

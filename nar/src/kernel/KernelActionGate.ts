@@ -6,7 +6,12 @@ import type {
   GateOutcome,
   PolicyViolationEvent,
 } from '@senars/core/schemas';
-import { AutonomyModeChangedEventSchema, AutonomyModeSchema, mintCognitiveEvent } from '@senars/core/schemas';
+import {
+  AutonomyModeChangedEventSchema,
+  AutonomyModeSchema,
+  mintCognitiveEvent,
+  permitsExecution,
+} from '@senars/core/schemas';
 import { addToSet, BoundedMap, makeId, pushCapped } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
@@ -53,7 +58,7 @@ const DEFAULT_ALLOWED_OPS = new Set<string>();
 export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
   private autonomyLog: AutonomyModeChangedEvent[] = [];
   private autonomyMode: AutonomyMode;
-  private allowedOperations: ReadonlySet<string>;
+  private allowedOperations: Set<string>;
   /**
    * NAL conclusions keyed by derivation id. Bounded at kernel-log capacity for
    * the same reason `autonomyLog` and `eventLog` are: derivation ids arrive on
@@ -74,7 +79,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
   constructor(config?: Partial<KernelActionGateConfig>) {
     super();
     this.autonomyMode = config?.autonomyMode ?? DEFAULT_AUTONOMY_MODE;
-    this.allowedOperations = config?.allowedOperations ?? DEFAULT_ALLOWED_OPS;
+    this.allowedOperations = new Set(config?.allowedOperations ?? DEFAULT_ALLOWED_OPS);
     this.nalDerivations = new BoundedMap({ maxSize: GATE_LOG_CAPACITY });
   }
 
@@ -154,10 +159,10 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
         vetoReason: `Unknown scope ${scopeId}`,
         requiredApprovals: ['human-approval'],
       };
-    if (mode === 'observe-only' || mode === 'propose-only')
+    if (!permitsExecution(mode))
       return {
         authorized: false,
-        vetoReason: `Scope ${scopeId} autonomy mode ${mode} does not permit execution`,
+        vetoReason: `Autonomy mode ${mode} does not permit execution (scope ${scopeId})`,
         requiredApprovals: ['human-approval'],
       };
     if (!this.scopeOperations.get(scopeId)?.has(action))
@@ -186,7 +191,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
   private decideAuthorization(input: ActionGateInput, correlationId: string): ActionGateOutput {
     const scoped = KernelActionGate.parseScopedOperation(input.operation);
     if (scoped) return this.authorizeScoped(scoped.scopeId, scoped.action);
-    if (this.autonomyMode === 'observe-only' || this.autonomyMode === 'propose-only') {
+    if (!permitsExecution(this.autonomyMode)) {
       recordPolicyViolation(this.eventLog, {
         policyId: 'autonomy-mode',
         violationType: 'unauthorized-tool',
@@ -238,15 +243,11 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
   }
 
   addAllowedOperation(operation: string): void {
-    const newSet = new Set(this.allowedOperations);
-    newSet.add(operation);
-    this.allowedOperations = newSet;
+    this.allowedOperations.add(operation);
   }
 
   removeAllowedOperation(operation: string): void {
-    const newSet = new Set(this.allowedOperations);
-    newSet.delete(operation);
-    this.allowedOperations = newSet;
+    this.allowedOperations.delete(operation);
   }
 
   override clearEventLog(): void {

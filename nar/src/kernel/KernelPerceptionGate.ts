@@ -151,15 +151,15 @@ export class KernelPerceptionGate extends KernelGate {
       : this.sourceQualityToConfidence(sourceQuality);
     const confidence = reputationCeiling * input.sensorConfidence;
 
-    const term = this.rawObservationToTerm(input.rawObservation);
-    if (!term) {
+    const observation = this.parseObservation(input.rawObservation);
+    if (!observation.term) {
       return {
         admitted: false,
         rejectionReason: 'Failed to parse observation into valid Narsese term',
       };
     }
 
-    const taskType = this.inferTaskType(input.rawObservation);
+    const { term, taskType } = observation;
 
     if (this.config.systemOne?.enabled && this.judge) {
       const judged = await this.admitViaJudge(
@@ -269,33 +269,34 @@ export class KernelPerceptionGate extends KernelGate {
     );
   }
 
-  private inferTaskType(observation: unknown): TaskTypeName {
+  /**
+   * One parse, both answers. A string observation was parsed by `parseTask` up to
+   * four times per admission — once to reach the term and again to reach the task
+   * type, off the same text — so the text is read once here and each reader of the
+   * result takes what it needs.
+   */
+  private parseObservation(observation: unknown): { term: Term | null; taskType: TaskTypeName } {
     if (typeof observation === 'string') {
       const parsed = this.parseTaskTolerant(observation);
-      if (parsed) return parsed.taskType;
-    }
-    if (observation && typeof observation === 'object' && 'type' in observation) {
-      const t = (observation as { type?: string }).type;
-      if (t === 'goal') return 'goal';
-      if (t === 'question') return 'question';
-      if (t === 'command') return 'command';
-    }
-    return 'belief';
-  }
-
-  private rawObservationToTerm(observation: unknown): Term | null {
-    if (typeof observation === 'string') {
-      return this.parseTaskTolerant(observation)?.term ?? null;
+      return { term: parsed?.term ?? null, taskType: parsed?.taskType ?? 'belief' };
     }
     if (observation && typeof observation === 'object') {
-      if ('term' in observation && typeof (observation as { term: string }).term === 'string') {
-        return this.parseTaskTolerant((observation as { term: string }).term)?.term ?? null;
-      }
-      if ('kind' in observation) {
-        return observation as Term;
-      }
+      const term =
+        'term' in observation && typeof (observation as { term: string }).term === 'string'
+          ? this.parseTaskTolerant((observation as { term: string }).term)?.term ?? null
+          : 'kind' in observation
+            ? (observation as Term)
+            : null;
+      const declared = (observation as { type?: string }).type;
+      return {
+        term,
+        taskType:
+          declared === 'goal' || declared === 'question' || declared === 'command'
+            ? declared
+            : 'belief',
+      };
     }
-    return null;
+    return { term: null, taskType: 'belief' };
   }
 
   admitTask(

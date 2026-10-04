@@ -90,6 +90,12 @@ export const BudgetOperationSchema = z.enum([
   'decision-derivation',
 ]);
 
+/** The operation vocabulary as a value, for the readers that must enumerate it.
+ *  A gate that has to check an operation against this list used to scrape the
+ *  enum's source text, which over-captured whatever followed the enum and made
+ *  the check weaker than it read. */
+export const BUDGET_OPERATIONS: readonly BudgetOperation[] = BudgetOperationSchema.options;
+
 export const BudgetGateInputSchema = z.object({
   budget: ReasoningBudgetSchema.optional(),
   operation: BudgetOperationSchema,

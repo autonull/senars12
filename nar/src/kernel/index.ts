@@ -42,7 +42,6 @@ export {
 export {
   computeReplayStateHash,
   type FullReplayOptions,
-  loadDerivationRecords,
   persistDerivationRecords,
   type ReplayResult,
   type ReplaySnapshotFile,

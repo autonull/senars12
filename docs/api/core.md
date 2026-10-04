@@ -86,7 +86,7 @@
 
 - `InMemoryEventLog`
 
-- `SqliteEventLog`
+- `SqliteEventLog` — Every statement this log issues is compiled once and kept: `better-sqlite3`'s
 
 - `BaseComponent`
 
@@ -224,7 +224,7 @@
 
 - `InMemoryEventLog`
 
-- `SqliteEventLog`
+- `SqliteEventLog` — Every statement this log issues is compiled once and kept: `better-sqlite3`'s
 
 ## `./protocol`
 
@@ -566,6 +566,8 @@ _Re-export barrel._
 
 - `ActionGateOutputSchema`
 
+- `BUDGET_OPERATIONS` — The operation vocabulary as a value, for the readers that must enumerate it.
+
 - `BudgetGateInputSchema`
 
 - `BudgetGateOutputSchema`
@@ -590,6 +592,8 @@ _Re-export barrel._
 
 - `PatchProposalSchema`
 
+- `permitsExecution`
+
 - `RewardDomainSchema`
 
 - `RiskAssessmentSchema`
@@ -599,6 +603,8 @@ _Re-export barrel._
 - `SelfImprovementProposalSchema`
 
 - `NarEventSchemas`
+
+- `BudgetSchema` — The task budget — the five numbers that cross every boundary. The zod form
 
 - `HistoryEntrySchema` — One turn of conversation history, as persisted by session ledgers.
 
@@ -716,12 +722,6 @@ _Dynamic subpath (no single entry file)._
 
 - `remainingCycles`
 
-- `remainingDepth`
-
-- `remainingMemoryOps`
-
-- `remainingLMCalls`
-
 - `remainingAll` — All four remaining dimensions in one snapshot — the shape budget consumers hand around.
 
 - `resolveAllocation` — Resolve a requested child allocation against the parent's unconsumed capacity
@@ -731,6 +731,8 @@ _Dynamic subpath (no single entry file)._
 - `mergeConsumed` — Fold a child's consumed totals into a parent's. `depth` is a high-water mark
 
 - `mergeConsumption`
+
+- `isCapacityExhausted` — Whether any dimension has nothing left. The one capacity test, so a gate and a
 
 - `isExhausted`
 

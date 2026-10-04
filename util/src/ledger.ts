@@ -169,8 +169,8 @@ export class Ledger<T extends BaseLedgerEntry> {
     // Materializing the hot cache costs a full copy and a filter pass, so it is
     // deferred to the two cases that read it: a bounded query it can answer, and
     // the fallback when the ledger directory is unreadable.
-    const cached = (): T[] =>
-      this.#hotCache.toArray().filter((e) => this.#matchesFilter(e, filter));
+    let hotMatches: T[] | undefined;
+    const cached = (): T[] => (hotMatches ??= this.#hotCache.toArray().filter((e) => this.#matchesFilter(e, filter)));
 
     if (filter.limit !== undefined) {
       const cacheMatches = cached();

@@ -79,6 +79,7 @@ export type {
 export {
   ActionGateInputSchema,
   ActionGateOutputSchema,
+  BUDGET_OPERATIONS,
   BudgetGateInputSchema,
   BudgetGateOutputSchema,
   BudgetOperationSchema,
@@ -104,6 +105,7 @@ export {
   GovernanceDecisionSchema,
   GovernanceEventSchema,
   PatchProposalSchema,
+  permitsExecution,
   RewardDomainSchema,
   RiskAssessmentSchema,
   RiskLevelSchema,

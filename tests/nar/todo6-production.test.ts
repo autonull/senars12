@@ -61,14 +61,20 @@ describe('F1 — OTel span events on the tick pipeline (C22)', () => {
       consumeCycles(child, 4);
       consumeCycles(parent, 2);
 
+      // Two refusals, and they are different: this one did not fit in what was
+      // left, the next one spent the dimension. A slice answers from the same
+      // predicate the budget gate does, so both read the way the gate reads.
       const other = budget('other', 2);
       consumeCycles(other, 5);
+      const spent = budget('spent', 2);
+      consumeCycles(spent, 2);
+      consumeCycles(spent, 1);
       mergeConsumption(parent, other);
     });
 
     expect(collector.eventsOf('tick', 'budget.slice.created').length).toBeGreaterThanOrEqual(2);
-    expect(collector.eventsOf('tick', 'budget.slice.consumed').length).toBe(2);
-    expect(collector.eventsOf('tick', 'budget.slice.exhausted').length).toBe(1);
+    expect(collector.eventsOf('tick', 'budget.slice.consumed').length).toBe(3);
+    expect(collector.eventsOf('tick', 'budget.slice.exhausted').length).toBe(2);
     expect(collector.eventsOf('tick', 'budget.slice.merged').length).toBe(1);
 
     const created = collector.eventsOf('tick', 'budget.slice.created');
@@ -81,11 +87,15 @@ describe('F1 — OTel span events on the tick pipeline (C22)', () => {
     });
     expect(consumed[1]).toMatchObject({ 'budget.slice.id': 'parent', 'budget.slice.amount': 2 });
 
-    const exhausted = collector.eventsOf('tick', 'budget.slice.exhausted')[0];
-    expect(exhausted).toMatchObject({
+    const exhausted = collector.eventsOf('tick', 'budget.slice.exhausted');
+    expect(exhausted[0]).toMatchObject({
       'budget.slice.id': 'other',
-      'budget.slice.reason': 'cycle-budget',
+      'budget.slice.reason': 'backpressure',
       'budget.slice.total.cycles': 2,
+    });
+    expect(exhausted[1]).toMatchObject({
+      'budget.slice.id': 'spent',
+      'budget.slice.reason': 'cycle-budget',
     });
 
     const merged = collector.eventsOf('tick', 'budget.slice.merged')[0];

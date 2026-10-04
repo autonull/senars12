@@ -19,6 +19,7 @@ import {
   type KernelPerceptionGateConfig,
 } from './KernelPerceptionGate.js';
 import { KernelRewardGate, type KernelRewardGateConfig } from './KernelRewardGate.js';
+import type { SourceReputation } from './source-reputation.js';
 
 /**
  * The four gate configs, as each gate accepts them, plus the two registry-wide
@@ -52,61 +53,67 @@ export interface IGateRegistry {
   clearAllEventLogs(): void;
 }
 
+/** The four gates a registry owns, by the name each is reached under. */
+interface GateSet {
+  readonly perception: KernelPerceptionGate;
+  readonly action: KernelActionGate;
+  readonly reward: KernelRewardGate;
+  readonly budget: KernelBudgetGate;
+}
+
 export class GateRegistry implements IGateRegistry {
-  private perceptionGate: IPerceptionGate;
-  private actionGate: IActionGate;
-  private rewardGate: IRewardGate;
-  private budgetGate: IBudgetGate;
+  private gates: GateSet;
   private initialized = false;
 
   constructor() {
-    this.perceptionGate = new KernelPerceptionGate();
-    this.actionGate = new KernelActionGate();
-    this.rewardGate = new KernelRewardGate();
-    this.budgetGate = new KernelBudgetGate();
+    this.gates = this.construct();
+  }
+
+  /**
+   * The one place a gate exists. Construction, configuration and `reset` each used
+   * to spell the same four lines, so a fifth gate meant three edits and a reset
+   * could leave one of them behind.
+   */
+  private construct(config?: GateRegistryInit): GateSet {
+    return {
+      perception: new KernelPerceptionGate(config?.perceptionConfig),
+      action: new KernelActionGate(config?.actionConfig),
+      reward: new KernelRewardGate(config?.rewardConfig),
+      budget: new KernelBudgetGate(config?.budgetConfig),
+    };
   }
 
   /** Phase E (REFACTOR.todo1): attach source reputation to the perception gate. */
-  setReputation(reputation: import('./source-reputation.js').SourceReputation): void {
-    (this.perceptionGate as KernelPerceptionGate).setReputation(reputation);
+  setReputation(reputation: SourceReputation): void {
+    this.gates.perception.setReputation(reputation);
   }
 
   getPerceptionGate(): IPerceptionGate {
-    return this.perceptionGate;
+    return this.gates.perception;
   }
 
   getActionGate(): IActionGate {
-    return this.actionGate;
+    return this.gates.action;
   }
 
   getRewardGate(): IRewardGate {
-    return this.rewardGate;
+    return this.gates.reward;
   }
 
   getBudgetGate(): IBudgetGate {
-    return this.budgetGate;
+    return this.gates.budget;
   }
 
   initialize(config?: GateRegistryInit): void {
     if (this.initialized) return;
 
-    if (config?.perceptionConfig) {
-      this.perceptionGate = new KernelPerceptionGate(config.perceptionConfig);
-    }
-    if (config?.actionConfig) {
-      this.actionGate = new KernelActionGate(config.actionConfig);
-    }
-    if (config?.rewardConfig) {
-      this.rewardGate = new KernelRewardGate(config.rewardConfig);
-    }
-    if (config?.budgetConfig) {
-      this.budgetGate = new KernelBudgetGate(config.budgetConfig);
-    }
+    this.gates = this.construct(config);
+
     if (config?.initialBudget) {
-      this.budgetGate.setBudget(config.initialBudget);
+      this.gates.budget.setBudget(config.initialBudget);
     }
     if (config?.initialAutonomyMode) {
-      this.actionGate.setAutonomyMode(config.initialAutonomyMode);
+      this.gates.action.setAutonomyMode(config.initialAutonomyMode);
     }
 
     this.initialized = true;
@@ -117,10 +124,7 @@ export class GateRegistry implements IGateRegistry {
   }
 
   reset(): void {
-    this.perceptionGate = new KernelPerceptionGate();
-    this.actionGate = new KernelActionGate();
-    this.rewardGate = new KernelRewardGate();
-    this.budgetGate = new KernelBudgetGate();
+    this.gates = this.construct();
     this.initialized = false;
   }
 
@@ -131,20 +135,18 @@ export class GateRegistry implements IGateRegistry {
     reward: ReturnType<KernelRewardGate['getEventLog']>;
     budget: ReturnType<KernelBudgetGate['getEventLog']>;
   } {
+    const { perception, action, reward, budget } = this.gates;
     return {
-      perception: this.perceptionGate.getEventLog(),
-      action: this.actionGate.getEventLog(),
-      autonomy: this.actionGate.getAutonomyLog(),
-      reward: this.rewardGate.getEventLog(),
-      budget: this.budgetGate.getEventLog(),
+      perception: perception.getEventLog(),
+      action: action.getEventLog(),
+      autonomy: action.getAutonomyLog(),
+      reward: reward.getEventLog(),
+      budget: budget.getEventLog(),
     };
   }
 
   clearAllEventLogs(): void {
-    this.perceptionGate.clearEventLog();
-    this.actionGate.clearEventLog();
-    this.rewardGate.clearEventLog();
-    this.budgetGate.clearEventLog();
+    for (const gate of Object.values(this.gates)) gate.clearEventLog();
   }
 }
 

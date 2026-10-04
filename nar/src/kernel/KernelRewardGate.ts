@@ -11,14 +11,24 @@ import { makeId } from '@senars/util';
 import { recordPolicyViolation } from './event-ring.js';
 import { KernelGate, projectOutcome } from './gate-base.js';
 
+/** The targets a reward signal may mutate — trust and scheduling, never a belief's
+ *  frequency or confidence. The firewall message reads this list, so a configured
+ *  gate cannot report targets it no longer allows. */
+const DEFAULT_ALLOWED_TARGETS = new Set(['attention-priority', 'policy-weights']);
+
 export class EpistemicFirewallViolation extends Error {
   public readonly targetType: string;
   public readonly targetId: string;
   public readonly correlationId: string;
 
-  constructor(targetType: string, targetId: string, correlationId: string) {
+  constructor(
+    targetType: string,
+    targetId: string,
+    correlationId: string,
+    allowedTargets: Iterable<string> = DEFAULT_ALLOWED_TARGETS
+  ) {
     super(
-      `Epistemic firewall violation: Reward signal cannot mutate ${targetType} (target: ${targetId}). Allowed targets: attention-priority, policy-weights`
+      `Epistemic firewall violation: Reward signal cannot mutate ${targetType} (target: ${targetId}). Allowed targets: ${[...allowedTargets].join(', ')}`
     );
     this.name = 'EpistemicFirewallViolation';
     this.targetType = targetType;
@@ -30,8 +40,6 @@ export class EpistemicFirewallViolation extends Error {
 export interface KernelRewardGateConfig {
   allowedTargets: ReadonlySet<string>;
 }
-
-const DEFAULT_ALLOWED_TARGETS = new Set(['attention-priority', 'policy-weights']);
 
 export class KernelRewardGate extends KernelGate<PolicyViolationEvent> {
   private allowedTargets: ReadonlySet<string>;
@@ -67,7 +75,8 @@ export class KernelRewardGate extends KernelGate<PolicyViolationEvent> {
       const violation = new EpistemicFirewallViolation(
         input.targetType,
         input.targetId,
-        correlationId
+        correlationId,
+        this.allowedTargets
       );
 
       recordPolicyViolation(this.eventLog, {

@@ -374,8 +374,6 @@ _Dynamic subpath (no single entry file)._
 
 - `resolveSlot` — Resolve one slot of a parameter graph to its instance. The single read path
 
-- `SLOT_KEY` — The slot's config key: `lmRule` in a parameter graph, `lm-rule` in the
-
 ## `./commands`
 
 - `coreCommands`
@@ -410,7 +408,9 @@ _Dynamic subpath (no single entry file)._
 
 - `StrategySlotParams` — A strategy slot names a strategy and its configuration; the registry turns
 
-- `STRATEGY_SLOTS` — Slot key ↔ registry type: the config uses `lmRule`, the registry `lm-rule`.
+- `STRATEGY_SLOTS` — Every strategy slot, as the pair that the two sides of the system spell
+
+- `STRATEGY_SLOTS_BY_KEY` — The same slots read from the config side, for a caller holding a slot key.
 
 - `PriorityConfig`
 
@@ -927,8 +927,6 @@ _Dynamic subpath (no single entry file)._
 ## `./lm/rule-templates`
 
 - `ruleDefs`
-
-- `prompts`
 
 ## `./lm/rule-templates/fallbacks`
 
@@ -1513,8 +1511,6 @@ _Re-export barrel._
 - `computeReplayStateHash` — Deterministic content hash of a replay outcome — the C14 replay verification token.
 
 - `type FullReplayOptions`
-
-- `loadDerivationRecords`
 
 - `persistDerivationRecords`
 
