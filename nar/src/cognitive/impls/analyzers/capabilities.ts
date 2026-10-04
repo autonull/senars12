@@ -47,11 +47,13 @@ export const diffCapabilities = (
   const removed: string[] = [];
   const changed: { name: string; before: string; after: string }[] = [];
 
-  for (const rule of after.activeRules) {
-    if (!before.activeRules.includes(rule)) added.push(rule);
+  const beforeRules = new Set(before.activeRules);
+  const afterRules = new Set(after.activeRules);
+  for (const rule of afterRules) {
+    if (!beforeRules.has(rule)) added.push(rule);
   }
-  for (const rule of before.activeRules) {
-    if (!after.activeRules.includes(rule)) removed.push(rule);
+  for (const rule of beforeRules) {
+    if (!afterRules.has(rule)) removed.push(rule);
   }
 
   if (after.memoryState.concepts !== before.memoryState.concepts) {

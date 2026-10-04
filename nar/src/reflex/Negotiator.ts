@@ -113,8 +113,14 @@ export class Negotiator {
     const at = Date.now();
     for (const p of reflexProposals) {
       if (p.source !== 'metta') continue;
-      const supporting = nalDerivations.some((d) => d.action === p.action && d.truth.f >= 0.5);
-      const opposing = nalDerivations.find((d) => d.action === p.action && d.truth.f < 0.5);
+      let supporting = false;
+      let opposing = false;
+      for (const d of nalDerivations) {
+        if (d.action !== p.action) continue;
+        if (d.truth.f >= 0.5) supporting = true;
+        else opposing = true;
+        if (supporting && opposing) break;
+      }
       if (supporting || !opposing) continue;
       const event: ContradictionEvent = {
         source: 'metta',

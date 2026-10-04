@@ -1,7 +1,17 @@
-import { clamp01, flooredRatio, selectTopN, weightedMean } from '@senars/util';
+import { CallTallySeries, clamp01, createCallTally, flooredRatio, selectTopN } from '@senars/util';
 
-/** Newest sample carries 10% of the mean; the rest is the retained 90%. */
-const EWMA_WEIGHT = 9;
+/**
+ * Selection weights: how often a rule worked dominates, how fast it answered
+ * adjusts, and a co-activation edge confirms. The three were inline literals
+ * beside the arithmetic they scored, so a tuning pass had three sites to find.
+ */
+const SELECTION_WEIGHTS = { successRate: 0.6, latency: 0.2, edge: 0.5 } as const;
+
+/** Latency that earns no credit. Above this a rule is neither rewarded nor punished. */
+const LATENCY_CREDIT_MS = 100;
+
+/** Rules tracked for selection scoring — a bounded series, not an open-ended map. */
+const MAX_TRACKED_RULES = 512;
 
 /**
  * RuleGraph — composite LM-rule strategy using ConceptGraph co-activation edges.
@@ -21,13 +31,8 @@ export interface RuleGraphOptions {
   maxEdgesPerNode?: number;
   decayRate?: number;
   fallbackWeight?: number;
-}
-
-interface RulePerformance {
-  ruleId: string;
-  successRate: number;
-  avgLatencyMs: number;
-  lastUsed: number;
+  /** Rules kept for selection scoring; the coldest are evicted first. */
+  maxTrackedRules?: number;
 }
 
 export class RuleGraph implements ModelRuleSelector {
@@ -40,7 +45,15 @@ export class RuleGraph implements ModelRuleSelector {
   /** Published so a `Memory` can adopt it as its `graph` associative memory. */
   readonly graph: ConceptGraph;
   private readonly fallbackWeight: number;
-  private readonly rulePerformance = new Map<string, RulePerformance>();
+  /**
+   * Per-rule success and latency, as a bounded series.
+   *
+   * An unbounded `Map` keyed by rule id, holding a hand-rolled EWMA the util
+   * package already ships as `CallTally` — so rule ids nobody could enumerate
+   * grew a map that never shed an entry, and this tally was the one of five the
+   * shape existed to replace that had not been converted.
+   */
+  private readonly rulePerformance: CallTallySeries<string>;
 
   constructor(options: RuleGraphOptions = {}) {
     this.graph = new ConceptGraph({
@@ -49,20 +62,15 @@ export class RuleGraph implements ModelRuleSelector {
       decayRate: options.decayRate ?? 0.002,
     });
     this.fallbackWeight = options.fallbackWeight ?? 0.3;
+    this.rulePerformance = new CallTallySeries<string>({
+      maxSize: options.maxTrackedRules ?? MAX_TRACKED_RULES,
+      create: createCallTally,
+    });
   }
 
   /** Register a rule's performance for reward-based edge weighting. */
   recordPerformance(ruleId: string, success: boolean, latencyMs: number): void {
-    const perf = this.rulePerformance.get(ruleId) ?? {
-      ruleId,
-      successRate: 0.5,
-      avgLatencyMs: latencyMs,
-      lastUsed: Date.now(),
-    };
-    perf.successRate = weightedMean(perf.successRate, EWMA_WEIGHT, success ? 1 : 0);
-    perf.avgLatencyMs = weightedMean(perf.avgLatencyMs, EWMA_WEIGHT, latencyMs);
-    perf.lastUsed = Date.now();
-    this.rulePerformance.set(ruleId, perf);
+    this.rulePerformance.record(ruleId, success, latencyMs);
   }
 
   /** Select LM rules for a context using co-activation graph. */
@@ -80,12 +88,14 @@ export class RuleGraph implements ModelRuleSelector {
       let score = 0;
       const perf = this.rulePerformance.get(rule.id);
       if (perf) {
-        score += perf.successRate * 0.6;
-        score += clamp01(flooredRatio(100, perf.avgLatencyMs)) * 0.2;
+        score += perf.successRate * SELECTION_WEIGHTS.successRate;
+        score +=
+          clamp01(flooredRatio(LATENCY_CREDIT_MS, perf.averageDuration)) *
+          SELECTION_WEIGHTS.latency;
       }
       for (const edge of coActivations) {
         if (this.ruleMatchesEdge(rule, edge)) {
-          score += edge.weight * this.fallbackWeight * 0.5;
+          score += edge.weight * this.fallbackWeight * SELECTION_WEIGHTS.edge;
         }
       }
       return { rule, score };

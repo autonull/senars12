@@ -36,6 +36,23 @@ export const cosine = (a: ArrayLike<number>, b: ArrayLike<number>): number => {
   return safeRatio(dot, Math.sqrt(normA) * Math.sqrt(normB));
 };
 
+/**
+ * Cosine between two vectors already reduced to unit length by
+ * {@link l2Normalize} — the dot product, with no norm pass.
+ *
+ * One candidate scored against many kept vectors spends its own norm once per
+ * comparison, and each kept vector's norm once per candidate. Normalising on
+ * insert and on arrival turns that O(n·m·dim) norm arithmetic into O((n+m)·dim).
+ * A zero vector normalises to itself and so scores 0, as it does under
+ * {@link cosine}.
+ */
+export const cosineUnit = (a: ArrayLike<number>, b: ArrayLike<number>): number => {
+  const n = Math.min(a.length, b.length);
+  let dot = 0;
+  for (let i = 0; i < n; i++) dot += (a[i] ?? 0) * (b[i] ?? 0);
+  return dot;
+};
+
 /** Euclidean length of `v`; a zero vector measures 0. */
 const normOf = (v: ArrayLike<number>): number => {
   let sum = 0;

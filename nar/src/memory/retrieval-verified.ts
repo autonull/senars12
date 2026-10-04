@@ -3,7 +3,7 @@ import { parseJsonOr } from '@senars/util';
 import type { TextGenerator } from '../ports';
 import type { EpisodicMemory } from './EpisodicMemory.js';
 import type { EmbeddingGenerator } from './embedding.js';
-import { cosineSimilarity } from './embedding.js';
+import { cosineUnit, l2Normalize } from '../utils/similarity.js';
 
 export interface ConsolidationOptions {
   /** Episodes considered per consolidation pass. */
@@ -78,18 +78,20 @@ export const consolidateEpisodes = async (
     .filter((c) => c.relevance >= relevanceThreshold);
 
   const promoted: PromotionResult['promoted'] = [];
-  const keptVectors: number[][] = [];
+  const keptUnits: number[][] = [];
   let deduped = 0;
 
   for (const c of candidates) {
     const content = c.episode.content;
-    const vector = await deps.embeddings.generate(content);
-    const duplicate = keptVectors.some((v) => cosineSimilarity(vector, v) >= dedupeThreshold);
+    // Unit-length once per candidate, so the pairwise scan is a dot product
+    // rather than a fresh norm pass on both sides of every comparison.
+    const unit = l2Normalize(await deps.embeddings.generate(content));
+    const duplicate = keptUnits.some((v) => cosineUnit(unit, v) >= dedupeThreshold);
     if (duplicate) {
       deduped++;
       continue;
     }
-    keptVectors.push(vector);
+    keptUnits.push(unit);
     const provenance = {
       source: 'episodic',
       timestamps: [c.episode.timestamp],
