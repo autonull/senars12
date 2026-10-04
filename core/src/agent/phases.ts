@@ -5,7 +5,13 @@
  * `MacroContext.stream`.
  */
 import { mintCognitiveEvent } from '../schemas/index.js';
-import { createLogger, errMsg, type LMTask, toolError } from '@senars/util';
+import {
+  createLogger,
+  egressVerdict,
+  errMsg,
+  type LMTask,
+  toolError,
+} from '@senars/util';
 
 import type { ChatStreamEvent } from '../chat.js';
 import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
@@ -24,10 +30,6 @@ export { createCapturePhase, createReflectPhase } from './pipeline.js';
 const logger = createLogger({ scope: 'agent-phases', level: 'warn' });
 
 const EMPTY_CONTEXT: Context = { working: [], episodic: [], semantic: [] };
-
-const gateVerdict = (
-  v: boolean | { grounded: boolean; score?: number }
-): { grounded: boolean; score?: number } => (typeof v === 'boolean' ? { grounded: v } : v);
 
 const reportEgressRejection = (host: CycleHost, correlationId: string, score?: number): void => {
   host.emit(
@@ -127,7 +129,7 @@ const narrateStreaming = async (ctx: MacroContext): Promise<void> => {
     }
     if (!state.narrativeText) state.narrativeText = host.getLastResponse();
     else if (host.groundednessGate) {
-      const verdict = gateVerdict(
+      const verdict = egressVerdict(
         await host.groundednessGate(state.narrativeText, stimulus.correlationId)
       );
       state.egress = verdict;

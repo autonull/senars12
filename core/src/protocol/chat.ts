@@ -3,6 +3,7 @@
  */
 import { BeliefTruthSchema } from '@senars/util';
 import { z } from 'zod';
+import { TruthValueSchema } from '../schemas/truth.js';
 
 export const ChatMessage = z.object({
   id: z.string(),
@@ -22,7 +23,7 @@ export const ChatMessage = z.object({
 export type ChatMessage = z.infer<typeof ChatMessage>;
 
 /** The shared `0..1` truth pair, under this protocol's name. */
-export const TruthValue = BeliefTruthSchema;
+export const TruthValue = TruthValueSchema;
 export type TruthValue = z.infer<typeof TruthValue>;
 
 export const ChatUserMsg = z.object({

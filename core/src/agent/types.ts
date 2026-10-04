@@ -1,9 +1,9 @@
 import type {
+  EgressVerdict,
   EpisodicMemory,
+  GroundednessGate,
   HealthStatus,
-  LMService,
   LMTask,
-  NAR,
   ParsedCommand,
   SkillDefinition,
   BridgeOptions as UtilBridgeOptions,
@@ -32,15 +32,10 @@ import type {
   ToolResult,
 } from '../engine/Engine.js';
 import type { EventLog } from '../eventlog/EventLog.js';
-import type {
-  ConversationSession,
-  PersistableSessionManager,
-  SessionManager,
-} from '../memory/types.js';
+import type { PersistableSessionManager } from '../memory/types.js';
 import type { PinStore } from '../motor/builtin-tools.js';
 import type { AgentCapabilities } from '../protocol/index.js';
 import type { CognitiveEvent } from '../schemas/index.js';
-import type { Connection } from '../Transport.js';
 import type { MacroPhase } from './pipeline.js';
 
 /** `util` owns the shape; re-exported so `core` importers keep one spelling. */
@@ -61,10 +56,7 @@ export interface AgentOptions {
   /** Shared feedback observer for unified tool statistics. */
   feedbackObserver?: ToolFeedbackObserver;
   /** System One egress gate: returns true (or `{grounded, score}`) when a narration draft is grounded enough to emit. */
-  groundednessGate?: (
-    narration: string,
-    correlationId: string
-  ) => Promise<boolean | { grounded: boolean; score?: number }>;
+  groundednessGate?: GroundednessGate;
   /** E4 agent-trace grading: grades the completed cycle's narration + executed tools into the distillation dataset. */
   traceGrader?: (trace: {
     narration: string;
@@ -83,40 +75,12 @@ export interface AgentOptions {
   threadScope?: CorrelationScopeStore;
 }
 
-export type AgentPresetName = 'chat' | 'reasoning' | 'autonomous' | 'irc-bot';
-
-export interface AgentPresetDeps {
-  nar?: NAR;
-  lmService?: LMService;
-  episodicMemory?: EpisodicMemory;
-  logger?: {
-    debug: (msg: string, ...args: unknown[]) => void;
-    info: (msg: string, ...args: unknown[]) => void;
-    warn: (msg: string, ...args: unknown[]) => void;
-    error: (msg: string, ...args: unknown[]) => void;
-  };
-  externalTools?: Record<string, unknown>;
-  workspaceRoot?: string;
-}
-
-export interface AgentPresetResult {
-  agent: import('../Agent.js').Agent;
-  config: Partial<AgentOptions>;
-}
-
 export type ValidatedAgentOptions = Required<Pick<AgentOptions, 'cortex'>> & AgentOptions;
 
 /** Refines the canonical util contract with core-owned memory typing; the auth/commandRegistry
  *  shape lives in util (`BridgeAuthHandler`) so core never imports io. */
 export interface BridgeOptions extends UtilBridgeOptions {
   episodicMemory?: EpisodicMemory;
-}
-
-export interface BridgeContext {
-  connection: Connection;
-  nar: NAR;
-  respond: (text: string) => Promise<void>;
-  session?: ConversationSession;
 }
 
 export type {

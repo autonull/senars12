@@ -6,6 +6,7 @@
  * `self-mod.proposal` are two of the events it admits: the mode is a property
  * of a decision, and a patch is something a decision can be about.
  */
+import { CapabilityRiskSchema } from '@senars/util';
 import { z } from 'zod';
 
 export const AutonomyModeSchema = z.enum([
@@ -16,6 +17,13 @@ export const AutonomyModeSchema = z.enum([
   'human-approved-production',
 ]);
 export type AutonomyMode = z.infer<typeof AutonomyModeSchema>;
+
+/**
+ * Who may move the autonomy mode. The action gate's port spelled this union out
+ * inline and the gate spelled it out again, so a fourth authority — an external
+ * approver, say — had to be added in both places to be accepted in both.
+ */
+export type AutonomyAuthority = 'system' | 'human' | 'external-governance';
 
 /**
  * The modes that may not execute. Four readers asked this of the enum by hand —
@@ -94,7 +102,7 @@ export const SelfImprovementProposalSchema = z.object({
     'schema-evolution',
     'metta-rule-adoption',
   ]),
-  riskTier: z.enum(['low', 'medium', 'high']),
+  riskTier: CapabilityRiskSchema,
   payload: z.record(z.string(), z.unknown()),
   rewardDomain: RewardDomainSchema,
   correlationId: z.string().optional(),
@@ -134,7 +142,7 @@ export const RiskAssessmentSchema = z.object({
       factor: z.string(),
       file: z.string().optional(),
       component: z.string().optional(),
-      severity: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+      severity: RiskLevelSchema,
     })
   ),
 });

@@ -1,3 +1,4 @@
+import type { EgressVerdict } from '@senars/util';
 import type { ContrastiveMemory } from './contrastive.js';
 import { createDecider, type Decider } from './decide.js';
 import type { EmbeddingCache, JudgmentManifold, JudgmentQuery } from './types.js';
@@ -28,13 +29,10 @@ const GROUNDEDNESS_QUERY: JudgmentQuery = {
  */
 export function createGroundednessGate(
   options: GroundednessGateOptions
-): (narration: string, correlationId: string) => Promise<{ grounded: boolean; score?: number }> {
+): (narration: string, correlationId: string) => Promise<EgressVerdict> {
   const { manifold, embeddingCache, threshold = 0.7, getContrastive } = options;
 
-  return async (
-    narration: string,
-    correlationId: string
-  ): Promise<{ grounded: boolean; score?: number }> => {
+  return async (narration: string, correlationId: string): Promise<EgressVerdict> => {
     try {
       const contrastive = getContrastive?.(correlationId);
       const decider: Decider = createDecider({

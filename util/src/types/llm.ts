@@ -65,12 +65,22 @@ export interface LMService {
   ): AsyncIterable<string>;
 }
 
+/**
+ * The three states a provider circuit can be in, and the one list they are
+ * enumerated from. It lived in nar's circuit breaker while `ModelRuleStats`
+ * below and the prometheus gauge each re-spelled it; a leaf union is what makes
+ * one breaker reportable from every layer.
+ */
+export const CIRCUIT_STATES = ['closed', 'open', 'half-open'] as const;
+
+export type CircuitState = (typeof CIRCUIT_STATES)[number];
+
 export type ModelRuleStats = {
   id: string;
   name: string;
   enabled: boolean;
   stats: LMExecutionStats;
-  circuitState: 'closed' | 'open' | 'half-open';
+  circuitState: CircuitState;
 };
 
 export type LMRuleConfig = {

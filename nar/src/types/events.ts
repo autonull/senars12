@@ -211,8 +211,7 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
   // Budget slice events (B4)
 }
 
-export type EventReceiver<T> = (params: T) => void;
-export type EventUnsubscribe = () => void;
+export type { EventReceiver, EventUnsubscribe } from '@senars/util/events';
 
 /**
  * @deprecated Will be removed in next major version.

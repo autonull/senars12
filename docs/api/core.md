@@ -392,17 +392,9 @@ _Dynamic subpath (no single entry file)._
 
 - `AgentOptions`
 
-- `AgentPresetName`
-
-- `AgentPresetDeps`
-
-- `AgentPresetResult`
-
 - `ValidatedAgentOptions`
 
 - `BridgeOptions` — Refines the canonical util contract with core-owned memory typing; the auth/commandRegistry
-
-- `BridgeContext`
 
 ## `./engine`
 

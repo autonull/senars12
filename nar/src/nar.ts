@@ -558,9 +558,7 @@ export class NAR extends BaseComponent {
   }
 
   /** Get System One groundedness gate (for egress filtering). */
-  getSystemOneGroundednessGate():
-    | ((narration: string, correlationId: string) => Promise<{ grounded: boolean; score?: number }>)
-    | undefined {
+  getSystemOneGroundednessGate(): SystemOneRuntime['groundednessGate'] {
     return this.systemOne.groundednessGate;
   }
 

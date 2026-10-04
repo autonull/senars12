@@ -116,11 +116,19 @@
 
 - `passthrough` — Creates a passthrough middleware that emits an event and calls next.
 
+- `CAPABILITY_RISKS`
+
+- `CapabilityRiskSchema`
+
 - `ENGINE_ORIGINS` — Every origin a cognitive event may claim. One list, so the zod boundary in
+
+- `egressVerdict` — Narrow a gate's answer to the one shape every consumer downstream expects.
 
 - `toolError` — A failed outcome; anything thrown is stringified at this boundary.
 
 - `toolOk` — A successful outcome.
+
+- `CIRCUIT_STATES` — The three states a provider circuit can be in, and the one list they are
 
 - `createLMStats`
 
@@ -777,6 +785,12 @@
 - `Derivation`
 
 - `ChatOptions`
+
+- `EgressVerdict` — What the egress gate decided about a narration draft: emit it, or fall back.
+
+- `GroundednessGate` — The System One egress gate. Answers `true` for a gate that carries no score, so
+
+- `egressVerdict` — Narrow a gate's answer to the one shape every consumer downstream expects.
 
 - `ChatStreamEvent`
 

@@ -34,6 +34,29 @@ export interface ChatOptions {
   readonly stream?: boolean;
 }
 
+/**
+ * What the egress gate decided about a narration draft: emit it, or fall back.
+ * The score is the head's confidence in the groundedness call and is absent when
+ * the gate answered on a rule rather than on a calibrated head.
+ */
+export interface EgressVerdict {
+  readonly grounded: boolean;
+  readonly score?: number;
+}
+
+/**
+ * The System One egress gate. Answers `true` for a gate that carries no score, so
+ * a boolean-only gate is still a gate — the verdict normalises it at the boundary.
+ */
+export type GroundednessGate = (
+  narration: string,
+  correlationId: string
+) => Promise<boolean | EgressVerdict>;
+
+/** Narrow a gate's answer to the one shape every consumer downstream expects. */
+export const egressVerdict = (answer: boolean | EgressVerdict): EgressVerdict =>
+  typeof answer === 'boolean' ? { grounded: answer } : answer;
+
 export interface ChatStreamEvent {
   readonly kind: 'text-delta' | 'tool-call' | 'tool-result' | 'finish' | 'error' | 'aborted';
   readonly text?: string;

@@ -1,4 +1,5 @@
 import {
+  type EgressVerdict,
   type EpisodicMemory,
   generateId,
   incrementCount,
@@ -32,9 +33,6 @@ import type { Connection } from './Transport.js';
 
 export type {
   AgentOptions,
-  AgentPresetDeps,
-  AgentPresetName,
-  AgentPresetResult,
   HealthStatus,
   ParsedCommand,
   SkillDefinition,
@@ -67,7 +65,7 @@ export class Agent {
     narration: string;
     toolCalls: readonly { command: string; success: boolean }[];
     correlationId: string;
-    egress?: { grounded: boolean; score?: number };
+    egress?: EgressVerdict;
   }) => Promise<unknown>;
   #narrateTier?: LMTask;
   #macroPipeline?: MacroPhase[];

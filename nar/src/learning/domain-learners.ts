@@ -1,5 +1,5 @@
 import type { RewardDomain } from '@senars/core/schemas/governance';
-import { clamp, clamp01, clampSigned } from '@senars/util';
+import { type CapabilityRisk, clamp, clamp01, clampSigned } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { SelfRewardGate } from '../kernel/KernelRewardGate.js';
@@ -26,7 +26,7 @@ export class CrossDomainError extends SenarsError {
 
 export abstract class DomainLearner {
   abstract readonly domain: LearnerDomain;
-  abstract readonly risk: 'low' | 'medium' | 'high';
+  abstract readonly risk: CapabilityRisk;
 
   protected guard(event: DomainLearningEvent): void {
     if (event.domain !== this.domain)

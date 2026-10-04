@@ -97,19 +97,28 @@ export { dispatch, passthrough } from './middleware.js';
 /** @public Agent-facing option and capability types. */
 export type {
   AgentOptions,
+  AuthDecision,
   BridgeOptions,
   HealthStatus,
   ParsedCommand,
   SkillDefinition,
 } from './types/agent.js';
+/** @public The shared capability risk vocabulary. */
+export { CAPABILITY_RISKS, CapabilityRiskSchema } from './types/capability.js';
+export type { CapabilityRisk } from './types/capability.js';
 export type {
+  ChatOptions,
   CognitiveStimulus,
   Context,
   Derivation,
+  EgressVerdict,
   EngineOrigin,
+  GroundednessGate,
 } from './types/cognitive.js';
 /** @public The one list of event origins; `EngineOrigin` is derived from it. */
 export { ENGINE_ORIGINS } from './types/cognitive.js';
+/** @public Narrows an egress gate's `boolean | EgressVerdict` answer to the verdict. */
+export { egressVerdict } from './types/cognitive.js';
 /** @public Engine contract and identifiers. */
 export type { Engine, EngineId } from './types/engine.js';
 /** @public The one tool outcome shape and its two constructors. */
@@ -139,6 +148,7 @@ export type {
 } from './types/lifecycle.js';
 /** @public LM service contract. */
 export type {
+  CircuitState,
   LMExecutionStats,
   LMGenerateOptions,
   LMPromptGenerator,
@@ -150,11 +160,9 @@ export type {
   MockLMConfig,
   ModelRuleStats,
 } from './types/llm.js';
-export { createLMStats, recordLMCall } from './types/llm.js';
+export { CIRCUIT_STATES, createLMStats, recordLMCall } from './types/llm.js';
 /** @public Session/memory manager contracts. */
 export type { ConversationSession, SessionManager } from './types/memory.js';
-/** @public NAR agent contracts. @deprecated — re-exported from `@senars/nar`. */
-export type { NAR, NARConfig } from './types/nar.js';
 /** @public Tool contracts. */
 export type {
   ToolBudget,

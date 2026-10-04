@@ -1,9 +1,12 @@
 import type { CognitiveEvent } from '../schemas/index.js';
 import {
   dispatch,
+  type EgressVerdict,
   type EpisodicMemory,
+  type GroundednessGate,
   type LMTask,
   type Middleware,
+  type ParsedCommand,
   PushQueue,
 } from '@senars/util';
 import type { ChatOptions, ChatStreamEvent } from '../chat.js';
@@ -37,19 +40,16 @@ export interface CycleHost {
   readonly motor: ToolRegistry;
   readonly cortex?: LLMCortex;
   readonly episodicMemory?: EpisodicMemory;
-  readonly commandParser?: (text: string) => { command: string; args: string[]; raw: string }[];
+  readonly commandParser?: (text: string) => ParsedCommand[];
   /** System One egress gate (§7.4): returns true (or `{grounded, score}`) when the narration is grounded enough to emit. */
-  readonly groundednessGate?: (
-    narration: string,
-    correlationId: string
-  ) => Promise<boolean | { grounded: boolean; score?: number }>;
+  readonly groundednessGate?: GroundednessGate;
   /** E4: grades the completed cycle (narration + executed tools) into the distillation dataset. */
   readonly traceGrader?: (trace: {
     narration: string;
     toolCalls: readonly { command: string; success: boolean }[];
     correlationId: string;
     /** E4 follow-up (b): egress-gate verdict — groundedness ground truth (reject ⇒ observed 0). */
-    egress?: { grounded: boolean; score?: number };
+    egress?: EgressVerdict;
   }) => Promise<unknown>;
   /** H2: default narration tier when the caller passes none. */
   readonly narrateTier?: LMTask;
@@ -80,7 +80,7 @@ export interface MacroCycleState {
   context?: Context;
   derivations: Derivation[];
   narrativeText: string;
-  egress?: { grounded: boolean; score?: number };
+  egress?: EgressVerdict;
   toolResults: Array<{ command: string; result: ToolResult }>;
 }
 

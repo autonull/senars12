@@ -1,6 +1,7 @@
 import type {
   ActionGateInput,
   ActionGateOutput,
+  AutonomyAuthority,
   AutonomyMode,
   AutonomyModeChangedEvent,
   GateOutcome,
@@ -26,8 +27,6 @@ const LEGAL_TRANSITIONS: Record<AutonomyMode, AutonomyMode[]> = {
   'low-risk-auto-merge': ['sandbox-execute', 'human-approved-production'],
   'human-approved-production': ['low-risk-auto-merge'],
 };
-
-export type AutonomyAuthority = 'system' | 'human' | 'external-governance';
 
 /**
  * Typed NAL-veto error for callers that convert a gate veto result

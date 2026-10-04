@@ -1,4 +1,4 @@
-import { errMsg, makeId, withTimeout } from '@senars/util';
+import { type CapabilityRisk, errMsg, makeId, withTimeout } from '@senars/util';
 import { envBool } from '@senars/util/config';
 
 export interface ApprovalRequest {
@@ -99,7 +99,7 @@ export class ApprovalService {
   async requestApproval(params: {
     action: string;
     payload: string;
-    risk: 'low' | 'medium' | 'high';
+    risk: CapabilityRisk;
     timeoutMs?: number;
   }): Promise<{ approved: boolean; feedback?: string }> {
     const request = `${params.action}\n\nPayload: ${params.payload}\nRisk: ${params.risk}`;

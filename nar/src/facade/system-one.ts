@@ -63,10 +63,8 @@ export class SystemOneRuntime {
   readonly dispatcher?: CognitiveDispatcher;
   /** TODO23 unified decision facade (heads + contrastive + router), `decide`/`choose`. */
   readonly decider?: Decider;
-  readonly groundednessGate?: (
-    narration: string,
-    correlationId: string
-  ) => Promise<{ grounded: boolean; score?: number }>;
+  /** The System One egress gate. Its own factory's signature, which always verdicts. */
+  readonly groundednessGate?: ReturnType<typeof createGroundednessGate>;
   readonly traceGrader?: (trace: TraceGradeInput) => Promise<TraceGradeResult>;
   /** TODO24: correlationId → last trace quality, for retrospect strategy audit. */
   readonly traceGradeHistory = new BoundedMap<string, number>({

@@ -21,13 +21,20 @@ export interface SkillDefinition {
   execute(...args: unknown[]): unknown;
 }
 
+/**
+ * What an authenticator decided about one message: pass it, drop it silently, or
+ * treat it as the binding handshake. Named because `io`'s `AuthManager` and the
+ * bridge handler below both spell it out, and the union is the whole contract.
+ */
+export type AuthDecision = 'allow' | 'ignore' | 'auth_bound';
+
 /** Structural auth contract satisfied by io's AuthManager (io→util edge forbids direct import). */
 export interface BridgeAuthHandler {
   checkAuth(
     connectionId: string,
     senderId: string,
     message: string
-  ): 'allow' | 'ignore' | 'auth_bound';
+  ): AuthDecision;
   bindUser(connectionId: string, senderId: string): void;
 }
 

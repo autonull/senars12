@@ -1,5 +1,6 @@
-import { BoundedRing, errMsg } from '@senars/util';
-export type CapabilityRisk = 'low' | 'medium' | 'high';
+import { BoundedRing, type CapabilityRisk, errMsg } from '@senars/util';
+
+export type { CapabilityRisk };
 
 export interface CapabilityDef {
   name: string;

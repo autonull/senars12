@@ -1,3 +1,4 @@
+import { CIRCUIT_STATES, type CircuitState } from '@senars/util';
 import {
   collectDefaultMetrics,
   Counter,
@@ -69,12 +70,9 @@ export function recordLmProbe(provider: string, success: boolean): void {
   lmProbeTotal.inc({ provider, result: success ? 'success' : 'failure' });
 }
 
-export function recordCircuitBreakerState(
-  provider: string,
-  state: 'closed' | 'half-open' | 'open'
-): void {
+export function recordCircuitBreakerState(provider: string, state: CircuitState): void {
   // Reset all states for this provider
-  ['closed', 'half-open', 'open'].forEach((s) => {
+  CIRCUIT_STATES.forEach((s) => {
     lmCircuitState.set({ provider, state: s }, s === state ? 1 : 0);
   });
 }

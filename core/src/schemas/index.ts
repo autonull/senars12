@@ -89,6 +89,7 @@ export {
   RewardGateOutputSchema,
 } from './gate-io.js';
 export type {
+  AutonomyAuthority,
   AutonomyMode,
   GameDomain,
   GovernanceDecision,

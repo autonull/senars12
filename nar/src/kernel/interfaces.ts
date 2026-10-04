@@ -1,6 +1,7 @@
 import type {
   ActionGateInput,
   ActionGateOutput,
+  AutonomyAuthority,
   AutonomyMode,
   AutonomyModeChangedEvent,
   BudgetExhaustedEvent,
@@ -47,7 +48,7 @@ export interface IActionGate extends GateEventLog<PolicyViolationEvent> {
   getAutonomyMode(): AutonomyMode;
   requestModeChange(
     newMode: AutonomyMode,
-    authorizedBy: 'system' | 'human' | 'external-governance',
+    authorizedBy: AutonomyAuthority,
     correlationId?: string
   ): { changed: boolean; reason?: string };
   getAutonomyLog(): ReadonlyArray<AutonomyModeChangedEvent>;

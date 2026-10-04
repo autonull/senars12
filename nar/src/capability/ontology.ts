@@ -5,7 +5,7 @@
  */
 
 import type { ToolSpec } from '@senars/core/motor';
-import { addToSet, mapValues, shortSha256Hex } from '@senars/util';
+import { addToSet, type CapabilityRisk, mapValues, shortSha256Hex } from '@senars/util';
 import type { Tool as NarTool, ToolSchema as NarSchema } from '../tools/types.js';
 import { type CapabilityDef, CapabilitySpace } from './space.js';
 
@@ -34,7 +34,7 @@ export interface CapabilityOntologyEntry {
   readonly schema: CapabilitySchema;
   readonly costEstimate: number; // estimated CPU cycles / ms
   readonly prerequisites: readonly string[]; // other capability IDs that must be available
-  readonly risk: 'low' | 'medium' | 'high';
+  readonly risk: CapabilityRisk;
   readonly version: string;
   readonly provenance: Provenance;
   readonly execute: (args: Record<string, unknown>) => unknown | Promise<unknown>;
@@ -245,7 +245,7 @@ export class CapabilityOntology {
     execute: (args: Record<string, unknown>) => unknown | Promise<unknown>,
     costEstimate: number,
     prerequisites: string[],
-    risk: 'low' | 'medium' | 'high',
+    risk: CapabilityRisk,
     derivationChain: readonly string[],
     parentId: string | undefined,
     proofRef: string | undefined

@@ -1,4 +1,4 @@
-import { addToSet } from '@senars/util';
+import { addToSet, type AuthDecision } from '@senars/util';
 
 export interface AuthManagerConfig {
   defaultMode?: 'open' | 'auth';
@@ -25,7 +25,7 @@ export class AuthManager {
     connectionId: string,
     senderId: string,
     message: string
-  ): 'allow' | 'ignore' | 'auth_bound' {
+  ): AuthDecision {
     const secret = this.secrets.get(connectionId);
     if (!secret) return 'allow';
 
