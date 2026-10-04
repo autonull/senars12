@@ -392,7 +392,7 @@ _Dynamic subpath (no single entry file)._
 
 - `AgentOptions`
 
-- `ValidatedAgentOptions`
+- `ResolvedAgentOptions` — Options once the cortex has been resolved from a service. `util`'s
 
 - `BridgeOptions` — Refines the canonical util contract with core-owned memory typing; the auth/commandRegistry
 

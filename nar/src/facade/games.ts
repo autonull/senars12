@@ -1,4 +1,3 @@
-import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import { FocusBag } from '../focus/FocusBag.js';
 import { GameFocus, type GameFocusOptions } from '../focus/GameFocus.js';
 import {
@@ -8,8 +7,6 @@ import {
 } from '../game/impls/ConversationGame.js';
 import { createSelfMetaGame, type SelfMetaGameImpl } from '../game/impls/SelfMetaGame.js';
 import { createGateRegistry, type GateRegistry } from '../kernel/index.js';
-import type { EmbeddingCache } from '../lm/system-one/embedding-cache.js';
-import type { JudgmentManifold } from '../lm/system-one/types.js';
 import type { ProofMettaProposer } from '../meta/index.js';
 import { ProposalBag } from '../meta/proposal-bag.js';
 import type { Reflex } from '../reflex/Reflex.js';
@@ -170,9 +167,5 @@ export class GameManager {
   }
 }
 
-/** Prefetch context shape shared by reflex attach points (re-exported for parity). */
-export type ReflexPrefetchContext = {
-  manifold: JudgmentManifold;
-  embeddingCache: EmbeddingCache;
-  budget: ReasoningBudget;
-};
+/** Prefetch context shape shared by reflex attach points — GameFocus's own type. */
+export type { ReflexPrefetchContext } from '../focus/GameFocus.js';

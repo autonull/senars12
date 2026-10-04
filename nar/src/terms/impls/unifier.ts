@@ -1,10 +1,15 @@
-import { Unifier, type UnifierDialect } from '@senars/util';
+import {
+  Unifier,
+  type UnifierDialect,
+  type UnifierSubstitution,
+} from '@senars/util';
 import type { Term } from '../types.js';
 import { isVariableSymbol } from '../types.js';
 import { getArgs, sameKind, termKey, termsEqual } from './accessors.js';
 import { TermBuilder } from './factory.js';
 
-export type Substitution = ReadonlyMap<string, Term>;
+/** The unifier's own substitution type — util's, bound to the term dialect. */
+export type Substitution = UnifierSubstitution<Term>;
 
 /** How the generic unifier reads a Narsese term. */
 const DIALECT: UnifierDialect<Term> = {

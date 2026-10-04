@@ -18,6 +18,7 @@ import { getTracer } from '../otel/index.js';
 import {
   CircuitBreaker,
   type CircuitBreakerSettings,
+  type CircuitSnapshot,
   type TransitionReason,
 } from '../utils/circuit-breaker.js';
 import {
@@ -85,13 +86,9 @@ export const PROVIDER_CIRCUIT_DEFAULTS: Partial<
   mock: { failureThreshold: 100, resetTimeoutMs: 1_000, successThreshold: 10 },
 };
 
-export interface ProviderHealth {
+/** A provider's breaker state, plus when it was last probed and how that went. */
+export interface ProviderHealth extends CircuitSnapshot {
   provider: LMProviderName;
-  state: CircuitState;
-  consecutiveFailures: number;
-  consecutiveSuccesses: number;
-  lastFailure: number | null;
-  lastSuccess: number | null;
   lastProbe: number | null;
   probeResult: boolean | null;
 }

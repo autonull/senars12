@@ -1,4 +1,4 @@
-import type { LMTask } from '@senars/util';
+import type { ChatOptions as UtilChatOptions, LMTask } from '@senars/util';
 
 /**
  * The chat option and event vocabulary — canonical, and the only thing left
@@ -9,9 +9,6 @@ import type { LMTask } from '@senars/util';
  */
 export type { ChatStreamEvent } from '@senars/util/types/cognitive';
 
-export interface ChatOptions {
-  readonly signal?: AbortSignal;
-  readonly sessionId?: string;
-  readonly stream?: boolean;
+export interface ChatOptions extends UtilChatOptions {
   readonly tier?: LMTask;
 }

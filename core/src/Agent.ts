@@ -35,8 +35,8 @@ export type {
   AgentOptions,
   HealthStatus,
   ParsedCommand,
+  ResolvedAgentOptions,
   SkillDefinition,
-  ValidatedAgentOptions,
 } from './agent/types.js';
 
 export class Agent {

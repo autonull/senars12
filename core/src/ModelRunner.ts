@@ -67,7 +67,7 @@ export interface ModelRunResult {
 export interface ModelProvider {
   readonly available: boolean;
 
-  getModel(tier?: string): LanguageModel | undefined;
+  getModel(tier: string): LanguageModel | undefined;
 }
 
 export interface ModelRunnerDeps {

@@ -1,4 +1,5 @@
 import type {
+  AgentOptions as UtilAgentOptions,
   EgressVerdict,
   EpisodicMemory,
   GroundednessGate,
@@ -41,12 +42,9 @@ import type { MacroPhase } from './pipeline.js';
 /** `util` owns the shape; re-exported so `core` importers keep one spelling. */
 export type { CognitiveStimulus, Context, Derivation, ParsedCommand, ToolResult };
 
-export interface AgentOptions {
+export interface AgentOptions extends UtilAgentOptions {
   log?: EventLog;
-  id?: string;
   cortex?: LLMCortex;
-  commandParser?: (text: string) => ParsedCommand[];
-  builtinTools?: boolean;
   episodicMemory?: EpisodicMemory;
   /** Evaluate a MeTTa expression; backs the `metta` builtin tool. */
   mettaExecutor?: (expression: string) => Promise<unknown[]>;
@@ -75,7 +73,10 @@ export interface AgentOptions {
   threadScope?: CorrelationScopeStore;
 }
 
-export type ValidatedAgentOptions = Required<Pick<AgentOptions, 'cortex'>> & AgentOptions;
+/** Options once the cortex has been resolved from a service. `util`'s
+ *  `ValidatedAgentOptions` is the *validated config* type — a different record
+ *  that had taken this name on `core`'s public surface. */
+export type ResolvedAgentOptions = Required<Pick<AgentOptions, 'cortex'>> & AgentOptions;
 
 /** Refines the canonical util contract with core-owned memory typing; the auth/commandRegistry
  *  shape lives in util (`BridgeAuthHandler`) so core never imports io. */

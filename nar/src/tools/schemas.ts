@@ -1,3 +1,4 @@
+import type { ConnectionConfig } from '@senars/util';
 import { agentOptionsSchema } from '@senars/util/config';
 import { z } from 'zod';
 
@@ -11,7 +12,8 @@ export const ToolSpecSchema = z
 
 export type ToolSpec = z.infer<typeof ToolSpecSchema>;
 
-export const ConnectionConfigSchema = z
+/** The zod twin, pinned to the transport type so a widened field is a compile error here. */
+export const ConnectionConfigSchema: z.ZodType<ConnectionConfig> = z
   .object({
     id: z.string().min(1).describe('Connection ID'),
     enabled: z.boolean().describe('Whether the connection is enabled'),
@@ -20,8 +22,6 @@ export const ConnectionConfigSchema = z
     authSecret: z.string().optional().describe('Optional auth secret'),
   })
   .strict();
-
-export type ConnectionConfig = z.infer<typeof ConnectionConfigSchema>;
 
 export const AgentOptionsSchema = agentOptionsSchema;
 

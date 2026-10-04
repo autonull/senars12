@@ -1442,9 +1442,7 @@ _Re-export barrel._
 
 - `ToolSpec`
 
-- `ConnectionConfigSchema`
-
-- `ConnectionConfig`
+- `ConnectionConfigSchema` — The zod twin, pinned to the transport type so a widened field is a compile error here.
 
 - `AgentOptionsSchema`
 
