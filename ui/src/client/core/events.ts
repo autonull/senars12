@@ -1,28 +1,32 @@
-/** Minimal pub-sub for cross-component UI signals; `on` returns its own unsubscriber. */
-export class EventBus {
-  // biome-ignore lint/suspicious/noExplicitAny: UI signals are untyped by design
-  readonly #handlers = new Map<string, Set<(...args: any[]) => void>>();
+/**
+ * Cross-component UI signals. One `EventBus`, the shared one — this used to be a
+ * second implementation whose listener loop had no error isolation, so one
+ * throwing subscriber silently cancelled every subscriber behind it and the
+ * component that owned it just stopped responding. `ListenerBag` isolates and
+ * logs each listener instead.
+ *
+ * The event map is what the previous untyped version could not give: a
+ * misspelled event name or a `pan-to` carrying the wrong shape is a compile
+ * error rather than a dead control.
+ */
+import type { Lens } from '@senars/core';
+import { EventBus } from '@senars/util';
 
-  // biome-ignore lint/suspicious/noExplicitAny: UI signals are untyped by design
-  on(event: string, fn: (...args: any[]) => void): () => void {
-    const set = this.#handlers.get(event) ?? new Set<(...args: any[]) => void>();
-    set.add(fn);
-    this.#handlers.set(event, set);
-    return () => this.off(event, fn);
-  }
+/**
+ * Payload per signal. `void` marks a signal that carries nothing, and is emitted
+ * with no argument. A `type` rather than an `interface` because `EventBus`
+ * constrains its map to `Record<string, unknown>`, which only a type alias
+ * satisfies — an interface would need a hand-written index signature.
+ */
+export type UiSignals = {
+  'graph:search': string;
+  'graph:layout': string;
+  'graph:pan-to': { x: number; y: number };
+  'graph:zoom-in': void;
+  'graph:zoom-out': void;
+  'graph:fit': void;
+  'graph:minimap-toggle': void;
+  'lens:changed': Lens;
+};
 
-  // biome-ignore lint/suspicious/noExplicitAny: UI signals are untyped by design
-  off(event: string, fn: (...args: any[]) => void): void {
-    const set = this.#handlers.get(event);
-    if (!set) return;
-    set.delete(fn);
-    if (set.size === 0) this.#handlers.delete(event);
-  }
-
-  // biome-ignore lint/suspicious/noExplicitAny: UI signals are untyped by design
-  emit(event: string, ...args: any[]): void {
-    for (const fn of [...(this.#handlers.get(event) ?? [])]) fn(...args);
-  }
-}
-
-export const eventBus = new EventBus();
+export const eventBus = new EventBus<UiSignals>();

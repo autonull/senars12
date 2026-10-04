@@ -72,7 +72,7 @@ export const DEFAULT_CONFIG: CoreConfig = Object.freeze(narCoreDefaults);
 export type Nullable<T> = T | null;
 export type Optional<T> = T | undefined;
 
-// Result types for operations — E2: canonical definition lives in utils/result.ts
+// Result types for operations — canonical definition lives in @senars/util
 export {
   attempt,
   attemptAsync,
@@ -87,7 +87,7 @@ export {
   ok,
   type Result,
   unwrapOrThrow,
-} from '../utils/result.js';
+} from '@senars/util';
 
 // Create Budget object - optimized with defaults
 export const createTaskWeight = (

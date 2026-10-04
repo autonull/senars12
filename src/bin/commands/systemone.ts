@@ -1,9 +1,15 @@
 /** System One Judgment Manifold commands (`.judge`, `.cortex`, `.reflex`, `.ground`, `.s1-config`, …). */
 
 import { existsSync, statSync } from 'node:fs';
-import { writeJsonFile } from '@senars/util';
 import { createSystemOneBudget, type ScoreDistribution } from '@senars/nar/lm/system-one';
-import { envStrOr, errMsg, finiteOr, incrementCount } from '@senars/util';
+import {
+  envStrOr,
+  errMsg,
+  finiteOr,
+  formatBytes,
+  incrementCount,
+  writeJsonFile,
+} from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import { type ReflexView, reflexesOf } from '../../cli/conversation-game.js';
 import {
@@ -402,11 +408,11 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
       const heads = lock.heads
         .map((h) => `  ${h.headId}: abstain=${h.fitted ? h.abstainThreshold.toFixed(4) : '—'}`)
         .join('\n');
-      return `lock ${statSync(CALIBRATION_LOCK_PATH).size}B\n${heads || '  (no per-head data)'}`;
+      return `lock ${formatBytes(statSync(CALIBRATION_LOCK_PATH).size)}\n${heads || '  (no per-head data)'}`;
     }),
     cmd('distill', 'Distillation dataset status', () => {
       const p = datasetPathOf(rt);
-      const st = existsSync(p) ? `${statSync(p).size}B` : 'absent';
+      const st = existsSync(p) ? formatBytes(statSync(p).size) : 'absent';
       return `dataset ${p}: ${st}\nRun full teacher→student loop: pnpm run demo:arcade -- --distill`;
     }),
     cmd('ground', 'Groundedness gate: .ground on|off|status|threshold <0-1>', (args = '') => {

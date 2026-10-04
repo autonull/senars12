@@ -66,6 +66,7 @@ export class BoundedMap<K, V> implements BoundedContainer<V> {
   }
 
   readonly #ttlMs: number;
+  readonly #neverExpires: boolean;
   readonly #now: Clock;
   readonly #onEvict?: (value: V, key: K) => void;
   readonly #order: EvictionOrder<V>;
@@ -84,6 +85,7 @@ export class BoundedMap<K, V> implements BoundedContainer<V> {
     } = typeof options === 'number' ? { maxSize: options } : options;
     this.maxSize = Math.max(1, maxSize);
     this.#ttlMs = ttlMs;
+    this.#neverExpires = ttlMs === Infinity;
     this.#now = now;
     this.#onEvict = onEvict;
     this.#order = eviction;
@@ -131,7 +133,10 @@ export class BoundedMap<K, V> implements BoundedContainer<V> {
   set(key: K, value: V): this {
     if (this.#entries.has(key)) this.#entries.delete(key);
     else if (this.#entries.size >= this.maxSize) this.#evictVictim();
-    this.#entries.set(key, { value, expiresAt: this.#now() + this.#ttlMs });
+    this.#entries.set(key, {
+      value,
+      expiresAt: this.#neverExpires ? Infinity : this.#now() + this.#ttlMs,
+    });
     return this;
   }
 
@@ -184,6 +189,7 @@ export class BoundedMap<K, V> implements BoundedContainer<V> {
 
   /** Drop every expired entry. Returns how many were removed. */
   purgeExpired(): number {
+    if (this.#neverExpires) return 0;
     const now = this.#now();
     let removed = 0;
     for (const [key, entry] of this.#entries) {
@@ -203,7 +209,7 @@ export class BoundedMap<K, V> implements BoundedContainer<V> {
   }
 
   #expired(entry: Entry<V>): boolean {
-    return entry.expiresAt <= this.#now();
+    return !this.#neverExpires && entry.expiresAt <= this.#now();
   }
 
   #reinsert(key: K, entry: Entry<V>): void {

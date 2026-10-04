@@ -179,3 +179,92 @@ export function raceDeadline<T>(
     deadline,
   ]).finally(() => clearTimeout(timer));
 }
+
+/**
+ * A coalescing wrapper: rapid calls collapse into one invocation with the *last*
+ * arguments, `ms` after the last of them.
+ *
+ * The four hand-rolled copies of this each owned their timer, so none of them
+ * could cancel: a component unmounted mid-window left a live timer that fired
+ * into a detached view, and a config panel held one timer handle per field with
+ * no way to disarm them. `cancel` and `flush` are the two things the copies were
+ * missing, and `pending` is what lets a caller assert the window is shut.
+ *
+ * `fn`'s return value is deliberately dropped — a debounced call has no caller
+ * to return to. A caller that needs the work to happen at least once per window
+ * wants a rate limiter ({@link SlidingWindowRateLimiter}) or a periodic, not a
+ * wrapper that can skip it.
+ */
+export interface Debounced<Args extends unknown[] = []> {
+  (...args: Args): void;
+  /** Drop the pending invocation. Safe with nothing pending, and idempotent. */
+  cancel(): void;
+  /** Run the pending invocation now, if there is one. */
+  flush(): void;
+  readonly pending: boolean;
+}
+
+export const debounce = <Args extends unknown[]>(
+  fn: (...args: Args) => void,
+  ms: number
+): Debounced<Args> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let latest: Args;
+
+  const disarm = (): void => {
+    if (timer === undefined) return;
+    clearTimeout(timer);
+    timer = undefined;
+  };
+
+  const debounced = ((...args: Args): void => {
+    latest = args;
+    disarm();
+    timer = setTimeout(() => {
+      timer = undefined;
+      fn(...latest);
+    }, ms);
+  }) as Debounced<Args>;
+
+  debounced.cancel = disarm;
+  debounced.flush = () => {
+    if (timer === undefined) return;
+    disarm();
+    fn(...latest);
+  };
+  Object.defineProperty(debounced, 'pending', { get: () => timer !== undefined });
+  return debounced;
+};
+
+/**
+ * Run work one at a time, in submission order — the mutual exclusion primitive
+ * for anything that cannot be re-entered.
+ *
+ * Two callers each spelled this as a bare promise chain, and the difference
+ * between them was the bug: the llama-context chain swallowed rejections
+ * (`tail = pending.catch(…)`) and the rule-producer chain did not, so a failing
+ * flush would reject the chain *and* the promise a caller was awaiting, and
+ * every subsequent enqueue would chain off a rejected promise. Here the tail is
+ * reset in both arms by construction.
+ *
+ * Enqueue never rejects and never throws — the returned promise is `work`'s own,
+ * so one caller's failure is that caller's failure and the queue keeps draining.
+ */
+export class SerialQueue {
+  #tail: Promise<unknown> = Promise.resolve();
+
+  /** Enqueue `work`. Resolves and rejects with it; later work is unaffected either way. */
+  run<T>(work: () => Promise<T>): Promise<T> {
+    const settled = this.#tail.then(work);
+    this.#tail = settled.then(
+      () => undefined,
+      () => undefined
+    );
+    return settled;
+  }
+
+  /** Resolves when nothing is queued or in flight. */
+  idle(): Promise<void> {
+    return this.#tail.then(() => undefined);
+  }
+}

@@ -1,8 +1,8 @@
 import { spawnSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { errMsg, unique } from '@senars/util';
 import { tool } from 'ai';
-import { unique } from '@senars/util';
 import { z } from 'zod';
 import { runProcess } from './proc.js';
 
@@ -100,7 +100,7 @@ export async function runCodemod(
   } catch (error) {
     return {
       success: false,
-      error: `Failed to parse ast-grep output: ${String(error)}`,
+      error: `Failed to parse ast-grep output: ${errMsg(error)}`,
       files: [],
       applied: false,
     };

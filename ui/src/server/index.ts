@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createServer } from 'node:http';
@@ -6,9 +5,9 @@ import { extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Agent, CognitiveEvent, GraphNodeData, IncomingFromServer } from '@senars/core';
 import { isNarsese } from '@senars/core';
-import { envBool, envPositive } from '@senars/util';
 import { DEFAULT_CONFIG, parseTermToEdges, termParser } from '@senars/nar';
 import { handleMetricsRequest } from '@senars/nar/metrics';
+import { envBool, envPositive, makeId } from '@senars/util';
 import { type WebSocket, WebSocketServer } from 'ws';
 import { applyConfigField, buildConfigSchema } from './config-schema.js';
 import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
@@ -378,7 +377,7 @@ function createServerWithProjection(agent?: Agent): {
                   ws.send(
                     JSON.stringify({
                       type: 'chat.agent.complete',
-                      messageId: randomUUID(),
+                      messageId: makeId(),
                       content: response,
                     })
                   );
@@ -501,7 +500,7 @@ function createServerWithProjection(agent?: Agent): {
             ws.send(
               JSON.stringify({
                 type: 'chat.agent.complete',
-                messageId: randomUUID(),
+                messageId: makeId(),
                 content: `Echo: ${msg.content}`,
               })
             );

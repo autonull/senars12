@@ -26,6 +26,7 @@
  * observes nothing produces a table of confident zeroes (§4 rows 7 and 9).
  */
 
+import { raceDeadline } from '@senars/util';
 import { createGateRegistry } from '../nar/src/kernel/GateRegistry.js';
 import { KernelPerceptionGate } from '../nar/src/kernel/KernelPerceptionGate.js';
 import { PROVIDER_SEAMS } from '../nar/src/lm/provider-seams.js';
@@ -40,15 +41,8 @@ const NEVER = <T>(): Promise<T> => new Promise<T>(() => {});
 const PROBE_TIMEOUT_MS = 250;
 
 /** Whether `work` settles within the probe's deadline. */
-const completesWithin = async (work: Promise<unknown>, ms = PROBE_TIMEOUT_MS): Promise<boolean> => {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const deadline = new Promise<'hung'>((resolve) => {
-    timer = setTimeout(() => resolve('hung'), ms);
-  });
-  const outcome = await Promise.race([work.then(() => 'done' as const), deadline]);
-  clearTimeout(timer);
-  return outcome === 'done';
-};
+const completesWithin = async (work: Promise<unknown>, ms = PROBE_TIMEOUT_MS): Promise<boolean> =>
+  !(await raceDeadline(work, ms)).timedOut;
 
 /**
  * `LMRule.apply` over a provider that never answers. The circuit breaker wraps

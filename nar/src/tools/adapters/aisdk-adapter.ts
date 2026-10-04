@@ -1,4 +1,4 @@
-import { serializeTruth, type TruthLike, takeLast } from '@senars/util';
+import { errMsg, serializeTruth, type TruthLike, takeLast } from '@senars/util';
 import { evaluateExpression } from '@senars/util/utils/eval';
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -252,7 +252,7 @@ export function createGeneralTools(deps: {
         } catch (error) {
           return {
             expression,
-            error: String(error),
+            error: errMsg(error),
             success: false,
           };
         }

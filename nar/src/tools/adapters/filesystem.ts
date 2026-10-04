@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { normalize, resolve } from 'node:path';
-import { containsPath, ensureParentDir } from '@senars/util';
+import { containsPath, ensureParentDir, errMsg } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
 
@@ -41,7 +41,7 @@ export function createFileSystemTools(deps: FileSystemDeps) {
           const content = await readFile(resolvedPath, 'utf-8');
           return { content, path, size: content.length };
         } catch (error) {
-          return { error: String(error), path };
+          return { error: errMsg(error), path };
         }
       },
     }),
@@ -62,10 +62,9 @@ export function createFileSystemTools(deps: FileSystemDeps) {
           await writeFile(resolvedPath, content, 'utf-8');
           return { written: content.length, path };
         } catch (error) {
-          return { error: String(error), path };
+          return { error: errMsg(error), path };
         }
       },
     }),
   };
 }
-

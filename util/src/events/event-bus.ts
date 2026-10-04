@@ -29,17 +29,26 @@ export class EventBus<T extends Record<string, unknown> = Record<string, unknown
     return bag;
   }
 
-  off(eventName: string, fn: EventReceiver<unknown>): void {
+  off<K extends keyof T>(eventName: K & string, fn: EventReceiver<T[K]>): void {
     const bag = this.bags.get(eventName);
     if (!bag) return;
-    bag.off(fn);
+    bag.off(fn as EventReceiver<unknown>);
     if (bag.size === 0) this.bags.delete(eventName);
   }
 
-  emit<K extends keyof T>(eventName: K & string, params: T[K]): void {
+  /**
+   * A signal declared with a `void` payload is emitted with no argument, so the
+   * call site reads `emit('tick')` rather than `emit('tick', undefined)`. The
+   * conditional tuple is what makes that optional for void signals while staying
+   * required — and therefore checked — for every other one.
+   */
+  emit<K extends keyof T>(
+    eventName: K & string,
+    ...args: void extends T[K] ? [params?: T[K]] : [params: T[K]]
+  ): void {
     const bag = this.bags.get(eventName as string);
     if (!bag) return;
-    bag.emit(params);
+    bag.emit(args[0]);
     if (bag.size === 0) this.bags.delete(eventName as string);
   }
 

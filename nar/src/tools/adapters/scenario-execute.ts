@@ -2,6 +2,7 @@ import {
   clamp01,
   createLogger,
   flooredRatio,
+  formatDuration,
   safeRatio,
   stopwatch,
   type TermTruth,
@@ -109,7 +110,7 @@ export const validators: ScenarioValidator[] = [
       return {
         passed,
         score: passed ? 1.0 : Math.max(0, 1 - avgLatency / (threshold * 2)),
-        details: `Avg latency ${avgLatency.toFixed(1)}ms (threshold: ${threshold}ms)`,
+        details: `Avg latency ${formatDuration(avgLatency)} (threshold: ${threshold}ms)`,
       };
     },
   },
@@ -192,7 +193,7 @@ export async function generateScenarioSpec(
       }
     }
   } catch (error: unknown) {
-    scenarioLogger.warn('NL scenario generation failed, using template', { error: String(error) });
+    scenarioLogger.warn('NL scenario generation failed, using template', { error: errMsg(error) });
   }
 
   return generateTemplateScenario(seed, profile);
@@ -381,7 +382,7 @@ export async function runScenario(nar: any, spec: ScenarioSpec): Promise<Scenari
       cognitive_events: cognitiveEvents,
       contradictions_detected: contradictionsDetected,
       derived_beliefs: derivedBeliefs,
-      error: String(error),
+      error: errMsg(error),
     };
   } finally {
     if (nar.getSystemEventBus) {

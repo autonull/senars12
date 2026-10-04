@@ -1,6 +1,6 @@
 import { ArraySpace } from '../core/space.js';
 import type { MeTTaAtom } from '../types/ast.js';
-import { errMsg, periodic } from '@senars/util';
+import { errMsg, periodic, writeJsonFile } from '@senars/util';
 
 export interface PersistedSpaceData {
   id: string;
@@ -84,7 +84,6 @@ export class PersistentSpace extends ArraySpace {
       timestamp: Date.now(),
     };
 
-    await fs.mkdir(this.opts.storageDir, { recursive: true });
-    await fs.writeFile(file, JSON.stringify(data, null, 2));
+    await writeJsonFile(file, data);
   }
 }

@@ -1,4 +1,4 @@
-import { safeRatio, sumBy } from '@senars/util';
+import { errMsg, safeRatio, sumBy } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
 
@@ -187,6 +187,6 @@ async function injectScenarioEpisodes(
       });
     }
   } catch (error: unknown) {
-    scenarioLogger.warn('Failed to inject scenario episodes', { error: String(error) });
+    scenarioLogger.warn('Failed to inject scenario episodes', { error: errMsg(error) });
   }
 }

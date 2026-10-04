@@ -13,6 +13,7 @@ import {
   extractLastUserMessage,
   type LMTask,
   mapValues,
+  SerialQueue,
 } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
@@ -141,7 +142,7 @@ async function ensureRuntimeLoaded(): Promise<void> {
  *  model instances — concurrent generations contend for its sequences and
  *  race the native runtime (intermittent SIGSEGV). A single chain also makes
  *  per-call latency honest. */
-let callChain: Promise<unknown> = Promise.resolve();
+const callChain = new SerialQueue();
 
 const finishReasonFor = (
   stop:
@@ -247,9 +248,7 @@ export function createEmbeddedLlamaCppLanguageModel(task: LMTask | 'compact'): L
     options: LanguageModelV3CallOptions,
     onDelta?: (text: string) => void
   ): ReturnType<typeof runSerial> => {
-    const pending = callChain.then(() => runSerial(options, onDelta));
-    callChain = pending.catch(() => {});
-    return pending;
+    return callChain.run(async () => runSerial(options, onDelta));
   };
 
   const doGenerate: LanguageModelV3['doGenerate'] = async (

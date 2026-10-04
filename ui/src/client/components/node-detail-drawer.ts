@@ -1,4 +1,5 @@
 import type { GraphNodeData } from '@senars/core';
+import { debounce } from '@senars/util';
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { EDGE_TYPES } from '../../shared/constants.js';
@@ -61,8 +62,26 @@ export class NodeDetailDrawer extends BaseComponent {
   @state() private truthConfidence = 0.9;
   @state() private edgeTruthFrequency = 0.5;
   @state() private edgeType = 'inheritance';
-  private truthDebounce: ReturnType<typeof setTimeout> | null = null;
-  private edgeTruthDebounce: ReturnType<typeof setTimeout> | null = null;
+  /**
+   * One coalesced writer per kind of edit. The target id travels as an argument
+   * rather than closing over it, so dragging a slider sends the *current* node's
+   * id and frequency together instead of a stale pair captured at arm time — the
+   * per-id map that avoided the capture reintroduced the drift this removes, and
+   * grew with every node the user ever touched.
+   */
+  private readonly commitNodeTruth = debounce((nodeId: string, frequency: number, confidence: number) => {
+    send({ type: 'object.set', kind: 'node', id: nodeId, patch: { truth: { frequency, confidence } } });
+  }, 120);
+
+  private readonly commitEdgeTruth = debounce((edgeId: string, frequency: number, confidence: number) => {
+    send({ type: 'object.set', kind: 'edge', id: edgeId, patch: { truth: { frequency, confidence } } });
+  }, 120);
+
+  override disconnectedCallback(): void {
+    this.commitNodeTruth.cancel();
+    this.commitEdgeTruth.cancel();
+    super.disconnectedCallback();
+  }
 
   override connectedCallback() {
     super.connectedCallback();
@@ -159,15 +178,7 @@ export class NodeDetailDrawer extends BaseComponent {
     if (!ed) return;
     const key = `${ed.source}->${ed.target}`;
     updateEdgeData(key, { weight: f });
-    if (this.edgeTruthDebounce) clearTimeout(this.edgeTruthDebounce);
-    this.edgeTruthDebounce = setTimeout(() => {
-      send({
-        type: 'object.set',
-        kind: 'edge',
-        id: key,
-        patch: { truth: { frequency: f, confidence: (ed.confidence as number) ?? 0.9 } },
-      });
-    }, 120);
+    this.commitEdgeTruth(key, f, (ed.confidence as number) ?? 0.9);
   }
 
   private onEdgeTypeChange(e: Event) {
@@ -205,15 +216,7 @@ export class NodeDetailDrawer extends BaseComponent {
     updateNodeData(nodeId, {
       truth: { frequency: f, confidence: this.truthConfidence },
     });
-    if (this.truthDebounce) clearTimeout(this.truthDebounce);
-    this.truthDebounce = setTimeout(() => {
-      send({
-        type: 'object.set',
-        kind: 'node',
-        id: nodeId,
-        patch: { truth: { frequency: f, confidence: this.truthConfidence } },
-      });
-    }, 120);
+    this.commitNodeTruth(nodeId, f, this.truthConfidence);
   }
 
   private fetchHistory() {

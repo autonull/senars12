@@ -16,6 +16,15 @@ const cache = <T extends Term>(term: T, key: string): T => {
 };
 
 const createAtom = (symbol: string): AtomicTerm => {
+  const key = atomKey(symbol);
+  // The cache read comes *before* the grammar checks, which is the whole cost of
+  // a repeated symbol. A hit means this exact symbol was already admitted, so
+  // re-running the character-class tests on it decides nothing; a miss pays them
+  // once and inserts. `atomKey` is a pure injective function of the symbol, so
+  // "cached" and "already validated" are the same statement here.
+  const cached = termCache.get(key);
+  if (cached) return cached as AtomicTerm;
+
   if (symbol.includes(':')) {
     throw new Error(
       `Atomic term symbol cannot contain ':' (Narsese compact inheritance shorthand). Use '_' instead, or use the parser for namespaced terms like 'ns:term'.`
@@ -30,9 +39,6 @@ const createAtom = (symbol: string): AtomicTerm => {
         `Use '_' instead.`
     );
   }
-  const key = atomKey(symbol);
-  const cached = termCache.get(key);
-  if (cached) return cached as AtomicTerm;
   return cache(
     Object.freeze({
       kind: 'atom' as const,

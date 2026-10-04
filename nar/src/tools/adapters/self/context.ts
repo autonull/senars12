@@ -1,4 +1,5 @@
 import type { InMemoryApprovalManager } from '@senars/core';
+import { errMsg } from '@senars/util';
 import type { CognitiveController } from '../../../cognitive/impls/CognitiveController.js';
 import type { NAR } from '../../../nar.js';
 import type { RLFPLearner } from '../../../rlfp/RLFPLearner.js';
@@ -37,7 +38,7 @@ export type ShadowOutcome<T> = { ok: true; value: T } | { ok: false; error: stri
  * Acquire a shadow worktree, run `body` against it, and always clean up a
  * freshly created one. Reuses `existingId` when given; a missing worktree is
  * reported as `{ ok: false }` without running the body. Thrown errors become
- * `{ ok: false, error: String(error) }` after `onError` rollback.
+ * `{ ok: false, error: errMsg(error) }` after `onError` rollback.
  */
 export async function withShadowWorktree<T>(
   { shadowManager, worktreeId }: Pick<SelfToolsContext, 'shadowManager' | 'worktreeId'>,
@@ -61,7 +62,7 @@ export async function withShadowWorktree<T>(
     return { ok: true, value: await body({ path, id, isNew }) };
   } catch (error) {
     await onError?.(error);
-    return { ok: false, error: String(error) };
+    return { ok: false, error: errMsg(error) };
   } finally {
     if (isNew) await shadowManager.cleanupWorktree(id);
   }

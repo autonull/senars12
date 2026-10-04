@@ -1,13 +1,20 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { cachePath, createLogger, ensureParentDir, errMsg } from '@senars/util';
+import {
+  cachePath,
+  createLogger,
+  ensureParentDir,
+  err,
+  errMsg,
+  ok,
+  type Result,
+} from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import type { DriveManager } from '../drives';
 import type { Memory } from '../memory';
 import { decodeState, encodeState } from '../state/codec.js';
 import { rehydrateTask, serializeTaskRecord, type TaskRecord } from '../task/record.js';
 import type { Task, TaskType } from '../types';
-import { err, ok, type Result } from '../utils/result.js';
 import type { NARConfig } from './config.js';
 
 /** Snapshot envelope version (StateCodec, TODO20 X7). */
@@ -130,7 +137,8 @@ export class StatePersister {
         'lm-rules.json',
         'nar.lm-rules'
       );
-      if (lmRuleResult.ok && lmRuleResult.value) processor.deserializeModelRules(lmRuleResult.value);
+      if (lmRuleResult.ok && lmRuleResult.value)
+        processor.deserializeModelRules(lmRuleResult.value);
 
       this.logger.info('NAR state loaded');
     } catch (e) {

@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { attempt, err, flatMap, isErr, isOk, map, ok, unwrapOrThrow } from '@senars/util';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
@@ -17,16 +18,6 @@ import {
 } from '../../nar/src/errors/index.js';
 import { StatePersister } from '../../nar/src/facade/persistence.js';
 import { ConnectionConfigSchema, ToolSpecSchema } from '../../nar/src/tools/schemas.js';
-import {
-  attempt,
-  err,
-  flatMap,
-  isErr,
-  isOk,
-  map,
-  ok,
-  unwrapOrThrow,
-} from '../../nar/src/utils/result.js';
 
 /** Bench 64 — Error Taxonomy & Result (TODO20 Phase 3). */
 

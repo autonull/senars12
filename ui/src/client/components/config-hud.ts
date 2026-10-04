@@ -1,4 +1,5 @@
 import type { ConfigFieldType } from '@senars/core';
+import { type Debounced, debounce } from '@senars/util';
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
@@ -94,7 +95,15 @@ export class ConfigHUD extends BaseComponent {
   @state() private collapsedCategories = new Set<string>();
   @state() private validationErrors = new Map<string, string>();
   @state() private profileSelector = false;
-  private validateDebounce: Record<string, number> = {};
+  private readonly commits = new Map<string, Debounced<[unknown]>>();
+
+  private commitFor(key: string): Debounced<[unknown]> {
+    const existing = this.commits.get(key);
+    if (existing) return existing;
+    const commit = debounce((value: unknown) => updateConfig(key, value), 300);
+    this.commits.set(key, commit);
+    return commit;
+  }
 
   override connectedCallback() {
     super.connectedCallback();
@@ -172,10 +181,13 @@ export class ConfigHUD extends BaseComponent {
     this.dirtyFields.add(key);
     this.requestUpdate();
 
-    if (this.validateDebounce[key]) clearTimeout(this.validateDebounce[key]);
-    this.validateDebounce[key] = window.setTimeout(() => {
-      updateConfig(key, value);
-    }, 300);
+    this.commitFor(key)(value);
+  }
+
+  override disconnectedCallback(): void {
+    for (const commit of this.commits.values()) commit.cancel();
+    this.commits.clear();
+    super.disconnectedCallback();
   }
 
   private resetCategory(cat: ConfigCategory) {

@@ -1,4 +1,5 @@
 import type { ChatMessage, GraphNodeData, Lens, LensFieldDescriptor } from '@senars/core';
+import { debounce } from '@senars/util';
 import type { LensSpec } from '../../shared/lens-schema.js';
 import { isBuiltinLens } from '../../shared/lens-schema.js';
 import { beliefLens, builtinLensModulations, compile } from '../modulation/compile.js';
@@ -352,7 +353,13 @@ export interface UrlState {
 export const $urlState = atom<UrlState>({ lens: 'belief' });
 
 // URL synchronization
-let urlDebounceTimer: number | undefined;
+const syncUrl = debounce((state: UrlState) => {
+  const hash = serializeHash(state);
+  const current = window.location.hash.replace(/^#/, '');
+  if (hash !== current) {
+    window.history.replaceState(null, '', `#${hash}`);
+  }
+}, 300);
 
 function parseHash(): Partial<UrlState> {
   const hash = window.location.hash.replace(/^#/, '');
@@ -398,17 +405,6 @@ function serializeHash(state: UrlState): string {
   return params.toString();
 }
 
-function syncUrlFromState(state: UrlState) {
-  if (urlDebounceTimer) clearTimeout(urlDebounceTimer);
-  urlDebounceTimer = window.setTimeout(() => {
-    const hash = serializeHash(state);
-    const current = window.location.hash.replace(/^#/, '');
-    if (hash !== current) {
-      window.history.replaceState(null, '', `#${hash}`);
-    }
-  }, 300);
-}
-
 export function hydrateFromUrl() {
   const parsed = parseHash();
   if (parsed.lens) $activeLens.set(parsed.lens);
@@ -424,7 +420,7 @@ export function hydrateFromUrl() {
 }
 
 // Sync URL when urlState changes
-$urlState.subscribe((state) => syncUrlFromState(state));
+$urlState.subscribe(syncUrl);
 
 // --- Phase 0: Test API ---
 type ReadableAtom<T> = { get(): T };

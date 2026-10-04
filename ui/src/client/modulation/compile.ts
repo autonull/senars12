@@ -1,3 +1,4 @@
+import { clamp } from '@senars/util';
 import { builtinLensSpecs } from '../../shared/lens-schema.js';
 import { channel, compose, field, konst, union, when } from './operators.js';
 import type { ChannelValue, Item, Modulation, View } from './types.js';
@@ -21,7 +22,7 @@ const SCALE_MAP_NAMES: Record<string, (v: unknown) => ChannelValue> = {
     const f = (v as { frequency?: number })?.frequency ?? 0.5;
     return `hsl(${Math.round(f * 120)}, 70%, 50%)`;
   },
-  'priority-to-size': (v: unknown) => Math.max(10, Math.min(60, (v as number) * 50 + 10)),
+  'priority-to-size': (v: unknown) => clamp((v as number) * 50 + 10, 10, 60),
   'confidence-to-opacity': (v: unknown) => 0.3 + 0.7 * (v as number),
   'time-to-depth': (v: unknown) => {
     const t = v as number;

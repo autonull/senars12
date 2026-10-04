@@ -19,7 +19,7 @@ import {
   HEAD_SPECS,
   type SystemOneManifold,
 } from '@senars/nar/lm/system-one';
-import { createLogger, errMsg, parseFlags, pct } from '@senars/util';
+import { createLogger, errMsg, formatBytes, parseFlags, pct } from '@senars/util';
 import { loadConfig } from '../../config/index.js';
 import { systemOneDefaults, systemOneSchema } from '../../config/schema.js';
 import { mettaPort } from './metta.js';
@@ -167,10 +167,10 @@ const renderText = (r: StatusReport): void => {
       );
   }
   console.log(
-    `Dataset: ${r.artifacts.datasetPath} (${r.artifacts.datasetExists ? `${r.artifacts.datasetBytes} B` : 'absent'})`
+    `Dataset: ${r.artifacts.datasetPath} (${r.artifacts.datasetExists ? formatBytes(r.artifacts.datasetBytes) : 'absent'})`
   );
   console.log(
-    `Calibration lock: ${r.artifacts.lockPath} (${r.artifacts.lockExists ? `${r.artifacts.lockBytes} B` : 'absent'})`
+    `Calibration lock: ${r.artifacts.lockPath} (${r.artifacts.lockExists ? formatBytes(r.artifacts.lockBytes) : 'absent'})`
   );
   console.log(
     `Governance: ${r.governance.attachedGames} attached game(s), awaiting validation: ${r.governance.awaitingValidation}, awaiting approval: ${r.governance.awaitingApproval}`

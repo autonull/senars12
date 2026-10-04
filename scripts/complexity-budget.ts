@@ -7,6 +7,7 @@
  */
 
 import { join } from 'node:path';
+import { parseFlags } from '@senars/util';
 import {
   compare,
   measureCurrent,
@@ -16,10 +17,7 @@ import {
 } from './lib/complexity-budget.js';
 import { ROOT } from './lib/root.js';
 
-const budgetFlag = process.argv.indexOf('--budget');
-const budgetPath =
-  (budgetFlag >= 0 ? process.argv[budgetFlag + 1] : undefined) ??
-  join(ROOT, 'complexity-budget.json');
+const budgetPath = parseFlags().str('--budget', join(ROOT, 'complexity-budget.json'));
 
 console.log('Complexity Budget Gate — measuring current metrics...\n');
 

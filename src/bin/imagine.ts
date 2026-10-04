@@ -9,7 +9,7 @@ import { createNAR, DEFAULT_CONFIG } from '@senars/nar';
 import type { ScenarioProfile } from '@senars/nar/imagination';
 import { CognitiveTreadmill, ScenarioGenerator } from '@senars/nar/imagination';
 import { ArchitectureDriver } from '@senars/nar/self';
-import { divider, parseFlags, pct, section } from '@senars/util';
+import { divider, formatDuration, parseFlags, pct, section, writeJsonFile } from '@senars/util';
 import { runEntrypoint } from './lib/fatal-error.js';
 
 interface ImagineOptions {
@@ -95,9 +95,9 @@ function printScenarioResult(scenario: any, result: any): void {
   console.log(`Success:         ${result.success ? '✅' : '❌'}`);
   console.log(`\nMetrics:`);
   console.log(`  Throughput:       ${result.metrics.throughput.toFixed(1)} steps/sec`);
-  console.log(`  Latency P50:      ${result.metrics.latencyP50.toFixed(1)}ms`);
-  console.log(`  Latency P95:      ${result.metrics.latencyP95.toFixed(1)}ms`);
-  console.log(`  Latency P99:      ${result.metrics.latencyP99.toFixed(1)}ms`);
+  console.log(`  Latency P50:      ${formatDuration(result.metrics.latencyP50)}`);
+  console.log(`  Latency P95:      ${formatDuration(result.metrics.latencyP95)}`);
+  console.log(`  Latency P99:      ${formatDuration(result.metrics.latencyP99)}`);
   console.log(`  Contradiction Rate: ${pct(result.metrics.contradictionRate)}`);
   console.log(`  Priority Oscillation: ${result.metrics.priorityOscillation.toFixed(3)}`);
   console.log(`  Memory Pressure:  ${pct(result.metrics.memoryPressure)}`);
@@ -111,7 +111,7 @@ function printDegradationCurve(curve: any): void {
   for (const point of curve.points) {
     const kneeMarker = point.isKnee ? ' ← KNEE' : '';
     console.log(
-      `${point.multiplier.toString().padStart(8)} | ${point.quality.toFixed(3)}   | ${point.latency.toFixed(1)}ms       ${kneeMarker}`
+      `${point.multiplier.toString().padStart(8)} | ${point.quality.toFixed(3)}   | ${formatDuration(point.latency)}       ${kneeMarker}`
     );
   }
   if (curve.kneePoint) {
@@ -187,8 +187,7 @@ async function main(): Promise<void> {
     }
 
     if (options.output) {
-      const fs = await import('node:fs/promises');
-      await fs.writeFile(options.output, JSON.stringify(outputData, null, 2));
+      await writeJsonFile(options.output, outputData);
       console.log(`\n💾 Results written to ${options.output}`);
     }
   } finally {

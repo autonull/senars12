@@ -15,10 +15,11 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { parseFlags } from '@senars/util';
 import { GATES, missingGateScripts } from './lib/gates.js';
 import { ROOT } from './lib/root.js';
 
-const includeSlow = process.argv.includes('--tier') && process.argv[process.argv.indexOf('--tier') + 1] === 'slow';
+const includeSlow = parseFlags().str('--tier', '') === 'slow';
 const gates = GATES.filter((gate) => includeSlow || gate.tier === 'gate');
 
 const manifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {

@@ -10,7 +10,7 @@ import { resolve } from 'node:path';
 import type { CognitiveParameters } from '@senars/nar/config/cognitive-parameters';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters';
 import { createKnobSet, RLFPLearner } from '@senars/nar/rlfp';
-import { parseFlags, pct, section, sleep } from '@senars/util';
+import { formatDuration, parseFlags, pct, section, sleep } from '@senars/util';
 import { runEntrypoint } from './fatal-error.js';
 
 interface TuneOptions {
@@ -111,11 +111,11 @@ function collectMetrics(
 function printMetrics(label: string, metrics: Metrics, params: CognitiveParameters): void {
   console.log(section(label, 60));
   console.log(`  Test Pass Rate:     ${pct(metrics.testPassRate)}`);
-  console.log(`  Avg Test Duration:  ${metrics.avgTestDuration.toFixed(0)}ms`);
-  console.log(`  Baseline Duration:  ${metrics.baselineDuration.toFixed(0)}ms`);
+  console.log(`  Avg Test Duration:  ${formatDuration(metrics.avgTestDuration)}`);
+  console.log(`  Baseline Duration:  ${formatDuration(metrics.baselineDuration)}`);
   console.log(`  Coverage Delta:     ${pct(metrics.coverageDelta)}`);
   console.log(`  Memory Overage:     ${pct(metrics.memoryOverage)}`);
-  console.log(`  CPU Throttle:       ${metrics.cpuThrottleTime.toFixed(1)}ms`);
+  console.log(`  CPU Throttle:       ${formatDuration(metrics.cpuThrottleTime)}`);
   console.log(`  REWARD:             ${metrics.reward.toFixed(4)}`);
   console.log(`\n  Current Knobs:`);
   console.log(`    maxDerivationsPerStep: ${params.inference.maxDerivationsPerStep}`);

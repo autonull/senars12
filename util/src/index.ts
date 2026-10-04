@@ -190,13 +190,15 @@ export { assertDefined, invariant } from './utils/assert.js';
  * deadlines, argv, bounded buffers, scalar arithmetic, object graphs, digests,
  * text measurement, schema-failure rendering, and error coercion.
  */
-export type { Deadline } from './utils/async.js';
+export type { Deadline, Debounced } from './utils/async.js';
 export {
   boundedDeadline,
   deadline,
+  debounce,
   monotonicNow,
   periodic,
   raceDeadline,
+  SerialQueue,
   sleep,
   stopwatch,
   TimeoutError,
@@ -272,7 +274,16 @@ export type { Teardown } from './utils/disposal.js';
 export { DisposalRegistry } from './utils/disposal.js';
 export { errMsg, toError } from './utils/error.js';
 /** @public Percent, divider, and progress-bar formatting for reports and CLI output. */
-export { bar, divider, pct, percentile, section, utcDate } from './utils/format.js';
+export {
+  bar,
+  divider,
+  formatBytes,
+  formatDuration,
+  pct,
+  percentile,
+  section,
+  utcDate,
+} from './utils/format.js';
 export type { JsonlLoadResult } from './utils/fs.js';
 // Filesystem
 export {
@@ -382,6 +393,22 @@ export {
 export type { RateLimiterOptions } from './utils/rate-limit.js';
 /** @public Keyed sliding-window rate limiter for transports and guards. */
 export { SlidingWindowRateLimiter } from './utils/rate-limit.js';
+export type { Err, Ok, Result } from './utils/result.js';
+/** @public The fallible-result union, and the folds over it. */
+export {
+  attempt,
+  attemptAsync,
+  err,
+  flatMap,
+  getOrElse,
+  isErr,
+  isOk,
+  map,
+  mapErr,
+  match,
+  ok,
+  unwrapOrThrow,
+} from './utils/result.js';
 export type { RetryOptions } from './utils/retry.js';
 // Caching
 export { withRetry } from './utils/retry.js';

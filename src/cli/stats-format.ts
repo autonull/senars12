@@ -6,7 +6,7 @@
 import type { NAR } from '@senars/nar';
 import type { BinAgentApi as Agent } from '@senars/nar/agent';
 import type { LMExecutionStats } from '@senars/util';
-import { formatTruth, limitList } from '@senars/util';
+import { formatDuration, formatTruth, limitList } from '@senars/util';
 import type { LMHandle } from './commands.js';
 
 export interface FormattedStats {
@@ -30,7 +30,7 @@ export function formatLMExecutionStats(lmService: LMHandle): string {
     `Total calls: ${lmStats.totalCalls}`,
     `Successful:  ${lmStats.successfulCalls}`,
     `Failed:      ${lmStats.failedCalls}`,
-    `Avg duration: ${lmStats.averageDuration.toFixed(2)}ms`,
+    `Avg duration: ${formatDuration(lmStats.averageDuration)}`,
   ].join('\n');
 }
 
@@ -101,7 +101,7 @@ export function formatAgentStatus(agent: Agent, nar: NAR, lmService: LMHandle): 
     lines.push(
       `Calls: ${lmStats.totalCalls} (${lmStats.successfulCalls} ok, ${lmStats.failedCalls} fail)`
     );
-    lines.push(`Avg: ${lmStats.averageDuration.toFixed(0)}ms`);
+    lines.push(`Avg: ${formatDuration(lmStats.averageDuration)}`);
   }
   lines.push('\n--- Knowledge ---', `${knowledge.length} entries`);
   return lines.join('\n');

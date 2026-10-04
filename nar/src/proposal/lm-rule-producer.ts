@@ -36,6 +36,7 @@ import type {
   RuleProposal,
 } from '@senars/core/schemas';
 import { PROPOSAL_SCHEMA_VERSION } from '@senars/core/schemas';
+import { SerialQueue } from '@senars/util';
 import { createDerivedTask } from '../reason/inference-utils.js';
 import type { ModelRuleWork, ModelRuleWorkSink, RuleResult } from '../rules/types.js';
 import type { LMBackend, StreamReasoner, StreamReasonerStats } from '../stream/reasoner.js';
@@ -90,7 +91,7 @@ export class LMProposalProducer implements ModelRuleWorkSink {
    */
   private readonly premises: string[][] = [];
   private counters = { staged: 0, refused: 0, applied: 0 };
-  private inFlight: Promise<void> = Promise.resolve();
+  private readonly flushes = new SerialQueue();
   private signal?: AbortSignal;
 
   constructor(
@@ -136,15 +137,14 @@ export class LMProposalProducer implements ModelRuleWorkSink {
    */
   pump(signal?: AbortSignal): Promise<void> {
     this.signal = signal;
-    this.inFlight = this.inFlight
-      .then(() => this.reasoner.flush(this.backend, this.reasoner.pressure()))
-      .then(() => undefined);
-    return this.inFlight;
+    return this.flushes.run(async () => {
+      await this.reasoner.flush(this.backend, this.reasoner.pressure());
+    });
   }
 
   /** Resolves when no flush is outstanding. Bounded by every await inside it. */
   whenSettled(): Promise<void> {
-    return this.inFlight;
+    return this.flushes.idle();
   }
 
   /**

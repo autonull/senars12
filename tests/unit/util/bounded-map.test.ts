@@ -78,7 +78,10 @@ describe('BoundedMap', () => {
 
   it('reports every removal through onEvict except an explicit delete', () => {
     const seen: string[] = [];
-    const map = new BoundedMap<string, number>({ maxSize: 1, onEvict: (_v, key) => seen.push(key) });
+    const map = new BoundedMap<string, number>({
+      maxSize: 1,
+      onEvict: (_v, key) => seen.push(key),
+    });
 
     map.set('a', 1);
     map.set('b', 2);
@@ -129,5 +132,44 @@ describe('LruCache', () => {
     expect(cache.take('a')).toBe(1);
     expect(cache.get('a')).toBeUndefined();
     expect(cache.take('missing')).toBeUndefined();
+  });
+});
+
+describe('BoundedMap without a TTL', () => {
+  it('never expires an entry, whatever the clock reports', () => {
+    let now = 0;
+    const map = new BoundedMap<string, number>({ maxSize: 4, now: () => now });
+
+    map.set('a', 1);
+    now = 10 ** 12;
+    expect(map.get('a')).toBe(1);
+    expect(map.has('a')).toBe(true);
+    expect(map.peek('a')).toBe(1);
+    expect(map.purgeExpired()).toBe(0);
+    expect([...map.keys()]).toEqual(['a']);
+  });
+
+  it('still expires when a TTL is configured', () => {
+    let now = 0;
+    const map = new BoundedMap<string, number>({ maxSize: 4, ttlMs: 100, now: () => now });
+
+    map.set('a', 1);
+    now = 99;
+    expect(map.get('a')).toBe(1);
+    now = 101;
+    expect(map.get('a')).toBeUndefined();
+  });
+
+  it('a large ttl is not mistaken for no expiry', () => {
+    let now = 0;
+    const map = new BoundedMap<string, number>({
+      maxSize: 4,
+      ttlMs: Number.MAX_SAFE_INTEGER,
+      now: () => now,
+    });
+
+    map.set('a', 1);
+    now = 10 ** 12;
+    expect(map.get('a')).toBe(1);
   });
 });

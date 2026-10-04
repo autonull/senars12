@@ -1,9 +1,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { ensureDir, errMsg } from '@senars/util';
 import { tool } from 'ai';
 import * as fc from 'fast-check';
 import { z } from 'zod';
-import { ensureDir } from '@senars/util';
 
 // --- generate_tests ---
 
@@ -165,7 +165,7 @@ export function createTestGenTools(deps: TestGenDeps = {}) {
             relativePath: `tests/generated/${fileName}`,
           };
         } catch (error) {
-          return { error: String(error), generated: 0 };
+          return { error: errMsg(error), generated: 0 };
         }
       },
     }),

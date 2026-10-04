@@ -10,7 +10,7 @@
  */
 
 import { resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
-import { parseFlags } from '@senars/util';
+import { errMsg, parseFlags } from '@senars/util';
 import { appConfigSchema, loadConfig } from '../config/index.js';
 import { runEntrypoint } from './lib/fatal-error.js';
 
@@ -91,7 +91,7 @@ async function main(): Promise<void> {
         result.errors = [{ path: '', message: error.message, code: 'validation_error' }];
       }
     } else {
-      result.errors = [{ path: '', message: String(error), code: 'unknown_error' }];
+      result.errors = [{ path: '', message: errMsg(error), code: 'unknown_error' }];
     }
 
     if (jsonOutput) {

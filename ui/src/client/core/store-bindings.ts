@@ -1,4 +1,5 @@
 import type { ChatMessage, GraphNodeData, GraphOp, IncomingFromServer } from '@senars/core';
+import { makeId, truncate } from '@senars/util';
 import type { Core } from 'cytoscape';
 import { edgeKey, extractTerm, generateId } from '../../shared/index.js';
 import type { CognitiveMetricsData } from './store.js';
@@ -98,7 +99,7 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
           group: 'nodes',
           data: {
             id,
-            label: msg.content.slice(0, 40) + (msg.content.length > 40 ? '…' : ''),
+            label: truncate(msg.content, 40),
             html: chatMsg.html,
             term: extractTerm(msg.content),
             priority: 0.8,
@@ -171,7 +172,7 @@ function applyFullSnapshot(
   cy?: Core
 ): void {
   const nodes = new Map<string, GraphNodeData>(
-    data.graph.nodes.map((n) => [n.id ?? crypto.randomUUID(), n] as [string, GraphNodeData])
+    data.graph.nodes.map((n) => [n.id ?? makeId(), n] as [string, GraphNodeData])
   );
   const edges = new Map<string, Record<string, any>>(
     data.graph.edges.map((e) => [edgeKey(e.source, e.target), e])

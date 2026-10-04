@@ -1,9 +1,9 @@
+import { errMsg, selectTopN } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import type { EmbeddingGenerator } from '../../memory/embedding.js';
 import { cosineSimilarity, createEmbeddingGenerator } from '../../memory/embedding.js';
-import { selectTopN } from '@senars/util';
 
 // --- rag_query ---
 
@@ -65,7 +65,7 @@ export function createRagQueryTools(deps: RagQueryDeps) {
             totalScored: scored.length,
           };
         } catch (error) {
-          return { error: String(error), results: [] };
+          return { error: errMsg(error), results: [] };
         }
       },
     }),

@@ -5,7 +5,7 @@
 
 import type { NAR } from '@senars/nar';
 import { readCalibrationLockOrNull } from '@senars/nar/lm/system-one';
-import { flooredRatio, pct } from '@senars/util';
+import { flooredRatio, formatDuration, pct } from '@senars/util';
 import { type AttachedGame, reflexesOf } from './conversation-game.js';
 
 export function formatSystemOneStatus(nar: NAR, conversationGame: AttachedGame | null): string {
@@ -125,7 +125,7 @@ export function formatSystemOneDispatcher(nar: NAR): string {
   >;
   for (const [level, s] of Object.entries(latency)) {
     lines.push(
-      `  ${level}: calls=${s.calls} judgments=${s.judgments} mean=${s.meanMs.toFixed(2)}ms`
+      `  ${level}: calls=${s.calls} judgments=${s.judgments} mean=${formatDuration(s.meanMs)}`
     );
   }
   return lines.join('\n');

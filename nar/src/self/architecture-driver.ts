@@ -25,7 +25,7 @@ export class ArchitectureDriver {
       gaps.push(
         this.createGap(
           'high_latency',
-          `P95 latency ${metrics.latencyP95.toFixed(0)}ms exceeds 100ms threshold`,
+          `P95 latency ${formatDuration(metrics.latencyP95)} exceeds 100ms threshold`,
           'high',
           'latency_degradation',
           'implement_async_pipeline',
@@ -252,4 +252,4 @@ export function createArchitectureDriver(nar: SelfHost, proposalsDir?: string): 
   return new ArchitectureDriver(nar, proposalsDir);
 }
 
-import { ensureParentDir, pct, serializeTruth } from '@senars/util';
+import { ensureParentDir, formatDuration, pct, serializeTruth } from '@senars/util';

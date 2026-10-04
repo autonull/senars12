@@ -38,3 +38,41 @@ export const bar = (fraction: number, width = 20): string => {
   const filled = Math.min(width, Math.round(fraction * width));
   return '█'.repeat(filled) + '░'.repeat(width - filled);
 };
+
+/**
+ * Milliseconds → the shortest honest unit. A latency table that renders every
+ * row in the unit of its largest row is unreadable at the sub-millisecond end,
+ * and every hand-rolled site had to pick that unit for itself — `toFixed(0)ms`
+ * for a 400µs inference step prints `0ms`, which reads as "free" rather than
+ * "fast".
+ *
+ * Sub-millisecond values keep three significant decimals because that is the
+ * whole range where the unit alone is lossy (`0.4ms`, not `0ms`). Whole units get
+ * one decimal, so a column stays scannable. `Infinity` renders as `-` rather
+ * than `Infinityms`.
+ */
+export function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms)) return '-';
+  if (ms < 1) return `${ms.toFixed(3)}ms`;
+  return ms < 1000 ? `${ms.toFixed(1)}ms` : `${(ms / 1000).toFixed(2)}s`;
+}
+
+const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'] as const;
+
+/**
+ * Bytes → `1.4MB`. The previous spelling was `existsSync(p) ? \`${statSync(p).size}B\``
+ * at four sites, which prints `1234567B` for a dataset a reader has to divide in
+ * their head. Integral bytes print without a decimal (`512B`, not `512.0B`) so
+ * sizes stay comparable at a glance.
+ */
+export function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return '-';
+  if (bytes < 1024) return `${Math.round(bytes)}B`;
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < BYTE_UNITS.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  return `${value.toFixed(1)}${BYTE_UNITS[unit]}`;
+}

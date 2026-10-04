@@ -12,6 +12,7 @@
  * version, an enumerable table, a revert. This file asserts the *shape of the
  * code*, which no amount of runtime testing can reach.
  */
+import { escapeRegExp } from '@senars/util';
 import { importEdges, maskNonCode } from './imports.js';
 import { lineAt, scanSubject } from './source-scan.js';
 
@@ -35,7 +36,7 @@ const sideEffectImports = (source: string): { specifier: string; offset: number 
   importEdges(source).filter((edge) => {
     const line = source.slice(edge.offset).split('\n')[0] ?? '';
     return new RegExp(
-      `^\\s*(import|require)\\s*\\(?\\s*['"]${edge.specifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]\\s*\\)?\\s*;`
+      `^\\s*(import|require)\\s*\\(?\\s*['"]${escapeRegExp(edge.specifier)}['"]\\s*\\)?\\s*;`
     ).test(line);
   });
 
