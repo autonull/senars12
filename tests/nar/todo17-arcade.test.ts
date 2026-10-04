@@ -202,12 +202,17 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
   });
 
   it('G5 arcade OTel spans: tick spans recorded with arm/game attributes, veto + handover events', async () => {
-    const { NodeTracerProvider, InMemorySpanExporter, SimpleSpanProcessor } = await import(
-      '@opentelemetry/sdk-trace-node'
-    );
+    const { InMemorySpanExporter, SimpleSpanProcessor } = await import('@opentelemetry/sdk-trace-node');
     const exporter = new InMemorySpanExporter();
-    const provider = new NodeTracerProvider({ spanProcessors: [new SimpleSpanProcessor(exporter)] });
-    provider.register();
+    // `initOtel`, not `provider.register()`: the arcade tracer reads the
+    // provider `otel/index.ts` owns, and the global registration is a
+    // once-per-process latch — so whichever test file registered first decided
+    // whether these spans went anywhere.
+    const { initOtel, shutdownOtel } = await import('@senars/nar/otel');
+    await initOtel({
+      batch: false,
+      spanProcessors: [new SimpleSpanProcessor(exporter)],
+    });
     try {
       const { startArcadeTickSpan } = await import('@senars/nar/eval/arcade-trace');
       const span = startArcadeTickSpan('manifold', 'tetris', 3);
@@ -227,7 +232,6 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
         handover: false,
         decision: { action: '0', vetoedBy: 'nal-focus-memory', source: 'nal' },
       });
-      await provider.forceFlush();
       const spans = exporter.getFinishedSpans();
       expect(spans.length).toBe(2);
       const tetris = spans.find((s) => s.attributes['arcade.game'] === 'tetris')!;
@@ -240,7 +244,7 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
       expect(grid.attributes['arcade.decision_source']).toBe('nal');
       expect(grid.events.map((e) => e.name)).toContain('veto');
     } finally {
-      await provider.shutdown();
+      await shutdownOtel();
     }
   });
 

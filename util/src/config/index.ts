@@ -48,7 +48,15 @@ export {
   narCoreNumber,
 } from './nar-core-bounds.js';
 export { CACHE_DIR, cachePath } from './paths.js';
-export { type SystemOneConfig, systemOneDefaults, systemOneSchema } from './system-one.js';
+export {
+  systemOneBoundSpec,
+  type SystemOneBoundCategory,
+  type SystemOneBoundKey,
+  systemOneBounds,
+  type SystemOneConfig,
+  systemOneDefaults,
+  systemOneSchema,
+} from './system-one.js';
 export type {
   ConfigCapability,
   ConfigEvent,

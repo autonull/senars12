@@ -4,6 +4,89 @@
  */
 import { z } from 'zod';
 
+/**
+ * Min/max/default/step for the System One knobs a tuner may move.
+ *
+ * The System One counterpart to `cognitiveBounds`, and the reason the tuner can
+ * reach every value the config admits: the numbers lived in three places, and
+ * only two of them were the table. `rlfp/knobs.ts` bounded these eight rows by
+ * hand while `systemOneSchema` below declared five of them unbounded — so the
+ * schema admitted `maxTokensPerCycle: 1e12` and the tuner could not have
+ * proposed it, and `provisional.cInitial` was capped at 1 by one and 0.5 by the
+ * other.
+ */
+export const systemOneBounds = {
+  budgets: {
+    maxJudgmentCallsPerCycle: { min: 1, max: 32, default: 8, step: 1 },
+    maxConsensusPerCycle: { min: 1, max: 8, default: 2, step: 1 },
+    maxLatencyMsPerJudgment: { min: 10, max: 200, default: 33, step: 1 },
+    maxTokensPerCycle: { min: 256, max: 32768, default: 4096, step: 256 },
+    maxMemoryMbPerCycle: { min: 32, max: 2048, default: 256, step: 32 },
+  },
+  provisional: {
+    cInitial: { min: 0.01, max: 0.5, default: 0.1, step: 0.01 },
+    decayRate: { min: 0.05, max: 1.0, default: 0.3, step: 0.05 },
+    maxTtlMs: { min: 5000, max: 300000, default: 30000, step: 5000 },
+  },
+} as const;
+
+export type SystemOneBoundCategory = keyof typeof systemOneBounds;
+export type SystemOneBoundKey<C extends SystemOneBoundCategory> = keyof (typeof systemOneBounds)[C];
+
+interface BoundRow {
+  readonly min: number;
+  readonly max: number;
+  readonly default: number;
+  readonly step: number;
+}
+
+const row = <C extends SystemOneBoundCategory, K extends SystemOneBoundKey<C>>(
+  category: C,
+  key: K
+): BoundRow => systemOneBounds[category][key] as BoundRow;
+
+/**
+ * One row projected to its `{min,max,step}` triple — the search space a tuner
+ * scans. Mirrors `boundSpec` for `cognitiveBounds`.
+ */
+export function systemOneBoundSpec<C extends SystemOneBoundCategory, K extends SystemOneBoundKey<C>>(
+  category: C,
+  key: K
+): { readonly min: number; readonly max: number; readonly step: number } {
+  const bounds = row(category, key);
+  return { min: bounds.min, max: bounds.max, step: bounds.step };
+}
+
+/** One bound, so the schema and the defaults quote the same number. */
+const bound = <C extends SystemOneBoundCategory, K extends SystemOneBoundKey<C>>(
+  category: C,
+  key: K,
+  prop: 'min' | 'max' | 'default'
+): number => row(category, key)[prop];
+
+/** A positive integer inside the row's range, defaulting to the row's own. */
+const boundedInt = <C extends SystemOneBoundCategory, K extends SystemOneBoundKey<C>>(
+  category: C,
+  key: K
+) =>
+  z
+    .number()
+    .int()
+    .min(bound(category, key, 'min'))
+    .max(bound(category, key, 'max'))
+    .default(bound(category, key, 'default'));
+
+/** A real inside the row's range, defaulting to the row's own. */
+const boundedNumber = <C extends SystemOneBoundCategory, K extends SystemOneBoundKey<C>>(
+  category: C,
+  key: K
+) =>
+  z
+    .number()
+    .min(bound(category, key, 'min'))
+    .max(bound(category, key, 'max'))
+    .default(bound(category, key, 'default'));
+
 export const systemOneDefaults = {
   enabled: false,
   /** The bound on one ingress judgment (TODO29.a A1): a judge that hangs is refused, not awaited. */
@@ -25,13 +108,17 @@ export const systemOneDefaults = {
   },
   cortex: { provider: 'off' as const, model: undefined as string | undefined },
   budgets: {
-    maxJudgmentCallsPerCycle: 8,
-    maxConsensusPerCycle: 2,
-    maxLatencyMsPerJudgment: 33,
-    maxTokensPerCycle: 4096,
-    maxMemoryMbPerCycle: 256,
+    maxJudgmentCallsPerCycle: bound('budgets', 'maxJudgmentCallsPerCycle', 'default'),
+    maxConsensusPerCycle: bound('budgets', 'maxConsensusPerCycle', 'default'),
+    maxLatencyMsPerJudgment: bound('budgets', 'maxLatencyMsPerJudgment', 'default'),
+    maxTokensPerCycle: bound('budgets', 'maxTokensPerCycle', 'default'),
+    maxMemoryMbPerCycle: bound('budgets', 'maxMemoryMbPerCycle', 'default'),
   },
-  provisional: { cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30000 },
+  provisional: {
+    cInitial: bound('provisional', 'cInitial', 'default'),
+    decayRate: bound('provisional', 'decayRate', 'default'),
+    maxTtlMs: bound('provisional', 'maxTtlMs', 'default'),
+  },
   distillation: {
     datasetPath: './data/systemone-distillation.jsonl',
     bakeOffSamplingRate: 0.1,
@@ -149,38 +236,18 @@ export const systemOneSchema = z.object({
     .default(systemOneDefaults.cortex),
   budgets: z
     .object({
-      maxJudgmentCallsPerCycle: z
-        .number()
-        .int()
-        .positive()
-        .default(systemOneDefaults.budgets.maxJudgmentCallsPerCycle),
-      maxConsensusPerCycle: z
-        .number()
-        .int()
-        .positive()
-        .default(systemOneDefaults.budgets.maxConsensusPerCycle),
-      maxLatencyMsPerJudgment: z
-        .number()
-        .int()
-        .positive()
-        .default(systemOneDefaults.budgets.maxLatencyMsPerJudgment),
-      maxTokensPerCycle: z
-        .number()
-        .int()
-        .positive()
-        .default(systemOneDefaults.budgets.maxTokensPerCycle),
-      maxMemoryMbPerCycle: z
-        .number()
-        .int()
-        .positive()
-        .default(systemOneDefaults.budgets.maxMemoryMbPerCycle),
+      maxJudgmentCallsPerCycle: boundedInt('budgets', 'maxJudgmentCallsPerCycle'),
+      maxConsensusPerCycle: boundedInt('budgets', 'maxConsensusPerCycle'),
+      maxLatencyMsPerJudgment: boundedInt('budgets', 'maxLatencyMsPerJudgment'),
+      maxTokensPerCycle: boundedInt('budgets', 'maxTokensPerCycle'),
+      maxMemoryMbPerCycle: boundedInt('budgets', 'maxMemoryMbPerCycle'),
     })
     .default(systemOneDefaults.budgets),
   provisional: z
     .object({
-      cInitial: z.number().min(0).max(1).default(systemOneDefaults.provisional.cInitial),
-      decayRate: z.number().positive().default(systemOneDefaults.provisional.decayRate),
-      maxTtlMs: z.number().int().positive().default(systemOneDefaults.provisional.maxTtlMs),
+      cInitial: boundedNumber('provisional', 'cInitial'),
+      decayRate: boundedNumber('provisional', 'decayRate'),
+      maxTtlMs: boundedInt('provisional', 'maxTtlMs'),
     })
     .default(systemOneDefaults.provisional),
   distillation: z
