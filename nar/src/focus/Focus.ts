@@ -1,13 +1,10 @@
-import { clamp01, getOrInsert } from '@senars/util';
+import { type Clock, clamp01, getOrInsert, systemClock } from '@senars/util';
 import type { Bag, BagItem } from '../bag/Bag.js';
 import { createBag } from '../bag/index.js';
-import type { Game, GameOutcome, Perception } from '../game/Game.js';
-import { ActionGate } from '../gates/ActionGate.js';
-import { PerceptionGate } from '../gates/PerceptionGate.js';
-import { RewardGate } from '../gates/RewardGate.js';
+import type { Game } from '../game/Game.js';
 import type { GateRegistry } from '../kernel/index.js';
 import type { NALDerivation } from '../reflex/Negotiator.js';
-import type { ActionProposal, LearningEvent, Reflex } from '../reflex/Reflex.js';
+import type { LearningEvent, Reflex } from '../reflex/Reflex.js';
 import type { Term } from '../terms/index.js';
 import {
   getAntecedent,
@@ -18,25 +15,10 @@ import {
   isOperation,
   operationNameOf,
 } from '../terms/index.js';
-import type { Budget, ConceptLike, Task } from '../types/index.js';
 import type { RandomSource } from '../types/primitives.js';
+import { type FocusConcept, type FocusTask, perceptionTasks } from './task.js';
 
-export interface FocusTask extends BagItem {
-  term: Term;
-  type: 'belief' | 'goal' | 'question';
-  truth: { f: number; c: number };
-  budget: Budget;
-  stamp: string;
-  derived: boolean;
-}
-
-export interface FocusConcept extends BagItem {
-  term: Term;
-  /** Truth of the belief that created the concept (drives NAL derivation truth). */
-  truth?: { f: number; c: number };
-  activation: number;
-  totalTasks: number;
-}
+export type { FocusConcept, FocusTask } from './task.js';
 
 export interface FocusStepReport {
   focusId: string;
@@ -47,7 +29,8 @@ export interface FocusStepReport {
   beliefsAdded: number;
   goalsAdded: number;
   questionsAdded: number;
-  gates: {
+  /** Tasks projected into the bag, by record kind. Admission counts, not gate decisions. */
+  projected: {
     perceptions: number;
     actions: number;
     rewards: number;
@@ -66,6 +49,8 @@ export interface FocusOptions {
   gateRegistry: GateRegistry;
   /** P1 (TODO20): injectable RNG for deterministic replay of task/memory sampling. */
   rng?: RandomSource;
+  /** Injectable time source for task stamps; a pinned clock reproduces a step's ids. */
+  clock?: Clock;
 }
 
 export class Focus implements BagItem {
@@ -76,9 +61,7 @@ export class Focus implements BagItem {
 
   private cycle = 0;
   private gates: GateRegistry;
-  private readonly perceptionGate: PerceptionGate;
-  private readonly actionGate: ActionGate;
-  private readonly rewardGate: RewardGate;
+  private readonly clock: Clock;
 
   readonly games: Game[] = [];
   reflexes: Reflex[] = [];
@@ -87,6 +70,7 @@ export class Focus implements BagItem {
     this.id = options.id;
     this.weight = options.weight ?? 1.0;
     this.gates = options.gateRegistry;
+    this.clock = options.clock ?? systemClock;
 
     this.tasks = createBag<FocusTask>({
       capacity: options.taskCapacity ?? 1000,
@@ -99,10 +83,6 @@ export class Focus implements BagItem {
       decayRate: options.conceptDecayRate ?? 0.005,
       rng: options.rng,
     });
-
-    this.perceptionGate = new PerceptionGate();
-    this.actionGate = new ActionGate();
-    this.rewardGate = new RewardGate();
   }
 
   get priority(): number {
@@ -124,8 +104,8 @@ export class Focus implements BagItem {
       beliefsAdded: 0,
       goalsAdded: 0,
       questionsAdded: 0,
-      gates: { perceptions: 0, actions: 0, rewards: 0 },
-      timestamp: Date.now(),
+      projected: { perceptions: 0, actions: 0, rewards: 0 },
+      timestamp: this.clock(),
     };
 
     if (
@@ -135,14 +115,13 @@ export class Focus implements BagItem {
     )
       return report;
 
-    // PERCEPTION: Bound Games inject observations into the Focus
+    // PERCEPTION: bound Games inject observations into the Focus
     for (const game of this.games) {
-      const perception = game.observe();
-      const beliefs = this.perceptionGate.toBeliefs(perception);
+      const beliefs = perceptionTasks(game.observe(), this.clock);
       for (const belief of beliefs) {
         this.tasks.add(belief);
       }
-      report.gates.perceptions += beliefs.length;
+      report.projected.perceptions += beliefs.length;
     }
 
     // Note: PROPOSAL and EXECUTION are handled by GameFocus/outside loop
@@ -223,18 +202,6 @@ export class Focus implements BagItem {
 
   private findConcept(id: string): FocusConcept | undefined {
     return this.memory.find((c) => c.id === id);
-  }
-
-  getPerceptionGate(): PerceptionGate {
-    return this.perceptionGate;
-  }
-
-  getActionGate(): ActionGate {
-    return this.actionGate;
-  }
-
-  getRewardGate(): RewardGate {
-    return this.rewardGate;
   }
 
   bindGame(game: Game): void {

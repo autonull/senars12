@@ -232,7 +232,7 @@
 
 - `sortBy` — Ascending copy sorted by a derived numeric key — never mutates the input.
 
-- `sortByDesc`
+- `rankBy`
 
 - `splitKey` — The `parts` of a key {@link joinKey} wrote. Throws rather than returning
 

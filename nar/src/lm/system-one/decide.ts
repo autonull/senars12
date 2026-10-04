@@ -4,7 +4,7 @@
  * contrastive layer. A thin facade — all inference logic lives in the
  * manifold heads, contrastive memory, and policy utilities it composes.
  */
-import { chunk, renormalize, sha256Hex, sortByDesc } from '@senars/util';
+import { chunk, renormalize, sha256Hex, rankBy } from '@senars/util';
 import type { CognitiveAxis } from '../../decision/types.js';
 import { type ContrastiveMemory, rubricOf } from './contrastive.js';
 import {
@@ -320,7 +320,7 @@ export function createDecider(deps: DecideDeps): Decider {
       preScored ?? (proposition?.kind === 'classify' ? proposition.distribution : undefined);
     const distribution = adjustDistribution(base, penalties);
     // Ranked view: adjusted score descending (the selection order).
-    const ranked = sortByDesc(distribution, (d) => d.p);
+    const ranked = rankBy(distribution, (d) => d.p);
     const selected = ranked.find((d) => !vetoes.includes(d.option))?.option;
     const abstained = selected === undefined;
     const band = abstained ? 'abstain' : verdictBand(router, proposition);

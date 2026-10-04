@@ -14,7 +14,7 @@ import {
   mergeConsumption,
   sliceBudget,
 } from '@senars/core/budget';
-import { type RandomSource, raceDeadline, SeededRNG, weightedPick } from '@senars/util';
+import { type RandomSource, raceDeadline, SeededRNG, systemClock, weightedPick } from '@senars/util';
 import type { Focus, FocusOptions, FocusStepReport } from '../focus/Focus.js';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { FocusScheduler, FocusSchedulerOptions } from '../focus/focus-scheduler.js';
@@ -131,9 +131,6 @@ export class FocusTree {
       setWeight: (w: number) => {},
       games: [],
       reflexes: [],
-      getPerceptionGate: () => ({ toBeliefs: () => [] }),
-      getActionGate: () => ({}),
-      getRewardGate: () => ({}),
       bindGame: () => {},
       bindReflex: () => {},
       disableReflex: () => {},
@@ -146,8 +143,8 @@ export class FocusTree {
         beliefsAdded: 0,
         goalsAdded: 0,
         questionsAdded: 0,
-        gates: { perceptions: 0, actions: 0, rewards: 0 },
-        timestamp: Date.now(),
+        projected: { perceptions: 0, actions: 0, rewards: 0 },
+        timestamp: (options.clock ?? systemClock)(),
       }),
     } as unknown as Focus;
   }

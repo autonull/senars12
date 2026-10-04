@@ -5,7 +5,7 @@ import {
   occupancy,
   selectTopN,
   sortBy,
-  sortByDesc,
+  rankBy,
 } from '@senars/util';
 import { LINK, PRESSURE } from '../constants.js';
 import { NullAttentionModel } from '../strategies/attention/NullAttentionModel.js';
@@ -322,7 +322,7 @@ export class Memory implements MemoryPorts {
 
   getRevisionHistory(term: Term): RevisionEntry[] {
     const key = termKey(term);
-    return sortByDesc(
+    return rankBy(
       this.revisionLog.filter((entry) => entry.termKey === key),
       (entry) => entry.timestamp
     );

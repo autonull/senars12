@@ -17,7 +17,7 @@ const report = (focusId: string, derivations: number, tasksProcessed: number): F
   beliefsAdded: 0,
   goalsAdded: 0,
   questionsAdded: 0,
-  gates: { perceptions: 0, actions: 0, rewards: 0 },
+  projected: { perceptions: 0, actions: 0, rewards: 0 },
   timestamp: Date.now(),
 });
 

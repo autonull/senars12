@@ -206,11 +206,31 @@ export function insertByScoreDesc<T>(items: T[], item: T, score: (item: T) => nu
 
 /** Ascending copy sorted by a derived numeric key — never mutates the input. */
 export function sortBy<T>(items: Iterable<T>, score: (item: T) => number): T[] {
-  return [...items].sort((a, b) => score(a) - score(b));
+  return keyedRank(items, score, (a, b) => a - b);
 }
-export function sortByDesc<T>(items: Iterable<T>, score: (item: T) => number): T[] {
-  return [...items].sort((a, b) => score(b) - score(a));
+
+/**
+ * Descending copy ranked by a derived numeric key — never mutates the input.
+ *
+ * The one descending ranker: the key is computed **once per item** rather than
+ * twice per comparison, and ties keep input order because
+ * `Array.prototype.sort` is stable — so a caller never has to decorate with an
+ * index to reproduce the order it started with.
+ */
+export function rankBy<T>(items: Iterable<T>, score: (item: T) => number): T[] {
+  return keyedRank(items, score, (a, b) => b - a);
 }
+
+/** Decorate-sort-undecorate on a derived key — the shape both rankers share. */
+const keyedRank = <T>(
+  items: Iterable<T>,
+  score: (item: T) => number,
+  byKey: (a: number, b: number) => number
+): T[] => {
+  const keyed = [...items].map((item) => ({ item, key: score(item) }));
+  keyed.sort((a, b) => byKey(a.key, b.key));
+  return keyed.map(({ item }) => item);
+};
 
 /**
  * Top `n` items from an iterable ranked by `score`, descending. Single-pass with

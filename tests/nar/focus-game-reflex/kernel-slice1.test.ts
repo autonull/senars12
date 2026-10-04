@@ -231,7 +231,7 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
       gameFocus.bindReflex(reflex);
 
       const { focusReport, gameOutcome } = await gameFocus.step(10);
-      expect(focusReport.gates.actions).toBeGreaterThanOrEqual(0);
+      expect(focusReport.projected.actions).toBeGreaterThanOrEqual(0);
       expect(gameOutcome).toBeDefined();
     });
   });

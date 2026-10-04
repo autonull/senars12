@@ -5,11 +5,13 @@ import {
   BoundedRing,
   clamp,
   clampSigned,
+  type Clock,
   ensureDirSync,
   makeId,
   maxBy,
   safeRatio,
   sumBy,
+  systemClock,
 } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
@@ -28,6 +30,7 @@ import { type ActionProposal, LearningEvent, type Reflex } from '../reflex/Refle
 import { recordBagPressure, recordHandover } from '../telemetry/index.js';
 import type { NarEventBus } from '../types/events.js';
 import { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding.js';
+import { outcomeTasks, proposalTasks } from './task.js';
 import { induceEpisodeSchemas, type PromotedSchema } from './episode-schemas.js';
 import { Focus, type FocusOptions } from './Focus.js';
 
@@ -126,6 +129,7 @@ export class GameFocus {
   private readonly handover: GameFocusOptions['handover'];
   private readonly cognitive: boolean;
   private readonly schemaInduction: boolean;
+  private readonly clock: Clock;
   private readonly panelLog = new BoundedRing<TickPanelEntry>(FOCUS_LOG_CAPACITY);
   private readonly vetoJustifications = new BoundedRing<DerivationRecord>(FOCUS_LOG_CAPACITY);
   private episodeHistory: Array<{ action: string; reward: number }> = [];
@@ -154,6 +158,7 @@ export class GameFocus {
     this.handover = options.handover;
     this.cognitive = options.cognitive ?? false;
     this.schemaInduction = options.schemaInduction ?? false;
+    this.clock = options.focusOptions?.clock ?? systemClock;
 
     this.focus = new Focus({
       id: options.focusId,
@@ -161,6 +166,7 @@ export class GameFocus {
       conceptCapacity: options.focusOptions?.conceptCapacity ?? 500,
       weight: options.focusOptions?.weight ?? 1.0,
       gateRegistry: this.gates,
+      clock: this.clock,
     });
 
     this.negotiator = new Negotiator({
@@ -207,7 +213,7 @@ export class GameFocus {
     if (!this.gameTraceEnabled) return;
     const ledger = (this as any).#gameTraceLedger as Ledger<GameTraceLedgerEntry> | null;
     if (ledger) {
-      ledger.append({ ...entry, at: Date.now() } as GameTraceLedgerEntry);
+      ledger.append({ ...entry, at: this.clock() } as GameTraceLedgerEntry);
     }
   }
 
@@ -448,11 +454,11 @@ export class GameFocus {
     t.proposalActions = t.proposals.map((p) => p.action);
 
     // Convert proposals to goals and add to focus tasks
-    const goals = this.focus.getActionGate().toGoals(t.proposals);
+    const goals = proposalTasks(t.proposals, this.clock);
     for (const goal of goals) {
       this.focus.tasks.add(goal);
     }
-    t.focusReport.gates.actions += goals.length;
+    t.focusReport.projected.actions += goals.length;
     return true;
   }
 
@@ -556,11 +562,11 @@ export class GameFocus {
     if (t.suppressPanel || !t.proposed) return;
     if (t.decision.actionExecuted && t.gameOutcome && t.perceptionPair) {
       // REWARD: Convert outcome to beliefs
-      const rewardBeliefs = this.focus.getRewardGate().toBeliefs(t.gameOutcome);
+      const rewardBeliefs = outcomeTasks(t.gameOutcome, this.clock);
       for (const belief of rewardBeliefs) {
         this.focus.tasks.add(belief);
       }
-      t.focusReport.gates.rewards += rewardBeliefs.length;
+      t.focusReport.projected.rewards += rewardBeliefs.length;
 
       // LEARNING: every reflex that proposed the executed action learns (A2 fan-out)
       const learningEvent = this.negotiator.createLearningEvent(this.focus, t.decision, {

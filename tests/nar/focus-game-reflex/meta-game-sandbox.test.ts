@@ -38,7 +38,7 @@ describe('MetaGame Sandbox - Gate 5', () => {
         beliefsAdded: 3,
         goalsAdded: 1,
         questionsAdded: 1,
-        gates: { perceptions: 2, actions: 1, rewards: 1 },
+        projected: { perceptions: 2, actions: 1, rewards: 1 },
         timestamp: Date.now(),
       };
 
@@ -66,7 +66,7 @@ describe('MetaGame Sandbox - Gate 5', () => {
         beliefsAdded: 3,
         goalsAdded: 1,
         questionsAdded: 1,
-        gates: { perceptions: 2, actions: 1, rewards: 1 },
+        projected: { perceptions: 2, actions: 1, rewards: 1 },
         timestamp: Date.now(),
       });
 
@@ -79,7 +79,7 @@ describe('MetaGame Sandbox - Gate 5', () => {
         beliefsAdded: 2,
         goalsAdded: 1,
         questionsAdded: 0,
-        gates: { perceptions: 1, actions: 1, rewards: 1 },
+        projected: { perceptions: 1, actions: 1, rewards: 1 },
         timestamp: Date.now(),
       });
 

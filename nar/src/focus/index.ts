@@ -4,6 +4,15 @@ export { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seedin
 export { induceEpisodeSchemas, type PromotedSchema } from './episode-schemas.js';
 export type { FocusConcept, FocusOptions, FocusStepReport, FocusTask } from './Focus.js';
 export { Focus } from './Focus.js';
+export {
+  featureTerm,
+  focusTask,
+  outcomeTasks,
+  perceptionTasks,
+  proposalTasks,
+  rewardTerm,
+  stateTerm,
+} from './task.js';
 export { createFocus, FocusBag } from './FocusBag.js';
 export {
   createFocusScheduler,

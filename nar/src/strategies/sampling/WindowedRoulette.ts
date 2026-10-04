@@ -1,4 +1,4 @@
-import { type RandomSource, sortByDesc, weightedSample } from '@senars/util';
+import { type RandomSource, rankBy, weightedSample } from '@senars/util';
 
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
@@ -38,7 +38,7 @@ export class WindowedRouletteStrategy implements SamplingStrategy {
     const window = memory.sampleWindow(this.windowSize, this.rng);
     if (window.length === 0) return [];
     return weightedSample(
-      sortByDesc(window, (concept) => concept.priority),
+      rankBy(window, (concept) => concept.priority),
       count,
       (concept) => concept.priority,
       this.rng

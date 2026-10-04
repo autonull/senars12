@@ -1,5 +1,5 @@
 import { makeId } from '@senars/util';
-import { focusTask } from '../gates/tasks.js';
+import { focusTask } from './task.js';
 import { termParser } from '../terms/index.js';
 import type { Focus, FocusTask } from './Focus.js';
 

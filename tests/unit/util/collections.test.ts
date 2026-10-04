@@ -10,7 +10,7 @@ import {
   minBy,
   removeBy,
   sortBy,
-  sortByDesc,
+  rankBy,
 } from '@senars/util';
 import { sumBy } from '@senars/util';
 import { describe, expect, it } from 'vitest';
@@ -72,16 +72,16 @@ describe('maxBy', () => {
   });
 });
 
-describe('sortBy / sortByDesc', () => {
+describe('sortBy / rankBy', () => {
   it('sort ascending and descending without mutating the input', () => {
     const input = [3, 1, 2];
     expect(sortBy(input, (n) => n)).toEqual([1, 2, 3]);
-    expect(sortByDesc(input, (n) => n)).toEqual([3, 2, 1]);
+    expect(rankBy(input, (n) => n)).toEqual([3, 2, 1]);
     expect(input).toEqual([3, 1, 2]);
   });
 
   it('accepts any iterable', () => {
-    expect(sortByDesc(new Set([1, 4, 2]), (n) => n)).toEqual([4, 2, 1]);
+    expect(rankBy(new Set([1, 4, 2]), (n) => n)).toEqual([4, 2, 1]);
   });
 });
 

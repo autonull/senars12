@@ -240,7 +240,7 @@ export {
   selectTopN,
   shareOf,
   sortBy,
-  sortByDesc,
+  rankBy,
   splitKey,
   trimCapped,
   unique,

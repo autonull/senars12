@@ -1,4 +1,4 @@
-import { deadline, maxBy, sortByDesc } from '@senars/util';
+import { deadline, maxBy, rankBy } from '@senars/util';
 
 import type { GateRegistry } from '../kernel/GateRegistry.js';
 import type { TaskAdmission } from '../memory/ports/index.js';
@@ -54,7 +54,7 @@ export class TaskManager {
 
   /** Pending wrappers, highest priority first. */
   private byPriority(): TaskWrapper[] {
-    return sortByDesc(this.pending.values(), (w) => w.priority);
+    return rankBy(this.pending.values(), (w) => w.priority);
   }
 
   peekTask(): Task | undefined {

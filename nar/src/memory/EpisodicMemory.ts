@@ -11,7 +11,7 @@ import {
   flatUnique,
   getOrInsert,
   sortableIdSource,
-  sortByDesc,
+  rankBy,
   systemClock,
 } from '@senars/util';
 import {
@@ -338,7 +338,7 @@ export class EpisodicMemory implements UtilEpisodicMemory {
     }
 
     // Most recent first
-    return sortByDesc(episodes, (episode) => episode.timestamp);
+    return rankBy(episodes, (episode) => episode.timestamp);
   }
 
   async pruneOldEpisodes(): Promise<void> {
