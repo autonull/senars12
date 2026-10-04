@@ -456,7 +456,7 @@
 
 - `softFalloff` — `1 / (1 + x)` — the decay-from-one curve, for a quantity that is strongest at
 
-- `softmax`
+- `softmax` — The max is a loop, not `Math.max(...values)`: the spread is a call-arity limit.
 
 - `softSquash` — `x / (x + k)` — the reciprocal saturation curve, for a quantity with a natural
 
@@ -505,6 +505,8 @@
 - `seededStream` — mulberry32 as a resumable stream. The state word is the only thing separating
 
 - `shuffleInPlace` — In-place Fisher–Yates shuffle — the single uniform-shuffle primitive (sampling, bags, exploration).
+
+- `type Weighted`
 
 - `weightedPick` — One weight-proportional item draw — the primitive behind every weighted
 

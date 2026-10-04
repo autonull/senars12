@@ -414,6 +414,7 @@ export {
   type SeededStream,
   seededStream,
   shuffleInPlace,
+  type Weighted,
   weightedPick,
   weightedSample,
   weightedSampleBy,

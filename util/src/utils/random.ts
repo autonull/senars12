@@ -149,6 +149,9 @@ export const holdoutSplit = <T>(
   return { holdout: shuffled.slice(0, cut), train: shuffled.slice(cut) };
 };
 
+/** A candidate and the weight a draw gives it — the shape every weighted selection reads. */
+export type Weighted<T> = { item: T; weight: number };
+
 /**
  * Weighted sampling without replacement (roulette wheel) — the single
  * selection primitive behind priority-proportional, softmax, and windowed
@@ -160,12 +163,7 @@ export const weightedSample = <T>(
   count: number,
   weightOf: (item: T) => number,
   rng: RandomSource
-): T[] =>
-  weightedSampleBy(
-    items.map((item) => ({ item, weight: weightOf(item) })),
-    count,
-    rng
-  );
+): T[] => weightedSampleBy(items.map((item) => ({ item, weight: weightOf(item) })), count, rng);
 
 /**
  * The index of a weight-proportional draw over `count` slots, or -1 when the
@@ -211,7 +209,7 @@ export const weightedPick = <T>(
 
 /** Weighted sampling over pre-computed weights — the O(n) draw behind `weightedSample`. */
 export const weightedSampleBy = <T>(
-  entries: readonly { item: T; weight: number }[],
+  entries: readonly Weighted<T>[],
   count: number,
   rng: RandomSource
 ): T[] => {

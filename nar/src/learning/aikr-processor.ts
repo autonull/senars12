@@ -7,9 +7,11 @@
  * deterministic under an injected RandomSource.
  */
 import {
+  LruCache,
   type RandomSource,
   selectTopN,
   softmax,
+  type Weighted,
   weightedSample,
   weightedSampleBy,
 } from '@senars/util';
@@ -21,8 +23,6 @@ export interface BagSamplingStrategy<T extends BagItem> {
   /** Select up to `budget` items; never mutates the source array. */
   select(items: T[], budget: number, rng: RandomSource): T[];
 }
-
-const idsOf = (items: readonly BagItem[]): string[] => items.map((item) => item.id);
 
 /** Shared options for AIKR-bounded bags (capacity, pressure, decay, budget). */
 export interface AikrBagOptions {
@@ -50,16 +50,15 @@ export const createAikrBag = <T extends BagItem>(
     ...(options.id ? { id: options.id } : {}),
   });
 
-const softmaxWeights = <T>(
-  items: T[],
-  scoreOf: (item: T) => number
-): {
-  item: T;
-  weight: number;
-}[] => {
-  const exps = softmax(items.map((item) => scoreOf(item)));
+const softmaxWeights = <T>(items: T[], scoreOf: (item: T) => number): Weighted<T>[] => {
+  const exps = softmax(items.map(scoreOf));
   return items.map((item, i) => ({ item, weight: exps[i]! }));
 };
+
+/** `1 / T`, floored so a zero temperature degrades to greedy rather than dividing by zero. */
+const invTemperature = (temperature: number): number => 1 / Math.max(temperature, 1e-9);
+
+export const FAIRNESS_TRACKED_CAPACITY = 1024;
 
 /**
  * Softmax over priority with temperature (default T=1.0). Controllable
@@ -69,12 +68,8 @@ export class PrioritySampling<T extends BagItem> implements BagSamplingStrategy<
   readonly name = 'priority-softmax';
   constructor(private readonly temperature = 1.0) {}
   select(items: T[], budget: number, rng: RandomSource): T[] {
-    const t = Math.max(this.temperature, 1e-9);
-    return weightedSampleBy(
-      softmaxWeights(items, (item) => item.priority / t),
-      budget,
-      rng
-    );
+    const t = invTemperature(this.temperature);
+    return weightedSampleBy(softmaxWeights(items, (item) => item.priority * t), budget, rng);
   }
 }
 
@@ -98,29 +93,26 @@ export class PowerLawSampling<T extends BagItem> implements BagSamplingStrategy<
  */
 export class FairnessSampling<T extends BagItem> implements BagSamplingStrategy<T> {
   readonly name = 'fairness';
-  #sinceSampled = new Map<string, number>();
+  /** Aging counters, bounded by recency: unbounded, this grew with every id the bag ever admitted. */
+  readonly #sinceSampled: LruCache<string, number> = new LruCache({ maxSize: FAIRNESS_TRACKED_CAPACITY });
   constructor(
     private readonly ageFactor = 0.5,
     private readonly temperature = 1.0
   ) {}
 
   select(items: T[], budget: number, rng: RandomSource): T[] {
-    const t = Math.max(this.temperature, 1e-9);
+    const t = invTemperature(this.temperature);
     const picked = weightedSampleBy(
       softmaxWeights(items, (item) => {
         const age = this.#sinceSampled.get(item.id) ?? 0;
-        return (item.priority * (1 + this.ageFactor * age)) / t;
+        return item.priority * (1 + this.ageFactor * age) * t;
       }),
       budget,
       rng
     );
-    const pickedIds = new Set(picked.map((p) => p.id));
-    for (const item of items) {
-      this.#sinceSampled.set(
-        item.id,
-        pickedIds.has(item.id) ? 0 : (this.#sinceSampled.get(item.id) ?? 0) + 1
-      );
-    }
+    const pickedIds = new Set(picked.map(({ id }) => id));
+    for (const { id } of items)
+      this.#sinceSampled.set(id, pickedIds.has(id) ? 0 : (this.#sinceSampled.get(id) ?? 0) + 1);
     return picked;
   }
 
@@ -140,12 +132,8 @@ export class TopKSampling<T extends BagItem> implements BagSamplingStrategy<T> {
   select(items: T[], budget: number, rng: RandomSource): T[] {
     const k = Math.max(this.k ?? budget, budget);
     const top = selectTopN(items, k, (item) => item.priority);
-    const t = Math.max(this.temperature, 1e-9);
-    return weightedSampleBy(
-      softmaxWeights(top, (item) => item.priority / t),
-      budget,
-      rng
-    );
+    const t = invTemperature(this.temperature);
+    return weightedSampleBy(softmaxWeights(top, (item) => item.priority * t), budget, rng);
   }
 }
 
@@ -208,7 +196,7 @@ export class AIKRProcessor<TIn extends BagItem, TOut> {
     if (sampled.length === 0) return [];
     const results = await this.#process(sampled, options.signal);
     // An aborted batch is not consumed — items stay for a later pass.
-    if (!options.signal?.aborted) this.#bag.removeAll(idsOf(sampled));
+    if (!options.signal?.aborted) this.#bag.removeAll(sampled.map((item) => item.id));
     return results;
   }
 

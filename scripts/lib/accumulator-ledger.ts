@@ -38,4 +38,8 @@ export const ACCUMULATOR_LEDGER: readonly AccumulatorSite[] = [
     file: 'nar/src/rl/impls/QBeliefStore.ts',
     holds: 'beliefs over state-action pairs, keyed by an untrusted stream',
   },
+  {
+    file: 'nar/src/learning/aikr-processor.ts',
+    holds: 'fairness aging counters, keyed by bag item id',
+  },
 ];

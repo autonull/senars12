@@ -227,6 +227,15 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
     pressureSignal: null,
   },
   {
+    id: 'learning.fairness-counters',
+    holds: 'fairness aging counters, keyed by bag item id',
+    owner: 'nar/src/learning/aikr-processor.ts',
+    capacity: { module: 'nar/src/learning/aikr-processor.ts', symbol: 'FAIRNESS_TRACKED_CAPACITY' },
+    retention: 'drop-oldest',
+    overflow: 'LruCache evicts the longest-unaged id; the bag has already evicted its own items',
+    pressureSignal: null,
+  },
+  {
     id: 'rl.qbelief-store',
     holds: 'beliefs over state-action pairs, keyed by an untrusted stream',
     owner: 'nar/src/rl/impls/QBeliefStore.ts',

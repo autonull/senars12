@@ -266,9 +266,11 @@ export const softFalloff = (x: number): number => 1 / (1 + x);
 export const nearlyEqual = (a: number, b: number, eps = Number.EPSILON * 8): boolean =>
   Math.abs(a - b) <= eps;
 
+/** The max is a loop, not `Math.max(...values)`: the spread is a call-arity limit. */
 export const softmax = (values: readonly number[]): number[] => {
   if (values.length === 0) return [];
-  const max = Math.max(...values);
+  let max = Number.NEGATIVE_INFINITY;
+  for (const value of values) if (value > max) max = value;
   const exps = values.map((v) => Math.exp(v - max));
   // One denominator, not one per element: recomputing it inside the map made
   // this quadratic, and it runs over a whole bag on every selection.
