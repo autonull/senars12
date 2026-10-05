@@ -13,10 +13,11 @@
 
 import { type BudgetLimits, createBudget } from '@senars/core/budget';
 import type { ReasoningBudget, SourceQuality } from '@senars/core/schemas';
+import type { CriticalityLevel } from '@senars/util/config';
 import { z } from 'zod';
 import type { ProvisionalStamp } from './provisional-stamp.js';
 
-export type { ReasoningBudget, SourceQuality };
+export type { CriticalityLevel, ReasoningBudget, SourceQuality };
 
 export type BackendId = string & { readonly __brand: 'BackendId' };
 export type ModelDigest = string & { readonly __brand: 'ModelDigest' };
@@ -119,8 +120,14 @@ export type RubricId =
   | 'strategy'
   | 'episodic_match';
 
-export type CognitiveAxis = 'epistemic' | 'teleological';
-export type CriticalityLevel = 'low' | 'standard' | 'high' | 'critical';
+/** Whether a judgment is about what is true or what is wanted. Named once so the
+ *  decision contract, the System One wire schema and the config schema cannot each
+ *  enumerate the pair on their own. */
+export const COGNITIVE_AXES = ['epistemic', 'teleological'] as const;
+
+export type CognitiveAxis = (typeof COGNITIVE_AXES)[number];
+
+export const cognitiveAxisSchema = z.enum(COGNITIVE_AXES);
 
 export interface ClassifyQuery {
   kind: 'classify';

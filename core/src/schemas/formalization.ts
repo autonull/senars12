@@ -9,21 +9,65 @@ import { z } from 'zod';
 import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
 
-export const AmbiguityFlagSchema = z.object({
-  type: z.enum([
-    'parse',
-    'intent',
-    'term',
-    'reference',
-    'quantifier',
-    'modal',
-    'temporal',
-    'negation',
-  ]),
+/** What can be ambiguous about a parse. The LM's ambiguity schema and the kernel's
+ *  flag schema named four of these eight, so four kinds of real ambiguity were
+ *  unreportable through the NL path. */
+export const AMBIGUITY_TYPES = [
+  'parse',
+  'intent',
+  'term',
+  'reference',
+  'quantifier',
+  'modal',
+  'temporal',
+  'negation',
+] as const;
+
+export type AmbiguityType = (typeof AMBIGUITY_TYPES)[number];
+
+export const AMBIGUITY_SEVERITIES = ['low', 'medium', 'high'] as const;
+
+export type AmbiguitySeverity = (typeof AMBIGUITY_SEVERITIES)[number];
+
+/**
+ * How much an ambiguity of each kind should cost the parse that carries it.
+ *
+ * A judgement about the *kind*, owned here rather than asked of the proposer: the
+ * NL path used to declare an ambiguity without a severity and the conversion to a
+ * formalization batch supplied `'medium'` for whatever the model had reported, so a
+ * negation-scoped claim the detector rates `high` arrived as `medium` and a `low`
+ * one was inflated to match. `satisfies Record<AmbiguityType, ...>` makes a new kind
+ * a compile error here until its cost is decided, and {@link detectAmbiguityFlags}
+ * reads the same table, so the two producers cannot disagree.
+ */
+export const AMBIGUITY_SEVERITY = {
+  parse: 'high',
+  intent: 'high',
+  term: 'medium',
+  reference: 'low',
+  quantifier: 'medium',
+  modal: 'medium',
+  temporal: 'low',
+  negation: 'high',
+} as const satisfies Record<AmbiguityType, AmbiguitySeverity>;
+
+/** The severity an ambiguity of this kind carries. */
+export const ambiguitySeverityOf = (type: AmbiguityType): AmbiguitySeverity =>
+  AMBIGUITY_SEVERITY[type];
+
+/** The flag as a proposer reports it: *what* is ambiguous, not how much it costs. */
+export const AmbiguityReportSchema = z.object({
+  type: z.enum(AMBIGUITY_TYPES),
   description: z.string(),
   options: z.array(z.string()),
   confidence: z.number().min(0).max(1),
-  severity: z.enum(['low', 'medium', 'high']),
+});
+
+export type AmbiguityReport = z.infer<typeof AmbiguityReportSchema>;
+
+/** The flag as the kernel weighs it — the report plus the severity its kind carries. */
+export const AmbiguityFlagSchema = AmbiguityReportSchema.extend({
+  severity: z.enum(AMBIGUITY_SEVERITIES),
 });
 
 export const SourceSpanSchema = z.object({

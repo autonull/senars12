@@ -15,6 +15,7 @@ export type {
   BeliefRevisedEvent,
   BudgetExhaustedEvent,
   CognitiveEvent,
+  CognitiveEventOf,
   ConceptActivatedEvent,
   DerivationAcceptedEvent,
   EgressGateRejectedEvent,
@@ -24,7 +25,6 @@ export type {
   ShadowValidationDropEvent,
   TaskAdmittedEvent,
 } from './cognitive-events.js';
-export type { CognitiveEventOf } from './cognitive-events.js';
 export {
   AutonomyModeChangedEventSchema,
   BeliefRevisedEventSchema,
@@ -43,6 +43,13 @@ export {
   TaskAdmittedEventSchema,
   validateCognitiveEvent,
 } from './cognitive-events.js';
+export type { Budget, HistoryEntry, RulePattern, RulePatternSide } from './common.js';
+export {
+  BudgetSchema,
+  HistoryEntrySchema,
+  RulePatternSchema,
+  RulePatternSideSchema,
+} from './common.js';
 export type { DerivationRecord, DerivationStep } from './derivation-records.js';
 export {
   DerivationRecordSchema,
@@ -52,12 +59,20 @@ export {
 export { CognitiveEventBaseSchema, EngineOriginSchema, PROPOSER_ORIGIN } from './event-base.js';
 export type {
   AmbiguityFlag,
+  AmbiguityReport,
+  AmbiguitySeverity,
+  AmbiguityType,
   FormalizationBatch,
   FormalizationCandidate,
   SourceSpan,
 } from './formalization.js';
 export {
+  AMBIGUITY_SEVERITIES,
+  AMBIGUITY_SEVERITY,
+  AMBIGUITY_TYPES,
   AmbiguityFlagSchema,
+  AmbiguityReportSchema,
+  ambiguitySeverityOf,
   FormalizationBatchSchema,
   FormalizationCandidateSchema,
   SourceSpanSchema,
@@ -104,22 +119,20 @@ export type {
 export {
   AutonomyModeSchema,
   GameDomainSchema,
-  PROPOSAL_RISK,
-  RISK_LEVELS,
   GovernanceDecisionSchema,
   GovernanceEventSchema,
   PatchProposalSchema,
+  PROPOSAL_RISK,
   permitsExecution,
   proposalRisk,
   RewardDomainSchema,
-  riskLevelOf,
+  RISK_LEVELS,
   RiskAssessmentSchema,
   RiskLevelSchema,
+  riskLevelOf,
   SelfImprovementProposalSchema,
 } from './governance.js';
 export { NarEventSchemas } from './nar-events.js';
-export type { Budget, HistoryEntry, RulePattern, RulePatternSide } from './common.js';
-export { BudgetSchema, HistoryEntrySchema, RulePatternSchema, RulePatternSideSchema } from './common.js';
 export type {
   ContentProposal,
   Proposal,
@@ -171,11 +184,11 @@ export {
   TASK_PUNCTUATION,
   TASK_PUNCTUATIONS,
   TASK_TYPES,
-  TOLERANT_PUNCTUATIONS,
   TaskBagKindSchema,
   TaskPunctuationSchema,
-  taskTypeForPunctuation,
   TaskTypeSchema,
+  TOLERANT_PUNCTUATIONS,
+  taskTypeForPunctuation,
 } from './task.js';
 export type { SourceQuality, TruthValue } from './truth.js';
 export { SOURCE_QUALITY_CONFIDENCE, SourceQualitySchema, TruthValueSchema } from './truth.js';

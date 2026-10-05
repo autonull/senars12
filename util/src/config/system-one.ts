@@ -15,6 +15,16 @@ import { z } from 'zod';
  * proposed it, and `provisional.cInitial` was capped at 1 by one and 0.5 by the
  * other.
  */
+/** How much a judgment is trusted to decide on its own. Declared once because it was
+ *  written out six times — as a type in the decision layer, four times as an inline
+ *  `z.enum` in the System One HTTP contract, and once as `criticalityFloor`'s options in
+ *  the config schema below — so a level added in one place was missing from five. */
+export const CRITICALITY_LEVELS = ['low', 'standard', 'high', 'critical'] as const;
+
+export type CriticalityLevel = (typeof CRITICALITY_LEVELS)[number];
+
+export const criticalitySchema = z.enum(CRITICALITY_LEVELS);
+
 export const systemOneBounds = {
   budgets: {
     maxJudgmentCallsPerCycle: { min: 1, max: 32, default: 8, step: 1 },
@@ -49,10 +59,10 @@ const row = <C extends SystemOneBoundCategory, K extends SystemOneBoundKey<C>>(
  * One row projected to its `{min,max,step}` triple — the search space a tuner
  * scans. Mirrors `boundSpec` for `cognitiveBounds`.
  */
-export function systemOneBoundSpec<C extends SystemOneBoundCategory, K extends SystemOneBoundKey<C>>(
-  category: C,
-  key: K
-): { readonly min: number; readonly max: number; readonly step: number } {
+export function systemOneBoundSpec<
+  C extends SystemOneBoundCategory,
+  K extends SystemOneBoundKey<C>,
+>(category: C, key: K): { readonly min: number; readonly max: number; readonly step: number } {
   const bounds = row(category, key);
   return { min: bounds.min, max: bounds.max, step: bounds.step };
 }
@@ -201,9 +211,9 @@ export const systemOneSchema = z.object({
         .default({}),
       consensus: z
         .object({
-          criticalityFloor: z
-            .enum(['low', 'standard', 'high', 'critical'])
-            .default(systemOneDefaults.manifold.consensus.criticalityFloor),
+          criticalityFloor: criticalitySchema.default(
+            systemOneDefaults.manifold.consensus.criticalityFloor
+          ),
           fanout: z.number().int().positive().default(systemOneDefaults.manifold.consensus.fanout),
           minAgreement: z
             .number()

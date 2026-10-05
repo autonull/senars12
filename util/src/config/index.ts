@@ -49,6 +49,9 @@ export {
 } from './nar-core-bounds.js';
 export { CACHE_DIR, cachePath } from './paths.js';
 export {
+  CRITICALITY_LEVELS,
+  criticalitySchema,
+  type CriticalityLevel,
   systemOneBoundSpec,
   type SystemOneBoundCategory,
   type SystemOneBoundKey,

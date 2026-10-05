@@ -9,7 +9,6 @@ import {
   initializeSelfConcept,
   SELF_CONCEPT_BELIEFS,
 } from './impls/self-concept.js';
-import { TimerTool } from './impls/TimerTool.js';
 import { CoreToolRegistryAdapter, Registry, ToolManager } from './impls/tool-registry.js';
 import { createToolEvent } from './types.js';
 
@@ -42,6 +41,5 @@ export {
   Registry,
   SELF_CONCEPT_BELIEFS,
   SleepTool,
-  TimerTool,
   ToolManager,
 };

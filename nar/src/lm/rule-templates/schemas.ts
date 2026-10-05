@@ -2,6 +2,7 @@
  * Zod schemas for LM rule definitions (REFACTOR.todo4 Phase B).
  * Moved from nl/schemas.ts to break the rule-builders → rule-templates → nl → nar cycle.
  */
+import { AmbiguityReportSchema } from '@senars/core/schemas';
 import { z } from 'zod';
 
 export const NarseseBeliefSchema = z.object({
@@ -109,12 +110,10 @@ export const ClarificationSchema = z.object({
   options: z.array(z.string()),
 });
 
-export const AmbiguitySchema = z.object({
-  type: z.enum(['parse', 'intent', 'term', 'reference']),
-  description: z.string(),
-  options: z.array(z.string()),
-  confidence: z.number().min(0).max(1),
-});
+/** What an LM may report as ambiguous — the kernel's kinds, without a severity.
+ *  A four-kind restatement here is what made quantifier/modal/temporal/negation
+ *  ambiguity unreportable through the NL path. */
+export const AmbiguitySchema = AmbiguityReportSchema;
 
 export const CoreferenceSchema = z.object({
   pronoun: z.string(),

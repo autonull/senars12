@@ -1,4 +1,5 @@
 import type { BudgetEventMap } from '@senars/core/budget';
+import type { AmbiguityReport } from '@senars/core/schemas';
 import type { TermTruth } from '@senars/util';
 import type { Term, Truth } from '../terms';
 
@@ -20,12 +21,9 @@ export const EventChannel = {
 
 export type ChannelPrefix = (typeof EventChannel)[keyof typeof EventChannel];
 
-export interface Ambiguity {
-  type: 'parse' | 'intent' | 'term' | 'reference';
-  description: string;
-  options: string[];
-  confidence: number;
-}
+/** An ambiguity an LM reported: *what* was ambiguous, not what it costs. The kernel's
+ *  `AmbiguityReport`, whose severity is derived from the kind rather than supplied. */
+export type Ambiguity = AmbiguityReport;
 
 export interface Coreference {
   pronoun: string;

@@ -1,4 +1,4 @@
-import { Registry, SleepTool, TimerTool, ToolManager } from '../../../nar/src/tools';
+import { Registry, SleepTool, ToolManager } from '../../../nar/src/tools';
 import { NarEventBus } from '../../../nar/src/types';
 
 describe('Tool Framework', () => {
@@ -16,10 +16,9 @@ describe('Tool Framework', () => {
     it('should list all registered tools', () => {
       const registry = new Registry();
       registry.register(new SleepTool());
-      registry.register(new TimerTool());
 
       const tools = registry.list();
-      expect(tools).toHaveLength(2);
+      expect(tools).toHaveLength(1);
     });
 
     it('should throw error on duplicate registration', () => {
@@ -58,28 +57,6 @@ describe('Tool Framework', () => {
       registry.register(tool);
 
       const result = await registry.execute('sleep', { duration: 70000 });
-      expect(result.success).toBe(false);
-    });
-  });
-
-  describe('TimerTool', () => {
-    it('should schedule a delayed action', async () => {
-      const tool = new TimerTool();
-      const result = await tool.execute({
-        action: 'start',
-        name: 'test',
-        delay: 50,
-        callback: 'test',
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.content).toBeDefined();
-    });
-
-    it('should reject invalid action', async () => {
-      const tool = new TimerTool();
-      const result = await tool.execute({ action: 'invalid' });
-
       expect(result.success).toBe(false);
     });
   });

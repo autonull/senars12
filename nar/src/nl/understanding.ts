@@ -1,9 +1,10 @@
 import type {
   AmbiguityFlag,
+  AmbiguityType,
   FormalizationBatch,
   FormalizationCandidate,
 } from '@senars/core/schemas';
-import { validateFormalizationBatch } from '@senars/core/schemas';
+import { ambiguitySeverityOf, validateFormalizationBatch } from '@senars/core/schemas';
 import {
   asBeliefTruth,
   errMsg,
@@ -286,40 +287,48 @@ const NEGATION_RE = /\b(unless|not|no\b|never|n't\b|without|except)\b/i;
 const QUANTIFIER_RE = /\b(all|every|each|some|most|few|any|none)\b/i;
 const TEMPORAL_RE = /\b(when|while|after|before|until|during|always|sometimes)\b/i;
 
+/**
+ * One flag per pattern the input matches, its severity read from the kernel's
+ * kind table rather than spelled beside the pattern — a second place to keep in step.
+ */
 export function detectAmbiguityFlags(input: string): AmbiguityFlag[] {
   const flags: AmbiguityFlag[] = [];
+  const flag = (
+    type: AmbiguityType,
+    description: string,
+    options: string[],
+    confidence: number
+  ): void => {
+    flags.push({ type, description, options, confidence, severity: ambiguitySeverityOf(type) });
+  };
   if (NEGATION_RE.test(input))
-    flags.push({
-      type: 'negation',
-      description: 'Negation or exception ("unless", "not", "never") — scope is uncertain',
-      options: ['narrow-scope', 'wide-scope'],
-      confidence: 0.6,
-      severity: 'high',
-    });
+    flag(
+      'negation',
+      'Negation or exception ("unless", "not", "never") — scope is uncertain',
+      ['narrow-scope', 'wide-scope'],
+      0.6
+    );
   if (MODAL_RE.test(input))
-    flags.push({
-      type: 'modal',
-      description: 'Modal qualifier ("may", "must", "should") — strength is uncertain',
-      options: ['strong', 'weak'],
-      confidence: 0.6,
-      severity: 'medium',
-    });
+    flag(
+      'modal',
+      'Modal qualifier ("may", "must", "should") — strength is uncertain',
+      ['strong', 'weak'],
+      0.6
+    );
   if (QUANTIFIER_RE.test(input))
-    flags.push({
-      type: 'quantifier',
-      description: 'Quantifier ("all", "some", "most") — universality is uncertain',
-      options: ['universal', 'existential'],
-      confidence: 0.55,
-      severity: 'medium',
-    });
+    flag(
+      'quantifier',
+      'Quantifier ("all", "some", "most") — universality is uncertain',
+      ['universal', 'existential'],
+      0.55
+    );
   if (TEMPORAL_RE.test(input))
-    flags.push({
-      type: 'temporal',
-      description: 'Temporal marker ("when", "after", "until") — ordering is uncertain',
-      options: ['sequence', 'implication'],
-      confidence: 0.5,
-      severity: 'low',
-    });
+    flag(
+      'temporal',
+      'Temporal marker ("when", "after", "until") — ordering is uncertain',
+      ['sequence', 'implication'],
+      0.5
+    );
   return flags;
 }
 
@@ -377,11 +386,8 @@ export function toFormalizationBatch(input: string, batch: TaskBatch): Formaliza
     candidates,
     detectedIntent: batch.meta.detectedIntent,
     globalAmbiguities: batch.meta.ambiguities.map((a) => ({
-      type: a.type,
-      description: a.description,
-      options: a.options,
-      confidence: a.confidence,
-      severity: 'medium' as const,
+      ...a,
+      severity: ambiguitySeverityOf(a.type),
     })),
   });
 }

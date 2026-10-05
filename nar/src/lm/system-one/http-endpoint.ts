@@ -1,4 +1,5 @@
 import type { TermTruth } from '@senars/util';
+import { criticalitySchema } from '@senars/util/config';
 import { z } from 'zod';
 import { seedTruth } from './seed.js';
 import type {
@@ -14,22 +15,24 @@ import type {
  * seeds them at the `LLM_PRIOR` ceiling — never above 0.5 confidence.
  */
 
+import { cognitiveAxisSchema } from '../../decision/types.js';
+
 export const SystemOneQuerySchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('classify'),
     instruction: z.string(),
     space: z.array(z.string()).min(1),
-    axis: z.enum(['epistemic', 'teleological']),
+    axis: cognitiveAxisSchema,
     target: z.string().optional(),
-    criticality: z.enum(['low', 'standard', 'high', 'critical']).optional(),
+    criticality: criticalitySchema.optional(),
   }),
   z.object({
     kind: z.literal('evaluate'),
     instruction: z.string(),
     rubric: z.string(),
-    axis: z.enum(['epistemic', 'teleological']),
+    axis: cognitiveAxisSchema,
     levels: z.array(z.string()).optional(),
-    criticality: z.enum(['low', 'standard', 'high', 'critical']).optional(),
+    criticality: criticalitySchema.optional(),
   }),
 ]);
 
