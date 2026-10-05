@@ -12,48 +12,65 @@ import type { SeNARSModelId, SeNARSRegistry } from './model-factory.js';
 import { pickModel } from './routing.js';
 import { getLMSettings, getLmProvider } from './settings.js';
 
+/**
+ * One rung per (provider, task) the model factory registers.
+ *
+ * `Record<LMTask, …>` is what makes this table honest rather than merely
+ * populated: the type used to say three tiers while the factory built four, so
+ * `compact` had no rung anywhere and asking for it threw out of the `??` ladder
+ * in {@link getModelChain} instead of failing with the message two lines below it.
+ * Every id here must be one `createSeNARSRegistry()` can answer for.
+ */
 const CHAINS: Record<LMProviderName, Record<LMTask, SeNARSModelId[]>> = {
   transformers: {
     quality: ['builtin:quality'],
     fast: ['builtin:fast'],
     structured: ['builtin:structured'],
+    compact: ['builtin:compact'],
   },
   mock: {
     quality: ['builtin:mock'],
     fast: ['builtin:mock'],
     structured: ['builtin:mock'],
+    compact: ['builtin:mock'],
   },
   llamacpp: {
     // Explicit provider: authoritative, no silent CPU fallback rungs.
     quality: ['llamacpp:quality'],
     fast: ['llamacpp:fast'],
     structured: ['llamacpp:structured'],
+    compact: ['llamacpp:compact'],
   },
   'llamacpp-embedded': {
     // Embedded provider: authoritative, no silent CPU fallback rungs.
     quality: ['llamacpp-embedded:quality'],
     fast: ['llamacpp-embedded:fast'],
     structured: ['llamacpp-embedded:structured'],
+    compact: ['llamacpp-embedded:compact'],
   },
   anthropic: {
     quality: ['cloud:quality', 'builtin:quality', 'builtin:mock'],
     fast: ['cloud:fast', 'builtin:compact', 'builtin:mock'],
     structured: ['cloud:structured', 'builtin:compact', 'builtin:mock'],
+    compact: ['cloud:compact', 'builtin:compact', 'builtin:mock'],
   },
   openai: {
     quality: ['cloud:quality', 'builtin:quality', 'builtin:mock'],
     fast: ['cloud:fast', 'builtin:compact', 'builtin:mock'],
     structured: ['cloud:structured', 'builtin:compact', 'builtin:mock'],
+    compact: ['cloud:compact', 'builtin:compact', 'builtin:mock'],
   },
   'openai-compatible': {
     quality: ['cloud:quality', 'builtin:quality', 'builtin:mock'],
     fast: ['cloud:fast', 'builtin:compact', 'builtin:mock'],
     structured: ['cloud:structured', 'builtin:compact', 'builtin:mock'],
+    compact: ['cloud:compact', 'builtin:compact', 'builtin:mock'],
   },
   webllm: {
     quality: ['webllm:quality', 'builtin:quality', 'builtin:compact', 'builtin:mock'],
     fast: ['webllm:fast', 'builtin:compact', 'builtin:mock'],
     structured: ['webllm:quality', 'builtin:compact', 'builtin:mock'],
+    compact: ['webllm:compact', 'builtin:compact', 'builtin:mock'],
   },
 };
 

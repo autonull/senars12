@@ -50,7 +50,7 @@ function extractSystemPrompt(prompt: LanguageModelV3CallOptions['prompt']): stri
   return undefined;
 }
 
-function defaultMaxTokens(task: LMTask | 'compact'): number {
+function defaultMaxTokens(task: LMTask): number {
   switch (task) {
     case 'quality':
       return 2048;
@@ -61,7 +61,7 @@ function defaultMaxTokens(task: LMTask | 'compact'): number {
   }
 }
 
-function defaultTemperature(task: LMTask | 'compact'): number {
+function defaultTemperature(task: LMTask): number {
   switch (task) {
     case 'structured':
       return 0.3;
@@ -158,7 +158,7 @@ const finishReasonFor = (
     ? { unified: 'length', raw: 'max-tokens' }
     : { unified: 'stop', raw: stop ?? 'stop' };
 
-export function createEmbeddedLlamaCppLanguageModel(task: LMTask | 'compact'): LanguageModel {
+export function createEmbeddedLlamaCppLanguageModel(task: LMTask): LanguageModel {
   const runSerial = async (
     options: LanguageModelV3CallOptions,
     onDelta?: (text: string) => void

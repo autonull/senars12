@@ -3,7 +3,7 @@ import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { NAR } from '@senars/nar';
 import type { ExtendedAgent as Agent } from '@senars/nar/agent';
 import { cloudApiKey, getRoutingStatus } from '@senars/nar/lm';
-import { sumBy } from '@senars/util';
+import { LM_TASKS, sumBy } from '@senars/util';
 import type { JobManager } from './job-manager.js';
 import {
   formatBeliefsForMCP,
@@ -22,8 +22,8 @@ export interface MCPResourceContext {
 const lmStatus = (nar: NAR) => {
   const lm = nar.getLMClient?.();
   const tiers: Record<string, unknown> = {};
-  for (const task of ['quality', 'fast', 'structured', 'compact'] as const) {
-    const model = lm?.getModel(task as never);
+  for (const task of LM_TASKS) {
+    const model = lm?.getModel(task);
     if (model) {
       tiers[task] = (model as { modelId?: string }).modelId ?? (model as { model?: string }).model;
     }

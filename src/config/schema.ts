@@ -1,4 +1,5 @@
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
+import { LM_TASKS } from '@senars/util';
 import {
   dialogueDefaults,
   dialogueSchema,
@@ -47,7 +48,7 @@ export const botProfileSchema = z.object({
     .enum(['none', 'summary', 'full'])
     .default(profileDefaults.reasoningTransparency),
   /** H2: default narration tier for chat cycles — chat() callers without an explicit tier use this. */
-  narrateTier: z.enum(['fast', 'quality', 'structured']).default(profileDefaults.narrateTier),
+  narrateTier: z.enum(LM_TASKS).default(profileDefaults.narrateTier),
 });
 
 const conversationDefaults = {
@@ -99,16 +100,23 @@ const backendsDefaults = { nar: { enabled: true } } as const;
 
 /** Objective-driven routing policy (shared shape lives in @senars/nar/lm). */
 export const routingSchema = z.object({
+  /**
+   * A *partial* record, matching `Partial<Record<LMTask, RoutingObjective>>`:
+   * an absent tier is an empty objective, and the runtime already reads it that
+   * way (`policy?.objectives?.[task]`). A total record would instead oblige every
+   * default in this file to re-enumerate the tiers — two literals that were one
+   * tier short the moment `compact` was added, and would be short again the next time.
+   */
   objectives: z
-    .record(
-      z.enum(['quality', 'fast', 'structured']),
+    .partialRecord(
+      z.enum(LM_TASKS),
       z.object({
         quality: z.enum(['balanced', 'high', 'max']).optional(),
         maxLatencyMs: z.number().optional(),
         offlineOnly: z.boolean().optional(),
       })
     )
-    .default({ quality: {}, fast: {}, structured: {} }),
+    .default({}),
   candidates: z.array(z.string()).optional(),
   offlineOnly: z.boolean().optional(),
   maxLatencyMs: z.number().optional(),
@@ -264,7 +272,7 @@ const appConfigBase = z.object({
   inference: inferenceSchema.default({}),
   backends: backendsSchema,
   irc: ircSchema.optional(),
-  routing: routingSchema.default(() => ({ objectives: { quality: {}, fast: {}, structured: {} } })),
+  routing: routingSchema.default({ objectives: {} }),
   agent: agentSectionSchema,
   bot: botConfigSchema.default({
     ...botConfigDefaults,

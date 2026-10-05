@@ -33,7 +33,7 @@ import {
   resolveOfflineTier,
   setRouting,
 } from '@senars/nar/lm';
-import { createLogger, errMsg, keyedBy, mapValues, parseFlags } from '@senars/util';
+import { createLogger, errMsg, keyedBy, LM_TASKS, mapValues, parseFlags } from '@senars/util';
 import { loadConfig } from '../../config/index.js';
 import { credentialReport } from './doctor-checks.js';
 
@@ -160,8 +160,7 @@ const main = async (): Promise<void> => {
 
   // Routing matrix
   try {
-    const tasks: LMTask[] = ['quality', 'fast', 'structured'];
-    for (const task of tasks) {
+    for (const task of LM_TASKS) {
       const chain = getModelChain(lmConfig.provider, task);
       output.routingMatrix[task] = chain;
       if (!jsonOutput) console.log(`  ${task}: ${chain.join(' → ')}`);

@@ -87,7 +87,7 @@ export async function createAgentFromEnv(
       candidates: appConfig.routing.candidates,
       offlineOnly: appConfig.routing.offlineOnly,
       maxLatencyMs: appConfig.routing.maxLatencyMs,
-      objectives: appConfig.routing.objectives as never,
+      objectives: appConfig.routing.objectives,
       offlineLadder: appConfig.routing.offlineLadder,
     });
   }

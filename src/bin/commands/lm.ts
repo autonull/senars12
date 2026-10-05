@@ -6,7 +6,7 @@ import {
   resolveLMConfig,
   resolveLMSettings,
 } from '@senars/nar/lm';
-import { errMsg, removeBy } from '@senars/util';
+import { errMsg, LM_TASKS, removeBy } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import type { BotConfig } from '../../config/index.js';
 import { tokenize } from './args.js';
@@ -89,9 +89,9 @@ export const lmCommandsFor = (rt: BotRuntime) => {
       try {
         const { getModelChain } = await import('@senars/nar/lm/providers.js');
         const cfg = resolveLMConfig(appConfig.lm as never);
-        return (['quality', 'fast', 'structured'] as const)
-          .map((t) => `  ${t}: ${getModelChain(cfg.provider, t).join(' → ')}`)
-          .join('\n');
+        return LM_TASKS.map((t) => `  ${t}: ${getModelChain(cfg.provider, t).join(' → ')}`).join(
+          '\n'
+        );
       } catch (e) {
         return `routing unavailable: ${errMsg(e)}`;
       }

@@ -10,6 +10,7 @@ import {
   resolveOfflineModel,
   setRouting,
 } from '@senars/nar/lm';
+import { LM_TASKS } from '@senars/util';
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 afterEach(() => {
@@ -102,6 +103,48 @@ describe('getModelChain (routing from config)', () => {
 
   it('falls back to the default provider chains without routing config', () => {
     expect(getModelChain('mock', 'quality')).toEqual(['builtin:mock']);
+  });
+
+  it('has a rung for every tier the model factory registers, on every provider', () => {
+    // The defect this pins: `LMTask` named three tiers while `createSeNARSRegistry`
+    // registered a fourth, so `Record<LMTask, …>` could not hold a `compact` rung
+    // and `getModelChain(provider, 'compact')` fell off the end of the `??` ladder
+    // into `undefined`. `getModelForTask` then threw a TypeError on
+    // `undefined.entries()`, `LMService.getModel`'s bare `catch` swallowed it, and
+    // the operator was told no compact model existed while `senars.config.json`
+    // configured `compactModel`.
+    for (const provider of [
+      'transformers',
+      'mock',
+      'llamacpp',
+      'llamacpp-embedded',
+      'anthropic',
+      'openai',
+      'openai-compatible',
+      'webllm',
+    ] as const) {
+      for (const task of LM_TASKS) {
+        const chain = getModelChain(provider, task);
+        expect(chain.length, `${provider}/${task} must resolve a chain`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('routes the compact tier to a model id the factory registers', () => {
+    expect(getModelChain('llamacpp-embedded', 'compact')).toEqual(['llamacpp-embedded:compact']);
+    expect(getModelChain('anthropic', 'compact')).toEqual([
+      'cloud:compact',
+      'builtin:compact',
+      'builtin:mock',
+    ]);
+  });
+
+  it('applies per-task constraints to the compact tier like any other', () => {
+    setRouting({
+      candidates: ['cloud:compact', 'llamacpp:compact'],
+      objectives: { compact: { offlineOnly: true } },
+    });
+    expect(getModelChain('anthropic', 'compact')).toEqual(['builtin:compact', 'builtin:mock']);
   });
 });
 
